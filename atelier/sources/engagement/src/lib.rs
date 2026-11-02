@@ -1309,11 +1309,11 @@ fn nuitees_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qu
         let a_paris = lieux.iter().all(|x| lieu_a_paris(x));
         let limites = bar.get("logement_grand_deplacement").ok_or_else(|| {
             format!(
-                "{} : une nuitée à {} € par nuit, au-delà de ce que la limite d'exonération du logement en grand déplacement \
+                "{} : une nuitée à {} par nuit, au-delà de ce que la limite d'exonération du logement en grand déplacement \
                  pourrait être, et le barème {} ne porte pas cette limite (BOSS, Frais professionnels, § 1290). Le logiciel ne \
                  la devine pas : rien n'est calculé.",
                 qui,
-                taux,
+                socle::texte::euros(taux),
                 jour.an
             )
         })?;
@@ -1336,17 +1336,16 @@ fn nuitees_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qu
         }
         au_dela.push(Value::Object(part));
         // LA LIGNE COUPEE SE DIT : pourquoi (la limite du jour, du BOSS) et comment l'eviter (la case de la ligne).
-        let virgule = |x: Decimal| format!("{:.2}", x).replace('.', ",");
         avis.push(Avis {
             info: true,
             texte: format!(
-                "{} : nuitée de {} € au-dessus de la limite du jour ({} € {}, BOSS) : {} € par nuit entrent dans le brut, \
+                "{} : nuitée de {} au-dessus de la limite du jour ({} {}, BOSS) : {} par nuit entrent dans le brut, \
                  sauf si la compagnie garde la facture de l'hôtel (« justificatif conservé » sur la ligne).",
                 qui,
-                virgule(taux),
-                virgule(limite),
+                socle::texte::euros(taux),
+                socle::texte::euros(limite),
                 if a_paris { "à Paris, 92, 93, 94" } else { "hors Paris" },
-                virgule(taux - limite)
+                socle::texte::euros(taux - limite)
             ),
         });
         l[TAUX_SAISI] = nombre_dec(taux);

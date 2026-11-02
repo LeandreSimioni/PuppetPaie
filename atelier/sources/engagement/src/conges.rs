@@ -26,6 +26,7 @@ use socle::date::{d, dernier_du_mois, en_texte, premier_du_mois, forme_ecrite, J
 use crate::Avis;
 use socle::feries;
 use socle::fichiers::{repr, vrai};
+use socle::texte::{euros, virgule};
 use socle::num::{add, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
 use droit::conges::{jours_ouvrables, IndemniteDesJours};
 use droit::permanents::{arrondir_jours, jours_acquis, periode_de_reference, plafonner, Acquisition};
@@ -1261,16 +1262,16 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         let base = eur2(div(mul(base_conv, quotite), reference));
         let montant = eur2(div(mul(base, pourcentage), Decimal::ONE_HUNDRED));
         lignes.push(json!({"rubrique": "prime_anciennete", "quantite": 1, "taux": flot(montant)}));
-        let proratise = if quotite != reference { format!(" proratise a {} h", quotite) } else { String::new() };
+        let proratise = if quotite != reference { format!(" proratisé à {} h", virgule(quotite)) } else { String::new() };
         avert.push(info(format!(
-            "{} : prime d'anciennete {} % ({} an(s) de presence) du salaire \
-             conventionnel de {} EUR{} = {} EUR -- {}.",
+            "{} : prime d'ancienneté {} % ({} an(s) de présence) du salaire \
+             conventionnel de {}{} = {} -- {}.",
             qui(ctx, e),
-            pourcentage,
+            virgule(pourcentage),
             en_texte(&pa["annees"]),
-            base_conv,
+            euros(base_conv),
             proratise,
-            montant,
+            euros(montant),
             en_texte(&pa["article"])
         )));
         // Ce que les suspensions ont retire des annees de presence se dit avec la prime.

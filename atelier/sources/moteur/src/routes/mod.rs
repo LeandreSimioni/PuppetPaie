@@ -445,16 +445,6 @@ pub(crate) fn nombre(v: &Value) -> usize {
     v.as_array().map_or(0, Vec::len)
 }
 
-/// Un montant rendu (`12.8`, `"12.80"`), tel qu'une phrase le dit : « 12,80 € » ; ce qui n'est pas un nombre, tel quel.
-pub(crate) fn euros(v: &Value) -> String {
-    let x: Option<f64> = match v {
-        Value::Number(n) => n.as_f64(),
-        Value::String(s) => s.trim().replace(',', ".").parse().ok(),
-        _ => None,
-    };
-    x.map_or_else(|| mot(v), |x| format!("{:.2} €", x).replace('.', ","))
-}
-
 /// Une valeur rendue, en mots dans une phrase : rien pour une valeur absente (jamais « None »).
 pub(crate) fn mot(v: &Value) -> String {
     if v.is_null() { String::new() } else { valeur_en_texte(v) }

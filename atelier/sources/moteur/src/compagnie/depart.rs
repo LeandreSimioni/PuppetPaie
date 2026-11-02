@@ -570,13 +570,13 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     }
     if paies.is_empty() && regs.is_empty() {
         avertissements.push(info(format!(
-            "Aucun salarie en {} : la DSN part quand meme, sans individu (envoi neant) -- une DSN est due chaque mois.",
+            "Aucun salarié en {} : la DSN part quand même, sans individu (envoi néant) -- une DSN est due chaque mois.",
             engagement::libelle_mois(mois)
         )));
     }
     // LA DECLARATION OETH D'AVRIL : elle ajoute au bordereau Urssaf une contribution (CTP 730 ou 740).
     if let Some(doeth) = declarations::oeth::declaration(ctx, mois).map_err(valeur)? {
-        avertissements.push(info(format!("{} Le bordereau Urssaf du mois en porte {} EUR.", doeth.resume(), doeth.a_verser())));
+        avertissements.push(info(format!("{} Le bordereau Urssaf du mois en porte {}.", doeth.resume(), socle::texte::euros(doeth.a_verser()))));
     }
     // LA CONTRIBUTION SUPPLEMENTAIRE A L'APPRENTISSAGE DE MARS : le bloc 82 (079 ou 080) et le CTP 998 (`csa`).
     if let Some(c) = declarations::csa::declaration(ctx, mois, &departs).map_err(valeur)? {

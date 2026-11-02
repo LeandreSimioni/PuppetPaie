@@ -14,7 +14,7 @@ use droit::natures::Nature;
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
-use socle::texte::salarie_nomme;
+use socle::texte::{euros, salarie_nomme};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
 use socle::num::nombre;
@@ -759,17 +759,17 @@ pub(crate) fn abattement_dfs(o: &OptionDfs, montants: &[Decimal], brut: Decimal,
     let mut retenue = pleine.min(reste);
     if retenue < pleine {
         avis.push(format!(
-            "Deduction forfaitaire specifique ramenee de {} a {} EUR : le plafond de {} EUR par annee civile (arrete du \
-4 septembre 2025, art. 9) est atteint, {} EUR deja deduits cette annee.",
-            pleine, retenue, o.plafond_annuel, deja
+            "Déduction forfaitaire spécifique ramenée de {} à {} : le plafond de {} par année civile (arrêté du \
+4 septembre 2025, art. 9) est atteint, {} déjà déduits cette année.",
+            euros(pleine), euros(retenue), euros(o.plafond_annuel), euros(deja)
         ));
     }
     if brut - retenue < assiette_minimale {
         let plancher = zero.max(brut - assiette_minimale).min(retenue);
         avis.push(format!(
-            "Deduction forfaitaire specifique ramenee de {} a {} EUR : l'assiette abattue ne descend pas sous le SMIC du \
-contrat, {} EUR (CSS R. 242-1, al. 6 ; arrete du 4 septembre 2025, art. 9, I, dernier alinea).",
-            retenue, plancher, assiette_minimale
+            "Déduction forfaitaire spécifique ramenée de {} à {} : l'assiette abattue ne descend pas sous le SMIC du \
+contrat, {} (CSS R. 242-1, al. 6 ; arrêté du 4 septembre 2025, art. 9, I, dernier alinéa).",
+            euros(retenue), euros(plancher), euros(assiette_minimale)
         ));
         retenue = plancher;
     }

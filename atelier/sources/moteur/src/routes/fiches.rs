@@ -253,21 +253,21 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             let spectacles: Vec<(String, Value)> = v["spectacles"].as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), x.clone())).collect()).unwrap_or_default();
             let total: f64 = spectacles.iter().map(|(_, x)| cout(x)).sum();
             let jusqu_a = engagement::libelle_mois(&valeur_en_texte(&v["jusqu_a"]));
-            let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, super::euros(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
+            let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, socle::texte::euros_de(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
             // La ligne de chaque spectacle et de chaque salarie, telle que sa fiche la montre.
             for cote in ["spectacles", "salaries"] {
                 for x in v[cote].as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
                     let prevu = x["prevu"].as_str().and_then(|c| c.parse::<f64>().ok()).filter(|p| *p != 0.0);
                     x["phrase"] = json!(format!(
                         "coût employeur {} — brut {}, charges {}, {}{}{}",
-                        super::euros(&x["cout"]), super::euros(&x["brut"]), super::euros(&x["charges"]),
+                        socle::texte::euros_de(&x["cout"]), socle::texte::euros_de(&x["brut"]), socle::texte::euros_de(&x["charges"]),
                         super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"),
                         if vrai(&x["incomplet"]) { ", coût incomplet avant PuppetPaie" } else { "" },
-                        prevu.map_or(String::new(), |p| format!(" · + {} déjà saisis pour la suite de l'année", super::euros(&json!(p))))
+                        prevu.map_or(String::new(), |p| format!(" · + {} déjà saisis pour la suite de l'année", socle::texte::euros_de(&json!(p))))
                     ));
                 }
             }
-            v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, super::euros(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), super::euros(&x["brut"]))).collect::<Vec<_>>());
+            v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, socle::texte::euros_de(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), socle::texte::euros_de(&x["brut"]))).collect::<Vec<_>>());
             super::phrase_en_tete(v, p)
         }),
         "permanents" => permanents(ctx, charge).map(|v| {
@@ -315,12 +315,6 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 // ------------------------------------------------------------------ l'effectif
 
-/// Un effectif dit en clair : « 6,5 ».
-fn effectif_en_clair(x: f64) -> String {
-    let t = format!("{:.2}", x);
-    t.trim_end_matches('0').trim_end_matches('.').replace('.', ",")
-}
-
 /// L'EFFECTIF D'UNE ANNEE (`config/effectifs.json`, A01) : le dire, et le poser quand la compagnie le donne pour une annee
 /// que l'Urssaf n'a pas renvoyee en compte rendu de nature 118 (`envois::releve_retours::poser_effectif`). L'effectif
 /// annuel est la moyenne des mois de l'annee civile, tronquee au centieme (CSS, L. 130-1, I, et R. 130-1, I :
@@ -352,7 +346,7 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
         if !envois::releve_retours::poser_effectif(&ctx.racine, an, x, &le)? {
             return Err(erreur("ErreurOperation", format!("L'Urssaf a renvoyé l'effectif de {} : c'est le sien qui vaut. Rien n'est écrit.", an)));
         }
-        phrase = format!("Effectif de {} : {}.", an, effectif_en_clair(x));
+        phrase = format!("Effectif de {} : {}.", an, socle::num::dec_f64(x).map(|e| socle::texte::virgule(e.round_dp(2))).unwrap_or_default());
     }
     let e = ctx.effectif().map_err(Echec::from)?;
     let lu = std::fs::read_to_string(ctx.racine.join("config").join("effectifs.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).unwrap_or(Value::Null);
@@ -366,7 +360,7 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     if phrase.is_empty() {
         phrase = match valeur.as_f64() {
-            Some(v) => format!("Effectif de {} : {}, d'après {}.", an, effectif_en_clair(v), source),
+            Some(v) => format!("Effectif de {} : {}, d'après {}.", an, socle::num::dec_f64(v).map(|e| socle::texte::virgule(e.round_dp(2))).unwrap_or_default(), source),
             None => format!("L'effectif de {} n'est pas connu.", an),
         };
     }

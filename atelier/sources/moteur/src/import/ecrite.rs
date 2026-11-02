@@ -66,26 +66,6 @@ fn sans_prives(v: &Value) -> Value {
 
 // ------------------------------------------------------------------ l'alerte CASC-SVP
 
-/// Un montant de l'alerte CASC-SVP : `1 234,50 €`.
-fn eur_fr(v: Decimal) -> String {
-    let t = format!("{:.2}", v);
-    let (entier, dec) = t.split_once('.').unwrap_or((&t, "00"));
-    let (signe, chiffres) = match entier.strip_prefix('-') {
-        Some(r) => ("-", r),
-        None => ("", entier),
-    };
-    let mut groupes: Vec<String> = Vec::new();
-    let c: Vec<char> = chiffres.chars().collect();
-    let mut fin = c.len();
-    while fin > 3 {
-        groupes.push(c[fin - 3..fin].iter().collect());
-        fin -= 3;
-    }
-    groupes.push(c[..fin].iter().collect());
-    groupes.reverse();
-    format!("{}{},{} €", signe, groupes.join(" "), dec)
-}
-
 /// « janvier 2025 » : le nom d'un mois de l'alerte CASC-SVP. « 00 » n'est aucun mois et se refuse
 /// (`date::numero_du_mois`), comme un mois illisible.
 fn libelle_casc(m: &str) -> R<String> {
@@ -188,10 +168,10 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let periode = format!("{} à {}", libelle_casc(&par_mois[0].0)?, libelle_casc(&par_mois[par_mois.len() - 1].0)?);
     let total = par_mois.iter().fold(Decimal::ZERO, |a, (_, c)| a + *c);
     Ok(Some(format!(
-        "CASC-SVP : {} DSN deposee(s) depuis janvier 2025 ({}) ne portent peut-etre pas la cotisation CASC-SVP -- un logiciel qui n'etait pas parametre l'a omise. Si Audiens ne l'a pas encaissee, {} sont a regulariser : Exports > « regularisation-casc-svp » fait le dossier (virements, courriels, liste nominative).",
+        "CASC-SVP : {} DSN déposée(s) depuis janvier 2025 ({}) ne portent peut-être pas la cotisation CASC-SVP -- un logiciel qui n'était pas paramétré l'a omise. Si Audiens ne l'a pas encaissée, {} sont à régulariser : Exports > « regularisation-casc-svp » fait le dossier (virements, courriels, liste nominative).",
         par_mois.len(),
         periode,
-        eur_fr(total)
+        socle::texte::euros(total)
     )))
 }
 

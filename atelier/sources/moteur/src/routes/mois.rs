@@ -193,11 +193,11 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             // Le taux qu'il faudrait : chaque ligne qui change, puis le salaire du mois s'il change.
             let c = &v["engagements"][0];
             let mut faut: Vec<String> = c["lignes"].as_array().into_iter().flatten().map(|l| {
-                let avant = if l["taux_avant"].is_null() { String::new() } else { format!(" au lieu de {}", super::euros(&l["taux_avant"])) };
-                format!("{} à {}{}", valeur_en_texte(&l["rubrique"]), super::euros(&l["taux"]), avant)
+                let avant = if l["taux_avant"].is_null() { String::new() } else { format!(" au lieu de {}", socle::texte::euros_de(&l["taux_avant"])) };
+                format!("{} à {}{}", valeur_en_texte(&l["rubrique"]), socle::texte::euros_de(&l["taux"]), avant)
             }).collect();
             if !c["salaire_mensuel"].is_null() {
-                faut.push(format!("salaire du mois à {}", super::euros(&c["salaire_mensuel"])));
+                faut.push(format!("salaire du mois à {}", socle::texte::euros_de(&c["salaire_mensuel"])));
             }
             let avec = if faut.is_empty() { String::new() } else { format!(" ; {}", faut.join(", ")) };
             let cible = match v["cible"].as_str() {
@@ -207,8 +207,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 _ => valeur_en_texte(&v["cible"]),
             };
             let ecart = v["ecart"].as_str().and_then(|e| e.parse::<f64>().ok()).unwrap_or(0.0);
-            let pres = if ecart == 0.0 { " au centime près".to_string() } else { format!(" ({}{} : un taux se paie au centime)", if ecart > 0.0 { "+" } else { "" }, super::euros(&v["ecart"])) };
-            let p = format!("{} visé {} → {}{}{}.", cible, super::euros(&v["vise"]), super::euros(&v["atteint"]), pres, avec);
+            let pres = if ecart == 0.0 { " au centime près".to_string() } else { format!(" ({}{} : un taux se paie au centime)", if ecart > 0.0 { "+" } else { "" }, socle::texte::euros_de(&v["ecart"])) };
+            let p = format!("{} visé {} → {}{}{}.", cible, socle::texte::euros_de(&v["vise"]), socle::texte::euros_de(&v["atteint"]), pres, avec);
             super::phrase_en_tete(v, p)
         }),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -1889,7 +1889,7 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
         let Some(tarif) = engagement::tarif_conventionnel(ctx, &code, &jour).map_err(Echec::from)? else { continue };
         let taux = l["taux"].as_str().and_then(|t| t.parse::<f64>().ok()).or_else(|| l["taux"].as_f64());
         if taux.is_some_and(|t| Some(t) == tarif.as_f64()) {
-            let dit = format!("{} à {}", valeur_en_texte(&l["designation"]).to_lowercase(), crate::routes::euros(&tarif));
+            let dit = format!("{} à {}", valeur_en_texte(&l["designation"]).to_lowercase(), socle::texte::euros_de(&tarif));
             if !dits.contains(&dit) {
                 dits.push(dit);
             }

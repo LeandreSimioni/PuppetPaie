@@ -21,6 +21,7 @@ use serde_json::{json, Value};
 
 use crate::avenant::{de_devant, et, fait_le_brut, ligne_citee, remuneration_hors_brut};
 use crate::bulletin::fmt_eur;
+use socle::texte::{euros, virgule};
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use socle::date::en_texte;
@@ -45,12 +46,6 @@ fn ecrit(eng: &Value, cle: &str) -> Option<String> {
 /// Qui le contrat nomme, pour un refus.
 fn qui(m: &Valeurs) -> String {
     m.get("salarie.nom_complet").cloned().unwrap_or_else(|| "ce salarié".into())
-}
-
-/// « 151,67 » : un nombre d'heures, a la francaise.
-fn heures(x: Decimal) -> String {
-    let t = fmt_eur(x);
-    t.strip_suffix(",00").map(str::to_string).unwrap_or(t)
 }
 
 /// Les valeurs du contrat d'un permanent, paye au mois, que les parties (`avenant::parties`) ne portent pas : le motif
@@ -104,7 +99,7 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
             continue;
         }
         if l.get("salaire_de_base").is_some_and(vrai) {
-            base = Some(format!("un salaire mensuel brut de {} €", fmt_eur(dec(l.get("taux").unwrap_or(&Value::Null))?)));
+            base = Some(format!("un salaire mensuel brut de {}", euros(dec(l.get("taux").unwrap_or(&Value::Null))?)));
         } else if dec(l.get("montant").unwrap_or(&Value::Null))? > Decimal::ZERO {
             morceaux.push(ligne_citee(l)?);
         }
@@ -141,14 +136,14 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
         Some(m) => m == "20",
         None => q < reference,
     };
-    let mut duree = format!("{} heures par mois", heures(q));
+    let mut duree = format!("{} heures par mois", virgule(q));
     if partiel {
         let repartition = ecrit(eng, "repartition_horaire").ok_or_else(|| {
             format!(
                 "Le contrat de {} est à temps partiel ({} heures par mois, pour {} à temps plein) : il dit « la répartition de la durée du travail entre les jours de la semaine ou les semaines du mois » (L. 3123-6, 1°). L'écrire dans l'engagement (Plus d'options › Répartition des horaires). Rien n'est écrit.",
                 nom,
-                heures(q),
-                heures(reference)
+                virgule(q),
+                virgule(reference)
             )
         })?;
         duree = format!("{}, à temps partiel, réparties ainsi : {}", duree, repartition);

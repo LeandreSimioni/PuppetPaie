@@ -216,7 +216,7 @@ pub(crate) fn ligne_citee(l: &Value) -> Resultat<String> {
             texte.push(c);
         }
     }
-    Ok(format!("{} à {} €", texte, fmt_eur(dec(requis(l, "taux")?)?)))
+    Ok(format!("{} à {}", texte, socle::texte::euros(dec(requis(l, "taux")?)?)))
 }
 
 /// La ligne fait-elle le brut ? (`soumis` de la rubrique ; une paie qui ne le dit pas, si.)

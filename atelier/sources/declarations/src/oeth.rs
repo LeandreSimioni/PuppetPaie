@@ -6,6 +6,7 @@
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::fichiers::{lire_json, repr, repr_valeur, vrai};
+use socle::texte::{euros, virgule};
 use socle::num::{add, dec_f64, dec_avec_echelle, eur2, mul, sub, Decimal, Resultat};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -82,13 +83,21 @@ impl Declaration {
             let non = if self.non_realisees.is_zero() {
                 String::new()
             } else {
-                format!(", {} EUR de depenses non realisees (CTP 740)", self.non_realisees)
+                format!(", {} de dépenses non réalisées (CTP 740)", euros(self.non_realisees))
             };
-            return format!("OETH {} : accord agree {}{}.", self.millesime, accord, non);
+            return format!("OETH {} : accord agréé {}{}.", self.millesime, accord, non);
         }
         format!(
-            "OETH {} : effectif {}, {} beneficiaire(s) du(s), {} employe(s), {} manquant(s) x {} x SMIC {} = {} EUR brute, {} EUR nette (CTP 730).",
-            self.millesime, self.effectif, self.obligation, self.beneficiaires, self.manquants, self.coefficient, self.smic, self.brute, self.nette
+            "OETH {} : effectif {}, {} bénéficiaire(s) dû(s), {} employé(s), {} manquant(s) x {} x SMIC {} = {} brute, {} nette (CTP 730).",
+            self.millesime,
+            virgule(self.effectif),
+            virgule(self.obligation),
+            virgule(self.beneficiaires),
+            virgule(self.manquants),
+            self.coefficient,
+            euros(self.smic),
+            euros(self.brute),
+            euros(self.nette)
         )
     }
 

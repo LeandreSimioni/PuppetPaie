@@ -158,7 +158,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             super::phrase_en_tete(v, p)
         }),
         "casc-regularise" => casc_regularise(ctx, charge).map(|v| {
-            let p = format!("CASC-SVP {} notée régularisée : {} virés le {}.", t(&v, "annee"), super::euros(&v["montant"]), super::quand(&t(&v, "vire_le")));
+            let p = format!("CASC-SVP {} notée régularisée : {} virés le {}.", t(&v, "annee"), socle::texte::euros_de(&v["montant"]), super::quand(&t(&v, "vire_le")));
             super::phrase_en_tete(v, p)
         }),
         "exporter" => exporter(ctx, charge).map(|mut v| {
@@ -182,7 +182,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let partis: Vec<String> = v["partis"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
             let annees: Vec<String> = v["annees"].as_array().into_iter().flatten().map(|a| super::mot(&a["annee"])).collect();
             let notee = if annees.len() > 1 { "notées régularisées" } else { "notée régularisée" };
-            let p = format!("CASC-SVP, {} : {}, envoyé à {} ; {} {}.", t(&v, "periode"), super::euros(&v["total"]), partis.join(" et "), annees.join(" et "), notee);
+            let p = format!("CASC-SVP, {} : {}, envoyé à {} ; {} {}.", t(&v, "periode"), socle::texte::euros_de(&v["total"]), partis.join(" et "), annees.join(" et "), notee);
             super::phrase_en_tete(v, p)
         }),
         "droits" => droits(ctx, charge),
@@ -859,9 +859,10 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
             notes.push("Fenêtre déduite du dernier contrat déclaré : la date anniversaire que France Travail notifie (anniversaire_droits, dans la fiche du salarié) prime sur ce calcul.".to_string());
         }
         let colonnes: Vec<Value> = tableau_cumul(ctx, cle, &mois, &engs)?.iter().map(|x| x.canon()).collect();
-        let rangee = |quoi: &str, cle: &str, suite: &str| {
-            json!({"quoi": quoi, "valeurs": colonnes.iter().map(|x| format!("{}{}", valeur_en_texte(&x[cle]), suite)).collect::<Vec<_>>()})
+        let rangee = |quoi: &str, cle: &str, ecrire: &dyn Fn(&Value) -> String| {
+            json!({"quoi": quoi, "valeurs": colonnes.iter().map(|x| ecrire(&x[cle])).collect::<Vec<_>>()})
         };
+        let heures = |v: &Value| format!("{} h", socle::num::dec(v).map(socle::texte::virgule).unwrap_or_else(|_| valeur_en_texte(v)));
         let nom = ctx.salaries.get(cle).map(crate::routes::nom_a_l_ecran).unwrap_or_else(|| cle.to_string());
         salaries.push(json!({
             "cle": cle,
@@ -872,7 +873,7 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
             "notes": notes,
             "colonnes": {
                 "titres": colonnes.iter().map(|x| format!("{} {}", valeur_en_texte(&x["titre"]), valeur_en_texte(&x["sous_titre"])).trim().to_string()).collect::<Vec<_>>(),
-                "lignes": [rangee("Cachets", "cachets", ""), rangee("Heures déclarées", "heures", " h"), rangee("Total d'heures", "heures_equivalentes", " h"), rangee("Salaire brut", "brut", " €")],
+                "lignes": [rangee("Cachets", "cachets", &valeur_en_texte), rangee("Heures déclarées", "heures", &heures), rangee("Total d'heures", "heures_equivalentes", &heures), rangee("Salaire brut", "brut", &socle::texte::euros_de)],
             },
         }));
     }

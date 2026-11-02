@@ -10,6 +10,7 @@ use droit::cumul::{tableau_cumul, Colonne};
 use engagement::cumul::lire_engagements_jusqu_au;
 use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
 use socle::fichiers::vrai;
+use socle::texte::euros;
 use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
 use droit::pas::Versement;
 use rust_decimal::RoundingStrategy;
@@ -230,14 +231,14 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
     if let Some(rg) = &p.reduction_generale {
         if !rg.heures.is_zero() {
             return Ok(format!(
-                "{} € ({} h à {})",
-                fmt_eur(rg.smic_reference),
+                "{} ({} h à {})",
+                euros(rg.smic_reference),
                 fmt_heures(rg.heures),
-                fmt_eur(div(rg.smic_reference, rg.heures))
+                euros(div(rg.smic_reference, rg.heures))
             ));
         }
     }
-    Ok(format!("{} € ({} h à {})", fmt_eur(p.plafond), fmt_heures(p.heures), fmt_eur(dec_f64(p.smic)?)))
+    Ok(format!("{} ({} h à {})", euros(p.plafond), fmt_heures(p.heures), euros(dec_f64(p.smic)?)))
 }
 
 /// (IDCC, libellé) de la convention d'un contrat, pour ce qui s'imprime : le libellé se lit au catalogue des conventions
@@ -397,7 +398,7 @@ fn tableau_des_cumuls(colonnes: &[Colonne]) -> Value {
             " h",
         ));
     }
-    rangs.push(("Salaire brut", |c| fmt_eur(c.brut), " €"));
+    rangs.push(("Salaire brut", |c| euros(c.brut), ""));
     let lignes = rangs
         .iter()
         .map(|(libelle, valeur, suffixe)| {
@@ -1049,10 +1050,10 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     salarie.push(k("Abattement :"));
     salarie.push(mt(match &p.deduction_forfaitaire {
         Some(d) => format!(
-            " {} % (catégorie {} %, taux de l'année) — {} € déduits",
+            " {} % (catégorie {} %, taux de l'année) — {} déduits",
             fmt_heures(d.taux),
             d.categorie,
-            fmt_eur(d.montant)
+            euros(d.montant)
         ),
         None => " 0 %".to_string(),
     }));
@@ -1180,11 +1181,11 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         j.colonnes.filter(|c| !c.is_empty()).map(tableau_des_cumuls)
     };
     blocs.extend(cumul);
-    let plafond = j.plafond.map_or("—".to_string(), fmt_eur);
+    let plafond = j.plafond.map_or("—".to_string(), euros);
     let date_paiement = e.date_du_versement()?;
     blocs.push(para(
         vec![mt(format!(
-            "Plafond Urssaf de la période : {} €{}SMIC retenu pour la réduction générale : {}{}Règlement le {} \
+            "Plafond Urssaf de la période : {}{}SMIC retenu pour la réduction générale : {}{}Règlement le {} \
              par virement.\nContrat n° {} — {}, convention collective IDCC {}. Conservez ce bulletin sans limitation \
              de durée.",
             plafond,

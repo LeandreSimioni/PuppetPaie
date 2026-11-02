@@ -414,8 +414,8 @@ pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
             return Err(Refus {
                 classe: Some("ValueError"),
                 message: format!(
-                    "Decoupage au 31 mars incoherent pour {} : {} EUR repartis pour un brut de {} EUR.",
-                    qui, total, paie.brut
+                    "Découpage au 31 mars incohérent pour {} : {} répartis pour un brut de {}.",
+                    qui, socle::texte::euros(total), socle::texte::euros(paie.brut)
                 ),
             });
         }

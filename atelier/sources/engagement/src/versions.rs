@@ -11,29 +11,11 @@ use crate::stock::{DATES, FAITS};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::fichiers::vrai;
+use socle::texte::{euros_de, virgule};
 
 /// « 14/11 » d'un jour ISO ; tel quel s'il ne se lit pas.
 fn jour_court(iso: &str) -> String {
     Jour::lire(iso.get(..10).unwrap_or(iso)).map(|j| j.jj_mm()).unwrap_or_else(|_| iso.to_string())
-}
-
-/// Un montant saisi (`150`, `150.0`, `"150"`) en euros : « 150,00 € ».
-fn euros(v: &Value) -> String {
-    let x: Option<f64> = match v {
-        Value::Number(n) => n.as_f64(),
-        Value::String(s) => s.replace(',', ".").parse().ok(),
-        _ => None,
-    };
-    x.map_or_else(|| en_texte(v), |x| format!("{:.2} €", x).replace('.', ","))
-}
-
-/// Un nombre saisi sans ses decimales inutiles : `3.0` → « 3 », `2.5` → « 2,5 ».
-fn nombre(v: &Value) -> String {
-    match v.as_f64() {
-        Some(x) if x.fract() == 0.0 => format!("{}", x as i64),
-        Some(x) => format!("{}", x).replace('.', ","),
-        None => en_texte(v),
-    }
 }
 
 /// Le jour d'une date de ligne, nue ou `{"jour", "lieu"}`.
@@ -131,8 +113,8 @@ fn en_mots(cle: &str, v: Option<&Value>) -> String {
     match v {
         None | Some(Value::Null) => "—".into(),
         Some(Value::Bool(b)) => if *b { "oui" } else { "non" }.into(),
-        Some(x) if cle == "salaire_mensuel" => euros(x),
-        Some(x @ Value::Number(_)) => nombre(x),
+        Some(x) if cle == "salaire_mensuel" || cle == "taux" => euros_de(x),
+        Some(x @ Value::Number(_)) => socle::num::dec(x).map(virgule).unwrap_or_else(|_| en_texte(x)),
         Some(x) => en_texte(x),
     }
 }
@@ -227,16 +209,16 @@ fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, V
         for k in 0..xs.len().max(ys.len()) {
             match (xs.get(k), ys.get(k)) {
                 (Some(_), None) => out.push(format!("{} : retiré", lib)),
-                (None, Some(y)) => out.push(format!("{} : ajouté ({})", lib, nombre(y.get("quantite").unwrap_or(&Value::Null)))),
+                (None, Some(y)) => out.push(format!("{} : ajouté ({})", lib, en_mots("quantite", y.get("quantite")))),
                 (Some(x), Some(y)) => {
                     let champ = |l: &Value, k: &str| l.get(k).cloned().unwrap_or(Value::Null);
                     let (qx, qy) = (champ(x, "quantite"), champ(y, "quantite"));
                     if qx.as_f64() != qy.as_f64() {
-                        out.push(format!("{} : {} → {}", au_pluriel(&lib), nombre(&qx), nombre(&qy)));
+                        out.push(format!("{} : {} → {}", au_pluriel(&lib), en_mots("quantite", Some(&qx)), en_mots("quantite", Some(&qy))));
                     }
                     let (tx, ty) = (champ(x, "taux"), champ(y, "taux"));
-                    if euros(&tx) != euros(&ty) {
-                        out.push(format!("{} : {} → {}", nom_du_taux(&lib, &unite), euros(&tx), euros(&ty)));
+                    if en_mots("taux", Some(&tx)) != en_mots("taux", Some(&ty)) {
+                        out.push(format!("{} : {} → {}", nom_du_taux(&lib, &unite), en_mots("taux", Some(&tx)), en_mots("taux", Some(&ty))));
                     }
                     if let Some(j) = jours_changes(x, y) {
                         out.push(j);
