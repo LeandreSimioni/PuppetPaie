@@ -18,7 +18,8 @@ use serde_json::Value;
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
 use socle::date::{d, en_texte, Jour};
-use socle::num::Resultat;
+use socle::num::{dec_f64, Resultat};
+use socle::texte::virgule;
 
 /// La duree quotidienne maximale de travail effectif (L. 3121-18).
 pub const MAXIMUM_QUOTIDIEN: f64 = 10.0;
@@ -56,11 +57,6 @@ fn heures_par_jour(ctx: &Contexte, e: &Value) -> Resultat<BTreeMap<Jour, (f64, b
     Ok(jours)
 }
 
-fn heures(h: f64) -> String {
-    let t = format!("{:.2}", h);
-    t.trim_end_matches('0').trim_end_matches('.').replace('.', ",")
-}
-
 /// LE REFUS : un jour de plus de 24 heures dans l'engagement `e` de `qui`. `None` quand il n'y en a pas.
 pub fn plus_d_une_journee(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Option<String>> {
     let trop: Vec<(Jour, (f64, bool))> = heures_par_jour(ctx, e)?.into_iter().filter(|(_, (h, _))| *h > JOURNEE + 1e-9).collect();
@@ -68,7 +64,7 @@ pub fn plus_d_une_journee(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Opti
     Ok(Some(format!(
         "{} : {} h de travail {}le {}{} : saisissez les heures de ce jour-là, ou répartissez-les sur plus de jours.",
         qui,
-        heures(*h),
+        virgule(dec_f64(*h)?.round_dp(2)),
         if *moyenne { "en moyenne " } else { "" },
         j.jj_mm_aaaa(),
         crate::JOURNEE_DE_PLUS_DE_24
@@ -84,7 +80,7 @@ pub fn au_dela_du_maximum(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Opti
         return Ok(None);
     }
     let moyenne = longs.iter().any(|(_, (_, m))| *m);
-    let dits: Vec<String> = longs.iter().map(|(j, (h, _))| format!("{} h le {}", heures(*h), j.jj_mm())).collect();
+    let dits: Vec<String> = longs.iter().map(|(j, (h, _))| format!("{} h le {}", dec_f64(*h).map(|h| virgule(h.round_dp(2))).unwrap_or_default(), j.jj_mm())).collect();
     Ok(Some(format!(
         "{} : {}{}. La durée quotidienne de travail effectif ne peut dépasser 10 heures (code du travail, L. 3121-18), sauf \
          une convention ou un accord qui la porte jusqu'à 12 heures (L. 3121-19), une dérogation de l'inspecteur du travail \

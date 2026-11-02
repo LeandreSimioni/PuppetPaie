@@ -12,6 +12,7 @@
 
 use serde_json::Value;
 use socle::fichiers::vrai;
+use socle::texte::virgule;
 use socle::num::{dec_avec_echelle, Decimal, Resultat};
 
 /// Des heures a une majoration (en pourcent).
@@ -26,11 +27,6 @@ pub struct Palier {
 pub struct Reparties {
     pub paliers: Vec<Palier>,
     pub avis: Vec<String>,
-}
-
-/// Un nombre à la française : virgule décimale, sans zéros inutiles.
-fn virgule(x: Decimal) -> String {
-    x.normalize().to_string().replace('.', ",")
 }
 
 fn loi() -> Resultat<Value> {

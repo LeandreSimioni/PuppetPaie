@@ -37,6 +37,7 @@
 use socle::date::Jour;
 use socle::fichiers::{dossier_du_code, signature};
 use socle::num::{div, mul, Decimal, Resultat};
+use socle::texte::euros;
 use rust_decimal::RoundingStrategy;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -388,24 +389,6 @@ const SOURCE_URSSAF: &str = "Guide Urssaf « Comment déclarer et régulariser l
 const SOURCE_COMPLEMENTAIRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005 (CCH-12) et fiche net-entreprises 1328 : quand la somme des composants de versement est négative, le versement est déclaré à zéro.";
 const SOURCE_DGFIP: &str = "Fiche net-entreprises 1931 « Gérer les situations créditrices » : un prélèvement à la source négatif se déclare à 0,00, et le remboursement se demande au service des impôts des entreprises (messagerie sécurisée de l'espace professionnel impots.gouv.fr).";
 const SOURCE_AUTRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005 : « montant des cotisations réglées », « non signé, valeur zéro autorisée ». Aucun texte relevé ne dit comment cet organisme rend un crédit.";
-
-/// Un montant a l'ecran : « 1 295,00 € », milliers separes et euro colle par des espaces insecables (le montant ne se
-/// coupe pas en fin de ligne), comme `euros` de la page (`toLocaleString("fr-FR")`).
-fn euros(x: Decimal) -> String {
-    let mut x = x.abs();
-    x.rescale(2);
-    let t = x.to_string();
-    let (e, c) = t.split_once('.').unwrap_or((&t, "00"));
-    let mut groupes: Vec<&str> = Vec::new();
-    let mut fin = e.len();
-    while fin > 3 {
-        groupes.push(&e[fin - 3..fin]);
-        fin -= 3;
-    }
-    groupes.push(&e[..fin]);
-    groupes.reverse();
-    format!("{},{}\u{a0}€", groupes.join("\u{202f}"), c)
-}
 
 /// Ce que devient le credit d'un versement : `reste`, le credit que le versement ne reprend pas ; `deduit`, ce qu'il
 /// reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire.

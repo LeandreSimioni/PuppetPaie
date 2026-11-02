@@ -59,6 +59,7 @@ use socle::fichiers::vrai;
 use crate::import::completer as completer;
 use crate::import::tri::Sorte;
 use socle::num::Decimal;
+use socle::texte::{euros, euros_de};
 use crate::import::attestes::{Atteste, Registre};
 use crate::routes::import::{self as ri, ACreer, Apercu, CleEngagement};
 
@@ -1208,7 +1209,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 match &cl.aem {
                     Some(a) => {
                         if somme.is_some_and(|s| s != brut) {
-                            phrases.push(format!("écart noté : l'{} dit {} € de brut, les contrats {} €", cl.nom(), brut, somme.unwrap_or_default()));
+                            phrases.push(format!("écart noté : l'{} dit {} de brut, les contrats {}", cl.nom(), euros(brut), euros(somme.unwrap_or_default())));
                         }
                         if (i128::from(a.cachets()), i128::from(a.jours.unwrap_or(0))) != (cachets, jours) {
                             phrases.push(format!(
@@ -1224,7 +1225,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                     None => {
                         let nombre = c.nombre.unwrap_or(0);
                         if somme.is_some_and(|s| Decimal::from(documents::conges_spectacles::arrondi_euro(s)) != brut) {
-                            phrases.push(format!("écart noté : le certificat dit {} € de brut, les contrats {} €", brut, somme.unwrap_or_default()));
+                            phrases.push(format!("écart noté : le certificat dit {} de brut, les contrats {}", euros(brut), euros(somme.unwrap_or_default())));
                         }
                         if i128::from(nombre) != cachets && i128::from(nombre) != jours {
                             phrases.push(format!("écart noté : le certificat dit {} jours ou cachets, les contrats {} cachets et {} jours", nombre, cachets, jours));
@@ -1271,8 +1272,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             (None, Some(l)) => {
                 let n = |k: &str| l.get(k).and_then(Value::as_i64).unwrap_or(0);
                 let quoi = if n("cachets") > 0 { format!("{} cachet(s)", n("cachets")) } else { format!("{} jour(s)", n("jours")) };
-                let brut_reste = valeur_en_texte(&l["brut"]);
-                Ok((l, format!("{}, {} € de brut : ce que dit le certificat moins ce que disent les autres pièces ; son brut, {} €, est arrondi à l'euro", quoi, brut_reste, brut)))
+                let brut_reste = euros_de(&l["brut"]);
+                Ok((l, format!("{}, {} de brut : ce que dit le certificat moins ce que disent les autres pièces ; son brut, {}, est arrondi à l'euro", quoi, brut_reste, euros(brut))))
             }
             (None, None) => {
                 let statut = statut_de(ctx, &par_nir, &ap.a_creer, nir, c)?;
@@ -1287,11 +1288,11 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             Ok((ligne, quoi)) => {
                 infos.insert("contrat".into(), json!("nouveau"));
                 let raison = if est_aem {
-                    format!("{} {} : contrat attesté ajouté ({}, {} € de brut)", nom, du_au, quoi, ligne["brut"].as_str().unwrap_or(""))
+                    format!("{} {} : contrat attesté ajouté ({}, {} de brut)", nom, du_au, quoi, euros_de(&ligne["brut"]))
                 } else if est_reste {
                     format!("certificat Congés Spectacles {} contrat attesté ajouté ({}) ; les heures, que le certificat ne porte pas, n'y sont pas", du_au, quoi)
                 } else {
-                    format!("certificat Congés Spectacles {} : contrat attesté ajouté ({}, {} € de brut arrondi à l'euro) ; les heures, que le certificat ne porte pas, n'y sont pas", du_au, quoi, brut)
+                    format!("certificat Congés Spectacles {} : contrat attesté ajouté ({}, {} de brut arrondi à l'euro) ; les heures, que le certificat ne porte pas, n'y sont pas", du_au, quoi, euros(brut))
                 };
                 let bloc = if est_aem { "aem_pdf" } else { "certificats" };
                 let raison = std::iter::once(raison).chain(registre.ajouter(nir, ligne, cl.source(), bloc)).collect::<Vec<_>>().join(" ; ");

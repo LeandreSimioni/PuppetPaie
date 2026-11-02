@@ -268,9 +268,9 @@ pub fn page_a<S: AsRef<str>>(a: &A<S>) -> Vec<Value> {
     if a.mode {
         t(b_, 255.2, y + 14.0, "mode de règlement : Virement");
     }
-    grand(b_, 469.5, y + 32.0, &format!("{} €", s(&a.net_a_payer)), 14.0);
+    grand(b_, 469.5, y + 32.0, &format!("{} €", s(&a.net_a_payer)), 14.0); // forme imposée : l'imprimé du logiciel imité
     t(b_, 439.7, y + 51.0, "Total versé par l'employeur");
-    grand(b_, 478.9, y + 72.0, &format!("{} €", s(&a.total_verse)), 11.0);
+    grand(b_, 478.9, y + 72.0, &format!("{} €", s(&a.total_verse)), 11.0); // forme imposée : l'imprimé du logiciel imité
     grand(b_, 31.0, 810.0, "coolpaie 4.0.0.8.312", 7.0);
     b
 }
@@ -456,16 +456,16 @@ pub fn page_b<S: AsRef<str>>(p: &B<S>) -> Vec<Value> {
             r(b_, 220.0, y, s(cumul));
         }
     }
-    grand(b_, 493.3, 765.0, &format!("{} €", s(&p.net_paye)), 14.0);
+    grand(b_, 493.3, 765.0, &format!("{} €", s(&p.net_paye)), 14.0); // forme imposée : l'imprimé du logiciel imité
     t(b_, 445.0, 787.0, "Total versé par");
     t(b_, 450.2, 795.0, "l'employeur");
     if p.allegement {
         t(b_, 510.0, 787.0, "Allègement de");
         t(b_, 506.0, 795.0, "cotisations empl.");
-        grand(b_, 460.0, 812.0, &format!("{} €", s(&p.total_verse)), 11.0);
+        grand(b_, 460.0, 812.0, &format!("{} €", s(&p.total_verse)), 11.0); // forme imposée : l'imprimé du logiciel imité
         grand(b_, 532.0, 812.0, "0,00 €", 11.0);
     } else {
-        grand(b_, 524.7, 792.0, &format!("{} €", s(&p.total_verse)), 11.0);
+        grand(b_, 524.7, 792.0, &format!("{} €", s(&p.total_verse)), 11.0); // forme imposée : l'imprimé du logiciel imité
     }
     grand(b_, 504.7, 828.0, "GHS - sPAIEctacle ©", 6.5);
     b

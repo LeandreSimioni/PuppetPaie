@@ -625,8 +625,8 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
         let au_reel = format!(
             "{} d'absence ce mois-ci, {} h sur les {} h de travail du mois, retirées au prorata du salaire du mois",
             if jours > 1 { format!("{} jours travaillés", jours) } else { format!("{} jour travaillé", jours) },
-            heures.to_string().replace('.', ","),
-            heures_du_mois.to_string().replace('.', ",")
+            socle::texte::virgule(heures),
+            socle::texte::virgule(heures_du_mois)
         );
         let code = s(&imp, "motif");
         if est_un_arret(&imp) {
@@ -735,7 +735,6 @@ fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuner
         remuneration_journaliere,
         &OptionsMaintien { deja_indemnises: deja, accident_du_travail: at, accident_de_trajet: trajet },
     )?;
-    let texte = |k: &str| en_texte(&r[k]);
     let tranches: Vec<String> = r["tranches"]
         .as_array()
         .map_or(&[][..], |a| &a[..])
@@ -745,14 +744,14 @@ fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuner
     let tranches = if tranches.is_empty() { "aucun jour".to_string() } else { tranches.join(", ") };
     let carence = r["carence"].as_i64().unwrap_or(0);
     let mut dit = vec![info(format!(
-        "{} : arret de {} jour(s) en tout. La loi donne {} apres {} jour(s) de carence ({}) -- soit {} EUR bruts AVANT \
-deduction des indemnites journalieres (L1226-1, D1226-1 a D1226-3).",
+        "{} : arrêt de {} jour(s) en tout. La loi donne {} après {} jour(s) de carence ({}) -- soit {} bruts AVANT \
+déduction des indemnités journalières (L1226-1, D1226-1 à D1226-3).",
         qui,
         jours,
         tranches,
         carence,
         if carence == 0 { "aucune, accident du travail ou maladie professionnelle" } else { "D1226-3" },
-        texte("brut_avant_deduction")
+        socle::texte::euros_de(&r["brut_avant_deduction"])
     ))];
     let au_dela = r["jours_au_dela_du_droit"].as_i64().unwrap_or(0);
     if au_dela != 0 {

@@ -213,7 +213,7 @@ pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Res
         } else {
             volume.join(" et ")
         };
-        let mut ligne = format!("  - {} : {}, {} € brut", periode, quoi, fmt_eur(p.brut));
+        let mut ligne = format!("  - {} : {}, {} brut", periode, quoi, socle::texte::euros(p.brut));
         if e.a_cheval()? && !e.dernier_mois()? {
             // Septembre 2026 : France Travail n'a edite AUCUNE attestation pour le contrat du 29/09 au 16/10 -- elle
             // vient a la fin du contrat. Le salarie declare quand meme ses jours du mois.
@@ -310,8 +310,11 @@ pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
     Ok(serde_json::json!({"contrats": contrats, "brut": fmt_eur(brut), "net": fmt_eur(net)}))
 }
 
+/// Un montant du resume (« 1 234,56 », comme le bulletin l'ecrit), tel qu'une phrase le dit ; tel quel s'il ne se lit pas.
 fn texte_de(v: &Value, cle: &str) -> String {
-    v.get(cle).filter(|x| vrai(x)).map(en_texte).unwrap_or_default()
+    let t = v.get(cle).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+    let nombre = t.chars().filter(|c| !socle::texte::blanc(*c)).collect::<String>().replace(',', ".");
+    nombre.parse::<Decimal>().map(socle::texte::euros).unwrap_or(t)
 }
 
 /// CE QUI A CHANGE depuis l'envoi des documents, en lignes pretes pour le courriel : ce qui a change dans les
@@ -322,10 +325,10 @@ fn texte_de(v: &Value, cle: &str) -> String {
 pub fn ce_qui_a_change(faits: &[String], ancien: &Value, nouveau: &Value) -> Vec<String> {
     let mut out: Vec<String> = faits.iter().map(|f| format!("  - {}", f)).collect();
     if texte_de(ancien, "brut") != texte_de(nouveau, "brut") {
-        out.push(format!("  - Salaire brut : {} € → {} €", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
+        out.push(format!("  - Salaire brut : {} → {}", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
     }
     if texte_de(ancien, "net") != texte_de(nouveau, "net") {
-        out.push(format!("  - Net à payer : {} € → {} €", texte_de(ancien, "net"), texte_de(nouveau, "net")));
+        out.push(format!("  - Net à payer : {} → {}", texte_de(ancien, "net"), texte_de(nouveau, "net")));
     }
     out
 }

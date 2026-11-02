@@ -15,6 +15,7 @@ use crate::Avis;
 use droit::contexte::Contexte;
 use socle::date::en_texte;
 use socle::fichiers::vrai;
+use socle::texte::{euros, virgule};
 use socle::num::{dec_avec_echelle, eur2, Decimal, Resultat};
 
 /// Les faits du mois, sur la carte d'un salarie paye au mois.
@@ -58,16 +59,6 @@ fn heures(e: &Value, k: &str) -> Resultat<Decimal> {
     }
 }
 
-
-/// Un nombre à la française : virgule décimale, sans zéros inutiles (« 151,67 »).
-fn virgule(x: Decimal) -> String {
-    x.normalize().to_string().replace('.', ",")
-}
-
-/// Un montant en euros à la française : « 16,40 € ».
-fn euros(x: Decimal) -> String {
-    format!("{} €", eur2(x)).replace('.', ",")
-}
 /// LES LIGNES DES HEURES EN PLUS DU MOIS de la saisie `e` d'un contrat paye au mois de `salaire` pour `quotite` heures
 /// par mois, a temps `partiel` ou non : une ligne par majoration, au taux horaire du contrat majore. INFERENCE, ecrite
 /// comme telle : le taux horaire est le salaire mensuel du contrat sur ses heures par mois ; le BOSS (§ 310) y ajoute les

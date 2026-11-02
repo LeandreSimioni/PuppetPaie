@@ -217,7 +217,7 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         avert.push(format!("Paies reprises de la seule DSN, sans leur bulletin, hors de l'état : {}.", mois_dits(&sans_bulletin)));
     }
     for (libelle, (mois, total)) in &non_rattachees {
-        avert.push(format!("Ligne « {} » des bulletins repris ({}) : la lecture de l'import ne la rattache à aucune cotisation, hors de l'état ({} €).", libelle, mois_dits(mois), documents::bulletin::fmt_eur(*total)));
+        avert.push(format!("Ligne « {} » des bulletins repris ({}) : la lecture de l'import ne la rattache à aucune cotisation, hors de l'état ({}).", libelle, mois_dits(mois), socle::texte::euros(*total)));
     }
     let mut lignes = Vec::new();
     for c in cumul {

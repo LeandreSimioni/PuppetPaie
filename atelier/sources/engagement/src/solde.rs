@@ -16,6 +16,7 @@ use droit::natures::Nature;
 use socle::date::{d, en_texte, premier_du_mois, repr_flottant};
 use crate::Avis;
 use socle::fichiers::vrai;
+use socle::texte::{euros, euros_de, virgule};
 use socle::num::{add, dec, dec_avec_echelle, div, eur2, flottant, mul, zero2, Decimal, Resultat};
 use droit::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
 
@@ -303,19 +304,19 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                         None => repr_flottant(0.10 * 100.0),
                     };
                     stc.avertissements.push(info(format!(
-                        "{} : indemnite de fin de contrat {} % sur {} EUR de \
-                         remuneration totale = {} (L1243-8).",
-                        qui, pour_cent, total, montant
+                        "{} : indemnité de fin de contrat {} % sur {} de \
+                         rémunération totale = {} (L1243-8).",
+                        qui, pour_cent, euros(total), euros(montant)
                     )));
                 } else {
                     // Une indemnite nulle ne s'ecrit pas : la norme refuse `0.00`.
                     stc.avertissements.push(avertir(format!(
-                        "{} : indemnite de fin de contrat NULLE -- la \
-                         remuneration totale du contrat est de {} EUR. Si le \
-                         contrat a paye quelque chose, ce sont ses mois \
-                         precedents dont la saisie manque : l'assiette de \
-                         L1243-8 est la remuneration de TOUT le contrat.",
-                        qui, total
+                        "{} : indemnité de fin de contrat NULLE -- la \
+                         rémunération totale du contrat est de {}. Si le \
+                         contrat a payé quelque chose, ce sont ses mois \
+                         précédents dont la saisie manque : l'assiette de \
+                         L1243-8 est la rémunération de TOUT le contrat.",
+                        qui, euros(total)
                     )));
                 }
             }
@@ -383,13 +384,13 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                     _ => String::new(),
                 };
                 stc.avertissements.push(avertir(format!(
-                    "{} : {} mois de preavis non effectue, payes {} EUR \
-                     (L1234-5) -- {}. Ce preavis OUVRE DES CONGES PAYES -- \
-                     l'article dit \"indemnite de conges payes comprise\" -- et le \
-                     moteur ne les a PAS ajoutes au compteur : a verifier.{}",
+                    "{} : {} mois de préavis non effectué, payés {} \
+                     (L1234-5) -- {}. Ce préavis OUVRE DES CONGÉS PAYÉS -- \
+                     l'article dit « indemnité de congés payés comprise » -- et le \
+                     moteur ne les a PAS ajoutés au compteur : à vérifier.{}",
                     qui,
-                    m,
-                    eur2(mul(m, salaire)),
+                    virgule(m),
+                    euros(mul(m, salaire)),
                     duree.dit,
                     article
                 )));
@@ -536,15 +537,15 @@ fn delai_de_prevenance(
     let rubrique = t(cle(&regle, "rubrique")?);
     stc.lignes.push(json!({"rubrique": rubrique, "quantite": flot(fraction), "taux": flot(salaire)}));
     stc.avertissements.push(avertir(format!(
-        "{} : {} ; le contrat finit le {} : {} jour(s) travaille(s) du delai non effectue(s), payes {} EUR au salaire mensuel, pour \
-         leurs heures (L1221-25, indemnite compensatrice ; Cass. soc., 20/01/1999 ; DSN 52 : 017). Elle comprend les avantages et \
-         l'indemnite compensatrice de conges payes de ces jours : le moteur ne les a PAS ajoutes, a verifier. Le decompte \
-         de la presence et du delai est une lecture (permanents-base.json, `preavis.delai_de_prevenance._lecture`).",
+        "{} : {} ; le contrat finit le {} : {} jour(s) travaillé(s) du délai non effectué(s), payés {} au salaire mensuel, pour \
+         leurs heures (L1221-25, indemnité compensatrice ; Cass. soc., 20/01/1999 ; DSN 52 : 017). Elle comprend les avantages et \
+         l'indemnité compensatrice de congés payés de ces jours : le moteur ne les a PAS ajoutés, à vérifier. Le décompte \
+         de la présence et du délai est une lecture (permanents-base.json, `preavis.delai_de_prevenance._lecture`).",
         qui,
         dit,
         fin.jj_mm_aaaa(),
         jours,
-        eur2(mul(fraction, salaire))
+        euros(mul(fraction, salaire))
     )));
     Ok(())
 }
@@ -686,45 +687,45 @@ fn indemnite_de_rupture(
         montant = dec_avec_echelle(saisi)?;
         if !du {
             return Err(format!(
-                "{} : indemnite de {} de {} EUR saisie, et ni la loi ni la \
-                 convention ne donnent de montant a quoi la comparer -- {}. \
-                 Le moteur ne declare pas une indemnite dont il ne sait pas \
+                "{} : indemnité de {} de {} saisie, et ni la loi ni la \
+                 convention ne donnent de montant à quoi la comparer -- {}. \
+                 Le moteur ne déclare pas une indemnité dont il ne sait pas \
                  dire ce qu'elle supporte.",
                 qui,
                 quoi,
-                montant,
+                euros(montant),
                 t(get(&legale, "pourquoi"))
             ));
         }
         if montant < bas {
             return Err(format!(
-                "{} : indemnite de {} de {} EUR, INFERIEURE au minimum de {} \
-                 EUR (loi, {} : {} EUR ; {}). Ce n'est pas au moteur de la \
+                "{} : indemnité de {} de {}, INFÉRIEURE au minimum de {} \
+                 (loi, {} : {} ; {}). Ce n'est pas au moteur de la \
                  corriger.",
-                qui, quoi, montant, bas, article, m_legal, phrase
+                qui, quoi, euros(montant), euros(bas), article, euros(m_legal), phrase
             ));
         }
         if montant > haut && !ouvert {
             return Err(format!(
-                "{} : indemnite de {} de {} EUR, alors que le montant LEGAL \
-                 est de {} EUR ({}) -- {}. La part au-dela a un autre regime \
-                 social -- CSG et CRDS dues des le premier euro qui depasse \
-                 le montant legal ou conventionnel -- et le moteur ne sait pas \
-                 l'assujettir sur une seule ligne : il refuse plutot que de la \
-                 declarer de travers.",
-                qui, quoi, montant, m_legal, article, phrase
+                "{} : indemnité de {} de {}, alors que le montant LÉGAL \
+                 est de {} ({}) -- {}. La part au-delà a un autre régime \
+                 social -- CSG et CRDS dues dès le premier euro qui dépasse \
+                 le montant légal ou conventionnel -- et le moteur ne sait pas \
+                 l'assujettir sur une seule ligne : il refuse plutôt que de la \
+                 déclarer de travers.",
+                qui, quoi, euros(montant), euros(m_legal), article, phrase
             ));
         }
     } else if let (Some(cb), Some(ch)) = (conv_bas, conv_haut) {
         if cb != ch && ch > m_legal && cle_sec != "rupture_conventionnelle" {
             return Err(format!(
-                "{} : {} se lit de deux facons, de {} a {} EUR ; la loi donne {} \
-                 EUR. Saisir le montant retenu (`{}`).",
+                "{} : {} se lit de deux façons, de {} à {} ; la loi donne {}. \
+                 Saisir le montant retenu (`{}`).",
                 qui,
                 t(&conv_article),
-                cb,
-                ch,
-                m_legal,
+                euros(cb),
+                euros(ch),
+                euros(m_legal),
                 rubrique
             ));
         }
@@ -746,13 +747,13 @@ fn indemnite_de_rupture(
     if cle_sec == "rupture_conventionnelle" && saisi.is_none() {
         // Le montant est celui de la convention signee, que le moteur n'a pas.
         stc.avertissements.push(avertir(format!(
-            "{} : RUPTURE CONVENTIONNELLE -- l'indemnite specifique est due \
-             et n'a PAS ete ecrite : son montant est celui de la convention \
-             signee, que le moteur n'a pas. Le plancher legal est de {} EUR \
-             ({}) ; {}. Ajouter a la paie une ligne « {} » avec le montant \
+            "{} : RUPTURE CONVENTIONNELLE -- l'indemnité spécifique est due \
+             et n'a PAS été écrite : son montant est celui de la convention \
+             signée, que le moteur n'a pas. Le plancher légal est de {} \
+             ({}) ; {}. Ajouter à la paie une ligne « {} » avec le montant \
              convenu.",
             qui,
-            m_legal,
+            euros(m_legal),
             article,
             phrase,
             libelle_rubrique(ctx, &rubrique)
@@ -806,14 +807,14 @@ fn indemnite_de_rupture(
             let taux = dec_avec_echelle(cle(contrib, "taux")?)?;
             stc.avertissements.push(avertir(format!(
                 "{} : l'employeur doit en plus la CONTRIBUTION DE {} % sur la \
-                 part exoneree de cette indemnite (L137-12 du code de la \
-                 securite sociale, au profit de la CNAV). Le moteur ne la \
-                 calcule PAS : elle n'est dans aucune section du bareme. Sur {} \
-                 EUR exoneres, elle vaut {} EUR.",
+                 part exonérée de cette indemnité (L137-12 du code de la \
+                 sécurité sociale, au profit de la CNAV). Le moteur ne la \
+                 calcule PAS : elle n'est dans aucune section du barème. Sur {} \
+                 exonérés, elle vaut {}.",
                 qui,
-                taux,
-                montant,
-                eur2(div(mul(montant, taux), Decimal::ONE_HUNDRED))
+                virgule(taux),
+                euros(montant),
+                euros(div(mul(montant, taux), Decimal::ONE_HUNDRED))
             )));
         }
     }
@@ -826,20 +827,20 @@ fn indemnite_de_rupture(
         );
     }
     stc.avertissements.push(info(format!(
-        "{} : indemnite de {} {} EUR ({} mois d'anciennete, salaire de \
-         reference {} par {}){} -- loi ({}) : {} EUR ; {}.{}",
+        "{} : indemnité de {} {} ({} mois d'ancienneté, salaire de \
+         référence {} par {}){} -- loi ({}) : {} ; {}.{}",
         qui,
         quoi,
-        montant,
+        euros(montant),
         arrondir_jours(anciennete),
-        t(get(&reference, "retenu")),
+        euros_de(get(&reference, "retenu")),
         t(get(&reference, "regle")),
         detail,
         article,
-        m_legal,
+        euros(m_legal),
         phrase,
         if supplement > Decimal::ZERO {
-            format!(" Le supplement de {} EUR se declare a part, sous son code conventionnel.", supplement)
+            format!(" Le supplément de {} se déclare à part, sous son code conventionnel.", euros(supplement))
         } else {
             String::new()
         }
@@ -880,13 +881,13 @@ fn phrase_de_la_convention(
     };
     let article = t(article);
     if haut.is_some_and(|h| h != bas) {
-        format!("{} donne de {} a {} EUR selon la lecture", article, bas, haut.unwrap_or(bas))
+        format!("{} donne de {} à {} selon la lecture", article, euros(bas), euros(haut.unwrap_or(bas)))
     } else if bas == m_legal {
-        format!("{} donne la meme chose", article)
+        format!("{} donne la même chose", article)
     } else if bas > m_legal {
-        format!("{} donne {} EUR, et c'est elle qui s'applique", article, bas)
+        format!("{} donne {}, et c'est elle qui s'applique", article, euros(bas))
     } else {
-        format!("{} donne moins ({} EUR) : la loi s'applique", article, bas)
+        format!("{} donne moins ({}) : la loi s'applique", article, euros(bas))
     }
 }
 
@@ -907,16 +908,16 @@ fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &st
         let seuil = mul(annuel, dec_avec_echelle(combien)?);
         if montant > seuil {
             return Err(format!(
-                "{} : indemnite de {} de {} EUR, au-dela de {} plafonds \
-                 annuels de Securite sociale ({} EUR). Elle n'est plus {} \
-                 en entier (L242-1 II 7° du code de la securite sociale) et \
+                "{} : indemnité de {} de {}, au-delà de {} plafonds \
+                 annuels de Sécurité sociale ({}). Elle n'est plus {} \
+                 en entier (L242-1 II 7° du code de la sécurité sociale) et \
                  le moteur ne sait pas partager une ligne entre une part \
-                 exoneree et une part soumise : il refuse.",
+                 exonérée et une part soumise : il refuse.",
                 qui,
                 quoi,
-                montant,
+                euros(montant),
                 t(combien),
-                eur2(seuil),
+                euros(seuil),
                 quel
             ));
         }
@@ -953,42 +954,42 @@ fn indemnite_de_licenciement(
         montant = dec_avec_echelle(saisi)?;
         if montant > haut {
             return Err(format!(
-                "{} : indemnite de licenciement de {} EUR, alors que \
-                 l'indemnite LEGALE est de {} EUR{}. La part supra-legale et \
-                 supra-conventionnelle a un autre regime social (CSG/CRDS \
-                 dues au-dela, cotisations au premier euro au-dela de dix \
+                "{} : indemnité de licenciement de {}, alors que \
+                 l'indemnité LÉGALE est de {}{}. La part supra-légale et \
+                 supra-conventionnelle a un autre régime social (CSG/CRDS \
+                 dues au-delà, cotisations au premier euro au-delà de dix \
                  plafonds annuels) et le moteur ne sait pas l'assujettir : il \
-                 refuse plutot que de la declarer de travers.",
+                 refuse plutôt que de la déclarer de travers.",
                 qui,
-                montant,
-                m_legal,
+                euros(montant),
+                euros(m_legal),
                 dit_conventionnel(&conv)?
             ));
         }
         if montant < bas {
             return Err(format!(
-                "{} : indemnite de licenciement de {} EUR, INFERIEURE a ce \
-                 qui est du ({} EUR : loi {} EUR{}).",
+                "{} : indemnité de licenciement de {}, INFÉRIEURE à ce \
+                 qui est dû ({} : loi {}{}).",
                 qui,
-                montant,
-                bas,
-                m_legal,
+                euros(montant),
+                euros(bas),
+                euros(m_legal),
                 dit_conventionnel(&conv)?
             ));
         }
     } else {
         if conv_du && decimal(cle(&conv, "bas")?)? != decimal(cle(&conv, "haut")?)? && decimal(cle(&conv, "haut")?)? > m_legal {
             return Err(format!(
-                "{} : {} se lit de deux facons, qui ne donnent pas le meme \
-                 montant : {}. La loi donne {} EUR. Ajouter a la paie une \
-                 ligne « Indemnite de licenciement » avec le montant retenu, \
-                 entre {} et {} EUR.",
+                "{} : {} se lit de deux façons, qui ne donnent pas le même \
+                 montant : {}. La loi donne {}. Ajouter à la paie une \
+                 ligne « Indemnité de licenciement » avec le montant retenu, \
+                 entre {} et {}.",
                 qui,
                 t(cle(&conv, "article")?),
                 lectures(&conv)?,
-                m_legal,
-                bas,
-                haut
+                euros(m_legal),
+                euros(bas),
+                euros(haut)
             ));
         }
         montant = bas;
@@ -1014,17 +1015,17 @@ fn indemnite_de_licenciement(
         stc.lignes.push(json!({"rubrique": "indemnite_licenciement_conventionnelle", "quantite": 1, "taux": flot(supplement)}));
     }
     stc.avertissements.push(info(format!(
-        "{} : indemnite de licenciement {} EUR ({} mois d'anciennete, salaire \
-         de reference {} par {}) -- loi (L1234-9 et R1234-2) : {} EUR ; {}.{}",
+        "{} : indemnité de licenciement {} ({} mois d'ancienneté, salaire \
+         de référence {} par {}) -- loi (L1234-9 et R1234-2) : {} ; {}.{}",
         qui,
-        montant,
+        euros(montant),
         arrondir_jours(anciennete),
-        t(get(&reference, "retenu")),
+        euros_de(get(&reference, "retenu")),
         t(get(&reference, "regle")),
-        m_legal,
+        euros(m_legal),
         phrase_conventionnelle(&conv, m_legal)?,
         if supplement > Decimal::ZERO {
-            format!(" Le supplement de {} EUR se declare a part, en 021.", supplement)
+            format!(" Le supplément de {} se déclare à part, en 021.", euros(supplement))
         } else {
             String::new()
         }
@@ -1068,7 +1069,7 @@ fn indemnite_conventionnelle(
 
 fn lectures(conv: &Value) -> Resultat<String> {
     let l = cle(conv, "lectures")?.as_object().ok_or("lectures attendues")?;
-    Ok(l.iter().map(|(n, v)| format!("{} {} EUR", n.replace('_', " "), t(v))).collect::<Vec<_>>().join(" ; "))
+    Ok(l.iter().map(|(n, v)| format!("{} {}", n.replace('_', " "), euros_de(v))).collect::<Vec<_>>().join(" ; "))
 }
 
 fn dit_conventionnel(conv: &Value) -> Resultat<String> {
@@ -1081,9 +1082,9 @@ fn dit_conventionnel(conv: &Value) -> Resultat<String> {
     }
     let (bas, haut) = (decimal(cle(conv, "bas")?)?, decimal(cle(conv, "haut")?)?);
     Ok(if bas == haut {
-        format!(" et {} EUR par {}", bas, article)
+        format!(" et {} par {}", euros(bas), article)
     } else {
-        format!(" et de {} a {} EUR par {}", bas, haut, article)
+        format!(" et de {} à {} par {}", euros(bas), euros(haut), article)
     })
 }
 
@@ -1102,11 +1103,11 @@ fn phrase_conventionnelle(conv: &Value, m_legal: Decimal) -> Resultat<String> {
     }
     let bas = decimal(cle(conv, "bas")?)?;
     Ok(if bas == m_legal {
-        format!("{} donne la meme chose", article)
+        format!("{} donne la même chose", article)
     } else if bas > m_legal {
-        format!("{} donne {} EUR, et c'est elle qui s'applique", article, bas)
+        format!("{} donne {}, et c'est elle qui s'applique", article, euros(bas))
     } else {
-        format!("{} donne moins ({} EUR) : la loi s'applique", article, bas)
+        format!("{} donne moins ({}) : la loi s'applique", article, euros(bas))
     })
 }
 

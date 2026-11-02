@@ -39,6 +39,7 @@
 
 use droit::contexte::Contexte;
 use socle::fichiers::lire_json;
+use socle::texte::{euros, virgule};
 use socle::num::{add, div, mul, Decimal, Resultat};
 use serde_json::Value;
 
@@ -83,23 +84,23 @@ impl Csa {
     pub fn resume(&self) -> String {
         if self.code == CODE_EXONERATION {
             format!(
-                "Contribution supplementaire a l'apprentissage {} : exoneree (alternants {} % de l'effectif), declaree en \
-code 080 a 0.00.",
-                self.millesime, self.quotient
+                "Contribution supplémentaire à l'apprentissage {} : exonérée (alternants {} % de l'effectif), déclarée en \
+code 080 à 0.00.",
+                self.millesime, virgule(self.quotient)
             )
         } else {
             format!(
-                "Contribution supplementaire a l'apprentissage {} : {} EUR (alternants {} % de l'effectif, taux {} % sur \
-{} EUR d'assiette de la taxe d'apprentissage{}).",
+                "Contribution supplémentaire à l'apprentissage {} : {} (alternants {} % de l'effectif, taux {} % sur \
+{} d'assiette de la taxe d'apprentissage{}).",
                 self.millesime,
-                self.montant,
-                self.quotient,
-                self.taux,
-                add(self.assiette, self.assiette_alsace_moselle),
+                euros(self.montant),
+                virgule(self.quotient),
+                virgule(self.taux),
+                euros(add(self.assiette, self.assiette_alsace_moselle)),
                 if self.assiette_alsace_moselle.is_zero() {
                     String::new()
                 } else {
-                    format!(", dont {} EUR en Alsace-Moselle a 52 % du taux", self.assiette_alsace_moselle)
+                    format!(", dont {} en Alsace-Moselle à 52 % du taux", euros(self.assiette_alsace_moselle))
                 }
             )
         }

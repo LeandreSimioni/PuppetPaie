@@ -7,6 +7,7 @@ use serde_json::Value;
 
 use engagement::calcul::Paie;
 use socle::num::{add, dec_avec_echelle, eur, mul, sub, Decimal, Resultat};
+use socle::texte::euros;
 
 /// Le champ de la fiche entreprise qui dit la taxe sur les salaires.
 pub const CHAMP_TAXE_SUR_LES_SALAIRES: &str = "taxe_sur_les_salaires";
@@ -78,11 +79,6 @@ pub struct RegimeTaxeSalaires {
     pub consequence: String,
 }
 
-/// Un pourcentage tel qu'on l'ecrit en francais : « 62,5 ».
-fn pourcent(p: Decimal) -> String {
-    p.normalize().to_string().replace('.', ",")
-}
-
 /// `taxe_sur_les_salaires` de la fiche entreprise `ent`, et ce que le moteur en conclut (CGI art. 231, 1). `plafonds` :
 /// ceux de la franchise en base de TVA, lus au bareme de l'annee (`plafonds_franchise`) ; la conclusion les nomme quand
 /// on les a, elle dit « les plafonds » sinon. Ils ne changent rien a la decision.
@@ -149,7 +145,7 @@ compagnie ne doit pas la taxe sur les salaires ; en dessous, elle la doit sur le
                     &format!(
                         "elle est assujettie à la TVA sur {} % de ses recettes de l'an dernier, 90 % ou plus (code général \
 des impôts, art. 231)",
-                        pourcent(part)
+                        socle::texte::virgule(part)
                     ),
                 );
             }
@@ -176,7 +172,7 @@ sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
     let sur = if part_taxee == Decimal::ONE_HUNDRED {
         "sur tous ses salaires".to_string()
     } else {
-        format!("sur {} % de ses salaires, la part de ses recettes qui n'était pas soumise à la TVA", pourcent(part_taxee))
+        format!("sur {} % de ses salaires, la part de ses recettes qui n'était pas soumise à la TVA", socle::texte::virgule(part_taxee))
     };
     match fiche.get("sous_franchise") {
         Some(Value::Bool(true)) => {
@@ -246,13 +242,6 @@ pub struct QuestionFranchise {
     pub dessus: String,
     /// Les plafonds lus au bareme : prestations de services, total. `None` si le bareme de l'annee ne les porte pas.
     pub plafonds: Option<(Decimal, Decimal)>,
-}
-
-/// Un montant entier, ecrit comme sur l'ecran : « 37 500 € », en espaces insecables (un montant ne se coupe
-/// pas en fin de ligne, « 85 / 000 € »).
-fn euros(x: Decimal) -> String {
-    let s = crate::bulletin::fmt_eur(x);
-    format!("{} €", s.strip_suffix(",00").unwrap_or(&s)).replace(' ', "\u{a0}")
 }
 
 /// Les plafonds de la franchise en base de TVA au bareme `bar` (`taxe_sur_les_salaires.plafonds_franchise`) : prestations

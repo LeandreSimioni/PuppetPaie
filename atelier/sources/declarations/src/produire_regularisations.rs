@@ -15,10 +15,11 @@ use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
+use socle::texte::euros;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use socle::num::{q2, Decimal};
+use socle::num::Decimal;
 use socle::echec::Echec;
 use crate::versement_declare::{self, VersementDeclare};
 
@@ -249,15 +250,15 @@ pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
         let s = &r.apres.salarie;
         let nom = s.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
         out.push(format!(
-            "{} {}, contrat {} ({}) : brut {}\u{a0}€ → {}\u{a0}€, net {}\u{a0}€ → {}\u{a0}€",
+            "{} {}, contrat {} ({}) : brut {} → {}, net {} → {}",
             valeur_en_texte(nom),
             prenom_de(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
             engagement::libelle_mois(&r.mois),
-            q2(r.declare.brut).replace('.', ","),
-            q2(r.apres.brut).replace('.', ","),
-            q2(r.net_deja_verse).replace('.', ","),
-            q2(r.apres.net_a_payer).replace('.', ","),
+            euros(r.declare.brut),
+            euros(r.apres.brut),
+            euros(r.net_deja_verse),
+            euros(r.apres.net_a_payer),
         ));
     }
     Ok(out)

@@ -64,7 +64,7 @@ impl Atteste {
 
 /// Des compteurs et un brut, en mots.
 pub(crate) fn en_mots(heures: i128, cachets: i128, jours: i128, brut: Option<Decimal>) -> String {
-    let brut = brut.map_or_else(|| "brut illisible".to_string(), |b| format!("{} € de brut", b));
+    let brut = brut.map_or_else(|| "brut illisible".to_string(), |b| format!("{} de brut", socle::texte::euros(b)));
     format!("{} heure(s), {} cachet(s), {} jour(s), {}", heures, cachets, jours, brut)
 }
 

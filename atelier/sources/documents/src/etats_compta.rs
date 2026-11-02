@@ -16,6 +16,7 @@ use socle::echec::erreur;
 use crate::etats_paie::{ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
 use crate::ecritures_comptables::{ecritures_du_mois, Ecriture};
 use socle::fichiers::vrai;
+use socle::texte::{euros, euros_de};
 use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
 use crate::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, nom_compagnie, refus, totaliser, Ligne, Section, Tableau, Val,
@@ -1150,10 +1151,10 @@ fn provision_d_une_annee_importee(
         if couverte {
             if !cpt.remuneration_periode.is_zero() && cpt.remuneration_periode != periode {
                 avert.push(format!(
-                    "{} : la rémunération de la période que sa fiche recopie ({} €) n'est pas la somme des bruts de ses bulletins repris ({} €) ; la provision prend les bulletins.",
+                    "{} : la rémunération de la période que sa fiche recopie ({}) n'est pas la somme des bruts de ses bulletins repris ({}) ; la provision prend les bulletins.",
                     ctx.nomme(&cle),
-                    crate::bulletin::fmt_eur(cpt.remuneration_periode),
-                    crate::bulletin::fmt_eur(periode)
+                    euros(cpt.remuneration_periode),
+                    euros(periode)
                 ));
             }
             cpt.remuneration_periode = periode;
@@ -1273,18 +1274,18 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             Ok(valeur_en_texte(x.get(b).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(b)))?))
         };
         avert.push(format!(
-            "Écriture au {} (journal OD) : {} {} au débit, {} {} au crédit, {} € ; {} {} au débit, {} {} au crédit, {} €. À extourner le premier jour de l'exercice suivant — la dette se paie au fil des congés pris, ou au solde de tout compte.",
+            "Écriture au {} (journal OD) : {} {} au débit, {} {} au crédit, {} ; {} {} au débit, {} {} au crédit, {}. À extourner le premier jour de l'exercice suivant — la dette se paie au fil des congés pris, ou au solde de tout compte.",
             jj(&fin.iso()),
             cle("conges", "compte")?,
             cle("conges", "libelle")?,
             cle("dette", "compte")?,
             cle("dette", "libelle")?,
-            indemnites,
+            euros(indemnites),
             cle("charges", "compte")?,
             cle("charges", "libelle")?,
             cle("dette_charges", "compte")?,
             cle("dette_charges", "libelle")?,
-            charges
+            euros(charges)
         ));
     }
     let mut t = Tableau::nouveau("provision-conges", format!("Provision pour congés payés au {}", jj(&fin.iso())), p.libelle.clone());
@@ -1434,16 +1435,15 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let due = if part.is_some() { quant(div(mul(brute, pct_a), cent), 0) } else { zero };
     let franchise = dec_du_bareme(du_bareme(&ts, "franchise")?)?;
     let limite = dec_du_bareme(du_bareme(&ts, "decote_jusqu_a")?)?;
-    let fr = |d: Decimal| d.to_string().replace('.', ",");
-    let mut etapes = vec![format!("taxe brute {} € × {} % taxés (CGI art. 231, 1) = {} €", fr(brute), fr(pct_a), fr(due))];
+    let mut etapes = vec![format!("taxe brute {} × {} % taxés (CGI art. 231, 1) = {}", euros(brute), socle::texte::virgule(pct_a), euros(due))];
     let mut net;
     if due <= franchise {
         net = zero;
-        etapes.push(format!("franchise : {} € n'excède pas {} € — rien à payer", fr(due), fr(franchise)));
+        etapes.push(format!("franchise : {} n'excède pas {} — rien à payer", euros(due), euros(franchise)));
     } else if due <= limite {
         let decote = quant(div(mul(sub(limite, due), Decimal::from(3)), Decimal::from(4)), 0);
         net = sub(due, decote);
-        etapes.push(format!("décote : ({} − {}) × 3/4 = {} €, reste {} €", fr(limite), fr(due), fr(decote), fr(net)));
+        etapes.push(format!("décote : ({} − {}) × 3/4 = {}, reste {}", euros(limite), euros(due), euros(decote), euros(net)));
     } else {
         net = due;
     }
@@ -1451,10 +1451,10 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let ab = dec_du_bareme(du_bareme(&ts, "abattement_1679A")?)?;
         let reste = sub(net, ab);
         let reste = if reste > zero { reste } else { zero };
-        etapes.push(format!("abattement des associations (art. 1679 A) : {} €, reste {} €", fr(ab), fr(reste)));
+        etapes.push(format!("abattement des associations (art. 1679 A) : {}, reste {}", euros(ab), euros(reste)));
         net = reste;
     }
-    etapes.push(format!("taxe nette due : {} €", fr(net)));
+    etapes.push(format!("taxe nette due : {}", euros(net)));
     avert.push(format!("Calcul {} : {}.", annee, etapes.join(" ; ")));
     if net.is_zero() {
         avert.push("Rien à payer : pas de relevé 2501-SD ni de déclaration 2502-SD à déposer (franchise ou abattement).".to_string());
@@ -1478,8 +1478,8 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("brut", "Brut"),
         col_m("base", "Base (assiette CSG sans réduction)"),
         col_m("taux_normal", "4,25 %"),
-        col_m("majoration_1", &format!("+4,25 % au-delà de {} €", valeur_en_texte(du_bareme(&ts, "seuil_1")?))),
-        col_m("majoration_2", &format!("+9,35 % au-delà de {} €", valeur_en_texte(du_bareme(&ts, "seuil_2")?))),
+        col_m("majoration_1", &format!("+4,25 % au-delà de {}", euros_de(du_bareme(&ts, "seuil_1")?))),
+        col_m("majoration_2", &format!("+9,35 % au-delà de {}", euros_de(du_bareme(&ts, "seuil_2")?))),
         col_m("taxe", "Taxe brute"),
     ];
     t.sources = vec!["CGI art. 231 et 1679 A ; notices 2501-SD et 2502-SD de la DGFiP (seuils, franchise, décote, abattement de l'année)".to_string()];

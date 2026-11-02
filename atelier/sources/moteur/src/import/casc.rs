@@ -23,6 +23,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::Decimal;
+use socle::texte::{euros, euros_de, virgule};
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> socle::echec::Echec {
@@ -31,25 +32,6 @@ fn refus(m: impl Into<String>) -> socle::echec::Echec {
 
 fn dec(t: &str) -> R<Decimal> {
     Decimal::from_str(t.trim()).map_err(|_| erreur("InvalidOperation", socle::num::illisible(t)))
-}
-
-/// `1 234,50 €` (deux decimales, espace des milliers, virgule).
-pub fn eur(v: Decimal) -> String {
-    let r = v.round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
-    let mut s = format!("{:.2}", r);
-    let negatif = s.starts_with('-');
-    if negatif {
-        s.remove(0);
-    }
-    let (entier, frac) = s.split_once('.').unwrap_or((&s, "00"));
-    let mut groupes = String::new();
-    for (i, c) in entier.chars().enumerate() {
-        if i > 0 && (entier.len() - i) % 3 == 0 {
-            groupes.push(' ');
-        }
-        groupes.push(c);
-    }
-    format!("{}{},{} €", if negatif { "-" } else { "" }, groupes, frac)
 }
 
 fn jjmmaaaa(iso: &str) -> String {
@@ -341,7 +323,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         if let Some(plafond) = plafond_mensuel(&an)? {
             for (_, nom, b) in &mois_sal {
                 if *b > plafond {
-                    avert.push(format!("{}, {} : brut {} au-dessus du plafond mensuel -- la T1 n'est plus egale au brut, base a recalculer.", m, nom, eur(*b)));
+                    avert.push(format!("{}, {} : brut {} au-dessus du plafond mensuel -- la T1 n'est plus égale au brut, base à recalculer.", m, nom, euros(*b)));
                 }
             }
         }
@@ -394,17 +376,17 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     for a in &annees {
         for r in &par_mois {
             if r.mois.starts_with(&a.annee) {
-                tableau.push(format!("| {} | {} | {} |", r.libelle, eur(r.masse), eur(r.cotisation)));
+                tableau.push(format!("| {} | {} | {} |", r.libelle, euros(r.masse), euros(r.cotisation)));
             }
         }
-        tableau.push(format!("| **{}, à {} %** | **{}** | **{}** |", a.annee, a.taux.to_string().replace('.', ","), eur(a.masse), eur(a.cotisation)));
+        tableau.push(format!("| **{}, à {} %** | **{}** | **{}** |", a.annee, virgule(a.taux), euros(a.masse), euros(a.cotisation)));
     }
     let dates: Vec<(&String, &String)> = d.vire_le.iter().filter(|(_, v)| !v.is_empty()).map(|(k, v)| (k, v)).collect();
     let virements: Vec<String> = annees
         .iter()
         .map(|a| {
             let date = dates.iter().find(|(k, _)| **k == a.annee).map(|(_, v)| jjmmaaaa(v)).filter(|j| !j.is_empty()).unwrap_or_else(|| "__/__/____".to_string());
-            format!("- le {}, {}, libellé « {} » ;", date, eur(a.cotisation), a.libelle_virement)
+            format!("- le {}, {}, libellé « {} » ;", date, euros(a.cotisation), a.libelle_virement)
         })
         .collect();
     let beneficiaire = valeur_en_texte(&base["reglement"]["beneficiaire"]);
@@ -431,7 +413,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         valeur_en_texte(&base["page"])
     )];
     for a in &annees {
-        a_faire.push(format!("    {} : {}, libellé « {} »", a.annee, eur(a.cotisation), a.libelle_virement));
+        a_faire.push(format!("    {} : {}, libellé « {} »", a.annee, euros(a.cotisation), a.libelle_virement));
     }
     a_faire.push(format!("Reporter la date de chaque virement dans le courriel à Audiens, puis l'envoyer à {} (objet : {}).", courriel_audiens.a, courriel_audiens.objet));
     a_faire.push(format!(
@@ -471,7 +453,7 @@ fn deja_faites(ctx: &Contexte) -> String {
         .flatten()
         .map(|x| {
             let g = |c: &str| x.get(c).map_or_else(|| "None".to_string(), valeur_en_texte);
-            format!("{} ({} €, viré le {})", g("annee"), g("montant"), jjmmaaaa(&x.get("vire_le").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()))
+            format!("{} ({}, viré le {})", g("annee"), euros_de(x.get("montant").unwrap_or(&Value::Null)), jjmmaaaa(&x.get("vire_le").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()))
         })
         .collect::<Vec<_>>()
         .join(", ")
@@ -557,7 +539,7 @@ pub fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
     }
     let p = dossier.join("CASC-SVP_a-faire.txt");
     let verifier = if r.avertissements.is_empty() { String::new() } else { format!("\nÀ vérifier :\n{}", r.avertissements.join("\n")) };
-    std::fs::write(&p, format!("Régularisation CASC-SVP — {} — total {}\n\n{}\n{}\n", r.periode, eur(r.total), r.a_faire.join("\n"), verifier)).map_err(|e| io(&p, e))?;
+    std::fs::write(&p, format!("Régularisation CASC-SVP — {} — total {}\n\n{}\n{}\n", r.periode, euros(r.total), r.a_faire.join("\n"), verifier)).map_err(|e| io(&p, e))?;
     fichiers.insert(0, p);
     r.fichiers = fichiers.iter().map(|f| f.display().to_string()).collect();
     r.dossier = dossier.display().to_string();

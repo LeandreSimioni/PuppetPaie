@@ -686,3 +686,150 @@ fn textes_html(t: &str) -> Vec<String> {
     v.push(texte);
     v
 }
+
+/// UN SEUL ENDROIT ECRIT UN MONTANT TEL QU'ON LE LIT : `socle::texte::euros` (« 1 234,50 € »), et une quantite par
+/// `socle::texte::virgule`. Hors de `socle/src/texte.rs`, aucun litteral des sources ne met « € » ou « EUR » derriere
+/// une valeur qu'il compose (`{}`, `{:.2}`…), ni ne commence par un blanc suivi de « € » (le suffixe qu'on colle a un
+/// nombre) : c'est le signe d'une fonction qui refait la mise en forme. Un fichier dont une norme impose la forme d'un
+/// montant (un format d'organisme, l'imprime d'un autre logiciel) l'ecrit sans « € », ou porte, sur la ligne du
+/// litteral, la marque `// forme imposée :` suivie de la norme.
+#[test]
+fn un_seul_endroit_ecrit_un_montant() {
+    let maison = espace().join("socle/src/texte.rs");
+    let mut fautes = Vec::new();
+    for crate_ in ["socle", "droit", "engagement", "documents", "declarations", "envois", "moteur"] {
+        for p in sources(&espace().join(crate_).join("src")).into_iter().filter(|p| *p != maison) {
+            let t = std::fs::read_to_string(&p).unwrap();
+            let lignes: Vec<&str> = t.lines().collect();
+            for (ligne, l) in litteraux_rs(&t) {
+                if lignes.get(ligne - 1).is_some_and(|x| x.contains("// forme imposée :")) {
+                    continue;
+                }
+                if met_des_euros(&l) {
+                    let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
+                    fautes.push(format!("{}:{} : « {} »", rel, ligne, l));
+                }
+            }
+        }
+    }
+    assert!(
+        fautes.is_empty(),
+        "{} litteral(aux) mettent un montant en forme : un montant s'ecrit par `socle::texte::euros` (ou `euros_de` pour une valeur), une quantite par `socle::texte::virgule` ; un format impose par une norme porte `// forme imposée : <la norme>` sur sa ligne :\n{}",
+        fautes.len(), fautes.join("\n")
+    );
+}
+
+/// Le litteral `l` met-il « € » ou « EUR » derriere une valeur qu'il compose, ou est-il un suffixe « € » ?
+fn met_des_euros(l: &str) -> bool {
+    let blanc = |c: char| c == ' ' || c == '\u{a0}' || c == '\u{202f}';
+    let l = l.replace("\\u{a0}", "\u{a0}").replace("\\u{202f}", "\u{202f}").replace("\\u{20ac}", "€");
+    if l.starts_with(blanc) && l.trim_start_matches(blanc).starts_with('€') {
+        return true;
+    }
+    let mut reste = l.as_str();
+    while let Some(i) = reste.find('}') {
+        let avant = &reste[..i];
+        reste = &reste[i + 1..];
+        if !avant.contains('{') || avant.ends_with('}') {
+            continue;
+        }
+        let suite = reste.trim_start_matches(blanc);
+        let eur = suite.starts_with("EUR") && !suite[3..].starts_with(|c: char| c.is_alphanumeric() || c == '_');
+        if suite.starts_with('€') || eur {
+            return true;
+        }
+    }
+    false
+}
+
+/// Les litteraux de chaine d'un source Rust (hors commentaires), avec la ligne ou chacun commence ; une fin de ligne
+/// echappee (`\` puis le blanc qui suit) est retiree, comme le fait le compilateur.
+fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
+    let c: Vec<char> = t.chars().collect();
+    let (mut v, mut i, mut ligne) = (Vec::new(), 0, 1);
+    while i < c.len() {
+        match c[i] {
+            '\n' => {
+                ligne += 1;
+                i += 1;
+            }
+            '/' if c.get(i + 1) == Some(&'/') => {
+                while i < c.len() && c[i] != '\n' {
+                    i += 1;
+                }
+            }
+            '/' if c.get(i + 1) == Some(&'*') => {
+                i += 2;
+                while i + 1 < c.len() && !(c[i] == '*' && c[i + 1] == '/') {
+                    ligne += (c[i] == '\n') as usize;
+                    i += 1;
+                }
+                i += 2;
+            }
+            '\'' => {
+                // Un caractere ('"', '\'', '\u{a0}') ; sinon une duree de vie.
+                if c.get(i + 1) == Some(&'\\') {
+                    i += 2;
+                    while i < c.len() && c[i] != '\'' {
+                        i += 1;
+                    }
+                    i += 1;
+                } else if c.get(i + 2) == Some(&'\'') {
+                    i += 3;
+                } else {
+                    i += 1;
+                }
+            }
+            'r' if (c.get(i + 1) == Some(&'"') || c.get(i + 1) == Some(&'#')) && (i == 0 || !(c[i - 1].is_alphanumeric() || c[i - 1] == '_')) => {
+                let mut j = i + 1;
+                let mut dieses = 0;
+                while c.get(j) == Some(&'#') {
+                    dieses += 1;
+                    j += 1;
+                }
+                if c.get(j) != Some(&'"') {
+                    i += 1;
+                    continue;
+                }
+                let debut = ligne;
+                let mut s = String::new();
+                j += 1;
+                while j < c.len() && !(c[j] == '"' && (0..dieses).all(|k| c.get(j + 1 + k) == Some(&'#'))) {
+                    ligne += (c[j] == '\n') as usize;
+                    s.push(c[j]);
+                    j += 1;
+                }
+                v.push((debut, s));
+                i = j + 1 + dieses;
+            }
+            '"' => {
+                let debut = ligne;
+                let mut s = String::new();
+                i += 1;
+                while i < c.len() && c[i] != '"' {
+                    if c[i] == '\\' && c.get(i + 1) == Some(&'\n') {
+                        i += 1;
+                        while i < c.len() && c[i].is_whitespace() {
+                            ligne += (c[i] == '\n') as usize;
+                            i += 1;
+                        }
+                        continue;
+                    }
+                    if c[i] == '\\' {
+                        s.push(c[i]);
+                        i += 1;
+                    }
+                    if let Some(&x) = c.get(i) {
+                        ligne += (x == '\n') as usize;
+                        s.push(x);
+                    }
+                    i += 1;
+                }
+                v.push((debut, s));
+                i += 1;
+            }
+            _ => i += 1,
+        }
+    }
+    v
+}

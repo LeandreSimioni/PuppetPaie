@@ -841,11 +841,11 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Value) -> 
     }
     if droit::bareme::somme_pct(l.base, &avec)? != l.montant_pat {
         return Err(format!(
-            "La ligne « {} » du bulletin ({} EUR de part patronale sur {} EUR) ne se refait pas, CET comprise, a partir de \
-ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en separe pas sans deviner. Rien n'est ecrit.",
+            "La ligne « {} » du bulletin ({} de part patronale sur {}) ne se refait pas, CET comprise, à partir de \
+ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en sépare pas sans deviner. Rien n'est écrit.",
             l.id,
-            mt(l.montant_pat),
-            mt(l.base)
+            socle::texte::euros(l.montant_pat),
+            socle::texte::euros(l.base)
         ));
     }
     Ok((sans, Some((sub(l.montant_pat, sans), cet_pat))))
@@ -3240,12 +3240,12 @@ fn lignes_bordereau(
     let ctps = ctps.as_slice();
     if !somme["brut_permanent"].is_zero() && !ctps.iter().any(|c| txt(g(c, "nature")) == "permanent") {
         return Err(format!(
-            "La DSN de {} porte {} EUR de brut de salariés permanents, et la table des CTP livrée avec le logiciel \
+            "La DSN de {} porte {} de brut de salariés permanents, et la table des CTP livrée avec le logiciel \
 (donnees/organismes-base.json, `ctp_urssaf`) n'a aucun CTP des permanents. Le bordereau Urssaf serait faux : un \
 permanent relève du régime général (CTP 100 et suivants) et son assurance chômage est recouvrée par l'Urssaf, \
 contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le corrige. Rien n'est écrit.",
             mois,
-            mt(somme["brut_permanent"])
+            socle::texte::euros(somme["brut_permanent"])
         ));
     }
     for ctp in ctps {
@@ -3395,11 +3395,11 @@ fn lignes_regularisees(
             let qualifiant = en_texte(req(ctp, "qualifiant")?);
             let regularisation = ctp_de_regularisation(&code, &siens, bar_o)?.ok_or_else(|| {
                 format!(
-                    "Correction de {} : la ligne {} ({}) du bordereau Urssaf baisse de {} EUR, et le bareme du mois ne dit pas sous quel CTP se regularise cette reduction (`reduction_generale.dsn.ctp_regularisation`) : un montant de reduction ne s'ecrit pas negatif (guide declaratif Urssaf, § 8.2). Rien n'est ecrit.",
+                    "Correction de {} : la ligne {} ({}) du bordereau Urssaf baisse de {}, et le barème du mois ne dit pas sous quel CTP se régularise cette réduction (`reduction_generale.dsn.ctp_regularisation`) : un montant de réduction ne s'écrit pas négatif (guide déclaratif Urssaf, § 8.2). Rien n'est écrit.",
                     mois_o,
                     code,
                     qualifiant,
-                    mt(-v)
+                    socle::texte::euros(-v)
                 )
             })?;
             lignes.push(ligne(regularisation, qualifiant, taux_at, Some(-v), None, None));
@@ -4849,11 +4849,11 @@ certificat de conformite du depot precedent.",
     let somme_059 = lire(&totaux_avec_regs, "059").unwrap_or(zero());
     if somme_composants != somme_059 {
         return Err(format!(
-            "Les cotisations 059 du mois ({} EUR, regularisations comprises) et les composants de versement que le \
-nominatif rattache a une adhesion ({} EUR) ne font pas la meme somme : une base de prevoyance n'est pas rattachee a son \
-affiliation (S21.G00.78.005). Rien n'est ecrit.",
-            mt(somme_059),
-            mt(somme_composants)
+            "Les cotisations 059 du mois ({}, régularisations comprises) et les composants de versement que le \
+nominatif rattache à une adhésion ({}) ne font pas la même somme : une base de prévoyance n'est pas rattachée à son \
+affiliation (S21.G00.78.005). Rien n'est écrit.",
+            socle::texte::euros(somme_059),
+            socle::texte::euros(somme_composants)
         ));
     }
     if let Some(c) = composants.iter().find(|c| !places_oc.iter().any(|(_, v)| en_texte(g(v, "siret")) == c.organisme)) {
