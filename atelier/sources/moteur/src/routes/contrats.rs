@@ -99,7 +99,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "mois", sens: "le mois de l'écran, où se lit un contrat signé hors du logiciel (le mois présent sinon)", avance: true },
         ],
         exemple: r#"{"salarie":"FULLER","debut":"2026-11-27","numero":"FU1.26.01"}"#,
-        rend: "le contrat (contrat, date_contrat, signe ; ailleurs : signé hors du logiciel, et contrat_signe : chemin du dossier de son PDF, deposes, phrase), numero de l'avenant, effet, modifications (numero et article, avant, apres ; phrase en clair sans numero), avenants (et la phrase de chacun), destinataire, situation, encarts",
+        rend: "le contrat (contrat, date_contrat, signe ; ailleurs : signé hors du logiciel, et contrat_signe : chemin du dossier de son PDF, deposes, phrase), numero de l'avenant, effet, modifications (numero et article, avant, apres ; phrase en clair sans numero), avenants (et la phrase de chacun), destinataire, titre (le contrat comme l'avenant le nomme), situation, encarts",
         refus: &[Refus { classe: "ErreurOperation", corriger: "le salarié, le début et le numéro d'un contrat parti à la signature ou signé hors du logiciel" }, MANQUE, ILLISIBLE],
         acte: Acte::Lit,
         avance: false,
@@ -224,7 +224,11 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let dossier = v["contrat_signe"].get("phrase").filter(|x| vrai(x)).map(|p| json!(format!("{} Son dossier : {}", valeur_en_texte(p), t(&v["contrat_signe"], "chemin"))));
             v["phrases"] = Value::Array(std::iter::once(v["situation"].clone()).chain(super::encarts_en_lignes(&encarts)).chain(dits).chain(dossier).collect());
             v["encarts"] = Value::Array(encarts);
-            let p = format!("Avenant {} au contrat {} de {}, à effet du {} : {}.", t(&v, "numero"), t(&v, "contrat"), t(&v, "nom"), super::jour_en_clair(&v["effet"]), super::compte(n, "modification", "modifications"));
+            // Le contrat comme l'avenant le nomme (`{{avenant.reference}}`) : signe hors du logiciel, le papier ne porte
+            // pas le numero que le logiciel lui a donne.
+            let reference = if ailleurs { format!("commencé le {}", super::jour_en_clair(&v["debut"])) } else { format!("n° {}", t(&v, "contrat")) };
+            v["titre"] = json!(format!("Avenant au contrat {}", reference));
+            let p = format!("Avenant {} au contrat {} de {}, à effet du {} : {}.", t(&v, "numero"), reference, t(&v, "nom"), super::jour_en_clair(&v["effet"]), super::compte(n, "modification", "modifications"));
             super::phrase_en_tete(v, p)
         }),
         "pieces-parties" => pieces_parties(ctx, charge),

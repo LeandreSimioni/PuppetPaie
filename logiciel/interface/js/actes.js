@@ -792,7 +792,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
   const mods = a.modifications || [];
   const cite = (textes) => textes.map((x) => `<p class="citation">« ${echapper(x)} »</p>`).join("");
   ouvrirBoite(`
-    <h3>Avenant au contrat n° ${echapper(a.contrat || "")}</h3>
+    <h3>${echapper(a.titre)}</h3>
     <p class="discret">${echapper(a.situation)}</p>
     ${(a.avenants || []).map((x) => `<p class="discret">${echapper(x.phrase)}</p>`).join("")}
     ${encarts(a.encarts)}
