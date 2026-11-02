@@ -250,8 +250,9 @@ fn nom_de_l_avenant(nat: &droit::natures::Nature) -> R<String> {
 }
 
 /// `avenant.description` puis `fabrique.figer` : le modele de l'avenant en texte, les valeurs du contrat et les
-/// siennes, et les articles modifies avec l'ancien texte et le nouveau.
-fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], extra: &[(&str, String)]) -> R<Value> {
+/// siennes, et les articles modifies avec l'ancien texte et le nouveau. Un avenant au contrat signe ailleurs (`ailleurs`)
+/// ne cite aucun article du modele de contrat : les refus qui gardent ces articles ne le regardent pas.
+fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], extra: &[(&str, String)], ailleurs: bool) -> R<Value> {
     let nat = p.engagement.nat()?;
     let modele = socle::fichiers::modele_de(&nom_de_l_avenant(&nat)?, ent, &ctx.gabarits());
     let mut d = enveloppe("avenant", ent);
@@ -263,13 +264,15 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     }
     let mut un = Map::new();
     un.insert("valeurs".into(), valeurs_en_ordre(&v, extra));
-    let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
-    let texte_contrat = lire_modele_texte(&contrat)?;
-    refuser_ce_que_le_modele_tairait(&contrat, &texte_contrat, &un["valeurs"])?;
-    crate::contrat_ecrit::refuser_les_mentions_absentes(&contrat, &texte_contrat, &nat, &un["valeurs"]).map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
+    if !ailleurs {
+        let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
+        let texte_contrat = lire_modele_texte(&contrat)?;
+        refuser_ce_que_le_modele_tairait(&contrat, &texte_contrat, &un["valeurs"])?;
+        crate::contrat_ecrit::refuser_les_mentions_absentes(&contrat, &texte_contrat, &nat, &un["valeurs"]).map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
+    }
     let articles: Vec<Value> = modifs
         .iter()
-        .map(|m| json!({"numero": m["numero"], "article": m["article"], "avant": m["avant"], "apres": m["apres"]}))
+        .map(|m| json!({"numero": m["numero"], "article": m["article"], "avant": m["avant"], "apres": m["apres"], "phrase": m.get("phrase").cloned().unwrap_or(Value::Null)}))
         .collect();
     un.insert("modifications".into(), Value::Array(articles));
     if let Some(s) = identite_de(ent, "signature") {
@@ -280,9 +283,21 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     Ok(Value::Object(d))
 }
 
+/// Le contrat que l'avenant modifie, comme il le nomme (`{{avenant.reference}}`) : « n° FA1.26.13 du 12/10/2026 », ou,
+/// signe hors du logiciel (`ailleurs`), « commencé le 01/03/2022 » -- le numero que le logiciel lui a donne n'est pas sur
+/// le papier signe. `date_contrat` en JJ/MM/AAAA.
+fn reference_du_contrat(p: &Paie, date_contrat: &str, ailleurs: bool) -> String {
+    match p.engagement.numero.as_deref().filter(|n| !n.is_empty()) {
+        Some(n) if !ailleurs => format!("n° {} du {}", n, date_contrat),
+        _ if ailleurs => format!("commencé le {}", date_contrat),
+        _ => format!("du {}", date_contrat),
+    }
+}
+
 /// L'avenant en PDF, a l'identite de la compagnie, la signature de l'employeur posee comme sur
 /// le contrat ; `mention` : contresigne par l'artiste (`ecrire_signe_ou_non`). Les dates en JJ/MM/AAAA. `modifs` : ce que
-/// `avenant-apercu` rend.
+/// `avenant-apercu` rend ; `ailleurs` : le contrat a ete signe hors du logiciel, ses modifications se disent en clair
+/// (`avenant::changements_en_clair`), par le paragraphe `{{modification.phrase}}` du bloc MODIFICATION:.
 #[allow(clippy::too_many_arguments)]
 pub fn ecrire_avenant(
     ctx: &Contexte,
@@ -294,6 +309,7 @@ pub fn ecrire_avenant(
     date_contrat: &str,
     effet: &str,
     date: &str,
+    ailleurs: bool,
     mention: Option<&str>,
 ) -> R<()> {
     if modifs.is_empty() {
@@ -305,12 +321,22 @@ pub fn ecrire_avenant(
     if m.modification.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: format!("{} n'a pas de bloc MODIFICATION:.", nom) });
     }
+    if ailleurs && !m.modification.iter().any(|b| b.contains("modification.phrase")) {
+        return Err(Refus {
+            classe: Some("ModeleIncomplet"),
+            message: format!(
+                "Le modèle d'avenant {} ne dit pas une modification en clair : un contrat signé hors du logiciel n'a pas d'article à citer. Ajoutez à son bloc MODIFICATION: un paragraphe {{{{modification.phrase}}}} (Configuration › Modèles de contrat). Rien n'est parti.",
+                nom
+            ),
+        });
+    }
     let extra = [
         ("avenant.numero", numero.to_string()),
         ("avenant.date_contrat", date_contrat.to_string()),
+        ("avenant.reference", reference_du_contrat(p, date_contrat, ailleurs)),
         ("avenant.effet", effet.to_string()),
         ("avenant.date", date.to_string()),
     ];
-    let d = description_avenant(ctx, p, ent, modifs, &extra)?;
+    let d = description_avenant(ctx, p, ent, modifs, &extra, ailleurs)?;
     ecrire_signe_ou_non(&d, chemin, mention)
 }

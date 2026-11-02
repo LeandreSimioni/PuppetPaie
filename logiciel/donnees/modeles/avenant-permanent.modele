@@ -6,13 +6,19 @@
 # dossier gabarits/.
 #
 # L'avenant dit ce qui change (code du travail R. 1221-40 : « un document
-# indiquant ces modifications »), article par article : le bloc
-# MODIFICATION: s'écrit une fois par article modifié, l'ancien texte et le
-# nouveau.
+# indiquant ces modifications »). Le bloc MODIFICATION: s'écrit une fois par
+# modification :
+#   - pour un contrat fait par le logiciel, article par article, l'ancien
+#     texte et le nouveau (les paragraphes qui portent {{modification.numero}},
+#     {{modification.avant}}, {{modification.apres}}) ;
+#   - pour un contrat signé hors du logiciel, dont le logiciel ne connaît pas
+#     le texte, sans citer d'article : le seul paragraphe qui porte
+#     {{modification.phrase}}, ce qui change en clair (l'ancienne valeur, la
+#     nouvelle, à partir de quand).
 
 TITRE: Avenant n° {{avenant.numero}} au contrat de travail
 
-SOUSTITRE: Contrat n° {{contrat.numero}} du {{avenant.date_contrat}}
+SOUSTITRE: Contrat de travail {{avenant.reference}}
 
 PREAMBULE:
 **Entre les soussignés,**
@@ -23,7 +29,7 @@ L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employe
 
 Le salarié : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, ci-après dénommé(e) **le salarié**,
 
-Les parties sont liées par le contrat de travail n° {{contrat.numero}} du {{avenant.date_contrat}}. Elles conviennent de le modifier comme suit.
+Les parties sont liées par le contrat de travail {{avenant.reference}}. Elles conviennent de le modifier comme suit.
 
 MODIFICATION:
 L'article {{modification.numero}} « {{modification.article}} » du contrat stipulait :
@@ -34,8 +40,10 @@ Il est désormais rédigé ainsi :
 
 « {{modification.apres}} »
 
+{{modification.phrase}}
+
 ARTICLE: Autres clauses
-Les autres clauses du contrat n° {{contrat.numero}} demeurent inchangées, notamment la convention collective applicable — {{employeur.convention}}, IDCC {{employeur.idcc}}.
+Les autres clauses du contrat de travail {{avenant.reference}} demeurent inchangées, notamment la convention collective applicable — {{employeur.convention}}, IDCC {{employeur.idcc}}.
 
 ARTICLE: Date d'effet
 Le présent avenant prend effet le **{{avenant.effet}}**.

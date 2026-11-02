@@ -76,6 +76,9 @@ pub struct Modification {
     pub article: String,
     pub avant: Vec<String>,
     pub apres: Vec<String>,
+    /// La modification dite en clair, sans article cité (un contrat signé hors du logiciel) : seul le paragraphe du
+    /// bloc MODIFICATION: qui porte `{{modification.phrase}}` la dit, sous le titre du terme.
+    pub phrase: Option<String>,
 }
 
 /// Ce que le moteur envoie d'un document, en plus du chemin du modèle.
@@ -280,12 +283,21 @@ pub fn blocs(m: &Modele, c: &Contrat, ou: &str) -> Result<Vec<BlocEtiquete>, Ref
         let mut vm = v.clone();
         vm.insert("modification.numero".to_string(), modif.numero.to_string());
         vm.insert("modification.article".to_string(), modif.article.clone());
+        if let Some(phrase) = &modif.phrase {
+            vm.insert("modification.phrase".to_string(), phrase.clone());
+            let intitule = format!("Article {} \u{2014} {{{{modification.article}}}}", n);
+            blocs.push(para(modele::morceaux(&intitule, &vm, true)?, Some(7.7), Some(ROUGE), Gauche, 4.5, 1.0));
+            for b in m.modification.iter().filter(|b| b.contains("modification.phrase")) {
+                blocs.push(para(modele::morceaux(b, &vm, false)?, None, None, Justifie, 0.0, 2.6));
+            }
+            continue;
+        }
         let intitule = format!(
             "Article {} \u{2014} Modification de l'article {{{{modification.numero}}}} \u{ab} {{{{modification.article}}}} \u{bb}",
             n
         );
         blocs.push(para(modele::morceaux(&intitule, &vm, true)?, Some(7.7), Some(ROUGE), Gauche, 4.5, 1.0));
-        for b in &m.modification {
+        for b in m.modification.iter().filter(|b| !b.contains("modification.phrase")) {
             // Un paragraphe qui porte l'ancien ou le nouveau texte se répète pour chaque
             // paragraphe cité ; les autres se posent une fois.
             let textes = if b.contains("modification.avant") {

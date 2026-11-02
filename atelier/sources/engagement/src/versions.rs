@@ -170,6 +170,57 @@ pub fn changements(ctx: &Contexte, avant: &Value, apres: &Value) -> Vec<String> 
     out
 }
 
+/// Un terme du contrat qui change a un jour : sa valeur convenue jusque-la (`avant`) et la nouvelle (`apres`) ; `None` :
+/// le terme n'est pas dit.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TermeChange {
+    pub terme: String,
+    pub jour: Jour,
+    pub avant: Option<Value>,
+    pub apres: Option<Value>,
+}
+
+/// LES TERMES QUI CHANGENT entre la saisie sur laquelle le contrat a ete convenu (`convenue`) et celle d'aujourd'hui
+/// (`presente`), jour par jour : chaque jour ou un terme du contrat (`etats::CLAUSES` que `stock::DATES` peut dater) ne
+/// vaut pas ce qui etait convenu. L'ancienne valeur est celle que le contrat disait ce jour-la, ou celle qu'un changement
+/// plus tot de la meme liste vient de poser ; un changement qui ne change rien ne se dit pas.
+pub fn termes_changes(convenue: &Value, presente: &Value) -> Vec<TermeChange> {
+    let datees = |s: &Value, k: &str| -> Vec<(String, Option<Value>)> {
+        s.get(DATES).and_then(|t| t.get(k)).and_then(Value::as_array).into_iter().flatten()
+            .filter_map(|e| Some((e.get("depuis").map(en_texte)?, e.get("valeur").cloned().filter(|v| !v.is_null()))))
+            .collect()
+    };
+    let au = |s: &Value, k: &str, jour: &str| -> Option<Value> {
+        match datees(s, k).into_iter().filter(|(d, _)| d.as_str() <= jour).last() {
+            Some((_, v)) => v,
+            None => s.get(k).cloned().filter(|v| !v.is_null()),
+        }
+    };
+    let pareil = |a: &Option<Value>, b: &Option<Value>| a.as_ref().map(crate::stock::canonique) == b.as_ref().map(crate::stock::canonique);
+    let mut out = Vec::new();
+    for k in crate::etats::CLAUSES.iter().filter(|k| crate::stock::TERMES.contains(k)) {
+        let mut jours: Vec<String> = datees(convenue, k).into_iter().chain(datees(presente, k)).map(|(d, _)| d).collect();
+        jours.sort();
+        jours.dedup();
+        let mut dernier: Option<(String, Option<Value>)> = None;
+        for j in jours {
+            let (c, p) = (au(convenue, k, &j), au(presente, k, &j));
+            let avant = match &dernier {
+                Some((dj, v)) if pareil(&au(convenue, k, dj), &c) => v.clone(),
+                _ => c,
+            };
+            if pareil(&avant, &p) {
+                continue;
+            }
+            let Ok(jour) = Jour::lire(j.get(..10).unwrap_or(&j)) else { continue };
+            out.push(TermeChange { terme: k.to_string(), jour, avant, apres: p.clone() });
+            dernier = Some((j, p));
+        }
+    }
+    out.sort_by_key(|t| t.jour);
+    out
+}
+
 /// CE QUI A CHANGE DEPUIS LA VERSION `n` de l'engagement valide `v` jusqu'a son present, en mots (`changements`) : ce
 /// que dit la frise, et ce que dit le renvoi des documents partis sur la version `n`. Vide si `n` est le present ou ne se
 /// lit pas.

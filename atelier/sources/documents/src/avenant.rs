@@ -17,7 +17,7 @@ use serde_json::Value;
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
 use droit::contexte::Contexte;
-use socle::date::{d, en_texte, Jour};
+use socle::date::{d, en_texte, premier_du_mois, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use socle::fichiers::vrai;
 use socle::nfkc::nfkc;
@@ -357,9 +357,12 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
 }
 
 /// Les parties au contrat, quelle que soit sa nature : l'employeur, sa convention et son signataire, le salarie, le
-/// numero et le premier jour du contrat. `sp` : le spectacle (`Null` pour un contrat qui n'en a pas).
+/// numero et le premier jour du contrat. `sp` : le spectacle (`Null` pour un contrat qui n'en a pas). La convention se
+/// nomme comme le bareme du mois de la paie qui ecrit le document la nomme (`bareme::libelle_convention`) : le premier
+/// mois d'un contrat pour le contrat, le mois de l'avenant pour un avenant -- un contrat commence avant le logiciel n'a
+/// pas de bareme de son annee.
 pub(crate) fn parties(ent: &Value, sal: &Value, sp: &Value, e: &Eng) -> Resultat<Valeurs> {
-    let (idcc, convention) = convention_du_contrat(ent, sp, sal, &Jour::lire(&e.debut)?)?;
+    let (idcc, convention) = convention_du_contrat(ent, sp, sal, &premier_du_mois(&e.mois)?)?;
     let sig = requis(ent, "signataire")?;
     let mut m = Valeurs::new();
     let mut poser = |k: &str, v: String| {
@@ -519,4 +522,69 @@ pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Opt
 pub fn modele_du_contrat(ent: &Value, gabarits: &Path, nat: &droit::natures::Nature) -> Resultat<Modele> {
     let nom = nat.modele_contrat().ok_or_else(|| format!("La nature {} n'a pas de contrat écrit.", nat.libelle))?;
     modele::lire_fichier(&socle::fichiers::modele_de(&nom, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
+}
+
+// ------------------------------------------- l'avenant d'un contrat signe ailleurs
+
+/// Un terme du contrat, tel que l'avenant d'un contrat signe hors du logiciel le nomme : son titre, et son nom dans une
+/// phrase.
+fn terme_nomme(terme: &str) -> (&'static str, &'static str) {
+    match terme {
+        "salaire_mensuel" => ("Rémunération mensuelle brute", "la rémunération mensuelle brute"),
+        "quotite_contrat" => ("Durée du travail", "la durée du travail"),
+        "quotite_reference" => ("Durée de référence", "la durée de référence"),
+        "modalite_temps_travail" => ("Temps de travail", "la modalité du temps de travail"),
+        "emploi" => ("Emploi", "l'emploi"),
+        "metier" => ("Métier", "le métier"),
+        "cadre" => ("Statut de cadre", "le statut de cadre"),
+        "statut" => ("Statut", "le statut"),
+        "nature" => ("Nature du contrat", "la nature du contrat"),
+        "motif_recours" => ("Motif de recours", "le motif de recours"),
+        "lieu" => ("Lieu de travail", "le lieu de travail"),
+        "spectacle" => ("Spectacle", "le spectacle"),
+        _ => ("Clause du contrat", "une clause du contrat"),
+    }
+}
+
+/// La valeur d'un terme en clair : un montant en euros, une duree en heures par mois (S21.G00.40.013), une nature, un
+/// motif ou un spectacle par son nom.
+fn valeur_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, terme: &str, v: &Value) -> String {
+    let texte = en_texte(v);
+    match terme {
+        "salaire_mensuel" => socle::texte::euros_de(v),
+        "quotite_contrat" | "quotite_reference" => dec(v).map(|x| format!("{} heures par mois", socle::texte::virgule(x))).unwrap_or(texte),
+        "cadre" => if vrai(v) { "cadre".into() } else { "non cadre".into() },
+        "nature" => droit::natures::nature(Some(&texte)).map(|n| n.libelle.clone()).unwrap_or(texte),
+        "motif_recours" => nat.libelle_motif_recours(&texte).unwrap_or(texte),
+        "spectacle" => ctx.spectacle(&texte).ok().and_then(|s| s.get("titre").map(en_texte)).unwrap_or(texte),
+        "emploi" => format!("« {} »", texte),
+        _ => texte,
+    }
+}
+
+/// CE QUE DIT L'AVENANT D'UN CONTRAT SIGNE HORS DU LOGICIEL : il ne connait pas le texte du contrat, il n'en cite aucun
+/// article ; il dit en clair, pour chaque terme qui change (`engagement::versions::termes_changes`), a partir de quand,
+/// l'ancienne valeur et la nouvelle (code du travail R. 1221-40 : « un document indiquant ces modifications »,
+/// `atelier/reference/sources/code-du-travail/xml/R1221-40.xml`). Chaque modification : `article` (son titre), `avant` et
+/// `apres` (les valeurs), `phrase` (ce que l'avenant ecrit), `jour` ; `numero` nul (aucun article cite).
+pub fn changements_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, changes: &[engagement::versions::TermeChange]) -> Vec<Value> {
+    changes
+        .iter()
+        .map(|c| {
+            let (titre, nom) = terme_nomme(&c.terme);
+            let dit = |v: &Option<Value>| v.as_ref().map(|x| valeur_en_clair(ctx, nat, &c.terme, x));
+            let (avant, apres) = (dit(&c.avant), dit(&c.apres));
+            let quand = format!("À compter du {}", c.jour.jj_mm_aaaa());
+            let phrase = match (&avant, &apres) {
+                (Some(a), Some(b)) => format!("{}, {} passe de {} à {}.", quand, nom, a, b),
+                (None, Some(b)) => format!("{}, {} est : {}.", quand, nom, b),
+                (Some(a), None) => format!("{}, {} n'est plus {}.", quand, nom, a),
+                (None, None) => format!("{}, {} change.", quand, nom),
+            };
+            serde_json::json!({
+                "numero": Value::Null, "article": titre, "phrase": phrase, "jour": c.jour.iso(),
+                "avant": [avant.unwrap_or_default()], "apres": [apres.unwrap_or_default()],
+            })
+        })
+        .collect()
 }

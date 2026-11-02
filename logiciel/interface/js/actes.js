@@ -31,6 +31,7 @@ function ouvrirGeste(action, mois) {
     case "deposer": return boiteDepot(action.charge);
     case "envoyer_documents": return boiteEnvoi(m);
     case "historique": return ouvrirMoisHistorique(m);
+    case "dossier": return ouvrirEtDire(action.chemin, action.phrase, true);
   }
 }
 
@@ -796,19 +797,30 @@ async function boiteAvenant(mois, salarie, debut, numero) {
     ${(a.avenants || []).map((x) => `<p class="discret">${echapper(x.phrase)}</p>`).join("")}
     ${encarts(a.encarts)}
     ${mods.length ? `
-      ${mods.map((m) => `<div class="modif-avenant">
+      ${mods.map((m) => m.phrase ? `<div class="modif-avenant">
+        <b>${echapper(m.article)}</b>
+        <p>${echapper(m.phrase)}</p>
+      </div>` : `<div class="modif-avenant">
         <b>Article ${m.numero} — ${echapper(m.article)}</b>
         <div class="discret">Avant</div>${cite(m.avant)}
         <div class="discret">Désormais</div>${cite(m.apres)}
       </div>`).join("")}
       <label>Date d'effet de l'avenant
         <input type="date" id="av-effet" value="${echapper(a.effet)}"></label>` : ""}
+    ${a.contrat_signe ? `<div class="encart info">${echapper(a.contrat_signe.phrase)}
+      <button class="lien" id="av-dossier">Ouvrir son dossier</button></div>` : ""}
     <p class="discret"><a href="#" id="av-pieces">Ce qui est parti</a></p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       ${mods.length && a.remplacable && a.boite_liee ? `<button class="secondaire envoi" id="av-remplace">Annule et remplace</button>` : ""}
       ${mods.length && a.boite_liee ? `<button class="primaire envoi" id="av-envoyer">Envoyer l'avenant</button>` : ""}
     </div>`);
+  // LE CONTRAT SIGNÉ HORS DU LOGICIEL : la route rend le chemin de son dossier, la fenêtre l'ouvre (et le crée).
+  const dossier = document.getElementById("av-dossier");
+  if (dossier) dossier.onclick = (ev) => {
+    ev.preventDefault();
+    ouvrirEtDire(a.contrat_signe.chemin, "", true);
+  };
   document.getElementById("av-pieces").onclick = (ev) => {
     ev.preventDefault();
     fermerBoite();
