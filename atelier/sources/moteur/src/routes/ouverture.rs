@@ -459,7 +459,7 @@ pub(crate) fn racine_du_poste() -> PathBuf {
     }
     let logiciel = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     let voisin = logiciel.parent().map(|p| p.join("prive")).unwrap_or_default();
-    if voisin.join("config").is_dir() {
+    if voisin.join(socle::fichiers::CONFIG).is_dir() {
         voisin
     } else {
         logiciel
@@ -900,7 +900,7 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
 /// Les preferences de metiers de la compagnie (`config/metiers-ajoutes.json`) :
 /// `(codes ajoutes, codes retires)`.
 pub(crate) fn preferences_metiers(racine: &Path) -> R<(Vec<String>, Vec<String>)> {
-    let p = racine.join("config").join("metiers-ajoutes.json");
+    let p = racine.join(crate::routes::metiers::METIERS_AJOUTES);
     if !p.exists() {
         return Ok((vec![], vec![]));
     }
@@ -1283,7 +1283,7 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
             format!("« {} » ne se coche pas : le logiciel le voit fait quand c'est fait.", titre),
         ));
     }
-    let p = ctx.racine.join("config").join("echeancier.json");
+    let p = ctx.racine.join(crate::routes::rappels::ECHEANCIER);
     let mut faits = super::rappels::cochees(ctx)?;
     if fait {
         faits.insert(cle.to_string(), json!({"le": ctx.aujourdhui.iso(), "qui": qui}));

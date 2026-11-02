@@ -674,9 +674,12 @@ pub(crate) fn annuelles_de<'a>(base: &'a Value, idcc: Option<&Value>) -> R<Vec<&
         .collect())
 }
 
+/// Ce que l'utilisateur a coche dans l'echeancier, sous la racine de la compagnie.
+pub(crate) const ECHEANCIER: &str = "config/echeancier.json";
+
 /// `config/echeancier.json` : ce que l'utilisateur a coche (`fait`). La seule lecture du fichier ; `ouverture::marquer_echeance` l'ecrit.
 pub(crate) fn cochees(ctx: &Contexte) -> socle::echec::R<serde_json::Map<String, Value>> {
-    let p = ctx.racine.join("config").join("echeancier.json");
+    let p = ctx.racine.join(ECHEANCIER);
     if !p.exists() {
         return Ok(serde_json::Map::new());
     }
@@ -768,7 +771,7 @@ fn date_en_clair(j: &Jour) -> String {
 
 /// La cloture de l'annee (ou `None`).
 pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
-    let p = ctx.racine.join("config").join("exercices.json");
+    let p = ctx.racine.join(crate::compagnie::exercice_ecrit::EXERCICES);
     if !socle::fichiers::existe(&p) {
         return Ok(None);
     }

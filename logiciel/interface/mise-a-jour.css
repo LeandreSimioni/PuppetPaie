@@ -1,5 +1,5 @@
-/* L'INDICATEUR DE LA MISE A JOUR (ticket #210, 16/10/2026) : « juste en tout
-   petit en bas a gauche », sur l'accueil des compagnies comme dans la page
+/* L'INDICATEUR DE LA MISE A JOUR : tout petit, en bas a gauche, sur l'accueil
+   des compagnies comme dans la page
    d'une compagnie (les deux pages lient cette feuille). Ce qu'il dit vient du
    moteur (`maj::Recherche::etat`) ; js/mise-a-jour.js ne fait que l'afficher.
    Sous les boites (`.voile`, z-index 50) : un dialogue ouvert le couvre. */
@@ -11,19 +11,19 @@
   color: var(--discret, #7A8794);
   /* Le fond de la page (--fond, #F7F6F4) a 88 % : en rgba, jamais par la fonction color-mix, que Chromium calcule
      en fonction « color » et que la capture d'ecran du « Un probleme, une idee ? » (html2canvas 1.4.1) refuse
-     (ticket #218 ; tests/interface_fichiers.rs le garde). */
+     (tests/interface_fichiers.rs le garde). */
   background: rgba(247, 246, 244, 0.88);
   border-radius: 4px;
   pointer-events: auto;
 }
 .maj[hidden] { display: none; }
 .maj-barre {
-  width: 140px; height: 3px; border-radius: 2px; overflow: hidden;
+  width: 140px; height: 3px; border-radius: 2px;
   background: var(--bord, #DDD8D2);
 }
 .maj-barre[hidden] { display: none; }
 .maj-barre > span {
-  display: block; height: 100%; width: 0;
+  display: block; height: 100%; width: 0; border-radius: inherit;
   background: var(--action, #2E6A57); transition: width .3s;
 }
 /* Une barre dont la fin n'est pas connue (le depot n'a pas dit la taille) :

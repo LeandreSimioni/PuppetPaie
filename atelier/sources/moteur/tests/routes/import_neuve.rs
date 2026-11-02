@@ -13,12 +13,12 @@
 //!   (`importation-etat`, `a_dire`) et se dit par `importation-nature`, qui refuse une nature qui n'est pas d'un
 //!   permanent sans rien ecrire.
 //!
-//! Chaque test cree sa compagnie par `compagnies::ajouter_dans`, comme le « + ».
+//! Chaque test cree sa compagnie par `compagnies::ajouter_venant`, comme le « + ».
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use moteur::interface::compagnies::ajouter_dans;
+use moteur::interface::compagnies::{ajouter_venant, Venue};
 use serde_json::{json, Value};
 
 use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, page_aem, page_certificat, pdf, Aem, Certificat, A};
@@ -59,7 +59,7 @@ fn engagements_ecrits(racine: &Path) -> Vec<(String, Vec<u8>)> {
 }
 
 fn neuve(test: &str) -> PathBuf {
-    ajouter_dans(&dossier_de_test("import_neuve", test), "Compagnie des Essais").unwrap().racine
+    ajouter_venant(&dossier_de_test("import_neuve", test), "Compagnie des Essais", Venue::Neuve).unwrap().racine
 }
 
 /// L'artiste, au cachet, sur un spectacle (numero d'objet, Congés Spectacles) ; son adresse en minuscules.
@@ -262,7 +262,7 @@ fn le_contrat_d_un_permanent_qui_continue_dit_son_debut_et_son_numero() {
 fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let d = dossier_de_test("import_neuve", "puppetpaie");
     let (_, banc) = crate::outils::rejeu::rejouer("treteaux-du-banc", &d.join("banc"));
-    let racine = ajouter_dans(&d.join("reprise"), "Les Tréteaux du Banc").unwrap().racine;
+    let racine = ajouter_venant(&d.join("reprise"), "Les Tréteaux du Banc", Venue::Neuve).unwrap().racine;
     let import = racine.join("import");
     std::fs::create_dir_all(&import).unwrap();
     let novembre = banc.join("sorties/2026-11");

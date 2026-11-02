@@ -62,7 +62,7 @@ pub fn compter(ctx: &Contexte, annee: i32) -> R<usize> {
 
 /// Les annees deja parties, telles que `config/diagnostic.json` les retient.
 pub fn parties(racine: &Path) -> Map<String, Value> {
-    let p = racine.join("config").join("diagnostic.json");
+    let p = racine.join(crate::compagnie::incidents::DIAGNOSTIC);
     match crate::routes::fiches::lire_tolerant(&p) {
         Ok(Some(d)) => d.get(CLE).and_then(Value::as_object).cloned().unwrap_or_default(),
         _ => Map::new(),
@@ -71,7 +71,7 @@ pub fn parties(racine: &Path) -> Map<String, Value> {
 
 /// Retient que `annee` est partie, sans toucher au reste du fichier (l'identite du poste, l'interrupteur).
 fn retenir(racine: &Path, annee: i32, paies: usize, poste: &str) -> Result<(), String> {
-    let p = racine.join("config").join("diagnostic.json");
+    let p = racine.join(crate::compagnie::incidents::DIAGNOSTIC);
     let mut d = match crate::routes::fiches::lire_tolerant(&p) {
         Ok(Some(Value::Object(o))) => o,
         _ => Map::new(),
@@ -127,7 +127,7 @@ pub fn envoyer_si_du(ctx: &Contexte) -> Value {
     if let Err(e) = client.compter_paies(annee, paies) {
         return bilan(Some(annee), false, Some(paies), "", &e.message);
     }
-    let poste = client.poste.as_ref().map(|(n, _)| n.clone()).unwrap_or_default();
+    let poste = client.poste.0.clone();
     match retenir(racine, annee, paies, &poste) {
         Ok(()) => bilan(Some(annee), true, Some(paies), "", ""),
         // Parti, mais pas retenu : le passage suivant le renverra, et le serveur remplace la meme annee.

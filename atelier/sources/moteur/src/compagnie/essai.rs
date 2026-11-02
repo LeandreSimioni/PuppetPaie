@@ -93,7 +93,7 @@ const RUBRIQUES: [(&str, &[&str]); 12] = [
 const RETIREES: [&str; 8] = ["siret", "nom_affichage", "adresse_affichage", "commune_affichage", "complement_adresse", "tel", "etablissements", "_source"];
 
 /// Ce que la copie ne prend pas de la fictive (relatif a sa racine).
-const NON_COPIES: [&str; 3] = [MARQUEUR, "retours", "config/horloge.json"];
+const NON_COPIES: [&str; 3] = [MARQUEUR, envois::retours::RETOURS, crate::horloge::FICHIER_HORLOGE];
 
 /// Une compagnie d'essai : son marqueur le dit.
 pub fn est_essai(racine: &Path) -> bool {
@@ -297,7 +297,7 @@ fn installation() -> PathBuf {
 fn source(depuis: &str) -> Result<PathBuf, String> {
     let p = PathBuf::from(depuis);
     let d = if depuis.contains('/') || depuis.contains('\\') || p.is_dir() { p } else { installation().join(crate::interface::compagnies::DOSSIER_FICTIVES).join(depuis) };
-    if !d.join("config").join("entreprise.json").is_file() {
+    if !d.join(droit::contexte::ENTREPRISE).is_file() {
         return Err(socle::echec::avec("Ce dossier n'est pas une compagnie : il n'a pas de fiche entreprise. Rien n'est écrit.", json!({"chemin": d.to_string_lossy()})));
     }
     // Seulement une FICTIVE : jamais `prive/` ni une autre compagnie reelle, dont les salaries partiraient sous un autre SIREN.
@@ -391,8 +391,8 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     };
     // La fiche sous la nouvelle identite, calculee AVANT toute ecriture.
     let base_fiche = match &src {
-        Some(s) => s.join("config").join("entreprise.json"),
-        None => dossier.join("config").join("entreprise.json"),
+        Some(s) => s.join(droit::contexte::ENTREPRISE),
+        None => dossier.join(droit::contexte::ENTREPRISE),
     };
     let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| socle::echec::du_disque(&base_fiche, &e))?;
     let fiche = id.appliquer(&fiche)?;
@@ -411,7 +411,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")
             .map_err(|e| socle::echec::du_disque(&dossier, &e))?;
     }
-    socle::ecriture::ecrire_json(&dossier.join("config").join("entreprise.json"), &fiche, 2)?;
+    socle::ecriture::ecrire_json(&dossier.join(droit::contexte::ENTREPRISE), &fiche, 2)?;
     Ok(Montage { dossier: absolu(dossier), depuis: nom, neuf: !deja })
 }
 

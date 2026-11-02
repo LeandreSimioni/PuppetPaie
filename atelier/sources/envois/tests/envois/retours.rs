@@ -1,16 +1,14 @@
 //! La lecture des retours : le compte rendu de nature 94 tel qu'il arrive (transcrit d'un CRM recu, NIR inventes), le
-//! certificat de conformite et l'accuse (le bilan tranche, regle 5), les anomalies sans rien de nominatif, les fiches de
-//! parametrage au format depose (`atelier/reference/sources/fpoc-format/`), l'archive d'une AER de nature 46. Le schema des
+//! certificat de conformite et l'accuse (le bilan tranche, regle 5), les anomalies sans rien de nominatif,
+//! l'archive d'une AER de nature 46. Le schema des
 //! bilans : `atelier/reference/sources/gip-mds-api-dsn/gip-mds-specifications-schema-bilans-vt2.2-20201118.txt`.
 
 use envois::retours::{
-    aer_spectacle, anomalies_codees_d_octets, bilan_d_octets, fiche_d_octets, fusionner_bilans, releves_vers_salaries,
+    aer_spectacle, anomalies_codees_d_octets, bilan_d_octets, fusionner_bilans, releves_vers_salaries,
     taux_pas_d_octets,
 };
 use serde_json::{json, Value};
 use socle::base64::lire as base64_lire;
-
-use crate::outils::donnee;
 
 const CRM_REEL: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><ns2:rapport xmlns:ns2=\"http://www.gip-mds.fr/\" identifiant=\"450189378\" type=\"CRM nominatif\" profil=\"DSN\" version=\"v02r01\"><envoi><envoi_identification><idflux>WSUrBZ50Y4RWJdDpsRsh.3r</idflux></envoi_identification></envoi><declaration><declaration_bilan><etat>OK</etat><salarie><NIR>1990101999999</NIR><matricule>2</matricule><taux_imposition_PAS>0.00</taux_imposition_PAS></salarie><salarie><NIR>2990101999999</NIR><matricule>1</matricule><taux_imposition_PAS>0.00</taux_imposition_PAS></salarie></declaration_bilan></declaration></ns2:rapport>";
 
@@ -112,47 +110,6 @@ fn les_anomalies_en_codes_ne_gardent_ni_le_nom_ni_la_valeur() {
     assert_eq!(a[0]["rubrique"], "S21.G00.20.001");
     let tout = Value::Array(a).to_string();
     assert!(!tout.contains("FAVART") && !tout.contains("\"X\""), "{}", tout);
-}
-
-// ------------------------------------------------ fiche de parametrage OC
-
-#[test]
-fn une_fiche_1_4_0_se_lit_avec_ses_planchers_et_plafonds() {
-    // La fixture fictive, validee contre `fpoc-r1.4.0.xsd` (et refusee par `fpoc-r1.3.9.xsd`).
-    let f = fiche_d_octets(&donnee("fiches-parametrage/fiche-fictive-140.xml")).unwrap();
-    assert_eq!((f["version"].as_str(), f["format"].as_str()), (Some("140"), Some("1.4.0")));
-    // Ouvrant droit, conjoint, par enfant (90/91/94) : trois bases ; les compteurs 70.008, 70.010 et 70.011 (des ayants
-    // droit de type Conjoint, Autre ou Enfant, specification R1.4.0 l. 527-530). Le plafond de la base enfant (1.4.0) :
-    // un taux, un coefficient et une assiette.
-    let famille = &f["groupes"][0]["contrats"][0];
-    let b = famille["bases_specifiques"].as_array().unwrap();
-    let conditions: Vec<&str> = b.iter().map(|x| x["condition"].as_str().unwrap()).collect();
-    assert_eq!(conditions, ["90", "91", "94"]);
-    assert_eq!(famille["compteurs"], json!(["S21.G00.70.008", "S21.G00.70.010", "S21.G00.70.011"]));
-    assert_eq!(b[2]["plafond"], json!({"montant": null, "taux": "2.2200", "coef": "1.00", "assiette": "PMSS"}));
-    // Une condition seule (02), que la 1.4.0 admet (OC.39) : un forfait et son plancher en montant ; aucun compteur.
-    let isole = &f["groupes"][0]["contrats"][1];
-    assert_eq!(isole["bases_specifiques"][0]["plancher"], json!({"montant": "30.00", "taux": null, "coef": null, "assiette": null}));
-    assert_eq!(isole["compteurs"], json!([]));
-}
-
-#[test]
-fn une_condition_tarifaire_inconnue_refuse() {
-    // Les compteurs d'une condition hors des deux formats deposes ne se devinent pas.
-    let fiche = r#"<FICHE IdentifiantFiche="F9" Version="140"><GROUPE NumeroGrp="1"><ParametresContrats>
-<Contrat ReferenceContrat="R9" LibelleContrat="SANTE"/><ElementsDeCalculAttendus>
-<BaseMontantSpecifique ValeurCodeNature="20" Condition="08"><Montant>10.00</Montant></BaseMontantSpecifique>
-</ElementsDeCalculAttendus></ParametresContrats></GROUPE></FICHE>"#;
-    assert!(fiche_d_octets(fiche.as_bytes()).is_err());
-}
-
-#[test]
-fn les_octets_d_une_fiche_se_lisent_en_latin_1() {
-    // La specification : « respecter l'encodage ISO_8859_1 »
-    // (`atelier/reference/sources/fpoc-format/fpoc-specification-r1.4.0-20260721.txt:14`). Un E accent aigu en UTF-8 (deux
-    // octets) y est donc deux lettres.
-    let o = "<F IdentifiantFiche=\"\u{e9}\"/>".as_bytes();
-    assert_eq!(fiche_d_octets(o).unwrap()["identifiant"], "\u{c3}\u{a9}");
 }
 
 // ------------------------------------------------------- l'AER, le .zip

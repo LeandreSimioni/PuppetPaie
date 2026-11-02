@@ -279,7 +279,7 @@ pub fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("cs", "N° Congés Spectacles"),
         col_t("actif", "Fiche"),
     ];
-    t.sources = vec!["config/salaries.json".to_string()];
+    t.sources = vec![droit::contexte::SALARIES.to_string()];
     finir(ctx, &mut t, None, "fichier-du-personnel", &d.format, d.ecrire)?;
     Ok(t)
 }

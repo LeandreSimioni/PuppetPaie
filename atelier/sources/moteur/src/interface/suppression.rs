@@ -73,7 +73,7 @@ fn absolu(p: &Path) -> PathBuf {
 fn de_l_installation(inst: &Path, racine: &Path) -> bool {
     let (i, r) = (absolu(inst), absolu(racine));
     let nom = r.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    if nom.is_empty() || nom.starts_with('.') || !r.join("config").join("entreprise.json").is_file() {
+    if nom.is_empty() || nom.starts_with('.') || !r.join(droit::contexte::ENTREPRISE).is_file() {
         return false;
     }
     r == i.join("prive") || r.parent().is_some_and(|p| p == i.join("compagnies") || p == i.join(compagnies::DOSSIER_FICTIVES))
@@ -110,7 +110,7 @@ pub fn question(racine: &Path) -> Result<Value, String> {
     let mut v = json!({"nom": nom, "titre_dit": titre_dit, "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);
-        let liee = racine.join("config").join(crate::routes::coffre::FICHIER_JETON).is_file();
+        let liee = racine.join(socle::fichiers::CONFIG).join(crate::routes::coffre::FICHIER_JETON).is_file();
         let derniere = crate::compagnie::sauvegarde::derniere(racine).quand;
         let phrase = match derniere.as_str().filter(|q| !q.is_empty()) {
             Some(q) => format!("Dernière sauvegarde dans le Drive : {}.", crate::routes::quand(q)),

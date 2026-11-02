@@ -88,12 +88,6 @@ pub fn decoder_pourcent(s: &str) -> String {
     String::from_utf8_lossy(&v).into_owned()
 }
 
-pub fn encoder_pourcent(s: &str) -> String {
-    s.bytes()
-        .map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{:02X}", b) })
-        .collect()
-}
-
 fn lire_requete(flux: &mut BufReader<TcpStream>) -> Option<Result<Requete, u16>> {
     let mut ligne = String::new();
     if flux.read_line(&mut ligne).ok()? == 0 {

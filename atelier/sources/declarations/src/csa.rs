@@ -174,7 +174,7 @@ pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::De
     if !assujettie {
         return Ok(None);
     }
-    let chemin = ctx.racine.join("config").join("effectifs.json");
+    let chemin = ctx.racine.join(droit::contexte::EFFECTIFS);
     let effectifs = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let (alternants, denominateur) =
         (effectif_du_118(&effectifs, n, CODE_ALTERNANTS)?, effectif_du_118(&effectifs, n, CODE_DENOMINATEUR)?);

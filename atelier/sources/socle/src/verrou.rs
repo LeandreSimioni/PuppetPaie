@@ -37,7 +37,7 @@ impl Verrouille {
 
 /// `config/.compteurs.verrou` d'une racine de donnees.
 pub fn chemin_compteurs(racine: &Path) -> PathBuf {
-    racine.join("config").join(".compteurs.verrou")
+    racine.join(crate::fichiers::CONFIG).join(".compteurs.verrou")
 }
 
 /// La marque que le detenteur ecrit : `QUI pid N JJ/MM/AAAA HH:MM:SS`.

@@ -397,7 +397,7 @@ fn garder_dans_le_geste(chemin: &Path, v: Option<Arc<Value>>) {
 }
 
 /// Ce que le geste vient d'ecrire dans `chemin` (`ecriture::ecrire_json`) : si le geste l'a lu, c'est ce qu'il a
-/// desormais en main ; il ne relit pas ce qu'il a ecrit.
+/// en main ; il ne relit pas ce qu'il a ecrit.
 pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: &Value) {
     GESTE.with(|g| {
         if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
@@ -610,6 +610,9 @@ pub fn introuvable(chemin: &Path) -> String {
 pub fn ecriture_impossible(e: &std::io::Error, chemin: &Path) -> String {
     format!("écriture impossible : {} : {}", repr(&chemin.to_string_lossy()), e)
 }
+
+/// Le dossier de la configuration d'une compagnie, sous sa racine.
+pub const CONFIG: &str = "config";
 
 /// Le marqueur d'une compagnie qui n'est pas la vraie (une compagnie fictive, une copie de developpement).
 pub const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";

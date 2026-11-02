@@ -148,10 +148,6 @@ pub fn cause_de(e: &ErreurGoogle) -> &'static str {
 }
 
 impl Sauvegarde {
-    pub fn a_change(&self) -> bool {
-        !self.deposes.is_empty()
-    }
-
     /// La ligne de la sauvegarde. Ce qui est reporte au prochain passage s'y dit en passant, sans alarme : c'est
     /// `persistant` (la trace, `sauvegarde_souci`) qui dit ce qui dure.
     pub fn resume(&self) -> String {
@@ -368,7 +364,7 @@ pub fn inventaire(racine: &Path) -> (Vec<(String, Etat)>, usize) {
 /// `chemin_index` : `config/`, et pas `journal/` : de l'etat machine, pas un document. Il est
 /// ecarte de la sauvegarde (`NOMS_EXCLUS`).
 pub fn chemin_index(racine: &Path) -> PathBuf {
-    racine.join("config").join(INDEX)
+    racine.join(socle::fichiers::CONFIG).join(INDEX)
 }
 
 /// `{}` si le fichier manque ou ne se lit pas comme du JSON.

@@ -306,7 +306,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 pub const ETAPE: &str = ".ouverture-etape.json";
 
 fn chemin_etape(racine: &Path) -> std::path::PathBuf {
-    racine.join("config").join(ETAPE)
+    racine.join(socle::fichiers::CONFIG).join(ETAPE)
 }
 
 fn dire_l_etape(ctx: &Contexte, etape: &str) {
@@ -327,13 +327,13 @@ pub fn etape_en_cours(racine: &Path) -> Option<String> {
 // ------------------------------------------------------------------ la trace
 
 fn chemin_trace(ctx: &Contexte) -> std::path::PathBuf {
-    ctx.racine.join("config").join(TRACE)
+    ctx.racine.join(socle::fichiers::CONFIG).join(TRACE)
 }
 
 /// `derniere_ouverture` : la trace, ou `{}` si elle est absente ou ne se lit pas (JSON invalide, octets invalides, fichier
 /// illisible).
 pub fn derniere_ouverture(racine: &std::path::Path) -> Value {
-    let p = racine.join("config").join(TRACE);
+    let p = racine.join(socle::fichiers::CONFIG).join(TRACE);
     if !p.exists() {
         return json!({});
     }
@@ -420,7 +420,7 @@ const VERSION_DU_CALCUL: &str = ".version-du-calcul.json";
 fn passer_la_version(ctx: &Contexte) -> R<()> {
     let code = socle::fichiers::dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     let marque = format!("{}+{}", crate::compagnie::maj::courante(&code), engagement::empreinte::MOTEUR);
-    let p = ctx.racine.join("config").join(VERSION_DU_CALCUL);
+    let p = ctx.racine.join(socle::fichiers::CONFIG).join(VERSION_DU_CALCUL);
     let lue = std::fs::read(&p).ok().and_then(|o| serde_json::from_slice::<Value>(&o).ok());
     if lue.as_ref().and_then(|v| v.get("version")).and_then(Value::as_str) == Some(marque.as_str()) {
         return Ok(());

@@ -874,8 +874,3 @@ fn ecrire_comparaison(
     dire(&format!("{} article(s) -> {}", changements.len(), cible.display()));
     Ok(())
 }
-
-/// Le diff unifie de deux listes de lignes (`difflib::unifie`), pour les essais.
-pub fn diff_unifie(a: &[String], b: &[String], n: usize) -> Vec<String> {
-    difflib::unifie(a, b, "avant", "apres", n)
-}

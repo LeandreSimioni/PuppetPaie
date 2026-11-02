@@ -341,7 +341,7 @@ pub struct Effectif {
 
 /// Lit `config/effectifs.json` (absent : vide).
 pub fn effectif_de(racine: &Path, fiche: &Value) -> Resultat<Effectif> {
-    let p = racine.join("config").join("effectifs.json");
+    let p = racine.join(EFFECTIFS);
     let brut = if socle::fichiers::existe(&p) { lire_json(&p)? } else { Value::Object(Map::new()) };
     let mut annees = BTreeMap::new();
     if let Some(Value::Object(o)) = brut.get("annees") {
@@ -1296,7 +1296,13 @@ pub struct Contexte {
     atmp_lu: Option<(i32, Value)>,
 }
 
-const ENTREPRISE: &str = "config/entreprise.json";
+/// Les fiches d'une compagnie et ce qu'elle a dit d'elle-meme, sous sa racine.
+pub const ENTREPRISE: &str = "config/entreprise.json";
+pub const SALARIES: &str = "config/salaries.json";
+pub const EFFECTIFS: &str = "config/effectifs.json";
+/// Les baremes propres a la compagnie (`<annee>.json`), sous sa racine.
+pub const BAREMES: &str = "config/baremes";
+
 /// Combien d'annees en arriere le taux AT/MP d'une annee que la compagnie n'a pas dite se cherche.
 const ANNEES_DU_TAUX_ATMP: i32 = 5;
 /// Le fichier des organismes et contrats de la DSN, sous `config/`.
@@ -1319,7 +1325,7 @@ impl Contexte {
     pub fn nouveau(racine: &Path, date: Option<Jour>) -> Resultat<Contexte> {
         let date = date.unwrap_or_else(jour_reel);
         let aujourdhui = aujourdhui_brut()?;
-        let cfg = racine.join("config");
+        let cfg = racine.join(socle::fichiers::CONFIG);
         let entreprise_brute = lire_json(&cfg.join("entreprise.json"))?;
         let bruts = |nom: &str| -> Resultat<Map<String, Value>> {
             Ok(objet(lire_json(&cfg.join(nom))?, nom)?.into_iter().filter(|(k, _)| !k.starts_with('_')).collect())
@@ -1462,7 +1468,7 @@ impl Contexte {
     }
 
     fn empreinte_bareme_de(&self, an: i32, ent: &Value) -> String {
-        let cfg = self.racine.join("config");
+        let cfg = self.racine.join(socle::fichiers::CONFIG);
         // Les surcouches des annees d'avant : le taux AT/MP que l'annee ne dit pas s'en reprend (`taux_atmp_reporte`).
         let sig: Vec<_> = (an - ANNEES_DU_TAUX_ATMP..=an)
             .flat_map(|y| [socle::fichiers::signature(&cfg.join("baremes").join(format!("{}.json", y))), socle::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", y)))])
@@ -1500,7 +1506,7 @@ impl Contexte {
     /// (`taux_atmp_reporte`, qui porte `_reporte_de`). `Some(Err)` : pourquoi il ne se reprend pas, ou la surcouche
     /// illisible ; `None` : rien de dit ni d'avant. Tout ce qui demande « le taux de l'annee est-il pose ? » lit ici.
     pub fn taux_atmp_de(&self, an: i32) -> Option<Result<Map<String, Value>, String>> {
-        let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
+        let p = self.racine.join(BAREMES).join(format!("{}.json", an));
         if socle::fichiers::existe(&p) {
             match lire_json(&p) {
                 Ok(v) => {
@@ -1515,7 +1521,7 @@ impl Contexte {
     }
 
     fn taux_atmp_reporte_de(&self, an: i32, ent: &Value) -> Option<Result<Map<String, Value>, String>> {
-        let dossier = self.racine.join("config").join("baremes");
+        let dossier = self.racine.join(BAREMES);
         let (pa, pose) = (an - ANNEES_DU_TAUX_ATMP..an).rev().find_map(|y| {
             let p = dossier.join(format!("{}.json", y));
             let t = socle::fichiers::existe(&p).then(|| lire_json(&p).ok()).flatten()?.get("taux_atmp")?.clone();
@@ -1542,7 +1548,7 @@ impl Contexte {
     }
 
     fn bareme_fondu_de(&self, an: i32, ent: &Value) -> Result<Value, Refus> {
-        let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
+        let p = self.racine.join(BAREMES).join(format!("{}.json", an));
         let mut fichier = if socle::fichiers::existe(&p) {
             Some(lire_json(&p)?)
         } else {

@@ -11,11 +11,17 @@
 
 use socle::fichiers::lire_json;
 use socle::num::Decimal;
-use droit::plafond::{plafond_urssaf, pour_paie, pss_depuis_table, EngagementPlafond, Jour};
+use droit::plafond::{plafond_urssaf, pour_paie, EngagementPlafond, Jour};
+use socle::num::Resultat;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::Path;
 use crate::outils::dec;
+
+/// Le plafond de chaque annee d'une table `{annee: (mensuel, horaire)}`.
+fn pss_depuis_table(table: &HashMap<i32, (i64, i64)>) -> impl Fn(i32) -> Resultat<(Decimal, Decimal)> + '_ {
+    move |annee| table.get(&annee).map(|(m, h)| (Decimal::from(*m), Decimal::from(*h))).ok_or_else(|| format!("pas de plafond pour {}", annee))
+}
 
 fn lire(nom: &str) -> Value {
     crate::outils::lire_oracle(nom)

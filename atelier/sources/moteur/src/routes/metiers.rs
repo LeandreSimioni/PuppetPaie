@@ -98,8 +98,11 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
 
 const QUOI_METIERS: &str = "Les metiers que cette compagnie a coches ou decoches dans Configuration > Metiers : `codes`, pris a une autre convention collective ; `retires`, decoches dans la sienne. Preference d'affichage : aucun calcul ne change. Le catalogue est livre avec le logiciel (donnees/emplois-base.json).";
 
+/// Les metiers que la compagnie a ajoutes ou retires, sous sa racine.
+pub(crate) const METIERS_AJOUTES: &str = "config/metiers-ajoutes.json";
+
 fn ecrire_preferences(ctx: &Contexte, ajoutes: &[String], retires: &[String]) -> R<()> {
-    let p = ctx.racine.join("config").join("metiers-ajoutes.json");
+    let p = ctx.racine.join(METIERS_AJOUTES);
     if let Some(parent) = p.parent() {
         creer_dossier(parent)?;
     }

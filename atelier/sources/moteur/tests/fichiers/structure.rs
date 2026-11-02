@@ -6,15 +6,25 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use moteur::routes::catalogue::{catalogue, Acte, Ecran, Place, FICHES, GESTE_MAX};
+use moteur::routes::catalogue::{catalogue, Acte, Ecran, Place, FICHES};
 use serde_json::{json, Value};
 
 use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf};
 use crate::outils::rejeu::{rejouer_dossier, scenario};
 use crate::outils::{dossier_de_test, route, route_avec};
 use moteur::compagnie::administrateur::Poste;
-use moteur::interface::compagnies::ajouter_dans;
+use moteur::interface::compagnies::{ajouter_venant, Venue};
 use moteur::compagnie::demande::VARIABLE_ESSAIS;
+
+/// La longueur d'un geste, en caracteres : une phrase breve.
+const GESTE_MAX: usize = 80;
+
+/// Toutes les places de l'ecran (`catalogue::Place`).
+const PLACES: [Place; 14] = [
+    Place::Paie, Place::Fiches, Place::Metiers, Place::Organismes, Place::Bulletin, Place::ModelesContrat, Place::Identite,
+    Place::Coffre, Place::Import, Place::Historique, Place::Exports, Place::Signaler, Place::Bandeau, Place::Accueil,
+];
+
 
 fn espace() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
@@ -418,9 +428,9 @@ fn google_autoriser(c: &Path, exemple: Value) -> Value {
 /// fictive livree (`fictive:fictive-essai`), une compagnie reelle (`cie:la-compagnie`). Rend l'installation et la reelle.
 fn installation_a_part(c: &Path, test: &str) -> (PathBuf, PathBuf) {
     let inst = crate::outils::installation(&dossier_de_test("structure", test), "2026.10.22");
-    ajouter_dans(&inst, "Demo").unwrap();
+    ajouter_venant(&inst, "Demo", Venue::Neuve).unwrap();
     crate::outils::debloquer(&inst);
-    let reelle = ajouter_dans(&inst, "La Compagnie").unwrap().racine;
+    let reelle = ajouter_venant(&inst, "La Compagnie", Venue::Neuve).unwrap().racine;
     let livree = inst.join("fictives").join("fictive-essai");
     crate::outils::copier(&c.join("config"), &livree.join("config"));
     std::fs::write(livree.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": "compagnie fictive essai"}).to_string()).unwrap();
@@ -436,7 +446,7 @@ fn administrateur(c: &Path, nom: &str, exemple: Value) -> Value {
     let (inst, a) = installation_a_part(c, nom);
     let poste = Poste { dossier_cle: inst.join("cle-du-poste"), maintenant: "2026-11-02T10:00".into() };
     poste.coffre(&a).poser_ouverture(ADMIN, None).unwrap();
-    let b = ajouter_dans(&inst, "Seconde").unwrap().racine;
+    let b = ajouter_venant(&inst, "Seconde", Venue::Neuve).unwrap().racine;
     let mut charge = exemple;
     charge["administrateur"] = json!(ADMIN);
     if nom == "administrateur-detacher" {
@@ -558,7 +568,7 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
         page.push_str(&t);
     }
     let html = (lu("logiciel/interface/index.html") + &lu("atelier/sources/moteur/src/interface/pages/accueil.html")).replace("&amp;", "&");
-    for p in Place::TOUTES {
+    for p in PLACES {
         assert!(html.contains(&format!("data-place=\"{}\"", p.nom())), "la place « {} » n'est pas dans la page : nomme-la (data-place) là où la page l'ouvre", p.nom());
     }
     let mut fenetre = lu("atelier/sources/moteur/src/etat_garde.rs");
@@ -1191,11 +1201,22 @@ fn met_des_euros(l: &str) -> bool {
 /// Les litteraux de chaine d'un source Rust (hors commentaires), avec la ligne ou chacun commence ; une fin de ligne
 /// echappee (`\` puis le blanc qui suit) est retiree, comme le fait le compilateur.
 fn litteraux_rs(t: &str) -> Vec<(usize, String)> {
-    litteraux_rs_places(t).into_iter().map(|(l, _, _, s)| (l, s)).collect()
+    jetons_rs(t).into_iter().filter(|j| !j.3).map(|(l, _, _, _, s)| (l, s)).collect()
 }
 
 /// Les memes, avec ou chacun commence (son guillemet) et finit (apres le sien), en caracteres.
 fn litteraux_rs_places(t: &str) -> Vec<(usize, usize, usize, String)> {
+    jetons_rs(t).into_iter().filter(|j| !j.3).map(|(l, o, f, _, s)| (l, o, f, s)).collect()
+}
+
+/// Les commentaires d'un source Rust (`//`, `///`, `//!`, `/* */`), avec la ligne de chacun.
+fn commentaires_rs(t: &str) -> Vec<(usize, String)> {
+    jetons_rs(t).into_iter().filter(|j| j.3).map(|(l, _, _, _, s)| (l, s)).collect()
+}
+
+/// Les litteraux de chaine et les commentaires d'un source Rust : `(ligne, debut, fin, commentaire ?, texte)`, debut et
+/// fin en caracteres.
+fn jetons_rs(t: &str) -> Vec<(usize, usize, usize, bool, String)> {
     let c: Vec<char> = t.chars().collect();
     let (mut v, mut i, mut ligne) = (Vec::new(), 0, 1);
     while i < c.len() {
@@ -1205,17 +1226,21 @@ fn litteraux_rs_places(t: &str) -> Vec<(usize, usize, usize, String)> {
                 i += 1;
             }
             '/' if c.get(i + 1) == Some(&'/') => {
+                let debut = i;
                 while i < c.len() && c[i] != '\n' {
                     i += 1;
                 }
+                v.push((ligne, debut, i, true, c[debut..i].iter().collect()));
             }
             '/' if c.get(i + 1) == Some(&'*') => {
+                let (debut, l) = (i, ligne);
                 i += 2;
                 while i + 1 < c.len() && !(c[i] == '*' && c[i + 1] == '/') {
                     ligne += (c[i] == '\n') as usize;
                     i += 1;
                 }
                 i += 2;
+                v.push((l, debut, i.min(c.len()), true, c[debut..i.min(c.len())].iter().collect()));
             }
             '\'' => {
                 // Un caractere ('"', '\'', '\u{a0}') ; sinon une duree de vie.
@@ -1251,7 +1276,7 @@ fn litteraux_rs_places(t: &str) -> Vec<(usize, usize, usize, String)> {
                     j += 1;
                 }
                 i = j + 1 + dieses;
-                v.push((debut, ouvre, i, s));
+                v.push((debut, ouvre, i, false, s));
             }
             '"' => {
                 let (debut, ouvre) = (ligne, i);
@@ -1277,10 +1302,304 @@ fn litteraux_rs_places(t: &str) -> Vec<(usize, usize, usize, String)> {
                     i += 1;
                 }
                 i += 1;
-                v.push((debut, ouvre, i, s));
+                v.push((debut, ouvre, i, false, s));
             }
             _ => i += 1,
         }
     }
     v
+}
+
+/// LE CODE DIT CE QUI EST, JAMAIS COMMENT ON Y EST ARRIVE : aucun commentaire des sources Rust de l'espace (et de leurs
+/// tests), du CSS et du HTML de la page ne porte une marque d'histoire (`HISTOIRE` : le numero d'une demande, son
+/// demandeur, ce qui a change). Le CSS et le HTML ne citent aucun texte depose : une date y est celle d'une decision
+/// (`DATE`). L'histoire va au journal du depot prive ; un commentaire d'histoire s'efface, ou se reecrit en son pourquoi.
+#[test]
+fn le_code_ne_raconte_pas_son_histoire() {
+    const HISTOIRE: &str = r"(?i)(?:^|[^&\w])#\d{2,3}\b|\bticket|\bl[ée]andre\b|\bd[ée]sormais\b|\bavant, on\b|\bcomme le python\b";
+    const DATE: &str = r"\b\d{1,2}/\d{1,2}(?:/20\d{2})?\b";
+    let histoire = regex::Regex::new(HISTOIRE).unwrap();
+    let date = regex::Regex::new(DATE).unwrap();
+    let mut fautes = Vec::new();
+    let mut noter = |p: &Path, commentaires: Vec<(usize, String)>, page: bool| {
+        for (n, c) in commentaires {
+            if histoire.is_match(&c) || (page && date.is_match(&c)) {
+                let rel = p.canonicalize().unwrap().strip_prefix(depot()).unwrap().to_string_lossy().into_owned();
+                fautes.push(format!("{}:{} : {}", rel, n, c.lines().next().unwrap_or("").trim()));
+            }
+        }
+    };
+    for e in std::fs::read_dir(espace()).unwrap().flatten() {
+        for d in ["src", "tests"].map(|d| e.path().join(d)).into_iter().filter(|d| d.is_dir()) {
+            for p in sources(&d) {
+                noter(&p, commentaires_rs(&std::fs::read_to_string(&p).unwrap()), false);
+            }
+        }
+    }
+    for p in fichiers_de_la_page() {
+        let t = std::fs::read_to_string(&p).unwrap();
+        let c = if p.extension().is_some_and(|x| x == "css") { commentaires_c(&t, false) } else { commentaires_html(&t) };
+        noter(&p, c, true);
+    }
+    assert!(
+        fautes.is_empty(),
+        "{} commentaire(s) racontent l'histoire du code : un commentaire dit le pourquoi d'une regle (le texte depose, la contrainte), jamais d'ou elle vient ; l'histoire va au journal du depot prive :\n{}",
+        fautes.len(),
+        fautes.join("\n")
+    );
+}
+
+/// ON NE COUPE JAMAIS UN TEXTE : le CSS de la page (ses feuilles, et les `<style>` des pages que sert la fenetre) n'a ni
+/// `text-overflow`, ni `line-clamp`, ni `overflow: hidden` ou `clip` (sur un axe ou les deux). Ce qui ne tient pas
+/// defile (`overflow: auto`) ou passe a la ligne ; ce qui deborde se voit, et une phrase trop longue s'ecrit plus brève
+/// dans le moteur.
+#[test]
+fn la_page_ne_coupe_aucun_texte() {
+    let coupe = regex::Regex::new(r"(?i)text-overflow|line-clamp|overflow(?:-x|-y)?\s*:\s*(?:hidden|clip)").unwrap();
+    let mut fautes = Vec::new();
+    for p in fichiers_de_la_page() {
+        let t = std::fs::read_to_string(&p).unwrap();
+        let feuilles: Vec<(usize, String)> = if p.extension().is_some_and(|x| x == "css") {
+            vec![(1, t.clone())]
+        } else {
+            blocs(&t, "<style", "</style>")
+        };
+        for (debut, f) in feuilles {
+            for (n, l) in sans_commentaires_c(&f).lines().enumerate() {
+                if coupe.is_match(l) {
+                    let rel = p.canonicalize().unwrap().strip_prefix(depot()).unwrap().to_string_lossy().into_owned();
+                    fautes.push(format!("{}:{} : {}", rel, debut + n, l.trim()));
+                }
+            }
+        }
+    }
+    assert!(
+        fautes.is_empty(),
+        "{} regle(s) CSS coupent un texte : ce qui ne tient pas defile (`overflow: auto`) ou passe a la ligne, jamais ne se cache :\n{}",
+        fautes.len(),
+        fautes.join("\n")
+    );
+}
+
+fn depot() -> PathBuf {
+    espace().join("../..").canonicalize().unwrap()
+}
+
+/// Le CSS et le HTML de la page : les feuilles et `index.html` de `logiciel/interface/`, et les pages que sert la fenetre
+/// (`moteur/src/interface/pages/`).
+fn fichiers_de_la_page() -> Vec<PathBuf> {
+    let mut v: Vec<PathBuf> = std::fs::read_dir(depot().join("logiciel/interface")).unwrap().flatten().map(|e| e.path()).collect();
+    v.extend(std::fs::read_dir(espace().join("moteur/src/interface/pages")).unwrap().flatten().map(|e| e.path()));
+    v.retain(|p| p.extension().is_some_and(|x| x == "css" || x == "html"));
+    v.sort();
+    v
+}
+
+/// Ce qui est entre `ouvre` (jusqu'a son `>`) et `ferme`, avec la ligne du fichier ou chaque bloc commence.
+fn blocs(t: &str, ouvre: &str, ferme: &str) -> Vec<(usize, String)> {
+    let mut v = Vec::new();
+    let mut reste = 0;
+    while let Some(i) = t[reste..].find(ouvre) {
+        let Some(j) = t[reste + i..].find('>') else { break };
+        let debut = reste + i + j + 1;
+        let fin = t[debut..].find(ferme).map_or(t.len(), |k| debut + k);
+        v.push((t[..debut].matches('\n').count() + 1, t[debut..fin].to_string()));
+        reste = fin;
+    }
+    v
+}
+
+/// Les commentaires d'un HTML : les `<!-- -->`, et ceux des `<style>` et des `<script>` qu'il porte.
+fn commentaires_html(t: &str) -> Vec<(usize, String)> {
+    let mut v = blocs(t, "<!--", "-->");
+    for (ouvre, ferme, ligne) in [("<style", "</style>", false), ("<script", "</script>", true)] {
+        for (debut, b) in blocs(t, ouvre, ferme) {
+            v.extend(commentaires_c(&b, ligne).into_iter().map(|(n, c)| (debut + n - 1, c)));
+        }
+    }
+    v
+}
+
+/// Les commentaires `/* */` (et `//` si `ligne`, pour un script) d'un CSS ou d'un script, avec la ligne de chacun ; une
+/// chaine (`'`, `"`, `` ` ``) n'en porte pas.
+fn commentaires_c(t: &str, ligne: bool) -> Vec<(usize, String)> {
+    let c: Vec<char> = t.chars().collect();
+    let (mut v, mut i, mut n) = (Vec::new(), 0, 1);
+    while i < c.len() {
+        match c[i] {
+            '\n' => n += 1,
+            '/' if c.get(i + 1) == Some(&'*') => {
+                let (debut, l) = (i, n);
+                i += 2;
+                while i + 1 < c.len() && !(c[i] == '*' && c[i + 1] == '/') {
+                    n += (c[i] == '\n') as usize;
+                    i += 1;
+                }
+                i += 1;
+                v.push((l, c[debut..(i + 1).min(c.len())].iter().collect()));
+            }
+            '/' if ligne && c.get(i + 1) == Some(&'/') => {
+                let debut = i;
+                while i + 1 < c.len() && c[i + 1] != '\n' {
+                    i += 1;
+                }
+                v.push((n, c[debut..=i].iter().collect()));
+            }
+            // Une expression reguliere d'un script (`/[&<>"]/g`) : apres un operateur ou une ouverture, pas une division.
+            '/' if ligne && c[..i].iter().rev().find(|x| !x.is_whitespace()).is_none_or(|x| "(,=:[!&|?{};".contains(*x)) => {
+                let mut classe = false;
+                i += 1;
+                while i < c.len() && c[i] != '\n' && (classe || c[i] != '/') {
+                    match c[i] {
+                        '\\' => i += 1,
+                        '[' => classe = true,
+                        ']' => classe = false,
+                        _ => {}
+                    }
+                    i += 1;
+                }
+            }
+            q @ ('\'' | '"' | '`') => {
+                i += 1;
+                while i < c.len() && c[i] != q {
+                    i += (c[i] == '\\') as usize;
+                    n += (c.get(i) == Some(&'\n')) as usize;
+                    i += 1;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    v
+}
+
+/// Un CSS sans ses commentaires, chaque fin de ligne gardee (les numeros de ligne restent justes).
+fn sans_commentaires_c(t: &str) -> String {
+    let mut s = t.to_string();
+    for (_, c) in commentaires_c(t, false) {
+        s = s.replacen(&c, &c.chars().filter(|x| *x == '\n').collect::<String>(), 1);
+    }
+    s
+}
+
+/// UN SEUL CHEMIN POUR CHAQUE FICHIER DE LA COMPAGNIE : un dossier de la compagnie (`config/`, `journal/`, `retours/` et
+/// leurs sous-dossiers) et chacun de leurs fichiers ne se nomment, dans le code du logiciel (hors tests), qu'a un seul
+/// endroit : la constante ou la fonction qui en donne le chemin, au plus bas niveau de crate qui le sert ; les autres
+/// l'appellent. Un nom, c'est un litteral qui n'est qu'un chemin sous l'un de ces dossiers (`"config/entreprise.json"`), un
+/// `.join("<dossier>")`, ou un `.join("<nom>")` qui suit un dossier. Le garde ne lit pas une phrase qui cite un fichier, ni un
+/// chemin compose ailleurs (`racine.join(CONFIG).join("x.json")` se lit ; `cfg.join("x.json")`, `format!("{}/x.json", ..)` non).
+#[test]
+fn un_seul_endroit_nomme_un_fichier_de_la_compagnie() {
+    let chemin = regex::Regex::new(r#""((?:config|journal|retours)(?:/[\w.-]+)+)/?""#).unwrap();
+    // Un dossier par son nom (`.join("config")`) ou par sa constante (`.join(socle::fichiers::CONFIG)`, qui ne le nomme
+    // pas), puis ce qui s'y joint.
+    let joint = regex::Regex::new(r#"\.join\((?:"(config|journal|retours)"|(?:\w+::)*(CONFIG|JOURNAL|RETOURS))\)((?:\s*\.join\("[\w.-]+"\))*)"#).unwrap();
+    let suite = regex::Regex::new(r#"\.join\("([\w.-]+)"\)"#).unwrap();
+    let mut noms: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+    for e in std::fs::read_dir(espace()).unwrap().flatten() {
+        let src = e.path().join("src");
+        if !src.is_dir() {
+            continue;
+        }
+        for p in sources(&src) {
+            let code = sans_tests(&std::fs::read_to_string(&p).unwrap());
+            let code: String = code.lines().map(|l| if l.trim_start().starts_with("//") { "" } else { l }).collect::<Vec<_>>().join("\n");
+            let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
+            let ligne = |i: usize| code[..i].matches('\n').count() + 1;
+            for c in chemin.captures_iter(&code) {
+                let m = c.get(1).unwrap();
+                noms.entry(m.as_str().to_string()).or_default().push(format!("{}:{}", rel, ligne(m.start())));
+            }
+            for c in joint.captures_iter(&code) {
+                let ou = format!("{}:{}", rel, ligne(c.get(0).unwrap().start()));
+                let mut nom = match (c.get(1), c.get(2)) {
+                    (Some(d), _) => {
+                        noms.entry(d.as_str().to_string()).or_default().push(ou.clone());
+                        d.as_str().to_string()
+                    }
+                    (_, Some(k)) => k.as_str().to_lowercase(),
+                    _ => unreachable!(),
+                };
+                for s in suite.captures_iter(&c[3]) {
+                    nom = format!("{}/{}", nom, &s[1]);
+                    noms.entry(nom.clone()).or_default().push(ou.clone());
+                }
+            }
+        }
+    }
+    let fautes: Vec<String> = noms.iter().filter(|(_, v)| v.len() > 1).map(|(k, v)| format!("{} : {}", k, v.join(", "))).collect();
+    assert!(
+        fautes.is_empty(),
+        "{} chemin(s) de la compagnie se nomment a plusieurs endroits : un seul (la constante ou la fonction qui donne le chemin, au plus bas niveau de crate qui le sert), que les autres appellent :\n{}",
+        fautes.len(),
+        fautes.join("\n")
+    );
+}
+/// TOUT CE QUI EST PUBLIC SERT LE LOGICIEL : chaque `pub fn`, `pub const`, `pub static` et `pub type` d'une crate de
+/// l'espace a un appelant dans le code du logiciel (le `src/` d'une crate, la fenetre et l'atelier compris), hors de sa
+/// definition et hors des tests. Les crates sont des bibliotheques : le compilateur ne dit rien d'un `pub` mort. Une
+/// fonction que seul un test appelle teste ce que le logiciel n'emploie pas : le test passe par ce que le logiciel
+/// emploie, ou part avec elle. Le garde lit les noms, pas les types : un nom repris ailleurs (`nouveau`, `lire`) compte
+/// comme un appel, meme d'une autre fonction.
+#[test]
+fn tout_ce_qui_est_public_sert_le_logiciel() {
+    let def = regex::Regex::new(r"(?m)^\s*pub (?:const fn|async fn|unsafe fn|fn|const|static|type) ([A-Za-z_][A-Za-z0-9_]*)").unwrap();
+    let mot = regex::Regex::new(r"[A-Za-z_][A-Za-z0-9_]*").unwrap();
+    let mut codes = Vec::new();
+    for e in std::fs::read_dir(espace()).unwrap().flatten() {
+        let src = e.path().join("src");
+        if src.is_dir() {
+            for p in sources(&src) {
+                let t = std::fs::read_to_string(&p).unwrap();
+                let code = sans_tests(&t);
+                let sans: String = code.lines().map(|l| l.split("//").next().unwrap()).collect::<Vec<_>>().join("\n");
+                codes.push((p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned(), sans));
+            }
+        }
+    }
+    let mut vus: std::collections::BTreeMap<&str, usize> = Default::default();
+    for (_, c) in &codes {
+        for m in mot.find_iter(c) {
+            *vus.entry(m.as_str()).or_default() += 1;
+        }
+    }
+    let mut morts = Vec::new();
+    for (rel, c) in &codes {
+        for d in def.captures_iter(c) {
+            let nom = d.get(1).unwrap().as_str();
+            if vus.get(nom).copied().unwrap_or(0) < 2 {
+                let ligne = c[..d.get(0).unwrap().start()].matches('\n').count() + 1;
+                morts.push(format!("{}:{} `{}`", rel, ligne, nom));
+            }
+        }
+    }
+    assert!(
+        morts.is_empty(),
+        "{} `pub` sans appelant dans le logiciel : ce que rien n'appelle part (avec le test qui l'appelait seul) ; si le logiciel en a besoin, c'est un chemin debranche, a rebrancher :\n{}",
+        morts.len(),
+        morts.join("\n")
+    );
+}
+
+/// Le code d'un source Rust sans ses parties `#[cfg(test)]` (un module, une fonction ou un `use` a la marge).
+fn sans_tests(t: &str) -> String {
+    let mut v = Vec::new();
+    let mut lignes = t.lines();
+    while let Some(l) = lignes.next() {
+        if l != "#[cfg(test)]" {
+            v.push(l);
+            continue;
+        }
+        if let Some(item) = lignes.next() {
+            if !item.trim_end().ends_with(';') {
+                for x in lignes.by_ref() {
+                    if x == "}" {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    v.join("\n")
 }

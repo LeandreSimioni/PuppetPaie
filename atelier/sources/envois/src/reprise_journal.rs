@@ -41,7 +41,7 @@ struct Atteste {
 
 /// Lecture pure.
 fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
-    let dossier = ctx.racine.join("retours");
+    let dossier = ctx.racine.join(crate::retours::RETOURS);
     std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
         .map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?
@@ -191,7 +191,7 @@ fn reprise_et_incidents(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &st
         journal::noter(&ctx.racine, &note, maintenant).map_err(socle::echec::Echec::from)?;
     }
     // Les retours deja archives se rangent en face des lignes qui viennent d'apparaitre -- par le flux.
-    let p = ctx.racine.join("retours").join("journal.json");
+    let p = ctx.racine.join(crate::retours::RETOURS).join("journal.json");
     if p.exists() {
         let texte_j = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let retours: Value = serde_json::from_slice(&texte_j).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
@@ -236,7 +236,7 @@ fn flux_du_nom(nom: &str) -> String {
 /// Les DPAE dont `retours/dpae/` porte le certificat (nature 41). Une entree par FLUX, avec
 /// les embauches qu'il declare ; les NIR qu'on ne sait rattacher a aucune fiche sont DITS, jamais devines. LECTURE PURE.
 pub fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
-    let dossier = ctx.racine.join("retours").join("dpae");
+    let dossier = ctx.racine.join(crate::retours::RETOURS_DPAE);
     let par_nir = salarie_par_nir(ctx);
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
         .map(|l| l.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("nature41")).collect())
@@ -301,7 +301,7 @@ pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -
         .collect();
 
     // Le bilan XML du meme flux, quand il est la : il porte l'idflux ENTIER et dit si le depot etait reel ou de test.
-    let dossier = ctx.racine.join("retours").join("dpae");
+    let dossier = ctx.racine.join(crate::retours::RETOURS_DPAE);
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
         .map(|l| l.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".xml")).collect())
         .unwrap_or_default();

@@ -2,10 +2,10 @@
 //!
 //! Bulletin, certificat d'emploi Conges Spectacles et attestation France Travail dans un seul message. Rien ne
 //! part sans un clic : le garde-fou est a l'appelant (le mot de passe du logiciel, la page de relecture de
-//! l'interface) ; ce module prepare (`preparer`), assemble (`en_mime`) et envoie un par un (`envoyer`) par le
+//! l'interface) ; ce module prepare (`preparer`), assemble (`en_mime_nomme`) et envoie un par un (`envoyer`) par le
 //! client `courriel::Courriel` qu'on lui passe -- le vrai (IMAP/SMTP) ou la boite simulee de la compagnie fictive.
 //!
-//! L'OCTET PRES. `en_mime` rend toujours les memes octets, a `Date`, `Message-ID` et frontieres pres. Les regles :
+//! L'OCTET PRES. `en_mime_nomme` rend toujours les memes octets, a `Date`, `Message-ID` et frontieres pres. Les regles :
 //!
 //! * ORDRE DES EN-TETES : `From`, `To`, `Subject`,
 //!   `Date`, `Message-ID`, puis, texte seul : `Content-Type`, `Content-Transfer-Encoding`, `MIME-Version` ;
@@ -753,7 +753,7 @@ fn genre_de(nom: &str) -> &'static str {
     GENRES.iter().find(|(s, _)| *s == suffixe).map(|(_, g)| *g).or_else(|| type_devine(nom)).unwrap_or("application/octet-stream")
 }
 
-/// Ce que `en_mime` demande au hasard et a l'horloge : de quoi fixer `Date`, `Message-ID` et les frontieres dans
+/// Ce que `en_mime_nomme` demande au hasard et a l'horloge : de quoi fixer `Date`, `Message-ID` et les frontieres dans
 /// les tests.
 pub struct Hasards<'a> {
     pub date: String,
@@ -762,12 +762,8 @@ pub struct Hasards<'a> {
     pub frontiere: &'a mut dyn FnMut() -> String,
 }
 
-/// Le message complet, pieces jointes comprises, tel que `EmailMessage.as_bytes()` l'ecrit.
-pub fn en_mime(message: &Message, expediteur: &str) -> Result<Vec<u8>, String> {
-    en_mime_nomme(message, expediteur, "")
-}
-
-/// `en_mime`, l'expediteur precede du nom que la compagnie affiche (« Compagnie du Fil <adresse> ») ; vide, l'adresse
+/// Le message complet, pieces jointes comprises, tel que `EmailMessage.as_bytes()` l'ecrit, l'expediteur precede du
+/// nom que la compagnie affiche (« Compagnie du Fil <adresse> ») ; vide, l'adresse
 /// seule.
 pub fn en_mime_nomme(message: &Message, expediteur: &str, nom: &str) -> Result<Vec<u8>, String> {
     let mut frontiere = frontiere_au_hasard;

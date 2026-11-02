@@ -54,7 +54,7 @@ pub fn de_la_fiche(ent: &Value) -> Result<Option<Signature>, String> {
 
 /// La signature de la compagnie de `racine` (`config/entreprise.json`).
 pub fn du_poste(racine: &Path) -> Result<Option<Signature>, String> {
-    let p = racine.join("config").join("entreprise.json");
+    let p = racine.join(droit::contexte::ENTREPRISE);
     if !p.exists() {
         return Ok(None);
     }

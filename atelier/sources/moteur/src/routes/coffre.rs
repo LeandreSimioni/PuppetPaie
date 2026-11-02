@@ -517,8 +517,8 @@ fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R
         cfg.insert(cle.to_string(), Value::String(v));
     }
     crate::routes::fiches::poser_entreprise(ctx, "api_dpae", Value::Object(cfg), Some(ctx.aujourdhui))?;
-    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("entreprise.json"))?;
-    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)
+    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join(droit::contexte::ENTREPRISE))?;
+    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, droit::contexte::ENTREPRISE).map_err(Echec::from)
 }
 
 // ------------------------------------------------------------------ le mot de passe du logiciel
@@ -574,7 +574,7 @@ fn mot_de_passe_retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Google, et se retire sur myaccount.google.com.
 fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "oublier le compte Google")?;
-    let p = ctx.racine.join("config").join("google-jeton.bin");
+    let p = ctx.racine.join(JETON_GOOGLE);
     let efface = p.exists();
     if efface {
         std::fs::remove_file(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
@@ -592,6 +592,8 @@ const FICHIER_APPLICATION: &str = "google-application.json";
 /// `google.FICHIER_IDENTIFIANTS`, `google.FICHIER_JETON`.
 const FICHIER_IDENTIFIANTS: &str = "google.json";
 pub(crate) const FICHIER_JETON: &str = "google-jeton.bin";
+/// Le jeton Google, sous la racine de la compagnie.
+pub const JETON_GOOGLE: &str = "config/google-jeton.bin";
 
 /// La description scellee avec le jeton (`google._dpapi`).
 pub(crate) const DESCRIPTION: &str = "moteur de paie - jeton Google";
@@ -599,7 +601,7 @@ pub(crate) const DESCRIPTION: &str = "moteur de paie - jeton Google";
 /// `compagnies.MARQUEUR`.
 
 fn config(racine: &Path) -> PathBuf {
-    racine.join("config")
+    racine.join(socle::fichiers::CONFIG)
 }
 
 /// `ErreurGoogle` : la phrase est ecrite pour etre lue.
@@ -699,13 +701,22 @@ pub fn compte_autorise(racine: &Path) -> Option<String> {
     }
 }
 
-/// Les adresses de Google ; dans l'atelier, un faux Google local (`atelier::redirection`).
-pub fn adresses_du_poste() -> envois::drive::Adresses {
+/// Le faux Google qui remplace Google : dans l'atelier, celui d'`atelier::redirection` ; en essai, celui que l'essai
+/// nomme (`VARIABLE_GOOGLE_ESSAIS`, une adresse locale seulement) ; `None` hors de l'un et de l'autre.
+fn faux_google() -> Option<String> {
     #[cfg(feature = "atelier")]
     if let Some(b) = crate::atelier::redirection::base(crate::atelier::redirection::VARIABLE_GOOGLE) {
-        return envois::drive::Adresses::de_la_base(&b);
+        return Some(b);
     }
-    envois::drive::Adresses::default()
+    std::env::var(VARIABLE_GOOGLE_ESSAIS)
+        .ok()
+        .filter(|b| socle::garde_reseau::en_essai() && envois::redirection::est_locale(b))
+        .map(|b| b.trim_end_matches('/').to_string())
+}
+
+/// Les adresses de Google, ou celles du faux Google (`faux_google`).
+fn adresses_du_poste() -> envois::drive::Adresses {
+    faux_google().map_or_else(envois::drive::Adresses::default, |b| envois::drive::Adresses::de_la_base(&b))
 }
 
 /// LE CLIENT DU DRIVE DE LA COMPAGNIE : refuse une copie de developpement (qui ecrirait dans le Drive de la VRAIE
@@ -721,21 +732,12 @@ pub fn client_drive(racine: &Path) -> Result<envois::drive::Client, envois::driv
 }
 
 /// La variable d'un faux Google des essais : sa base locale (`http://127.0.0.1:<port>`), lue en essai seulement
-/// (`garde_reseau::en_essai`, que Cargo pose) ; les jetons et le compte y sont demandes (`google_autorisation::Adresses`).
+/// (`garde_reseau::en_essai`, que Cargo pose).
 pub const VARIABLE_GOOGLE_ESSAIS: &str = "PUPPETPAIE_ESSAIS_GOOGLE";
 
-/// Les adresses de l'autorisation : celles de Google ; dans l'atelier, son faux Google ; en essai, celui que l'essai
-/// nomme (`VARIABLE_GOOGLE_ESSAIS`, une adresse locale seulement).
+/// Les adresses de l'autorisation : celles de Google, ou celles du faux Google (`faux_google`).
 fn adresses_de_l_autorisation() -> envois::google_autorisation::Adresses {
-    #[cfg(feature = "atelier")]
-    if let Some(b) = crate::atelier::redirection::base(crate::atelier::redirection::VARIABLE_GOOGLE) {
-        return envois::google_autorisation::Adresses::de_la_base(&b);
-    }
-    let essai = std::env::var(VARIABLE_GOOGLE_ESSAIS).ok().filter(|b| socle::garde_reseau::en_essai() && envois::redirection::est_locale(b));
-    match essai {
-        Some(b) => envois::google_autorisation::Adresses::de_la_base(b.trim_end_matches('/')),
-        None => envois::google_autorisation::Adresses::default(),
-    }
+    faux_google().map_or_else(envois::google_autorisation::Adresses::default, |b| envois::google_autorisation::Adresses::de_la_base(&b))
 }
 
 /// LIER LE COMPTE GOOGLE (`google-autoriser`) : le mot de passe du logiciel s'il est pose, puis l'autorisation

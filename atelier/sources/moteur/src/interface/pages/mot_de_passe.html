@@ -3,7 +3,7 @@
   :root { --accent:#B22222; --texte:#2C3E50; --fond:#F7F6F4; --carte:#FFFFFF;
           --bord:#DDD8D2; --discret:#7A8794; }
   * { box-sizing:border-box; }
-  html, body { overflow:hidden; }   /* taille fixe : jamais de barre de defilement */
+  html, body { overflow:auto; }   /* taille fixe : une barre de defilement seulement si le texte ne tient pas */
   body { margin:0; height:100vh; display:flex; align-items:center;
          justify-content:center; font:14px/1.5 Arial,Helvetica,sans-serif;
          color:var(--texte); background:var(--fond); }
@@ -60,7 +60,7 @@
     if (r.ok) { ok.textContent = "D\u00e9marrage\u2026"; return; }
     err.textContent = r.erreur; ok.disabled = false; mdp.focus();
   });
-  // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe ouvre aussi les autres, pour toute la fenetre.
+  // UNE COMPAGNIE DE L'ADMINISTRATEUR : son mot de passe ouvre aussi les autres, pour toute la fenetre.
   const adm = JSON.parse(document.getElementById("administrateur").textContent || "{}");
   if (adm.rattachee) {
     document.getElementById("titre-mdp").textContent = "{{P:mdp_titre_admin}}"

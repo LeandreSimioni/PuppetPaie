@@ -327,7 +327,7 @@ fn dossier_formes(ctx: &Contexte) -> R<Value> {
 /// celui retenu (`config/compta.json`), et ce que le plan comptable ne tiendrait
 /// pas dans son format.
 pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
-    let chemin = ctx.racine.join("config").join("compta.json");
+    let chemin = ctx.racine.join(documents::etats_compta::COMPTA);
     let choix = if chemin.exists() { lire_json(&chemin)? } else { json!({}) };
     let retenu = getd(&choix, "logiciel", &Value::Null)?;
     let retenu = ou(retenu, texte_vide());
@@ -405,7 +405,7 @@ fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
             return Err(refus(format!("Logiciel inconnu : « {} ».", nom)));
         }
     }
-    let chemin = ctx.racine.join("config").join("compta.json");
+    let chemin = ctx.racine.join(documents::etats_compta::COMPTA);
     let contenu = json!({
         "_quoi": "Le logiciel du comptable, retenu pour les écritures comptables (Exports).",
         "logiciel": nom,

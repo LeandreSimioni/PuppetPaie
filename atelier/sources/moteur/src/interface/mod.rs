@@ -35,6 +35,9 @@ use veille::Veille;
 
 pub const MINUTES_VEILLE: u64 = 20;
 
+/// Le journal de la fenetre, sous la racine de la compagnie qu'elle sert.
+pub const JOURNAL_INTERFACE: &str = "journal/interface.log";
+
 const MOT_DE_PASSE: &str = include_str!("pages/mot_de_passe.html");
 const CHOIX_MOT_DE_PASSE: &str = include_str!("pages/choix_mot_de_passe.html");
 const ACCUEIL: &str = include_str!("pages/accueil.html");
@@ -469,7 +472,7 @@ impl Fenetre {
         }
         // Aucune variable du processus ne dit la compagnie : chaque route la recoit (`--racine`, `o["racine"]`,
         // le `Contexte`), et la fenetre pourra en servir plusieurs a la fois.
-        let journal = racine.join("journal").join("interface.log");
+        let journal = racine.join(JOURNAL_INTERFACE);
         if let Some(d) = journal.parent() {
             let _ = std::fs::create_dir_all(d);
         }

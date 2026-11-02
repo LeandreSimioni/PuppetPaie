@@ -113,14 +113,6 @@ pub fn fraction(taux: Decimal) -> Decimal {
     }
 }
 
-/// La duree d'une tranche en nombre de jours, quand elle en a un fixe.
-pub fn jours_fixes(t: &Tranche) -> Option<i64> {
-    match t.duree {
-        Duree::Jours(j) => Some(j),
-        _ => None,
-    }
-}
-
 // ------------------------------------------------------------------ la loi
 
 /// Ce que la loi garantit (L1226-1, D1226-1 a D1226-3, D1226-8) a un salarie de cette nature et de cette anciennete au

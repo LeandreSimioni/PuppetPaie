@@ -73,11 +73,10 @@ enum Verrou {
 /// Ce qui attend une décision d'éditeur : le verrou qu'il suspend, les fichiers (relatifs à la racine
 /// du dépôt), et pourquoi. Un motif qui ne couvre plus rien se retire (`chaque_suspens_couvre_encore_un_fichier`) : la
 /// liste ne fait que rétrécir.
-const EN_SUSPENS: [(Verrou, &str, &str); 7] = [
+const EN_SUSPENS: [(Verrou, &str, &str); 6] = [
     (Verrou::Nom, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
     (Verrou::Siren, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
     (Verrou::Chemin, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
-    (Verrou::Chemin, "^atelier/bac-a-sable/", "le bac à sable de la mise à jour : son maj.json et ses sorties portent le poste"),
     (Verrou::Chemin, r"^fictives/[^/]+/journal/depots\.json$", "le moteur écrit la trace d'un dépôt par son chemin absolu (depot_acte.rs)"),
     (Verrou::Chemin, r"^fictives/[^/]+/journal/incidents\.json$", "des incidents écrits sur le poste de l'éditeur, dont la pile d'appels nomme ses chemins ; un fichier propre au poste (compagnies::PROPRES_AU_POSTE)"),
     (Verrou::Chemin, r"^fictives/[^/]+/sorties/.+\.description\.json$", "le moteur écrit le logo et la signature par leur chemin absolu (contrat.rs, bulletin.rs)"),

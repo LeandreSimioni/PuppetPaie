@@ -369,7 +369,7 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str) -> Resultat<Rub
 /// fiche datee comme toute la configuration (`contexte::fiche_au`), lues a `jour` : une rubrique changee a une date ne
 /// change pas les paies d'avant. Une fiche qui ne dit encore rien a `jour` n'existe pas.
 fn propres_au(racine: &Path, jour: &Jour) -> Resultat<Vec<(String, Map<String, Value>)>> {
-    let propres = lire(&racine.join("config").join(RUBRIQUES_COMPAGNIE))?;
+    let propres = lire(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE))?;
     let mut out = Vec::new();
     if let Some(Value::Object(m)) = propres.get("rubriques") {
         for (c, v) in m {
@@ -388,7 +388,7 @@ pub const RUBRIQUES_COMPAGNIE: &str = "rubriques-compagnie.json";
 
 /// Une rubrique de la compagnie a-t-elle une valeur datee ? Sinon le catalogue est le meme a toute date.
 fn rubriques_datees(racine: &Path) -> Resultat<bool> {
-    let propres = lire(&racine.join("config").join(RUBRIQUES_COMPAGNIE))?;
+    let propres = lire(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE))?;
     Ok(propres.get("rubriques").and_then(Value::as_object).is_some_and(|m| {
         m.values()
             .filter_map(Value::as_object)
@@ -445,7 +445,7 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
     let fichiers = format!(
         "{}|{}",
         empreinte(&dossier_du_code().join("rubriques-base.json")),
-        empreinte(&racine.join("config").join(RUBRIQUES_COMPAGNIE)),
+        empreinte(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE)),
     );
     let cache = CATALOGUES.get_or_init(|| Mutex::new(HashMap::new()));
     let connue = cache.lock().unwrap().get(&fichiers).map(|(datee, _)| *datee);
@@ -463,7 +463,7 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
         socle::fichiers::est_dossier(racine);
         for p in [
             dossier_du_code().join("rubriques-base.json"),
-            racine.join("config").join(RUBRIQUES_COMPAGNIE),
+            racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE),
         ] {
             if socle::fichiers::existe(&p) {
                 socle::fichiers::noter_si_besoin(&p);

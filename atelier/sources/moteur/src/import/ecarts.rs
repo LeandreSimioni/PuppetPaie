@@ -83,7 +83,7 @@ impl Propre<'_> {
 
 /// Le registre des paies importees deja comparees (leurs empreintes, `engagement::ecarts::empreinte`).
 fn registre(racine: &Path) -> PathBuf {
-    racine.join("journal").join("ecarts-import.json")
+    racine.join(envois::journal::JOURNAL).join("ecarts-import.json")
 }
 
 fn comparees(racine: &Path) -> BTreeSet<String> {

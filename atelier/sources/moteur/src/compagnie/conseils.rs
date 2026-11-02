@@ -88,39 +88,6 @@ pub const ROUTES: &[Fiche] = &[
     },
 ];
 
-/// Les conditions que le moteur sait evaluer : un conseil de la banque dont le `quand` n'est ni « toujours » ni l'une
-/// d'elles ne s'afficherait jamais (le test de la banque le refuse).
-pub const CONDITIONS: [&str; 16] = [
-    "saisie:technicien-plus-de-208-heures",
-    "saisie:plus-de-28-cachets",
-    "saisie:mois-sature",
-    "saisie:507-assurees",
-    "saisie:repetition-en-cachet",
-    "saisie:heures-pour-la-meme-somme",
-    "saisie:enseignement",
-    "saisie:suspension",
-    "saisie:cachets-et-heures",
-    "historique:droits-ouverts",
-    "historique:heures-comptees",
-    "historique:cachets-perdus",
-    "historique:gain-des-conseils",
-    "historique:intense",
-    "historique:enseignement-perdu",
-    "historique:resume",
-];
-
-/// Les conditions qui ne parlent que d'une annexe : (condition, annexe). Le cachet est propre a l'annexe X (art. 3 §1 :
-/// « Lorsque l'activité des artistes est déclarée sous la forme de cachets » ; l'annexe VIII ne le connait pas) ; les
-/// 208 heures retenues par mois, a l'annexe VIII. Les autres valent pour les deux annexes : leur conseil cite chaque
-/// article dans l'une et l'autre (le test de la banque le verifie), et le moteur n'en montre que celles en jeu.
-pub const D_UNE_ANNEXE: [(&str, &str); 5] = [
-    ("saisie:technicien-plus-de-208-heures", "VIII"),
-    ("saisie:plus-de-28-cachets", "X"),
-    ("saisie:repetition-en-cachet", "X"),
-    ("saisie:cachets-et-heures", "X"),
-    ("historique:cachets-perdus", "X"),
-];
-
 /// Les deux annexes : X (artistes), VIII (techniciens).
 const LES_DEUX: [&str; 2] = ["X", "VIII"];
 
@@ -950,7 +917,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     Ok(conseil(&b, &d, "historique:resume", &v, &en_jeu).into_iter().collect())
 }
 
-/// « Anastasia », « Anastasia et Léandre », « Anastasia, Fanchon et Léandre ».
+/// « Anastasia », « Anastasia et Valentin », « Anastasia, Fanchon et Valentin ».
 fn et(noms: &[String]) -> String {
     match noms {
         [] => String::new(),

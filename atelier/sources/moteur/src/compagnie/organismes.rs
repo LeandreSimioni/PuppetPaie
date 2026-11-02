@@ -118,7 +118,7 @@ fn txt(v: &Value) -> String {
 }
 
 fn chemin(ctx: &Contexte) -> std::path::PathBuf {
-    ctx.racine.join("config").join(droit::contexte::ORGANISMES)
+    ctx.racine.join(socle::fichiers::CONFIG).join(droit::contexte::ORGANISMES)
 }
 
 /// Le fichier date tel qu'il est sur le disque ; vide s'il n'existe pas.

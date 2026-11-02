@@ -1714,8 +1714,6 @@ atelier/                  ← ce dossier : tout le reste
                           transcription) ; `moteur sources` y vérifie les copies
   docs/                   ARCHITECTURE.md, RUBRIQUES.md,
                           COMPAGNIE-D-ESSAI.md, COOLPAIE-SORTIR-SES-DOCUMENTS.md
-  bac-a-sable/            une installation en retard d'une version, pour essayer
-                          la mise à jour
   AVANT-LE-PREMIER-COMMIT.md   ce qui n'entre jamais dans le dépôt
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
                           Node : LISEZ-MOI.md), `demos/` (un scénario de
@@ -1725,8 +1723,7 @@ atelier/                  ← ce dossier : tout le reste
                           (`verifier-avant-commit`, `guet`, `generer-tables`,
                           `extraire`, `releve-codes`, `releve-conventions`)
   PuppetPaie.sh, PuppetPaie.command   les lanceurs Linux et Mac
-  prive-dev/, depot/ (versions publiées), site/, maquettes/
-                          (le serveur du filet : dépôt du site de l'éditeur, infra/filet/)
+  prive-dev/, maquettes/
 .claude/                  à la racine : compétences Claude (paie, contrat,
                           declarations, ouverture)
 

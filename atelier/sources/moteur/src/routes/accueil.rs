@@ -166,7 +166,7 @@ pub fn route(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value>
     // `--racine` nomme une compagnie (son dossier porte sa fiche entreprise) : l'installation est la sienne. Un autre
     // dossier n'en est pas une, et son parent n'est pas une installation : rien ne s'y ecrit.
     if let Some(r) = o.get("racine").filter(|r| !r.is_empty()) {
-        if !std::path::Path::new(r).join("config").join("entreprise.json").is_file() {
+        if !std::path::Path::new(r).join(droit::contexte::ENTREPRISE).is_file() {
             return Err(operation(format!(
                 "{} n'est pas le dossier d'une compagnie : --racine nomme une compagnie (le chemin que rend la route compagnies). Les routes de l'installation se servent sans --racine. Rien n'est écrit.",
                 r

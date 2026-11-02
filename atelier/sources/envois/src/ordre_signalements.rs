@@ -64,7 +64,7 @@ fn siren(ent: &Value) -> String {
 /// declarent pour ce SIREN, essais et reels, acceptes ou non ; et le flux qui le porte. Le flux se lit dans le nom de
 /// l'archive (`AAAAMMJJ-hhmmss_nature11_<flux>.<ext>`, `transport::archiver`).
 pub fn dernier_ordre_des_bilans(racine: &Path, siren: &str) -> Result<Option<(i64, String)>, Echec> {
-    let dossier = racine.join("retours");
+    let dossier = racine.join(crate::retours::RETOURS);
     let Ok(lecture) = std::fs::read_dir(&dossier) else { return Ok(None) };
     let mut noms: Vec<String> = lecture.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("_nature11_")).collect();
     noms.sort();
@@ -211,11 +211,11 @@ pub struct MensuellesVues {
 ///
 /// `mois` (`AAAA-MM`) : le mois declare (S20.G00.05.005) dont on cherche une mensuelle acceptee.
 pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, constitution: &str, mois: &str) -> Result<MensuellesVues, Echec> {
-    let dossier = racine.join("retours");
+    let dossier = racine.join(crate::retours::RETOURS);
     let Ok(lecture) = std::fs::read_dir(&dossier) else { return Ok(MensuellesVues::default()) };
     let mut noms: Vec<String> = lecture.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("_nature11_")).collect();
     noms.sort();
-    let base = if essai { crate::retours::ESSAI_TEST } else { "02" }; // `essai_reel` : 01 essai, 02 reel
+    let base = if essai { crate::retours::ESSAI_TEST } else { crate::retours::ESSAI_REEL };
     let aaaamm = constitution.replace('-', "");
     let cite = regex::Regex::new(r"ordre (?:accept\S* )?(\d{7,})").map_err(|e| erreur("ValueError", e.to_string()))?;
     let mut vues = MensuellesVues::default();

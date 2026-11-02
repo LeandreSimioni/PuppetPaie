@@ -657,7 +657,7 @@ impl Coffre {
     }
 
     pub fn chemin(&self) -> PathBuf {
-        self.racine.join("config").join(FICHIER)
+        self.racine.join(socle::fichiers::CONFIG).join(FICHIER)
     }
 
     pub fn chemin_cle(&self) -> PathBuf {
@@ -728,11 +728,6 @@ impl Coffre {
 
     fn cle_ou_creer(&self) -> R<Vec<u8>> {
         self.cle_poste(true)?.ok_or_else(|| echec("OSError", "la cle de ce poste n'a pas pu etre posee"))
-    }
-
-    pub fn poser_cle_poste(&self) -> R<PathBuf> {
-        self.cle_poste(true)?;
-        Ok(self.chemin_cle())
     }
 
     // -------------------------------------------- proteger / deproteger

@@ -249,7 +249,7 @@ fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &
             out.push(e);
         }
     }
-    if !ctx.racine.join("config").join("plan-comptable.json").exists() {
+    if !ctx.racine.join(crate::plan_comptable::PLAN_COMPTABLE).exists() {
         avert.push("Plan comptable : celui livré avec le logiciel, à faire valider par le comptable (config/plan-comptable.json pour le remplacer).".to_string());
     }
     Ok((out, plan, origine))
@@ -845,9 +845,12 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
     })
 }
 
+/// Le logiciel du comptable et l'analytique que la compagnie a retenus, sous sa racine.
+pub const COMPTA: &str = "config/compta.json";
+
 /// `choix_compta` : le logiciel du comptable et l'analytique, tels que retenus (`config/compta.json`).
 fn choix_compta(ctx: &Contexte) -> R<Value> {
-    let chemin = ctx.racine.join("config").join("compta.json");
+    let chemin = ctx.racine.join(COMPTA);
     if chemin.exists() {
         socle::fichiers::lire_json_echec(&chemin)
     } else {

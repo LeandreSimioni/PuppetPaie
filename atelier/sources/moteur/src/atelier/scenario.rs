@@ -10,6 +10,8 @@
 //!     et le rejeu verifie qu'il cree le meme ;
 //!   - `{"geste": "simuler"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois simules
 //!     (`rendre_simulee`) -- sans lui, ses envois sont refuses et elle ne peut pas vivre sa vie ;
+//!   - `{"geste": "annoncer", "annonce"}` : ce que les organismes de la fictive repondront a partir de ce jour (un taux de
+//!     PAS, un taux AT/MP, un refus : `organismes_simules::annoncer`) ;
 //!   - `{"geste": "jour", "jour", "veille"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la :
 //!     son horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). `veille` (le banc, quand une
 //!     compagnie est ouverte) : sa veille passe, et son horloge joue dans la route `ouverture` qui suit, pas ici ;
@@ -379,6 +381,11 @@ fn rejouer_les_gestes(
                 let racine = racines.get(compagnie).ok_or(format!("geste {} : `simuler` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
                 rendre_simulee(racine).map_err(|m| format!("geste {} : {}", n, m))?;
             }
+            Some("annoncer") => {
+                let racine = racines.get(compagnie).ok_or(format!("geste {} : `annoncer` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
+                let annonce = g.get("annonce").ok_or(format!("geste {} : `annoncer` sans annonce", n))?;
+                envois::organismes_simules::annoncer(racine, crate::compagnie::bridage::branchement(racine), annonce).map_err(|e| format!("geste {} : {}", n, e.message))?;
+            }
             Some("etat") => {
                 let Some(racine) = racines.get(compagnie) else {
                     r.autres_compagnies += 1;
@@ -519,7 +526,7 @@ pub fn elaguer(scenario: &Path, vers: &Path) -> Result<(usize, usize), String> {
 /// en cours d'un passage de la veille, et le journal des incidents (chaque incident porte le fil de la fenetre, ce que la
 /// page a fait avant lui, et la fenetre y note les refus que la page a recus : `compagnie::incidents::noter`).
 fn hors_comparaison(rel: &str) -> bool {
-    rel == "journal/interface.log" || rel == "journal/incidents.json" || rel == "ouverture.etat.json" || rel.ends_with(crate::compagnie::ouverture::ETAPE)
+    rel == crate::interface::JOURNAL_INTERFACE || rel == crate::compagnie::incidents::INCIDENTS || rel == "ouverture.etat.json" || rel.ends_with(crate::compagnie::ouverture::ETAPE)
 }
 
 /// Les fichiers d'une compagnie, relatifs (barres droites), hors caches.
@@ -609,7 +616,7 @@ pub fn fictives_de_reference(depot: &Path) -> Vec<(String, PathBuf)> {
 
 /// Ce qu'une fictive livree ne porte pas de son rejeu : le marqueur (reecrit), les incidents du rejeu, les caches.
 fn hors_livraison(rel: &str) -> bool {
-    rel == crate::interface::compagnies::MARQUEUR || rel == "journal/incidents.json" || hors_comparaison(rel)
+    rel == crate::interface::compagnies::MARQUEUR || rel == crate::compagnie::incidents::INCIDENTS || hors_comparaison(rel)
 }
 
 /// LIVRER UNE FICTIVE DE REFERENCE : rejoue `scenario` (jusqu'au jour `jusqu_au`, ou entier) dans une installation de
@@ -811,7 +818,7 @@ mod enregistreur {
 
     /// Ce qu'une empreinte de la compagnie ne regarde pas : les caches que la fenetre refait en fond, et son journal.
     fn hors_empreinte(rel: &str) -> bool {
-        rel == "journal/interface.log"
+        rel == crate::interface::JOURNAL_INTERFACE
             || rel == "ouverture.etat.json"
             || rel.ends_with(crate::compagnie::ouverture::ETAPE)
             || rel.ends_with(".verrou")

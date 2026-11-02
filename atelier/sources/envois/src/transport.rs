@@ -756,7 +756,7 @@ fn erreur_io(e: std::io::Error, chemin: &Path) -> Value {
 
 /// `retours/` (la DSN) ou `retours/<canal>/`, cree.
 pub fn dossier_archive(racine: &Path, canal: &str) -> Result<PathBuf, Value> {
-    let mut p = racine.join("retours");
+    let mut p = racine.join(crate::retours::RETOURS);
     if !canal.is_empty() {
         p = p.join(canal);
     }

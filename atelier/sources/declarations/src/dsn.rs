@@ -12,7 +12,7 @@ use std::path::Path;
 use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Value};
 
-use droit::bareme::{self, bareme_applique_au_contrat};
+use droit::bareme::{self, bareme_applique};
 use documents::bordereau::{self, Destinataire, LigneBordereau};
 use droit::reduction::au_dela_du_seuil;
 use engagement::calcul::Paie;
@@ -596,7 +596,7 @@ fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
         p.engagement.motif_recours.as_deref(),
         &droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.engagement.salarie),
     )?;
-    bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), p.declaree_a_la_caisse_des_conges()?, cpf_cdd)
+    bareme_applique(bar.clone(), &p.salarie, &nat, Some(&fin), p.declaree_a_la_caisse_des_conges()?, cpf_cdd)
 }
 
 /// LA BASE `bloc78` DE LA PAIE `p` (S21.G00.78.004 sous ce code), telle que la paie la porte : la base du calcul que le
@@ -4957,7 +4957,7 @@ mod tests {
     fn ctx_dsn(nom: &str, regularises: &[&str]) -> Contexte {
         let racine: PathBuf = std::env::temp_dir().join(format!("puppetpaie-dsn-{}-{}", std::process::id(), nom));
         let _ = std::fs::remove_dir_all(&racine);
-        let cfg = racine.join("config");
+        let cfg = racine.join(socle::fichiers::CONFIG);
         std::fs::create_dir_all(&cfg).unwrap();
         for f in ["entreprise.json", "salaries.json", "spectacles.json"] {
             std::fs::write(cfg.join(f), "{}").unwrap();

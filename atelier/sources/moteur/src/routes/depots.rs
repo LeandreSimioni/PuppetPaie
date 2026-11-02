@@ -329,7 +329,7 @@ fn fichier_json(f: &Path) -> Value {
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
     let mois_demande = texte_requis(charge, "mois")?;
     // L'heure d'embauche que la DPAE declare.
-    let heure = json!("0800");
+    let heure = json!(declarations::dpae::HEURE_EMBAUCHE);
     let selection: Option<&Vec<Value>> = match charge.get("engagements") {
         None | Some(Value::Null) => None,
         Some(Value::Array(a)) => Some(a),

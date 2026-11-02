@@ -20,7 +20,7 @@ fn le_fil_de_fond_ne_sort_pas_et_ne_touche_a_aucune_cle() {
         socle::fil_de_fond::marquer();
         (
             socle::garde_reseau::sortie_vers("127.0.0.1").is_err() && socle::garde_reseau::sortie_vers("net-entreprises.fr").is_err(),
-            coffre(&r).poser_cle_poste().is_err(),
+            coffre(&r).proteger(b"essai", "essai").is_err(),
         )
     })
     .join()
@@ -29,6 +29,6 @@ fn le_fil_de_fond_ne_sort_pas_et_ne_touche_a_aucune_cle() {
     assert!(cle && !racine.join("cle").join(moteur::compagnie::coffre::FICHIER_CLE).exists(), "la cle du poste ne s'y sert ni ne s'y pose");
     // Hors du fil de fond, rien ne change.
     assert!(socle::garde_reseau::sortie_vers("127.0.0.1").is_ok());
-    assert!(coffre(&racine).poser_cle_poste().is_ok());
+    assert!(coffre(&racine).proteger(b"essai", "essai").is_ok());
 }
 

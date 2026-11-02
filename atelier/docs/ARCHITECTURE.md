@@ -725,7 +725,7 @@ férié reporte au lundi, aucune pièce officielle ne montre ce cas) ; la veille
 l'échéance reportée.
 
 Tout ce qui parle de la date limite de dépôt passe par lui : l'état du mois et l'annule-et-remplace
-(`Moteur::limite`), les régularisations, le bilan des mois, l'échéancier, les rappels, les réveils du filet, le mois
+(`Moteur::limite`), les régularisations, le bilan des mois, l'échéancier, les rappels, le mois
 hors délai, l'horloge des compagnies fictives, et la date butoir d'un **signalement d'arrêt subrogé** (R. 133-14, II :
 avec la DSN du mois de l'événement, donc avec son report). Les routes rendent
 `echeance_depot` (`echeance_dsn` sur une obligation) : `jour`, `heure` (`12:00`), `nominale`, `reportee`, `pourquoi`,

@@ -442,7 +442,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
 }
 
 fn fichier_suivi(ctx: &Contexte) -> std::path::PathBuf {
-    ctx.racine.join("config").join("casc-svp.json")
+    ctx.racine.join(declarations::casc::CASC_SVP)
 }
 
 fn deja_faites(ctx: &Contexte) -> String {

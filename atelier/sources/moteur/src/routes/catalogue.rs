@@ -50,11 +50,6 @@ pub enum Place {
 }
 
 impl Place {
-    pub const TOUTES: [Place; 14] = [
-        Place::Paie, Place::Fiches, Place::Metiers, Place::Organismes, Place::Bulletin, Place::ModelesContrat, Place::Identite,
-        Place::Coffre, Place::Import, Place::Historique, Place::Exports, Place::Signaler, Place::Bandeau, Place::Accueil,
-    ];
-
     /// Le nom que l'ecran montre (la page le porte en `data-place`).
     pub fn nom(self) -> &'static str {
         match self {
@@ -216,7 +211,7 @@ pub struct Refus {
 #[derive(Clone, Copy, Debug)]
 pub struct Fiche {
     pub nom: &'static str,
-    /// Le geste, en une phrase breve (au plus `GESTE_MAX` caracteres).
+    /// Le geste, en une phrase breve.
     pub geste: &'static str,
     pub charge: &'static [Champ],
     /// Une charge que la route accepte sur une compagnie de test (`tests/fichiers/routes.rs`), en JSON.
@@ -230,9 +225,6 @@ pub struct Fiche {
     /// Ou la route se voit a l'ecran.
     pub ecran: Ecran,
 }
-
-/// La longueur d'un geste.
-pub const GESTE_MAX: usize = 80;
 
 /// Ce que bien des fiches partagent : le mois de l'ecran, et les refus de la forme de la charge.
 pub const MOIS: Champ = Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois de l'écran, AAAA-MM", avance: false };

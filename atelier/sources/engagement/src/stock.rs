@@ -768,7 +768,7 @@ pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std
     static ABSENT: std::sync::OnceLock<std::sync::Arc<Value>> = std::sync::OnceLock::new();
     let vues = VUES.get_or_init(Default::default);
     let (mut lus, tous) = tous(racine)?;
-    for p in [socle::fichiers::dossier_du_code().join("rubriques-base.json"), racine.join("config").join(droit::catalogue::RUBRIQUES_COMPAGNIE)] {
+    for p in [socle::fichiers::dossier_du_code().join("rubriques-base.json"), racine.join(socle::fichiers::CONFIG).join(droit::catalogue::RUBRIQUES_COMPAGNIE)] {
         // Absent, il est le meme d'une lecture a l'autre ; illisible, il ne l'est jamais (la vue se refait).
         let v = match socle::fichiers::json_partage(&p) {
             Ok(Some(v)) => v,
@@ -1254,12 +1254,6 @@ impl Objet {
     pub fn d_apres_la_saisie(&self, saisie: &Map<String, Value>) -> Objet {
         Objet { racine: self.racine.clone(), fichier: self.fichier.clone(), rang: self.rang, brut: std::sync::Arc::new(Value::Object(saisie.clone())) }
     }
-}
-
-/// Le mois qui precede `AAAA-MM`.
-pub fn mois_avant(mois: &str) -> Resultat<String> {
-    let j = premier_du_mois(mois)?.plus_jours(-1)?;
-    Ok(j.mois_iso())
 }
 
 /// L'engagement que designe, dans le mois `mois`, le rang `rang` de son ecran.

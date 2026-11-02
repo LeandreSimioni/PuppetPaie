@@ -518,7 +518,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
             "salarie" => "salaries.json",
             _ => "spectacles.json",
         };
-        ecrits.insert(ctx.racine.join("config").join(fichier).display().to_string());
+        ecrits.insert(ctx.racine.join(socle::fichiers::CONFIG).join(fichier).display().to_string());
     }
     // Les fiches qui existent : ce qui y est vide ou « A COMPLETER » (`import::completer`), rien d'autre.
     let mut completees = 0usize;
@@ -547,7 +547,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
             "salarie" => "salaries.json",
             _ => "spectacles.json",
         };
-        ecrits.insert(ctx.racine.join("config").join(fichier).display().to_string());
+        ecrits.insert(ctx.racine.join(socle::fichiers::CONFIG).join(fichier).display().to_string());
         completees += 1;
     }
     crate::routes::fiches::dater_licences_suivantes(ctx, &imp.licences, note)?;

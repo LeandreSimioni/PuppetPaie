@@ -252,7 +252,7 @@ fn comparer_une(
     // notifie. L'AT/MP n'est alors pas compare : il est l'entree.
     let an: i32 = annee.parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mut atmp_imprime: Option<(Option<Decimal>, Option<Decimal>, Option<Decimal>)> = None;
-    if !racine.join("config").join("baremes").join(format!("{}.json", annee)).exists() {
+    if !racine.join(droit::contexte::BAREMES).join(format!("{}.json", annee)).exists() {
         let ligne = cotisations.iter().find(|l| l.get("cotisation").and_then(Value::as_str) == Some("atmp"));
         atmp_imprime = ligne
             .map(|l| (decimal(l.get("taux_employeur")), decimal(l.get("montant_employeur")), decimal(l.get("base"))))

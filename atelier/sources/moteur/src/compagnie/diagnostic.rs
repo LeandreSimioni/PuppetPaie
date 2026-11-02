@@ -277,7 +277,7 @@ fn construire(racine: &Path) -> Personnes {
             une.push((r, quoi));
         }
     };
-    if let Some(Value::Object(fiches)) = lire_json(&racine.join("config").join("salaries.json")) {
+    if let Some(Value::Object(fiches)) = lire_json(&racine.join(droit::contexte::SALARIES)) {
         for (rang, (cle, datee)) in fiches.iter().filter(|(k, _)| !k.starts_with('_')).enumerate() {
             let mut noms = vec![cle.clone()];
             for c in CHAMPS_QUI_NOMMENT {
@@ -300,7 +300,7 @@ fn construire(racine: &Path) -> Personnes {
             ajouter(noms, format!("salarié n°{}", numero_de(fiche, rang)));
         }
     }
-    if let Some(e @ Value::Object(_)) = lire_json(&racine.join("config").join("entreprise.json")) {
+    if let Some(e @ Value::Object(_)) = lire_json(&racine.join(droit::contexte::ENTREPRISE)) {
         let mut noms = Vec::new();
         for c in CHAMPS_DE_LA_COMPAGNIE {
             for s in droit::contexte::toutes_les_valeurs(e.get(c)).into_iter().filter_map(Value::as_str) {
@@ -324,7 +324,7 @@ type Signatures = (Option<(SystemTime, u64)>, Option<(SystemTime, u64)>);
 fn personnes(racine: Option<&Path>) -> Arc<Personnes> {
     static CACHE: OnceLock<Mutex<HashMap<PathBuf, (Signatures, Arc<Personnes>)>>> = OnceLock::new();
     let Some(racine) = racine else { return Arc::new(Personnes { une: Vec::new(), toutes: None }) };
-    let sig = (signature(&racine.join("config/salaries.json")), signature(&racine.join("config/entreprise.json")));
+    let sig = (signature(&racine.join(droit::contexte::SALARIES)), signature(&racine.join(droit::contexte::ENTREPRISE)));
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Some((s, p)) = verrou(cache).get(racine) {
         if *s == sig {
