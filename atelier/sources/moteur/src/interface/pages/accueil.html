@@ -147,7 +147,7 @@
   <div class="filet" id="geste"></div>
   <h1>PuppetPaie</h1>
   <!-- La version, sous le nom, comme dans la page d'une compagnie (ticket #211). -->
-  <div class="version">version {{VERSION}}</div>
+  <div class="version">{{VERSION_DITE}}</div>
   <div class="sous">{{SOUS_TITRE}}</div>
   <section class="tableau" id="tableau" data-place="L'accueil des compagnies" hidden></section>
   {{TUILES}}
@@ -279,7 +279,6 @@
     const api = window.pywebview.api;
     const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     let dernier = null, resultats = "";
-    const pluriel = (n, un, des) => (n > 1 ? des : un);
 
     function ligne(d) {
       const pret = d.pret || {};
@@ -289,7 +288,7 @@
       return `<div class="declaration${d.en_retard ? " retard" : ""}" data-id="${esc(d.id)}" style="--cie:${esc(d.couleur)}">
         <span class="cie">${esc(d.compagnie)}</span>
         <span class="quoi"><b>${esc(d.titre)}${pastille}</b><span>${esc(d.marche || d.detail || "")}</span>${ou}</span>
-        <span class="limite">${d.quand ? (d.en_retard ? "en retard — c'était " : "au plus tard ") + esc(d.quand) : ""}</span>
+        <span class="limite">${esc(d.limite_dit || "")}</span>
       </div>`;
     }
 
@@ -303,8 +302,8 @@
       const pannes = t.garde ? [] : t.compagnies.filter((c) => c.erreur);
       const g = t.groupe || {};
       const boutons = [];
-      if (g.reel && g.reel.propose) boutons.push(`<button type="button" id="g-reel">Déposer les ${g.reel.declarations} DSN prêtes</button>`);
-      if (g.test && g.test.propose) boutons.push(`<button type="button" class="second" id="g-test">Tester les ${g.test.declarations} DSN écrites</button>`);
+      if (g.reel && g.reel.propose) boutons.push(`<button type="button" id="g-reel" data-occupe="Dépôts…">${esc(g.reel.bouton)}</button>`);
+      if (g.test && g.test.propose) boutons.push(`<button type="button" class="second" id="g-test" data-occupe="Tests…">${esc(g.test.bouton)}</button>`);
       zone.innerHTML = `
         <h2>Déclarations des compagnies</h2>
         <p class="intro">${esc(noms.join(" · "))} — {{P:administrateur_seul}}</p>
@@ -322,16 +321,16 @@
         });
       }
       const reel = document.getElementById("g-reel"), test = document.getElementById("g-test");
-      if (reel) reel.onclick = () => demanderMotDePasse(g.reel.declarations, (m) => deposer(true, m, reel));
+      if (reel) reel.onclick = () => demanderMotDePasse(g.reel.titre, (m) => deposer(true, m, reel));
       if (test) test.onclick = () => deposer(false, "", test);
     }
 
     /* Le mot de passe de l'administrateur, tape au moment de l'acte : il ouvre chaque coffre, et chaque depot le
        reverifie. Annuler ne fait rien. */
-    function demanderMotDePasse(n, suite) {
+    function demanderMotDePasse(titre, suite) {
       const b = document.createElement("div");
       b.className = "boite-mdp";
-      b.innerHTML = `<form><p><b>Déposer ${n} DSN</b></p>
+      b.innerHTML = `<form><p><b>${esc(titre)}</b></p>
         <p class="discret">{{P:chaque_dsn}}</p>
         <input type="password" autocomplete="current-password" placeholder="{{P:mdp_administrateur}}">
         <div class="barre"><button type="button" class="second">Annuler</button><button type="submit">Déposer</button></div></form>`;
@@ -349,7 +348,7 @@
 
     async function deposer(reel, motdepasse, bouton) {
       bouton.disabled = true;
-      bouton.textContent = reel ? "Dépôts…" : "Tests…";
+      bouton.textContent = bouton.dataset.occupe;
       const r = await appel("administrateur-deposer", reel ? { reel, motdepasse } : { reel });
       if (!r || !r.ok) {
         resultats = `<p class="refus">${esc((r && r.erreur) || "{{P:rien_parti}}")}</p>`;
@@ -357,7 +356,7 @@
         return;
       }
       const d = r.resultat;
-      resultats = d.phrase ? `<p>${esc(d.phrase)}</p>` : `<p><b>${d.partis} ${pluriel(d.partis, "déclaration partie", "déclarations parties")}${d.refuses ? `, ${d.refuses} ${pluriel(d.refuses, "refusée", "refusées")}` : ""}.</b></p>
+      resultats = `<p><b>${esc(d.phrase)}</b></p>
         <ul>${(d.resultats || []).map((x) => `<li class="${x.parti ? "" : "refus"}"><b>${esc(x.compagnie)}</b>${x.titre ? " — " + esc(x.titre) : ""} :
           ${esc(x.parti ? x.phrase : x.refus)}</li>`).join("")}</ul>`;
       dessiner(d.tableau);

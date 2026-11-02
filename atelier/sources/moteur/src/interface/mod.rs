@@ -339,7 +339,7 @@ fn page_accueil() -> String {
     // La version, sous le nom, comme dans la page d'une compagnie ; les tuiles en dernier : un nom de
     // compagnie n'est jamais lu comme une marque a remplacer.
     ACCUEIL
-        .replace("{{VERSION}}", &version())
+        .replace("{{VERSION_DITE}}", &format!("version {}", version()))
         .replace("{{EMPREINTE}}", &empreinte())
         .replace(
             "{{SOUS_TITRE}}",
@@ -354,7 +354,6 @@ pub fn page_logiciel(racine: &Path, jeton: &str) -> Result<String, String> {
     let copie = compagnies::est_copie(racine);
     let mut p = brut
         .replace("{{JETON}}", jeton)
-        .replace("{{VERSION}}", &version())
         .replace("{{EMPREINTE}}", &empreinte())
         .replace("{{COPIE}}", if copie { "1" } else { "" })
         .replace("{{COPIE_TEXTE}}", &compagnies::texte_copie(racine))
@@ -363,7 +362,7 @@ pub fn page_logiciel(racine: &Path, jeton: &str) -> Result<String, String> {
             &if copie { String::new() } else { format!("<style>:root {{ --compagnie: {}; }}</style>", compagnies::couleur(racine)) },
         )
         .replace("{{PHRASES}}", &PHRASES_DE_LA_FENETRE.to_string())
-        .replace("{{EDITION}}", if crate::compagnie::bridage::est_bride() { " &middot; d&eacute;mo" } else { "" });
+        .replace("{{VERSION_DITE}}", &format!("version {}{}", version(), if crate::compagnie::bridage::est_bride() { " &middot; d&eacute;mo" } else { "" }));
     let cale = CALE.replace("{{JETON}}", jeton).replace("{{NOMS}}", NOMS_LOGICIEL);
     // Avant le PREMIER script de la page (`/js/tuyau.js`, qui definit `api`) : la cale doit exister avant lui.
     p = p.replacen("<script src=\"/js/", &format!("{}<script src=\"/js/", cale), 1);

@@ -630,14 +630,23 @@ fn assembler(inst: &Path, par_compagnie: Vec<(PathBuf, Result<Value, String>)>) 
         }
     }
     toutes.sort_by_key(cle_d_urgence);
+    // Sa date limite, telle que la ligne la dit.
+    for d in toutes.iter_mut() {
+        let quand = d.get("quand").filter(|q| vrai(q)).map(valeur_en_texte);
+        let en_retard = d.get("en_retard").is_some_and(vrai);
+        let dit = quand.map(|q| if en_retard { format!("en retard — c'était {}", q) } else { format!("au plus tard {}", q) }).unwrap_or_default();
+        if let Some(o) = d.as_object_mut() {
+            o.insert("limite_dit".into(), json!(dit));
+        }
+    }
     json!({
         "compagnies": cies,
         "declarations": toutes,
         // RIEN DE GROUPE tant qu'il n'y a pas au moins deux compagnies avec quelque chose de pret : sinon le depot se fait
         // comme d'habitude, dans la compagnie.
         "groupe": {
-            "test": {"declarations": test_n, "compagnies": test_k, "propose": test_k >= 2},
-            "reel": {"declarations": reel_n, "compagnies": reel_k, "propose": reel_k >= 2},
+            "test": {"declarations": test_n, "compagnies": test_k, "propose": test_k >= 2, "bouton": format!("Tester les {} DSN écrites", test_n)},
+            "reel": {"declarations": reel_n, "compagnies": reel_k, "propose": reel_k >= 2, "bouton": format!("Déposer les {} DSN prêtes", reel_n), "titre": format!("Déposer {} DSN", reel_n)},
         },
     })
 }
@@ -780,10 +789,13 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
         resultats.push(sortie);
     }
     let partis = resultats.iter().filter(|r| r["parti"] == json!(true)).count();
+    let refuses = resultats.len() - partis;
+    let phrase = format!("{}{}.", crate::routes::compte(partis, "déclaration partie", "déclarations parties"), if refuses > 0 { format!(", {}", crate::routes::compte(refuses, "refusée", "refusées")) } else { String::new() });
     Ok(json!({
         "reel": reel,
         "partis": partis,
-        "refuses": resultats.len() - partis,
+        "refuses": refuses,
+        "phrase": phrase,
         "resultats": resultats,
         "tableau": tableau(o, inst, false),
     }))
