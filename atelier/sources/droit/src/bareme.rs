@@ -1197,16 +1197,23 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
 /// Le contrat dit s'il est declare a la caisse des Conges Spectacles (`caisse_conges::affilie`) : la caisse est un
 /// etage, pose juste apres la nature (`bareme_caisse_conges`).
 pub fn bareme_applique(
-    mut bar: Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
+    partage: &Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
 ) -> Resultat<Value> {
-    let etabs = g(&bar, "_etablissements").clone();
-    if vrai(&etabs) {
-        let nic = etablissement_du_salarie(&etabs, sal)?;
-        bar = surcharger(bar, &etabs, &nic)?;
-    }
+    let etabs = g(partage, "_etablissements");
+    let mut bar = if vrai(etabs) {
+        let nic = etablissement_du_salarie(etabs, sal)?;
+        surcharger(partage.clone(), etabs, &nic)?
+    } else {
+        partage.clone()
+    };
     bar = bareme_du_statut(bar, txt(g(sal, "statut")).as_str())?;
     bar = bareme_atmp(bar)?;
-    let avant_la_nature = if caisse_conges == crate::caisse_conges::par_defaut(nat) { Value::Null } else { bar.clone() };
+    // Ce que la caisse reprend du statut tel qu'avant la nature : ses rubriques et ses cotisations (`bareme_caisse_conges`).
+    let avant_la_nature = if caisse_conges == crate::caisse_conges::par_defaut(nat) {
+        Value::Null
+    } else {
+        serde_json::json!({"rubriques_bulletin": g(&bar, "rubriques_bulletin"), "cotisations_dsn": g(&bar, "cotisations_dsn")})
+    };
     bar = bareme_de_la_nature(bar, nat)?;
     bar = bareme_caisse_conges(bar, &avant_la_nature, nat, caisse_conges)?;
     bar = bareme_cpf_cdd(bar, nat, cpf_cdd)?;

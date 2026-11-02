@@ -499,7 +499,7 @@ ou un annule."
     let ctx = &ctx.au(&fin_jour)?;
     let ent0 = &ctx.entreprise;
     let s = &paie.salarie;
-    let bar = ctx.bareme(&fin_jour)?;
+    let bar = crate::dsn::BaremeDuMois::nouveau((*ctx.bareme(&fin_jour)?).clone());
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,

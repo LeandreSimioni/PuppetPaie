@@ -588,8 +588,29 @@ fn somme_lignes(p: &Paie, ids: &Value, patronale_seule: bool) -> Decimal {
         .fold(zero(), |s, l| add(s, if patronale_seule { l.montant_pat } else { add(l.montant_pat, l.montant_sal) }))
 }
 
+/// LE BAREME QUE LA DSN LIT POUR UN MOIS ET UN ETABLISSEMENT (`bar_du`), et la pile de chaque paie qu'il a deja empilee : elle lit
+/// la pile d'une paie a chaque bloc qui la declare (versement, bases, cotisations, bordereau), et elle ne depend que de
+/// ce bareme et de la paie (`bareme_de`).
+pub struct BaremeDuMois {
+    bar: Value,
+    piles: std::sync::Mutex<HashMap<String, std::sync::Arc<Value>>>,
+}
+
+impl BaremeDuMois {
+    pub fn nouveau(bar: Value) -> BaremeDuMois {
+        BaremeDuMois { bar, piles: Default::default() }
+    }
+}
+
+impl std::ops::Deref for BaremeDuMois {
+    type Target = Value;
+    fn deref(&self) -> &Value {
+        &self.bar
+    }
+}
+
 /// La pile de bareme de cette paie, sur le bareme du mois choisi.
-fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
+fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<Value>> {
     let nat = p.engagement.nat()?;
     let fin = p.engagement.fin_periode()?;
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
@@ -597,14 +618,21 @@ fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
         p.engagement.motif_recours.as_deref(),
         &droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.engagement.salarie),
     )?;
-    bareme_applique(bar.clone(), &p.salarie, &nat, Some(&fin), p.declaree_a_la_caisse_des_conges()?, cpf_cdd)
+    let caisse = p.declaree_a_la_caisse_des_conges()?;
+    let cle = format!("{}|{}|{}|{}|{}|{}", fin.iso(), nat.cle, p.salarie, nat.mensuelle(), caisse, cpf_cdd);
+    if let Some(pile) = bar.piles.lock().unwrap_or_else(|e| e.into_inner()).get(&cle) {
+        return Ok(pile.clone());
+    }
+    let pile = std::sync::Arc::new(bareme_applique(bar, &p.salarie, &nat, Some(&fin), caisse, cpf_cdd)?);
+    bar.piles.lock().unwrap_or_else(|e| e.into_inner()).insert(cle, pile.clone());
+    Ok(pile)
 }
 
 /// LA BASE `bloc78` DE LA PAIE `p` (S21.G00.78.004 sous ce code), telle que la paie la porte : la base du calcul que le
 /// bareme de cette paie declare sous ce code (`cotisations_dsn`, `base78` ; abattue sous deduction forfaitaire
 /// specifique : `cle_abattue`), lue dans ses bases (`Paie::bases`), rien de recalcule. Une paie importee porte ses
 /// bases aux memes cles (`engagement::importe::Importe::paie`). Zero quand le bareme ne declare rien sous ce code.
-pub fn base_declaree(p: &Paie, bar: &Value, bloc78: &str) -> Resultat<Decimal> {
+pub fn base_declaree(p: &Paie, bar: &BaremeDuMois, bloc78: &str) -> Resultat<Decimal> {
     let bar = bareme_de(p, bar)?;
     let Some(cle) = liste(req(&bar, "cotisations_dsn")?).iter().filter(|c| en_texte(g(c, "bloc78")) == bloc78).map(|c| en_texte(g(c, "base78"))).find(|k| k != "zero") else {
         return Ok(zero());
@@ -617,7 +645,7 @@ pub fn base_declaree(p: &Paie, bar: &Value, bloc78: &str) -> Resultat<Decimal> {
 }
 
 /// Les cotisations d'un versement, dans l'ordre du bareme.
-pub fn cotisations(p: &Paie, bar: &Value) -> Resultat<Vec<Cotisation>> {
+pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
     let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();
     let exclues = places_non_affiliees(p, g(bar, "_entreprise"))?;
     let bar = bareme_de(p, bar)?;
@@ -2004,7 +2032,7 @@ pub fn primes_et_indemnites(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour,
 }
 
 /// Les blocs 54 : les lignes qui portent `dsn_autres_bruts`, puis 92 et 93.
-pub fn autre_revenu(f: &mut Fichier, p: &Paie, bar: &Value, debut: &Jour, fin: &Jour, signe: i64) -> Resultat<()> {
+pub fn autre_revenu(f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, debut: &Jour, fin: &Jour, signe: i64) -> Resultat<()> {
     let e = &p.engagement;
     for l in &p.remuneration {
         let code = match l.dsn_autres_bruts.as_deref().filter(|c| !c.is_empty()) {
@@ -2142,7 +2170,7 @@ pub fn net_social(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe: i6
 /// Les blocs 78, 79 et 81 d'une paie.
 #[allow(clippy::too_many_arguments)]
 pub fn bases_et_cotisations(
-    f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, debut: &Jour, fin: &Jour, signe: i64, nature_dsn: &str,
+    f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, rang: i64, debut: &Jour, fin: &Jour, signe: i64, nature_dsn: &str,
     bases_exclues: &[&str],
 ) -> Resultat<()> {
     let e = &p.engagement;
@@ -2230,7 +2258,7 @@ p. 243). Porter une partie des corrections sur une DSN suivante. Rien n'est ecri
     Ok(format!("{:02}", n))
 }
 
-fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: Option<&Triplet>) -> Resultat<()> {
+fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, rang: i64, taux_pas: Option<&Triplet>) -> Resultat<()> {
     let e = &p.engagement;
     let debut = e.debut_periode()?;
     let fin = e.fin_periode()?;
@@ -2515,7 +2543,7 @@ fn annuler_les_58(f: &mut Fichier, r: &Regularisation, origine: (Jour, Jour)) ->
 /// n'est jamais celui d'un autre versement de l'individu (`numero_de_versement`).
 #[allow(clippy::too_many_arguments)]
 fn bloc_regularisation(
-    f: &mut Fichier, r: &Regularisation, bar_o: &Value, rang: i64, numero: i64, pas_c: &PrelevementDeLaCorrection,
+    f: &mut Fichier, r: &Regularisation, bar_o: &BaremeDuMois, rang: i64, numero: i64, pas_c: &PrelevementDeLaCorrection,
     fin_mois: Jour,
 ) -> Resultat<()> {
     // `avant` ne donne ici que l'engagement declare (ses bornes, s'il est sans paie) : les montants annules sont ceux
@@ -2624,7 +2652,7 @@ struct Lecture {
     blocs: Vec<(String, String)>,
 }
 
-fn lecture(p: &Paie, bar: &Value) -> Resultat<Lecture> {
+fn lecture(p: &Paie, bar: &BaremeDuMois) -> Resultat<Lecture> {
     let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();
     let pile = bareme_de(p, bar)?;
     let mut l = Lecture { roles: Vec::new(), blocs: Vec::new() };
@@ -2783,7 +2811,7 @@ impl Lecture {
 
 /// Les lignes 81 que le nominatif d'une paie declare (`cotisations`, comme `bases_et_cotisations` les ecrit), dans la
 /// forme ou `lignes_declarees` relit celles d'une DSN deposee.
-fn lignes_81(p: &Paie, bar: &Value) -> Resultat<Vec<Ligne81>> {
+fn lignes_81(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Ligne81>> {
     Ok(cotisations(p, bar)?
         .into_iter()
         .filter(|c| c.montant.is_some())
@@ -2800,7 +2828,7 @@ fn lignes_81(p: &Paie, bar: &Value) -> Resultat<Vec<Ligne81>> {
 /// La reduction generale que l'Urssaf recouvre pour une paie (CTP 671 d'un technicien intermittent, 668 d'un
 /// permanent), lue dans son nominatif comme celle d'une DSN deposee (`Lecture::reduction_a_l_urssaf`) : une seule
 /// lecture pour le bordereau courant et le bordereau regularise.
-fn reduction_a_l_urssaf(p: &Paie, bar: &Value) -> Resultat<Decimal> {
+fn reduction_a_l_urssaf(p: &Paie, bar: &BaremeDuMois) -> Resultat<Decimal> {
     if p.reduction_generale.as_ref().map_or(true, |r| r.montant.is_zero()) {
         return Ok(zero());
     }
@@ -2812,7 +2840,7 @@ fn reduction_a_l_urssaf(p: &Paie, bar: &Value) -> Resultat<Decimal> {
 /// La valeur que le contrat d'une regularisation apportait, tel qu'il a ete DECLARE, a l'assiette `cle` de la table des
 /// CTP (celles de `assiettes_ctp`). La nature (permanent, intermittent) et le statut (artiste, technicien) sont ceux du
 /// contrat d'avant (`r.avant`), comme ses bornes.
-fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Result<Decimal, String>> {
+fn assiette_declaree(cle: &str, r: &Regularisation, bar: &BaremeDuMois) -> Resultat<Result<Decimal, String>> {
     // Un contrat ajoute apres la limite (`produire_regularisations::ajout`) : rien de declare, toutes ses assiettes sont
     // nulles -- le bordereau du mois d'origine porte tout le corrige.
     if r.declare.lignes.is_empty() && r.declare.fichier.is_empty() {
@@ -2899,7 +2927,7 @@ pub fn codes_du_versement(v: &Value) -> Vec<String> {
 /// cumulent plus ici : ils se lisent dans le nominatif ecrit (`composants_de_versement`), ou `annuler_le_declare` a deja
 /// rattache chaque base 31 deposee a son adhesion (70.013).
 fn cumuler_le_declare(
-    totaux: &mut Vec<(String, Decimal)>, r: &Regularisation, bar: &Value, orgs: &Value, signe: i64,
+    totaux: &mut Vec<(String, Decimal)>, r: &Regularisation, bar: &BaremeDuMois, orgs: &Value, signe: i64,
 ) -> Resultat<()> {
     let d = &r.declare;
     let numero = r.apres.engagement.numero.clone().unwrap_or_default();
@@ -2944,7 +2972,7 @@ fn cumuler_le_declare(
 
 // --------------------------------------------- totaux, bordereau, versements
 
-fn cumuler_totaux(totaux: &mut Vec<(String, Decimal)>, paies: &[&Paie], bar: &Value, signe: i64) -> Resultat<()> {
+fn cumuler_totaux(totaux: &mut Vec<(String, Decimal)>, paies: &[&Paie], bar: &BaremeDuMois, signe: i64) -> Resultat<()> {
     let s = Decimal::from(signe);
     for p in paies {
         for c in cotisations(p, bar)? {
@@ -3020,7 +3048,7 @@ fn statut(p: &Paie) -> String {
 }
 
 /// Les assiettes agregees du bordereau Urssaf.
-fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decimal>> {
+fn assiettes_ctp(paies: &[&Paie], bar: &BaremeDuMois) -> Resultat<HashMap<String, Decimal>> {
     // Sous deduction forfaitaire specifique, les assiettes de la securite sociale sont celles des bases abattues
     // (`cle_abattue`, la base 03 ; le 51 de type 001, `brut_du_51`) ; la CSG garde la sienne.
     let mut b = Vec::new();
@@ -3138,7 +3166,7 @@ const MONTANT_DEDUCTION_HEURES: &str = "deduction_heures_supplementaires";
 /// La base 07 (« Assiette des contributions d'Assurance Chomage », norme 2026.1 p. 294) que le nominatif du contrat
 /// declare : le 78.004 des lignes de `cotisations` sous le bloc 07, le meme montant que le bulletin (la base de la ligne
 /// chomage, `brut_chomage` dans les baremes). Zero sans bloc 07 ; deux montants differents refusent.
-fn base_07(p: &Paie, bar: &Value) -> Resultat<Decimal> {
+fn base_07(p: &Paie, bar: &BaremeDuMois) -> Resultat<Decimal> {
     let mut vu: Option<Decimal> = None;
     for c in cotisations(p, bar)?.into_iter().filter(|c| c.bloc78 == "07") {
         match vu {
@@ -3250,7 +3278,7 @@ fn taxe_apprentissage_non_due_du_mois(ent: &Value, mois: &str) -> Resultat<bool>
 }
 
 fn lignes_bordereau(
-    paies: &[&Paie], orgs: &Value, ent: &Value, bar: &Value, solde_ta: Option<&SoldeTa>, doeth: Option<&crate::oeth::Declaration>,
+    paies: &[&Paie], orgs: &Value, ent: &Value, bar: &BaremeDuMois, solde_ta: Option<&SoldeTa>, doeth: Option<&crate::oeth::Declaration>,
     csa: Option<&crate::csa::Csa>, mois: &str, effectif: &Seuils,
 ) -> Resultat<Vec<LigneBordereau>> {
     let mut lignes = Vec::new();
@@ -3367,7 +3395,7 @@ pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement:
 /// secondaire valorisait son bordereau regularise au taux AT/MP du principal (23.003, `taux_at_du_ctp`) ; regle 8,
 /// chaque etablissement a le sien.
 fn lignes_regularisees(
-    orgs: &Value, ent: &Value, regs: &[Regularisation], mois_o: &str, bar_o: &Value, effectif: &Seuils,
+    orgs: &Value, ent: &Value, regs: &[Regularisation], mois_o: &str, bar_o: &BaremeDuMois, effectif: &Seuils,
 ) -> Resultat<Vec<LigneBordereau>> {
     let siens: Vec<&Regularisation> = regs.iter().filter(|r| r.mois == mois_o).collect();
     let apres = assiettes_ctp(&siens.iter().map(|r| &r.apres).collect::<Vec<_>>(), bar_o)?;
@@ -3439,7 +3467,7 @@ fn lignes_regularisees(
 /// Le CTP qui regularise le CTP de reduction `code` (668 -> 669, 671 -> 801) : `reduction_generale.dsn.ctp_regularisation`
 /// de la pile de bareme d'un des contrats corriges, celle dont `reduction_generale.dsn.ctp` est ce code (le bareme livre :
 /// `par_nature.permanent` et `par_statut.technicien`). Aucun : `None`.
-fn ctp_de_regularisation(code: &str, siens: &[&Regularisation], bar: &Value) -> Resultat<Option<String>> {
+fn ctp_de_regularisation(code: &str, siens: &[&Regularisation], bar: &BaremeDuMois) -> Resultat<Option<String>> {
     for r in siens {
         for p in [&r.apres, &r.avant] {
             let pile = bareme_de(p, bar)?;
@@ -3986,7 +4014,7 @@ fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
 /// regularise et le nominatif (`bar_du`), et l'apercu du montant Urssaf (`montant_urssaf`), passent par elle. (La pile
 /// d'un salarie, `bareme::bareme_applique`, surcharge de meme par l'etablissement du salarie.)
 fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat<Value> {
-    Ok(bareme::taux_atmp_resolu(bareme::surcharger(ctx.bareme(&premier(mois)?)?, ent, nic)?).0)
+    Ok(bareme::taux_atmp_resolu(bareme::surcharger((*ctx.bareme(&premier(mois)?)?).clone(), ent, nic)?).0)
 }
 
 /// LE BLOC 40 DECLARE du contrat de `p` (regle 4 : il se lit, il ne se recalcule pas), pour le bloc Changements contrat
@@ -4041,15 +4069,18 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
 }
 
 /// Le bareme d'un mois pour l'etablissement, avec ses contributions.
-pub fn bar_du(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, m: &str) -> Resultat<Value> {
+pub fn bar_du(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, m: &str) -> Resultat<BaremeDuMois> {
     let b = bareme_du_nic(ctx, ent, nic, m)?;
     let c = contributions_dsn(ctx, ent, orgs, m, &b)?;
     if c.is_empty() {
-        return Ok(b);
+        return Ok(BaremeDuMois::nouveau(b));
     }
-    let mut o = b.as_object().cloned().unwrap_or_default();
+    let mut o = match b {
+        Value::Object(o) => o,
+        _ => Map::new(),
+    };
     o.insert("_contributions_du_mois".into(), Value::Array(c));
-    Ok(Value::Object(o))
+    Ok(BaremeDuMois::nouveau(Value::Object(o)))
 }
 
 fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
@@ -4267,12 +4298,12 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // En P27V01, la fiche entreprise est en NAF 2025 (`naf::verifier_pour`), avant tout calcul.
     crate::naf::verifier_pour(&norme, &ctx.entreprise)?;
     let fin_m = fin_mois(an, mo);
-    let mut bars: HashMap<String, Value> = HashMap::new();
-    let mut bar_de = |m: &str| -> Resultat<Value> {
+    let mut bars: HashMap<String, std::sync::Arc<BaremeDuMois>> = HashMap::new();
+    let mut bar_de = |m: &str| -> Resultat<std::sync::Arc<BaremeDuMois>> {
         if let Some(b) = bars.get(m) {
             return Ok(b.clone());
         }
-        let b = bar_du(ctx, &ent0, &orgs, &nic, m)?;
+        let b = std::sync::Arc::new(bar_du(ctx, &ent0, &orgs, &nic, m)?);
         bars.insert(m.to_string(), b.clone());
         Ok(b)
     };

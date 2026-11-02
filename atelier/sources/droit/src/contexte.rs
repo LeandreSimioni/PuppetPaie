@@ -1629,15 +1629,9 @@ impl Contexte {
         Ok(couche.get("contributions_dsn").and_then(Value::as_array).cloned().unwrap_or_default())
     }
 
-    pub fn bareme(&self, jour: &Jour) -> Resultat<Value> {
-        // Le bareme resolu a ce jour est garde ; on en
-        // rend une copie, que l'appelant peut modifier.
-        Ok((*self.bareme_partage(jour)?).clone())
-    }
-
-    /// Le bareme resolu a ce jour, partage : a lire sans le copier (une ligne d'engagement le lit a chaque calcul, pour
-    /// chaque engagement de chaque mois declare).
-    pub fn bareme_partage(&self, jour: &Jour) -> Resultat<Arc<Value>> {
+    /// Le bareme resolu a ce jour, garde et partage : il se lit sans se copier ; ce qui le change (la pile d'un contrat,
+    /// `bareme::bareme_applique` ; la surcharge d'un etablissement) en part.
+    pub fn bareme(&self, jour: &Jour) -> Resultat<Arc<Value>> {
         type Cache = Mutex<HashMap<String, Arc<Value>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));

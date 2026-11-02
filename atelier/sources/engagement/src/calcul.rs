@@ -894,7 +894,7 @@ fn tuple(j: &Jour) -> (i32, u32, u32) {
     (j.an, j.mois, j.jour)
 }
 
-/// `bareme_applique(ctx.bareme(fin), sal, nat, fin, caisse)`, garde : la pile ne
+/// `bareme_applique(&ctx.bareme(fin), sal, nat, fin, caisse)`, garde : la pile ne
 /// depend que des fichiers du bareme, de la fiche entreprise, du salarie, de
 /// la nature, de la caisse de conges et du jour. Un mois et ses mois anterieurs la recomposaient a
 /// chaque paie, et c'etait l'essentiel du temps de calcul.
@@ -906,7 +906,7 @@ pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: 
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
-    let bar = Arc::new(bareme_applique(ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
+    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
     socle::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }

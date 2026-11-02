@@ -441,7 +441,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         },
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
-    let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_ref(), annee);
+    let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_deref(), annee);
     // La conclusion nomme les deux plafonds.
     let r = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ent, q.plafonds);
     Ok(json!({

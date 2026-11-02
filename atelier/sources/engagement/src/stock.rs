@@ -247,8 +247,13 @@ pub(crate) fn lire_dans(racine: &Path, d: Dossier, mois: &str) -> Resultat<Optio
 fn importes_seuls(racine: &Path, mois: &str) -> bool {
     let Ok(Some(f)) = lire_partage(racine, mois) else { return false };
     let es = f.get("engagements").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
-    let seul = |e: &Value| Objet { racine: racine.to_path_buf(), fichier: mois.to_string(), rang: 0, brut: std::sync::Arc::new(e.clone()) }.importe_seul();
-    !es.is_empty() && es.iter().all(seul)
+    !es.is_empty() && es.iter().all(|e| importe_seul(e, mois))
+}
+
+/// L'engagement `e`, du fichier de `fichier`, n'est-il qu'importe (`Objet::importe_seul`) ?
+fn importe_seul(e: &Value, fichier: &str) -> bool {
+    let verses = e.get(crate::importe::IMPORTE).and_then(|i| i.get("paies")).and_then(Value::as_object);
+    e.get(crate::importe::IMPORTE).is_some_and(Value::is_object) && verses.and_then(|p| p.keys().max()).is_none_or(|m| m.as_str() >= fichier)
 }
 
 /// Le mois suivant `AAAA-MM`.
@@ -350,8 +355,7 @@ impl Objet {
     /// de permanent qui continue ici vit dans le fichier de son premier mois neuf, apres tous ses mois verses
     /// (`importe::ecrire_tous`) : ce mois et les suivants sont de la saisie.
     pub fn importe_seul(&self) -> bool {
-        let verses = self.brut.get(crate::importe::IMPORTE).and_then(|i| i.get("paies")).and_then(Value::as_object);
-        self.est_importe() && verses.and_then(|p| p.keys().max()).is_none_or(|m| m.as_str() >= self.fichier.as_str())
+        importe_seul(&self.brut, &self.fichier)
     }
 
     /// N'est-il plus actif (`NON_ACTIF`) ?
@@ -387,11 +391,14 @@ impl Objet {
 
     /// La saisie du premier mois : l'objet sans ce que le moteur tient seul.
     fn premiere_vue(&self) -> Map<String, Value> {
-        let mut v = self.brut.as_object().cloned().unwrap_or_default();
+        // Seul ce qui reste se copie, dans l'ordre que laisse `Map::remove` (le dernier prend la place du retire).
+        let mut v: Vec<(&String, &Value)> = self.champs().iter().collect();
         for k in TENUS_PAR_LE_MOTEUR {
-            v.remove(k);
+            if let Some(i) = v.iter().position(|(c, _)| c.as_str() == k) {
+                v.swap_remove(i);
+            }
         }
-        v
+        v.into_iter().map(|(c, x)| (c.clone(), x.clone())).collect()
     }
 
     /// Ce que l'engagement dit de `mois` : la saisie de ce mois-la, telle que l'ecran la montre et que le calcul la lit
@@ -647,13 +654,20 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
     static GARDES: std::sync::OnceLock<Gardes> = std::sync::OnceLock::new();
     let gardes = GARDES.get_or_init(Default::default);
     let fichiers = lus(racine)?;
-    if let Some((vus, v)) = gardes.lock().unwrap_or_else(|p| p.into_inner()).get(racine) {
+    let avant = gardes.lock().unwrap_or_else(|p| p.into_inner()).get(racine).cloned();
+    if let Some((vus, v)) = &avant {
         if memes(vus, &fichiers) {
             return Ok((fichiers, v.clone()));
         }
     }
     let mut objets = Vec::new();
     for (f, m) in &fichiers {
+        // Les engagements d'un fichier qui n'a pas change depuis la lecture gardee sont ceux qu'elle a tires.
+        let inchange = avant.as_ref().filter(|(vus, _)| vus.iter().any(|(n, y)| n == f && std::sync::Arc::ptr_eq(m, y)));
+        if let Some((_, v)) = inchange {
+            objets.extend(v.objets.iter().filter(|o| o.fichier == *f).cloned());
+            continue;
+        }
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
             if porte_ses_paies(e) {
                 return Err(socle::echec::avec(
