@@ -176,10 +176,10 @@ impl Brouillon {
 
     /// Ecrit `contenu` comme fichier de `mois` du dossier `d` dans le brouillon ouvert pour `racine` ; faux : aucun ne
     /// l'est.
-    fn tient(racine: &Path, d: Dossier, mois: &str, contenu: Value) -> bool {
+    fn tient(racine: &Path, d: Dossier, mois: &str, contenu: &Value) -> bool {
         BROUILLON.with(|b| match b.borrow_mut().as_mut().filter(|(r, _)| r == racine) {
             Some((_, f)) => {
-                f.insert((d, mois.to_string()), std::sync::Arc::new(contenu));
+                f.insert((d, mois.to_string()), std::sync::Arc::new(contenu.clone()));
                 true
             }
             None => false,
@@ -202,7 +202,7 @@ pub(crate) fn poser(racine: &Path, mois: &str, contenu: &Value) -> Resultat<Path
 /// dans le brouillon ouvert pour `racine` s'il y en a un (`Brouillon`), sinon sur le disque. Rend son chemin.
 pub(crate) fn poser_dans(racine: &Path, d: Dossier, mois: &str, contenu: &Value) -> Resultat<PathBuf> {
     let p = chemin_dans(racine, d, mois);
-    if Brouillon::tient(racine, d, mois, contenu.clone()) {
+    if Brouillon::tient(racine, d, mois, contenu) {
         return Ok(p);
     }
     if let Some(dir) = p.parent() {
@@ -216,7 +216,7 @@ pub(crate) fn poser_dans(racine: &Path, d: Dossier, mois: &str, contenu: &Value)
 /// pose) s'en va : un mois sans fichier ni engagement n'a pas de saisie. Dans un brouillon, il s'ecrit vide.
 pub(crate) fn retirer(racine: &Path, mois: &str) -> Resultat<PathBuf> {
     let vide = serde_json::json!({"mois": mois, "engagements": []});
-    if Brouillon::tient(racine, Dossier::Engagements, mois, vide) {
+    if Brouillon::tient(racine, Dossier::Engagements, mois, &vide) {
         return Ok(chemin(racine, mois));
     }
     let p = chemin(racine, mois);
