@@ -440,14 +440,23 @@ fn le_compte_rendu_d_une_dsn_ne_refait_pas_la_paie_qu_elle_declare() {
 /// une compagnie de marionnettes (convention 3090) venue d'un logiciel precedent, qui importe ses papiers de 2025, remplit
 /// « Pour démarrer », puis vit 2026 par les routes seulement : chaque engagement valide avant son premier jour, sa DPAE
 /// (test puis reel), ses contrats a la signature, ses repas et nuitees, la DSN de chaque mois apres son versement (test
-/// puis reel), les documents, le FCAP-SVP paye et coche, la cloture de 2026 en janvier 2027 ; puis l'horloge passe le
-/// 30/01/2027 et ne trouve rien a faire. Le rejeu est celui que « Publier » livre (`scenario::livrer`).
+/// puis reel), les documents, le FCAP-SVP paye et coche. LIVREE le 02/11/2026 comme « Publier » la livre
+/// (`scenario::livrer`) : l'horloge n'y trouve rien a faire ce jour-la, les cartes de decembre sont ecrites et non
+/// validees ; puis le temps passe au 31/01/2027, et l'horloge seule valide, declare, envoie et clot 2026.
 #[test]
 fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
     let d = outils::dossier_de_test("rejeu", "fil-de-fer");
-    let (r, racine) = outils::rejeu::rejouer_dossier(&outils::rejeu::reference("fictive-fil-de-fer"), &d);
-    let jour = "2027-01-30";
-    assert!(r.horloge.is_empty(), "l'horloge a trouve a faire derriere l'administratrice : {:?}", r.horloge);
+    let racine = outils::rejeu::livrer(&outils::rejeu::reference("fictive-fil-de-fer"), &d, "2026-11-02");
+    assert!(moteur::interface::compagnies::est_fictive_livree(&racine), "la fictive posee n'est pas une fictive livree");
+    assert!(!racine.join("journal/incidents.json").exists(), "les incidents du rejeu ne se livrent pas");
+    let horloge = |jour: &str| outils::reussi(&outils::route(&racine, "horloge-rattraper", json!({}), jour)).clone();
+    assert_eq!(horloge("2026-11-02"), json!([]), "l'horloge a trouve a faire derriere l'administratrice");
+    let decembre = outils::lire(&racine, "engagements/2026-12.json");
+    let cartes = decembre["engagements"].as_array().unwrap();
+    assert!(cartes.len() == 2 && cartes.iter().all(|e| e["valide"].is_null()), "les cartes de decembre, ecrites et non validees : {}", decembre);
+    let jour = "2027-01-31";
+    let jouees = horloge(jour);
+    assert!(jouees.to_string().contains("exercice 2026 clos"), "{}", jouees);
 
     // Chaque mois de 2026 a toutes ses etapes faites ; un mois sans engagement n'a que sa DSN, sans individu.
     for m in 1..=12 {
@@ -545,10 +554,4 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
     let ligne = &fcap["sections"][0]["lignes"][0];
     assert_eq!(ligne["mois"], json!(4), "{}", fcap);
     assert!(ligne["regle"].as_str().is_some_and(|r| r.contains("partielle")), "{}", fcap);
-
-    // LIVREE (`scenario::poser_livree`, ce que « Publier » pose dans `fictives/`) : une fictive livree, pas ajoutee.
-    let dest = d.join("fictives").join("fictive-fil-de-fer");
-    moteur::atelier::scenario::poser_livree(&racine, &dest, r.fin).unwrap();
-    assert!(moteur::interface::compagnies::est_fictive_livree(&dest), "la fictive posee n'est pas une fictive livree");
-    assert!(!dest.join("journal/incidents.json").exists(), "les incidents du rejeu ne se livrent pas");
 }

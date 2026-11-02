@@ -1,2 +1,0 @@
-<idflux>DEMO-CBB32FC22025</idflux>
-Demonstration : DPAE reelle jouee, rien n'a quitte le poste.

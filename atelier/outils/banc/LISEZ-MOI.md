@@ -83,7 +83,7 @@ dit (une ligne par geste joué, « — non joué (…) » quand elle a refusé :
 - Un fichier à déposer (un PDF, une DSN, un export à importer) se pose dans le dossier que la page désigne (`import/` de
   la compagnie, ou un dossier tapé dans le champ) : le scénario en garde une copie (`scenario/pieces/`).
 - Le calendrier n'avance que vers demain ; on ne retouche pas l'heure de la machine.
-- Ce qu'on fait dans une fictive livrée (Les Deux Rives…) s'enregistre mais ne se rejoue pas : seule la compagnie créée
+- Ce qu'on fait dans une fictive livrée (le Fil de Fer) s'enregistre mais ne se rejoue pas : seule la compagnie créée
   par « + » est rejouée.
 - À la fin : `verifier`, puis `arreter`, toujours : aucune fenêtre ne reste derrière soi.
 

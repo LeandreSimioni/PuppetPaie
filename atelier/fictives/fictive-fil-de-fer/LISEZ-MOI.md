@@ -16,16 +16,19 @@ La DSN de décembre 2025 est une **donnée** : c'est un fichier que l'ancien log
 fabrique et que l'import relit tel quel.
 
 - **Le rejeu, preuve commune en ligne de commande** : `moteur/tests/rejeu.rs`, `la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre`
-  (`cargo nextest run --cargo-profile essais -E 'binary(rejeu) & test(fil_de_fer)'`, une dizaine de secondes). Aucune
-  route ne refuse ; l'horloge, passée le 30/01/2027, ne trouve rien à faire ; chaque mois a ses étapes faites ; chaque
-  DSN déclare chaque salarié au taux transmis par la DGFiP (type 01) ; les paies, les DSN et les dépôts se comparent à
-  l'oracle `moteur/tests/donnees/fictives/fictive-fil-de-fer.json` (`PUPPETPAIE_REECRIRE_ORACLES=1`).
+  (`cargo nextest run --cargo-profile essais -E 'binary(rejeu) & test(fil_de_fer)'`, une dizaine de secondes). La
+  fictive se livre au 02/11/2026 comme « Publier » la livre ; aucune route ne refuse ; l'horloge, ce jour-là, ne trouve
+  rien à faire ; passée au 31/01/2027, elle seule valide décembre, déclare, envoie et clôt 2026 ; chaque mois a ses
+  étapes faites ; chaque DSN déclare chaque salarié au taux transmis par la DGFiP (type 01) ; les paies, les DSN et les
+  dépôts se comparent à l'oracle `moteur/tests/donnees/fictives/fictive-fil-de-fer.json` (`PUPPETPAIE_REECRIRE_ORACLES=1`).
 - **La fictive livrée** : `moteur maj --marquer-fictives --logiciel logiciel` (le flux « Publier ») la refait dans
   `fictives/fictive-fil-de-fer`, rejouée jusqu'au jour de la publication ; à la main, `moteur-atelier scenario livrer
-  atelier/fictives/fictive-fil-de-fer fictives/fictive-fil-de-fer [--jusqu-au AAAA-MM-JJ]`. Un seul chemin,
-  `scenario::livrer`, sert le rejeu et la livraison.
-- **Le parcours court à l'écran** : `atelier/outils/banc/fil-de-fer.js` (la DSN d'août déposée, l'engagement de septembre
-  validé, dans la page).
+  atelier/fictives/fictive-fil-de-fer fictives/fictive-fil-de-fer [--jusqu-au AAAA-MM-JJ]`. Des gestes d'après ce jour,
+  seules les saisies s'écrivent (les cartes, non validées ; les fiches) : sur le poste, seul le temps passe, et
+  l'horloge de la fictive valide, envoie et dépose à leur date. Un seul chemin, `scenario::livrer`, sert le rejeu et la
+  livraison. Ce que la personne fait elle-même en janvier 2027 (la revue des spectacles, le FCAP-SVP) lui reste.
+- **Le parcours court à l'écran** : `atelier/outils/banc/fil-de-fer.js` (livrée au 02/11/2026 : la DSN d'octobre
+  déposée, la carte de décembre de Solène Marchetot validée, dans la page).
 
 ## Le parcours, mois par mois
 

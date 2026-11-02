@@ -1,9 +1,10 @@
 /* LE PARCOURS COURT À L'ÉCRAN DE LA FICTIVE DE RÉFÉRENCE DU FIL DE FER (`atelier/fictives/fictive-fil-de-fer/`), le pendant
- * dans la page de son rejeu en ligne de commande (`moteur/tests/rejeu.rs`) : la compagnie livrée telle qu'elle est au
- * 1er septembre 2026 (`scenario livrer … --jusqu-au 2026-09-01`), ouverte le 2 ; le panneau des étapes d'août (la DSN
- * sans salarié à déposer) ; la DSN d'août déposée en test puis en réel (simulé) ; septembre : l'engagement de Solène
- * Marchetot à Nevers saisi sur sa carte et validé, et le panneau qui le suit. Un seul navigateur, une seule ouverture,
- * aucune attente fixe : chaque geste attend un état (la page n'a plus rien en route, une case, un bouton).
+ * dans la page de son rejeu en ligne de commande (`moteur/tests/rejeu.rs`) : la compagnie livrée telle que « Publier » la
+ * livre le 2 novembre 2026 (`scenario livrer … --jusqu-au 2026-11-02` : les mois d'avant faits, les cartes de décembre
+ * écrites, non validées), ouverte ce jour-là ; l'accueil ; le panneau des étapes d'octobre (la DSN sans salarié à
+ * déposer) ; la DSN d'octobre déposée en test puis en réel (simulé) ; novembre ; décembre : la carte de Solène Marchetot
+ * à Dijon, déjà saisie, validée, et le panneau qui le suit. Un seul navigateur, une seule ouverture, aucune attente fixe :
+ * chaque geste attend un état (la page n'a plus rien en route, une case, un bouton).
  *
  *   PUPPETPAIE_ATELIER=<cible>-atelier/essais/moteur-atelier node atelier/outils/banc/fil-de-fer.js <banc neuf>
  *
@@ -45,77 +46,77 @@ const caseDe = (page, etape) => page.locator("#actions-mois .kase", { hasText: e
   if (!MOTEUR) throw new Error("PUPPETPAIE_ATELIER : le binaire moteur-atelier.");
   if (fs.existsSync(B)) throw new Error(`${B} existe : le parcours part d'un banc neuf.`);
   execFileSync(MOTEUR, ["scenario", "livrer", path.join(DEPOT, "atelier/fictives/fictive-fil-de-fer"),
-    path.join(DEPOT, "fictives/fictive-fil-de-fer"), "--jusqu-au", "2026-09-01"], { stdio: "inherit" });
-  await banc.lancer(B, { jour: "2026-09-02", moteur: MOTEUR });
-  dire("banc lancé au 02/09/2026");
+    path.join(DEPOT, "fictives/fictive-fil-de-fer"), "--jusqu-au", "2026-11-02"], { stdio: "inherit" });
+  await banc.lancer(B, { jour: "2026-11-02", moteur: MOTEUR });
+  dire("banc lancé au 02/11/2026");
   const { page, fermer } = await banc.ouvrir(B);
   page.on("pageerror", (e) => { throw new Error("erreur de la page : " + e.message); });
   await page.context().addInitScript(COMPTEUR);
   await page.evaluate(COMPTEUR);
 
-  // 1. L'accueil, puis la compagnie : son bienvenu dit ce qui est à faire ce jour-là.
-  await page.locator(".tuile", { hasText: NOM }).first().click();
+  // 1. L'accueil : la tuile de la fictive livrée ; puis la compagnie, dont le bienvenu dit ce qui est à faire ce jour-là.
+  const tuile = page.locator(".tuile", { hasText: NOM }).first();
+  await tuile.waitFor();
+  await capture(page, "01-accueil.png");
+  dire("tuile : " + (await tuile.innerText()).replace(/\n/g, " | "));
+  await tuile.click();
   await page.waitForSelector("#actions-mois .etapes", { timeout: 60000 });
   await page.evaluate(COMPTEUR);
   await calme(page);
-  await capture(page, "01-ouverture.png");
+  await capture(page, "02-ouverture.png");
   if (await page.isVisible("#rappels-fermer")) await page.click("#rappels-fermer");
   await page.waitForSelector("#voile", { state: "hidden" });
 
-  // 2. Le panneau des étapes d'août : rien à déclarer d'embauche, la DSN sans salarié à déposer.
-  if ((await page.inputValue("#mois")) !== "2026-08") throw new Error("la page ne s'ouvre pas sur août 2026 : " + await page.inputValue("#mois"));
-  const aout = await panneau(page);
-  if (!/DSN\s+à déposer, sans salarié/.test(aout)) throw new Error("la DSN d'août n'est pas à déposer : " + aout);
-  await capture(page, "02-etapes-aout.png");
+  // 2. Le panneau des étapes d'octobre : rien à déclarer d'embauche, la DSN sans salarié à déposer.
+  const vers = async (mois) => {
+    for (let i = 0; i < 12 && (await page.inputValue("#mois")) !== mois; i++) {
+      await page.click((await page.inputValue("#mois")) < mois ? "#mois-apres" : "#mois-avant");
+      await calme(page);
+    }
+    if ((await page.inputValue("#mois")) !== mois) throw new Error(`la page ne va pas à ${mois}`);
+  };
+  dire("la page s'ouvre sur " + await page.inputValue("#mois"));
+  await vers("2026-10");
+  const octobre = await panneau(page);
+  if (!/DSN\s+à déposer, sans salarié/.test(octobre)) throw new Error("la DSN d'octobre n'est pas à déposer : " + octobre);
+  await capture(page, "03-etapes-octobre.png");
 
-  // 3. La DSN d'août : la case ouvre la boîte ; le test, son bilan (attendu dans la boîte), puis le réel (simulé).
+  // 3. La DSN d'octobre : la case ouvre la boîte ; le test, son bilan (attendu dans la boîte), puis le réel (simulé).
   await caseDe(page, "DSN").click();
   await page.waitForSelector("#d-test:not([disabled])");
   await calme(page);
-  await capture(page, "03-boite-dsn.png");
   await page.click("#d-test");
   await calme(page);
   for (let i = 0; i < 40 && await page.isDisabled("#d-reel"); i++) await avancer(page, 10000);
   if (await page.isDisabled("#d-reel")) throw new Error("le bilan du test n'arrive pas : " + await page.innerText("#d-bilan"));
   await capture(page, "04-dsn-test-conforme.png");
-  // La DSN d'août n'a pas de salarié : aucune boîte d'avis ne suit (le moteur n'en rend pas, `avis` de `deposer`).
+  // La DSN d'octobre n'a pas de salarié : aucune boîte d'avis ne suit (le moteur n'en rend pas, `avis` de `deposer`).
   await page.click("#d-reel");
   await page.waitForSelector("#voile", { state: "hidden" });
   await calme(page);
-  await capture(page, "05-dsn-envoyee.png");
   // Le suivi du dépôt repeint le panneau quand le bilan est tranché (son minuteur, avancé).
   for (let i = 0; i < 10 && !/✓\s*DSN/.test(await panneau(page)); i++) await avancer(page, 5000);
   const apres = await panneau(page);
-  if (!/✓\s*DSN/.test(apres)) throw new Error("la DSN d'août n'est pas faite : " + apres);
-  await capture(page, "06-dsn-aout-faite.png");
+  if (!/✓\s*DSN/.test(apres)) throw new Error("la DSN d'octobre n'est pas faite : " + apres);
+  await capture(page, "05-dsn-octobre-faite.png");
 
-  // 4. Septembre : l'engagement de Solène Marchetot à Nevers, trois cachets, saisi sur sa carte, puis validé.
-  await page.click("#mois-apres");
-  await page.waitForFunction(() => document.getElementById("mois").value === "2026-09");
-  await calme(page);
-  await page.click("text=+ un engagement");
-  await calme(page);
-  const carte = page.locator(".engagement").last();
-  await carte.locator(".e-qui summary").click();
-  await carte.locator(".e-qui-case[value=MARCHETOT]").check();
-  await page.mouse.click(5, 300);
-  await carte.locator(".e-spectacle").selectOption("objet-256Z00931108");
-  await carte.locator(".r-code").first().selectOption("cachet");
-  await carte.locator(".r-jours-btn").first().click();
-  for (const j of ["18", "19", "20"]) await page.click(`.calendrier .c-jour[data-j='${j}']`);
-  await page.click(".calendrier .c-ok");
-  await carte.locator(".r-taux").first().fill("140");
-  await carte.locator(".r-lieu").first().fill("Maison de la culture, 58000 Nevers");
-  await carte.locator(".r-lieu").first().press("Tab");
-  await avancer(page, 1000);
-  await capture(page, "07-carte-saisie.png");
+  // 4. Novembre, le mois en cours : aucun engagement.
+  await vers("2026-11");
+  await capture(page, "06-novembre.png");
+  dire("panneau de novembre :\n" + await panneau(page));
+
+  // 5. Décembre : les cartes du Grand Fil à Dijon sont là, non validées ; celle de Solène Marchetot se valide.
+  await vers("2026-12");
+  const carte = page.locator(".engagement", { has: page.locator(".e-qui-case[value=MARCHETOT]:checked") }).first();
+  await carte.waitFor();
+  await capture(page, "07-decembre-cartes.png");
   await carte.locator(".v-basculer").click();
   await calme(page);
   await page.waitForFunction(() => /DPAE/.test(document.getElementById("actions-mois").innerText));
-  const sept = await panneau(page);
-  if (!/DPAE\s+1\s/.test(sept.replace(/\n/g, " ") + " ") && !/à déposer|à envoyer/.test(sept)) throw new Error("septembre ne dit pas sa DPAE : " + sept);
+  const dec = await panneau(page);
+  if (!/DPAE/.test(dec)) throw new Error("décembre ne dit pas sa DPAE : " + dec);
   await capture(page, "08-engagement-valide.png");
-  dire("panneau de septembre :\n" + sept);
+  dire("panneau de décembre :\n" + dec);
 
   await fermer();
   banc.arreter(B);
