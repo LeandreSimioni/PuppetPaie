@@ -285,10 +285,8 @@ async function boiteDepot(charge, { testerDabord = false } = {}) {
                                        forcer, contournement });
       rendre();
       if (!reel) {
-        // LE TEST NE FERME PLUS LA BOÎTE : « ça a quitté la
-        // fenêtre au lieu de rester et d'attendre les retours pour proposer
-        // d'envoyer direct ». On reste, on attend le compte rendu, et le
-        // bouton du réel s'allume ici même.
+        // LE TEST GARDE LA BOÎTE OUVERTE : on attend son compte rendu, et le
+        // bouton du réel s'allume ici même, sans avoir à revenir.
         dire(r.phrase, "envoye");
         attendreBilan();
         rafraichirActions();

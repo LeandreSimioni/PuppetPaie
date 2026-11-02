@@ -2,15 +2,11 @@
 "use strict";
 
 /* ------------------------------------------- la reprise du journal
-   Le journal des dépôts est né le 11/09/2026 au soir. Tout ce qui est parti
-   avant — par un autre logiciel, par le site, ou par nos propres dépôts de la veille —
-   n'y figure pas, et l'écran affiche donc « rien n'est parti » sur des actes
-   qui ont bel et bien eu lieu. Devant la liste des embauches :
+   Ce qui est parti sans passer par le journal des dépôts — par un autre
+   logiciel, par le site d'un organisme — n'y figure pas, et l'écran dirait
+   « rien n'est parti » sur des actes qui ont eu lieu.
 
-     « je comprends pas pourquoi il veut que je renvoie ça alors qu'on l'a
-       déjà envoyé et on a les traces de dépôt il me semble »
-
-   Ce bloc lui rend ce qu'il savait, en tête de l'Historique:
+   Ce bloc rend au journal ce que les traces de dépôt attestent, en tête de l'Historique :
    les envois et leurs retours s'y lisent). Il n'apparaît QUE s'il y a quelque chose
    à reprendre : une fois le journal à jour, il disparaît et ne revient que si
    un nouveau dépôt atteste d'un chemin qui n'est pas passé par ici.
