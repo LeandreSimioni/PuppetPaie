@@ -1724,6 +1724,18 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
             );
             p.ecrire().avertissements.push(Avis { info: false, texte: msg });
         }
+        // Un technicien en CDD que la liste de l'annexe 8 de la convention ne nomme pas : on dit ce qui en suit.
+        let nat = p.engagement.nat()?;
+        if let Some((metier, idcc)) = droit::caisse_conges::hors_de_l_annexe8(&nat, &p.salarie)? {
+            let texte = format!(
+                "{} : {} n'est pas sur la liste de l'annexe 8 de la convention {} ; ce CDD ne relève pas de \
+                 l'intermittence (ni Congés Spectacles ni AER spectacle) ; ses congés sont payés par la compagnie.",
+                qui_de(&p.salarie)?,
+                metier,
+                idcc
+            );
+            p.ecrire().avertissements.push(Avis { info: true, texte });
+        }
         // Une journee au-dela de la duree quotidienne maximale : on le dit, l'employeur en repond.
         if let Some(texte) = duree::au_dela_du_maximum(ctx, e, &qui_de(&p.salarie)?)? {
             p.ecrire().avertissements.push(Avis { info: false, texte });
