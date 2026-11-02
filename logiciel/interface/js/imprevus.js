@@ -459,7 +459,7 @@ async function contratsDuJour(ou, jour, cible) {
   if (sien && sien.numero) return sien;
   cible.innerHTML = `Quel contrat
     <select id="im-contrat">${contrats.map((c) => `<option value="${echapper(c.numero)}"${c === sien ? " selected" : ""}>${
-      echapper(c.numero || "sans numéro")}, ${echapper(periodeEnClair(c.debut, c.fin))}</option>`).join("")}</select>`;
+      echapper(c.dit)}</option>`).join("")}</select>`;
   return { choisir: true, contrats };
 }
 

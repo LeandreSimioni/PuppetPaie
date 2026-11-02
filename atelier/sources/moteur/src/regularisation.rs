@@ -389,7 +389,18 @@ fn avant_apres(mois: &str, avant: Option<&Paie>, apres: &Paie) -> R<Value> {
         && r_avant["cachets"] == r_apres["cachets"]
         && r_avant["heures"] == r_apres["heures"]
         && r_avant["jours"] == r_apres["jours"];
+    let infos_dit = format!(
+        "contrat {}, {} — brut {} → {}, net {} → {}",
+        apres.engagement.numero.clone().unwrap_or_default(),
+        apres.engagement.debut.jj_mm_aaaa(),
+        valeur_en_texte(&r_avant["brut"]),
+        valeur_en_texte(&r_apres["brut"]),
+        valeur_en_texte(&r_avant["net_a_payer"]),
+        valeur_en_texte(&r_apres["net_a_payer"])
+    );
     Ok(json!({
+        "infos_dit": infos_dit,
+        "portee_dit": "prochaine DSN",
         "salarie": valeur_en_texte(apres.salarie.get("_cle").unwrap_or(&Value::Null)),
         "debut": apres.engagement.debut.iso(),
         "nom": nom_de(apres),
@@ -429,6 +440,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
             let mut c = avant_apres(mois, i.checked_sub(1).map(|j| &declarees[j].paie), &x.paie)?;
             c["portee_par"] = json!(par);
             c["portee_par_dit"] = json!(de_mois_en_clair(par));
+            c["portee_dit"] = json!(format!("portée par la DSN {}", de_mois_en_clair(par)));
             portees.push(c);
         }
     }

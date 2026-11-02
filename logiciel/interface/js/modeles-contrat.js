@@ -24,17 +24,16 @@ async function dessinerModelesContrat(cible) {
     cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`;
     return;
   }
-  const libelleDe = { contrat: "Le contrat", avenant: "L'avenant" };
   const piece = (n, x) => `
     <div class="modele-contrat" data-nature="${echapper(n.nature)}" data-quoi="${echapper(x.quoi)}">
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <b>${libelleDe[x.quoi] || echapper(x.quoi)}</b>
+        <b>${echapper(x.libelle)}</b>
         ${pastilleDeLEtat(x.pastille)}
         <span class="discret">${echapper(x.nom)}</span>
       </div>
       ${x.refus ? `<div class="encart erreur">${echapper(x.refus)}</div>` : ""}
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:6px">
-        <button type="button" class="lien" data-ecrire>${x.propre ? "Modifier le modèle" : "Écrire le modèle"}</button>
+        <button type="button" class="lien" data-ecrire>${echapper(x.bouton)}</button>
         <label class="lien">poser un fichier<input type="file" accept=".modele,.txt,text/plain" data-fichier hidden></label>
         ${x.propre ? `<button type="button" class="lien" data-retirer>Modèle du logiciel</button>` : ""}
       </div>
@@ -48,7 +47,7 @@ async function dessinerModelesContrat(cible) {
     </div>`;
   const champs = (n) => `
     <details class="modele-champs">
-      <summary>Ses champs (${n.champs.length})</summary>
+      <summary>${echapper(n.champs_titre)}</summary>
       <table class="tableau">
         <tr><th>Champ</th><th>Ce qui s'y écrit</th><th>La loi l'exige</th></tr>
         ${n.champs.map((c) => `<tr>

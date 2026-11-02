@@ -25,11 +25,9 @@ async function dessinerRegularisation() {
           <div class="rang">
             <span class="rang-nom">${echapper(c.nom)}</span>
             ${pastilleDeLEtat(c.pastille)}
-            <span class="rang-infos">contrat ${echapper(c.numero || "")}, ${echapper(jjmmaaaa(c.debut))} —
-              brut ${echapper(c.avant.brut)} → ${echapper(c.apres.brut)},
-              net ${echapper(c.avant.net_a_payer)} → ${echapper(c.apres.net_a_payer)}
+            <span class="rang-infos">${echapper(c.infos_dit)}
               ${c.dates ? `<span class="discret">${echapper(c.dates)}</span>` : ""}
-              ${c.portee_par ? ` · portée par la DSN ${echapper(c.portee_par_dit)}` : " · prochaine DSN"}</span>
+              · ${echapper(c.portee_dit)}</span>
           </div>`).join("")}
       </div>`).join("");
 }

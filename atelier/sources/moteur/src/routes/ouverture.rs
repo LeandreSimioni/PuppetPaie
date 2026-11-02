@@ -625,13 +625,20 @@ fn configuration(ctx: &Contexte) -> R<Value> {
             json!(format!("{} numéro{} sans titre, trouvé{} dans les DSN{} : les nommer si vous savez à quel spectacle ils étaient (cliquer sur la ligne).", n, s, s, annees))
         }
     };
+    // Les compteurs de la derniere annee, en une ligne : ce que l'en-tete de la Paie montre.
+    let compteurs = documents::ecrire_documents::compteurs(&ctx.racine)?;
+    let compteurs_dit = compteurs.as_object().and_then(|o| o.iter().filter(|(k, _)| k.len() == 4 && k.chars().all(|c| c.is_ascii_digit())).max_by(|a, b| a.0.cmp(b.0))).map(|(an, c)| {
+        let n = |k: &str| if c[k].is_null() { "?".to_string() } else { valeur_en_texte(&c[k]) };
+        format!("compteurs {} — bulletin {} · AEM {} · CS {}", an, n("bulletin"), n("aem"), n("certificat_cs"))
+    });
     Ok(json!({
+        "compteurs_dit": compteurs_dit,
         "deduction_forfaitaire": deduction,
         "numeros_sans_titre": numeros_sans_titre,
         "entreprise": entreprise,
         "salaries": salaries,
         "spectacles": spectacles,
-        "compteurs": documents::ecrire_documents::compteurs(&ctx.racine)?,
+        "compteurs": compteurs,
         "erreurs": erreurs,
         "description": {
             "entreprise": description_entreprise,

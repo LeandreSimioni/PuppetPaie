@@ -185,11 +185,14 @@ fn modeles(ctx: &Contexte) -> R<Value> {
                 (None, _) => ("info", "le modèle du logiciel"),
             };
             pieces.push(json!({"quoi": quoi, "nom": nom, "propre": a_soi.is_some(), "refus": verdict, "texte": texte,
+                               "libelle": if quoi == "avenant" { "L'avenant" } else { "Le contrat" },
+                               "bouton": if a_soi.is_some() { "Modifier le modèle" } else { "Écrire le modèle" },
                                "pastille": {"couleur": crate::routes::couleur_de_l_etat(etat), "mots": mots}}));
         }
         let mut champs = documents::contrat_ecrit::champs_des_modeles(&nat);
         champs.extend(CHAMPS_DU_REMPLACEMENT.iter().map(|c| json!({"marqueur": format!("{{{{{}}}}}", c), "quoi": "le contrat remplacé (bloc ANNULE: seulement)", "obligatoire": false})));
-        sortie.push(json!({"nature": nat.cle, "libelle": nat.libelle, "nom": nat.nom_du_contrat(), "modeles": pieces, "champs": champs}));
+        let champs_titre = format!("Ses champs ({})", champs.len());
+        sortie.push(json!({"nature": nat.cle, "libelle": nat.libelle, "nom": nat.nom_du_contrat(), "modeles": pieces, "champs": champs, "champs_titre": champs_titre}));
     }
     Ok(json!({
         "natures": sortie,

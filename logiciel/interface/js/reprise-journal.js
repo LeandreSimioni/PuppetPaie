@@ -45,14 +45,12 @@ async function dessinerReprise() {
     <div class="liste-choix">
       ${r.ajoutes.map((v) => `
         <div class="choix"><span>
-          <b>${echapper(quand(v.quand))}</b>
-          — ${echapper(v.mois ? moisEnClair(v.mois) : "mois inconnu")}
+          <b>${echapper(v.dit)}</b>
           ${pastilleDeLEtat(v.pastille)}
-          <br><span class="discret">déposé par ${echapper(v.logiciel || "logiciel inconnu")}
-            · flux ${echapper(v.flux)}</span>
+          <br><span class="discret">${echapper(v.origine_dit)}</span>
         </span></div>`).join("")}
     </div>
-    <button class="secondaire" id="reprendre">Reprendre ces ${r.ajoutes.length} dépôt(s)</button>
+    <button class="secondaire" id="reprendre">${echapper(r.ecran.bouton)}</button>
     <p class="note">${echapper(r.ecran.logiciel)}</p>
     </details>`;
 

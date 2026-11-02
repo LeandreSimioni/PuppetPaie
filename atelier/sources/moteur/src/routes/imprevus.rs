@@ -142,6 +142,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 0 => format!("Aucun contrat de {} ne couvre le {} : il n'y a rien à suspendre.", nom, super::jour_en_clair(&charge["jour"])),
                 n => format!("Contrats qu'un arrêt peut toucher : {}.", n),
             };
+            // Chaque contrat se dit en une ligne : son numéro et sa période.
+            let mut v = v;
+            for c in v["contrats"].as_array_mut().into_iter().flatten() {
+                let numero = if vrai(&c["numero"]) { valeur_en_texte(&c["numero"]) } else { "sans numéro".to_string() };
+                c["dit"] = json!(format!("{}, {}", numero, super::periode_en_clair(&c["debut"], &c["fin"])));
+            }
             super::phrase_en_tete(v, p)
         }),
         "arret-enregistrer" => arret_enregistrer(ctx, charge),

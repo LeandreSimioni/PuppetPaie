@@ -148,6 +148,13 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
                 "reels": if reels > 0 { json!(format!("{} sont des dépôts réels acceptés.", reels)) } else { Value::Null },
                 "logiciel": "Le nom du logiciel n'est pas une annotation : il est lu dans le certificat de conformité. C'est lui qui distingue le dépôt d'un autre logiciel d'un dépôt PuppetPaie.",
             });
+            v["ecran"]["bouton"] = json!(format!("Reprendre ces {} dépôt(s)", n));
+            for d in v["ajoutes"].as_array_mut().into_iter().flatten() {
+                let mois = d["mois"].as_str().filter(|m| !m.is_empty()).map(engagement::libelle_mois).unwrap_or_else(|| "mois inconnu".to_string());
+                d["dit"] = json!(format!("{} — {}", super::quand(&valeur_en_texte(&d["quand"])), mois));
+                let logiciel = d["logiciel"].as_str().filter(|l| !l.is_empty()).unwrap_or("logiciel inconnu").to_string();
+                d["origine_dit"] = json!(format!("déposé par {} · flux {}", logiciel, valeur_en_texte(&d["flux"])));
+            }
             let p = format!("Dépôts trouvés dans les retours : {} ; ajoutés au journal : {}{}.", super::nombre(&v["trouves"]), super::nombre(&v["ajoutes"]), if v["ecrit"] == json!(true) { "" } else { " (rien n'est écrit)" });
             super::phrase_en_tete(v, p)
         }),

@@ -44,15 +44,10 @@ function peindreEtatGlobal() {
   // d'objet qui part en DSN. Un mois porte d'ailleurs plusieurs spectacles :
   // c'est l'engagement qui dit le sien, pas le mois.
   const c = ETAT.configuration;
-  const annees = Object.entries(c.compteurs).filter(([k]) => /^\d{4}$/.test(k));
-  const compteurs = annees.slice(-1)[0];
   // Les erreurs de configuration, comptées par le moteur (`configuration`, `erreurs`).
   const html = `
     ${pastilleDeLEtat(c.erreurs)}
-    ${compteurs ? `<div>compteurs ${echapper(compteurs[0])} —
-       bulletin <b>${compteurs[1].bulletin ?? "?"}</b> ·
-       AEM <b>${compteurs[1].aem ?? "?"}</b> ·
-       CS <b>${compteurs[1].certificat_cs ?? "?"}</b></div>` : ""}`;
+    ${c.compteurs_dit ? `<div>${echapper(c.compteurs_dit)}</div>` : ""}`;
   const el = document.getElementById("etat-global");
   if (el.dataset.peint !== html) { el.dataset.peint = html; el.innerHTML = html; }
 }
@@ -154,7 +149,7 @@ function fenetreNative() {
   const suivre = async () => {
     const agrandie = await f.agrandie();
     milieu.innerHTML = agrandie ? "&#x2750;" : "&#x25A1;";
-    milieu.title = agrandie ? "Restaurer" : "Agrandir";
+    milieu.title = agrandie ? milieu.dataset.titreAgrandie : milieu.dataset.titre;
   };
   window.addEventListener("resize", suivre);
   suivre();
