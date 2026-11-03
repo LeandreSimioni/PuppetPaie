@@ -9,8 +9,8 @@
 #   4. l'installeur NSIS `PuppetPaie-<JJ.MM.AAAA>-installeur.exe` (la version lue, pas l'identifiant), dans `atelier/depot/installeur/`.
 #
 # Ce que l'installeur pose : exactement ce qu'une compagnie Windows recoit (atelier/AGENTS.md, « Où sont les choses ») -- les fichiers
-# suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis), et les
-# marques de la livraison de fictives si le flux les a posees --,
+# suivis par Git de `logiciel/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis), et les fictives
+# livrees telles que les porte leur archive, marques comprises (le moteur Linux les pose : `moteur maj --poser-fictives`) --,
 # et la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`. Rien sur le bridage : sans rien qui dise
 # « debloque », le logiciel est bride (ticket #246, moteur/src/compagnie/bridage.rs).
 #
@@ -84,8 +84,8 @@ dire "Ce que l'installeur pose"
 rm -rf "$PREPA"
 mkdir -p "$PREPA/pose"
 cd "$DEPOT"
-# Les fichiers suivis par Git, et eux seuls : ni les coffres d'une fictive ouverte (.gitignore), ni `fictives/.origine/`.
-git ls-files -z logiciel fictives > "$PREPA/liste.z"
+# Les fichiers suivis par Git de `logiciel/`, et eux seuls.
+git ls-files -z logiciel > "$PREPA/liste.z"
 # L'installeur est celui de WINDOWS : les programmes de Linux et de Mac (`logiciel/linux/`, `logiciel/mac/`, que le flux
 # « Publier » pose pour les archives de ces systemes et celle de tous ; moteur/src/compagnie/maj.rs) ne sont jamais suivis
 # (.gitignore), donc jamais poses. Si l'un l'etait, l'installeur s'arrete plutot que de les livrer a Windows.
@@ -98,13 +98,13 @@ while IFS= read -r -d '' f; do
     mkdir -p "$PREPA/pose/$(dirname "$f")"
     cp -p "$f" "$PREPA/pose/$f"
 done < "$PREPA/liste.z"
-# Les marques de la livraison de fictives (`fictives/.livraison.json`, `fictives/<nom>/.livree.json`), que le flux
-# « Publier » pose avant de fabriquer l'installeur (`moteur maj --marquer-fictives`, moteur/src/compagnie/maj.rs) : une installation de
-# l'installeur retient sa livraison et ne retelecharge pas des fictives qui n'ont pas change. Pas suivies par Git ; hors
-# du flux (un poste), il n'y en a pas, et la premiere livraison se pose alors par le marqueur des fictives livrees.
-for f in fictives/.livraison.json fictives/*/.livree.json; do
-    if [ -f "$f" ]; then cp -p "$f" "$PREPA/pose/$f"; fi
-done
+# LES FICTIVES : exactement ce que porte l'archive des fictives, leurs marques comprises (`moteur maj --poser-fictives`,
+# moteur/src/atelier/publier.rs). Elles se refont de leur scenario et ne sont pas suivies par Git : c'est le moteur Linux
+# qui les pose, apres que le flux « Publier » les a refaites et marquees (`moteur maj --marquer-fictives`).
+MOTEUR_LINUX="${MOTEUR_LINUX:-$CARGO_TARGET_DIR/release/moteur}"
+test -x "$MOTEUR_LINUX" || { echo "Le moteur Linux, qui pose les fictives, est absent : $MOTEUR_LINUX (MOTEUR_LINUX=...)" >&2; exit 1; }
+"$MOTEUR_LINUX" maj --poser-fictives "$PREPA/pose" --logiciel "$DEPOT/logiciel"
+test -f "$PREPA/pose/fictives/.livraison.json" || { echo "Les fictives ne sont pas posees." >&2; exit 1; }
 cp -p "$FENETRE" "$PREPA/pose/logiciel/puppetpaie.exe"
 # L'application Google n'est pas suivie par le depot public : le flux « Publier » la pose depuis un secret GitHub.
 [ -f "$DEPOT/logiciel/donnees/google-application.json" ] && cp -p "$DEPOT/logiciel/donnees/google-application.json" "$PREPA/pose/logiciel/donnees/"

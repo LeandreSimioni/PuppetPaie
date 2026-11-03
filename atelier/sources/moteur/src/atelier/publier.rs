@@ -265,6 +265,28 @@ pub fn marquer_les_fictives(code: &Path) -> R<String> {
     Ok(empreinte)
 }
 
+/// LES FICTIVES QUE POSE L'INSTALLEUR WINDOWS (`moteur maj --poser-fictives DOSSIER --logiciel L`) : dans `DOSSIER`,
+/// exactement ce que porte l'archive des fictives (`entrees_des_fictives`), `fictives/` et ses marques comprises. Les
+/// fictives livrees se refont de leur scenario et ne sont pas suivies par Git : l'installeur les prend ici, pas dans le
+/// depot. Rend l'empreinte.
+pub fn poser_les_fictives(code: &Path, dossier: &Path) -> R<String> {
+    let (entrees, en_plus, empreinte) = entrees_des_fictives(code)?;
+    let ecrire = |nom: &str, octets: &[u8]| -> R<()> {
+        let dest = dossier.join(nom);
+        if let Some(p) = dest.parent() {
+            std::fs::create_dir_all(p).map_err(|e| format!("{} : {}", p.display(), e))?;
+        }
+        std::fs::write(&dest, octets).map_err(|e| format!("{} : {}", dest.display(), e))
+    };
+    for (nom, chemin, _) in entrees {
+        ecrire(&nom, &std::fs::read(&chemin).map_err(|e| format!("{} : {}", chemin.display(), e))?)?;
+    }
+    for (nom, octets) in en_plus {
+        ecrire(&nom, &octets)?;
+    }
+    Ok(empreinte)
+}
+
 /// Le scelle d'une cle au format `FORMAT_CLE`, ou None.
 fn scelle_par_le_coffre(octets: &[u8]) -> Option<Vec<u8>> {
     let v: Value = serde_json::from_slice(octets).ok()?;
