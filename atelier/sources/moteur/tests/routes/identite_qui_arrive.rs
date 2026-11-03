@@ -27,7 +27,7 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
         "statut_categoriel_rc": "04", "date_naissance": "1990-05-04", "lieu_naissance_affichage": "Chalon-sur-Saône",
         "departement_naissance": "71", "pays_naissance": "FR", "code_nationalite_dsn": "01"}}});
     let janvier = json!({"route": "valider-engagement", "charge": {"mois": "2026-01", "saisie": {"salarie": "SANSNIR",
-        "spectacle": "objet-256Z00931108", "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 115,
+        "spectacle": "objet-256Z00931108", "lignes": [{"rubrique": "heure", "quantite": 10, "taux": 23,
         "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"]}]}}});
     // Jusqu'a la DSN de janvier partie (la premiere `envoyer-documents`).
     let fin = gestes.iter().position(|l| l.contains("\"envoyer-documents\"")).unwrap();
@@ -49,7 +49,7 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     assert_eq!(fiches["SANSNIR"]["nir"], json!([{"valeur": "1900571123456"}]), "le NIR vaut de tout temps");
 
     reussi(&route(&c, "valider-engagement", json!({"mois": "2026-02", "saisie": {"salarie": "SANSNIR",
-        "spectacle": "objet-256Z00931107", "lignes": [{"rubrique": "cachet", "quantite": 3, "taux": 115,
+        "spectacle": "objet-256Z00931107", "lignes": [{"rubrique": "heure", "quantite": 15, "taux": 23,
         "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"]}]}}), jour));
     reussi(&route(&c, "arret-enregistrer", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06", "debut": "2026-02-07", "fin": "2026-02-08",
         "motif": "01"}), jour));

@@ -55,7 +55,7 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
         &c,
         "valider-engagement",
         json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete",
-            "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-01-29", "2026-01-30"]}],
+            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}],
             "motif_rupture": "037", "preavis": {"type": "90"}, "dernier_jour_paye": "2026-01-30", "notification_rupture": "2026-01-29"}}),
         "2026-01-05",
     ));

@@ -1502,9 +1502,9 @@ fn heures_dites(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
     Ok(())
 }
 
-/// Une ligne dont la rubrique est reservee a un statut (`Rubrique::reservee_au_statut` : le service, unite de paie des
-/// seuls artistes) ne paie qu'un salarie de ce statut, lu comme la paie le lit (`calcul::fiche_de_l_engagement` ; vide,
-/// un artiste). Sinon l'engagement se refuse, en disant comment le payer.
+/// Une ligne dont la rubrique est reservee a un statut (`Rubrique::reservee_au_statut` : le service et le cachet, unites
+/// de paie des seuls artistes) ne paie qu'un salarie de ce statut, lu comme la paie le lit
+/// (`calcul::fiche_de_l_engagement` ; vide, un artiste). Sinon l'engagement se refuse, en disant comment le payer.
 fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
     let mut statut: Option<String> = None;
     for (i, l) in eng.lignes.iter().enumerate() {
@@ -1516,14 +1516,17 @@ fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()>
             statut = Some(fiche.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into()));
         }
         if statut.as_deref() != Some(voulu) {
+            // Les heures d'un service se lisent sur lui ; celles d'un cachet sont celles du travail fait.
+            let combien = if r.unite == "service" { " (4 pour un service de 4 heures)" } else { "" };
             return Err(format!(
                 "{} : la ligne {} (« {} ») paie au {}, et seul un artiste se paie au {}. Payez-la à l'heure : une ligne « Heure \
-                 de travail », ses heures pour quantité (4 pour un service de 4 heures).",
+                 de travail », ses heures pour quantité{}.",
                 qui,
                 i + 1,
                 r.libelle,
                 r.unite,
-                r.unite
+                r.unite,
+                combien
             ));
         }
     }

@@ -43,7 +43,7 @@ fn la_nuitee_d_un_technicien_au_dela_de_la_limite_entre_dans_l_assiette() {
             nuitee["justificatif"] = json!(true);
         }
         let saisie = json!({"salarie": salarie, "spectacle": "le-banc-des-menteurs", "lignes": [
-            {"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-11-20", "2026-11-21"], "lieu": lieu}, nuitee]});
+            {"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-11-20", "2026-11-21"], "lieu": lieu}, nuitee]});
         reussi(&route(&c, "apercu", json!({"mois": "2026-11", "cartes": [{"saisie": saisie}]}), "2026-11-02"))["paies"][0].clone()
     };
     let ligne = |p: &Value, code: &str| p["remuneration"].as_array().and_then(|l| l.iter().find(|x| x["rubrique"] == code)).cloned();

@@ -112,9 +112,9 @@
    },
    "lignes": [
     {
-     "libelle": "Cachets isolés",
-     "quantite": 3,
-     "taux": 120
+     "libelle": "Heures",
+     "quantite": 18,
+     "taux": 20
     }
    ],
    "taux_pas": 7.5
@@ -202,9 +202,9 @@
    },
    "lignes": [
     {
-     "libelle": "Cachets isolés",
-     "quantite": 6,
-     "taux": 120
+     "libelle": "Heures",
+     "quantite": 36,
+     "taux": 20
     }
    ],
    "taux_pas": 7.5,
@@ -259,9 +259,9 @@
    },
    "lignes": [
     {
-     "libelle": "Cachets isolés",
-     "quantite": 3,
-     "taux": 115
+     "libelle": "Heures",
+     "quantite": 15,
+     "taux": 23
     }
    ],
    "taux_pas": 3
@@ -324,9 +324,9 @@
    },
    "lignes": [
     {
-     "libelle": "Cachets isolés",
-     "quantite": 6,
-     "taux": 120
+     "libelle": "Heures",
+     "quantite": 36,
+     "taux": 20
     }
    ],
    "taux_pas": 7.5,
@@ -381,9 +381,9 @@
    },
    "lignes": [
     {
-     "libelle": "Cachets isolés",
-     "quantite": 3,
-     "taux": 115
+     "libelle": "Heures",
+     "quantite": 15,
+     "taux": 23
     }
    ],
    "taux_pas": 3
@@ -446,9 +446,9 @@
    },
    "lignes": [
     {
-     "libelle": "Cachets isolés",
-     "quantite": 5,
-     "taux": 120
+     "libelle": "Heures",
+     "quantite": 30,
+     "taux": 20
     }
    ],
    "taux_pas": 7.5,

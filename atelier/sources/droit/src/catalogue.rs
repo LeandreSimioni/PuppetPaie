@@ -213,14 +213,19 @@ impl Rubrique {
         None
     }
 
-    /// Le statut auquel la rubrique est reservee : le service n'est une unite de paie que pour un artiste. Les
-    /// conventions payent au service les repetitions des artistes (1285, art. X.3.2 C et X.3.3,
-    /// `atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md`) ; un technicien y est paye a l'heure,
-    /// a la journee, a la semaine ou au mois (1285, titre VI, `kali-1285-titre-vi-duree-du-travail-20261102.md` ; 3090,
-    /// titre III, art. 3.2, KALIARTI000028930755 de `kali-entrepot/` : des services indivisibles comptes en heures ; les
-    /// grilles des techniciens de `minima-conventionnels.json`, aucune au service).
+    /// Le statut auquel la rubrique est reservee : le service et le cachet ne sont des unites de paie que pour un
+    /// artiste. Les conventions payent au service les repetitions des artistes (1285, art. X.3.2 C et X.3.3,
+    /// `atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md`) et au cachet leurs representations
+    /// (3090, titre VII « Salaires minimaux », KALIARTI000049099195 de `kali-entrepot/` : « Artistes … Rémunération au
+    /// cachet ») ; un technicien y est paye a l'heure, a la journee, a la semaine ou au mois (1285, titre VI,
+    /// `kali-1285-titre-vi-duree-du-travail-20261102.md` ; 3090, titre III, art. 3.2, KALIARTI000028930755 : des services
+    /// indivisibles comptes en heures, et le titre VII : « Techniciens … par heure, par mois » ; les grilles des
+    /// techniciens de `minima-conventionnels.json`, aucune au service ni au cachet). L'assurance chomage ne connait le
+    /// cachet que des artistes : annexe X, art. 3 (« Lorsque l'activité des artistes est déclarée sous la forme de
+    /// cachets ») ; l'annexe VIII, celle des techniciens, ne compte que des heures (art. 3,
+    /// `plafond-intermittents/unedic-annexe10-convention-20241115.txt`, `…annexe8…`).
     pub fn reservee_au_statut(&self) -> Option<&'static str> {
-        (self.unite == "service").then_some("artiste")
+        matches!(self.unite.as_str(), "service" | "cachet").then_some("artiste")
     }
 
     /// Une ligne de cette rubrique doit dire ses heures : `heures` est dans
