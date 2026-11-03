@@ -852,7 +852,7 @@ mod tests_parametrage {
         std::fs::create_dir_all(&d).unwrap();
         let f = d.join("essai.dsn");
         let lignes = [
-            "S10.G00.00.001,'PuppetPaie'", "S10.G00.01.001,'123456873'", "S10.G00.01.003,'LE FIL TENDU'",
+            "S10.G00.00.001,'PuppetPaie'", "S10.G00.01.001,'123456873'", "S10.G00.01.003,'COMPAGNIE DU FIL DE FER'",
             "S10.G00.02.001,'02'", "S10.G00.02.002,'FONTAINE CLAIRE'",
             "S20.G00.05.005,'01122025'", "S20.G00.07.001,'FONTAINE CLAIRE'", "S20.G00.07.002,'0478000000'",
             "S20.G00.07.003,'contact@exemple.invalid'", "S20.G00.07.004,'04'",

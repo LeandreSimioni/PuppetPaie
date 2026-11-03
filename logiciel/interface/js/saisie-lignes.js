@@ -69,6 +69,13 @@ function statutDuBloc(div) {
   return ((ETAT.salaries || []).find((s) => s.cle === cle) || {}).statut || "";
 }
 
+/** La rubrique d'une ligne neuve, le moteur la dit (la première du déroulant serait « Absence » dans une compagnie
+ *  neuve) : par forme de paie et par statut du salarié (`etat.rubrique_par_defaut`, `catalogue::par_defaut`). */
+function rubriqueParDefaut(nat, statut) {
+  const forme = nat && nat.mensuelle ? "mensuelle" : "activite";
+  return ((ETAT.rubrique_par_defaut || {})[forme] || {})[statut || "artiste"] || "";
+}
+
 /** Une ligne de rémunération : une rubrique, une quantité, un taux.
  *  Le champ « heures » n'apparaît que si la rubrique le demande — une journée
  *  de 5 h, une répétition de 3 h. Un cachet ne le demande pas : ses 12 heures
@@ -94,11 +101,10 @@ function peindreCases(r, cases) {
 function ligneRubrique(l = {}, nat, statut) {
   const div = document.createElement("div");
   div.className = "rubrique";
-  // LA RUBRIQUE D'UNE LIGNE NEUVE, le moteur la dit (la première du
-  // déroulant serait « Absence » dans une compagnie neuve) : par forme
-  // de paie (`etat.rubrique_par_defaut`, `catalogue::par_defaut`).
-  const forme = nat && nat.mensuelle ? "mensuelle" : "activite";
-  const code = l.rubrique || (ETAT.rubrique_par_defaut || {})[forme] || "";
+  // LA RUBRIQUE D'UNE LIGNE NEUVE, le moteur la dit ; tant qu'on ne l'a pas
+  // choisie, elle suit le statut du salarié de la carte (`majQui`).
+  const code = l.rubrique || rubriqueParDefaut(nat, statut);
+  if (!l.rubrique) div.dataset.parDefaut = "1";
   // Une ligne neuve part du dernier taux donné, pas d'un champ vide : c'est
   // là que « on met de base le dernier taux » se voit. Le dernier taux DE SA
   // RUBRIQUE : « le cachet c'est le cachet, les heures c'est les heures ».
@@ -219,7 +225,9 @@ function ligneRubrique(l = {}, nat, statut) {
   // Changer la rubrique d'une ligne dont le taux n'a pas été tapé : il suit
   // la rubrique. Un taux de cachet ne devient pas un taux horaire.
   div.dataset.code = code;
-  div.querySelector(".r-code").onchange = () => {
+  div.querySelector(".r-code").onchange = (ev) => {
+    // Choisie à la main, la rubrique ne suit plus le statut du salarié.
+    if (ev) delete div.dataset.parDefaut;
     const neuf = div.querySelector(".r-code").value;
     const t = div.querySelector(".r-taux");
     if (t.value === "" || String(tauxParDefaut(div.dataset.code)) === t.value) {
@@ -1595,11 +1603,17 @@ function majQui(div) {
   resume.classList.toggle("vide", !c);
   // Un imprévu se dit d'un salarié : la porte ne s'ouvre que sur une carte qui en porte un.
   majPorteImprevu(div);
-  // Les rubriques offertes suivent le statut du salarié choisi (la rubrique choisie reste).
+  // Les rubriques offertes suivent le statut du salarié choisi (la rubrique choisie reste) ; une ligne neuve
+  // dont on n'a pas choisi la rubrique prend celle de ce statut, et son taux suit (`onchange`).
   const statut = statutDuBloc(div);
   const nat = natureDe(div.querySelector(".e-nature").value);
   div.querySelectorAll(".r-code").forEach((s) => {
-    if (s.dataset.statut !== statut) poserRubriques(s, s.value, nat, statut);
+    const ligne = s.closest(".rubrique");
+    const voulue = ligne && ligne.dataset.parDefaut ? rubriqueParDefaut(nat, statut) : "";
+    if (voulue && voulue !== s.value) {
+      poserRubriques(s, voulue, nat, statut);
+      s.onchange();
+    } else if (s.dataset.statut !== statut) poserRubriques(s, s.value, nat, statut);
   });
 }
 

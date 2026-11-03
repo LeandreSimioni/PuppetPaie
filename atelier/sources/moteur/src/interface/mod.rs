@@ -12,6 +12,7 @@
 //! l'ouvre dans un Chromium en mode application, sinon dans le navigateur par defaut (`navigateur.rs`).
 
 pub mod api;
+pub mod auteur;
 pub mod compagnies;
 pub mod http;
 pub mod instance;
@@ -94,13 +95,14 @@ const CALE: &str = r#"<script>
 ///   cette fenetre par son mot de passe (en ligne de commande, `--racine` et la seance du coffre) ; `accueil` : revenir
 ///   aux tuiles ;
 /// - `fermer`, `redemarrer` : fermer la fenetre, la rouvrir sur la version prete ; `maj` : ou en est la recherche que la
-///   fenetre mene en fond (la version, elle, est la route `maj-etat`) ;
+///   fenetre mene en fond (la version, elle, est la route `maj-etat`) ; `site` : ouvrir dans le navigateur du poste le site
+///   de l'editeur (le lien de l'auteur, `poste::ouvrir_site`, qui refuse toute autre adresse) ;
 /// - `basculer` : brider ou debloquer le logiciel (la demo), le seul geste qui n'existe qu'a l'ecran : la ligne de commande
 ///   n'a pas de bridage.
-const NOMS_ACCUEIL: &str = r#"["choisir", "verifier", "accueil", "fermer", "redemarrer", "maj", "basculer"]"#;
+const NOMS_ACCUEIL: &str = r#"["choisir", "verifier", "accueil", "fermer", "redemarrer", "maj", "site", "basculer"]"#;
 /// Dans la page d'une compagnie : revenir aux compagnies, la mise a jour (`js/mise-a-jour.js`), ouvrir ce qu'une route a
-/// rendu et choisir un dossier (`poste.rs`), la veille de la fenetre (`js/veille.js`).
-const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "ouvrir", "choisir_dossier", "veille", "veille_etape", "veille_maintenant"]"#;
+/// rendu et choisir un dossier (`poste.rs`), le site de l'editeur (`site`), la veille de la fenetre (`js/veille.js`).
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "site", "ouvrir", "choisir_dossier", "veille", "veille_etape", "veille_maintenant"]"#;
 
 #[derive(Clone)]
 enum Phase {
@@ -343,6 +345,7 @@ fn page_accueil() -> String {
     // compagnie n'est jamais lu comme une marque a remplacer.
     ACCUEIL
         .replace("{{VERSION_DITE}}", &format!("version {}", version()))
+        .replace("{{AUTEUR}}", &json_dans_la_page(&r["auteur"]))
         .replace("{{EMPREINTE}}", &empreinte())
         .replace(
             "{{SOUS_TITRE}}",
@@ -725,6 +728,11 @@ impl Fenetre {
             ("veille_maintenant", Phase::Ouverte { veille, .. }) => json!({"ok": true, "etat": veille.tour(false, false)}),
             // Ou en est la recherche de la mise a jour : l'accueil et la page d'une compagnie l'affichent.
             ("maj", _) => json!({"ok": true, "etat": crate::compagnie::maj::RECHERCHE.etat()}),
+            // Le site de l'editeur, dans le navigateur du poste : la fenetre ne quitte jamais sa page.
+            ("site", _) => match poste::ouvrir_site(&a(0)) {
+                Ok(()) => ok(false),
+                Err(m) => refus(m),
+            },
             // « Redemarrer pour mettre a jour » : la version prete part au relais, puis le logiciel se ferme comme par sa
             // croix (la veille s'arrete) ; le relais attend sa fin, installe et rouvre la fenetre neuve. Rien de pret :
             // refuse, et rien ne se ferme.

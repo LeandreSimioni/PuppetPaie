@@ -463,13 +463,14 @@ fn administrateur(c: &Path, nom: &str, exemple: Value) -> Value {
 /// LES GESTES DE LA FENETRE ELLE-MEME (`window.pywebview.api.<nom>`, servis par `Fenetre::lanceur` : `NOMS_ACCUEIL` et
 /// `NOMS_LOGICIEL` de `interface/mod.rs`) : aucun n'est un geste du logiciel, chacun avec ce qu'il fait. Fixe : un geste
 /// de plus dans la fenetre fait echouer le test ; s'il est du logiciel, c'est une route.
-const FENETRE: [(&str, &str); 11] = [
+const FENETRE: [(&str, &str); 12] = [
     ("choisir", "montrer la compagnie d'une tuile ; en ligne de commande, --racine"),
     ("verifier", "la deverrouiller dans cette fenetre ; en ligne de commande, la seance du coffre"),
     ("accueil", "revenir aux tuiles"),
     ("fermer", "fermer la fenetre"),
     ("redemarrer", "rouvrir la fenetre sur la version prete"),
     ("maj", "ou en est la recherche que la fenetre mene en fond (la version : maj-etat)"),
+    ("site", "ouvrir dans le navigateur du poste le site de l'editeur, et lui seul (le lien de l'auteur)"),
     ("ouvrir", "ouvrir dans le poste le chemin qu'une route a rendu"),
     ("choisir_dossier", "la boite du systeme qui choisit un dossier"),
     ("veille", "l'etat de la veille de la fenetre"),

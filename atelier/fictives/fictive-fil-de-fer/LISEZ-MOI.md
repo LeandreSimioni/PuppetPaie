@@ -1,8 +1,8 @@
 # La Compagnie du Fil de Fer : la fictive de référence légère
 
 Une petite compagnie de marionnettes, **fictive** (tout ce qui suit est inventé ; NIR, SIRET et IBAN ont une forme valide
-et la marque d'un numéro inventé). Convention 3090, intermittents au cachet seulement, venue d'un logiciel précédent
-(sPAIEctacle) fin 2025, une année 2026.
+et la marque d'un numéro inventé). Convention 3090, intermittents seulement (les artistes au cachet, les techniciens à
+l'heure), venue d'un logiciel précédent (sPAIEctacle) fin 2025, une année 2026.
 
 ## Ce que ce dossier porte, et ce qui en sort
 
@@ -35,8 +35,8 @@ fabrique et que l'import relit tel quel.
 - **5 janvier 2026** : la compagnie s'ajoute « D'un logiciel précédent », importe ses papiers de 2025, remplit « Pour
   démarrer » (compte Urssaf, santé au travail AST71, Congés Spectacles, signataire, première embauche, banque, taxe sur
   les salaires, la fiche d'Armand Tessier, les courriels, les titres des deux spectacles), fait la revue des spectacles.
-- **Chaque mois joué** : les engagements validés quelques jours avant le premier cachet, la DPAE (test puis réel), les
-  contrats à la signature ; la DSN déposée après le versement du dernier jour du mois (test puis réel, entre le 2 et le
+- **Chaque mois joué** : les engagements validés quelques jours avant le premier jour de travail, la DPAE (test puis
+  réel), les contrats à la signature ; la DSN déposée après le versement du dernier jour du mois (test puis réel, entre le 2 et le
   5 du mois suivant), puis les documents aux salariés. Juillet, août, octobre et novembre n'ont pas d'engagement : leur
   DSN part sans salarié.
 - **Repas** à chaque jour de jeu loin de chez soi, **nuitées** à Roanne et Montbrison (7 au 9 avril) et à Nevers (18 et
@@ -47,11 +47,12 @@ fabrique et que l'import relit tel quel.
 
 ## Le calendrier 2026
 
-Chaque ligne est un cachet par personne et par jour de jeu ou de répétition (51 cachets en tout). Les représentations
-sont une par jour, le soir, sauf mention contraire. Qui joue : S = Solène, B = Basile, J = Joséphine, O = Octave,
+Chaque ligne compte un jour par personne et par jour de jeu ou de répétition (51 jours en tout) : un cachet pour un
+artiste ; pour un technicien, ses heures (Basile, régisseur général, 6 heures à 20 € ; Armand, technicien son, 5 heures
+à 23 €). Les représentations sont une par jour, le soir, sauf mention contraire. Qui joue : S = Solène, B = Basile, J = Joséphine, O = Octave,
 A = Armand.
 
-| dates | quoi | où | qui | cachets |
+| dates | quoi | où | qui | jours |
 |---|---|---|---|---|
 | lun. 19 et mar. 20 janvier | répétitions (reprise de Mademoiselle Poussière), salle de l'atelier | Chalon-sur-Saône | S, B | 4 |
 | ven. 6, sam. 7, dim. 8 février | Le Grand Fil, 3 représentations | Dole, salle Jean-Moulin | S, B | 6 |
@@ -86,8 +87,8 @@ La compagnie défraie ses salariés : **les repas** (chaque jour de jeu ou de r�
   d'Audiens) est **2840517390C**.
 - **TVA et taxe sur les salaires** : la compagnie est une association de marionnettistes sous la franchise en base : elle
   n'est **pas assujettie à la TVA** et ne facture pas de TVA à ses organisateurs.
-- **Première embauche** : la compagnie n'avait jamais employé personne avant ses premiers cachets de septembre 2025 ;
-  sa toute première embauche est celle de ses trois premiers bulletins, **le 12 septembre 2025** (Le Grand Fil).
+- **Première embauche** : la compagnie n'avait jamais employé personne avant septembre 2025 ; sa toute première
+  embauche est celle de ses trois premiers bulletins, **le 12 septembre 2025** (Le Grand Fil).
 - **Qui signe** : Léonie Garrel, présidente de l'association et administratrice bénévole, signe les contrats et les
   déclarations.
 - **Nationalité** : les cinq salariés sont de nationalité française et nés en France (les lieux de naissance sont dans le

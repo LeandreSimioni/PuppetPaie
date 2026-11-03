@@ -70,6 +70,7 @@ async function demarrer() {
   }
   AUJOURDHUI = o.aujourdhui || "";
   poserEtat(lectureDe(o, "etat"));
+  if (window.poserAuteur) window.poserAuteur(ETAT.auteur);
   dessinerVeille(o.veille);
   try { dessinerPastilleReponses(lireReponse(o.signalements)); } catch (e) { /* la pastille est un plus */ }
   if (window.miseAJourMontrer) window.miseAJourMontrer(o.maj);

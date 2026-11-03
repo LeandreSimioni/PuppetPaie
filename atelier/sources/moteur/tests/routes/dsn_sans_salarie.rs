@@ -27,7 +27,7 @@ fn l_horloge_depose_la_dsn_d_un_mois_sans_engagement() {
         &c,
         "valider-engagement",
         json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete",
-            "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-01-29", "2026-01-30"]}]}}),
+            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}]}}),
         "2026-01-05",
     ));
     let r = route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-03-20"}), "2026-03-20");

@@ -186,7 +186,7 @@ c'est `src/modele.rs` (le chemin PyMuPDF de repli n'existe plus).
 
 ```json
 {"type": "paragraphe",
- "morceaux": [{"texte": "Entre la société "}, {"texte": "FIL TENDU", "gras": true}],
+ "morceaux": [{"texte": "Entre la société "}, {"texte": "FIL DE FER", "gras": true}],
  "taille": 7.5, "couleur": "#2C3E50", "alignement": "justifie",
  "majuscules": false, "espace_avant": 0, "espace_apres": 2.6}
 ```

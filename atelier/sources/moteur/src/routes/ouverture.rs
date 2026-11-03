@@ -144,7 +144,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire tout ce que la page lit en s'ouvrant : configuration, Historique, listes.",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "configuration (les fiches vérifiées), historique (les mois), les listes où l'on choisit, les référentiels",
+        rend: "configuration (les fiches vérifiées), historique (les mois), les listes où l'on choisit, les référentiels, auteur (phrase, nom, adresse)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: false,
@@ -1182,8 +1182,12 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
     let cat = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?;
     // Une rubrique que le moteur pose (`saisie` vide) ne se propose pas.
     let rubriques: Vec<Value> = cat.iter().filter(|r| !r.saisie.is_empty()).map(rubrique_json).collect();
-    // La rubrique d'une ligne neuve, par forme de paie : le moteur la choisit (`catalogue::par_defaut`), la page la pose.
-    let par_defaut = |forme: &str| catalogue::par_defaut(&cat, forme).map_or(Value::Null, |r| json!(r.code));
+    // La rubrique d'une ligne neuve, par forme de paie et par statut du salarie (sans salarie, celui d'un artiste, comme
+    // la paie le lit) : le moteur la choisit (`catalogue::par_defaut`), la page la pose.
+    let par_defaut = |forme: &str| {
+        let de = |statut: &str| catalogue::par_defaut(&cat, forme, statut).map_or(Value::Null, |r| json!(r.code));
+        json!({"artiste": de("artiste"), "technicien": de("technicien")})
+    };
     let rubrique_par_defaut = json!({"activite": par_defaut("activite"), "mensuelle": par_defaut("mensuelle")});
 
     // LA FIN D'UN CONTRAT, telle qu'elle se saisit. Les types de preavis
@@ -1211,6 +1215,8 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
 
     Ok(json!({
         "configuration": configuration,
+        // L'auteur, au pied de la page (`interface::auteur`).
+        "auteur": crate::interface::auteur::auteur(),
         // UNE COMPAGNIE FICTIVE : les envois sont joues (`bridage::branchement`).
         "simulation": crate::compagnie::bridage::branchement(&ctx.racine).joue(),
         // Ce que la boite d'un envoi joue en dit.

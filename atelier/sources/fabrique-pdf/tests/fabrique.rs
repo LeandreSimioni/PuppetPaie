@@ -447,12 +447,12 @@ fn paragraphe_accents_euro_et_ponctuation() {
 #[test]
 fn paragraphe_morceaux_gras_et_retour_force() {
     let v = base(vec![json!({"type": "paragraphe", "morceaux": [
-        {"texte": "Entre la société "}, {"texte": "FIL TENDU", "gras": true}, {"texte": ", ci-après"},
+        {"texte": "Entre la société "}, {"texte": "FIL DE FER", "gras": true}, {"texte": ", ci-après"},
         {"texte": " la première ligne\nla seconde"}]})]);
     let pdf = ok(&v);
     let l = lignes(&pdf);
     assert_eq!(l.len(), 2, "{:?}", l);
-    assert_eq!(l[0].texte, "Entre la société FIL TENDU, ci-après la première ligne");
+    assert_eq!(l[0].texte, "Entre la société FIL DE FER, ci-après la première ligne");
     assert_eq!(l[1].texte, "la seconde");
     // Les deux lignes sont l'une sous l'autre, à l'interligne de 1,25 x 10 pt.
     assert!((l[0].y - l[1].y - 12.5).abs() < 0.01, "{:?}", l);
