@@ -500,13 +500,10 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
 /// [`Rubrique::reservee_a`]) et par statut du salarie (`"artiste"` ou `"technicien"`, celui de
 /// [`Rubrique::reservee_au_statut`]) : une ligne neuve paie un travail, elle ne s'ouvre pas sur la premiere rubrique du
 /// deroulant, qui se range par libelle (« Absence » en tete) : la premiere rubrique de salaire (nature `salaire`) que la
-/// forme et le statut proposent, dans l'ordre du catalogue ; au mois, le salaire de base (`salaire_de_base`) passe
-/// devant. `None` : aucune.
+/// forme et le statut proposent, dans l'ordre du catalogue. `None` : aucune.
 pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str, statut: &str) -> Option<&'a Rubrique> {
     let proposee = |r: &&Rubrique| r.reservee_a().map_or(true, |f| f == forme) && r.reservee_au_statut().map_or(true, |s| s == statut);
-    let salaire = |r: &&Rubrique| r.nature == "salaire";
-    let base = if forme == "mensuelle" { cat.iter().filter(proposee).find(|r| r.salaire_de_base) } else { None };
-    base.or_else(|| cat.iter().filter(proposee).find(salaire))
+    cat.iter().filter(proposee).find(|r| r.nature == "salaire")
 }
 
 /// Une rubrique par son code, telle qu'elle vaut a `jour`. Refuse un code inconnu : mieux vaut s'arreter que payer une

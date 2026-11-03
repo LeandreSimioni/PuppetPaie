@@ -9,7 +9,7 @@ use droit::clauses;
 use droit::conges::jours_ouvrables;
 use crate::conges::{
     avertir, compteur_conges, dec_ou, indemnite_des_jours, info, jours_ouvrables_de, nature_de,
-    qui, flot, remuneration_du_mois, sub,
+    qui, flot, remuneration_du_mois, sub, taux_au_montant,
 };
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::Nature;
@@ -313,7 +313,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
             stc.lignes.push(json!({
                 "rubrique": "indemnite_compensatrice_conges",
                 "quantite": flot(solde),
-                "taux": flot(eur2(div(ind.retenu, solde))),
+                "taux": flot(taux_au_montant(ind.retenu, solde)),
             }));
             stc.avertissements.push(info(format!(
                 "{} : {} jour(s) de conges acquis et non pris, payes {} ({}) -- \

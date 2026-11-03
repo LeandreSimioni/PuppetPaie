@@ -1841,7 +1841,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         },
         // LES CASES QU'UNE LIGNE DE FRAIS APPELLE (leur rang dans la saisie, la case, ce qu'elle dit) : le lieu d'une
         // nuitée, le restaurant d'un repas, le justificatif d'un frais au-delà de sa limite (`engagement::frais_au_dela`).
-        "cases": e.lignes.iter().enumerate().flat_map(|(i, l)| {
+        "cases": e.lignes.iter().filter_map(|l| Some((l.get(engagement::RANG)?.as_u64()?, l))).flat_map(|(i, l)| {
             l.get(engagement::CASES).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str)
                 .map(move |k| json!({"ligne": i, "case": k, "libelle": libelle_de_case(k), "aide": l.get(engagement::AIDES).and_then(|a| a.get(k)).cloned().unwrap_or(Value::Null)}))
         }).collect::<Vec<_>>(),

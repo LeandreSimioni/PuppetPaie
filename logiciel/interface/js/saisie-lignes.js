@@ -12,13 +12,13 @@ function rubriqueDe(code) {
 /** Le déroulant des rubriques, dans l'ordre où le moteur les rend. */
 function optionsRubriques(choisie, nat, statut) {
   // CE QUI S'APPLIQUE AU CONTRAT ET AU SALARIÉ : le moteur dit à quelle forme de paie chaque
-  // rubrique s'adresse (`reservee_a`, lu sur les champs que le calcul
-  // applique) et à quel statut (`reservee_au_statut`, face au `statut` du
+  // rubrique s'adresse en ligne (`formes` : une carte au mois ne porte que ses frais)
+  // et à quel statut (`reservee_au_statut`, face au `statut` du
   // salarié) ; la page compare, elle ne connaît aucune rubrique. Sans
   // nature (`nat` absent) rien ne se filtre, et la rubrique DÉJÀ choisie
   // reste toujours offerte : une saisie ne change pas sous les doigts.
   const forme = nat ? (nat.mensuelle ? "mensuelle" : "activite") : null;
-  const propose = (r) => r.code === choisie || ((!forme || !r.reservee_a || r.reservee_a === forme)
+  const propose = (r) => r.code === choisie || ((!forme || (r.formes || []).includes(forme))
     && (!statut || !r.reservee_au_statut || r.reservee_au_statut === statut));
   return (ETAT.rubriques || []).filter(propose).map((r) => `<option value="${echapper(r.code)}" ${r.code === choisie ? "selected" : ""}>
       ${echapper(r.libelle)}</option>`).join("");
@@ -49,7 +49,7 @@ function poserRubriques(select, choisie, nat, statut) {
   const forme = nat ? (nat.mensuelle ? "mensuelle" : "activite") : "";
   statut = statut || "";
   const r = rubriqueDe(choisie);
-  const offerte = !r || ((!forme || !r.reservee_a || r.reservee_a === forme)
+  const offerte = !r || ((!forme || (r.formes || []).includes(forme))
     && (!statut || !r.reservee_au_statut || r.reservee_au_statut === statut));
   if (offerte) {
     poserListe(select, "rubriques:" + forme + ":" + statut, [ETAT.rubriques], () => optionsRubriques(null, nat, statut));
@@ -563,9 +563,10 @@ function joursDe(champ) {
 
 /** Les lignes viennent du moteur, y compris pour une saisie ancienne écrite
  *  en `cachets` : c'est lui qui dit ce qu'il a compris, la page ne redevine
- *  rien. Une saisie neuve n'en a pas encore — on offre alors une ligne vide. */
-function lignesDe(e) {
-  return (e.lignes && e.lignes.length) ? e.lignes : [{}];
+ *  rien. Une saisie neuve n'en a pas encore — on offre alors une ligne vide,
+ *  sauf à un contrat payé au mois : ses lignes ne sont que ses frais. */
+function lignesDe(e, nat) {
+  return (e.lignes && e.lignes.length) ? e.lignes : (nat && nat.mensuelle ? [] : [{}]);
 }
 
 /* LE DERNIER TAUX DONNÉ À CHAQUE RUBRIQUE : celui d'une ligne neuve de la même rubrique, à l'écran seulement ; rien
@@ -878,7 +879,7 @@ function construireCarte(div, e) {
          Théâtre 71 le 14 15 17 18 ». Voir ligneRubrique(). -->
     <div class="rubriques"></div>
     <button class="ajouter-rubrique discret">+ une ligne de paie</button>
-    <!-- UN PERMANENT NE SE SAISIT PAS EN LIGNES DE PAIE, ET C'EST TOUT
+    <!-- UN PERMANENT NE SE SAISIT PAS EN LIGNES DE PAIE, SAUF SES REPAS ET SES NUITÉES (les lignes au-dessus, aux limites de tout salarié). C'EST TOUT
          L'INTÉRÊT. Ce qu'on tape, ce sont des FAITS — un salaire au mois,
          des congés pris, une prime — et c'est
          le moteur (engagement::conges::lignes_du_mois) qui en fait des lignes : le
@@ -1144,7 +1145,7 @@ function construireCarte(div, e) {
   cadre.onchange = rafraichirApercu;
   // --- les lignes de paie
   const cible = div.querySelector(".rubriques");
-  lignesDe(e).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value), statutDuBloc(div))));
+  lignesDe(e, natureDe(selNat.value)).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value), statutDuBloc(div))));
   div.querySelector(".ajouter-rubrique").onclick = (ev) => {
     ev.preventDefault();
     cible.appendChild(ligneRubrique({}, natureDe(selNat.value), statutDuBloc(div)));
@@ -1304,8 +1305,6 @@ function majNature(div) {
   div.classList.toggle("bloc-permanent", !!nat.mensuelle);
   div.querySelector(".e-spectacle-bloc").hidden = !nat.spectacle;
   div.querySelector(".e-permanent").hidden = !nat.mensuelle;
-  div.querySelector(".rubriques").hidden = !!nat.mensuelle;
-  div.querySelector(".ajouter-rubrique").hidden = !!nat.mensuelle;
   // Le déroulant des rubriques suit la nature : ce qui ne s'applique pas à
   // ce contrat ne s'y propose plus (la rubrique choisie reste).
   // (Rien à refaire quand la forme de paie est celle de la liste posée.)
