@@ -170,6 +170,11 @@ pub const CASES_D_UN_MOIS_PAYE: &[Champ] = &[
     Champ { nom: "quotite_contrat", libelle: Affiche::new("Heures par mois"), forme: Forme::Nombre, sens: "ses heures par mois", avance: false },
     Champ { nom: "conges_pris", libelle: Affiche::new("Congés pris"), forme: Forme::Objet, sens: "les congés pris du mois : [{debut, fin}]", avance: false },
     Champ { nom: "primes", libelle: Affiche::new("Primes"), forme: Forme::Objet, sens: "les primes du mois : [{montant, rubrique, libelle}]", avance: false },
+    Champ {
+        nom: "lignes", libelle: Affiche::new("Repas et nuitées"), forme: Forme::Objet,
+        sens: "ses repas et nuitées du mois, comme les lignes d'un intermittent : [{rubrique « repas » ou « nuitee », quantite, taux, dates}], aux mêmes limites",
+        avance: false,
+    },
     Champ { nom: "heures_supplementaires", libelle: Affiche::new("Heures supplémentaires"), forme: Forme::Nombre, sens: "un temps plein : ses heures supplémentaires du mois, que le moteur majore", avance: true },
     Champ {
         nom: "heures_supplementaires_a_50", libelle: Affiche::new("Dont à 50 %"), forme: Forme::Nombre,

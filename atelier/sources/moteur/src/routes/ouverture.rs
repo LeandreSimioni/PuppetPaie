@@ -857,6 +857,13 @@ const GENRES_EN_CLAIR: [(&str, &str); 5] = [("02", "repas"), ("03", "logement"),
 const LIEU_AIDE: &str = "Où dort et mange le salarié : hors de la métropole, la limite exonérée change ; à l'étranger, c'est l'indemnité du pays pour la nuitée et les repas du jour.";
 
 /// `rubriques` : le catalogue qui PAIE, dans l'ordre ou le proposer.
+/// Les formes de paie dont la carte propose une ligne de la rubrique `r` (`"activite"`, `"mensuelle"`).
+fn formes_de(r: &Rubrique) -> Vec<&'static str> {
+    let activite = r.reservee_a() != Some("mensuelle");
+    let mensuelle = engagement::se_saisit_au_mois(&r.code);
+    [("activite", activite), ("mensuelle", mensuelle)].into_iter().filter(|(_, oui)| *oui).map(|(f, _)| f).collect()
+}
+
 pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
     let non_appliques: Vec<&str> = [
         ("annexe", r.annexe.as_deref()),
@@ -900,9 +907,10 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
         "soumis": r.soumis, "imposable": r.imposable, "conges_spectacles": r.conges_spectacles,
         "compte_pour": r.compte_pour, "plafond_mensuel": r.plafond_mensuel,
         "plafond_annuel_heures": r.plafond_annuel_heures, "origine": r.origine,
-        // A quelle forme de paie elle s'adresse (« mensuelle », « activite », ou
-        // rien = les deux).
-        "reservee_a": r.reservee_a(),
+        // Les cartes qui la proposent en ligne (« activite », « mensuelle ») : un contrat paye au mois ne porte en ligne
+        // que ses repas et ses nuitees (`engagement::se_saisit_au_mois`), un contrat d'usage tout ce qui n'est pas reserve
+        // au mois.
+        "formes": formes_de(r),
         // Le statut du salarie auquel elle est reservee (« artiste »), ou rien : `statut` de `salaries` de la route etat.
         "reservee_au_statut": r.reservee_au_statut(),
         "genres": genres,
@@ -1198,12 +1206,15 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
     // Une rubrique que le moteur pose (`saisie` vide) ne se propose pas.
     let rubriques: Vec<Value> = cat.iter().filter(|r| !r.saisie.is_empty()).map(rubrique_json).collect();
     // La rubrique d'une ligne neuve, par forme de paie et par statut du salarie (sans salarie, celui d'un artiste, comme
-    // la paie le lit) : le moteur la choisit (`catalogue::par_defaut`), la page la pose.
-    let par_defaut = |forme: &str| {
-        let de = |statut: &str| catalogue::par_defaut(&cat, forme, statut).map_or(Value::Null, |r| json!(r.code));
-        json!({"artiste": de("artiste"), "technicien": de("technicien")})
-    };
-    let rubrique_par_defaut = json!({"activite": par_defaut("activite"), "mensuelle": par_defaut("mensuelle")});
+    // la paie le lit) : le moteur la choisit, la page la pose. Sur la carte d'un contrat d'usage, la premiere rubrique de
+    // salaire qu'il propose (`catalogue::par_defaut`) ; sur celle d'un contrat paye au mois, son premier frais
+    // (`engagement::se_saisit_au_mois`), dans l'ordre du catalogue.
+    let activite = |statut: &str| catalogue::par_defaut(&cat, "activite", statut).map_or(Value::Null, |r| json!(r.code));
+    let au_mois = cat.iter().find(|r| !r.saisie.is_empty() && engagement::se_saisit_au_mois(&r.code)).map_or(Value::Null, |r| json!(r.code));
+    let rubrique_par_defaut = json!({
+        "activite": {"artiste": activite("artiste"), "technicien": activite("technicien")},
+        "mensuelle": {"artiste": au_mois, "technicien": au_mois},
+    });
 
     // LA FIN D'UN CONTRAT, telle qu'elle se saisit. Les types de preavis
     // SAISISSABLES seulement.

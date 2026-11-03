@@ -108,10 +108,11 @@ function engagementDuBloc(div, mois) {
   // L'établissement ne s'écrit que s'il n'est pas le siège.
   if (etablissement) e.etablissement = etablissement;
   if (nat.mensuelle) {
-    // LES FAITS, PAS LES LIGNES : `lignes_du_mois` en fait des lignes de
-    // bulletin — le prorata d'un mois incomplet, l'indemnité de congés et
-    // la retenue qui la couvre, les imprévus, le solde de tout compte.
-    // Écrire `lignes` ici couperait tout ce calcul.
+    // LES FAITS : `lignes_du_mois` en fait des lignes de bulletin — le
+    // prorata d'un mois incomplet, l'indemnité de congés et la retenue qui
+    // la couvre, les imprévus, le solde de tout compte. Les lignes de la
+    // carte ne portent que ses repas et ses nuitées (`lignes_au_mois`).
+    if (lignes.length) e.lignes = JSON.parse(JSON.stringify(lignes));
     const recours = div.querySelector(".e-recours").value;
     if (recours) e.motif_recours = recours;
     if (salaire !== "") e.salaire_mensuel = +salaire;

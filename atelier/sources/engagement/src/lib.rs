@@ -1042,9 +1042,10 @@ pub(crate) fn engagements(
         if jours.is_empty() && !nat.mensuelle() && e.get("lignes") != Some(&Value::Array(Vec::new())) {
             return Err(format!("{}{} Sans eux il n'y a ni début, ni fin, ni contrat.", qui, PAS_DE_JOUR));
         }
-        if !nat.mensuelle() {
-            lignes_dites(ctx, e, &qui)?;
+        if nat.mensuelle() {
+            frais_d_un_mois_paye(ctx, e, &qui)?;
         }
+        lignes_dites(ctx, e, &qui)?;
         // Le metier de ce contrat : six champs declares, que l'engagement
         // ecrit par-dessus, et son libelle lisible (`emploi_affichage`).
         let mut declare = Value::Object(Map::new());
@@ -1307,6 +1308,9 @@ pub const TERRITOIRES: [(&str, &str); 4] = [
 pub const LOGE: &str = "loge";
 /// L'aide de chaque case d'une ligne de frais, les montants de son annee (`{case: aide}`, avec `CASES`).
 pub const AIDES: &str = "_aides";
+/// Le rang d'une ligne de frais parmi les lignes de la carte : les cases de l'ecran le lisent (`CASES`). Les lignes d'un
+/// contrat paye au mois suivent celles que le moteur compose.
+pub const RANG: &str = "_rang";
 
 /// Les deux limites d'une rubrique de frais au barème, et la case de la ligne qui choisit la plus haute.
 struct Limites {
@@ -1324,6 +1328,12 @@ const FRAIS_LIMITES: [Limites; 2] = [
     Limites { rubrique: NUITEE, au_dela: NUITEE_AU_DELA, cle: "logement_grand_deplacement", case: PARIS, haute: "paris", basse: "autres", hors_metropole: "logement" },
     Limites { rubrique: REPAS, au_dela: REPAS_AU_DELA, cle: "repas_deplacement", case: RESTAURANT, haute: "restaurant", basse: "hors_restaurant", hors_metropole: "repas" },
 ];
+
+/// Une ligne de cette rubrique se saisit-elle sur la carte d'un contrat paye au mois ? Ses repas et ses nuitees, aux
+/// memes limites que ceux de tout salarie ; le reste de sa paie se compose de ses faits.
+pub fn se_saisit_au_mois(code: &str) -> bool {
+    FRAIS_LIMITES.iter().any(|x| x.rubrique == code)
+}
 
 /// La reduction de l'indemnite de mission a l'etranger quand le salarie est loge gratuitement (arrete du 3 juillet
 /// 2006, art. 2 ; BOSS § 1390).
@@ -1375,7 +1385,7 @@ fn jour_de(x: &Value) -> Resultat<Jour> {
 ///   profession (I, 2° et 5°, `atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt`
 ///   l. 8 et 11 ; bareme, `frais_hors_assiette`) le sont entiers : « en cas de déduction forfaitaire spécifique » (l. 5).
 ///   Tout autre salarie suit les limites.
-fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
     let limites_de = |l: &Value| FRAIS_LIMITES.iter().find(|x| l.get("rubrique").and_then(Value::as_str) == Some(x.rubrique));
     if !lignes.iter().any(|l| limites_de(l).is_some()) {
         return Ok((lignes, Vec::new()));
@@ -1394,11 +1404,12 @@ fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui:
     let (mut out, mut au_dela, mut avis) = (Vec::new(), Vec::new(), Vec::new());
     // Les lignes a l'etranger se comptent ensemble, jour par jour, apres les autres : leur rang dans `out`.
     let mut etrangeres: Vec<usize> = Vec::new();
-    for mut l in lignes {
+    for (rang, mut l) in lignes.into_iter().enumerate() {
         let Some(lim) = limites_de(&l) else {
             out.push(l);
             continue;
         };
+        l[RANG] = Value::from(rang);
         let mut cases: Vec<&str> = Vec::new();
         let taux = match l.get("taux") {
             Some(t) if !t.is_null() && !t.as_str().is_some_and(|s| s.trim().is_empty()) => Some(dec(t)?),
@@ -1644,6 +1655,26 @@ fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour]
 /// Un montant en nombre JSON.
 fn nombre_dec(x: Decimal) -> Value {
     serde_json::from_str(&x.normalize().to_string()).unwrap_or(Value::Null)
+}
+
+/// LES LIGNES DE LA CARTE D'UN CONTRAT PAYE AU MOIS : ses repas et ses nuitees (`FRAIS_LIMITES`). Le reste de sa paie se
+/// compose de ses faits (`conges::lignes_du_mois`) : une autre ligne se refuse.
+fn frais_d_un_mois_paye(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
+    for (i, l) in e.get("lignes").and_then(Value::as_array).into_iter().flatten().enumerate() {
+        let code = l.get("rubrique").map(|c| c.as_str().map_or_else(|| en_texte(c), String::from)).unwrap_or_default();
+        if se_saisit_au_mois(&code) {
+            continue;
+        }
+        let libelle = rubrique(&ctx.racine, &code, &ctx.lue_au).map(|r| r.libelle).unwrap_or(code);
+        return Err(format!(
+            "{} : retirez sa ligne {} (« {} ») : un contrat payé au mois ne porte en ligne qu'un repas ou une nuitée ; son \
+             salaire, ses congés et ses primes se disent dans ses cases.",
+            qui,
+            i + 1,
+            libelle
+        ));
+    }
+    Ok(())
 }
 
 /// Chaque ligne de paie saisie dit sa quantite et son taux (ou sa base et son pourcentage) : la saisie s'enregistre

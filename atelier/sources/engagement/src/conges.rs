@@ -85,6 +85,13 @@ pub(crate) fn flot(x: Decimal) -> f64 {
     x.to_string().parse().unwrap_or(0.0)
 }
 
+/// LE TAUX D'UNE LIGNE QUI PAIE `montant` POUR `quantite` : la ligne paie son taux par sa quantite, au centime
+/// (`calcul::lignes_brut`) ; un taux arrondi au centime paierait un autre montant que celui qui est retenu. Le taux
+/// garde toute sa precision, et le produit retombe sur le montant.
+pub(crate) fn taux_au_montant(montant: Decimal, quantite: Decimal) -> Decimal {
+    div(montant, quantite)
+}
+
 pub(crate) fn info(texte: String) -> Avis {
     Avis { info: true, texte }
 }
@@ -1053,8 +1060,8 @@ pub(crate) fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Dec
 
 /// Les lignes de paie d'un mois de permanent, et ce qu'il y a a en dire.
 /// L'ordre des lignes est celui du bulletin : le salaire de base, les
-/// absences, les indemnites, les primes, puis le solde de tout compte. Et les jours travailles du mois, quand le moteur
-/// tire les lignes (`None` pour des lignes ecrites a la main : la saisie dit ses jours).
+/// absences, les indemnites, les primes, le solde de tout compte, puis les repas et les nuitees que la carte porte en
+/// lignes, aux limites de tout salarie (`crate::frais_au_dela`). Et les jours travailles du mois.
 pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)> {
     let nat = nature_de(e.get("nature"))?;
     if !nat.mensuelle() {
@@ -1069,21 +1076,6 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
              chaque mois qu'il traverse. Saisir l'imprevu, puis enregistrer ce mois sans ses absences.",
             qui(ctx, e)
         ), "absences"));
-    }
-    // Une saisie qui ecrit ses lignes les garde : un imprevu du contrat n'y retire rien, et cela se dit.
-    if let Some(l) = e.get("lignes").filter(|l| !l.is_null()) {
-        let mut dit = Vec::new();
-        for imp in crate::imprevus::du_contrat_dans_le_mois(ctx, e, mois)? {
-            dit.push(avertir(format!(
-                "{} : ses lignes sont ecrites a la main, et l'imprevu ({}) du {} au {} n'en retire rien. Le retirer des \
-                 lignes, ou laisser le moteur les tirer de la saisie.",
-                qui(ctx, e),
-                crate::imprevus::genre(&imp),
-                crate::imprevus::premier_jour(&imp)?.jj_mm_aaaa(),
-                crate::imprevus::dernier_jour(&imp)?.jj_mm_aaaa()
-            )));
-        }
-        return Ok((l.as_array().ok_or("lignes")?.clone(), dit, None));
     }
     let salaire = match e.get("salaire_mensuel").filter(|s| !s.is_null()) {
         Some(s) => s,
@@ -1169,7 +1161,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         lignes.push(json!({"rubrique": "absence_conges_payes", "quantite": flot(pris), "taux": flot(taux_jour_ouvrable)}));
         lignes.push(json!({
             "rubrique": "indemnite_conges_payes", "quantite": flot(pris),
-            "taux": flot(eur2(div(ind.retenu, pris))),
+            "taux": flot(taux_au_montant(ind.retenu, pris)),
         }));
         avert.push(info(format!(
             "{} : {} jour(s) ouvrable(s) de conges. Indemnite retenue : {} \
@@ -1301,6 +1293,13 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             lignes.extend(l);
             avert.extend(a);
         }
+    }
+
+    // --- les repas et les nuitees de la carte
+    if let Some(Value::Array(l)) = e.get("lignes") {
+        let (l, a) = crate::frais_au_dela(ctx, e, l.clone(), mois, &qui(ctx, e))?;
+        lignes.extend(l);
+        avert.extend(a);
     }
     Ok((lignes, avert, Some(jours_travailles)))
 }
