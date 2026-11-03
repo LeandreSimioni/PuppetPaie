@@ -34,6 +34,10 @@ function fichesDe(nom) {
 function dessinerConfig() {
   const liste = document.getElementById("config-liste");
   dessinerSuppression();
+  // Avancé : la place du sous-onglet ouvert (`data-place`), ses routes sans écran dessiné.
+  const avance = document.getElementById("config-avance");
+  avance.dataset.auto = (document.querySelector(`.sous-onglets button[data-fiche="${FICHE_ACTIVE}"]`) || {}).dataset?.place || "";
+  dessinerAvance(avance);
   if (FICHE_ACTIVE === "importer") {
     document.getElementById("config-formulaire").innerHTML = "";
     dessinerImportation(liste);
@@ -94,28 +98,23 @@ function dessinerConfig() {
       String(a.donnees.numero_objet || "")));
   const rangees = [...courantes, ...archivees];
   const salarie = FICHE_ACTIVE === "salarie";
+  // Les mots de la liste, tels que le moteur les dit pour cette sorte de fiche (`configuration.ecran`).
+  const ecran = (ETAT.configuration.ecran || {});
+  const mots = ecran[FICHE_ACTIVE] || {};
 
   // UN SPECTACLE, PAS UNE FICHE PAR NUMÉRO. Une fiche archivée du
   // même titre qu'un spectacle actif (un ancien numéro) se montre sous lui,
   // pas dans les archives.
   const titreDe = (d) => String(d.titre || "").normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-  const sansTitre = (d) => titreDe(d) === "a completer";
-  // L'année qu'écrivent les deux premiers chiffres d'un numéro d'objet
-  // (266Z… : 2026), pour dire de quelles années datent les numéros sans titre
-  // (`archivesHtml`). Elle était définie ici avant le 30/09/2026 (d7c2590,
-  // « le numéro d'objet n'est plus annuel ») : retirée avec ses autres
-  // usages, la phrase des archives l'appelait encore — ReferenceError dès
-  // qu'on affichait un numéro archivé sans titre.
-  const anDe = (d) => /^\d{2}/.test(String(d.numero_objet || ""))
-    ? 2000 + Number(String(d.numero_objet).slice(0, 2)) : null;
+  const sansTitre = (f) => !!f.sans_titre;
   const passees = {};
   const sousUnActif = new Set();
   if (!salarie) {
     const titresActifs = new Set(courantes.map((f) => titreDe(f.donnees)));
     archivees.forEach((f) => {
       const t = titreDe(f.donnees);
-      if (sansTitre(f.donnees) || !titresActifs.has(t)) return;
+      if (sansTitre(f) || !titresActifs.has(t)) return;
       (passees[t] = passees[t] || []).push(f);
       sousUnActif.add(f.cle);
     });
@@ -123,12 +122,11 @@ function dessinerConfig() {
   // Les archives qui restent : les spectacles qui ne se jouent plus, par
   // titre ; puis les numéros sans titre, groupés -- à nommer si on le sait.
   const archiveesSeules = archivees.filter((f) => !sousUnActif.has(f.cle))
-    .sort((a, b) => (sansTitre(a.donnees) - sansTitre(b.donnees))
+    .sort((a, b) => (sansTitre(a) - sansTitre(b))
       || titreDe(a.donnees).localeCompare(titreDe(b.donnees))
       || String(b.donnees.numero_objet || "").localeCompare(String(a.donnees.numero_objet || "")));
 
-  // UNE LIGNE PAR FICHE (l'éditeur, 24/09/2026 : « j'aime bien les lignes pour
-  // les salariés »). Elle remplace la grille de cartes : le nom, ce qui
+  // UNE LIGNE PAR FICHE : le nom, ce qui
   // l'identifie, son état, puis les gestes -- « Archiver » dit en toutes
   // lettres, là où le clic sur toute la carte archivait sans prévenir.
   const rangHtml = (f, trouve) => {
@@ -137,12 +135,9 @@ function dessinerConfig() {
     const titre = salarie
       ? `${String(d.nom_affichage || d.nom || "").toUpperCase()} ${d.prenom_affichage || d.prenom || ""}`.trim()
       : String(d.titre || "").trim();
-    // Un numero d'objet importe de CoolPaie n'a pas de titre : le moteur
-    // pose « A COMPLETER », que la ligne dit en minuscules.
-    const aCompleter = !salarie && titre.toUpperCase() === "A COMPLETER";
-    const quoi = salarie
-      ? [d.emploi_affichage || d.emploi || "", d.code_salarie ? "matricule " + d.code_salarie : ""]
-      : [d.numero_objet || "", d.code_analytique ? "analytique " + d.code_analytique : ""];
+    // Un numéro d'objet importé sans titre : le moteur le dit (`sans_titre`),
+    // la ligne le dit en minuscules.
+    const aCompleter = !salarie && sansTitre(f);
     const autresNumeros = !salarie && !archive && !trouve ? (passees[titreDe(d)] || [])
       .slice().sort((a, b) => String(b.donnees.numero_objet || "").localeCompare(
         String(a.donnees.numero_objet || ""))) : [];
@@ -152,20 +147,21 @@ function dessinerConfig() {
       <div class="rang-infos">
         <b class="rang-nom">${aCompleter ? `<span class="a-completer">titre à compléter</span>`
           : echapper(titre || f.cle)}</b>
-        ${echapper(quoi.filter(Boolean).join(" · "))}
-        ${trouve ? `<span class="trouve">trouvé dans ${echapper(trouve.ou)} : « ${echapper(trouve.quoi)} »</span>` : ""}
-        ${autresNumeros.length ? `<span class="annees">anciens numéros :
+        ${echapper(f.quoi_dit || "")}
+        ${trouve ? `<span class="trouve">${echapper(trouve.ou)} : ${echapper(trouve.quoi)}${
+          trouve.ancienne ? ` <span class="discret">${echapper(ecran.ancienne)}</span>` : ""}</span>` : ""}
+        ${autresNumeros.length ? `<span class="annees"><span>anciens numéros</span>
           ${autresNumeros.map((p) => `<button class="lien" data-ouvrir="${echapper(p.cle)}">${
             echapper(p.donnees.numero_objet || p.cle)}</button>`).join(" · ")}</span>` : ""}
       </div>
       <div class="rang-etat">${etat}</div>
       <div class="rang-actions">
-        <button class="lien" data-activer="${archive ? "oui" : "non"}">${archive ? "Réactiver" : "Archiver"}</button>
+        <button class="lien" data-activer="${archive ? "oui" : "non"}">${echapper(f.geste_dit)}</button>
       </div>
     </div>`;
   };
 
-  // CACHÉES PAR DÉFAUT (l'éditeur, 23/09/2026) : un spectacle archivé ne
+  // CACHÉES PAR DÉFAUT : un spectacle archivé ne
   // se joue plus. Une case les montre ; elle reste
   // cochée tant qu'on ne la décoche pas, et une fiche archivée ouverte les
   // montre d'office.
@@ -176,16 +172,13 @@ function dessinerConfig() {
   liste.innerHTML = `<div class="barre-liste">
       <input type="search" id="config-recherche" class="recherche" autocomplete="off"
         value="${echapper(RECHERCHE[FICHE_ACTIVE] || "")}"
-        placeholder="${salarie
-          ? "Rechercher dans toutes les fiches : nom, NIR, adresse, courriel, emploi…"
-          : "Rechercher : titre, numéro d'objet, code analytique…"}">
-      <button class="secondaire" id="config-nouvelle">+ ${salarie
-        ? "un salarié" : "un spectacle"}</button>
+        placeholder="Rechercher">
+      <button class="secondaire" id="config-nouvelle">${echapper(mots.nouvelle || "+")}</button>
     </div>
     <div id="config-rangs"></div>`
     + (salarie ? fichesAttenduesHtml() : "");
 
-  // LA RECHERCHE DANS TOUS LES CHAMPS (l'éditeur, 24/09/2026). Chaque valeur
+  // LA RECHERCHE DANS TOUS LES CHAMPS. Chaque valeur
   // de la fiche, les anciennes valeurs datées comprises (un courriel changé
   // retrouve encore la personne), sans accents, sans majuscules, sans
   // espaces (« 2 93 08 » trouve le NIR) ; une date se cherche aussi comme
@@ -194,20 +187,21 @@ function dessinerConfig() {
   // souvent là qu'on cherche.
   const libelles = {};
   (ETAT.configuration.description[FICHE_ACTIVE] || []).forEach((c) => { libelles[c.cle] = c.libelle; });
-  const libelleDe = (cle) => libelles[cle] || libelles[cle.replace(/_affichage$/, "")]
-    || cle.replace(/_/g, " ");
+  // Les cases du nom que la ligne lit déjà : une trouvaille dedans ne se redit pas.
+  const CASES_DU_NOM = new Set(["nom", "nom_affichage", "prenom", "prenom_affichage", "titre"]);
+  const libelleDe = (cle) => libelles[cle] || libelles[cle.replace(/_affichage$/, "")] || "";
   const plat = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const valeurs = (f) => {
     const out = [];
-    const ajouter = (ou, v) => {
+    const ajouter = (ou, v, champ, ancienne = false) => {
       if (v === null || v === undefined || v === "" || typeof v === "boolean") return;
       if (typeof v === "object") {
-        Object.entries(v).forEach(([k, x]) => { if (!k.startsWith("_")) ajouter(ou, x); });
+        Object.entries(v).forEach(([k, x]) => { if (!k.startsWith("_")) ajouter(ou, x, champ, ancienne); });
         return;
       }
       const t = String(v);
-      out.push({ ou, quoi: t });
-      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) out.push({ ou, quoi: jjmmaaaa(t) });
+      out.push({ ou, champ, quoi: t, ancienne });
+      if (/^\d{4}-\d{2}-\d{2}$/.test(t)) out.push({ ou, champ, quoi: jjmmaaaa(t), ancienne });
     };
     // La forme lisible d'abord (« Avallon »), la forme déclarée ensuite
     // (« AVALLON ») : c'est la première trouvée que la ligne cite.
@@ -215,10 +209,10 @@ function dessinerConfig() {
       .sort(([a], [b]) => b.endsWith("_affichage") - a.endsWith("_affichage"))
       .forEach(([k, v]) => {
         if (k.startsWith("_") || k === "historique" || k === "actif") return;
-        ajouter(libelleDe(k), v);
+        ajouter(libelleDe(k), v, k);
       });
     (f.donnees.historique || []).forEach((h) =>
-      ajouter(libelleDe(h.champ) + " (ancienne valeur)", h.valeur));
+      ajouter(libelleDe(h.champ), h.valeur, h.champ, true));
     return out.map((x) => ({ ...x, cle: plat(x.quoi), serre: plat(x.quoi).replace(/\s+/g, "") }));
   };
   const chercher = (f, mots) => {
@@ -236,14 +230,10 @@ function dessinerConfig() {
   // Les numéros sans titre (importés des DSN, « A COMPLETER ») en un groupe,
   // sous une phrase qui dit d'où ils viennent et ce qu'on peut en faire.
   const archivesHtml = () => {
-    const nommees = archiveesSeules.filter((f) => salarie || !sansTitre(f.donnees));
-    const anonymes = salarie ? [] : archiveesSeules.filter((f) => sansTitre(f.donnees));
-    const ans = anonymes.map((f) => anDe(f.donnees)).filter(Boolean);
+    const nommees = archiveesSeules.filter((f) => salarie || !sansTitre(f));
+    const anonymes = salarie ? [] : archiveesSeules.filter((f) => sansTitre(f));
     return `${nommees.length ? `<div class="rangs">${nommees.map((f) => rangHtml(f)).join("")}</div>` : ""}
-      ${anonymes.length ? `<p class="note">${anonymes.length} numéro${anonymes.length > 1 ? "s" : ""}
-        sans titre, trouvé${anonymes.length > 1 ? "s" : ""} dans les DSN${ans.length
-          ? ` de ${Math.min(...ans)}${Math.max(...ans) !== Math.min(...ans) ? "–" + Math.max(...ans) : ""}` : ""}
-        — les nommer si vous savez à quel spectacle ils étaient (cliquer sur la ligne).</p>
+      ${anonymes.length ? `<p class="note">${echapper(ETAT.configuration.numeros_sans_titre)}</p>
         <div class="rangs">${anonymes.map((f) => rangHtml(f)).join("")}</div>` : ""}`;
   };
 
@@ -256,20 +246,16 @@ function dessinerConfig() {
       // Où l'on a trouvé, sauf si c'est le nom même qu'on lit sur la ligne.
       cible.innerHTML = trouvees.length
         ? `<div class="rangs">${trouvees.map(({ f, t }) =>
-            rangHtml(f, t.ou && !/^(nom|prénom|titre)/i.test(t.ou) ? t : null)).join("")}</div>
-          <p class="note">${trouvees.length} fiche${trouvees.length > 1 ? "s" : ""} sur ${rangees.length},
-            archivées comprises.</p>`
-        : `<p class="discret">Aucune fiche ne contient « ${echapper(RECHERCHE[FICHE_ACTIVE])} »,
-            archivées comprises.</p>`;
+            rangHtml(f, t.ou && !CASES_DU_NOM.has(t.champ) ? t : null)).join("")}</div>`
+        : `<p class="discret">Aucune fiche trouvée</p>`;
     } else {
       cible.innerHTML = `${courantes.length
           ? `<div class="rangs">${courantes.map((f) => rangHtml(f)).join("")}</div>`
-          : `<p class="discret">${salarie ? "Aucun salarié actif." : "Aucun spectacle actif."}</p>`}
+          : `<p class="discret">${echapper(mots.aucun || "")}</p>`}
         ${archiveesSeules.length ? `<label class="coche montrer-archives">
             <input type="checkbox" id="config-archives"${voirArchives ? " checked" : ""}>
-            ${salarie ? "Afficher les salariés archivés" : "Afficher les spectacles archivés"}
-            <span class="discret">(${archiveesSeules.length}) — ${salarie ? "partis ; leurs documents restent"
-              : "ceux qui ne se jouent plus ; les AEM déposées portent leurs numéros"}</span></label>
+            ${echapper(mots.archives || "")}
+            <span class="discret">(${archiveesSeules.length})</span></label>
           ${voirArchives ? archivesHtml() : ""}` : ""}`;
       const caseArchives = document.getElementById("config-archives");
       if (caseArchives) caseArchives.onchange = () => {
@@ -279,13 +265,12 @@ function dessinerConfig() {
     }
     cible.querySelectorAll(".rang.fiche").forEach((r) => {
       const cle = r.dataset.cle;
-      const nom = r.querySelector(".rang-nom").textContent.trim();
       r.querySelector("[data-activer]").onclick = async (e) => {
         const activer = e.currentTarget.dataset.activer === "oui";
         try {
-          await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer });
-          ETAT = await api("etat");
-          dire(`${nom} : ${activer ? "réactivé" : "archivé"}.`);
+          const rep = await api("activer-fiche", { nom: FICHE_ACTIVE, cle, actif: activer });
+          poserEtat(rep.etat);
+          dire(rep.phrase);
           dessinerConfig();
         } catch (err) { dire(err.message, "erreur"); }
       };
@@ -297,7 +282,7 @@ function dessinerConfig() {
         dessinerFormulaire(rangees.find((f) => f.cle === c));
         document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
       };
-      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de bouton « Modifier ».
+      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE.
       rendreOuvrable(r, () => ouvrir(cle), "Ouvrir la fiche");
       r.querySelectorAll("[data-ouvrir]").forEach((b) => { b.onclick = () => ouvrir(b.dataset.ouvrir); });
     });
@@ -333,10 +318,8 @@ function pastilleSort(sort, pastilles) {
 }
 
 /* « Ouvrir le dossier » n'a de sens que si la page tourne sur le poste,
-   servie par sa fenêtre (Tauri, ou `moteur interface` dans le navigateur du
-   poste) : c'est elle qui pose `window.pywebview` (la cale de
-   `interface/mod.rs`, avant le premier script) et qui sait la route
-   `ouvrir-import` (`interface/api.rs`). Sans elle, le bouton n'apparaît pas. */
+   servie par sa fenêtre : c'est elle qui ouvre l'explorateur (`ouvrir`, `interface/poste.rs`). Sans elle, le bouton
+   n'apparaît pas. */
 // Dans la fenêtre PuppetPaie (Tauri, `cadre.js`), et non dans un navigateur : le poste peut ouvrir son dossier.
 const fenetreDuPoste = () => !!window.fenetrePuppetPaie;
 
@@ -356,24 +339,21 @@ async function dessinerImportation(cible) {
   const dossier = `<div class="e-contrat-champs">
       <label style="flex:1">Le dossier
         <span style="display:flex;gap:6px">
-          <input type="text" id="import-dossier" style="flex:1" placeholder="vide : le dossier import/ de la compagnie"
+          <input type="text" id="import-dossier" style="flex:1" title="${aideDe("import_dossier")}"
                  value="${echapper(IMPORT_DOSSIER)}">
           <button type="button" class="secondaire" id="import-parcourir">Parcourir…</button>
           ${fenetreDuPoste() ? `<button type="button" class="secondaire" id="import-ouvrir">Ouvrir le dossier</button>` : ""}
         </span>
       </label>
-      ${deja ? `<button class="secondaire" id="import-apercu">Voir ce qui serait repris</button>` : ""}
+      ${deja ? `<button class="secondaire" id="import-apercu">Aperçu</button>` : ""}
     </div>`;
   if (deja) {
     cible.innerHTML = `
     <div class="carte">
       <div id="import-etat">${vueEtatImportation(e)}</div>
-      <details class="relire"><summary>Relire un dossier — un fichier ajouté depuis, un
-          salarié ou une année qui manquait</summary>
-          <p class="note">Les fiches qui existent déjà ne sont pas touchées ; ce que les DSN ou les
-            bulletins disaient autrement est seulement signalé. Ce qui est déjà repris ne se double pas.</p>
-          <p class="intro">Mettez dans ce dossier ce qui manquait, puis « Voir ce qui serait repris ».
-            Rien n'est écrit avant « Reprendre ».</p>
+      <details class="relire"><summary>Relire un dossier <span class="discret">— ${aideDe("import_relire")}</span></summary>
+          <p class="note">${aideDe("import_relire_note")}</p>
+          <p class="intro">${aideDe("import_relire_intro")}</p>
           ${dossier}
           <div id="import-resultat"></div>
         </details>
@@ -388,30 +368,23 @@ async function dessinerImportation(cible) {
       <div id="import-guide">${vueGuideImport(e && e.guide)}
         ${dossier}
         <p><button class="primaire" id="import-tout">Importer</button>
-          <button type="button" class="lien" id="import-apercu">ou voir d'abord ce qui serait repris</button></p>
+          <button type="button" class="lien" id="import-apercu">Aperçu d'abord</button></p>
       </div>
       <div id="import-resultat"></div>
     </div>`;
     document.getElementById("import-tout").onclick = () => importerDepuisLeGuide();
   }
   document.getElementById("import-apercu").onclick = () => apercuImportation();
-  // L'EXPLORATEUR : la boîte du système, ouverte par le poste.
+  // L'EXPLORATEUR : la boîte du système, ouverte par la fenêtre.
   document.getElementById("import-parcourir").onclick = async () => {
     try {
-      const r = await api("choisir-dossier", { titre: "Le dossier à reprendre" });
+      const r = await fenetre("choisir_dossier", "Le dossier à reprendre");
       if (r.dossier) document.getElementById("import-dossier").value = r.dossier;
     } catch (err) { dire(err.message, "erreur"); }
   };
   const ouvrir = document.getElementById("import-ouvrir");
-  if (ouvrir) {
-    ouvrir.onclick = async () => {
-      try {
-        const r = await api("ouvrir-import", { dossier: document.getElementById("import-dossier").value.trim() });
-        // Le dossier ouvert se dit : l'explorateur peut s'ouvrir derrière la fenêtre.
-        if (r && r.phrase) dire(r.phrase);
-      } catch (err) { dire(err.message, "erreur"); }
-    };
-  }
+  // Le dossier choisi, sinon la boîte import/ de la compagnie (`dossier` de `importation-etat`), créée si elle manque.
+  if (ouvrir) ouvrir.onclick = () => ouvrirEtDire(document.getElementById("import-dossier").value.trim() || (e && e.dossier) || "", "", true);
 }
 
 /* LE GUIDE DE L'IMPORT (`import::guide`, du moteur) : ce qu'on met dans le
@@ -425,9 +398,9 @@ function vueGuideImport(g) {
       ${(p.lu || []).length ? `<ul>${p.lu.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>` : ""}
     </div>`).join("");
   return `<h3>Reprendre votre passé</h3>
-    <p class="intro">Mettez dans le dossier ci-dessous tout ce que votre ancien logiciel vous a laissé, puis
-      « Importer » : PuppetPaie crée la fiche de la compagnie, ses salariés, ses spectacles et leurs contrats
-      avec ce que les pièces disent.</p>
+    <p class="intro">${aideDe("import_intro")}</p>
+    ${(g.a_quoi_sert || []).length ? `<ul>${g.a_quoi_sert.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>` : ""}
+    <p class="note">${echapper(g.accepte || "")}</p>
     <div class="guide-pieces">${pieces}</div>
     <p class="note">${echapper(g.reste || "")}</p>
     <p class="note">${echapper(g.rien_n_est_perdu || "")}</p>`;
@@ -439,7 +412,7 @@ function vueGuideImport(g) {
    démarrer (`pour-demarrer`) — et, dessous, ce qui a été repris. */
 async function importerDepuisLeGuide() {
   IMPORT_DOSSIER = document.getElementById("import-dossier").value.trim();
-  const rendre = occupe(document.getElementById("import-tout"), "Import en cours : les fiches, les contrats, puis chaque bulletin…");
+  const rendre = occupe(document.getElementById("import-tout"), "Import…");
   await ecrireImportation();
   rendre();
   // Rien de repris (un dossier vide, des pièces illisibles) : le guide reste, avec ce que le moteur en a dit.
@@ -461,27 +434,13 @@ async function importerDepuisLeGuide() {
    l'historique (`contrats`). Puis ce qui attend l'éditeur (`editeur`). */
 function vueEtatImportation(e) {
   if (!e) return "";
-  const reprises = e.reprises || [];
-  const de = (source) => reprises.find((r) => r.source === source) || {};
-  const compte = (n, mot) => (n ? `${n} ${mot}${n > 1 ? "s" : ""}` : "");
-  const quoi = [
-    compte(de("bulletins").nombre || 0, "bulletin"),
-    compte((de("DSN").declarations || 0) + (de("AEM").nombre || 0), "déclaration"),
-    compte(e.contrats || 0, "contrat"),
-  ].filter((x) => x).join(", ");
-  const bornes = [e.du, e.au, ...reprises.flatMap((r) => [r.du, r.au])]
-    .filter((x) => x).map((x) => String(x).slice(0, 7)).sort();
-  const [du, au] = [bornes[0], bornes[bornes.length - 1]];
-  const periode = !du ? "" : du === au ? `, en ${moisEnClair(du)}` : `, de ${moisEnClair(du)} à ${moisEnClair(au)}`;
-  const le = [e.importe_le, ...reprises.map((r) => r.le)].filter((x) => x).sort().pop();
-  const repris = quoi ? `<div class="rang">
-      <div class="rang-infos"><b class="rang-nom">Historique repris${le ? ` le ${echapper(jjmmaaaa(le))}` : ""}</b>
-        ${echapper(quoi + periode)}</div>
+  const repris = e.repris_dit ? `<div class="rang">
+      <div class="rang-infos"><b class="rang-nom">${echapper(e.repris_titre || "")}</b>
+        ${echapper(e.repris_dit)}</div>
       <div class="rang-etat">${pastilleDeLEtat(e.pastille_repris)}</div>
     </div>` : "";
   const editeur = (e.editeur || []).map((x) => `<div class="rang">
-      <div class="rang-infos"><b class="rang-nom">${x.canal === "signalement" ? "Message à l'éditeur" : "Incident"}${
-        x.quand ? ` du ${echapper(quand(x.quand))}` : ""}</b>${echapper(x.resume || "")}</div>
+      <div class="rang-infos"><b class="rang-nom">${echapper(x.titre_dit || "")}</b>${echapper(x.resume || "")}</div>
       <div class="rang-etat">${pastilleDeLEtat(x.pastille)}</div>
     </div>`).join("");
   return repris + vueNaturesADire(e.a_dire)
@@ -499,26 +458,21 @@ function vueNaturesADire(liste) {
   const CASES = {
     debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
     fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
-    numero: (x) => `<label title="rubrique S21.G00.40.009 de la DSN">Numéro du contrat
-        <input type="text" data-nature-champ="numero" placeholder="sur la DSN de ${echapper(moisEnClair(String(x.au).slice(0, 7)))}"></label>`,
+    numero: (x) => `<label title="${aideDe("import_numero")}">Numéro du contrat
+        <input type="text" data-nature-champ="numero" placeholder="${echapper(x.numero_placeholder)}"></label>`,
     salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
         placeholder="celui du contrat signé"></label>`,
-    quotite: (x) => `<label title="rubrique S21.G00.40.013 de la DSN">Durée du travail (heures par mois)
+    quotite: (x) => `<label title="${aideDe("import_quotite")}">Heures par mois
         <input type="number" step="0.01" min="0" data-nature-champ="quotite" placeholder="celle du contrat signé"></label>`,
   };
   const lignes = liste.map((x) => `<div class="rang" data-nature-rang="${echapper(x.salarie)}">
       <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
-        ${x.contrats} contrat${x.contrats > 1 ? "s" : ""} repris${x.du ? `, du ${echapper(jjmmaaaa(x.du))}
-          au ${echapper(jjmmaaaa(x.au))}` : ""} — ses bulletins n'ont pas de Congés Spectacles ni de
-        numéro d'objet : c'est un contrat de permanent.
-        ${x.en_cours ? `<div class="note">Payé jusqu'en ${echapper(moisEnClair(String(x.au).slice(0, 7)))} : son contrat
-          continue en ${echapper(moisEnClair(x.suite))}, et sa DSN le déclare avec la date de début et le
-          numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur
-          le bulletin.</div>` : ""}
+        ${echapper(x.dit)}
+        ${x.en_cours_dit ? `<div class="note">${echapper(x.en_cours_dit)}</div>` : ""}
         <div class="e-contrat-champs" data-nature-cases hidden>${["debut", "fin", "numero", "salaire", "quotite"].map((c) =>
           `<span data-nature-case="${c}" hidden>${CASES[c](x)}</span>`).join("")}</div></div>
       <div class="rang-etat" style="display:flex;gap:6px;align-items:center">
-        <select data-nature-choix aria-label="Nature du contrat de ${echapper(x.nom)}">
+        <select data-nature-choix aria-label="${echapper(x.choix_dit)}">
           <option value="">— choisir —</option>
           ${(x.natures || []).map((n) => `<option value="${echapper(n.cle)}"
              data-demande="${echapper((n.demande || []).join(" "))}">${echapper(n.libelle)}</option>`).join("")}
@@ -526,9 +480,8 @@ function vueNaturesADire(liste) {
         <button type="button" class="petit" data-nature-salarie="${echapper(x.salarie)}">Enregistrer</button>
       </div>
     </div>`).join("");
-  return `<h3>La nature de ces contrats</h3>
-    <p class="note">Un bulletin de paie ne dit pas si le contrat est un CDI ou un CDD. Dites-le pour chacun :
-      la DSN et les documents de fin de contrat en dépendent.</p>${lignes}`;
+  return `<h3>Nature de ces contrats</h3>
+    <p class="note">${aideDe("import_natures")}</p>${lignes}`;
 }
 
 /* La nature choisie montre les cases qu'elle demande, et elles seules. */
@@ -564,7 +517,7 @@ document.addEventListener("click", async (ev) => {
     const r = await api("importation-nature", charge);
     dire(r.phrase, r.couleur);
     // Les natures au mois s'ouvrent alors dans la saisie (`etat.natures`).
-    ETAT = await api("etat");
+    await relireEtat();
     rafraichirReferentiels();
     rafraichirEtatImportation();
   } catch (err) {
@@ -588,59 +541,31 @@ async function ouvrirFicheImportee(nom, cle) {
   document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }
 
-/* D'où vient une valeur : la DSN d'un mois, ou un bulletin (fichier, page). */
-function origineImport(e) {
-  return e.source === "bulletin" || "bulletin" in e
-    ? `le bulletin${e.fichier ? ` (${echapper(e.fichier)}${e.page ? `, page ${e.page}` : ""})` : ""}`
-    : `la DSN de ${echapper(moisEnClair(e.mois))}`;
-}
-
-/* Ce que l'import met dans une case vide ou « A COMPLETER » d'une fiche
-   existante (`completer`) : le moteur l'a décidé, la page le dit. */
-function valeurImportee(v) {
-  if (v && typeof v === "object") return Array.isArray(v)
-    ? v.map((x) => (x && typeof x === "object" ? Object.values(x).join(" ") : x)).join(", ")
-    : Object.entries(v).map(([k, x]) => `${k} ${x}`).join(", ");
-  return v;
-}
-
 /* Une fiche que l'import crée, complète, laisse, ou sur laquelle il a à
-   redire. Un écart vient d'une DSN (`dsn`, `mois`) ou d'un bulletin
+   redire. Un écart vient d'une DSN (`dsn`, `mois`), d'un bulletin ou d'un certificat
    (`bulletin`, `fichier`, `page`) : la fiche fait foi, il est seulement
    signalé. Une case vide est complétée, et la page dit d'où. */
 function fichesImportees(fiches, titre) {
   const lignes = (fiches || []).filter((f) => f).map((f) => {
     const etat = pastilleDeLEtat(f.pastille);
+    // Ce que le moteur dit de la fiche : d'où elle vient, ce qu'elle reçoit, ce qu'une pièce disait autrement.
+    const luDans = f.lu_dans_dit ? `<div class="acte-dernier">${echapper(f.lu_dans_dit)}</div>` : "";
     const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
-      `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
-         « ${echapper(valeurImportee(e.valeur))} », lu dans ${origineImport(e)} — la case était vide</div>`).join("");
-    const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) => {
-      const ou = "bulletin" in e
-        ? `le bulletin (${echapper(e.fichier || "")}${e.page ? `, page ${e.page}` : ""}) disait`
-        : `la DSN de ${echapper(moisEnClair(e.mois))} disait`;
-      const lu = "bulletin" in e ? e.bulletin : e.dsn;
-      return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
-         la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;
-    }).join("");
-    // CE QUE LES PIÈCES NE DONNENT PAS : les cases que la fiche
-    // demande et qu'aucun bulletin ni aucune DSN n'imprime (le moteur les
-    // nomme par leur libellé). Une case vide se dit « à remplir », pas
-    // « erreur » : rien n'est faux, il reste à la remplir dans la fiche, que
-    // le bouton ouvre une fois la fiche créée.
-    const anomalies = (f.anomalies || []).filter((a) => a.gravite === "erreur");
-    const manques = anomalies.filter((a) => a.message === "obligatoire").map((a) => a.libelle || a.champ);
-    const fautes = anomalies.filter((a) => a.message !== "obligatoire").map((a) =>
+      `<div class="acte-dernier"><b>${echapper(champ)}</b> ${echapper(e.dit || "")}</div>`).join("");
+    const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) =>
+      `<div class="acte-dernier"><b>${echapper(champ)}</b> — ${echapper(e.dit || "")}</div>`).join("");
+    // UNE VALEUR FAUSSE DES PIÈCES se dit, avec le libellé de sa case ; une
+    // case vide n'est pas une faute (ce qu'un acte exige, « Pour démarrer »
+    // le dit après l'import).
+    const fautes = (f.anomalies || []).filter((a) => a.gravite === "erreur").map((a) =>
       `<div class="acte-dernier faute">${echapper(a.libelle || a.champ)} : ${echapper(a.message)}</div>`).join("");
     const ouvrable = f.etat === "creee" && f.cle && f.nom;
-    const reste = manques.length || fautes ? `<div class="acte-dernier">${manques.length
-        ? `${f.etat === "creee" ? "Reste à remplir dans la fiche" : "À remplir dans la fiche après la reprise"} :
-           <b>${manques.map((m) => echapper(m)).join("</b>, <b>")}</b>` : ""}
-        ${ouvrable ? ` <button type="button" class="petit" data-ouvrir-fiche="${echapper(f.nom)}"
+    const reste = fautes ? `<div class="acte-dernier">${ouvrable ? `<button type="button" class="petit" data-ouvrir-fiche="${echapper(f.nom)}"
             data-ouvrir-cle="${echapper(f.cle)}">Compléter la fiche</button>` : ""}</div>${fautes}` : "";
     return `<div class="rang import">
       <span class="rang-nom">${echapper(f.libelle)}</span>
       ${etat}
-      <span class="rang-infos">${completes}${ecarts}${reste}</span></div>`;
+      <span class="rang-infos">${luDans}${completes}${ecarts}${reste}</span></div>`;
   });
   if (!lignes.length) return "";
   return `<h3>${titre}</h3>${lignes.join("")}`;
@@ -654,50 +579,43 @@ function compteRenduImport(tri, pastilles) {
     .map(([s, n]) => `${pastilleSort(s, pastilles)} ${n}`).join(" &nbsp; ");
   const lignes = tri.fichiers.map((f) => {
     const pages = f.pages && f.pages.length > 1
-      ? `<details class="relire"><summary>${f.pages.length} pages</summary>${f.pages.map((p) =>
-          `<div class="acte-dernier">page ${p.page}${p.mois ? ` (${echapper(moisEnClair(p.mois))})` : ""}
+      ? `<details class="relire"><summary>${echapper(f.pages_dit)}</summary>${f.pages.map((p) =>
+          `<div class="acte-dernier">${echapper(p.page_dit)}
              ${pastilleSort(p.sort, pastilles)} ${echapper(p.raison || "")}</div>`).join("")}</details>` : "";
-    const de = f.doublon_de ? ` <span class="discret">(copie de ${echapper(f.doublon_de)})</span>`
-      : f.archive ? ` <span class="discret">(dans ${echapper(f.archive)})</span>` : "";
+    const de = f.de_dit ? ` <span class="discret">${echapper(f.de_dit)}</span>` : "";
     return `<tr><td>${echapper(f.chemin)}${de}</td><td style="white-space:nowrap">${pastilleSort(f.sort, pastilles)}</td>
       <td>${echapper(f.raison || "")}${pages}</td></tr>`;
   }).join("");
-  return `<h3>Le dossier, fichier par fichier</h3>
-    <p class="note">${tri.total} fichier${tri.total > 1 ? "s" : ""} dans
-      <code>${echapper(tri.dossier || "")}</code> &nbsp; ${comptes}</p>
+  return `<h3>Fichier par fichier</h3>
+    <p class="note">${echapper(tri.dit || "")} &nbsp; ${comptes}</p>
     <table class="tableau-detail"><thead><tr><th>Fichier</th><th>Sort</th><th>Raison</th></tr></thead>
       <tbody>${lignes}</tbody></table>`;
 }
 
 /* Les bulletins lus : combien, combien repris, de quand à quand, et ce
    qu'ils ajoutent (`bulletins`). Pas le logiciel qui les a faits. */
-function bulletinsImportes(b, ecrit) {
-  if (!b || !b.pages) return "";
-  const periode = b.du ? ` du ${echapper(jjmmaaaa(b.du))} au ${echapper(jjmmaaaa(b.au))}` : "";
-  const ajouts = [
-    b.paies_nouvelles ? `${b.paies_nouvelles} paie${b.paies_nouvelles > 1 ? "s" : ""} qu'aucune DSN ne déclare` : "",
-    b.paies_completees ? `${b.paies_completees} paie${b.paies_completees > 1 ? "s" : ""} déclarée${b.paies_completees > 1 ? "s" : ""} complétée${b.paies_completees > 1 ? "s" : ""} (cotisations, coût employeur, lignes)` : "",
-    b.contrats_nouveaux ? `${b.contrats_nouveaux} contrat${b.contrats_nouveaux > 1 ? "s" : ""} attesté${b.contrats_nouveaux > 1 ? "s" : ""}` : "",
-    b.fiches_a_creer ? `${b.fiches_a_creer} fiche${b.fiches_a_creer > 1 ? "s" : ""}${ecrit ? (b.fiches_a_creer > 1 ? " créées" : " créée") : " à créer"}` : "",
-  ].filter((x) => x);
-  return `<div class="encart"><b>Bulletins de paie</b>
-      ${b.lus} bulletin${b.lus > 1 ? "s" : ""} lu${b.lus > 1 ? "s" : ""} sur ${b.pages} page${b.pages > 1 ? "s" : ""}${
-        periode} ; ${b.repris} ${ecrit ? `repris` : "à reprendre"}${
-        ajouts.length ? ` : ${ajouts.join(", ")}` : ""}.</div>`;
+function bulletinsImportes(b) {
+  if (!b || !b.dit) return "";
+  return `<div class="encart"><b>Bulletins de paie</b> ${echapper(b.dit)}</div>`;
+}
+
+/* Les certificats Congés Spectacles (`certificats`) ou les AEM en PDF (`aem_pdf`) lus : ce que le moteur en dit (`dit`). */
+function piecesImportees(c, titre) {
+  if (!c || !c.dit) return "";
+  return `<div class="encart"><b>${titre}</b> ${echapper(c.dit)}</div>`;
 }
 
 /* Les écarts entre un bulletin et ce que la DSN (ou l'historique) disait
    de la même paie : le bulletin fait foi sur les montants, l'écart est
    noté (`tri.fichiers[].pages[].ecarts`). */
-const CHAMPS_PAIE = { brut: "brut", net_imposable: "net imposable", net_a_payer: "net à payer", pas: "prélèvement à la source" };
 function ecartsBulletinDsn(tri) {
   const lignes = [];
   for (const f of (tri && tri.fichiers) || []) {
     for (const p of f.pages || []) {
       for (const e of p.ecarts || []) {
-        lignes.push(`<tr><td>${echapper(f.chemin)}${f.pages.length > 1 ? `, page ${p.page}` : ""}</td>
+        lignes.push(`<tr><td>${echapper(p.ou_dit)}</td>
           <td>${echapper(moisEnClair(p.mois || ""))}</td>
-          <td>${echapper(CHAMPS_PAIE[e.champ] || e.champ)}</td>
+          <td>${echapper(e.champ_dit)}</td>
           <td class="nombre">${echapper(e.valeur == null ? "" : e.valeur)}</td>
           <td class="nombre">${echapper(e.bulletin == null ? "" : e.bulletin)}</td>
           <td>${pastilleDeLEtat(e.pastille)}</td></tr>`);
@@ -705,70 +623,22 @@ function ecartsBulletinDsn(tri) {
     }
   }
   if (!lignes.length) return "";
-  return `<h3>Ce que les bulletins disent autrement</h3>
-    <p class="note">Le bulletin fait foi : c'est son montant qui s'écrit, l'écart reste noté ici.</p>
+  return `<h3>Écarts des bulletins</h3>
+    <p class="note">${aideDe("import_ecarts")}</p>
     <table class="tableau-detail"><thead><tr><th>Bulletin</th><th>Mois</th><th>Champ</th>
       <th class="nombre">DSN ou historique</th><th class="nombre">Bulletin</th><th></th></tr></thead>
       <tbody>${lignes.join("")}</tbody></table>`;
 }
 
-/* Les fichiers qui n'ont pas pu être repris : la phrase qui les dit, et le
-   message qui partirait chez l'éditeur, montré tel qu'il partirait (caviardé
-   par le moteur, `importation-incident`). Rien ne part sans le clic sur
-   « Envoyer » (`importation-incident-envoyer`). Quels fichiers n'ont pas
-   été repris, c'est le moteur qui le dit (`fichiers` de la route) : la page
-   ne fait que le montrer. */
-async function preparerIncidentImport() {
-  const cible = document.getElementById("import-incident");
-  if (!cible) return;
-  let r;
-  try {
-    r = await api("importation-incident", { dossier: IMPORT_DOSSIER });
-  } catch (e) {
-    cible.innerHTML = `<div class="encart erreur">Le message à l'éditeur ne se prépare pas : ${echapper(e.message)}</div>`;
-    return;
-  }
-  const laisses = r.fichiers || [];
-  if (!laisses.length && !r.a_envoyer) {
-    cible.innerHTML = "";
-    return;
-  }
-  const envoi = r.a_envoyer
-    ? `<p class="note"><strong>Les noms, prénoms, numéros de sécurité sociale, dates de naissance et adresses
-        ont été enlevés</strong>${r.resume ? ` (${echapper(r.resume)})` : ""}. Les fichiers eux-mêmes ne
-        partent pas. Voici le message, tel qu'il partirait :</p>
-      <pre class="reponse">${echapper(r.texte || "")}</pre>
-      <p><button class="primaire" id="import-incident-envoyer">Envoyer</button>
-        <span class="note">Rien ne part avant ce clic.</span></p>`
-    : `<p class="note">Rien à envoyer.</p>`;
-  cible.innerHTML = `<div class="encart attention"><b>Ces documents n'ont pas pu être repris.</b>
-      ${laisses.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, r.pastilles)}
+/* Les documents qui ne sont pas repris, et pourquoi (`tri.non_repris`, du
+   moteur), avec la phrase qui dit que l'import se rejoue. */
+function vueNonRepris(nr, pastilles) {
+  if (!nr || !(nr.fichiers || []).length) return "";
+  return `<div class="encart attention"><b>Non repris</b>
+      ${nr.fichiers.map((f) => `<div class="acte-dernier">${echapper(f.chemin)} ${pastilleSort(f.sort, pastilles)}
         ${echapper(f.raison || "")}</div>`).join("")}
-      <p>Un message peut partir chez le développeur ; Léandre s'en occupe et vous répond.</p>
-      <div id="import-incident-envoi">${envoi}</div>
+      <p>${echapper(nr.phrase || "")}</p>
     </div>`;
-  const b = document.getElementById("import-incident-envoyer");
-  if (b) b.onclick = () => envoyerIncidentImport();
-}
-
-async function envoyerIncidentImport() {
-  const cible = document.getElementById("import-incident-envoi");
-  const b = document.getElementById("import-incident-envoyer");
-  if (b) b.disabled = true;
-  try {
-    const r = await api("importation-incident-envoyer", { dossier: IMPORT_DOSSIER });
-    if (r.envoye) {
-      cible.innerHTML = `<div class="encart bien"><b>Le message est parti.</b>${
-        echapper(r.message || "Léandre s'en occupe et vous répond.")}</div>`;
-      rafraichirEtatImportation();
-    } else {
-      cible.insertAdjacentHTML("beforeend", `<div class="encart erreur">${echapper(r.message || "Le message n'est pas parti.")}</div>`);
-      if (b) b.disabled = false;
-    }
-  } catch (e) {
-    cible.insertAdjacentHTML("beforeend", `<div class="encart erreur">${echapper(e.message)}</div>`);
-    if (b) b.disabled = false;
-  }
 }
 
 async function rafraichirEtatImportation() {
@@ -780,49 +650,29 @@ async function rafraichirEtatImportation() {
 /* L'aperçu, ou ce qui a été repris. Aucun logiciel n'y est nommé : les
    déclarations sont des DSN et des AEM, les bulletins des bulletins. */
 function vueImportation(r) {
-  const periode = r.premier_mois ? ` (${moisEnClair(r.premier_mois)} → ${moisEnClair(r.dernier_mois)})` : "";
-  const contrats = r.contrats
-    ? `${r.contrats} contrat(s) attesté(s) du ${jjmmaaaa(r.contrats_du)} au ${jjmmaaaa(r.contrats_au)} :
-       <strong>${r.contrats_nouveaux} ${r.ecrit ? "ajouté(s)" : "à ajouter"}</strong> à l'historique,
-       ${r.contrats - r.contrats_nouveaux - r.contrats_sans_fiche} déjà connu(s)${
-         r.contrats_sans_fiche ? `, ${r.contrats_sans_fiche} sans fiche` : ""}`
-    : "aucun contrat attesté par une AEM";
-  const declarations = r.dsn || r.aem
-    ? `${r.dsn} DSN${periode}, ${r.aem} fichier(s) AEM — ${contrats}`
-    : "aucune DSN ni AEM dans le dossier";
-  const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
-  const b = r.bulletins || {};
-  const aEcrire = (f) => f && (f.etat === "a_creer" || (f.etat === "existante" && Object.keys(f.completer || {}).length));
-  const ns = (r.salaries || []).filter(aEcrire).length, nsp = (r.spectacles || []).filter(aEcrire).length;
-  const nc = (r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0);
-  const np = (b.paies_nouvelles || 0) + (b.paies_completees || 0);
-  const quoi = [
-    aEcrire(r.entreprise) ? "la fiche de la compagnie" : "",
-    ns ? `${ns} salarié${ns > 1 ? "s" : ""}` : "",
-    nsp ? `${nsp} spectacle${nsp > 1 ? "s" : ""}` : "",
-    nc ? `${nc} contrat${nc > 1 ? "s" : ""}` : "",
-    np ? `${np} bulletin${np > 1 ? "s" : ""}` : "",
-  ].filter((x) => x);
   // La couleur de l'encart, et ce que l'import a posé de la configuration,
   // viennent du moteur (`encart`, `parametrage`).
+  const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const couleur = ENCART_DE_COULEUR[(r.encart || {}).couleur] || "";
   const pose = (r.parametrage || []).length
-    ? `<p class="note">Posé dans la configuration :</p><ul>${r.parametrage.map((p) => `<li>${echapper(p)}</li>`).join("")}</ul>` : "";
+    ? `<p class="note">Posé dans la configuration</p><ul>${r.parametrage.map((p) => `<li>${echapper(p)}</li>`).join("")}</ul>` : "";
   const bouton = r.ecrit
-    ? `<div class="encart ${couleur}"><b>Repris.</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
+    ? `<div class="encart ${couleur}"><b>Repris</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
         ${pose}
-        <p class="note">Les fichiers lus sont copiés dans l'historique de la compagnie ; vous pouvez vider
-          le dossier <code>import/</code>.</p></div>`
+        <p class="note">${aideDe("import_copies")}</p></div>`
     : r.rien_a_faire
-      ? `<div class="encart ${couleur}"><b>Rien à reprendre</b> : tout est déjà là.</div>`
-      : `<p><button class="primaire" id="import-ecrire">Reprendre${quoi.length ? " " + quoi.join(", ") : ""}</button>
-         <span class="note">Rien n'est écrit avant ce clic.</span></p>`;
-  return `<div id="import-incident"></div>
+      ? `<div class="encart ${couleur}">${aideDe("import_rien")}</div>`
+      : `<p><button class="primaire" id="import-ecrire">Reprendre</button>
+         <span class="discret">${echapper(r.reprendre || "")}</span>
+         <span class="note">${aideDe("import_avant_clic")}</span></p>`;
+  return `${vueNonRepris((r.tri || {}).non_repris, r.pastilles)}
     ${compteRenduImport(r.tri, r.pastilles)}
-    <h3>${r.ecrit ? "Ce qui a été repris" : "Ce qui serait repris"}</h3>
+    <h3>${echapper(r.titre_dit)}</h3>
     <div class="encart"><b>Déclarations</b>
-      ${declarations}</div>
-    ${bulletinsImportes(r.bulletins, r.ecrit)}
+      ${echapper(r.declarations_dit || "")}</div>
+    ${bulletinsImportes(r.bulletins)}
+    ${piecesImportees(r.certificats, "Certificats Congés Spectacles")}
+    ${piecesImportees(r.aem_pdf, "AEM en PDF")}
     ${avert}
     ${fichesImportees([r.entreprise], "Entreprise")}
     ${fichesImportees(r.salaries, "Salariés")}
@@ -834,15 +684,14 @@ function vueImportation(r) {
 function brancherImportation() {
   const b = document.getElementById("import-ecrire");
   if (b) b.onclick = () => ecrireImportation();
-  if (document.getElementById("import-incident")) preparerIncidentImport();
 }
 
 async function apercuImportation() {
   IMPORT_DOSSIER = document.getElementById("import-dossier").value.trim();
   const cible = document.getElementById("import-resultat");
   // LE GESTE QUI ATTEND SE VOIT : le bouton dit qu'il lit, la page qu'elle travaille.
-  const rendre = occupe(document.getElementById("import-apercu"), "Lecture des fichiers…");
-  cible.innerHTML = `<p class="discret">Lecture du dossier, fichier par fichier…</p>`;
+  const rendre = occupe(document.getElementById("import-apercu"), "Lecture…");
+  cible.innerHTML = `<p class="discret">Lecture…</p>`;
   try {
     const r = await api("importation-apercu", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
@@ -857,14 +706,14 @@ async function apercuImportation() {
 async function ecrireImportation() {
   const cible = document.getElementById("import-resultat");
   cible.classList.add("attente");
-  occupe(document.getElementById("import-ecrire"), "Reprise en cours : les fiches, les contrats, puis chaque bulletin…");
+  occupe(document.getElementById("import-ecrire"), "Reprise…");
   try {
     const r = await api("importer", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
     brancherImportation();
     // Les fiches créées doivent apparaître dans Salariés et Spectacles, et
     // dans les déroulants de la saisie, sans recharger la page.
-    ETAT = await api("etat");
+    await relireEtat();
     rafraichirReferentiels();
     // CE QUI RESTE À DIRE : la nature des contrats repris se demande en tête de la page ; on y va.
     await rafraichirEtatImportation();
@@ -890,7 +739,7 @@ async function ecrireImportation() {
  *
  *   - des SECTIONS (SECTIONS_FICHE) : on cherche « ma banque », pas « le
  *     champ 27 » ;
- *   - les structures se saisissent en SOUS-CHAMPS (SOUS_CHAMPS), une case
+ *   - les structures se saisissent case par case (`structureDecrite`), une case
  *     par valeur, un « + » pour une liste. Les clefs qu'on ne montre pas
  *     (`_note`, `nom_aem`...) sont relues telles quelles a l'enregistrement
  *     — voir `lireFormulaire` : on ne perd pas ce qu'on n'affiche pas ;
@@ -905,9 +754,8 @@ async function ecrireImportation() {
  *  pas s'affiche quand meme, dans la derniere section.
  */
 const SECTIONS_FICHE = {
-  // LA FICHE ENTREPRISE, RELUE LE 23/09/2026. L'editeur : « on demande le
-  // minimum d'information aux gens, après on traite l'information pour que
-  // ça rentre dans la DSN ». Six blocs, dans l'ordre ou l'on cherche : qui
+  // LA FICHE ENTREPRISE : on demande le minimum d'information aux gens, puis on traite l'information pour qu'elle rentre
+  // dans la DSN. Six blocs, dans l'ordre ou l'on cherche : qui
   // l'on est, ou l'on est, sous quelle convention, ses numeros, qui signe,
   // le compte. Les cases que le moteur deduit sont nommees ici pour que
   // leur case cachee soit posee dans le bloc de la valeur dont elles
@@ -929,12 +777,12 @@ const SECTIONS_FICHE = {
     // elle se pose en clair. Le moteur le lit (`contexte::emploie_des_permanents`).
     // Les conseils « Le saviez-vous ? » :
     // une option qui parle de vos salariés, elle se pose avec eux.
-    ["Vos salariés", ["emploie_des_permanents", "conseils"]],
+    ["Vos salariés", ["emploie_des_permanents", "date_de_versement_permanents", "date_de_versement_intermittents", "conseils"]],
     // Le taux AT/MP se pose en tête de ce bloc (`ATMP_HTML`).
     // LE CODE DU SERVICE DE SANTÉ AU TRAVAIL N'EST PAS DANS L'« AVANCÉ » (le tiroir
     // replié) : chaque DPAE l'exige (`dpae::medecine_de`) et
     // « Pour démarrer » le demande. Un champ exigé est visible là où on l'exige.
-    ["Vos numéros chez les organismes",
+    ["Numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
       "affiliation_france_travail",
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
@@ -946,7 +794,7 @@ const SECTIONS_FICHE = {
     // LA TAXE SUR LES SALAIRES : la DSN de décembre
     // déclare chaque année si la compagnie la doit (bloc S21.G00.44), et ne
     // se fait pas sans réponse. Le moteur ne connaît pas sa TVA.
-    ["La TVA et la taxe sur les salaires", ["taxe_sur_les_salaires"]],
+    ["Taxe sur les salaires", ["taxe_sur_les_salaires"]],
     // L'AVANCE. L'editeur : « si on peut deviner que c'est le
     // truc de base, on le met en truc de base ; si les gens veulent changer,
     // ils cliquent sur avancé ». Chacun de ces champs a une valeur par
@@ -960,22 +808,22 @@ const SECTIONS_FICHE = {
     // CASC-SVP qu'en 3090, l'article 45 qu'au cinéma.
     ["Avancé — cas particuliers", ["jours_feries_chomes", "plafond_temps_partiel",
       "deduction_forfaitaire_option",
-      "prevoyance_permanents", "sante_permanents",
+      "prevoyance_permanents", "sante_permanents", "subrogation_ij",
       "organisation_patronale", "organisation_patronale_depuis",
       "representation_personnel", "casc_svp_exemptee",
       "prevoyance_techniciens_3097",
-      "contribution_supplementaire_apprentissage",
+      "cinquante_salaries_et_plus",
       "taxe_apprentissage_motif_non_assujettissement",
       "code_urssaf", "retraite_complementaire", "etablissements"],
      { avance: true }],
     // Sans titre : l'historique se replie derriere un lien (`histoireDuChamp`).
     ["", ["historique"]],
   ],
-  // LA FICHE SALARIE, RELUE LE 23/09/2026 sur le modele de l'entreprise.
+  // LA FICHE SALARIE, sur le modele de l'entreprise.
   // Dans l'ordre ou on la remplit, papiers en main : la carte Vitale, la
   // piece d'identite, l'adresse ; puis ce que l'employeur decide, l'emploi.
-  // Chaque champ a ete confronte a ce qui le lit dans le moteur : le taux de
-  // PAS de la fiche n'etait lu par personne, il ne se montre plus ; le sexe
+  // Chaque champ est lu par le moteur : le taux de
+  // PAS de la fiche ne se montre pas ; le sexe
   // ne sert que sans NIR, il ne se montre que dans ce cas (`brancherSexe`).
   salarie: [
     // Le numero et sa cle cote a cote, comme sur la carte Vitale.
@@ -996,7 +844,7 @@ const SECTIONS_FICHE = {
     ["Emploi", ["emploi_affichage"], { metier: true }],
     ["Intermittence", ["num_conges_spectacles", "anniversaire_droits"]],
     // Rien a remplir tant que la compagnie n'emploie pas de salarie au mois.
-    ["Salarié au mois", ["sante_dispense", "sante_dispense_depuis",
+    ["Salarié au mois", ["jours_travailles", "sante_dispense", "sante_dispense_depuis",
                          "sante_dispense_jusqu_au", "prevoyance_branche_depuis",
                          "categorie_conventionnelle", "conges_reprise",
                          "forfait_jours"],
@@ -1011,10 +859,13 @@ const SECTIONS_FICHE = {
       "pcs_ese", "code_emploi_ft", "date_anciennete", "code_salarie",
       "initiales_contrat", "statut_conventionnel", "statut_boeth", "echelon_ccneac", "classement_conventionnel",
       "poste_depuis", "experimente_3241", "stagiaire_ccneac",
-      "etablissement", "actif"], { avance: true }],
+      "actif"], { avance: true }],
     ["", ["historique"]],
   ],
 };
+
+/* Les jours de la semaine, tels que la fiche d'un permanent les ecrit (`droit::conges::JOURS_DE_LA_SEMAINE`). */
+const JOURS_DE_LA_SEMAINE = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
 
 /* Ce qui, dans le tiroir « Avancé », vaut le cas ordinaire et ne l'ouvre
  * donc pas. Une case absente d'ici ouvre le tiroir des qu'elle est remplie. */
@@ -1035,266 +886,39 @@ const ORDINAIRE = {
   code_emploi_ft: () => true,
 };
 
-/* Les champs qu'on peut laisser vides : l'ecran le dit a cote du libelle,
- * plutot que de laisser croire qu'il manque quelque chose. L'editeur,
- * 23/09/2026 : « il y a des champs facultatifs, par exemple la date
- * anniversaire ». */
-const FACULTATIFS = {
-  salarie: ["num_conges_spectacles", "anniversaire_droits", "sante_dispense",
-            "sante_dispense_depuis", "sante_dispense_jusqu_au",
-            "prevoyance_branche_depuis", "echelon_ccneac",
-            "classement_conventionnel", "conges_reprise",
-            "categorie_conventionnelle", "poste_depuis"],
-};
-
 /* Les champs que la machine deduit d'un autre, ou qu'elle connait sans
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`) ;
- *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
- *    jamais demande.
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`).
  *
  *  Le code Urssaf et la caisse de retraite, eux, sont de VRAIS choix : ils
  *  vont dans l'avance, vides par defaut -- le moteur prend alors l'Urssaf
  *  du code postal et Audiens. L'editeur : « il ne faut pas enlever de
  *  l'interface les choix que peut faire l'entreprise ». */
 const CACHES = {
-  entreprise: ["siren", "nic",
-               "etablissements"],
-  // `sante_svp` se remplit par les trois cases de la complementaire sante ;
-  // `taux_pas` n'est plus lu par personne (il vit dans config/pas.json) :
-  // gardes tels quels, jamais demandes.
-  salarie: ["sante_svp", "taux_pas"],
+  entreprise: ["siren", "nic"],
+  // `sante_svp` se remplit par les trois cases de la complementaire sante : gardé tel quel, jamais demandé.
+  salarie: ["sante_svp"],
 };
-
-/* Une structure, case par case. `liste: true` = plusieurs lignes, avec un
- * « + ». Ce qui n'est pas nomme ici est CONSERVE tel quel.
- *
- * LES PERSONNES SE SAISISSENT COMME ON LES ECRIT. Le nom et le
- * prenom en capitales sans accents, c'est la forme de l'AEM et de la DSN :
- * le moteur la fabrique (`champs.deriver_personnes`), on ne la demande plus. */
-const SOUS_CHAMPS = {
-  // Le solde de congés d'un salarié au mois arrivé d'un autre logiciel :
-  // ce que son dernier bulletin disait.
-  conges_reprise: { champs: [
-    ["date", "PuppetPaie compte à partir du", "Le premier jour du premier mois produit par PuppetPaie", { date: true }],
-    ["report", "Jours qui restent de la période passée", "Les jours de congés acquis sur la période de référence passée et pas encore pris. Le dernier bulletin de l'ancien logiciel les écrit souvent « N-1 », « reliquat » ou « solde N-1 »."],
-    ["acquis_report", "Jours acquis sur la période passée, en tout", "Souvent 30, pour une période entière : il sert à payer un jour au dixième. Sur le bulletin : « acquis N-1 »."],
-    ["remuneration_report", "Brut gagné pendant la période passée (€)", "Le brut de toute la période de référence passée, qui sert à calculer le dixième. Sur le bulletin : « base N-1 », ou dans votre ancien logiciel."],
-    ["acquis", "Jours acquis depuis le début de la période en cours", "Les jours acquis sur la période en cours, avant cette date. Sur le bulletin : « acquis N »."],
-    ["pris", "Jours déjà pris sur la période en cours", "Les jours pris sur ceux de la période en cours, avant cette date. Sur le bulletin : « pris N »."],
-    ["remuneration_periode", "Brut gagné depuis le début de la période en cours (€)", "Le brut versé sur la période en cours, avant cette date. Sur le bulletin : « base N »."],
-  ] },
-  signataire: { champs: [
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
-    ["fonction", "Fonction", "Président, présidente, gérant, directrice…"],
-    ["tel", "Téléphone", ""],
-    ["email", "Courriel", ""],
-  ] },
-  // LA QUALITE DU DECLARANT NE S'AFFICHE PAS. C'est
-  // S20.G00.07.004, et elle vaut 04 : << la personne qui etablit la paie
-  // dans l'entreprise >>. La valeur reste dans la fiche et repart telle
-  // quelle (STRUCTURES_ORIGINE) ; `dsn.rs` la lit.
-  // LA CIVILITE DU CONTACT (V1h, 10/10/2026) : S10.G00.02.001, 01 monsieur ou
-  // 02 madame (cahier technique DSN, p. 132). Le moteur la lit ici et refuse
-  // une DSN sans elle ; vide, la case est retiree a l'enregistrement.
-  declarant_dsn: { champs: [
-    ["civilite", "Civilité", "Celle de la personne que les organismes contactent : elle s'écrit dans chaque DSN.",
-     { choix: { "": "—", "02": "Madame", "01": "Monsieur" } }],
-    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
-    ["tel", "Téléphone", ""],
-    ["email", "Courriel", ""],
-  ] },
-  contact_sante_travail: { champs: [
-    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
-    ["tel", "Téléphone", ""],
-    ["email", "Courriel", ""],
-  ] },
-  banque: { champs: [
-    ["iban", "IBAN", "Sur le relevé d'identité bancaire (RIB) : 27 caractères commençant par FR pour un compte en France, de 15 à 34 ailleurs. Les espaces ne comptent pas."],
-    ["bic", "BIC", "Sur le même RIB, 8 ou 11 caractères."],
-  ] },
-  // LA PREVOYANCE ET LA SANTE DES PERMANENTS.
-  // Elles se saisissaient en JSON dans une zone de texte : un administrateur
-  // n'avait pas a lire des accolades. Une case vide est RETIREE a
-  // l'enregistrement, et le moteur applique alors la convention. Le format
-  // des donnees ne change pas : « taux.t1_cadre » est la case `t1_cadre` du
-  // bloc `taux`.
-  prevoyance_permanents: { champs: [
-    ["regime", "Régime", "Le cas ordinaire : celui de la convention, que le logiciel applique seul. Un contrat d'entreprise ne se choisit que s'il a été réellement souscrit, et plus favorable.",
-     { choix: { "": "Celui de la convention (le cas ordinaire)",
-                "contrat": "Un contrat d'entreprise plus favorable" } }],
-    ["taux.t1_non_cadre", "Taux non-cadres (%)", "Seulement pour un contrat d'entreprise : son taux sur la tranche A, pour les non-cadres.", { nombre: true }],
-    ["taux.t1_cadre", "Taux cadres (%)", "Seulement pour un contrat d'entreprise : son taux sur la tranche A, pour les cadres (au moins 1,50 %).", { nombre: true }],
-    ["taux.part_patronale", "Part employeur (%)", "Seulement pour un contrat d'entreprise. 100 % pour les cadres, obligatoirement.", { nombre: true }],
-    ["extension_t2", "Extension sur la tranche 2", "Facultative, si elle a été souscrite.",
-     { choix: { "": "Aucune (le cas ordinaire)", "tous": "Pour tous les permanents",
-                "cadres": "Pour les cadres seulement" } }],
-    ["adhesion", "Organisme et numéro d'adhésion", "Pour mémoire : il ne part dans aucun calcul."],
-  ] },
-  sante_permanents: { champs: [
-    ["taux_contrat", "Taux du contrat (% du plafond mensuel)", "Seulement pour une convention sans régime de santé (production audiovisuelle 2642) : le taux de votre contrat, pour le salarié seul. Il est sur votre contrat ou votre appel de cotisation.", { nombre: true }],
-    ["part_patronale", "Part employeur (%)", "Au moins 50 %. Vide : 50 %.", { nombre: true }],
-  ] },
-  // LA TAXE SUR LES SALAIRES. On demande ce que la
-  // compagnie sait de sa TVA, pas la conclusion du droit : le moteur conclut
-  // (route `taxe-sur-les-salaires-regime`, CGI art. 231), dit quelles cases
-  // suivent et écrit la conséquence sous elles (`brancherTaxeSalaires`). Les
-  // oui/non s'enregistrent en vrai et faux (`booleen`).
-  taxe_sur_les_salaires: { champs: [
-    ["tva", "La compagnie et la TVA", "Assujettie : elle facture la TVA sur ses ventes (billetterie, cessions…) et la déclare. Exonérée : elle ne facture pas de TVA, ou ses activités n'y entrent pas — c'est le cas de beaucoup d'associations.",
-     { choix: { "": "— à dire —", "assujettie": "Assujettie à la TVA", "exoneree": "Exonérée de TVA (ou hors de son champ)" } }],
-    ["part_tva", "Part de vos recettes de l'an dernier soumise à la TVA (%)", "Vos recettes soumises à la TVA, divisées par toutes vos recettes et produits de l'année, subventions et dons compris. Votre comptable la connaît. À 90 % ou plus, pas de taxe sur les salaires.", { nombre: true }],
-    // Les montants des plafonds, l'aide et les deux réponses viennent du
-    // moteur (`franchise` de la route, barème de l'année) :
-    // ce qui suit n'est que ce qu'on lit avant sa réponse. Des
-    // boutons à cocher : chaque réponse est une phrase entière.
-    ["sous_franchise", "Vos recettes de l'an dernier", "Sous les deux plafonds de la franchise en base de TVA (les spectacles vendus, et les recettes en tout, subventions comprises), la compagnie ne doit pas la taxe sur les salaires.",
-     { booleen: true, boutons: true, choix: { "": "— à dire —", "true": "Sous les deux plafonds", "false": "Au-dessus d'un des plafonds" } }],
-    ["association_1679A", "Association loi 1901, syndicat ou mutuelle ?", "Une association loi 1901, une fondation reconnue d'utilité publique, un syndicat, une mutuelle de moins de trente salariés : l'abattement de l'article 1679 A s'applique à la taxe due.",
-     { booleen: true, choix: { "": "Non", "true": "Oui (abattement de l'article 1679 A)" } }],
-  ] },
-  etablissements: { liste: true, ligne: "établissement", champs: [
-    ["nic", "NIC", ""],
-    ["siret", "SIRET", ""],
-    ["libelle", "Nom de l'établissement", ""],
-  ] },
-};
-
-/* Les valeurs d'une liste de choix, dites en clair. Le moteur garde ses
- * codes (`cse_adherent_fnas`), l'ecran montre une phrase. */
-const LIBELLES_CHOIX = {
-  // La table MNATA de la DSN, telle que `donnees/mnata-base.json`
-  // la livre : l'ecran la dit en clair, le moteur la lit et la controle.
-  taxe_apprentissage_motif_non_assujettissement: {
-    "": "— la compagnie doit la taxe (cas ordinaire) —",
-    "001": "001 — Non assujetti par choix du régime fiscal (option IR en catégorie BNC)",
-    "002": "002 — Collectivités publiques, Parlementaires",
-    "003": "003 — Etablissements publics de recherche et les établissements publics d'enseignement supérieurs",
-    "004": "004 — Personnes morales créées pour la gestion d'un pôle de recherche et d'enseignement supérieur ou d'un réseau thématique de recherche avancée",
-    "005": "005 — Fondations reconnues d'utilité public du secteur de la recherche",
-    "006": "006 — Sociétés et personnes morales ayant pour objet exclusif l'enseignement",
-    "007": "007 — Associations sans but lucratif",
-    "008": "008 — Syndicats professionnels",
-    "009": "009 — Entreprises sans établissement en France (ESEF)",
-    "010": "010 — Sociétés civiles de moyens (SCM) non commerciale",
-    "011": "011 — Personnes physiques ou morales assujetties aux BNC ou BA",
-    "012": "012 — Les coopératives agricoles",
-    "013": "013 — Les coopératives artisanales, transport (y compris fluvial et maritime) et leurs unions",
-    "014": "014 — Les groupements d'employeurs dont agricoles",
-    "015": "015 — Les sociétés civiles agricoles",
-    "016": "016 — Les mutuelles et organismes mutualistes",
-    "017": "017 — Les organismes HLM, SA de crédit immobilier (I et au II de l'article L. 422-4 du code de la construction et de l'habitation ) et unions d'économie sociale",
-    "018": "018 — Les sociétés coopératives de construction désignées à l'article L. 432-2 du code de la construction et de l'habitation.",
-    "019": "019 — Organismes chargés de l'organisation en France d'une compétition sportive internationale en France (Article L6131-1 du code du travail)",
-  },
-  annexe_convention: {
-    "1": "Annexe 1 — lieux, production ou diffusion de théâtre, danse, lyrique, musique classique",
-    "2": "Annexe 2 — chanson, variétés, jazz, musiques actuelles",
-    "3": "Annexe 3 — cabarets",
-    "4": "Annexe 4 — production ou diffusion de spectacles en tournée",
-    "5": "Annexe 5 — cirque",
-    "6": "Annexe 6 — bals",
-  },
-  representation_personnel: {
-    "aucune": "Pas de CSE (carence constatée)",
-    "csec": "CSE conventionnel (11 à 49 salariés)",
-    "cse_adherent_fnas": "CSE de 50 salariés et plus, adhérent au FNAS",
-    "cse": "CSE qui n'adhère pas au FNAS",
-  },
-  sexe: { "1": "Homme", "2": "Femme" },
-  code_nationalite_dsn: {
-    "01": "Française",
-    "02": "D'un pays de l'Union européenne",
-    "03": "Islandaise, liechtensteinoise ou norvégienne (EEE hors Union)",
-    "04": "D'un autre pays (Royaume-Uni et Suisse compris)",
-  },
-  statut: {
-    "artiste": "Artiste",
-    "technicien": "Autre emploi : technicien, administration, production, diffusion…",
-  },
-  categorie_conventionnelle: {
-    "artiste": "Artiste",
-    "employe": "Employé",
-    "technicien": "Technicien",
-    "agent_de_maitrise": "Agent de maîtrise",
-    "cadre": "Cadre",
-    "cadre_de_direction": "Cadre de direction",
-  },
-  statut_categoriel_rc: {
-    "04": "Non cadre",
-    "01": "Cadre",
-    "02": "Extension cadre pour la retraite complémentaire (code 02 de la DSN)",
-  },
-  statut_conventionnel: {
-    "05": "Profession intermédiaire, technicien, agent de maîtrise — les artistes",
-    "04": "Cadre au sens de la convention",
-    "03": "Cadre dirigeant (vote au collège employeur des prud'hommes)",
-    "06": "Employé administratif",
-    "07": "Ouvrier ou employé technique",
-  },
-  // La règle est la proratisation (CSS L. 242-8, fiche net-entreprises 3369) ;
-  // « entier » dit que l'établissement y renonce. Le moteur décide.
-  plafond_temps_partiel: {
-    "proratisé": "Proratisé à la durée du contrat (la règle)",
-    "entier": "Entier : l'établissement renonce à la proratisation",
-  },
-  // La déduction forfaitaire spécifique (arrêté du 4 septembre 2025, art. 9) : le
-  // moteur décide (`calcul::deduction_forfaitaire`), la page ne fait que nommer.
-  deduction_forfaitaire_option: {
-    "": "Non appliquée — le cas ordinaire",
-    "accord_collectif": "Oui : un accord collectif l'a explicitement prévue",
-    "accord_cse": "Oui : le CSE a donné son accord",
-    "accord_individuel": "Oui : chaque salarié l'accepte (contrat ou lettre)",
-  },
-  deduction_forfaitaire: {
-    "": "Aucune — pas de déduction pour ce salarié",
-    "musicien": "Artiste musicien (catégorie 20 %)",
-    "choriste": "Choriste (catégorie 20 %)",
-    "chef_orchestre": "Chef d'orchestre (catégorie 20 %)",
-    "regisseur_theatre": "Régisseur de théâtre (catégorie 20 %)",
-    "artiste_dramatique": "Artiste dramatique (catégorie 25 %)",
-    "artiste_lyrique": "Artiste lyrique (catégorie 25 %)",
-    "artiste_choregraphique": "Artiste chorégraphique (catégorie 25 %)",
-    "artiste_cinematographique": "Artiste de cinéma (catégorie 25 %)",
-  },
-  deduction_forfaitaire_accord: {
-    "": "Pas encore dit",
-    "contrat": "Dans son contrat de travail ou un avenant",
-    "consentement_annuel": "Par son consentement de l'année (son silence vaut accord)",
-    "refus": "Il a refusé : pas de déduction",
-  },
-};
-
-/* Ou aller chercher une valeur qu'on n'a pas sous la main : une phrase et
- * un lien, derriere le « ? » du champ. VIDE DEPUIS LE 23/09/2026 : les
- * liens menaient a la page d'accueil d'un organisme, ce qui n'apprend rien.
- * L'aide de chaque champ (`donnees/champs-base.json`) dit maintenant ou lire la
- * valeur. Un lien ne revient ici que s'il mene a la page qui la donne. */
-const OU_TROUVER = {};
 
 /* Les structures telles qu'elles etaient AVANT la saisie : `lireFormulaire`
  * en repart pour ne pas perdre les clefs qu'on n'affiche pas. */
 let STRUCTURES_ORIGINE = {};
 
 /* L'aide derriere un « ? » : le bouton dans le libelle, le texte dessous,
- * replie. `OU_TROUVER` y ajoute une phrase et un lien quand la valeur se
- * demande a quelqu'un d'autre qu'a soi-meme. */
+ * replie. Le texte vient du moteur (`aide` du champ, `donnees/champs-base.json`,
+ * rendue par la route) : la page n'en ecrit aucun. */
 function aideHtml(cle, aide) {
-  return (aide || OU_TROUVER[cle])
+  return aide
     ? `<button type="button" class="aide-bouton" data-aide="${echapper(cle)}"
-         title="à quoi sert ce champ, où le trouver">?</button>` : "";
+         title="aide">?</button>` : "";
 }
 
 function aideCorps(cle, aide) {
-  const ou = OU_TROUVER[cle];
-  if (!aide && !ou) return "";
+  if (!aide) return "";
   return `<div class="aide" data-aide-corps="${echapper(cle)}" hidden>
-    ${ou ? `<p class="ou-trouver">${echapper(ou[0])}
-        <a href="${echapper(ou[1])}" target="_blank" rel="noopener">${echapper(ou[1])}</a></p>` : ""}
-    ${aide ? `<p>${echapper(aide)}</p>` : ""}
+    <p>${echapper(aide)}</p>
   </div>`;
 }
 
@@ -1305,10 +929,8 @@ function aideCorps(cle, aide) {
  *  avec un « + » pour en ajouter une et une croix pour en retirer une. Ce
  *  que la table ne nomme pas n'est pas affiche, et n'est pas perdu.
  */
-function structureHtml(c, v, sous, a, avecPermanents) {
-  const cache = c.si_permanents && !avecPermanents;
+function structureHtml(c, v, sous, a) {
   const tete = `<label class="titre-structure">${echapper(c.libelle)}
-      ${c.obligatoire ? '<span class="obligatoire">*</span>' : ""}
       ${aideHtml(c.cle, c.aide)}</label>
     ${aideCorps(c.cle, c.aide)}`;
   let corps;
@@ -1318,7 +940,7 @@ function structureHtml(c, v, sous, a, avecPermanents) {
         ${lignes.map((l, i) => ligneStructure(c.cle, sous, l, i)).join("")}
       </div>
       <button type="button" class="secondaire ajouter-ligne"
-        data-ajouter="${echapper(c.cle)}">+ Ajouter un ${echapper(sous.ligne || "élément")}</button>`;
+        data-ajouter="${echapper(c.cle)}">${echapper(sous.ajouter || "+")}</button>`;
   } else {
     const o = (v && typeof v === "object" && !Array.isArray(v)) ? v : {};
     corps = `<div class="sous-champs">${sous.champs.map(([k, lib, aide, genre = {}]) => {
@@ -1341,8 +963,7 @@ function structureHtml(c, v, sous, a, avecPermanents) {
       </div>`;
     }).join("")}</div>`;
   }
-  return `<div class="champ pleine structure${c.si_permanents ? " champ-permanents" : ""}"${
-      cache ? " hidden" : ""}>
+  return `<div class="champ pleine structure">
     ${tete}
     ${corps}
     ${a ? `<div class="anomalie ${a.gravite}">${echapper(a.message)}</div>` : ""}
@@ -1410,11 +1031,20 @@ document.addEventListener("input", cocherUnBouton, true);
 function ligneStructure(cle, sous, ligne, i) {
   const o = ligne && typeof ligne === "object" ? ligne : {};
   return `<div class="ligne-structure" data-index="${i}">
-    ${sous.champs.map(([k, lib]) => `
-      <label>${echapper(lib)}
-        <input data-liste-de="${echapper(cle)}" data-liste-index="${i}"
-          data-sous-cle="${echapper(k)}" value="${echapper(o[k] ?? "")}"></label>`).join("")}
+    ${sous.champs.filter(([, , , genre = {}]) => !genre.si || (ETAT.configuration || {})[genre.si]).map(([k, lib, aide, genre = {}]) => {
+      const val = valeurEn(o, k);
+      const attrs = `data-liste-de="${echapper(cle)}" data-liste-index="${i}"
+          data-sous-cle="${echapper(k)}" ${aide ? `placeholder="${echapper(aide)}"` : ""}`;
+      const v = echapper(val ?? "");
+      const champ = genre.date && /^(\d{4}-\d{2}-\d{2})?$/.test(String(val ?? ""))
+        ? `<input type="date" ${attrs} value="${v}">`
+        : genre.codesAtmp ? `<input ${attrs} list="codes-atmp" maxlength="7" value="${v}">`
+        : genre.decimal ? `<input ${attrs} inputmode="decimal" value="${v}">`
+        : `<input ${attrs} value="${v}">`;
+      return `<label>${echapper(lib)} ${champ}</label>`;
+    }).join("")}
     <button type="button" class="retirer-ligne" title="retirer cette ligne">✕</button>
+    ${o.nic ? `<p class="aide ligne-dit" data-ligne-nic="${echapper(o.nic)}"></p>` : ""}
   </div>`;
 }
 
@@ -1422,27 +1052,15 @@ function ligneStructure(cle, sous, ligne, i) {
  * besoin pour pouvoir l'enregistrer avant de partir. */
 let FICHE_COURANTE = null;
 
-/* La mention « facultatif », a cote du libelle d'un champ qu'on peut
- * laisser vide (FACULTATIFS). */
-function facultatif(c) {
-  return (FACULTATIFS[FICHE_ACTIVE] || []).includes(c.cle)
-    ? ' <span class="facultatif">facultatif</span>' : "";
-}
-
-/* LE MÉTIER, en tête du bloc « Emploi » (revu le 30/09/2026). Un seul
- * déroulant, qui montre le métier de la fiche (son code France Travail) —
- * il affichait « — celui de la fiche — », emprunté à l'engagement, et ne
- * disait jamais ce qui était choisi. La liste est celle des métiers cochés ;
+/* LE MÉTIER, en tête du bloc « Emploi ». Un seul
+ * déroulant, qui montre le métier de la fiche (son code France Travail). La liste est celle des métiers cochés ;
  * on en ajoute dans l'onglet Métiers, pas ici. */
 function METIER_HTML(fiche) {
   const code = ((fiche || {}).donnees || {}).code_emploi_ft || "";
   return `<div class="champ" id="config-metier">
-    <label>Métier <span class="obligatoire">*</span>
+    <label>Métier
       <select id="config-metier-choix">${optionsMetiers(code, "— choisir —")}</select></label>
-    <div class="note">C'est du métier que viennent le statut, la catégorie et les codes que la DPAE et la DSN
-      déclarent ; l'intitulé du contrat s'en remplit, et se retouche ensuite.</div>
-    <div class="discret petit">Un métier manque ? L'ajouter dans
-      <button type="button" class="lien" id="aller-metiers">Configuration › Métiers</button>.</div>
+    <div class="discret petit"><button type="button" class="lien" id="aller-metiers">Ajouter un métier</button></div>
   </div>`;
 }
 
@@ -1467,12 +1085,9 @@ async function peindreCoutAnnee() {
   const ligne = (r, annee) => {
     const d = r && (r[el.dataset.cote] || {})[el.dataset.cle];
     if (!d || (!d.bulletins && !Number(d.prevu))) return "";
-    const prevu = Number(d.prevu) ? ` · <span class="discret">+ ${echapper(euros(d.prevu))} déjà saisis pour la suite de l'année</span>` : "";
-    return `<div><b>${annee}</b> : coût employeur <b>${echapper(euros(d.cout))}</b>
-      <span class="discret">— brut ${echapper(euros(d.brut))}, charges ${echapper(euros(d.charges))},
-      ${d.bulletins} bulletin${d.bulletins > 1 ? "s" : ""}${d.incomplet ? ", coût incomplet avant PuppetPaie" : ""}</span>${prevu}</div>`;
+    return `<div><b>${annee}</b> : ${echapper(d.phrase)}</div>`;
   };
-  el.innerHTML = `<span class="discret">Coût de l'année…</span>`;
+  el.innerHTML = `<span class="discret">Coût…</span>`;
   const [cette, avant] = await Promise.all([coutsDe(an), coutsDe(an - 1)]);
   if (!el.isConnected) return;
   el.innerHTML = ligne(cette, an) + ligne(avant, an - 1);
@@ -1499,20 +1114,20 @@ async function dessinerMetiers(cible) {
       && (!filtre || sansAccent(m.libelle).includes(filtre) || sansAccent(m.code).includes(filtre)));
     const familles = [...new Set(vus.map((m) => m.famille))];
     const retenus = r.metiers.filter((m) => m.retenu).length;
-    document.getElementById("metiers-compte").textContent =
-      `${retenus} métier${retenus > 1 ? "s" : ""} coché${retenus > 1 ? "s" : ""}`;
+    document.getElementById("metiers-compte").innerHTML =
+      `<span>Métiers cochés</span> <b>${retenus}</b>`;
     document.getElementById("metiers-liste").innerHTML = familles.length ? familles.map((f) => {
       const dedans = vus.filter((m) => m.famille === f);
       const n = dedans.filter((m) => m.retenu).length;
-      return `<details class="metiers-famille"${filtre ? " open" : ""}>
-        <summary><b>${echapper(f)}</b> <span class="discret">${n} coché${n > 1 ? "s" : ""} sur ${dedans.length}</span></summary>
+      return `<details class="metiers-famille" data-famille="${echapper(f)}"${filtre ? " open" : ""}>
+        <summary><b>${echapper(f)}</b> <span class="discret">${n} / ${dedans.length}</span></summary>
         <div class="metiers-colonnes">${dedans.map((m) => `
           <label class="coche" title="${echapper(m.code)}${m.de ? " — " + echapper(m.de) : ""}">
             <input type="checkbox" data-code="${echapper(m.code)}"${m.retenu ? " checked" : ""}>
             ${echapper(m.libelle)}${m.de ? ` <span class="discret">· autre convention</span>` : ""}
           </label>`).join("")}</div>
       </details>`;
-    }).join("") : `<p class="discret">Aucun métier ne correspond.</p>`;
+    }).join("") : `<p class="discret">Aucun métier</p>`;
     document.querySelectorAll("#metiers-liste input[data-code]").forEach((c) => {
       c.onchange = async () => {
         try {
@@ -1521,10 +1136,10 @@ async function dessinerMetiers(cible) {
           ETAT.emplois_autres = x.emplois_autres;
           const m = r.metiers.find((y) => y.code === c.dataset.code);
           if (m) m.retenu = c.checked;
-          const garde = [...document.querySelectorAll("#metiers-liste details[open] summary b")].map((b) => b.textContent);
+          const garde = [...document.querySelectorAll("#metiers-liste details[open]")].map((d) => d.dataset.famille);
           peindre();
           document.querySelectorAll("#metiers-liste details").forEach((d) => {
-            if (garde.includes(d.querySelector("summary b").textContent)) d.open = true;
+            if (garde.includes(d.dataset.famille)) d.open = true;
           });
         } catch (e) { c.checked = !c.checked; dire(e.message, "erreur"); }
       };
@@ -1532,15 +1147,13 @@ async function dessinerMetiers(cible) {
   };
   cible.innerHTML = `
     <div class="carte">
-      <h2>Les métiers de la compagnie</h2>
-      <p class="note">Ceux qui sont cochés se proposent dans la fiche d'un
-        salarié et dans un engagement. Ceux de votre convention collective
-        le sont d'office.</p>
+      <h2>Métiers de la compagnie</h2>
+      <p class="note">${echapper(r.phrase)}</p>
       <div class="metiers-outils">
-        <input type="search" id="metiers-filtre" placeholder="Chercher un métier…"
+        <input type="search" id="metiers-filtre" placeholder="Chercher"
                value="${echapper(METIERS_FILTRE)}">
         <label class="coche"><input type="checkbox" id="metiers-tous"${METIERS_TOUS ? " checked" : ""}>
-          montrer aussi les autres conventions</label>
+          autres conventions aussi</label>
         <span id="metiers-compte" class="discret"></span>
       </div>
       <div id="metiers-liste"></div>
@@ -1565,13 +1178,10 @@ async function dessinerOrganismes(cible) {
     ? `<span>${echapper(c[k]) || "—"}</span>`
     : `<input type="text" data-contrat="${echapper(c.cle)}" data-champ="${k}" value="${echapper(c[k])}"
          placeholder="${place}" maxlength="${k === "libelle" ? 30 : 9}">`;
-  const jour = (v) => echapper(jjmmaaaa(String(v || "").slice(0, 10)));
-  const periode = (c) => c.depuis && c.jusqu_a ? `Du ${jour(c.depuis)} au ${jour(c.jusqu_a)}.`
-    : c.depuis ? `Depuis le ${jour(c.depuis)}.` : c.jusqu_a ? `Jusqu'au ${jour(c.jusqu_a)}.` : "";
   const ligne = (c) => `
     <tr>
       <td><b>${echapper(c.quoi)}</b>
-        ${periode(c) ? `<div class="note">${periode(c)}</div>` : ""}
+        ${c.periode ? `<div class="note">${echapper(c.periode)}</div>` : ""}
         ${c.note ? `<div class="note">${echapper(c.note)}</div>` : ""}</td>
       <td>${echapper(c.beneficiaires)}</td>
       <td>${champ(c, "organisme", c.organisme_fixe, "P0983")}</td>
@@ -1579,14 +1189,8 @@ async function dessinerOrganismes(cible) {
     </tr>`;
   cible.innerHTML = `
     <div class="carte">
-      <h2>Les organismes et les contrats de la DSN</h2>
-      <p class="note">Ce que la DSN déclare de vos adhésions de prévoyance et de santé.
-        La référence du contrat et le code de l'organisme se lisent sur le certificat
-        d'adhésion et sur la fiche de paramétrage DSN de l'organisme. Le reste
-        (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi,
-        de la convention et de la fiche Entreprise.</p>
-      ${r.mois ? `<p class="note">Les contrats en vigueur en ${echapper(moisEnClair(r.mois))}.</p>` : ""}
-      ${r.a_saisir ? `<p class="rappel retard">Une référence de contrat manque : la DSN refuse les salariés que ce contrat couvre tant qu'elle n'est pas enregistrée.</p>` : ""}
+      <h2>Organismes et contrats DSN</h2>
+      ${encarts(r.encarts)}
       <table class="tableau">
         <thead><tr><th>Contrat</th><th>Bénéficiaires</th><th>Organisme</th><th>Référence du contrat</th></tr></thead>
         <tbody>${r.contrats.map(ligne).join("")}</tbody>
@@ -1599,8 +1203,8 @@ async function dessinerOrganismes(cible) {
       (contrats[i.dataset.contrat] ||= {})[i.dataset.champ] = i.value.trim();
     });
     try {
-      await api("organismes-enregistrer", { contrats, ...mois });
-      dire("Organismes et contrats enregistrés.");
+      const x = await api("organismes-enregistrer", { contrats, ...mois });
+      dire(x.phrase);
       dessinerOrganismes(cible);
     } catch (e) { dire(e.message, "erreur"); }
   };
@@ -1611,16 +1215,9 @@ async function dessinerOrganismes(cible) {
  * le chemin pour la régler. La page nomme l'option, le moteur décide
  * (`calcul::deduction_forfaitaire`). */
 function DFS_HTML() {
-  const entreprise = ((ETAT.configuration || {}).entreprise || {}).donnees || {};
-  const option = String(entreprise.deduction_forfaitaire_option || "");
-  const nom = (LIBELLES_CHOIX.deduction_forfaitaire_option || {})[option] || option;
-  const phrase = option
-    ? `La compagnie l'applique (fiche de l'entreprise) : « ${echapper(nom)} ».`
-    : "La compagnie ne l'applique pas : c'est une option de l'employeur, qui se règle dans la fiche de l'entreprise (« Avancé — cas particuliers »). Une fois l'option posée, la profession et l'accord du salarié se disent ici.";
   return `<div class="encart" id="config-dfs">
-    <p>${phrase}</p>
-    <div class="actions"><button type="button" class="petit secondaire" onclick="ouvrirOptionDfs()">${
-      option ? "Voir dans la fiche de l'entreprise" : "Régler dans la fiche de l'entreprise"}</button></div>
+    <p>${echapper((ETAT.configuration || {}).deduction_forfaitaire)}</p>
+    <div class="actions"><button type="button" class="petit secondaire" onclick="ouvrirOptionDfs()">Fiche de l'entreprise</button></div>
   </div>`;
 }
 
@@ -1644,7 +1241,7 @@ async function ouvrirOptionDfs() {
 function ATMP_HTML() {
   const an = anneeDuJour();
   return `<div class="encart" id="config-atmp" data-annee="${an}">
-    <h4>Accidents du travail (AT/MP) ${an}</h4>
+    <h4>Accidents du travail (AT/MP) — ${an}</h4>
     <p id="atmp-resume"></p>
     <p class="note" id="atmp-libelle"></p>
     <p class="aide" id="atmp-explication"></p>
@@ -1653,13 +1250,12 @@ function ATMP_HTML() {
       <div class="ligne-champs">
         <label>Code risque notifié
           <select id="atmp-choix" class="hors-fiche"></select></label>
-        <label id="atmp-autre-l">Autre code (s'il n'est pas dans la liste)
+        <label id="atmp-autre-l">Autre code
           <input id="atmp-code" class="hors-fiche" maxlength="7"></label>
         <label>Taux notifié (%)
           <input id="atmp-valeur" class="hors-fiche" inputmode="decimal"></label>
       </div>
-      <div class="aide">Le taux vide : celui de l'arrêté de l'année, quand il s'applique au code choisi.
-        Avec 999ZZ, pas de taux.</div>
+      <div class="aide" id="atmp-aide"></div>
       <div class="actions"><button class="petit" id="atmp-enregistrer">Enregistrer</button>
         <span id="atmp-etat"></span></div>
     </details>
@@ -1680,6 +1276,7 @@ async function brancherAtmp() {
     $("atmp-resume").innerHTML = r.resume ? `<b>${echapper(r.resume)}</b>` : "";
     $("atmp-libelle").textContent = r.risque ? `« ${r.risque.libelle} »` : "";
     $("atmp-explication").textContent = r.explication || "";
+    $("atmp-aide").textContent = r.aide || "";
     $("atmp-ou").textContent = [r.ou_le_lire, r.ou_le_changer].filter(Boolean).join(" ");
     const codes = r.codes || [];
     const connu = codes.some((c) => c.code === t.code_risque);
@@ -1689,20 +1286,36 @@ async function brancherAtmp() {
     choix.value = connu ? t.code_risque : "";
     if (document.activeElement !== code) code.value = connu ? "" : (t.code_risque || "");
     if (document.activeElement !== valeur) valeur.value = "";
+    // Les codes que les autres établissements proposent, et ce que le
+    // moteur applique à chacun, sous sa ligne.
+    let liste = document.getElementById("codes-atmp");
+    if (!liste) {
+      liste = document.createElement("datalist");
+      liste.id = "codes-atmp";
+      document.body.appendChild(liste);
+    }
+    liste.innerHTML = codes.map((c) =>
+      `<option value="${echapper(c.code)}">${echapper(c.code_arrete || c.code)} — ${echapper(c.libelle)}</option>`).join("");
+    (r.etablissements || []).forEach((e) => {
+      const p = document.querySelector(`[data-ligne-nic="${CSS.escape(String(e.nic || ""))}"]`);
+      if (p) p.innerHTML = `<b>${echapper(e.resume || "")}</b>${e.risque ? ` — « ${echapper(e.risque.libelle)} »` : ""}. ${echapper(e.explication || "")}`;
+    });
   };
-  try { peindre(await api("taux-atmp", { annee })); } catch (e) { /* rien à montrer */ }
   $("atmp-enregistrer").onclick = async (ev) => {
     ev.preventDefault();
     try {
-      peindre(await api("taux-atmp", { annee, code_risque: choix.value || code.value,
-                                       valeur: valeur.value }));
-      etat.textContent = "Enregistré.";
+      const r = await api("taux-atmp", { annee, code_risque: choix.value || code.value,
+                                         valeur: valeur.value });
+      peindre(r);
+      etat.textContent = r.phrase;
       valeur.classList.remove("faute");
     } catch (e) {
       etat.textContent = e.message;
       valeur.classList.add("faute");
     }
   };
+  // La fiche quittée avant la réponse n'a plus ces cases : rien à peindre.
+  try { const r = await api("taux-atmp", { annee }); if (bloc.isConnected) peindre(r); } catch (e) { /* rien à montrer */ }
 }
 
 /* LA COMPLÉMENTAIRE SANTÉ D'UN PERMANENT, en tete du bloc
@@ -1720,19 +1333,16 @@ function SANTE_HTML() {
     </div>`;
   }
   return `<div class="encart" id="config-sante">
-    <label>Complémentaire santé — le contrat souscrit par ce salarié
+    <label>Complémentaire santé
       <select id="config-sante-niveau">
         <option value="">— pas encore dite —</option>
         ${(ETAT.niveaux_sante || []).map((n) =>
-          `<option value="${echapper(n.niveau)}">niveau ${echapper(n.niveau)}
-             — ${echapper(n.assure)} % du PMSS pour l'assuré seul</option>`).join("")}
+          `<option value="${echapper(n.niveau)}">${echapper(n.libelle)}</option>`).join("")}
       </select></label>
     <label class="coche"><input type="checkbox" id="config-sante-conjoint"> conjoint couvert</label>
     <label>Enfants couverts
       <input type="number" min="0" step="1" id="config-sante-enfants" value="0"></label>
-    <div class="aide">Obligatoire pour un salarié au mois (art. L911-7) : sans
-      elle, le logiciel refuse de le payer plutôt que de cotiser moins que le
-      contrat. Elle se lit sur son bulletin d'adhésion.</div>
+    <div class="aide">${echapper(ETAT.sante_aide)}</div>
   </div>`;
 }
 
@@ -1746,14 +1356,12 @@ function enteteSalarie(fiche) {
   if (fiche.cle) {
     return `<div class="entete-fiche">
       <h2>${echapper(nom || fiche.cle)}
-        ${d.code_salarie ? `<span class="discret">— matricule ${echapper(d.code_salarie)}</span>` : ""}</h2>
-      <button type="button" class="secondaire petit" id="config-exporter"
-        title="Bulletins, contrats, certificats de l'année : l'onglet Exports, ce salarié déjà choisi"
-        >Exporter ses documents</button>
+        ${fiche.matricule_dit ? `<span class="discret">— ${echapper(fiche.matricule_dit)}</span>` : ""}</h2>
+      <button type="button" class="secondaire petit" id="config-exporter">Exporter ses documents</button>
     </div>
     <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
-    <!-- SES IMPRÉVUS (15/10/2026) : ses arrêts et ses absences, passés et en
-         cours, ce qui en est parti, et la porte « Un imprévu… ». js/imprevus.js. -->
+    <!-- SES IMPRÉVUS : ses arrêts et ses absences, passés et en
+         cours, ce qui en est parti, et la porte « Imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>
     <!-- CE QUE VOS CONTRATS FONT POUR SES DROITS : les conseils sur
          l'historique, quand l'option « conseils » est cochée. js/conseils.js. -->
@@ -1762,60 +1370,57 @@ function enteteSalarie(fiche) {
       ? `<div class="encart">${echapper(d.fiche_recue)}</div>` : ""}`;
   }
   const lie = !!(ETAT.configuration || {}).boite_liee;
+  const inv = (ETAT.configuration || {}).invitation || {};
   return `<h2>Nouveau salarié</h2>
     <div class="encart invitation">
-      <h3>La faire remplir par la personne</h3>
-      <p class="aide">Elle reçoit un courriel avec un bouton : une réponse
-        s'ouvre avec les questions (identité, naissance, numéro de sécurité
-        sociale, adresse, compte bancaire), elle y répond et l'envoie. Sa fiche se crée
-        seule à l'arrivée de la réponse ; il vous restera l'emploi à
-        choisir.</p>
+      <h3>À faire remplir</h3>
+      <p class="aide">${echapper(inv.aide)}</p>
       ${lie ? `<div class="champs">
         <div class="champ"><label>Son courriel
           <input type="email" id="invitation-courriel" placeholder="prenom.nom@exemple.fr"></label></div>
-        <div class="champ"><label>Son prénom <span class="facultatif">facultatif</span>
+        <div class="champ"><label>Son prénom
           <input id="invitation-prenom" placeholder="pour dire bonjour"></label></div>
       </div>
       <div class="actions">
         <button type="button" class="primaire" id="invitation-envoyer">Envoyer la demande</button>
-      </div>` : `<p class="note">Il faut d'abord lier la boîte courriel de la
-        compagnie (Configuration › Mots de passe).</p>`}
+      </div>` : `<p class="note">${echapper(inv.sans_boite)}</p>`}
     </div>
-    <p class="note">Ou remplissez la fiche vous-même ci-dessous. Le matricule
-      se donne à l'enregistrement.</p>`;
+    <p class="note">${echapper(inv.ou)}</p>`;
 }
 
 
 /* SUPPRIMER LA COMPAGNIE , sous la fiche Entreprise. Le moteur dit si elle se supprime
    (`supprimable` de la route `etat` : jamais une fictive livrée, qui se remet à zéro) et ce que la boîte demande
-   (`compagnie-suppression`) : une compagnie créée en démo, une confirmation ; une compagnie réelle, le rappel de la
-   conservation des bulletins, la sauvegarde si un Drive est lié, puis le mot de passe du logiciel (le popup de chaque acte
-   qui engage, `demanderMotDePasse`). La fenêtre supprime (`pywebview.api.supprimer`) et revient à l'accueil. */
+   (`compagnie-supprimer`, sans `confirme`) : ce qui sera effacé ; une compagnie réelle, le rappel de la conservation des
+   bulletins, la sauvegarde si un Drive est lié, puis le mot de passe du logiciel (le popup de chaque acte qui engage,
+   `demanderMotDePasse`). La même route, confirmée, supprime ; la page revient à l'accueil. */
 function dessinerSuppression() {
   const zone = document.getElementById("config-suppression");
   if (!zone) return;
   if (FICHE_ACTIVE !== "entreprise" || !ETAT || !ETAT.supprimable) { zone.innerHTML = ""; return; }
   zone.innerHTML = `<div class="encart attention suppression-compagnie">
-      <b>Supprimer cette compagnie</b>
-      Tout son dossier est effacé de ce poste : fiches, paies, documents, journaux.
-      <div class="actions"><button type="button" class="secondaire alerte" id="supprimer-compagnie">Supprimer cette compagnie…</button></div>
+      <b>Supprimer la compagnie</b>
+      ${echapper(ETAT.suppression)}
+      <div class="actions"><button type="button" class="secondaire alerte" id="supprimer-compagnie">Supprimer la compagnie</button></div>
     </div>`;
   document.getElementById("supprimer-compagnie").onclick = boiteSuppression;
 }
 
 async function boiteSuppression() {
   let q;
-  try { q = await api("compagnie-suppression"); }
+  try { q = await api("compagnie-supprimer"); }
   catch (e) { dire(e.message, "erreur"); return; }
+  // Une compagnie qui ne se supprime pas : le moteur dit pourquoi.
+  if (!q.genre) { dire(q.phrase, "erreur"); return; }
   const reelle = q.genre === "reelle";
   const s = q.sauvegarde || {};
   const sauvegarde = reelle && s.liee
-    ? `<p>${s.derniere ? "Dernière sauvegarde dans le Drive : " + echapper(quand(s.derniere)) + "." : "Aucune sauvegarde n'est encore partie dans le Drive."}</p>
+    ? `<p>${echapper(s.phrase)}</p>
        <p><button type="button" class="secondaire" id="sup-sauvegarder">Sauvegarder maintenant</button>
        <span class="discret" id="sup-sauvegarde-etat"></span></p>`
     : "";
-  ouvrirBoite(`<h3>Supprimer ${echapper(q.nom)} ?</h3>
-    <p>Tout le dossier de cette compagnie sera effacé de ce poste : fiches, paies, documents, journaux. Cela ne se défait pas.</p>
+  ouvrirBoite(`<h3>${echapper(q.titre_dit)}</h3>
+    <p>${echapper(q.avertissement)}</p>
     ${reelle ? `<p>${echapper(q.conservation)}</p>` : ""}
     ${sauvegarde}
     <p class="erreur" id="sup-erreur"></p>
@@ -1828,22 +1433,22 @@ async function boiteSuppression() {
   if (bSauve) bSauve.onclick = async () => {
     const etat = document.getElementById("sup-sauvegarde-etat");
     bSauve.disabled = true;
-    etat.textContent = "sauvegarde en cours…";
+    etat.textContent = "…";
     try {
       const v = await api("sauvegarde-maintenant");
-      const d = v && v.sauvegarde;
-      etat.textContent = v && v.erreur ? v.erreur
-        : d && d.quand ? "sauvegardée le " + quand(d.quand) + "." : "faite.";
+      etat.textContent = v.phrase;
     } catch (e) { etat.textContent = e.message; }
     bSauve.disabled = false;
   };
   document.getElementById("sup-confirmer").onclick = async () => {
     let mdp = "";
     if (q.mot_de_passe) {
-      mdp = await demanderMotDePasse("supprimer définitivement " + q.nom);
+      mdp = await demanderMotDePasse("Supprimer définitivement");
       if (mdp === null) return;
     }
-    const r = await window.pywebview.api.supprimer(mdp);
-    if (!r || !r.ok) document.getElementById("sup-erreur").textContent = (r && r.erreur) || "Rien n'a été supprimé.";
+    try {
+      await api("compagnie-supprimer", { confirme: true, ...(mdp ? { motdepasse: mdp } : {}) });
+      location.replace("/");
+    } catch (e) { document.getElementById("sup-erreur").textContent = e.message; }
   };
 }

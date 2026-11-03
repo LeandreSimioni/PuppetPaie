@@ -1,0 +1,265 @@
+AD	EUR	ANDORRE                             	                   	                                    	                   
+AE	AED	EMIRATS ARABES UNIS                 	                   	                                    	                   
+AF	AFA	AFGHANISTAN                         	                   	NLE MONNAIE A/C 01/11/03 REMPLACE AF	A                  
+AF	AFN	AFGHANISTAN                         	                   	NLE MONNAIE A/C 01/11/03 REMPLACE AF	A                  
+AG	XCD	ANTIGUA                             	                   	                                    	                   
+AI	XCD	ANGUILLA                            	                   	                                    	                   
+AL	ALL	ALBANIE                             	                   	                                    	                   
+AM	AMD	ARMENIE                             	                   	CREATION LE 26/11/93                	                   
+AO	AOA	ANGOLA                              	                   	STOP NLE MONNAIE A/C 01/11/03 REMPLA	CE AOK             
+AO	AOK	ANGOLA                              	                   	STOP NLE MONNAIE A/C 01/11/03 REMPLA	CE AOK             
+AO	AOR	ANGOLA                              	                   	STOP NLE MONNAIE A/C 01/11/03 REMPLA	CE AOK             
+AR	ARS	ARGENTINE                           	                   	                                    	                   
+AT	EUR	AUTRICHE                            	                   	CF TX CONVERSION EURO A/C 01/01/1999	                   
+AU	AUD	AUSTRALIE                           	                   	                                    	                   
+AW	USD	ARUBA                               	                   	                                    	                   
+AZ	AZM	AZERBAIDJAN                         	                   	CREATION LE 29/07/93                	                   
+AZ	AZN	AZERBAIDJAN                         	                   	CREATION LE 29/07/93                	                   
+BA	BAM	BOSNIE-HERZEGOVINE                  	                   	CREATION A COMPTER DU 16/12/1998    	                   
+BB	BBD	BARBADE                             	                   	                                    	                   
+BD	BDT	BANGLADESH                          	                   	                                    	                   
+BE	EUR	BELGIQUE                            	                   	CF. BX POUR MISSIONS BRUXELLES CEE  	< 24 H.            
+BF	XOF	BURKINA FASO                        	                   	                                    	                   
+BG	BGL	BULGARIE                            	                   	BGN : 06/07/99 - EURO : 01/01/2026  	                   
+BG	BGN	BULGARIE                            	                   	BGN : 06/07/99 - EURO : 01/01/2026  	                   
+BG	EUR	BULGARIE                            	                   	BGN : 06/07/99 - EURO : 01/01/2026  	                   
+BH	BHD	BAHREIN                             	                   	                                    	                   
+BI	BIF	BURUNDI                             	                   	                                    	                   
+BJ	XOF	BENIN                               	                   	                                    	                   
+BM	BMD	BERMUDES                            	                   	                                    	                   
+BN	BND	BRUNEI DARUSSALAM                   	                   	                                    	                   
+BO	BOB	BOLIVIE                             	                   	                                    	                   
+BR	BRL	BRESIL                              	                   	                                    	                   
+BS	BSD	BAHAMAS                             	                   	                                    	                   
+BT	BTN	BHOUTAN                             	                   	                                    	                   
+BU	MMK	MYANMAR (ANC.BIRMANIE)              	                   	MMK REMPLACE ANCIEN CODE BUK A/C 16/	12/1998            
+BW	BWP	BOTSWANA                            	                   	                                    	                   
+BX	EUR	BRUXELLES                           	                   	SUPPRESSION MISSIONS CEE < 24 H A CO	MPTER DU 21/10/2009
+BY	BYB	BIELORUSSIE                         	                   	STOP NLE MONNAIE A/C 01/11/2003 REMP	LACE BYB           
+BY	BYN	BIELORUSSIE                         	                   	STOP NLE MONNAIE A/C 01/11/2003 REMP	LACE BYB           
+BY	BYR	BIELORUSSIE                         	                   	STOP NLE MONNAIE A/C 01/11/2003 REMP	LACE BYB           
+BZ	BZD	BELIZE                              	                   	                                    	                   
+CA	CAD	CANADA                              	                   	                                    	                   
+CC	NLG	CURACAO (ANCIEN CODE PAYS)          	                   	UTILISé AVANT LE 01/01/2013         	                   
+CD	CDF	CONGO (REPUBLIQUE DEMOCRATIQUE DU)  	                   	                                    	                   
+CF	XAF	CENTRAFRICAINE (REPUBLIQUE)         	                   	                                    	                   
+CG	XAF	CONGO                               	                   	                                    	                   
+CH	CHF	SUISSE                              	                   	                                    	                   
+CI	XOF	COTE D'IVOIRE                       	                   	                                    	                   
+CK	NZD	COOK (ILES)                         	                   	                                    	                   
+CL	CLP	CHILI                               	                   	                                    	                   
+CM	XAF	CAMEROUN                            	                   	                                    	                   
+CN	CNY	CHINE                               	                   	                                    	                   
+CO	COP	COLOMBIE                            	                   	                                    	                   
+CR	CRC	COSTA RICA                          	                   	                                    	                   
+CS	CSD	SERBIE-MONTENEGRO                   	                   	EX-YOUGOSLAVIE                      	                   
+CU	CUI	CUBA                                	                   	STOP! 2 MONNAIES (CUP ET CUI) AU 01/	06/1995            
+CU	CUP	CUBA                                	                   	STOP! 2 MONNAIES (CUP ET CUI) AU 01/	06/1995            
+CV	CVE	CAP-VERT                            	                   	                                    	                   
+CW	ANG	CURACAO (NOUVEAU CODE PAYS)         	                   	CODE PAYS ISO                       	                   
+CY	CYP	CHYPRE                              	                   	                                    	                   
+CY	EUR	CHYPRE                              	                   	                                    	                   
+CZ	CZK	TCHEQUE (REPUBLIQUE)                	                   	CZ REMPLACE ANCIEN CODE CS A/C 16/12	/1998              
+DE	EUR	ALLEMAGNE (REPUBLIQUE FEDERALE D')  	                   	CF TX CONVERSION EURO A/C 01/01/1999	                   
+DJ	DJF	DJIBOUTI                            	                   	                                    	                   
+DK	DKK	DANEMARK                            	                   	                                    	                   
+DM	XCD	DOMINIQUE                           	                   	                                    	                   
+DO	DOP	DOMINICAINE (REPUBLIQUE)            	                   	                                    	                   
+DZ	DZD	ALGERIE                             	                   	                                    	                   
+EC	ECS	EQUATEUR                            	                   	USD A/C 01/07/2001 REMPLACE CODE ECS	                   
+EC	USD	EQUATEUR                            	                   	USD A/C 01/07/2001 REMPLACE CODE ECS	                   
+EE	EEK	ESTONIE                             	                   	REMPLACE ANCIEN CODE EN A/C 16/12/19	98                 
+EE	EUR	ESTONIE                             	                   	REMPLACE ANCIEN CODE EN A/C 16/12/19	98                 
+EG	EGP	EGYPTE (REPUBLIQUE ARABE D')        	                   	                                    	                   
+ER	ERN	ERYTHREE                            	                   	CREATION TAUX DE CHANGE NAKFA (ERN) 	A/C 16/12/2000     
+ES	EUR	ESPAGNE                             	                   	CF TX CONVERSION EURO A/C 01/01/1999	                   
+ET	ETB	ETHIOPIE                            	                   	                                    	                   
+EU	EUR	UNION ECONOMIQUE ET MONETAIRE       	                   	NELLE MONNAIE A/C DU 01/01/1999     	                   
+FI	EUR	FINLANDE                            	                   	                                    	                   
+FJ	FJD	FIDJI                               	                   	                                    	                   
+FM	USD	MICRONESIE                          	                   	                                    	                   
+GA	XAF	GABON                               	                   	                                    	                   
+GB	GBP	GRANDE-BRETAGNE                     	                   	                                    	                   
+GD	XCD	GRENADE                             	                   	A/C 01/10/2001 VOIR SAINTE-LUCIE (LC	)                  
+GE	GEL	GEORGIE                             	                   	CREATION LE 01/01/94                	                   
+GH	GHC	GHANA                               	                   	                                    	                   
+GH	GHS	GHANA                               	                   	                                    	                   
+GM	GMD	GAMBIE                              	                   	                                    	                   
+GN	GNF	GUINEE (CONAKRY)                    	                   	                                    	                   
+GQ	XAF	GUINEE EQUATORIALE                  	                   	                                    	                   
+GR	EUR	GRECE                               	                   	CF TAUX CONVERSION EURO A/C DU 01/01	/2001              
+GT	GTQ	GUATEMALA                           	                   	                                    	                   
+GW	GWP	GUINEE BISSAU                       	                   	                                    	                   
+GW	XOF	GUINEE BISSAU                       	                   	                                    	                   
+GY	GYD	GUYANA (GEORGETOWN)                 	                   	                                    	                   
+HK	HKD	HONG-KONG                           	                   	                                    	                   
+HN	HNL	HONDURAS                            	                   	                                    	                   
+HR	EUR	CROATIE                             	                   	A COMPTER DU 1ER JANVIER 2023       	                   
+HR	HRK	CROATIE                             	                   	A COMPTER DU 1ER JANVIER 2023       	                   
+HT	HTG	HAITI                               	                   	                                    	                   
+HT	USD	HAITI                               	                   	                                    	                   
+HU	HUF	HONGRIE                             	                   	                                    	                   
+ID	IDR	INDONESIE                           	                   	                                    	                   
+IE	EUR	IRLANDE                             	                   	CF TX CONVERSION EURO A/C 01/01/1999	                   
+IL	ILS	ISRAEL                              	                   	                                    	                   
+IN	INR	INDE                                	                   	                                    	                   
+IQ	IQD	IRAK                                	                   	                                    	                   
+IR	IRR	IRAN                                	                   	                                    	                   
+IS	ISK	ISLANDE                             	                   	                                    	                   
+IT	EUR	ITALIE                              	                   	CF TX CONVERSION EURO A/C 01/01/1999	                   
+JM	JMD	JAMAIQUE                            	                   	                                    	                   
+JO	JOD	JORDANIE                            	                   	                                    	                   
+JP	JPY	JAPON                               	                   	                                    	                   
+KE	KES	KENYA                               	                   	                                    	                   
+KG	KGS	KIRGHIZIE                           	                   	                                    	                   
+KH	KHR	CAMBODGE                            	                   	KH REMPLACE ANCIEN CODE CB A/C 16/12	/1998              
+KI	AUD	KIRIBATI                            	                   	                                    	                   
+KM	KMF	COMORES                             	                   	                                    	                   
+KN	XCD	SAINT-KITTS-ET-NEVIS                	                   	                                    	                   
+KP	KPW	COREE DU NORD                       	                   	A COMPTER DU 01 NOVEMBRE 1998       	                   
+KR	KRW	COREE DU SUD                        	                   	                                    	                   
+KW	KWD	KOWEIT                              	                   	                                    	                   
+KY	KYD	CAIMANS (ILES)                      	                   	                                    	                   
+KZ	KZT	KAZAKHSTAN                          	                   	CREATION LE 18/11/93                	                   
+LA	LAK	LAOS                                	                   	                                    	                   
+LB	LBP	LIBAN                               	                   	                                    	                   
+LC	XCD	SAINTE-LUCIE ET LES AUTRES PAYS DES 	CARAIBES DE L'EST  	A/C 01/10/2001                      	                   
+LG	EUR	LUXEMBOURG (VILLE)                  	                   	SUPPRESSION MISSIONS CEE < 24 H A CO	MPTER DU 21/10/2009
+LI	CHF	LIECHTENSTEIN                       	                   	                                    	                   
+LK	LKR	SRI LANKA (EX CEYLAN)               	                   	                                    	                   
+LR	LRD	LIBERIA                             	                   	                                    	                   
+LS	ZAR	LESOTHO                             	                   	                                    	                   
+LT	EUR	LITUANIE                            	                   	CREATION LE 19/11/92                	                   
+LT	LTL	LITUANIE                            	                   	CREATION LE 19/11/92                	                   
+LU	EUR	LUXEMBOURG                          	                   	CF. LV POUR MISSIONS LUX. VILLE CEE 	< 24 H.            
+LV	EUR	LETTONIE                            	                   	LATS REMPLACé PAR L'EURO à COMPTER D	U 1ER JANVIER 2014 
+LV	LVL	LETTONIE                            	                   	LATS REMPLACé PAR L'EURO à COMPTER D	U 1ER JANVIER 2014 
+LY	LYD	LIBYE                               	                   	                                    	                   
+MA	MAD	MAROC                               	                   	                                    	                   
+MC	EUR	MONACO                              	                   	                                    	                   
+MD	MDL	MOLDAVIE                            	                   	CREATION LE 01/01/94                	                   
+ME	EUR	MONTENEGRO                          	                   	                                    	                   
+MG	MGA	MADAGASCAR                          	                   	NLE MONNAIE A/C 01/08/03 ; 1MGA=5MGF	                   
+MG	MGF	MADAGASCAR                          	                   	NLE MONNAIE A/C 01/08/03 ; 1MGA=5MGF	                   
+MH	USD	MARSHALL (ILES)                     	                   	                                    	                   
+MK	MKD	MACEDOINE                           	                   	REMPLACE ANCIEN CODE MC A/C 16/12/19	98                 
+ML	XOF	MALI                                	                   	                                    	                   
+MM	MMF	BIRMANIE                            	                   	MMK REMPLACE ANCIEN CODE BUK A/C 16/	12/1998            
+MM	MMK	BIRMANIE                            	                   	MMK REMPLACE ANCIEN CODE BUK A/C 16/	12/1998            
+MN	MNT	MONGOLIE                            	                   	                                    	                   
+MO	MOP	MACAO                               	                   	                                    	                   
+MR	MRO	MAURITANIE                          	                   	                                    	                   
+MR	MRU	MAURITANIE                          	                   	                                    	                   
+MT	EUR	MALTE                               	                   	MTL REMPLACE ANCIEN CODE MONNAIE MTP	A/C 16/12/98       
+MT	MTL	MALTE                               	                   	MTL REMPLACE ANCIEN CODE MONNAIE MTP	A/C 16/12/98       
+MU	MUR	MAURICE                             	                   	                                    	                   
+MV	MVR	MALDIVES                            	                   	                                    	                   
+MW	MWK	MALAWI                              	                   	                                    	                   
+MX	MXN	MEXIQUE                             	                   	MXN REMPLACE ANCIEN CODE MXP A/C 16/	12/1998            
+MY	MYR	MALAISIE                            	                   	                                    	                   
+MZ	MZM	MOZAMBIQUE                          	                   	NLE MONNAIE : MZN A/C 01/07/06      	                   
+MZ	MZN	MOZAMBIQUE                          	                   	NLE MONNAIE : MZN A/C 01/07/06      	                   
+NA	NAD	NAMIBIE                             	                   	                                    	                   
+NC	XPF	NOUVELLE-CALEDONIE                  	                   	"1000 FCFP=8.38 EURO POUR INFO TAUX 	 DIRECT VOIR XPF"  
+NE	XOF	NIGER                               	                   	                                    	                   
+NG	NGN	NIGERIA                             	                   	                                    	                   
+NI	NIO	NICARAGUA                           	                   	                                    	                   
+NL	EUR	PAYS-BAS                            	                   	CF TX CONVERSION EURO A/C 01/01/1999	                   
+NO	NOK	NORVEGE                             	                   	                                    	                   
+NP	NPR	NEPAL                               	                   	                                    	                   
+NR	AUD	NAURU                               	                   	                                    	                   
+NU	NZD	NIUE                                	                   	                                    	                   
+NV	NGN	NIGERIA VILLES DE ABUJA LAGOS ET POR	T-HARCOURT         	CRéé LE 16/05/2023 UNIQUEMENT POUR L	ES FRAIS DE MISSION
+NY	USD	NEW-YORK CITY                       	                   	                                    	                   
+NZ	NZD	NOUVELLE-ZELANDE                    	                   	                                    	                   
+OM	OMR	OMAN                                	                   	                                    	                   
+PA	PAB	PANAMA                              	                   	                                    	                   
+PE	PEN	PEROU                               	                   	                                    	                   
+PF	XPF	POLYNESIE FRANCAISE                 	                   	"1000 FCFP = 8.38 EURO POUR INFO TAU	X DIRECT VOIR XPF" 
+PG	PGK	NOUVELLE-GUINEE PAPOUASIE           	                   	                                    	                   
+PH	PHP	PHILIPPINES                         	                   	                                    	                   
+PK	PKR	PAKISTAN                            	                   	                                    	                   
+PL	PLN	POLOGNE                             	                   	PLN REMPLACE ANCIEN CODE PLZ A/C 16/	12/1998            
+PM	EUR	SAINT-PIERRE-ET-MIQUELON            	                   	                                    	                   
+PS	ILS	TERRITOIRES PALESTINIENS            	                   	                                    	                   
+PT	EUR	PORTUGAL                            	                   	CF TX CONVERSION EURO A/C 01/01/1999	                   
+PW	USD	ILES PALAOS                         	                   	OU PALAU (REPUBLIQUE DE) CREE 01.08.	04                 
+PY	PYG	PARAGUAY                            	                   	                                    	                   
+QA	QAR	QATAR                               	                   	                                    	                   
+RO	ROL	ROUMANIE                            	                   	                                    	                   
+RO	RON	ROUMANIE                            	                   	                                    	                   
+RS	RSD	SERBIE                              	                   	                                    	                   
+RU	RUB	RUSSIE                              	                   	RUB REMPLACE ANCIEN CODE RUR A/C 16/	12/1998            
+RW	RWF	RWANDA                              	                   	                                    	                   
+SA	SAR	ARABIE SAOUDITE                     	                   	                                    	                   
+SB	SBD	SALOMON (ILES)                      	                   	                                    	                   
+SC	SCR	SEYCHELLES                          	                   	                                    	                   
+SD	SDD	SOUDAN                              	                   	CODE ISO DEFINITIF:SDG A/C 16/03/07 	                   
+SD	SDG	SOUDAN                              	                   	CODE ISO DEFINITIF:SDG A/C 16/03/07 	                   
+SD	SDN	SOUDAN                              	                   	CODE ISO DEFINITIF:SDG A/C 16/03/07 	                   
+SE	SEK	SUEDE                               	                   	                                    	                   
+SG	SGD	SINGAPOUR                           	                   	                                    	                   
+SH	CNY	SHANGHAI                            	                   	                                    	                   
+SI	EUR	SLOVENIE                            	                   	ZONE EURO A/C 01/01/2007            	                   
+SI	SIT	SLOVENIE                            	                   	ZONE EURO A/C 01/01/2007            	                   
+SK	EUR	SLOVAQUIE                           	                   	REMPLACE ANCIENS CODES SQ-SQK A/C DU	16/12/1998         
+SK	SKK	SLOVAQUIE                           	                   	REMPLACE ANCIENS CODES SQ-SQK A/C DU	16/12/1998         
+SL	SLE	SIERRA LEONE                        	                   	                                    	                   
+SL	SLL	SIERRA LEONE                        	                   	                                    	                   
+SN	XOF	SENEGAL                             	                   	                                    	                   
+SO	SOS	SOMALIE                             	                   	                                    	                   
+SR	SRD	SURINAM                             	                   	NLE MONNAIE A/C 01/02/04 FLORIN CIRC	ULE ENCORE         
+SR	SRG	SURINAM                             	                   	NLE MONNAIE A/C 01/02/04 FLORIN CIRC	ULE ENCORE         
+SS	SSP	REPUBLIQUE DU SOUDAN DU SUD         	                   	NOUVEAU PAYS CRéé LE 9 JUILLET 2011 	SUITE à RéFéRENDUM 
+ST	STD	SAO TOME-ET-PRINCIPE                	                   	                                    	                   
+ST	STN	SAO TOME-ET-PRINCIPE                	                   	                                    	                   
+SV	SVC	SALVADOR                            	                   	                                    	                   
+SV	USD	SALVADOR                            	                   	                                    	                   
+SY	SYP	SYRIE                               	                   	                                    	                   
+SZ	SZL	SWAZILAND                           	                   	                                    	                   
+TD	XAF	TCHAD                               	                   	                                    	                   
+TG	XOF	TOGO                                	                   	                                    	                   
+TH	THB	THAILANDE                           	                   	                                    	                   
+TI	USD	TIMOR EST                           	                   	                                    	                   
+TJ	TJR	TADJIKISTAN                         	                   	STOP! NOUVELLE MONNAIE TJS A/C 16/11	/2000              
+TJ	TJS	TADJIKISTAN                         	                   	STOP! NOUVELLE MONNAIE TJS A/C 16/11	/2000              
+TM	TMM	TURKMENISTAN                        	                   	CREATION LE 26/11/93                	                   
+TM	TMT	TURKMENISTAN                        	                   	CREATION LE 26/11/93                	                   
+TN	TND	TUNISIE                             	                   	                                    	                   
+TO	TOP	TONGA                               	                   	                                    	                   
+TR	TRL	TURQUIE                             	                   	                                    	                   
+TR	TRY	TURQUIE                             	                   	                                    	                   
+TT	TTD	TRINITE ET TOBAGO                   	                   	                                    	                   
+TV	AUD	TUVALU                              	                   	                                    	                   
+TW	TWD	TAIWAN (EX FORMOSE)                 	                   	                                    	                   
+TY	JPY	TOKYO                               	                   	                                    	                   
+TZ	TZS	TANZANIE                            	                   	                                    	                   
+UA	UAH	UKRAINE                             	                   	UAH REMPLACE ANCIEN CODE UAG A/C 16/	12/1998            
+UG	UGX	OUGANDA                             	                   	                                    	                   
+US	USD	ETATS-UNIS                          	                   	CF. NY POUR MISSIONS NEW-YORK       	                   
+UY	UYU	URUGUAY                             	                   	UYU REMPLACE ANCIEN CODE UYP        	                   
+UZ	UZS	OUZBEKISTAN                         	                   	CREATION LE 26/11/93                	                   
+VC	XCD	SAINT-VINCENT                       	                   	A/C 01/10/2001 VOIR SAINTE-LUCIE (LC	)                  
+VE	VEB	VENEZUELA                           	                   	                                    	                   
+VE	VEF	VENEZUELA                           	                   	                                    	                   
+VE	VES	VENEZUELA                           	                   	                                    	                   
+VL	XOF	TOGO VILLE DE LOME                  	                   	CRÉÉ LE 10/07/24 POUR LES FRAIS DE M	ISSION             
+VN	VND	VIETNAM                             	                   	                                    	                   
+VT	CAD	CANADA VILLE DE TORONTO             	                   	CRÉÉ LE 10/07/24 POUR LES FRAIS DE M	ISSION             
+VU	VUV	VANUATU                             	                   	                                    	                   
+VV	CAD	CANADA VILLE DE VANCOUVER           	                   	CRÉÉ LE 10/07/24 POUR LES FRAIS DE M	ISSION             
+WF	XPF	WALLIS ET FUTUNA ILES               	                   	"1000 FCFP = 8.38 EURO POUR INFO TAU	X DIRECT VOIR XPF" 
+WS	WST	SAMOA OCCIDENTALES                  	                   	                                    	                   
+XC	XCD	CARAIBES ORIENTALES                 	                   	                                    	                   
+XK	EUR	KOSOVO                              	                   	CODE INTERNATIONAL                  	                   
+YE	YER	YEMEN (REPUBLIQUE DU)               	                   	                                    	                   
+YT	EUR	MAYOTTE                             	                   	                                    	                   
+YU	YUM	YOUGOSLAVIE (VOIR SERBIE-MONTENEGRO)	                   	                                    	                   
+ZA	ZAR	AFRIQUE DU SUD                      	                   	                                    	                   
+ZM	ZMK	ZAMBIE                              	                   	                                    	                   
+ZM	ZMW	ZAMBIE                              	                   	                                    	                   
+ZW	ZIG	ZIMBABWE                            	                   	                                    	                   
+ZW	ZWD	ZIMBABWE                            	                   	                                    	                   
+ZW	ZWL	ZIMBABWE                            	                   	                                    	                   
+ZW	ZWN	ZIMBABWE                            	                   	                                    	                   
+ZW	ZWR	ZIMBABWE                            	                   	                                    	                   

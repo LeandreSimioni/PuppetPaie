@@ -43,9 +43,7 @@ function mettreDeCote() {
   return rendre;
 }
 
-/* TOUT COCHER, D'UN CLIC (l'éditeur, 30/09/2026 : « quand on clique sur
- * DPAE ou sur contrat, un truc tout sélectionné, plutôt que de cliquer à
- * la main » — renvoyer tous les contrats, par exemple). Chaque liste de
+/* TOUT COCHER, D'UN CLIC (renvoyer tous les contrats, par exemple). Chaque liste de
  * choix de plus d'une case reçoit en tête une case « Tout cocher ». Elle
  * passe par l'événement « change » de chaque case : ce que la boîte en
  * déduit (le libellé du bouton, un avenant) suit comme au clic. Une case
@@ -127,29 +125,24 @@ document.getElementById("voile").onclick = (e) => {
 /* LE MOT DE PASSE DU LOGICIEL : UN POPUP, TOUJOURS LE MÊME.
    Chaque acte qui engage — dépôt réel, envoi, signature, écrire dans le
    coffre — passe par ici : on clique le bouton de l'acte, le popup demande
-   le mot de passe, Entrée, et l'acte part. Plus de champ posé dans chaque
-   écran (l'éditeur : « la logique c'est un popup, toujours, où je tape le
-   mot de passe, pas des champs cachés »). Le popup vit dans index.html
+   le mot de passe, Entrée, et l'acte part ; aucun écran n'a de champ à lui
+   pour le mot de passe. Le popup vit dans index.html
    (`#voile-mdp`), au-dessus de la boîte courante, et rend une promesse :
    le mot de passe, ou null si on annule (Échap, Annuler, clic à côté).
 
-   PLUS RIEN POUR CHROME. Le 15/09 on avait tout fait pour que Chrome garde
-   le mot de passe (utilisateur figé, autocomplete, `memoriserMotDePasse`) ;
-   la page vit dans la fenêtre unique, et vivra dans Tauri : « il n'y a plus
-   Chrome, et il n'y aura pas Chrome ». Le mot de passe se tape, à chaque
+   Le navigateur ne retient pas le mot de passe : il se tape, à chaque
    fois, et c'est le but. */
 function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
-  // LA COMPAGNIE FICTIVE (le moteur : `simulation`, route `etat`) : rien ne part, rien à prouver.
-  // L'acte suit son cours comme en vrai, sans le popup.
-  if (enFictive()) return Promise.resolve("fictive");
-  // UNE FICTIVE AJOUTÉE (`envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant
-  // toute preuve ; on ne demande pas un mot de passe pour rien. Le geste part, et la page montre le refus.
-  if (envoi && ETAT && ETAT.envois_refuses) return Promise.resolve("envoi-refuse");
+  // UN ENVOI SANS RIEN À PROUVER (le moteur le dit : `envoi_sans_mot_de_passe`, route `etat`) : le geste part sans
+  // le popup, et la page montre ce que le moteur en rend (l'acte joué, ou son refus).
+  if (envoi && ETAT && ETAT.envoi_sans_mot_de_passe) return Promise.resolve("sans-mot-de-passe");
   return new Promise((resoudre) => {
     const voile = document.getElementById("voile-mdp");
     const forme = document.getElementById("forme-mdp");
     const champ = document.getElementById("mdp-valeur");
-    document.getElementById("mdp-pourquoi").textContent = pourquoi ? "Pour " + pourquoi + "." : "";
+    // Le geste : le nom du bouton qui le demande, ou ce que le moteur en dit (`pourquoi`).
+    document.getElementById("mdp-pourquoi").textContent = pourquoi || "";
+    document.getElementById("mdp-note").textContent = ((ETAT && ETAT.aides) || {}).mot_de_passe || "";
     champ.value = "";
     voile.classList.remove("cachee");
     const finir = (valeur) => {

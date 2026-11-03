@@ -85,8 +85,20 @@ pub fn chemin_unique(nom: &str) -> PathBuf {
     d.join(format!("{}-{}-{}", std::process::id(), N.fetch_add(1, Ordering::SeqCst), nom))
 }
 
+/// Les lignes du journal des envois de la compagnie `racine`, telles que le moteur les lit (`envois::journal::lu`).
+pub fn journal(racine: &Path) -> Value {
+    Value::Array(envois::journal::lu(racine).unwrap().lignes.to_vec())
+}
+
 pub fn lire(racine: &Path, rel: &str) -> Value {
     serde_json::from_slice(&std::fs::read(racine.join(rel)).unwrap()).unwrap_or_else(|e| panic!("{} illisible : {}", rel, e))
+}
+
+/// La paie ecrite de `mois` du contrat du salarie `salarie` (le premier qu'il a dans le mois, ou celui du numero
+/// `numero`), telle que `paies/<mois>.json` la porte ; `Null` s'il n'en a pas.
+pub fn paie_ecrite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> Value {
+    let f = lire(racine, &format!("paies/{}.json", mois));
+    f["paies"].as_array().into_iter().flatten().find(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).cloned().unwrap_or(Value::Null)
 }
 
 pub fn ecrire(racine: &Path, rel: &str, v: &Value) {
@@ -134,11 +146,33 @@ pub mod compagnie {
 }
 
 
-/// La saisie de `mois` telle que ses engagements la montrent (`engagement::saisie_du_mois`).
+/// La saisie de `mois` telle que ses engagements la montrent (`engagement::vue_requise`).
 pub fn saisie(racine: &Path, mois: &str) -> Value {
-    let mut v = engagement::saisie_du_mois(racine, mois).unwrap();
+    let mut v = engagement::vue_requise(racine, mois).unwrap();
     v["mois"] = Value::String(mois.to_string());
     v
+}
+
+/// « Valider l'engagement » sur la carte du premier engagement en saisie de `salarie` que l'ecran de `mois` montre,
+/// telle qu'elle est enregistree (son identite, `saisie`).
+pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) -> Value {
+    let vue = engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap();
+    let es = vue["engagements"].as_array().unwrap();
+    let k = es.iter().position(|e| e["salarie"] == salarie && e.get("valide").is_none()).expect("une carte en saisie");
+    route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k), "saisie": es[k]}), jour)
+}
+
+/// L'identite (`engagement::stock::identites`) de la carte du premier engagement de `salarie` dans l'ecran de `mois`
+/// (de numero `numero` s'il est dit).
+pub fn identite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> Value {
+    let vue = engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap();
+    let k = vue["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).expect("la carte");
+    identite_a(racine, mois, k)
+}
+
+/// L'identite de la `k`-ieme carte de l'ecran de `mois`.
+pub fn identite_a(racine: &Path, mois: &str, k: usize) -> Value {
+    engagement::stock::identites(&engagement::stock::objets_du_mois(racine, mois).unwrap()).swap_remove(k)
 }
 
 

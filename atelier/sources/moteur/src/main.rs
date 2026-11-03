@@ -4,13 +4,15 @@ fn usage() -> ! {
     eprintln!(
         "usage : moteur [--dev] COMMANDE [options]   (la ligne de commande du produit : moteur aide)\n\
          \x20       moteur route [--racine R] [--date D]   (route et charge en JSON sur l entree standard : les routes de l interface)\n\
+         \x20       moteur routes [NOM] [--avance] [--json]   (le catalogue des routes, et la fiche d une route)\n\
          \x20       moteur pdf ...   (la ligne de commande de la fabrique : moteur pdf --aide)\n\
          \x20       moteur fabrique DESCRIPTION.json SORTIE.pdf   (outil d'atelier)\n\
          \x20       moteur guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)\n\
          \x20       moteur verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)\n\
          \x20       moteur generer-tables SOURCES ESPACE   (les tables Unicode du moteur, depuis atelier/reference/sources, dans atelier/sources)\n\
          \x20       moteur extraire naf|usages|formats|urssaf SOURCES... SORTIE.json [--remplacer]   (releves de l'atelier : moteur extraire --aide)\n\
-         \x20       moteur releve-codes ... | moteur releve-conventions ...   (les textes LEGI et KALI de la DILA, outils d'atelier : --aide)"
+         \x20       moteur releve-codes ... | moteur releve-conventions ...   (les textes LEGI et KALI de la DILA, outils d'atelier : --aide)\n\
+         \x20       moteur releve-missions SOURCES DONNEES   (les tables des missions a l'etranger de la DGFiP, avant de publier)"
     );
     std::process::exit(2)
 }
@@ -32,6 +34,8 @@ fn main() -> std::process::ExitCode {
             Some(code) => std::process::exit(code),
             None => usage(),
         },
+        // Le catalogue des routes, tire de leurs fiches.
+        Some("routes") => return std::process::ExitCode::from(moteur::routes::catalogue::commande(&args[1..]).clamp(0, 255) as u8),
         // La fenetre, dans le navigateur du poste : `moteur interface`.
         // La mise a jour : verifier, appliquer, revenir ; publier et la cle, chez l'editeur.
         Some("maj") => return std::process::ExitCode::from(moteur::compagnie::maj::commande(&args[1..]).clamp(0, 255) as u8),
@@ -49,6 +53,8 @@ fn main() -> std::process::ExitCode {
         Some("generer-tables") => return std::process::ExitCode::from(moteur::atelier::generer_tables::commande(&args[1..]).clamp(0, 255) as u8),
         Some("extraire") => return std::process::ExitCode::from(moteur::atelier::extraire::commande(&args[1..]).clamp(0, 255) as u8),
         // Les codes (LEGI) et les conventions collectives (KALI) releves chez la DILA, dans `atelier/reference/sources`.
+        // Les tables des missions a l'etranger de la DGFiP, relevees avant chaque publication.
+        Some("releve-missions") => return std::process::ExitCode::from(moteur::atelier::releve::missions::commande(&args[1..]).clamp(0, 255) as u8),
         Some(q @ ("releve-codes" | "releve-conventions")) => {
             let commande = if q == "releve-codes" { moteur::atelier::releve::codes::commande } else { moteur::atelier::releve::conventions::commande };
             return std::process::ExitCode::from(commande(&args[1..]).clamp(0, 255) as u8);

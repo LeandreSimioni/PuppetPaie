@@ -136,7 +136,7 @@ fn normal(p: PathBuf) -> PathBuf {
     sortie
 }
 
-/// `Path.resolve()` : absolu, liens suivis aussi loin que le chemin existe.
+/// Le chemin absolu, liens suivis aussi loin que le chemin existe.
 fn resoudre(p: &Path) -> PathBuf {
     let absolu = if p.is_absolute() { p.to_path_buf() } else { std::env::current_dir().unwrap_or_default().join(p) };
     let mut reste: Vec<std::ffi::OsString> = Vec::new();
@@ -550,10 +550,11 @@ pub fn oublier_mot_de_passe_tape() {
     TAPE.with(|t| *t.borrow_mut() = None);
 }
 
-/// Un mot de passe tape est-il retenu sur ce fil ? (Rien de plus : jamais sa valeur.) Les essais de la fenetre s'en
-/// servent : un mot de passe ne survit pas a sa route.
-pub fn mot_de_passe_retenu() -> bool {
-    TAPE.with(|t| t.borrow().is_some())
+/// Le mot de passe du logiciel qu'un humain a tape pour cette route (`demande::autoriser_acte` le retient), et rien
+/// d'autre : ni la variable, ni la seance. Le geste qui a besoin de l'actuel (le changer, le retirer) le prend ici quand la
+/// charge ne le porte pas.
+pub(crate) fn mot_de_passe_retenu() -> Option<String> {
+    TAPE.with(|t| t.borrow().clone())
 }
 
 /// Le mot de passe tape pour cette commande : celui de la demande, sinon `PUPPETPAIE_MOTDEPASSE`.
@@ -565,6 +566,10 @@ fn mot_de_passe_tape() -> Option<String> {
 /// le logiciel, ses donnees et la cle qui les scelle voyagent ensemble -- une cle USB -- et s'ouvrent sur
 /// n'importe quel ordinateur, quel que soit le systeme. La cle du poste vit alors dans ce dossier, pas sur la machine.
 pub const MARQUEUR_PORTABLE: &str = "PORTABLE.json";
+/// Ce que porte le marqueur : sa presence seule compte, la phrase le dit a qui ouvre le fichier. L'archive d'installation
+/// de tous les systemes le porte (`atelier::publier::archiver_installation`), la route `portable-completer` le pose ;
+/// l'installeur Windows ecrit la meme phrase (`atelier/installeur/puppetpaie.nsi`).
+pub const CONTENU_PORTABLE: &str = "{\"_quoi\": \"Ce dossier est une installation PORTABLE de PuppetPaie : le logiciel, ses donnees et la cle qui les scelle (cle-poste.bin) vivent ici, ensemble, et s'ouvrent sur n'importe quel ordinateur. Effacer ce fichier rattache le coffre a la machine.\"}\n";
 
 /// Le dossier portable, s'il y en a un : ce qui est a cote de `logiciel/` quand il porte `PORTABLE.json`.
 pub fn dossier_portable() -> Option<PathBuf> {
@@ -652,7 +657,7 @@ impl Coffre {
     }
 
     pub fn chemin(&self) -> PathBuf {
-        self.racine.join("config").join(FICHIER)
+        self.racine.join(socle::fichiers::CONFIG).join(FICHIER)
     }
 
     pub fn chemin_cle(&self) -> PathBuf {
@@ -725,11 +730,6 @@ impl Coffre {
         self.cle_poste(true)?.ok_or_else(|| echec("OSError", "la cle de ce poste n'a pas pu etre posee"))
     }
 
-    pub fn poser_cle_poste(&self) -> R<PathBuf> {
-        self.cle_poste(true)?;
-        Ok(self.chemin_cle())
-    }
-
     // -------------------------------------------- proteger / deproteger
 
     pub fn proteger(&self, donnees: &[u8], description: &str) -> R<Vec<u8>> {
@@ -758,7 +758,7 @@ impl Coffre {
                 "Le coffre de cette compagnie ({}) n'a pas de mot de passe du logiciel : scelle par lui, « {} » ne \
                  s'ouvrirait que sur ce poste et serait perdu avec lui. Rien n'a ete ecrit. Poser d'abord le mot de \
                  passe du logiciel :\n\
-                 \x20 moteur coffre ouverture",
+                 \x20 route mot-de-passe-changer",
                 affiche(&self.chemin()),
                 description
             )));
@@ -815,10 +815,10 @@ impl Coffre {
              ancien, ou abime. Il ne se convertit pas : le supprimer, avec \
              `google-jeton.bin` et `maj-cle-privee.bin` qui sont fermes de la \
              meme facon, puis reposer ce qu'ils contenaient :\n\
-             \x20 moteur coffre ouverture\n\
-             \x20 moteur coffre poser net-entreprises\n\
-             \x20 moteur coffre poser urssaf\n\
-             \x20 moteur coffre poser courriel --compte <adresse>\n\
+             \x20 route mot-de-passe-changer\n\
+             \x20 route coffre-poser, service net-entreprises\n\
+             \x20 route coffre-poser, service urssaf\n\
+             \x20 route coffre-poser, service courriel, compte <adresse>\n\
              Puis relier le Drive, et refaire une cle de signature si ce poste \
              publie les mises a jour.",
             affiche(&p)
@@ -911,7 +911,7 @@ impl Coffre {
             "Ce coffre ne s'ouvre pas ici : la cle de ce poste ({}) n'est pas \
              celle qui l'a ferme{}. Le mot de passe du logiciel l'ouvre -- et \
              reposera une cle pour ce poste :\n\
-             \x20 moteur coffre ouverture",
+             \x20 route mot-de-passe-changer",
             affiche(&self.chemin_cle()),
             if self.cle_posee()? { "" } else { ", et elle est absente" }
         )))
@@ -1008,7 +1008,7 @@ impl Coffre {
                  d'organisme, et c'est presque toujours le signe que la saisie \
                  masquee n'a pas tout capture. Rien n'a ete pose.\n\
                  Reessayer dans une fenetre, qui ne depend pas du terminal :\n\
-                 \x20 moteur coffre poser {} --fenetre",
+                 \x20 route coffre-poser, service {}",
                 longueur, service
             )));
         }
@@ -1144,7 +1144,7 @@ impl Coffre {
                  de passe du logiciel {}.\n\
                  Le donner ouvre le coffre sans rien changer au poste ; le \
                  reposer rend a cette machine son ouverture sans mot de passe :\n\
-                 \x20 moteur coffre ouverture",
+                 \x20 route mot-de-passe-changer",
                 nom,
                 affiche(&self.chemin_cle()),
                 if self.cle_posee()? { "" } else { ", et elle est absente" },

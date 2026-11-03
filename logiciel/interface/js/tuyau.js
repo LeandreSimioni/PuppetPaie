@@ -19,8 +19,7 @@ let MINUTEUR = null;        // anti-rebond de l'apercu
 
 /* « Failed to fetch » : le serveur ne répond plus.
  *
- * C'est arrivé le 11/09/2026, et le message du navigateur n'apprenait rien —
- * une fiche en cours d'édition n'a pas été enregistrée, sans qu'on sache
+ * Le message du navigateur n'apprend rien : une fiche en cours d'édition n'a pas été enregistrée, sans qu'on sache
  * pourquoi. La page survit à son serveur : elle a l'air de marcher, les
  * champs se remplissent, et seul l'enregistrement échoue.
  *
@@ -28,6 +27,10 @@ let MINUTEUR = null;        // anti-rebond de l'apercu
  * message qui s'efface au bout de six secondes n'aide pas quelqu'un qui
  * était en train de taper. */
 let SERVEUR_PERDU = false;
+/* Ce que la page dit quand le moteur ne répond plus : la fenêtre le pose dans la page qu'elle sert (`{{PHRASES}}`). */
+const PHRASES_FENETRE = (() => {
+  try { return JSON.parse(document.getElementById("phrases-fenetre").textContent); } catch (e) { return {}; }
+})();
 
 function serveurPerdu() {
   if (SERVEUR_PERDU) return;
@@ -35,10 +38,7 @@ function serveurPerdu() {
   const zone = document.getElementById("veille");
   zone.hidden = false;
   zone.classList.add("souci");
-  document.getElementById("veille-texte").innerHTML =
-    "<b>Le serveur ne répond plus.</b> La fenêtre PuppetPaie a été fermée, ou le "
-    + "terminal qui la faisait tourner. <b>Rien de ce qui est à l'écran n'est "
-    + "enregistré.</b> Relancer PuppetPaie, puis recharger cette page.";
+  document.getElementById("veille-texte").innerHTML = `<b>${echapper(PHRASES_FENETRE.perdu || "")}</b>`;
   document.getElementById("veille-maintenant").hidden = true;
 }
 
@@ -49,37 +49,34 @@ function serveurPerdu() {
  * seule demande `mois` les rend toutes, gardées en mémoire
  * par la fenêtre elle-même, sans calcul. Le calcul s'est fait avant, quand
  * quelque chose a changé. Chaque lecture garde sa forme (résultat ou refus) :
- * les fonctions qui dessinent n'ont pas changé.
+ * les fonctions qui dessinent n'ont pas changé. Les routes que la demande `mois` sert sont celles qu'elle rend (les
+ * clés de `lectures`), retenues à chaque lecture.
  *
- * Toute autre route peut écrire : ce qui a été lu part alors, avant ET après
- * elle — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
-const LECTURES_DU_MOIS = new Set(["saisie", "contrats-en-cours", "etat-du-mois",
-  "embauches-a-declarer", "fins-de-contrat", "etat-par-engagement", "imprevus"]);
-// Des lectures que la page fait souvent, sans rien changer : elles ne vident pas ce qui a été lu.
-const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organismes-contrats", "incident-navigateur", "diagnostic-etat",
-  "verifier-fiche", "emploi", "signalements", "apercu", "importation-incident", "arret-obligations",
-  // Les imprévus d'un salarié (son dossier), les contrats qu'un imprévu suspendrait : des lectures.
-  "imprevus", "arret-contrats",
-  // Les contrats déclarés avant PuppetPaie (l'historique importé) : une lecture, que l'écran d'un mois passé fait en se peignant.
-  "contrats-passes",
-  // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
-  "historique-mois", "ouvrir-piece",
-  // Ce que la boîte « Supprimer cette compagnie » demande : une lecture.
-  "compagnie-suppression",
-  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne.
-  "veille-etape",
-  // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
-  "conseil-du-jour", "conseils-salarie", "conseils-resume",
-  // Les lectures de l'ouverture : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
-  // Elles vidaient ce qui avait été lu du mois : l'écran, servi tout de suite, attendait alors l'état frais (~1 s).
-  "etat", "mois-a-ouvrir", "echeancier", "ouverture"]);
+ * Une route qui écrit le dit dans sa réponse (`ecrit`) : ce qui a été lu part
+ * alors — on n'affiche jamais un état qu'on aurait pu changer soi-même. */
+const LECTURES_DU_MOIS = new Set();
+function retenirLesLectures(lectures) { Object.keys(lectures || {}).forEach((k) => LECTURES_DU_MOIS.add(k)); }
+/* LE CATALOGUE DES ROUTES (`routes`), lu au démarrage : la fiche de chaque route, son acte (`lit`, `ecrit`, `engage`) et ce
+ * qui est « avancé ». Le même que `moteur routes --json`. */
+let CATALOGUE = {};
+const acteDe = (route) => (CATALOGUE[route] || {}).acte || "";
+/** « AVANCÉ » EST LE MÊME POUR LES DEUX ACTEURS : une porte de l'écran (`data-route`, la route qu'elle ouvre) dont la fiche
+ *  est marquée avancée va dans le groupe « Avancé » de sa barre, après le chemin simple. */
+function rangerLAvance() {
+  document.querySelectorAll("[data-route]").forEach((porte) => {
+    const groupe = porte.parentElement && porte.parentElement.querySelector(":scope > .sous-onglets-avance");
+    if (!groupe || !(CATALOGUE[porte.dataset.route] || {}).avance) return;
+    groupe.appendChild(porte);
+    groupe.hidden = false;
+  });
+}
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
 let LU_EN_COURS = null;   // { mois, promesse, perimeAdmis } : celle qui est en route
 let LU_GENERATION = 0;
 
 /** Une réponse du moteur, telle que `appelerMoteur` la rend : son résultat, ou son refus levé. */
 function lireReponse(d) {
-  if (!d) throw new Error("Lecture absente de l'état du mois.");
+  if (!d) throw new Error(PHRASES_FENETRE.lecture_absente);
   if (!d.ok) { const e = new Error(d.erreur.message); e.detail = d.erreur; throw e; }
   return d.resultat;
 }
@@ -94,6 +91,7 @@ function lireLeMois(mois, perimeAdmis = false) {
   const generation = LU_GENERATION;
   const promesse = appelerMoteur("mois", perimeAdmis ? { mois } : { mois, attendre: true }).then((r) => {
     const lu = { mois, lectures: r.lectures || {}, perime: !!r.perime };
+    retenirLesLectures(lu.lectures);
     if (generation === LU_GENERATION) LU = lu;
     if (LU_EN_COURS && LU_EN_COURS.promesse === promesse) LU_EN_COURS = null;
     return lu;
@@ -111,6 +109,7 @@ function oublierLeMois() { LU = null; LU_EN_COURS = null; LU_GENERATION++; }
  *  aurait faite, servie de même (dernier état connu, `perime` s'il l'est). */
 function poserLeMois(mois, ecran) {
   LU = { mois, lectures: (ecran && ecran.lectures) || {}, perime: !!(ecran && ecran.perime) };
+  retenirLesLectures(LU.lectures);
   LU_EN_COURS = null;
 }
 
@@ -120,13 +119,9 @@ function poserLeMois(mois, ecran) {
  * `verifierLeMois` attend l'état frais (`attendre`) pour repeindre l'écran,
  * s'il a changé, sans toucher à une saisie en cours (`repeindreLeMois`). Tant
  * que ce n'est pas fait, la case du mois dit « mise à jour… », et les gestes
- * qui engagent attendent (`GESTES_QUI_ENGAGENT`) : on ne valide, ne fabrique,
+ * qui écrivent ou engagent (l'acte de leur fiche, `CATALOGUE`) attendent : on ne valide, ne fabrique,
  * ne dépose ni n'envoie sur un écran que le moteur n'a pas confirmé. */
 let VERIF = null;         // { mois, promesse } : la vérification en route
-const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "dsn-a-deposer", "deposer", "dpae",
-  "demander-signature", "envoyer-documents", "documents-imprimer", "avenant-envoyer", "avenants-envoyer",
-  "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
-  "cloture"]);
 
 function marquerMiseAJour(oui) {
   const el = document.getElementById("mois-maj");
@@ -146,10 +141,11 @@ function verifierLeMois(mois, peint) {
     if (!VERIF || VERIF.promesse !== promesse) return;
     const ancien = LU && LU.mois === mois ? LU : null;
     const frais = { mois, lectures: r.lectures || {}, perime: false };
+    retenirLesLectures(frais.lectures);
     LU = frais;
     if (ancien) await repeindreLeMois(mois, ancien, frais);
   }).catch((e) => {
-    if (MOIS_AFFICHE === mois) dire("L'état du mois ne s'est pas mis à jour : " + e.message, "erreur");
+    if (MOIS_AFFICHE === mois) dire(e.message, "erreur");
   }).finally(() => {
     if (VERIF && VERIF.promesse === promesse) { VERIF = null; marquerMiseAJour(false); }
   });
@@ -176,12 +172,10 @@ async function api(route, charge = {}) {
   const mois = moisDeLaLecture(route, charge);
   if (mois) {
     const lu = await lireLeMois(mois);
-    return structuredClone(lireReponse(lu.lectures[route]));
+    if (route in lu.lectures) return structuredClone(lireReponse(lu.lectures[route]));
   }
-  if (ROUTES_SANS_EFFET.has(route)) return appelerMoteur(route, charge);
-  if (GESTES_QUI_ENGAGENT.has(route)) await attendreLeMoisFrais();
-  oublierLeMois();
-  try { return await appelerMoteur(route, charge); } finally { oublierLeMois(); }
+  if (acteDe(route) && acteDe(route) !== "lit") { await attendreLeMoisFrais(); oublierLeMois(); }
+  return appelerMoteur(route, charge);
 }
 
 /* LES GESTES DE LA PAGE : un petit historique des actions sur la machine,
@@ -252,7 +246,7 @@ document.addEventListener("change", (e) => {
   // Un mot de passe ne voyage jamais, même jusqu'au moteur : seulement qu'il a été tapé.
   if (type === "password") return noterGeste({ quoi: "champ", nom, type, secret: true });
   const valeur = type === "checkbox" || type === "radio" ? el.checked
-    : type === "file" ? `${(el.files || []).length} fichier(s)` : String(el.value).slice(0, 300);
+    : type === "file" ? (el.files || []).length : String(el.value).slice(0, 300);
   // Une case dit aussi ce qu'elle coche (sa `value` : un salarié, un jour) ; le moteur le met en forme.
   noterGeste({ quoi: "champ", nom, type, valeur, ...(type === "checkbox" || type === "radio" ? { de: String(el.value).slice(0, 80) } : {}) });
 }, true);
@@ -290,7 +284,7 @@ async function appelerMoteur(route, charge = {}) {
   } catch (e) {
     // `fetch` ne rejette que sur un échec réseau — le serveur est parti.
     serveurPerdu();
-    const perdu = new Error("Le serveur PuppetPaie ne répond plus. Rien n'a été enregistré.");
+    const perdu = new Error(PHRASES_FENETRE.perdu_court);
     // Ce n'est pas un défaut de la page, et de toute façon le journal des
     // incidents vit derrière ce serveur-là : le rapport n'arriverait nulle
     // part. Voir `noterIncident`.
@@ -303,10 +297,12 @@ async function appelerMoteur(route, charge = {}) {
   const texte = await r.text();
   let d;
   try { d = JSON.parse(texte); } catch (e) {
-    const vide = new Error(`PuppetPaie a répondu ${r.status} sans dire pourquoi (route ${route}). Rien n'est sûr d'avoir été enregistré.`);
+    const vide = new Error(`${PHRASES_FENETRE.illisible} (${r.status}, ${route})`);
     vide.detail = { type: "ReponseIllisible", message: vide.message };
     throw vide;
   }
+  // Une route qui a écrit (même refusée) : ce qui a été lu part.
+  if (d.ecrit) oublierLeMois();
   if (!d.ok) {
     const erreur = typeof d.erreur === "object" && d.erreur ? d.erreur : { message: String(d.erreur || "Refusé.") };
     if (erreur.type === "EnvoiBride") montrerEnvoiRefuse(erreur.message);
@@ -340,8 +336,7 @@ function montrerEnvoiRefuse(message) {
  *
  * Cinq mille lignes de JavaScript dont les exceptions s'imprimaient dans la
  * console du navigateur — que personne n'ouvre, et surtout pas une compagnie
- * à trois cents kilomètres. Le moteur, lui, note tout ce qui casse chez lui
- * depuis le 20/09/2026 ; la page était le dernier endroit d'où une erreur
+ * à trois cents kilomètres. Le moteur, lui, note tout ce qui casse chez lui ; la page était le dernier endroit d'où une erreur
  * pouvait disparaître sans laisser de trace.
  *
  * Elle poste donc ce qui casse à `/api/incident-navigateur`, et c'est
@@ -421,7 +416,7 @@ window.addEventListener("error", (ev) => {
   if (!ev.error && ev.target && ev.target !== window) {
     return noterIncident({
       genre: "RessourceAbsente",
-      message: String(ev.target.tagName || "?") + " n'a pas pu être chargé",
+      message: String(ev.target.tagName || "?"),
       fichier: ev.target.src || ev.target.href || "",
       ligne: 0, canal: "ressource",
     });
@@ -442,9 +437,7 @@ window.addEventListener("error", (ev) => {
  * là où elle a été levée. Chromium (WebView2) écrit « at f (http://hôte/js/
  * x.js?v=…:12:5) », WebKit « f@http://hôte/js/x.js?v=…:12:5 ». La requête
  * reste derrière (le moteur la coupe aussi, `fichier_court`). Sans pile
- * lisible, rien : le moteur écrit alors « interface:? ». Il écrivait
- * « interface.js », un fichier qui n'existe plus depuis que la page est
- * coupée en vingt, et tous les rejets s'y regroupaient. */
+ * lisible, rien : le moteur écrit alors « interface:? ». */
 function sourceDeLaPile(pile) {
   const m = String(pile || "").match(/(https?:\/\/[^\s()]+?\.js)(?:\?[^\s():]*)?:(\d+):(\d+)/);
   return m ? { fichier: m[1], ligne: +m[2], colonne: +m[3] } : { fichier: "", ligne: 0 };
@@ -464,13 +457,23 @@ window.addEventListener("unhandledrejection", (ev) => {
   });
 });
 
-/** Ouvre un dossier du poste dans l'explorateur, et dit lequel :
- *  l'explorateur peut s'ouvrir derrière la fenêtre, et le chemin, c'est le
- *  moteur qui le rend (`dossier`). */
-async function ouvrirEtDire(route, charge = {}) {
+/** LES GESTES DE LA FENÊTRE : ouvrir, choisir un dossier, la veille. Ce ne sont pas des routes du moteur mais l'outil qui
+ *  regarde (`interface/poste.rs`, servi par la fenêtre : `window.pywebview.api`) ; une route rend le chemin, la fenêtre
+ *  l'ouvre. Rend la réponse de la fenêtre, ou lève son refus. */
+async function fenetre(geste, ...args) {
+  const f = window.pywebview && window.pywebview.api;
+  if (!f || !f[geste]) throw new Error("geste inconnu — " + geste);
+  const r = await f[geste](...args);
+  if (!r || !r.ok) throw new Error((r && r.erreur) || "Refusé.");
+  return r;
+}
+
+/** Ouvre dans l'explorateur ce qu'une route a rendu (un chemin), et dit lequel : l'explorateur peut s'ouvrir derrière la
+ *  fenêtre. `quoi` : ce que le message dit d'abord. `creer` : un dossier de la compagnie qui manque se crée. */
+async function ouvrirEtDire(chemin, quoi = "", creer = false) {
   try {
-    const r = await api(route, charge);
-    if (r && r.phrase) dire(r.phrase);
+    const r = await fenetre("ouvrir", chemin, creer);
+    dire([quoi, r.phrase].filter(Boolean).join(" "), quoi ? "envoye" : undefined);
   } catch (e) { dire(e.message, "erreur"); }
 }
 
@@ -488,9 +491,7 @@ function dire(texte, type) {
   dire._t = setTimeout(() => el.classList.add("cachee"), 6000);
 }
 
-/** UN ACTE EN COURS SE VOIT (26/09/2026 : « quand on met envoyer les
- *  contrats, il faut un petit message pour dire envoi des contrats en
- *  cours »). Le bouton cliqué s'éteint et dit ce qui se passe, là où l'on
+/** UN ACTE EN COURS SE VOIT. Le bouton cliqué s'éteint et dit ce qui se passe, là où l'on
  *  regarde — dans la boîte, que le bandeau du bas ne traverse pas. Rend
  *  la fonction qui le rallume (une erreur : on peut réessayer). */
 function occupe(bouton, texte) {
@@ -498,7 +499,7 @@ function occupe(bouton, texte) {
   const avant = bouton.innerHTML;
   bouton.disabled = true;
   bouton.classList.add("occupe");
-  bouton.textContent = texte;
+  bouton.textContent = texte ?? bouton.dataset.occupe ?? bouton.textContent;
   return () => {
     if (!bouton.isConnected) return;
     bouton.disabled = false;
@@ -519,12 +520,21 @@ const pastilleDeLEtat = (p) => p && p.mots
 /* Un encart de la même couleur : `.encart` a ses propres classes. */
 const ENCART_DE_COULEUR = { vert: "bien", orange: "attention", rouge: "erreur", gris: "info" };
 
+/* L'aide d'une case, telle que le moteur la dit (`aides` de la route `etat`), échappée pour un attribut. */
+const aideDe = (k) => echapper(((ETAT && ETAT.aides) || {})[k] || "");
+
 /* Une phrase du moteur qui porte un lien (le texte d'une convention) :
  * echappee d'abord, puis l'adresse https devient cliquable. Le point
  * qui clot la phrase reste dehors. */
 const echapperLiens = (s) => echapper(s).replace(
   /(https:\/\/[^\s<]+?)([.,;]?)(?=\s|$)/g,
   (_, url, fin) => `<a href="${url}" target="_blank" rel="noopener">texte de la convention</a>${fin}`);
+
+/* Un encart que le moteur rend (`routes::encart` : titre, phrase, couleur) ; rien s'il n'y en a pas. La page n'écrit
+ * aucune phrase : ce qu'une boîte dit d'un cas lui vient ainsi de la route. */
+const encart = (e) => e && (e.titre || e.phrase)
+  ? `<div class="encart ${ENCART_DE_COULEUR[e.couleur] ?? ""}">${e.titre ? `<b>${echapper(e.titre)}</b> ` : ""}${echapperLiens(e.phrase || "")}</div>` : "";
+const encarts = (l) => (l || []).map(encart).join("");
 
 /* ------------------------------------------------------------ navigation */
 document.querySelectorAll(".onglets button").forEach((b) => {
@@ -549,7 +559,7 @@ document.querySelectorAll(".onglets button").forEach((b) => {
       // suite ; c'est lui qui dit si elle passe. Rien d'autre à écrire : on
       // relit seulement ce que le moteur dit du mois.
       if (MOIS_AFFICHE) {
-        const enAttente = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
+        const enAttente = !toutEstEcrit();
         if (enAttente) await enregistrerSaisie(true);
         else await rafraichirActions();
       }

@@ -33,8 +33,8 @@ fn montants(a: &Value) -> Vec<socle::num::Decimal> {
 
 fn erreur(e: ErreurPas) -> String {
     match e {
-        ErreurPas::SansGrille(m) => format!("SANS_GRILLE:{}", m),
-        autre => format!("ERREUR:{}", autre.message()),
+        ErreurPas::SansGrille(m) => format!("SANS_GRILLE:{}", socle::echec::separer(&m).0),
+        autre => format!("ERREUR:{}", socle::echec::separer(&autre.message()).0),
     }
 }
 

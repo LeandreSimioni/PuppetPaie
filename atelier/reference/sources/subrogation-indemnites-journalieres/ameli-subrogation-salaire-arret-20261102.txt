@@ -1,0 +1,283 @@
+02/11/2026 16:09                                        La subrogation de salaire en cas d’arrêt de travail | ameli.fr | Entreprise
+
+   Assuré        Professionnel de santé                Entreprise
+
+
+
+
+                                                
+   La subrogation de salaire en cas d’arrêt
+   de travail
+
+   Cet article fait partie du dossier : Arrêt de travail d'un salarié
+
+   08 janvier 2026
+
+                                   
+
+            Copier le lien
+
+
+
+
+   En cas d'arrêt de travail pour maladie de votre salarié et de
+   maintien de son salaire par l'entreprise, la subrogation de salaire
+   vous permet de percevoir directement les indemnités journalières
+   qui lui sont dues par l'Assurance Maladie.
+
+                                                                                                                                      Tout replier
+
+
+
+   Qu’est-ce que la subrogation de salaire ?
+                                                                                                                                            
+
+
+
+
+       En cas d’arrêt de travail pour maladie de votre salarié, votre convention collective peut
+       prévoir le maintien de son salaire pendant son arrêt de travail.
+
+       Dans ce cas, l’employeur verse un complément de salaire qui vient compléter les
+       indemnités journalières versées au salarié (IJ).
+
+       Les IJ sont théoriquement versées au salarié directement par sa caisse primaire d’assurance
+       maladie (CPAM) mais vous pouvez demander à les percevoir vous-même pour le compte de
+       votre salarié : c’est la subrogation.
+
+https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire                                                                    1/6
+02/11/2026 16:09                                        La subrogation de salaire en cas d’arrêt de travail | ameli.fr | Entreprise
+
+       La subrogation de salaire est une option qui vous permet :
+
+          de verser directement à votre salarié :
+            les IJ auxquelles il a droit ;
+            une indemnisation complémentaire versée par l’entreprise, appelée « salaire maintenu »
+            ;
+          de vous faire rembourser le montant correspondant à ces IJ par la CPAM.
+
+       À noter
+
+       La subrogation peut être demandée pour la durée totale de l’arrêt ou pour une durée
+       inférieure.
+
+
+
+
+           Deux conditions pour la mise en place de la subrogation de salaire
+
+           Pour que la subrogation de salaire puisse être mise en œuvre, 2 conditions doivent
+           être réunies :
+
+              le salaire doit continuer à être versé en totalité ou en partie par l’employeur pendant la
+              durée de l'arrêt de travail ;
+              le salaire maintenu au cours de cette période doit être au moins égal au montant des
+              indemnités perçues par le salarié pour la même période.
+
+           Exemple :
+
+           Un salarié de votre entreprise qui perçoit un salaire mensuel brut de 2 000 € est en arrêt
+           de travail. L’Assurance Maladie lui verse des indemnités journalières de 32,87 €. La
+           subrogation peut être mise en place si :
+
+              votre convention collective prévoit d’indemniser en totalité ou en partie un salarié en
+              arrêt de travail, c’est-à-dire de continuer à lui verser une partie ou la totalité de son
+              salaire brut pendant son arrêt ;
+              le montant de ce salaire maintenu est au moins égal à 32,87 € par jour d’arrêt de
+              travail.
+
+
+
+
+   Comment demander la subrogation de salaire ?
+                                                                                                                                      
+
+
+
+
+       La demande de subrogation de salaire s'effectue lorsque vous établissez le signalement
+       d’arrêt de travail dans la Déclaration Sociale Nominative (DSN) sur net-entreprises.fr (site
+
+https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire                                                         2/6
+02/11/2026 16:09                                        La subrogation de salaire en cas d’arrêt de travail | ameli.fr | Entreprise
+
+       externe).
+
+       Si votre entreprise n’a pas encore adhéré à la DSN, vous pouvez faire votre demande au
+       moment d’établir l’attestation de salaire à destination de l’Assurance Maladie sur le site net-
+       entreprises.fr ou par courrier.
+
+       Quel que soit le moyen employé, il vous suffit de compléter l’encadré « Subrogation » ou
+       « Demande de subrogation en cas de maintien de salaire ».
+
+
+
+       Déclarer les dates
+
+       Vous devez indiquer les dates de début et de fin de la période pendant laquelle vous
+       demandez la subrogation :
+
+          la date de début correspondant à celle du début de l’arrêt de travail ;
+          la date de fin correspondant au terme de la durée maximale de maintien du salaire et de la
+          subrogation, telle qu'elle est définie par votre convention collective ou votre accord de
+          branche. Cette durée peut être inférieure à celle de l’arrêt.
+
+       Il est important de porter une attention particulière aux dates de subrogation indiquées dans
+       l’attestation de salaire ou lors du signalement. Celles-ci doivent correspondre aux dates
+       maximales de subrogation prévues dans le cadre de votre convention collective ou accords
+       de branche.
+
+       Il ne faut surtout pas se limiter à la date de fin de l’arrêt transmis par votre salarié.
+
+       Pour rappel, seul un signalement d’arrêt de travail est à réaliser lors de l’arrêt initial. En cas
+       de prolongation, il n’est pas nécessaire de faire un nouveau signalement étant donné que la
+       date maximale a déjà été indiquée.
+
+       Toute erreur de date entrainera un paiement des indemnités journalières à votre salarié et
+       une notification de créances à votre encontre (ou inversement en cas de paiement à l’assuré
+       au lieu de la subrogation).
+
+
+
+       Renseigner le RIB / Iban
+
+       Vous devez indiquer le numéro du compte bancaire sur lequel doivent être versées les
+       indemnités journalières. Si vous voulez subroger vos salariés ou si vous changez de
+       coordonnées bancaires :
+
+          pensez à vérifier le paramétrage de votre logiciel de paie pour les signalements d’arrêt
+          maladie en DSN ;
+          inscrivez les nouvelles coordonnées lors de la saisie de l’attestation de salaire en ligne.
+
+       La CPAM procèdera systématiquement à l’enregistrement de vos coordonnées bancaires.
+
+
+https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire                                                     3/6
+02/11/2026 16:09                                        La subrogation de salaire en cas d’arrêt de travail | ameli.fr | Entreprise
+
+       Pour les attestations établies sous format papier, vous devez joindre un RIB.
+
+       Exemple :
+
+       La convention collective de votre entreprise prévoit une période de subrogation de 6 mois. Le
+       médecin a prescrit un arrêt de travail pour maladie du 10 au 17 octobre 2025. Sur l’attestation
+       de salaire, vous devez donc indiquer :
+
+          pour la date de début de subrogation : le 10 octobre 2025 ;
+          pour la date de fin de subrogation : le 9 avril 2026 (qui correspond à la durée maximale de
+          la subrogation définie par votre convention collective, c’est-à-dire 6 mois).
+
+       Si le RIB ou l’IBAN correspondant à votre SIRET est connu dans le système informatique de
+       l’Assurance maladie, les indemnités journalières peuvent être liquidées de façon
+       automatique.
+
+       En revanche, si le RIB ou l’IBAN est absent ou différent de celui précédemment enregistré,
+       une mise à jour manuelle de la base de données ainsi qu’un contrôle comptable sont
+       indispensables.
+
+       Par conséquent, le délai de traitement pour la liquidation du dossier est allongé.
+
+       Il est indispensable de porter une attention particulière aux IBAN saisis sur les attestations
+       télétransmises via net-entreprises. Ceux-ci doivent correspondre au RIB enregistré en DSN.
+
+
+
+
+            A noter
+
+            Un contrôle des coordonnées bancaires rattachées au SIRET de l’entreprise est réalisé
+            lors de la réception d’une attestation de salaire avant toute mise en paiement des
+            indemnités journalières.
+
+
+
+
+   Versement des indemnités journalières
+                                                                                                                                      
+
+
+
+
+       Les indemnités journalières dues à votre salarié vous seront directement versées par sa
+       caisse primaire d’assurance maladie tous les 14 jours en moyenne, sans aucune autre
+       formalité à effectuer.
+
+https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire                                                         4/6
+02/11/2026 16:09                                        La subrogation de salaire en cas d’arrêt de travail | ameli.fr | Entreprise
+
+       Pour plus de renseignements, contactez sa caisse primaire d’assurance maladie.
+
+
+
+
+   Bordereau de paiement des indemnités journalières
+
+
+
+
+                                                                                                                                      
+       L'Assurance Maladie met à la disposition des employeurs qui pratiquent la subrogation du
+       salaire pour leurs salariés en arrêt de travail, le bordereau de paiement des indemnités
+       journalières (BPIJ).
+
+       Les BPIJ sont fabriqués exclusivement au format XML pour permettre leur intégration dans
+       un logiciel de gestion de l'employeur.
+       La documentation technique est mise à la disposition des éditeurs de logiciels EDI.
+
+       Les BPIJ sont également consultables sur le portail net-entreprises pour les employeurs dès
+       lors qu'ils sont adhérents au service « Attestation de salaire en ligne ».
+
+
+
+
+            Documents utiles
+
+                                                                                                                                      
+               Attestation de salaire pour le paiement des indemnités journalières maladie,
+               maternité, paternité, accueil de l'enfant, adoption, congé de deuil, congé
+        supplémentaire de naissance
+               Formulaires - PDF, 1.49 Mo
+
+
+               Attestation de salaire délivrée par l'employeur dans le cas d'un arrêt de travail se
+              prolongeant au-delà de 6 mois
+               Formulaires - PDF, 880.13 Ko
+
+
+               Attestation de salaire - accident du travail ou maladie professionnelle
+        Formulaires - PDF, 1.87 Mo
+
+               L'attestation de salaire en ligne
+        Brochure - PDF, 1.71 Mo
+
+                   Bordereau de paiement des indemnités journalières en mode EDI
+
+       
+https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire                                                         5/6
+        ZIP, 206.4 Ko
+02/11/2026 16:09                                        La subrogation de salaire en cas d’arrêt de travail | ameli.fr | Entreprise
+
+
+
+
+                     Sites utiles
+
+
+
+
+                                                                                                                                      
+               net-entreprises.fr
+
+
+
+
+         Cet article vous a-t-il été utile ?
+
+
+                Oui                 Non
+
+
+
+
+https://www.ameli.fr/entreprise/vos-salaries/arret-de-travail/subrogation-salaire                                                         6/6
+

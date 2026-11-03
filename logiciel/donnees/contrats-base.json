@@ -25,7 +25,9 @@
   "natures": {
 
     "cddu_spectacle": {
-      "libelle": "CDD d'usage du spectacle (intermittent)",
+      "libelle": "CDDU",
+      "aide": "Contrat à durée déterminée d'usage : un artiste ou un technicien du spectacle, engagé le temps d'un spectacle ou d'une production (code du travail L. 1242-2, 3°).",
+      "_source_aide": "atelier/reference/sources/code-du-travail/xml/L1242-2.xml (3°).",
       "contrat_ecrit": {
         "_quoi": "Le contrat d'engagement : un CDD (L. 1242-2, 3°), donc les mentions de L. 1242-12, et l'information écrite de tout salarié (R. 1221-34). Mêmes règles que celui du CDD (voir `cdd.contrat_ecrit._quoi`) ; ses dates jouées disent sa durée du travail, sa date de paiement la périodicité.",
         "_source": "Code du travail L. 1242-12 (atelier/reference/sources/code-du-travail/xml/L1242-12.xml), L. 1221-5-1, R. 1221-34 et R. 1221-35 (xml/L1221-5-1.xml, xml/R1221-34.xml, xml/R1221-35.xml).",
@@ -232,7 +234,8 @@
     },
 
     "cdi": {
-      "libelle": "CDI de droit privé (permanent)",
+      "libelle": "CDI",
+      "aide": "Contrat à durée indéterminée : un permanent, sans terme.",
       "contrat_ecrit": {
         "_quoi": "Le contrat écrit d'un CDI : le document qui porte les informations principales de la relation de travail (L. 1221-5-1). Mêmes règles que celui du CDD (voir `cdd.contrat_ecrit._quoi`), sans motif ni terme.",
         "_source": "Code du travail L. 1221-5-1 et R. 1221-34 (atelier/reference/sources/code-du-travail/xml/L1221-5-1.xml, xml/R1221-34.xml), R. 1221-35 pour le renvoi aux textes ; L. 3123-6 pour le temps partiel (xml/L3123-6.xml). L'avenant : R. 1221-40, un document qui dit ce qui change (xml/R1221-40.xml).",
@@ -414,7 +417,9 @@
     },
 
     "cdd": {
-      "libelle": "CDD de droit privé (hors contrat d'usage)",
+      "libelle": "CDD",
+      "aide": "Contrat à durée déterminée ordinaire, hors contrat d'usage : un remplacement, un accroissement temporaire d'activité (code du travail L. 1242-2, 1° et 2°).",
+      "_source_aide": "atelier/reference/sources/code-du-travail/xml/L1242-2.xml (1° et 2°).",
       "contrat_ecrit": {
         "_quoi": "Le contrat écrit de cette nature : son modèle livré, celui de son avenant, et les MENTIONS que la loi exige, chacune par son marqueur. Un modèle, livré ou propre à la compagnie (son dossier gabarits/), qui ne cite pas l'un de ces marqueurs ne fait pas de contrat (`documents::contrat_ecrit::refuser_les_mentions_absentes`). `si_dite` : la mention n'est due que si la saisie la dit (la personne remplacée, pour un remplacement).",
         "_source": "Le CDD « est établi par écrit » avec ses mentions (code du travail L. 1242-12, atelier/reference/sources/code-du-travail/xml/L1242-12.xml) ; tout salarié reçoit par écrit les informations principales de sa relation de travail (L. 1221-5-1, R. 1221-34 pour leur liste, R. 1221-35 pour le renvoi aux textes permis aux 7° à 12° et 14° ; xml/L1221-5-1.xml, xml/R1221-34.xml, xml/R1221-35.xml) ; le temps partiel est écrit avec sa durée et sa répartition (L. 3123-6, xml/L3123-6.xml).",
@@ -463,7 +468,7 @@
         "quoi": "35 h × 52 / 12. Art. L.3121-27 du code du travail. Comme pour le CDI : une durée collective plus courte s'écrit dans la fiche entreprise, jamais une durée qui inclut des heures supplémentaires (norme DSN 2027, p. 190)."
       },
       "codes": {
-        "S21.G00.40.005": {"valeur": "999SPT", "quoi": "999SPT - emplois permanents du spectacle (CCH-18 du bloc 40, p. 185), comme le CDI : un CDD ordinaire n'est pas un contrat d'intermittent."},
+        "S21.G00.40.005": {"valeur": "999SPT", "quoi": "999SPT - emplois permanents du spectacle (CCH-18 du bloc 40, p. 185), comme le CDI, sauf le CDD d'un intermittent : l'annexe 10 range « les artistes [...] engagés au titre d'un contrat de travail à durée déterminée », l'annexe 8 « les ouvriers et techniciens engagés dans le cadre d'un contrat à durée déterminée, pour assurer l'une des fonctions énumérées dans la liste » de leur domaine d'activité (art. 1er, § 2, atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt et unedic-annexe8-convention-20241115.txt), et il déclare le code de son métier dans la nomenclature des emplois du spectacle (`droit::caisse_conges::intermittent`)."},
         "S21.G00.40.007": {"valeur": "02", "quoi": "02 - Contrat de travail à durée déterminée de droit privé."},
         "S21.G00.40.008": {"valeur": "99", "quoi": "99 - Non concerné."},
         "S21.G00.40.016": {"valeur": "99", "quoi": "99 - non applicable."},
@@ -509,7 +514,7 @@
         "S21.G00.40.022": {
           "source": "97 + entreprise.congesspectacles_adherent (conges_spectacles::code_dsn ; fiche de spécificités Congés Spectacles d'Audiens, atelier/reference/sources/audiens-dsn/)",
           "si": "caisse_conges::affilie",
-          "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un artiste (son métier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Le technicien en CDD ordinaire reste parmi eux tant que n'est pas décidé quel technicien la caisse attend (l'annexe 8 range aussi l'attaché de production parmi les techniciens). Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
+          "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un intermittent (un artiste de l'annexe 10, ou un technicien d'une fonction que la liste de l'annexe 8 nomme pour la convention de l'employeur : `caisse_conges::intermittent`) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
         }
       },
       "absents": {},
@@ -559,9 +564,10 @@
         "toutes_au_brut": false
       },
       "activites": {
-        "_quoi": "Les heures de travail rémunéré, et les absences.",
+        "_quoi": "Les heures de travail rémunéré, les jours travaillés d'un contrat déclaré à la caisse des Congés Spectacles, et les absences.",
         "unites": [
-          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"}
+          {"code": "10", "quoi": "10 - heure : les heures de travail rémunéré du mois", "mesure": "heures", "type": "01"},
+          {"code": "12", "quoi": "12 - journée : les jours travaillés du mois, pour un contrat déclaré à la caisse des Congés Spectacles (`caisse_conges::affilie`) : « Pour les autres emplois, renseigner l'unité de mesure en jours (code 12) » (Audiens, fiche de spécificités Congés Spectacles, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 96-102).", "mesure": "jours", "type": "01", "si_caisse_conges": true}
         ],
         "absences": {"code": "10", "type": "02", "quoi": "02 - Durée d'absence partiellement ou pas du tout rémunérée, en heures."}
       }

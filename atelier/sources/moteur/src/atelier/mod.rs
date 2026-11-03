@@ -2,7 +2,8 @@
 //! des sources), les referentiels extraits des textes deposes, les tables Unicode generees, le garde avant commit, le
 //! guet du contexte, les scenarios du banc, et la publication des versions (la cle de l'editeur).
 //!
-//! Seuls la redirection vers de faux serveurs locaux et les bulletins fictifs n'existent que dans le binaire de
+//! Seuls la redirection vers de faux serveurs locaux, les bulletins fictifs et les outils sur une compagnie (`outils` : les
+//! taux de PAS, les AER, la reprise des DPAE, l'enquete des retours, le depot de test a un ordre) n'existent que dans le binaire de
 //! l'atelier (`--features atelier`, jamais livre).
 
 pub mod extraire;
@@ -20,3 +21,5 @@ pub mod bulletins_fictifs;
 pub mod fabriquer_bulletins;
 #[cfg(feature = "atelier")]
 pub mod redirection;
+#[cfg(feature = "atelier")]
+pub mod outils;

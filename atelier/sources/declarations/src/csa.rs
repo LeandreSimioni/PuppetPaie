@@ -39,6 +39,7 @@
 
 use droit::contexte::Contexte;
 use socle::fichiers::lire_json;
+use socle::texte::{euros, virgule};
 use socle::num::{add, div, mul, Decimal, Resultat};
 use serde_json::Value;
 
@@ -83,23 +84,23 @@ impl Csa {
     pub fn resume(&self) -> String {
         if self.code == CODE_EXONERATION {
             format!(
-                "Contribution supplementaire a l'apprentissage {} : exoneree (alternants {} % de l'effectif), declaree en \
-code 080 a 0.00.",
-                self.millesime, self.quotient
+                "Contribution supplémentaire à l'apprentissage {} : exonérée (alternants {} % de l'effectif), déclarée en \
+code 080 à 0.00.",
+                self.millesime, virgule(self.quotient)
             )
         } else {
             format!(
-                "Contribution supplementaire a l'apprentissage {} : {} EUR (alternants {} % de l'effectif, taux {} % sur \
-{} EUR d'assiette de la taxe d'apprentissage{}).",
+                "Contribution supplémentaire à l'apprentissage {} : {} (alternants {} % de l'effectif, taux {} % sur \
+{} d'assiette de la taxe d'apprentissage{}).",
                 self.millesime,
-                self.montant,
-                self.quotient,
-                self.taux,
-                add(self.assiette, self.assiette_alsace_moselle),
+                euros(self.montant),
+                virgule(self.quotient),
+                virgule(self.taux),
+                euros(add(self.assiette, self.assiette_alsace_moselle)),
                 if self.assiette_alsace_moselle.is_zero() {
                     String::new()
                 } else {
-                    format!(", dont {} EUR en Alsace-Moselle a 52 % du taux", self.assiette_alsace_moselle)
+                    format!(", dont {} en Alsace-Moselle à 52 % du taux", euros(self.assiette_alsace_moselle))
                 }
             )
         }
@@ -155,9 +156,9 @@ compte rendu metier de nature 118 (code A01) : relever les retours. Rien n'est e
     ))
 }
 
-/// Ce que la DSN de mars de l'annee N+1 porte au titre de N, ou `None` (un autre mois ; une compagnie qui ne doit pas la
-/// taxe d'apprentissage pour N, ou qui n'atteint pas 250 salaries). Le moteur la porte sur l'etablissement principal.
-pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
+/// Ce que la DSN de mars de l'annee N+1 porte au titre de N, ou `None` (un autre mois ; une fiche qui ne dit pas cinquante salaries ;
+/// une compagnie qui ne doit pas la taxe d'apprentissage pour N, ou qui n'atteint pas 250 salaries). Le moteur la porte sur l'etablissement principal.
+pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> Resultat<Option<Csa>> {
     if mois.len() != 7 || &mois[5..7] != MOIS_DE_DECLARATION {
         return Ok(None);
     }
@@ -166,14 +167,20 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
     if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, n)? {
         return Ok(None);
     }
-    // Au moins 250 salaries : l'effectif de l'annee N, la regle des cinq ans (L. 6242-1, V), comme au bloc 44 de decembre.
+    // Au moins 250 salaries : l'effectif de l'annee N, la regle des cinq ans (L. 6242-1, V), comme au bloc 44 de decembre ;
+    // un grand seuil, que seule une fiche de cinquante salaries et plus atteint (`Effectif::atteint`).
     let assujettie = ctx.effectif()?.atteint(SEUIL, n + 1).map_err(|m| {
-        format!("DSN de mars {}, contribution supplementaire a l'apprentissage {} : {}", n + 1, n, m)
+        format!(
+            "DSN de mars {}, contribution supplementaire a l'apprentissage {} : {}",
+            n + 1,
+            n,
+            m
+        )
     })?;
     if !assujettie {
         return Ok(None);
     }
-    let chemin = ctx.racine.join("config").join("effectifs.json");
+    let chemin = ctx.racine.join(droit::contexte::EFFECTIFS);
     let effectifs = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let (alternants, denominateur) =
         (effectif_du_118(&effectifs, n, CODE_ALTERNANTS)?, effectif_du_118(&effectifs, n, CODE_DENOMINATEUR)?);
@@ -183,7 +190,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
 supplementaire a l'apprentissage {} (code du travail L. 6242-1) se calcule sur le quotient de ses alternants, que l'Urssaf \
 calcule et renvoie debut mars en compte rendu metier de nature 118 (fiche net-entreprises 2624) : l'effectif moyen annuel \
 des contrats favorisant l'insertion professionnelle (code {}) et celui de determination du taux d'alternants (code {}). \
-config/effectifs.json ne les a pas pour {} : relever les retours (`moteur retours`), le moteur les y ecrit. Ils ne se \
+Le logiciel ne les a pas pour {} : relever les retours, le moteur les garde. Ils ne se \
 saisissent pas. Rien n'est ecrit.",
             n + 1,
             n,
@@ -222,7 +229,7 @@ pour {} : le quotient de la contribution supplementaire a l'apprentissage ne se 
             return Err(format!(
                 "DSN de mars {} : les alternants font {} % de l'effectif en {}, entre 3 et 5 % : la contribution \
 supplementaire a l'apprentissage n'est pas due si leur effectif a progresse d'au moins 10 % sur {} (L. 6242-1, II). \
-config/effectifs.json n'a pas l'effectif des alternants de {} (code {} du compte rendu metier 118) : relever les retours \
+Le logiciel n'a pas l'effectif des alternants de {} (code {} du compte rendu metier 118) : relever les retours \
 de {}. Rien n'est ecrit.",
                 n + 1,
                 quotient_lu,
@@ -241,7 +248,7 @@ de {}. Rien n'est ecrit.",
     // montant « pour l'ensemble de ses établissements »).
     let (mut assiette, mut alsace) = (Decimal::ZERO, Decimal::ZERO);
     for nic in crate::dsn::nics(&ctx.entreprise) {
-        let a = crate::dsn::assiettes_de_l_annee(ctx, n, &nic, &["992", "993"])?;
+        let a = crate::dsn::assiettes_de_l_annee(ctx, n, &nic, &["992", "993"], departs)?;
         assiette = add(assiette, a[0]);
         alsace = add(alsace, a[1]);
     }

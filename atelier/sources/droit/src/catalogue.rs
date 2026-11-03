@@ -145,33 +145,33 @@ impl Rubrique {
                 repr(code), repr(&self.nature), joindre(&NATURES)));
         }
         if !COMPTE_POUR.contains(&self.compte_pour.as_str()) {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : compte_pour {} inconnu. Connus : {}.",
-                repr(code), repr(&self.compte_pour), joindre(&COMPTE_POUR)));
+                repr(code), repr(&self.compte_pour), joindre(&COMPTE_POUR))})));
         }
         if self.source.is_empty() {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : `source` est vide. Une rubrique dit d'ou vient \
-                 sa regle, sinon personne ne pourra la verifier.", repr(code)));
+                 sa regle, sinon personne ne pourra la verifier.", repr(code))})));
         }
         if self.conges_spectacles && !self.soumis {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : `conges_spectacles` sans `soumis`. Les Conges \
                  Spectacles sont une cotisation : leur assiette ne peut pas \
-                 depasser ce qui entre dans l'assiette des cotisations.", repr(code)));
+                 depasser ce qui entre dans l'assiette des cotisations.", repr(code))})));
         }
         if self.heures_forfait.is_some() && self.unite == "heure" {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : `heures_forfait` sur une rubrique dont l'unite \
                  est l'heure. Les heures y sont un fait, pas un forfait : \
-                 elles compteraient deux fois.", repr(code)));
+                 elles compteraient deux fois.", repr(code))})));
         }
         if let Some(c) = &self.dsn_autres_bruts {
             if !AUTRES_BRUTS.iter().any(|(k, _)| k == c) {
-                return Err(format!(
+                return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
                     "Rubrique {} : `dsn_autres_bruts` vaut {}, qui n'est pas une \
                      valeur de S21.G00.54.001. Voir AUTRES_BRUTS, releve dans le \
-                     cahier technique NEODeS 2026.1.", repr(code), repr(c)));
+                     cahier technique NEODeS 2026.1.", repr(code), repr(c))})));
             }
         }
         Ok(())
@@ -185,14 +185,14 @@ impl Rubrique {
             "frais" => Ok(HorsAssiette::Frais),
             "indemnite" => Ok(HorsAssiette::Revenu),
             "retenue" => Ok(HorsAssiette::Mouvement),
-            autre => Err(format!(
+            autre => Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(&self.code)), serde_json::json!({"detail": format!(
                 "Rubrique {} : hors assiette (`soumis` faux) et de nature {}. Le montant net social \
                  (S21.G00.58.004, bulletin) ne sait pas si cette ligne est un revenu, un remboursement de frais \
                  ou un mouvement de tresorerie, et ne le devine pas. Hors assiette, la nature doit etre `frais` \
                  (remboursement de frais professionnels : hors du montant net social), `indemnite` (une somme \
                  versee a l'occasion du travail, exoneree ou non : dans le montant net social) ou `retenue` \
                  (acompte, avance, saisie : hors du montant net social).",
-                repr(&self.code), repr(autre))),
+                repr(&self.code), repr(autre))}))),
         }
     }
 
@@ -211,6 +211,21 @@ impl Rubrique {
             return Some("activite");
         }
         None
+    }
+
+    /// Le statut auquel la rubrique est reservee : le service et le cachet ne sont des unites de paie que pour un
+    /// artiste. Les conventions payent au service les repetitions des artistes (1285, art. X.3.2 C et X.3.3,
+    /// `atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md`) et au cachet leurs representations
+    /// (3090, titre VII « Salaires minimaux », KALIARTI000049099195 de `kali-entrepot/` : « Artistes … Rémunération au
+    /// cachet ») ; un technicien y est paye a l'heure, a la journee, a la semaine ou au mois (1285, titre VI,
+    /// `kali-1285-titre-vi-duree-du-travail-20261102.md` ; 3090, titre III, art. 3.2, KALIARTI000028930755 : des services
+    /// indivisibles comptes en heures, et le titre VII : « Techniciens … par heure, par mois » ; les grilles des
+    /// techniciens de `minima-conventionnels.json`, aucune au service ni au cachet). L'assurance chomage ne connait le
+    /// cachet que des artistes : annexe X, art. 3 (« Lorsque l'activité des artistes est déclarée sous la forme de
+    /// cachets ») ; l'annexe VIII, celle des techniciens, ne compte que des heures (art. 3,
+    /// `plafond-intermittents/unedic-annexe10-convention-20241115.txt`, `…annexe8…`).
+    pub fn reservee_au_statut(&self) -> Option<&'static str> {
+        matches!(self.unite.as_str(), "service" | "cachet").then_some("artiste")
     }
 
     /// Une ligne de cette rubrique doit dire ses heures : `heures` est dans
@@ -253,7 +268,7 @@ impl Rubrique {
 
 // ------------------------------------------------------------------- lecture
 
-/// `_lire` : un fichier absent est un dictionnaire vide.
+/// Un fichier absent est un dictionnaire vide.
 fn lire(p: &Path) -> Resultat<Value> {
     if !socle::fichiers::existe(p) {
         return Ok(Value::Object(Map::new()));
@@ -271,9 +286,7 @@ pub fn annexes() -> Resultat<Value> {
     let a = b.get("annexes").cloned().unwrap_or(Value::Object(Map::new()));
     let ok = |c: &str| a.get(c).map_or(false, vrai);
     if !ok("seuil_heures") || !ok("fenetre_jours") {
-        return Err("rubriques-base.json : la section `annexes` \
-                    (seuil_heures, fenetre_jours) manque."
-            .into());
+        return Err(socle::echec::livree("rubriques-base.json", "annexes"));
     }
     Ok(a)
 }
@@ -309,9 +322,9 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str) -> Resultat<Rub
         .collect();
     if !inconnus.is_empty() {
         inconnus.sort();
-        return Err(format!(
+        return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
             "Rubrique {} : champ(s) inconnu(s) {}. Les champs admis sont ceux des rubriques livrees, \
-             rubriques-base.json.", repr(code), inconnus.join(", ")));
+             rubriques-base.json.", repr(code), inconnus.join(", "))})));
     }
     let texte = |v: &Value| match v {
         Value::String(s) => s.clone(),
@@ -371,7 +384,7 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str) -> Resultat<Rub
 /// fiche datee comme toute la configuration (`contexte::fiche_au`), lues a `jour` : une rubrique changee a une date ne
 /// change pas les paies d'avant. Une fiche qui ne dit encore rien a `jour` n'existe pas.
 fn propres_au(racine: &Path, jour: &Jour) -> Resultat<Vec<(String, Map<String, Value>)>> {
-    let propres = lire(&racine.join("config").join(RUBRIQUES_COMPAGNIE))?;
+    let propres = lire(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE))?;
     let mut out = Vec::new();
     if let Some(Value::Object(m)) = propres.get("rubriques") {
         for (c, v) in m {
@@ -390,7 +403,7 @@ pub const RUBRIQUES_COMPAGNIE: &str = "rubriques-compagnie.json";
 
 /// Une rubrique de la compagnie a-t-elle une valeur datee ? Sinon le catalogue est le meme a toute date.
 fn rubriques_datees(racine: &Path) -> Resultat<bool> {
-    let propres = lire(&racine.join("config").join(RUBRIQUES_COMPAGNIE))?;
+    let propres = lire(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE))?;
     Ok(propres.get("rubriques").and_then(Value::as_object).is_some_and(|m| {
         m.values()
             .filter_map(Value::as_object)
@@ -447,7 +460,7 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
     let fichiers = format!(
         "{}|{}",
         empreinte(&dossier_du_code().join("rubriques-base.json")),
-        empreinte(&racine.join("config").join(RUBRIQUES_COMPAGNIE)),
+        empreinte(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE)),
     );
     let cache = CATALOGUES.get_or_init(|| Mutex::new(HashMap::new()));
     let connue = cache.lock().unwrap().get(&fichiers).map(|(datee, _)| *datee);
@@ -465,7 +478,7 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
         socle::fichiers::est_dossier(racine);
         for p in [
             dossier_du_code().join("rubriques-base.json"),
-            racine.join("config").join(RUBRIQUES_COMPAGNIE),
+            racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE),
         ] {
             if socle::fichiers::existe(&p) {
                 socle::fichiers::noter_si_besoin(&p);
@@ -484,15 +497,13 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
 }
 
 /// LA RUBRIQUE D'UNE LIGNE DE PAIE NEUVE, par forme de paie (`"activite"` ou `"mensuelle"`, celles de
-/// [`Rubrique::reservee_a`]) : une ligne neuve paie un travail, elle ne s'ouvre pas sur la premiere rubrique du
-/// deroulant, qui se range par libelle (« Absence » en tete) : la
-/// premiere rubrique de salaire (nature `salaire`) que la forme propose, dans l'ordre du catalogue ; au mois, le
-/// salaire de base (`salaire_de_base`) passe devant. `None` : aucune.
-pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str) -> Option<&'a Rubrique> {
-    let proposee = |r: &&Rubrique| r.reservee_a().map_or(true, |f| f == forme);
-    let salaire = |r: &&Rubrique| r.nature == "salaire";
-    let base = if forme == "mensuelle" { cat.iter().filter(proposee).find(|r| r.salaire_de_base) } else { None };
-    base.or_else(|| cat.iter().filter(proposee).find(salaire))
+/// [`Rubrique::reservee_a`]) et par statut du salarie (`"artiste"` ou `"technicien"`, celui de
+/// [`Rubrique::reservee_au_statut`]) : une ligne neuve paie un travail, elle ne s'ouvre pas sur la premiere rubrique du
+/// deroulant, qui se range par libelle (« Absence » en tete) : la premiere rubrique de salaire (nature `salaire`) que la
+/// forme et le statut proposent, dans l'ordre du catalogue. `None` : aucune.
+pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str, statut: &str) -> Option<&'a Rubrique> {
+    let proposee = |r: &&Rubrique| r.reservee_a().map_or(true, |f| f == forme) && r.reservee_au_statut().map_or(true, |s| s == statut);
+    cat.iter().filter(proposee).find(|r| r.nature == "salaire")
 }
 
 /// Une rubrique par son code, telle qu'elle vaut a `jour`. Refuse un code inconnu : mieux vaut s'arreter que payer une
@@ -520,16 +531,10 @@ pub fn code_54(r: &Rubrique, ligne: &Value) -> Resultat<Option<String>> {
         return Ok(Some(code.clone()));
     }
     if !AVANTAGES_EN_NATURE.contains(&code.as_str()) {
-        return Err(format!(
-            "Ligne << {} >> : `genre` ({}) ne se saisit que sur un avantage \
-             en nature. Cette rubrique declare {} en S21.G00.54.001.",
-            r.libelle, repr_texte(&genre), code));
+        return Err(socle::echec::a_la_cle(&format!("La ligne « {} » dit le genre d'un avantage en nature, et ce n'en est pas un : retirer ce genre.", r.libelle), "genre", repr_texte(&genre)));
     }
     if !AVANTAGES_EN_NATURE.contains(&genre.as_str()) {
-        return Err(format!(
-            "Ligne << {} >> : `genre` vaut {}. Les avantages en nature du \
-             bloc 54 sont {} -- voir catalogue.AUTRES_BRUTS.",
-            r.libelle, repr_texte(&genre), AVANTAGES_EN_NATURE.join(", ")));
+        return Err(socle::echec::a_la_cle(&format!("La ligne « {} » porte un genre d'avantage en nature inconnu : le choisir dans la liste.", r.libelle), "genre", format!("{} ; connus : {}", repr_texte(&genre), AVANTAGES_EN_NATURE.join(", "))));
     }
     Ok(Some(genre))
 }

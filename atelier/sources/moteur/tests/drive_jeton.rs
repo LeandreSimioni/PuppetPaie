@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::Once;
 
 use moteur::compagnie::coffre::Coffre;
-use envois::drive::{Adresses, Drive};
+use envois::drive::Drive;
 
 use outils::{http, Recu, Requete};
 use serde_json::json;
@@ -23,13 +23,6 @@ fn serveur(f: impl Fn(&Requete) -> Vec<u8> + Send + Sync + 'static) -> (String, 
     outils::serveur(move |q| Some(f(q)))
 }
 
-fn adresses(base: &str) -> Adresses {
-    Adresses {
-        jetons: format!("{}/token", base),
-        fichiers: format!("{}/drive/v3/files", base),
-        televersement: format!("{}/upload/drive/v3/files", base),
-    }
-}
 
 /// La cle du poste des tests, posee une fois, avant tout jeton.
 fn racine(nom: &str) -> PathBuf {
@@ -56,7 +49,8 @@ fn compagnie_liee(nom: &str) -> PathBuf {
 fn jeton_revoque_au_rafraichissement_rien_ne_part_vers_drive() {
     let (base, recu) = serveur(|_| reponse(400, br#"{"error": "invalid_grant", "error_description": "Token has been expired or revoked."}"#));
     let r = compagnie_liee("revoque");
-    let mut c = moteur::routes::coffre::client_drive(&r).unwrap().avec_adresses(adresses(&base));
+    std::env::set_var(moteur::routes::coffre::VARIABLE_GOOGLE_ESSAIS, &base);
+    let mut c = moteur::routes::coffre::client_drive(&r).unwrap();
     assert!(c.lister("P").is_err());
     assert_eq!(recu.lock().unwrap().len(), 1);
 }

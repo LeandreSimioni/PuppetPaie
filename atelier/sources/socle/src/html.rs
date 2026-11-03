@@ -31,7 +31,7 @@ pub fn pourcent(s: &str, surs: &str) -> String {
     o
 }
 
-/// `_mailto` : un lien `mailto:` (RFC 6068), objet et corps encodes comme une URL.
+/// Un lien `mailto:` (RFC 6068), objet et corps encodes comme une URL.
 pub fn mailto(adresse: &str, objet: &str, corps: &str) -> String {
     format!("mailto:{}?subject={}&body={}", pourcent(adresse, "@"), pourcent(objet, ""), pourcent(corps, ""))
 }

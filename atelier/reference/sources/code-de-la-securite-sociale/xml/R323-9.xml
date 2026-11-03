@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000043356729</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/43/35/67/LEGIARTI000043356729.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R323-9</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2021-04-14</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1961-01-12" fin="2999-01-01" id="LEGISCTA000006106085">Partie réglementaire - Décrets en Conseil d'Etat</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126956">Livre III : Dispositions relatives aux assurances sociales et à diverses catégories de personnes rattachées au régime général</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141864">Titre II : Assurance maladie</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156609">Chapitre 3 : Prestations en espèces.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="1998-03-15" id="LEGIARTI000006749275" num="R323-9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1998-03-15" etat="MODIFIE" fin="2010-11-01" id="LEGIARTI000006749276" num="R323-9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2010-11-01" etat="MODIFIE" fin="2012-01-01" id="LEGIARTI000022981181" num="R323-9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-01" etat="MODIFIE" fin="2016-01-01" id="LEGIARTI000025035458" num="R323-9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-01-01" etat="MODIFIE" fin="2021-04-14" id="LEGIARTI000031827851" num="R323-9" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2021-04-14" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000043356729" num="R323-9" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>En aucun cas l'indemnité journalière servie à un assuré social ne peut être supérieure au sept cent trentième du montant annuel du plafond mentionné au cinquième alinéa de l'article R. 323-4.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000682675" datesignatexte="1945-12-29" id="JORFTEXT000000682675" naturetexte="DECRET" nortexte="" num="" numtexte="45-0179" sens="source" typelien="CONCORDANCE">Décret 45-0179 1945-12-29 art. 33 bis</LIEN>
+<LIEN cidtexte="JORFTEXT000000682675" datesignatexte="1945-12-29" id="LEGIARTI000006760568" naturetexte="DECRET" nortexte="" num="33 bis" numtexte="45-0179" sens="cible" typelien="CONCORDE">Décret n°45-0179 du 29 décembre 1945 - art. 33 bis (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000000664515" datesignatexte="1988-04-29" id="LEGIARTI000006785912" naturetexte="ARRETE" nortexte="ASES8800711A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 29 avril 1988 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000863807" datesignatexte="1989-04-04" id="LEGIARTI000006786456" naturetexte="ARRETE" nortexte="SPSS8900773A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 4 avril 1989 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000350258" datesignatexte="1990-07-24" id="LEGIARTI000006787199" naturetexte="ARRETE" nortexte="SPSS9001530A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 24 juillet 1990 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000719022" datesignatexte="1995-10-26" id="LEGIARTI000006790227" naturetexte="ARRETE" nortexte="SANS9503247A" num="2-1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 26 octobre 1995 - art. 2-1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000043353163" datesignatexte="2021-04-12" id="LEGIARTI000043354385" naturetexte="DECRET" nortexte="SSAS2101222D" num="1" numtexte="2021-428" sens="cible" typelien="MODIFIE">Décret n°2021-428 du 12 avril 2021 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000046865681" datesignatexte="2023-01-02" id="LEGIARTI000046891924" naturetexte="DECRET" nortexte="SPRS2233369D" num="2" numtexte="2023-1" sens="cible" typelien="CITATION">Décret n°2023-1 du 2 janvier 2023 - art. 2</LIEN>
+<LIEN cidtexte="LEGITEXT000006073898" datesignatexte="1986-11-27" id="LEGIARTI000006784502" naturetexte="ARRETE" nortexte="" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 novembre 1986 - art. 1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038622302" naturetexte="CODE" nortexte="" num="D722-18" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D722-18 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006740536" naturetexte="CODE" nortexte="" num="L161-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L161-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750009" naturetexte="CODE" nortexte="" num="R323-4" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. R323-4</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000053335775" naturetexte="CODE" nortexte="" num="R753-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R753-2 (V)</LIEN>
+</LIENS>
+</ARTICLE>

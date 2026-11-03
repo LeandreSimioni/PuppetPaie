@@ -6,30 +6,22 @@ async function dessinerDiagnostic(rang) {
   const etat = rang.querySelector(".k-diag-etat"), compte = rang.querySelector(".k-diag-compte");
   let d;
   try { d = await api("diagnostic-etat"); } catch (e) { etat.textContent = e.message; return; }
+  const k = d.ecran || {};
   // L'ENVOI SE COUPE : avec un avertissement, et il se
   // rallume d'un clic. Coupé, rien ne part ; le journal reste sur le poste.
   const couper = rang.querySelector("#k-diag-couper");
   couper.hidden = false;
-  couper.textContent = d.envoi === false ? "Réactiver" : "Désactiver";
+  couper.textContent = k.couper;
   couper.onclick = async () => {
     if (d.envoi !== false) {
+      const a = k.desactiver || {};
       const oui = await new Promise((resoudre) => {
         let repondu = false;
         const repondre = (v) => { if (!repondu) { repondu = true; resoudre(v); } };
-        ouvrirBoite(`<h3>Désactiver le signalement des dysfonctionnements ?</h3>
-          <p>Si vous le désactivez, l'éditeur ne verra plus les problèmes de votre
-            logiciel, et risque de ne pas pouvoir les corriger avant qu'ils vous
-            arrivent — ou qu'ils arrivent à d'autres compagnies. Il ne saura plus
-            non plus combien de paies PuppetPaie fait chez vous : le logiciel est
-            gratuit, c'est sa seule façon de savoir s'il sert.</p>
-          <p class="note">Ce qui part : chaque dysfonctionnement avec de quoi le
-            reproduire (ce que le logiciel faisait, ses données, les 3 minutes
-            d'avant, cet ordinateur), et une fois par an, à partir du 16 janvier,
-            le nombre de paies faites l'année précédente. Les noms, NIR, adresses,
-            IBAN et coordonnées de vos salariés n'en partent pas : ils sont
-            remplacés par leur forme. Les incidents resteront notés sur cet
-            ordinateur, et vous pourrez réactiver l'envoi à tout moment.</p>
-          <p>Voulez-vous vraiment continuer ?</p>
+        ouvrirBoite(`<h3>${echapper(a.titre)}</h3>
+          <p>${echapper(a.phrase)}</p>
+          <p class="note">${echapper(a.note)}</p>
+          <p>${echapper(a.question)}</p>
           <div class="actions">
             <button class="secondaire" id="dg-garder">Non, garder l'envoi</button>
             <button class="primaire" id="dg-couper">Oui, désactiver</button>
@@ -40,50 +32,30 @@ async function dessinerDiagnostic(rang) {
       if (!oui) return;
     }
     try {
-      await api("diagnostic-regler", { actif: d.envoi === false });
-      dire(d.envoi === false ? "Le signalement des dysfonctionnements est réactivé."
-        : "Le signalement des dysfonctionnements est désactivé : rien ne part plus chez l'éditeur.");
+      const r = await api("diagnostic-regler", { actif: d.envoi === false });
+      dire(r.phrase);
     } catch (e) { dire(e.message, "erreur"); return; }
     dessinerDiagnostic(rang);
   };
   etat.innerHTML = pastilleDeLEtat(d.pastille);
-  compte.textContent = d.envoi === false ? "désactivé : les incidents restent sur cet ordinateur, rien ne part"
-    : !d.serveur ? "aucun serveur de l'éditeur connu : rien ne part"
-    : d.dernier_envoi ? `${d.partis} incident(s) parti(s), le dernier le ${quand(d.dernier_envoi)}`
-    : d.total ? "rien n'est encore parti" : "";
-  // Le nombre de paies de l'année : le dernier parti, à la suite.
-  const annee = d.envoi !== false && (d.paies_annuelles || [])[0];
-  if (annee) {
-    compte.textContent += `${compte.textContent ? " · " : ""}nombre de paies de ${annee.annee} parti le ${quand(annee.parti_le)}`;
-  }
+  compte.textContent = k.compte || "";
   let signales = [];
   try { signales = (await api("signalements")).signalements; } catch (e) { /* la liste est un plus */ }
   rang.querySelector("#k-diag-voir").onclick = () => boiteDiagnostic(d, rang, signales);
 }
 
 function boiteDiagnostic(d, rang, signales = []) {
-  const NOMS = { logiciel: "plantage", refus: "refus du moteur", dpae: "DPAE rejetée",
-                 dsn: "DSN rejetée", paies: "nombre de paies de l'année" };
+  const k = d.ecran || {};
   ouvrirBoite(`
-    <h3>Ce qui est parti chez l'éditeur</h3>
-    <p class="note">Quand quelque chose casse, PuppetPaie le note et l'envoie au serveur
-      de l'éditeur, pour qu'il le corrige. Une fois par an, à partir du 16 janvier, il
-      envoie aussi le nombre de paies faites l'année précédente : le logiciel est
-      gratuit, c'est la seule façon pour l'éditeur de savoir s'il sert. Ce qui part est
-      affiché ici tel quel : ce que le logiciel faisait et ses données (montants, dates,
-      codes, spectacles, lieux), ce que vous et le logiciel avez fait les 3 minutes d'avant,
-      et cet ordinateur (système, version, mémoire, disque, écran). Les noms, NIR, adresses,
-      IBAN, naissances, courriels et téléphones des salariés sont remplacés par leur forme
-      (« salarié n°2 », « NIR présent, clé valide ») ; la compagnie n'est pas nommée et le
-      poste est désigné par un numéro tiré au hasard.
-      ${d.serveur ? `Serveur : <b>${echapper(d.serveur)}</b>.` : "<b>Aucun serveur connu : rien ne part.</b>"}</p>
-    ${!d.groupes.length ? `<p>Rien n'a été noté.</p>` : `<div class="liste-choix">
+    <h3>Ce qui est parti</h3>
+    <p class="note">${echapper(k.parti)}</p>
+    ${!d.groupes.length ? `<p>${echapper(k.rien)}</p>` : `<div class="liste-choix">
       ${d.groupes.map((g, i) => `
         <div class="choix"><span>
-          <b>${echapper(NOMS[g.quoi] || g.quoi)}</b>
+          <b>${echapper(g.quoi_dit)}</b>
           ${g.combien > 1 ? `<span class="discret">× ${g.combien}</span>` : ""}
           — ${echapper(g.resume || g.genre || "")}
-          <br><span class="discret">${echapper(g.ou || "")} · dernier le ${echapper(quand(g.derniere))}</span>
+          <br><span class="discret">${echapper(g.ou || "")} · ${echapper(g.dernier_dit)}</span>
           <br>${pastilleDeLEtat(g.pastille)}
           <button class="lien d-contenu" data-i="${i}">voir le contenu exact</button>
           <pre class="d-pre" data-i="${i}" hidden></pre></span>
@@ -102,13 +74,11 @@ function boiteDiagnostic(d, rang, signales = []) {
   });
   const envoyer = document.getElementById("d-envoyer");
   if (envoyer) envoyer.onclick = async () => {
-    const rendre = occupe(envoyer, "Envoi en cours…");
+    const rendre = occupe(envoyer, "Envoi…");
     try {
       const r = await api("diagnostic-envoyer");
       fermerBoite();
-      dire(r.bilan.erreur ? "Envoi impossible : " + r.bilan.erreur
-                          : r.bilan.envoyes + " incident(s) envoyé(s).",
-           r.couleur);
+      dire(r.phrase, r.couleur);
       dessinerDiagnostic(rang);
     } catch (e) { rendre(); dire(e.message, "erreur"); }
   };
@@ -116,8 +86,8 @@ function boiteDiagnostic(d, rang, signales = []) {
 
 /* SIGNALER UN PROBLÈME. Le bouton du bandeau, sur tous les écrans.
  *
- * PAS SEULEMENT UN PROBLÈME (l'éditeur, 01/10/2026 : « ils peuvent aussi
- * émettre une envie, une idée ») : le bouton s'appelle « Un problème, une
+ * PAS SEULEMENT UN PROBLÈME : on peut aussi
+ * émettre une envie, une idée : le bouton s'appelle « Un problème, une
  * idée ? ».
  *
  * L'UTILISATEUR ÉCRIT, JOINT SES CAPTURES ET ENVOIE :
@@ -130,6 +100,8 @@ function boiteDiagnostic(d, rang, signales = []) {
 const CAPTURE_MAX = 1536 * 1024;           // 1,5 Mo, comme le moteur
 const CAPTURES_MAX = 5;
 let SIGNALEMENT_REDUIT = null;             // rouvre la boîte rangée dans sa pastille
+/* Ce que la boîte dit, tel que le moteur le rend (`ecran` de `signalements`). */
+let ECRAN_MESSAGE = {};
 
 function ecranCourant() {
   const b = document.querySelector(".onglets button.actif");
@@ -141,8 +113,7 @@ function ecranCourant() {
 function boiteSignalement() {
   if (SIGNALEMENT_REDUIT) return SIGNALEMENT_REDUIT();
   // Déjà ouverte. Fermée, elle reste dans le nid de la boîte sous le voile
-  // caché : ce n'est pas « ouverte » (02/10/2026 : « quand je clique sur
-  // signaler il ne se rouvre pas »).
+  // caché : ce n'est pas « ouverte ».
   if (document.getElementById("sg-boite")
       && !document.getElementById("voile").classList.contains("cachee")) return;
   const ecran = ecranCourant();
@@ -155,34 +126,30 @@ function boiteSignalement() {
   const rendreDessous = () => { const d = dessous; dessous = null; if (d) d(); };
   ouvrirBoite(`<div id="sg-boite">
     <h3>Un problème, une idée ?</h3>
-    <label class="champ-boite">Ce qui ne va pas, ce qui vous manque, ce que vous aimeriez
+    <label class="champ-boite"><span id="sg-question"></span>
       <textarea id="sg-texte" rows="6" maxlength="5000"></textarea></label>
     <div class="sg-vignettes" id="sg-vignettes"></div>
-    <p class="discret" id="sg-ajout">Captures d'écran (${CAPTURES_MAX} au plus) : collez-les
-      (Ctrl+V), <label class="lien">choisissez des images<input type="file" id="sg-fichier"
-      accept="image/png,image/jpeg" multiple hidden></label>, ou
-      <button type="button" class="lien" id="sg-capturer"
-        title="Photographier l'écran de PuppetPaie tel qu'il est derrière cette boîte">capturez
-        l'écran</button>.</p>
-    <p class="note" id="sg-ce-qui-part">Pour qu'on trouve la panne sans vous redemander, partent avec votre
-      message : cet ordinateur (système, version, mémoire, disque, écran), tout ce que vous et PuppetPaie
-      avez fait ces 3 dernières minutes, et les derniers dysfonctionnements notés. Les noms, NIR, adresses,
-      IBAN, naissances, courriels et téléphones de vos salariés y sont remplacés par leur forme
-      (« salarié n°2 ») et la compagnie n'est pas nommée ; montants, dates et codes restent tels quels.</p>
+    <p class="discret" id="sg-ajout"><span id="sg-captures"></span>
+      <label class="lien">choisir des images<input type="file" id="sg-fichier"
+      accept="image/png,image/jpeg" multiple hidden></label>
+      <button type="button" class="lien" id="sg-capturer">capturer l'écran</button></p>
+    <p class="note" id="sg-ce-qui-part"></p>
     <p class="encart erreur" id="sg-erreur" hidden></p>
     <p id="sg-resultat" hidden></p>
     <div class="actions">
       <button type="button" class="lien sg-voir" id="sg-voir" disabled>voir ce qui part</button>
       <button class="secondaire" id="sg-fermer">Fermer</button>
-      <button class="secondaire" id="sg-reduire"
-        title="Ranger la boîte le temps de faire une capture d'écran">Réduire</button>
+      <button class="secondaire" id="sg-reduire">Réduire</button>
       <button class="primaire" id="sg-envoyer" disabled>Envoyer</button>
     </div>
     <pre class="d-pre" id="sg-pre" hidden></pre>
-    <div id="sg-messages"></div></div>`);
+    <div id="sg-messages"></div>
+    <details class="avance-auto" hidden><summary>Avancé</summary>
+      <div id="sg-avance" data-auto="Un problème, une idée ?"></div></details></div>`);
   // Les éléments se tiennent par la boîte, pas par le document : réduite,
   // elle est hors de la page, et ses gestes en cours doivent la trouver.
   const boite = document.getElementById("sg-boite");
+  dessinerAvance(boite.querySelector("#sg-avance"));
   const $ = (id) => boite.querySelector("#" + id);
   const texte = $("sg-texte"), envoyer = $("sg-envoyer");
   const montrerErreur = (m) => { $("sg-erreur").textContent = m || ""; $("sg-erreur").hidden = !m; };
@@ -196,7 +163,7 @@ function boiteSignalement() {
 
   const dessinerVignettes = () => {
     $("sg-vignettes").innerHTML = captures.map((c, i) => `
-      <span class="sg-vignette"><img src="${c.donnees}" alt="Capture ${i + 1}">
+      <span class="sg-vignette"><img src="${c.donnees}" alt="Capture">
         <button type="button" class="sg-retirer" data-i="${i}" title="Retirer cette capture">×</button></span>`).join("")
       + `<span class="sg-vignette sg-en-cours">capture…</span>`.repeat(enCours.size);
     $("sg-vignettes").querySelectorAll(".sg-retirer").forEach((b) => {
@@ -209,17 +176,17 @@ function boiteSignalement() {
   const poser = (fichier) => new Promise((fini) => {
     montrerErreur("");
     if (captures.length >= CAPTURES_MAX) {
-      return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
+      return fini(montrerErreur(ECRAN_MESSAGE.trop));
     }
     if (!/^image\/(png|jpeg)$/.test(fichier.type)) {
-      return fini(montrerErreur("Une capture doit être une image PNG ou JPEG."));
+      return fini(montrerErreur(ECRAN_MESSAGE.format));
     }
     if (fichier.size > CAPTURE_MAX) {
-      return fini(montrerErreur("Une capture dépasse 1,5 Mo : réduisez-la, ou découpez-la."));
+      return fini(montrerErreur(ECRAN_MESSAGE.taille));
     }
     const lecteur = new FileReader();
     lecteur.onload = () => {
-      if (captures.length >= CAPTURES_MAX) return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
+      if (captures.length >= CAPTURES_MAX) return fini(montrerErreur(ECRAN_MESSAGE.trop));
       captures.push({ type: fichier.type, donnees: lecteur.result, octets: fichier.size });
       dessinerVignettes();
       fini();
@@ -244,7 +211,12 @@ function boiteSignalement() {
   // VOS MESSAGES, et leurs réponses : ouvrir la boîte les rend lues.
   (async () => {
     try {
-      const l = (await api("signalements")).signalements;
+      const r = await api("signalements");
+      const l = r.signalements;
+      ECRAN_MESSAGE = r.ecran || {};
+      $("sg-question").textContent = ECRAN_MESSAGE.question || "";
+      $("sg-captures").textContent = ECRAN_MESSAGE.captures || "";
+      $("sg-ce-qui-part").textContent = ECRAN_MESSAGE.ce_qui_part || "";
       $("sg-messages").innerHTML = vosMessages(l);
       if (l.some((s) => s.reponse && !s.lu)) {
         await api("signalements-lus");
@@ -259,7 +231,7 @@ function boiteSignalement() {
     FERMETURE_BOITE = rendreDessous;
     // Un clic à côté range la boîte ; une fois le message parti, il la ferme.
     // Rien d'écrit ni de capturé : rien à garder, il la ferme aussi
-    // (02/10/2026 : « si on n'a rien modifié, on laisse partir »).
+    // Rien de modifié : on laisse partir.
     const vide = () => !texte.value.trim() && !captures.length;
     CLIC_DEHORS = () => ($("sg-reduire").hidden || vide() ? fermerBoite() : $("sg-reduire").click());
   };
@@ -279,10 +251,10 @@ function boiteSignalement() {
   // la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
   $("sg-capturer").onclick = () => {
     montrerErreur("");
-    if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+    if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(ECRAN_MESSAGE.trop);
     // La place « capture… » d'abord : elle se peint avant que la copie de la page ne prenne la main.
     const tour = photographierLaPage(dessous && dessous.noeuds)
-      .then(poser, (e) => montrerErreur("La capture n'a pas pu se faire : " + e.message))
+      .then(poser, (e) => montrerErreur(ECRAN_MESSAGE.ratee + " " + e.message))
       .finally(() => { enCours.delete(tour); dessinerVignettes(); });
     enCours.add(tour);
     dessinerVignettes();
@@ -291,9 +263,7 @@ function boiteSignalement() {
     const pastille = document.createElement("button");
     pastille.type = "button";
     pastille.className = "sg-pastille";
-    pastille.textContent = "Message en cours"
-      + (captures.length ? ` (${captures.length} capture${captures.length > 1 ? "s" : ""})` : "")
-      + " — reprendre";
+    pastille.textContent = "Message en cours — reprendre";
     SIGNALEMENT_REDUIT = () => {
       SIGNALEMENT_REDUIT = null;
       pastille.remove();
@@ -326,7 +296,7 @@ function boiteSignalement() {
   // montrer où il en est, dans « Vos messages ».
   envoyer.onclick = async () => {
     montrerErreur("");
-    const rendre = occupe(envoyer, "Envoi en cours…");
+    const rendre = occupe(envoyer, "Envoi…");
     try {
       await Promise.all([...enCours]);      // une capture qui se dessine encore part avec le reste
       const r = await api("signalement-envoyer", charge());
@@ -404,7 +374,7 @@ async function photographierLaPage(dessous) {
       return new File([blob], `ecran-${quand}.jpg`, { type: "image/jpeg" });
     }
   }
-  throw new Error("l'image dépasse 1,5 Mo même réduite");
+  throw new Error("image trop lourde");
 }
 
 /** `noeud` copié dans le document `doc`, avec ce qu'on y a tapé ou coché : une copie de nœud reprend les attributs,
@@ -429,8 +399,8 @@ function copieAvecSaisie(noeud, doc) {
 function vosMessages(liste) {
   if (!liste.length) return "";
   return `<h4 class="sg-titre-messages">Vos messages</h4><ul class="sg-messages">${liste.map((s) => `
-    <li${s.reponse && !s.lu ? ' class="nouveau"' : ""}><span class="discret">${echapper(quand(s.quand))}</span>
-      ${echapper(s.debut)}${s.debut && s.debut.length >= 80 ? "…" : ""}
+    <li${s.reponse && !s.lu ? ' class="nouveau"' : ""}><span class="discret">${echapper(s.quand_dit)}</span>
+      ${echapper(s.texte)}
       ${s.reponse ? `<p class="sg-reponse">${echapper(s.reponse)}</p>` : etatDuMessage(s)}</li>`).join("")}</ul>`;
 }
 
@@ -438,23 +408,23 @@ function vosMessages(liste) {
  *  encore parti (et pourquoi). Un message déjà enregistré (un second clic) le dit : il ne part qu'une fois. */
 let SG_ENVOI = null;
 function departDuMessage(s) {
-  const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">Ce message était déjà enregistré : il ne part qu'une fois.</span>` : "";
+  const m = ECRAN_MESSAGE;
+  const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">${echapper(m.deja)}</span>` : "";
   // Où en est son départ : le moteur le dit (`depart`) ; tant qu'il ne l'a pas lu, l'envoi est en cours.
   if (!s || !s.depart) {
-    return `<b>Merci, votre message est enregistré.</b> <span class="sg-envoi">Envoi en cours…</span>${deja}`;
+    return `<b>${echapper(m.merci)}</b> <span class="sg-envoi">Envoi…</span>${deja}`;
   }
   if (s.depart.couleur === "vert") {
-    return `${pastilleDeLEtat(s.depart)} Merci ! La réponse de l'éditeur viendra ici,
-    dans « Vos messages ».${deja}`;
+    return `${pastilleDeLEtat(s.depart)} ${echapper(m.merci_parti)}${deja}`;
   }
-  return `<b>Merci, votre message est enregistré.</b> ${pastilleDeLEtat(s.depart)}${
-    s.etat === "pas-parti" ? ` — ${echapper(s.raison || "PuppetPaie le renverra de lui-même.")}` : ""}${deja}`;
+  return `<b>${echapper(m.merci)}</b> ${pastilleDeLEtat(s.depart)}${
+    s.etat === "pas-parti" ? ` — ${echapper(s.raison || m.renverra)}` : ""}${deja}`;
 }
 
 /** Où en est un message (l'état vient du moteur, `problemes::signalements`). */
 function etatDuMessage(s) {
   if (s.pastille) return ` ${pastilleDeLEtat(s.pastille)}${s.raison ? ` <span class="discret">— ${echapper(s.raison)}</span>` : ""}`;
-  return ` <span class="discret">— arrivé, en attente de réponse</span>`;
+  return ` <span class="discret">— ${echapper(ECRAN_MESSAGE.attente || "")}</span>`;
 }
 
 /** Tant qu'un message est en cours d'envoi et la boîte ouverte, la liste se
@@ -476,88 +446,17 @@ function suivreLesMessages(boite, depuis) {
 /** La pastille des réponses. `lus` : les signalements déjà lus (l'ouverture d'un coup, js/demarrage.js), sinon on
  *  les demande. */
 async function dessinerPastilleReponses(lus) {
-  let n = 0;
-  try { n = (lus || await api("signalements")).non_lues || 0; } catch (e) { return; }
+  let s;
+  try { s = lus || await api("signalements"); } catch (e) { return; }
   document.getElementById("signaler").innerHTML = "Un problème, une idée ?"
-    + (n ? ` <span class="sg-nouvelles">· ${n} réponse${n > 1 ? "s" : ""}</span>` : "");
+    + (s.reponses_dit ? ` <span class="sg-nouvelles">· ${echapper(s.reponses_dit)}</span>` : "");
 }
 
 function listeSignalements(liste) {
   if (!liste.length) return "";
   return `<h4>Vos signalements</h4><ul class="sg-liste">${liste.map((s) => `
-    <li><span class="discret">${echapper(quand(s.quand))}</span> <b>${echapper(s.numero)}</b>
-      — ${echapper(s.debut)}${s.ticket
+    <li><span class="discret">${echapper(s.quand_dit)}</span> <b>${echapper(s.numero)}</b>
+      — ${echapper(s.texte)}${s.ticket
         ? ` <a href="${echapper(s.ticket)}" target="_blank" rel="noopener">ticket n° ${echapper(String(s.ticket_numero ?? ""))}</a>` : ""}${s.etat !== "arrive" ? etatDuMessage(s) : ""}</li>`).join("")}</ul>`;
-}
-
-/** La ligne du filet de sécurité DPAE. L'état vient du moteur
- *  ; la clé du compte ne vient jamais ici. */
-let ATTENTE_FILET = null;      // la minuterie qui guette la confirmation
-
-async function dessinerFilet(rang, exige) {
-  if (!rang) return;
-  clearTimeout(ATTENTE_FILET);
-  const etat = rang.querySelector(".k-filet-etat"), compte = rang.querySelector(".k-filet-compte");
-  const verdict = rang.querySelector(".k-verdict");
-  const arreter = rang.querySelector("#k-filet-arreter"), ouvrir = rang.querySelector("#k-filet-ouvrir");
-  let f;
-  try { f = await api("filet-etat"); } catch (e) { etat.textContent = e.message; return; }
-  if (f.actif && !f.confirme) {
-    try { f = await api("filet-verifier"); } catch (e) { /* le serveur dira plus tard */ }
-  }
-  etat.innerHTML = pastilleDeLEtat(f.pastille);
-  compte.textContent = !f.actif ? "" : f.confirme ? f.adresse
-    : `un courriel est parti à ${f.adresse} : cliquez sur le lien qu'il contient —
-       cette ligne passera d'elle-même à « actif »`;
-  // LA CONFIRMATION SE VOIT SANS RIEN FAIRE : tant que l'adresse
-  // attend son clic, on redemande au serveur toutes les dix secondes, dix
-  // minutes au plus, et on s'arrête dès qu'on quitte l'écran.
-  if (f.actif && !f.confirme) guetterConfirmation(rang, exige, Date.now());
-  if (f.erreur) verdict.textContent = f.erreur;
-  arreter.hidden = !f.actif;
-  // Actif, la ligne s'ouvre d'un clic sur elle ; « Activer… » reste tant qu'il y a à faire.
-  ouvrir.hidden = !!f.actif;
-  const champ = rang.querySelector("#k-filet-adresse");
-  if (!champ.value) champ.value = f.adresse || "";
-  const preuve = async (quoi) => {
-    if (!exige) return { motdepasse: null };
-    const m = await demanderMotDePasse(quoi);
-    return m ? { motdepasse: m } : null;
-  };
-  rang.querySelector("#k-filet-activer").onclick = async () => {
-    const adresse = champ.value.trim();
-    if (!adresse) { dire("L'adresse qui recevra le rappel."); champ.focus(); return; }
-    const p = await preuve("activer le filet de sécurité DPAE");
-    if (!p) return;
-    try {
-      await api("filet-activer", { adresse, ...p });
-      dire("Un courriel de confirmation est parti à " + adresse + ".");
-      rang.querySelector(".rang-forme").hidden = true;
-      dessinerFilet(rang, exige);
-    } catch (e) { dire(e.message, "erreur"); }
-  };
-  arreter.onclick = async () => {
-    if (!confirm("Désactiver le filet ? Plus aucun courriel ne préviendra d'une DPAE oubliée.")) return;
-    const p = await preuve("désactiver le filet de sécurité DPAE");
-    if (!p) return;
-    try {
-      await api("filet-desactiver", p);
-      dire("Filet de sécurité DPAE désactivé.");
-      dessinerFilet(rang, exige);
-    } catch (e) { dire(e.message, "erreur"); }
-  };
-}
-
-function guetterConfirmation(rang, exige, depuis) {
-  ATTENTE_FILET = setTimeout(async () => {
-    if (!rang.isConnected || Date.now() - depuis > 10 * 60 * 1000) return;
-    let f;
-    try { f = await api("filet-verifier"); } catch (e) { f = null; }
-    if (f && f.confirme) {
-      dire("Adresse confirmée : le filet de sécurité DPAE est actif.");
-      return dessinerFilet(rang, exige);
-    }
-    guetterConfirmation(rang, exige, depuis);
-  }, 10000);
 }
 

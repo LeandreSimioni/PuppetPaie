@@ -14,7 +14,7 @@ use socle::echec::{erreur, Echec, R};
 use crate::branchement::{reponse_fictive, Branchement};
 use crate::depot::{self, Apercu};
 use crate::releve_retours::{Client, Panne};
-use crate::suites::{DepotReel, DepotRefuse, Signalement, Suites};
+use crate::suites::{DepotRefuse, Suites};
 
 /// Ce qui vient de partir, et ce que l'organisme a repondu.
 pub struct DepotFait {
@@ -29,6 +29,9 @@ pub struct DepotFait {
     pub deja: Value,
     /// La repetition qui a ouvert ce depot reel (`Null` pour un test : il EST la repetition).
     pub repetition: Value,
+    /// Ce que le depot a entraine, en phrases : chaque demande de taux de PAS partie avec une DPAE, ce que les retours
+    /// laissent a faire.
+    pub suites: Vec<String>,
 }
 
 impl DepotFait {
@@ -37,14 +40,9 @@ impl DepotFait {
         json!({
             "quoi": self.quoi, "mois": self.mois, "reel": self.reel, "reponse": self.reponse, "flux": self.flux,
             "trace": self.trace.as_ref().map(|t| t.to_string_lossy().into_owned()),
-            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition,
+            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition, "suites": self.suites,
         })
     }
-}
-
-/// Le texte d'un refus qui porte une donnee pour la page (`{"message", <cle>}` dans le message) : sa phrase seule.
-pub fn phrase_de(e: &Echec) -> String {
-    serde_json::from_str::<Value>(&e.message).ok().and_then(|d| d.get("message").and_then(Value::as_str).map(str::to_string)).unwrap_or_else(|| e.message.clone())
 }
 
 /// Ce que `moteur` a verifie et prepare avant le depot.
@@ -69,8 +67,8 @@ pub struct Depot<'a> {
 /// est impossible sous Windows), et une reponse n'en ecrase JAMAIS une autre : deux depots dans la meme seconde (un test
 /// puis le reel) prennent `-2`, `-3`... avant `.txt`.
 pub fn archiver_reponse(racine: &Path, quoi: &str, mois: &str, reponse: &str) -> R<PathBuf> {
-    let dossier = racine.join("retours").join("depots");
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    let dossier = racine.join(crate::retours::RETOURS).join("depots");
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let etiquette: String = mois.replace('-', "").chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')).collect();
     let etiquette = if etiquette.is_empty() { "sans-date".to_string() } else { etiquette };
     let iso = socle::paris::maintenant();
@@ -82,11 +80,11 @@ pub fn archiver_reponse(racine: &Path, quoi: &str, mois: &str, reponse: &str) ->
         match std::fs::OpenOptions::new().write(true).create_new(true).open(&p) {
             Ok(mut f) => {
                 use std::io::Write;
-                f.write_all(reponse.as_bytes()).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+                f.write_all(reponse.as_bytes()).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
                 return Ok(p);
             }
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => rang += 1,
-            Err(e) => return Err(erreur("OSError", format!("{} : {}", p.display(), e))),
+            Err(e) => return Err(erreur("OSError", socle::echec::du_disque(&p, &e))),
         }
     }
 }
@@ -106,8 +104,7 @@ fn noter(
     versions: Option<&Value>,
 ) -> R<Value> {
     let fichier = d.chemin.to_string_lossy().into_owned();
-    // LA TRACE, RELATIVE A LA COMPAGNIE : une compagnie change de dossier, et un chemin absolu ne mene plus nulle part ;
-    // `journal::trace_de` la relit, et lit tel quel un absolu.
+    // LA TRACE, RELATIVE A LA COMPAGNIE : une compagnie change de dossier, et un chemin absolu ne menerait nulle part.
     let trace = trace.map(|t| t.strip_prefix(&ctx.racine).unwrap_or(t).to_string_lossy().replace('\\', "/"));
     let n = crate::journal::Note {
         quoi,
@@ -131,10 +128,22 @@ fn noter(
 /// Le depot a echoue : la ligne refusee au journal, l'incident dans les suites, et le refus rendu.
 fn echec(ctx: &Contexte, quoi: &str, d: &Depot, destinataire: &str, detail: Value, e: Echec, suites: &mut Suites) -> Echec {
     let classe = e.classe.unwrap_or("Exception");
-    let phrase = phrase_de(&e);
-    let _ = noter(ctx, quoi, d, false, destinataire, "", &phrase.chars().take(600).collect::<String>(), None, &detail, None);
+    let phrase = e.phrase();
+    let _ = noter(ctx, quoi, d, false, destinataire, "", &phrase, None, &detail, None);
     suites.depot_refuse = Some(DepotRefuse { quoi: quoi.into(), reel: d.reel, classe: classe.into(), message: phrase, repetition: d.repetition.clone() });
     e
+}
+
+/// LE SIMULATEUR REPOND DANS LE GESTE : rien ne voyage, rien n'oblige a attendre ; les retours d'un depot joue (accuse,
+/// bilan, et ce que les organismes rendent de plus) sont la des la reponse du depot, et le reel peut suivre son test
+/// aussitot. Rend la ligne du journal telle qu'elle est apres eux. Un depot du monde attend ses retours a la releve.
+fn repondu_aussitot(ctx: &Contexte, joue: bool, ligne: Value, suites: &mut Suites) -> R<Value> {
+    if !joue {
+        return Ok(ligne);
+    }
+    crate::releve_retours::rattacher_simulation(ctx, suites)?;
+    let meme = |l: &Value| l.get("flux") == ligne.get("flux") && l.get("quand") == ligne.get("quand");
+    Ok(crate::journal::lu(&ctx.racine)?.lignes.iter().rev().find(|l| meme(l)).cloned().unwrap_or(ligne))
 }
 
 /// Depose une DSN. `ordre_test` : l'ordre auquel un essai de mensuelle part en annule-et-remplace (`None` : celui du
@@ -149,7 +158,7 @@ pub fn deposer_dsn(
     suites: &mut Suites,
 ) -> R<DepotFait> {
     branchement.ouvrir()?;
-    let deja = crate::etats::deja_depose(&crate::etats::charger(&ctx.racine)?, "dsn", &crate::journal::empreinte(d.octets))?;
+    let deja = crate::etats::deja_depose(&crate::journal::lu(&ctx.racine).map(|j| j.lignes)?, "dsn", &crate::journal::empreinte(d.octets))?;
     let joue = branchement.joue();
     let envoi = || -> R<String> {
         if joue {
@@ -193,24 +202,8 @@ pub fn deposer_dsn(
         "etablissement": apercu.champ("etablissement"),
     });
     let ligne = noter(ctx, "dsn", d, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
-    if d.reel {
-        let signalement = apercu.est_signalement().then(|| Signalement {
-            nature: apercu.champ("nature").into(),
-            ordre: apercu.champ("ordre").into(),
-            type_declaration: apercu.champ("type_declaration").into(),
-            evenement: apercu.evenement_lisible(),
-        });
-        suites.depot_reel = Some(DepotReel {
-            quoi: "dsn".into(),
-            mois: d.mois.into(),
-            chemin: d.chemin.to_path_buf(),
-            quand: ligne.get("quand").and_then(Value::as_str).unwrap_or("").into(),
-            joue,
-            signalement,
-            embauches: Vec::new(),
-        });
-    }
-    Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone() })
+    let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
+    Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 
 /// Depose une DPAE. `contenu` : le fichier tel qu'il part (bascule en test faite) ; `embauches` : ce qu'elle declare
@@ -254,18 +247,8 @@ pub fn deposer_dpae(
     // « lesquelles restent a faire ».
     let detail = json!({"preuve": d.preuve, "repetition": d.repetition, "embauches": embauches});
     let ligne = noter(ctx, "dpae", d, true, "urssaf", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
-    if d.reel {
-        suites.depot_reel = Some(DepotReel {
-            quoi: "dpae".into(),
-            mois: d.mois.into(),
-            chemin: d.chemin.to_path_buf(),
-            quand: ligne.get("quand").and_then(Value::as_str).unwrap_or("").into(),
-            joue,
-            signalement: None,
-            embauches,
-        });
-    }
-    Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone() })
+    let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
+    Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 
 #[cfg(test)]

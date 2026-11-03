@@ -2,12 +2,10 @@
 //! `{"ok": false, "erreur": {"type", "message", ...}}`).
 //!
 //! LES ROUTES TOURNENT DANS LE PROCESSUS DE LA FENETRE :
-//! `route`, et pourquoi rien ne reste a part. S'ajoutent ici les gestes qui ne sont pas des routes du moteur :
-//! ouvrir un dossier dans l'explorateur, la veille, l'autorisation Google (le navigateur s'ouvre sur la fenetre de
-//! consentement), et le filet qui repasse en fond.
+//! `route`, et pourquoi rien ne reste a part. Rien d'autre ne passe ici que les routes du catalogue : les gestes du poste
+//! (ouvrir, choisir un dossier) et la veille sont ceux de la fenetre (`poste.rs`, `Fenetre::lanceur`).
 
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
@@ -16,15 +14,13 @@ use crate::etat_garde::FileDesEtats;
 
 /// Les refus qui ne sont pas des defauts du logiciel : une saisie en cours, un mot de passe mal tape, un mois sans
 /// paie, et ceux que la page traite elle-meme (une fiche refusee, un depot deja fait...). On ne les compte pas en incidents.
-const PAS_DES_INCIDENTS: [&str; 9] = [
+const PAS_DES_INCIDENTS: [&str; 7] = [
     "SaisieIncomplete",
     "PreuveInsuffisante",
     "AucunDocument",
     "FicheRefusee",
     "DsnDejaDeposee",
     "RepetitionManquante",
-    "DpaeDejaDeclaree",
-    "ModificationApresEcheance",
     "ModificationNonDeclarable",
 ];
 
@@ -74,7 +70,8 @@ fn route_seule(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus>
     let mut o = std::collections::HashMap::new();
     o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
     // LE BANC D'ESSAI (l'atelier seulement) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
-    // entre dans le scenario, avec sa charge et son instant (`scenario::Enregistreur`).
+    // passe par l'enregistreur, qui garde celles qu'il enregistre dans le scenario, avec leur charge et leur instant
+    // (`scenario::Enregistreur::route`).
     #[cfg(feature = "atelier")]
     if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
         return depuis_reponse(e.route(racine, nom, charge, || crate::routes::dans_la_fenetre(&o, nom, charge)));
@@ -104,242 +101,8 @@ pub fn depuis_reponse(rep: Value) -> Result<Value, Refus> {
     Err(Refus { classe, message, plus })
 }
 
-/// Ouvre un fichier ou un dossier dans le programme du poste (l'explorateur, le lecteur PDF), et rend ce que l'ecran en
-/// dit : « Dossier ouvert : … » (l'explorateur peut s'ouvrir derriere la fenetre), rien pour un fichier ouvert, ou, quand
-/// aucun programme ne l'a ouvert, ou il est (une information : il est ecrit). `Err` : il n'existe pas.
-pub fn ouvrir(chemin: &Path) -> Result<String, String> {
-    // Une piece de l'Historique arrive en `retours/...` (barres droites) jointe a la racine : Windows lit le fichier,
-    // mais l'explorateur ne reconnait pas le chemin et ouvre « Documents » a la place.
-    #[cfg(windows)]
-    let r = Command::new("explorer").arg(separateurs_windows(&chemin.to_string_lossy())).spawn();
-    #[cfg(target_os = "macos")]
-    let r = Command::new("open").arg(chemin).spawn();
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let r = Command::new("xdg-open").arg(chemin).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
-    match r {
-        Ok(_) if chemin.is_dir() => Ok(format!("Dossier ouvert : {}", chemin.display())),
-        // Ce qui s'ouvre se nomme : si le poste n'a pas de programme pour le montrer, on sait ou le prendre.
-        Ok(_) => Ok(format!("Ouvert : {}", chemin.display())),
-        Err(e) => pas_ouvert(chemin, &e),
-    }
-}
-
-/// Ce que dit un fichier qu'aucun programme du poste n'a ouvert : s'il est ecrit, ou il est ; sinon, qu'il manque.
-fn pas_ouvert(chemin: &Path, e: &std::io::Error) -> Result<String, String> {
-    if !chemin.exists() {
-        return Err(format!("{} n'existe pas : rien à ouvrir ({}).", chemin.display(), e));
-    }
-    let quoi = if chemin.is_dir() {
-        "Le dossier"
-    } else if chemin.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) {
-        "Le PDF"
-    } else {
-        "Le fichier"
-    };
-    Ok(format!("{} est là : {}. Aucun programme du poste ne l'a ouvert.", quoi, chemin.display()))
-}
-
-/// Un chemin tel que l'explorateur de Windows le comprend : rien que des barres inverses.
-pub fn separateurs_windows(chemin: &str) -> String {
-    chemin.replace('/', "\\")
-}
-
-/// Ouvre une adresse dans le navigateur du poste.
-pub fn ouvrir_adresse(url: &str) -> Result<(), String> {
-    // En essai, le garde-fou reseau : aucun navigateur vers une adresse reelle.
-    socle::garde_reseau::directe(&socle::garde_reseau::hote_de(url))?;
-    #[cfg(windows)]
-    let r = Command::new("rundll32").args(["url.dll,FileProtocolHandler", url]).spawn();
-    #[cfg(target_os = "macos")]
-    let r = Command::new("open").arg(url).spawn();
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let r = Command::new("xdg-open").arg(url).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
-    r.map(|_| ()).map_err(|e| format!("Le navigateur ne s'ouvre pas : {}.", e))
-}
-
-/// Un texte pour une chaine PowerShell entre apostrophes : chaque apostrophe se double, et PowerShell en reconnait
-/// cinq (l'apostrophe droite et les quatre typographiques U+2018 a U+201B) ; rien d'autre n'y est special.
-pub fn entre_apostrophes_powershell(t: &str) -> String {
-    let mut s = String::with_capacity(t.len());
-    for c in t.chars() {
-        if matches!(c, '\'' | '\u{2018}' | '\u{2019}' | '\u{201A}' | '\u{201B}') {
-            s.push(c);
-        }
-        s.push(c);
-    }
-    s
-}
-
-/// CHOISIR UN DOSSIER. La boite du systeme, lancee par
-/// le serveur du poste : Windows par PowerShell (`FolderBrowserDialog`, au premier plan), macOS par `osascript`, Linux
-/// par `zenity` ou `kdialog`. Rend `{"dossier": chemin}`, ou `{"dossier": null}` si on a annule.
-fn choisir_dossier(charge: &Value) -> Result<Value, Refus> {
-    // Le titre garde son apostrophe : chaque boite l'echappe a sa facon -- PowerShell double l'apostrophe
-    // dans sa chaine entre apostrophes (ou `$` et l'accent grave sont litteraux), AppleScript echappe `\` et `"`
-    // dans sa chaine entre guillemets ; zenity le recoit en argument, tel quel.
-    let titre: String = charge
-        .get("titre")
-        .and_then(Value::as_str)
-        .unwrap_or("Choisir un dossier")
-        .chars()
-        .filter(|c| !c.is_control())
-        .collect();
-    #[cfg(windows)]
-    let sortie = {
-        use std::os::windows::process::CommandExt;
-        let script = format!(
-            "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms;              $f=New-Object System.Windows.Forms.Form -Property @{{TopMost=$true}};              $d=New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description='{}'; $d.ShowNewFolderButton=$false;              if($d.ShowDialog($f) -eq 'OK'){{ $d.SelectedPath }}",
-            entre_apostrophes_powershell(&titre)
-        );
-        Command::new("powershell")
-            .args(["-NoProfile", "-STA", "-Command", &script])
-            .creation_flags(0x0800_0000)
-            .stdin(Stdio::null())
-            .output()
-    };
-    #[cfg(target_os = "macos")]
-    let sortie = Command::new("osascript")
-        .args(["-e", &format!("POSIX path of (choose folder with prompt \"{}\")", titre.replace('\\', "\\\\").replace('"', "\\\""))])
-        .stdin(Stdio::null())
-        .output();
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let sortie = Command::new("zenity")
-        .args(["--file-selection", "--directory", &format!("--title={}", titre)])
-        .stdin(Stdio::null())
-        .output()
-        .or_else(|_| Command::new("kdialog").args(["--getexistingdirectory", "."]).stdin(Stdio::null()).output());
-    let sortie = sortie.map_err(|e| Refus::simple("ErreurOperation", format!("La boite de choix du dossier ne s'ouvre pas : {}. Tapez le chemin a la main.", e)))?;
-    let chemin = String::from_utf8_lossy(&sortie.stdout).trim().trim_end_matches(['/', '\\']).to_string();
-    Ok(json!({ "dossier": if chemin.is_empty() { Value::Null } else { Value::String(chemin) } }))
-}
-
-/// OUVRIR LE DOSSIER D'IMPORT : un dossier, tout dedans ; la boite aux lettres dans
-/// l'explorateur du poste, pour y deposer ce que l'ancien logiciel a laisse. Vide ou absent : `import/` de la
-/// compagnie (la page le preremplit), cree s'il n'existe pas encore ; un autre dossier doit exister, il n'est jamais
-/// cree. Rend `{"dossier": chemin}`.
-fn ouvrir_import(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    let choisi = charge.get("dossier").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
-    let import = racine.join("import");
-    let dossier = choisi.map_or_else(|| import.clone(), |s| PathBuf::from(crate::routes::depots::normaliser(s)));
-    if dossier == import {
-        std::fs::create_dir_all(&import)
-            .map_err(|e| Refus::simple("ErreurOperation", format!("Le dossier {} ne se cree pas : {}.", import.display(), e)))?;
-    }
-    if !dossier.is_dir() {
-        return Err(Refus::simple("ErreurOperation", format!("Le dossier {} n'existe pas.", dossier.display())));
-    }
-    let phrase = ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
-    Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
-}
-
 fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
     charge.get(cle).and_then(Value::as_str).map(String::from).ok_or_else(|| Refus::simple("KeyError", socle::fichiers::absent(cle)))
-}
-
-/// Le fichier d'une piece partie de `mois`, refait par le moteur s'il manque (route `piece-partie`).
-fn refaite(racine: &Path, mois: &str, fichier: String) -> Result<PathBuf, Refus> {
-    let r = route(racine, "piece-partie", &json!({"mois": mois, "fichier": fichier}))?;
-    Ok(racine.join(r["chemin"].as_str().unwrap_or_default()))
-}
-
-fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    // UNE PIECE DE L'HISTORIQUE : un document du mois ou la piece d'un retour, que `historique-mois` a
-    // listee pour ce mois -- et rien d'autre : le chemin vient de la page, il ne s'ouvre que s'il est dans la liste.
-    if let Some(mois) = charge.get("historique").and_then(Value::as_str) {
-        let chemin = texte(charge, "chemin")?;
-        let listage = route(racine, crate::historique_mois::ROUTE, &json!({"mois": mois}))?;
-        if !crate::historique_mois::piece_listee(&listage, &chemin) {
-            return Err(Refus::simple("ErreurOperation", format!("{} n'est pas une pièce de {} dans l'Historique.", chemin, mois)));
-        }
-        let f = racine.join(&chemin);
-        let f = if f.is_file() { f } else { refaite(racine, mois, Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default())? };
-        let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
-        return Ok(json!({"fichier": chemin, "phrase": phrase}));
-    }
-    // LE PDF A IMPRIMER que `contrats-imprimer` ou `documents-imprimer` vient d'ecrire dans `sorties/<mois>/envoi/` : son
-    // nom seul, et seulement un nom d'impression.
-    if let Some(mois) = charge.get("impression").and_then(Value::as_str) {
-        let fichier = texte(charge, "fichier")?;
-        let nom_sur = |t: &str| !t.is_empty() && !t.contains(['/', '\\']) && !t.contains("..");
-        if !nom_sur(mois) || !nom_sur(&fichier) || !fichier.starts_with(envois::envois_signature::PREFIXE_IMPRESSION) || !fichier.ends_with(".pdf") {
-            return Err(Refus::simple("ErreurOperation", format!("{} n'est pas une impression de {}.", fichier, mois)));
-        }
-        let f = racine.join("sorties").join(mois).join("envoi").join(&fichier);
-        if !f.is_file() {
-            return Err(Refus::simple("ErreurOperation", format!("{} a été déplacé ou effacé.", fichier)));
-        }
-        let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
-        return Ok(json!({"fichier": f.display().to_string(), "phrase": phrase}));
-    }
-    let fichier = texte(charge, "fichier")?;
-    let parties = route(racine, "pieces-parties", charge)?;
-    let pieces: Vec<&Value> = match &parties {
-        Value::Object(m) => m.values().filter_map(Value::as_array).flatten().collect(),
-        Value::Array(a) => a.iter().collect(),
-        _ => Vec::new(),
-    };
-    for p in pieces {
-        if p.get("fichier").and_then(Value::as_str) == Some(fichier.as_str()) {
-            let mois = p.get("mois").cloned().unwrap_or(Value::Null);
-            let f = refaite(racine, mois.as_str().unwrap_or(""), fichier.clone())?;
-            let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
-            return Ok(json!({"fichier": fichier, "phrase": phrase}));
-        }
-    }
-    Err(Refus::simple("ErreurOperation", format!("{} n'est pas une piece partie pour cette paie.", fichier)))
-}
-
-fn ouvrir_dossier(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    let mois = texte(charge, "mois")?;
-    if mois.contains(['/', '\\']) || mois.contains("..") {
-        return Err(Refus::simple("ErreurOperation", format!("Mois illisible : {}.", mois)));
-    }
-    let mut dossier = racine.join("sorties").join(&mois);
-    let envoi = dossier.join("envoi");
-    let quoi = charge.get("quoi").and_then(Value::as_str).unwrap_or("");
-    let contrats = || {
-        std::fs::read_dir(&envoi)
-            .map(|it| it.flatten().any(|e| {
-                let n = e.file_name().to_string_lossy().into_owned();
-                n.starts_with("Contrat") && n.ends_with(".pdf")
-            }))
-            .unwrap_or(false)
-    };
-    if envoi.exists() && (quoi == "documents" || (quoi == "contrats" && contrats())) {
-        dossier = envoi;
-    }
-    if !dossier.exists() {
-        return Err(Refus::simple("ErreurOperation", format!("Rien n'est encore ecrit pour {}.", mois)));
-    }
-    let phrase = ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
-    Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
-}
-
-fn ouvrir_sous(dossier: PathBuf, absent: &str) -> Result<Value, Refus> {
-    if !dossier.exists() {
-        return Err(Refus::simple("ErreurOperation", absent));
-    }
-    let phrase = ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
-    Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
-}
-
-fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    let vers = |f: socle::echec::Echec| Refus::simple(f.classe.unwrap_or("ErreurOperation"), f.message);
-    let mot = charge.get("motdepasse").cloned().unwrap_or(Value::Null);
-    crate::compagnie::filet::exiger_mot_de_passe(racine, &mot, "lier le compte Google").map_err(vers)?;
-    let url = |u: &str| {
-        let _ = ouvrir_adresse(u);
-    };
-    let compte = crate::routes::coffre::autoriser(racine, envois::google_autorisation::DELAI_AUTORISATION, &url, &|_| {}).map_err(vers)?;
-    Ok(json!({"compte": compte}))
-}
-
-/// Le filet repasse en fond apres une ecriture de mois ou un envoi de contrats : l'ecran n'attend pas l'Urssaf.
-fn filet_en_fond(racine: &Path) {
-    let r = racine.to_path_buf();
-    crate::routes::fil_de_routes(move || {
-        let _ = route(&r, "filet-preparer", &json!({"qui": "filet"}));
-    });
 }
 
 /// « Un probleme, une idee ? » part en fond : `signalement-envoyer` a enregistre le message et
@@ -353,44 +116,12 @@ fn signalements_en_fond(racine: &Path) {
 
 fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Result<Value, Refus> {
     match nom {
-        "ouvrir-piece" => ouvrir_piece(racine, charge),
-        "ouvrir-dossier" => ouvrir_dossier(racine, charge),
-        "ouvrir-exercices" => ouvrir_sous(racine.join("sorties").join("exercices"), "Rien n'est encore ecrit pour un exercice."),
-        "ouvrir-exports" => {
-            let mut d = racine.join("exports");
-            if let Some(s) = charge.get("sous").and_then(Value::as_str).filter(|s| ["casc-svp", "dossiers"].contains(s)) {
-                d = d.join(s);
-            }
-            ouvrir_sous(d, "Aucun export n'a encore ete ecrit : le dossier n'existe pas.")
-        }
-        "veille" => Ok(veille.map(Veille::etat).unwrap_or_else(|| json!({"minutes": 0, "dernier": {}, "en_cours": false}))),
-        // Ou en est le passage, le temps qu'il tourne : une lecture sans processus (`Veille::etape`).
-        "veille-etape" => Ok(veille.map(Veille::etape).unwrap_or_else(|| json!({"en_cours": false, "sauvegarde_en_cours": false, "etape": null}))),
-        "veille-maintenant" => match veille {
-            Some(v) => Ok(v.tour(false, false)),
-            None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
-        },
-        // LA SAUVEGARDE AVANT DE SUPPRIMER : un passage complet de la veille, sauvegarde comprise.
-        "sauvegarde-maintenant" => match veille {
-            Some(v) => Ok(v.tour(false, true)),
-            None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
-        },
-        "google-autoriser" => google_autoriser(racine, charge),
-        "choisir-dossier" => choisir_dossier(charge),
-        "ouvrir-import" => ouvrir_import(racine, charge),
         // `xlsx` et `pdf` : deux faits du poste, que le moteur constate lui-meme.
         "exports-periodes" => {
             let mut c = charge.as_object().cloned().unwrap_or_default();
             c.insert("xlsx".into(), Value::Bool(true));
             c.insert("pdf".into(), Value::Bool(true));
             route(racine, nom, &Value::Object(c))
-        }
-        "dsn-a-deposer" | "demander-signature" => {
-            let r = route(racine, nom, charge);
-            if r.is_ok() {
-                filet_en_fond(racine);
-            }
-            r
         }
         "signalement-envoyer" => {
             let r = route(racine, nom, charge);
@@ -399,7 +130,6 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             }
             r
         }
-        "apercu" => route(racine, nom, &json!({"saisie": charge.get("saisie").cloned().unwrap_or(Value::Null), "lignes": charge.get("lignes").cloned().unwrap_or(Value::Bool(false)), "urssaf": charge.get("urssaf").cloned().unwrap_or(Value::Bool(false)), "blocs": charge.get("blocs").cloned().unwrap_or(Value::Null)})),
         "rappels" => route(racine, nom, &json!({})),
         // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS : le dernier etat connu du
         // mois, tout de suite, meme perime (marque `perime`, et refait en fond) ; `attendre` : l'etat frais.
@@ -464,15 +194,17 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
         let issue = rendu.as_ref().map(|_| ()).map_err(|e| (e.classe.as_str(), e.message.as_str()));
         crate::compagnie::diagnostic::noter_route(racine, "page", nom, charge, duree, issue);
     }
-    // APRES UNE ECRITURE (ou un tour de veille demande), les etats de tous les mois se verifient en fond, le mois affiche
+    // APRES UNE ECRITURE, les etats de tous les mois se verifient en fond, le mois affiche
     // d'abord : une ecriture d'un mois peut changer les suivants (un contrat en cours, une numerotation, un cumul). Meme
-    // refusee, une ecriture a pu toucher un fichier ; un mois deja juste ne coute que son empreinte.
+    // refusee, une ecriture a pu toucher un fichier ; un mois deja juste ne coute que son empreinte. La reponse le dit
+    // (`ecrit`) : la page oublie alors ce qu'elle a lu.
+    let ecrit = crate::routes::est_une_ecriture(nom);
     if let Some(f) = etats {
-        if crate::routes::est_une_ecriture(nom) || nom == "veille-maintenant" {
+        if ecrit {
             f.tout_verifier();
         }
     }
-    match rendu {
+    let mut reponse = match rendu {
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(r) => {
             if !PAS_DES_INCIDENTS.contains(&r.classe.as_str()) && nom != "incident-navigateur" {
@@ -494,7 +226,44 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
             }
             en_page(Err(r))
         }
+    };
+    if ecrit {
+        reponse["ecrit"] = json!(true);
     }
+    reponse
+}
+
+/// UNE ROUTE DE L'INSTALLATION (`routes::accueil` : l'accueil des compagnies), servie sans compagnie : l'installation est
+/// celle du programme. La reponse au format que la page attend.
+pub fn route_de_l_installation(nom: &str, charge: &Value) -> Value {
+    let o = std::collections::HashMap::new();
+    // LE BANC D'ESSAI (l'atelier seulement) : une compagnie ajoutee entre dans le scenario comme le decor de depart que le
+    // rejeu refait (`scenario::rejouer`, le geste `ajouter`).
+    #[cfg(feature = "atelier")]
+    if nom == "compagnie-ajouter" {
+        if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
+            let rendu = e.geste("ajouter", || {
+                let v = depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)).map_err(|r| r.message)?;
+                let mut m = Map::new();
+                m.insert("nom".into(), charge.get("nom").cloned().unwrap_or(Value::Null));
+                if let Some(venue) = charge.get("venue").filter(|v| v.as_str() != Some("neuve")) {
+                    m.insert("venue".into(), venue.clone());
+                }
+                let racine = std::path::PathBuf::from(v.get("chemin").and_then(Value::as_str).unwrap_or_default());
+                m.insert("compagnie".into(), json!(e.compagnie(&racine)));
+                Ok((v, m))
+            });
+            return en_page(rendu.map_err(|m| Refus::simple("ErreurOperation", m)));
+        }
+    }
+    let rendu = en_page(depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)));
+    // Le message ecrit a l'accueil part en fond, comme celui d'une compagnie (`signalements_en_fond`).
+    if nom == "signalement-envoyer" && rendu["ok"] == json!(true) {
+        crate::routes::fil_de_routes(move || {
+            let _ = crate::routes::dans_la_fenetre(&std::collections::HashMap::new(), "signalements-partir", &json!({}));
+        });
+    }
+    rendu
 }
 
 /// Un resultat ou un refus, au format que la page attend (`{"ok", "resultat"}` ou `{"ok": false, "erreur": {"type", "message", ...}}`).
@@ -513,14 +282,3 @@ pub fn en_page(r: Result<Value, Refus>) -> Value {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    /// « Ouvrir la piece telle quelle » ouvrait « Documents » : l'explorateur recevait `...\prive\retours/x.xml`.
-    #[test]
-    fn l_explorateur_recoit_un_chemin_windows() {
-        assert_eq!(
-            super::separateurs_windows(r"C:\PuppetPaie\prive\retours/20261019-191514_nature45_FLUX.xml"),
-            r"C:\PuppetPaie\prive\retours\20261019-191514_nature45_FLUX.xml"
-        );
-    }
-}

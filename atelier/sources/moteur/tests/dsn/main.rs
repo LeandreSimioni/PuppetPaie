@@ -10,4 +10,5 @@
 mod outils;
 
 mod agirc_arrco;
+mod brouillon;
 mod preavis;

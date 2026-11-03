@@ -5,7 +5,7 @@
 
 use crate::outils::chemin_unique;
 use moteur::compagnie::coffre::{oublier_mot_de_passe_tape, retenir_mot_de_passe_tape, Coffre};
-use moteur::atelier::publier::{generer_cle_au_poste, signer_par_la_cle};
+use moteur::atelier::publier::{cle_de_signature, generer_cle_au_poste, signer};
 use moteur::compagnie::maj::signature_valide;
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -48,25 +48,25 @@ fn une_cle_faite_sur_un_poste_apportee_sur_un_autre_s_ouvre_par_le_mot_de_passe_
     let a = editeur("cle-apportee");
     let publique = publique(&generer_cle_au_poste(&a, false).unwrap());
     // Sur A, la cle du poste ouvre le coffre, donc la cle de signature : rien a taper.
-    assert!(signature_valide(ARCHIVE, &signer_par_la_cle(&a, ARCHIVE).unwrap(), &publique));
+    assert!(signature_valide(ARCHIVE, &cle_de_signature(&a).and_then(|k| signer(ARCHIVE, &k)).unwrap(), &publique));
 
     let b = apporte(&a, "cle-apportee-b");
     // Sur B, sans le mot de passe du logiciel, rien ne l'ouvre ; la commande dit par quoi elle s'ouvrirait.
-    let refus = signer_par_la_cle(&b, ARCHIVE).unwrap_err();
+    let refus = cle_de_signature(&b).and_then(|k| signer(ARCHIVE, &k)).unwrap_err();
     assert!(refus.contains("mot de passe du logiciel"), "{}", refus);
     // Un mauvais mot de passe non plus.
     retenir_mot_de_passe_tape("pas-le-bon");
-    assert!(signer_par_la_cle(&b, ARCHIVE).is_err());
+    assert!(cle_de_signature(&b).and_then(|k| signer(ARCHIVE, &k)).is_err());
     // Le mot de passe du logiciel, tape pour la commande, l'ouvre ; la signature est celle de la cle publique de A.
     retenir_mot_de_passe_tape(LOGICIEL);
-    let signature = signer_par_la_cle(&b, ARCHIVE);
+    let signature = cle_de_signature(&b).and_then(|k| signer(ARCHIVE, &k));
     oublier_mot_de_passe_tape();
     assert!(signature_valide(ARCHIVE, &signature.unwrap(), &publique));
     assert!(!b.chemin_cle().exists(), "ouvrir par le mot de passe ne pose rien au poste");
 
     // Reposer le mot de passe du logiciel rend a B son ouverture sans mot de passe : la cle de signature suit le coffre.
     b.poser_ouverture(LOGICIEL, Some(LOGICIEL)).unwrap();
-    assert!(signature_valide(ARCHIVE, &signer_par_la_cle(&b, ARCHIVE).unwrap(), &publique));
+    assert!(signature_valide(ARCHIVE, &cle_de_signature(&b).and_then(|k| signer(ARCHIVE, &k)).unwrap(), &publique));
 }
 
 #[test]
@@ -77,11 +77,11 @@ fn sans_mot_de_passe_du_logiciel_la_cle_ne_se_fabrique_pas_elle_serait_perdue_av
     // Un coffre qui ne porte qu'un mot de passe d'organisme : seule la cle du poste l'ouvre.
     a.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
     let refus = generer_cle_au_poste(&a, false).unwrap_err();
-    assert!(refus.contains("moteur coffre ouverture"), "{}", refus);
+    assert!(refus.contains("route mot-de-passe-changer"), "{}", refus);
     assert!(!racine.join("config/maj-cle-privee.bin").exists());
     // Sans coffre du tout, pareil.
     std::fs::remove_file(a.chemin()).unwrap();
-    assert!(generer_cle_au_poste(&a, false).unwrap_err().contains("moteur coffre ouverture"));
+    assert!(generer_cle_au_poste(&a, false).unwrap_err().contains("route mot-de-passe-changer"));
     assert!(!racine.join("config/maj-cle-privee.bin").exists() && !a.chemin().exists());
 }
 

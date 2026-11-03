@@ -1,11 +1,11 @@
 # Accord du 1er juillet 2026 sur les salaires (NAO 2026) — CCNEAC — grilles des artistes et emplois non artistiques
 
 - IDCC : 1285 (CCNEAC)
-- Identifiants KALI : AUCUN (texte absent de la base KALI locale au 2026-09-29 ; dernier accord de salaires présent : KALITEXT000049949387, 02/05/2024)
+- Identifiants KALI : KALITEXT000054981887 (accord du 1er juillet 2026 relatif aux salaires pour l'année 2026, NOR ASET2650748M, BO n° 2026-30) ; articles 1.1.1 KALIARTI000054981896, 1.1.2 …897, 1.1.3 …898, 1.1.4 …899, 1.2 …900, 2 …901, 3 …902, 4 …903, 5 …906. Absent de la base KALI au 2026-09-29, il y figure depuis la livraison KALI_20261015-214025 (relevé du 2026-11-02 : `kali-1285-accord-salaires-2026/`).
 - Source : `atelier/reference/sources/ccneac-accord-nao-2026-signe.pdf` (texte signé, Docusign C0F4144D-437A-8D1C-82D5-82DFB38D6FB4, « Fait à Paris, le 01/07/2026 », 13 pages), relu au texte extrait (pymupdf) le 2026-09-29
 - Application (art. 5, LU) : minima salaires à compter du 01/08/2026 ; indemnités et primes à compter du 01/09/2026 ; « Les syndicats signataires demandent l'extension du présent accord, conformément à l'article L2261-15 du code du travail. »
 - Signataires employeurs (LU) : FNAR, FSICPA, LES FORCES MUSICALES, SCÈNE ENSEMBLE, SMA, SYNDEAC
-- Extension : NON VÉRIFIÉE sur source primaire. Une source secondaire (Tripalio, presse.tripalio.fr, « Arrêté d'extension d'un accord de salaires dans la CCN des entreprises artistiques et culturelles », consultée le 2026-09-29) indique : arrêté du 7 septembre 2026, publié au JO le 19 septembre 2026, étendant l'accord du 1er juillet 2026 (IDCC 1285), sous la réserve « à travail égal, salaire égal » (même réserve que pour l'accord de 2024). À CONFIRMER sur Légifrance/JORF (numéro d'arrêté, date d'effet). Absent du KALI local (dernier changement de version relevé antérieur).
+- Extension : ÉTENDU par arrêté du 7 septembre 2026, NOR TRST2622487A, JORF n° 0219 du 19 septembre 2026 (JORFTEXT000054860820), vérifié sur source primaire le 2026-11-02 (`kali-1285-accord-salaires-2026/`, XML de l'arrêté et transcription). Article 1 : toutes les stipulations sont rendues obligatoires pour tous les employeurs et salariés de la convention, les articles 1.1.1, 1.1.2 et 1.1.3 sous réserve du principe « à travail égal, salaire égal ». Article 2 : l'extension prend effet à la date de publication de l'arrêté, le 19/09/2026.
 - Date du relevé : 2026-09-29
 - Règle de lecture : tableaux = transcription du PDF ; valeurs 2026 en euros.
 

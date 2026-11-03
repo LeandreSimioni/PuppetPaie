@@ -10,11 +10,14 @@
 //!     et le rejeu verifie qu'il cree le meme ;
 //!   - `{"geste": "simuler"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois simules
 //!     (`rendre_simulee`) -- sans lui, ses envois sont refuses et elle ne peut pas vivre sa vie ;
+//!   - `{"geste": "annoncer", "annonce"}` : ce que les organismes de la fictive repondront a partir de ce jour (un taux de
+//!     PAS, un taux AT/MP, un refus : `organismes_simules::annoncer`) ;
 //!   - `{"geste": "jour", "jour", "veille"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la :
 //!     son horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). `veille` (le banc, quand une
 //!     compagnie est ouverte) : sa veille passe, et son horloge joue dans la route `ouverture` qui suit, pas ici ;
 //!   - `{"geste": "etat", "cle"}` : l'etat d'un mois (ou de l'ouverture) que la fenetre a refait en fond et qui a ecrit
-//!     (`Enregistreur::fond`) ; le rejeu le refait (`etat_garde::lire`) ;
+//!     (`Enregistreur::fond`) ; le rejeu le refait (`etat_garde::lire`). `ok` (vrai par defaut) : il a reussi, et le rejeu
+//!     le verifie (un etat peut ecrire, puis refuser) ;
 //!   - `{"route", "charge"}` : une route du moteur, telle que la fenetre l'a servie (la page, la veille, le fil de fond :
 //!     `interface::api::route`), avec la charge que le moteur a recue. `ecrit` (vrai par defaut) : la route a change un
 //!     fichier de la compagnie -- le banc le note, et le rejeu ecarte les routes qui n'ont rien ecrit ; `ok` (vrai par
@@ -32,8 +35,9 @@
 //!   rien d'exterieur : ni `/tmp`, ni le poste ou on l'a enregistre.
 //!
 //! L'ENREGISTREUR (`Enregistreur`) n'existe que dans le binaire de l'atelier (`moteur-atelier`, `--features atelier`) :
-//! `moteur-atelier interface --enregistrer <dossier> --jour J` (le banc, `atelier/outils/banc/`). Le binaire livre n'en a
-//! pas une ligne.
+//! `moteur-atelier interface --enregistrer <dossier> [--lectures] --jour J` (le banc, `atelier/outils/banc/`). Il garde
+//! les routes dont la fiche ecrit ou engage (`routes::est_une_ecriture`) ; une lecture n'y entre qu'avec `--lectures`,
+//! et sans lui elle est servie sans attendre le tour des autres. Le binaire livre n'en a pas une ligne.
 //!
 //! LE REJEU (`rejouer`) est dans le moteur ordinaire : les essais (`tests/outils/rejeu.rs`) et l'exemple `vie_fictive`
 //! l'appellent dans leur processus. Chaque geste se rejoue a son instant, fige (`temps::figer`), les aleas en suite fixe
@@ -41,6 +45,9 @@
 //! (une lecture ne change pas la compagnie ; les garder coute le temps de les recalculer) ; `OptionsRejeu::lectures` les
 //! rejoue aussi. `rejouer_et_lire` s'arrete a des jours choisis pour qu'on lise la compagnie telle qu'elle est ce
 //! soir-la, puis reprend : un seul rejeu pour plusieurs dates.
+//!
+//! LES FICTIVES DE REFERENCE (`DOSSIER_REFERENCE`) sont des scenarios ecrits, non enregistres : leur rejeu est la preuve
+//! commune, et `livrer` pose la compagnie qui en sort dans `fictives/`, ce que « Publier » livre.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -124,7 +131,7 @@ fn fichiers_de(dossier: &Path) -> Vec<(String, PathBuf)> {
 pub struct OptionsRejeu {
     /// Rejouer aussi les routes qui n'avaient rien ecrit.
     pub lectures: bool,
-    /// S'arreter a la fin de ce jour (a Paris) : les gestes d'apres ne se jouent pas.
+    /// Jouer jusqu'a la fin de ce jour (a Paris) ; des gestes d'apres, seule la saisie s'ecrit (`saisie_d_un_geste`).
     pub jusqu_au: Option<Jour>,
 }
 
@@ -137,6 +144,8 @@ pub struct Rejeu {
     pub lectures_ecartees: usize,
     /// Les gestes sur une compagnie que le scenario n'a pas ajoutee (une fictive livree ouverte pour voir) : ecartes.
     pub autres_compagnies: usize,
+    /// Les gestes d'apres le jour dit (`OptionsRejeu::jusqu_au`) qui ne sont pas une saisie : laisses a l'horloge ou a la personne.
+    pub laisses: usize,
     /// Ce que l'horloge des fictives a joue pendant le rejeu, en phrases, precedees de l'heure du geste.
     pub horloge: Vec<String>,
     /// L'instant du dernier geste rejoue (secondes UTC) : le jour ou l'on lit la compagnie qui en sort.
@@ -336,10 +345,20 @@ fn rejouer_les_gestes(
     let mut racines: BTreeMap<String, PathBuf> = BTreeMap::new();
     for (i, (g, &t)) in gestes.iter().zip(instants).enumerate() {
         let n = g.get("n").and_then(Value::as_u64).map_or(i + 1, |n| n as usize);
+        // APRES LE JOUR DIT, la saisie seule, ce jour-la (a 9 h, ou a la suite du dernier geste joue) : la carte s'ecrit,
+        // le reste est a l'horloge ou a la personne.
+        let (g, t) = match options.jusqu_au.filter(|j| jour_de(t) > *j) {
+            None => (g.clone(), t),
+            Some(j) => match saisie_d_un_geste(g) {
+                Some(s) => (s, r.fin.map_or(0.0, |f| f + 1.0).max(socle::temps::instant_de(j, 9))),
+                None => {
+                    r.laisses += 1;
+                    continue;
+                }
+            },
+        };
+        let g = &g;
         let jour = jour_de(t);
-        if options.jusqu_au.is_some_and(|j| jour > j) {
-            break;
-        }
         lire_les_soirs(jour, &r);
         socle::temps::figer(t);
         r.fin = Some(t);
@@ -362,6 +381,11 @@ fn rejouer_les_gestes(
                 let racine = racines.get(compagnie).ok_or(format!("geste {} : `simuler` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
                 rendre_simulee(racine).map_err(|m| format!("geste {} : {}", n, m))?;
             }
+            Some("annoncer") => {
+                let racine = racines.get(compagnie).ok_or(format!("geste {} : `annoncer` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
+                let annonce = g.get("annonce").ok_or(format!("geste {} : `annoncer` sans annonce", n))?;
+                envois::organismes_simules::annoncer(racine, crate::compagnie::bridage::branchement(racine), annonce).map_err(|e| format!("geste {} : {}", n, e.message))?;
+            }
             Some("etat") => {
                 let Some(racine) = racines.get(compagnie) else {
                     r.autres_compagnies += 1;
@@ -372,8 +396,12 @@ fn rejouer_les_gestes(
                 o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
                 let refait = crate::service::contexte(&o).map_err(|m| socle::echec::Echec { classe: None, message: m }).and_then(|ctx| crate::etat_garde::lire(&o, &ctx, cle));
                 crate::routes::remettre_le_fil();
-                if let Err(e) = refait {
-                    r.ecarts.push(format!("geste {} ({}) : l'etat de {} refuse au rejeu : {}", n, heure(t), cle, e.message));
+                // Comme une route : l'etat refait reussit, ou refuse, comme il l'a fait au banc (`ok`, vrai par defaut).
+                let attendu = g.get("ok") != Some(&Value::Bool(false));
+                match refait {
+                    Err(e) if attendu => r.ecarts.push(format!("geste {} ({}) : l'etat de {} refuse au rejeu : {}", n, heure(t), cle, e.message)),
+                    Ok(_) if !attendu => r.ecarts.push(format!("geste {} ({}) : l'etat de {} reussit au rejeu, refuse a l'enregistrement", n, heure(t), cle)),
+                    _ => {}
                 }
             }
             // Au banc, la compagnie ouverte joue son horloge dans sa veille, la route `ouverture` qui suit (`veille`) : le
@@ -432,6 +460,26 @@ fn rejouer_les_gestes(
     Ok(r)
 }
 
+/// CE QUI SE SAISIT D'UN GESTE : une carte (`enregistrer-saisie` ; `valider-engagement` sans sa validation), une fiche
+/// (`enregistrer-fiche`), reussies a l'enregistrement. Tout autre geste valide, envoie, depose, coche ou avance le
+/// calendrier : `None`.
+fn saisie_d_un_geste(g: &Value) -> Option<Value> {
+    let carte = match g.get("route").and_then(Value::as_str)? {
+        "valider-engagement" | "enregistrer-saisie" => "enregistrer-saisie",
+        "enregistrer-fiche" => "enregistrer-fiche",
+        _ => return None,
+    };
+    if g.get("ok") == Some(&Value::Bool(false)) || g.get("ecrit") == Some(&Value::Bool(false)) {
+        return None;
+    }
+    let mut s = g.clone();
+    s["route"] = json!(carte);
+    for cle in ["quand", "heure"] {
+        s.as_object_mut()?.remove(cle);
+    }
+    Some(s)
+}
+
 // ------------------------------------------------------------------ elaguer, verifier, la ligne de commande
 
 /// ELAGUER un scenario pour le figer (phase 4) : `vers` recoit les memes gestes sans les routes qui n'ont rien ecrit (le
@@ -478,7 +526,7 @@ pub fn elaguer(scenario: &Path, vers: &Path) -> Result<(usize, usize), String> {
 /// en cours d'un passage de la veille, et le journal des incidents (chaque incident porte le fil de la fenetre, ce que la
 /// page a fait avant lui, et la fenetre y note les refus que la page a recus : `compagnie::incidents::noter`).
 fn hors_comparaison(rel: &str) -> bool {
-    rel == "journal/interface.log" || rel == "journal/incidents.json" || rel == "ouverture.etat.json" || rel.ends_with(crate::compagnie::ouverture::ETAPE)
+    rel == crate::interface::JOURNAL_INTERFACE || rel == crate::compagnie::incidents::INCIDENTS || rel == "ouverture.etat.json" || rel.ends_with(crate::compagnie::ouverture::ETAPE)
 }
 
 /// Les fichiers d'une compagnie, relatifs (barres droites), hors caches.
@@ -544,9 +592,82 @@ pub fn verifier(scenario: &Path, inst: &Path, travail: &Path) -> Result<Vec<Stri
     Ok(ecarts)
 }
 
+// ------------------------------------------------------------------ les fictives de reference
+
+/// LES FICTIVES DE REFERENCE, a cote du logiciel (`<depot>/atelier/fictives/<nom>/`) : chacune est un scenario ecrit
+/// comme la personne qui administre la compagnie l'aurait joue, par les routes seulement, avec les papiers qu'elle
+/// importe. Le meme scenario est la preuve commune en ligne de commande (son rejeu, `tests/rejeu.rs`) et la fictive que
+/// les installations recoivent (`livrer`, que « Publier » appelle par `publier::marquer_les_fictives`).
+pub const DOSSIER_REFERENCE: &str = "atelier/fictives";
+
+/// Les scenarios des fictives de reference d'un depot (`depot/atelier/fictives/<nom>/`, ceux qui ont des gestes), par
+/// nom, dans l'ordre des noms.
+pub fn fictives_de_reference(depot: &Path) -> Vec<(String, PathBuf)> {
+    let mut v: Vec<(String, PathBuf)> = std::fs::read_dir(depot.join(DOSSIER_REFERENCE))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().join(GESTES).is_file())
+        .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
+        .collect();
+    v.sort();
+    v
+}
+
+/// Ce qu'une fictive livree ne porte pas de son rejeu : le marqueur (reecrit), les incidents du rejeu, les caches.
+fn hors_livraison(rel: &str) -> bool {
+    rel == crate::interface::compagnies::MARQUEUR || rel == crate::compagnie::incidents::INCIDENTS || hors_comparaison(rel)
+}
+
+/// LIVRER UNE FICTIVE DE REFERENCE : rejoue `scenario` (jusqu'au jour `jusqu_au`, ou entier) dans une installation de
+/// travail, et pose la compagnie qui en sort dans `dest` (`poser_livree`). Les mois d'avant le jour sont faits ; ceux
+/// d'apres portent deja leurs cartes, non validees : sur le poste, seul le temps passe, et l'horloge de la fictive
+/// valide, envoie et depose a leur date (`horloge`). Un ecart du rejeu (une route qui refuse) refuse la livraison, et
+/// `dest` reste tel qu'il etait.
+pub fn livrer(scenario: &Path, dest: &Path, jusqu_au: Option<Jour>) -> Result<Rejeu, String> {
+    let nom = dest.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let travail = std::env::temp_dir().join(format!("puppetpaie-livrer-{}-{}", nom, std::process::id()));
+    let _ = std::fs::remove_dir_all(&travail);
+    let rendu = rejouer(scenario, &travail, &OptionsRejeu { lectures: false, jusqu_au }).and_then(|r| {
+        if !r.ecarts.is_empty() {
+            return Err(format!("le scenario {} s'ecarte au rejeu :\n{}", scenario.display(), r.ecarts.join("\n")));
+        }
+        let (_, racine) = r.compagnies.first().ok_or(format!("le scenario {} n'ajoute aucune compagnie", scenario.display()))?;
+        poser_livree(racine, dest, r.fin)?;
+        Ok(r)
+    });
+    let _ = std::fs::remove_dir_all(&travail);
+    rendu
+}
+
+/// POSE LA COMPAGNIE REJOUEE `racine` dans `dest` (remplace), marquee fictive livree (`compagnies::MARQUE_FICTIVE` suivie
+/// du nom du dossier, sans la marque `ajoutee`) : ses envois sont joues, son horloge joue ce qui vient apres `fin`, le
+/// dernier geste rejoue.
+fn poser_livree(racine: &Path, dest: &Path, fin: Option<f64>) -> Result<(), String> {
+    let nom = dest.file_name().map(|n| n.to_string_lossy().into_owned()).ok_or(format!("{} : un dossier est attendu", dest.display()))?;
+    let _ = std::fs::remove_dir_all(dest);
+    for (rel, source) in fichiers_de(racine).into_iter().filter(|(rel, _)| !hors_livraison(rel)) {
+        let cible = dest.join(&rel);
+        if let Some(d) = cible.parent() {
+            std::fs::create_dir_all(d).map_err(|e| format!("{} : {}", d.display(), e))?;
+        }
+        std::fs::copy(&source, &cible).map_err(|e| format!("{} : {}", cible.display(), e))?;
+    }
+    socle::ecriture::ecrire_json(
+        &dest.join(crate::interface::compagnies::MARQUEUR),
+        &json!({
+            "copie_de": format!("{} {}", crate::interface::compagnies::MARQUE_FICTIVE, nom),
+            "quand": fin.map(heure),
+            "_quoi": "Compagnie FICTIVE de reference, livree avec le logiciel : le rejeu de son scenario (atelier/fictives/). Ses envois sont joues, rien n'en part.",
+        }),
+        2,
+    )
+}
+
 const USAGE: &str = "scenario rejouer <scenario> <installation neuve> [--lectures] [--jusqu-au AAAA-MM-JJ]\n\
                      scenario verifier <scenario> <installation du banc> <dossier de travail>\n\
-                     scenario elaguer <scenario> <scenario sans lectures>";
+                     scenario elaguer <scenario> <scenario sans lectures>\n\
+                     scenario livrer <scenario> <dossier de la fictive> [--jusqu-au AAAA-MM-JJ]";
 
 /// LA LIGNE DE COMMANDE DES SCENARIOS : `moteur-atelier scenario ...` (le banc) et l'exemple `vie_fictive` (sans le binaire
 /// de l'atelier). `rejouer`, `verifier`, `elaguer`. Rend le code de sortie : 1 a la moindre difference.
@@ -582,12 +703,12 @@ pub fn commande(args: &[String]) -> i32 {
             match rejouer(Path::new(sc), inst, &options) {
                 Ok(r) => {
                     for p in &r.horloge {
-                        println!("      {}", p);
+                        dire!("      {}", p);
                     }
                     for (nom, racine) in &r.compagnies {
-                        println!("{} -> {}", nom, racine.display());
+                        dire!("{} -> {}", nom, racine.display());
                     }
-                    println!(
+                    dire!(
                         "{} route(s) rejouee(s), {} lecture(s) ecartee(s), {} geste(s) sur une autre compagnie, en {:.1} s.",
                         r.routes_rejouees,
                         r.lectures_ecartees,
@@ -595,7 +716,7 @@ pub fn commande(args: &[String]) -> i32 {
                         debut.elapsed().as_secs_f64()
                     );
                     for e in &r.ecarts {
-                        println!("ECART  {}", e);
+                        dire!("ECART  {}", e);
                     }
                     i32::from(!r.ecarts.is_empty())
                 }
@@ -607,12 +728,12 @@ pub fn commande(args: &[String]) -> i32 {
         }
         ["verifier", sc, inst, travail] => match verifier(Path::new(sc), Path::new(inst), Path::new(travail)) {
             Ok(e) if e.is_empty() => {
-                println!("Le rejeu refait la compagnie du banc, fichier pour fichier ({:.1} s).", debut.elapsed().as_secs_f64());
+                dire!("Le rejeu refait la compagnie du banc, fichier pour fichier ({:.1} s).", debut.elapsed().as_secs_f64());
                 0
             }
             Ok(e) => {
                 for x in &e {
-                    println!("DIFFERENCE  {}", x);
+                    dire!("DIFFERENCE  {}", x);
                 }
                 1
             }
@@ -621,9 +742,19 @@ pub fn commande(args: &[String]) -> i32 {
                 1
             }
         },
+        ["livrer", sc, dest] => match livrer(Path::new(sc), Path::new(dest), options.jusqu_au) {
+            Ok(r) => {
+                dire!("{} : {} route(s) rejouee(s), {} geste(s) d'apres le jour laisse(s) a l'horloge, en {:.1} s.", dest, r.routes_rejouees, r.laisses, debut.elapsed().as_secs_f64());
+                0
+            }
+            Err(m) => {
+                eprintln!("{}", m);
+                1
+            }
+        },
         ["elaguer", sc, vers] => match elaguer(Path::new(sc), Path::new(vers)) {
             Ok((n, o)) => {
-                println!("{} geste(s) garde(s), {} lecture(s) otee(s) : {}", n, o, vers);
+                dire!("{} geste(s) garde(s), {} lecture(s) otee(s) : {}", n, o, vers);
                 0
             }
             Err(m) => {
@@ -658,6 +789,10 @@ mod enregistreur {
         /// Un geste a la fois, de bout en bout : la route, son empreinte avant et apres, sa ligne. Le temps est fige
         /// pendant ce temps-la (`temps::figer`) ; l'ordre du fichier est celui ou les gestes ont eu lieu.
         tour: Mutex<u64>,
+        /// Vrai : les lectures entrent aussi dans le scenario. Faux (le banc, les preuves) : seules les routes dont la
+        /// fiche ecrit ou engage (`routes::est_une_ecriture`) ; une lecture est servie telle quelle, sans tour ni
+        /// empreinte, en meme temps que les autres -- le rejeu les ecarte de toute facon.
+        lectures: bool,
     }
 
     static ENREGISTREUR: OnceLock<Enregistreur> = OnceLock::new();
@@ -683,7 +818,7 @@ mod enregistreur {
 
     /// Ce qu'une empreinte de la compagnie ne regarde pas : les caches que la fenetre refait en fond, et son journal.
     fn hors_empreinte(rel: &str) -> bool {
-        rel == "journal/interface.log"
+        rel == crate::interface::JOURNAL_INTERFACE
             || rel == "ouverture.etat.json"
             || rel.ends_with(crate::compagnie::ouverture::ETAPE)
             || rel.ends_with(".verrou")
@@ -700,18 +835,13 @@ mod enregistreur {
 
     impl Enregistreur {
         /// Pose l'enregistreur de ce processus : `dossier` (cree s'il n'existe pas ; un scenario commence s'y poursuit),
-        /// `inst` l'installation. Le banc commence a `jour`.
-        pub fn demarrer(dossier: &Path, inst: &Path) -> Result<&'static Enregistreur, String> {
-            ENREGISTREUR.set(Enregistreur::nouveau(dossier, inst)?).map_err(|_| "Un enregistreur est deja pose dans ce processus.".to_string())?;
-            Ok(ENREGISTREUR.get().expect("pose"))
-        }
-
-        /// Un enregistreur qui n'est pas celui du processus (les essais) : `dossier` cree s'il n'existe pas, un scenario
-        /// commence s'y poursuit.
-        pub fn nouveau(dossier: &Path, inst: &Path) -> Result<Enregistreur, String> {
+        /// `inst` l'installation, `lectures` : les lectures aussi.
+        pub fn demarrer(dossier: &Path, inst: &Path, lectures: bool) -> Result<&'static Enregistreur, String> {
             std::fs::create_dir_all(dossier.join(PIECES)).map_err(|e| format!("{} : {}", dossier.display(), e))?;
             let deja = lire(dossier).map(|g| g.iter().filter_map(|x| x.get("n").and_then(Value::as_u64)).max().unwrap_or(0)).unwrap_or(0);
-            Ok(Enregistreur { dossier: dossier.to_path_buf(), inst: inst.to_path_buf(), tour: Mutex::new(deja) })
+            let e = Enregistreur { dossier: dossier.to_path_buf(), inst: inst.to_path_buf(), tour: Mutex::new(deja), lectures };
+            ENREGISTREUR.set(e).map_err(|_| "Un enregistreur est deja pose dans ce processus.".to_string())?;
+            Ok(ENREGISTREUR.get().expect("pose"))
         }
 
         pub fn dossier(&self) -> &Path {
@@ -755,7 +885,7 @@ mod enregistreur {
         /// validee qui se recalcule, celle d'un contrat sans terme qui entre dans le mois), sans qu'aucune route de la
         /// page ne le demande. `f` le refait sous le meme tour, au meme instant fige ; s'il a ecrit, le geste `etat`
         /// (la compagnie, la cle) entre dans le scenario, et le rejeu le refait (`etat_garde::lire`).
-        pub fn fond<T>(&self, racine: &Path, cle: &str, f: impl FnOnce() -> T) -> T {
+        pub fn fond<T, E>(&self, racine: &Path, cle: &str, f: impl FnOnce() -> std::thread::Result<Result<T, E>>) -> std::thread::Result<Result<T, E>> {
             let mut n = self.tour.lock().unwrap_or_else(|p| p.into_inner());
             let quand = socle::temps::secondes();
             socle::temps::figer(quand);
@@ -768,6 +898,11 @@ mod enregistreur {
                 ligne.insert("geste".into(), json!("etat"));
                 ligne.insert("compagnie".into(), json!(self.compagnie(racine)));
                 ligne.insert("cle".into(), json!(cle));
+                // Un etat refait peut ecrire puis refuser (une paie recalculee, puis un engagement qui ne se calcule pas) :
+                // le rejeu attend le meme refus.
+                if !matches!(rendu, Ok(Ok(_))) {
+                    ligne.insert("ok".into(), json!(false));
+                }
                 self.ecrire(&mut n, ligne, quand);
             }
             rendu
@@ -779,8 +914,12 @@ mod enregistreur {
         }
 
         /// UNE ROUTE, servie par `servir` sous l'enregistreur : le temps fige a son debut, ce qu'on avait depose recopie,
-        /// l'empreinte de la compagnie avant et apres, puis sa ligne.
+        /// l'empreinte de la compagnie avant et apres, puis sa ligne. Une lecture, quand on ne les enregistre pas, est
+        /// seulement servie.
         pub fn route(&self, racine: &Path, nom: &str, charge: &Value, servir: impl FnOnce() -> Value) -> Value {
+            if !self.lectures && !crate::routes::est_une_ecriture(nom) {
+                return servir();
+            }
             let mut n = self.tour.lock().unwrap_or_else(|p| p.into_inner());
             let quand = socle::temps::secondes();
             socle::temps::figer(quand);

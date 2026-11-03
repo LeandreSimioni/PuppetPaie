@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000049906984</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/49/90/69/LEGIARTI000049906984.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>3</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2024-07-08</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="JORFTEXT000000242359" date_publi="2006-07-04" date_signature="2006-07-03" ministere="MINISTERE DE L'ECONOMIE, DES FINANCES ET DE L'INDUSTRIE BUDGET ET REFORME DE L'ETAT" nature="DECRET" nor="BUDB0620002D" num="2006-781" num_parution_jo="0153">
+<TITRE_TXT c_titre_court="Décret n° 2006-781 du 3 juillet 2006" debut="2999-01-01" fin="2999-01-01" id_txt="JORFTEXT000000242359">Décret n° 2006-781 du 3 juillet 2006 fixant les conditions et les modalités de règlement des frais occasionnés par les déplacements temporaires des personnels civils de l'Etat</TITRE_TXT>
+<TITRE_TXT c_titre_court="Décret n°2006-781 du 3 juillet 2006" debut="2006-11-01" fin="2999-01-01" id_txt="LEGITEXT000006053958">Décret n°2006-781 du 3 juillet 2006 fixant les conditions et les modalités de règlement des frais occasionnés par les déplacements temporaires des personnels civils de l'Etat</TITRE_TXT>
+</TEXTE>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2006-11-01" etat="MODIFIE" fin="2019-03-01" id="LEGIARTI000006252671" num="3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2019-03-01" etat="MODIFIE" fin="2024-07-08" id="LEGIARTI000038190114" num="3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2024-07-08" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000049906984" num="3" origine="LEGI"/>
+</VERSION>
+<VERSION etat="">
+<LIEN_ART debut="2999-01-01" etat="" fin="2999-01-01" id="JORFARTI000001665126" num="3" origine="JORF"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Lorsque l'agent se déplace pour les besoins du service à l'occasion d'une mission, d'une tournée ou d'un intérim, il peut prétendre :</p>
+<p>-à la prise en charge de ses frais de transport ;<br/>
+<br/>
+-à des indemnités de mission qui ouvrent droit, cumulativement ou séparément, selon les cas, au remboursement forfaitaire des frais supplémentaires de repas, au remboursement forfaitaire des frais et taxes d'hébergement et, pour l'étranger et l'outre-mer, des frais divers directement liés au déplacement temporaire de l'agent.</p>
+<p>Pour l'étranger, dans le cas où l'agent est logé ou nourri gratuitement, les indemnités de mission allouées sont réduites dans la limite d'un pourcentage fixé par arrêté conjoint du ministre chargé de la fonction publique, du ministre chargé du budget et du ministre des affaires étrangères.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000049894058" datesignatexte="2024-07-06" id="LEGIARTI000049903207" naturetexte="DECRET" nortexte="TFPF2418093D" num="1" numtexte="2024-746" sens="cible" typelien="MODIFIE">Décret n°2024-746 du 6 juillet 2024 - art. 1</LIEN>
+</LIENS>
+</ARTICLE>

@@ -16,6 +16,9 @@ fn chaque_rubrique_livree_hors_assiette_dit_ce_qu_elle_est_pour_le_net_social() 
         ("acompte", HorsAssiette::Mouvement),
         ("defraiement_forfait", HorsAssiette::Frais),
         ("defraiement_reel", HorsAssiette::Frais),
+        // Les indemnites journalieres que la compagnie subrogee reverse : dans le montant net social « pour leur montant net
+        // des prelevements sociaux » (BOSS, montant net social, Q 13 bis).
+        ("ijss_nettes", HorsAssiette::Revenu),
         ("indemnite_licenciement", HorsAssiette::Revenu),
         ("indemnite_licenciement_conventionnelle", HorsAssiette::Revenu),
         ("indemnite_mise_a_la_retraite", HorsAssiette::Revenu),
@@ -24,6 +27,8 @@ fn chaque_rubrique_livree_hors_assiette_dit_ce_qu_elle_est_pour_le_net_social() 
         ("indemnite_rupture_conventionnelle_imposable", HorsAssiette::Revenu),
         ("indemnite_rupture_conventionnelle_supplement", HorsAssiette::Revenu),
         ("indemnite_rupture_conventionnelle_supplement_imposable", HorsAssiette::Revenu),
+        ("nuitee", HorsAssiette::Frais),
+        ("repas", HorsAssiette::Frais),
     ]
     .iter()
     .map(|(c, h)| (c.to_string(), *h))

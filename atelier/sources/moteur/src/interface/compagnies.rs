@@ -12,10 +12,12 @@ use socle::fichiers::dossier_du_code;
 
 pub const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 const COULEUR_DEFAUT: &str = "#B22222";
+/// La couleur de la compagnie, sous sa racine.
+const AFFICHAGE: &str = "config/affichage.json";
 const DOSSIER_ORIGINE: &str = ".origine";
 /// Ce qui appartient au poste et survit a une remise a zero.
 const PROPRES_AU_POSTE: [&str; 4] =
-    ["config/diagnostic.json", "journal/signalements.json", "journal/incidents.json", "journal/interface.log"];
+    [crate::compagnie::incidents::DIAGNOSTIC, crate::compagnie::problemes::SIGNALEMENTS, crate::compagnie::incidents::INCIDENTS, crate::interface::JOURNAL_INTERFACE];
 
 /// Le dossier du logiciel (`logiciel/`).
 pub fn logiciel() -> PathBuf {
@@ -59,7 +61,7 @@ fn ecrire(p: &Path, v: &Value) -> Result<(), String> {
 /// La vraie compagnie : `prive/` a cote du code, sinon le code lui-meme.
 pub fn dossier_reel() -> PathBuf {
     let voisin = base().join("prive");
-    if voisin.join("config").is_dir() {
+    if voisin.join(socle::fichiers::CONFIG).is_dir() {
         voisin
     } else {
         logiciel()
@@ -113,8 +115,8 @@ pub const PREFIXE_AJOUTEE: &str = "ajoutee-";
 /// La fiche entreprise telle qu'elle vaut aujourd'hui ; vide si elle ne se lit pas (la tuile dit alors le dossier, et
 /// la compagnie, ouverte, dit pourquoi).
 fn fiche(racine: &Path) -> Value {
-    lire(&racine.join("config").join("entreprise.json"))
-        .and_then(|b| droit::contexte::fiche_au(&b, &droit::contexte::jour_reel(), "config/entreprise.json").ok())
+    lire(&racine.join(droit::contexte::ENTREPRISE))
+        .and_then(|b| droit::contexte::fiche_au(&b, &droit::contexte::jour_reel(), droit::contexte::ENTREPRISE).ok())
         .unwrap_or_else(|| json!({}))
 }
 
@@ -172,7 +174,7 @@ fn couleur_valide(c: &str) -> bool {
 
 /// La couleur d'une compagnie (`config/affichage.json`), rouge par defaut.
 pub fn couleur(racine: &Path) -> String {
-    lire(&racine.join("config").join("affichage.json"))
+    lire(&racine.join(AFFICHAGE))
         .and_then(|d| d.get("couleur").and_then(Value::as_str).map(String::from))
         .filter(|c| couleur_valide(c))
         .unwrap_or_else(|| COULEUR_DEFAUT.to_string())
@@ -213,7 +215,7 @@ pub fn est_cache(p: &Path) -> bool {
 fn sous_dossiers(dossier: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = std::fs::read_dir(dossier)
         .map(|it| {
-            it.filter_map(|e| e.ok().map(|e| e.path())).filter(|d| !est_cache(d) && d.join("config").join("entreprise.json").is_file()).collect()
+            it.filter_map(|e| e.ok().map(|e| e.path())).filter(|d| !est_cache(d) && d.join(droit::contexte::ENTREPRISE).is_file()).collect()
         })
         .unwrap_or_default();
     v.sort();
@@ -224,18 +226,13 @@ fn nom_dossier(p: &Path) -> String {
     p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
 }
 
-/// Ce que propose l'accueil, dans l'ordre des tuiles : les vraies, puis les fictives.
-pub fn liste() -> Vec<Compagnie> {
-    liste_de(&base())
-}
-
 /// Les compagnies de l'installation `b` (le dossier qui porte `logiciel/`, `prive/`, `compagnies/`, `fictives/`), dans
 /// l'ordre des tuiles. L'administrateur (`administrateur.rs`) lit celles de l'installation qu'on lui donne.
 pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     let mut out = Vec::new();
     if !crate::compagnie::bridage::est_bride_de(b) {
         let reel = if b == base() { dossier_reel() } else { b.join("prive") };
-        if reel.join("config").is_dir() {
+        if reel.join(socle::fichiers::CONFIG).is_dir() {
             out.push(entree("reelle".into(), &reel, true));
         }
         for d in sous_dossiers(&b.join("compagnies")) {
@@ -252,28 +249,28 @@ pub fn liste_de(b: &Path) -> Vec<Compagnie> {
 /// vraies compagnies de l'installation `b` (pas les fictives), la derniere ouverte d'abord -- la date de son journal de
 /// la fenetre (`journal/interface.log`), que chaque ouverture recommence ; jamais ouverte, a la fin.
 pub fn a_tenir_a_jour(b: &Path) -> Vec<PathBuf> {
-    let date = |r: &Path| std::fs::metadata(r.join("journal").join("interface.log")).and_then(|m| m.modified()).ok();
+    let date = |r: &Path| std::fs::metadata(r.join(crate::interface::JOURNAL_INTERFACE)).and_then(|m| m.modified()).ok();
     let mut reelles: Vec<PathBuf> = liste_de(b).into_iter().filter(|c| c.reelle).map(|c| c.racine).collect();
     reelles.sort_by_key(|r| std::cmp::Reverse(date(r)));
     reelles
 }
 
 /// Le dossier d'une tuile -- et seulement d'une tuile : l'identifiant ne designe jamais un chemin qu'on n'a pas propose.
-pub fn racine_choisie(id: &str) -> Result<PathBuf, String> {
-    liste()
+pub fn racine_choisie(inst: &Path, id: &str) -> Result<PathBuf, String> {
+    liste_de(inst)
         .into_iter()
         .find(|c| c.id == id)
         .map(|c| c.racine)
         .ok_or_else(|| format!("Compagnie inconnue ou absente de cette version : {}", id))
 }
 
-pub fn poser_couleur(id: &str, valeur: &str) -> Result<String, String> {
+pub fn poser_couleur(inst: &Path, id: &str, valeur: &str) -> Result<String, String> {
     if !couleur_valide(valeur) {
         return Err(format!("Couleur attendue sous la forme #RRGGBB : '{}'", valeur));
     }
-    let c = liste().into_iter().find(|c| c.id == id && c.reelle).ok_or("Seule une compagnie reelle a une couleur a choisir.")?;
+    let c = liste_de(inst).into_iter().find(|c| c.id == id && c.reelle).ok_or("Seule une compagnie reelle a une couleur a choisir.")?;
     let v = valeur.to_uppercase();
-    ecrire(&c.racine.join("config").join("affichage.json"), &json!({"couleur": v}))?;
+    ecrire(&c.racine.join(AFFICHAGE), &json!({"couleur": v}))?;
     Ok(v)
 }
 
@@ -315,13 +312,13 @@ pub(crate) fn nom_de_dossier(nom: &str) -> String {
     }
 }
 
-/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE : `config/creation.json`, ecrit par `ajouter_dans` et nulle part
+/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE : `config/creation.json`, ecrit par `ajouter_venant` et nulle part
 /// ailleurs ; il suit la compagnie quand elle change de dossier. Une compagnie d'avant (une fictive livree, la vraie
 /// compagnie d'une installation) n'en a pas : `None`.
 pub const FICHIER_CREATION: &str = "creation.json";
 
 pub fn cree_le(racine: &Path) -> Option<socle::date::Jour> {
-    lire(&racine.join("config").join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| socle::date::Jour::lire(j).ok())
+    lire(&racine.join(socle::fichiers::CONFIG).join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| socle::date::Jour::lire(j).ok())
 }
 
 /// D'OU VIENT UNE COMPAGNIE AJOUTEE : le « + » propose les deux chemins. Une compagnie neuve commence ses paies ici ;
@@ -355,25 +352,17 @@ impl Venue {
 
 /// La compagnie a ete ajoutee par le chemin « d'un logiciel precedent ».
 pub fn vient_d_un_logiciel_precedent(racine: &Path) -> bool {
-    lire(&racine.join("config").join(FICHIER_CREATION))
+    lire(&racine.join(socle::fichiers::CONFIG).join(FICHIER_CREATION))
         .and_then(|c| c.get("venue").and_then(Value::as_str).map(Venue::lire))
         == Some(Venue::LogicielPrecedent)
 }
 
-/// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
+
+/// « Ajouter une compagnie » (la route `compagnie-ajouter`) dans l'installation `inst`, par le chemin `venue` : le
+/// dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
 ///
 /// LOGICIEL BRIDE : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
 /// un dossier `ajoutee-…`, avec le marqueur d'une fictive et sa marque. Debloque : une compagnie reelle, sous `compagnies/`.
-pub fn ajouter(nom: &str, venue: Venue) -> Result<Compagnie, String> {
-    ajouter_venant(&base(), nom, venue)
-}
-
-/// `ajouter`, dans l'installation `inst` (le dossier qui porte `logiciel/`) : une compagnie neuve.
-pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
-    ajouter_venant(inst, nom, Venue::Neuve)
-}
-
-/// `ajouter`, dans l'installation `inst`, par le chemin `venue`.
 pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie, String> {
     let nom = nom.split_whitespace().collect::<Vec<_>>().join(" ");
     if nom.chars().count() < 2 {
@@ -391,7 +380,7 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
         dossier = parent.join(format!("{}-{}", racine_nom, n));
         n += 1;
     }
-    let cfg = dossier.join("config");
+    let cfg = dossier.join(socle::fichiers::CONFIG);
     std::fs::create_dir_all(&cfg).map_err(|e| e.to_string())?;
     // La raison sociale se deduit du nom comme a chaque enregistrement de la fiche (`crate::routes::fiches::deriver` : majuscules
     // SANS ACCENTS, la forme declaree). `to_uppercase` gardait les accents : la fiche neuve naissait avec une erreur de
@@ -412,6 +401,11 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
     // Le code risque et le taux AT/MP de l'annee : le risque par defaut du socle et le taux de l'arrete, dits a l'ecran et
     // modifiables (`routes::atmp`).
     crate::routes::atmp::poser_a_la_creation(&dossier, i64::from(creation.an)).map_err(|e| e.message)?;
+    // VENUE D'UN LOGICIEL PRECEDENT, elle commence par reprendre son passe : la boite ou poser ses pieces (`import/`,
+    // celle que `importation-etat` nomme) est la des le premier jour.
+    if matches!(venue, Venue::LogicielPrecedent) {
+        std::fs::create_dir_all(dossier.join("import")).map_err(|e| e.to_string())?;
+    }
     if !bride {
         return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));
     }
@@ -467,8 +461,8 @@ pub fn figer_origine(racine: &Path) -> Result<(), String> {
 }
 
 /// La fictive revient a sa photo d'origine ; ce qui appartient au poste est garde. Rend (nom, deja).
-pub fn remettre_a_zero(id: &str) -> Result<(String, bool), String> {
-    let c = liste()
+pub fn remettre_a_zero(inst: &Path, id: &str) -> Result<(String, bool), String> {
+    let c = liste_de(inst)
         .into_iter()
         .find(|c| c.id == id && !c.reelle && est_fictive_livree(&c.racine))
         .ok_or("Seule une compagnie fictive livrée se remet à zéro.")?;

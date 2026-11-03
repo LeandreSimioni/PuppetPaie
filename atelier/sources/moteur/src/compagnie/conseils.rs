@@ -40,42 +40,52 @@ use droit::minima::Par;
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION, SALARIE};
+use crate::routes::catalogue::{Ecran, Place};
+
 type R<T> = Result<T, Echec>;
 
-/// Les routes de lecture des conseils.
-pub const ROUTES: [&str; 3] = ["conseil-du-jour", "conseils-salarie", "conseils-resume"];
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
-/// Les conditions que le moteur sait evaluer : un conseil de la banque dont le `quand` n'est ni « toujours » ni l'une
-/// d'elles ne s'afficherait jamais (le test de la banque le refuse).
-pub const CONDITIONS: [&str; 16] = [
-    "saisie:technicien-plus-de-208-heures",
-    "saisie:plus-de-28-cachets",
-    "saisie:mois-sature",
-    "saisie:507-assurees",
-    "saisie:repetition-en-cachet",
-    "saisie:heures-pour-la-meme-somme",
-    "saisie:enseignement",
-    "saisie:suspension",
-    "saisie:cachets-et-heures",
-    "historique:droits-ouverts",
-    "historique:heures-comptees",
-    "historique:cachets-perdus",
-    "historique:gain-des-conseils",
-    "historique:intense",
-    "historique:enseignement-perdu",
-    "historique:resume",
-];
-
-/// Les conditions qui ne parlent que d'une annexe : (condition, annexe). Le cachet est propre a l'annexe X (art. 3 §1 :
-/// « Lorsque l'activité des artistes est déclarée sous la forme de cachets » ; l'annexe VIII ne le connait pas) ; les
-/// 208 heures retenues par mois, a l'annexe VIII. Les autres valent pour les deux annexes : leur conseil cite chaque
-/// article dans l'une et l'autre (le test de la banque le verifie), et le moteur n'en montre que celles en jeu.
-pub const D_UNE_ANNEXE: [(&str, &str); 5] = [
-    ("saisie:technicien-plus-de-208-heures", "VIII"),
-    ("saisie:plus-de-28-cachets", "X"),
-    ("saisie:repetition-en-cachet", "X"),
-    ("saisie:cachets-et-heures", "X"),
-    ("historique:cachets-perdus", "X"),
+/// Les routes de lecture des conseils, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "conseil-du-jour",
+        geste: "Dire le conseil du jour (« Le saviez-vous ? »).",
+        charge: &[Champ { nom: "decalage", libelle: Affiche::new("Autre conseil"), forme: Forme::Nombre, sens: "un autre conseil : +1 le suivant, -1 le précédent", avance: false }],
+        exemple: r#"{}"#,
+        rend: "le conseil (titre, texte, ce qu'il ouvre)",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "conseils-salarie",
+        geste: "Dire les conseils qui valent pour un salarié.",
+        charge: &[SALARIE],
+        exemple: r#"{"salarie":"FULLER"}"#,
+        rend: "conseils",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+        ecran: Ecran::Dessine(Place::Fiches),
+    },
+    Fiche {
+        nom: "conseils-resume",
+        geste: "Dire les conseils qui valent pour la compagnie, en résumé.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "conseils",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
 ];
 
 /// Les deux annexes : X (artistes), VIII (techniciens).
@@ -531,13 +541,14 @@ fn gain_heures(ctx: &Contexte, p: &Paie, seuil: Decimal) -> Resultat<Option<Gain
 struct Declares<'a> {
     ctx: &'a Contexte,
     paies: &'a [Paie],
+    departs: &'a engagement::departs::Departs,
     lus: Option<Vec<Declare>>,
 }
 
 impl<'a> Declares<'a> {
     fn tous(&mut self) -> Resultat<&[Declare]> {
         if self.lus.is_none() {
-            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies))?);
+            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies), self.departs)?);
         }
         Ok(self.lus.as_deref().unwrap_or(&[]))
     }
@@ -582,7 +593,8 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         x.0 += e.heures.unwrap_or(0.0).round_ties_even() as i64 + e.cachets * c.heures_par_cachet;
         x.1 += e.cachets;
     }
-    let mut declares = Declares { ctx, paies, lus: None };
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let mut declares = Declares { ctx, paies, departs: &departs, lus: None };
     let mut assurees: HashMap<String, Option<(i64, String)>> = HashMap::new();
     for (i, p) in paies.iter().enumerate() {
         let e = &p.engagement;
@@ -714,16 +726,16 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
 // --------------------------------------------------------------- l'historique
 
 /// Ce que les conseils de saisie auraient change aux paies de ce salarie sur la fenetre : (heures, jours d'allocation,
-/// avant arrondi). Chaque mois saisi de la fenetre se recharge (`engagement::charger`) ; un mois qui ne se charge pas
-/// est laisse de cote.
-fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, annexe: &str) -> Resultat<(Decimal, Decimal)> {
+/// avant arrondi). Chaque mois de la fenetre se lit dans les paies ecrites de ses engagements valides
+/// (`engagement::etats::validees_du_mois`) : rien ne se recalcule ; un mois qui ne se lit pas est laisse de cote.
+fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, annexe: &str, departs: &engagement::departs::Departs) -> Resultat<(Decimal, Decimal)> {
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let (debut, fin, _) = f;
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
     for mois in socle::date::mois_entre(debut, fin) {
-        let Ok(saisie) = engagement::mois_pour_l_ecran(ctx, &mois) else { continue };
-        for p in &saisie.paies {
+        let Ok(Some((_, paies))) = engagement::etats::validees_du_mois(ctx, &mois, departs) else { continue };
+        for p in &paies {
             let e = &p.engagement;
             if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {
                 continue;
@@ -755,7 +767,8 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = engagement::cumul::lire_engagements(ctx, None)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None, &departs)?;
     let (pos, anniv) = position(ctx, cle, &engs, jour)?;
     if pos.engagements.is_empty() {
         return Ok(Vec::new());
@@ -799,7 +812,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
         pousser("historique:heures-comptees", base(vec![("heures", val_entier(heures)), ("pourcentage", val_nombre(pct))]));
         if let (Some(a), Some(ax)) = (&a30, annexe) {
             let f: Fenetre = (pos.debut, pos.fin, pos.libelle_fenetre.clone());
-            let (gain, jours) = gains_sur_la_fenetre(ctx, cle, &f, a, ax)?;
+            let (gain, jours) = gains_sur_la_fenetre(ctx, cle, &f, a, ax, &departs)?;
             if gain > Decimal::ZERO {
                 let pct = (gain * Decimal::from(100) / Decimal::from(c.seuil_heures)).round_dp(1).normalize();
                 let mut v = vec![("gain", val_nombre(gain)), ("pourcentage", val_nombre(pct))];
@@ -849,7 +862,8 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let engs = engagement::cumul::lire_engagements(ctx, None)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None, &departs)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
     let mut fiches = Vec::new();
@@ -903,7 +917,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     Ok(conseil(&b, &d, "historique:resume", &v, &en_jeu).into_iter().collect())
 }
 
-/// « Anastasia », « Anastasia et Léandre », « Anastasia, Fanchon et Léandre ».
+/// « Anastasia », « Anastasia et Valentin », « Anastasia, Fanchon et Valentin ».
 fn et(noms: &[String]) -> String {
     match noms {
         [] => String::new(),
@@ -914,18 +928,24 @@ fn et(noms: &[String]) -> String {
 
 // ------------------------------------------------------------------ routes
 
-/// L'aiguillage des trois routes de lecture.
+/// L'aiguillage des trois routes de lecture. La phrase : le texte du conseil, ou ceux de la liste un par un (`phrases`).
 pub fn route(ctx: &Contexte, route: &str, charge: &Value) -> R<Value> {
+    let liste = |conseils: Vec<Value>| {
+        let lignes: Vec<Value> = conseils.iter().map(|c| c["texte"].clone()).collect();
+        json!({ "phrase": format!("Conseils : {}.", conseils.len()), "phrases": lignes, "conseils": conseils })
+    };
     match route {
         "conseil-du-jour" => {
             let decalage = charge.get("decalage").and_then(Value::as_i64).unwrap_or(0);
-            Ok(du_jour(ctx, decalage)?)
+            let v = du_jour(ctx, decalage)?;
+            let p = v["conseil"]["texte"].as_str().map(String::from).unwrap_or_else(|| "Pas de conseil aujourd'hui.".to_string());
+            Ok(crate::routes::phrase_en_tete(v, p))
         }
         "conseils-salarie" => {
             let cle = charge.get("salarie").map(en_texte).unwrap_or_default();
-            Ok(json!({ "conseils": du_salarie(ctx, &cle)? }))
+            Ok(liste(du_salarie(ctx, &cle)?))
         }
-        "conseils-resume" => Ok(json!({ "conseils": resume(ctx)? })),
+        "conseils-resume" => Ok(liste(resume(ctx)?)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

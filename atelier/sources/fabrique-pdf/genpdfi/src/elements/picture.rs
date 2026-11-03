@@ -318,21 +318,27 @@ pub const RESOLUTION: f32 = 300.0;
 const QUALITE_JPEG: u8 = 90;
 
 /// L'image ramenée à `RESOLUTION` à la largeur `width`, si elle la dépasse de plus d'un quart
-/// (en deçà, l'écart ne vaut pas un rééchantillonnage) ; `true` si elle a été réduite. Les
-/// proportions sont gardées. Une image avec transparence est réduite en couleurs prémultipliées :
-/// la couleur d'un pixel transparent ne déteint pas sur le bord du dessin.
+/// (en deçà, l'écart ne vaut pas un rééchantillonnage) ; `true` si elle a été réduite.
 #[cfg(feature = "images")]
 fn reduire(image: image::DynamicImage, width: Mm) -> (image::DynamicImage, bool) {
-    use image::imageops::FilterType;
     // (le millième retire l'erreur d'arrondi des points convertis en millimètres : 48 pt font 200 pixels, pas 201)
     let cible = ((width.0 / 25.4) * RESOLUTION - 0.001).ceil().max(1.0) as u32;
-    let (w, h) = (image.width(), image.height());
-    if w <= cible + cible / 4 {
+    if image.width() <= cible + cible / 4 {
         return (image, false);
     }
+    (reduire_a(image, cible), true)
+}
+
+/// L'image ramenée à `cible` pixels de large (modification PuppetPaie), les proportions gardées. Une
+/// image avec transparence est réduite en couleurs prémultipliées : la couleur d'un pixel transparent
+/// ne déteint pas sur le bord du dessin.
+#[cfg(feature = "images")]
+pub fn reduire_a(image: image::DynamicImage, cible: u32) -> image::DynamicImage {
+    use image::imageops::FilterType;
+    let (w, h) = (image.width(), image.height());
     let hauteur = ((h as f64) * (cible as f64) / (w as f64)).round().max(1.0) as u32;
     if !image.color().has_alpha() {
-        return (image.resize_exact(cible, hauteur, FilterType::Lanczos3), true);
+        return image.resize_exact(cible, hauteur, FilterType::Lanczos3);
     }
     let mut f = image.to_rgba32f();
     for p in f.pixels_mut() {
@@ -356,7 +362,7 @@ fn reduire(image: image::DynamicImage, width: Mm) -> (image::DynamicImage, bool)
     } else {
         image::DynamicImage::ImageLumaA8(reduite.to_luma_alpha8())
     };
-    (reduite, true)
+    reduite
 }
 
 /// Retourne le nombre de composantes d'un JPEG recopiable tel quel (DCT de base ou progressive,

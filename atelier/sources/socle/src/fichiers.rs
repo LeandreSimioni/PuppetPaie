@@ -18,9 +18,10 @@ use std::sync::{Arc, Mutex, OnceLock};
 // `est_dossier` et `lister`. Quand un registre est ouvert (`suivre`), chacun
 // y note ce qu'il a vu : l'empreinte du contenu d'un fichier, `absent`, la
 // liste des `.json` d'un dossier. C'est la liste des entrees du calcul
-// (`engagement::empreinte`). Les caches qui ne notent rien quand ils servent (les baremes composes) se cle par
+// (`engagement::empreinte`). Un cache qui ne note rien quand il sert (le compteur des conges) se cle par
 // `generation` : un calcul suivi a la sienne, a lui seul, et repart a froid ; hors registre, la generation est 0 et
-// ces caches servent d'une route a l'autre (la fenetre garde le moteur charge).
+// ce cache sert d'une route a l'autre (la fenetre garde le moteur charge). Les baremes composes gardent ce qu'ils ont lu
+// et le notent quand ils servent (`garde_notee`).
 
 struct Registre {
     racine: PathBuf,
@@ -46,8 +47,8 @@ thread_local! {
 /// (la paie d'un mois lit celle du mois d'avant, qui se calcule alors) : le registre neuf se pose au-dessus de celui qui
 /// est ouvert, et `rendre` redonne celui-ci a son calcul.
 pub fn suivre(racine: &Path, code: &Path) {
-    // Un registre neuf, c'est un calcul « a froid » : les caches de bareme (qui ne notent rien quand ils servent)
-    // ne lui servent que ce qu'il compose, pour que la liste des entrees soit celle d'un processus neuf.
+    // Un registre neuf, c'est un calcul « a froid » : un cache qui ne note rien quand il sert (`generation`)
+    // ne lui sert que ce qu'il compose, pour que la liste des entrees soit celle d'un processus neuf.
     let numero = GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
     REGISTRE.with(|r| r.borrow_mut().push(Registre { racine: racine.to_path_buf(), code: code.to_path_buf(), entrees: BTreeMap::new(), numero }));
 }
@@ -68,6 +69,52 @@ pub fn ranger<K: Eq + std::hash::Hash, V>(cache: &Mutex<HashMap<K, V>>, cle: K, 
         c.clear();
     }
     c.insert(cle, v);
+}
+
+/// Ce qu'un cache qui note garde (`garde_notee`) : la valeur, et ce que sa composition a lu, sous la base (racine, code)
+/// du registre ou elle s'est faite ; rien quand elle s'est faite hors registre.
+pub struct Notee<V> {
+    valeur: V,
+    lu: Option<(PathBuf, PathBuf, BTreeMap<String, String>)>,
+}
+
+/// UN CACHE QUI NOTE : la valeur que `composer` fait (un bareme fondu) se garde sous `cle` avec ce que sa composition a
+/// lu. Servie dans un registre ouvert, elle y note ces entrees, comme si elle venait de se composer : la liste des
+/// entrees d'un calcul suivi reste celle d'un processus neuf, sans recomposer. Une valeur faite hors registre, ou sous
+/// une autre base, se recompose la premiere fois qu'un registre la demande. `cle` dit ce dont la valeur depend.
+pub fn garde_notee<V: Clone, E>(cache: &Mutex<HashMap<String, Notee<V>>>, cle: String, composer: impl FnOnce() -> Result<V, E>) -> Result<V, E> {
+    let base = REGISTRE.with(|r| r.borrow().last().map(|g| (g.racine.clone(), g.code.clone())));
+    let servie = {
+        let c = cache.lock().unwrap_or_else(|p| p.into_inner());
+        c.get(&cle).and_then(|n| match (&base, &n.lu) {
+            (None, _) => Some((n.valeur.clone(), None)),
+            (Some((r, k)), Some((r2, k2, entrees))) if r == r2 && k == k2 => Some((n.valeur.clone(), Some(entrees.clone()))),
+            _ => None,
+        })
+    };
+    if let Some((v, entrees)) = servie {
+        if let Some(entrees) = entrees {
+            REGISTRE.with(|r| {
+                if let Some(g) = r.borrow_mut().last_mut() {
+                    for (k, x) in entrees {
+                        g.entrees.entry(k).or_insert(x);
+                    }
+                }
+            });
+        }
+        return Ok(v);
+    }
+    let (v, lu) = match base {
+        None => (composer()?, None),
+        Some((r, k)) => {
+            suivre(&r, &k);
+            let v = composer();
+            let entrees = rendre();
+            (v?, Some((r, k, entrees)))
+        }
+    };
+    ranger(cache, cle, Notee { valeur: v.clone(), lu });
+    Ok(v)
 }
 
 /// Ferme le dernier registre ouvert et rend ce qu'il a note, trie par cle. Ce qu'un calcul fait au milieu d'un autre a
@@ -348,35 +395,103 @@ pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Val
 
 type CacheDesContenus = Mutex<HashMap<PathBuf, (Arc<Vec<u8>>, Arc<Value>)>>;
 
-/// UN JSON LU, ANALYSE UNE FOIS PAR CONTENU : le fichier se relit a chaque fois (ses octets), et ce qu'on en avait tire
-/// ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel que soit qui l'a ecrit et quand
-/// (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) : seule l'analyse s'epargne, et
-/// c'est elle qui coute. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce qu'il lit (les
-/// engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas ; deux lectures du meme
-/// contenu rendent la meme valeur (`Arc::ptr_eq`).
+/// UN JSON LU, ANALYSE UNE FOIS PAR CONTENU : hors d'un geste, le fichier se relit a chaque fois (ses octets), et ce
+/// qu'on en avait tire ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel que soit qui
+/// l'a ecrit et quand (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) : seule l'analyse
+/// s'epargne. PENDANT UN GESTE (`geste`), il se lit une fois : la lecture du geste le garde, et ce que le geste ecrit
+/// (`ecriture::ecrire_json`) y prend sa place. `None` s'il n'existe pas. Rien ne se note au registre : l'appelant dit ce
+/// qu'il lit (les engagements se comptent par leur saisie, `engagement::stock`). Partage : on ne le modifie pas ; deux
+/// lectures du meme contenu rendent la meme valeur (`Arc::ptr_eq`).
 pub fn json_partage(chemin: &Path) -> Resultat<Option<Arc<Value>>> {
     static CACHE: OnceLock<CacheDesContenus> = OnceLock::new();
+    if let Some(v) = GESTE.with(|g| g.borrow().as_ref().and_then(|l| l.get(chemin).cloned())) {
+        return Ok(v);
+    }
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let octets = match std::fs::read(chemin) {
         Ok(o) => o,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            garder_dans_le_geste(chemin, None);
+            return Ok(None);
+        }
         Err(e) => return Err(panne_fichier(&e, chemin)),
     };
-    if let Some((vus, v)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
-        if **vus == octets {
-            return Ok(Some(v.clone()));
+    let deja = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin).filter(|(vus, _)| **vus == octets).map(|(_, v)| v.clone());
+    let v = match deja {
+        Some(v) => v,
+        None => {
+            let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| crate::echec::du_disque(&chemin, &e))?);
+            ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
+            v
         }
-    }
-    let v = Arc::new(serde_json::from_slice::<Value>(&octets).map_err(|e| format!("{} : {}", chemin.display(), e))?);
-    ranger(cache, chemin.to_path_buf(), (Arc::new(octets), v.clone()));
+    };
+    garder_dans_le_geste(chemin, Some(v.clone()));
     Ok(Some(v))
 }
 
-/// `json.loads(p.read_text(encoding="utf-8"))`, sans cache.
+thread_local! {
+    /// LA LECTURE DU GESTE EN COURS (`geste`) : chaque fichier que `json_partage` a servi, tel qu'il l'a lu ou tel que le
+    /// geste l'a ecrit (`None` : absent).
+    static GESTE: RefCell<Option<HashMap<PathBuf, Option<Arc<Value>>>>> = const { RefCell::new(None) };
+}
+
+fn garder_dans_le_geste(chemin: &Path, v: Option<Arc<Value>>) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut() {
+            l.insert(chemin.to_path_buf(), v);
+        }
+    });
+}
+
+/// Ce que le geste vient d'ecrire dans `chemin` (`ecriture::ecrire_json`) : si le geste l'a lu, c'est ce qu'il a
+/// en main ; il ne relit pas ce qu'il a ecrit.
+pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: &Value) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
+            l.insert(chemin.to_path_buf(), Some(Arc::new(v.clone())));
+        }
+    });
+}
+
+/// Le geste vient d'effacer `chemin` (`ecriture::effacer`) : s'il l'a lu, il ne l'a plus.
+pub(crate) fn efface_pendant_le_geste(chemin: &Path) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
+            l.insert(chemin.to_path_buf(), None);
+        }
+    });
+}
+
+/// UN GESTE (une route, l'etat d'un mois refait) LIT UNE FOIS ce que la compagnie porte et que `json_partage` sert (les
+/// engagements, le journal de ce qui est parti) : rendu par `geste`, la lecture vit tant que son garde vit, et tombe
+/// avec lui ; un geste ouvert depuis un autre lit dans la lecture de celui-ci.
+pub struct Geste(bool);
+
+#[must_use = "la lecture du geste ne vit que tant que son garde vit"]
+pub fn geste() -> Geste {
+    Geste(GESTE.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.is_some() {
+            return false;
+        }
+        *g = Some(HashMap::new());
+        true
+    }))
+}
+
+impl Drop for Geste {
+    fn drop(&mut self) {
+        if self.0 {
+            GESTE.with(|g| *g.borrow_mut() = None);
+        }
+    }
+}
+
+/// Le JSON d'un fichier UTF-8, sans cache.
 pub fn lire_json(chemin: &Path) -> Resultat<Value> {
     let texte = lire_texte(chemin)
-        .map_err(|e| format!("{} : {}", chemin.display(), e))?;
-    serde_json::from_str(&texte).map_err(|e| format!("{} : {}", chemin.display(), e))
+        .map_err(|e| crate::echec::du_disque(&chemin, &e))?;
+    serde_json::from_str(&texte).map_err(|e| crate::echec::du_disque(&chemin, &e))
 }
 
 /// Une valeur est-elle vraie ? Faux : `null`, `false`, zero, un texte, une liste ou un objet vides.
@@ -458,7 +573,7 @@ pub fn repr_valeur(v: &Value) -> String {
 
 /// « champ 'prenom' absent ».
 pub fn absent(cle: &str) -> String {
-    format!("champ {} absent", repr(cle))
+    crate::echec::cle("Il manque une donnée attendue.", cle)
 }
 
 /// Une valeur JSON dite en francais, depuis son nom de type (`valeur::nom_type`).
@@ -543,6 +658,9 @@ pub fn ecriture_impossible(e: &std::io::Error, chemin: &Path) -> String {
     format!("écriture impossible : {} : {}", repr(&chemin.to_string_lossy()), e)
 }
 
+/// Le dossier de la configuration d'une compagnie, sous sa racine.
+pub const CONFIG: &str = "config";
+
 /// Le marqueur d'une compagnie qui n'est pas la vraie (une compagnie fictive, une copie de developpement).
 pub const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
 
@@ -582,7 +700,7 @@ pub fn lire_texte_echec(p: &Path) -> Result<String, crate::echec::Echec> {
         };
         erreur(classe, panne_fichier(&e, p))
     })?;
-    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
+    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", crate::echec::du_disque(&p, &e)))
 }
 
 /// Un fichier JSON (`lire_texte_echec`, puis `JSONDecodeError` s'il ne se lit pas).

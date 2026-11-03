@@ -140,13 +140,19 @@ pub fn ascii_nfkd(v: &str) -> String {
     }
     ascii
 }
-/// `str.capitalize()`.
+/// La première lettre en capitale, le reste en minuscules.
 pub fn capitaliser(t: &str) -> String {
     let mut c = t.chars();
     match c.next() {
         Some(p) => p.to_uppercase().collect::<String>() + &c.as_str().to_lowercase(),
         None => String::new(),
     }
+}
+
+/// « de » devant `mot`, elide devant une voyelle : « de mars 2026 », « d'avril 2026 », « d'absence non rémunérée ».
+pub fn de(mot: &str) -> String {
+    let voyelle = mot.chars().next().is_some_and(|c| "aàâeéèêëiîïoôuùûyAÀÂEÉÈÊIÎOÔUÛY".contains(c));
+    format!("{}{}", if voyelle { "d'" } else { "de " }, mot)
 }
 
 /// LE SALARIE TEL QUE L'ECRAN LE NOMME, partout ou le moteur parle de lui (refus, avis, listes, phrases d'un envoi) :
@@ -173,6 +179,41 @@ pub fn salarie_nomme(fiche: &serde_json::Value) -> Option<String> {
     };
     let tout = format!("{} {}", ou("nom_affichage", "nom").to_uppercase(), ou("prenom_affichage", "prenom")).trim().to_string();
     (!tout.is_empty()).then_some(tout)
+}
+
+/// UN MONTANT TEL QU'ON LE LIT, et le seul endroit qui en écrit un (une phrase du moteur, une ligne d'écran, un
+/// document imprimé) : « 1 234,50 € », au centime (`num::eur2`), la virgule décimale, les milliers et l'euro séparés par
+/// une espace insécable (le montant ne se coupe pas en fin de ligne ; U+00A0, que toute police d'un PDF porte). Un
+/// fichier déclaré (DSN, bordereau, format d'un organisme) écrit ses montants dans la forme que sa norme impose.
+pub fn euros(x: rust_decimal::Decimal) -> String {
+    let t = crate::num::eur2(x).to_string();
+    let (signe, t) = t.strip_prefix('-').map_or(("", t.as_str()), |r| ("-", r));
+    let (entier, centimes) = t.split_once('.').unwrap_or((t, "00"));
+    let mut milliers = String::new();
+    for (i, c) in entier.chars().enumerate() {
+        if i > 0 && (entier.len() - i) % 3 == 0 {
+            milliers.push('\u{a0}');
+        }
+        milliers.push(c);
+    }
+    format!("{}{},{}\u{a0}€", signe, milliers, centimes)
+}
+
+/// `euros` d'une valeur (`12.8`, `"12,80"`) ; rien pour une valeur absente, le texte tel quel s'il n'est pas un nombre.
+pub fn euros_de(v: &serde_json::Value) -> String {
+    let x = match v {
+        serde_json::Value::Null => return String::new(),
+        serde_json::Value::String(s) => s.trim().replace(',', ".").parse().ok(),
+        serde_json::Value::Number(_) => crate::num::dec(v).ok(),
+        _ => None,
+    };
+    x.map_or_else(|| crate::valeur::valeur_en_texte(v), euros)
+}
+
+/// UNE QUANTITÉ TELLE QU'ON LA LIT (des heures, des jours, un nombre de cachets) : la virgule décimale, sans zéro
+/// inutile (« 151,67 », « 8 », « 2,5 »).
+pub fn virgule(x: rust_decimal::Decimal) -> String {
+    x.normalize().to_string().replace('.', ",")
 }
 
 /// `salarie_nomme`, ou la clé de sa fiche quand elle ne nomme personne (ou qu'il n'y a pas de fiche).

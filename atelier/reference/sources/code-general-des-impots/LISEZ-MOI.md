@@ -53,11 +53,31 @@ montants dans `xml/293_B.xml`.
 B, d'une retenue à la source effectuée par le débiteur lors du paiement de ces revenus ». `xml/204_H.xml`, III, 4 : la DGFiP
 « transmet le taux au débiteur ».
 
-**Inférence**, écrite comme telle : la retenue d'un salaire se fait au taux que l'employeur tient le jour où il le paie ; un
-taux transmis après (le compte rendu de la DSN du mois, qui arrive le mois suivant) vaut pour les salaires payés ensuite, pas
-pour celui-là.
+Ce que dit l'article 1671 (`articles-20261021.md`, l. 132 et 135) : la retenue est « effectuée par le débiteur lors du
+paiement », et le débiteur « applique le taux calculé par l'administration fiscale, au plus tard le deuxième mois suivant
+sa transmission » ; le BOFiP (`../bofip/BOI-IR-PAS-30-10-20-extrait-taux.md`, § 70 et 80) : le taux est applicable jusqu'à
+la fin du deuxième mois qui suit sa mise à disposition, et le débiteur applique celui du compte rendu le plus récent. Un
+taux vaut donc pour tout paiement fait à partir du jour de sa mise à disposition, et pour aucun avant.
 
-**Où le moteur s'en sert** : `droit::pas::en_vigueur` (`atelier/sources/droit/src/pas.rs`) choisit, dans le magasin
-`config/pas.json` (le taux présent et ceux qu'il a remplacés, `journal`), le dernier mis à disposition au plus tard le jour du
-paiement ; `engagement::etats::prelevement` le demande à la date de paiement de la paie (sinon à la fin de sa période). Le test
-`un_taux_transmis_apres_le_paiement_ne_vaut_pas_pour_lui` (`droit/src/pas.rs`).
+**Où le moteur s'en sert** : le taux reçu s'écrit dans la fiche du salarié (`taux_pas`, daté de sa mise à disposition :
+`moteur/src/compagnie/taux_pas.rs`) ; `droit::pas::en_vigueur` (`atelier/sources/droit/src/pas.rs`) y choisit le dernier mis
+à disposition au plus tard le jour du paiement ; `engagement::etats::prelevement` le demande au jour du versement de
+l'engagement (`Engagement::date_du_versement` : sa date de paiement, sinon la fin de sa période). Le test
+`un_taux_vaut_pour_tout_paiement_a_partir_de_sa_mise_a_disposition` (`droit/src/pas.rs`).
+
+## L'exonération d'impôt sur le revenu des heures supplémentaires et complémentaires (relevé du 02/11/2026, lot LONG7)
+
+81 quater (domaine `heures_supplementaires`) : les rémunérations et majorations de L241-17 CSS sont exonérées dans une limite
+annuelle de 7 500 €. Leur montant net sort de la rémunération nette fiscale et se déclare en S21.G00.58.003 = 01 (fiche
+net-entreprises 2066, `../net-entreprises-base-connaissances/`). Texte dans `articles-20261102.md`. **Où le moteur s'en
+sert** : `logiciel/donnees/permanents-base.json` (`heures_en_plus.exoneration_impot`), `atelier/sources/engagement/src/
+heures_en_plus.rs` (le net exonéré, la limite de l'année), `atelier/sources/declarations/src/dsn.rs` (`net_social`).
+
+## Les indemnités journalières subrogées et le prélèvement à la source (relevé du 02/11/2026)
+
+`articles-20261102.md`, section « L'impot sur le revenu des indemnites journalieres » (`xml/154_quinquies.xml`,
+`xml/80_quinquies.xml`, `xml/81.xml`) : **154 quinquies, I** (la CSG des revenus de L136-8, II, déductible « à hauteur de
+3,8 points ») ; **80 quinquies** (les indemnités journalières imposables comme des salaires, sauf la fraction exonérée par
+81, 8°, et les affections de longue durée) ; **81, 8°** (celles d'un accident du travail, « à hauteur de 50 % de leur
+montant »). Avec le BOFiP BOI-IR-PAS-20-10-10, § 80 à 110 (`../suspension-non-remuneree/`), l'assiette du PAS des
+indemnités qu'un employeur subrogé verse (`engagement::maintien`, `etats::prelevement`).

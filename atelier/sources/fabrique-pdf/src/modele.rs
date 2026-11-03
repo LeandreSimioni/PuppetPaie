@@ -75,7 +75,7 @@ fn lignes(texte: &str) -> Vec<&str> {
     sortie
 }
 
-/// Une ligne vide sépare deux paragraphes ; le reste est recollé (`_paragraphes`).
+/// Une ligne vide sépare deux paragraphes ; le reste est recollé.
 fn paragraphes(tampon: &[&str]) -> Vec<String> {
     let mut blocs = Vec::new();
     let mut courant: Vec<&str> = Vec::new();
@@ -175,7 +175,7 @@ pub fn marqueur_en(texte: &str, i: usize) -> Option<(&str, usize)> {
     Some((&texte[debut..fin_cle], fin + 2))
 }
 
-/// Substitue les marqueurs (`_substituer`). Un marqueur inconnu est un refus qui les nomme tous :
+/// Substitue les marqueurs. Un marqueur inconnu est un refus qui les nomme tous :
 /// on ne signe pas un contrat à moitié rempli.
 pub fn substituer(texte: &str, vals: &Valeurs) -> Result<String, Refus> {
     let mut sortie = String::with_capacity(texte.len());
@@ -266,7 +266,7 @@ fn reduire_blancs(t: &str) -> String {
 }
 
 /// Le texte du modèle en morceaux (texte, gras) : marqueurs substitués, blancs comptés comme en
-/// HTML, `**…**` en gras (`_morceaux`). `gras` rend tout le texte gras.
+/// HTML, `**…**` en gras. `gras` rend tout le texte gras.
 pub fn morceaux(texte: &str, vals: &Valeurs, gras: bool) -> Result<Vec<(String, bool)>, Refus> {
     Ok(morceaux_substitues(&substituer(texte, vals)?, gras))
 }

@@ -22,7 +22,9 @@ node atelier/outils/banc/banc.js lancer /tmp/banc-<nom> --jour 2026-11-02
 
 Le banc copie `logiciel/` et `fictives/` du dépôt dans `/tmp/banc-<nom>/installation/` (bridée : aucun `.edition.json`),
 lance la fenêtre sans navigateur, rien ne sort de la machine (`PUPPETPAIE_ESSAIS_HORS_RESEAU`). L'heure simulée est
-9 h (Paris) ce jour-là, et elle coule ensuite au pas de la montre.
+9 h (Paris) ce jour-là, et elle coule ensuite au pas de la montre. Le scénario garde les routes qui écrivent ou
+engagent (l'acte de leur fiche) ; les lectures, servies sans attendre, n'y entrent qu'en lançant la fenêtre avec
+`--lectures` (`moteur-atelier interface … --enregistrer <scénario> --lectures`).
 
 **2. Jouer dans la page**, par un script Playwright en Node (jamais Python), qui commence ainsi :
 
@@ -81,7 +83,7 @@ dit (une ligne par geste joué, « — non joué (…) » quand elle a refusé :
 - Un fichier à déposer (un PDF, une DSN, un export à importer) se pose dans le dossier que la page désigne (`import/` de
   la compagnie, ou un dossier tapé dans le champ) : le scénario en garde une copie (`scenario/pieces/`).
 - Le calendrier n'avance que vers demain ; on ne retouche pas l'heure de la machine.
-- Ce qu'on fait dans une fictive livrée (Les Deux Rives…) s'enregistre mais ne se rejoue pas : seule la compagnie créée
+- Ce qu'on fait dans une fictive livrée (le Fil de Fer) s'enregistre mais ne se rejoue pas : seule la compagnie créée
   par « + » est rejouée.
 - À la fin : `verifier`, puis `arreter`, toujours : aucune fenêtre ne reste derrière soi.
 
@@ -165,7 +167,8 @@ commune 999 à clé juste ; rien de réel) :
 | `objet` | `{"numero", "titre"}` : le spectacle (numéro d'objet), pour un CDDU |
 | `lignes` | `{"libelle", "quantite", "taux"}` ; libellés du gabarit : `Cachets isolés`, `Cachets groupés`, `Heures`, `Service(s) répét. 4h (contrat<5j)` et `Masterclass / Action Culturelle` (CoolPaie), `Service de répétition 4 heures` (sPAIEctacle) |
 | `non_soumis` | sPAIEctacle seulement : `Défraiement non soumis`, `Prime de panier non soumise`, `Acompte` |
-| `taux_pas`, `regle_le`, `numero`, `analytique` | facultatifs : le taux du PAS (0), le jour du règlement (`fin`), le numéro CoolPaie (`k/année`), le code analytique sPAIEctacle |
+| `cotisations`, `net_imposable`, `pas` | sPAIEctacle seulement, les trois ensemble : ce qu'une paie de PuppetPaie a calculé (ses `lignes` telles quelles : `famille`, `libelle`, `base`, `taux_sal`, `montant_sal`, `montant_pat`, `masquer_base_et_taux` ; son net imposable ; l'impôt prélevé), que le bulletin imprime au lieu de ses cotisations vraisemblables ; la santé et la retraite ligne à ligne, toute autre famille sur un rang, comme le bulletin clarifié |
+| `taux_pas`, `regle_le`, `numero`, `analytique` | facultatifs : le taux du PAS (0), le jour du règlement (`fin`), le numéro CoolPaie (`k/année`), la case « Analytique » de sPAIEctacle (par défaut : le titre de l'objet, comme sPAIEctacle l'y imprime) |
 
 Le gabarit se donne dans la description ou par `--gabarit` (qui l'emporte). Le « plafond Urssaf » imprimé se calcule
 par la règle du moteur (`plafond.rs`), sur le plafond de la Sécurité sociale de l'année lu dans le barème livré

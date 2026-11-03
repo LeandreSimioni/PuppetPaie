@@ -9,6 +9,9 @@
     }
   ],
   "heures_par_cachet": 7,
+  "logement_grand_deplacement": {"paris": 75.60, "autres": 56.10, "_source": "Limite d'exoneration par jour de l'indemnite de logement et de petit-dejeuner du salarie en grand deplacement en metropole, la meme toute l'annee 2025. Du 1er janvier au 6 septembre : arrete du 20 decembre 2002, art. 5, 1° (atelier/reference/sources/dfs/historique/legifrance-arrete-20021220-frais-professionnels-20250907.txt), ses montants revalorises chaque 1er janvier selon un bareme << etabli et diffuse par l'Agence centrale des organismes de securite sociale >> (art. 10) : 75,60 EUR a Paris et dans les Hauts-de-Seine, la Seine-Saint-Denis et le Val-de-Marne, 56,10 EUR ailleurs pour 2025 (legisocial, << Valeurs confirmees par le BOSS, mise a jour du 24 decembre 2024 >>, atelier/reference/sources/legisocial-frais-professionnels-2025/, l. 85-101). Depuis le 7 septembre : arrete du 4 septembre 2025, art. 5, I, 1° (atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md), les memes montants. Le moteur : engagement::frais_au_dela."},
+  "repas_deplacement": {"restaurant": 21.10, "hors_restaurant": 10.30, "_source": "Limite d'exoneration par repas de l'indemnite de repas du salarie en deplacement, la meme toute l'annee 2025. Du 1er janvier au 6 septembre : arrete du 20 decembre 2002, art. 3, 1° et 3°, et art. 5, 1° pour le grand deplacement (atelier/reference/sources/dfs/historique/legifrance-arrete-20021220-frais-professionnels-20250907.txt), revalorises chaque 1er janvier selon le bareme de l'Acoss (art. 10) : 21,10 EUR au restaurant, 10,30 EUR hors restaurant pour 2025 (legisocial, << Valeurs confirmees par le BOSS >>, atelier/reference/sources/legisocial-frais-professionnels-2025/, l. 44-80). Depuis le 7 septembre : arrete du 4 septembre 2025, art. 3, 1° et 3° (atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md), les memes montants. Le moteur : engagement::frais_au_dela."},
+  "frais_hors_metropole": {"dom": {"logement": 120, "repas": 20}, "pacifique": {"logement": 120, "repas": 24}, "monaco": {"logement": 120, "repas": 20}, "_source": "Limites d'exoneration par jour du logement (petit-dejeuner compris) et par repas du salarie en grand deplacement hors de la metropole : les taux des indemnites de mission des personnels civils de l'Etat, arrete du 3 juillet 2006, art. 1, a), en vigueur depuis le 22/09/2023 (atelier/reference/sources/arrete-2006-indemnites-de-mission/legifrance-arrete-20060703-indemnites-de-mission-20261103.txt l. 17-30 : Martinique, Guadeloupe, Guyane, Reunion, Mayotte, Saint-Pierre-et-Miquelon, Saint-Barthelemy, Saint-Martin, 120 et 20 EUR ; Nouvelle-Caledonie, Wallis et Futuna, Polynesie francaise, 120 et 24 EUR), que le BOSS reprend (Frais professionnels, § 1340-1360 ; Monaco, § 1400 : 20 et 120 EUR ; atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt l. 1582-1612 et 1647-1656). Les Terres australes et antarctiques francaises n'ont pas de forfait : seules les depenses reellement engagees et justifiees se deduisent (§ 1370, l. 1614-1619). La reduction au-dela de trois mois dans un meme lieu (arrete du 4 septembre 2025, art. 5, II) n'est pas portee. Le moteur : engagement::frais_au_dela, le choix « Lieu » de la ligne (`territoire`)."},
   "taxe_sur_les_salaires": {"taux_normal": 4.25, "majoration_1": 4.25, "majoration_2": 9.35, "seuil_1": 9147, "seuil_2": 18259, "franchise": 1200, "decote_jusqu_a": 2040, "abattement_1679A": 24041, "plafonds_franchise": {"prestations_de_services": 37500, "total": 85000, "en_vigueur_depuis": "2025-03-01", "_source": "CGI art. 293 B, I, version en vigueur depuis le 01/03/2025 (LEGIARTI000052488142), deposee par paie releve-codes : atelier/reference/sources/code-general-des-impots/xml/293_B.xml, lisible dans articles-20261021.md : ligne << Annee civile precedente >> du tableau, 85 000 EUR de << chiffre d'affaires national total >> et 37 500 EUR de << chiffre d'affaires national afferent aux prestations de services >>. CGI art. 231, 1, 2e alinea (xml/231.xml) : les remunerations des employeurs dont le chiffre d'affaires de l'annee civile precedant leur versement n'excede pas les plafonds des I et I bis de 293 B sont exonerees de la taxe sur les salaires ; d'ou la colonne << annee civile precedente >> (INFERENCE). Ce chiffre d'affaires comprend toutes les recettes et produits, subventions comprises (notice 2502-SD, formulaires/impots-2502-sd-2025-notice.pdf, C, 1). Le I bis (avocats, auteurs, artistes-interpretes en leur nom propre : 50 000 et 35 000 EUR) ne vise pas une compagnie employeur (INFERENCE : une compagnie n'est ni avocat, ni auteur, ni artiste-interprete) et n'est pas repris. Lecture : atelier/reference/sources/code-general-des-impots/LISEZ-MOI.md ; le moteur : assujettissement::question_franchise. ANNEE 2025 : cette version vaut depuis le 01/03/2025 ; les remunerations de janvier et fevrier 2025 relevaient de la version precedente de 293 B, qui n'est pas deposee (l'entrepot LEGI ne garde que la version en vigueur)."}, "_source": "Notices officielles de la DGFiP, 2501-SD 2025 (formulaire 2501-sd_4914) et 2502-SD 2025 (2502-sd_5241), copiees dans atelier/reference/sources/code-general-des-impots/formulaires/ : taux normal 4,25 % sur la totalite ; 4,25 % de plus sur la fraction de la remuneration annuelle individuelle au-dela de 9147 EUR, et 9,35 % de plus au-dela de 18259 EUR (8,50 et 13,60 au total) ; franchise si la taxe annuelle n'excede pas 1 200 EUR, decote des trois quarts de la difference jusqu'a 2 040 EUR ; abattement de l'article 1679 A (associations loi 1901, syndicats...) 24041 EUR, applique APRES franchise et decote, ni restituable ni reportable. Base : l'assiette de la CSG (L136-1-1 CSS) sans la reduction de 1,75 % (CGI art. 231). Les seuils sont revalorises chaque annee comme la premiere tranche du bareme de l'impot sur le revenu. Journal §120."},
   "solde_taxe_apprentissage": {"taux": 0.09, "_source": "Solde de la taxe d'apprentissage, 0,09 % de la masse salariale de l'annee precedente (code du travail L6241-2 : 0,68 % dont 0,09 % de solde ; table des CTP de l'Urssaf : CTP 995). Verse une fois par an, dans la DSN d'avril : CTP 995 au bordereau, assiette = la masse de l'annee precedente, et bloc S21.G00.82 code 076 << Solde de la taxe d'apprentissage verse en numeraire >> du 1er janvier au 31 decembre. Son assiette est la somme des assiettes du CTP 992 des douze DSN de l'annee."},
   "pas_taux_par_defaut": {
@@ -969,6 +972,8 @@
         "categorie": "20",
         "frais_hors_assiette": [
           "defraiement_forfait",
+          "repas",
+          "nuitee",
           "defraiement_reel"
         ]
       },
@@ -977,6 +982,8 @@
         "categorie": "20",
         "frais_hors_assiette": [
           "defraiement_forfait",
+          "repas",
+          "nuitee",
           "defraiement_reel"
         ]
       },
@@ -985,6 +992,8 @@
         "categorie": "20",
         "frais_hors_assiette": [
           "defraiement_forfait",
+          "repas",
+          "nuitee",
           "defraiement_reel"
         ]
       },
@@ -992,28 +1001,36 @@
         "libelle": "Régisseur de théâtre",
         "categorie": "20",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_dramatique": {
         "libelle": "Artiste dramatique",
         "categorie": "25",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_lyrique": {
         "libelle": "Artiste lyrique",
         "categorie": "25",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_choregraphique": {
         "libelle": "Artiste chorégraphique",
         "categorie": "25",
         "frais_hors_assiette": [
-          "defraiement_forfait"
+          "defraiement_forfait",
+          "repas",
+          "nuitee"
         ]
       },
       "artiste_cinematographique": {
@@ -1631,7 +1648,7 @@
       "_source": "Code du travail D. 7121-40 et D. 7121-41 (releve LEGI du 10/10/2026, atelier/reference/sources/code-du-travail/articles-20261010.md) : l'employeur du spectacle declare a la caisse << le personnel artistique et technique qu'ils n'ont pas employe de facon continue pendant les douze mois precedant la demande de conge >>. Fiche pratique Audiens << Les Conges Spectacles >> (fevrier 2023, atelier/reference/sources/majoration-caisses-conges/audiens-fiche-pratique-conges-spectacles-202302.txt, l. 15-31) : << quelle que soit [...] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) >> ; la cotisation << sur chaque bulletin de paie d'artiste ou de technicien embauche sous contrat a duree determinee de moins de 12 mois >>. CCN 3090, art. 10.1.1 (atelier/reference/sources/kali-3090-titres-vii-x-xi-annexes-20260924.md) : le CDD d'usage << occupe[] de maniere continue, dans le cadre d'un meme contrat de travail, pendant les 12 mois >> releve du droit commun. Lecture complete : atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md.",
       "affilie": {
         "_verifie": true,
-        "_quoi": "Un CDD de droit commun de moins de douze mois d'un ARTISTE (son metier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle). Le technicien en CDD de droit commun n'y est pas : quel technicien la caisse attend est une decision (`caisse_conges::artiste_du_spectacle`). Par-dessus `par_nature.permanent` : la ligne de la caisse et la cotisation 066 (bloc 78 de type 27) reprises du corps tel que le statut l'a laisse, et les majorations d'assiette des employeurs affilies a une caisse de conges (CSS L. 243-1-3), que les assiettes du permanent portent deja (`t1_mensuelle_x115`, `brut_x110`, `brut_x115` du versement mobilite et de la formation, `autres_4`) avec une majoration de 1,0.",
+        "_quoi": "Un CDD de droit commun de moins de douze mois d'un intermittent : un ARTISTE (annexe 10), ou un technicien d'une fonction que la liste de l'annexe 8 nomme pour la convention de l'employeur (`caisse_conges::intermittent`). Par-dessus `par_nature.permanent` : la ligne de la caisse et la cotisation 066 (bloc 78 de type 27) reprises du corps tel que le statut l'a laisse, et les majorations d'assiette des employeurs affilies a une caisse de conges (CSS L. 243-1-3), que les assiettes du permanent portent deja (`t1_mensuelle_x115`, `brut_x110`, `brut_x115` du versement mobilite et de la formation, `autres_4`) avec une majoration de 1,0.",
         "du_corps": {
           "rubriques_bulletin": [
             "conges_spec"
@@ -1887,22 +1904,22 @@
     "SCENE ENSEMBLE": {
       "libelle": "Scène Ensemble, organisation professionnelle des arts de la représentation",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "SMA": {
       "libelle": "Syndicat des musiques actuelles",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "FNAR": {
       "libelle": "Fédération nationale des arts de la rue",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "FSICPA": {
       "libelle": "Fédération des structures indépendantes de création et de production artistique",
       "applicable": true,
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     },
     "LES FORCES MUSICALES": {
       "libelle": "Les Forces musicales, opéras et orchestres réunis",
@@ -1910,7 +1927,7 @@
       "alias": [
         "FORCES MUSICALES"
       ],
-      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
+      "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (etendu au 19/09/2026) : il lie ses adherents de la 1285 avant l'extension, des le 01/08/2026 pour les minima et le 01/09/2026 pour les indemnites (`droit::minima::lie_depuis`). Releve le 25/09/2026."
     }
   },
   "retraite_t1_repartition": {
@@ -1986,6 +2003,12 @@
       "applicable": true,
       "_source": "C'est la convention de la compagnie qui a servi a ecrire ce socle : ces valeurs sont celles que cinq ans de declarations acceptees ont prouvees. Elles sont ecrites ici, et pas seulement dans le corps, pour qu'on VOIE ce qui changerait sous une autre convention.",
       "bareme": {
+        "tarifs_conventionnels": {
+          "_source": "Avenant du 21 juillet 2025 relatif aux salaires minimaux applicables au 1er septembre 2025 (atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md) : entree en vigueur le 1er septembre 2025 (l. 175) ; << Chambre et petit-dejeuner : 70,28 euros. Chaque repas principal : 17,85 euros. >> (annexe 2, indemnites journalieres de deplacement en France applicables a l'ensemble du personnel, l. 429-432), les memes montants pour les artistes, techniciens et personnels administratifs en tournee (l. 737-739). Le taux d'une ligne << Repas >> ou << Nuitee >> saisie sans taux (`engagement::lignes_au_tarif`).",
+          "_avant": "Avant le 1er septembre 2025 : l'avenant precedent n'est pas depose ; le taux se saisit.",
+          "repas": [{"depuis": null, "valeur": null}, {"depuis": "2025-09-01", "valeur": 17.85}],
+          "nuitee": [{"depuis": null, "valeur": null}, {"depuis": "2025-09-01", "valeur": 70.28}]
+        },
         "rubriques_bulletin": [
           {
             "id": "ccn",
@@ -2021,6 +2044,11 @@
       "applicable": true,
       "_confirme": "CONFIRMEE le 23/09/2026 sur la base KALI de la DILA (atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md), point par point de ce qui la retenait : (1) la contribution conventionnelle Afdas des intermittents est la MEME que celle de la 3090 -- les trois bulletins d'exemple CCNEAC de la web-conference Audiens 2026 (p. 5) portent la formation professionnelle a 2,1, comme celui de la 3090 (p. 12) : l'agregat `autres_1` ne change pas ; ce que la CCNEAC ajoute a cote est le FCAP (0,25 %, II.2.1) ; (2) la tranche B des cadres est << entre ce plafond et l'equivalent de 4 plafonds >> (en-tete de l'article XII.2) -- pour un intermittent, le plafond journalier, d'ou `t2_prevoyance_journaliere` ; et elle ne vise que les cadres qui effectuent des prestations TECHNIQUES (XII.2.2.1), les artistes cadres restant a l'interbranche (XII.2.2.4) ; (3) le CSEC est un fait de l'entreprise, lu sur sa fiche (`representation_personnel`) ; (4) la prevoyance des permanents est confirmee dans prevoyance-conventionnelle-base.json, avec leurs frais de sante (0,81 % du PMSS en 2026) ; (5) les lignes DSN du FNAS et du FCAP vont sous les adhesions Audiens de la compagnie, comme la CASC-SVP de la 3090 (`contributions_dsn`).",
       "bareme": {
+        "tarifs_conventionnels": {
+          "_source": "Accord du 2 mai 2024 relatif aux salaires (CCNEAC, KALITEXT000049949387, etendu ; atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md, l. 373-388) : << a compter du 1er septembre 2024 [...] 20,70 EUR chaque repas principal ; 74,30 EUR chambre et petit dejeuner >> (indemnite de deplacement de l'article VIII). Le tarif de l'accord du 1er juillet 2026 (21,40 et 76,60 EUR) est dans le bareme de 2026. Le taux d'une ligne << Repas >> ou << Nuitee >> saisie sans taux (`engagement::lignes_au_tarif`).",
+          "repas": 20.70,
+          "nuitee": 74.30
+        },
         "contributions_conventionnelles": [
           {
             "id": "ccn",

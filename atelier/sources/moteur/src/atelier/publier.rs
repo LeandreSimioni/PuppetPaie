@@ -43,7 +43,7 @@ const EXCLUS: [&str; 6] = [".git", ".avant", ".apres", "__pycache__", ".pytest_c
 /// Un zip ne garde le bit d'execution que si on l'y marque : `archiver` le marque sur eux, `deballer` le remet.
 const PROGRAMMES_UNIX: [&str; 2] = ["puppetpaie", "moteur"];
 
-pub(crate) fn signer(octets: &[u8], privee: &[u8]) -> R<String> {
+pub fn signer(octets: &[u8], privee: &[u8]) -> R<String> {
     use ed25519_dalek::Signer;
     let k = <[u8; 32]>::try_from(privee).map_err(|_| "cle privee illisible (32 octets attendus)")?;
     Ok(socle::base64::ecrire(&ed25519_dalek::SigningKey::from_bytes(&k).sign(octets).to_bytes()))
@@ -71,7 +71,7 @@ fn fichiers(code: &Path, rel: &Path, out: &mut Vec<PathBuf>) {
 /// exclusions que le `.gitignore` du depot public, « LES COMPAGNIES FICTIVES »).
 /// La marque d'une livraison (`LIVREE`) non plus : la livraison l'ajoute elle-meme.
 const HORS_D_UNE_FICTIVE_LIVREE: [&str; 6] =
-    ["config/coffre.bin", "config/google-jeton.bin", "config/maj-cle-privee.bin", "config/.jeton-interface", "journal/interface.log", LIVREE];
+    ["config/coffre.bin", crate::routes::coffre::JETON_GOOGLE, "config/maj-cle-privee.bin", "config/.jeton-interface", crate::interface::JOURNAL_INTERFACE, LIVREE];
 
 /// LES COMPAGNIES FICTIVES LIVREES, a cote du logiciel (`<code>/../fictives/`) : les fichiers que porte l'archive
 /// d'installation (`archiver_installation`), chemins relatifs a `fictives/`, dans l'ordre des noms. Une fictive est un dossier que son marqueur dit fictif
@@ -217,14 +217,20 @@ pub fn archiver_fictives(code: &Path) -> R<(Vec<u8>, String)> {
 /// L'ARCHIVE D'INSTALLATION d'un systeme ou de tous : `logiciel/` (ce que porte l'archive de mise a jour,
 /// sous `logiciel/`) et, a cote, `fictives/` (exactement ce que porte l'archive des fictives : une installation neuve
 /// retient la livraison qu'elle a, et ne la retelecharge pas). Decompressee dans un dossier neuf, elle donne ce que pose
-/// l'installeur Windows : une installation bridee, avec ses quatre fictives. Elle ne sert qu'a installer : aucune
+/// l'installeur Windows : une installation bridee, avec ses fictives. Elle ne sert qu'a installer : aucune
 /// installation ne la telecharge, et `deballer` la refuse comme mise a jour. Elle pourrait se composer des deux autres
 /// (les decompresser l'une dans `logiciel/`, l'autre a cote) ; elle reste une archive, pour qu'installer soit telecharger
 /// un fichier et le decompresser.
+/// Celle de TOUS LES SYSTEMES est le dossier portable : elle porte aussi, a sa racine, le marqueur `PORTABLE.json`
+/// (`coffre::MARQUEUR_PORTABLE`) ; decompressee sur une cle USB, elle s'ouvre sous Windows, Linux et macOS, et la cle du
+/// poste naitra a cote.
 pub fn archiver_installation(code: &Path, systeme: &str) -> R<Vec<u8>> {
     let mut entrees = entrees_du_logiciel(code, systeme, &format!("{}/", LOGICIEL))?;
-    let (fictives, en_plus, _) = entrees_des_fictives(code)?;
+    let (fictives, mut en_plus, _) = entrees_des_fictives(code)?;
     entrees.extend(fictives);
+    if systeme == TOUT_SYSTEME {
+        en_plus.push((crate::compagnie::coffre::MARQUEUR_PORTABLE.to_string(), crate::compagnie::coffre::CONTENU_PORTABLE.as_bytes().to_vec()));
+    }
     zipper(&entrees, &en_plus)
 }
 
@@ -239,9 +245,20 @@ pub fn nom_des_fictives(version: &str) -> String {
 /// l'installeur retient sa livraison comme une installation de l'archive, et ne retelecharge ni ne remplace des fictives
 /// qui n'ont pas change. Rien de ce que porte une livraison n'en depend (`fictives_livrees` ne les livre pas). Rend
 /// l'empreinte.
+///
+/// D'ABORD, LES FICTIVES DE REFERENCE (`scenario::fictives_de_reference`) : chacune se refait de son scenario, rejoue
+/// jusqu'au jour de la publication (`scenario::livrer`), dans `fictives/<nom>` -- ce qu'une compagnie bien tenue a fait
+/// avant ce jour ; la suite est au visiteur. Un rejeu qui s'ecarte arrete la publication.
 pub fn marquer_les_fictives(code: &Path) -> R<String> {
-    let (_, en_plus, empreinte) = entrees_des_fictives(code)?;
     let base = code.parent().unwrap_or(code);
+    if std::env::var_os(socle::garde_reseau::VARIABLE).is_none() {
+        std::env::set_var(socle::garde_reseau::VARIABLE, "1");
+    }
+    for (nom, scenario) in crate::atelier::scenario::fictives_de_reference(base) {
+        let dest = base.join(crate::interface::compagnies::DOSSIER_FICTIVES).join(&nom);
+        crate::atelier::scenario::livrer(&scenario, &dest, Some(droit::contexte::jour_reel()))?;
+    }
+    let (_, en_plus, empreinte) = entrees_des_fictives(code)?;
     for (nom, octets) in en_plus {
         std::fs::write(base.join(&nom), octets).map_err(|e| format!("{} : {}", nom, e))?;
     }
@@ -260,7 +277,7 @@ fn scelle_par_le_coffre(octets: &[u8]) -> Option<Vec<u8>> {
 /// La compagnie de `racine` porte-t-elle une cle de signature (scellee par son coffre) ? Ne lit que la presence du
 /// fichier, n'ouvre rien.
 pub fn cle_de_signature_posee(racine: &Path) -> bool {
-    racine.join("config").join(FICHIER_CLE_PRIVEE).is_file()
+    racine.join(socle::fichiers::CONFIG).join(FICHIER_CLE_PRIVEE).is_file()
 }
 
 /// Ecrit la cle scellee par le coffre : un `.part` renomme, jamais un fichier coupe en route sous le vrai nom.
@@ -274,7 +291,7 @@ fn ecrire_cle(chemin: &Path, scelle: &[u8]) -> R<()> {
 /// La graine de la cle privee, ouverte par ce qui ouvre le coffre. Un fichier qui n'est pas au format `FORMAT_CLE` est
 /// refuse : il ne s'ouvre pas.
 fn cle_privee(coffre: &Coffre) -> R<Option<Vec<u8>>> {
-    let p = coffre.racine.join("config").join(FICHIER_CLE_PRIVEE);
+    let p = coffre.racine.join(socle::fichiers::CONFIG).join(FICHIER_CLE_PRIVEE);
     if !p.exists() {
         return Ok(None);
     }
@@ -285,10 +302,10 @@ fn cle_privee(coffre: &Coffre) -> R<Option<Vec<u8>>> {
     coffre.deproteger_par_le_coffre(&scelle, DESCRIPTION_CLE).map(Some).map_err(|e| e.message)
 }
 
-/// La signature de `octets` par la cle privee de la compagnie de `coffre` (le poste, sa cle, ce qui l'ouvre).
-pub fn signer_par_la_cle(coffre: &Coffre, octets: &[u8]) -> R<String> {
-    let privee = cle_privee(coffre)?.ok_or(SANS_CLE)?;
-    signer(octets, &privee)
+/// La cle privee de la compagnie de `coffre`, ouverte par ce qui ouvre le coffre (le poste, sa cle, le mot de passe du
+/// logiciel) ; refus sans cle.
+pub fn cle_de_signature(coffre: &Coffre) -> R<Vec<u8>> {
+    cle_privee(coffre)?.ok_or_else(|| SANS_CLE.into())
 }
 
 pub(crate) fn exiger_editeur(racine: &Path, quoi: &str) -> R<()> {
@@ -316,7 +333,7 @@ pub fn generer_cle_au_poste(coffre: &Coffre, remplacer: bool) -> R<Value> {
     if crate::interface::compagnies::est_copie(racine) {
         return Err("Copie de developpement : la cle de signature ne part jamais d'ici.".into());
     }
-    let chemin = racine.join("config").join(FICHIER_CLE_PRIVEE);
+    let chemin = racine.join(socle::fichiers::CONFIG).join(FICHIER_CLE_PRIVEE);
     if chemin.exists() && !remplacer {
         return Err(format!(
             "Une cle privee existe deja ({}). --remplacer pour en faire une autre : les compagnies devront alors recevoir la nouvelle cle publique par une autre voie.",
@@ -342,7 +359,7 @@ pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, ex
     if depot.starts_with("http://") || depot.starts_with("https://") {
         return Err("publier ecrit dans un dossier ; pour un depot en ligne, y deposer ensuite les archives et derniere.json".into());
     }
-    let privee = cle_privee(&Coffre::du_poste(racine, ""))?.ok_or(SANS_CLE)?;
+    let privee = cle_de_signature(&Coffre::du_poste(racine, ""))?;
     publier_signe(&code(), Path::new(&depot), &privee, CLE_PUBLIQUE, notes, calcul, exigee)
 }
 

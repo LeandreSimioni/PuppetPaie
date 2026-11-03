@@ -27,6 +27,20 @@ fn date_dsn(v: &str) -> String {
     }
 }
 
+/// Ce qu'un contrat declare pour des periodes de paie : son brut (51 de type 001) et son activite (53 de type 01).
+#[derive(Default)]
+pub struct Mesures {
+    pub brut: Decimal,
+    pub jours: Decimal,
+    pub cachets: Decimal,
+    pub heures: Decimal,
+    pub remunere: bool,
+}
+
+/// Un contrat du fichier. Un bloc 51 se rattache a sa periode de paie (S21.G00.51.001, « date de debut de periode a
+/// laquelle la remuneration est rattachee », `norme-dsn/texte/bloc-S21.G00.51.txt` l. 38-40) : celui d'une periode
+/// anterieure au mois principal declare (S20.G00.05.005) est le rappel d'une paie deja declaree (chapitre 2, §2.1.3.6,
+/// `norme-dsn/texte/chapitre-2-principes-de-constitution.txt` l. 607-616), pas la paie du mois.
 #[derive(Default)]
 pub struct Contrat {
     pub numero: String,
@@ -35,13 +49,12 @@ pub struct Contrat {
     pub emploi: String,
     pub nature: String,
     pub objet: String,
-    pub brut: Decimal,
-    pub jours: Decimal,
-    pub cachets: Decimal,
-    pub heures: Decimal,
+    /// La paie du mois principal declare.
+    pub mois: Mesures,
+    /// Les rappels des mois anterieurs.
+    pub rappel: Mesures,
     pub fin_declaree: String,
     pub motif_fin: String,
-    pub remunere: bool,
 }
 
 #[derive(Default)]
@@ -63,8 +76,8 @@ pub struct Individu {
     pub par_numero: HashMap<String, (usize, usize)>,
 }
 
-/// Les montants d'un contrat en texte, sous la forme que le recapitulatif complete.
-impl Contrat {
+/// Les montants en texte, sous la forme que le recapitulatif complete.
+impl Mesures {
     pub fn brut_texte(&self) -> String {
         q2(self.brut)
     }
@@ -77,6 +90,12 @@ impl Contrat {
     }
 }
 
+impl Contrat {
+    fn mesures(&mut self, rappel: bool) -> &mut Mesures {
+        if rappel { &mut self.rappel } else { &mut self.mois }
+    }
+}
+
 /// Les salaries du fichier, leurs contrats, leurs versements.
 pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
     let texte = texte_latin1(octets);
@@ -84,8 +103,10 @@ pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
     let mut contrat: Option<(usize, usize)> = None;
     let mut versement: Option<(usize, usize)> = None;
     let mut fin: Option<(usize, usize)> = None;
-    // (numero de contrat, type) de la remuneration en cours
-    let mut remu: Option<(String, String)> = None;
+    // Le premier jour du mois principal declare (S20.G00.05.005), AAAA-MM-JJ
+    let mut principal = String::new();
+    // (numero de contrat, type, rappel d'une periode anterieure) de la remuneration en cours
+    let mut remu: Option<(String, String, bool)> = None;
     // (type, mesure) de l'activite en cours
     let mut activite: Option<(String, Decimal)> = None;
     for ligne in lignes_du_texte(&texte) {
@@ -94,6 +115,9 @@ pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
         let kc: Vec<char> = k.chars().collect();
         let bloc: String = kc.iter().take(10).collect();
         let champ: String = kc.iter().skip(11).collect();
+        if k == "S20.G00.05.005" {
+            principal = date_dsn(v);
+        }
         if bloc == "S21.G00.30" {
             if champ == "001" || sals.is_empty() {
                 sals.push(Individu::default());
@@ -158,16 +182,16 @@ pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
             }
             "S21.G00.51" => {
                 if champ == "001" {
-                    remu = Some((String::new(), String::new()));
+                    remu = Some((String::new(), String::new(), !principal.is_empty() && date_dsn(v) < principal));
                 } else if let Some(r) = remu.as_mut() {
                     match champ.as_str() {
                         "010" => r.0 = v.to_string(),
                         "011" => r.1 = v.to_string(),
                         "013" => {
                             let montant = decimal_lu(v).ok_or_else(|| socle::num::illisible(v))?;
-                            let (numero, genre) = (r.0.clone(), r.1.clone());
+                            let (numero, genre, rappel) = (r.0.clone(), r.1.clone(), r.2);
                             if let Some(&(cs, cc)) = sals[si].par_numero.get(&numero) {
-                                let c = &mut sals[cs].contrats[cc];
+                                let c = sals[cs].contrats[cc].mesures(rappel);
                                 c.remunere = true;
                                 if genre == "001" {
                                     c.brut += montant;
@@ -185,16 +209,16 @@ pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
                     activite.as_mut().unwrap().1 = decimal_lu(v).ok_or_else(|| socle::num::illisible(v))?;
                 } else if activite.is_some() && champ == "003" {
                     let (genre, mesure) = activite.clone().unwrap();
-                    let c = remu.as_ref().and_then(|r| sals[si].par_numero.get(&r.0).copied());
+                    let c = remu.as_ref().and_then(|r| sals[si].par_numero.get(&r.0).map(|&(cs, cc)| (cs, cc, r.2)));
                     let unite = match v {
                         "10" | "35" => Some("heures"),
                         "12" => Some("jours"),
                         "37" => Some("cachets"),
                         _ => None,
                     };
-                    if let (Some((cs, cc)), Some(u)) = (c, unite) {
+                    if let (Some((cs, cc, rappel)), Some(u)) = (c, unite) {
                         if genre == "01" {
-                            let c = &mut sals[cs].contrats[cc];
+                            let c = sals[cs].contrats[cc].mesures(rappel);
                             match u {
                                 "jours" => c.jours += mesure,
                                 "cachets" => c.cachets += mesure,
@@ -216,14 +240,19 @@ mod tests {
 
     #[test]
     fn recapitulatif_lu_dans_le_fichier() {
-        let f = "S21.G00.30.001,'1850'\nS21.G00.30.002,'FAVART'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'FA1.26.13'\n\
+        let f = "S20.G00.05.005,'01082026'\nS21.G00.30.001,'1850'\nS21.G00.30.002,'FAVART'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'FA1.26.13'\n\
                  S21.G00.51.001,'01082026'\nS21.G00.51.010,'FA1.26.13'\nS21.G00.51.011,'001'\nS21.G00.51.013,'150.5'\nS21.G00.51.013,'49.5'\n\
-                 S21.G00.53.001,'01'\nS21.G00.53.002,'2'\nS21.G00.53.003,'37'\nS21.G00.62.001,'31082026'\n";
+                 S21.G00.53.001,'01'\nS21.G00.53.002,'2'\nS21.G00.53.003,'37'\nS21.G00.62.001,'31082026'\n\
+                 S21.G00.51.001,'01072026'\nS21.G00.51.010,'FA1.26.13'\nS21.G00.51.011,'001'\nS21.G00.51.013,'30.00'\n\
+                 S21.G00.53.001,'01'\nS21.G00.53.002,'1'\nS21.G00.53.003,'37'\n";
         let s = lire_recap(f.as_bytes()).unwrap();
+        // Un bloc 51 d'une periode anterieure au mois principal est un rappel (bloc-S21.G00.51.txt l. 38-40 ; §2.1.3.6) :
+        // il ne s'ajoute pas a la paie du mois.
         assert_eq!(s.len(), 1);
         let c = &s[0].contrats[0];
-        assert_eq!((c.brut_texte().as_str(), c.mesure_texte("cachets").as_str()), ("200.00", "2"));
-        assert_eq!((c.debut.as_str(), c.fin_declaree.as_str(), c.remunere), ("2026-08-01", "2026-08-31", true));
+        assert_eq!((c.mois.brut_texte().as_str(), c.mois.mesure_texte("cachets").as_str()), ("200.00", "2"));
+        assert_eq!((c.debut.as_str(), c.fin_declaree.as_str(), c.mois.remunere), ("2026-08-01", "2026-08-31", true));
+        assert_eq!((c.rappel.brut_texte().as_str(), c.rappel.mesure_texte("cachets").as_str()), ("30.00", "1"));
         assert_eq!(lire_recap(b"S21.G00.30.001,'1'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'A'\nS21.G00.51.001,'x'\nS21.G00.51.010,'A'\nS21.G00.51.013,'12,5'\n").err(), Some(socle::num::illisible("12,5")));
     }
 }

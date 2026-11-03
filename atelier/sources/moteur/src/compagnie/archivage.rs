@@ -36,24 +36,14 @@ fn sortie_absente(dossier: &Path) -> ErreurGoogle {
     ErreurGoogle::nouvelle("SortieAbsente", format!("{} n'existe pas.", dossier.display()))
 }
 
-/// `archiver` controle `mois` avant de lire `sorties/<mois>` : sans quoi `..` ou `../config`
-/// archiverait le dossier `config` (coffre et jeton compris), `2026-06/envoi` les fiches de salaries une a une.
-/// Seul `AAAA-MM` (quatre chiffres, un tiret, un mois de 01 a 12) est un mois.
-pub fn mois_valide(mois: &str) -> bool {
-    let b = mois.as_bytes();
-    b.len() == 7
-        && b[4] == b'-'
-        && b[..4].iter().all(u8::is_ascii_digit)
-        && b[5..].iter().all(u8::is_ascii_digit)
-        && (1..=12).contains(&mois[5..].parse::<u32>().unwrap_or(0))
-}
-
 /// `archiver` : depose les sorties d'un mois dans le Drive du compte autorise.
 ///
 /// `client` : `None` pour le vrai (`Client::nouveau`, construit APRES les controles du dossier,
 /// pour qu'un mois absent se dit avant tout refus du client).
 pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&mut dyn Drive>) -> Result<Archivage, ErreurGoogle> {
-    if !mois_valide(mois) {
+    // `..` ou `../config` archiverait le dossier `config` (coffre et jeton compris), `2026-06/envoi` les fiches de
+    // salaries une a une : seul `AAAA-MM` est un mois.
+    if !socle::date::mois_valide(mois) {
         return Err(ErreurGoogle::nouvelle("ErreurOperation", format!("Mois illisible : '{}' (AAAA-MM attendu).", mois)));
     }
     let dossier = racine.join("sorties").join(mois);
@@ -92,4 +82,30 @@ pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&m
         deposes.push(FichierArchive { nom, octets, remplace: r.remplace });
     }
     Ok(Archivage { mois: mois.to_string(), racine_drive: racine_drive.to_string(), compte: client.compte(), fichiers: deposes })
+}
+
+/// LE DRIVE JOUE d'une compagnie fictive (ses envois sont joues, `bridage::branchement`) : le depot se deroule, chaque
+/// fichier se nomme et se compte, et rien ne part. Il n'a pas de compte, ne connait aucun fichier et n'en rend aucun.
+pub struct DriveJoue;
+
+impl Drive for DriveJoue {
+    fn compte(&self) -> Option<String> {
+        None
+    }
+    fn chemin(&mut self, noms: &[&str]) -> Result<String, ErreurGoogle> {
+        Ok(noms.join("/"))
+    }
+    fn lister(&mut self, _parent: &str) -> Result<std::collections::BTreeMap<String, envois::drive::Distant>, ErreurGoogle> {
+        Ok(Default::default())
+    }
+    fn televerser(&mut self, fichier: &Path, _parent: &str, nom: Option<&str>, _connu: Option<&envois::drive::Distant>) -> Result<envois::drive::Depose, ErreurGoogle> {
+        let nom = nom.map(String::from).or_else(|| fichier.file_name().map(|n| n.to_string_lossy().into_owned()));
+        Ok(envois::drive::Depose { nom, ..Default::default() })
+    }
+    fn sous_dossiers(&mut self, _parent: &str) -> Result<Vec<(String, String)>, ErreurGoogle> {
+        Ok(Vec::new())
+    }
+    fn telecharger(&mut self, id: &str) -> Result<Vec<u8>, ErreurGoogle> {
+        Err(ErreurGoogle::nouvelle("ErreurOperation", format!("Le Drive d'une compagnie fictive ne garde rien : {} n'y est pas.", id)))
+    }
 }

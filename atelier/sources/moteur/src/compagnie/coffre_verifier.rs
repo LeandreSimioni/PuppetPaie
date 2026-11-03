@@ -20,9 +20,8 @@ use crate::compagnie::releve::mot_de_passe_de_consultation;
 use envois::releve_retours::{Client, Panne};
 use socle::echec::Echec;
 
-type R<T> = Result<T, Echec>;
 
-pub const ROUTE: &str = "coffre-verifier";
+type R<T> = Result<T, Echec>;
 
 pub const NET_ENTREPRISES: &str = "net-entreprises";
 pub const URSSAF: &str = "urssaf";
@@ -70,7 +69,7 @@ pub fn verifier_secret_avec(ctx: &Contexte, service: Option<&Value>, authentifie
     };
     let coffre = Coffre::du_poste(&ctx.racine, "");
     if !coffre.disponible(nom).map_err(crate::routes::vers_route)? {
-        return Err(erreur("ErreurOperation", format!("Aucun mot de passe {} : rien a verifier.", nom)));
+        return Err(erreur("ErreurOperation", format!("Aucun mot de passe {} : rien à vérifier.", nom)));
     }
     if nom == COURRIEL {
         // La boite : une connexion IMAP, une seule (`courriel.verifier`).
@@ -87,9 +86,9 @@ pub fn verifier_secret_avec(ctx: &Contexte, service: Option<&Value>, authentifie
         Err(p) if p.classe == "ErreurApi" => {
             let premiere = socle::texte::lignes_du_texte(&p.message).first().copied().unwrap_or("").to_string();
             let conseil = if premiere.contains("422") {
-                "422 = parametres invalides : le plus souvent un mot de passe tronque a la saisie, pas un compte fautif. Le reposer."
+                "Le service répond 422 (paramètres invalides) : le plus souvent un mot de passe tronqué à la saisie, pas un compte fautif. Reposez-le."
             } else if premiere.contains("403") {
-                "403 = compte temporairement bloque (trop de tentatives). NE PAS REESSAYER, attendre."
+                "Le service répond 403 : le compte est bloqué un temps (trop de tentatives). N'essayez plus, attendez."
             } else {
                 ""
             };

@@ -38,6 +38,11 @@ pub fn scenario(nom: &str) -> PathBuf {
     super::chemin_oracle(&format!("scenarios/{}", nom))
 }
 
+/// Le scenario d'une fictive de reference : `<depot>/atelier/fictives/<nom>` (`scenario::DOSSIER_REFERENCE`).
+pub fn reference(nom: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").join(moteur::atelier::scenario::DOSSIER_REFERENCE).join(nom)
+}
+
 /// Rejoue le scenario `nom` dans `dossier` (une installation neuve) ; rend le compte rendu et la racine de la compagnie
 /// qu'il a ajoutee (la premiere). Un ecart avec l'enregistrement fait echouer le test.
 pub fn rejouer(nom: &str, dossier: &Path) -> (moteur::atelier::scenario::Rejeu, PathBuf) {
@@ -52,7 +57,17 @@ pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (moteur::atelier::scenario:
         .unwrap_or_else(|m| panic!("le scenario {} ne se rejoue pas : {}", nom, m));
     assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
     let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));
+    chaque_reponse_a_sa_phrase(&racine, &nom.to_string());
     (r, racine)
+}
+
+/// LIVRE le scenario `sc` tel qu'il est le soir de `jour` (`scenario::livrer`, ce que « Publier » pose) dans
+/// `dossier/installation/fictives/<nom du scenario>` ; rend la racine de la fictive livree.
+pub fn livrer(sc: &Path, dossier: &Path, jour: &str) -> PathBuf {
+    let _un = UN_A_LA_FOIS.lock().unwrap_or_else(|p| p.into_inner());
+    let dest = dossier.join("installation").join("fictives").join(sc.file_name().unwrap());
+    moteur::atelier::scenario::livrer(sc, &dest, Some(socle::date::Jour::lire(jour).unwrap())).unwrap_or_else(|m| panic!("{} ne se livre pas : {}", sc.display(), m));
+    dest
 }
 
 /// UN SOIR DU REJEU : la compagnie telle qu'elle est a la fin du jour `jour`, avant le premier geste du lendemain
@@ -119,6 +134,7 @@ pub fn rejouer_et_lire(nom: &str, dossier: &Path, jours: &[&str], mut lire: impl
     assert_eq!(lus, jours.len(), "des soirs n'ont pas ete lus");
     assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
     let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));
+    chaque_reponse_a_sa_phrase(&racine, &nom.to_string());
     (r, racine)
 }
 
@@ -179,6 +195,8 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
         let ext = Path::new(&rel).extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
         let octets = std::fs::read(&p).unwrap();
         let v = match ext.as_str() {
+            // Le journal des envois : ce qu'il dit, ses lignes telles que le moteur les lit.
+            "jsonl" if p == envois::journal::chemin(racine) => masquer(super::journal(racine), &r),
             "json" => masquer(serde_json::from_slice(&octets).unwrap_or_else(|e| panic!("{} illisible : {}", rel, e)), &r),
             // Les fichiers a largeur fixe sont en latin-1 : un octet, un caractere.
             "dsn" | "txt" | "csv" | "eml" => lignes(&octets.iter().map(|&o| o as char).collect::<String>(), &r),
@@ -194,9 +212,10 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
     let mut paies = Map::new();
     let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     for mois in engagement::stock::mois_saisis(&racine).unwrap() {
-        let calcul = engagement::mois_pour_l_ecran(&ctx, &mois)
+        let calcul = engagement::vue_requise(&racine, &mois)
+            .and_then(|d| engagement::pour_l_ecran(&ctx, &d))
             .and_then(|s| s.paies.iter().map(|p| p.canon(&ctx)).collect::<Result<Vec<_>, _>>())
-            .map_or_else(|m| json!({"refus": m}), |v| json!({"paies": v}));
+            .map_or_else(|m| json!({"refus": socle::echec::separer(&m).0}), |v| json!({"paies": v}));
         paies.insert(mois.to_string(), masquer(calcul, &r));
     }
     json!({"paies": paies, "fichiers": par_fichier, "copies_avant": avant})
@@ -210,4 +229,12 @@ pub fn rejouer_et_comparer(nom: &str, dossier: &Path) -> Value {
     let releve = sorties(&racine, &jour);
     super::oracle(&format!("scenarios/{}/sorties.json", nom), "", &releve);
     releve
+}
+
+/// CHAQUE REPONSE A SA PHRASE, aussi un avertissement ou une variante que l'exemple d'une fiche ne joue pas : une reponse
+/// qui l'oublie note un incident (`routes::phrase_a_sa_place`), que le rejeu ne laisse pas passer.
+fn chaque_reponse_a_sa_phrase(racine: &Path, nom: &str) {
+    let incidents: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("journal/incidents.json")).unwrap_or_default()).unwrap_or(Value::Null);
+    let sans: Vec<&str> = incidents.as_array().into_iter().flatten().filter_map(|i| i["resume"].as_str()).filter(|r| r.contains("a rendu une réponse sans phrase")).collect();
+    assert!(sans.is_empty(), "le rejeu de {} : {} Chaque réponse rend la phrase que l'écran et `moteur route --texte` lisent.", nom, sans.join(" "));
 }

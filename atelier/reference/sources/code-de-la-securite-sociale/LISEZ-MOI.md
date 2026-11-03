@@ -106,7 +106,9 @@ en vigueur depuis le 02/01/2020).
 
 **Où le moteur s'en sert** : `atelier/sources/envois/src/organismes_simules.rs` (`effectif_annuel`), le compte rendu de
 nature 118 que le simulateur rend à une compagnie fictive ; `droit/src/contexte.rs` (`Effectif::atteint`) pour la règle
-des cinq ans.
+des cinq ans, et `Effectif::a_dire` pour les années qui manquent ; `moteur/src/routes/fiches.rs` (route `effectif`) pour
+l'effectif qu'une compagnie venue d'un autre logiciel dit d'une année sans compte rendu 118, tronqué au centième (R. 130-1, I),
+qu'un 118 de la même année remplace (`envois/src/releve_retours.rs`, `poser_effectif`).
 
 ## Le mode de tarification des AT/MP : D. 242-6-2 et D. 242-6-14 (relevé du 29/10/2026)
 
@@ -130,3 +132,85 @@ est le taux collectif de l'arrêté, quel que soit l'effectif. Hors « TC », so
 est aussi collectif.
 
 **Où le moteur s'en sert** : nulle part encore (déposés pour que la règle du taux AT/MP s'écrive dessus).
+
+## Le taux AT/MP d'un établissement (relevé du 30/10/2026)
+
+`articles-20261030.md`, section « Le mode de tarification des accidents du travail et maladies professionnelles »
+(`xml/D242-6-1.xml`, `xml/D242-6-17.xml`, versions issues du décret n° 2026-951, en vigueur au 15/10/2026 et applicables aux
+cotisations dues à compter de 2027 : `../tarification-atmp/`).
+
+- **D. 242-6-1** : « Le taux de la cotisation due au titre des accidents du travail et des maladies professionnelles est
+  déterminé par établissement » ; « Le classement d'un établissement dans une catégorie de risque est effectué en fonction de
+  l'activité exercée » (la nomenclature et les modalités : arrêté du 17/10/1995, `../tarification-atmp/`).
+- **D. 242-6-17** : un établissement nouvellement créé d'une entreprise en tarification collective, ou dans une catégorie de
+  risque que l'entreprise n'avait pas, a les taux nets collectifs l'année de sa création et les deux années civiles
+  suivantes (version du décret, cotisations de 2027 et après : le moteur ne s'en sert pas). **La version applicable aux
+  cotisations jusqu'à 2026** (`xml-anterieur/D242-6-17.xml`, `LEGIARTI000022446511`, en vigueur du 01/01/2012 au
+  15/10/2026, relevée le 30/10/2026 par `moteur releve-codes comparer` dans l'archive globale LEGI) : « Les taux nets
+  collectifs sont applicables aux établissements nouvellement créés durant l'année de leur création et les deux années
+  civiles suivantes, quel que soit leur effectif ou celui de l'entreprise dont ils relèvent », sauf le taux unique d'une
+  entreprise qui l'a choisi, et sauf un établissement issu d'un précédent (même activité, mêmes moyens, la moitié du
+  personnel repris).
+
+- **D. 242-6-15** (`xml/D242-6-15.xml`, version du même décret, cotisations de 2027 et après ; la version applicable
+  jusqu'à 2026 : `xml-anterieur/D242-6-15.xml`, `LEGIARTI000028429426`, relevée le 30/10/2026) : « le taux net notifié ne
+  peut varier d'une année sur l'autre » — le taux notifié l'est pour une année.
+
+**Où le moteur s'en sert (D. 242-6-15, D. 242-6-17 de 2012)** : `droit/src/bareme.rs` (`taux_atmp_d_un_etablissement`) :
+le taux saisi d'un établissement ne vaut que pour l'année de sa date d'effet ; sans taux saisi, un établissement ouvert dans
+l'année ou les deux précédentes a, jusqu'en 2026, le taux collectif de l'arrêté pour son risque (TC ou non) ; ce que
+l'article excepte se dit par le taux notifié, qui se saisit.
+
+**Où le moteur s'en sert** : `moteur/src/routes/etablissements.rs` (`ecrire` : la ligne d'un établissement se date ; son
+taux saisi porte l'année de sa date d'effet), `droit/src/bareme.rs` (`taux_atmp_d_un_etablissement` : il ne vaut que pour cette
+année, D. 242-6-15), `moteur/src/routes/atmp.rs`
+(`d_un_etablissement`), `droit/src/bareme.rs` (`taux_atmp_applique`) : chaque établissement a son code risque et son taux,
+lus au même endroit que ceux de la compagnie (`bareme_atmp`) ; un code « TC » prend le taux de l'arrêté de l'année
+(D. 242-6-14).
+
+## La réduction de cotisations salariales des heures supplémentaires et complémentaires, et la déduction patronale (relevé du 02/11/2026, lot LONG7)
+
+Domaine `heures_supplementaires` de `moteur/src/atelier/releve/codes/textes.rs` : L241-17 (la réduction, son taux par
+décret, son imputation sur la vieillesse de L241-3 et sa limite), L241-18 et L241-18-1 (la déduction forfaitaire patronale
+par heure supplémentaire, sous vingt salariés et à partir de vingt), D241-21 (le taux : la somme des taux de vieillesse à la
+charge du salarié, au plus 11,31 %), D241-22, D241-24 (1,50 € et 0,50 €), D241-25 ; D241-23 et D241-26 n'ont plus de
+version en vigueur (le relevé les dit périmés : retirés de la liste). D241-7, IV (déjà relevé) majore le SMIC de la
+réduction générale des heures supplémentaires et complémentaires. Texte dans `articles-20261102.md`, avec la page du BOSS
+(`../boss/boss-heures-supplementaires-20260601.txt`). **Où le moteur s'en sert** : `logiciel/donnees/permanents-base.json`
+(`heures_en_plus`), `atelier/sources/droit/src/heures_en_plus.rs`, `atelier/sources/engagement/src/heures_en_plus.rs`
+(`apres_les_cotisations`) ; la DSN (codes 114 et 021, CTP 003 et 004) dans `atelier/sources/declarations/src/dsn.rs`.
+
+## Les indemnités journalières, la subrogation et leur CSG (relevé du 02/11/2026)
+
+`articles-20261102.md`, sections « Les indemnites journalieres et la subrogation de l'employeur » et « La CSG des revenus
+de remplacement » (`xml/L321-1.xml` … `xml/R433-3.xml`, `xml/L136-1-2.xml`, `xml/L136-8.xml`).
+
+- **L323-1, R323-1, 1°** : l'indemnité journalière est « due pour chaque jour ouvrable ou non », à partir du « quatrième
+  jour de l'incapacité de travail ». **L433-1** : celle d'un accident du travail, dès « le premier jour qui suit l'arrêt du
+  travail consécutif à l'accident » (la journée de l'accident est « intégralement à la charge de l'employeur ») ;
+  **R433-1** et **R433-3** : 60 % du salaire journalier, puis 80 % « à partir du vingt-neuvième jour ».
+- **L323-4, R323-4, R323-5, R323-9** (R323-9 relevé le 03/11/2026, `articles-20261103.md`) : son montant, la moitié de
+  1/91,25 des trois dernières paies d'un salaire réglé mensuellement, chacune dans la limite de 1,4 SMIC du mois, et au
+  plus 1/730 du plafond annuel. Le moteur le **propose** sur l'arrêt d'une maladie avant le relevé de la caisse
+  (`maintien::ij_de_principe`) ; la personne le garde ou le corrige au relevé.
+- **L433-2, R433-1 à R433-4** (L433-2, R433-2, R433-4 relevés le 03/11/2026) : l'accident du travail, 60 % puis 80 % de la
+  paie du mois précédent / 30,42, plafonnée à 0,226 % du plafond annuel (R433-2, version du 02/10/2026 ; Ameli dit le
+  plafond valoir pour les accidents survenus à compter du 1er novembre 2026 et donne les maxima, 65,17 et 86,90 €,
+  `../accident-du-travail/ameli-reglementation-atmp-1er-novembre-2026-20261030.md`), et l'indemnité au plus le gain
+  journalier net du taux forfaitaire de R331-5 (relevé le 03/11/2026), fixé à 21 % (`../arrete-2013-taux-forfaitaire-r331-5/`). Le moteur le
+  **propose** pour un accident du travail ou de trajet, ou une maladie professionnelle, survenu depuis le 1er novembre 2026
+  (L461-1, relevé le 03/11/2026 : la date de la première constatation médicale vaut date de l'accident ; `maintien::ij_de_principe`) ;
+  pas pour un accident d'avant (la version d'avant de R433-2 n'est pas déposée).
+- **R323-11** : l'employeur qui maintient le salaire en totalité est « subrogé de plein droit » ; en partie, il l'est à
+  condition que le salaire maintenu soit au moins égal aux indemnités.
+- **L136-8, II, 1°, b** : la CSG des indemnités journalières est de 6,2 %, dans la version en vigueur (`xml/L136-8.xml`,
+  du 27/06/2026 ; la même, imprimée de Légifrance par Léandre le 03/11/2026 : `legifrance-css-L136-8-20260627.pdf`/`.txt`)
+  comme dans les deux versions de 2025 (`xml-anterieur/L136-8-20201216.xml`, en vigueur du 16/12/2020 au 01/07/2025, et
+  `xml-anterieur/L136-8-20250701.xml`, du 01/07/2025 au 31/12/2025 ; LEGIARTI000042683546 et …051287395, relevées dans la
+  livraison LEGI du 02/01/2026, qui les republie avec leur date de fin ; la seconde aussi imprimée de Légifrance par Léandre,
+  `legifrance-css-L136-8-20250701.pdf`/`.txt`). Entre les deux, seul le I, 3° change (6,2 % puis 7,2 % pour la contribution
+  de L136-7-1, art. 32 de la loi n° 2025-199, en vigueur le 01/07/2025) : le II, 1°, b ne bouge pas. La CRDS de 0,5 % :
+  `../ordonnance-96-50-crds/`.
+
+**Où le moteur s'en sert** : `atelier/sources/engagement/src/maintien.rs` (les jours que la caisse indemnise, la subrogation),
+`logiciel/donnees/permanents-base.json` (section `indemnites_journalieres`).

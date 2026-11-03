@@ -81,6 +81,6 @@ async function dessinerConseilsDuSalarie(cle) {
   if (CLE_ACTIVE !== cle) return;      // une autre fiche s'est ouverte entre-temps
   const liste = (r && r.conseils) || [];
   cible.innerHTML = liste.length
-    ? `<h3>Ses droits, et ce que vos contrats y font</h3>${liste.map((x) => conseilHtml(x)).join("")}`
+    ? `<h3>Ses droits</h3>${liste.map((x) => conseilHtml(x)).join("")}`
     : "";
 }

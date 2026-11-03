@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006750304</ID>
+<ANCIEN_ID>SSAXXXXXXXX2X433R01AXXAB</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/75/03/LEGIARTI000006750304.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R433-1</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2006-02-05</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1961-01-12" fin="2999-01-01" id="LEGISCTA000006106085">Partie réglementaire - Décrets en Conseil d'Etat</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126960">Livre IV : Accidents du travail et maladies professionnelles (Dispositions propres et dispositions communes avec d'autres branches)</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141910">Titre III : Prestations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156659">Chapitre 3 : Indemnisation de l'incapacité temporaire.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="2006-02-05" id="LEGIARTI000006750303" num="R433-1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2006-02-05" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006750304" num="R433-1" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>La fraction du salaire journalier mentionnée au premier alinéa de l'article L. 433-2 est égale à 60 %.<br/>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000495266" datesignatexte="1946-12-31" id="JORFTEXT000000495266" naturetexte="DECRET" nortexte="" num="" numtexte="46-2959" sens="source" typelien="CONCORDANCE">Décret 46-2959 1946-12-31 L448 al. 3 ELEMENTS REGLEMENTAIRES</LIEN>
+<LIEN cidtexte="JORFTEXT000000500157" datesignatexte="1973-06-29" id="LEGIARTI000006763094" naturetexte="DECRET" nortexte="" num="2" numtexte="73-598" sens="cible" typelien="CITATION">Décret n°73-598 du 29 juin 1973 - art. 2 (M)</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret 85-1353 1985-12-17</LIEN>
+<LIEN cidtexte="JORFTEXT000000261498" datesignatexte="2006-02-02" id="LEGIARTI000006249135" naturetexte="DECRET" nortexte="SANS0523490D" num="1" numtexte="2006-111" sens="source" typelien="MODIFICATION">Décret n°2006-111 du 2 février 2006 - art. 1 () JORF 5 février 2006</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006743044" naturetexte="CODE" nortexte="" num="L433-2" numtexte="" sens="source" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. L433-2 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006743044" naturetexte="CODE" nortexte="" num="L433-2" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L433-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750305" naturetexte="CODE" nortexte="" num="R433-2" numtexte="" sens="source" typelien="CONCORDANCE">Code de la sécurité sociale. - art. R433-2 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750306" naturetexte="CODE" nortexte="" num="R433-2" numtexte="" sens="cible" typelien="CONCORDE">Code de la sécurité sociale. - art. R433-2 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000047962411" naturetexte="CODE" nortexte="" num="R751-40" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. R751-40 (VD)</LIEN>
+</LIENS>
+</ARTICLE>

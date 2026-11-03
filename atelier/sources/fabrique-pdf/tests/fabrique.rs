@@ -447,12 +447,12 @@ fn paragraphe_accents_euro_et_ponctuation() {
 #[test]
 fn paragraphe_morceaux_gras_et_retour_force() {
     let v = base(vec![json!({"type": "paragraphe", "morceaux": [
-        {"texte": "Entre la société "}, {"texte": "FIL TENDU", "gras": true}, {"texte": ", ci-après"},
+        {"texte": "Entre la société "}, {"texte": "FIL DE FER", "gras": true}, {"texte": ", ci-après"},
         {"texte": " la première ligne\nla seconde"}]})]);
     let pdf = ok(&v);
     let l = lignes(&pdf);
     assert_eq!(l.len(), 2, "{:?}", l);
-    assert_eq!(l[0].texte, "Entre la société FIL TENDU, ci-après la première ligne");
+    assert_eq!(l[0].texte, "Entre la société FIL DE FER, ci-après la première ligne");
     assert_eq!(l[1].texte, "la seconde");
     // Les deux lignes sont l'une sous l'autre, à l'interligne de 1,25 x 10 pt.
     assert!((l[0].y - l[1].y - 12.5).abs() < 0.01, "{:?}", l);
@@ -1315,11 +1315,13 @@ fn meme_description_meme_pdf_a_l_octet_pres() {
     assert_eq!(binaire(&v.to_string(), &b).0, 0);
     assert!(std::fs::read(&a).unwrap() == std::fs::read(&b).unwrap());
     assert!(std::fs::read(&a).unwrap() == premier);
-    // Aucune date du jour dans le fichier.
-    let brut = String::from_utf8_lossy(&premier).to_string();
-    assert!(brut.contains("D:19700101000000"), "date fixe attendue");
-    let annee = "2026";
-    assert!(!brut.contains(&format!("D:{}", annee)), "aucune date variable");
+    // Aucune date du jour dans le fichier (les informations du document sont dans un flux d'objets).
+    let doc = lopdf::Document::load_mem(&premier).unwrap();
+    let info = doc.trailer.get(b"Info").and_then(|i| i.as_reference()).and_then(|i| doc.get_dictionary(i)).unwrap();
+    for cle in [&b"CreationDate"[..], b"ModDate"] {
+        let date = info.get(cle).and_then(|d| d.as_str()).unwrap();
+        assert!(date.starts_with(b"D:19700101000000"), "date fixe attendue");
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1737,6 +1739,15 @@ fn police_embarquee(pdf: &[u8], nom: &str) -> (lopdf::Dictionary, Vec<u8>, Vec<u
 /// Pour chaque caractère de `texte`, le glyphe du sous-ensemble (par `CIDToGIDMap`) a la même
 /// largeur et le même dessin que celui de la police d'origine, et la table `ToUnicode` rend le
 /// caractère : c'est ce qui fait que le texte extrait est exact.
+/// La table `ToUnicode` rend `c` pour le code `c` (une plage `<début> <fin> <début>` qui le contient).
+fn rend_lui_meme(tounicode: &str, c: char) -> bool {
+    let n = c as u32;
+    tounicode.lines().any(|l| {
+        let h: Vec<u32> = l.split_whitespace().filter_map(|m| u32::from_str_radix(m.trim_matches(|x| x == '<' || x == '>'), 16).ok()).collect();
+        h.len() == 3 && h[0] == h[2] && h[0] <= n && n <= h[1]
+    })
+}
+
 fn verifier_police(pdf: &[u8], nom: &str, fichier_origine: &str, texte: &str) {
     let (_, sous, cid_gid, tounicode) = police_embarquee(pdf, nom);
     let origine = face(fichier_origine);
@@ -1760,7 +1771,7 @@ fn verifier_police(pdf: &[u8], nom: &str, fichier_origine: &str, texte: &str) {
         assert_eq!(f0.glyph_hor_advance(g0), f1.glyph_hor_advance(g1), "largeur de {:?}", c);
         assert_eq!(f0.glyph_bounding_box(g0), f1.glyph_bounding_box(g1), "dessin de {:?}", c);
         assert!(
-            tounicode.contains(&format!("<{:04X}> <{:04X}>", c as u32, c as u32)),
+            rend_lui_meme(&tounicode, c),
             "ToUnicode ne rend pas {:?}",
             c
         );

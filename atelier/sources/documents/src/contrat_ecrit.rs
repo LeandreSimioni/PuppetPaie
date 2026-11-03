@@ -19,8 +19,9 @@ use std::sync::Arc;
 use fabrique_pdf::modele::Valeurs;
 use serde_json::{json, Value};
 
-use crate::avenant::{de_devant, et, fait_le_brut, jj_mm_aaaa, ligne_citee, remuneration_hors_brut};
+use crate::avenant::{de_devant, et, fait_le_brut, ligne_citee, remuneration_hors_brut};
 use crate::bulletin::fmt_eur;
+use socle::texte::{euros, virgule};
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use socle::date::en_texte;
@@ -47,12 +48,6 @@ fn qui(m: &Valeurs) -> String {
     m.get("salarie.nom_complet").cloned().unwrap_or_else(|| "ce salarié".into())
 }
 
-/// « 151,67 » : un nombre d'heures, a la francaise.
-fn heures(x: Decimal) -> String {
-    let t = fmt_eur(x);
-    t.strip_suffix(",00").map(str::to_string).unwrap_or(t)
-}
-
 /// Les valeurs du contrat d'un permanent, paye au mois, que les parties (`avenant::parties`) ne portent pas : le motif
 /// et le terme d'un CDD, le lieu, la remuneration, sa periodicite, la duree du travail. `remuneration`, `brut`, `net` :
 /// ceux de la paie calculee du mois.
@@ -62,7 +57,7 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
     // LE TERME (L1242-12, 2°) : un contrat a duree determinee le dit ; un CDI n'en a pas.
     match texte(eng, "fin") {
         Some(f) => {
-            m.insert("contrat.fin".into(), jj_mm_aaaa(f)?);
+            m.insert("contrat.fin".into(), socle::date::Jour::lire(f)?.jj_mm_aaaa());
         }
         None if !nat.duree_indeterminee => return Err(format!("Le contrat de {} ({}) n'a pas de date de fin : un contrat à durée déterminée dit son terme (L. 1242-12, 2°). Rien n'est écrit.", nom, nat.libelle)),
         None => {}
@@ -95,17 +90,22 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
     m.insert("contrat.lieu".into(), lieu);
     // LA REMUNERATION ET SES COMPOSANTES (L1242-12, 7° ; R1221-34, 11°) : le salaire mensuel de base (le taux de la ligne
     // de salaire de base, pas son montant du mois, que le prorata d'une entree en cours de mois reduit), puis ce qui
-    // s'y ajoute et fait le brut.
+    // s'y ajoute et fait le brut. Un mois coupe par un avenant a une ligne de salaire de base par periode, dans l'ordre
+    // des jours : le contrat dit celui de la derniere, ses termes a partir de l'avenant.
     let mut morceaux = Vec::new();
+    let mut base = None;
     for l in remuneration.iter().filter(|l| fait_le_brut(l)) {
         if l.get("conges_pris").is_some_and(vrai) {
             continue;
         }
         if l.get("salaire_de_base").is_some_and(vrai) {
-            morceaux.insert(0, format!("un salaire mensuel brut de {} €", fmt_eur(dec(l.get("taux").unwrap_or(&Value::Null))?)));
+            base = Some(format!("un salaire mensuel brut de {}", euros(dec(l.get("taux").unwrap_or(&Value::Null))?)));
         } else if dec(l.get("montant").unwrap_or(&Value::Null))? > Decimal::ZERO {
             morceaux.push(ligne_citee(l)?);
         }
+    }
+    if let Some(b) = base {
+        morceaux.insert(0, b);
     }
     if morceaux.is_empty() {
         return Err(format!("Le contrat de {} ne dit aucune rémunération : la paie de son premier mois n'a pas de salaire de base. Rien n'est écrit.", nom));
@@ -119,7 +119,7 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
     m.insert("contrat.paiement".into(), "chaque mois, par virement".into());
     m.insert("salarie.case_signature".into(), "Le salarié".into());
     if let Some(p) = texte(eng, "date_paiement") {
-        m.insert("contrat.date_paiement".into(), jj_mm_aaaa(p)?);
+        m.insert("contrat.date_paiement".into(), socle::date::Jour::lire(p)?.jj_mm_aaaa());
     }
     // LA DUREE DU TRAVAIL (R1221-34, 12°) : la quotite du contrat, en heures par mois (S21.G00.40.013). Sous la duree de
     // reference, c'est un temps partiel, dont le contrat dit la repartition (L3123-6, 1°).
@@ -136,14 +136,14 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
         Some(m) => m == "20",
         None => q < reference,
     };
-    let mut duree = format!("{} heures par mois", heures(q));
+    let mut duree = format!("{} heures par mois", virgule(q));
     if partiel {
         let repartition = ecrit(eng, "repartition_horaire").ok_or_else(|| {
             format!(
                 "Le contrat de {} est à temps partiel ({} heures par mois, pour {} à temps plein) : il dit « la répartition de la durée du travail entre les jours de la semaine ou les semaines du mois » (L. 3123-6, 1°). L'écrire dans l'engagement (Plus d'options › Répartition des horaires). Rien n'est écrit.",
                 nom,
-                heures(q),
-                heures(reference)
+                virgule(q),
+                virgule(reference)
             )
         })?;
         duree = format!("{}, à temps partiel, réparties ainsi : {}", duree, repartition);
@@ -272,7 +272,7 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &Value, sal: &Value, eng: &Value,
     );
     // LES ORGANISMES : le nom ET l'adresse (L1242-12, 8°) ; une adresse que la donnee ne porte pas ne se devine pas.
     let org = Organismes::lire(ctx, ent)?;
-    let retraite = org.retraite().ok_or_else(|| format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la table livrée des versements (donnees/organismes-base.json) n'en nomme aucune (cotisation 131) : aucune saisie de la compagnie ne la donne. Rien n'est écrit.", nom))?;
+    let retraite = org.retraite().ok_or_else(|| socle::echec::avec(format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la table livrée des versements n'en nomme aucune : le signaler au développeur. Rien n'est écrit.", nom), serde_json::json!({"fichier": "organismes-base.json", "cle": "131"})))?;
     let manque_adresse = |o: &Organisme| format!("Le contrat de {} donne « le nom et l'adresse » de {} (L. 1242-12, 8°), et cette adresse n'est pas connue du logiciel. Rien n'est écrit.", nom, o.nom);
     m.insert("organismes.retraite".into(), retraite.nom_et_adresse().ok_or_else(|| manque_adresse(&retraite))?);
     let (cle_prevoyance, cle_sante) = if nat.permanent() { ("prevoyance_permanents", "sante_permanents") } else { ("interbranche", "tsintermittents") };
@@ -404,7 +404,7 @@ pub const CHAMPS: &[(&str, &str, &str)] = &[
     ("remuneration.cachets", "le nombre de cachets", "cddu_spectacle"),
     ("remuneration.taux_cachet", "le taux du cachet, quand le contrat paie des cachets", "cddu_spectacle"),
     ("spectacle.titre", "le titre du spectacle", "cddu_spectacle"),
-    ("spectacle.numero_objet", "son numéro d'objet", "cddu_spectacle"),
+    ("spectacle.objet", "son numéro d'objet, entre parenthèses (vide sans numéro)", "cddu_spectacle"),
     ("organismes.retraite", "le nom et l'adresse de la caisse de retraite complémentaire", "tous"),
     ("organismes.prevoyance", "le nom et l'adresse de l'organisme de prévoyance, ou « aucun »", "tous"),
     ("mentions.formation", "le droit à la formation (un renvoi au code du travail)", "tous"),

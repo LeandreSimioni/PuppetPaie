@@ -1,7 +1,7 @@
 //! `moteur restaurer [DOSSIER] [--racine-drive NOM] [--json]` : redescendre le dossier prive du Drive. La decision est
 //! dans `restauration.rs` ; ici, l'affichage.
 //!
-//! Le Drive est celui que la compagnie de ce poste a relie (`moteur google autoriser`) : le client lit son jeton dans le dossier
+//! Le Drive est celui que la compagnie de ce poste a relie (dans la fenetre, Configuration > Mots de passe > Lier le Drive) : le client lit son jeton dans le dossier
 //! des donnees du poste. `DOSSIER` est ou ecrire ; par defaut, ce meme dossier des donnees (le cas d'un poste neuf : relier le
 //! Drive, puis restaurer). Dans `moteur-atelier`, hors compagnie fictive, la commande exige le faux Google, comme `sauvegarder`.
 //!
@@ -35,7 +35,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         return refus("ErreurOperation", &e.message);
     }
     if !crate::routes::coffre::autorise(&cadre.racine) {
-        return refus("ErreurGoogle", "Compte Google non autorise : relier d'abord le Drive de la compagnie.\n  moteur google autoriser");
+        return refus("ErreurGoogle", "Compte Google non autorise : relier d'abord le Drive de la compagnie : la route google-autoriser, ou dans la fenetre Configuration > Mots de passe > Lier le Drive.");
     }
     let racine_drive = args.texte("racine-drive").unwrap_or(sauvegarde::RACINE_DRIVE);
     let cible = args.texte("dossier").filter(|d| !d.is_empty()).map(PathBuf::from).unwrap_or_else(|| cadre.racine.clone());

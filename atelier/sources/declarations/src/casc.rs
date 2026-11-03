@@ -5,15 +5,18 @@ use socle::fichiers::{dossier_du_code, lire_json};
 use socle::num::Resultat;
 use serde_json::Value;
 
-/// `_base` : `casc-svp-base.json`, livre avec le code.
+/// `casc-svp-base.json`, livre avec le code.
 pub fn base() -> Resultat<Value> {
     lire_json(&dossier_du_code().join("casc-svp-base.json"))
 }
 
+/// Ce que la compagnie dit de ses mois Conges Spectacles regularises hors DSN, sous sa racine.
+pub const CASC_SVP: &str = "config/casc-svp.json";
+
 /// `mois_regularises` : les mois de `config/casc-svp.json` regularises hors DSN
 /// (un fichier absent ou illisible n'en regularise aucun).
 pub fn mois_regularises(ctx: &Contexte) -> Resultat<Vec<String>> {
-    let Ok(d) = lire_json(&ctx.racine.join("config").join("casc-svp.json")) else {
+    let Ok(d) = lire_json(&ctx.racine.join(CASC_SVP)) else {
         return Ok(vec![]);
     };
     let mut mois: Vec<String> = vec![];

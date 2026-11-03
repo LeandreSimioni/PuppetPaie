@@ -1,14 +1,12 @@
 //! Le canal vers l'editeur : le POST JSON vers le serveur de l'editeur, pour les incidents
-//! (`rapport`), « Un probleme, une idee ? » (`retour`, `reponses`) et le filet
-//! DPAE (`inscrire`, `etat`, `armer`, `desarmer`, `desinscrire`).
+//! (`rapport`), « Un probleme, une idee ? » (`retour`, `reponses`) et le nombre de paies de l'annee (`paies`).
 //!
 //! Le PAQUET SOUDE, bride pour toujours (`bridage::paquet_soude`) ne garde que
 //! les actions de l'editeur (et `poste`) : les autres levent `EditionBridee`.
 //!
-//! UNE CLE PAR POSTE, AUCUN SECRET PARTAGE (serveur version 7). Le
+//! UNE CLE PAR POSTE, AUCUN SECRET PARTAGE. Le
 //! serveur donne a chaque poste son numero et sa cle (`POST /poste`) ; les
-//! actions de l'editeur (`inscrire`, `rapport`, `retour`, `reponses`) portent
-//! le numero dans le corps et la cle dans `X-Filet-Cle`.
+//! actions du poste portent le numero dans le corps et la cle dans `X-Filet-Cle`.
 //!
 //! Jamais le vrai serveur dans les essais : l'adresse vient de la
 //! configuration, et les essais en donnent une locale. Quand la configuration
@@ -26,15 +24,12 @@ use envois::transport::{envoyer, Panne, Requete};
 /// Ce que le paquet soude (bride pour toujours) peut poster.
 pub const ACTIONS_BRIDEES: [&str; 4] = ["poste", "rapport", "retour", "reponses"];
 
-/// Les actions qui exigent l'identite du poste (`poste` dans le corps, `X-Filet-Cle`).
-pub const ACTIONS_DU_POSTE: [&str; 4] = ["inscrire", "rapport", "retour", "reponses"];
-
 /// Ce que dit le moteur a un 401 du serveur sur une action du poste : l'identite se redemande.
 pub const REDEMANDER_IDENTITE: &str = "Le serveur ne reconnait plus ce poste : retirer \"cle\" de config/diagnostic.json pour lui redemander une identite.";
 
-/// Le serveur de l'editeur QUAND LA CONFIGURATION NE DIT RIEN : le filet DPAE (ses rappels), les
+/// Le serveur de l'editeur QUAND LA CONFIGURATION NE DIT RIEN : les
 /// incidents, « Un probleme, une idee ? » et leurs reponses. Il repond sur `filet.puppetpaie.fr` (le serveur vit dans le depot du site de l'editeur, `infra/filet/`). Ce qu'une compagnie a
-/// pose le remplace toujours : `serveur` de `config/filet-dpae.json`, celui de son compte du filet, ou `EDITEUR.json` du
+/// pose le remplace toujours : `serveur` de `config/diagnostic.json`, ou `EDITEUR.json` du
 /// paquet. Jamais dans les essais : le garde-fou reseau (`garde_reseau`) le refuse ; un test pose son serveur local, ou
 /// nomme un faux mandataire local comme seule porte.
 pub const SERVEUR_PAR_DEFAUT: &str = "https://filet.puppetpaie.fr";
@@ -60,11 +55,6 @@ impl ErreurFilet {
         ErreurFilet { message, statut: 0, classe: Some(classe) }
     }
 
-    /// `ErreurFilet.reseau`.
-    pub fn reseau(&self) -> bool {
-        self.statut == 0 || self.statut >= 500
-    }
-
     /// Une vraie `ErreurFilet`, que les appelants rattrapent ; sinon une autre
     /// exception, qui remonte.
     pub fn est_filet(&self) -> bool {
@@ -87,7 +77,7 @@ fn edition_bridee(quoi: &str) -> String {
     )
 }
 
-/// `http.client.responses[code]` (le texte de `str(HTTPError)`).
+/// La phrase HTTP d'un code de réponse.
 fn phrase(code: u16) -> &'static str {
     match code {
         100 => "Continue",
@@ -230,7 +220,7 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
     }
     let donnees = json_ascii(corps);
     let url = format!("{}/{}", serveur.trim_end_matches('/'), action);
-    // Les en-tetes d'urllib : il ne demande aucun codage.
+    // Aucun codage demandé.
     let mut en_tetes: Vec<(&str, &str)> = vec![("User-Agent", "PuppetPaie-filet"), ("Accept-Encoding", "identity")];
     en_tetes.extend_from_slice(entetes);
     let r = Requete {
@@ -250,11 +240,11 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
             // avec les pannes de reseau.
             let texte = match std::str::from_utf8(&octets) {
                 Ok(t) => t.trim_start_matches('\u{feff}'),
-                Err(e) => return Err(ErreurFilet::filet(format!("Filet DPAE injoignable : {}", e), 0)),
+                Err(e) => return Err(ErreurFilet::filet(format!("le serveur de l'éditeur est injoignable ({}).", e), 0)),
             };
             match serde_json::from_str::<Value>(texte) {
                 Ok(v) => Ok(v),
-                Err(e) => Err(ErreurFilet::filet(format!("Filet DPAE injoignable : reponse illisible ({})", e), 0)),
+                Err(e) => Err(ErreurFilet::filet(format!("le serveur de l'éditeur est injoignable (réponse illisible : {}).", e), 0)),
             }
         }
         Err(Panne::Statut { code, corps }) => {
@@ -273,39 +263,31 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
                 }
                 None => propre,
             };
-            Err(ErreurFilet::filet(format!("Filet DPAE : {}", msg), code))
+            Err(ErreurFilet::filet(format!("le serveur de l'éditeur a répondu : {}", msg), code))
         }
-        Err(Panne::Reseau(raison)) => Err(ErreurFilet::filet(format!("Filet DPAE injoignable : {}", raison), 0)),
+        Err(Panne::Reseau(raison)) => Err(ErreurFilet::filet(format!("le serveur de l'éditeur est injoignable ({}).", raison.trim_end_matches('.')), 0)),
         Err(Panne::Brute { classe, message, .. }) => match classe {
-            // Ce qu'urllib laissait sortir sous `OSError`.
+            // Une connexion rompue ou qui ne répond plus : le filet est injoignable.
             "TimeoutError" | "ConnectionResetError" | "RemoteDisconnected" | "BadGzipFile" => {
-                Err(ErreurFilet::filet(format!("Filet DPAE injoignable : {}", message), 0))
+                Err(ErreurFilet::filet(format!("le serveur de l'éditeur est injoignable ({}).", message.trim_end_matches('.')), 0))
             }
             autre => Err(ErreurFilet::autre(autre, message)),
         },
     }
 }
 
-/// Le serveur, la cle du compte (les actions du filet), et
-/// l'identite du poste -- `(numero, cle)` donnee par le serveur -- pour les
-/// actions de l'editeur.
+/// Le serveur et l'identite du poste -- `(numero, cle)` donnee par le serveur.
 pub struct Client {
     pub serveur: String,
-    pub cle: String,
-    pub poste: Option<(String, String)>,
+    pub poste: (String, String),
 }
 
 type Rep = Result<Value, ErreurFilet>;
 
 impl Client {
-    /// Le client d'un compte du filet (`etat`, `armer`, `desarmer`, `desinscrire`).
-    pub fn nouveau(serveur: &str, cle: &str) -> Client {
-        Client { serveur: serveur.trim_end_matches('/').to_string(), cle: cle.to_string(), poste: None }
-    }
-
     /// Le client des actions de l'editeur, avec l'identite de ce poste.
     pub fn du_poste(serveur: &str, numero: &str, cle_du_poste: &str) -> Client {
-        Client { serveur: serveur.trim_end_matches('/').to_string(), cle: String::new(), poste: Some((numero.to_string(), cle_du_poste.to_string())) }
+        Client { serveur: serveur.trim_end_matches('/').to_string(), poste: (numero.to_string(), cle_du_poste.to_string()) }
     }
 
     /// `POST /poste` : l'identite que le serveur donne a ce poste, `{"poste", "cle"}`,
@@ -314,50 +296,18 @@ impl Client {
         poster(serveur, "poste", &serde_json::json!({}), &[], DELAI)
     }
 
-    fn post(&self, action: &str, corps: Value, entetes: &[(&str, &str)], delai: u64) -> Rep {
-        poster(&self.serveur, action, &corps, entetes, delai)
-    }
-
     /// Une action du poste : le numero dans le corps, la cle dans l'en-tete. Un 401
     /// du serveur (poste inconnu, revoque, ou cle fausse : il ne dit pas lequel) se
     /// complete de ce qu'il y a a faire.
     fn post_du_poste(&self, action: &str, mut corps: Value, delai: u64) -> Rep {
-        let Some((numero, cle)) = &self.poste else {
-            return Err(ErreurFilet::autre("ValueError", format!("{} : ce client n'a pas l'identite du poste.", action)));
-        };
+        let (numero, cle) = &self.poste;
         if let Value::Object(o) = &mut corps {
             o.insert("poste".into(), Value::String(numero.clone()));
         }
-        match self.post(action, corps, &[("X-Filet-Cle", cle.as_str())], delai) {
+        match poster(&self.serveur, action, &corps, &[("X-Filet-Cle", cle.as_str())], delai) {
             Err(e) if e.est_filet() && e.statut == 401 => Err(ErreurFilet::filet(format!("{} {}", e.message, REDEMANDER_IDENTITE), 401)),
             r => r,
         }
-    }
-
-    pub fn inscrire(&self, adresse: &str) -> Rep {
-        self.post_du_poste("inscrire", serde_json::json!({"adresse": adresse}), DELAI)
-    }
-
-    pub fn etat(&self) -> Rep {
-        self.post("etat", serde_json::json!({"cle": self.cle}), &[], DELAI)
-    }
-
-    /// `embauche` : le jour que le courriel nomme ; `objet` ne part que s'il
-    /// n'est pas la DPAE, pour qu'un serveur d'avant la DSN comprenne encore.
-    pub fn armer(&self, code: &str, echeance: &str, embauche: &str, objet: &str) -> Rep {
-        let mut corps = serde_json::json!({"cle": self.cle, "code": code, "echeance": echeance, "embauche": embauche});
-        if objet != "dpae" {
-            corps["objet"] = Value::String(objet.to_string());
-        }
-        self.post("armer", corps, &[], DELAI)
-    }
-
-    pub fn desarmer(&self, code: &str) -> Rep {
-        self.post("desarmer", serde_json::json!({"cle": self.cle, "code": code}), &[], DELAI)
-    }
-
-    pub fn desinscrire(&self) -> Rep {
-        self.post("desinscrire", serde_json::json!({"cle": self.cle}), &[], DELAI)
     }
 
     pub fn rapporter(&self, incidents: &[Value]) -> Rep {

@@ -73,7 +73,7 @@ fn absolu(p: &Path) -> PathBuf {
 fn de_l_installation(inst: &Path, racine: &Path) -> bool {
     let (i, r) = (absolu(inst), absolu(racine));
     let nom = r.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    if nom.is_empty() || nom.starts_with('.') || !r.join("config").join("entreprise.json").is_file() {
+    if nom.is_empty() || nom.starts_with('.') || !r.join(droit::contexte::ENTREPRISE).is_file() {
         return false;
     }
     r == i.join("prive") || r.parent().is_some_and(|p| p == i.join("compagnies") || p == i.join(compagnies::DOSSIER_FICTIVES))
@@ -82,7 +82,7 @@ fn de_l_installation(inst: &Path, racine: &Path) -> bool {
 /// Ce qu'est `racine` pour sa suppression, ou pourquoi elle ne se supprime pas.
 pub fn genre(inst: &Path, racine: &Path) -> Result<Genre, String> {
     if !de_l_installation(inst, racine) {
-        return Err(format!("{} n'est pas une compagnie de ce logiciel : rien n'a été supprimé.", racine.display()));
+        return Err(socle::echec::avec("Ce dossier n'est pas une compagnie de ce logiciel : rien n'a été supprimé.", serde_json::json!({"chemin": racine.to_string_lossy()})));
     }
     if compagnies::est_ajoutee(racine) {
         return Ok(Genre::Ajoutee);
@@ -96,19 +96,50 @@ pub fn genre(inst: &Path, racine: &Path) -> Result<Genre, String> {
     Ok(Genre::Reelle)
 }
 
-/// LA QUESTION de la suppression, telle que la page la pose (route `compagnie-suppression`) : le nom, le genre, et pour
+/// LA QUESTION de la suppression, telle que la page la pose (route `compagnie-supprimer`, sans `confirme`) : le nom, le genre, et pour
 /// une compagnie reelle le rappel de la conservation et la sauvegarde a proposer (un Drive lie : la date du dernier
-/// passage). Refuse ce qui ne se supprime pas.
+/// passage). Une compagnie qui ne se supprime pas rend, sans genre, la phrase qui dit pourquoi.
 pub fn question(racine: &Path) -> Result<Value, String> {
     let inst = crate::compagnie::administrateur::installation_de(racine);
-    let g = genre(&inst, racine)?;
-    let mut v = json!({"nom": compagnies::nom_de(racine), "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
+    let g = match genre(&inst, racine) {
+        Ok(g) => g,
+        Err(phrase) => return Ok(json!({"nom": compagnies::nom_de(racine), "phrase": phrase})),
+    };
+    let nom = compagnies::nom_de(racine);
+    let titre_dit = format!("Supprimer {} ?", nom);
+    let mut v = json!({"nom": nom, "titre_dit": titre_dit, "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);
-        let liee = racine.join("config").join(crate::routes::coffre::FICHIER_JETON).is_file();
-        v["sauvegarde"] = json!({"liee": liee, "derniere": crate::compagnie::sauvegarde::derniere(racine).quand});
+        let liee = racine.join(socle::fichiers::CONFIG).join(crate::routes::coffre::FICHIER_JETON).is_file();
+        let derniere = crate::compagnie::sauvegarde::derniere(racine).quand;
+        let phrase = match derniere.as_str().filter(|q| !q.is_empty()) {
+            Some(q) => format!("Dernière sauvegarde dans le Drive : {}.", crate::routes::quand(q)),
+            None => "Aucune sauvegarde n'est encore partie dans le Drive.".to_string(),
+        };
+        v["sauvegarde"] = json!({"liee": liee, "derniere": derniere, "phrase": phrase});
     }
     Ok(v)
+}
+
+/// LA ROUTE `compagnie-supprimer` : avertir, puis effacer. Sans `confirme` : la question (`question`) et l'avertissement,
+/// qui dit ce qui sera efface ; rien ne bouge. Avec `confirme` : la suppression (`supprimer`), la preuve d'une compagnie
+/// reelle comprise (le `motdepasse` que la page a fait taper ; sinon le moteur le demande lui-meme a un humain). `avant` :
+/// ce que la fenetre lache de la compagnie avant qu'elle parte (rien, par `moteur route`).
+pub fn route(racine: &Path, charge: &Value, avant: &dyn Fn(&Path)) -> Result<Value, String> {
+    if !charge.get("confirme").is_some_and(socle::fichiers::vrai) {
+        let mut q = question(racine)?;
+        if q.get("genre").is_some() {
+            q["avertissement"] = json!(format!(
+                "Tout le dossier de {} sera effacé de ce poste : fiches, paies, documents, journaux. Cela ne se défait pas.",
+                compagnies::nom_de(racine)
+            ));
+        }
+        return Ok(q);
+    }
+    let inst = crate::compagnie::administrateur::installation_de(racine);
+    let motdepasse = charge.get("motdepasse").and_then(Value::as_str);
+    let nom = supprimer(&inst, racine, motdepasse, &Poste::de_ce_poste(), avant)?;
+    Ok(json!({"supprimee": nom, "phrase": format!("{} est supprimée de ce poste.", nom)}))
 }
 
 /// La preuve d'une suppression reelle : le mot de passe du logiciel, verifie sur le coffre de la compagnie. Vide : le
@@ -154,7 +185,7 @@ fn effacer(racine: &Path) -> Result<(), String> {
     let nom = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let instant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
     let cache = parent.join(format!("{}{}-{}", PREFIXE_RESTE, nom, instant));
-    std::fs::rename(racine, &cache).map_err(|e| format!("{} ne se supprime pas ({}) : fermez ce qui l'utilise, puis recommencez. Rien n'a été supprimé.", racine.display(), e))?;
+    std::fs::rename(racine, &cache).map_err(|e| socle::echec::avec("La compagnie ne se supprime pas : fermez ce qui l'utilise, puis recommencez. Rien n'a été supprimé.", serde_json::json!({"chemin": racine.to_string_lossy(), "detail": e.to_string()})))?;
     let _ = std::fs::remove_dir_all(&cache);
     Ok(())
 }
@@ -194,7 +225,7 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
         .and_then(|v| v.get("quand").and_then(Value::as_str).map(String::from))
         .unwrap_or_default();
     let parent = inst.join("compagnies");
-    std::fs::create_dir_all(&parent).map_err(|e| format!("{} : {}", parent.display(), e))?;
+    std::fs::create_dir_all(&parent).map_err(|e| socle::echec::du_disque(&parent, &e))?;
     let base = compagnies::nom_de_dossier(&nom);
     let mut cible = parent.join(&base);
     let mut n = 2;
@@ -215,11 +246,11 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
     }
     // Sans marqueur : une compagnie reelle. S'il ne s'efface pas, elle resterait une fictive ajoutee hors de `fictives/` :
     // le dire, plutot que la laisser envoyer sans le savoir... ou ne jamais envoyer.
-    std::fs::remove_file(cible.join(compagnies::MARQUEUR)).map_err(|e| format!("{} : le marqueur de fictive ne s'efface pas ({}).", cible.display(), e))?;
+    std::fs::remove_file(cible.join(compagnies::MARQUEUR)).map_err(|e| socle::echec::avec("Le marqueur de la fictive ne s'efface pas.", serde_json::json!({"chemin": cible.to_string_lossy(), "detail": e.to_string()})))?;
     compagnies::liste_de(inst)
         .into_iter()
         .find(|c| absolu(&c.racine) == absolu(&cible))
-        .ok_or_else(|| format!("{} a été gardée, mais l'accueil ne la trouve pas ({}).", nom, cible.display()))
+        .ok_or_else(|| socle::echec::avec(format!("{} a été gardée, mais l'accueil ne la trouve pas.", nom), serde_json::json!({"chemin": cible.to_string_lossy()})))
 }
 
 /// LA REPONSE A LA QUESTION DU DEBLOCAGE : `garder` et `ne_pas_garder`, des identifiants de tuile (`fictive:<dossier>`)
@@ -280,7 +311,7 @@ pub fn mention(racine: &Path) -> Option<Value> {
 }
 
 /// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree, une paie validee ou modifiee :
-/// `crate::routes::mois::ecrire_saisie_confirmee`, le seul endroit ou la saisie d'un mois s'ecrit) est un mois qu'on entend
+/// `engagement::stock::poser_la_saisie`, `ecrire_la_carte`) est un mois qu'on entend
 /// declarer : il sort de la mention (`config/demo.json`, `mois`), et la page ne le dit plus « fait en demo ». Rien a faire
 /// pour une compagnie sans mention, ni pour un mois qui n'y est pas.
 pub fn sortir_de_la_demo(racine: &Path, mois: &str) -> Result<(), String> {

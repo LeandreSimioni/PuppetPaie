@@ -9,27 +9,32 @@
   },
   "motifs_arret": {
     "_rubrique": "S21.G00.60.001",
+    "_ligne_du_bulletin": "`rubrique` : la ligne qui retire du salaire d'un permanent les heures de l'arret (`engagement::imprevus::lignes_du_mois`), nommee d'apres le motif (`rubriques-base.json`). Un motif sans `rubrique` ne se paie pas : le moteur refuse plutot que de nommer l'absence au hasard.",
     "_regle": "`saisissable: false` ne veut pas dire interdit par la norme : c'est ce que ce logiciel ne propose pas aujourd'hui. Les motifs [FP] sont ceux de la fonction publique ; les « potentiel nouveau motif » sont des valeurs de réserve, sans emploi tant que la norme ne les définit pas.",
     "codes": [
       {
         "code": "01",
         "libelle": "maladie",
+        "rubrique": "absence_maladie",
         "saisissable": true,
         "maintien_legal": true
       },
       {
         "code": "02",
         "libelle": "maternité",
+        "rubrique": "absence_maternite",
         "saisissable": true
       },
       {
         "code": "03",
         "libelle": "paternité / accueil de l'enfant",
+        "rubrique": "absence_paternite",
         "saisissable": true
       },
       {
         "code": "04",
         "libelle": "congé suite à un accident de trajet",
+        "rubrique": "absence_accident_trajet",
         "saisissable": true,
         "date_accident": true,
         "maintien_legal": true,
@@ -38,6 +43,7 @@
       {
         "code": "05",
         "libelle": "congé suite à maladie professionnelle",
+        "rubrique": "absence_maladie_professionnelle",
         "saisissable": true,
         "date_accident": true,
         "maintien_legal": true,
@@ -46,6 +52,7 @@
       {
         "code": "06",
         "libelle": "congé suite à accident de travail ou de service",
+        "rubrique": "absence_accident_travail",
         "saisissable": true,
         "date_accident": true,
         "maintien_legal": true,
@@ -54,11 +61,13 @@
       {
         "code": "07",
         "libelle": "femme enceinte dispensée de travail",
+        "rubrique": "absence_dispense_grossesse",
         "saisissable": true
       },
       {
         "code": "09",
         "libelle": "adoption",
+        "rubrique": "absence_adoption",
         "saisissable": true
       },
       {
@@ -113,11 +122,13 @@
       {
         "code": "19",
         "libelle": "Deuil d'enfant",
+        "rubrique": "absence_deuil_enfant",
         "saisissable": true
       },
       {
         "code": "20",
         "libelle": "Congé supplémentaire de naissance",
+        "rubrique": "absence_conge_naissance",
         "saisissable": true
       },
       {

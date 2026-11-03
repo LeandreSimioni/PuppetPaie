@@ -41,7 +41,7 @@ fn la_lecture_des_reponses_et_le_questionnaire_rendent_l_oracle() {
     for p in c["pays"].as_array_mut().unwrap() {
         p["attendu"] = json!(fq::pays_lu(p["texte"].as_str().unwrap()));
     }
-    c["questionnaire"] = json!(fq::questionnaire("FIC-ABCDEF"));
+    c["questionnaire"] = json!(fq::questionnaire("FIC-ABCDEF", &fq::posees(&|_| true), &|_| String::new()));
     c["sujet"] = json!(fq::SUJET);
     c["corps"] = json!(fq::CORPS);
     c["html"] = json!(fq::HTML);

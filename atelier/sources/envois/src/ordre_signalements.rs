@@ -1,6 +1,6 @@
 //! Le numero d'ordre (S20.G00.05.004) du prochain signalement, LA PLATE-FORME FAISANT FOI.
 //!
-//! POURQUOI. Le journal d'un dossier (`journal/depots.json`) ne connait que ce que CE dossier a depose ; la plate-forme se
+//! POURQUOI. Le journal d'un dossier (`journal/depots.jsonl`) ne connait que ce que CE dossier a depose ; la plate-forme se
 //! souvient de tout, par SIRET, essais compris. Cahier technique DSN 2026.1, §1.4.3.2, p. 14 : « Quand un signalement
 //! d'evenement de type normal a ete accepte pour un SIRET employeur et un numero d'ordre de la declaration donne, il n'est
 //! pas possible d'emettre un deuxieme signalement d'evenement de type normal avec le meme SIRET employeur et le meme
@@ -64,7 +64,7 @@ fn siren(ent: &Value) -> String {
 /// declarent pour ce SIREN, essais et reels, acceptes ou non ; et le flux qui le porte. Le flux se lit dans le nom de
 /// l'archive (`AAAAMMJJ-hhmmss_nature11_<flux>.<ext>`, `transport::archiver`).
 pub fn dernier_ordre_des_bilans(racine: &Path, siren: &str) -> Result<Option<(i64, String)>, Echec> {
-    let dossier = racine.join("retours");
+    let dossier = racine.join(crate::retours::RETOURS);
     let Ok(lecture) = std::fs::read_dir(&dossier) else { return Ok(None) };
     let mut noms: Vec<String> = lecture.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("_nature11_")).collect();
     noms.sort();
@@ -74,7 +74,7 @@ pub fn dernier_ordre_des_bilans(racine: &Path, siren: &str) -> Result<Option<(i6
         if !p.is_file() {
             continue;
         }
-        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let flux = nom.split_once("_nature11_").map(|(_, f)| f.rsplit_once('.').map_or(f, |(x, _)| x)).unwrap_or("").to_string();
         for d in crate::retours::declarations_du_bilan(&octets) {
             let texte = |k: &str| d.get(k).and_then(Value::as_str).unwrap_or("").to_string();
@@ -140,7 +140,7 @@ pub fn dernier_ordre_connu(ctx: &Contexte, branchement: Branchement, client: Opt
     let dernier = journal.max(plateforme);
     if let Err(pourquoi) = lue {
         avertissements.push(format!(
-            "La plate-forme n'a pas pu etre consultee ({}) : l'ordre {} suit le journal de ce dossier et les retours deja archives, qui ne savent que ce que ce dossier a depose et releve. Un signalement depose d'ailleurs sous le meme SIREN (un autre poste, une copie, un essai) peut avoir pris cet ordre : la plate-forme le refuserait (B1-208-10). Pour en etre sur : relever les retours (`moteur retours`), puis refaire le signalement.",
+            "La plate-forme n'a pas pu etre consultee ({}) : l'ordre {} suit le journal de ce dossier et les retours deja archives, qui ne savent que ce que ce dossier a depose et releve. Un signalement depose d'ailleurs sous le meme SIREN (un autre poste, une copie, un essai) peut avoir pris cet ordre : la plate-forme le refuserait (B1-208-10). Pour en etre sur : relever les retours, puis refaire le signalement.",
             pourquoi.trim_end_matches('.'),
             dernier + 1
         ));
@@ -196,7 +196,7 @@ pub struct MensuellesVues {
 /// L'ordre d'une mensuelle « au cours du mois courant », lu sur la plate-forme. Cahier technique DSN 2026.1, p. 136
 /// (`atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt`) : le numero d'ordre « permet d'identifier le rang de
 /// constitution d'une declaration au cours du mois courant. Pour une Mensuelle, ce numero est remis a zero a chaque
-/// premier jour de mois civil » ; et B1-208-11 (`dsn::generer`, 10/09/2026) compare le rang « AAAAMM + ordre » au
+/// premier jour de mois civil » ; et B1-208-11 (`dsn::generer`) compare le rang « AAAAMM + ordre » au
 /// « dernier ordre accepte ». La plate-forme se souvient de tout ce qui est parti sous le SIREN, d'ou qu'il vienne
 /// (l'atelier, un autre poste) ; le journal du dossier ne sait que ce qu'il a envoye.
 ///
@@ -211,11 +211,11 @@ pub struct MensuellesVues {
 ///
 /// `mois` (`AAAA-MM`) : le mois declare (S20.G00.05.005) dont on cherche une mensuelle acceptee.
 pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, constitution: &str, mois: &str) -> Result<MensuellesVues, Echec> {
-    let dossier = racine.join("retours");
+    let dossier = racine.join(crate::retours::RETOURS);
     let Ok(lecture) = std::fs::read_dir(&dossier) else { return Ok(MensuellesVues::default()) };
     let mut noms: Vec<String> = lecture.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("_nature11_")).collect();
     noms.sort();
-    let base = if essai { crate::retours::ESSAI_TEST } else { "02" }; // `essai_reel` : 01 essai, 02 reel
+    let base = if essai { crate::retours::ESSAI_TEST } else { crate::retours::ESSAI_REEL };
     let aaaamm = constitution.replace('-', "");
     let cite = regex::Regex::new(r"ordre (?:accept\S* )?(\d{7,})").map_err(|e| erreur("ValueError", e.to_string()))?;
     let mut vues = MensuellesVues::default();
@@ -224,7 +224,7 @@ pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, con
         if !p.is_file() {
             continue;
         }
-        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let bilan = crate::retours::bilan_d_octets(&octets);
         if bilan.is_null() {
             continue;

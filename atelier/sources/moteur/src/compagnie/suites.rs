@@ -25,9 +25,6 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
     if let Some(d) = &s.depot_refuse {
         noter_incident_depot(ctx, d);
     }
-    if let Some(d) = &s.depot_reel {
-        marquer_depot_reel(ctx, d)?;
-    }
     if !s.taux_pas.is_empty() {
         if let Err(e) = appliquer_taux_pas(ctx, &s.taux_pas) {
             faites.incidents.push(format!("Taux de PAS recus mais non appliques : {}", e.message));
@@ -48,27 +45,39 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
     Ok(faites)
 }
 
-/// Les taux qu'un compte rendu DGFiP de nature 94 communique vont au magasin du PAS (`config/pas.json`) : un taux se lit
+/// Les taux qu'un compte rendu DGFiP de nature 94 communique vont dans la fiche de leur salarie : un taux se lit
 /// du compte rendu, il ne se devine pas (regle 1). Chaque releve se rattache a une fiche par le NIR ; un NIR qu'aucune
-/// fiche ne porte ne se rattache a personne. La validite court de la mise a disposition (`droit::pas`).
+/// fiche ne porte ne se rattache a personne. La validite court de la mise a disposition (`droit::pas`). Le compte rendu
+/// qui repond a une DSN mensuelle (le depot du journal au meme flux, de nature 01) dit le mois qu'elle declare
+/// (`droit::pas::EN_RETOUR_DE`) : son taux vaut pour les mois qui suivent.
 fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::PathBuf)]) -> R<()> {
     use serde_json::Value;
     let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| s.get("nir").is_some_and(vrai)).map(|(cle, s)| json!([cle, s["nir"]])).collect();
+    let journal = envois::journal::lu(&ctx.racine).map_err(|m| socle::echec::erreur("ValueError", m))?;
+    let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let mois_declare = |retour: &Value| -> Option<String> {
+        let flux = texte(retour.get("flux"));
+        let l = journal.lignes.iter().find(|l| !flux.is_empty() && texte(l.get("flux")) == flux)?;
+        let nature = texte(l.get("detail").and_then(|d| d.get("nature")));
+        (texte(l.get("quoi")) == "dsn" && nature == "01").then(|| texte(l.get("mois"))).filter(|m| !m.is_empty())
+    };
     let mut tous = Vec::new();
     for (retour, chemin) in crm {
-        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        let en_retour_de = mois_declare(retour);
+        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
         let lus = envois::retours::taux_pas_d_octets(&octets)?;
         let releves: Vec<Value> = lus.get("releves").and_then(Value::as_array).cloned().unwrap_or_default();
         let r = envois::retours::releves_vers_salaries(&releves, &nirs);
-        let production: String = retour.get("production").filter(|p| vrai(p)).map(socle::valeur::valeur_en_texte).unwrap_or_default().chars().take(6).collect();
         for x in r.get("rattaches").and_then(Value::as_array).cloned().unwrap_or_default() {
             let mut m = x.as_object().cloned().unwrap_or_default();
-            m.insert("periode".into(), json!(production));
             m.insert("mis_a_disposition".into(), retour.get("publication").cloned().unwrap_or(Value::Null));
+            if let Some(mois) = &en_retour_de {
+                m.insert(droit::pas::EN_RETOUR_DE.into(), Value::String(mois.clone()));
+            }
             tous.push(Value::Object(m));
         }
     }
-    crate::commandes::pas::enregistrer(ctx, &tous, "CRM DGFiP nature 94")?;
+    crate::compagnie::taux_pas::enregistrer(ctx, &tous, "CRM DGFiP nature 94")?;
     Ok(())
 }
 
@@ -87,7 +96,7 @@ fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std:
         let le_iso = socle::date::Jour::lire(&le).map(|j| j.iso()).unwrap_or_default();
         let archive = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let source = format!("Notification AT/MP de la CARSAT reçue le {} (retour DSN de nature 34, archive retours/{})", le, archive);
-        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        let octets = std::fs::read(chemin).map_err(|e| socle::echec::erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
         let lus = match envois::retours::taux_atmp_d_octets(&octets) {
             Ok(l) => l,
             Err(e) => {
@@ -142,32 +151,4 @@ fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
             ..Default::default()
         },
     );
-}
-
-/// Ce qu'un depot reel accepte laisse derriere lui : la trace sur l'arret qu'un signalement a declare (et sur la demande
-/// de taux d'un signalement d'amorcage), les arrets qu'une mensuelle a reportes, et le reveil du filet qui se tait.
-fn marquer_depot_reel(ctx: &Contexte, d: &envois::suites::DepotReel) -> R<()> {
-    if d.quoi == "dsn" {
-        match &d.signalement {
-            Some(s) => {
-                crate::compagnie::marques_depot::marquer_envoye_depuis(ctx, &d.chemin, &s.nature, &s.ordre, &s.type_declaration, &s.evenement, &d.quand)?;
-                // Sans la trace d'une demande de taux, le moteur redirait « aucun taux connu, il faut demander ».
-                if s.nature == declarations::amorcage::NATURE {
-                    crate::compagnie::marques_depot::marquer_demande_depuis(ctx, &d.chemin, &d.quand)?;
-                }
-            }
-            None => {
-                if !d.joue {
-                    // Ne leve jamais.
-                    let _ = crate::compagnie::filet::desarmer(&ctx.racine, &format!("dsn|{}", d.mois));
-                }
-                crate::compagnie::marques_depot::marquer_reportes(ctx, &d.mois, &d.chemin, &d.quand)?;
-            }
-        }
-    } else if !d.joue {
-        for e in &d.embauches {
-            let _ = crate::compagnie::filet::desarmer(&ctx.racine, &crate::compagnie::filet::cle_du_reveil(&json!({"salarie": e["salarie"], "debut": e["debut"]})));
-        }
-    }
-    Ok(())
 }

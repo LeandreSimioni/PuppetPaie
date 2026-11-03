@@ -226,6 +226,12 @@ section « La declaration prealable a l'embauche ») ; domaine `dpae` de `paie/s
 - **L1221-10** (`xml/L1221-10.xml`, `LEGIARTI000006900849`) : « L'embauche d'un salarié ne peut intervenir qu'après
   déclaration nominative accomplie par l'employeur auprès des organismes de protection sociale désignés à cet effet. »
 - **R1221-1** (`xml/R1221-1.xml`, `LEGIARTI000035492419`) : la DPAE comporte, 3°, la « Date et heure d'embauche ».
+- **R1221-3** (`xml/R1221-3.xml`, `LEGIARTI000039809055`, relevé le 30/10/2026) : elle « est adressée par l'employeur [...]
+  à l'organisme de recouvrement des cotisations du régime général de sécurité sociale dans le ressort territorial duquel
+  est situé l'établissement devant employer le salarié ». **Où le moteur s'en sert** : `declarations/src/dpae.rs`
+  (`urssaf_d_un_etablissement`) : la DPAE d'un salarié d'un autre établissement que le siège porte en C_URSSAF l'Urssaf du
+  département de cet établissement (`logiciel/donnees/urssaf-dpae-base.json`, `par_departement`) ; celle du siège, le code
+  de la fiche entreprise.
 - **R1221-4** (`xml/R1221-4.xml`, `LEGIARTI000024214323`) : elle « est adressée au plus
   tôt dans les huit jours précédant la date prévisible de l'embauche ».
 
@@ -300,7 +306,10 @@ l'arrêté du 25 février 2016 (`../montant-net-social/legi-arrete-20160225-bull
 `atelier/sources/moteur/src/import/bulletin_lu.rs`, le lecteur des bulletins importés : il trouve ces mentions par leurs
 libellés (`logiciel/donnees/bulletins-lecture-base.json`, `mentions`), refuse une page où le salarié, la période, le brut
 ou la somme reçue ne se trouvent pas, et lit un taux de colonne qui ne dit pas sa part comme celui du salarié, le seul que
-le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`.
+le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`. Le 1° dit aussi « le cas échéant, la
+désignation de l'établissement dont dépend le salarié », et le 2° le code APE « de l'établissement d'emploi » :
+`atelier/sources/documents/src/bulletin.rs` (`blocs_un`) imprime, pour un contrat d'un autre établissement que le siège,
+« Établissement : » et le SIRET de cet établissement dans le cadre EMPLOYEUR (`droit::bareme::entreprise_du_salarie`).
 
 ## Le contrat écrit : L1242-12 (CDD), L1221-5-1 et R1221-34 à R1221-40 (tout salarié), L3123-6 (temps partiel) (relevé du 29/10/2026, #285)
 
@@ -345,6 +354,32 @@ vérifié avant d'être posé) ; `moteur/src/routes/mois.rs` (`champs_du_contrat
 L1242-12 1°, et la répartition d'un temps partiel, L3123-6, que l'engagement appelle). Tests :
 `documents/tests/documents/contrat_ecrit.rs`.
 
+## La modification du contrat : L1221-1, L1222-6, et l'avenant d'un contrat signé hors du logiciel (relevé du 02/11/2026, #338)
+
+Le domaine `modification_du_contrat` (L1221-1, L1222-6) ajouté à `moteur/src/atelier/releve/codes/textes.rs`, relevé le
+02/11/2026 (`moteur releve-codes moissonner`, aucune livraison nouvelle : les articles étaient dans l'entrepôt ; puis
+`rapport`) : `articles-20261102.md`, l. 972-980 ; XML : `xml/L1221-1.xml`, `xml/L1222-6.xml`.
+
+- **L1221-1** (`LEGIARTI000006900839`) : « Le contrat de travail est soumis aux règles du droit commun. » Le droit commun
+  (code civil, article 1193 : « Les contrats ne peuvent être modifiés ou révoqués que du consentement mutuel des parties », déposé
+  dans `../code-civil/legifrance-code-civil-art1193-force-obligatoire-20261102.md`, relevé par Léandre le 02/11/2026) : un
+  terme du contrat (salaire, durée du travail, emploi) qui change se fait signer
+  par le salarié, d'où l'avenant envoyé à la signature.
+- **L1222-6** (`LEGIARTI000028724382`) : la modification d'un élément essentiel pour motif économique se propose par lettre
+  recommandée, et le salarié a un mois pour refuser. **Le moteur ne le porte pas** : il ne connaît pas le motif d'un
+  changement.
+- **R1221-40** (plus haut) fonde l'écrit : ce qui change se dit « dans un document indiquant ces modifications », au plus
+  tard à sa prise d'effet. Il ne demande pas de citer le texte d'origine : pour un contrat signé hors du logiciel, dont le
+  logiciel ne connaît pas le texte, l'avenant dit en clair chaque terme qui change, l'ancienne valeur, la nouvelle et à
+  partir de quand.
+
+**Où le moteur s'en sert** : `engagement::signe_ailleurs` (`engagement/src/lib.rs`) ; `engagement::etats::a_refaire`
+(l'avenant à faire d'un contrat signé ailleurs) ; `engagement::versions::termes_changes` ;
+`documents::avenant::changements_en_clair` ; `documents::contrat::ecrire_avenant` (`avenant.reference`,
+`modification.phrase`) ; les modèles `avenant-permanent.modele` et `avenant-cddu.modele` (le paragraphe
+`{{modification.phrase}}`) ; `moteur/src/routes/contrats.rs` (`avenant-apercu`, `signature-apercu`) ;
+`moteur/src/compagnie/signature.rs` (le dossier du contrat signé, joint à l'envoi de l'avenant).
+
 ## La période d'essai et sa durée maximale : L1242-10 (CDD), L1221-19 à L1221-24 (CDI) (relevé du 29/10/2026)
 
 Le domaine `periode_essai` ajouté à `moteur/src/atelier/releve/codes/textes.rs`, relevé le 29/10/2026 (`moteur
@@ -375,3 +410,65 @@ renouvellement (L1221-21) n'est pas jugé : l'engagement ne porte que la périod
 `engagement/src/calcul.rs` (`essai_dans_son_plafond`) : un engagement dont la période d'essai dépasse son plafond ne se
 calcule pas ; il s'enregistre à compléter, et sa validation refuse en citant le texte. Test :
 `droit/tests/droit/essai.rs`.
+
+## La durée maximale du travail et le repos quotidien (relevé du 30/10/2026, séance 8, lot P2)
+
+`articles-20261030.md`, section « La duree maximale du travail et le repos quotidien » (XML : `xml/L3121-18.xml`,
+`xml/L3121-19.xml`, `xml/L3121-20.xml`, `xml/L3131-1.xml`, `xml/L3131-2.xml`), relevés par `moteur releve-codes moissonner`
+depuis l'entrepôt LEGI (domaine `duree_maximale` de `moteur/src/atelier/releve/codes/textes.rs`).
+
+- **L3121-18** (`LEGIARTI000033020428`, depuis le 10/08/2016) : « La durée quotidienne de travail effectif par salarié ne
+  peut excéder dix heures, sauf : 1° En cas de dérogation accordée par l'inspecteur du travail […] ; 2° En cas d'urgence […] ;
+  3° Dans les cas prévus à l'article L. 3121-19. »
+- **L3121-19** (`LEGIARTI000033020422`) : une convention ou un accord (d'entreprise, d'établissement, à défaut de branche) peut
+  prévoir le dépassement de la durée maximale quotidienne « à condition que ce dépassement n'ait pas pour effet de porter
+  cette durée à plus de douze heures ».
+- **L3121-20** (`LEGIARTI000033020414`) : 48 heures au plus dans une même semaine. **L3131-1** et **L3131-2** : onze heures
+  consécutives de repos quotidien, sauf dérogation par convention ou accord.
+
+**La convention 3090** (spectacle vivant privé), lue dans l'entrepôt KALI (`../kali-entrepot/articles.jsonl.gz`, par
+`moteur releve-conventions chercher atelier/reference/sources 3090 "durée quotidienne"`) : la durée quotidienne dépend de
+l'annexe et de la filière. Par exemple : 10 heures, portées à 12 « dans les cas suivants » pour le personnel technique
+(`KALIARTI000028157685`, titre III, III.3, art. 2) ; 10 heures, portées à 12 « selon les nécessités et spécificités des
+tournées », dans une amplitude de 15 heures (`KALIARTI000028157839`, titre III, 3.2.6) ; 10 heures pour l'artiste-interprète
+(`KALIARTI000028157888`, 3.3.3) ; 8 heures, portées à 12 pour les salariés directement liés au spectacle
+(`KALIARTI000028157882`, 2.2.3) ; 12 heures pour la filière salle et restauration (`KALIARTI000028157805`, 7.1.2) ; 8 heures
+pour un travailleur de nuit (`KALIARTI000028157401`, titre VIII, 8.14). Aucune ne dépasse les 12 heures de L3121-19.
+
+**Où le moteur s'en sert** : `atelier/sources/engagement/src/duree.rs`. Une journée saisie au-delà de 10 heures se dit sur la
+carte de l'engagement (`au_dela_du_maximum`, un avertissement : la phrase cite L3121-18 et L3121-19, sans refuser — c'est
+l'employeur qui en répond, et une annexe de sa convention peut la porter à 12 heures) ; au-delà de 24 heures, la saisie se
+refuse (`plus_d_une_journee` : une journée n'en a que 24, aucun texte n'est nécessaire). **Inférence** : une ligne qui paie
+des heures sur plusieurs jours les répartit également ; la journée la plus chargée en compte au moins cette moyenne.
+Test : `moteur/tests/routes/duree_du_travail.rs`. L3121-20 (la semaine) et L3131-1 (le repos) ne sont pas encore contrôlés :
+la saisie ne dit pas les heures de début et de fin d'une journée.
+
+## Les jours fériés chômés d'un permanent : L3133-3, L3133-5 (relevé LEGI du 29/10/2026, séance 8, lot Q2)
+
+Relevés par `moteur releve-codes` : `articles-20261029.md`, l. 111-124 ; XML : `xml/L3133-3.xml`, `xml/L3133-5.xml`.
+
+- **L3133-3** (`LEGIARTI000033020893`) : « Le chômage des jours fériés ne peut entraîner aucune perte de salaire pour les
+  salariés totalisant au moins trois mois d'ancienneté dans l'entreprise ou l'établissement » ; les saisonniers cumulent
+  leurs contrats ; ni les travailleurs à domicile, ni les intermittents, ni les temporaires.
+- **L3133-5** (`LEGIARTI000033020881`) : « Le chômage du 1er mai ne peut être une cause de réduction de salaire. »
+
+**Lecture** : a contrario, un férié que l'entreprise chôme n'est pas dû à un permanent qui n'a pas trois mois
+d'ancienneté le jour du férié, sauf le 1er mai. Une convention peut faire mieux : celles de la 3090 et de la 1285 sur les
+fériés ne sont pas relevées ici (la 3090, titre VII, dit seulement quand ils sont chômés).
+
+**Où le moteur s'en sert** : `droit::conges::feries_non_payes` (les fériés chômés de l'entreprise, `feries::chomes_entre`,
+qui tombent un jour travaillé du salarié, avant ses trois mois comptés depuis « Dans la compagnie depuis ») ;
+`droit::periodes::part_du_mois` les retire des heures payées du mois, et l'aperçu le dit. Test :
+`droit/tests/droit/mois_incomplet.rs`, `un_ferie_chome_ne_se_paie_qu_apres_trois_mois_d_anciennete`.
+
+## Les heures supplémentaires et complémentaires d'un salarié au mois (relevé du 02/11/2026, séance 8, lot LONG7)
+
+Domaine `heures_supplementaires` de `moteur/src/atelier/releve/codes/textes.rs` : L3121-29 (le décompte par semaine),
+L3121-30 (le contingent annuel), L3121-33 (l'accord fixe le taux, au moins 10 %, et le contingent), L3121-34, L3121-35,
+L3121-36 (à défaut d'accord : 25 % pour les huit premières heures de la semaine, 50 % au-delà), L3123-22 (le complément
+d'heures par avenant, qui n'est pas une heure complémentaire), L3123-29 (à défaut d'accord : 10 % dans le dixième des heures
+du contrat, 25 % jusqu'au tiers) ; avec, déjà relevés, L3121-28, L3123-20, L3123-21 et L3123-28. Texte dans
+`articles-20261102.md`. **Où le moteur s'en sert** : `logiciel/donnees/permanents-base.json` (`heures_en_plus`), lu par
+`atelier/sources/droit/src/heures_en_plus.rs` ; la convention l'emporte quand elle fixe un taux
+(`clauses-conventionnelles-base.json` : 1285, VI.9, VI.12 et VI.13 bis ; 3090, 8.6), `kali-1285-titre-vi-duree-du-travail-
+20261102.md` et `kali-3090-titre-viii-duree-du-travail-20261102.md`, relevés le même jour par `moteur releve-conventions`.

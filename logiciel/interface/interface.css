@@ -2,10 +2,8 @@
    Les memes couleurs que le bulletin et le contrat -- l'interface et les
    documents produits doivent avoir l'air du meme logiciel. */
 :root {
-  /* TROIS COULEURS, TROIS RÔLES (30/09/2026). L'éditeur : « on clique sur
-     rouge pour valider, c'est vraiment bizarre ». La couleur de la compagnie
-     était l'accent de toute la page — boutons, cases actives, liens — et,
-     rouge par défaut, elle se confondait avec l'erreur. Désormais :
+  /* TROIS COULEURS, TROIS RÔLES : ce qui se clique ne prend jamais la couleur
+     de la compagnie, rouge par défaut, qui se confondrait avec l'erreur.
        --action     ce qui se clique et ce qui a le focus : un vert sobre ;
        --compagnie  l'identité seulement (le filet du logo, le liseré du
                     bandeau), posée par le serveur depuis l'accueil ;
@@ -21,7 +19,7 @@
   --erreur: #B22222;
   --alerte: #C77B27;
   --succes: #4A7C46;
-  /* LES TEINTES, nommees une fois (24/09/2026). Chaque couleur de la page
+  /* LES TEINTES, nommees une fois. Chaque couleur de la page
      vient d'ici : un fond de pastille, une bordure, un bouton. Une teinte
      ecrite en dur ailleurs est une teinte que la charte ne connait pas. */
   --erreur-fond: #F6E3E3;        /* pastille « erreur » */
@@ -42,12 +40,10 @@
 
 * { box-sizing: border-box; }
 
-/* UN DÉPLIANT FERMÉ NE MONTRE QUE SON TITRE, partout (#253, 23/10/2026). Le
-   navigateur de la fenêtre sous Windows (WebView2) peignait le contenu d'un
-   <details> fermé par-dessus la carte : la liste à cocher des salariés restait
-   ouverte sur chaque carte, et le motif de rupture du contrat replié passait
-   sous « Retirer cet engagement ». On ne s'en remet plus à la façon dont un
-   navigateur cache ce qu'un <details> fermé contient : on le retire de la page. */
+/* UN DÉPLIANT FERMÉ NE MONTRE QUE SON TITRE, partout. Le navigateur de la
+   fenêtre sous Windows (WebView2) peut peindre le contenu d'un <details> fermé
+   par-dessus la carte : on ne s'en remet pas à la façon dont un navigateur
+   cache ce qu'un <details> fermé contient, on le retire de la page. */
 details:not([open]) > :not(summary) { display: none !important; }
 
 body {
@@ -84,9 +80,9 @@ body {
   color: var(--texte); border-color: var(--bord); background: var(--fond);
   font-weight: bold;
 }
-/* LES SOUS-ONGLETS, UN CRAN PLUS LÉGERS (24/09/2026) : du texte, et un trait
-   sous celui qu'on regarde -- ils avaient le dessin des onglets, et rien ne
-   disait lequel était dans l'autre. Le groupe de l'installation, à droite. */
+/* LES SOUS-ONGLETS, UN CRAN PLUS LÉGERS : du texte, et un trait sous celui
+   qu'on regarde -- un autre dessin que les onglets, pour qu'on voie lequel est
+   dans l'autre. Le groupe de l'installation, à droite. */
 .sous-onglets { display: flex; align-items: flex-end; gap: 2px;
   border-bottom: 1px solid var(--bord); margin-bottom: 18px; }
 .sous-onglets button {
@@ -97,9 +93,12 @@ body {
 .sous-onglets button.actif { color: var(--texte); border-bottom-color: var(--action); font-weight: bold; }
 .sous-onglets-installation { display: flex; gap: 2px; margin-left: auto; }
 .sous-onglets-installation button { font-size: 13px; }
+.sous-onglets-avance { display: flex; align-items: flex-end; gap: 2px; margin-left: 12px; }
+.sous-onglets-avance > .discret { padding: 8px 0 7px; font-size: 13px; }
+.sous-onglets-avance[hidden] { display: none; }
 .etat { margin-left: auto; font-size: 12px; color: var(--discret); text-align: right; }
 
-/* La fenetre PuppetPaie (sans bordure systeme, ticket #195) : le bandeau sert
+/* La fenetre PuppetPaie (sans bordure systeme) : le bandeau sert
    de barre de titre ; il se tire, et son texte ne se selectionne pas en le
    tirant. Les bords de la fenetre se tirent pour la redimensionner. Rien de
    ceci n'existe dans un navigateur (`body.fenetre` absent). */
@@ -109,7 +108,7 @@ body {
 body.fenetre .bandeau { user-select: none; gap: 16px; }
 body.fenetre .bandeau .copie-dev, body.fenetre .bandeau .signaler,
 body.fenetre .bandeau .retour-accueil { white-space: nowrap; }
-/* Le chemin vers l'accueil des compagnies (ticket #113) : discret comme
+/* Le chemin vers l'accueil des compagnies : discret comme
    « Un problème, une idée ? », a cote. Seulement si le lanceur sait y
    revenir (`body.accueil-possible`, voir fenetreNative). */
 body.accueil-possible .retour-accueil {
@@ -126,7 +125,7 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
   font: 13px/1 Arial, sans-serif; border-radius: 4px; cursor: default;
   /* Le glyphe au centre, et pas dans le coin : un bouton a un padding par
      defaut et pose son texte sur la ligne de base -- avec un tiret et une
-     croix, ca se voyait (16/09/2026, « les signes ne sont pas centres »). */
+     croix, il ne serait pas centre. */
   display: inline-flex; align-items: center; justify-content: center; padding: 0;
 }
 .fenetre-boutons button:hover { background: var(--fond); color: var(--texte); }
@@ -142,16 +141,16 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
 }
 .veille.souci { background: var(--alerte-fond); color: var(--alerte); }
 .veille.neuf { background: var(--succes-fond); color: var(--succes); }
-/* L'étape du passage en cours, dite par le moteur (ticket #220). */
+/* L'étape du passage en cours, dite par le moteur. */
 .veille-etape { font-style: italic; }
 .veille-etape::before { content: "⟳ "; font-style: normal; }
-/* Ce qui dure dans la sauvegarde (tickets #231 et #232) : lisible, sans l'alarme des choses à faire. */
+/* Ce qui dure dans la sauvegarde : lisible, sans l'alarme des choses à faire. */
 .veille-sauvegarde { color: var(--texte); }
 .veille-texte b { color: var(--texte); }
-/* UNE LIGNE, TOUJOURS (ticket #244 : « une fois affichée, rien ne bouge ») : le relevé qui finit, une nouvelle qui
+/* UNE LIGNE, TOUJOURS (une fois affichée, rien ne bouge) : le relevé qui finit, une nouvelle qui
    arrive changent le texte, jamais la hauteur du bandeau ; ce qui dépasse se lit au survol (`title`). Un « + n autres »
    déplié, c'est la personne qui l'a demandé. */
-.veille-texte { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.veille-texte { flex: 1; min-width: 0; }
 .veille-texte details:not([open]) { display: inline; }
 .veille-texte details[open] { white-space: normal; }
 #veille-maintenant { flex: none; }
@@ -160,16 +159,16 @@ body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align
   font: inherit; color: var(--action); text-decoration: underline;
 }
 
-/* C'EST `main` QUI DEFILE, PAS LA PAGE (16/09/2026). Dans la fenetre sans
-   bordure, la barre de defilement de la page collait au bord de l'ecran et
-   << paraissait exterieure a la fenetre >>. Le corps ne defile plus : le
-   bandeau et la veille restent en haut, `main` prend le reste et porte sa
+/* C'EST `main` QUI DEFILE, PAS LA PAGE. Dans la fenetre sans bordure, la
+   barre de defilement de la page collerait au bord de l'ecran, comme hors de
+   la fenetre. Le bandeau et la veille restent en haut, `main` prend le reste et porte sa
    propre barre, fine et en retrait, sous le bandeau. La meme mise en page
-   dans un navigateur, pour n'avoir qu'une seule. */
+   dans un navigateur, pour n'avoir qu'une seule. Rien ne se coupe : le corps
+   ne defile que si le bandeau et la veille ne tiennent pas dans la fenetre. */
 html, body { height: 100%; }
-body { display: flex; flex-direction: column; overflow: hidden; }
+body { display: flex; flex-direction: column; overflow: auto; }
 .bandeau, .veille { flex: none; }
-main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+main { flex: 1 1 auto; min-height: 0; overflow: auto;
        padding: 20px 16px 20px 20px; margin: 0 6px 0 0; }
 main > .vue { max-width: 1400px; margin: 0 auto; }
 /* Toutes les barres (main, la colonne d'apercu, les boites) : fines, en
@@ -243,12 +242,12 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .grille-mois {
   display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
 }
-/* Le choix du mois (25/09/2026) : une case, ‹ Octobre 2026 ›, et l'année en
+/* Le choix du mois : une case, ‹ Octobre 2026 ›, et l'année en
    grille au clic. */
 .choix-mois { position: relative; width: 15rem; }
 .choix-mois-lib { display: block; font-size: 12px; color: var(--discret); }
 .mois-maj { font-style: italic; }
-.mois-maj[hidden] { display: inline; visibility: hidden; }  /* sa place reste prise : rien ne bouge (#244) */
+.mois-maj[hidden] { display: inline; visibility: hidden; }  /* sa place reste prise : rien ne bouge */
 .choix-mois-case {
   display: flex; align-items: stretch; margin-top: 3px;
   border: 1px solid var(--bord); border-radius: 3px; background: var(--carte);
@@ -294,28 +293,18 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .grille-mois .note { margin: 0 0 .45rem; }
 
 /* ----------------------------------------------------------- engagements */
-/* Un mois ferme (DSN due) : on lit, on ne touche pas. */
-#engagements.lecture-seule { pointer-events: none; }
-#engagements.lecture-seule .engagement:not(.validee) { opacity: .75; }
-/* ... mais la carte d'un engagement se LIT : elle s'ouvre d'un clic, et les pastilles
-   répondent (30/09/2026). Sans ça, rien d'un mois passé ne s'ouvrait, ni le
-   contrat ni la DPAE ; « Modifier… », dans le détail, reste caché tant que
-   le mois n'est pas rouvert. */
-#engagements.lecture-seule .e-resume { pointer-events: auto; }
 .engagement {
   border: 1px solid var(--bord); border-radius: 4px;
   padding: 12px; margin-bottom: 10px; background: var(--fond);
 }
-/* Qui, quel spectacle, quels jours. Le spectacle est ici et non dans le bloc
-   du mois : une paie est un spectacle est un numero d'objet, et un mois en
-   porte plusieurs. */
-/* Qui et quel spectacle -- les jours et le lieu sont descendus sur les lignes
-   de paie le 12/09/2026. */
+/* Qui et quel spectacle ; les jours et le lieu sont sur les lignes de paie. Le
+   spectacle est ici et non dans le bloc du mois : une paie est un spectacle
+   est un numero d'objet, et un mois en porte plusieurs. */
 .engagement .ligne1 {
   display: grid; grid-template-columns: 1.1fr 1.1fr 1.2fr 1.1fr auto; gap: 10px;
   align-items: end;
 }
-/* La nature du contrat, cinquieme colonne depuis le 19/09/2026 : un
+/* La nature du contrat, cinquieme colonne : un
    permanent n'a pas de spectacle, et sa case disparait alors. La grille
    garde ses cinq colonnes -- une case cachee ne laisse pas de trou, `hidden`
    la sort du flux. */
@@ -333,16 +322,13 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
    orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
 .engagement .avis .avis-engagement { margin-top: 6px; font-size: 12px; }
 .engagement.validee .avis { display: none; }
-/* Le salarié : une liste à cocher qui a l'air d'un menu -- on coche qui on
-   veut, un seul bloc pour tous, et il se démultiplie à la validation
-   (etats-engagements.js, validerPlusieurs). */
+/* Le salarié : une liste qui a l'air d'un menu, un salarié par carte. */
 .engagement .champ { display: block; font-size: 12px; color: var(--discret); }
 .e-qui { position: relative; margin-top: 3px; }
 .e-qui summary {
   list-style: none; cursor: pointer; padding: 6px 26px 6px 8px;
   font-size: 14px; color: var(--texte); background: var(--carte);
   border: 1px solid var(--bord); border-radius: 3px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .e-qui summary::-webkit-details-marker { display: none; }
 .e-qui summary::after {
@@ -384,7 +370,7 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 .encart.attention { border-left-color: var(--alerte); }
 .encart.erreur { border-left-color: var(--erreur); }
 .encart.bien { border-left-color: var(--succes); }
-/* CE QUI RENSEIGNE SANS RIEN DEMANDER (24/09/2026, engagement.rs, Avis) : un
+/* CE QUI RENSEIGNE SANS RIEN DEMANDER (engagement.rs, Avis) : un
    contrat qui se poursuit le mois suivant n'est pas une alerte. En gris. */
 .encart.info { color: var(--discret); }
 /* UN AVERTISSEMENT QUI DEMANDE UNE RÉPONSE (modifier un engagement d'un mois dont la DSN ne se remplace plus) :
@@ -394,13 +380,13 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
   font-size: 15px; line-height: 1.5; padding: 14px 16px;
 }
 .encart.grave b { display: block; font-size: 17px; margin-bottom: 6px; color: var(--alerte); }
-/* LE SAVIEZ-VOUS ? (ticket 224) : un conseil renseigne, il ne demande rien. En gris, son titre en tete, la
+/* LE SAVIEZ-VOUS ? : un conseil renseigne, il ne demande rien. En gris, son titre en tete, la
    reference de son texte a la fin. */
 .encart.conseil { color: var(--discret); }
 .conseil-titre { font-weight: bold; color: var(--texte); }
 .conseil-source { font-size: 12px; font-style: italic; }
 .conseil-du-jour .lien { font-size: 12px; color: var(--discret); }
-/* Sous une carte, le detail d'un conseil se deplie derriere « pourquoi ? » (21/10/2026). */
+/* Sous une carte, le detail d'un conseil se deplie derriere « pourquoi ? ». */
 .conseil-pourquoi { margin-top: 3px; }
 .conseil-pourquoi summary { display: inline; cursor: pointer; font-size: 12px; text-decoration: underline; }
 .conseil-pourquoi summary::-webkit-details-marker { display: none; }
@@ -410,7 +396,7 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 .fiche-conseils h3 { margin: 0; font-size: 14px; }
 .encart b { display: block; margin-bottom: 3px; }
 .encart .anomalie b { display: inline; margin: 0; }
-/* L'AVENANT (30/09/2026) : l'ancien texte du contrat et le nouveau, cites. */
+/* L'AVENANT : l'ancien texte du contrat et le nouveau, cites. */
 .modif-avenant { margin: 10px 0; }
 .modif-avenant .citation { margin: 2px 0 6px 12px; font-style: italic; font-size: 13px; }
 /* LA COMPLEMENTAIRE SANTE d'une fiche salarie : un niveau, un conjoint, des
@@ -425,10 +411,10 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 #config-sante .aide { flex-basis: 100%; }
 
 /* -------------------------------------------------------- configuration */
-/* LES FICHES, UNE LIGNE CHACUNE (24/09/2026) : les `.rang` de tout le
+/* LES FICHES, UNE LIGNE CHACUNE : les `.rang` de tout le
    logiciel. Celle qu'on a ouverte se marque ; une archivée s'estompe, en
-   pointillé -- présente, lisible, et visiblement hors du courant. La grille
-   de cartes vertes est partie avec elles : le vert ne dit plus que « fait ». */
+   pointillé -- présente, lisible, et visiblement hors du courant. Le vert ne
+   dit que « fait ». */
 .rang.fiche.selectionnee { border-color: var(--action); box-shadow: inset 3px 0 0 var(--action); }
 .rang.fiche.archivee { opacity: .62; border-style: dashed; }
 .rang.fiche.vient-d-etre-enregistree { border-color: var(--succes-trait); box-shadow: inset 3px 0 0 var(--succes-trait);
@@ -452,7 +438,7 @@ details.relire[open] > summary { margin-bottom: 8px; }
 .carte > .rang:only-child, .carte > .rang:first-child { margin-bottom: 0; border: 0; padding: 0; }
 /* La phrase qui ouvre une page de la Configuration : à quoi elle sert. */
 .intro { margin: 0 0 14px; color: var(--discret); font-size: 13px; }
-/* MODIFIER : un seul bouton, un crayon et le mot (24/09/2026), neutre
+/* MODIFIER : un seul bouton, un crayon et le mot, neutre
    partout. */
 .modifier { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px;
   font-size: 14px; color: var(--texte); background: var(--carte);
@@ -477,7 +463,7 @@ details.relire[open] > summary { margin-bottom: 8px; }
 .champ.pleine { grid-column: 1 / -1; }
 .champ .aide { font-size: 12px; color: var(--discret); margin-top: 3px; }
 
-/* ------------------------------------------ la fiche en sections (22/09) */
+/* ------------------------------------------ la fiche en sections */
 /* Une fiche entreprise est un formulaire d'etat civil, pas une liste de
    trente cases : des blocs titres, et l'aide repliee derriere un « ? ». */
 .bloc { margin-top: 22px; }
@@ -497,7 +483,6 @@ details.relire[open] > summary { margin-bottom: 8px; }
 }
 .champ .aide p { margin: 0 0 4px; }
 .champ .aide p:last-child { margin-bottom: 0; }
-.champ .aide .ou-trouver { color: var(--texte); }
 .champ .aide a { color: var(--action); word-break: break-all; }
 
 /* Une structure : une case par valeur, jamais d'accolades a taper. */
@@ -508,7 +493,7 @@ details.relire[open] > summary { margin-bottom: 8px; }
   display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px 14px;
 }
-/* Une question dont les réponses sont des phrases entières (ticket #245) :
+/* Une question dont les réponses sont des phrases entières :
    des boutons à cocher, sur toute la largeur, plutôt qu'une liste
    déroulante qui les couperait. */
 .sous-champ.sous-champ-large { grid-column: 1 / -1; }
@@ -520,11 +505,15 @@ details.relire[open] > summary { margin-bottom: 8px; }
 .boutons-choix label.coche { align-items: flex-start; }
 .boutons-choix label.coche input { margin-top: 3px; }
 .ligne-structure {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) 28px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  position: relative;
   gap: 10px 14px; align-items: end;
   border: 1px solid var(--bord); border-radius: 4px;
-  padding: 10px 12px; margin-bottom: 8px;
+  padding: 10px 48px 10px 12px; margin-bottom: 8px;
 }
+/* Ce que le moteur dit d'une ligne (le risque AT/MP d'un établissement) : sous elle, toute la largeur. */
+.ligne-structure .ligne-dit { grid-column: 1 / -1; margin: 0; }
+.ligne-structure .retirer-ligne { position: absolute; top: 10px; right: 10px; }
 .retirer-ligne {
   width: 26px; height: 30px; padding: 0; border: 1px solid var(--bord);
   border-radius: 3px; background: transparent; color: var(--discret);
@@ -548,18 +537,18 @@ details.relire[open] > summary { margin-bottom: 8px; }
   margin-right: 6px;
 }
 .champ .declare .valeur { color: var(--texte); }
-/* UNE CASE A COCHER SE LIT COMME UNE PHRASE (23/09/2026) : la case, puis
+/* UNE CASE A COCHER SE LIT COMME UNE PHRASE : la case, puis
    ce qu'elle dit, sur une ligne -- et non une case seule au milieu d'une
    colonne, sous un libelle qui parle d'autre chose. UNE SEULE CLASSE pour
-   toutes (24/09/2026) : il y en avait trois (`.coche` dans les fiches,
-   `.coche-simple` dans les Exports, un `style=` dans les boites), qui
-   disaient la meme chose en trois tailles. `.choix`, lui, est autre chose :
+   toutes, des fiches aux boites. `.choix`, lui, est autre chose :
    un choix encadre dans une liste, avec son etat. */
 label.coche {
   display: flex; align-items: center; gap: 8px; cursor: pointer;
   font-size: 13px; color: var(--texte); padding: 3px 0;
 }
 label.coche input { width: auto; margin: 0; flex: none; }
+/* Les jours travaillés d'un permanent : les sept cases sur une ligne. */
+.jours-semaine { display: flex; flex-wrap: wrap; gap: 0 16px; }
 .espace-haut { margin-top: 12px; }
 /* L'aide depliee : un encart qui se lit, pas une note de bas de page. */
 #config-formulaire .champ .aide:not([hidden]) {
@@ -583,19 +572,15 @@ details.historique-fiche > summary {
   cursor: pointer; font-size: 12px; color: var(--discret);
 }
 details.historique-fiche[open] > summary { margin-bottom: 8px; }
-/* L'étoile d'un champ obligatoire. */
-.obligatoire { color: var(--erreur); }
 .champ .anomalie { font-size: 12px; margin-top: 3px; }
 .champ .anomalie.erreur { color: var(--erreur); }
 .champ .anomalie.avertissement { color: var(--alerte); }
 .champ .corriger { font-size: 11px; margin-top: 4px; padding: 2px 8px; }
 
 /* ------------------------------------------------------------ historique */
-/* UNE LIGNE (24/09/2026) : un objet qu'on regarde et sur lequel on agit --
+/* UNE LIGNE : un objet qu'on regarde et sur lequel on agit --
    un mois, une année, un arrêt, une correction, un mot de passe, une
-   signature. Il y en avait quatre sortes (`.mois-ligne`, `.mois-rang`,
-   `.reglage-rang`, `.identite-rang`), la même boîte blanche sous quatre
-   noms. Une seule : son nom, ce qu'on en sait (qui prend la place), son
+   signature. Une seule boîte : son nom, ce qu'on en sait (qui prend la place), son
    état, ses gestes à droite ; ce qui s'ouvre dessous (une saisie, un
    verdict, un encart) passe à la ligne. */
 .rangs { display: flex; flex-direction: column; }
@@ -626,7 +611,7 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
 /* Les mois de l'Historique : en grille, pour que leurs états et leurs
    documents tombent en colonne d'un mois à l'autre. */
 .rang.mois { display: grid; grid-template-columns: 11rem auto minmax(0, 1fr) auto; }
-.rang.mois .rang-infos { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rang.mois .rang-infos { min-width: 0; }
 .rang.exercice .rang-infos { font-size: 13px; }
 .rang.import .rang-nom { min-width: 220px; }
 /* Signature, tampon, logo : l'image en place, à gauche. */
@@ -645,7 +630,7 @@ details.historique-fiche[open] > summary { margin-bottom: 8px; }
   .rang.mois { grid-template-columns: 1fr auto; }
   .rang.mois .rang-infos { grid-column: 1 / -1; }
 }
-/* UN MOIS DE L'HISTORIQUE SE DÉPLIE (20/10/2026) : la ligne est le `summary`
+/* UN MOIS DE L'HISTORIQUE SE DÉPLIE : la ligne est le `summary`
    d'un `details` ; dessous, la vue technique du mois — ses documents, ses
    envois, et sous chaque envoi ses retours, lus. */
 details.mois-hist { margin-bottom: 8px; }
@@ -714,7 +699,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 }
 /* Le popup du mot de passe passe au-dessus de la boite courante. */
 #voile-mdp { z-index: 55; }
-/* L'envoi refuse d'une fictive ajoutee (ticket #236) : au-dessus de la boite du geste. */
+/* L'envoi refuse d'une fictive ajoutee : au-dessus de la boite du geste. */
 #voile-envoi-refuse { z-index: 56; }
 .boite-mdp { width: 400px; }
 .boite-mdp input[type="password"] { width: 100%; box-sizing: border-box; font-size: 15px; }
@@ -741,7 +726,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 
 /* ------------------------------------------------------- ecrans etroits */
 /* Sous 1100 px, la grille a quatre colonnes ecrase les libelles -- « Jours
-   joues (dans le mois) » se pliait sur cinq lignes. On repasse en colonnes
+   joues (dans le mois) » se plierait sur cinq lignes. On repasse en colonnes
    plus larges plutot que de raccourcir les libelles : un intitule clair vaut
    mieux qu'un intitule qui tient. */
 @media (max-width: 1100px) {
@@ -836,11 +821,15 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .e-mois-paye input { display: block; padding: .3rem .4rem; width: 11rem; }
 .e-faits { margin-top: 8px; display: grid; gap: 8px; }
 .e-fait-groupe { border-left: 2px solid var(--bord); padding-left: 8px; }
+.e-faits-avances[hidden], .e-faits-avances [data-fait][hidden] { display: none; }
+.e-faits-avances summary { font-size: 13px; cursor: pointer; }
+.e-faits-avances [data-fait] { display: block; font-size: 12px; color: var(--discret); max-width: 220px; }
 .e-fait-tete { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
 .fait { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; margin-bottom: 4px; }
 .fait label { font-size: 12px; color: var(--discret); }
 .fait input, .fait select { display: block; padding: .3rem .4rem; }
 .fait input[type="number"] { width: 7rem; }
+input.jour-du-mois { width: 4rem; }
 .fait .f-rubrique { width: 10rem; }
 .fait .retirer-fait { align-self: center; }
 
@@ -877,8 +866,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .rubrique .r-jours-btn {
   font-variant-numeric: tabular-nums; text-align: left; padding: .3rem .5rem;
   border: 1px solid var(--bord); background: var(--carte); color: var(--texte);
-  border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; min-width: 0; font-size: 13px;
+  border-radius: 3px; cursor: pointer;
+  min-width: 0; font-size: 13px;
 }
 .rubrique .r-jours-btn.vide { color: var(--discret); }
 .rubrique .r-jours-btn.planning { border-color: var(--alerte); }
@@ -917,7 +906,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .calendrier .c-jour.lu.hist-joue { background: var(--discret); color: var(--blanc); font-weight: bold; }
 .c-passes { margin-top: 8px; font-size: 12px; display: grid; gap: 3px; align-content: start; }
 .c-passe { display: flex; justify-content: space-between; gap: 8px; }
-/* UN MOIS TENU AVANT PUPPETPAIE (ticket #215) : une carte par paie, comme une
+/* UN MOIS TENU AVANT PUPPETPAIE : une carte par paie, comme une
    paie validée (la ligne d'agenda `.e-resume`), et ses cases sous « Voir les
    cases ». Une carte où l'import n'a pas tout lu porte un trait orange et dit
    ce qui manque. */
@@ -1029,9 +1018,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 }
 
 /* --------------------------------------------- le mois déclaré, EN GROS
-   Ce n'est pas de la décoration. Recopier le mois était le seul geste qu'on
-   ne peut pas faire sans regarder l'écran, et il a été retiré du parcours ;
-   un mot de passe, lui, se tape de mémoire, les yeux ailleurs. Ce bloc porte
+   Ce n'est pas de la décoration : le mot de passe se tape de mémoire, les
+   yeux ailleurs. Ce bloc porte
    donc à lui seul la lecture avant un acte irréversible — d'où sa taille. */
 .mois-gros {
   display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
@@ -1043,9 +1031,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   color: var(--action); text-transform: capitalize;
 }
 
-/* Les ordres de télépaiement, en entier et un par ligne. Résumés en « 5
-   versements », ils ne se relisent plus — et un dépôt réel les déclenche
-   tous. Chacun dit à qui, pour quoi, combien et pour quand (ticket #223) :
+/* Les ordres de télépaiement, en entier et un par ligne : un dépôt réel les
+   déclenche tous. Chacun dit à qui, pour quoi, combien et pour quand :
    `ordres_paiement.rs` le lit, la page l'affiche. */
 table.ordres { width: 100%; margin: 6px 0 8px; font-size: 13px; }
 table.ordres th, table.ordres td { padding: 4px 6px; text-align: left; vertical-align: top;
@@ -1053,7 +1040,7 @@ table.ordres th, table.ordres td { padding: 4px 6px; text-align: left; vertical-
 table.ordres th.nombre, table.ordres td.nombre { text-align: right; white-space: nowrap; }
 table.ordres td.nombre b { font-size: 15px; }
 table.ordres tr:last-child td { border-bottom: none; }
-/* LE TROP-VERSÉ (21/10/2026) : sous l'ordre qu'il concerne, sur toute la largeur utile ; `bordereau::credit` le dit. */
+/* LE TROP-VERSÉ : sous l'ordre qu'il concerne, sur toute la largeur utile ; `bordereau::credit` le dit. */
 table.ordres tr:has(+ tr.credit) td { border-bottom: none; }
 table.ordres tr.credit .encart { margin: 0 0 6px; }
 
@@ -1086,7 +1073,7 @@ pre.reponse {
 @media (max-width: 480px) { .choix:has(.gestes-contrat) { flex-wrap: wrap; } .choix .gestes-contrat { margin-left: 0; } }
 
 /* ------------------------------------------------------- l'écran par engagement
-   Chaque engagement porte désormais son état. Le bandeau est SOUS la ligne
+   Chaque engagement porte son état. Le bandeau est SOUS la ligne
    résolue, et pas au-dessus : on lit d'abord ce qu'on saisit, puis ce qui en
    est parti. L'ordre inverse ferait d'un formulaire un tableau de bord, et
    la saisie est encore le geste principal. */
@@ -1099,13 +1086,8 @@ pre.reponse {
 }
 .etats-absent b { color: var(--texte); }
 
-/* TROIS PETITS CARRÉS SUR UNE LIGNE. « J'imaginais ça en petit, juste un petit
-   carré qui est gris, qui passe au vert ou orange si problème ou pas encore
-   arrivé — ça prend trop de place comme ça » (12/09/2026).
-
-   La version d'avant faisait quatre encadrés en grille, chacun portant son
-   titre, sa date et sa maille : trois lignes de texte par acte, sous CHAQUE
-   engagement. C'était un tableau de bord greffé sur un formulaire. Ce qu'on
+/* TROIS PETITS CARRÉS SUR UNE LIGNE : gris, puis vert, ou orange s'il y a un
+   problème ou si rien n'est encore revenu. Ce qu'on
    demande à cet endroit est un coup d'œil — fait / pas fait — et un coup
    d'œil tient dans un carré de huit pixels. La date et la maille sont dans
    l'infobulle : on les cherche rarement, et on les trouve quand on les
@@ -1155,13 +1137,10 @@ pre.reponse {
 .mot-etat { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--discret); }
 
 /* --------------------------------------------- un engagement validé est vert
-   « On valide, c'est vert, normalement on n'y revient pas, édition bloquée
-   temporairement avec un bouton pour modifier avec avertissement. »
-
-   Le bloc ENTIER change, et pas une pastille de plus : c'est l'état de la
-   paie, pas un détail dedans. Le liseré à gauche porte le message de loin.
-   (La teinte de fond verte est partie avec la ligne d'agenda du 23/09 : la
-   ligne est blanche, voir plus bas.) */
+   On valide, c'est vert, on n'y revient pas ; un bouton le modifie, avec un
+   avertissement. Le bloc ENTIER change, et pas une pastille de plus : c'est
+   l'état de la paie, pas un détail dedans. Le liseré à gauche porte le
+   message de loin ; la ligne est blanche, voir plus bas. */
 .engagement.validee {
   border-color: var(--succes);
   border-left: 4px solid var(--succes);
@@ -1208,10 +1187,9 @@ pre.reponse {
 .e-net b { font-size: 16px; }
 .e-net .e-cout { margin-left: 22px; color: var(--discret); }
 .e-net .e-cout b { color: var(--texte); font-size: 15px; }
-/* Un contrat sur plusieurs mois : un fait, pas une alerte (26/09/2026). Un
-   chevron au bord de la case FERMÉE -- la carte de la paie validée -- (ticket
-   #127, Léandre 15/10 : « juste un petit v tourné, à côté de la case », « sur
-   la case fermée »), à gauche s'il a commencé avant, à droite s'il se
+/* Un contrat sur plusieurs mois : un fait, pas une alerte. Un petit chevron
+   au bord de la case FERMÉE -- la carte de la paie validée --, à gauche s'il
+   a commencé avant, à droite s'il se
    poursuit ; cliquer mène au mois voisin. La case ouverte, en saisie, n'en
    porte pas. Ni rouge ni orange ni vert, ce n'est pas un état. */
 .e-suite:empty { display: none; }
@@ -1229,12 +1207,11 @@ pre.reponse {
 /* La case validée ne montre que son résumé -- et ses chevrons (la règle
    `.validee > :not(.e-resume)` cache le reste). */
 .engagement.validee > button.chevron-pluri { display: flex; }
-#engagements.lecture-seule .chevron-pluri { pointer-events: auto; }
 /* Le nom d'abord : quand le nom et le mot de son état (« importé ») ne tiennent pas
    sur une ligne, le mot passe dessous ; le nom ne se coupe que s'il est plus long
    que la case entière. */
 .carte-nom { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; row-gap: 0; min-width: 0; }
-.carte-nom b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.carte-nom b { max-width: 100%; }
 .e-pied .e-viser-btn { margin-left: auto; }
 .e-pied .lien { font-size: 12px; color: var(--discret); }
 .e-chiffres[hidden], .e-options[hidden] { display: none; }
@@ -1244,9 +1221,8 @@ pre.reponse {
                    margin-bottom: 6px; }
 .e-options-ligne .e-metier-bloc { font-size: 12px; color: var(--discret); min-width: 16rem; }
 /* Ce que l'engagement porte sans que la saisie courante le demande (`CHAMPS_RARES`) : seulement quand il a une valeur. */
-.e-rares[hidden], .e-avant[hidden] { display: none; }
+.e-rares[hidden] { display: none; }
 .e-rares label { font-size: 12px; color: var(--discret); }
-.e-avant { display: inline-flex; gap: 8px; align-items: end; flex-wrap: wrap; }
 /* Le lieu propre à un jour, sous sa ligne de paie, quand une date en dit un. */
 .rubrique .r-lieux-jours { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline;
                            font-size: 12px; }
@@ -1258,7 +1234,7 @@ pre.reponse {
 /* UN ENGAGEMENT VALIDÉ DONT LA PAIE S'EST RECALCULÉE D'ELLE-MÊME : la carte dit quand et pourquoi. */
 .carte-recalcul { grid-column: 1 / -1; margin-top: 4px; }
 .engagement:not(.validee) .resolu,
-.engagement:not(.validee) .etats-qui:not(.plusieurs) { display: none; }
+.engagement:not(.validee) .etats-qui { display: none; }
 @media (max-width: 780px) {
   .engagement:not(.validee) .ligne1 { grid-template-columns: 1fr; }
   .engagement:not(.validee) .rubrique { grid-template-columns: 1fr 1fr; }
@@ -1269,7 +1245,7 @@ pre.reponse {
    Toute la saisie se replie, les états aussi : la ligne les porte. */
 .engagement.validee { padding: 0; background: var(--carte); }
 /* Le mois se précharge : ses blocs n'apparaissent qu'une fois leurs états
-   posés, repliés s'ils sont validés (ticket #113, voir chargerMois). */
+   posés, repliés s'ils sont validés (voir chargerMois). */
 #engagements.en-lecture > .engagement { display: none; }
 .engagement.validee > :not(.e-resume) { display: none; }
 .e-resume:empty { display: none; }
@@ -1289,16 +1265,15 @@ pre.reponse {
   border-right: 1px solid var(--bord); line-height: 1.1; padding: 2px 0;
 }
 .carte-quand b { font-size: 19px; color: var(--texte); white-space: nowrap; }
-/* Des jours épars (« 1 · 2 · 7 · 14 · 16 ») ne tenaient pas dans la colonne
-   et passaient sous le nom (01/10/2026) : plus petits, sur deux lignes. */
+/* Des jours épars (« 1 · 2 · 7 · 14 · 16 ») ne tiennent pas dans la colonne :
+   plus petits, sur deux lignes, plutôt que sous le nom. */
 .carte-quand b.epars { font-size: 13px; white-space: normal; text-align: center;
                        padding: 0 6px; }
 .carte-quand span { font-size: 11px; color: var(--discret); text-transform: uppercase;
                     letter-spacing: .5px; }
 .carte-qui { display: flex; flex-direction: column; min-width: 0; }
 .carte-qui b { font-size: 14px; }
-.carte-qui .discret { font-size: 12px; white-space: nowrap; overflow: hidden;
-                      text-overflow: ellipsis; }
+.carte-qui .discret { font-size: 12px; }
 .carte-actes .etats-actes { margin: 0; }
 .carte-net { font-size: 15px; font-weight: bold; white-space: nowrap;
              min-width: 88px; text-align: right; }
@@ -1319,7 +1294,7 @@ pre.reponse {
 
 /* Un engagement validé ne répète pas sa saisie : la ligne « bulletin 34/2026 ·
    contrat … · 1 Cachet · brut 130,00 € » dit déjà tout, et les champs fermés
-   au-dessus alourdissaient la page (l'éditeur, 13/09/2026). Ils sont masqués,
+   au-dessus alourdiraient la page. Ils sont masqués,
    pas retirés : « Modifier… » retire la classe et ils reviennent tels quels. */
 .engagement.validee .ligne1 > *,
 .engagement.validee .rubriques,
@@ -1339,8 +1314,14 @@ pre.reponse {
 .rappel-question { font-size: 14px; margin: 4px 0; }
 .rappel .actions { margin-top: 10px; }
 .rappel-liste { margin: 6px 0 0 18px; font-size: 13px; }
+/* « Pour démarrer » : une case par ligne, remplie sur place (`rappels.js`). */
+.demarrage-liste .rappel-liste { list-style: none; margin-left: 0; padding-left: 0; }
+.demarrage-ligne { margin: 0 0 12px; }
+.demarrage-ligne .demarrage-case .champ { margin: 0; }
+.demarrage-ligne .actions { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.demarrage-liste h4 { margin: 14px 0 6px; }
 
-/* L'échéancier de l'ouverture (23/09/2026) : la date, la bienvenue, ce qui
+/* L'échéancier de l'ouverture : la date, la bienvenue, ce qui
  * est à faire ce mois-ci, l'année qui vient repliée. Sobre, comme les fiches. */
 .accueil { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--bord); }
 .accueil-date { margin: 0; color: var(--discret); font-size: 13px; }
@@ -1362,7 +1343,7 @@ table.compta { border-collapse: collapse; font-size: 12px; width: 100%; }
 table.compta th, table.compta td { padding: 3px 6px; border-bottom: 1px solid var(--bord); text-align: left; }
 table.compta td.r, table.compta th.r { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* ---------------------------------- corriger un mois depose (18/09/2026)
+/* ---------------------------------- corriger un mois depose
    L'ecran vit dans l'Historique, et emprunte tout ce qui existe deja :
    `.rang` pour un mois et pour une correction, `.encart.attention`
    pour l'avertissement, `table.compta` pour l'avant / apres. Ne restent que
@@ -1374,7 +1355,7 @@ table.compta td.r, table.compta th.r { text-align: right; font-variant-numeric: 
    dans la saisie, mais sur la largeur de la boite. */
 #cor-lignes { margin: 10px 0; }
 /* La grille d'une ligne (jours, quantite, rubrique, taux, lieu) ne tient pas dans les 560 px d'une boite : le taux et
-   le lieu s'y ecrasaient (21/10/2026). La boite d'une correction prend la largeur de la saisie. */
+   le lieu s'y ecrasaient. La boite d'une correction prend la largeur de la saisie. */
 .boite:has(#cor-lignes) { width: 880px; }
 /* Une ligne sur deux rangs, chaque champ a la largeur de ce qu'il porte : les jours, la quantite, la rubrique, le taux
    au premier ; le lieu, toute la largeur, au second. */
@@ -1403,7 +1384,7 @@ table.compta td.r, table.compta th.r { text-align: right; font-variant-numeric: 
 .e-contrat-champs label[hidden] { display: none; }
 #config-formulaire .champ[hidden], #config-formulaire .encart[hidden] { display: none; }
 
-/* LES TROIS NOMBRES D'UN ENGAGEMENT (22/09/2026) : net, brut, cout. Ce sont
+/* LES TROIS NOMBRES D'UN ENGAGEMENT : net, brut, cout. Ce sont
    des cases et non du texte, parce qu'on y ECRIT -- viser un total, et le
    taux se recalcule. La note dit ce qui a ete atteint, sur toute la largeur. */
 .e-chiffres {
@@ -1419,7 +1400,7 @@ table.compta td.r, table.compta th.r { text-align: right; font-variant-numeric: 
 /* Rouvrir un mois ferme n'est pas une action ordinaire : le bouton le dit. */
 button.secondaire.alerte { color: var(--alerte); border-color: var(--alerte); }
 
-/* ------------------------------------------------- les exports (22/09/2026)
+/* ------------------------------------------------- les exports
    L'onglet n'invente presque rien : le formulaire emprunte `.champs` et
    `.champ` a la configuration, le tableau `table.compta` a l'export compta.
    Ne restent que les deux lignes de total, qui doivent se distinguer d'une
@@ -1434,7 +1415,7 @@ table.compta tr.total-general td {
   font-size: 13px;
 }
 
-/* L'apercu d'une identite : signature, tampon, logo (22/09/2026).
+/* L'apercu d'une identite : signature, tampon, logo.
    Fond blanc impose -- une signature scannee est souvent transparente, et
    sur un fond sombre elle disparaitrait. On voit ce qui part sur le papier,
    pas ce que le theme de la page en fait. */
@@ -1459,7 +1440,7 @@ table.compta tr.total-general td {
 pre.courriel { white-space: pre-wrap; font: 12px/1.5 Consolas, monospace;
   background: var(--carte); border: 1px solid var(--bord); padding: 10px; }
 
-/* LE VOILE DU DEMARRAGE : la page ne se montre qu'une fois peinte, d'un coup (ticket #244) ; s'il faut attendre, la
+/* LE VOILE DU DEMARRAGE : la page ne se montre qu'une fois peinte, d'un coup ; s'il faut attendre, la
    phrase du moteur, sans roue. */
 #chargement { position: fixed; inset: 0; z-index: 9999; display: flex;
   align-items: center; justify-content: center;
@@ -1470,7 +1451,7 @@ pre.courriel { white-space: pre-wrap; font: 12px/1.5 Consolas, monospace;
 .copie-dev { display: none; }
 body[data-copie="1"] .copie-dev { display: block; font-size: 11px; font-weight: bold;
   color: var(--blanc); background: var(--copie); padding: 1px 6px; border-radius: 3px; margin-top: 2px; }
-/* Le code de l'accueil (25/09/2026) : une compagnie qui n'est pas reelle --
+/* Le code de l'accueil : une compagnie qui n'est pas reelle --
    la copie de test, une fictive -- a le bandeau HACHURE, bleu clair et blanc,
    comme sa tuile. Sa couleur ne se choisit pas. */
 body[data-copie="1"] .bandeau { background: repeating-linear-gradient(135deg,
@@ -1483,13 +1464,8 @@ body[data-copie="1"] .bandeau { background: repeating-linear-gradient(135deg,
 .casc-option.principale { border-width: 2px; border-color: var(--action); }
 .casc-option h5 { margin: 0 0 8px; font-size: 14px; }
 @media (max-width: 760px) { .casc-choix { grid-template-columns: 1fr; } }
-/* LA FICHE SALARIE (23/09/2026). La mention d'un champ qu'on peut laisser
-   vide ; le haut de fiche, son nom et le bouton d'export sur une ligne ;
+/* LA FICHE SALARIE. Le haut de fiche, son nom et le bouton d'export sur une ligne ;
    la demande par courriel d'une fiche neuve. */
-.facultatif {
-  font-size: 11px; font-weight: normal; color: var(--discret);
-  font-style: italic; margin-left: 4px;
-}
 .entete-fiche {
   display: flex; align-items: baseline; justify-content: space-between;
   gap: 12px; flex-wrap: wrap;
@@ -1503,7 +1479,7 @@ button.petit { font-size: 12px; padding: 4px 10px; }
 section.bloc > .encart { margin-bottom: 10px; }
 
 
-/* LA COLONNE DU MOIS (23/09/2026). « Le mois » : deux nombres et une ligne
+/* LA COLONNE DU MOIS. « Le mois » : deux nombres et une ligne
    par salarié. « Les étapes » : un parcours numéroté, l'étape suivante seule
    dépliée. Voir vueApercu() et dessinerActions(). */
 .mois-chiffres { display: flex; gap: 28px; margin: 4px 0 12px; }
@@ -1582,14 +1558,13 @@ section.bloc > .encart { margin-bottom: 10px; }
 .etapes .arbre .vert { stroke: var(--succes); }
 .etapes .arbre .orange { stroke: var(--alerte); }
 /* l'annule-et-remplace qu'aucune modification n'exige : un lien discret sous le panneau, hors de l'arbre. */
-.etape-second { display: block; margin: -10px 0 18px; padding: 0 2px; font-size: 12px; text-align: left; }
 .reprise { margin: 0 0 14px; font-size: 12px; }
 .reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
                      border-top: 1px solid var(--bord); }
 .reprise[open] > summary { margin-bottom: 8px; }
 
 
-/* L'ONGLET EXPORTS (23/09/2026) : deux cartes, un état ou les documents
+/* L'ONGLET EXPORTS : deux cartes, un état ou les documents
    d'un salarié ; les questions sur une rangée ; des cases simples. */
 .carte-export { background: var(--carte); border: 1px solid var(--bord);
                 border-radius: 4px; padding: 16px 20px; margin-bottom: 18px; }
@@ -1600,7 +1575,7 @@ section.bloc > .encart { margin-bottom: 10px; }
 .carte-export > summary h2::before { content: "▸ "; color: var(--discret); }
 .carte-export[open] > summary h2::before { content: "▾ "; }
 .carte-export[open] > summary { margin-bottom: 12px; }
-/* Le calendrier des exports (08/10/2026) : une ligne par année, douze mois. */
+/* Le calendrier des exports : une ligne par année, douze mois. */
 .calendrier { display: flex; flex-direction: column; gap: 4px; }
 .calendrier .rangee { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; }
 .calendrier button { font: inherit; font-size: 12px; padding: 3px 6px; border: 1px solid var(--bord);
@@ -1615,14 +1590,14 @@ section.bloc > .encart { margin-bottom: 10px; }
           gap: 2px 18px; margin-top: 4px; }
 .d-tout { margin-left: 8px; font-size: 12px; }
 
-/* LES FICHES ARCHIVÉES, CACHÉES (23/09/2026) : une case sous les fiches
+/* LES FICHES ARCHIVÉES, CACHÉES : une case sous les fiches
    actives les montre. Voir dessinerConfig(). */
 label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--bord); }
 .montrer-archives + .rangs { margin-top: 10px; }
 
 
 
-/* LA COMPAGNIE FICTIVE QUI EXPLIQUE (27/09/2026) : le courriel tel que le
+/* LA COMPAGNIE FICTIVE QUI EXPLIQUE : le courriel tel que le
    salarié le reçoit, et le circuit en bulles. */
 .fictive-fenetre { max-width: 760px; }
 .fictive-bulles { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 12px 0; }
@@ -1634,7 +1609,7 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
   border-radius: 50%; background: var(--bord, #d0d0d0); font-weight: bold; font-size: 12px; }
 .fictive-bulle.actif { border-color: currentColor; font-weight: bold; }
 .fictive-bulle.fait span { background: #2e7d32; color: #fff; }
-.fictive-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; overflow: hidden; }
+.fictive-courriel { border: 1px solid var(--bord, #d0d0d0); border-radius: 6px; }
 .fictive-entete { padding: 8px 12px; font-size: 13px; line-height: 1.6; background: rgba(0,0,0,.03);
   border-bottom: 1px solid var(--bord, #d0d0d0); overflow-wrap: anywhere; }
 .fictive-entete span { display: inline-block; min-width: 88px; color: var(--discret, #777); }
@@ -1651,16 +1626,16 @@ label.coche.montrer-archives { margin-top: 16px; padding-top: 10px; border-top: 
          padding: 8px; border-radius: 6px; margin: 6px 0 0; }
 .detail-saisie { margin: 0 0 10px; line-height: 1.5; }
 
-/* LE RECAPITULATIF DE LA DSN (30/09/2026) : les contrats lus dans le
+/* LE RECAPITULATIF DE LA DSN : les contrats lus dans le
    fichier, en tete de la boite de depot ; les ordres de paiement replies. */
 table.recap-dsn { font-size: 12.5px; margin: 6px 0 10px; }
 table.recap-dsn td, table.recap-dsn th { padding: 3px 6px; }
 table.recap-dsn tr.ecart td { background: var(--fond); }
-/* Un contrat qui n'est dans le fichier que pour sa correction (21/10/2026) : la ligne le dit elle-même, en italique. */
+/* Un contrat qui n'est dans le fichier que pour sa correction : la ligne le dit elle-même, en italique. */
 table.recap-dsn tr.correction td { font-style: italic; color: var(--discret); }
 table.recap-dsn td.dates { white-space: nowrap; }
 table.recap-dsn td.num, table.recap-dsn td.fin { white-space: nowrap; }
-/* La boîte de dépôt de la DSN s'élargit pour que son récapitulatif tienne sans défilement (21/10/2026). */
+/* La boîte de dépôt de la DSN s'élargit pour que son récapitulatif tienne sans défilement. */
 .boite:has(table.recap-dsn) { width: 800px; }
 ul.absents { margin: 4px 0 8px; padding-left: 18px; }
 details.replie { margin: 10px 0; }
@@ -1670,7 +1645,7 @@ details.replie > summary { cursor: pointer; color: var(--discret); font-size: 13
 .ligne-champs { display: flex; gap: 14px; flex-wrap: wrap; }
 .ligne-champs label { flex: 1 1 180px; }
 
-/* L'onglet Métiers (30/09/2026) : une famille par tiroir, les métiers en
+/* L'onglet Métiers : une famille par tiroir, les métiers en
    colonnes, cochés ou non. */
 .metiers-outils { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 8px 0 14px; }
 .metiers-outils input[type="search"] { flex: 1 1 240px; max-width: 360px; }
@@ -1679,7 +1654,7 @@ details.replie > summary { cursor: pointer; color: var(--discret); font-size: 13
 .metiers-colonnes { columns: 3 220px; column-gap: 20px; margin-top: 8px; }
 .metiers-colonnes label.coche { break-inside: avoid; }
 
-/* « Tout cocher », en tête d'une liste de choix (30/09/2026). */
+/* « Tout cocher », en tête d'une liste de choix. */
 .tout-cocher { margin: 10px 0 -4px; padding-left: 13px; }
 
 /* Le coût de l'année, en tête d'une fiche salarié ou spectacle. */
@@ -1695,7 +1670,7 @@ button.signaler:hover { color: var(--texte); }
 .sg-vignette { position: relative; }
 .sg-vignette img { display: block; max-width: 140px; max-height: 90px;
                    border: 1px solid var(--discret); border-radius: 3px; }
-/* La place d'une capture qui se dessine encore (#253) : la boîte revient tout de suite, l'image suit. */
+/* La place d'une capture qui se dessine encore : la boîte revient tout de suite, l'image suit. */
 .sg-vignette.sg-en-cours { display: flex; align-items: center; justify-content: center; width: 140px; height: 90px;
                            border: 1px dashed var(--discret); border-radius: 3px; font-size: 12px; color: var(--discret); }
 .sg-retirer { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px;
@@ -1708,14 +1683,14 @@ button.signaler:hover { color: var(--texte); }
 #sg-pre { margin-top: 12px; max-height: 40vh; overflow: auto; }
 /* La boite reduite : une pastille en bas a droite, au-dessus de tout sauf
    des boites ouvertes. */
-/* LE BOUTON PAR-DESSUS LE VOILE (ticket #103) : celui du bandeau est sous le
+/* LE BOUTON PAR-DESSUS LE VOILE : celui du bandeau est sous le
    voile, et le clic qui le visait tombait sur le voile, qui fermait la
    fenêtre ouverte. Celui-ci est DANS le voile : il ne ferme rien. */
 button.signaler.sur-voile { position: absolute; top: 10px; right: 16px;
                             color: #fff; background: rgba(0,0,0,.35); border-radius: 4px; }
 button.signaler.sur-voile:hover { color: #fff; background: rgba(0,0,0,.55); }
 .voile:has(#sg-boite) #signaler-voile { display: none; }
-/* UN SEUL « Un problème, une idée ? » A LA FOIS (ticket #244) : le voile
+/* UN SEUL « Un problème, une idée ? » A LA FOIS : le voile
    ouvert, celui du bandeau (sous le voile, inaccessible) se tait ; celui du
    voile le remplace, au même coin. */
 body:has(#voile:not(.cachee) #signaler-voile) #signaler { visibility: hidden; }
@@ -1733,7 +1708,7 @@ body:has(#voile:not(.cachee) #signaler-voile) #signaler { visibility: hidden; }
 .sg-reponse { margin: 6px 0 0; padding: 8px 10px; border-radius: 4px; white-space: pre-line;
               background: rgba(46, 106, 87, .08); }
 
-/* CE QUI S'OUVRE D'UN CLIC SUR LUI-MÊME (ticket #218, `rendreOuvrable` dans
+/* CE QUI S'OUVRE D'UN CLIC SUR LUI-MÊME (`rendreOuvrable` dans
    js/boites.js) : une carte de paie validée, la ligne d'une fiche, la ligne
    d'un mot de passe. La main et un fond qui s'éclaire disent qu'on peut
    cliquer ; ce qui, dedans, fait autre chose (bouton, lien, pastille) garde
@@ -1743,7 +1718,7 @@ body:has(#voile:not(.cachee) #signaler-voile) #signaler { visibility: hidden; }
 .e-resume.ouvrable:hover { background: var(--carte); }
 .ouvrable:focus-visible { outline: 2px solid var(--action); outline-offset: 1px; }
 
-/* LES IMPRÉVUS (15/10/2026) — js/imprevus.js. Discrets : ils sont rares.
+/* LES IMPRÉVUS — js/imprevus.js. Discrets : ils sont rares.
    La porte (« Un imprévu… », « … ») ouvre un petit menu ; sous la carte, une
    ligne par imprévu ; dans la colonne, une ligne par chose due ; dans le
    dossier du salarié, son histoire. */
@@ -1787,7 +1762,8 @@ body:has(#voile:not(.cachee) #signaler-voile) #signaler { visibility: hidden; }
 .du-butoir { font-size: 12px; color: var(--discret); }
 .du-gestes { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 .du-manque { margin-top: 4px; }
-.du-manque > summary { color: var(--alerte); }
+.du-manque p { margin: 2px 0; }
+.du-manque > p:first-child { color: var(--alerte); }
 details.pourquoi { flex-basis: 100%; font-size: 12px; color: var(--discret); }
 details.pourquoi > summary { cursor: pointer; display: inline; list-style: none; text-decoration: underline dotted; }
 details.pourquoi > summary::-webkit-details-marker { display: none; }
@@ -1805,12 +1781,6 @@ details.pourquoi p, details.pourquoi ul { margin: 4px 0; }
 .fiche-imprevus-tete h3 { margin: 0; font-size: 14px; }
 .fiche-imprevus-tete .lien { font-size: 12px; color: var(--discret); }
 
-/* L'INDICATEUR DE LA MISE À JOUR, DANS LA PAGE D'UNE COMPAGNIE (#253) : à sa
-   place, sous ce qui défile (`main`), et plus par-dessus — « Logiciel à jour »
-   recouvrait le net d'une carte. Toujours en bas à gauche (#210) ; l'accueil
-   des compagnies, qui ne lit pas cette feuille, le garde flottant. */
-body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 4px 12px; padding: 2px 8px; background: none; }
-
 /* Le guide de l'import (`vueGuideImport`) : une pièce, ce qu'elle est, où la trouver, ce qui s'en lit. */
 .guide-pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin: 0 0 12px; }
 .guide-piece { border: 1px solid var(--bord); border-radius: 4px; padding: 10px 12px; background: var(--carte, #fff); }
@@ -1822,3 +1792,9 @@ body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 
 .modele-contrat input[type=file] { display: none; }
 .modele-contrat .modele-editeur[hidden] { display: none; }
 .modele-champs table code { white-space: nowrap; }
+
+/* Une compagnie fictive : ce que ses boutons envoient est joué. */
+body.fictive button.envoi::after { content: " — simulé"; }
+
+/* La première lettre en capitale, quand une phrase du moteur ouvre un paragraphe. */
+.capitale::first-letter { text-transform: uppercase; }

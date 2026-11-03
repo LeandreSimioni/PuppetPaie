@@ -46,7 +46,7 @@ impl Veille {
     }
 
     fn derniere(&self) -> Value {
-        route(&self.racine, "ouverture-derniere", &json!({})).unwrap_or_else(|_| json!({}))
+        crate::compagnie::ouverture::derniere_ouverture(&self.racine)
     }
 
     /// Ou en est le passage, sans rien lancer (`veille-etape`) : une lecture de drapeaux et d'un petit fichier, que la page
@@ -62,15 +62,18 @@ impl Veille {
     pub fn etat(&self) -> Value {
         let coffre = route(&self.racine, "coffre-etat", &json!({})).unwrap_or_else(|_| json!({}));
         let dernier = self.dernier.lock().ok().and_then(|d| d.clone()).unwrap_or_else(|| self.derniere());
+        let prochain = self.prochain_dans();
+        let fictive = crate::compagnie::bridage::branchement(&self.racine).joue();
         json!({
+            "dit": dit_du_bandeau(&dernier, &prochain, fictive),
             "en_cours": self.en_cours.load(Ordering::SeqCst),
             "sauvegarde_en_cours": self.sauvegarde_en_cours.load(Ordering::SeqCst),
             "etape": self.etape()["etape"],
             "minutes": self.minutes,
-            "prochain_dans": self.prochain_dans(),
+            "prochain_dans": prochain,
             "dernier": dernier,
             "erreur": self.erreur.lock().map(|e| e.clone()).unwrap_or_default(),
-            "sauvegarde": route(&self.racine, "sauvegarde-derniere", &json!({})).unwrap_or(Value::Null),
+            "sauvegarde": crate::compagnie::sauvegarde::derniere(&self.racine).en_json(),
             "coffre": coffre.get("services").cloned().unwrap_or_else(|| json!([])),
             "mot_de_passe_pose": coffre.get("mot_de_passe_pose").cloned().unwrap_or(Value::Bool(false)),
         })
@@ -159,4 +162,62 @@ impl Veille {
         self.arreter();
         let _fini = self.tour_unique.lock().unwrap_or_else(|p| p.into_inner());
     }
+}
+
+/// « à 16:28 » le jour du passage, « le 23/09 à 16:28 » un autre jour : l'heure d'un passage (`JJ/MM/AAAA HH:MM`, ou
+/// ISO), au jour de l'horloge de Paris (celle d'une fictive au banc comprise).
+fn heure_du_passage(quand: &str) -> String {
+    let c: Vec<&str> = quand.split(|x: char| !x.is_ascii_digit()).filter(|x| !x.is_empty()).collect();
+    let (an, mo, jo, h, mi) = match c.as_slice() {
+        [a, m, j, h, mi, ..] if a.len() == 4 => (*a, *m, *j, *h, *mi),
+        [j, m, a, h, mi, ..] if a.len() == 4 => (*a, *m, *j, *h, *mi),
+        _ => return if quand.is_empty() { String::new() } else { format!("le {}", quand) },
+    };
+    let aujourdhui = socle::paris::maintenant();
+    if aujourdhui.get(..10) == Some(&format!("{}-{}-{}", an, mo, jo)) {
+        format!("à {}:{}", h, mi)
+    } else {
+        format!("le {}/{} à {}:{}", jo, mo, h, mi)
+    }
+}
+
+/// CE QUE LE BANDEAU DIT (`dit` de l'etat de la veille) : l'etat en une phrase, un service muet, ce qu'il y a a poser et
+/// ou, les retours nouveaux, ce que l'horloge d'une fictive a fait, et ce que dit un passage en cours ou fini. La page
+/// n'en ecrit rien.
+fn dit_du_bandeau(d: &Value, prochain: &Value, fictive: bool) -> Value {
+    let mot = crate::routes::mot;
+    let quand = heure_du_passage(&mot(&d["quand"]));
+    let hors_ligne = d["hors_ligne"].as_bool() == Some(true);
+    let retours = !mot(&d["retours"]).is_empty();
+    let dans = prochain.as_u64();
+    let etat = if hors_ligne && !retours {
+        format!("Pas de réponse au relevé {} : vérifier la connexion{}", quand, dans.map(|n| format!(" ; nouvel essai dans {} min", n)).unwrap_or_default())
+    } else {
+        format!("À jour, relevé {}{}", quand, dans.map(|n| format!(" · prochain relevé dans {} min", n)).unwrap_or_default())
+    };
+    let n_muets = d["injoignables"].as_array().map_or(0, Vec::len);
+    let muets = if hors_ligne && retours {
+        json!(format!("{} (détail au survol) : nouvel essai au prochain relevé", if n_muets > 1 { format!("{} services n'ont pas répondu", n_muets) } else { "un service n'a pas répondu".to_string() }))
+    } else {
+        Value::Null
+    };
+    let nouveaux = d["nouveaux"].as_u64().unwrap_or(0);
+    let horloge = d["horloge"].as_array().map_or(0, Vec::len);
+    json!({
+        "etat": etat,
+        "muets": muets,
+        "a_poser": {
+            "net-entreprises": ["Les retours de DSN ne se relèvent pas seuls : le mot de passe net-entreprises n'est pas posé.", "Poser le mot de passe"],
+            "urssaf": ["Les retours de DPAE ne se relèvent pas seuls : le mot de passe Urssaf (DPAE) n'est pas posé.", "Poser le mot de passe"],
+            "google": ["La sauvegarde ne part pas : aucun Drive n'est lié.", "Lier le Drive"],
+        },
+        "retours": if nouveaux > 0 { json!(format!("{} retour{} nouveau{} : les lire dans l'Historique", nouveaux, if nouveaux > 1 { "s" } else { "" }, if nouveaux > 1 { "x" } else { "" })) } else { Value::Null },
+        "fictive": if fictive { json!("compagnie fictive : pas de sauvegarde, pourquoi ?") } else { Value::Null },
+        "horloge": if fictive && horloge > 0 { json!(format!("pendant votre absence, la compagnie a travaillé ({}) : voir", horloge)) } else { Value::Null },
+        "horloge_titre": "Pendant votre absence",
+        "horloge_intro": "L'administrateur fictif a fait ce qui tombait, chacun à sa date limite : le 1er du mois, le mois s'écrit ; le jour d'une embauche, sa DPAE part ; à l'échéance, la DSN. Tout est joué, rien n'a quitté le poste, et le journal de chaque mois le montre.",
+        "en_cours": "Relevé des retours…",
+        "sauvegarde": "Sauvegarde…",
+        "termine": "Relevé terminé.",
+    })
 }

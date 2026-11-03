@@ -41,10 +41,10 @@ struct Atteste {
 
 /// Lecture pure.
 fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
-    let dossier = ctx.racine.join("retours");
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    let dossier = ctx.racine.join(crate::retours::RETOURS);
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
-        .map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?
+        .map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_file())
         .map(|e| e.file_name().to_string_lossy().into_owned())
@@ -191,9 +191,9 @@ fn reprise_et_incidents(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &st
         journal::noter(&ctx.racine, &note, maintenant).map_err(socle::echec::Echec::from)?;
     }
     // Les retours deja archives se rangent en face des lignes qui viennent d'apparaitre -- par le flux.
-    let p = ctx.racine.join("retours").join("journal.json");
+    let p = ctx.racine.join(crate::retours::RETOURS).join("journal.json");
     if p.exists() {
-        let texte_j = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let texte_j = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let retours: Value = serde_json::from_slice(&texte_j).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
         let r = crate::etats::rattacher_retours_ecrits(&ctx.racine, &retours);
         incidents.extend(r.incidents);
@@ -227,7 +227,7 @@ fn salarie_par_nir(ctx: &Contexte) -> Vec<(String, String)> {
     v
 }
 
-/// `_flux_du_nom` : `20260904-224552_nature41_WSxxxx.txt` -> `WSxxxx`.
+/// `20260904-224552_nature41_WSxxxx.txt` -> `WSxxxx`.
 fn flux_du_nom(nom: &str) -> String {
     let reste = nom.splitn(3, '_').last().unwrap_or(nom);
     reste.rsplit_once('.').map_or(reste, |(a, _)| a).to_string()
@@ -236,7 +236,7 @@ fn flux_du_nom(nom: &str) -> String {
 /// Les DPAE dont `retours/dpae/` porte le certificat (nature 41). Une entree par FLUX, avec
 /// les embauches qu'il declare ; les NIR qu'on ne sait rattacher a aucune fiche sont DITS, jamais devines. LECTURE PURE.
 pub fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
-    let dossier = ctx.racine.join("retours").join("dpae");
+    let dossier = ctx.racine.join(crate::retours::RETOURS_DPAE);
     let par_nir = salarie_par_nir(ctx);
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
         .map(|l| l.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("nature41")).collect())
@@ -286,9 +286,12 @@ pub fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
     (sortie, inconnus)
 }
 
+
 /// Remet au journal les DPAE que les certificats de l'Urssaf attestent. Memes formes
 /// et memes regles que la reprise DSN : `ecrire` a faux par defaut (elle DIT), idempotente par le flux, chaque ligne porte `origine`.
 /// Rend `{"trouves", "ajoutes", "deja", "inconnus", "ecrit"}`. Aucun reseau, aucun depot, pas de mot de passe.
+/// Elle sert l'outil de l'atelier `moteur journal --dpae` (`moteur::atelier::outils::journal`) : pas un geste de l'ecran.
+#[cfg(feature = "atelier")]
 pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -> R<Value> {
     let (attestees, inconnus) = embauches_attestees(ctx);
     let connus: Vec<String> = journal::lire(&ctx.racine, None, None, false)
@@ -298,7 +301,7 @@ pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -
         .collect();
 
     // Le bilan XML du meme flux, quand il est la : il porte l'idflux ENTIER et dit si le depot etait reel ou de test.
-    let dossier = ctx.racine.join("retours").join("dpae");
+    let dossier = ctx.racine.join(crate::retours::RETOURS_DPAE);
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
         .map(|l| l.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".xml")).collect())
         .unwrap_or_default();

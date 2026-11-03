@@ -5,14 +5,14 @@
 //!
 //! LA SAISIE REFAITE : le salarie (sa fiche, a la date de la periode ; le statut, la qualite de cadre et l'emploi que
 //! le bulletin imprime passent devant les siens), le spectacle que le bulletin nomme, la nature que la DSN ou l'AEM atteste (muette : un CDDU, regle 6), les lignes de remuneration que le
-//! bulletin imprime, par leur rubrique du catalogue (quantite, taux, heures), aux jours qu'il dit travailles (sa periode,
-//! quand elle tient en un jour et qu'il n'en imprime pas), payee le
+//! bulletin imprime, par leur rubrique du catalogue (quantite, taux, heures), aux jours qu'il dit travailles (a defaut,
+//! autant de jours de sa periode qu'il en compte : `comparer_une`), payee le
 //! jour du versement. Elle se calcule comme la validation la calculerait (`charger_donnees`), avec les baremes et la
 //! configuration a la date de la periode ; une compagnie qui n'a pas encore pose son taux AT/MP de l'annee lit celui que
 //! le bulletin applique (`Contexte::avec_le_taux_atmp_lu`).
 //!
-//! LA COMPARAISON, PAR COTISATION : chaque ligne de cotisation du bulletin importe porte la cotisation que la table de
-//! lecture lui rattache (`rattacher`, par son libelle) ; chaque ligne de la paie calculee, la sienne (`cotisation_de`).
+//! LA COMPARAISON, PAR COTISATION : chaque ligne de cotisation du bulletin importe porte la cotisation que l'import lui a
+//! donnee (`cotisation`, par son libelle) ; chaque ligne de la paie calculee, la sienne (`cotisation_de`).
 //! Plusieurs lignes d'une meme cotisation s'additionnent (les tranches de l'Apec, les contributions de « Autres charges
 //! dues par l'employeur ») ; leur base et leurs taux ne se comparent que quand chaque cote n'en a qu'une. Un bulletin au
 //! modele de l'arrete du 25/02/2016 (art. 3) range la caisse des Conges Spectacles dans « Autres charges dues par
@@ -171,19 +171,22 @@ fn texte(o: &Map<String, Value>, k: &str) -> Option<String> {
     o.get(k).filter(|x| vrai(x)).map(en_texte)
 }
 
-/// Les comparaisons de chaque paie de l'engagement importe `imp`, mois par mois. `rattacher` : la cotisation que la
-/// table de lecture rattache a un libelle de cotisation imprime ; `deja` : la paie de cette empreinte (`empreinte`) est
+/// Les comparaisons de chaque paie de l'engagement importe `imp`, mois par mois. `deja` : la paie de cette empreinte (`empreinte`) est
 /// deja comparee, elle ne se compare pas deux fois.
-pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option<String>, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
-    let brut = &imp.objet().brut;
+pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
+    let brut = imp.objet().champs();
     let contrat = imp.contrat();
-    let nature = contrat.and_then(|c| texte(c, "nature")).or_else(|| texte(brut, "nature"));
+    let nature = imp.nature();
     // UN CONTRAT DONT LA NATURE RESTE A DIRE (`nature_a_dire`, celui d'un permanent : `import::nature`) ne se compare
     // pas encore : muet, il se calculerait en contrat d'usage (regle 6). Il se compare une fois sa nature dite.
-    if contrat.is_some_and(|c| c.get("nature_a_dire").is_some_and(vrai)) {
+    if imp.a_dire() {
         return Vec::new();
     }
-    imp.paies()
+    let paies = imp.paies();
+    // Le nombre de jours travailles que le bulletin compte (son cumul « Jours ») : celui que la paie du mois porte (le
+    // mois d'un permanent), sinon celui du contrat quand il n'a qu'une paie.
+    let du_contrat = contrat.and_then(|c| c.get("jours")).and_then(Value::as_i64).filter(|_| paies.len() == 1);
+    paies
         .into_iter()
         .filter_map(|(mois, p)| {
             let empreinte = empreinte(imp, &mois, p);
@@ -203,7 +206,8 @@ pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option
                 a_refaire: false,
                 non_rattachees: Vec::new(),
             };
-            c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), rattacher, &mut c);
+            let jours_comptes = p.get("jours").and_then(Value::as_i64).or(du_contrat);
+            c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), jours_comptes, &mut c);
             Some(c)
         })
         .collect()
@@ -215,7 +219,7 @@ fn comparer_une(
     mois: &str,
     p: &Map<String, Value>,
     nature: Option<&str>,
-    rattacher: &dyn Fn(&str) -> Option<String>,
+    jours_comptes: Option<i64>,
     c: &mut Comparaison,
 ) -> Result<Vec<Ecart>, String> {
     let annee = mois.get(..4).unwrap_or("");
@@ -248,8 +252,8 @@ fn comparer_une(
     // notifie. L'AT/MP n'est alors pas compare : il est l'entree.
     let an: i32 = annee.parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mut atmp_imprime: Option<(Option<Decimal>, Option<Decimal>, Option<Decimal>)> = None;
-    if !racine.join("config").join("baremes").join(format!("{}.json", annee)).exists() {
-        let ligne = cotisations.iter().find(|l| l.get("libelle").map(en_texte).is_some_and(|x| rattacher(&x).as_deref() == Some("atmp")));
+    if !racine.join(droit::contexte::BAREMES).join(format!("{}.json", annee)).exists() {
+        let ligne = cotisations.iter().find(|l| l.get("cotisation").and_then(Value::as_str) == Some("atmp"));
         atmp_imprime = ligne
             .map(|l| (decimal(l.get("taux_employeur")), decimal(l.get("montant_employeur")), decimal(l.get("base"))))
             .filter(|(t, m, _)| t.is_some() || m.is_some_and(|m| !m.is_zero()));
@@ -270,12 +274,30 @@ fn comparer_une(
             j = j.plus_jours(1)?;
         }
     }
-    // Un bulletin qui n'imprime pas ses jours travailles, sur une periode d'un seul jour : ce jour est le jour travaille.
-    // Une periode plus longue ne dit pas lesquels : la paie ne se compare pas.
-    if jours.is_empty() {
+    // UN BULLETIN QUI N'IMPRIME PAS SES JOURS TRAVAILLES en dit la periode et le nombre (`jours_comptes`) :
+    // - autant de jours que la periode : ce sont tous les siens ;
+    // - moins, dans une periode qui tient dans un mois : le calcul ne lit des jours que leur nombre, leur mois et le
+    //   premier. Le plafond d'un intermittent compte les jours remuneres mois par mois (BOSS, assiette generale, § 1090)
+    //   ou 12 heures du plafond horaire de l'annee par journee (arrete du 24/01/1975, art. 3, al. 2 : `droit::plafond`),
+    //   et l'engagement court se juge sur le debut et la fin du contrat ; le minimum conventionnel et le bareme se
+    //   lisent au premier jour, qui est le debut de la periode. Le debut et les jours qui le suivent en tiennent lieu.
+    // Sans ce nombre, une periode de plus d'un jour ne dit pas combien : la paie ne se compare pas.
+    let mensuelle = droit::natures::nature(nature).is_ok_and(|n| n.mensuelle());
+    if jours.is_empty() && !mensuelle {
         if let (Some(d), Some(f)) = (texte(p, "debut"), texte(p, "fin")) {
-            if d == f {
-                jours.push(json!(Jour::lire(&d)?.iso()));
+            let (d, f) = (Jour::lire(&d)?, Jour::lire(&f)?);
+            let periode = f.moins(&d) + 1;
+            let un_mois = (d.an, d.mois) == (f.an, f.mois);
+            let n = if periode == 1 { Some(1) } else { jours_comptes.filter(|n| *n >= 1 && *n <= periode && (*n == periode || un_mois)) };
+            let Some(n) = n else {
+                return Err(match jours_comptes {
+                    None => "le bulletin imprime sa période sans ses jours travaillés ni leur nombre".to_string(),
+                    Some(n) if n > periode => "le bulletin compte plus de jours travaillés que sa période n'en a".to_string(),
+                    Some(_) => "le bulletin ne dit pas lesquels de ses jours travaillés tombent dans chacun des mois de sa période".to_string(),
+                });
+            };
+            for i in 0..n {
+                jours.push(json!(d.plus_jours(i)?.iso()));
             }
         }
     }
@@ -302,7 +324,6 @@ fn comparer_une(
         }
         saisies.push(Value::Object(s));
     }
-    let mensuelle = droit::natures::nature(nature).is_ok_and(|n| n.mensuelle());
     let mut e = Map::new();
     e.insert("salarie".into(), json!(salarie));
     if !mensuelle {
@@ -328,10 +349,12 @@ fn comparer_une(
         }
     }
     e.insert("lignes".into(), Value::Array(saisies));
-    let mut data = json!({"mois": mois, "engagements": [Value::Object(e)]});
+    // Le jour ou l'ancien logiciel a verse : un fait (`crate::importe::IMPORTE`).
     if let Some(v) = p.get("verse_le").filter(|x| vrai(x)) {
-        data["date_paiement"] = v.clone();
+        e.insert("date_paiement".into(), v.clone());
     }
+    e.insert(crate::importe::IMPORTE.into(), json!(true));
+    let data = json!({"mois": mois, "engagements": [Value::Object(e)]});
     let mut saisie = crate::charger_donnees(&ctx, &data).map_err(|m| a_refaire(c, m))?;
     if let Some((taux, montant, base)) = atmp_imprime {
         // Calcule au taux notifie de 1 %, la ligne AT/MP porte le facteur du contrat, et son assiette.
@@ -365,7 +388,7 @@ fn comparer_une(
         if lue.montant_salarie.is_none() && lue.montant_employeur.is_none() {
             continue;
         }
-        match rattacher(&lue.libelle) {
+        match l.get("cotisation").and_then(Value::as_str).filter(|c| !c.is_empty()).map(str::to_string) {
             Some(code) => {
                 if l.get("hors_total") == Some(&Value::Bool(true)) && !hors_total.contains(&code) {
                     hors_total.push(code.clone());
@@ -475,7 +498,7 @@ fn a_refaire(c: &mut Comparaison, raison: String) -> String {
 /// L'empreinte de la paie `mois` de l'engagement importe `imp` : ce qui la reconnait d'une comparaison a l'autre (son
 /// salarie, ses bornes, son numero et ce que les pieces en disent, sans la date de l'import).
 pub fn empreinte(imp: &Importe, mois: &str, p: &Map<String, Value>) -> String {
-    let brut = &imp.objet().brut;
+    let brut = imp.objet().champs();
     let mut paie = p.clone();
     paie.remove("importe_le");
     let graine = json!([brut.get("salarie"), brut.get("debut"), brut.get("fin"), brut.get("numero"), mois, paie]);

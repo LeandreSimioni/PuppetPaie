@@ -34,9 +34,10 @@ const TEXTE_MAX: usize = 5000;
 /// 1,5 Mo decodes.
 const CAPTURE_MAX: usize = 1536 * 1024;
 const CAPTURE_TYPES: [&str; 2] = ["image/png", "image/jpeg"];
-const CAPTURES_MAX: usize = 5;
+pub(crate) const CAPTURES_MAX: usize = 5;
 const INCIDENTS_JOINTS: usize = 10;
-const SIGNALEMENTS_FICHIER: &str = "signalements.json";
+/// « Un probleme, une idee ? », sous la racine de la compagnie.
+pub const SIGNALEMENTS: &str = "journal/signalements.json";
 
 fn tete(s: &str, n: usize) -> String {
     s.chars().take(n).collect()
@@ -192,7 +193,7 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
 }
 
 /// `signalement_apercu` : ce qui partira, au mot pres (les octets des captures
-/// mis a part). Facultatif : on peut envoyer sans l'avoir regarde.
+/// mis a part). On peut envoyer sans l'avoir regarde.
 pub fn apercu(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) -> R<Value> {
     let (corps, caviarde, caps) = corps_signalement(racine, texte, ecran, captures)?;
     let mut montre = corps.clone();
@@ -205,7 +206,7 @@ pub fn apercu(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) -
         "corps": montre, "caviarde": caviarde, "serveur": serveur,
         "captures": caps.len(), "incidents": nb_incidents,
         "peut_envoyer": !serveur.is_empty(),
-        "pourquoi": if serveur.is_empty() { format!("Aucun serveur n'est configuré (config/{}) : rien ne peut partir.", crate::compagnie::filet::FICHIER) } else { String::new() },
+        "pourquoi": if serveur.is_empty() { "Aucun serveur n'est configuré (config/diagnostic.json) : rien ne peut partir.".to_string() } else { String::new() },
     }))
 }
 
@@ -217,7 +218,8 @@ const PAR_PASSAGE: usize = 8;
 const DOSSIER_ATTENTE: &str = "signalements";
 
 fn chemin_signalements(racine: &Path) -> PathBuf {
-    incidents::chemin(racine).with_file_name(SIGNALEMENTS_FICHIER)
+    // A cote du journal des incidents, qu'un essai deplace (`incidents::chemin`).
+    incidents::chemin(racine).with_file_name(Path::new(SIGNALEMENTS).file_name().expect("un nom de fichier"))
 }
 
 /// `journal/signalements/` : le corps exact de chaque message qui attend son depart, un fichier par message.
@@ -235,7 +237,7 @@ fn ecrire_entier(p: &Path, v: &Value) -> R<()> {
     nom.push(".ecriture");
     let provisoire = p.with_file_name(nom);
     ecrire_json(&provisoire, v, 2).map_err(|m| erreur("OSError", m))?;
-    std::fs::rename(&provisoire, p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))
+    std::fs::rename(&provisoire, p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))
 }
 
 /// `signalements` : ceux faits depuis ce poste, du plus recent au plus ancien, chacun avec ce que la page en dit :
@@ -273,11 +275,11 @@ fn en_ordre_strict(racine: &Path) -> R<Vec<Value>> {
     let octets = match std::fs::read(&p) {
         Ok(o) => o,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(erreur("OSError", format!("{} : {}", p.display(), e))),
+        Err(e) => return Err(erreur("OSError", socle::echec::du_disque(&p, &e))),
     };
     match String::from_utf8(octets).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) {
         Some(Value::Array(a)) => Ok(a),
-        _ => Err(erreur("ErreurOperation", format!("{} est illisible : rien n'y est écrit, pour ne rien perdre de ce qu'il garde.", p.display()))),
+        _ => Err(erreur("ErreurOperation", socle::echec::avec("Un fichier de la compagnie est illisible : rien n'y est écrit, pour ne rien perdre de ce qu'il garde.", serde_json::json!({"chemin": p.to_string_lossy()})))),
     }
 }
 
@@ -299,7 +301,7 @@ fn id_de(l: &Value) -> Option<&str> {
 fn verrouiller(racine: &Path) -> R<Result<Verrou, ()>> {
     let p = chemin_signalements(racine).with_file_name(".signalements.verrou");
     if let Some(d) = p.parent() {
-        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))?;
     }
     let marque = socle::verrou::marque("signalements", std::process::id(), &socle::paris::maintenant());
     let fin = std::time::Instant::now() + std::time::Duration::from_secs(10);
@@ -364,7 +366,7 @@ pub fn envoyer(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) 
     let ligne = json!({
         "id": id,
         "quand": socle::paris::maintenant()[..16].to_string(),
-        "debut": tete(corps["texte"].as_str().unwrap_or(""), 80),
+        "texte": corps["texte"].as_str().unwrap_or(""),
         "captures": caps.len(),
         "incidents": corps["incidents"].as_array().map_or(0, Vec::len),
         "empreinte": empreinte,
@@ -407,17 +409,6 @@ fn empreinte_du_message(corps: &Value) -> String {
     h.finalize().iter().map(|b| format!("{:02x}", b)).collect()
 }
 
-/// La raison d'un essai manque, dite pour la boite : le canal de l'editeur parle du « filet DPAE », qui n'a rien a voir ici.
-fn raison_lisible(message: &str) -> String {
-    if let Some(r) = message.strip_prefix("Filet DPAE injoignable : ") {
-        format!("le serveur de l'éditeur est injoignable ({}).", r.trim_end_matches('.'))
-    } else if let Some(r) = message.strip_prefix("Filet DPAE : ") {
-        format!("le serveur de l'éditeur a répondu : {}", r)
-    } else {
-        message.to_string()
-    }
-}
-
 /// Le bilan d'un passage : `{"partis", "reste", "erreur", "occupe"}`.
 fn bilan(partis: usize, reste: usize, erreur: &str, occupe: bool) -> Value {
     json!({"partis": partis, "reste": reste, "erreur": erreur, "occupe": occupe})
@@ -438,7 +429,7 @@ pub fn partir(racine: &Path) -> Value {
 fn passage(racine: &Path) -> R<Value> {
     let p = chemin_signalements(racine).with_file_name(".signalements-envoi.verrou");
     if let Some(d) = p.parent() {
-        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))?;
     }
     let marque = socle::verrou::marque("signalements-envoi", std::process::id(), &socle::paris::maintenant());
     let _envoi = match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
@@ -482,7 +473,7 @@ fn passage(racine: &Path) -> R<Value> {
                     break;
                 }
                 Canal::Panne(e) => {
-                    panne = raison_lisible(&e.message);
+                    panne = e.message;
                     break;
                 }
                 Canal::Pret(c) => client = Some(c),
@@ -496,7 +487,7 @@ fn passage(racine: &Path) -> R<Value> {
                 partis += 1;
             }
             Err(e) => {
-                panne = raison_lisible(&e.message);
+                panne = e.message;
                 break;
             }
         }

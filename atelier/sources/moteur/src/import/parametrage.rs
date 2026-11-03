@@ -14,7 +14,8 @@
 //!   (S21.G00.15.001) et l'organisme (S21.G00.15.002) d'une adhesion de la derniere DSN (`norme-dsn/texte/bloc-S21.G00.15.txt`).
 //!   Un contrat dont la reference est fixee (celui de la branche) n'a rien a recevoir ; un contrat a saisir recoit
 //!   l'adhesion de la DSN qu'aucun contrat fixe ne porte, s'il n'y en a qu'une et qu'un seul contrat l'attend (inference :
-//!   c'est la sienne) ; sinon rien ne se choisit, et « Pour demarrer » le demande.
+//!   c'est la sienne), ou celle dont le libelle nomme ce que le contrat couvre (`poser_organismes`) ; sinon rien ne se
+//!   choisit, cela se dit, et « Pour demarrer » le demande.
 
 use serde_json::{json, Map, Value};
 
@@ -74,7 +75,7 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
         let mut m = Map::new();
         m.insert("code_risque".into(), json!(code));
         m.insert("_source".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", en_clair(mois))));
-        let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", courante));
+        let p = ctx.racine.join(droit::contexte::BAREMES).join(format!("{}.json", courante));
         let mut data = socle::fichiers::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
         data["taux_atmp"] = Value::Object(m);
         if socle::ecriture::ecrire_json(&p, &data, 2).is_ok() {
@@ -83,8 +84,27 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
     }
 }
 
+/// Le role d'un contrat attendu (`role` de `organismes-base.json` : `prevoyance`, `sante`) que le libelle d'une adhesion
+/// nomme, et lui seul : « SANTE CCNEAC » nomme la sante, « PREVOYANCE CCNEAC » la prevoyance, « CCNEAC » rien.
+fn role_nomme(libelle: &str) -> Option<&'static str> {
+    let mots = crate::import::bulletin_lu::jetons(libelle);
+    let a = |m: &str| mots.iter().any(|x| x == m);
+    match (a("prevoyance"), a("sante")) {
+        (true, false) => Some("prevoyance"),
+        (false, true) => Some("sante"),
+        _ => None,
+    }
+}
+
 /// Les organismes et les contrats de la DSN (voir l'en-tete), pour les contrats que l'ecran attend encore. Un contrat
 /// deja saisi a son libelle et n'attend plus rien.
+///
+/// QUEL CONTRAT DE LA DSN EST LE SIEN : la DSN dit la reference du contrat et son organisme (S21.G00.15.001, .002), pas
+/// ce qu'il couvre (`bloc-S21.G00.15.txt` : « Référence du contrat de Prévoyance » vaut pour la prevoyance, la sante et
+/// la retraite supplementaire ; ni le bloc S21.G00.70 ni les composants S21.G00.79 ne distinguent la sante). Un seul
+/// contrat a saisir et une seule adhesion libre : c'est la sienne. Sinon, un contrat a saisir de role prevoyance ou
+/// sante recoit l'adhesion libre dont le libelle nomme ce role, et elle seule (inference : la compagnie a nomme son
+/// contrat par ce qu'il couvre). Ce qui ne se rattache pas ainsi se dit, et « Pour demarrer » le demande.
 fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
     if lecture.adhesions.is_empty() {
         return;
@@ -98,15 +118,52 @@ fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String
         .iter()
         .filter(|a| !texte(a, "libelle").is_empty() && !fixes.contains(&texte(a, "libelle").to_uppercase()))
         .collect();
-    let ([l], [a]) = (a_saisir.as_slice(), libres.as_slice()) else { return };
+    if a_saisir.is_empty() || libres.is_empty() {
+        return;
+    }
+    let roles: Vec<(String, String)> = droit::organismes::base(ctx)
+        .and_then(|b| droit::organismes::attendus(ctx, &b))
+        .unwrap_or_default()
+        .iter()
+        .map(|s| (texte(s, "cle"), texte(s, "role")))
+        .collect();
+    let role_de = |l: &Value| roles.iter().find(|(c, _)| *c == texte(l, "cle")).map(|(_, r)| r.clone()).unwrap_or_default();
+    let mut paires: Vec<(&Value, &Value, bool)> = Vec::new();
+    if let ([l], [a]) = (a_saisir.as_slice(), libres.as_slice()) {
+        paires.push((l, a, false));
+    } else {
+        for l in &a_saisir {
+            let r = role_de(l);
+            let siens: Vec<&&Value> = libres.iter().filter(|a| role_nomme(&texte(a, "libelle")) == Some(r.as_str())).collect();
+            let rivaux = a_saisir.iter().filter(|x| role_de(x) == r).count();
+            if let ([a], 1) = (siens.as_slice(), rivaux) {
+                paires.push((l, a, true));
+            }
+        }
+    }
     let mut saisies = Map::new();
-    saisies.insert(texte(l, "cle"), json!({"libelle": texte(a, "libelle"), "organisme": texte(a, "organisme")}));
-    if crate::compagnie::organismes::enregistrer(ctx, &json!({"contrats": saisies})).is_ok() {
+    for (l, a, _) in &paires {
+        saisies.insert(texte(l, "cle"), json!({"libelle": texte(a, "libelle"), "organisme": texte(a, "organisme")}));
+    }
+    if !saisies.is_empty() && crate::compagnie::organismes::enregistrer(ctx, &json!({"contrats": saisies})).is_ok() {
+        for (l, a, par_libelle) in &paires {
+            faits.push(format!(
+                "{} : contrat {} chez {}, lu dans la DSN reprise (S21.G00.15.001, S21.G00.15.002){}.",
+                texte(l, "quoi"),
+                texte(a, "libelle"),
+                texte(a, "organisme"),
+                if *par_libelle { ", rattaché par ce que son libellé nomme" } else { "" }
+            ));
+        }
+    } else {
+        paires.clear();
+    }
+    let restes: Vec<String> = libres.iter().filter(|a| !paires.iter().any(|(_, p, _)| std::ptr::eq(*p, **a))).map(|a| texte(a, "libelle")).collect();
+    let attendent = a_saisir.iter().any(|l| !paires.iter().any(|(p, _, _)| std::ptr::eq(*p, *l)));
+    if attendent && !restes.is_empty() {
         faits.push(format!(
-            "{} : contrat {} chez {}, lu dans la DSN reprise (S21.G00.15.001, S21.G00.15.002).",
-            texte(l, "quoi"),
-            texte(a, "libelle"),
-            texte(a, "organisme")
+            "Contrats de la DSN reprise que rien ne rattache à un contrat attendu : {} ; à choisir dans Configuration › Organismes et contrats.",
+            restes.join(", ")
         ));
     }
 }
@@ -126,11 +183,11 @@ pub(crate) fn parametrer(ctx: &Contexte) -> Vec<String> {
 
 /// LE TAUX DE PRELEVEMENT A LA SOURCE que la DGFiP a transmis a la compagnie et que ses DSN reprises appliquent
 /// (S21.G00.50.006 a .008) : au magasin du PAS, comme un taux recu, date du jour du versement qui
-/// l'applique (`commandes::pas::derniers_taux_des_dsn`, une inference). La validite se lit ensuite comme pour tout taux recu (`droit::pas`).
+/// l'applique (`compagnie::taux_pas::derniers_taux_des_dsn`, une inference). La validite se lit ensuite comme pour tout taux recu (`droit::pas`).
 fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
     let dossier = ctx.racine.join("historique").join("bulletins");
-    let releves = crate::commandes::pas::derniers_taux_des_dsn(ctx, &dossier);
-    let Ok(changes) = crate::commandes::pas::enregistrer(ctx, &releves, "DSN reprises par l'import") else { return };
+    let releves = crate::compagnie::taux_pas::derniers_taux_des_dsn(ctx, &dossier);
+    let Ok(changes) = crate::compagnie::taux_pas::enregistrer(ctx, &releves, "DSN reprises par l'import") else { return };
     for r in &releves {
         let cle = texte(r, "salarie");
         if !changes.iter().any(|c| c.starts_with(&format!("{} :", cle))) {
@@ -141,7 +198,8 @@ fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
             "Prélèvement à la source de {} : taux {} % transmis par la DGFiP, appliqué dans la DSN de {} (S21.G00.50.006 à .008).",
             qui.filter(|q| !q.is_empty()).unwrap_or(cle),
             texte(r, "taux").replace('.', ","),
-            en_clair(&texte(r, "periode"))
+            // Le mois du versement qui l'applique (`mis_a_disposition`, AAAAMMJJ000000) : celui que la DSN declare.
+            en_clair(&texte(r, "mis_a_disposition").get(..6).map(|m| format!("{}-{}", &m[..4], &m[4..])).unwrap_or_default())
         ));
     }
 }

@@ -272247,6 +272247,958 @@
    "depuis": "2026-10-30",
    "livraison": "20261029-215000",
    "texte": "travail"
+  },
+  {
+   "apres": "LEGIARTI000006745148",
+   "article": "L831-1",
+   "avant": "LEGIARTI000030024140",
+   "depuis": "1992-01-04",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745147",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745148",
+   "depuis": "1990-07-11",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745145",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745147",
+   "depuis": "1986-07-17",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745146",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745145",
+   "depuis": "1990-01-25",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745153",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745146",
+   "depuis": "2000-07-06",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745151",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745153",
+   "depuis": "2000-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745152",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745151",
+   "depuis": "1999-12-31",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745149",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745152",
+   "depuis": "1993-08-29",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745150",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745149",
+   "depuis": "1998-07-31",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745144",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745150",
+   "depuis": "1985-12-21",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745387",
+   "article": "L861-3",
+   "avant": "LEGIARTI000046812151",
+   "depuis": "2006-12-22",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745386",
+   "article": "L861-3",
+   "avant": "LEGIARTI000006745387",
+   "depuis": "2005-12-20",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745384",
+   "article": "L861-3",
+   "avant": "LEGIARTI000006745386",
+   "depuis": "2000-07-06",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745385",
+   "article": "L861-3",
+   "avant": "LEGIARTI000006745384",
+   "depuis": "2001-12-26",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006745383",
+   "article": "L861-3",
+   "avant": "LEGIARTI000006745385",
+   "depuis": "2000-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000037993847",
+   "article": "L831-1",
+   "avant": "LEGIARTI000006745144",
+   "depuis": "2018-12-31",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000037950230",
+   "article": "L861-3",
+   "avant": "LEGIARTI000006745383",
+   "depuis": "2019-11-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000038051763",
+   "article": "L861-3",
+   "avant": "LEGIARTI000037950230",
+   "depuis": "2019-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000041397565",
+   "article": "L861-3",
+   "avant": "LEGIARTI000038051763",
+   "depuis": "2019-12-28",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000031324299",
+   "article": "L831-1",
+   "avant": "LEGIARTI000037993847",
+   "depuis": "2015-10-16",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000031782436",
+   "article": "L831-1",
+   "avant": "LEGIARTI000031324299",
+   "depuis": "2016-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000031699522",
+   "article": "L861-3",
+   "avant": "LEGIARTI000041397565",
+   "depuis": "2016-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000046812151",
+   "article": "L861-3",
+   "avant": "LEGIARTI000031699522",
+   "depuis": "2022-12-25",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000048702084",
+   "article": "L861-3",
+   "avant": "LEGIARTI000046812151",
+   "depuis": "2222-02-22",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000029962402",
+   "article": "L861-3",
+   "avant": "LEGIARTI000048702084",
+   "depuis": "2014-12-25",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000036432544",
+   "article": "L831-1",
+   "avant": "LEGIARTI000031782436",
+   "depuis": "2018-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000028394754",
+   "article": "L831-1",
+   "avant": "LEGIARTI000036432544",
+   "depuis": "2013-12-25",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000028807728",
+   "article": "L831-1",
+   "avant": "LEGIARTI000028394754",
+   "depuis": "2015-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000017842998",
+   "article": "L831-1",
+   "avant": "LEGIARTI000028807728",
+   "depuis": "2007-12-22",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000017841949",
+   "article": "L861-3",
+   "avant": "LEGIARTI000029962402",
+   "depuis": "2007-12-22",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000030024140",
+   "article": "L831-1",
+   "avant": "LEGIARTI000017842998",
+   "depuis": "2015-01-01",
+   "livraison": "20261030-214909",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000025051371",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000049641234",
+   "depuis": "2011-12-30",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000027517558",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000025051371",
+   "depuis": "2013-06-07",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000028448662",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000027517558",
+   "depuis": "2014-01-01",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000029042539",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000028448662",
+   "depuis": "2014-05-30",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000030702104",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000029042539",
+   "depuis": "2015-06-06",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000032700988",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000030702104",
+   "depuis": "2016-06-13",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000037100495",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000032700988",
+   "depuis": "2018-06-23",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000037993569",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000037100495",
+   "depuis": "2019-01-01",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000038686573",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000037993569",
+   "depuis": "2019-06-08",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000042160354",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000038686573",
+   "depuis": "2020-07-25",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000043662944",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000042160354",
+   "depuis": "2021-06-12",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000044873210",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000043662944",
+   "depuis": "2022-01-01",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000045764846",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000044873210",
+   "depuis": "2022-05-07",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000047623414",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000045764846",
+   "depuis": "2023-06-03",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000049641234",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000047623414",
+   "depuis": "2024-06-02",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051764601",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000049641234",
+   "depuis": "2025-06-19",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051191087",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000051764601",
+   "depuis": "2027-01-01",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000051288275",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000051191087",
+   "depuis": "2026-01-01",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000053188848",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000051288275",
+   "depuis": "2027-01-01",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000036392612",
+   "article": "1613 quater",
+   "avant": "LEGIARTI000053188848",
+   "depuis": "2018-07-01",
+   "livraison": "20261030-214909",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000054612711",
+   "article": "Annexe",
+   "avant": "LEGIARTI000036483371",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "travail"
+  },
+  {
+   "apres": "LEGIARTI000006741153",
+   "article": "L142-1",
+   "avant": "LEGIARTI000051288452",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743022",
+   "article": "L431-1",
+   "avant": "LEGIARTI000019959735",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743049",
+   "article": "L434-1",
+   "avant": "LEGIARTI000031688413",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743050",
+   "article": "L434-1",
+   "avant": "LEGIARTI000006743049",
+   "depuis": "2001-12-26",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743052",
+   "article": "L434-2",
+   "avant": "LEGIARTI000026799859",
+   "depuis": "1999-12-30",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743053",
+   "article": "L434-2",
+   "avant": "LEGIARTI000006743052",
+   "depuis": "2001-12-26",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743051",
+   "article": "L434-2",
+   "avant": "LEGIARTI000006743053",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743072",
+   "article": "L434-16",
+   "avant": "LEGIARTI000051288487",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743073",
+   "article": "L434-17",
+   "avant": "LEGIARTI000051288481",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743074",
+   "article": "L434-17",
+   "avant": "LEGIARTI000006743073",
+   "depuis": "1998-12-27",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743106",
+   "article": "L443-1",
+   "avant": "LEGIARTI000051288476",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743186",
+   "article": "L452-2",
+   "avant": "LEGIARTI000021941661",
+   "depuis": "1989-07-12",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743185",
+   "article": "L452-2",
+   "avant": "LEGIARTI000006743186",
+   "depuis": "1987-01-28",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743113",
+   "article": "L452-3",
+   "avant": "LEGIARTI000051288468",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006743184",
+   "article": "L452-2",
+   "avant": "LEGIARTI000006743185",
+   "depuis": "1985-12-21",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000018124404",
+   "article": "L142-1",
+   "avant": "LEGIARTI000006741153",
+   "depuis": "2011-01-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000033458859",
+   "article": "L142-1",
+   "avant": "LEGIARTI000018124404",
+   "depuis": "2019-01-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000038314506",
+   "article": "L142-1",
+   "avant": "LEGIARTI000033458859",
+   "depuis": "2020-01-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000038952312",
+   "article": "L142-1",
+   "avant": "LEGIARTI000038314506",
+   "depuis": "2019-08-23",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000042683979",
+   "article": "L142-1",
+   "avant": "LEGIARTI000038952312",
+   "depuis": "2020-12-16",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288452",
+   "article": "L142-1",
+   "avant": "LEGIARTI000042683979",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288444",
+   "article": "L431-1",
+   "avant": "LEGIARTI000006743022",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288493",
+   "article": "L434-2",
+   "avant": "LEGIARTI000006743051",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288496",
+   "article": "L434-15",
+   "avant": "LEGIARTI000006743071",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288487",
+   "article": "L434-16",
+   "avant": "LEGIARTI000006743072",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288481",
+   "article": "L434-17",
+   "avant": "LEGIARTI000006743074",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288476",
+   "article": "L443-1",
+   "avant": "LEGIARTI000006743106",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288472",
+   "article": "L452-2",
+   "avant": "LEGIARTI000006743184",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288468",
+   "article": "L452-3",
+   "avant": "LEGIARTI000006743113",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288500",
+   "article": "L434-1",
+   "avant": "LEGIARTI000006743050",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060169",
+   "article": "R173-3-1",
+   "avant": "LEGIARTI000053335433",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060160",
+   "article": "R351-37",
+   "avant": "LEGIARTI000047633235",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060157",
+   "article": "R434-1",
+   "avant": "LEGIARTI000006750335",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060155",
+   "article": "R434-1-1",
+   "avant": "LEGIARTI000006750336",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060150",
+   "article": "R434-1-2",
+   "avant": "LEGIARTI000006750337",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060146",
+   "article": "R434-1-3",
+   "avant": "LEGIARTI000006750338",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060141",
+   "article": "R434-2",
+   "avant": "LEGIARTI000006750340",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060136",
+   "article": "R434-2-1",
+   "avant": "LEGIARTI000006750341",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060130",
+   "article": "R434-3",
+   "avant": "LEGIARTI000027268450",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060123",
+   "article": "R434-4",
+   "avant": "LEGIARTI000043481223",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060120",
+   "article": "R434-5",
+   "avant": "LEGIARTI000043481218",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060118",
+   "article": "R434-21",
+   "avant": "LEGIARTI000006750536",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060114",
+   "article": "R434-28",
+   "avant": "LEGIARTI000006750376",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060111",
+   "article": "R434-32",
+   "avant": "LEGIARTI000022073148",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060106",
+   "article": "R434-34",
+   "avant": "LEGIARTI000027268455",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060104",
+   "article": "R443-7",
+   "avant": "LEGIARTI000006750458",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060100",
+   "article": "R461-8",
+   "avant": "LEGIARTI000038423415",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060386",
+   "article": "D242-6-5",
+   "avant": "LEGIARTI000022446566",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060382",
+   "article": "D242-6-6",
+   "avant": "LEGIARTI000051471417",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060362",
+   "article": "D242-6-7",
+   "avant": "LEGIARTI000023381672",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060377",
+   "article": "D242-6-19",
+   "avant": "LEGIARTI000022446501",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060358",
+   "article": "D242-34",
+   "avant": "LEGIARTI000022446626",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060374",
+   "article": "D351-1-9",
+   "avant": "LEGIARTI000053355976",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060371",
+   "article": "D351-1-10",
+   "avant": "LEGIARTI000053356031",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060368",
+   "article": "D432-15",
+   "avant": "LEGIARTI000036415500",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060354",
+   "article": "D434-1",
+   "avant": "LEGIARTI000032363924",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060351",
+   "article": "D434-2",
+   "avant": "LEGIARTI000027267037",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054060365",
+   "article": "D434-3-1",
+   "avant": "LEGIARTI000047960017",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000054425288",
+   "article": "R351-12",
+   "avant": "LEGIARTI000053335617",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000055033986",
+   "article": "D162-2-1",
+   "avant": "LEGIARTI000036704565",
+   "depuis": "2026-11-01",
+   "livraison": "20261031-212257",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006742922",
+   "article": "L351-3",
+   "avant": "LEGIARTI000053279221",
+   "depuis": "2003-08-22",
+   "livraison": "20261102-213929",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006742923",
+   "article": "L351-3",
+   "avant": "LEGIARTI000006742922",
+   "depuis": "2005-01-19",
+   "livraison": "20261102-213929",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006742920",
+   "article": "L351-3",
+   "avant": "LEGIARTI000006742923",
+   "depuis": "1986-12-31",
+   "livraison": "20261102-213929",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006742921",
+   "article": "L351-3",
+   "avant": "LEGIARTI000006742920",
+   "depuis": "2002-01-18",
+   "livraison": "20261102-213929",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000006742919",
+   "article": "L351-3",
+   "avant": "LEGIARTI000006742921",
+   "depuis": "1985-12-21",
+   "livraison": "20261102-213929",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000025014498",
+   "article": "L351-3",
+   "avant": "LEGIARTI000006742919",
+   "depuis": "2011-12-23",
+   "livraison": "20261102-213929",
+   "texte": "securite-sociale"
+  },
+  {
+   "apres": "LEGIARTI000051288449",
+   "article": "L351-3",
+   "avant": "LEGIARTI000025014498",
+   "depuis": "2026-11-01",
+   "livraison": "20261102-213929",
+   "texte": "securite-sociale"
   }
  ],
  "construit_le": "2026-10-10",
@@ -272730,7 +273682,11 @@
   "20261026-212955",
   "20261027-211214",
   "20261028-212713",
-  "20261029-215000"
+  "20261029-215000",
+  "20261030-214909",
+  "20261031-212257",
+  "20261101-210226",
+  "20261102-213929"
  ],
- "mis_a_jour_le": "2026-10-29"
+ "mis_a_jour_le": "2026-11-03"
 }

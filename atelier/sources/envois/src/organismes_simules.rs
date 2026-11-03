@@ -38,8 +38,8 @@ fn charger(racine: &Path) -> R<Value> {
     if !p.exists() {
         return Ok(json!({"annonces": [], "effectifs_rendus": []}));
     }
-    let t = std::fs::read_to_string(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-    let mut v: Value = serde_json::from_str(&t).map_err(|e| erreur("ValueError", format!("{} : {}", p.display(), e)))?;
+    let t = std::fs::read_to_string(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
+    let mut v: Value = serde_json::from_str(&t).map_err(|e| erreur("ValueError", socle::echec::du_disque(&p, &e)))?;
     for cle in ["annonces", "effectifs_rendus"] {
         if !v.get(cle).is_some_and(Value::is_array) {
             v[cle] = json!([]);
@@ -80,9 +80,9 @@ pub fn annoncer(racine: &Path, branchement: Branchement, annonce: &Value) -> R<(
         (Some(t), None) if o.len() == 1 => {
             let salarie = texte(t, "salarie");
             let taux = texte(t, "taux").replace(',', ".");
-            let n: f64 = taux.parse().map_err(|_| erreur("ValueError", format!("taux_pas : taux illisible ({:?}).", taux)))?;
+            let n: f64 = taux.parse().map_err(|_| erreur("ValueError", socle::echec::a_la_cle("Le taux de prélèvement annoncé ne se lit pas.", "taux_pas.taux", &taux)))?;
             if salarie.is_empty() || !(0.0..=100.0).contains(&n) {
-                return Err(erreur("ValueError", "taux_pas : un salarie (la cle de sa fiche) et un taux entre 0 et 100 sont attendus."));
+                return Err(erreur("ValueError", socle::echec::cle("Le taux de prélèvement annoncé dit le salarié et un taux entre 0 et 100.", "taux_pas")));
             }
             propre.insert("taux_pas".into(), json!({"salarie": salarie, "taux": format!("{:.2}", n)}));
         }
@@ -90,10 +90,10 @@ pub fn annoncer(racine: &Path, branchement: Branchement, annonce: &Value) -> R<(
             let t = &o["taux_atmp"];
             let code = texte(t, "code_risque").replace(['.', ' '], "").to_uppercase();
             let taux = texte(t, "taux").replace(',', ".");
-            let n: f64 = taux.parse().map_err(|_| erreur("ValueError", format!("taux_atmp : taux illisible ({:?}).", taux)))?;
+            let n: f64 = taux.parse().map_err(|_| erreur("ValueError", socle::echec::a_la_cle("Le taux AT/MP annoncé ne se lit pas.", "taux_atmp.taux", &taux)))?;
             let effet = texte(t, "date_effet");
             if code.len() != 5 || !(0.0..20.0).contains(&n) || n == 0.0 || jour_iso(&effet).is_none() {
-                return Err(erreur("ValueError", "taux_atmp : un code risque de 5 caractères, un taux en pourcentage et une date d'effet AAAA-MM-JJ sont attendus."));
+                return Err(erreur("ValueError", socle::echec::cle("Le taux AT/MP annoncé dit un code risque de 5 caractères, un taux en pourcentage et une date d'effet AAAA-MM-JJ.", "taux_atmp")));
             }
             let mut m = Map::new();
             m.insert("code_risque".into(), json!(code));
@@ -114,7 +114,7 @@ pub fn annoncer(racine: &Path, branchement: Branchement, annonce: &Value) -> R<(
             }
             let mois = texte(r, "mois");
             if !mois.is_empty() && jour_iso(&format!("{}-01", mois)).is_none() {
-                return Err(erreur("ValueError", format!("refus : mois illisible ({:?}), AAAA-MM attendu.", mois)));
+                return Err(erreur("ValueError", socle::echec::a_la_cle("Le mois du refus annoncé ne se lit pas : AAAA-MM est attendu.", "refus.mois", &mois)));
             }
             let mut m = Map::new();
             m.insert("code".into(), json!(code));
@@ -127,7 +127,7 @@ pub fn annoncer(racine: &Path, branchement: Branchement, annonce: &Value) -> R<(
             }
             propre.insert("refus".into(), Value::Object(m));
         }
-        _ => return Err(erreur("ValueError", "Une annonce porte `taux_pas`, `taux_atmp` ou `refus`, et rien d'autre.")),
+        _ => return Err(erreur("ValueError", socle::echec::cle("Une annonce porte un taux de prélèvement, un taux AT/MP ou un refus, et rien d'autre.", "taux_pas, taux_atmp, refus"))),
     }
     let mut v = charger(racine)?;
     v["annonces"].as_array_mut().expect("liste").push(Value::Object(propre));
@@ -631,19 +631,25 @@ mod tests {
     }
 
     /// Le compte rendu 118 que le simulateur rend se lit par le lecteur des vrais (`releve_retours::reconstruire_effectifs`,
-    /// cahier technique NEOReS 2026.1.2) : `config/effectifs.json` porte l'effectif A01 de l'annee mesuree.
+    /// cahier technique NEOReS 2026.1.2) : `config/effectifs.json` porte l'effectif A01 de l'annee mesuree, a la place de celui
+    /// que la compagnie avait dit.
     #[test]
     fn le_118_rendu_s_ecrit_dans_les_effectifs_de_la_compagnie() {
         let racine = std::env::temp_dir().join(format!("envois-118-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&racine);
-        std::fs::create_dir_all(racine.join("retours")).unwrap();
-        std::fs::create_dir_all(racine.join("config")).unwrap();
+        std::fs::create_dir_all(racine.join(crate::retours::RETOURS)).unwrap();
+        std::fs::create_dir_all(racine.join(socle::fichiers::CONFIG)).unwrap();
+        // Ce que la compagnie a dit : l'annee que le 118 mesure le remplace, l'autre reste.
+        assert!(crate::releve_retours::poser_effectif(&racine, 2026, 3.0, "2027-01-05").unwrap());
+        assert!(crate::releve_retours::poser_effectif(&racine, 2025, 2.0, "2027-01-05").unwrap());
         let p = crm_effectif(2026, 11.42, "FICTIF-000000000001", "20270215100000");
         let chemin = crate::transport::archiver(&racine, "", &p.retour, &p.contenu, "application/xml", "20270215-100000").unwrap();
         assert!(chemin.file_name().unwrap().to_string_lossy().contains("_nature118_"));
         crate::releve_retours::reconstruire_effectifs(&racine).unwrap();
-        let e: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("config/effectifs.json")).unwrap()).unwrap();
+        let e: Value = serde_json::from_str(&std::fs::read_to_string(racine.join(droit::contexte::EFFECTIFS)).unwrap()).unwrap();
         assert_eq!(e["annees"]["2026"]["A01"]["valeur"], json!(11.42));
+        assert_eq!(e["annees"]["2025"]["A01"]["valeur"], json!(2.0));
+        assert!(!crate::releve_retours::poser_effectif(&racine, 2026, 3.0, "2027-03-01").unwrap());
         let _ = std::fs::remove_dir_all(&racine);
     }
 }

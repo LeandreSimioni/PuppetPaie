@@ -6,8 +6,8 @@
 //! son bareme, ses organismes) dans DOSSIER, hors de tout depot Git, et lui donne l'IDENTITE d'une vraie compagnie, lue dans
 //! UNE variable d'environnement, `PUPPETPAIE_COMPAGNIE` : un objet JSON sur une ligne, fragment de `config/entreprise.json`,
 //! avec EXACTEMENT les cles de `CLES`. Le reste de la seance nomme cette compagnie par
-//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des commandes ordinaires (`moteur depot-dsn AAAA-MM --test`, `moteur dpae`,
-//! `moteur deposer-dpae --test`, `moteur retours`).
+//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des routes ordinaires (`moteur route` : `deposer` en test, la DSN ou la DPAE du mois ;
+//! `ouverture` pour relever les retours).
 //!
 //! POURQUOI UNE COPIE, ET PAS LA VARIABLE LUE PARTOUT. Sur le poste, une variable posee par megarde ecraserait la vraie fiche ;
 //! ici, la variable n'est lue qu'au montage, et seulement pour ECRIRE la fiche de la copie (regle 1 : rien ne se devine).
@@ -53,9 +53,9 @@ const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 /// une fictive joue ses depots, une compagnie d'essai les fait en test, pour de vrai.
 pub const MARQUE_ESSAI: &str = "compagnie d'essai";
 
-/// La fictive copiee quand `--depuis` ne dit rien : celle qui a du monde CHAQUE mois (des permanents et des intermittents,
-/// IDCC 3090), pour qu'une DSN d'essai porte des individus quel que soit le mois.
-pub const FICTIVE_PAR_DEFAUT: &str = "fictive-3090-grande";
+/// La fictive copiee quand `--depuis` ne dit rien : la fictive de reference livree (`scenario::livrer`, que « Publier »
+/// refait), dont les mois joues ont leurs DSN et leurs salaries.
+pub const FICTIVE_PAR_DEFAUT: &str = "fictive-fil-de-fer";
 
 /// Le nom du dossier quand la commande n'en donne pas : dans le dossier temporaire du systeme.
 pub const DOSSIER_PAR_DEFAUT: &str = "puppetpaie-essai";
@@ -93,7 +93,7 @@ const RUBRIQUES: [(&str, &[&str]); 12] = [
 const RETIREES: [&str; 8] = ["siret", "nom_affichage", "adresse_affichage", "commune_affichage", "complement_adresse", "tel", "etablissements", "_source"];
 
 /// Ce que la copie ne prend pas de la fictive (relatif a sa racine).
-const NON_COPIES: [&str; 4] = [MARQUEUR, "FICTIVE.md", "retours", "config/horloge.json"];
+const NON_COPIES: [&str; 3] = [MARQUEUR, envois::retours::RETOURS, crate::horloge::FICHIER_HORLOGE];
 
 /// Une compagnie d'essai : son marqueur le dit.
 pub fn est_essai(racine: &Path) -> bool {
@@ -128,14 +128,14 @@ impl Identite {
             format!("{} n'est pas un JSON lisible (ligne {}, colonne {}) : un objet sur une ligne est attendu. Rien n'est ecrit.", VARIABLE, e.line(), e.column())
         })?;
         let Value::Object(racine) = v else {
-            return Err(format!("{} n'est pas un objet JSON ({{\"siren\": ..., ...}}). Rien n'est ecrit.", VARIABLE));
+            return Err(socle::echec::avec("L'identité de la compagnie d'essai n'est pas un objet. Rien n'est écrit.", json!({"variable": VARIABLE})));
         };
         let (mut manques, mut inconnues) = (Vec::new(), Vec::new());
         confronter(&racine, &CLES, "", &mut manques, &mut inconnues);
         for (cle, attendues) in [("declarant", &CLES_DECLARANT[..]), ("declarant_dsn", &CLES_DECLARANT_DSN[..]), ("api_dpae", &CLES_API_DPAE[..])] {
             match racine.get(cle) {
                 Some(Value::Object(o)) => confronter(o, attendues, cle, &mut manques, &mut inconnues),
-                Some(_) => return Err(format!("{} : `{}` doit etre un objet ({}). Rien n'est ecrit.", VARIABLE, cle, attendues.join(", "))),
+                Some(_) => return Err(socle::echec::avec("L'identité de la compagnie d'essai porte une valeur qui doit être un objet. Rien n'est écrit.", json!({"variable": VARIABLE, "cle": cle, "detail": attendues.join(", ")}))),
                 None => {}
             }
         }
@@ -147,7 +147,7 @@ impl Identite {
             if !inconnues.is_empty() {
                 p.push(format!("cle(s) inconnue(s) : {}", inconnues.join(", ")));
             }
-            return Err(format!("{} : {}. Les cles attendues sont celles de `moteur essai monter --aide`. Rien n'est ecrit.", VARIABLE, p.join(" ; ")));
+            return Err(socle::echec::avec("L'identité de la compagnie d'essai porte des clés que le logiciel ne connaît pas. Rien n'est écrit.", json!({"variable": VARIABLE, "detail": p.join(" ; "), "aide": "moteur essai monter --aide"})));
         }
         let id = Identite(racine);
         id.verifier()?;
@@ -162,14 +162,14 @@ impl Identite {
         };
         match v {
             Some(Value::String(s)) => Ok(s.trim().to_string()),
-            _ => Err(format!("{} : `{}` doit etre un texte. Rien n'est ecrit.", VARIABLE, chemin)),
+            _ => Err(socle::echec::avec("L'identité de la compagnie d'essai porte une valeur qui doit être un texte. Rien n'est écrit.", json!({"variable": VARIABLE, "cle": chemin}))),
         }
     }
 
     /// Les formes que la norme et le moteur exigent, verifiees AVANT d'ecrire : un refus plus tard (a l'ecriture de la DSN,
     /// au depot) citerait la valeur fautive a l'ecran.
     fn verifier(&self) -> Result<(), String> {
-        let refus = |chemin: &str, ce_qu_il_faut: &str| Err(format!("{} : `{}` -- {}. Rien n'est ecrit.", VARIABLE, chemin, ce_qu_il_faut));
+        let refus = |chemin: &str, ce_qu_il_faut: &str| Err(socle::echec::avec("L'identité de la compagnie d'essai porte une valeur mal formée. Rien n'est écrit.", json!({"variable": VARIABLE, "cle": chemin, "detail": ce_qu_il_faut})));
         let mut vides = Vec::new();
         for (o, cles) in [("", &CLES[..8]), ("declarant", &CLES_DECLARANT[..]), ("declarant_dsn", &CLES_DECLARANT_DSN[..]), ("api_dpae", &CLES_API_DPAE[..])] {
             for k in cles {
@@ -231,7 +231,7 @@ impl Identite {
     /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire. Chaque valeur posee vaut
     /// de tout temps, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
     pub fn appliquer(&self, fiche: &Value) -> Result<Value, String> {
-        let mut brute = fiche.as_object().cloned().ok_or_else(|| "config/entreprise.json de la fictive n'est pas un objet.".to_string())?;
+        let mut brute = fiche.as_object().cloned().ok_or_else(|| socle::echec::avec("La fiche entreprise de la fictive est abîmée.", json!({"fichier": droit::contexte::ENTREPRISE})))?;
         for k in RETIREES {
             brute.remove(k);
         }
@@ -297,12 +297,12 @@ fn installation() -> PathBuf {
 fn source(depuis: &str) -> Result<PathBuf, String> {
     let p = PathBuf::from(depuis);
     let d = if depuis.contains('/') || depuis.contains('\\') || p.is_dir() { p } else { installation().join(crate::interface::compagnies::DOSSIER_FICTIVES).join(depuis) };
-    if !d.join("config").join("entreprise.json").is_file() {
-        return Err(format!("{} : ce n'est pas une compagnie (pas de config/entreprise.json). Rien n'est ecrit.", d.display()));
+    if !d.join(droit::contexte::ENTREPRISE).is_file() {
+        return Err(socle::echec::avec("Ce dossier n'est pas une compagnie : il n'a pas de fiche entreprise. Rien n'est écrit.", json!({"chemin": d.to_string_lossy()})));
     }
     // Seulement une FICTIVE : jamais `prive/` ni une autre compagnie reelle, dont les salaries partiraient sous un autre SIREN.
     if !crate::interface::compagnies::est_fictive_livree(&d) {
-        return Err(format!("{} n'est pas une compagnie fictive (son marqueur ne le dit pas) : une compagnie d'essai ne se monte que depuis une fictive. Rien n'est ecrit.", d.display()));
+        return Err(socle::echec::avec("Ce dossier n'est pas une compagnie fictive : une compagnie d'essai ne se monte que depuis une fictive. Rien n'est écrit.", json!({"chemin": d.to_string_lossy()})));
     }
     Ok(d)
 }
@@ -337,8 +337,8 @@ fn depot_englobant(dossier: &Path) -> Option<PathBuf> {
 }
 
 fn copier(src: &Path, dst: &Path, racine: &Path) -> Result<(), String> {
-    std::fs::create_dir_all(dst).map_err(|e| format!("{} : {}", dst.display(), e))?;
-    for e in std::fs::read_dir(src).map_err(|e| format!("{} : {}", src.display(), e))?.flatten() {
+    std::fs::create_dir_all(dst).map_err(|e| socle::echec::du_disque(&dst, &e))?;
+    for e in std::fs::read_dir(src).map_err(|e| socle::echec::du_disque(&src, &e))?.flatten() {
         let s = e.path();
         let rel = s.strip_prefix(racine).unwrap_or(&s).to_string_lossy().replace('\\', "/");
         if NON_COPIES.contains(&rel.as_str()) || s.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) {
@@ -348,7 +348,7 @@ fn copier(src: &Path, dst: &Path, racine: &Path) -> Result<(), String> {
         if s.is_dir() {
             copier(&s, &d, racine)?;
         } else {
-            std::fs::copy(&s, &d).map_err(|x| format!("{} : {}", s.display(), x))?;
+            std::fs::copy(&s, &d).map_err(|x| socle::echec::du_disque(&s, &x))?;
         }
     }
     Ok(())
@@ -356,15 +356,7 @@ fn copier(src: &Path, dst: &Path, racine: &Path) -> Result<(), String> {
 
 /// Le journal de la copie sans les depots de DSN de la fictive (mensuelles et signalements, essais et reels) : voir l'en-tete.
 fn retirer_les_depots_de_dsn(dossier: &Path) -> Result<(), String> {
-    let p = dossier.join("journal").join("depots.json");
-    if !p.is_file() {
-        return Ok(());
-    }
-    let Value::Array(lignes) = socle::fichiers::lire_json(&p)? else {
-        return Err(format!("{} : une liste est attendue.", p.display()));
-    };
-    let gardees: Vec<Value> = lignes.into_iter().filter(|l| l.get("quoi").and_then(Value::as_str) != Some("dsn")).collect();
-    socle::ecriture::ecrire_json(&p, &Value::Array(gardees), 2)
+    envois::journal::ne_garder_que(dossier, |l| l.get("quoi").and_then(Value::as_str) != Some("dsn"))
 }
 
 /// Monte (ou remet a jour) la compagnie d'essai dans `dossier`, depuis la fictive `depuis`, sous l'identite `texte` (le
@@ -378,16 +370,15 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     })?;
     let id = Identite::lire(texte)?;
     if let Some(d) = depot_englobant(dossier) {
-        return Err(format!(
-            "{} est dans {} (un depot Git ou une installation de PuppetPaie) : la compagnie d'essai porte l'identite d'une vraie compagnie, elle se monte hors de tout depot (par exemple dans le dossier temporaire, le defaut). Rien n'est ecrit.",
-            dossier.display(),
-            d.display()
+        return Err(socle::echec::avec(
+            "Ce dossier est dans un dépôt Git ou une installation de PuppetPaie : la compagnie d'essai porte l'identité d'une vraie compagnie, elle se monte hors de tout dépôt (par exemple dans le dossier temporaire, le défaut). Rien n'est écrit.",
+            json!({"chemin": dossier.to_string_lossy(), "depot": d.to_string_lossy()}),
         ));
     }
     let existe = dossier.exists();
     let deja = existe && est_essai(dossier);
     if existe && !deja && std::fs::read_dir(dossier).map(|mut d| d.next().is_some()).unwrap_or(true) {
-        return Err(format!("{} existe et n'est pas une compagnie d'essai : choisir un dossier vide ou neuf. Rien n'est ecrit.", dossier.display()));
+        return Err(socle::echec::avec("Ce dossier existe et n'est pas une compagnie d'essai : choisir un dossier vide ou neuf. Rien n'est écrit.", json!({"chemin": dossier.to_string_lossy()})));
     }
     let (src, nom) = if deja {
         // La copie dit de quelle fictive elle vient ; `--depuis` ne la change pas (il faudrait une copie neuve).
@@ -400,10 +391,10 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     };
     // La fiche sous la nouvelle identite, calculee AVANT toute ecriture.
     let base_fiche = match &src {
-        Some(s) => s.join("config").join("entreprise.json"),
-        None => dossier.join("config").join("entreprise.json"),
+        Some(s) => s.join(droit::contexte::ENTREPRISE),
+        None => dossier.join(droit::contexte::ENTREPRISE),
     };
-    let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| format!("{} : {}", base_fiche.display(), e))?;
+    let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| socle::echec::du_disque(&base_fiche, &e))?;
     let fiche = id.appliquer(&fiche)?;
 
     if let Some(s) = &src {
@@ -418,9 +409,9 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         });
         socle::ecriture::ecrire_json(&dossier.join(MARQUEUR), &marqueur, 2)?;
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")
-            .map_err(|e| format!("{} : {}", dossier.display(), e))?;
+            .map_err(|e| socle::echec::du_disque(&dossier, &e))?;
     }
-    socle::ecriture::ecrire_json(&dossier.join("config").join("entreprise.json"), &fiche, 2)?;
+    socle::ecriture::ecrire_json(&dossier.join(droit::contexte::ENTREPRISE), &fiche, 2)?;
     Ok(Montage { dossier: absolu(dossier), depuis: nom, neuf: !deja })
 }
 
@@ -428,7 +419,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
 
 const AIDE: &str = "usage : moteur essai monter [DOSSIER] [--depuis FICTIVE]
 
-Monte une COMPAGNIE D'ESSAI : la copie d'une compagnie fictive (defaut : fictive-3090-grande, dans fictives/ de
+Monte une COMPAGNIE D'ESSAI : la copie d'une compagnie fictive (defaut : fictive-fil-de-fer, dans fictives/ de
 l'installation ; ou un chemin), sous l'identite d'une vraie compagnie lue dans la variable PUPPETPAIE_COMPAGNIE.
 Ses depots de TEST vont au reseau (net-entreprises, Urssaf) ; tout depot reel y est refuse.
 DOSSIER : hors de tout depot Git (defaut : <dossier temporaire>/puppetpaie-essai). Deja monte, seule l'identite
@@ -442,7 +433,7 @@ PUPPETPAIE_COMPAGNIE : un objet JSON sur une ligne, avec exactement ces cles (se
   api_dpae       {nom, prenom, siret, service}               (le compte DPAE d'urssaf.fr ; siret et service peuvent etre vides)
 Les mots de passe restent dans NET_ENTREPRISES_MOTDEPASSE et URSSAF_MOTDEPASSE.
 
-Puis, avec PUPPETPAIE_DONNEES=DOSSIER : moteur depot-dsn AAAA-MM --test, moteur retours, moteur dpae, moteur deposer-dpae --test
+Puis, avec PUPPETPAIE_DONNEES=DOSSIER, par moteur route : deposer (quoi dsn ou dpae, mois AAAA-MM), en test ; ouverture, les retours
 (la suite : atelier/docs/COMPAGNIE-D-ESSAI.md).";
 
 /// `moteur essai ...` : rend le code de sortie.
@@ -451,7 +442,7 @@ pub fn commande(args: &[String]) -> i32 {
     match it.next().map(String::as_str) {
         Some("monter") => {}
         Some("-h" | "--help" | "--aide" | "aide") => {
-            println!("{}", AIDE);
+            dire!("{}", AIDE);
             return 0;
         }
         _ => {
@@ -463,7 +454,7 @@ pub fn commande(args: &[String]) -> i32 {
     while let Some(a) = it.next() {
         match a.as_str() {
             "-h" | "--help" | "--aide" => {
-                println!("{}", AIDE);
+                dire!("{}", AIDE);
                 return 0;
             }
             "--depuis" => match it.next() {
@@ -491,16 +482,16 @@ pub fn commande(args: &[String]) -> i32 {
         Ok(m) => {
             let d = m.dossier.display();
             if m.neuf {
-                println!("Compagnie d'essai montee dans {}, depuis la compagnie fictive {}.", d, m.depuis);
+                dire!("Compagnie d'essai montee dans {}, depuis la compagnie fictive {}.", d, m.depuis);
             } else {
-                println!("Compagnie d'essai {} (depuis {}) : identite reecrite ; journal, DSN et retours gardes.", d, m.depuis);
+                dire!("Compagnie d'essai {} (depuis {}) : identite reecrite ; journal, DSN et retours gardes.", d, m.depuis);
             }
-            println!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
-            println!();
-            println!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
-            println!("  moteur depot-dsn AAAA-MM --test      puis   moteur retours");
-            println!("  moteur dpae AAAA-MM                  puis   moteur deposer-dpae sorties/AAAA-MM/<DPAE>.txt --test");
-            println!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
+            dire!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
+            dire!();
+            dire!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
+            dire!("  echo '{{\"route\":\"deposer\",\"charge\":{{\"quoi\":\"dsn\",\"mois\":\"AAAA-MM\"}}}}' | moteur route --texte");
+            dire!("  puis les retours : echo '{{\"route\":\"ouverture\",\"charge\":{{\"sauvegarder\":false,\"signatures\":false}}}}' | moteur route --texte");
+            dire!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
             0
         }
         Err(m) => {

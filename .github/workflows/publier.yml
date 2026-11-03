@@ -41,7 +41,7 @@
 #
 # Le numero de version est la date du jour (AAAA.MM.JJ, lue JJ.MM.AAAA), posee par le flux ; `.2`, `.3`... le meme jour.
 # Les programmes Mac ne sont pas signes par Apple (aucun texte depose ici ne dit ce que macOS en exige).
-# Aucun agent n'approuve un deploiement (atelier/CLAUDE.md). Sources : atelier/reference/sources/github/.
+# Aucun agent n'approuve un deploiement (atelier/AGENTS.md). Sources : atelier/reference/sources/github/.
 
 name: Publier
 
@@ -125,24 +125,29 @@ jobs:
 
       # Le moteur Linux : il signe (toujours), il marque les fictives avant l'installeur, et il ouvre la page dans le
       # navigateur sur un Linux sans WebKitGTK.
-      # L'essai `moteur version` ouvre une compagnie, comme toute commande du produit (`commandes::executer`) : ici une
-      # compagnie fictive livree (`fictives/`, le banc d'essai de l'interface, regle 11) ; sans elle, le moteur refuse
-      # (« fichier introuvable : logiciel/config/entreprise.json », Publier n° 5, 15/10/2026). Rien n'y est ecrit.
       - name: Le moteur Linux
-        env:
-          PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
+        run: cargo build --release --locked --manifest-path atelier/sources/moteur/Cargo.toml --bin moteur
+
+      # LES TABLES DES MISSIONS A L'ETRANGER (`moteur releve-missions`, moteur/src/atelier/releve/missions.rs) : les indemnites
+      # journalieres et les taux de chancellerie de la DGFiP du jour, relevees et relues avant de livrer. Une paie passee ne
+      # change pas : son empreinte ne retient que les valeurs de ses jours. Le site injoignable, la table du depot part.
+      - name: Les tables des missions a l'etranger
         run: |
-          cargo build --release --locked --manifest-path atelier/sources/moteur/Cargo.toml --bin moteur
-          "$CARGO_TARGET_DIR/release/moteur" version
+          "$CARGO_TARGET_DIR/release/moteur" releve-missions atelier/reference/sources logiciel/donnees \
+            || echo "::warning::Les tables des missions n'ont pas ete relevees : celles du depot partent."
 
       # LES MARQUES DE LA LIVRAISON DE FICTIVES (`fictives/.livraison.json`, `fictives/<nom>/.livree.json` : maj.rs,
       # `marquer_les_fictives`), avant l'installeur, qui les pose : une installation de l'installeur retient la livraison
-      # qu'elle a et ne la retelecharge pas. Elles ne changent ni l'empreinte ni ce qui se livre.
+      # qu'elle a et ne la retelecharge pas. Elles ne changent ni l'empreinte ni ce qui se livre. D'abord, les fictives de reference
+      # se refont de leur scenario (`atelier/fictives/<nom>/`, `scenario::livrer`), rejouees jusqu'au jour de la publication.
+      # Puis l'essai : la route `maj-etat` (la version) sur la fictive livree, comme toute route (`moteur route`). Rien
+      # n'y est ecrit.
       - name: Les marques des fictives
         run: |
           "$CARGO_TARGET_DIR/release/moteur" maj --marquer-fictives --logiciel logiciel
           test -f fictives/.livraison.json
-          [ "$(ls fictives/*/.livree.json | wc -l)" -ge 4 ] || { echo "::error::Les fictives ne sont pas toutes marquees."; exit 1; }
+          [ "$(ls fictives/*/.livree.json | wc -l)" -ge 2 ] || { echo "::error::Les fictives ne sont pas marquees."; exit 1; }
+          echo '{"route":"maj-etat","charge":{}}' | "$CARGO_TARGET_DIR/release/moteur" route --racine fictives/fictive-fil-de-fer | grep '"ok":true'
 
       - name: La fenetre et le moteur Windows, l'installeur
         run: bash atelier/installeur/construire.sh
@@ -155,7 +160,7 @@ jobs:
           "$CARGO_TARGET_DIR/release/puppetpaie" --peut-ouvrir || echo "La fenetre Linux ne s'ouvre pas sur ce runner (pas d'ecran) : attendu."
 
       # Ce que les archives portent (maj::archiver, archiver_fictives, archiver_installation), moins le Mac (fabriquer-mac) :
-      # les compagnies fictives livrees (`fictives/`, suivies par Git, et leurs marques), les fichiers suivis de
+      # les compagnies fictives livrees (`fictives/`, refaites de leur scenario, et leurs marques), les fichiers suivis de
       # `logiciel/`, la fenetre Windows neuve a la place de `logiciel/puppetpaie.exe`, et, si Linux est publie, les deux
       # programmes Linux dans `logiciel/linux/`. Une archive tar garde les bits d'execution, qu'un artefact perdrait.
       - name: Rassembler
@@ -208,10 +213,8 @@ jobs:
           done
 
       # Un seul fichier pour les deux sortes de Mac : l'installation n'a pas a savoir quel processeur a le sien.
-      # L'essai `moteur version` ouvre une compagnie fictive livree, comme sous Linux (voir « Le moteur Linux »).
+      # L'essai : la route `compagnies` (l'accueil, qui se sert sans compagnie : le checkout n'a pas de fictive livree).
       - name: Universels, dans logiciel/mac/
-        env:
-          PUPPETPAIE_DONNEES: ${{ github.workspace }}/fictives/fictive-1285-petite
         run: |
           mkdir -p logiciel/mac
           for P in moteur puppetpaie; do
@@ -221,7 +224,7 @@ jobs:
             lipo -info "logiciel/mac/$P"
           done
           chmod +x logiciel/mac/moteur logiciel/mac/puppetpaie
-          logiciel/mac/moteur version
+          echo '{"route":"compagnies","charge":{}}' | logiciel/mac/moteur route | grep '"ok":true'
           tar -cf mac.tar logiciel/mac
           ls -l logiciel/mac
 
@@ -317,7 +320,7 @@ jobs:
             ARCHIVES+=("sortie/$A")
           done
           # LES FICTIVES, a part (`derniere.json` les nomme sous `fictives`, avec leur empreinte) : tout sous `fictives/`,
-          # les quatre fictives livrees, et ce que retient la livraison (`fictives/.livraison.json`), qui dit l'empreinte
+          # les fictives livrees, et ce que retient la livraison (`fictives/.livraison.json`), qui dit l'empreinte
           # annoncee. Une Release aux memes fictives les repose telles quelles : meme empreinte, aucun poste ne les
           # retelecharge.
           F="$(jq -r '.fictives.archive // ""' sortie/derniere.json)"
@@ -325,26 +328,39 @@ jobs:
           [ "$F" = "puppetpaie-$V-fictives.zip" ] && [ -f "sortie/$F" ] && [ -n "$E" ] || { echo "::error::L'archive des fictives manque ($F)."; exit 1; }
           unzip -Z1 "sortie/$F" > noms.txt
           N="$(grep -cE '^fictives/[^/]+/COPIE-DE-DEVELOPPEMENT\.json$' noms.txt || true)"
-          [ "$N" -ge 4 ] && ! grep -qvE '^fictives/' noms.txt \
+          [ "$N" -ge 2 ] && ! grep -qvE '^fictives/' noms.txt \
             && [ "$(unzip -p "sortie/$F" fictives/.livraison.json | jq -r .empreinte)" = "$E" ] \
             || { echo "::error::L'archive des fictives n'a pas la forme attendue ($N fictive(s), tout sous fictives/, empreinte $E)."; exit 1; }
           ARCHIVES+=("sortie/$F")
           # LES ARCHIVES D'INSTALLATION (Linux, Mac s'ils sont publies, et tous : le dossier portable ; Windows a son
           # installeur), ni signees ni nommees dans `derniere.json` : decompressee dans un dossier neuf, chacune est une
-          # installation, `logiciel/` et les quatre fictives a cote, avec la livraison qu'elle retient.
+          # installation, `logiciel/` et les fictives a cote, avec la livraison qu'elle retient. Celle de tous porte aussi
+          # `PORTABLE.json` a sa racine (`archiver_installation`) : decompressee sur une cle USB, elle est portable.
           for S in $CHOISIS tout-systeme; do
             [ "$S" = windows ] && continue
             A="puppetpaie-$V-$S-installation.zip"
             [ -f "sortie/$A" ] || { echo "::error::L'archive d'installation $S manque ($A)."; exit 1; }
             unzip -Z1 "sortie/$A" > noms.txt
             N="$(grep -cE '^fictives/[^/]+/COPIE-DE-DEVELOPPEMENT\.json$' noms.txt || true)"
-            grep -qx 'logiciel/VERSION' noms.txt && [ "$N" -ge 4 ] && grep -qx 'fictives/.livraison.json' noms.txt \
-              && ! grep -qvE '^(logiciel|fictives)/' noms.txt \
-              || { echo "::error::L'archive d'installation $S n'est pas une installation (logiciel/VERSION, $N fictive(s), fictives/.livraison.json)."; exit 1; }
+            if [ "$S" = tout-systeme ]; then M=1; else M=0; fi
+            grep -qx 'logiciel/VERSION' noms.txt && [ "$N" -ge 2 ] && grep -qx 'fictives/.livraison.json' noms.txt \
+              && [ "$(grep -cx 'PORTABLE.json' noms.txt || true)" = "$M" ] \
+              && ! grep -qvE '^((logiciel|fictives)/|PORTABLE\.json$)' noms.txt \
+              || { echo "::error::L'archive d'installation $S n'est pas une installation (logiciel/VERSION, $N fictive(s), fictives/.livraison.json, PORTABLE.json pour tous les systemes seulement)."; exit 1; }
             ARCHIVES+=("sortie/$A")
           done
-          ls -l "${ARCHIVES[@]}"
           L="${V:8:2}.${V:5:2}.${V:0:4}"; [ "${#V}" -gt 10 ] && L="$L-${V:11}"
+          # LES NOMS STABLES, pour les boutons de puppetpaie.fr (`releases/latest/download/<nom>`, le meme lien d'une
+          # version a l'autre) : une copie de l'installeur Windows, de chaque archive d'installation d'un systeme, et du
+          # dossier portable (l'archive d'installation de tous les systemes, pour une cle USB).
+          mkdir -p stables
+          cp "publication/PuppetPaie-$L-installeur.exe" stables/PuppetPaie-installeur-windows.exe
+          for S in $CHOISIS; do
+            [ "$S" = windows ] && continue
+            cp "sortie/puppetpaie-$V-$S-installation.zip" "stables/PuppetPaie-$S.zip"
+          done
+          cp "sortie/puppetpaie-$V-tout-systeme-installation.zip" stables/PuppetPaie-portable.zip
+          ls -l "${ARCHIVES[@]}" stables/*
           gh release create "v$V" -R "$DEPOT" --target "${{ github.sha }}" --latest \
             --title "PuppetPaie ${L/-/ (}$([ "${#V}" -gt 10 ] && echo ")")" --notes "${NOTES:-PuppetPaie $L}" \
-            "${ARCHIVES[@]}" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe"
+            "${ARCHIVES[@]}" sortie/derniere.json "publication/PuppetPaie-$L-installeur.exe" stables/*

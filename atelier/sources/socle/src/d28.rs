@@ -175,7 +175,7 @@ impl P {
         arrondi28(q * (self.m.signum() * o.m.signum()), s)
     }
 
-    /// `x.quantize(Decimal(10) ** -dp)` au pair sur le demi (le contexte).
+    /// Arrondi à `dp` décimales, au pair sur le demi.
     pub fn quantifier(self, dp: i32) -> P {
         if self.e > dp {
             reduire(self, dp)
@@ -205,28 +205,6 @@ impl P {
         }
         P { m: self.m.div_euclid(10i128.pow(self.e as u32)), e: 0 }
     }
-
-    pub fn est_entier(self) -> bool {
-        self == self.plancher()
-    }
-
-    /// Le plus grand des deux ; le premier a egalite.
-    pub fn max_premier(self, o: P) -> P {
-        if o > self {
-            o
-        } else {
-            self
-        }
-    }
-
-    /// Le plus petit des deux ; le premier a egalite.
-    pub fn min_premier(self, o: P) -> P {
-        if o < self {
-            o
-        } else {
-            self
-        }
-    }
 }
 
 impl PartialEq for P {
@@ -247,7 +225,7 @@ impl Ord for P {
     }
 }
 
-/// `str(Decimal)`.
+/// Le décimal en texte.
 impl fmt::Display for P {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let coeff = self.m.unsigned_abs().to_string();

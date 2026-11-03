@@ -2,7 +2,7 @@
 //!
 //! Ce que le logiciel fait tout seul quand on l'ouvre -- interface ou ligne de commande, c'est la meme fonction -- et
 //! toutes les vingt minutes ensuite : l'horloge de la compagnie fictive, les retours DSN et DPAE,
-//! les taux de PAS, les signatures et les fiches, le filet DPAE, les incidents et les reponses de l'editeur, la
+//! les taux de PAS, les signatures et les fiches, les incidents et les reponses de l'editeur, la
 //! sauvegarde en dernier, puis la trace `config/.ouverture.json`.
 //!
 //! REGLE : L'OUVERTURE N'ECHOUE JAMAIS. `ouverture` ne rend pas de `Result` : pas de reseau, pas de compte Google, pas de
@@ -13,14 +13,12 @@
 //! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}`,
 //! `releve_signatures::{relever_signatures, relever_signatures_fictive}`,
 //! `crate::routes::fiches::relever_fiches`, `horloge::{rattraper, dernier_rattrapage}`,
-//! `pas::avertissements`, `crate::routes::depots::filet_preparer` (le passage du filet DPAE),
 //! `incidents::envoyer` et `problemes::relever_reponses` (le canal de l'editeur), `sauvegarde::{sauvegarder,
 //! rien_n_a_bouge, hors_ligne}`, `crate::routes::coffre::autorise`, `coffre::Coffre`.
 //!
 //! CHAQUE CLIENT RESEAU PEUT ETRE REMPLACE (`Clients`) : le compte net-entreprises, le compte Urssaf (DPAE), la boite
 //! courriel (signatures et fiches), le Drive. Un client donne est utilise a la place du vrai, SANS regarder le coffre.
 //! Le serveur des incidents est celui de la configuration (`incidents::configuration`), qu'un serveur local peut tenir.
-//! Le test automatique de la DPAE du filet a son client Urssaf remplacable (`Clients::depot_dpae`).
 //!
 //! LA MISE A JOUR N'EST PAS ICI : le logiciel la cherche pour l'installation (`maj::chercher_en_fond`) et l'indicateur la
 //! dit (`maj::Recherche::etat`).
@@ -40,20 +38,40 @@ use socle::fichiers::vrai;
 use envois::releve_retours::{Client, Releve};
 use crate::compagnie::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION};
 use crate::routes::fiches::ReleveFiches;
 use crate::compagnie::sauvegarde::{self, Sauvegarde};
 
-/// Les routes de ce module.
-pub const ROUTES: [&str; 2] = ["ouverture", "ouverture-derniere"];
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Bandeau);
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "ouverture",
+        geste: "Ouvrir la compagnie : sauvegarder, relever retours, signatures et fiches.",
+        charge: &[
+            Champ { nom: "sauvegarder", libelle: Affiche::new("Sauvegarder"), forme: Forme::OuiNon, sens: "faux : ne pas sauvegarder dans le Drive", avance: true },
+            Champ { nom: "retours", libelle: Affiche::new("Relever les retours"), forme: Forme::OuiNon, sens: "faux : ne pas relever les retours des organismes", avance: true },
+            Champ { nom: "signatures", libelle: Affiche::new("Relever les signatures"), forme: Forme::OuiNon, sens: "faux : ne pas relever les signatures", avance: true },
+            Champ { nom: "veille", libelle: Affiche::new("Un tour de veille"), forme: Forme::OuiNon, sens: "vrai : un tour de veille", avance: true },
+        ],
+        exemple: r#"{}"#,
+        rend: "ce que chaque passage a fait (sauvegarde, retours, signatures, fiches, filet), et les incidents en phrases ; ne refuse jamais",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+];
 
 /// `compagnies.MARQUEUR`.
 use socle::fichiers::MARQUEUR_COPIE;
+use crate::routes::catalogue::{Ecran, Place};
 
 /// La trace de la derniere ouverture : `config/.ouverture.json`.
 const TRACE: &str = ".ouverture.json";
-
-/// Secondes entre un depot joue et son compte rendu, dans une compagnie fictive .
-const DELAI_RETOURS_FICTIVE: i64 = 6;
 
 // ------------------------------------------------------------------ les options et les clients
 
@@ -66,7 +84,7 @@ pub struct Options {
     pub retours: bool,
     /// Relever les signatures et les fiches.
     pub signatures: bool,
-    /// Le filet DPAE (le passage), et ce qui part chez l'editeur (incidents, reponses aux signalements).
+    /// Ce qui part chez l'editeur (incidents, reponses aux signalements).
     pub filet: bool,
     /// Combien de jours en arriere on cherche les retours.
     pub jours: i64,
@@ -78,7 +96,7 @@ pub struct Options {
     pub veille: bool,
     /// Envoyer chez l'editeur ce que le journal des incidents a note, et relever ses reponses, avant de rendre la main ;
     /// un processus `moteur route` ne peut pas attendre un fil. Mettre `false` quand l'appelant le lance lui-meme
-    /// (routes `incidents-envoyer` et `signalements-reponses`, dans son propre fil).
+    /// (route `incidents-envoyer`, dans son propre fil).
     pub incidents_editeur: bool,
     /// La SECONDE moitie de la veille : ne fait que la sauvegarde, et met la trace du premier appel a
     /// jour (sauvegarde, hors ligne, incidents, manque `google`) sans rien effacer de ce qu'il a ecrit. Le premier appel
@@ -138,8 +156,6 @@ pub struct Clients<'a> {
     pub courriel: Option<&'a mut (dyn Courriel + 'a)>,
     /// Le Drive.
     pub drive: Option<&'a mut (dyn Drive + 'a)>,
-    /// Le compte Urssaf du TEST AUTOMATIQUE des DPAE du filet (il depose en test) : distinct de `dpae`, qui sert la releve.
-    pub depot_dpae: Option<Client>,
 }
 
 // ------------------------------------------------------------------ ce que l'ouverture rend
@@ -161,10 +177,6 @@ pub struct Ouverture {
     pub a_poser: Vec<String>,
     /// Les phrases de ces manques, a ne pas redire dans la trace (`a_poser` les dit).
     pub phrases_coffre: Vec<String>,
-    /// Une phrase par salarie non archive dont le taux de PAS n'est pas (ou plus) celui de la DGFiP.
-    pub taux_pas: Vec<String>,
-    /// Le passage du filet DPAE : `{testees, armes, desarmes, incidents, occupe}`.
-    pub filet: Option<Value>,
     /// Ce que l'horloge de la compagnie fictive a joue aujourd'hui, en phrases.
     pub horloge: Vec<String>,
     pub secondes: f64,
@@ -184,7 +196,7 @@ impl Ouverture {
         self.incidents.is_empty() && self.manquants.is_empty()
     }
 
-    /// `_manque_coffre` : un secret absent -- la phrase du terminal, gardee pour ne pas la redire dans la fenetre.
+    /// Un secret absent -- la phrase du terminal, gardee pour ne pas la redire dans la fenetre.
     fn manque_coffre(&mut self, phrase: &str) {
         self.manquants.push(phrase.to_string());
         self.phrases_coffre.push(phrase.to_string());
@@ -193,12 +205,12 @@ impl Ouverture {
     /// `ReleveRetours.resume`.
     fn resume_retours(releve: &Releve) -> String {
         if releve.trouves.is_empty() {
-            return "Aucun retour sur la periode.".to_string();
+            return "Aucun retour sur la période.".to_string();
         }
         format!("{} retour(s), dont {} nouveau(x), {} archive(s).", releve.trouves.len(), releve.nouveaux.len(), releve.archives.len())
     }
 
-    /// Ce que la page et la ligne de commande lisent du passage (`commandes::ouverture`), avec
+    /// Ce que la page et `moteur route` lisent du passage, avec
     /// le detail des fichiers deposes et des retours archives.
     pub fn en_json(&self) -> Value {
         let sauvegarde = self.sauvegarde.as_ref().map(|s| {
@@ -246,12 +258,9 @@ impl Ouverture {
             "signatures": self.signatures.as_ref().map(ReleveSignatures::en_json),
             "incidents": self.incidents,
             "manquants": self.manquants,
-            "taux_pas": self.taux_pas,
-            "taux_pas_phrase": droit::pas::resume_avertissements(&self.taux_pas),
             "retours_dpae": retours_dpae,
             "fiches": fiches,
             "a_poser": self.a_poser,
-            "filet": self.filet,
             "horloge": self.horloge,
             "hors_ligne": self.hors_ligne,
             "injoignables": self.injoignables,
@@ -268,12 +277,21 @@ impl Ouverture {
 /// - `ouverture` : `{"sauvegarder"?, "retours"?, "signatures"?, "filet"?, "jours"?, "racine_drive"?, "pas_avant"?, "veille"?,
 ///   "incidents_editeur"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
-/// - `ouverture-derniere` : la trace de la derniere ouverture (`config/.ouverture.json`), `{}` si elle manque ou ne se lit
-///   pas. Sans reseau.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "ouverture" => Ok(ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json()),
-        "ouverture-derniere" => Ok(derniere_ouverture(ctx)),
+        "ouverture" => {
+            let mut v = ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json();
+            // Ce que le passage a fait et trouve, une ligne par chose : ce que l'horloge a joue, ce qui
+            // manque, les incidents.
+            let texte = |x: &Value| x.as_str().map(String::from).unwrap_or_else(|| crate::routes::mot(x));
+            let mut lignes: Vec<Value> = Vec::new();
+            for k in ["horloge", "manquants", "incidents"] {
+                lignes.extend(v[k].as_array().into_iter().flatten().map(|x| json!(texte(x))));
+            }
+            let p = format!("Ouverture du {} : {}", crate::routes::mot(&v["quand"]), crate::routes::mot(&v["retours"]["resume"]));
+            v["phrases"] = Value::Array(lignes);
+            Ok(crate::routes::phrase_en_tete(v, p))
+        }
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -288,7 +306,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 pub const ETAPE: &str = ".ouverture-etape.json";
 
 fn chemin_etape(racine: &Path) -> std::path::PathBuf {
-    racine.join("config").join(ETAPE)
+    racine.join(socle::fichiers::CONFIG).join(ETAPE)
 }
 
 fn dire_l_etape(ctx: &Contexte, etape: &str) {
@@ -309,13 +327,13 @@ pub fn etape_en_cours(racine: &Path) -> Option<String> {
 // ------------------------------------------------------------------ la trace
 
 fn chemin_trace(ctx: &Contexte) -> std::path::PathBuf {
-    ctx.racine.join("config").join(TRACE)
+    ctx.racine.join(socle::fichiers::CONFIG).join(TRACE)
 }
 
 /// `derniere_ouverture` : la trace, ou `{}` si elle est absente ou ne se lit pas (JSON invalide, octets invalides, fichier
 /// illisible).
-pub fn derniere_ouverture(ctx: &Contexte) -> Value {
-    let p = chemin_trace(ctx);
+pub fn derniere_ouverture(racine: &std::path::Path) -> Value {
+    let p = racine.join(socle::fichiers::CONFIG).join(TRACE);
     if !p.exists() {
         return json!({});
     }
@@ -339,8 +357,8 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
         Vec::new()
     } else {
         // Un journal illisible ne doit pas empecher la trace (l'ouverture n'echoue jamais).
-        etats::charger(&ctx.racine)
-            .and_then(|l| etats::flux_de_test(&l))
+        envois::journal::lu(&ctx.racine).map(|j| j.lignes)
+            .and_then(|l| etats::flux_de_test(&l).map_err(|e| e.message))
             .ok()
             .and_then(|v| v.as_array().cloned())
             .unwrap_or_default()
@@ -359,7 +377,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
         if trouves > 0 {
             format!("{} retour(s), dont {} nouveau(x).", trouves, nouveaux)
         } else {
-            "Aucun retour sur la periode.".to_string()
+            "Aucun retour sur la période.".to_string()
         }
     } else {
         String::new()
@@ -377,16 +395,41 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
     trace.insert("fiches".into(), json!(r.fiches.as_ref().map(ReleveFiches::resume).unwrap_or_default()));
     trace.insert(
         "signatures_recues".into(),
-        json!(r.signatures.as_ref().map(|s| s.recues.iter().map(|x| json!({"nom": x.nom, "quand": x.quand, "renvoye": x.renvoye})).collect::<Vec<_>>()).unwrap_or_default()),
+        json!(r.signatures.as_ref().map(|s| s.recues.iter().map(|x| json!({"nom": x.nom, "quand": x.quand, "renvoye": x.renvoye, "phrase": format!("contrat signé par {}", x.nom)})).collect::<Vec<_>>()).unwrap_or_default()),
     );
     trace.insert("incidents".into(), json!(r.incidents));
     // Les phrases du coffre ne repartent pas : `a_poser` les dit.
     let manquants: Vec<&String> = r.manquants.iter().filter(|m| !r.phrases_coffre.contains(m)).collect();
     trace.insert("manquants".into(), json!(manquants));
     trace.insert("a_poser".into(), json!(r.a_poser));
-    trace.insert("taux_pas".into(), json!(r.taux_pas));
     trace.insert("horloge".into(), json!(r.horloge));
     let _ = socle::ecriture::ecrire_json(&p, &Value::Object(trace), 1);
+}
+
+// ------------------------------------------------------------------ la version qui calcule
+
+/// Ou la compagnie garde la version qui a passe sur ses mois finis : `config/.version-du-calcul.json`.
+const VERSION_DU_CALCUL: &str = ".version-du-calcul.json";
+
+/// LES MOIS FINIS ET LA VERSION QUI CALCULE : un mois fini (ses documents et sa DSN partis) ne se relit plus de lui-meme
+/// (`engagement::etats::fini`). Une version qui change ce qui calcule (son numero, `VERSION`, et la marque du code,
+/// `engagement::empreinte::MOTEUR`) passe une fois sur eux, a la premiere ouverture de la compagnie qui la porte
+/// (`engagement::etats::corriger_les_mois_finis`) : une decision de l'editeur y refait la paie d'un mois, en
+/// rectificatif ; puis plus rien jusqu'a la version suivante. La marque ne s'ecrit qu'apres un passage entier : un
+/// passage interrompu se refait.
+fn passer_la_version(ctx: &Contexte) -> R<()> {
+    let code = socle::fichiers::dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
+    let marque = format!("{}+{}", crate::compagnie::maj::courante(&code), engagement::empreinte::MOTEUR);
+    let p = ctx.racine.join(socle::fichiers::CONFIG).join(VERSION_DU_CALCUL);
+    let lue = std::fs::read(&p).ok().and_then(|o| serde_json::from_slice::<Value>(&o).ok());
+    if lue.as_ref().and_then(|v| v.get("version")).and_then(Value::as_str) == Some(marque.as_str()) {
+        return Ok(());
+    }
+    dire_l_etape(ctx, "Nouvelle version : relecture des mois finis…");
+    let departs = envois::journal::lu(&ctx.racine)?.departs;
+    engagement::etats::corriger_les_mois_finis(ctx, &departs)?;
+    socle::ecriture::ecrire_json(&p, &json!({"version": marque}), 1).map_err(|m| socle::echec::erreur("OSError", m))?;
+    Ok(())
 }
 
 // ------------------------------------------------------------------ outils
@@ -396,7 +439,7 @@ fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR_COPIE).is_file()
 }
 
-/// `datetime.now().strftime("%d/%m/%Y %H:%M")`, a l'heure de Paris.
+/// L'heure de Paris, `JJ/MM/AAAA HH:MM`.
 fn quand_maintenant() -> String {
     let iso = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     format!("{}/{}/{} {}:{}", &iso[8..10], &iso[5..7], &iso[0..4], &iso[11..13], &iso[14..16])
@@ -431,7 +474,7 @@ fn coffre_dispo(ctx: &Contexte, service: &str) -> Result<bool, String> {
     crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "").disponible(service).map_err(|e| e.message)
 }
 
-/// `_trier_hors_ligne` : une seule phrase pour l'absence de reseau, pas une erreur par dossier et par organisme. Les erreurs
+/// Une seule phrase pour l'absence de reseau, pas une erreur par dossier et par organisme. Les erreurs
 /// qui ne disent que « pas de reseau » sortent des incidents ; les autres (un mot de passe refuse, un coffre ferme)
 /// restent, elles demandent un geste.
 /// Elles ne se perdent pas pour autant : `injoignables` garde de quoi dire QUI n'a pas repondu.
@@ -521,7 +564,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     let mut signatures = opt.signatures;
     // La trace d'avant ce passage : `pas_avant` la lit, la seconde moitie de la
     // veille la complete.
-    let precedente = derniere_ouverture(ctx);
+    let precedente = derniere_ouverture(&ctx.racine);
 
     if opt.sauvegarde_seule {
         return sauvegarder_seulement(ctx, opt, clients, r, debut, &precedente);
@@ -550,6 +593,11 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         signatures = false;
     }
 
+    // UNE VERSION QUI CALCULE AUTREMENT passe une fois sur les mois finis, avant le present.
+    if let Err(e) = passer_la_version(ctx) {
+        r.incidents.push(format!("Mois finis : {}", e.message));
+    }
+
     // LA COMPAGNIE FICTIVE : les retours des depots joues et les signatures demandees arrivent d'ici, sans coffre ni reseau --
     // et rien ne manque au coffre, puisqu'il n'y a rien a y poser.
     if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
@@ -563,7 +611,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         if retours {
             dire_l_etape(ctx, "Compagnie fictive : retours des dépôts joués…");
             let mut releve = Releve::default();
-            match crate::compagnie::releve::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
+            match crate::compagnie::releve::rattacher_simulation(ctx) {
                 Ok((n, a_faire)) => (releve.rattaches, releve.a_faire) = (n, a_faire),
                 // L'ouverture ne doit pas tomber.
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),
@@ -572,7 +620,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         }
         dire_l_etape(ctx, "Compagnie fictive : signatures et fiches des salariés…");
         // Le resultat de la relève jouee n'est pas gardé.
-        if let Err(e) = releve_signatures::relever_signatures_fictive(ctx, releve_signatures::DELAI_FICTIVE) {
+        if let Err(e) = releve_signatures::relever_signatures_fictive(ctx) {
             r.incidents.push(format!("Signatures : {}", e.message));
         }
         match crate::routes::fiches::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {
@@ -587,14 +635,6 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
 
     if retours {
         relever_les_retours(ctx, opt, &mut clients, &mut r);
-    }
-
-    // LE PAS, AU MEME PASSAGE QUE LES RETOURS, et juste apres eux : c'est un retour qui pose les taux, donc c'est ici qu'ils
-    // sont les plus frais. Cela se fait hors ligne aussi (une lecture de config/pas.json), parce qu'un taux perime le reste
-    // que le reseau soit la ou non.
-    match droit::pas::avertissements(ctx, None, None) {
-        Ok(l) => r.taux_pas = l,
-        Err(m) => r.incidents.push(format!("Taux de PAS : {}", m)),
     }
 
     if signatures {
@@ -618,19 +658,6 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         }
     }
 
-    // LA DPAE PREPAREE D'AVANCE. Apres les retours DPAE : un test automatique dont le bilan vient d'arriver se
-    // lit a jour. Le test ne declare rien -- la veille ne DEPOSE toujours rien de reel.
-    if opt.filet {
-        dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
-        match crate::routes::depots::filet_preparer_avec(ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
-            Ok(f) => {
-                r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(valeur_en_texte));
-                r.filet = Some(f);
-            }
-            Err(e) => r.incidents.push(format!("DPAE préparée d'avance : {}", e.message)),
-        }
-    }
-
     // LES ECARTS DE CALCUL DES PAIES IMPORTEES qui ne sont pas encore comparees (`import::ecarts::noter`) : une
     // compagnie completee depuis l'import compare celles que le calcul refusait. Ils partent avec les autres incidents.
     crate::import::ecarts::noter(ctx);
@@ -650,8 +677,6 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         let _ = crate::compagnie::problemes::partir(&ctx.racine);
         let _ = crate::compagnie::problemes::relever_reponses(&ctx.racine);
     }
-
-
 
     if let Some(rappel) = apres_releve.as_mut() {
         clore(ctx, &mut r, debut);
@@ -705,7 +730,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
         Some(false) => {
             r.a_poser.push("net-entreprises".to_string());
             r.manque_coffre(
-                "Mot de passe net-entreprises absent du coffre : les retours ne peuvent pas etre releves seuls. `moteur coffre poser net-entreprises`.",
+                "Mot de passe net-entreprises absent du coffre : les retours ne peuvent pas etre releves seuls. `route coffre-poser, service net-entreprises`.",
             );
         }
         Some(true) => {
@@ -739,7 +764,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
     match dispo {
         Some(false) => {
             r.a_poser.push("urssaf".to_string());
-            r.manque_coffre("Mot de passe Urssaf (DPAE) absent du coffre : les retours de DPAE ne peuvent pas etre releves seuls. `moteur coffre poser urssaf`.");
+            r.manque_coffre("Mot de passe Urssaf (DPAE) absent du coffre : les retours de DPAE ne peuvent pas etre releves seuls. `route coffre-poser, service urssaf`.");
         }
         Some(true) => {
             dire_l_etape(ctx, "Urssaf : retours des DPAE…");
@@ -770,7 +795,7 @@ fn sauvegarder_le_dossier(ctx: &Contexte, opt: &Options, clients: &mut Clients<'
     if !pret {
         r.a_poser.push("google".to_string());
         r.manque_coffre(
-            "Compte Google non lie : la sauvegarde ne peut pas partir. Lier le Drive : Configuration > Mots de passe, ou `moteur google autoriser`.",
+            "Compte Google non lie : la sauvegarde ne peut pas partir. Lier le Drive : Configuration > Mots de passe, ou la route google-autoriser.",
         );
     } else if opt.veille && sauvegarde::rien_n_a_bouge(&ctx.racine, &opt.racine_drive) {
         // rien de neuf sur le disque : on n'appelle pas

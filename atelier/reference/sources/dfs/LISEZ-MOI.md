@@ -14,11 +14,11 @@ texte ajouté, `_completer`) ; ce que l'outil ne garde pas (les annexes sans num
 
 | dossier | ce que c'est |
 |---|---|
-| `arrete-2025-frais-professionnels/` | relevé de l'outil : art. 1, 2, 9 de l'arrêté du 4 septembre 2025 (`releve.json`, `xml/`, `articles-*.md`) |
+| `arrete-2025-frais-professionnels/` | relevé de l'outil (`moteur releve-codes`) : art. 1, 2, 3, 5, 9 et 10 de l'arrêté du 4 septembre 2025 (art. 3, 5 et 10 relevés le 03/11/2026, `articles-20261103.md`) (`releve.json`, `xml/`, `articles-*.md`) |
 | `annexes-2025/` | ses deux annexes, brutes (LEGIARTI000052206429 et …431, en vigueur depuis le 07/09/2025), et leur transcription |
 | `arrete-2019-reduction-generale/` | relevé de l'outil : art. 1 et 2 de l'arrêté du 4 décembre 2019 (art. 1er dans la rédaction du 07/09/2025) |
 | `cgi-annexe4-art5/` | l'article 5 de l'annexe IV du CGI **dans sa rédaction du 31/03/2000 au 31/03/2002** (LEGIARTI000006300240, état « PERIME ») : celle « en vigueur au 31 décembre 2000 » que l'arrêté cite |
-| `historique/` | l'art. 9 de l'arrêté du 20/12/2002 (versions du 27/12/2002 et du 06/08/2005) et l'annexe de l'arrêté du 25/07/2005 : le droit des paies d'avant le 07/09/2025 |
+| `historique/` | l'art. 9 de l'arrêté du 20/12/2002 (versions du 27/12/2002 et du 06/08/2005) et l'annexe de l'arrêté du 25/07/2005 : le droit des paies d'avant le 07/09/2025 ; et **l'arrêté du 20/12/2002 entier, dans sa dernière rédaction** (art. 3, 5 et 10 du 02/11/2022 au 07/09/2025), imprimé de Légifrance par Léandre le 03/11/2026 (`legifrance-arrete-20021220-frais-professionnels-20250907.pdf`, SHA-256 `d59a462f…7cd35f3c`, et sa transcription `.txt`, `197bd332…cc3a2e51`) : les règles du repas et du grand déplacement sont celles de 2025, ses montants ceux de 2022, revalorisés chaque 1er janvier par le barème de l'Acoss (art. 10) ; les montants de 2025 : `../legisocial-frais-professionnels-2025/` |
 | `autres/` | l'arrêté du 19/12/2024 portant agrément de la convention d'assurance chômage, l'article qui déroge à l'art. 49 du règlement général (journalistes) |
 
 Les codes sont relevés à leur place : CSS R. 242-1, L. 241-13 et D. 241-7 (`../code-de-la-securite-sociale/`, ajoutés à
@@ -53,6 +53,31 @@ Les codes sont relevés à leur place : CSS R. 242-1, L. 241-13 et D. 241-7 (`..
 - III : les autres professions de l'article 5 perdent, à compter de 2026, 15 % de leur taux de 2025 par an, arrondi à
   l'unité (0,5 compte pour 1). → l'artiste cinématographique (21 % en 2026) ; **inférence** : il ne relève pas du
   spectacle vivant.
+
+**Arrêté du 4 septembre 2025, art. 3, 5 et 10** (`engagement::frais_au_dela`, barèmes `repas_deplacement` et
+`logement_grand_deplacement`) — le régime commun des frais de tournée, pour tout salarié qui n'est pas sous DFS, et sous
+DFS pour ce que l'annexe 2 ne nomme pas :
+- art. 3, 1° : le salarié « en déplacement professionnel et empêché de regagner sa résidence ou lieu habituel de travail »,
+  21,10 € par repas ; 3° : hors des locaux, quand « il n'est pas démontré que les circonstances ou les usages de la
+  profession l'obligent à prendre ce repas au restaurant », 10,30 € (BOSS § 240-260 : le 1° vaut pour le salarié contraint
+  de manger au restaurant). → la case « au restaurant » d'une ligne de repas, qui ne se montre qu'au-dessus de la limite
+  basse ; le 2° (la restauration sur le lieu de travail) n'est pas un repas en déplacement, la rubrique `repas` ne le porte pas ;
+- art. 5, I, 1° : en grand déplacement, le repas à la limite du 1° de l'art. 3, sans case (un repas d'un jour dont la nuit, ou celle de la veille, est une nuitée de l'engagement) ; le logement et le petit-déjeuner « 75,60 euros par
+  jour [...] à Paris et dans les départements des Hauts-de-Seine, de Seine-Saint-Denis, du Val-de-Marne et 56,10 euros par
+  jour [...] dans les autres départements de la France métropolitaine » → la case « Paris ou petite couronne » d'une ligne
+  de nuitée ; le grand déplacement se lit d'une nuitée de l'engagement, la nuit même ou la veille : le salarié n'a pas
+  regagné son domicile ce soir-là, et « lorsque le travailleur salarié ou assimilé est empêché de regagner son domicile en
+  fin de journée pour des circonstances de fait, il est considéré comme étant dans la situation de grand déplacement » ;
+  la présomption des 50 km et 1 h 30 n'a pas à être vérifiée en plus ; le II (au-delà de
+  trois mois dans un même lieu, 85 % puis 70 %) et les 2° à 4° (outre-mer, étranger) ne sont pas portés ;
+- art. 10 : ces montants se revalorisent chaque 1er janvier ; les valeurs de 2026 (21,40, 10,40, 76,60, 56,80 €) sont
+  celles de l'Urssaf (`../urssaf-frais-professionnels/`, mise à jour du 30/10/2026) et
+  du BOSS (`../boss/boss-frais-professionnels-20261013.txt`, § 210, 240, 1290) ; du 1er janvier au 6 septembre 2025,
+  l'arrêté du 20/12/2002 (`historique/`, mêmes règles) et les montants de 2025 (`../legisocial-frais-professionnels-2025/`),
+  les mêmes que ceux du 07/09/2025 ;
+- au-delà de la limite, la fraction excédentaire entre dans l'assiette, sauf si l'employeur prouve qu'elle a été utilisée
+  conformément à son objet (BOSS § 270, § 1280) → les rubriques `repas_au_dela` et `nuitee_au_dela`, et la case
+  « justificatif conservé ».
 
 **Annexe 1** (« Principales professions concernées par la DFS ») : « Musiciens, choristes, chefs d'orchestre, régisseurs
 de théâtre 20 % » ; « Personnel de création de l'industrie cinématographique 20 % » ; « Artistes dramatiques, lyriques,

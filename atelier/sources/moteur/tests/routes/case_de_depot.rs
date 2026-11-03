@@ -1,28 +1,58 @@
-//! LA CASE D'UN FICHIER DEJA ECRIT OUVRE SON DEPOT : une fois la DSN du mois ecrite, la case DSN du panneau
-//! (`etat-du-mois`) rend le geste `deposer_fichier`, et le fichier qu'il nomme est celui que le recapitulatif du depot
-//! (`depot-apercu`) ouvre.
-
 use serde_json::json;
 
 use crate::outils::rejeu::{rejouer_dossier, scenario};
-use crate::outils::{dossier_de_test, reussi, route};
+use crate::outils::{dossier_de_test, reussi, route, valider_la_carte};
 
+/// LA DEMANDE DE TAUX PART AVEC LA DPAE : deposee en test (route `deposer`, la DPAE du mois designee), la DPAE d'une
+/// embauche sans taux de PAS emporte, dans le meme geste et le meme mode, le signalement d'amorcage (nature 08, motif 01) que sa
+/// production a ecrit.
 #[test]
-fn la_case_de_la_dsn_ecrite_ouvre_son_recapitulatif() {
-    let d = dossier_de_test("case_de_depot", "dsn_ecrite");
+fn la_dpae_deposee_emporte_la_demande_de_taux() {
+    let d = dossier_de_test("case_de_depot", "dpae_amorcage");
     let sc = d.join("scenario");
     std::fs::create_dir_all(&sc).unwrap();
     let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
     let debut: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"geste\":\"jour\"")).collect();
     std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
-    let jour = "2026-12-01";
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "valide": true}), jour));
-    reussi(&route(&c, "dsn-a-deposer", json!({"mois": "2026-11"}), jour));
+    let jour = "2026-11-20";
+    reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
 
-    let e = route(&c, "etat-du-mois", json!({"mois": "2026-11"}), jour);
-    let dsn = reussi(&e)["etapes"].as_array().unwrap().iter().find(|x| x["cle"] == "dsn").unwrap().clone();
-    let action = dsn["groupes"].as_array().unwrap().iter().map(|g| &g["action"]).find(|a| a["geste"] == "deposer_fichier").cloned();
-    let action = action.unwrap_or_else(|| panic!("la DSN écrite n'a pas de geste de dépôt : {}", dsn));
-    reussi(&route(&c, "depot-apercu", json!({"quoi": action["quoi"], "fichier": action["fichier"]}), jour));
+    reussi(&route(&c, "deposer", json!({"quoi": "dpae", "mois": "2026-11", "reel": false}), jour));
+
+    let journal = crate::outils::journal(&c);
+    let lignes = journal.as_array().or_else(|| journal["lignes"].as_array()).cloned().unwrap_or_default();
+    let parti = lignes.iter().any(|l| l["quoi"] == "dsn" && l["mode"] == "test" && l["fichier"] == "Amorcage01_FULLER_20261120.dsn");
+    assert!(parti, "le signalement d'amorcage n'est pas parti avec la DPAE : {:?}", lignes.iter().map(|l| (&l["quoi"], &l["mode"], &l["fichier"])).collect::<Vec<_>>());
+}
+
+/// UNE DPAE QUI MANQUE D'UNE CASE REFUSE ET LE DIT, MEME QUAND UNE DPAE DU MOIS EST DEJA PARTIE : le depot ne reprend la
+/// DPAE partie que quand rien ne reste a declarer. (Un salarie sans NIR ni sexe : la DPAE refusait en silence et l'ancien
+/// fichier repartait a sa place.)
+#[test]
+fn une_dpae_a_qui_il_manque_une_case_refuse_au_lieu_de_reprendre_la_partie() {
+    let d = dossier_de_test("case_de_depot", "dpae_manque");
+    let sc = d.join("scenario");
+    std::fs::create_dir_all(&sc).unwrap();
+    let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
+    let debut: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"geste\":\"jour\"")).collect();
+    std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
+    let (_, c) = rejouer_dossier(&sc, &d);
+    let jour = "2026-11-20";
+    reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
+    reussi(&route(&c, "deposer", json!({"quoi": "dpae", "mois": "2026-11", "reel": false}), jour));
+    let lignes = || -> usize {
+        let j = crate::outils::journal(&c);
+        j.as_array().or_else(|| j["lignes"].as_array()).map_or(0, |l| l.iter().filter(|x| x["quoi"] == "dpae").count())
+    };
+    let avant = lignes();
+
+    let chemin = c.join("config/salaries.json");
+    let mut s: serde_json::Value = serde_json::from_slice(&std::fs::read(&chemin).unwrap()).unwrap();
+    s["FULLER"].as_object_mut().unwrap().remove("date_naissance");
+    std::fs::write(&chemin, serde_json::to_vec_pretty(&s).unwrap()).unwrap();
+
+    let r = route(&c, "deposer", json!({"quoi": "dpae", "mois": "2026-11", "reel": false}), jour);
+    assert_eq!(r["ok"], json!(false), "la DPAE est repartie sans sa case : {}", r);
+    assert_eq!(lignes(), avant, "rien ne part d'un refus");
 }

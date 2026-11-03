@@ -22,6 +22,8 @@ pub type Jour = (i32, u32, u32);
 pub struct Nature {
     pub cle: String,
     pub libelle: String,
+    /// Ce que le nom court veut dire, pour qui hesite en choisissant (`aide` de `contrats-base.json`).
+    pub aide: String,
     /// `"activite"` (cachets, heures) ou `"mensuelle"`.
     pub paie: String,
     pub duree_indeterminee: bool,
@@ -162,6 +164,27 @@ impl Nature {
         liste(self.champs.get("S21.G00.40.021").and_then(|c| c.get("valeurs")))
     }
 
+    /// Le refus d'un motif de recours saisi (`S21.G00.40.021`) que cette nature n'accepte pas, ou `None`. La rubrique
+    /// est une liste de codes de deux caracteres (cahier technique DSN 2026.1, p. 194-195,
+    /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`) ; la nature en propose une partie (`valeurs` de
+    /// `contrats-base.json`). Une nature sans liste (le CDDU, qui fixe le sien ; le CDI) n'est pas controlee.
+    pub fn motif_recours_refuse(&self, motif: &str, qui: &str) -> Option<String> {
+        let motifs = self.motifs_recours();
+        let code = |m: &Value| m.get("code").and_then(texte).unwrap_or_default();
+        if motif.is_empty() || motifs.is_empty() || motifs.iter().any(|m| code(m) == motif) {
+            return None;
+        }
+        let connus: Vec<String> =
+            motifs.iter().map(|m| format!("{} ({})", code(m), m.get("libelle").and_then(texte).unwrap_or_default())).collect();
+        Some(format!(
+            "« {} » n'est pas un motif de recours d'un {} ({}) ; la DSN le déclare par son code (S21.G00.40.021). Choisir l'un de : {}. Rien n'est écrit.",
+            motif,
+            self.libelle,
+            qui,
+            connus.join(", ")
+        ))
+    }
+
     pub fn motif_recours_exige(&self) -> bool {
         self.champs
             .get("S21.G00.40.021")
@@ -297,9 +320,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
     let manquants: Vec<&str> =
         ["libelle", "paie", "codes"].into_iter().filter(|c| !d.contains_key(*c)).collect();
     if !manquants.is_empty() {
-        return Err(format!(
-            "Nature de contrat {} : {} manque dans contrats-base.json.",
-            repr(cle), manquants.join(", ")));
+        return Err(socle::echec::livree("contrats-base.json", &format!("{}.{}", cle, manquants.join(", "))));
     }
     let paie = texte(&d["paie"]).unwrap_or_default();
     if !PAIES.contains(&paie.as_str()) {
@@ -313,10 +334,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
     let uq = objet("unite_quotite");
     let valeur_uq = uq.get("valeur").filter(|v| vrai(v));
     let Some(valeur_uq) = valeur_uq else {
-        return Err(format!(
-            "Nature de contrat {} : `unite_quotite` (S21.G00.40.011) manque. \
-             L'unite de mesure de la quotite ne se devine pas -- 12 pour des \
-             journees, 10 pour des heures.", repr(cle)));
+        return Err(socle::echec::livree("contrats-base.json", &format!("{}.unite_quotite", cle)));
     };
     let qref = objet("quotite_reference_defaut");
     let dp = objet("dpae");
@@ -328,13 +346,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
         .and_then(texte)
         .unwrap_or_default();
     if !TYPES_CONTRAT_DPAE.iter().any(|(k, _)| *k == tc) {
-        let connus: Vec<String> =
-            TYPES_CONTRAT_DPAE.iter().map(|(k, v)| format!("{} {}", k, v)).collect();
-        return Err(format!(
-            "Nature de contrat {} : `dpae.type_contrat` vaut {}. Le Format \
-             120 de la DPAE n'en connait que trois -- {}. Sans lui, \
-             l'embauche partirait au type du gabarit, celui d'un CDD.",
-            repr(cle), repr(&tc), connus.join(", ")));
+        return Err(socle::echec::livree("contrats-base.json", &format!("{}.dpae.type_contrat", cle)));
     }
     let sans_commentaire = |m: Map<String, Value>| -> Map<String, Value> {
         m.into_iter().filter(|(r, _)| !r.starts_with('_')).collect()
@@ -343,6 +355,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
     Ok(Nature {
         cle: cle.to_string(),
         libelle: texte(&d["libelle"]).unwrap_or_default(),
+        aide: texte(&d["aide"]).unwrap_or_default(),
         paie,
         duree_indeterminee: d.get("duree_indeterminee").map_or(false, vrai),
         unite_quotite: texte(valeur_uq).unwrap_or_default(),

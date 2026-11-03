@@ -30,7 +30,7 @@ pub fn courriels(racine: &Path) -> Vec<(String, Vec<u8>)> {
     noms.into_iter()
         .filter_map(|n| {
             let o = std::fs::read(dossier.join(&n)).ok()?;
-            parse_mail(&o).ok()?;
+            mailparse::parse_headers(&o).ok()?;
             Some((n, o))
         })
         .collect()
@@ -75,7 +75,7 @@ fn decoder_qp(o: &[u8]) -> Vec<u8> {
     b
 }
 
-/// `part.get_content()` d'une feuille texte : le corps decode, sans toucher aux fins de ligne.
+/// Le corps décodé d'une feuille texte, sans toucher aux fins de ligne.
 pub fn texte_de(f: &ParsedMail) -> String {
     use mailparse::body::Body;
     let charset = f.ctype.charset.to_lowercase();
@@ -214,7 +214,7 @@ fn deseschapper(t: &str) -> String {
     out
 }
 
-/// `urllib.parse.unquote_plus`.
+/// Le texte d'une URL décodé : `+` en espace, `%XX` en octet.
 fn decoder(t: &str) -> String {
     let o = t.as_bytes();
     let mut b: Vec<u8> = Vec::with_capacity(o.len());
@@ -238,7 +238,7 @@ fn decoder(t: &str) -> String {
     String::from_utf8_lossy(&b).into_owned()
 }
 
-/// `_bouton_mailto` : (objet, corps) du lien `mailto:` du premier HTML qui en porte un.
+/// (objet, corps) du lien `mailto:` du premier HTML qui en porte un.
 pub fn bouton(feuilles: &[&ParsedMail]) -> Option<(String, String)> {
     let re = regex::Regex::new(r#"href="(mailto:[^"]+)""#).ok()?;
     for f in feuilles {
@@ -267,7 +267,7 @@ pub fn bouton(feuilles: &[&ParsedMail]) -> Option<(String, String)> {
     None
 }
 
-/// `_pages` : le nombre de pages d'une piece PDF, 0 pour une autre ou une illisible.
+/// Le nombre de pages d'une piece PDF, 0 pour une autre ou une illisible.
 fn pages(f: &ParsedMail) -> usize {
     if f.ctype.mimetype != "application/pdf" {
         return 0;
@@ -321,6 +321,8 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
             .filter(|f| est_multipart && !(f.ctype.mimetype.starts_with("text/") && nom_de_fichier(f).is_none()))
             .map(|f| json!({"nom": nom_de_fichier(f), "pages": pages(f)}))
             .collect();
+        // Le courriel qui renvoie au signataire son contrat contresigne : sa piece en est l'exemplaire.
+        let contresigne = pieces.iter().any(|p| p["nom"].as_str().is_some_and(|n| n.ends_with(crate::releve_signatures::SUFFIXE_CONTRESIGNE)));
         sortie.push(json!({
             "nom": nom,
             "de": adresses(&m, "From"),
@@ -329,6 +331,7 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
             "texte": corps(&fs, "plain"),
             "html": corps(&fs, "html"),
             "pieces": pieces,
+            "contresigne": contresigne,
             "bouton": b.map(|(s, c)| json!({"sujet": s, "corps": c})),
         }));
     }
@@ -338,13 +341,13 @@ pub fn courriels_joues(racine: &Path, apres: &str) -> Value {
 
 // ------------------------------------------------------------------ la boite qui repond
 
-/// Les courriels joues, par leur `Message-ID` (`{(m.get("Message-ID") or "").strip(): m for _, m in courriels(ctx)}`) : le
+/// Les courriels joues, par leur `Message-ID` : le
 /// dernier d'un meme identifiant l'emporte.
 pub fn courriels_par_identifiant(racine: &Path) -> HashMap<String, Vec<u8>> {
     let mut envoyes = HashMap::new();
     for (_, octets) in courriels(racine) {
-        if let Ok(m) = parse_mail(&octets) {
-            envoyes.insert(crate::courriel_lecture::identifiant_de(&m), octets.clone());
+        if let Ok((entetes, _)) = mailparse::parse_headers(&octets) {
+            envoyes.insert(crate::courriel_lecture::identifiant_des_entetes(&entetes), octets);
         }
     }
     envoyes

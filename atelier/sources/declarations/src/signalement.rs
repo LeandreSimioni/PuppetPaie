@@ -77,7 +77,7 @@ fn code_subrogation_oui() -> Resultat<String> {
             return Ok(en_texte(&c["code"]));
         }
     }
-    Err("subrogation : pas de code « oui » dans arrets-base.json".into())
+    Err(socle::echec::livree("arrets-base.json", "subrogation"))
 }
 
 pub fn avec_subrogation(a: &Arret) -> Resultat<bool> {
@@ -135,14 +135,33 @@ moteur n'ecrit pas.",
         ));
     }
 
-    let dernier = jours(a, "dernier_jour_travaille")?;
+    let travaille = jours(a, "dernier_jour_travaille")?;
+    let debut = jours(a, "debut")?;
     let fin_prev = jours(a, "fin_previsionnelle")?;
     let debut_contrat = jours(a, "contrat_debut")?;
 
+    // Le dernier jour travaille est la veille du debut prescrit, ou ce jour meme quand il a ete travaille
+    // (S21.G00.60.002) : un arret ne commence pas avant un jour travaille.
+    if debut < travaille {
+        return impossible(format!(
+            "Début de l'arrêt ({}) avant le dernier jour travaillé ({}) : corriger l'une des deux dates. L'arrêt commence le \
+jour que l'avis prescrit, le dernier jour travaillé est la veille ou ce jour même (S21.G00.60.002).",
+            debut.jj_mm_aaaa(),
+            travaille.jj_mm_aaaa()
+        ));
+    }
+    if debut > fin_prev {
+        return impossible(format!(
+            "Début de l'arrêt ({}) après sa fin prescrite ({}) : corriger l'une des deux dates de l'avis.",
+            debut.jj_mm_aaaa(),
+            fin_prev.jj_mm_aaaa()
+        ));
+    }
+    let dernier = engagement::imprevus::dernier_jour_declare(v)?;
     if dernier > fin_prev {
         return impossible(format!(
             "Dernier jour travaille ({}) posterieur a la fin previsionnelle de l'arret ({}) -- CCH-12.",
-            s(v, "dernier_jour_travaille"),
+            dernier.jj_mm_aaaa(),
             s(v, "fin_previsionnelle")
         ));
     }
@@ -150,7 +169,7 @@ moteur n'ecrit pas.",
         return impossible(format!(
             "Dernier jour travaille ({}) anterieur au debut du contrat ({}) -- CCH-18. Ce n'est pas ce \
 contrat-la qui est suspendu.",
-            s(v, "dernier_jour_travaille"),
+            dernier.jj_mm_aaaa(),
             s(v, "contrat_debut")
         ));
     }
@@ -229,7 +248,7 @@ obligatoires -- CCH-11."
                 "Date de reprise ({}) anterieure au dernier jour travaille ({}) ou au debut du contrat ({}) -- \
 CCH-11.",
                 s(v, "reprise"),
-                s(v, "dernier_jour_travaille"),
+                dernier.jj_mm_aaaa(),
                 s(v, "contrat_debut")
             ));
         }
@@ -297,20 +316,19 @@ CCH-12.",
         Some(j) => *j,
         None => aujourdhui()?,
     };
-    for (libelle, rubrique, cle) in [
-        ("dernier jour travaille", "S21.G00.60.002", "dernier_jour_travaille"),
-        ("debut de subrogation", "S21.G00.60.005", "subrogation_debut"),
-        ("date de reprise", "S21.G00.60.010", "reprise"),
-        ("date de l'accident", "S21.G00.60.012", "date_accident"),
+    for (libelle, cle) in [
+        ("Dernier jour travaillé", "dernier_jour_travaille"),
+        ("Début de subrogation", "subrogation_debut"),
+        ("Date de reprise", "reprise"),
+        ("Date de l'accident", "date_accident"),
     ] {
         if vrai(g(v, cle)) && jours(a, cle)? > jour {
             avertissements.push(format!(
-                "{} ({}) au {} : posterieur a la constitution du fichier ({}). Le cahier technique (§4.4.13) le \
-signale sans bloquer -- un evenement deja survenu ne se date pas dans le futur.",
+                "{} le {}, après le jour où le fichier est fait ({}) : le cahier technique (§4.4.13) le signale sans bloquer, \
+un fait déjà survenu ne se date pas dans le futur.",
                 libelle,
-                rubrique,
-                s(v, cle),
-                jour.iso()
+                jours(a, cle)?.jj_mm_aaaa(),
+                jour.jj_mm_aaaa()
             ));
         }
     }
@@ -346,8 +364,8 @@ impl Default for Options {
     }
 }
 
-/// Le fichier d'un signalement, pret a deposer.
-pub fn generer(ctx: &Contexte, a: &Arret, o: &Options) -> R<String> {
+/// Le fichier d'un signalement, pret a deposer. `departs` : ce qui est parti, pour l'identite declaree (`ntt::poser_ntt`).
+pub fn generer(ctx: &Contexte, a: &Arret, o: &Options, departs: &engagement::departs::Departs) -> R<String> {
     let nature = o.nature.as_str();
     if nature != ARRET && nature != REPRISE {
         return impossible(nature_inconnue(nature));
@@ -379,9 +397,9 @@ annule-et-remplace (type 03)."
     }
 
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
-    let ctx = &ctx.au(&jours(a, "dernier_jour_travaille")?)?;
+    let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
     let ent = &ctx.entreprise;
-    let salarie = ctx.salarie(&en_texte(g(&a.v, "salarie")))?;
+    let salarie = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -426,9 +444,9 @@ annule-et-remplace (type 03)."
     // ------------------------------------------------------ S21 entreprise
     f.add_v("S21.G00.06.001", req(ent, "siren")?)?;
     f.add_v("S21.G00.06.002", req(ent, "nic")?)?;
-    // L'etablissement est celui du salarie, comme dans ses mensuelles (`dsn::etablissement_du_salarie`) : le NIC est
+    // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = dsn::etablissement_du_salarie(ent, &salarie)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, &salarie)?;
     f.add_v("S21.G00.11.001", req(&etab, "nic")?)?;
     f.add_v("S21.G00.11.003", req(&etab, "adresse")?)?;
     f.add_v("S21.G00.11.004", req(&etab, "code_postal")?)?;
@@ -436,7 +454,7 @@ annule-et-remplace (type 03)."
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = ctx.organismes()?;
-    let jour = jours(a, "dernier_jour_travaille")?;
+    let jour = engagement::imprevus::dernier_jour_declare(&a.v)?;
     for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
         if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {
             continue;
@@ -452,7 +470,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.30.004", req(&salarie, "prenom")?)?;
     f.add("S21.G00.30.006", d(req(&salarie, "date_naissance")?)?.jjmmaaaa());
     f.add_v("S21.G00.30.019", req(&salarie, "code_salarie")?)?;
-    crate::ntt::poser_ntt(&mut f, ent, &salarie, &crate::ntt::brute(ctx, &salarie), &jours(a, "dernier_jour_travaille")?)?;
+    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &salarie, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());
@@ -493,7 +511,7 @@ pub fn avertissement_hors_dsn(nature: &str, motif: &str) -> Result<Option<String
         _ => return Ok(None),
     };
     let n = json_en_cache(&dossier_du_code().join("obligations-base.json"))?;
-    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| format!("obligations-base.json : l'obligation {} manque", repr(cle)))?;
+    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| socle::echec::livree("obligations-base.json", cle))?;
     if !sauf_motifs(o).iter().any(|m| m == motif) {
         return Ok(None);
     }

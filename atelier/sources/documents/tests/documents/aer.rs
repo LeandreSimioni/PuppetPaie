@@ -158,7 +158,7 @@ fn attestation() -> Vec<u8> {
 }
 
 fn paie(numero: &str, debut: Jour, fin: Jour, cachets: i128, heures: i128) -> PaieAer {
-    PaieAer { numero: numero.into(), debut, fin, cachets, heures }
+    PaieAer { numero: numero.into(), debut, fin, cachets: cachets.into(), heures: heures.into() }
 }
 
 fn paies_justes() -> Vec<PaieAer> {

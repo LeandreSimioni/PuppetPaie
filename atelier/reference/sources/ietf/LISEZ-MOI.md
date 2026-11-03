@@ -58,3 +58,22 @@
   reste donc une **inférence du moteur** (le lieu de la compagnie, et ce que faisait le module `email` de Python), nommée
   dans le commentaire de `courriel_lecture::date_de` et de `parsedate_tz` ; elle ne perd pas le message (la règle du
   § 4), et un message sans `Date` lisible prend l'heure de la relève.
+
+## RFC 5321 : le transport du courriel (la casse d'une adresse)
+
+| fichier | d'où | relevé |
+|---|---|---|
+| `ietf-rfc5321-simple-mail-transfer-protocol-20081001.txt` | https://www.rfc-editor.org/rfc/rfc5321.txt, tel que servi (HTTP 200, `text/plain;charset=utf-8`, 225 929 octets) ; RFC 5321, « Simple Mail Transfer Protocol », J. Klensin, Standards Track, octobre 2008 | 02/11/2026 |
+
+### Ce qu'on en lit
+
+- **§ 2.4, « General Syntax Principles and Transaction Model »** (lignes 867-875 du `.txt`) : « The local-part of a mailbox
+  MUST BE treated as case sensitive. Therefore, SMTP implementations MUST take care to preserve the case of mailbox
+  local-parts. In particular, for some hosts, the user "smith" is different from the user "Smith". […] Mailbox domains
+  follow normal DNS rules and are hence not case sensitive. »
+- Donc une adresse se garde **telle qu'on l'a reçue** : mettre en minuscules la partie avant l'arobase serait deviner.
+
+### Où le moteur s'en sert
+
+`atelier/sources/moteur/src/import/dsn_aem.rs` : le courriel du contact DSN (S20.G00.07.003) et celui d'un salarié
+(S21.G00.30.018) se reprennent tels que la DSN de l'ancien logiciel les déclare, capitales comprises.

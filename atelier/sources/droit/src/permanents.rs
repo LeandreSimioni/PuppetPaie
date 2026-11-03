@@ -22,14 +22,6 @@ pub struct Tranche {
     pub taux: Decimal,
 }
 
-/// Les arguments nommes de `maintien_de_salaire`.
-#[derive(Debug, Clone, Default)]
-pub struct OptionsMaintien {
-    pub deja_indemnises: i64,
-    pub accident_du_travail: bool,
-    pub accident_de_trajet: bool,
-}
-
 // ------------------------------------------------------------ les aides
 fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
@@ -397,7 +389,7 @@ pub fn delai_de_prevenance(debut: &Jour, notification: &Jour) -> Resultat<DelaiD
             (None, Some(m)) => m.as_i64().is_some_and(|m| presence_mois <= Decimal::from(m)),
             (None, None) => true,
         })
-        .ok_or_else(|| "permanents-base.json, preavis.delai_de_prevenance : aucune tranche pour cette presence.".to_string())?;
+        .ok_or_else(|| socle::echec::livree("permanents-base.json", "preavis.delai_de_prevenance"))?;
     let expiration = match (tranche.get("delai_jours"), tranche.get("delai_mois")) {
         (Some(j), _) => notification.plus_jours(entier(j)?)?,
         (None, Some(m)) => plus_mois(notification, entier(m)? as u32)?,
@@ -599,7 +591,7 @@ pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Res
         "palier": entier(cle(palier, "anciennete_annees")?)?, "pourquoi": null}))
 }
 
-/// `str(annees.quantize(Decimal("0.1")))` : un chiffre, au pair sur le demi.
+/// Les années à un chiffre après la virgule, au pair sur le demi, en texte.
 fn annees_lisibles(annees: Decimal) -> String {
     let mut a = annees.round_dp_with_strategy(1, RoundingStrategy::MidpointNearestEven);
     a.rescale(1);
@@ -661,48 +653,3 @@ pub fn duree_du_maintien(anciennete_mois: Decimal) -> Resultat<Vec<Tranche>> {
     Ok(out)
 }
 
-/// Le complement BRUT du a un salarie pendant un arret, avant deduction des
-/// indemnites de la Securite sociale et de la prevoyance (D1226-5).
-pub fn maintien_de_salaire(
-    anciennete_mois: Decimal,
-    jours_d_absence: i64,
-    remuneration_journaliere: Decimal,
-    opt: &OptionsMaintien,
-) -> Resultat<Value> {
-    let carence = jours_de_carence(opt.accident_du_travail, opt.accident_de_trajet)?;
-    let indemnisables = (jours_d_absence - carence).max(0);
-    let (mut restant, mut reste_a_imputer) = (indemnisables, opt.deja_indemnises);
-    let mut brut = zero2();
-    let mut tranches = Vec::new();
-    for t in duree_du_maintien(anciennete_mois)? {
-        let capacite = t.jours;
-        let consommes = capacite.min(reste_a_imputer);
-        reste_a_imputer -= consommes;
-        let disponible = capacite - consommes;
-        let pris = restant.min(disponible);
-        restant -= pris;
-        if pris != 0 {
-            // Les deux tiers se calculent en deux tiers, pas en 66,66 %.
-            let taux = if t.taux < Decimal::from(67) {
-                div(Decimal::from(2), Decimal::from(3))
-            } else {
-                div(t.taux, Decimal::ONE_HUNDRED)
-            };
-            let montant = eur2(mul(mul(remuneration_journaliere, Decimal::from(pris)), taux));
-            brut += montant;
-            tranches.push(json!({"jours": pris, "taux": dv(t.taux), "montant": dv(montant)}));
-        }
-    }
-    brut.rescale(2);
-    Ok(json!({
-        "carence": carence,
-        "jours_indemnisables": indemnisables,
-        "jours_indemnises": indemnisables - restant,
-        "jours_au_dela_du_droit": restant,
-        "tranches": tranches,
-        "brut_avant_deduction": dv(brut),
-        "_a_deduire": "Les indemnites journalieres de la Securite sociale et la part patronale de \
-                       prevoyance se deduisent de ce montant (D1226-5) : elles se saisissent, le \
-                       moteur ne les devine pas.",
-    }))
-}

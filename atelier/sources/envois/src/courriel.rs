@@ -26,8 +26,8 @@
 //! longueur.
 //!
 //! Un mot de passe d'un caractere de controle est refuse ; le message envoye part avec des fins de ligne CRLF sur le
-//! fil -- le message archive reste celui d'`envoi::en_mime`, en LF. Une ligne vide precede le point final quand le
-//! message ne finit pas par CRLF (`en_mime` finit par LF).
+//! fil -- le message archive reste celui d'`envoi::en_mime_nomme`, en LF. Une ligne vide precede le point final quand le
+//! message ne finit pas par CRLF (`en_mime_nomme` finit par LF).
 
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
@@ -115,7 +115,7 @@ fn hote_de(v: &Value) -> String {
 /// Gmail par defaut ; `config/courriel.json` change les cles `imap`, `port_imap`, `smtp`, `port_smtp` (les autres
 /// cles sont ignorees).
 pub fn serveurs(racine: &Path) -> Result<Serveurs, ErreurCourriel> {
-    let p = racine.join("config").join(FICHIER_SERVEURS);
+    let p = racine.join(socle::fichiers::CONFIG).join(FICHIER_SERVEURS);
     let mut s = Serveurs::gmail();
     if !p.exists() {
         return Ok(s);
@@ -432,7 +432,7 @@ fn crlf(o: &[u8]) -> Vec<u8> {
 }
 
 /// Ce que `lettre::send_raw` recoit : le message en CRLF. `lettre` ajoute lui-meme la fin de ligne avant le point final.
-/// Le protocole en veut une quand le message ne finit pas par CRLF (et les octets d'`en_mime` finissent par un
+/// Le protocole en veut une quand le message ne finit pas par CRLF (et les octets d'`en_mime_nomme` finissent par un
 /// LF seul : une ligne vide precede donc le point). On ne retire la fin de ligne que si le message en avait deja une,
 /// CRLF.
 pub fn donnees_du_fil(brut: &[u8]) -> Vec<u8> {
@@ -573,7 +573,7 @@ impl BoiteSimulee {
     }
 }
 
-/// `re.search(rb"^Message-ID:\s*(<[^>\r\n]+>)", brut, re.I | re.M)`.
+/// Le `Message-ID` d'un message brut (l'en-tête, sans égard à la casse, en début de ligne).
 fn message_id_de(brut: &[u8]) -> Option<String> {
     let blanc = |c: u8| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c);
     let mut debut = 0;
@@ -631,12 +631,12 @@ impl Courriel for BoiteSimulee {
     /// c'est par lui que la compagnie fictive retrouve ce qui est parti.
     fn envoyer(&mut self, message_mime: &[u8]) -> Result<String, ErreurCourriel> {
         let dossier = self.racine.join(DOSSIER_COURRIELS);
-        std::fs::create_dir_all(&dossier).map_err(|e| erreur(format!("{} : {}", dossier.display(), e)))?;
+        std::fs::create_dir_all(&dossier).map_err(|e| erreur(socle::echec::du_disque(&dossier, &e)))?;
         let ident = message_id_de(message_mime).unwrap_or_else(|| format!("<{}@fictive.puppetpaie>", hexa_au_hasard(8)));
         let maintenant = std::time::Duration::from_secs_f64(socle::temps::secondes());
         let nom = format!("{}_{}.eml", horodatage_de(maintenant), hexa_au_hasard(4));
         let chemin = dossier.join(&nom);
-        std::fs::write(&chemin, message_mime).map_err(|e| erreur(format!("{} : {}", chemin.display(), e)))?;
+        std::fs::write(&chemin, message_mime).map_err(|e| erreur(socle::echec::du_disque(&chemin, &e)))?;
         Ok(ident)
     }
 

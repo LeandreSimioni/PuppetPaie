@@ -1,4 +1,4 @@
-/* L'INDICATEUR DE LA MISE A JOUR, en bas a gauche, des l'ecran d'accueil :
+/* L'INDICATEUR DE LA MISE A JOUR, a gauche du pied, des l'ecran d'accueil :
    « Recherche de mise a jour » / « Logiciel a jour » / « Mise a jour en
    cours » (avec la barre) / « Redemarrer pour mettre a jour ».
 
@@ -38,7 +38,8 @@
     // La fenetre se tire par son corps (accueil) : l'indicateur n'est pas une poignee.
     boite.addEventListener("mousedown", (e) => e.stopPropagation());
     boite.querySelector(".maj-redemarrer").addEventListener("click", redemarrer);
-    document.body.appendChild(boite);
+    // Au pied, a gauche : l'auteur, s'il y est deja, reste a droite.
+    document.getElementById("pied").prepend(boite);
   }
 
   function phrase(classe, t) {
@@ -87,7 +88,7 @@
       return;
     }
     bouton.disabled = false;
-    refus.textContent = (r && r.erreur) || "PuppetPaie reste ouvert sur cette version.";
+    refus.textContent = (r && r.erreur) || "";
   }
 
   /* Dans la page d'une compagnie, l'état arrive avec l'ouverture (

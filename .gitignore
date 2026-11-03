@@ -30,7 +30,6 @@ prive/config/maj-cle-privee.bin
 prive/config/avant/*.bin
 prive/config/avant/*.bin.*
 
-
 # Le jeton de session de l'interface : un fichier de travail, refait a chaque
 # demarrage, propre a ce poste.
 prive/config/.jeton-interface
@@ -75,6 +74,9 @@ atelier/prive-dev/config/.jeton-interface
 # portable, le profil de son navigateur et le jeton de sa page.
 /.fenetre.json
 /.fenetre/
+# CE QU'ON ECRIT AU DEVELOPPEUR SANS COMPAGNIE (moteur/src/routes/filet.rs, `sans_compagnie`) : les messages ecrits a
+# l'accueil, leur depart et l'identite du poste.
+/.accueil/
 
 # Le mode developpeur de CE poste (moteur/compagnies.py).
 .mode-developpeur.json
@@ -111,6 +113,9 @@ demo/*/journal/interface.log
 # ne les prend jamais des fichiers suivis.
 fictives/.livraison.json
 fictives/*/.livree.json
+# LES FICTIVES DE REFERENCE : leur scenario est dans `atelier/fictives/<nom>/` ; `moteur maj --marquer-fictives` les
+# refait dans `fictives/<nom>` (moteur/src/atelier/scenario.rs, `livrer`). Elles se refont, elles ne se suivent pas.
+fictives/fictive-fil-de-fer/
 # LES FICTIVES AJOUTEES SUR UN POSTE (ticket #236) : le « + » d'un logiciel bride les pose sous `fictives/ajoutee-…`,
 # avec les donnees qu'on y met -- de vraies donnees, souvent. Elles n'entrent jamais dans le depot (ni dans une
 # livraison : moteur/src/compagnie/maj.rs, `fictives_livrees`).
@@ -143,24 +148,17 @@ ouverture.etat.json
 # Le schema que Tauri ecrit en compilant sous Windows : genere, jamais commite (5b3a6d2e).
 atelier/sources/fenetre/gen/schemas/windows-schema.json
 
-# LE BAC A SABLE DE LA MISE A JOUR (atelier/bac-a-sable/LISEZ-MOI.md) : le programme y est copie, ce qu'il fabrique ne se garde pas.
-atelier/bac-a-sable/logiciel/
-atelier/bac-a-sable/maj/*
-!atelier/bac-a-sable/maj/reglage.json
-atelier/bac-a-sable/prive/maj/
-atelier/bac-a-sable/prive/journal/
-
 # ---------------------------------------------------------------------------
 # CE QUI N'ENTRE JAMAIS DANS LE DEPOT :
 # les donnees d'une compagnie vivent a cote du code et n'y entrent jamais
-# (a la racine seulement : le bac a sable de l'atelier garde son `prive/`,
-# qui est une compagnie fictive copiee).
+# (a la racine seulement).
 # ---------------------------------------------------------------------------
 /prive/
 /compagnies/
 atelier/prive-dev/
 import/
 !atelier/sources/moteur/src/import/
-atelier/bac-a-sable/prive/config/coffre.bin
-atelier/bac-a-sable/prive/config/.jeton-interface
 logiciel/donnees/google-application.json
+
+# La sortie de atelier/installeur/construire.sh (Publier la refait a chaque version).
+atelier/depot/

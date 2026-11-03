@@ -37,10 +37,10 @@ pub static TEXTES: &[Texte] = &[
         dossier: "code-du-travail",
         titre: "Code du travail -- ce que la paie lit",
         domaines: &[
-            Domaine { cle: "conges", titre: "Les conges payes", numeros: &["L3141-3", "L3141-4", "L3141-5", "L3141-5-1", "L3141-6", "L3141-9", "L3141-10", "R3141-4", "L3141-24", "L3141-28"] },
+            Domaine { cle: "conges", titre: "Les conges payes", numeros: &["L3141-3", "L3141-4", "L3141-5", "L3141-5-1", "L3141-6", "L3141-9", "L3141-10", "R3141-4", "L3141-24", "L3141-28", "L3141-30"] },
             Domaine { cle: "feries", titre: "Les jours feries", numeros: &["L3133-1", "L3133-2", "L3133-3", "L3133-4", "L3133-5", "L3133-6"] },
             Domaine { cle: "maintien", titre: "Le maintien de salaire pendant un arret de travail", numeros: &["L1226-1", "D1226-1", "D1226-2", "D1226-3", "D1226-4", "D1226-5", "D1226-6", "D1226-7", "D1226-8"] },
-            Domaine { cle: "precarite", titre: "Le CDD et l'indemnite de fin de contrat", numeros: &["L1242-2", "L1242-12", "L1242-13", "L1243-8", "L1243-9", "L1243-10"] },
+            Domaine { cle: "precarite", titre: "Le CDD et l'indemnite de fin de contrat", numeros: &["L1242-2", "L1242-12", "L1242-13", "L1242-16", "L1243-8", "L1243-9", "L1243-10"] },
             Domaine { cle: "rupture", titre: "Le preavis et l'indemnite de licenciement", numeros: &["L1234-1", "L1234-4", "L1234-5", "L1234-9", "R1234-1", "R1234-2", "R1234-4"] },
             Domaine { cle: "documents", titre: "Les documents remis a la fin du contrat", numeros: &["L1234-19", "L1234-20", "D1234-6", "D1234-7", "D1234-8"] },
             Domaine { cle: "retraite", titre: "Le depart et la mise a la retraite", numeros: &["L1237-5", "L1237-6", "L1237-7", "L1237-8", "L1237-9", "L1237-10", "D1237-1", "D1237-2", "D1237-2-1"] },
@@ -88,7 +88,7 @@ pub static TEXTES: &[Texte] = &[
             // qu'il n'a pas employe de facon continue pendant les douze mois
             // precedant la demande de conge (la lettre circulaire Acoss 2013-019,
             // annexe 1, R5, y borne la majoration).
-            Domaine { cle: "majoration_caisses", titre: "Les contributions de formation et d'apprentissage majorees chez un employeur affilie a une caisse de conges", numeros: &["L3141-32", "L6131-2", "L6241-1", "L6242-1", "L6331-6", "L6331-55", "D7121-28", "D7121-40", "D7121-41"] },
+            Domaine { cle: "majoration_caisses", titre: "Les contributions de formation et d'apprentissage majorees chez un employeur affilie a une caisse de conges", numeros: &["L3141-32", "L6131-2", "L6241-1", "L6242-1", "L6331-6", "L6331-55", "D7121-28", "D7121-38", "D7121-40", "D7121-41"] },
             // LE CHOMAGE ET L'AGS D'UN PERMANENT.
             // L5422-9 : les contributions << sont assises sur les remunerations
             // brutes dans la limite d'un plafond >> ; L5422-20 renvoie ses
@@ -125,6 +125,15 @@ pub static TEXTES: &[Texte] = &[
             // (S21.G00.40.012) << ne doit pas inclure les heures
             // supplementaires structurelles >>.
             Domaine { cle: "temps_partiel", titre: "Le temps partiel, la duree legale et les heures complementaires et supplementaires", numeros: &["L3121-27", "L3121-28", "L3123-1", "L3123-6", "L3123-8", "L3123-20", "L3123-21", "L3123-28"] },
+            // LES HEURES SUPPLEMENTAIRES ET COMPLEMENTAIRES D'UN SALARIE AU MOIS : leur majoration, fixee par accord, a
+            // defaut 25 % puis 50 % (L3121-33, L3121-36) ; le contingent annuel (L3121-30, L3121-33) ; la majoration des
+            // heures complementaires, 10 % dans le dixieme puis 25 % a defaut d'accord (L3123-21, L3123-22, L3123-29).
+            // `engagement::heures_en_plus`.
+            Domaine { cle: "heures_supplementaires", titre: "Les heures supplementaires et complementaires : majoration et contingent", numeros: &["L3121-29", "L3121-30", "L3121-33", "L3121-34", "L3121-35", "L3121-36", "L3123-22", "L3123-29"] },
+            // LA DUREE MAXIMALE DU TRAVAIL ET LE REPOS QUOTIDIEN : une journee saisie au-dela de la duree quotidienne
+            // maximale (L3121-18, ses derogations L3121-19 ; la semaine, L3121-20) ou qui ne laisse pas les onze heures
+            // de repos (L3131-1) se dit a la saisie, sans se refuser (`engagement::duree`).
+            Domaine { cle: "duree_maximale", titre: "La duree maximale du travail et le repos quotidien", numeros: &["L3121-18", "L3121-19", "L3121-20", "L3131-1", "L3131-2"] },
             // LES CONGES POUR EVENEMENTS FAMILIAUX : ils
             // << n'entrainent pas de reduction de la remuneration >> (L3142-2).
             // C'est ce que dit `remunere` du motif 637 (`permanents-base.json`),
@@ -144,13 +153,18 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "registre", titre: "Le registre unique du personnel", numeros: &["L1221-13", "D1221-23", "D1221-24"] },
             // La DPAE quand la date d'embauche d'un contrat declare change (`crate::routes::etapes::etat_par_engagement`) :
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
-            // previsible (R1221-4).
-            Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },
+            // previsible (R1221-4) ; l'Urssaf qui la recoit, celle du territoire de l'etablissement (R1221-3, `declarations::dpae`).
+            Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-3", "R1221-4"] },
             // LE CONTRAT ECRIT D'UN PERMANENT : l'information ecrite que tout salarie recoit (L1221-5-1, R1221-34 pour ses
             // mentions, R1221-35 pour ses delais et le renvoi aux textes, R1221-39 pour sa forme, R1221-40 pour ce qui change :
             // l'avenant) ; `documents::contrat` en tire les mentions obligatoires d'un CDI et de son avenant.
             // L6321-1 : la formation que l'employeur assure, a laquelle le contrat renvoie (R1221-34, 8°).
             Domaine { cle: "information_ecrite", titre: "L'information ecrite du salarie sur sa relation de travail", numeros: &["L1221-5-1", "R1221-34", "R1221-35", "R1221-38", "R1221-39", "R1221-40", "L6321-1"] },
+            // LA MODIFICATION DU CONTRAT : L1221-1 le soumet au droit commun (il ne se modifie que de l'accord des deux
+            // parties : l'avenant que le salarie signe, `engagement::signe_ailleurs`, `documents::avenant`) ; L1222-6 dit
+            // la proposition d'une modification pour motif economique (lettre recommandee, un mois pour refuser), que le
+            // moteur ne porte pas.
+            Domaine { cle: "modification_du_contrat", titre: "La modification du contrat de travail", numeros: &["L1221-1", "L1222-6"] },
             // LA PERIODE D'ESSAI ET SA DUREE MAXIMALE : celle d'un CDD (L1242-10 : un jour par semaine, deux semaines ou un
             // mois au plus), celle d'un CDI (L1221-19 par categorie, L1221-21 son renouvellement, L1221-22 ce que la
             // convention peut y changer, L1221-23 son ecrit) ; `droit::essai` refuse au-dela.
@@ -215,6 +229,10 @@ pub static TEXTES: &[Texte] = &[
             // forfaitairement en pourcentage de cette remuneration que dans
             // des limites et conditions fixees par arrete >> (III).
             Domaine { cle: "reduction_generale", titre: "La reduction generale et les deductions forfaitaires pour frais professionnels", numeros: &["L241-13", "D241-7", "D241-10"] },
+            // LA REDUCTION DE COTISATIONS SALARIALES DES HEURES SUPPLEMENTAIRES ET COMPLEMENTAIRES (L241-17 ; son calcul,
+            // D241-21 et suivants) et la deduction forfaitaire patronale des heures supplementaires (L241-18, L241-18-1,
+            // D241-24) : `engagement::heures_en_plus` ; BOSS, `boss/boss-heures-supplementaires-20260601.txt`.
+            Domaine { cle: "heures_supplementaires", titre: "La reduction de cotisations des heures supplementaires et complementaires, et la deduction patronale", numeros: &["L241-17", "L241-18", "L241-18-1", "D241-21", "D241-22", "D241-24", "D241-25"] },
             // LE MONTANT NET SOCIAL : sa definition est codifiee
             // par le decret 2023-1378 au II de R844-1 (prime d'activite), le
             // meme texte que le 9 bis de R3243-1 du code du travail. C'est
@@ -245,7 +263,9 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "effectif", titre: "L'effectif au sens de la securite sociale", numeros: &["L130-1", "R130-1"] },
             // LE MODE DE TARIFICATION DES AT/MP : les seuils d'effectif (D242-6-2) et le taux collectif quel que soit
             // l'effectif pour les activites que l'arrete annuel marque << TC >> (D242-6-14, I).
-            Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-2", "D242-6-14"] },
+            // D242-6-1 : le taux est determine par etablissement, le classement suit l'activite ; D242-6-17 : le taux d'un
+            // etablissement nouvellement cree ; D242-6-15 : le taux notifie l'est pour une annee (`bareme::taux_atmp_d_un_etablissement`) ; D242-6-17 : un etablissement neuf a le taux collectif.
+            Domaine { cle: "atmp_tarification", titre: "Le mode de tarification des accidents du travail et maladies professionnelles", numeros: &["D242-6-1", "D242-6-2", "D242-6-14", "D242-6-15", "D242-6-17"] },
             // LE PLAFOND : la vieillesse plafonnee
             // (L241-3, et son taux D242-4), le FNAL et le chomage d'un
             // intermittent s'assoient sur LE plafond de sa periode. R242-2 dit
@@ -299,7 +319,8 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "accident_du_travail", titre: "La declaration d'un accident du travail ou de trajet", numeros: &["L411-1", "L411-2", "L441-1", "L441-2", "L441-4", "L441-5", "R441-1", "R441-2", "R441-3", "R441-4", "R441-6", "R441-7"] },
             // LA MALADIE PROFESSIONNELLE N'EST PAS DECLAREE PAR L'EMPLOYEUR : L461-5 la met << par les soins de la
             // victime >>, R461-5 lui donne quinze jours. Le motif d'arret 05 n'appelle donc pas de declaration d'accident.
-            Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-5", "R461-5"] },
+            // L461-1 : la date de la premiere constatation medicale de la maladie vaut date de l'accident (`engagement::maintien::ij_de_principe`).
+            Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-1", "L461-5", "R461-5"] },
             // LE CONGE DE DEUIL ET SES INDEMNITES JOURNALIERES. L331-9 : pendant le conge
             // de L3142-1-1 du code du travail, l'assure percoit l'indemnite journaliere de L331-3 ; l'employeur qui maintient
             // le salaire (L3142-2) est subroge de plein droit. D331-7 : l'indemnisation se fractionne comme le conge.
@@ -307,6 +328,16 @@ pub static TEXTES: &[Texte] = &[
             // la DSN remplit d'ordinaire (R133-14, IV) -- pas pour le deuil, que la DSN ne couvre pas (la page de
             // net-entreprises, `accident-du-travail/`). `moteur/src/obligations.rs`, l'obligation `attestation_salaire`.
             Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant : ses indemnites journalieres et l'attestation de salaire", numeros: &["L331-9", "D331-7", "R323-10"] },
+            // LES INDEMNITES JOURNALIERES ET LA SUBROGATION : L321-1 (l'indemnite journaliere), L323-1 et R323-1 (due
+            // « pour chaque jour ouvrable ou non », a partir du quatrieme jour), L323-4, R323-4, R323-5 et R323-9 (son montant,
+            // que le moteur propose sur l'arret et que la personne garde ou corrige au releve de la caisse), R323-11 (l'employeur qui maintient le salaire est
+            // subroge) ; L433-1, L433-2, R433-1 a R433-4 pour l'accident du travail (des le lendemain de l'accident, 60 % puis 80 %
+            // au vingt-neuvieme jour). `engagement::maintien`.
+            // R331-5, al. 2 : le taux forfaitaire auquel R433-4 renvoie, fixe par arrete (`arrete-2013-taux-forfaitaire-r331-5/`).
+            Domaine { cle: "indemnites_journalieres", titre: "Les indemnites journalieres et la subrogation de l'employeur", numeros: &["L321-1", "L323-1", "L323-4", "R323-1", "R323-4", "R323-5", "R323-9", "R323-11", "L433-1", "L433-2", "R433-1", "R433-2", "R433-3", "R433-4", "R331-5"] },
+            // LA CSG DES INDEMNITES JOURNALIERES : 6,2 % (L136-8, II, 1°, b), sur les revenus de remplacement (L136-1-2).
+            // L'assiette du PAS d'une indemnite subrogee en retire la part deductible (CGI 154 quinquies).
+            Domaine { cle: "csg_remplacement", titre: "La CSG des revenus de remplacement", numeros: &["L136-1-2", "L136-8"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -387,6 +418,11 @@ pub static TEXTES: &[Texte] = &[
     // restent hors assiette) n'ont pas de <NUM> dans la base : ce
     // moissonneur, qui range par numero, ne les garde pas. Elles sont
     // deposees brutes a cote (atelier/reference/sources/dfs/LISEZ-MOI.md).
+    // Ses articles 3 (le repas), 5 (le grand deplacement : le logement et
+    // sa limite de Paris et petite couronne) et 10 (la revalorisation au
+    // 1er janvier) fondent les limites des frais de tournee
+    // (`engagement::frais_au_dela`, baremes `repas_deplacement` et
+    // `logement_grand_deplacement`).
     Texte {
         cle: "frais-professionnels-2025",
         legitext: "JORFTEXT000052198430",
@@ -395,6 +431,25 @@ pub static TEXTES: &[Texte] = &[
         titre: "Arrete du 4 septembre 2025 (frais professionnels) -- la deduction forfaitaire specifique",
         domaines: &[
             Domaine { cle: "frais", titre: "Les frais professionnels et la deduction forfaitaire specifique", numeros: &["1", "2", "9"] },
+            Domaine { cle: "deplacement", titre: "Le repas et le grand deplacement, leurs limites et leur revalorisation", numeros: &["3", "5", "10"] },
+        ],
+    },
+    // ------------------------------------------------------------------
+    // LES MISSIONS A L'ETRANGER. Le decret du 3 juillet 2006, dont l'arrete
+    // du meme jour (`arrete-2006-indemnites-de-mission/`) fixe les taux :
+    // ce qu'est l'indemnite de mission (art. 3) et l'arrete qui en fixe les
+    // taux a l'etranger, par pays ou par ville (art. 7). Il ne dit ni la monnaie
+    // du paiement ni le taux de change. Son JORFTEXT se lit dans les liens des
+    // articles de l'entrepot qui le citent (`nortexte` BUDB0620002D).
+    // `droit::missions`.
+    Texte {
+        cle: "missions-2006",
+        legitext: "JORFTEXT000000242359",
+        nom: "Decret n° 2006-781 du 3 juillet 2006 fixant les conditions et les modalites de reglement des frais occasionnes par les deplacements temporaires des personnels civils de l'Etat",
+        dossier: "decret-2006-781-deplacements",
+        titre: "Decret n° 2006-781 du 3 juillet 2006 -- l'indemnite de mission et ses taux",
+        domaines: &[
+            Domaine { cle: "missions", titre: "L'indemnite de mission et l'arrete qui en fixe les taux par pays", numeros: &["3", "7"] },
         ],
     },
     // ------------------------------------------------------------------
@@ -486,6 +541,13 @@ pub static TEXTES: &[Texte] = &[
             // 204 A a 204 H (la retenue a la source, son assiette « montant net imposable », son taux). Une remuneration
             // nette fiscale negative : 50.013 a 0.00 (`pas::du_versement`, fiche DSN 1810).
             Domaine { cle: "assiette_pas", titre: "L'assiette de la retenue a la source, et la sante patronale reintegree", numeros: &["83", "204 A", "204 B", "204 E", "204 F", "204 H"] },
+            // L'EXONERATION D'IMPOT SUR LE REVENU DES HEURES SUPPLEMENTAIRES ET COMPLEMENTAIRES, dans sa limite annuelle
+            // (81 quater) : elle sort du net imposable, donc de l'assiette du PAS. `engagement::heures_en_plus`.
+            Domaine { cle: "heures_supplementaires", titre: "L'exoneration d'impot sur le revenu des heures supplementaires et complementaires", numeros: &["81 quater"] },
+            // LES INDEMNITES JOURNALIERES SUBROGEES ET LE PAS : 154 quinquies (la CSG deductible, 3,8 points sur 6,2),
+            // 80 quinquies (les indemnites journalieres sont imposables, sauf affection de longue duree) et 81, 8° (celles
+            // d'un accident du travail le sont pour moitie). BOFiP BOI-IR-PAS-20-10-10 § 80 a 110. `engagement::maintien`.
+            Domaine { cle: "indemnites_journalieres", titre: "L'impot sur le revenu des indemnites journalieres", numeros: &["154 quinquies", "80 quinquies", "81"] },
         ],
     },
 ];

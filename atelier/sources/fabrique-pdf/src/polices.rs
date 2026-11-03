@@ -30,13 +30,21 @@ static SERIF_GRAS_Z: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/Liberatio
 static MONO_Z: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/LiberationMono-Regular.ttf.z"));
 static MONO_GRAS_Z: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/LiberationMono-Bold.ttf.z"));
 
-fn decomprimer(z: &[u8]) -> Result<Arc<Vec<u8>>, Refus> {
+/// Le fichier de la police comprimee `z`, decomprime une fois par processus : chaque document le reprend.
+fn decomprimer(z: &'static [u8]) -> Result<Arc<Vec<u8>>, Refus> {
     use std::io::Read;
+    static DECOMPRIMEES: std::sync::Mutex<Vec<(usize, Arc<Vec<u8>>)>> = std::sync::Mutex::new(Vec::new());
+    let cle = z.as_ptr() as usize;
+    if let Some((_, f)) = DECOMPRIMEES.lock().unwrap_or_else(|e| e.into_inner()).iter().find(|(c, _)| *c == cle) {
+        return Ok(f.clone());
+    }
     let mut ttf = Vec::new();
     flate2::read::ZlibDecoder::new(z)
         .read_to_end(&mut ttf)
         .or_else(|e| refus(format!("police interne illisible : {}", e)))?;
-    Ok(Arc::new(ttf))
+    let f = Arc::new(ttf);
+    DECOMPRIMEES.lock().unwrap_or_else(|e| e.into_inner()).push((cle, f.clone()));
+    Ok(f)
 }
 
 fn police(donnees: &Arc<Vec<u8>>) -> Result<FontData, Refus> {
@@ -58,6 +66,11 @@ pub fn famille() -> Result<FontFamily<FontData>, Refus> {
 /// l'embarquer dans un PDF existant (`marquage.rs`).
 pub fn sans_regulier() -> Result<Arc<Vec<u8>>, Refus> {
     decomprimer(REGULIER_Z)
+}
+
+/// Le fichier de Liberation Sans gras, pour le texte gras d'un SVG posé dans un PDF existant (`formulaire.rs`).
+pub fn sans_gras() -> Result<Arc<Vec<u8>>, Refus> {
+    decomprimer(GRAS_Z)
 }
 
 /// Tous les fichiers de Liberation (Sans en quatre styles, Serif et Mono en romain et gras) : ce

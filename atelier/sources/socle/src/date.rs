@@ -50,6 +50,14 @@ impl Jour {
     /// Une date ecrite dans l'un des cinq formats.
     pub fn lire(texte: &str) -> Resultat<Jour> {
         let s = texte.trim();
+        // La forme qu'ecrit le moteur (`iso`), lue d'emblee : c'est celle que le premier format apparierait.
+        let o = s.as_bytes();
+        if o.len() == 10 && o[4] == b'-' && o[7] == b'-' && [0, 1, 2, 3, 5, 6, 8, 9].iter().all(|&i| o[i].is_ascii_digit()) {
+            let n = |a: usize, b: usize| s[a..b].parse::<u32>().unwrap_or(0);
+            if let Some(j) = Jour::nouveau(n(0, 4) as i32, n(5, 7), n(8, 10)) {
+                return Ok(j);
+            }
+        }
         let c: Vec<char> = s.chars().collect();
         for format in FORMATS {
             if let Some(j) = lire_format(format, &c) {
@@ -59,7 +67,7 @@ impl Jour {
         Err(format!("date illisible : {}", repr_texte(s)))
     }
 
-    /// `AAAA-MM-JJ`, ce que `isoformat()` et `str(date)` ecrivent.
+    /// `AAAA-MM-JJ`.
     pub fn iso(&self) -> String {
         format!("{:04}-{:02}-{:02}", self.an, self.mois, self.jour)
     }
@@ -167,6 +175,13 @@ pub fn mois_impossible(mois: impl std::fmt::Display) -> String {
 
 pub fn jour_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into<i64>) -> String {
     format!("date impossible : {:04}-{:02}-{:02}", an.into(), mois.into(), jour.into())
+}
+
+/// `AAAA-MM` : quatre chiffres, un tiret, un mois de 01 a 12, rien d'autre. Un mois nomme un fichier ou un dossier :
+/// `../config` ou `2026-06/envoi` n'en sont pas.
+pub fn mois_valide(mois: &str) -> bool {
+    let b = mois.as_bytes();
+    b.len() == 7 && b[4] == b'-' && b[..4].iter().chain(&b[5..]).all(u8::is_ascii_digit) && (1..=12).contains(&(((b[5] - b'0') * 10 + (b[6] - b'0')) as u32))
 }
 
 /// Le numero du mois d'un « AAAA-MM », de 1 a 12 ; « 00 » (ou « 13 ») n'est aucun mois et se refuse, comme
@@ -283,7 +298,7 @@ pub fn d(v: &Value) -> Resultat<Jour> {
     match v {
         Value::Object(o) => match o.get("jour") {
             Some(j) => d(j),
-            None => Err(format!("date detaillee sans `jour` : {}", forme_ecrite(v))),
+            None => Err(crate::echec::a_la_cle("Une date ne dit pas son jour.", "jour", forme_ecrite(v))),
         },
         Value::String(s) => Jour::lire(s),
         autre => Jour::lire(&en_texte(autre)),
@@ -537,4 +552,9 @@ pub fn jour_iso(texte: &str) -> Option<Jour> {
         return None;
     }
     Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
+}
+
+/// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (ou d'un instant, par ses dix premiers caracteres) ; le texte tel quel s'il ne se lit pas.
+pub fn jj_mm_aaaa(iso: &str) -> String {
+    jour_iso(&iso.chars().take(10).collect::<String>()).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|| iso.to_string())
 }

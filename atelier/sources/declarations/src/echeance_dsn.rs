@@ -88,7 +88,7 @@ pub fn reporter(nominale: Jour) -> Resultat<Echeance> {
     Ok(Echeance { nominale, jour, sautes })
 }
 
-/// `int(texte)` d'un morceau de nom de mois.
+/// Le nombre d'un morceau de nom de mois ; refus s'il ne se lit pas.
 fn entier(t: &str) -> Resultat<i64> {
     t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {}", socle::fichiers::repr(t)))
 }
@@ -118,6 +118,11 @@ fn lisible(j: &Jour) -> String {
 }
 
 impl Echeance {
+    /// L'echeance est passee des le lendemain de son jour : la DSN se depose encore le jour meme.
+    pub fn passee_au(&self, aujourdhui: &Jour) -> bool {
+        *aujourdhui > self.jour
+    }
+
     /// La date a-t-elle bouge ?
     pub fn reportee(&self) -> bool {
         self.jour != self.nominale

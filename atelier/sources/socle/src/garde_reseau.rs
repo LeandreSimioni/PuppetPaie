@@ -16,7 +16,7 @@
 //!
 //! Chaque sortie du moteur passe par ici : `transport::envoyer` (HTTP : editeur, net-entreprises, Urssaf, Google),
 //! `sources::telecharger`, `entrepot_dila`, `maj` (le depot des versions), `courriel` (IMAP, SMTP),
-//! `interface::api::ouvrir_adresse` (le navigateur). L'essai `garde_reseau` (`tests/fichiers/`) le verifie dans les
+//! `interface::poste::ouvrir_adresse` (le navigateur). L'essai `garde_reseau` (`tests/fichiers/`) le verifie dans les
 //! sources : une nouvelle sortie qui n'y passerait pas le fait echouer.
 
 use std::net::IpAddr;

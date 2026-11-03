@@ -29,7 +29,7 @@ pub const ANNULE: &str = "04";
 /// declaration annule et remplace integral" est interdit pour une nature de declaration (S20.G00.05.001) "08 -
 /// Signalement amorcage des donnees variables". » (cahier technique 2026.1, p. 135,
 /// `atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt`). Un amorcage se corrige en l'annulant, puis en en deposant
-/// un nouveau (§ 1.4.3.4, p. 15). Reste R1 #52.
+/// un nouveau (§ 1.4.3.4, p. 15).
 const TYPES: [(&str, &str); 2] = [(NORMALE, "normale"), (ANNULE, "annule")];
 
 fn motifs_de_la_norme() -> Resultat<Vec<Value>> {
@@ -135,12 +135,13 @@ un manque du logiciel.",
 }
 
 /// Le fichier d'un signalement d'amorcage, pret a deposer.
-pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec> {
+pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::departs::Departs) -> Result<String, Echec> {
     verifier(paie, &o.motif, &o.type_declaration, o.remplace.as_deref())?;
     let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
     let s = &paie.salarie;
     let ent = &ctx.entreprise;
+    crate::dsn::exiges(ent, std::iter::once(s), paie.declaree_a_la_caisse_des_conges()?)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -184,9 +185,9 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
     // La rubrique qui fait tout le message : sans elle, le point de depot ne
     // sait pas a qui transmettre le signalement (fiche 2984).
     f.add("S20.G00.05.011", &o.motif);
-    // L'etablissement est celui du salarie, comme dans ses mensuelles (`dsn::etablissement_du_salarie`) : le NIC est
+    // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = crate::dsn::etablissement_du_salarie(ent, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, s)?;
     // Le changement de logiciel nomme l'etablissement qui declarait le dernier contrat connu du salarie (S20.G00.05.012,
     // p. 138) : le sien.
     let changement = o.motif == CHANGEMENT_DE_LOGICIEL;
@@ -261,16 +262,22 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
         ("S21.G00.30.018", "email"),
         ("S21.G00.30.019", "code_salarie"),
     ] {
+        // L'adresse mel est conditionnelle (usage « C » dans chaque nature, et « conditionne a l'accord explicite » de
+        // l'individu : `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, `texte/bloc-S21.G00.30.txt`) : une fiche
+        // sans courriel n'en declare pas.
+        if k == "email" && !s.get(k).is_some_and(vrai) {
+            continue;
+        }
         // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, ent, s, &crate::ntt::brute(ctx, s), &e.debut)?;
+    crate::ntt::poser_ntt(&mut f, ent, s, crate::changements_individu::derniere_declaree(ctx, s, &e.debut, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
     if !changement {
         // Les emplois multiples (`40.036`) : les autres contrats du salarie dans le mois de l'embauche.
-        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_iso())?;
+        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_iso(), departs)?;
         let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
         bloc_contrat(&mut f, paie, &etab, &orgs, 1, &bar, false, &[], NATURE, emplois)?;
         // L'anciennete, due des qu'une adhesion prevoyance est declaree.

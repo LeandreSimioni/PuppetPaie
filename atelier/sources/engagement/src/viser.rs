@@ -184,6 +184,8 @@ fn somme(paies: &[Paie], rangs: &[usize], cible: Cible) -> R<Decimal> {
 /// distance, celui qui ne depasse pas.
 pub fn viser(ctx: &Contexte, data: &Value, rangs: &[usize], cible: Cible, vise: Decimal) -> R<Visee> {
     let mut data = data.clone();
+    // Une ligne au tarif de la convention a son taux : elle n'est pas une ligne sans taux.
+    crate::saisie_au_tarif(ctx, &mut data).map_err(RefusVisee::Calcul)?;
     poser_taux_provisoires(ctx, &mut data, rangs)?;
     let essai = |facteur: Decimal| -> R<(Value, Vec<Paie>, Decimal)> {
         let mut d = data.clone();
@@ -208,8 +210,8 @@ pub fn viser(ctx: &Contexte, data: &Value, rangs: &[usize], cible: Cible, vise: 
     let (_, _, depart) = essai(Decimal::ONE)?;
     if depart <= Decimal::ZERO {
         return Err(refus(format!(
-            "Cet engagement paie {} EUR : il n'y a pas de taux a faire varier. Poser d'abord une quantite et un taux, puis viser le total.",
-            centimes(depart)
+            "Cet engagement paie {} : il n'y a pas de taux à faire varier. Poser d'abord une quantité et un taux, puis viser le total.",
+            socle::texte::euros(depart)
         )));
     }
     let rang_essai = |atteint: Decimal| ((atteint - vise).abs(), atteint > vise);

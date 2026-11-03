@@ -26,13 +26,30 @@ entreprises** du champ.
   l'accord ».
 - **Avenant n° 8 du 21/05/2025**, article 2 (au 01/01/2026) : fonds
   collectif cadres 0,81 %, **non cadres 0,77 %**.
-- **Avenant n° 9** (au 01/01/2027) : connu par le courrier d'Audiens aux employeurs, transcrit dans
-  `audiens-courrier-avenant9-taux-2027-20261030.md` (prévoyance cadres 1,025 / 0,265, non cadres 0,485 / 0,265, sur la
-  T1 ; fonds collectif inchangé) ; l'avenant lui-même reste à relever.
+- **Avenant n° 9 du 7 juillet [2026]** (au 01/01/2027, durée indéterminée, revoyure au plus tard trois ans après,
+  présenté à l'extension) : `accord-interbranche-prevoyance-avenant9-signe-20260707.pdf`, scan signé transmis par
+  Léandre le 30/10/2026, transcrit dans le `.md` à côté (l'année de la signature n'est pas écrite : 2026 est une
+  inférence). Signataires : FESAC ; CGT, F3C CFDT, CFTC, CFE-CGC. Il renumérote l'accord (articles 1 à 21) et réécrit
+  8, 8.1, 8.2, 10, 10.2, 10.3, crée 10.3.1 et 11 :
+  - **art. 8.1, cadres** : « au moins 1,29 % » de la T1, **1,025 % patronal, 0,265 % salarial** ; **art. 8.2, non
+    cadres** : « au moins 0,75 % » de la T1, **0,485 % patronal, 0,265 % salarial** ; l'assiette comprend « les congés
+    payés versés par l'intermédiaire de la Caisse des Congés Spectacle ». Les mêmes chiffres que le courrier d'Audiens
+    aux employeurs (`audiens-courrier-avenant9-taux-2027-20261030.md`, qui donne aussi les taux d'avant et dit le fonds
+    collectif inchangé) ;
+  - art. 10.3.1 : une rente d'invalidité de 2e (20 %) ou 3e catégorie (30 %) du salaire de référence de l'art. 10.2 ;
+  - **art. 11 : les garanties se maintiennent pendant une suspension du contrat indemnisée** (maladie, maternité,
+    paternité, activité partielle), financées comme d'habitude ; une suspension non indemnisée, à la demande de
+    l'entreprise et si le certificat d'adhésion le prévoit.
 
 Recoupement : la web-conférence Audiens « Nouveautés 2026 » (p. 11) ne
 donne qu'une exception aux taux de l'interbranche, la CCNEAC ; aucune pour
 le cinéma.
+
+## Où le moteur s'en sert
+
+- `logiciel/donnees/baremes/2026.json` : la prévoyance des intermittents (non cadres : 0,34 + 0,12 et le fonds collectif
+  0,77, avenants 7 et 8 ; cadres : `par_categorie.cadre`, 0,88 + 0,12 et 0,81). Le barème 2027 prendra les taux de
+  l'avenant 9 (ticket #287 du privé).
 
 ## Brochure Audiens « L'essentiel : le régime prévoyance/santé des artistes et techniciens intermittents » (25/04/2022)
 

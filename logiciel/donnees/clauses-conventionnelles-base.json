@@ -9,6 +9,14 @@
     "3090": {
       "libelle": "Convention collective nationale des entreprises du secteur privé du spectacle vivant du 3 février 2012",
       "_source": "Base KALI de la DILA (open data) : la base complète du 13/07/2025 et les 246 livraisons quotidiennes jusqu'à KALI_20260923-215642, relues le 24/09/2026. Aucune livraison postérieure au 13/07/2025 ne touche les articles cités ici. Transcription : `atelier/reference/sources/kali-3090-titres-vii-x-xi-annexes-20260924.md`.",
+      "heures_supplementaires": {
+        "article": "8.6",
+        "kali": "KALIARTI000028157387",
+        "fichier": "atelier/reference/sources/kali-3090-titre-viii-duree-du-travail-20261102.md",
+        "contingent_annuel": 220,
+        "_texte": "8.6 : « Le contingent annuel d'heures supplémentaires par salarié et par an est fixé à 220 heures pour un même employeur, sauf dispositions fixées dans les annexes, avec un maximum de 270 heures. Cette disposition concerne les salariés qui ne bénéficient pas d'un aménagement du temps de travail dans leur contrat. »",
+        "_majoration": "RELEVÉ : le titre VIII ne fixe de taux de majoration que pour l'aménagement pluri-hebdomadaire (8.10 : 25 % de la 1re à la 45e heure, 35 % de la 46e à la 90e, 50 % de la 91e à la 180e, au bilan de la période de référence), que le moteur ne tient pas (il ne compte pas les heures de la période). Hors aménagement, aucun taux : celui de la loi s'applique (L3121-36, `permanents-base.json`, `heures_en_plus`). Aucun article ne traite des heures complémentaires : la loi."
+      },
       "categories": {
         "_quoi": "La convention classe par CATÉGORIE (artistes-interprètes ; employés, employés qualifiés ; agents de maîtrise ; cadres) — et l'annexe I a ses cadres de direction. Le moteur la lit dans cet ordre : `categorie_conventionnelle` sur la fiche du salarié (ou l'engagement), qui l'emporte toujours ; puis le statut artiste ; puis la case cadre ; puis le niveau 3090 du métier (`emplois-base.json`, `classification_3090.niveau`). Un métier de niveau cadre déclaré non cadre ne se tranche pas : le moteur demande.",
         "valeurs": {
@@ -270,13 +278,14 @@
         "prevenance_mois": 6
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL — comme le maintien légal : le complément se calcule après déduction des indemnités journalières, qui viennent de la caisse. Le moteur dit ce que la convention garantit, à côté de la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; un pourcentage du NET se reconstitue par le calcul de la paie (`engagement::maintien::au_net`) ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "11.2",
           "kali": "KALIARTI000028157422",
           "anciennete_mois_minimum": 12,
           "carence_jours": 3,
           "base": "net",
+          "plafond_net": true,
           "tranches_premiere_annee": [
             {
               "jours": 30,
@@ -331,6 +340,7 @@
           "kali": "KALIARTI000028157427",
           "carence_jours": 0,
           "base": "net",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 30,
@@ -440,6 +450,27 @@
     "1285": {
       "libelle": "Convention collective nationale des entreprises artistiques et culturelles du 1er janvier 1984 (CCNEAC)",
       "_source": "Base KALI de la DILA : la base complète du 13/07/2025 (conteneur KALICONT000005635964, texte KALITEXT000005662413) et les 246 livraisons jusqu'au 23/09/2026. Les livraisons republient V.8, V.11 et V.12 sous les mêmes identifiants, au texte identique (vérifié le 24/09/2026).",
+      "heures_supplementaires": {
+        "article": "VI.9, VI.12",
+        "kali": "KALIARTI000026922498, KALIARTI000020810231",
+        "fichier": "atelier/reference/sources/kali-1285-titre-vi-duree-du-travail-20261102.md",
+        "contingent_annuel": 130,
+        "paliers_annuels": [
+          {"heures": 80, "majoration": 25},
+          {"heures": 50, "majoration": 50}
+        ],
+        "au_dela_du_contingent": 50,
+        "_texte": "VI.9.1 : « le contingent annuel d'heures supplémentaires prévu à l'article L. 3121-11 du code du travail est de 130 heures ». VI.12 : « Les heures accomplies à l'intérieur du contingent annuel d'heures supplémentaires donnent lieu à une majoration de salaire de 25 % pour chacune des 80 premières heures supplémentaires et à une majoration de 50 % pour les 50 heures suivantes, conformément à l'article X. 4. 8 de la présente convention. [...] Les heures accomplies au-delà du contingent annuel d'heures supplémentaires donnent lieu à une majoration de salaires de 50 %. » Le taux de la convention vaut à défaut d'accord d'entreprise (C. trav. L3121-33, I, 1°).",
+        "_annee": "INFÉRENCE : l'année du contingent et des paliers est l'année civile. La convention ne la date que pour l'aménagement du temps de travail (VI.3, a : en principe du 1er septembre au 31 août), où les heures se comptent au bilan de la période (VI.9) ; hors aménagement, ni elle ni la loi relevée (L3121-30) ne disent quand l'année commence.",
+        "_amenagement": "Une compagnie qui aménage le temps de travail sur l'année (VI.3 : 1 575 heures) compte ses heures supplémentaires au bilan de la période de référence (VI.9.1 : « comptabilisées et régularisées à la fin de la période ») et les paie ce mois-là : elles se saisissent au mois où elles se paient. Le moteur ne tient pas le décompte des 1 575 heures (il ne connaît pas les heures faites semaine par semaine)."
+      },
+      "heures_complementaires": {
+        "article": "VI.13 bis",
+        "kali": "KALIARTI000026922492",
+        "fichier": "atelier/reference/sources/kali-1285-titre-vi-duree-du-travail-20261102.md",
+        "plafond": "tiers",
+        "_texte": "VI.13 bis : « Le nombre d'heures moyen hebdomadaire visé au contrat peut être dépassé à condition que les heures complémentaires n'excèdent pas 1/3 de cette durée. Lorsque les heures complémentaires dépassent 1/10 des heures annuelles visées au contrat, les heures complémentaires au-delà du 1/10 bénéficient de la majoration prévue à l'article L. 3123-19 du code du travail, soit 25 %. » Dans le dixième, la convention ne fixe aucun taux : celui de la loi (L3123-29, 10 %)."
+      },
       "remise_du_contrat": {
         "article": "XV.1.2 a",
         "kali": "KALIARTI000020810347",
@@ -663,7 +694,63 @@
         "_ce_que_ca_change": "Dès deux ans (la loi : dix), et bien plus haut : un mois à cinq ans, quatre et demi à trente (la loi : deux)."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ : la convention ne prévoit aucun complément de salaire en cas de maladie ou d'accident (aucun article du texte de base n'en traite). La loi seule s'applique (L1226-1)."
+        "_source": "Article X.4 (KALIARTI000026922483, VIGUEUR_ETEN depuis le 24/07/2012), X.4.6 « Maladie » et X.4.7 « Accident du travail » : atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md, l. 579-590.",
+        "maladie": {
+          "article": "X.4.6",
+          "kali": "KALIARTI000026922483",
+          "anciennete_mois_minimum": 6,
+          "carence_jours": 0,
+          "base": "brut",
+          "subrogation": "tout_salarie",
+          "par_anciennete": [
+            {
+              "anciennete_annees_min": 0.5,
+              "tranches": [
+                {
+                  "mois": 1,
+                  "taux": 100.0
+                },
+                {
+                  "mois": 1,
+                  "taux": 75.0
+                }
+              ]
+            },
+            {
+              "anciennete_annees_min": 1,
+              "tranches": [
+                {
+                  "mois": 3,
+                  "taux": 100.0
+                },
+                {
+                  "mois": 3,
+                  "taux": 75.0
+                }
+              ]
+            }
+          ],
+          "_texte": "« En cas de maladie, tout salarié bénéficie de la subrogation et du maintien de son salaire brut [...] : à partir de 6 mois et jusqu'à 1 an d'ancienneté : 1 mois à 100 % et 1 mois à 75 % ; au-delà de 1 an d'ancienneté : 3 mois à 100 % et 3 mois à 75 %. » « Il est tenu compte des indemnités déjà perçues par le salarié durant les 12 mois précédant la période de paie concernée. » Aucune carence n'est écrite : aucune.",
+          "_un_an": "« Jusqu'à 1 an » et « au-delà de 1 an » se touchent à un an tout rond : le moteur donne les trois mois dès le premier anniversaire, la lecture la plus favorable.",
+          "_maladie_professionnelle": "X.4.7 ne nomme que l'accident du travail et l'accident de trajet : la maladie professionnelle suit X.4.6, la maladie."
+        },
+        "accident_du_travail": {
+          "article": "X.4.7",
+          "kali": "KALIARTI000026922483",
+          "couvre": ["accident_du_travail", "trajet"],
+          "anciennete_mois_minimum": 0,
+          "carence_jours": 0,
+          "base": "brut",
+          "subrogation": "tout_salarie",
+          "tranches": [
+            {
+              "pendant_ij": true,
+              "taux": 100.0
+            }
+          ],
+          "_texte": "« Au cas où l'indisponibilité du salarié est due à un accident du travail ou à un accident de trajet reconnu, son salaire brut lui est intégralement garanti pendant la période de versement des indemnités journalières de sécurité sociale, sous déduction de ces indemnités et de toutes autres indemnités émanant d'organismes aux financements desquels concourt l'employeur. » Aucune ancienneté n'est demandée.",
+          "_subrogation": "X.4.7 ne dit pas la subrogation ; le salaire maintenu en totalité, l'employeur est « subrogé de plein droit » (CSS R323-11, al. 2 : atelier/reference/sources/code-de-la-securite-sociale/articles-20261102.md)."
+        }
       }
     },
     "2642": {
@@ -769,13 +856,14 @@
         "loi_seule": "la convention de la production audiovisuelle ne prevoit rien pour le depart a la retraite (base KALI, 25/09/2026) : la loi seule (L1237-9)."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "VIII.2",
           "kali": "KALIARTI000028141154",
           "anciennete_mois_minimum": 12,
           "carence_jours": 3,
           "base": "brut",
+          "plafond_net": true,
           "par_anciennete": [
             {
               "anciennete_annees_min": 1,
@@ -822,6 +910,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 30,
@@ -1104,13 +1193,14 @@
         "_transition": "Article 11.1 II 3° : un salarié embauché avant le 01/04/2025 sous la 2717 garde les règles antérieures de départ volontaire. Le moteur ne les porte pas : pour un tel salarié, les relire dans la CCN du 21/02/2008."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "8.2.1",
           "kali": "KALIARTI000051948363",
           "anciennete_mois_minimum": 12,
           "carence_jours": 3,
           "base": "brut",
+          "plafond_net": true,
           "par_anciennete": [
             {
               "anciennete_annees_min": 1,
@@ -1144,6 +1234,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 90,
@@ -1545,13 +1636,14 @@
         "_prevenance": "58.1.3 : le salarié est invité à prévenir six mois avant -- une information, distincte du préavis."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "52.1.1",
           "kali": "KALIARTI000044226515",
           "anciennete_mois_minimum": 12,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "par_anciennete": [
             {
               "anciennete_annees_min": 1,
@@ -1589,6 +1681,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 90,
@@ -1918,13 +2011,14 @@
         "_ce_que_ca_change": "Trois mois dès le premier jour : la loi (L1237-9) donne un demi-mois après dix ans."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "2.3.2 d",
           "kali": "KALIARTI000049869769",
           "anciennete_mois_minimum": 12,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "assiette": "la rémunération de l'horaire pratiqué pendant l'absence, sans dépasser le net qu'il aurait perçu",
           "par_anciennete": [
             {
@@ -1989,6 +2083,7 @@
           "anciennete_mois_minimum": 3,
           "carence_jours": 0,
           "base": "brut",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 60,
@@ -2153,13 +2248,14 @@
         "_bornes": "« De vingt à trente ans » et « au-delà de trente » se touchent à trente ans tout ronds : le moteur donne trois mois dès le trentième anniversaire -- la lecture la plus favorable. Le 3.1 A renvoie au « paragraphe 2 » : c'est le barème du 3.2 qu'il désigne, le seul barème de retraite du texte."
       },
       "maintien_de_salaire": {
-        "_etat": "RELEVÉ, DIT, PAS PAYÉ SEUL -- comme pour la 3090 et la loi.",
+        "_etat": "RELEVÉ ET PAYÉ : `droit::maintien` lit la clause, `engagement::maintien` la paie, sous déduction des indemnités journalières lues sur le relevé de la caisse ; la plus favorable de la clause et de la loi.",
         "maladie": {
           "article": "X, III, 1er ; avenant n° 23, art. 2",
           "kali": "KALIARTI000027944605",
           "anciennete_mois_minimum": 12,
           "carence_jours": 7,
           "base": "net",
+          "plafond_net": true,
           "assiette": "le salaire net qu'il aurait perçu s'il avait travaillé",
           "par_anciennete": [
             {
@@ -2185,6 +2281,7 @@
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "net",
+          "plafond_net": true,
           "tranches": [
             {
               "jours": 29,

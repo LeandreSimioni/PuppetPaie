@@ -46,14 +46,14 @@ Version de cette copie : `0.2.7-puppetpaie.1`.
 - `pub mod wrap` (le résultat de la mise en lignes est public), `pub use printpdf` (la fabrique
   y prend `BuiltinFont`), `pub fn pt(f32) -> Mm` (conversion des points en millimètres).
 - `Document::context()` : donne le contexte de rendu, pour mesurer un élément avant de le poser.
-- `pub mod pdf_subset` (voir plus bas) ; `Document::render` donne au `Renderer` les polices en
+- `pub mod pdf_subset` et `pub mod pdf_ecriture` (voir plus bas) ; `Document::render` donne au `Renderer` les polices en
   sous-ensemble et leurs caractères (`Renderer::set_subsets`) avant d'écrire le fichier.
 
 ## `src/wrap.rs` — réécrit
 
 Le `Wrapper` d'origine est remplacé par `wrap::layout`, qui rend des `Line` :
 
-- un mot peut s'étendre sur plusieurs morceaux de styles différents (« FIL TENDU » en gras suivi de
+- un mot peut s'étendre sur plusieurs morceaux de styles différents (« FIL DE FER » en gras suivi de
   « , » ne se coupe pas entre les deux) ;
 - les espaces de fin de ligne ne comptent pas dans la largeur (l'original y comptait l'espace
   qui suit le dernier mot : mot renvoyé à la ligne trop tôt, lignes décalées à droite ou au
@@ -99,6 +99,8 @@ Le `Wrapper` d'origine est remplacé par `wrap::layout`, qui rend des `Line` :
   300 pixels par pouce (Lanczos 3, proportions gardées ; en couleurs prémultipliées quand elle a
   une transparence). Un JPEG réduit est réencodé en JPEG (qualité 90). Un logo de 1 200 pixels
   posé sur 26 mm (1 168 pixels par pouce) pesait l'essentiel du bulletin.
+  La réduction à une largeur en pixels est publique (`elements::reduire_a`) : la fabrique allège avec elle les
+  images que la compagnie pose (`alleger`).
 - **SVG vectoriel** (`printpdf::svg`). Proportions exactes lues par usvg (printpdf arrondit la
   taille à l'entier). Un SVG qui utilise du texte, un dégradé, un motif, une transparence ou une
   image intégrée est **refusé** : printpdf 0.7.0 recopie l'image sans les objets auxquels elle
@@ -149,6 +151,12 @@ Le sous-ensemble de police, fait une fois le fichier écrit par printpdf (appel�
 - une police qu'aucun texte n'a employée sort du fichier (ses références sont retirées des
   ressources, ses objets élagués) ;
 - un caractère absent de la police ou hors du plan de base est une erreur qui le nomme ;
+- la table **`ToUnicode`** s'écrit en plages (`bfrange` : des codes qui se suivent dans un même octet de poids fort,
+  chacun rendant le caractère de même code) plutôt que code par code ;
+- **`polices_de_la_fabrique`** : les polices `Type0` d'un PDF que ce module a embarquées depuis un fichier donné
+  (même nom PostScript, table `ToUnicode` d'identité), avec les caractères qu'elles portent ; **`elargir`** : le
+  sous-ensemble d'une telle police refait pour plus de caractères, sous les mêmes objets (les codes ne changent
+  pas, le texte déjà écrit se lit pareil) ;
 - **`embarquer`** (ajouté pour `fabrique-pdf --marquer`) : le même sous-ensemble, posé dans un PDF
   **existant** (lopdf) au lieu de remplacer une doublure de printpdf — la police `Type0`, son
   descripteur, le fichier, la table `ToUnicode` et `CIDToGIDMap` sont créés puis comprimés, et
@@ -189,9 +197,20 @@ Le sous-ensemble de police, fait une fois le fichier écrit par printpdf (appel�
   `merge_identical_images`, ticket #228), **comprime les pixels avec les prédicteurs PNG**
   (`predict_images` : par ligne, le filtre PNG le plus court, `DecodeParms` `Predictor 15`, gardé
   seulement s'il fait mieux que le Flate seul ; dépendance `flate2`, déjà là par lopdf), refuse les SVG dont des ressources manquent, fixe les identifiants, élague
-  les objets inutiles, retire les flux vides, **comprime** les flux et renumérote. Le même
+  les objets inutiles, retire les flux vides, **comprime** les flux, renumérote et **écrit au plus court**
+  (`pdf_ecriture::compact`). Le même
   traitement s'applique en `debug` et en `release` (printpdf ne comprime qu'en `release`) : le fichier
   ne dépend pas du profil de compilation.
+- `predict_image` (public) : la compression d'une image par les prédicteurs PNG, pour un seul flux (la fabrique s'en
+  sert pour les images qu'elle pose dans un formulaire).
+
+## `src/pdf_ecriture.rs` — nouveau
+
+L'écriture d'un PDF au plus court, sans changer ce qu'il contient : `compact` écrit un document entier en PDF 1.5,
+les objets qui ne sont pas des flux dans des flux d'objets comprimés et la table des références en flux comprimé
+(prédicteur PNG « Up ») ; `ajouter` écrit une mise à jour incrémentale (les octets d'avant tels quels, puis les seuls
+objets neufs ou changés, chacun à part, et une table de la forme de celle d'avant, avec `/Prev`). `ecrire_objet` écrit
+un objet lopdf en syntaxe PDF (l'écrivain de lopdf 0.31 n'est pas public).
 
 ## `src/error.rs`
 

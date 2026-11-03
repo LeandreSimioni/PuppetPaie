@@ -55,7 +55,7 @@ fn tab(v: &Value) -> Resultat<&Vec<Value>> {
     v.as_array().ok_or_else(|| format!("liste attendue, lu {}", v))
 }
 
-/// `int(x)`.
+/// L'entier d'une valeur ; refus sinon.
 fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n
@@ -119,7 +119,7 @@ fn texte(v: &Value) -> String {
     en_texte(v)
 }
 
-/// `str(x or "").strip()` d'un IDCC ou d'une annexe.
+/// Un IDCC ou une annexe en texte, sans blancs autour, vide s'il manque.
 fn lu(v: &Value) -> String {
     if vrai(v) {
         texte(v).trim().to_string()
@@ -191,8 +191,18 @@ pub fn idcc_nomme(nom: &str) -> Resultat<Option<String>> {
     })
 }
 
+/// Une categorie de la convention dite en mots (« agent de maîtrise », « non-cadre »), telle que la fiche la nomme.
+pub fn categorie_en_mots(c: &str) -> String {
+    match c {
+        "employe" => "employé".into(),
+        "agent_de_maitrise" => "agent de maîtrise".into(),
+        "non_cadre" => "non-cadre".into(),
+        autre => autre.replace('_', " "),
+    }
+}
+
 fn non_relevees(idcc: &Value) -> String {
-    format!("les clauses de {} ne sont pas relevees", nom(idcc))
+    format!("les clauses de {} ne sont pas relevées", nom(idcc))
 }
 
 // ------------------------------------------------------------ la categorie
@@ -221,11 +231,11 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
         if vrai(valeurs) && !connue {
             let cles: Vec<&str> = valeurs.as_object().map_or(vec![], |o| o.keys().map(|k| k.as_str()).collect());
             return Ok(json!({"categorie": null, "grille": grille,
-                "source": format!("categorie_conventionnelle {} inconnue de {} (valeurs : {})",
-                    repr_valeur(dit), nom(idcc), cles.join(", "))}));
+                "source": format!("la catégorie dans la convention de la fiche ({}) est inconnue de {} (catégories : {})",
+                    repr_valeur(dit), nom(idcc), cles.iter().map(|c| categorie_en_mots(c)).collect::<Vec<_>>().join(", "))}));
         }
         return Ok(json!({"categorie": dit, "grille": grille,
-            "source": "la fiche (categorie_conventionnelle)"}));
+            "source": "la fiche du salarié (« Catégorie dans la convention »)"}));
     }
 
     let statut = if vrai(get(e, "statut")) {
@@ -250,24 +260,24 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
     }
     if vrai(get(sec, "cadre_ou_non_cadre")) {
         return Ok(json!({"categorie": "non_cadre", "grille": grille,
-            "source": "la case cadre, non cochee"}));
+            "source": "la case cadre, non cochée"}));
     }
     if selon_niveau.as_str() == Some("cadre") {
         return Ok(json!({"categorie": null, "grille": grille,
-            "source": format!("le metier {} est de niveau {} dans la grille 3090, et la fiche le \
-                declare NON cadre : agent de maitrise ou employe, le moteur ne le devine pas",
+            "source": format!("le métier {} est de niveau {} dans la grille 3090, et la fiche le \
+                déclare non cadre : agent de maîtrise ou employé, le logiciel ne le devine pas",
                 texte(code), niveau)}));
     }
     if vrai(selon_niveau) {
         return Ok(json!({"categorie": selon_niveau, "grille": grille,
-            "source": format!("le niveau 3090 du metier {} ({})", texte(code), niveau)}));
+            "source": format!("le niveau 3090 du métier {} ({})", texte(code), niveau)}));
     }
-    let code_dit = if vrai(code) { texte(code) } else { "aucun code metier".to_string() };
+    let code_dit = if vrai(code) { texte(code) } else { "aucun code métier".to_string() };
     Ok(json!({"categorie": null, "grille": grille,
-        "source": format!("ni la fiche, ni le metier ({}) ne disent la categorie", code_dit)}))
+        "source": format!("ni la fiche, ni le métier ({}) ne disent la catégorie", code_dit)}))
 }
 
-/// `str(x or "")`, sans `strip`.
+/// Une valeur en texte, vide si elle manque ou est vide, blancs gardés.
 fn lu_brut(v: &Value) -> String {
     if vrai(v) {
         texte(v)
@@ -306,7 +316,7 @@ pub fn preavis_mois(
     let categorie = categorie.filter(|c| !c.is_empty());
     if categorie.is_none() && !vrai(toutes) {
         return Ok(json!({"mois": null, "article": article,
-            "pourquoi": "la categorie du salarie n'est pas connue"}));
+            "pourquoi": "la catégorie du salarié dans la convention n'est pas connue"}));
     }
     let par_categorie = categorie.map_or(&NUL, |c| get(get(sec, "par_categorie"), c));
     let mut tranches = ou(toutes, par_categorie);
@@ -316,8 +326,8 @@ pub fn preavis_mois(
     }
     if !vrai(tranches) {
         return Ok(json!({"mois": null, "article": article,
-            "pourquoi": format!("{} ne fixe pas de preavis pour la categorie {}",
-                nom(idcc), categorie.unwrap_or("None"))}));
+            "pourquoi": format!("{} ne fixe pas de préavis pour la catégorie {}",
+                nom(idcc), categorie_en_mots(categorie.unwrap_or("")))}));
     }
     let a = anciennete;
     for t in tab(tranches)? {
@@ -339,7 +349,7 @@ pub fn preavis_mois(
             if vrai(supplements) && (!demission || vrai(get(sec, "supplement_age_demission"))) {
                 let Some(age) = age else {
                     return Ok(json!({"mois": null, "article": article,
-                        "pourquoi": format!("le preavis de {} depend de l'age du salarie, et sa \
+                        "pourquoi": format!("le préavis de {} dépend de l'âge du salarié, et sa \
                             date de naissance manque", article)}));
                 };
                 for sup in tab(supplements)? {
@@ -352,7 +362,7 @@ pub fn preavis_mois(
         }
     }
     Ok(json!({"mois": null, "article": article,
-        "pourquoi": format!("aucune tranche de {} ne couvre {} mois", article, a)}))
+        "pourquoi": format!("aucune tranche de {} ne couvre {} mois d'ancienneté", article, a)}))
 }
 
 // ------------------------------------------------------------- les baremes
@@ -733,190 +743,6 @@ pub fn indemnite_depart_retraite(idcc: &Value, anciennete: Decimal, reference: D
     Ok(json!({"releve": true, "montant": dv(eur2(mul(mois, reference))),
         "mois": dv(mois), "palier": palier, "article": article,
         "prevenance_mois": get(sec, "prevenance_mois")}))
-}
-
-// ------------------------------------------------- le maintien de salaire
-/// `4` pour 4,0 ; `66,66` pour 66.66.
-pub fn pct(x: &Value) -> Resultat<String> {
-    let x = nb(x)?;
-    pct_decimal(x)
-}
-
-fn pct_decimal(x: P) -> Resultat<String> {
-    Ok(if x == plancher(x) { plancher(x).to_string() } else { x.to_string().replace('.', ",") })
-}
-
-/// Ce que la convention garantit pendant un arret, en une phrase -- ou `None`
-/// si elle n'est pas relevee. Dit, pas paye : le complement se calcule apres
-/// les indemnites journalieres, qui viennent de la caisse.
-pub fn maintien(idcc: &Value, anciennete_mois: Decimal, accident_du_travail: bool) -> Resultat<Option<String>> {
-    let anciennete_mois = P::depuis(anciennete_mois);
-    let t = table()?;
-    let sec = get(conv(&t, idcc), "maintien_de_salaire");
-    let a = anciennete_mois;
-    let mut at = if accident_du_travail { get(sec, "accident_du_travail") } else { &NUL };
-    if vrai(at)
-        && !get(at, "comme_maladie_apres_mois").is_null()
-        && a >= nombre(at, "comme_maladie_apres_mois")?
-    {
-        // Passe un an, l'accident suit le bareme de la maladie.
-        at = &NUL;
-    }
-    let brut_ou_net = |s: &Value| if get(s, "base").as_str() == Some("brut") { "BRUT" } else { "NET" };
-    if vrai(at) {
-        let s = at;
-        let art = texte(cle(s, "article")?);
-        let minimum = match s.get("anciennete_mois_minimum") {
-            Some(m) => nb(m)?,
-            None => P::entier(12),
-        };
-        if a < minimum && minimum == P::entier(12) {
-            return Ok(Some(format!(
-                "{} (art. {}) : rien avant un an d'anciennete -- l'article est etendu sous \
-                 reserve de L1226-1.",
-                nom(idcc),
-                art
-            )));
-        }
-        if a < minimum {
-            return Ok(Some(format!(
-                "{} (art. {}) : rien avant {} mois d'anciennete.",
-                nom(idcc),
-                art,
-                pct_decimal(minimum)?
-            )));
-        }
-        let mut tr = cle(s, "tranches")?;
-        if vrai(get(s, "tranches_deux_ans")) && a >= P::entier(24) {
-            tr = get(s, "tranches_deux_ans");
-        }
-        let apres = get(s, "tranches_apres");
-        if vrai(apres) && a > nombre(apres, "anciennete_mois")? {
-            tr = cle(apres, "tranches")?;
-        }
-        let tr = tab(tr)?;
-        if tr.len() == 1 {
-            return Ok(Some(format!(
-                "{} (art. {}) garantit {} % du salaire {} pendant {} jours, sans carence, sous \
-                 deduction des indemnites journalieres et de la prevoyance.",
-                nom(idcc),
-                art,
-                pct(cle(&tr[0], "taux")?)?,
-                brut_ou_net(s),
-                texte(cle(&tr[0], "jours")?)
-            )));
-        }
-        let deux = || socle::fichiers::trop_courte("les tranches (deux attendues)");
-        let (t0, t1) = (tr.first().ok_or_else(deux)?, tr.get(1).ok_or_else(deux)?);
-        return Ok(Some(format!(
-            "{} (art. {}) garantit {} % du salaire {} pendant {} jours puis {} % pendant {} \
-             jours, sans carence, sous deduction des indemnites journalieres et de la \
-             prevoyance.",
-            nom(idcc),
-            art,
-            pct(cle(t0, "taux")?)?,
-            brut_ou_net(s),
-            texte(cle(t0, "jours")?),
-            pct(cle(t1, "taux")?)?,
-            texte(cle(t1, "jours")?)
-        )));
-    }
-    let s = get(sec, "maladie");
-    if !vrai(s) {
-        return Ok(None);
-    }
-    let art = texte(cle(s, "article")?);
-    if a < nombre(s, "anciennete_mois_minimum")? {
-        return Ok(Some(format!(
-            "{} (art. {}) : rien avant {} mois d'anciennete.",
-            nom(idcc),
-            art,
-            texte(cle(s, "anciennete_mois_minimum")?)
-        )));
-    }
-    let annees = div(a, P::entier(12));
-    let mut lignes: Vec<&Value> = tab(cle(s, "par_anciennete")?)?.iter().collect();
-    let mut erreur = None;
-    lignes.sort_by(|x, y| {
-        comparer(x, y, "anciennete_annees_min").unwrap_or_else(|e| {
-            erreur = Some(e);
-            Ordering::Equal
-        })
-    });
-    if let Some(e) = erreur {
-        return Err(e);
-    }
-    let mut ligne: &Value = &NUL;
-    for p in lignes {
-        if annees >= nombre(p, "anciennete_annees_min")? {
-            ligne = p;
-        }
-    }
-    let carence = cle(s, "carence_jours")?;
-    if vrai(ligne) && vrai(get(ligne, "tranches")) {
-        // Des tranches dites en toutes lettres, et non les 90 / 66,66 % du decret.
-        let mut suite = Vec::new();
-        for t in tab(get(ligne, "tranches"))? {
-            suite.push(format!("{} % pendant {} jours", pct(cle(t, "taux")?)?, texte(cle(t, "jours")?)));
-        }
-        let c = if !vrai(carence) {
-            "sans carence".to_string()
-        } else {
-            format!("apres {} jours de carence", texte(carence))
-        };
-        // La phrase sur la carence n'est vraie que si elle est plus courte que
-        // celle de la loi.
-        let c_dec = if vrai(carence) { nb(carence)? } else { P::ZERO };
-        let conclusion = if c_dec < P::entier(7) {
-            " La carence est plus courte que celle de la loi (sept jours) : c'est elle qu'il \
-             faut appliquer."
-        } else {
-            " La carence est celle de la loi ; ce sont les taux et les durees qui vont \
-             au-dela."
-        };
-        let assiette = ou(get(s, "assiette"), &NUL);
-        let assiette = if vrai(assiette) { texte(assiette) } else { "le salaire fixe, hors primes".to_string() };
-        return Ok(Some(format!(
-            "{} (art. {}) garantit, {}, {} du salaire {} (sur douze mois), sous deduction des \
-             indemnites journalieres et de la prevoyance ; assiette : {}.{}",
-            nom(idcc),
-            art,
-            c,
-            suite.join(" puis "),
-            brut_ou_net(s),
-            assiette,
-            conclusion
-        )));
-    }
-    let (j90, j66) = (cle(ligne, "jours_90")?, cle(ligne, "jours_66")?);
-    if get(s, "base").as_str() == Some("brut") {
-        // Du BRUT, comme la loi -- ce qui change, c'est la carence (trois
-        // jours, pas sept) et le taux des 30 premiers jours.
-        return Ok(Some(format!(
-            "{} (art. {}) garantit, apres {} jours de carence, 90 % du salaire BRUT pendant {} \
-             jours puis 66,66 % pendant {} jours (sur douze mois), sous deduction des \
-             indemnites journalieres et de la prevoyance ; assiette : le salaire fixe, hors \
-             primes. La carence est plus courte que celle de la loi (sept jours) : c'est elle \
-             qu'il faut appliquer.",
-            nom(idcc),
-            art,
-            texte(carence),
-            texte(j90),
-            texte(j66)
-        )));
-    }
-    Ok(Some(format!(
-        "{} (art. {}) garantit, apres {} jours de carence, 90 % du salaire NET pendant {} jours \
-         puis 66,66 % pendant {} jours (sur douze mois), sous deduction des indemnites \
-         journalieres et de la prevoyance ; assiette : le salaire fixe, hors primes. C'est plus \
-         que la loi (sept jours de carence, un pourcentage du brut) : c'est elle qu'il faut \
-         appliquer.",
-        nom(idcc),
-        art,
-        texte(carence),
-        texte(j90),
-        texte(j66)
-    )))
 }
 
 // ------------------------------------------------- la prime d'anciennete

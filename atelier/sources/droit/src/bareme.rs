@@ -39,7 +39,7 @@ fn exiger<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// Les elements de `x or []`.
+/// Les éléments d'une liste ; aucun si ce n'en est pas une.
 fn liste(v: &Value) -> &[Value] {
     v.as_array().map(Vec::as_slice).unwrap_or(&[])
 }
@@ -62,7 +62,7 @@ fn en_map(v: Value) -> Map<String, Value> {
     }
 }
 
-/// `str(v or "")`.
+/// Une valeur en texte, vide si elle manque ou est vide.
 fn txt(v: &Value) -> String {
     if vrai(v) {
         en_texte(v)
@@ -75,12 +75,12 @@ fn texte(s: &str) -> Value {
     Value::String(s.to_string())
 }
 
-/// `float(x)` en valeur JSON.
+/// Le flottant d'une valeur JSON.
 fn nf(x: f64) -> Value {
     Number::from_f64(x).map(Value::Number).unwrap_or(Value::Null)
 }
 
-/// `float(Decimal)`.
+/// Le décimal en flottant.
 fn flt(x: Decimal) -> f64 {
     x.to_string().parse().unwrap_or(f64::NAN)
 }
@@ -104,12 +104,12 @@ fn deux_virgule(x: f64) -> String {
     format!("{:.2}", x).replace('.', ",")
 }
 
-/// `bar.get("annee", "?")` pour un message.
+/// L'annee d'un bareme, `?` si elle manque, pour un message.
 fn annee(bar: &Value) -> String {
     bar.get("annee").map(en_texte).unwrap_or_else(|| "?".to_string())
 }
 
-/// `int(x or 0)`.
+/// L'entier d'une valeur, 0 si elle manque ou est vide.
 fn entier(v: &Value) -> i64 {
     if !vrai(v) {
         return 0;
@@ -136,7 +136,7 @@ fn mettre_a_jour(cible: &mut Map<String, Value>, source: &Value) {
     }
 }
 
-/// `str(fin_periode or "")[:10]`.
+/// La date de fin de période (ses dix premiers caractères), vide si elle manque.
 fn jour_texte(fin: Option<&Jour>) -> String {
     fin.map(Jour::iso).unwrap_or_default()
 }
@@ -183,7 +183,7 @@ pub fn bareme_du_statut(bar: Value, statut: &str) -> Resultat<Value> {
 
     let section = g(g(&bar, "par_statut"), &statut);
     if !vrai(section) {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne sait pas payer ce statut : le signaler au développeur.", annee(&bar)), serde_json::json!({"detail": format!(
             "Statut '{}' : le bareme {} ne sait pas le calculer.\n  \
 Il decrit les statuts {}. L'abattement de 30 % sur les taux \
 (arrete du 24/01/1975) ne vaut que pour les artistes, et il est \
@@ -195,7 +195,7 @@ Ajouter une section par_statut['{}'] au bareme.",
             annee(&bar),
             statuts.join(", "),
             statut
-        ));
+        )})));
     }
 
     let mut trous: Vec<String> = Vec::new();
@@ -239,7 +239,7 @@ Ajouter une section par_statut['{}'] au bareme.",
         } else {
             detail.join("\n  ")
         };
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne paie pas encore ce statut : ses taux ne sont pas vérifiés.", annee(&bar)), serde_json::json!({"detail": format!(
             "Statut '{}', bareme {} : refus de payer.\n  {}\n  {}\n  \
 Rien de tout cela ne se devine : un taux se releve (Urssaf, \
 BOSS, fiche de parametrage Audiens, bulletin de reference), un \
@@ -249,7 +249,7 @@ mecanisme se decide. Tant que la section n'est pas marquee \
             annee(&bar),
             if vrai(etat) { en_texte(etat) } else { "Section non marquee verifiee.".to_string() },
             detail
-        ));
+        )})));
     }
 
     let mut poses: Vec<(&str, Value)> = Vec::new();
@@ -276,7 +276,7 @@ pub fn bareme_de_la_nature(bar: Value, nat: &Nature) -> Resultat<Value> {
     };
     let sec = g(g(&bar, "par_nature"), &nom);
     if !vrai(sec) {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne sait pas payer cette nature de contrat : le signaler au développeur.", annee(&bar)), serde_json::json!({"detail": format!(
             "Contrat de nature '{}' : le bareme {} n'a pas de section \
 par_nature['{}'].\n  \
 Le corps de ce bareme decrit un INTERMITTENT : Conges \
@@ -287,7 +287,7 @@ donnerait des cotisations fausses sans que rien ne le signale.",
             nat.cle,
             annee(&bar),
             nom
-        ));
+        )})));
     }
     let mut trous: Vec<String> = liste(g(sec, "rubriques_ajoutees"))
         .iter()
@@ -308,7 +308,7 @@ donnerait des cotisations fausses sans que rien ne le signale.",
     }
     if !uniques.is_empty() || !vrai(g(sec, "_verifie")) {
         let etat = g(sec, "_etat");
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne paie pas encore cette nature de contrat : ses taux ne sont pas vérifiés.", annee(&bar)), serde_json::json!({"detail": format!(
             "Contrat de nature '{}', bareme {} : refus de payer.\n  {}\n  A remplir : {}\n  \
 Un taux se releve (BOSS, Agirc-Arrco, contrat de mutuelle, \
 fiche de parametrage Audiens), il ne se devine pas. Tant que la \
@@ -319,7 +319,7 @@ par un humain, le moteur refuse.",
             if vrai(etat) { en_texte(etat) } else { "Section non marquee verifiee.".to_string() },
             if uniques.is_empty() { "(rien de precis)".to_string() } else { uniques.join(", ") },
             nom
-        ));
+        )})));
     }
     let sec = sec.clone();
     empiler(bar, &sec)
@@ -338,22 +338,22 @@ pub fn bareme_cpf_cdd(bar: Value, nat: &Nature, cpf_cdd: bool) -> Resultat<Value
     let nom = nat.bareme.clone().unwrap_or_default();
     let sec = g(g(g(&bar, "par_nature"), &nom), "cpf_cdd").clone();
     if !vrai(&sec) {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne porte pas la contribution formation d'un CDD : le signaler au développeur.", annee(&bar)), serde_json::json!({"detail": format!(
             "Contrat de nature '{}' : il ouvre la contribution CPF-CDD (code du travail L. 6331-6), et le bareme {} n'a pas de \
 section par_nature['{}'].cpf_cdd qui dise son taux et sa cotisation. Rien n'est calcule.",
             nat.cle,
             annee(&bar),
             nom
-        ));
+        )})));
     }
-    let taux = g(&sec, "taux").as_f64().ok_or_else(|| format!("par_nature['{}'].cpf_cdd : `taux` manque", nom))?;
+    let taux = g(&sec, "taux").as_f64().ok_or_else(|| socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", &format!("par_nature.{}.cpf_cdd.taux", nom), ""))?;
     let rubrique = txt(g(&sec, "rubrique"));
     let mut applique = en_map(bar);
     let mut rubriques: Vec<Value> = liste(exiger_m(&applique, "rubriques_bulletin")?).to_vec();
     let r = rubriques
         .iter_mut()
         .find(|r| txt(g(r, "id")) == rubrique)
-        .ok_or_else(|| format!("par_nature['{}'].cpf_cdd : la rubrique « {} » n'est pas au bulletin", nom, rubrique))?;
+        .ok_or_else(|| socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", &format!("par_nature.{}.cpf_cdd.rubrique", nom), &rubrique))?;
     let mut composants: Vec<Value> = liste(g(r, "composants")).to_vec();
     if composants.is_empty() {
         composants.push(r.get("taux_pat").cloned().unwrap_or(Value::Null));
@@ -390,12 +390,12 @@ pub fn bareme_taxe_apprentissage(bar: Value, fin: Option<&Jour>) -> Resultat<Val
     let avant = rubriques.len();
     let rubriques: Vec<Value> = rubriques.into_iter().filter(|r| !vrai(g(r, "taxe_apprentissage"))).collect();
     if rubriques.len() == avant {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne sait pas retirer la taxe d'apprentissage du bulletin : le signaler au développeur.", annee(&Value::Object(applique.clone()))), serde_json::json!({"detail": format!(
             "La fiche entreprise dit la compagnie non assujettie a la taxe d'apprentissage pour {:02}/{} (motif MNATA), et le bareme {} n'a aucune ligne marquee \"taxe_apprentissage\": true : le moteur ne sait pas quelle ligne retirer du bulletin. Marquer la ligne de la taxe dans le bareme. Rien n'est calcule.",
             fin.mois,
             fin.an,
             annee(&Value::Object(applique.clone()))
-        ));
+        )})));
     }
     applique.insert("rubriques_bulletin".into(), Value::Array(rubriques));
     let cotisations: Vec<Value> =
@@ -695,7 +695,7 @@ fn controler_minimum_sante(bar: &Value, sal: &Value, niveau: &str, taux: &Value,
     };
     let assure = dec(exiger(taux, "assure")?)?;
     if assure < mini {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("{} : la complémentaire santé de son niveau est sous le minimum de la convention : vérifier le niveau souscrit sur sa fiche.", nom_du_salarie(sal, "ce salarié")), serde_json::json!({"cle": "sante_svp.niveau", "detail": format!(
             "{} : complementaire sante au niveau {}, {} % du PMSS pour le \
 salarie seul -- SOUS le minimum de la convention, {} % ({} ; \
 accord du 19/07/2024, art. 13).\n  \
@@ -709,7 +709,7 @@ n'est calcule.",
             deux_virgule(flt(assure)),
             deux_virgule(flt(mini)),
             origine
-        ));
+        )})));
     }
     Ok(())
 }
@@ -852,8 +852,27 @@ fn composant_79(bar: Value, id: &str, type_79: &str) -> Resultat<Value> {
     Ok(Value::Object(applique))
 }
 
-/// Le taux AT/MP : un seul endroit ou l'ecrire, les rubriques s'en deduisent.
+/// LE TAUX AT/MP DU BAREME, RESOLU : celui que la paie applique (`taux_atmp_applique` : le dit, ou celui de l'arrete pour
+/// un risque « TC ») s'ecrit dans `taux_atmp.valeur`, que la DSN declare (S21.G00.40.043) et que ses CTP portent ; `None`
+/// quand il ne se resout pas (`bareme_atmp` dit alors pourquoi). La compagnie et chacun de ses etablissements
+/// (`surcharger`) passent par ici.
+pub fn taux_atmp_resolu(mut bar: Value) -> (Value, Option<Decimal>) {
+    let alsace = vrai(g(g(&bar, "taux_atmp"), "_alsace_moselle"))
+        || (g(&bar, "_etablissement").is_null() && en_alsace_moselle(&txt(g(g(&bar, "_entreprise"), "code_postal"))));
+    let applique = taux_atmp_applique(&bar, g(&bar, "taux_atmp"), alsace);
+    if let (Some(t), Some(o)) = (applique, bar.get_mut("taux_atmp").and_then(Value::as_object_mut)) {
+        if o.get("valeur").map_or(true, Value::is_null) {
+            o.insert("valeur".into(), nd(t));
+        }
+    }
+    (bar, applique)
+}
+
+/// Le taux AT/MP : un seul endroit ou l'ecrire, les rubriques s'en deduisent. Le taux que la paie applique
+/// (`taux_atmp_applique` : le dit, ou celui de l'arrete pour un risque « TC ») s'ecrit dans `taux_atmp.valeur`, que la
+/// DSN declare (S21.G00.40.043).
 pub fn bareme_atmp(bar: Value) -> Resultat<Value> {
+    let (bar, applique) = taux_atmp_resolu(bar);
     let mut rubriques = Vec::new();
     let mut vu = false;
     for r in liste(g(&bar, "rubriques_bulletin")) {
@@ -863,8 +882,7 @@ pub fn bareme_atmp(bar: Value) -> Resultat<Value> {
             continue;
         }
         vu = true;
-        let taux = g(g(&bar, "taux_atmp"), "valeur");
-        if taux.is_null() {
+        let Some(taux) = applique else {
             let a = annee(&bar);
             let sans_notification = g(g(&bar, "taux_atmp"), "code_risque").as_str() == Some(SANS_NOTIFICATION);
             // Le taux d'une annee que la compagnie n'a pas dit, et que celui d'avant ne donne pas (`taux_atmp_reporte`).
@@ -882,9 +900,9 @@ pub fn bareme_atmp(bar: Value) -> Resultat<Value> {
                     a
                 )
             });
-        }
+        };
         let mut r = copie(r);
-        r.insert("taux_pat".into(), nd(rond(mul(dec(taux)?, dec(facteur)?), 3)));
+        r.insert("taux_pat".into(), nd(rond(mul(taux, dec(facteur)?), 3)));
         rubriques.push(Value::Object(r));
     }
     if !vu {
@@ -944,12 +962,12 @@ pub fn bareme_prevoyance(bar: Value, sal: &Value, nat: Option<&Nature>, fin: Opt
         rubriques.retain(|r| g(r, "id") != "prevoyance");
     }
     if !posee {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne porte pas la prévoyance d'un permanent : le signaler au développeur.", annee(&bar)), serde_json::json!({"detail": format!(
             "Le bareme {} n'a pas de rubrique `prevoyance` pour un permanent. \
 Elle doit exister, meme sans taux : c'est elle que la convention \
 remplit (voir par_nature.permanent.rubriques.prevoyance).",
             annee(&bar)
-        ));
+        )})));
     }
     let mut applique = en_map(bar);
     applique.insert("rubriques_bulletin".into(), Value::Array(rubriques));
@@ -966,14 +984,14 @@ pub fn casc_exemptee(ent: &Value) -> Resultat<bool> {
     }
     let rep = txt(g(ent, "representation_personnel")).trim().to_lowercase();
     if rep != "cse" && rep != "cse_adherent_fnas" {
-        return Err(format!(
+        return Err(socle::echec::avec("La fiche entreprise dit la compagnie exemptée de la CASC-SVP, et l'exemption demande un comité social et économique : le déclarer, ou décocher l'exemption.", serde_json::json!({"cle": "casc_svp_exemptee", "detail": format!(
             "config/entreprise.json : `casc_svp_exemptee` est coche, mais \
 l'exemption de la CASC-SVP ne vaut que pour une entreprise d'au \
 moins 50 salaries dotee d'un CSE (CCN 3090, art. 4.22 B), et \
 `representation_personnel` dit '{}'. Declarer le CSE (<< cse >>) \
 ou decocher l'exemption. Rien n'est calcule.",
             if rep.is_empty() { "rien" } else { &rep }
-        ));
+        )})));
     }
     Ok(true)
 }
@@ -995,43 +1013,28 @@ pub fn bareme_casc(bar: Value) -> Resultat<Value> {
 /// confrontee a l'effectif : elle decide du FNAS (article III.3.1).
 pub fn representation_du_personnel(ent: &Value) -> Resultat<String> {
     let v = txt(g(ent, "representation_personnel")).trim().to_lowercase();
-    let effectif = g(ent, "effectif");
     if !v.is_empty() && !REPRESENTATIONS.contains(&v.as_str()) {
-        let liste: Vec<String> = REPRESENTATIONS.iter().map(|x| format!("<< {} >>", x)).collect();
-        return Err(format!(
-            "config/entreprise.json, `representation_personnel` = '{}' : \
-inconnu. Les valeurs possibles sont {}.",
-            v,
-            liste.join(", ")
-        ));
+        let liste: Vec<String> = REPRESENTATIONS.iter().map(|x| format!("« {} »", x)).collect();
+        return Err(socle::echec::avec("La case « Comité social et économique » porte une valeur inconnue : la choisir dans la liste.", serde_json::json!({"cle": "representation_personnel", "detail": format!("« {} » : les valeurs possibles sont {}.", v, liste.join(", "))})));
     }
     if !v.is_empty() {
         return Ok(v);
     }
-    if let Some(e) = effectif.as_f64() {
-        if e < 11.0 {
-            // III.3.1.b : moins de onze salaries, 1,45 %.
-            return Ok("aucune".to_string());
-        }
+    match g(ent, "effectif").as_f64() {
+        // III.3.1.b : moins de onze salaries, 1,45 %.
+        Some(e) if e < 11.0 => Ok("aucune".to_string()),
+        Some(_) => Err(
+            "Comité social et économique (CSE) : la compagnie compte au moins onze salariés, et la CCNEAC fait dépendre de son CSE \
+la contribution au FNAS (article III.3.1). Le dire dans Configuration › Entreprise : pas de CSE (carence constatée), un CSE \
+conventionnel (11 à 49 salariés), ou un CSE de 50 salariés et plus, adhérent au FNAS ou non. Il ne se devine pas : le CSE \
+conventionnel est la règle « sauf carence »."
+                .to_string(),
+        ),
+        // Sans effectif connu, le CSE ne se demande pas : c'est l'effectif qui manque (`contexte::Effectif::a_dire`).
+        None => Err("L'effectif de la compagnie n'est pas connu : sous onze salariés, la CCNEAC fixe la contribution au FNAS \
+sans CSE (article III.3.1). Le dire dans « Pour démarrer »."
+            .to_string()),
     }
-    Err("config/entreprise.json : `representation_personnel` manque, et \
-la CCNEAC en fait dependre le FNAS (article III.3.1) :\n  \
-<< aucune >>             pas de representation (proces-verbal \
-de carence) : 1,45 %% des bruts ;\n  \
-<< csec >>               un CSE conventionnel, de 11 a 49 \
-salaries : 0,825 %% des bruts des permanents, 1,325 %% de ceux \
-des intermittents ;\n  \
-<< cse_adherent_fnas >>  un CSE d'au moins 50 salaries qui \
-adhere au FNAS : les memes taux ;\n  \
-<< cse >>                un CSE d'au moins 50 salaries qui n'y \
-adhere pas : pas de FNAS (le CSE recoit 1,25 %% pour ses \
-activites sociales, hors paie).\n  \
-Sous onze salaries la question ne se pose pas. Au-dela, elle \
-ne se devine pas : le CSE conventionnel est la regle << sauf \
-carence >>.\n  \
-C'est l'entreprise qui le sait (ses elections) : l'effectif de \
-l'Urssaf n'est pas celui du code du travail, qui decide du CSE."
-        .to_string())
 }
 
 /// LA CAISSE DES CONGES SPECTACLES (`par_caisse_conges`), quand le contrat n'est pas ce que sa nature decrit : un
@@ -1047,7 +1050,7 @@ pub fn bareme_caisse_conges(bar: Value, avant_la_nature: &Value, nat: &Nature, a
     let cle = if affilie { "affilie" } else { "non_affilie" };
     let sec = g(g(&bar, "par_caisse_conges"), cle).clone();
     if !vrai(&sec) || !vrai(g(&sec, "_verifie")) {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("Le barème {} ne sait pas payer ce contrat avec les Congés Spectacles : le signaler au développeur.", annee(&bar)), serde_json::json!({"detail": format!(
             "Contrat de nature '{}' {} la caisse des Conges Spectacles, et le bareme {} n'a pas de section \
 par_caisse_conges['{}'] marquee \"_verifie\": true. Le payer comme sa nature le decrit donnerait {}. Refus.",
             nat.cle,
@@ -1059,7 +1062,7 @@ par_caisse_conges['{}'] marquee \"_verifie\": true. Le payer comme sa nature le 
             } else {
                 "une cotisation a la caisse et des assiettes majorees que l'employeur ne doit pas"
             }
-        ));
+        )})));
     }
     let mut out = en_map(empiler(bar, &sec)?);
     let corps = g(g(&sec, "du_corps"), "rubriques_bulletin");
@@ -1087,12 +1090,12 @@ par_caisse_conges['{}'] marquee \"_verifie\": true. Le payer comme sa nature le 
         }
         let reprises: Vec<&Value> = liste(g(avant_la_nature, "cotisations_dsn")).iter().filter(|c| txt(g(c, "code81")) == code).collect();
         if reprises.is_empty() {
-            return Err(format!(
+            return Err(socle::echec::avec("Le barème de l'année est incomplet : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "par_caisse_conges['{}'] reprend la cotisation DSN {} du corps du bareme {}, qui ne la porte pas.",
                 cle,
                 code,
                 annee(&out_annee(&out))
-            ));
+            )})));
         }
         for c in reprises {
             // Dans l'ordre des blocs 78 : avant le premier bloc de type superieur.
@@ -1128,10 +1131,7 @@ pub fn libelle_convention(idcc: &str, an: i32) -> Resultat<String> {
     let socle_annee = json_en_cache(&chemin)?;
     match g(g(g(&socle_annee, "par_convention"), idcc), "libelle").as_str().filter(|l| !l.trim().is_empty()) {
         Some(l) => Ok(l.to_string()),
-        None => Err(format!(
-            "La convention collective « {} » n'est pas au catalogue du barème {} (`par_convention`) : son libellé ne se lit pas.",
-            idcc, an
-        )),
+        None => Err(socle::echec::a_la_cle(&format!("La convention collective « {} » n'est pas au catalogue du barème {} : le signaler au développeur.", idcc, an), "par_convention", "")),
     }
 }
 
@@ -1194,25 +1194,26 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
 /// sante, la retraite en tranche 1, la categorie, l'article 45, la
 /// prevoyance, le regime local, le versement mobilite -- dans cet ordre.
 ///
-/// Sans contrat, la caisse de conges est celle que decrit la nature (`caisse_conges::par_defaut` : le CDDU y est
-/// declare, le permanent non) ; `bareme_applique_au_contrat` la recoit du contrat lui-meme.
-pub fn bareme_applique(bar: Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>) -> Resultat<Value> {
-    bareme_applique_au_contrat(bar, sal, nat, fin_periode, crate::caisse_conges::par_defaut(nat), false)
-}
-
-/// La pile pour un contrat dont on sait s'il est declare a la caisse des Conges Spectacles
-/// (`caisse_conges::affilie`) : la caisse est un etage, pose juste apres la nature (`bareme_caisse_conges`).
-pub fn bareme_applique_au_contrat(
-    mut bar: Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
+/// Le contrat dit s'il est declare a la caisse des Conges Spectacles (`caisse_conges::affilie`) : la caisse est un
+/// etage, pose juste apres la nature (`bareme_caisse_conges`).
+pub fn bareme_applique(
+    partage: &Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
 ) -> Resultat<Value> {
-    let etabs = g(&bar, "_etablissements").clone();
-    if vrai(&etabs) {
-        let nic = etablissement_du_salarie(&etabs, sal)?;
-        bar = surcharger(bar, &etabs, &nic)?;
-    }
+    let etabs = g(partage, "_etablissements");
+    let mut bar = if vrai(etabs) {
+        let nic = etablissement_du_salarie(etabs, sal)?;
+        surcharger(partage.clone(), etabs, &nic)?
+    } else {
+        partage.clone()
+    };
     bar = bareme_du_statut(bar, txt(g(sal, "statut")).as_str())?;
     bar = bareme_atmp(bar)?;
-    let avant_la_nature = if caisse_conges == crate::caisse_conges::par_defaut(nat) { Value::Null } else { bar.clone() };
+    // Ce que la caisse reprend du statut tel qu'avant la nature : ses rubriques et ses cotisations (`bareme_caisse_conges`).
+    let avant_la_nature = if caisse_conges == crate::caisse_conges::par_defaut(nat) {
+        Value::Null
+    } else {
+        serde_json::json!({"rubriques_bulletin": g(&bar, "rubriques_bulletin"), "cotisations_dsn": g(&bar, "cotisations_dsn")})
+    };
     bar = bareme_de_la_nature(bar, nat)?;
     bar = bareme_caisse_conges(bar, &avant_la_nature, nat, caisse_conges)?;
     bar = bareme_cpf_cdd(bar, nat, cpf_cdd)?;
@@ -1237,6 +1238,7 @@ pub fn entreprise_du<'a>(bar: &'a Value, ent: &'a Value) -> &'a Value {
 
 // ---------------------------------------------------- les etablissements
 
+/// Le NIC du siege : celui de la fiche entreprise, ou `""`.
 pub fn nic_principal(fiche: &Value) -> String {
     txt(g(fiche, "nic"))
 }
@@ -1266,8 +1268,8 @@ pub fn etablissement_du_salarie(fiche: &Value, sal: &Value) -> Resultat<String> 
         let mut connus = vec![nic_principal(fiche)];
         connus.extend(secondaires(fiche).iter().map(|e| en_texte(g(e, "nic"))));
         return Err(format!(
-            "{} : la fiche salarie le rattache a l'etablissement {}, que la \
-fiche entreprise ne porte pas (connus : {}).",
+            "{} : l'engagement le rattache a l'etablissement {}, que la \
+fiche entreprise ne porte pas a cette date (Configuration › Entreprise › Avancé, « Autres établissements » : son ouverture ; connus : {}).",
             nom_ou(sal, "Ce salarie"),
             nic,
             connus.join(", ")
@@ -1276,7 +1278,7 @@ fiche entreprise ne porte pas (connus : {}).",
     Ok(nic)
 }
 
-/// `sal.get("nom") or defaut`.
+/// Le nom du salarie, ou `defaut` s'il n'en a pas.
 fn nom_ou(sal: &Value, defaut: &str) -> String {
     let nom = g(sal, "nom");
     if vrai(nom) {
@@ -1286,6 +1288,43 @@ fn nom_ou(sal: &Value, defaut: &str) -> String {
     }
 }
 
+/// L'entreprise vue depuis l'etablissement `nic`.
+pub fn fiche_de_l_etablissement(fiche: &Value, nic: &str) -> Resultat<Value> {
+    if nic.is_empty() || nic == nic_principal(fiche) {
+        return Ok(fiche.clone());
+    }
+    let e = entree(fiche, nic).ok_or_else(|| format!("Etablissement inconnu : {}.", nic))?;
+    let mut vue = fiche.as_object().cloned().unwrap_or_default();
+    let n = en_texte(exiger(&e, "nic")?);
+    vue.insert("nic".into(), Value::String(n.clone()));
+    vue.insert("siret".into(), Value::String(txt(g(fiche, "siren")) + &n));
+    for cle in ["adresse", "code_postal", "commune", "naf", "adresse_affichage", "commune_affichage", "complement_adresse"] {
+        if vrai(g(&e, cle)) {
+            vue.insert(cle.into(), e[cle].clone());
+        }
+    }
+    vue.insert("_etablissement".into(), Value::String(n));
+    let mut siege = Map::new();
+    siege.insert("nic".into(), Value::String(nic_principal(fiche)));
+    siege.insert("siret".into(), g(fiche, "siret").clone());
+    vue.insert("_siege".into(), Value::Object(siege));
+    Ok(Value::Object(vue))
+}
+
+/// L'etablissement sous lequel un salarie se declare : la fiche entreprise vue depuis l'etablissement de rattachement
+/// que dit SA fiche (`etablissement`, sinon le principal ; un NIC que la fiche entreprise ne porte pas refuse).
+///
+/// « Dans le cadre d'un contrat de travail, il s'agit de l'etablissement de rattachement administratif du salarie »
+/// (S21.G00.11.001, cahier technique DSN 2026.1, p. 144, `atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt`). Le
+/// NIC est une donnee identifiante : un signalement porte « les memes valeurs que celles portees dans la derniere DSN
+/// mensuelle deposee » (§ 2.1.1, p. 18 ; § 2.5.1, p. 67, `chapitre-2-principes-de-constitution.txt`). La mensuelle
+/// (une DSN par etablissement, qui refuse un salarie d'un autre, `generer`) et les signalements (arret, reprise, FCTU,
+/// amorcage) le lisent donc au meme endroit, comme le bulletin (« la designation de l'etablissement dont depend le salarie »,
+/// code du travail, R. 3243-1, 1°, `atelier/reference/sources/code-du-travail/xml/R3243-1.xml`) : `etablissement_du_salarie`,
+/// puis `fiche_de_l_etablissement`.
+pub fn entreprise_du_salarie(ent: &Value, salarie: &Value) -> Resultat<Value> {
+    fiche_de_l_etablissement(ent, &etablissement_du_salarie(ent, salarie)?)
+}
 /// Le taux AT/MP et le versement mobilite de
 /// l'etablissement remplacent ceux du siege.
 pub fn surcharger(bar: Value, fiche: &Value, nic: &str) -> Resultat<Value> {
@@ -1294,10 +1333,39 @@ pub fn surcharger(bar: Value, fiche: &Value, nic: &str) -> Resultat<Value> {
         Some(e) => e,
         None => return Ok(bar),
     };
+    let an = annee(&bar);
     let mut out = en_map(bar);
-    out.insert("taux_atmp".into(), exiger(&e, "taux_atmp")?.clone());
+    // Le taux de l'etablissement, que `bareme_atmp` lit comme celui de la compagnie ; en Alsace-Moselle d'apres SON code postal.
+    exiger(&e, "taux_atmp")?;
+    let mut atmp = taux_atmp_d_un_etablissement(&e, &an);
+    let alsace = en_alsace_moselle(&txt(g(&e, "code_postal")));
+    if let Some(o) = atmp.as_object_mut() {
+        if alsace {
+            o.insert("_alsace_moselle".into(), Value::Bool(true));
+        }
+        // Le taux saisi d'une autre annee ne vaut pas pour celle-ci, et l'arrete ne le donne pas (un risque sans « TC ») :
+        // `bareme_atmp` le refuse en le disant.
+        if o.get("valeur").map_or(true, Value::is_null) && taux_atmp_applique(&Value::Object(out.clone()), &Value::Object(o.clone()), alsace).is_none() {
+            o.insert(
+                "_manque".into(),
+                Value::String(format!(
+                    "Le taux AT/MP {} de l'établissement « {} » manque : la CARSAT le notifie chaque année à cet établissement \
+(compte AT/MP sur net-entreprises), et son risque {} n'a pas de taux collectif dans l'arrêté de l'année. Il se saisit dans \
+Configuration › Entreprise › Avancé, « Autres établissements », à partir du 1er janvier {}.",
+                    an,
+                    Some(txt(g(&e, "libelle"))).filter(|l| !l.trim().is_empty()).unwrap_or_else(|| txt(g(&e, "nic"))),
+                    o.get("code_risque").map(txt).unwrap_or_default().trim(),
+                    an
+                )),
+            );
+        }
+    }
+    out.insert("taux_atmp".into(), atmp);
+    // « aucun », ou un taux de zero : la commune de l'etablissement n'en a pas, ou il y emploie moins de onze salaries
+    // (CGCT, L. 2333-64, I, l'effectif « employe dans chacune des zones »).
     let vm = g(&e, "versement_mobilite");
-    if vm == "aucun" || (vm.is_null() && !vrai(out.get("versement_mobilite").unwrap_or(&NUL))) {
+    let aucun = vm == "aucun" || g(vm, "taux").as_f64() == Some(0.0);
+    if aucun || (vm.is_null() && !vrai(out.get("versement_mobilite").unwrap_or(&NUL))) {
         out.shift_remove("versement_mobilite");
     } else if vm.is_object() {
         out.insert("versement_mobilite".into(), vm.clone());
@@ -1329,7 +1397,7 @@ pub fn versement_mobilite(bar: &Value) -> Resultat<Option<VersementMobilite>> {
     let taux = g(vm, "taux");
     let insee = txt(g(vm, "code_insee")).trim().to_string();
     if taux.is_null() || insee.chars().count() != 5 {
-        return Err(format!(
+        return Err(socle::echec::avec("Le versement mobilité est écrit sans son taux ou sans le code de la commune de l'établissement : les lire sur le bordereau Urssaf.", serde_json::json!({"detail": format!(
             "Bareme {} : le versement mobilite est ecrit sans son taux ou sans \
 le code INSEE (cinq caracteres) de la commune de l'etablissement. \
 Les deux se lisent sur la deliberation de l'autorite \
@@ -1337,7 +1405,7 @@ organisatrice ou sur le bordereau Urssaf :\n    \
 \"versement_mobilite\": {{\"taux\": 1.75, \"code_insee\": \"37261\", \
 \"autorite\": \"...\", \"source\": \"...\"}}",
             annee(bar)
-        ));
+        )})));
     }
     Ok(Some(VersementMobilite { taux: dec(taux)?, code_insee: insee, autorite: txt(g(vm, "autorite")) }))
 }
@@ -1403,11 +1471,11 @@ pub fn bareme_regime_local(bar: Value, sal: &Value) -> Resultat<Value> {
     }
     let rl = g(&bar, "regime_local_alsace_moselle");
     if !rl.is_object() || g(rl, "taux_sal").is_null() {
-        return Err(format!(
+        return Err(socle::echec::avec("Le barème de l'année ne porte pas le taux du régime local d'Alsace-Moselle : le signaler au développeur.", serde_json::json!({"detail": format!(
             "Bareme {} : le salarie travaille en Alsace-Moselle, et le bareme \
 ne porte pas le taux du regime local (`regime_local_alsace_moselle`).",
             annee(&bar)
-        ));
+        )})));
     }
     let taux = nf(flottant(g(rl, "taux_sal"))?);
     let org = org_urssaf(&bar);
@@ -1441,7 +1509,7 @@ pub fn regime_local(bar: &Value, sal: &Value) -> bool {
 
 // ------------------------------------------- la retraite en tranche 1
 
-/// `_sigle` : « Scène Ensemble » -> « SCENE ENSEMBLE ».
+/// « Scène Ensemble » -> « SCENE ENSEMBLE ».
 fn sigle(v: &str) -> String {
     let s: String = sans_accent(v).chars().filter(char::is_ascii).collect();
     s.to_uppercase().split_whitespace().collect::<Vec<_>>().join(" ")
@@ -1511,7 +1579,7 @@ pub fn repartition_t1(bar: &Value, population: &str) -> Resultat<(Fraction, Frac
         let idcc = txt(g(ent, "idcc"));
         let t = g(g(g(rep, "par_idcc"), &idcc), population);
         if !vrai(t) {
-            return Err(format!(
+            return Err(socle::echec::avec("Le barème de l'année ne porte pas la répartition de la retraite complémentaire de cette convention : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Bareme {} : la repartition de la retraite complementaire en \
 tranche 1 n'est pas relevee pour la convention {} ({}). Elle \
 se lit dans le tableau n 3 de la fiche Audiens << Taux et \
@@ -1520,7 +1588,7 @@ du socle.",
                 annee(bar),
                 if idcc.is_empty() { "(aucune)" } else { &idcc },
                 population
-            ));
+            )})));
         }
         en_texte(t)
     };
@@ -1657,7 +1725,7 @@ retraite ({} %) qu'aux adherents d'avant le {}. Renseigner \
         }
     }
     if est_cadre(sal) {
-        return Err(format!(
+        return Err(socle::echec::avec("La retraite complémentaire d'un cadre intermittent ne se lit pas pour cette adhésion : la demander à Audiens.", serde_json::json!({"detail": format!(
             "{}, cadre : l'adhesion de la compagnie a {} porte la retraite \
 complementaire des {}s intermittents a {} % en tranche 1, et la \
 source (Audiens, tableau n 2) ne dit pas si elle vaut pour un \
@@ -1668,7 +1736,7 @@ demander a Audiens, puis a ecrire dans la couche de \
             en_texte(g(couche, "libelle")),
             statut,
             en_texte(taux)
-        ));
+        )})));
     }
     let (_, part_sal) = repartition_t1(&bar, &statut)?;
     let (p, s) = parts_t1(taux, part_sal)?;
@@ -1694,13 +1762,13 @@ pub fn bareme_article_45(bar: Value, sal: &Value, nat: Option<&Nature>) -> Resul
         return Ok(bar);
     }
     if choix != "article_45" {
-        return Err(format!(
+        return Err(socle::echec::avec("La case « Prévoyance des techniciens (cinéma) » de la fiche entreprise porte une valeur inconnue : la choisir dans la liste.", serde_json::json!({"detail": format!(
             "Fiche Entreprise, « Prévoyance des techniciens (cinéma) » : '{}' \
 est inconnu. Les deux valeurs sont << interbranche >> (le defaut, \
 les taux de l'accord interbranches) et << article_45 >> (1,50 % \
 de la tranche A, si le contrat Audiens de la compagnie l'appelle).",
             choix
-        ));
+        )})));
     }
     let mut applique = Map::new();
     let p = exiger(art, "prevoyance")?;
@@ -1775,7 +1843,7 @@ pub fn bareme_cadre(bar: Value, sal: &Value, nat: Option<&Nature>) -> Resultat<V
     let nom = if mensuelle { "cadre_permanent" } else { "cadre" };
     let sec = g(g(&bar, "par_categorie"), nom);
     if !vrai(sec) || !vrai(g(sec, "_verifie")) {
-        return Err(format!(
+        return Err(socle::echec::avec("Le barème de l'année ne sait pas payer un cadre : le signaler au développeur.", serde_json::json!({"detail": format!(
             "Cadre (statut categoriel 01){} : le bareme {} n'a pas de section \
 par_categorie['{}'] verifiee. Prevoyance, retraite et Apec d'un \
 cadre ne sont pas celles d'un non-cadre{}.",
@@ -1788,7 +1856,7 @@ intermittent : ses tranches sont mensuelles"
             } else {
                 ""
             }
-        ));
+        )})));
     }
     // Un cadre d'un statut donne, quand la convention le distingue.
     let st = txt(g(sal, "statut")).trim().to_lowercase();
@@ -1881,12 +1949,12 @@ intermittent : ses tranches sont mensuelles"
     let cles: &[&str] = if mensuelle { &[] } else { &["t2_multiple", "apec_multiple"] };
     for cle in cles {
         if !vrai(g(&sec, cle)) {
-            return Err(format!(
+            return Err(socle::echec::avec("Le barème de l'année est incomplet pour un cadre : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Cadre : la section par_categorie['cadre'] du bareme {} ne dit \
 pas `{}` (Audiens, Parametres de l'annee). Il ne se devine pas.",
                 annee(&bar),
                 cle
-            ));
+            )})));
         }
         applique.insert((*cle).to_string(), sec[*cle].clone());
     }
@@ -1942,7 +2010,7 @@ mod prevoyance {
         deux_virgule(x)
     }
 
-    /// `_date` : les dix premiers caracteres, au format ISO.
+    /// Les dix premiers caracteres, au format ISO.
     fn date(v: &str) -> Option<Jour> {
         let s: Vec<char> = v.chars().take(10).collect();
         if s.len() != 10 || s[4] != '-' || s[7] != '-' {
@@ -1961,7 +2029,7 @@ mod prevoyance {
         let reg = if idcc.is_empty() { &NUL } else { g(conventions, &idcc) };
         if !reg.is_object() {
             let connues: Vec<&str> = paires(conventions).map(|(k, _)| k.as_str()).filter(|k| !k.starts_with('_')).collect();
-            return Err(format!(
+            return Err(socle::echec::avec("La prévoyance des permanents de cette convention collective n'est pas relevée : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Prevoyance des permanents : la convention collective {} n'est pas \
 relevee.\n  \
 Relevees a ce jour : {}.\n  \
@@ -1975,10 +2043,10 @@ prevoyance oubliee ne se voit pas sur un bulletin, elle se \
 decouvre le jour ou le salarie en a besoin.",
                 if idcc.is_empty() { "(non renseignee dans config/entreprise.json)" } else { &idcc },
                 if connues.is_empty() { "aucune".to_string() } else { connues.join(", ") }
-            ));
+            )})));
         }
         if g(reg, "applicable") == &Value::Bool(false) {
-            return Err(format!(
+            return Err(socle::echec::avec("La prévoyance des permanents de cette convention n'est pas encore vérifiée : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Prevoyance des permanents, convention {} ({}) : les taux sont \
 RELEVES mais pas confirmes, le moteur ne paie donc pas.\n  \
 {}\n  \
@@ -1989,7 +2057,7 @@ donnees/prevoyance-conventionnelle-base.json.",
                 reg.get("libelle").map(en_texte).unwrap_or_default(),
                 reg.get("_a_confirmer").map(en_texte).unwrap_or_default(),
                 resume(reg)?
-            ));
+            )})));
         }
         Ok(reg.clone())
     }
@@ -2173,7 +2241,7 @@ nouveau le laisserait sans couverture pendant un an.",
             return Ok(Value::Object(m));
         }
         if vrai(g(&reg, "contrat_requis")) && choix != "contrat" {
-            return Err(format!(
+            return Err(socle::echec::avec("La prévoyance des permanents de cette convention suit le contrat de la compagnie : poser ses taux dans la fiche entreprise, « Prévoyance des permanents ».", serde_json::json!({"detail": format!(
                 "Prevoyance des permanents, convention {} : {} fixe les garanties \
 et leur repartition, pas le taux -- c'est celui du contrat que \
 l'entreprise a souscrit.\n  \
@@ -2183,7 +2251,7 @@ t2_non_cadre, t2_cadre si le contrat cotise sur la tranche B), \
 lus sur le contrat ou l'appel de cotisations. Rien n'est calcule.",
                 en_texte(idcc),
                 en_texte(exiger(&reg, "texte")?)
-            ));
+            )})));
         }
         let mut pourquoi: Vec<String> = Vec::new();
         let (due, raison) = ouverture(&reg, sal, cadre, fin)?;
@@ -2365,7 +2433,7 @@ convention {}.",
             Some(j) => Ok(A::AuPlusTardLe(j)),
             None => Err(format!(
                 "{} : la prevoyance s'ouvre apres {} mois d'anciennete dans la branche, et sa fiche ne date ni son \
-entree dans la branche (`prevoyance_branche_depuis`) ni son anciennete (`date_anciennete`).",
+entree dans la branche (« Dans la branche depuis ») ni son anciennete (« Dans la compagnie depuis »).",
                 nom_du_salarie(sal, "ce salarie"),
                 seuil
             )),
@@ -2477,6 +2545,65 @@ pub fn taux_de_l_arrete(r: &RisqueAtmp, moins_de_20: Option<bool>, alsace_mosell
     }
 }
 
+/// LE TAUX AT/MP QUE LA PAIE APPLIQUE, celui de la compagnie ou celui d'un de ses etablissements (`taux_atmp` :
+/// `valeur`, `code_risque`), pour l'annee du bareme `bar` : la valeur dite, sinon, pour un risque « TC » de l'annexe 1 de
+/// l'arrete de l'annee (`risques_atmp` du socle), le taux collectif qu'il fixe, quel que soit l'effectif (D. 242-6-14, I ;
+/// art. 5 de l'arrete, `atelier/reference/sources/tarification-atmp/`). Le taux est determine par etablissement, le
+/// classement suivant l'activite qui y est exercee (D. 242-6-1, `code-de-la-securite-sociale/xml/D242-6-1.xml` ; arrete du
+/// 17/10/1995, art. 1, I, 1°). Rien : le taux est celui que la CARSAT notifie (un risque sans TC, 999ZZ, l'Alsace-Moselle,
+/// `taux_de_l_arrete`).
+pub fn taux_atmp_applique(bar: &Value, taux_atmp: &Value, alsace_moselle: bool) -> Option<Decimal> {
+    let v = g(taux_atmp, "valeur");
+    if !v.is_null() {
+        return dec(v).ok();
+    }
+    if !g(taux_atmp, "_manque").is_null() {
+        return None;
+    }
+    let code = txt(g(taux_atmp, "code_risque"));
+    let r = risques_atmp(bar).into_iter().find(|r| r.code == code.trim())?;
+    // Un etablissement nouvellement cree a le taux collectif, quel que soit l'effectif (`taux_atmp_d_un_etablissement`).
+    let collectif = if vrai(g(taux_atmp, "_etablissement_neuf")) { Some(true) } else { None };
+    taux_de_l_arrete(&r, collectif, alsace_moselle)
+}
+
+/// La derniere annee de cotisations a laquelle s'applique D. 242-6-17 dans sa version LEGIARTI000022446511 : la version
+/// issue du decret n° 2026-951 s'applique aux cotisations dues a compter de 2027 (sa note,
+/// `code-de-la-securite-sociale/xml/D242-6-17.xml`).
+const DERNIERE_ANNEE_D242_6_17_DE_2012: i32 = 2026;
+
+/// LE CODE ET LE TAUX D'UN AUTRE ETABLISSEMENT (`e`, une ligne de `etablissements`) POUR L'ANNEE `an`.
+///
+/// Le taux saisi porte l'annee pour laquelle la CARSAT l'a notifie (`annee`) et ne vaut que pour elle, comme celui de la
+/// compagnie se dit dans la surcouche de chaque annee : le taux est determine par etablissement (D. 242-6-1) et « le taux
+/// net notifie » l'est d'une annee sur l'autre (D. 242-6-15, `code-de-la-securite-sociale/xml-anterieur/D242-6-15.xml`, la
+/// version applicable en 2026). Une autre annee garde le code, sans taux.
+///
+/// Sans taux saisi, « les taux nets collectifs sont applicables aux etablissements nouvellement crees durant l'annee de
+/// leur creation et les deux annees civiles suivantes, quel que soit leur effectif ou celui de l'entreprise dont ils
+/// relevent » (D. 242-6-17, version applicable aux cotisations jusqu'a 2026,
+/// `code-de-la-securite-sociale/xml-anterieur/D242-6-17.xml`) : l'annee de son ouverture et les deux suivantes, le taux
+/// de l'arrete de l'annee pour son risque, TC ou non (`_etablissement_neuf`, lu par `taux_atmp_applique`). Ce que cet
+/// article excepte (un etablissement issu d'un precedent, le taux unique d'une entreprise qui l'a choisi) se dit par le taux
+/// notifie, qui se saisit. A compter de 2027, la version du decret n° 2026-951 ne se lit pas ici : un risque sans TC
+/// demande son taux.
+pub fn taux_atmp_d_un_etablissement(e: &Value, an: &str) -> Value {
+    let mut t = g(e, "taux_atmp").clone();
+    let annee: Option<i32> = an.trim().parse().ok();
+    let ouvert: Option<i32> = Some(txt(g(e, "ouverture"))).filter(|o| o.len() >= 4).and_then(|o| o[..4].parse().ok());
+    if let Some(o) = t.as_object_mut() {
+        let dite = o.get("annee").filter(|a| vrai(a)).map(en_texte);
+        if dite.is_some_and(|a| a.trim() != an.trim()) {
+            o.shift_remove("valeur");
+        }
+        let neuf = matches!((annee, ouvert), (Some(a), Some(y)) if a <= DERNIERE_ANNEE_D242_6_17_DE_2012 && y <= a && a <= y + 2);
+        if neuf && o.get("valeur").map_or(true, Value::is_null) {
+            o.insert("_etablissement_neuf".into(), Value::Bool(true));
+        }
+    }
+    t
+}
+
 /// L'etablissement est-il dans le Haut-Rhin, le Bas-Rhin ou la Moselle (art. 4 de l'arrete) ? Lu dans les deux premiers
 /// chiffres de son code postal (68, 67, 57) : une inference, le code postal suivant le numero du departement dans ces trois
 /// departements.
@@ -2507,6 +2634,52 @@ mod tests_risques_atmp {
         assert_eq!(taux_de_l_arrete(&gestion, None, false), None);
         let sans = risques_atmp(&socle).into_iter().find(|r| r.code == SANS_NOTIFICATION).unwrap();
         assert_eq!(taux_de_l_arrete(&sans, Some(true), false), None);
+    }
+
+    /// Le taux est determine par etablissement (D. 242-6-1, `code-de-la-securite-sociale/xml/D242-6-1.xml`) : un autre
+    /// etablissement classe en 92.3AD, « TC », a le taux collectif de l'arrete de l'annee sans le saisir (1,50 % en 2026,
+    /// D. 242-6-14), lu par `bareme_atmp` comme celui de la compagnie et ecrit pour la DSN ; un taux notifie saisi vaut ;
+    /// en Alsace-Moselle, le taux se saisit (art. 4 de l'arrete).
+    #[test]
+    fn le_taux_d_un_etablissement_en_risque_tc_est_celui_de_l_arrete() {
+        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
+        let mut bar = socle.clone();
+        bar["nic"] = serde_json::json!("00017");
+        let fiche = serde_json::json!({"nic": "00017", "etablissements": [
+            {"nic": "00025", "code_postal": "44000", "taux_atmp": {"code_risque": "923AD"}},
+            {"nic": "00033", "code_postal": "67000", "taux_atmp": {"code_risque": "923AD"}},
+            {"nic": "00041", "code_postal": "44000", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4}}]});
+        let taux = |nic: &str| {
+            let b = taux_atmp_resolu(surcharger(bar.clone(), &fiche, nic).unwrap()).0;
+            b["taux_atmp"]["valeur"].as_f64()
+        };
+        assert_eq!(taux("00025"), Some(1.5));
+        assert_eq!(taux("00033"), None);
+        assert_eq!(taux("00041"), Some(2.4));
+    }
+
+    /// « Les taux nets collectifs sont applicables aux etablissements nouvellement crees durant l'annee de leur creation et
+    /// les deux annees civiles suivantes, quel que soit leur effectif » (D. 242-6-17, version applicable aux cotisations de
+    /// 2026, `code-de-la-securite-sociale/xml-anterieur/D242-6-17.xml`) : un etablissement ouvert en 2024 ou apres, classe
+    /// en 92.1CC (sans TC), a en 2026 le taux collectif de l'arrete (1,07 %, `legifrance-arrete-tarification-atmp-2026-
+    /// complet-20261029.txt`, annexe 1) ; ouvert en 2023, il demande son taux notifie. Le taux saisi pour une annee
+    /// (D. 242-6-15) ne vaut pas pour la suivante.
+    #[test]
+    fn un_etablissement_neuf_a_le_taux_collectif_trois_annees() {
+        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
+        let mut bar = socle.clone();
+        bar["nic"] = serde_json::json!("00017");
+        let fiche = serde_json::json!({"nic": "00017", "etablissements": [
+            {"nic": "00025", "code_postal": "44000", "ouverture": "2024-06-01", "taux_atmp": {"code_risque": "921CC"}},
+            {"nic": "00033", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC"}},
+            {"nic": "00041", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4, "annee": 2025}}]});
+        let taux = |nic: &str| {
+            let b = taux_atmp_resolu(surcharger(bar.clone(), &fiche, nic).unwrap()).0;
+            b["taux_atmp"]["valeur"].as_f64()
+        };
+        assert_eq!(taux("00025"), Some(1.07));
+        assert_eq!(taux("00033"), None);
+        assert_eq!(taux("00041"), None);
     }
 
     /// L'annee que la compagnie n'a pas dite : 92.3AD, « TC », prend le taux de l'arrete de l'annee (1,65 % en 2025, annexe 1

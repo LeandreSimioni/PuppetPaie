@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000054856818</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/54/85/68/LEGIARTI000054856818.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R323-1</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2026-09-19</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1961-01-12" fin="2999-01-01" id="LEGISCTA000006106085">Partie réglementaire - Décrets en Conseil d'Etat</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126956">Livre III : Dispositions relatives aux assurances sociales et à diverses catégories de personnes rattachées au régime général</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141864">Titre II : Assurance maladie</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156609">Chapitre 3 : Prestations en espèces.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="2012-01-01" id="LEGIARTI000006749265" num="R323-1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-01" etat="MODIFIE" fin="2016-01-01" id="LEGIARTI000025035470" num="R323-1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2016-01-01" etat="MODIFIE" fin="2026-09-19" id="LEGIARTI000031827857" num="R323-1" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2026-09-19" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000054856818" num="R323-1" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément à l'article 3 du décret n° 2026-866 du 16 septembre 2026, ces dispositions, dans leur rédaction issue du décret précité, s'appliquent aux arrêts de travail prescrits à compter du 15 octobre 2026 ainsi qu'aux arrêts de travail en cours au 15 octobre 2026 pour une incapacité de travail atteignant six mois à compter de cette date. Ces disppositions, dans leur rédaction antérieure à l'entrée en vigueur dudit décret, continuent de s'appliquer jusqu'au terme de la durée maximale de trois ans de la période pendant laquelle l'indemnité journalière peut être servie aux assurés sociaux qui, à la date du 15 octobre 2026, se sont vu reconnaître le bénéfice de la procédure prévue à l'article L. 324-1 du code de la sécurité sociale et dont la participation n'est pas limitée ou supprimée au titre de l'article L. 160-14 du même code.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Pour l'application de l'article L. 323-1 :</p>
+<p>1°) le point de départ de l'indemnité journalière définie par de l'article L. 321-1 est le quatrième jour de l'incapacité de travail. Ce délai ne s'applique, pour la période pendant laquelle l'indemnité journalière peut être servie, qu'au premier des arrêts de travail dus à une même affection donnant lieu à application de la procédure prévue à l'article L. 324-1 ;</p>
+<p> 2° Pour les affections donnant lieu à l'application de la procédure prévue à l'article L. 324-1 :</p>
+<p> a) Lorsque la participation de l'assuré est limitée ou supprimée en application des 3° et 4° de l'article L. 160-14, la durée maximale de la période pendant laquelle l'indemnité journalière peut être servie, mentionnée au premier alinéa de l'article L. 323-1, est fixée à trois ans, et la durée de reprise du travail au-delà de laquelle le délai de trois ans court à nouveau, mentionnée au 1° du même article, est fixée à un an ;</p>
+<p> b) Lorsque la participation de l'assuré n'est pas limitée ou supprimée en application des 3° et 4° de l'article L. 160-14, la durée maximale de la période pendant laquelle l'indemnité journalière peut être servie, mentionnée au premier alinéa de l'article L. 323-1, est fixée à un an, et la durée de reprise du travail au-delà de laquelle le délai d'un an court à nouveau, mentionnée au 1° du même article, est fixée à un an. </p>
+<p>3°) le nombre maximal d'indemnités journalières mentionné au 2° de l'article L. 323-1, que peut recevoir l'assuré pour une période quelconque de trois ans, est fixé à 360.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000682675" datesignatexte="1945-12-29" id="LEGIARTI000006760562" naturetexte="DECRET" nortexte="" num="28" numtexte="45-0179" sens="source" typelien="CONCORDANCE">Décret n°45-0179 du 29 décembre 1945 - art. 28 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000682675" datesignatexte="1945-12-29" id="LEGIARTI000006760562" naturetexte="DECRET" nortexte="" num="28" numtexte="45-0179" sens="cible" typelien="CONCORDE">Décret n°45-0179 du 29 décembre 1945 - art. 28 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000000167406" datesignatexte="1990-10-02" id="LEGIARTI000006787297" naturetexte="ARRETE" nortexte="AGRS9002091A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 2 octobre 1990 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000717193" datesignatexte="1990-12-20" id="LEGIARTI000054856830" naturetexte="DECRET" nortexte="SPSS9001980D" num="72" numtexte="90-1215" sens="cible" typelien="CITATION">Décret n°90-1215 du 20 décembre 1990 - art. 72 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000024611919" datesignatexte="2011-09-13" id="LEGIARTI000045013484" naturetexte="ARRETE" nortexte="ETSS1119911A" num="12" numtexte="" sens="cible" typelien="CITATION">Arrêté du 13 septembre 2011 - art. 12 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000054855169" datesignatexte="2026-09-16" id="LEGIARTI000054855992" naturetexte="DECRET" nortexte="SFHS2617976D" num="1" numtexte="2026-866" sens="cible" typelien="MODIFIE">Décret n°2026-866 du 16 septembre 2026 - art. 1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGITEXT000006073189" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code de la sécurité sociale L289</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054856702" naturetexte="CODE" nortexte="" num="D382-25-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D382-25-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054856693" naturetexte="CODE" nortexte="" num="D382-25-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D382-25-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054856685" naturetexte="CODE" nortexte="" num="D622-10" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D622-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000043688323" naturetexte="CODE" nortexte="" num="D622-11" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D622-11 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054856669" naturetexte="CODE" nortexte="" num="D712-26" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D712-26 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742902" naturetexte="CODE" nortexte="" num="L321-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L321-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742512" naturetexte="CODE" nortexte="" num="L323-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L323-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742522" naturetexte="CODE" nortexte="" num="L324-1" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L324-1</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000031827918" naturetexte="CODE" nortexte="" num="R313-8" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R313-8 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000038956374" naturetexte="CODE" nortexte="" num="R323-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R323-3 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000031827804" naturetexte="CODE" nortexte="" num="R331-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R331-2 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054167779" naturetexte="CODE" nortexte="" num="R331-5" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R331-5 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000025035435" naturetexte="CODE" nortexte="" num="R382-33" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R382-33 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000053335775" naturetexte="CODE" nortexte="" num="R753-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R753-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006752602" naturetexte="CODE" nortexte="" num="R753-7-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R753-7-1 (Ab)</LIEN>
+
+
+</LIENS>
+</ARTICLE>

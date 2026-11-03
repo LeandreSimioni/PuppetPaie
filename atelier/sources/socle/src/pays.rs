@@ -65,7 +65,7 @@ fn garde<T>(cache: &'static OnceLock<Garde<T>>, nom: &str, construire: impl Fn(&
 pub fn liste() -> Resultat<Arc<Vec<Pays>>> {
     static CACHE: OnceLock<Garde<Pays>> = OnceLock::new();
     garde(&CACHE, "pays-base.json", |base| {
-        let lignes = base.get("pays").and_then(Value::as_array).ok_or("pays-base.json : la liste « pays » manque")?;
+        let lignes = base.get("pays").and_then(Value::as_array).ok_or_else(|| crate::echec::livree("pays-base.json", "pays"))?;
         let texte = |l: &Value, k: &str| l.get(k).and_then(Value::as_str).unwrap_or("").to_string();
         Ok(lignes
             .iter()
@@ -140,7 +140,7 @@ pub struct PaysDsn {
 pub fn table_dsn() -> Resultat<Arc<Vec<PaysDsn>>> {
     static CACHE: OnceLock<Garde<PaysDsn>> = OnceLock::new();
     garde(&CACHE, "pays-dsn-base.json", |base| {
-        let lignes = base.get("pays").and_then(Value::as_array).ok_or("pays-dsn-base.json : la liste « pays » manque")?;
+        let lignes = base.get("pays").and_then(Value::as_array).ok_or_else(|| crate::echec::livree("pays-dsn-base.json", "pays"))?;
         Ok(lignes
             .iter()
             .map(|l| PaysDsn {

@@ -19,7 +19,6 @@ use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
 use droit::contexte::Contexte;
-use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -28,7 +27,7 @@ use socle::echec::Echec;
 use crate::routes::dossier_salarie::{entree_ecrite, entree_fichier, zip, Entree};
 use documents::ecritures_comptables::{csv_compta, ecritures_du_mois, Ecriture};
 use documents::plan_comptable::plan_comptable;
-use crate::routes::rappels::{mois_de_l_annee, nic_principal};
+use crate::routes::rappels::mois_de_l_annee;
 
 type R<T> = Result<T, Echec>;
 
@@ -37,7 +36,7 @@ fn refus(m: impl Into<String>) -> Echec {
 }
 
 fn en_os(e: &std::io::Error, p: &Path) -> Echec {
-    erreur("OSError", format!("{} : {}", p.display(), e))
+    erreur("OSError", socle::echec::du_disque(p, e))
 }
 
 /// Une erreur d'operation, que l'appelant rattrape : celles que le moteur nomme, et
@@ -46,13 +45,13 @@ fn est_une_erreur_d_operation(e: &Echec) -> bool {
     matches!(e.classe, None | Some("ErreurOperation") | Some("SaisieIncomplete"))
 }
 
-/// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
+/// L'heure de Paris, a la seconde.
 fn maintenant() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_secondes(t)
 }
 
-/// `str(annee)` d'une valeur de la charge.
+/// L'année d'une valeur de la charge, en texte.
 fn texte_de(v: &Value) -> String {
     valeur_en_texte(v)
 }
@@ -61,7 +60,7 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
     charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
-/// `int(x)` d'une valeur JSON.
+/// L'entier d'une valeur JSON ; refus sinon.
 fn entier(v: &Value) -> R<i64> {
     match v {
         Value::Number(n) => Ok(n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64)),
@@ -78,25 +77,9 @@ fn entier(v: &Value) -> R<i64> {
 
 // ------------------------------------------------------------------ le journal des depots
 
-/// Le journal des depots, relu une fois, quand il faut dire si la DSN d'un mois est partie.
-struct Depots<'a> {
-    ctx: &'a Contexte,
-    lignes: Option<Vec<Value>>,
-}
-
-impl<'a> Depots<'a> {
-    fn nouveau(ctx: &'a Contexte) -> Self {
-        Depots { ctx, lignes: None }
-    }
-
-    /// Une DSN reelle acceptee est-elle partie pour ce mois ?
-    fn dsn_acceptee(&mut self, mois: &str) -> R<bool> {
-        if self.lignes.is_none() {
-            self.lignes = Some(etats::charger(&self.ctx.racine)?);
-        }
-        let l = self.lignes.as_ref().unwrap();
-        Ok(vrai(&etats::etat_dsn_du_mois(l, mois, &Value::Null, &nic_principal(self.ctx))?))
-    }
+/// Une DSN est-elle partie pour ce mois, et pas refusee au bilan ? (`compagnie::etat_dsn`)
+fn dsn_acceptee(ctx: &Contexte, mois: &str) -> R<bool> {
+    Ok(crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.partie())
 }
 
 // ------------------------------------------------------------------ l'export compta
@@ -116,12 +99,13 @@ pub(crate) struct ExportCompta {
 }
 
 impl ExportCompta {
-    /// Un chemin ne rend que son nom.
+    /// Un chemin ne rend que son nom ; `dossier`, celui ou il est ecrit.
     pub(crate) fn json(&self) -> Value {
         json!({
             "annee": self.annee, "du": self.du, "au": self.au, "mois": self.mois,
             "ecritures": self.ecritures.iter().map(Ecriture::json).collect::<Vec<_>>(),
             "total_debit": self.total_debit.to_string(), "total_credit": self.total_credit.to_string(),
+            "dossier": self.fichier.as_ref().and_then(|f| f.parent()).map(|d| d.to_string_lossy().into_owned()),
             "fichier": self.fichier.as_ref().map(|f| f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()),
             "plan": self.plan, "avertissements": self.avertissements,
         })
@@ -136,8 +120,9 @@ fn dossier_exercices(ctx: &Contexte) -> PathBuf {
 /// Les mois pris sont ceux qui ont une saisie.
 fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) -> R<ExportCompta> {
     let plan = plan_comptable(ctx)?;
-    let propre = ctx.racine.join("config").join("plan-comptable.json");
-    let origine = if propre.exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    let propre = ctx.racine.join(documents::plan_comptable::PLAN_COMPTABLE);
+    let origine = if propre.exists() { documents::plan_comptable::PLAN_COMPTABLE } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
     let mois: Vec<String> = mois_de_l_annee(ctx, annee)
         .into_iter()
         .filter(|m| {
@@ -152,16 +137,15 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
             if (du, au) == (1, 12) { String::new() } else { format!(" entre les mois {} et {}", du, au) }
         )));
     }
-    let mut depots = Depots::nouveau(ctx);
     let mut avert: Vec<String> = Vec::new();
     let mut ecritures: Vec<Ecriture> = Vec::new();
     for m in &mois {
         if !ctx.racine.join("sorties").join(m).is_dir() {
             avert.push(format!("{} : saisi mais jamais écrit (pas de bulletin) -- pris quand même, depuis la saisie.", m));
-        } else if !depots.dsn_acceptee(m)? {
+        } else if !dsn_acceptee(ctx, m)? {
             avert.push(format!("{} : pas de DSN réelle acceptée au journal.", m));
         }
-        ecritures.extend(ecritures_du_mois(ctx, m, &plan)?);
+        ecritures.extend(ecritures_du_mois(ctx, m, &plan, &departs)?);
     }
     if !propre.exists() {
         avert.push("Plan comptable : celui livré avec le logiciel, à faire valider par le comptable (config/plan-comptable.json pour le remplacer).".to_string());
@@ -178,7 +162,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         std::fs::write(&f, csv_compta(&ecritures)).map_err(|e| en_os(&e, &f))?;
         // L'export de l'annee entiere note les saisies qu'il a lues (`export_compta_a_jour`).
         let lues = ((du, au) == (1, 12)).then(|| empreintes_des_saisies(&ctx.racine, &annee.to_string()));
-        crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&f), lues)?;
+        crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&f), lues, None)?;
         fichier = Some(f);
     }
     Ok(ExportCompta { annee: annee.to_string(), du, au, mois, ecritures, total_debit, total_credit, fichier, plan: origine.to_string(), avertissements: avert })
@@ -236,9 +220,12 @@ pub(crate) fn export_compta_charge(ctx: &Contexte, charge: &Value) -> R<ExportCo
 
 // ------------------------------------------------------------------ la cloture
 
+/// Les exercices clos de la compagnie, sous sa racine.
+pub const EXERCICES: &str = "config/exercices.json";
+
 /// `config/exercices.json`, sans les cles qui commencent par `_`.
 fn lire_exercices(ctx: &Contexte) -> R<Map<String, Value>> {
-    match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    match crate::routes::lire_json_ou_vide(&ctx.racine.join(EXERCICES))? {
         Value::Object(o) => Ok(o),
         autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre)))),
     }
@@ -251,11 +238,11 @@ fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
 }
 
 fn ecrire_exercices(ctx: &Contexte, tous: &Map<String, Value>) -> R<()> {
-    let chemin = ctx.racine.join("config").join("exercices.json");
+    let chemin = ctx.racine.join(EXERCICES);
     socle::ecriture::ecrire_json(&chemin, &Value::Object(tous.clone()), 1).map_err(|m| erreur("OSError", m))
 }
 
-/// Les fichiers sous `d`, dans l'ordre de `sorted(d.rglob("*"))` (les chemins se comparent composant par composant).
+/// Les fichiers sous `d`, triés par chemin (les chemins se comparent composant par composant).
 fn fichiers_sous(d: &Path, out: &mut Vec<PathBuf>) {
     let Ok(rd) = std::fs::read_dir(d) else { return };
     for e in rd.flatten() {
@@ -284,10 +271,9 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
         return Err(refus(format!("L'exercice {} n'est pas fini : on clôture une année passée.", annee)));
     }
     let mois = mois_de_l_annee(ctx, annee);
-    let mut depots = Depots::nouveau(ctx);
     let mut sans_dsn: Vec<String> = Vec::new();
     for m in &mois {
-        if engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false) && !depots.dsn_acceptee(m)? {
+        if engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false) && !dsn_acceptee(ctx, m)? {
             sans_dsn.push(m.clone());
         }
     }
@@ -324,6 +310,13 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
             entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::stock::DOSSIER, f))?);
         }
     }
+    // Les paies de chaque mois de l'annee.
+    for m in &mois {
+        let s = engagement::paies::chemin(&ctx.racine, m);
+        if s.exists() {
+            entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::paies::DOSSIER, m))?);
+        }
+    }
     for m in &mois {
         let d = ctx.racine.join("sorties").join(m);
         if d.is_dir() {
@@ -340,7 +333,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     // janvier suivant qui repondent a la DSN de decembre sont pris aussi : ils portent sur l'annee close.
     let suivante = format!("{}01", an + 1);
     for sous in ["", "dpae"] {
-        let d = if sous.is_empty() { ctx.racine.join("retours") } else { ctx.racine.join("retours").join(sous) };
+        let d = if sous.is_empty() { ctx.racine.join(envois::retours::RETOURS) } else { ctx.racine.join(envois::retours::RETOURS).join(sous) };
         if d.is_dir() {
             let mut noms: Vec<PathBuf> = std::fs::read_dir(&d).map_err(|e| en_os(&e, &d))?.flatten().map(|e| e.path()).collect();
             noms.sort();
@@ -353,12 +346,12 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
             }
         }
     }
-    let j = ctx.racine.join("journal").join("depots.json");
+    let j = envois::journal::chemin(&ctx.racine);
     if j.exists() {
-        entrees.push(entree_fichier(&j, "journal/depots.json".to_string())?);
+        entrees.push(entree_fichier(&j, envois::journal::DEPOTS.to_string())?);
     }
-    let cfg = ctx.racine.join("config");
-    for nom in ["entreprise.json", "salaries.json", "spectacles.json", "organismes.json", "rubriques.json", "compteurs.json", "pas.json"] {
+    let cfg = ctx.racine.join(socle::fichiers::CONFIG);
+    for nom in ["entreprise.json", "salaries.json", "spectacles.json", "organismes.json", "rubriques.json", "compteurs.json"] {
         if cfg.join(nom).exists() {
             entrees.push(entree_fichier(&cfg.join(nom), format!("config/{}", nom))?);
         }
@@ -388,7 +381,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 
     let empreinte: String = Sha256::digest(&octets).iter().map(|b| format!("{:02x}", b)).collect();
     let le = maintenant();
-    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join(EXERCICES))? {
         Value::Object(o) => o,
         autre => return Err(erreur("TypeError", socle::fichiers::non_modifiable(socle::valeur::nom_type(&autre)))),
     };
@@ -411,9 +404,9 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 /// Retire la cloture. L'archive reste sur le disque : elle dit ce
 /// qu'etait l'annee au moment ou on l'a fermee.
 fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
-    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join(EXERCICES))? {
         Value::Object(o) => o,
-        autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
+        autre => return Err(erreur("TypeError", socle::echec::avec("Le fichier des exercices de la compagnie est abîmé.", serde_json::json!({"fichier": EXERCICES, "detail": socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))})))),
     };
     let Some(clos) = tous.shift_remove(annee) else {
         return Err(refus(format!("L'exercice {} n'est pas clos.", annee)));

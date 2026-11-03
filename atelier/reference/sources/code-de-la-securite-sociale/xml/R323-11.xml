@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000043356691</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/43/35/66/LEGIARTI000043356691.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R323-11</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2021-04-14</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1961-01-12" fin="2999-01-01" id="LEGISCTA000006106085">Partie réglementaire - Décrets en Conseil d'Etat</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126956">Livre III : Dispositions relatives aux assurances sociales et à diverses catégories de personnes rattachées au régime général</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141864">Titre II : Assurance maladie</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156609">Chapitre 3 : Prestations en espèces.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="2013-07-01" id="LEGIARTI000006749278" num="R323-11" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2013-07-01" etat="MODIFIE" fin="2021-04-14" id="LEGIARTI000027261195" num="R323-11" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2021-04-14" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000043356691" num="R323-11" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>La caisse primaire de l'assurance maladie n'est pas fondée à suspendre le service de l'indemnité journalière lorsque l'employeur maintient à l'assuré, en cas de maladie, tout ou partie de son salaire ou des avantages en nature, soit en vertu d'un contrat individuel ou collectif de travail, soit en vertu des usages, soit de sa propre initiative.</p>
+<p>Toutefois, lorsque le salaire est maintenu en totalité, l'employeur est subrogé de plein droit à l'assuré, quelles que soient les clauses du contrat, dans les droits de celui-ci aux indemnités journalières qui lui sont dues.</p>
+<p>Lorsque, en vertu d'un contrat individuel ou collectif de travail, le salaire est maintenu en totalité ou en partie sous déduction des indemnités journalières, l'employeur qui paie tout ou partie du salaire pendant la période de maladie sans opérer cette déduction est subrogé de plein droit à l'assuré dans ses droits aux indemnités journalières pour la période considérée, à condition que le salaire maintenu au cours de cette période soit au moins égal au montant des indemnités dues pour la même période.</p>
+<p>Dans les autres cas, l'employeur est seulement fondé à poursuivre auprès de l'assuré le recouvrement de la somme correspondant aux indemnités journalières, dans la limite du salaire maintenu pendant la même période.</p>
+<p>L'employeur et l'assuré qui se sont mis d'accord pour le maintien d'avantages en nature en cas de maladie, peuvent en informer la caisse et demander le versement par elle à l'employeur de la partie de l'indemnité journalière correspondant à la valeur des avantages maintenus.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000682675" datesignatexte="1945-12-29" id="JORFTEXT000000682675" naturetexte="DECRET" nortexte="" num="" numtexte="45-0179" sens="source" typelien="CONCORDANCE">Décret 45-0179 1945-12-29 art. 35 al. 1, al. 2, al. 3, al. 4</LIEN>
+<LIEN cidtexte="JORFTEXT000000689714" datesignatexte="1984-02-24" id="LEGIARTI000006703975" naturetexte="DECRET" nortexte="" num="26-7" numtexte="84-135" sens="cible" typelien="CITATION">Décret n°84-135 du 24 février 1984 - art. 26-7 (M)</LIEN>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret n° 85-1353 du 17 décembre 1985</LIEN>
+<LIEN cidtexte="JORFTEXT000000313129" datesignatexte="1987-09-28" id="LEGIARTI000006701598" naturetexte="DECRET" nortexte="ASEH8701019D" num="19" numtexte="87-788" sens="cible" typelien="CITATION">Décret n°87-788 du 28 septembre 1987 - art. 19 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000000719710" datesignatexte="1995-05-09" id="LEGIARTI000051969201" naturetexte="DECRET" nortexte="DEFP9501578D" num="1" numtexte="95-727" sens="cible" typelien="CITATION">Décret n°95-727 du 9 mai 1995 - art. 1 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000386385" datesignatexte="1997-12-11" id="LEGIARTI000051969219" naturetexte="DECRET" nortexte="ECOB9760046D" num="1" numtexte="97-1141" sens="cible" typelien="CITATION">Décret n°97-1141 du 11 décembre 1997 - art. 1 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000397318" datesignatexte="1999-11-10" id="LEGIARTI000006724093" naturetexte="DECRET" nortexte="MESH9923007D" num="22" numtexte="99-930" sens="cible" typelien="CITATION">Décret n°99-930 du 10 novembre 1999 - art. 22 (Ab)</LIEN>
+<LIEN cidtexte="JORFTEXT000034024455" datesignatexte="2017-02-09" id="LEGIARTI000034027582" naturetexte="DECRET" nortexte="AFSH1630676D" num="24" numtexte="2017-161" sens="cible" typelien="CITATION">Décret n°2017-161 du 9 février 2017 - art. 24</LIEN>
+<LIEN cidtexte="JORFTEXT000043353163" datesignatexte="2021-04-12" id="LEGIARTI000043354385" naturetexte="DECRET" nortexte="SSAS2101222D" num="1" numtexte="2021-428" sens="cible" typelien="MODIFIE">Décret n°2021-428 du 12 avril 2021 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000044488474" datesignatexte="2021-12-13" id="LEGIARTI000044491484" naturetexte="DECRET" nortexte="ESRH2117817D" num="94" numtexte="2021-1645" sens="cible" typelien="CITATION">Décret n°2021-1645 du 13 décembre 2021 - art. 94 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000046865681" datesignatexte="2023-01-02" id="LEGIARTI000046891924" naturetexte="DECRET" nortexte="SPRS2233369D" num="2" numtexte="2023-1" sens="cible" typelien="CITATION">Décret n°2023-1 du 2 janvier 2023 - art. 2</LIEN>
+<LIEN cidtexte="LEGITEXT000006072665" datesignatexte="2999-01-01" id="LEGIARTI000006918694" naturetexte="CODE" nortexte="" num="R6152-525" numtexte="" sens="cible" typelien="CITATION">Code de la santé publique - art. R6152-525 (VT)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072665" datesignatexte="2999-01-01" id="LEGIARTI000034028967" naturetexte="CODE" nortexte="" num="R6152-822" numtexte="" sens="cible" typelien="CITATION">Code de la santé publique - art. R6152-822 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072665" datesignatexte="2999-01-01" id="LEGIARTI000037156106" naturetexte="CODE" nortexte="" num="R6153-22" numtexte="" sens="cible" typelien="CITATION">Code de la santé publique - art. R6153-22 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006742515" naturetexte="CODE" nortexte="" num="L323-4" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L323-4</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000025035446" naturetexte="CODE" nortexte="" num="R331-5" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R331-5 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006753151" naturetexte="CODE" nortexte="" num="R753-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R753-2 (V)</LIEN>
+
+</LIENS>
+</ARTICLE>

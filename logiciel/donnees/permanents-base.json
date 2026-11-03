@@ -329,6 +329,38 @@
     }
   },
 
+  "heures_en_plus": {
+    "_quoi": "Les heures supplementaires d'un salarie a temps plein paye au mois, et les heures complementaires d'un salarie a temps partiel : leur majoration a defaut d'accord, la reduction de cotisations salariales, la deduction forfaitaire patronale et l'exoneration d'impot sur le revenu. Lu par `droit::heures_en_plus`.",
+    "_source": "Code du travail L3121-28, L3121-29, L3121-30, L3121-33, L3121-36, L3123-20, L3123-21, L3123-28, L3123-29 ; code de la securite sociale L241-17, L241-18, L241-18-1, D241-21, D241-22, D241-24 ; CGI 81 quater : releves le 02/11/2026 dans la base LEGI par `moteur releve-codes` (`atelier/reference/sources/code-du-travail/articles-20261102.md`, `code-de-la-securite-sociale/articles-20261102.md`, `code-general-des-impots/articles-20261102.md`). BOSS, exonerations heures supplementaires et complementaires, version en vigueur au 01/06/2026 (`atelier/reference/sources/boss/boss-heures-supplementaires-20260601.txt`).",
+    "heures_supplementaires": {
+      "paliers_hebdomadaires": [
+        {"heures": 8, "majoration": 25},
+        {"heures": null, "majoration": 50}
+      ],
+      "_source": "L3121-36 : << A defaut d'accord, les heures supplementaires accomplies au-dela de la duree legale hebdomadaire [...] donnent lieu a une majoration de salaire de 25 % pour chacune des huit premieres heures supplementaires. Les heures suivantes donnent lieu a une majoration de 50 %. >> L3121-29 : elles << se decomptent par semaine >> : les heures au-dela de la huitieme d'une semaine se disent (`heures_supplementaires_a_50`), le mois ne les distingue pas."
+    },
+    "heures_complementaires": {
+      "plafond_sans_accord": "dixieme",
+      "paliers": [
+        {"jusqu_au": "dixieme", "majoration": 10},
+        {"jusqu_au": "tiers", "majoration": 25}
+      ],
+      "_source": "L3123-29 : << A defaut de stipulation conventionnelle prevues a l'article L. 3123-21, le taux de majoration des heures complementaires est de 10 % pour chacune des heures complementaires accomplies dans la limite du dixieme des heures prevues au contrat de travail et de 25 % pour chacune des heures accomplies entre le dixieme et le tiers des heures prevues au contrat de travail. >> L3123-28 : sans accord, le dixieme est la limite. INFERENCE : les heures prevues au contrat d'un salarie paye au mois sont ses heures par mois (S21.G00.40.013) ; le dixieme se compte sur elles."
+    },
+    "reduction_salariale": {
+      "taux_maximum": 11.31,
+      "_source": "L241-17, II : le produit d'un taux et des remunerations des heures, imputé sur les cotisations salariales d'assurance vieillesse d'origine legale (L241-3), dans leur limite. D241-21 : << la somme des taux de chacune des cotisations d'assurance vieillesse d'origine legale et conventionnelle rendue obligatoire par la loi effectivement a la charge du salarie, dans la limite de 11,31 % >>. BOSS § 370 : au-dela du plafond, le taux moyen de ces cotisations sur toute la remuneration. Le moteur prend ce taux moyen dans tous les cas (sous le plafond, il est la somme des taux) : la famille RETRAITE du bulletin (vieillesse plafonnee et deplafonnee, Agirc-Arrco et CET), sans l'Apec (BOSS § 370)."
+    },
+    "deduction_patronale": {
+      "moins_de_20_salaries": 1.5,
+      "au_moins_20_salaries": 0.5,
+      "_source": "L241-18 (moins de vingt salaries) et L241-18-1 (au moins vingt) : une deduction forfaitaire des cotisations patronales par heure supplementaire (pas les heures complementaires : BOSS § 570), d'un salarie de la reduction generale (L241-13, II), imputee sur ses cotisations patronales a l'Urssaf et dans leur limite. D241-24 : 1,50 EUR et 0,50 EUR. L'effectif : L130-1 (`contexte::Effectif::atteint`)."
+    },
+    "exoneration_impot": {
+      "limite_annuelle": 7500,
+      "_source": "CGI 81 quater, I : << Sont exoneres de l'impot sur le revenu les remunerations, les majorations et les elements de remunerations mentionnes aux I et III de l'article L. 241-17 du code de la securite sociale, dans les conditions et limites fixees au meme article L. 241-17 et dans une limite annuelle egale a 7 500 EUR. >> Fiche net-entreprises 2066 (21/10/2025, `atelier/reference/sources/net-entreprises-base-connaissances/`) : le montant NET des heures exonerees se declare en S21.G00.58.003 = 01 et n'entre pas dans la remuneration nette fiscale ; son exemple : 400 EUR bruts, 373,28 EUR nets (la CSG deductible, 6,80 % de 98,25 %, retiree). INFERENCE : la limite annuelle se compte sur ce montant net, par annee civile, chez l'employeur."
+    }
+  },
   "maintien_de_salaire": {
     "_quoi": "L'indemnite complementaire que l'employeur verse pendant un arret de travail, en plus des indemnites journalieres de la Securite sociale.",
     "_source": "Code du travail L1226-1 et D1226-1 a D1226-8, releves le 19/09/2026 dans la base LEGI de la DILA par `moteur releve-codes`.",
@@ -357,8 +389,41 @@
     },
     "_douze_mois_glissants": "D1226-4 : il est tenu compte des indemnites deja percues durant les DOUZE MOIS ANTERIEURS, de telle sorte que la duree totale d'indemnisation ne depasse pas celle des articles D1226-1 et D1226-2.",
     "_ce_qui_se_deduit": "D1226-5 : sont deduites de l'indemnite complementaire les allocations que le salarie percoit de la Securite sociale et des regimes complementaires de prevoyance -- mais, pour ces derniers, seulement la part des prestations resultant des versements de l'EMPLOYEUR. D1226-6 : des indemnites de Securite sociale reduites (hospitalisation, sanction de la caisse) sont reputees servies INTEGRALEMENT pour ce calcul.",
-    "_ce_que_le_moteur_ne_fait_pas": "Il calcule le complement BRUT -- le taux applique a la remuneration de reference -- et la duree a laquelle le salarie a droit. Il ne deduit pas les indemnites journalieres : leur montant vient de la Securite sociale et ne se devine pas. Elles se SAISISSENT, et tant qu'elles manquent le moteur dit ce qu'il a calcule et ce qu'il attend.",
+    "_ce_que_le_moteur_fait": "Il paie le complement (`engagement::maintien`) : le taux de chaque jour applique a la remuneration que l'absence retire, moins les indemnites journalieres de la Securite sociale des memes jours. Leur montant ne se devine pas : il se SAISIT sur l'arret (`arret-indemnites`), et tant qu'il manque, la paie du mois se refuse et dit quoi saisir. La prevoyance (D1226-5, la part de l'employeur) ne se deduit pas : aucune saisie ne la porte.",
     "_remuneration_de_reference": "D1226-7 : celle correspondant a l'horaire pratique pendant l'absence dans l'etablissement ; une augmentation d'horaire due a l'absence elle-meme ne compte pas."
+  },
+  "indemnites_journalieres": {
+    "_quoi": "Les jours ou la caisse verse ses indemnites journalieres, et ce que le prelevement a la source en retient quand l'employeur est subroge. Leur MONTANT se lit sur le releve de la caisse ou son bordereau de paiement (BPIJ : la prestation « I.J. normale » ou « I.J. majoree », son prix unitaire, puis les retenues CSG et RDS sur leurs propres lignes, `atelier/reference/sources/subrogation-indemnites-journalieres/bpij-edi/cnamts-bpij-modele-v02-00r3-20120306.txt`, l. 719-794) : il se saisit sur l'arret, par jour, brut et net de CSG et CRDS ; avant le releve, le moteur y propose le montant de principe d'une maladie (`principe`).",
+    "debut_maladie": 4,
+    "_debut_maladie": "CSS R323-1, 1° : « le point de depart de l'indemnite journaliere [...] est le quatrieme jour de l'incapacite de travail » ; L323-1 : due « pour chaque jour ouvrable ou non » (`atelier/reference/sources/code-de-la-securite-sociale/articles-20261102.md`). Un accident du travail, une maladie professionnelle, un accident de trajet : des le premier jour qui suit l'arret (L433-1, al. 2 ; L411-2 pour le trajet).",
+    "majoree_des_le_jour": 29,
+    "_majoree": "CSS R433-3 : l'indemnite d'un accident du travail est portee a 80 % du salaire journalier « a partir du vingt-neuvieme jour apres celui de l'arret de travail » (60 % avant, R433-1) : un second montant par jour, lu sur le releve.",
+    "csg_deductible": 3.8,
+    "_csg_deductible": "La CSG des indemnites journalieres est de 6,2 % (CSS L136-8, II, 1°, b), deductible de l'impot « a hauteur de 3,8 points » (CGI 154 quinquies, I : `atelier/reference/sources/code-general-des-impots/articles-20261102.md`).",
+    "pas_maladie_jours": 60,
+    "principe": {
+      "mois": 3,
+      "diviseur": 91.25,
+      "fraction": 0.5,
+      "plafond_smic": 1.4,
+      "heures_du_mois": 151.67,
+      "csg": 6.2,
+      "crds": 0.5
+    },
+    "_principe": "Le montant que le moteur PROPOSE sur l'arret d'une maladie, avant le releve de la caisse (la personne le garde ou le corrige) : la moitie (CSS R323-5) du revenu journalier, 1/91,25 des trois dernieres paies des mois civils anterieurs a l'interruption pour un salaire regle mensuellement (R323-4, 1°), chaque paie retenue dans la limite de 1,4 fois le SMIC en vigueur le dernier jour du mois civil precedant l'interruption, calcule pour un mois sur la base de la duree legale (R323-4, al. 5 ; 151,67 h, C. trav. L3121-27, `contrats-base.json`, `quotite_reference_defaut`) ; sous abattement, le brut sans abattement (meme alinea) : le brut des paies validees. R323-9 : au plus 1/730 du plafond annuel, que ce calcul ne depasse pas. Net : CSG 6,2 % (L136-8, II, 1°, b, sur toute somme qui compense la perte de revenu, L136-1-2, I) et CRDS 0,5 % (ordonnance n° 96-50, art. 14, I : la contribution « assise sur les revenus d'activite et de remplacement mentionnes a la section 1 du chapitre 4 du titre 3 du livre 1 du code de la securite sociale », dans les conditions de L136-1-1 a L136-4 ; art. 19 : « fixe a 0,5 % » ; versions en vigueur depuis le 01/09/2019 et le 01/01/2020, `atelier/reference/sources/ordonnance-96-50-crds/`). Textes : `atelier/reference/sources/code-de-la-securite-sociale/articles-20261103.md`.",
+    "principe_accident": {
+      "diviseur": 30.42,
+      "fraction": 0.6,
+      "fraction_majoree": 0.8,
+      "plafond_pass": 0.226,
+      "plafond_depuis": "2026-11-01",
+      "taux_forfaitaire": 21,
+      "csg": 6.2,
+      "crds": 0.5
+    },
+    "_principe_accident": "Le montant que le moteur PROPOSE sur l'arret d'un accident du travail ou de trajet (L411-2 : le trajet est un accident du travail) ou d'une maladie professionnelle (L461-1 : << est assimilee a la date de l'accident >> la date de la premiere constatation medicale, ou, posterieure, celle qui precede de deux ans la declaration ; la date de l'arret, S21.G00.60.012, est la premiere), avant le releve de la caisse : 60 % du salaire journalier (L433-2, R433-1), 80 % a partir du vingt-neuvieme jour (R433-3) ; le salaire journalier, 1/30,42 de la paie du mois civil anterieur a la date de l'arret, salaire regle mensuellement (R433-4, 1°), pris dans la limite de 0,226 % du plafond annuel de la Securite sociale (L433-2, al. 1 ; R433-2, version en vigueur depuis le 02/10/2026), arrondie au centime ; l'indemnite au plus le gain journalier net, ce salaire diminue du taux forfaitaire du deuxieme alinea de R331-5 (R433-4, dernier alinea), fixe « a 21 % » (arrete du 28 mars 2013, art. 1, en vigueur depuis le 31/03/2013, `atelier/reference/sources/arrete-2013-taux-forfaitaire-r331-5/`). Le plafond de 0,226 % vaut pour les arrets consecutifs aux accidents survenus a compter du 1er novembre 2026 (Ameli, `atelier/reference/sources/accident-du-travail/ameli-reglementation-atmp-1er-novembre-2026-20261030.md`, qui donne aussi les maxima de 65,17 et 86,90 EUR par jour) : la version d'avant de R433-2 n'est pas deposee, un accident survenu avant ne recoit pas de proposition. Net : CSG et CRDS, comme `_principe`. Textes : `atelier/reference/sources/code-de-la-securite-sociale/articles-20261103.md`.",
+    "pas_accident": 50,
+    "_pas": "BOFiP BOI-IR-PAS-20-10-10, § 80 a 110 (`atelier/reference/sources/suspension-non-remuneree/bofip-boi-ir-pas-20-10-10-20200728.txt`, l. 69-87) : subroge, l'employeur retient le prelevement sur « le montant brut de l'indemnite [...] diminue de la part deductible de la CSG » ; pour la maladie, seules celles des soixante premiers jours de l'arret, de date a date, carence comprise, sans interruption par une prolongation ; pour un accident du travail ou une maladie professionnelle, la moitie de leur montant (CGI 81, 8°). « Le montant de l'avance s'ajoute a la RNF pour constituer l'assiette du PAS » (S21.G00.50.013, `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`)."
   },
 
   "suspensions": {
@@ -389,6 +454,6 @@
     "attestation_france_travail": "Depuis le 01/06/2026, elle n'est plus éditée par l'employeur : c'est le signalement de fin de contrat (nature 07) qui la déclenche, et France Travail édite l'attestation. Même mécanisme que l'AER des intermittents.",
     "certificat_de_travail": "Art. L1234-19 et D1234-6. Écrit : `moteur/src/routes/imprevus.rs`, modèle `modeles/certificat-travail.modele`. D1234-6 plafonne son contenu — dates d'entrée et de sortie, emplois occupés et leurs périodes, et RIEN d'autre.",
     "recu_pour_solde_de_tout_compte": "Art. L1234-20, D1234-7 et D1234-8. Écrit : `moteur/src/routes/imprevus.rs`, modèle `modeles/recu-solde-de-tout-compte.modele`. Il fait l'INVENTAIRE des sommes, ligne à ligne, et non un total : il n'est libératoire, six mois après signature, que pour celles qui y figurent.",
-    "_etat": "Les deux se produisent d'un geste — `moteur fin-contrat documents <mois> <salarié>`, ou le bouton de la fin de contrat dans la fenêtre —, du mois qui porte la date de fin, le même que le solde de tout compte. Ce sont des PAPIERS : rien ne part nulle part."
+    "_etat": "Les deux se produisent d'un geste — la route `fin-contrat-documents`, ou le bouton de la fin de contrat dans la fenêtre —, du mois qui porte la date de fin, le même que le solde de tout compte. Ce sont des PAPIERS : rien ne part nulle part."
   }
 }

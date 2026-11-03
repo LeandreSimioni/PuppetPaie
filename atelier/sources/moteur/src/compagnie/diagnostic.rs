@@ -51,7 +51,6 @@ fn verrou<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|p| p.into_inner())
 }
 
-
 fn demarrage() -> &'static Instant {
     static D: OnceLock<Instant> = OnceLock::new();
     D.get_or_init(Instant::now)
@@ -278,7 +277,7 @@ fn construire(racine: &Path) -> Personnes {
             une.push((r, quoi));
         }
     };
-    if let Some(Value::Object(fiches)) = lire_json(&racine.join("config").join("salaries.json")) {
+    if let Some(Value::Object(fiches)) = lire_json(&racine.join(droit::contexte::SALARIES)) {
         for (rang, (cle, datee)) in fiches.iter().filter(|(k, _)| !k.starts_with('_')).enumerate() {
             let mut noms = vec![cle.clone()];
             for c in CHAMPS_QUI_NOMMENT {
@@ -301,12 +300,12 @@ fn construire(racine: &Path) -> Personnes {
             ajouter(noms, format!("salarié n°{}", numero_de(fiche, rang)));
         }
     }
-    if let Some(e @ Value::Object(_)) = lire_json(&racine.join("config").join("entreprise.json")) {
+    if let Some(e @ Value::Object(_)) = lire_json(&racine.join(droit::contexte::ENTREPRISE)) {
         let mut noms = Vec::new();
         for c in CHAMPS_DE_LA_COMPAGNIE {
             for s in droit::contexte::toutes_les_valeurs(e.get(c)).into_iter().filter_map(Value::as_str) {
                 noms.push(s.to_string());
-                // « Le Fil tendu (démonstration) » : le nom sans sa parenthese aussi.
+                // « Compagnie du Fil de Fer (démonstration) » : le nom sans sa parenthese aussi.
                 if let Some((avant, _)) = s.split_once(" (") {
                     noms.push(avant.to_string());
                 }
@@ -325,7 +324,7 @@ type Signatures = (Option<(SystemTime, u64)>, Option<(SystemTime, u64)>);
 fn personnes(racine: Option<&Path>) -> Arc<Personnes> {
     static CACHE: OnceLock<Mutex<HashMap<PathBuf, (Signatures, Arc<Personnes>)>>> = OnceLock::new();
     let Some(racine) = racine else { return Arc::new(Personnes { une: Vec::new(), toutes: None }) };
-    let sig = (signature(&racine.join("config/salaries.json")), signature(&racine.join("config/entreprise.json")));
+    let sig = (signature(&racine.join(droit::contexte::SALARIES)), signature(&racine.join(droit::contexte::ENTREPRISE)));
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Some((s, p)) = verrou(cache).get(racine) {
         if *s == sig {
@@ -651,12 +650,6 @@ pub fn fil(maintenant: u64) -> Vec<String> {
             l
         })
         .collect()
-}
-
-/// Vide le fil (les essais).
-pub fn oublier_le_fil() {
-    verrou(le_fil()).clear();
-    verrou(les_ecritures()).clear();
 }
 
 /// Une route servie par la fenetre : `source` « page » (la page l'a demandee) ou « fond » (la veille, le filet, l'etat des
@@ -1001,7 +994,8 @@ pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
     m.insert("saisie".into(), json!(!objets.is_empty()));
     m.insert("engagements".into(), json!(objets.len()));
     m.insert("valides".into(), json!(objets.iter().filter(|o| o.est_valide()).count()));
-    if let Some(Value::Array(depots)) = lire_json(&racine.join("journal").join("depots.json")) {
+    if let Ok(journal) = envois::journal::lu(racine) {
+        let depots = &journal.lignes;
         let du_mois: Vec<Value> = depots
             .iter()
             .filter(|d| d.get("mois").and_then(Value::as_str) == Some(mois))

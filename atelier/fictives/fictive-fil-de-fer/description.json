@@ -1,0 +1,514 @@
+{
+ "gabarit": "spaiectacle",
+ "entreprise": {
+  "raison_sociale": "Compagnie du Fil de Fer",
+  "adresse": "8 rue des Cordiers",
+  "code_postal": "71100",
+  "commune": "Chalon-sur-Saone",
+  "siret": "12345678900049",
+  "naf": "9001Z",
+  "urssaf": "527000000007",
+  "licence": "PLATESV-R-2023-000417",
+  "convention": {
+   "idcc": "3090",
+   "libelle": "Spectacle vivant prive"
+  }
+ },
+ "salaries": [
+  {
+   "code": "1",
+   "nom": "Marchetot",
+   "prenom": "Solene",
+   "nir": "289049999921491",
+   "naissance": "1989-04-17",
+   "adresse": "21 rue du Pont Saint-Laurent",
+   "code_postal": "71100",
+   "commune": "Chalon-sur-Saone",
+   "conges_spectacles": "M2890412"
+  },
+  {
+   "code": "2",
+   "nom": "Ferrand",
+   "prenom": "Basile",
+   "nir": "192119999908739",
+   "naissance": "1992-11-05",
+   "adresse": "5 impasse des Tanneurs",
+   "code_postal": "71100",
+   "commune": "Chalon-sur-Saone",
+   "conges_spectacles": "F9211533"
+  },
+  {
+   "code": "3",
+   "nom": "Albaret",
+   "prenom": "Josephine",
+   "nir": "295099999914246",
+   "naissance": "1995-09-23",
+   "adresse": "14 rue de la Banque",
+   "code_postal": "21000",
+   "commune": "Dijon"
+  },
+  {
+   "code": "4",
+   "nom": "Delmas",
+   "prenom": "Octave",
+   "nir": "178069999933113",
+   "naissance": "1978-06-02",
+   "adresse": "3 place des Halles",
+   "code_postal": "71000",
+   "commune": "Macon"
+  },
+  {
+   "code": "5",
+   "nom": "Tessier",
+   "prenom": "Armand",
+   "nir": "170039999925644",
+   "naissance": "1970-03-30",
+   "adresse": "27 avenue Jean Jaures",
+   "code_postal": "71100",
+   "commune": "Chalon-sur-Saone"
+  }
+ ],
+ "bulletins": [
+  {
+   "salarie": "1",
+   "emploi": "MARIONNETTISTE",
+   "statut": "artiste",
+   "debut": "2025-09-12",
+   "fin": "2025-09-14",
+   "dates": [
+    [
+     "2025-09-12",
+     "2025-09-14"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931107",
+    "titre": "Le Grand Fil"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 140
+    }
+   ],
+   "taux_pas": 5.5
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR GENERAL",
+   "statut": "technicien",
+   "debut": "2025-09-12",
+   "fin": "2025-09-14",
+   "dates": [
+    [
+     "2025-09-12",
+     "2025-09-14"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931107",
+    "titre": "Le Grand Fil"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 18,
+     "taux": 20
+    }
+   ],
+   "taux_pas": 7.5
+  },
+  {
+   "salarie": "3",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-09-12",
+   "fin": "2025-09-14",
+   "dates": [
+    [
+     "2025-09-12",
+     "2025-09-14"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931107",
+    "titre": "Le Grand Fil"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 140
+    }
+   ],
+   "taux_pas": 2.5
+  },
+  {
+   "salarie": "1",
+   "emploi": "MARIONNETTISTE",
+   "statut": "artiste",
+   "debut": "2025-10-03",
+   "fin": "2025-10-19",
+   "dates": [
+    [
+     "2025-10-03",
+     "2025-10-05"
+    ],
+    [
+     "2025-10-17",
+     "2025-10-19"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931107",
+    "titre": "Le Grand Fil"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 6,
+     "taux": 140
+    }
+   ],
+   "taux_pas": 5.5,
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 18
+    }
+   ]
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR GENERAL",
+   "statut": "technicien",
+   "debut": "2025-10-03",
+   "fin": "2025-10-19",
+   "dates": [
+    [
+     "2025-10-03",
+     "2025-10-05"
+    ],
+    [
+     "2025-10-17",
+     "2025-10-19"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931107",
+    "titre": "Le Grand Fil"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 36,
+     "taux": 20
+    }
+   ],
+   "taux_pas": 7.5,
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 18
+    }
+   ]
+  },
+  {
+   "salarie": "3",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-10-17",
+   "fin": "2025-10-19",
+   "dates": [
+    [
+     "2025-10-17",
+     "2025-10-19"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931107",
+    "titre": "Le Grand Fil"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 140
+    }
+   ],
+   "taux_pas": 2.5
+  },
+  {
+   "salarie": "5",
+   "emploi": "TECHNICIEN SON",
+   "statut": "technicien",
+   "debut": "2025-10-17",
+   "fin": "2025-10-19",
+   "dates": [
+    [
+     "2025-10-17",
+     "2025-10-19"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931107",
+    "titre": "Le Grand Fil"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 15,
+     "taux": 23
+    }
+   ],
+   "taux_pas": 3
+  },
+  {
+   "salarie": "1",
+   "emploi": "MARIONNETTISTE",
+   "statut": "artiste",
+   "debut": "2025-11-07",
+   "fin": "2025-11-23",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ],
+    [
+     "2025-11-21",
+     "2025-11-23"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 6,
+     "taux": 140
+    }
+   ],
+   "taux_pas": 5.5,
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 18
+    }
+   ]
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR GENERAL",
+   "statut": "technicien",
+   "debut": "2025-11-07",
+   "fin": "2025-11-23",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ],
+    [
+     "2025-11-21",
+     "2025-11-23"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 36,
+     "taux": 20
+    }
+   ],
+   "taux_pas": 7.5,
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 6,
+     "taux": 18
+    }
+   ]
+  },
+  {
+   "salarie": "4",
+   "emploi": "MUSICIEN",
+   "statut": "artiste",
+   "debut": "2025-11-21",
+   "fin": "2025-11-23",
+   "dates": [
+    [
+     "2025-11-21",
+     "2025-11-23"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 3,
+     "taux": 130
+    }
+   ],
+   "taux_pas": 0
+  },
+  {
+   "salarie": "5",
+   "emploi": "TECHNICIEN SON",
+   "statut": "technicien",
+   "debut": "2025-11-07",
+   "fin": "2025-11-09",
+   "dates": [
+    [
+     "2025-11-07",
+     "2025-11-09"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 15,
+     "taux": 23
+    }
+   ],
+   "taux_pas": 3
+  },
+  {
+   "salarie": "1",
+   "emploi": "MARIONNETTISTE",
+   "statut": "artiste",
+   "debut": "2025-12-05",
+   "fin": "2025-12-20",
+   "dates": [
+    [
+     "2025-12-05",
+     "2025-12-07"
+    ],
+    [
+     "2025-12-19",
+     "2025-12-20"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 5,
+     "taux": 140
+    }
+   ],
+   "taux_pas": 5.5,
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 5,
+     "taux": 18
+    }
+   ]
+  },
+  {
+   "salarie": "2",
+   "emploi": "REGISSEUR GENERAL",
+   "statut": "technicien",
+   "debut": "2025-12-05",
+   "fin": "2025-12-20",
+   "dates": [
+    [
+     "2025-12-05",
+     "2025-12-07"
+    ],
+    [
+     "2025-12-19",
+     "2025-12-20"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Heures",
+     "quantite": 30,
+     "taux": 20
+    }
+   ],
+   "taux_pas": 7.5,
+   "non_soumis": [
+    {
+     "libelle": "Défraiement non soumis",
+     "quantite": 5,
+     "taux": 18
+    }
+   ]
+  },
+  {
+   "salarie": "3",
+   "emploi": "COMEDIEN",
+   "statut": "artiste",
+   "debut": "2025-12-19",
+   "fin": "2025-12-20",
+   "dates": [
+    [
+     "2025-12-19",
+     "2025-12-20"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 140
+    }
+   ],
+   "taux_pas": 2.5
+  },
+  {
+   "salarie": "4",
+   "emploi": "MUSICIEN",
+   "statut": "artiste",
+   "debut": "2025-12-19",
+   "fin": "2025-12-20",
+   "dates": [
+    [
+     "2025-12-19",
+     "2025-12-20"
+    ]
+   ],
+   "objet": {
+    "numero": "256Z00931108",
+    "titre": "Mademoiselle Poussiere"
+   },
+   "lignes": [
+    {
+     "libelle": "Cachets isolés",
+     "quantite": 2,
+     "taux": 130
+    }
+   ],
+   "taux_pas": 0
+  }
+ ]
+}

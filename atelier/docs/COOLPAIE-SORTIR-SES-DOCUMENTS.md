@@ -3,7 +3,7 @@
 Pour les années passées sous CoolPaie, les **DSN** disent ce qui a été
 déclaré, pas le bulletin tel qu'il a été remis. L'import lit aussi les
 **bulletins en PDF** : un bulletin fait foi sur la paie qu'il porte, et le
-dossier d'un salarié (`moteur dossier`, onglet Exports) en reprend la page
+dossier d'un salarié (route `dossier-salarie`, onglet Exports) en reprend la page
 **telle quelle**. Ce qui n'a jamais été sorti de CoolPaie n'y sera pas.
 
 ## Ce qu'il faut rassembler
@@ -35,12 +35,12 @@ où on lui dit, et ce sont ces PDF qu'il faut déposer dans `import/`.
 ## Puis importer
 
 ```bash
-moteur importer            # l'aperçu : rien n'est écrit
-moteur importer --ecrire   # le reprend
+echo '{"route":"importation-apercu","charge":{}}' | moteur route   # l'aperçu : rien n'est écrit
+echo '{"route":"importer","charge":{}}' | moteur route              # le reprend
 ```
 
 L'import copie ce qu'il reprend dans `historique/bulletins/`, sous un nom tiré
 de l'empreinte du fichier ; c'est là que le dossier d'un salarié, le PAS amorcé
-(`moteur pas --amorcer`) et l'arrivée lisent les pièces importées. Un import se
+et l'arrivée lisent les pièces importées. Un import se
 rejoue : ce qui est déjà copié reste tel quel, ce qui manque s'ajoute, et un
 fichier du même nom au contenu différent est **signalé**, jamais écrasé.

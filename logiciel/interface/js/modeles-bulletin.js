@@ -15,7 +15,7 @@
    (`bulletin-modele-choisir`). La paie est celle d'une compagnie fictive livrée
    avec le logiciel : jamais un salarié de la compagnie. */
 async function dessinerModelesBulletin(cible) {
-  cible.innerHTML = `<p class="note">Les modèles arrivent…</p>`;
+  cible.innerHTML = `<p class="note">…</p>`;
   let m;
   try {
     m = await appelerMoteur("bulletin-modeles", {});
@@ -33,27 +33,20 @@ async function dessinerModelesBulletin(cible) {
         ${pastilleDeLEtat(x.pastille)}
       </div>
       <p class="discret">${echapper(x.description)}</p>
-      <iframe class="fictive-pdf-cadre" style="height:560px" title="Aperçu du modèle ${echapper(x.nom)}"
+      <iframe class="fictive-pdf-cadre" style="height:560px" title="${echapper(x.apercu_dit)}"
               src="${adresse}#page=1&view=FitH"></iframe>
       <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
-        ${choisi ? "" : `<button data-choisir="${echapper(x.cle)}">Choisir ce modèle pour tous</button>`}
+        ${choisi ? "" : `<button data-choisir="${echapper(x.cle)}">Choisir pour tous</button>`}
         <a class="lien" href="${adresse}" target="_blank" rel="noopener">ouvrir le PDF</a>
       </div>
     </div>`;
   };
-  const autrement = (m.salaries_autrement || []).length
-    ? `<p class="note">Ces salariés ont demandé l'autre modèle (case de leur fiche, Avancé) et le gardent :
-        ${m.salaries_autrement.map((s) => `${echapper(s.nom)} (${echapper(s.modele)})`).join(", ")}.</p>`
-    : "";
+  const autrement = m.ecran.autrement ? `<p class="note">${echapper(m.ecran.autrement)}</p>` : "";
   cible.innerHTML = `
-    <p class="intro">Le bulletin que la compagnie remet à ses salariés. Chaque modèle est montré sur
-      la même paie fictive (une compagnie et un salarié inventés) : mêmes lignes du modèle
-      réglementaire, mêmes totaux, même net. Un salarié qui demande l'autre modèle l'obtient par la
-      case « Modèle de bulletin demandé par le salarié » de sa fiche, dans Avancé.</p>
+    <p class="intro">${echapper(m.ecran.intro)}</p>
     <div style="display:flex;gap:16px;flex-wrap:wrap">${m.modeles.map(carte).join("")}</div>
     ${autrement}
-    <p class="discret">Le choix vaut pour les bulletins produits ensuite ; ceux déjà remis ne changent
-      pas.</p>`;
+    <p class="discret">${echapper(m.ecran.ensuite)}</p>`;
   cible.querySelectorAll("[data-choisir]").forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
@@ -61,7 +54,7 @@ async function dessinerModelesBulletin(cible) {
         await api("bulletin-modele-choisir", { modele: b.dataset.choisir });
         // La fiche Entreprise garde la case (cachée) : la configuration relue, un enregistrement de la
         // fiche ne la remet pas à l'ancienne valeur.
-        ETAT.configuration = await api("configuration", {});
+        ETAT.configuration = await api("configuration", {}); peindreEtatGlobal();
         await dessinerModelesBulletin(cible);
       } catch (e) {
         b.disabled = false;

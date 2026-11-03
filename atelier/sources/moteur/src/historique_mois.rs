@@ -6,7 +6,7 @@
 //!
 //! - `documents` : chaque fichier de `sorties/<mois>/` et de `sorties/<mois>/envoi/` (les memes listes que
 //!   l'Historique : `crate::routes::ouverture::mois_connus`, `crate::routes::archives::documents_du_mois`), range
-//!   par sorte, chacun avec le chemin que `ouvrir-piece` ouvre ;
+//!   par sorte, chacun avec son chemin, que la fenetre ouvre ;
 //! - `envois` : chaque ligne du journal des depots du mois (DPAE, DSN, signalements, documents, contrats), TESTS
 //!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`),
 //!   et ce qu'il a envoye se montre partout : le logiciel est d'une transparence totale, ce sont les informations et les
@@ -17,7 +17,6 @@
 //!
 //! Lecture seule : rien ne s'ecrit, rien ne part.
 
-use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
@@ -30,9 +29,29 @@ use socle::fichiers::vrai;
 use envois::retours;
 use socle::echec::Echec;
 
+use crate::routes::catalogue::{Acte, Fiche, Refus, MOIS};
+use crate::routes::catalogue::{Ecran, Place};
+
 type R<T> = Result<T, Echec>;
 
 pub const ROUTE: &str = "historique-mois";
+
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Historique);
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[Fiche {
+    nom: ROUTE,
+    geste: "Dire l'Historique d'un mois : ses documents, ses envois et ce qui en est revenu.",
+    charge: &[MOIS],
+    exemple: r#"{"mois":"2026-11"}"#,
+    rend: "mois, documents (chacun son chemin ; fichier : à refaire par piece-partie avant de l'ouvrir), envois (chacun ses retours, du plus récent au plus ancien)",
+    refus: &[Refus { classe: "ErreurOperation", corriger: "le mois, AAAA-MM" }],
+    acte: Acte::Lit,
+    avance: false,
+    phrase: 0,
+    ecran: ECRAN,
+}];
 
 // ------------------------------------------------------------------ les tables
 
@@ -122,52 +141,33 @@ fn qui_du_contrat(ctx: &Contexte, d: &Value) -> String {
     if nom.is_empty() { cle } else { nom }
 }
 
-/// Le contrat d'une ligne `contrat-recu` en mots : son numero et son debut (`detail.numero`, `detail.debut`).
-fn contrat_en_mots(d: &Value) -> String {
-    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    let numero = if t("numero").is_empty() { String::new() } else { format!(" n° {}", t("numero")) };
-    let debut = if t("debut").is_empty() { String::new() } else { format!(" commençant le {}", etats::quand_lisible(&json!(t("debut")))) };
-    format!("contrat{}{}", numero, debut)
+/// CE QUI EST REVENU D'UN CONTRAT PARTI (`envois::etats::revenus`), lu : le contrat ou l'avenant, de qui, et comment (une
+/// reponse « Je signe », une mention a la main, ou son retrait) ; la piece signee s'il y en a une.
+fn revenu_lu(ctx: &Contexte, ligne: &Value, r: &Value) -> Value {
+    let t = |k: &str| r.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let piece = if t("avenant").is_empty() { format!("Contrat n° {}", t("numero")) } else { format!("Avenant n° {} au contrat n° {}", t("avenant"), t("numero")) };
+    let quand = etats::quand_lisible(&r["quand"]);
+    let (titre, phrase) = if r["recu"] == json!(false) {
+        (format!("{} : mention « signé » retirée", piece), format!("Mention retirée le {}.", quand))
+    } else if r["origine"] == json!("courriel") {
+        (format!("{} revenu signé", piece), format!("Signé d'un clic le {}.", quand))
+    } else {
+        (format!("{} revenu signé", piece), format!("Reçu signé le {}, noté à la main.", quand))
+    };
+    let mois = ligne.get("mois").cloned().unwrap_or(Value::Null);
+    let signe = envois::etats::chemin_piece(&ctx.racine, &mois, &r["fichier_signe"]);
+    json!({
+        "titre": format!("{} — {}", titre, qui_du_contrat(ctx, r)), "quand": r["quand"], "phrases": [phrase],
+        "pastille": crate::routes::pastille(if r["recu"] == json!(false) { "information" } else { "fait" }, "signé"),
+        "piece": signe.and_then(|p| p.strip_prefix(&ctx.racine).ok().map(|x| x.to_string_lossy().replace('\\', "/"))),
+    })
 }
 
-/// La piece qu'une ligne `contrat-recu` note recue (ou plus) : le salarie, le contrat, son debut, l'avenant.
-fn piece_de_la_mention(l: &Value) -> Option<String> {
-    if l.get("quoi").and_then(Value::as_str) != Some("contrat-recu") {
-        return None;
-    }
-    let d = &l["detail"];
-    Some(["salarie", "numero", "debut", "avenant"].iter().map(|k| d.get(*k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).collect::<Vec<_>>().join("|"))
-}
-
-/// Les lignes `contrat-recu` (leurs rangs dans `lignes`) dont la mention « reçu » a ete retiree ensuite : la mention qui
-/// suit, pour la meme piece, est un retrait (`recu: false`).
-fn mentions_defaites(lignes: &[Value]) -> HashSet<usize> {
-    let mut ordre: Vec<usize> = (0..lignes.len()).filter(|i| piece_de_la_mention(&lignes[*i]).is_some()).collect();
-    ordre.sort_by(|a, b| valeur_en_texte(&lignes[*a]["quand"]).cmp(&valeur_en_texte(&lignes[*b]["quand"])).then(a.cmp(b)));
-    let mut derniere: HashMap<String, usize> = HashMap::new();
-    let mut defaites = HashSet::new();
-    for i in ordre {
-        let piece = piece_de_la_mention(&lignes[i]).unwrap_or_default();
-        let retrait = lignes[i]["detail"]["recu"] == json!(false);
-        if let Some(&avant) = derniere.get(&piece) {
-            if retrait && lignes[avant]["detail"]["recu"] != json!(false) {
-                defaites.insert(avant);
-            }
-        }
-        derniere.insert(piece, i);
-    }
-    defaites
-}
-
-/// L'acte d'une ligne du journal, en mots ; un contrat qui revient ou repart dit de qui il est. Une mention « reçu »
-/// retiree ensuite (`defaite`), ou son retrait, ne dit pas « revenu signé » : la piece ne l'est pas.
-fn acte(ctx: &Contexte, l: &Value, defaite: bool) -> String {
+/// L'acte d'une ligne du journal, en mots ; un contrat qui repart dit de qui il est.
+fn acte(ctx: &Contexte, l: &Value) -> String {
     let d = l.get("detail").cloned().unwrap_or(Value::Null);
     let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    let piece = if t("avenant").is_empty() { "Contrat".to_string() } else { format!("Avenant n° {}", t("avenant")) };
     match l.get("quoi").and_then(Value::as_str).unwrap_or("") {
-        "contrat-recu" if d["recu"] == json!(false) => format!("{} : mention « signé » retirée — {}", piece, qui_du_contrat(ctx, &d)),
-        "contrat-recu" if defaite => format!("{} noté signé, mention retirée ensuite — {}", piece, qui_du_contrat(ctx, &d)),
         "dsn" => nature_dsn(&t("nature"), &t("type")),
         "dpae" => "DPAE".into(),
         "documents" => "Documents aux salariés".into(),
@@ -175,13 +175,10 @@ fn acte(ctx: &Contexte, l: &Value, defaite: bool) -> String {
         "contrat-signature" if d.get("main_propre").is_some_and(vrai) => "Contrat imprimé, à remettre en main propre".into(),
         "contrat-signature" if t("acte") == "avenant" => "Avenant envoyé à la signature".into(),
         "contrat-signature" => "Contrat envoyé à la signature".into(),
-        "contrat-recu" if !t("avenant").is_empty() => format!("Avenant n° {} revenu signé — {}", t("avenant"), qui_du_contrat(ctx, &d)),
-        "contrat-recu" => format!("Contrat revenu signé — {}", qui_du_contrat(ctx, &d)),
         "contrat-contresigne" => format!("Contrat contresigné renvoyé — {}", qui_du_contrat(ctx, &d)),
         "regularisation-casc" => "Régularisation Congés Spectacles".into(),
         "dossier-salarie" => "Dossier d'un salarié".into(),
         "fiche-demande" => "Fiche demandée à un salarié".into(),
-        "fiche-recue" => "Fiche reçue d'un salarié".into(),
         autre => autre.to_string(),
     }
 }
@@ -254,7 +251,7 @@ fn identite(ctx: &Contexte, l: &Value) -> String {
     morceaux.join(" · ")
 }
 
-fn sorte_de(nom: &str) -> &'static str {
+pub(crate) fn sorte_de(nom: &str) -> &'static str {
     SORTES.iter().find(|(_, p)| p.iter().any(|x| nom.starts_with(x))).map(|(s, _)| *s).unwrap_or("Autres pièces")
 }
 
@@ -272,14 +269,15 @@ fn documents(ctx: &Contexte, mois: &str, lignes: &[Value]) -> R<Vec<Value>> {
         let nom = valeur_en_texte(&d["nom"]);
         out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": d["salarie"], "chemin": format!("sorties/{}/envoi/{}", mois, nom)}));
     }
-    // CE QUE LE JOURNAL DIT PARTI, meme si son fichier manque : `ouvrir-piece` le refait (`depart::piece_partie`).
+    // CE QUE LE JOURNAL DIT PARTI, meme si son fichier manque : `fichier` le nomme pour `piece-partie`, qui le refait
+    // (`depart::piece_partie`) et rend son chemin.
     for nom in pieces_du_journal(lignes) {
         if out.iter().any(|d| d["nom"] == json!(nom)) {
             continue;
         }
         let dans_l_envoi = ["Bulletin_", "CertificatCS_", "AER_", "Contrat_", "Avenant"].iter().any(|p| nom.starts_with(p));
         let chemin = if dans_l_envoi { format!("sorties/{}/envoi/{}", mois, nom) } else { format!("sorties/{}/{}", mois, nom) };
-        out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": "", "chemin": chemin}));
+        out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": "", "chemin": chemin, "fichier": nom}));
     }
     // LES BULLETINS QUE L'ANCIEN LOGICIEL A FAITS, tels que l'import les garde : ce sont les bulletins du mois.
     for b in crate::import::mois::bulletins_repris(&ctx.racine, mois) {
@@ -331,7 +329,7 @@ fn pieces_du_journal(lignes: &[Value]) -> Vec<String> {
 /// La piece archivee d'un retour : `retours/[dpae/]AAAAMMJJ-hhmmss_natureN_<flux>.<ext>` (`transport::archiver`),
 /// celle de sa publication d'abord, sinon la premiere de sa nature pour ce flux (`etats::archive_du_retour`).
 fn piece_du_retour(racine: &Path, canal: &str, flux: &str, nature: &str, publication: &str) -> Option<PathBuf> {
-    let mut dossier = racine.join("retours");
+    let mut dossier = racine.join(envois::retours::RETOURS);
     if !canal.is_empty() {
         dossier = dossier.join(canal);
     }
@@ -829,6 +827,10 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
                 .into_iter()
                 .flatten()
                 .map(|a| if a.is_string() { json!({"code": "", "categorie": "", "message": a, "rubrique": "", "ligne": "", "nombre": "", "salarie": ""}) } else { a.clone() })
+                .map(|mut a| {
+                    a["ligne_dit"] = if vrai(&a["ligne"]) { json!(format!("ligne {}", valeur_en_texte(&a["ligne"]))) } else { Value::Null };
+                    a
+                })
                 .collect();
             for d in r["dpae"].as_array().into_iter().flatten() {
                 let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
@@ -846,7 +848,10 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     let pastille = (!lu.is_empty()).then(|| {
         crate::routes::pastille(match lu.as_str() { "OK" => "fait", "KO" => "refuse", "ANO" => "a_faire", _ => "information" }, &lu)
     });
+    let titre_dit = if !titre.is_empty() { titre.clone() } else if !libelle.is_empty() { libelle.clone() } else { format!("retour de nature {}", nature) };
+    let nature_dit = if nature.is_empty() { String::new() } else { format!("Nature {} : {}", nature, libelle) };
     json!({
+        "titre_dit": titre_dit, "nature_dit": nature_dit, "quand_dit": crate::routes::quand(&quand_publication(&publication)),
         "nature": nature, "libelle": libelle, "organisme": organisme, "statut": statut, "verdict": verdict, "pastille": pastille,
         "quand": quand_publication(&publication), "titre": titre, "phrases": phrases, "anomalies": anomalies, "traduite": traduite,
         "piece": piece.and_then(|p| p.strip_prefix(racine).ok().map(|x| x.to_string_lossy().replace('\\', "/"))),
@@ -865,55 +870,37 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Les lignes du mois, et celles d'un signalement, qui portent le jour de leur evenement (`AAAA-MM-JJ`) dans ce mois.
     let mut lignes = envois::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?;
     lignes.retain(|l| l.get("mois").and_then(Value::as_str).is_some_and(|m| m == mois || (m.len() == 10 && m.starts_with(mois))));
-    let recus = etats::contrats_recus(&lignes, etats::Maille::Contrat)?;
-    let avenants = etats::avenants_par_contrat(&lignes, etats::Maille::Contrat)?;
+    let recus = etats::contrats_recus(&lignes)?;
+    let avenants = etats::avenants_par_contrat(&lignes)?;
     let mut cles: etats::Dico<()> = etats::Dico::nouveau();
     for (k, _) in &recus.items {
         cles.poser(k.clone(), ())?;
     }
     let mut envois = Vec::new();
-    let defaites = mentions_defaites(&lignes);
-    for (rang, l) in lignes.iter().enumerate() {
-        let mut retours: Vec<Value> = l["retours"].as_array().into_iter().flatten().map(|r| retour_lu(&ctx.racine, l, r)).collect();
+    for l in lignes.iter() {
+        // Ce qui est revenu, sur la ligne de chaque envoi : un contrat signe, une fiche remplie (ou la demande abandonnee),
+        // un retour d'organisme.
+        let lu = |r: &Value| match l["quoi"].as_str() {
+            Some("contrat-signature") => revenu_lu(ctx, l, r),
+            Some("fiche-demande") => json!({"titre": if vrai(&r["abandon"]) { "Demande abandonnée" } else { "Fiche reçue" }, "quand": r["quand"]}),
+            _ => retour_lu(&ctx.racine, l, r),
+        };
+        let mut retours: Vec<Value> = l["retours"].as_array().into_iter().flatten().map(lu).collect();
         retours.sort_by(|a, b| valeur_en_texte(&a["quand"]).cmp(&valeur_en_texte(&b["quand"])));
         let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-        // Ce qui REVIENT (un contrat signe, une fiche remplie) n'a pas ete « envoye » et n'attend rien ; un depot attend
-        // ses retours par son flux (`journal.rattacher_retours`).
-        let recu = ["contrat-recu", "fiche-recue"].contains(&t("quoi").as_str());
-        let quand = etats::quand_lisible(&l["quand"]);
-        let resume = match t("quoi").as_str() {
-            // Le contrat revenu : lequel, et comment il est revenu (une reponse « Je signe » ou une mention a la main).
-            "contrat-recu" => {
-                let d = &l["detail"];
-                let comment = if d["recu"] == json!(false) {
-                    format!("mention « reçu » retirée le {}", quand)
-                } else if d["origine"] == json!("courriel") {
-                    format!("signé d'un clic le {}", quand)
-                } else {
-                    format!("reçu signé le {}, noté à la main", quand)
-                };
-                format!("{} — {}", contrat_en_mots(d), comment)
-            }
-            _ if recu => format!("reçu le {}", quand),
-            _ => etats::resume(l, &cles, &avenants, etats::Maille::Contrat)?,
-        };
+        // Un depot attend ses retours par son flux (`journal.rattacher_retours`).
+        let resume = etats::resume(l, &cles, &avenants)?;
         envois.push(json!({
-            "quoi": t("quoi"), "acte": acte(ctx, l, defaites.contains(&rang)), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
+            "quoi": t("quoi"), "acte": acte(ctx, l), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
             "destinataire": t("destinataire"), "identite": identite(ctx, l), "accepte": vrai(&l["accepte"]), "resume": resume,
-            "attend_retour": !recu && !t("flux").is_empty(), "retours": retours,
+            "attend_retour": !t("flux").is_empty(), "retours": retours,
         }));
     }
     // Le plus recent en premier : c'est le dernier envoi qu'on vient lire ; a la meme heure, le reel devant son test.
     envois.sort_by(|a, b| (valeur_en_texte(&b["quand"]), b["mode"] == json!("reel")).cmp(&(valeur_en_texte(&a["quand"]), a["mode"] == json!("reel"))));
-    Ok(json!({"mois": mois, "documents": documents(ctx, mois, &lignes)?, "envois": envois}))
-}
-
-/// Le chemin d'une piece que `historique-mois` a listee pour `mois` (un document ou la piece d'un retour), ou `None` :
-/// `ouvrir-piece` n'ouvre que ce que la route a montre.
-pub fn piece_listee(listage: &Value, chemin: &str) -> bool {
-    let doc = listage["documents"].as_array().into_iter().flatten().any(|d| d["chemin"] == json!(chemin));
-    let ret = listage["envois"].as_array().into_iter().flatten().flat_map(|e| e["retours"].as_array().into_iter().flatten()).any(|r| r["piece"] == json!(chemin));
-    doc || ret
+    let documents = documents(ctx, mois, &lignes)?;
+    let phrase = format!("Historique de {} : {} documents, {} envois.", socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee), documents.len(), envois.len());
+    Ok(json!({"phrase": phrase, "mois": mois, "documents": documents, "envois": envois}))
 }
 
 #[cfg(test)]

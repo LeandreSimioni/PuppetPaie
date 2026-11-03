@@ -19,6 +19,7 @@ pub mod fonts;
 pub mod render;
 pub mod style;
 pub mod pdf_subset;
+pub mod pdf_ecriture;
 
 use std::fs;
 use std::io;

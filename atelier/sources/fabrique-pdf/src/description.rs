@@ -202,8 +202,6 @@ struct ModeleBrut {
     signature: Option<String>,
     /// L'image de la signature de l'employeur en fin de document (style « attestation »).
     signature_employeur: Option<String>,
-    /// Ce que l'artiste a signé d'un clic, posé dans sa case (styles contrat et avenant).
-    mention_artiste: Option<String>,
     /// Les articles que l'avenant modifie (style « avenant »).
     #[serde(default)]
     modifications: Vec<ModificationBrute>,
@@ -212,10 +210,15 @@ struct ModeleBrut {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ModificationBrute {
-    numero: i64,
+    /// Le numéro de l'article cité ; nul pour une modification dite en clair (`phrase`).
+    #[serde(default)]
+    numero: Option<i64>,
     article: String,
     avant: Vec<String>,
     apres: Vec<String>,
+    /// La modification dite en clair, sans article cité : le paragraphe `{{modification.phrase}}` du modèle la porte.
+    #[serde(default)]
+    phrase: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -544,19 +547,6 @@ pub enum Bloc {
         retrait: f32,
     },
     Espace(f32),
-    /// Une case encadrée avec quelques lignes de texte, posée à l'endroit courant sans occuper de
-    /// hauteur (comme une image flottante) : la mention de signature de l'artiste.
-    Mention {
-        lignes: Vec<String>,
-        taille: f32,
-        interligne: f32,
-        couleur: Rvb,
-        filet: Rvb,
-        /// Hauteur de la case ; sa largeur est celle de la colonne où elle se trouve.
-        hauteur: f32,
-        /// Espace entre le filet et le texte : gauche/droite, haut.
-        marge: (f32, f32),
-    },
     Colonnes {
         filet: Option<(Rvb, f32)>,
         espace_avant: f32,
@@ -1295,12 +1285,6 @@ pub fn lire_description(texte: &str) -> Result<Description, Refus> {
                     ou
                 ));
             }
-            if variante == Variante::Attestation && mb.mention_artiste.is_some() {
-                return refus(format!(
-                    "{} : le style \"attestation\" n'a pas de case de l'artiste (\"mention_artiste\")",
-                    ou
-                ));
-            }
             if variante != Variante::Avenant && !mb.modifications.is_empty() {
                 return refus(format!("{} : \"modifications\" ne va qu'avec le style \"avenant\"", ou));
             }
@@ -1312,6 +1296,12 @@ pub fn lire_description(texte: &str) -> Result<Description, Refus> {
                     return refus(format!("{} n'a pas de bloc MODIFICATION:.", nom_modele));
                 }
                 for (i, x) in mb.modifications.iter().enumerate() {
+                    if x.phrase.is_some() && !m.modification.iter().any(|b| b.contains("modification.phrase")) {
+                        return refus(format!("{} : modification {} : le bloc MODIFICATION: n'a pas de paragraphe {{{{modification.phrase}}}}", ou, i + 1));
+                    }
+                    if x.phrase.is_none() && x.numero.is_none() {
+                        return refus(format!("{} : modification {} : ni \"numero\" ni \"phrase\"", ou, i + 1));
+                    }
                     if x.avant.len() != x.apres.len() {
                         return refus(format!(
                             "{} : modification {} : \"avant\" et \"apres\" n'ont pas le même nombre de paragraphes",
@@ -1325,10 +1315,11 @@ pub fn lire_description(texte: &str) -> Result<Description, Refus> {
                 .modifications
                 .iter()
                 .map(|x| style_contrat::Modification {
-                    numero: x.numero,
+                    numero: x.numero.unwrap_or(0),
                     article: x.article.clone(),
                     avant: x.avant.clone(),
                     apres: x.apres.clone(),
+                    phrase: x.phrase.clone(),
                 })
                 .collect();
             let c = style_contrat::Contrat {
@@ -1338,7 +1329,6 @@ pub fn lire_description(texte: &str) -> Result<Description, Refus> {
                 signature: mb.signature.as_deref(),
                 modifications: &modifications,
                 signature_employeur: mb.signature_employeur.as_deref(),
-                mention_artiste: mb.mention_artiste.as_deref(),
             };
             if titre_modele.is_none() {
                 titre_modele = Some(modele::texte_brut(&m.titre, &mb.valeurs)?);

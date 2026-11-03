@@ -21,13 +21,13 @@
 let EXPORTS = null;          // ce que `exports-periodes` a rendu
 
 async function dessinerExports() {
+  brancherDroits();
   const cible = document.getElementById("exports-formulaire");
   try { EXPORTS = await api("exports-periodes"); }
   catch (e) { cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`; return; }
   const p = EXPORTS;
   if (!p.mois.length) {
-    cible.innerHTML = `<p class="discret">Aucune paie saisie : il n'y a rien à
-      exporter pour l'instant.</p>`;
+    cible.innerHTML = `<p class="discret">${echapper(p.ecran.vide)}</p>`;
     document.getElementById("exports-resultat").innerHTML = "";
     return;
   }
@@ -69,7 +69,7 @@ async function dessinerExports() {
 
 /* ------------------------------------------- le dossier d'un salarié */
 
-/** TOUS SES DOCUMENTS, EN UNE FOIS (l'éditeur, 23/09/2026). On coche ce qu'on
+/** TOUS SES DOCUMENTS, EN UNE FOIS. On coche ce qu'on
  *  sort : une catégorie donne un PDF, plusieurs un ZIP d'un PDF par
  *  catégorie. Le moteur réédite ce qui se recrée — aux numéros lus, jamais
  *  neufs — et prend tel quel ce qui ne se recrée pas (contrat signé, AER,
@@ -85,7 +85,7 @@ async function dessinerDossier() {
   cible.innerHTML = `
     <div class="champs">
       <div class="champ">
-        <!-- QUI SE COCHE, COMME DANS LES PAIES (Leandre, 08/10/2026) : une
+        <!-- QUI SE COCHE, COMME DANS LES PAIES : une
              case par salarié, et une case « Tous ». Un dossier chacun. -->
         <label>Qui</label>
         <div class="d-qui-liste" style="display:flex;flex-direction:column;gap:2px;max-height:12em;overflow:auto">
@@ -103,15 +103,15 @@ async function dessinerDossier() {
         <select id="d-periode" class="cachee"></select>
       </div>
       <div class="champ pleine">
-        <label>Quoi <button type="button" class="lien d-tout">tout décocher</button></label>
+        <label>Quoi <button type="button" class="lien d-tout" data-cocher="tout cocher" data-decocher="tout décocher">tout décocher</button></label>
         <div class="d-cats">${f.categories.map((c) => `<label class="coche">
           <input type="checkbox" class="d-cat" value="${echapper(c.categorie)}" checked>
           ${echapper(c.quoi)}</label>`).join("")}</div>
-        <div class="aide">Une seule case : un PDF. Plusieurs : un ZIP, un PDF par catégorie.</div>
+        <div class="aide">${echapper(EXPORTS.ecran.categories)}</div>
       </div>
       <div class="champ pleine">
         <label class="coche"><input type="checkbox" id="d-ensemble">
-          Tous les salariés dans le même fichier <span class="discret">(ne s'envoie à personne)</span></label>
+          Un seul fichier <span class="discret">(ne s'envoie à personne)</span></label>
       </div>
     </div>
     <div class="actions">
@@ -123,14 +123,16 @@ async function dessinerDossier() {
   // « Tous » coche ou décoche chacun ; chacun remet « Tous » d'accord.
   const tous = document.getElementById("d-tous");
   const sals = [...cible.querySelectorAll(".d-sal")];
-  tous.onchange = () => sals.forEach((c) => { c.checked = tous.checked; });
-  sals.forEach((c) => { c.onchange = () => { tous.checked = sals.every((x) => x.checked); }; });
+  // Personne de coché : rien à écrire, les boutons s'éteignent.
+  const majBoutons = () => cible.querySelectorAll("#d-apercu, #d-ecrire, #d-envoyer").forEach((b) => { b.disabled = !sals.some((x) => x.checked); });
+  tous.onchange = () => { sals.forEach((c) => { c.checked = tous.checked; }); majBoutons(); };
+  sals.forEach((c) => { c.onchange = () => { tous.checked = sals.every((x) => x.checked); majBoutons(); }; });
   const tout = cible.querySelector(".d-tout");
   tout.onclick = () => {
     const cases = [...cible.querySelectorAll(".d-cat")];
     const cocher = cases.every((c) => !c.checked);
     cases.forEach((c) => { c.checked = cocher; });
-    tout.textContent = cocher ? "tout décocher" : "tout cocher";
+    tout.textContent = cocher ? tout.dataset.decocher : tout.dataset.cocher;
   };
   document.getElementById("d-quand").onchange = () => {
     const quand = document.getElementById("d-quand").value;
@@ -139,7 +141,7 @@ async function dessinerDossier() {
     const liste = quand === "mois" ? f.mois.slice().reverse() : f.annees;
     sel.innerHTML = liste.map((v) => opt(v, quand === "mois" ? moisEnClair(v) : v)).join("");
   };
-  // VENU D'UNE FICHE SALARIE (« Exporter ses documents », 23/09/2026) : ce
+  // VENU D'UNE FICHE SALARIE (« Exporter ses documents ») : ce
   // salarie, l'annee la plus recente, toutes les categories cochees.
   if (DOSSIER_PRECHOIX && f.salaries.some((s) => s.cle === DOSSIER_PRECHOIX)) {
     sals.forEach((c) => { c.checked = c.value === DOSSIER_PRECHOIX; });
@@ -157,13 +159,12 @@ async function dessinerDossier() {
   document.getElementById("d-ecrire").onclick = () => lancerDossier("dossier-salarie", false);
   if (f.boite_liee) document.getElementById("d-envoyer").onclick = () => lancerDossier("dossier-envoyer", false);
   document.getElementById("d-ouvrir").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports", { sous: "dossiers" });
+    await ouvrirEtDire(DOSSIER.dossier);
   };
 }
 
 async function lancerDossier(route, apercu) {
   const coches = [...document.querySelectorAll(".d-sal:checked")].map((c) => c.value);
-  if (!coches.length) { dire("Cochez au moins un salarié.", "erreur"); return; }
   // Tous cochés : la liste vide, qui veut dire « chaque salarié » pour le moteur.
   const qui = document.getElementById("d-tous").checked ? [] : coches;
   const quand = document.getElementById("d-quand").value;
@@ -178,7 +179,7 @@ async function lancerDossier(route, apercu) {
   else if (quand === "annee") charge.annee = periode;
   else charge.toutes_les_annees = true;
   if (route === "dossier-envoyer") {
-    const mdp = await demanderMotDePasse("envoyer leur dossier aux salariés", { envoi: true });
+    const mdp = await demanderMotDePasse("L'envoyer à chaque salarié", { envoi: true });
     if (!mdp) return;
     charge.motdepasse = mdp;
   }
@@ -198,8 +199,7 @@ async function lancerDossier(route, apercu) {
     ${r.avertissements.map((a) => `<div class="encart">${echapper(a)}</div>`).join("")}
     <table class="tableau"><tr><th>Salarié</th><th>Pages</th></tr>${lignes}</table>
     ${r.fichiers.length ? `<p class="note">Écrit : ${r.fichiers.map((x) => `<code>${echapper(x)}</code>`).join(", ")}</p>` : ""}
-    ${r.envoi ? `<div class="encart ok">${r.envoi.messages} dossier(s) envoyé(s) à
-      ${echapper(r.envoi.partis.join(", "))}.</div>` : ""}`;
+    ${r.envoi ? `<div class="encart ok">${echapper(r.phrase)}</div>` : ""}`;
 }
 
 /** Les états rangés par famille, dans l'ordre que le moteur donne : une
@@ -238,11 +238,7 @@ function dessinerQuestions(opt) {
               .map((r) => opt(r.regroupement, r.quoi,
                               r.regroupement === forme.regroupements[0])).join("")}
         </select>
-        <div class="aide">${forme.etat === "livre-de-paie"
-          ? `Par salarié, ce qu'on envoie au comptable ; par mois, ce
-          qu'on rapproche de la banque ; par spectacle, ce qui justifie une
-          subvention. Les trois disent la même chose, et le total ne bouge pas.`
-          : "Le total ne bouge pas : seule la répartition des lignes change."}</div>
+        <div class="aide">${echapper(forme.etat === "livre-de-paie" ? p.ecran.regroupement_livre : p.ecran.regroupement)}</div>
       </div>` : ""}
       ${q.has("logiciel") ? `<div class="champ pleine">
         <label for="x-logiciel">Logiciel du comptable</label>
@@ -250,37 +246,35 @@ function dessinerQuestions(opt) {
           ${p.compta.logiciels.map((l) => opt(l.logiciel,
             `${l.nom} — ${l.format_lisible}`,
             l.logiciel === p.compta.logiciel)).join("")}
-          ${opt("", "Aucun : je choisis le format", !p.compta.logiciel)}
+          ${opt("", "Aucun", !p.compta.logiciel)}
         </select>
         <div class="aide" id="x-logiciel-aide"></div>
         <label class="choix" id="x-analytique-champ">
           <input type="checkbox" id="x-analytique"${p.compta.analytique ? " checked" : ""}>
-          <span>Ventiler les salaires bruts par spectacle (analytique)</span>
+          <span>Analytique par spectacle</span>
         </label>
-        <div class="aide">Le code de chaque spectacle se règle sur sa fiche :
-          Configuration › Spectacles, case « Code analytique ». Vide, il est
-          tiré du titre.</div>
+        <div class="aide">${echapper(p.ecran.analytique)}</div>
         <div id="x-controle"></div>
       </div>` : ""}
       ${q.has("format") ? `<div class="champ" id="x-format-champ">
         <label for="x-format">Format</label>
         <select id="x-format">
           ${p.formats.filter((f) => (forme.formats || []).includes(f.format)).map((f) => opt(f.format,
-            f.quoi + (manque[f.format] ? " — brique absente, le CSV sera écrit" : ""),
+            f.quoi + (manque[f.format] ? " — " + p.ecran.brique_absente : ""),
             f.format === "csv")).join("")}
         </select>
       </div>` : ""}
       ${q.has("coordonnees") ? `<div class="champ pleine">
-        <label class="coche" title="Sans la case, rien de tout cela ne sort. Un fichier qui les porte ne s'envoie qu'à qui en a besoin.">
+        <label class="coche" title="${echapper(p.ecran.coordonnees)}">
           <input type="checkbox" id="x-coordonnees">
-          Avec les coordonnées des salariés (NIR, naissance, adresse)
+          Coordonnées des salariés
         </label>
       </div>` : ""}
     </div>
     <div class="actions">
       ${forme.apercu ? `<button class="secondaire" id="x-apercu">Aperçu</button>` : ""}
       <button class="primaire" id="x-ecrire">${echapper(forme.bouton)}</button>
-      <button class="lien" id="x-dossier" title="${echapper(p.dossier)} — et nulle part ailleurs : un export emporte des salaires">Ouvrir le dossier</button>
+      <button class="lien" id="x-dossier" title="${echapper(p.ecran.dossier)}">Ouvrir le dossier</button>
     </div>`;
   if (q.has("periode")) dessinerCalendrier(forme.periodes || ["annee", "mois", "toutes"]);
   if (q.has("logiciel")) {
@@ -302,7 +296,7 @@ function dessinerQuestions(opt) {
   if (forme.apercu) document.getElementById("x-apercu").onclick = () => lancerExport(true);
   document.getElementById("x-ecrire").onclick = () => lancerExport(false);
   document.getElementById("x-dossier").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports");
+    await ouvrirEtDire(EXPORTS.dossier);
   };
 }
 
@@ -316,9 +310,7 @@ function montrerLogiciel() {
   const choisi = c.logiciels.find((l) => l.logiciel === document.getElementById("x-logiciel").value);
   const fmt = document.getElementById("x-format-champ");
   if (fmt) fmt.classList.toggle("cachee", !!choisi);
-  document.getElementById("x-logiciel-aide").textContent = choisi
-    ? `Fichier ${choisi.format_lisible} : ${choisi.pourquoi}. Retenu pour les prochaines fois.`
-    : "Le format se choisit ci-dessous.";
+  document.getElementById("x-logiciel-aide").textContent = choisi ? choisi.dit : EXPORTS.ecran.format_libre;
   // Sans logiciel, la case suit le format choisi à la main.
   const f = document.getElementById("x-format");
   const porte = choisi ? choisi.analytique
@@ -340,17 +332,17 @@ function dessinerCalendrier(periodes) {
   const peutMois = periodes.includes("mois");
   const peutAn = periodes.includes("annee");
   cal.innerHTML = `
-    ${periodes.includes("toutes") ? `<div class="rangee"><button type="button" data-quand="toutes" data-periode="">Tout</button></div>` : ""}
+    ${periodes.includes("toutes") ? `<div class="rangee"><button type="button" data-quand="toutes" data-periode="" data-dit="toutes les années">Tout</button></div>` : ""}
     ${annees.map((a) => `<div class="rangee">
-      <button type="button" class="an" data-quand="annee" data-periode="${a}"${peutAn ? "" : " disabled"}>${a}</button>
+      <button type="button" class="an" data-quand="annee" data-periode="${a}" data-dit="${a}"${peutAn ? "" : " disabled"}>${a}</button>
       ${MOIS_ABR.map((n, i) => {
         const m = `${a}-${String(i + 1).padStart(2, "0")}`;
         const ok = peutMois && dispo.has(m);
-        return `<button type="button" data-quand="mois" data-periode="${m}"${ok ? "" : " disabled"}
+        return `<button type="button" data-quand="mois" data-periode="${m}" data-dit="${echapper(moisEnClair(m))}"${ok ? "" : " disabled"}
           title="${echapper(moisEnClair(m))}">${n}</button>`;
       }).join("")}
     </div>`).join("")}`;
-  const choisir = (quand, periode) => {
+  const choisir = (quand, periode, dit) => {
     document.getElementById("x-quand").value = quand;
     document.getElementById("x-periode").value = periode;
     cal.querySelectorAll("button").forEach((b) => {
@@ -360,18 +352,17 @@ function dessinerCalendrier(periodes) {
         : d.quand === "mois" && d.periode === periode;
       b.classList.toggle("pris", !!pris);
     });
-    document.getElementById("x-quand-dit").textContent = "— " + (quand === "toutes" ? "toutes les années"
-      : quand === "annee" ? "l'année " + periode : moisEnClair(periode));
+    document.getElementById("x-quand-dit").textContent = "— " + dit;
     document.getElementById("exports-resultat").innerHTML = "";
   };
   cal.querySelectorAll("button").forEach((b) => {
-    b.onclick = () => choisir(b.dataset.quand, b.dataset.periode);
+    b.onclick = () => choisir(b.dataset.quand, b.dataset.periode, b.dataset.dit);
   });
   // Par défaut, le plus récent que l'état admet : le dernier mois, sinon la dernière année, sinon tout.
   const dernier = EXPORTS.mois[EXPORTS.mois.length - 1];
-  if (peutMois && dernier) choisir("mois", dernier);
-  else if (peutAn && annees.length) choisir("annee", annees[0]);
-  else choisir("toutes", "");
+  if (peutMois && dernier) choisir("mois", dernier, moisEnClair(dernier));
+  else if (peutAn && annees.length) choisir("annee", annees[0], annees[0]);
+  else choisir("toutes", "", (cal.querySelector("[data-quand=toutes]") || { dataset: {} }).dataset.dit || "");
 }
 
 async function lancerExport(apercu) {
@@ -407,7 +398,7 @@ async function lancerExport(apercu) {
 }
 
 /** LA RÉGULARISATION CASC-SVP. Deux étapes, dans l'ordre où on les vit
- *  (l'éditeur, 23/09/2026) : faire les virements, puis envoyer — par la boîte
+ *  : faire les virements, puis envoyer — par la boîte
  *  de la compagnie si elle est posée, c'est le premier choix et il se voit ;
  *  sinon à la main, les fichiers sont là. Le détail des mois se déplie. */
 function dessinerCasc(r) {
@@ -417,41 +408,35 @@ function dessinerCasc(r) {
       <td class="r">${echapper(m.cotisation)}</td></tr>`).join("");
   const annees = r.annees.map((a) => `<tr class="sous-total"><td><b>${echapper(a.annee)}</b></td>
       <td class="r">${echapper(a.masse)}</td><td></td><td class="r"><b>${echapper(a.cotisation)}</b></td></tr>`).join("");
-  const courriel = (c, titre) => `<details><summary>${titre} — à ${echapper(c.a)}, objet ${echapper(c.objet)}</summary>
+  const courriel = (c, titre) => `<details><summary>${titre} — ${echapper(c.entete_dit)}</summary>
       <pre class="courriel">${echapper(c.corps)}</pre></details>`;
   const n = r.annees.length;
   cible.innerHTML = `
     <h3>Régularisation CASC-SVP — ${echapper(r.periode)} — ${echapper(euros(r.total))}</h3>
     ${r.avertissements.map((a) => `<div class="encart alerte">${echapper(a)}</div>`).join("")}
     <div class="casc-etape">
-      <h4>1. Faire ${n > 1 ? "les " + n + " virements" : "le virement"}</h4>
-      <ul>${r.annees.map((a) => `<li><b>${echapper(euros(a.cotisation))}</b>, libellé
-        « ${echapper(a.libelle_virement)} »</li>`).join("")}</ul>
-      <p class="discret">Vers Audiens Santé Prévoyance – Encaissement. L'IBAN se lit dans
-        l'espace employeur Audiens ou sur la page employeurs du CASC-SVP.</p>
+      <h4>${echapper(r.virements_titre)}</h4>
+      <ul>${r.annees.map((a) => `<li><b>${echapper(euros(a.cotisation))}</b>, ${echapper(a.libelle_dit)}</li>`).join("")}</ul>
+      <p class="discret">${echapper(r.ecran.virement)}</p>
     </div>
     <div class="casc-etape">
-      <h4>2. Envoyer les deux courriels</h4>
+      <h4>Les deux courriels</h4>
       <div class="casc-choix">
         <div class="casc-option principale">
-          <h5>Automatiquement, depuis la boîte de la compagnie</h5>
+          <h5>Depuis la boîte</h5>
           ${r.boite_liee ? `
           <div class="e-contrat-champs">
-            ${r.annees.map((a) => `<label>Virement ${echapper(a.annee)} fait le
+            ${r.annees.map((a) => `<label>${echapper(a.date_libelle)}
               <input type="date" class="casc-date" data-annee="${echapper(a.annee)}"></label>`).join("")}
           </div>
           <button class="primaire" id="casc-envoyer">Envoyer les 2 courriels</button>
-          <p class="discret">Audiens reçoit les masses et les dates des virements ; le CASC-SVP,
-            la liste nominative. Une copie reste dans le dossier, et les années sont notées
-            régularisées.</p>` : `
-          <p>La boîte courriel n'est pas posée : Configuration › Courriel. Une fois posée,
-            l'envoi se fait d'ici en un clic.</p>`}
+          <p class="discret">${echapper(r.ecran.automatique)}</p>` : `
+          <p>${echapper(r.ecran.automatique)}</p>`}
         </div>
         <div class="casc-option">
           <h5>À la main</h5>
-          <p>Joindre la liste nominative au courriel du CASC-SVP, recopier les deux courriels
-            ci-dessous, puis noter la régularisation.</p>
-          <button class="secondaire" id="casc-dossier">Ouvrir les fichiers (liste nominative .xlsx)</button>
+          <p>${echapper(r.ecran.a_la_main)}</p>
+          <button class="secondaire" id="casc-dossier">Ouvrir les fichiers</button>
           ${courriel(r.courriel_audiens, "Courriel à Audiens")}
           ${courriel(r.courriel_casc, "Courriel au CASC-SVP")}
           <div class="e-contrat-champs">
@@ -464,12 +449,12 @@ function dessinerCasc(r) {
         </div>
       </div>
     </div>
-    <details><summary>Le détail, mois par mois</summary>
+    <details><summary>Détail par mois</summary>
       <table class="livre"><thead><tr><th>mois</th><th class="r">masse</th><th class="r">taux</th>
         <th class="r">CASC</th></tr></thead><tbody>${lignes}${annees}</tbody></table>
     </details>`;
   document.getElementById("casc-dossier").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports", { sous: "casc-svp" });
+    await ouvrirEtDire(r.dossier);
   };
   const choixAnnee = document.getElementById("casc-annee");
   const montant = document.getElementById("casc-montant");
@@ -481,11 +466,10 @@ function dessinerCasc(r) {
   preremplir();
   document.getElementById("casc-noter").onclick = async () => {
     const vire = document.getElementById("casc-vire-le").value;
-    if (!vire) { dire("La date du virement d'abord : on note ce qui est payé."); return; }
     try {
       const e = await api("casc-regularise",
         { annee: choixAnnee.value, vire_le: vire, montant: montant.value });
-      dire(`CASC-SVP ${e.annee} notée régularisée (${e.mois.length} mois).`);
+      dire(e.phrase);
     } catch (x) { dire(x.message, "erreur"); }
   };
   const envoyer = document.getElementById("casc-envoyer");
@@ -493,21 +477,18 @@ function dessinerCasc(r) {
     const vire_le = {};
     for (const c of document.querySelectorAll(".casc-date")) if (c.value) vire_le[c.dataset.annee] = c.value;
     const liste = Object.keys(vire_le);
-    if (!liste.length) { dire("La date d'au moins un virement d'abord : les courriels annoncent des virements faits."); return; }
-    const mdp = await demanderMotDePasse("envoyer à Audiens et au CASC-SVP la régularisation " + liste.join(" et "), { envoi: true });
+    const mdp = await demanderMotDePasse("Envoyer les 2 courriels", { envoi: true });
     if (!mdp) return;
-    const rendre = occupe(envoyer, "Envoi des courriels en cours…");
+    const rendre = occupe(envoyer, "Envoi…");
     const repere = await repereCourrielsFictifs();
     try {
       const e = await api("casc-envoyer", { vire_le, motdepasse: mdp });
-      dire(`${e.partis.length} courriel(s) envoyé(s) à ${e.partis.join(" et ")} — ` +
-           `${e.annees.map((a) => a.annee).join(" et ")} notée(s) régularisée(s).`, "envoye");
-      cible.innerHTML = `<p>CASC-SVP ${echapper(e.periode)} : ${echapper(euros(e.total))}, envoyé depuis
-        ${echapper(e.expediteur)}. Copie des courriels dans ${echapper(e.dossier)}.</p>`;
+      dire(e.phrase, "envoye");
+      cible.innerHTML = `<p>${echapper(e.phrase)}</p>`;
       fenetreCourrielsFictifs("courriel", repere);
     } catch (x) {
       rendre();
-      dire("Envoi impossible : " + x.message, "erreur");
+      dire(x.message, "erreur");
     }
   };
 }
@@ -533,11 +514,8 @@ function dessinerTableau(r, apercu) {
   const n = r.sections.reduce((a, s) => a + s.lignes.length, 0);
   cible.innerHTML = `
     <h2>${echapper(r.titre)} — ${echapper(r.periode)}</h2>
-    <p class="discret">${n} ligne${n === 1 ? "" : "s"}${r.fichier
-        ? ` — écrit : <b>${echapper(r.fichier)}</b>`
-        : " — aperçu, rien n'a été écrit"}.</p>
-    ${r.donnees_personnelles ? `<div class="encart alerte">Cet état porte des données
-      personnelles : il reste dans prive/, et ne s'envoie qu'à qui en a besoin.</div>` : ""}
+    <p class="discret">${echapper(r.phrase)}</p>
+    ${r.ecran.personnelles ? `<div class="encart alerte">${echapper(r.ecran.personnelles)}</div>` : ""}
     ${(r.avertissements || []).map((a) =>
         `<div class="encart info">${echapperLiens(a)}</div>`).join("")}
     <div class="tableau-compta"><table class="compta">
@@ -551,9 +529,9 @@ function dessinerTableau(r, apercu) {
       <button class="lien" id="x-dossier-2">Ouvrir le dossier</button></div>` : ""}`;
   const o = document.getElementById("x-dossier-2");
   if (o) o.onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports");
+    await ouvrirEtDire(EXPORTS.dossier);
   };
-  if (!apercu) dire("Export écrit.");
+  if (!apercu) dire(r.phrase);
 }
 
 /** L'état rendu, tel quel : les groupes, leurs sous-totaux, le pied. */
@@ -576,7 +554,7 @@ function dessinerLivre(r, apercu) {
   const total = (t, titre, classe) => `
     <tr class="${classe}">
       <td></td><td><b>${echapper(titre)}</b></td>
-      <td class="discret">${t.bulletins} bulletin${t.bulletins === 1 ? "" : "s"}</td>
+      <td class="discret">${echapper(t.bulletins_dit)}</td>
       <td class="r"><b>${eur(t.brut)}</b></td>
       <td class="r"><b>${eur(t.cotisations_salariales)}</b></td>
       <td class="r"><b>${eur(t.cotisations_patronales)}</b></td>
@@ -586,26 +564,17 @@ function dessinerLivre(r, apercu) {
       <td class="r"><b>${eur(t.cout_employeur)}</b></td>
     </tr>`;
   const corps = r.groupes.map((g) =>
-    g.lignes.map(ligne).join("") + total(g.totaux, "Total " + g.libelle, "sous-total")
+    g.lignes.map(ligne).join("") + total(g.totaux, g.total_dit, "sous-total")
   ).join("");
   cible.innerHTML = `
     <h2>${echapper(r.periode)}</h2>
-    <p class="discret">${r.totaux.bulletins} bulletin${r.totaux.bulletins === 1 ? "" : "s"},
-      ${echapper(r.mois.length)} mois${r.fichier
-        ? ` — écrit : <b>${echapper(r.fichier)}</b>`
-        : " — aperçu, rien n'a été écrit"}.</p>
-    ${Object.keys(r.totaux.inconnus || {}).length
-      ? `<div class="encart info">Totaux partiels :
-         ${Object.entries(r.totaux.inconnus).sort().map(([c, n]) =>
-           `${echapper(c.replace(/_/g, " "))} sur ${r.totaux.bulletins - n}
-            bulletin${r.totaux.bulletins - n === 1 ? "" : "s"} sur ${r.totaux.bulletins}`)
-           .join(" ; ")}.</div>`
-      : ""}
+    <p class="discret">${echapper(r.phrase)}</p>
+    ${r.ecran.partiels ? `<div class="encart info">${echapper(r.ecran.partiels)}</div>` : ""}
     ${(r.avertissements || []).map((a) =>
         `<div class="encart info">${echapperLiens(a)}</div>`).join("")}
     <div class="tableau-compta"><table class="compta">
       <tr><th>Mois</th><th>Salarié</th><th>Spectacle</th><th>Brut</th>
-          <th>Cot. sal.</th><th>Cot. pat.</th><th>Net imposable</th>
+          <th>Part salariale</th><th>Part patronale</th><th>Net imposable</th>
           <th>Net à payer</th><th>PAS</th><th>Coût employeur</th></tr>
       ${corps}
       ${total(r.totaux, "TOTAL GÉNÉRAL", "total-general")}
@@ -614,37 +583,31 @@ function dessinerLivre(r, apercu) {
       <button class="lien" id="x-dossier-2">Ouvrir le dossier</button></div>` : ""}`;
   const o = document.getElementById("x-dossier-2");
   if (o) o.onclick = async () => {
-    await ouvrirEtDire("ouvrir-exports");
+    await ouvrirEtDire(EXPORTS.dossier);
   };
-  if (!apercu) dire("Export écrit.");
+  if (!apercu) dire(r.phrase);
 }
 
 function boiteCloture(annee) {
   ouvrirBoite(`
-    <h3>Clôturer l'exercice ${echapper(annee)}</h3>
+    <h3>Clôturer l'exercice — ${echapper(annee)}</h3>
     <div class="encart">
       <b>L'année se fige</b>
-      Les saisies et les sorties de ${echapper(annee)} ne se modifieront plus
-      (rouvrir reste possible, depuis l'Historique). Tout ce qu'il faut garder —
-      saisies, bulletins, contrats signés, DPAE, DSN, certificats, retours des
-      organismes, journal des dépôts, fiches, export compta — est réuni dans
-      <b>Exercice_${echapper(annee)}.zip</b>.
+      ${aideDe("cloture")}
     </div>
-    <p class="note">La clôture vient après la dernière DSN de l'année : elle est
-      refusée si un mois avec des paies n'a pas de DSN acceptée au journal.</p>
-    <label class="coche"><input type="checkbox" id="c-forcer">
-      Clôturer quand même si une DSN manque au journal (déposée ailleurs, par exemple)</label>
+    <p class="note">${aideDe("cloture_refus")}</p>
+    <label class="coche" title="${aideDe("cloture_forcer")}"><input type="checkbox" id="c-forcer">
+      Clôturer quand même</label>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
-      <button class="primaire" id="c-lancer">Clôturer ${echapper(annee)}</button>
+      <button class="primaire" id="c-lancer">Clôturer</button>
     </div>`);
   document.getElementById("c-lancer").onclick = async () => {
     document.getElementById("c-lancer").disabled = true;
     try {
       const r = await api("cloture", { annee, forcer: document.getElementById("c-forcer").checked });
       fermerBoite();
-      dire("Exercice " + r.annee + " clos : " + r.archive + " (" + r.fichiers + " fichiers).");
-      if (r.manques && r.manques.length) dire(r.manques.join(" · "));
+      dire(r.phrase);
       if (document.getElementById("exercices")) await dessinerExercices();
     } catch (e) {
       document.getElementById("c-lancer").disabled = false;
@@ -664,7 +627,7 @@ async function lancerExportCompta(annee) {
         <td class="r">${e.credit !== "0.00" ? echapper(e.credit) : ""}</td>
         <td class="discret">${echapper(e.analytique)}</td></tr>`).join("");
   ouvrirBoite(`
-    <h3>Export compta ${echapper(r.annee)}</h3>
+    <h3>Export compta — ${echapper(r.annee)}</h3>
     <p class="discret">Mois ${r.mois.map((m) => m.slice(5)).join(", ")} — ${r.ecritures.length}
       écritures, débit ${echapper(euros(r.total_debit))} = crédit ${echapper(euros(r.total_credit))}.
       ${r.fichier ? `Écrit : <b>${echapper(r.fichier)}</b>` : ""}</p>
@@ -678,8 +641,34 @@ async function lancerExportCompta(annee) {
       <button class="primaire" onclick="fermerBoite()">Fermer</button>
     </div>`);
   document.getElementById("x-ouvrir").onclick = async () => {
-    await ouvrirEtDire("ouvrir-exercices");
+    await ouvrirEtDire(r.dossier);
   };
   if (document.getElementById("exercices")) dessinerExercices();
 }
 
+
+/* ------------------------------- les heures et cachets des intermittents */
+
+/** LA CARTE DES DROITS : à son ouverture, ce que le moteur compte pour chaque intermittent (route `droits`) — ses
+ *  lignes, la phrase qui dit où il en est, ses notes, le tableau du mois. La page met en forme, elle ne compte rien. */
+function brancherDroits() {
+  const carte = document.getElementById("carte-droits");
+  if (!carte) return;
+  carte.ontoggle = async () => {
+    if (!carte.open) return;
+    const cible = document.getElementById("droits");
+    let d;
+    try { d = await api("droits"); }
+    catch (e) { cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`; return; }
+    cible.innerHTML = d.salaries.map((s) => `
+      <div class="droits-salarie">
+        <h3>${echapper(s.nom)} <span class="discret">— ${echapper(s.fenetre)}</span></h3>
+        <table>${s.lignes.map(([quoi, valeur]) => `<tr><td>${echapper(quoi)}</td><td>${echapper(valeur)}</td></tr>`).join("")}</table>
+        <p><b>${echapper(s.phrase)}</b></p>
+        ${s.notes.map((n) => `<p class="discret">${echapper(n)}</p>`).join("")}
+        <table><tr><th></th>${s.colonnes.titres.map((t) => `<th>${echapper(t)}</th>`).join("")}</tr>
+          ${s.colonnes.lignes.map((l) => `<tr><td>${echapper(l.quoi)}</td>${l.valeurs.map((v) => `<td>${echapper(v)}</td>`).join("")}</tr>`).join("")}
+        </table>
+      </div>`).join("") + `<p class="discret">${echapper(d.phrase)}</p>`;
+  };
+}

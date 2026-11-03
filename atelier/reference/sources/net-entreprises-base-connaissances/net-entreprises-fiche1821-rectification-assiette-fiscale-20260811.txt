@@ -1,0 +1,541 @@
+   → La gestion des contrats (/app/answers/list-
+                                                                       Version en vigueur au : 30/01/2018
+   search/p/2137)
+   → La déclaration des éléments d'activité (temps, heures,
+                                                                        Afficher les différences avec la version sélectionnée
+   heures sup...) (/app/answers/list-search/p/2138)
+   → La gestion des rémunérations (/app/answers/list-
+
+Date de modification : 11/08/2026 01:52 PM
+
+
+
+DSN - Rectification de l’assiette fiscale
+  Comment rectifier une erreur déclarative sur l’assiette fiscale ?
+
+  Contexte
+  Une erreur sur l’assiette fiscale correspond à une situation dans laquelle l’organisme, sur la base des informations dont il dispose au moment
+  versement du revenu, déclare à tort un revenu qui n’est pas imposable (ou ne déclare pas un revenu qui s’avère imposable).
+  Cette erreur peut concerner :
+
+         Le montant soumis au prélèvement à la source (PAS)
+         et/ou la Rémunération nette fiscale (RNF).
+  Elle est à dissocier des situations de trop versé car elle porte uniquement sur la répartition entre la part imposable ou non imposable du revenu versé.
+  Les rectifications de PAS liées à cette erreur d'assiette fiscale par le déclarant sont limitées à l'année civile en cours (année N). Une mesure de toléran
+  autorise le déclarant à rectifier ces erreurs, portant sur l’exercice N, dans la déclaration de janvier N+1 (déposée en février). Au-delà de ce
+  échéance, toute tentative de correction portant sur l’exercice N sera rejetée lors des contrôles de conformité.
+  A noter que dans la (ou les) DSN comportant la correction :
+         La date de versement (S21.G00.50.001) est à renseigner avec la date à laquelle le déclarant effectue le versement.
+         Le mois de l’erreur (S21.G00.56.001) est à renseigner avec le mois principal déclaré qui a porté l’erreur.
+          Le montant net versé (S21.G00.50.004) et le montant net social (type « 03 » en bloc « Elément de revenu calculé en net - S21.G00.58 ») son
+      renseigner en cas de correction de la rémunération nette fiscale (S21.G00.50.002).
+
+
+  A. Rectification d’une erreur d’assiette fiscale concernant l’exercice fiscal courant (pouvant être déclar
+  jusqu’au 31 janvier de l’année qui suit la survenance de l’erreur d’assiette)
+  Exemples :
+
+
+
+
+  Cas A - Exercice fiscal courant – Correction assiette fiscale
+
+
+
+
+          Sur le mois principal déclaré de janvier, un déclarant prend en compte à tort, pour le calcul de la RNF et du montant soumis au PAS, une somm
+          qui n’est pas soumise à l’impôt sur le revenu. La RNF et le montant soumis au PAS déclarés pour le salarié sont respectivement déclarés à 1400
+          au mois de décembre, alors que ces rubriques auraient dû être déclarées à 1200 €.
+          Le taux de PAS du mois de janvier était de 10 %. Le montant de PAS précompté à tort s’élève à 20 € (200 € x 10 % = 20 €)
+
+
+  Le déclarant rectifie l’erreur sur la déclaration du mois principal déclaré février. Puisque la rectification d’assiette fiscale concerne l’exercice fiscal coura
+  les modalités déclaratives sont les suivantes :
+
+          L’individu reçoit un salaire d’un montant de 1200 euros en février. Un bloc « Versement individu - S21.G00.50 » daté du mois en cours porte
+          montant.
+          La rectification sur assiette fiscale est réalisée en émettant un bloc « Régularisation du prélèvement à la source - S21.G00.56 » avec type d’erre
+          « 01 - Rectification sur rémunération nette fiscale ». Les montants corrigés et les impacts fiscaux sont déclarés via ce bloc.
+
+  Modalités déclaratives à depuis la version DSN P20V01 :
+
+
+  Mois de l’erreur : janvier 2026
+
+
+
+
+    S21.G00.50 - Versement Individu
+
+
+
+
+               Code                                                Rubrique                                                          Valorisation
+
+                                                                                                                                                           1501202
+    S21.G00.50.001              Date de versement
+                                                                                                                                                    [15 janvier 202
+
+
+    S21.G00.50.002              Rémunération nette fiscale                                                                                                  1400.0
+
+
+
+
+    S21.G00.50.004              Montant net versé                                                                                                           1250.0
+
+
+
+
+    S21.G00.50.006              Taux de prélèvement à la source                                                                                                10.0
+
+
+
+
+    S21.G00.50.007              Type de taux de prélèvement à la source                                                            01 - Taux transmis par la DGIF
+
+
+
+
+    S21.G00.50.008              Identification du taux de prélèvement à la source                                                                      A renseigne
+                                                                                                                                                           140.0
+ S21.G00.50.009               Montant de prélèvement à la source
+                                                                                                                                                     [1400 x10%
+
+ S21.G00.50.013               Montant soumis au PAS                                                                                                      1400.0
+
+
+
+
+Mois de la correction: février 2026
+
+
+
+
+ S21.G00.50 - Versement Individu
+
+
+
+
+            Code                                                Rubrique                                                          Valorisation
+
+                                                                                                                                                       1502202
+ S21.G00.50.001               Date de versement
+                                                                                                                                                 [15 février 202
+
+ S21.G00.50.002               Rémunération nette fiscale                                                                                                 1200.0
+
+
+
+
+ S21.G00.50.004               Montant net versé                                                                                                          1050.0
+
+
+
+
+ S21.G00.50.006               Taux de prélèvement à la source                                                                                               10.0
+
+
+
+
+ S21.G00.50.007               Type de taux de prélèvement à la source                                                            01 - Taux transmis par la DGIF
+
+
+
+
+ S21.G00.50.008               Identification du taux de prélèvement à la source                                                                     A renseigne
+
+
+
+
+                                                                                                                                                           120.0
+ S21.G00.50.009               Montant de prélèvement à la source
+                                                                                                                                                     [1200 x 10%
+
+ S21.G00.50.013               Montant soumis au PAS                                                                                                      1200.0
+
+
+
+
+ S21.G00.56 - Régularisation du prélèvement à la source
+
+
+
+
+        Code                                            Rubrique                                                            Valorisation
+
+                                                                                                                                                          01202
+
+                                                                                                                                      (MPD qui a porté l’erreu
+ S21.G00.56.001          Mois de l'erreur
+                                                                                                                                                  [Janvier 202
+
+
+ S21.G00.56.002          Type d'erreur                                                                         01 - Rectification sur rémunération nette fisca
+
+
+
+
+ S21.G00.56.003          Régularisation de la rémunération nette fiscale                                                                                 -200.0
+
+
+
+
+ S21.G00.56.006          Taux déclaré le mois de l'erreur                                                                                                   10.0
+
+
+
+
+                                                                                                                                                          -20.0
+ S21.G00.56.007          Montant de la régularisation du prélèvement à la source
+                                                                                                                                                     [-200 x10%
+
+ S21.G00.56.010          Régularisation du montant soumis au PAS                                                                                         -200.0
+
+
+
+
+B. Rectification d’une erreur d’assiette fiscale concernant un exercice fiscal antérieur (rectification pouva
+être déclaré au-delà du 31 janvier de l’année N+1)
+Les rectifications de PAS à la suite d’erreur d'assiette fiscale par le déclarant sont limitées à l'année civile en cours (année N). Une mesure de toléran
+permet au déclarant de rectifier des erreurs d’assiette fiscale relatives à l’année N dans la déclaration de janvier de l’année N+1 déposée en février
+l’année N+1
+Au-delà du 31/01/N+1, les régularisations ne seront pas prises en compte pour l'établissement de la déclaration pré remplie avec les revenus imposab
+au titre de l'année civile N.
+
+Il appartiendra donc au contribuable de modifier sa déclaration de revenus pré-remplie de l’année N déposée au printemps de l’année N+1.
+Les modalités de correction en norme DSN P20V01 puis à partir de la norme P21V01 sont différentes. Elles sont expliquées et illustrées ci-dessous.
+
+Exemple :
+
+
+Cas B.1 – En norme DSN P20V01 - Exercice fiscal antérieur – Correction assiette fiscale
+
+
+        Sur le mois principal déclaré de décembre 2025 , un déclarant prend en compte à tort, pour le calcul de la RNF et du montant soumis au PAS,
+        une somme qui n’est pas soumise à l’impôt sur le revenu. La RNF et le montant soumis au PAS déclarés pour le salarié sont respectivement
+        déclarés à 1400 € au mois de décembre, alors que ces rubriques auraient dû être déclarées à 1200 €.
+        Le taux de PAS du mois de décembre était de 10 %. Le montant de PAS précompté à tort s’élève à 20 € (200 € x 10 % = 20 €)
+
+Le déclarant rectifie l’erreur sur la déclaration du mois principal déclaré février 2026 . Puisque la rectification d’assiette fiscale concerne l’exercice fisca
+précédent, les modalités déclaratives sont les suivantes :
+        En février, l’individu reçoit un salaire d’un montant de 1200 euros. Ce montant figure dans un bloc « Versement individu - S21.G00.50 » daté du
+        mois en cours.
+        La correction del’assiette fiscale s’effectue par le bloc « Versement individu - S21.G00.50 » avec type de taux de PAS renseigné à « 99 - Indu rela
+        à un exercice antérieur – pas de taux de PAS ». Ce bloc comporte :
+
+           - Un montant négatif dans la rubrique « Rémunération nette fiscale – S21.G00.50.002 » ;
+           - Un montant égal à 0,00 dans la rubrique « Montant net versé – S21.G00.50.004.
+En revanche, il n’est pas possible de régulariser un montant de PAS dans le cadre d’une correction d’une erreur d’assiette fiscale portant sur un exerc
+fiscal antérieur.
+
+
+Mois de l’erreur : décembre 2025
+
+
+
+
+ S21.G00.50 - Versement Individu
+
+
+
+
+           Code                                               Rubrique                                                        Valorisation
+
+                                                                                                                                                    1512202
+ S21.G00.50.001              Date de versement
+                                                                                                                                        [15 décembre 202
+
+ S21.G00.50.002              Rémunération nette fiscale                                                                                              1400.0
+
+
+
+
+ S21.G00.50.004              Montant net versé                                                                                                       1250.0
+
+
+
+
+ S21.G00.50.006              Taux de prélèvement à la source                                                                                            10.0
+
+
+
+
+ S21.G00.50.007              Type de taux de prélèvement à la source                                                        01 - Taux transmis par la DGIF
+
+
+
+
+ S21.G00.50.008              Identification du taux de prélèvement à la source                                                                  A renseigne
+
+
+
+
+                                                                                                                                                       140.0
+ S21.G00.50.009              Montant de prélèvement à la source
+                                                                                                                                                 [1400 x 10%
+
+ S21.G00.50.013              Montant soumis au PAS                                                                                                   1400.0
+
+
+
+
+Mois de la correction: février 2026
+
+
+
+
+ S21.G00.50 - Versement Individu
+
+
+
+
+           Code                                               Rubrique                                                        Valorisation
+
+                                                                                                                                                   1502202
+
+                                                                                                                                  (MPD qui a porté l’erreu
+ S21.G00.50.001              Date de versement
+                                                                                                                                             [15 février 202
+
+
+ S21.G00.50.002              Rémunération nette fiscale                                                                                              1200.0
+
+
+
+
+ S21.G00.50.004              Montant net versé                                                                                                       1050.0
+
+
+
+
+ S21.G00.50.006              Taux de prélèvement à la source                                                                                            10.0
+
+
+
+
+ S21.G00.50.007              Type de taux de prélèvement à la source                                                        01 - Taux transmis par la DGIF
+
+
+
+
+ S21.G00.50.008              Identification du taux de prélèvement à la source                                                                  A renseigne
+
+
+
+
+                                                                                                                                                       120.0
+ S21.G00.50.009              Montant de prélèvement à la source
+                                                                                                                                                 [1200 x 10%
+
+ S21.G00.50.013              Montant soumis au PAS                                                                                                   1200.0
+
+
+
+
+ S21.G00.50 - Versement Individu
+
+
+
+
+      Code                         Rubrique                                                           Valorisation
+
+                                                                                                                                                    1512202
+ S21.G00.50.001     Date de versement
+                                                                                                                                        [15 décembre 202
+
+ S21.G00.50.002     Rémunération nette fiscale                                                                                                       -200.0
+
+
+
+
+ S21.G00.50.004     Montant net versé                                                                                                                    0.0
+
+
+
+
+                                                                                                                                                        10.0
+
+ S21.G00.50.006     Taux de prélèvement à la source            (ou 0.00 pour les déclarants n’étant pas en mesure d’alimenter cette rubrique avec le tau
+                                                                                                                                   initialement appliqu
+                     Type de taux de prélèvement à la
+ S21.G00.50.007                                                                                    99 - Indu relatif à un exercice antérieur (pas de taux PA
+                     source
+
+                     Montant de prélèvement à la
+ S21.G00.50.009                                                                                                                                            0.0
+                     source
+
+ S21.G00.50.013      Montant soumis au PAS                                                                                                                 0.0
+
+
+
+
+                    B.2. Modalités de correction à partir de la norme DSN P21V01
+
+
+
+La norme DSN P21V01 introduit un nouveau type d’erreur : « 04 - Rectification sur rémunération nette fiscale sans PAS », au sein du bloc « Régularisat
+du prélèvement à la source – S21.G00.56 ». Ce type de code est dédié à la correction d’erreur d’assiette fiscale sans correction de PAS dans le cas
+
+l’erreur est intervenue lors de l’exercice fiscal antérieur.
+
+
+Exemple :
+
+
+Cas B.2 - En norme DSN P21V01 - Exercice fiscal antérieur – Correction assiette fiscale
+
+
+        Lors de la DSN du mois principal déclaré de décembre 2025 , un déclarant prend en compte à tort, pour le calcul de la rémunération ne
+        fiscale (RNF) et du montant soumis au PAS, une somme non imposable à l’impôt sur le revenu. Les montants déclarés pour le salarié s’élèven
+        1400 € au mois de décembre au lieu de 1200 €, qui correspondaient au montant réellement à déclarer.
+        Le taux de PAS du mois de décembre était de 10 %. Le montant de PAS précompté à tort s’élève à 20 € (200 € x 10 % = 20 €)
+
+Le déclarant rectifie l’erreur sur la déclaration du mois principal déclaré février 2026 . Puisque la rectification d’assiette fiscale concerne l’exercice fis
+précédent, les modalités déclaratives sont les suivantes :
+        L’individu reçoit un salaire d’un montant de 1200 euros en février. Un bloc « Versement individu - S21.G00.50 » porte ce montant.
+        La correction de l’assiette fiscale s’effectue par le bloc « Régularisation du prélèvement à la source – S21.G00.56 » avec type d’erreur « 04
+        Rectification sur rémunération nette fiscale sans PAS ». Ce bloc comporte :
+
+
+
+             - Des montants négatifs dans la rubrique « Régularisation de la rémunération nette fiscale – S21.G00.56.003 » ;
+             - Un montant égal à 0.00 en rubrique « Montant de la régularisation du prélèvement à la source S21.G00.56.007 ».
+En revanche, il n’est pas possible de régulariser un montant de PAS dans le cadre de la correction d’une erreur d’assiette fiscale portant sur un exerc
+fiscal antérieur.
+
+
+Mois de l’erreur : décembre 2025
+
+
+
+
+ S21.G00.50 - Versement Individu
+
+
+
+
+            Code                                               Rubrique                                                         Valorisation
+
+                                                                                                                                                      1512202
+ S21.G00.50.001               Date de versement
+                                                                                                                                          [15 décembre 202
+
+ S21.G00.50.002               Rémunération nette fiscale                                                                                               1400.0
+
+
+
+
+ S21.G00.50.004               Montant net versé                                                                                                        1250.0
+
+
+
+
+ S21.G00.50.006               Taux de prélèvement à la source                                                                                             10.0
+
+
+
+
+ S21.G00.50.007               Type de taux de prélèvement à la source                                                          01 - Taux transmis par la DGIF
+
+
+
+
+ S21.G00.50.008               Identification du taux de prélèvement à la source                                                                   A renseigne
+
+
+
+
+                                                                                                                                                         140.0
+ S21.G00.50.009               Montant de prélèvement à la source
+                                                                                                                                                   [1400 x 10%
+
+ S21.G00.50.013               Montant soumis au PAS                                                                                                    1400.0
+
+
+
+
+Mois de la régularisation : février 2026
+
+
+
+
+ S21.G00.50 - Versement Individu
+
+
+
+
+            Code                                               Rubrique                                                         Valorisation
+
+                                                                                                                                                     1502202
+ S21.G00.50.001               Date de versement
+                                                                                                                                               [15 février 202
+
+ S21.G00.50.002               Rémunération nette fiscale                                                                                               1200.0
+
+
+
+
+ S21.G00.50.004               Montant net versé                                                                                                        1050.0
+
+
+
+
+ S21.G00.50.006               Taux de prélèvement à la source                                                                                             10.0
+
+
+
+
+ S21.G00.50.007               Type de taux de prélèvement à la source                                                          01 - Taux transmis par la DGIF
+ S21.G00.50.008            Identification du taux de prélèvement à la source                                                 A renseigne
+
+
+
+
+                                                                                                                                   120.0
+ S21.G00.50.009            Montant de prélèvement à la source
+                                                                                                                              [1200 x 10%
+
+ S21.G00.50.013            Montant soumis au PAS                                                                                  1200.0
+
+
+
+
+ S21.G00.56 - Régularisation du prélèvement à la source
+
+
+
+
+       Code                                    Rubrique                                           Valorisation
+
+                                                                                                                                   12202
+
+                                                                                                                 (MPD qui a porté l’erreu
+ S21.G00.56.001     Mois de l'erreur
+                                                                                                                         [décembre 202
+
+
+ S21.G00.56.002     Type de l'erreur                                           04 - Rectification sur rémunération nette fiscale sans PA
+
+
+
+
+ S21.G00.56.003     Régularisation de la rémunération nette fiscale                                                               -200.0
+
+
+
+
+ S21.G00.56.007     Montant de la régularisation du prélèvement à la source                                                          0.0
+
+
+
+
+ S21.G00.56.010     Régularisation du montant soumis au PAS                                                                          0.0
+
+
+
+
+Date de création : 30/01/2018 04:40 PM
+N° de la fiche : 1821
+

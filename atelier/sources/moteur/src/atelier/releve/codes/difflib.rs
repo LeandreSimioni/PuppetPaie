@@ -169,7 +169,7 @@ impl<'a> Comparateur<'a> {
     }
 }
 
-/// `_format_range_unified`.
+/// La plage d'un en-tete de bloc du diff unifie (`debut,longueur`).
 fn plage(debut: usize, fin: usize) -> String {
     let mut commencement = debut + 1;
     let longueur = fin - debut;

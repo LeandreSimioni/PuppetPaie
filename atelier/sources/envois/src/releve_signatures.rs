@@ -1,7 +1,7 @@
 //! LA RELEVE DES REPONSES « JE SIGNE », cote boite : ce que la releve rend (`ReleveSignatures`, `SignatureRecue`), la
 //! reponse a un code attendu cherchee dans la boite et triee strictement (`chercher_reponse`), et le contrat contresigne
 //! renvoye au salarie, note au journal (`renvoyer_contresigne`). Ce qui se passe entre les deux (la preuve archivee, le
-//! contrat contresigne, la ligne `contrat-recu`) est fabrique et note par `moteur`.
+//! contrat contresigne, ce qui revient sur la ligne de l'envoi) est fabrique et note par `moteur`.
 //!
 //! LE TRI STRICT. La boite cherche le code partout (objet, corps, pieces jointes) ; on trie ensuite :
 //! - notre propre envoi est ecarte par son identifiant (le `Message-ID` note avec la demande, relu dans chaque message), et
@@ -22,6 +22,10 @@ use crate::journal::{self, Note};
 use socle::echec::R;
 use socle::paris::maintenant;
 use socle::valeur::valeur_en_texte;
+
+/// La fin du nom de l'exemplaire contresigne d'un contrat (le contrat parti, `<souche>` ; contresigne, `<souche>_signe.pdf`) :
+/// la piece jointe du courriel qui le renvoie au signataire.
+pub const SUFFIXE_CONTRESIGNE: &str = "_signe.pdf";
 
 const SUJET_CONTRESIGNE: &str = "Ton contrat signé - {spectacle}";
 const SUJET_CONTRESIGNE_PLURIEL: &str = "Tes contrats signés - {mois} {annee}";
@@ -70,16 +74,37 @@ impl ReleveSignatures {
         ReleveSignatures { quand: maintenant(), attendues: 0, recues: Vec::new(), incidents: Vec::new() }
     }
 
-    /// La phrase de la veille, vide quand rien n'etait attendu ni arrive.
+    /// La phrase de la veille, vide quand rien n'etait attendu ni arrive : contrat par contrat, chaque salarie et les
+    /// numeros de ce qu'il a signe (une reponse « Je signe » porte tous les contrats d'une demande).
     pub fn resume(&self) -> String {
         if self.attendues == 0 && self.recues.is_empty() {
             return String::new();
         }
         if self.recues.is_empty() {
-            return format!("{} signature(s) attendue(s), aucune arrivée", self.attendues);
+            let s = if self.attendues > 1 { "s" } else { "" };
+            return format!("{} demande{} de signature en attente, aucune réponse arrivée", self.attendues, s);
         }
-        let noms: Vec<&str> = self.recues.iter().map(|r| r.nom.as_str()).collect();
-        format!("{} signature(s) reçue(s) : {}", self.recues.len(), noms.join(", "))
+        let mut n = 0;
+        let qui: Vec<String> = self
+            .recues
+            .iter()
+            .map(|r| {
+                let numeros: Vec<String> = r
+                    .contrats
+                    .iter()
+                    .map(|c| {
+                        n += 1;
+                        let numero = texte_de(c, "numero");
+                        match c.get("avenant").filter(|a| !a.is_null()) {
+                            Some(a) => format!("avenant {} au {}", valeur_en_texte(a), numero),
+                            None => numero,
+                        }
+                    })
+                    .collect();
+                format!("{} ({})", r.nom, numeros.join(", "))
+            })
+            .collect();
+        format!("{} revenu{} signé{} : {}", if n > 1 { format!("{} contrats", n) } else { "1 contrat".into() }, if n > 1 { "s" } else { "" }, if n > 1 { "s" } else { "" }, qui.join(" ; "))
     }
 
     /// Ce que l'ouverture met dans son bilan, avec le resume.

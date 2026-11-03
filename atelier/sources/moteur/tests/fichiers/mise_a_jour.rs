@@ -27,9 +27,9 @@ fn logiciel(dossier: &Path, version: &str) -> PathBuf {
 }
 
 /// `--cle-github` SANS DOSSIER, lance depuis une installation (le programme dans `<installation>/logiciel/`) : la graine
-/// va dans `<installation>/maj/`, pas dans le dossier ou le programme a ete compile. Le 14/10/2026, la commande prenait
-/// le chemin de compilation (`installation()` avant `fixer_le_code`) et Windows a ecrit la graine dans
-/// `D:\home\user\puppetpaieprivate\maj\`.
+/// va dans `<installation>/maj/`, pas dans le dossier ou le programme a ete compile (`installation()` apres
+/// `fixer_le_code`) ; sinon Windows ecrirait la graine dans
+/// le dossier de compilation.
 #[test]
 fn la_cle_de_github_va_dans_le_dossier_maj_de_l_installation() {
     let inst = dossier_de_test("mise_a_jour", "cle_github_installation");

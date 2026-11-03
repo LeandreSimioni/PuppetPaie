@@ -1,10 +1,15 @@
-//! CE DONT UNE PAIE DEPEND. Le calcul d'un mois note tout ce qu'il lit (`socle::fichiers::suivre`) : le contenu de chaque
-//! fichier (baremes du socle et de la compagnie, catalogues livres, fiches, effectifs, imprevus, taux de prelevement a la
-//! source...), les fichiers absents, les dossiers parcourus, les fiches telles qu'elles valent a la date du calcul, le
-//! jour s'il le lit, la saisie de chaque mois qu'il lit (`stock::vue_du_mois`, la saisie, pas le fichier : ecrire la
-//! validation d'un engagement ne change rien a ce que les autres lisent) et les paies validees des mois qu'il lit
-//! (`paies <mois>`, `etats::paies_validees`). S'y ajoutent la marque du code qui calcule
-//! (`MOTEUR`) et les regles datees qui s'appliquent a la periode payee (`regles`).
+//! CE DONT UNE PAIE DEPEND : l'empreinte est celle d'un engagement, pas d'un mois. Le calcul d'un mois note tout ce qu'il
+//! lit (`socle::fichiers::suivre`) : le contenu de chaque fichier (baremes du socle et de la compagnie, catalogues livres,
+//! effectifs...), les fichiers absents, les dossiers parcourus, le jour s'il le lit, le taux de prelevement a
+//! la source de son salarie au jour de son paiement (`pas <salarie> <jour> <mois>`, `droit::pas::taux_dgfip`), ses imprevus (`imprevus <magasin> <salarie>`, `imprevus::du_salarie`), et les paies
+//! validees de son salarie dans les autres mois qu'il lit (`paies <mois> <salarie>`,
+//! `etats::paies_validees`), l'indemnite de mission a l'etranger de chaque jour qu'il paie (`mission <lieu> <jour>`,
+//! `droit::missions` : la valeur prise, pas la table), ou, pour le premier mois d'un permanent, ses contrats payes au mois d'avant, qu'il n'a pas
+//! (`mensuels <mois> <salarie>`, `conges::avant_le_mois`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
+//! ce que le mois pose pour tous, les engagements valides de son salarie (`saisie <mois> <salarie>`,
+//! `etats::calculer_les_rangs`) et les fiches de l'entreprise, de son salarie (hors de ses taux recus) et de son spectacle au dernier jour du mois
+//! (`fiches`). S'y ajoutent la marque du code qui calcule (`MOTEUR`) et les regles datees qui
+//! s'appliquent a la periode payee (`regles`).
 //!
 //! L'empreinte TIENT quand chacune de ses entrees vaut encore ce qu'elle valait (`tient`) : aucun calcul, une relecture
 //! du disque. Elle ne tient plus : la paie se recalcule, et ce qui a change dit pourquoi (`etats::rafraichir`).
@@ -25,10 +30,27 @@ use crate::stock;
 /// (`build.rs`). Un autre code recalcule ce qui n'est pas parti.
 pub const MOTEUR: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("ENGAGEMENT_SOURCES"));
 
-/// Les fiches telles qu'elles valent a la date du contexte.
-fn empreinte_fiches(ctx: &Contexte) -> String {
-    let v = Value::Array(vec![ctx.entreprise.clone(), Value::Object(ctx.salaries.clone()), Value::Object(ctx.spectacles.clone())]);
+/// L'entree des fiches dont depend la paie de `salarie` pour `mois`, sur `spectacle` : l'entreprise, la fiche du salarie
+/// et celle du spectacle, telles qu'elles valent au dernier jour du mois (`Contexte::du_mois`). La fiche d'un autre
+/// salarie, une valeur datee apres le mois n'en sont pas : elles ne font pas recalculer cette paie.
+pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Option<&str>) -> Resultat<(String, String)> {
+    let cle = Value::Array(vec![mois.into(), salarie.into(), spectacle.map_or(Value::Null, Value::from)]);
+    Ok((format!("fiches {}", cle), empreinte_fiches(&ctx.du_mois(mois)?, salarie, spectacle)))
+}
+
+fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> String {
+    let fiche = |m: &Map<String, Value>, k: Option<&str>| k.and_then(|k| m.get(k)).cloned().unwrap_or(Value::Null);
+    let v = Value::Array(vec![ctx.entreprise.clone(), droit::pas::sans_taux_recus(&fiche(&ctx.salaries, Some(salarie))), fiche(&ctx.spectacles, spectacle)]);
     fichiers::sha256_hex(v.to_string().as_bytes())
+}
+
+/// L'entree `fiches [mois, salarie, spectacle]` tient-elle encore ?
+fn fiches_tiennent(ctx: &Contexte, cle: &str, v: &str) -> bool {
+    let Ok(Value::Array(c)) = serde_json::from_str::<Value>(cle) else { return false };
+    match (c.first().and_then(Value::as_str), c.get(1).and_then(Value::as_str)) {
+        (Some(mois), Some(salarie)) => fiches(ctx, mois, salarie, c.get(2).and_then(Value::as_str)).is_ok_and(|(_, e)| e == v),
+        _ => false,
+    }
 }
 
 /// Une entree de fichier qui est la saisie d'un mois : elle se compte par la saisie (`stock::cle_de_saisie`), pas par
@@ -37,14 +59,10 @@ fn est_un_fichier_d_engagements(cle: &str) -> bool {
     cle.split_once(' ').is_some_and(|(_, c)| c.starts_with(&format!("racine:{}/", stock::DOSSIER)) || c == format!("racine:{}", stock::DOSSIER))
 }
 
-/// `f`, qui calcule depuis la saisie `data` d'un mois, et tout ce qu'il a lu.
-pub(crate) fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
+/// `f`, et tout ce qu'il a lu. Les fiches s'y ajoutent paie par paie (`fiches`).
+pub(crate) fn suivre<T>(ctx: &Contexte, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
     fichiers::suivre(&ctx.racine, &dossier_du_code());
-    if let Some(m) = data.get("mois").and_then(Value::as_str) {
-        fichiers::noter_valeur(&stock::cle_de_saisie(m), stock::empreinte_de_saisie(data));
-    }
     let r = f();
-    fichiers::noter_valeur("fiches", empreinte_fiches(ctx));
     let mut entrees = fichiers::rendre();
     entrees.retain(|k, _| !est_un_fichier_d_engagements(k));
     entrees.insert("moteur".into(), MOTEUR.into());
@@ -89,15 +107,29 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
     let (racine, code) = (&ctx.racine, dossier_du_code());
     match k {
         "moteur" => v == MOTEUR,
-        "fiches" => v == empreinte_fiches(ctx),
+        k if k.starts_with("fiches ") => fiches_tiennent(ctx, &k["fiches ".len()..], v),
         "date" => v == ctx.date.iso(),
         "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
         _ => {
-            if let Some(mois) = k.strip_prefix("paies ") {
-                return crate::etats::empreinte_des_paies_validees(ctx, mois).is_some_and(|e| v == e);
+            // L'indemnite de mission d'un jour a l'etranger : la valeur prise, pas la table (`droit::missions`).
+            if let Some((code, jour)) = k.strip_prefix("mission ").and_then(|r| r.split_once(' ')) {
+                return Jour::lire(jour).ok().and_then(|j| droit::missions::du_jour(code, &j).ok()).is_some_and(|i| v == i.empreinte());
             }
-            if let Some(mois) = k.strip_prefix("saisie ") {
-                return stock::empreinte_de_la_saisie_du_mois(racine, mois).ok().flatten().is_some_and(|e| v == e);
+            if k.starts_with("pas ") {
+                return droit::pas::empreinte(ctx, k).is_some_and(|e| v == e);
+            }
+            if let Some((mois, salarie)) = k.strip_prefix(crate::conges::MENSUELS).and_then(|r| r.split_once(' ')) {
+                return crate::conges::empreinte_des_mensuels_d_avant(ctx, mois, salarie).is_some_and(|e| v == e);
+            }
+            if let Some((mois, salarie)) = k.strip_prefix("paies ").and_then(|r| r.split_once(' ')) {
+                return crate::etats::empreinte_des_paies_validees(ctx, mois, Some(salarie)).is_some_and(|e| v == e);
+            }
+            if let Some(salarie) = crate::imprevus::salarie_de_l_entree(k) {
+                return crate::imprevus::empreinte_du_salarie(racine, salarie).is_ok_and(|e| v == e);
+            }
+            if let Some(reste) = k.strip_prefix("saisie ") {
+                let (mois, salarie) = reste.split_once(' ').map_or((reste, None), |(m, s)| (m, Some(s)));
+                return stock::empreinte_de_la_saisie_du_mois(racine, mois, salarie).ok().flatten().is_some_and(|e| v == e);
             }
             match fichiers::chemin_de(k, racine, &code) {
                 Some((genre, p)) => match genre.as_str() {

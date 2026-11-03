@@ -137,16 +137,6 @@ telle quelle.
   fonction du signataire (`employeur.signataire`, `employeur.signataire_fonction`),
   puis l'image, qui occupe sa hauteur ; le bloc ne se coupe pas entre deux
   pages. Le certificat de travail l'envoie, pas le reçu (le salarié y signe).
-- `mention_artiste` (styles `contrat` et `avenant`, facultatif) : ce que
-  l'artiste a signé d'un clic (qui, quand, adresse, code), posé dans SA case,
-  sous « signature » : un texte à lignes séparées par `\n`, dans un cadre gris
-  de 46 pt de haut et de la largeur de la colonne, en 6,6 pt. La case ne prend
-  aucune hauteur (comme une image flottante) : rien d'autre ne bouge, et sans
-  cette clé le PDF est exactement celui d'avant. C'est ce qui fait de la
-  contresignature « le contrat, plus une mention » : même description, même
-  modèle (`texte`), plus ce champ. Au plus 4 lignes, chacune assez courte pour
-  tenir dans la case, en caractères que la police possède : sinon refus. Pas
-  avec `attestation`.
 - `remplace` ne va qu'avec le style `contrat`, `modifications` qu'avec
   `avenant`, et `signature` pas avec `attestation` (pas de case) : sinon refus.
 - Pour les styles `contrat` et `avenant`, les valeurs `employeur.signataire`,
@@ -196,7 +186,7 @@ c'est `src/modele.rs` (le chemin PyMuPDF de repli n'existe plus).
 
 ```json
 {"type": "paragraphe",
- "morceaux": [{"texte": "Entre la société "}, {"texte": "FIL TENDU", "gras": true}],
+ "morceaux": [{"texte": "Entre la société "}, {"texte": "FIL DE FER", "gras": true}],
  "taille": 7.5, "couleur": "#2C3E50", "alignement": "justifie",
  "majuscules": false, "espace_avant": 0, "espace_apres": 2.6}
 ```
@@ -430,7 +420,7 @@ le corps, donc ne changent pas les sauts de page.
 - Le **texte extrait** du PDF (PyMuPDF `page.get_text()`, ou `fabrique-pdf --texte`, qui
   donne le même sur les PDF de la fabrique) est celui des
   morceaux, dans l'ordre : l'avenant relit le contrat parti, et
-  `contrat.contresigner` cherche le mot « signature » dans la colonne de
+  `marquage::contresigner` cherche le mot « signature » dans la colonne de
   droite.
 - Les accents et « € » s'impriment et s'extraient justes ; **tout caractère que
   Liberation possède** aussi (« Ł », « ő », « č », « Ş », cyrillique, grec…) :
@@ -439,6 +429,12 @@ le corps, donc ne changent pas les sauts de page.
   espace insécable). Un caractère que la police n'a pas (un idéogramme, un
   emoji) est un refus d'une ligne : `bloc 3 : le caractère « 漢 » (U+6F22)
   n'existe pas dans la police Liberation`.
+- **Le plus léger possible, sans rien perdre** : un document fabriqué (ou assemblé) s'écrit en PDF 1.5, les objets
+  qui ne sont pas des flux (polices et leurs largeurs, pages, champs) dans des flux d'objets comprimés et la table
+  des références en flux comprimé (`genpdfi::pdf_ecriture::compact`, ISO 32000-1, 7.5.7 et 7.5.8) ; une police n'y est
+  qu'une fois par fichier de police, en sous-ensemble sans hinting, sa table `ToUnicode` en plages. Ce qui s'ajoute à
+  un PDF reçu (`--remplir`, `marquage::contresigner`) ne réécrit pas ses octets : une mise à jour incrémentale
+  (`genpdfi::pdf_ecriture::ajouter`).
 - Un texte à position fixe tombe à ses coordonnées à 0,1 pt près (tests).
 - Même description, même PDF à l'octet près (aucune date variable dans le
   fichier, aucun nom de sous-ensemble tiré au hasard : l'étiquette
@@ -552,8 +548,7 @@ les pages dont `/Rotate` change le sens de lecture ne sont pas retraités. Mesur
 (contrats, avenants, bulletins, certificats, y compris verrouillés) ont **le même texte que
 PyMuPDF, espaces ramenés à un** ; les quatre autres (des attestations France Travail, avec
 leurs cases et leurs pointillés) diffèrent par quelques espaces et le nombre de points d'un
-pointillé. Les expressions que lit le Python (`numeros_archives`, `_a_qui`,
-`_date_page`, `_categorie_page`, `_cle_page`, la normalisation de l'avenant) donnent les mêmes
+pointillé. Les expressions que le moteur lit sur ce texte (numéros archivés, catégorie et date de page, clé de page, normalisation de l'avenant) donnent les mêmes
 résultats avec l'un et l'autre texte.
 
 ## Inspecter un PDF : `--inspecter`
@@ -670,14 +665,12 @@ fabrique-pdf --marquer entree.pdf sortie.pdf "texte"
 ```
 
 Pose `texte` en pied de **chaque page** de `entree.pdf` et écrit `sortie.pdf` (qui peut être
-le même fichier : l'entrée est lue en entier avant). C'était `_marquer` de
-`moteur/operations_dossier.py` (Python, retiré ; `page.insert_text((34, hauteur − 12), texte, fontname="helv",
-fontsize=6, color=(0.45, 0.45, 0.45))`) : **à 34 pt du bord gauche, ligne de base à 12 pt du
+le même fichier : l'entrée est lue en entier avant) : **à 34 pt du bord gauche, ligne de base à 12 pt du
 bas de la page** (la `CropBox`, dans la `MediaBox`), **corps 6**, gris `#737373`
 (0,45 / 0,45 / 0,45), aligné à gauche, **sur une ligne** (les sauts de ligne du texte deviennent
 des espaces) et sans retour à la ligne : un texte trop long sort de la page. Une page tournée
 (`/Rotate` 90, 180, 270) reçoit la marque **dans son sens de lecture**, à 34 pt du bord gauche
-et 12 pt du bas *tels qu'on les voit* (PyMuPDF, lui, la posait dans le repère non tourné).
+et 12 pt du bas *tels qu'on les voit*.
 
 - *La police* est Liberation Sans (les métriques d'Helvetica) **en sous-ensemble** (les glyphes du
   texte seulement : quelques kilo-octets), avec sa table `ToUnicode` : le texte extrait de la
@@ -695,6 +688,22 @@ et 12 pt du bas *tels qu'on les voit* (PyMuPDF, lui, la posait dans le repère n
   chiffré : on ne le marque pas »).
 - Code 0 : le PDF est écrit ; 1 : refus d'une ligne qui nomme le fichier, rien n'est écrit (et
   la sortie, si ce n'est pas l'entrée, n'existe pas) ; 2 : il manque un argument.
+
+## Contresigner un contrat parti (bibliothèque seulement : `marquage::contresigner`)
+
+L'exemplaire contresigné d'un contrat ou d'un avenant (styles `contrat` et `avenant`) est **le PDF parti, plus la
+mention** de l'artiste (qui, quand, adresse, code : des lignes séparées par `\n`), posée par une **mise à jour
+incrémentale** (ISO 32000-2, 7.5.6) : les octets du PDF parti restent tels quels en tête du fichier ; après eux
+s'ajoutent le texte de la mention (dans la police Liberation Sans du contrat, et un sous-ensemble des seuls caractères
+qu'elle n'a pas, avec `ToUnicode`), un flux par page, la page qui
+le cite (ses flux d'avant intacts, comme `--marquer`), une table de références et un `trailer` qui renvoie à l'ancienne
+par `/Prev`. Retirer ce qui suit les octets partis rend le contrat parti à l'octet près. Rien n'est chiffré.
+
+- *La case* : sous la ligne « signature » de la colonne de droite (la case de l'artiste du bloc de signatures), sur
+  chaque page qui en porte une ; un cadre gris (`#B3B3B3`, 0,5 pt) de 46 pt de haut et de la largeur de la colonne,
+  3 pt sous le pas de cette ligne ; le texte en 6,6 pt à 1,35, en retrait de 4 pt et 3 pt.
+- *Refus d'une ligne* : un PDF illisible ou chiffré, un PDF sans case de l'artiste, une mention vide, une ligne trop
+  longue pour la case, trop de lignes pour sa hauteur, un caractère que Liberation n'a pas.
 
 ## Verrouiller un PDF : `--verrouiller`
 
@@ -810,19 +819,25 @@ aussi. Une valeur plus longue que `/MaxLen` est un refus. Pour chaque champ :
   JPEG dont la résolution n'était pas celle qu'il attendait : un tampon rond sortait ovale.)
 - *Ce qu'est le fichier* se lit dans ses premiers octets, pas dans son extension : PNG, JPEG ou
   SVG ; autre chose est un refus.
-- *SVG* : **vectoriel** (usvg, puis svg2pdf) ; son texte est mis en tracés avec **Liberation**
-  (Sans, Serif, Mono ; `Helvetica`, `Arial` et `sans-serif` sont Liberation Sans) et aucune
-  police du système : le même SVG donne le même dessin sur tous les postes. Une image matricielle
-  dans le SVG (`data:`) est reprise ; un fichier externe qu'il citerait ne l'est pas.
-- *PNG* : décodé, réécrit en Flate (RVB ou gris), sa **transparence** en `/SMask`. *JPEG* en
-  niveaux de gris ou RVB : **tel quel** (`DCTDecode`, aucune recompression) ; CMJN : décodé et
-  réécrit en RVB.
+- *SVG* : **vectoriel** (usvg, puis svg2pdf), avec **Liberation** (Sans, Serif, Mono ; `Helvetica`, `Arial` et
+  `sans-serif` sont Liberation Sans) et aucune police du système : le même SVG donne le même dessin sur tous les postes.
+  Son texte s'écrit **en texte PDF** quand il le peut (Liberation Sans romain ou gras, droit, d'une couleur pleine, sans
+  contour, décoration, espacement ni position par caractère) : quelques octets par lettre, et il se lit ; sinon il est
+  mis en tracés (des milliers de nombres : 30 Ko pour un tampon de cinq lignes). Une image matricielle dans le SVG
+  (`data:`) est reprise ; un fichier externe qu'il citerait ne l'est pas.
+- *PNG* : décodé, réécrit en Flate avec les prédicteurs PNG (RVB ou gris), sa **transparence** en `/SMask`. *JPEG* en
+  niveaux de gris ou RVB : **tel quel** (`DCTDecode`, aucune recompression) ; CMJN : décodé et réécrit en RVB.
 - Le contenu de la page devient `q`, les anciens flux (les mêmes objets), les `Q` qui les
   referment, puis le flux des images (`q a 0 0 d e f cm /PPImageN Do Q`), comme `--marquer` ;
   les ressources de la page sont recopiées dans la page avec les images en plus. Une page tournée
   (`/Rotate`) est un refus ; une page qui n'existe pas aussi.
 
-Le fichier est réécrit en entier (pas de mise à jour incrémentale) ; un PDF chiffré est refusé
+Le formulaire reçu **reste tel quel, octet pour octet**, en tête du fichier : ce que `--remplir` y écrit (les valeurs et
+leur apparence, la police, les images, les pages qui les citent) s'ajoute à la suite, en **mise à jour incrémentale**
+(ISO 32000-1, 7.5.6), avec une table de références de la forme de celle du formulaire et un `trailer` qui renvoie à
+l'ancienne par `/Prev`. **Une police par fichier de police** : une police Liberation que la fabrique a déjà mise dans le
+document sert si elle a tous les caractères ; sinon un sous-ensemble neuf des seuls caractères écrits, le même pour les
+champs et le texte des SVG. Un PDF chiffré est refusé
 (« le PDF est chiffré : on ne le remplit pas »). Même entrée, même description : mêmes octets.
 Code 0 : le PDF est écrit ; 1 : refus d'une ligne qui nomme le fichier d'entrée, rien n'est
 écrit (et la sortie, si ce n'est pas l'entrée, n'existe pas) ; 2 : il manque un argument.

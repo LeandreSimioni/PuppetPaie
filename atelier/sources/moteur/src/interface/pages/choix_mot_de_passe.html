@@ -3,7 +3,7 @@
   :root { --accent:#B22222; --texte:#2C3E50; --fond:#F7F6F4; --carte:#FFFFFF;
           --bord:#DDD8D2; --discret:#7A8794; }
   * { box-sizing:border-box; }
-  html, body { overflow:hidden; }   /* taille fixe : jamais de barre de defilement */
+  html, body { overflow:auto; }   /* taille fixe : une barre de defilement seulement si le texte ne tient pas */
   body { margin:0; height:100vh; display:flex; align-items:center;
          justify-content:center; font:14px/1.5 Arial,Helvetica,sans-serif;
          color:var(--texte); background:var(--fond); }
@@ -41,31 +41,29 @@
   <div class="filet"></div>
   <h1>PuppetPaie</h1>
   <div class="sous">premi&egrave;re ouverture</div>
-  <!-- « Meme administrateur ? » (ticket #244) : seulement quand le moteur dit qu'il y a lieu (`administrateur::etat`,
+  <!-- « Meme administrateur ? » : seulement quand le moteur dit qu'il y a lieu (`administrateur::etat`,
        `question`) -- une compagnie reelle sans mot de passe, et d'autres qui en ont un. -->
   <script type="application/json" id="administrateur">{{ADMINISTRATEUR}}</script>
   <div id="question" hidden>
-    <p><b>Gérer cette compagnie avec le même administrateur ?</b></p>
-    <p class="discret">Le mot de passe qui ouvre déjà <span class="q-noms"></span>.</p>
+    <p><b>{{P:meme_administrateur}}</b></p>
+    <p class="discret">{{P:ouvre_deja}} <span class="q-noms"></span></p>
     <button id="q-oui" type="button">Oui, le même administrateur</button>
-    <button id="q-non" type="button" class="second">Non, un mot de passe à elle</button>
+    <button id="q-non" type="button" class="second">{{P:non_a_elle}}</button>
   </div>
   <form id="a" hidden>
-    <p>Le mot de passe que vous tapez pour <span class="q-noms"></span> ouvrira aussi cette
-      compagnie, et il servira aux actes sur toutes à la fois, comme déposer d'un coup toutes les DSN prêtes.</p>
-    <input id="a-mdp" type="password" autocomplete="current-password" placeholder="le mot de passe de l'administrateur">
+    <p>{{P:tapez_pour}} <span class="q-noms"></span> {{P:ouvrira_aussi}}</p>
+    <input id="a-mdp" type="password" autocomplete="current-password" placeholder="{{P:mdp_administrateur}}">
     <button id="a-ok" type="submit">Rattacher et ouvrir</button>
     <div class="erreur" id="a-erreur"></div>
   </form>
   <form id="f">
-    <p>Choisissez le mot de passe du logiciel</p>
+    <p>{{P:choisissez}}</p>
     <input id="mdp" type="password" autocomplete="new-password" autofocus placeholder="six caract&egrave;res au moins">
     <input id="mdp2" type="password" autocomplete="new-password" placeholder="une seconde fois">
     <button id="ok" type="submit">Poser et ouvrir</button>
     <div class="erreur" id="erreur"></div>
   </form>
-  <div class="discret">Il sera demand&eacute; &agrave; chaque ouverture et &agrave; chaque
-  d&eacute;p&ocirc;t r&eacute;el. Ce n'est pas celui d'un organisme.</div>
+  <div class="discret">{{P:demande_ouverture}}</div>
 </div>
 <script>
   const f = document.getElementById("f"), mdp = document.getElementById("mdp"),
@@ -74,7 +72,9 @@
   f.addEventListener("submit", async (e) => {
     e.preventDefault();
     ok.disabled = true; err.textContent = "";
-    const r = await window.pywebview.api.poser(mdp.value, mdp2.value);
+    // Le mot de passe se pose par sa route ; la fenêtre ouvre ensuite la compagnie avec lui.
+    let r = await appel("mot-de-passe-changer", { nouveau: mdp.value, confirmation: mdp2.value });
+    if (r.ok) r = await window.pywebview.api.verifier(mdp.value);
     if (r.ok) { mdp.value = mdp2.value = ""; ok.textContent = "D\u00e9marrage\u2026"; return; }
     err.textContent = r.erreur; ok.disabled = false; mdp.focus();
   });
@@ -82,8 +82,7 @@
   // choix d'un mot de passe propre, comme pour une premiere compagnie.
   const adm = JSON.parse(document.getElementById("administrateur").textContent || "{}");
   const question = document.getElementById("question"), formeA = document.getElementById("a");
-  const noms = (adm.autres || []);
-  const enListe = noms.length > 1 ? noms.slice(0, -1).join(", ") + " et " + noms[noms.length - 1] : (noms[0] || "");
+  const enListe = adm.autres_dit || "";
   for (const s of document.querySelectorAll(".q-noms")) s.textContent = enListe;
   if (adm.question) { question.hidden = false; f.hidden = true; }
   document.getElementById("q-non").onclick = () => { question.hidden = true; f.hidden = false; mdp.focus(); };
@@ -95,7 +94,8 @@
     const champ = document.getElementById("a-mdp"), bouton = document.getElementById("a-ok"),
           errA = document.getElementById("a-erreur");
     bouton.disabled = true; errA.textContent = "";
-    const r = await window.pywebview.api.rattacher_nouvelle(champ.value);
+    let r = await appel("administrateur-rattacher", { administrateur: champ.value });
+    if (r.ok) r = await window.pywebview.api.verifier(champ.value);
     champ.value = "";
     if (r.ok) { bouton.textContent = "Démarrage…"; return; }
     errA.textContent = r.erreur; bouton.disabled = false; champ.focus();
@@ -112,7 +112,7 @@
   });
 </script>
 
-<div class="bande"><button class="retour" title="Revenir au choix de la compagnie"
+<div class="bande"><button class="retour" title="{{P:retour_choix}}"
   onclick="retour()">&lsaquo; Retour</button><button class="croix" title="Fermer"
   onclick="window.pywebview.api.fermer()">&#x2715;</button></div>
 <script>

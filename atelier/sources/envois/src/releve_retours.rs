@@ -2,10 +2,10 @@
 //!
 //! RELEVER EST UNE LECTURE : on archive sans rien demander a personne, aucune seance n'est exigee, rien
 //! n'est applique. L'archive brute est la piece justificative : elle est ecrite avant toute analyse. Un 404
-//! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (CLAUDE.md, regle 5).
+//! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (atelier/AGENTS.md, regle 5).
 //!
-//! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, ou lit la variable d'environnement
-//! du service ; c'est `moteur` qui le prend au coffre. Le mot de passe sert le temps de l'authentification
+//! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, que `moteur` prend a
+//! la variable d'environnement du service ou au coffre. Le mot de passe sert le temps de l'authentification
 //! (`transport::authentifier`), n'est ni journalise, ni affiche, ni renvoye.
 //!
 //! La releve obeit au branchement : le simulateur pose les retours des depots joues, sans reseau (`rattacher_simulation`) ;
@@ -22,12 +22,12 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
-use socle::paris::{iso_de_naif, maintenant_naif, naif_de_iso};
+use socle::paris::{iso_de_naif, maintenant_naif};
 
 use crate::branchement::{Branchement, ANCIEN_PREFIXE_FLUX_FICTIF, PREFIXE_FLUX_FICTIF};
 use crate::suites::Suites;
 
-/// `strftime("%Y%m%d-%H%M%S")` d'une heure locale naive.
+/// `AAAAMMJJ-HHMMSS` d'une heure locale naive.
 fn horodatage_archive(local: i64) -> String {
     let iso = iso_de_naif(local);
     format!("{}{}{}-{}{}{}", &iso[0..4], &iso[5..7], &iso[8..10], &iso[11..13], &iso[14..16], &iso[17..19])
@@ -47,12 +47,6 @@ pub struct Panne {
 impl Panne {
     pub fn est_api(&self) -> bool {
         self.classe == "ErreurApi" || self.classe == "DepotRefuse"
-    }
-
-    /// Une panne du RESEAU (injoignable, coupe, delai depasse : `URLError`, `RemoteDisconnected`, `TimeoutError`...).
-    /// Les commandes la disent en une phrase.
-    pub fn est_reseau(&self) -> bool {
-        matches!(self.classe.as_str(), "URLError" | "TimeoutError" | "RemoteDisconnected" | "IncompleteRead" | "HTTPException")
     }
 
     /// La panne comme un refus de route : sa classe et sa phrase.
@@ -213,9 +207,10 @@ impl Client {
         }
     }
 
-    /// Le mot de passe a verifier avant l'envoi : celui qu'on a donne, sinon la variable d'environnement.
+    /// Le mot de passe que l'appelant a donne (le moteur le prend a l'environnement ou au coffre) : le client n'en
+    /// cherche aucun.
     fn secret(&self) -> Option<String> {
-        self.motdepasse.clone().filter(|m| !m.is_empty()).or_else(|| std::env::var(self.variable).ok().filter(|m| !m.is_empty()))
+        self.motdepasse.clone().filter(|m| !m.is_empty())
     }
 
     /// `ClientDpae.verifier_identifiants` : ce qui ferait echouer la connexion MtoM. Le mot de passe ne
@@ -376,7 +371,7 @@ fn en_echec(p: Panne) -> Echec {
     p.en_echec()
 }
 
-/// `_tranches` : le SI DSN limite l'etendue d'une recherche, on decoupe par jour.
+/// Le SI DSN limite l'etendue d'une recherche, on decoupe par jour.
 fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
     let mut v = Vec::new();
     let mut t = debut;
@@ -387,19 +382,16 @@ fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
     v
 }
 
-/// LE SIMULATEUR : pose les retours des depots joues qui les attendent depuis `delai` secondes, et rend le nombre de
+/// LE SIMULATEUR : pose les retours des depots joues qui les attendent, et rend le nombre de
 /// depots completes. Ne touche a aucune autre ligne : un vrai depot (flux sans le prefixe) garde ses vrais retours. Les
 /// attestations France Travail jouees s'archivent dans `retours/` comme les vraies, et vont dans les suites, a ranger.
-pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> R<i64> {
-    let p = crate::journal::chemin(&ctx.racine);
-    if !p.exists() {
-        return Ok(0);
-    }
+pub fn rattacher_simulation(ctx: &Contexte, suites: &mut Suites) -> R<i64> {
     let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
     // Ce que les organismes rendent de plus (refus, taux du PAS, effectif) : archive puis range par le meme chemin
     // qu'un retour reel (`rattacher_retours_avec_contenus`), qui en lit le verdict.
     let mut pieces: Vec<crate::organismes_simules::Piece> = Vec::new();
-    let mut lignes = crate::etats::charger(&ctx.racine)?;
+    let mut lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes.to_vec())?;
+    let mut rangements: Vec<(usize, crate::journal::Rangement)> = Vec::new();
     let avant = crate::organismes_simules::memoire(&ctx.racine)?;
     let mut memoire = avant.clone();
     let maintenant = maintenant_naif();
@@ -409,12 +401,10 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
         let l = &lignes[i];
         let quoi = l.get("quoi").and_then(Value::as_str).unwrap_or("");
         let flux = l.get("flux").map(|f| if vrai(f) { valeur_en_texte(f) } else { String::new() }).unwrap_or_default();
-        let age = l.get("quand").and_then(Value::as_str).and_then(naif_de_iso).map_or(0, |t| maintenant - t);
         if (quoi == "dsn" || quoi == "dpae")
             && l.get("accepte").is_some_and(vrai)
             && (flux.starts_with(PREFIXE_FLUX_FICTIF) || flux.starts_with(ANCIEN_PREFIXE_FLUX_FICTIF))
             && !l.get("retours").is_some_and(vrai)
-            && age >= delai
         {
             let base = |nature: &str, verdict: Option<&str>, libelle: &str| {
                 let mut m = Map::new();
@@ -455,13 +445,12 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
                     retours.push(Value::Object(r46));
                 }
             }
+            rangements.extend(retours.iter().map(|r| (i, crate::journal::Rangement::Retour(r.clone()))));
             lignes[i]["retours"] = Value::Array(retours);
             faits += 1;
         }
     }
-    if faits > 0 {
-        socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
-    }
+    crate::journal::ranger(&ctx.racine, rangements).map_err(|m| erreur("OSError", m))?;
     crate::organismes_simules::garder(&ctx.racine, &avant, &memoire)?;
     // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement (par `moteur`), qui signe le cadre 5 et la
     // pose dans `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
@@ -508,9 +497,6 @@ fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
     crate::aer_fictive::archive(ctx, &octets, &mois, ctx.aujourdhui).map_err(Echec::from)
 }
 
-/// Le delai, en secondes, au bout duquel le simulateur rend les retours d'un depot joue a la releve.
-pub const DELAI_RETOURS_JOUES: i64 = 6;
-
 /// Telecharge et archive ce que les organismes ont publie. `debut` et `fin` : heures locales naives
 /// (`maintenant_naif`). `client` : le client du service, avec son mot de passe (le canal DPAE passe le sien, avec
 /// `canal = "dpae"`) ; `None` dans le monde : aucun mot de passe n'est pose, et cela se dit.
@@ -531,14 +517,14 @@ pub fn relever_retours(
         Branchement::Message(_) => return Ok(releve),
         // Les retours des depots joues arrivent d'ici, sans reseau ni mot de passe.
         Branchement::Simulateur if client.is_none() => {
-            releve.rattaches = rattacher_simulation(ctx, DELAI_RETOURS_JOUES, suites)?;
+            releve.rattaches = rattacher_simulation(ctx, suites)?;
             return Ok(releve);
         }
         _ => {}
     }
     let Some(mut client) = client else {
         releve.incidents.push(
-            "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `moteur coffre poser net-entreprises`.".into(),
+            "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `route coffre-poser, service net-entreprises`.".into(),
         );
         return Ok(releve);
     };
@@ -596,7 +582,7 @@ pub fn relever_retours(
                         releve.a_faire.extend(crate::ordre_signalements::conduite_b1_208_10(&d, &flux));
                     }
                 }
-                // LE TAUX DU PAS SE LIT DU COMPTE RENDU (regle 1) : il va au magasin du PAS, par les suites.
+                // LE TAUX DU PAS SE LIT DU COMPTE RENDU (regle 1) : il va dans la fiche du salarie, par les suites.
                 if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_PAS) {
                     suites.taux_pas.push((r.clone(), chemin.clone()));
                 }
@@ -662,14 +648,14 @@ pub fn relever_retours_dpae(
         Branchement::Message(_) => return Ok(Releve::default()),
         Branchement::Simulateur => {
             let mut r = Releve::default();
-            r.rattaches = rattacher_simulation(ctx, DELAI_RETOURS_JOUES, suites)?;
+            r.rattaches = rattacher_simulation(ctx, suites)?;
             return Ok(r);
         }
         Branchement::Monde => {}
     }
     let Some(mut client) = client else {
         let mut r = Releve::default();
-        r.incidents.push("Mot de passe DPAE absent : ni dans l'environnement, ni dans le coffre. `moteur coffre poser urssaf`.".into());
+        r.incidents.push("Mot de passe DPAE absent : ni dans l'environnement, ni dans le coffre. `route coffre-poser, service urssaf`.".into());
         return Ok(r);
     };
     if flux.is_empty() {
@@ -731,10 +717,46 @@ fn lire_crm118(contenu: &[u8]) -> R<Option<Vec<(String, f64, String, String, Str
     Ok(Some(out))
 }
 
+/// Le code de l'effectif de securite sociale (art. L. 130-1 CSS), celui des seuils de cotisation.
+const A01: &str = "A01";
+/// La marque d'un effectif que la compagnie a dit : un 118 de la meme annee le remplace.
+const DIT_LE: &str = "dit_le";
+
+fn chemin_des_effectifs(racine: &Path) -> PathBuf {
+    racine.join(droit::contexte::EFFECTIFS)
+}
+
+fn effectifs_lus(racine: &Path) -> Value {
+    std::fs::read_to_string(chemin_des_effectifs(racine)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_else(|| json!({}))
+}
+
+/// Ecrit `config/effectifs.json` s'il change : les effectifs par annee et par code.
+fn ecrire_effectifs(racine: &Path, existant: &Value, annees: std::collections::BTreeMap<String, Map<String, Value>>) -> R<()> {
+    let donnees = json!({
+        "_quoi": "Effectifs par année civile. A01 = effectif de sécurité sociale (art. L. 130-1 CSS), celui des seuils de cotisation. Ceux que l'Urssaf calcule et renvoie en compte rendu de nature 118 s'écrivent au relevé des retours ; ceux que la compagnie dit (dit_le) pour une année sans 118, par la route effectif, jusqu'à ce qu'un 118 de cette année les remplace.",
+        "annees": Value::Object(annees.into_iter().map(|(an, codes)| (an, Value::Object(codes))).collect()),
+    });
+    if *existant != donnees {
+        socle::ecriture::ecrire_json(&chemin_des_effectifs(racine), &donnees, 2).map_err(|m| erreur("OSError", m))?;
+    }
+    Ok(())
+}
+
+/// Les effectifs que la compagnie a dits (`dit_le`), par annee.
+fn dits(existant: &Value) -> std::collections::BTreeMap<String, Map<String, Value>> {
+    existant["annees"]
+        .as_object()
+        .into_iter()
+        .flatten()
+        .filter_map(|(an, c)| c.get(A01).filter(|a| a.get(DIT_LE).is_some()).map(|a| (an.clone(), Map::from_iter([(A01.to_string(), a.clone())]))))
+        .collect()
+}
+
 /// Relit tous les 118 archives et reecrit `config/effectifs.json`. Pour chaque annee
-/// et chaque code, le calcul le plus RECENT l'emporte. Ne touche pas au fichier s'il n'y a aucun 118.
+/// et chaque code, le calcul le plus RECENT l'emporte ; l'effectif qu'une annee sans 118 a recu de la compagnie reste.
+/// Ne touche pas au fichier s'il n'y a aucun 118.
 pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
-    let dossier = racine.join("retours");
+    let dossier = racine.join(crate::retours::RETOURS);
     let mut noms: Vec<String> = match std::fs::read_dir(&dossier) {
         Ok(l) => l
             .flatten()
@@ -747,7 +769,7 @@ pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
     let mut annees: std::collections::BTreeMap<String, Map<String, Value>> = std::collections::BTreeMap::new();
     for nom in &noms {
         let p = dossier.join(nom);
-        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         let Some(mesures) = lire_crm118(&octets)? else { continue };
         for (code, valeur, debut, fin, calcule_le) in mesures {
             let ref_an = if debut.is_empty() { &fin } else { &debut };
@@ -764,30 +786,34 @@ pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
             codes.insert(code, json!({"valeur": valeur, "calcule_le": calcule_le, "source": format!("retours/{}", nom)}));
         }
     }
-    let chemin = racine.join("config").join("effectifs.json");
-    let existant: Value = if chemin.exists() {
-        std::fs::read_to_string(&chemin).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_else(|| json!({}))
-    } else {
-        json!({})
-    };
     if annees.is_empty() {
         return Ok(());
     }
-    let mut donnees = Map::new();
-    donnees.insert(
-        "_quoi".into(),
-        json!("Effectifs calcules par l'Urssaf et renvoyes en CRM de nature 118. `annees` est ECRIT PAR LE MOTEUR a chaque releve des retours, depuis les archives de retours/ : ne pas le modifier a la main. Seule `jamais_au_dessus_de` s'ecrit a la main -- la declaration de l'employeur pour les annees que les retours ne servent plus -- et le releve la garde. A01 = effectif de securite sociale (art. L. 130-1 CSS), celui des seuils de cotisation."),
-    );
-    donnees.insert("annees".into(), Value::Object(annees.into_iter().map(|(an, codes)| (an, Value::Object(codes))).collect()));
-    // La declaration de l'employeur pour le passe n'est pas un retour : le releve ne l'efface pas.
-    if let Some(passe) = existant.get("jamais_au_dessus_de").filter(|p| vrai(p)) {
-        donnees.insert("jamais_au_dessus_de".into(), passe.clone());
+    let existant = effectifs_lus(racine);
+    for (an, dit) in dits(&existant) {
+        annees.entry(an).or_default().entry(A01.to_string()).or_insert_with(|| dit[A01].clone());
     }
-    let donnees = Value::Object(donnees);
-    if existant != donnees {
-        socle::ecriture::ecrire_json(&chemin, &donnees, 2).map_err(|m| erreur("OSError", m))?;
+    ecrire_effectifs(racine, &existant, annees)
+}
+
+/// L'EFFECTIF QUE LA COMPAGNIE DIT POUR L'ANNEE `an` (l'effectif annuel moyen de l'annee civile, L. 130-1, I, CSS ;
+/// `atelier/reference/sources/code-de-la-securite-sociale/LISEZ-MOI.md`, « L'effectif au sens de la sécurité sociale ») :
+/// une compagnie venue d'un autre logiciel n'a pas les 118 de ses annees passees. `Ok(false)` : un 118 de cette annee
+/// est deja la, et c'est lui qui vaut ; rien n'est ecrit.
+pub fn poser_effectif(racine: &Path, an: i32, valeur: f64, le: &str) -> R<bool> {
+    let existant = effectifs_lus(racine);
+    let mut annees: std::collections::BTreeMap<String, Map<String, Value>> =
+        existant["annees"].as_object().into_iter().flatten().filter_map(|(a, c)| Some((a.clone(), c.as_object()?.clone()))).collect();
+    let codes = annees.entry(an.to_string()).or_default();
+    if codes.get(A01).is_some_and(|a| a.get(DIT_LE).is_none()) {
+        return Ok(false);
     }
-    Ok(())
+    codes.insert(A01.to_string(), json!({"valeur": valeur, DIT_LE: le}));
+    if let Some(dossier) = chemin_des_effectifs(racine).parent() {
+        std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
+    }
+    ecrire_effectifs(racine, &existant, annees)?;
+    Ok(true)
 }
 
 /// Le resume d'une relève, pour une phrase d'incident : `"; ".join(rel.incidents)`.

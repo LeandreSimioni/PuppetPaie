@@ -28,7 +28,7 @@
 //! LE PIEGE PROPRE A `comparer` : on cherche par IDENTIFIANT, jamais par numero. L'archive globale porte plusieurs
 //! versions du meme article ; demander « L242-1 » y rapporte un paquet de redactions dont on ne saurait laquelle etait en
 //! vigueur. Ce qu'on veut n'est pas « une vieille version », c'est CELLE que le releve precedent tenait pour en vigueur --
-//! celle que `_changes_depuis_le_global` nomme sous `avant` (`avant`, plus bas).
+//! celle que le releve precedent nomme sous `avant` (`avant`, plus bas).
 //!
 //! TROIS PIEGES, payes tous les trois (chacun est rappele la ou le code l'evite, dans `passer`) :
 //!
@@ -873,9 +873,4 @@ fn ecrire_comparaison(
     std::fs::write(cible, t).map_err(|e| format!("{} : {}", cible.display(), e))?;
     dire(&format!("{} article(s) -> {}", changements.len(), cible.display()));
     Ok(())
-}
-
-/// Le diff unifie de deux listes de lignes (`difflib::unifie`), pour les essais.
-pub fn diff_unifie(a: &[String], b: &[String], n: usize) -> Vec<String> {
-    difflib::unifie(a, b, "avant", "apres", n)
 }

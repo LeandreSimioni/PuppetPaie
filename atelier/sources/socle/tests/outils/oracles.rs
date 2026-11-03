@@ -107,6 +107,8 @@ pub fn oracle_selon(nom: &str, pointeur: &str, obtenu: &Value, egal: impl Fn(&Va
     if reecrire_oracles() {
         // Plusieurs tests (et processus) écrivent des parties du même fichier : chacun à son tour.
         let verrou = chemin.with_extension("verrou");
+        // Le dossier d'un oracle neuf : sans lui, le verrou ne se pose jamais.
+        std::fs::create_dir_all(chemin.parent().unwrap()).unwrap();
         while std::fs::OpenOptions::new().write(true).create_new(true).open(&verrou).is_err() {
             std::thread::sleep(std::time::Duration::from_millis(20));
         }

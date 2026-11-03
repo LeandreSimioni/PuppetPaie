@@ -1,0 +1,1388 @@
+      CNAMTS                    BPIJ                      Date: 06/03/2012
+    DDSI/DPRM/DAP            Bordereau IJ                 Statut: Validé
+ Département Avant-Projets                                Version: 02.00R3
+
+
+
+
+BPIJ
+Bordereau IJ
+
+
+
+
+                                       Modèle des données structurées
+                                       Date: 06/03/2012
+                                       Statut: Validé
+                                       Version: 02.00R3
+       CNAMTS                                                  BPIJ                                  Date: 06/03/2012
+     DDSI/DPRM/DAP                                         Bordereau IJ                              Statut: Validé
+ Département Avant-Projets                                                                           Version: 02.00R3
+
+
+
+BPIJ: Modèle des données structurées
+Mention légale
+Clause de cession de droit de reproduction.
+L'auteur de ce document est :
+CNAMTS
+DDSI/DPRM/DAP
+Département Avant-Projets
+Le présent document est la propriété de l'auteur.
+Par la présente, l'auteur cède à titre gracieux à l’utilisateur du présent document, un droit de reproduction non exclusif
+dans le seul but de l’intégrer dans une application informatique.
+Cette cession est valable sur supports papier, magnétique, optique, électronique, numérique, et plus généralement sur
+tout autre support de fixation connu à la date de la reproduction, et permettant à l’utilisateur de créer l’application visée
+au paragraphe précédent.
+Cette cession est consentie pour l’ensemble du territoire national, et pour la durée de protection prévue par le code de
+la propriété intellectuelle.
+L’utilisateur fera son affaire personnelle de tout dommage qu’il causerait à un tiers et qui trouverait son origine dans
+une violation des termes de la présente cession.
+Toute atteinte aux droits d’auteur constitue un délit et est passible des sanctions indiquées aux articles L.335-1 et suivants
+du Code de propriété intellectuelle.
+      CNAMTS                                                                     BPIJ                                               Date: 06/03/2012
+    DDSI/DPRM/DAP                                                            Bordereau IJ                                           Statut: Validé
+Département Avant-Projets                                                                                                           Version: 02.00R3
+
+
+
+ Table des matières
+ Documentation .................................................................................................................................................. iv
+      1. Tableau des révisions ................................................................................................................................ iv
+
+ 1. Modèle BPIJ .................................................................................................................................................. 1
+      1.1. Description ........................................................................................................................................... 2
+      1.2. Diagramme BPIJ .................................................................................................................................... 3
+
+ 2. TLSEMP ....................................................................................................................................................... 4
+      2.1. Description ........................................................................................................................................... 5
+      2.2. Commun ............................................................................................................................................. 6
+            2.2.1. Description ................................................................................................................................ 6
+            2.2.2. Agregats .................................................................................................................................... 7
+                   2.2.2.1. AdresseGeoPostale ............................................................................................................. 7
+                   2.2.2.2. AdresseGeoPostaleEmployeur ................................................................................................ 8
+                   2.2.2.3. Assurance ........................................................................................................................ 9
+                   2.2.2.4. Assure .......................................................................................................................... 10
+                   2.2.2.5. Certificat ....................................................................................................................... 11
+                   2.2.2.6. Employeur ..................................................................................................................... 12
+                   2.2.2.7. Mandataire ..................................................................................................................... 13
+                   2.2.2.8. OrganismeEmetteur ........................................................................................................... 14
+                   2.2.2.9. Paiement ........................................................................................................................ 15
+                   2.2.2.10. Prestation ..................................................................................................................... 16
+                   2.2.2.11. RegularisationPrestation .................................................................................................... 18
+                   2.2.2.12. ReleveIdentiteBancaire ..................................................................................................... 19
+            2.2.3. Simples ................................................................................................................................... 20
+                   2.2.3.1. Diagramme Package Simple ................................................................................................ 20
+                   2.2.3.2. Liste des classes .............................................................................................................. 21
+                          2.2.3.2.1. Caisse ................................................................................................................. 21
+                          2.2.3.2.2. Code .................................................................................................................. 21
+                          2.2.3.2.3. CodeDeclarant ....................................................................................................... 21
+                          2.2.3.2.4. CodeDeclare ......................................................................................................... 22
+                          2.2.3.2.5. Identite ............................................................................................................... 22
+                          2.2.3.2.6. LigneAFNOR ....................................................................................................... 22
+                          2.2.3.2.7. Litteral ................................................................................................................ 23
+                          2.2.3.2.8. LitteralQualifie ...................................................................................................... 23
+                          2.2.3.2.9. Montant .............................................................................................................. 23
+                          2.2.3.2.10. NIR .................................................................................................................. 24
+
+ 3. DonneesDeService .......................................................................................................................................... 25
+       3.1. Description ......................................................................................................................................... 26
+       3.2. Commun ............................................................................................................................................ 27
+             3.2.1. Description ............................................................................................................................... 27
+             3.2.2. Agregats .................................................................................................................................. 28
+                    3.2.2.1. Classe BPIJ .................................................................................................................... 28
+             3.2.3. Simples ................................................................................................................................... 29
+                    3.2.3.1. Diagramme Package Simple ................................................................................................ 29
+                    3.2.3.2. Classe Code .................................................................................................................... 30
+
+ A. Annexes ...................................................................................................................................................... 31
+      A.1. Package Bases .................................................................................................................................... 31
+             A.1.1. boolean ................................................................................................................................... 31
+             A.1.2. date ....................................................................................................................................... 31
+             A.1.3. dateTime ................................................................................................................................. 31
+             A.1.4. decimal ................................................................................................................................... 31
+             A.1.5. string ..................................................................................................................................... 32
+      A.2. Informations de traçabilité du modèle ......................................................................................................... 33
+      A.3. Tableau des changements - Version de référence: 01.00 ................................................................................... 34
+
+
+
+
+                                                                               iii
+      CNAMTS                                                                BPIJ                           Date: 06/03/2012
+    DDSI/DPRM/DAP                                                      Bordereau IJ                        Statut: Validé
+ Département Avant-Projets                                            Documentation                        Version: 02.00R3
+
+
+
+Documentation
+1. Tableau des révisions
+                                                              Description                                                Statut
+
+  00.01. 29/03/2010 Version de travail                                                                                   Travail
+
+  00.02. 26/05/2010 Version de travail                                                                                   Travail
+
+  00.03. 25/06/2010 Version de travail                                                                                   Travail
+
+  00.04. 06/09/2010 Modifications dans : Propriete 'Caisse'                                                              Travail
+  Modification de Cardinalites ( ancienne valeur : '[1..*]' , nouvelle valeur : '[0..*]' )
+  Modifications dans : Classe 'OrganismeEmetteur'
+  Modifications dans : Propriete 'Assure'
+  Modification de Cardinalites ( ancienne valeur : '[1..*]' , nouvelle valeur : '[0..*]' )
+
+  01.00. 07/09/2010                                                                                                      Valide
+
+  02.00R3. 06/03/2012 Rediffusion de la version 02.00 validée.                                                           Valide
+  22/08/2011: anomalie de regexp.
+  22/02/2012: "raison sociale Déclarant" et "adresse du Déclaré" deviennent non obligatoires
+  28/02/2012: suppression de la notion "subrogées" dans l'intitulé du modèle
+  06/03/2012: "localité du Déclaré" (Employeur) devient facultatif
+                                                                                               Tableau des changements
+
+
+
+
+                                                                          iv
+     CNAMTS                    BPIJ        Date: 06/03/2012
+   DDSI/DPRM/DAP            Bordereau IJ   Statut: Validé
+Département Avant-Projets   Modèle BPIJ    Version: 02.00R3
+
+
+
+
+Chapitre 1. Modèle BPIJ
+
+
+
+
+                              1
+      CNAMTS                                                        BPIJ                                      Date: 06/03/2012
+    DDSI/DPRM/DAP                                               Bordereau IJ                                  Statut: Validé
+ Département Avant-Projets                                      Modèle BPIJ                                   Version: 02.00R3
+
+
+
+1.1. Description
+  Vocabulaire.    www.cnamts.fr/tlsemp/IJ (Identifiant=BPIJ)
+  Racines.
+
+  Nom                                          Définition                                                          Type
+
+                                               Une entête est un système d’identification de l’enveloppe d’échange, BPIJ
+       BPIJ @BPIJ                              et de description de son contenu
+
+                                                       • Nature [1..1]
+                                                         Contrainte (regexp) .   BPIJ
+                                                       • Version [1..1] string
+
+  Liste des vocabulaires déclarés.
+
+  Vocabulaire.     www.cnamts.fr/tlsemp/IJ (Identifiant=BPIJ)
+
+  • Modèle BPIJ.     Bordereau IJ (BPIJ)
+
+
+
+
+                                                                   2
+       CNAMTS                                                                                                                                BPIJ                                                                              Date: 06/03/2012
+     DDSI/DPRM/DAP                                                                                                                     Bordereau IJ                                                                            Statut: Validé
+Département Avant-Projets                                                                                                              Modèle BPIJ                                                                             Version: 02.00R3
+
+
+
+1.2. Diagramme BPIJ
+                                                                                                       BPIJ
+                                                                                                       BPIJ
+         Ide ntifica tion : s tring
+         Te mps : da te Time
+                                                                                                                                                                                                                                                                     BPIJ
+         Fonction : Code [0..1]
+         Info : Code [0..1]
+         Na ture ¤ BP IJ ¤ : s tring
+         Ve rs ion : s tring
+
+
+                                                                                               - De cla ra nt
+                                                                                          1
+                                                                                   Mandataire
+                                                     Ide ntite : Code De cla ra nt
+                                                     Ra is onS ocia le : Litte ra l [0..1]
+                                                     Adre s s e : Adre s s e Ge oP os ta le [0..1]
+                                                     Domicilia tion : Re le ve Ide ntite Ba nca ire [0..1]
+
+
+
+
+                                                                                                          - De cla re
+                                                                                                1..*
+                                                                                                   Emplo ye ur
+                                                                              Ide ntite : Code De cla re
+                                                                              Ra is onS ocia le : Litte ra l
+                                                                              Adre s s e : Adre s s e Ge oP os ta le Employe ur [0..1]
+                                                                              Domicilia tion : Re le ve Ide ntite Ba nca ire [0..1]
+
+
+
+                                                                                                                       - Ca is s e
+                                                                                                                      *
+                                                                                                                                     Org anis me Eme tte ur
+                                                                                                       Code CP AM ¤ [0-9]{3} ¤ : Ca is s e
+                                                                                                       Libe lle : Litte ra l [0..1]
+                                                                                                       J Compta ble : da te
+
+
+
+
+                                                                                                                                                                  - As s ure
+                                                                                                                                                        *
+                                                                                                                                                                                                     As s ure
+                                                                                                                                            NIR : NIR
+                                                                                                                                            Nom : Litte ra l
+                                                                                                                                            P re nom : Litte ra l
+                                                                                                                                            Info : Litte ra l [0..1]
+
+
+
+
+                        0..1     - Cumul          0..1 - Cumul         0..1    - Cumul                 0..1     - Cumul              0..1    - Cumul                                                   - As s ura nce              - Ra ppe l              - Indu
+                                                                                                                                                                                            1..*                               *                     *
+                                                                                  Paie me nt                                                                                                    As s uranc e                       Re g ularis atio nPre s tatio n
+                                                                                                                                                        0..1                   1
+                                Libe lle : Litte ra l [0..1]                                                                                                                         Code Na ture ¤ AS |AT|MA ¤ :...           Nume ro : Code
+                                Monta nt : Monta nt                                                                                                   - Cumul                                                                  Monta nt : Monta nt
+
+
+
+
+                                                                                                                                                                                              1..*      - P re s ta tion
+
+                                                                                                                Ce rtific at                                                                   Pre s tatio n
+                                                                                                              Type : Code          0..1                                            Code Na ture : Code
+                                                                                                              Da te De b : da te                                                   Re fe re nce : Litte ra lQua lifie [0..1]
+                                                                                                              Da te Fin : da te - Ce rtifica t                                     Libe lle : Litte ra l
+                                                                                                                                                                                   Da te De bP re s t : da te
+                                                                                                                                                                                   Da te FinP re s t : da te [0..1]
+                                                                                                                                                                                   NumS in : Code [0..1]
+                                                                                                                                                                                   Da te S in : da te [0..1]
+                                                                                                                                                                                   Da te De bConge : da te [0..1]
+                                                                                                                                                                                   Da te FinConge : da te [0..1]
+                                                                                                                                                                                   NbIJ : de cima l [0..1]
+                                                                                                                                                                                   IJ S ub : boole a n [0..1]
+                                                                                                                                                                                   P U : Monta nt [0..1]
+                                                                                                                                                                                   Monta nt : Monta nt [0..1]
+
+
+
+ ...................................................................................................................................................................................................................................
+      Classes. Assurance , Assure , BPIJ , Certificat , Employeur , Mandataire , OrganismeEmetteur , Paiement , Prestation , RegularisationPrestation
+
+
+
+
+                                                                                                                                            3
+     CNAMTS                    BPIJ        Date: 06/03/2012
+   DDSI/DPRM/DAP            Bordereau IJ   Statut: Validé
+Département Avant-Projets    TLSEMP        Version: 02.00R3
+
+
+
+
+Chapitre 2. TLSEMP
+
+
+
+
+                              4
+      CNAMTS                                                         BPIJ       Date: 06/03/2012
+    DDSI/DPRM/DAP                                                Bordereau IJ   Statut: Validé
+ Département Avant-Projets                                        TLSEMP        Version: 02.00R3
+
+
+
+2.1. Description
+  Définition.   Ce domaine regroupe l'ensemble des données des téléservices.
+
+
+
+
+                                                                    5
+      CNAMTS                                                        BPIJ                                       Date: 06/03/2012
+    DDSI/DPRM/DAP                                                Bordereau IJ                                  Statut: Validé
+ Département Avant-Projets                                        TLSEMP                                       Version: 02.00R3
+
+
+
+2.2. Commun
+2.2.1. Description
+  Définition.   Le dictionnaire regroupe un ensemble des données définies en commun par un ensemble de partenaires.
+
+
+
+
+                                                                   6
+      CNAMTS                                                            BPIJ                                          Date: 06/03/2012
+    DDSI/DPRM/DAP                                                   Bordereau IJ                                      Statut: Validé
+ Département Avant-Projets                                           TLSEMP                                           Version: 02.00R3
+
+
+2.2.2. Agregats
+
+                                                                                                           2.2.2.1. AdresseGeoPostale
+
+  Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: AdresseGeoPostale
+  Vocabulaire.      BPIJ
+
+
+  Définition. L’adresse géopostale regroupe l’ensemble des informations nécessaires à l’identification d’un lieu sous la forme d'une adresse
+  géographique (coordonnées nécessaires pour visiter une personne), d'une adresse géopostale (coordonnées géographiques, accompagnées de
+  données postales) ou d'une adresse postale (composée exclusivement d'éléments postaux sans notion géographique).
+  Note : compatibilité avec la norme AFNOR XP Z 10-011
+  Cette structure permet le transport direct des lignes d'adresse #1, #2, #3, #5, et de la "ligne additionnelle #7" (pays), ainsi que des concepts
+  élémentaires permettant la mise en forme des lignes d'adresse #4 et #6 de la norme AFNOR XP Z 10-011. Le choix de maintenir des concepts
+  élémentaires pour les lignes #4 et #6 est motivé par un souci de compatibilité avec les formats traditionnels en usage dans les systèmes
+  d'information.
+
+
+  Attribut                     Définition complète                                                             Occ. Type
+
+                               AFNOR XP Z 10-011, ligne 3 : complément au point géographique. Accès au [0..1] LigneAFNOR
+       Complement              bâtiment, bâtiment, ensemble immobilier.
+
+                               AFNOR XP Z 10-011, ligne 4 : point géographique. Numéro dans la voie.           [0..1] string
+       NumeroVoie
+
+                               AFNOR XP Z 10-011, ligne 4 : point géographique. Nom ou libellé de la voie. [0..1] LigneAFNOR
+       NomVoie                 NomVoie peut également transporter l’intégralité de la ligne 4. Dans ce cas,
+                               ni NumeroVoie, ni IndiceRepetition, ni TypeVoie ne doivent être utilisés.
+
+                               AFNOR XP Z 10-011, ligne 6 : informations d'acheminement. Code postal ou [1..1] string
+       CodePostal              code CEDEX (Courrier d'Entreprise à Distribution EXceptionnelle). Dans ce
+                               dernier cas, l'information identifiant le bureau de CEDEX doit également être
+                               renseignée.
+                               Contrainte (regexp) .    .{0,5}
+
+                               AFNOR XP Z 10-011, ligne 6 : informations d'acheminement. Nom de la lo- [1..1] LigneAFNOR
+       Localite                calité du destinataire, ou libellé du bureau distributeur CEDEX (dans ce cas,
+                               présence obligatoire de l'attribut Cedex).
+                               Localité peut également transporter l’intégralité de la ligne 6. Dans ce cas, ni
+                               CodePostal, ni Cedex, ni CodePays ne doivent être utilisés.
+
+
+
+
+                                                                       7
+     CNAMTS                                                              BPIJ                                    Date: 06/03/2012
+   DDSI/DPRM/DAP                                                     Bordereau IJ                                Statut: Validé
+Département Avant-Projets                                             TLSEMP                                     Version: 02.00R3
+
+
+
+                                                                                       2.2.2.2. AdresseGeoPostaleEmployeur
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Agregats :: AdresseGeoPostaleEmployeur
+ Vocabulaire.       BPIJ
+
+
+ Définition.     Adresse spécifique à l'Employeur ; la localité est facultative.
+ L’adresse géopostale regroupe l’ensemble des informations nécessaires à l’identification d’un lieu sous la forme d'une adresse géographique
+ (coordonnées nécessaires pour visiter une personne), d'une adresse géopostale (coordonnées géographiques, accompagnées de données pos-
+ tales) ou d'une adresse postale (composée exclusivement d'éléments postaux sans notion géographique).
+
+
+ Attribut                      Définition complète                                                         Occ. Type
+
+                               AFNOR XP Z 10-011, ligne 3 : complément au point géographique. Accès au [0..1] LigneAFNOR
+      Complement               bâtiment, bâtiment, ensemble immobilier.
+
+                               AFNOR XP Z 10-011, ligne 4 : point géographique. Numéro dans la voie.      [0..1] string
+      NumeroVoie
+
+                               AFNOR XP Z 10-011, ligne 4 : point géographique. Nom ou libellé de la voie. [0..1] LigneAFNOR
+      NomVoie                  NomVoie peut également transporter l’intégralité de la ligne 4. Dans ce cas,
+                               ni NumeroVoie, ni IndiceRepetition, ni TypeVoie ne doivent être utilisés.
+
+                               AFNOR XP Z 10-011, ligne 6 : informations d'acheminement. Code postal ou [1..1] string
+      CodePostal               code CEDEX (Courrier d'Entreprise à Distribution EXceptionnelle). Dans ce
+                               dernier cas, l'information identifiant le bureau de CEDEX doit également être
+                               renseignée.
+                               Contrainte (regexp) .     .{0,5}
+
+                               AFNOR XP Z 10-011, ligne 6 : informations d'acheminement. Nom de la lo- [0..1] LigneAFNOR
+      Localite                 calité du destinataire, ou libellé du bureau distributeur CEDEX (dans ce cas,
+                               présence obligatoire de l'attribut Cedex).
+                               Localité peut également transporter l’intégralité de la ligne 6. Dans ce cas, ni
+                               CodePostal, ni Cedex, ni CodePays ne doivent être utilisés.
+
+
+
+
+                                                                        8
+     CNAMTS                                                          BPIJ                                        Date: 06/03/2012
+   DDSI/DPRM/DAP                                                 Bordereau IJ                                    Statut: Validé
+Département Avant-Projets                                         TLSEMP                                         Version: 02.00R3
+
+
+
+                                                                                                                    2.2.2.3. Assurance
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: Assurance
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Nature d'assurance.
+ Utilisation (extrémité).     Assure ( Assurance)
+ Diagramme.        BPIJ
+
+
+ Attribut                    Définition complète                                                           Occ. Type
+
+                             Information descriptive de la caractéristique de l'assurance sous forme codée. [1..1] Code
+      CodeNature
+                             - AS : maladie
+                             - AT : Accident du travail
+                             - MA: Maternité
+                             Contrainte (regexp) .    AS|AT|MA
+
+                                                                                                           [0..1] Paiement
+      Cumul
+
+                                                                                                           [1..*] Prestation
+      Prestation
+
+
+
+
+                                                                    9
+     CNAMTS                                                            BPIJ                                          Date: 06/03/2012
+   DDSI/DPRM/DAP                                                   Bordereau IJ                                      Statut: Validé
+Département Avant-Projets                                           TLSEMP                                           Version: 02.00R3
+
+
+
+                                                                                                                                2.2.2.4. Assure
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: Assure
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Un assuré est le rôle tenu par une personne physique qui a souscrit un contrat d'assurance.
+ Utilisation (extrémité).     OrganismeEmetteur ( Assure)
+ Diagramme.        BPIJ
+
+
+ Attribut                     Définition complète                                                             Occ. Type
+
+                              NIR de l'assuré.                                                                [1..1] NIR
+      NIR
+
+                              Nom de l'assuré.                                                                [1..1] Litteral
+      Nom
+
+                              Prénom de l'assuré                                                              [1..1] Litteral
+      Prenom
+
+                              Information qui indique aux OC qu'un décompte pour cet assuré a déjà été [0..1] Litteral
+      Info                    envoyé à une autre OC.
+
+                                                                                                              [0..1] Paiement
+      Cumul
+
+                                                                                                              [1..*] Assurance
+      Assurance
+
+                                                                                                              [0..*] RegularisationPrestation
+      Indu
+
+                                                                                                              [0..*] RegularisationPrestation
+      Rappel
+
+
+
+
+                                                                     10
+     CNAMTS                                                             BPIJ             Date: 06/03/2012
+   DDSI/DPRM/DAP                                                    Bordereau IJ         Statut: Validé
+Département Avant-Projets                                            TLSEMP              Version: 02.00R3
+
+
+
+                                                                                             2.2.2.5. Certificat
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: Certificat
+ Vocabulaire.     BPIJ
+
+
+ Définition.    Certificat médical AAT
+ Utilisation (extrémité).    Prestation ( Certificat)
+ Diagramme.        BPIJ
+
+
+ Attribut                   Définition complète                                    Occ. Type
+
+                            Type de certificat (initial, prolongation,...).        [1..1] Code
+      Type
+
+                            Date de premier jour du certificat.                    [1..1] date
+      DateDeb
+
+                            Date dernier jour du certificat.                       [1..1] date
+      DateFin
+
+
+
+
+                                                                      11
+     CNAMTS                                                               BPIJ                                        Date: 06/03/2012
+   DDSI/DPRM/DAP                                                     Bordereau IJ                                     Statut: Validé
+Département Avant-Projets                                             TLSEMP                                          Version: 02.00R3
+
+
+
+                                                                                                                       2.2.2.6. Employeur
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Agregats :: Employeur
+ Vocabulaire.       BPIJ
+
+
+ Définition.     L'entreprise est un rôle tenu par une personne morale.
+ Utilisation (extrémité).      Mandataire ( Declare)
+ Diagramme.         BPIJ
+
+
+ Attribut                     Définition complète                                                              Occ. Type
+
+                              Identifiant d'une entreprise où s'exerce toute ou partie de l'activité.          [1..1] CodeDeclare
+      Identite
+                                        • R [1..1] string
+
+
+                              Raison sociale de l'entreprise.                                                  [1..1] Litteral
+      RaisonSociale
+
+                              Adresse de l'entreprise.                                                         [0..1] AdresseGeoPostaleEm-
+      Adresse                                                                                                         ployeur
+
+                              Domiciliation bancaire de l'entreprise.                                          [0..1] ReleveIdentiteBancaire
+      Domiciliation
+
+                                                                                                               [0..1] Paiement
+      Cumul
+
+                              Un BPIJ, constitué à partir d'une requête d'interrogation sur le (ou les) critère(s) [0..*] OrganismeEmetteur
+      Caisse                  organisme emetteur et pour lequel aucun assuré n'est trouvé, sera restitué sans
+                              organisme emetteur.
+                              Dans les autres cas l'organisme est toujours associé à au moins un assuré.
+
+
+
+
+                                                                        12
+     CNAMTS                                                             BPIJ                                       Date: 06/03/2012
+   DDSI/DPRM/DAP                                                    Bordereau IJ                                   Statut: Validé
+Département Avant-Projets                                            TLSEMP                                        Version: 02.00R3
+
+
+
+                                                                                                                   2.2.2.7. Mandataire
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: Mandataire
+ Vocabulaire.      BPIJ
+
+
+ Définition. Un Mandataire est une personne morale inscrite dans un référentiel et identifié comme étant la personne morale gestionnaire
+ d'une ou plusieurs personnes morales dénommées Declare.
+ Différents rôles peuvent être appliqués comme :
+ - un prestataire de service (expert comptable,...)
+ - une entreprise (établissement)
+ - un organisme complémentaire
+ Utilisation (extrémité).      BPIJ ( Declarant)
+ Diagramme.         BPIJ
+
+
+ Attribut                     Définition complète                                                           Occ. Type
+
+                              Identité du mandataire. Cette propriété est complèter par un qualifiant obliga- [1..1] CodeDeclarant
+      Identite                toire.
+                              Exemple de valeur du Qualifiant :
+                              - E : Etablissement
+                              - OC : Organisme Complémentaire
+                              - PR : Prestataire de service (expert comptable,...)
+
+                                        • R [1..1] string
+
+
+                              Raison sociale du mandataire.                                                 [0..1] Litteral
+      RaisonSociale
+
+                              Adresse du mandataire.                                                        [0..1] AdresseGeoPostale
+      Adresse
+
+                              Domiciliation bancaire du mandataire.                                         [0..1] ReleveIdentiteBancaire
+      Domiciliation
+
+                                                                                                            [0..1] Paiement
+      Cumul
+
+                                                                                                            [1..*] Employeur
+      Declare
+
+
+
+
+                                                                      13
+     CNAMTS                                                               BPIJ                                          Date: 06/03/2012
+   DDSI/DPRM/DAP                                                      Bordereau IJ                                      Statut: Validé
+Département Avant-Projets                                              TLSEMP                                           Version: 02.00R3
+
+
+
+                                                                                                           2.2.2.8. OrganismeEmetteur
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Agregats :: OrganismeEmetteur
+ Vocabulaire.      BPIJ
+
+
+ Définition.     L’organisme émetteur est la caisse émettrice du paiement. Elle correspond à la caisse gestionnaire ou d'affiliation d'un groupe
+ d'assurés.
+ Utilisation (extrémité).      Employeur ( Caisse)
+ Diagramme.         BPIJ
+
+
+ Attribut                     Définition complète                                                                 Occ. Type
+
+                              Identification de la caisse d'affiliation du salarié.                              [1..1] Caisse
+      CodeCPAM                Numéro sur 3 caractères.
+                              Contrainte (regexp) .      [0-9]{3}
+
+                              Libellé de la caiise d'affiliation du salarié.                                     [0..1] Litteral
+      Libelle
+
+                              Correspond à la date journée comptable Assurance Maladie.                          [1..1] date
+      JComptable
+
+                                                                                                                 [0..1] Paiement
+      Cumul
+
+                              Un BPIJ, constitué à partir d'une requête d'interrogation sur le (ou les) critère(s) [0..*] Assure
+      Assure                  assuré et pour lequel l'assuré n'est pas trouvé, sera restitué sans l'organisme
+                              emetteur.
+                              Dans les autres cas il y a toujours présence d'au moins un assuré.
+
+
+
+
+                                                                        14
+     CNAMTS                                                         BPIJ                                      Date: 06/03/2012
+   DDSI/DPRM/DAP                                                Bordereau IJ                                  Statut: Validé
+Département Avant-Projets                                        TLSEMP                                       Version: 02.00R3
+
+
+
+                                                                                                                  2.2.2.9. Paiement
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: Paiement
+ Vocabulaire.     BPIJ
+
+
+ Définition.    Paiement correspond à un montant payé. Ce montant peut être un montant d'une journée comptable ou un montant cumulé.
+ Utilisation (extrémité).    Assurance ( Cumul)
+ Diagramme.        BPIJ
+
+
+ Attribut                    Définition complète                                                        Occ. Type
+
+                             Information qui précise la nature du paiement. Dans le cas d'un cumul par [0..1] Litteral
+      Libelle                critères on peut préciser le ou les critères de rupture.
+                             Ex. : Total par Assurance AS
+
+                             Montant relaitif au paiement. Ce montant peut être un montant cumulé ou un [1..1] Montant
+      Montant                montant d'une journée comptable.
+
+
+
+
+                                                                  15
+     CNAMTS                                                               BPIJ                                       Date: 06/03/2012
+   DDSI/DPRM/DAP                                                       Bordereau IJ                                  Statut: Validé
+Département Avant-Projets                                               TLSEMP                                       Version: 02.00R3
+
+
+
+                                                                                                                     2.2.2.10. Prestation
+
+ Nom qualifié.       BPIJ :: TLSEMP :: Commun :: Agregats :: Prestation
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Une prestation est la représentation tarifaire en espèces d'un paiement d'indemnités journalières d'un salarié subrogé.
+ Utilisation (extrémité).      Assurance ( Prestation)
+ Diagramme.          BPIJ
+
+
+ Attribut                     Définition complète                                                             Occ. Type
+
+                              Nature de la prestation.                                                        [1..1] Code
+      CodeNature
+                              Valeurs possibles :
+                               IJNOR=normale,
+                               IJMAJ= majorée,
+                               CAR=carence,
+                               IJPRE=prénatales,
+                               RETCSG : retenue CSG
+                               RETRDS : retenue RDS
+                               REGCSG : régulation CSG
+                               REGRDS : régulation RDS
+
+                              Réference de l'indu. Numéro de l'archive Dette.                                 [0..1] LitteralQualifie
+      Reference
+                                       • Q [0..1] string
+
+
+                              Libellé precise la nature de la prestation comme                                [1..1] Litteral
+      Libelle
+                              - Carence
+                              - I.J. normale
+                              - I.J. majorée
+                              - I.J. prénatale
+                              - Retenue RDS
+                              - Retenue CSG
+                              - Regulation RDS
+                              - Regulation CSG
+
+                              Date du premier jour de prestation.                                             [1..1] date
+      DateDebPrest
+
+                              Date du dernier jour de la prestation.                                          [0..1] date
+      DateFinPrest
+
+                              Numéro national du sinistre (NNS).                                              [0..1] Code
+      NumSin
+
+                              Date de survenance du sinistre                                                  [0..1] date
+      DateSin
+
+                              Date du premier jour de congé maternité/paternité.                              [0..1] date
+      DateDebConge
+
+                              Date du dernier jour de congé maternité/paternité.                              [0..1] date
+      DateFinConge
+
+                              Nombre de jours d'IJ payées.                                                    [0..1] decimal
+      NbIJ
+
+                              IJ subrogé (Oui/Non)                                                            [0..1] boolean
+      IJSub
+
+
+
+                                                                        16
+     CNAMTS                                                    BPIJ              Date: 06/03/2012
+   DDSI/DPRM/DAP                                           Bordereau IJ          Statut: Validé
+Département Avant-Projets                                   TLSEMP               Version: 02.00R3
+
+
+
+ Attribut              Définition complète                                Occ. Type
+
+                       Prix unitaire.                                     [0..1] Montant
+     PU
+
+                       Un montant relatif à l'IJ.                         [0..1] Montant
+     Montant
+                       Dans le cas d'une carence le montant est à 0,00
+
+                                                                          [0..1] Certificat
+     Certificat
+
+
+
+
+                                                              17
+     CNAMTS                                                               BPIJ                       Date: 06/03/2012
+   DDSI/DPRM/DAP                                                   Bordereau IJ                      Statut: Validé
+Département Avant-Projets                                           TLSEMP                           Version: 02.00R3
+
+
+
+                                                                                      2.2.2.11. RegularisationPrestation
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: RegularisationPrestation
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Régularisation de prestations.
+ Utilisation (extrémité).     Assure ( Indu, Rappel)
+ Diagramme.        BPIJ
+
+
+ Attribut                     Définition complète                                              Occ. Type
+
+                              Numéro de l'indu ou du rappel.                                   [1..1] Code
+      Numero
+
+                              Un montant relatif à l'indu ou au rappel.                        [1..1] Montant
+      Montant
+
+
+
+
+                                                                      18
+     CNAMTS                                                           BPIJ                                    Date: 06/03/2012
+   DDSI/DPRM/DAP                                                  Bordereau IJ                                Statut: Validé
+Département Avant-Projets                                          TLSEMP                                     Version: 02.00R3
+
+
+
+                                                                                            2.2.2.12. ReleveIdentiteBancaire
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Agregats :: ReleveIdentiteBancaire
+ Vocabulaire.     BPIJ
+
+
+ Définition.    Relevé d’identité bancaire : format d’une domiciliation bancaire
+
+
+ Attribut                    Définition complète                                                       Occ. Type
+
+                             International Bank Account Number                                         [0..1] string
+     IBAN                    - 1/2 : code pays
+                             - 3/2 : check digit
+                             - 5/30 : numéro de compte
+                             Pour un numéro de compte français :
+                             - 5/5 : numéro de banque
+                             - 10/5 : numéro d'agence
+                             - 15/11 : numéro de compte
+                             - 26/2 : clé RIB
+
+                             Code BIC/ISO identifiant la banque domiciliatrice (également appelé code [0..1] string
+     BIC                     SWIFT)
+                             - 1/8 : code identifiant la banque
+                             - 9/3 : code identifiant la branche de la banque (optionnel)
+
+                                                                                                       [0..1] string
+     Guichet
+
+                                                                                                       [0..1] string
+     Compte
+
+                                                                                                       [0..1] string
+     CleRIB
+
+
+
+
+                                                                    19
+        CNAMTS                                                                                                   BPIJ                                                                   Date: 06/03/2012
+      DDSI/DPRM/DAP                                                                                        Bordereau IJ                                                                 Statut: Validé
+ Département Avant-Projets                                                                                  TLSEMP                                                                      Version: 02.00R3
+
+
+2.2.3. Simples
+2.2.3.1. Diagramme Package Simple
+                                                                             s tring @xs d
+
+
+
+
+            Lig ne AFNOR
+                .{0,38}                                           Litte ralQualifie                          Litte ral                     Co de                     Co de De c larant                    Co de De c lare
+
+
+
+
+                                                                                                  s tring @xs d
+
+
+
+
+                                                                                                    Ide ntite
+
+
+
+
+                                                                     Cais s e                                            NIR
+                                                                     [0-9]{3}                             \d{6}[A-Za-z0-9]{1}((\d{6})|(\d{8}))
+
+
+
+
+                                                                                   de c imal@xs d
+
+
+
+
+                                                                                   Mo ntant
+
+
+  ...................................................................................................................................................................................................................................
+       Classes. Caisse , Code , CodeDeclarant , CodeDeclare , decimal , Identite , LigneAFNOR , Litteral , LitteralQualifie , Montant , NIR , string
+
+
+
+
+                                                                                                              20
+       CNAMTS                                                          BPIJ                                     Date: 06/03/2012
+     DDSI/DPRM/DAP                                                 Bordereau IJ                                 Statut: Validé
+ Département Avant-Projets                                          TLSEMP                                      Version: 02.00R3
+
+
+2.2.3.2. Liste des classes
+
+                                                                                                                      2.2.3.2.1. Caisse
+
+   Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Simples :: Caisse
+   Vocabulaire.      BPIJ
+
+
+   Définition.     Code Caisse N3
+   Généralisation en extension.        Identite
+   Diagramme.        Package Simple
+
+
+   Contrainte (regexp) .    [0-9]{3}
+
+
+                                                                                                                         2.2.3.2.2. Code
+
+   Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Simples :: Code
+   Vocabulaire.      BPIJ
+
+
+   Définition.    Code exprime une information sous forme littérale et/ou codée.
+   Généralisation en extension.        string
+   Diagramme.        Package Simple
+
+
+                                                                                                          2.2.3.2.3. CodeDeclarant
+
+   Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Simples :: CodeDeclarant
+   Vocabulaire.      BPIJ
+
+
+   Généralisation en extension.        string
+   Diagramme.        Package Simple
+
+
+   Métadonnée (*)              Définition complète                                                        Occ. Type
+
+                               Code désignant le référentiel d’identification. Par exemple : ADELI, AMC, [1..1] string
+       R                       AMO, BENBDO, CDO, CPAM, CRAM, DSINDS, ELSM, FINESS, LASER,
+                               NIR, NTPPRS, ORGIR, PSAM, RPPS, SIRET, URSSAF, V1, VITALE1
+
+  (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+
+
+                                                                     21
+      CNAMTS                                                           BPIJ                                           Date: 06/03/2012
+    DDSI/DPRM/DAP                                                  Bordereau IJ                                       Statut: Validé
+Département Avant-Projets                                           TLSEMP                                            Version: 02.00R3
+
+
+
+                                                                                                                 2.2.3.2.4. CodeDeclare
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Simples :: CodeDeclare
+ Vocabulaire.      BPIJ
+
+
+ Définition.    L’identité donne la référence unique d’un intervenant dans un certain référentiel d’identification.
+ Généralisation en extension.        string
+ Diagramme.         Package Simple
+
+
+ Métadonnée (*)               Définition complète                                                             Occ. Type
+
+                              Code désignant le référentiel d’identification. Par exemple : ADELI, AMC, [1..1] string
+      R                       AMO, BENBDO, CDO, CPAM, CRAM, DSINDS, ELSM, FINESS, LASER,
+                              NIR, NTPPRS, ORGIR, PSAM, RPPS, SIRET, URSSAF, V1, VITALE1
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+                                                                                                                        2.2.3.2.5. Identite
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Simples :: Identite
+ Vocabulaire.      BPIJ
+
+
+ Définition.    L’identité donne la référence unique d’un intervenant dans un certain référentiel d’identification.
+ Généralisation en extension.        string
+ Specialisation.      Caisse , NIR
+ Diagramme.         Package Simple
+
+
+                                                                                                               2.2.3.2.6. LigneAFNOR
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Simples :: LigneAFNOR
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Ligne norme AFNOR XP Z 10-011.
+ Généralisation en extension.        string
+ Diagramme.         Package Simple
+
+
+ Contrainte (regexp) .     .{0,38}
+
+
+
+
+                                                                      22
+      CNAMTS                                                          BPIJ               Date: 06/03/2012
+    DDSI/DPRM/DAP                                                  Bordereau IJ          Statut: Validé
+Département Avant-Projets                                           TLSEMP               Version: 02.00R3
+
+
+
+                                                                                            2.2.3.2.7. Litteral
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Simples :: Litteral
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Code exprime une information sous forme littérale et/ou codée.
+ Généralisation en extension.        string
+ Diagramme.         Package Simple
+
+
+                                                                                  2.2.3.2.8. LitteralQualifie
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Simples :: LitteralQualifie
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Code exprime une information sous forme littérale et/ou codée.
+ Généralisation en extension.        string
+ Diagramme.         Package Simple
+
+
+ Métadonnée (*)               Définition complète                                  Occ. Type
+
+                              Qualifiant de discrimination de l’information.      [0..1] string
+      Q
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+                                                                                           2.2.3.2.9. Montant
+
+ Nom qualifié.      BPIJ :: TLSEMP :: Commun :: Simples :: Montant
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Décrit un montant monétaire.
+ Généralisation en extension.        decimal
+ Diagramme.         Package Simple
+
+
+
+
+                                                                     23
+     CNAMTS                                                         BPIJ        Date: 06/03/2012
+   DDSI/DPRM/DAP                                                 Bordereau IJ   Statut: Validé
+Département Avant-Projets                                         TLSEMP        Version: 02.00R3
+
+
+
+                                                                                    2.2.3.2.10. NIR
+
+ Nom qualifié.     BPIJ :: TLSEMP :: Commun :: Simples :: NIR
+ Vocabulaire.     BPIJ
+
+
+ Définition.    Numéro d'inscription au répertoire de l'INSEE.
+ Généralisation en extension.       Identite
+ Diagramme.        Package Simple
+
+
+ Contrainte (regexp) .    \d{6}[A-Za-z0-9]{1}((\d{6})|(\d{8}))
+
+
+
+
+                                                                  24
+     CNAMTS                      BPIJ          Date: 06/03/2012
+   DDSI/DPRM/DAP              Bordereau IJ     Statut: Validé
+Département Avant-Projets   DonneesDeService   Version: 02.00R3
+
+
+
+
+Chapitre 3. DonneesDeService
+
+
+
+
+                                25
+      CNAMTS                                                         BPIJ                                      Date: 06/03/2012
+    DDSI/DPRM/DAP                                               Bordereau IJ                                   Statut: Validé
+ Département Avant-Projets                                    DonneesDeService                                 Version: 02.00R3
+
+
+
+3.1. Description
+  Définition.   Ce domaine regroupe l'ensemble des données de services permettant une présentation standard des données à échanger.
+
+
+
+
+                                                                   26
+      CNAMTS                                                        BPIJ                                       Date: 06/03/2012
+    DDSI/DPRM/DAP                                              Bordereau IJ                                    Statut: Validé
+ Département Avant-Projets                                   DonneesDeService                                  Version: 02.00R3
+
+
+
+3.2. Commun
+3.2.1. Description
+  Définition.   Le dictionnaire regroupe un ensemble des données définies en commun par un ensemble de partenaires.
+
+
+
+
+                                                                   27
+       CNAMTS                                                             BPIJ                                            Date: 06/03/2012
+     DDSI/DPRM/DAP                                                   Bordereau IJ                                         Statut: Validé
+ Département Avant-Projets                                         DonneesDeService                                       Version: 02.00R3
+
+
+3.2.2. Agregats
+
+                                                                                                                          3.2.2.1. Classe BPIJ
+
+  Nom qualifié.      BPIJ :: DonneesDeService :: Commun :: Agregats :: BPIJ
+  Nom d'instance.       BPIJ
+  Vocabulaire.      BPIJ
+
+
+  Définition.     Une entête est un système d’identification de l’enveloppe d’échange, et de description de son contenu
+  Diagramme.         BPIJ
+
+
+  Métadonnée (*)               Définition complète                                                                  Occ. Type
+
+                               Nature fonctionnelle du message. Elle est définie contractuellement entre les [1..1] string
+       Nature                  partenaires et est utilisée pour valider l’instance du message.
+                               Valeur fixée : "XXXX"
+                               Contrainte (regexp) .      BPIJ
+
+                               Version fonctionnelle du message. Il est défini entre les partenaires et est utilisé [1..1] string
+       Version                 pour contrôler l’instance du message (validation) .
+                               La version discrimine les messages de même nature dont les échanges sont
+                               autorisés simultanéments entre deux partenaires.
+                               Valeur fixée contractuellement entre les partenaires.
+                               Par exemple : 1.0 pour la version initiale.
+
+  (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+  Attribut                     Définition complète                                                                  Occ. Type
+
+                               Identification correspond à la référence du décompte produit.                       [1..1] string
+       Identification
+                               Définir l'origine de cette référence.
+
+                               Date ou horodatage fixé par l’émetteur de l’entête au moment de sa création [1..1] dateTime
+       Temps
+
+                               Code qui détermine la fonction du message dans un scénario déterminé. Ex. [0..1] Code
+       Fonction                Message initial, rectificatif, annule et remplace, etc. (ISO 7372/1225)
+
+                                         • Q [0..1] string
+
+
+                               Info avec le qualifiant Q='REQBPIJ' référence l'identifiant de la requête à l'ori- [0..1] Code
+       Info                    gine du bordereau. Elle est présente uniquement dans le cas d'un BPIJ restitué
+                               à partir d'une requête.
+
+                                         • Q [0..1] string
+
+
+                                                                                                                   [0..1] Paiement
+       Cumul
+
+                                                                                                                   [1..1] Mandataire
+       Declarant
+
+
+
+
+                                                                         28
+        CNAMTS                                                                                                   BPIJ                                                                   Date: 06/03/2012
+      DDSI/DPRM/DAP                                                                                    Bordereau IJ                                                                     Statut: Validé
+ Département Avant-Projets                                                                           DonneesDeService                                                                   Version: 02.00R3
+
+
+3.2.3. Simples
+3.2.3.1. Diagramme Package Simple
+
+                  s tring @xs d
+
+
+
+
+                           Co de
+
+
+  ...................................................................................................................................................................................................................................
+       Classes. Code , string
+
+
+
+
+                                                                                                              29
+      CNAMTS                                                          BPIJ               Date: 06/03/2012
+    DDSI/DPRM/DAP                                                Bordereau IJ            Statut: Validé
+Département Avant-Projets                                      DonneesDeService          Version: 02.00R3
+
+
+
+                                                                                        3.2.3.2. Classe Code
+
+ Nom qualifié.      BPIJ :: DonneesDeService :: Commun :: Simples :: Code
+ Vocabulaire.      BPIJ
+
+
+ Définition.    Code exprime une information sous forme littérale et/ou codée
+ Généralisation en extension.        string
+ Diagramme.         Package Simple
+
+
+ Métadonnée (*)               Définition complète                                 Occ. Type
+
+                              Qualifiant de discrimination de l’information.      [0..1] string
+      Q
+
+ (*) Les métadonnées n'appartiennent à aucun vocabulaire.
+
+
+
+
+                                                                     30
+      CNAMTS                                                             BPIJ                                          Date: 06/03/2012
+    DDSI/DPRM/DAP                                                    Bordereau IJ                                      Statut: Validé
+Département Avant-Projets                                             Annexes                                          Version: 02.00R3
+
+
+
+Annexe A. Annexes
+A.1. Package Bases
+ Définition.    Cette annexe décrit l'ensemble des types de base utilisés dans la documentation du modèle.
+ Vocabulaire. Les types de base sont définis dans un vocabulaire externe au modèle (le vocabulaire déclaré par le langage cible)
+ Valeur: http://www.w3.org/2001/XMLSchema (Identifiant: xsd)
+
+
+                                                                                                                               A.1.1. boolean
+
+
+  Nom qualifié.     boolean
+
+
+  Définition.    Type primitif XML Schémas
+  Représente des valeurs booléennes, qui sont true-false ou 0-1.
+
+
+                                                                                                                                     A.1.2. date
+
+
+  Nom qualifié.     date
+
+
+  Définition.    Type primitif XML Schémas
+  Représente une date du calendrier (norme ISO 8601).
+  Le format de date est CCYY-MM-DD, éventuellement avec un indicateur de fuseau horaire comme pour dateTime.
+
+
+                                                                                                                             A.1.3. dateTime
+
+
+  Nom qualifié.     dateTime
+
+
+  Définition.    Type primitif XML Schémas
+  Représente un moment spécifique dans le temps (norme ISO 8601).
+  Le format de dateTime est CCYY-MM-DDThh :mm:ss, où CC représente le siècle, YY, l'année, MM, le mois et DD, le jour, précédé d'un signe
+  moins facultatif (-) pour indiquer un nombre négatif. Si le signe moins (-) est omis, le nombre est supposé positif (+). T est le séparateur date/
+  heure et hh, mm et ss représentent respectivement l'heure, la minute et la seconde. Des chiffres supplémentaires permettent d'augmenter la
+  précision de fractions de secondes, au besoin. Par exemple, le format ss.ss... avec n'importe quel nombre de chiffres après la virgule décimale
+  est pris en charge. La partie des fractions de secondes est facultative.
+  Cette représentation peut être immédiatement suivie d'un « Z » pour indiquer l'heure universelle (UTC) ou le fuseau horaire. Il s'agit par
+  exemple de la différence entre l'heure locale et l'heure UTC, immédiatement suivie d'un signe + ou -, suivi de la différence par rapport à
+  l'heure UTC représentée sous la forme hh:mm (les minutes sont requises). Si le fuseau horaire est inclus, les heures et les minutes doivent
+  être présentes.
+
+
+                                                                                                                               A.1.4. decimal
+
+
+  Nom qualifié.     decimal
+
+
+  Définition.    Type primitif XML Schémas
+  Représente des nombres de précision aléatoire.
+
+
+
+                                                                        31
+     CNAMTS                                   BPIJ        Date: 06/03/2012
+   DDSI/DPRM/DAP                           Bordereau IJ   Statut: Validé
+Département Avant-Projets                   Annexes       Version: 02.00R3
+
+
+
+                                                                 A.1.5. string
+
+ Nom qualifié.    string
+
+
+ Définition.   Type primitif XML Schémas
+ Représente des chaînes de caractères.
+
+
+
+
+                                            32
+      CNAMTS                                                     BPIJ      Date: 06/03/2012
+    DDSI/DPRM/DAP                                           Bordereau IJ   Statut: Validé
+ Département Avant-Projets                                   Annexes       Version: 02.00R3
+
+
+
+A.2. Informations de traçabilité du modèle
+  Hôte. S000215W
+  Horodatage.      20120306_090848
+  Emplacement.         D:/workspace_camelia/WS_CAMELIA_ET5_te
+  Projet.   BPIJ
+  Patrimoine.      Z:\Edi\Camelia\Patrimoine
+  Statut.   Consolidé
+  Generation.      4
+
+
+
+
+                                                                33
+      CNAMTS                                                   BPIJ                                 Date: 06/03/2012
+    DDSI/DPRM/DAP                                          Bordereau IJ                             Statut: Validé
+Département Avant-Projets                                   Annexes                                 Version: 02.00R3
+
+
+
+A.3. Tableau des changements - Version de référence: 01.00
+ Liste des diagrammes, dont les éléments ont changé.
+
+  Diagrammes                                                              Liens vers les classes
+
+  BPIJ                                   Assurance , Assure , BPIJ , Certificat , Employeur , Mandataire , OrganismeEmet-
+                                         teur , Paiement , Prestation , RegularisationPrestation
+
+                                         Modèle BPIJ.   Bordereau IJ (BPIJ)
+
+
+
+
+                                                              34
+

@@ -1,10 +1,10 @@
 //! Le plan comptable et les tables des exports : le plan livre (`plan-comptable-base.json`) recouvert par
-//! `config/plan-comptable.json`, le sous-compte 421 d'un salarie (le modele `net.par_salarie`, une forme de
-//! `str.format` que ce module rend ou refuse), le controle du plan avant un export vers le
+//! `config/plan-comptable.json`, le sous-compte 421 d'un salarie (le modele `net.par_salarie`, un
+//! modèle à champs nommés que ce module rend ou refuse), le contrôle du plan avant un export vers le
 //! logiciel du comptable, et les tables fixes des exports (`exports_tables.json`).
 //!
-//! Ecart VOULU (refuser plutot que formater autrement) : un modele de compte individuel qui emploie une forme de
-//! `str.format` que ce module ne rend pas -- groupement des milliers avec zeros
+//! Un modele de compte individuel qui emploie une forme que ce module ne rend pas -- groupement des milliers avec
+//! zeros
 //! (`{code:010,}`), types flottants (`{code:e}`, `f`, `g`, `%`), methodes ou attributs de `str`/`int` autres que
 //! `real`, `imag`, `numerator`, `denominator` -- est refuse en `ErreurOperation` qui le dit.
 
@@ -31,10 +31,13 @@ pub fn logiciels_connus() -> Vec<&'static str> {
 }
 
 
+/// Le plan comptable propre a la compagnie, sous sa racine.
+pub const PLAN_COMPTABLE: &str = "config/plan-comptable.json";
+
 /// Le plan comptable de la compagnie, et d'ou il vient (`config/plan-comptable.json` ou le plan livre).
 pub fn plan(ctx: &Contexte) -> R<(Map<String, Value>, &'static str)> {
     let p = plan_comptable(ctx)?;
-    let origine = if ctx.racine.join("config").join("plan-comptable.json").exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
+    let origine = if ctx.racine.join(PLAN_COMPTABLE).exists() { PLAN_COMPTABLE } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
     Ok((p, origine))
 }
 
@@ -43,7 +46,7 @@ pub fn plan(ctx: &Contexte) -> R<(Map<String, Value>, &'static str)> {
 pub fn plan_comptable(ctx: &Contexte) -> R<Map<String, Value>> {
     let base = lire_json(&ctx.code.join("plan-comptable-base.json"))?;
     let Value::Object(mut plan) = base else { unreachable!("plan-comptable-base.json est un objet") };
-    let propre = ctx.racine.join("config").join("plan-comptable.json");
+    let propre = ctx.racine.join(PLAN_COMPTABLE);
     if propre.exists() {
         let perso = lire_json(&propre)?;
         let Value::Object(perso) = perso else {
@@ -227,10 +230,12 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
             "NonPorte" => {
                 return Refus::Autre(erreur(
                     "ErreurOperation",
-                    format!(
-                        "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `moteur route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement.",
-                        valeur_en_texte(modele),
-                        message
+                    socle::echec::avec(
+                        format!(
+                            "Le modèle du compte individuel « {} » emploie une forme que le logiciel ne sait pas remplir : l'écrire autrement dans le plan comptable.",
+                            valeur_en_texte(modele)
+                        ),
+                        serde_json::json!({"cle": "net.par_salarie", "detail": message}),
                     ),
                 ))
             }
@@ -245,7 +250,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
     })
 }
 
-/// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres.
+/// Un entier écrit : le signe, les chiffres, un tiret bas entre deux chiffres.
 fn entier_de(t: &str) -> Option<i64> {
     let (neg, reste) = match t.strip_prefix('-') {
         Some(r) => (true, r),

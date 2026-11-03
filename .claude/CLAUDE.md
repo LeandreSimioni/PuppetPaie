@@ -1,5 +1,5 @@
 # PuppetPaie
 
-Les consignes du projet sont dans `atelier/CLAUDE.md` :
+Les consignes du projet sont dans `atelier/AGENTS.md` :
 
-@../atelier/CLAUDE.md
+@../atelier/AGENTS.md

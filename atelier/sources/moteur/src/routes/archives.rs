@@ -1,6 +1,6 @@
-//! Les routes de l'Historique, des exports et de la cloture : ce qui reste d'une annee de paies (le dossier d'un
-//! salarie, les exports et leur logiciel comptable, les corrections, le cout de l'annee, la revue des spectacles, la
-//! cloture), et ce qui part d'elles (le dossier par courriel, la regularisation Conges Spectacles).
+//! Les routes des Exports : ce qui reste d'une annee de paies (le dossier d'un salarie, les exports et leur logiciel
+//! comptable, les droits des intermittents), et ce qui part d'elles (le dossier par courriel, la regularisation de la
+//! CASC-SVP).
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
@@ -8,18 +8,15 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::qui_de;
 use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
-use crate::routes::ouverture::marquer_echeance;
-use crate::routes::lire_json_ou_vide;
-use crate::routes::etapes::Moteur;
-use crate::routes::fiches::entier;
-use crate::routes::ouverture::mois_connus;
+
 use documents::plan_comptable::{controler_plan, tables};
 use droit::contexte::Contexte;
 use envois::envoi::{self, Message};
-use envois::etats::{self, get, getd, items, ou, texte_vide};
+use envois::etats::{getd, ou, texte_vide};
 use envois::ligne_d_envoi::{echec_d_envoi, noter, noter_echec_d_envoi};
 use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
@@ -27,49 +24,170 @@ use socle::ecriture::ecrire_json;
 use socle::fichiers::lire_json_echec as lire_json;
 use socle::fichiers::{nom_du, repr, vrai};
 use socle::html::courriel_en_html;
-use socle::valeur::{nom_type, valeur_en_texte, valeurs_egales};
+use socle::valeur::{nom_type, valeur_en_texte};
+use crate::routes::catalogue::{Ecran, Place};
 
+const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
 
+/// Une lecture sans charge de l'Historique ou des Exports.
+const fn lecture(nom: &'static str, geste: &'static str, rend: &'static str) -> Fiche {
+    Fiche { nom, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0, ecran: ECRAN }
+}
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &[
-    "exercices", "dossier-formes", "exports-periodes", "regularisations", "couts",
-    "revue-spectacles", "cloture", "export-compta", "retenir-logiciel", "casc-regularise", "exporter", "dossier-envoyer",
-    "casc-envoyer",
-];
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Exports);
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &[
-    "couts", "revue-spectacles", "cloture", "export-compta", "retenir-logiciel", "casc-regularise", "exporter",
-    "dossier-envoyer", "casc-envoyer",
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    lecture("dossier-formes", "Dire ce que peut porter le dossier d'un salarié : catégories, périodes.", "salaries, categories, periodes"),
+    lecture("exports-periodes", "Dire ce qui s'exporte : mois, années, états, formats, logiciel comptable.", "mois, annees, etats, formats, logiciel retenu"),
+    Fiche {
+        nom: "retenir-logiciel",
+        geste: "Retenir le logiciel du comptable, dont les écritures prennent le format.",
+        charge: &[Champ { nom: "logiciel", libelle: Affiche::new("Logiciel"), forme: Forme::Texte, sens: "son nom, parmi ceux que exports-periodes connaît ; absent : aucun", avance: false }, Champ { nom: "analytique", libelle: Affiche::new("Par spectacle"), forme: Forme::OuiNon, sens: "vrai : par spectacle", avance: true }],
+        exemple: r#"{}"#,
+        rend: "le logiciel retenu",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "casc-regularise",
+        geste: "Noter régularisée, hors DSN, la CASC-SVP d'une année de mois importés.",
+        charge: &[
+            ANNEE,
+            Champ { nom: "vire_le", libelle: Affiche::new("Viré le"), forme: Forme::Date, sens: "le jour du virement, AAAA-MM-JJ", avance: false },
+            Champ { nom: "montant", libelle: Affiche::new("Montant viré"), forme: Forme::Nombre, sens: "le montant viré", avance: false },
+        ],
+        exemple: r#"{"annee":"2025","vire_le":"2026-11-02","montant":"12.80"}"#,
+        rend: "la régularisation notée : année, mois, montant, calculé, vire_le",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "exporter",
+        geste: "Exporter un état (livre de paie, charges…) en tableau ou en fichier.",
+        charge: &[
+            Champ { nom: "etat", libelle: Affiche::new("État"), forme: Forme::Texte, sens: "l'état, parmi ceux que exports-periodes dit", avance: false },
+            MOIS,
+            ANNEE,
+            Champ { nom: "format", libelle: Affiche::new("Format"), forme: Forme::Texte, sens: "le format du fichier", avance: true },
+            Champ { nom: "apercu", libelle: Affiche::new("Aperçu seulement"), forme: Forme::OuiNon, sens: "vrai : le tableau, sans écrire de fichier", avance: true },
+        ],
+        exemple: r#"{"etat":"livre-de-paie","mois":"2026-11","apercu":true}"#,
+        rend: "le tableau, ou le fichier écrit",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "dossier-envoyer",
+        geste: "Refaire le dossier de chaque salarié choisi et le lui envoyer par courriel.",
+        charge: &[
+            Champ { nom: "salaries", libelle: Affiche::new("Salariés"), forme: Forme::Liste, sens: "les clés de leurs fiches", avance: false },
+            MOIS,
+            ANNEE,
+            Champ { nom: "categories", libelle: Affiche::new("Ce que le dossier porte"), forme: Forme::Liste, sens: "ce que le dossier porte ; tout sinon", avance: true },
+        ],
+        exemple: r#"{"salaries":["FULLER"],"mois":"2026-11"}"#,
+        rend: "le dossier, et envoi (partis)",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain au moment de l'envoi ; rien n'est écrit" },
+            OPERATION,
+        ],
+        acte: Acte::Engage,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "droits",
+        geste: "Dire les heures et cachets cumulés de chaque intermittent (annexes 8 et 10).",
+        charge: &[Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois du tableau (le mois, l'année civile), AAAA-MM ; absent : celui du jour", avance: false }],
+        exemple: r#"{"mois":"2026-11"}"#,
+        rend: "salaries (chacun : nom, fenetre, lignes [quoi, valeur], phrase, notes, colonnes du tableau), phrase (ce que vaut ce compte)",
+        refus: &[OPERATION, FORME],
+        acte: Acte::Lit,
+        avance: false,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "casc-envoyer",
+        geste: "Envoyer à Audiens et au CASC-SVP la régularisation des mois importés.",
+        charge: &[
+            Champ { nom: "vire_le", libelle: Affiche::new("Virements faits"), forme: Forme::Objet, sens: "{année: jour du virement fait, AAAA-MM-JJ}", avance: false },
+            Champ { nom: "motdepasse", libelle: Affiche::new("Mot de passe du logiciel"), forme: Forme::Texte, sens: "le mot de passe du logiciel ; sans lui, le moteur le demande à un humain", avance: false },
+        ],
+        exemple: r#"{"vire_le":{"2026":"2026-11-02"}}"#,
+        rend: "partis (les destinataires), expediteur, periode, total, annees (les régularisations notées), eml",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est parti" },
+            Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" },
+            Refus { classe: "ErreurOperation", corriger: "la date du virement fait, ou l'année que la phrase nomme ; rien n'est parti" },
+        ],
+        acte: Acte::Engage,
+        avance: true,
+        phrase: 0,
+        ecran: ECRAN,
+    },
 ];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        "exercices" => exercices_route(ctx),
-        "dossier-formes" => dossier_formes(ctx),
-        "exports-periodes" => exports_periodes(ctx, charge),
-        "regularisations" => regularisations(ctx),
-        "couts" => couts(o, ctx, charge),
-        "revue-spectacles" => revue_spectacles(o, ctx, charge),
-        "cloture" => crate::compagnie::exercice_ecrit::cloture_route(ctx, charge),
-        "export-compta" => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge),
-        "retenir-logiciel" => retenir_logiciel(ctx, charge),
-        "casc-regularise" => casc_regularise(ctx, charge),
-        "exporter" => exporter(ctx, charge),
-        "dossier-envoyer" => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)),
-        "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)),
+        "dossier-formes" => dossier_formes(ctx).map(|v| {
+            let p = format!("Dossiers possibles : {} ; sortes de pièces : {}.", super::compte(super::nombre(&v["salaries"]), "salarié", "salariés"), super::nombre(&v["categories"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "exports-periodes" => exports_periodes(ctx, charge).map(|mut v| {
+            v["ecran"] = ecran_des_exports(&v);
+            let p = format!("Exports : {} ; mois payés : {} ; années : {}.", super::compte(super::nombre(&v["etats"]), "état", "états"), super::nombre(&v["mois"]), super::nombre(&v["annees"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "retenir-logiciel" => retenir_logiciel(ctx, charge).map(|v| {
+            let p = if t(&v, "logiciel").is_empty() { "Aucun logiciel comptable retenu.".to_string() } else { format!("Logiciel comptable retenu : {}.", t(&v, "logiciel")) };
+            super::phrase_en_tete(v, p)
+        }),
+        "casc-regularise" => casc_regularise(ctx, charge).map(|v| {
+            let p = format!("CASC-SVP {} notée régularisée : {} virés le {}.", t(&v, "annee"), socle::texte::euros_de(&v["montant"]), super::quand(&t(&v, "vire_le")));
+            super::phrase_en_tete(v, p)
+        }),
+        "exporter" => exporter(ctx, charge).map(|mut v| {
+            // Ce que l'ecran dit d'un etat : ses donnees personnelles, ses totaux partiels, la regularisation CASC-SVP.
+            v["ecran"] = ecran_d_un_etat(&v);
+            // Ce que l'etat dit de lui-meme (ce qui est du, ce qui est infere), sous la phrase : ce que l'ecran montre au-dessus du tableau.
+            v["phrases"] = v["avertissements"].clone();
+            let titre = if v["titre"].is_string() { t(&v, "titre") } else { t(&v, "periode") };
+            let p = match v["fichier"].as_str() {
+                Some(f) => format!("{} : écrit dans {}.", titre, f),
+                None => format!("{} : aperçu, rien n'est écrit.", titre),
+            };
+            super::phrase_en_tete(v, p)
+        }),
+        "dossier-envoyer" => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+            let fichiers: Vec<String> = v["fichiers"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+            let p = format!("Dossier de {} ({}) : {}.", v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>().join(", "), t(&v, "periode"), super::compte(fichiers.len(), "fichier joint", "fichiers joints"));
+            super::phrase_en_tete(v, p)
+        }),
+        "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+            let partis: Vec<String> = v["partis"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+            let annees: Vec<String> = v["annees"].as_array().into_iter().flatten().map(|a| super::mot(&a["annee"])).collect();
+            let notee = if annees.len() > 1 { "notées régularisées" } else { "notée régularisée" };
+            let p = format!("CASC-SVP, {} : {}, envoyé à {} ; {} {}.", t(&v, "periode"), socle::texte::euros_de(&v["total"]), partis.join(" et "), annees.join(" et "), notee);
+            super::phrase_en_tete(v, p)
+        }),
+        "droits" => droits(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
-}
-
-/// `couts` : le cout de l'annee `charge["annee"]`, au jour du contexte.
-fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let _ = o;
-    let annee = valeur_en_texte(exiger(charge, "annee")?);
-    let mut r = documents::fiche_recapitulative::Recapitulatifs::nouveau(ctx, None, Some(annee), false);
-    r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
 /// `ctx.racine / "sorties" / mois` : `mois` doit etre un texte (`TypeError` sinon,
@@ -84,12 +202,12 @@ fn sous_sorties(ctx: &Contexte, mois: &Value) -> R<std::path::PathBuf> {
     }
 }
 
-/// `sorted(d.glob("*.pdf"))` : les noms (sensible a la casse, fichiers caches compris),
+/// Les noms des PDF d'un dossier (sensible à la casse, fichiers cachés compris),
 /// en ordre de points de code.
 fn pdf_de(d: &Path) -> R<Vec<String>> {
     let mut noms = Vec::new();
-    // `Path.glob` ne leve rien pour ce qui n'est pas un dossier ni pour un dossier
-    // interdit : elle ne rend rien.
+    // Ce qui n'est pas un dossier, ou un dossier interdit, n'a aucun PDF :
+    // rien ne se refuse.
     let lecture = match std::fs::read_dir(d) {
         Ok(l) => l,
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied || e.raw_os_error() == Some(20) => return Ok(noms),
@@ -125,7 +243,7 @@ pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R
         }
         for nom in pdf_de(d)? {
             // Le PDF a imprimer reunit les pieces de plusieurs salaries : chacune se liste seule, lui jamais.
-            if nom.starts_with(envois::envois_signature::PREFIXE_IMPRESSION) {
+            if nom.starts_with(crate::compagnie::signature::PREFIXE_IMPRESSION) {
                 continue;
             }
             if let Some(p) = prefixes {
@@ -147,124 +265,12 @@ pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R
     Ok(Value::Array(out))
 }
 
-/// Par mois d'origine, les corrections que la page montre (`crate::regularisation::corrections_du_mois`) : celles a
-/// porter (`etat` « à porter ») et celles deja portees par la DSN d'un mois suivant (« portée »).
-fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
-    let mut out = Vec::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
-        let (a_porter, portees) = crate::regularisation::corrections_du_mois(ctx, &mois)?;
-        let mut corrections: Vec<Value> = portees
-            .into_iter()
-            .map(|mut c| {
-                c["etat"] = json!("portée");
-                c
-            })
-            .collect();
-        corrections.extend(a_porter.into_iter().map(|mut c| {
-            c["etat"] = json!("à porter");
-            c
-        }));
-        if !corrections.is_empty() {
-            out.push(json!({"mois": mois, "corrections": corrections}));
-        }
-    }
-    Ok(out)
-}
-
-/// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
-fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
-    let e = m.dsn_du_mois(mois)?;
-    let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
-    let limite = echeance.jour;
-    let passee = ctx.aujourdhui > limite;
-    let deposee = vrai(&e);
-    let drapeau = |k: &str| -> R<bool> { Ok(deposee && vrai(get(&e, k)?)) };
-    let (partie_passee, refusee) = (drapeau("passee")?, drapeau("refusee")?);
-    // `_remplacement.limite` : la veille de l'echeance (reportee), a minuit.
-    let veille = echeance.veille().map_err(plain)?;
-    let mut regularisable = false;
-    let raison = if !deposee {
-        let retard = if passee { format!(" (en retard : `moteur depot-dsn {} --test`, puis --reel)", mois) } else { String::new() };
-        format!("Aucune DSN reelle n'est partie pour {} : ce mois se saisit et se depose normalement{}.", mois, retard)
-    } else if refusee {
-        format!("La DSN de {} a ete REFUSEE : elle se corrige et se redepose, il n'y a rien a regulariser.", mois)
-    } else if ctx.aujourdhui <= veille {
-        format!(
-            "La DSN de {} est partie et l'annule-et-remplace est admis jusqu'au {} a minuit : modifier le mois et refaire la DSN, \
-             elle partira en annule-et-remplace.",
-            mois,
-            veille.jj_mm_aaaa()
-        )
-    } else {
-        regularisable = true;
-        format!(
-            "La DSN de {} est deposee et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance du {}) : \
-             une correction part dans la DSN du mois courant, datee de {}.",
-            mois,
-            veille.jj_mm_aaaa(),
-            limite.jj_mm_aaaa(),
-            mois
-        )
-    };
-    Ok(json!({
-        "mois": mois, "deposee": deposee, "passee": partie_passee, "refusee": refusee,
-        "echeance": limite.iso(), "echeance_passee": passee, "echeance_depot": echeance.en_json(),
-        "mois_courant": ctx.aujourdhui.mois_iso(),
-        "regularisable": regularisable, "raison": raison,
-    }))
-}
-
-/// `mois_a_corriger` : les mois qui appellent une decision.
-fn mois_a_corriger(ctx: &Contexte) -> R<Value> {
-    let mut m = Moteur::nouveau(ctx);
-    let mut etats = Vec::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
-        etats.push(etat_mois(&mut m, ctx, &mois)?);
-    }
-    let choisis = |f: &dyn Fn(&Value) -> bool| -> Vec<Value> { etats.iter().filter(|e| f(e)).cloned().collect() };
-    Ok(json!({
-        "regularisables": choisis(&|e| e["regularisable"] == json!(true)),
-        "en_retard": choisis(&|e| e["echeance_passee"] == json!(true) && e["deposee"] == json!(false)),
-    }))
-}
-
-/// La route `regularisations`.
-fn regularisations(ctx: &Contexte) -> R<Value> {
-    let mois = mois_a_corriger(ctx)?;
-    let mut corrections = corrections_par_mois(ctx)?;
-    // La pastille de chaque correction : portee par une DSN partie, faite ; a porter par la prochaine, a faire.
-    for c in corrections.iter_mut().flat_map(|m| m.get_mut("corrections").and_then(Value::as_array_mut).into_iter().flatten()) {
-        let mots = c.get("etat").map(valeur_en_texte).unwrap_or_default();
-        c["pastille"] = super::pastille(if c.get("portee_par").is_some_and(vrai) { "fait" } else { "a_faire" }, &mots);
-    }
-    Ok(json!({"mois": mois, "corrections": corrections}))
-}
-
-/// `charge["cle"]`.
-fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
-}
-
-// -------------------------------------------------------------- arret-contrats
-
-
-
-
-
 // -------------------------------------------------------------- dossier-formes
 
-/// Les mois qu'il y a matiere a exporter : ceux que des engagements touchent, du plus ancien au plus recent, chacun
-/// marque `saisie` (ses paies se lisent dans ses engagements valides).
-pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>> {
-    let mut mois: Vec<(String, &'static str)> = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?.into_iter().map(|m| (m, "saisie")).collect();
-    mois.sort();
-    mois.dedup();
-    Ok(mois)
-}
 
-/// `sorted({m[:4] for m in mois}, reverse=True)`.
-fn annees_de(dispo: &[(String, &'static str)]) -> Vec<String> {
-    let mut annees: Vec<String> = dispo.iter().map(|(m, _)| m.chars().take(4).collect::<String>()).collect::<HashSet<_>>().into_iter().collect();
+/// Les années des mois, de la plus récente à la plus ancienne.
+fn annees_de(dispo: &[String]) -> Vec<String> {
+    let mut annees: Vec<String> = dispo.iter().map(|m| m.chars().take(4).collect::<String>()).collect::<HashSet<_>>().into_iter().collect();
     annees.sort();
     annees.reverse();
     annees
@@ -292,8 +298,8 @@ fn salaries_de_la_page(ctx: &Contexte) -> Vec<Value> {
 fn dossier_formes(ctx: &Contexte) -> R<Value> {
     let salaries = salaries_de_la_page(ctx);
     // `periodes_exportables` : les mois, puis (sans rien en dire) le logiciel du comptable.
-    let dispo = mois_disponibles(ctx)?;
-    let mois: Vec<&String> = dispo.iter().map(|(m, _)| m).collect();
+    let dispo: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
+    let mois: Vec<&String> = dispo.iter().collect();
     let annees = annees_de(&dispo);
     etat_logiciel(ctx)?;
     let boite = crate::routes::ouverture::boite_liee(ctx)?;
@@ -321,7 +327,7 @@ fn dossier_formes(ctx: &Contexte) -> R<Value> {
 /// celui retenu (`config/compta.json`), et ce que le plan comptable ne tiendrait
 /// pas dans son format.
 pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
-    let chemin = ctx.racine.join("config").join("compta.json");
+    let chemin = ctx.racine.join(documents::etats_compta::COMPTA);
     let choix = if chemin.exists() { lire_json(&chemin)? } else { json!({}) };
     let retenu = getd(&choix, "logiciel", &Value::Null)?;
     let retenu = ou(retenu, texte_vide());
@@ -338,7 +344,12 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
         }
         _ => Vec::new(),
     };
-    Ok(json!({"logiciels": tables()["logiciels"], "logiciel": retenu, "analytique": analytique, "controle": controle}))
+    // Ce que l'ecran dit de chaque logiciel, une fois choisi.
+    let mut logiciels = tables()["logiciels"].clone();
+    for l in logiciels.as_array_mut().into_iter().flatten() {
+        l["dit"] = json!(format!("Fichier {} : {}. Retenu pour les prochaines fois.", super::mot(&l["format_lisible"]), super::mot(&l["pourquoi"])));
+    }
+    Ok(json!({"logiciels": logiciels, "logiciel": retenu, "analytique": analytique, "controle": controle}))
 }
 
 /// La page ne propose pas la CASC-SVP de la
@@ -363,14 +374,14 @@ fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
 /// (la bibliotheque est-elle la ?) et `pdf` (la fabrique est-elle installee ?)
 /// sont deux faits du poste, que la page dit dans la charge.
 fn exports_periodes(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let dispo = mois_disponibles(ctx)?;
+    let dispo: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
     let t = tables();
     let etats: Vec<&Value> = t["etats"].as_array().expect("etats").iter().filter(|e| etat_concerne(ctx, e["etat"].as_str().expect("etat"))).collect();
     let annees = annees_de(&dispo);
     let compta = etat_logiciel(ctx)?;
     let fait = |k: &str| charge.get(k).is_some_and(vrai);
     Ok(json!({
-        "mois": dispo.iter().map(|(m, _)| m).collect::<Vec<_>>(),
+        "mois": dispo,
         "annees": annees,
         "etats": etats,
         "formats": t["formats"],
@@ -380,49 +391,6 @@ fn exports_periodes(ctx: &Contexte, charge: &Value) -> R<Value> {
         "pdf": fait("pdf"),
         "compta": compta,
     }))
-}
-
-/// Archive les spectacles actifs qui ne sont pas dans
-/// `continuent`, note la revue de l'annee faite, rend la configuration.
-fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let annee = entier(exiger(charge, "annee")?)?;
-    let continuent = etats::ou(getd(charge, "continuent", &etats::LISTE_VIDE)?, &etats::LISTE_VIDE);
-    // `set(continuent)` : l'ordre ne compte pas, les doublons non plus.
-    let mut garder: Vec<Value> = Vec::new();
-    for c in items(continuent)? {
-        if matches!(c.as_ref(), Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&c))));
-        }
-        if !garder.iter().any(|g| valeurs_egales(g, &c)) {
-            garder.push(c.into_owned());
-        }
-    }
-    let actifs = ctx.spectacles_actifs();
-    let est_actif = |v: &Value| v.as_str().is_some_and(|s| actifs.contains(&s));
-    let mut inconnus: Vec<&Value> = garder.iter().filter(|g| !est_actif(g)).collect();
-    if !inconnus.is_empty() {
-        if let Some((i, autre)) = inconnus.iter().enumerate().find(|(_, c)| !c.is_string()) {
-            return Err(erreur("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre)))));
-        }
-        inconnus.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
-        let noms: Vec<&str> = inconnus.iter().filter_map(|c| c.as_str()).collect();
-        return Err(erreur("ErreurOperation", format!("Spectacle actif inconnu : {}.", noms.join(", "))));
-    }
-    let archives: Vec<String> = actifs.iter().filter(|c| !garder.iter().any(|g| g.as_str() == Some(c))).map(|c| c.to_string()).collect();
-    for cle in &archives {
-        crate::routes::fiches::activer_fiche(ctx, "spectacle", cle, false)?;
-    }
-    marquer_echeance(ctx, &format!("revue-spectacles:{}", annee), true, "interface")?;
-    let mut continuent: Vec<String> = garder.iter().filter_map(|g| g.as_str().map(String::from)).collect();
-    continuent.sort();
-    let neuf = Contexte::nouveau(&ctx.racine, None).map_err(plain)?;
-    let configuration = crate::routes::ouverture::route(o, &neuf, "configuration", &json!({}))?;
-    Ok(json!({"annee": annee, "archives": archives, "continuent": continuent, "configuration": configuration}))
-}
-
-#[track_caller]
-fn plain(m: impl Into<String>) -> Echec {
-    socle::echec::noter_et(None, m)
 }
 
 /// Le logiciel du comptable, et l'analytique, retenus une fois pour
@@ -437,9 +405,9 @@ fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
             return Err(refus(format!("Logiciel inconnu : « {} ».", nom)));
         }
     }
-    let chemin = ctx.racine.join("config").join("compta.json");
+    let chemin = ctx.racine.join(documents::etats_compta::COMPTA);
     let contenu = json!({
-        "_quoi": "Le logiciel du comptable, retenu pour les écritures comptables (Exports, ou moteur compta-logiciel).",
+        "_quoi": "Le logiciel du comptable, retenu pour les écritures comptables (Exports).",
         "logiciel": nom,
         "analytique": analytique,
     });
@@ -473,16 +441,14 @@ fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
     })
 }
 
-/// Ce qu'un export rend, avant d'etre mis en JSON : la ligne de commande (`moteur exporter`) le rend en texte a partir de l'objet
-/// (le chemin ecrit en entier, les montants en `Decimal`).
+/// Ce qu'un export rend, avant d'etre mis en JSON (le chemin ecrit en entier, les montants en `Decimal`).
 pub(crate) enum Exporte {
     Casc(Value),
     Livre(documents::etats_paie::LivreDePaie),
     Tableau(documents::tableaux_export::Tableau),
 }
 
-/// `exporter`, avant la mise en JSON. La charge peut porter `format_du_logiciel_retenu` : sans `format`, les ecritures comptables laissent
-/// le logiciel retenu (`compta-logiciel`) choisir leur format (la ligne de commande), au lieu du CSV (la page, qui envoie son format).
+/// `exporter`, avant la mise en JSON ; sans `format`, le CSV.
 pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
     use documents::etats_paie::Demande;
     let etat = texte_ou_rien(charge, "etat").unwrap_or_else(|| "livre-de-paie".to_string());
@@ -498,13 +464,12 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         annee: texte_ou_rien(charge, "annee"),
         toutes: charge.get("toutes_les_annees").is_some_and(vrai),
         regroupement: texte_ou_rien(charge, "regroupement").unwrap_or_else(|| "salarie".to_string()),
-        format: texte_ou_rien(charge, "format").unwrap_or_else(|| {
-            if etat == "ecritures-comptables" && charge.get("format_du_logiciel_retenu").is_some_and(vrai) { String::new() } else { "csv".to_string() }
-        }),
+        format: texte_ou_rien(charge, "format").unwrap_or_else(|| "csv".to_string()),
         coordonnees: charge.get("coordonnees").is_some_and(vrai),
         ecrire: !charge.get("apercu").is_some_and(vrai),
         logiciel: texte_ou_rien(charge, "logiciel"),
         analytique: charge.get("analytique").map(vrai),
+        departs: envois::journal::lu(&ctx.racine).map(|j| j.departs)?,
     };
     if etat == "regularisation-casc-svp" {
         let demande = crate::import::casc::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes::ouverture::boite_liee(ctx).unwrap_or(false), ..Default::default() };
@@ -572,20 +537,39 @@ const REEDITION_CONTRATS: &str = "Les contrats ont été réédités par notre l
 /// (`dossier_json`) et, sous `envoi`, ce que l'envoi a fait.
 fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
-    // `ops.dossier_salarie(salaries=..., mois=..., annee=..., toutes_les_annees=..., categories=..., ensemble=False, ecrire=True)`.
     let mut demande = Map::new();
     for cle in ["salaries", "mois", "annee", "toutes_les_annees", "categories"] {
         if let Some(v) = charge.get(cle) {
             demande.insert(cle.to_string(), v.clone());
         }
     }
+    // CE QUI PARTIRAIT, SANS RIEN ECRIRE : chacun a son adresse, puis la preuve ; le dossier ne s'ecrit qu'ensuite.
+    let mut apercu = demande.clone();
+    apercu.insert("apercu".into(), json!(true));
+    let vu = crate::routes::dossier_salarie::construire(ctx, &Value::Object(apercu))?;
+    adresses_de(ctx, &vu.salaries)?;
+    let a_qui = format!("{} salarie(s) : {}", vu.salaries.len(), vu.salaries.iter().map(|c| ctx.nomme(c)).collect::<Vec<_>>().join(", "));
+    let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
+    let forme = verifier_preuve(ctx, Some(&preuve_de(charge)), &format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois), "envoi du dossier aux salaries", &a_qui)?;
     let d = crate::routes::dossier_salarie::construire(ctx, &Value::Object(demande))?;
     let mut r = crate::routes::dossier_salarie::dossier_json(&d);
-    let envoi = envoyer_dossier(ctx, &d, &preuve_de(charge), &qui, ouvrir)?;
+    let envoi = envoyer_dossier(ctx, &d, &Preuve { donnee: Some(forme), ..Preuve::default() }, &qui, ouvrir)?;
     if let Value::Object(o) = &mut r {
         o.insert("envoi".into(), envoi);
     }
     Ok(r)
+}
+
+/// Chacun de `cles` a une adresse dans sa fiche ; sinon le refus qui le nomme. Rien n'est parti.
+fn adresses_de(ctx: &Contexte, cles: &[String]) -> R<Vec<String>> {
+    cles.iter()
+        .map(|cle| {
+            let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
+            s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).ok_or_else(|| {
+                refus(format!("Pas d'adresse e-mail pour {} : compléter sa fiche avant d'envoyer. Rien n'est parti.", ctx.nomme(cle)))
+            })
+        })
+        .collect()
 }
 
 /// Envoie a chaque salarie SON dossier, par la boite de la compagnie.
@@ -600,14 +584,9 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
         return Err(refus("Le dossier n'a pas été écrit : rien à envoyer."));
     }
     let mut messages: Vec<Message> = Vec::new();
-    for (cle, f) in d.salaries.iter().zip(&d.fichiers) {
+    let adresses = adresses_de(ctx, &d.salaries)?;
+    for ((cle, f), email) in d.salaries.iter().zip(&d.fichiers).zip(adresses) {
         let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
-        let Some(email) = s.get("email").filter(|v| vrai(v)).map(valeur_en_texte) else {
-            return Err(refus(format!(
-                "Pas d'adresse e-mail pour {} : compléter sa fiche avant d'envoyer. Rien n'est parti.",
-                ctx.nomme(cle)
-            )));
-        };
         let prenom = match vrai_ou(s, "prenom_affichage") {
             Some(p) => p,
             None => valeur_en_texte(requis(s, "prenom")?),
@@ -678,13 +657,13 @@ fn jjmmaaaa(iso: &str) -> String {
 /// Irreversible. `vire_le` : {annee: AAAA-MM-JJ}, une date par virement fait ; le dossier envoye est celui de ces
 /// annees-la, exactement.
 ///
-/// Dans cet ordre : le dossier (ecrit, pour que la liste nominative jointe soit celle du jour), la boite, la
-/// preuve, l'envoi, puis ce qui s'en garde -- les deux `.eml` dans `exports/casc-svp/envoyes/`, la ligne de
+/// Dans cet ordre : la boite, la preuve, le dossier (ecrit, pour que la liste nominative jointe soit celle du jour),
+/// l'envoi, puis ce qui s'en garde -- les deux `.eml` dans `exports/casc-svp/envoyes/`, la ligne de
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
     use crate::import::casc::{ecrire, marquer_regularise, regularisation, Demande};
-    // `charge.get("vire_le") or {}`.
+    // Les virements : une table nom -> valeur, vide si la charge n'en dit pas.
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),
         Some(Value::Object(o)) => o.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
@@ -715,25 +694,22 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mut annees_voulues: Vec<String> = dates.iter().map(|(a, _)| a.clone()).collect();
     annees_voulues.sort();
 
-    // Le dossier, ecrit : la liste nominative jointe est celle du jour.
+    // La boite et la preuve, puis le dossier, ecrit : la liste nominative jointe est celle du jour.
     let mut r = regularisation(ctx, &Demande { toutes_les_annees: true, annees: annees_voulues.clone(), vire_le: dates.clone(), ..Default::default() })?;
-    ecrire(ctx, &mut r)?;
     let mut manquent: Vec<String> = annees_voulues.iter().filter(|a| !r.annees.iter().any(|x| &x.annee == *a)).cloned().collect();
     manquent.sort();
     if !manquent.is_empty() {
         return Err(refus(format!("Rien a regulariser pour {} (deja fait, ou aucune DSN deposee). Rien n'est parti.", manquent.join(", "))));
     }
-    let classeur = std::path::Path::new(&r.dossier).join("CASC-SVP_liste-nominative.xlsx");
-    if !classeur.exists() {
-        return Err(refus(format!(
-            "La liste nominative n'a pas pu etre remplie ({}) : le courriel au CASC-SVP la promet en piece jointe. Rien n'est parti.",
-            r.avertissements.last().cloned().unwrap_or_default()
-        )));
-    }
 
     let mut client = ouvrir()?;
     let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de la régularisation")))?;
     verifier_preuve(ctx, Some(&preuve_de(charge)), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
+
+    // La liste nominative est la premiere chose qu'ecrit le dossier (`casc::ecrire`) : si elle ne peut s'ecrire, le refus
+    // tombe avant tout autre fichier, et rien ne part.
+    ecrire(ctx, &mut r)?;
+    let classeur = std::path::Path::new(&r.dossier).join("CASC-SVP_liste-nominative.xlsx");
 
     let messages = vec![
         Message {
@@ -767,13 +743,13 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
 
     // Ce que l'envoi garde : les deux messages tels qu'ils sont partis.
     let garde = std::path::Path::new(&r.dossier).join("envoyes");
-    std::fs::create_dir_all(&garde).map_err(|e| erreur("OSError", format!("{} : {}", garde.display(), e)))?;
+    std::fs::create_dir_all(&garde).map_err(|e| erreur("OSError", socle::echec::du_disque(&garde, &e)))?;
     let iso = socle::paris::maintenant();
     let horodate = format!("{}_{}{}{}", &iso[..10], &iso[11..13], &iso[14..16], &iso[17..19]);
     let mut emls: Vec<String> = Vec::new();
     for (m, brut) in messages.iter().zip(&copies) {
         let p = garde.join(format!("{}_CASC-SVP_{}.eml", horodate, m.cle));
-        std::fs::write(&p, brut).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        std::fs::write(&p, brut).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         emls.push(nom_du(&p));
     }
     let date_de = |a: &str| dates.iter().find(|(k, _)| k == a).map(|(_, d)| d.clone()).unwrap_or_default();
@@ -808,61 +784,6 @@ fn d_en_repr(d: &Value) -> String {
     valeur_en_texte(d)
 }
 
-/// Les clotures, sans les cles `_...`.
-fn exercices_clos(racine: &Path) -> R<Map<String, Value>> {
-    let v = lire_json_ou_vide(&racine.join("config").join("exercices.json"))?;
-    match v {
-        Value::Object(o) => Ok(o.into_iter().filter(|(k, _)| !k.starts_with('_')).collect()),
-        autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre)))),
-    }
-}
-
-/// La route `exercices` : `{"exercices": etat_exercices, "dossier": ...}`.
-fn exercices_route(ctx: &Contexte) -> R<Value> {
-    let liste = etat_exercices(ctx)?;
-    Ok(json!({"exercices": liste, "dossier": ctx.racine.join("sorties").join("exercices").display().to_string()}))
-}
-
-/// `etat_exercices` : chaque annee connue du dossier -- ses mois, sa cloture,
-/// son export.
-fn etat_exercices(ctx: &Contexte) -> R<Value> {
-    let clos = exercices_clos(&ctx.racine)?;
-    let mois_tous: Vec<String> = mois_connus(&ctx.racine).into_iter().map(|(m, _)| m).collect();
-    let mut annees: BTreeSet<String> = mois_tous.iter().map(|m| m.chars().take(4).collect()).collect();
-    annees.extend(clos.keys().cloned());
-    let mut m = Moteur::nouveau(ctx);
-    let mut out = Vec::new();
-    for a in annees.iter().rev() {
-        let mut mois: Vec<&String> = mois_tous.iter().filter(|x| x.starts_with(a.as_str())).collect();
-        mois.sort();
-        let export = ctx.racine.join("sorties").join("exercices").join(format!("Compta_{}.csv", a));
-        let export = export.exists().then_some(export);
-        let mut acceptees = Vec::new();
-        for x in &mois {
-            if vrai(&m.dsn_du_mois(x)?) {
-                acceptees.push(json!(x));
-            }
-        }
-        let export_json = match &export {
-            Some(p) => {
-                json!({
-                    "fichier": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                    "ecrit": crate::compagnie::depart::ecrit_le(&ctx.racine, p),
-                })
-            }
-            None => Value::Null,
-        };
-        out.push(json!({
-            "annee": a, "mois": mois, "dsn_acceptees": acceptees,
-            "clos": clos.get(a).cloned().unwrap_or(Value::Null),
-            // Sa pastille : close, faite ; ouverte, une information (une annee se clot quand la compagnie le veut).
-            "pastille": if clos.contains_key(a.as_str()) { super::pastille("fait", "clos") } else { super::pastille("information", "ouvert") },
-            "export": export_json,
-        }));
-    }
-    Ok(Value::Array(out))
-}
-
 /// L'erreur du disque, sous sa classe (`FileNotFoundError`, `PermissionError`, `OSError`).
 fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     let classe = match (e.kind(), e.raw_os_error()) {
@@ -873,4 +794,128 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
         _ => "OSError",
     };
     erreur(classe, socle::fichiers::panne_fichier(e, p))
+}
+
+// ------------------------------------------------------------------ les droits des intermittents, l'archive d'un mois
+
+/// LES HEURES ET CACHETS DES INTERMITTENTS au regard des annexes 8 et 10 (`droit::cumul` : la fenetre, le plafond des
+/// cachets d'un mois, l'enseignement plafonne, le seuil, lus du bareme) : pour chaque salarie dont un engagement est connu
+/// (importe ou valide), sa position dans sa fenetre et le tableau du mois. Le compte ne porte que les engagements de cette
+/// compagnie : la phrase le dit.
+fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
+    use droit::cumul::{anniversaire_configure, position_droits, tableau_cumul};
+    let mois = match charge.get("mois").filter(|v| vrai(v)) {
+        Some(m) => valeur_en_texte(m),
+        None => format!("{:04}-{:02}", ctx.aujourdhui.an, ctx.aujourdhui.mois),
+    };
+    let engs = engagement::cumul::lire_engagements(ctx, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
+    let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
+    let mut salaries = Vec::new();
+    for cle in cles {
+        let anniv = anniversaire_configure(ctx, cle)?;
+        let p = position_droits(ctx, cle, &engs, anniv, None)?;
+        let c = &p.constantes;
+        let h = |n: i64| format!("{} h", n);
+        let mut lignes = vec![json!(["Cachets déclarés", p.cachets().to_string()])];
+        if p.cachets_perdus() != 0 {
+            lignes.push(json!([format!("Retenus ({} par mois au plus)", c.cachets_par_mois), p.cachets_retenus().to_string()]));
+        }
+        lignes.push(json!([format!("Convertis ({} h par cachet)", c.heures_par_cachet), h(p.cachets_retenus() * c.heures_par_cachet)]));
+        lignes.push(json!(["Heures déclarées", h(p.heures())]));
+        lignes.push(json!(["Total d'heures équivalentes", h(p.heures_retenues())]));
+        if p.heures_enseignement() != 0 {
+            // Deux comptes des qu'il y a de l'enseignement : ces heures ouvrent les droits (plafonnees), sans augmenter l'allocation.
+            lignes.push(json!(["Dont enseignement", h(p.heures_enseignement())]));
+            lignes.push(json!([format!("Enseignement retenu (plafond {} h)", p.plafond_enseignement()?), h(p.heures_enseignement_retenues()?)]));
+            lignes.push(json!(["Pour l'ouverture des droits", h(p.heures_ouverture()?)]));
+            lignes.push(json!(["Pour le montant de l'allocation", h(p.heures_montant())]));
+        }
+        lignes.push(json!(["Seuil des annexes 8 et 10", h(c.seuil_heures)]));
+        let jours = p.jours_restants(ctx.aujourdhui);
+        if anniv.is_some() && jours > 0 {
+            lignes.push(json!(["Avant le réexamen", format!("{} j", jours)]));
+        }
+        let phrase = if p.atteint()? {
+            format!("Seuil atteint, avec {} h de marge.", p.heures_ouverture()? - c.seuil_heures)
+        } else {
+            format!("Il manque {} h, soit environ {} cachets.", p.manque()?, p.cachets_manquants()?)
+        };
+        let mut notes = Vec::new();
+        if p.cachets_perdus() != 0 {
+            notes.push(format!(
+                "{} cachet(s) dépassent les {} d'un mois ({}) : joués, payés et déclarés, mais sans effet sur les droits.",
+                p.cachets_perdus(),
+                c.cachets_par_mois,
+                p.mois_plafonnes().join(", ")
+            ));
+        }
+        if p.enseignement_perdu()? != 0 {
+            notes.push(format!("{} h d'enseignement dépassent le plafond : payées et déclarées, mais sans effet sur les droits.", p.enseignement_perdu()?));
+        }
+        if p.heures_enseignement() != 0 && p.date_naissance.is_none() {
+            notes.push("Date de naissance absente de la fiche : le plafond bas de l'enseignement s'applique, peut-être à tort.".to_string());
+        }
+        if anniv.is_none() {
+            notes.push("Fenêtre déduite du dernier contrat déclaré : la date anniversaire que France Travail notifie (anniversaire_droits, dans la fiche du salarié) prime sur ce calcul.".to_string());
+        }
+        let colonnes: Vec<Value> = tableau_cumul(ctx, cle, &mois, &engs)?.iter().map(|x| x.canon()).collect();
+        let rangee = |quoi: &str, cle: &str, ecrire: &dyn Fn(&Value) -> String| {
+            json!({"quoi": quoi, "valeurs": colonnes.iter().map(|x| ecrire(&x[cle])).collect::<Vec<_>>()})
+        };
+        let heures = |v: &Value| format!("{} h", socle::num::dec(v).map(socle::texte::virgule).unwrap_or_else(|_| valeur_en_texte(v)));
+        let nom = ctx.salaries.get(cle).map(crate::routes::nom_a_l_ecran).unwrap_or_else(|| cle.to_string());
+        salaries.push(json!({
+            "cle": cle,
+            "nom": nom,
+            "fenetre": p.libelle_fenetre,
+            "lignes": lignes,
+            "phrase": phrase,
+            "notes": notes,
+            "colonnes": {
+                "titres": colonnes.iter().map(|x| format!("{} {}", valeur_en_texte(&x["titre"]), valeur_en_texte(&x["sous_titre"])).trim().to_string()).collect::<Vec<_>>(),
+                "lignes": [rangee("Cachets", "cachets", &valeur_en_texte), rangee("Heures déclarées", "heures", &heures), rangee("Total d'heures", "heures_equivalentes", &heures), rangee("Salaire brut", "brut", &socle::texte::euros_de)],
+            },
+        }));
+    }
+    let phrase = if salaries.is_empty() {
+        "Aucun engagement d'intermittent n'est encore validé ni importé."
+    } else {
+        "Ce compte ne porte que les engagements de cette compagnie : le relevé de France Travail seul fait foi, et le seuil se compte sur tous les employeurs. Ces totaux sont un plancher."
+    };
+    let phrases: Vec<String> = salaries.iter().map(|s| format!("{} ({}) : {}", valeur_en_texte(&s["nom"]), valeur_en_texte(&s["fenetre"]), valeur_en_texte(&s["phrase"]))).collect();
+    Ok(json!({"mois": mois, "phrase": phrase, "phrases": phrases, "salaries": salaries}))
+}
+
+
+/// CE QUE L'ECRAN DES EXPORTS DIT (`ecran` de `exports-periodes`) : rien a exporter, les regroupements, l'analytique, le
+/// format, les coordonnees, le dossier.
+fn ecran_des_exports(v: &Value) -> Value {
+    json!({
+        "vide": if super::nombre(&v["mois"]) == 0 { json!("Aucune paie saisie : il n'y a rien à exporter pour l'instant.") } else { Value::Null },
+        "regroupement_livre": "Par salarié, ce qu'on envoie au comptable ; par mois, ce qu'on rapproche de la banque ; par spectacle, ce qui justifie une subvention. Les trois disent la même chose, et le total ne bouge pas.",
+        "regroupement": "Le total ne bouge pas : seule la répartition des lignes change.",
+        "analytique": "Les salaires bruts ventilés par spectacle. Le code de chaque spectacle se règle sur sa fiche : Configuration › Spectacles, case « Code analytique ». Vide, il est tiré du titre.",
+        "format_libre": "Le format se choisit ci-dessous.",
+        "brique_absente": "brique absente, le CSV sera écrit",
+        "coordonnees": "Le NIR, la naissance, l'adresse. Sans la case, rien de tout cela ne sort ; un fichier qui les porte ne s'envoie qu'à qui en a besoin.",
+        "dossier": format!("{} — et nulle part ailleurs : un export emporte des salaires", super::mot(&v["dossier"])),
+        "categories": "Une seule case : un PDF. Plusieurs : un ZIP, un PDF par catégorie.",
+    })
+}
+
+/// CE QUE L'ECRAN DIT D'UN ETAT EXPORTE (`ecran` de `exporter`) : ses donnees personnelles, ses totaux partiels, et pour
+/// la regularisation CASC-SVP ce que disent ses deux etapes.
+fn ecran_d_un_etat(v: &Value) -> Value {
+    let bulletins = v["totaux"]["bulletins"].as_u64().unwrap_or(0);
+    let partiels: Vec<String> = v["totaux"]["inconnus"].as_object().into_iter().flatten().map(|(c, n)| {
+        let sur = bulletins.saturating_sub(n.as_u64().unwrap_or(0));
+        format!("{} sur {} bulletin{} sur {}", c.replace('_', " "), sur, if sur == 1 { "" } else { "s" }, bulletins)
+    }).collect();
+    json!({
+        "personnelles": if vrai(&v["donnees_personnelles"]) { json!("Cet état porte des données personnelles : il reste dans prive/, et ne s'envoie qu'à qui en a besoin.") } else { Value::Null },
+        "partiels": if partiels.is_empty() { Value::Null } else { json!(format!("Totaux partiels : {}.", partiels.join(" ; "))) },
+        "virement": "Vers Audiens Santé Prévoyance – Encaissement. L'IBAN se lit dans l'espace employeur Audiens ou sur la page employeurs du CASC-SVP.",
+        "automatique": if vrai(&v["boite_liee"]) { "Audiens reçoit les masses et les dates des virements ; le CASC-SVP, la liste nominative. Une copie reste dans le dossier, et les années sont notées régularisées." } else { "La boîte courriel n'est pas posée : Configuration › Courriel. Une fois posée, l'envoi se fait d'ici en un clic." },
+        "a_la_main": "Joindre la liste nominative au courriel du CASC-SVP, recopier les deux courriels ci-dessous, puis noter la régularisation.",
+    })
 }

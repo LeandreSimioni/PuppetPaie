@@ -6,7 +6,8 @@
 |---|---|---|
 | `audiens-dossier-dsn-20261020.md` | transcription de la section « Payer les cotisations Audiens Santé Prévoyance » du dossier DSN d'Audiens | https://www.audiens.org/solutions/entreprise-dossier-dsn-declaration-sociale-nominative.html |
 | `audiens-declarer-payer-conges-spectacles-20261020.md` | transcription du haut de la page « Déclarer et payer les cotisations Congés Spectacles » | https://www.audiens.org/solutions/declarer-et-payer-les-cotisations-conges-spectacles.html |
-| `audiens-fiche-specificites-conges-spectacles-20261023.txt` | transcription (`pdftotext -layout`) de la « Fiche de spécificités — Paramétrage DSN Congés Spectacles » (PDF du 16/02/2023), relevée le 23/10/2026 | https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/DSN/DSN-Fiche-specificites-Conges-spectacles.pdf |
+| `audiens-fiche-specificites-conges-spectacles-20261023.txt` | transcription (`pdftotext -layout`) de la « Fiche de spécificités — Paramétrage DSN Congés Spectacles » (PDF du 16/02/2023), relevée le 23/10/2026 (Léandre l'a transmise de nouveau le 30/10/2026 : même empreinte) | https://www.audiens.org/files/live/sites/siteAudiens/files/03_documents/entreprise/DSN/DSN-Fiche-specificites-Conges-spectacles.pdf |
+| `audiens-conges-spectacles-mode-emploi-employeur-20261030.txt` | transcription (`pdftotext -layout`) de la brochure « Congés Spectacles employeur — Mode d'emploi » (12 pages, avril 2023), transmise par Léandre le 30/10/2026 | non transmise |
 
 Audiens est un organisme privé : les pages telles que servies (HTML) sont dans le dépôt privé,
 `reference-privee/sources/audiens-dsn/`, avec leurs empreintes données dans chaque transcription.
@@ -36,18 +37,31 @@ Audiens est un organisme privé : les pages telles que servies (HTML) sont dans 
   du mois qui suit le dernier mois du trimestre. Et pour les Congés Spectacles : « Les périodicités d'appel des
   cotisations sont identiques à celles de la retraite et de la prévoyance. »
 
+- **Les trois numéros des Congés Spectacles** (mode d'emploi employeur, avril 2023, `audiens-conges-spectacles-mode-emploi-employeur-20261030.txt`) :
+  le **numéro d'affiliation de l'entreprise est son SIRET** (« Numéro d'affiliation ») ; le **numéro d'adhérent**
+  que la DSN écrit après `97` est celui de la fiche de spécificités (dix chiffres et une lettre) ; le **numéro
+  d'immatriculation du salarié** « est formé d'une lettre suivie de six chiffres », et sa mention sur le certificat
+  d'emploi « est facultative ». L'employeur immatricule lui-même un salarié de nationalité étrangère.
+- **Le certificat et la cotisation** (même brochure) : le salaire du certificat est le brut « avant toute déduction
+  forfaitaire spécifique », plafonnable au triple du minimum conventionnel de la catégorie ; cotisation patronale de
+  15,50 % « à compter des paies d'avril 2023 » (D. 7121-44) ; période de référence du 1er avril au 31 mars, deux
+  certificats pour un contrat en cours au 31 mars ; les activités de formateur ne se déclarent pas ; un arrêt pour
+  accident du travail se déclare jusqu'à la fin prévue du contrat.
+
 ## Où le moteur s'en sert
 
-- `atelier/sources/paie/src/conges_spectacles.rs` : `code_dsn` écrit S21.G00.40.022 = `97` + le numéro d'adhérent
+- `atelier/sources/documents/src/conges_spectacles.rs` : `code_dsn` écrit S21.G00.40.022 = `97` + le numéro d'adhérent
   (`congesspectacles_adherent`, le seul numéro Congés Spectacles de la fiche ; `dsn.rs` l'appelle), `faute_adherent`
   contrôle sa forme (dix chiffres et une lettre) à la saisie (`champs::verifier_champ`) comme à l'écriture de la DSN ;
-  `importation.rs` reprend d'une DSN le numéro d'adhérent qui suit le `97`.
+  `moteur/src/import/dsn_aem.rs` reprend d'une DSN le numéro d'adhérent qui suit le `97`.
 
+- `logiciel/donnees/champs-base.json`, `num_conges_spectacles` : le numéro d'immatriculation du salarié, facultatif,
+  imprimé sur le bulletin (`documents/src/bulletin.rs`).
 - `logiciel/donnees/organismes-base.json` : le nom de chaque organisme (`nom`), ce que couvre son versement (`objet`)
   et, pour les trois identifiants d'Audiens, `jour_de_paiement` = 25.
-- `atelier/sources/paie/src/dsn.rs` : la date de paiement (S21.G00.20.011) du versement à P0983 est le 25 du mois qui
+- `atelier/sources/declarations/src/dsn.rs` : la date de paiement (S21.G00.20.011) du versement à P0983 est le 25 du mois qui
   suit le mois déclaré (elle était la fin du mois suivant le trimestre).
-- `atelier/sources/paie/src/ordres_paiement.rs` : la boîte de dépôt de la DSN dit, pour la retraite et les Congés
+- `atelier/sources/declarations/src/ordres_paiement.rs` : la boîte de dépôt de la DSN dit, pour la retraite et les Congés
   Spectacles d'Audiens, « au plus tard le 25 » du mois suivant.
 
 ## Ce qui reste ouvert

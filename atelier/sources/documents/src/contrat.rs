@@ -50,7 +50,7 @@ pub fn lire_modele_texte(chemin: &Path) -> R<String> {
 }
 
 /// L'ordre des cles de `contrat.marqueurs` : celui du modele. `Valeurs` est trie ; la description
-/// gardee a cote du PDF (`fabrique.garder_description`) se relit, et s'ecrit dans le meme ordre.
+/// s'ecrit dans le meme ordre.
 const ORDRE_MARQUEURS: [&str; 38] = [
     "employeur.raison_sociale",
     "employeur.adresse",
@@ -89,7 +89,7 @@ const ORDRE_MARQUEURS: [&str; 38] = [
     "remuneration.brut",
     "remuneration.net_estime",
     "spectacle.titre",
-    "spectacle.numero_objet",
+    "spectacle.objet",
 ];
 
 /// Les valeurs d'un modele en JSON, dans l'ordre du modele : celles de `marqueurs` d'abord, puis les autres
@@ -187,28 +187,33 @@ pub(crate) fn cite(texte: &str, cle: &str) -> bool {
 fn refuser_ce_que_le_modele_tairait(modele: &Path, texte: &str, valeurs: &Value) -> R<()> {
     const TAUX: &str = "remuneration.taux_cachet";
     if valeurs.get(TAUX).is_none() && cite(texte, TAUX) {
+        let modele_nom = modele.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
         return Err(Refus {
             classe: Some("ModeleIncomplet"),
-            message: format!(
-                "Le modèle de contrat {} cite {{{{{}}}}}, et le contrat de {} n'a aucun taux de cachet : il ne paie aucun cachet, et ni l'engagement ni le mois n'en écrivent. Le moteur n'en invente pas. Écrire la rémunération de ce modèle par {{{{remuneration.detail}}}}, qui la dit quelle que soit sa forme (le modèle livré le fait), ou porter le taux sur une ligne de cachet de l'engagement. Rien n'est écrit.",
-                modele.display(),
-                TAUX,
-                valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
+            message: socle::echec::avec(
+                format!(
+                    "Le modèle de contrat « {} » cite le taux du cachet, et le contrat de {} n'a aucun taux de cachet : il ne paie aucun cachet, et ni l'engagement ni le mois n'en écrivent. Le moteur n'en invente pas. Écrire la rémunération de ce modèle par le détail de la rémunération, qui la dit quelle que soit sa forme (le modèle livré le fait), ou porter le taux sur une ligne de cachet de l'engagement. Rien n'est écrit.",
+                    modele_nom,
+                    valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
+                ),
+                serde_json::json!({"chemin": modele.to_string_lossy(), "marqueur": format!("{{{{{}}}}}", TAUX), "a_ecrire": "{{remuneration.detail}}"}),
             ),
         });
     }
     for cle in A_CITER {
         let valeur = valeurs.get(cle).and_then(Value::as_str).unwrap_or_default();
         if !valeur.trim().is_empty() && !cite(texte, cle) {
+            let modele_nom = modele.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             return Err(Refus {
                 classe: Some("ModeleIncomplet"),
-                message: format!(
-                    "Le modèle de contrat {} n'a pas le marqueur {{{{{}}}}} : le contrat de {} tairait ce qui lui est versé hors brut ({}). Ajouter {{{{{}}}}} à l'article « Rémunération » de ce modèle (le modèle livré l'y place juste après {{{{remuneration.periode}}}}). Rien n'est écrit.",
-                    modele.display(),
-                    cle,
-                    valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
-                    valeur.trim().trim_start_matches(',').trim(),
-                    cle
+                message: socle::echec::avec(
+                    format!(
+                        "Le modèle de contrat « {} » ne cite pas ce que le contrat de {} lui verse hors brut ({}) : le contrat le tairait. Ajouter son marqueur à l'article « Rémunération » de ce modèle (le modèle livré l'y place juste après la période). Rien n'est écrit.",
+                        modele_nom,
+                        valeurs.get("salarie.nom_complet").and_then(Value::as_str).unwrap_or("ce salarie"),
+                        valeur.trim().trim_start_matches(',').trim()
+                    ),
+                    serde_json::json!({"chemin": modele.to_string_lossy(), "marqueur": format!("{{{{{}}}}}", cle), "apres": "{{remuneration.periode}}"}),
                 ),
             });
         }
@@ -221,46 +226,11 @@ pub fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &str) -> S
     format!("Signé électroniquement le {}\npar {}\n{}\ncode de signature {}", quand, nom, adresse, code)
 }
 
-/// Le contrat renvoye au salarie une fois qu'il a signe d'un clic. LA REGENERATION, ET RIEN
-/// D'AUTRE : le contrat est refait depuis la description gardee a l'envoi (`fabrique::description_gardee`), la mention
-/// de l'artiste dans sa case, puis verrouille (AES-256, impression et copie seules). Sans description valide (absente,
-/// illisible, ne decrivant plus ce PDF) on REFUSE au lieu de deviner : il faut renvoyer le contrat. Il refuse aussi si
-/// la fabrique refuse la mention. `Err` : la phrase du refus.
-pub fn contresigner(source: &Path, sortie: &Path, nom: &str, quand: &str, adresse: &str, code: &str) -> Result<(), String> {
-    let fichier = source.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let texte = mention_signature(nom, quand, adresse, code);
-    let Some(gardee) = crate::fabrique::description_gardee(source) else {
-        return Err(format!(
-            "{} ne peut pas etre contresigne : la description gardee a l'envoi est absente, illisible ou ne correspond plus a ce PDF. Renvoyez le contrat (ou l'avenant) a la signature.",
-            fichier
-        ));
-    };
-    let regenere = crate::fabrique::avec_mention_artiste(&gardee, &texte)
-        .and_then(|d| crate::fabrique::fabriquer_octets(&d))
-        .map_err(|e| format!("{} ne peut pas etre contresigne : la fabrique refuse la mention de signature ({}).", fichier, e))?;
-    let verrouille = crate::fabrique::verrouiller(&regenere).map_err(|e| format!("{} : {}", fichier, e))?;
-    if let Some(parent) = sortie.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("{} : {}", parent.display(), e))?;
-    }
-    std::fs::write(sortie, verrouille).map_err(|e| format!("{} : {}", sortie.display(), e))
-}
-
-/// `contrat.ecrire` sans la description gardee : un contrat par page, dans `chemin`.
-pub fn ecrire(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path) -> R<()> {
-    let d = description(ctx, paies, ent, &[])?;
-    crate::fabrique::ecrire(&d, chemin)
-        .map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
-    Ok(())
-}
-
-/// Le contrat, puis sa description gardee a cote (`fabrique.garder_description`) : la
-/// contresignature refait le contrat depuis elle, octet pour octet.
-pub fn ecrire_et_garder(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
-    let d = description(ctx, paies, ent, remplacements)?;
-    crate::fabrique::ecrire(&d, chemin)
-        .map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
-    crate::fabrique::garder_description(&d, chemin).map_err(|m| Refus { classe: Some("OSError"), message: m })?;
-    Ok(())
+/// Le contrat de `paies` (un par page), ecrit a `chemin`. Le contrat parti se refait ainsi, depuis la version de
+/// l'engagement qui est partie ; son exemplaire contresigne est ce PDF-la, plus la mention de l'artiste
+/// (`fabrique_pdf::marquage::contresigner`).
+pub fn ecrire_contrat(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
+    crate::fabrique::ecrire_pdf(&description(ctx, paies, ent, remplacements)?, chemin).map_err(Refus::from)
 }
 
 
@@ -270,8 +240,9 @@ fn nom_de_l_avenant(nat: &droit::natures::Nature) -> R<String> {
 }
 
 /// `avenant.description` puis `fabrique.figer` : le modele de l'avenant en texte, les valeurs du contrat et les
-/// siennes, et les articles modifies avec l'ancien texte et le nouveau.
-fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], extra: &[(&str, String)]) -> R<Value> {
+/// siennes, et les articles modifies avec l'ancien texte et le nouveau. Un avenant au contrat signe ailleurs (`ailleurs`)
+/// ne cite aucun article du modele de contrat : les refus qui gardent ces articles ne le regardent pas.
+fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], extra: &[(&str, String)], ailleurs: bool) -> R<Value> {
     let nat = p.engagement.nat()?;
     let modele = socle::fichiers::modele_de(&nom_de_l_avenant(&nat)?, ent, &ctx.gabarits());
     let mut d = enveloppe("avenant", ent);
@@ -283,13 +254,15 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     }
     let mut un = Map::new();
     un.insert("valeurs".into(), valeurs_en_ordre(&v, extra));
-    let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
-    let texte_contrat = lire_modele_texte(&contrat)?;
-    refuser_ce_que_le_modele_tairait(&contrat, &texte_contrat, &un["valeurs"])?;
-    crate::contrat_ecrit::refuser_les_mentions_absentes(&contrat, &texte_contrat, &nat, &un["valeurs"]).map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
+    if !ailleurs {
+        let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
+        let texte_contrat = lire_modele_texte(&contrat)?;
+        refuser_ce_que_le_modele_tairait(&contrat, &texte_contrat, &un["valeurs"])?;
+        crate::contrat_ecrit::refuser_les_mentions_absentes(&contrat, &texte_contrat, &nat, &un["valeurs"]).map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
+    }
     let articles: Vec<Value> = modifs
         .iter()
-        .map(|m| json!({"numero": m["numero"], "article": m["article"], "avant": m["avant"], "apres": m["apres"]}))
+        .map(|m| json!({"numero": m["numero"], "article": m["article"], "avant": m["avant"], "apres": m["apres"], "phrase": m.get("phrase").cloned().unwrap_or(Value::Null)}))
         .collect();
     un.insert("modifications".into(), Value::Array(articles));
     if let Some(s) = identite_de(ent, "signature") {
@@ -300,8 +273,21 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     Ok(Value::Object(d))
 }
 
+/// Le contrat que l'avenant modifie, comme il le nomme (`{{avenant.reference}}`) : « n° FA1.26.13 du 12/10/2026 », ou,
+/// signe hors du logiciel (`ailleurs`), « commencé le 01/03/2022 » -- le numero que le logiciel lui a donne n'est pas sur
+/// le papier signe. `date_contrat` en JJ/MM/AAAA.
+fn reference_du_contrat(p: &Paie, date_contrat: &str, ailleurs: bool) -> String {
+    match p.engagement.numero.as_deref().filter(|n| !n.is_empty()) {
+        Some(n) if !ailleurs => format!("n° {} du {}", n, date_contrat),
+        _ if ailleurs => format!("commencé le {}", date_contrat),
+        _ => format!("du {}", date_contrat),
+    }
+}
+
 /// L'avenant en PDF, a l'identite de la compagnie, la signature de l'employeur posee comme sur
-/// le contrat, puis sa description gardee. Les dates en JJ/MM/AAAA. `modifs` : ce que `avenant-apercu` rend.
+/// le contrat. Les dates en JJ/MM/AAAA. `modifs` : ce que
+/// `avenant-apercu` rend ; `ailleurs` : le contrat a ete signe hors du logiciel, ses modifications se disent en clair
+/// (`avenant::changements_en_clair`), par le paragraphe `{{modification.phrase}}` du bloc MODIFICATION:.
 #[allow(clippy::too_many_arguments)]
 pub fn ecrire_avenant(
     ctx: &Contexte,
@@ -313,6 +299,7 @@ pub fn ecrire_avenant(
     date_contrat: &str,
     effet: &str,
     date: &str,
+    ailleurs: bool,
 ) -> R<()> {
     if modifs.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: "Rien n'a changé : pas d'avenant à écrire.".into() });
@@ -323,14 +310,25 @@ pub fn ecrire_avenant(
     if m.modification.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: format!("{} n'a pas de bloc MODIFICATION:.", nom) });
     }
+    if ailleurs && !m.modification.iter().any(|b| b.contains("modification.phrase")) {
+        return Err(Refus {
+            classe: Some("ModeleIncomplet"),
+            message: socle::echec::avec(
+                format!(
+                    "Le modèle d'avenant {} ne dit pas une modification en clair : un contrat signé hors du logiciel n'a pas d'article à citer. Ajoutez à son bloc de modification un paragraphe qui porte la phrase de la modification (Configuration › Modèles de contrat). Rien n'est parti.",
+                    nom
+                ),
+                serde_json::json!({"marqueur": "{{modification.phrase}}"}),
+            ),
+        });
+    }
     let extra = [
         ("avenant.numero", numero.to_string()),
         ("avenant.date_contrat", date_contrat.to_string()),
+        ("avenant.reference", reference_du_contrat(p, date_contrat, ailleurs)),
         ("avenant.effet", effet.to_string()),
         ("avenant.date", date.to_string()),
     ];
-    let d = description_avenant(ctx, p, ent, modifs, &extra)?;
-    crate::fabrique::ecrire(&d, chemin).map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
-    crate::fabrique::garder_description(&d, chemin).map_err(|m| Refus { classe: Some("OSError"), message: m })?;
-    Ok(())
+    let d = description_avenant(ctx, p, ent, modifs, &extra, ailleurs)?;
+    crate::fabrique::ecrire_pdf(&d, chemin).map_err(Refus::from)
 }

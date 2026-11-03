@@ -268,9 +268,9 @@ pub fn page_a<S: AsRef<str>>(a: &A<S>) -> Vec<Value> {
     if a.mode {
         t(b_, 255.2, y + 14.0, "mode de règlement : Virement");
     }
-    grand(b_, 469.5, y + 32.0, &format!("{} €", s(&a.net_a_payer)), 14.0);
+    grand(b_, 469.5, y + 32.0, &format!("{} €", s(&a.net_a_payer)), 14.0); // forme imposée : l'imprimé du logiciel imité
     t(b_, 439.7, y + 51.0, "Total versé par l'employeur");
-    grand(b_, 478.9, y + 72.0, &format!("{} €", s(&a.total_verse)), 11.0);
+    grand(b_, 478.9, y + 72.0, &format!("{} €", s(&a.total_verse)), 11.0); // forme imposée : l'imprimé du logiciel imité
     grand(b_, 31.0, 810.0, "coolpaie 4.0.0.8.312", 7.0);
     b
 }
@@ -456,41 +456,17 @@ pub fn page_b<S: AsRef<str>>(p: &B<S>) -> Vec<Value> {
             r(b_, 220.0, y, s(cumul));
         }
     }
-    grand(b_, 493.3, 765.0, &format!("{} €", s(&p.net_paye)), 14.0);
+    grand(b_, 493.3, 765.0, &format!("{} €", s(&p.net_paye)), 14.0); // forme imposée : l'imprimé du logiciel imité
     t(b_, 445.0, 787.0, "Total versé par");
     t(b_, 450.2, 795.0, "l'employeur");
     if p.allegement {
         t(b_, 510.0, 787.0, "Allègement de");
         t(b_, 506.0, 795.0, "cotisations empl.");
-        grand(b_, 460.0, 812.0, &format!("{} €", s(&p.total_verse)), 11.0);
+        grand(b_, 460.0, 812.0, &format!("{} €", s(&p.total_verse)), 11.0); // forme imposée : l'imprimé du logiciel imité
         grand(b_, 532.0, 812.0, "0,00 €", 11.0);
     } else {
-        grand(b_, 524.7, 792.0, &format!("{} €", s(&p.total_verse)), 11.0);
+        grand(b_, 524.7, 792.0, &format!("{} €", s(&p.total_verse)), 11.0); // forme imposée : l'imprimé du logiciel imité
     }
     grand(b_, 504.7, 828.0, "GHS - sPAIEctacle ©", 6.5);
     b
-}
-
-/// Une page sans un mot : un trait seul, aucune police (comme une impression en traces).
-pub fn pdf_en_traces() -> Vec<u8> {
-    let flux = "10 10 m 190 190 l S";
-    let objets = [
-        "<< /Type /Catalog /Pages 2 0 R >>".to_string(),
-        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_string(),
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << >> >>".to_string(),
-        format!("<< /Length {} >>\nstream\n{}\nendstream", flux.len(), flux),
-    ];
-    let mut o: Vec<u8> = b"%PDF-1.7\n\n".to_vec();
-    let mut positions = Vec::new();
-    for (k, corps) in objets.iter().enumerate() {
-        positions.push(o.len());
-        o.extend_from_slice(format!("{} 0 obj\n{}\nendobj\n", k + 1, corps).as_bytes());
-    }
-    let debut = o.len();
-    o.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f \n", objets.len() + 1).as_bytes());
-    for p in positions {
-        o.extend_from_slice(format!("{:010} 00000 n \n", p).as_bytes());
-    }
-    o.extend_from_slice(format!("trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{}\n%%EOF\n", objets.len() + 1, debut).as_bytes());
-    o
 }

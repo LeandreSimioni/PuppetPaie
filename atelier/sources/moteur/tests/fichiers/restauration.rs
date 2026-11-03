@@ -27,7 +27,7 @@ fn petite(r: &Path) {
     for (rel, contenu) in [
         ("notes.txt", "notes"),
         ("config/entreprise.json", "{\"a\": 1}"),
-        ("journal/depots.json", "[]"),
+        ("journal/depots.jsonl", "{\"id\": \"1\", \"ligne\": {}}\n"),
         ("paies/2026-06/dupont.json", "{\"d\": 1}"),
         ("paies/avant/vieux.json", "v"),
         ("sorties/2026-06/bulletin.pdf", "%PDF-1.4 bulletin"),

@@ -567,6 +567,25 @@ fn flux_image(largeur: u32, hauteur: u32, espace: &str, filtre: &str, donnees: V
     Stream::new(d, donnees).with_compression(false)
 }
 
+/// Des pixels bruts (8 bits), comprimés avec les prédicteurs PNG (`genpdfi::render::predict_image`).
+fn flux_pixels(largeur: u32, hauteur: u32, espace: &str, pixels: Vec<u8>) -> Stream {
+    let mut d = Dictionary::new();
+    d.set("Type", Object::Name(b"XObject".to_vec()));
+    d.set("Subtype", Object::Name(b"Image".to_vec()));
+    d.set("Width", Object::Integer(largeur as i64));
+    d.set("Height", Object::Integer(hauteur as i64));
+    d.set("ColorSpace", Object::Name(espace.as_bytes().to_vec()));
+    d.set("BitsPerComponent", Object::Integer(8));
+    let mut s = Stream::new(d, pixels).with_compression(false);
+    let _ = genpdfi::render::predict_image(&mut s);
+    if s.dict.get(b"Filter").is_err() {
+        let brut = std::mem::take(&mut s.content);
+        s.dict.set("Filter", Object::Name(b"FlateDecode".to_vec()));
+        s.set_content(comprimer(&brut));
+    }
+    s
+}
+
 /// Les composantes et la taille d'un JPEG, lues dans son en-tête de trame (SOFn).
 fn entete_jpeg(o: &[u8]) -> Option<(u32, u32, u8)> {
     let mut i = 2;
@@ -617,21 +636,195 @@ fn image_matricielle(doc: &mut Document, octets: &[u8], sorte: &str, nom: &str) 
         rgba.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect()
     };
     let espace = if gris { "DeviceGray" } else { "DeviceRGB" };
-    let mut flux = flux_image(l, h, espace, "FlateDecode", comprimer(&couleurs));
+    let mut flux = flux_pixels(l, h, espace, couleurs);
     if !opaque {
         let alpha: Vec<u8> = rgba.pixels().map(|p| p[3]).collect();
-        let masque = doc.add_object(Object::Stream(flux_image(l, h, "DeviceGray", "FlateDecode", comprimer(&alpha))));
+        let masque = doc.add_object(Object::Stream(flux_pixels(l, h, "DeviceGray", alpha)));
         flux.dict.set("SMask", Object::Reference(masque));
     }
     let id = doc.add_object(Object::Stream(flux));
     Ok(Image { xobjet: id, largeur: l as f64, hauteur: h as f64 })
 }
 
-/// Un SVG en objet formulaire PDF, **vectoriel** : usvg le lit, son texte devient des tracés avec
-/// les polices Liberation (aucune police du système : même dessin partout ; `Helvetica`, `Arial`
-/// et `sans-serif` sont Liberation Sans), svg2pdf l'écrit. Les objets écrits sont recopiés dans
-/// le document.
-fn image_svg(doc: &mut Document, octets: &[u8], nom: &str) -> Result<Image, Refus> {
+/// Un morceau de texte d'un SVG, posé tel quel en texte PDF : sa police (gras ou non), son corps, sa couleur et
+/// ses caractères.
+struct Morceau {
+    gras: bool,
+    corps: f64,
+    couleur: [u8; 3],
+    texte: String,
+}
+
+/// Une ligne de texte d'un SVG (un « chunk » d'usvg) : son point d'ancrage, son alignement et ses morceaux.
+struct LigneSvg {
+    matrice: [f64; 6],
+    x: f64,
+    y: f64,
+    ancre: usvg::TextAnchor,
+    morceaux: Vec<Morceau>,
+}
+
+/// Le texte d'un SVG, s'il s'écrit en texte PDF sans rien changer au dessin : Liberation Sans romain ou gras,
+/// droit, sans contour, décoration, espacement, décalage ni position par caractère, d'une couleur pleine, et
+/// la boîte de vue du SVG à sa taille. `None` dès qu'un texte ne s'y prête pas (il devient alors des tracés,
+/// comme le reste du dessin).
+fn textes_simples(arbre: &usvg::Tree) -> Option<Vec<(usvg::Node, Vec<LigneSvg>)>> {
+    use usvg::NodeExt;
+    let vb = arbre.view_box.rect;
+    if vb.x() != 0.0 || vb.y() != 0.0 || vb.width() != arbre.size.width() || vb.height() != arbre.size.height() {
+        return None;
+    }
+    let mut textes = Vec::new();
+    for noeud in arbre.root.descendants() {
+        let usvg::NodeKind::Text(ref t) = *noeud.borrow() else { continue };
+        if t.writing_mode != usvg::WritingMode::LeftToRight
+            || t.rotate.iter().any(|r| *r != 0.0)
+            || t.positions.iter().any(|p| p.dx.is_some() || p.dy.is_some())
+            || t.positions.iter().filter(|p| p.x.is_some() || p.y.is_some()).count() > t.chunks.len()
+        {
+            return None;
+        }
+        let m = noeud.abs_transform();
+        let matrice = [m.sx as f64, m.ky as f64, m.kx as f64, m.sy as f64, m.tx as f64, m.ty as f64];
+        let mut lignes = Vec::new();
+        for c in &t.chunks {
+            if !matches!(c.text_flow, usvg::TextFlow::Linear) {
+                return None;
+            }
+            let mut morceaux = Vec::new();
+            for s in &c.spans {
+                let couleur = match &s.fill {
+                    Some(usvg::Fill { paint: usvg::Paint::Color(c), opacity, .. }) if opacity.get() == 1.0 => [c.red, c.green, c.blue],
+                    _ => return None,
+                };
+                let d = &s.decoration;
+                if s.stroke.is_some()
+                    || d.underline.is_some()
+                    || d.overline.is_some()
+                    || d.line_through.is_some()
+                    || s.small_caps
+                    || s.letter_spacing != 0.0
+                    || s.word_spacing != 0.0
+                    || s.text_length.is_some()
+                    || !s.baseline_shift.is_empty()
+                    || s.dominant_baseline != usvg::DominantBaseline::Auto
+                    || s.alignment_baseline != usvg::AlignmentBaseline::Auto
+                    || s.visibility != usvg::Visibility::Visible
+                    || s.font.style != usvg::FontStyle::Normal
+                {
+                    return None;
+                }
+                // La famille que la base de polices retiendrait : la première qu'elle connaît (Liberation Sans
+                // et `sans-serif` ici ; une autre famille de Liberation se dessine en tracés), Liberation Sans
+                // sinon.
+                for f in &s.font.families {
+                    let f = f.to_ascii_lowercase();
+                    if f == "liberation sans" || f == "sans-serif" {
+                        break;
+                    }
+                    if f.starts_with("liberation") || matches!(f.as_str(), "serif" | "monospace" | "cursive" | "fantasy") {
+                        return None;
+                    }
+                }
+                let texte = c.text.get(s.start..s.end)?.to_string();
+                if texte.chars().any(|ch| ch.is_control() || ch as u32 > 0xFFFF) {
+                    return None;
+                }
+                morceaux.push(Morceau { gras: s.font.weight > 500, corps: s.font_size.get() as f64, couleur, texte });
+            }
+            lignes.push(LigneSvg { matrice, x: c.x.unwrap_or(0.0) as f64, y: c.y.unwrap_or(0.0) as f64, ancre: c.anchor, morceaux });
+        }
+        textes.push((noeud.clone(), lignes));
+    }
+    Some(textes)
+}
+
+/// Le texte `lignes` d'un SVG ajouté à son objet formulaire `forme` (écrit par svg2pdf, dans le repère du SVG
+/// retourné, `hauteur` sa hauteur), en texte PDF avec les sous-ensembles de Liberation Sans de `doc`
+/// (`police_pour`). Refus : un caractère que la police n'a pas.
+fn ecrire_textes(doc: &mut Document, forme: ObjectId, lignes: &[LigneSvg], hauteur: f64, avant: Option<&Document>) -> Result<(), Refus> {
+    let romain = crate::polices::sans_regulier()?;
+    let gras = crate::polices::sans_gras()?;
+    let faces = [
+        ttf_parser::Face::parse(&romain, 0).map_err(|e| Refus(format!("police interne illisible : {:?}", e)))?,
+        ttf_parser::Face::parse(&gras, 0).map_err(|e| Refus(format!("police interne illisible : {:?}", e)))?,
+    ];
+    let mut caracteres = [BTreeSet::new(), BTreeSet::new()];
+    for m in lignes.iter().flat_map(|l| &l.morceaux) {
+        for c in m.texte.chars() {
+            if faces[m.gras as usize].glyph_index(c).is_none() {
+                return refus(format!("le texte du SVG : le caractère « {} » (U+{:04X}) n'existe pas dans la police Liberation", c, c as u32));
+            }
+            caracteres[m.gras as usize].insert(c);
+        }
+    }
+    let mut polices = Dictionary::new();
+    let mut noms = ["", ""];
+    for (i, (donnees, nom)) in [(&romain, "PPTexte"), (&gras, "PPTexteGras")].into_iter().enumerate() {
+        if !caracteres[i].is_empty() {
+            polices.set(nom, Object::Reference(police_pour(doc, donnees, &caracteres[i], avant)?));
+            noms[i] = nom;
+        }
+    }
+    let avance = |m: &Morceau| -> f64 {
+        let f = &faces[m.gras as usize];
+        let em = f.units_per_em() as f64;
+        m.texte.chars().filter_map(|c| f.glyph_index(c)).map(|g| f.glyph_hor_advance(g).unwrap_or(0) as f64 / em * m.corps).sum()
+    };
+    let srgb = match doc.get_object(forme) {
+        Ok(Object::Stream(s)) => s.dict.get(b"Resources").ok().and_then(|r| dico(doc, r)).and_then(|r| r.get(b"ColorSpace").ok()).and_then(|c| dico(doc, c)).map_or(false, |c| c.has(b"srgb")),
+        _ => false,
+    };
+    // Le repère du SVG (y vers le bas) comme svg2pdf le pose, puis chaque ligne dans le sien.
+    let mut s = format!("q\n1 0 0 -1 0 {} cm\n", nb(hauteur));
+    for l in lignes {
+        let largeur: f64 = l.morceaux.iter().map(|m| avance(m)).sum();
+        let mut x = match l.ancre {
+            usvg::TextAnchor::Start => l.x,
+            usvg::TextAnchor::Middle => l.x - largeur / 2.0,
+            usvg::TextAnchor::End => l.x - largeur,
+        };
+        let m = l.matrice;
+        s.push_str(&format!("q\n{} {} {} {} {} {} cm\nBT\n", nb(m[0]), nb(m[1]), nb(m[2]), nb(m[3]), nb(m[4]), nb(m[5])));
+        for mo in &l.morceaux {
+            let [r, v, b] = mo.couleur.map(|c| nb(c as f64 / 255.0));
+            if srgb {
+                s.push_str(&format!("/srgb cs {} {} {} scn\n", r, v, b));
+            } else {
+                s.push_str(&format!("{} {} {} rg\n", r, v, b));
+            }
+            // Les glyphes debout dans le repère retourné : la matrice de texte retourne aussi.
+            s.push_str(&format!("/{} {} Tf\n1 0 0 -1 {} {} Tm\n<{}> Tj\n", noms[mo.gras as usize], nb(mo.corps), nb(x), nb(l.y), hex(&mo.texte)));
+            x += avance(mo);
+        }
+        s.push_str("ET\nQ\n");
+    }
+    s.push_str("Q\n");
+    let mut ressources: Dictionary = match doc.get_object(forme) {
+        Ok(Object::Stream(f)) => f.dict.get(b"Resources").ok().and_then(|r| dico(doc, r)).cloned().unwrap_or_default(),
+        _ => return refus("le SVG converti n'a pas d'objet formulaire"),
+    };
+    ressources.set("Font", Object::Dictionary(polices));
+    let Ok(Object::Stream(flux)) = doc.get_object_mut(forme) else {
+        return refus("le SVG converti n'a pas d'objet formulaire");
+    };
+    let mut contenu = flux.decompressed_content().unwrap_or_else(|_| flux.content.clone());
+    contenu.push(b'\n');
+    contenu.extend_from_slice(s.as_bytes());
+    flux.dict.set("Resources", Object::Dictionary(ressources));
+    flux.dict.remove(b"Filter");
+    flux.dict.remove(b"DecodeParms");
+    flux.set_content(comprimer(&contenu));
+    flux.dict.set("Filter", Object::Name(b"FlateDecode".to_vec()));
+    Ok(())
+}
+
+/// Un SVG en objet formulaire PDF, **vectoriel** : usvg le lit (aucune police du système : même dessin partout ;
+/// `Helvetica`, `Arial` et `sans-serif` sont Liberation Sans), svg2pdf l'écrit, et les objets écrits sont recopiés
+/// dans le document. Son texte s'écrit en texte PDF quand il le peut (`textes_simples` : un sous-ensemble de
+/// police par document, `police_pour`, quelques octets par caractère, et le texte se lit) ; sinon, il devient des
+/// tracés (chaque lettre dessinée, des milliers de nombres). `avant` : voir `police_pour`.
+fn image_svg(doc: &mut Document, octets: &[u8], nom: &str, avant: Option<&Document>) -> Result<Image, Refus> {
     use usvg::{TreeParsing, TreeTextToPath};
     let mut polices = usvg::fontdb::Database::new();
     for donnees in crate::polices::toutes()? {
@@ -652,7 +845,18 @@ fn image_svg(doc: &mut Document, octets: &[u8], nom: &str) -> Result<Image, Refu
     };
     let mut arbre = usvg::Tree::from_data(octets, &options)
         .map_err(|e| Refus(format!("le SVG {} est illisible ({})", nom, e)))?;
-    arbre.convert_text(&polices);
+    let textes = match textes_simples(&arbre) {
+        Some(t) => {
+            for (noeud, _) in &t {
+                noeud.clone().detach();
+            }
+            t.into_iter().flat_map(|(_, l)| l).collect()
+        }
+        None => {
+            arbre.convert_text(&polices);
+            Vec::new()
+        }
+    };
     let (l, h) = (arbre.size.width() as f64, arbre.size.height() as f64);
     if !(l > 0.0 && h > 0.0) {
         return refus(format!("le SVG {} n'a pas de taille", nom));
@@ -673,6 +877,9 @@ fn image_svg(doc: &mut Document, octets: &[u8], nom: &str) -> Result<Image, Refu
     pdf.extend(&morceau);
     let source = Document::load_mem(&pdf.finish()).map_err(|e| Refus(format!("le SVG {} n'a pas pu être converti ({})", nom, e)))?;
     let id = importer(doc, &source, (depart.get() as u32, 0))?;
+    if !textes.is_empty() {
+        ecrire_textes(doc, id, &textes, h, avant)?;
+    }
     Ok(Image { xobjet: id, largeur: l, hauteur: h })
 }
 
@@ -780,19 +987,21 @@ pub fn remplir(octets: &[u8], description: &str) -> Result<Vec<u8>, Refus> {
         Some(_) => return refus("« images » doit être une liste"),
     }
 
-    let mut doc = crate::lecture::charger(octets)?;
-    if doc.trailer.get(b"Encrypt").is_ok() {
+    // Le formulaire reçu reste tel quel, octet pour octet : ce qu'on y écrit (les valeurs, leur apparence,
+    // la police, les images) s'ajoute à la fin, en mise à jour incrémentale (ISO 32000-1, 7.5.6).
+    let (avant, lus) = crate::lecture::charger_avec_octets(octets)?;
+    if avant.trailer.get(b"Encrypt").is_ok() {
         return refus("le PDF est chiffré : on ne le remplit pas");
     }
+    let mut doc = avant.clone();
     if !valeurs.is_empty() {
-        ecrire_champs(&mut doc, &valeurs)?;
+        ecrire_champs(&mut doc, &valeurs, Some(&avant))?;
     }
     if !poses.is_empty() {
-        poser_images(&mut doc, &poses)?;
+        poser_images(&mut doc, &poses, Some(&avant))?;
     }
-    let mut sortie = Vec::new();
-    doc.save_to(&mut sortie).map_err(|e| Refus(format!("écriture du PDF impossible ({})", e)))?;
-    Ok(sortie)
+    doc.prune_objects();
+    Ok(genpdfi::pdf_ecriture::ajouter(&lus, &avant, &doc))
 }
 
 fn lire_pose(im: &Value, rang: usize) -> Result<Pose, Refus> {
@@ -831,7 +1040,49 @@ fn lire_pose(im: &Value, rang: usize) -> Result<Pose, Refus> {
     Ok(Pose { page, rect: [rect[0], rect[1], rect[2], rect[3]], marge, octets, nom })
 }
 
-fn ecrire_champs(doc: &mut Document, valeurs: &[(String, String)]) -> Result<(), Refus> {
+/// La police (sous-ensemble de `donnees`) qui écrit `caracteres` dans `doc` : une seule par document et par
+/// fichier de police. Une de celles que la fabrique y a déjà mises, si elle porte ces caractères ; sinon une
+/// qu'on peut élargir à ce qui lui manque : toute police quand le document se réécrit en entier (`avant` vide),
+/// une police ajoutée par cette écriture-ci quand il s'écrit en mise à jour incrémentale (`avant` : le document
+/// reçu, dont les objets restent tels quels) ; sinon, un sous-ensemble neuf de ces seuls caractères.
+pub(crate) fn police_pour(doc: &mut Document, donnees: &[u8], caracteres: &BTreeSet<char>, avant: Option<&Document>) -> Result<ObjectId, Refus> {
+    let echec = |e: genpdfi::error::Error| Refus(format!("police impossible à embarquer : {}", e));
+    let candidates = genpdfi::pdf_subset::polices_de_la_fabrique(doc, donnees);
+    if let Some((id, _)) = candidates.iter().find(|(_, portes)| caracteres.is_subset(portes)) {
+        return Ok(*id);
+    }
+    if let Some((id, portes)) = candidates.into_iter().find(|(id, _)| avant.map_or(true, |a| !a.objects.contains_key(id))) {
+        let tous: BTreeSet<char> = portes.union(caracteres).copied().collect();
+        genpdfi::pdf_subset::elargir(doc, id, donnees, &tous).map_err(echec)?;
+        return Ok(id);
+    }
+    genpdfi::pdf_subset::embarquer(doc, donnees, caracteres).map_err(echec)
+}
+
+/// Les polices qui écrivent `caracteres` dans une mise à jour incrémentale de `avant` (le document reçu, qui reste
+/// tel quel), chacune avec les caractères qu'elle écrit : celle que la fabrique y a déjà mise et qui en porte le plus,
+/// puis, pour ce qui lui manque, un sous-ensemble neuf de ces seuls caractères (`police_pour`). Un texte qui passe de
+/// l'une à l'autre change de police entre deux `Tj`, sans changer de place.
+pub(crate) fn polices_pour_ajout(doc: &mut Document, donnees: &[u8], caracteres: &BTreeSet<char>, avant: &Document) -> Result<Vec<(ObjectId, BTreeSet<char>)>, Refus> {
+    let meilleure = genpdfi::pdf_subset::polices_de_la_fabrique(doc, donnees)
+        .into_iter()
+        .filter(|(id, _)| avant.objects.contains_key(id))
+        .map(|(id, portes)| (id, caracteres.intersection(&portes).copied().collect::<BTreeSet<char>>()))
+        .max_by_key(|(_, communs)| communs.len());
+    let mut polices = Vec::new();
+    let mut reste = caracteres.clone();
+    if let Some((id, communs)) = meilleure.filter(|(_, c)| !c.is_empty()) {
+        reste = caracteres.difference(&communs).copied().collect();
+        polices.push((id, communs));
+    }
+    if !reste.is_empty() {
+        polices.push((police_pour(doc, donnees, &reste, Some(avant))?, reste));
+    }
+    Ok(polices)
+}
+
+/// Les valeurs écrites dans leurs champs, l'apparence régénérée ; `avant` : voir `police_pour`.
+fn ecrire_champs(doc: &mut Document, valeurs: &[(String, String)], avant: Option<&Document>) -> Result<(), Refus> {
     let (liste, _) = lister(doc);
     let mut par_nom: HashMap<&str, &Champ> = HashMap::new();
     for c in &liste {
@@ -873,14 +1124,7 @@ fn ecrire_champs(doc: &mut Document, valeurs: &[(String, String)]) -> Result<(),
             caracteres.insert(ch);
         }
     }
-    let police = if caracteres.is_empty() {
-        None
-    } else {
-        Some(
-            genpdfi::pdf_subset::embarquer(doc, &donnees, &caracteres)
-                .map_err(|e| Refus(format!("police impossible à embarquer : {}", e)))?,
-        )
-    };
+    let police = if caracteres.is_empty() { None } else { Some(police_pour(doc, &donnees, &caracteres, avant)?) };
     let metriques = Metriques { face };
     for (nom, texte) in valeurs {
         let texte = texte.replace("\r\n", "\n").replace('\r', "\n");
@@ -922,7 +1166,7 @@ fn ecrire_champs(doc: &mut Document, valeurs: &[(String, String)]) -> Result<(),
     Ok(())
 }
 
-fn poser_images(doc: &mut Document, poses: &[Pose]) -> Result<(), Refus> {
+fn poser_images(doc: &mut Document, poses: &[Pose], avant: Option<&Document>) -> Result<(), Refus> {
     let pages: BTreeMap<u32, ObjectId> = doc.get_pages();
     let mut par_page: BTreeMap<usize, Vec<(ObjectId, [f64; 6])>> = BTreeMap::new();
     for p in poses {
@@ -944,7 +1188,7 @@ fn poser_images(doc: &mut Document, poses: &[Pose]) -> Result<(), Refus> {
             return refus(format!("image {} : la marge ne laisse rien du rectangle", p.nom));
         }
         let image = match sorte(&p.octets) {
-            Some("svg") => image_svg(doc, &p.octets, &p.nom)?,
+            Some("svg") => image_svg(doc, &p.octets, &p.nom, avant)?,
             Some(s) => image_matricielle(doc, &p.octets, s, &p.nom)?,
             None => return refus(format!("l'image {} n'est ni un SVG, ni un PNG, ni un JPEG", p.nom)),
         };
@@ -1205,7 +1449,7 @@ pub fn ajouter_champs(octets: &[u8], description: &str) -> Result<Vec<u8>, Refus
     // Les valeurs, avec leur apparence (le même chemin que `remplir`), puis la lecture seule.
     let valeurs: Vec<(String, String)> = ajouts.iter().filter_map(|a| a.valeur.clone().map(|v| (a.nom.clone(), v))).collect();
     if !valeurs.is_empty() {
-        ecrire_champs(&mut doc, &valeurs)?;
+        ecrire_champs(&mut doc, &valeurs, None)?;
     }
     for (a, id) in ajouts.iter().zip(&nouveaux) {
         if a.lecture_seule {
@@ -1214,7 +1458,6 @@ pub fn ajouter_champs(octets: &[u8], description: &str) -> Result<Vec<u8>, Refus
             }
         }
     }
-    let mut sortie = Vec::new();
-    doc.save_to(&mut sortie).map_err(|e| Refus(format!("écriture du PDF impossible ({})", e)))?;
-    Ok(sortie)
+    doc.prune_objects();
+    Ok(genpdfi::pdf_ecriture::compact(&doc))
 }

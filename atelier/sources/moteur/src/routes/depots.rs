@@ -1,6 +1,5 @@
-//! Les routes des declarations : produire la DPAE (`dpae`), montrer et deposer la DSN du mois (`depot-apercu`,
-//! `dsn-a-deposer`, `deposer`), suivre un depot (`suivre-depot`), le bilan d'une repetition (`bilan-repetition`), et
-//! preparer le filet DPAE (`filet-preparer`).
+//! Les routes des declarations : ecrire ou reprendre la DSN ou la DPAE du mois et dire ce
+//! qu'elle declare (`depot-apercu`), la deposer (`deposer`), suivre un depot (`suivre-depot`), le bilan de son test (`bilan-repetition`).
 //!
 //! Les formats sont ailleurs (`dpae`, la DSN de `declarations`, la fabrique de PDF) : ce module enchaine -- charger,
 //! choisir, refuser, nommer, ecrire, et passer a `envois` ce qui part. Le jour est celui du contexte
@@ -9,41 +8,186 @@
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
-use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
+use crate::compagnie::depot_acte::{self, Preuve};
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, MOIS, OPERATION};
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use envois::etats;
 use envois::releve_retours;
-use socle::date::{en_texte, repr_texte, Jour};
+use socle::date::en_texte;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
+use crate::routes::catalogue::{Ecran, Place};
+use super::mot;
 
+// LA DESIGNATION d'une declaration (`designee`) : la DSN ou la DPAE d'un mois, ou un signalement ecrit.
+const QUOI: Champ = Champ { nom: "quoi", libelle: Affiche::new("DPAE ou DSN"), forme: Forme::Texte, sens: "dpae ou dsn", avance: false };
+const ETABLISSEMENT: Champ = Champ { nom: "etablissement", libelle: Affiche::new("Établissement"), forme: Forme::Texte, sens: "le NIC de l'établissement (DSN), le principal sinon", avance: true };
+const ENGAGEMENTS: Champ = Champ { nom: "engagements", libelle: Affiche::new("Embauches"), forme: Forme::Objet, sens: "seulement ces embauches (DPAE) : [{salarie, numero}]", avance: true };
+const SIGNALEMENT: Champ = Champ { nom: "fichier", libelle: Affiche::new("Signalement"), forme: Forme::Texte, sens: "un signalement écrit, tel que sa route le rend, à la place du mois", avance: true };
+/// L'exemple : la DPAE de novembre, que `depot-apercu` ecrit.
+const DPAE_DE_L_EXEMPLE: &str = r#"{"quoi":"dpae","mois":"2026-11"}"#;
+const ILLISIBLE_FICHIER: Refus = Refus { classe: "FileNotFoundError", corriger: "le signalement : le fichier que sa route a rendu" };
 
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &["dpae", "depot-apercu", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
-
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["dpae", "deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "depot-apercu",
+        geste: "Écrire ou reprendre la DSN ou la DPAE du mois ; dire ce qu'elle déclare.",
+        charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
+        exemple: DPAE_DE_L_EXEMPLE,
+        rend: "ce qu'elle déclare (description, embauches, ou salariés, recapitulatif avec son titre et sa phrase, ordres et ordres_phrase), deja_depose, repetition (où en est son test, titre et phrase de l'encart), encarts (titre, phrase, couleur), phrase, avertissements, informations",
+        refus: &[ILLISIBLE_FICHIER, MANQUE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 300,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "deposer",
+        geste: "Déposer la DSN ou la DPAE du mois : en test, ou en réel après son test.",
+        charge: &[
+            QUOI,
+            MOIS,
+            ETABLISSEMENT,
+            ENGAGEMENTS,
+            SIGNALEMENT,
+            Champ { nom: "reel", libelle: Affiche::new("Dépôt réel"), forme: Forme::OuiNon, sens: "vrai : le dépôt réel (le mot de passe du logiciel, tapé par un humain au moment de l'acte)", avance: false },
+            Champ { nom: "forcer", libelle: Affiche::new("Annule et remplace"), forme: Forme::OuiNon, sens: "vrai : l'annule-et-remplace d'une DSN déjà déposée, après l'avertissement", avance: true },
+            Champ { nom: "contournement", libelle: Affiche::new("Motif d'un dépôt réel sans test"), forme: Forme::Texte, sens: "le motif écrit d'un dépôt réel sans test", avance: true },
+        ],
+        exemple: DPAE_DE_L_EXEMPLE,
+        rend: "le dépôt : accepté ou non, le retour de l'organisme, ses suites (chaque demande de taux), phrase, avis (l'encart à montrer après la DSN réelle d'un mois qui a des salariés)",
+        refus: &[
+            Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est parti" },
+            Refus { classe: "RepetitionManquante", corriger: "déposer d'abord ce fichier en test" },
+            Refus { classe: "DsnDejaDeposee", corriger: "rien, ou renvoyer avec forcer si l'annule-et-remplace est voulu" },
+            ILLISIBLE_FICHIER,
+            OPERATION,
+        ],
+        acte: Acte::Engage,
+        avance: false,
+        phrase: 400,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "suivre-depot",
+        geste: "Après un dépôt réel, relever les retours et dire s'il est passé ou refusé.",
+        charge: &[QUOI, Champ { nom: "flux", libelle: Affiche::new("Flux"), forme: Forme::Texte, sens: "le flux du dépôt, tel que deposer le rend", avance: false }, MOIS],
+        exemple: r#"{"quoi":"dpae"}"#,
+        rend: "fini, passe, refuse, incident (le relevé qui n'a pu se faire), phrase et couleur",
+        refus: &[MANQUE],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 80,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "bilan-repetition",
+        geste: "Dire où en est le test de la DSN ou de la DPAE ; chercher son compte rendu.",
+        charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
+        exemple: DPAE_DE_L_EXEMPLE,
+        rend: "etat (testee : le réel peut partir ; en_test ; test_refuse, et son motif ; ecrite), titre et phrase de l'encart, conforme, incident",
+        refus: &[ILLISIBLE_FICHIER, MANQUE, OPERATION],
+        acte: Acte::Ecrit,
+        avance: false,
+        phrase: 500,
+        ecran: ECRAN,
+    },
+];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let mut v = match nom {
-        "dpae" => dpae(ctx, charge),
-        "depot-apercu" => depot_apercu(ctx, charge),
+        // Les phrases de ses parties (le remplacement, le recapitulatif, le test), a la suite de la sienne.
+        "depot-apercu" => depot_apercu(ctx, charge).map(|mut v| {
+            let encarts = encarts_du_depot(&v);
+            let mut lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
+            lignes.extend(super::encarts_en_lignes(&encarts));
+            v["encarts"] = Value::Array(encarts);
+            lignes.extend(v["avertissements"].as_array().into_iter().flatten().cloned());
+            v["phrases"] = Value::Array(lignes);
+            // Le titre de la boite : ce qui se depose.
+            v["titre"] = json!(if charge["quoi"] == json!("dsn") { "Déposer la DSN" } else { "Déposer la DPAE" });
+            v["ordres_titre"] = json!(format!("Ordres de télépaiement ({})", super::nombre(&v["ordres"])));
+            // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire ; une DPAE par ses
+            // embauches.
+            if !v["phrase"].as_str().is_some_and(|p| !p.is_empty()) {
+                let mois = engagement::libelle_mois(v["mois"].as_str().unwrap_or(""));
+                let (nature, combien) = match v.get("embauches") {
+                    Some(e) => ("DPAE".to_string(), super::compte(super::nombre(e), "embauche", "embauches")),
+                    None => (super::mot(&v["libelle_nature"]), super::compte(v["salaries"].as_u64().unwrap_or(0) as usize, "salarié", "salariés")),
+                };
+                let p = format!("{} {} : {}.", nature, socle::texte::de(&mois), combien);
+                v = super::phrase_en_tete(v, p);
+            }
+            v
+        }),
         "deposer" => deposer(ctx, charge),
         "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(ctx, charge),
-        "filet-preparer" => filet_preparer(ctx, charge),
-        "dsn-a-deposer" => crate::compagnie::depart::dsn_a_deposer(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }?;
     poser_les_pastilles(&mut v);
     Ok(v)
+}
+
+/// CE QUE LA BOITE DU DEPOT DIT DU FICHIER, encart par encart, dans l'ordre ou elle les montre : l'annule-et-remplace
+/// qu'il porte, le prelevement a la source sur la grille par defaut (CGI, art. 204 H), les embauches deja declarees, le
+/// fichier deja depose, le fichier code envoi de test.
+fn encarts_du_depot(v: &Value) -> Vec<Value> {
+    let mut e = Vec::new();
+    let remplace = mot(&v["remplace"]);
+    if !remplace.is_empty() {
+        e.push(super::encart("information", "Annule et remplace", format!("Ce fichier remplace la déclaration {}.", remplace)));
+    }
+    let r = &v["remplacement"];
+    if r["fichier_remplace"].as_bool() == Some(true) {
+        e.push(super::encart(
+            "a_faire",
+            format!("Annule-et-remplace intégral — ordre {}", mot(&v["ordre"])),
+            format!(
+                "Il remplace la DSN réelle déjà partie pour ce mois (ordre {}), ordres de télépaiement compris : c'est lui qui vaudra. Admis jusqu'au {} à minuit.",
+                mot(&r["dernier_ordre"]),
+                super::jour_en_clair(&r["limite"])
+            ),
+        ));
+    }
+    let bareme = v["pas_bareme"].as_u64().unwrap_or(0);
+    if bareme > 0 {
+        e.push(super::encart(
+            "a_faire",
+            format!("Prélèvement à la source : {} versement{} sur {} sur la grille par défaut", bareme, if bareme > 1 { "s" } else { "" }, mot(&v["pas_versements"])),
+            "Sans taux transmis par la DGFiP, la grille de l'article 204 H du CGI s'applique ; le dépôt n'est pas bloqué. Elle prélève souvent plus que le taux réel, et le salarié ne récupère la différence qu'à sa déclaration de revenus. Relever les retours avant de déposer peut changer cela.",
+        ));
+    }
+    let deja = v["embauches"].as_array().into_iter().flatten().filter(|x| x["deja_declaree"].as_bool() == Some(true)).count();
+    if deja > 0 {
+        e.push(super::encart(
+            "a_faire",
+            format!("{} déjà envoyée{}", super::compte(deja, "embauche", "embauches"), if deja > 1 { "s" } else { "" }),
+            "Le fichier porte tout le mois : le déposer les redéclare, et l'Urssaf reçoit deux déclarations pour un seul contrat.",
+        ));
+    }
+    let d = &v["deja_depose"];
+    if vrai(d) {
+        e.push(super::encart(
+            "a_faire",
+            "Ce fichier a déjà été déposé",
+            format!("Le {}, en mode {}. Redéposer le même fichier ne remplace rien : un annule-et-remplace se produit, il ne se redépose pas.", super::quand(&mot(&d["quand"])), if mot(&d["mode"]) == "reel" { "réel".to_string() } else { mot(&d["mode"]) }),
+        ));
+    }
+    if v["reel"].as_bool() == Some(false) {
+        e.push(super::encart("information", "Envoi de test", "Le fichier est codé envoi de test : déposé pour de vrai, il ne déclarerait rien et rien ne serait conservé."));
+    }
+    e
 }
 
 /// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`) : la ligne d'un certificat de conformite DPAE
@@ -83,7 +227,6 @@ fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
 
-
 #[track_caller]
 fn plain(m: String) -> Echec {
     socle::echec::noter_et(None, m)
@@ -91,85 +234,30 @@ fn plain(m: String) -> Echec {
 
 /// `charge["cle"]` : un texte requis.
 fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
-    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
+    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", socle::echec::charge(cle, "un texte")))
 }
-
-
 
 /// Les secondes unix de l'horloge.
 fn maintenant() -> f64 {
     socle::temps::secondes()
 }
 
-/// `datetime.now()` a l'heure de Paris, en `AAAA-MM-JJTHH:MM:SS`.
+/// L'heure de Paris, en `AAAA-MM-JJTHH:MM:SS`.
 fn maintenant_iso() -> String {
     socle::paris::iso_secondes(maintenant())
 }
 
-fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
-    let an = mois.get(..4).ok_or_else(|| erreur("ValueError", "mois illisible"))?;
-    let rang: usize = mois
-        .get(5..7)
-        .and_then(|m| m.parse().ok())
-        .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(mois.get(5..7).unwrap_or("")))))?;
-    let nom = socle::date::nom_du_mois(rang as i64, socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))?;
-    let annee: i64 = an.parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(an))))?;
-    Ok((format!("{}{}", nom, annee), format!("{} {}", nom, annee)))
-}
-
-
-
-
-
-
 fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
     if let Some(d) = chemin.parent() {
-        std::fs::create_dir_all(d).map_err(|e| plain(format!("{} : {}", d.display(), e)))?;
+        std::fs::create_dir_all(d).map_err(|e| plain(socle::echec::du_disque(&d, &e)))?;
     }
-    std::fs::write(chemin, texte).map_err(|e| plain(format!("{} : {}", chemin.display(), e)))
+    std::fs::write(chemin, texte).map_err(|e| plain(socle::echec::du_disque(&chemin, &e)))
 }
 
 // ------------------------------------------------------------------ dpae
 
-/// La phrase qu'on lit en face d'une embauche deja declaree (`libelle_embauche_declaree`).
-fn libelle_embauche_declaree(cle: &str, debut: &str, e: &Value) -> R<String> {
-    let quand = {
-        let t = e.get("quand").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_default();
-        let c: Vec<char> = t.chars().collect();
-        if c.len() < 10 || c[4] != '-' || c[7] != '-' {
-            t
-        } else {
-            let tr = |a: usize, b: usize| c[a..b].iter().collect::<String>();
-            let jour = format!("{}/{}/{}", tr(8, 10), tr(5, 7), tr(0, 4));
-            if c.len() >= 16 {
-                format!("{} a {}", jour, tr(11, 16))
-            } else {
-                jour
-            }
-        }
-    };
-    let debut_lisible = documents::bulletin::jj_mm_aaaa(&json!(debut)).map_err(|m| erreur("ValueError", m))?;
-    if e.get("refusee").map_or(false, vrai) {
-        let mut vus: Vec<String> = Vec::new();
-        for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let t = valeur_en_texte(a);
-            if !vus.contains(&t) {
-                vus.push(t);
-            }
-        }
-        let motif = if vus.is_empty() { "motif non lu".to_string() } else { vus.join(" ; ") };
-        return Ok(format!("{} au {} : REFUSEE le {} -- {} -- a corriger et a renvoyer", cle, debut_lisible, quand, motif));
-    }
-    let suite = if e.get("passee").map_or(false, vrai) {
-        "certificat de conformite recu : la DPAE est passee, rien a faire de notre cote"
-    } else {
-        "retour pas encore arrive : on attend, on ne renvoie pas"
-    };
-    Ok(format!("{} au {} : declaree le {} -- {}", cle, debut_lisible, quand, suite))
-}
-
 /// Les noms `DPAE_<etiquette>_AAAAMMJJ-HHMM.txt` d'un dossier, du plus grand au plus petit
-/// (`sorted(sortie.glob("DPAE_%s_????????-????.txt" % etiq), reverse=True)`).
+/// (le plus récent d'abord).
 fn fichiers_partiels(dossier: &Path, etiq: &str) -> Vec<PathBuf> {
     let debut = format!("DPAE_{}_", etiq);
     let Ok(lecture) = std::fs::read_dir(dossier) else { return Vec::new() };
@@ -189,6 +277,12 @@ fn fichiers_partiels(dossier: &Path, etiq: &str) -> Vec<PathBuf> {
     out.sort();
     out.reverse();
     out
+}
+
+/// La marque `_AAAAMMJJ-HHMM` d'un fichier partiel ecrit maintenant.
+fn marque_a_la_minute() -> String {
+    let now = maintenant_iso();
+    format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16])
 }
 
 /// La marque `_AAAAMMJJ-HHMM` d'un fichier partiel, suivie de `-2`, `-3`... tant que `DPAE_<etiq><marque>.txt` existe deja.
@@ -228,28 +322,6 @@ fn embauche_dpae(p: &Paie, spectacle: bool) -> Embauche {
     }
 }
 
-/// Ce qu'une production d'amorcage a laisse : les fichiers ecrits.
-struct Amorcage {
-    fichiers: Vec<PathBuf>,
-    /// Qui est demande : (cle du salarie, ce que la situation de son taux dit).
-    lignes: Vec<(String, String)>,
-}
-
-/// Un fichier de signalement par individu dont le taux manque (le travail est
-/// celui de `amorcage_demande`, que `moteur pas --demander` generalise). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
-fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution: Jour, ecrits: &mut Vec<PathBuf>) -> Result<Amorcage, String> {
-    let demande = crate::compagnie::amorcage_demande::Demande {
-        motif: declarations::amorcage::EMBAUCHE,
-        mois,
-        salaries: None,
-        envoi_test: false,
-        forcer: false,
-        constitution,
-    };
-    let lot = crate::compagnie::amorcage_demande::produire(ctx, retenues, &demande, ecrits)?;
-    Ok(Amorcage { fichiers: lot.fichiers, lignes: lot.lignes.iter().map(|l| (l.salarie.clone(), l.libelle.clone())).collect() })
-}
-
 /// `{"nom", "chemin", "octets"}` d'un fichier (`sortie_json.fichier`).
 fn fichier_json(f: &Path) -> Value {
     let octets = std::fs::metadata(f).ok().map(|m| m.len());
@@ -257,18 +329,13 @@ fn fichier_json(f: &Path) -> Value {
 }
 
 /// La DPAE, due AVANT le premier jour travaille : tout le mois, ou les engagements choisis (`engagements` : une liste de
-/// `{salarie, debut}`) dans un fichier horodate a cote du complet. `forcer` : reecrire meme une embauche deja declaree (un
-/// depot rejete, a refaire).
-pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
-    dpae_detail(ctx, charge).map(|(v, _, _)| v)
-}
-
-/// `dpae`, avec ce que la reponse JSON ne porte pas et que la ligne de commande dit : qui est demande dans le signalement
-/// d amorcage (`None` : il n y en a pas) et, sinon, pourquoi il est ecarte.
-pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Vec<(String, String)>>, String)> {
-    let forcer = charge.get("forcer").is_some_and(vrai);
+/// `{salarie, numero}` : le salarie et le numero du contrat de l'engagement) dans un fichier horodate a cote du complet.
+/// La phrase rendue dit combien d'embauches elle declare ; la demande de taux de PAS part avec son depot
+/// (`depot_acte::deposer_dpae`).
+pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
     let mois_demande = texte_requis(charge, "mois")?;
-    let heure: Value = charge.get("heure").cloned().unwrap_or_else(|| json!("0800"));
+    // L'heure d'embauche que la DPAE declare.
+    let heure = json!(declarations::dpae::HEURE_EMBAUCHE);
     let selection: Option<&Vec<Value>> = match charge.get("engagements") {
         None | Some(Value::Null) => None,
         Some(Value::Array(a)) => Some(a),
@@ -277,29 +344,28 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
     // Les engagements valides du mois (rien ne part d'un engagement en saisie), vus comme des embauches, sans relire leur
     // paie.
-    let data = engagement::etats::validees_du_mois(ctx, mois_demande).map_err(plain)?.map(|(d, _)| d)
+    let journal = envois::journal::lu(&ctx.racine).map_err(plain)?;
+    let data = engagement::etats::validees_du_mois(ctx, mois_demande, &journal.departs).map_err(plain)?.map(|(d, _)| d)
         .ok_or_else(|| erreur("FileNotFoundError", format!("Aucune saisie pour {}.", mois_demande)))?;
     let paies: Vec<Paie> = {
         let engs = engagement::engagements_de_la_saisie(ctx, &data).map_err(plain)?;
         engs.iter().map(|e| engagement::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
+    let etiq = socle::date::etiquette_du_mois(&mois).map_err(|e| erreur("ValueError", e))?;
     let sortie = ctx.racine.join("sorties").join(&mois);
-    let aujourdhui = ctx.aujourdhui;
-    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.debut.iso()) };
+    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.clone().unwrap_or_default()) };
 
-    // Un contrat en cours depuis un mois precedent n'est pas une embauche de ce mois.
-    let mut en_cours: Vec<&Paie> = Vec::new();
-    let mut premiers: Vec<&Paie> = Vec::new();
-    for p in &paies {
-        if p.engagement.premier_mois().map_err(plain)? {
-            premiers.push(p);
-        } else {
-            en_cours.push(p);
-        }
-    }
-    let mut retenues: Vec<&Paie> = premiers;
+    // LES DPAE A FAIRE DU MOIS (`Moteur::embauches_a_declarer`, la seule liste) : une embauche deja partie en DPAE
+    // reelle, ou un contrat en cours depuis un mois precedent (sa DPAE part avec son premier mois), n'y est pas.
+    let a_faire: BTreeSet<(String, String)> = crate::routes::etapes::Moteur::nouveau(ctx)
+        .embauches_a_declarer(Some(&mois))?
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|e| (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["numero"])))
+        .collect();
+    let mut retenues: Vec<&Paie> = paies.iter().filter(|p| a_faire.contains(&cle_de(p))).collect();
     let mut marque = String::new();
     if let Some(sel) = selection {
         let mut voulues: BTreeSet<(String, String)> = BTreeSet::new();
@@ -307,45 +373,27 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             match x {
                 Value::Object(_) => {
                     let g = |k: &str| x.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-                    voulues.insert((g("salarie")?, g("debut")?));
-                }
-                Value::Array(a) if a.len() == 2 => {
-                    voulues.insert((en_texte(&a[0]), en_texte(&a[1])));
+                    voulues.insert((g("salarie")?, g("numero")?));
                 }
                 autre => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
             }
         }
-        retenues = paies.iter().filter(|p| voulues.contains(&cle_de(p))).collect();
-        let trouvees: BTreeSet<(String, String)> = retenues.iter().map(|p| cle_de(p)).collect();
-        let anciennes: BTreeSet<(String, String)> = en_cours.iter().map(|p| cle_de(p)).collect();
-        let joint = |s: BTreeSet<&(String, String)>| s.into_iter().map(|(a, b)| format!("{} au {}", a, b)).collect::<Vec<_>>().join(", ");
-        let deja_parties: BTreeSet<&(String, String)> = voulues.intersection(&anciennes).collect();
-        if !deja_parties.is_empty() {
-            return Err(refus(format!(
-                "Contrat en cours depuis un mois precedent, sa DPAE est deja partie avec son premier mois : {}. Rien n'est ecrit.",
-                joint(deja_parties)
-            )));
+        let joint = |s: BTreeSet<&(String, String)>| s.into_iter().map(|(a, b)| format!("{} (contrat {})", a, b)).collect::<Vec<_>>().join(", ");
+        let hors: BTreeSet<&(String, String)> = voulues.difference(&a_faire).collect();
+        if !hors.is_empty() {
+            let tous = hors.len() == voulues.len();
+            let phrase = format!(
+                "Aucune DPAE a faire pour : {} (deja partie, en cours depuis un mois precedent, ou absente de la saisie de {}). Rien n'est ecrit.",
+                joint(hors),
+                mois
+            );
+            return if tous { Ok(Dpae::Rien(phrase)) } else { Err(refus(phrase)) };
         }
-        let absentes: BTreeSet<&(String, String)> = voulues.difference(&trouvees).collect();
-        if !absentes.is_empty() {
-            return Err(refus(format!("Ces embauches ne sont pas dans la saisie de {} : {}. Rien n'est ecrit.", mois, joint(absentes))));
-        }
-        if retenues.is_empty() {
-            return Err(refus("Aucune embauche retenue : il n'y a rien a declarer."));
-        }
-        let now = maintenant_iso();
-        marque = format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16]);
+        retenues.retain(|p| voulues.contains(&cle_de(p)));
+        marque = marque_a_la_minute();
     }
     if retenues.is_empty() {
-        return Err(refus(format!(
-            "Aucune embauche en {} : {}. Rien n'est ecrit.",
-            libelle,
-            if en_cours.is_empty() {
-                "la saisie est vide"
-            } else {
-                "les contrats du mois sont en cours depuis un mois precedent, leur DPAE est partie avec lui"
-            }
-        )));
+        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", engagement::libelle_mois(&mois))));
     }
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
@@ -362,7 +410,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         let mut doubles: Vec<String> = Vec::new();
         for i in 1..paies.len() {
             if retenue(i) && (0..i).any(|j| retenue(j) && sans_numero(&brutes[i]) == sans_numero(&brutes[j])) {
-                let (c, d) = cle_de(&paies[i]);
+                let (c, d) = (cle_de(&paies[i]).0, paies[i].engagement.debut.iso());
                 let texte = format!("{} au {}", c, d);
                 if !doubles.contains(&texte) {
                     doubles.push(texte);
@@ -378,33 +426,8 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         }
     }
 
-    // PAS DEUX FOIS : une embauche deja partie en DPAE reelle ne se reecrit pas.
-    let lignes_journal = etats::charger(&ctx.racine)?;
-    let etat = etats::etat_des_embauches(&lignes_journal)?;
-    let mut deja: HashMap<(String, String), Value> = HashMap::new();
-    for entree in etat.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-        if let [Value::String(c), Value::String(d), info] = entree.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-            deja.insert((c.clone(), d.clone()), info.clone());
-        }
-    }
-    let mut bloquees: Vec<(String, String)> = Vec::new();
-    for p in &retenues {
-        let k = cle_de(p);
-        if let Some(info) = deja.get(&k) {
-            if !info.get("refusee").map_or(false, vrai) && !bloquees.contains(&k) {
-                bloquees.push(k);
-            }
-        }
-    }
-    if !bloquees.is_empty() && !forcer {
-        let mut phrases = Vec::new();
-        for (c, d) in &bloquees {
-            phrases.push(libelle_embauche_declaree(c, d, &deja[&(c.clone(), d.clone())])?);
-        }
-        return Err(refus(format!("Deja declaree(s), rien n'est ecrit :\n  {}", phrases.join("\n  "))));
-    }
-
-    // LE MEME CONTENU, LE MEME FICHIER : une selection deja ecrite se reprend telle quelle.
+    // LE MEME CONTENU, LE MEME FICHIER : une DPAE deja ecrite qui dit la meme chose (la selection, ou tout ce qui reste a
+    // declarer) se reprend telle quelle : le test qu'elle a passe vaut pour le reel (regle 10).
     let mut ent = ctx.entreprise.clone();
     if let Some(o) = ent.as_object_mut() {
         o.insert("_gabarits".into(), Value::String(ctx.gabarits().to_string_lossy().into_owned()));
@@ -417,13 +440,18 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let heure_texte = en_texte(&heure);
     let embauches: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, false)).collect();
     let mut f: Option<PathBuf> = None;
-    if !marque.is_empty() {
+    {
         let h = horodatage(&maintenant_iso());
         let voulu = declarations::dpae::contenu(&embauches, &parametres_de(&h, &heure_texte, &code, &ent, &chemins)).map_err(plain)?;
         let voulu = latin1(&voulu);
         let mut pareils = Vec::new();
-        for x in fichiers_partiels(&sortie, &etiq) {
-            let contenu = std::fs::read(&x).map_err(|e| erreur("OSError", format!("{} : {}", x.display(), e)))?;
+        let complet = sortie.join(format!("DPAE_{}.txt", etiq));
+        // LA DPAE DU MOIS DEJA PARTIE ne se recrit pas (regle 4) : ce qui reste a declarer se cherche, et s'ecrit, sous un
+        // nom a la minute, a cote.
+        let partiel = !marque.is_empty() || crate::compagnie::depart::partie_le(&ctx.racine, &complet)?.is_some();
+        let candidats = if !partiel { vec![complet].into_iter().filter(|c| c.is_file()).collect() } else { fichiers_partiels(&sortie, &etiq) };
+        for x in candidats {
+            let contenu = std::fs::read(&x).map_err(|e| erreur("OSError", socle::echec::du_disque(&x, &e)))?;
             if declarations::dpae::meme_declaration(&latin1(&contenu), &voulu) {
                 pareils.push(x);
             }
@@ -432,7 +460,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         for x in &pareils {
             let empreinte = envois::journal::empreinte_fichier(x).map_err(plain)?;
             let nom = x.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            let r = etats::repetition(&lignes_journal, etats::DPAE, &empreinte, &nom)?;
+            let r = etats::repetition(&journal.lignes, etats::DPAE, &empreinte, &nom)?;
             if vrai(&r["conforme"]) {
                 repetes.push(x.clone());
             }
@@ -442,6 +470,8 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             let stem = choisi.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             marque = stem.chars().skip(format!("DPAE_{}", etiq).chars().count()).collect();
             f = Some(choisi);
+        } else if partiel && marque.is_empty() {
+            marque = marque_a_la_minute();
         }
     }
     // JAMAIS PAR-DESSUS UN AUTRE (deux DPAE jouees dans la meme minute s'ecraseraient) : si le
@@ -455,77 +485,23 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         None => {
             let cible = sortie.join(format!("DPAE_{}{}.txt", etiq, marque));
             ecrire_la_dpae(ctx, &retenues, &cible, &recap, &heure, &maintenant_iso())?;
-            crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
+            crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None, None)?;
             cible
         }
     };
 
-    let mut lignes = Vec::new();
-    for p in &retenues {
-        let reste = p.engagement.debut.moins(&aujourdhui);
-        let (etat, libelle_ligne) = if reste < 0 {
-            ("retard", "EN RETARD (embauche passee)".to_string())
-        } else if reste == 0 {
-            ("aujourdhui", "AUJOURD'HUI - a deposer avant le debut du travail".to_string())
-        } else {
-            ("ok", format!("dans {} jour(s) - delai tenu", reste))
-        };
-        lignes.push(json!({
-            "salarie": socle::texte::salarie_nomme_ou(Some(&p.salarie), p.salarie.get("_cle").and_then(Value::as_str).unwrap_or("")),
-            "debut": p.engagement.debut.iso(),
-            "heure": heure,
-            "etat": etat,
-            "libelle": libelle_ligne,
-            "jours_restants": reste,
-        }));
-    }
-    let retard = lignes.iter().any(|l| l["etat"] == "retard");
+    let fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
+    let n = retenues.len();
+    let phrase = format!("DPAE {} écrite : {} embauche{}.", socle::texte::de(&engagement::libelle_mois(&mois)), n, if n > 1 { "s" } else { "" });
+    Ok(Dpae::Ecrite(json!({ "fichiers": fichiers, "phrase": phrase })))
+}
 
-    let nom_f = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let nom_recap = recap.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut etapes = vec![json!({
-        "cle": "depot",
-        "titre": "Depot",
-        "detail": format!(
-            "Deposer {}.zip sur net-entreprises.fr, rubrique DPAE, AVANT le debut du contrat. Pour la saisie en ligne, recopier {}. Le moteur depose lui-meme : en test, sans rien demander ; en reel, avec le mot de passe du logiciel, tape par l'utilisateur au moment du depot. Le geste : dans la fenetre, l'action « Envoyer les DPAE… » du mois (le test d'abord, puis l'envoi du fichier teste).",
-            nom_f, nom_recap
-        ),
-        "commande": Value::Null,
-    })];
-
-    // LE SIGNALEMENT D'AMORCAGE, DANS LE MEME GESTE : il ne fait jamais echouer la DPAE ; ce qui
-    // l'empeche est ecarte, et les fichiers deja ecrits restent.
-    let retenues_owned: Vec<Paie> = retenues.iter().map(|p| (*p).clone()).collect();
-    let mut ecrits = Vec::new();
-    let (amorce, ecarte) = match produire_amorcage(ctx, &mois, &retenues_owned, aujourdhui, &mut ecrits) {
-        Ok(a) => (Some(a), String::new()),
-        Err(m) => (None, m),
-    };
-    let _ = ecrits;
-    let mut fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
-    if let Some(a) = &amorce {
-        etapes.push(json!({
-            "cle": "amorcage",
-            "titre": "Demander les taux de PAS",
-            "detail": format!(
-                "Deposer aussi {} signalement(s) d'amorcage (nature 08), un par salarie : ils demandent a la DGFiP le taux de prelevement a la source de ces embauches, qui repond sous cinq jours ouvres. Meme site, meme mot de passe, rubrique DSN. Le geste : le depot depuis la fenetre (boite « Deposer la DSN », le test d'abord). Sans eux, la premiere paie partira sur la grille de l'article 204 H, qui preleve le plus souvent PLUS que le taux du salarie.",
-                a.fichiers.len()
-            ),
-            "commande": Value::Null,
-        }));
-        fichiers.extend(a.fichiers.iter().map(|p| fichier_json(p)));
-    }
-    let json = json!({
-        "mois": mois,
-        "libelle": libelle,
-        "dossier": sortie.to_string_lossy(),
-        "retard": retard,
-        "lignes": lignes,
-        "fichiers": fichiers,
-        "etapes": etapes,
-    });
-    let amorce_lignes = amorce.as_ref().map(|a| a.lignes.clone());
-    Ok((json, amorce_lignes, ecarte))
+/// CE QUE `dpae` REND : la DPAE ecrite (ses fichiers, sa phrase), ou rien a declarer de ce que la charge designe (tout
+/// est parti, ou rien n'est valide), avec la phrase qui le dit. Un manque (une case de fiche, deux lignes identiques)
+/// est un refus, jamais « rien » : celui qui depose doit le lire.
+pub(crate) enum Dpae {
+    Ecrite(Value),
+    Rien(String),
 }
 
 /// LES FICHIERS D'UNE DPAE : l'enregistrement de chaque embauche de `retenues` dans `cible` (et son `.zip`), horodate
@@ -550,7 +526,7 @@ fn parametres_de<'a>(horodatage: &'a str, heure: &str, code: &str, ent: &'a Valu
     Parametres { horodatage, heure_embauche: heure.to_string(), code_urssaf: json!(code), ent: Some(ent), chemins }
 }
 
-/// `AAAA-MM-JJTHH:MM:SS` -> `JJMMAAAAHHMM` (`strftime("%d%m%Y%H%M")`).
+/// `AAAA-MM-JJTHH:MM:SS` -> `JJMMAAAAHHMM`.
 fn horodatage(iso: &str) -> String {
     format!("{}{}{}{}{}", &iso[8..10], &iso[5..7], &iso[0..4], &iso[11..13], &iso[14..16])
 }
@@ -592,32 +568,85 @@ fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 
 // ------------------------------------------------------------------------ deposer
 
+/// LA DECLARATION QUE LA CHARGE DESIGNE (son chemin), et ce que son ecriture a dit. `{quoi:"dsn", mois, etablissement?}` :
+/// la DSN du mois, fabriquee depuis les engagements valides (`fabriquer_dsn`, qui reprend tel quel le fichier qui dit la
+/// meme chose : le test vaut pour le reel, regle 10) ; partie en reel, celle qui est partie, sauf si elle est a corriger.
+/// `{quoi:"dpae", mois, engagements?}` : la DPAE de ces embauches, ou
+/// de celles qui restent a declarer (`dpae`, meme reprise) ; une fois partie, il n'en reste aucune a declarer, et c'est
+/// celle qui est partie (`partie`), jamais refaite (regle 4). `{quoi, fichier}` : un signalement ecrit.
+pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
+    let quoi = requis(charge, "quoi")?;
+    // Un signalement se nomme par son fichier, la declaration du mois par son mois : les deux ne designent pas la meme.
+    if charge.get("mois").is_some_and(vrai) && charge.get("fichier").is_some_and(vrai) {
+        return Err(refus(
+            "`fichier` et `mois` désignent deux déclarations : `fichier` seul pour un signalement écrit, `mois` seul pour la \
+             déclaration du mois. Rien n'est parti.",
+        ));
+    }
+    let Some(mois) = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte) else {
+        return Ok((requis(charge, "fichier")?.clone(), json!({})));
+    };
+    if etats::est(quoi, "dsn") {
+        // UNE DSN PARTIE EN REEL NE SE REFAIT QUE SI CE QU'ELLE A EMPORTE EST A CORRIGER (regle 4) : un engagement du
+        // mois change depuis, ajoute ou retire (`Moteur::etat_remplacement`, `a_envoyer`) ; sinon, c'est celle qui est
+        // partie. Une DSN refusee au bilan n'est pas partie (regle 5).
+        let nic = charge.get("etablissement").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null);
+        let e = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
+        if e.deposee() && !e.refusee() && !vrai(&crate::routes::etapes::Moteur::nouveau(ctx).etat_remplacement(&mois, &nic)?["a_envoyer"]) {
+            if let Some(c) = partie(ctx, charge)? {
+                return Ok((c, json!({})));
+            }
+        }
+        let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, &mois, "interface")?;
+        let chemin = match charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte) {
+            Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
+            None => dsn.fichiers.first(),
+        };
+        let chemin = chemin.ok_or_else(|| refus("Aucune DSN de cet etablissement ce mois-ci. Rien n'est parti."))?;
+        return Ok((json!(chemin.to_string_lossy()), dsn.avis()));
+    }
+    // Ce qui reste a declarer s'ecrit, et un manque refuse ; quand rien ne reste, c'est la DPAE partie.
+    match dpae(ctx, charge)? {
+        Dpae::Ecrite(w) => Ok((w["fichiers"][0]["chemin"].clone(), w)),
+        Dpae::Rien(phrase) => partie(ctx, charge)?.map(|c| (c, json!({}))).ok_or_else(|| refus(phrase)),
+    }
+}
+
+/// CE QUI EST PARTI POUR LA DESIGNATION `{quoi, mois, etablissement?, engagements?}`, en test ou en reel, lu au journal
+/// (`envois::journal::lu`) : le fichier de la derniere ligne du mois, du meme etablissement (DSN mensuelle) ou des memes
+/// embauches (DPAE, quand la charge les nomme). Rien ne se fabrique.
+fn partie(ctx: &Contexte, charge: &Value) -> R<Option<Value>> {
+    let quoi = valeur_en_texte(requis(charge, "quoi")?);
+    let mois = valeur_en_texte(requis(charge, "mois")?);
+    let lignes = envois::journal::lu(&ctx.racine).map_err(plain)?.lignes;
+    let t = |l: &Value, k: &str| l.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+    let principal = droit::bareme::nic_principal(&ctx.entreprise);
+    let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_else(|| principal.clone());
+    let paires = |v: &Value| -> BTreeSet<(String, String)> {
+        v.as_array().into_iter().flatten().map(|e| (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["numero"]))).collect()
+    };
+    let voulues = charge.get("engagements").filter(|e| vrai(e)).map(paires);
+    let ligne = lignes.iter().rev().find(|l| {
+        t(l, "quoi") == quoi
+            && t(l, "mois") == mois
+            && if quoi == "dsn" {
+                let de_la_ligne = l["detail"].get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_else(|| principal.clone());
+                t(l, "fichier").starts_with("DSN_") && de_la_ligne == nic
+            } else {
+                voulues.as_ref().is_none_or(|v| paires(&l["detail"]["embauches"]) == *v)
+            }
+    });
+    Ok(ligne.map(|l| json!(ctx.racine.join("sorties").join(&mois).join(t(l, "fichier")).to_string_lossy())))
+}
+
 /// `deposer` : `motdepasse` est celui DU LOGICIEL, et il ne sert qu'a prouver la presence. Il arrive par le
 /// corps du POST, il n'est ni journalise ni renvoye. `contournement` : le motif ECRIT d'un depot reel sans
 /// repetition. `forcer` : l'annule-et-remplace voulu, apres l'avertissement que la page affiche sur
 /// `DsnDejaDeposee` -- jamais par defaut.
 fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
-    // LA DSN DU MOIS SE NOMME PAR SON MOIS : elle se fabrique ici, depuis l'engagement valide, et c'est elle qui part
-    // (celle de l'etablissement `etablissement`, le principal sinon).
-    let fabriquee;
-    let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
-        (None, Some(mois)) if etats::est(quoi, "dsn") => {
-            // Avant son premier jour de depot, la DSN ne s'ecrit pas (`depart::pas_avant`).
-            if let Some((_, phrase, _)) = crate::compagnie::depart::pas_avant(ctx, &valeur_en_texte(mois))? {
-                return Err(erreur("ErreurOperation", format!("{} Rien n'est parti.", phrase)));
-            }
-            let dsn =crate::compagnie::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
-            let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
-            let chemin = match nic {
-                Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
-                None => dsn.fichiers.first(),
-            };
-            fabriquee = json!(chemin.ok_or_else(|| erreur("ErreurOperation", "Aucune DSN de cet etablissement ce mois-ci. Rien n'est parti."))?.to_string_lossy());
-            &fabriquee
-        }
-        _ => requis(charge, "fichier")?,
-    };
+    let (fichier, _) = designee(ctx, charge)?;
+    let fichier = &fichier;
     let preuve = Preuve::de_la_charge(charge);
     let contournement = charge.get("contournement").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let contournement = contournement.trim().to_string();
@@ -628,7 +657,24 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     } else {
         depot_acte::deposer_dpae(ctx, fichier, reel, Some(&preuve), "interface", false, &contournement)?
     };
-    Ok(fait.en_json())
+    // LA PHRASE DU DEPOT : ou en est son test, ou ce qu'ont dit les retours du reel s'ils sont deja la (le simulateur repond
+    // dans le geste) ; puis ses suites.
+    let tranche = if !reel {
+        let b = bilan_de_la_repetition(ctx, &json!({"quoi": quoi, "fichier": fichier}))?;
+        format!("{} {}", valeur_en_texte(&b["titre"]), valeur_en_texte(&b["phrase"]))
+    } else if vrai(&fait.ligne["retours"]) {
+        valeur_en_texte(&suivre_depot(ctx, &json!({"quoi": quoi, "flux": fait.flux, "mois": fait.mois}))?["phrase"])
+    } else {
+        "Dépôt réel effectué — ses retours sont attendus.".to_string()
+    };
+    let phrase = std::iter::once(tranche).chain(fait.suites.iter().cloned()).collect::<Vec<_>>().join(" ");
+    let mut v = fait.en_json();
+    v["phrase"] = json!(phrase);
+    // APRES LA DSN REELLE D'UN MOIS QUI A DES SALARIES, la boite d'avis : leurs documents partent de l'etape 4.
+    if reel && etats::est(quoi, "dsn") && envois::depot::lire(&lire_octets(&resoudre(&ctx.racine, fichier)?)?).salaries > 0 {
+        v["avis"] = super::encart("information", "Les documents des salariés", "Ils partent de l'étape 4, « Envoyer les documents », qui dit ce qu'il leur manque encore.");
+    }
+    Ok(v)
 }
 
 // ------------------------------------------------------------------ suivre-depot
@@ -649,9 +695,9 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
-        Err(e) => phrase_de(&e),
+        Err(e) => e.phrase(),
     };
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let (passe, refuse);
     if dpae {
         let ligne = lignes.iter().rev().find(|l| l.get("quoi").and_then(Value::as_str) == Some("dpae") && l.get("flux").and_then(Value::as_str) == Some(flux.as_str()));
@@ -667,7 +713,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
             .and_then(|l| l.get("detail"))
             .and_then(|d| d.get("embauches"))
             .and_then(Value::as_array)
-            .map(|a| a.iter().map(|e| par_cle.get(&(valeur_en_texte(e.get("salarie").unwrap_or(&Value::Null)), valeur_en_texte(e.get("debut").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
+            .map(|a| a.iter().map(|e| par_cle.get(&(valeur_en_texte(e.get("salarie").unwrap_or(&Value::Null)), valeur_en_texte(e.get("numero").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
             .unwrap_or_default();
         passe = !embauches.is_empty() && embauches.iter().all(|x| x.get("passee").is_some_and(vrai));
         refuse = embauches.iter().any(|x| x.get("refusee").is_some_and(vrai));
@@ -678,9 +724,9 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
             lignes.iter().rev().find(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("flux").and_then(Value::as_str) == Some(flux.as_str()))
         };
         let nic = ligne.and_then(|l| l.get("detail")).and_then(|d| d.get("etablissement")).filter(|e| vrai(e)).cloned().unwrap_or(Value::Null);
-        let e = etats::etat_dsn_du_mois(&lignes, &mois, &nic, &etats::nic_principal(&ctx.entreprise))?;
-        passe = e.get("passee").is_some_and(vrai);
-        refuse = e.get("refusee").is_some_and(vrai);
+        let e = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
+        passe = e.0["etat"] == "passee";
+        refuse = e.refusee();
     }
     // Ce que l'ecran en dit, et en quelle couleur, une fois le depot tranche.
     let nom = if dpae { "La DPAE" } else { "La DSN" };
@@ -689,7 +735,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     } else if refuse {
         (format!("{} est refusée — voir le motif dans l'étape.", nom), "refuse")
     } else {
-        (String::new(), "en_attente")
+        (format!("{} attend le retour de l'organisme.", nom), "en_attente")
     };
     Ok(json!({"fini": passe || refuse, "passe": passe, "refuse": refuse, "incident": incident,
               "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat(etat)}))
@@ -701,8 +747,8 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// chercher maintenant. Une LECTURE : rien ne part. Rend `journal.repetition`, plus `incident` si le releve n'a
 /// pas pu se faire (le test reste ce qu'il est ; on le redira au passage suivant).
 fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mut r = crate::routes::depots::bilan_de_la_repetition(ctx, charge)?;
-    if vrai(&r["conforme"]) && etats::est(&r["compte_rendu"], "attendu") {
+    let mut r = bilan_de_la_repetition(ctx, charge)?;
+    if etats::etat_du_test(&r) == "en_test" {
         let (debut, fin) = releve_retours::derniere_journee();
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
@@ -713,185 +759,12 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
-            Err(e) => phrase_de(&e),
+            Err(e) => e.phrase(),
         };
-        r = crate::routes::depots::bilan_de_la_repetition(ctx, charge)?;
+        r = bilan_de_la_repetition(ctx, charge)?;
         r["incident"] = json!(incident);
     }
     Ok(r)
-}
-
-// ------------------------------------------------------------------ filet-preparer
-
-/// Un test automatique de DPAE se retente au plus tot six heures apres un echec.
-const REESSAI_SECONDES: i64 = 6 * 3600;
-
-fn cle_du_test(salarie: &str, debut: &str) -> String {
-    format!("{}|{}", salarie, debut)
-}
-
-/// Un passage -- tester ce qui doit l'etre, armer, desarmer. Rend `{"testees",
-/// "armes", "desarmes", "incidents", "occupe"}`. Ne leve jamais pour une panne : elle devient un incident, et le
-/// passage suivant reessaie. `tester` (vrai par defaut) ; `qui` (`filet` par defaut) ; `maintenant`
-/// (`AAAA-MM-JJTHH:MM`, que l'appelant peut fixer).
-pub(crate) fn filet_preparer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    filet_preparer_avec(ctx, charge, None)
-}
-
-/// `filet_preparer` avec, au besoin, le client Urssaf que l'appelant donne pour le test automatique des DPAE (la preuve de
-/// l'ouverture : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
-pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut envois::releve_retours::Client>) -> R<Value> {
-    let tester = charge.get("tester").map_or(true, vrai);
-    let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
-    let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
-        Some(m) => m,
-        None => socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
-    };
-    let mut bilan_testees: Vec<Value> = Vec::new();
-    let mut bilan_incidents: Vec<Value> = Vec::new();
-    let suivies = crate::compagnie::filet::suivies(ctx)?;
-    let mut demande = Map::new();
-    demande.insert("maintenant".into(), json!(maintenant_iso));
-    if tester {
-        let etat = crate::compagnie::filet::lire_etat(&ctx.racine)?;
-        if let Some(tests) = tester_les_dpae(ctx, &etat, &suivies, &maintenant_iso, &qui, &mut bilan_testees, &mut bilan_incidents, client.as_deref_mut())? {
-            demande.insert("tests".into(), tests);
-            demande.insert(
-                "vivantes".into(),
-                Value::Array(suivies.iter().map(|e| json!(cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])))).collect()),
-            );
-        }
-    }
-    let champ = |k: &str| demande.get(k).cloned().unwrap_or(Value::Null);
-    match crate::compagnie::filet::passage(ctx, &champ("tests"), &champ("vivantes"), &champ("maintenant")) {
-        Ok(passage) => {
-            if let Some(i) = passage.get("incidents").and_then(Value::as_array) {
-                bilan_incidents.extend(i.iter().cloned());
-            }
-            Ok(json!({
-                "testees": bilan_testees,
-                "armes": passage.get("armes").cloned().unwrap_or_else(|| json!([])),
-                "desarmes": passage.get("desarmes").cloned().unwrap_or_else(|| json!([])),
-                "incidents": bilan_incidents,
-                "occupe": false,
-            }))
-        }
-        Err(e) if e.message.contains("autre passage") => {
-            Ok(json!({"testees": bilan_testees, "armes": [], "desarmes": [], "incidents": bilan_incidents, "occupe": true}))
-        }
-        Err(e) => Err(e),
-    }
-}
-
-/// `_tester` : LE TEST AUTOMATIQUE -- une DPAE par jour d'embauche, ecrite puis deposee en TEST. Le fichier est
-/// celui que le depot reel reprendra : `dpae` rend le meme fichier pour la meme selection, et le reel exige
-/// justement la repetition de CE contenu. Rend les tests faits (cle -> entree), ou `None` quand rien ne se
-/// teste sur ce poste.
-#[allow(clippy::too_many_arguments)]
-fn tester_les_dpae(
-    ctx: &Contexte,
-    etat: &Value,
-    suivies: &[Value],
-    maintenant_iso: &str,
-    qui: &str,
-    testees: &mut Vec<Value>,
-    incidents: &mut Vec<Value>,
-    mut client: Option<&mut envois::releve_retours::Client>,
-) -> R<Option<Value>> {
-    // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
-    // COMPAGNIE FICTIVE, elle, teste : son depot est joue.
-    // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
-    if !crate::compagnie::bridage::branchement(&ctx.racine).joue() {
-        let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
-        let dispo = client.is_some() || crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes::vers_route)?;
-        if copie || !dispo {
-            return Ok(None);
-        }
-    }
-    let aujourdhui = ctx.aujourdhui.iso();
-    let maintenant = socle::paris::naif_de_iso(maintenant_iso).unwrap_or(0);
-    // (mois, debut) -> les embauches de ce jour, dans l'ordre ; `sorted` apres.
-    let mut a_tester: Vec<((String, String), Vec<&Value>)> = Vec::new();
-    let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
-    for e in suivies {
-        let (salarie, debut) = (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"]));
-        if !vrai(&e["valide"]) || debut < aujourdhui {
-            continue;
-        }
-        if let Some(t) = deja.get(cle_du_test(&salarie, &debut)).filter(|t| vrai(t)) {
-            if t.get("empreinte") == e.get("empreinte") {
-                if !t.get("erreur").is_some_and(vrai) {
-                    continue; // teste, et rien n'a change
-                }
-                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| socle::paris::naif_de_iso(&x)).unwrap_or_else(|| socle::paris::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
-                if maintenant - essai < REESSAI_SECONDES {
-                    continue;
-                }
-            }
-        }
-        let k = (valeur_en_texte(&e["mois"]), debut);
-        match a_tester.iter_mut().find(|(c, _)| *c == k) {
-            Some((_, g)) => g.push(e),
-            None => a_tester.push((k, vec![e])),
-        }
-    }
-    a_tester.sort_by(|a, b| a.0.cmp(&b.0));
-
-    let mut tests = Map::new();
-    for ((mois, debut), groupe) in a_tester {
-        let selection: Vec<Value> = groupe.iter().map(|e| json!({"salarie": e["salarie"], "debut": e["debut"]})).collect();
-        let mut fichier: Option<String> = None;
-        let mut erreur_texte = String::new();
-        let mut essai = |fichier: &mut Option<String>| -> R<()> {
-            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": selection}))?;
-            let f = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
-            // Le fichier est note des qu'il est ecrit : un depot qui echoue garde sa trace (`fichier = r.fichiers[0]`).
-            *fichier = Some(f.clone());
-            let p = std::path::Path::new(&f);
-            let octets = std::fs::read(p).map_err(|x| erreur("OSError", format!("{} : {}", p.display(), x)))?;
-            let nom = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            let lignes = etats::charger(&ctx.racine)?;
-            let deja = etats::repetition(&lignes, "dpae", &envois::journal::empreinte(&octets), &nom)?;
-            if !vrai(&deja["conforme"]) {
-                depot_acte::deposer_dpae_avec(ctx, &json!(f), false, None, qui, false, "", client.as_deref_mut())?;
-            }
-            Ok(())
-        };
-        match essai(&mut fichier) {
-            Ok(()) => {}
-            // Partie entre-temps : rien a tester.
-            Err(e) if e.message.starts_with("Deja declaree(s)") => continue,
-            Err(e) => {
-                let phrase = phrase_de(&e);
-                let premiere = phrase.lines().next().unwrap_or("").chars().take(300).collect::<String>();
-                erreur_texte = if phrase.is_empty() { e.classe.unwrap_or("Exception").to_string() } else { premiere };
-                incidents.push(json!(format!("Test automatique de la DPAE du {} : {}", jj_mm_aaaa(&debut), erreur_texte)));
-            }
-        }
-        for e in &groupe {
-            tests.insert(
-                cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])),
-                json!({
-                    "empreinte": e["empreinte"], "mois": mois, "fichier": fichier.clone().unwrap_or_default(),
-                    "essai_le": maintenant_iso, "erreur": erreur_texte,
-                }),
-            );
-        }
-        if erreur_texte.is_empty() {
-            testees.extend(selection.iter().cloned());
-        }
-    }
-    Ok(Some(Value::Object(tests)))
-}
-
-/// `util.jj_mm_aaaa` d'un `AAAA-MM-JJ`.
-fn jj_mm_aaaa(iso: &str) -> String {
-    let c: Vec<char> = iso.chars().collect();
-    if c.len() >= 10 {
-        format!("{}/{}/{}", c[8..10].iter().collect::<String>(), c[5..7].iter().collect::<String>(), c[..4].iter().collect::<String>())
-    } else {
-        iso.to_string()
-    }
 }
 
 /// `charge["cle"]` : `KeyError` si elle manque.
@@ -911,14 +784,9 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     erreur(classe, socle::fichiers::panne_fichier(e, p))
 }
 
-// ------------------------------------------------------------------ les documents du mois
-
-
-
-
 // ------------------------------------------------------------------ les chemins
 
-/// `str(PurePosixPath(t))` : les `//` et les `.` intermediaires s'en vont, un `/`
+/// Un chemin POSIX normalisé : les `//` et les `.` intermédiaires s'en vont, un `/`
 /// de tete reste (deux, s'il y en a exactement deux).
 pub(crate) fn normaliser(t: &str) -> String {
     let tete = if t.starts_with("//") && !t.starts_with("///") {
@@ -951,7 +819,7 @@ fn existe(t: &str) -> bool {
 
 /// Un chemin tape a la main, tel quel
 /// s'il existe, sinon sous les donnees, un mois nu designant sa saisie. Rend
-/// le texte du chemin, ecrit comme `str(Path)`.
+/// le texte du chemin, normalisé.
 pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
     let vide = match chemin {
         Value::Null => true,
@@ -998,12 +866,9 @@ fn empreinte_du_fichier(chemin: &str) -> R<String> {
     Ok(envois::journal::empreinte(&octets))
 }
 
-// ------------------------------------------------------------------ bilan-repetition
-
-
 // ------------------------------------------------------------------ depot-apercu, la DPAE
 
-/// `Path.read_bytes()`.
+/// Le contenu d'un fichier, en octets.
 pub(crate) fn lire_octets(chemin: &str) -> R<Vec<u8>> {
     if chemin.contains('\0') {
         return Err(erreur("ValueError", "embedded null byte"));
@@ -1033,7 +898,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let contenu = lire_octets(&chemin)?;
     let texte: String = contenu.iter().map(|&b| b as char).collect();
     let enrs = declarations::dpae::relire(&texte);
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+    let m = crate::routes::etapes::Moteur::nouveau(ctx);
     let lignes_journal = m.lignes()?;
     let faites = etats::embauches_par_depot(&lignes_journal)?;
     let mut par_nir: HashMap<String, (&String, &Value)> = HashMap::new();
@@ -1051,34 +916,74 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
             _ => {}
         }
     }
+    // LE NUMERO DU CONTRAT DE CHAQUE EMBAUCHE : celui de l'engagement valide du salarie qui commence ce jour-la. C'est lui
+    // qui relie la DPAE, partie ou refusee, a son engagement.
+    let departs = m.departs()?;
+    let mut numeros: HashMap<(String, String), String> = HashMap::new();
+    // La nature de chaque embauche, par son nom court (« CDDU ») : le fichier ne dit que CDD, CDI ou CTT (Format 120).
+    let mut natures: HashMap<(String, String), String> = HashMap::new();
+    let mut mois_vus: Vec<String> = Vec::new();
     let vide = json!({});
     let mut lignes = Vec::new();
     for e in &enrs {
         let champ = |k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.as_str()).unwrap_or("");
-        let trouve = par_nir.get(champ("nir"));
+        let m_e: String = iso_depuis_jjmmaaaa(champ("date_embauche")).chars().take(7).collect();
+        if m_e.len() == 7 && !mois_vus.contains(&m_e) {
+            for etat in engagement::etats::tels_qu_ecrits(ctx, &m_e, &departs).map_err(Echec::from)? {
+                let Some(v) = etat.valide() else { continue };
+                let brut = &*v.objet().brut;
+                let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) else { continue };
+                let id = (cle, engagement::debut_brut(&ctx.racine, &brut));
+                if let Ok(nat) = droit::natures::nature(brut.get("nature").and_then(Value::as_str)) {
+                    natures.insert(id.clone(), nat.libelle.clone());
+                }
+                if let Some(n) = brut.get("numero").and_then(Value::as_str) {
+                    numeros.insert(id, n.to_string());
+                }
+            }
+            mois_vus.push(m_e);
+        }
+    }
+    for e in &enrs {
+        let champ = |k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.as_str()).unwrap_or("");
+        // Sans NIR, la DPAE declare un numero temporaire (zone a blanc) : l'embauche se reconnait a l'identite qu'elle
+        // porte, nom, prenom et date de naissance (`dpae::enregistrement`).
+        let identite = |s: &Value| {
+            let t = |k: &str| s.get(k).map(socle::date::en_texte).unwrap_or_default().trim().to_uppercase();
+            let n = s.get("date_naissance").and_then(Value::as_str).and_then(|d| socle::date::Jour::lire(d).ok()).map(|j| j.jjmmaaaa());
+            t("nom") == champ("nom").trim() && t("prenom") == champ("prenom").trim() && n.as_deref() == Some(champ("date_naissance"))
+        };
+        let trouve = par_nir.get(champ("nir").trim()).copied().or_else(|| {
+            if !champ("nir").trim().is_empty() {
+                return None;
+            }
+            ctx.salaries.iter().find(|(_, s)| identite(s))
+        });
         let (cle, s) = match trouve {
-            Some((c, s)) => (Some(*c), *s),
+            Some((c, s)) => (Some(c), s),
             None => (None, &vide),
         };
         let debut = iso_depuis_jjmmaaaa(champ("date_embauche"));
         let nom = socle::texte::salarie_nomme(s).unwrap_or_else(|| "salarie inconnu de la configuration".to_string());
         let nom = nom.as_str();
         let type_brut = champ("type_contrat").trim_matches(socle::texte::blanc);
-        let type_contrat = match type_brut {
-            "1" => "CDD".to_string(),
-            "2" => "CDI".to_string(),
-            "3" => "CTT".to_string(),
-            _ => format!("type {}", champ("type_contrat")),
-        };
+        let type_contrat = cle.and_then(|c| natures.get(&(c.clone(), debut.clone()))).cloned().unwrap_or_else(|| {
+            let t = droit::natures::TYPES_CONTRAT_DPAE.iter().find(|(k, _)| *k == type_brut);
+            t.map_or_else(|| format!("type {}", type_brut), |(_, l)| l.to_string())
+        });
         let cle_json = cle.map_or(Value::Null, |c| json!(c));
-        let deja = faites.contient(&[cle_json, json!(debut)])?;
+        let numero = cle.and_then(|c| numeros.get(&(c.clone(), debut.clone()))).cloned();
+        let deja = match &numero {
+            Some(n) => faites.contient(&[cle_json, json!(n)])?,
+            None => false,
+        };
         lignes.push(json!({
             "salarie": cle.map_or("?", |c| c.as_str()),
             "nom": nom,
             "debut": debut,
+            "numero": numero,
             "fin": iso_depuis_jjmmaaaa(champ("date_fin")),
             "type_contrat": type_contrat,
-            "heure": champ("heure_embauche"),
             "deja_declaree": deja,
         }));
     }
@@ -1091,12 +996,12 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let deja_depose = etats::deja_depose(&lignes_journal, "dpae", &empreinte)?;
     let repetition = etats::repetition(&lignes_journal, "dpae", &empreinte, &nom_fichier)?;
     Ok(json!({
+        "description": format!("{} — {} enregistrement{}, {} octets, indicateur {}.", nom_fichier, enrs.len(), if enrs.len() > 1 { "s" } else { "" }, contenu.len(), envois::depot::indicateur(&contenu)),
         "fichier": chemin, "nom": nom_fichier,
         "enregistrements": enrs.len(), "octets": contenu.len(),
         "reel": envois::depot::est_reel(&contenu),
         "indicateur": envois::depot::indicateur(&contenu),
         "mois": mois.first().cloned().unwrap_or_default(),
-        "tous_les_mois": mois,
         "embauches": lignes,
         "deja_depose": deja_depose,
         "repetition": repetition,
@@ -1105,23 +1010,37 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
 
 fn depot_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = cle(charge, "quoi")?;
-    let fichier = cle(charge, "fichier")?;
-    if etats::est(quoi, "dsn") {
-        return crate::apercu_dsn::apercu_depot_dsn(ctx, fichier);
+    let (fichier, dit) = designee(ctx, charge)?;
+    let mut a = if etats::est(quoi, "dsn") { crate::apercu_dsn::apercu_depot_dsn(ctx, &fichier)? } else { apercu_depot_dpae(ctx, &fichier)? };
+    for k in ["phrase", "avertissements", "informations"] {
+        if let Some(v) = dit.get(k) {
+            a[k] = v.clone();
+        }
     }
-    apercu_depot_dpae(ctx, fichier)
+    // Ce que deux engagements disent pareil se dit une fois.
+    for k in ["avertissements", "informations"] {
+        if let Some(l) = a.get_mut(k).and_then(Value::as_array_mut) {
+            let mut vus = Vec::new();
+            l.retain(|x| if vus.contains(x) { false } else { vus.push(x.clone()); true });
+        }
+    }
+    Ok(a)
 }
 
-pub(crate) fn bilan_de_la_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
+/// Ou en est le test de ce qui est parti pour la designation (`partie`), ou du signalement nomme.
+fn bilan_de_la_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = cle(charge, "quoi")?;
-    let fichier = cle(charge, "fichier")?;
-    let chemin = resoudre(&ctx.racine, fichier)?;
+    let fichier = match charge.get("mois").filter(|m| vrai(m)) {
+        Some(m) => partie(ctx, charge)?.ok_or_else(|| refus(format!("Rien n'est parti pour {} : le déposer d'abord en test.", valeur_en_texte(m))))?,
+        None => cle(charge, "fichier")?.clone(),
+    };
+    let chemin = resoudre(&ctx.racine, &fichier)?;
     let empreinte = empreinte_du_fichier(&chemin)?;
     let nom = nom_du_chemin(&chemin);
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
+    let m = crate::routes::etapes::Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let Some(quoi) = quoi.as_str() else {
-        return Err(Echec { classe: None, message: "demande illisible : il faut `quoi`".to_string() });
+        return Err(Echec { classe: None, message: socle::echec::charge("quoi", "le nom de ce qui se dépose") });
     };
     let mut r = etats::repetition(&lignes, quoi, &empreinte, &nom)?;
     r["incident"] = json!("");

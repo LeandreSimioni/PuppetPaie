@@ -5,19 +5,20 @@
 //! L'ARGENT QUI A BOUGE se tire de chaque DSN telle qu'elle est partie (`depart::dsn_du_mois` : ses paies et les
 //! corrections d'autres mois qu'elle portait, des versions qu'elle a emportees, par la fonction qui l'a fabriquee), ou
 //! telle qu'elle partirait : les versements (bloc 20) et le bordereau Urssaf (blocs 22 et 23). CE QUE LE MOIS COUTE se
-//! tire des paies declarees de chaque mois de paie (`dsn::paies_declarees_du_mois`) : la tranche A (`dsn::cotisations`).
+//! tire des paies de chaque mois (`engagement::etats::paies_du_mois`, ecrites ou importees) : la tranche A
+//! (`dsn::base_declaree`).
 //! Les montants annuels hors DSN (FCAP-SVP, Afdas, paritarisme) se calculent sur le brut du livre de paie ou sur la
 //! tranche A declaree, avec les taux du bareme.
 
 use documents::plan_comptable::plan;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 
 use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use documents::etats_paie::{ecarter_declares, finir, lignes_livre, Demande, Lecture, Periode};
+use documents::etats_paie::{finir, lignes_livre, Demande, Lecture, Periode};
 use socle::fichiers::vrai;
 use socle::num::{add, div, eur2, mul, zero2, Decimal};
 use documents::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, montant, qui, refus, sections_de, Ligne, Section, Tableau, R};
@@ -48,7 +49,7 @@ fn dec_de(v: &Value) -> R<Decimal> {
 }
 
 
-/// `_organismes` : identifiant de ligne -> nom de l'organisme, lu dans le plan comptable (le meme endroit que
+/// Identifiant de ligne -> nom de l'organisme, lu dans le plan comptable (le meme endroit que
 /// l'export compta : l'etat des cotisations et le credit des comptes 43 ne peuvent pas diverger).
 fn organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let (plan, _) = plan(ctx)?;
@@ -126,7 +127,7 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert: Vec<String> = Vec::new();
     let orgs = organismes(ctx)?;
     let org_de = |id: &str| orgs.iter().find(|(k, _)| k == id).map(|(_, v)| v.clone());
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let mut cumul: Vec<Cumul> = Vec::new();
     let mut manque: BTreeSet<String> = BTreeSet::new();
     let zero = zero2();
@@ -155,9 +156,24 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         c.part_sal = add(c.part_sal, if ms.is_zero() { zero } else { ms });
         c.part_pat = add(c.part_pat, if mp.is_zero() { zero } else { mp });
     };
-    for m in ecarter_declares(&p, &mut avert, "la répartition des cotisations")? {
+    // CE QUE LES PIECES IMPORTEES NE VENTILENT PAS : une paie reprise de la seule DSN (ses lignes de cotisation sont sur
+    // un bulletin qu'on n'a pas), et une ligne de bulletin que la lecture de l'import ne rattache a aucune cotisation
+    // (`importe::Importe::paie` : elle garde son libelle, sans cotisation). Son organisme ne se devine pas (regle 1) ;
+    // l'etat dit ce qui n'y est pas, le plan comptable n'y est pour rien.
+    let mut sans_bulletin: BTreeSet<String> = BTreeSet::new();
+    let mut non_rattachees: BTreeMap<String, (BTreeSet<String>, Decimal)> = BTreeMap::new();
+    for m in p.mois.clone() {
         for paie in lecture.paies(&m)?.iter() {
+            if paie.importee.is_some() && paie.lignes.is_empty() {
+                sans_bulletin.insert(m.clone());
+            }
             for c in &paie.lignes {
+                if paie.importee.is_some() && c.id.is_empty() {
+                    let (mois, total) = non_rattachees.entry(c.libelle.clone()).or_default();
+                    mois.insert(m.clone());
+                    *total = add(*total, add(eur2(c.montant_sal), eur2(c.montant_pat)));
+                    continue;
+                }
                 let Some(org) = org_de(&c.id) else {
                     manque.insert(format!("{} ({})", c.id, c.libelle));
                     continue;
@@ -195,6 +211,13 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             "Lignes de bulletin sans organisme dans le plan comptable : {}. Les ajouter dans config/plan-comptable.json sous « lignes » : on ne devine pas à qui une cotisation est due.",
             manque.into_iter().collect::<Vec<_>>().join(", ")
         )));
+    }
+    let mois_dits = |s: &BTreeSet<String>| s.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ");
+    if !sans_bulletin.is_empty() {
+        avert.push(format!("Paies reprises de la seule DSN, sans leur bulletin, hors de l'état : {}.", mois_dits(&sans_bulletin)));
+    }
+    for (libelle, (mois, total)) in &non_rattachees {
+        avert.push(format!("Ligne « {} » des bulletins repris ({}) : la lecture de l'import ne la rattache à aucune cotisation, hors de l'état ({}).", libelle, mois_dits(mois), socle::texte::euros(*total)));
     }
     let mut lignes = Vec::new();
     for c in cumul {
@@ -237,12 +260,12 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ===================================== 7. les versements aux organismes (bloc 20)
 
-/// Les paies declarees de chaque mois de la periode (`dsn::paies_declarees_du_mois` : la version sur laquelle la DSN est
-/// partie, ou la paie ecrite si rien n'est parti), tous etablissements. Un mois sans paie validee est dit.
-fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, Vec<engagement::calcul::Paie>)>> {
+/// Les paies de chaque mois de la periode (`engagement::etats::paies_du_mois` : ecrites ou importees), tous
+/// etablissements. Un mois sans paie est dit.
+fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<Vec<(String, Vec<engagement::calcul::Paie>)>> {
     let (mut out, mut sans) = (Vec::new(), Vec::new());
     for m in &p.mois {
-        let paies = crate::dsn::paies_declarees_du_mois(ctx, m, None).map_err(refus)?;
+        let paies = engagement::etats::paies_du_mois(ctx, m, departs).map_err(refus)?;
         if paies.is_empty() {
             sans.push(m.clone());
         } else {
@@ -250,10 +273,10 @@ fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec
         }
     }
     if !sans.is_empty() {
-        avert.push(format!("Aucune paie validée pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
+        avert.push(format!("Aucune paie pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
     }
     if out.is_empty() {
-        return Err(refus(format!("Aucune paie validée sur la période ({}) : il n'y a rien à lire.", p.libelle)));
+        return Err(refus(format!("Aucune paie sur la période ({}) : il n'y a rien à lire.", p.libelle)));
     }
     Ok(out)
 }
@@ -266,8 +289,19 @@ pub type DsnDuMois<'a> = &'a dyn Fn(&Contexte, &str, Option<&str>) -> socle::ech
 /// partie, ou celle qui partirait (`dsn_du_mois`) : `(mois, nic, la DSN, partie)`. Un mois sans DSN est dit.
 fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_mois: DsnDuMois) -> R<Vec<(String, String, crate::dsn::Fabriquee, bool)>> {
     let (mut out, mut sans) = (Vec::new(), Vec::new());
+    // UN MOIS REPRIS D'UN ANCIEN LOGICIEL n'a pas de DSN de ce logiciel : ses versements se composent sur les bases du
+    // calcul de chaque paie (`engagement::calcul`, les bases globales : assiettes majorees de 15 et 10 %, plafonnees,
+    // abattues), que ses bulletins n'impriment pas.
+    let importes: Vec<String> = p.mois.iter().filter(|m| p.dispo.get(*m) == Some(&documents::etats_paie::IMPORTE)).cloned().collect();
+    if !importes.is_empty() {
+        let quand = if importes.len() == p.mois.len() { format!("Les paies de {}", p.libelle) } else { format!("Les paies de {}", importes.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ")) };
+        avert.push(format!(
+            "{} sont reprises d'un ancien logiciel : leurs versements ne se composent pas ici. La DSN se compose sur les assiettes que ce logiciel calcule (majorées, plafonnées), et leurs bulletins ne les impriment pas.",
+            quand
+        ));
+    }
     let principal = droit::bareme::nic_principal(&ctx.entreprise);
-    for m in &p.mois {
+    for m in p.mois.iter().filter(|m| !importes.contains(m)) {
         let mut une = false;
         for nic in crate::dsn::nics(&ctx.entreprise) {
             let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
@@ -284,6 +318,12 @@ fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_moi
         avert.push(format!("Aucune DSN partie ni paie validée pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
     }
     if out.is_empty() {
+        // Seuls des mois repris : la raison qu'ils n'y sont pas est la reponse.
+        if sans.is_empty() {
+            if let Some(repris) = avert.pop() {
+                return Err(refus(repris));
+            }
+        }
         return Err(refus(format!("Aucune DSN partie ni paie validée sur la période ({}) : il n'y a rien à lire.", p.libelle)));
     }
     Ok(out)
@@ -294,7 +334,7 @@ fn nom_de_la_dsn(m: &str, partie: bool) -> String {
     format!("DSN de {}{}", libelle_mois(m).unwrap_or_else(|_| m.to_string()), if partie { "" } else { " (à déposer)" })
 }
 
-/// `_libelles_organismes` : SIRET -> libelle, lu dans les organismes de la compagnie (`Contexte::organismes`).
+/// SIRET -> libelle, lu dans les organismes de la compagnie (`Contexte::organismes`).
 fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let d = ctx.organismes()?;
     let mut out: Vec<(String, String)> = Vec::new();
@@ -410,7 +450,7 @@ fn lire_csv(texte: &str, delim: char) -> Vec<Vec<String>> {
     rangs
 }
 
-/// `_libelles_ctp` : code CTP -> libelle, lu dans la table de l'Urssaf livree avec le logiciel
+/// Code CTP -> libelle, lu dans la table de l'Urssaf livree avec le logiciel
 /// (`donnees/urssaf-codes-types-personnel.csv`, celle de `bordereau.rs`). Les textes de reference vivent dans le depot
 /// (`atelier/reference/`), et la table livree en est la copie conforme (`sources.json`).
 fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
@@ -418,7 +458,7 @@ fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
     if !p.exists() {
         return Ok(Vec::new());
     }
-    let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+    let octets = std::fs::read(&p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
     let texte = String::from_utf8_lossy(&octets).into_owned();
     let texte = texte.strip_prefix('\u{feff}').unwrap_or(&texte).to_string();
     let rangs = lire_csv(&texte, ';');
@@ -509,7 +549,8 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 }
 
 /// 0,1 % de la tranche A de l'annee, plancher 80 EUR, plafond 300 EUR, paye HORS
-/// DSN en debut d'annee. La tranche A est la base 02 que la DSN declare (S21.G00.78), tiree des paies declarees.
+/// DSN en debut d'annee. La tranche A est la base 02 (S21.G00.78) de chaque paie du mois, ecrite ou importee
+/// (`dsn::base_declaree`) ; une annee que le logiciel ne tient pas depuis janvier se dit partielle.
 pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
     let idcc = idcc_de(ctx);
@@ -527,16 +568,14 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut par_an: Vec<(String, i64, Decimal)> = Vec::new();
     let zero = zero2();
     let orgs = ctx.organismes().map_err(refus)?;
-    for (m, paies) in paies_des_mois(ctx, &p, &mut avert)? {
-        // La tranche A : la base 02 (« assiette brute plafonnee ») que la DSN declare pour chaque contrat (`dsn::cotisations`).
+    for (m, paies) in paies_des_mois(ctx, &p, &mut avert, &d.departs)? {
+        // La tranche A : la base 02 (« assiette brute plafonnee ») de chaque paie (`dsn::base_declaree`).
         let mut ta = zero;
         for q in &paies {
             let nic = droit::bareme::etablissement_du_salarie(&ctx.entreprise, &q.salarie).map_err(refus)?;
             let bar = crate::dsn::bar_du(&ctx.du_mois(&m).map_err(refus)?, &ctx.entreprise, &orgs, &nic, &m).map_err(refus)?;
             for e in q.elementaires() {
-                if let Some(c) = crate::dsn::cotisations(e, &bar).map_err(refus)?.into_iter().find(|c| c.bloc78 == "02") {
-                    ta = add(ta, c.base78);
-                }
+                ta = add(ta, crate::dsn::base_declaree(e, &bar, "02").map_err(refus)?);
             }
         }
         let an: String = m.chars().take(4).collect();
@@ -559,6 +598,24 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             "plafond"
         } else {
             "0,1 % de la tranche A"
+        };
+        // UNE ANNEE QUE LE LOGICIEL NE TIENT PAS EN ENTIER : la compagnie n'y a de paies (ecrites ou importees) qu'a
+        // partir d'un mois apres janvier ; les mois d'avant manquent, la tranche A et la contribution sont partielles.
+        let premier = p.dispo.keys().next().cloned().unwrap_or_default();
+        let partielle = premier.starts_with(&an) && premier.as_str() > format!("{}-01", an).as_str();
+        let regle = if partielle {
+            let avant = format!("{}-{:02}", an, premier[5..7].parse::<u32>().unwrap_or(1).saturating_sub(1).max(1));
+            let manquent = if avant == format!("{}-01", an) { libelle_mois(&avant)? } else { format!("{} à {}", libelle_mois(&format!("{}-01", an))?, libelle_mois(&avant)?) };
+            avert.push(format!(
+                "{} est partielle : le logiciel n'a de paies qu'à partir de {} ; {} manquent. La tranche A et la contribution de {} sont celles des mois lus, pas de l'année.",
+                an,
+                libelle_mois(&premier)?,
+                manquent,
+                an
+            ));
+            format!("{} ; année partielle", regle)
+        } else {
+            regle.to_string()
         };
         let mut l = Ligne::nouvelle();
         l.t("annee", an.clone()).n("mois", mois).d("tranche_a", tranche_a).d("taux", taux).d("calcule", calcule).d("du", du).t("regle", regle);
@@ -583,7 +640,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     ];
     t.sources = vec![
         "CCN 3090, titre V, articles 5.1 (0,1 % de la tranche A, plancher 80 €, plafond 300 € par an et par entreprise), 5.2 et 5.3 — base KALI de la DILA, relevée le 23/09/2026".to_string(),
-        "tranche A : assiette brute plafonnée que la DSN déclare (S21.G00.78.001 = 02), tirée des paies déclarées".to_string(),
+        "tranche A : assiette brute plafonnée que la DSN déclare (S21.G00.78.001 = 02), de chaque paie : écrite, ou importée (la DSN ou le bulletin de l'ancien logiciel)".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "fcap-svp", &d.format, d.ecrire)?;
     Ok(t)
@@ -615,7 +672,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let zero = zero2();
     // Un permanent est une nature MENSUELLE du catalogue des contrats.
     let mensuelles: Vec<String> = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?.iter().filter(|n| n.mensuelle()).map(|n| n.libelle.clone()).collect();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         let Some(brut) = l.brut else { continue };
         let an: String = l.mois.chars().take(4).collect();
         let i = match par_an.iter().position(|(a, _, _)| *a == an) {
@@ -656,7 +713,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let tranche = tranches
             .iter()
             .find(|x| x["jusqu_a"].is_null() || x["jusqu_a"].as_f64().is_some_and(|j| eff <= j))
-            .ok_or_else(|| erreur("StopIteration", ""))?;
+            .ok_or_else(|| erreur("StopIteration", socle::echec::cle("Le barème de l'année est incomplet : le signaler au développeur.", "tranches")))?;
         let taux_p = dec_de(&tranche["taux"])?;
         let permanents = eur2(div(mul(masse_permanents, taux_p), Decimal::ONE_HUNDRED));
         let mut l = Ligne::nouvelle();
@@ -708,7 +765,7 @@ pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert: Vec<String> = Vec::new();
     let mut par_an: Vec<(String, Decimal)> = Vec::new();
     let zero = zero2();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         let Some(brut) = l.brut else { continue };
         let an: String = l.mois.chars().take(4).collect();
         match par_an.iter_mut().find(|(a, _)| *a == an) {

@@ -18,7 +18,3 @@ pub fn dossier_de_test(fichier: &str, test: &str) -> PathBuf {
     d
 }
 
-/// Une piece de `envois/tests/donnees/`.
-pub fn donnee(rel: &str) -> Vec<u8> {
-    std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees").join(rel)).unwrap()
-}

@@ -82,7 +82,7 @@ fn defaut(quoi: &str) -> Resultat<String> {
             return Ok(en_texte(&c["code"]));
         }
     }
-    Err(format!("fctu-base.json : aucun defaut pour {}", quoi))
+    Err(socle::echec::livree("fctu-base.json", quoi))
 }
 
 /// La fin d'un contrat, telle qu'elle se declare (dates AAAA-MM-JJ). Le dernier jour travaille et paye
@@ -102,7 +102,7 @@ pub struct FinDeContrat {
 }
 
 impl FinDeContrat {
-    /// Depuis le dictionnaire de `dataclasses.asdict(FinDeContrat)`.
+    /// Depuis l'objet JSON de ses champs.
     pub fn lire(v: &Value) -> Resultat<FinDeContrat> {
         let t = |k: &str| -> Resultat<String> { req(v, k).map(en_texte) };
         let o = |k: &str| -> Option<String> {
@@ -141,7 +141,7 @@ pub fn preavis_non_effectue(type_preavis: &str) -> Resultat<bool> {
     match codes("types_preavis")?.iter().find(|c| en_texte(&c["code"]) == type_preavis) {
         Some(c) => Ok(vrai(g(c, "non_effectue"))),
         None => Err(format!(
-            "Type de preavis {} inconnu de la norme (S21.G00.63.001). Les types sont dans fctu-base.json.",
+            "Type de préavis {} inconnu de la norme (S21.G00.63.001) : le choisir dans la liste.",
             repr(type_preavis)
         )),
     }
@@ -160,7 +160,7 @@ pub fn notification_exigee(motif: &str) -> Resultat<bool> {
         .get("notification_rupture")
         .and_then(|x| x.get("motifs"))
         .and_then(Value::as_array)
-        .ok_or_else(|| "fctu-base.json : la liste `notification_rupture.motifs` manque.".to_string())?;
+        .ok_or_else(|| socle::echec::livree("fctu-base.json", "notification_rupture.motifs"))?;
     Ok(motifs.iter().any(|m| en_texte(m) == motif))
 }
 
@@ -235,7 +235,7 @@ pub fn dernier_jour_paye(e: &Engagement) -> Resultat<Jour> {
                 if preavis_non_effectue(t)? {
                     return Err(format!(
                         "Contrat {} : preavis « {} », et la saisie ne dit pas le dernier jour travaille et paye au salaire \
-habituel (`dernier_jour_paye`, S21.G00.62.006). Sur un preavis non effectue, ce n'est pas la fin du contrat ({}) : il \
+habituel (« Dernier jour payé », S21.G00.62.006). Sur un preavis non effectue, ce n'est pas la fin du contrat ({}) : il \
 precede le debut du preavis (CCH-12, cahier technique DSN p. 275). Il se saisit ; le moteur ne le devine pas.",
                         numero,
                         libelle_preavis(t)?,
@@ -352,11 +352,11 @@ preavis de L1234-1."
         let nt_j = d(nt)?;
         if !(e.debut <= nt_j && nt_j <= d(&fin.fin)?) {
             return Err(Echec::Impossible(format!(
-                "La notification de la rupture ({}) doit tomber entre le debut ({}) et la fin ({}) du contrat -- \
-CCH-11 de S21.G00.62.003.",
-                nt,
-                e.debut.iso(),
-                fin.fin
+                "Notifiée le {} : la rupture se notifie pendant le contrat, entre son premier jour, le {}, et sa fin, le \
+{} -- CCH-11 de S21.G00.62.003.",
+                nt_j.jj_mm_aaaa(),
+                e.debut.jj_mm_aaaa(),
+                d(&fin.fin)?.jj_mm_aaaa()
             )));
         }
     }
@@ -391,16 +391,15 @@ signalement sans elle. Rien n'est ecrit.",
     // car le salarie peut demander le signalement (fiche 1902). Rompu avant son terme, le CDDU se signale.
     if !nat.signalement_fctu(Some(&fin.motif)) {
         avertissements.push(format!(
-            "Contrat {} : un {} arrive a son terme n'a pas besoin de signalement de fin de contrat -- sa fin part dans la \
-DSN du mois, par le circuit derogatoire. Ce signalement ne se fait que si le salarie le demande.",
-            e.numero.clone().unwrap_or_else(|| "None".into()),
+            "Contrat {} : un {} arrivé à son terme n'a pas besoin de signalement de fin de contrat ; sa fin part dans la \
+DSN du mois, par le circuit dérogatoire. Ce signalement ne se fait que si le salarié le demande.",
+            e.numero.clone().unwrap_or_default(),
             nat.libelle
         ));
     }
     avertissements.push(format!(
-        "Le signalement est du dans les cinq jours ouvres qui suivent la fin du contrat (cahier technique p. 107). \
-Fin le {}.",
-        fin.fin
+        "Fin du contrat le {} : le signalement est dû dans les cinq jours ouvrés qui suivent (cahier technique p. 107).",
+        socle::date::jj_mm_aaaa(&fin.fin)
     ));
     Ok(avertissements)
 }
@@ -460,9 +459,9 @@ impl Default for Options {
 }
 
 /// Le fichier d'un FCTU, pret a deposer : les suspensions de l'engagement de la paie (bloc 65) ;
-/// `arrets` : les arrets a reporter (bloc 60).
+/// `arrets` : les arrets a reporter (bloc 60) ; `departs` : ce qui est parti, pour lire les engagements valides du mois.
 pub fn generer(
-    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, arrets: &[Arret],
+    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, arrets: &[Arret], departs: &engagement::departs::Departs,
 ) -> Result<String, Echec> {
     let type_declaration = o.type_declaration.as_str();
     let libelle_type = match type_de_declaration(type_declaration) {
@@ -500,7 +499,7 @@ ou un annule."
     let ctx = &ctx.au(&fin_jour)?;
     let ent0 = &ctx.entreprise;
     let s = &paie.salarie;
-    let bar = ctx.bareme(&fin_jour)?;
+    let bar = crate::dsn::BaremeDuMois::nouveau((*ctx.bareme(&fin_jour)?).clone());
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -557,9 +556,9 @@ ou un annule."
     f.add_v("S21.G00.06.004", ent("adresse")?)?;
     f.add_v("S21.G00.06.005", ent("code_postal")?)?;
     f.add_v("S21.G00.06.006", ent("commune")?)?;
-    // L'etablissement est celui du salarie, comme dans ses mensuelles (`dsn::etablissement_du_salarie`) : le NIC est
+    // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = crate::dsn::etablissement_du_salarie(ent0, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent0, s)?;
     for (rub, k) in [
         ("S21.G00.11.001", "nic"),
         ("S21.G00.11.002", "naf"),
@@ -610,12 +609,12 @@ ou un annule."
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, &ent_l, s, &crate::ntt::brute(ctx, s), &fin_jour)?;
+    crate::ntt::poser_ntt(&mut f, &ent_l, s, crate::changements_individu::derniere_declaree(ctx, s, &fin_jour, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
     let siens: Vec<&Arret> = arrets.iter().collect();
     // Les emplois multiples (`40.036`) : les autres contrats du salarie dans la periode de paie du signalement.
-    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_iso())?;
+    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_iso(), departs)?;
     let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
     bloc_contrat_fctu(&mut f, paie, &ent_l, &orgs, 1, &bar, true, &siens, NATURE, Some(fin), emplois)?;
 

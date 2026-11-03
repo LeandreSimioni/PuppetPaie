@@ -82,6 +82,8 @@ const COURIER: &str = "cour";
 
 /// Le cadre de la signature : x0, y0, x1, y1.
 const SIGNATURE_CADRE: (f64, f64, f64, f64) = (441.84, 775.50, 521.84, 809.10);
+/// La largeur de ce cadre (`largeur_imprimee`).
+pub const SIGNATURE_LARGEUR: f64 = SIGNATURE_CADRE.2 - SIGNATURE_CADRE.0;
 
 /// (x, ligne de base, texte, police, corps) : le fond imprime.
 #[rustfmt::skip]
@@ -237,6 +239,16 @@ pub struct ContratCs {
     pub heures: Option<f64>,
     pub taux_cachet: Option<f64>,
     pub numero: Option<String>,
+    /// Un contrat paye au mois : chacun de ses mois payes (`MoisPaye`), dans l'ordre. Vide pour un contrat a l'activite.
+    pub mois_payes: Vec<MoisPaye>,
+}
+
+/// Un mois paye d'un contrat paye au mois : son dernier jour, ses jours travailles et son brut.
+#[derive(Debug, Clone)]
+pub struct MoisPaye {
+    pub fin: Jour,
+    pub jours: i64,
+    pub brut: Decimal,
 }
 
 impl ContratCs {
@@ -250,6 +262,7 @@ impl ContratCs {
             heures: e.heures,
             taux_cachet: e.taux_cachet,
             numero: e.numero.clone(),
+            mois_payes: Vec::new(),
         })
     }
 
@@ -282,6 +295,9 @@ pub type Periode = (Jour, Jour, Vec<Jour>, i64, i64);
 
 /// `decouper` : un contrat -> une ou plusieurs periodes de certificat.
 pub fn decouper(eng: &ContratCs) -> R<Vec<Periode>> {
+    if !eng.mois_payes.is_empty() {
+        return Ok(periodes_au_mois(eng)?.into_iter().map(|(p, _)| p).collect());
+    }
     let bornes = bornes_31_mars(eng.debut, eng.fin);
     if bornes.is_empty() {
         let nb = if eng.cachets != 0 { eng.cachets } else { eng.jours };
@@ -339,6 +355,21 @@ pub struct Certificat {
 /// `certificats` : les certificats dus au titre d'une paie, dans l'ordre des periodes.
 pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
     let e = &paie.engagement;
+    if !e.mois_payes.is_empty() {
+        let mut out = Vec::new();
+        for (i, ((debut, fin, _dates, nb, _jours), brut)) in periodes_au_mois(e)?.into_iter().enumerate() {
+            out.push(Certificat {
+                numero: premier_numero + i as i64,
+                debut,
+                fin,
+                nb_jours_ou_cachets: nb,
+                brut,
+                base: base_conge(brut, &paie.salarie)?,
+                emission: fin,
+            });
+        }
+        return Ok(out);
+    }
     let parts = decouper(e)?;
     let mut out = Vec::new();
     let mut numero = premier_numero;
@@ -385,11 +416,31 @@ pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
             return Err(Refus {
                 classe: Some("ValueError"),
                 message: format!(
-                    "Decoupage au 31 mars incoherent pour {} : {} EUR repartis pour un brut de {} EUR.",
-                    qui, total, paie.brut
+                    "Découpage au 31 mars incohérent pour {} : {} répartis pour un brut de {}.",
+                    qui, socle::texte::euros(total), socle::texte::euros(paie.brut)
                 ),
             });
         }
+    }
+    Ok(out)
+}
+
+
+/// Les periodes d'un contrat paye au mois, et leur brut. « Pour les activites en cours au 31 mars, l'employeur etablit
+/// deux certificats d'emploi » (Audiens, « Conges et spectacles employeur - Mode d'emploi », article 4 du reglement du
+/// regime, `atelier/reference/sources/audiens-dsn/audiens-conges-spectacles-mode-emploi-employeur-20261030.txt`,
+/// l. 201-206) : le 31 mars finit un mois, et chaque periode porte les jours travailles et le brut des mois qu'elle
+/// couvre, sans repartition.
+fn periodes_au_mois(e: &ContratCs) -> R<Vec<(Periode, Decimal)>> {
+    let mut bornes = bornes_31_mars(e.debut, e.fin);
+    bornes.push(e.fin);
+    let mut out = Vec::new();
+    let mut debut = e.debut;
+    for borne in bornes {
+        let couverts: Vec<&MoisPaye> = e.mois_payes.iter().filter(|m| debut <= m.fin && (m.fin <= borne || borne == e.fin)).collect();
+        let jours: i64 = couverts.iter().map(|m| m.jours).sum();
+        out.push(((debut, borne, Vec::new(), jours, jours), couverts.iter().fold(Decimal::ZERO, |a, m| a + m.brut)));
+        debut = borne.plus_jours(1)?;
     }
     Ok(out)
 }
@@ -404,7 +455,7 @@ fn cases_date(j: &Jour) -> String {
     format!("{:02} {:02} {:04}", j.jour, j.mois, j.an)
 }
 
-/// `_siret_espace` : 12345678900017 -> '123456789 00017'.
+/// 12345678900017 -> '123456789 00017'.
 fn siret_espace(siret: &Value) -> String {
     let s = valeur_en_texte(siret);
     let c: Vec<char> = s.chars().collect();
@@ -520,7 +571,7 @@ fn blocs_certificat(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<Value>> {
     Ok(blocs)
 }
 
-/// `str(Path(...))`.
+/// Un chemin en texte : sans `.` ni séparateur double.
 pub fn chemin_texte(p: &std::path::Path) -> String {
     p.components().collect::<std::path::PathBuf>().to_string_lossy().into_owned()
 }
@@ -544,7 +595,7 @@ pub fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &Value) -> R<Value>
     if !ent.get("congesspectacles_adherent").map_or(false, vrai) {
         return Err(Refus {
             classe: Some("ValueError"),
-            message: "`congesspectacles_adherent` manquant dans config/entreprise.json : c'est le numero qui va dans la case COMPTE du certificat.".to_string(),
+            message: socle::echec::cle("La fiche entreprise ne dit pas son numéro d'adhérent Congés Spectacles : le saisir dans Configuration › Entreprise.", "congesspectacles_adherent"),
         });
     }
     let mut tous: Vec<(Certificat, &PaieCs)> = Vec::new();
@@ -598,7 +649,7 @@ mod tests {
     }
 
     fn contrat(debut: Jour, fin: Jour, dates: Vec<Jour>, cachets: i64, jours: i64, heures: Option<f64>) -> ContratCs {
-        ContratCs { debut, fin, dates_travail: dates, cachets, jours, heures, taux_cachet: Some(130.0), numero: Some("FA1.26.01".into()) }
+        ContratCs { debut, fin, dates_travail: dates, cachets, jours, heures, taux_cachet: Some(130.0), numero: Some("FA1.26.01".into()), mois_payes: Vec::new() }
     }
 
     /// L'exercice des conges va du 1er avril au 31 mars

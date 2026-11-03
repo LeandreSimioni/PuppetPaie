@@ -1,0 +1,193 @@
+AED	DIRHAM DES EMIRATS ARABES UNIS      	         	                                    	         	1
+AFA	AFGHANI                             	         	                                    	         	0
+AFN	AFGHANI                             	         	REMPLACE AFA A/C 01/11/2003         	         	1
+ALL	LEK (NOUVEAU)                       	         	                                    	         	1
+AMD	DRAM                                	         	CRÉATION LE 26/11/93                	         	1
+ANG	FLORIN DES ANTILLES NEERLANDAISES   	         	MONNAIE A PARITE FIXE 1 ANG = 0     	         	1
+AOA	KWANZA                              	         	REMPLACE AOK A/C 01/11/2003         	         	1
+AOK	KWANZA                              	         	A/C 04/01/2000 REMPLACE AOR         	         	0
+AOR	KWANZA                              	         	                                    	         	0
+ARS	PESO ARGENTIN                       	         	                                    	         	1
+ATS	SCHILLING                           	         	CF TX CONVERSION EURO A/C 01/01/1999	         	1
+AUD	DOLLAR AUSTRALIEN                   	         	                                    	         	1
+AZM	MANAT AZERBAIDJANAIS                	         	CRÉATION LE 29/07/93                	         	0
+AZN	NOUVEAU MANAT AZERBAIDJANAIS        	         	A/C 01/01/06  VALEUR 5000 AZM       	         	1
+BAM	CONVERTIBLE MARK                    	         	CRÉATION A/C DU 16/12/1998          	         	1
+BBD	DOLLAR DE BARBADE                   	         	                                    	         	1
+BDT	TAKA                                	         	                                    	         	1
+BGL	LEV                                 	         	                                    	         	0
+BGN	LEV (NOUVEAU)                       	         	A/C DU 06/07/99 REMPLACE BGL        	         	0
+BHD	DINAR DE BAHREIN                    	         	                                    	         	1
+BIF	FRANC DU BURUNDI                    	         	                                    	         	1
+BMD	DOLLAR DES BERMUDES                 	         	CF. TAUX ET DATES DOLLAR US         	         	1
+BND	DOLLAR DE BRUNEI                    	         	                                    	         	1
+BOB	BOLIVIANO                           	         	                                    	         	1
+BRL	REAL                                	         	                                    	         	1
+BSD	DOLLAR DES BAHAMAS                  	         	CF. TAUX ET DATES DOLLAR US         	         	1
+BTN	NGULTRUM                            	         	CRÉATION AU 01/08/2008              	         	1
+BWP	PULA                                	         	                                    	         	1
+BYB	ROUBLE BIELORUSSE                   	         	                                    	         	0
+BYN	NOUVEAU ROUBLE BIELORUSSE           	         	A COMPTER DU 1ER JUILLET 2016       	         	1
+BYR	ROUBLE BIELORUSSE                   	         	REMPLACE BYB A/C DU 01/11/2003      	         	0
+BZD	DOLLAR DE BELIZE                    	         	                                    	         	1
+CAD	DOLLAR CANADIEN                     	         	                                    	         	1
+CDF	FRANC CONGOLAIS                     	         	A/C 01/07/98 REMPLACE ZRZ           	         	1
+CHF	FRANC SUISSE                        	         	                                    	         	1
+CLP	PESO CHILIEN (NOUVEAU)              	         	                                    	         	1
+CNY	YUAN REN MIN BI                     	         	                                    	         	1
+COP	PESO COLOMBIEN                      	         	                                    	         	1
+CRC	COLON                               	         	                                    	         	1
+CSD	DINAR SERBE                         	         	REMPLACE LE DINAR YOUGOSLAVE        	         	0
+CUI	PESO CUBAIN INTERIEUR               	         	CREE LE 01/06/95(RECETTES LOCALES D.	TRESOR)  	0
+CUP	PESO CUBAIN (CONVERTIBLE)           	         	TAUX USUEL                          	         	1
+CVE	ESCUDO DU CAP-VERT                  	         	                                    	         	1
+CYP	LIVRE CYPRIOTE                      	         	REMPLACEE LE 01/01/2008 PAR EURO    	         	0
+CZK	COURONNE TCHEQUE                    	         	CZK REMPLACE ANCIEN CODE CSK        	         	1
+DJF	FRANC DE DJIBOUTI                   	         	                                    	         	1
+DKK	COURONNE DANOISE                    	         	                                    	         	1
+DOP	PESO DOMINICAIN                     	         	                                    	         	1
+DZD	DINAR ALGERIEN                      	         	                                    	         	1
+ECS	SUCRE                               	         	NOUVELLE MONNAIE USD A/C 01/07/2001 	         	0
+EEK	COURONNE ESTONIENNE                 	         	REMPLACE ANCIEN CODE ENK A/C 16/12/1	998      	0
+EGP	LIVRE EGYPTIENNE                    	         	                                    	         	1
+ERN	NAKFA                               	         	CRÉATION DU TAUX DE CHANGE A/C 16/12	/2000    	1
+ETB	BIRR ETHIOPIEN                      	         	                                    	         	1
+EUR	EURO                                	         	MONNAIE NATIONALE A/C DU 01/01/2002 	         	1
+FJD	DOLLAR DE FIDJI                     	         	                                    	         	1
+GBP	LIVRE STERLING                      	         	                                    	         	1
+GEL	LARI                                	         	REMPLACE GEC A/C DU 05/10/95        	         	1
+GHC	CEDI (NOUVEAU)                      	         	SUPPRIME LE 01/01/2008              	         	0
+GHS	CEDI (LE NOUVEAU)                   	         	                                    	         	1
+GMD	DALASI                              	         	                                    	         	1
+GNF	FRANC GUINEEN                       	         	                                    	         	1
+GTQ	QUETZAL                             	         	                                    	         	1
+GWP	PESO GUINEEN                        	         	                                    	         	0
+GYD	DOLLAR DE GUYANA                    	         	                                    	         	1
+HKD	DOLLAR DE HONG-KONG                 	         	                                    	         	1
+HNL	LEMPIRA                             	         	                                    	         	1
+HRK	KUNA                                	         	CRÉATION LE 30/05/94                	         	0
+HTG	GOURDE HAITIENNE                    	         	                                    	         	1
+HUF	FORINT                              	         	                                    	         	1
+IDR	RUPIAH                              	         	                                    	         	1
+ILS	SHEKEL (NOUVEAU)                    	         	                                    	         	1
+INR	ROUPIE INDIENNE                     	         	                                    	         	1
+IQD	DINAR IRAKIEN                       	         	                                    	         	1
+IRR	RIAL IRANIEN                        	         	                                    	         	1
+ISK	COURONNE ISLANDAISE                 	         	                                    	         	1
+JMD	DOLLAR JAMAICAIN                    	         	                                    	         	1
+JOD	DINAR JORDANIEN                     	         	                                    	         	1
+JPY	YEN                                 	         	                                    	         	1
+KES	SHILLING DU KENYA                   	         	                                    	         	1
+KGS	SOM                                 	         	CRÉATION LE 01/01/94                	         	1
+KHR	RIEL CAMBODGIEN                     	         	REMPLACE ANCIEN CODE CBR A/C 16/12/1	998      	1
+KMF	FRANC COMORIEN                      	         	                                    	         	1
+KPW	WON DE LA COREE DU NORD             	         	                                    	         	1
+KRW	WON                                 	         	                                    	         	1
+KWD	DINAR KOWEITIEN                     	         	                                    	         	1
+KYD	DOLLAR DES CAIMANES                 	         	TAUX NON SUIVI                      	         	0
+KZT	TENGUE                              	         	CRÉATION LE 18/11/1993              	         	1
+LAK	KIP                                 	         	                                    	         	1
+LBP	LIVRE LIBANAISE                     	         	                                    	         	1
+LKR	ROUPIE DE SRI LANKA                 	         	                                    	         	1
+LRD	DOLLAR LIBERIEN                     	         	CF. TAUX ET DATES DOLLAR US         	         	1
+LTL	LITAS                               	         	CRÉATION LE 01/07/93 (1 LTL=100 LTT)	         	0
+LVL	LAT                                 	         	REMPLACE ANCIEN CODE LEL A/C 16/12/1	998      	0
+LYD	DINAR LIBYEN                        	         	                                    	         	1
+MAD	DIRHAM MAROCAIN                     	         	                                    	         	1
+MDL	LEU MOLDAVE                         	         	CRÉATION LE 01/01/94                	         	1
+MGA	ARIARY                              	         	NLE MONNAIE A/C 01/08/2003 1MGA=5MGF	         	1
+MGF	FRANC MALGACHE                      	         	                                    	         	0
+MKD	DENAR                               	         	REMPLACE ANCIEN CODE MCD A/C 16/12/1	998      	1
+MMF	F.E.C.                              	         	MMF REMPLACE CODE BUF A/C 16/12/1998	         	0
+MMK	KYAT                                	         	REMPLACE ANCIEN CODE BUK A/C 16/12/1	998      	1
+MNT	TUGRIK                              	         	                                    	         	1
+MOP	PATACA                              	         	                                    	         	1
+MRO	OUGUIYA                             	         	                                    	         	0
+MRU	OUGUIYA                             	         	                                    	         	1
+MTL	LIVRE MALTAISE                      	         	SUPPRIME LE 01/01/2008              	         	0
+MUR	ROUPIE MAURICIENNE                  	         	                                    	         	1
+MVR	RUFIYAA                             	         	                                    	         	1
+MWK	KWACHA DE MALAWI                    	         	                                    	         	1
+MXN	PESO MEXICAIN                       	         	REMPLACE ANCIEN CODE MXP A/C 16/12/9	8        	1
+MYR	RINGGIT                             	         	                                    	         	1
+MZM	METICAL                             	         	                                    	         	0
+MZN	NOUVEAU METICAL                     	         	A/C 01/07/06                        	         	1
+NAD	DOLLAR NAMIBIEN                     	         	CRÉATION LE 16/09/93                	         	1
+NGN	NAIRA                               	         	                                    	         	1
+NIO	CORDOBA ORO                         	         	                                    	         	1
+NLG	MONNAIE DE CURACAO                  	         	                                    	         	1
+NOK	COURONNE NORVEGIENNE                	         	                                    	         	1
+NPR	ROUPIE NEPALAISE                    	         	                                    	         	1
+NZD	DOLLAR NEO-ZELANDAIS                	         	                                    	         	1
+OMR	RIAL OMANI                          	         	                                    	         	1
+PAB	BALBOA                              	         	CF. TAUX ET DATES DOLLAR US         	         	1
+PEN	SOL (NOUVEAU)                       	         	NOUVEAU CODE MONNAIE PEN A/C 16/12/1	998      	1
+PGK	KINA                                	         	                                    	         	1
+PHP	PESO PHILIPPIN                      	         	                                    	         	1
+PKR	ROUPIE PAKISTANAISE                 	         	                                    	         	1
+PLN	ZLOTY                               	         	PLN REMPLACE ANCIEN CODE PLZ A/C 16/	12/1998  	1
+PYG	GUARANI                             	         	                                    	         	1
+QAR	RIYAL DU QATAR                      	         	                                    	         	1
+ROL	LEU                                 	         	                                    	         	0
+RON	LEU LOURD                           	         	1 RON = 10000 ROL                   	         	1
+RSD	DINAR SERBE                         	         	REMPLACE CSD A/C 01/12/06           	         	1
+RUB	ROUBLE RUSSE (NOUVEAU)              	         	RUB REMPLACE ANCIEN CODE RUR A/C 16/	12/1998  	1
+RWF	FRANC DU RWANDA                     	         	                                    	         	1
+SAR	RIYAL SAOUDIEN                      	         	                                    	         	1
+SBD	DOLLAR DES ILES SALOMON             	         	                                    	         	1
+SCR	ROUPIE SEYCHELLOISE                 	         	                                    	         	1
+SDD	DINAR SOUDANAIS                     	         	CRÉATION LE 01/11/93 (1 SDD=10 SDP) 	         	0
+SDG	NOUVELLE LIVRE SOUDANAISE           	         	CODE ISO DEFINITIF SDG REMPLACE SDN 	         	1
+SDN	NOUVELLE LIVRE SOUDANAISE           	         	A/C DU 16/01/07 REMPLACE SDD        	         	0
+SEK	COURONNE SUEDOISE                   	         	                                    	         	1
+SGD	DOLLAR DE SINGAPOUR                 	         	                                    	         	1
+SIT	TOLAR                               	         	                                    	         	0
+SKK	COURONNE SLOVAQUE                   	         	SKK REMPLACE ANCIEN CODE SQK A/C 16/	12/1998  	0
+SLE	LEONE                               	         	NOUVEAU LEONE APPLICABLE AU 01/08/20	22       	1
+SLL	LEONE                               	         	                                    	         	0
+SOS	SHILLING SOMALO                     	         	                                    	         	1
+SRD	DOLLAR DE SURINAM                   	         	A/C 01/02/2004 FLORIN CIRCULE ENCORE	         	1
+SRG	FLORIN DU SURINAM                   	         	TAUX LIBRE OFFICIEL A/C DU 25/06/93 	         	0
+SSP	LIVRE SUD-SOUDANAISE                	         	                                    	         	1
+STD	DOBRA                               	         	                                    	         	0
+STN	NOUVEAU DOBRA                       	         	                                    	         	1
+SVC	COLON DU SALVADOR                   	         	                                    	         	0
+SYP	LIVRE SYRIENNE                      	         	                                    	         	1
+SZL	LILANGENI                           	         	TAUX NON SUIVI                      	         	0
+THB	BAHT                                	         	                                    	         	1
+TJR	ROUBLE DU TADJIKISTAN               	         	REMPLACE PAR TJR A/C DU 16/11/2000  	         	0
+TJS	SOMONI                              	         	A/C DU 16/11/2000 REMPLACE TJR      	         	1
+TMM	MANAT TURKMENE                      	         	CRÉATION LE 26/11/93                	         	0
+TMT	NOUVEAU MANAT                       	         	ENTRE EN VIGUEUR LE 1ER JANVIER 2009	         	1
+TND	DINAR TUNISIEN                      	         	                                    	         	1
+TOP	PALANGA                             	         	TAUX NON SUIVI                      	         	0
+TRL	LIVRE TURQUE                        	         	                                    	         	0
+TRY	NOUVELLE LIVRE TURQUE               	         	VAUT 1000000 TRL                    	         	1
+TTD	DOLLAR DE TRINITE ET TOBAGO         	         	                                    	         	1
+TWD	DOLLAR DE TAIWAN (NOUVEAU)          	         	                                    	         	1
+TZS	SHILLING DE TANZANIE                	         	                                    	         	1
+UAH	HRYVNIA                             	         	UAH REMPLACE ANCIEN CODE UAG A/C 16/	12/1998  	1
+UGX	SHILLING OUGANDAIS (NOUVEAU)        	         	REMPLACE CODE UGS A/C 16/12/1998    	         	1
+USD	DOLLAR DES ETATS-UNIS               	         	                                    	         	1
+UYU	PESO URUGUAYEN                      	         	UYU REMPLACE ANCIEN CODE UYP A/C 16/	12/1998  	1
+UZS	SOUM                                	         	CRÉATION LE 26/11/93                	         	1
+VEB	BOLIVAR                             	         	                                    	         	0
+VEF	BOLIVAR FORT                        	         	                                    	         	0
+VES	BOLIVAR                             	         	                                    	         	1
+VND	DONG (NOUVEAU)                      	         	                                    	         	1
+VUV	VATU                                	         	                                    	         	1
+WST	TALA                                	         	                                    	         	1
+XAF	FRANC CFA                           	         	                                    	         	1
+XCD	DOLLAR DES CARAIBES DE L'EST        	         	                                    	         	1
+XOF	FRANC C.F.A.                        	         	                                    	         	1
+XPF	FRANC PACIFIQUE                     	         	                                    	         	1
+YER	RIYAL YAR                           	         	                                    	         	1
+YUM	DINAR YOUGOSLAVE (NOUVEAU)          	         	REMPLACE PAR DINAR SERBE A/C 1/10/03	         	0
+ZAR	RAND COMMERCIAL                     	         	TAUX USUEL                          	         	1
+ZIG	ZIMBABWE GOLD                       	         	A PARTIR DU 5 AVRIL 2024            	         	1
+ZMK	KWACHA DE ZAMBIE                    	         	                                    	         	0
+ZMW	KWACHA DE ZAMBIE                    	         	NOUVEAU                             	         	1
+ZWD	DOLLAR DU ZIMBABWE                  	         	                                    	         	0
+ZWL	DOLLAR DU ZIMBABWE                  	         	MONNAIE PROVISOIRE                  	         	0
+ZWN	NOUVEAU DOLLAR DU ZIMBABWE          	         	REMPLACE ZWD A/C 01/09/06           	         	0
+ZWR	NOUVEAU DOLLAR DU ZIMBABWE          	         	REMPLACE ZWD AC DU 01/08/2008       	         	0

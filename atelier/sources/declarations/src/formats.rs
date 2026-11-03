@@ -74,7 +74,7 @@ enum Noeud {
     Rep(Box<Noeud>, usize, usize),
 }
 
-/// Une expression compilee ; `fullmatch` comme `re.fullmatch`.
+/// Une expression compilee, qui doit couvrir toute la valeur.
 pub struct Regex {
     pub motif: String,
     alts: Vec<Vec<Noeud>>,
@@ -156,7 +156,7 @@ impl Lecteur {
         match c {
             'd' => Ok(Elt::Chiffre),
             's' => Ok(Elt::Espace),
-            c if c.is_ascii_alphanumeric() => Err(format!("echappement \\{} non pris en charge", c)),
+            c if c.is_ascii_alphanumeric() => Err(socle::echec::a_la_cle("Un format de la norme livrée ne se lit pas : le signaler au développeur.", "format", c)),
             c => Ok(Elt::Car(c)),
         }
     }
@@ -293,7 +293,7 @@ impl Regex {
         Ok(Regex { motif: motif.to_string(), alts })
     }
 
-    /// `re.fullmatch(valeur)` est-il non nul ?
+    /// L'expression couvre-t-elle toute la valeur ?
     pub fn fullmatch(&self, valeur: &str) -> bool {
         let s: Vec<char> = valeur.chars().collect();
         let n = s.len();
@@ -473,7 +473,7 @@ fn dire(norme: &Norme, r: &str, v: &str, pourquoi: &str, libelle: &str, ou: Opti
 
 /// Refuse avant le depot ce que le point de depot refuserait, dans la table de la version que le fichier porte
 /// (S10.G00.00.006) ; puis les valeurs que cette version a retirees de leur liste (`norme::verifier_les_valeurs`). Le
-/// texte de l'erreur est celui de `str(ValeurHorsNorme)`.
+/// texte de l'erreur est celui de `ValeurHorsNorme`.
 pub fn verifier_fichier(texte: &str) -> Resultat<()> {
     let norme = crate::norme::du_fichier(texte)?;
     let mauv = mauvaises(texte, &norme)?;
@@ -502,11 +502,9 @@ pub fn verifier_fichier(texte: &str) -> Resultat<()> {
         let lib = libelles.get(r).map(|s| s.as_str()).unwrap_or("");
         dites.push(dire(&norme, r, v, p, lib, saisies.iter().find(|s| s.0 == r).copied())?);
     }
-    Err(format!(
-        "Valeur(s) qui ne suivent pas le format de la norme :\n{}\n  Formats du cahier technique NEODeS (donnees/{}).{}",
-        dites.join("\n"),
-        norme.table_formats()?,
-        trou
+    Err(socle::echec::avec(
+        format!("Valeur(s) qui ne suivent pas le format de la norme :\n{}\n  Formats du cahier technique NEODeS.{}", dites.join("\n"), trou),
+        serde_json::json!({"fichier": norme.table_formats()?}),
     ))
 }
 

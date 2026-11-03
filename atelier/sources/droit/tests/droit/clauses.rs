@@ -39,7 +39,7 @@ fn numerique(s: &str) -> bool {
         && d.map_or(true, |d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()))
 }
 
-/// `format(Decimal(s).normalize(), "f")` : sans exposant, sans zeros de queue.
+/// Un décimal écrit sans exposant, sans zéros de queue.
 fn normaliser(s: &str) -> String {
     let (signe, s) = s.strip_prefix('-').map_or(("", s), |r| ("-", r));
     let (nombre, exposant) = s.split_once('E').map_or((s, 0i64), |(n, e)| (n, e.parse().unwrap()));
@@ -147,10 +147,6 @@ fn paire(r: Option<(String, Value)>) -> Value {
     r.map_or(Value::Null, |(a, s)| json!([a, s]))
 }
 
-fn texte_option(r: Option<String>) -> Value {
-    r.map_or(Value::Null, Value::String)
-}
-
 fn jour(v: &Value) -> Jour {
     Jour::lire(v.as_str().unwrap()).unwrap()
 }
@@ -240,7 +236,6 @@ fn les_baremes() {
         .collect();
     oracle("clauses.json", "/blocs/paliers", &Value::Array(paliers));
 
-    section(&rel, "pct", |a| Ok(Value::String(c::pct(&a[0])?)));
 }
 
 #[test]
@@ -316,20 +311,6 @@ fn retraite() {
     });
     section(&rel, "indemnite_depart_retraite", |a| {
         c::indemnite_depart_retraite(&a[0], dec(&a[1]), dec(&a[2]))
-    });
-}
-
-#[test]
-fn maintien() {
-    let rel = lire();
-    let anc = chaines(&rel["grilles"]["anc"]);
-    blocs(&rel, "maintien", 1, |p| {
-        anc.iter()
-            .map(|a| ligne(c::maintien(&p[0], dec(a), p[1].as_bool().unwrap()).map(texte_option)))
-            .collect()
-    });
-    section(&rel, "maintien", |a| {
-        c::maintien(&a[0], dec(&a[1]), a[2].as_bool().unwrap()).map(texte_option)
     });
 }
 

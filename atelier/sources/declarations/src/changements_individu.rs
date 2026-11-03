@@ -91,7 +91,7 @@ fn ecrite(champ: &str, v: Option<&Value>) -> Option<String> {
 /// mois declare n'entre pas dans sa DSN, sans quoi 31.001 depasserait le dernier jour du mois principal declare
 /// (§ 4.4.12, p. 99) -- il ira dans la DSN du mois ou il prend effet.
 pub fn identite_du_mois(salarie: &Value, brute: &Value, fin: &Jour) -> Resultat<Value> {
-    let au = fiche_au(brute, fin, "config/salaries.json")?;
+    let au = fiche_au(brute, fin, droit::contexte::SALARIES)?;
     let mut sortie = salarie.clone();
     if let Some(o) = sortie.as_object_mut() {
         for (champ, ..) in IDENTIFIANTS {
@@ -111,26 +111,35 @@ pub fn identite_du_mois(salarie: &Value, brute: &Value, fin: &Jour) -> Resultat<
 /// Les identites declarees des mois anterieurs au mois declare, lues a la demande, du plus recent au plus ancien.
 pub struct Declarations<'a> {
     ctx: &'a Contexte,
+    departs: &'a engagement::departs::Departs,
     mois: Vec<String>,
     lus: BTreeMap<usize, Vec<Declaree>>,
 }
 
 impl<'a> Declarations<'a> {
     /// Les mois saisis avant `mois`.
-    pub fn avant(ctx: &'a Contexte, mois: &str) -> Resultat<Declarations<'a>> {
+    pub fn avant(ctx: &'a Contexte, mois: &str, departs: &'a engagement::departs::Departs) -> Resultat<Declarations<'a>> {
         let mut avant: Vec<String> = engagement::stock::mois_saisis(&ctx.racine)?.into_iter().filter(|m| m.as_str() < mois).collect();
         avant.sort();
         avant.reverse();
-        Ok(Declarations { ctx, mois: avant, lus: BTreeMap::new() })
+        Ok(Declarations { ctx, departs, mois: avant, lus: BTreeMap::new() })
     }
 
-    /// Les individus que les paies declarees du `i`-ieme mois portent (`dsn::paies_declarees_du_mois`), avec la fiche
-    /// que leur calcul a lue : l'identite que leur DSN a ecrite.
+    /// Les individus que les paies du `i`-ieme mois qu'une DSN partie a declarees portent (`engagement::etats::paie_declaree`),
+    /// avec la fiche que leur calcul a lue : l'identite que leur DSN a ecrite. Une paie qu'aucune DSN n'a encore declaree
+    /// n'a rien dit de lui.
     fn lire(&mut self, i: usize) -> Resultat<&Vec<Declaree>> {
         if !self.lus.contains_key(&i) {
             let mois = &self.mois[i];
+            let ctx_m = self.ctx.du_mois(mois)?;
+            let mut paies = Vec::new();
+            for e in engagement::etats::du_mois(self.ctx, mois, self.departs)? {
+                if let Some(p) = e.valide().map(|v| engagement::etats::paie_declaree(&ctx_m, v.objet(), self.departs, mois)).transpose()?.flatten() {
+                    paies.push(p);
+                }
+            }
             let mut tous = Vec::new();
-            for p in crate::dsn::paies_declarees_du_mois(self.ctx, mois, None)? {
+            for p in paies {
                 let s = &p.salarie;
                 let nir = crate::ntt::nir_de(s);
                 tous.push(Declaree {
@@ -178,6 +187,13 @@ devine pas. Rien n'est ecrit.",
         }
         Ok(None)
     }
+}
+
+/// L'identite que la derniere DSN mensuelle a declaree pour `salarie` (sa fiche lue), des mois saisis jusqu'a celui de
+/// `jour` compris : ce que lit une DSN hors du mois (un signalement, une demande de taux) pour poser son NTT
+/// (`ntt::poser_ntt`).
+pub fn derniere_declaree(ctx: &Contexte, salarie: &Value, jour: &Jour, departs: &engagement::departs::Departs) -> Resultat<Option<Declaree>> {
+    Declarations::avant(ctx, &jour.mois_suivant(), departs)?.derniere(salarie, &crate::ntt::brute(ctx, salarie))
 }
 
 fn qui(salarie: &Value) -> String {

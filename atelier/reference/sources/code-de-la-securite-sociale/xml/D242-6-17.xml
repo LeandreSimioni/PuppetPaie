@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000054980993</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/54/98/09/LEGIARTI000054980993.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>D242-6-17</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2026-10-15</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106031">Partie réglementaire - Décrets simples</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126849">Livre II : Organisation du régime général - Action sanitaire et sociale des caisses</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141518">Titre IV : Ressources</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006155797">Chapitre 2 : Assiette, taux et calcul des cotisations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006172139">Section 1 : Cotisations assises sur les rémunérations ou gains versés aux travailleurs salariés ou assimilés</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006185515">Sous-section 2 : Dispositions propres à chaque branche</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006194234">Paragraphe 4 : Assurance accidents du travail et maladies professionnelles.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="TRANSFERE">
+<LIEN_ART debut="1996-01-01" etat="TRANSFERE" fin="2012-01-01" id="LEGIARTI000006735897" num="D242-6-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2012-01-01" etat="MODIFIE" fin="2026-10-15" id="LEGIARTI000022446511" num="D242-6-17" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2026-10-15" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000054980993" num="D242-6-17" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p align="justify">Conformément au premier alinéa de l’article 5 du décret n° 2026-951 du 13 octobre 2026, ces dispositions, dans leur rédaction résultant dudit décret s'appliquent pour la détermination des cotisations relatives aux accidents du travail et aux maladies professionnelles dues à compter de l'année 2027.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Le taux déterminé d'après les dispositions du deuxième alinéa de l'article D. 242-6-1 est applicable à l'établissement ou aux établissements nouvellement créés appartenant à une catégorie de risque préexistante au sein de l'entreprise en tarification individuelle ou mixte.</p>
+<p> Lorsque la catégorie de risque de l'établissement ou des établissements nouvellement créés n'est pas préexistante au sein de l'entreprise en tarification individuelle ou mixte et pour les entreprises en tarification collective, les taux nets collectifs sont applicables durant l'année de leur création et les deux années civiles suivantes.</p>
+<p>Ne peut être considéré comme un établissement nouvellement créé celui issu d'un précédent établissement dans lequel a été exercée une activité similaire, avec les mêmes moyens de production et ayant repris au moins la moitié du personnel.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000860083" datesignatexte="1984-12-07" id="LEGIARTI000006783290" naturetexte="ARRETE" nortexte="" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 7 décembre 1984 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000042710957" naturetexte="ARRETE" nortexte="SANS9502262A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 1 (VD)</LIEN>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000006789956" naturetexte="ARRETE" nortexte="SANS9502262A" num="5" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 5 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000555144" datesignatexte="1995-10-17" id="LEGIARTI000023818276" naturetexte="ARRETE" nortexte="SANS9502262A" num="6" numtexte="" sens="cible" typelien="CITATION">Arrêté du 17 octobre 1995 - art. 6 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000017756013" datesignatexte="2007-12-21" id="LEGIARTI000017771904" naturetexte="ARRETE" nortexte="MTSS0774388A" num="Annexe" numtexte="" sens="cible" typelien="CITATION">Arrêté du 21 décembre 2007 - art. (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000019994990" datesignatexte="2008-12-22" id="LEGIARTI000020126703" naturetexte="ARRETE" nortexte="MTSS0830898A" num="IV" numtexte="" sens="cible" typelien="CITATION">Arrêté du 22 décembre 2008 - art. IV (V)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000031632771" datesignatexte="2015-12-15" id="LEGIARTI000031634576" naturetexte="DECRET" nortexte="AFSS1524708D" num="4" numtexte="2015-1679" sens="cible" typelien="CITATION">Décret n°2015-1679 du 15 décembre 2015 - art. 4 (VD)</LIEN>
+
+<LIEN cidtexte="JORFTEXT000054979559" datesignatexte="2026-10-13" id="LEGIARTI000054980517" naturetexte="DECRET" nortexte="TRSS2625216D" num="4" numtexte="2026-951" sens="cible" typelien="MODIFIE">Décret n°2026-951 du 13 octobre 2026 - art. 4</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000022073274" naturetexte="CODE" nortexte="" num="D176-4" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D176-4 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006735922" naturetexte="CODE" nortexte="" num="D242-36" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-36 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000022446651" naturetexte="CODE" nortexte="" num="D242-41" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-41 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006735891" naturetexte="CODE" nortexte="" num="D242-6-13" numtexte="" sens="cible" typelien="CONCORDE">Code de la sécurité sociale. - art. D242-6-13 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006735896" naturetexte="CODE" nortexte="" num="D242-6-16" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D242-6-16 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000022446490" naturetexte="CODE" nortexte="" num="D242-6-22" numtexte="" sens="source" typelien="CONCORDE">Code de la sécurité sociale. - art. D242-6-22 (V)</LIEN>
+</LIENS>
+</ARTICLE>

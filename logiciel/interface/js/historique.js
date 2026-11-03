@@ -25,7 +25,7 @@ function dessinerHistorique() {
   dessinerRegularisation();
   const cible = document.getElementById("historique");
   if (!ETAT.historique.length) {
-    cible.innerHTML = `<p class="discret">Aucun mois pour l'instant.</p>`;
+    cible.innerHTML = `<p class="discret">Aucun mois</p>`;
     return;
   }
   // L'état de la DSN, en mots et en couleur : c'est ce qu'on cherche en
@@ -36,7 +36,7 @@ function dessinerHistorique() {
     const p = m.pastille;
     const couleur = CLASSE_DE_COULEUR[p.couleur] ?? "";
     const mots = p.mots;
-    const depose = m.depose_le && m.dsn !== "a_deposer" ? ` le ${quand(m.depose_le).slice(0, 10)}` : "";
+    const depose = m.depose_dit ? " " + m.depose_dit : "";
     return `
     <details class="mois-hist" data-mois="${echapper(m.mois)}" data-retard="${m.dsn === "en_retard" ? 1 : 0}"
              data-a-faire="${m.a_faire ? 1 : 0}">
@@ -44,12 +44,12 @@ function dessinerHistorique() {
         <span class="rang-nom">${echapper(majuscule(moisEnClair(m.mois)))}</span>
         <span class="rang-etat"><span class="pastille ${couleur}">${echapper(mots)}${echapper(depose)}</span>${
           m.clos ? ` <span class="pastille">clos</span>` : ""}</span>
-        <span class="rang-infos" title="${echapper((m.fichiers || []).join("\n"))}">${
-          (m.sortes || []).length ? echapper(m.sortes.join(" · ")) : "aucun document"}</span>
+        <span class="rang-infos">${
+          echapper(m.documents_dit || "")}</span>
         <span class="rang-actions">
         </span>
       </summary>
-      <div class="mois-vue"><p class="discret">Lecture du mois…</p></div>
+      <div class="mois-vue"><p class="discret">Lecture…</p></div>
     </details>`;
   }).join("");
   cible.querySelectorAll("details.mois-hist").forEach((d) => {
@@ -80,8 +80,8 @@ async function dessinerMoisHistorique(d) {
     return;
   }
   const paie = d.dataset.aFaire === "1"
-    ? `<p><button class="secondaire" data-faire="${echapper(mois)}">Reprendre ce mois dans Paie</button>
-       <span class="discret">— il y reste quelque chose à faire</span></p>` : "";
+    ? `<p><button class="secondaire" data-faire="${echapper(mois)}">Reprendre ce mois</button>
+       <span class="discret">— reste à faire</span></p>` : "";
 
   // Les documents, par sorte, dans l'ordre que le moteur donne.
   const sortes = [];
@@ -92,31 +92,45 @@ async function dessinerMoisHistorique(d) {
   }
   const documents = sortes.length ? sortes.map((s) => `
     <div class="docs-sorte"><b>${echapper(s.nom)}</b>${s.docs.map((x) =>
-      `<button class="lien" data-piece="${echapper(x.chemin)}" title="${echapper(x.chemin)}">${echapper(x.nom)}</button>`).join("")}
-    </div>`).join("") : `<p class="discret">Aucun document écrit pour ce mois.</p>`;
+      `<button class="lien" data-piece="${echapper(x.chemin)}"${x.fichier ? ` data-refaire="${echapper(x.fichier)}"` : ""} title="${echapper(x.chemin)}">${echapper(x.nom)}</button>`).join("")}
+    </div>`).join("") : `<p class="discret">Aucun document</p>`;
 
   const envois = h.envois.length ? h.envois.map(dessinerEnvoi).join("")
-    : `<p class="discret">Rien n'est parti de ce mois.</p>`;
+    : `<p class="discret">Rien n'est parti</p>`;
+
+  // Avancé : les documents du mois déposés dans le Drive de la compagnie (route `archiver`, sa phrase dit ce qui est parti).
+  const archive = h.documents.length ? `<details><summary>Avancé</summary>
+      <p><button class="secondaire" data-archiver>Déposer dans le Drive</button>
+      <span class="discret" data-archive></span></p></details>` : "";
 
   vue.innerHTML = `${paie}
-    <h3>Les documents</h3>${documents}
-    <h3>Les envois et leurs retours</h3>${envois}`;
+    <h3>Les documents</h3>${documents}${archive}
+    <h3>Envois et retours</h3>${envois}`;
 
   vue.querySelectorAll("[data-piece]").forEach((b) => {
     b.onclick = async () => {
+      // Une pièce partie dont le fichier manque (`fichier`) : `piece-partie` la refait et rend son chemin.
       try {
-        const r = await api("ouvrir-piece", { historique: mois, chemin: b.dataset.piece });
-        if (r && r.phrase) dire(r.phrase);
-      }
-      catch (e) { dire(e.message, "erreur"); }
+        const chemin = b.dataset.refaire ? (await api("piece-partie", { mois, fichier: b.dataset.refaire })).chemin : b.dataset.piece;
+        await ouvrirEtDire(chemin);
+      } catch (e) { dire(e.message, "erreur"); }
     };
   });
+  const archiver = vue.querySelector("[data-archiver]");
+  if (archiver) archiver.onclick = async () => {
+    const dit = vue.querySelector("[data-archive]");
+    archiver.disabled = true;
+    dit.textContent = "dépôt…";
+    try { dit.textContent = (await api("archiver", { mois })).phrase; }
+    catch (e) { dit.textContent = e.message; }
+    archiver.disabled = false;
+  };
   vue.querySelectorAll("[data-faire]").forEach((b) => {
     b.onclick = async () => {
       document.querySelector('.onglets button[data-vue="paie"]').click();
       await chargerMois(mois);
       // Un mois dont la DSN est en retard : elle se fabrique et part, en retard.
-      if (d.dataset.retard === "1") deposerLaDsn(mois);
+      if (d.dataset.retard === "1") boiteDepot({ quoi: "dsn", mois }, { testerDabord: true });
     };
   });
 }
@@ -126,7 +140,7 @@ function dessinerEnvoi(e) {
   const test = e.mode === "test";
   const id = e.identite;
   const retours = e.retours.length ? e.retours.map(dessinerRetour).join("")
-    : e.attend_retour ? `<p class="discret retour">Aucun retour pour l'instant.</p>` : "";
+    : e.attend_retour ? `<p class="discret retour">Aucun retour</p>` : "";
   return `
     <details class="envoi ${test ? "test" : "reel"}" ${test ? "" : "open"}>
       <summary><b>${echapper(e.acte)}</b>
@@ -139,25 +153,25 @@ function dessinerEnvoi(e) {
 
 /** Un retour, lu : l'organisme, ce que dit sa pièce, ses anomalies ; la pièce elle-même en dernier recours. */
 function dessinerRetour(r) {
-  const titre = r.titre || r.libelle || `retour de nature ${r.nature}`;
+  const titre = r.titre_dit || r.titre || "";
   const anomalies = (r.anomalies || []).length ? `
     <table class="anomalies"><tr><th>code</th><th>message</th><th>rubrique</th><th>salarié</th></tr>
     ${r.anomalies.map((a) => `<tr><td><code>${echapper(a.code || "")}</code></td>
       <td>${echapper(a.message || "")}${a.categorie ? ` <span class="discret">(${echapper(a.categorie)})</span>` : ""}${
         a.nombre && a.nombre !== "1" ? ` <span class="discret">× ${echapper(a.nombre)}</span>` : ""}</td>
-      <td>${echapper(a.rubrique || "")}${a.ligne ? ` <span class="discret">ligne ${echapper(a.ligne)}</span>` : ""}</td>
+      <td>${echapper(a.rubrique || "")}${a.ligne_dit ? ` <span class="discret">${echapper(a.ligne_dit)}</span>` : ""}</td>
       <td>${echapper(a.salarie || "")}</td></tr>`).join("")}</table>` : "";
   return `
     <details class="retour">
-      <summary><span class="discret">${echapper(r.quand ? quand(r.quand) : "")}</span>
+      <summary><span class="discret">${echapper(r.quand_dit || "")}</span>
         ${r.organisme ? `${echapper(r.organisme)} — ` : ""}${echapper(titre)}
         ${pastilleDeLEtat(r.pastille)}</summary>
       <div class="retour-corps">
-        <p class="discret">Nature ${echapper(r.nature)} : ${echapper(r.libelle || "")}</p>
+        ${r.nature_dit ? `<p class="discret">${echapper(r.nature_dit)}</p>` : ""}
         ${(r.phrases || []).map((p) => `<p>${echapper(p)}</p>`).join("")}
         ${anomalies}
-        ${r.piece ? `<p><button class="lien" data-piece="${echapper(r.piece)}">Ouvrir la pièce telle quelle</button>
-          <span class="discret">${echapper(r.piece)}</span></p>` : ""}
+        ${r.piece ? `<p><button class="lien" data-piece="${echapper(r.piece)}">Ouvrir la pièce</button>
+          </p>` : ""}
       </div>
     </details>`;
 }

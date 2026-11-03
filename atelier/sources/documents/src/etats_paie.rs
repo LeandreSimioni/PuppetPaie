@@ -2,14 +2,11 @@
 //! detaille, le recapitulatif annuel, la masse salariale, les virements, le prelevement a la source, la reduction
 //! generale, les assiettes, les heures et cachets, le cout par spectacle.
 //!
-//! UN ETAT LIT LES PAIES ECRITES DES ENGAGEMENTS VALIDES (`engagement::etats::validees_du_mois`) ET LES PAIES DES
-//! ENGAGEMENTS IMPORTES (`engagement::importe`), et rien d'autre : un engagement en saisie n'est pas paye, il n'y entre
-//! pas ; la periode couvre les mois que des engagements touchent. Le livre de paie, et les etats qui se construisent
-//! sur lui, portent les paies importees avec ce que les pieces de l'ancien logiciel en disaient ; un etat qui lit le
-//! calcul d'une paie (ses lignes, ses assiettes, la repartition de ses cotisations) ne prend que les paies calculees
-//! ici et nomme les mois importes qu'il laisse (`Periode::saisis_sans_les_importes`). Le PAS se lit par
-//! `prelevement::des_paies` ; aucun numero n'est consomme. Un montant que la paie ne dit pas est VIDE, pas zero, et le
-//! total ne le compte pas.
+//! UN ETAT LIT LES PAIES DU MOIS (`engagement::etats::paies_du_mois`), par un seul chemin : les paies ecrites des
+//! engagements valides, et celles des engagements importes, dans les mots du moteur (ce que les pieces de l'ancien
+//! logiciel en disent : `engagement::importe::Importe::paie`). Un engagement en saisie n'est pas paye, il n'y entre pas ;
+//! la periode couvre les mois que des engagements touchent. Le PAS se lit par `prelevement::des_paies` ; aucun numero
+//! n'est consomme. Un montant que la paie ne dit pas (`Paie::dit`) est VIDE, pas zero, et le total ne le compte pas.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
@@ -47,6 +44,9 @@ pub struct Demande {
     pub ecrire: bool,
     pub logiciel: Option<String>,
     pub analytique: Option<bool>,
+    /// Ce qui est parti, que le moteur lit (`envois::journal::departs`) : le prelevement d'une paie declaree se lit dans la
+    /// paie que la DSN a declaree (`prelevement::des_paies`).
+    pub departs: engagement::departs::Departs,
 }
 
 /// Le nom du mois `i` abrege de quatre lettres, avec son point : « Janv. ». Les appelants parcourent les douze colonnes
@@ -76,8 +76,6 @@ pub struct Periode {
     pub toutes: bool,
     pub mois: Vec<String>,
     pub libelle: String,
-    /// Les mois de la periode ou des engagements importes ont ete payes (`mois_importes`).
-    pub importes: BTreeSet<String>,
 }
 
 /// Les mois qu'il y a matiere a exporter : ceux que la saisie touche (`SAISIE`), et ceux ou seuls des engagements
@@ -139,8 +137,7 @@ impl Periode {
         } else {
             "toutes les années".to_string()
         };
-        let importes = mois_importes(ctx)?.into_iter().filter(|m| pris.contains(m)).collect();
-        Ok(Periode { dispo, un_mois: mois, annee, toutes, mois: pris, libelle, importes })
+        Ok(Periode { dispo, un_mois: mois, annee, toutes, mois: pris, libelle })
     }
 
     /// La periode d'une demande (`mois`, `annee`, `toutes`).
@@ -150,21 +147,6 @@ impl Periode {
 
     pub fn saisis(&self) -> Vec<String> {
         self.mois.iter().filter(|m| self.dispo.get(*m) == Some(&SAISIE)).cloned().collect()
-    }
-
-    /// Les mois de la periode que la saisie touche, pour un etat qui lit le calcul d'une paie (`ce_qui_manque`) : les
-    /// paies importees n'en portent que ce que les pieces de l'ancien logiciel disaient. L'avertissement nomme les
-    /// mois ou elles ont ete payees ; elles n'entrent pas dans l'etat.
-    pub fn saisis_sans_les_importes(&self, avert: &mut Vec<String>, ce_qui_manque: &str) -> R<Vec<String>> {
-        if !self.importes.is_empty() {
-            let mois: Vec<String> = self.importes.iter().map(|m| libelle_mois(m)).collect::<R<_>>()?;
-            avert.push(format!(
-                "Paies importées de l'ancien logiciel ({}) : elles n'entrent pas dans cet état, elles ne portent pas {}.",
-                mois.join(", "),
-                ce_qui_manque
-            ));
-        }
-        Ok(self.saisis())
     }
 
     pub fn contient(&self, m: &str) -> bool {
@@ -217,25 +199,12 @@ fn mois_pris(dispo: &BTreeMap<String, &'static str>, mois: &Option<String>, anne
     Ok(pris)
 }
 
-/// Les mois de la periode que la saisie touche (`Periode::saisis_sans_les_importes`) ; un etat qui n'en a aucun refuse, en
-/// disant ce qui lui manque.
-pub fn ecarter_declares(p: &Periode, avert: &mut Vec<String>, ce_qui_manque: &str) -> R<Vec<String>> {
-    let saisis = p.saisis_sans_les_importes(avert, ce_qui_manque)?;
-    if saisis.is_empty() {
-        return Err(refus(format!(
-            "Aucun engagement sur la période ({}) : cet état a besoin de {}, que seule une paie validée porte.",
-            p.libelle, ce_qui_manque
-        )));
-    }
-    Ok(saisis)
-}
-
 // ------------------------------------------------------------------ les lectures
 
 /// La saisie de `mois` reduite a ses engagements valides, et leurs paies telles qu'elles ont ete validees : ce que
 /// lisent les etats et les exports.
-pub fn charger_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    engagement::etats::validees_du_mois(ctx, mois)
+pub fn charger_mois(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> R<(Value, Vec<Paie>)> {
+    engagement::etats::validees_du_mois(ctx, mois, departs)
         .map_err(|m| erreur("ErreurOperation", m))?
         .ok_or_else(|| erreur("ErreurOperation", format!("{} : aucun engagement ne touche ce mois.", mois)))
 }
@@ -243,20 +212,21 @@ pub fn charger_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
 /// Les paies validees d'un mois, lues une fois par export.
 pub struct Lecture<'a> {
     ctx: &'a Contexte,
+    departs: &'a engagement::departs::Departs,
     paies: HashMap<String, Rc<Vec<Paie>>>,
     pas: HashMap<String, Rc<Vec<Option<Versement>>>>,
 }
 
 impl<'a> Lecture<'a> {
-    pub fn nouvelle(ctx: &'a Contexte) -> Self {
-        Lecture { ctx, paies: HashMap::new(), pas: HashMap::new() }
+    pub fn nouvelle(ctx: &'a Contexte, departs: &'a engagement::departs::Departs) -> Self {
+        Lecture { ctx, departs, paies: HashMap::new(), pas: HashMap::new() }
     }
 
-    /// Les paies du mois qui ont un bulletin (un engagement sans paie n'en a pas).
+    /// Les paies du mois, calculees ou importees (`engagement::etats::paies_du_mois`).
     pub fn paies(&mut self, mois: &str) -> R<Rc<Vec<Paie>>> {
         if !self.paies.contains_key(mois) {
-            let (_, toutes) = charger_mois(self.ctx, mois)?;
-            self.paies.insert(mois.to_string(), Rc::new(toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect()));
+            let paies = engagement::etats::paies_du_mois(self.ctx, mois, self.departs).map_err(|m| erreur("ErreurOperation", m))?;
+            self.paies.insert(mois.to_string(), Rc::new(paies));
         }
         Ok(Rc::clone(&self.paies[mois]))
     }
@@ -265,7 +235,7 @@ impl<'a> Lecture<'a> {
     pub fn pas(&mut self, mois: &str) -> R<Rc<Vec<Option<Versement>>>> {
         if !self.pas.contains_key(mois) {
             let paies = self.paies(mois)?;
-            let v = crate::prelevement::des_paies(self.ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
+            let v = crate::prelevement::des_paies(self.ctx, &paies, self.departs).map_err(|m| erreur("ErreurOperation", m))?;
             self.pas.insert(mois.to_string(), Rc::new(v));
         }
         Ok(Rc::clone(&self.pas[mois]))
@@ -282,12 +252,12 @@ pub fn cle_de(fiche: &Value) -> R<String> {
     Ok(valeur_en_texte(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
 }
 
-/// Le titre du spectacle d'une paie (`(p.spectacle or {}).get("titre") or ""`).
+/// Le titre du spectacle d'une paie.
 pub fn titre_spectacle(p: &Paie) -> String {
     p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte).unwrap_or_default()
 }
 
-/// `str(Decimal)` d'un taux flottant : `Decimal(str(x))`.
+/// Un taux flottant en décimal, par son écriture la plus courte qui se relit.
 pub fn dec_taux(x: f64) -> R<Decimal> {
     socle::num::dec_f64(x).map_err(|m| erreur("ValueError", m))
 }
@@ -317,7 +287,7 @@ pub struct LigneLivre {
     pub net_a_payer: Option<Decimal>,
     pub pas: Option<Decimal>,
     pub cout_employeur: Option<Decimal>,
-    /// Le jour du versement (`date_paiement` de la paie), JJ/MM/AAAA ; vide s'il n'est pas dit.
+    /// Le jour du versement (`Engagement::date_du_versement`), JJ/MM/AAAA.
     pub verse_le: String,
     pub nir: String,
     pub date_naissance: String,
@@ -353,7 +323,7 @@ impl Totaux {
         self.sommes.iter().find(|(c, _)| *c == champ).map(|(_, v)| *v).unwrap_or_else(zero2)
     }
 
-    /// `_total` : le total d'une colonne, ou `None` quand AUCUNE ligne ne la declare.
+    /// Le total d'une colonne, ou `None` quand AUCUNE ligne ne la declare.
     fn total(&self, champ: &str) -> Option<Decimal> {
         let manque = self.inconnus.iter().find(|(c, _)| *c == champ).map_or(0, |(_, n)| *n);
         if manque >= self.bulletins {
@@ -366,6 +336,7 @@ impl Totaux {
     fn json(&self) -> Value {
         let mut m = Map::new();
         m.insert("bulletins".into(), json!(self.bulletins));
+        m.insert("bulletins_dit".into(), json!(format!("{} {}", self.bulletins, if self.bulletins == 1 { "bulletin" } else { "bulletins" })));
         for c in CUMULABLES {
             m.insert(c.into(), json!(self.somme(c).to_string()));
         }
@@ -374,7 +345,7 @@ impl Totaux {
     }
 }
 
-/// `_totaliser` : la somme de ce qui est DECLARE, colonne par colonne, et le compte de ce qui ne l'est pas.
+/// La somme de ce qui est DECLARE, colonne par colonne, et le compte de ce qui ne l'est pas.
 fn totaliser_lignes(lignes: &[&LigneLivre]) -> Totaux {
     let mut t = Totaux { bulletins: lignes.len() as i64, sommes: CUMULABLES.iter().map(|c| (*c, zero2())).collect(), inconnus: Vec::new() };
     for l in lignes {
@@ -432,7 +403,7 @@ impl LivreDePaie {
             "periode": self.periode,
             "mois": self.mois,
             "regroupement": self.regroupement,
-            "groupes": self.groupes.iter().map(|g| json!({"libelle": g.libelle, "lignes": g.lignes.iter().map(ligne).collect::<Vec<_>>(), "totaux": g.totaux.json()})).collect::<Vec<_>>(),
+            "groupes": self.groupes.iter().map(|g| json!({"libelle": g.libelle, "total_dit": format!("Total {}", g.libelle), "lignes": g.lignes.iter().map(ligne).collect::<Vec<_>>(), "totaux": g.totaux.json()})).collect::<Vec<_>>(),
             "totaux": self.totaux.json(),
             "coordonnees": self.coordonnees,
             "format": self.format,
@@ -461,63 +432,23 @@ fn coordonnees_de(s: &Value, coordonnees: bool) -> (String, String, String) {
     (fiche_texte(s, "nir"), fiche_texte(s, "date_naissance"), adresse)
 }
 
-/// Les lignes du livre des engagements importes payes en `mois` : ce que l'import a lu de chaque paie (le bulletin ou
-/// la DSN de l'ancien logiciel), rien d'autre. Un montant que les pieces ne disaient pas reste vide.
-fn lignes_importees(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<Vec<LigneLivre>> {
-    let mut lignes = Vec::new();
-    for i in engagement::importe::du_mois(&ctx.racine, mois).map_err(|m| erreur("ValueError", m))? {
-        let paies = i.paies();
-        let Some(p) = paies.get(mois) else { continue };
-        let brut = &i.objet().brut;
-        let lu = |m: &Map<String, Value>, k: &str| m.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-        let montant = |k: &str| socle::num::decimal_lu(lu(p, k).trim()).map(eur2);
-        let cle = brut.get("salarie").map(valeur_en_texte).unwrap_or_default();
-        let s = ctx.salarie(&cle).map_err(|m| erreur("ErreurOperation", m))?;
-        let nature = i.contrat().map(|c| lu(c, "nature")).and_then(|n| droit::natures::nature(Some(&n)).ok()).map(|n| n.libelle.clone()).unwrap_or_default();
-        let contrat = brut.get("numero").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| lu(p, "contrat"));
-        let (nir, date_naissance, adresse) = coordonnees_de(&s, coordonnees);
-        lignes.push(LigneLivre {
-            mois: mois.to_string(),
-            salarie: qui(&s)?,
-            cle_salarie: cle_de(&s)?,
-            contrat,
-            nature,
-            spectacle: lu(p, "spectacle"),
-            brut: montant("brut"),
-            cotisations_salariales: montant("cotisations_salariales"),
-            cotisations_patronales: montant("cotisations_patronales"),
-            net_imposable: montant("net_imposable"),
-            net_a_payer: montant("net_a_payer"),
-            pas: montant("pas"),
-            cout_employeur: montant("cout_employeur"),
-            verse_le: jj(&lu(p, "verse_le")),
-            nir,
-            date_naissance,
-            adresse,
-        });
+/// Les lignes du livre pour un mois (`engagement::etats::paies_du_mois` : les paies ecrites des engagements valides, puis
+/// celles que l'import a lues), ce qu'il a fallu taire, et si ses numeros de contrat sont tous ecrits. Un montant que
+/// les pieces d'une paie importee ne disent pas reste vide (`Paie::dit`) ; aucun numero n'est invente.
+fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool, departs: &engagement::departs::Departs) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
+    if engagement::etats::validees_du_mois(ctx, mois, departs).map_err(|m| erreur("ErreurOperation", m))?.is_none() && !mois_importes(ctx)?.contains(mois) {
+        return Err(erreur("ErreurOperation", format!("{} : aucun engagement ne touche ce mois.", mois)));
     }
-    Ok(lignes)
-}
-
-/// `_lignes_du_mois` : les lignes du livre pour un mois (celles des engagements valides de la saisie, puis celles des
-/// engagements importes payes ce mois-la), ce qu'il a fallu taire, et si ses numeros de contrat sont tous ecrits. Les
-/// paies sont celles que la validation a ecrites, ou celles que l'import a lues ; aucun numero n'est invente.
-fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
-    let importees = lignes_importees(ctx, mois, coordonnees)?;
-    let toutes = match engagement::etats::validees_du_mois(ctx, mois).map_err(|m| erreur("ErreurOperation", m))? {
-        Some((_, toutes)) => toutes,
-        None if !importees.is_empty() => Vec::new(),
-        None => return Err(erreur("ErreurOperation", format!("{} : aucun engagement ne touche ce mois.", mois))),
-    };
-    let paies: Vec<Paie> = toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect();
-    let pas = crate::prelevement::des_paies(ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
+    let paies = engagement::etats::paies_du_mois(ctx, mois, departs).map_err(|m| erreur("ErreurOperation", m))?;
+    let pas = crate::prelevement::des_paies(ctx, &paies, departs).map_err(|m| erreur("ErreurOperation", m))?;
     let (mut lignes, mut sans_pas) = (Vec::new(), Vec::new());
     for (p, r) in paies.iter().zip(pas.iter()) {
-        if r.is_none() {
+        if r.is_none() && p.dit("pas") {
             sans_pas.push(qui(&p.salarie)?);
         }
         let s = &p.salarie;
         let (nir, date_naissance, adresse) = coordonnees_de(s, coordonnees);
+        let dit = |champ: &str, v: Decimal| p.dit(champ).then(|| eur2(v));
         lignes.push(LigneLivre {
             mois: mois.to_string(),
             salarie: qui(s)?,
@@ -525,26 +456,25 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
             contrat: p.engagement.numero.clone().unwrap_or_default(),
             nature: nat_libelle(p)?,
             spectacle: titre_spectacle(p),
-            brut: Some(eur2(p.brut)),
-            cotisations_salariales: Some(eur2(p.total_sal)),
-            cotisations_patronales: Some(eur2(p.total_pat)),
-            net_imposable: Some(eur2(p.net_imposable)),
-            net_a_payer: Some(eur2(p.net_a_payer)),
-            pas: r.as_ref().map(|v| eur2(v.prelevement)),
-            cout_employeur: Some(eur2(p.cout_employeur)),
-            verse_le: p.engagement.date_paiement.as_deref().map(jj).unwrap_or_default(),
+            brut: dit("brut", p.brut),
+            cotisations_salariales: dit("cotisations_salariales", p.total_sal),
+            cotisations_patronales: dit("cotisations_patronales", p.total_pat),
+            net_imposable: dit("net_imposable", p.net_imposable),
+            net_a_payer: dit("net_a_payer", p.net_a_payer),
+            pas: r.as_ref().filter(|_| p.dit("pas")).map(|v| eur2(v.prelevement)),
+            cout_employeur: dit("cout_employeur", p.cout_employeur),
+            verse_le: p.engagement.date_du_versement()?.jj_mm_aaaa(),
             nir,
             date_naissance,
             adresse,
         });
     }
     // Ses numeros de contrat sont ecrits quand chaque engagement est valide, ou que la DSN de l'ancien logiciel les a donnes.
-    let figes = paies.iter().all(|p| p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty())) && importees.iter().all(|l| !l.contrat.is_empty());
-    lignes.extend(importees);
+    let figes = paies.iter().all(|p| p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()));
     Ok((lignes, sans_pas, figes))
 }
 
-/// `_grouper` : les lignes en groupes, chacun avec son sous-total. L'ordre DANS un groupe est chronologique puis
+/// Les lignes en groupes, chacun avec son sous-total. L'ordre DANS un groupe est chronologique puis
 /// alphabetique : deux editions de la meme periode donnent le meme fichier.
 fn grouper(lignes: &[LigneLivre], regroupement: &str) -> R<Vec<Groupe>> {
     let cle = |l: &LigneLivre| -> String {
@@ -600,7 +530,7 @@ pub fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     let pris = mois_pris(&dispo, &mois, &annee, d.toutes)?;
     let (mut lignes, mut avert, mut sans_pas, mut sans_numeros) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
     for m in &pris {
-        let (l_m, sans, figes) = lignes_du_mois(ctx, m, d.coordonnees)?;
+        let (l_m, sans, figes) = lignes_du_mois(ctx, m, d.coordonnees, &d.departs)?;
         lignes.extend(l_m);
         sans_pas.extend(sans);
         if !figes {
@@ -619,7 +549,7 @@ pub fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     if !sans_pas.is_empty() {
         let uniques: BTreeSet<&String> = sans_pas.iter().collect();
         avert.push(format!(
-            "Prélèvement à la source inconnu pour {} bulletin(s) ({}) : aucun taux DGFiP au magasin et le barème de l'année ne porte pas la grille par défaut. La colonne reste vide et le total du PAS ne les compte pas.",
+            "Prélèvement à la source inconnu pour {} bulletin(s) ({}) : aucun taux DGFiP reçu et le barème de l'année ne porte pas la grille par défaut. La colonne reste vide et le total du PAS ne les compte pas.",
             sans_pas.len(),
             uniques.into_iter().cloned().collect::<Vec<_>>().join(", ")
         ));
@@ -646,7 +576,7 @@ pub fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     Ok(livre)
 }
 
-/// `_ecrire` du livre : `exports/AAAA/livre-de-paie-<periode>-<regroupement>[-coordonnees].<ext>`.
+/// Ecrit le livre dans `exports/AAAA/livre-de-paie-<periode>-<regroupement>[-coordonnees].<ext>`.
 fn ecrire_livre(ctx: &Contexte, livre: &LivreDePaie, mois: &Option<String>, annee: &Option<String>, toutes: bool) -> R<PathBuf> {
     let (dossier, periode) = if toutes {
         (dossier_exports(ctx, None), "toutes-les-annees".to_string())
@@ -656,7 +586,7 @@ fn ecrire_livre(ctx: &Contexte, livre: &LivreDePaie, mois: &Option<String>, anne
         let a = annee.clone().unwrap_or_default();
         (dossier_exports(ctx, Some(&a)), a)
     };
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let nom = format!("livre-de-paie-{}-{}{}.{}", periode, livre.regroupement, if livre.coordonnees { "-coordonnees" } else { "" }, livre.format);
     let chemin = dossier.join(nom);
     let octets = match livre.format.as_str() {
@@ -664,7 +594,7 @@ fn ecrire_livre(ctx: &Contexte, livre: &LivreDePaie, mois: &Option<String>, anne
         "xlsx" => xlsx_livre(livre)?,
         _ => pdf_livre(ctx, livre)?,
     };
-    std::fs::write(&chemin, octets).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    std::fs::write(&chemin, octets).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     Ok(chemin)
 }
 
@@ -838,7 +768,7 @@ pub fn pdf_livre(ctx: &Contexte, livre: &LivreDePaie) -> R<Vec<u8>> {
         .to_string()
     };
     let entetes: Vec<(String, bool)> = colonnes_livre(livre).iter().map(|c| (etiquette(c), MONTANTS.contains(c))).collect();
-    // `_pdf_nom` : `nom_affichage`, sinon `nom` (pas la raison sociale).
+    // `nom_affichage`, sinon `nom` (pas la raison sociale).
     let nom = ["nom_affichage", "nom"].iter().find_map(|c| ctx.entreprise.get(*c).filter(|v| vrai(v)).map(valeur_en_texte)).unwrap_or_default();
     let sous = format!("{} — {}{}", livre.periode, regroupement_lisible(&livre.regroupement), if livre.coordonnees { " — avec les coordonnées des salariés" } else { "" });
     let d = crate::tableaux_export::description_pdf(
@@ -857,7 +787,7 @@ pub fn pdf_livre(ctx: &Contexte, livre: &LivreDePaie) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ _finir, _sections
 
-/// `_finir` : le format, les totaux, puis -- si on ecrit -- le fichier `<nom>-<periode>.<ext>` dans le dossier
+/// Le format, les totaux, puis -- si on ecrit -- le fichier `<nom>-<periode>.<ext>` dans le dossier
 /// de la periode (celui d'`exports/` sans periode).
 pub fn finir(ctx: &Contexte, t: &mut Tableau, p: Option<&Periode>, nom: &str, format: &str, ecrire: bool) -> R<()> {
     t.format = format_possible(format, &FORMATS_TABLEAU)?;
@@ -883,15 +813,16 @@ fn dec_val(v: Option<Decimal>) -> Option<Val> {
     v.map(Val::Dec)
 }
 
-/// `_lignes_livre` : les lignes du livre de paie, et ses avertissements -- les etats de synthese se
+/// Les lignes du livre de paie, et ses avertissements -- les etats de synthese se
 /// construisent dessus, pour tomber sur le livre.
-pub fn lignes_livre(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<LigneLivre>> {
+pub fn lignes_livre(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &engagement::departs::Departs) -> R<Vec<LigneLivre>> {
     let d = Demande {
         mois: p.un_mois.clone(),
         annee: p.annee.clone(),
         toutes: p.toutes,
         regroupement: "salarie".to_string(),
         format: "csv".to_string(),
+        departs: departs.clone(),
         ..Demande::default()
     };
     let livre = livre_de_paie(ctx, &d)?;
@@ -915,10 +846,10 @@ fn cle_tri(l: &Ligne, cles: &[&str]) -> Vec<String> {
 /// base, taux et montants.
 pub fn livre_detaille(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
-    let mut avert = Vec::new();
-    let mut lecture = Lecture::nouvelle(ctx);
+    let avert = Vec::new();
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let mut sections = Vec::new();
-    for m in ecarter_declares(&p, &mut avert, "le détail des lignes du bulletin")? {
+    for m in p.mois.clone() {
         let paies = lecture.paies(&m)?;
         let mut ordre: Vec<(String, String, usize)> = Vec::new();
         for (i, paie) in paies.iter().enumerate() {
@@ -1001,7 +932,7 @@ pub fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let p = Periode::nouvelle(ctx, None, d.annee.as_deref(), d.toutes, true)?;
     let mut avert = Vec::new();
-    let lignes = lignes_livre(ctx, &p, &mut avert)?;
+    let lignes = lignes_livre(ctx, &p, &mut avert, &d.departs)?;
     let mut ordre: Vec<(String, String)> = Vec::new();
     let mut par: HashMap<(String, String), (Ligne, i64)> = HashMap::new();
     let zero = zero2();
@@ -1069,7 +1000,7 @@ pub fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut ordre: Vec<String> = Vec::new();
     let mut par: HashMap<String, (Ligne, BTreeSet<String>, i64)> = HashMap::new();
     let zero = zero2();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         if !par.contains_key(&l.mois) {
             ordre.push(l.mois.clone());
             let mut n = Ligne::nouvelle();
@@ -1142,7 +1073,7 @@ pub fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert = Vec::new();
     let mut lignes = Vec::new();
     let mut sans_date = BTreeSet::new();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         if l.verse_le.is_empty() {
             sans_date.insert(l.mois.clone());
         }
@@ -1197,9 +1128,9 @@ fn type_de_taux(code: &str) -> &'static str {
 pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes, mut sans) = (Vec::new(), Vec::new(), Vec::new());
-    let mut lecture = Lecture::nouvelle(ctx);
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let coord = d.coordonnees;
-    for m in p.saisis_sans_les_importes(&mut avert, "le taux ni le type du prélèvement")? {
+    for m in p.mois.clone() {
         let r_pas = lecture.pas(&m)?;
         let paies = lecture.paies(&m)?;
         for (paie, r) in paies.iter().zip(r_pas.iter()) {
@@ -1213,9 +1144,15 @@ pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             match r {
                 Some(v) => {
                     l.d("abattement", v.abattement).d("assiette", v.montant_soumis);
-                    let code = valeur_en_texte(&v.type_taux);
-                    l.t("type", format!("{} — {}", code, type_de_taux(&code)));
-                    l.d("taux", socle::num::dec(&v.taux).map_err(|m| erreur("InvalidOperation", m))?).d("prelevement", eur2(v.prelevement));
+                    // Un taux ou un type que la paie ne dit pas (une paie importee dont les pieces ne l'impriment pas) reste vide.
+                    let code = if v.type_taux.is_null() { String::new() } else { valeur_en_texte(&v.type_taux) };
+                    l.t("type", if code.is_empty() { String::new() } else { format!("{} — {}", code, type_de_taux(&code)) });
+                    if v.taux.is_null() {
+                        l.rien("taux");
+                    } else {
+                        l.d("taux", socle::num::dec(&v.taux).map_err(|m| erreur("InvalidOperation", m))?);
+                    }
+                    l.d("prelevement", eur2(v.prelevement));
                 }
                 None => {
                     l.rien("abattement").rien("assiette").t("type", "").rien("taux").rien("prelevement");
@@ -1227,7 +1164,7 @@ pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if !sans.is_empty() {
         let uniques: BTreeSet<&String> = sans.iter().collect();
         avert.push(format!(
-            "Prélèvement inconnu pour {} : aucun taux DGFiP au magasin et le barème ne porte pas la grille par défaut. La ligne reste vide.",
+            "Prélèvement inconnu pour {} : aucun taux DGFiP reçu et le barème ne porte pas la grille par défaut. La ligne reste vide.",
             uniques.into_iter().cloned().collect::<Vec<_>>().join(", ")
         ));
     }
@@ -1269,8 +1206,8 @@ fn ou_zero(x: Decimal) -> Decimal {
 pub fn reduction_generale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let (mut avert, mut lignes) = (Vec::new(), Vec::new());
-    let mut lecture = Lecture::nouvelle(ctx);
-    for m in ecarter_declares(&p, &mut avert, "la réduction générale")? {
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
+    for m in p.mois.clone() {
         for paie in lecture.paies(&m)?.iter() {
             let Some(rg) = &paie.reduction_generale else { continue };
             let mut l = Ligne::nouvelle();
@@ -1332,10 +1269,10 @@ const ASSIETTES: [(&str, &str); 10] = [
 /// Les assiettes de cotisation de chaque paie de la periode, et son plafond.
 pub fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
-    let (mut avert, mut lignes) = (Vec::new(), Vec::new());
-    let mut lecture = Lecture::nouvelle(ctx);
+    let (avert, mut lignes) = (Vec::new(), Vec::new());
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
     let mut vues: BTreeSet<String> = BTreeSet::new();
-    for m in ecarter_declares(&p, &mut avert, "les assiettes de cotisation")? {
+    for m in p.mois.clone() {
         for paie in lecture.paies(&m)?.iter() {
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.clone().unwrap_or_default());
@@ -1383,9 +1320,9 @@ pub fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;
     let mut lignes = Vec::new();
-    let mut lecture = Lecture::nouvelle(ctx);
-    let mut avert = Vec::new();
-    for m in p.saisis_sans_les_importes(&mut avert, "les heures ni les cachets de chaque mois")? {
+    let mut lecture = Lecture::nouvelle(ctx, &d.departs);
+    let avert = Vec::new();
+    for m in p.mois.clone() {
         for paie in lecture.paies(&m)?.iter() {
             let e = &paie.engagement;
             let cachets = paie.remuneration.iter().filter(|r| r.unite == "cachet").fold(Decimal::ZERO, |a, r| a + r.quantite);
@@ -1443,7 +1380,7 @@ pub fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut ordre: Vec<(String, String)> = Vec::new();
     let mut par: HashMap<(String, String), (Ligne, i64)> = HashMap::new();
     let zero = zero2();
-    for l in lignes_livre(ctx, &p, &mut avert)? {
+    for l in lignes_livre(ctx, &p, &mut avert, &d.departs)? {
         let sp = if l.spectacle.is_empty() { "(sans spectacle)".to_string() } else { l.spectacle.clone() };
         let cle = (sp.clone(), l.cle_salarie.clone());
         if !par.contains_key(&cle) {

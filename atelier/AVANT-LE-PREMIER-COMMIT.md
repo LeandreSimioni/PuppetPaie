@@ -4,7 +4,7 @@ Le dépôt est public, et l'historique d'un dépôt est définitif : une valeur 
 une personne ou la compagnie du poste (un NIR, un IBAN, un BIC, un SIRET, un courriel, une adresse, un nom) n'y entre
 jamais. **On retire les identités, on garde les chiffres** : les montants prouvent que le calcul est juste, les noms
 n'apportent rien. Un test qui perd ses valeurs perd sa preuve ; ce qu'on garde d'un cas réel, ce sont ses attendus,
-transcrits sur des valeurs inventées (règle de fond 9 a de `CLAUDE.md`).
+transcrits sur des valeurs inventées (règle de fond 9 a de `AGENTS.md`).
 
 ## Deux gardes
 

@@ -79,9 +79,9 @@ struct Classeur {
 
 impl Classeur {
     fn ouvrir(chemin: &Path) -> Resultat<Classeur> {
-        let f = std::fs::File::open(chemin).map_err(|e| format!("{} illisible ({})", chemin.display(), e))?;
+        let f = std::fs::File::open(chemin).map_err(|e| crate::echec::du_disque(chemin, &e))?;
         let archive = zip::ZipArchive::new(f)
-            .map_err(|e| format!("{} n'est pas un classeur .xlsx lisible ({})", chemin.display(), e))?;
+            .map_err(|e| crate::echec::avec("Ce fichier n'est pas un classeur Excel lisible.", serde_json::json!({"chemin": chemin.to_string_lossy(), "detail": e.to_string()})))?;
         Ok(Classeur { archive, nom: chemin.display().to_string() })
     }
 
@@ -160,7 +160,7 @@ pub fn feuilles(chemin: &Path) -> Resultat<Vec<String>> {
 fn noms_des_feuilles(nom: &str, texte: &str) -> Resultat<Vec<(String, Option<String>)>> {
     let doc = analyser(nom, "xl/workbook.xml", texte)?;
     let sheets = enfant(doc.root_element(), "sheets")
-        .ok_or_else(|| format!("{} : xl/workbook.xml sans liste de feuilles", nom))?;
+        .ok_or_else(|| crate::echec::avec("Ce classeur Excel n'a aucune feuille lisible.", serde_json::json!({"chemin": nom})))?;
     Ok(sheets
         .children()
         .filter(|n| n.is_element())

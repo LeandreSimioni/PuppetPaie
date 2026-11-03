@@ -204,6 +204,14 @@ fn poste(f: &Fenetre, jeton: &str, nom: &str, args: serde_json::Value) -> serde_
     serde_json::from_slice(&r.corps).unwrap()
 }
 
+/// Une route du catalogue, demandee par la page a la porte de la fenetre (`/api/<route>`).
+fn route_de_la_page(f: &Fenetre, jeton: &str, nom: &str, charge: serde_json::Value) -> serde_json::Value {
+    let entetes = HashMap::from([("x-jeton".to_string(), jeton.to_string())]);
+    let r = f.traiter(Requete { methode: "POST".into(), chemin: format!("/api/{}", nom), params: HashMap::new(), entetes, corps: charge.to_string().into_bytes() });
+    assert_eq!(r.code, 200, "{}", nom);
+    serde_json::from_slice(&r.corps).unwrap()
+}
+
 fn racine_servie(f: &Fenetre, jeton: &str) -> String {
     let params = HashMap::from([("jeton".to_string(), jeton.to_string())]);
     let r = f.traiter(Requete { methode: "GET".into(), chemin: "/index.html".into(), params, entetes: HashMap::new(), corps: Vec::new() });
@@ -242,9 +250,10 @@ fn retour_et_echap_ramenent_des_pages_du_mot_de_passe_au_choix_de_la_compagnie()
     let rien = serde_json::json!([]);
     chaque_geste_appele_est_dans_la_cale(&racine_servie(&f, &jeton), "l'accueil");
 
-    // Une compagnie reelle neuve : le choix du mot de passe.
-    let v = poste(&f, &jeton, "ajouter", serde_json::json!(["Compagnie du Retour"]));
+    // Une compagnie reelle neuve, par sa route : la fenetre l'ouvre sur le choix du mot de passe.
+    let v = route_de_la_page(&f, &jeton, "compagnie-ajouter", serde_json::json!({"nom": "Compagnie du Retour"}));
     assert_eq!(v["ok"], serde_json::json!(true), "{}", v);
+    assert_eq!(poste(&f, &jeton, "choisir", serde_json::json!([v["resultat"]["id"]]))["ok"], serde_json::json!(true));
     let choix = racine_servie(&f, &jeton);
     assert!(choix.contains("Poser et ouvrir"), "la page du choix du mot de passe");
     chaque_geste_appele_est_dans_la_cale(&choix, "le choix du mot de passe");
@@ -257,7 +266,9 @@ fn retour_et_echap_ramenent_des_pages_du_mot_de_passe_au_choix_de_la_compagnie()
     // Le mot de passe pose, la compagnie rouverte : la saisie du mot de passe.
     let id = tuile_ajoutee(&accueil);
     assert_eq!(poste(&f, &jeton, "choisir", serde_json::json!([id]))["ok"], serde_json::json!(true));
-    let v = poste(&f, &jeton, "poser", serde_json::json!(["secret-du-retour", "secret-du-retour"]));
+    let v = route_de_la_page(&f, &jeton, "mot-de-passe-changer", serde_json::json!({"nouveau": "secret-du-retour", "confirmation": "secret-du-retour"}));
+    assert_eq!(v["ok"], serde_json::json!(true), "{}", v);
+    let v = poste(&f, &jeton, "verifier", serde_json::json!(["secret-du-retour"]));
     assert_eq!(v["ok"], serde_json::json!(true), "{}", v);
     assert_eq!(poste(&f, &jeton, "accueil", rien.clone())["ok"], serde_json::json!(true));
     assert_eq!(poste(&f, &jeton, "choisir", serde_json::json!([id]))["ok"], serde_json::json!(true));

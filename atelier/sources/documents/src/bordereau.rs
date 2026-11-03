@@ -37,6 +37,7 @@
 use socle::date::Jour;
 use socle::fichiers::{dossier_du_code, signature};
 use socle::num::{div, mul, Decimal, Resultat};
+use socle::texte::euros;
 use rust_decimal::RoundingStrategy;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -79,10 +80,10 @@ fn date_table(texte: &str) -> Resultat<Option<Jour>> {
     }
     let p: Vec<&str> = texte.split('-').collect();
     if p.len() != 3 {
-        return Err(format!("{} valeurs a decompacter, 3 attendues : {:?}", p.len(), texte));
+        return Err(socle::echec::a_la_cle("La table des cotisations livrée avec le logiciel porte une date illisible : le signaler au développeur.", "date", texte));
     }
     let n = |s: &str| -> Resultat<i64> {
-        s.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {:?}", s))
+        s.trim().parse::<i64>().map_err(|_| socle::echec::a_la_cle("La table des cotisations livrée avec le logiciel porte une date illisible : le signaler au développeur.", "date", s))
     };
     let (an, x, y) = (n(p[0])?, n(p[1])?, n(p[2])?);
     let (mois, jour) = if y > 12 { (x, y) } else { (y, x) };
@@ -156,10 +157,10 @@ fn enregistrements(texte: &str) -> Vec<Vec<String>> {
     out
 }
 
-/// `_lire` : code -> lignes de la table.
+/// Code -> lignes de la table.
 fn lire(chemin: &Path) -> Resultat<Table> {
-    let octets = std::fs::read(chemin).map_err(|e| format!("{} : {}", chemin.display(), e))?;
-    let texte = String::from_utf8(octets).map_err(|e| format!("{} : {}", chemin.display(), e))?;
+    let octets = std::fs::read(chemin).map_err(|e| socle::echec::du_disque(&chemin, &e))?;
+    let texte = String::from_utf8(octets).map_err(|e| socle::echec::du_disque(&chemin, &e))?;
     let texte = texte.strip_prefix('\u{feff}').unwrap_or(&texte);
     let mut recs = enregistrements(texte).into_iter();
     let entete = recs.next().unwrap_or_default();
@@ -252,7 +253,9 @@ urssaf-codes-types-personnel). Rien n'est ecrit.",
     };
     let cent = Decimal::ONE_HUNDRED;
     match t.format.as_str() {
-        "F" => {
+        // F et R : le CTP porte le signe negatif, le montant (23.005) s'ecrit positif (tableau DIDA de l'Urssaf,
+        // `chomage-permanents/urssaf-equivalence-dida-20260611.csv`, CTP 003 et 004 ; guide Urssaf du 04/06/2026, format R).
+        "F" | "R" => {
             let m = l.montant.ok_or_else(|| socle::fichiers::absent("montant"))?;
             Ok(-euro(m))
         }
@@ -387,26 +390,8 @@ const SOURCE_COMPLEMENTAIRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005
 const SOURCE_DGFIP: &str = "Fiche net-entreprises 1931 « Gérer les situations créditrices » : un prélèvement à la source négatif se déclare à 0,00, et le remboursement se demande au service des impôts des entreprises (messagerie sécurisée de l'espace professionnel impots.gouv.fr).";
 const SOURCE_AUTRE: &str = "Cahier technique DSN 2026.1, S21.G00.20.005 : « montant des cotisations réglées », « non signé, valeur zéro autorisée ». Aucun texte relevé ne dit comment cet organisme rend un crédit.";
 
-/// Un montant a l'ecran : « 1 295,00 € », milliers separes et euro colle par des espaces insecables (le montant ne se
-/// coupe pas en fin de ligne), comme `euros` de la page (`toLocaleString("fr-FR")`).
-fn euros(x: Decimal) -> String {
-    let mut x = x.abs();
-    x.rescale(2);
-    let t = x.to_string();
-    let (e, c) = t.split_once('.').unwrap_or((&t, "00"));
-    let mut groupes: Vec<&str> = Vec::new();
-    let mut fin = e.len();
-    while fin > 3 {
-        groupes.push(&e[fin - 3..fin]);
-        fin -= 3;
-    }
-    groupes.push(&e[..fin]);
-    groupes.reverse();
-    format!("{},{}\u{a0}€", groupes.join("\u{202f}"), c)
-}
-
 /// Ce que devient le credit d'un versement : `reste`, le credit que le versement ne reprend pas ; `deduit`, ce qu'il
-/// reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire. (`_nom` : l'organisme, que l'ecran nomme deja.)
+/// reprend (l'Urssaf seulement). `None` quand il n'y a rien a dire.
 pub fn credit(dest: Destinataire, _nom: &str, reste: Decimal, deduit: Decimal) -> Option<Credit> {
     if reste <= Decimal::ZERO && deduit <= Decimal::ZERO {
         return None;

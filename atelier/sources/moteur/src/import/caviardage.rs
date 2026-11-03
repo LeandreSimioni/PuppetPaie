@@ -472,7 +472,7 @@ fn par_les_connus(t: &mut Travail, c: &Connus) {
     motifs.sort_by(|a, b| b.0.cmp(&a.0));
     motifs.dedup_by(|a, b| a.1 == b.1);
     for (_, m, etiquette) in motifs {
-        let Ok(re) = Regex::new(&m) else { continue };
+        let Some(re) = motif_de(&m) else { continue };
         let plie = Plie::de(&t.s);
         let plages = re.find_iter(&plie.texte).map(|x| (plie.origine(x.start()), plie.origine(x.end()))).collect();
         t.poser(plages, etiquette);
@@ -485,7 +485,7 @@ fn proteger(t: &mut Travail, c: &Connus) {
     valeurs.sort_by_key(|v| std::cmp::Reverse(v.chars().count()));
     for v in valeurs {
         let Some(m) = motif_mots(v) else { continue };
-        let Ok(re) = Regex::new(&m) else { continue };
+        let Some(re) = motif_de(&m) else { continue };
         let plie = Plie::de(&t.s);
         let plages = re.find_iter(&plie.texte).map(|x| (plie.origine(x.start()), plie.origine(x.end()))).collect();
         t.garder(plages);
@@ -515,6 +515,19 @@ struct Motifs {
     code_postal: Regex,
     mot: Regex,
     montant: Regex,
+}
+
+/// Le motif d'une valeur connue, compile une fois pour le processus (un motif ne depend que de son texte) ; `None` s'il
+/// ne se compile pas.
+fn motif_de(source: &str) -> Option<Regex> {
+    static COMPILES: OnceLock<std::sync::Mutex<std::collections::HashMap<String, Regex>>> = OnceLock::new();
+    let compiles = COMPILES.get_or_init(Default::default);
+    if let Some(re) = compiles.lock().unwrap_or_else(|p| p.into_inner()).get(source) {
+        return Some(re.clone());
+    }
+    let re = Regex::new(source).ok()?;
+    socle::fichiers::ranger(compiles, source.to_string(), re.clone());
+    Some(re)
 }
 
 fn motif(source: &str) -> Regex {

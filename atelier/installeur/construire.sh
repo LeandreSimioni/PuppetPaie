@@ -8,7 +8,7 @@
 #   3. la fenetre `puppetpaie.exe` (Tauri 2) ;
 #   4. l'installeur NSIS `PuppetPaie-<JJ.MM.AAAA>-installeur.exe` (la version lue, pas l'identifiant), dans `atelier/depot/installeur/`.
 #
-# Ce que l'installeur pose : exactement ce qu'une compagnie Windows recoit (CLAUDE.md, « Le rangement ») -- les fichiers
+# Ce que l'installeur pose : exactement ce qu'une compagnie Windows recoit (atelier/AGENTS.md, « Où sont les choses ») -- les fichiers
 # suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis), et les
 # marques de la livraison de fictives si le flux les a posees --,
 # et la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`. Rien sur le bridage : sans rien qui dise

@@ -40,6 +40,34 @@
       "conges_spectacles": true,
       "source": "CSS L.242-1. Les heures declarees sont les heures faites."
     },
+    "heure_supplementaire": {
+      "libelle": "Heures supplémentaires",
+      "unite": "heure",
+      "nature": "salaire",
+      "saisie": [],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": "017",
+      "soumis": true,
+      "imposable": true,
+      "conges_spectacles": true,
+      "source": "Les heures supplementaires d'un salarie a temps plein paye au mois (C. trav. L3121-28), au taux horaire de son contrat majore (`droit::heures_en_plus`). Le moteur la compose depuis le fait du mois (`heures_supplementaires`), jamais une saisie de ligne. Declaree en S21.G00.51.011 = 017 (heures aleatoires ; fiche net-entreprises 2066) ; ses heures comptent au salaire minimum de la reduction generale (CSS D241-7, IV). Son montant ouvre la reduction de cotisations salariales (L241-17) et l'exoneration d'impot (CGI 81 quater), que le calcul fait (`engagement::heures_en_plus`)."
+    },
+    "heure_complementaire": {
+      "libelle": "Heures complémentaires",
+      "unite": "heure",
+      "nature": "salaire",
+      "saisie": [],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": "017",
+      "soumis": true,
+      "imposable": true,
+      "conges_spectacles": true,
+      "source": "Les heures complementaires d'un salarie a temps partiel paye au mois (C. trav. L3123-20), au taux horaire de son contrat majore (`droit::heures_en_plus`). Le moteur la compose depuis le fait du mois (`heures_complementaires`). Declaree en S21.G00.51.011 = 017 ; ses heures comptent au salaire minimum de la reduction generale (CSS D241-7, IV) et s'ajoutent a la duree du contrat qui corrige le plafond (R242-2, I). Reduction salariale et exoneration d'impot comme les heures supplementaires (L241-17, I, 5° ; CGI 81 quater) ; pas de deduction patronale (BOSS § 570)."
+    },
     "journee": {
       "libelle": "Journée de travail",
       "unite": "jour",
@@ -171,6 +199,70 @@
       "conges_spectacles": false,
       "source": "Frais professionnels rembourses au forfait : hors assiette dans les limites du bareme (BOSS, Frais professionnels). S21.G00.54.001 = 07."
     },
+    "repas": {
+      "libelle": "Repas",
+      "unite": "forfait",
+      "nature": "frais",
+      "saisie": [
+        "quantite",
+        "taux"
+      ],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": null,
+      "dsn_autres_bruts": "07",
+      "soumis": false,
+      "imposable": false,
+      "conges_spectacles": false,
+      "source": "Un repas principal pris en deplacement, rembourse au forfait : la quantite est le nombre de repas, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.repas` de la couche de la convention ; sans tarif, il se saisit). Hors assiette dans la limite par repas de l'arrete du 4 septembre 2025, art. 3 et 5, I, 1° (bareme, `repas_deplacement` ; atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md), la part au-dela en `repas_au_dela` (engagement::frais_au_dela) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
+    },
+    "nuitee": {
+      "libelle": "Nuitée",
+      "unite": "forfait",
+      "nature": "frais",
+      "saisie": [
+        "quantite",
+        "taux"
+      ],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": null,
+      "dsn_autres_bruts": "07",
+      "soumis": false,
+      "imposable": false,
+      "conges_spectacles": false,
+      "source": "Une nuit en deplacement (chambre et petit-dejeuner), remboursee au forfait : la quantite est le nombre de nuits, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.nuitee` de la couche de la convention ; sans tarif, il se saisit). Hors assiette dans la limite par jour de l'arrete du 4 septembre 2025, art. 5, I, 1° (bareme, `logement_grand_deplacement` ; atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md), la part au-dela en `nuitee_au_dela` (engagement::frais_au_dela) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
+    },
+    "nuitee_au_dela": {
+      "libelle": "Nuitée au-delà de la limite",
+      "unite": "forfait",
+      "nature": "indemnite",
+      "saisie": [],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": null,
+      "soumis": true,
+      "imposable": true,
+      "conges_spectacles": false,
+      "source": "La part d'une nuitee au-dela de la limite d'exoneration du jour (bareme, `logement_grand_deplacement` : arrete du 4 septembre 2025, art. 5, I, 1°, atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md ; BOSS, Frais professionnels, § 1290, atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt l. 1539-1543), quand la compagnie ne garde pas le justificatif de la depense : « la fraction excédentaire est exclue de l'assiette des cotisations si l'employeur prouve qu'elle a été utilisée conformément à son objet » (§ 270, l. 332-333), sinon elle y entre. Le moteur la pose (engagement::frais_au_dela), elle ne se saisit pas. En DSN, dans la remuneration brute et les assiettes du bloc 51, pas dans le bloc 54 : « certaines parties des montants des autres éléments de revenu brut peuvent être assujettis [...] et doivent, à ce titre, être intégrés dans la valorisation de certaines rémunérations déclarées en bloc 51 » (norme-dsn/texte/bloc-S21.G00.54.txt, l. 23-25) ; un montant « au-delà des limites d'exonération [...] ne relève donc pas des frais professionnels » (l. 40-42). INFERENCES, ecrites comme telles : imposable, comme la remuneration qu'elle devient (aucun texte fiscal depose ne dit le sort de la fraction excedentaire) ; hors de l'assiette des Conges Spectacles, comme les indemnites (aucun texte depose ne dit l'assiette Conges Spectacles d'un frais reintegre)."
+    },
+    "repas_au_dela": {
+      "libelle": "Repas au-delà de la limite",
+      "unite": "forfait",
+      "nature": "indemnite",
+      "saisie": [],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": null,
+      "soumis": true,
+      "imposable": true,
+      "conges_spectacles": false,
+      "source": "La part d'un repas au-dela de sa limite d'exoneration (bareme, `repas_deplacement` : arrete du 4 septembre 2025, art. 3, atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md ; BOSS, Frais professionnels, § 240-260, atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt l. 305-330), quand la compagnie ne garde pas le justificatif de la depense : « la fraction excédentaire est exclue de l'assiette des cotisations si l'employeur prouve qu'elle a été utilisée conformément à son objet » (§ 270, l. 332-333), sinon elle y entre. Le moteur la pose (engagement::frais_au_dela), elle ne se saisit pas. En DSN et pour l'impot, comme `nuitee_au_dela` : memes textes, memes inferences."
+    },
     "defraiement_reel": {
       "libelle": "Défraiement au réel",
       "unite": "forfait",
@@ -297,7 +389,70 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": false,
-      "source": "L'absence pour arret de travail : elle retire le salaire des heures non travaillees. La SUSPENSION, elle, ne se declare pas ici mais dans le bloc « Arret de travail - S21.G00.60 » (signalement.rs, et le magasin des imprevus) — un arret a son signalement et son report mensuel, et une ligne de paie ne les remplace pas. Pour un permanent, le moteur TIRE cette ligne de l'arret saisi une fois (imprevus.rs : les jours d'absence du mois, quel que soit le motif de l'arret) ; elle ne se saisit plus dans le mois. `arret_de_travail` dit au moteur de verifier qu'un arret est bien saisi en face d'une ligne ecrite a la main : une absence sans arret declare est une prestation que le salarie ne touchera pas."
+      "source": "L'absence pour arret de travail : elle retire le salaire des heures non travaillees. La SUSPENSION, elle, ne se declare pas ici mais dans le bloc « Arret de travail - S21.G00.60 » (signalement.rs, et le magasin des imprevus) — un arret a son signalement et son report mensuel, et une ligne de paie ne les remplace pas. Pour un permanent, le moteur TIRE cette ligne de l'arret saisi une fois (imprevus.rs : les jours d'absence du mois) ; elle ne se saisit plus dans le mois. Le bulletin nomme l'absence d'apres le motif de l'arret (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : chaque motif de `arrets-base.json` dit sa rubrique (`rubrique`), et celle-ci est celle de la maladie (01) ; les autres ne different que par leur libelle. `arret_de_travail` dit au moteur de verifier qu'un arret est bien saisi en face d'une ligne ecrite a la main : une absence sans arret declare est une prestation que le salarie ne touchera pas."
+    },
+    "absence_maternite": {
+      "libelle": "Absence maternité",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 02 « maternite » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_paternite": {
+      "libelle": "Absence paternité",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 03 « paternite / accueil de l'enfant » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_accident_trajet": {
+      "libelle": "Absence accident de trajet",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 04 « conge suite a un accident de trajet » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_maladie_professionnelle": {
+      "libelle": "Absence maladie professionnelle",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 05 « conge suite a maladie professionnelle » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_accident_travail": {
+      "libelle": "Absence accident du travail",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 06 « conge suite a accident de travail ou de service » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_dispense_grossesse": {
+      "libelle": "Absence dispense de travail (grossesse)",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 07 « femme enceinte dispensee de travail » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_adoption": {
+      "libelle": "Absence adoption",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 09 « adoption » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_deuil_enfant": {
+      "libelle": "Absence deuil d'enfant",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 19 « deuil d'enfant » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
+    },
+    "absence_conge_naissance": {
+      "libelle": "Absence congé de naissance",
+      "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "L'absence d'un arret de motif 20 « conge supplementaire de naissance » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "maintien_salaire": {
       "libelle": "Maintien de salaire",
@@ -314,7 +469,22 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": false,
-      "source": "Ce que l'employeur continue de verser pendant un arret de travail, en application de la loi (art. L1226-1 du code du travail) ou de la convention collective. NON CALCULE : le montant se saisit. La loi (L1226-1, D1226-1 et D1226-2) fait dependre le maintien de l'anciennete, d'un delai de carence et d'un pourcentage degressif, et ces articles N'ONT PAS ETE RELEVES ; la convention 3090 peut faire mieux. Le moteur porte la ligne et la declare, il ne la calcule pas."
+      "retabli": true,
+      "source": "Ce que l'employeur verse pendant un arret de travail : le complement de la loi (L1226-1, D1226-1 a D1226-5) ou de la convention, le plus favorable, apres deduction des indemnites journalieres ; subrogee, la compagnie y ajoute les indemnites brutes qu'elle avance (`ijss_brutes` les retire). Calcule par `engagement::maintien`, les indemnites lues sur l'arret. Rubrique `retabli` : le salaire retabli (S21.G00.51, type 003) est le salaire sans l'absence, ni ce qui la compense."
+    },
+    "ijss_brutes": {
+      "libelle": "Indemnités journalières (déduction)",
+      "unite": "jour", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
+      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "source": "Subrogee, la compagnie percoit les indemnites journalieres a la place du salarie (CSS R323-11) : le salaire maintenu les avance, et elles se retirent du brut, qu'elles ne sont pas (« les indemnites journalieres de securite sociale non soumises a cotisations », BOSS, assiette generale, § 850 ; norme DSN 2026.1, § 2.3.2 : l'employeur ne declare que « le salaire proprement dit [...] a l'exclusion des indemnites journalieres »). Le montant brut, avant CSG et CRDS, du releve de la caisse (`engagement::maintien`)."
+    },
+    "ijss_nettes": {
+      "libelle": "Indemnités journalières (subrogation)",
+      "unite": "jour", "nature": "indemnite", "saisie": ["quantite", "taux"],
+      "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": null,
+      "soumis": false, "imposable": false, "conges_spectacles": false,
+      "source": "Les indemnites journalieres que la compagnie subrogee reverse, nettes de la CSG et de la CRDS que la caisse a retenues (BPIJ : les retenues CSG et RDS). Hors cotisations et hors net imposable (norme DSN 2026.1, § 2.3.2 : la caisse les declare elle-meme), dans l'assiette du prelevement a la source (S21.G00.50.013 ; BOFiP BOI-IR-PAS-20-10-10, § 80 a 110) et dans le montant net social (BOSS, Q 13 bis ; S21.G00.58, type 10). `engagement::maintien`."
     },
     "absence_conges_payes": {
       "libelle": "Absence congés payés",

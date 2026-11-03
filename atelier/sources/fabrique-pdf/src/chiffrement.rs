@@ -32,10 +32,30 @@ fn refus<T>(m: impl Into<String>) -> Result<T, Refus> {
     Err(Refus(m.into()))
 }
 
+/// D'ou viennent les tirages d'un verrou (`verrouiller_avec`) ; `None` : le systeme.
+type Tirage = fn(&mut [u8]) -> Result<(), String>;
+
+thread_local! {
+    static TIRAGE: std::cell::Cell<Option<Tirage>> = const { std::cell::Cell::new(None) };
+}
+
 fn hasard(n: usize) -> Result<Vec<u8>, Refus> {
     let mut v = vec![0u8; n];
-    getrandom::getrandom(&mut v).map_err(|e| Refus(format!("tirage au hasard impossible ({})", e)))?;
+    match TIRAGE.with(|t| t.get()) {
+        Some(tirer) => tirer(&mut v).map_err(|e| Refus(format!("tirage au hasard impossible ({})", e)))?,
+        None => getrandom::getrandom(&mut v).map_err(|e| Refus(format!("tirage au hasard impossible ({})", e)))?,
+    }
     Ok(v)
+}
+
+/// `verrouiller`, ses tirages pris a `tirer` : ceux du systeme, ou la suite fixe d'un rejeu (`socle::temps::aleas`),
+/// pour que deux rejeux ecrivent les memes octets. Le mot de passe du proprietaire est jete : il ne protege que contre
+/// la modification du fichier, que le salarie peut lire sans mot de passe.
+pub fn verrouiller_avec(octets: &[u8], tirer: Tirage) -> Result<Vec<u8>, Refus> {
+    TIRAGE.with(|t| t.set(Some(tirer)));
+    let r = verrouiller(octets);
+    TIRAGE.with(|t| t.set(None));
+    r
 }
 
 // ---------------------------------------------------------------------------------------------

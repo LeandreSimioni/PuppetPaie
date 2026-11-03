@@ -279,6 +279,20 @@
       "montant": "reduction_generale_permanent",
       "nature": "permanent",
       "_note": "REDUCTION GENERALE ETENDUE U2 : la reduction generale degressive unique d'un salarie dont l'Urssaf recouvre AUSSI l'assurance chomage. C'est le pendant du 671 des intermittents, devenu « REDUCTION GENERALE SANS CHOMAGE » au 01/01/2026 dans la table de l'Urssaf. Montant de cotisation en euros (23.005), positif. Regularisation : CTP 669."
+    },
+    {
+      "code": "003",
+      "qualifiant": "921",
+      "montant": "reduction_heures_en_plus",
+      "nature": "permanent",
+      "_note": "REDUCTION SALARIALE HEURES SUP (format R : le CTP porte le signe negatif, 23.005 positif) : la reduction de cotisations salariales des heures supplementaires et complementaires (CSS L241-17), toute declaree a l'Urssaf, partie retraite complementaire comprise ; au nominatif, le code 114 sous la base 03, la remuneration des heures en 81.003, la reduction signee '-' en 81.004. Tableau d'equivalence DIDA de l'Urssaf (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 1017-1020)."
+    },
+    {
+      "code": "004",
+      "qualifiant": "921",
+      "montant": "deduction_heures_supplementaires",
+      "nature": "permanent",
+      "_note": "DEDUCTION PATRONALE HEURES SUP (format R) : la deduction forfaitaire patronale des heures supplementaires (CSS L241-18, L241-18-1), quel que soit l'effectif : « A compter de 2025 ce CTP [005] ne doit plus etre utilise, la deduction doit etre declaree par le CTP 004 ». Au nominatif, le code 021 sous la base 03, signe '-'. Meme tableau, l. 297 et 1766."
     }
   ],
   "_note_ctp": "Assiettes agregees du mois, arrondies a l'euro (bloc S21.G00.23). Verifie sur la DSN de juillet 2026 : brut 2000 -> 027=2000, 260=1987, 334=2230, 992=2200.",

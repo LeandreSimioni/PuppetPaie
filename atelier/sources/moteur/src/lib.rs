@@ -4,8 +4,9 @@
 //! Les fichiers de donnees se lisent en `serde_json::Value` : une cle inconnue survit, rien a migrer.
 
 pub mod apercu_dsn;
-pub mod atelier;
+#[macro_use]
 pub mod commandes;
+pub mod atelier;
 pub mod compagnie;
 pub mod etat_garde;
 pub mod historique_mois;

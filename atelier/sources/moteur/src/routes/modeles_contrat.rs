@@ -13,24 +13,92 @@ use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
+use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::engagement::texte_requis;
 use droit::contexte::Contexte;
 use droit::natures::Nature;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{dossier_du_code, vrai};
+use crate::routes::catalogue::{Ecran, Place};
 
-/// Les routes de ce module.
-pub const ROUTES: &[&str] = &["modeles-contrat", "modele-contrat-livre", "poser-modele-contrat", "retirer-modele-contrat", "clauses-particulieres"];
+const NATURE: Champ = Champ { nom: "nature", libelle: Affiche::new("Nature du contrat"), forme: Forme::Texte, sens: "la nature du contrat : cddu_spectacle, cdd, cdi…", avance: false };
+const QUOI: Champ = Champ { nom: "quoi", libelle: Affiche::new("Contrat ou avenant"), forme: Forme::Texte, sens: "contrat ou avenant", avance: false };
 
-/// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["poser-modele-contrat", "retirer-modele-contrat", "clauses-particulieres"];
+/// Ou ces routes se voient a l'ecran (une place par module).
+const ECRAN: Ecran = Ecran::Dessine(Place::ModelesContrat);
+
+/// Les routes de ce module, et leurs fiches.
+pub const ROUTES: &[Fiche] = &[
+    Fiche {
+        nom: "modeles-contrat",
+        geste: "Lister les modèles de contrat et d'avenant, livrés ou propres.",
+        charge: &[],
+        exemple: r#"{}"#,
+        rend: "natures (chacune : ses modèles, livrés ou propres), champs permis, clauses de la compagnie",
+        refus: &[OPERATION],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "modele-contrat-livre",
+        geste: "Lire le texte d'un modèle livré, pour en partir.",
+        charge: &[NATURE, QUOI],
+        exemple: r#"{"nature":"cddu_spectacle","quoi":"contrat"}"#,
+        rend: "texte",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Lit,
+        avance: true,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "poser-modele-contrat",
+        geste: "Poser le modèle de contrat ou d'avenant propre à la compagnie.",
+        charge: &[NATURE, QUOI, Champ { nom: "texte", libelle: Affiche::new("Modèle"), forme: Forme::Texte, sens: "le modèle entier (le format des modèles livrés : TITRE:, ARTICLE:…)", avance: false }],
+        exemple: r#"{"nature":"cddu_spectacle","quoi":"avenant","texte":"TITRE: Avenant n° {{avenant.numero}}\n\nMODIFICATION:\nL'article {{modification.numero}} est désormais rédigé ainsi : « {{modification.apres}} »\n\nARTICLE: Le reste\nLe reste du contrat est inchangé.\n"}"#,
+        rend: "les modèles, comme modeles-contrat",
+        refus: &[Refus { classe: "ErreurOperation", corriger: "le modèle : la mention obligatoire ou le champ que la phrase nomme ; rien n'est posé" }, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "retirer-modele-contrat",
+        geste: "Remettre le modèle livré à la place de celui de la compagnie.",
+        charge: &[NATURE, QUOI],
+        exemple: r#"{"nature":"cddu_spectacle","quoi":"avenant"}"#,
+        rend: "les modèles, comme modeles-contrat",
+        refus: &[OPERATION, MANQUE],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 0,
+        ecran: ECRAN,
+    },
+    Fiche {
+        nom: "clauses-particulieres",
+        geste: "Écrire les clauses particulières que chaque contrat reprend dès aujourd'hui.",
+        charge: &[Champ { nom: "texte", libelle: Affiche::new("Clauses"), forme: Forme::Texte, sens: "les clauses ; vide : aucune", avance: false }],
+        exemple: r#"{"texte":"Les répétitions ont lieu au théâtre."}"#,
+        rend: "phrase",
+        refus: &[OPERATION],
+        acte: Acte::Ecrit,
+        avance: true,
+        phrase: 60,
+        ecran: ECRAN,
+    },
+];
 
 /// La case de la fiche entreprise des clauses particulieres de la compagnie.
 const CLAUSES: &str = "clauses_particulieres";
 
 /// Les champs qu'un modele d'avenant cite en plus de ceux du contrat (`documents::contrat::ecrire_avenant`).
-const CHAMPS_DE_L_AVENANT: [&str; 8] =
-    ["avenant.numero", "avenant.date_contrat", "avenant.effet", "avenant.date", "modification.numero", "modification.article", "modification.avant", "modification.apres"];
+const CHAMPS_DE_L_AVENANT: [&str; 10] = [
+    "avenant.numero", "avenant.date_contrat", "avenant.reference", "avenant.effet", "avenant.date", "modification.numero", "modification.article",
+    "modification.avant", "modification.apres", "modification.phrase",
+];
 
 /// Les champs du bloc ANNULE: d'un contrat qui en remplace un autre.
 const CHAMPS_DU_REMPLACEMENT: [&str; 2] = ["remplace.numero", "remplace.date"];
@@ -38,10 +106,22 @@ const CHAMPS_DU_REMPLACEMENT: [&str; 2] = ["remplace.numero", "remplace.date"];
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "modeles-contrat" => modeles(ctx),
-        "modele-contrat-livre" => livre(charge),
-        "poser-modele-contrat" => poser(ctx, charge),
-        "retirer-modele-contrat" => retirer(ctx, charge),
+        "modeles-contrat" => modeles(ctx).map(|mut v| {
+            v["ecran"] = ecran_des_modeles(&v);
+            super::phrase_en_tete(v.clone(), dire_les_modeles(&v))
+        }),
+        "modele-contrat-livre" => livre(charge).map(|v| {
+            let p = format!("Modèle livré {}.", socle::valeur::valeur_en_texte(&v["libelle"]));
+            super::phrase_en_tete(v, p)
+        }),
+        "poser-modele-contrat" => poser(ctx, charge).map(|v| {
+            let p = format!("Modèle de la compagnie posé. {}", dire_les_modeles(&v));
+            super::phrase_en_tete(v, p)
+        }),
+        "retirer-modele-contrat" => retirer(ctx, charge).map(|v| {
+            let p = format!("Modèle de la compagnie retiré : le modèle livré revient. {}", dire_les_modeles(&v));
+            super::phrase_en_tete(v, p)
+        }),
         "clauses-particulieres" => clauses(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -105,11 +185,14 @@ fn modeles(ctx: &Contexte) -> R<Value> {
                 (None, _) => ("info", "le modèle du logiciel"),
             };
             pieces.push(json!({"quoi": quoi, "nom": nom, "propre": a_soi.is_some(), "refus": verdict, "texte": texte,
+                               "libelle": if quoi == "avenant" { "L'avenant" } else { "Le contrat" },
+                               "bouton": if a_soi.is_some() { "Modifier le modèle" } else { "Écrire le modèle" },
                                "pastille": {"couleur": crate::routes::couleur_de_l_etat(etat), "mots": mots}}));
         }
         let mut champs = documents::contrat_ecrit::champs_des_modeles(&nat);
         champs.extend(CHAMPS_DU_REMPLACEMENT.iter().map(|c| json!({"marqueur": format!("{{{{{}}}}}", c), "quoi": "le contrat remplacé (bloc ANNULE: seulement)", "obligatoire": false})));
-        sortie.push(json!({"nature": nat.cle, "libelle": nat.libelle, "nom": nat.nom_du_contrat(), "modeles": pieces, "champs": champs}));
+        let champs_titre = format!("Ses champs ({})", champs.len());
+        sortie.push(json!({"nature": nat.cle, "libelle": nat.libelle, "nom": nat.nom_du_contrat(), "modeles": pieces, "champs": champs, "champs_titre": champs_titre}));
     }
     Ok(json!({
         "natures": sortie,
@@ -121,10 +204,11 @@ fn modeles(ctx: &Contexte) -> R<Value> {
 
 /// Le texte du modele livre, pour partir de lui.
 fn livre(charge: &Value) -> R<Value> {
-    let (_, nom) = nom_du_modele(texte_requis(charge, "nature")?, texte_requis(charge, "quoi")?)?;
+    let (nat, nom) = nom_du_modele(texte_requis(charge, "nature")?, texte_requis(charge, "quoi")?)?;
     let chemin = dossier_du_code().join("modeles").join(&nom);
-    let texte = std::fs::read_to_string(&chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
-    Ok(json!({"nom": nom, "texte": texte}))
+    let texte = std::fs::read_to_string(&chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
+    let de = if texte_requis(charge, "quoi")? == "avenant" { "de l'avenant" } else { "du contrat" };
+    Ok(json!({"nom": nom, "texte": texte, "libelle": format!("{} {}", de, nat.libelle)}))
 }
 
 /// UN MODELE PROPRE SE VERIFIE AVANT D'ETRE POSE : sa grammaire (`fabrique_pdf::modele::lire_modele`), chacun de ses
@@ -174,13 +258,13 @@ fn poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = texte_requis(charge, "texte")?;
     verifier(&nat, quoi, &nom, texte).map_err(|m| refus(format!("{} Rien n'est posé.", m.trim_end_matches(" Rien n'est écrit."))))?;
     let dossier = ctx.gabarits();
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", socle::echec::du_disque(&dossier, &e)))?;
     let cible = dossier.join(&nom);
     if cible.is_file() {
         let ancien = dossier.join(format!("{}.avant", nom));
-        std::fs::rename(&cible, &ancien).map_err(|e| erreur("OSError", format!("{} : {}", cible.display(), e)))?;
+        std::fs::rename(&cible, &ancien).map_err(|e| erreur("OSError", socle::echec::du_disque(&cible, &e)))?;
     }
-    std::fs::write(&cible, texte).map_err(|e| erreur("OSError", format!("{} : {}", cible.display(), e)))?;
+    std::fs::write(&cible, texte).map_err(|e| erreur("OSError", socle::echec::du_disque(&cible, &e)))?;
     modeles(ctx)
 }
 
@@ -189,7 +273,7 @@ fn retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (_, nom) = nom_du_modele(texte_requis(charge, "nature")?, texte_requis(charge, "quoi")?)?;
     if let Some(p) = propre(ctx, &nom) {
         let ancien = ctx.gabarits().join(format!("{}.avant", nom));
-        std::fs::rename(&p, &ancien).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        std::fs::rename(&p, &ancien).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
     }
     modeles(ctx)
 }
@@ -199,6 +283,29 @@ fn retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
 fn clauses(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = charge.get("texte").and_then(Value::as_str).unwrap_or_default().trim().to_string();
     crate::routes::fiches::poser_entreprise(ctx, CLAUSES, json!(texte), Some(ctx.aujourdhui))?;
-    let neuf = Contexte::nouveau(&ctx.racine, None).map_err(Echec::from)?;
-    modeles(&neuf)
+    Ok(json!({"phrase": "Clauses particulières enregistrées."}))
+}
+
+/// Ce que `modeles` rend, en une phrase : les modeles de chaque nature, et ceux que la compagnie a poses.
+fn dire_les_modeles(v: &Value) -> String {
+    let modeles: Vec<&Value> = v["natures"].as_array().into_iter().flatten().flat_map(|n| n["modeles"].as_array().into_iter().flatten()).collect();
+    let propres = modeles.iter().filter(|m| m["propre"] == json!(true)).count();
+    format!("Modèles de contrat et d'avenant : {} ; propres à la compagnie : {}.", modeles.len(), propres)
+}
+
+/// CE QUE L'ECRAN DES MODELES DE CONTRAT DIT (`ecran` de `modeles-contrat`) : a quoi sert un modele, les clauses
+/// particulieres, comment ecrire celui de la compagnie, et ce que cite un modele d'avenant.
+fn ecran_des_modeles(v: &Value) -> Value {
+    let avenant: Vec<String> = v["champs_de_l_avenant"].as_array().into_iter().flatten().map(super::mot).collect();
+    json!({
+        "intro": "Chaque contrat que le logiciel fait signer suit un modèle. Celui du logiciel porte déjà ce que la loi exige d'un contrat écrit, rempli de lui-même depuis l'engagement et la configuration. Si la compagnie a son propre contrat, elle le pose ici : le logiciel le prend à la place du sien, pour tous les contrats de cette sorte.",
+        "clauses": "Ce qu'elle ajoute à chacun de ses contrats (confidentialité, image, déplacements…). Un engagement peut dire les siennes à la place, dans « Plus d'options ».",
+        "comment": [
+            "Partir du modèle du logiciel (« Écrire le modèle »), ou poser un fichier texte déjà écrit.",
+            "Changer le texte comme on veut. Chaque article commence par une ligne « ARTICLE: son titre » ; une ligne vide sépare deux paragraphes ; **texte** met en gras ; une ligne qui commence par # est une note, qui ne s'imprime pas.",
+            "Les champs entre accolades ({{salarie.nom_complet}}…) se remplissent d'eux-mêmes : leur liste est sous chaque contrat. Ceux que la loi exige doivent rester ; sans l'un d'eux, le modèle est refusé, et le refus dit lequel.",
+            format!("« Poser ce modèle » : il est vérifié, puis rangé dans le dossier de la compagnie ({}), et sauvegardé avec elle. L'ancien est gardé à côté.", super::mot(&v["dossier"])),
+        ],
+        "avenant": format!("Un modèle d'avenant cite aussi : {}.", avenant.join(", ")),
+    })
 }

@@ -8,7 +8,8 @@ use crate::faux_drive;
 use std::path::{Path, PathBuf};
 
 use faux_drive::{ecrire, racine as racine_de, FauxDrive};
-use moteur::compagnie::archivage::{archiver, mois_valide, Archivage};
+use moteur::compagnie::archivage::{archiver, Archivage};
+use socle::date::mois_valide;
 use envois::drive::{Drive, ErreurGoogle};
 
 const RD: &str = "PuppetPaie";

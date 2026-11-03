@@ -32,5 +32,6 @@ mod installations;
 mod mise_a_jour;
 mod restauration;
 mod sauvegarde;
+mod structure;
 mod verifier_avant_commit;
 mod verrous_cargo;

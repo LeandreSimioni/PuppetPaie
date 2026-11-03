@@ -75,7 +75,7 @@ fn options(args: &[String]) -> Result<Options, String> {
 /// `moteur guet ...` : le code de sortie (0 quand il sonne, 1 sans transcript, 2 sur une option fausse).
 pub fn commande(args: &[String]) -> i32 {
     if args.iter().any(|a| a == "--aide" || a == "-h" || a == "--help") {
-        println!("{}", AIDE);
+        dire!("{}", AIDE);
         return 0;
     }
     let o = match options(args) {
@@ -105,7 +105,7 @@ pub fn commande(args: &[String]) -> i32 {
             return 1;
         }
     };
-    println!(
+    dire!(
         "guet : {}, seuil {}{}",
         sous_agent.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
         o.seuil,
@@ -116,23 +116,23 @@ pub fn commande(args: &[String]) -> i32 {
     loop {
         let (s, m) = (dernier_usage(Some(&sous_agent)), dernier_usage(moi.as_deref()));
         if s >= o.seuil {
-            println!("SEUIL : sous-agent a {} (>= {})", s, o.seuil);
+            dire!("SEUIL : sous-agent a {} (>= {})", s, o.seuil);
             return 0;
         }
         if m >= SEUIL {
-            println!("SEUIL : orchestrateur a {}", m);
+            dire!("SEUIL : orchestrateur a {}", m);
             return 0;
         }
         if o.commits {
             let h = head(&depot);
             if h != depart {
-                println!("COMMIT {} : sous-agent a {}", h.get(..8).unwrap_or(&h), s);
+                dire!("COMMIT {} : sous-agent a {}", h.get(..8).unwrap_or(&h), s);
                 return 0;
             }
         }
         if let Ok(t) = std::fs::metadata(&sous_agent).and_then(|m| m.modified()) {
             if SystemTime::now().duration_since(t).is_ok_and(|d| d > IMMOBILE) {
-                println!("IMMOBILE depuis 20 minutes : sous-agent a {}", s);
+                dire!("IMMOBILE depuis 20 minutes : sous-agent a {}", s);
                 return 0;
             }
         }

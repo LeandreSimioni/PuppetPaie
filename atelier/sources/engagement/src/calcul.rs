@@ -9,12 +9,12 @@ use std::sync::{Arc, Mutex, OnceLock};
 use rust_decimal::prelude::*;
 use serde_json::{Map, Value};
 
-use droit::bareme::{bareme_applique_au_contrat, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
+use droit::bareme::{bareme_applique, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
-use socle::texte::salarie_nomme;
+use socle::texte::{euros, salarie_nomme};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
 use socle::num::nombre;
@@ -58,45 +58,75 @@ pub struct LigneBrut {
     pub dsn_bloc52: Option<String>,
     pub arret_de_travail: bool,
     pub dsn_autres_bruts: Option<String>,
+    /// Ce que la ligne dit d'elle-meme sur le bulletin quand sa quantite ne suffit pas : la part payee d'un mois incomplet
+    /// (`droit::periodes::PartDuMois::sur_le_bulletin`).
+    pub precision: Option<String>,
 }
 
 impl LigneBrut {
-    /// La ligne en francais : « 2 Cachets », « 1 Journee de travail »,
-    /// « 6 h de Masterclass ».
+    /// La ligne en francais, telle qu'une personne la lit : « 2 Cachets », « 1 Journée de travail », « 6 h de
+    /// masterclass / action culturelle », « 154 h d'absence non rémunérée », « Indemnité compensatrice de congés payés
+    /// (4,92 jours) », « Indemnité de fin de contrat (précarité) ». Un nombre se dit au centieme. La quantite se compte
+    /// devant le libelle quand son premier mot nomme l'unite (un cachet, une journee, un service, une semaine) ; sinon
+    /// elle se dit apres lui, dans son unite. Un forfait et un pourcentage se disent par leur seul libelle : leur
+    /// quantite n'est pas un nombre de choses.
     pub fn designation(&self) -> String {
-        let q = self.quantite.normalize();
-        let entier = q == q.trunc();
-        let nb = if entier { q.trunc().to_string() } else { q.to_string().replace('.', ",") };
+        let q = self.quantite.round_dp(2).normalize();
+        let nb = q.to_string().replace('.', ",");
+        if matches!(self.unite.as_str(), "forfait" | "pourcentage") {
+            return self.libelle.clone();
+        }
         // UN SALAIRE MENSUEL se paie au mois : sa quantite est la fraction du mois payee (`rubriques-base.json`, `mois`).
         // Un mois entier se dit seul ; une fraction se dit en part du mois, pas en decimales.
         if self.unite == "mois" {
-            if q == Decimal::ONE {
+            if self.quantite == Decimal::ONE {
                 return self.libelle.clone();
             }
-            let part = (q * Decimal::from(100)).round_dp(2).normalize().to_string().replace('.', ",");
+            if let Some(p) = &self.precision {
+                return format!("{} ({})", self.libelle, p);
+            }
+            let part = (self.quantite * Decimal::from(100)).round_dp(2).normalize().to_string().replace('.', ",");
             return format!("{} ({} % du mois)", self.libelle, part);
         }
-        if self.unite == "heure" && !self.libelle.to_lowercase().starts_with("heure") {
-            return format!("{} h de {}", nb, self.libelle);
-        }
-        // Le pluriel porte sur le premier mot.
-        let texte = if q <= Decimal::ONE {
-            self.libelle.clone()
-        } else {
-            let (tete, reste) = match self.libelle.split_once(' ') {
-                Some((t, r)) => (t, Some(r)),
-                None => (self.libelle.as_str(), None),
-            };
-            let tete = if tete.ends_with('s') { tete.to_string() } else { format!("{}s", tete) };
-            match reste {
-                Some(r) => format!("{} {}", tete, r),
-                None => tete,
-            }
+        let (tete, reste) = match self.libelle.split_once(' ') {
+            Some((t, r)) => (t, Some(r)),
+            None => (self.libelle.as_str(), None),
         };
-        format!("{} {}", nb, texte)
+        let compte = match self.unite.as_str() {
+            "heure" => ["heure"].as_slice(),
+            "jour" => ["jour", "journée"].as_slice(),
+            "cachet" => ["cachet"].as_slice(),
+            "service" => ["service"].as_slice(),
+            "semaine" => ["semaine"].as_slice(),
+            _ => [].as_slice(),
+        };
+        // Des heures qui se nomment au pluriel (« Heures supplémentaires ») : leur nombre, et ce qui les distingue
+        // (leur majoration), entre parentheses.
+        if self.unite == "heure" && tete.to_lowercase() == "heures" {
+            return match &self.precision {
+                Some(p) => format!("{} ({} h, {})", self.libelle, nb, p),
+                None => format!("{} ({} h)", self.libelle, nb),
+            };
+        }
+        // Au singulier jusqu'a deux exclus (« 1,5 journée »).
+        let pluriel = q >= Decimal::TWO;
+        if !compte.contains(&tete.to_lowercase().as_str()) {
+            if self.unite == "heure" {
+                let mut l = self.libelle.chars();
+                let minuscule = l.next().map_or(String::new(), |c| c.to_lowercase().chain(l).collect());
+                return format!("{} h {}", nb, socle::texte::de(&minuscule));
+            }
+            return format!("{} ({} {}{})", self.libelle, nb, self.unite, if pluriel { "s" } else { "" });
+        }
+        // Le pluriel porte sur le premier mot : il nomme ce qui se compte.
+        let tete = if pluriel && !tete.ends_with('s') { format!("{}s", tete) } else { tete.to_string() };
+        match reste {
+            Some(r) => format!("{} {} {}", nb, tete, r),
+            None => format!("{} {}", nb, tete),
+        }
     }
 
-    /// La forme canonique de l'oracle (les champs de la dataclass, dans l'ordre).
+    /// La forme canonique de l'oracle (ses champs, dans l'ordre).
     pub fn canon(&self) -> Value {
         let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
         let mut m = Map::new();
@@ -116,6 +146,9 @@ impl LigneBrut {
         m.insert("dsn_bloc52".into(), texte(&self.dsn_bloc52));
         m.insert("arret_de_travail".into(), Value::Bool(self.arret_de_travail));
         m.insert("dsn_autres_bruts".into(), texte(&self.dsn_autres_bruts));
+        if let Some(p) = &self.precision {
+            m.insert("precision".into(), Value::String(p.clone()));
+        }
         Value::Object(m)
     }
 }
@@ -154,6 +187,7 @@ pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<Lign
             dsn_bloc52: r.dsn_bloc52,
             arret_de_travail: r.arret_de_travail,
             dsn_autres_bruts,
+            precision: l.get("precision").and_then(Value::as_str).map(str::to_string),
         });
     }
     Ok(out)
@@ -301,6 +335,27 @@ pub struct Contenu {
     /// Le plafond d'un salarie a temps partiel (`plafond_temps_partiel`), tel que le calcul l'a applique : ce que la DSN
     /// declare en S21.G00.40.084.
     pub plafond_temps_partiel: PlafondTempsPartiel,
+    /// LA PAIE D'UN ENGAGEMENT IMPORTE (`importe::Importe::paie`) : ce que les pieces de l'ancien logiciel en disent, rien
+    /// de calcule ; `None` pour une paie calculee ici.
+    pub importee: Option<Importee>,
+}
+
+/// Ce qu'une paie importee dit, et ce qu'elle tait.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Importee {
+    /// Le jour de l'import.
+    pub le: String,
+    /// Les montants que les pieces ne disent pas (`brut`, `cotisations_salariales`, `net_a_payer`, `plafond`...) : ils
+    /// valent zero dans la paie, et un etat les laisse vides.
+    pub non_dits: Vec<&'static str>,
+}
+
+impl Paie {
+    /// Le montant `champ` de la paie est-il dit ? Toujours pour une paie calculee ; pour une paie importee, quand ses
+    /// pieces le disent.
+    pub fn dit(&self, champ: &str) -> bool {
+        self.importee.as_ref().is_none_or(|i| !i.non_dits.contains(&champ))
+    }
 }
 
 impl Paie {
@@ -318,7 +373,7 @@ impl Paie {
             bases: BTreeMap::new(), remuneration: Vec::new(), reduction_generale: None,
             deduction_forfaitaire: None, avertissements: Vec::new(), salaire_de_base: zero,
             salaire_retabli: zero, assiette_chomage: zero, heures_travaillees: zero,
-            heures_absence: zero, periodes: Vec::new(), pas: None, conges: None, conges_avant: None, plafond_temps_partiel,
+            heures_absence: zero, periodes: Vec::new(), pas: None, conges: None, conges_avant: None, plafond_temps_partiel, importee: None,
         })
     }
 
@@ -398,15 +453,69 @@ impl Paie {
         self.lignes.iter().find(|l| l.id == id)
     }
 
-    pub fn resume(&self) -> Resultat<String> {
-        let s = &self.salarie;
-        let quoi = self.remuneration.iter().map(|l| l.designation()).collect::<Vec<_>>().join(", ");
-        let quoi = if quoi.is_empty() { "sans ligne".to_string() } else { quoi };
-        Ok(format!(
-            "{} {} - {} - {} = {} brut, net {}, cout employeur {}",
-            en_texte(requis(s, "nom")?), en_texte(requis(s, "prenom_affichage")?), self.titre()?,
-            quoi, self.brut, self.net_a_payer, self.cout_employeur))
+    /// Ce que la paie paye, en une ligne, la plus courte qu'une personne reconnaisse (`en_bref`).
+    pub fn paye_en_bref(&self) -> String {
+        en_bref(&self.remuneration)
     }
+}
+
+/// Des lignes de remuneration en une ligne, la plus courte qu'une personne reconnaisse : « 4 cachets, 8 repas,
+/// 4 nuitées », « 28 h de travail », « salaire mensuel de base, 119 h d'absence maladie, maintien de salaire,
+/// indemnités journalières (22 jours) ». Le detail ligne a ligne est celui du bulletin (`LigneBrut::designation`).
+/// - Les lignes d'une meme rubrique s'additionnent.
+/// - La part d'un repas ou d'une nuitee au-dela de sa limite (`REPAS_AU_DELA`, `NUITEE_AU_DELA`) est celle d'une ligne deja comptee.
+/// - Deux rubriques qui ne different que par leur precision entre parentheses, sur la meme mesure, se disent une fois :
+///   les indemnites journalieres deduites puis versees.
+/// - Ce qui rend, juste apres elle, ce qu'une deduction a retire (la meme mesure) se dit sans la repeter : le maintien
+///   de salaire d'une absence, l'indemnite des conges pris.
+pub fn en_bref(lignes: &[LigneBrut]) -> String {
+    let mut groupes: Vec<LigneBrut> = Vec::new();
+    for l in lignes.iter().filter(|l| l.code != crate::NUITEE_AU_DELA && l.code != crate::REPAS_AU_DELA) {
+        match groupes.iter_mut().find(|g| g.code == l.code && g.precision == l.precision) {
+            Some(g) => {
+                g.quantite += l.quantite;
+                g.montant += l.montant;
+            }
+            None => groupes.push(l.clone()),
+        }
+    }
+    let base = |l: &LigneBrut| l.libelle.split_once(" (").map(|(b, _)| b.to_string());
+    let meme_mesure = |a: &LigneBrut, b: &LigneBrut| a.unite == b.unite && a.quantite == b.quantite;
+    let mut dits = Vec::new();
+    let mut i = 0;
+    while i < groupes.len() {
+        let g = &groupes[i];
+        let jumelle = groupes.get(i + 1).filter(|s| meme_mesure(g, s) && base(g).is_some() && base(g) == base(s));
+        if jumelle.is_some() {
+            let mut une = g.clone();
+            une.libelle = base(g).unwrap_or_default();
+            une.precision = None;
+            dits.push(bref(&une));
+            i += 2;
+            continue;
+        }
+        let rend = i > 0 && groupes[i - 1].montant.is_sign_negative() && g.montant.is_sign_positive() && meme_mesure(&groupes[i - 1], g);
+        dits.push(if rend { g.libelle.to_lowercase() } else { bref(g) });
+        i += 1;
+    }
+    dits.join(", ")
+}
+
+/// Une ligne (deja additionnee) dite en bref : un forfait qui se compte dit son nombre (« 8 repas »), des heures de
+/// travail se disent en heures (« 28 h de travail ») ; le reste comme au bulletin.
+fn bref(l: &LigneBrut) -> String {
+    let q = l.quantite.round_dp(2).normalize();
+    let (tete, reste) = l.libelle.split_once(' ').map_or((l.libelle.as_str(), ""), |(t, r)| (t, r));
+    let reste = if reste.is_empty() { String::new() } else { format!(" {}", reste) };
+    let dit = if l.unite == "forfait" && q.fract().is_zero() && q >= Decimal::TWO {
+        let tete = if tete.ends_with('s') || tete.ends_with('x') { tete.to_string() } else { format!("{}s", tete) };
+        format!("{} {}{}", q, tete, reste)
+    } else if l.unite == "heure" && tete.to_lowercase() == "heure" {
+        format!("{} h{}", q.to_string().replace('.', ","), reste)
+    } else {
+        l.designation()
+    };
+    dit.to_lowercase()
 }
 
 // ------------------------------------------------------ les allegements
@@ -454,7 +563,7 @@ pub struct OptionDfs {
     pub taux: Decimal,
     pub rubriques: Vec<String>,
     pub plafond_annuel: Decimal,
-    /// Les rubriques de frais (`defraiement_forfait`, `defraiement_reel`) que l'annexe 2 de l'arrete (I, 2° et 5°) laisse
+    /// Les rubriques de frais (`defraiement_forfait`, `repas`, `nuitee`, `defraiement_reel`) que l'annexe 2 de l'arrete (I, 2° et 5°) laisse
     /// hors de l'assiette pour cette profession ; tout autre remboursement de frais se reintegrerait (art. 9, I, al. 4).
     pub frais_hors_assiette: Vec<String>,
     /// La tolerance du BOSS, Frais professionnels, § 2320 (bareme, `frais_cumulables`) : pour les huit secteurs, dont le
@@ -497,7 +606,7 @@ taux et les frais que l'annexe 2 de l'arrete laisse hors de l'assiette : choisir
             qui, profession, annee, connues()
         ));
     };
-    let dfs = dfs.ok_or("deduction_forfaitaire")?;
+    let dfs = dfs.ok_or_else(|| socle::echec::cle("Le barème de l'année ne porte pas la déduction forfaitaire spécifique : le signaler au développeur.", "deduction_forfaitaire"))?;
     // L'option de l'employeur, et l'accord qu'elle demande.
     let option = texte_de(ent, "deduction_forfaitaire_option");
     match option.as_str() {
@@ -532,21 +641,21 @@ pas ({}, {} ou {} ; arrete du 4 septembre 2025, art. 9, I, al. 3).",
             }
         },
         autre => {
-            return Err(format!(
+            return Err(socle::echec::avec("La case « Déduction forfaitaire spécifique » de la fiche entreprise porte un choix inconnu : le choisir dans la liste.", serde_json::json!({"cle": "deduction_forfaitaire_option", "detail": format!(
                 "Fiche entreprise, `deduction_forfaitaire_option` = << {} >> : ce choix n'est pas connu. L'arrete du \
 4 septembre 2025 (art. 9, I, al. 2 et 3) en connait trois : un accord collectif qui l'a explicitement prevue ({}), \
 l'accord du comite social et economique ({}), ou, a defaut, l'accord de chaque salarie ({}).",
                 autre, DFS_ACCORD_COLLECTIF, DFS_ACCORD_CSE, DFS_ACCORD_INDIVIDUEL
-            ))
+            )})))
         }
     }
     if !dfs.get("_verifie").map_or(false, vrai) {
-        return Err(format!(
+        return Err(socle::echec::avec("Le barème de l'année ne paie pas encore la déduction forfaitaire spécifique : ses taux ne sont pas vérifiés.", serde_json::json!({"detail": format!(
             "Deduction forfaitaire specifique de {} ({}) : la section deduction_forfaitaire du bareme {} n'est pas \
 marquee verifiee (\"_verifie\": true). Le moteur refuse de payer plutot que d'inventer -- comme pour un statut sans \
 section verifiee.",
             qui, profession, annee
-        ));
+        )})));
     }
     let categorie = texte_de(fiche_prof, "categorie");
     // Le taux de l'annee : celui de la profession quand l'arrete lui donne un calendrier a part (art. 9, III, pour les
@@ -601,27 +710,27 @@ fn dfs_applicable(
 ) -> Resultat<()> {
     let qui = eng.qui();
     if nat.mensuelle() {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("{} : la déduction forfaitaire spécifique ne se porte que sur un contrat d'usage, pas sur un contrat payé au mois.", qui), serde_json::json!({"detail": format!(
             "{} : une deduction forfaitaire specifique sur un contrat paye au mois ({}). Le logiciel ne la porte que sur \
 un contrat d'usage : pour un salarie au mois, l'assiette du chomage (reglement general d'assurance chomage, art. 49), sa \
 prevoyance conventionnelle, ses tranches de retraite et son assiette minimum ne sont pas encore calculees sous deduction \
 (atelier/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>). Rien n'est calcule.",
             qui, nat.libelle
-        ));
+        )})));
     }
     if let Some(r) = rubriques_bulletin.iter().find(|r| r.get("id").and_then(Value::as_str).map_or(false, |i| i.starts_with("apec"))) {
-        return Err(format!(
+        return Err(socle::echec::avec(format!("{} : la déduction forfaitaire spécifique ne se porte pas sur la paie d'un cadre : aucun texte ne dit l'assiette de l'Apec sous déduction.", qui), serde_json::json!({"detail": format!(
             "{} : une deduction forfaitaire specifique sur la paie d'un cadre (ligne << {} >>). L'assiette de l'Apec sous \
 deduction n'est dans aucun texte depose (atelier/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>) : le logiciel \
 ne la devine pas. Rien n'est calcule.",
             qui,
             r.get("libelle").map_or_else(String::new, en_texte)
-        ));
+        )})));
     }
     for l in lb.iter().filter(|l| !l.soumis && !l.montant.is_zero()) {
         let genre = rubrique(racine, &l.code, jour)?.hors_assiette()?;
         if genre == HorsAssiette::Revenu {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("{} : la ligne « {} » est hors assiette sans être un remboursement de frais, et il est sous déduction forfaitaire spécifique : la soumettre, ou en faire un remboursement de frais.", qui, l.libelle), serde_json::json!({"detail": format!(
                 "{} : la ligne << {} >> est hors assiette et n'est pas un remboursement de frais, pour un salarie sous \
 deduction forfaitaire specifique ({}). La tolerance du BOSS (Frais professionnels, § 2320) ne laisse hors de l'assiette \
 que les remboursements de frais au sens de l'arrete du 4 septembre 2025 ; le rescrit BOSS-RES-000010 (§ 2325) veut une \
@@ -630,15 +739,15 @@ l'abattement >>, et aucun texte depose ne dit ce que devient une autre indemnite
 devine pas : si c'est un remboursement de frais, sa rubrique est de nature `frais` ; si elle entre dans l'assiette, \
 elle est soumise. Rien n'est calcule.",
                 qui, l.libelle, o.profession
-            ));
+            )})));
         }
         let frais = genre == HorsAssiette::Frais;
         if frais && !o.frais_cumulables && !o.frais_hors_assiette.contains(&l.code) {
-            return Err(format!(
+            return Err(socle::echec::avec(format!("{} : la ligne « {} » rembourse des frais sous déduction forfaitaire spécifique, et le logiciel ne porte pas leur réintégration dans l'assiette.", qui, l.libelle), serde_json::json!({"detail": format!(
                 "{} : la ligne << {} >> rembourse des frais a un salarie sous deduction forfaitaire specifique ({}). \
 L'arrete du 4 septembre 2025 (art. 9, I, al. 4) les reintegre alors dans l'assiette avant l'abattement, sauf ceux de \
 la liste de son annexe 2 : pour cette profession, {} ; et le bareme ne porte pas la tolerance du BOSS (Frais \
-professionnels, § 2320, `frais_cumulables`) qui les laisserait tous hors de l'assiette. Le logiciel ne porte pas encore \
+professionnels, § 2320, `frais_cumulables`) qui les laisserait tous hors de l'assiette. Le logiciel ne porte pas \
 cette reintegration (assiette du chomage, bloc 54 de type 35) : rien n'est calcule.",
                 qui,
                 l.libelle,
@@ -648,7 +757,7 @@ cette reintegration (assiette du chomage, bloc 54 de type 35) : rien n'est calcu
                 } else {
                     o.frais_hors_assiette.join(", ")
                 }
-            ));
+            )})));
         }
     }
     Ok(())
@@ -704,17 +813,17 @@ pub(crate) fn abattement_dfs(o: &OptionDfs, montants: &[Decimal], brut: Decimal,
     let mut retenue = pleine.min(reste);
     if retenue < pleine {
         avis.push(format!(
-            "Deduction forfaitaire specifique ramenee de {} a {} EUR : le plafond de {} EUR par annee civile (arrete du \
-4 septembre 2025, art. 9) est atteint, {} EUR deja deduits cette annee.",
-            pleine, retenue, o.plafond_annuel, deja
+            "Déduction forfaitaire spécifique ramenée de {} à {} : le plafond de {} par année civile (arrêté du \
+4 septembre 2025, art. 9) est atteint, {} déjà déduits cette année.",
+            euros(pleine), euros(retenue), euros(o.plafond_annuel), euros(deja)
         ));
     }
     if brut - retenue < assiette_minimale {
         let plancher = zero.max(brut - assiette_minimale).min(retenue);
         avis.push(format!(
-            "Deduction forfaitaire specifique ramenee de {} a {} EUR : l'assiette abattue ne descend pas sous le SMIC du \
-contrat, {} EUR (CSS R. 242-1, al. 6 ; arrete du 4 septembre 2025, art. 9, I, dernier alinea).",
-            retenue, plancher, assiette_minimale
+            "Déduction forfaitaire spécifique ramenée de {} à {} : l'assiette abattue ne descend pas sous le SMIC du \
+contrat, {} (CSS R. 242-1, al. 6 ; arrêté du 4 septembre 2025, art. 9, I, dernier alinéa).",
+            euros(retenue), euros(plancher), euros(assiette_minimale)
         ));
         retenue = plancher;
     }
@@ -737,7 +846,7 @@ contrat, {} EUR (CSS R. 242-1, al. 6 ; arrete du 4 septembre 2025, art. 9, I, de
 
 // ---------------------------------------------------------------- calculer
 
-const FAMILLE_ALLEGEMENTS: &str = "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS";
+pub(crate) const FAMILLE_ALLEGEMENTS: &str = "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS";
 
 /// Les bases lues par cle : une valeur par rubrique de salaire, sinon globale.
 const GLOBALES: [&str; 19] = [
@@ -785,11 +894,11 @@ fn tuple(j: &Jour) -> (i32, u32, u32) {
     (j.an, j.mois, j.jour)
 }
 
-/// `bareme_applique_au_contrat(ctx.bareme(fin), sal, nat, fin, caisse)`, garde : la pile ne
+/// `bareme_applique(&ctx.bareme(fin), sal, nat, fin, caisse)`, garde : la pile ne
 /// depend que des fichiers du bareme, de la fiche entreprise, du salarie, de
 /// la nature, de la caisse de conges et du jour. Un mois et ses mois anterieurs la recomposaient a
 /// chaque paie, et c'etait l'essentiel du temps de calcul.
-fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool) -> Resultat<Arc<Value>> {
+pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool) -> Resultat<Arc<Value>> {
     type Cache = Mutex<HashMap<String, Arc<Value>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
@@ -797,7 +906,7 @@ fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, cais
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
-    let bar = Arc::new(bareme_applique_au_contrat(ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
+    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
     socle::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }
@@ -830,7 +939,32 @@ pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resulta
     } else {
         emploi_de(&ctx.salarie_au(&cle, &eng.debut)?, &emploi)?
     };
-    Ok(anciennete_a_l_embauche(fiche, eng))
+    Ok(anciennete_a_l_embauche(etablissement_du_contrat(convention_de_l_employeur(ctx, fiche), eng), eng))
+}
+
+/// LA CONVENTION DE L'EMPLOYEUR sur la fiche que la paie lit (`droit::caisse_conges::IDCC_DE_L_EMPLOYEUR`) : l'IDCC de
+/// l'entreprise, telle que `ctx` la lit. Le domaine d'activite de l'annexe 8 se lit a cette convention
+/// (`droit::caisse_conges::intermittent`).
+pub(crate) fn convention_de_l_employeur(ctx: &Contexte, mut fiche: Value) -> Value {
+    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(en_texte);
+    if let (Some(o), Some(idcc)) = (fiche.as_object_mut(), idcc) {
+        o.insert(droit::caisse_conges::IDCC_DE_L_EMPLOYEUR.into(), Value::String(idcc));
+    }
+    fiche
+}
+
+/// L'ETABLISSEMENT DE RATTACHEMENT du salarie pour ce contrat (S21.G00.11.001, « l'etablissement de rattachement
+/// administratif du salarie », `norme-dsn/texte/bloc-S21.G00.11.txt`) : celui que l'engagement dit, quand la compagnie en a
+/// plusieurs ; sinon le principal. La fiche le porte en `etablissement`, que la DSN, les signalements et le bareme lisent
+/// (`droit::bareme::etablissement_du_salarie`).
+pub fn etablissement_du_contrat(mut fiche: Value, eng: &Engagement) -> Value {
+    if let Some(o) = fiche.as_object_mut() {
+        match &eng.etablissement {
+            Some(n) => o.insert("etablissement".into(), Value::String(n.clone())),
+            None => o.remove("etablissement"),
+        };
+    }
+    fiche
 }
 
 /// L'ANCIENNETE DANS L'ENTREPRISE (S21.G00.86.003, `norme-dsn/texte/bloc-S21.G00.86.txt`) d'une fiche qui ne la date pas
@@ -858,7 +992,29 @@ pub(crate) fn cle_du_salarie(ctx: &Contexte, eng: &Engagement) -> Resultat<Strin
 /// le statut, la categorie ou la quotite d'un contrat paye au mois change en cours de periode se decoupe en periodes
 /// elementaires (`periodes::bornes`), chacune calculee de meme, les periodes deja calculees comptant parmi les
 /// precedentes, et la paie du mois en est la somme (`periodes::assembler`).
+///
+/// Un maintien de salaire garanti en net (`maintien::au_net`) se reconstitue par ce meme calcul, refait sur les lignes du
+/// mois jusqu'a ce que le net garanti soit atteint au centime ; la paie est alors celle de ce montant.
 pub(crate) fn calculer_apres(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
+    let mut paie_des = |lignes: Vec<Value>| -> Resultat<Paie> {
+        let mut e = eng.clone();
+        e.lignes = lignes;
+        calculer_du_mois(ctx, &e, precedentes)
+    };
+    match crate::maintien::au_net(&eng.lignes, &mut paie_des)? {
+        None => calculer_du_mois(ctx, eng, precedentes),
+        Some((montant, avis)) => {
+            let mut e = eng.clone();
+            e.lignes = crate::maintien::avec_le_montant(&eng.lignes, montant);
+            let mut p = calculer_du_mois(ctx, &e, precedentes)?;
+            p.ecrire().avertissements.push(avis);
+            Ok(p)
+        }
+    }
+}
+
+/// La paie d'un mois, d'un seul tenant ou en periodes elementaires.
+fn calculer_du_mois(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
     let bornes = crate::periodes::bornes(ctx, eng)?;
     if bornes.len() <= 1 {
         return calculer_periode(ctx, eng, precedentes);
@@ -987,7 +1143,7 @@ entreprise, « {} »)",
             SANTE_SUSPENSION_MAINTENUE => return Ok(fiche),
             autre => {
                 let qui = [fiche.get("prenom"), fiche.get("nom")].into_iter().flatten().filter(|v| vrai(v)).map(en_texte).collect::<Vec<_>>().join(" ");
-                return Err(format!(
+                return Err(socle::echec::avec(format!("{} : son contrat est suspendu sans indemnisation, et la fiche entreprise ne dit pas ce que devient sa complémentaire santé : le dire dans Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation ».", if qui.is_empty() { cle.clone() } else { qui.clone() }), serde_json::json!({"cle": SANTE_SUSPENSION, "detail": format!(
                     "{} : son contrat est suspendu sans indemnisation sur toute la periode payee (du {} au {} ; suspension {} \
 depuis le {}). Que devient sa complementaire sante ce mois-la ? Sous la convention {}, aucun texte ne le dit : c'est le \
 contrat de sante de la compagnie qui tranche (le maintien est facultatif, instruction DSS du 17/06/2021, II.B). {}A dire \
@@ -1003,7 +1159,7 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
                     SANTE_SUSPENSION,
                     SANTE_SUSPENSION_SUSPENDUE,
                     SANTE_SUSPENSION_MAINTENUE
-                ));
+                )})));
             }
         }
     };
@@ -1018,6 +1174,20 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
 pub(crate) fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
     let e = &p.engagement;
     droit::caisse_conges::affilie(&*e.nat()?, &p.salarie, &e.debut, e.fin.as_ref())
+}
+
+/// La meme question pour la saisie `e` d'un contrat paye au mois, avant que son engagement ne soit construit (le solde de
+/// tout compte de `conges::lignes_du_mois`) : sa fiche telle que sa paie la lira au dernier jour du contrat, le metier que
+/// la saisie dit l'emportant (`fiche_de_l_engagement`, `emploi_de`).
+pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &Value, fin: &Jour) -> Resultat<bool> {
+    let nat = droit::natures::nature(e.get("nature").and_then(Value::as_str))?;
+    let debut = socle::date::d(e.get("debut").ok_or_else(|| socle::fichiers::absent("debut"))?)?;
+    let salarie = e.get("salarie").map(en_texte).unwrap_or_default();
+    let cle = ctx.cle_du_salarie(&salarie)?;
+    let dit = |c: &str| e.get(c).filter(|x| vrai(x)).map(en_texte);
+    let emploi = EmploiEngagement { code_emploi_ft: dit("code_emploi_ft").or_else(|| dit("metier")), ..Default::default() };
+    let fiche = convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?);
+    droit::caisse_conges::affilie(&nat, &fiche, &debut, Some(fin))
 }
 
 /// LA PERIODE D'ESSAI QUE L'ENGAGEMENT STIPULE ne depasse pas la duree maximale de son contrat (`droit::essai` : C. trav.
@@ -1037,6 +1207,55 @@ fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &
 
 /// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7. La
 /// configuration de la compagnie se lit a la fin de cette periode (`Contexte::au`).
+/// Les cles de `Paie::bases` qui portent, un mois d'absence, les deux termes du rapport de `smic_d_une_absence` : la DSN
+/// les declare en S21.G00.51, types 028 et 029.
+pub const PERCUE_HORS_ENA: &str = "remuneration_percue_hors_ena";
+pub const HABITUELLE_HORS_ENA: &str = "remuneration_habituelle_hors_ena";
+
+/// Le SMIC de la reduction generale d'un mois ou une absence retire du salaire.
+pub(crate) struct SmicDUneAbsence {
+    /// La remuneration percue hors elements non affectes par l'absence (S21.G00.51.011 = 028).
+    pub percue: Decimal,
+    /// La remuneration habituelle du mois complet hors ces elements (S21.G00.51.011 = 029).
+    pub habituelle: Decimal,
+    /// Les heures dont le SMIC horaire fait le SMIC du mois, quand le bareme dit le SMIC horaire de la reduction.
+    pub heures: Option<Decimal>,
+}
+
+/// CSS D. 241-7, IV, dernier alinea (`atelier/reference/sources/code-de-la-securite-sociale/xml/D241-7.xml`) : quand le
+/// contrat est suspendu sans paiement de la remuneration ou avec un paiement partiel, « la fraction du montant du salaire
+/// minimum a retenir pour le mois ou a lieu l'absence est corrigee selon le rapport entre les revenus d'activite [...] dus
+/// et ceux qui auraient ete dus si le salarie avait ete present tout le mois, hors elements de remuneration qui ne sont pas
+/// affectes par l'absence », l'affectation s'entendant « d'une proratisation strictement proportionnelle au temps
+/// d'absence » ; un paiement integral garde le SMIC entier (alinea precedent). La fiche net-entreprises 2681
+/// (`atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2681-reduction-generale-absence-
+/// proratisation-smic-types-028-029-20260609.txt`, exemples « Prime d'anciennete et maladie » et « garantie sur le net »)
+/// met au numerateur le salaire, l'absence, le maintien et les IJSS brutes deduites, hors IJSS subrogees non soumises, et
+/// au denominateur le salaire du mois complet ; « SMIC = 1766.92 x 1 104.27 / 1 820.04 ».
+///
+/// Dans ce calcul, une absence ne proratise que le salaire de base : les lignes `retabli` (l'absence, le maintien, les IJSS
+/// brutes) se calculent sur lui (`maintien`, `imprevus`). Le numerateur est donc le salaire de base et ces lignes, le
+/// denominateur le salaire de base. Le SMIC du mois du salaire de base (`smic_horaire` x ses heures, au centime) prend le
+/// rapport, comme la fiche l'ecrit ; les autres heures payees (en plus du mois) restent entieres. `heures` est ce SMIC
+/// rapporte au SMIC horaire : la reduction le retrouve (`droit::reduction`). Sans ligne `retabli` non nulle : aucun rapport.
+pub(crate) fn smic_d_une_absence(lb: &[LigneBrut], smic_horaire: Option<Decimal>) -> Option<SmicDUneAbsence> {
+    let somme = |f: &dyn Fn(&LigneBrut) -> bool, v: &dyn Fn(&LigneBrut) -> Decimal| lb.iter().filter(|l| f(l)).fold(Decimal::ZERO, |a, l| a + v(l));
+    if !lb.iter().any(|l| l.retabli && !l.montant.is_zero()) {
+        return None;
+    }
+    let habituelle = somme(&|l| l.salaire_de_base, &|l| l.montant);
+    if habituelle <= Decimal::ZERO {
+        return None;
+    }
+    let percue = Decimal::ZERO.max(habituelle + somme(&|l| l.retabli && l.soumis, &|l| l.montant));
+    let heures = smic_horaire.filter(|s| *s > Decimal::ZERO).map(|s| {
+        let smic_du_salaire = eur(mul(s, somme(&|l| l.salaire_de_base, &|l| l.heures_annexes)));
+        let autres = somme(&|l| !l.salaire_de_base && !l.retabli, &|l| l.heures_annexes);
+        Decimal::ZERO.max(div(div(mul(smic_du_salaire, percue), habituelle), s) + autres)
+    });
+    Some(SmicDUneAbsence { percue, habituelle, heures })
+}
+
 pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
     let nat = eng.nat()?;
     let mut avis_dfs: Vec<String> = Vec::new();
@@ -1062,7 +1281,7 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     let bar = bareme_du_salarie(ctx, &sal, &nat, &fin_periode, caisse, cpf_cdd)?;
     let rubriques_bulletin: Vec<&Value> = requis(&bar, "rubriques_bulletin")?
         .as_array()
-        .ok_or("rubriques_bulletin : une liste est attendue")?
+        .ok_or_else(|| socle::echec::cle("Le barème de l'année est incomplet : le signaler au développeur.", "rubriques_bulletin"))?
         .iter()
         .collect();
     let jours = Decimal::from(eng.jours);
@@ -1073,12 +1292,12 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     if caisse {
         // La caisse paie ses conges (D. 7121-41) : l'employeur ne les paie pas en plus.
         if let Some(l) = lb.iter().find(|l| matches!(l.code.as_str(), "absence_conges_payes" | "indemnite_conges_payes" | "indemnite_compensatrice_conges")) {
-            return Err(format!(
+            return Err(socle::echec::avec("Cette ligne paie des congés à un salarié déclaré à la caisse des Congés Spectacles : c'est la caisse qui les lui verse ; retirer la ligne.", serde_json::json!({"detail": format!(
                 "{} : la ligne << {} >> paie des conges a un salarie que l'employeur declare a la caisse des \
 Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'est la caisse qui les lui verse. Les payer aussi au bulletin serait les payer deux fois. Refus.",
                 eng.qui(),
                 l.code
-            ));
+            )})));
         }
     }
     let rubriques: Vec<Decimal> = soumises.iter().map(|l| l.montant).collect();
@@ -1089,14 +1308,14 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     let prev = match prev {
         Some(p) if p.get("taux_pat").map_or(false, |t| !t.is_null()) => *p,
         _ => {
-            return Err(format!(
+            return Err(socle::echec::avec("Le barème de l'année n'a pas de prévoyance avec un taux patronal : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Bareme {}{} : aucune rubrique `prevoyance` avec un taux \
                  patronal. Elle entre dans l'assiette CSG (98,25 % du brut + \
                  part patronale de prevoyance) : sans elle la CSG serait \
                  sous-declaree sans que rien ne le signale.",
                 bar.get("annee").map_or("?".to_string(), en_texte),
                 if nat.bareme.is_some() { format!(", nature '{}'", nat.cle) } else { String::new() }
-            ))
+            )})))
         }
     };
     let taux_prev = dec(&prev["taux_pat"])?;
@@ -1134,13 +1353,13 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
             None
         };
         let Some(t1) = t1 else {
-            return Err(format!(
+            return Err(socle::echec::avec("Le barème de l'année porte une prévoyance que le calcul de la CSG ne sait pas lire : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Bareme {} : la ligne de prevoyance `{}` porte l'assiette \
                  `{}`, que le calcul de l'assiette CSG ne sait pas lire. Sa \
                  part patronale doit y entrer : sans elle la CSG serait \
                  sous-declaree.",
                 bar.get("annee").map_or("?".to_string(), en_texte), id, base
-            ));
+            )})));
         };
         let base_t2 = Decimal::new(0, 2).max(brut.min(Decimal::from(4) * t1) - t1);
         tranches_prev = add(tranches_prev, div(mul(base_t2, dec(&r["taux_pat"])?), Decimal::ONE_HUNDRED));
@@ -1405,13 +1624,55 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     let caisse_conges = bases["brut_cs"] > Decimal::ZERO;
     // Sous DFS, la reduction se calcule sur le brut abattu, dans la limite de 130 % de celle du brut entier
     // (`reduction_generale_sous_dfs`).
+    // Le SMIC horaire de la reduction (`smic_horaire_reference`) ; sans lui, pas de reduction.
+    let smic_horaire_rg = bar.get("reduction_generale").and_then(|r| r.get("smic_horaire_reference")).filter(|v| vrai(v)).map(dec).transpose()?;
+    let absence = smic_d_une_absence(&lb, smic_horaire_rg);
+    let heures_rg = absence.as_ref().and_then(|a| a.heures).unwrap_or(heures_annexes);
+    if let Some(a) = &absence {
+        bases.insert(PERCUE_HORS_ENA.into(), a.percue);
+        bases.insert(HABITUELLE_HORS_ENA.into(), a.habituelle);
+    }
     let rg = match bases.get("brut_dfs").filter(|_| dfs.is_some()) {
-        Some(abattu) => reduction_generale_sous_dfs(&bar, statut, brut, *abattu, heures_annexes, caisse_conges)?,
-        None => reduction_generale(&bar, statut, brut, heures_annexes, caisse_conges)?,
+        Some(abattu) => reduction_generale_sous_dfs(&bar, statut, brut, *abattu, heures_rg, caisse_conges)?,
+        None => reduction_generale(&bar, statut, brut, heures_rg, caisse_conges)?,
     };
+    // Le SMIC se calcule sur les heures exactes du rapport ; le bulletin les dit au centieme.
+    let rg = rg.map(|mut r| {
+        if absence.as_ref().is_some_and(|a| a.heures.is_some()) {
+            r.heures = r.heures.round_dp(2);
+        }
+        r
+    });
     if let Some(rg) = rg.as_ref().filter(|rg| !rg.montant.is_zero()) {
         lignes.push(ligne_de_reduction(rg, brut));
         tot_pat -= rg.montant;
+    }
+
+    // 7.9 bis : les heures en plus d'un salarie paye au mois (`heures_en_plus`) : la reduction de cotisations salariales,
+    // la deduction patronale, et le net exonere d'impot, que la remuneration nette fiscale ne prend pas.
+    let mois_paye = fin_periode.mois_iso();
+    let cle_sal = sal.get("_cle").and_then(Value::as_str).map(String::from).unwrap_or_else(|| eng.salarie.clone());
+    let heures_en_plus = crate::heures_en_plus::apres_les_cotisations(ctx, &bar, &lb, &lignes, brut, tot_pat, || {
+        crate::conges::exonere_des_mois_anterieurs(ctx, &mois_paye, &cle_sal)
+    })?;
+    let mut exonere = zero;
+    if let Some(h) = &heures_en_plus {
+        lignes.extend(h.lignes.iter().cloned());
+        tot_sal -= h.reduction;
+        tot_pat -= h.deduction;
+        exonere = h.exonere;
+        bases.insert(crate::heures_en_plus::REMUNERATION.into(), h.remuneration);
+        bases.insert(crate::heures_en_plus::HEURES.into(), h.heures);
+        bases.insert(crate::heures_en_plus::EXONERE.into(), h.exonere);
+    }
+    // Les indemnites journalieres que la compagnie subrogee reverse (`maintien::lignes`) : le montant net social les
+    // compte, la DSN les dit en S21.G00.58 de type 10, et le prelevement a la source les prend pour assiette, a cote du
+    // net imposable (`etats::prelevement`).
+    for (l, b) in eng.lignes.iter().zip(lb.iter()) {
+        if b.code == crate::maintien::IJ_NETTES {
+            *bases.entry(crate::maintien::IJ_SUBROGEES.into()).or_insert(zero) += b.montant;
+            *bases.entry(crate::maintien::IJ_ASSIETTE_PAS.into()).or_insert(zero) += socle::num::dec_avec_echelle(l.get("assiette_pas").unwrap_or(&Value::Null)).unwrap_or(zero);
+        }
     }
 
     // 7.10 : la sortie. Ce qui est hors assiette se paie ou se retient quand meme.
@@ -1464,12 +1725,15 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     p.total_sal = tot_sal;
     p.net_a_payer = net;
     p.net_social = brut - tot_sal + hors_assiette_revenu;
-    p.net_imposable = brut - tot_sal + hors_assiette_imposable + reintegrations(&p.lignes);
+    p.net_imposable = brut - tot_sal + hors_assiette_imposable + reintegrations(&p.lignes) - exonere;
     p.cout_employeur = brut + tot_pat;
     p.bases = bases;
     p.reduction_generale = rg;
     p.deduction_forfaitaire = dfs;
     p.avertissements.extend(avis_dfs.into_iter().map(|texte| Avis { info: true, texte }));
+    if let Some(h) = heures_en_plus {
+        p.avertissements.extend(h.avis.into_iter().map(|texte| Avis { info: false, texte }));
+    }
     p.salaire_de_base = base_51;
     p.salaire_retabli = retabli;
     p.assiette_chomage = chomage_51;
@@ -1587,7 +1851,7 @@ impl PlafondTempsPartiel {
             .iter()
             .find(|(_, c)| *c == code)
             .map(|(p, _)| *p)
-            .ok_or_else(|| format!("paie ecrite illisible : `plafond_temps_partiel` = {}", code))
+            .ok_or_else(|| socle::echec::a_la_cle(socle::echec::PAIE_ILLISIBLE, "plafond_temps_partiel", code))
     }
 }
 
@@ -1611,13 +1875,13 @@ pub(crate) fn plafond_temps_partiel(ent: &Value, e: &Engagement, sal: &Value) ->
         Some(Value::String(t)) if t.trim().is_empty() || t.trim() == PLAFOND_PRORATISE => false,
         Some(Value::String(t)) if t.trim() == PLAFOND_ENTIER => true,
         Some(autre) => {
-            return Err(format!(
+            return Err(socle::echec::avec("La case « Plafond de la Sécurité sociale d'un salarié à temps partiel » de la fiche entreprise porte un choix inconnu : le choisir dans la liste.", serde_json::json!({"cle": "plafond_temps_partiel", "detail": format!(
                 "Fiche entreprise, `plafond_temps_partiel` = {} : ce choix n'est pas connu. Le plafond de Securite sociale \
 d'un salarie a temps partiel se proratise a la duree de son contrat (CSS L. 242-8 ; fiche net-entreprises 3369 : << par \
 defaut >>) : laisser vide, ou << {} >>. << {} >> : l'etablissement renonce a la proratisation pour tous ses salaries a \
 temps partiel (fiche 3369 ; BOSS, assiette generale, § 760).",
                 autre, PLAFOND_PRORATISE, PLAFOND_ENTIER
-            ))
+            )})))
         }
     };
     // Le statut se lit comme le bareme le lit (`plafond_de_l_engagement`, `reduction_generale`) : vide, un artiste.
@@ -1632,8 +1896,8 @@ temps partiel (fiche 3369 ; BOSS, assiette generale, § 760).",
 /// la duree inscrite au contrat (S21.G00.40.013), rapportee a « la plus courte des durees mentionnees au 1° de
 /// l'article L. 3123-1 du code du travail » -- la duree legale (151,67 h, `contrats-base.json`, L. 3121-27) ou, si
 /// elle est plus courte, la duree collective de l'entreprise (S21.G00.40.012). Le texte ajoute a la duree du contrat
-/// « le nombre d'heures complementaires » du mois : le moteur ne les distingue pas d'autres heures payees, et une
-/// ligne d'heures en plus du mois refuse plutot que de les deviner.
+/// « le nombre d'heures complementaires » du mois : celles que le moteur compose du fait de la carte (`heures_en_plus`) ;
+/// une ligne d'heures tapee a la main ne dit pas si elle en est, et refuse plutot que de le deviner.
 pub(crate) fn duree_du_temps_partiel(e: &Engagement) -> Resultat<(Decimal, Decimal)> {
     let nat = e.nat()?;
     if let Some(l) = e.lignes.iter().find(|l| l.get("rubrique").and_then(Value::as_str) == Some("heure")) {
@@ -1646,12 +1910,19 @@ devine pas.",
             l.get("quantite").map(en_texte).unwrap_or_default()
         ));
     }
-    let legale = dec_f64(nat.quotite_reference_defaut.ok_or_else(|| format!("{} : pas de duree legale (`quotite_reference_defaut`)", nat.libelle))?)?;
+    let legale = dec_f64(nat.quotite_reference_defaut.ok_or_else(|| socle::echec::livree("contrats-base.json", &format!("{}.quotite_reference_defaut", nat.libelle)))?)?;
     let reference = match e.quotite_reference()? {
         Some(r) => legale.min(dec_f64(r)?),
         None => legale,
     };
-    Ok((e.quotite()?, reference))
+    // « majoree du nombre d'heures complementaires » : celles que le moteur compose du fait du mois (`heures_en_plus`).
+    let complementaires = e
+        .lignes
+        .iter()
+        .filter(|l| l.get("rubrique").and_then(Value::as_str) == Some(crate::heures_en_plus::HEURE_COMPLEMENTAIRE))
+        .map(|l| dec(l.get("quantite").unwrap_or(&Value::Null)))
+        .sum::<Resultat<Decimal>>()?;
+    Ok((e.quotite()? + complementaires, reference))
 }
 
 impl Paie {
@@ -1691,7 +1962,10 @@ impl Paie {
             "deduction_forfaitaire".into(),
             self.deduction_forfaitaire.as_ref().map_or(Value::Null, |d| d.canon()),
         );
-        m.insert("engagement".into(), self.engagement.canon()?);
+        // Le jour du versement que la paie declare et imprime (`Engagement::date_du_versement`) : le contrat le dit.
+        let mut engagement = self.engagement.canon()?;
+        engagement["date_paiement"] = Value::String(self.engagement.date_du_versement()?.iso());
+        m.insert("engagement".into(), engagement);
         m.insert("heures".into(), n(self.heures));
         m.insert("heures_absence".into(), n(self.heures_absence));
         m.insert("heures_travaillees".into(), n(self.heures_travaillees));
@@ -1722,5 +1996,46 @@ impl Paie {
             m.insert("periodes".into(), Value::Array(self.periodes.iter().map(|p| p.canon(ctx)).collect::<Resultat<_>>()?));
         }
         Ok(Value::Object(m))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ligne(code: &str, montant: &str, heures: &str, base: bool, retabli: bool, soumis: bool) -> LigneBrut {
+        LigneBrut {
+            code: code.into(), libelle: code.into(), unite: "mois".into(), quantite: Decimal::ONE, taux: dec_de(montant),
+            montant: dec_de(montant), heures_annexes: dec_de(heures), soumis, imposable: soumis, conges_spectacles: false,
+            salaire_de_base: base, retabli, conges_pris: false, dsn_bloc52: None, arret_de_travail: retabli, dsn_autres_bruts: None,
+            precision: None,
+        }
+    }
+
+    fn dec_de(t: &str) -> Decimal {
+        t.parse().unwrap()
+    }
+
+    /// CSS D. 241-7, IV, dernier alinea, et la fiche net-entreprises 2681 (`atelier/reference/sources/
+    /// net-entreprises-base-connaissances/net-entreprises-fiche2681-reduction-generale-absence-proratisation-smic-types-028-029-
+    /// 20260609.txt`), premier exemple : un salaire de 2 000 EUR, une absence qui en retire la moitie, une prime annuelle
+    /// non affectee par l'absence ; « 028 » 1 000, « 029 » 2 000, « Smic = 1766.92 x 1000 /2000 = 883.46 » (SMIC horaire
+    /// 11,65). Une IJSS subrogee, non soumise, n'entre pas au rapport ; un maintien integral garde le SMIC entier.
+    #[test]
+    fn le_smic_d_un_mois_d_absence_suit_le_rapport_des_remunerations() {
+        let smic = Some(dec_de("11.65"));
+        // 35 x 52 / 12 heures, comme la fiche compte le SMIC du mois (1 766,92).
+        let mois = ligne("mois", "2000", "151.6667", true, false, true);
+        let prime = ligne("prime", "3833.33", "0", false, false, true);
+        let absence = ligne("absence_maladie", "-1000", "-75.83", false, true, true);
+        let a = smic_d_une_absence(&[mois.clone(), absence.clone(), prime], smic).unwrap();
+        assert_eq!((a.percue, a.habituelle), (dec_de("1000"), dec_de("2000")));
+        assert_eq!(eur(mul(dec_de("11.65"), a.heures.unwrap())), dec_de("883.46"));
+        let subrogee = ligne("ijss_nettes", "300", "0", false, false, false);
+        assert_eq!(smic_d_une_absence(&[mois.clone(), absence.clone(), subrogee], smic).unwrap().percue, dec_de("1000"));
+        let maintien = ligne("maintien_salaire", "1000", "0", false, true, true);
+        let entier = smic_d_une_absence(&[mois.clone(), absence, maintien], smic).unwrap();
+        assert_eq!(eur(mul(dec_de("11.65"), entier.heures.unwrap())), dec_de("1766.92"));
+        assert!(smic_d_une_absence(&[mois], smic).is_none());
     }
 }

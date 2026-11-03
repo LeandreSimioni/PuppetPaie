@@ -23,6 +23,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::Decimal;
+use socle::texte::{euros, euros_de, virgule};
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> socle::echec::Echec {
@@ -31,25 +32,6 @@ fn refus(m: impl Into<String>) -> socle::echec::Echec {
 
 fn dec(t: &str) -> R<Decimal> {
     Decimal::from_str(t.trim()).map_err(|_| erreur("InvalidOperation", socle::num::illisible(t)))
-}
-
-/// `_eur` : `1 234,50 €` (deux decimales, espace des milliers, virgule).
-pub fn eur(v: Decimal) -> String {
-    let r = v.round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
-    let mut s = format!("{:.2}", r);
-    let negatif = s.starts_with('-');
-    if negatif {
-        s.remove(0);
-    }
-    let (entier, frac) = s.split_once('.').unwrap_or((&s, "00"));
-    let mut groupes = String::new();
-    for (i, c) in entier.chars().enumerate() {
-        if i > 0 && (entier.len() - i) % 3 == 0 {
-            groupes.push(' ');
-        }
-        groupes.push(c);
-    }
-    format!("{}{},{} €", if negatif { "-" } else { "" }, groupes, frac)
 }
 
 fn jjmmaaaa(iso: &str) -> String {
@@ -341,7 +323,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         if let Some(plafond) = plafond_mensuel(&an)? {
             for (_, nom, b) in &mois_sal {
                 if *b > plafond {
-                    avert.push(format!("{}, {} : brut {} au-dessus du plafond mensuel -- la T1 n'est plus egale au brut, base a recalculer.", m, nom, eur(*b)));
+                    avert.push(format!("{}, {} : brut {} au-dessus du plafond mensuel -- la T1 n'est plus égale au brut, base à recalculer.", m, nom, euros(*b)));
                 }
             }
         }
@@ -387,23 +369,24 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     let sig = if vrai(&sig) { sig } else { json!({}) };
     let ou = |a: &str, b: &str| sig.get(a).filter(|v| vrai(v)).or_else(|| sig.get(b)).filter(|v| vrai(v)).map(valeur_en_texte);
     let signe: String = [ou("prenom_affichage", "prenom"), ou("nom_affichage", "nom")].into_iter().flatten().collect::<Vec<_>>().join(" ");
-    let periode = format!("{} à {}", par_mois[0].libelle, par_mois[par_mois.len() - 1].libelle);
+    let (premier, dernier) = (&par_mois[0].libelle, &par_mois[par_mois.len() - 1].libelle);
+    let periode = if premier == dernier { premier.clone() } else { format!("{} à {}", premier, dernier) };
 
     let mut tableau = vec!["| mois | masse | cotisation |".to_string(), "|---|---:|---:|".to_string()];
     for a in &annees {
         for r in &par_mois {
             if r.mois.starts_with(&a.annee) {
-                tableau.push(format!("| {} | {} | {} |", r.libelle, eur(r.masse), eur(r.cotisation)));
+                tableau.push(format!("| {} | {} | {} |", r.libelle, euros(r.masse), euros(r.cotisation)));
             }
         }
-        tableau.push(format!("| **{}, à {} %** | **{}** | **{}** |", a.annee, a.taux.to_string().replace('.', ","), eur(a.masse), eur(a.cotisation)));
+        tableau.push(format!("| **{}, à {} %** | **{}** | **{}** |", a.annee, virgule(a.taux), euros(a.masse), euros(a.cotisation)));
     }
     let dates: Vec<(&String, &String)> = d.vire_le.iter().filter(|(_, v)| !v.is_empty()).map(|(k, v)| (k, v)).collect();
     let virements: Vec<String> = annees
         .iter()
         .map(|a| {
             let date = dates.iter().find(|(k, _)| **k == a.annee).map(|(_, v)| jjmmaaaa(v)).filter(|j| !j.is_empty()).unwrap_or_else(|| "__/__/____".to_string());
-            format!("- le {}, {}, libellé « {} » ;", date, eur(a.cotisation), a.libelle_virement)
+            format!("- le {}, {}, libellé « {} » ;", date, euros(a.cotisation), a.libelle_virement)
         })
         .collect();
     let beneficiaire = valeur_en_texte(&base["reglement"]["beneficiaire"]);
@@ -430,14 +413,14 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         valeur_en_texte(&base["page"])
     )];
     for a in &annees {
-        a_faire.push(format!("    {} : {}, libellé « {} »", a.annee, eur(a.cotisation), a.libelle_virement));
+        a_faire.push(format!("    {} : {}, libellé « {} »", a.annee, euros(a.cotisation), a.libelle_virement));
     }
     a_faire.push(format!("Reporter la date de chaque virement dans le courriel à Audiens, puis l'envoyer à {} (objet : {}).", courriel_audiens.a, courriel_audiens.objet));
     a_faire.push(format!(
         "Envoyer à {} (objet : {}) le courriel au CASC-SVP, avec en pièce jointe CASC-SVP_liste-nominative.xlsx — leur modèle, déjà rempli.",
         courriel_casc.a, courriel_casc.objet
     ));
-    a_faire.push("Une fois les virements faits, le noter dans le logiciel : Exports, bouton « Noter comme régularisé », ou `moteur casc-regularise ANNEE --vire-le AAAA-MM-JJ --montant X` — les mois sortent alors des dossiers suivants.".to_string());
+    a_faire.push("Une fois les virements faits, le noter dans le logiciel : Exports, bouton « Noter comme régularisé » (route `casc-regularise`) — les mois sortent alors des dossiers suivants.".to_string());
     a_faire.push("Vérifier que la fiche de paramétrage Audiens porte les deux lignes CASC-SVP, pour que les DSN suivantes la déclarent.".to_string());
 
     let boite = d.boite_liee;
@@ -459,7 +442,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
 }
 
 fn fichier_suivi(ctx: &Contexte) -> std::path::PathBuf {
-    ctx.racine.join("config").join("casc-svp.json")
+    ctx.racine.join(declarations::casc::CASC_SVP)
 }
 
 fn deja_faites(ctx: &Contexte) -> String {
@@ -470,7 +453,7 @@ fn deja_faites(ctx: &Contexte) -> String {
         .flatten()
         .map(|x| {
             let g = |c: &str| x.get(c).map_or_else(|| "None".to_string(), valeur_en_texte);
-            format!("{} ({} €, viré le {})", g("annee"), g("montant"), jjmmaaaa(&x.get("vire_le").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()))
+            format!("{} ({}, viré le {})", g("annee"), euros_de(x.get("montant").unwrap_or(&Value::Null)), jjmmaaaa(&x.get("vire_le").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()))
         })
         .collect::<Vec<_>>()
         .join(", ")
@@ -483,6 +466,7 @@ pub fn vers_json(r: &Regularisation) -> Value {
         m.insert("a".into(), json!(c.a));
         m.insert("objet".into(), json!(c.objet));
         m.insert("corps".into(), json!(c.corps));
+        m.insert("entete_dit".into(), json!(format!("à {}, objet {}", c.a, c.objet)));
         if let Some(p) = c.piece_jointe {
             m.insert("piece_jointe".into(), json!(p));
         }
@@ -498,7 +482,8 @@ pub fn vers_json(r: &Regularisation) -> Value {
         "etat": "regularisation-casc-svp",
         "periode": r.periode,
         "mois": r.mois.iter().map(|m| json!({"mois": m.mois, "libelle": m.libelle, "masse": m.masse.to_string(), "taux": m.taux.to_string(), "cotisation": m.cotisation.to_string(), "source": m.source})).collect::<Vec<_>>(),
-        "annees": r.annees.iter().map(|a| json!({"annee": a.annee, "masse": a.masse.to_string(), "taux": a.taux.to_string(), "cotisation": a.cotisation.to_string(), "libelle_virement": a.libelle_virement})).collect::<Vec<_>>(),
+        "annees": r.annees.iter().map(|a| json!({"annee": a.annee, "masse": a.masse.to_string(), "taux": a.taux.to_string(), "cotisation": a.cotisation.to_string(), "libelle_virement": a.libelle_virement, "libelle_dit": format!("libellé « {} »", a.libelle_virement), "date_libelle": format!("Virement {} fait le", a.annee)})).collect::<Vec<_>>(),
+        "virements_titre": if r.annees.len() > 1 { format!("Les {} virements", r.annees.len()) } else { "Le virement".to_string() },
         "salaries": r.salaries.iter().map(|s| json!({"annee": s.annee, "salarie": s.salarie, "nir": s.nir, "date_naissance": s.date_naissance, "adresse": s.adresse, "masse": s.masse.to_string()})).collect::<Vec<_>>(),
         "total": r.total.to_string(),
         "a_faire": r.a_faire,
@@ -521,7 +506,7 @@ pub fn vers_json(r: &Regularisation) -> Value {
 /// L'ecriture de la regularisation : `exports/casc-svp/` -- les CSV, les deux courriels, la liste des gestes.
 pub fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
     let dossier = ctx.racine.join("exports").join("casc-svp");
-    let io = |p: &Path, e: std::io::Error| erreur("OSError", format!("{} : {}", p.display(), e));
+    let io = |p: &Path, e: std::io::Error| erreur("OSError", socle::echec::du_disque(&p, &e));
     std::fs::create_dir_all(&dossier).map_err(|e| io(&dossier, e))?;
     let virgule = |d: &Decimal| d.to_string().replace('.', ",");
     let mut fichiers: Vec<std::path::PathBuf> = vec![];
@@ -556,7 +541,7 @@ pub fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
     }
     let p = dossier.join("CASC-SVP_a-faire.txt");
     let verifier = if r.avertissements.is_empty() { String::new() } else { format!("\nÀ vérifier :\n{}", r.avertissements.join("\n")) };
-    std::fs::write(&p, format!("Régularisation CASC-SVP — {} — total {}\n\n{}\n{}\n", r.periode, eur(r.total), r.a_faire.join("\n"), verifier)).map_err(|e| io(&p, e))?;
+    std::fs::write(&p, format!("Régularisation CASC-SVP — {} — total {}\n\n{}\n{}\n", r.periode, euros(r.total), r.a_faire.join("\n"), verifier)).map_err(|e| io(&p, e))?;
     fichiers.insert(0, p);
     r.fichiers = fichiers.iter().map(|f| f.display().to_string()).collect();
     r.dossier = dossier.display().to_string();
@@ -721,7 +706,7 @@ fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path,
         ));
     }
     let chemin = dossier.join("CASC-SVP_liste-nominative.xlsx");
-    wb.save(&chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    wb.save(&chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     fichiers.push(chemin);
     Ok(())
 }
@@ -748,7 +733,7 @@ pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montan
         "qui": qui,
     });
     let Value::Object(o) = &mut d else {
-        return Err(erreur("AttributeError", "config/casc-svp.json : un objet est attendu"));
+        return Err(erreur("AttributeError", socle::echec::avec("Le fichier de la CASC-SVP de la compagnie est abîmé.", serde_json::json!({"fichier": declarations::casc::CASC_SVP}))));
     };
     match o.entry("regularisations").or_insert_with(|| json!([])) {
         Value::Array(a) => a.push(entree.clone()),

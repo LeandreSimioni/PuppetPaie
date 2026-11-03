@@ -96,12 +96,14 @@ pub fn verifier(texte: &str, nature: &str, norme: &Norme) -> Resultat<()> {
             }
         })
         .collect();
-    Err(format!(
-        "Rubrique(s) que la nature {} ({}) n'admet pas -- anomalie bloquante CST-04, le fichier ne declarerait rien :\n{}\n  Tableau des usages du cahier technique NEODeS (donnees/{}).",
-        nature,
-        libelle,
-        lignes.join("\n"),
-        norme.table_usages()?
+    Err(socle::echec::avec(
+        format!(
+            "Rubrique(s) que la nature {} ({}) n'admet pas -- anomalie bloquante CST-04, le fichier ne declarerait rien :\n{}\n  Tableau des usages du cahier technique NEODeS.",
+            nature,
+            libelle,
+            lignes.join("\n")
+        ),
+        serde_json::json!({"fichier": norme.table_usages()?}),
     ))
 }
 
@@ -189,7 +191,7 @@ mod tests {
     #[test]
     fn un_fichier_sans_version_connue_ne_se_controle_pas() {
         let e = verifier_fichier("S10.G00.00.006,'P25V01'\r\nS20.G00.05.001,'01'\r\n").unwrap_err();
-        assert!(e.contains("Version de la norme DSN « P25V01 » inconnue du logiciel (versions livrees : P26V01, P27V01"), "{}", e);
+        assert!(e.contains("Version de la norme DSN « P25V01 » inconnue du logiciel (versions livrées : P26V01, P27V01"), "{}", e);
     }
 
     /// Le releve de `moteur extraire usages`, sur le PDF 2027.1.1 puis sur les classeurs

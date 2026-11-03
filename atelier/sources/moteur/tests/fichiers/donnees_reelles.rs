@@ -1,8 +1,8 @@
-//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `fictives/`, `atelier/sources/`, et les
+//! Le verrou des données réelles (règle de fond 9a) : ce qui sera public — `logiciel/`, `fictives/` et leurs scénarios (`atelier/fictives/`), `atelier/sources/`, et les
 //! textes de référence d'`atelier/reference/` — n'écrit pas un NIR qui ne soit pas inventé (sauf, dans un texte de référence,
 //! l'exemple que son émetteur y a imprimé : `EXEMPLES_DES_TEXTES`) ; aucun test ne construit un chemin vers `prive/` ; la
 //! suite ne prend pas `prive/` pour racine. Tout ce qui part du dépôt hors de `prive/` (`atelier/` entier, `.claude/`, la racine : le dépôt public part de
-//! là, `atelier/CLAUDE.md`, « Où sont les choses » et règle 9) ne porte ni le SIREN ni le nom de la compagnie du poste,
+//! là, `atelier/AGENTS.md`, « Où sont les choses » et règle 9) ne porte ni le SIREN ni le nom de la compagnie du poste,
 //! ni un chemin du poste (un chemin absolu sous le dossier des utilisateurs de Windows), sauf ce qui attend une décision
 //! (`EN_SUSPENS`). Il ne voit ni les adresses ni les noms de personnes : les écrire ici pour les chercher, ce serait les
 //! publier.
@@ -23,7 +23,7 @@ const SIREN_REEL: &str = concat!("8783", "66194");
 const NOM_REEL: &str = concat!("ueu", "eue");
 /// Ce qui ne s'écrit pas à la main : ce que construit cargo (ses empreintes ressemblent à des NIR), les caches.
 const HORS_CODE: [&str; 4] = ["target", ".git", "__pycache__", ".pytest_cache"];
-const PUBLIC: [&str; 4] = ["logiciel", "fictives", "atelier/sources", "atelier/reference"];
+const PUBLIC: [&str; 5] = ["logiciel", "fictives", "atelier/fictives", "atelier/sources", "atelier/reference"];
 
 /// Les textes de référence (`atelier/reference/`) sont des copies, octet pour octet, de ce que d'autres ont publié : un numéro
 /// à la forme d'un NIR qui y figure est celui de l'émetteur -- l'exemple d'une documentation officielle, ou un nombre qui
@@ -73,16 +73,18 @@ enum Verrou {
 /// Ce qui attend une décision d'éditeur : le verrou qu'il suspend, les fichiers (relatifs à la racine
 /// du dépôt), et pourquoi. Un motif qui ne couvre plus rien se retire (`chaque_suspens_couvre_encore_un_fichier`) : la
 /// liste ne fait que rétrécir.
-const EN_SUSPENS: [(Verrou, &str, &str); 8] = [
+const EN_SUSPENS: [(Verrou, &str, &str); 6] = [
     (Verrou::Nom, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
     (Verrou::Siren, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
     (Verrou::Chemin, "^atelier/prive-dev/", "la copie de développement : des données de la compagnie du poste"),
-    (Verrou::Nom, "^atelier/site/", "les pages du site de l'éditeur, qui nomment l'éditeur : ici ou dans le dépôt du site"),
-    (Verrou::Chemin, "^atelier/bac-a-sable/", "le bac à sable de la mise à jour : son maj.json et ses sorties portent le poste"),
     (Verrou::Chemin, r"^fictives/[^/]+/journal/depots\.json$", "le moteur écrit la trace d'un dépôt par son chemin absolu (depot_acte.rs)"),
     (Verrou::Chemin, r"^fictives/[^/]+/journal/incidents\.json$", "des incidents écrits sur le poste de l'éditeur, dont la pile d'appels nomme ses chemins ; un fichier propre au poste (compagnies::PROPRES_AU_POSTE)"),
     (Verrou::Chemin, r"^fictives/[^/]+/sorties/.+\.description\.json$", "le moteur écrit le logo et la signature par leur chemin absolu (contrat.rs, bulletin.rs)"),
 ];
+
+/// LA SIGNATURE DE L'EDITEUR : l'editeur et la compagnie du poste portent le meme nom, et le logiciel le signe en un seul
+/// fichier (la mention de l'auteur et ses sites). Le verrou du nom le laisse passer, lui seul.
+const SIGNATURE: &str = "atelier/sources/moteur/src/interface/auteur.rs";
 
 /// Un chemin absolu sous le dossier des utilisateurs de Windows, dans toutes ses écritures (`\`, `/`, `\\` d'un JSON).
 fn chemin_du_poste() -> regex::bytes::Regex {
@@ -115,8 +117,9 @@ fn fichiers(racine: &Path, sortie: &mut Vec<PathBuf>) {
 /// Chaque fichier et dossier de ce qui sera public.
 fn publics() -> Vec<PathBuf> {
     let mut v = Vec::new();
-    for d in PUBLIC {
-        fichiers(&depot().join(d), &mut v);
+    // `fictives/` n'existe que là où une livraison l'a fabriqué (`scenario::livrer`) : vérifié quand il est là.
+    for d in PUBLIC.iter().map(|d| depot().join(d)).filter(|d| d.exists()) {
+        fichiers(&d, &mut v);
     }
     v.sort();
     v
@@ -164,9 +167,13 @@ fn trouvailles(verrou: Verrou, rel: &str) -> Vec<String> {
     trouves
 }
 
-/// Ce que `verrou` trouve dans ce qui part, hors de ce qui est en suspens.
+/// Ce que `verrou` trouve dans ce qui part, hors de ce qui est en suspens (et, pour le nom, de la signature).
 fn hors_suspens(verrou: Verrou) -> Vec<String> {
-    ce_qui_part().iter().filter(|r| suspendu(verrou, r).is_none()).flat_map(|r| trouvailles(verrou, r)).collect()
+    ce_qui_part()
+        .iter()
+        .filter(|r| suspendu(verrou, r).is_none() && !(verrou == Verrou::Nom && r.as_str() == SIGNATURE))
+        .flat_map(|r| trouvailles(verrou, r))
+        .collect()
 }
 
 /// Les octets d'un fichier écrit à la main : de l'UTF-8, ou un texte à un octet par caractère (un `.dsn`, un gabarit à

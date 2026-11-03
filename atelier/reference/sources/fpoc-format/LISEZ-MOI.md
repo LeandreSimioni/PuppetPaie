@@ -44,17 +44,4 @@ Les exemples XML (`ExempleMin`, `ExempleMax`) de chaque version sont dans l'arch
 
 ## Où le moteur s'en sert
 
-Le lecteur des fiches (`atelier/sources/paie/src/retours.rs`, `fiche_parametrage`, opération `fiche` de `paie retours`) :
-**il lit les deux versions depuis le lot R5b (11/10/2026)**. `FORMATS_FICHE` nomme le format d'après `Version` (139 →
-1.3.9, 140 → 1.4.0 ; une autre valeur se lit comme avant, sans format) ; chaque contrat rend ses bases et montants
-spécifiques (code nature 79.001, condition tarifaire et son libellé, taux, montant, coef, assiette, et en 1.4.0 le plancher
-et le plafond `BasePlancher`/`BasePlafond`), son option et sa population, et `compteurs` : les rubriques 70.008-70.011 que
-ses conditions appellent (`CONDITIONS_TARIFAIRES`, la règle de la spécification R1.4.0 l. 527-531, R1.3.9 l. 418-423).
-Inférences écrites dans le code : 01, 02 et 90 n'appellent aucun compteur (diapositives 16-17) ; 92 (« chaque ayant
-droit ») se range avec les nombres (70.009). Une condition hors des deux formats refuse (les compteurs ne se devinent pas).
-Le lecteur ne contrôle pas les combinaisons OC.39 (c'est le concentrateur qui les contrôle à réception).
-Fixture fictive validée contre les deux XSD (`xmllint --schema`) : `envois/tests/donnees/fiches-parametrage/
-fiche-fictive-140.xml` ; tests : `envois/tests/envois/retours.rs`, `une_fiche_1_4_0_se_lit_avec_ses_planchers_et_plafonds`,
-`une_condition_tarifaire_inconnue_refuse`, `les_octets_d_une_fiche_se_lisent_en_latin_1`.
-**Reste à faire** (hors du lecteur) : que la DSN d'un permanent santé déclare autant de bases 79 et les compteurs que la
-fiche dit (Q14) ; aujourd'hui elle ne lit pas la fiche (V3e : une base 79 type 18).
+Nulle part : le moteur ne lit aucune fiche de paramétrage ; la DSN d'un permanent santé déclare une base 79 type 18.

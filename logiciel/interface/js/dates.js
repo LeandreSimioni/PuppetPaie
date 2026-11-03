@@ -52,46 +52,18 @@ function moisEnClair(iso) {
   return `${MOIS_FR[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 }
 
-/* << d'aout >>, << de septembre >>. Une elision qui manque se lit comme une
- * faute de frappe, et une interface qui ecrit mal fait douter de ce qu'elle
- * compte. */
-function deMois(iso) {
-  const nom = moisEnClair(iso);
-  return ("aeiouyâàéèêîôû".includes(nom[0]) ? "d'" : "de ") + nom;
-}
 /* Le mois déclaré, EN GROS : son nom en clair. */
-/* Le mois déclaré, EN GROS : son nom en clair, et l'ISO dessous. */
 function moisEnGros(mois) {
   return `<div class="mois-gros">
     <span class="clair">${echapper(moisEnClair(mois))}</span>
   </div>`;
 }
 
-/* « 12/09/2026 ». Un texte qui n'est pas une date ISO revient tel quel ;
+/* JJ/MM/AAAA, la date telle qu'on la lit en France. Un texte qui n'est pas une date ISO revient tel quel ;
    pour un horodatage, on passe ses dix premiers caractères. */
 function jjmmaaaa(iso) {
   if (!iso || iso.length !== 10) return iso || "";
   return `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
-}
-
-function quand(iso) {
-  // « 12/09/2026 à 18:18 » : on travaille en France, une date à l'américaine
-  // dans une phrase se lit mal. L'ISO reste dans les
-  // fichiers et les échanges ; ce qui s'affiche passe par ici.
-  const s = String(iso || "");
-  if (s.length < 10 || s[4] !== "-" || s[7] !== "-") return s;
-  const jour = `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
-  const heure = s.length >= 16 ? s.slice(11, 16) : "";
-  return heure ? `${jour} à ${heure}` : jour;
-}
-
-/** « du 17/03/2026 au 20/03/2026 », ou « depuis le 04/09/2023 » pour un
- *  CDI : sans fin, le moteur rend `None` ou rien, et l'écran disait
- *  « au None ». */
-function periodeEnClair(debut, fin) {
-  return fin && fin !== "None"
-    ? `du ${jjmmaaaa(debut)} au ${jjmmaaaa(fin)}`
-    : `depuis le ${jjmmaaaa(debut)}`;
 }
 
 /** Les jours d'un mois, en clair et au plus court : « 6 », « 21–23 »,

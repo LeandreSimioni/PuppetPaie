@@ -29,13 +29,13 @@ use socle::fichiers::vrai;
 use envois::releve_retours::Client;
 use envois::suites::Suites;
 
-pub use envois::depot_acte::{phrase_de, DepotFait};
+pub use envois::depot_acte::DepotFait;
 use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
 /// voyagent ensemble dans le message, que `routes::commande` redresse en `{"erreur", "classe", <cle>}`.
 pub(crate) fn avec_donnee(classe: &'static str, message: impl Into<String>, cle: &str, donnee: Value) -> Echec {
-    Echec { classe: Some(classe), message: json!({"message": message.into(), cle: donnee}).to_string() }
+    Echec { classe: Some(classe), message: socle::echec::avec(message, json!({cle: donnee})) }
 }
 
 /// `Preuve` : ce qui prouve qu'un humain veut CET acte, MAINTENANT. Le mot de passe DU LOGICIEL, retape.
@@ -43,17 +43,20 @@ pub(crate) fn avec_donnee(classe: &'static str, message: impl Into<String>, cle:
 pub struct Preuve {
     pub motdepasse: Option<String>,
     pub mois_recopie: Option<String>,
+    /// La preuve deja donnee pour ce geste (sa forme), quand un acte en emporte d'autres : la demande de taux de PAS part
+    /// avec la DPAE sous la meme preuve, sans redemander. Jamais lue d'une charge.
+    pub(crate) donnee: Option<String>,
 }
 
 impl Preuve {
     pub fn de_la_charge(charge: &Value) -> Preuve {
-        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None }
+        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None, donnee: None }
     }
 }
 
 // -------------------------------------------------------------------- la preuve
 
-/// `_cle` lit une version en entiers separes par des points (illisible : `(0,)`).
+/// Une version lue en entiers separes par des points (illisible : `(0,)`), pour la comparer.
 fn cle_de_version(v: &str) -> Vec<i64> {
     let lu: Option<Vec<i64>> = v.trim().split('.').map(|x| x.trim().parse::<i64>().ok()).collect();
     lu.unwrap_or_else(|| vec![0])
@@ -88,6 +91,9 @@ pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
 pub(crate) fn verifier_preuve(ctx: &Contexte, preuve: Option<&Preuve>, mois_attendu: &str, quoi: &str, a_qui: &str) -> R<String> {
     // Le binaire de l'ATELIER refuse tout acte reel, avant toute autre question (`atelier::redirection`). Un depot reel, un envoi,
     // une signature passent tous par ici.
+    if let Some(forme) = preuve.and_then(|p| p.donnee.clone()) {
+        return Ok(forme);
+    }
     #[cfg(feature = "atelier")]
     return refus_atelier(ctx, preuve, mois_attendu, quoi, a_qui);
     #[cfg(not(feature = "atelier"))]
@@ -121,7 +127,7 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
     if !coffre.ouverture_exigee().map_err(vers)? {
         return Err(erreur(
             "PreuveInsuffisante",
-            "Aucun mot de passe du logiciel n'est pose : rien ne peut partir en reel. Le poser d'abord -- la fenetre PuppetPaie le demande a sa premiere ouverture, ou `moteur coffre ouverture`. Rien n'est parti.",
+            "Aucun mot de passe du logiciel n'est pose : rien ne peut partir en reel. Le poser d'abord : la fenêtre PuppetPaie le demande à sa première ouverture. Rien n'est parti.",
         ));
     }
     let Some(preuve) = preuve.filter(|p| p.motdepasse.as_deref().is_some_and(|m| !m.is_empty())) else {
@@ -145,22 +151,16 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
 
 // ------------------------------------------------------------ le secret de l'organisme
 
-/// `_motdepasse_organisme` : le secret de l'organisme -- l'environnement d'abord (quelqu'un l'a tape dans une
+/// Le secret de l'organisme -- l'environnement d'abord (quelqu'un l'a tape dans une
 /// fenetre, il vaut confirmation), puis le coffre. Ce qui autorise a y puiser pour un depot REEL, c'est la
 /// preuve verifiee juste avant par l'appelant. Ce qui SORT d'ici est un secret : il va directement au client.
 pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Option<&str>) -> R<Option<String>> {
-    let variable = if service == "net-entreprises" { envois::releve_retours::VARIABLE_MOTDEPASSE } else { envois::releve_retours::VARIABLE_MOTDEPASSE_DPAE };
-    if let Ok(v) = std::env::var(variable) {
-        if !v.is_empty() {
-            return Ok(Some(v));
-        }
-    }
     let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
     let vers = crate::routes::vers_route;
-    if !coffre.pose(service).map_err(vers)? {
+    if !coffre.disponible(service).map_err(vers)? {
         return Err(erreur(
             "ErreurOperation",
-            format!("Mot de passe {} absent : ni dans l'environnement, ni au coffre.\n  moteur coffre poser {}", service, service),
+            format!("Mot de passe {} absent : ni dans l'environnement, ni au coffre.\n  route coffre-poser, service {}", service, service),
         ));
     }
     coffre.lire(&json!(service), &json!(crate::compagnie::coffre::DEPOT), true, ouverture).map_err(vers)
@@ -168,75 +168,38 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
 
 // -------------------------------------------------------- la repetition avant l'irreversible
 
-/// `_pourquoi_rate` : ce qui a fait echouer un depot de test, en une phrase.
-pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
-    let mut anomalies: Vec<String> = Vec::new();
-    for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-        if r.get("verdict").and_then(Value::as_str) == Some("KO") {
-            for a in r.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-                let t = valeur_en_texte(a);
-                if !anomalies.contains(&t) {
-                    anomalies.push(t);
-                }
-            }
-        }
-    }
-    if !anomalies.is_empty() {
-        return anomalies.join(" ; ");
-    }
-    let rep: String = ligne.get("reponse").filter(|r| vrai(r)).map(valeur_en_texte).unwrap_or_default().trim().chars().take(200).collect();
-    if rep.is_empty() {
-        "motif non lu".into()
-    } else {
-        rep
-    }
-}
-
-fn quand_a(v: &Value) -> String {
-    etats::quand_lisible(v).replace(" à ", " a ")
-}
-
-/// `_phrase_repetition` : le refus, ecrit pour qu'on sache quoi faire dans la minute. Un test qui a RATE se
-/// corrige, un test PERIME se refait, une absence de test se fait.
-fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) -> String {
-    let acte = if quoi == "dsn" { "DSN" } else { "DPAE" };
-    // LE CHEMIN DOIT SE RECOPIER TEL QUEL : « sorties/2026-08/... » marche dans les deux cas.
-    let ou = chemin.strip_prefix(&ctx.racine).map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| chemin.to_string_lossy().into_owned());
-    let verbe = if quoi == "dsn" { "depot-dsn" } else { "deposer-dpae" };
-    let commande = format!("paie {} {} --test", verbe, ou);
+/// Le refus, ecrit pour qu'on sache quoi faire dans la minute, a l'ecran comme par `moteur route` : un test qui a RATE se
+/// corrige, un test PERIME se refait, une absence de test se fait, par la route `deposer` sans `reel`.
+fn phrase_repetition(quoi: &str, etat: &Value) -> String {
+    let acte = if quoi == "dsn" { "la DSN" } else { "la DPAE" };
     let dernier = |cle: &str| etat.get(cle).and_then(Value::as_array).and_then(|a| a.last()).cloned();
     let situation = if vrai(&etat["conforme"]) {
         format!(
-            "Ce contenu est parti en test le {}, et son compte rendu de conformite n'est pas encore arrive :\nl'accuse d'enregistrement dit que l'envoi est recu, pas qu'il est conforme. Attendre le bilan\n(en general dans les dix minutes), relever les retours, puis envoyer le reel.",
-            quand_a(&etat["conforme"]["quand"])
+            "Ce contenu est parti en test le {}, et son compte rendu n'est pas encore arrivé : l'accusé d'enregistrement dit que l'envoi est reçu, pas qu'il est conforme. Relevez les retours, puis envoyez le réel.",
+            etats::quand_lisible(&etat["conforme"]["quand"])
         )
     } else if let Some(l) = dernier("ratees") {
         format!(
-            "Ce contenu a ete essaye en test le {}, et l'essai a ECHOUE : {}.\nC'est cela qu'il faut corriger : le meme refus attend en reel.",
-            quand_a(&l["quand"]),
-            pourquoi_rate(&l)
+            "Ce contenu a été essayé en test le {}, et l'essai a échoué : {}. C'est cela qu'il faut corriger, puis le déposer de nouveau en test.",
+            etats::quand_lisible(&l["quand"]),
+            etats::pourquoi_rate(&l)
         )
     } else if let Some(l) = dernier("perimees") {
-        format!(
-            "Un fichier du meme nom a bien ete essaye en test le {}, mais son\ncontenu a CHANGE depuis ({} teste, {} aujourd'hui) : un octet qui\nbouge rend le test caduc.",
-            quand_a(&l["quand"]),
-            l.get("empreinte").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_else(|| "?".into()),
-            valeur_en_texte(&etat["empreinte"])
-        )
+        format!("Un fichier du même nom a été essayé en test le {}, mais son contenu a changé depuis : déposez d'abord ce fichier en test.", etats::quand_lisible(&l["quand"]))
     } else {
-        "Ce contenu n'a jamais ete depose en test.".to_string()
+        "Ce contenu n'a jamais été déposé en test : déposez d'abord ce fichier en test.".to_string()
     };
     format!(
-        "Depot {} REEL refuse : aucune repetition reussie de ce contenu-la. Rien n'est parti.\n{}\n\nFaire la repetition avec CE fichier-ci -- la bascule en envoi de test se fait\nen memoire, le fichier sur le disque n'est pas modifie :\n  {}\n\nSi le service de test est indisponible et que l'echeance ne peut pas attendre,\nle dire en toutes lettres -- le motif est ecrit au journal des depots :\n  ... --reel --sans-repetition \"ce qui empechait le test\"",
-        acte, situation, commande
+        "Dépôt réel de {} refusé : rien n'est parti. {} Si le service de test est indisponible et que l'échéance ne peut pas attendre, le réel part avec un motif écrit (contournement), noté au journal des dépôts.",
+        acte, situation
     )
 }
 
-/// `_exiger_repetition` : leve tant que ce contenu n'a pas ete repete ; rend ce qu'il faut noter. LA SORTIE
+/// Leve tant que ce contenu n'a pas ete repete ; rend ce qu'il faut noter. LA SORTIE
 /// DE SECOURS EST VOULUE, et elle est tracee : un motif ECRIT (dix caracteres au moins) passe outre ; ce
 /// qu'on refuse, c'est le contournement SILENCIEUX.
-fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path, contournement: &str) -> R<Value> {
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+fn exiger_repetition(lignes: &[Value], quoi: &str, chemin: &Path, contournement: &str) -> R<Value> {
+    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let etat = etats::repetition(lignes, quoi, &envois::journal::empreinte(&octets), &nom)?;
     // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST : l'accuse d'enregistrement dit
@@ -244,7 +207,7 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
     // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
     // celui d'un test revient bel et bien (constate sur des DPAE de test : le certificat 41 les dit enregistrees,
     // code 99).
-    if vrai(&etat["conforme"]) && etats::est(&etat["compte_rendu"], "ok") {
+    if etats::etat_du_test(&etat) == "testee" {
         let l = &etat["conforme"];
         return Ok(json!({
             "test": l.get("quand").cloned().unwrap_or(Value::Null),
@@ -257,12 +220,12 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
         if raison.chars().count() < 10 {
             return Err(erreur(
                 "ErreurOperation",
-                "Deposer sans repetition demande un motif ECRIT, pas un mot : ce qui empechait le test, en une phrase. C'est ce qu'on relira le jour ou ce depot posera question. Rien n'est parti.",
+                "Déposer sans répétition demande un motif écrit : ce qui empêchait le test, en une phrase, qu'on relira le jour où ce dépôt posera question. Rien n'est parti.",
             ));
         }
         return Ok(json!({"contournement": raison, "empreinte": etat["empreinte"]}));
     }
-    Err(avec_donnee("RepetitionManquante", phrase_repetition(ctx, quoi, chemin, &etat), "etat", etat))
+    Err(avec_donnee("RepetitionManquante", phrase_repetition(quoi, &etat), "etat", etat))
 }
 
 /// LES ENGAGEMENTS QU'UN SIGNALEMENT COUVRE : un signalement porte un individu, un contrat, un evenement
@@ -273,7 +236,7 @@ fn versions_du_signalement(ctx: &Contexte, evenement: &str, octets: &[u8]) -> R<
     let texte = String::from_utf8_lossy(octets);
     let numeros: Vec<String> =
         texte.lines().filter_map(|l| l.strip_prefix("S21.G00.40.009,")).map(|v| v.trim().trim_matches('\'').to_string()).collect();
-    envois::journal::versions_du_mois(ctx, mois, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
+    envois::journal::versions_du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
 }
 
 /// La derniere porte -- une copie de developpement ne declare rien en reel.
@@ -289,34 +252,11 @@ fn refuser_si_copie(ctx: &Contexte, quoi: &str) -> R<()> {
 
 // ------------------------------------------------------------------------ la DSN
 
-/// `libelle_dsn_deposee` : la phrase en face d'une DSN deja partie -- la meme pour les deux faces.
-fn libelle_dsn_deposee(mois: &str, e: &Value) -> String {
-    let quand = quand_a(&e["quand"]);
-    let anomalies = || -> String {
-        let mut v: Vec<String> = Vec::new();
-        for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let t = valeur_en_texte(a);
-            if !v.contains(&t) {
-                v.push(t);
-            }
-        }
-        v.join(" ; ")
-    };
-    if vrai(&e["refusee"]) {
-        let a = anomalies();
-        return format!("DSN de {} deposee le {} -- REFUSEE : {} -- a corriger et a renvoyer", mois, quand, if a.is_empty() { "motif non lu".to_string() } else { a });
-    }
-    if vrai(&e["passee"]) {
-        return format!("DSN de {} deposee le {} -- bilan de conformite recu : elle est passee, rien a faire de notre cote", mois, quand);
-    }
-    format!("DSN de {} deposee le {} -- retour pas encore arrive : on attend, on ne renvoie pas", mois, quand)
-}
-
 /// `ordre_d_essai_du_fichier` : l'ordre auquel un essai part : le calcule, jamais plus bas que celui que le fichier porte
 /// deja. `None` reste `None`.
 fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64>> {
     let Some(c) = calcule else { return Ok(None) };
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     Ok(Some(rang_dans_le_fichier(&octets).map_or(c, |m| c.max(m))))
 }
 
@@ -330,7 +270,7 @@ fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &socle::date::Jour) -> Strin
     aujourdhui.iso().chars().take(7).collect()
 }
 
-/// `re.search(rb"S20\.G00\.05\.004,'(\d+)'", octets)`.
+/// Le rang lu après `S20.G00.05.004,'` (des chiffres jusqu'au guillemet), s'il y en a un.
 fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
     let motif = b"S20.G00.05.004,'";
     let mut i = 0;
@@ -356,7 +296,7 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 /// rien ; trop petit, c'est B1-208-11. `constitution` : le mois de constitution du fichier (`AAAA-MM`, S20.G00.05.007).
 fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution: &str) -> R<Option<i64>> {
     let du_mois = envois::journal::lire(&ctx.racine, Some("dsn"), Some(mois), false).map_err(|m| erreur("OSError", m))?;
-    let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &etats::nic_principal(&ctx.entreprise))?
+    let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &droit::bareme::nic_principal(&ctx.entreprise))?
         .into_iter()
         .filter(|l| l.get("mode").and_then(Value::as_str) == Some("test"))
         .collect();
@@ -391,11 +331,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
 fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let faits = m.depots_reels(mois, nic)?;
-    let mut dernier: Option<i64> = None;
-    for l in &faits {
-        let n = m.ordre_de_la_ligne(mois, l)?;
-        dernier = Some(dernier.map_or(n, |d| d.max(n)));
-    }
+    let dernier = m.dernier_ordre(mois, &faits)?;
     if !["03", "05"].contains(&a.champ("type_declaration")) {
         return Ok(false);
     }
@@ -409,17 +345,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
         None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
         None => return Ok(false),
     };
-    let limite = m.limite(mois)?;
-    if ctx.aujourdhui > limite {
-        return Err(erreur(
-            "AnnuleRemplaceHorsDelai",
-            format!(
-                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien n'est parti.",
-                mois,
-                limite.jj_mm_aaaa()
-            ),
-        ));
-    }
+    m.refuser_si_hors_delai(mois)?;
     let ordre: i64 = a.champ("ordre").trim().parse().unwrap_or(0);
     if ordre <= dernier {
         return Err(erreur(
@@ -453,15 +379,15 @@ pub fn deposer_dsn(
     deposer_dsn_dans(ctx, fichier, reel, preuve, qui, "production", forcer, contournement, None)
 }
 
-/// `deposer_dsn` avec l'ENVIRONNEMENT du point de depot (`production` ou `editeur`). La
-/// plate-forme de l'editeur est une plate-forme d'ESSAI : un depot REEL n'y a pas de sens et reste refuse ici, car le journal le
-/// noterait comme une declaration partie.
+/// `deposer_dsn` avec l'ENVIRONNEMENT du point de depot (`production` ou `editeur`) et l'ordre d'un essai, que seul
+/// l'outil de l'atelier donne (`atelier::outils::depot_dsn`). La plate-forme de l'editeur est une plate-forme d'ESSAI :
+/// un depot REEL n'y a pas de sens et reste refuse ici, car le journal le noterait comme une declaration partie.
 ///
-/// `ordre_d_essai` (`moteur depot-dsn --test --ordre N`) : l'ordre au-dessous duquel un ESSAI de mensuelle ne part pas,
-/// donne par qui sait ce que la base d'essai a deja retenu pour ce SIRET et ce mois (un autre poste, une compagnie d'essai, le
-/// « dernier ordre accepte » d'un B1-208-11). L'essai part alors en annule-et-remplace a cet ordre, ou plus haut si le journal
-/// en sait davantage. Refuse pour un depot reel et pour un signalement (leur ordre est celui du fichier, lu sur la
-/// plate-forme a son ecriture : `ordre_signalements`).
+/// `ordre_d_essai` : l'ordre au-dessous duquel un ESSAI de mensuelle ne part pas, donne par qui sait ce que la base
+/// d'essai a deja retenu pour ce SIRET et ce mois (un autre poste, une compagnie d'essai, le « dernier ordre accepte »
+/// d'un B1-208-11). L'essai part alors en annule-et-remplace a cet ordre, ou plus haut si le journal en sait davantage.
+/// Refuse pour un depot reel et pour un signalement (leur ordre est celui du fichier, lu sur la plate-forme a son
+/// ecriture : `ordre_signalements`).
 #[allow(clippy::too_many_arguments)]
 pub fn deposer_dsn_dans(
     ctx: &Contexte,
@@ -479,7 +405,7 @@ pub fn deposer_dsn_dans(
     if reel && environnement != "production" {
         return Err(erreur(
             "ErreurOperation",
-            format!("L'environnement '{}' est la plate-forme d'essai de l'editeur : rien n'y est declare. Un depot REEL ne part que sur 'production' ; pour essayer, utiliser --test. Rien n'est parti.", environnement),
+            format!("L'environnement '{}' est la plate-forme d'essai de l'editeur : rien n'y est declare. Un depot REEL ne part que sur 'production' ; pour essayer, un depot de test. Rien n'est parti.", environnement),
         ));
     }
     let chemin = PathBuf::from(crate::routes::depots::resoudre(&ctx.racine, fichier)?);
@@ -488,18 +414,11 @@ pub fn deposer_dsn_dans(
     // 2. le mode contre le fichier ; `presence_prouvee` : c'est ICI qu'on la prouve, jamais le transport.
     depot::verifier(&apercu, reel, None, true)?;
     let mois = apercu.mois_lisible();
-    // UNE MENSUELLE NE PART PAS AVANT SON PREMIER JOUR DE DEPOT (`depart::pas_avant`, cahier technique § 1.4.2), en
-    // test comme en reel. Un signalement part quand l'evenement a lieu.
-    if !apercu.est_signalement() && mois.len() == 7 {
-        if let Some((_, phrase, _)) = crate::compagnie::depart::pas_avant(ctx, &mois)? {
-            return Err(erreur("ErreurOperation", format!("{} Rien n'est parti.", phrase)));
-        }
-    }
     if let Some(n) = ordre_d_essai {
         if reel || apercu.est_signalement() || n < 1 {
             return Err(erreur(
                 "ErreurOperation",
-                "Un ordre d'essai (--ordre) ne vaut que pour le depot de TEST d'une DSN mensuelle, et c'est un entier positif : un depot reel part a l'ordre du fichier, un signalement a celui que la plate-forme a donne a son ecriture. Rien n'est parti.",
+                "Un ordre d'essai ne vaut que pour le depot de TEST d'une DSN mensuelle, et c'est un entier positif : un depot reel part a l'ordre du fichier, un signalement a celui que la plate-forme a donne a son ecriture. Rien n'est parti.",
             ));
         }
     }
@@ -508,12 +427,11 @@ pub fn deposer_dsn_dans(
     if crate::compagnie::essai::est_essai(&ctx.racine) && apercu.champ("siren") != valeur_en_texte(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
         return Err(erreur(
             "ErreurOperation",
-            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Deposer ici la DSN du mois (`moteur depot-dsn AAAA-MM`), qui s'y fabrique. Rien n'est parti.",
+            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Déposer ici la DSN du mois, qui s'y fabrique. Rien n'est parti.",
         ));
     }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };
-    let principal = etats::nic_principal(&ctx.entreprise);
-    let lignes = etats::charger(&ctx.racine)?;
+    let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
 
     let (mut forme, mut repetition) = (String::new(), Value::Null);
     // UN SIGNALEMENT REEL PART A UN ORDRE QUE PERSONNE N'A ENCORE PRIS : la sequence ne se remet jamais a zero
@@ -527,7 +445,7 @@ pub fn deposer_dsn_dans(
             return Err(erreur(
                 "ErreurOperation",
                 format!(
-                    "Ce signalement porte l'ordre {}, et un signalement reel est deja parti a l'ordre {} : le numero d'ordre d'un signalement ne se remet jamais a zero et ne se prend pas deux fois (cahier technique DSN, p. 136 et 14). Refaire le signalement : il partira a l'ordre {}. Rien n'est parti.",
+                    "Ce signalement porte l'ordre {}, et un signalement est déjà parti à l'ordre {} : le numéro d'ordre d'un signalement ne se remet jamais à zéro et ne se prend pas deux fois (cahier technique DSN, p. 136 et 14). Refaire le signalement : il partira à l'ordre {}. Rien n'est parti.",
                     ordre,
                     dernier,
                     dernier + 1
@@ -535,25 +453,35 @@ pub fn deposer_dsn_dans(
             ));
         }
     }
+    // UNE DSN MENSUELLE REELLE DIT CE QU'ELLE CORRIGE : sa fabrication l'a note (`depart::versions_portees_de`). Un fichier
+    // que le moteur n'a pas ecrit ne le dit pas, et ce qu'il corrige ne se devine pas (regle 1).
+    if reel && !apercu.est_signalement() && crate::compagnie::depart::versions_portees_de(&ctx.racine, &chemin).is_none() {
+        return Err(erreur(
+            "ErreurOperation",
+            format!(
+                "{} n'a pas été écrite par le logiciel : ce qu'elle corrige des mois passés ne se lit pas. Rien n'est parti. Déposer la DSN du mois (route deposer, avec le mois), qui s'écrit ici.",
+                chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
+            ),
+        ));
+    }
     if reel {
         forme = verifier_preuve(ctx, preuve, &apercu.confirmation_attendue(), "depot REEL d'une DSN", "net-entreprises (la declaration part a l'Urssaf et aux organismes)")?;
         // PAS DEUX FOIS SANS LE VOULOIR. Une DSN reelle deja partie pour ce mois, et pas refusee, ne repart pas.
         // UN SIGNALEMENT N'EST PAS CONCERNE : plusieurs peuvent partir le meme mois.
         if !apercu.est_signalement() {
-            let mut etat_mois = etats::etat_dsn_du_mois(&lignes, &mois, &nic, &principal)?;
-            // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN.
-            if verifier_depot_remplacement(ctx, &mois, &apercu, &nic)? {
-                etat_mois = Value::Null;
-            }
-            if vrai(&etat_mois) && !vrai(&etat_mois["refusee"]) && !forcer {
+            let etat_mois = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
+            // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN (ses gardes passent toujours).
+            let remplace = verifier_depot_remplacement(ctx, &mois, &apercu, &nic)?;
+            if etat_mois.partie() && !remplace && !forcer {
                 return Err(avec_donnee(
                     "DsnDejaDeposee",
                     format!(
-                        "{}. Rien n'est parti. Ce fichier est une declaration NORMALE, et la plate-forme n'en accepte pas une seconde pour le meme mois (cahier technique DSN §1.4.3.2) : pour corriger, refaire la DSN du mois -- elle sortira en annule-et-remplace.",
-                        libelle_dsn_deposee(&mois, &etat_mois)
+                        "{} : {}. Rien n'est parti : la plate-forme n'accepte pas une seconde DSN normale pour le même mois (cahier technique DSN §1.4.3.2). Pour corriger, refaites la DSN du mois : elle sortira en annule-et-remplace.",
+                        { let l = engagement::libelle_mois(&mois); l[..1].to_uppercase() + &l[1..] },
+                        valeur_en_texte(&etat_mois.0["phrase"])
                     ),
                     "etat",
-                    etat_mois,
+                    etat_mois.0,
                 ));
             }
         }
@@ -575,7 +503,7 @@ pub fn deposer_dsn_dans(
             ));
         }
         // Et la repetition, en DERNIER des garde-fous.
-        repetition = exiger_repetition(ctx, &lignes, "dsn", &chemin, contournement)?;
+        repetition = exiger_repetition(&lignes, "dsn", &chemin, contournement)?;
     }
 
     let joue = branchement.joue();
@@ -601,19 +529,23 @@ pub fn deposer_dsn_dans(
         versions_du_signalement(ctx, &mois, &octets)?
     } else {
         let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-        let mut v = envois::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+        let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
-        // Et la version presente de l'engagement de chaque mois passe dont la DSN porte la correction.
+        // Et ce qu'elle corrige des mois passes, tel que sa fabrication l'a note : un fichier qui part tel qu'il a ete
+        // ecrit emporte ce qu'il porte, pas ce qu'une DSN fabriquee aujourd'hui porterait (regle 4). Un essai d'un
+        // fichier que le moteur n'a pas ecrit n'emporte rien ; en reel, il est refuse plus haut.
         if let Value::Array(a) = &mut v {
-            a.extend(declarations::produire_regularisations::versions_portees(ctx, &mois, &nic)?);
+            a.extend(crate::compagnie::depart::versions_portees_de(&ctx.racine, &chemin).unwrap_or_default());
         }
         v
     };
     let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: mdp, versions: &versions };
     let mut suites = Suites::default();
     let fait = envois::depot_acte::deposer_dsn(ctx, branchement, &d, &apercu, environnement, ordre_test, &mut suites);
-    crate::compagnie::suites::faire(ctx, suites)?;
-    fait
+    let faites = crate::compagnie::suites::faire(ctx, suites)?;
+    let mut fait = fait?;
+    fait.suites.extend(faites.incidents.into_iter().chain(faites.a_faire));
+    Ok(fait)
 }
 
 // ----------------------------------------------------------------------- la DPAE
@@ -657,7 +589,7 @@ pub fn deposer_dpae_avec(
         return Err(erreur(
             "ErreurOperation",
             format!(
-                "Le fichier porte l'indicateur {} (test) et vous demandez un depot REEL : rien ne serait declare. Reproduire le fichier sans --test.",
+                "Le fichier porte l'indicateur {} (envoi de test) : déposé en réel, il ne déclarerait rien. Rien n'est parti : déposez le fichier du mois, que la route deposer écrit elle-même.",
                 valeur_en_texte(&apercu["indicateur"])
             ),
         ));
@@ -668,8 +600,8 @@ pub fn deposer_dpae_avec(
         forme = verifier_preuve(ctx, preuve, &mois, "depot REEL d'une DPAE", "l'Urssaf (declaration d'embauche)")?;
         // LA REPETITION, apres la preuve : le fichier sur le disque porte toujours l'indicateur reel, et c'est
         // NOUS qui le basculons en test juste en dessous.
-        let lignes = etats::charger(&ctx.racine)?;
-        repetition = exiger_repetition(ctx, &lignes, "dpae", &chemin, contournement)?;
+        let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
+        repetition = exiger_repetition(&lignes, "dpae", &chemin, contournement)?;
     }
 
     let mut contenu = octets.clone();
@@ -701,18 +633,114 @@ pub fn deposer_dpae_avec(
 
     let embauches: Vec<Value> = apercu["embauches"]
         .as_array()
-        .map(|a| a.iter().map(|l| json!({"salarie": l["salarie"], "debut": l["debut"], "fin": l["fin"]})).collect())
+        .map(|a| a.iter().map(|l| json!({"salarie": l["salarie"], "numero": l["numero"], "debut": l["debut"], "fin": l["fin"]})).collect())
         .unwrap_or_default();
     // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
-    let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
-    let versions = envois::journal::versions_du_mois(ctx, &mois, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
+    let declare = |cle: &str, n: &str| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["numero"].as_str() == Some(n));
+    let versions = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |cle, n, _| declare(cle, n)).map_err(Echec::from)?;
     let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: None, versions: &versions };
     let c = match donne.as_deref_mut() {
         Some(c) => Some(c),
         None => client.as_mut(),
     };
     let mut suites = Suites::default();
-    let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches, c, apercu["deja_depose"].clone(), &mut suites);
-    crate::compagnie::suites::faire(ctx, suites)?;
-    fait
+    let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches.clone(), c, apercu["deja_depose"].clone(), &mut suites);
+    let faites = crate::compagnie::suites::faire(ctx, suites)?;
+    let mut fait = fait?;
+    fait.suites.extend(faites.incidents.into_iter().chain(faites.a_faire));
+    // UN ACTE, UNE PREUVE : la demande de taux part sous celle de la DPAE.
+    let meme = reel.then(|| Preuve { donnee: Some(forme.clone()), ..preuve.cloned().unwrap_or_default() });
+    fait.suites.extend(deposer_les_amorcages(ctx, &mois, &embauches, reel, meme.as_ref().or(preuve), qui, contournement));
+    Ok(fait)
+}
+
+/// LA DEMANDE DE TAUX DE PAS PART AVEC LA DPAE : pour chaque embauche de la DPAE de `mois` dont le salarie n'a pas de
+/// taux valide au jour de son versement, et dont aucune demande n'attend sa reponse (`amorcage_demande::a_combler`), le
+/// signalement d'amorcage (nature 08, motif 01) s'ecrit dans le geste, a la suite des signalements deja partis, et part
+/// dans le meme mode, sous la meme preuve, par le chemin de tout signalement (`deposer_dsn`). En reel, il part sur le
+/// bilan de son test : le test de ces octets se fait d'abord s'il n'est pas fait (un depot de test ne conserve rien,
+/// regle 10), et s'il n'est pas encore releve, les retours de la journee se relevent une fois. La DGFiP repond sous cinq
+/// jours ouvres (compte rendu de nature 94). Il ne fait jamais echouer la DPAE, deja partie : une demande qui ne part pas
+/// reste a faire, et se dit. Rend ce qu'est devenue chaque demande, en une phrase.
+fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: bool, preuve: Option<&Preuve>, qui: &str, contournement: &str) -> Vec<String> {
+    use crate::compagnie::amorcage_demande as ad;
+    let mode = if reel { "" } else { " en test" };
+    let paies = match paies_des_embauches(ctx, mois, embauches) {
+        Ok(p) => p,
+        Err(e) => return vec![format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, e.phrase())],
+    };
+    let lignes = match ad::a_combler(ctx, &paies, declarations::amorcage::EMBAUCHE, false) {
+        Ok(l) => l,
+        Err(e) => return vec![format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, e.phrase())],
+    };
+    let (retenues, ecartees): (Vec<ad::Ligne>, Vec<ad::Ligne>) = lignes.into_iter().partition(|l| l.pourquoi_pas.is_empty());
+    // UNE PHRASE PAR RAISON, pas par salarie : la phrase du depot tient dans sa place quel que soit le nombre d'embauches.
+    let noms = |v: &[String]| v.join(", ");
+    let mut par_raison: Vec<(String, Vec<String>)> = Vec::new();
+    for l in &ecartees {
+        match par_raison.iter_mut().find(|(r, _)| *r == l.pourquoi_pas) {
+            Some((_, v)) => v.push(ctx.nomme(&l.salarie)),
+            None => par_raison.push((l.pourquoi_pas.clone(), vec![ctx.nomme(&l.salarie)])),
+        }
+    }
+    let mut dit: Vec<String> = par_raison.iter().map(|(r, v)| format!("Taux de PAS non demandé pour {} : {}.", noms(v), r)).collect();
+    if retenues.is_empty() {
+        return dit;
+    }
+    let fichiers = match ad::ecrire(ctx, &paies, &retenues, declarations::amorcage::EMBAUCHE, mois, ctx.aujourdhui, false) {
+        Ok(f) => f,
+        Err(e) => {
+            dit.push(format!("La demande de taux de prélèvement à la source n'est pas partie{} : {}", mode, e.phrase()));
+            return dit;
+        }
+    };
+    let teste = |f: &Path| -> bool {
+        let (Ok(octets), Ok(lignes)) = (std::fs::read(f), envois::journal::lu(&ctx.racine).map(|j| j.lignes)) else { return false };
+        let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        etats::repetition(&lignes, "dsn", &envois::journal::empreinte(&octets), &nom).is_ok_and(|r| vrai(&r["conforme"]))
+    };
+    let mut releve = false;
+    let mut parties: Vec<String> = Vec::new();
+    for (l, f) in retenues.iter().zip(&fichiers) {
+        let fichier = json!(f.to_string_lossy());
+        let mut fait = if reel && !teste(f) { deposer_dsn(ctx, &fichier, false, preuve, qui, false, contournement).map(|_| ()) } else { Ok(()) };
+        if fait.is_ok() {
+            fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement).map(|_| ());
+        }
+        if reel && !releve && matches!(&fait, Err(e) if e.classe == Some("RepetitionManquante")) {
+            releve = true;
+            let (debut, fin) = envois::releve_retours::derniere_journee();
+            let _ = crate::compagnie::releve::relever_retours(ctx, debut, fin, false, "production", None, "");
+            fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement).map(|_| ());
+        }
+        let qui_demande = ctx.nomme(&l.salarie);
+        match fait {
+            Ok(_) => parties.push(qui_demande),
+            Err(e) => dit.push(format!("La demande de taux de prélèvement à la source de {} n'est pas partie{} : {} Elle reste à demander.", qui_demande, mode, e.phrase())),
+        }
+    }
+    if !parties.is_empty() {
+        dit.insert(0, format!("Taux de PAS demandé{} avec la DPAE pour {}.", mode, noms(&parties)));
+    }
+    dit
+}
+
+/// Les engagements valides de `mois` que nomment les embauches d'une DPAE (`salarie`, `numero`), vus comme des embauches.
+fn paies_des_embauches(ctx: &Contexte, mois: &str, embauches: &[Value]) -> R<Vec<engagement::calcul::Paie>> {
+    let o = |m: String| erreur("ErreurOperation", m);
+    let departs = envois::journal::lu(&ctx.racine).map_err(o)?.departs;
+    let Some((data, _)) = engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(o)? else { return Ok(Vec::new()) };
+    let declaree = |p: &engagement::calcul::Paie| {
+        let cle = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        let numero = p.engagement.numero.clone().unwrap_or_default();
+        embauches.iter().any(|e| valeur_en_texte(&e["salarie"]) == cle && valeur_en_texte(&e["numero"]) == numero)
+    };
+    let mut paies = Vec::new();
+    for e in engagement::engagements_de_la_saisie(ctx, &data).map_err(o)? {
+        let p = engagement::embauche(ctx, &e).map_err(o)?;
+        if declaree(&p) {
+            paies.push(p);
+        }
+    }
+    Ok(paies)
 }

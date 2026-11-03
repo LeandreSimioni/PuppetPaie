@@ -26,11 +26,12 @@
 //!   dans sa redaction du 21/02/2026, rend redevables « les associations [...] a activites non lucratives » ; celle du
 //!   16/02/2025 ne les nommait pas (les deux deposees, `atelier/reference/sources/code-du-travail/`).
 //! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
-//!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS). Sous 250 : 004.
-//!   A 250 et plus, le quotient des contrats d'alternance ne se calcule pas ici : la fiche le dit
-//!   (`contribution_supplementaire_apprentissage`, « due » ou « non_due »), sinon refus. (En decembre, l'Urssaf ne
-//!   l'a pas encore calcule : il arrive debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
-//!   contribution elle-meme, calculee : `csa`.)
+//!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS) : 003 si l'effectif
+//!   atteint 250, 004 sinon. C'est un grand seuil, comme la PEEC : sans la case « Au moins 50 salariés » de la fiche
+//!   (`droit::contexte::CHAMP_CINQUANTE_SALARIES`), ni l'un ni l'autre ne lit l'effectif (`Effectif::atteint`) ; cochee,
+//!   un effectif qui manque refuse et dit quoi remplir. Le quotient des contrats d'alternance ne se calcule pas en
+//!   decembre (l'Urssaf le renvoie debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
+//!   contribution elle-meme, calculee : `csa`).
 //! - PEEC (005/006) : CCH L. 313-1 et norme p. 58 (« les employeurs occupant au minimum cinquante salariés »), quelle
 //!   que soit la TVA (BOFiP BOI-TPS-PEEC-10, § 40). Sous 50 (effectif de l'annee du millesime, regle des cinq ans) :
 //!   006 ; a 50 et plus, 005 avec l'assiette (CCH-11) : les remunerations de l'annee qui servent de base aux cotisations
@@ -76,8 +77,6 @@ pub struct Bloc44 {
 const CTP_TAXE_APPRENTISSAGE: [&str; 2] = ["992", "993"];
 /// La formation professionnelle au bordereau : intermittents (983), moins de onze salaries (959), onze et plus (971).
 const CTP_FORMATION: [&str; 3] = ["983", "959", "971"];
-/// Le champ de la fiche entreprise qui dit la contribution supplementaire, a 250 salaries et plus.
-pub const CHAMP_CONTRIBUTION_SUPPLEMENTAIRE: &str = "contribution_supplementaire_apprentissage";
 
 // ------------------------------------------------------------ les mois de l'annee
 
@@ -85,14 +84,14 @@ pub const CHAMP_CONTRIBUTION_SUPPLEMENTAIRE: &str = "contribution_supplementaire
 enum MoisDeLAnnee {
     /// Les paies du mois : celles de la DSN, ou les paies declarees d'un autre mois quand les montants sont necessaires.
     Calcules(String, Vec<Paie>),
-    /// Les contrats saisis du mois, sans montants (`dsn::contrats_du_mois`).
+    /// Les contrats valides du mois (`dsn::contrats_du_mois`), dont seuls comptent nature, dispositif et motif.
     Contrats(Vec<Paie>),
 }
 
 /// Les douze mois de l'annee de la DSN, pour l'etablissement `nic`. Le mois de la DSN est `paies` (celles qu'elle
 /// declare) ; un autre mois se lit dans ses engagements : leurs paies declarees (`dsn::paies_declarees_du_mois`) si
 /// `montants`, sinon leurs seuls contrats. Un mois sans saisie n'a pas eu de salarie.
-fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool) -> Resultat<Vec<MoisDeLAnnee>> {
+fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool, departs: &engagement::departs::Departs) -> Resultat<Vec<MoisDeLAnnee>> {
     let an = &mois[..4];
     let mut out = Vec::new();
     for m in 1..=12u32 {
@@ -105,11 +104,11 @@ fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[
             continue;
         }
         if montants {
-            let declarees = crate::dsn::paies_declarees_du_mois(ctx, &m, Some(nic)).map_err(|e| format!("{} : {}", m, e))?;
+            let declarees = crate::dsn::paies_declarees_du_mois(ctx, &m, Some(nic), departs).map_err(|e| format!("{} : {}", m, e))?;
             out.push(MoisDeLAnnee::Calcules(m, declarees));
         } else {
             let mut garde = Vec::new();
-            for p in crate::dsn::contrats_du_mois(ctx, &m)? {
+            for p in crate::dsn::contrats_du_mois(ctx, &m, departs)? {
                 if droit::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
                     garde.push(p);
                 }
@@ -157,10 +156,9 @@ fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Dec
     let seuil = |k: &str| -> Resultat<Decimal> {
         match ts.get(k) {
             Some(v) => dec_avec_echelle(v),
-            None => Err(format!(
-                "Le bareme de l'annee ne porte pas la taxe sur les salaires (`taxe_sur_les_salaires.{}`) : les seuils des taux \
-majores se lisent sur la notice 2501-SD de l'annee.",
-                k
+            None => Err(socle::echec::cle(
+                "Le barème de l'année ne porte pas la taxe sur les salaires : ses seuils se lisent sur la notice 2501-SD de l'année ; le signaler au développeur.",
+                &format!("taxe_sur_les_salaires.{}", k),
             )),
         }
     };
@@ -244,14 +242,14 @@ fn taxe_d_apprentissage(ent: &Value, ctp: &[String], an: i32) -> Resultat<Bloc44
         if paye {
             return Ok(Bloc44 { code: "001", montant: None, motif: None });
         }
-        return Err(format!(
-            "DSN de décembre {} : la table des CTP livrée avec le logiciel (donnees/organismes-base.json, `ctp_urssaf`) \
+        return Err(socle::echec::cle(format!(
+            "DSN de décembre {} : la table des cotisations livrée avec le logiciel \
 ne paie pas la taxe d'apprentissage (ni CTP {} ni CTP {}), et le bloc S21.G00.44 déclare donc « 002 - Non \
 assujettissement », qui exige son motif (S21.G00.44.004, table MNATA de la norme). La fiche ne le dit pas : {}. Si la \
 compagnie doit la taxe (code du travail L. 6241-1), c'est la table livrée qui est en défaut : aucune saisie de la \
 compagnie ne la corrige. Rien n'est écrit.",
             an, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
-        ));
+        ), "ctp_urssaf"));
     };
     if code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES {
         return Err(format!(
@@ -263,12 +261,12 @@ Rien n'est écrit.",
         ));
     }
     if paye {
-        return Err(format!(
+        return Err(socle::echec::cle(format!(
             "DSN de decembre {} : la fiche dit la compagnie non assujettie a la taxe d'apprentissage (motif MNATA {}), et le \
-bordereau la paie (CTP {} ou {} de la table livrée, donnees/organismes-base.json). L'un des deux est faux : {}, \
+bordereau la paie (CTP {} ou {} de la table livrée). L'un des deux est faux : {}, \
 ou la table livrée. Rien n'est écrit.",
             an, code, CTP_TAXE_APPRENTISSAGE[0], CTP_TAXE_APPRENTISSAGE[1], champ
-        ));
+        ), "ctp_urssaf"));
     }
     // Le code vient de la table livree : `Bloc44.code` est statique, le motif ne l'est pas.
     Ok(Bloc44 { code: "002", montant: None, motif: Some(code) })
@@ -279,7 +277,7 @@ ou la table livrée. Rien n'est écrit.",
 /// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
 /// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
 pub fn blocs(
-    ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie],
+    ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
 ) -> Resultat<Vec<Bloc44>> {
     if mois.len() != 7 || &mois[5..7] != "12" {
         return Ok(Vec::new());
@@ -297,25 +295,9 @@ pub fn blocs(
     // La taxe d'apprentissage : ce que le bordereau paie ; sinon 002 et le motif que la fiche dit.
     out.push(taxe_d_apprentissage(ent, &ctp, an)?);
 
-    // La contribution supplementaire : L. 6242-1, l'effectif de l'annee du millesime (V), la regle des cinq ans.
-    let csa = if effectif_atteint(ctx, 250, an + 1, "contribution supplementaire a l'apprentissage")? {
-        match g(ent, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE).as_str() {
-            Some("due") => "003",
-            Some("non_due") => "004",
-            _ => {
-                return Err(format!(
-                    "DSN de decembre {} : la compagnie compte au moins 250 salaries depuis cinq ans, et la contribution \
-supplementaire a l'apprentissage (code du travail L. 6242-1) est due si moins de 5 % de son effectif annuel est en \
-contrat d'apprentissage, de professionnalisation, en CIFRE ou en CDI a leur suite. Le moteur ne compte pas ces contrats : \
-le dire dans Configuration › Entreprise, « Contribution supplementaire a l'apprentissage » (`{}` : \"due\" ou \
-\"non_due\"). Rien n'est ecrit.",
-                    an, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE
-                ))
-            }
-        }
-    } else {
-        "004"
-    };
+    // La contribution supplementaire : L. 6242-1, I, ne la fait devoir qu'a 250 salaries et plus, l'effectif de l'annee
+    // du millesime (V), regle des cinq ans comprise. Un grand seuil : sans la case des cinquante salaries, 004 sans rien lire.
+    let csa = if effectif_atteint(ctx, 250, an + 1, "contribution supplementaire a l'apprentissage")? { "003" } else { "004" };
     out.push(Bloc44 { code: csa, montant: None, motif: None });
 
     // Ce qui demande les montants de l'annee : la taxe sur les salaires et la PEEC.
@@ -335,7 +317,7 @@ pas son assiette. Rien n'est ecrit.",
     // assise sur les salaires de cette annee-la et s'investit l'annee d'apres (BOFiP BOI-TPS-PEEC-20, § 10), et L. 313-1
     // renvoie a L. 130-1 CSS, qui retient l'effectif de l'annee civile precedant l'obligation (INFERENCE).
     let peec = effectif_atteint(ctx, 50, an + 1, "participation des employeurs a l'effort de construction")?;
-    let annee = mois_de_l_annee(ctx, ent, nic, mois, paies, ts.is_some() || peec)?;
+    let annee = mois_de_l_annee(ctx, ent, nic, mois, paies, ts.is_some() || peec, departs)?;
 
     // La PEEC : CCH L. 313-1, cinquante salaries.
     out.push(if peec {

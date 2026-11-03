@@ -61,7 +61,7 @@ fn nature_connue(n: &str) -> bool {
     NATURES.iter().any(|(x, _)| *x == n)
 }
 
-/// `NATURES.get(quoi, {}).get("regroupe", False)`.
+/// Cette nature d'incident se regroupe-t-elle ?
 fn se_regroupe(quoi: &Value) -> bool {
     quoi.as_str().is_some_and(|q| NATURES.iter().any(|(n, r)| *n == q && *r))
 }
@@ -75,11 +75,14 @@ const JS_PILE_MAX: usize = 2000;
 /// passage suivant reprend.
 const LOT: usize = 20;
 const MAX_PAR_PASSAGE: usize = 200;
-/// Un lot, en octets de JSON : le serveur doit en admettre davantage (`MAX_CORPS_RAPPORT` de infra/filet/filet_serveur.py
-/// du site, 1 Mio).
+/// Un lot, en octets de JSON : le serveur doit en admettre davantage (la limite du corps d'un rapport, 1 Mio, `infra/filet/`
+/// du site).
 const LOT_OCTETS: usize = 400_000;
 
-const POSTE_FICHIER: &str = "diagnostic.json";
+/// L'identite du poste chez l'editeur, sous la racine de la compagnie.
+pub const DIAGNOSTIC: &str = "config/diagnostic.json";
+/// Le journal des incidents, sous la racine de la compagnie.
+pub const INCIDENTS: &str = "journal/incidents.json";
 const FICHIER_EDITEUR: &str = "EDITEUR.json";
 
 // ------------------------------------------------------------------- les motifs
@@ -146,7 +149,7 @@ fn sans_chemin(s: &str) -> String {
 pub fn chemin(racine: &Path) -> PathBuf {
     match std::env::var("PUPPETPAIE_INCIDENTS").ok().filter(|v| !v.is_empty()) {
         Some(autre) => PathBuf::from(autre).join("incidents.json"),
-        None => racine.join("journal").join("incidents.json"),
+        None => racine.join(INCIDENTS),
     }
 }
 
@@ -236,7 +239,7 @@ pub struct Note<'a> {
     pub sans_contexte: bool,
 }
 
-/// `_lignes` : la liste du fichier ; un fichier absent, illisible ou qui n'est
+/// La liste du fichier ; un fichier absent, illisible ou qui n'est
 /// pas une liste n'en dit aucune.
 fn lignes(p: &Path) -> Vec<Value> {
     if !p.exists() {
@@ -379,11 +382,11 @@ fn ecart_secondes(a: &str, b: &str) -> Option<i64> {
 /// `FileNotFoundError` et leurs filles.
 // `ErreurCoffre` et `ErreurGoogle` y sont : un coffre ferme ou un refus de Google est une situation d'usage, pas un
 // defaut du logiciel.
-const REFUS_PAR_CLASSE: [&str; 22] = [
+const REFUS_PAR_CLASSE: [&str; 18] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "CalculRefuse", "FabriqueRefus", "FicheRefusee",
-    "DsnDejaDeposee", "MoisPasPret", "RepetitionManquante", "DpaeDejaDeclaree", "VersionExigee", "CompteursVerrouilles",
-    "KeyError", "ValueError", "FileNotFoundError", "UnicodeDecodeError", "JSONDecodeError", "UnicodeEncodeError",
-    "ErreurCoffre", "ErreurGoogle", "ModificationApresEcheance", "ModificationNonDeclarable",
+    "DsnDejaDeposee", "RepetitionManquante", "VersionExigee", "CompteursVerrouilles",
+    "KeyError", "ValueError", "FileNotFoundError", "UnicodeDecodeError", "JSONDecodeError",
+    "ErreurCoffre", "ErreurGoogle", "ModificationNonDeclarable",
 ];
 
 /// `nature_de` d'apres le NOM de la classe de l'exception.
@@ -424,18 +427,17 @@ fn recalcul_refuse(racine: &Path, mois: &str, refus: &str) {
 }
 
 /// Branche l'engagement sur ce qui l'entoure, a l'entree de toute commande du moteur : le temoin des recalculs refuses
-/// (`recalcul_refuse`), et le lecteur de ce qui est parti (`journal::departs`).
+/// (`recalcul_refuse`).
 pub fn brancher_l_engagement() {
-    engagement::departs::poser_lecteur(envois::journal::departs);
     engagement::etats::poser_temoin(recalcul_refuse);
 }
 
-/// `str(x)` (`None` n'est pas ici un texte : voir l'appelant).
+/// Une valeur en texte (`null` n'est pas ici un texte : voir l'appelant).
 fn texte_de(v: &Value) -> String {
     valeur_en_texte(v)
 }
 
-/// `_fichier_court` : « http://hote:7331/interface.js?v=3 » -> « interface.js ».
+/// « http://hote:7331/interface.js?v=3 » -> « interface.js ».
 /// L'hote et le port varient ; la requete porte le jeton, elle ne se garde jamais.
 fn fichier_court(source: &Value) -> String {
     let s = if vrai(source) { texte_de(source) } else { String::new() };
@@ -561,7 +563,7 @@ pub fn lire(racine: &Path, nature: Option<&str>, en_attente_seulement: bool) -> 
     Ok(out)
 }
 
-/// `(l.get("envoi") or {}).get("etat")`.
+/// L'etat d'envoi d'une ligne du journal, s'il y en a un.
 fn etat_d_envoi(l: &Value) -> R<Option<String>> {
     let envoi = get(l, "envoi")?;
     let envoi = if vrai(envoi) { envoi } else { return Ok(None) };
@@ -621,7 +623,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
             }
         }
     }
-    // `sorted(..., key=(combien, derniere or ""), reverse=True)` : stable.
+    // Les plus fréquents d'abord, puis les plus récents ; tri stable.
     let cle_de = |p: &Map<String, Value>| (p["combien"].as_i64().unwrap_or(0), if vrai(&p["derniere"]) { texte_de(&p["derniere"]) } else { String::new() });
     let mut v: Vec<Map<String, Value>> = paquets.into_iter().map(|(_, p)| p).collect();
     v.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));
@@ -631,32 +633,6 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
 /// Combien de fois une ligne a ete vue (`fois`, les doublons comptes ; 1 pour une ligne d'avant).
 pub fn fois_de(l: &Value) -> i64 {
     l.get("fois").and_then(Value::as_i64).filter(|n| *n > 0).unwrap_or(1)
-}
-
-/// `marquer_envoye` : passe les lignes en attente qui portent l'une de ces
-/// empreintes a `depose`. Rend le nombre touche ; ne leve jamais.
-pub fn marquer_envoye(racine: &Path, empreintes: &[Value]) -> usize {
-    let p = chemin(racine);
-    let mut toutes = lignes(&p);
-    let quand = socle::paris::maintenant();
-    let mut n = 0;
-    for l in toutes.iter_mut() {
-        let porte = match l.get("empreinte") {
-            Some(e) => empreintes.iter().any(|v| valeurs_egales(v, e)),
-            None => false,
-        };
-        if l.is_object() && porte && matches!(etat_d_envoi(l), Ok(Some(e)) if e == EN_ATTENTE) {
-            l["envoi"] = json!({"etat": DEPOSE, "quand": quand});
-            n += 1;
-        } else if !l.is_object() {
-            // `l.get` sur autre chose qu'un objet leve : l'appel entier s'arrete a 0.
-            return 0;
-        }
-    }
-    if n > 0 && ecrire_json(&p, &Value::Array(toutes), 2).is_err() {
-        return 0;
-    }
-    n
 }
 
 /// `oublier` : vide le journal, en entier ou d'une nature. Rend le nombre retire.
@@ -686,7 +662,7 @@ pub fn oublier(racine: &Path, nature: Option<&str>) -> usize {
 
 // -------------------------------------------------------- ce qui part chez l'editeur
 
-/// `_pour_texte` : ni le chemin du dossier de l'utilisateur (qui porte son nom
+/// Ni le chemin du dossier de l'utilisateur (qui porte son nom
 /// de session), ni une adresse courriel.
 fn pour_texte(v: &Value) -> Value {
     match v {
@@ -710,7 +686,7 @@ pub fn pour_l_editeur(racine: &Path, ligne: &Value) -> R<Value> {
         d.insert(k.to_string(), pour_texte(get(ligne, k)?));
     }
     d.insert("machine".into(), json!(machine()));
-    // Ce que le diagnostic ajoute (`diagnostic`, 23/10/2026) : combien de fois, la derniere, le fil des trois minutes d'avant,
+    // Ce que le diagnostic ajoute (`diagnostic`) : combien de fois, la derniere, le fil des trois minutes d'avant,
     // la machine en entier. Une ligne d'avant ne les a pas : ils partent vides.
     d.insert("fois".into(), ligne.get("fois").cloned().unwrap_or(json!(1)));
     d.insert("derniere".into(), ligne.get("derniere").cloned().unwrap_or_else(|| ligne.get("quand").cloned().unwrap_or(Value::Null)));
@@ -831,7 +807,7 @@ pub fn edition() -> String {
 /// L'ENVOI A L'EDITEUR SE COUPE (une condition de SignPath). `config/diagnostic.json`,
 /// cle `envoi` : absente ou vraie, les incidents partent ; `false`, ils restent notes sur le poste et rien ne part.
 pub fn envoi_actif(racine: &Path) -> bool {
-    let p = racine.join("config").join(POSTE_FICHIER);
+    let p = racine.join(DIAGNOSTIC);
     match crate::routes::fiches::lire_tolerant(&p) {
         Ok(Some(v)) => v.get("envoi") != Some(&Value::Bool(false)),
         _ => true,
@@ -840,7 +816,7 @@ pub fn envoi_actif(racine: &Path) -> bool {
 
 /// Active ou coupe l'envoi a l'editeur ; le numero du poste reste.
 pub fn regler_envoi(racine: &Path, actif: bool) -> R<()> {
-    let p = racine.join("config").join(POSTE_FICHIER);
+    let p = racine.join(DIAGNOSTIC);
     let mut d = match crate::routes::fiches::lire_tolerant(&p)? {
         Some(Value::Object(o)) => o,
         _ => Map::new(),
@@ -870,7 +846,7 @@ pub fn poste(racine: &Path) -> R<String> {
         Some((_, ou)) => ou,
         None => racine.to_path_buf(),
     };
-    let p = ou.join("config").join(POSTE_FICHIER);
+    let p = ou.join(DIAGNOSTIC);
     Ok(crate::routes::fiches::lire_tolerant(&p)?.as_ref().and_then(|d| d.get("poste")).and_then(numero_de_poste).unwrap_or_default())
 }
 
@@ -882,7 +858,7 @@ pub fn poste(racine: &Path) -> R<String> {
 /// de personne : il se remplace. Une panne du serveur (reseau, 429) se rend
 /// telle quelle : l'appelant laisse tout en attente.
 pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet>> {
-    let p = ou.join("config").join(POSTE_FICHIER);
+    let p = ou.join(DIAGNOSTIC);
     let mut d = match crate::routes::fiches::lire_tolerant(&p)? {
         Some(Value::Object(o)) => o,
         _ => Map::new(),
@@ -900,7 +876,7 @@ pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet
                 Err(e) => return Ok(Err(e)),
             };
             let (Some(n), Some(c)) = (r.get("poste").and_then(numero_de_poste), r.get("cle").and_then(cle_de_poste)) else {
-                return Ok(Err(ErreurFilet::filet(format!("Filet DPAE : {}/poste n'a pas rendu une identite de poste.", serveur), 0)));
+                return Ok(Err(ErreurFilet::filet(format!("le serveur de l'éditeur a répondu : {}/poste n'a pas rendu une identité de poste.", serveur), 0)));
             };
             d.insert("poste".into(), json!(n));
             d.insert("cle".into(), json!(c));
@@ -912,15 +888,10 @@ pub fn client_du_poste(ou: &Path, serveur: &str) -> R<Result<Client, ErreurFilet
     Ok(Ok(Client::du_poste(serveur, &numero, &cle)))
 }
 
-/// Le serveur de l'editeur de cette compagnie (`_configuration_propre`) :
-/// `config/filet-dpae.json`, `serveur`, sinon celui du compte du filet.
+/// Le serveur de l'editeur que cette compagnie a pose : `serveur` de son `config/diagnostic.json` ; vide sinon.
 fn serveur_propre(racine: &Path) -> R<String> {
-    let e = crate::compagnie::filet::lire_etat(racine)?;
-    let compte = get(&e, "compte")?;
-    let compte = if vrai(compte) { compte.clone() } else { json!({}) };
-    let texte = |v: &Value| if vrai(v) { valeur_en_texte(v) } else { String::new() };
-    let s = get(&e, "serveur")?;
-    Ok(if vrai(s) { texte(s) } else { texte(get(&compte, "serveur")?) })
+    let d = crate::routes::fiches::lire_tolerant(&racine.join(DIAGNOSTIC))?;
+    Ok(d.as_ref().and_then(|d| d.get("serveur")).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default())
 }
 
 /// Le serveur de l'editeur, pour les incidents, les
@@ -938,8 +909,8 @@ pub fn configuration(racine: &Path) -> R<Option<(String, PathBuf)>> {
     }
     let logiciel = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     let voisin = logiciel.parent().map(|r| r.join("prive")).unwrap_or_default();
-    let reel = if voisin.join("config").is_dir() { voisin } else { logiciel.clone() };
-    if crate::interface::compagnies::est_fictive(racine) && reel != racine && reel.join("config").is_dir() {
+    let reel = if voisin.join(socle::fichiers::CONFIG).is_dir() { voisin } else { logiciel.clone() };
+    if crate::interface::compagnies::est_fictive(racine) && reel != racine && reel.join(socle::fichiers::CONFIG).is_dir() {
         let serveur = serveur_propre(&reel)?;
         if !serveur.is_empty() {
             return Ok(Some((serveur, reel)));
@@ -976,7 +947,7 @@ pub fn canal(racine: &Path) -> R<Canal> {
     })
 }
 
-/// `_marquer` : passe a `depose` les lignes nommees par (empreinte, quand).
+/// Passe a `depose` les lignes nommees par (empreinte, quand).
 fn marquer(racine: &Path, cles: &[(Value, Value)]) -> R<usize> {
     if cles.is_empty() {
         return Ok(0);

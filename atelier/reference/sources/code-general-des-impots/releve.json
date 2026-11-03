@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code general des impots",
  "_legitext": "LEGITEXT000006069577",
- "_livraisons_lues": 479,
- "_livraisons_totales": 479,
+ "_livraisons_lues": 483,
+ "_livraisons_totales": 483,
  "_complet": true,
- "_derniere_livraison": "20261029-215000",
+ "_derniere_livraison": "20261102-213929",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000048806579",
@@ -393,11 +393,35 @@
    "texte": "impots"
   },
   {
+   "apres": "LEGIARTI000053542733",
+   "article": "81",
+   "avant": "LEGIARTI000051765336",
+   "depuis": "2026-01-01",
+   "livraison": "20260223-224003",
+   "texte": "impots"
+  },
+  {
    "apres": "LEGIARTI000053545390",
    "article": "83",
    "avant": "LEGIARTI000051765287",
    "depuis": "2026-02-21",
    "livraison": "20260223-224003",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000053560507",
+   "article": "81",
+   "avant": "LEGIARTI000053542733",
+   "depuis": "2026-02-21",
+   "livraison": "20260224-221302",
+   "texte": "impots"
+  },
+  {
+   "apres": "LEGIARTI000054336634",
+   "article": "154 quinquies",
+   "avant": "LEGIARTI000047288608",
+   "depuis": "2026-06-27",
+   "livraison": "20260629-223234",
    "texte": "impots"
   },
   {
@@ -425,8 +449,13 @@
    "texte": "impots"
   }
  ],
- "_releve_le": "2026-10-29",
+ "_releve_le": "2026-11-03",
  "articles": {
+  "154 quinquies": {
+   "debut": "2026-06-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054336634"
+  },
   "1671": {
    "debut": "2019-12-30",
    "en_vigueur": true,
@@ -491,6 +520,21 @@
    "debut": "2025-02-16",
    "en_vigueur": true,
    "id": "LEGIARTI000051200373"
+  },
+  "80 quinquies": {
+   "debut": "2010-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000021629283"
+  },
+  "81": {
+   "debut": "2026-02-21",
+   "en_vigueur": true,
+   "id": "LEGIARTI000053560507"
+  },
+  "81 quater": {
+   "debut": "2022-08-18",
+   "en_vigueur": true,
+   "id": "LEGIARTI000046195916"
   },
   "83": {
    "debut": "2026-07-01",

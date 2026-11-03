@@ -44,6 +44,7 @@ fn forme_libelle(forme: &str) -> &'static str {
         "choix" => "une valeur de la liste",
         "pays" => "un pays de la liste (code ISO a deux lettres)",
         "booleen" => "oui ou non",
+        "code_atmp" => "un code risque AT/MP de l'arrete de l'annee",
         "structure" => "sous-objet ou liste : edition libre",
         "histoire" => "ce que ce champ valait avant, et jusqu'a quand",
         _ => "",
@@ -57,7 +58,6 @@ pub struct Champ {
     pub libelle: String,
     pub forme: String,
     pub aide: String,
-    pub obligatoire: bool,
     pub longueur: Option<i64>,
     pub exemple: String,
     pub choix: Vec<Value>,
@@ -72,6 +72,26 @@ pub struct Champ {
     pub exige_si: Value,
     pub booleen_defaut: bool,
     pub ecran: bool,
+    /// Les actes qui ne se font pas sans lui (`exige_par` : `dsn`, `dpae`, `contrat`, `bulletin`, `certificat`, `paie`) :
+    /// LA SEULE LISTE de ce qu'un acte exige d'une fiche, que « Pour demarrer » (`demarrage::manques`) et l'acte
+    /// (`refus_des_manques`) lisent.
+    pub exige_par: Vec<String>,
+    /// Les gestes qu'il sert sans les bloquer (`utile_pour`, meme vocabulaire que `exige_par`) : sans lui, ils se font
+    /// autrement, ce que dit `sinon`. « Pour demarrer » le dit : « utile pour ... ; sinon, ... ».
+    pub utile_pour: Vec<String>,
+    /// Ce qui se passe sans lui, quand rien ne se refuse (`sinon`).
+    pub sinon: String,
+    /// Les cases d'une structure (`champs`), decrites comme les champs ; une autre cle s'y refuse. Une case peut etre un
+    /// chemin (`taux.t1_cadre` : la case `t1_cadre` du bloc `taux`).
+    pub champs: Vec<Champ>,
+    /// Ce que l'ecran dit de chaque valeur d'une liste de choix (`libelles`, `""` : la ligne vide).
+    pub libelles: Value,
+    /// Les choix se montrent en boutons a cocher, chacun une phrase entiere (`boutons`).
+    pub boutons: bool,
+    /// La case ne se montre que si la configuration le dit (`si_configuration` : un drapeau de la route `etat`).
+    pub si_configuration: String,
+    /// Une structure en lignes (`ligne` : le nom d'une ligne, « établissement ») ; vide : un seul objet.
+    pub ligne: String,
 }
 
 impl Champ {
@@ -89,7 +109,6 @@ impl Champ {
             libelle: texte("libelle"),
             forme: texte("forme"),
             aide: texte("aide"),
-            obligatoire: drapeau("obligatoire", false),
             longueur: v.get("longueur").and_then(Value::as_i64),
             exemple: texte("exemple"),
             choix: v.get("choix").and_then(Value::as_array).cloned().unwrap_or_default(),
@@ -103,14 +122,22 @@ impl Champ {
             exige_si: v.get("exige_si").cloned().unwrap_or(Value::Null),
             booleen_defaut: drapeau("booleen_defaut", true),
             ecran: drapeau("ecran", true),
+            exige_par: v.get("exige_par").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default(),
+            utile_pour: v.get("utile_pour").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default(),
+            sinon: texte("sinon"),
+            champs: v.get("champs").and_then(Value::as_array).map(|a| a.iter().map(Champ::lire).collect()).unwrap_or_default(),
+            libelles: v.get("libelles").cloned().unwrap_or_else(|| json!({})),
+            boutons: drapeau("boutons", false),
+            si_configuration: texte("si_configuration"),
+            ligne: texte("ligne"),
         }
     }
 
     /// Une ligne de `description` : ce que l'interface consomme.
     fn description(&self) -> Value {
-        json!({
+        let mut d = json!({
             "cle": self.cle, "libelle": self.libelle, "forme": self.forme,
-            "aide": self.aide, "obligatoire": self.obligatoire,
+            "aide": self.aide,
             "longueur": self.longueur, "exemple": self.exemple, "choix": self.choix,
             "declare": self.declare, "forme_libelle": forme_libelle(&self.forme),
             "calcule": self.calcule(), "derive_de": self.derive_de,
@@ -124,8 +151,124 @@ impl Champ {
             "si_entreprise": self.si_entreprise,
             "exige_si": self.exige_si,
             "booleen_defaut": self.booleen_defaut, "ecran": self.ecran,
-        })
+            "exige_par": self.exige_par, "bloque": actes_en_clair(&self.exige_par), "utile_pour": self.utile_pour, "utile": actes_en_clair(&self.utile_pour), "sinon": self.sinon,
+            "champs": self.champs.iter().map(Champ::description).collect::<Vec<_>>(),
+            "libelles": self.libelles, "boutons": self.boutons,
+            "si_configuration": self.si_configuration, "ligne": self.ligne,
+            // Le bouton qui ajoute une ligne a une liste de cases (un contact, un etablissement).
+            "ajouter_dit": format!("+ Ajouter un {}", if self.ligne.is_empty() { "élément" } else { self.ligne.as_str() }),
+        });
+        if !self.champs.is_empty() {
+            d["forme_libelle"] = json!("sous-objet : ses cases sont dans `champs`, une autre cle se refuse");
+        }
+        d
     }
+
+    /// Le champ s'applique-t-il a la fiche `donnees` : sa condition `si`, et `exige_si` quand il en a une.
+    fn applicable(&self, donnees: &Value) -> bool {
+        condition_remplie(&self.si, donnees) && (self.exige_si.is_null() || self.exige(donnees))
+    }
+}
+
+/// Le nom en clair d'un acte de `exige_par`.
+fn acte_en_clair(acte: &str) -> &str {
+    match acte {
+        "dsn" => "la DSN",
+        "dpae" => "la DPAE",
+        "contrat" => "les contrats",
+        "bulletin" => "les bulletins",
+        "certificat" => "les certificats Congés Spectacles",
+        "paie" => "toute paie",
+        "envoi" => "l'envoi par courriel de ses contrats et de ses documents",
+        autre => autre,
+    }
+}
+
+/// « la DSN, la DPAE et les contrats ».
+pub fn actes_en_clair(actes: &[String]) -> String {
+    let noms: Vec<&str> = actes.iter().map(|a| acte_en_clair(a)).collect();
+    match noms.split_last() {
+        None => String::new(),
+        Some((dernier, [])) => dernier.to_string(),
+        Some((dernier, debut)) => format!("{} et {}", debut.join(", "), dernier),
+    }
+}
+
+/// Une case vide d'une fiche qu'un acte exige (`exige_par`) ou qu'un geste se sert (`utile_pour`, et ce qui se passe sans elle : `sinon`).
+#[derive(Debug, Clone)]
+pub struct Manquant {
+    /// Son chemin dans la fiche (`signataire.fonction`).
+    pub cle: String,
+    /// La case que l'ecran montre (la forme lisible d'un champ declare : `derive_de`).
+    pub ecran: String,
+    /// « Qui signe (fonction) ».
+    pub libelle: String,
+    pub aide: String,
+    pub actes: Vec<String>,
+    pub utile: Vec<String>,
+    pub sinon: String,
+    /// Les cases d'une structure, dites (`cases_dites`) ; vide pour une case simple.
+    pub cases: String,
+}
+
+/// CE QUI MANQUE A LA FICHE `donnees` (`entreprise`, `salarie`) pour les actes de la compagnie : chaque champ, et chaque
+/// case de structure, qui porte `exige_par` ou `utile_pour`, s'il s'applique (`si`, `exige_si` ; une case suit sa
+/// structure) et qu'il est vide. Un champ declare se dit par sa forme lisible (`derive_de`).
+pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
+    // La case que l'ecran montre pour `c` : celle dont il se deduit, s'il se deduit.
+    fn montre<'a>(liste: &'a [Champ], c: &'a Champ) -> &'a Champ {
+        c.derive_de.as_deref().and_then(|d| liste.iter().find(|x| x.cle == d)).unwrap_or(c)
+    }
+    let tous = fiche(nom)?;
+    let mut out = Vec::new();
+    let mut voir = |c: &Champ, m: &Champ, chemin: (String, String), libelle: String, v: Option<&Value>| {
+        if (c.exige_par.is_empty() && c.utile_pour.is_empty()) || v.is_some_and(vrai) {
+            return;
+        }
+        out.push(Manquant { cle: chemin.0, ecran: chemin.1, libelle, aide: m.aide.clone(), actes: c.exige_par.clone(), utile: c.utile_pour.clone(), sinon: c.sinon.clone(), cases: cases_dites(c) });
+    };
+    for c in tous.iter().filter(|c| c.applicable(donnees)) {
+        let m = montre(&tous, c);
+        voir(c, m, (c.cle.clone(), m.cle.clone()), m.libelle.clone(), donnees.get(&c.cle));
+        for s in &c.champs {
+            let ms = montre(&c.champs, s);
+            let chemin = (format!("{}.{}", c.cle, s.cle), format!("{}.{}", c.cle, ms.cle));
+            let m = if ms.aide.is_empty() { c } else { ms };
+            voir(s, m, chemin, format!("{} ({})", c.libelle, en_minuscule(&ms.libelle)), donnees.get(&c.cle).and_then(|o| o.get(&s.cle)));
+        }
+    }
+    Ok(out)
+}
+
+/// LA CASE `cle` DE LA FICHE `nom` SERT-ELLE A UN ACTE ? Elle, ou le champ declare qui se deduit d'elle (`derive_de`),
+/// porte `exige_par` ou `utile_pour` : la meme liste que `manquants`. Le questionnaire du salarie n'en pose pas d'autre.
+pub fn utile(nom: &str, cle: &str) -> bool {
+    fiche(nom).is_ok_and(|t| {
+        t.iter().any(|c| (c.cle == cle || c.derive_de.as_deref() == Some(cle)) && (!c.exige_par.is_empty() || !c.utile_pour.is_empty()))
+    })
+}
+
+/// LE REFUS D'UN ACTE quand une fiche qu'il lit n'a pas ce qu'il exige (`exige_par`) : tout ce qui manque, d'un coup,
+/// fiche par fiche. `fiches` : (`entreprise` ou `salarie`, qui, la fiche) ; `sauf` : les cases qu'un fait de l'acte ne demande
+/// pas. `None` : rien ne manque.
+pub fn refus_des_manques(acte: &str, fiches: &[(&str, String, &Value)], sauf: &[&str]) -> R<Option<String>> {
+    let mut lignes = Vec::new();
+    for (nom, qui, donnees) in fiches {
+        let manque: Vec<String> =
+            manquants(nom, donnees)?.into_iter().filter(|m| m.actes.iter().any(|a| a == acte) && !sauf.contains(&m.cle.as_str())).map(|m| m.libelle).collect();
+        if !manque.is_empty() {
+            let manque: Vec<String> = manque.iter().map(|l| format!("« {} »", l)).collect();
+            lignes.push(format!("{} dans {}", manque.join(", "), qui));
+        }
+    }
+    if lignes.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(format!(
+        "Pour {}, il manque, à remplir dans Configuration : {}. Rien n'est écrit.",
+        acte_en_clair(acte),
+        lignes.join(" ; ")
+    )))
 }
 
 /// Les trois fiches : `FICHES`.
@@ -173,7 +316,7 @@ pub fn tous_chiffres(s: &str) -> bool {
     !s.is_empty() && s.chars().all(est_chiffre)
 }
 
-/// `str.title()`.
+/// Chaque mot avec sa première lettre en capitale, le reste en minuscules.
 pub fn titre(s: &str) -> String {
     let mut out = String::new();
     let mut precedent_cased = false;
@@ -243,7 +386,7 @@ fn tranche(s: &str, a: usize, b: usize) -> String {
     s.chars().skip(a).take(b.saturating_sub(a)).collect()
 }
 
-/// `float(texte)` : est-ce un nombre ? (`nan`, `inf`, `1e5`,
+/// Le texte est-il un nombre flottant ? (`nan`, `inf`, `1e5`,
 /// `1_000` en sont ; une virgule non.)
 fn flottant_valide(t: &str) -> bool {
     let t = strip(t);
@@ -356,7 +499,7 @@ fn equivalent(c: char) -> Option<&'static str> {
     })
 }
 
-/// `_ponctuation_propre` : capitales sans accents, signes ramenes a l'ASCII,
+/// Capitales sans accents, signes ramenes a l'ASCII,
 /// separateurs isoles.
 fn ponctuation_propre(texte: &str, identite: bool) -> String {
     let mut v: String = String::new();
@@ -433,7 +576,7 @@ fn ponctuation_propre(texte: &str, identite: bool) -> String {
     strip(&v).to_string()
 }
 
-/// `_sans_caracteres_refuses` : retire de la forme declaree ce que SA rubrique
+/// Retire de la forme declaree ce que SA rubrique
 /// n'admet pas -- par une espace d'abord, par rien ensuite -- et rend la forme
 /// naive si rien ne passe.
 fn sans_caracteres_refuses(c: &Champ, v: String) -> R<String> {
@@ -482,7 +625,7 @@ pub fn normaliser(c: &Champ, valeur: &Value) -> R<Value> {
 
 /// `PERSONNES` : le signataire et le contact DSN, avec les cles declarees qui
 /// ont une forme lisible `<cle>_affichage`.
-const PERSONNES: [(&str, &[&str]); 3] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &[]), ("contact_sante_travail", &[])];
+const PERSONNES: [(&str, &[&str]); 3] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &["nom_prenom"]), ("contact_sante_travail", &["nom_prenom"])];
 
 fn faux_ou_absent(d: &Map<String, Value>, k: &str) -> bool {
     d.get(k).map_or(true, |v| !vrai(v))
@@ -511,16 +654,6 @@ pub fn combler_affichage(nom: &str, donnees: &Map<String, Value>) -> R<Map<Strin
         for (cle, officiels) in PERSONNES {
             let Some(Value::Object(p)) = sortie.get(cle) else { continue };
             let mut p = p.clone();
-            if (cle == "declarant_dsn" || cle == "contact_sante_travail") && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
-                // << NOM PRENOM >> en un seul champ : le premier mot fait le nom,
-                // le reste le prenom.
-                let np = p.get("nom_prenom").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-                let mots: Vec<&str> = np.split(espace).filter(|m| !m.is_empty()).collect();
-                if !mots.is_empty() {
-                    p.insert("nom_affichage".into(), Value::String(titre(mots[0])));
-                    p.insert("prenom_affichage".into(), Value::String(titre(&mots[1..].join(" "))));
-                }
-            }
             for k in officiels {
                 let lisible = format!("{}_affichage", k);
                 if faux_ou_absent(&p, &lisible) {
@@ -565,9 +698,12 @@ fn comme_la_page(v: Option<&Value>) -> String {
 /// UNE CONDITION DE `champs-base.json` (`si`, `exige_si`) remplie par la fiche `donnees` : chaque cle de la condition
 /// vaut l'une des valeurs listees ; `"*"` admet toute valeur non vide (et pas `false`). LA MEME REGLE que la page applique
 /// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
-/// jugent sur ce que l'ecran montre. Une condition absente est
+/// jugent sur ce que l'ecran montre. Une liste de conditions est remplie quand l'une l'est ; une condition absente est
 /// remplie.
 pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
+    if let Some(l) = si.as_array() {
+        return l.iter().any(|s| condition_remplie(s, donnees));
+    }
     let Some(o) = si.as_object() else { return true };
     o.iter().all(|(k, vals)| {
         let v = comme_la_page(donnees.get(k));
@@ -577,13 +713,16 @@ pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
 }
 
 impl Champ {
-    /// Le champ de la fiche entreprise `donnees` est-il A L'ECRAN ? Ce que la page decide pour la fiche entreprise
-    /// (`fiche.js`, `champHtml`) : sa condition `si`, la case des permanents (`si_permanents`) et la liste des
-    /// etablissements (`si_etablissements`).
-    pub fn montre(&self, donnees: &Value, permanents: bool, etablissements: bool) -> bool {
+    /// Le champ de la fiche `donnees` est-il A L'ECRAN ? Il se saisit (ni deduit, ni hors de l'ecran), sa condition `si`
+    /// est remplie par la fiche, celle de l'entreprise (`si_entreprise`, pour la fiche d'un salarie ou d'un spectacle :
+    /// `entreprise`) aussi, la compagnie emploie des permanents s'il ne vaut que pour eux (`si_permanents`) et a plusieurs
+    /// etablissements s'il les nomme (`si_etablissements`). La page montre ce que cette fonction dit (`moteur::routes::
+    /// fiches::montres`), et rien d'autre.
+    pub fn montre(&self, donnees: &Value, entreprise: Option<&Value>, permanents: bool, etablissements: bool) -> bool {
         self.ecran
             && !self.calcule()
             && condition_remplie(&self.si, donnees)
+            && entreprise.is_none_or(|e| condition_remplie(&self.si_entreprise, e))
             && !(self.si_permanents && !permanents)
             && !(self.si_etablissements && !etablissements)
     }
@@ -621,7 +760,7 @@ const MORCEAUX_NIR: [(usize, usize, &str, &str, &str); 6] = [
     (10, 13, "le numero d'ordre a l'etat civil", "001 a 999", "ordre a l'etat civil"),
 ];
 
-/// `_morceau_de_nir_va` : les bornes du cahier technique, morceau par morceau.
+/// Les bornes du cahier technique, morceau par morceau.
 fn morceau_de_nir_va(debut: usize, morceau: &str) -> bool {
     match debut {
         0 => morceau == "1" || morceau == "2",
@@ -815,7 +954,7 @@ pub fn faute_de_norme(c: &Champ, valeur: &str) -> R<Option<String>> {
     Ok(Some(format!("{} (rubrique {} du cahier technique NEODeS) : le point de depot refuserait la declaration", pourquoi, rubrique)))
 }
 
-/// `_faute_de_forme_officielle` : les regles de position du cahier technique
+/// Les regles de position du cahier technique
 /// DSN, section 4.
 fn faute_de_forme_officielle(v: &str) -> Option<String> {
     let c: Vec<char> = v.chars().collect();
@@ -867,7 +1006,8 @@ fn courriel_valide(v: &str) -> bool {
     (1..domaine.len().saturating_sub(1)).any(|i| domaine[i] == '.')
 }
 
-/// `verifier_champ` : un message si le champ est fautif, sinon `None`.
+/// `verifier_champ` : un message si la valeur saisie est fautive, sinon `None`. Une case vide n'est pas une faute : ce
+/// qu'un acte exige, il le dit a son heure (`exige_par`, `refus_des_manques`).
 fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     let vide = match valeur {
         None | Some(Value::Null) => true,
@@ -875,13 +1015,20 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
         _ => false,
     };
     if vide {
-        return Ok(if c.obligatoire { Some("obligatoire".into()) } else { None });
+        return Ok(None);
     }
     if c.cle == "banque" {
         return Ok(match valeur {
             Some(Value::Object(o)) => faute_banque(o),
             _ => None,
         });
+    }
+    // Les jours travailles d'un permanent : ceux que le calcul lira (`droit::conges::JoursTravailles`).
+    if c.cle == "jours_travailles" {
+        let fiche = serde_json::json!({ "jours_travailles": valeur });
+        return Ok(droit::conges::JoursTravailles::de_la_fiche(&fiche).err().map(|e| {
+            e.split_once(" : ").map_or(e.clone(), |(_, m)| m.to_string())
+        }));
     }
     let Some(Value::String(brut)) = valeur else { return Ok(None) };
     // La signature des courriels est du HTML colle : sa seule regle est son poids (150 Ko, images comprises).
@@ -948,6 +1095,10 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
         if let Some(faute) = documents::conges_spectacles::faute_adherent(&documents::conges_spectacles::forme_adherent(v)) {
             return Ok(Some(faute));
         }
+    }
+    // LE JOUR DU VERSEMENT DES SALAIRES se lit comme la paie le lira (`droit::versement`).
+    if droit::versement::CLES.contains(&c.cle.as_str()) {
+        return Ok(droit::versement::Versement::lire(v).err());
     }
     // LE CODE APE SE RECONNAIT DANS LA NAF REV. 2 OU LA NAF 2025 (`naf.rs`) : les deux sont admises a la saisie,
     // un code qu'aucune ne connait refuse.
@@ -1019,7 +1170,7 @@ fn anomalie(champ: &str, gravite: &str, message: impl Into<String>) -> Value {
     json!({"champ": champ, "gravite": gravite, "message": message.into()})
 }
 
-/// `_controles_croises` : ce qu'aucun champ ne peut verifier seul.
+/// Ce qu'aucun champ ne peut verifier seul.
 fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     let mut out = Vec::new();
 
@@ -1048,7 +1199,11 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         // LE TITRE QUE L'IMPORT N'A PAS TROUVE : un numero d'objet seul (la DSN ne porte pas le titre) recoit « A COMPLETER ».
         // Ce n'est pas un titre : le contrat et le bulletin l'imprimeraient tel quel.
         if strip(&texte_de(d, "titre")?).eq_ignore_ascii_case("A COMPLETER") {
-            out.push(anomalie("titre", "avertissement", "à compléter : aucune pièce reprise ne porte le titre de ce spectacle, et le contrat l'imprime."));
+            let message = match d.get(crate::demarrage::TITRE_PROPOSE).filter(|t| vrai(t)).map(valeur_en_texte) {
+                Some(t) => format!("à valider : les bulletins repris proposent « {} », et le contrat imprime le titre.", t),
+                None => "à compléter : aucune pièce reprise ne porte le titre de ce spectacle, et le contrat l'imprime.".to_string(),
+            };
+            out.push(anomalie("titre", "avertissement", message));
         }
         let code =strip(&d.get("code_analytique").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !code.is_empty() && !code.chars().all(|c| c.is_ascii() && (c.is_alphanumeric() || c == '-' || c == '_')) {
@@ -1067,13 +1222,8 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         // pas encore immatricule, sous son numero technique temporaire, qui
         // commence par le sexe.
         let sexe_saisi = strip(&texte_de(d, "sexe")?).to_string();
-        if nir.is_empty() && sexe_saisi.is_empty() {
-            out.push(anomalie(
-                "sexe",
-                "erreur",
-                "obligatoire tant que le NIR manque : sans NIR ni NIA, la norme declare le salarie sous un numero technique temporaire (S21.G00.30.020) qui commence par le code sexe. Le reste -- le SIREN, le matricule -- le moteur l'a deja.",
-            ));
-        } else if nir.is_empty() {
+        // Le sexe qu'il faut alors, la DPAE et la DSN l'exigent a leur heure (`exige_par`, `exige_si` du champ `sexe`).
+        if nir.is_empty() {
             out.push(anomalie(
                 "nir",
                 "avertissement",
@@ -1238,20 +1388,16 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         // a lui reprocher le travail de la machine. On pointe la forme
         // lisible, qui est ce qu'il peut corriger.
         if c.calcule() {
-            let message = if msg == "obligatoire" { msg } else { format!("{} (la forme declaree, « {} », s'en deduit)", msg, c.libelle) };
+            let message = format!("{} (la forme declaree, « {} », s'en deduit)", msg, c.libelle);
             anomalies.push(anomalie(c.derive_de.as_deref().unwrap_or(""), "erreur", message));
         } else {
             anomalies.push(anomalie(&c.cle, "erreur", msg));
         }
     }
     anomalies.extend(controles_croises(nom, &donnees)?);
-    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS. Une regle de forme peut se tromper et la valeur
-    // etre juste : son erreur se passe outre a l'ecran (`forcable`). Une valeur obligatoire absente, non : le metier d'un
-    // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
-    // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se
-    // remplit en plusieurs fois (« Pour demarrer » dit ce qui manque) : ses manques restent forcables.
+    // UNE REGLE DE FORME PEUT SE TROMPER et la valeur etre juste : son erreur se passe outre a l'ecran (`forcable`).
     // CE QUE L'ECRAN DIT D'UNE ERREUR, d'apres le champ : s'il part dans une declaration (`declare` ; un champ lisible,
-    // par la forme declaree qui s'en deduit), et s'il se force.
+    // par la forme declaree qui s'en deduit).
     let mut declares: std::collections::HashMap<&str, bool> = std::collections::HashMap::new();
     for c in &champs {
         for cle in [Some(c.cle.as_str()), c.derive_de.as_deref().filter(|d| !d.is_empty())].into_iter().flatten() {
@@ -1259,23 +1405,21 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         }
     }
     for a in anomalies.iter_mut() {
-        let manque = a["gravite"] == "erreur" && a["message"] == "obligatoire" && nom != "entreprise";
-        a["forcable"] = json!(!manque);
+        a["forcable"] = json!(true);
         let declare = a["champ"].as_str().and_then(|k| declares.get(k)).copied().unwrap_or(false);
-        a["pourquoi"] = json!(match (manque, declare) {
-            (true, true) => "Sans ces valeurs, ni la DPAE ni la DSN ne peuvent se faire : elles se remplissent avant d'enregistrer.",
-            (true, false) => "Ces valeurs se remplissent avant d'enregistrer.",
-            (false, true) => "Ces champs partent dans des déclarations. Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
-            (false, false) => "Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir.",
+        a["pourquoi"] = json!(if declare {
+            "Ces champs partent dans des déclarations. Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir."
+        } else {
+            "Si la règle se trompe et que la valeur est juste, on peut passer outre — mais il faut le vouloir."
         });
     }
-    // Une fiche mise de cote ne doit pas crier. Ses manques restent visibles --
-    // et redeviennent bloquants a la reactivation, ce que le message dit.
+    // Une fiche mise de cote ne doit pas crier. Ses fautes restent visibles --
+    // et redeviennent des erreurs a la reactivation, ce que le message dit.
     if donnees.get("actif") == Some(&Value::Bool(false)) {
         for a in anomalies.iter_mut() {
             if a["gravite"] == "erreur" {
                 a["gravite"] = json!("avertissement");
-                let m = format!("{} (fiche inactive : a completer avant toute paie)", a["message"].as_str().unwrap_or(""));
+                let m = format!("{} (fiche inactive : a corriger avant toute paie)", a["message"].as_str().unwrap_or(""));
                 a["message"] = json!(m);
             }
         }
@@ -1376,5 +1520,72 @@ mod tests {
         // insee-nir-siret : la somme des chiffres (rang impair doubles) est un multiple de 10.
         assert!(luhn("73282932000074"));
         assert!(!luhn("73282932000075"));
+    }
+}
+
+/// LES CASES D'UNE STRUCTURE, DITES (`champs`) : leur nom, leur forme et leurs valeurs, d'apres la seule table qui les
+/// decrit (`champs-base.json`). « tva : assujettie ou exoneree ; part_tva : nombre decimal ; ... ». Vide : pas de cases.
+pub fn cases_dites(c: &Champ) -> String {
+    c.champs
+        .iter()
+        .filter(|s| !s.calcule())
+        .map(|s| {
+            let valeurs: Vec<String> = s.choix.iter().map(valeur_en_texte).filter(|v| !v.is_empty()).collect();
+            let forme = match s.forme.as_str() {
+                "booleen" => "true ou false".to_string(),
+                _ if !valeurs.is_empty() => valeurs.join(" ou "),
+                f => forme_libelle(f).to_string(),
+            };
+            format!("{} : {}", s.cle, forme)
+        })
+        .collect::<Vec<_>>()
+        .join(" ; ")
+}
+
+/// LES CASES QU'UNE FICHE NE DECRIT PAS (`la_fiche` : ce qu'une saisie lui donne ; ce que le moteur compose lui-meme, l'import
+/// et le questionnaire, ne se compte pas), ET CELLES D'UNE STRUCTURE (`champs`), que l'ecriture `donnees` ajouterait a la
+/// fiche `ancienne` : personne ne les lirait. Une case que la fiche porte deja se garde ; une cle en `_` est une note
+/// interne. Une case d'une structure dont la valeur n'a pas sa forme (une valeur hors de sa liste, un nombre, une date)
+/// se dit aussi. Cela ne se force pas.
+pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, ancienne: &Value, la_fiche: bool) -> R<Vec<Value>> {
+    let tous = fiche(nom)?;
+    let mut out = Vec::new();
+    let refusee = |champ: &str, message: String| {
+        let mut a = anomalie(champ, "erreur", message);
+        a["forcable"] = json!(false);
+        a["pourquoi"] = json!("Cette case n'existe pas : la retirer, ou la nommer comme le dit la liste.");
+        a
+    };
+    let connues: Vec<&str> = tous.iter().filter(|c| !c.calcule()).map(|c| c.cle.as_str()).collect();
+    // Une case vide n'ajoute rien a la fiche (elle ne s'ecrit pas) : seule une valeur se refuse.
+    for k in donnees.iter().filter(|(k, v)| la_fiche && vrai(v) && !k.starts_with('_') && !tous.iter().any(|c| &c.cle == *k) && ancienne.get(k.as_str()).is_none()).map(|(k, _)| k) {
+        out.push(refusee(k, format!("la case « {} » n'existe pas dans la fiche {} ; ses cases sont : {}", k, nom, connues.join(", "))));
+    }
+    for c in tous.iter().filter(|c| !c.champs.is_empty()) {
+        let Some(Value::Object(o)) = donnees.get(&c.cle) else { continue };
+        let mut admises: Vec<&str> = c.champs.iter().map(|s| s.cle.split('.').next().unwrap_or(&s.cle)).collect();
+        admises.dedup();
+        let deja = ancienne.get(&c.cle);
+        for k in o.keys().filter(|k| !k.starts_with('_') && !admises.contains(&k.as_str()) && deja.and_then(|d| d.get(k.as_str())).is_none()) {
+            out.push(refusee(&c.cle, format!("la case « {} » n'existe pas ; ses cases sont : {}", k, cases_dites(c))));
+        }
+        for s in c.champs.iter().filter(|s| matches!(s.forme.as_str(), "choix" | "montant" | "date")) {
+            if let Some(faute) = verifier_champ(s, o.get(&s.cle))? {
+                let mut a = anomalie(&c.cle, "erreur", format!("« {} » : {}", s.cle, faute));
+                a["forcable"] = json!(false);
+                a["pourquoi"] = json!(format!("Les cases de « {} » : {}.", c.libelle, cases_dites(c)));
+                out.push(a);
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// « Prénom » devient « prénom » dans une phrase ; « IBAN » reste « IBAN ».
+fn en_minuscule(libelle: &str) -> String {
+    let mut c = libelle.chars();
+    match (c.next(), c.next()) {
+        (Some(p), Some(s)) if s.is_lowercase() => p.to_lowercase().chain(libelle.chars().skip(1)).collect(),
+        _ => libelle.to_string(),
     }
 }

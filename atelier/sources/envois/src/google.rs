@@ -57,7 +57,7 @@ pub fn encoder(champs: &[(&str, String)]) -> String {
 
 /// Le message lisible d'une reponse d'erreur de Google.
 pub fn traduire(code: u16, corps: &str) -> String {
-    let mut detail: String = corps.chars().take(500).collect();
+    let mut detail: String = corps.to_string();
     let mut code_g = String::new();
     if let Ok(Value::Object(o)) = serde_json::from_str::<Value>(corps) {
         match o.get("error") {
@@ -83,14 +83,13 @@ pub fn traduire(code: u16, corps: &str) -> String {
                 \x20 Cause la plus frequente : l'ecran de consentement est reste\n\
                 \x20 en mode « Test », ou Google revoque le jeton au bout de 7\n\
                 \x20 jours. Le passer « En production » dans la console, puis\n\
-                \x20 relier le Drive (Configuration > Mots de passe, ou\n\
-                \x20 `moteur google autoriser`)."
+                \x20 relier le Drive (Configuration > Mots de passe)."
             .into();
     }
     if code == 403 && corps.to_lowercase().contains("insufficient") {
         return "Permission refusee : l'autorisation en cours ne couvre pas\n\
                 \x20 cette action. Relier le Drive (Configuration > Mots de\n\
-                \x20 passe, ou `moteur google autoriser`) pour\n\
+                \x20 passe) pour\n\
                 \x20 redemander les permissions."
             .into();
     }
@@ -148,7 +147,7 @@ pub fn jeton_par_rafraichissement(
             };
             match &v {
                 Value::Object(o) if o.get("access_token").is_some_and(|t| t.is_string() && vrai(t)) => Ok(Ok(en_texte(&o["access_token"]))),
-                _ => Ok(Err("Google n'a pas rendu de jeton d'acces (reponse sans `access_token`). Reessayer plus tard ; si cela dure, lier de nouveau le compte.".into())),
+                _ => Ok(Err("Google n'a pas rendu de jeton d'acces. Reessayer plus tard ; si cela dure, lier de nouveau le compte.".into())),
             }
         }
         Err(panne) => match phrase_de_panne(panne) {

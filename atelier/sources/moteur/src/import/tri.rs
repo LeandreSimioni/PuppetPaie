@@ -46,6 +46,12 @@ const DECOMPRESSE_MAX: u64 = 2 * 1024 * 1024 * 1024;
 const AEM_LONGUEUR: usize = 1000;
 const AEM_MARQUE: &str = "AEMEDIC2";
 
+/// Ce que l'import accepte, dit a l'ecran (le guide) et a chaque fichier refuse.
+pub const ACCEPTE: &str = "L'import accepte les PDF de bulletins de paie, d'AEM, de certificats Congés Spectacles et d'AER Cinéma Spectacle, et les fichiers DSN et AEM déposés.";
+
+/// La raison d'un PDF sans texte : une image ne se lit pas.
+pub const IMAGE: &str = "ce document est une image ; déposez le PDF d'origine";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Sorte {
     Dsn,
@@ -174,10 +180,10 @@ fn fichier_json(f: &Fichier) -> Value {
 /// (cree s'il manque ; s'il est sous `dossier`, il n'est pas parcouru), et donne a chaque fichier sa sorte.
 pub fn trier(dossier: &Path, travail: &Path) -> R<Tri> {
     if !dossier.is_dir() {
-        return Err(erreur("ErreurOperation", format!("Le dossier a trier n'existe pas : {}", dossier.display())));
+        return Err(erreur("ErreurOperation", socle::echec::avec("Le dossier à trier n'existe pas.", serde_json::json!({"chemin": dossier.to_string_lossy()}))));
     }
     std::fs::create_dir_all(travail)
-        .map_err(|e| erreur("ErreurOperation", format!("Le dossier de travail ne se cree pas : {} ({})", travail.display(), e)))?;
+        .map_err(|e| erreur("ErreurOperation", socle::echec::du_disque(travail, &e)))?;
     let mut t = Trieur { travail: travail.to_path_buf(), travail_canon: std::fs::canonicalize(travail).ok(), vus: HashMap::new(), fichiers: Vec::new() };
     t.parcourir(dossier, "", None, 0);
     Ok(Tri { dossier: dossier.to_path_buf(), fichiers: t.fichiers })
@@ -299,10 +305,7 @@ impl Trieur {
         } else if apres_bom(&octets).starts_with(b"AEMEDI") {
             lire_aem(&mut f, &octets);
         } else {
-            f.raison = Some(match f.extension.as_str() {
-                "" => "ni DSN, ni AEM, ni PDF, ni archive zip (pas d'extension)".to_string(),
-                e => format!("ni DSN, ni AEM, ni PDF, ni archive zip (extension .{})", e),
-            });
+            f.raison = Some(format!("ce fichier n'est ni un PDF, ni une DSN, ni une AEM, ni une archive zip. {}", ACCEPTE));
         }
         self.fichiers.push(f);
     }
@@ -419,24 +422,22 @@ fn est_un_pdf(o: &[u8]) -> bool {
 
 /// Un PDF : la fabrique l'ouvre (dans le meme processus) et releve chaque page.
 fn lire_pdf(f: &mut Fichier) {
-    let (texte, avertissements) = match fabrique_pdf::inspection::inspecter(&f.disque.to_string_lossy()) {
+    let r = match crate::import::releve::du_pdf(&f.disque) {
         Ok(r) => r,
-        Err(r) => {
+        Err(crate::import::releve::Refus::Fabrique(r)) => {
             f.sorte = Sorte::Illisible;
             // Le refus de la fabrique commence par le chemin du disque : seule la cause compte ici.
-            let cause = r.0.strip_prefix(&*f.disque.to_string_lossy()).unwrap_or(&r.0).trim_start_matches([' ', ':']).to_string();
+            let cause = r.strip_prefix(&*f.disque.to_string_lossy()).unwrap_or(&r).trim_start_matches([' ', ':']).to_string();
             f.raison = Some(format!("PDF que la fabrique n'ouvre pas : {}", cause));
             return;
         }
-    };
-    let releve: Value = match serde_json::from_str(&texte) {
-        Ok(v) => v,
-        Err(e) => {
+        Err(crate::import::releve::Refus::Releve(e)) => {
             f.sorte = Sorte::Illisible;
             f.raison = Some(format!("PDF dont le releve ne se lit pas ({})", e));
             return;
         }
     };
+    let (releve, avertissements) = (&r.releve, &r.avertissements);
     let n = |v: &Value, k: &str| v.get(k).and_then(Value::as_array).map_or(0, Vec::len);
     f.pages = releve
         .get("pages")
@@ -451,14 +452,7 @@ fn lire_pdf(f: &mut Fichier) {
         raisons.push("PDF sans aucune page".into());
     } else if avec == 0 {
         f.sorte = Sorte::PdfSansTexte;
-        let somme = |g: fn(&PageLue) -> usize| f.pages.iter().map(g).sum::<usize>();
-        raisons.push(format!(
-            "aucun mot sur {} page(s) ({} police(s), {} image(s), {} trait(s)) : des lettres en traces ou une page scannee ne se lisent pas sans OCR",
-            total,
-            somme(|p| p.polices),
-            somme(|p| p.images),
-            somme(|p| p.traits)
-        ));
+        raisons.push(IMAGE.into());
     } else {
         f.sorte = Sorte::PdfTexte;
         if avec < total {

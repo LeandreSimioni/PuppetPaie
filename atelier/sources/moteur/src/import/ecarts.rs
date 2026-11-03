@@ -36,6 +36,7 @@ use droit::contexte::Contexte;
 use engagement::ecarts::{Comparaison, Grandeur};
 use socle::date::en_texte;
 use socle::fichiers::vrai;
+use socle::valeur::valeur_en_texte;
 
 /// L'endroit, dans le journal des incidents.
 pub const OU: &str = "ecarts_import";
@@ -53,23 +54,36 @@ fn montant() -> &'static Regex {
     M.get_or_init(|| Regex::new(r"\d[\d\u{a0}\u{202f} .]*[,.]\d{2}\b").expect("motif d'un montant"))
 }
 
-/// Le texte tel qu'il part : caviarde.
-fn propre(texte: &str, connus: &Connus) -> String {
-    caviardage::caviarder(texte, connus).texte
+/// Le caviardage des rapports (`caviardage::caviarder`), sur les noms connus de la compagnie : un meme texte (un mois, une
+/// nature, qui reviennent a chaque cas) ne se caviarde qu'une fois.
+struct Propre<'a> {
+    connus: &'a Connus,
+    vus: std::collections::HashMap<String, String>,
 }
 
-fn propre_json(v: &Value, connus: &Connus) -> Value {
-    match v {
-        Value::String(s) => Value::String(propre(s, connus)),
-        Value::Array(a) => Value::Array(a.iter().map(|x| propre_json(x, connus)).collect()),
-        Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), propre_json(x, connus))).collect()),
-        autre => autre.clone(),
+impl Propre<'_> {
+    fn texte(&mut self, texte: &str) -> String {
+        if let Some(t) = self.vus.get(texte) {
+            return t.clone();
+        }
+        let t = caviardage::caviarder(texte, self.connus).texte;
+        self.vus.insert(texte.to_string(), t.clone());
+        t
+    }
+
+    fn json(&mut self, v: &Value) -> Value {
+        match v {
+            Value::String(s) => Value::String(self.texte(s)),
+            Value::Array(a) => Value::Array(a.iter().map(|x| self.json(x)).collect()),
+            Value::Object(o) => Value::Object(o.iter().map(|(k, x)| (k.clone(), self.json(x))).collect()),
+            autre => autre.clone(),
+        }
     }
 }
 
 /// Le registre des paies importees deja comparees (leurs empreintes, `engagement::ecarts::empreinte`).
 fn registre(racine: &Path) -> PathBuf {
-    racine.join("journal").join("ecarts-import.json")
+    racine.join(envois::journal::JOURNAL).join("ecarts-import.json")
 }
 
 fn comparees(racine: &Path) -> BTreeSet<String> {
@@ -80,14 +94,9 @@ fn comparees(racine: &Path) -> BTreeSet<String> {
 /// paies qui ne sont plus a comparer : comparees, ou que leurs pieces empechent de comparer (une paie que le calcul a
 /// refusee se compare de nouveau la fois suivante).
 pub fn rapports(ctx: &Contexte) -> (Vec<Rapport>, Vec<String>) {
-    let table = match crate::import::bulletin_lu::Table::livree() {
-        Ok(t) => t,
-        Err(m) => return (vec![Rapport { genre: "table de lecture illisible".into(), resume: m, detail: json!({}) }], Vec::new()),
-    };
-    let rattacher = |l: &str| table.cotisation(l).map(str::to_string);
     let importes = engagement::importe::tous(&ctx.racine).unwrap_or_default();
     let deja = comparees(&ctx.racine);
-    let comparaisons: Vec<Comparaison> = importes.iter().flat_map(|i| engagement::ecarts::comparer(&ctx.racine, i, &rattacher, &|e| deja.contains(e))).collect();
+    let comparaisons: Vec<Comparaison> = importes.iter().flat_map(|i| engagement::ecarts::comparer(&ctx.racine, i, &|e| deja.contains(e))).collect();
     let faites: Vec<String> = comparaisons.iter().filter(|c| !c.a_refaire).map(|c| c.empreinte.clone()).collect();
     (rapports_de(ctx, &comparaisons), faites)
 }
@@ -96,7 +105,8 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
     let texte = |k: &str| ctx.entreprise.get(k).filter(|v| vrai(v)).map(en_texte);
     let (idcc, annexe, organisation) = (texte("idcc"), texte("annexe_convention"), texte("organisation_patronale"));
     let mut connus = Connus::default();
-    crate::import::incident::ajouter_les_fiches(ctx, &mut connus, std::iter::empty());
+    ajouter_les_fiches(ctx, &mut connus);
+    let mut propre = Propre { connus: &connus, vus: Default::default() };
     let logiciel = |c: &Comparaison| c.logiciel.clone().unwrap_or_else(|| "autre".into());
     let cas = |c: &Comparaison| json!({"mois": c.mois, "nature": c.nature, "statut": c.statut, "cadre": c.cadre, "taux_atmp": c.taux_atmp});
 
@@ -105,7 +115,7 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
     let mut seules: BTreeMap<String, Vec<String>> = BTreeMap::new();
     for c in comparaisons {
         match &c.ecarts {
-            Err(raison) => refus.entry(montant().replace_all(&propre(raison, &connus), "<MONTANT>").into_owned()).or_default().push(json!({"mois": c.mois, "logiciel": c.logiciel, "nature": c.nature, "statut": c.statut, "cadre": c.cadre})),
+            Err(raison) => refus.entry(montant().replace_all(&propre.texte(raison), "<MONTANT>").into_owned()).or_default().push(json!({"mois": c.mois, "logiciel": c.logiciel, "nature": c.nature, "statut": c.statut, "cadre": c.cadre})),
             Ok(liste) => {
                 for e in liste {
                     let (libelles, v) = ecarts.entry((e.cotisation.clone(), e.grandeur, logiciel(c))).or_default();
@@ -155,7 +165,7 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
         let resume = format!("Lignes de cotisation non comparées (bulletin {}) : la table de lecture ne les rattache à aucune cotisation : {}.", logiciel, libelles.join(" ; "));
         sortie.push(Rapport { genre: format!("cotisation non rattachée · {}", logiciel), resume, detail: json!({"logiciel": logiciel, "libelles": libelles, "idcc": idcc}) });
     }
-    sortie.into_iter().map(|r| Rapport { genre: propre(&r.genre, &connus), resume: propre(&r.resume, &connus), detail: propre_json(&r.detail, &connus) }).collect()
+    sortie.into_iter().map(|r| Rapport { genre: propre.texte(&r.genre), resume: propre.texte(&r.resume), detail: propre.json(&r.detail) }).collect()
 }
 
 /// A la fin d'un import : les rapports notes, puis l'envoi ordinaire. Ne leve jamais et ne dit rien a l'ecran : rend le
@@ -201,4 +211,48 @@ pub fn noter(ctx: &Contexte) -> usize {
         let _ = socle::ecriture::ecrire_json(&registre(racine), &json!(toutes), 0);
     }
     notes
+}
+
+/// Ce que les fiches de la compagnie disent de ses salaries, ajoute aux valeurs connues ; la compagnie, protegee.
+fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
+    let pousser = |v: &mut Vec<String>, x: Option<String>| {
+        if let Some(x) = x.map(|t| t.trim().to_string()).filter(|t| !t.is_empty()) {
+            if !v.contains(&x) {
+                v.push(x);
+            }
+        }
+    };
+    let fiches = ctx
+        .salaries
+        .iter()
+        .filter(|(k, v)| !k.starts_with('_') && v.is_object())
+        .map(|(_, v)| v.clone());
+    for f in fiches {
+        let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
+        for k in ["nom", "nom_affichage"] {
+            pousser(&mut c.noms, t(k));
+        }
+        pousser(&mut c.noms, t("code_salarie").filter(|x| x.chars().filter(|c| c.is_alphabetic()).count() >= 2));
+        for k in ["prenom", "prenom_affichage"] {
+            pousser(&mut c.prenoms, t(k));
+        }
+        pousser(&mut c.nirs, t("nir"));
+        if let (Some(n), Some(k)) = (t("nir"), t("nir_cle")) {
+            pousser(&mut c.nirs, Some(format!("{}{}", n, k)));
+        }
+        pousser(&mut c.naissances, t("date_naissance"));
+        for k in ["adresse", "adresse_affichage"] {
+            pousser(&mut c.adresses, t(k));
+        }
+        pousser(&mut c.codes_postaux, t("code_postal"));
+        for k in ["commune", "commune_affichage", "lieu_naissance", "lieu_naissance_affichage"] {
+            pousser(&mut c.communes, t(k));
+        }
+        pousser(&mut c.courriels, t("email"));
+        pousser(&mut c.conges_spectacles, t("num_conges_spectacles"));
+    }
+    let e = &ctx.entreprise;
+    for k in ["raison_sociale", "nom_affichage", "adresse", "adresse_affichage", "code_postal", "commune", "commune_affichage"] {
+        pousser(&mut c.entreprise, e.get(k).filter(|v| vrai(v)).map(valeur_en_texte));
+    }
 }

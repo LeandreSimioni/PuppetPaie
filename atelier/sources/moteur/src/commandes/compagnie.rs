@@ -53,9 +53,7 @@ pub fn fixer_le_code() {
         }
     }
 }
-
-/// Dans l'atelier (`atelier/prive-dev`), pas a cote de ce que les gens recoivent (rangement
-/// du 09/10/2026 : a la racine, `logiciel/`, `fictives/`, `prive/` et `atelier/`).
+/// Dans l'atelier (`atelier/prive-dev`), pas a cote de ce que les gens recoivent (a la racine : `logiciel/`, `fictives/`, `prive/`).
 pub fn dossier_dev() -> PathBuf {
     parent_du_logiciel().join("atelier").join(NOM_DEV)
 }
@@ -64,7 +62,7 @@ pub fn dossier_dev() -> PathBuf {
 fn chemin_mode() -> PathBuf {
     match std::env::var_os("PUPPETPAIE_CLE").filter(|v| !v.is_empty()) {
         Some(d) => PathBuf::from(d).join(FICHIER_MODE),
-        // Le mode developpeur est un reglage de l'atelier : il vit dans `atelier/` (rangement du 09/10/2026).
+        // Le mode developpeur est un reglage de l'atelier : il vit dans `atelier/`.
         None => parent_du_logiciel().join("atelier").join(FICHIER_MODE),
     }
 }
@@ -101,10 +99,10 @@ pub fn poser_le_jour() -> Jour {
 pub fn racine(dev: bool) -> Result<PathBuf, String> {
     if dev {
         if !mode_actif() {
-            return Err("Mode developpeur eteint : `--dev` est refuse sur ce poste (`moteur dev activer`, commande de l'atelier).".into());
+            return Err(socle::echec::avec("Le mode développeur est éteint sur ce poste : la copie de développement ne s'y ouvre pas.", serde_json::json!({"commande": "moteur dev activer"})));
         }
         if !copie_faite() {
-            return Err("Pas de copie de developpement (`moteur dev copier`, commande de l'atelier).".into());
+            return Err(socle::echec::avec("Ce poste n'a pas de copie de développement.", serde_json::json!({"commande": "moteur dev copier"})));
         }
         let d = dossier_dev();
         std::env::set_var("PUPPETPAIE_DONNEES", &d);

@@ -48,7 +48,7 @@ pub fn mot_de_passe(racine: &Path) -> Result<String, ErreurCourriel> {
         .map_err(|e| refus(e.message))?;
     match lu {
         Some(m) if !m.is_empty() => Ok(m.replace(' ', "")),
-        _ => Err(refus("Aucun mot de passe de boite courriel dans le coffre.\n  moteur coffre poser courriel --compte adresse@...")),
+        _ => Err(refus("Aucun mot de passe de boite courriel dans le coffre.\n  route coffre-poser, service courriel, compte adresse@...")),
     }
 }
 
@@ -69,7 +69,7 @@ pub fn verifier(racine: &Path) -> Result<Value, ErreurCourriel> {
         return Ok(json!({
             "ok": false,
             "message": "Aucune adresse posee avec le mot de passe.",
-            "conseil": "moteur coffre poser courriel --compte adresse@..."
+            "conseil": "route coffre-poser, service courriel, compte adresse@..."
         }));
     }
     match client(racine) {
