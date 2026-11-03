@@ -568,14 +568,16 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
         }
         page.push_str(&t);
     }
-    // LE GESTE QU'OFFRE UNE ETAPE EST UNE ROUTE (`routes::etapes::action` : la route qu'il ouvre, celle de l'acte qui suit) :
-    // l'ecran ouvre sa boite d'apres elle, le LLM l'appelle.
-    let etapes = lu("atelier/sources/moteur/src/routes/etapes.rs");
-    assert!(!etapes.contains("\"geste\":"), "routes/etapes.rs nomme un geste hors du catalogue : un geste d'étape est `action(route, charge, puis, libelle)`");
-    for ligne in etapes.lines().filter(|l| l.contains("action(\"")) {
-        for morceau in ligne.split("action(\"").skip(1).chain(ligne.split("Some(\"").skip(1)) {
-            let nom = morceau.split('"').next().unwrap();
-            assert!(noms.contains(nom), "routes/etapes.rs offre le geste {} : un geste d'étape est une route du catalogue", nom);
+    // LE GESTE QU'OFFRE UNE ETAPE OU UN RAPPEL EST UNE ROUTE (`routes::etapes::action` : la route qu'il ouvre, celle de
+    // l'acte qui suit) : l'ecran ouvre sa boite d'apres elle, le LLM l'appelle.
+    for f in ["etapes.rs", "rappels.rs"] {
+        let source = lu(&format!("atelier/sources/moteur/src/routes/{}", f));
+        assert!(!source.contains("\"geste\":"), "routes/{} nomme un geste hors du catalogue : un geste est `action(route, charge, puis, libelle)`", f);
+        for ligne in source.lines().filter(|l| l.contains("action(\"")) {
+            for morceau in ligne.split("action(\"").skip(1).chain(ligne.split("Some(\"").skip(1)) {
+                let nom = morceau.split('"').next().unwrap();
+                assert!(noms.contains(nom), "routes/{} offre le geste {} : un geste est une route du catalogue", f, nom);
+            }
         }
     }
     let html = (lu("logiciel/interface/index.html") + &lu("atelier/sources/moteur/src/interface/pages/accueil.html")).replace("&amp;", "&");

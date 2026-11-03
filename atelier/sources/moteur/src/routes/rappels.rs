@@ -50,7 +50,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire ce que la compagnie a à faire ce jour : DSN, fins de contrat, DPAE…",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "rappels : les échéances dues maintenant (chacune : quoi, titre, question, mois ou année, état et sa pastille, sa date, ce qu'elle ouvre)",
+        rend: "rappels : les échéances dues maintenant (chacune : quoi, titre, question, mois ou année, état et sa pastille, sa date ; action : la route que son geste ouvre, sa charge, puis la route de l'acte, le mot du bouton)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: false,
@@ -363,18 +363,50 @@ impl Echeance {
         self.quand = format!("le {}", jour.jj_mm_aaaa());
     }
 
-    /// Le geste qui fait une obligation, lu sur ses champs : la fin d'un contrat se signale (ou, s'il manque une case, se
-    /// complete dans sa carte) ; un signalement DSN d'arret ou de reprise se signale ; une obligation hors DSN qu'une route
-    /// dit faite (`accident-declare`, `attestation-declare`) se dit faite ; le reste s'ouvre dans son mois.
-    fn geste(&self) -> Option<&'static str> {
-        let o = self.obligation.as_ref()?;
-        Some(match o.get("cle").and_then(Value::as_str).unwrap_or("") {
-            "signalement_fin_contrat" if !self.a_saisir.is_empty() => "carte",
-            "signalement_fin_contrat" => "signaler-fin",
-            "signalement_arret" | "signalement_arret_rectificatif" | "signalement_reprise" => "signaler",
-            "declaration_accident" | "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => "faite",
-            _ => "mois",
-        })
+    /// LE GESTE QUI LA FAIT, en routes du catalogue (`etapes::action` : la route qu'il ouvre, sa charge, la route de
+    /// l'acte qui suit, le mot du bouton), celles que l'ecran et le LLM appellent. Une obligation, lue sur ses champs : la
+    /// fin d'un contrat se signale (ou, s'il manque une case, se complete dans sa carte : la saisie du mois, puis
+    /// l'engagement modifie) ; un signalement DSN d'arret ou de reprise se signale ; une obligation hors DSN qu'une route
+    /// dit faite (`accident-declare`, `attestation-declare`) se dit faite ; le reste s'ouvre dans son mois. Une DSN, une
+    /// DPAE : l'apercu de son depot, puis le depot. La cloture, l'export compta, la revue des spectacles : leur route.
+    fn action(&self) -> Value {
+        use crate::routes::etapes::{action, deposer_dsn};
+        let mois = self.mois.clone().unwrap_or_default();
+        let annee = || json!({"annee": self.annee.clone().unwrap_or_default()});
+        let objet = self.objet.as_ref().unwrap_or(&Value::Null);
+        match self.quoi.as_str() {
+            OBLIGATION => {
+                let Some(o) = self.obligation.as_ref() else { return Value::Null };
+                let arret = || json!({"salarie": objet["salarie"], "dernier_jour": objet["dernier_jour_travaille"]});
+                match o.get("cle").and_then(Value::as_str).unwrap_or("") {
+                    "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
+                        action("saisie", json!({"mois": mois}), Some("modifier-engagement"), "Compléter le contrat".into())
+                    }
+                    "signalement_fin_contrat" => {
+                        action("fin-contrat-signaler", json!({"mois": mois, "salarie": objet["salarie"]}), Some("deposer"), "Signaler…".into())
+                    }
+                    cle @ ("signalement_arret" | "signalement_arret_rectificatif" | "signalement_reprise") => {
+                        let mut charge = arret();
+                        charge["nature"] = json!(if cle == "signalement_reprise" { "05" } else { "04" });
+                        action("arret-signaler", charge, Some("deposer"), "Signaler…".into())
+                    }
+                    "declaration_accident" if o.get("ou").is_some_and(Value::is_array) => action("accident-declare", arret(), None, "Faite le".into()),
+                    "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => action("attestation-declare", arret(), None, "Faite le".into()),
+                    _ => action("etat-du-mois", json!({"mois": mois}), None, "Ouvrir le mois".into()),
+                }
+            }
+            DSN => deposer_dsn(&mois, &Value::Null, "Vérifier et envoyer".into()),
+            DPAE => action("depot-apercu", json!({"quoi": DPAE, "mois": mois}), Some("deposer"), "Préparer la DPAE".into()),
+            CLOTURE => action("cloture", annee(), None, format!("Clôturer {}", self.annee.clone().unwrap_or_default()).trim().to_string()),
+            EXPORT_COMPTA => action("export-compta", annee(), None, "Exporter pour la compta".into()),
+            // Tous continuent, tant qu'on n'en a pas décoché un : la boîte s'ouvre ainsi.
+            REVUE_SPECTACLES => {
+                let mut charge = annee();
+                charge["continuent"] = self.spectacles.iter().map(|s| s["cle"].clone()).collect();
+                action("revue-spectacles", charge, None, "Choisir les spectacles".into())
+            }
+            _ => Value::Null,
+        }
     }
 
     /// L'échéance en objet JSON, champ par champ.
@@ -392,22 +424,8 @@ impl Echeance {
             "salarie": opt(&self.salarie), "a_saisir": self.a_saisir,
             "echeance_depot": self.echeance_depot,
             "obligation": self.obligation, "objet": self.objet.as_ref().map(brut_valeur),
-            // Les mots de ses gestes : le bouton qui la fait, la case « C'est fait », le titre de sa boite.
-            "geste": self.geste(),
-            "bouton": match self.quoi.as_str() {
-                OBLIGATION => Some(match self.geste() {
-                    Some("carte") => "Compléter le contrat",
-                    Some("faite") => "Faite le",
-                    Some("mois") => "Ouvrir le mois",
-                    _ => "Signaler…",
-                }.to_string()),
-                "dsn" => Some("Vérifier et envoyer".to_string()),
-                "cloture" => Some(format!("Clôturer {}", self.annee.clone().unwrap_or_default()).trim().to_string()),
-                "export-compta" => Some("Exporter pour la compta".to_string()),
-                "revue-spectacles" => Some("Choisir les spectacles".to_string()),
-                "dpae" => Some(if self.objet.is_some() { "Envoyer la DPAE" } else { "Préparer la DPAE" }.to_string()),
-                _ => None,
-            },
+            // Le geste qui la fait (une route du catalogue et son bouton), la case « C'est fait », le titre de sa boite.
+            "action": self.action(),
             "bouton_coche": if self.etat == FAIT { "Pas encore fait" } else { "C'est fait" },
             "titre_boite": self.annee.as_ref().map(|a| format!("Les spectacles de {}", a)),
         })

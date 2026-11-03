@@ -75,7 +75,7 @@ fn echeance_dsn(jour: Jour, heure: &'static str, source: &str) -> Value {
 /// LE GESTE D'UN CLIC, en routes du catalogue, celles que l'ecran et le LLM appellent : la route qu'il ouvre (`route`,
 /// un apercu le plus souvent), sa charge (`charge`), la route de l'acte qui suit, s'il y en a un (`puis`), et ce que dit
 /// le bouton (`libelle`). La page ouvre sa boite d'apres la route.
-fn action(route: &str, charge: Value, puis: Option<&str>, libelle: String) -> Value {
+pub(crate) fn action(route: &str, charge: Value, puis: Option<&str>, libelle: String) -> Value {
     json!({"route": route, "charge": charge, "puis": puis, "libelle": libelle})
 }
 
@@ -106,7 +106,7 @@ fn declarer_embauches(mois: &str) -> Value {
 
 /// La DSN du mois a ecrire, ou a reecrire : l'apercu du depot (qui l'ecrit), puis le depot, dont le test part des
 /// qu'elle est ecrite (`tester`).
-fn deposer_dsn(mois: &str, nic: &Value, libelle: String) -> Value {
+pub(crate) fn deposer_dsn(mois: &str, nic: &Value, libelle: String) -> Value {
     let mut charge = json!({"quoi": DSN, "mois": mois});
     if vrai(nic) {
         charge["etablissement"] = nic.clone();

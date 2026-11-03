@@ -433,51 +433,26 @@ function boiteRappels(liste, ech, manques = [], fermerDit = "Fermer") {
   });
 }
 
-/* CE QUI EST DÛ : une obligation à faire ou en retard (`obligations.rs`). Le moteur rend l'obligation, ce sur quoi
-   elle porte (`objet`), son geste (`geste`) et le mot de son bouton (`bouton`). */
+/* CE QUI EST DÛ, ET SON GESTE : le moteur rend l'`action` de chaque rappel, une route du catalogue (sa `charge`, la
+   route de l'acte qui suit, `puis`, et le mot du bouton, `libelle`) ; la boîte s'ouvre d'après la route
+   (`ouvrirGeste`), comme une case du mois. */
 function boutonRappel(r, i) {
-  if (r.quoi === "obligation") return `<button class="primaire" id="rappel-${i}">${echapper(r.bouton)}</button>`;
-  const libelle = r.bouton;
+  const libelle = r.action && r.action.libelle;
   // UNE ÉCHÉANCE QUE SEULE LA COMPAGNIE PEUT DIRE FAITE (`cochable`) : « C'est fait », comme dans l'échéancier.
-  const coche = r.cochable ? `<button class="secondaire" data-echeance="${echapper(r.cle)}" data-fait="oui">C'est fait</button>` : "";
+  const coche = r.cochable ? `<button class="secondaire" data-echeance="${echapper(r.cle)}" data-fait="oui">${echapper(r.bouton_coche)}</button>` : "";
   return (libelle ? `<button class="primaire" id="rappel-${i}">${echapper(libelle)}</button>` : "") + coche;
 }
 
 async function agirSurRappel(r) {
   if (!(await quitterDemarrage())) return;
   fermerBoite();
-  if (r.quoi === "dsn") {
-    // On va sur le mois, on le regarde, et le dépôt s'enchaîne : c'est la
-    // même suite que le bouton DSN de la colonne de droite : la DSN se
-    // fabrique à son dépôt, même vide — la DSN « néant » d'un mois sans
-    // cachet passe par là aussi.
+  const mois = ((r.action || {}).charge || {}).mois;
+  // Un geste qui porte sur un mois l'ouvre d'abord : la boîte s'ouvre sur lui.
+  if (mois) {
     document.querySelector('.onglets button[data-vue="paie"]').click();
-    await chargerMois(r.mois);
-    return boiteDepot({ quoi: "dsn", mois: r.mois }, { testerDabord: true });
+    await chargerMois(mois);
   }
-  if (r.quoi === "dpae") {
-    // LA DPAE PRÉPARÉE D'AVANCE : son test est passé, le bouton
-    // ouvre son dépôt (la charge que le moteur rend) — le réel, avec le mot de passe. Sans
-    // fichier testé, on va au mois et à la boîte des embauches.
-    if (r.objet) return boiteDepot(r.objet);
-    document.querySelector('.onglets button[data-vue="paie"]').click();
-    await chargerMois(r.mois);
-    return boiteDpae(r.mois);
-  }
-  if (r.quoi === "obligation") {
-    const geste = r.geste;
-    if (geste === "signaler-fin") return boiteSignalerFin(r.mois, r.objet);
-    if (geste === "signaler") return boiteSignalerArret(r.objet, SIGNALEMENTS_DSN[r.obligation.cle]);
-    if (geste === "faite") return boiteObligationFaite(r.objet, r.obligation);
-    document.querySelector('.onglets button[data-vue="paie"]').click();
-    // Ce qui manque au contrat se tape dans sa carte, sous « Contrat » : la carte s'ouvre sur la première case à dire.
-    const fin = r.objet || {};
-    await chargerMois(fin.mois || r.mois);
-    if (geste === "carte" && (fin.a_saisir || []).length) return allerALaCase({ ...fin, mois: fin.mois || r.mois }, fin.a_saisir[0].champ);
-  }
-  if (r.quoi === "cloture") return boiteCloture(r.annee);
-  if (r.quoi === "export-compta") return lancerExportCompta(r.annee);
-  if (r.quoi === "revue-spectacles") return boiteRevueSpectacles(r);
+  return ouvrirGeste(r.action, mois || r.mois, null, r);
 }
 
 /* ---- La revue des spectacles, en début d'année. Un numéro d'objet vaut
