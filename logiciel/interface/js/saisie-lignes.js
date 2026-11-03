@@ -10,14 +10,16 @@ function rubriqueDe(code) {
 }
 
 /** Le déroulant des rubriques, dans l'ordre où le moteur les rend. */
-function optionsRubriques(choisie, nat) {
-  // CE QUI S'APPLIQUE À LA NATURE DU CONTRAT : le moteur dit à quelle forme de paie chaque
+function optionsRubriques(choisie, nat, statut) {
+  // CE QUI S'APPLIQUE AU CONTRAT ET AU SALARIÉ : le moteur dit à quelle forme de paie chaque
   // rubrique s'adresse (`reservee_a`, lu sur les champs que le calcul
-  // applique) ; la page compare, elle ne connaît aucune rubrique. Sans
+  // applique) et à quel statut (`reservee_au_statut`, face au `statut` du
+  // salarié) ; la page compare, elle ne connaît aucune rubrique. Sans
   // nature (`nat` absent) rien ne se filtre, et la rubrique DÉJÀ choisie
   // reste toujours offerte : une saisie ne change pas sous les doigts.
   const forme = nat ? (nat.mensuelle ? "mensuelle" : "activite") : null;
-  const propose = (r) => !forme || !r.reservee_a || r.reservee_a === forme || r.code === choisie;
+  const propose = (r) => r.code === choisie || ((!forme || !r.reservee_a || r.reservee_a === forme)
+    && (!statut || !r.reservee_au_statut || r.reservee_au_statut === statut));
   return (ETAT.rubriques || []).filter(propose).map((r) => `<option value="${echapper(r.code)}" ${r.code === choisie ? "selected" : ""}>
       ${echapper(r.libelle)}</option>`).join("");
 }
@@ -43,25 +45,35 @@ function poserListe(cible, cle, sources, fabriquer) {
 /** Le déroulant des rubriques d'une ligne, depuis la liste commune de sa forme
  *  de paie. La rubrique choisie que cette forme n'offre pas (une saisie ne
  *  change pas sous les doigts) fait une liste à elle. */
-function poserRubriques(select, choisie, nat) {
+function poserRubriques(select, choisie, nat, statut) {
   const forme = nat ? (nat.mensuelle ? "mensuelle" : "activite") : "";
+  statut = statut || "";
   const r = rubriqueDe(choisie);
-  if (!forme || !r || !r.reservee_a || r.reservee_a === forme) {
-    poserListe(select, "rubriques:" + forme, [ETAT.rubriques], () => optionsRubriques(null, nat));
+  const offerte = !r || ((!forme || !r.reservee_a || r.reservee_a === forme)
+    && (!statut || !r.reservee_au_statut || r.reservee_au_statut === statut));
+  if (offerte) {
+    poserListe(select, "rubriques:" + forme + ":" + statut, [ETAT.rubriques], () => optionsRubriques(null, nat, statut));
   } else {
-    select.innerHTML = optionsRubriques(choisie, nat);
+    select.innerHTML = optionsRubriques(choisie, nat, statut);
   }
   select.value = choisie;
   // Une rubrique hors catalogue : la première de la liste, comme un déroulant sans choix.
   if (select.value !== choisie) select.selectedIndex = 0;
   select.dataset.forme = forme;
+  select.dataset.statut = statut;
+}
+
+/** Le statut du salarié de la carte, tel que le moteur le rend (`statut` de `salaries`) ; `""` sans salarié. */
+function statutDuBloc(div) {
+  const cle = salarieDuBloc(div);
+  return ((ETAT.salaries || []).find((s) => s.cle === cle) || {}).statut || "";
 }
 
 /** Une ligne de rémunération : une rubrique, une quantité, un taux.
  *  Le champ « heures » n'apparaît que si la rubrique le demande — une journée
  *  de 5 h, une répétition de 3 h. Un cachet ne le demande pas : ses 12 heures
  *  viennent du règlement, pas de nous. */
-function ligneRubrique(l = {}, nat) {
+function ligneRubrique(l = {}, nat, statut) {
   const div = document.createElement("div");
   div.className = "rubrique";
   // LA RUBRIQUE D'UNE LIGNE NEUVE, le moteur la dit (la première du
@@ -134,7 +146,7 @@ function ligneRubrique(l = {}, nat) {
          le jour prend le lieu de la ligne. -->
     <div class="r-lieux-jours">${lieuxDesJours(l)}</div>
     <div class="r-dit discret cachee"></div>`;
-  poserRubriques(div.querySelector(".r-code"), code, nat);
+  poserRubriques(div.querySelector(".r-code"), code, nat, statut);
   const majAffichage = () => {
     const r = rubriqueDe(div.querySelector(".r-code").value);
     const veutHeures = !!r && r.saisie.includes("heures");
@@ -1086,10 +1098,10 @@ function construireCarte(div, e) {
   cadre.onchange = rafraichirApercu;
   // --- les lignes de paie
   const cible = div.querySelector(".rubriques");
-  lignesDe(e).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value))));
+  lignesDe(e).forEach((l) => cible.appendChild(ligneRubrique(l, natureDe(selNat.value), statutDuBloc(div))));
   div.querySelector(".ajouter-rubrique").onclick = (ev) => {
     ev.preventDefault();
-    cible.appendChild(ligneRubrique({}, natureDe(selNat.value)));
+    cible.appendChild(ligneRubrique({}, natureDe(selNat.value), statutDuBloc(div)));
     rafraichirApercu();
   };
   div.querySelectorAll(".ligne1 input").forEach((c) => {
@@ -1253,7 +1265,7 @@ function majNature(div) {
   // (Rien à refaire quand la forme de paie est celle de la liste posée.)
   const forme = nat.mensuelle ? "mensuelle" : "activite";
   div.querySelectorAll(".r-code").forEach((s) => {
-    if (s.dataset.forme !== forme) poserRubriques(s, s.value, nat);
+    if (s.dataset.forme !== forme) poserRubriques(s, s.value, nat, statutDuBloc(div));
   });
   // Les bornes : saisies pour un contrat payé au mois, déduites du
   // calendrier pour un contrat d'usage — sauf si elles sont déjà écrites.
@@ -1564,6 +1576,12 @@ function majQui(div) {
   resume.classList.toggle("vide", !c);
   // Un imprévu se dit d'un salarié : la porte ne s'ouvre que sur une carte qui en porte un.
   majPorteImprevu(div);
+  // Les rubriques offertes suivent le statut du salarié choisi (la rubrique choisie reste).
+  const statut = statutDuBloc(div);
+  const nat = natureDe(div.querySelector(".e-nature").value);
+  div.querySelectorAll(".r-code").forEach((s) => {
+    if (s.dataset.statut !== statut) poserRubriques(s, s.value, nat, statut);
+  });
 }
 
 /** Une liste ouverte se referme quand on clique ailleurs — un <details> ne

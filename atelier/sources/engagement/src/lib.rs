@@ -1154,6 +1154,10 @@ pub(crate) fn engagements(
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
             heures_dites(ctx, &eng, &qui)?;
         }
+        // Ce que l'ancien logiciel a paye est un fait : seul un engagement neuf se juge.
+        if e.get(crate::importe::IMPORTE).is_none() {
+            unites_du_statut(ctx, &eng, &qui)?;
+        }
         out.push(eng);
     }
     Ok((out, dits))
@@ -1494,6 +1498,34 @@ fn heures_dites(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
             i + 1,
             r.libelle
         ));
+    }
+    Ok(())
+}
+
+/// Une ligne dont la rubrique est reservee a un statut (`Rubrique::reservee_au_statut` : le service, unite de paie des
+/// seuls artistes) ne paie qu'un salarie de ce statut, lu comme la paie le lit (`calcul::fiche_de_l_engagement` ; vide,
+/// un artiste). Sinon l'engagement se refuse, en disant comment le payer.
+fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()> {
+    let mut statut: Option<String> = None;
+    for (i, l) in eng.lignes.iter().enumerate() {
+        let Some(code) = l.get("rubrique") else { continue };
+        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
+        let Some(voulu) = r.reservee_au_statut() else { continue };
+        if statut.is_none() {
+            let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
+            statut = Some(fiche.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into()));
+        }
+        if statut.as_deref() != Some(voulu) {
+            return Err(format!(
+                "{} : la ligne {} (« {} ») paie au {}, et seul un artiste se paie au {}. Payez-la à l'heure : une ligne « Heure \
+                 de travail », ses heures pour quantité (4 pour un service de 4 heures).",
+                qui,
+                i + 1,
+                r.libelle,
+                r.unite,
+                r.unite
+            ));
+        }
     }
     Ok(())
 }

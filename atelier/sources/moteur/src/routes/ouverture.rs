@@ -888,6 +888,8 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
         // A quelle forme de paie elle s'adresse (« mensuelle », « activite », ou
         // rien = les deux).
         "reservee_a": r.reservee_a(),
+        // Le statut du salarie auquel elle est reservee (« artiste »), ou rien : `statut` de `salaries` de la route etat.
+        "reservee_au_statut": r.reservee_au_statut(),
         "genres": genres,
         // CE QUE LA RUBRIQUE PROMET SANS QUE RIEN NE LE TIENNE.
         "non_appliques": non_appliques,
@@ -1161,7 +1163,9 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
     let salaries = cles
         .into_iter()
         .map(|k| {
-            Ok(json!({"cle": k, "libelle": ctx.nomme(k)}))
+            // Son statut, comme la paie le lit (vide, un artiste) : les rubriques `reservee_au_statut` s'y comparent.
+            let statut = ctx.salaries.get(k).and_then(|f| f.get("statut")).filter(|s| vrai(s)).map(valeur_en_texte).unwrap_or_else(|| "artiste".into());
+            Ok(json!({"cle": k, "libelle": ctx.nomme(k), "statut": statut}))
         })
         .collect::<R<Vec<Value>>>()?;
     let spectacles = ctx
