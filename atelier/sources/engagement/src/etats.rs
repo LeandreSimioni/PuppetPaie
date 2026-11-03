@@ -947,6 +947,10 @@ fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
     if changees.iter().any(|k| k.split_once(' ').is_some_and(|(_, c)| c.starts_with(&imprevus))) {
         return IMPREVU.to_string();
     }
+    // L'indemnite de mission d'un jour a l'etranger que la table livree dit autrement : le code qui calcule.
+    if changees.iter().any(|k| k.starts_with("mission ")) {
+        return CALCUL_CORRIGE.to_string();
+    }
     // Les paies validees d'un autre mois que le calcul lit (conges, cumuls) : `paies <le mois> <son salarie>`.
     let mut mois: Vec<&str> = changees.iter().filter_map(|k| k.strip_prefix("paies ")?.split(' ').next()).collect();
     mois.sort();
@@ -1109,7 +1113,7 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, anciennes: &Map<String
             let salarie = o.brut.get("salarie").map(en_texte);
             let saisie = saisie_comptee_valide(ctx, o, &m, salarie.as_deref());
             let ecrite = f.get("empreinte").and_then(empreinte::entrees_de).and_then(|e| e.get(&stock::cle_de_saisie(&m, salarie.as_deref())).cloned());
-            partis && saisie.is_some() && saisie == ecrite
+            partis && saisie.is_some() && saisie == ecrite && imprevus_tiennent(ctx, f)
         });
         let p = match garde {
             Some(f) => f.clone(),
@@ -1140,6 +1144,64 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, anciennes: &Map<String
     }
     Ok(paies)
 }
+/// Les imprevus que la paie ecrite `f` a lus (le magasin, `imprevus::DOSSIER`) valent-ils encore ce qu'ils valaient ?
+/// Un arret saisi ou corrige apres le depart du mois les change : la paie partie se refait alors a la revalidation, et
+/// l'ecart passe en regularisation (`apres_un_imprevu`).
+fn imprevus_tiennent(ctx: &Contexte, f: &Value) -> bool {
+    let magasin = format!("racine:{}", crate::imprevus::DOSSIER);
+    let entrees: BTreeMap<String, String> = f
+        .get("empreinte")
+        .and_then(empreinte::entrees_de)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|(k, _)| k.split_once(' ').is_some_and(|(_, c)| c.starts_with(&magasin)))
+        .collect();
+    empreinte::tient(ctx, &entrees, &mut empreinte::Relues::default())
+}
+
+/// Ce que la revalidation d'un engagement, apres un imprevu change (`apres_un_imprevu`), a donne.
+pub enum Revalidation {
+    /// Une paie a change : l'ecart d'une paie partie se regularise
+    /// (`a_refaire` : le bulletin rectificatif, la DSN qui le porte).
+    Changee(Valide),
+    /// La paie partie ne se calcule pas encore (une indemnite a dire...) : qui, et le refus du calcul. Rien n'est ecrit
+    /// pour lui ; la revalidation se refait au geste suivant sur l'imprevu.
+    Attend(String, String),
+}
+
+/// UN IMPREVU CHANGE APRES LE DEPART DU MOIS (un arret saisi, ses indemnites corrigees, une absence) : chaque engagement
+/// valide de `salarie` dont des documents sont partis se revalide (`valider`), comme une modification, dans son
+/// brouillon. Une paie partie dont les imprevus ont change se refait (`imprevus_tiennent`) : si un chiffre change,
+/// l'engagement prend une version nouvelle, la version d'avant garde ce qui est parti, et l'ecart suit le chemin de
+/// toute correction d'un mois parti (un bulletin rectificatif verse avec une paie suivante ; la DSN du mois tant que
+/// l'annule-et-remplace est admis, sinon la DSN qui porte la correction). Le mois parti ne se redepose pas. Rend les
+/// engagements dont une paie a change, et ceux qui attendent.
+pub fn apres_un_imprevu(ctx: &Contexte, salarie: &str, departs: &Departs) -> Resultat<Vec<Revalidation>> {
+    let mut out = Vec::new();
+    for o in stock::objets(&ctx.racine)? {
+        if !o.est_valide() || o.est_non_actif() || o.est_importe() || cle_du_salarie(ctx, &o).as_deref() != Some(salarie) {
+            continue;
+        }
+        if !ses_departs(ctx, &o, departs).iter().any(|d| d.envoi == Envoi::Documents) {
+            continue;
+        }
+        let mois = o.premier_mois().to_string();
+        let rang = rang_dans(ctx, &o, &mois)?;
+        let avant = crate::paies::presentes(&o)?;
+        let brouillon = stock::Brouillon::ouvrir(&ctx.racine);
+        match valider(ctx, &mois, rang, departs) {
+            Ok(v) => {
+                brouillon.ecrire()?;
+                if !memes_chiffres(&avant, &crate::paies::presentes(v.objet())?) {
+                    out.push(Revalidation::Changee(v));
+                }
+            }
+            Err(m) => out.push(Revalidation::Attend(qui_de(ctx, &o), m)),
+        }
+    }
+    Ok(out)
+}
+
 /// L'empreinte de la saisie de `mois` dont la paie de l'engagement `o` (de `salarie`) depend, `o` compte comme valide,
 /// comme son calcul le compte (`calculer_les_rangs`) : celle qu'une paie ecrite de `o` porte si ce que le mois dit d'elle
 /// n'a pas change.

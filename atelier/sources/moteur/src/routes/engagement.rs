@@ -313,7 +313,7 @@ const UN_AVENANT: &str = "un avenant à faire signer";
 /// CE QUE LE CHANGEMENT ENTRAINE, une ligne par consequence, pour l'engagement revalide `v` : chaque envoi parti sur une
 /// version qui n'est plus la sienne (`engagement::etats::a_refaire`). Une embauche reportee ne refait pas la DPAE
 /// (`crate::regularisation::dpae_d_une_date_changee`).
-fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<String>> {
+pub(crate) fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<String>> {
     use engagement::etats::ARefaire;
     let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
     let presente = saisie(v.objet().brut.get("valide"));

@@ -324,7 +324,7 @@ fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Value>> {
         lignes_dec.push((libelle, dec(requis(r, cle)?)?));
     }
     let mut out = vec![ligne(
-        vec![cel(format!("RÉGULARISATION VERSÉE AVEC LA PAIE DE {}", texte(r, "mois_versement")?.to_uppercase()), colonnes)],
+        vec![cel(format!("RÉGULARISATION VERSÉE AVEC LA PAIE {}", de_mois(texte(r, "mois_versement")?).to_uppercase()), colonnes)],
         vec![gras(), filet_haut(ROUGE, 0.6)],
     )];
     for (libelle, montant) in lignes_dec {
@@ -984,7 +984,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         let comment = if remplace_en_entier(r) {
             ", qu'il remplace".to_string()
         } else {
-            format!(" : il en porte l'écart, versé avec la paie de {}", texte(r, "mois_versement")?)
+            format!(" : il en porte l'écart, versé avec la paie {}", de_mois(texte(r, "mois_versement")?))
         };
         let suite = match r.get("motif").filter(|v| vrai(v)) {
             Some(motif) => format!("{}. Motif : {}.", comment, en_texte(motif)),
@@ -1356,4 +1356,14 @@ pub fn passe_des_bulletins<'a>(ctx: &'a Contexte, paies: &[Paie], mois: &str, de
         }
     }
     Ok(Passe::lire(ctx, Some(mois), Some(au_cachet), departs))
+}
+
+/// « de novembre 2026 », « d'octobre 2026 », « d'août 2026 » : l'élision devant un mois qui commence par une voyelle.
+fn de_mois(mois: impl AsRef<str>) -> String {
+    let m = mois.as_ref();
+    if m.starts_with(['a', 'o', 'A', 'O']) {
+        format!("d'{}", m)
+    } else {
+        format!("de {}", m)
+    }
 }

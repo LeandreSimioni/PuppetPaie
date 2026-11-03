@@ -60,7 +60,7 @@ pub const ROUTES: &[Fiche] = &[
     fiche("arret-contrats", "Lire les contrats qu'un arrêt suspendrait à ce jour.",
         &[SALARIE, Champ { nom: "jour", libelle: Affiche::new("Dernier jour travaillé"), forme: Forme::Date, sens: "le dernier jour travaillé", avance: false }],
         r#"{"salarie":"FULLER","jour":"2026-11-27"}"#, "contrats : ceux du salarié qui couvrent ce jour", Acte::Lit, false),
-    Fiche { phrase: 40, ..fiche("arret-enregistrer", "Enregistrer un arrêt de travail.",
+    Fiche { phrase: 400, ..fiche("arret-enregistrer", "Enregistrer un arrêt de travail.",
         &[
             SALARIE, DERNIER_JOUR,
             Champ { nom: "debut", libelle: Affiche::new("Début de l'arrêt"), forme: Forme::Date, sens: "le premier jour que l'avis prescrit ; le dernier jour travaillé s'il a été prescrit ce jour-là", avance: false },
@@ -78,10 +78,10 @@ pub const ROUTES: &[Fiche] = &[
         &[SALARIE, DERNIER_JOUR, Champ { nom: "fin", libelle: Affiche::new("Nouvelle fin prescrite"), forme: Forme::Date, sens: "la nouvelle fin prescrite", avance: false }],
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","fin":"2026-12-04"}"#,
         "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
-    Fiche { phrase: 20, ..fiche("arret-reprise", "Poser ou effacer la reprise d'un arrêt.",
+    Fiche { phrase: 400, ..fiche("arret-reprise", "Poser ou effacer la reprise d'un arrêt.",
         &[SALARIE, DERNIER_JOUR, Champ { nom: "reprise", libelle: Affiche::new("Reprise le"), forme: Forme::Date, sens: "le jour de la reprise ; vide l'efface", avance: false }, Champ { nom: "motif_reprise", libelle: Affiche::new("Motif de la reprise"), forme: Forme::Texte, sens: "le motif de la reprise", avance: true }],
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","reprise":"2026-12-03"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
-    Fiche { phrase: 50, ..fiche("arret-indemnites", "Dire les indemnités journalières d'un arrêt, par jour.",
+    Fiche { phrase: 400, ..fiche("arret-indemnites", "Dire les indemnités journalières d'un arrêt, par jour.",
         &[SALARIE, DERNIER_JOUR,
             Champ { nom: "ij_brute", libelle: Affiche::new("Indemnité brute d'un jour"), forme: Forme::Nombre, sens: "l'indemnité d'un jour, avant CSG et CRDS (relevé de la CPAM)", avance: false },
             Champ { nom: "ij_nette", libelle: Affiche::new("Indemnité nette d'un jour"), forme: Forme::Nombre, sens: "la même, nette de CSG et CRDS", avance: false },
@@ -93,15 +93,15 @@ pub const ROUTES: &[Fiche] = &[
         &[SALARIE, DERNIER_JOUR, Champ { nom: "nature", libelle: Affiche::new("Nature"), forme: Forme::Texte, sens: "04 arrêt (par défaut), ou 05 reprise", avance: true }, REMPLACE, ORDRE, TEST,
             Champ { nom: "le", libelle: Affiche::new("Constitué le"), forme: Forme::Date, sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
         UN_ARRET, "fichier (écrit dans sorties/AAAA-MM/), phrase, nature, type, ordre, avertissements", Acte::Ecrit, false) },
-    Fiche { phrase: 60, ..fiche("arret-oublier", "Retirer un arrêt qui n'a pas été déclaré.", &[SALARIE, DERNIER_JOUR],
+    Fiche { phrase: 400, ..fiche("arret-oublier", "Retirer un arrêt qui n'a pas été déclaré.", &[SALARIE, DERNIER_JOUR],
         UN_ARRET, "arret (l'arrêt retiré, résumé), phrase", Acte::Ecrit, false) },
-    Fiche { phrase: 80, ..fiche("suspension-enregistrer", "Enregistrer une absence qui suspend un contrat.",
+    Fiche { phrase: 400, ..fiche("suspension-enregistrer", "Enregistrer une absence qui suspend un contrat.",
         &[SALARIE, DEBUT, Champ { nom: "fin", libelle: Affiche::new("Dernier jour"), forme: Forme::Date, sens: "son dernier jour", avance: false }, Champ { nom: "motif", libelle: Affiche::new("Motif"), forme: Forme::Texte, sens: "le code du motif (nomenclatures de imprevus)", avance: false }, Champ { nom: "contrat", libelle: Affiche::new("Contrat"), forme: Forme::Texte, sens: "le contrat, quand plusieurs couvrent le jour", avance: true }, Champ { nom: "note", libelle: Affiche::new("Note"), forme: Forme::Texte, sens: "une note libre", avance: true }],
         r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27","motif":"501"}"#, "suspension (l'absence résumée), phrase", Acte::Ecrit, true) },
-    Fiche { phrase: 20, ..fiche("suspension-modifier", "Changer la fin ou le motif d'une absence.",
+    Fiche { phrase: 400, ..fiche("suspension-modifier", "Changer la fin ou le motif d'une absence.",
         &[SALARIE, DEBUT, Champ { nom: "fin", libelle: Affiche::new("Nouvelle fin"), forme: Forme::Date, sens: "sa nouvelle fin", avance: false }, Champ { nom: "motif", libelle: Affiche::new("Nouveau motif"), forme: Forme::Texte, sens: "son nouveau motif", avance: true }],
         r#"{"salarie":"FULLER","debut":"2026-11-27","fin":"2026-11-27"}"#, "suspension (l'absence résumée), phrase", Acte::Ecrit, true) },
-    Fiche { phrase: 60, ..fiche("suspension-oublier", "Retirer une absence qui n'a pas été déclarée.", &[SALARIE, DEBUT],
+    Fiche { phrase: 400, ..fiche("suspension-oublier", "Retirer une absence qui n'a pas été déclarée.", &[SALARIE, DEBUT],
         r#"{"salarie":"FULLER","debut":"2026-11-27"}"#, "suspension (l'absence retirée, résumée), phrase", Acte::Ecrit, true) },
     Fiche { phrase: 600, ..fiche("fin-contrat-signaler", "Fabriquer le signalement d'une fin de contrat, sans le déposer.",
         &[MOIS, SALARIE, REMPLACE, ORDRE, TEST, Champ { nom: "le", libelle: Affiche::new("Constitué le"), forme: Forme::Date, sens: "le jour de constitution ; sinon aujourd'hui", avance: true }],
@@ -151,19 +151,46 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             }
             super::phrase_en_tete(v, p)
         }),
-        "arret-enregistrer" => arret_enregistrer(ctx, charge),
-        "arret-reprise" => arret_reprise(ctx, charge),
-        "arret-oublier" => arret_oublier(ctx, charge),
-        "arret-indemnites" => arret_indemnites(ctx, charge),
-        "arret-prolonger" => arret_prolonger(ctx, charge),
+        "arret-enregistrer" => arret_enregistrer(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
+        "arret-reprise" => arret_reprise(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
+        "arret-oublier" => arret_oublier(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
+        "arret-indemnites" => arret_indemnites(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
+        "arret-prolonger" => arret_prolonger(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
         "arret-signaler" => arret_signaler(ctx, charge),
-        "suspension-enregistrer" => suspension_enregistrer(ctx, charge),
-        "suspension-modifier" => suspension_modifier(ctx, charge),
-        "suspension-oublier" => suspension_oublier(ctx, charge),
+        "suspension-enregistrer" => suspension_enregistrer(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
+        "suspension-modifier" => suspension_modifier(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
+        "suspension-oublier" => suspension_oublier(ctx, charge).and_then(|r| regulariser(ctx, charge, r)),
         "fin-contrat-signaler" => fin_contrat_signaler(ctx, charge),
         "fin-contrat-documents" => fin_contrat_documents(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
+}
+
+/// APRES L'ECRITURE D'UN IMPREVU : les engagements du salarie dont des documents sont partis se revalident
+/// (`engagement::etats::apres_un_imprevu`) ; une paie partie qui change suit le chemin de toute correction d'un mois parti,
+/// et la phrase dit ce qu'il entraine, avec les mots de « Modifier l'engagement »
+/// (`crate::routes::engagement::ce_que_le_changement_entraine`).
+fn regulariser(ctx: &Contexte, charge: &Value, mut r: Value) -> R<Value> {
+    use engagement::etats::Revalidation;
+    let cle = cle_du_salarie(ctx, exiger(charge, "salarie")?)?;
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
+    let mut dit = Vec::new();
+    for x in engagement::etats::apres_un_imprevu(ctx, &cle, &departs).map_err(Echec::from)? {
+        match x {
+            Revalidation::Changee(v) => {
+                let lignes = crate::routes::engagement::ce_que_le_changement_entraine(ctx, &v, &departs)?;
+                if !lignes.is_empty() {
+                    dit.push(format!("La paie partie change : {}.", lignes.join(", ")));
+                }
+            }
+            Revalidation::Attend(_, refus) => dit.push(format!("La paie partie attend : {}", refus)),
+        }
+    }
+    if !dit.is_empty() {
+        let phrase = format!("{} {}", valeur_en_texte(&r["phrase"]), dit.join(" "));
+        r["phrase"] = json!(phrase);
+    }
+    Ok(r)
 }
 
 // ------------------------------------------------------------------ outils
