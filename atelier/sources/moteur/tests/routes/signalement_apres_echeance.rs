@@ -22,13 +22,13 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
     let gestes: Vec<String> = gestes
         .lines()
         .take_while(|l| !l.contains("\"enregistrer-saisie\""))
-        .map(|l| l.replacen("\"declarant_dsn\":{", "\"declarant_dsn\":{\"civilite\":\"01\",", 1))
+        .map(|l| l.replacen("\"declarant_dsn\":{", "\"cinquante_salaries_et_plus\":true,\"declarant_dsn\":{\"civilite\":\"01\",", 1))
         .map(|l| if l.contains("\"cle\":\"CRAIG\"") { l.replacen("\"date_anciennete\":\"2026-02-02\"", "\"date_anciennete\":\"2026-01-29\"", 1) } else { l })
         .collect();
     std::fs::write(sc.join("gestes.jsonl"), gestes.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
 
-    // Cinquante salaries et plus depuis cinq ans (CSS L. 130-1, II) : la DSN est due le 5. La surcouche dit ce que le
+    // Cinquante salaries et plus depuis cinq ans (CSS L. 130-1, II), et la fiche le dit : la DSN est due le 5. La surcouche dit ce que le
     // bareme exige a cet effectif (`seuils_effectif` du socle 2026).
     ecrire(&c, "config/effectifs.json", &json!({"annees": (2021..=2025).map(|a| (a.to_string(), json!({"A01": {"valeur": 60}}))).collect::<serde_json::Map<String, Value>>()}));
     let mut bareme = lire(&c, "config/baremes/2026.json");

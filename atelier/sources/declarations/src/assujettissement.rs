@@ -26,9 +26,10 @@
 //!   dans sa redaction du 21/02/2026, rend redevables « les associations [...] a activites non lucratives » ; celle du
 //!   16/02/2025 ne les nommait pas (les deux deposees, `atelier/reference/sources/code-du-travail/`).
 //! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
-//!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS). La case de la fiche
-//!   (`contribution_supplementaire_apprentissage`) la dit due ; decochee, 004 sans rien lire. Cochee, 003 si l'effectif
-//!   atteint 250 (004 sinon), refus si l'effectif manque : le quotient des contrats d'alternance ne se calcule pas en
+//!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS) : 003 si l'effectif
+//!   atteint 250, 004 sinon. C'est un grand seuil, comme la PEEC : sans la case « Au moins 50 salariés » de la fiche
+//!   (`droit::contexte::CHAMP_CINQUANTE_SALARIES`), ni l'un ni l'autre ne lit l'effectif (`Effectif::atteint`) ; cochee,
+//!   un effectif qui manque refuse et dit quoi remplir. Le quotient des contrats d'alternance ne se calcule pas en
 //!   decembre (l'Urssaf le renvoie debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
 //!   contribution elle-meme, calculee : `csa`).
 //! - PEEC (005/006) : CCH L. 313-1 et norme p. 58 (« les employeurs occupant au minimum cinquante salariés »), quelle
@@ -76,17 +77,6 @@ pub struct Bloc44 {
 const CTP_TAXE_APPRENTISSAGE: [&str; 2] = ["992", "993"];
 /// La formation professionnelle au bordereau : intermittents (983), moins de onze salaries (959), onze et plus (971).
 const CTP_FORMATION: [&str; 3] = ["983", "959", "971"];
-/// La case de la fiche entreprise qui dit la contribution supplementaire due : decochee, elle ne l'est pas.
-pub const CHAMP_CONTRIBUTION_SUPPLEMENTAIRE: &str = "contribution_supplementaire_apprentissage";
-/// Ce qui se corrige quand la case cochee demande ce que le logiciel n'a pas.
-pub const DECOCHER: &str = "la décocher dans Configuration › Entreprise, Avancé, si la compagnie compte moins de 250 salariés";
-
-/// La contribution supplementaire est-elle dite due ? Elle ne concerne que les entreprises d'au moins 250 salaries
-/// (C. trav. L. 6242-1, I) : la case decochee, le moteur ne la declare pas et n'en demande rien ; cochee, il lit les
-/// effectifs qu'elle demande (`blocs` en decembre, `csa::declaration` en mars). Le seul endroit qui la lit.
-pub fn contribution_supplementaire_cochee(ent: &Value) -> bool {
-    g(ent, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE).as_bool() == Some(true)
-}
 
 // ------------------------------------------------------------ les mois de l'annee
 
@@ -305,15 +295,9 @@ pub fn blocs(
     // La taxe d'apprentissage : ce que le bordereau paie ; sinon 002 et le motif que la fiche dit.
     out.push(taxe_d_apprentissage(ent, &ctp, an)?);
 
-    // La contribution supplementaire : L. 6242-1, I, ne la fait devoir qu'a 250 salaries et plus ; la case la dit due.
-    // Cochee, l'effectif de l'annee du millesime (V) le confirme, regle des cinq ans comprise.
-    let csa = if contribution_supplementaire_cochee(ent)
-        && effectif_atteint(ctx, 250, an + 1, &format!("contribution supplementaire a l'apprentissage (case cochée ; {})", DECOCHER))?
-    {
-        "003"
-    } else {
-        "004"
-    };
+    // La contribution supplementaire : L. 6242-1, I, ne la fait devoir qu'a 250 salaries et plus, l'effectif de l'annee
+    // du millesime (V), regle des cinq ans comprise. Un grand seuil : sans la case des cinquante salaries, 004 sans rien lire.
+    let csa = if effectif_atteint(ctx, 250, an + 1, "contribution supplementaire a l'apprentissage")? { "003" } else { "004" };
     out.push(Bloc44 { code: csa, montant: None, motif: None });
 
     // Ce qui demande les montants de l'annee : la taxe sur les salaires et la PEEC.

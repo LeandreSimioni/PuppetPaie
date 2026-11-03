@@ -337,6 +337,22 @@ pub struct Effectif {
     pub annees: BTreeMap<i32, f64>,
     /// L'annee de la premiere embauche (fiche entreprise) : avant elle, zero.
     pub premiere_embauche: Option<i32>,
+    /// La fiche dit la compagnie d'au moins cinquante salaries (`CHAMP_CINQUANTE_SALARIES`, une compagnie qui emploie des
+    /// permanents) : sans elle, aucun seuil de cinquante et plus n'est atteint, et l'effectif ne se lit pas pour eux.
+    pub cinquante_salaries: bool,
+}
+
+/// Le plus petit des grands seuils : le FNAL a 0,50 % et le `tdelta` de la reduction generale (bareme,
+/// `seuils_effectif`), l'echeance du 5 (R. 243-6 CSS), la PEEC (CCH L. 313-1), puis la contribution supplementaire a
+/// l'apprentissage a 250 (C. trav. L. 6242-1, I).
+pub const GRAND_SEUIL: i64 = 50;
+/// La case de la fiche entreprise qui dit la compagnie d'au moins cinquante salaries.
+pub const CHAMP_CINQUANTE_SALARIES: &str = "cinquante_salaries_et_plus";
+
+/// La case est-elle cochee ? Elle ne vaut qu'avec des permanents, la seule voie vers cinquante salaries : une compagnie
+/// d'intermittents ne la voit pas, et un seuil de cinquante et plus ne l'atteint pas.
+pub fn cinquante_salaries_et_plus(fiche: &Value) -> bool {
+    emploie_des_permanents(fiche) && fiche.get(CHAMP_CINQUANTE_SALARIES) == Some(&Value::Bool(true))
 }
 
 /// Lit `config/effectifs.json` (absent : vide).
@@ -354,7 +370,7 @@ pub fn effectif_de(racine: &Path, fiche: &Value) -> Resultat<Effectif> {
             }
         }
     }
-    Ok(Effectif { annees, premiere_embauche: annee_de_premiere_embauche(fiche) })
+    Ok(Effectif { annees, premiere_embauche: annee_de_premiere_embauche(fiche), cinquante_salaries: cinquante_salaries_et_plus(fiche) })
 }
 
 /// L'annee de la premiere embauche (AAAA-MM-JJ ou AAAAMMJJ).
@@ -404,7 +420,12 @@ impl Effectif {
 
     /// Le seuil est-il franchi pour payer en `annee_paie` ? (L. 130-1, II, CSS :
     /// cinq annees civiles consecutives.)
+    /// Un grand seuil (`GRAND_SEUIL` et plus) n'est atteint que si la fiche dit la compagnie d'au moins cinquante salaries.
     pub fn atteint(&self, seuil: i64, annee_paie: i32) -> Resultat<bool> {
+        let grand = seuil >= GRAND_SEUIL;
+        if grand && !self.cinquante_salaries {
+            return Ok(false);
+        }
         let fenetre = annee_paie - ANNEES_CONSECUTIVES..annee_paie;
         let connues: BTreeMap<i32, f64> = fenetre.clone().filter_map(|a| self.annee(a).map(|v| (a, v))).collect();
         if connues.values().any(|v| *v < seuil as f64) {
@@ -418,8 +439,8 @@ impl Effectif {
             "Effectif de l'entreprise pour payer en {} : {}. Le seuil de {} salariés ne se franchit qu'après cinq années civiles \
 consécutives au-dessus (CSS, art. L. 130-1, II) : il manque l'effectif de {}. Une compagnie de moins de cinq ans dit la date \
 de sa première embauche (Configuration › Entreprise) ; une plus ancienne dit l'effectif de chacune de ces années, tel que \
-l'Urssaf l'a calculé (« Pour démarrer », ou la route effectif). Le compte rendu de nature 118 de l'Urssaf le remplace \
-à son arrivée.",
+l'Urssaf l'a calculé (Configuration › Entreprise, Avancé, « Dire ou poser l'effectif », ou la route effectif). Le compte \
+rendu de nature 118 de l'Urssaf le remplace à son arrivée.{}",
             annee_paie,
             if connues.is_empty() {
                 "rien de connu".to_string()
@@ -430,7 +451,12 @@ l'Urssaf l'a calculé (« Pour démarrer », ou la route effectif). Le compte re
                 )
             },
             seuil,
-            manquent.join(", ")
+            manquent.join(", "),
+            if grand {
+                " Une compagnie de moins de cinquante salariés décoche « Au moins 50 salariés » (Configuration › Entreprise, Avancé)."
+            } else {
+                ""
+            }
         ))
     }
 }

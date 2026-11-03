@@ -812,7 +812,7 @@ const SECTIONS_FICHE = {
       "organisation_patronale", "organisation_patronale_depuis",
       "representation_personnel", "casc_svp_exemptee",
       "prevoyance_techniciens_3097",
-      "contribution_supplementaire_apprentissage",
+      "cinquante_salaries_et_plus",
       "taxe_apprentissage_motif_non_assujettissement",
       "code_urssaf", "retraite_complementaire", "etablissements"],
      { avance: true }],
