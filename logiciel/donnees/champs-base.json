@@ -1006,18 +1006,14 @@
    "ecran": true
   },
   {
-   "_note": "LA CONTRIBUTION SUPPLEMENTAIRE A L'APPRENTISSAGE. Code du travail\nL. 6242-1 : due a partir de 250 salaries si moins de 5 % de l'effectif est en apprentissage, en\nprofessionnalisation, en CIFRE ou en CDI a leur suite. Sous 250 salaries (CRM 118, regle des cinq\nans), le moteur declare seul le non-assujettissement (004) et ne lit pas ce champ ; au-dela, il ne\ncompte pas ces contrats et refuse la DSN de decembre tant que le champ est vide.",
+   "_note": "LA CONTRIBUTION SUPPLEMENTAIRE A L'APPRENTISSAGE. Code du travail\nL. 6242-1, I : due a partir de 250 salaries si moins de 5 % de l'effectif est en apprentissage, en\nprofessionnalisation, en CIFRE ou en CDI a leur suite. Decochee, la DSN de decembre declare 004 et celle\nde mars n'en porte rien, sans lire d'effectif. Cochee, la DSN de decembre declare 003 si l'effectif\natteint 250 (regle des cinq ans), et celle de mars la calcule sur les effectifs du CRM 118 ; ce qui manque\nrefuse (`declarations::assujettissement::contribution_supplementaire_cochee`, le seul lecteur).",
    "cle": "contribution_supplementaire_apprentissage",
-   "libelles": {"due": "Due", "non_due": "Non due"},
-   "libelle": "Contribution supplémentaire à l'apprentissage",
-   "forme": "choix",
-   "aide": "Seulement pour une compagnie d'au moins 250 salariés : à laisser vide en dessous. Elle est due si moins de 5 % de l'effectif annuel est en contrat d'apprentissage, de professionnalisation, en convention CIFRE ou en CDI à leur suite (code du travail, art. L. 6242-1). La DSN de décembre la déclare.",
+   "libelle": "Contribution supplémentaire à l'apprentissage due",
+   "forme": "booleen",
+   "aide": "Seulement pour une compagnie d'au moins 250 salariés dont moins de 5 % de l'effectif annuel est en contrat d'apprentissage, de professionnalisation, en convention CIFRE ou en CDI à leur suite (code du travail, art. L. 6242-1). Sinon, laisser décoché.",
    "longueur": null,
    "exemple": "",
-   "choix": [
-    "due",
-    "non_due"
-   ],
+   "choix": [],
    "declare": true,
    "derive_de": null,
    "rubrique": null,
@@ -1025,7 +1021,7 @@
    "si": null,
    "si_etablissements": false,
    "si_entreprise": null,
-   "booleen_defaut": true,
+   "booleen_defaut": false,
    "ecran": true
   },
   {
