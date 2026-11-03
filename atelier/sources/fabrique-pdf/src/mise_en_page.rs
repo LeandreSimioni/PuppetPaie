@@ -985,9 +985,8 @@ fn fabriquer_passe(json: &str, total: usize) -> Result<(Vec<u8>, usize, bool), R
         courier,
     };
     doc.set_title(d.titre.clone());
-    if let Some(c) = &d.createur {
-        doc.set_creator(c.clone());
-    }
+    // Chaque PDF que fait la fabrique porte le nom du logiciel dans ses propriétés.
+    doc.set_creator("PuppetPaie");
     doc.set_paper_size(Size::new(pt(d.page.largeur), pt(d.page.hauteur)));
     doc.set_minimal_conformance();
     doc.set_font_size(d.police.taille);

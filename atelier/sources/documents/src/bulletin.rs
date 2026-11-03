@@ -1246,7 +1246,6 @@ pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
         json!({"largeur": 595.28, "hauteur": 841.89, "marges": {"haut": 42, "droite": 42, "bas": 42, "gauche": 42}}),
     );
     d.insert("police".into(), json!({"taille": 7.4, "interligne": 1.2, "couleur": ARDOISE}));
-    d.insert("createur".into(), json!("PuppetPaie"));
     d.insert(
         "pied_page".into(),
         json!({"droite": PIED_TEXTE, "taille": 6, "couleur": PIED_GRIS, "distance": 24,

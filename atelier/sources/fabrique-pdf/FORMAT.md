@@ -89,8 +89,7 @@ telle quelle.
   est un refus.
 - `titre` : sans lui, le titre du fichier PDF est celui du premier document
   modèle, marqueurs substitués et sans gras.
-- `createur` (facultatif) : le logiciel nommé dans les propriétés du PDF (créateur et
-  producteur) ; sans lui, elles sont vides. Le bulletin y met « PuppetPaie ».
+- Les propriétés du PDF (créateur et producteur) disent toujours « PuppetPaie ».
 - `police` : Liberation Sans (les métriques d'Helvetica), embarquée **en
   sous-ensemble** : le PDF ne porte que les glyphes des caractères imprimés.
   `interligne` est un facteur de la taille.

@@ -52,7 +52,6 @@ struct DescriptionBrute {
     style: Option<String>,
     logo: Option<LogoBrut>,
     titre: Option<String>,
-    createur: Option<String>,
     documents: Option<Vec<DocumentBrut>>,
     entete_page: Option<RepereBrut>,
     pied_page: Option<RepereBrut>,
@@ -648,8 +647,6 @@ pub struct Description {
     pub police: Police,
     pub logo: Option<Logo>,
     pub titre: String,
-    /// Le logiciel qui a fait le PDF, dans ses propriétés (créateur et producteur).
-    pub createur: Option<String>,
     pub documents: Vec<Vec<BlocEtiquete>>,
     pub entete_page: Option<Repere>,
     pub pied_page: Option<Repere>,
@@ -1401,7 +1398,6 @@ pub fn lire_description(texte: &str) -> Result<Description, Refus> {
         logo,
         // Sans titre dit, celui du premier modèle (`texte_brut`, sans gras).
         titre: brute.titre.or(titre_modele).unwrap_or_default(),
-        createur: brute.createur,
         documents,
         entete_page,
         pied_page,
