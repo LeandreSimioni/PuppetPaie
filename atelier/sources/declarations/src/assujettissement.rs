@@ -26,11 +26,11 @@
 //!   dans sa redaction du 21/02/2026, rend redevables « les associations [...] a activites non lucratives » ; celle du
 //!   16/02/2025 ne les nommait pas (les deux deposees, `atelier/reference/sources/code-du-travail/`).
 //! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
-//!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS). Sous 250 : 004.
-//!   A 250 et plus, le quotient des contrats d'alternance ne se calcule pas ici : la fiche le dit
-//!   (`contribution_supplementaire_apprentissage`, « due » ou « non_due »), sinon refus. (En decembre, l'Urssaf ne
-//!   l'a pas encore calcule : il arrive debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
-//!   contribution elle-meme, calculee : `csa`.)
+//!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS). La case de la fiche
+//!   (`contribution_supplementaire_apprentissage`) la dit due ; decochee, 004 sans rien lire. Cochee, 003 si l'effectif
+//!   atteint 250 (004 sinon), refus si l'effectif manque : le quotient des contrats d'alternance ne se calcule pas en
+//!   decembre (l'Urssaf le renvoie debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
+//!   contribution elle-meme, calculee : `csa`).
 //! - PEEC (005/006) : CCH L. 313-1 et norme p. 58 (« les employeurs occupant au minimum cinquante salariés »), quelle
 //!   que soit la TVA (BOFiP BOI-TPS-PEEC-10, § 40). Sous 50 (effectif de l'annee du millesime, regle des cinq ans) :
 //!   006 ; a 50 et plus, 005 avec l'assiette (CCH-11) : les remunerations de l'annee qui servent de base aux cotisations
@@ -76,8 +76,17 @@ pub struct Bloc44 {
 const CTP_TAXE_APPRENTISSAGE: [&str; 2] = ["992", "993"];
 /// La formation professionnelle au bordereau : intermittents (983), moins de onze salaries (959), onze et plus (971).
 const CTP_FORMATION: [&str; 3] = ["983", "959", "971"];
-/// Le champ de la fiche entreprise qui dit la contribution supplementaire, a 250 salaries et plus.
+/// La case de la fiche entreprise qui dit la contribution supplementaire due : decochee, elle ne l'est pas.
 pub const CHAMP_CONTRIBUTION_SUPPLEMENTAIRE: &str = "contribution_supplementaire_apprentissage";
+/// Ce qui se corrige quand la case cochee demande ce que le logiciel n'a pas.
+pub const DECOCHER: &str = "la décocher dans Configuration › Entreprise, Avancé, si la compagnie compte moins de 250 salariés";
+
+/// La contribution supplementaire est-elle dite due ? Elle ne concerne que les entreprises d'au moins 250 salaries
+/// (C. trav. L. 6242-1, I) : la case decochee, le moteur ne la declare pas et n'en demande rien ; cochee, il lit les
+/// effectifs qu'elle demande (`blocs` en decembre, `csa::declaration` en mars). Le seul endroit qui la lit.
+pub fn contribution_supplementaire_cochee(ent: &Value) -> bool {
+    g(ent, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE).as_bool() == Some(true)
+}
 
 // ------------------------------------------------------------ les mois de l'annee
 
@@ -296,24 +305,12 @@ pub fn blocs(
     // La taxe d'apprentissage : ce que le bordereau paie ; sinon 002 et le motif que la fiche dit.
     out.push(taxe_d_apprentissage(ent, &ctp, an)?);
 
-    // La contribution supplementaire : L. 6242-1, l'effectif de l'annee du millesime (V), la regle des cinq ans.
-    let csa = if effectif_atteint(ctx, 250, an + 1, "contribution supplementaire a l'apprentissage")? {
-        match g(ent, CHAMP_CONTRIBUTION_SUPPLEMENTAIRE).as_str() {
-            Some("due") => "003",
-            Some("non_due") => "004",
-            _ => {
-                return Err(socle::echec::cle(
-                    format!(
-                        "DSN de decembre {} : la compagnie compte au moins 250 salaries depuis cinq ans, et la contribution \
-supplementaire a l'apprentissage (code du travail L. 6242-1) est due si moins de 5 % de son effectif annuel est en \
-contrat d'apprentissage, de professionnalisation, en CIFRE ou en CDI a leur suite. Le moteur ne compte pas ces contrats : \
-le dire dans Configuration › Entreprise, « Contribution supplementaire a l'apprentissage » (due ou non due). Rien n'est ecrit.",
-                        an
-                    ),
-                    CHAMP_CONTRIBUTION_SUPPLEMENTAIRE,
-                ))
-            }
-        }
+    // La contribution supplementaire : L. 6242-1, I, ne la fait devoir qu'a 250 salaries et plus ; la case la dit due.
+    // Cochee, l'effectif de l'annee du millesime (V) le confirme, regle des cinq ans comprise.
+    let csa = if contribution_supplementaire_cochee(ent)
+        && effectif_atteint(ctx, 250, an + 1, &format!("contribution supplementaire a l'apprentissage (case cochée ; {})", DECOCHER))?
+    {
+        "003"
     } else {
         "004"
     };

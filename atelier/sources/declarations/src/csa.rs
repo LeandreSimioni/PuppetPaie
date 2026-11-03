@@ -156,10 +156,14 @@ compte rendu metier de nature 118 (code A01) : relever les retours. Rien n'est e
     ))
 }
 
-/// Ce que la DSN de mars de l'annee N+1 porte au titre de N, ou `None` (un autre mois ; une compagnie qui ne doit pas la
-/// taxe d'apprentissage pour N, ou qui n'atteint pas 250 salaries). Le moteur la porte sur l'etablissement principal.
+/// Ce que la DSN de mars de l'annee N+1 porte au titre de N, ou `None` (un autre mois ; la case de la fiche decochee ;
+/// une compagnie qui ne doit pas la taxe d'apprentissage pour N, ou qui n'atteint pas 250 salaries). Le moteur la porte sur l'etablissement principal.
 pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> Resultat<Option<Csa>> {
     if mois.len() != 7 || &mois[5..7] != MOIS_DE_DECLARATION {
+        return Ok(None);
+    }
+    // La case de la fiche (L. 6242-1, I : 250 salaries et plus) : decochee, rien a declarer ni a lire.
+    if !crate::assujettissement::contribution_supplementaire_cochee(&ctx.entreprise) {
         return Ok(None);
     }
     let n: i32 = mois[..4].parse::<i32>().map_err(|_| format!("mois illisible : {}", mois))? - 1;
@@ -169,7 +173,13 @@ pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::De
     }
     // Au moins 250 salaries : l'effectif de l'annee N, la regle des cinq ans (L. 6242-1, V), comme au bloc 44 de decembre.
     let assujettie = ctx.effectif()?.atteint(SEUIL, n + 1).map_err(|m| {
-        format!("DSN de mars {}, contribution supplementaire a l'apprentissage {} : {}", n + 1, n, m)
+        format!(
+            "DSN de mars {}, contribution supplementaire a l'apprentissage {} (case cochée ; {}) : {}",
+            n + 1,
+            n,
+            crate::assujettissement::DECOCHER,
+            m
+        )
     })?;
     if !assujettie {
         return Ok(None);
