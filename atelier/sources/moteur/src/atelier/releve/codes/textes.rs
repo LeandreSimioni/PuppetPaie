@@ -435,6 +435,24 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
+    // LES MISSIONS A L'ETRANGER. Le decret du 3 juillet 2006, dont l'arrete
+    // du meme jour (`arrete-2006-indemnites-de-mission/`) fixe les taux :
+    // ce qu'est l'indemnite de mission (art. 3) et l'arrete qui en fixe les
+    // taux a l'etranger, par pays ou par ville (art. 7). Il ne dit ni la monnaie
+    // du paiement ni le taux de change. Son JORFTEXT se lit dans les liens des
+    // articles de l'entrepot qui le citent (`nortexte` BUDB0620002D).
+    // `droit::missions`.
+    Texte {
+        cle: "missions-2006",
+        legitext: "JORFTEXT000000242359",
+        nom: "Decret n° 2006-781 du 3 juillet 2006 fixant les conditions et les modalites de reglement des frais occasionnes par les deplacements temporaires des personnels civils de l'Etat",
+        dossier: "decret-2006-781-deplacements",
+        titre: "Decret n° 2006-781 du 3 juillet 2006 -- l'indemnite de mission et ses taux",
+        domaines: &[
+            Domaine { cle: "missions", titre: "L'indemnite de mission et l'arrete qui en fixe les taux par pays", numeros: &["3", "7"] },
+        ],
+    },
+    // ------------------------------------------------------------------
     // LA REDUCTION GENERALE SOUS DFS. CSS L241-13, III : elle << ne
     // tient compte des deductions au titre de frais professionnels
     // calculees forfaitairement [...] que dans des limites et conditions

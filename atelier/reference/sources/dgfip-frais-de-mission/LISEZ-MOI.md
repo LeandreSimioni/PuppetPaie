@@ -20,10 +20,15 @@ refuse le conteneur du nuage) :
 - Les valeurs sont celles de l'annexe en vigueur depuis le 27/11/2025 (`../arrete-2006-indemnites-de-mission/`) :
   Allemagne 240 €, Espagne 212 €, États-Unis 360 USD, Sénégal 91 800 XOF, Belgique 206 €.
 - INFÉRENCE : la conversion en euros se fait au taux de chancellerie en vigueur le jour de la mission (la dernière ligne
-  de la monnaie pour ce pays dont la date ne le passe pas). Aucun texte déposé ne dit quel taux ; la page Urssaf renvoie
-  au site des taux de chancellerie (`../urssaf-frais-professionnels/urssaf-frais-professionnels-20261030.txt` l. 913-914).
+  de la monnaie pour ce pays dont la date ne le passe pas). Aucun texte déposé ne dit quel taux : le décret n° 2006-781
+  (`../decret-2006-781-deplacements/`) renvoie les taux à un arrêté et ne parle ni de monnaie ni de change ; la page
+  Urssaf renvoie au site des taux de chancellerie (`../urssaf-frais-professionnels/urssaf-frais-professionnels-20261030.txt`
+  l. 913-914). La colonne « Paiement contre valeur en monnaie locale » de la table des indemnités n'est pas lue.
 
-**Où le moteur s'en sert.** Les deux CSV sont livrés tels quels dans `logiciel/donnees/missions/` (`indemnites.csv`,
-`change.csv`) ; `droit::missions` les lit, `engagement::frais_au_dela` en tire la limite d'un jour à l'étranger (le choix
-« Lieu » d'une ligne de nuitée ou de repas). `moteur releve-missions` (`atelier/sources/moteur/src/atelier/releve/missions.rs`)
-les relève par l'API d'opendatasoft avant chaque publication, et les dépose ici, datés.
+**Où le moteur s'en sert.** Les deux CSV se livrent dans `logiciel/donnees/missions/` (`indemnites.csv`, `change.csv`),
+réduits à ce qu'une paie peut lire : pour chaque lieu, les lignes en vigueur depuis le 1er janvier de la plus ancienne
+année dont un barème est livré (`droit::missions::pour_les_paies` ; 2025 au 03/11/2026 : 87 Ko au lieu de 1,3 Mo pour
+les taux). Les tables entières restent ici. `droit::missions` les lit, `engagement::frais_au_dela` en tire la limite d'un
+jour à l'étranger (le choix « Lieu » d'une ligne de nuitée ou de repas). `moteur releve-missions`
+(`atelier/sources/moteur/src/atelier/releve/missions.rs`) les relève par l'API d'opendatasoft avant chaque publication,
+les dépose ici, datées et entières, et livre la part lisible.

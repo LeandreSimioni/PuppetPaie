@@ -1,0 +1,24 @@
+{
+ "_source": "https://echanges.dila.gouv.fr/OPENDATA/LEGI/",
+ "_global": "Freemium_legi_global_20250713-140000.tar.gz",
+ "_texte": "Decret n° 2006-781 du 3 juillet 2006 fixant les conditions et les modalites de reglement des frais occasionnes par les deplacements temporaires des personnels civils de l'Etat",
+ "_legitext": "JORFTEXT000000242359",
+ "_livraisons_lues": 483,
+ "_livraisons_totales": 483,
+ "_complet": true,
+ "_derniere_livraison": "20261102-213929",
+ "_changes_depuis_le_global": [],
+ "_releve_le": "2026-11-03",
+ "articles": {
+  "3": {
+   "debut": "2024-07-08",
+   "en_vigueur": true,
+   "id": "LEGIARTI000049906984"
+  },
+  "7": {
+   "debut": "2019-03-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000038190118"
+  }
+ }
+}

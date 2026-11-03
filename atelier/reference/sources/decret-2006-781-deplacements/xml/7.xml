@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000038190118</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/38/19/01/LEGIARTI000038190118.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>7</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2019-03-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="JORFTEXT000000242359" date_publi="2006-07-04" date_signature="2006-07-03" ministere="MINISTERE DE L'ECONOMIE, DES FINANCES ET DE L'INDUSTRIE BUDGET ET REFORME DE L'ETAT" nature="DECRET" nor="BUDB0620002D" num="2006-781" num_parution_jo="0153">
+<TITRE_TXT c_titre_court="Décret n° 2006-781 du 3 juillet 2006" debut="2999-01-01" fin="2999-01-01" id_txt="JORFTEXT000000242359">Décret n° 2006-781 du 3 juillet 2006 fixant les conditions et les modalités de règlement des frais occasionnés par les déplacements temporaires des personnels civils de l'Etat</TITRE_TXT>
+<TITRE_TXT c_titre_court="Décret n°2006-781 du 3 juillet 2006" debut="2006-11-01" fin="2999-01-01" id_txt="LEGITEXT000006053958">Décret n°2006-781 du 3 juillet 2006 fixant les conditions et les modalités de règlement des frais occasionnés par les déplacements temporaires des personnels civils de l'Etat</TITRE_TXT>
+</TEXTE>
+</CONTEXTE>
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2006-11-01" etat="MODIFIE" fin="2019-03-01" id="LEGIARTI000006252675" num="7" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2019-03-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000038190118" num="7" origine="LEGI"/>
+</VERSION>
+<VERSION etat="">
+<LIEN_ART debut="2999-01-01" etat="" fin="2999-01-01" id="JORFARTI000001665128" num="7" origine="JORF"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Pour la métropole, le taux du remboursement forfaitaire des frais supplémentaires de repas et le taux du remboursement forfaitaire des frais d'hébergement sont fixés par un arrêté conjoint du ministre chargé de la fonction publique et du ministre chargé du budget.</p>
+<p>Pour l'outre-mer, le taux du remboursement forfaitaire des frais supplémentaires de repas et le taux du remboursement forfaitaire des frais d'hébergement sont fixés par un arrêté conjoint du ministre chargé de la fonction publique, du ministre chargé du budget et du ministère chargé de l'outre-mer.</p>
+<p>Pour l'étranger, un arrêté conjoint du ministre chargé des affaires étrangères, du ministre chargé de la fonction publique et du ministre chargé du budget fixe les taux des indemnités de mission, par pays ou, le cas échéant, par ville ou par région.</p>
+<p>Un arrêté conjoint du ministre chargé de la fonction publique et du ministre chargé du budget fixe les taux des indemnités de stage.</p>
+<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000038175364" datesignatexte="2019-02-26" id="LEGIARTI000038179538" naturetexte="DECRET" nortexte="CPAF1834081D" num="5" numtexte="2019-139" sens="cible" typelien="MODIFIE">Décret n°2019-139 du 26 février 2019 - art. 5</LIEN>
+</LIENS>
+</ARTICLE>

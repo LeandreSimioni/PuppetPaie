@@ -12,7 +12,8 @@
 //!   (une periode saisonniere, New York ou l'Afrique du Sud, est une suite de lignes datees) ;
 //! - `change.csv` : le taux de chancellerie d'une monnaie pour un pays (`taux`, en euros pour une unite), date de meme.
 //!   INFERENCE : la conversion en euros se fait au taux de chancellerie en vigueur le jour de la mission (aucun texte
-//!   depose ne dit le taux ; la page Urssaf renvoie au site des taux de chancellerie de la DGFiP,
+//!   depose ne dit le taux : le decret n° 2006-781, `atelier/reference/sources/decret-2006-781-deplacements/`, renvoie les
+//!   taux a un arrete et ne dit ni la monnaie ni le change ; la page Urssaf renvoie au site des taux de chancellerie de la DGFiP,
 //!   `atelier/reference/sources/urssaf-frais-professionnels/urssaf-frais-professionnels-20261030.txt` l. 913-914).
 //!
 //! UNE PAIE NE DEPEND QUE DE LA VALEUR DE SES JOURS (`Indemnite::empreinte`) : une table qui grossit de lignes nouvelles
@@ -194,3 +195,47 @@ pub fn verifier(indemnites: &str, change: &str) -> Resultat<(usize, usize)> {
     }
     Ok((t.indemnites.len(), taux))
 }
+
+/// CE QU'UNE PAIE PEUT LIRE D'UNE TABLE DATEE (`indemnites.csv`, `change.csv`) : pour chaque lieu (`cles` : les colonnes
+/// qui le designent), les lignes en vigueur a partir de `depuis` -- celles qui prennent effet ce jour ou apres, et la plus
+/// recente d'avant, qui vaut encore ce jour-la (`en_vigueur`) ; une ligne sans date lisible, que `construire_de` ne lit
+/// pas, non plus. Le reste ne se lit plus et ne se livre pas ; la table
+/// relevee entiere se depose dans les sources (`moteur releve-missions`). L'en-tete et l'ordre des lignes restent.
+pub fn pour_les_paies(texte: &str, cles: &[&str], depuis: &Jour) -> Resultat<String> {
+    let mut lignes = texte.split_inclusive('\n');
+    let tete_brute = lignes.next().unwrap_or_default();
+    let tete = champs(tete_brute);
+    let col = |nom: &str| tete.iter().position(|c| *c == nom).ok_or_else(|| format!("table des missions : la colonne « {} » manque.", nom));
+    let c_cles: Vec<usize> = cles.iter().map(|c| col(c)).collect::<Resultat<_>>()?;
+    let c_date = col("date")?;
+    let lues: Vec<(&str, String, Option<Jour>)> = lignes
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| {
+            let c = champs(l);
+            let cle = c_cles.iter().map(|i| c.get(*i).copied().unwrap_or("")).collect::<Vec<_>>().join(";");
+            (l, cle, c.get(c_date).and_then(|d| Jour::lire(d).ok()))
+        })
+        .collect();
+    // Pour chaque lieu, la date de la ligne qui vaut le jour `depuis`.
+    let mut au_depart: HashMap<&str, Jour> = HashMap::new();
+    for (_, cle, date) in &lues {
+        if let Some(d) = date.filter(|d| d <= depuis) {
+            let e = au_depart.entry(cle.as_str()).or_insert(d);
+            if d > *e {
+                *e = d;
+            }
+        }
+    }
+    let mut out = String::from(tete_brute);
+    for (l, cle, date) in &lues {
+        let garde = match date {
+            Some(d) => d >= depuis || au_depart.get(cle.as_str()) == Some(d),
+            None => false,
+        };
+        if garde {
+            out.push_str(l);
+        }
+    }
+    Ok(out)
+}
+
