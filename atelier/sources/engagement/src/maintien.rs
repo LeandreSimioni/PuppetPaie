@@ -202,7 +202,7 @@ pub fn deja_indemnises(ctx: &Contexte, imp: &Value, nat: &Nature, t: Texte) -> R
     };
     let mut total = saisis;
     let cle = en_texte(g(imp, "salarie"));
-    for autre in crate::imprevus::tous(&ctx.racine)? {
+    for autre in crate::imprevus::du_salarie(&ctx.racine, &cle)? {
         if !crate::imprevus::est_un_arret(&autre) || en_texte(g(&autre, "salarie")) != cle {
             continue;
         }

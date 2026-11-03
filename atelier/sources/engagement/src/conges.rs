@@ -292,7 +292,7 @@ fn lue(ctx: &Contexte, mois: &str, p: &Paie) -> Resultat<PaieLue> {
     let cle = p.salarie.get("_cle").and_then(|c| c.as_str()).unwrap_or("").to_string();
     let mensuel = if eng.nat()?.mensuelle() {
         let mut arret = false;
-        for imp in crate::imprevus::du_mois(&ctx.racine, mois, None)? {
+        for imp in crate::imprevus::du_mois_du_salarie(&ctx.racine, mois, None, &cle)? {
             arret |= crate::imprevus::est_un_arret(&imp) && crate::imprevus::du_contrat(&imp, &cle, eng.numero.as_deref(), &eng.debut)?;
         }
         Some(MoisPaye {

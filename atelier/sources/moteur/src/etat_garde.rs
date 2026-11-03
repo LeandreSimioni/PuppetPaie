@@ -291,8 +291,8 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
             })
         } else {
             let lus = lectures(o, mois);
-            let par_engagement = crate::routes::etapes::route(o, ctx, "etat-par-engagement", &charge)?;
-            let du_mois = crate::routes::etapes::route(o, ctx, "etat-du-mois", &charge)?;
+            let mut deux = crate::routes::etapes::lire_ensemble(ctx, &["etat-par-engagement", "etat-du-mois"], &charge)?.into_iter();
+            let (par_engagement, du_mois) = (deux.next().unwrap_or(Value::Null), deux.next().unwrap_or(Value::Null));
             json!({
                 "format": FORMAT,
                 "moteur": env!("PAIE_SOURCES"),

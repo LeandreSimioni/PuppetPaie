@@ -20,8 +20,9 @@
 */
 
 /** Le geste d'un groupe ou d'un carré : la boîte de la route que le moteur nomme (`route`, avec sa `charge` ; `puis` :
- *  l'acte qui suit). Un dossier à ouvrir porte son `chemin`. `seulement` : les salariés cochés d'avance. */
-function ouvrirGeste(action, mois, seulement) {
+ *  l'acte qui suit). Un dossier à ouvrir porte son `chemin`. `seulement` : les salariés cochés d'avance. `sur` : ce sur
+ *  quoi porte le geste d'un rappel (`objet`, `obligation`, ce que la boîte montre). */
+function ouvrirGeste(action, mois, seulement, sur = {}) {
   if (!action) return;
   if (action.chemin) return ouvrirEtDire(action.chemin, action.phrase, true);
   const c = action.charge || {};
@@ -35,6 +36,19 @@ function ouvrirGeste(action, mois, seulement) {
     case "historique-mois": return ouvrirMoisHistorique(m);
     case "contrat-recu": return noterRecu(m, c);
     case "avenant-apercu": return boiteAvenant(m, c.salarie, c.debut, c.numero);
+    // La carte du contrat, sur la première case qui manque (`objet.a_saisir`) ; elle s'écrit par `puis`.
+    case "saisie": {
+      const f = sur.objet || {};
+      return (f.a_saisir || []).length ? allerALaCase({ ...f, mois: f.mois || m }, f.a_saisir[0].champ) : null;
+    }
+    case "etat-du-mois": return null;   // le mois, déjà ouvert
+    case "fin-contrat-signaler": return boiteSignalerFin(m, sur.objet || {});
+    case "arret-signaler": return boiteSignalerArret(sur.objet || {}, c.nature);
+    case "accident-declare":
+    case "attestation-declare": return boiteObligationFaite(sur.objet || {}, sur.obligation || {});
+    case "cloture": return boiteCloture(c.annee);
+    case "export-compta": return lancerExportCompta(c.annee);
+    case "revue-spectacles": return boiteRevueSpectacles(sur);
   }
 }
 

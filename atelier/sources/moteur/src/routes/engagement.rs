@@ -149,7 +149,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (i, _) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
-    if let Some(manque) = crate::routes::mois::manques_de_la_saisie(ctx, &data).swap_remove(i) {
+    if let Some(manque) = crate::routes::mois::manque_de(ctx, &data, i) {
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
     }
     engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?;

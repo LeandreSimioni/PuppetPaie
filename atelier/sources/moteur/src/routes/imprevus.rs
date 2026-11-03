@@ -973,6 +973,7 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     a.insert("date_accident".into(), jour_ou_rien("date_accident")?);
     a.insert("jours_deja_indemnises".into(), deja);
     a.insert("prolongations".into(), json!([]));
+    a.insert("reprises".into(), json!([]));
     a.insert("saisi_le".into(), json!(maintenant()));
     a.insert("qui".into(), json!(qui_de(charge)));
     a.insert("note".into(), note);
@@ -1023,9 +1024,25 @@ fn arret_reprise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let reprise = ou_rien(exiger(charge, "reprise")?);
     let motif = ou_rien(optionnel(charge, "motif_reprise"));
     let (i, mut liste) = trouver_l_arret(ctx, nom, dernier_jour)?;
+    let avant = liste[i].clone();
+    let reprise = if vrai(&reprise) { json!(jour(&reprise)?.iso()) } else { reprise };
+    // La trace de la saisie : quand, et la reprise d'avant et d'apres (`arret_a_l_instant` la defait).
+    let trace = json!({
+        "le": ctx.aujourdhui.iso(),
+        "saisi_le": crate::routes::maintenant(),
+        "qui": crate::routes::qui_de(charge),
+        "reprise_avant": avant["reprise"], "reprise_motif_avant": avant["reprise_motif"],
+        "reprise": reprise, "reprise_motif": motif,
+    });
     if let Value::Object(a) = &mut liste[i] {
-        a.insert("reprise".into(), if vrai(&reprise) { json!(jour(&reprise)?.iso()) } else { reprise });
+        a.insert("reprise".into(), reprise);
         a.insert("reprise_motif".into(), motif);
+        match a.get_mut("reprises").and_then(Value::as_array_mut) {
+            Some(l) => l.push(trace),
+            None => {
+                a.insert("reprises".into(), json!([trace]));
+            }
+        }
     }
     let arret = liste[i].clone();
     verifier(&arret)?;
@@ -1280,6 +1297,39 @@ fn phrase_du_signalement<T: std::fmt::Display>(fait: &str, avertissements: &[T])
     std::iter::once(fait.to_string()).chain(avertissements.iter().map(|a| a.to_string())).collect::<Vec<_>>().join("  ·  ")
 }
 
+/// CE QU'ETAIT L'ARRET A L'INSTANT `instant` (« AAAA-MM-JJ HH:MM », `routes::maintenant`) : chaque saisie d'apres se
+/// defait par la trace qu'elle a laissee, de la plus recente a la plus ancienne -- une prolongation (`prolongations`) rend
+/// la fin prescrite et la fin de subrogation d'avant, une reprise (`reprises`) la reprise et son motif d'avant. Une saisie
+/// de la minute meme a pu preceder l'instant ou le suivre : chacun de ces etats est rendu, du plus recent au plus ancien ;
+/// l'empreinte de ce qui est parti dit lequel c'etait (`compagnie::depart::refaire_le_signalement`).
+pub(crate) fn etats_d_alors(ctx: &Contexte, salarie: &str, dernier_jour: &Value, instant: &str) -> R<Vec<Value>> {
+    let mut a = trouver_arret(ctx, salarie, dernier_jour)?;
+    let quand = |t: &Value| t.get("saisi_le").and_then(Value::as_str).unwrap_or("").to_string();
+    let mut traces: Vec<(&str, Value)> =
+        ["prolongations", "reprises"].iter().flat_map(|k| a[*k].as_array().into_iter().flatten().map(move |t| (*k, t.clone()))).collect();
+    traces.sort_by_key(|(_, t)| quand(t));
+    let apres = traces.iter().filter(|(_, t)| quand(t).as_str() > instant).count();
+    let memes = traces.iter().filter(|(_, t)| quand(t) == instant).count();
+    let mut etats = Vec::new();
+    if apres == 0 {
+        etats.push(a.clone());
+    }
+    for (n, (k, t)) in traces.iter().rev().take(apres + memes).enumerate() {
+        let defaits: &[(&str, &str)] = if *k == "prolongations" {
+            &[("fin_previsionnelle", "fin_avant"), ("subrogation_fin", "subrogation_fin_avant")]
+        } else {
+            &[("reprise", "reprise_avant"), ("reprise_motif", "reprise_motif_avant")]
+        };
+        for (champ, avant) in defaits {
+            a[*champ] = t[*avant].clone();
+        }
+        if n + 1 >= apres {
+            etats.push(a.clone());
+        }
+    }
+    Ok(etats)
+}
+
 /// L'arret de ce salarie dont c'est le dernier jour travaille, dans le magasin des imprevus.
 fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value> {
     let cle = ctx.salarie(salarie).map_err(|m| erreur("KeyError", m))?;
@@ -1315,17 +1365,18 @@ pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
 /// `arret-signaler` : ecrit le fichier du signalement dans `sorties/AAAA-MM/` (`signaler_arret`). Rien n'est depose : le
 /// depot est un acte a part.
 fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
-    signaler_arret(ctx, charge, false)
+    signaler_arret(ctx, charge, None)
 }
 
 /// LE SIGNALEMENT D'ARRET (04) OU DE REPRISE (05), ecrit. Un signalement normal de cette nature deja parti pour cet arret ne
 /// se refait pas : une prolongation n'en appelle pas de nouveau, « il suffit de declarer la nouvelle date de fin de
 /// l'arret en DSN mensuelle » (fiche net-entreprises 1983, `atelier/reference/sources/net-entreprises-base-connaissances/
 /// net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.txt`, l. 13) ; ce qui le corrige est un
-/// annule et remplace (l. 37). La route le dit et n'ecrit rien. `refaire` : la piece partie, refaite pour se lire
-/// (`compagnie::depart::refaire_le_signalement`). L'annule-et-remplace a son nom (`_AR<ordre>`) : le fichier parti reste
-/// tel qu'il est parti.
-pub(crate) fn signaler_arret(ctx: &Contexte, charge: &Value, refaire: bool) -> R<Value> {
+/// annule et remplace (l. 37). La route le dit et n'ecrit rien. `alors` : la piece partie, refaite pour se lire
+/// (`compagnie::depart::refaire_le_signalement`) depuis l'arret tel qu'il etait a son ecriture (`etats_d_alors`) : une
+/// prolongation ou une reprise saisie depuis ne la change pas. L'annule-et-remplace a son nom (`_AR<ordre>`) : le
+/// fichier parti reste tel qu'il est parti.
+pub(crate) fn signaler_arret(ctx: &Contexte, charge: &Value, alors: Option<&Value>) -> R<Value> {
     use declarations::signalement::{self, Echec as Ech};
     let salarie = en_texte(crate::routes::fiches::exiger(charge, "salarie")?);
     let dernier_jour = crate::routes::fiches::exiger(charge, "dernier_jour")?;
@@ -1333,8 +1384,11 @@ pub(crate) fn signaler_arret(ctx: &Contexte, charge: &Value, refaire: bool) -> R
     let remplace: Option<String> = facultatif(charge, "remplace").map(en_texte);
     let envoi_test = facultatif(charge, "test").is_some();
 
-    let arret = trouver_arret(ctx, &salarie, dernier_jour)?;
-    if remplace.is_none() && !refaire {
+    let arret = match alors {
+        Some(a) => a.clone(),
+        None => trouver_arret(ctx, &salarie, dernier_jour)?,
+    };
+    if remplace.is_none() && alors.is_none() {
         if let Some(le) = parti_le(ctx, &arret, &nature)? {
             let quoi = if nature == signalement::ARRET {
                 ("d'arrêt", " ; une prolongation ne se signale pas, la DSN mensuelle porte la nouvelle fin")

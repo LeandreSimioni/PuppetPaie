@@ -1474,24 +1474,19 @@ impl Contexte {
             .flat_map(|y| [socle::fichiers::signature(&cfg.join("baremes").join(format!("{}.json", y))), socle::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", y)))])
             .chain([socle::fichiers::signature(&cfg.join("effectifs.json"))])
             .collect();
-        format!("{}|{}|{}|{:?}|{}|g{}|{:?}", self.racine.display(), self.code.display(), an, sig, ent, socle::fichiers::generation(), self.atmp_lu)
+        format!("{}|{}|{}|{:?}|{}|{:?}", self.racine.display(), self.code.display(), an, sig, ent, self.atmp_lu)
     }
 
     /// Le socle livre + la couche de la convention que la fiche `ent` nomme + la surcouche de la compagnie, confrontes
     /// aux faits d'entreprise de cette fiche. Les listes datees restent des listes. `ent` est la fiche entreprise au
     /// jour lu : une compagnie qui change de convention en cours d'annee lit chaque jour sous la sienne.
     fn bareme_brut(&self, an: i32, ent: &Value) -> Result<Arc<Value>, Refus> {
-        // Garde tant que les fichiers et la fiche sont les memes. Un refus ne se garde pas.
-        type Cache = Mutex<HashMap<String, Arc<Value>>>;
+        // Garde tant que les fichiers et la fiche sont les memes, avec ce qu'il a lu (`garde_notee`). Un refus ne se garde
+        // pas.
+        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<Value>>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-        let cle = self.empreinte_bareme_de(an, ent);
-        if let Some(v) = cache.lock().unwrap().get(&cle) {
-            return Ok(v.clone());
-        }
-        let fondu = Arc::new(self.bareme_brut_sans_cache(an, ent)?);
-        socle::fichiers::ranger(cache, cle, fondu.clone());
-        Ok(fondu)
+        socle::fichiers::garde_notee(cache, self.empreinte_bareme_de(an, ent), || self.bareme_brut_sans_cache(an, ent).map(Arc::new))
     }
 
     /// LE TAUX AT/MP DE L'ANNEE `an` QUE LA COMPAGNIE N'A PAS DIT, d'apres le dernier qu'elle a dit dans les annees d'avant
@@ -1632,16 +1627,11 @@ impl Contexte {
     /// Le bareme resolu a ce jour, garde et partage : il se lit sans se copier ; ce qui le change (la pile d'un contrat,
     /// `bareme::bareme_applique` ; la surcharge d'un etablissement) en part.
     pub fn bareme(&self, jour: &Jour) -> Resultat<Arc<Value>> {
-        type Cache = Mutex<HashMap<String, Arc<Value>>>;
+        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<Value>>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
         let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)?), jour.iso());
-        if let Some(v) = cache.lock().unwrap().get(&cle) {
-            return Ok(v.clone());
-        }
-        let bar = Arc::new(self.bareme_sans_cache(jour)?);
-        socle::fichiers::ranger(cache, cle, bar.clone());
-        Ok(bar)
+        socle::fichiers::garde_notee(cache, cle, || self.bareme_sans_cache(jour).map(Arc::new))
     }
 
     fn bareme_sans_cache(&self, jour: &Jour) -> Resultat<Value> {

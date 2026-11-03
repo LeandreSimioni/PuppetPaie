@@ -43,11 +43,13 @@ pub const DOSSIER: &str = "imprevus";
 /// jour, brutes et nettes de CSG et CRDS (`ij_brute`, `ij_nette`, et `_majoree` au-dela du vingt-huitieme jour d'un accident du
 /// travail) sont ceux du maintien de salaire d'un permanent (`maintien`) ; `prolongations` garde chaque avis de
 /// prolongation saisi (`moteur::routes::imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
-/// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
-pub const CHAMPS_ARRET: [&str; 23] = [
+/// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`) ; `reprises`
+/// garde chaque reprise notee ou effacee (`arret_reprise` : quand, la reprise et son motif d'avant et d'apres). Par ces deux
+/// traces, l'arret se relit tel qu'il etait a un instant passe (`moteur::routes::imprevus::arret_a_l_instant`).
+pub const CHAMPS_ARRET: [&str; 24] = [
     "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "debut", "fin_previsionnelle",
     "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
-    "jours_deja_indemnises", "ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "prolongations", "saisi_le", "qui", "note",
+    "jours_deja_indemnises", "ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "prolongations", "reprises", "saisi_le", "qui", "note",
 ];
 const REQUIS_ARRET: usize = 8;
 
@@ -120,10 +122,10 @@ suspension du contrat, bloc S21.G00.65).",
         let defaut = match *k {
             "qui" => json!("?"),
             "note" => json!(""),
-            "prolongations" => json!([]),
+            "prolongations" | "reprises" => json!([]),
             _ => Value::Null,
         };
-        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "prolongations" | "note"))).unwrap_or(defaut));
+        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "prolongations" | "reprises" | "note"))).unwrap_or(defaut));
     }
     if genre == ARRET {
         for k in ["ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree"] {
@@ -132,8 +134,10 @@ suspension du contrat, bloc S21.G00.65).",
             }
         }
     }
-    if genre == ARRET && !o["prolongations"].is_array() {
-        return Err(socle::echec::charge("prolongations", "une liste"));
+    for k in ["prolongations", "reprises"] {
+        if genre == ARRET && !o[k].is_array() {
+            return Err(socle::echec::charge(k, "une liste"));
+        }
     }
     Ok(Value::Object(o))
 }
@@ -182,6 +186,55 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
         out.extend(du_contenu(&socle::fichiers::lire_json(&f)?, &f)?);
     }
     Ok(out)
+}
+
+/// LES IMPREVUS D'UN SALARIE (`cle`, la cle de sa fiche), dans l'ordre du magasin : ce que le calcul de ses paies lit,
+/// et rien d'autre. La lecture se note au registre du calcul en une entree, `imprevus racine:imprevus <cle>`, qui vaut
+/// l'empreinte de ces seuls imprevus (`empreinte_du_salarie`) : un imprevu saisi pour un autre salarie ne refait pas
+/// ses paies.
+pub fn du_salarie(racine: &Path, cle: &str) -> Resultat<Vec<Value>> {
+    let siens = siens_sans_noter(racine, cle)?;
+    socle::fichiers::noter_valeur(&entree_du_salarie(cle), empreinte_de(&siens));
+    Ok(siens)
+}
+
+/// L'entree du registre que `du_salarie` note.
+pub fn entree_du_salarie(cle: &str) -> String {
+    format!("{} racine:{} {}", DOSSIER, DOSSIER, cle)
+}
+
+/// Le salarie d'une entree `du_salarie`, s'il en est une.
+pub fn salarie_de_l_entree(k: &str) -> Option<&str> {
+    k.strip_prefix(DOSSIER)?.strip_prefix(" racine:")?.strip_prefix(DOSSIER)?.strip_prefix(' ')
+}
+
+/// Ce que vaut aujourd'hui l'entree `du_salarie` de `cle` : l'empreinte de ses imprevus, relus sans rien noter.
+pub fn empreinte_du_salarie(racine: &Path, cle: &str) -> Resultat<String> {
+    Ok(empreinte_de(&siens_sans_noter(racine, cle)?))
+}
+
+fn empreinte_de(imprevus: &[Value]) -> String {
+    socle::fichiers::sha256_hex(Value::Array(imprevus.to_vec()).to_string().as_bytes())
+}
+
+/// Les imprevus de `cle`, lus mois par mois du magasin sans se noter (`fichiers::json_partage`).
+fn siens_sans_noter(racine: &Path, cle: &str) -> Resultat<Vec<Value>> {
+    let mut fichiers: Vec<PathBuf> = match std::fs::read_dir(dossier(racine)) {
+        Ok(l) => l.flatten().map(|f| f.path()).filter(|p| p.file_stem().and_then(|n| n.to_str()).is_some_and(socle::date::mois_valide) && p.extension().is_some_and(|x| x == "json")).collect(),
+        Err(_) => return Ok(Vec::new()),
+    };
+    fichiers.sort();
+    let mut out = Vec::new();
+    for f in fichiers {
+        let Some(contenu) = socle::fichiers::json_partage(&f)? else { continue };
+        out.extend(du_contenu(&contenu, &f)?.into_iter().filter(|imp| s(imp, "salarie") == cle));
+    }
+    Ok(out)
+}
+
+/// Les imprevus d'un genre (ou de tous les genres) d'un salarie (`du_salarie`) qui croisent le mois `AAAA-MM`.
+pub fn du_mois_du_salarie(racine: &Path, mois: &str, genre_voulu: Option<&str>, cle: &str) -> Resultat<Vec<Value>> {
+    croisant(du_salarie(racine, cle)?, mois, genre_voulu)
 }
 
 /// Les imprevus que le fichier d'un mois du magasin range, complets ; vide s'il n'existe pas.
@@ -281,9 +334,13 @@ pub fn arret_croise(arret: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
 
 /// Les imprevus d'un genre (ou de tous les genres) qui croisent le mois `AAAA-MM`.
 pub fn du_mois(racine: &Path, mois: &str, genre_voulu: Option<&str>) -> Resultat<Vec<Value>> {
+    croisant(tous(racine)?, mois, genre_voulu)
+}
+
+fn croisant(imprevus: Vec<Value>, mois: &str, genre_voulu: Option<&str>) -> Resultat<Vec<Value>> {
     let (debut, fin) = (socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?);
     let mut out = Vec::new();
-    for imp in tous(racine)? {
+    for imp in imprevus {
         if genre_voulu.is_some_and(|gv| gv != genre(&imp)) {
             continue;
         }
@@ -355,7 +412,7 @@ pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &st
     let qui = ctx.nomme(&cle);
     let mut out = Vec::new();
     let mut siennes = Vec::new();
-    for imp in du_mois(&ctx.racine, mois, Some(SUSPENSION))? {
+    for imp in du_mois_du_salarie(&ctx.racine, mois, Some(SUSPENSION), &cle)? {
         if du_contrat(&imp, &cle, e.numero.as_deref(), &e.debut)? {
             siennes.push(imp);
         }
@@ -393,7 +450,7 @@ pub fn suspendu_sans_remuneration(
     fin: &Jour,
 ) -> Resultat<Vec<Value>> {
     let mut siennes = Vec::new();
-    for imp in tous(racine)? {
+    for imp in du_salarie(racine, cle)? {
         if !est_une_suspension(&imp) || !du_contrat(&imp, cle, numero, contrat_debut)? || !croise(&imp, debut, fin)? {
             continue;
         }
@@ -431,7 +488,7 @@ pub fn jours_de_conges_non_acquis(
     fin: &Jour,
 ) -> Resultat<Decimal> {
     let mut total = Decimal::ZERO;
-    for imp in tous(racine)? {
+    for imp in du_salarie(racine, cle)? {
         if !est_une_suspension(&imp) || !du_contrat(&imp, cle, numero, contrat_debut)? {
             continue;
         }
@@ -464,7 +521,7 @@ pub fn jours_de_conges_non_acquis(
 pub fn anciennete_depuis(racine: &Path, cle: &str, depuis: &Jour, a: &Jour) -> Resultat<(Jour, Vec<Avis>)> {
     let mut retranches = 0i64;
     let mut dit = Vec::new();
-    for imp in tous(racine)? {
+    for imp in du_salarie(racine, cle)? {
         if !est_une_suspension(&imp) || s(&imp, "salarie") != cle {
             continue;
         }
@@ -512,7 +569,7 @@ la compte, a reprendre a la main.",
 pub fn arrets_du_contrat(ctx: &Contexte, paie: &crate::calcul::Paie, debut: &Jour, fin: &Jour) -> Resultat<Vec<Value>> {
     let cle = en_texte(g(&paie.salarie, "_cle"));
     let mut out = Vec::new();
-    for imp in tous(&ctx.racine)? {
+    for imp in du_salarie(&ctx.racine, &cle)? {
         if est_un_arret(&imp) && du_contrat(&imp, &cle, paie.engagement.numero.as_deref(), &paie.engagement.debut)? && croise(&imp, debut, fin)? {
             out.push(imp);
         }
@@ -592,7 +649,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
     let debut = d(g(e, "debut"))?;
     let numero = s(e, "numero");
     let mut out = Vec::new();
-    for imp in du_mois(&ctx.racine, mois, None)? {
+    for imp in du_mois_du_salarie(&ctx.racine, mois, None, &cle)? {
         if du_contrat(&imp, &cle, Some(numero.as_str()), &debut)? {
             out.push(imp);
         }
@@ -779,12 +836,19 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &Value, mois: &str, cle: &str, pre
 pub fn avertir_les_jours_payes(ctx: &Contexte, data: &Value) -> Resultat<Vec<Vec<Avis>>> {
     let engagements = data.get("engagements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]);
     let mut out: Vec<Vec<Avis>> = vec![Vec::new(); engagements.len()];
-    let tous = tous(&ctx.racine)?;
-    if tous.is_empty() {
-        return Ok(out);
+    // Les imprevus des seuls salaries de la saisie (`du_salarie`).
+    let mut salaries: Vec<String> = Vec::new();
+    for cle in engagements.iter().filter_map(|e| crate::cle_de_l_engagement(ctx, e)) {
+        if !salaries.contains(&cle) {
+            salaries.push(cle);
+        }
+    }
+    let mut siens = Vec::new();
+    for cle in &salaries {
+        siens.extend(du_salarie(&ctx.racine, cle)?);
     }
     let mois = data.get("mois").map(en_texte).unwrap_or_default();
-    for imp in &tous {
+    for imp in &siens {
         let (premier, dernier) = (premier_jour(imp)?, dernier_jour(imp)?);
         for c in cachets_de_la_saisie(ctx, data, &mois, &s(imp, "salarie"), &premier, &dernier)? {
             let i = c["engagement"].as_u64().unwrap_or(0) as usize;

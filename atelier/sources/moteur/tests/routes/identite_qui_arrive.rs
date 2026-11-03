@@ -76,4 +76,8 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     let r = route(&c, "arret-signaler", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06"}), jour);
     assert_eq!(r["ok"], json!(false), "{}", r);
     assert_eq!(std::fs::read(&f).unwrap(), parti, "le signalement parti a ete reecrit");
+    // Effacé, il se refait tel qu'il est parti : d'après l'arrêt d'avant la prolongation.
+    std::fs::remove_file(&f).unwrap();
+    reussi(&route(&c, "piece-partie", json!({"mois": "2026-02", "fichier": std::path::Path::new(&f).file_name().unwrap().to_str().unwrap()}), jour));
+    assert_eq!(std::fs::read(&f).unwrap(), parti, "le signalement parti ne se refait pas tel qu'il est parti");
 }

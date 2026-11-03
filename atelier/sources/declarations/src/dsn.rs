@@ -3414,33 +3414,6 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
     Ok(lignes)
 }
 
-/// LE BORDEREAU URSSAF D'UN MOIS, tel que la DSN le porte, tire des paies `paies` par les fonctions qui l'y ecrivent
-/// (`lignes_bordereau`, `bordereau::montant`) : ses lignes 23, valorisees a la table des CTP, et son total (22.005). Les
-/// corrections des mois deja declares n'y sont pas : elles ont leurs propres bordereaux. `etablissement` : le NIC, le
-/// principal sans lui.
-pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>, departs: &engagement::departs::Departs) -> Resultat<(Vec<LigneBordereau>, Decimal)> {
-    let ctx = &ctx.du_mois(mois)?;
-    let ent = &ctx.entreprise;
-    let principal = bareme::nic_principal(ent);
-    let nic = etablissement.filter(|n| !n.is_empty()).map_or_else(|| principal.clone(), str::to_string);
-    let orgs = ctx.organismes()?;
-    let debut = premier(mois)?;
-    let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
-    let doeth = if nic == principal { crate::oeth::declaration(ctx, mois)? } else { None };
-    let csa = if nic == principal { crate::csa::declaration(ctx, mois, departs)? } else { None };
-    let solde_ta = solde_taxe_apprentissage(ctx, mois, &orgs, &bar, &nic, departs)?;
-    let refs: Vec<&Paie> = paies.iter().flat_map(|p| p.elementaires()).collect();
-    let effectif = Seuils::du_mois(ctx, mois)?;
-    let lignes = lignes_bordereau(&refs, &orgs, ent, &bar, solde_ta.as_ref(), doeth.as_ref(), csa.as_ref(), mois, &effectif)?;
-    let total = bordereau::montant(&lignes, &debut)?;
-    Ok((lignes, total))
-}
-
-/// Le total du bordereau Urssaf d'un mois (22.005), pour l'apercu, avant de produire (`bordereau_du_mois`).
-pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>, departs: &engagement::departs::Departs) -> Resultat<Decimal> {
-    Ok(bordereau_du_mois(ctx, paies, mois, etablissement, departs)?.1)
-}
-
 /// Le bordereau Urssaf d'un mois d'origine que la DSN courante regularise : par CTP, la difference « corrige moins
 /// declare » (`assiette_declaree`), la meme que celle que porte le nominatif.
 ///
@@ -4065,7 +4038,7 @@ fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
 /// LE BAREME D'UN MOIS POUR UN ETABLISSEMENT : le bareme empile (`Contexte::bareme`) surcharge par ce que la fiche
 /// entreprise dit de l'etablissement (`bareme::surcharger` : son taux AT/MP, son versement mobilite). Dans la DSN, la
 /// seule facon de l'obtenir (regle 8 : chaque etablissement a son taux AT/MP) : le bordereau courant, le bordereau
-/// regularise et le nominatif (`bar_du`), et l'apercu du montant Urssaf (`montant_urssaf`), passent par elle. (La pile
+/// regularise et le nominatif (`bar_du`) passent par elle. (La pile
 /// d'un salarie, `bareme::bareme_applique`, surcharge de meme par l'etablissement du salarie.)
 fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat<Value> {
     Ok(bareme::taux_atmp_resolu(bareme::surcharger((*ctx.bareme(&premier(mois)?)?).clone(), ent, nic)?).0)

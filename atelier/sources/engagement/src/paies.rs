@@ -46,10 +46,19 @@ fn fichier(racine: &std::path::Path, mois: &str) -> Resultat<Option<Arc<Value>>>
     stock::lire_dans(racine, Dossier::Paies, mois)
 }
 
-/// Une entree telle qu'elle est ecrite, et sa paie presente, partagee : la lire ne la recopie pas.
+/// Une entree telle qu'elle est ecrite (son rang dans le fichier lu, partage), et sa paie presente, partagee : la lire
+/// ne la recopie pas.
 struct Entree {
-    brut: Map<String, Value>,
+    fichier: Arc<Value>,
+    rang: usize,
     presente: Option<Arc<Value>>,
+}
+
+impl Entree {
+    /// Les paies des versions passees, telles que le fichier les porte.
+    fn versions(&self) -> Option<&Value> {
+        self.fichier.get("paies")?.get(self.rang)?.get(VERSIONS)
+    }
 }
 
 /// Les entrees d'un fichier de paies, par salarie et numero.
@@ -69,9 +78,10 @@ fn index(racine: &std::path::Path, mois: &str) -> Resultat<Option<Arc<Index>>> {
         }
     }
     let mut i = Index::new();
-    for e in f.get("paies").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_object) {
+    for (rang, e) in f.get("paies").and_then(Value::as_array).into_iter().flatten().enumerate() {
+        let Some(e) = e.as_object() else { continue };
         let cle = (e.get(SALARIE).map(en_texte).unwrap_or_default(), e.get(NUMERO).map(en_texte).unwrap_or_default());
-        i.entry(cle).or_insert_with(|| Arc::new(Entree { brut: e.clone(), presente: presente_de(e).map(Arc::new) }));
+        i.entry(cle).or_insert_with(|| Arc::new(Entree { fichier: f.clone(), rang, presente: presente_de(e).map(Arc::new) }));
     }
     let i = Arc::new(i);
     socle::fichiers::ranger(gardes, cle_du_fichier, (f, i.clone()));
@@ -130,13 +140,13 @@ pub fn presente(o: &Objet, mois: &str) -> Resultat<Option<Arc<Value>>> {
 
 /// La paie de `mois` que la version passee `n` de l'engagement `o` avait ecrite ; `None` si elle n'en a pas.
 pub fn de_la_version(o: &Objet, n: u64, mois: &str) -> Resultat<Option<Value>> {
-    Ok(entree(o, mois)?.and_then(|e| e.brut.get(VERSIONS)?.get(n.to_string()).cloned()))
+    Ok(entree(o, mois)?.and_then(|e| e.versions()?.get(n.to_string()).cloned()))
 }
 
 /// Toutes les paies ecrites de `mois` de l'engagement `o` : la presente, puis celles des versions passees.
 pub fn ecrites(o: &Objet, mois: &str) -> Resultat<Vec<Value>> {
     let Some(e) = entree(o, mois)? else { return Ok(Vec::new()) };
-    let passees = e.brut.get(VERSIONS).and_then(Value::as_object).into_iter().flat_map(|v| v.values().cloned());
+    let passees = e.versions().and_then(Value::as_object).into_iter().flat_map(|v| v.values().cloned());
     Ok(e.presente.as_deref().cloned().into_iter().chain(passees).collect())
 }
 

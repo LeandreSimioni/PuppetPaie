@@ -1,4 +1,4 @@
-/* L'AUTEUR DU LOGICIEL, en bas a droite, discret comme l'indicateur de la mise a
+/* L'AUTEUR DU LOGICIEL, a droite du pied, discret comme l'indicateur de la mise a
    jour : sur l'accueil des compagnies et dans la page d'une compagnie. La phrase,
    le nom qui porte le lien et l'adresse viennent du moteur (`auteur` des routes
    `compagnies` et `etat`, `routes::accueil::auteur`) : l'accueil les pose dans
@@ -19,7 +19,7 @@
       ligne.className = "auteur";
       // La fenetre se tire par son corps (accueil) : la ligne n'est pas une poignee.
       ligne.addEventListener("mousedown", (e) => e.stopPropagation());
-      document.body.appendChild(ligne);
+      document.getElementById("pied").append(ligne);
     }
     ligne.textContent = "";
     const i = a.nom ? a.phrase.indexOf(a.nom) : -1;

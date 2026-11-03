@@ -18,9 +18,10 @@ use std::sync::{Arc, Mutex, OnceLock};
 // `est_dossier` et `lister`. Quand un registre est ouvert (`suivre`), chacun
 // y note ce qu'il a vu : l'empreinte du contenu d'un fichier, `absent`, la
 // liste des `.json` d'un dossier. C'est la liste des entrees du calcul
-// (`engagement::empreinte`). Les caches qui ne notent rien quand ils servent (les baremes composes) se cle par
+// (`engagement::empreinte`). Un cache qui ne note rien quand il sert (le compteur des conges) se cle par
 // `generation` : un calcul suivi a la sienne, a lui seul, et repart a froid ; hors registre, la generation est 0 et
-// ces caches servent d'une route a l'autre (la fenetre garde le moteur charge).
+// ce cache sert d'une route a l'autre (la fenetre garde le moteur charge). Les baremes composes gardent ce qu'ils ont lu
+// et le notent quand ils servent (`garde_notee`).
 
 struct Registre {
     racine: PathBuf,
@@ -46,8 +47,8 @@ thread_local! {
 /// (la paie d'un mois lit celle du mois d'avant, qui se calcule alors) : le registre neuf se pose au-dessus de celui qui
 /// est ouvert, et `rendre` redonne celui-ci a son calcul.
 pub fn suivre(racine: &Path, code: &Path) {
-    // Un registre neuf, c'est un calcul « a froid » : les caches de bareme (qui ne notent rien quand ils servent)
-    // ne lui servent que ce qu'il compose, pour que la liste des entrees soit celle d'un processus neuf.
+    // Un registre neuf, c'est un calcul « a froid » : un cache qui ne note rien quand il sert (`generation`)
+    // ne lui sert que ce qu'il compose, pour que la liste des entrees soit celle d'un processus neuf.
     let numero = GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
     REGISTRE.with(|r| r.borrow_mut().push(Registre { racine: racine.to_path_buf(), code: code.to_path_buf(), entrees: BTreeMap::new(), numero }));
 }
@@ -68,6 +69,52 @@ pub fn ranger<K: Eq + std::hash::Hash, V>(cache: &Mutex<HashMap<K, V>>, cle: K, 
         c.clear();
     }
     c.insert(cle, v);
+}
+
+/// Ce qu'un cache qui note garde (`garde_notee`) : la valeur, et ce que sa composition a lu, sous la base (racine, code)
+/// du registre ou elle s'est faite ; rien quand elle s'est faite hors registre.
+pub struct Notee<V> {
+    valeur: V,
+    lu: Option<(PathBuf, PathBuf, BTreeMap<String, String>)>,
+}
+
+/// UN CACHE QUI NOTE : la valeur que `composer` fait (un bareme fondu) se garde sous `cle` avec ce que sa composition a
+/// lu. Servie dans un registre ouvert, elle y note ces entrees, comme si elle venait de se composer : la liste des
+/// entrees d'un calcul suivi reste celle d'un processus neuf, sans recomposer. Une valeur faite hors registre, ou sous
+/// une autre base, se recompose la premiere fois qu'un registre la demande. `cle` dit ce dont la valeur depend.
+pub fn garde_notee<V: Clone, E>(cache: &Mutex<HashMap<String, Notee<V>>>, cle: String, composer: impl FnOnce() -> Result<V, E>) -> Result<V, E> {
+    let base = REGISTRE.with(|r| r.borrow().last().map(|g| (g.racine.clone(), g.code.clone())));
+    let servie = {
+        let c = cache.lock().unwrap_or_else(|p| p.into_inner());
+        c.get(&cle).and_then(|n| match (&base, &n.lu) {
+            (None, _) => Some((n.valeur.clone(), None)),
+            (Some((r, k)), Some((r2, k2, entrees))) if r == r2 && k == k2 => Some((n.valeur.clone(), Some(entrees.clone()))),
+            _ => None,
+        })
+    };
+    if let Some((v, entrees)) = servie {
+        if let Some(entrees) = entrees {
+            REGISTRE.with(|r| {
+                if let Some(g) = r.borrow_mut().last_mut() {
+                    for (k, x) in entrees {
+                        g.entrees.entry(k).or_insert(x);
+                    }
+                }
+            });
+        }
+        return Ok(v);
+    }
+    let (v, lu) = match base {
+        None => (composer()?, None),
+        Some((r, k)) => {
+            suivre(&r, &k);
+            let v = composer();
+            let entrees = rendre();
+            (v?, Some((r, k, entrees)))
+        }
+    };
+    ranger(cache, cle, Notee { valeur: v.clone(), lu });
+    Ok(v)
 }
 
 /// Ferme le dernier registre ouvert et rend ce qu'il a note, trie par cle. Ce qu'un calcul fait au milieu d'un autre a
