@@ -446,7 +446,10 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         let voulu = latin1(&voulu);
         let mut pareils = Vec::new();
         let complet = sortie.join(format!("DPAE_{}.txt", etiq));
-        let candidats = if marque.is_empty() { vec![complet].into_iter().filter(|c| c.is_file()).collect() } else { fichiers_partiels(&sortie, &etiq) };
+        // LA DPAE DU MOIS DEJA PARTIE ne se recrit pas (regle 4) : ce qui reste a declarer se cherche, et s'ecrit, sous un
+        // nom a la minute, a cote.
+        let partiel = !marque.is_empty() || crate::compagnie::depart::partie_le(&ctx.racine, &complet)?.is_some();
+        let candidats = if !partiel { vec![complet].into_iter().filter(|c| c.is_file()).collect() } else { fichiers_partiels(&sortie, &etiq) };
         for x in candidats {
             let contenu = std::fs::read(&x).map_err(|e| erreur("OSError", socle::echec::du_disque(&x, &e)))?;
             if declarations::dpae::meme_declaration(&latin1(&contenu), &voulu) {
@@ -467,11 +470,9 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
             let stem = choisi.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             marque = stem.chars().skip(format!("DPAE_{}", etiq).chars().count()).collect();
             f = Some(choisi);
+        } else if partiel && marque.is_empty() {
+            marque = marque_a_la_minute();
         }
-    }
-    // LA DPAE DU MOIS DEJA PARTIE ne se recrit pas (regle 4) : ce qui reste a declarer prend un nom a la minute, a cote.
-    if f.is_none() && marque.is_empty() && crate::compagnie::depart::partie_le(&ctx.racine, &sortie.join(format!("DPAE_{}.txt", etiq)))?.is_some() {
-        marque = marque_a_la_minute();
     }
     // JAMAIS PAR-DESSUS UN AUTRE (deux DPAE jouees dans la meme minute s'ecraseraient) : si le
     // nom a la minute est pris par une declaration DIFFERENTE, le fichier prend `-2`, `-3`... ; le nom ordinaire ne change pas.
