@@ -352,6 +352,44 @@ impl Arret {
         engagement::imprevus::arret_croise(&self.v, debut, fin)
     }
 
+    /// L'arret se reporte-t-il dans la DSN mensuelle de `mois` ? Celle de chaque mois qu'il croise ; et, s'il a fini avant
+    /// `mois` et n'a ete saisi qu'apres le depart de la derniere DSN mensuelle d'un mois anterieur qui declarait son
+    /// contrat (aucune ne le portait), la DSN de `mois` quand elle part apres sa saisie. Cahier technique 2026.1, § 2.5.2
+    /// (`atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`) : « il est nécessaire de reporter les
+    /// informations d'un signalement dans la DSN mensuelle consécutive à l'émission du signalement afin que l'évènement
+    /// signalé soit pris en compte dans le traitement d'un évènement futur » ; § 2.5 : l'arret est reporte dans la DSN
+    /// mensuelle même si les impacts de l'absence sont portés dans une paie ultérieure. Un arret sans date de saisie, ou
+    /// dont le contrat n'a rien declare de reel, ne se reporte que dans les mois qu'il croise.
+    pub fn a_reporter(&self, mois: &str, departs: &engagement::departs::Departs) -> Resultat<bool> {
+        let debut_mois = socle::date::premier_du_mois(mois)?;
+        if self.couvre(&debut_mois, &socle::date::dernier_du_mois(mois)?)? {
+            return Ok(true);
+        }
+        let origine = Jour::nouveau(1900, 1, 1).ok_or("jour inexistant")?;
+        if !self.couvre(&origine, &debut_mois.plus_jours(-1)?)? {
+            return Ok(false);
+        }
+        // Une date du journal (« 2026-10-15T10:00:00 ») et une date de saisie (« 2026-11-03 11:39 ») a la minute.
+        let minute = |t: &str| t.replacen('T', " ", 1).chars().take(16).collect::<String>();
+        let saisi = minute(&self.s("saisi_le"));
+        let numero = self.s("contrat_numero");
+        if saisi.is_empty() || numero.is_empty() {
+            return Ok(false);
+        }
+        let mut avant: Option<String> = None;
+        for d in departs.de(&self.s("salarie"), &numero).iter().filter(|d| d.envoi == engagement::departs::Envoi::Dsn) {
+            let declarante = d.par.clone().or_else(|| d.mois.clone()).unwrap_or_default();
+            let le = minute(&d.le);
+            if declarante.as_str() == mois && le < saisi {
+                return Ok(false);
+            }
+            if declarante.as_str() < mois && avant.as_ref().map_or(true, |a| le > *a) {
+                avant = Some(le);
+            }
+        }
+        Ok(avant.is_some_and(|a| a < saisi))
+    }
+
     /// L'arret suspend-il le contrat de cette paie ? La regle des imprevus (`imprevus::du_contrat`) : le meme salarie, la
     /// meme date de debut du contrat, le meme numero quand l'un et l'autre en ont un.
     fn du_contrat(&self, p: &Paie) -> bool {
@@ -1949,6 +1987,22 @@ pub fn remunerations(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe:
     // complémentaires aléatoires », leurs heures en 51.012 (SIG-11 : obligatoire pour ce type) et leur remuneration en
     // 51.013, datees de la periode d'emploi (fiche net-entreprises 2066, `atelier/reference/sources/
     // net-entreprises-base-connaissances/net-entreprises-fiche2066-heures-supplementaires-exonerees-20251021.txt`).
+    // UN MOIS D'ABSENCE : les deux termes du rapport qui corrige le SMIC de la reduction generale (CSS D. 241-7, IV ;
+    // `engagement::calcul::smic_d_une_absence`), « 028 - Rémunération perçue hors éléments non affectés par l'absence »
+    // et « 029 - Rémunération habituelle mois complet hors éléments non affectés par l'absence », « à déclarer en cas
+    // d'absence » (fiche net-entreprises 2681, `atelier/reference/sources/net-entreprises-base-connaissances/
+    // net-entreprises-fiche2681-reduction-generale-absence-proratisation-smic-types-028-029-20260609.txt`).
+    if let (Some(percue), Some(habituelle)) =
+        (p.bases.get(engagement::calcul::PERCUE_HORS_ENA), p.bases.get(engagement::calcul::HABITUELLE_HORS_ENA))
+    {
+        for (code, montant) in [("028", *percue), ("029", *habituelle)] {
+            f.add("S21.G00.51.001", debut.jjmmaaaa());
+            f.add("S21.G00.51.002", fin.jjmmaaaa());
+            f.add_opt("S21.G00.51.010", e.numero.clone())?;
+            f.add("S21.G00.51.011", code);
+            f.add("S21.G00.51.013", ms(montant, signe));
+        }
+    }
     let lire = |k: &str| p.bases.get(k).copied().filter(|m| !m.is_zero());
     if let (Some(montant), Some(heures)) = (lire(engagement::heures_en_plus::REMUNERATION), lire(engagement::heures_en_plus::HEURES)) {
         f.add("S21.G00.51.001", debut.jjmmaaaa());
@@ -4316,11 +4370,16 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
 
     let mut arrets_du_mois = Vec::new();
     for a in arrets {
-        if a.couvre(&debut_mois, &fin_m)? {
+        if a.a_reporter(mois, departs)? {
             arrets_du_mois.push(a);
         }
     }
-    let orphelins: Vec<&&Arret> = arrets_du_mois.iter().filter(|a| !paies.iter().any(|p| a.du_contrat(p))).collect();
+    // Un arret d'un mois anterieur se reporte sous son contrat, que la DSN declare ce mois-ci ou corrige (sa
+    // regularisation) ; un arret du mois sans son contrat n'aurait pas de place.
+    let orphelins: Vec<&&Arret> = arrets_du_mois
+        .iter()
+        .filter(|a| !paies.iter().chain(regs.iter().map(|r| &r.apres)).any(|p| a.du_contrat(p)))
+        .collect();
     if !orphelins.is_empty() {
         let liste_o: Vec<String> = orphelins
             .iter()
@@ -4853,7 +4912,8 @@ certificat de conformite du depot precedent.",
                     let ajoute = |x: &Regularisation| x.declare.lignes.is_empty() && x.declare.fichier.is_empty();
                     let fin = groupe.iter().any(|x| ajoute(x) || x.apres.engagement.fin != x.avant.engagement.fin);
                     let debut_bloc = f.lignes.len();
-                    bloc_contrat(&mut f, &dernier.apres, &ent_e, &orgs, rg, &b, fin, &[], "01", emplois_multiples(&dernier.apres, &autres))?;
+                    let siens: Vec<&Arret> = arrets_du_mois.iter().copied().filter(|a| a.du_contrat(&dernier.apres)).collect();
+                    bloc_contrat(&mut f, &dernier.apres, &ent_e, &orgs, rg, &b, fin, &siens, "01", emplois_multiples(&dernier.apres, &autres))?;
                     // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans ce qui a ete declare, sous le bloc 40 (fiche 1952) --
                     // une fois, depuis la correction du dernier mois qui a declare le contrat.
                     let declarant = groupe.iter().copied().filter(|x| !ajoute(x)).fold(None, |a: Option<&Regularisation>, x| match a {

@@ -358,7 +358,8 @@ fn nom_du_signalement(base: &str, annule_et_remplace: bool, ordre: i64) -> Strin
 ///
 /// - sa fin previsionnelle n'est pas passee : le salarie est arrete aujourd'hui ;
 /// - ou elle est passee, mais la DSN mensuelle du mois ou elle tombe n'est pas encore partie : l'avis de prolongation peut
-///   arriver apres la fin prescrite, et une reprise anticipee se signale encore. Une fois cette DSN partie (`reporte_par`),
+///   arriver apres la fin prescrite, et une reprise anticipee se signale encore. Une fois cette DSN partie, ou la DSN
+///   suivante qui reporte un arret saisi apres elle (`reporte_par`),
 ///   l'arret y est declare fini a sa fin previsionnelle -- « la reprise du travail de votre salarie a la date prevue doit
 ///   etre signalee dans la DSN mensuelle » (ameli, `atelier/reference/sources/ameli-arret-de-travail/`) --, et il n'est
 ///   plus en cours.
@@ -373,7 +374,7 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
     if fin >= ctx.aujourdhui {
         return Ok(true);
     }
-    Ok(!reporte_par(ctx, imp)?.iter().any(|m| valeur_en_texte(m) == fin.mois_iso()))
+    Ok(!reporte_par(ctx, imp)?.iter().any(|m| valeur_en_texte(m) >= fin.mois_iso()))
 }
 
 // ------------------------------------------------------------------ le resume

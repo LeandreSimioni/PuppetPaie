@@ -91,8 +91,9 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
 /// Le resume d'une paie que la page compare : montants, cotisations, activite.
 fn resume(p: &Paie) -> Value {
     let e = &p.engagement;
-    let heures = match e.heures {
-        Some(h) if h != 0.0 => socle::ecriture::repr_flottant(h),
+    // Les heures au centieme : la somme flottante des lignes (151,67 - 63) ne se montre pas avec ses residus.
+    let heures = match e.heures.and_then(|h| socle::num::dec_f64(h).ok()) {
+        Some(h) if !h.is_zero() => h.round_dp(2).normalize().to_string(),
         _ => "0".to_string(),
     };
     json!({

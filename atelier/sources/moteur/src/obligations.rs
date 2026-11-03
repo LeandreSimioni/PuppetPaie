@@ -612,7 +612,9 @@ fn connaissance(suivi: &Value, champ: &str, quoi: &str) -> Option<Depart> {
 /// compte un depot reel accepte : un signalement refuse au bilan n'est pas recu (cahier technique DSN,
 /// `norme-dsn/texte/chapitre-4-controles.txt` §4.2) et reste du.
 pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
-    let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
+    let lu = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?;
+    let (lignes, departs) = (lu.lignes, lu.departs);
+    let arret = declarations::dsn::Arret { v: a.clone() };
     let salarie = texte(a, "salarie");
     let dj = texte(a, "dernier_jour_travaille");
     let declare = engagement::imprevus::dernier_jour_declare(a).map(|j| j.iso()).unwrap_or_default();
@@ -621,6 +623,17 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
         _ => Vec::new(),
     };
     let saisi = texte(a, "saisi_le");
+    // Une DSN mensuelle a reporte l'imprevu : celle d'un mois qu'il traverse, partie apres sa saisie ; ou, un arret, la DSN suivante
+    // qui reporte l'arret saisi apres le depart de celles de ses mois (`Arret::a_reporter`).
+    let reporte = |mois: &str, quand: &str| -> R<bool> {
+        if traverses.iter().any(|m| m == mois) {
+            return Ok(quand.replace('T', " ") >= saisi);
+        }
+        if !engagement::imprevus::est_un_arret(a) {
+            return Ok(false);
+        }
+        arret.a_reporter(mois, &departs).map_err(|m| erreur("ValueError", m))
+    };
     let mut partis = Vec::new();
     for l in lignes.iter() {
         let accepte = l.get("accepte") == Some(&Value::Bool(true)) && !envois::etats::refuse_par_un_retour(l).unwrap_or(false);
@@ -634,7 +647,7 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
         let du_salarie = l.get("versions").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| texte(x, "salarie") == salarie));
         if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && mois == declare && du_salarie {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "fichier": format!("sorties/{}/{}", &dj[..7], nom), "quand": quand}));
-        } else if nature == "01" && traverses.contains(&mois) && quand.replace('T', " ") >= saisi {
+        } else if nature == "01" && reporte(&mois, &quand)? {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "mois": mois, "fichier": format!("sorties/{}/{}", mois, nom), "quand": quand}));
         }
     }

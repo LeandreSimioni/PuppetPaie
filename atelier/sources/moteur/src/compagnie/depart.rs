@@ -256,7 +256,7 @@ impl Lu {
         let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
         let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None, &departs)?;
         let regs = regularisations::regularisations_pour(ctx, mois, &departs)?;
-        let arrets = crate::compagnie::marques_depot::arrets_pour(ctx, mois)?;
+        let arrets = crate::compagnie::marques_depot::arrets_pour(ctx, mois, &departs)?;
         Ok(Lu { departs, paies, regs, arrets })
     }
 
@@ -452,7 +452,8 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
         });
     }
     let mut arrets: Vec<declarations::dsn::Arret> = Vec::new();
-    for a in crate::compagnie::marques_depot::arrets_pour(ctx, &mois)? {
+    let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
+    for a in crate::compagnie::marques_depot::arrets_pour(ctx, &mois, &departs)? {
         if let Some(n) = &forme.etablissement {
             let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
             if droit::bareme::etablissement_du_salarie(&ctx.entreprise, &sal).map_err(valeur)? != *n {
@@ -461,7 +462,7 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
         }
         arrets.push(declarations::dsn::Arret { v: a });
     }
-    declarations::dsn::fabriquer(ctx, &paies, &mois, &regs, &arrets, &forme.options(), &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(valeur)
+    declarations::dsn::fabriquer(ctx, &paies, &mois, &regs, &arrets, &forme.options(), &departs).map_err(valeur)
 }
 
 /// LES DSN MENSUELLES PARTIES de `mois` pour l'etablissement `nic` (`Null` : le principal), reelles et acceptees, dans
@@ -655,7 +656,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     if let Some(c) = declarations::csa::declaration(ctx, mois, &departs).map_err(valeur)? {
         avertissements.push(info(c.resume()));
     }
-    // LES ARRETS DE TRAVAIL : la DSN mensuelle doit REPORTER ceux dont la periode croise le mois, signales ou non.
+    // LES ARRETS DE TRAVAIL : la DSN mensuelle REPORTE ceux que `Arret::a_reporter` y met, signales ou non.
     let arrets = &lu.arrets;
     let nomenclature = crate::routes::imprevus::nomenclatures(ctx)?;
     let jour = |v: &Value| -> R<String> { documents::bulletin::jj_mm_aaaa(v).map_err(valeur) };

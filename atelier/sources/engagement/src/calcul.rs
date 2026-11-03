@@ -1207,6 +1207,55 @@ fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &
 
 /// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7. La
 /// configuration de la compagnie se lit a la fin de cette periode (`Contexte::au`).
+/// Les cles de `Paie::bases` qui portent, un mois d'absence, les deux termes du rapport de `smic_d_une_absence` : la DSN
+/// les declare en S21.G00.51, types 028 et 029.
+pub const PERCUE_HORS_ENA: &str = "remuneration_percue_hors_ena";
+pub const HABITUELLE_HORS_ENA: &str = "remuneration_habituelle_hors_ena";
+
+/// Le SMIC de la reduction generale d'un mois ou une absence retire du salaire.
+pub(crate) struct SmicDUneAbsence {
+    /// La remuneration percue hors elements non affectes par l'absence (S21.G00.51.011 = 028).
+    pub percue: Decimal,
+    /// La remuneration habituelle du mois complet hors ces elements (S21.G00.51.011 = 029).
+    pub habituelle: Decimal,
+    /// Les heures dont le SMIC horaire fait le SMIC du mois, quand le bareme dit le SMIC horaire de la reduction.
+    pub heures: Option<Decimal>,
+}
+
+/// CSS D. 241-7, IV, dernier alinea (`atelier/reference/sources/code-de-la-securite-sociale/xml/D241-7.xml`) : quand le
+/// contrat est suspendu sans paiement de la remuneration ou avec un paiement partiel, « la fraction du montant du salaire
+/// minimum a retenir pour le mois ou a lieu l'absence est corrigee selon le rapport entre les revenus d'activite [...] dus
+/// et ceux qui auraient ete dus si le salarie avait ete present tout le mois, hors elements de remuneration qui ne sont pas
+/// affectes par l'absence », l'affectation s'entendant « d'une proratisation strictement proportionnelle au temps
+/// d'absence » ; un paiement integral garde le SMIC entier (alinea precedent). La fiche net-entreprises 2681
+/// (`atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2681-reduction-generale-absence-
+/// proratisation-smic-types-028-029-20260609.txt`, exemples « Prime d'anciennete et maladie » et « garantie sur le net »)
+/// met au numerateur le salaire, l'absence, le maintien et les IJSS brutes deduites, hors IJSS subrogees non soumises, et
+/// au denominateur le salaire du mois complet ; « SMIC = 1766.92 x 1 104.27 / 1 820.04 ».
+///
+/// Dans ce calcul, une absence ne proratise que le salaire de base : les lignes `retabli` (l'absence, le maintien, les IJSS
+/// brutes) se calculent sur lui (`maintien`, `imprevus`). Le numerateur est donc le salaire de base et ces lignes, le
+/// denominateur le salaire de base. Le SMIC du mois du salaire de base (`smic_horaire` x ses heures, au centime) prend le
+/// rapport, comme la fiche l'ecrit ; les autres heures payees (en plus du mois) restent entieres. `heures` est ce SMIC
+/// rapporte au SMIC horaire : la reduction le retrouve (`droit::reduction`). Sans ligne `retabli` non nulle : aucun rapport.
+pub(crate) fn smic_d_une_absence(lb: &[LigneBrut], smic_horaire: Option<Decimal>) -> Option<SmicDUneAbsence> {
+    let somme = |f: &dyn Fn(&LigneBrut) -> bool, v: &dyn Fn(&LigneBrut) -> Decimal| lb.iter().filter(|l| f(l)).fold(Decimal::ZERO, |a, l| a + v(l));
+    if !lb.iter().any(|l| l.retabli && !l.montant.is_zero()) {
+        return None;
+    }
+    let habituelle = somme(&|l| l.salaire_de_base, &|l| l.montant);
+    if habituelle <= Decimal::ZERO {
+        return None;
+    }
+    let percue = Decimal::ZERO.max(habituelle + somme(&|l| l.retabli && l.soumis, &|l| l.montant));
+    let heures = smic_horaire.filter(|s| *s > Decimal::ZERO).map(|s| {
+        let smic_du_salaire = eur(mul(s, somme(&|l| l.salaire_de_base, &|l| l.heures_annexes)));
+        let autres = somme(&|l| !l.salaire_de_base && !l.retabli, &|l| l.heures_annexes);
+        Decimal::ZERO.max(div(div(mul(smic_du_salaire, percue), habituelle), s) + autres)
+    });
+    Some(SmicDUneAbsence { percue, habituelle, heures })
+}
+
 pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
     let nat = eng.nat()?;
     let mut avis_dfs: Vec<String> = Vec::new();
@@ -1575,10 +1624,25 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     let caisse_conges = bases["brut_cs"] > Decimal::ZERO;
     // Sous DFS, la reduction se calcule sur le brut abattu, dans la limite de 130 % de celle du brut entier
     // (`reduction_generale_sous_dfs`).
+    // Le SMIC horaire de la reduction (`smic_horaire_reference`) ; sans lui, pas de reduction.
+    let smic_horaire_rg = bar.get("reduction_generale").and_then(|r| r.get("smic_horaire_reference")).filter(|v| vrai(v)).map(dec).transpose()?;
+    let absence = smic_d_une_absence(&lb, smic_horaire_rg);
+    let heures_rg = absence.as_ref().and_then(|a| a.heures).unwrap_or(heures_annexes);
+    if let Some(a) = &absence {
+        bases.insert(PERCUE_HORS_ENA.into(), a.percue);
+        bases.insert(HABITUELLE_HORS_ENA.into(), a.habituelle);
+    }
     let rg = match bases.get("brut_dfs").filter(|_| dfs.is_some()) {
-        Some(abattu) => reduction_generale_sous_dfs(&bar, statut, brut, *abattu, heures_annexes, caisse_conges)?,
-        None => reduction_generale(&bar, statut, brut, heures_annexes, caisse_conges)?,
+        Some(abattu) => reduction_generale_sous_dfs(&bar, statut, brut, *abattu, heures_rg, caisse_conges)?,
+        None => reduction_generale(&bar, statut, brut, heures_rg, caisse_conges)?,
     };
+    // Le SMIC se calcule sur les heures exactes du rapport ; le bulletin les dit au centieme.
+    let rg = rg.map(|mut r| {
+        if absence.as_ref().is_some_and(|a| a.heures.is_some()) {
+            r.heures = r.heures.round_dp(2);
+        }
+        r
+    });
     if let Some(rg) = rg.as_ref().filter(|rg| !rg.montant.is_zero()) {
         lignes.push(ligne_de_reduction(rg, brut));
         tot_pat -= rg.montant;
@@ -1932,5 +1996,46 @@ impl Paie {
             m.insert("periodes".into(), Value::Array(self.periodes.iter().map(|p| p.canon(ctx)).collect::<Resultat<_>>()?));
         }
         Ok(Value::Object(m))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ligne(code: &str, montant: &str, heures: &str, base: bool, retabli: bool, soumis: bool) -> LigneBrut {
+        LigneBrut {
+            code: code.into(), libelle: code.into(), unite: "mois".into(), quantite: Decimal::ONE, taux: dec_de(montant),
+            montant: dec_de(montant), heures_annexes: dec_de(heures), soumis, imposable: soumis, conges_spectacles: false,
+            salaire_de_base: base, retabli, conges_pris: false, dsn_bloc52: None, arret_de_travail: retabli, dsn_autres_bruts: None,
+            precision: None,
+        }
+    }
+
+    fn dec_de(t: &str) -> Decimal {
+        t.parse().unwrap()
+    }
+
+    /// CSS D. 241-7, IV, dernier alinea, et la fiche net-entreprises 2681 (`atelier/reference/sources/
+    /// net-entreprises-base-connaissances/net-entreprises-fiche2681-reduction-generale-absence-proratisation-smic-types-028-029-
+    /// 20260609.txt`), premier exemple : un salaire de 2 000 EUR, une absence qui en retire la moitie, une prime annuelle
+    /// non affectee par l'absence ; « 028 » 1 000, « 029 » 2 000, « Smic = 1766.92 x 1000 /2000 = 883.46 » (SMIC horaire
+    /// 11,65). Une IJSS subrogee, non soumise, n'entre pas au rapport ; un maintien integral garde le SMIC entier.
+    #[test]
+    fn le_smic_d_un_mois_d_absence_suit_le_rapport_des_remunerations() {
+        let smic = Some(dec_de("11.65"));
+        // 35 x 52 / 12 heures, comme la fiche compte le SMIC du mois (1 766,92).
+        let mois = ligne("mois", "2000", "151.6667", true, false, true);
+        let prime = ligne("prime", "3833.33", "0", false, false, true);
+        let absence = ligne("absence_maladie", "-1000", "-75.83", false, true, true);
+        let a = smic_d_une_absence(&[mois.clone(), absence.clone(), prime], smic).unwrap();
+        assert_eq!((a.percue, a.habituelle), (dec_de("1000"), dec_de("2000")));
+        assert_eq!(eur(mul(dec_de("11.65"), a.heures.unwrap())), dec_de("883.46"));
+        let subrogee = ligne("ijss_nettes", "300", "0", false, false, false);
+        assert_eq!(smic_d_une_absence(&[mois.clone(), absence.clone(), subrogee], smic).unwrap().percue, dec_de("1000"));
+        let maintien = ligne("maintien_salaire", "1000", "0", false, true, true);
+        let entier = smic_d_une_absence(&[mois.clone(), absence, maintien], smic).unwrap();
+        assert_eq!(eur(mul(dec_de("11.65"), entier.heures.unwrap())), dec_de("1766.92"));
+        assert!(smic_d_une_absence(&[mois], smic).is_none());
     }
 }
