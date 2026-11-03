@@ -4679,6 +4679,78 @@
    "livraison": "20260901-212910",
    "num": "4",
    "texte_change": true
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948360",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "7.2",
+   "texte_change": false
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948357",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "7.3",
+   "texte_change": false
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948354",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "2.2",
+   "texte_change": false
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948351",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "3.2",
+   "texte_change": false
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948348",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "3.2",
+   "texte_change": false
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948345",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "2.2",
+   "texte_change": false
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948493",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "3.2",
+   "texte_change": false
+  },
+  {
+   "apres": "REMPLACE",
+   "avant": "VIGUEUR_ETEN",
+   "id": "KALIARTI000051948491",
+   "idcc": "3252",
+   "livraison": "20261102-213929",
+   "num": "2.4",
+   "texte_change": false
   }
  ],
  "construit_le": "2026-09-25",
@@ -4956,7 +5028,17 @@
   "20261008-213853",
   "20261009-214339",
   "20261013-212750",
-  "20261014-214049"
+  "20261014-214049",
+  "20261015-214025",
+  "20261016-213852",
+  "20261019-211152",
+  "20261020-214622",
+  "20261021-213023",
+  "20261022-214745",
+  "20261028-212713",
+  "20261029-215000",
+  "20261030-214909",
+  "20261102-213929"
  ],
- "mis_a_jour_le": "2026-10-15"
+ "mis_a_jour_le": "2026-11-03"
 }
