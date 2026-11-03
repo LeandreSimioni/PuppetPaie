@@ -20,6 +20,7 @@ pub mod essai;
 pub mod heures_en_plus;
 pub mod maintien;
 pub mod minima;
+pub mod missions;
 pub mod natures;
 pub mod organismes;
 pub mod pas;

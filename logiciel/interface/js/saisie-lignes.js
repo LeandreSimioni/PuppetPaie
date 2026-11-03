@@ -81,7 +81,7 @@ function rubriqueParDefaut(nat, statut) {
  *  de 5 h, une répétition de 3 h. Un cachet ne le demande pas : ses 12 heures
  *  viennent du règlement, pas de nous. */
 // Les cases qu'une ligne de frais porte dans le fichier (`engagement::JUSTIFICATIF`, `PARIS`, `RESTAURANT`).
-const CASES_DE_LIGNE = ["justificatif", "paris", "restaurant"];
+const CASES_DE_LIGNE = ["justificatif", "paris", "restaurant", "loge"];
 
 // LES CASES D'UNE LIGNE, telles que le moteur les désigne et les nomme
 // (`cases` de l'aperçu, celles de cette ligne) ; une case qu'il ne désigne
@@ -91,7 +91,7 @@ function peindreCases(r, cases) {
   cases.forEach((c) => { if (r._cases && r._cases[c.case]) garde[c.case] = true; });
   r._cases = garde;
   const ou = r.querySelector(".r-cases");
-  ou.innerHTML = cases.map((c) => `<label class="coche"><input type="checkbox" data-case="${echapper(c.case)}"
+  ou.innerHTML = cases.map((c) => `<label class="coche" title="${echapper(c.aide || "")}"><input type="checkbox" data-case="${echapper(c.case)}"
     ${garde[c.case] ? "checked" : ""}> ${echapper(c.libelle)}</label>`).join("");
   ou.querySelectorAll("input").forEach((x) => {
     x.onchange = () => { r._cases[x.dataset.case] = x.checked; rafraichirApercu(); };
@@ -153,6 +153,12 @@ function ligneRubrique(l = {}, nat, statut) {
          d'un repas, le justificatif) : celles que le moteur désigne et
          nomme (\`cases\` de l'aperçu, \`peindreCases\`). -->
     <span class="r-cases"></span>
+    <!-- LE LIEU D'UNE LIGNE DE NUITÉE OU DE REPAS, sous « Avancé » : la
+         métropole par défaut ; les choix et leur aide viennent du moteur
+         (\`lieux\` et \`lieu_aide\` de la rubrique). -->
+    <details class="r-avance cachee"><summary>Avancé</summary>
+      <label class="r-territoire-bloc">Lieu <select class="r-territoire"></select></label>
+    </details>
     <!-- LES JOURS SE COCHENT DANS UN CALENDRIER, plus
          clair que de taper 12, 24, 26. Le bouton dit les
          jours cochés ; le champ caché garde l'écriture « 14 15 17 18 » que
@@ -218,8 +224,21 @@ function ligneRubrique(l = {}, nat, statut) {
         echapper(x.libelle)}</option>`).join(""));
     g.value = genres.some((x) => x.code === voulu) ? voulu : "";
     g.dataset.pose = "1";
+    // Le lieu, sur une nuitée ou un repas : ouvert d'office quand ce n'est pas la métropole.
+    const lieux = (r && r.lieux) || [];
+    const av = div.querySelector(".r-avance");
+    av.classList.toggle("cachee", !lieux.length);
+    const t = div.querySelector(".r-territoire");
+    const lieuVoulu = t.dataset.pose === "1" ? t.value : (l.territoire || "");
+    poserListe(t, "lieux:" + (r ? r.code : ""), [lieux], () => lieux.map((x) =>
+      `<option value="${echapper(x.code)}">${echapper(x.libelle)}</option>`).join(""));
+    t.value = lieux.some((x) => x.code === lieuVoulu) ? lieuVoulu : "";
+    t.dataset.pose = "1";
+    div.querySelector(".r-territoire-bloc").title = (r && r.lieu_aide) || "";
+    if (t.value) av.open = true;
   };
   div.querySelector(".r-genre").onchange = rafraichirApercu;
+  div.querySelector(".r-territoire").onchange = rafraichirApercu;
   // Les cases cochées de la ligne, gardées jusqu'à ce que le moteur dise lesquelles ont lieu d'être.
   div._cases = Object.fromEntries(CASES_DE_LIGNE.filter((k) => l[k] === true).map((k) => [k, true]));
   // Changer la rubrique d'une ligne dont le taux n'a pas été tapé : il suit
@@ -1657,6 +1676,8 @@ function lignesDuBloc(div, mois) {
     // qu'on en a choisi un : le moteur refuse un genre sur toute autre.
     const genre = r.querySelector(".r-genre").value;
     if (genre && rr && (rr.genres || []).length) l.genre = genre;
+    const territoire = r.querySelector(".r-territoire").value;
+    if (territoire && rr && (rr.lieux || []).length) l.territoire = territoire;
     Object.keys(r._cases || {}).filter((k) => r._cases[k]).forEach((k) => { l[k] = true; });
     // Le lieu et les jours de CETTE ligne. Absents du fichier quand ils sont
     // vides : une ligne qui ne dit rien de son lieu n'écrit pas `"lieu": ""`.

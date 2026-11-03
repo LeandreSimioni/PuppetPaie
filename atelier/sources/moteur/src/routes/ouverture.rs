@@ -853,6 +853,9 @@ fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
 /// `catalogue::AUTRES_BRUTS` donne leur libelle de la norme).
 const GENRES_EN_CLAIR: [(&str, &str); 5] = [("02", "repas"), ("03", "logement"), ("04", "véhicule"), ("05", "NTIC"), ("06", "autres")];
 
+/// L'aide du choix « Lieu » d'une ligne de frais.
+const LIEU_AIDE: &str = "Où dort et mange le salarié : hors de la métropole, la limite exonérée change ; à l'étranger, c'est l'indemnité du pays pour la nuitée et les repas du jour.";
+
 /// `rubriques` : le catalogue qui PAIE, dans l'ordre ou le proposer.
 pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
     let non_appliques: Vec<&str> = [
@@ -878,7 +881,19 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
     } else {
         vec![]
     };
+    // LE LIEU D'UNE LIGNE DE NUITEE OU DE REPAS (`engagement::TERRITOIRE`), sous « Avancé » : la metropole d'abord (rien
+    // a choisir), l'outre-mer et Monaco, puis chaque lieu de la table des missions a l'etranger (`droit::missions::lieux`).
+    let lieux: Vec<Value> = if [engagement::NUITEE, engagement::REPAS].contains(&r.code.as_str()) {
+        std::iter::once(json!({"code": "", "libelle": "Métropole"}))
+            .chain(engagement::TERRITOIRES.iter().map(|(c, l)| json!({"code": c, "libelle": l})))
+            .chain(droit::missions::lieux().unwrap_or_default().into_iter().map(|(c, l)| json!({"code": c, "libelle": l})))
+            .collect()
+    } else {
+        vec![]
+    };
     json!({
+        "lieux": lieux,
+        "lieu_aide": if lieux.is_empty() { Value::Null } else { json!(LIEU_AIDE) },
         "code": r.code, "libelle": r.libelle, "unite": r.unite, "nature": r.nature, "saisie": r.saisie,
         "sens": r.sens, "heures_forfait": r.heures_forfait.map(nombre), "plafond": r.plafond,
         "aem": r.aem, "dsn_type": r.dsn_type, "dsn_autres_bruts": r.dsn_autres_bruts, "annexe": r.annexe,

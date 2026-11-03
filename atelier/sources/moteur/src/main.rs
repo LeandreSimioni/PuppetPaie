@@ -11,7 +11,8 @@ fn usage() -> ! {
          \x20       moteur verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)\n\
          \x20       moteur generer-tables SOURCES ESPACE   (les tables Unicode du moteur, depuis atelier/reference/sources, dans atelier/sources)\n\
          \x20       moteur extraire naf|usages|formats|urssaf SOURCES... SORTIE.json [--remplacer]   (releves de l'atelier : moteur extraire --aide)\n\
-         \x20       moteur releve-codes ... | moteur releve-conventions ...   (les textes LEGI et KALI de la DILA, outils d'atelier : --aide)"
+         \x20       moteur releve-codes ... | moteur releve-conventions ...   (les textes LEGI et KALI de la DILA, outils d'atelier : --aide)\n\
+         \x20       moteur releve-missions SOURCES DONNEES   (les tables des missions a l'etranger de la DGFiP, avant de publier)"
     );
     std::process::exit(2)
 }
@@ -52,6 +53,8 @@ fn main() -> std::process::ExitCode {
         Some("generer-tables") => return std::process::ExitCode::from(moteur::atelier::generer_tables::commande(&args[1..]).clamp(0, 255) as u8),
         Some("extraire") => return std::process::ExitCode::from(moteur::atelier::extraire::commande(&args[1..]).clamp(0, 255) as u8),
         // Les codes (LEGI) et les conventions collectives (KALI) releves chez la DILA, dans `atelier/reference/sources`.
+        // Les tables des missions a l'etranger de la DGFiP, relevees avant chaque publication.
+        Some("releve-missions") => return std::process::ExitCode::from(moteur::atelier::releve::missions::commande(&args[1..]).clamp(0, 255) as u8),
         Some(q @ ("releve-codes" | "releve-conventions")) => {
             let commande = if q == "releve-codes" { moteur::atelier::releve::codes::commande } else { moteur::atelier::releve::conventions::commande };
             return std::process::ExitCode::from(commande(&args[1..]).clamp(0, 255) as u8);

@@ -10,6 +10,8 @@
 //! - Hors déduction forfaitaire spécifique, un artiste suit ces limites comme tout salarié : l'annexe 2 de l'arrêté ne
 //!   joue qu'« en cas de déduction forfaitaire spécifique »
 //!   (`atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt`, l. 5).
+//! - Hors de la métropole : l'arrêté du 3 juillet 2006 (art. 1, a), et l'indemnité de mission à l'étranger de son annexe,
+//!   réduite de 65 % quand le salarié est logé gratuitement (art. 2 ; BOSS § 1340-1390).
 //! Les Tréteaux du Banc (3090), FULLER, comédienne sans DFS, en tournée en novembre 2026.
 
 use serde_json::{json, Value};
@@ -74,4 +76,36 @@ fn le_repas_et_la_nuitee_au_dela_de_leur_limite_entrent_dans_l_assiette() {
     let justifie = paie(&[("repas", &[]), ("nuitee", &["justificatif"])]);
     assert!(ligne(&justifie, "nuitee_au_dela").is_none());
     assert_eq!(n(&justifie["brut"]), n(&sans["brut"]));
+
+    // HORS DE LA MÉTROPOLE, le lieu de la ligne (`territoire`) dit la limite. `frais` : (rubrique, taux, lieu, cases).
+    let ailleurs = |frais: &[(&str, &str, &str, &[&str])]| -> Value {
+        let mut lignes = vec![json!({"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": jours})];
+        for (rubrique, taux, lieu, cases) in frais {
+            let q = if *rubrique == "repas" { 4 } else { 2 };
+            let mut l = json!({"rubrique": rubrique, "quantite": q, "taux": taux, "dates": jours, "territoire": lieu});
+            for k in *cases {
+                l[*k] = json!(true);
+            }
+            lignes.push(l);
+        }
+        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes});
+        reussi(&route(&c, "apercu", json!({"mois": "2026-11", "cartes": [{"saisie": saisie}]}), "2026-11-02"))["paies"][0].clone()
+    };
+    // Outre-mer : arrêté du 3 juillet 2006, art. 1, a)
+    // (`atelier/reference/sources/arrete-2006-indemnites-de-mission/legifrance-arrete-20060703-indemnites-de-mission-20261103.txt`,
+    // l. 17-30 ; BOSS § 1350-1360) : 120 € la nuit, 20 € le repas aux Antilles, 24 € en Nouvelle-Calédonie.
+    let dom = ailleurs(&[("nuitee", "130", "dom", &[]), ("repas", "25", "dom", &[])]);
+    assert_eq!((n(&ligne(&dom, "nuitee").unwrap()["taux"]), n(&ligne(&dom, "repas").unwrap()["taux"])), (dec("120"), dec("20")));
+    assert_eq!(n(&ligne(&dom, "repas_au_dela").unwrap()["montant"]), dec("20.00"));
+    let noumea = ailleurs(&[("repas", "25", "pacifique", &[])]);
+    assert_eq!(n(&ligne(&noumea, "repas").unwrap()["taux"]), dec("24"));
+    // À l'étranger : une limite par jour pour la nuitée et les repas, l'indemnité de mission du lieu (BOSS § 1380-1390 ;
+    // annexe de l'arrêté : New York, du 1er septembre au 31 décembre, 490 USD), au taux de chancellerie du jour
+    // (`atelier/reference/sources/dgfip-frais-de-mission/`, 0,8807 au 01/10/2026) : 431,54 € ; 400 + 2 × 60 = 520 €
+    // par jour, 88,46 € au-delà, sur la nuitée. Logé par la compagnie, réduite de 65 % (art. 2) : 151,04 €.
+    let new_york = ailleurs(&[("nuitee", "400", "NY", &[]), ("repas", "60", "NY", &[])]);
+    assert_eq!(n(&ligne(&new_york, "nuitee_au_dela").unwrap()["montant"]), dec("176.92"));
+    assert!(ligne(&new_york, "repas_au_dela").is_none());
+    let loge = ailleurs(&[("repas", "90", "NY", &["loge"])]);
+    assert_eq!(n(&ligne(&loge, "repas_au_dela").unwrap()["montant"]), dec("57.92"));
 }

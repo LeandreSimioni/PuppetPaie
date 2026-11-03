@@ -3,7 +3,8 @@
 //! effectifs, imprevus...), les fichiers absents, les dossiers parcourus, le jour s'il le lit, le taux de prelevement a
 //! la source de son salarie au jour de son paiement (`pas <salarie> <jour> <mois>`, `droit::pas::taux_dgfip`), et les paies
 //! validees de son salarie dans les autres mois qu'il lit (`paies <mois> <salarie>`,
-//! `etats::paies_validees`), ou, pour le premier mois d'un permanent, ses contrats payes au mois d'avant, qu'il n'a pas
+//! `etats::paies_validees`), l'indemnite de mission a l'etranger de chaque jour qu'il paie (`mission <lieu> <jour>`,
+//! `droit::missions` : la valeur prise, pas la table), ou, pour le premier mois d'un permanent, ses contrats payes au mois d'avant, qu'il n'a pas
 //! (`mensuels <mois> <salarie>`, `conges::avant_le_mois`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
 //! ce que le mois pose pour tous, les engagements valides de son salarie (`saisie <mois> <salarie>`,
 //! `etats::calculer_les_rangs`) et les fiches de l'entreprise, de son salarie (hors de ses taux recus) et de son spectacle au dernier jour du mois
@@ -110,6 +111,10 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
         "date" => v == ctx.date.iso(),
         "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
         _ => {
+            // L'indemnite de mission d'un jour a l'etranger : la valeur prise, pas la table (`droit::missions`).
+            if let Some((code, jour)) = k.strip_prefix("mission ").and_then(|r| r.split_once(' ')) {
+                return Jour::lire(jour).ok().and_then(|j| droit::missions::du_jour(code, &j).ok()).is_some_and(|i| v == i.empreinte());
+            }
             if k.starts_with("pas ") {
                 return droit::pas::empreinte(ctx, k).is_some_and(|e| v == e);
             }

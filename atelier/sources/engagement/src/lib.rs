@@ -1291,6 +1291,23 @@ pub const CASES: &str = "_cases";
 /// Le taux de la ligne avant que sa part au-dela de la limite s'en detache : celui que la saisie montre.
 pub const TAUX_SAISI: &str = "_taux_saisi";
 
+/// Le lieu d'une ligne de nuitee ou de repas (le choix « Lieu », sous « Avancé ») : absent, la metropole ; sinon un
+/// territoire de `frais_hors_metropole` du bareme (`dom`, `pacifique`, `monaco`), les Terres australes et antarctiques
+/// (`taaf`), ou un lieu a l'etranger, par son code de la table des missions (`droit::missions`).
+pub const TERRITOIRE: &str = "territoire";
+/// Les territoires hors metropole que le choix « Lieu » propose, avant les lieux a l'etranger : la cle du bareme
+/// (`frais_hors_metropole`), et ce que le choix dit.
+pub const TERRITOIRES: [(&str, &str); 4] = [
+    ("dom", "Outre-mer : Antilles, Guyane, Réunion, Mayotte, Saint-Pierre-et-Miquelon, Saint-Barthélemy, Saint-Martin"),
+    ("pacifique", "Outre-mer : Nouvelle-Calédonie, Wallis-et-Futuna, Polynésie française"),
+    ("taaf", "Outre-mer : Terres australes et antarctiques françaises"),
+    ("monaco", "Monaco"),
+];
+/// La case d'un repas a l'etranger un jour sans nuitee de l'engagement : la compagnie a paye l'hotel.
+pub const LOGE: &str = "loge";
+/// L'aide de chaque case d'une ligne de frais, les montants de son annee (`{case: aide}`, avec `CASES`).
+pub const AIDES: &str = "_aides";
+
 /// Les deux limites d'une rubrique de frais au barème, et la case de la ligne qui choisit la plus haute.
 struct Limites {
     rubrique: &'static str,
@@ -1299,31 +1316,63 @@ struct Limites {
     case: &'static str,
     haute: &'static str,
     basse: &'static str,
+    /// La cle de `frais_hors_metropole` qui porte sa limite hors de la metropole.
+    hors_metropole: &'static str,
 }
 
 const FRAIS_LIMITES: [Limites; 2] = [
-    Limites { rubrique: NUITEE, au_dela: NUITEE_AU_DELA, cle: "logement_grand_deplacement", case: PARIS, haute: "paris", basse: "autres" },
-    Limites { rubrique: REPAS, au_dela: REPAS_AU_DELA, cle: "repas_deplacement", case: RESTAURANT, haute: "restaurant", basse: "hors_restaurant" },
+    Limites { rubrique: NUITEE, au_dela: NUITEE_AU_DELA, cle: "logement_grand_deplacement", case: PARIS, haute: "paris", basse: "autres", hors_metropole: "logement" },
+    Limites { rubrique: REPAS, au_dela: REPAS_AU_DELA, cle: "repas_deplacement", case: RESTAURANT, haute: "restaurant", basse: "hors_restaurant", hors_metropole: "repas" },
 ];
 
-/// LES FRAIS DE DEPLACEMENT AU-DELA DE LEUR LIMITE. Arrete du 4 septembre 2025
-/// (`atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md`), montants revalorises chaque
-/// 1er janvier (art. 10 ; valeurs de l'annee : BOSS, Frais professionnels,
-/// `atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt`) ; bareme, `repas_deplacement` et
-/// `logement_grand_deplacement`.
-/// - Le repas (art. 3) : la limite du salarie en deplacement « empêché de regagner sa résidence » (1°), quand il est
-///   contraint de prendre son repas au restaurant ou que les usages de la profession l'y conduisent (BOSS § 240-260) ;
-///   sinon celle du repas hors des locaux (3°). En grand deplacement, la limite du 1° (art. 5, I, 1°) : un repas d'un
-///   jour dont la nuit, ou celle de la veille, est une nuitee de l'engagement. Hors de lui, la case
-///   `RESTAURANT` de la ligne dit le fait ; elle n'a lieu d'etre qu'au-dessus de la plus basse.
-/// - La nuitee (art. 5, I, 1°) : le logement et le petit-dejeuner, par jour, a Paris et dans les Hauts-de-Seine, la
-///   Seine-Saint-Denis et le Val-de-Marne, ou dans les autres departements de metropole ; le montant de Paris ne vaut pas
-///   ailleurs (BOSS § 1310). La case `PARIS` de la ligne dit le lieu.
-/// - Au-dela de la limite, la fraction excedentaire entre dans l'assiette, sauf si l'employeur prouve qu'elle a ete
-///   utilisee conformement a son objet (BOSS § 270 ; § 1280) : une ligne soumise (`au_dela`), sauf quand la ligne dit
-///   que la compagnie garde le justificatif (`JUSTIFICATIF`). La ligne de frais garde la limite, hors assiette.
-/// - Sous deduction forfaitaire specifique, les frais que l'annexe 2 de l'arrete met hors assiette pour la profession
-///   (I, 2° et 5°, `atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt`
+/// La reduction de l'indemnite de mission a l'etranger quand le salarie est loge gratuitement (arrete du 3 juillet
+/// 2006, art. 2 ; BOSS § 1390).
+const REDUCTION_LOGE: Decimal = Decimal::from_parts(65, 0, 0, false, 2);
+
+/// L'aide d'une case, avec les limites de l'annee (`haute`, `basse`).
+fn aide_de_case(case: &str, rubrique: &str, limites: Option<(Decimal, Decimal)>) -> Option<String> {
+    let eur = socle::texte::euros;
+    match (case, limites) {
+        (PARIS, Some((h, b))) if rubrique == NUITEE => Some(format!("Paris ou petite couronne : la nuitée est exonérée jusqu'à {} au lieu de {}.", eur(h), eur(b))),
+        (RESTAURANT, Some((h, b))) => Some(format!(
+            "Le salarié ne pouvait pas rentrer et a dû manger au restaurant : le repas est exonéré jusqu'à {} au lieu de {}.",
+            eur(h),
+            eur(b)
+        )),
+        (JUSTIFICATIF, _) => Some("La compagnie garde la facture : tout le montant est exonéré.".to_string()),
+        (LOGE, _) => Some("La compagnie a payé l'hôtel : la limite du jour est réduite de 65 %.".to_string()),
+        _ => None,
+    }
+}
+
+/// Le jour d'une date de ligne (`"AAAA-MM-JJ"` ou `{"jour": …}`).
+fn jour_de(x: &Value) -> Resultat<Jour> {
+    d(x.get("jour").unwrap_or(x))
+}
+
+/// LES FRAIS DE DEPLACEMENT AU-DELA DE LEUR LIMITE. Au-dela, la fraction excedentaire entre dans l'assiette, sauf si
+/// l'employeur prouve qu'elle a ete utilisee conformement a son objet (BOSS § 270 ; § 1280) : une ligne soumise
+/// (`au_dela`), sauf quand la ligne dit que la compagnie garde le justificatif (`JUSTIFICATIF`). La ligne de frais garde
+/// la limite, hors assiette. Le lieu de la ligne (`TERRITOIRE`) dit la limite :
+/// - EN METROPOLE (arrete du 4 septembre 2025,
+///   `atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md`, montants revalorises chaque
+///   1er janvier, art. 10 ; BOSS, Frais professionnels, `atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt` ;
+///   bareme `repas_deplacement` et `logement_grand_deplacement`) :
+///   - le repas (art. 3) : la limite du salarie en deplacement « empêché de regagner sa résidence » (1°), quand il est
+///     contraint de prendre son repas au restaurant ou que les usages de la profession l'y conduisent (BOSS § 240-260) ;
+///     sinon celle du repas hors des locaux (3°). En grand deplacement, la limite du 1° (art. 5, I, 1°) : un repas d'un
+///     jour dont la nuit, ou celle de la veille, est une nuitee de l'engagement. Hors de lui, la case `RESTAURANT` de la
+///     ligne dit le fait ; elle n'a lieu d'etre qu'au-dessus de la plus basse ;
+///   - la nuitee (art. 5, I, 1°) : le logement et le petit-dejeuner, par jour, a Paris et dans les Hauts-de-Seine, la
+///     Seine-Saint-Denis et le Val-de-Marne, ou dans les autres departements de metropole (BOSS § 1310) : la case `PARIS`.
+/// - EN OUTRE-MER ET A MONACO : les taux des indemnites de mission de l'Etat (arrete du 3 juillet 2006, art. 1, a) ;
+///   BOSS § 1340-1360 et 1400 ; bareme `frais_hors_metropole`), par nuit et par repas ; dans les Terres australes, aucun
+///   forfait (§ 1370) : seule la depense justifiee s'exonere.
+/// - A L'ETRANGER : une seule limite par jour pour le logement et les repas, l'indemnite journaliere de mission du lieu
+///   (§ 1380-1390, `droit::missions`), reduite de 65 % quand la compagnie paie l'hotel (`LOGE`, art. 2 de l'arrete de
+///   2006) ; ce qui la depasse s'impute d'abord sur la nuitee du jour, puis sur ses repas.
+/// - Sous deduction forfaitaire specifique, les frais que l'annexe 2 de l'arrete de 2025 met hors assiette pour la
+///   profession (I, 2° et 5°, `atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt`
 ///   l. 8 et 11 ; bareme, `frais_hors_assiette`) le sont entiers : « en cas de déduction forfaitaire spécifique » (l. 5).
 ///   Tout autre salarie suit les limites.
 fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
@@ -1332,76 +1381,89 @@ fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui:
         return Ok((lignes, Vec::new()));
     }
     let sal = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
+    let cochee = |l: &Value, k: &str| l.get(k).is_some_and(vrai);
+    let territoire = |l: &Value| l.get(TERRITOIRE).and_then(Value::as_str).filter(|t| !t.is_empty()).map(String::from);
+    let a_l_etranger = |l: &Value| territoire(l).is_some_and(|t| !TERRITOIRES.iter().any(|(k, _)| *k == t));
     // Les nuits payees en nuitee : le salarie y est en grand deplacement.
     let mut nuits: Vec<Jour> = Vec::new();
     for l in lignes.iter().filter(|l| l.get("rubrique").and_then(Value::as_str) == Some(NUITEE)) {
         for x in l.get("dates").and_then(Value::as_array).into_iter().flatten() {
-            nuits.push(d(x.get("jour").unwrap_or(x))?);
+            nuits.push(jour_de(x)?);
         }
     }
     let (mut out, mut au_dela, mut avis) = (Vec::new(), Vec::new(), Vec::new());
+    // Les lignes a l'etranger se comptent ensemble, jour par jour, apres les autres : leur rang dans `out`.
+    let mut etrangeres: Vec<usize> = Vec::new();
     for mut l in lignes {
         let Some(lim) = limites_de(&l) else {
             out.push(l);
             continue;
         };
-        let cochee = |l: &Value, k: &str| l.get(k).is_some_and(vrai);
         let mut cases: Vec<&str> = Vec::new();
         let taux = match l.get("taux") {
             Some(t) if !t.is_null() && !t.as_str().is_some_and(|s| s.trim().is_empty()) => Some(dec(t)?),
             _ => None,
         };
         let dates: Vec<Value> = l.get("dates").and_then(Value::as_array).cloned().unwrap_or_default();
+        let jour = match dates.first() {
+            Some(x) => jour_de(x)?,
+            None => premier_du_mois(mois)?,
+        };
+        let bar = ctx.bareme(&jour)?;
+        let ent = ctx.entreprise_au(&jour)?;
+        let de_l_annexe = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
+        let ou = territoire(&l);
+        // Les deux limites de la metropole, quand le bareme les porte : les cases et leurs aides les disent.
+        let metropole = bar.get(lim.cle).and_then(|x| Some((dec(x.get(lim.haute)?).ok()?, dec(x.get(lim.basse)?).ok()?)));
         let mut part = None;
-        if let Some(taux) = taux {
-            let jour = match dates.first() {
-                Some(x) => d(x.get("jour").unwrap_or(x))?,
-                None => premier_du_mois(mois)?,
+        if a_l_etranger(&l) && !de_l_annexe {
+            etrangeres.push(out.len());
+        } else if let (Some(taux), false) = (taux, de_l_annexe) {
+            let erreur_bareme = |cle: &str| {
+                format!(
+                    "{} : le barème {} ne porte pas la limite d'exonération de la ligne à {} (`{}`). Rien n'est calculé.",
+                    qui,
+                    jour.an,
+                    socle::texte::euros(taux),
+                    cle
+                )
             };
-            let bar = ctx.bareme(&jour)?;
-            let ent = ctx.entreprise_au(&jour)?;
-            let de_l_annexe = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
-            if !de_l_annexe {
-                let limites = bar.get(lim.cle).ok_or_else(|| {
-                    format!(
-                        "{} : le barème {} ne porte pas la limite d'exonération de la ligne à {} (`{}`). Rien n'est calculé.",
-                        qui,
-                        jour.an,
-                        socle::texte::euros(taux),
-                        lim.cle
-                    )
-                })?;
-                let limite_de = |k: &str| -> Resultat<Decimal> { dec(limites.get(k).ok_or_else(|| socle::fichiers::absent(lim.cle))?) };
-                let (haute, basse) = (limite_de(lim.haute)?, limite_de(lim.basse)?);
-                // Un repas d'un jour dont la nuit, ou celle de la veille, est payee en nuitee : le grand deplacement
-                // (art. 5, I, 1°), a la limite haute sans case.
-                let en_grand_deplacement = lim.rubrique == REPAS
-                    && !dates.is_empty()
-                    && dates.iter().try_fold(true, |tout, x| -> Resultat<bool> {
-                        let j = d(x.get("jour").unwrap_or(x))?;
-                        Ok(tout && (nuits.contains(&j) || nuits.contains(&j.plus_jours(-1)?)))
-                    })?;
-                if taux > basse && !en_grand_deplacement {
-                    cases.push(lim.case);
-                }
-                let limite = if en_grand_deplacement || cochee(&l, lim.case) { haute } else { basse };
-                if taux > limite {
-                    cases.push(JUSTIFICATIF);
-                    if !cochee(&l, JUSTIFICATIF) {
-                        part = Some((taux, limite, haute));
+            let limite = match ou.as_deref() {
+                None => {
+                    let (haute, basse) = metropole.ok_or_else(|| erreur_bareme(lim.cle))?;
+                    // Un repas d'un jour dont la nuit, ou celle de la veille, est payee en nuitee : le grand deplacement
+                    // (art. 5, I, 1°), a la limite haute sans case.
+                    let en_grand_deplacement = lim.rubrique == REPAS
+                        && !dates.is_empty()
+                        && dates.iter().try_fold(true, |tout, x| -> Resultat<bool> {
+                            let j = jour_de(x)?;
+                            Ok(tout && (nuits.contains(&j) || nuits.contains(&j.plus_jours(-1)?)))
+                        })?;
+                    if taux > basse && !en_grand_deplacement {
+                        cases.push(lim.case);
                     }
+                    if en_grand_deplacement || cochee(&l, lim.case) { haute } else { basse }
+                }
+                Some("taaf") => Decimal::ZERO,
+                Some(t) => {
+                    let cle = format!("frais_hors_metropole.{}.{}", t, lim.hors_metropole);
+                    bar.get("frais_hors_metropole").and_then(|x| x.get(t)).and_then(|x| x.get(lim.hors_metropole)).map(dec).transpose()?.ok_or_else(|| erreur_bareme(&cle))?
+                }
+            };
+            if taux > limite {
+                cases.push(JUSTIFICATIF);
+                if !cochee(&l, JUSTIFICATIF) {
+                    part = Some((taux, limite));
                 }
             }
         }
         for k in [lim.case, JUSTIFICATIF] {
-            if cochee(&l, k) && !cases.contains(&k) {
+            if cochee(&l, k) && !cases.contains(&k) && (k == JUSTIFICATIF || ou.is_none()) {
                 cases.push(k);
             }
         }
-        if !cases.is_empty() {
-            l[CASES] = Value::Array(cases.iter().map(|k| Value::String(k.to_string())).collect());
-        }
-        if let Some((taux, limite, haute)) = part {
+        marquer_les_cases(&mut l, &cases, lim.rubrique, metropole);
+        if let Some((taux, limite)) = part {
             let mut p = Map::new();
             p.insert("rubrique".into(), Value::String(lim.au_dela.into()));
             p.insert("quantite".into(), l.get("quantite").cloned().unwrap_or(Value::Null));
@@ -1411,15 +1473,16 @@ fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui:
             }
             au_dela.push(Value::Object(p));
             // LA LIGNE COUPEE SE DIT : la limite, ce qui entre dans le brut, et la case qui l'eviterait.
+            let haute = metropole.map(|m| m.0);
             let (quoi, unite, case) = if lim.rubrique == NUITEE {
-                ("nuitée", "nuit", if cochee(&l, PARIS) || limite == haute { "" } else { "« Paris ou petite couronne » si c'est le lieu, " })
+                ("nuitée", "nuit", if ou.is_some() || cochee(&l, PARIS) || Some(limite) == haute { "" } else { "« Paris ou petite couronne » si c'est le lieu, ou " })
             } else {
-                ("repas", "repas", if cochee(&l, RESTAURANT) || limite == haute { "" } else { "« au restaurant » s'il y est contraint, " })
+                ("repas", "repas", if ou.is_some() || cochee(&l, RESTAURANT) || Some(limite) == haute { "" } else { "« au restaurant » s'il y est contraint, ou " })
             };
             avis.push(Avis {
                 info: true,
                 texte: format!(
-                    "{} : {} de {} au-dessus de la limite de {} : {} par {} entrent dans le brut. Cocher {}ou « justificatif conservé » si la compagnie garde la facture.",
+                    "{} : {} de {} au-dessus de la limite de {} : {} par {} entrent dans le brut. Cocher {}« justificatif conservé » si la compagnie garde la facture.",
                     qui,
                     quoi,
                     socle::texte::euros(taux),
@@ -1434,9 +1497,148 @@ fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois: &str, qui:
         }
         out.push(l);
     }
+    let (parts, dits) = frais_a_l_etranger(&mut out, &etrangeres, &nuits, qui)?;
+    avis.extend(dits);
     // Les parts au-dela viennent apres les lignes saisies : une ligne garde son rang (la case de l'ecran le lit).
     out.extend(au_dela);
+    out.extend(parts);
     Ok((out, avis))
+}
+
+/// Pose sur la ligne `l` les cases qui ont lieu d'etre (`CASES`) et leurs aides (`AIDES`).
+fn marquer_les_cases(l: &mut Value, cases: &[&str], rubrique: &str, metropole: Option<(Decimal, Decimal)>) {
+    if cases.is_empty() {
+        return;
+    }
+    l[CASES] = Value::Array(cases.iter().map(|k| Value::String(k.to_string())).collect());
+    let aides: Map<String, Value> = cases.iter().filter_map(|k| aide_de_case(k, rubrique, metropole).map(|a| (k.to_string(), Value::String(a)))).collect();
+    l[AIDES] = Value::Object(aides);
+}
+
+/// LES LIGNES A L'ETRANGER (`etrangeres`, leurs rangs dans `lignes`), jour par jour : le montant du jour de chaque ligne
+/// (son taux par sa quantite d'un jour), leur somme, et l'indemnite de mission du lieu du jour (celui de sa nuitee, sinon
+/// du premier repas), reduite de 65 % un jour sans nuitee dont un repas dit que la compagnie a paye l'hotel (`LOGE`).
+/// Ce qui depasse s'impute sur la nuitee du jour, puis sur les repas, hors des lignes au justificatif conserve : une
+/// part soumise par ecart d'un jour, et la ligne garde ce qui reste exonere sur toute sa quantite. Rend les parts
+/// soumises et les avis.
+fn frais_a_l_etranger(lignes: &mut [Value], etrangeres: &[usize], nuits: &[Jour], qui: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+    let cochee = |l: &Value, k: &str| l.get(k).is_some_and(vrai);
+    if etrangeres.is_empty() {
+        return Ok((Vec::new(), Vec::new()));
+    }
+    // Pour chaque ligne : ses jours, et ce qu'elle paie un jour (taux x quantite d'un jour).
+    struct Etrangere {
+        rang: usize,
+        jours: Vec<(Jour, Value)>,
+        par_jour: Decimal,
+        unites: Decimal,
+        taux: Decimal,
+        nuitee: bool,
+    }
+    let mut es: Vec<Etrangere> = Vec::new();
+    for &i in etrangeres {
+        let l = &lignes[i];
+        let taux = match l.get("taux") {
+            Some(t) if !t.is_null() && !t.as_str().is_some_and(|s| s.trim().is_empty()) => dec(t)?,
+            _ => continue,
+        };
+        let quantite = l.get("quantite").map(dec).transpose()?.unwrap_or(Decimal::ONE);
+        let dates: Vec<Value> = l.get("dates").and_then(Value::as_array).cloned().unwrap_or_default();
+        if dates.is_empty() {
+            return Err(format!("{} : une ligne de frais à l'étranger dit ses jours : l'indemnité de mission est celle d'un jour. Rien n'est calculé.", qui));
+        }
+        let mut jours = Vec::new();
+        for x in &dates {
+            jours.push((jour_de(x)?, x.clone()));
+        }
+        let unites = quantite / Decimal::from(jours.len() as u64);
+        es.push(Etrangere { rang: i, jours, par_jour: taux * unites, unites, taux, nuitee: l.get("rubrique").and_then(Value::as_str) == Some(NUITEE) });
+    }
+    // Les cases d'une ligne a l'etranger : le justificatif quand elle depasse, l'hotel paye d'un repas un jour sans nuitee.
+    let mut tous_les_jours: Vec<Jour> = es.iter().flat_map(|e| e.jours.iter().map(|(j, _)| *j)).collect();
+    tous_les_jours.sort();
+    tous_les_jours.dedup();
+    // L'ecart de chaque ligne, jour par jour.
+    let mut ecarts: Vec<Vec<Decimal>> = es.iter().map(|e| vec![Decimal::ZERO; e.jours.len()]).collect();
+    let mut limites_du_jour: Vec<(Jour, Decimal, String)> = Vec::new();
+    for j in &tous_les_jours {
+        let du_jour: Vec<(usize, usize)> = es.iter().enumerate().filter_map(|(k, e)| e.jours.iter().position(|(x, _)| x == j).map(|p| (k, p))).collect();
+        let nuitee = du_jour.iter().find(|(k, _)| es[*k].nuitee);
+        let lieu_de = |k: usize| lignes[es[k].rang].get(TERRITOIRE).and_then(Value::as_str).unwrap_or("").to_string();
+        let lieu = lieu_de(nuitee.or(du_jour.first()).map_or(0, |x| x.0));
+        let indemnite = droit::missions::du_jour(&lieu, j).map_err(|m| format!("{} : {}", qui, m))?;
+        socle::fichiers::noter_valeur(&format!("mission {} {}", lieu, j.iso()), indemnite.empreinte());
+        let loge = nuitee.is_none() && !nuits.contains(j) && du_jour.iter().any(|(k, _)| cochee(&lignes[es[*k].rang], LOGE));
+        let limite = if loge { socle::num::eur2(indemnite.euros * (Decimal::ONE - REDUCTION_LOGE)) } else { indemnite.euros };
+        let total: Decimal = du_jour.iter().map(|(k, _)| es[*k].par_jour).sum();
+        let mut reste = (total - limite).max(Decimal::ZERO);
+        let mut ordre = du_jour.clone();
+        ordre.sort_by_key(|(k, _)| !es[*k].nuitee);
+        for (k, p) in ordre {
+            if reste <= Decimal::ZERO || cochee(&lignes[es[k].rang], JUSTIFICATIF) {
+                continue;
+            }
+            let pris = reste.min(es[k].par_jour);
+            ecarts[k][p] = pris;
+            reste -= pris;
+        }
+        limites_du_jour.push((*j, limite, droit::missions::nom(&lieu)?.unwrap_or(lieu)));
+    }
+    let (mut parts, mut avis) = (Vec::new(), Vec::new());
+    for (k, e) in es.iter().enumerate() {
+        let rubrique = if e.nuitee { NUITEE } else { REPAS };
+        let au_dela = if e.nuitee { NUITEE_AU_DELA } else { REPAS_AU_DELA };
+        let mut cases: Vec<&str> = Vec::new();
+        // Le justificatif, sur la ligne qui porte un ecart (ou qui l'a deja coche).
+        let depasse_un_jour = ecarts[k].iter().any(|x| *x > Decimal::ZERO);
+        if !e.nuitee && e.jours.iter().any(|(j, _)| !nuits.contains(j)) || cochee(&lignes[e.rang], LOGE) {
+            cases.push(LOGE);
+        }
+        if depasse_un_jour || cochee(&lignes[e.rang], JUSTIFICATIF) {
+            cases.push(JUSTIFICATIF);
+        }
+        marquer_les_cases(&mut lignes[e.rang], &cases, rubrique, None);
+        // Les jours groupes par ecart : une part soumise par groupe ; la ligne garde ce qui reste exonere, sur toute sa
+        // quantite.
+        let mut groupes: Vec<(Decimal, Vec<Value>)> = Vec::new();
+        for ((_, x), ecart) in e.jours.iter().zip(&ecarts[k]) {
+            match groupes.iter_mut().find(|(g, _)| g == ecart) {
+                Some((_, v)) => v.push(x.clone()),
+                None => groupes.push((*ecart, vec![x.clone()])),
+            }
+        }
+        let soumis: Decimal = ecarts[k].iter().sum();
+        if soumis > Decimal::ZERO {
+            let quantite_ligne = e.unites * Decimal::from(e.jours.len() as u64);
+            let l = &mut lignes[e.rang];
+            l[TAUX_SAISI] = nombre_dec(e.taux);
+            l["taux"] = nombre_dec(e.taux - soumis / quantite_ligne);
+        }
+        for (ecart, dates) in groupes.into_iter().filter(|(g, _)| *g > Decimal::ZERO) {
+            let quantite = e.unites * Decimal::from(dates.len() as u64);
+            let mut p = Map::new();
+            p.insert("rubrique".into(), Value::String(au_dela.into()));
+            p.insert("quantite".into(), nombre_dec(quantite));
+            p.insert("taux".into(), nombre_dec(ecart / e.unites));
+            p.insert("dates".into(), Value::Array(dates.clone()));
+            parts.push(Value::Object(p));
+            let premier = dates.first().map(jour_de).transpose()?;
+            if let Some((j0, lim, lieu)) = limites_du_jour.iter().find(|(j, _, _)| Some(*j) == premier) {
+                avis.push(Avis {
+                    info: true,
+                    texte: format!(
+                        "{} : à l'étranger ({}), la limite du {} est de {} pour la nuitée et les repas du jour : {} par jour entrent dans le brut. Cocher « justificatif conservé » si la compagnie garde la facture.",
+                        qui,
+                        lieu,
+                        j0.jj_mm_aaaa(),
+                        socle::texte::euros(*lim),
+                        socle::texte::euros(ecart)
+                    ),
+                });
+            }
+        }
+    }
+    Ok((parts, avis))
 }
 
 /// Un montant en nombre JSON.

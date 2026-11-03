@@ -64,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
         charge: &[MOIS, CARTES],
         exemple: r#"{"mois":"2026-11","cartes":[]}"#,
-        rend: "paies (une par engagement, ses bornes debut et fin, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement ; cases : celles qu'une ligne de frais appelle), les trois nombres de chaque carte, le mois",
+        rend: "paies (une par engagement, ses bornes debut et fin, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement ; cases : celles qu'une ligne de frais appelle, avec leur aide), les trois nombres de chaque carte, le mois",
         refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
         acte: Acte::Lit,
         avance: false,
@@ -345,13 +345,14 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
 /// les relit pour les remettre dans ses champs, et les reecrit ensuite.
 /// `base` et `taux_majoration` d'une ligne en pourcentage, surtout : sans eux,
 /// la page lirait le `taux` (0.1) comme un pourcentage (0,1 %).
-const CHAMPS_DE_LIGNE_GARDES: [&str; 7] = ["heures", "genre", "base", "taux_majoration", engagement::JUSTIFICATIF, engagement::PARIS, engagement::RESTAURANT];
+const CHAMPS_DE_LIGNE_GARDES: [&str; 9] = ["heures", "genre", "base", "taux_majoration", engagement::JUSTIFICATIF, engagement::PARIS, engagement::RESTAURANT, engagement::TERRITOIRE, engagement::LOGE];
 
 /// Ce que dit, a l'ecran, la case d'une ligne de frais (`engagement::CASES`).
 fn libelle_de_case(case: &str) -> &'static str {
     match case {
         engagement::PARIS => "Paris ou petite couronne",
         engagement::RESTAURANT => "au restaurant",
+        engagement::LOGE => "hôtel payé par la compagnie",
         _ => "justificatif conservé",
     }
 }
@@ -1817,7 +1818,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         // nuitée, le restaurant d'un repas, le justificatif d'un frais au-delà de sa limite (`engagement::frais_au_dela`).
         "cases": e.lignes.iter().enumerate().flat_map(|(i, l)| {
             l.get(engagement::CASES).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str)
-                .map(move |k| json!({"ligne": i, "case": k, "libelle": libelle_de_case(k)}))
+                .map(move |k| json!({"ligne": i, "case": k, "libelle": libelle_de_case(k), "aide": l.get(engagement::AIDES).and_then(|a| a.get(k)).cloned().unwrap_or(Value::Null)}))
         }).collect::<Vec<_>>(),
         "remuneration": p.remuneration.iter().map(|l| json!({
             "rubrique": l.code, "designation": l.designation(),

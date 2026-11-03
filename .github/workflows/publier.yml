@@ -128,6 +128,14 @@ jobs:
       - name: Le moteur Linux
         run: cargo build --release --locked --manifest-path atelier/sources/moteur/Cargo.toml --bin moteur
 
+      # LES TABLES DES MISSIONS A L'ETRANGER (`moteur releve-missions`, moteur/src/atelier/releve/missions.rs) : les indemnites
+      # journalieres et les taux de chancellerie de la DGFiP du jour, relevees et relues avant de livrer. Une paie passee ne
+      # change pas : son empreinte ne retient que les valeurs de ses jours. Le site injoignable, la table du depot part.
+      - name: Les tables des missions a l'etranger
+        run: |
+          "$CARGO_TARGET_DIR/release/moteur" releve-missions atelier/reference/sources logiciel/donnees \
+            || echo "::warning::Les tables des missions n'ont pas ete relevees : celles du depot partent."
+
       # LES MARQUES DE LA LIVRAISON DE FICTIVES (`fictives/.livraison.json`, `fictives/<nom>/.livree.json` : maj.rs,
       # `marquer_les_fictives`), avant l'installeur, qui les pose : une installation de l'installeur retient la livraison
       # qu'elle a et ne la retelecharge pas. Elles ne changent ni l'empreinte ni ce qui se livre. D'abord, les fictives de reference
