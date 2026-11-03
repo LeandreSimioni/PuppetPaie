@@ -1,7 +1,7 @@
 //! CE DONT UNE PAIE DEPEND : l'empreinte est celle d'un engagement, pas d'un mois. Le calcul d'un mois note tout ce qu'il
 //! lit (`socle::fichiers::suivre`) : le contenu de chaque fichier (baremes du socle et de la compagnie, catalogues livres,
-//! effectifs, imprevus...), les fichiers absents, les dossiers parcourus, le jour s'il le lit, le taux de prelevement a
-//! la source de son salarie au jour de son paiement (`pas <salarie> <jour> <mois>`, `droit::pas::taux_dgfip`), et les paies
+//! effectifs...), les fichiers absents, les dossiers parcourus, le jour s'il le lit, le taux de prelevement a
+//! la source de son salarie au jour de son paiement (`pas <salarie> <jour> <mois>`, `droit::pas::taux_dgfip`), ses imprevus (`imprevus <magasin> <salarie>`, `imprevus::du_salarie`), et les paies
 //! validees de son salarie dans les autres mois qu'il lit (`paies <mois> <salarie>`,
 //! `etats::paies_validees`), ou, pour le premier mois d'un permanent, ses contrats payes au mois d'avant, qu'il n'a pas
 //! (`mensuels <mois> <salarie>`, `conges::avant_le_mois`). De la saisie de son mois, chaque paie ne garde que ce dont elle depend :
@@ -118,6 +118,9 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
             }
             if let Some((mois, salarie)) = k.strip_prefix("paies ").and_then(|r| r.split_once(' ')) {
                 return crate::etats::empreinte_des_paies_validees(ctx, mois, Some(salarie)).is_some_and(|e| v == e);
+            }
+            if let Some(salarie) = crate::imprevus::salarie_de_l_entree(k) {
+                return crate::imprevus::empreinte_du_salarie(racine, salarie).is_ok_and(|e| v == e);
             }
             if let Some(reste) = k.strip_prefix("saisie ") {
                 let (mois, salarie) = reste.split_once(' ').map_or((reste, None), |(m, s)| (m, Some(s)));
