@@ -17,7 +17,7 @@
 use std::collections::BTreeMap;
 use std::io::Write;
 
-use printpdf::lopdf::xref::{XrefEntry, XrefType};
+use printpdf::lopdf::xref::XrefEntry;
 use printpdf::lopdf::{Dictionary, Document, Object, ObjectId, Stream, StringFormat};
 
 /// Le nombre d'objets d'un flux d'objets : un lecteur décompresse le flux entier pour en lire un.
@@ -369,7 +369,8 @@ pub fn ajouter(avant: &[u8], doc_avant: &Document, apres: &Document) -> Vec<u8> 
     // Les objets de la mise à jour s'écrivent un par un, jamais dans un flux d'objets : un lecteur qui charge tous
     // les flux d'objets du fichier garde parfois la première version d'un objet (lopdf 0.31 le fait), alors qu'un
     // objet écrit à part l'emporte toujours.
-    let en_flux = matches!(doc_avant.reference_table.cross_reference_type, XrefType::CrossReferenceStream)
+    // La forme de la dernière table d'avant, lue à l'endroit où `startxref` la place : le mot `xref`, ou un flux.
+    let en_flux = !avant.get(doc_avant.xref_start..).map_or(false, |t| t.trim_ascii_start().starts_with(b"xref"))
         && doc_avant.trailer.get(b"Encrypt").is_err();
     let (table, libre) = ecrire_objets(&mut out, &changes, plus_grand + 1, false);
     let mut queue = queue_reprise(&apres.trailer);
