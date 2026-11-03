@@ -516,6 +516,8 @@ struct ReperePose {
     style: Style,
     /// Le pied se mesure depuis le bas de la page, l'en-tête depuis le haut.
     en_bas: bool,
+    /// L'image du bout de la ligne, chargée une fois, et sa descente sous la ligne de base.
+    image: Option<(Picture, Mm)>,
 }
 
 /// Pose le logo en haut à droite de chaque page, l'en-tête et le pied répétés (FORMAT.md), puis
@@ -554,7 +556,13 @@ impl PageDecorator for Decorateur {
             let metrics = r.style.metrics(&context.font_cache);
             let base = if r.en_bas { hauteur - pt(r.repere.distance) } else { pt(r.repere.distance) };
             let y = base - metrics.ascent;
-            let (gauche, droite) = (self.gauche, area.size().width - self.droite);
+            let (gauche, mut droite) = (self.gauche, area.size().width - self.droite);
+            // L'image tient le bout de la ligne ; le texte de droite s'arrête une espace avant elle.
+            if let Some((image, descente)) = &r.image {
+                let x = droite - image.width();
+                image.draw_at(&area, Position::new(x, base + *descente - image.height()));
+                droite = x - r.style.text_width(&context.font_cache, " ");
+            }
             let remplacer = |t: &str| {
                 t.replace("{page}", &n.to_string()).replace("{pages}", &self.total.to_string())
             };
@@ -977,6 +985,8 @@ fn fabriquer_passe(json: &str, total: usize) -> Result<(Vec<u8>, usize, bool), R
         courier,
     };
     doc.set_title(d.titre.clone());
+    // Chaque PDF que fait la fabrique porte le nom du logiciel dans ses propriétés.
+    doc.set_creator("PuppetPaie");
     doc.set_paper_size(Size::new(pt(d.page.largeur), pt(d.page.hauteur)));
     doc.set_minimal_conformance();
     doc.set_font_size(d.police.taille);
@@ -996,10 +1006,15 @@ fn fabriquer_passe(json: &str, total: usize) -> Result<(Vec<u8>, usize, bool), R
             for t in [&r.gauche, &r.centre, &r.droite] {
                 verifier_texte(doc.context(), if r.gras { base.bold() } else { base }, t, nom)?;
             }
+            let image = match &r.image {
+                Some(i) => Some((charger_image(&i.chemin, i.largeur, nom, "image")?, pt(i.descente))),
+                None => None,
+            };
             reperes.push(ReperePose {
                 repere: r.clone(),
                 style: if r.gras { base.bold() } else { base },
                 en_bas,
+                image,
             });
         }
     }

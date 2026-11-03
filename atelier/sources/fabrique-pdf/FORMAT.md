@@ -89,6 +89,7 @@ telle quelle.
   est un refus.
 - `titre` : sans lui, le titre du fichier PDF est celui du premier document
   modèle, marqueurs substitués et sans gras.
+- Les propriétés du PDF (créateur et producteur) disent toujours « PuppetPaie ».
 - `police` : Liberation Sans (les métriques d'Helvetica), embarquée **en
   sous-ensemble** : le PDF ne porte que les glyphes des caractères imprimés.
   `interligne` est un facteur de la taille.
@@ -406,6 +407,12 @@ le corps, donc ne changent pas les sauts de page.
   la description d'y veiller.
 - `premiere_page` (vrai par défaut) : faux, et la première page n'a pas ce repère (un
   état y porte déjà son grand titre, l'en-tête n'est que le rappel des suivantes).
+- `image` (facultatif) : `{"chemin": "/…/mot.svg", "largeur": 34, "descente": 4.5}`, une image
+  posée au bout de la ligne, contre la marge droite ; le texte de `droite` s'arrête une espace
+  avant elle. `largeur` en points, hauteur selon les proportions ; son bas descend de
+  `descente` points (0 par défaut) sous la ligne de base, pour qu'un mot dessiné s'y pose
+  comme une lettre. SVG, PNG ou JPEG, comme le `logo`. Le bulletin y signe « Édité avec » et
+  le mot Puppetpaie dessiné.
 - **Le total des pages** demande deux passes : un `{pages}` fait mettre le document en
   page une fois pour compter, puis une seconde avec le vrai nombre. L'en-tête et le
   pied sont dans les marges, la largeur d'un chiffre ne change donc aucun saut de page,

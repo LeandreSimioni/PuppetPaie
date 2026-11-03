@@ -18,16 +18,12 @@
 <header class="bandeau">
   <!-- A GAUCHE, AVANT LE LOGO, AVEC UNE MAISON : le
        chemin vers l'accueil se cherche la ou commence la page. -->
-  <button type="button" class="retour-accueil" id="fenetre-accueil" title="Les compagnies"><svg viewBox="0 0 24 24" class="maison" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 9.5V20h5v-6h3v6h5V9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg> Les compagnies</button>
+  <button type="button" class="retour-accueil" id="fenetre-accueil" title="Les compagnies"><svg viewBox="4 4 92 92" class="maison" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 51 C26 38 38 27 50 14 C62 26 74 37 89 49"/><path d="M23 43 C21 60 24 75 22 88 C40 90 60 87 79 89 C77 73 79 58 77 42"/><path d="M42 88 C42 79 41 71 43 64 C48 61 54 62 58 64 C59 72 57 80 58 87"/><path d="M67 30 C67 25 67 21 68 17 C70 16 73 16 75 17 C75 22 74 28 75 35"/></svg> Les compagnies</button>
+  <!-- LA MARQUE : la marotte €P, dessinée au feutre ; elle porte le nom du logiciel. -->
   <div class="marque">
-    <svg viewBox="0 0 64 40" class="logo" aria-hidden="true">
-      <rect x="0" y="0" width="64" height="3" class="filet"/>
-      <text x="0" y="34" class="pp">PP</text>
-    </svg>
+    <svg viewBox="70 125 455 515" class="logo" role="img" aria-label="PuppetPaie"><g fill="currentColor" stroke="currentColor"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="30.5"><path d="M262 164 C186 156 124 218 126 300 C128 382 188 446 266 438"/><path d="M92 268 C130 264 176 265 214 269"/><path d="M98 332 C134 329 172 331 208 334"/><path d="M301 146 C298 280 305 450 297 618"/><path d="M340 170 C420 132 504 196 504 298 C504 398 424 466 338 432"/><g stroke="none"><circle cx="92" cy="268" r="17"/><circle cx="98" cy="332" r="17"/><circle cx="266" cy="438" r="17"/><circle cx="338" cy="432" r="17"/><circle cx="297" cy="618" r="17"/></g></g></g></svg>
     <div>
-      <strong>PuppetPaie</strong>
-      <span class="sous">paies d'intermittents</span>
-      <!-- La version, sous le nom, remplie par le serveur. -->
+      <!-- La version, remplie par le serveur. -->
       <span class="sous version">{{VERSION_DITE}}</span>
       <span class="copie-dev">{{COPIE_TEXTE}}</span>
     </div>

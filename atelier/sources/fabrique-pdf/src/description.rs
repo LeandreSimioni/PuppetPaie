@@ -75,6 +75,17 @@ struct RepereBrut {
     distance: f32,
     #[serde(default = "vrai")]
     premiere_page: bool,
+    image: Option<ImageRepereBrute>,
+}
+
+/// L'image qui suit le texte de droite d'un repère (FORMAT.md, « En-tête et pied de page »).
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ImageRepereBrute {
+    chemin: String,
+    largeur: f32,
+    #[serde(default)]
+    descente: f32,
 }
 
 fn distance_defaut() -> f32 {
@@ -487,6 +498,17 @@ pub struct Repere {
     pub gras: bool,
     pub distance: f32,
     pub premiere_page: bool,
+    /// Une image posée au bout de la ligne, à droite, après le texte de droite.
+    pub image: Option<ImageRepere>,
+}
+
+/// L'image d'un repère : `largeur` en points, hauteur selon les proportions ; son bas descend de
+/// `descente` points sous la ligne de base (la jambe d'un mot dessiné).
+#[derive(Debug, Clone)]
+pub struct ImageRepere {
+    pub chemin: String,
+    pub largeur: f32,
+    pub descente: f32,
 }
 
 impl Repere {
@@ -1146,6 +1168,14 @@ fn lire_repere(r: Option<RepereBrut>, nom: &str, police: &Police) -> Result<Opti
         droite: r.droite,
         gras: r.gras,
         premiere_page: r.premiere_page,
+        image: match r.image {
+            Some(i) => Some(ImageRepere {
+                largeur: strictement_positif(i.largeur, "largeur", nom)?,
+                descente: positif_ou_nul(i.descente, "descente", nom)?,
+                chemin: i.chemin,
+            }),
+            None => None,
+        },
     }))
 }
 
