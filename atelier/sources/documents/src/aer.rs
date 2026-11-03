@@ -400,6 +400,12 @@ pub fn verifier(donnees: &[u8], paies: &[PaieAer]) -> R<Vec<String>> {
     Ok(ecarts(&lues, paies))
 }
 
+/// La largeur des cases « Signature de l'employeur » et « Cachet de l'entreprise » du cadre 5 de l'attestation, en
+/// points : celles du formulaire de France Travail (relevées sur une vraie attestation, le gabarit de la fictive les
+/// reprend : `envois::aer_fictive`). Ce qu'il faut de pixels à une image posée là (`crate::largeur_imprimee`).
+pub const CASE_SIGNATURE: f64 = 121.0;
+pub const CASE_CACHET: f64 = 161.0;
+
 /// La signature occupe le haut de la case, sur 80 % de sa largeur.
 ///
 /// Meme parti que pour le certificat Conges Spectacles : un tampon pose en

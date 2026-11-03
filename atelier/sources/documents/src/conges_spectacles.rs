@@ -82,6 +82,8 @@ const COURIER: &str = "cour";
 
 /// Le cadre de la signature : x0, y0, x1, y1.
 const SIGNATURE_CADRE: (f64, f64, f64, f64) = (441.84, 775.50, 521.84, 809.10);
+/// La largeur de ce cadre (`largeur_imprimee`).
+pub const SIGNATURE_LARGEUR: f64 = SIGNATURE_CADRE.2 - SIGNATURE_CADRE.0;
 
 /// (x, ligne de base, texte, police, corps) : le fond imprime.
 #[rustfmt::skip]

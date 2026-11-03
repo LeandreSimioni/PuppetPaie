@@ -19,7 +19,8 @@ const FILET: Rvb = (0xCC, 0xCC, 0xCC); // .sign td
 const LIGNE_CORPS: f32 = 7.5 * 1.25;
 /// `.cite { margin-left: 12pt }`
 const RETRAIT_CITATION: f32 = 12.0;
-const SIGNATURE_LARGEUR: f32 = 92.0; // l'image fait 792 x 384 px
+/// La largeur imprimée de la signature de l'employeur dans un contrat (`documents::largeur_imprimee`).
+pub const SIGNATURE_LARGEUR: f32 = 92.0;
 /// La case de la mention de signature de l'artiste, posée sur le contrat parti (`marquage::contresigner`) :
 /// 46 pt de haut, filet gris à 0,5 pt, texte de 6,6 pt à 1,35, en retrait de 4 pt et 3 pt, 3 pt sous la ligne
 /// « signature » de la case de l'artiste (7 pt).

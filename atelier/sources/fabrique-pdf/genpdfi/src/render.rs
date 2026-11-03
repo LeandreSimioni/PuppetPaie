@@ -361,10 +361,7 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
     pdf.compress();
     canonicalize(&mut pdf);
 
-    let mut out = Vec::new();
-    pdf.save_to(&mut out)
-        .map_err(|e| Error::new(format!("Failed to write the document: {}", e), ErrorKind::Internal))?;
-    Ok(out)
+    Ok(crate::pdf_ecriture::compact(&pdf))
 }
 
 /// Compresses the raw pixels of the images (8 bits per component, grey or RGB, soft masks
@@ -373,14 +370,24 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
 /// stream says it (`DecodeParms`, `Predictor 15`, PDF 1.7 § 7.4.4.4).  A plain Flate of the pixels,
 /// which is what `compress` does, keeps a gradient or an anti-aliased edge almost whole.
 fn predict_images(pdf: &mut printpdf::lopdf::Document) -> Result<(), Error> {
+    for o in pdf.objects.values_mut() {
+        if let printpdf::lopdf::Object::Stream(s) = o {
+            predict_image(s)?;
+        }
+    }
+    Ok(())
+}
+
+/// Une image (8 bits, gris ou RVB), comprimée avec les prédicteurs PNG (voir `predict_images`) ; tout autre flux
+/// reste tel quel.
+pub fn predict_image(s: &mut printpdf::lopdf::Stream) -> Result<(), Error> {
     use printpdf::lopdf::{Dictionary, Object};
     use std::io::Write as _;
-    for o in pdf.objects.values_mut() {
-        let Object::Stream(s) = o else { continue };
+    {
         let name = |k: &[u8]| s.dict.get(k).ok().and_then(|o| o.as_name().ok()).map(|n| n.to_vec());
         let int = |k: &[u8]| s.dict.get(k).ok().and_then(|o| o.as_i64().ok());
         if name(b"Subtype").as_deref() != Some(b"Image") || s.dict.get(b"DecodeParms").is_ok() {
-            continue;
+            return Ok(());
         }
         // printpdf comprime déjà en `release` (Flate seul) : on repart des pixels.
         let raw = match s.dict.get(b"Filter").ok() {
@@ -392,12 +399,12 @@ fn predict_images(pdf: &mut printpdf::lopdf::Document) -> Result<(), Error> {
                     _ => false,
                 };
                 if !flate {
-                    continue;
+                    return Ok(());
                 }
                 let mut out = Vec::new();
                 use std::io::Read as _;
                 if flate2::read::ZlibDecoder::new(&s.content[..]).read_to_end(&mut out).is_err() {
-                    continue;
+                    return Ok(());
                 }
                 out
             }
@@ -405,13 +412,13 @@ fn predict_images(pdf: &mut printpdf::lopdf::Document) -> Result<(), Error> {
         let colors = match name(b"ColorSpace").as_deref() {
             Some(b"DeviceRGB") => 3usize,
             Some(b"DeviceGray") => 1,
-            _ => continue,
+            _ => return Ok(()),
         };
-        let (Some(w), Some(h), Some(8)) = (int(b"Width"), int(b"Height"), int(b"BitsPerComponent")) else { continue };
+        let (Some(w), Some(h), Some(8)) = (int(b"Width"), int(b"Height"), int(b"BitsPerComponent")) else { return Ok(()) };
         let (w, h) = (w as usize, h as usize);
         let row = w * colors;
         if w == 0 || h == 0 || raw.len() != row * h {
-            continue;
+            return Ok(());
         }
         let mut filtered = Vec::with_capacity((row + 1) * h);
         let zero = vec![0u8; row];
@@ -454,7 +461,7 @@ fn predict_images(pdf: &mut printpdf::lopdf::Document) -> Result<(), Error> {
             .finish()
             .map_err(|e| Error::new(format!("Failed to compress an image: {}", e), ErrorKind::Internal))?;
         if s.dict.get(b"Filter").is_ok() && packed.len() >= s.content.len() {
-            continue; // le Flate seul de printpdf était déjà plus court
+            return Ok(()); // le Flate seul de printpdf était déjà plus court
         }
         let mut parms = Dictionary::new();
         parms.set("Predictor", Object::Integer(15));

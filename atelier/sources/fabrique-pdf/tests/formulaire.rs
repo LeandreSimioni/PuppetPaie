@@ -643,12 +643,13 @@ fn image_png_avec_transparence_a_un_smask() {
     let masque = s.dict.get(b"SMask").expect("la transparence passe en /SMask").as_reference().unwrap();
     let m = doc.get_object(masque).unwrap().as_stream().unwrap();
     assert_eq!(m.dict.get(b"ColorSpace").unwrap().as_name().unwrap(), b"DeviceGray");
-    let alpha = deflate(&m.content);
+    // Les pixels, comprimés avec les prédicteurs PNG (`DecodeParms`).
+    let alpha = lopdf::filters::png::decode_frame(&deflate(&m.content), 1, 40).unwrap();
     assert_eq!(alpha.len(), 40 * 20);
     assert_eq!(alpha[0], 0);
     assert_eq!(alpha[10], 255);
     // les couleurs : 3 octets par pixel
-    assert_eq!(deflate(&s.content).len(), 40 * 20 * 3);
+    assert_eq!(lopdf::filters::png::decode_frame(&deflate(&s.content), 3, 40).unwrap().len(), 40 * 20 * 3);
     // 2:1 dans une case de 90 × 70 : 90 × 45, calé à gauche, centré en hauteur
     let p = poses(&doc, PAGE1);
     assert_eq!(p.len(), 1);
@@ -724,32 +725,24 @@ fn image_le_type_se_lit_dans_les_octets_pas_dans_l_extension() {
 }
 
 #[test]
-fn image_svg_avec_du_texte_est_un_objet_formulaire_sans_police() {
-    let d = dossier_temp("formulaire-svg");
-    let fichier = d.join("cachet.svg");
-    std::fs::write(&fichier, SVG_TEXTE).unwrap();
-    let rect = [300.0, 100.0, 400.0, 160.0];
-    for (k, image) in [json!({"fichier": chemin(&fichier)}), json!({"svg": SVG_TEXTE})].iter().enumerate() {
-        let mut im = image.clone();
-        im["page"] = json!(1);
-        im["rect"] = json!(rect);
-        im["marge"] = json!(2);
-        let sortie = remplir_ok(&formulaire(None), json!({"format": 3, "images": [im]}));
-        let doc = charge(&sortie);
-        let (_, x) = xobjet(&doc, PAGE1, "PPImage1");
-        let s = x.as_stream().unwrap();
-        assert_eq!(s.dict.get(b"Subtype").unwrap().as_name().unwrap(), b"Form", "variante {}", k);
-        // du vectoriel : le texte est en tracés, il n'y a pas de police à chercher
-        let contenu = String::from_utf8_lossy(&s.decompressed_content().unwrap()).to_string();
-        assert!(!contenu.contains("Tj") && !contenu.contains(" Tf"), "{}", contenu);
-        if let Ok(res) = s.dict.get(b"Resources").and_then(|r| r.as_dict()) {
-            assert!(res.get(b"Font").is_err(), "le SVG ne cite aucune police");
-        }
-        // 100 × 40 dans 96 × 56 : facteur 0,96
-        let p = poses(&doc, PAGE1);
-        verifie_cm(p[0].0, attendu_cm(rect, 2.0, 100.0, 40.0));
-        verifie_cm(p[0].0, [96.0, 0.0, 0.0, 38.4, 302.0, 842.0 - 110.8 - 38.4]);
-    }
+fn remplir_garde_le_formulaire_recu_et_n_ajoute_qu_une_police_par_fichier() {
+    // Les valeurs et le texte d'un SVG (un cachet) s'écrivent avec un seul sous-ensemble de Liberation Sans ; le
+    // formulaire reçu reste en tête, octet pour octet (une mise à jour incrémentale, ISO 32000-1, 7.5.6).
+    let recu = formulaire(None);
+    let sortie = remplir_ok(
+        &recu,
+        json!({"format": 3, "champs": {"NOM": "Dupont"}, "images": [{"page": 1, "rect": [300, 100, 400, 160], "svg": SVG_TEXTE}]}),
+    );
+    assert!(sortie.starts_with(&recu), "le formulaire reçu reste en tête");
+    let doc = charge(&sortie);
+    let polices: Vec<String> = doc
+        .objects
+        .values()
+        .filter_map(|o| o.as_dict().ok())
+        .filter(|d| d.get(b"Subtype").and_then(|s| s.as_name()).ok() == Some(&b"Type0"[..]))
+        .map(|d| String::from_utf8_lossy(d.get(b"BaseFont").unwrap().as_name().unwrap()).into_owned())
+        .collect();
+    assert_eq!(polices.iter().filter(|p| p.ends_with("+LiberationSans")).count(), 1, "{:?}", polices);
 }
 
 #[test]

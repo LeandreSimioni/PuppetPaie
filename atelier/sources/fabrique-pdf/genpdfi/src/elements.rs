@@ -52,6 +52,8 @@ use crate::wrap;
 use crate::{Alignment, Context, Element, Margins, Mm, Position, RenderResult, Size};
 
 pub use picture::{sniff, Format, Picture, SVG_NON_PRIS_EN_CHARGE};
+#[cfg(feature = "images")]
+pub use picture::reduire_a;
 
 /// Helper trait for creating boxed elements.
 pub trait IntoBoxedElement {

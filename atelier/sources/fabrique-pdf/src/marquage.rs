@@ -283,10 +283,11 @@ pub fn contresigner(octets: &[u8], mention: &str) -> Result<Vec<u8>, Refus> {
         return refus("le PDF n'a pas de case de l'artiste (la ligne « signature » de la colonne de droite)");
     }
 
-    let mut inc = lopdf::IncrementalDocument::create_from(octets.to_vec(), doc);
-    inc.new_document.version = inc.get_prev_documents().version.clone();
-    let police = genpdfi::pdf_subset::embarquer(&mut inc.new_document, &donnees, &caracteres)
-        .map_err(|e| Refus(format!("police impossible à embarquer : {}", e)))?;
+    // Le contrat parti reste en tête ; ce qui suit ne porte que la case : son texte (dans la police du contrat,
+    // et un sous-ensemble neuf des seuls caractères qu'elle n'a pas : `polices_pour_ajout`), son flux, la page qui
+    // le cite.
+    let mut neuf = doc.clone();
+    let polices_case = crate::formulaire::polices_pour_ajout(&mut neuf, &donnees, &caracteres, &doc)?;
     let (r, v, b) = sc::COULEUR_TEXTE;
     let (fr, fv, fb) = sc::MENTION_FILET;
     let c255 = |x: u8| nb(x as f64 / 255.0);
@@ -301,14 +302,24 @@ pub fn contresigner(octets: &[u8], mention: &str) -> Result<Vec<u8>, Refus> {
             if l.is_empty() {
                 continue;
             }
-            let codes: String = l.chars().map(|c| format!("{:04X}", c as u32)).collect();
             flux.push_str(&format!(
-                "BT\n/{{police}} {} Tf\n1 0 0 1 {} {} Tm\n<{}> Tj\nET\n",
-                nb(taille),
+                "BT\n1 0 0 1 {} {} Tm\n",
                 nb(x_case + marge_x),
-                nb(haut - marge_y - i as f64 * interligne - asc * taille),
-                codes
+                nb(haut - marge_y - i as f64 * interligne - asc * taille)
             ));
+            // Des morceaux par police : chacun continue où le précédent s'arrête.
+            let mut morceaux: Vec<(usize, String)> = Vec::new();
+            for c in l.chars() {
+                let k = polices_case.iter().position(|(_, portes)| portes.contains(&c)).unwrap_or(0);
+                match morceaux.last_mut() {
+                    Some((p, m)) if *p == k => m.push_str(&format!("{:04X}", c as u32)),
+                    _ => morceaux.push((k, format!("{:04X}", c as u32))),
+                }
+            }
+            for (k, codes) in morceaux {
+                flux.push_str(&format!("/{{police{}}} {} Tf\n<{}> Tj\n", k, nb(taille), codes));
+            }
+            flux.push_str("ET\n");
         }
         flux.push_str("Q\n");
         match par_page.iter_mut().find(|(p, _)| *p == id) {
@@ -317,32 +328,45 @@ pub fn contresigner(octets: &[u8], mention: &str) -> Result<Vec<u8>, Refus> {
         }
     }
     for (id, flux) in par_page {
-        let prev = inc.get_prev_documents();
-        let mut ressources: Dictionary = herite(prev, id, b"Resources").and_then(|o| dico(prev, o)).cloned().unwrap_or_default();
-        let mut polices: Dictionary = ressources.get(b"Font").ok().and_then(|o| dico(prev, o)).cloned().unwrap_or_default();
-        let mut nom_police = "PPMention".to_string();
-        while polices.has(nom_police.as_bytes()) {
-            nom_police.push('x');
+        let mut ressources: Dictionary = herite(&doc, id, b"Resources").and_then(|o| dico(&doc, o)).cloned().unwrap_or_default();
+        let mut polices: Dictionary = ressources.get(b"Font").ok().and_then(|o| dico(&doc, o)).cloned().unwrap_or_default();
+        // Chaque police de la case sous le nom qu'elle a déjà sur la page, ou sous un nom libre.
+        let mut flux = String::from_utf8_lossy(&flux).into_owned();
+        for (k, (police, _)) in polices_case.iter().enumerate() {
+            let deja = polices.iter().find(|(_, o)| matches!(o, Object::Reference(r) if r == police)).map(|(n, _)| String::from_utf8_lossy(n).into_owned());
+            let nom_police = match deja {
+                Some(n) => n,
+                None => {
+                    let mut n = "PPMention".to_string();
+                    while polices.has(n.as_bytes()) {
+                        n.push('x');
+                    }
+                    polices.set(n.as_str(), Object::Reference(*police));
+                    n
+                }
+            };
+            flux = flux.replace(&format!("{{police{}}}", k), &nom_police);
         }
-        polices.set(nom_police.as_str(), Object::Reference(police));
         ressources.set("Font", Object::Dictionary(polices));
-        let anciens = flux_existants(prev, id);
-        let ouverts = q_ouverts(prev, id);
-        let flux = String::from_utf8_lossy(&flux).replace("{police}", &nom_police).into_bytes();
-        let nd = &mut inc.new_document;
-        let avant = nd.add_object(Object::Stream(Stream::new(Dictionary::new(), b"q\n".to_vec())));
-        let apres = nd.add_object(Object::Stream(Stream::new(Dictionary::new(), "Q\n".repeat(ouverts + 1).into_bytes())));
-        let case = nd.add_object(Object::Stream(Stream::new(Dictionary::new(), flux)));
+        let anciens = flux_existants(&doc, id);
+        let ouverts = q_ouverts(&doc, id);
+        let flux = flux.into_bytes();
+        let comprime = |o: Vec<u8>| {
+            let mut s = Stream::new(Dictionary::new(), o);
+            let _ = s.compress();
+            Object::Stream(s)
+        };
+        let avant = neuf.add_object(Object::Stream(Stream::new(Dictionary::new(), b"q\n".to_vec())));
+        let apres = neuf.add_object(Object::Stream(Stream::new(Dictionary::new(), "Q\n".repeat(ouverts + 1).into_bytes())));
+        let case = neuf.add_object(comprime(flux));
         let mut contenu = vec![Object::Reference(avant)];
         contenu.extend(anciens);
         contenu.push(Object::Reference(apres));
         contenu.push(Object::Reference(case));
-        inc.opt_clone_object_to_new_document(id).map_err(|e| Refus(format!("page illisible ({})", e)))?;
-        let page = inc.new_document.get_object_mut(id).and_then(Object::as_dict_mut).map_err(|e| Refus(format!("page illisible ({})", e)))?;
+        let page = neuf.get_object_mut(id).and_then(Object::as_dict_mut).map_err(|e| Refus(format!("page illisible ({})", e)))?;
         page.set("Resources", Object::Dictionary(ressources));
         page.set("Contents", Object::Array(contenu));
     }
-    let mut sortie = Vec::new();
-    inc.save_to(&mut sortie).map_err(|e| Refus(format!("écriture du PDF impossible ({})", e)))?;
-    Ok(sortie)
+    neuf.prune_objects();
+    Ok(genpdfi::pdf_ecriture::ajouter(octets, &doc, &neuf))
 }

@@ -1347,9 +1347,9 @@
    },
    "lignes": [
     {
-     "libelle": "Service de répétition 4 heures",
-     "quantite": 6,
-     "taux": 70
+     "libelle": "Heures",
+     "quantite": 24,
+     "taux": 17.5
     }
    ],
    "cotisations": [
@@ -4643,9 +4643,9 @@
    },
    "lignes": [
     {
-     "libelle": "Service de répétition 4 heures",
-     "quantite": 10,
-     "taux": 70
+     "libelle": "Heures",
+     "quantite": 40,
+     "taux": 17.5
     }
    ],
    "cotisations": [
@@ -7736,9 +7736,9 @@
    },
    "lignes": [
     {
-     "libelle": "Service de répétition 4 heures",
-     "quantite": 6,
-     "taux": 70
+     "libelle": "Heures",
+     "quantite": 24,
+     "taux": 17.5
     }
    ],
    "cotisations": [
@@ -9779,9 +9779,9 @@
    },
    "lignes": [
     {
-     "libelle": "Service de répétition 4 heures",
-     "quantite": 12,
-     "taux": 70
+     "libelle": "Heures",
+     "quantite": 48,
+     "taux": 17.5
     }
    ],
    "non_soumis": [
@@ -14160,9 +14160,9 @@
    },
    "lignes": [
     {
-     "libelle": "Service de répétition 4 heures",
-     "quantite": 6,
-     "taux": 70
+     "libelle": "Heures",
+     "quantite": 24,
+     "taux": 17.5
     }
    ],
    "cotisations": [
@@ -17456,9 +17456,9 @@
    },
    "lignes": [
     {
-     "libelle": "Service de répétition 4 heures",
-     "quantite": 10,
-     "taux": 70
+     "libelle": "Heures",
+     "quantite": 40,
+     "taux": 17.5
     }
    ],
    "cotisations": [
@@ -18920,9 +18920,9 @@
    },
    "lignes": [
     {
-     "libelle": "Service de répétition 4 heures",
-     "quantite": 6,
-     "taux": 70
+     "libelle": "Heures",
+     "quantite": 24,
+     "taux": 17.5
     }
    ],
    "cotisations": [

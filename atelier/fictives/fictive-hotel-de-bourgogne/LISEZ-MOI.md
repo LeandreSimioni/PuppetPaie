@@ -87,9 +87,8 @@ Tous de nationalité française, nés en France.
 - **Philomène Clairon** : temps partiel à 80 % (28 h par semaine, 121,33 h par mois ; lundi, mardi, jeudi et vendredi,
   de 9 h à 16 h 30), depuis le 08/01/2024, 1 941,28 € (16,00 € de l'heure).
 - Cachet de représentation : Molière 175 €, Dorval 165 €, Lemaître 170 € ; un service de répétition de 4 heures, 64 €,
-  deux par jour. Lekain : 17,50 € de l'heure, sept heures par jour de jeu. Talma : 70 € le service de quatre heures,
-  deux par jour de jeu (ses papiers de 2025 la paient au « service de répétition ») ; en 2026, 17,50 € de l'heure, huit
-  heures par jour de jeu : les textes de la 1285 ne définissent le service que pour les artistes
+  deux par jour. Lekain : 17,50 € de l'heure, sept heures par jour de jeu. Talma : 17,50 € de l'heure, huit heures
+  par jour de jeu (le moteur refuse un service pour un technicien) : les textes de la 1285 ne définissent le service que pour les artistes
   (`atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md`), le titre VI ne
   compte les techniciens qu'en heures (`atelier/reference/sources/kali-1285-titre-vi-duree-du-travail-20261102.md`).
 - Numéros Congés Spectacles : Molière M8001423, Dorval D8711207, Lemaître L7505316, Lekain L8208554, Talma T9303098.

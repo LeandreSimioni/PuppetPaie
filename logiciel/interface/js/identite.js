@@ -18,6 +18,9 @@
      vient de la fiche Entreprise et la suit ; il n'y a rien à fournir.
    - RETIRER, C'EST REVENIR AU DÉFAUT. Un tampon importé qu'on retire rend la
      main au dessin. Rien à reconfigurer, rien à se rappeler. */
+/* Le poids visé que la personne a choisi dans cette séance (le moteur dit le sien par défaut). */
+let poidsVise = null;
+
 async function dessinerIdentite(cible) {
   const lu = await api("identite");
   const etat = lu.identite;
@@ -68,6 +71,8 @@ async function dessinerIdentite(cible) {
 
   cible.innerHTML = `
     <p class="intro">${echapper(lu.intro)}</p>
+    <div class="champ"><label>Poids visé en Ko
+      <input type="number" min="1" step="1" id="identite-poids" value="${echapper(String(poidsVise ?? lu.poids_vise_ko))}"></label></div>
     <div class="rangs">
       ${rang("signature")}
       ${rang("cachet")}
@@ -92,8 +97,12 @@ async function dessinerIdentite(cible) {
           l.onerror = () => non(l.error);
           l.readAsDataURL(f);
         });
-        await api("poser-identite", { quoi: ch.dataset.quoi, contenu });
+        const poids = cible.querySelector("#identite-poids").value;
+        poidsVise = poids === "" ? null : Number(poids);
+        const r = await api("poser-identite", { quoi: ch.dataset.quoi, contenu, poids: poidsVise });
         await dessinerIdentite(cible);
+        // Ce que l'image pèsera dans chaque document : le moteur le dit.
+        dire(r.phrase);
       } catch (e) {
         // Un format refusé se dit : il partait en exception, sans un mot.
         ch.disabled = false;

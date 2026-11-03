@@ -62,8 +62,14 @@ Programme : **4,4 Mo** (Linux, `opt-level = "z"`, LTO, `strip` : 4 401 600 octet
 texte, `aes`, `cbc`, `sha2` et `getrandom` pour `--verrouiller`. Les huit fichiers de Liberation, comprimés,
 pèsent 1,4 Mo (romain, gras, italique et gras italique de Sans ; romain et gras de Serif et de Mono) :
 `build.rs` en retire crénage, substitutions et noms de glyphes, que rien ne lit. Le découpage des
-polices est du code à nous (`genpdfi/src/pdf_subset.rs`), sans dépendance. Un contrat de la
-démonstration : 32 Ko par page, dont 21 Ko de polices (les glyphes imprimés, hinting compris).
+polices est du code à nous (`genpdfi/src/pdf_subset.rs`), sans dépendance.
+
+Un document : un bulletin de deux pages de la fictive de l'Hôtel de Bourgogne pèse 20 Ko, un certificat Congés
+Spectacles 19 Ko, deux contrats sur quatre pages 23 Ko ; la moitié en polices (deux sous-ensembles de Liberation,
+les glyphes imprimés, sans hinting), un tiers en flux de contenu, le reste dans des flux d'objets (PDF 1.5,
+`genpdfi/src/pdf_ecriture.rs`). Ce qui s'ajoute à un PDF parti ou reçu (la mention d'un contrat signé, le cadre 5
+d'une AER) s'écrit en mise à jour incrémentale : quelques Ko. Une image de la compagnie est allégée quand elle se
+pose (`src/alleger.rs`).
 
 ## Licences
 

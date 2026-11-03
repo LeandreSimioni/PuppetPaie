@@ -12,18 +12,24 @@ use crate::description::Refus;
 /// reconstruit la table en cherchant les objets (`N G obj`) dans le fichier, comme font les
 /// lecteurs de PDF.
 pub fn charger(octets: &[u8]) -> Result<Document, Refus> {
+    Ok(charger_avec_octets(octets)?.0)
+}
+
+/// `charger`, et les octets que la lecture a lus : ceux d'entrée, ou ceux que la réparation a complétés
+/// (une mise à jour incrémentale s'écrit à leur suite).
+pub fn charger_avec_octets(octets: &[u8]) -> Result<(Document, Vec<u8>), Refus> {
     match Document::load_mem(octets) {
-        Ok(doc) if !doc.get_pages().is_empty() => Ok(doc),
+        Ok(doc) if !doc.get_pages().is_empty() => Ok((doc, octets.to_vec())),
         premier => {
             if let Some(repare) = reparer(octets) {
                 if let Ok(doc) = Document::load_mem(&repare) {
                     if !doc.get_pages().is_empty() {
-                        return Ok(doc);
+                        return Ok((doc, repare));
                     }
                 }
             }
             match premier {
-                Ok(doc) => Ok(doc),
+                Ok(doc) => Ok((doc, octets.to_vec())),
                 Err(e) => Err(Refus(format!("n'est pas un PDF lisible ({})", e))),
             }
         }

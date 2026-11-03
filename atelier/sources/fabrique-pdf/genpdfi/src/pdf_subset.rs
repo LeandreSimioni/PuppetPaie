@@ -129,13 +129,21 @@ fn table_tounicode(caracteres: &BTreeSet<char>) -> String {
          /CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n\
          1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n",
     );
-    let codes: Vec<u32> = caracteres.iter().map(|c| *c as u32).collect();
-    for bloc in codes.chunks(100) {
-        t.push_str(&format!("{} beginbfchar\n", bloc.len()));
-        for c in bloc {
-            t.push_str(&format!("<{:04X}> <{:04X}>\n", c, c));
+    // Des plages de codes qui se suivent, chacune dans un même octet de poids fort (ISO 32000-1, 9.10.3 :
+    // `bfrange` n'incrémente que le dernier octet) ; chaque code d'une plage rend le caractère de même code.
+    let mut plages: Vec<(u32, u32)> = Vec::new();
+    for c in caracteres.iter().map(|c| *c as u32) {
+        match plages.last_mut() {
+            Some((debut, fin)) if *fin + 1 == c && *debut >> 8 == c >> 8 => *fin = c,
+            _ => plages.push((c, c)),
         }
-        t.push_str("endbfchar\n");
+    }
+    for bloc in plages.chunks(100) {
+        t.push_str(&format!("{} beginbfrange\n", bloc.len()));
+        for (debut, fin) in bloc {
+            t.push_str(&format!("<{:04X}> <{:04X}> <{:04X}>\n", debut, fin, debut));
+        }
+        t.push_str("endbfrange\n");
     }
     t.push_str("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
     t
@@ -192,9 +200,104 @@ pub fn embarquer(pdf: &mut Document, donnees: &[u8], caracteres: &BTreeSet<char>
     let type0 = pdf.add_object(Object::Dictionary(t0));
     let objets = PolicePrintpdf { type0, descripteur, fichier, tounicode };
     couper(pdf, &objets, donnees, caracteres)?;
-    // La table des glyphes (`CIDToGIDMap`) est dans la police descendante, que `couper` vient d'écrire.
+    comprimer_police(pdf, &objets);
+    Ok(type0)
+}
+
+/// Les codes que rend une table `ToUnicode` de la fabrique : chaque code rend le caractère de même
+/// numéro (`table_tounicode`, en plages ou code par code). `None` pour toute autre table.
+fn codes_identite(table: &[u8]) -> Option<BTreeSet<char>> {
+    let texte = std::str::from_utf8(table).ok()?;
+    let mut codes = BTreeSet::new();
+    let mut mode = "";
+    let mut hex: Vec<u32> = Vec::new();
+    for mot in texte.split_whitespace() {
+        match mot {
+            "beginbfchar" | "beginbfrange" => {
+                mode = mot;
+                hex.clear();
+            }
+            "endbfchar" | "endbfrange" => {
+                if !hex.is_empty() {
+                    return None;
+                }
+                mode = "";
+            }
+            m if m.starts_with('<') && m.ends_with('>') && !mode.is_empty() => {
+                hex.push(u32::from_str_radix(&m[1..m.len() - 1], 16).ok()?);
+                let n = if mode == "beginbfchar" { 2 } else { 3 };
+                if hex.len() == n {
+                    let (debut, fin, dest) = if n == 2 { (hex[0], hex[0], hex[1]) } else { (hex[0], hex[1], hex[2]) };
+                    if dest != debut || fin < debut || fin - debut > 0xFF {
+                        return None;
+                    }
+                    for c in debut..=fin {
+                        codes.insert(char::from_u32(c)?);
+                    }
+                    hex.clear();
+                }
+            }
+            _ if !mode.is_empty() => return None,
+            _ => {}
+        }
+    }
+    Some(codes)
+}
+
+/// Une police que la fabrique a embarquée dans `pdf` depuis le fichier `donnees` (même nom PostScript,
+/// codes `Identity-H` = point de code, table `ToUnicode` de la fabrique) : la police `Type0` et les
+/// caractères qu'elle porte ; toutes, dans l'ordre des numéros.
+pub fn polices_de_la_fabrique(pdf: &Document, donnees: &[u8]) -> Vec<(ObjectId, BTreeSet<char>)> {
+    let mut trouvees = Vec::new();
+    let Ok(face) = ttf_parser::Face::parse(donnees, 0) else { return trouvees };
+    let ps = nom_postscript(&face);
+    for (id, o) in &pdf.objects {
+        let Ok(d) = o.as_dict() else { continue };
+        if d.get(b"Subtype").and_then(Object::as_name).ok() != Some(b"Type0")
+            || d.get(b"Encoding").and_then(Object::as_name).ok() != Some(b"Identity-H")
+        {
+            continue;
+        }
+        let nom = d.get(b"BaseFont").and_then(Object::as_name).ok().unwrap_or(b"");
+        if nom.len() != 7 + ps.len() || nom[6] != b'+' || &nom[7..] != ps.as_bytes() {
+            continue;
+        }
+        let Some(objets) = objets_de(pdf, *id) else { continue };
+        let a_sa_table = pdf
+            .get_dictionary(*id)
+            .ok()
+            .and_then(|t| t.get(b"DescendantFonts").ok()?.as_array().ok()?.first().cloned())
+            .and_then(|f| match f {
+                Object::Dictionary(f) => Some(f),
+                Object::Reference(r) => pdf.get_dictionary(r).ok().cloned(),
+                _ => None,
+            })
+            .map(|f| f.get(b"CIDToGIDMap").and_then(Object::as_reference).is_ok())
+            .unwrap_or(false);
+        if !a_sa_table {
+            continue;
+        }
+        let Some(table) = octets_du_flux(pdf, objets.tounicode) else { continue };
+        if let Some(codes) = codes_identite(&table) {
+            trouvees.push((*id, codes));
+        }
+    }
+    trouvees
+}
+
+/// Élargit la police `type0` de la fabrique (`polices_de_la_fabrique`) à `caracteres` : le sous-ensemble est
+/// refait de ces caractères, sous les mêmes objets ; les codes ne changent pas (le point de code), donc
+/// le texte déjà écrit avec elle se lit pareil. Les flux sont comprimés.
+pub fn elargir(pdf: &mut Document, type0: ObjectId, donnees: &[u8], caracteres: &BTreeSet<char>) -> Result<(), Error> {
+    let objets = objets_de(pdf, type0).ok_or_else(|| interne("police introuvable".to_string()))?;
+    couper(pdf, &objets, donnees, caracteres)?;
+    comprimer_police(pdf, &objets);
+    Ok(())
+}
+
+fn comprimer_police(pdf: &mut Document, objets: &PolicePrintpdf) {
     let gid = pdf
-        .get_dictionary(type0)
+        .get_dictionary(objets.type0)
         .ok()
         .and_then(|d| d.get(b"DescendantFonts").ok())
         .and_then(|o| o.as_array().ok())
@@ -202,12 +305,11 @@ pub fn embarquer(pdf: &mut Document, donnees: &[u8], caracteres: &BTreeSet<char>
         .and_then(|o| o.as_dict().ok())
         .and_then(|d| d.get(b"CIDToGIDMap").ok())
         .and_then(|o| o.as_reference().ok());
-    for id in [Some(fichier), Some(tounicode), gid].iter().flatten() {
+    for id in [Some(objets.fichier), Some(objets.tounicode), gid].iter().flatten() {
         if let Ok(Object::Stream(s)) = pdf.get_object_mut(*id) {
             let _ = s.compress();
         }
     }
-    Ok(type0)
 }
 
 /// Retire la police `id` des ressources (`/Font`) des pages : toute entrée de dictionnaire qui y

@@ -213,6 +213,16 @@ impl Rubrique {
         None
     }
 
+    /// Le statut auquel la rubrique est reservee : le service n'est une unite de paie que pour un artiste. Les
+    /// conventions payent au service les repetitions des artistes (1285, art. X.3.2 C et X.3.3,
+    /// `atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md`) ; un technicien y est paye a l'heure,
+    /// a la journee, a la semaine ou au mois (1285, titre VI, `kali-1285-titre-vi-duree-du-travail-20261102.md` ; 3090,
+    /// titre III, art. 3.2, KALIARTI000028930755 de `kali-entrepot/` : des services indivisibles comptes en heures ; les
+    /// grilles des techniciens de `minima-conventionnels.json`, aucune au service).
+    pub fn reservee_au_statut(&self) -> Option<&'static str> {
+        (self.unite == "service").then_some("artiste")
+    }
+
     /// Une ligne de cette rubrique doit dire ses heures : `heures` est dans
     /// sa `saisie` et aucun forfait n'en tient lieu (le service de repetition,
     /// la journee, la semaine, le mois, l'absence a la journee). Le catalogue
