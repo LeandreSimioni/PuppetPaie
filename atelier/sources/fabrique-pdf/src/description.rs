@@ -52,6 +52,7 @@ struct DescriptionBrute {
     style: Option<String>,
     logo: Option<LogoBrut>,
     titre: Option<String>,
+    createur: Option<String>,
     documents: Option<Vec<DocumentBrut>>,
     entete_page: Option<RepereBrut>,
     pied_page: Option<RepereBrut>,
@@ -75,6 +76,17 @@ struct RepereBrut {
     distance: f32,
     #[serde(default = "vrai")]
     premiere_page: bool,
+    image: Option<ImageRepereBrute>,
+}
+
+/// L'image qui suit le texte de droite d'un repère (FORMAT.md, « En-tête et pied de page »).
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ImageRepereBrute {
+    chemin: String,
+    largeur: f32,
+    #[serde(default)]
+    descente: f32,
 }
 
 fn distance_defaut() -> f32 {
@@ -487,6 +499,17 @@ pub struct Repere {
     pub gras: bool,
     pub distance: f32,
     pub premiere_page: bool,
+    /// Une image posée au bout de la ligne, à droite, après le texte de droite.
+    pub image: Option<ImageRepere>,
+}
+
+/// L'image d'un repère : `largeur` en points, hauteur selon les proportions ; son bas descend de
+/// `descente` points sous la ligne de base (la jambe d'un mot dessiné).
+#[derive(Debug, Clone)]
+pub struct ImageRepere {
+    pub chemin: String,
+    pub largeur: f32,
+    pub descente: f32,
 }
 
 impl Repere {
@@ -625,6 +648,8 @@ pub struct Description {
     pub police: Police,
     pub logo: Option<Logo>,
     pub titre: String,
+    /// Le logiciel qui a fait le PDF, dans ses propriétés (créateur et producteur).
+    pub createur: Option<String>,
     pub documents: Vec<Vec<BlocEtiquete>>,
     pub entete_page: Option<Repere>,
     pub pied_page: Option<Repere>,
@@ -1146,6 +1171,14 @@ fn lire_repere(r: Option<RepereBrut>, nom: &str, police: &Police) -> Result<Opti
         droite: r.droite,
         gras: r.gras,
         premiere_page: r.premiere_page,
+        image: match r.image {
+            Some(i) => Some(ImageRepere {
+                largeur: strictement_positif(i.largeur, "largeur", nom)?,
+                descente: positif_ou_nul(i.descente, "descente", nom)?,
+                chemin: i.chemin,
+            }),
+            None => None,
+        },
     }))
 }
 
@@ -1368,6 +1401,7 @@ pub fn lire_description(texte: &str) -> Result<Description, Refus> {
         logo,
         // Sans titre dit, celui du premier modèle (`texte_brut`, sans gras).
         titre: brute.titre.or(titre_modele).unwrap_or_default(),
+        createur: brute.createur,
         documents,
         entete_page,
         pied_page,

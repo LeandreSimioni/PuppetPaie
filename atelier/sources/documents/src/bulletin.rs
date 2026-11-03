@@ -35,6 +35,14 @@ pub const LOGO_LARGEUR: i64 = 74;
 pub const LOGO_MARGE_DROITE: i64 = 34;
 pub const LOGO_MARGE_HAUT: i64 = 28;
 
+/// Le pied de chaque page du bulletin : « Édité avec » et le mot Puppetpaie dessiné (`donnees/puppetpaie-mot.svg`),
+/// en gris clair, en bas a droite. Le mot a 657,2 sur 195,4 de cadre, sa ligne de base a 84,1 du bas : a 33 points de
+/// large, il descend de 4,2 points sous celle du texte.
+const PIED_TEXTE: &str = "Édité avec";
+const PIED_GRIS: &str = "#C5C9CE";
+const PIED_MOT_LARGEUR: f64 = 33.0;
+const PIED_MOT_DESCENTE: f64 = 4.2;
+
 /// Dans l'ordre de preference : le vectoriel d'abord.
 pub const IDENTITE_EXTENSIONS: [&str; 3] = [".svg", ".png", ".jpg"];
 
@@ -1238,6 +1246,13 @@ pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
         json!({"largeur": 595.28, "hauteur": 841.89, "marges": {"haut": 42, "droite": 42, "bas": 42, "gauche": 42}}),
     );
     d.insert("police".into(), json!({"taille": 7.4, "interligne": 1.2, "couleur": ARDOISE}));
+    d.insert("createur".into(), json!("PuppetPaie"));
+    d.insert(
+        "pied_page".into(),
+        json!({"droite": PIED_TEXTE, "taille": 6, "couleur": PIED_GRIS, "distance": 24,
+               "image": {"chemin": chemin_texte(&socle::fichiers::dossier_du_code().join("puppetpaie-mot.svg")),
+                         "largeur": PIED_MOT_LARGEUR, "descente": PIED_MOT_DESCENTE}}),
+    );
     if let Some(logo) = identite_de(ent, "logo") {
         d.insert(
             "logo".into(),
