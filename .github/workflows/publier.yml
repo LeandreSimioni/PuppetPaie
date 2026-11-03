@@ -23,9 +23,9 @@
 #   1. fabriquer      (Linux) compile le moteur Linux, qui marque les fictives livrees (`moteur maj --marquer-fictives` :
 #                     la livraison que l'installeur pose avec elles) et signera (toujours) ; puis la fenetre et le moteur
 #                     Windows (atelier/installeur/construire.sh, MinGW), pose la fenetre neuve dans `logiciel/`, fabrique
-#                     l'installeur Windows (il ne pose que les fichiers suivis et ces marques : rien de `linux/` ni de
-#                     `mac/`) ; et, si Linux est choisi, la fenetre Linux : avec le moteur, dans `logiciel/linux/`. Aucun
-#                     secret, hors l'application Google.
+#                     l'installeur Windows (les fichiers suivis de `logiciel/`, rien de `linux/` ni de `mac/`, et les
+#                     fictives marquees, `moteur maj --poser-fictives`) ; et, si Linux est choisi, la fenetre Linux :
+#                     avec le moteur, dans `logiciel/linux/`. Aucun secret, hors l'application Google.
 #   2. fabriquer-mac  (macOS, seulement si `tous`) compile la fenetre et le moteur Mac pour Intel et pour Apple, et en
 #                     fait un seul programme de chaque, universel (`lipo`, comme l'ancien flux « Moteur Rust ») :
 #                     `logiciel/mac/`. Aucun secret.

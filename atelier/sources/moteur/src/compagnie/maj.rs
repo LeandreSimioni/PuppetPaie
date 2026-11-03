@@ -72,7 +72,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use crate::atelier::publier::{dire_les_archives, generer_cle, generer_cle_github, marquer_les_fictives, publier, publier_depuis_l_environnement};
+use crate::atelier::publier::{dire_les_archives, generer_cle, generer_cle_github, marquer_les_fictives, poser_les_fictives, publier, publier_depuis_l_environnement};
 
 /// La cle publique de l'editeur (Ed25519, 32 octets en base64) : toute archive non signee par elle est refusee.
 pub const CLE_PUBLIQUE: &str = "sDj5+46oBt7Yy1x00VJ1ThJNOwf5jT5+bttXEN/yAIU=";
@@ -1609,7 +1609,7 @@ pub fn relais(args: &[String]) -> i32 {
 
 /// `moteur maj [--sans-telecharger] [--appliquer] [--revenir] [--publier [DEPOT] --notes T --calcul T
 /// --exigee T] [--cle [--remplacer]] [--cle-github [DOSSIER]] [--publier-github --logiciel L --sortie S --notes T
-/// --calcul T --exigee T] [--marquer-fictives --logiciel L]`.
+/// --calcul T --exigee T] [--marquer-fictives --logiciel L] [--poser-fictives DOSSIER --logiciel L]`.
 pub fn commande(args: &[String]) -> i32 {
     // D'abord savoir ou l'on est installe : sans cela, `installation()` retombe sur le dossier ou le programme a ete
     // compile (un chemin du conteneur, que Windows lit sur le lecteur courant : la graine de `--cle-github` irait
@@ -1641,6 +1641,11 @@ pub fn commande(args: &[String]) -> i32 {
         Some(match valeur("--logiciel") {
             Some(l) => marquer_les_fictives(Path::new(&l)).map(|e| format!("Fictives marquees : livraison {}.", e)),
             None => Err(socle::echec::avec("Marquer les fictives demande le dossier du logiciel.", json!({"options": "--logiciel DOSSIER"}))),
+        })
+    } else if drapeau("--poser-fictives") {
+        Some(match (valeur("--logiciel"), valeur("--poser-fictives")) {
+            (Some(l), Some(d)) => poser_les_fictives(Path::new(&l), Path::new(&d)).map(|e| format!("Fictives posees dans {} : livraison {}.", d, e)),
+            _ => Err(socle::echec::avec("Poser les fictives demande le dossier du logiciel et celui où les poser.", json!({"options": "--poser-fictives DOSSIER --logiciel DOSSIER"}))),
         })
     } else {
         None
