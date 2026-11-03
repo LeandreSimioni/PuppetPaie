@@ -1873,6 +1873,10 @@ fn choix_dpae(p: &Value) -> Value {
         let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
         return choix(false, false, "fait", format!("contrat en cours depuis {} — sa DPAE a été faite ce mois-là", depuis));
     }
+    // RIEN NE PART D'UN ENGAGEMENT EN SAISIE : le depot le refuserait, et les autres avec lui.
+    if !vrai(&p["valide"]) {
+        return choix(false, false, "a_faire", "à valider avant sa DPAE".into());
+    }
     if !vrai(&d["fait"]) {
         return choix(true, true, "a_faire", "à déclarer".into());
     }
