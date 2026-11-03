@@ -7,7 +7,7 @@
 use crate::outils::code_livre;
 
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
@@ -92,25 +92,48 @@ fn fragments(citation: &str) -> Vec<String> {
         .collect()
 }
 
-/// Le texte d'un article de l'entrepôt LEGI (`articles.jsonl.gz`), toutes ses versions déposées.
-fn article_legi(chemin: &Path, code: &str, numero: &str, cache: &mut HashMap<(String, String), String>) -> String {
-    if cache.is_empty() {
-        let f = std::fs::File::open(chemin).unwrap();
-        for ligne in BufReader::new(flate2::read::GzDecoder::new(f)).lines() {
-            let ligne = ligne.unwrap();
-            let v: Value = serde_json::from_str(&ligne).unwrap();
-            let cle = (v["cle"][0].as_str().unwrap_or("").to_string(), v["cle"][1].as_str().unwrap_or("").to_string());
-            let xml = v["xml"].as_str().or(v["contenu"].as_str()).unwrap_or("").to_string();
-            cache.entry(cle).or_default().push_str(&xml);
+type Cle = (String, String);
+
+/// Le texte des articles `voulus` de l'entrepôt LEGI (`articles.jsonl.gz`), toutes leurs versions déposées. L'entrepôt
+/// écrit chaque ligne clés triées, `cle` en tête, et range les lignes par clé (`moteur/src/atelier/releve/entrepot_dila.rs`,
+/// « LES FICHIERS ») : seule la clé de chaque ligne se lit, l'article entier seulement s'il est voulu, et la lecture
+/// s'arrête passé la plus grande clé voulue.
+fn articles_legi(chemin: &Path, voulus: &HashSet<Cle>) -> HashMap<Cle, String> {
+    let mut lus: HashMap<Cle, String> = HashMap::new();
+    let Some(derniere) = voulus.iter().max() else { return lus };
+    let f = std::fs::File::open(chemin).unwrap();
+    let mut lecteur = BufReader::with_capacity(1 << 16, flate2::read::MultiGzDecoder::new(f));
+    let mut ligne = String::new();
+    while lecteur.read_line(&mut ligne).unwrap() > 0 {
+        let reste = ligne.strip_prefix("{\"cle\": ").unwrap_or_else(|| panic!("une ligne de l'entrepôt ne commence pas par sa clé"));
+        let parts: Vec<String> = serde_json::Deserializer::from_str(reste).into_iter().next().unwrap().unwrap();
+        let cle = (parts.first().cloned().unwrap_or_default(), parts.get(1).cloned().unwrap_or_default());
+        if &cle > derniere {
+            break;
         }
+        if voulus.contains(&cle) {
+            let v: Value = serde_json::from_str(&ligne).unwrap();
+            lus.entry(cle).or_default().push_str(v["xml"].as_str().or(v["contenu"].as_str()).unwrap_or(""));
+        }
+        ligne.clear();
     }
-    cache.get(&(code.to_string(), numero.to_string())).cloned().unwrap_or_default()
+    lus
 }
 
 #[test]
 fn chaque_source_est_un_texte_depose_et_sa_citation_s_y_lit() {
     let b = banque();
-    let mut legi = HashMap::new();
+    let mut legi: HashMap<PathBuf, HashMap<Cle, String>> = HashMap::new();
+    let mut voulus: HashMap<PathBuf, HashSet<Cle>> = HashMap::new();
+    for c in conseils(&b) {
+        for s in sources(&c) {
+            if let (Some(fichier), Some(code), Some(numero)) = (s["fichier"].as_str(), s["code"].as_str(), s["article"].as_str()) {
+                if fichier.ends_with(".jsonl.gz") {
+                    voulus.entry(depot().join(fichier)).or_default().insert((code.to_string(), numero.to_string()));
+                }
+            }
+        }
+    }
     let mut textes: HashMap<PathBuf, String> = HashMap::new();
     let mut fautes = Vec::new();
     for c in conseils(&b) {
@@ -127,9 +150,10 @@ fn chaque_source_est_un_texte_depose_et_sa_citation_s_y_lit() {
             let texte = if fichier.ends_with(".jsonl.gz") {
                 let code = s["code"].as_str().unwrap_or_else(|| panic!("{} : une source LEGI nomme son code", id));
                 let numero = s["article"].as_str().unwrap();
-                let xml = article_legi(&chemin, code, numero, &mut legi);
+                let lus = legi.entry(chemin.clone()).or_insert_with(|| articles_legi(&chemin, &voulus[&chemin]));
+                let xml = lus.get(&(code.to_string(), numero.to_string())).map(String::as_str).unwrap_or("");
                 assert!(!xml.is_empty(), "{} : l'article {} {} n'est pas dans l'entrepôt déposé", id, code, numero);
-                normaliser(&xml, true)
+                normaliser(xml, true)
             } else {
                 textes.entry(chemin.clone()).or_insert_with(|| normaliser(&String::from_utf8_lossy(&std::fs::read(&chemin).unwrap()), false)).clone()
             };
