@@ -586,19 +586,6 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     let lu = Lu::du_mois(ctx, mois)?;
     let paies = &lu.paies;
     avertissements.extend(sans_taux_recu(ctx, paies.iter())?.into_iter().map(avertissement));
-    // LE BORDEREAU URSSAF DU PRINCIPAL (chacun des autres etablissements a le sien, dans sa DSN) : ce qui l'empeche de se
-    // calculer se dit avant le depot.
-    let plusieurs_etablissements = !droit::bareme::secondaires(&ctx.entreprise_du_mois(mois).map_err(valeur)?).is_empty();
-    let principal_du_bordereau = droit::bareme::nic_principal(&ctx.entreprise);
-    let mut du_principal: Vec<Paie> = Vec::new();
-    for p in paies {
-        if !plusieurs_etablissements || droit::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie).map_err(valeur)? == principal_du_bordereau {
-            du_principal.push(p.clone());
-        }
-    }
-    if let Err(e) = declarations::dsn::montant_urssaf(ctx, &du_principal, mois, None, &departs) {
-        avertissements.push(avertissement(format!("Bordereau Urssaf non calculable : {}", e)));
-    }
     avertissements.extend(crate::routes::mois::archives_employees(&paies)?.into_iter().map(avertissement));
     for p in paies {
         avertissements.extend(p.avertissements.iter().cloned());
