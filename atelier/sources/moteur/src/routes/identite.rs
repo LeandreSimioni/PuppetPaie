@@ -35,7 +35,11 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         nom: "poser-identite",
         geste: "Poser la signature, le cachet ou le logo (une image PNG, JPEG ou SVG).",
-        charge: &[QUOI_IDENTITE, Champ { nom: "contenu", libelle: Affiche::new("Image"), forme: Forme::Texte, sens: "l'image en base64 (une adresse data: aussi)", avance: false }],
+        charge: &[
+            QUOI_IDENTITE,
+            Champ { nom: "contenu", libelle: Affiche::new("Image"), forme: Forme::Texte, sens: "l'image en base64 (une adresse data: aussi)", avance: false },
+            Champ { nom: "poids", libelle: Affiche::new("Poids visé en Ko"), forme: Forme::Nombre, sens: "le poids visé de l'image dans chaque document, en Ko (20 si absent)", avance: true },
+        ],
         exemple: r#"{"quoi":"logo","contenu":"PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiLz4="}"#,
         rend: IDENTITE_REND,
         refus: &[Refus { classe: "ErreurOperation", corriger: "une image lisible (PNG, JPEG, SVG), de 2 Mo au plus" }, FORME, MANQUE],
@@ -65,7 +69,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             ecran_de_l_identite(&mut v);
             super::phrase_en_tete(v.clone(), dire_l_identite(&v))
         }),
-        "poser-identite" => poser_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Posé. {}", dire_l_identite(&v)))),
+        "poser-identite" => poser_identite(ctx, charge).map(|(v, poids)| super::phrase_en_tete(v.clone(), format!("Posé. {} {}", poids, dire_l_identite(&v)))),
         "retirer-identite" => retirer_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Retiré. {}", dire_l_identite(&v)))),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -75,6 +79,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 const IDENTITES: [&str; 3] = ["signature", "cachet", "logo"];
 const OCTETS_MAX: usize = 2 * 1024 * 1024;
+/// Le poids visé d'une image dans chaque document, en Ko, quand la compagnie n'en dit pas d'autre.
+const POIDS_VISE_KO: f64 = 20.0;
 
 #[track_caller]
 fn identite_inconnue(quoi: &str) -> Echec {
@@ -116,7 +122,7 @@ fn avant(f: &Path) -> R<()> {
     std::fs::rename(f, PathBuf::from(nom)).map_err(|e| en_os(socle::echec::du_disque(&f, &e)))
 }
 
-fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn poser_identite(ctx: &Contexte, charge: &Value) -> R<(Value, String)> {
     let quoi = texte_requis(charge, "quoi")?;
     let contenu = match exiger(charge, "contenu")? {
         Value::Null => "",
@@ -134,9 +140,23 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
     if octets.len() > OCTETS_MAX {
         return Err(refus(format!("Le fichier fait {:.1} Mo ; la limite est de 2 Mo.", octets.len() as f64 / 1024.0 / 1024.0)));
     }
-    let format = format_de(&octets).ok_or_else(|| {
+    format_de(&octets).ok_or_else(|| {
         refus("Ce fichier n'est ni un PNG, ni un JPEG, ni un SVG (ses premiers octets ne sont ceux d'aucun des trois). Rien n'a ete ecrit.")
     })?;
+    let objectif_ko = match charge.get("poids") {
+        None | Some(Value::Null) => POIDS_VISE_KO,
+        Some(v) => match v.as_f64().or_else(|| v.as_str().and_then(|s| s.trim().replace(',', ".").parse().ok())) {
+            Some(k) if (1.0..=OCTETS_MAX as f64 / 1024.0).contains(&k) => k,
+            _ => return Err(refus(format!("Le poids visé est un nombre de Ko, de 1 à {} : {} ne l'est pas.", OCTETS_MAX / 1024, socle::fichiers::repr(&socle::valeur::valeur_en_texte(v))))),
+        },
+    };
+    // L'image part dans chaque document qui la porte : elle est allégée avant d'être posée, à la largeur que les
+    // documents impriment (`documents::largeur_imprimee`) et au poids visé.
+    let largeur = documents::largeur_imprimee(quoi).ok_or_else(|| identite_inconnue(quoi))?;
+    let allegee = fabrique_pdf::alleger::alleger(&octets, largeur, (objectif_ko * 1024.0) as usize)
+        .map_err(|r| refus(format!("Le fichier n'est pas lisible : {}. Rien n'a ete ecrit.", r.0)))?;
+    let poids = dire_le_poids(quoi, &allegee, objectif_ko);
+    let (octets, format) = (allegee.octets, allegee.format);
     let dossier = dossier_identite(ctx);
     creer_dossier(&dossier)?;
     // Les autres extensions s'en vont : une identite, un fichier.
@@ -158,7 +178,40 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
         tenu.insert("signature".into(), json!({"de": signataire["nom"], "le": aujourd_hui().iso()}));
         ecrire(&registre, Value::Object(tenu))?;
     }
-    identite(ctx)
+    Ok((identite(ctx)?, poids))
+}
+
+/// Des octets en Ko, arrondis au-dessus (« 1 Ko » au moins), en Mo à une décimale au-delà de 1 000 Ko.
+fn ko(octets: usize) -> String {
+    let k = octets.div_ceil(1024).max(1);
+    if k < 1000 {
+        format!("{} Ko", k)
+    } else {
+        format!("{:.1} Mo", octets as f64 / 1024.0 / 1024.0).replace('.', ",")
+    }
+}
+
+/// Ce que l'image posée pèsera dans chaque document, et pourquoi on l'a allégée.
+fn dire_le_poids(quoi: &str, a: &fabrique_pdf::alleger::Allegee, objectif_ko: f64) -> String {
+    let nom = match quoi {
+        "signature" => "La signature",
+        "cachet" => "Le tampon",
+        _ => "Le logo",
+    };
+    let pourquoi = "Chaque document part par courriel et se garde : une image lourde l'alourdit chaque fois.";
+    let poids = if a.format == "svg" { format!("environ {}", ko(a.octets.len())) } else { ko(a.octets.len()) };
+    let mut dit = format!("{} pèsera {} dans chaque document qui le porte", nom, poids);
+    if quoi == "signature" {
+        dit = dit.replace("qui le porte", "qui la porte");
+    }
+    if !a.telle_quelle {
+        dit.push_str(&format!(" (l'image reçue : {} ; ramenée à {} pixels de large, ce que les documents impriment)", ko(a.avant), a.largeur));
+    }
+    dit.push('.');
+    if a.octets.len() as f64 > objectif_ko * 1024.0 {
+        dit.push_str(&format!(" C'est plus que les {} Ko visés : une image plus simple (moins de détails, moins de couleurs) serait plus légère.", objectif_ko));
+    }
+    format!("{} {}", dit, pourquoi)
 }
 
 fn retirer_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
@@ -199,7 +252,8 @@ fn dire_l_identite(v: &Value) -> String {
 /// CE QUE L'ECRAN DE LA SIGNATURE ET DU TAMPON DIT (`intro`, et pour chaque image son `titre` et ce qu'elle `dit` : ou elle
 /// va, ce qu'elle engage, et ce qui la contredit dans la fiche Entreprise).
 fn ecran_de_l_identite(v: &mut Value) {
-    v["intro"] = json!("Ce qui se pose sur les documents de la compagnie : PNG, JPEG ou SVG, 2 Mo au plus.");
+    v["intro"] = json!("Ce qui se pose sur les documents de la compagnie : PNG, JPEG ou SVG, 2 Mo au plus. Une image posée part dans chaque document qui la porte : le logiciel l'allège au poids visé.");
+    v["poids_vise_ko"] = json!(POIDS_VISE_KO);
     let ou = |i: &Value| {
         let docs: Vec<String> = i["documents"].as_array().into_iter().flatten().map(super::mot).collect();
         if docs.is_empty() { String::new() } else { format!("Sur {}", docs.join(", ")) }
@@ -230,10 +284,9 @@ fn ecran_de_l_identite(v: &mut Value) {
     for quoi in ["signature", "cachet", "logo"] {
         let e = &mut i[quoi];
         let pose = vrai(&e["pose"]);
-        let ko = e["octets"].as_f64().unwrap_or(0.0) / 1024.0;
         let jour: String = super::mot(&e["quand"]).chars().take(10).collect();
         e["pose_dit"] = if pose {
-            json!(format!("{}, {} Ko, posé le {}", super::mot(&e["format"]).to_uppercase(), ko.round() as i64, super::jour_en_clair(&json!(jour))))
+            json!(format!("{}, {} dans chaque document, posé le {}", super::mot(&e["format"]).to_uppercase(), ko(e["octets"].as_u64().unwrap_or(0) as usize), super::jour_en_clair(&json!(jour))))
         } else {
             Value::Null
         };

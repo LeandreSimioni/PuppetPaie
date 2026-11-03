@@ -429,6 +429,12 @@ le corps, donc ne changent pas les sauts de page.
   espace insécable). Un caractère que la police n'a pas (un idéogramme, un
   emoji) est un refus d'une ligne : `bloc 3 : le caractère « 漢 » (U+6F22)
   n'existe pas dans la police Liberation`.
+- **Le plus léger possible, sans rien perdre** : un document fabriqué (ou assemblé) s'écrit en PDF 1.5, les objets
+  qui ne sont pas des flux (polices et leurs largeurs, pages, champs) dans des flux d'objets comprimés et la table
+  des références en flux comprimé (`genpdfi::pdf_ecriture::compact`, ISO 32000-1, 7.5.7 et 7.5.8) ; une police n'y est
+  qu'une fois par fichier de police, en sous-ensemble sans hinting, sa table `ToUnicode` en plages. Ce qui s'ajoute à
+  un PDF reçu (`--remplir`, `marquage::contresigner`) ne réécrit pas ses octets : une mise à jour incrémentale
+  (`genpdfi::pdf_ecriture::ajouter`).
 - Un texte à position fixe tombe à ses coordonnées à 0,1 pt près (tests).
 - Même description, même PDF à l'octet près (aucune date variable dans le
   fichier, aucun nom de sous-ensemble tiré au hasard : l'étiquette
@@ -688,7 +694,8 @@ et 12 pt du bas *tels qu'on les voit*.
 L'exemplaire contresigné d'un contrat ou d'un avenant (styles `contrat` et `avenant`) est **le PDF parti, plus la
 mention** de l'artiste (qui, quand, adresse, code : des lignes séparées par `\n`), posée par une **mise à jour
 incrémentale** (ISO 32000-2, 7.5.6) : les octets du PDF parti restent tels quels en tête du fichier ; après eux
-s'ajoutent la police de la mention (Liberation Sans en sous-ensemble, avec `ToUnicode`), un flux par page, la page qui
+s'ajoutent le texte de la mention (dans la police Liberation Sans du contrat, et un sous-ensemble des seuls caractères
+qu'elle n'a pas, avec `ToUnicode`), un flux par page, la page qui
 le cite (ses flux d'avant intacts, comme `--marquer`), une table de références et un `trailer` qui renvoie à l'ancienne
 par `/Prev`. Retirer ce qui suit les octets partis rend le contrat parti à l'octet près. Rien n'est chiffré.
 
@@ -812,19 +819,25 @@ aussi. Une valeur plus longue que `/MaxLen` est un refus. Pour chaque champ :
   JPEG dont la résolution n'était pas celle qu'il attendait : un tampon rond sortait ovale.)
 - *Ce qu'est le fichier* se lit dans ses premiers octets, pas dans son extension : PNG, JPEG ou
   SVG ; autre chose est un refus.
-- *SVG* : **vectoriel** (usvg, puis svg2pdf) ; son texte est mis en tracés avec **Liberation**
-  (Sans, Serif, Mono ; `Helvetica`, `Arial` et `sans-serif` sont Liberation Sans) et aucune
-  police du système : le même SVG donne le même dessin sur tous les postes. Une image matricielle
-  dans le SVG (`data:`) est reprise ; un fichier externe qu'il citerait ne l'est pas.
-- *PNG* : décodé, réécrit en Flate (RVB ou gris), sa **transparence** en `/SMask`. *JPEG* en
-  niveaux de gris ou RVB : **tel quel** (`DCTDecode`, aucune recompression) ; CMJN : décodé et
-  réécrit en RVB.
+- *SVG* : **vectoriel** (usvg, puis svg2pdf), avec **Liberation** (Sans, Serif, Mono ; `Helvetica`, `Arial` et
+  `sans-serif` sont Liberation Sans) et aucune police du système : le même SVG donne le même dessin sur tous les postes.
+  Son texte s'écrit **en texte PDF** quand il le peut (Liberation Sans romain ou gras, droit, d'une couleur pleine, sans
+  contour, décoration, espacement ni position par caractère) : quelques octets par lettre, et il se lit ; sinon il est
+  mis en tracés (des milliers de nombres : 30 Ko pour un tampon de cinq lignes). Une image matricielle dans le SVG
+  (`data:`) est reprise ; un fichier externe qu'il citerait ne l'est pas.
+- *PNG* : décodé, réécrit en Flate avec les prédicteurs PNG (RVB ou gris), sa **transparence** en `/SMask`. *JPEG* en
+  niveaux de gris ou RVB : **tel quel** (`DCTDecode`, aucune recompression) ; CMJN : décodé et réécrit en RVB.
 - Le contenu de la page devient `q`, les anciens flux (les mêmes objets), les `Q` qui les
   referment, puis le flux des images (`q a 0 0 d e f cm /PPImageN Do Q`), comme `--marquer` ;
   les ressources de la page sont recopiées dans la page avec les images en plus. Une page tournée
   (`/Rotate`) est un refus ; une page qui n'existe pas aussi.
 
-Le fichier est réécrit en entier (pas de mise à jour incrémentale) ; un PDF chiffré est refusé
+Le formulaire reçu **reste tel quel, octet pour octet**, en tête du fichier : ce que `--remplir` y écrit (les valeurs et
+leur apparence, la police, les images, les pages qui les citent) s'ajoute à la suite, en **mise à jour incrémentale**
+(ISO 32000-1, 7.5.6), avec une table de références de la forme de celle du formulaire et un `trailer` qui renvoie à
+l'ancienne par `/Prev`. **Une police par fichier de police** : une police Liberation que la fabrique a déjà mise dans le
+document sert si elle a tous les caractères ; sinon un sous-ensemble neuf des seuls caractères écrits, le même pour les
+champs et le texte des SVG. Un PDF chiffré est refusé
 (« le PDF est chiffré : on ne le remplit pas »). Même entrée, même description : mêmes octets.
 Code 0 : le PDF est écrit ; 1 : refus d'une ligne qui nomme le fichier d'entrée, rien n'est
 écrit (et la sortie, si ce n'est pas l'entrée, n'existe pas) ; 2 : il manque un argument.

@@ -66,7 +66,7 @@ fn la_marque_est_en_liberation_sans_sous_ensemble_avec_tounicode() {
     assert!(base.contains("+LiberationSans"), "{}", base);
     let tounicode = doc.get_object(police.get(b"ToUnicode").unwrap().as_reference().unwrap()).unwrap().as_stream().unwrap();
     let table = String::from_utf8(tounicode.decompressed_content().unwrap()).unwrap();
-    assert!(table.contains("beginbfchar") && table.contains("<2014> <2014>"), "{}", table);
+    assert!(table.contains("beginbfrange") && table.contains("<2014> <2014> <2014>"), "{}", table);
     // le flux de la marque : couleur, corps, texte en codes de deux octets (le point de code)
     let dernier = *contenus(&doc, page).last().unwrap();
     let flux = flux_decode(&doc, dernier);

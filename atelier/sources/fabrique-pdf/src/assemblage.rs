@@ -115,10 +115,7 @@ pub fn assembler(texte: &str) -> Result<(Vec<u8>, bool), Refus> {
     fusionner_identiques(&mut sortie, &[id_pages, id_racine]);
     sortie.renumber_objects();
     sortie.compress();
-    let mut octets = Vec::new();
-    sortie
-        .save_to(&mut octets)
-        .map_err(|e| Refus(format!("écriture du PDF impossible : {}", e)))?;
+    let octets = genpdfi::pdf_ecriture::compact(&sortie);
     Ok((octets, verrouille))
 }
 

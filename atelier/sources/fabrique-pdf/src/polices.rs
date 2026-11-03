@@ -68,6 +68,11 @@ pub fn sans_regulier() -> Result<Arc<Vec<u8>>, Refus> {
     decomprimer(REGULIER_Z)
 }
 
+/// Le fichier de Liberation Sans gras, pour le texte gras d'un SVG posé dans un PDF existant (`formulaire.rs`).
+pub fn sans_gras() -> Result<Arc<Vec<u8>>, Refus> {
+    decomprimer(GRAS_Z)
+}
+
 /// Tous les fichiers de Liberation (Sans en quatre styles, Serif et Mono en romain et gras) : ce
 /// que le texte d'un SVG peut demander quand on le pose dans un PDF (`formulaire.rs`). Aucune
 /// police du système n'est lue : le même SVG donne le même dessin sur tous les postes.
