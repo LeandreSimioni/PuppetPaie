@@ -116,7 +116,10 @@ pub fn corriger_les_mois_finis(ctx: &Contexte, departs: &Departs) -> Resultat<Ve
     for mois in crate::paies::mois_payes(&ctx.racine) {
         let avant: Vec<Option<Arc<Value>>> = tels_qu_ecrits(ctx, &mois, departs)?.iter().map(|e| e.valide().and_then(|v| v.paie_ecrite(&mois))).collect();
         let apres: Vec<Option<Arc<Value>>> = lu_et_rafraichi(ctx, &mois, departs, true)?.iter().map(|e| e.valide().and_then(|v| v.paie_ecrite(&mois))).collect();
-        let change = |a: &Option<Arc<Value>>, b: &Option<Arc<Value>>| a.as_ref().map(|x| chiffres(x)) != b.as_ref().map(|x| chiffres(x));
+        let change = |a: &Option<Arc<Value>>, b: &Option<Arc<Value>>| match (a, b) {
+            (Some(x), Some(y)) => !chiffres_egaux(x, y),
+            (x, y) => x.is_some() != y.is_some(),
+        };
         if avant.len() != apres.len() || avant.iter().zip(&apres).any(|(a, b)| change(a, b)) {
             refaits.push(mois);
         }
@@ -884,23 +887,28 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
         .collect()
 }
 
-/// Les chiffres d'une paie ecrite : tout sauf ce qu'elle dit en mots.
-fn chiffres(v: &Value) -> Value {
-    let champ = |k: &str| v.get(k).cloned().unwrap_or(Value::Null);
-    let mut x = json!({ "paie": champ("paie"), "pas": champ("pas"), CONGES: champ(CONGES) });
-    fn sans_avis(v: &mut Value) {
-        if let Some(m) = v.as_object_mut() {
-            m.remove("avertissements");
-            for (_, x) in m.iter_mut() {
-                sans_avis(x);
-            }
-        } else if let Some(a) = v.as_array_mut() {
-            a.iter_mut().for_each(sans_avis);
+/// Deux paies ecrites disent-elles les memes chiffres : tout sauf ce qu'elles disent en mots ? Rien ne se recopie : ce
+/// qui est a refaire se compare a chaque lecture de l'etat d'un mois, pour chaque envoi parti.
+fn chiffres_egaux(a: &Value, b: &Value) -> bool {
+    egales_sans_avis(champ(a, "paie"), champ(b, "paie")) && champ(a, "pas") == champ(b, "pas") && egales_sans_avis(champ(a, CONGES), champ(b, CONGES))
+}
+
+/// Le champ `k` d'une paie ecrite, `null` s'il manque.
+fn champ<'a>(v: &'a Value, k: &str) -> &'a Value {
+    v.get(k).unwrap_or(&Value::Null)
+}
+
+/// Deux valeurs egales hors de leurs `avertissements`, a toute profondeur.
+fn egales_sans_avis(a: &Value, b: &Value) -> bool {
+    const AVIS: &str = "avertissements";
+    match (a, b) {
+        (Value::Object(x), Value::Object(y)) => {
+            let cles = |m: &Map<String, Value>| m.keys().filter(|k| *k != AVIS).count();
+            cles(x) == cles(y) && x.iter().filter(|(k, _)| *k != AVIS).all(|(k, v)| y.get(k).is_some_and(|w| egales_sans_avis(v, w)))
         }
+        (Value::Array(x), Value::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(v, w)| egales_sans_avis(v, w)),
+        _ => a == b,
     }
-    sans_avis(&mut x["paie"]);
-    sans_avis(&mut x[CONGES]);
-    x
 }
 
 /// Pourquoi la paie a change de `avant` a `apres` : son prelevement seul, une regle datee nouvelle, la saisie d'un autre
@@ -914,8 +922,8 @@ fn chiffres(v: &Value) -> Value {
 /// d'autre n'a change. Une paie partie (`parti`) ne bouge que par une decision de l'editeur : le code et les regles
 /// datees s'y nomment d'abord, puisque ce sont eux qui la refont.
 fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
-    let (a, b) = (chiffres(avant), chiffres(apres));
-    if a["paie"] == b["paie"] && a[CONGES] == b[CONGES] && a["pas"] != b["pas"] {
+    let sans_avis = |k: &str| egales_sans_avis(champ(avant, k), champ(apres, k));
+    if sans_avis("paie") && sans_avis(CONGES) && champ(avant, "pas") != champ(apres, "pas") {
         return TAUX_DE_PAS.to_string();
     }
     let vieilles = empreinte::regles_de(avant.get("empreinte").unwrap_or(&Value::Null));
@@ -1007,7 +1015,7 @@ fn lu(p: &Value) -> (Option<&Value>, Option<&Value>) {
 /// fiches et la meme saisie du mois ? Un mois que `b` ajoute (un contrat sans terme qui entre dans un mois de plus) ne
 /// change rien de ce que disait `a`.
 fn memes_chiffres(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
-    a.iter().all(|(m, p)| b.get(m).is_some_and(|q| chiffres(p) == chiffres(q) && lu(p) == lu(q)))
+    a.iter().all(|(m, p)| b.get(m).is_some_and(|q| chiffres_egaux(p, q) && lu(p) == lu(q)))
 }
 
 /// LA VERSION QUE PREND LE PRESENT quand la validation `actuelle` de `o` est remplacee le `le` : si un envoi est parti
@@ -1117,7 +1125,7 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, anciennes: &Map<String
                 let mut p = calculer(ctx, o, &m)?;
                 match anciennes.get(&m).filter(|_| partis) {
                     // Une paie partie, refaite aux memes chiffres : le bulletin parti reste juste, elle garde ses numeros.
-                    Some(f) if chiffres(f) == chiffres(&p) => {
+                    Some(f) if chiffres_egaux(f, &p) => {
                         for k in [BULLETIN, CE, RECTIFIE] {
                             if let Some(x) = f.get(k) {
                                 p[k] = x.clone();
@@ -1430,7 +1438,7 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs, passage: bool) -> R
     }
     for ((_, mut o, ancienne, parti), mut nouvelle) in calculees {
         let raison = match &ancienne {
-            Some(a) if chiffres(a) != chiffres(&nouvelle) => Some(raison(a, &nouvelle, parti)),
+            Some(a) if !chiffres_egaux(a, &nouvelle) => Some(raison(a, &nouvelle, parti)),
             Some(a) => {
                 if let Some(r) = a.get("recalcul").filter(|r| r.is_object()) {
                     nouvelle["recalcul"] = r.clone();
@@ -1622,7 +1630,7 @@ pub fn a_refaire_parmi(ctx: &Contexte, v: &Valide, departs: &Departs, sorte: &dy
         }
         let Some(passee) = v.version_numero(d.version) else { continue };
         let saisie = |x: &Value| x.get("saisie").cloned().unwrap_or(Value::Null);
-        let paie = |x: &Value, m: &str| paie_ecrite_de_la_version(&v.objet, x, m).ok().flatten().as_ref().map(chiffres);
+        let paie = |x: &Value, m: &str| paie_ecrite_de_la_version(&v.objet, x, m).ok().flatten();
         match d.envoi {
             Envoi::Contrat => {
                 let (partie, presente) = (saisie(passee), saisie(&actuelle));
@@ -1640,7 +1648,11 @@ pub fn a_refaire_parmi(ctx: &Contexte, v: &Valide, departs: &Departs, sorte: &dy
             Envoi::Signalement => {}
             Envoi::Documents | Envoi::Dsn => {
                 let Some(m) = d.mois.as_deref() else { continue };
-                if paie(passee, m) != paie(&actuelle, m) {
+                let change = match (paie(passee, m), paie(&actuelle, m)) {
+                    (Some(a), Some(b)) => !Arc::ptr_eq(&a, &b) && !chiffres_egaux(&a, &b),
+                    (a, b) => a.is_some() != b.is_some(),
+                };
+                if change {
                     out.push(if d.envoi == Envoi::Documents {
                         ARefaire::Bulletin { mois: m.to_string(), depuis: d.version }
                     } else {
@@ -1769,12 +1781,12 @@ fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<
 /// LA PAIE ECRITE DE `mois` DE LA VERSION `version` de l'engagement `o` (une validation, celle qu'une modification va
 /// remplacer, ou une version passee, telles que l'engagement les ecrit) : la paie presente du mois pour la version presente,
 /// celle que la version passee a gardee (`paies::de_la_version`) sinon ; `None` si elle n'en a pas pour ce mois.
-pub fn paie_ecrite_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Value>> {
+pub fn paie_ecrite_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Arc<Value>>> {
     let n = version_de(Some(version));
     let presente = [o.brut.get("valide"), o.brut.get(PRECEDENTE)].into_iter().flatten().any(|v| version_de(Some(v)) == n);
     match n {
-        Some(n) if !presente => crate::paies::de_la_version(o, n, mois),
-        _ => crate::paies::presente(o, mois).map(|p| p.map(|p| (*p).clone())),
+        Some(n) if !presente => Ok(crate::paies::de_la_version(o, n, mois)?.map(Arc::new)),
+        _ => crate::paies::presente(o, mois),
     }
 }
 
@@ -1904,7 +1916,7 @@ pub fn correction_due(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str,
         return Ok(None);
     }
     let ecrite = version_ecrite(ctx, &v.objet, derniere)?.map(|x| paie_ecrite_de_la_version(&v.objet, x, mois)).transpose()?.flatten();
-    if ecrite.is_some_and(|e| chiffres(&e)["paie"] == chiffres(&presente)["paie"]) {
+    if ecrite.is_some_and(|e| egales_sans_avis(champ(&e, "paie"), champ(&presente, "paie"))) {
         return Ok(None);
     }
     Ok(Some(paies_declarees(ctx, &v.objet, departs, mois, avant)?))
