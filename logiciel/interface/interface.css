@@ -35,6 +35,7 @@
   --veille-fond: #F0EEEA;        /* le bandeau des relèves */
   --copie: #2F6F8F;              /* la copie de développement */
   --hachure: #cfe3f2;            /* les rayures d'une compagnie fictive */
+  --logo: #2350c4;               /* le bleu du feutre : la marotte, la maison */
   --blanc: #fff;                 /* le texte sur un fond de couleur */
 }
 
@@ -61,13 +62,11 @@ body {
   border-bottom: 3px solid var(--compagnie);
   position: sticky; top: 0; z-index: 10;
 }
-.marque { display: flex; align-items: center; gap: 10px; }
-.marque strong { display: block; font-size: 15px; letter-spacing: .3px; }
+/* La marotte a de l'air autour d'elle : c'est elle qui dit le nom. */
+.marque { display: flex; align-items: center; gap: 18px; }
 .marque .sous { color: var(--discret); font-size: 12px; }
 .marque .version { display: block; font-size: 11px; }
-.logo { width: 38px; height: 24px; }
-.logo .filet { fill: var(--compagnie); }
-.logo .pp { font: bold 30px Georgia, serif; fill: var(--texte); }
+.logo { height: 44px; width: auto; margin: 0 6px; color: var(--logo); }
 
 .onglets { display: flex; gap: 4px; }
 .onglets button {
@@ -116,7 +115,7 @@ body.accueil-possible .retour-accueil {
   border: none; background: none; color: var(--discret);
   font-size: 11px; padding: 4px 8px; margin-right: 10px; cursor: pointer; align-self: center;
 }
-.retour-accueil .maison { width: 22px; height: 22px; }
+.retour-accueil .maison { width: 35px; height: 35px; color: var(--logo); }
 body.accueil-possible .retour-accueil:hover { color: var(--texte); }
 body.fenetre .bandeau { padding-right: 8px; }
 body.fenetre .fenetre-boutons { display: flex; gap: 2px; margin-left: 8px; align-self: flex-start; margin-top: -6px; }
@@ -745,16 +744,14 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   .grille-mois { grid-template-columns: 1fr; }
   .engagement .ligne1 { grid-template-columns: 1fr 1fr; }
 }
-/* UN TÉLÉPHONE : l'en-tête tient en deux lignes — la maison, le nom et sa version, le signalement ; puis les onglets.
-   Le sous-titre et l'étiquette de la maison se taisent, le logo se resserre. */
+/* UN TÉLÉPHONE : l'en-tête tient en deux lignes — la maison, la marotte et la version, le signalement ; puis les onglets.
+   L'étiquette de la maison se tait, la marotte se resserre. */
 @media (max-width: 480px) {
   .bandeau { gap: 4px 8px; padding: 6px 10px; }
-  .marque { gap: 6px; }
-  .marque .sous:not(.version) { display: none; }
-  .marque strong { font-size: 14px; }
-  .logo { width: 28px; height: 18px; }
+  .marque { gap: 12px; }
+  .logo { height: 34px; margin: 0 4px; }
   body.accueil-possible .bandeau .retour-accueil { font-size: 0; padding: 2px 4px; margin-right: 0; }
-  .retour-accueil .maison { width: 20px; height: 20px; }
+  .retour-accueil .maison { width: 27px; height: 27px; }
   .bandeau button.signaler { margin-left: auto; font-size: 11px; }
   .onglets { order: 5; width: 100%; justify-content: space-between; }
   .onglets button { padding: 5px 6px; }
