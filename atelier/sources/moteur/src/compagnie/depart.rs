@@ -1395,7 +1395,19 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
                 declarations::dsn::ecrire(&texte, cible).map_err(valeur)
             }
             declarations::fctu::NATURE => crate::routes::imprevus::signaler_fin(&ctx_j, &json!({"mois": mois, "salarie": premier, "ordre": ordre, "le": jour.iso()}), true).map(|_| ()),
-            n => crate::routes::imprevus::signaler_arret(&ctx_j, &json!({"salarie": premier, "dernier_jour": crate::routes::imprevus::dernier_jour_saisi(&ctx_j, &premier, &evenement)?, "nature": n, "ordre": ordre, "le": jour.iso()}), true).map(|_| ()),
+            n => {
+                // L'arret tel qu'il etait a l'ecriture : celui de ses etats d'alors que l'empreinte reconnait.
+                let charge = json!({"salarie": premier, "dernier_jour": crate::routes::imprevus::dernier_jour_saisi(&ctx_j, &premier, &evenement)?, "nature": n, "ordre": ordre, "le": jour.iso()});
+                let mut rendu = Ok(());
+                for a in crate::routes::imprevus::etats_d_alors(&ctx_j, &premier, &charge["dernier_jour"], &crate::routes::maintenant())? {
+                    crate::routes::imprevus::signaler_arret(&ctx_j, &charge, Some(&a))?;
+                    rendu = garder_si_identique(l, &[cible.to_path_buf()]);
+                    if rendu.is_ok() {
+                        break;
+                    }
+                }
+                rendu
+            }
         }
     };
     socle::temps::pendant(instant, refaire)?;

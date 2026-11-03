@@ -43,11 +43,13 @@ pub const DOSSIER: &str = "imprevus";
 /// jour, brutes et nettes de CSG et CRDS (`ij_brute`, `ij_nette`, et `_majoree` au-dela du vingt-huitieme jour d'un accident du
 /// travail) sont ceux du maintien de salaire d'un permanent (`maintien`) ; `prolongations` garde chaque avis de
 /// prolongation saisi (`moteur::routes::imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
-/// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
-pub const CHAMPS_ARRET: [&str; 23] = [
+/// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`) ; `reprises`
+/// garde chaque reprise notee ou effacee (`arret_reprise` : quand, la reprise et son motif d'avant et d'apres). Par ces deux
+/// traces, l'arret se relit tel qu'il etait a un instant passe (`moteur::routes::imprevus::arret_a_l_instant`).
+pub const CHAMPS_ARRET: [&str; 24] = [
     "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "debut", "fin_previsionnelle",
     "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
-    "jours_deja_indemnises", "ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "prolongations", "saisi_le", "qui", "note",
+    "jours_deja_indemnises", "ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "prolongations", "reprises", "saisi_le", "qui", "note",
 ];
 const REQUIS_ARRET: usize = 8;
 
@@ -120,10 +122,10 @@ suspension du contrat, bloc S21.G00.65).",
         let defaut = match *k {
             "qui" => json!("?"),
             "note" => json!(""),
-            "prolongations" => json!([]),
+            "prolongations" | "reprises" => json!([]),
             _ => Value::Null,
         };
-        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "prolongations" | "note"))).unwrap_or(defaut));
+        o.insert(k.to_string(), m.get(*k).cloned().filter(|x| !(x.is_null() && matches!(*k, "prolongations" | "reprises" | "note"))).unwrap_or(defaut));
     }
     if genre == ARRET {
         for k in ["ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree"] {
@@ -132,8 +134,10 @@ suspension du contrat, bloc S21.G00.65).",
             }
         }
     }
-    if genre == ARRET && !o["prolongations"].is_array() {
-        return Err(socle::echec::charge("prolongations", "une liste"));
+    for k in ["prolongations", "reprises"] {
+        if genre == ARRET && !o[k].is_array() {
+            return Err(socle::echec::charge(k, "une liste"));
+        }
     }
     Ok(Value::Object(o))
 }
