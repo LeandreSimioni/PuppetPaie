@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use rust_decimal::prelude::*;
 use serde_json::{Map, Value};
 
-use droit::bareme::{bareme_applique, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
+use droit::bareme::{bareme_applique, BaremeApplique, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
@@ -21,8 +21,9 @@ use socle::num::nombre;
 use socle::fichiers::vrai;
 use socle::num::{add, dec, dec_f64, div, eur, flottant, mul, pct, round3, sub, Decimal, Resultat};
 pub use droit::reduction::ReductionGenerale;
-use droit::bareme::{somme_pct, taux_liste};
-use droit::reduction::{au_dela_du_seuil, reduction_generale, reduction_generale_sous_dfs};
+use droit::bareme::somme_pct;
+use droit::rubrique::Rubrique;
+use droit::reduction::{au_dela_d_un_seuil, reduction_generale, reduction_generale_sous_dfs};
 use droit::plafond::{plafond_permanent, pour_paie, EngagementPlafond};
 
 
@@ -705,7 +706,7 @@ section verifiee.",
 ///   [...] >>. Aucun texte depose ne dit si une autre indemnite hors assiette (une indemnite de rupture exoneree par sa
 ///   propre regle) s'y reintegre : refus (regle 1). Un acompte, un mouvement de tresorerie, n'est rien de tout cela.
 fn dfs_applicable(
-    eng: &Engagement, nat: &Nature, o: &OptionDfs, lb: &[LigneBrut], rubriques_bulletin: &[&Value], racine: &std::path::Path,
+    eng: &Engagement, nat: &Nature, o: &OptionDfs, lb: &[LigneBrut], rubriques_bulletin: &[Rubrique], racine: &std::path::Path,
     jour: &Jour,
 ) -> Resultat<()> {
     let qui = eng.qui();
@@ -718,13 +719,13 @@ prevoyance conventionnelle, ses tranches de retraite et son assiette minimum ne 
             qui, nat.libelle
         )})));
     }
-    if let Some(r) = rubriques_bulletin.iter().find(|r| r.get("id").and_then(Value::as_str).map_or(false, |i| i.starts_with("apec"))) {
+    if let Some(r) = rubriques_bulletin.iter().find(|r| r.id.starts_with("apec")) {
         return Err(socle::echec::avec(format!("{} : la déduction forfaitaire spécifique ne se porte pas sur la paie d'un cadre : aucun texte ne dit l'assiette de l'Apec sous déduction.", qui), serde_json::json!({"detail": format!(
             "{} : une deduction forfaitaire specifique sur la paie d'un cadre (ligne << {} >>). L'assiette de l'Apec sous \
 deduction n'est dans aucun texte depose (atelier/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>) : le logiciel \
 ne la devine pas. Rien n'est calcule.",
             qui,
-            r.get("libelle").map_or_else(String::new, en_texte)
+            r.libelle.clone().unwrap_or_default()
         )})));
     }
     for l in lb.iter().filter(|l| !l.soumis && !l.montant.is_zero()) {
@@ -898,8 +899,8 @@ fn tuple(j: &Jour) -> (i32, u32, u32) {
 /// depend que des fichiers du bareme, de la fiche entreprise, du salarie, de
 /// la nature, de la caisse de conges et du jour. Un mois et ses mois anterieurs la recomposaient a
 /// chaque paie, et c'etait l'essentiel du temps de calcul.
-pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool) -> Resultat<Arc<Value>> {
-    type Cache = Mutex<HashMap<String, Arc<Value>>>;
+pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool) -> Resultat<Arc<BaremeApplique>> {
+    type Cache = Mutex<HashMap<String, Arc<BaremeApplique>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let cle = format!("{}|{}|{}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd);
@@ -1027,8 +1028,18 @@ fn calculer_du_mois(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> R
     crate::periodes::assembler(ctx, eng, parts)
 }
 
+/// L'assiette d'une rubrique : le calcul ne cotise pas sur une assiette que la rubrique ne dit pas.
+fn base_de(r: &Rubrique) -> Resultat<&str> {
+    r.base.as_deref().ok_or_else(|| socle::fichiers::absent("base"))
+}
+
+/// Le taux patronal d'une rubrique, s'il n'est pas nul.
+fn part_patronale(r: &Rubrique) -> Option<f64> {
+    r.taux_pat.filter(|t| *t != 0.0)
+}
+
 /// La pile de bareme sur laquelle se calcule la paie `p` (celle de `calculer_periode`, du meme cache).
-pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Value>> {
+pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<BaremeApplique>> {
     let eng = &p.engagement;
     let nat = eng.nat()?;
     let caisse = droit::caisse_conges::affilie(&nat, &p.salarie, &eng.debut, eng.fin.as_ref())?;
@@ -1279,11 +1290,7 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
         &droit::cpf_cdd::le_contrat(eng.numero.as_deref(), &eng.salarie),
     )?;
     let bar = bareme_du_salarie(ctx, &sal, &nat, &fin_periode, caisse, cpf_cdd)?;
-    let rubriques_bulletin: Vec<&Value> = requis(&bar, "rubriques_bulletin")?
-        .as_array()
-        .ok_or_else(|| socle::echec::cle("Le barème de l'année est incomplet : le signaler au développeur.", "rubriques_bulletin"))?
-        .iter()
-        .collect();
+    let rubriques_bulletin = &bar.rubriques;
     let jours = Decimal::from(eng.jours);
 
     // 7.2 : les lignes de remuneration.
@@ -1304,9 +1311,8 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     let brut = rubriques.iter().fold(Decimal::new(0, 2), |a, b| a + *b);
 
     // 7.3 : la prevoyance dans l'assiette CSG.
-    let prev = rubriques_bulletin.iter().find(|r| r.get("id").and_then(Value::as_str) == Some("prevoyance"));
-    let prev = match prev {
-        Some(p) if p.get("taux_pat").map_or(false, |t| !t.is_null()) => *p,
+    let (prev, taux_prev) = match bar.rubrique("prevoyance") {
+        Some(p @ Rubrique { taux_pat: Some(t), .. }) => (p, dec_f64(*t)?),
         _ => {
             return Err(socle::echec::avec("Le barème de l'année n'a pas de prévoyance avec un taux patronal : le signaler au développeur.", serde_json::json!({"detail": format!(
                 "Bareme {}{} : aucune rubrique `prevoyance` avec un taux \
@@ -1318,11 +1324,10 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
             )})))
         }
     };
-    let taux_prev = dec(&prev["taux_pat"])?;
     let plafond_journalier = bar.get("plafond_journalier").filter(|v| vrai(v));
     let t1_du_contrat = |p: &Value| -> Resultat<Decimal> { Ok(eur(mul(dec(p)?, jours))) };
     let mut plafond_prev = None;
-    if prev.get("base").and_then(Value::as_str) == Some("t1_journaliere") {
+    if prev.base.as_deref() == Some("t1_journaliere") {
         if let Some(p) = plafond_journalier {
             plafond_prev = Some(t1_du_contrat(p)?);
         }
@@ -1333,18 +1338,18 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         // partiel, sauf renonciation de l'etablissement ou artiste (`plafond_temps_partiel`).
         let p = plafond_de_l_engagement(ctx, eng, &sal)?;
         pss_prev = Some(p);
-        if prev.get("base").and_then(Value::as_str) == Some("t1_mensuelle") {
+        if prev.base.as_deref() == Some("t1_mensuelle") {
             plafond_prev = Some(p);
         }
     }
     // Les autres lignes de prevoyance, sur une tranche 2 : leur part patronale entre aussi dans l'assiette.
     let mut tranches_prev = Decimal::new(0, 2);
-    for r in &rubriques_bulletin {
-        let id = en_texte(requis(r, "id")?);
-        if id == "prevoyance" || !id.starts_with("prevoyance") || !r.get("taux_pat").map_or(false, vrai) {
+    for r in rubriques_bulletin {
+        let (id, Some(taux)) = (&r.id, part_patronale(r)) else { continue };
+        if id == "prevoyance" || !id.starts_with("prevoyance") {
             continue;
         }
-        let base = en_texte(requis(r, "base")?);
+        let base = base_de(r)?;
         let t1 = if base == "t2_prevoyance_journaliere" && plafond_journalier.is_some() {
             Some(t1_du_contrat(plafond_journalier.unwrap())?)
         } else if base == "t2_conventionnelle" {
@@ -1362,16 +1367,14 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
             )})));
         };
         let base_t2 = Decimal::new(0, 2).max(brut.min(Decimal::from(4) * t1) - t1);
-        tranches_prev = add(tranches_prev, div(mul(base_t2, dec(&r["taux_pat"])?), Decimal::ONE_HUNDRED));
+        tranches_prev = add(tranches_prev, div(mul(base_t2, dec_f64(taux)?), Decimal::ONE_HUNDRED));
     }
     // La part patronale de la mutuelle : un forfait sur le plafond MENSUEL de la periode, sans la correction du temps
     // partiel (`plafond_de_la_sante`).
-    let mutuelle = rubriques_bulletin
-        .iter()
-        .find(|r| r.get("id").and_then(Value::as_str) == Some("mutuelle") && r.get("taux_pat").map_or(false, vrai));
+    let mutuelle = bar.rubrique("mutuelle").and_then(part_patronale);
     let pss_sante = if nat.mensuelle() { Some(plafond_de_la_sante(ctx, eng)?) } else { None };
     if let (Some(m), Some(pss)) = (mutuelle, pss_sante) {
-        tranches_prev += pct(pss, dec(&m["taux_pat"])?);
+        tranches_prev += pct(pss, dec_f64(m)?);
     }
 
     // 7.4 : les assiettes, par rubrique de salaire.
@@ -1430,7 +1433,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // et sans descendre sous l'assiette minimum ; les assiettes majorees partent du brut abattu (Acoss 2013-019, R6).
     let mut dfs: Option<DeductionForfaitaire> = None;
     if let Some(o) = deduction_forfaitaire(&bar, &sal, &ctx.entreprise)? {
-        dfs_applicable(eng, &nat, &o, &lb, &rubriques_bulletin, &ctx.racine, &ctx.lue_au)?;
+        dfs_applicable(eng, &nat, &o, &lb, rubriques_bulletin, &ctx.racine, &ctx.lue_au)?;
         let deja = dfs_deja_deduite(ctx, eng, &sal, precedentes)?;
         let montants: Vec<Decimal> = soumises.iter().map(|l| l.montant).collect();
         let a = abattement_dfs(&o, &montants, brut, deja, plafond);
@@ -1527,9 +1530,9 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // 7.7 : la boucle des cotisations.
     let mut lignes: Vec<LigneCotisation> = Vec::new();
     let (mut tot_pat, mut tot_sal) = (zero, zero);
-    for r in &rubriques_bulletin {
-        let id = en_texte(requis(r, "id")?);
-        let mut cle_base = en_texte(requis(r, "base")?);
+    for r in rubriques_bulletin {
+        let id = r.id.clone();
+        let mut cle_base = base_de(r)?.to_string();
         if let Some(d) = &dfs {
             // Une rubrique abattue s'assoit sur le brut abattu ; ses assiettes majorees aussi (Acoss 2013-019, R6).
             if d.rubriques.contains(&id) {
@@ -1555,27 +1558,19 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                 .collect::<Resultat<_>>()?
         };
         let (mut m_pat, mut m_sal) = (zero, zero);
-        let lire_taux = |cle: &str| -> Resultat<Option<f64>> {
-            match requis(r, cle)? {
-                Value::Null => Ok(None),
-                v => flottant(v).map(Some),
-            }
-        };
-        let mut taux_pat = lire_taux("taux_pat")?;
-        let mut taux_sal = lire_taux("taux_sal")?;
-        let mut comp_pat = taux_liste(r.get("composants_pat"))?;
-        let mut comp_sal = taux_liste(r.get("composants_sal"))?;
+        let (mut taux_pat, mut taux_sal) = (r.taux_pat, r.taux_sal);
+        let (mut comp_pat, mut comp_sal) = (r.composants_pat.clone(), r.composants_sal.clone());
         let manque = || "taux absent (taux_pat ou taux_sal) : le complément ne s'ajoute à rien".to_string();
         // Le complement au-dela d'un seuil : le taux reduit, plus le complement.
-        if let Some(compl) = r.get("complement").filter(|c| vrai(c)) {
-            if au_dela_du_seuil(&bar, brut, Decimal::ZERO.max(heures_annexes), compl.get("seuil_smic"))? {
-                taux_pat = Some(round3(taux_pat.ok_or_else(manque)? + flottant(requis(compl, "taux")?)?));
+        if let Some(compl) = &r.complement {
+            if au_dela_d_un_seuil(&bar, brut, Decimal::ZERO.max(heures_annexes), compl.seuil_smic)? {
+                taux_pat = Some(round3(taux_pat.ok_or_else(manque)? + compl.taux));
             }
         }
         // La CET des cadres, fondue dans T1 et T2 : l'arrondi se fait en deux parts.
-        if let Some(cet) = r.get("cet_si_depasse").filter(|c| vrai(c)) {
+        if let Some(cet) = &r.cet_si_depasse {
             if bases.get("cet").map_or(false, |c| !c.is_zero()) {
-                let (cet_pat, cet_sal) = (flottant(requis(cet, "pat")?)?, flottant(requis(cet, "sal")?)?);
+                let (cet_pat, cet_sal) = (cet.pat, cet.sal);
                 let mut cp = comp_pat.take().map_or_else(|| taux_pat.map(|t| vec![t]).ok_or_else(manque), Ok)?;
                 *cp.last_mut().unwrap() += cet_pat;
                 let mut cs = comp_sal.take().map_or_else(|| taux_sal.map(|t| vec![t]).ok_or_else(manque), Ok)?;
@@ -1586,7 +1581,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                 taux_sal = Some(round3(taux_sal.ok_or_else(manque)? + cet_sal));
             }
         }
-        let composants = taux_liste(r.get("composants"))?;
+        let composants = &r.composants;
         for a in &assiettes_r {
             if let Some(c) = &composants {
                 m_pat += somme_pct(*a, c)?;
@@ -1603,14 +1598,14 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         }
         lignes.push(LigneCotisation {
             id,
-            famille: en_texte(requis(r, "famille")?),
-            libelle: en_texte(requis(r, "libelle")?),
+            famille: r.famille.clone().ok_or_else(|| socle::fichiers::absent("famille"))?,
+            libelle: r.libelle.clone().ok_or_else(|| socle::fichiers::absent("libelle"))?,
             base,
             taux_pat,
             montant_pat: m_pat,
             taux_sal,
             montant_sal: m_sal,
-            masquer_base_et_taux: r.get("masquer_base_et_taux").map_or(false, vrai),
+            masquer_base_et_taux: r.masquer_base_et_taux,
         });
         tot_pat += m_pat;
         tot_sal += m_sal;

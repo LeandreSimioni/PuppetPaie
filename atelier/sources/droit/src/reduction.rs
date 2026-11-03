@@ -187,10 +187,22 @@ pub fn reduction_generale_sous_dfs(
 /// La remuneration du contrat depasse-t-elle `seuil_smic` fois le SMIC de
 /// reference (SMIC horaire x heures remunerees) ? Sans seuil : toujours.
 pub fn au_dela_du_seuil(bar: &Value, brut: Decimal, heures: Decimal, seuil_smic: Option<&Value>) -> Resultat<bool> {
-    let seuil = match seuil_smic {
-        None | Some(Value::Null) => return Ok(true),
-        Some(s) => s,
-    };
+    match seuil_smic {
+        None | Some(Value::Null) => Ok(true),
+        Some(s) => au_dela(bar, brut, heures, || dec(s)),
+    }
+}
+
+/// `au_dela_du_seuil`, d'un seuil deja lu (le complement d'une rubrique : `rubrique::Complement`).
+pub fn au_dela_d_un_seuil(bar: &Value, brut: Decimal, heures: Decimal, seuil_smic: Option<Decimal>) -> Resultat<bool> {
+    match seuil_smic {
+        None => Ok(true),
+        Some(s) => au_dela(bar, brut, heures, || Ok(s)),
+    }
+}
+
+/// Le seuil ne se lit qu'apres le SMIC de reference : sans lui, ni heures, toujours au-dela.
+fn au_dela(bar: &Value, brut: Decimal, heures: Decimal, seuil: impl FnOnce() -> Resultat<Decimal>) -> Resultat<bool> {
     let smic = match bar.get("reduction_generale") {
         Some(rg) if vrai(rg) => rg.get("smic_horaire_reference").filter(|v| vrai(v)),
         _ => None,
@@ -200,6 +212,6 @@ pub fn au_dela_du_seuil(bar: &Value, brut: Decimal, heures: Decimal, seuil_smic:
         return Ok(true);
     }
     let smic_ref = eur(mul(dec(smic)?, heures));
-    Ok(brut > mul(dec(seuil)?, smic_ref))
+    Ok(brut > mul(seuil()?, smic_ref))
 }
 

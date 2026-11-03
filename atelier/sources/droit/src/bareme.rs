@@ -1196,9 +1196,11 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
 ///
 /// Le contrat dit s'il est declare a la caisse des Conges Spectacles (`caisse_conges::affilie`) : la caisse est un
 /// etage, pose juste apres la nature (`bareme_caisse_conges`).
+///
+/// La pile rendue porte ses rubriques du bulletin typees (`rubrique::rubriques`), et plus en JSON.
 pub fn bareme_applique(
     partage: &Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
-) -> Resultat<Value> {
+) -> Resultat<BaremeApplique> {
     let etabs = g(partage, "_etablissements");
     let mut bar = if vrai(etabs) {
         let nic = etablissement_du_salarie(etabs, sal)?;
@@ -1226,7 +1228,34 @@ pub fn bareme_applique(
     bar = bareme_article_45(bar, sal, Some(nat))?;
     bar = bareme_prevoyance(bar, sal, Some(nat), fin_periode)?;
     bar = bareme_regime_local(bar, sal)?;
-    bareme_vm(bar, sal)
+    let mut pile = bareme_vm(bar, sal)?;
+    let rubriques = crate::rubrique::rubriques(&pile)?;
+    if let Some(m) = pile.as_object_mut() {
+        m.shift_remove("rubriques_bulletin");
+    }
+    Ok(BaremeApplique { pile, rubriques })
+}
+
+/// LA PILE APPLIQUEE A UN SALARIE : le bareme empile, et ses rubriques du bulletin, lues une fois. Elle se lit comme le
+/// bareme (`Deref`) pour tout le reste.
+#[derive(Debug, Clone)]
+pub struct BaremeApplique {
+    pub pile: Value,
+    pub rubriques: Vec<crate::rubrique::Rubrique>,
+}
+
+impl BaremeApplique {
+    /// La rubrique `id`, si la pile la porte.
+    pub fn rubrique(&self, id: &str) -> Option<&crate::rubrique::Rubrique> {
+        self.rubriques.iter().find(|r| r.id == id)
+    }
+}
+
+impl std::ops::Deref for BaremeApplique {
+    type Target = Value;
+    fn deref(&self) -> &Value {
+        &self.pile
+    }
 }
 
 /// La fiche de l'entreprise que la pile du bareme porte (`_entreprise`, celle que la paie a lue), sinon `ent` : un
@@ -2460,14 +2489,6 @@ pub enum AffiliationPrevoyance {
 /// cotisation : le meme regime, la meme anciennete (`bareme_prevoyance`).
 pub fn affiliation_prevoyance(ent: &Value, sal: &Value, fin: &Jour) -> Resultat<AffiliationPrevoyance> {
     prevoyance::affiliation(g(ent, "idcc"), sal, est_cadre(sal), fin, ent)
-}
-
-/// Les taux d'une liste du bareme (`composants_pat`…), `None` si elle est absente ou vide.
-pub fn taux_liste(v: Option<&Value>) -> Resultat<Option<Vec<f64>>> {
-    match v {
-        Some(Value::Array(a)) if !a.is_empty() => Ok(Some(a.iter().map(socle::num::flottant).collect::<Resultat<_>>()?)),
-        _ => Ok(None),
-    }
 }
 
 /// La somme des parts d'une base `a` a chacun des taux `taux` (en pourcent), chacune arrondie au centime : une ligne

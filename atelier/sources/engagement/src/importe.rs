@@ -332,7 +332,7 @@ impl Importe {
         let bar = crate::calcul::bareme_du_salarie(&ctx, &sal, &nat, &fin_periode, caisse, false)?;
         let liste = |k: &str| bar.get(k).and_then(Value::as_array).cloned().unwrap_or_default();
         for l in cotisations.iter().filter(|l| !l.id.is_empty() && !l.base.is_zero()) {
-            if let Some(cle) = liste("rubriques_bulletin").iter().find(|r| r.get("id").map(en_texte) == Some(l.id.clone())).and_then(|r| r.get("base")).map(en_texte) {
+            if let Some(cle) = bar.rubrique(&l.id).and_then(|r| r.base.clone()) {
                 bases.entry(cle).or_insert(l.base);
             }
         }

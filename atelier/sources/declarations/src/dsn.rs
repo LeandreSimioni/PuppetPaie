@@ -13,6 +13,7 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Value};
 
 use droit::bareme::{self, bareme_applique};
+use droit::rubrique::Rubrique;
 use documents::bordereau::{self, Destinataire, LigneBordereau};
 use droit::reduction::au_dela_du_seuil;
 use engagement::calcul::Paie;
@@ -631,7 +632,7 @@ fn somme_lignes(p: &Paie, ids: &Value, patronale_seule: bool) -> Decimal {
 /// ce bareme et de la paie (`bareme_de`).
 pub struct BaremeDuMois {
     bar: Value,
-    piles: std::sync::Mutex<HashMap<String, std::sync::Arc<Value>>>,
+    piles: std::sync::Mutex<HashMap<String, std::sync::Arc<bareme::BaremeApplique>>>,
 }
 
 impl BaremeDuMois {
@@ -648,7 +649,7 @@ impl std::ops::Deref for BaremeDuMois {
 }
 
 /// La pile de bareme de cette paie, sur le bareme du mois choisi.
-fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<Value>> {
+fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<bareme::BaremeApplique>> {
     let nat = p.engagement.nat()?;
     let fin = p.engagement.fin_periode()?;
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
@@ -864,10 +865,9 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
 
 /// Le composant de la base 31 des `lignes` : le type que la source du taux de la premiere qui en porte un lui donne
 /// (`_composant_79` de la pile, `bareme::bareme_sante`), et la base de cette ligne au bulletin.
-fn composant_79(p: &Paie, pile: &Value, lignes: &Value) -> Option<(String, Decimal)> {
-    let rubriques = liste(g(pile, "rubriques_bulletin"));
+fn composant_79(p: &Paie, pile: &bareme::BaremeApplique, lignes: &Value) -> Option<(String, Decimal)> {
     liste(lignes).iter().map(en_texte).find_map(|id| {
-        let type_79 = rubriques.iter().find(|r| txt(g(r, "id")) == id).map(|r| txt(g(r, "_composant_79"))).filter(|t| !t.is_empty())?;
+        let type_79 = pile.rubrique(&id)?.composant_79.clone()?;
         let base = p.lignes.iter().find(|l| l.id == id)?.base;
         Some((type_79, base))
     })
@@ -890,15 +890,14 @@ const LIGNES_AGIRC_ARRCO: [&str; 3] = ["retraite_t1", "retraite_t2", "cet"];
 /// CET en plus) ; la retraite et la CEG seules sont ce que la ligne vaudrait sans elle, au meme arrondi (chaque composant
 /// sur la base de la ligne), et la CET le reste. Une ligne que ce calcul ne retrouve pas au centime refuse : sa CET ne
 /// se separe pas sans deviner.
-fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Value) -> Resultat<(Decimal, Option<(Decimal, f64)>)> {
-    let cet = g(r, "cet_si_depasse");
-    if !vrai(cet) || p.bases.get("cet").map_or(true, |b| b.is_zero()) {
+fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Rubrique) -> Resultat<(Decimal, Option<(Decimal, f64)>)> {
+    let Some(cet) = r.cet_si_depasse.as_ref().filter(|_| p.bases.get("cet").map_or(false, |b| !b.is_zero())) else {
         return Ok((l.montant_pat, None));
-    }
-    let cet_pat = socle::num::flottant(req(cet, "pat")?)?;
-    let comp = match droit::bareme::taux_liste(r.get("composants_pat"))? {
-        Some(c) => c,
-        None => vec![socle::num::flottant(req(r, "taux_pat")?)?],
+    };
+    let cet_pat = cet.pat;
+    let comp = match &r.composants_pat {
+        Some(c) => c.clone(),
+        None => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?],
     };
     let sans = droit::bareme::somme_pct(l.base, &comp)?;
     let mut avec = comp;
@@ -934,15 +933,14 @@ ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en sépare pas sans
 /// admet la base 23 (norme p. 293, ligne 133). Une part nulle ne s'ecrit pas. En 2027 la CET a son code, 148, « entierement
 /// sous l'assiette deplafonnee » (03, 22 ou 23 ; fiche net-entreprises 2556, l. 83-87) : le code s'ecrit selon la version
 /// du fichier (`Cotisation::cet`, `Norme::cotisation_cet_patronale`), la base reste celle du 131 (type 23).
-fn parts_patronales_agirc_arrco(p: &Paie, pile: &Value, c: &Value, l131: &Cotisation) -> Resultat<Vec<Cotisation>> {
-    let rubriques = liste(req(pile, "rubriques_bulletin")?);
-    let rubrique = |id: &str| rubriques.iter().find(|r| txt(g(r, "id")) == id);
+fn parts_patronales_agirc_arrco(p: &Paie, pile: &bareme::BaremeApplique, c: &Value, l131: &Cotisation) -> Resultat<Vec<Cotisation>> {
+    let rubrique = |id: &str| pile.rubrique(id);
     // Le 131 nomme ses lignes, ou porte un taux sur l'assiette de la ligne de retraite qu'il declare (`bareme::poser_t1`).
     let ids: Vec<String> = if vrai(g(c, "lignes")) {
         liste(&c["lignes"]).iter().map(en_texte).collect()
     } else {
-        let base = g(c, "base");
-        LIGNES_AGIRC_ARRCO.iter().filter(|id| rubrique(id).map_or(false, |r| g(r, "base") == base)).map(|s| s.to_string()).collect()
+        let base = g(c, "base").as_str();
+        LIGNES_AGIRC_ARRCO.iter().filter(|id| rubrique(id).map_or(false, |r| r.base.as_deref() == base)).map(|s| s.to_string()).collect()
     };
     if ids.is_empty() || ids.iter().any(|id| !LIGNES_AGIRC_ARRCO.contains(&id.as_str())) {
         return Err(format!(
@@ -979,7 +977,7 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
         let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| &l.id == id)) else { continue };
         let (montant, cet) = sans_la_cet(p, l, r)?;
         let taux = match &cet {
-            Some(_) => socle::num::flottant(req(r, "taux_pat")?)?,
+            Some(_) => r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?,
             None => l.taux_pat.ok_or_else(|| format!("La ligne « {} » du bulletin n'a pas de taux patronal : sa part Agirc-Arrco ne se declare pas.", id))?,
         };
         if let Some((m, t)) = cet {
