@@ -36,7 +36,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire les compagnies de cette installation, et où est chacune.",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "compagnies (id, nom, lieu, chemin — le --racine de ses routes —, reelle, remise_a_zero, couleur), bride, a_garder (au déblocage), phrase, phrases (une par compagnie)",
+        rend: "compagnies (id, nom, lieu, chemin — le --racine de ses routes —, reelle, remise_a_zero, couleur), bride, a_garder (au déblocage), phrase, phrases (une par compagnie), auteur (phrase, nom, adresse)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: false,
@@ -239,7 +239,7 @@ fn liste(inst: &std::path::Path) -> Value {
     let phrase = format!("{} compagnie(s), dont {} fictive(s).", cies.len(), cies.len() - reelles);
     let t = |c: &Value, k: &str| valeur_en_texte(&c[k]);
     let phrases: Vec<String> = cies.iter().map(|c| format!("{}{}", t(c, "nom"), if c["reelle"] == json!(true) { "" } else { ", fictive" })).collect();
-    json!({"compagnies": cies, "bride": crate::compagnie::bridage::est_bride_de(inst), "a_garder": a_garder, "phrase": phrase, "phrases": phrases})
+    json!({"compagnies": cies, "bride": crate::compagnie::bridage::est_bride_de(inst), "a_garder": a_garder, "phrase": phrase, "phrases": phrases, "auteur": crate::interface::auteur::auteur()})
 }
 
 /// Le tableau de l'administrateur en phrases : combien de declarations, puis chacune (sa compagnie, ce qu'elle est, quand).

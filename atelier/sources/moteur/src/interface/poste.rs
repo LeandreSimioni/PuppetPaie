@@ -59,6 +59,18 @@ pub fn ouvrir_adresse(url: &str) -> Result<(), String> {
     r.map(|_| ()).map_err(|e| format!("Le navigateur ne s'ouvre pas : {}.", e))
 }
 
+/// Ouvre dans le navigateur du poste une adresse de l'editeur : en https, sur `auteur::SITES` ou l'un de leurs
+/// sous-domaines, sans identifiant ni port. Toute autre adresse est refusee : la page ne fait pas ouvrir n'importe quoi
+/// au poste.
+pub fn ouvrir_site(url: &str) -> Result<(), String> {
+    let hote = url.strip_prefix("https://").map(|r| r.split(['/', '?', '#']).next().unwrap_or("")).unwrap_or("");
+    let permis = !hote.contains(['@', ':', '\\']) && super::auteur::SITES.iter().any(|s| hote == *s || hote.ends_with(&format!(".{}", s)));
+    if !permis {
+        return Err(format!("La fenêtre n'ouvre que les sites de l'éditeur ({}).", super::auteur::SITES.join(", ")));
+    }
+    ouvrir_adresse(url)
+}
+
 /// Un texte pour une chaine PowerShell entre apostrophes : chaque apostrophe se double, et PowerShell en reconnait
 /// cinq (l'apostrophe droite et les quatre typographiques U+2018 a U+201B) ; rien d'autre n'y est special.
 pub fn entre_apostrophes_powershell(t: &str) -> String {

@@ -387,8 +387,10 @@
     dessinerLesAvances();
   });
 </script>
-<!-- L'indicateur de la mise a jour, en bas a gauche. -->
+<!-- L'indicateur de la mise a jour, en bas a gauche ; l'auteur, en bas a droite (de la route `compagnies`). -->
+<script type="application/json" id="auteur-donnee">{{AUTEUR}}</script>
 <script src="/js/mise-a-jour.js?v={{EMPREINTE}}"></script>
+<script src="/js/auteur.js?v={{EMPREINTE}}"></script>
 
 <div class="bande"><button class="croix" title="Fermer"
   onclick="window.pywebview.api.fermer()">&#x2715;</button></div>

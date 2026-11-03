@@ -144,7 +144,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Dire tout ce que la page lit en s'ouvrant : configuration, Historique, listes.",
         charge: &[],
         exemple: r#"{}"#,
-        rend: "configuration (les fiches vérifiées), historique (les mois), les listes où l'on choisit, les référentiels",
+        rend: "configuration (les fiches vérifiées), historique (les mois), les listes où l'on choisit, les référentiels, auteur (phrase, nom, adresse)",
         refus: &[OPERATION],
         acte: Acte::Lit,
         avance: false,
@@ -1211,6 +1211,8 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
 
     Ok(json!({
         "configuration": configuration,
+        // L'auteur, au pied de la page (`interface::auteur`).
+        "auteur": crate::interface::auteur::auteur(),
         // UNE COMPAGNIE FICTIVE : les envois sont joues (`bridage::branchement`).
         "simulation": crate::compagnie::bridage::branchement(&ctx.racine).joue(),
         // Ce que la boite d'un envoi joue en dit.

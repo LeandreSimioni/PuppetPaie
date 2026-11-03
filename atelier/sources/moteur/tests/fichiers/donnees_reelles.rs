@@ -82,6 +82,10 @@ const EN_SUSPENS: [(Verrou, &str, &str); 6] = [
     (Verrou::Chemin, r"^fictives/[^/]+/sorties/.+\.description\.json$", "le moteur écrit le logo et la signature par leur chemin absolu (contrat.rs, bulletin.rs)"),
 ];
 
+/// LA SIGNATURE DE L'EDITEUR : l'editeur et la compagnie du poste portent le meme nom, et le logiciel le signe en un seul
+/// fichier (la mention de l'auteur et ses sites). Le verrou du nom le laisse passer, lui seul.
+const SIGNATURE: &str = "atelier/sources/moteur/src/interface/auteur.rs";
+
 /// Un chemin absolu sous le dossier des utilisateurs de Windows, dans toutes ses écritures (`\`, `/`, `\\` d'un JSON).
 fn chemin_du_poste() -> regex::bytes::Regex {
     regex::bytes::Regex::new(r"(?i)(?-u:\b)[a-z]:[\\/]+users[\\/]").unwrap()
@@ -163,9 +167,13 @@ fn trouvailles(verrou: Verrou, rel: &str) -> Vec<String> {
     trouves
 }
 
-/// Ce que `verrou` trouve dans ce qui part, hors de ce qui est en suspens.
+/// Ce que `verrou` trouve dans ce qui part, hors de ce qui est en suspens (et, pour le nom, de la signature).
 fn hors_suspens(verrou: Verrou) -> Vec<String> {
-    ce_qui_part().iter().filter(|r| suspendu(verrou, r).is_none()).flat_map(|r| trouvailles(verrou, r)).collect()
+    ce_qui_part()
+        .iter()
+        .filter(|r| suspendu(verrou, r).is_none() && !(verrou == Verrou::Nom && r.as_str() == SIGNATURE))
+        .flat_map(|r| trouvailles(verrou, r))
+        .collect()
 }
 
 /// Les octets d'un fichier écrit à la main : de l'UTF-8, ou un texte à un octet par caractère (un `.dsn`, un gabarit à
