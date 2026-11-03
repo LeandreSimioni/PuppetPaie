@@ -35,8 +35,9 @@
 
 <style>
   html, body { overflow:auto; }
-  body { display:block; height:auto; min-height:100vh; }
-  .accueil { max-width:1000px; margin:0 auto; padding:34px 24px 28px; }
+  /* Le corps tient au moins l'ecran : le pied (mise-a-jour.css) se pose en bas, sous ce qui se lit. */
+  body { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; height:auto; min-height:100vh; }
+  .accueil { flex:1 0 auto; width:100%; max-width:1000px; margin:0 auto; padding:34px 24px 28px; }
   .accueil h1 { font-size:20px; }
   .accueil .sous { margin-bottom:20px; }
   .accueil .version { color:var(--discret); font-size:11px; margin:0 0 2px; }
@@ -387,7 +388,8 @@
     dessinerLesAvances();
   });
 </script>
-<!-- L'indicateur de la mise a jour, en bas a gauche ; l'auteur, en bas a droite (de la route `compagnies`). -->
+<!-- Le pied : l'indicateur de la mise a jour a gauche ; l'auteur a droite (de la route `compagnies`). -->
+<div class="pied" id="pied"></div>
 <script type="application/json" id="auteur-donnee">{{AUTEUR}}</script>
 <script src="/js/mise-a-jour.js?v={{EMPREINTE}}"></script>
 <script src="/js/auteur.js?v={{EMPREINTE}}"></script>
