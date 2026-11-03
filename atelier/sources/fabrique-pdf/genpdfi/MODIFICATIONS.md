@@ -53,7 +53,7 @@ Version de cette copie : `0.2.7-puppetpaie.1`.
 
 Le `Wrapper` d'origine est remplacé par `wrap::layout`, qui rend des `Line` :
 
-- un mot peut s'étendre sur plusieurs morceaux de styles différents (« FIL TENDU » en gras suivi de
+- un mot peut s'étendre sur plusieurs morceaux de styles différents (« FIL DE FER » en gras suivi de
   « , » ne se coupe pas entre les deux) ;
 - les espaces de fin de ligne ne comptent pas dans la largeur (l'original y comptait l'espace
   qui suit le dernier mot : mot renvoyé à la ligne trop tôt, lignes décalées à droite ou au

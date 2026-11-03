@@ -305,7 +305,7 @@ fn construire(racine: &Path) -> Personnes {
         for c in CHAMPS_DE_LA_COMPAGNIE {
             for s in droit::contexte::toutes_les_valeurs(e.get(c)).into_iter().filter_map(Value::as_str) {
                 noms.push(s.to_string());
-                // « Le Fil tendu (démonstration) » : le nom sans sa parenthese aussi.
+                // « Compagnie du Fil de Fer (démonstration) » : le nom sans sa parenthese aussi.
                 if let Some((avant, _)) = s.split_once(" (") {
                     noms.push(avant.to_string());
                 }

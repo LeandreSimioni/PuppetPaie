@@ -165,7 +165,7 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
 }
 
 /// CE QUE L'ECRAN D'UN MOIS NE LIT PAS, et qui bouge sans lui. Etabli par mesure (`strace` de la
-/// route `mois` sur cinq mois de la grande fictive 3090 : aucun de ces fichiers n'est ouvert ni teste) et par le code
+/// route `mois` sur cinq mois d'une compagnie fictive 3090 : aucun de ces fichiers n'est ouvert ni teste) et par le code
 /// (chacun n'a de lecteur que hors des lectures du mois : `LECTURES`, `etat-par-engagement`, `etat-du-mois`, l'apercu) :
 /// - `config/.ouverture.json` : la trace de la veille (`ouverture.rs`, `chemin_trace`), reecrite a chaque tour ; lue par
 ///   la veille de la fenetre seulement (`interface::veille`) ;

@@ -5,7 +5,7 @@
 //! Modification PuppetPaie : ce module remplace entièrement le `Wrapper` de genpdfi 0.2.7 (voir
 //! MODIFICATIONS.md).  Différences avec l'original :
 //!
-//! - un mot peut s'étendre sur plusieurs morceaux de styles différents (« FIL TENDU » en gras suivi
+//! - un mot peut s'étendre sur plusieurs morceaux de styles différents (« FIL DE FER » en gras suivi
 //!   de « , » en normal ne se coupe pas entre les deux) ;
 //! - les espaces de fin de ligne ne comptent pas dans la largeur (l'original y comptait l'espace
 //!   qui suit le dernier mot, ce qui faisait passer un mot à la ligne trop tôt et décalait les
