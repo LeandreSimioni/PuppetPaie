@@ -189,8 +189,13 @@ de remplacement » (`xml/L321-1.xml` … `xml/R433-3.xml`, `xml/L136-1-2.xml`, `
   jour de l'incapacité de travail ». **L433-1** : celle d'un accident du travail, dès « le premier jour qui suit l'arrêt du
   travail consécutif à l'accident » (la journée de l'accident est « intégralement à la charge de l'employeur ») ;
   **R433-1** et **R433-3** : 60 % du salaire journalier, puis 80 % « à partir du vingt-neuvième jour ».
-- **L323-4, R323-4, R323-5** : son montant (la moitié du revenu d'activité antérieur, dans la limite de 1,4 SMIC) ; la caisse
-  le calcule, le moteur le **lit** sur l'arrêt (règle 1).
+- **L323-4, R323-4, R323-5, R323-9** (R323-9 relevé le 03/11/2026, `articles-20261103.md`) : son montant, la moitié de
+  1/91,25 des trois dernières paies d'un salaire réglé mensuellement, chacune dans la limite de 1,4 SMIC du mois, et au
+  plus 1/730 du plafond annuel. Le moteur le **propose** sur l'arrêt d'une maladie avant le relevé de la caisse
+  (`maintien::ij_de_principe`) ; la personne le garde ou le corrige au relevé.
+- **L433-2, R433-2, R433-4** (relevés le 03/11/2026) : l'accident du travail, la paie du mois précédent / 30,42, plafonnée à
+  0,226 % du plafond annuel, et l'indemnité au plus le gain journalier net d'un taux forfaitaire fixé par arrêté (R331-5),
+  qui n'est pas déposé : aucun montant ne se propose, il se lit au relevé.
 - **R323-11** : l'employeur qui maintient le salaire en totalité est « subrogé de plein droit » ; en partie, il l'est à
   condition que le salaire maintenu soit au moins égal aux indemnités.
 - **L136-8, II, 1°, b** : la CSG des indemnités journalières est de 6,2 %.

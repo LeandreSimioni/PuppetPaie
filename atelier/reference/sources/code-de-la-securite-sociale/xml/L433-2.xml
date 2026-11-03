@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000006743045</ID>
+<ANCIEN_ID>SSAXXXXXXXX1X433L02AXXAB</ANCIEN_ID>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/06/74/30/LEGIARTI000006743045.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L433-2</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>1991-01-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006073189" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code de la sécurité sociale." debut="1958-10-16" fin="2999-01-01" id_txt="LEGITEXT000006073189">Code de la sécurité sociale</TITRE_TXT>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006106050">Partie législative</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006126892">Livre IV : Accidents du travail et maladies professionnelles (Dispositions propres et dispositions communes avec d'autres branches)</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006141636">Titre III : Prestations</TITRE_TM>
+<TM>
+<TITRE_TM debut="1985-12-21" fin="2999-01-01" id="LEGISCTA000006156130">Chapitre 3 : Indemnisation de l'incapacité temporaire.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="1985-12-21" etat="MODIFIE" fin="1991-01-01" id="LEGIARTI000006743044" num="L433-2" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="1991-01-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000006743045" num="L433-2" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<br/>L'indemnité journalière est égale à une fraction du salaire journalier. Ce dernier n'entre en compte que dans la limite d'un pourcentage du maximum de rémunération annuelle retenu pour l'assiette des cotisations d'assurance vieillesse en vertu de l'article L. 241-3. <br/>
+<br/>Le délai à l'expiration duquel le taux de l'indemnité journalière est majoré ainsi que les modalités de détermination du salaire journalier de base sont fixés par décret en Conseil d'Etat. <br/>
+<br/>En cas d'augmentation générale des salaires postérieurement à l'accident et lorsque l'interruption de travail se prolonge au-delà d'une durée déterminée, le taux de l'indemnité journalière peut faire l'objet d'une révision.<br/>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000000866621" datesignatexte="1985-12-17" id="JORFTEXT000000866621" naturetexte="DECRET" nortexte="" num="" numtexte="85-1353" sens="source" typelien="CODIFICATION">Décret 85-1353 1985-12-17</LIEN>
+<LIEN cidtexte="JORFTEXT000000699956" datesignatexte="1986-01-17" id="LEGIARTI000045662715" naturetexte="DECRET" nortexte="" num="14" numtexte="86-83" sens="cible" typelien="CITATION">Décret n°86-83 du 17 janvier 1986 - art. 14 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000664515" datesignatexte="1988-04-29" id="LEGIARTI000006785913" naturetexte="ARRETE" nortexte="ASES8800711A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 29 avril 1988 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000863807" datesignatexte="1989-04-04" id="LEGIARTI000006786457" naturetexte="ARRETE" nortexte="SPSS8900773A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 4 avril 1989 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000707200" datesignatexte="1990-01-23" id="JORFTEXT000000707200" naturetexte="LOI" nortexte="SPSX8900124L" num="" numtexte="90-86" sens="source" typelien="MODIFICATION">Loi 90-86 1990-01-23 art. 1 V, VIII JORF 25 janvier 1990 en vigueur le 1er janvier 1991</LIEN>
+<LIEN cidtexte="JORFTEXT000000350258" datesignatexte="1990-07-24" id="LEGIARTI000006787200" naturetexte="ARRETE" nortexte="SPSS9001530A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 24 juillet 1990 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000846870" datesignatexte="1991-09-24" id="LEGIARTI000006788158" naturetexte="ARRETE" nortexte="SPSS9102211A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 24 septembre 1991 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000846870" datesignatexte="1991-09-24" id="LEGIARTI000006788158" naturetexte="ARRETE" nortexte="SPSS9102211A" num="2" numtexte="" sens="cible" typelien="TXT_ASSOCIE">Arrêté du 24 septembre 1991 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000327431" datesignatexte="1991-11-20" id="LEGITEXT000006059829" naturetexte="ARRETE" nortexte="SPSS9102548A" num="" numtexte="" sens="cible" typelien="TXT_ASSOCIE">Arrêté du 20 novembre 1991</LIEN>
+<LIEN cidtexte="JORFTEXT000000327431" datesignatexte="1991-11-20" id="LEGIARTI000006788068" naturetexte="ARRETE" nortexte="SPSS9102548A" num="1" numtexte="" sens="cible" typelien="TXT_ASSOCIE">Arrêté du 20 novembre 1991 - art. 1 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000327431" datesignatexte="1991-11-20" id="LEGIARTI000006788069" naturetexte="ARRETE" nortexte="SPSS9102548A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 20 novembre 1991 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000327431" datesignatexte="1991-11-20" id="LEGIARTI000006788069" naturetexte="ARRETE" nortexte="SPSS9102548A" num="2" numtexte="" sens="cible" typelien="TXT_ASSOCIE">Arrêté du 20 novembre 1991 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000713332" datesignatexte="1992-11-20" id="LEGITEXT000006080407" naturetexte="ARRETE" nortexte="SPSS9202998A" num="" numtexte="" sens="cible" typelien="TXT_SOURCE">Arrêté du 20 novembre 1992</LIEN>
+<LIEN cidtexte="JORFTEXT000000713332" datesignatexte="1992-11-20" id="LEGIARTI000006788697" naturetexte="ARRETE" nortexte="SPSS9202998A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 20 novembre 1992 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000713332" datesignatexte="1992-11-20" id="LEGIARTI000006788697" naturetexte="ARRETE" nortexte="SPSS9202998A" num="2" numtexte="" sens="cible" typelien="TXT_SOURCE">Arrêté du 20 novembre 1992 - art. 2 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000000177666" datesignatexte="1993-03-25" id="LEGIARTI000006929679" naturetexte="ARRETE" nortexte="SPSS9301094A" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 25 mars 1993 - art. 2 (V)</LIEN>
+
+
+<LIEN cidtexte="JORFTEXT000051954589" datesignatexte="2025-07-23" id="LEGIARTI000051957271" naturetexte="DECRET" nortexte="APFF2512987D" num="38" numtexte="2025-694" sens="cible" typelien="CITATION">Décret n°2025-694 du 23 juillet 2025 - art. 38 (M)</LIEN>
+<LIEN cidtexte="JORFTEXT000054930447" datesignatexte="2026-09-30" id="LEGITEXT000054931760" naturetexte="DECRET" nortexte="SFHS2621736D" num="" numtexte="2026-909" sens="cible" typelien="CITATION">Décret n°2026-909 du 30 septembre 2026 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073898" datesignatexte="1986-11-27" id="LEGIARTI000006784503" naturetexte="ARRETE" nortexte="" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 27 novembre 1986 - art. 2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073799" datesignatexte="1985-12-30" id="LEGIARTI000006784035" naturetexte="ARRETE" nortexte="" num="2" numtexte="" sens="cible" typelien="CITATION">Arrêté du 30 décembre 1985 - art. 2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGITEXT000006073189" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CONCORDANCE">Code de la sécurité sociale L449 al. 1 ELEMENTS LEGISLATIFS, al. 2 ELEMENTS LEGISLATIFS, al. 3 ELEMENTS LEGISLATIFS</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006736980" naturetexte="CODE" nortexte="" num="D432-6" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. D432-6 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006741897" naturetexte="CODE" nortexte="" num="L241-3" numtexte="" sens="source" typelien="CITATION">Code de la sécurité sociale. - art. L241-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006744513" naturetexte="CODE" nortexte="" num="L762-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L762-2 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000037894682" naturetexte="CODE" nortexte="" num="L762-9" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. L762-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000018981754" naturetexte="CODE" nortexte="" num="R433-4-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R. 433-4-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750304" naturetexte="CODE" nortexte="" num="R433-1" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. R433-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750304" naturetexte="CODE" nortexte="" num="R433-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750327" naturetexte="CODE" nortexte="" num="R433-10" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-10 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000043128345" naturetexte="CODE" nortexte="" num="R433-11" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-11 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750307" naturetexte="CODE" nortexte="" num="R433-2" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. R433-2 (M)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000054932705" naturetexte="CODE" nortexte="" num="R433-2" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-2 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750310" naturetexte="CODE" nortexte="" num="R433-3" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. R433-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750310" naturetexte="CODE" nortexte="" num="R433-3" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-3 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750312" naturetexte="CODE" nortexte="" num="R433-4" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-4 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750312" naturetexte="CODE" nortexte="" num="R433-4" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. R433-4 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750320" naturetexte="CODE" nortexte="" num="R433-7" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-7 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750322" naturetexte="CODE" nortexte="" num="R433-8" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-8 (T)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750326" naturetexte="CODE" nortexte="" num="R433-9" numtexte="" sens="cible" typelien="TXT_SOURCE">Code de la sécurité sociale. - art. R433-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006750326" naturetexte="CODE" nortexte="" num="R433-9" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R433-9 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000029396202" naturetexte="CODE" nortexte="" num="R436-1" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R436-1 (VD)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006752748" naturetexte="CODE" nortexte="" num="R762-28" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R762-28 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006073189" datesignatexte="2999-01-01" id="LEGIARTI000006752760" naturetexte="CODE" nortexte="" num="R762-34" numtexte="" sens="cible" typelien="CITATION">Code de la sécurité sociale. - art. R762-34 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000029396227" naturetexte="CODE" nortexte="" num="R751-47" numtexte="" sens="cible" typelien="CITATION">Code rural - art. R751-47 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071366" datesignatexte="2999-01-01" id="LEGIARTI000006581382" naturetexte="CODE" nortexte="" num="1251" numtexte="" sens="cible" typelien="CITATION">Code rural ancien - art. 1251 (Ab)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000036243493" naturetexte="CODE" nortexte="" num="L761-16" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. L761-16 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006071367" datesignatexte="2999-01-01" id="LEGIARTI000018981768" naturetexte="CODE" nortexte="" num="R751-48-1" numtexte="" sens="cible" typelien="CITATION">Code rural et de la pêche maritime - art. R751-48-1 (Ab)</LIEN>
+</LIENS>
+</ARTICLE>

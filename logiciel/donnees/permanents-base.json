@@ -393,7 +393,7 @@
     "_remuneration_de_reference": "D1226-7 : celle correspondant a l'horaire pratique pendant l'absence dans l'etablissement ; une augmentation d'horaire due a l'absence elle-meme ne compte pas."
   },
   "indemnites_journalieres": {
-    "_quoi": "Les jours ou la caisse verse ses indemnites journalieres, et ce que le prelevement a la source en retient quand l'employeur est subroge. Leur MONTANT ne se calcule pas : il se lit sur le releve de la caisse ou son bordereau de paiement (BPIJ : la prestation « I.J. normale » ou « I.J. majoree », son prix unitaire, puis les retenues CSG et RDS sur leurs propres lignes, `atelier/reference/sources/subrogation-indemnites-journalieres/bpij-edi/cnamts-bpij-modele-v02-00r3-20120306.txt`, l. 719-794) : il se saisit sur l'arret, par jour, brut et net de CSG et CRDS.",
+    "_quoi": "Les jours ou la caisse verse ses indemnites journalieres, et ce que le prelevement a la source en retient quand l'employeur est subroge. Leur MONTANT se lit sur le releve de la caisse ou son bordereau de paiement (BPIJ : la prestation « I.J. normale » ou « I.J. majoree », son prix unitaire, puis les retenues CSG et RDS sur leurs propres lignes, `atelier/reference/sources/subrogation-indemnites-journalieres/bpij-edi/cnamts-bpij-modele-v02-00r3-20120306.txt`, l. 719-794) : il se saisit sur l'arret, par jour, brut et net de CSG et CRDS ; avant le releve, le moteur y propose le montant de principe d'une maladie (`principe`).",
     "debut_maladie": 4,
     "_debut_maladie": "CSS R323-1, 1° : « le point de depart de l'indemnite journaliere [...] est le quatrieme jour de l'incapacite de travail » ; L323-1 : due « pour chaque jour ouvrable ou non » (`atelier/reference/sources/code-de-la-securite-sociale/articles-20261102.md`). Un accident du travail, une maladie professionnelle, un accident de trajet : des le premier jour qui suit l'arret (L433-1, al. 2 ; L411-2 pour le trajet).",
     "majoree_des_le_jour": 29,
@@ -401,6 +401,16 @@
     "csg_deductible": 3.8,
     "_csg_deductible": "La CSG des indemnites journalieres est de 6,2 % (CSS L136-8, II, 1°, b), deductible de l'impot « a hauteur de 3,8 points » (CGI 154 quinquies, I : `atelier/reference/sources/code-general-des-impots/articles-20261102.md`).",
     "pas_maladie_jours": 60,
+    "principe": {
+      "mois": 3,
+      "diviseur": 91.25,
+      "fraction": 0.5,
+      "plafond_smic": 1.4,
+      "heures_du_mois": 151.67,
+      "csg": 6.2,
+      "crds": 0.5
+    },
+    "_principe": "Le montant que le moteur PROPOSE sur l'arret d'une maladie, avant le releve de la caisse (la personne le garde ou le corrige) : la moitie (CSS R323-5) du revenu journalier, 1/91,25 des trois dernieres paies des mois civils anterieurs a l'interruption pour un salaire regle mensuellement (R323-4, 1°), chaque paie retenue dans la limite de 1,4 fois le SMIC en vigueur le dernier jour du mois civil precedant l'interruption, calcule pour un mois sur la base de la duree legale (R323-4, al. 5 ; 151,67 h, C. trav. L3121-27, `contrats-base.json`, `quotite_reference_defaut`) ; sous abattement, le brut sans abattement (meme alinea) : le brut des paies validees. R323-9 : au plus 1/730 du plafond annuel, que ce calcul ne depasse pas. Net : CSG 6,2 % (L136-8, II, 1°, b, sur toute somme qui compense la perte de revenu, L136-1-2, I) et CRDS 0,5 % : net-entreprises, fiche 3323, l. 35, « 394,56 * (1 - 6,2% CSG + 0,5% CRDS) » (`atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche3323-ij-subrogees-mns-20260707.txt` ; INFERENCE, ecrite comme telle : le texte qui fixe la CRDS, l'ordonnance n° 96-50, n'est pas depose). Textes : `atelier/reference/sources/code-de-la-securite-sociale/articles-20261103.md`. Un accident du travail, une maladie professionnelle ou de trajet (R433-4 : la paie du mois precedent, plafonnee a 0,226 % du plafond annuel, R433-2, et au gain journalier net d'un taux forfaitaire fixe par arrete, R331-5, non depose) : aucun montant n'est propose.",
     "pas_accident": 50,
     "_pas": "BOFiP BOI-IR-PAS-20-10-10, § 80 a 110 (`atelier/reference/sources/suspension-non-remuneree/bofip-boi-ir-pas-20-10-10-20200728.txt`, l. 69-87) : subroge, l'employeur retient le prelevement sur « le montant brut de l'indemnite [...] diminue de la part deductible de la CSG » ; pour la maladie, seules celles des soixante premiers jours de l'arret, de date a date, carence comprise, sans interruption par une prolongation ; pour un accident du travail ou une maladie professionnelle, la moitie de leur montant (CGI 81, 8°). « Le montant de l'avance s'ajoute a la RNF pour constituer l'assiette du PAS » (S21.G00.50.013, `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`)."
   },

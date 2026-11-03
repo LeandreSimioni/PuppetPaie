@@ -215,7 +215,7 @@
       "soumis": false,
       "imposable": false,
       "conges_spectacles": false,
-      "source": "Un repas principal pris en deplacement, rembourse au forfait : la quantite est le nombre de repas, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.repas` de la couche de la convention ; sans tarif, il se saisit). Hors assiette comme tout remboursement de frais au forfait : BOSS, Frais professionnels, § 240 et 1290 (atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
+      "source": "Un repas principal pris en deplacement, rembourse au forfait : la quantite est le nombre de repas, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.repas` de la couche de la convention ; sans tarif, il se saisit). Hors assiette dans la limite par repas de l'arrete du 4 septembre 2025, art. 3 et 5, I, 1° (bareme, `repas_deplacement` ; atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md), la part au-dela en `repas_au_dela` (engagement::frais_au_dela) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
     },
     "nuitee": {
       "libelle": "Nuitée",
@@ -233,7 +233,7 @@
       "soumis": false,
       "imposable": false,
       "conges_spectacles": false,
-      "source": "Une nuit en deplacement (chambre et petit-dejeuner), remboursee au forfait : la quantite est le nombre de nuits, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.nuitee` de la couche de la convention ; sans tarif, il se saisit). Hors assiette comme tout remboursement de frais au forfait : BOSS, Frais professionnels, § 1270-1290 (atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
+      "source": "Une nuit en deplacement (chambre et petit-dejeuner), remboursee au forfait : la quantite est le nombre de nuits, le taux celui de la convention a la date (bareme, `tarifs_conventionnels.nuitee` de la couche de la convention ; sans tarif, il se saisit). Hors assiette dans la limite par jour de l'arrete du 4 septembre 2025, art. 5, I, 1° (bareme, `logement_grand_deplacement` ; atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md), la part au-dela en `nuitee_au_dela` (engagement::frais_au_dela) ; sous DFS, arrete du 4 septembre 2025, annexe 2, I, 2° et 5° (bareme, `frais_hors_assiette`). S21.G00.54.001 = 07 (norme-dsn/texte/bloc-S21.G00.54.txt, l. 53)."
     },
     "nuitee_au_dela": {
       "libelle": "Nuitée au-delà de la limite",
@@ -247,7 +247,21 @@
       "soumis": true,
       "imposable": true,
       "conges_spectacles": false,
-      "source": "La part d'une nuitee au-dela de la limite d'exoneration du jour (bareme, `logement_grand_deplacement` : BOSS, Frais professionnels, § 1290, atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt l. 1535-1546), quand la compagnie ne garde pas le justificatif de la depense : « la fraction excédentaire est exclue de l'assiette des cotisations si l'employeur prouve qu'elle a été utilisée conformément à son objet » (§ 270, l. 332-333), sinon elle y entre. Le moteur la pose (engagement::nuitees_au_dela), elle ne se saisit pas. En DSN, dans la remuneration brute et les assiettes du bloc 51, pas dans le bloc 54 : « certaines parties des montants des autres éléments de revenu brut peuvent être assujettis [...] et doivent, à ce titre, être intégrés dans la valorisation de certaines rémunérations déclarées en bloc 51 » (norme-dsn/texte/bloc-S21.G00.54.txt, l. 23-25) ; un montant « au-delà des limites d'exonération [...] ne relève donc pas des frais professionnels » (l. 40-42). INFERENCES, ecrites comme telles : imposable, comme la remuneration qu'elle devient (aucun texte fiscal depose ne dit le sort de la fraction excedentaire) ; hors de l'assiette des Conges Spectacles, comme les indemnites (aucun texte depose ne dit l'assiette Conges Spectacles d'un frais reintegre)."
+      "source": "La part d'une nuitee au-dela de la limite d'exoneration du jour (bareme, `logement_grand_deplacement` : arrete du 4 septembre 2025, art. 5, I, 1°, atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md ; BOSS, Frais professionnels, § 1290, atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt l. 1539-1543), quand la compagnie ne garde pas le justificatif de la depense : « la fraction excédentaire est exclue de l'assiette des cotisations si l'employeur prouve qu'elle a été utilisée conformément à son objet » (§ 270, l. 332-333), sinon elle y entre. Le moteur la pose (engagement::frais_au_dela), elle ne se saisit pas. En DSN, dans la remuneration brute et les assiettes du bloc 51, pas dans le bloc 54 : « certaines parties des montants des autres éléments de revenu brut peuvent être assujettis [...] et doivent, à ce titre, être intégrés dans la valorisation de certaines rémunérations déclarées en bloc 51 » (norme-dsn/texte/bloc-S21.G00.54.txt, l. 23-25) ; un montant « au-delà des limites d'exonération [...] ne relève donc pas des frais professionnels » (l. 40-42). INFERENCES, ecrites comme telles : imposable, comme la remuneration qu'elle devient (aucun texte fiscal depose ne dit le sort de la fraction excedentaire) ; hors de l'assiette des Conges Spectacles, comme les indemnites (aucun texte depose ne dit l'assiette Conges Spectacles d'un frais reintegre)."
+    },
+    "repas_au_dela": {
+      "libelle": "Repas au-delà de la limite",
+      "unite": "forfait",
+      "nature": "indemnite",
+      "saisie": [],
+      "heures_forfait": null,
+      "plafond": null,
+      "aem": null,
+      "dsn_type": null,
+      "soumis": true,
+      "imposable": true,
+      "conges_spectacles": false,
+      "source": "La part d'un repas au-dela de sa limite d'exoneration (bareme, `repas_deplacement` : arrete du 4 septembre 2025, art. 3, atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md ; BOSS, Frais professionnels, § 240-260, atelier/reference/sources/boss/boss-frais-professionnels-20261013.txt l. 305-330), quand la compagnie ne garde pas le justificatif de la depense : « la fraction excédentaire est exclue de l'assiette des cotisations si l'employeur prouve qu'elle a été utilisée conformément à son objet » (§ 270, l. 332-333), sinon elle y entre. Le moteur la pose (engagement::frais_au_dela), elle ne se saisit pas. En DSN et pour l'impot, comme `nuitee_au_dela` : memes textes, memes inferences."
     },
     "defraiement_reel": {
       "libelle": "Défraiement au réel",

@@ -73,6 +73,24 @@ function statutDuBloc(div) {
  *  Le champ « heures » n'apparaît que si la rubrique le demande — une journée
  *  de 5 h, une répétition de 3 h. Un cachet ne le demande pas : ses 12 heures
  *  viennent du règlement, pas de nous. */
+// Les cases qu'une ligne de frais porte dans le fichier (`engagement::JUSTIFICATIF`, `PARIS`, `RESTAURANT`).
+const CASES_DE_LIGNE = ["justificatif", "paris", "restaurant"];
+
+// LES CASES D'UNE LIGNE, telles que le moteur les désigne et les nomme
+// (`cases` de l'aperçu, celles de cette ligne) ; une case qu'il ne désigne
+// plus ne s'écrit plus.
+function peindreCases(r, cases) {
+  const garde = {};
+  cases.forEach((c) => { if (r._cases && r._cases[c.case]) garde[c.case] = true; });
+  r._cases = garde;
+  const ou = r.querySelector(".r-cases");
+  ou.innerHTML = cases.map((c) => `<label class="coche"><input type="checkbox" data-case="${echapper(c.case)}"
+    ${garde[c.case] ? "checked" : ""}> ${echapper(c.libelle)}</label>`).join("");
+  ou.querySelectorAll("input").forEach((x) => {
+    x.onchange = () => { r._cases[x.dataset.case] = x.checked; rafraichirApercu(); };
+  });
+}
+
 function ligneRubrique(l = {}, nat, statut) {
   const div = document.createElement("div");
   div.className = "rubrique";
@@ -125,11 +143,10 @@ function ligneRubrique(l = {}, nat, statut) {
          et ses valeurs viennent du moteur (« genres »). Vide : celui de la
          rubrique, qui n'est écrit nulle part. -->
     <select class="r-genre cachee" title="genre de l'avantage"></select>
-    <!-- LE JUSTIFICATIF D'UNE NUITÉE au-delà de la limite du jour : la case
-         ne se montre que sur la ligne que le moteur désigne
-         (\`justificatifs\` de l'aperçu), ou déjà cochée. -->
-    <label class="coche r-justificatif ${l.justificatif ? "" : "cachee"}"><input type="checkbox" class="r-justif"
-      ${l.justificatif ? "checked" : ""}> justificatif conservé</label>
+    <!-- LES CASES D'UNE LIGNE DE FRAIS (le lieu d'une nuitée, le restaurant
+         d'un repas, le justificatif) : celles que le moteur désigne et
+         nomme (\`cases\` de l'aperçu, \`peindreCases\`). -->
+    <span class="r-cases"></span>
     <!-- LES JOURS SE COCHENT DANS UN CALENDRIER, plus
          clair que de taper 12, 24, 26. Le bouton dit les
          jours cochés ; le champ caché garde l'écriture « 14 15 17 18 » que
@@ -197,6 +214,8 @@ function ligneRubrique(l = {}, nat, statut) {
     g.dataset.pose = "1";
   };
   div.querySelector(".r-genre").onchange = rafraichirApercu;
+  // Les cases cochées de la ligne, gardées jusqu'à ce que le moteur dise lesquelles ont lieu d'être.
+  div._cases = Object.fromEntries(CASES_DE_LIGNE.filter((k) => l[k] === true).map((k) => [k, true]));
   // Changer la rubrique d'une ligne dont le taux n'a pas été tapé : il suit
   // la rubrique. Un taux de cachet ne devient pas un taux horaire.
   div.dataset.code = code;
@@ -1624,7 +1643,7 @@ function lignesDuBloc(div, mois) {
     // qu'on en a choisi un : le moteur refuse un genre sur toute autre.
     const genre = r.querySelector(".r-genre").value;
     if (genre && rr && (rr.genres || []).length) l.genre = genre;
-    if (r.querySelector(".r-justif").checked) l.justificatif = true;
+    Object.keys(r._cases || {}).filter((k) => r._cases[k]).forEach((k) => { l[k] = true; });
     // Le lieu et les jours de CETTE ligne. Absents du fichier quand ils sont
     // vides : une ligne qui ne dit rien de son lieu n'écrit pas `"lieu": ""`.
     const ou = r.querySelector(".r-lieu").value.trim();

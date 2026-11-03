@@ -64,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
         charge: &[MOIS, CARTES],
         exemple: r#"{"mois":"2026-11","cartes":[]}"#,
-        rend: "paies (une par engagement, ses bornes debut et fin, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement), les trois nombres de chaque carte, le mois",
+        rend: "paies (une par engagement, ses bornes debut et fin, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement ; cases : celles qu'une ligne de frais appelle), les trois nombres de chaque carte, le mois",
         refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
         acte: Acte::Lit,
         avance: false,
@@ -345,12 +345,21 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
 /// les relit pour les remettre dans ses champs, et les reecrit ensuite.
 /// `base` et `taux_majoration` d'une ligne en pourcentage, surtout : sans eux,
 /// la page lirait le `taux` (0.1) comme un pourcentage (0,1 %).
-const CHAMPS_DE_LIGNE_GARDES: [&str; 5] = ["heures", "genre", "base", "taux_majoration", engagement::JUSTIFICATIF];
+const CHAMPS_DE_LIGNE_GARDES: [&str; 7] = ["heures", "genre", "base", "taux_majoration", engagement::JUSTIFICATIF, engagement::PARIS, engagement::RESTAURANT];
+
+/// Ce que dit, a l'ecran, la case d'une ligne de frais (`engagement::CASES`).
+fn libelle_de_case(case: &str) -> &'static str {
+    match case {
+        engagement::PARIS => "Paris ou petite couronne",
+        engagement::RESTAURANT => "au restaurant",
+        _ => "justificatif conservé",
+    }
+}
 
 /// Les lignes de paie telles que le MOTEUR les a comprises.
-/// `remuneration` suit les lignes du fichier une a une (`calcul::lignes_brut`) ; la part d'une nuitee au-dela de la
-/// limite, que le moteur pose apres elles (`engagement::nuitees_au_dela`), ne se montre pas en ligne de saisie, et la
-/// nuitee garde le taux saisi (`engagement::TAUX_SAISI`).
+/// `remuneration` suit les lignes du fichier une a une (`calcul::lignes_brut`) ; la part d'un frais au-dela de sa
+/// limite, que le moteur pose apres elles (`engagement::frais_au_dela`), ne se montre pas en ligne de saisie, et la
+/// ligne garde le taux saisi (`engagement::TAUX_SAISI`).
 fn lignes_affichees(ctx: &Contexte, p: &engagement::calcul::Paie, brutes: &[Value]) -> R<Vec<Value>> {
     let lignes: Vec<Map<String, Value>> = p
         .remuneration
@@ -1804,9 +1813,12 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         } else {
             Vec::new()
         },
-        // LES LIGNES DE NUITÉE OÙ LA CASE « justificatif conservé » A LIEU D'ÊTRE (leur rang dans la saisie) : une nuitée
-        // au-delà de la limite du jour, d'un salarié que l'annexe 2 ne nomme pas (`engagement::nuitees_au_dela`).
-        "justificatifs": e.lignes.iter().enumerate().filter(|(_, l)| l.get(engagement::JUSTIFICATIF_POSSIBLE).is_some_and(vrai)).map(|(i, _)| i).collect::<Vec<_>>(),
+        // LES CASES QU'UNE LIGNE DE FRAIS APPELLE (leur rang dans la saisie, la case, ce qu'elle dit) : le lieu d'une
+        // nuitée, le restaurant d'un repas, le justificatif d'un frais au-delà de sa limite (`engagement::frais_au_dela`).
+        "cases": e.lignes.iter().enumerate().flat_map(|(i, l)| {
+            l.get(engagement::CASES).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str)
+                .map(move |k| json!({"ligne": i, "case": k, "libelle": libelle_de_case(k)}))
+        }).collect::<Vec<_>>(),
         "remuneration": p.remuneration.iter().map(|l| json!({
             "rubrique": l.code, "designation": l.designation(),
             "quantite": l.quantite.to_string(), "taux": l.taux.to_string(), "montant": q2(l.montant).to_string(),

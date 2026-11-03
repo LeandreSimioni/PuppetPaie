@@ -253,10 +253,10 @@ async function calculerApercu(lu) {
       div._total = part.length ? (a.blocs || [])[rangs[i]] : null;
       peindreChiffres(div, div._total);
       div._paies = part;
-      // LA CASE « justificatif conservé » : sur les lignes que le moteur désigne (`justificatifs`, leur rang dans la saisie).
-      const designees = (p && p.justificatifs) || [];
+      // LES CASES DES LIGNES DE FRAIS : celles que le moteur désigne (`cases`, le rang de la ligne dans la saisie).
+      const cases = (p && p.cases) || [];
       [...div.querySelectorAll(".rubrique")].filter(ligneEnvoyee).forEach((r, k) => {
-        r.querySelector(".r-justificatif").classList.toggle("cachee", !designees.includes(k) && !r.querySelector(".r-justif").checked);
+        peindreCases(r, cases.filter((c) => c.ligne === k));
       });
       // La rupture que le moteur propose pour cet engagement (`contrat.rupture`) : la porte « Imprévu… » et la fin.
       div._rupture = (p && p.contrat && p.contrat.rupture) || null;

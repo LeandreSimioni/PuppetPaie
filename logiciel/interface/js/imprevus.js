@@ -653,8 +653,12 @@ async function boiteAbsence(ou) {
 function champsIndemnites(a, x) {
   const montant = (id, libelle, v) => `<label class="champ-boite">${libelle}
       <input type="number" step="0.01" min="0" id="${x}-${id}" value="${echapper(v ?? "")}"></label>`;
+  // Le montant de principe que le moteur propose (`ij_proposees`) remplit les cases tant que l'arrêt n'a pas le sien.
+  const pr = a.ij_proposees || {};
   return `${a.ij_attendues ? `<p class="note">${aideDe("indemnites_journalieres")}</p>
-    <div class="champs-deux">${montant("ijb", "Indemnité brute par jour", a.ij_brute)}${montant("ijn", "Indemnité nette par jour", a.ij_nette)}</div>` : ""}
+    ${pr.phrase ? `<p class="note">${echapper(pr.phrase)}</p>` : ""}
+    <div class="champs-deux">${montant("ijb", "Indemnité brute par jour", a.ij_brute ?? pr.ij_brute)}${
+      montant("ijn", "Indemnité nette par jour", a.ij_nette ?? pr.ij_nette)}</div>` : ""}
     ${a.ij_majoree_attendue ? `<div class="champs-deux">${montant("ijbm", "Brute majorée par jour", a.ij_brute_majoree)}${
       montant("ijnm", "Nette majorée par jour", a.ij_nette_majoree)}</div>` : ""}
     ${a.jours_deja_indemnises_attendus ? `<label class="champ-boite" title="${aideDe("jours_deja_indemnises")}">Jours déjà indemnisés

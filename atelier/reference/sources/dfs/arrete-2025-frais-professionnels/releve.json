@@ -3,22 +3,37 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Arrete du 4 septembre 2025 relatif aux frais professionnels deductibles pour le calcul des cotisations de securite sociale",
  "_legitext": "JORFTEXT000052198430",
- "_livraisons_lues": 482,
- "_livraisons_totales": 482,
+ "_livraisons_lues": 483,
+ "_livraisons_totales": 483,
  "_complet": true,
- "_derniere_livraison": "20261101-210226",
+ "_derniere_livraison": "20261102-213929",
  "_changes_depuis_le_global": [],
- "_releve_le": "2026-11-02",
+ "_releve_le": "2026-11-03",
  "articles": {
   "1": {
    "debut": "2025-09-07",
    "en_vigueur": true,
    "id": "LEGIARTI000052206403"
   },
+  "10": {
+   "debut": "2025-09-07",
+   "en_vigueur": true,
+   "id": "LEGIARTI000052206421"
+  },
   "2": {
    "debut": "2025-09-07",
    "en_vigueur": true,
    "id": "LEGIARTI000052206405"
+  },
+  "3": {
+   "debut": "2025-09-07",
+   "en_vigueur": true,
+   "id": "LEGIARTI000052206407"
+  },
+  "5": {
+   "debut": "2025-09-07",
+   "en_vigueur": true,
+   "id": "LEGIARTI000052206411"
   },
   "9": {
    "debut": "2025-09-07",

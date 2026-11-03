@@ -354,7 +354,8 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
 /// UN IMPREVU TEL QUE LA PAGE LE LIT. Un arret : le resume de toujours (`crate::routes::imprevus::resume_arret` : salarie, contrat,
 /// motif et son libelle, les dates de la norme, signale, signalements, reporte_par, etat), plus `genre`, `premier_jour`,
 /// `dernier_jour`, `jours_deja_indemnises`, les indemnites par jour (`ij_brute`, `ij_nette`, `ij_brute_majoree`,
-/// `ij_nette_majoree`), `origine`, `ij_attendues` (l'arret ouvre le maintien), `ij_majoree_attendue` (un accident du travail
+/// `ij_nette_majoree`), `origine`, `ij_attendues` (l'arret ouvre le maintien), `ij_proposees` (le montant de principe et sa
+/// phrase, tant que l'arret ne dit pas le sien), `ij_majoree_attendue` (un accident du travail
 /// au-dela du vingt-huitieme jour, CSS R433-3), `jours_deja_indemnises_attendus`, `cachets`. Une suspension : `genre`, `salarie`, `contrat`,
 /// `contrat_debut`, `motif`, `motif_libelle`, `remunere`, `debut`, `fin`, `premier_jour`, `dernier_jour`, `note`,
 /// `saisi_le`, `reporte_par`, `cachets`.
@@ -380,6 +381,14 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         }
         o.insert("origine".into(), motif.get("origine").cloned().unwrap_or(Value::Null));
         o.insert("ij_attendues".into(), json!(ouvert));
+        // LE MONTANT DE PRINCIPE, propose tant que l'arret ne dit pas le sien (`engagement::maintien::ij_de_principe`) : la
+        // page en remplit les cases, la personne le garde ou le corrige ; sinon, la phrase dit ou le lire.
+        if ouvert && !vrai(&imp["ij_brute"]) {
+            o.insert("ij_proposees".into(), match magasin(engagement::maintien::ij_de_principe(ctx, imp))? {
+                Ok((brute, nette, phrase)) => json!({"ij_brute": brute.to_string(), "ij_nette": nette.to_string(), "phrase": phrase}),
+                Err(phrase) => json!({"phrase": phrase}),
+            });
+        }
         o.insert("ij_majoree_attendue".into(), json!(majoree));
         o.insert("jours_deja_indemnises_attendus".into(), json!(ouvert));
         o.insert("cachets".into(), json!(cachets));
@@ -491,7 +500,8 @@ pub(crate) fn jours_ou_rien(v: &Value, quoi: &str) -> R<Value> {
 /// jours_deja_indemnises?}`. Les indemnites journalieres d'un arret, par jour, telles que les ecrit le releve de la caisse ou
 /// son bordereau de paiement (BPIJ : le prix unitaire de l'« I.J. normale » ou « majoree », puis les retenues CSG et RDS,
 /// `atelier/reference/sources/subrogation-indemnites-journalieres/bpij-edi/`) : brutes, et nettes de CSG et CRDS. Le
-/// maintien de salaire s'en deduit (`engagement::maintien`). Un champ vide l'efface. La page ne les demande que pour un arret qui
+/// maintien de salaire s'en deduit (`engagement::maintien`) ; avant le releve, le resume en propose le montant de principe
+/// (`ij_proposees`), que la page met dans ses cases. Un champ vide l'efface. La page ne les demande que pour un arret qui
 /// ouvre le maintien (`ij_attendues` du resume) ; ailleurs, elles ne se deduisent de rien.
 fn arret_indemnites(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = cle_du_salarie(ctx, exiger(charge, "salarie")?)?;

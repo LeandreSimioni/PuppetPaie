@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code de la securite sociale",
  "_legitext": "LEGITEXT000006073189",
- "_livraisons_lues": 482,
- "_livraisons_totales": 482,
+ "_livraisons_lues": 483,
+ "_livraisons_totales": 483,
  "_complet": true,
- "_derniere_livraison": "20261101-210226",
+ "_derniere_livraison": "20261102-213929",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000006741897",
@@ -6369,6 +6369,14 @@
    "texte": "securite-sociale"
   },
   {
+   "apres": "LEGIARTI000054932705",
+   "article": "R433-2",
+   "avant": "LEGIARTI000006750307",
+   "depuis": "2026-10-02",
+   "livraison": "20261001-214554",
+   "texte": "securite-sociale"
+  },
+  {
    "apres": "LEGIARTI000054980972",
    "article": "D242-6-1",
    "avant": "LEGIARTI000022446583",
@@ -6401,7 +6409,7 @@
    "texte": "securite-sociale"
   }
  ],
- "_releve_le": "2026-11-02",
+ "_releve_le": "2026-11-03",
  "articles": {
   "D241-10": {
    "debut": "2026-06-15",
@@ -6663,6 +6671,11 @@
    "en_vigueur": true,
    "id": "LEGIARTI000053283560"
   },
+  "L433-2": {
+   "debut": "1991-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006743045"
+  },
   "L441-1": {
    "debut": "1986-07-17",
    "en_vigueur": true,
@@ -6788,15 +6801,30 @@
    "en_vigueur": true,
    "id": "LEGIARTI000043356746"
   },
+  "R323-9": {
+   "debut": "2021-04-14",
+   "en_vigueur": true,
+   "id": "LEGIARTI000043356729"
+  },
   "R433-1": {
    "debut": "2006-02-05",
    "en_vigueur": true,
    "id": "LEGIARTI000006750304"
   },
+  "R433-2": {
+   "debut": "2026-10-02",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054932705"
+  },
   "R433-3": {
    "debut": "2006-02-05",
    "en_vigueur": true,
    "id": "LEGIARTI000006750310"
+  },
+  "R433-4": {
+   "debut": "2015-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000029396214"
   },
   "R441-1": {
    "debut": "2019-12-01",

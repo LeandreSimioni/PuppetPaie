@@ -512,7 +512,7 @@ fn indemnites_des_jours(imp: &Value, origine: Origine, premier: &Jour, dernier: 
 fn refus_des_indemnites(qui: &str, mois: &str, premier: &Jour, dernier: &Jour, majoree: bool) -> String {
     format!(
         "{} : les indemnités journalières de {} (l'arrêt du {} au {}){} : le montant par jour{}, brut puis net de CSG et \
-CRDS, tel que l'écrit le relevé de la CPAM ou son bordereau de paiement. Le maintien de salaire s'en déduit ; rien n'est \
+CRDS : celui du relevé de la CPAM ou, pour une maladie, le montant de principe proposé. Le maintien de salaire s'en déduit ; rien n'est \
 calculé.",
         qui,
         crate::libelle_mois(mois),
@@ -549,6 +549,60 @@ pub fn indemnites_a_dire(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<Opti
     }
     Ok(None)
 }
+/// LE MONTANT DE PRINCIPE DES INDEMNITES D'UNE MALADIE, propose sur l'arret avant le releve de la caisse : par jour, brut
+/// et net de CSG et CRDS, et la phrase qui le dit. La moitie (CSS R323-5) de 1/91,25 des trois dernieres paies des mois
+/// civils anterieurs a l'interruption (R323-4, 1°), chacune dans la limite de 1,4 SMIC du mois, au SMIC en vigueur le
+/// dernier jour du mois civil precedant l'interruption, sur la duree legale (R323-4, al. 5) ; le brut des paies validees,
+/// sans abattement (meme alinea). Net : CSG et CRDS des revenus de remplacement (L136-8, II, 1°, b ; net-entreprises,
+/// fiche 3323). Textes : `logiciel/donnees/permanents-base.json`, `indemnites_journalieres._principe`.
+/// `Ok(Err(phrase))` quand aucun montant ne se propose : un accident du travail (R433-4 renvoie a un taux forfaitaire
+/// d'arrete non depose), ou un mois des trois sans paie validee du salarie.
+pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<(Decimal, Decimal, String), String>> {
+    if origine(imp) != Some(Origine::Maladie) {
+        return Ok(Err("Le montant d'un jour se lit sur le relevé de la CPAM.".to_string()));
+    }
+    let p = &droit::permanents::regles()?["indemnites_journalieres"]["principe"];
+    let n = |k: &str| -> Resultat<Decimal> { dec_avec_echelle(p.get(k).ok_or_else(|| socle::fichiers::absent(k))?) };
+    let premier = crate::imprevus::premier_jour(imp)?;
+    let veille = socle::date::premier_du_mois(&premier.mois_iso())?.plus_jours(-1)?;
+    // Le SMIC du plafond, au bareme de son annee : sans lui, rien ne se propose.
+    let Some(smic) = ctx.smic(&veille).ok().and_then(|s| Decimal::try_from(s).ok()) else {
+        return Ok(Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : le barème {} n'est pas livré.", veille.an)));
+    };
+    let salarie = en_texte(g(imp, "salarie"));
+    let mut bruts = Vec::new();
+    let mut jour = veille.clone();
+    let combien = n("mois")?.to_string().parse::<usize>().map_err(|e| e.to_string())?;
+    for _ in 0..combien {
+        let mois = jour.mois_iso();
+        let brut = crate::conges::remuneration_du_mois(ctx, &mois, &salarie)?;
+        if brut <= Decimal::ZERO {
+            return Ok(Err(format!(
+                "Le montant d'un jour se lit sur le relevé de la CPAM : aucune paie validée en {}.",
+                crate::libelle_mois(&mois)
+            )));
+        }
+        bruts.push(brut);
+        jour = socle::date::premier_du_mois(&mois)?.plus_jours(-1)?;
+    }
+    let (brute, nette) = montant_de_principe(&bruts, smic, p)?;
+    Ok(Ok((
+        brute,
+        nette,
+        "Montant de principe (la moitié du salaire journalier des trois derniers mois) : en principe, attendre le relevé de la CPAM, et le corriger s'il diffère.".to_string(),
+    )))
+}
+
+/// L'indemnite d'un jour de maladie, brute et nette, des paies des trois mois (`bruts`) au SMIC horaire du plafond
+/// (`smic`), selon les regles `principe` de `permanents-base.json` (voir `ij_de_principe`).
+fn montant_de_principe(bruts: &[Decimal], smic: Decimal, p: &Value) -> Resultat<(Decimal, Decimal)> {
+    let n = |k: &str| -> Resultat<Decimal> { dec_avec_echelle(p.get(k).ok_or_else(|| socle::fichiers::absent(k))?) };
+    let plafond = eur2(mul(mul(n("plafond_smic")?, smic), n("heures_du_mois")?));
+    let total = bruts.iter().fold(Decimal::ZERO, |t, b| t + (*b).min(plafond));
+    let brute = eur2(mul(div(total, n("diviseur")?), n("fraction")?));
+    Ok((brute, eur2(brute - mul(brute, div(n("csg")? + n("crds")?, Decimal::from(100))))))
+}
+
 /// Les lignes du mois : le maintien (le plus favorable des complements, plus les indemnites subrogees qu'il avance), et,
 /// subroge, la deduction des indemnites brutes et le reversement des nettes. Quand la convention garantit du net (ou
 /// plafonne au net), la ligne du maintien porte ce qu'il faut pour le reconstituer (`au_net`, sous la cle `maintien`).
@@ -754,6 +808,22 @@ pub fn avec_le_montant(lignes: &[Value], montant: Decimal) -> Vec<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// CSS R323-5 : « la moitié du revenu d'activité antérieur » ; R323-4, 1° : « 1/91,25 du montant des trois dernières
+    /// paies », chacune « dans la limite d'un plafond égal à 1,4 fois le salaire minimum de croissance [...] calculé pour un
+    /// mois » ; net de la CSG à 6,2 % (L136-8, II, 1°, b) et de la CRDS à 0,5 % (net-entreprises, fiche 3323, l. 35)
+    /// (`atelier/reference/sources/code-de-la-securite-sociale/articles-20261103.md`, `net-entreprises-base-connaissances/`).
+    #[test]
+    fn l_indemnite_de_principe_est_la_moitie_du_salaire_journalier_plafonne() {
+        let p = &droit::permanents::regles().unwrap()["indemnites_journalieres"]["principe"];
+        let smic = Decimal::new(1202, 2);
+        // 2 487,39 par mois : sous le plafond (1,4 × 12,02 × 151,67 = 2 552,30) ; 7 462,17 / 91,25 / 2.
+        let sous = montant_de_principe(&[Decimal::new(248739, 2); 3], smic, p).unwrap();
+        assert_eq!(sous, (Decimal::new(4089, 2), Decimal::new(3815, 2)));
+        // 4 000 par mois : chaque paie retenue au plafond.
+        let au_plafond = montant_de_principe(&[Decimal::from(4000); 3], smic, p).unwrap();
+        assert_eq!(au_plafond.0, Decimal::new(4196, 2));
+    }
 
     /// « le plus favorable » : la loi (L1226-1, D1226-1) et la convention s'appliquent ensemble, le mois paie le plus haut
     /// des deux complements ; subrogee, la compagnie y ajoute les indemnites brutes qu'elle avance et les retire aussitot.

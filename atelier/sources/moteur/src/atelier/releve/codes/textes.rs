@@ -328,11 +328,11 @@ pub static TEXTES: &[Texte] = &[
             // net-entreprises, `accident-du-travail/`). `moteur/src/obligations.rs`, l'obligation `attestation_salaire`.
             Domaine { cle: "conge_de_deuil", titre: "Le conge de deuil d'un enfant : ses indemnites journalieres et l'attestation de salaire", numeros: &["L331-9", "D331-7", "R323-10"] },
             // LES INDEMNITES JOURNALIERES ET LA SUBROGATION : L321-1 (l'indemnite journaliere), L323-1 et R323-1 (due
-            // « pour chaque jour ouvrable ou non », a partir du quatrieme jour), L323-4, R323-4 et R323-5 (son montant,
-            // que la caisse calcule et que le moteur lit, regle 1), R323-11 (l'employeur qui maintient le salaire est
-            // subroge) ; L433-1, R433-1 et R433-3 pour l'accident du travail (des le lendemain de l'accident, 60 % puis 80 %
+            // « pour chaque jour ouvrable ou non », a partir du quatrieme jour), L323-4, R323-4, R323-5 et R323-9 (son montant,
+            // que le moteur propose sur l'arret et que la personne garde ou corrige au releve de la caisse), R323-11 (l'employeur qui maintient le salaire est
+            // subroge) ; L433-1, L433-2, R433-1 a R433-4 pour l'accident du travail (des le lendemain de l'accident, 60 % puis 80 %
             // au vingt-neuvieme jour). `engagement::maintien`.
-            Domaine { cle: "indemnites_journalieres", titre: "Les indemnites journalieres et la subrogation de l'employeur", numeros: &["L321-1", "L323-1", "L323-4", "R323-1", "R323-4", "R323-5", "R323-11", "L433-1", "R433-1", "R433-3"] },
+            Domaine { cle: "indemnites_journalieres", titre: "Les indemnites journalieres et la subrogation de l'employeur", numeros: &["L321-1", "L323-1", "L323-4", "R323-1", "R323-4", "R323-5", "R323-9", "R323-11", "L433-1", "L433-2", "R433-1", "R433-2", "R433-3", "R433-4"] },
             // LA CSG DES INDEMNITES JOURNALIERES : 6,2 % (L136-8, II, 1°, b), sur les revenus de remplacement (L136-1-2).
             // L'assiette du PAS d'une indemnite subrogee en retire la part deductible (CGI 154 quinquies).
             Domaine { cle: "csg_remplacement", titre: "La CSG des revenus de remplacement", numeros: &["L136-1-2", "L136-8"] },
@@ -416,6 +416,11 @@ pub static TEXTES: &[Texte] = &[
     // restent hors assiette) n'ont pas de <NUM> dans la base : ce
     // moissonneur, qui range par numero, ne les garde pas. Elles sont
     // deposees brutes a cote (atelier/reference/sources/dfs/LISEZ-MOI.md).
+    // Ses articles 3 (le repas), 5 (le grand deplacement : le logement et
+    // sa limite de Paris et petite couronne) et 10 (la revalorisation au
+    // 1er janvier) fondent les limites des frais de tournee
+    // (`engagement::frais_au_dela`, baremes `repas_deplacement` et
+    // `logement_grand_deplacement`).
     Texte {
         cle: "frais-professionnels-2025",
         legitext: "JORFTEXT000052198430",
@@ -424,6 +429,7 @@ pub static TEXTES: &[Texte] = &[
         titre: "Arrete du 4 septembre 2025 (frais professionnels) -- la deduction forfaitaire specifique",
         domaines: &[
             Domaine { cle: "frais", titre: "Les frais professionnels et la deduction forfaitaire specifique", numeros: &["1", "2", "9"] },
+            Domaine { cle: "deplacement", titre: "Le repas et le grand deplacement, leurs limites et leur revalorisation", numeros: &["3", "5", "10"] },
         ],
     },
     // ------------------------------------------------------------------

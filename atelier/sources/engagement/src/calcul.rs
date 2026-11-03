@@ -463,14 +463,14 @@ impl Paie {
 /// 4 nuitées », « 28 h de travail », « salaire mensuel de base, 119 h d'absence maladie, maintien de salaire,
 /// indemnités journalières (22 jours) ». Le detail ligne a ligne est celui du bulletin (`LigneBrut::designation`).
 /// - Les lignes d'une meme rubrique s'additionnent.
-/// - La part d'une nuitee au-dela de la limite du jour (`NUITEE_AU_DELA`) est celle d'une nuitee deja comptee.
+/// - La part d'un repas ou d'une nuitee au-dela de sa limite (`REPAS_AU_DELA`, `NUITEE_AU_DELA`) est celle d'une ligne deja comptee.
 /// - Deux rubriques qui ne different que par leur precision entre parentheses, sur la meme mesure, se disent une fois :
 ///   les indemnites journalieres deduites puis versees.
 /// - Ce qui rend, juste apres elle, ce qu'une deduction a retire (la meme mesure) se dit sans la repeter : le maintien
 ///   de salaire d'une absence, l'indemnite des conges pris.
 pub fn en_bref(lignes: &[LigneBrut]) -> String {
     let mut groupes: Vec<LigneBrut> = Vec::new();
-    for l in lignes.iter().filter(|l| l.code != crate::NUITEE_AU_DELA) {
+    for l in lignes.iter().filter(|l| l.code != crate::NUITEE_AU_DELA && l.code != crate::REPAS_AU_DELA) {
         match groupes.iter_mut().find(|g| g.code == l.code && g.precision == l.precision) {
             Some(g) => {
                 g.quantite += l.quantite;
@@ -563,7 +563,7 @@ pub struct OptionDfs {
     pub taux: Decimal,
     pub rubriques: Vec<String>,
     pub plafond_annuel: Decimal,
-    /// Les rubriques de frais (`defraiement_forfait`, `defraiement_reel`) que l'annexe 2 de l'arrete (I, 2° et 5°) laisse
+    /// Les rubriques de frais (`defraiement_forfait`, `repas`, `nuitee`, `defraiement_reel`) que l'annexe 2 de l'arrete (I, 2° et 5°) laisse
     /// hors de l'assiette pour cette profession ; tout autre remboursement de frais se reintegrerait (art. 9, I, al. 4).
     pub frais_hors_assiette: Vec<String>,
     /// La tolerance du BOSS, Frais professionnels, § 2320 (bareme, `frais_cumulables`) : pour les huit secteurs, dont le
@@ -743,11 +743,11 @@ elle est soumise. Rien n'est calcule.",
         }
         let frais = genre == HorsAssiette::Frais;
         if frais && !o.frais_cumulables && !o.frais_hors_assiette.contains(&l.code) {
-            return Err(socle::echec::avec(format!("{} : la ligne « {} » rembourse des frais sous déduction forfaitaire spécifique, et le logiciel ne sait pas encore les réintégrer dans l'assiette.", qui, l.libelle), serde_json::json!({"detail": format!(
+            return Err(socle::echec::avec(format!("{} : la ligne « {} » rembourse des frais sous déduction forfaitaire spécifique, et le logiciel ne porte pas leur réintégration dans l'assiette.", qui, l.libelle), serde_json::json!({"detail": format!(
                 "{} : la ligne << {} >> rembourse des frais a un salarie sous deduction forfaitaire specifique ({}). \
 L'arrete du 4 septembre 2025 (art. 9, I, al. 4) les reintegre alors dans l'assiette avant l'abattement, sauf ceux de \
 la liste de son annexe 2 : pour cette profession, {} ; et le bareme ne porte pas la tolerance du BOSS (Frais \
-professionnels, § 2320, `frais_cumulables`) qui les laisserait tous hors de l'assiette. Le logiciel ne porte pas encore \
+professionnels, § 2320, `frais_cumulables`) qui les laisserait tous hors de l'assiette. Le logiciel ne porte pas \
 cette reintegration (assiette du chomage, bloc 54 de type 35) : rien n'est calcule.",
                 qui,
                 l.libelle,
