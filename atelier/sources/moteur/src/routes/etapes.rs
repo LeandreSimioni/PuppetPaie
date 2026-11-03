@@ -521,8 +521,8 @@ pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value
 /// La DSN de `mois` est-elle a refaire ? Une DSN est celle d'un etablissement (`derniere` : sa ligne du journal, son NIC
 /// en `detail.etablissement`, le principal s'il est tu) : seuls comptent les engagements qui en relevent
 /// (`nic_de_l_engagement`). La paie de l'un d'eux a change depuis la version sur laquelle elle est partie
-/// (`a_refaire_de`), ou ils ne sont plus ceux qu'elle a emportes (`versions`) : un engagement ajoute, ou retire.
-pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs) -> bool {
+/// (`refaire` : `Moteur::a_refaire_du_mois`), ou ils ne sont plus ceux qu'elle a emportes (`versions`) : un engagement ajoute, ou retire.
+pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats: &[engagement::etats::Etat], refaire: &mut dyn FnMut(&engagement::etats::Etat) -> Rc<Vec<ARefaire>>) -> bool {
     // Une ligne qui ne dit pas ce qu'elle a emporte ne se compare a rien.
     let Some(emportes) = derniere.get("versions").and_then(Value::as_array) else { return false };
     let nic = derniere
@@ -532,7 +532,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
         .filter(|n| !n.is_empty())
         .unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
     let siens: Vec<&engagement::etats::Etat> = etats.iter().filter(|e| nic_de_l_engagement(ctx, mois, e).as_deref() == Some(nic.as_str())).collect();
-    if siens.iter().flat_map(|e| a_refaire_de(ctx, e, departs)).any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois)) {
+    if siens.iter().any(|e| refaire(e).iter().any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois))) {
         return true;
     }
     let paire = |v: &Value| (valeur_en_texte(&v["salarie"]), valeur_en_texte(&v["numero"]));
@@ -660,11 +660,17 @@ pub struct Moteur<'a> {
     /// LES ENGAGEMENTS TELS QU'ILS SONT ECRITS, sans recalcul d'eux-memes (`engagement::etats::tels_qu_ecrits`) : ce que
     /// lit `mois_a_ouvrir`, qui regarde chaque mois passe a l'ouverture et ne calcule rien.
     ecrit: bool,
+    /// CE QU'IL A LU D'UN MOIS, une fois pour sa vie (une route, l'etat garde d'un mois) : la saisie chargee
+    /// (`charger_saisie`), ce qui est a refaire de chaque engagement valide (`a_refaire_du_mois`, par mois, salarie et
+    /// numero) et l'etat de chaque engagement (`etat_par_engagement`).
+    saisies: HashMap<String, Rc<SaisieMois>>,
+    refaire: HashMap<(String, String, String), Rc<Vec<ARefaire>>>,
+    lignes: HashMap<String, Rc<Vec<Value>>>,
 }
 
 impl<'a> Moteur<'a> {
     pub fn nouveau(ctx: &'a Contexte) -> Moteur<'a> {
-        Moteur { ctx, globales: None, fichiers: HashMap::new(), ecrit: false }
+        Moteur { ctx, globales: None, fichiers: HashMap::new(), ecrit: false, saisies: HashMap::new(), refaire: HashMap::new(), lignes: HashMap::new() }
     }
 
     /// Ce qui est parti (`envois::journal::lu`, tire une fois par contenu du journal) : ce que le moteur passe a
@@ -700,7 +706,31 @@ impl<'a> Moteur<'a> {
 
     /// La saisie d'un mois, chargee sans calculer la paie : ses engagements qui ne manquent de rien
     /// (`mois::manques_de_la_saisie`), et ce qui manque a chacun de ses engagements, dans son ordre.
-    fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
+    fn charger_saisie(&mut self, mois: &str) -> R<Rc<SaisieMois>> {
+        if let Some(s) = self.saisies.get(mois) {
+            return Ok(s.clone());
+        }
+        let s = Rc::new(self.saisie_chargee(mois)?);
+        self.saisies.insert(mois.to_string(), s.clone());
+        Ok(s)
+    }
+
+    /// CE QUI EST A REFAIRE de l'engagement `e` de `mois` (`a_refaire_de`), compare une fois.
+    fn a_refaire_du_mois(&mut self, mois: &str, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> Rc<Vec<ARefaire>> {
+        let brut = &*e.objet().brut;
+        let cle = (mois.to_string(), engagement::cle_de_l_engagement(self.ctx, brut).unwrap_or_default(), brut.get("numero").map(valeur_en_texte).unwrap_or_default());
+        if e.valide().is_none() || cle.2.is_empty() {
+            return Rc::new(Vec::new());
+        }
+        if let Some(r) = self.refaire.get(&cle) {
+            return r.clone();
+        }
+        let r = Rc::new(a_refaire_de(self.ctx, e, departs));
+        self.refaire.insert(cle, r.clone());
+        r
+    }
+
+    fn saisie_chargee(&mut self, mois: &str) -> R<SaisieMois> {
         let mut data = engagement::vue_requise(self.racine(), mois).map_err(classer_saisie)?;
         let manques = super::mois::manques_de_la_saisie(self.ctx, &data);
         let objets = engagement::stock::objets_du_mois(self.racine(), mois).map_err(plain)?;
@@ -739,7 +769,16 @@ impl<'a> Moteur<'a> {
 
     /// `etat_par_engagement` : ou en est CHAQUE engagement du mois (ce que les etapes lisent ; la route n'en rend que ce
     /// que la page lit, `pour_la_page`).
-    pub fn etat_par_engagement(&mut self, mois: &str) -> R<Vec<Value>> {
+    pub fn etat_par_engagement(&mut self, mois: &str) -> R<Rc<Vec<Value>>> {
+        if let Some(l) = self.lignes.get(mois) {
+            return Ok(l.clone());
+        }
+        let l = Rc::new(self.lignes_du_mois(mois)?);
+        self.lignes.insert(mois.to_string(), l.clone());
+        Ok(l)
+    }
+
+    fn lignes_du_mois(&mut self, mois: &str) -> R<Vec<Value>> {
         // UN MOIS SANS ENGAGEMENT N'EST PAS UNE ERREUR.
         if !engagement::stock::a_une_saisie(self.racine(), mois).map_err(plain)? {
             return Ok(Vec::new());
@@ -750,6 +789,11 @@ impl<'a> Moteur<'a> {
         let etats_eng = self.etats_du_mois(mois)?;
         let ids = engagement::stock::identites(&etats_eng.iter().map(|e| e.objet().clone()).collect::<Vec<_>>());
         let g = self.globales()?;
+        let departs = self.departs()?;
+        // Ce qui est a refaire de chacun, compare une fois : la liste des DPAE, la ligne et la DSN du mois le lisent.
+        for e in &etats_eng {
+            self.a_refaire_du_mois(mois, e, &departs);
+        }
         // LES DPAE A DEPOSER DU MOIS : la seule liste (`embauches_a_declarer`), que lisent aussi les rappels et le depot.
         let a_declarer: HashSet<Paire> = self
             .embauches_a_declarer(Some(mois))?
@@ -758,7 +802,6 @@ impl<'a> Moteur<'a> {
             .flatten()
             .filter_map(|d| paire(&d["salarie"], &d["numero"]))
             .collect();
-        let departs = self.departs()?;
 
         // Chaque ligne porte `engagement` : l'identite par laquelle sa carte le designe. Un engagement auquel il manque un
         // fait a sa ligne a lui (`ligne_a_completer`) ; les autres retrouvent leur paie parmi ceux qui ne manquent de rien.
@@ -775,7 +818,7 @@ impl<'a> Moteur<'a> {
             let cle = texte_de(requis(&p.salarie, "_cle")?);
             let debut = p.engagement.debut.iso();
             // CE QUI EST A REFAIRE : le present compare a la version sur laquelle chaque envoi est parti.
-            let refaire = a_refaire_de(self.ctx, e, &departs);
+            let refaire = self.a_refaire_du_mois(mois, e, &departs);
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
             let spectacle = if vrai(&p.spectacle) { requis(&p.spectacle, "titre")?.clone() } else { Value::Null };
@@ -1114,7 +1157,8 @@ impl<'a> Moteur<'a> {
         let mut modifiee = false;
         if derniere.get("versions").is_some() {
             let etats_eng = self.etats_du_mois(mois)?;
-            modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &self.departs()?);
+            let (ctx, departs) = (self.ctx, self.departs()?);
+            modifiee = dsn_a_refaire(ctx, mois, derniere, &etats_eng, &mut |e| self.a_refaire_du_mois(mois, e, &departs));
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
         // Apres la limite : les contrats dont la paie validee n'est plus celle que la DSN a declaree ; la DSN suivante
@@ -1665,9 +1709,12 @@ impl<'a> Moteur<'a> {
                 let Some(p) = s.paies.iter().find(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(cle.as_str()) && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
                 };
-                // Seule la DPAE partie se compare (`debut_declare`) : les paies parties ne se relisent pas ici.
-                let dpae = |s: engagement::departs::Envoi| s == engagement::departs::Envoi::Dpae;
-                let refaire = engagement::etats::a_refaire_parmi(self.ctx, v, &departs, &dpae);
+                // Seule la DPAE partie se compare (`debut_declare`) : les paies parties ne se relisent pas ici, sauf
+                // quand le mois a deja compare tout ce qui est a refaire (`a_refaire_du_mois`).
+                let refaire: Vec<ARefaire> = match self.refaire.get(&(m.clone(), cle.clone(), numero.to_string())) {
+                    Some(r) => r.iter().filter(|a| matches!(a, ARefaire::Dpae { .. })).cloned().collect(),
+                    None => engagement::etats::a_refaire_parmi(self.ctx, v, &departs, &|s| s == engagement::departs::Envoi::Dpae),
+                };
                 let debut = p.engagement.debut.iso();
                 // UNE DPAE PAR EMBAUCHE, reconnue a sa date : « L'embauche d'un salarié ne peut intervenir qu'après
                 // déclaration nominative » (code du travail, L. 1221-10), et la DPAE porte la « Date et heure
@@ -2094,7 +2141,18 @@ fn pour_la_page(l: &Value) -> Value {
 
 /// Une route de ce module. `charge` : ce que la page envoie (`mois`).
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    lire(&mut Moteur::nouveau(ctx), nom, charge)
+}
+
+/// LES ROUTES `noms`, servies par une meme lecture (`Moteur`) : ce que l'etat garde d'un mois rend en une fois
+/// (`etat_garde::refaire`). Chacune rend ce que sa route seule rendrait.
+pub fn lire_ensemble(ctx: &Contexte, noms: &[&str], charge: &Value) -> R<Vec<Value>> {
     let mut m = Moteur::nouveau(ctx);
+    noms.iter().map(|nom| lire(&mut m, nom, charge)).collect()
+}
+
+fn lire(m: &mut Moteur, nom: &str, charge: &Value) -> R<Value> {
+    let ctx = m.ctx;
     match nom {
         "etat-par-engagement" => {
             let (brut, mois) = mois_de(charge)?;

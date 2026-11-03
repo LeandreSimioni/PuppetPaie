@@ -1313,7 +1313,7 @@ fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let id = ecrire_une_carte(ctx, mois, charge)?;
     let (k, _) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
     let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
-    let a_completer = manques_de_la_saisie(ctx, &vue).swap_remove(k).map_or(Value::Null, Value::String);
+    let a_completer = manque_de(ctx, &vue, k).map_or(Value::Null, Value::String);
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     let a = maintenant();
     let enregistre_dit = format!("Enregistré à {}", a.chars().skip(11).take(5).collect::<String>());
@@ -1400,6 +1400,31 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<S
         }
     }
     manques
+}
+
+/// CE QUI MANQUE A L'ENGAGEMENT `i` DE LA SAISIE `data` (`manques_de_la_saisie`), sur ce que son calcul lit : les
+/// engagements de son salarie (une paie ne lit que les siens, `engagement::etats`) et ceux qui portent son numero de
+/// contrat (un numero est celui d'un seul salarie). Les autres salaries du mois ne se calculent pas pour lui.
+pub(crate) fn manque_de(ctx: &Contexte, data: &Value, i: usize) -> Option<String> {
+    let tous = data.get("engagements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]);
+    let e = tous.get(i)?;
+    let cle = engagement::cle_de_l_engagement(ctx, e);
+    let numero = e.get("numero").filter(|n| vrai(n)).map(valeur_en_texte);
+    let mut rang = 0;
+    let mut siens = Vec::new();
+    for (j, x) in tous.iter().enumerate() {
+        let meme_salarie = cle.is_some() && engagement::cle_de_l_engagement(ctx, x) == cle;
+        let meme_numero = numero.is_some() && x.get("numero").filter(|n| vrai(n)).map(valeur_en_texte) == numero;
+        if j == i {
+            rang = siens.len();
+        }
+        if j == i || meme_salarie || meme_numero {
+            siens.push(x.clone());
+        }
+    }
+    let mut d = data.clone();
+    d["engagements"] = Value::Array(siens);
+    manques_de_la_saisie(ctx, &d).swap_remove(rang)
 }
 
 fn centimes(x: Decimal) -> Decimal {
