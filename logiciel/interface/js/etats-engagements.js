@@ -43,7 +43,6 @@ function brancherRecu(div) {
       const c = ligne && (ligne.carres || [])[+s.dataset.carre];
       if (!c || !c.action) return;
       const mois = document.getElementById("mois").value;
-      if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, c.action.recu, c.action.avenant);
       ouvrirGeste(c.action, mois);
     };
     s.onclick = agir;
@@ -51,15 +50,10 @@ function brancherRecu(div) {
   });
 }
 
-/** « Reçu signé » (`contrat-recu`) du contrat, ou de l'avenant que le geste
+/** « Reçu signé » (`contrat-recu`) du contrat, ou de l'avenant que la charge
  *  nomme (`avenant`), ou son annulation. Le message est la phrase du moteur ;
  *  une note posée porte « Annuler », qui rappelle la charge que le moteur
  *  rend pour la défaire (`annuler`). */
-async function noterSigne(mois, ligne, recu, avenant) {
-  await noterRecu(mois, { mois, salarie: ligne.salarie, debut: ligne.debut,
-                          numero: ligne.numero || "", avenant: avenant ?? null, recu });
-}
-
 async function noterRecu(mois, charge) {
   let r;
   try {
@@ -115,10 +109,7 @@ async function boitePieces(ligne, acte) {
     const a = montre.gestes[+b.dataset.i].action;
     b.onclick = () => {
       fermerBoite();
-      if (a.geste === "contrat_recu") noterSigne(mois, ligne, a.recu);
-      else if (a.geste === "avenant") boiteAvenant(mois, ligne.salarie, ligne.debut, ligne.numero);
-      else if (a.geste === "faire_signer") boiteSignature(mois, [ligne.salarie]);
-      else if (a.geste === "dossier") ouvrirEtDire(a.chemin, a.phrase, true);
+      ouvrirGeste(a, mois, [ligne.salarie]);
     };
   });
   document.querySelectorAll(".p-ouvrir").forEach((b) => {

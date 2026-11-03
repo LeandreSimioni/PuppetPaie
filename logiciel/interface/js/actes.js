@@ -19,19 +19,22 @@
    seul : un garde-fou posé dans un front se contourne par l'autre.
 */
 
-/** Le geste d'un groupe, tel que le moteur le nomme. */
-function ouvrirGeste(action, mois) {
+/** Le geste d'un groupe ou d'un carré : la boîte de la route que le moteur nomme (`route`, avec sa `charge` ; `puis` :
+ *  l'acte qui suit). Un dossier à ouvrir porte son `chemin`. `seulement` : les salariés cochés d'avance. */
+function ouvrirGeste(action, mois, seulement) {
   if (!action) return;
-  const m = action.mois || mois;
-  switch (action.geste) {
-    case "declarer_embauches": return boiteDpae(m);
-    case "faire_signer": return boiteSignature(m);
-    case "contrats_en_attente": return boiteContratsEnAttente(m);
-    case "deposer_dsn": return boiteDepot({ quoi: "dsn", mois: m }, { testerDabord: true });
-    case "deposer": return boiteDepot(action.charge);
-    case "envoyer_documents": return boiteEnvoi(m);
-    case "historique": return ouvrirMoisHistorique(m);
-    case "dossier": return ouvrirEtDire(action.chemin, action.phrase, true);
+  if (action.chemin) return ouvrirEtDire(action.chemin, action.phrase, true);
+  const c = action.charge || {};
+  const m = c.mois || mois;
+  switch (action.route) {
+    case "depot-apercu":
+      return c.quoi === "dpae" && !c.engagements ? boiteDpae(m) : boiteDepot(c, { testerDabord: !!action.tester });
+    case "signature-apercu":
+      return action.puis === "contrat-recu" ? boiteContratsEnAttente(m) : boiteSignature(m, seulement);
+    case "envoi-apercu": return boiteEnvoi(m);
+    case "historique-mois": return ouvrirMoisHistorique(m);
+    case "contrat-recu": return noterRecu(m, c);
+    case "avenant-apercu": return boiteAvenant(m, c.salarie, c.debut, c.numero);
   }
 }
 

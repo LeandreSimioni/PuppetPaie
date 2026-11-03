@@ -91,6 +91,39 @@ pub(crate) fn noter_piece_ecrite(racine: &Path, cle: &str, empreinte_saisie: Opt
     ecrire_json(&p, &d, 2).map_err(|m| erreur("OSError", m))
 }
 
+/// UNE PIECE PARTIE NE SE RECRIT JAMAIS (regle 4 de `atelier/AGENTS.md` : ce qui est depose ne se regenere pas) : le
+/// fichier `cible` dont le contenu est celui d'un depot reel accepte, qu'aucun retour n'a refuse (`journal/depots.jsonl`,
+/// par son empreinte), ne s'ecrit pas par-dessus ; `Some(le jour de son depot)`. Chaque ecriture d'une declaration sous
+/// un nom qui ne depend pas de son contenu (un signalement, la DPAE du mois, la DSN mensuelle) le lit avant d'ecrire.
+pub(crate) fn partie_le(racine: &Path, cible: &Path) -> R<Option<String>> {
+    if !cible.is_file() {
+        return Ok(None);
+    }
+    let empreinte = envois::journal::empreinte_fichier(cible)?;
+    let lignes = envois::journal::lu(racine)?.lignes;
+    Ok(lignes
+        .iter()
+        .filter(|l| l.get("mode").and_then(Value::as_str) == Some(envois::journal::REEL) && l.get("accepte").is_some_and(vrai))
+        .filter(|l| l.get("empreinte").and_then(Value::as_str) == Some(empreinte.as_str()))
+        .find(|l| !envois::etats::refuse_par_un_retour(l).unwrap_or(false))
+        .map(|l| l.get("quand").map(valeur_en_texte).unwrap_or_default().chars().take(10).collect()))
+}
+
+/// `partie_le`, en refus : `cible` est parti, rien n'est ecrit.
+pub(crate) fn refuser_si_partie(racine: &Path, cible: &Path) -> R<()> {
+    match partie_le(racine, cible)? {
+        None => Ok(()),
+        Some(le) => Err(erreur(
+            "ErreurOperation",
+            format!(
+                "{} est parti le {} : ce qui est parti ne se réécrit pas. Rien n'est écrit.",
+                socle::fichiers::nom_du(cible),
+                socle::date::Jour::lire(&le).map(|j| j.jj_mm_aaaa()).unwrap_or(le)
+            ),
+        )),
+    }
+}
+
 /// La cle d'une piece au journal des ecritures : `<son dossier>/<son nom>` (`2026-11/DPAE_Novembre2026.txt`,
 /// `exercices/Compta_2026.csv`).
 pub(crate) fn cle_de_piece(fichier: &Path) -> String {
@@ -696,6 +729,9 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             a_ecrire.push((f_dsn.clone(), fabriquer_du_present(ctx, &lu, mois, &forme)?.texte, portees));
         }
         fichiers.push(f_dsn);
+    }
+    for (f, _, _) in &a_ecrire {
+        refuser_si_partie(&ctx.racine, f)?;
     }
     if !a_ecrire.is_empty() {
         std::fs::create_dir_all(&sortie).map_err(|e| os(&sortie, e))?;
@@ -1342,7 +1378,6 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
     let premier = l.pointer("/versions/0/salarie").map(valeur_en_texte).unwrap_or_default();
     let evenement = valeur_en_texte(l.get("mois").unwrap_or(&Value::Null));
     let refaire = || -> R<()> {
-        let route = |n: &str, charge: Value| crate::routes::imprevus::route(&HashMap::new(), &ctx_j, n, &charge).map(|_| ());
         match nature.as_str() {
             declarations::amorcage::NATURE => {
                 let motif = nom.strip_prefix("Amorcage").and_then(|r| r.get(..2)).unwrap_or_default().to_string();
@@ -1359,8 +1394,8 @@ fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -
                 let texte = declarations::amorcage::generer(&ctx_j, paie, &options, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(|e| valeur(e.message().to_string()))?;
                 declarations::dsn::ecrire(&texte, cible).map_err(valeur)
             }
-            declarations::fctu::NATURE => route("fin-contrat-signaler", json!({"mois": mois, "salarie": premier, "ordre": ordre, "le": jour.iso()})),
-            n => route("arret-signaler", json!({"salarie": premier, "dernier_jour": crate::routes::imprevus::dernier_jour_saisi(&ctx_j, &premier, &evenement)?, "nature": n, "ordre": ordre, "le": jour.iso()})),
+            declarations::fctu::NATURE => crate::routes::imprevus::signaler_fin(&ctx_j, &json!({"mois": mois, "salarie": premier, "ordre": ordre, "le": jour.iso()}), true).map(|_| ()),
+            n => crate::routes::imprevus::signaler_arret(&ctx_j, &json!({"salarie": premier, "dernier_jour": crate::routes::imprevus::dernier_jour_saisi(&ctx_j, &premier, &evenement)?, "nature": n, "ordre": ordre, "le": jour.iso()}), true).map(|_| ()),
         }
     };
     socle::temps::pendant(instant, refaire)?;

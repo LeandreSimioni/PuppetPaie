@@ -17,7 +17,8 @@ ne calcule rien de tête et n'invente aucune valeur.
   mal dite (option inconnue), avec le code 2.
 - La compagnie : la route `compagnies` (sans `--racine`) dit les compagnies de l'installation ; le `chemin` de chacune est
   le `--racine` de ses routes. Sans compagnie : `compagnie-ajouter`.
-- Ce qui est à faire : les routes `pour-demarrer`, `rappels`, `etat-du-mois`.
+- Ce qui est à faire : les routes `pour-demarrer`, `rappels`, `etat-du-mois`. Le geste suivant est l'`action` d'un groupe
+  d'`etat-du-mois` : sa `route` et sa `charge`, puis la route de l'acte (`puis`).
 
 **Les règles.**
 - Un acte réel (dépôt réel, envoi, signature) : le programme ouvre lui-même une boîte où la personne tape le mot de passe

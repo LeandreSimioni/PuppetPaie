@@ -279,6 +279,12 @@ fn fichiers_partiels(dossier: &Path, etiq: &str) -> Vec<PathBuf> {
     out
 }
 
+/// La marque `_AAAAMMJJ-HHMM` d'un fichier partiel ecrit maintenant.
+fn marque_a_la_minute() -> String {
+    let now = maintenant_iso();
+    format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16])
+}
+
 /// La marque `_AAAAMMJJ-HHMM` d'un fichier partiel, suivie de `-2`, `-3`... tant que `DPAE_<etiq><marque>.txt` existe deja.
 pub(crate) fn nom_libre_du_partiel(dossier: &Path, etiq: &str, marque: &str) -> String {
     let mut essai = marque.to_string();
@@ -384,8 +390,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
             return if tous { Ok(Dpae::Rien(phrase)) } else { Err(refus(phrase)) };
         }
         retenues.retain(|p| voulues.contains(&cle_de(p)));
-        let now = maintenant_iso();
-        marque = format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16]);
+        marque = marque_a_la_minute();
     }
     if retenues.is_empty() {
         return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", engagement::libelle_mois(&mois))));
@@ -441,7 +446,10 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         let voulu = latin1(&voulu);
         let mut pareils = Vec::new();
         let complet = sortie.join(format!("DPAE_{}.txt", etiq));
-        let candidats = if marque.is_empty() { vec![complet].into_iter().filter(|c| c.is_file()).collect() } else { fichiers_partiels(&sortie, &etiq) };
+        // LA DPAE DU MOIS DEJA PARTIE ne se recrit pas (regle 4) : ce qui reste a declarer se cherche, et s'ecrit, sous un
+        // nom a la minute, a cote.
+        let partiel = !marque.is_empty() || crate::compagnie::depart::partie_le(&ctx.racine, &complet)?.is_some();
+        let candidats = if !partiel { vec![complet].into_iter().filter(|c| c.is_file()).collect() } else { fichiers_partiels(&sortie, &etiq) };
         for x in candidats {
             let contenu = std::fs::read(&x).map_err(|e| erreur("OSError", socle::echec::du_disque(&x, &e)))?;
             if declarations::dpae::meme_declaration(&latin1(&contenu), &voulu) {
@@ -462,6 +470,8 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
             let stem = choisi.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             marque = stem.chars().skip(format!("DPAE_{}", etiq).chars().count()).collect();
             f = Some(choisi);
+        } else if partiel && marque.is_empty() {
+            marque = marque_a_la_minute();
         }
     }
     // JAMAIS PAR-DESSUS UN AUTRE (deux DPAE jouees dans la meme minute s'ecraseraient) : si le
