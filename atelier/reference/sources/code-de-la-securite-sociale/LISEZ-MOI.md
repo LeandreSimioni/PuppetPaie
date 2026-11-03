@@ -193,12 +193,24 @@ de remplacement » (`xml/L321-1.xml` … `xml/R433-3.xml`, `xml/L136-1-2.xml`, `
   1/91,25 des trois dernières paies d'un salaire réglé mensuellement, chacune dans la limite de 1,4 SMIC du mois, et au
   plus 1/730 du plafond annuel. Le moteur le **propose** sur l'arrêt d'une maladie avant le relevé de la caisse
   (`maintien::ij_de_principe`) ; la personne le garde ou le corrige au relevé.
-- **L433-2, R433-2, R433-4** (relevés le 03/11/2026) : l'accident du travail, la paie du mois précédent / 30,42, plafonnée à
-  0,226 % du plafond annuel, et l'indemnité au plus le gain journalier net d'un taux forfaitaire fixé par arrêté (R331-5),
-  qui n'est pas déposé : aucun montant ne se propose, il se lit au relevé.
+- **L433-2, R433-1 à R433-4** (L433-2, R433-2, R433-4 relevés le 03/11/2026) : l'accident du travail, 60 % puis 80 % de la
+  paie du mois précédent / 30,42, plafonnée à 0,226 % du plafond annuel (R433-2, version du 02/10/2026 ; Ameli dit le
+  plafond valoir pour les accidents survenus à compter du 1er novembre 2026 et donne les maxima, 65,17 et 86,90 €,
+  `../accident-du-travail/ameli-reglementation-atmp-1er-novembre-2026-20261030.md`), et l'indemnité au plus le gain
+  journalier net du taux forfaitaire de R331-5 (relevé le 03/11/2026), fixé à 21 % (`../arrete-2013-taux-forfaitaire-r331-5/`). Le moteur le
+  **propose** pour un accident du travail ou de trajet, ou une maladie professionnelle, survenu depuis le 1er novembre 2026
+  (L461-1, relevé le 03/11/2026 : la date de la première constatation médicale vaut date de l'accident ; `maintien::ij_de_principe`) ;
+  pas pour un accident d'avant (la version d'avant de R433-2 n'est pas déposée).
 - **R323-11** : l'employeur qui maintient le salaire en totalité est « subrogé de plein droit » ; en partie, il l'est à
   condition que le salaire maintenu soit au moins égal aux indemnités.
-- **L136-8, II, 1°, b** : la CSG des indemnités journalières est de 6,2 %.
+- **L136-8, II, 1°, b** : la CSG des indemnités journalières est de 6,2 %, dans la version en vigueur (`xml/L136-8.xml`,
+  du 27/06/2026 ; la même, imprimée de Légifrance par Léandre le 03/11/2026 : `legifrance-css-L136-8-20260627.pdf`/`.txt`)
+  comme dans les deux versions de 2025 (`xml-anterieur/L136-8-20201216.xml`, en vigueur du 16/12/2020 au 01/07/2025, et
+  `xml-anterieur/L136-8-20250701.xml`, du 01/07/2025 au 31/12/2025 ; LEGIARTI000042683546 et …051287395, relevées dans la
+  livraison LEGI du 02/01/2026, qui les republie avec leur date de fin ; la seconde aussi imprimée de Légifrance par Léandre,
+  `legifrance-css-L136-8-20250701.pdf`/`.txt`). Entre les deux, seul le I, 3° change (6,2 % puis 7,2 % pour la contribution
+  de L136-7-1, art. 32 de la loi n° 2025-199, en vigueur le 01/07/2025) : le II, 1°, b ne bouge pas. La CRDS de 0,5 % :
+  `../ordonnance-96-50-crds/`.
 
 **Où le moteur s'en sert** : `atelier/sources/engagement/src/maintien.rs` (les jours que la caisse indemnise, la subrogation),
 `logiciel/donnees/permanents-base.json` (section `indemnites_journalieres`).

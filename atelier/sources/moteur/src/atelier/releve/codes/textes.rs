@@ -319,7 +319,8 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "accident_du_travail", titre: "La declaration d'un accident du travail ou de trajet", numeros: &["L411-1", "L411-2", "L441-1", "L441-2", "L441-4", "L441-5", "R441-1", "R441-2", "R441-3", "R441-4", "R441-6", "R441-7"] },
             // LA MALADIE PROFESSIONNELLE N'EST PAS DECLAREE PAR L'EMPLOYEUR : L461-5 la met << par les soins de la
             // victime >>, R461-5 lui donne quinze jours. Le motif d'arret 05 n'appelle donc pas de declaration d'accident.
-            Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-5", "R461-5"] },
+            // L461-1 : la date de la premiere constatation medicale de la maladie vaut date de l'accident (`engagement::maintien::ij_de_principe`).
+            Domaine { cle: "maladie_professionnelle", titre: "La declaration d'une maladie professionnelle (par la victime)", numeros: &["L461-1", "L461-5", "R461-5"] },
             // LE CONGE DE DEUIL ET SES INDEMNITES JOURNALIERES. L331-9 : pendant le conge
             // de L3142-1-1 du code du travail, l'assure percoit l'indemnite journaliere de L331-3 ; l'employeur qui maintient
             // le salaire (L3142-2) est subroge de plein droit. D331-7 : l'indemnisation se fractionne comme le conge.
@@ -332,7 +333,8 @@ pub static TEXTES: &[Texte] = &[
             // que le moteur propose sur l'arret et que la personne garde ou corrige au releve de la caisse), R323-11 (l'employeur qui maintient le salaire est
             // subroge) ; L433-1, L433-2, R433-1 a R433-4 pour l'accident du travail (des le lendemain de l'accident, 60 % puis 80 %
             // au vingt-neuvieme jour). `engagement::maintien`.
-            Domaine { cle: "indemnites_journalieres", titre: "Les indemnites journalieres et la subrogation de l'employeur", numeros: &["L321-1", "L323-1", "L323-4", "R323-1", "R323-4", "R323-5", "R323-9", "R323-11", "L433-1", "L433-2", "R433-1", "R433-2", "R433-3", "R433-4"] },
+            // R331-5, al. 2 : le taux forfaitaire auquel R433-4 renvoie, fixe par arrete (`arrete-2013-taux-forfaitaire-r331-5/`).
+            Domaine { cle: "indemnites_journalieres", titre: "Les indemnites journalieres et la subrogation de l'employeur", numeros: &["L321-1", "L323-1", "L323-4", "R323-1", "R323-4", "R323-5", "R323-9", "R323-11", "L433-1", "L433-2", "R433-1", "R433-2", "R433-3", "R433-4", "R331-5"] },
             // LA CSG DES INDEMNITES JOURNALIERES : 6,2 % (L136-8, II, 1°, b), sur les revenus de remplacement (L136-1-2).
             // L'assiette du PAS d'une indemnite subrogee en retire la part deductible (CGI 154 quinquies).
             Domaine { cle: "csg_remplacement", titre: "La CSG des revenus de remplacement", numeros: &["L136-1-2", "L136-8"] },

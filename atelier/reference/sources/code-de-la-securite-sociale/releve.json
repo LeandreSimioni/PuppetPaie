@@ -6361,6 +6361,14 @@
    "texte": "securite-sociale"
   },
   {
+   "apres": "LEGIARTI000054167779",
+   "article": "R331-5",
+   "avant": "LEGIARTI000043356709",
+   "depuis": "2026-07-01",
+   "livraison": "20260702-223445",
+   "texte": "securite-sociale"
+  },
+  {
    "apres": "LEGIARTI000054856818",
    "article": "R323-1",
    "avant": "LEGIARTI000031827857",
@@ -6696,6 +6704,11 @@
    "en_vigueur": true,
    "id": "LEGIARTI000006743088"
   },
+  "L461-1": {
+   "debut": "2018-07-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000036393217"
+  },
   "L461-5": {
    "debut": "2018-07-01",
    "en_vigueur": true,
@@ -6805,6 +6818,11 @@
    "debut": "2021-04-14",
    "en_vigueur": true,
    "id": "LEGIARTI000043356729"
+  },
+  "R331-5": {
+   "debut": "2026-07-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054167779"
   },
   "R433-1": {
    "debut": "2006-02-05",

@@ -354,7 +354,7 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
 /// UN IMPREVU TEL QUE LA PAGE LE LIT. Un arret : le resume de toujours (`crate::routes::imprevus::resume_arret` : salarie, contrat,
 /// motif et son libelle, les dates de la norme, signale, signalements, reporte_par, etat), plus `genre`, `premier_jour`,
 /// `dernier_jour`, `jours_deja_indemnises`, les indemnites par jour (`ij_brute`, `ij_nette`, `ij_brute_majoree`,
-/// `ij_nette_majoree`), `origine`, `ij_attendues` (l'arret ouvre le maintien), `ij_proposees` (le montant de principe et sa
+/// `ij_nette_majoree`), `origine`, `ij_attendues` (l'arret ouvre le maintien), `ij_proposees` (le montant de principe, majore pour un accident, et sa
 /// phrase, tant que l'arret ne dit pas le sien), `ij_majoree_attendue` (un accident du travail
 /// au-dela du vingt-huitieme jour, CSS R433-3), `jours_deja_indemnises_attendus`, `cachets`. Une suspension : `genre`, `salarie`, `contrat`,
 /// `contrat_debut`, `motif`, `motif_libelle`, `remunere`, `debut`, `fin`, `premier_jour`, `dernier_jour`, `note`,
@@ -385,7 +385,14 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         // page en remplit les cases, la personne le garde ou le corrige ; sinon, la phrase dit ou le lire.
         if ouvert && !vrai(&imp["ij_brute"]) {
             o.insert("ij_proposees".into(), match magasin(engagement::maintien::ij_de_principe(ctx, imp))? {
-                Ok((brute, nette, phrase)) => json!({"ij_brute": brute.to_string(), "ij_nette": nette.to_string(), "phrase": phrase}),
+                Ok(ij) => {
+                    let mut v = json!({"ij_brute": ij.brute.to_string(), "ij_nette": ij.nette.to_string(), "phrase": ij.phrase});
+                    if let Some((brute, nette)) = ij.majorees {
+                        v["ij_brute_majoree"] = json!(brute.to_string());
+                        v["ij_nette_majoree"] = json!(nette.to_string());
+                    }
+                    v
+                }
                 Err(phrase) => json!({"phrase": phrase}),
             });
         }

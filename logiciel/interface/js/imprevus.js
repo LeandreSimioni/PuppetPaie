@@ -659,8 +659,8 @@ function champsIndemnites(a, x) {
     ${pr.phrase ? `<p class="note">${echapper(pr.phrase)}</p>` : ""}
     <div class="champs-deux">${montant("ijb", "Indemnité brute par jour", a.ij_brute ?? pr.ij_brute)}${
       montant("ijn", "Indemnité nette par jour", a.ij_nette ?? pr.ij_nette)}</div>` : ""}
-    ${a.ij_majoree_attendue ? `<div class="champs-deux">${montant("ijbm", "Brute majorée par jour", a.ij_brute_majoree)}${
-      montant("ijnm", "Nette majorée par jour", a.ij_nette_majoree)}</div>` : ""}
+    ${a.ij_majoree_attendue ? `<div class="champs-deux">${montant("ijbm", "Brute majorée par jour", a.ij_brute_majoree ?? pr.ij_brute_majoree)}${
+      montant("ijnm", "Nette majorée par jour", a.ij_nette_majoree ?? pr.ij_nette_majoree)}</div>` : ""}
     ${a.jours_deja_indemnises_attendus ? `<label class="champ-boite" title="${aideDe("jours_deja_indemnises")}">Jours déjà indemnisés
       <input type="number" step="1" min="0" id="${x}-deja" value="${echapper(a.jours_deja_indemnises ?? "")}"></label>` : ""}`;
 }
