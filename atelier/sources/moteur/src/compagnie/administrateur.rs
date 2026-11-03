@@ -460,7 +460,17 @@ fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
     let mois = jour.get(..7)?;
     let compact = jour.replace('-', "");
     let nom = match genre {
-        "signalement_arret" | "signalement_arret_rectificatif" => format!("SignalementArret_{}_{}.dsn", salarie, compact),
+        "signalement_arret" => format!("SignalementArret_{}_{}.dsn", salarie, compact),
+        // L'annule-et-remplace s'ecrit a cote du signalement parti, sous `_AR<ordre>` : le dernier ecrit.
+        "signalement_arret_rectificatif" => {
+            let tete = format!("signalementarret_{}_{}_ar", salarie, compact).to_lowercase();
+            let rang = |p: &PathBuf| -> Option<i64> {
+                let n = p.file_name()?.to_string_lossy().to_lowercase();
+                n.strip_prefix(&tete)?.strip_suffix(".dsn")?.parse().ok()
+            };
+            let dossier = ctx.racine.join("sorties").join(mois);
+            return std::fs::read_dir(&dossier).ok()?.flatten().map(|e| e.path()).filter(|p| p.is_file()).filter_map(|p| rang(&p).map(|r| (r, p))).max_by_key(|(r, _)| *r).map(|(_, p)| p);
+        }
         "signalement_reprise" => format!("SignalementReprise_{}_{}.dsn", salarie, compact),
         "fin-contrat" => {
             let fiche = ctx.salarie(salarie).ok()?;

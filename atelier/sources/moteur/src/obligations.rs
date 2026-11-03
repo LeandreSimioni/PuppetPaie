@@ -818,6 +818,11 @@ pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[Value]
     Ok(dire_le_butoir(Value::Object(m)))
 }
 
+/// Le jour ou le signalement de fin de ce contrat est parti (`fctu_depose`), s'il l'est.
+pub(crate) fn fin_signalee_le(journal: &[Value], cle: &str, fin: &Jour) -> Option<Jour> {
+    fctu_depose(journal, cle, fin).map(|f| f.le)
+}
+
 /// Le premier depot REEL, non refuse au bilan, du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
 /// (`Apercu::evenement_lisible`), dont le fichier est celui que `fin-contrat-signaler` ecrit pour ce salarie.
 fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {

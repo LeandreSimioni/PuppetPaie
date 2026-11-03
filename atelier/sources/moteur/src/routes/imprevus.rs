@@ -308,6 +308,24 @@ fn envoye(ctx: &Contexte, imp: &Value, nature: &str) -> R<bool> {
     Ok(imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature))))
 }
 
+/// Le jour ou le signalement NORMAL (type 01) de cette nature (04, 05) est parti pour cet arret, s'il l'est
+/// (`obligations::avec_ce_qui_est_parti` : un depot reel accepte, que le bilan n'a pas refuse).
+fn parti_le(ctx: &Contexte, imp: &Value, nature: &str) -> R<Option<Jour>> {
+    let imp = crate::obligations::avec_ce_qui_est_parti(ctx, imp)?;
+    let premier = imp["envois"].as_array().into_iter().flatten().filter(|x| x["nature"] == json!(nature) && x["type"] == json!(signalement::NORMALE)).filter_map(|x| x["quand"].as_str()).min().map(str::to_string);
+    premier.map(|q| jour(&json!(q.chars().take(10).collect::<String>()))).transpose()
+}
+
+/// Le nom d'un signalement : `<base>.dsn` ; un annule-et-remplace, `<base>_AR<ordre>.dsn`, a cote du signalement parti
+/// qu'il remplace, qui reste tel qu'il est parti (regle 4).
+fn nom_du_signalement(base: &str, annule_et_remplace: bool, ordre: i64) -> String {
+    if annule_et_remplace {
+        format!("{}_AR{}.dsn", base, ordre)
+    } else {
+        format!("{}.dsn", base)
+    }
+}
+
 /// UN ARRET EN COURS : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
 /// tot. Aucune reprise n'est saisie, et :
 ///
@@ -1135,9 +1153,18 @@ fn echec_fctu(e: declarations::fctu::Echec) -> Echec {
     }
 }
 
-/// Ecrit le signalement dans `sorties/AAAA-MM/`. Rien n'est
-/// depose : le depot est un acte a part.
+/// `fin-contrat-signaler` : ecrit le signalement dans `sorties/AAAA-MM/` (`signaler_fin`). Rien n'est depose : le depot
+/// est un acte a part.
 fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
+    signaler_fin(ctx, charge, false)
+}
+
+/// LE SIGNALEMENT DE FIN DE CONTRAT, ecrit. Un signalement normal deja parti pour ce contrat ne se refait pas : toute
+/// modification posterieure « doit faire l'objet d'un signalement « Annule et remplace » ou « Annule » » (cahier technique DSN,
+/// `norme-dsn/texte/chapitre-5-modeles.txt`, 5.2) ; la route le dit et n'ecrit rien. `refaire` : la piece partie, refaite
+/// pour se lire (`compagnie::depart::refaire_le_signalement`). L'annule-et-remplace a son nom (`_AR<ordre>`) : le fichier
+/// parti reste tel qu'il est parti.
+pub(crate) fn signaler_fin(ctx: &Contexte, charge: &Value, refaire: bool) -> R<Value> {
     let (mois, salarie) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?);
     let remplace: Option<String> = facultatif(charge, "remplace").map(en_texte);
     // LE NUMERO D'ORDRE : celui qu'on donne, sinon (0) le suivant de tous les signalements deja partis (p. 136), lu une
@@ -1156,13 +1183,24 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = cle_du_nom(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
     let fin = fin_de_contrat_declaree(ctx, &e, mois)?;
+    if remplace.is_none() && !refaire {
+        let journal = envois::journal::lu(&ctx.racine).map_err(plain)?;
+        if let Some(le) = crate::obligations::fin_signalee_le(&journal.lignes, &cle, &jour(&json!(fin.fin))?) {
+            return Err(refus(format!(
+                "Le signalement de fin de contrat de {} est parti le {} : il ne se refait pas. Le corriger : un annule et remplace (champ « remplace »). Rien n'est écrit.",
+                cle,
+                le.jj_mm_aaaa()
+            )));
+        }
+    }
     let paie = paie_de_l_engagement(&paies, rang, &cle, salarie, mois)?;
     let type_declaration = if remplace.is_some() { declarations::fctu::ANNULE_ET_REMPLACE } else { declarations::fctu::NORMALE };
     let mut avertissements = declarations::fctu::verifier(&fin, &paie.engagement, type_declaration).map_err(echec_fctu)?;
     let (ordre, plate_forme) = if ordre != 0 { (ordre, Vec::new()) } else { prochain_ordre(ctx)? };
     avertissements.extend(plate_forme);
-    let nom = format!("SignalementFinContrat_{}_{}.dsn", cle, fin.fin.replace('-', ""));
+    let nom = nom_du_signalement(&format!("SignalementFinContrat_{}_{}", cle, fin.fin.replace('-', "")), remplace.is_some(), ordre);
     let cible = ctx.racine.join("sorties").join(mois).join(&nom);
+    crate::compagnie::depart::refuser_si_partie(&ctx.racine, &cible)?;
     let options = declarations::fctu::Options {
         type_declaration: type_declaration.to_string(),
         ordre,
@@ -1229,9 +1267,20 @@ pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
     Ok((connu.dernier + 1, connu.avertissements))
 }
 
-/// Ecrit le fichier du signalement dans `sorties/AAAA-MM/`. Rien
-/// n'est depose : le depot est un acte a part.
+/// `arret-signaler` : ecrit le fichier du signalement dans `sorties/AAAA-MM/` (`signaler_arret`). Rien n'est depose : le
+/// depot est un acte a part.
 fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
+    signaler_arret(ctx, charge, false)
+}
+
+/// LE SIGNALEMENT D'ARRET (04) OU DE REPRISE (05), ecrit. Un signalement normal de cette nature deja parti pour cet arret ne
+/// se refait pas : une prolongation n'en appelle pas de nouveau, « il suffit de declarer la nouvelle date de fin de
+/// l'arret en DSN mensuelle » (fiche net-entreprises 1983, `atelier/reference/sources/net-entreprises-base-connaissances/
+/// net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.txt`, l. 13) ; ce qui le corrige est un
+/// annule et remplace (l. 37). La route le dit et n'ecrit rien. `refaire` : la piece partie, refaite pour se lire
+/// (`compagnie::depart::refaire_le_signalement`). L'annule-et-remplace a son nom (`_AR<ordre>`) : le fichier parti reste
+/// tel qu'il est parti.
+pub(crate) fn signaler_arret(ctx: &Contexte, charge: &Value, refaire: bool) -> R<Value> {
     use declarations::signalement::{self, Echec as Ech};
     let salarie = en_texte(crate::routes::fiches::exiger(charge, "salarie")?);
     let dernier_jour = crate::routes::fiches::exiger(charge, "dernier_jour")?;
@@ -1240,6 +1289,22 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let envoi_test = facultatif(charge, "test").is_some();
 
     let arret = trouver_arret(ctx, &salarie, dernier_jour)?;
+    if remplace.is_none() && !refaire {
+        if let Some(le) = parti_le(ctx, &arret, &nature)? {
+            let quoi = if nature == signalement::ARRET {
+                ("d'arrêt", " ; une prolongation ne se signale pas, la DSN mensuelle porte la nouvelle fin")
+            } else {
+                ("de reprise", "")
+            };
+            return Err(refus(format!(
+                "Le signalement {} de {} est parti le {} : il ne se refait pas{}. Le corriger : un annule et remplace (champ « remplace »). Rien n'est écrit.",
+                quoi.0,
+                en_texte(&arret["salarie"]),
+                le.jj_mm_aaaa(),
+                quoi.1
+            )));
+        }
+    }
     let type_declaration = if remplace.is_some() { signalement::ANNULE_ET_REMPLACE } else { signalement::NORMALE };
     // `ordre` (`--ordre N`) : le rang voulu ; sinon le suivant. `le` (`--le`) : la date de constitution ; sinon le jour du contexte.
     let ordre = match facultatif(charge, "ordre") {
@@ -1261,13 +1326,13 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
 
     let jour = en_texte(&arret["dernier_jour_travaille"]);
     let mois: String = jour.chars().take(7).collect();
-    let nom = format!(
-        "Signalement{}_{}_{}.dsn",
-        if nature == signalement::ARRET { "Arret" } else { "Reprise" },
-        en_texte(&arret["salarie"]),
-        jour.replace('-', "")
+    let nom = nom_du_signalement(
+        &format!("Signalement{}_{}_{}", if nature == signalement::ARRET { "Arret" } else { "Reprise" }, en_texte(&arret["salarie"]), jour.replace('-', "")),
+        type_declaration == signalement::ANNULE_ET_REMPLACE,
+        ordre,
     );
     let cible = ctx.racine.join("sorties").join(&mois).join(&nom);
+    crate::compagnie::depart::refuser_si_partie(&ctx.racine, &cible)?;
     let options = signalement::Options {
         nature: nature.clone(),
         type_declaration: type_declaration.to_string(),

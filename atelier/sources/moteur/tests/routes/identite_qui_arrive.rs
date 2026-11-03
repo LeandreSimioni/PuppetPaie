@@ -60,4 +60,20 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     let texte = std::fs::read_to_string(&f).unwrap();
     assert!(texte.contains("S21.G00.30.001,'1900571123456'"), "le signalement porte le NIR :\n{}", texte);
     assert!(texte.contains("S21.G00.30.020,'1"), "le signalement porte le NTT declare en janvier a cote du NIR :\n{}", texte);
+
+    // LE SIGNALEMENT PARTI (son depot de test, rejoue en reel au journal), l'arret prolonge : il ne se refait pas, et le
+    // fichier reste tel qu'il est parti (regle 4 de `atelier/AGENTS.md` ; « en cas de prolongation d'arret, il ne faut
+    // pas envoyer de nouveau signalement », `net-entreprises-fiche1983-prolongation-arret-dates-de-subrogation-20250322.txt`).
+    reussi(&route(&c, "deposer", json!({"quoi": "dsn", "fichier": f, "reel": false}), jour));
+    let journal = c.join("journal").join("depots.jsonl");
+    let lignes = std::fs::read_to_string(&journal).unwrap();
+    let mut reel: serde_json::Value = serde_json::from_str(lignes.lines().rev().find(|l| l.contains("\"ligne\"")).unwrap()).unwrap();
+    reel["ligne"]["mode"] = json!("reel");
+    reel["id"] = json!("reel-du-test");
+    std::fs::write(&journal, format!("{}{}\n", lignes, reel)).unwrap();
+    let parti = std::fs::read(&f).unwrap();
+    reussi(&route(&c, "arret-prolonger", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06", "fin": "2026-02-10"}), jour));
+    let r = route(&c, "arret-signaler", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06"}), jour);
+    assert_eq!(r["ok"], json!(false), "{}", r);
+    assert_eq!(std::fs::read(&f).unwrap(), parti, "le signalement parti a ete reecrit");
 }

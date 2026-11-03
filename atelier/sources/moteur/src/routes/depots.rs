@@ -279,6 +279,12 @@ fn fichiers_partiels(dossier: &Path, etiq: &str) -> Vec<PathBuf> {
     out
 }
 
+/// La marque `_AAAAMMJJ-HHMM` d'un fichier partiel ecrit maintenant.
+fn marque_a_la_minute() -> String {
+    let now = maintenant_iso();
+    format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16])
+}
+
 /// La marque `_AAAAMMJJ-HHMM` d'un fichier partiel, suivie de `-2`, `-3`... tant que `DPAE_<etiq><marque>.txt` existe deja.
 pub(crate) fn nom_libre_du_partiel(dossier: &Path, etiq: &str, marque: &str) -> String {
     let mut essai = marque.to_string();
@@ -384,8 +390,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
             return if tous { Ok(Dpae::Rien(phrase)) } else { Err(refus(phrase)) };
         }
         retenues.retain(|p| voulues.contains(&cle_de(p)));
-        let now = maintenant_iso();
-        marque = format!("_{}{}{}-{}{}", &now[0..4], &now[5..7], &now[8..10], &now[11..13], &now[14..16]);
+        marque = marque_a_la_minute();
     }
     if retenues.is_empty() {
         return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", engagement::libelle_mois(&mois))));
@@ -463,6 +468,10 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
             marque = stem.chars().skip(format!("DPAE_{}", etiq).chars().count()).collect();
             f = Some(choisi);
         }
+    }
+    // LA DPAE DU MOIS DEJA PARTIE ne se recrit pas (regle 4) : ce qui reste a declarer prend un nom a la minute, a cote.
+    if f.is_none() && marque.is_empty() && crate::compagnie::depart::partie_le(&ctx.racine, &sortie.join(format!("DPAE_{}.txt", etiq)))?.is_some() {
+        marque = marque_a_la_minute();
     }
     // JAMAIS PAR-DESSUS UN AUTRE (deux DPAE jouees dans la meme minute s'ecraseraient) : si le
     // nom a la minute est pris par une declaration DIFFERENTE, le fichier prend `-2`, `-3`... ; le nom ordinaire ne change pas.
