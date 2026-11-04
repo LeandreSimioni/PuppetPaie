@@ -908,19 +908,27 @@ impl Fenetre {
             .avec("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'")
     }
 
-    /// L'apercu d'un modele de bulletin : le PDF d'une paie fictive, celui que la route `bulletin-modele-apercu` rend
-    /// (`routes::bulletin::apercu_pdf`) ; le lecteur de la fenetre l'affiche (Configuration).
+    /// L'apercu d'un modele de bulletin : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait dans le
+    /// processus de la fenetre, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
     fn apercu_bulletin(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
-        if !matches!(self.phase(), Phase::Ouverte { .. }) || !self.autorise(r) {
+        let Phase::Ouverte { racine, .. } = self.phase() else { return interdit };
+        if !self.autorise(r) {
             return interdit;
         }
         let demande = r.params.get("modele").map(String::as_str).unwrap_or_default();
         let Some(modele) = crate::routes::bulletin::modele_de_l_adresse(demande) else {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         };
-        match crate::routes::bulletin::apercu_pdf(modele) {
-            Ok(octets) if octets.starts_with(b"%PDF") => Reponse::nouvelle(200, "application/pdf", octets)
+        // La route, comme la page l'appellerait : sa charge et sa reponse lues par leur forme.
+        let charge = crate::routes::bulletin::ChargeModele { modele: modele.cle().to_string() };
+        let pdf = serde_json::to_value(charge)
+            .ok()
+            .and_then(|c| api::route(&racine, Route::BulletinModeleApercu, &c).ok())
+            .and_then(|v| crate::routes::lire_charge::<crate::routes::bulletin::ApercuModele>(&v).ok())
+            .and_then(|a| socle::base64::lire(&a.pdf).ok());
+        match pdf {
+            Some(octets) if octets.starts_with(b"%PDF") => Reponse::nouvelle(200, "application/pdf", octets)
                 .avec("Content-Disposition", format!("inline; filename=\"apercu-bulletin-{}.pdf\"", if modele == documents::bulletin::Modele::Complet { "complet" } else { "simplifie" }))
                 .avec("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'"),
             _ => Reponse::nouvelle(500, "text/plain; charset=utf-8", "L'aperçu du bulletin ne s'est pas fait."),
