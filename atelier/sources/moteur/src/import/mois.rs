@@ -106,6 +106,20 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
     Ok(Some(json!({"porteur": porteur, "engagements": n, "quoi": quoi, "phrase": phrase})))
 }
 
+/// LA DSN MENSUELLE D'UN MOIS DE L'ANCIEN LOGICIEL NE SE FABRIQUE PAS ICI (regle 4 ; un mois importe ne recoit pas
+/// d'engagement neuf) : celle que l'import a lue (`dsn_de_l_ancien_logiciel`), ou, sans elle, celle d'un mois tenu avant
+/// ce logiciel (`importe` : `compagnie::etat_dsn` le dit « aucune trace de sa DSN ») -- l'ancien logiciel a calcule ces
+/// paies, sa DSN est la sienne, et elle se garde en l'important (la route `importer`). Le refus que `fabriquer_dsn`
+/// oppose avant d'ecrire quoi que ce soit, le seul.
+pub(crate) fn refuser_la_dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<()> {
+    let phrase = match dsn_de_l_ancien_logiciel(ctx, mois)? {
+        Some(d) => format!("{} Elle ne se refait pas ici.", valeur_en_texte(&d["phrase"])),
+        None if importe(&ctx.racine, mois)? => "mois tenu avant PuppetPaie, sa DSN est celle de l'ancien logiciel et ne se fait pas ici. Pour la garder, mettez son fichier dans le dossier d'import, puis « Importer » (Configuration › Reprendre l'historique).".to_string(),
+        None => return Ok(()),
+    };
+    Err(socle::echec::erreur("DsnDeLAncienLogiciel", format!("{} : {} Rien n'est écrit.", engagement::libelle_mois(mois), phrase)))
+}
+
 // ------------------------------------------------------------------ les cartes
 
 /// Le nom d'un salarié à l'écran, ou `None` sans fiche.
