@@ -134,7 +134,7 @@
         "fichier": "atelier/reference/sources/code-general-des-impots/articles-20261021.md",
         "emetteur": "loi",
         "article": "CGI 293 B, I, ligne « Année civile précédente »",
-        "citation": "Année civile précédente > 85 000 > 37 500"
+        "citation": "Année civile précédente 85 000 37 500"
       },
       "note": "Plafonds de chiffre d'affaires de l'année civile précédente sous lesquels les rémunérations sont exonérées de taxe sur les salaires (CGI 231, 1, 2e alinéa ; 293 B, I). Inférences dites telles : la colonne ; le I bis ne vise pas une compagnie employeur."
     },
@@ -967,7 +967,7 @@
           "fichier": "atelier/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.txt",
           "emetteur": "audiens",
           "article": "Paramètres 2026 p. 1, plafonds",
-          "citation": "48 060"
+          "citation": "Plafond T1 = 48 060 €"
         },
         {
           "fichier": "atelier/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.txt",
@@ -3400,6 +3400,18 @@
           "emetteur": "loi",
           "article": "L242-13",
           "citation": "Une cotisation à la charge des assurés mentionnés aux 1° à 3° du II de l'article L. 325-1, assise sur leurs revenus d'activité tels qu'ils sont pris en compte pour la détermination de l'assiette des cotisations définie à l'article L. 242-1, précomptée par leurs employeurs au bénéfice de ce régime"
+        },
+        {
+          "fichier": "atelier/reference/sources/regime-local-alsace-moselle/regime-local-cotisation-20261104.txt",
+          "emetteur": "regime_local",
+          "article": "page « Cotisation »",
+          "citation": "Une cotisation de 1,3% depuis le 1er avril 2022"
+        },
+        {
+          "fichier": "atelier/reference/sources/regime-local-alsace-moselle/regime-local-cotisation-20261104.txt",
+          "emetteur": "regime_local",
+          "article": "page « Cotisation »",
+          "citation": "La cotisation est uniquement salariale, il n’y a pas de cotisation patronale."
         }
       ],
       "raisonnement": "Loi (L. 242-13, cotisation salariale sur les revenus de L. 242-1, taux du conseil d'administration) et Urssaf (CTP 381, 1,3) ; norme DSN code 115."
@@ -3519,10 +3531,27 @@
         "technicien": 10.16
       },
       "source": {
-        "fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt",
-        "emetteur": "audiens",
-        "article": "Tableau n°2 : Taux spécifiques en T1 selon adhésion syndicale (ligne UPC)",
-        "citation": "UPC                                                                10.16 %                        Accord du 30"
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt",
+            "emetteur": "audiens",
+            "article": "Tableau n°2 : Taux spécifiques en T1 selon adhésion syndicale (ligne UPC)",
+            "citation": "UPC                                                                10.16 %                        Accord du 30"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
+          }
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les techniciens intermittents des adhérents ; l'accord du 30/12/1991 fixe le taux contractuel de leur retraite complémentaire à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents de l'UPC : retraite T1 des techniciens intermittents à 10,16 % (accord du 30/12/1991)."
     },
@@ -3545,8 +3574,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, ligne AFPF",
             "citation": "AFPF 10.16%"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les techniciens intermittents des adhérents ; l'accord du 30/12/1991 fixe le taux contractuel de leur retraite complémentaire à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents de l'AFPF : retraite T1 des techniciens intermittents à 10,16 %."
     },
@@ -3573,8 +3615,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, l. 108 (AnimFrance)",
             "citation": "AnimFrance                                                         10.16 %         10.16 %         Accord 24"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Pour les techniciens : le tableau n° 2 d'Audiens (10,16 %), l'accord du 30/12/1991 (taux contractuel de 8 %) et le taux d'appel Agirc-Arrco de 127 % (8 x 1,27 = 10,16). Le taux des artistes ne repose que sur Audiens : l'accord du 24/12/1991 qu'il cite n'est pas déposé."
       },
       "note": "Adhérents d'AnimFrance (ex-SPFA) : retraite T1 à 10,16 % pour les techniciens et les artistes intermittents."
     },
@@ -3598,8 +3653,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, ligne AnimFrance",
             "citation": "AnimFrance                                                         10.16 %         10.16 %         Accord 24"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Pour les techniciens : le tableau n° 2 d'Audiens (10,16 %), l'accord du 30/12/1991 (taux contractuel de 8 %) et le taux d'appel Agirc-Arrco de 127 % (8 x 1,27 = 10,16). Le taux des artistes ne repose que sur Audiens : l'accord du 24/12/1991 qu'il cite n'est pas déposé."
       },
       "note": "Adhérents de la FICAM : retraite T1 à 10,16 % pour les techniciens et les artistes intermittents."
     },

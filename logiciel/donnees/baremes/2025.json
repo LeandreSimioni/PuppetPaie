@@ -108,7 +108,13 @@
             "fichier": "atelier/reference/sources/code-general-des-impots/articles-20261021.md",
             "emetteur": "loi",
             "article": "CGI art. 293 B, I (version du 01/03/2025), ligne « Année civile précédente »",
-            "citation": "Année civile précédente > 85 000 > 37 500"
+            "citation": "Année civile précédente 85 000 37 500"
+          },
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-cgi-293-B-20250101.txt",
+            "emetteur": "loi",
+            "article": "CGI 293 B, I (version du 01/01/2025 au 01/03/2025)",
+            "citation": "85 000                  37 500"
           }
         ]
       },
@@ -1435,6 +1441,12 @@
           "base": "brut_plafonne",
           "taux_pat": 8.55,
           "taux_sal": 6.9,
+          "source": {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D242-4-20231231.txt",
+            "emetteur": "loi",
+            "article": "CSS D. 242-4 (version du 31/12/2023 au 01/01/2026)",
+            "citation": "A compter du 1er janvier 2024     8,55 %                         6,90 %                2,02 %      0,40 %"
+          },
           "note": "Vieillesse plafonnée de droit commun (technicien) : CSS D. 242-4."
         },
         {
@@ -1444,6 +1456,12 @@
           "base": "brut",
           "taux_pat": 2.02,
           "taux_sal": 0.4,
+          "source": {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D242-4-20231231.txt",
+            "emetteur": "loi",
+            "article": "CSS D. 242-4 (version du 31/12/2023 au 01/01/2026)",
+            "citation": "A compter du 1er janvier 2024     8,55 %                         6,90 %                2,02 %      0,40 %"
+          },
           "note": "Vieillesse déplafonnée de droit commun (technicien) : CSS D. 242-4.\nBOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025 : 10,57 = 8,55 + 2,02."
         },
         {
@@ -1766,6 +1784,28 @@
           "base": "csg",
           "taux_pat": null,
           "taux_sal": 6.8,
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20201216.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 16/12/2020 au 01/07/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              },
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20250701.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 01/07/2025 au 31/12/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              },
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-cgi-154-quinquies-20230311.txt",
+                "emetteur": "loi",
+                "article": "CGI 154 quinquies, I (version du 11/03/2023 au 27/06/2026)",
+                "citation": "précité est, à hauteur de 6,8 points"
+              }
+            ]
+          },
           "note": "CSG déductible : 6,80 % sur l'assiette abattue de 1,75 % (98,25 %)."
         },
         {
@@ -1775,6 +1815,34 @@
           "base": "csg",
           "taux_pat": null,
           "taux_sal": 2.9,
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20201216.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 16/12/2020 au 01/07/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              },
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20250701.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 01/07/2025 au 31/12/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              },
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-cgi-154-quinquies-20230311.txt",
+                "emetteur": "loi",
+                "article": "CGI 154 quinquies, I (version du 11/03/2023 au 27/06/2026)",
+                "citation": "précité est, à hauteur de 6,8 points"
+              },
+              {
+                "fichier": "atelier/reference/sources/ordonnance-96-50-crds/legifrance-ordonnance-96-50-crds-20251231.txt",
+                "emetteur": "loi",
+                "article": "ordonnance n° 96-50, art. 19",
+                "citation": "Le taux des contributions instituées par les articles 14 à 17 est fixé à 0,5 %."
+              }
+            ]
+          },
           "note": "CSG non déductible et CRDS : 2,40 + 0,50 = 2,90 % sur l'assiette abattue de 1,75 %."
         }
       ],
@@ -2528,7 +2596,7 @@
                 "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
                 "emetteur": "audiens",
                 "article": "Paramètres 2025 p. 2",
-                "citation": "3 925"
+                "citation": "Fraction du salaire du premier euro                    47 100          3 925            216           47 100"
               }
             ],
             "raisonnement": "La loi (R. 242-2 : cotisations calculées chaque mois dans la limite du plafond mensuel ; D. 242-4 : taux plafonné dans la limite de ce plafond) et Audiens (T1 = du premier euro au plafond ; 3 925 € en 2025)."
@@ -3420,6 +3488,18 @@
           "emetteur": "loi",
           "article": "L242-13",
           "citation": "Une cotisation à la charge des assurés mentionnés aux 1° à 3° du II de l'article L. 325-1"
+        },
+        {
+          "fichier": "atelier/reference/sources/regime-local-alsace-moselle/regime-local-cotisation-20261104.txt",
+          "emetteur": "regime_local",
+          "article": "page « Cotisation »",
+          "citation": "Une cotisation de 1,3% depuis le 1er avril 2022"
+        },
+        {
+          "fichier": "atelier/reference/sources/regime-local-alsace-moselle/regime-local-cotisation-20261104.txt",
+          "emetteur": "regime_local",
+          "article": "page « Cotisation »",
+          "citation": "La cotisation est uniquement salariale, il n’y a pas de cotisation patronale."
         }
       ],
       "raisonnement": "La loi (L. 242-13 : cotisation à la charge du salarié, sur les revenus d'activité de L. 242-1, taux fixé par le conseil d'administration du régime) et l'Urssaf (CTP 381, 1,3 déplafonné) ; la norme DSN donne le code 115 et 40.016 = 01."
@@ -3567,8 +3647,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, ligne UPC",
             "citation": "UPC                                                                10.16 %"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les techniciens intermittents des adhérents ; l'accord du 30/12/1991 fixe le taux contractuel de leur retraite complémentaire à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents de l'UPC : retraite T1 des techniciens intermittents à 10,16 % (accord du 30/12/1991)."
     },
@@ -3603,8 +3696,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, source (cellule de la ligne UPC)",
             "citation": "Accord du 30"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les techniciens intermittents des adhérents ; l'accord du 30/12/1991 fixe le taux contractuel de leur retraite complémentaire à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents de l'AFPF : retraite T1 des techniciens intermittents à 10,16 % (accord du 30/12/1991)."
     },
@@ -3631,8 +3737,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, l. 108 (AnimFrance)",
             "citation": "AnimFrance                                                         10.16 %         10.16 %         Accord 24"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Pour les techniciens : le tableau n° 2 d'Audiens (10,16 %), l'accord du 30/12/1991 (taux contractuel de 8 %) et le taux d'appel Agirc-Arrco de 127 % (8 x 1,27 = 10,16). Le taux des artistes ne repose que sur Audiens : l'accord du 24/12/1991 qu'il cite n'est pas déposé."
       },
       "note": "Adhérents d'AnimFrance (ex-SPFA) : retraite T1 à 10,16 % pour les techniciens et pour les artistes intermittents."
     },
@@ -3656,8 +3775,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, l. 113 (FICAM)",
             "citation": "FICAM                                                              10.16 %         10.16%         Accord du 30"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/legifrance-accord-retraite-intermittents-techniques-19911230.md",
+            "emetteur": "convention",
+            "article": "accord du 30/12/1991, art. 1",
+            "citation": "sera de 8 p. 100 au 1er janvier 1994"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2025-v1.3-20250301.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Pour les techniciens : le tableau n° 2 d'Audiens (10,16 %), l'accord du 30/12/1991 (taux contractuel de 8 %) et le taux d'appel Agirc-Arrco de 127 % (8 x 1,27 = 10,16). Le taux des artistes ne repose que sur Audiens : l'accord du 24/12/1991 qu'il cite n'est pas déposé."
       },
       "note": "Adhérents de la FICAM : retraite T1 à 10,16 % pour les techniciens et pour les artistes intermittents."
     },
@@ -3854,13 +3986,7 @@
                   "fichier": "atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md",
                   "emetteur": "convention",
                   "article": "CCNEAC III.3.1.a",
-                  "citation": "0,825 %"
-                },
-                {
-                  "fichier": "atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md",
-                  "emetteur": "convention",
-                  "article": "CCNEAC III.3.1.a",
-                  "citation": "1,325 %"
+                  "citation": "0,825 % des bruts des non-intermittents et 1,325 % de ceux des intermittents"
                 }
               ]
             },

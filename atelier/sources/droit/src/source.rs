@@ -65,6 +65,8 @@ pub enum Emetteur {
     Unedic,
     FranceTravail,
     CourDesComptes,
+    /// La caisse du Regime local d'Alsace-Moselle.
+    RegimeLocal,
     AgircArrco,
     Audiens,
     Afdas,
