@@ -26,4 +26,9 @@ fn un_technicien_ne_se_paie_pas_au_service() {
     let service = reussi(&etat)["rubriques"].as_array().unwrap().iter().find(|r| r["code"] == "repetition").cloned().unwrap();
     assert_ne!(craig["statut"], service["reservee_au_statut"], "la liste ne propose pas le service a un technicien");
     reussi(&route(&c, "valider-engagement", ligne("heure", 8, 17.5, 1), "2026-02-25"));
+    // UN ARTISTE CADRE AU CACHET SE PAIE (le bug : « Il manque une donnée attendue », cle apec_t2_journaliere) : le metteur
+    // en scene, cadre (3090, art. 6.3), paie l'Apec au-dela de la T1 journaliere, une base de tout le contrat.
+    let mes = json!({"mois": "2026-04", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete", "metier": "MET040",
+        "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 400.0, "dates": ["2026-04-10", "2026-04-11"]}]}});
+    reussi(&route(&c, "valider-engagement", mes, "2026-02-25"));
 }

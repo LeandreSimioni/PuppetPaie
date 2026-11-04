@@ -96,10 +96,30 @@ pub struct ChampsDuMetier {
     pub statut_categoriel_rc: &'static str,
 }
 
+/// Le metier `m` est-il cadre, faute d'engagement qui le dise, dans la convention `idcc` ? `cadre_selon_la_convention`
+/// l'emporte pour la convention qu'il nomme (le dramaturge, cadre dans la 1285, art. XI.2.1, que la grille 3090 ne
+/// nomme pas : `_regles.cadre_par_defaut` de `emplois-base.json`) ; sinon `cadre_par_defaut`.
+pub fn cadre_par_defaut(m: &Value, idcc: &str) -> Resultat<bool> {
+    let selon: std::collections::BTreeMap<String, bool> = match m.get("cadre_selon_la_convention") {
+        Some(v) => serde_json::from_value(v.clone()).map_err(|e| socle::echec::avec("Le catalogue des métiers livré ne se lit pas : le signaler au développeur.", serde_json::json!({"fichier": "emplois-base.json", "cle": "cadre_selon_la_convention", "detail": e.to_string()})))?,
+        None => Default::default(),
+    };
+    match selon.get(idcc.trim()) {
+        Some(c) => Ok(*c),
+        None => Ok(vrai(m.get("cadre_par_defaut").ok_or_else(|| socle::fichiers::absent("cadre_par_defaut"))?)),
+    }
+}
+
+/// Le defaut cadre de ce metier change-t-il d'une convention a l'autre (`cadre_selon_la_convention`) ? Une carte qui le
+/// dit garde alors ce qu'elle dit (`engagement::stock::en_forme`).
+pub fn cadre_selon_la_convention(m: &Value) -> bool {
+    m.get("cadre_selon_la_convention").is_some()
+}
+
 /// Les sept champs declares pour ce metier (`emploi_affichage` compris).
-/// `cadre` a `None` prend le defaut du catalogue. Refuse un code inconnu.
+/// `cadre` a `None` prend le defaut du catalogue dans la convention `idcc` (`cadre_par_defaut`). Refuse un code inconnu.
 /// TRAVAIL A FAIRE : la fiche d'un metier du catalogue (`emplois-base.json`) se lit encore par ses cles.
-pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<ChampsDuMetier> {
+pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> Resultat<ChampsDuMetier> {
     let m = metier(code)?.ok_or_else(|| {
         format!(
             "Metier {} inconnu : ni dans le catalogue (emplois-base.json), ni \
@@ -107,7 +127,7 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<Cham
             repr(code))
     })?;
     let est_cadre = match cadre {
-        None => vrai(m.get("cadre_par_defaut").ok_or_else(|| socle::fichiers::absent("cadre_par_defaut"))?),
+        None => cadre_par_defaut(&m, idcc)?,
         Some(c) => c,
     };
     let texte = |c: &str| m.get(c).filter(|v| vrai(v)).map(socle::date::en_texte);
@@ -128,7 +148,9 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<Cham
     })
 }
 
-/// Le statut conventionnel DSN (40.002) d'un metier declare NON cadre.
+/// Le statut conventionnel DSN (40.002) d'un metier declare NON cadre. L'artiste-interprete : 05, par inference
+/// (`_regles.statut_conventionnel` de `emplois-base.json` : « Non-cadres » de la 3090, art. 6.3, hors de la categorie
+/// cadre de la 1285, art. XI.2.1 ; 05 par l'exemple de la fiche net-entreprises 3344, l. 364-366).
 pub fn statut_non_cadre(m: &Value) -> Option<String> {
     if let Some(st) = m.get("statut_conventionnel").and_then(|s| s.as_str()) {
         if !st.is_empty() && st != "04" {
@@ -279,7 +301,7 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
         out.emploi_affichage = Case::Dite(a);
     } else if let Some(code) = dit(&eng.code_emploi_ft) {
         if sal.code_emploi_ft.dite() != Some(&code) {
-            out.emploi_affichage = match resoudre(&code, None, false) {
+            out.emploi_affichage = match resoudre(&code, None, false, "") {
                 Ok(r) => Case::Dite(r.emploi_affichage),
                 Err(_) => Case::Absente,
             };
@@ -290,9 +312,9 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
 
 // ------------------------------------------------------------- l'interface
 
-/// Le catalogue du spectacle vivant, pour un
+/// Le catalogue du spectacle vivant, le defaut cadre de chaque metier lu dans la convention `idcc`, pour un
 /// deroulant, dans l'ordre du fichier.
-pub fn catalogue() -> Resultat<Vec<Value>> {
+pub fn catalogue(idcc: &str) -> Resultat<Vec<Value>> {
     let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
     let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| socle::fichiers::absent("emplois"))?;
     let mut out = Vec::new();
@@ -308,7 +330,7 @@ pub fn catalogue() -> Resultat<Vec<Value>> {
         e.insert("statut".into(), champ("statut")?);
         e.insert("annexe".into(), champ("annexe")?);
         e.insert("pcs_ese".into(), champ("pcs_ese")?);
-        e.insert("cadre_par_defaut".into(), champ("cadre_par_defaut")?);
+        e.insert("cadre_par_defaut".into(), Value::Bool(cadre_par_defaut(m, idcc)?));
         e.insert("niveau_3090".into(), niveau);
         e.insert("conventions".into(), conventions);
         e.insert("catalogue".into(), Value::Bool(true));

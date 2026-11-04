@@ -1147,7 +1147,12 @@ pub fn bareme_convention(bar: Value, ent: &EntrepriseLue, nat: Option<&Nature>) 
         let mut c = sans_souligne(c);
         let taux = c.shift_remove("par_representation").unwrap_or(Value::Null);
         let apres = c.shift_remove("apres").unwrap_or(Value::Null);
-        if !taux.is_null() {
+        // Les taux d'une paie importee se lisent sur ses pieces (`EntrepriseLue::taux_lus`) : la contribution garde sa
+        // rubrique et sa base, sans taux, et la representation du personnel ne se demande pas.
+        let sans_taux = ent.taux_lus && !taux.is_null();
+        if sans_taux {
+            c.insert("taux_pat".into(), Value::Null);
+        } else if !taux.is_null() {
             if representation.is_none() {
                 representation = Some(representation_du_personnel(ent)?);
             }
@@ -1163,7 +1168,7 @@ pub fn bareme_convention(bar: Value, ent: &EntrepriseLue, nat: Option<&Nature>) 
         let id = c.get("id").ok_or_else(|| socle::fichiers::absent("id"))?.clone();
         let i = rang(&rubriques, &id);
         let get = |k: &str| c.get(k).unwrap_or(&NUL);
-        if !vrai(get("taux_pat")) && !vrai(get("taux_sal")) {
+        if !sans_taux && !vrai(get("taux_pat")) && !vrai(get("taux_sal")) {
             if let Some(i) = i {
                 rubriques.remove(i);
             }
@@ -1236,6 +1241,11 @@ pub fn bareme_applique(
 pub struct EntrepriseLue {
     pub fiche: ChampsEntreprise,
     pub effectif: Option<f64>,
+    /// La pile d'une paie IMPORTEE : ses taux se lisent sur ses pieces, la pile ne fait que ranger ses bases
+    /// (`engagement::importe`). Ce qui ne decide qu'un taux ne se demande pas : la representation du personnel, et
+    /// l'effectif qui la remplace (`bareme_convention`). Une annee que l'ancien logiciel a payee n'a pas a dire
+    /// l'effectif de l'annee d'avant.
+    pub taux_lus: bool,
 }
 
 // ---------------------------------------------------- les etablissements

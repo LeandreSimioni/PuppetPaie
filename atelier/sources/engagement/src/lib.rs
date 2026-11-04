@@ -1066,7 +1066,7 @@ pub(crate) fn engagements(
             Some(code) => {
                 let salarie = ctx.salarie(carte.salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
                 let feminin = sexe(&salarie) == "2";
-                Some(emplois::resoudre(code, carte.cadre, feminin).map_err(|m| format!("{} : {}", qui, m))?)
+                Some(emplois::resoudre(code, carte.cadre, feminin, ctx.entreprise.idcc.texte()).map_err(|m| format!("{} : {}", qui, m))?)
             }
             None => None,
         };
@@ -2063,7 +2063,7 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resul
     for (p, e) in paies.iter_mut().zip(tous) {
         let metier = e.metier.clone().unwrap_or_default();
         let m = emplois::metier(&metier)?.unwrap_or(Value::Null);
-        if e.cadre == Some(false) && m.get("cadre_par_defaut").map_or(false, vrai) {
+        if e.cadre == Some(false) && !m.is_null() && emplois::cadre_par_defaut(&m, ctx.entreprise.idcc.texte())? {
             fn texte<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
                 c.remplie().map(str::to_string)
             }

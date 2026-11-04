@@ -819,8 +819,8 @@ contrat, {} (CSS R. 242-1, al. 6 ; arrêté du 4 septembre 2025, art. 9, I, dern
 pub(crate) const FAMILLE_ALLEGEMENTS: &str = "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS";
 
 /// Les bases lues par cle : une valeur par rubrique de salaire, sinon globale.
-const GLOBALES: [&str; 19] = [
-    "csg", "t1_journaliere", "t2_journaliere", "t2_prevoyance_journaliere", "apec", "cet", "t1_mensuelle",
+const GLOBALES: [&str; 20] = [
+    "csg", "t1_journaliere", "t2_journaliere", "t2_prevoyance_journaliere", "apec", "apec_t2_journaliere", "cet", "t1_mensuelle",
     "t2_mensuelle", "apec_mensuelle", "cet_mensuelle", "pss_periode", "t2_conventionnelle", "t1_t2_mensuelle",
     "brut_plafonne", "brut_x115_plafonne", "brut_chomage", "brut_plafonne_dfs", "brut_x115_plafonne_dfs",
     "t1_mensuelle_x115",
@@ -869,14 +869,26 @@ fn tuple(j: &Jour) -> (i32, u32, u32) {
 /// la nature, de la caisse de conges et du jour. Un mois et ses mois anterieurs la recomposaient a
 /// chaque paie, et c'etait l'essentiel du temps de calcul.
 pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &SalarieDuContrat, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool, majoration: bool) -> Resultat<Arc<Pile>> {
+    pile(ctx, sal, nat, fin, caisse, cpf_cdd, majoration, false)
+}
+
+/// La pile d'une paie IMPORTEE, qui ne range que ses bases : ses taux se lisent sur ses pieces
+/// (`bareme::EntrepriseLue::taux_lus`).
+pub(crate) fn bareme_pour_ranger(ctx: &Contexte, sal: &SalarieDuContrat, nat: &Nature, fin: &Jour, caisse: bool, majoration: bool) -> Resultat<Arc<Pile>> {
+    pile(ctx, sal, nat, fin, caisse, false, majoration, true)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn pile(ctx: &Contexte, sal: &SalarieDuContrat, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool, majoration: bool, taux_lus: bool) -> Resultat<Arc<Pile>> {
     type Cache = Mutex<HashMap<String, Arc<Pile>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let cle = format!("{}|{}|{}|{:?}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd, majoration);
+    let cle = format!("{}|{}|{}|{:?}|{}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd, majoration, taux_lus);
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
-    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, &ctx.entreprise_lue(fin)?, sal, nat, Some(fin), caisse, cpf_cdd, majoration)?);
+    let ent = droit::bareme::EntrepriseLue { taux_lus, ..ctx.entreprise_lue(fin)? };
+    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, &ent, sal, nat, Some(fin), caisse, cpf_cdd, majoration)?);
     socle::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }
