@@ -334,6 +334,7 @@ fn fichier_json(f: &Path) -> Value {
 /// (`depot_acte::deposer_dpae`).
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
     let mois_demande = texte_requis(charge, "mois")?;
+    let le_mois = socle::mois::Mois::lire(mois_demande).map_err(|e| erreur("ValueError", e))?;
     // L'heure d'embauche que la DPAE declare.
     let heure = json!(declarations::dpae::HEURE_EMBAUCHE);
     let selection: Option<&Vec<Value>> = match charge.get("engagements") {
@@ -351,15 +352,15 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         let engs = engagement::engagements_de_la_saisie(ctx, &data).map_err(plain)?;
         engs.iter().map(|e| engagement::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
-    let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let etiq = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::etiquette).map_err(|e| erreur("ValueError", e))?;
+    let mois = le_mois.to_string();
+    let etiq = le_mois.etiquette();
     let sortie = ctx.racine.join("sorties").join(&mois);
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.id.to_string(), p.engagement.numero.as_deref().unwrap_or_default().to_string()) };
 
     // LES DPAE A FAIRE DU MOIS (`Moteur::embauches_a_declarer`, la seule liste) : une embauche deja partie en DPAE
     // reelle, ou un contrat en cours depuis un mois precedent (sa DPAE part avec son premier mois), n'y est pas.
     let a_faire: BTreeSet<(String, String)> = crate::routes::etapes::Moteur::nouveau(ctx)
-        .embauches_a_declarer(Some(socle::mois::Mois::lire(&mois)?))?
+        .embauches_a_declarer(Some(le_mois))?
         .into_iter()
         .map(|e| (e.salarie, e.numero.to_string()))
         .collect();
@@ -578,18 +579,19 @@ pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
     let Some(mois) = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte) else {
         return Ok((requis(charge, "fichier")?.clone(), json!({})));
     };
+    let le_mois = socle::mois::Mois::lire(&mois)?;
     if etats::est(quoi, "dsn") {
         // UNE DSN PARTIE EN REEL NE SE REFAIT QUE SI CE QU'ELLE A EMPORTE EST A CORRIGER (regle 4) : un engagement du
         // mois change depuis, ajoute ou retire (`Moteur::etat_remplacement`, `a_envoyer`) ; sinon, c'est celle qui est
         // partie. Une DSN refusee au bilan n'est pas partie (regle 5).
         let nic = charge.get("etablissement").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null);
         let e = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
-        if e.deposee() && !e.refusee() && !crate::routes::etapes::Moteur::nouveau(ctx).etat_remplacement(socle::mois::Mois::lire(&mois)?, &nic)?.a_envoyer {
+        if e.deposee() && !e.refusee() && !crate::routes::etapes::Moteur::nouveau(ctx).etat_remplacement(le_mois, &nic)?.a_envoyer {
             if let Some(c) = partie(ctx, charge)? {
                 return Ok((c, json!({})));
             }
         }
-        let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, &mois, "interface")?;
+        let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, le_mois, "interface")?;
         let chemin = match charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte) {
             Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
             None => dsn.fichiers.first(),

@@ -285,10 +285,7 @@ struct EnCours {
     fin: String,
     numero: String,
     depuis: String,
-    metier: Option<String>,
-    cadre: Option<bool>,
     taux_cachet: Option<f64>,
-    lieu: &'static str,
     deja_repris: bool,
     engagement: Reprise,
 }
@@ -845,10 +842,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
             fin,
             numero,
             depuis: i.continue_apres().unwrap_or_default(),
-            metier: None,
-            cadre: None,
             taux_cachet,
-            lieu: "",
             deja_repris: false,
             engagement,
         });

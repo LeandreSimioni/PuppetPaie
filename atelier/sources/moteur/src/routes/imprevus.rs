@@ -224,7 +224,7 @@ pub(crate) enum NatureSignalement {
 }
 
 impl NatureSignalement {
-    fn code(self) -> &'static str {
+    pub(crate) fn code(self) -> &'static str {
         match self {
             NatureSignalement::Arret => signalement::ARRET,
             NatureSignalement::Reprise => signalement::REPRISE,
@@ -1747,7 +1747,7 @@ pub(crate) fn signaler_fin(ctx: &Contexte, charge: &Value, refaire: bool) -> R<R
 /// 5.2) ; la route le dit et n'ecrit rien. `refaire` : la piece partie, refaite pour se lire
 /// (`compagnie::depart::refaire_le_signalement`). L'annule-et-remplace a son nom (`_AR<ordre>`) : le fichier parti reste
 /// tel qu'il est parti.
-fn signaler_la_fin(ctx: &Contexte, c: &ChargeFinContratSignaler, refaire: bool) -> R<ReponseSignalementFin> {
+pub(crate) fn signaler_la_fin(ctx: &Contexte, c: &ChargeFinContratSignaler, refaire: bool) -> R<ReponseSignalementFin> {
     let mois = c.mois.to_string();
     let salarie = c.salarie.as_str();
     let remplace = remplace_dit(&c.remplace);
@@ -1874,7 +1874,7 @@ pub(crate) fn signaler_arret(ctx: &Contexte, charge: &Value, alors: &Value) -> R
 /// (`compagnie::depart::refaire_le_signalement`) depuis l'arret tel qu'il etait a son ecriture (`etats_d_alors`) : une
 /// prolongation ou une reprise saisie depuis ne la change pas. L'annule-et-remplace a son nom (`_AR<ordre>`) : le
 /// fichier parti reste tel qu'il est parti.
-fn signaler_l_arret(ctx: &Contexte, c: &ChargeArretSignaler, alors: Option<&Value>) -> R<ReponseSignalement> {
+pub(crate) fn signaler_l_arret(ctx: &Contexte, c: &ChargeArretSignaler, alors: Option<&Value>) -> R<ReponseSignalement> {
     use declarations::signalement::Echec as Ech;
     let nature = c.nature.code();
     let remplace = remplace_dit(&c.remplace);

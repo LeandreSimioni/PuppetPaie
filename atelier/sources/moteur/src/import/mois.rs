@@ -77,13 +77,13 @@ pub(crate) fn dsn_importee(racine: &Path, mois: &str) -> R<Option<Value>> {
 }
 
 /// LA DSN D'UN MOIS DONT L'ANCIEN LOGICIEL A DEPOSE LA DSN, que la page Paie et la boite d'ouverture disent avec les
-/// memes mots : `None` si l'ancien logiciel n'a pas depose la DSN de `mois`. Sinon `{"porteur", "engagements",
-/// "quoi", "phrase"}` : ce que la saisie ajoute a ce mois et qui n'est pas encore declare (`engagements`, en saisie ou
-/// valides) se declare dans la DSN de `porteur`, la premiere DSN d'apres qui n'est pas partie, comme un contrat
-/// ajoute apres la DSN de son mois (`produire_regularisations::regularisations_pour` : cahier technique DSN 2026.1,
-/// § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`). La DSN de l'ancien
-/// logiciel ne se refait pas ici (regle 4).
-pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
+/// memes mots : `None` si l'ancien logiciel n'a pas depose la DSN de `mois`. Sinon ce que la saisie ajoute a ce mois et
+/// qui n'est pas encore declare (`engagements`, en saisie ou valides) se declare dans la DSN de `porteur`, la premiere
+/// DSN d'apres qui n'est pas partie, comme un contrat ajoute apres la DSN de son mois
+/// (`produire_regularisations::regularisations_pour` : cahier technique DSN 2026.1, § 2.1.2.1,
+/// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`). La DSN de l'ancien logiciel ne se
+/// refait pas ici (regle 4).
+pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<DsnDeLAncienLogiciel>> {
     if engagement::importe::dsn_deposee(&ctx.racine, mois).map_err(Echec::from)?.is_none() {
         return Ok(None);
     }
@@ -98,12 +98,20 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
         n += usize::from(a_declarer);
     }
     let lib = socle::mois::Mois::en_clair(&porteur);
-    let (quoi, phrase) = match n {
-        0 => (String::new(), "DSN déposée par l'ancien logiciel.".to_string()),
-        1 => (format!("déposée par l'ancien logiciel ; cet engagement se déclare dans celle de {}", lib), format!("DSN déposée par l'ancien logiciel ; cet engagement se déclare dans la DSN de {}.", lib)),
-        _ => (format!("déposée par l'ancien logiciel ; ces {} engagements se déclarent dans celle de {}", n, lib), format!("DSN déposée par l'ancien logiciel ; ces {} engagements se déclarent dans la DSN de {}.", n, lib)),
+    let phrase = match n {
+        0 => "DSN déposée par l'ancien logiciel.".to_string(),
+        1 => format!("DSN déposée par l'ancien logiciel ; cet engagement se déclare dans la DSN de {}.", lib),
+        _ => format!("DSN déposée par l'ancien logiciel ; ces {} engagements se déclarent dans la DSN de {}.", n, lib),
     };
-    Ok(Some(json!({"porteur": porteur, "engagements": n, "quoi": quoi, "phrase": phrase})))
+    Ok(Some(DsnDeLAncienLogiciel { porteur, engagements: n, phrase }))
+}
+
+/// La DSN d'un mois deposee par l'ancien logiciel (`dsn_de_l_ancien_logiciel`) : le mois de la DSN qui porte ce que la
+/// saisie y ajoute, combien d'engagements s'y declarent, et la phrase qui le dit.
+pub(crate) struct DsnDeLAncienLogiciel {
+    pub(crate) porteur: String,
+    pub(crate) engagements: usize,
+    pub(crate) phrase: String,
 }
 
 /// LA DSN MENSUELLE D'UN MOIS DE L'ANCIEN LOGICIEL NE SE FABRIQUE PAS ICI (regle 4 ; un mois importe ne recoit pas
@@ -113,7 +121,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
 /// oppose avant d'ecrire quoi que ce soit, le seul.
 pub(crate) fn refuser_la_dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<()> {
     let phrase = match dsn_de_l_ancien_logiciel(ctx, mois)? {
-        Some(d) => format!("{} Elle ne se refait pas ici.", valeur_en_texte(&d["phrase"])),
+        Some(d) => format!("{} Elle ne se refait pas ici.", d.phrase),
         None if importe(&ctx.racine, mois)? => "mois tenu avant PuppetPaie, sa DSN est celle de l'ancien logiciel et ne se fait pas ici. Pour la garder, mettez son fichier dans le dossier d'import, puis « Importer » (Configuration › Reprendre l'historique).".to_string(),
         None => return Ok(()),
     };

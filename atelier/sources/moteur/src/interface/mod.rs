@@ -256,8 +256,8 @@ fn jeton(local: &Path) -> String {
 }
 
 /// Un JSON pose dans la page, dans un `<script type="application/json">` : rien ne peut y fermer la balise.
-fn json_dans_la_page(v: &Value) -> String {
-    v.to_string().replace('<', "\\u003c").replace('>', "\\u003e").replace('&', "\\u0026")
+fn json_dans_la_page(v: &impl serde::Serialize) -> String {
+    serde_json::to_string(v).unwrap_or_default().replace('<', "\\u003c").replace('>', "\\u003e").replace('&', "\\u0026")
 }
 
 fn page(corps: &str, jeton: &str, noms: &str) -> String {
@@ -853,7 +853,7 @@ impl Fenetre {
                     Phase::MotDePasse { racine, premiere } => {
                         // Ce que l'administrateur est pour cette compagnie (la route `administrateur-etat`) : la page le lit,
                         // sans rien decider.
-                        let etat = api::route(&racine, Route::AdministrateurEtat, &json!({})).unwrap_or_else(|_| json!({}));
+                        let etat = crate::routes::coffre::administrateur_etat(&racine);
                         let gabarit = if premiere { CHOIX_MOT_DE_PASSE } else { MOT_DE_PASSE };
                         page(&gabarit.replace("{{ADMINISTRATEUR}}", &json_dans_la_page(&etat)), &self.jeton, NOMS_ACCUEIL)
                     }
@@ -908,8 +908,8 @@ impl Fenetre {
             .avec("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'")
     }
 
-    /// L'apercu d'un modele de bulletin : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait
-    /// dans le processus de la fenetre, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
+    /// L'apercu d'un modele de bulletin : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait dans le
+    /// processus de la fenetre, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
     fn apercu_bulletin(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
         let Phase::Ouverte { racine, .. } = self.phase() else { return interdit };
@@ -920,9 +920,13 @@ impl Fenetre {
         let Some(modele) = crate::routes::bulletin::modele_de_l_adresse(demande) else {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         };
-        let pdf = api::route(&racine, Route::BulletinModeleApercu, &json!({"modele": modele.cle()}))
+        // La route, comme la page l'appellerait : sa charge et sa reponse lues par leur forme.
+        let charge = crate::routes::bulletin::ChargeModele { modele: modele.cle().to_string() };
+        let pdf = serde_json::to_value(charge)
             .ok()
-            .and_then(|v| v.get("pdf").and_then(Value::as_str).and_then(|b| socle::base64::lire(b).ok()));
+            .and_then(|c| api::route(&racine, Route::BulletinModeleApercu, &c).ok())
+            .and_then(|v| crate::routes::lire_charge::<crate::routes::bulletin::ApercuModele>(&v).ok())
+            .and_then(|a| socle::base64::lire(&a.pdf).ok());
         match pdf {
             Some(octets) if octets.starts_with(b"%PDF") => Reponse::nouvelle(200, "application/pdf", octets)
                 .avec("Content-Disposition", format!("inline; filename=\"apercu-bulletin-{}.pdf\"", if modele == documents::bulletin::Modele::Complet { "complet" } else { "simplifie" }))

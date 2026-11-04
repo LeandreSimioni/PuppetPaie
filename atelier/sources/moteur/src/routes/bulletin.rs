@@ -75,9 +75,13 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             super::phrase_en_tete(v, p)
         }),
         Route::BulletinModeleApercu => {
-            let modele = modele_demande(charge)?;
+            let modele = modele_demande(&super::lire_charge(charge)?)?;
             let pdf = apercu_pdf(modele).map_err(refus)?;
-            Ok(json!({"phrase": format!("Bulletin d'exemple dans le modèle {}, en PDF.", modele.cle()), "modele": modele.cle(), "pdf": socle::base64::ecrire(&pdf)}))
+            super::en_json(ApercuModele {
+                phrase: format!("Bulletin d'exemple dans le modèle {}, en PDF.", modele.cle()),
+                modele: modele.cle().to_string(),
+                pdf: socle::base64::ecrire(&pdf),
+            })
         }
         Route::BulletinModeleChoisir => choisir(ctx, charge).map(|v| {
             let p = format!("Modèle choisi : {}, pour les documents faits à partir d'aujourd'hui.", socle::valeur::valeur_en_texte(&v["choisi"]));
@@ -89,12 +93,28 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
 
 // ------------------------------------------------------------------ le modele du bulletin
 
-/// Le modele que la charge nomme (`modele`) : un modele connu, rien d'autre.
-fn modele_demande(charge: &Value) -> R<Modele> {
-    let v = charge.get("modele").cloned().unwrap_or(Value::Null);
-    let cle = v.as_str().map(str::trim).unwrap_or_default();
+/// La charge de `bulletin-modele-apercu` et de `bulletin-modele-choisir` : le modele, par sa cle.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeModele {
+    pub(crate) modele: String,
+}
+
+/// Ce que rend `bulletin-modele-apercu` : le PDF d'exemple, en base64, et la phrase. La fenetre le lit aussi
+/// (`interface::Fenetre::apercu_bulletin`).
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ApercuModele {
+    phrase: String,
+    modele: String,
+    pub(crate) pdf: String,
+}
+
+/// Le modele que la charge nomme : un modele connu, rien d'autre.
+fn modele_demande(c: &ChargeModele) -> R<Modele> {
+    let cle = c.modele.trim();
     Modele::TOUS.iter().copied().find(|m| m.cle() == cle).ok_or_else(|| {
-        refus(format!("Modèle de bulletin inconnu : {}. Connus : « simplifié », « complet ».", v))
+        refus(format!("Modèle de bulletin inconnu : « {} ». Connus : « simplifié », « complet ».", c.modele))
     })
 }
 
@@ -176,7 +196,7 @@ pub fn apercu_pdf(modele: Modele) -> Result<Vec<u8>, String> {
 // ------------------------------------------------------------------ bulletin-modele-choisir
 
 fn choisir(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let modele = modele_demande(charge)?;
+    let modele = modele_demande(&super::lire_charge(charge)?)?;
     // Le modele vaut pour les documents faits a partir d'aujourd'hui ; ceux d'avant gardent le leur.
     crate::routes::fiches::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(refus)?;
