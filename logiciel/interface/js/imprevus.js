@@ -739,10 +739,12 @@ async function boiteReprise(a, apres) {
       <button class="primaire" id="re-ok">Enregistrer</button>
     </div>`);
   document.getElementById("re-ok").onclick = async () => {
+    // Un jour vide efface la reprise, et son motif avec elle : l'un ne va pas sans l'autre.
+    const jour = document.getElementById("re-date").value || null;
     let r;
     try {
       r = await api("arret-reprise", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
-        reprise: document.getElementById("re-date").value || null, motif_reprise: document.getElementById("re-motif").value || null });
+        reprise: jour, motif_reprise: jour && (document.getElementById("re-motif").value || null) });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
     dire(r.phrase);
