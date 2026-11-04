@@ -897,7 +897,7 @@ pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &SalarieDuContrat, nat: &Na
     type Cache = Mutex<HashMap<String, Arc<Pile>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let cle = format!("{}|{}|{}|{}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal.en_valeur(), nat.mensuelle(), caisse, cpf_cdd, majoration);
+    let cle = format!("{}|{}|{}|{:?}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd, majoration);
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
