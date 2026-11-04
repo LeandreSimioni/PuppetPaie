@@ -260,9 +260,8 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         let mut mois_sal: Vec<(String, String, Decimal)> = vec![];
         let an: String = m.chars().take(4).collect();
         for p in paies {
-            // Les colonnes de l'etat nomment les cases de la fiche : elle se lit ici en JSON.
-            let s = p.salarie.champs.en_valeur();
-            let champ = |cle: &str| s.get(cle).filter(|v| vrai(v)).map(valeur_en_texte);
+            // Les colonnes de l'etat nomment les cases de la fiche (`ParCase`).
+            let champ = |cle: &str| p.salarie.champs.case(cle).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
             let brut = p.brut;
             let nir = champ("nir").unwrap_or_default();
             masse += brut;

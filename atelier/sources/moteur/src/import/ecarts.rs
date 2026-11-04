@@ -222,13 +222,9 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
             }
         }
     };
-    let fiches = ctx
-        .salaries
-        .iter()
-        // Les cases que le releve compare se nomment : la fiche se lit ici en JSON.
-        .map(|(_, v)| v.champs.en_valeur());
-    for f in fiches {
-        let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
+    for (_, f) in &ctx.salaries {
+        // Les cases que le releve compare se nomment (`ParCase`).
+        let t = |k: &str| f.champs.case(k).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
         for k in ["nom", "nom_affichage"] {
             pousser(&mut c.noms, t(k));
         }
