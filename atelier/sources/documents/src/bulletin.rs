@@ -6,6 +6,7 @@
 use engagement::calcul::Paie;
 use engagement::conges::CompteurConges;
 use droit::contexte::Contexte;
+use droit::fiche::{Case, ChampsSalarie, FicheSalarie};
 use droit::cumul::{tableau_cumul, Colonne};
 use engagement::cumul::Passe;
 use socle::date::{d, en_texte, forme_ecrite, Jour};
@@ -117,13 +118,6 @@ fn texte(o: &Value, cle: &str) -> Resultat<String> {
     Ok(en_texte(requis(o, cle)?))
 }
 
-/// La valeur de `cle` en texte, ou `defaut` si elle manque ou est vide.
-fn ou(o: &Value, cle: &str, defaut: &str) -> String {
-    match o.get(cle) {
-        Some(v) if vrai(v) => en_texte(v),
-        _ => defaut.to_string(),
-    }
-}
 
 /// Un morceau de texte d'un paragraphe ou d'une cellule.
 fn m(texte: impl Into<String>, gras: bool, couleur: Option<&str>) -> Value {
@@ -260,7 +254,7 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
 /// (`droit::clauses::profil` : la fiche, sinon le metier, jamais devinee) dite par le libelle de la convention, puis le
 /// classement que la fiche porte dans la grille (`classement_conventionnel`) ; `None` quand ni l'une ni l'autre ne se
 /// lisent.
-fn classification(idcc: &str, sal: &Value) -> Resultat<Option<String>> {
+fn classification(idcc: &str, sal: &ChampsSalarie) -> Resultat<Option<String>> {
     let idcc_v = Value::String(idcc.to_string());
     let profil = droit::clauses::profil(&idcc_v, sal, None)?;
     let table = droit::clauses::table()?;
@@ -268,7 +262,7 @@ fn classification(idcc: &str, sal: &Value) -> Resultat<Option<String>> {
         let dit = table.pointer(&format!("/conventions/{}/categories/valeurs/{}", idcc, c)).and_then(Value::as_str);
         dit.map_or_else(|| c.replace('_', " "), |l| l.split(". ").next().unwrap_or(l).trim_end_matches('.').to_string())
     });
-    let classement = sal.get("classement_conventionnel").filter(|v| vrai(v)).map(en_texte).filter(|t| !t.trim().is_empty());
+    let classement = Some(sal.classement_conventionnel.texte().to_string()).filter(|t| !t.trim().is_empty());
     Ok(match (categorie, classement) {
         (Some(c), Some(k)) => Some(format!("{}, {}", c, k)),
         (Some(c), None) => Some(c),
@@ -280,27 +274,27 @@ fn classification(idcc: &str, sal: &Value) -> Resultat<Option<String>> {
 /// Le nom du salarie tel que le bulletin l'imprime : son nom d'usage avec ses accents (`nom_affichage`, sinon `nom`), en
 /// capitales, puis son prenom (`prenom_affichage`, sinon `prenom`). La DSN et la DPAE declarent le nom sans accents ;
 /// le bulletin est lu par le salarie, sous son nom.
-fn nom_imprime(sal: &Value) -> Resultat<String> {
-    let lu = |cles: [&str; 2]| -> Option<String> {
-        cles.iter().filter_map(|c| sal.get(*c).filter(|v| vrai(v))).map(en_texte).find(|t| !t.trim().is_empty())
+fn nom_imprime(sal: &ChampsSalarie) -> Resultat<String> {
+    let lu = |cases: [&Case<String>; 2]| -> Option<String> {
+        cases.iter().map(|c| c.texte()).find(|t| !t.trim().is_empty()).map(str::to_string)
     };
-    let nom = lu(["nom_affichage", "nom"]).ok_or_else(|| socle::fichiers::absent("nom"))?;
-    let prenom = lu(["prenom_affichage", "prenom"]).ok_or_else(|| socle::fichiers::absent("prenom"))?;
+    let nom = lu([&sal.nom_affichage, &sal.nom]).ok_or_else(|| socle::fichiers::absent("nom"))?;
+    let prenom = lu([&sal.prenom_affichage, &sal.prenom]).ok_or_else(|| socle::fichiers::absent("prenom"))?;
     Ok(format!("{} {}", nom.to_uppercase(), prenom))
 }
 
 /// L'emploi tel que le bulletin l'imprime : celui que l'engagement choisit, lisible et accorde a la fiche
 /// (`emploi_affichage`), sinon celui de la fiche, sinon le libelle que la DSN declare (`emploi`, S21.G00.40.006).
-fn emploi_imprime(e: &engagement::Engagement, sal: &Value) -> Resultat<String> {
+fn emploi_imprime(e: &engagement::Engagement, sal: &ChampsSalarie) -> Resultat<String> {
     let lisible = e.emploi_affichage.clone().filter(|t| !t.trim().is_empty())
-        .or_else(|| sal.get("emploi_affichage").filter(|v| vrai(v)).map(en_texte).filter(|t| !t.trim().is_empty()));
+        .or_else(|| Some(sal.emploi_affichage.texte().to_string()).filter(|t| !t.trim().is_empty()));
     match lisible {
         Some(t) => Ok(t),
-        None => texte(sal, "emploi"),
+        None => exige(&sal.emploi, "emploi"),
     }
 }
 
-pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value, jour: &Jour) -> Resultat<(String, String)> {
+pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
     let idcc = droit::minima::idcc_du_contrat(ent, sp, sal)?;
     if idcc.is_empty() {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", "idcc"));
@@ -541,9 +535,10 @@ impl Modele {
 
 /// Le modele du bulletin d'une paie : la case de la fiche du salarie l'emporte ; sinon celle de la compagnie ; sinon le
 /// simplifie.
-pub fn modele_du_bulletin(ent: &Value, sal: &Value) -> Resultat<Modele> {
-    let nom = sal.get("_cle").map(en_texte).unwrap_or_default();
-    match Modele::de_la_fiche(sal, &format!("du salarié {}", nom).trim().to_string())? {
+pub fn modele_du_bulletin(ent: &Value, sal: &FicheSalarie) -> Resultat<Modele> {
+    let nom = sal.id.to_string();
+    let case = Value::Object([(CASE_MODELE.to_string(), sal.modele_bulletin.en_valeur())].into_iter().collect());
+    match Modele::de_la_fiche(&case, &format!("du salarié {}", nom).trim().to_string())? {
         Some(m) => Ok(m),
         None => Ok(Modele::de_la_fiche(ent, "entreprise")?.unwrap_or(Modele::Simplifie)),
     }
@@ -1025,7 +1020,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
             format!("Numéro d'objet : {} {} Spectacle : {}", texte(sp, "numero_objet")?, tiret, texte(sp, "titre")?);
         ligne_caisse = vec![
             k("N° Congés Spectacles :"),
-            mt(format!(" {}\n", ou(sal, "num_conges_spectacles", "-"))),
+            mt(format!(" {}\n", match sal.num_conges_spectacles.texte() { "" => "-", n => n })),
         ];
         let dates: Vec<String> = e.dates_travail.iter().map(Jour::jj_mm_aaaa).collect();
         travail = vec![m("Dates travaillées :", true, None), mt(format!(" {}", dates.join(", ")))];
@@ -1033,17 +1028,17 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     blocs.push(para(vec![mt(sous_titre)], 7.0, Some(GRIS), 0.0, 5.0));
 
     // Le cadre d'identite : un tableau d'une ligne, deux cellules a filet.
-    let nir_affiche = match sal.get("nir") {
-        Some(n) if vrai(n) => format!("{}{}", en_texte(n), texte(sal, "nir_cle")?),
+    let nir_affiche = match sal.nir.texte() {
+        n if !n.is_empty() => format!("{}{}", n, exige(&sal.nir_cle, "nir_cle")?),
         _ => "en cours d'immatriculation".to_string(),
     };
     let mut salarie = vec![
         m(nom_imprime(sal)?, true, None),
-        mt(format!("\n{}\n{} {}\n\n", texte(sal, "adresse")?, texte(sal, "code_postal")?, texte(sal, "commune")?)),
+        mt(format!("\n{}\n{} {}\n\n", exige(&sal.adresse, "adresse")?, exige(&sal.code_postal, "code_postal")?, exige(&sal.commune, "commune")?)),
         k("N° Sécurité sociale :"),
         mt(format!(" {}\n", nir_affiche)),
         k("Date de naissance :"),
-        mt(format!(" {}\n", jj_mm_aaaa(requis(sal, "date_naissance")?)?)),
+        mt(format!(" {}\n", sal.date_naissance.dite().ok_or_else(|| socle::fichiers::absent("date_naissance"))?.jj_mm_aaaa())),
         k("Emploi :"),
         mt(format!(" {}\n", emploi_imprime(e, sal)?)),
     ];
@@ -1330,7 +1325,7 @@ pub fn jeux_et_description(
             engagements.retain(|e| e.debut <= fin);
         }
         for pa in paies {
-            let cle = texte(&pa.salarie, "_cle")?;
+            let cle = pa.salarie.id.to_string();
             // Le compteur de conges est par contrat, ecrit dans la paie a la validation (`Paie::conges`) ; le cumul des
             // 507 h par salarie.
             if !pa.engagement.nat()?.mensuelle() && !colonnes_par_salarie.contains_key(&cle) {
@@ -1343,7 +1338,7 @@ pub fn jeux_et_description(
         if p.engagement.sans_paie() {
             continue;
         }
-        let cle = texte(&p.salarie, "_cle")?;
+        let cle = p.salarie.id.to_string();
         jeux.push(Jeu {
             paie: p,
             numero: numeros[i].as_deref(),
@@ -1367,9 +1362,17 @@ pub fn passe_des_bulletins<'a>(ctx: &'a Contexte, paies: &[Paie], mois: &str, de
     let mut au_cachet = std::collections::BTreeSet::new();
     for pa in paies {
         if !pa.engagement.nat()?.mensuelle() {
-            au_cachet.insert(texte(&pa.salarie, "_cle")?);
+            au_cachet.insert(pa.salarie.id.to_string());
         }
     }
     Ok(Passe::lire(ctx, Some(mois), Some(au_cachet), departs))
 }
 
+
+/// Le texte d'une case de la fiche, exigee : son absence se refuse en la nommant.
+fn exige(c: &Case<String>, cle: &str) -> Resultat<String> {
+    if c.est_absente() {
+        return Err(socle::fichiers::absent(cle));
+    }
+    Ok(c.texte().to_string())
+}

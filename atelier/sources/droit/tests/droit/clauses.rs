@@ -174,13 +174,13 @@ fn profil() {
                     } else {
                         fiche = avec(&fiche, "code_emploi_ft", p[1].clone());
                     }
-                    out.push(ligne(c::profil(&p[0], &fiche, eng.as_ref())));
+                    out.push(ligne(champs(&fiche).and_then(|f| c::profil(&p[0], &f, eng.as_ref()))));
                 }
             }
         }
         out
     });
-    section(&rel, "profil", |a| c::profil(&a[0], &a[1], option(&a[2])));
+    section(&rel, "profil", |a| champs(&a[1]).and_then(|f| c::profil(&a[0], &f, option(&a[2]))));
 }
 
 #[test]
@@ -322,7 +322,7 @@ fn prime_d_anciennete() {
         (chaines(&g["fiches_p"]), chaines(&g["eng_p"]), chaines(&g["jours"]), chaines(&g["jauges"]));
     let jours: Vec<Jour> = jours.iter().map(jour).collect();
     let prime = |idcc: &Value, annexe: &Value, fiche: &Value, eng: Option<&Value>, j: &Jour, jg: Option<&str>| {
-        c::prime_anciennete(idcc, annexe, fiche, eng, j, jg).map(|r| r.unwrap_or(Value::Null))
+        champs(fiche).and_then(|f| c::prime_anciennete(idcc, annexe, &f, eng, j, jg)).map(|r| r.unwrap_or(Value::Null))
     };
     blocs(&rel, "prime_anciennete", 20, |p| {
         let mut out = Vec::new();
@@ -363,4 +363,10 @@ fn la_remise_du_contrat_suit_l1242_13_et_la_1285_pour_ses_musiciens() {
     let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), &json!("1285"), "ZZZ999", None).unwrap();
     assert_eq!(autre.jour, j("2026-12-12"));
     assert!(autre.source.contains("L. 1242-13"), "{}", autre.source);
+}
+
+/// La fiche du releve, lue par sa forme : celle que la forme refuse (un statut en nombre, une categorie hors de la liste)
+/// ne parvient plus au profil.
+fn champs(v: &Value) -> Resultat<droit::fiche::ChampsSalarie> {
+    droit::fiche::lire_champs(v, "la fiche du releve")
 }

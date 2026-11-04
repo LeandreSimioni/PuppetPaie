@@ -24,6 +24,7 @@ use serde_json::{json, Map, Value};
 
 use crate::conges::{avertir, flot, info};
 use droit::contexte::Contexte;
+use droit::fiche::SalarieDuContrat;
 use socle::date::{d, en_texte, Jour};
 use crate::Avis;
 use socle::fichiers::{repr, vrai};
@@ -407,7 +408,7 @@ pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<Value> {
 /// declare, avec son motif et ses DEUX dates entieres (65.002 et 65.003) -- la meme dans chaque mois qu'elle traverse,
 /// sans recopie (cahier technique DSN 2026.1, bloc S21.G00.65 p. 281, `atelier/reference/norme-dsn/texte/bloc-S21.G00.65.txt`).
 pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &str) -> Resultat<Vec<Value>> {
-    let cle = en_texte(g(&paie.salarie, "_cle"));
+    let cle = paie.salarie.id.to_string();
     let e = &paie.engagement;
     let qui = ctx.nomme(&cle);
     let mut out = Vec::new();
@@ -567,7 +568,7 @@ la compte, a reprendre a la main.",
 
 /// Les arrets du magasin qui suspendent ce contrat et croisent [debut, fin] (le FCTU les reporte, bloc 60).
 pub fn arrets_du_contrat(ctx: &Contexte, paie: &crate::calcul::Paie, debut: &Jour, fin: &Jour) -> Resultat<Vec<Value>> {
-    let cle = en_texte(g(&paie.salarie, "_cle"));
+    let cle = paie.salarie.id.to_string();
     let mut out = Vec::new();
     for imp in du_salarie(&ctx.racine, &cle)? {
         if est_un_arret(&imp) && du_contrat(&imp, &cle, paie.engagement.numero.as_deref(), &paie.engagement.debut)? && croise(&imp, debut, fin)? {
@@ -607,9 +608,9 @@ fn taux_exact(montant: Decimal, quantite: Decimal) -> Value {
 /// LA FICHE DU SALARIE D'UN IMPREVU, rattachee a l'etablissement du contrat qu'il suspend (`calcul::etablissement_du_contrat`) :
 /// un signalement d'arret porte l'etablissement de la derniere DSN mensuelle du contrat (cahier technique DSN 2026.1,
 /// § 2.5.1, p. 67). Le contrat se lit dans la saisie du mois ou il commence ; introuvable, la fiche telle quelle.
-pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<Value> {
-    let fiche = ctx.salarie(&s(imp, "salarie"))?;
-    let cle = en_texte(g(&fiche, "_cle"));
+pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<SalarieDuContrat> {
+    let fiche = SalarieDuContrat::de(ctx.salarie(&s(imp, "salarie"))?);
+    let cle = fiche.id.to_string();
     let Some(debut) = Some(g(imp, "contrat_debut")).filter(|v| vrai(v)).map(d).transpose()? else { return Ok(fiche) };
     let mois = debut.mois_civil().to_string();
     let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { return Ok(fiche) };
@@ -622,12 +623,7 @@ pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<Value> {
             continue;
         }
         let mut f = fiche;
-        if let Some(o) = f.as_object_mut() {
-            match g(e, "etablissement").as_str().map(str::trim).filter(|n| !n.is_empty()) {
-                Some(n) => o.insert("etablissement".into(), Value::String(n.to_string())),
-                None => o.remove("etablissement"),
-            };
-        }
+        f.etablissement = g(e, "etablissement").as_str().map(str::trim).filter(|n| !n.is_empty()).map(str::to_string);
         return Ok(f);
     }
     Ok(fiche)
@@ -636,7 +632,7 @@ pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<Value> {
 /// La cle de la fiche du salarie d'un engagement de saisie.
 fn cle_de(ctx: &Contexte, e: &Value) -> Resultat<String> {
     let nom = en_texte(g(e, "salarie"));
-    Ok(en_texte(g(&ctx.salarie(&nom)?, "_cle")))
+    Ok(ctx.cle_du_salarie(&nom)?.to_string())
 }
 
 /// Les imprevus du contrat d'un engagement de saisie qui croisent le mois, du premier au dernier jour.

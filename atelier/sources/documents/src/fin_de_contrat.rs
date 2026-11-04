@@ -33,7 +33,7 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
             format!("Certificat de travail : le contrat {} n'a pas de date de fin. Il se délivre à l'expiration du contrat (L1234-19).", numero),
         ));
     };
-    let cle = p.salarie.get("_cle").map(en_texte).unwrap_or_default();
+    let cle = p.salarie.id.to_string();
     let ent = ctx.entreprise_et_gabarits();
     let poste = ctx.gabarits();
     let certificat = sortie.join(format!("CertificatTravail_{}_{}.pdf", cle, fin.aaaammjj()));
@@ -52,7 +52,8 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
 
 /// Les mentions communes du certificat de travail et du reçu.
 fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>> {
-    let s = &p.salarie;
+    // Les marqueurs du certificat nomment les cases de la fiche : elle se lit ici en JSON.
+    let s = &p.salarie.en_valeur();
     let e = &p.engagement;
     let req = |v: &Value, k: &str| -> R<String> { v.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
     let ou_vide = |v: &Value, k: &str| -> String { v.get(k).map(en_texte).unwrap_or_default() };

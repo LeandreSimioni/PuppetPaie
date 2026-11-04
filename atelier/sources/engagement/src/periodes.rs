@@ -13,7 +13,6 @@ use droit::reduction::{reduction_au_coefficient, reduction_generale};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use crate::{Avis, Engagement};
-use socle::fichiers::vrai;
 use socle::num::{dec, eur2, Decimal, Resultat};
 
 
@@ -126,7 +125,7 @@ fn poser_reduction(p: &mut Paie, rg: Option<ReductionGenerale>) {
 
 /// Le statut (artiste, technicien) d'une periode, lu comme le bareme le lit : vide, un artiste.
 fn statut(p: &Paie) -> String {
-    p.salarie.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into())
+    p.salarie.statut.dite().map_or("artiste", |s| s.as_str()).to_string()
 }
 
 /// La paie du mois de `eng`, somme de ses periodes elementaires `parts` (dans l'ordre des jours), qu'elle garde
@@ -273,7 +272,7 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
         .iter()
         .filter_map(|p| p.engagement.periode.map(|b| (p, b)))
         .map(|(p, (d, f))| {
-            let cadre = if p.salarie.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01") { "cadre" } else { "non cadre" };
+            let cadre = if droit::bareme::est_cadre(&p.salarie) { "cadre" } else { "non cadre" };
             format!(
                 "du {} au {} ({}, {} h, brut {})",
                 d.jj_mm_aaaa(),

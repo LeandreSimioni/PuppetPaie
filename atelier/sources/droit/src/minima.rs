@@ -31,16 +31,16 @@ pub fn table() -> Resultat<Arc<Value>> {
 /// (`minima-conventionnels.json`, `_regles_1734`). Le contrat le déclare (S21.G00.40.017), le bulletin l'imprime, le
 /// minimum lit sa grille. Artiste-interprète se lit au métier du catalogue (familles « Artistes », « Cirque et rue ») :
 /// un métier hors catalogue ne dit pas s'il l'est, l'IDCC se refuse (règle 1).
-pub fn idcc_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<String> {
+pub fn idcc_du_contrat(ent: &Value, sp: &Value, sal: &crate::fiche::ChampsSalarie) -> Resultat<String> {
     let texte = |v: &Value, k: &str, defaut: &str| match g(v, k) {
         x if vrai(x) => en_texte(x),
         _ => defaut.to_string(),
     };
     let idcc = texte(ent, "idcc", "");
-    if (idcc != "2642" && idcc != "3241") || !vrai(g(sp, "emission_tv_1734")) || texte(sal, "statut", "artiste") != "artiste" {
+    if (idcc != "2642" && idcc != "3241") || !vrai(g(sp, "emission_tv_1734")) || sal.statut.dite().is_some_and(|s| *s != crate::fiche::Statut::Artiste) {
         return Ok(idcc);
     }
-    let code = Some(g(sal, "code_emploi_ft")).filter(|c| vrai(c)).map(en_texte);
+    let code = sal.code_emploi_ft.dite().filter(|c| !c.is_empty()).cloned();
     let metier = match &code {
         Some(c) => crate::emplois::metier(c)?,
         None => None,
@@ -52,7 +52,7 @@ pub fn idcc_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<String>
              complément (convention de l'entreprise). Choisir un métier du catalogue.",
             texte(sp, "titre", ""),
             code.unwrap_or_else(|| "(aucun)".into()),
-            texte(sal, "nom", "ce salarié")
+            sal.nom.dite().filter(|n| !n.is_empty()).cloned().unwrap_or_else(|| "ce salarié".to_string())
         )),
         Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => Ok("1734".into()),
         Some(_) => Ok(idcc),

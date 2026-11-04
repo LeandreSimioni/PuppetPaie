@@ -131,7 +131,7 @@ pub fn est_perime(e: &Value, le: Jour) -> bool {
 /// Vrai seulement si la fiche est la ET qu'elle n'a pas de NIR.
 pub fn sans_nir(ctx: &Contexte, cle: &str) -> bool {
     match ctx.salaries.get(cle) {
-        Some(f) => !f.get("nir").filter(|n| vrai(n)).map_or(false, |n| !en_texte(n).trim().is_empty()),
+        Some(f) => f.nir.texte().trim().is_empty(),
         None => false,
     }
 }
@@ -437,12 +437,8 @@ pub fn empreinte(ctx: &Contexte, cle_notee: &str) -> Option<String> {
 
 /// La fiche d'un salarie sans ses taux recus : ce qu'une paie lit de la fiche hors du taux, qu'elle lit au jour de son
 /// versement (`taux_dgfip`). Un taux recu ne fait recalculer que la paie dont il change le taux.
-pub fn sans_taux_recus(fiche: &Value) -> Value {
-    let mut f = fiche.clone();
-    if let Some(o) = f.as_object_mut() {
-        o.remove(CHAMP);
-    }
-    f
+pub fn sans_taux_recus(fiche: &crate::fiche::ChampsSalarie) -> crate::fiche::ChampsSalarie {
+    crate::fiche::ChampsSalarie { taux_pas: crate::fiche::Case::Absente, ..fiche.clone() }
 }
 
 /// Le prelevement d'UN versement. Un triplet s'applique tel quel, sur la
@@ -535,14 +531,14 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>, mois: Option<&str>
 }
 
 fn archive(ctx: &Contexte, cle: &str) -> bool {
-    ctx.salaries.get(cle).map_or(false, |f| vrai(f) && f.get("actif") == Some(&Value::Bool(false)))
+    ctx.salaries.get(cle).is_some_and(|f| f.archivee())
 }
 
 /// Le meme tableau pour plusieurs salaries, dans l'ordre alphabetique. Sans liste : ceux des fiches, moins les archives.
 pub fn diagnostic(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>, mois: Option<&str>) -> Resultat<Vec<Value>> {
     let cles: BTreeSet<String> = match cles {
         Some(c) => c.iter().cloned().collect(),
-        None => ctx.salaries.keys().filter(|c| !archive(ctx, c)).cloned().collect(),
+        None => ctx.salaries.keys().filter(|c| !archive(ctx, c)).map(|c| c.to_string()).collect(),
     };
     cles.iter().map(|c| situation(ctx, c, le, mois)).collect()
 }

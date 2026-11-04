@@ -399,7 +399,8 @@ annule-et-remplace (type 03)."
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
     let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
     let ent = &ctx.entreprise;
-    let salarie = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
+    let fiche = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
+    let salarie = fiche.en_valeur();
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -446,7 +447,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.06.002", req(ent, "nic")?)?;
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = droit::bareme::entreprise_du_salarie(ent, &salarie)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, &fiche)?;
     f.add_v("S21.G00.11.001", req(&etab, "nic")?)?;
     f.add_v("S21.G00.11.003", req(&etab, "adresse")?)?;
     f.add_v("S21.G00.11.004", req(&etab, "code_postal")?)?;
@@ -470,7 +471,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.30.004", req(&salarie, "prenom")?)?;
     f.add("S21.G00.30.006", d(req(&salarie, "date_naissance")?)?.jjmmaaaa());
     f.add_v("S21.G00.30.019", req(&salarie, "code_salarie")?)?;
-    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &salarie, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
+    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &fiche, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());

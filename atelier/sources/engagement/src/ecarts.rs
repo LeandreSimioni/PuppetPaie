@@ -241,8 +241,8 @@ fn comparer_une(
     // chaque fois sous le sien.
     let imprime = p.get("emploi_imprime").and_then(Value::as_object);
     let du_bulletin = |k: &str| imprime.and_then(|m| m.get(k)).filter(|x| vrai(x));
-    c.statut = du_bulletin("statut").or(fiche.get("statut").filter(|x| vrai(x))).map(en_texte);
-    c.cadre = du_bulletin("statut_categoriel_rc").or(fiche.get("statut_categoriel_rc").filter(|x| vrai(x))).map(|s| en_texte(s) == "01");
+    c.statut = du_bulletin("statut").map(en_texte).or_else(|| fiche.statut.dite().map(|s| s.as_str().to_string()));
+    c.cadre = du_bulletin("statut_categoriel_rc").map(|s| en_texte(s) == "01").or_else(|| fiche.statut_categoriel_rc.dite().map(|s| *s == droit::fiche::StatutCategorielRc::Cadre));
     let Some(Value::Array(cotisations)) = p.get("cotisations") else {
         return Err("la paie importée n'a pas de bulletin : la DSN seule ne porte pas ses lignes de cotisation".into());
     };

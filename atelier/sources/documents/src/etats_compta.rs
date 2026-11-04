@@ -1112,7 +1112,7 @@ fn provision_d_une_annee_importee(
     let premier_importe = importes.first().cloned().unwrap_or_default();
     let mut lecture = crate::etats_paie::Lecture::nouvelle(ctx, &d.departs);
     let mut sans_compteur = 0;
-    let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_else(|| p.engagement.salarie.clone());
+    let cle_de = |p: &engagement::calcul::Paie| p.salarie.id.to_string();
     // Les salaries dont un contrat repris court au-dela du dernier jour repris : sans fin, ou une fin apres lui.
     let continuent: BTreeSet<String> = engagement::importe::contrats_lus(&ctx.racine)
         .map_err(ko)?
@@ -1140,7 +1140,7 @@ fn provision_d_une_annee_importee(
         if a_provisionner.iter().any(|(c, ..)| *c == cle) {
             continue;
         }
-        let date = ctx.salaries.get(&cle).and_then(|f| f.pointer("/conges_reprise/date")).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        let date = ctx.salaries.get(cle.as_str()).and_then(|f| f.conges_reprise.dite()).and_then(|r| r.date.dite()).map(|j| j.iso()).unwrap_or_default();
         let Some(mut cpt) = engagement::conges::compteur_a_la_reprise(ctx, &cle).map_err(ko)?.filter(|_| date == lendemain.iso()) else {
             avert.push(format!(
                 "{} : sa fiche ne dit pas ses congés payés au {} (« Congés payés à la reprise », recopiés de son dernier bulletin repris) : son compteur ne se lit pas, il n'est pas dans la provision.",
@@ -1185,7 +1185,7 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert: Vec<String> = Vec::new();
     let zero = zero2();
-    let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_else(|| p.engagement.salarie.clone());
+    let cle_de = |p: &engagement::calcul::Paie| p.salarie.id.to_string();
     // CE QUI SE PROVISIONNE, salarie par salarie : (cle, contrat, nature, compteur et indemnite a la fin du mois `m`).
     let mut a_provisionner: Vec<(String, String, String, engagement::conges::Provision)> = Vec::new();
     let saisis = p.saisis();
@@ -1245,12 +1245,12 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             avert.push(format!("{} : aucun bulletin de PuppetPaie sur les douze derniers mois — le taux des charges patronales ne se lit pas, la colonne reste vide.", cle));
         }
         let charges = taux.map(|t| eur(div(mul(retenu, t), Decimal::ONE_HUNDRED)));
-        let fiche = ctx.salaries.get(&cle).cloned().unwrap_or(Value::Object(Map::new()));
-        let nom = match fiche.get("nom").filter(|v| vrai(v)) {
-            Some(v) => valeur_en_texte(v),
-            None => cle.clone(),
+        let fiche = ctx.salaries.get(cle.as_str());
+        let nom = match fiche.map_or("", |f| f.nom.texte()) {
+            "" => cle.clone(),
+            n => n.to_string(),
         };
-        let prenom = texte_ou_vide(fiche.get("prenom"));
+        let prenom = fiche.map_or("", |f| f.prenom.texte()).to_string();
         let mut l = Ligne::nouvelle();
         l.t("salarie", format!("{} {}", nom, prenom));
         l.t("contrat", contrat).t("nature", nature);
@@ -1398,7 +1398,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             if pa.engagement.sans_paie() {
                 continue;
             }
-            let cle = pa.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
+            let cle = pa.salarie.id.to_string();
             if !par.contains_key(&cle) {
                 ordre.push(cle.clone());
                 par.insert(cle.clone(), (crate::tableaux_export::qui_souple(&pa.salarie), zero, zero, BTreeSet::new()));

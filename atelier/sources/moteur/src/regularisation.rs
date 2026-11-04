@@ -397,7 +397,7 @@ fn avant_apres(mois: &str, avant: Option<&Paie>, apres: &Paie) -> R<Value> {
     Ok(json!({
         "infos_dit": infos_dit,
         "portee_dit": "prochaine DSN",
-        "salarie": valeur_en_texte(apres.salarie.get("_cle").unwrap_or(&Value::Null)),
+        "salarie": apres.salarie.id.to_string(),
         "debut": apres.engagement.debut.iso(),
         "nom": nom_de(apres),
         "spectacle": apres.titre()?,

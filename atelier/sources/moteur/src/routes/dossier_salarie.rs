@@ -373,7 +373,7 @@ fn nom_salarie(cle: &str) -> String {
 // ------------------------------------------------------------------ les mois PuppetPaie
 
 pub(crate) fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
+    p.salarie.id.to_string()
 }
 
 /// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies

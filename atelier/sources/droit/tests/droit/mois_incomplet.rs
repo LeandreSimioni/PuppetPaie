@@ -39,7 +39,7 @@ fn un_mois_incomplet_se_paie_a_l_horaire_reel() {
 /// lundi au vendredi, ce serait 12 sur 22) ; 35 h sur cinq jours font 7 h par jour.
 #[test]
 fn les_heures_du_mois_se_comptent_sur_les_jours_travailles_de_la_fiche() {
-    let jours = JoursTravailles::de_la_fiche(&json!({"jours_travailles": ["mardi", "mercredi", "jeudi", "vendredi", "samedi"]}))
+    let jours = JoursTravailles::lire(&json!(["mardi", "mercredi", "jeudi", "vendredi", "samedi"]), "le salarie")
         .unwrap();
     assert_eq!(jours.en_mots(), "du mardi au samedi");
     let horaire = Horaire { jours, feries_non_payes: Vec::new() };
@@ -47,8 +47,8 @@ fn les_heures_du_mois_se_comptent_sur_les_jours_travailles_de_la_fiche() {
         .unwrap();
     assert_eq!((p.jours, p.jours_du_mois), (13, 23));
     assert_eq!(p.sur_le_bulletin(droit::conges::heures_par_jour(Decimal::new(15167, 2), &jours)).as_deref(), Some("91 h sur les 161 h du mois"));
-    assert!(JoursTravailles::de_la_fiche(&json!({"jours_travailles": []})).is_err());
-    assert!(JoursTravailles::de_la_fiche(&json!({"jours_travailles": ["lundi", "jour de fete"]})).is_err());
+    assert!(JoursTravailles::lire(&json!([]), "le salarie").is_err());
+    assert!(JoursTravailles::lire(&json!(["lundi", "jour de fete"]), "le salarie").is_err());
 }
 
 /// L3133-3 (`atelier/reference/sources/code-du-travail/articles-20261029.md`, l. 113) : le chomage d'un ferie n'entraine

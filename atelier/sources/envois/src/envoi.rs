@@ -334,21 +334,21 @@ pub fn preparer_avec(
     let (an, etiq, nom_mois) = (m.annee(), m.etiquette(), m.nom(socle::mois::Graphie::Accentuee));
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
-    let salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
-    let cle_de = |s: &Value| -> Result<String, String> { Ok(en_texte(s.get("_cle").ok_or_else(|| cle_absente("_cle"))?)) };
-    for s in &salaries {
+    let cle_de = |s: &droit::fiche::SalarieDuContrat| -> Result<String, String> { Ok(s.id.to_string()) };
+    for p in paies {
+        let s = &p.salarie;
         let cle = cle_de(s)?;
         if vus.contains(&cle) {
             continue;
         }
         vus.push(cle.clone());
-        let texte = |k: &str| -> Result<String, String> { Ok(en_texte(s.get(k).ok_or_else(|| cle_absente(k))?)) };
-        let email = s.get("email").filter(|v| vrai(v));
+        let texte = |c: &droit::fiche::Case<String>, k: &str| -> Result<String, String> { if c.est_absente() { Err(cle_absente(k)) } else { Ok(c.texte().to_string()) } };
+        let email = s.email.dite().filter(|e| !e.is_empty());
         let Some(email) = email else {
             return Err(format!(
                 "Pas d'adresse e-mail pour {} {} : saisir son courriel dans sa fiche, ou imprimer ses documents.",
-                texte("nom")?,
-                texte("prenom")?
+                texte(&s.nom, "nom")?,
+                texte(&s.prenom, "prenom")?
             ));
         };
         let mut pieces = Vec::new();
@@ -392,7 +392,7 @@ pub fn preparer_avec(
         let courts: Vec<&str> = presents.iter().map(|c| chercher(&COURTS, c)).collect();
         let renvoi = renvois.get(&cle);
         let champs = [
-            ("prenom", texte("prenom_affichage")?),
+            ("prenom", texte(&s.prenom_affichage, "prenom_affichage")?),
             ("mois", nom_mois.to_string()),
             ("de_mois", socle::texte::de(nom_mois)),
             ("annee", an.to_string()),
@@ -417,8 +417,8 @@ pub fn preparer_avec(
         };
         messages.push(Message {
             cle: cle.clone(),
-            nom: format!("{} {}", texte("prenom_affichage")?, texte("nom")?),
-            destinataire: en_texte(email).to_lowercase(),
+            nom: format!("{} {}", texte(&s.prenom_affichage, "prenom_affichage")?, texte(&s.nom, "nom")?),
+            destinataire: email.to_lowercase(),
             sujet,
             corps,
             pieces,

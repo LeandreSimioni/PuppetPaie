@@ -355,7 +355,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let etiq = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::etiquette).map_err(|e| erreur("ValueError", e))?;
     let sortie = ctx.racine.join("sorties").join(&mois);
-    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.as_deref().unwrap_or_default().to_string()) };
+    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.id.to_string(), p.engagement.numero.as_deref().unwrap_or_default().to_string()) };
 
     // LES DPAE A FAIRE DU MOIS (`Moteur::embauches_a_declarer`, la seule liste) : une embauche deja partie en DPAE
     // reelle, ou un contrat en cours depuis un mois precedent (sa DPAE part avec son premier mois), n'y est pas.

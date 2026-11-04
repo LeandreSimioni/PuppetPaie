@@ -120,11 +120,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, 
         };
         let brut = eur2(p.brut);
         ajouter(&mut brut_par_spectacle, titre.clone(), brut);
-        let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => valeur_en_texte(v),
-            None => p.salarie.get("prenom").map(valeur_en_texte).unwrap_or_default(),
-        };
-        let qui = format!("{} {}", valeur_en_texte(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?), prenom);
+        let qui = crate::tableaux_export::qui(&p.salarie)?;
         let mut retenu = zero;
         for l in p.remuneration.iter().filter(|l| !l.soumis) {
             if catalogue::rubrique(&ctx.racine, &l.code, &ctx.lue_au).and_then(|r| r.hors_assiette()).map_err(refus)? != HorsAssiette::Mouvement {
@@ -152,7 +148,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, 
         let prelevement = eur2(pas.as_ref().map_or(zero, |v| v.prelevement));
         pas_du_mois += prelevement;
         ajouter(&mut net_par_salarie, qui.clone(), eur2(p.net_a_payer) - prelevement);
-        let cle_salarie = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        let cle_salarie = p.salarie.id.to_string();
         let compte = compte_du_salarie(plan, &p.salarie, &cle_salarie).map_err(|r| match r {
             Refus::Operation(m) => refus(m),
             Refus::Autre(e) => e,

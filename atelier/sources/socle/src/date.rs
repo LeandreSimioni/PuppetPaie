@@ -432,3 +432,21 @@ pub fn jour_iso(texte: &str) -> Option<Jour> {
 pub fn jj_mm_aaaa(iso: &str) -> String {
     jour_iso(&iso.chars().take(10).collect::<String>()).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|| iso.to_string())
 }
+
+/// UN JOUR DANS UNE DONNEE LUE (`serde`) : la forme qu'ecrit le moteur, `AAAA-MM-JJ`, et elle seule ; il s'ecrit de meme.
+/// Les autres formats de `lire` sont ceux d'une saisie ou d'une piece, qui se lisent avant d'entrer dans une donnee.
+impl serde::Serialize for Jour {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&self.iso())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Jour {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Jour, D::Error> {
+        let s = String::deserialize(d)?;
+        match Jour::lire(&s) {
+            Ok(j) if j.iso() == s => Ok(j),
+            _ => Err(serde::de::Error::custom(format!("{} n'est pas une date AAAA-MM-JJ", repr_texte(&s)))),
+        }
+    }
+}

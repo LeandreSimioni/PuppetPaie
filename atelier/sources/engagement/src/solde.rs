@@ -93,7 +93,8 @@ fn profil(ctx: &Contexte, e: &Value) -> Resultat<Value> {
         .get("salarie")
         .and_then(|s| s.as_str())
         .and_then(|s| ctx.salarie(s).ok())
-        .unwrap_or_else(|| json!({}));
+        .map(|f| f.champs)
+        .unwrap_or_default();
     clauses::profil(idcc(ctx), &fiche, Some(e))
 }
 
@@ -103,7 +104,7 @@ fn age(ctx: &Contexte, e: &Value) -> Resultat<Option<Decimal>> {
         .get("salarie")
         .and_then(|s| s.as_str())
         .and_then(|s| ctx.salarie(s).ok())
-        .and_then(|f| d(f.get("date_naissance").unwrap_or(&NUL)).ok())
+        .and_then(|f| f.date_naissance.dite().copied())
     else {
         return Ok(None);
     };

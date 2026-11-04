@@ -145,7 +145,7 @@ pub fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &
         let mut un = Map::new();
         un.insert("valeurs".into(), valeurs_en_ordre(&v, &[]));
         let cle = (
-            p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).unwrap_or_default(),
+            p.salarie.id.to_string(),
             p.engagement.debut.iso(),
             p.engagement.numero.as_deref().unwrap_or_default().to_string(),
         );

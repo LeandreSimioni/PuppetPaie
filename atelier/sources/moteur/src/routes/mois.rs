@@ -21,7 +21,7 @@ use crate::routes::rappels::texte;
 use engagement::calcul::Paie;
 use engagement::Avis;
 use droit::catalogue;
-use droit::contexte::{archivee, Contexte};
+use droit::contexte::Contexte;
 use droit::emplois;
 use engagement::{self, Engagement};
 use envois::etats::{get, items, ou, Dico};
@@ -326,7 +326,7 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
     for (e, p) in tous.iter().zip(&paies) {
         let Some(brut) = e.as_object() else { return Ok(saisie.clone()) };
         let mut resolu = brut.clone();
-        resolu.insert("salarie".into(), p.salarie.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
+        resolu.insert("salarie".into(), Value::from(p.salarie.id.clone()));
         // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit.
         if vrai(&p.spectacle) {
             resolu.insert("spectacle".into(), p.spectacle.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
@@ -963,12 +963,12 @@ fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
 /// « NOM Prénom » d'une clé de salarié (la clé elle-même si elle est inconnue).
 fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
     let sal = match cle {
-        Value::String(s) => ctx.salaries.get(s).filter(|x| vrai(x)),
+        Value::String(s) => ctx.salaries.get(s.as_str()),
         Value::Array(_) | Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(cle)))),
         _ => None,
     };
     Ok(match sal {
-        Some(s) => socle::texte::salarie_nomme_ou(Some(s), &valeur_en_texte(cle)),
+        Some(s) => s.nomme().unwrap_or_else(|| valeur_en_texte(cle)),
         None => valeur_en_texte(cle),
     })
 }
@@ -1735,10 +1735,11 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
     let iso = |j: &Jour| Value::String(j.iso());
     let s = &p.salarie;
     let requis = |v: &Value, k: &str| v.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
+    let exige = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(c.en_valeur()) };
     let sal_vue = json!({
-        "cle": s.get("_cle").cloned().unwrap_or(Value::Null),
-        "nom": requis(s, "nom")?,
-        "prenom": match s.get("prenom_affichage") { Some(x) if vrai(x) => x.clone(), _ => requis(s, "prenom")? },
+        "cle": s.id.to_string(),
+        "nom": exige(&s.nom, "nom")?,
+        "prenom": if s.prenom_affichage.texte().is_empty() { exige(&s.prenom, "prenom")? } else { s.prenom_affichage.en_valeur() },
     });
     let spectacle = if vrai(&p.spectacle) {
         json!({ "titre": requis(&p.spectacle, "titre")?, "numero_objet": p.spectacle.get("numero_objet").cloned().unwrap_or(Value::Null) })
@@ -1776,8 +1777,8 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         m.push(bornes);
         let paye = p.paye_en_bref();
         m.push(if paye.is_empty() { "—".to_string() } else { paye });
-        if let Some(emploi) = s.get("emploi").and_then(Value::as_str).filter(|x| !x.is_empty()) {
-            let cadre = if s.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01") { " (cadre)" } else { "" };
+        if let Some(emploi) = s.emploi.dite().filter(|x| !x.is_empty()) {
+            let cadre = if droit::bareme::est_cadre(s) { " (cadre)" } else { "" };
             m.push(format!("{}{}", emploi.to_lowercase(), cadre));
         }
         m.push(format!("brut {}", socle::texte::euros(p.brut)));
@@ -1859,10 +1860,10 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         "avertissements": avis.iter().filter(|a| !a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
         "informations": avis.iter().filter(|a| a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
         "emploi": {
-            "libelle": s.get("emploi").cloned().unwrap_or(Value::Null),
-            "code_emploi_ft": s.get("code_emploi_ft").cloned().unwrap_or(Value::Null),
-            "statut": s.get("statut").cloned().unwrap_or(Value::Null),
-            "cadre": s.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01"),
+            "libelle": s.emploi.en_valeur(),
+            "code_emploi_ft": s.code_emploi_ft.en_valeur(),
+            "statut": s.statut.en_valeur(),
+            "cadre": droit::bareme::est_cadre(s),
         },
     });
     Ok(d)
@@ -1900,11 +1901,11 @@ pub(crate) fn chevrons_dits(e: &engagement::Engagement) -> R<Value> {
 pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for p in paies {
-        if archivee(&p.salarie) {
+        if p.salarie.archivee() {
             out.push(format!(
                 "{} : sa fiche est archivee. Pour refaire une paie passee, rien a faire ; pour une nouvelle embauche, la \
                  reactiver (Configuration › Salaries, « Reactiver »).",
-                socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié")
+                p.salarie.nomme().unwrap_or_else(|| ("Ce salarié").to_string())
             ));
         }
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit

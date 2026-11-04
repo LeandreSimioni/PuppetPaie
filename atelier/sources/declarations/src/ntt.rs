@@ -122,9 +122,9 @@ pub fn nir_de(salarie: &Value) -> String {
     strip(&chaine(salarie, "nir")).to_string()
 }
 
-/// La fiche datee du salarie `salarie` (par sa `_cle`), ou rien.
-pub fn brute(ctx: &droit::contexte::Contexte, salarie: &Value) -> Value {
-    salarie.get("_cle").and_then(Value::as_str).and_then(|c| ctx.salarie_brut(c)).cloned().unwrap_or(Value::Null)
+/// La fiche datee du salarie `salarie`, ou rien.
+pub fn brute(ctx: &droit::contexte::Contexte, salarie: &droit::contexte::IdSalarie) -> Value {
+    ctx.salarie_brut(salarie.as_str()).cloned().unwrap_or(Value::Null)
 }
 
 /// S21.G00.30.001, quand il y en a un -- et rien du tout sinon.

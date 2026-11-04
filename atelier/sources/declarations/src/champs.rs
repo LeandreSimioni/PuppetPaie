@@ -1025,8 +1025,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     }
     // Les jours travailles d'un permanent : ceux que le calcul lira (`droit::conges::JoursTravailles`).
     if c.cle == "jours_travailles" {
-        let fiche = serde_json::json!({ "jours_travailles": valeur });
-        return Ok(droit::conges::JoursTravailles::de_la_fiche(&fiche).err().map(|e| {
+        return Ok(droit::conges::JoursTravailles::lire(valeur.unwrap_or(&Value::Null), "le salarie").err().map(|e| {
             e.split_once(" : ").map_or(e.clone(), |(_, m)| m.to_string())
         }));
     }

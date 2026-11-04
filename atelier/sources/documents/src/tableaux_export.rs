@@ -870,22 +870,20 @@ pub fn jj(iso: &str) -> String {
 }
 
 /// « NOM Prenom ».
-pub fn qui(fiche: &Value) -> R<String> {
-    let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => valeur_en_texte(v),
-        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
-    };
-    let nom = fiche.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
-    Ok(format!("{} {}", valeur_en_texte(nom), prenom))
+pub fn qui(fiche: &droit::fiche::ChampsSalarie) -> R<String> {
+    if fiche.nom.est_absente() {
+        return Err(erreur("KeyError", socle::fichiers::absent("nom")));
+    }
+    Ok(qui_souple(fiche))
 }
 
 /// Le « qui » d'une fiche qui n'a peut-etre pas de nom.
-pub fn qui_souple(fiche: &Value) -> String {
-    let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => valeur_en_texte(v),
-        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
+pub fn qui_souple(fiche: &droit::fiche::ChampsSalarie) -> String {
+    let prenom = match fiche.prenom_affichage.texte() {
+        "" => fiche.prenom.texte(),
+        p => p,
     };
-    format!("{} {}", fiche.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom)
+    format!("{} {}", fiche.nom.texte(), prenom)
 }
 
 /// Un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).

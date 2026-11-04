@@ -303,7 +303,7 @@ ne couvre (Configuration › Entreprise › Avancé, « Autres établissements �
 /// pour le recapitulatif seulement -- le spectacle.
 #[derive(Debug, Clone)]
 pub struct Embauche {
-    pub salarie: Value,
+    pub salarie: droit::fiche::SalarieDuContrat,
     pub debut: Value,
     pub fin: Value,
     /// La cle de nature ; `None` : la nature par defaut.
@@ -313,7 +313,7 @@ pub struct Embauche {
 
 impl Embauche {
     pub fn lire(v: &Value) -> Resultat<Embauche> {
-        let salarie = v.get("salarie").filter(|s| s.is_object()).cloned().ok_or_else(|| socle::echec::charge("salarie", "un objet"))?;
+        let salarie = droit::fiche::SalarieDuContrat::lire(v.get("salarie").filter(|s| s.is_object()).ok_or_else(|| socle::echec::charge("salarie", "un objet"))?)?;
         Ok(Embauche {
             salarie,
             debut: v.get("debut").cloned().unwrap_or(Value::Null),
@@ -395,7 +395,8 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         ecrire_zone(&mut buf, a, b, v);
     }
 
-    let s = &e.salarie;
+    // Les zones de la DPAE se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
+    let s = &e.salarie.en_valeur();
     // LE SEXE VIENT DU NIR QUAND IL Y EN A UN, de la fiche sinon : c'est la
     // meme lecture que pour le numero technique temporaire de la DSN
     // (`ntt.rs`), et il n'y en a qu'une dans le logiciel.
@@ -459,9 +460,8 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     // zones D_NAISSANCE_SAL, L_LIEU_NAISS_SAL et le departement de naissance, « O », et le sexe sans NIR, zone SEXE,
     // `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`) : tout ce qui manque, d'un coup, avant d'ecrire.
     let mut fiches: Vec<(&str, String, &Value)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), e)).into_iter().collect();
-    for e in embauches {
-        fiches.push(("salarie", format!("la fiche de {}", socle::texte::salarie_nomme_ou(Some(&e.salarie), "")), &e.salarie));
-    }
+    let vues: Vec<(String, Value)> = embauches.iter().map(|e| (format!("la fiche de {}", e.salarie.nomme().unwrap_or_default()), e.salarie.champs.en_valeur())).collect();
+    fiches.extend(vues.iter().map(|(qui, v)| ("salarie", qui.clone(), v)));
     if let Some(m) = crate::champs::refus_des_manques("dpae", &fiches, &[]).map_err(|e| e.message)? {
         return Err(m);
     }
@@ -637,7 +637,7 @@ pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat
     );
     let mut lignes: Vec<String> = vec!["DPAE - a declarer avant le debut de chaque contrat".into(), String::new()];
     for e in embauches {
-        let s = &e.salarie;
+        let s = &e.salarie.en_valeur();
         let nat = nature_de(e)?;
         // Un permanent n'a ni terme ni spectacle : la nature du contrat le
         // situe, comme sur le bulletin (`calcul.Paie.__str__`). Ce texte se
@@ -882,9 +882,10 @@ mod tests {
                "emploi": "Comedienne"})
     }
 
-    fn embauche(s: Value, nature: &str, fin: Value) -> Embauche {
+    fn embauche(mut s: Value, nature: &str, fin: Value) -> Embauche {
+        s["_cle"] = json!("DUPONT");
         Embauche {
-            salarie: s,
+            salarie: droit::fiche::SalarieDuContrat::lire(&s).unwrap(),
             debut: json!("2026-10-01"),
             fin,
             nature: Some(nature.to_string()),

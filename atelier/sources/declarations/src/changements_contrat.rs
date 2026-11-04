@@ -155,10 +155,10 @@ fn changements_dates(brute: &Value, champs: &[&str]) -> Resultat<Vec<(Jour, Stri
 
 /// « NOM Prénom, contrat <numéro> » : qui la phrase de refus désigne.
 fn qui(p: &Paie) -> String {
-    let cle = p.salarie.get("_cle").and_then(Value::as_str).unwrap_or("");
+    let cle = p.salarie.id.as_str();
     format!(
         "{}, contrat {}",
-        socle::texte::salarie_nomme_ou(Some(&p.salarie), cle),
+        p.salarie.nomme().unwrap_or_else(|| cle.to_string()),
         p.engagement.numero.as_deref().unwrap_or("sans numero").to_string()
     )
 }
@@ -176,7 +176,7 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
             candidats.push((j, "la date de modification de la saisie du mois (`date_modification`)".into()));
         }
     }
-    for (j, c) in changements_dates(&crate::ntt::brute(ctx, &p.salarie), md.fiche)? {
+    for (j, c) in changements_dates(&crate::ntt::brute(ctx, &p.salarie.id), md.fiche)? {
         candidats.push((j, format!("la fiche du salarie (`{}`)", c)));
     }
     for (j, c) in changements_dates(ctx.entreprise_brute(), md.entreprise)? {

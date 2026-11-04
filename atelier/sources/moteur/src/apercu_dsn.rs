@@ -179,12 +179,12 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
         }
         let p = &liste[par_numero[n]];
         absents.push(json!({
-            "salarie": p.salarie.get("_cle").cloned().ok_or_else(|| socle::fichiers::absent("_cle"))?,
-            "nom": socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié"),
+            "salarie": p.salarie.id.to_string(),
+            "nom": p.salarie.nomme().unwrap_or_else(|| ("Ce salarié").to_string()),
             "numero": n,
             "debut": p.engagement.debut.iso(),
             "fin": p.engagement.fin.map_or(String::new(), |f| f.iso()),
-            "dit": format!("{} — contrat {}, du {}", socle::texte::salarie_nomme_ou(Some(&p.salarie), "Ce salarié"), n, p.engagement.debut.jj_mm_aaaa()),
+            "dit": format!("{} — contrat {}, du {}", p.salarie.nomme().unwrap_or_else(|| ("Ce salarié").to_string()), n, p.engagement.debut.jj_mm_aaaa()),
             "pastille": crate::routes::pastille("a_faire", "absent du fichier"),
         }));
     }

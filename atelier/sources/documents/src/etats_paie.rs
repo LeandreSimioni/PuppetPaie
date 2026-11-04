@@ -243,8 +243,8 @@ pub fn fiche_texte(fiche: &Value, cle: &str) -> String {
 }
 
 /// La cle de la fiche du salarie (`_cle`) : ce qui distingue deux salaries de meme nom et de meme prenom.
-pub fn cle_de(fiche: &Value) -> R<String> {
-    Ok(valeur_en_texte(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
+pub fn cle_de(fiche: &droit::fiche::FicheSalarie) -> R<String> {
+    Ok(fiche.id.to_string())
 }
 
 /// Le titre du spectacle d'une paie.
@@ -418,13 +418,15 @@ fn regroupement_lisible(r: &str) -> &'static str {
 }
 
 /// Le NIR, la date de naissance et l'adresse d'une fiche, quand le livre porte les coordonnees ; vides sinon.
-fn coordonnees_de(s: &Value, coordonnees: bool) -> (String, String, String) {
+fn coordonnees_de(s: &droit::fiche::ChampsSalarie, coordonnees: bool) -> (String, String, String) {
     if !coordonnees {
         return (String::new(), String::new(), String::new());
     }
-    let a = fiche_texte(s, "adresse_affichage");
-    let adresse = if a.is_empty() { fiche_texte(s, "adresse") } else { a };
-    (fiche_texte(s, "nir"), fiche_texte(s, "date_naissance"), adresse)
+    let adresse = match s.adresse_affichage.texte() {
+        "" => s.adresse.texte(),
+        a => a,
+    };
+    (s.nir.texte().to_string(), s.date_naissance.dite().map(|j| j.iso()).unwrap_or_default(), adresse.to_string())
 }
 
 /// Les lignes du livre pour un mois (`engagement::etats::paies_du_mois` : les paies ecrites des engagements valides, puis
@@ -1136,7 +1138,7 @@ pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             }
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.as_deref().unwrap_or_default().to_string());
-            l.t("nir", if coord { fiche_texte(&paie.salarie, "nir") } else { String::new() });
+            l.t("nir", if coord { paie.salarie.nir.texte().to_string() } else { String::new() });
             l.d("net_imposable", eur2(paie.net_imposable));
             match r {
                 Some(v) => {
@@ -1327,7 +1329,7 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             let derniere = e.dates_travail.last().map(|j| j.iso()).unwrap_or_default();
             let emploi = match e.emploi.clone().filter(|x| !x.is_empty()) {
                 Some(x) => x,
-                None => fiche_texte(&paie.salarie, "emploi"),
+                None => paie.salarie.emploi.texte().to_string(),
             };
             let debut = e.debut.iso();
             let fin = match e.fin {

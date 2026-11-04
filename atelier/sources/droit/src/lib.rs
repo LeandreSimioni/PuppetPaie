@@ -17,6 +17,7 @@ pub mod contexte;
 pub mod echeances;
 pub mod emplois;
 pub mod essai;
+pub mod fiche;
 pub mod heures_en_plus;
 pub mod maintien;
 pub mod majoration_chomage;

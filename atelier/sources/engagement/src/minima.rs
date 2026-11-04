@@ -117,7 +117,9 @@ struct Cx<'a> {
     grille: &'a Value,
     lie_depuis: Option<String>,
     m: &'a Value,
+    /// La fiche, en JSON pour les conditions de la table qui nomment ses cases (`si_salarie`, `anciennete.champ`).
     sal: &'a Value,
+    fiche: &'a droit::fiche::SalarieDuContrat,
     paie: &'a Paie,
     ent: &'a Value,
     annexe: Option<String>,
@@ -241,7 +243,7 @@ impl<'a> Cx<'a> {
 
     /// L'echelon de la CCNEAC : celui de la fiche (1 a 12), ou le premier.
     fn echelon_ccneac(&self) -> (usize, String) {
-        let v = texte_de(self.sal, "echelon_ccneac");
+        let v = self.fiche.echelon_ccneac.texte().to_string();
         let v = v.trim();
         if !v.is_empty() && v.bytes().all(|c| c.is_ascii_digit()) {
             if let Ok(n) = v.parse::<usize>() {
@@ -283,7 +285,7 @@ impl<'a> Cx<'a> {
     /// La fonction d'un metier dans la grille de la 2642 ou de la 3097 : celle de
     /// la fiche quand la grille la connait, sinon celle du catalogue.
     fn fonction(&self, idcc: &str, fonctions: &[&Value]) -> Option<String> {
-        let propre = texte_de(self.sal, "classement_conventionnel");
+        let propre = self.fiche.classement_conventionnel.texte().to_string();
         let propre = propre.trim();
         if !propre.is_empty() && fonctions.iter().any(|f| f.get(propre).is_some()) {
             return Some(propre.to_string());
@@ -570,7 +572,7 @@ impl<'a> Cx<'a> {
         }
         let idcc = self.idcc;
         let classement = {
-            let c = texte_de(self.sal, "classement_conventionnel");
+            let c = self.fiche.classement_conventionnel.texte().to_string();
             let c = c.trim().to_string();
             if c.is_empty() { texte_de(g(self.m, "classement"), idcc) } else { c }
         };
@@ -672,7 +674,7 @@ impl<'a> Cx<'a> {
     /// L'echelon de la grille administrative de la 3090 : 1 sous 5 ans dans la
     /// fonction, puis un de plus par tranche de 5 ans passee, jusqu'au 5e.
     fn echelon_3090(&self) -> Resultat<(usize, String)> {
-        let depuis: String = texte_de(self.sal, "poste_depuis").chars().take(10).collect();
+        let depuis: String = self.fiche.poste_depuis.dite().map(|j| j.iso()).unwrap_or_default();
         let jour = jour_de_paie(self.paie);
         let Some(jour) = jour.filter(|_| !depuis.is_empty()) else {
             return Ok((1, "échelon 1, la fiche ne disant pas depuis quand (`poste_depuis`)".into()));
@@ -868,8 +870,9 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
     if t.get(&idcc).is_none() {
         return Ok(None);
     }
-    let sal = &paie.salarie;
-    let Some(m) = emplois::metier(&texte_de(sal, "code_emploi_ft"))? else { return Ok(None) };
+    let vue = paie.salarie.en_valeur();
+    let sal = &vue;
+    let Some(m) = emplois::metier(paie.salarie.code_emploi_ft.texte())? else { return Ok(None) };
     let nb_cachets = paie
         .remuneration
         .iter()
@@ -888,6 +891,7 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
         lie_depuis,
         m: &m,
         sal,
+        fiche: &paie.salarie,
         paie,
         ent,
         annexe: ou_rien(g(ent, "annexe_convention")),
@@ -989,7 +993,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
     let avis = avec_cx(ctx, paie, |cx| {
         let t = cx.t;
         let idcc = cx.idcc;
-        let qui = socle::texte::salarie_nomme(cx.sal).unwrap_or_default();
+        let qui = cx.fiche.nomme().unwrap_or_default();
         let texte_source = cx.texte_de_la_grille()?;
         let mut avis = Vec::new();
         for (l, saisie) in paie.remuneration.iter().zip(saisies_de(paie)) {
@@ -1069,7 +1073,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
 /// Les lignes visees portent des heures reellement faites (pas un forfait) ;
 /// la comparaison porte sur le total, pas sur un taux reconstitue.
 pub(crate) fn sous_le_smic(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
-    let qui = socle::texte::salarie_nomme(&paie.salarie).unwrap_or_default();
+    let qui = paie.salarie.nomme().unwrap_or_default();
     let jour = paie.engagement.fin_periode()?;
     let smic = dec_f64(ctx.smic(&jour)?)?;
     let mut avis = Vec::new();

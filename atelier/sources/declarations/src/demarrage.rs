@@ -145,9 +145,11 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         }
         out.push(ligne(m, ENTREPRISE.0.to_string(), ENTREPRISE.1, None));
     }
-    for (cle, s) in ctx.salaries.iter().filter(|(_, s)| s.get("actif") != Some(&json!(false))) {
-        let nom = socle::texte::salarie_nomme_ou(Some(s), cle);
-        for m in crate::champs::manquants("salarie", s).unwrap_or_default() {
+    for (cle, s) in ctx.salaries.iter().filter(|(_, s)| !s.archivee()) {
+        let cle = cle.as_str();
+        let nom = s.nomme().unwrap_or_else(|| cle.to_string());
+        // Ce qui manque se lit aux cases par leur nom (`champs-base.json`, `exige_par`) : en JSON.
+        for m in crate::champs::manquants("salarie", &s.champs.en_valeur()).unwrap_or_default() {
             out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), "salarie", Some((cle, &nom))));
         }
     }
@@ -343,7 +345,7 @@ pub fn conges_a_dire(salarie: &str, nom: &str, depuis: &str) -> Value {
 
 /// La reprise des conges de ce salarie est-elle deja dite sur sa fiche (`conges_reprise.date`) ?
 pub fn conges_repris(ctx: &Contexte, salarie: &str) -> bool {
-    ctx.salaries.get(salarie).and_then(|f| f.get("conges_reprise")).and_then(|c| c.get("date")).is_some_and(vrai)
+    ctx.salaries.get(salarie).and_then(|f| f.conges_reprise.dite()).is_some_and(|c| c.date.est_dite())
 }
 
 /// Les permanents dont un contrat commence avant le premier mois ou PuppetPaie le paie, et dont la fiche ne dit pas les
@@ -375,15 +377,14 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
     }
     let mut out = Vec::new();
     for (salarie, debut, premier) in contrats {
-        let fiche = ctx.salaries.get(&salarie);
+        let fiche = ctx.salaries.get(salarie.as_str());
         if debut >= premier || conges_repris(ctx, &salarie) {
             continue;
         }
         let nom = fiche
             .map(|f| {
-                let v = |k: &str| f.get(k).filter(|x| vrai(x)).map(socle::date::en_texte).unwrap_or_default();
-                let prenom = if v("prenom_affichage").is_empty() { v("prenom") } else { v("prenom_affichage") };
-                format!("{} {}", v("nom"), prenom).trim().to_string()
+                let prenom = if f.prenom_affichage.texte().is_empty() { f.prenom.texte() } else { f.prenom_affichage.texte() };
+                format!("{} {}", f.nom.texte(), prenom).trim().to_string()
             })
             .filter(|n| !n.is_empty())
             .unwrap_or_else(|| salarie.clone());

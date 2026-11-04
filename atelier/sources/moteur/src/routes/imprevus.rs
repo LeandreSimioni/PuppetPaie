@@ -884,7 +884,7 @@ pub(crate) fn verifier(arret: &Value) -> R<()> {
 
 /// `ctx.salarie(salarie)["_cle"]`.
 fn cle_en_json(ctx: &Contexte, nom: &Value) -> R<Value> {
-    salarie(ctx, nom)?.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
+    Ok(Value::from(cle_du_salarie(ctx, nom)?))
 }
 
 /// L'arret de ce salarie a ce dernier jour travaille : (son indice, le fichier de son mois, tous imprevus compris).
@@ -1088,8 +1088,7 @@ fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
 /// La cle de la fiche que `nom` designe, comme partout dans le moteur (`Contexte::salarie` : la casse, les accents, le
 /// prenom, le NIR ne comptent pas). Un nom qui ne designe personne se refuse avec la phrase de `Contexte::salarie`.
 fn cle_du_nom(ctx: &Contexte, nom: &str) -> R<String> {
-    let fiche = crate::routes::salarie(ctx, &json!(nom))?;
-    fiche.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
+    Ok(crate::routes::cle_du_salarie(ctx, &json!(nom))?.to_string())
 }
 
 /// L'engagement brut avec ses bornes : un contrat aux cachets ne les ecrit pas, il commence son premier jour travaille et
@@ -1138,7 +1137,7 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
 fn paie_de_l_engagement(paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
     paies
         .get(rang)
-        .filter(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
+        .filter(|p| p.salarie.id == cle)
         .cloned()
         .ok_or_else(|| refus(format!("{} n'a aucune paie validee en {} pour ce contrat.", nom, socle::mois::Mois::en_clair(mois))))
 }
@@ -1319,8 +1318,7 @@ pub(crate) fn etats_d_alors(ctx: &Contexte, salarie: &str, dernier_jour: &Value,
 
 /// L'arret de ce salarie dont c'est le dernier jour travaille, dans le magasin des imprevus.
 fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value> {
-    let cle = ctx.salarie(salarie).map_err(|m| erreur("KeyError", m))?;
-    let cle = cle.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
+    let cle = ctx.cle_du_salarie(salarie).map_err(|m| erreur("KeyError", m))?.to_string();
     if vrai(dernier_jour) {
         let jour = crate::routes::imprevus::jour(dernier_jour)?;
         if let Some((i, liste)) = crate::routes::imprevus::trouver(ctx, engagement::imprevus::ARRET, &cle, &jour)? {
@@ -1891,10 +1889,7 @@ pub(crate) fn fins_en_retard_avant(ctx: &Contexte, mois: &str, aujourdhui: Jour)
 fn arret_contrats(ctx: &Contexte, charge: &Value) -> R<Value> {
     let sal = exiger(charge, "salarie")?;
     let jour = exiger(charge, "jour")?;
-    let cle = match salarie(ctx, sal)?.get("_cle") {
-        Some(c) => c.clone(),
-        None => return Err(erreur("KeyError", socle::fichiers::absent("_cle"))),
-    };
+    let cle = Value::from(cle_du_salarie(ctx, sal)?);
     let jour = d(jour).map_err(|m| erreur("ValueError", m))?.iso();
     Ok(json!({"contrats": contrats_au(ctx, &cle, &jour)?}))
 }

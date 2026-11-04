@@ -39,6 +39,8 @@ rust_decimal = { version = "1", default-features = false, features = ["std", "ma
 serde = { version = "1", features = ["derive"] }
 # Le chemin de la cle fautive dans le refus d'une lecture (`socle::forme`).
 serde_path_to_error = "0.1"
+# L'ordre des fiches d'un fichier (`droit::fiche::Salaries`) : celui du fichier, comme `serde_json` le garde.
+indexmap = "2"
 # `float_roundtrip` : un flottant lu est exactement celui qui est ecrit, et `num::dec` passe par sa representation la
 # plus courte.
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
