@@ -1543,10 +1543,10 @@ pub fn cases_dites(c: &Champ) -> String {
 
 /// LES CASES QU'UNE FICHE NE DECRIT PAS (`la_fiche` : ce qu'une saisie lui donne ; ce que le moteur compose lui-meme, l'import
 /// et le questionnaire, ne se compte pas), ET CELLES D'UNE STRUCTURE (`champs`), que l'ecriture `donnees` ajouterait a la
-/// fiche `ancienne` : personne ne les lirait. Une case que la fiche porte deja se garde ; une cle en `_` est une note
+/// fiche : personne ne les lirait, et sa forme les refuse (`droit::fiche`) ; une cle en `_` est une note
 /// interne. Une case d'une structure dont la valeur n'a pas sa forme (une valeur hors de sa liste, un nombre, une date)
 /// se dit aussi. Cela ne se force pas.
-pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, ancienne: &Value, la_fiche: bool) -> R<Vec<Value>> {
+pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, la_fiche: bool) -> R<Vec<Value>> {
     let tous = fiche(nom)?;
     let mut out = Vec::new();
     let refusee = |champ: &str, message: String| {
@@ -1557,15 +1557,14 @@ pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, ancienne: &Value
     };
     let connues: Vec<&str> = tous.iter().filter(|c| !c.calcule()).map(|c| c.cle.as_str()).collect();
     // Une case vide n'ajoute rien a la fiche (elle ne s'ecrit pas) : seule une valeur se refuse.
-    for k in donnees.iter().filter(|(k, v)| la_fiche && vrai(v) && !k.starts_with('_') && !tous.iter().any(|c| &c.cle == *k) && ancienne.get(k.as_str()).is_none()).map(|(k, _)| k) {
+    for k in donnees.iter().filter(|(k, v)| la_fiche && vrai(v) && !k.starts_with('_') && !tous.iter().any(|c| &c.cle == *k)).map(|(k, _)| k) {
         out.push(refusee(k, format!("la case « {} » n'existe pas dans la fiche {} ; ses cases sont : {}", k, nom, connues.join(", "))));
     }
     for c in tous.iter().filter(|c| !c.champs.is_empty()) {
         let Some(Value::Object(o)) = donnees.get(&c.cle) else { continue };
         let mut admises: Vec<&str> = c.champs.iter().map(|s| s.cle.split('.').next().unwrap_or(&s.cle)).collect();
         admises.dedup();
-        let deja = ancienne.get(&c.cle);
-        for k in o.keys().filter(|k| !k.starts_with('_') && !admises.contains(&k.as_str()) && deja.and_then(|d| d.get(k.as_str())).is_none()) {
+        for k in o.keys().filter(|k| !k.starts_with('_') && !admises.contains(&k.as_str())) {
             out.push(refusee(&c.cle, format!("la case « {} » n'existe pas ; ses cases sont : {}", k, cases_dites(c))));
         }
         for s in c.champs.iter().filter(|s| matches!(s.forme.as_str(), "choix" | "montant" | "date")) {
