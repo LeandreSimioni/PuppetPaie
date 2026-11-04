@@ -338,7 +338,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     let mois = mois.to_string();
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &departs)?;
-    let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+    let s_mois = data.mois.to_string();
     let par_salarie = match choisis {
         Some(c) => contrats_choisis(ctx, c, &mois, &paies)?,
         None => Vec::new(),
@@ -359,7 +359,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
             contrats.push(Value::Object(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, &ent)));
         }
     }
-    let mut saisies: HashMap<String, (Value, Vec<Paie>)> = HashMap::new();
+    let mut saisies: HashMap<String, (engagement::saisie::VueDuMois, Vec<Paie>)> = HashMap::new();
     let aujourdhui_jj = ctx.aujourdhui.jj_mm_aaaa();
     let mut lignes_avenants: Vec<Value> = Vec::new();
     for (salarie, aa) in avenants {
@@ -407,7 +407,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     // Chaque contrat sous le numero qu'il porte, ou celui qui lui serait donne : c'est celui-la qui part.
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &departs)?;
-    let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+    let s_mois = data.mois.to_string();
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = socle::mois::Mois::lire(&s_mois).map(socle::mois::Mois::etiquette).map_err(|m| erreur("ValueError", m))?;
 
@@ -746,7 +746,7 @@ fn avenant_ecrit(
     ctx: &Contexte,
     salarie: &str,
     a: &UnAvenant,
-    saisies: &mut HashMap<String, (Value, Vec<Paie>)>,
+    saisies: &mut HashMap<String, (engagement::saisie::VueDuMois, Vec<Paie>)>,
     departs: &engagement::departs::Departs,
     aujourdhui_jj: &str,
 ) -> R<(PathBuf, Map<String, Value>, droit::fiche::SalarieDuContrat)> {
@@ -826,7 +826,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
     let expediteur = client.compte().to_lowercase();
     let aujourdhui_jj = ctx.aujourdhui.jj_mm_aaaa();
     // La saisie de chaque mois, lue une fois : rien ne l'ecrit pendant l'envoi.
-    let mut saisies: HashMap<String, (Value, Vec<Paie>)> = HashMap::new();
+    let mut saisies: HashMap<String, (engagement::saisie::VueDuMois, Vec<Paie>)> = HashMap::new();
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let (mut partis, mut lignes, mut faits): (Vec<String>, Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new(), Vec::new());
     for (salarie, aa) in par_salarie {

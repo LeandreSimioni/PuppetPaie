@@ -94,7 +94,7 @@ pub fn corrections_dues(ctx: &Contexte, mois: &str, porteur: &str, departs: &eng
 /// ecrite de la version presente).
 pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str, departs: &engagement::departs::Departs) -> R<Vec<Reg>> {
     let mut out = Vec::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).map_err(refus_valeur)? {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).map_err(refus_valeur)?.into_iter().map(String::from) {
         if mois.as_str() >= mois_courant {
             break;
         }

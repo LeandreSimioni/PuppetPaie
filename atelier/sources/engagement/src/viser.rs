@@ -5,10 +5,9 @@
 use serde_json::{json, Value};
 
 use crate::calcul::Paie;
+use crate::saisie::{Carte, VueDuMois};
 use droit::contexte::Contexte;
-use socle::fichiers::vrai;
 use socle::num::{dec, Decimal};
-use socle::valeur::valeur_en_texte;
 
 /// Ce qui se vise : le brut, le cout employeur, le net a payer ; la charge du montant vise le dit `brut`, `cout`, `net`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -29,7 +28,7 @@ pub enum RefusVisee {
 /// Le meilleur essai : la saisie aux taux trouves, ses paies, le montant atteint, celui du depart, le facteur applique
 /// aux salaires et le nombre d'essais.
 pub struct Visee {
-    pub saisie: Value,
+    pub saisie: VueDuMois,
     pub paies: Vec<Paie>,
     pub atteint: Decimal,
     pub depart: Decimal,
@@ -81,23 +80,21 @@ fn ligne_ajustable(ctx: &Contexte, ligne: &Value) -> bool {
     rubrique_de(ctx, ligne).is_some_and(|r| r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && !absent_ou_zero(ligne.get("taux")))
 }
 
-fn lignes_de(e: &Value) -> Vec<Value> {
-    match e.get("lignes") {
-        Some(Value::Array(a)) => a.clone(),
-        _ => Vec::new(),
-    }
-}
-
 fn taux_vide(l: &Value) -> bool {
     matches!(l.get("taux"), Some(Value::Null)) || l.get("taux").and_then(Value::as_str) == Some("")
 }
 
+/// L'engagement de rang `i` de la saisie.
+fn engagement_de(data: &mut VueDuMois, i: usize) -> R<&mut Carte> {
+    data.engagements.get_mut(i).ok_or_else(|| refus(format!("La saisie n'a pas d'engagement de rang {}.", i + 1)))
+}
+
 /// Une ligne de salaire SANS TAUX recoit un taux provisoire de 1 EUR.
-fn poser_taux_provisoires(ctx: &Contexte, data: &mut Value, rangs: &[usize]) -> R<()> {
+fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize]) -> R<()> {
     for &i in rangs {
-        let e = &mut data["engagements"][i];
-        let lignes = lignes_de(e);
-        if rempli(e.get("salaire_mensuel")) || lignes.iter().any(|l| ligne_ajustable(ctx, l)) {
+        let e = engagement_de(data, i)?;
+        let lignes = e.lignes().to_vec();
+        if e.salaire_mensuel.is_some() || lignes.iter().any(|l| ligne_ajustable(ctx, l)) {
             continue;
         }
         let mut sans_taux: Vec<(usize, String)> = Vec::new();
@@ -108,7 +105,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut Value, rangs: &[usize]) -> 
             }
         }
         if sans_taux.len() > 1 {
-            let qui = e.get("salarie").filter(|v| vrai(v)).map_or_else(|| "cet engagement".to_string(), valeur_en_texte);
+            let qui = e.salarie_dit().map_or_else(|| "cet engagement".to_string(), String::from);
             let noms: Vec<&str> = sans_taux.iter().map(|(_, l)| l.as_str()).collect();
             return Err(refus(format!(
                 "{} : {} lignes de salaire sans taux ({}). Le montant vise ne dit pas comment le partager entre elles : saisir un taux \
@@ -118,22 +115,19 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut Value, rangs: &[usize]) -> 
                 noms.join(", ")
             )));
         }
-        if let Some((k, _)) = sans_taux.first() {
-            e["lignes"][*k]["taux"] = json!(1.0);
+        if let Some(l) = sans_taux.first().and_then(|(k, _)| e.lignes.as_mut().and_then(|ls| ls.get_mut(*k))) {
+            l["taux"] = json!(1.0);
         }
     }
     // Les AUTRES blocs du mois repartent comme la page les enverrait d'ordinaire : sans leurs lignes incompletes.
-    let Some(Value::Array(tous)) = data.get_mut("engagements") else { return Ok(()) };
-    for (i, e) in tous.iter_mut().enumerate() {
-        let lignes = lignes_de(e);
+    for (i, e) in data.engagements.iter_mut().enumerate() {
+        let Some(ls) = e.lignes.as_mut() else { continue };
         if rangs.contains(&i) {
-            if let Some(Value::Array(ls)) = e.get_mut("lignes") {
-                for l in ls.iter_mut().filter(|l| taux_vide(l)) {
-                    l["taux"] = json!(0);
-                }
+            for l in ls.iter_mut().filter(|l| taux_vide(l)) {
+                l["taux"] = json!(0);
             }
-        } else if lignes.iter().any(taux_vide) {
-            e["lignes"] = Value::Array(lignes.into_iter().filter(|l| !taux_vide(l)).collect());
+        } else {
+            ls.retain(|l| !taux_vide(l));
         }
     }
     Ok(())
@@ -147,23 +141,23 @@ fn mis_a_l_echelle(x: &Value, facteur: Decimal) -> R<Value> {
 }
 
 /// L'engagement recopie, ses salaires multiplies -- et rien d'autre. Rend aussi s'il y avait quelque chose a multiplier.
-fn a_l_echelle(ctx: &Contexte, e: &Value, facteur: Decimal) -> R<(Value, bool)> {
-    let mut out = e.clone();
+fn a_l_echelle(ctx: &Contexte, e: &mut Carte, facteur: Decimal) -> R<bool> {
     let mut touche = false;
-    if rempli(out.get("salaire_mensuel")) {
-        out["salaire_mensuel"] = mis_a_l_echelle(&out["salaire_mensuel"], facteur)?;
+    if let Some(s) = &e.salaire_mensuel {
+        e.salaire_mensuel = match mis_a_l_echelle(&Value::Number(s.clone()), facteur)? {
+            Value::Number(n) => Some(n),
+            _ => return Err(refus("Montant trop grand pour l'ajustement.")),
+        };
         touche = true;
     }
-    if let Some(Value::Array(lignes)) = out.get_mut("lignes") {
-        for l in lignes.iter_mut() {
-            if !ligne_ajustable(ctx, l) {
-                continue;
-            }
-            l["taux"] = mis_a_l_echelle(&l["taux"], facteur)?;
-            touche = true;
+    for l in e.lignes.iter_mut().flatten() {
+        if !ligne_ajustable(ctx, l) {
+            continue;
         }
+        l["taux"] = mis_a_l_echelle(&l["taux"], facteur)?;
+        touche = true;
     }
-    Ok((out, touche))
+    Ok(touche)
 }
 
 fn somme(paies: &[Paie], rangs: &[usize], cible: Cible) -> R<Decimal> {
@@ -183,18 +177,16 @@ fn somme(paies: &[Paie], rangs: &[usize], cible: Cible) -> R<Decimal> {
 /// atteindre `vise` a leur `cible` additionnee. Une ligne de salaire sans taux en recoit un provisoire ; le facteur se
 /// cherche par approches successives (au plus `TOURS` essais) et le MEILLEUR essai gagne, jamais le dernier : a egale
 /// distance, celui qui ne depasse pas.
-pub fn viser(ctx: &Contexte, data: &Value, rangs: &[usize], cible: Cible, vise: Decimal) -> R<Visee> {
+pub fn viser(ctx: &Contexte, data: &VueDuMois, rangs: &[usize], cible: Cible, vise: Decimal) -> R<Visee> {
     let mut data = data.clone();
     // Une ligne au tarif de la convention a son taux : elle n'est pas une ligne sans taux.
     crate::saisie_au_tarif(ctx, &mut data).map_err(RefusVisee::Calcul)?;
     poser_taux_provisoires(ctx, &mut data, rangs)?;
-    let essai = |facteur: Decimal| -> R<(Value, Vec<Paie>, Decimal)> {
+    let essai = |facteur: Decimal| -> R<(VueDuMois, Vec<Paie>, Decimal)> {
         let mut d = data.clone();
         let mut touche = false;
         for &i in rangs {
-            let (e, t) = a_l_echelle(ctx, &d["engagements"][i], facteur)?;
-            d["engagements"][i] = e;
-            touche |= t;
+            touche |= a_l_echelle(ctx, engagement_de(&mut d, i)?, facteur)?;
         }
         if !touche {
             return Err(refus(

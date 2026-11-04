@@ -1049,9 +1049,7 @@ fn mois_a_declarer(st: &Etat) -> R<Vec<Mois>> {
 pub(crate) fn mois_a_parcourir(ctx: &Contexte, aujourdhui: Jour) -> socle::echec::R<Vec<Mois>> {
     let mut mois = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default();
     let st = Etat { ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine)?.lignes };
-    mois.extend(mois_a_declarer(&st)?.into_iter().map(String::from));
-    // TRAVAIL A FAIRE (chaine A) : les mois saisis (`stock::mois_saisis`) se rendent en `Mois`.
-    let mut mois = mois.iter().map(|m| Mois::lire(m)).collect::<Result<Vec<Mois>, String>>()?;
+    mois.extend(mois_a_declarer(&st)?);
     mois.sort();
     mois.dedup();
     Ok(mois)
@@ -1173,7 +1171,7 @@ fn rappel_dsn(st: &Etat, le_mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
 /// Ce que la DSN de `mois` declare en plus pour les mois dont l'ancien logiciel a depose la DSN, dit comme la page Paie
 /// le dit (`import::mois::dsn_de_l_ancien_logiciel`).
 fn ajouter_les_mois_de_l_ancien_logiciel(st: &Etat, mois: &str, r: &mut Echeance) -> R<()> {
-    for m in engagement::stock::mois_saisis(st.racine()).unwrap_or_default().into_iter().filter(|m| m.as_str() < mois) {
+    for m in engagement::stock::mois_saisis(st.racine()).unwrap_or_default().into_iter().map(String::from).filter(|m| m.as_str() < mois) {
         let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(st.ctx, &m)? else { continue };
         if d.porteur == mois && d.engagements > 0 {
             let lib = socle::mois::Mois::lire(&m).map(|m| m.libelle(socle::mois::Graphie::Accentuee)).map_err(Refus::from)?;

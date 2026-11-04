@@ -78,7 +78,7 @@ pub struct Periode {
 pub fn mois_disponibles(ctx: &Contexte) -> R<BTreeMap<String, &'static str>> {
     let mois = engagement::stock::mois_saisis(&ctx.racine).map_err(|m| erreur("ValueError", m))?;
     let mut dispo: BTreeMap<String, &'static str> = mois_importes(ctx)?.into_iter().map(|m| (m, IMPORTE)).collect();
-    dispo.extend(mois.into_iter().map(|m| (m, SAISIE)));
+    dispo.extend(mois.into_iter().map(|m| (m.to_string(), SAISIE)));
     Ok(dispo)
 }
 
@@ -198,7 +198,7 @@ fn mois_pris(dispo: &BTreeMap<String, &'static str>, mois: &Option<String>, anne
 
 /// La saisie de `mois` reduite a ses engagements valides, et leurs paies telles qu'elles ont ete validees : ce que
 /// lisent les etats et les exports.
-pub fn charger_mois(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> R<(Value, Vec<Paie>)> {
+pub fn charger_mois(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> R<(engagement::saisie::VueDuMois, Vec<Paie>)> {
     engagement::etats::validees_du_mois(ctx, mois, departs)
         .map_err(|m| erreur("ErreurOperation", m))?
         .ok_or_else(|| erreur("ErreurOperation", format!("{} : aucun engagement ne touche ce mois.", mois)))

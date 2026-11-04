@@ -526,7 +526,9 @@ calculé.",
 /// CE QUI MANQUE AU MOIS `mois` D'UN ENGAGEMENT PAYE AU MOIS POUR SE CALCULER, lu sans calculer : les indemnites
 /// journalieres d'un arret qui ouvre le maintien (le refus que `ajouter` donnerait). Un engagement valide en manque
 /// quand un arret vient apres sa validation : l'ecran le montre a completer.
-pub fn indemnites_a_dire(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<Option<String>> {
+pub fn indemnites_a_dire(ctx: &Contexte, carte: &crate::saisie::Carte, mois: &str) -> Resultat<Option<String>> {
+    // TRAVAIL A FAIRE (chaine A) : la carte se lit ici par ses cles, comme `imprevus::du_contrat_dans_le_mois` la lit.
+    let e = &carte.en_valeur();
     let nat = crate::conges::nature_de(e.get("nature"))?;
     if !nat.mensuelle() || !vrai(g(e, "debut")) {
         return Ok(None);

@@ -242,12 +242,12 @@ fn cdi_a_l_issue(ctx: &Contexte, e: &Value, fin: &socle::date::Jour) -> Resultat
     for m in mois {
         let Some(s) = crate::stock::vue_et_empreinte(&ctx.racine, &m)? else { continue };
         socle::fichiers::noter_valeur(&crate::stock::cle_de_saisie(&m, Some(&salarie)), crate::stock::empreinte_de_saisie(&s.0, Some(&salarie)));
-        for x in s.0.get("engagements").and_then(Value::as_array).into_iter().flatten() {
-            let sien = x.get("valide").is_some() && x.get("salarie").and_then(Value::as_str) == Some(salarie.as_str());
-            if !sien || !nature_de(x.get("nature"))?.duree_indeterminee {
+        for x in &s.0.engagements {
+            let sien = x.valide.is_some() && x.salarie.as_deref() == Some(salarie.as_str());
+            if !sien || !x.nature_lue()?.duree_indeterminee {
                 continue;
             }
-            let Some(j) = x.get("debut").filter(|v| vrai(v)).map(d).transpose()? else { continue };
+            let Some(j) = x.debut.as_deref().filter(|v| !v.is_empty()).map(socle::date::Jour::lire).transpose()? else { continue };
             if j > debut && j <= reprise {
                 trouve = Some(j);
             }

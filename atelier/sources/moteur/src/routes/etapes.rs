@@ -1326,10 +1326,8 @@ impl<'a> Moteur<'a> {
         let mut identites = engagement::stock::identites(&objets);
         let mut m = manques.iter();
         identites.retain(|_| m.next().is_some_and(Option::is_none));
-        if let Some(Value::Array(es)) = data.get_mut("engagements") {
-            let mut m = manques.iter();
-            es.retain(|_| m.next().is_some_and(Option::is_none));
-        }
+        let mut m = manques.iter();
+        data.engagements.retain(|_| m.next().is_some_and(Option::is_none));
         let mut paies = engagement::lue_sans_paie(self.ctx, &data).map_err(classer_saisie)?;
         engagement::numeros::numeroter_les_contrats(self.ctx, &mut paies, &self.departs()?).map_err(plain)?;
         Ok(SaisieMois { paies, identites, manques })
@@ -1543,27 +1541,25 @@ impl<'a> Moteur<'a> {
     /// il dit qui, quand, et ce qui lui manque. Ses carres disent « à compléter » (`Point::de`). L'engagement se lit tel
     /// que sa saisie l'ecrit (`Objet::vue`).
     fn ligne_a_completer(&self, mois: &str, o: &engagement::stock::Objet, manque: &str) -> R<Vue> {
-        let vue = o.vue(mois).map_err(plain)?.unwrap_or_default();
-        let e = Value::Object(vue);
-        let cle = engagement::cle_de_l_engagement(self.ctx, &e).map(String::from).unwrap_or_else(|| e.get("salarie").map(valeur_en_texte).unwrap_or_default());
+        let e = o.vue(mois).map_err(plain)?.unwrap_or_default();
+        let cle = e.cle(self.ctx).map(String::from).unwrap_or_else(|| e.salarie.clone().unwrap_or_default());
         let nom = self.ctx.salarie(&cle).ok().map(|f| super::nom_a_l_ecran(&f)).unwrap_or_else(|| cle.clone());
-        let spectacle = match e.get("spectacle").filter(|s| vrai(s)) {
-            Some(s) => self.ctx.spectacle(&valeur_en_texte(s)).ok().and_then(|f| f.get("titre").cloned()).unwrap_or_else(|| s.clone()),
+        let spectacle = match e.spectacle.as_deref().filter(|s| !s.is_empty()) {
+            Some(s) => self.ctx.spectacle(s).ok().and_then(|f| f.get("titre").cloned()).unwrap_or_else(|| Value::String(s.to_string())),
             None => Value::Null,
         };
-        let nature = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map(|n| n.libelle.clone()).unwrap_or_default();
+        let nature = e.nature_lue().map(|n| n.libelle.clone()).unwrap_or_default();
         let premier_mois = o.premier_mois() == mois;
-        let debut = engagement::debut_brut(&self.ctx.racine, &e);
+        let debut = e.debut_lu(&self.ctx.racine);
         let anterieur = engagement::stock::commence_avant_le_logiciel(&self.ctx.racine, &debut, mois).map_err(plain)?;
-        let texte = |k: &str| e.get(k).filter(|v| vrai(v)).and_then(Value::as_str).map(String::from);
         Ok(Vue {
             salarie: cle,
             nom,
             spectacle,
             nature,
-            numero: texte("numero").and_then(|n| NumeroContrat::lire(&n).ok()),
+            numero: e.numero_dit().and_then(|n| NumeroContrat::lire(n).ok()),
             debut,
-            fin: texte("fin"),
+            fin: e.fin.clone().filter(|f| !f.is_empty()),
             etablissement: None,
             echeances: None,
             valide: None,
@@ -2162,15 +2158,15 @@ impl<'a> Moteur<'a> {
             }
         }
         let departs = self.departs()?;
-        for m in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
+        for mm in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
+            let m = mm.to_string();
             if m.as_str() >= mois.as_str() {
                 break;
             }
             if !declarations::produire_regularisations::se_corrige_ailleurs(self.ctx, &departs, &m)? {
                 continue;
             }
-            // TRAVAIL A FAIRE (chaine A) : les mois saisis (`stock::mois_saisis`) se rendent en `Mois`.
-            for e in self.etats_du_mois(Mois::lire(&m).map_err(plain)?)? {
+            for e in self.etats_du_mois(mm)? {
                 let Some(v) = e.valide() else { continue };
                 if de_l_etablissement(self.ctx, &m, &e.objet().brut) && engagement::etats::correction_due(self.ctx, v, &departs, &m, mois).map_err(plain)?.is_some() {
                     return Ok(true);
@@ -2245,8 +2241,8 @@ impl<'a> Moteur<'a> {
         // Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
         let _derivation = engagement::conges::Derivation::ouvrir();
         let departs = self.departs()?;
-        let mois: Vec<String> = match mois {
-            Some(m) => vec![m.to_string()],
+        let mois: Vec<Mois> = match mois {
+            Some(m) => vec![m],
             None => {
                 let mut v = engagement::stock::mois_saisis(self.racine()).unwrap_or_default();
                 v.reverse();
@@ -2254,12 +2250,12 @@ impl<'a> Moteur<'a> {
             }
         };
         let mut attente = Vec::new();
-        for m in mois {
+        for le_mois in mois {
+            let m = le_mois.to_string();
             if !engagement::stock::a_une_saisie(self.racine(), &m).unwrap_or(false) {
                 continue;
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
-            let le_mois = Mois::lire(&m).map_err(plain)?;
             let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &departs).map_err(plain)?;
             // La DPAE part de l'engagement valide : un engagement en saisie n'a rien a declarer. Chacun retrouve son embauche
             // par son identite (salarie, numero du contrat).

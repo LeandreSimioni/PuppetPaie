@@ -388,7 +388,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         memoire.get("annees_faites").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_i64).collect()).unwrap_or_default();
 
     // CE QUI EST DU, chaque pas avec son instant : les mois qui ne sont pas faits, les annees qui ne sont pas finies.
-    let saisis = engagement::stock::mois_saisis(racine).unwrap_or_default();
+    let saisis = engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     let mut calendrier: Vec<Pas> = Vec::new();
     let mut echus: Vec<socle::mois::Mois> = Vec::new();
     {
@@ -786,7 +786,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             fait
         }
         Geste::Cloture { annee } => pas(d, quoi, quand, |ctx| {
-            let a_des_paies = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.starts_with(&format!("{}-", annee)));
+            let a_des_paies = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.to_string().starts_with(&format!("{}-", annee)));
             if Moteur::nouveau(ctx).exercice_clos(&annee.to_string())? || !a_des_paies {
                 return Ok(false);
             }
@@ -813,7 +813,8 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
     pas(d, quoi, quand, |ctx| {
         let objets = engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?;
         let ids = engagement::stock::identites(&objets);
-        let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+        let le_mois = socle::mois::Mois::lire(mois)?;
+        let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or_else(|| engagement::saisie::VueDuMois::vide(le_mois));
         let manques = crate::routes::mois::manques_de_la_saisie(ctx, &vue);
         let mut fait = false;
         for ((o, id), manque) in objets.iter().zip(ids).zip(manques) {
@@ -821,7 +822,7 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
                 continue;
             }
             let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();
-            let charge = crate::routes::mois::ChargeCarte { mois: socle::mois::Mois::lire(mois)?, engagement: Some(id), saisie };
+            let charge = crate::routes::mois::ChargeCarte { mois: le_mois, engagement: Some(id), saisie };
             crate::routes::engagement::valider_engagement(ctx, charge)?;
             fait = true;
         }
@@ -973,7 +974,7 @@ fn annee_finie(d: &HorlogeFictive, annee: i32) -> R<bool> {
     }
     let ctx = d.contexte()?;
     let a = annee.to_string();
-    if !engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.starts_with(&format!("{}-", a))) {
+    if !engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.to_string().starts_with(&format!("{}-", a))) {
         return Ok(true);
     }
     Ok(Moteur::nouveau(&ctx).exercice_clos(&a)? && crate::compagnie::exercice_ecrit::export_compta_a_jour(&ctx.racine, &a))

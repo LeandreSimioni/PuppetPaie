@@ -173,8 +173,8 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
 /// `null`. L'export compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
 pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
     let mut m = Map::new();
-    for mois in engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().filter(|x| x.starts_with(annee)) {
-        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes::etapes::empreinte_de(&v)));
+    for mois in engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).filter(|x| x.starts_with(annee)) {
+        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes::etapes::empreinte_de(&v.en_valeur())));
         m.insert(mois, e);
     }
     Value::Object(m)

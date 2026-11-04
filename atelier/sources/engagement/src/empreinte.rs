@@ -17,7 +17,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
@@ -92,13 +92,13 @@ pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>, relues: &mut Re
 /// Une decision de l'editeur rend-elle l'empreinte ecrite `ecrite` (d'une paie de `mois`) fausse ? Le code qui calcule
 /// a change (`MOTEUR`, ou un fichier livre avec le code), ou une regle datee s'applique au mois qu'elle n'avait pas.
 /// Rien ne se calcule.
-pub fn code_ou_regle_change(ctx: &Contexte, ecrite: &Value, mois: &str, relues: &mut Relues) -> bool {
+pub fn code_ou_regle_change(ctx: &Contexte, ecrite: &crate::paie_ecrite::Empreinte, mois: &str, relues: &mut Relues) -> bool {
     let code = |k: &str| k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:"));
-    let entrees: BTreeMap<String, String> = entrees_de(ecrite).unwrap_or_default().into_iter().filter(|(k, _)| code(k)).collect();
+    let entrees: BTreeMap<String, String> = ecrite.entrees.iter().filter(|(k, _)| code(k)).map(|(k, v)| (k.clone(), v.clone())).collect();
     if !tient(ctx, &entrees, relues) {
         return true;
     }
-    let ecrites = regles_de(ecrite);
+    let ecrites = &ecrite.regles;
     socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour)
         .ok()
         .and_then(|fin| regles(ctx, &fin).ok())
@@ -160,25 +160,6 @@ pub fn configuration(ctx: &Contexte, jour: &Jour, salarie: &str, spectacle: Opti
 }
 
 /// L'empreinte telle qu'elle s'ecrit : les entrees, les regles datees, et les valeurs datees de la compagnie.
-pub fn en_json(entrees: &BTreeMap<String, String>, regles: &[String], configuration: &[String]) -> Value {
-    let mut m = Map::new();
-    m.insert("entrees".into(), Value::Object(entrees.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect()));
-    m.insert("regles".into(), Value::Array(regles.iter().cloned().map(Value::String).collect()));
-    m.insert("configuration".into(), Value::Array(configuration.iter().cloned().map(Value::String).collect()));
-    Value::Object(m)
-}
-
-/// Les valeurs datees de la compagnie d'une empreinte ecrite.
-pub fn configuration_de(v: &Value) -> Vec<String> {
-    v.get("configuration").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
-}
-
-/// Les entrees d'une empreinte ecrite ; `None` si elle ne se lit pas.
-pub fn entrees_de(v: &Value) -> Option<BTreeMap<String, String>> {
-    v.get("entrees")?.as_object()?.iter().map(|(k, x)| x.as_str().map(|s| (k.clone(), s.to_string()))).collect()
-}
-
-/// Les regles datees d'une empreinte ecrite.
-pub fn regles_de(v: &Value) -> Vec<String> {
-    v.get("regles").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+pub fn ecrite(entrees: &BTreeMap<String, String>, regles: &[String], configuration: &[String]) -> crate::paie_ecrite::Empreinte {
+    crate::paie_ecrite::Empreinte { entrees: entrees.clone(), regles: regles.to_vec(), configuration: configuration.to_vec() }
 }

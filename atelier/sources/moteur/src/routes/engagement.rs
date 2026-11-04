@@ -213,15 +213,15 @@ pub(crate) fn valider_engagement(ctx: &Contexte, carte: crate::routes::mois::Cha
     let id = crate::routes::mois::ecrire_une_carte(ctx, mois, carte.engagement.as_ref(), &carte.saisie)?;
     let (i, _) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
-    let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+    let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or_else(|| engagement::saisie::VueDuMois::vide(carte.mois));
     if let Some(manque) = crate::routes::mois::manque_de(ctx, &data, i) {
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
     }
     engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?;
     brouillon.ecrire().map_err(Echec::from)?;
-    let e = &data["engagements"][i];
-    if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&ctx.racine, e))?;
+    let e = data.engagements.get(i).cloned().unwrap_or_default();
+    if let Some(cle) = e.cle(ctx) {
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu(&ctx.racine))?;
     }
     Ok(Validation { engagement: id, phrase: "Engagement validé." })
 }
@@ -273,10 +273,10 @@ fn modifier_engagement(ctx: &Contexte, charge: ChargeModifier) -> R<Modification
         }
     };
     brouillon.ecrire().map_err(Echec::from)?;
-    let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
-    let e = &data["engagements"][i];
-    if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&ctx.racine, e))?;
+    let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.map(|d| d.engagements).unwrap_or_default();
+    let e = data.get(i).cloned().unwrap_or_default();
+    if let Some(cle) = e.cle(ctx) {
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu(&ctx.racine))?;
     }
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     let phrase = match depuis {
@@ -323,7 +323,7 @@ fn a_partir_de(o: &engagement::stock::Objet, devenu: &engagement::stock::Objet, 
 /// se revalide. Ce qu'elle rend dit si elle s'ecrit (`Issue::Ecrite`).
 fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement::stock::Objet, saisie: &Map<String, Value>, confirme: bool, jour: Option<u32>) -> R<Issue> {
     engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
-    engagement::stock::poser_la_saisie(ctx, mois, i, saisie, jour).map_err(refus)?;
+    engagement::stock::poser_la_saisie(ctx, mois, i, &engagement::saisie::Carte::lire(&Value::Object(saisie.clone())).map_err(refus)?, jour).map_err(refus)?;
     if !engagement::etats::a_revalider_rouvert(ctx, mois, i).map_err(Echec::from)? {
         return Ok(Issue::Rien);
     }
@@ -337,8 +337,10 @@ fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement:
         }
     }
     let v = engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| {
-        let data = engagement::stock::vue_du_mois(&ctx.racine, mois).ok().flatten().unwrap_or(Value::Null);
-        crate::routes::mois::refus_du_calcul(ctx, &data, m)
+        match engagement::stock::vue_du_mois(&ctx.racine, mois).ok().flatten() {
+            Some(data) => crate::routes::mois::refus_du_calcul(ctx, &data, m),
+            None => Echec::from(m),
+        }
     })?;
     // L'AVERTISSEMENT : l'engagement touche, nomme (`qui`), une ligne par ce que le changement entraine pour lui, et le
     // jour d'ou vaut un terme change, qui se dit quand ce n'est pas le 1er.

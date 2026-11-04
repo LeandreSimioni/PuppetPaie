@@ -1525,8 +1525,8 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[Value], rang: usize, 
 }
 
 /// La paie ecrite de `mois` que porte la version de l'engagement `o` dont le bulletin a le numero `numero`.
-fn paie_ecrite_au_bulletin(o: &engagement::stock::Objet, mois: &str, numero: &str) -> R<Option<Value>> {
-    Ok(engagement::paies::ecrites(o, mois).map_err(Echec::from)?.into_iter().find(|p| p.get(engagement::etats::BULLETIN).and_then(Value::as_str) == Some(numero)))
+fn paie_ecrite_au_bulletin(o: &engagement::stock::Objet, mois: &str, numero: &str) -> R<Option<engagement::paie_ecrite::PaieEcrite>> {
+    Ok(engagement::paies::ecrites(o, mois).map_err(Echec::from)?.into_iter().find(|p| p.bulletin.as_deref() == Some(numero)))
 }
 
 /// LES DOCUMENTS QU'A FAIT PARTIR LA LIGNE `lignes[rang]` (un envoi aux salaries de `mois`), refaits tels qu'ils sont
@@ -1556,7 +1556,7 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
                 Some(n) => paie_ecrite_au_bulletin(v.objet(), mois, n)?,
                 None => None,
             };
-            if let Some(r) = ecrite.as_ref().and_then(|x| x.get(engagement::etats::RECTIFIE)).and_then(Value::as_str) {
+            if let Some(r) = ecrite.as_ref().and_then(|x| x.rectifie.as_deref()) {
                 let parti = if clos { engagement::etats::paie_partie(&ctx, v.objet(), &avant, mois).map_err(Echec::from)? } else { None };
                 let rectif = match parti {
                     Some(parti) => {
@@ -1571,7 +1571,7 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
                 rectificatifs.insert(paies.len(), rectif);
             }
             numeros.push(if p.engagement.sans_paie() { None } else { p.numero_bulletin.clone() });
-            premiers_ce.push(ecrite.as_ref().and_then(|x| x.get(engagement::etats::CE)).and_then(Value::as_i64));
+            premiers_ce.push(ecrite.as_ref().and_then(|x| x.ce));
             paies.push(p);
         }
         let (mut pour_cs, _) = crate::routes::dossier_salarie::certificats_dus(&ctx, &paies)?;

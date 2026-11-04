@@ -861,7 +861,7 @@ fn commence_avant(paies: &[PaieLue], mois: &str) -> Resultat<Option<Jour>> {
 /// Le premier mois ou le salarie a la paie validee d'un contrat paye au mois.
 fn premier_mois(ctx: &Contexte, cle_salarie: &str, jusqu_au_mois: Option<&str>) -> Resultat<Option<String>> {
     let cle = cle_de_fiche(ctx, cle_salarie);
-    for mois in crate::stock::mois_saisis(&ctx.racine)? {
+    for mois in crate::stock::mois_saisis(&ctx.racine)?.into_iter().map(String::from) {
         if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) {
             return Ok(None);
         }
@@ -886,8 +886,9 @@ fn mois_de_la_periode(
         return Ok(out);
     }
     let saisis = crate::stock::mois_saisis(&ctx.racine)?;
-    for mois in socle::mois::Mois::entre(debut, fin).iter().map(socle::mois::Mois::to_string) {
-        if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) || !saisis.contains(&mois) {
+    for m in socle::mois::Mois::entre(debut, fin) {
+        let mois = m.to_string();
+        if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) || !saisis.contains(&m) {
             continue;
         }
         let paies = paies_du_mois(ctx, &mois, cle)?;
@@ -957,7 +958,7 @@ fn cumul_de_l_annee(ctx: &Contexte, mois: &str, cle: &str, quoi: impl Fn(&PaieLu
     let annee: String = mois.chars().take(4).collect();
     let cle_fiche = cle_de_fiche(ctx, cle);
     let mut total = zero2();
-    for m in crate::stock::mois_saisis(&ctx.racine)? {
+    for m in crate::stock::mois_saisis(&ctx.racine)?.into_iter().map(String::from) {
         if !m.starts_with(&annee) || m.as_str() >= mois {
             continue;
         }
@@ -1260,7 +1261,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
 
     // --- les repas et les nuitees de la carte
     if let Some(Value::Array(l)) = e.get("lignes") {
-        let (l, a) = crate::frais_au_dela(ctx, e, l.clone(), mois, &qui(ctx, e))?;
+        let (l, a) = crate::frais_au_dela(ctx, e.get("salarie").and_then(Value::as_str), l.clone(), mois, &qui(ctx, e))?;
         lignes.extend(l);
         avert.extend(a);
     }
@@ -1322,7 +1323,7 @@ pub struct Provision {
 /// `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un contrat sans compteur de
 /// l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne porte pas le compteur
 /// qu'elle devrait.
-pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> socle::num::Resultat<Option<Provision>> {
+pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&serde_json::Number>) -> socle::num::Resultat<Option<Provision>> {
     let Some(ecrit) = paie.conges.as_ref() else {
         if paie.declaree_a_la_caisse_des_conges()? {
             return Ok(None);
@@ -1335,7 +1336,7 @@ pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::De
     let mut cpt = ecrit.clone();
     cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
     let salaire = match salaire_mensuel {
-        Some(v) if socle::fichiers::vrai(v) => dec(v)?,
+        Some(n) => dec(&Value::Number(n.clone()))?,
         _ => Decimal::ZERO,
     };
     provision_du_compteur(cpt, mois, salaire).map(Some)

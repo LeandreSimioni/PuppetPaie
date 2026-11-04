@@ -169,12 +169,23 @@ pub fn dossier_apercu() -> PathBuf {
     dossier_du_code().join("apercu-bulletin")
 }
 
+/// LA PAIE FICTIVE DE L'APERCU (`apercu-bulletin/saisie.json`) : ce qu'elle est, son mois et ses cartes.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SaisieDeLApercu {
+    #[allow(dead_code)]
+    source: String,
+    mois: socle::mois::Mois,
+    engagements: Vec<engagement::saisie::Carte>,
+}
+
 /// La description du bulletin de la paie fictive sous `modele` : le moteur du jour, la compagnie fictive, rien d'ecrit.
 pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let racine = dossier_apercu();
-    let saisie = lire_json(&racine.join("saisie.json"))?;
-    let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
-    let ctx = Contexte::nouveau(&racine, Some(socle::mois::Mois::lire(&mois)?.dernier_jour()))?;
+    let lue: SaisieDeLApercu = socle::forme::lire(&lire_json(&racine.join("saisie.json"))?, "La paie de l'aperçu ne se lit pas.")?;
+    let saisie = engagement::saisie::VueDuMois { mois: lue.mois, taux_cachet: None, engagements: lue.engagements };
+    let mois = saisie.mois.to_string();
+    let ctx = Contexte::nouveau(&racine, Some(saisie.mois.dernier_jour()))?;
     let s = engagement::pour_l_ecran(&ctx, &saisie)?;
     let mut fiche = ctx.entreprise.clone();
     fiche.modele_bulletin = Case::Dite(modele.choix());

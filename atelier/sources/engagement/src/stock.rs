@@ -28,6 +28,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{Map, Value};
 
 use droit::contexte::Contexte;
+use crate::saisie::{Carte, VueDuMois};
 use socle::date::{en_texte, Jour};
 use socle::mois::Mois;
 use socle::fichiers::vrai;
@@ -324,12 +325,13 @@ impl Objet {
     }
 
     /// Les mois que la saisie a touches : le premier, ceux qui ont des faits, et ceux ou un terme change.
-    pub fn mois_saisis(&self) -> Vec<String> {
-        let mut v = vec![self.fichier.clone()];
+    pub fn mois_saisis(&self) -> Vec<Mois> {
+        let Ok(premier) = Mois::lire(&self.fichier) else { return Vec::new() };
+        let mut v = vec![premier];
         if let Some(Value::Object(s)) = self.brut.get(FAITS) {
-            v.extend(s.keys().filter(|m| m.as_str() > self.fichier.as_str()).cloned());
+            v.extend(s.keys().filter_map(|m| Mois::lire(m).ok()).filter(|m| *m > premier));
         }
-        v.extend(self.changements().into_iter().map(|(_, j, _)| j.mois_civil().to_string()).filter(|m| m.as_str() > self.fichier.as_str()));
+        v.extend(self.changements().into_iter().map(|(_, j, _)| Mois::du_jour(&j)).filter(|m| *m > premier));
         v.sort();
         v.dedup();
         v
@@ -375,7 +377,7 @@ impl Objet {
     pub fn mois_couverts(&self, jusqu_a: &str) -> Resultat<Vec<String>> {
         let fin = match self.dernier_mois()? {
             Some(d) => d,
-            None => self.mois_saisis().last().cloned().unwrap_or_default().max(jusqu_a.to_string()).max(self.fichier.clone()),
+            None => self.mois_saisis().last().map(Mois::to_string).unwrap_or_default().max(jusqu_a.to_string()).max(self.fichier.clone()),
         };
         Ok(Mois::lire(&self.fichier)?.jusqu_a(Mois::lire(&fin)?).iter().map(Mois::to_string).collect())
     }
@@ -408,7 +410,14 @@ impl Objet {
     /// S21.G00.41 (41.001). Un changement en cours de mois y porte aussi les termes de la veille (`avant` : le salaire et
     /// la duree du travail, `droit::periodes::TERMES_D_AVANT`), qui paient ses jours d'avant (`periodes::bornes`, chaque
     /// part par `droit::periodes::part_du_mois`).
-    pub fn vue(&self, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+    pub fn vue(&self, mois: &str) -> Resultat<Option<Carte>> {
+        let qui = || self.brut.get("salarie").map(en_texte).unwrap_or_else(|| "Un engagement".into());
+        self.vue_ecrite(mois)?.map(|v| Carte::lire(&Value::Object(v)).map_err(|m| format!("{} : {}", qui(), m))).transpose()
+    }
+
+    /// La vue de `mois` telle que l'engagement ecrit la compose (`vue`). TRAVAIL A FAIRE (chaine A) : l'engagement ecrit a sa
+    /// forme, et sa vue se compose sans passer par une `Map`.
+    pub(crate) fn vue_ecrite(&self, mois: &str) -> Resultat<Option<Map<String, Value>>> {
         if !self.dans_ses_bornes(mois)? {
             return Ok(None);
         }
@@ -760,9 +769,10 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
     poser(racine, &o.fichier, &Value::Object(contenu))
 }
 
-/// LE MOIS DE L'ECRAN : `{"mois", <defauts du mois>, "engagements": [la vue de chacun]}`, ou `None` quand aucun
-/// engagement ne le touche et qu'il n'a pas de fichier. Un engagement valide y dit quand (`valide` : `{"le"}`).
-pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
+/// LE MOIS DE L'ECRAN (`VueDuMois`) : le mois, ce que son fichier dit par defaut, et la vue de chaque engagement qui le
+/// touche ; `None` quand aucun engagement ne le touche et qu'il n'a pas de fichier. Un engagement valide y dit quand
+/// (`valide` : `{"le"}`).
+pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<VueDuMois>> {
     Ok(vue_et_empreinte(racine, mois)?.map(|s| {
         socle::fichiers::noter_valeur(&cle_de_saisie(mois, None), s.1.clone());
         s.0.clone()
@@ -775,11 +785,25 @@ pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str, salarie: Option
     Ok(vue_et_empreinte(racine, mois)?.map(|s| if salarie.is_none() { s.1.clone() } else { empreinte_de_saisie(&s.0, salarie) }))
 }
 
+/// Ce que le fichier d'engagements d'un mois dit pour tous ses engagements : le mois, et le cachet par defaut. Ses
+/// engagements se lisent chacun par l'objet qu'il est (`tous`).
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TeteDuFichier {
+    #[allow(dead_code)]
+    mois: Mois,
+    #[serde(default)]
+    taux_cachet: Option<serde_json::Number>,
+    #[allow(dead_code)]
+    #[serde(default)]
+    engagements: serde::de::IgnoredAny,
+}
+
 /// La vue de `mois` et son empreinte, faites une fois pour les memes fichiers aux memes octets (`memes`) :
 /// chaque paie qui se verifie relit la saisie des mois qu'elle a lus. La vue d'une ligne lit aussi l'unite de sa rubrique
 /// (`droit::catalogue::rubrique`) : les deux catalogues en font partie.
-pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
-    type Saisie = Option<std::sync::Arc<(Value, String)>>;
+pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(VueDuMois, String)>>> {
+    type Saisie = Option<std::sync::Arc<(VueDuMois, String)>>;
     type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String), (Lus, Saisie)>>;
     static VUES: std::sync::OnceLock<Vues> = std::sync::OnceLock::new();
     static ABSENT: std::sync::OnceLock<std::sync::Arc<Value>> = std::sync::OnceLock::new();
@@ -801,25 +825,22 @@ pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std
         }
     }
     // Ce que le fichier du mois pose pour tous ; ses engagements, la vue les refait (ceux des mois d'avant qui courent).
-    let fichier: Option<Map<String, Value>> = lire_partage(racine, mois)?
-        .map(|v| v.as_object().into_iter().flatten().map(|(k, x)| (k.clone(), if k == "engagements" { Value::Null } else { x.clone() })).collect());
+    let fichier: Option<TeteDuFichier> = match lire_partage(racine, mois)? {
+        Some(v) => Some(socle::forme::lire(&v, "Un mois d'engagements ne se relit pas : il est abîmé.")?),
+        None => None,
+    };
     let objets = tous.du_mois(mois)?;
     let saisie = if (fichier.is_none() || importes_seuls(racine, mois)) && objets.is_empty() {
         None
     } else {
-        let mut data = fichier.unwrap_or_default();
-        data.insert("mois".into(), Value::String(mois.to_string()));
-        let mut engagements = Vec::new();
+        let mut vue = VueDuMois { mois: Mois::lire(mois)?, taux_cachet: fichier.and_then(|f| f.taux_cachet), engagements: Vec::new() };
         for o in &objets {
-            let vu = o.vue(mois)?;
-            let Some(mut v) = vu else { continue };
+            let Some(mut v) = o.vue(mois)? else { continue };
             if let Some(le) = o.brut.get("valide").and_then(|x| x.get("le")) {
-                v.insert("valide".into(), serde_json::json!({ "le": le }));
+                v.valide = Some(crate::saisie::Validee { le: Some(en_texte(le)) });
             }
-            engagements.push(Value::Object(v));
+            vue.engagements.push(v);
         }
-        data.insert("engagements".into(), Value::Array(engagements));
-        let vue = Value::Object(data);
         let empreinte = empreinte_de_saisie(&vue, None);
         Some(std::sync::Arc::new((vue, empreinte)))
     };
@@ -843,26 +864,17 @@ pub fn cle_de_saisie(mois: &str, salarie: Option<&str>) -> String {
 /// comptent : une paie ecrite ne lit que ceux-la (`etats::calculer_les_rangs`), et un brouillon tape a cote d'elle ne
 /// la fait pas recalculer. Avec `salarie`, seuls ses engagements comptent : la paie d'un engagement ne lit, des autres
 /// engagements du mois, que ceux du meme salarie (`etats::calculer_les_rangs`).
-pub fn empreinte_de_saisie(vue: &Value, salarie: Option<&str>) -> String {
-    let mut v = vue.clone();
-    if let Some(Value::Array(es)) = v.get_mut("engagements") {
-        es.retain(|e| e.get("valide").is_some() && salarie.is_none_or(|s| e.get("salarie").and_then(Value::as_str) == Some(s)));
-        for e in es.iter_mut() {
-            if let Value::Object(m) = e {
-                m.remove("valide");
-                m.remove("numero");
-            }
-        }
-    }
-    let engagements = match v.as_object_mut() {
-        Some(m) => {
-            m.remove("_origine");
-            m.remove("engagements").unwrap_or(Value::Null)
-        }
-        None => Value::Null,
-    };
+pub fn empreinte_de_saisie(vue: &VueDuMois, salarie: Option<&str>) -> String {
+    let engagements: Vec<Value> = vue
+        .engagements
+        .iter()
+        .filter(|e| e.valide.is_some() && salarie.is_none_or(|s| e.salarie.as_deref() == Some(s)))
+        .map(|e| Carte { valide: None, numero: None, ..e.clone() }.en_valeur())
+        .collect();
+    let tete = VueDuMois { engagements: Vec::new(), ..vue.clone() }.en_valeur();
+    let tete: Map<String, Value> = tete.as_object().into_iter().flatten().filter(|(k, _)| k.as_str() != "engagements").map(|(k, x)| (k.clone(), x.clone())).collect();
     let h = |x: &Value| socle::fichiers::sha256_hex(canonique(x).as_bytes());
-    format!("{}:{}", h(&v), h(&engagements))
+    format!("{}:{}", h(&Value::Object(tete)), h(&Value::Array(engagements)))
 }
 
 /// Une valeur ecrite sans ce qui ne change rien a ce qu'elle dit : les cles triees, un nombre ecrit comme un flottant
@@ -887,18 +899,19 @@ pub fn canonique(v: &Value) -> String {
 /// Les mois que la saisie a touches : les fichiers, et les mois que chaque engagement a saisis ou couvre jusqu'a sa fin ;
 /// un contrat sans terme, jusqu'au dernier mois ecrit ou jusqu'au mois d'aujourd'hui s'il est plus loin : un CDI de
 /// janvier que rien n'a saisi depuis a une paie, une DSN et des documents chaque mois qu'il court.
-pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
-    let mut v: Vec<String> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).collect();
-    let courant = droit::contexte::aujourdhui_sans_note()?.mois_civil().to_string();
-    let horizon = v.iter().max().cloned().map(|h| h.max(courant));
+pub fn mois_saisis(racine: &Path) -> Resultat<Vec<Mois>> {
+    let mut v: Vec<Mois> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).map(|m| Mois::lire(&m)).collect::<Resultat<_>>()?;
+    let courant = Mois::du_jour(&droit::contexte::aujourdhui_sans_note()?);
+    let horizon = v.iter().max().copied().map(|h| h.max(courant));
     for o in objets(racine)?.into_iter().filter(|o| !o.importe_seul()) {
         v.extend(o.mois_saisis());
+        let premier = Mois::lire(&o.fichier)?;
         let fin = match o.dernier_mois()? {
-            Some(d) => Some(d),
-            None => horizon.clone().filter(|h| h.as_str() >= o.fichier.as_str()),
+            Some(d) => Some(Mois::lire(&d)?),
+            None => horizon.filter(|h| *h >= premier),
         };
         if let Some(d) = fin {
-            v.extend(Mois::lire(&o.fichier)?.jusqu_a(Mois::lire(&d)?).iter().map(Mois::to_string));
+            v.extend(premier.jusqu_a(d));
         }
     }
     v.sort();
@@ -918,13 +931,12 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
 /// `etats::modifier`), une identite que l'ecran ne montre pas, un engagement du salarie et du premier jour d'un engagement
 /// importe, des bornes qui laisseraient hors du contrat un mois ou il a des jours payes, un engagement neuf que l'ecran
 /// de `mois` ne montrerait pas.
-pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie: &Map<String, Value>, defauts: &Map<String, Value>) -> Resultat<Identite> {
+pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie: &Carte, defauts: &VueDuMois) -> Resultat<Identite> {
     let racine = &ctx.racine;
-    let e = Value::Object(saisie.clone());
-    if let Some(cle) = crate::cle_de_l_engagement(ctx, &e) {
-        let debut = crate::debut_brut(racine, &e);
+    if let Some(cle) = saisie.cle(ctx) {
+        let debut = saisie.debut_lu(racine);
         if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
-            return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or_else(|| cle.into()), &debut));
+            return Err(crate::importe::refus(saisie.salarie.as_deref().unwrap_or(cle.as_str()), &debut));
         }
     }
     let (fichier, rang) = match id {
@@ -938,12 +950,15 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie
             (o.fichier, o.rang)
         }
         None => {
-            refuser_un_second_contrat_au_mois(ctx, &e)?;
-            let fichier = mois_d_ecriture(racine, mois, &e)?;
-            let saisie = en_forme(saisie)?;
+            refuser_un_second_contrat_au_mois(ctx, saisie)?;
+            let fichier = mois_d_ecriture(racine, mois, saisie)?;
+            let saisie = en_forme(saisie)?.ecrite();
             let mut contenu = match lire_fichier(racine, &fichier)? {
                 Some(c) => c,
-                None => defauts.clone(),
+                None => match serde_json::to_value(crate::saisie::CeQueLeMoisDit { taux_cachet: defauts.taux_cachet.clone() }) {
+                    Ok(Value::Object(m)) => m,
+                    _ => Map::new(),
+                },
             };
             contenu.insert("mois".into(), Value::String(fichier.clone()));
             let es = contenu.entry("engagements").or_insert_with(|| Value::Array(Vec::new()));
@@ -967,12 +982,12 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie
 /// refuse et n'ecrit rien ; cet engagement se designe et se modifie depuis sa carte. Le rang de l'identite (`identites`)
 /// ne distingue que des contrats d'usage du meme jour (deux spectacles) ; deux contrats au mois du meme salarie
 /// commencent deux jours differents (ils se suivent).
-fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Value) -> Resultat<()> {
+fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte) -> Resultat<()> {
     let au_mois = |e: &Value| droit::natures::nature(e.get("nature").and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
-    if !au_mois(e) {
+    if !e.mensuelle() {
         return Ok(());
     }
-    let (Some(cle), debut) = (crate::cle_de_l_engagement(ctx, e), crate::debut_brut(&ctx.racine, e)) else { return Ok(()) };
+    let (Some(cle), debut) = (e.cle(ctx), e.debut_lu(&ctx.racine)) else { return Ok(()) };
     if debut.is_empty() {
         return Ok(());
     }
@@ -991,7 +1006,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Value) -> Resultat<()> 
     Err(format!(
         "{} : son {} commencé le {}{} a déjà son engagement ; une carte neuve ne le refait pas, il se modifie depuis sa \
          carte. Un nouveau contrat commence un autre jour. Rien n'est écrit.",
-        crate::salarie_nomme(ctx, e.get("salarie")),
+        ctx.nomme(e.salarie.as_deref().unwrap_or_default()),
         nature.libelle,
         Jour::lire(&debut).map_or(debut.clone(), |j| j.jj_mm_aaaa()),
         numero
@@ -1003,7 +1018,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Value) -> Resultat<()> 
 /// partir du `jour` de ce mois quand il est dit, du 1er sinon. Refus : un engagement valide, un jour qui n'est pas un
 /// jour du contrat dans ce mois, ou des bornes qui laisseraient hors du contrat un mois ou il a des jours payes ; rien
 /// n'est ecrit.
-pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<String, Value>, jour: Option<u32>) -> Resultat<()> {
+pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Carte, jour: Option<u32>) -> Resultat<()> {
     let mut o = objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
     if o.est_valide() {
         return Err(format!("{} : l'engagement de rang {} est valide, il ne prend pas de saisie", mois, rang + 1));
@@ -1047,24 +1062,24 @@ pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Map<Str
 /// Ce que la carte ecrit pour `mois`, pose sur l'objet `o` : ce que le moteur tient seul ne se prend pas de la saisie,
 /// le numero du contrat ecrit se garde, un spectacle nomme autrement que celui qui est ecrit (sa cle, son titre, son
 /// numero d'objet) garde son nom ecrit.
-fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Value>, le: Option<Jour>) -> Resultat<()> {
+fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Carte, le: Option<Jour>) -> Resultat<()> {
     let mut saisie = en_forme(saisie)?;
-    if !saisie.get("numero").is_some_and(vrai) {
-        if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)).cloned() {
-            saisie.insert("numero".into(), n);
+    if saisie.numero_dit().is_none() {
+        if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)) {
+            saisie.numero = Some(en_texte(n));
         }
     }
     let vue = o.vue(mois)?;
     // Le debut qu'un mois suivant d'un contrat d'usage deduit de son premier jour (`Objet::vue`) n'est pas une saisie.
-    if mois != o.fichier && !o.champs().contains_key("debut") && saisie.get("debut").is_some_and(|d| vue.as_ref().and_then(|v| v.get("debut")) == Some(d)) {
-        saisie.remove("debut");
+    if mois != o.fichier && !o.champs().contains_key("debut") && saisie.debut.is_some() && vue.as_ref().is_some_and(|v| v.debut == saisie.debut) {
+        saisie.debut = None;
     }
-    if let Some(ecrit) = vue.and_then(|v| v.get("spectacle").filter(|s| vrai(s)).cloned()) {
-        if saisie.get("spectacle").is_some_and(|s| *s != ecrit && meme_spectacle(ctx, s, &ecrit)) {
-            saisie.insert("spectacle".into(), ecrit);
+    if let Some(ecrit) = vue.and_then(|v| v.spectacle.filter(|s| !s.is_empty())) {
+        if saisie.spectacle.as_ref().is_some_and(|s| *s != ecrit && meme_spectacle(ctx, s, &ecrit)) {
+            saisie.spectacle = Some(ecrit);
         }
     }
-    poser_le_mois(o, mois, &saisie, le)
+    poser_le_mois(o, mois, &saisie.ecrite(), le)
 }
 
 /// CE QU'UNE CARTE ECRIT, DANS LA FORME ECRITE : ni ce que le moteur tient seul ni ce qu'il deduit ; la nature
@@ -1072,35 +1087,34 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Map<String, Val
 /// seulement s'il s'ecarte du defaut du metier au catalogue (`emplois::metier`). Une carte ecrite deux fois a
 /// l'identique s'ecrit donc de meme, et sa relecture ne voit aucun changement.
 /// L'apercu lit chaque carte dans cette forme aussi.
-pub fn en_forme(saisie: &Map<String, Value>) -> Resultat<Map<String, Value>> {
-    let mut saisie = saisie.clone();
-    for k in TENUS_PAR_LE_MOTEUR.iter().chain(DEDUITS.iter()) {
-        saisie.remove(*k);
+pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
+    // Ce que le moteur deduit, ou tient seul.
+    let mut saisie = Carte { jours_contrat: None, date_modification: None, avant: None, valide: None, importe: None, ..saisie.clone() };
+    if saisie.nature.as_deref().is_none_or(str::is_empty) || saisie.nature.as_deref() == Some(droit::natures::defaut()?.as_str()) {
+        saisie.nature = None;
     }
-    if saisie.get("nature").is_none_or(|n| !vrai(n)) || saisie.get("nature").map(en_texte) == Some(droit::natures::defaut()?) {
-        saisie.remove("nature");
-    }
-    let catalogue = match saisie.get("metier").filter(|m| vrai(m)) {
-        Some(m) => droit::emplois::metier(&en_texte(m)).ok().flatten().map(|f| f.get("cadre_par_defaut").is_some_and(vrai)),
+    let catalogue = match saisie.metier.as_deref().filter(|m| !m.is_empty()) {
+        Some(m) => droit::emplois::metier(m).ok().flatten().map(|f| f.get("cadre_par_defaut").is_some_and(vrai)),
         None => None,
     };
-    if catalogue.is_some() && saisie.get("cadre").and_then(Value::as_bool) == catalogue {
-        saisie.remove("cadre");
+    if catalogue.is_some() && saisie.cadre == catalogue {
+        saisie.cadre = None;
     }
-    if droit::natures::nature(saisie.get("nature").and_then(Value::as_str))?.mensuelle() {
+    let dite = |x: &Option<String>| x.as_deref().is_some_and(|x| !x.is_empty());
+    if saisie.nature_lue()?.mensuelle() {
         // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit (CCH-11).
-        saisie.remove("spectacle");
-    } else if saisie.get("lignes").is_none() && saisie.get("debut").is_some_and(vrai) && saisie.get("fin").is_some_and(vrai) {
+        saisie.spectacle = None;
+    } else if saisie.lignes.is_none() && dite(&saisie.debut) && dite(&saisie.fin) {
         // UN MOIS DU CONTRAT SANS CACHET : un contrat aux bornes dites, sans ligne, s'ecrit `lignes: []` -- la DSN porte
         // le contrat avec un versement a zero, sans bulletin.
-        saisie.insert("lignes".into(), Value::Array(Vec::new()));
+        saisie.lignes = Some(Vec::new());
     }
     Ok(saisie)
 }
 
 /// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
-fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
-    let cle = |v: &Value| ctx.spectacle(&en_texte(v)).ok().and_then(|f| f.get("_cle").cloned());
+fn meme_spectacle(ctx: &Contexte, a: &str, b: &str) -> bool {
+    let cle = |v: &str| ctx.spectacle(v).ok().and_then(|f| f.get("_cle").cloned());
     cle(a).is_some_and(|x| Some(x) == cle(b))
 }
 
@@ -1301,9 +1315,9 @@ pub fn mois_d_entree(racine: &Path, mois: &str) -> Resultat<String> {
 /// Un contrat paye au mois dont le debut tombe dans un mois d'avant la carte, mais pas avant le logiciel
 /// (`commence_avant_le_logiciel`), s'ecrit dans le mois de son debut, comme saisi sur sa carte : ce mois montre ce qui est
 /// a faire (sa paie, sa DPAE). Sinon, `mois`.
-pub fn mois_d_ecriture(racine: &Path, mois: &str, e: &Value) -> Resultat<String> {
-    let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).is_ok_and(|n| n.mensuelle());
-    let debut = crate::debut_brut(racine, e);
+pub fn mois_d_ecriture(racine: &Path, mois: &str, e: &Carte) -> Resultat<String> {
+    let mensuel = e.mensuelle();
+    let debut = e.debut_lu(racine);
     let premier = debut.get(..7).filter(|m| socle::mois::Mois::lire(m).is_ok()).map(String::from);
     Ok(match premier {
         Some(p) if mensuel && p.as_str() < mois && !commence_avant_le_logiciel(racine, &debut, mois)? => p,

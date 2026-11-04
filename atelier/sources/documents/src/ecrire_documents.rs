@@ -14,8 +14,6 @@ use socle::fichiers::lire_json;
 use socle::verrou::Verrou;
 use socle::echec::Refus;
 use socle::ecriture::json_indente;
-use socle::fichiers::repr;
-use socle::num::entier_lu;
 use engagement::calcul::Paie;
 
 fn os(chemin: &std::path::Path, e: std::io::Error) -> Echec {
@@ -174,12 +172,11 @@ impl Reserves {
 /// validation (`engagement::numeros`), chaque bulletin sous le sien (ecrit dans la paie a son depart, ou celui que le
 /// compteur propose). `reserves` : les numeros de bulletin qu'un envoi propose, que la route d'envoi ecrit plus loin. Un
 /// mois sans engagement valide n'a rien.
-pub fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut Reserves>, departs: &engagement::departs::Departs) -> Result<(Value, Vec<Paie>), Refus> {
+pub fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut Reserves>, departs: &engagement::departs::Departs) -> Result<(engagement::saisie::VueDuMois, Vec<Paie>), Refus> {
     let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois, departs)? else {
-        return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
+        return Ok((engagement::saisie::VueDuMois::vide(socle::mois::Mois::lire(mois)?), Vec::new()));
     };
-    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee = entier_lu(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
+    let annee = data.mois.annee();
     match reserves {
         Some(r) => r.numeroter(ctx, &mut paies, annee, departs)?,
         None => numeroter(ctx, &mut paies, annee, departs)?,

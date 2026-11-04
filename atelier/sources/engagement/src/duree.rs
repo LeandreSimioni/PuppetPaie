@@ -27,11 +27,11 @@ pub const MAXIMUM_QUOTIDIEN: f64 = 10.0;
 /// Une journee.
 const JOURNEE: f64 = 24.0;
 
-/// Les heures de travail de chaque jour de l'engagement `e` (une saisie), et si l'une d'elles est une moyenne (une
+/// Les heures de travail de chaque jour des lignes `lignes` d'un engagement, et si l'une d'elles est une moyenne (une
 /// ligne qui repartit ses heures sur plusieurs jours).
-fn heures_par_jour(ctx: &Contexte, e: &Value) -> Resultat<BTreeMap<Jour, (f64, bool)>> {
+fn heures_par_jour(ctx: &Contexte, lignes: &[Value]) -> Resultat<BTreeMap<Jour, (f64, bool)>> {
     let mut jours: BTreeMap<Jour, (f64, bool)> = BTreeMap::new();
-    for l in e.get("lignes").and_then(Value::as_array).into_iter().flatten() {
+    for l in lignes {
         let Some(code) = l.get("rubrique") else { continue };
         let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
         let travail = r.nature == "salaire"
@@ -58,8 +58,8 @@ fn heures_par_jour(ctx: &Contexte, e: &Value) -> Resultat<BTreeMap<Jour, (f64, b
 }
 
 /// LE REFUS : un jour de plus de 24 heures dans l'engagement `e` de `qui`. `None` quand il n'y en a pas.
-pub fn plus_d_une_journee(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Option<String>> {
-    let trop: Vec<(Jour, (f64, bool))> = heures_par_jour(ctx, e)?.into_iter().filter(|(_, (h, _))| *h > JOURNEE + 1e-9).collect();
+pub fn plus_d_une_journee(ctx: &Contexte, lignes: &[Value], qui: &str) -> Resultat<Option<String>> {
+    let trop: Vec<(Jour, (f64, bool))> = heures_par_jour(ctx, lignes)?.into_iter().filter(|(_, (h, _))| *h > JOURNEE + 1e-9).collect();
     let Some((j, (h, moyenne))) = trop.first() else { return Ok(None) };
     Ok(Some(format!(
         "{} : {} h de travail {}le {}{} : saisissez les heures de ce jour-là, ou répartissez-les sur plus de jours.",
@@ -73,9 +73,9 @@ pub fn plus_d_une_journee(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Opti
 
 /// CE QUI SE DIT SANS SE REFUSER : les jours de l'engagement `e` de `qui` au-dela de la duree quotidienne maximale
 /// (L. 3121-18). `None` quand il n'y en a pas.
-pub fn au_dela_du_maximum(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<Option<String>> {
+pub fn au_dela_du_maximum(ctx: &Contexte, lignes: &[Value], qui: &str) -> Resultat<Option<String>> {
     let longs: Vec<(Jour, (f64, bool))> =
-        heures_par_jour(ctx, e)?.into_iter().filter(|(_, (h, _))| *h > MAXIMUM_QUOTIDIEN + 1e-9 && *h <= JOURNEE + 1e-9).collect();
+        heures_par_jour(ctx, lignes)?.into_iter().filter(|(_, (h, _))| *h > MAXIMUM_QUOTIDIEN + 1e-9 && *h <= JOURNEE + 1e-9).collect();
     if longs.is_empty() {
         return Ok(None);
     }

@@ -362,7 +362,7 @@ fn la_demande_de_taux_d_une_embauche_part_et_sa_reponse_fait_l_engagement() {
     }
     fiches["DUNCAN"] = seconde;
     outils::ecrire(&racine, "config/salaries.json", &fiches);
-    let vue = engagement::stock::vue_du_mois(&racine, "2026-11").unwrap().unwrap();
+    let vue = engagement::stock::vue_du_mois(&racine, "2026-11").unwrap().unwrap().en_valeur();
     let mut carte = vue["engagements"][0].clone();
     carte["salarie"] = json!("DUNCAN");
     for k in ["numero", "numero_pour", "valide"] {
@@ -418,7 +418,7 @@ fn le_compte_rendu_d_une_dsn_ne_refait_pas_la_paie_qu_elle_declare() {
     let mut fiches = outils::lire(&racine, "config/salaries.json");
     fiches["FULLER"]["taux_pas"] = json!([{"valeur": ""}, {"depuis": "2026-11-17", "valeur": {"taux": "4.30", "type": "01", "identifiant": "190151266", "mis_a_disposition": "20261117100000"}}]);
     outils::ecrire(&racine, "config/salaries.json", &fiches);
-    let vue = engagement::stock::vue_du_mois(&racine, "2026-11").unwrap().unwrap();
+    let vue = engagement::stock::vue_du_mois(&racine, "2026-11").unwrap().unwrap().en_valeur();
     let mut carte = vue["engagements"][0].clone();
     carte["date_paiement"] = json!("2026-12-20");
     for k in ["numero_pour", "valide"] {
@@ -490,9 +490,9 @@ fn la_fictive_tient_son_annee_et_se_livre(nom: &str, decembre: usize, dpae: &[&s
         let m = outils::lire(&racine, &format!("engagements/{}.json", mois));
         let v: Vec<Value> = m["engagements"].as_array().unwrap().iter().flat_map(|e| {
             ecrites.iter().filter(move |(_, p)| p["salarie"] == e["salarie"] && p["numero"] == e["numero"] && !e["valide"].is_null()).map(move |(pm, p)| {
-                let q = &p["paie"];
+                let q = &p["presente"]["paie"];
                 // L'identifiant du compte rendu qui porte le taux se tire au hasard au simulateur, hors du rejeu (l'horloge).
-                let mut pas = p["pas"].clone();
+                let mut pas = p["presente"]["pas"].clone();
                 if let Some(o) = pas.as_object_mut() {
                     o.remove("identifiant");
                 }

@@ -322,7 +322,7 @@ fn enumerer(xs: &[String]) -> String {
 /// d'avant (un contrat au mois change a partir d'un mois suivant : ce mois-ci reste tel qu'il est parti).
 pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Option<Value> {
     let passees = v.versions();
-    let paie_du_mois = |x: &Value| crate::etats::paie_ecrite_de_la_version(v.objet(), x, mois).ok().flatten().and_then(|p| p.get("paie").cloned());
+    let paie_du_mois = |x: &Value| crate::etats::paie_ecrite_de_la_version(v.objet(), x, mois).ok().flatten().map(|p| p.paie.clone());
     let present = v.objet().brut.get("valide");
     if passees.last().zip(present).is_none_or(|(a, p)| paie_du_mois(a).is_some() && paie_du_mois(a) == paie_du_mois(p)) {
         return None;
@@ -408,7 +408,7 @@ fn phrase_de_la_frise(ctx: &Contexte, v: &Valide, departs: &Departs, siens: &[De
 fn premier_mois_change(v: &Valide) -> Option<String> {
     let avant = v.versions().last()?;
     let present = v.objet().brut.get("valide")?;
-    let paie = |x: &Value, m: &str| crate::etats::paie_ecrite_de_la_version(v.objet(), x, m).ok().flatten().and_then(|p| p.get("paie").cloned());
+    let paie = |x: &Value, m: &str| crate::etats::paie_ecrite_de_la_version(v.objet(), x, m).ok().flatten().map(|p| p.paie.clone());
     crate::paies::mois_ecrits(v.objet()).ok()?.into_iter().find(|m| paie(avant, m) != paie(present, m))
 }
 

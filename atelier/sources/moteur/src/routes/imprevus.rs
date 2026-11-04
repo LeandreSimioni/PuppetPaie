@@ -1622,7 +1622,7 @@ fn arret_oublier(ctx: &Contexte, c: &ChargeArretOublier) -> R<ReponseArret> {
 /// paies ecrites ; refus si aucun engagement ne le touche.
 fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
-    engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
+    engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.map(|(d, p)| (d.en_valeur(), p)).ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
 /// L'engagement brut avec ses bornes : un contrat aux cachets ne les ecrit pas, il commence son premier jour travaille et
@@ -2280,7 +2280,7 @@ pub(crate) struct FinASignaler {
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<FinASignaler>> {
     // Un signalement de fin ne se doit que pour un engagement valide, lu tel qu'il est ecrit (`tels_qu_ecrits`) : un
     // brouillon ne part pas, et ce qui ne fait que lire ne recalcule rien.
-    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
+    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.map(|v| v.en_valeur()) else {
         return Ok(Vec::new());
     };
     let journal = envois::journal::lu(&ctx.racine)?;
@@ -2423,7 +2423,7 @@ fn arret_contrats(ctx: &Contexte, c: ChargeArretContrats) -> R<ReponseContrats> 
 fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
     let mut sorties: Vec<ContratAuJour> = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?;
+    let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?.into_iter().map(String::from).collect::<Vec<_>>();
     mois.reverse();
     for m in mois {
         for (c, e) in crate::routes::mois::engagements_du_mois(ctx, &m)? {
@@ -2434,8 +2434,8 @@ fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
             // Un contrat paye au mois sans fin ecrite (un CDI qui court) couvre tout jour depuis son debut : c'est sur lui
             // qu'un arret ou une suspension se pose. Le mois le plus recent qui le saisit fait foi (une fin ecrite plus
             // tard l'emporte) : il est retenu, couvrant ou non, avant les mois plus anciens.
-            let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map(|n| n.mensuelle()).unwrap_or(false);
-            let numero = e.get("numero").cloned().unwrap_or(Value::Null);
+            let mensuel = e.nature_lue().map(|n| n.mensuelle()).unwrap_or(false);
+            let numero = e.numero.clone().map_or(Value::Null, Value::String);
             if debut.is_empty() || (fin.is_empty() && !mensuel) {
                 continue;
             }
@@ -2447,19 +2447,19 @@ fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
                 continue;
             }
             let salarie = cle_du_nom(ctx, cle)?;
-            let ou_vide = |k: &str| e.get(k).filter(|x| vrai(x)).cloned().unwrap_or_else(|| json!(""));
+            let ou_vide = |x: &Option<String>| json!(x.clone().unwrap_or_default());
             sorties.push(ContratAuJour {
                 nom: ctx.nomme(cle),
                 salarie,
-                numero: brut(&ou_vide("numero")),
+                numero: brut(&ou_vide(&e.numero)),
                 debut,
                 fin,
                 mois: m.to_string(),
-                spectacle: brut(&ou_vide("spectacle")),
+                spectacle: brut(&ou_vide(&e.spectacle)),
                 // Paye au mois (`Nature::mensuelle`) : son mois de paie se tire du moteur, et un arret y appelle le maintien
                 // de salaire (L1226-1 : pas pour un intermittent).
                 mensuel,
-                nature: e.get("nature").cloned().unwrap_or(Value::Null),
+                nature: e.nature.clone().map_or(Value::Null, Value::String),
                 dit: None,
             });
         }

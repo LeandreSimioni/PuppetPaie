@@ -378,17 +378,15 @@ pub(crate) fn cle_de(p: &Paie) -> String {
 
 /// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies
 /// ecrites, sans numeros ; un mois sans saisie n'a rien.
-pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    Ok(engagement::etats::validees_du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)?.unwrap_or_else(|| (json!({"mois": mois, "engagements": []}), Vec::new())))
+pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(engagement::saisie::VueDuMois, Vec<Paie>)> {
+    let vide = engagement::saisie::VueDuMois::vide(socle::mois::Mois::lire(mois).map_err(|m| avec("ValueError", m))?);
+    Ok(engagement::etats::validees_du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)?.unwrap_or((vide, Vec::new())))
 }
 
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
-fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
-    let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
-    let annee = socle::num::entier_lu(&mois.chars().take(4).collect::<String>())
-        .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
-    documents::ecrire_documents::numeroter_en_attente(ctx, paies, annee as i32, attente, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)
+fn numeroter(ctx: &Contexte, data: &engagement::saisie::VueDuMois, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
+    documents::ecrire_documents::numeroter_en_attente(ctx, paies, data.mois.annee(), attente, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)
 }
 
 /// L'etiquette d'un mois dans le nom d'un fichier (`Aout2026`) ; un mois illisible se refuse (`ValueError`).
@@ -452,7 +450,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
             Some(n) => engagement::etats::paie_ecrite_de(ctx, m, &cle, n, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(|e| avec("ValueError", e))?).map_err(|e| avec("ValueError", e))?,
             None => None,
         };
-        let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
+        let Some(paie) = ecrite.as_ref().map(|x| &x.paie) else {
             match importe.as_ref().and_then(|i| verse_par_l_ancien_logiciel(i, m)) {
                 Some((brut, l, j)) => {
                     bruts += brut;
@@ -830,7 +828,7 @@ fn sans_accents(t: &str) -> String {
 /// signes. Ils vont dans le ZIP, pas dans un PDF.
 fn signatures(ctx: &Contexte, cle: &str, p: &Periode) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from) {
         if !p.contient(&mois) {
             continue;
         }
@@ -1207,7 +1205,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     let mut pages: Vec<Page> = Vec::new();
     let mut contrats_vus: HashSet<String> = HashSet::new();
     let mut attente: HashMap<(String, String), i64> = HashMap::new();
-    let mois_saisis = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default();
+    let mois_saisis = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     for m in &mois_saisis {
         if p.contient(m) {
             pages.extend(mois_puppetpaie(ctx, m, &ensemble_cles, &ensemble_cats, tmp, &mut d, &aujourdhui, &mut contrats_vus, &mut attente)?);
