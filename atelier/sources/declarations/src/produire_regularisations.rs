@@ -18,7 +18,6 @@ use socle::valeur::valeur_en_texte;
 use socle::texte::euros;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
 use crate::versement_declare::{self, VersementDeclare};
@@ -119,7 +118,7 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str, departs: &engage
                     format!(
                         "Correction de {} pour {} (contrat {}) : {}. Une regularisation annule ce qui a ete DECLARE : elle le lit dans la version de l'engagement sur laquelle la DSN est partie, elle ne le recalcule pas. La DSN de {} ne se produit pas tant que ce n'est pas regle.",
                         mois,
-                        valeur_en_texte(apres.salarie.get("nom").unwrap_or(&Value::Null)),
+                        apres.salarie.nom.en_valeur().as_str().unwrap_or_default().to_string(),
                         if numero.is_empty() { "sans numero" } else { numero.as_str() },
                         quoi,
                         mois_courant
@@ -193,7 +192,7 @@ pub fn versions_portees(ctx: &Contexte, regs: &[Reg], nic: &str) -> R<Vec<Value>
             continue;
         }
         let v = json!({
-            "salarie": valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)),
+            "salarie": r.apres.salarie.id.to_string(),
             "numero": r.apres.engagement.numero.as_deref().unwrap_or_default().to_string(),
             "version": r.version,
             "mois": r.mois,
@@ -236,10 +235,10 @@ fn ajout(mois: String, version: u64, decidee_le: Option<Jour>, apres: Paie) -> R
     Ok(Reg { mois, version, decidee_le, avant: apres.clone(), declare, net_deja_verse: Decimal::ZERO, apres, taux_pas_origine: None })
 }
 
-fn prenom_de(sal: &Value) -> String {
-    match sal.get("prenom_affichage") {
-        Some(v) if vrai(v) => valeur_en_texte(v),
-        _ => valeur_en_texte(sal.get("prenom").unwrap_or(&Value::Null)),
+fn prenom_de(sal: &droit::fiche::ChampsSalarie) -> String {
+    match sal.prenom_affichage.texte() {
+        "" => sal.prenom.texte().to_string(),
+        p => p.to_string(),
     }
 }
 
@@ -248,10 +247,12 @@ pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for r in regs {
         let s = &r.apres.salarie;
-        let nom = s.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
+        if s.nom.est_absente() {
+            return Err(erreur("KeyError", socle::fichiers::absent("nom")));
+        }
         out.push(format!(
             "{} {}, contrat {} ({}) : brut {} → {}, net {} → {}",
-            valeur_en_texte(nom),
+            s.nom.texte(),
             prenom_de(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
             socle::mois::Mois::en_clair(&r.mois),

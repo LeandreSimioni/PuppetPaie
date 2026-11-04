@@ -126,12 +126,19 @@ pub fn paie_sur_ses_fiches(ctx: &Contexte, eng: Engagement, v: &Value, fiches: &
 /// periode elementaire>]}`, sans les taux recus (`droit::pas::sans_taux_recus` : le taux de la paie est son `pas`). Elles
 /// s'ecrivent a cote de la paie, et ce qui relit ce qui a ete declare les relit.
 pub fn fiches_du_calcul(p: &Paie) -> Value {
-    json!({ "paie": droit::pas::sans_taux_recus(&p.salarie), "periodes": p.periodes.iter().map(|q| droit::pas::sans_taux_recus(&q.salarie)).collect::<Vec<_>>() })
+    {
+    let sans = |s: &droit::fiche::SalarieDuContrat| {
+        let mut s = s.clone();
+        s.fiche.champs = droit::pas::sans_taux_recus(&s.fiche.champs);
+        s.en_valeur()
+    };
+    json!({ "paie": sans(&p.salarie), "periodes": p.periodes.iter().map(|q| sans(&q.salarie)).collect::<Vec<_>>() })
+    }
 }
 
 fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) -> Resultat<Paie> {
     let sal = match fiches.and_then(|f| f.get("paie")).filter(|f| f.is_object()) {
-        Some(f) => f.clone(),
+        Some(f) => droit::fiche::SalarieDuContrat::lire(f)?,
         None => fiche_de_l_engagement(ctx, &eng)?,
     };
     let nat = eng.nat()?;

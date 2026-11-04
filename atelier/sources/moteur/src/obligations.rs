@@ -922,8 +922,7 @@ fn requis<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
 fn l_arret(ctx: &Contexte, charge: &Value) -> R<(String, Value)> {
     let nom = en_texte(requis(charge, "salarie")?);
     let dernier = en_texte(requis(charge, "dernier_jour")?);
-    let fiche = ctx.salarie(&nom).map_err(|m| erreur("KeyError", m))?;
-    let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
+    let cle = ctx.cle_du_salarie(&nom).map_err(|m| erreur("KeyError", m))?.to_string();
     for a in crate::routes::imprevus::tous_les_arrets(ctx)? {
         if texte(&a, "salarie") == cle && texte(&a, "dernier_jour_travaille") == dernier {
             return Ok((cle, a));

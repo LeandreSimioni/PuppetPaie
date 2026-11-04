@@ -124,7 +124,7 @@ pub(crate) fn refuser_la_dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) ->
 
 /// Le nom d'un salarié à l'écran, ou `None` sans fiche.
 fn nom_du_salarie(ctx: &Contexte, cle: &str) -> Option<String> {
-    ctx.salaries.get(cle).filter(|s| vrai(s)).and_then(socle::texte::salarie_nomme)
+    ctx.salaries.get(cle).and_then(|s| s.nomme())
 }
 
 /// La fiche du spectacle de ce numero d'objet : `(cle, titre)` ; le titre est vide s'il est « A COMPLETER ».

@@ -507,7 +507,7 @@ pub fn remplir(donnees: &[u8], valeurs: &Map<String, Value>, images: &[Value]) -
 /// Toutes les periodes que l'AER de `cle` pour `periode` doit porter (`ecarts`) : chaque contrat dont l'AER est due ce
 /// mois-ci (`due`), mois par mois depuis son debut, chacun lu dans la paie de son mois (`paies_du_mois`).
 pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMut(&str) -> Vec<engagement::calcul::Paie>) -> Resultat<Vec<PaieAer>> {
-    let de_lui = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).as_deref() == Some(cle);
+    let de_lui = |p: &engagement::calcul::Paie| p.salarie.id == cle;
     let mut out = Vec::new();
     for p in paies_du_mois(periode).iter().filter(|p| de_lui(p)) {
         let e = &p.engagement;

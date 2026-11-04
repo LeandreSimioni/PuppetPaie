@@ -50,10 +50,10 @@ fn valeur(m: String) -> Echec {
     erreur("ValueError", m)
 }
 
-fn prenom_de(sal: &Value) -> String {
-    match sal.get("prenom_affichage") {
-        Some(v) if vrai(v) => valeur_en_texte(v),
-        _ => valeur_en_texte(sal.get("prenom").unwrap_or(&Value::Null)),
+fn prenom_de(sal: &droit::fiche::ChampsSalarie) -> String {
+    match sal.prenom_affichage.texte() {
+        "" => sal.prenom.texte().to_string(),
+        p => p.to_string(),
     }
 }
 
@@ -264,7 +264,7 @@ impl Lu {
     fn present(&self, ctx: &Contexte, mois: &str, forme: &Forme) -> R<Present> {
         let fiche = ctx.entreprise_du_mois(mois).map_err(valeur)?;
         let nic = forme.etablissement.clone();
-        let du_nic = |sal: &Value| -> R<bool> {
+        let du_nic = |sal: &droit::fiche::SalarieDuContrat| -> R<bool> {
             match &nic {
                 Some(n) => Ok(droit::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == *n),
                 None => Ok(true),
@@ -588,7 +588,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         if p.engagement.sans_paie() {
             avertissements.push(info(format!(
                 "{} {} : contrat {} en cours, aucun cachet en {} -- la DSN porte le contrat avec un versement a zero.",
-                valeur_en_texte(p.salarie.get("nom").unwrap_or(&Value::Null)),
+                p.salarie.nom.texte().to_string(),
                 prenom_de(&p.salarie),
                 p.engagement.numero.as_deref().unwrap_or("None"),
                 socle::mois::Mois::en_clair(mois)
@@ -933,10 +933,10 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
                 prochain_ce = Some(n + combien);
                 faits.reserves.enregistrer(an, "certificat_cs", n + combien - 1);
                 a_poser.entry(i).or_default().1 = Some((n, n + combien - 1));
-                if ctx.salarie(cle).map_err(valeur)?.get("nir").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
+                if ctx.salarie(cle).map_err(valeur)?.nir.texte().trim().is_empty() {
                     faits.avertissements.push(format!(
                         "{} {} : certificat Conges Spectacles emis SANS numero de securite sociale -- Audiens ne pourra pas le rattacher.",
-                        valeur_en_texte(paies[i].salarie.get("nom").unwrap_or(&Value::Null)),
+                        paies[i].salarie.nom.texte().to_string(),
                         prenom_de(&paies[i].salarie)
                     ));
                 }

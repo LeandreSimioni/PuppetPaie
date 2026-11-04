@@ -1180,7 +1180,7 @@ fn versement_refuse(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<Opt
         Some(f) if !eng.nat()?.duree_indeterminee && droit::versement::au_plus_tard_cirque_1285(&f)? < verse => {
             let ent = ctx.entreprise_au(&fin_mois)?;
             let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
-            let code = fiche.get("code_emploi_ft").filter(|c| vrai(c)).map(en_texte).unwrap_or_default();
+            let code = fiche.code_emploi_ft.texte().to_string();
             let metier = emplois::metier(&code)?.unwrap_or(Value::Null);
             let cirque = metier.get("minima").and_then(|m| m.get("1285")).and_then(Value::as_str) == Some("cirque");
             (ent.get("idcc").map(en_texte).as_deref() == Some("1285") && cirque).then_some(f)
@@ -1803,7 +1803,7 @@ fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()>
         let Some(voulu) = r.reservee_au_statut() else { continue };
         if statut.is_none() {
             let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
-            statut = Some(fiche.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into()));
+            statut = Some(fiche.statut.dite().map_or("artiste", |s| s.as_str()).to_string());
         }
         if statut.as_deref() != Some(voulu) {
             // Les heures d'un service se lisent sur lui ; celles d'un cachet sont celles du travail fait.
@@ -1824,20 +1824,12 @@ fn unites_du_statut(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<()>
 }
 
 /// "1", "2", ou "" si la fiche ne le dit pas (le NIR d'abord).
-fn sexe(fiche: &Value) -> String {
-    let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
-    let nir = texte("nir");
-    let nir = nir.trim();
+fn sexe(fiche: &droit::fiche::ChampsSalarie) -> String {
+    let nir = fiche.nir.texte().trim();
     if nir.starts_with('1') || nir.starts_with('2') {
         return nir[..1].to_string();
     }
-    let v = texte("sexe");
-    let v = v.trim();
-    if v == "1" || v == "2" {
-        v.to_string()
-    } else {
-        String::new()
-    }
+    fiche.sexe.dite().map_or(String::new(), |s| s.as_str().to_string())
 }
 
 // ------------------------------------------- le contrat qui deborde du mois
@@ -1863,8 +1855,8 @@ pub fn debut_brut(racine: &Path, e: &Value) -> String {
 }
 
 /// Le salarie d'une fiche, tel que l'ecran le nomme (`socle::texte::salarie_nomme`).
-fn qui_de(fiche: &Value) -> Resultat<String> {
-    socle::texte::salarie_nomme(fiche).ok_or_else(|| socle::fichiers::absent("nom"))
+fn qui_de(fiche: &droit::fiche::ChampsSalarie) -> Resultat<String> {
+    fiche.nomme().ok_or_else(|| socle::fichiers::absent("nom"))
 }
 
 /// « (n° FA1.26.13) » quand le contrat porte son numero ; rien sinon.
@@ -2003,7 +1995,7 @@ fn un_numero_un_salarie(paies: &[crate::calcul::Paie], mois: &str) -> Resultat<(
     let mut vus: BTreeMap<String, String> = BTreeMap::new();
     for p in paies {
         let Some(n) = p.engagement.numero.as_deref() else { continue };
-        let cle = p.salarie.get("_cle").map(en_texte).unwrap_or_default();
+        let cle = p.salarie.id.to_string();
         match vus.get(n) {
             Some(autre) if *autre != cle => {
                 return Err(format!(
@@ -2062,14 +2054,14 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
         let metier = e.get("metier").filter(|m| vrai(m)).map(en_texte).unwrap_or_default();
         let m = emplois::metier(&metier)?.unwrap_or(Value::Null);
         if e.get("cadre") == Some(&Value::Bool(false)) && m.get("cadre_par_defaut").map_or(false, vrai) {
-            let texte = |c: &str| p.salarie.get(c).filter(|x| vrai(x)).map(en_texte);
+            let texte = |c: &droit::fiche::Case<String>| c.dite().filter(|x| !x.is_empty()).cloned();
             let libelle = m.get("libelle").filter(|x| vrai(x)).map(en_texte).unwrap_or_else(|| metier.clone());
             let msg = format!(
                 "{} {}, {} : case cadre decochee, alors que ce metier est \
                  habituellement cadre. Si c'est voulu, rien a faire ; sinon, \
                  la cocher -- la retraite complementaire en depend.",
-                texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?,
-                texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?,
+                texte(&p.salarie.nom).ok_or_else(|| socle::fichiers::absent("nom"))?,
+                texte(&p.salarie.prenom_affichage).or_else(|| texte(&p.salarie.prenom)).ok_or_else(|| socle::fichiers::absent("prenom"))?,
                 libelle
             );
             p.ecrire().avertissements.push(Avis { info: false, texte: msg });

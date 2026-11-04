@@ -498,7 +498,8 @@ ou un annule."
     let fin_jour = d(&fin.fin)?;
     let ctx = &ctx.au(&fin_jour)?;
     let ent0 = &ctx.entreprise;
-    let s = &paie.salarie;
+    // Les rubriques de la DSN se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
+    let s = &paie.salarie.en_valeur();
     let bar = crate::dsn::BaremeDuMois::nouveau((*ctx.bareme(&fin_jour)?).clone());
     let constitution = match o.date_constitution {
         Some(j) => j,
@@ -558,7 +559,7 @@ ou un annule."
     f.add_v("S21.G00.06.006", ent("commune")?)?;
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = droit::bareme::entreprise_du_salarie(ent0, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent0, &paie.salarie)?;
     for (rub, k) in [
         ("S21.G00.11.001", "nic"),
         ("S21.G00.11.002", "naf"),
@@ -609,7 +610,7 @@ ou un annule."
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, &ent_l, s, crate::changements_individu::derniere_declaree(ctx, s, &fin_jour, departs)?.as_ref())?;
+    crate::ntt::poser_ntt(&mut f, &ent_l, s, crate::changements_individu::derniere_declaree(ctx, &paie.salarie, &fin_jour, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
     let siens: Vec<&Arret> = arrets.iter().collect();

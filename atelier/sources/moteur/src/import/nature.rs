@@ -266,7 +266,7 @@ pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
     for x in a_dire(racine) {
         let salarie = texte(&x, "salarie");
         let Ok(ctx) = Contexte::nouveau(racine, Some(*quand)) else { break };
-        let nir = ctx.salaries.get(&salarie).and_then(|f| f.get("nir")).map(valeur_en_texte).unwrap_or_default();
+        let nir = ctx.salaries.get(salarie.as_str()).map(|f| f.nir.texte().to_string()).unwrap_or_default();
         if nir.is_empty() {
             continue;
         }

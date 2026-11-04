@@ -52,7 +52,7 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
 /// (`droit::pas::EN_RETOUR_DE`) : son taux vaut pour les mois qui suivent.
 fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::PathBuf)]) -> R<()> {
     use serde_json::Value;
-    let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| s.get("nir").is_some_and(vrai)).map(|(cle, s)| json!([cle, s["nir"]])).collect();
+    let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| !s.nir.texte().is_empty()).map(|(cle, s)| json!([cle, s.nir.texte()])).collect();
     let journal = envois::journal::lu(&ctx.racine).map_err(|m| socle::echec::erreur("ValueError", m))?;
     let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
     let mois_declare = |retour: &Value| -> Option<String> {

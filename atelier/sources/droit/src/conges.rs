@@ -38,15 +38,20 @@ impl JoursTravailles {
         JoursTravailles { jours: [true, true, true, true, true, false, false], dits: false }
     }
 
-    /// Les jours que dit la fiche `fiche` (sa valeur au jour lu). Refus : une liste vide, ou un nom qui n'est pas un jour.
-    pub fn de_la_fiche(fiche: &Value) -> Resultat<Self> {
-        let v = match fiche.get("jours_travailles") {
+    /// Les jours que dit la fiche `fiche` (sa valeur au jour lu).
+    pub fn de_la_fiche(fiche: &crate::fiche::FicheSalarie) -> Resultat<Self> {
+        Self::lire(&fiche.jours_travailles.en_valeur(), fiche.id.as_str())
+    }
+
+    /// Les jours que dit la case `jours_travailles` d'une fiche (`v`, sa valeur au jour lu ; `qui` : la cle du salarie).
+    /// Refus : une liste vide, ou un nom qui n'est pas un jour.
+    pub fn lire(v: &Value, qui: &str) -> Resultat<Self> {
+        let v = match Some(v).filter(|v| !v.is_null()) {
             // Une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur (`contexte::dater`).
             None | Some(Value::Null) => return Ok(Self::du_lundi_au_vendredi()),
             Some(Value::String(s)) if s.trim().is_empty() => return Ok(Self::du_lundi_au_vendredi()),
             Some(v) => v,
         };
-        let qui = fiche.get("_cle").and_then(Value::as_str).unwrap_or("le salarie");
         let liste = v.as_array().ok_or_else(|| {
             format!("Fiche de {} : « Jours travaillés » est une liste de jours de la semaine (lundi, mardi...).", qui)
         })?;

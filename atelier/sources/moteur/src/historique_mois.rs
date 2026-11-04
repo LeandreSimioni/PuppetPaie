@@ -217,9 +217,8 @@ fn nom_lisible(ctx: &Contexte, nom: &str) -> String {
     }
     if let Some((cle, j)) = reste.strip_suffix(".dsn").and_then(|s| s.rsplit_once('_')).and_then(|(c, t)| jour(t).map(|j| (c, j))) {
         let qui = ctx.salaries.get(cle).map(|s| {
-            let t = |k: &str| s.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-            let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
-            format!("{} {}", t("nom"), prenom).trim().to_string()
+            let prenom = if s.prenom_affichage.texte().is_empty() { s.prenom.texte() } else { s.prenom_affichage.texte() };
+            format!("{} {}", s.nom.texte(), prenom).trim().to_string()
         });
         return format!("Taux de {}, demandé le {}", qui.filter(|q| !q.is_empty()).unwrap_or_else(|| cle.to_string()), j);
     }
@@ -281,10 +280,9 @@ fn documents(ctx: &Contexte, mois: &str, lignes: &[Value]) -> R<Vec<Value>> {
     // LES BULLETINS QUE L'ANCIEN LOGICIEL A FAITS, tels que l'import les garde : ce sont les bulletins du mois.
     for b in crate::import::mois::bulletins_repris(&ctx.racine, mois) {
         let cle = valeur_en_texte(&b["salarie"]);
-        let qui = ctx.salaries.get(&cle).map(|s| {
-            let t = |k: &str| s.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-            let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
-            format!("{} {}", t("nom"), prenom).trim().to_string()
+        let qui = ctx.salaries.get(cle.as_str()).map(|s| {
+            let prenom = if s.prenom_affichage.texte().is_empty() { s.prenom.texte() } else { s.prenom_affichage.texte() };
+            format!("{} {}", s.nom.texte(), prenom).trim().to_string()
         });
         let nom = format!("Bulletin de {} (ancien logiciel)", qui.filter(|q| !q.is_empty()).unwrap_or(cle.clone()));
         out.push(json!({"nom": nom, "sorte": "Bulletins de paie", "salarie": cle, "chemin": b["chemin"]}));

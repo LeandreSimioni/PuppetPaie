@@ -188,11 +188,7 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
     let index: Vec<Value> = ctx
         .salaries
         .iter()
-        .filter(|(_, v)| v.is_object())
-        .map(|(cle, v)| {
-            let champ = |c: &str| v.get(c).map_or("".to_string(), valeur_en_texte);
-            json!([cle, format!("{} {}", champ("nom"), champ("prenom"))])
-        })
+        .map(|(cle, v)| json!([cle, format!("{} {}", v.nom.texte(), v.prenom.texte())]))
         .collect();
     let mut vues: HashMap<(String, String), Vec<Attestation>> = HashMap::new();
     for nom in fichiers {
@@ -374,7 +370,7 @@ pub(crate) fn ranger_aer_detail(ctx: &Contexte, mois: Option<&str>, fichiers: Op
 fn dues_a_part(paies: &[engagement::calcul::Paie]) -> R<HashMap<String, Vec<&'static str>>> {
     let mut out: HashMap<String, Vec<&'static str>> = HashMap::new();
     for p in paies {
-        let siennes = out.entry(p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).or_default();
+        let siennes = out.entry(p.salarie.id.to_string()).or_default();
         if documents::aer::due(p).map_err(Echec::from)? && !siennes.contains(&"aer") {
             siennes.push("aer");
         }
@@ -439,11 +435,11 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
     let (certificats, _) = crate::routes::dossier_salarie::certificats_dus(ctx, paies)?;
     let mut messages: Vec<Message> = Vec::new();
     for s in paies.iter().map(|p| &p.salarie) {
-        let cle = valeur_en_texte(get_requis(s, "_cle")?);
+        let cle = s.id.to_string();
         if messages.iter().any(|m| m.cle == cle) {
             continue;
         }
-        let de_lui = |p: &&engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle.as_str());
+        let de_lui = |p: &&engagement::calcul::Paie| p.salarie.id == cle.as_str();
         let mut pieces = Vec::new();
         if paies.iter().filter(de_lui).any(|p| !p.engagement.sans_paie()) {
             pieces.push(dossier.join(nom_fichier("Bulletin", &cle, &etiq)));
@@ -458,7 +454,7 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
         messages.push(Message {
             nom: ctx.nomme(&cle),
             // Une fiche sans courriel se montre : ses documents s'impriment ; c'est l'envoi par courriel qui la refuse.
-            destinataire: s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase(),
+            destinataire: s.email.texte().to_lowercase(),
             cle,
             pieces,
         });
@@ -676,11 +672,11 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
     let mut cles: Vec<String> = Vec::new();
     let mut noms: HashMap<String, String> = HashMap::new();
     for p in &paies {
-        let cle = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        let cle = p.salarie.id.to_string();
         if cles.contains(&cle) || seulement.as_ref().is_some_and(|s| !s.contains(&cle)) {
             continue;
         }
-        noms.insert(cle.clone(), socle::texte::salarie_nomme_ou(Some(&p.salarie), &cle));
+        noms.insert(cle.clone(), p.salarie.nomme().unwrap_or_else(|| (&cle).to_string()));
         cles.push(cle);
     }
     if cles.is_empty() {
@@ -797,7 +793,7 @@ pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<HashMap<Strin
 pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie]) -> R<Choix> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let partis = crate::routes::etapes::documents_partis(ctx, mois, &engagement::etats::du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?).map_err(Echec::from)?, &lignes)?;
-    let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).collect();
+    let cles: Vec<String> = paies.iter().map(|p| p.salarie.id.to_string()).collect();
     let mut resumes: HashMap<String, Value> = HashMap::new();
     for cle in &cles {
         if resumes.contains_key(cle) {
@@ -871,7 +867,7 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     // LES DOCUMENTS SE FABRIQUENT ICI, pour ceux a qui ils partent : depuis les paies ecrites, a leurs numeros.
     let mut cles: Vec<String> = Vec::new();
     for p in &paies {
-        let cle = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        let cle = p.salarie.id.to_string();
         if !cles.contains(&cle) {
             cles.push(cle);
         }
@@ -901,7 +897,7 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
         None => None,
     };
     let documents = crate::compagnie::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
-    let paies_servies: Vec<engagement::calcul::Paie> = paies.iter().filter(|p| cles.contains(&p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default())).cloned().collect();
+    let paies_servies: Vec<engagement::calcul::Paie> = paies.iter().filter(|p| cles.contains(&p.salarie.id.to_string())).cloned().collect();
     let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois, &dues_a_part(&paies_servies)?).map_err(|m| refus_de_preparation(&m))?;
     let messages: Vec<envoi::Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let mut avertissements: Vec<String> = documents.avertissements.clone();
@@ -976,16 +972,16 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
 
 /// La fiche du salarie `cle`, telle que ses paies du mois la portent, a-t-elle un courriel ?
 fn a_un_courriel(paies: &[engagement::calcul::Paie], cle: &str) -> bool {
-    paies.iter().any(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle) && p.salarie.get("email").is_some_and(vrai))
+    paies.iter().any(|p| p.salarie.id == cle && !p.salarie.email.texte().is_empty())
 }
 
 /// « NOM Prenom » du salarie `cle`, lu dans ses paies du mois.
 fn nom_de_la_paie(paies: &[engagement::calcul::Paie], cle: &str) -> String {
     paies
         .iter()
-        .find(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
+        .find(|p| p.salarie.id == cle)
         .map(|p| {
-            socle::texte::salarie_nomme_ou(Some(&p.salarie), cle)
+            p.salarie.nomme().unwrap_or_else(|| (cle).to_string())
         })
         .unwrap_or_else(|| cle.to_string())
 }
@@ -1004,7 +1000,7 @@ pub(crate) fn sans_courriel(ctx: &Contexte, mois: &str) -> R<Vec<(String, String
     let (_, paies) = charger_le_mois(ctx, mois)?;
     let mut cles: Vec<String> = Vec::new();
     for p in &paies {
-        let c = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        let c = p.salarie.id.to_string();
         if !cles.contains(&c) {
             cles.push(c);
         }

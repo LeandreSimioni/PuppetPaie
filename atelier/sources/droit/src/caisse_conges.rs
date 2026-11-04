@@ -20,11 +20,11 @@
 //! tranche.
 
 use crate::natures::Nature;
+use crate::fiche::SalarieDuContrat;
 use socle::date::Jour;
 use crate::emplois;
 use socle::fichiers::vrai;
 use socle::num::Resultat;
-use serde_json::Value;
 
 /// Ce que la pile du bareme decrit sans contrat : le CORPS est un intermittent affilie (le CDDU), la section
 /// `par_nature.permanent` un salarie que l'employeur paie de ses conges (CDI, CDD de droit commun). C'est la valeur
@@ -45,11 +45,6 @@ fn douze_mois_apres(debut: &Jour) -> Jour {
 pub fn douze_mois_ou_plus(debut: &Jour, fin: &Jour) -> Resultat<bool> {
     Ok(fin.plus_jours(1)? >= douze_mois_apres(debut))
 }
-
-/// La cle de la fiche (telle que la paie la lit) qui porte la convention collective de l'employeur (son IDCC) : le
-/// domaine d'activite ou l'annexe 8 range le technicien (`intermittent`). La fiche la recoit de l'entreprise, a la
-/// date ou la paie la lit (`engagement::calcul::fiche_de_l_engagement`).
-pub const IDCC_DE_L_EMPLOYEUR: &str = "idcc_de_l_employeur";
 
 /// LE CONTRAT D'UN INTERMITTENT. Un CDD d'usage (la nature payee a l'activite) l'est toujours ; un CDI jamais ; un CDD
 /// de droit commun l'est quand l'annexe de l'assurance chomage range son salarie, dans les memes termes que pour le
@@ -74,14 +69,14 @@ pub const IDCC_DE_L_EMPLOYEUR: &str = "idcc_de_l_employeur";
 /// Ce qui en suit, et le lit ici : la caisse des Conges Spectacles (`affilie`), le code emploi de la nomenclature du
 /// spectacle en DSN (S21.G00.40.005, CCH-18 : « 999SPT » n'est que pour les emplois permanents), l'attestation employeur
 /// Cinema Spectacle (`documents::aer::due`), le certificat de la caisse.
-pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
+pub fn intermittent(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<bool> {
     if nat.duree_indeterminee {
         return Ok(false);
     }
     if !nat.mensuelle() {
         return Ok(true);
     }
-    let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).and_then(Value::as_str).unwrap_or("").trim().to_string();
+    let code = sal.code_emploi_ft.texte().trim().to_string();
     if code.is_empty() || code.eq_ignore_ascii_case("999SPT") {
         return Ok(false);
     }
@@ -91,7 +86,7 @@ pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
     match m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))) {
         Some(10) => Ok(true),
         Some(8) => {
-            let idcc = sal.get(IDCC_DE_L_EMPLOYEUR).filter(|c| vrai(c)).map(socle::date::en_texte).unwrap_or_default();
+            let idcc = sal.idcc_de_l_employeur.clone().unwrap_or_default();
             Ok(emplois::nomme_par_l_annexe8(&m, &idcc))
         }
         _ => Ok(false),
@@ -101,15 +96,15 @@ pub fn intermittent(nat: &Nature, sal: &Value) -> Resultat<bool> {
 /// Le technicien d'un CDD de droit commun que la liste de l'annexe 8 de la convention de l'employeur ne nomme pas
 /// (`intermittent` : non, par la seule annexe 8) : son metier (le libelle du catalogue) et l'IDCC. Sans IDCC sur la
 /// fiche, rien : la convention ne dit alors rien.
-pub fn hors_de_l_annexe8(nat: &Nature, sal: &Value) -> Resultat<Option<(String, String)>> {
+pub fn hors_de_l_annexe8(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<Option<(String, String)>> {
     if nat.duree_indeterminee || !nat.mensuelle() {
         return Ok(None);
     }
-    let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).and_then(Value::as_str).unwrap_or("").trim().to_string();
+    let code = sal.code_emploi_ft.texte().trim().to_string();
     let Some(m) = emplois::metier(&code)?.filter(|m| m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))) == Some(8)) else {
         return Ok(None);
     };
-    let idcc = sal.get(IDCC_DE_L_EMPLOYEUR).filter(|c| vrai(c)).map(socle::date::en_texte).unwrap_or_default();
+    let idcc = sal.idcc_de_l_employeur.clone().unwrap_or_default();
     if idcc.trim().is_empty() || emplois::nomme_par_l_annexe8(&m, &idcc) {
         return Ok(None);
     }
@@ -125,7 +120,7 @@ pub fn hors_de_l_annexe8(nat: &Nature, sal: &Value) -> Resultat<Option<(String, 
 /// - un CDD de droit commun d'un intermittent (`intermittent`) : oui, sauf s'il dure douze mois ou plus ; sans terme,
 ///   refus -- sa duree decide, et le moteur ne la devine pas ;
 /// - un CDD de droit commun d'un autre salarie : non.
-pub fn affilie(nat: &Nature, sal: &Value, debut: &Jour, fin: Option<&Jour>) -> Resultat<bool> {
+pub fn affilie(nat: &Nature, sal: &SalarieDuContrat, debut: &Jour, fin: Option<&Jour>) -> Resultat<bool> {
     if !intermittent(nat, sal)? {
         return Ok(false);
     }

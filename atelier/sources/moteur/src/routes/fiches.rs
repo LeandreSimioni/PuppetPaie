@@ -931,9 +931,11 @@ fn verifier_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Une case que la fiche ne decrit pas se dit comme a l'ecriture (`ecrire_fiche`), face a la fiche qu'elle completerait.
     let (vide, montree) = (Value::Object(Map::new()), crate::routes::etablissements::entreprise_montree(ctx));
     let cle = charge.get("cle").and_then(Value::as_str).filter(|k| !k.is_empty());
+    // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
+    let lue = cle.and_then(|k| ctx.salaries.get(k)).map(|f| f.champs.en_valeur());
     let ancienne: &Value = match nom {
         "entreprise" => &montree,
-        "salarie" => cle.and_then(|k| ctx.salaries.get(k)).unwrap_or(&vide),
+        "salarie" => lue.as_ref().unwrap_or(&vide),
         _ => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
     };
     anomalies.extend(champs::cases_inconnues(nom, &copie, ancienne, true)?);
@@ -1078,9 +1080,11 @@ fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
 fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: &Value) -> R<Option<Value>> {
     let vide = Value::Object(Map::new());
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
+    // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
+    let lue = cle.and_then(|k| ctx.salaries.get(k)).map(|f| f.champs.en_valeur());
     let ancienne: &Value = match nom {
         "entreprise" => &montree,
-        "salarie" => cle.and_then(|k| ctx.salaries.get(k)).unwrap_or(&vide),
+        "salarie" => lue.as_ref().unwrap_or(&vide),
         "spectacle" => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
         autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
     };
@@ -1614,7 +1618,7 @@ pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depui
 /// ensuite dans « Avancé » de la fiche. Une fiche qui la dit la garde. INFERENCE : l'anciennete commence a l'entree dans
 /// l'entreprise.
 pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut: &str) -> R<()> {
-    if ctx.salaries.get(salarie).is_none_or(|f| f.get("date_anciennete").is_some_and(vrai)) {
+    if ctx.salaries.get(salarie).is_none_or(|f| f.date_anciennete.est_dite()) {
         return Ok(());
     }
     poser_champs(ctx, "salarie", Some(salarie), un_champ("date_anciennete", json!(debut)), None, None)
@@ -1821,11 +1825,15 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     }
     let vide = Value::Object(Map::new());
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
+    // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
+    let lue = match nom {
+        "salarie" => cle.as_deref().and_then(|k| ctx.salaries.get(k)).map(|f| f.champs.en_valeur()),
+        _ => cle.as_deref().and_then(|k| ctx.spectacles.get(k)).cloned(),
+    };
     let ancienne: &Value = if nom == "entreprise" {
         &montree
     } else {
-        let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
-        cle.as_deref().and_then(|k| magasin.get(k)).unwrap_or(&vide)
+        lue.as_ref().unwrap_or(&vide)
     };
     // Ce que la charge ne dit pas (les notes internes, les cases d'une structure) reste ce qu'il est, avant tout le reste.
     let Value::Object(mut donnees) = charge_completee(ancienne, donnees) else { unreachable!() };
@@ -1855,7 +1863,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
             let autres: Vec<&str> = ctx
                 .salaries
                 .iter()
-                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim() == nir)
+                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.nir.texte().trim() == nir)
                 .map(|(k, _)| k.as_str())
                 .collect();
             if !autres.is_empty() {
@@ -1877,11 +1885,11 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         if !matricule.is_empty() {
             let porteur = ctx.salaries.iter().find(|(k, s)| {
                 Some(k.as_str()) != cle.as_deref()
-                    && s.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim() == matricule
+                    && s.code_salarie.texte().trim() == matricule
             });
             if let Some((k, s)) = porteur {
-                let prenom = s.get("prenom_affichage").filter(|p| vrai(p)).or(s.get("prenom")).map(valeur_en_texte).unwrap_or_default();
-                let qui = format!("{} {}", s.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom).trim().to_string();
+                let prenom = if s.prenom_affichage.texte().is_empty() { s.prenom.texte() } else { s.prenom_affichage.texte() };
+                let qui = format!("{} {}", s.nom.texte(), prenom).trim().to_string();
                 return Err(refus(format!(
                     "Le matricule {} est déjà celui de {} (fiche {}). Un matricule désigne un salarié et un seul : la DSN \
 rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser la case vide pour prendre le suivant.",
@@ -2282,13 +2290,13 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         let existante: Option<String> = ctx
             .salaries
             .iter()
-            .find(|(k, s)| s.is_object() && !k.starts_with('_') && strip(&s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_lowercase() == de)
-            .map(|(k, _)| k.clone());
+            .find(|(_, s)| strip(s.email.texte()).to_lowercase() == de)
+            .map(|(k, _)| k.to_string());
         let donnees: Map<String, Value> = match &existante {
             Some(k) => {
                 // Une fiche qui existe deja : on ne complete que ses cases VIDES. Ce qu'elle porte a peut-etre deja
                 // ete declare.
-                let ancienne = ctx.salaries.get(k).and_then(Value::as_object).cloned().unwrap_or_default();
+                let ancienne = ctx.salaries.get(k.as_str()).and_then(|f| f.champs.en_valeur().as_object().cloned()).unwrap_or_default();
                 let mut fusion = ancienne.clone();
                 for (cle, valeur) in &donnees {
                     if strip(&ancienne.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).is_empty() {
@@ -2396,7 +2404,7 @@ fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value
 pub(crate) fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = texte_requis(charge, "salarie")?;
     let email = texte_requis(charge, "email")?;
-    let Some(Value::Object(fiche)) = ctx.salaries.get(cle) else {
+    let Some(Value::Object(fiche)) = ctx.salaries.get(cle).map(|f| f.champs.en_valeur()) else {
         return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
     };
     let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();

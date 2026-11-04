@@ -55,8 +55,8 @@ pub(crate) fn regle_du_mois_incomplet(
     fin_mois: &Jour,
 ) -> droit::periodes::RegleDuMoisIncomplet {
     let idcc = ctx.entreprise.get("idcc").map(en_texte).unwrap_or_default();
-    let fiche = ctx.salarie(salarie).unwrap_or(Value::Null);
-    let statut = fiche.get("statut").filter(|s| vrai(s)).map(en_texte).unwrap_or_else(|| "artiste".into());
+    let fiche = ctx.salarie(salarie).ok();
+    let statut = fiche.as_ref().and_then(|f| f.statut.dite()).map_or("artiste", |s| s.as_str()).to_string();
     droit::periodes::regle_du_mois_incomplet(&idcc, &statut, debut > debut_mois || fin < fin_mois)
 }
 
@@ -71,12 +71,12 @@ pub(crate) fn horaire_du_mois(
     debut_mois: &Jour,
     fin_mois: &Jour,
 ) -> Resultat<droit::periodes::Horaire> {
-    let fiche = ctx.salarie(salarie).unwrap_or(Value::Null);
-    let jours = droit::conges::JoursTravailles::de_la_fiche(&fiche)?;
-    let anciennete = match fiche.get("date_anciennete").filter(|x| vrai(x)) {
-        Some(x) => d(x)?,
-        None => *debut_contrat,
+    let fiche = ctx.salarie(salarie).ok();
+    let jours = match &fiche {
+        Some(f) => droit::conges::JoursTravailles::de_la_fiche(f)?,
+        None => droit::conges::JoursTravailles::du_lundi_au_vendredi(),
     };
+    let anciennete = fiche.as_ref().and_then(|f| f.date_anciennete.dite().copied()).unwrap_or(*debut_contrat);
     let feries_non_payes = droit::conges::feries_non_payes(debut_mois, fin_mois, Some(&ctx.entreprise), &jours, &anciennete)?;
     Ok(droit::periodes::Horaire { jours, feries_non_payes })
 }
@@ -297,7 +297,7 @@ struct MoisPaye {
 /// Ce que la paie validee `p` de `mois` apporte au compteur.
 fn lue(ctx: &Contexte, mois: &str, p: &Paie) -> Resultat<PaieLue> {
     let eng = &p.engagement;
-    let cle = p.salarie.get("_cle").and_then(|c| c.as_str()).unwrap_or("").to_string();
+    let cle = p.salarie.id.to_string();
     let mensuel = if eng.nat()?.mensuelle() {
         let mut arret = false;
         for imp in crate::imprevus::du_mois_du_salarie(&ctx.racine, mois, None, &cle)? {
@@ -407,7 +407,7 @@ fn reprise_ecrite(ctx: &Contexte, cle_salarie: &str) -> Value {
         Some(f) => Some(f.clone()),
         None => ctx.salarie(cle_salarie).ok(),
     };
-    fiche.as_ref().and_then(|f| f.get("conges_reprise")).cloned().unwrap_or(Value::Null)
+    fiche.as_ref().map_or(Value::Null, |f| f.conges_reprise.en_valeur())
 }
 
 /// LE COMPTEUR QUI NE COMPTE PAS TOUT : sa periode la plus ancienne (`depuis`, le debut du report, sinon de la periode
@@ -842,7 +842,8 @@ pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Opti
         Some(f) => Some(f.clone()),
         None => ctx.salarie(cle_salarie).ok(),
     };
-    let Some(r) = fiche.as_ref().and_then(|f| f.get("conges_reprise")).filter(|r| r.is_object()) else {
+    let reprise = fiche.as_ref().map_or(Value::Null, |f| f.conges_reprise.en_valeur());
+    let Some(r) = Some(&reprise).filter(|r| r.is_object()) else {
         return Ok(None);
     };
     let texte = |c: &str| r.get(c).filter(|x| !x.is_null()).map(en_texte).unwrap_or_default();
@@ -952,7 +953,7 @@ fn paies_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Vec<PaieLue>
 fn cle_de_fiche(ctx: &Contexte, cle: &str) -> String {
     ctx.salarie(cle)
         .ok()
-        .and_then(|f| f.get("_cle").and_then(|c| c.as_str()).map(String::from))
+        .map(|f| f.id.to_string())
         .unwrap_or_else(|| cle.to_string())
 }
 
@@ -1234,16 +1235,15 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     avert.extend(a);
 
     // --- la prime d'anciennete de l'annexe I de la 3090
-    let mut fiche = ctx.salarie(&en_texte(requis(e, "salarie")?)).unwrap_or_else(|_| json!({}));
+    let mut fiche = ctx.salarie(&en_texte(requis(e, "salarie")?)).map(|f| f.champs).unwrap_or_default();
+    let cle = ctx.cle_du_salarie(&en_texte(requis(e, "salarie")?)).map(|c| c.to_string()).unwrap_or_default();
     // Les annees de presence que les suspensions laissent (L1225-54 : `imprevus::anciennete_depuis`).
     let mut sur_l_anciennete = Vec::new();
-    if let Some(depuis) = fiche.get("date_anciennete").filter(|x| vrai(x)).or_else(|| e.get("debut").filter(|x| vrai(x))).map(d).transpose()? {
-        let cle = fiche.get("_cle").map(en_texte).unwrap_or_default();
+    let debut_saisi = e.get("debut").filter(|x| vrai(x)).map(d).transpose()?;
+    if let Some(depuis) = fiche.date_anciennete.dite().copied().or(debut_saisi) {
         let (retenu, dit) = crate::imprevus::anciennete_depuis(&ctx.racine, &cle, &depuis, &fin_mois)?;
         if retenu != depuis {
-            if let Some(o) = fiche.as_object_mut() {
-                o.insert("date_anciennete".into(), Value::String(retenu.iso()));
-            }
+            fiche.date_anciennete = droit::fiche::Case::Dite(retenu);
             sur_l_anciennete = dit;
         }
     }

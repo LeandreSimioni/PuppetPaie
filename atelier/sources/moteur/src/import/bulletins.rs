@@ -474,8 +474,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
 
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &ctx.salaries {
-        if let Some(n) = s.get("nir").filter(|v| vrai(v)) {
-            par_nir.insert(valeur_en_texte(n), cle.clone());
+        if let Some(n) = s.nir.dite().filter(|n| !n.is_empty()) {
+            par_nir.insert(n.clone(), cle.to_string());
         }
     }
     let cle_de = |nir: &str| par_nir.get(nir).cloned().unwrap_or_else(|| A_CREER.to_string());
@@ -599,11 +599,11 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     for (nir, rangs) in &par_salarie {
         let siens: Vec<&Lu> = rangs.iter().map(|&k| &lus[k]).collect();
         if let Some(cle) = par_nir.get(nir) {
-            let fiche = &ctx.salaries[cle];
-            let ec = ecarts_salarie(fiche, &siens, &chemin_de);
+            let fiche = &ctx.salaries[cle.as_str()];
+            let ec = ecarts_salarie(&fiche.champs.en_valeur(), &siens, &chemin_de);
             // Ce qui y est vide, de ce que les bulletins impriment (la fiche qu'ils creeraient) ; ce que la DSN complete
             // deja garde la valeur de la DSN (`completer::ajouter`).
-            let champs = completer::champs_a_completer("salarie", fiche, &fiche_salarie(nir, &siens)?)?;
+            let champs = completer::champs_a_completer("salarie", &fiche.champs.en_valeur(), &fiche_salarie(nir, &siens)?)?;
             let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
             let rang = match liste.iter().position(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
                 Some(i) => {
@@ -611,7 +611,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                     i
                 }
                 None => {
-                    let libelle = format!("{} {}", fiche.get("nom").map_or(String::new(), valeur_en_texte), ri::titre_de(fiche.get("prenom")));
+                    let libelle = format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&fiche.prenom.en_valeur()).filter(|p| !p.is_null())));
                     liste.push(ri::fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({})));
                     liste.len() - 1
                 }
@@ -654,13 +654,13 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let dernier = siens[siens.len() - 1];
         let proposees = fiche_de_certificats(nir, &siens)?;
         if let Some(cle) = par_nir.get(nir) {
-            let fiche = &ctx.salaries[cle];
-            let champs = completer::champs_a_completer("salarie", fiche, &proposees)?;
+            let fiche = &ctx.salaries[cle.as_str()];
+            let champs = completer::champs_a_completer("salarie", &fiche.champs.en_valeur(), &proposees)?;
             let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
             let rang = match liste.iter().position(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
                 Some(i) => i,
                 None => {
-                    let libelle = format!("{} {}", fiche.get("nom").map_or(String::new(), valeur_en_texte), ri::titre_de(fiche.get("prenom")));
+                    let libelle = format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&fiche.prenom.en_valeur()).filter(|p| !p.is_null())));
                     liste.push(ri::fiche_importee("salarie", Some(cle), &libelle, "existante", json!({}), Vec::new(), json!({})));
                     liste.len() - 1
                 }
@@ -2082,7 +2082,7 @@ fn entreprise_du_certificat(p: &Attestee) -> R<Map<String, Value>> {
 /// catalogue que nomme l'emploi du certificat. `None` : rien ne le dit.
 fn statut_de(ctx: &Contexte, par_nir: &HashMap<String, String>, a_creer: &[ACreer], nir: &str, c: &crate::import::certificat_lu::Certificat) -> R<Option<String>> {
     let lu = |v: Option<&Value>| v.filter(|x| vrai(x)).map(valeur_en_texte).filter(|s| !s.trim().is_empty());
-    if let Some(s) = par_nir.get(nir).and_then(|k| lu(ctx.salaries.get(k).and_then(|f| f.get("statut")))) {
+    if let Some(s) = par_nir.get(nir).and_then(|k| lu(ctx.salaries.get(k.as_str()).map(|f| f.statut.en_valeur()).filter(|s| !s.is_null()).as_ref())) {
         return Ok(Some(s));
     }
     if let Some(s) = a_creer.iter().filter(|a| a.nom == "salarie" && a.donnees.get("nir").map(valeur_en_texte).as_deref() == Some(nir)).find_map(|a| lu(a.donnees.get("statut"))) {

@@ -60,12 +60,12 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
             let dates: Vec<String> = e.dates_travail.iter().map(|j| j.iso()).collect();
             let emploi = match e.emploi.clone().filter(|x| !x.is_empty()) {
                 Some(x) => x,
-                None => fiche_texte(&paie.salarie, "emploi"),
+                None => paie.salarie.emploi.texte().to_string(),
             };
             out.push(ContratMois {
                 mois: m.clone(),
-                cle: paie.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(),
-                fiche: paie.salarie.clone(),
+                cle: paie.salarie.id.to_string(),
+                fiche: paie.salarie.en_valeur(),
                 salarie: qui(&paie.salarie)?,
                 contrat: e.numero.as_deref().unwrap_or_default().to_string(),
                 nature: e.nat().map_err(|x| erreur("ErreurOperation", x))?.libelle.clone(),
@@ -226,10 +226,11 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 /// Chaque fiche de salarie, coordonnees comprises -- ce que le comptable
 /// demande a l'ouverture du dossier. Pas de periode : ce sont les fiches d'aujourd'hui.
 pub fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
-    let mut fiches: Vec<(&String, &Value)> = ctx.salaries.iter().collect();
-    fiches.sort_by(|a, b| a.0.cmp(b.0));
+    // Les colonnes nomment les cases de la fiche : elle se lit ici en JSON.
+    let mut fiches: Vec<(String, Value)> = ctx.salaries.iter().map(|(k, f)| (k.to_string(), f.champs.en_valeur())).collect();
+    fiches.sort_by(|a, b| a.0.cmp(&b.0));
     let mut lignes = Vec::new();
-    for (cle, f) in fiches {
+    for (cle, f) in &fiches {
         if !f.is_object() {
             continue;
         }

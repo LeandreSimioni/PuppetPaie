@@ -1,7 +1,6 @@
 //! Le prelevement a la source des paies d'un mois : celui de la paie declaree, sinon celui que l'engagement a ecrit
 //! dans la paie (`engagement::etats`). Rien ne s'y calcule.
 
-use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
@@ -21,7 +20,7 @@ use socle::date::en_texte;
 fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus, departs: &engagement::departs::Departs) -> Result<Option<Versement>, String> {
     let e = &pa.engagement;
     let Some(numero) = e.numero.clone() else { return Ok(None) };
-    let cle = en_texte(pa.salarie.get("_cle").unwrap_or(&Value::Null));
+    let cle = pa.salarie.id.to_string();
     let fin = e.fin_periode()?;
     let mois = fin.mois_civil().to_string();
     if !lus.objets.contains_key(&mois) {
@@ -59,7 +58,7 @@ pub fn des_paies(ctx: &Contexte, paies: &[Paie], departs: &engagement::departs::
         let v = pa.pas.clone().ok_or_else(|| {
             format!(
                 "{} : la paie de {} ne porte pas de prelevement a la source (paie ecrite illisible : `pas`). Revalider l'engagement.",
-                en_texte(pa.salarie.get("_cle").unwrap_or(&Value::Null)),
+                pa.salarie.id.to_string(),
                 pa.engagement.mois
             )
         })?;

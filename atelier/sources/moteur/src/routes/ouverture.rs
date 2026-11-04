@@ -441,10 +441,8 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
             if !vrai(&nom) {
                 continue;
             }
-            if let Ok(s) = ctx.salarie(&valeur_en_texte(&nom)) {
-                if let Some(c) = s.get("_cle").and_then(Value::as_str) {
-                    trouves.insert(c.to_string());
-                }
+            if let Ok(c) = ctx.cle_du_salarie(&valeur_en_texte(&nom)) {
+                trouves.insert(c.to_string());
             }
         }
     }
@@ -621,7 +619,7 @@ fn configuration(ctx: &Contexte) -> R<Value> {
     let salaries = ctx
         .salaries
         .iter()
-        .map(|(k, v)| avec_montres("salarie", fiche_verifiee("salarie", Some(k), &avec_historique(v, ctx.salarie_brut(k))?)?))
+        .map(|(k, v)| avec_montres("salarie", fiche_verifiee("salarie", Some(k.as_str()), &avec_historique(&v.champs.en_valeur(), ctx.salarie_brut(k.as_str()))?)?))
         .collect::<R<Vec<_>>>()?;
     let spectacles = ctx
         .spectacles
@@ -1188,7 +1186,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         .into_iter()
         .map(|k| {
             // Son statut, comme la paie le lit (vide, un artiste) : les rubriques `reservee_au_statut` s'y comparent.
-            let statut = ctx.salaries.get(k).and_then(|f| f.get("statut")).filter(|s| vrai(s)).map(valeur_en_texte).unwrap_or_else(|| "artiste".into());
+            let statut = ctx.salaries.get(k).and_then(|f| f.statut.dite()).map_or("artiste", |s| s.as_str()).to_string();
             Ok(json!({"cle": k, "libelle": ctx.nomme(k), "statut": statut}))
         })
         .collect::<R<Vec<Value>>>()?;

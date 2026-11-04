@@ -76,3 +76,14 @@ impl<'de> serde::Deserialize<'de> for Nombre {
         decimal(d).map(Nombre)
     }
 }
+
+/// `lire`, quand la phrase du refus nomme elle-meme la cle fautive : `phrase(chemin, detail)` la compose (le fichier
+/// d'une compagnie, qu'elle corrige : `droit::fiche`).
+pub fn lire_en_phrase<T: DeserializeOwned>(v: &Value, phrase: impl Fn(&str, &str) -> String) -> Resultat<T> {
+    serde_path_to_error::deserialize(v).map_err(|e| {
+        let chemin = e.path().to_string();
+        let chemin = if chemin == "." { String::new() } else { chemin };
+        let detail = en_clair(&e.inner().to_string());
+        crate::echec::a_la_cle(&phrase(&chemin, &detail), &chemin, detail)
+    })
+}

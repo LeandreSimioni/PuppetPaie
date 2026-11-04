@@ -127,7 +127,7 @@ fn codes_du_contrat(p: &Paie) -> Resultat<(String, String, String)> {
 }
 
 fn qui(p: &Paie) -> String {
-    droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &txt(g(&p.salarie, "_cle")))
+    droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.salarie.id.to_string())
 }
 
 fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
@@ -172,7 +172,7 @@ fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Dec
         match m {
             MoisDeLAnnee::Calcules(_, ps) => {
                 for p in ps.iter().filter(|p| !p.engagement.sans_paie()) {
-                    let b = par_salarie.entry(txt(g(&p.salarie, "_cle"))).or_insert(Decimal::ZERO);
+                    let b = par_salarie.entry(p.salarie.id.to_string()).or_insert(Decimal::ZERO);
                     *b = add(*b, assiette_taxe_sur_les_salaires(p, abattement));
                 }
             }

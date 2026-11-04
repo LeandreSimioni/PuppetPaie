@@ -28,7 +28,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use droit::source::Source;
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
@@ -319,12 +319,12 @@ fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs, annexes: &[&str]
 
 /// Le prenom du salarie, tel que sa fiche l'affiche (`prenom_affichage`, sinon `prenom`, en capitales initiales s'il
 /// est tout en majuscules) ; sans prenom, son nom, sinon sa cle.
-pub fn prenom(sal: &Value) -> String {
-    let lu = |k: &str| sal.get(k).filter(|v| vrai(v)).map(en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
-    if let Some(p) = lu("prenom_affichage") {
+pub fn prenom(sal: &droit::fiche::ChampsSalarie, cle: &str) -> String {
+    let lu = |c: &droit::fiche::Case<String>| Some(c.texte().trim().to_string()).filter(|s| !s.is_empty());
+    if let Some(p) = lu(&sal.prenom_affichage) {
         return p;
     }
-    if let Some(p) = lu("prenom").or_else(|| lu("nom_affichage")).or_else(|| lu("nom")) {
+    if let Some(p) = lu(&sal.prenom).or_else(|| lu(&sal.nom_affichage)).or_else(|| lu(&sal.nom)) {
         if p.chars().any(char::is_lowercase) {
             return p;
         }
@@ -341,7 +341,7 @@ pub fn prenom(sal: &Value) -> String {
         }
         return out;
     }
-    texte(sal, "_cle")
+    cle.to_string()
 }
 
 // ------------------------------------------------------------ le demarrage
@@ -396,8 +396,8 @@ pub fn du_jour(ctx: &Contexte, decalage: i64) -> Resultat<Value> {
 
 /// L'annexe du salarie de cette paie, lue du metier de sa fiche : X pour un artiste, VIII pour un technicien ; rien
 /// sinon (rien ne se devine).
-fn annexe_de(sal: &Value) -> Resultat<Option<&'static str>> {
-    let Some(m) = emplois::metier(&texte(sal, "code_emploi_ft"))? else { return Ok(None) };
+fn annexe_de(sal: &droit::fiche::ChampsSalarie) -> Resultat<Option<&'static str>> {
+    let Some(m) = emplois::metier(sal.code_emploi_ft.texte())? else { return Ok(None) };
     Ok(match texte(&m, "statut").as_str() {
         "artiste" => Some("X"),
         "technicien" => Some("VIII"),
@@ -580,7 +580,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         if e.sans_paie() || e.nat()?.mensuelle() {
             continue;
         }
-        let x = du_mois.entry(texte(&p.salarie, "_cle")).or_insert((0, 0));
+        let x = du_mois.entry(p.salarie.id.to_string()).or_insert((0, 0));
         x.0 += e.heures.unwrap_or(0.0).round_ties_even() as i64 + e.cachets * c.heures_par_cachet;
         x.1 += e.cachets;
     }
@@ -594,9 +594,9 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         }
         let Some(annexe) = annexe_de(&p.salarie)? else { continue };
         let Some(a30) = art30(&b, annexe) else { continue };
-        let cle = texte(&p.salarie, "_cle");
+        let cle = p.salarie.id.to_string();
         let (heures_mois, cachets_mois) = du_mois.get(&cle).copied().unwrap_or((0, 0));
-        let qui = prenom(&p.salarie);
+        let qui = prenom(&p.salarie, p.salarie.id.as_str());
         let mois = socle::mois::Mois::en_clair(&e.mois);
         let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
             let mut v = Valeurs::new();
@@ -728,7 +728,7 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
         let Ok(Some((_, paies))) = engagement::etats::validees_du_mois(ctx, &mois, departs) else { continue };
         for p in &paies {
             let e = &p.engagement;
-            if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {
+            if p.salarie.id.to_string() != cle || e.sans_paie() || e.nat()?.mensuelle() {
                 continue;
             }
             let fp = e.fin_periode()?;
@@ -764,13 +764,9 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     if pos.engagements.is_empty() {
         return Ok(Vec::new());
     }
-    let mut f = fiche.clone();
-    if let Value::Object(m) = &mut f {
-        m.insert("_cle".into(), Value::String(cle.into()));
-    }
-    let qui = prenom(&f);
+    let qui = prenom(fiche, cle);
     let fenetre = phrase_fenetre(&b, &pos, anniv);
-    let annexe = annexe_de(&f)?;
+    let annexe = annexe_de(fiche)?;
     let a30 = annexe.and_then(|a| art30(&b, a));
     let heures = pos.heures_ouverture()?;
     let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
@@ -861,12 +857,8 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     for cle in cles {
         let (p, anniv) = position(ctx, cle, &engs, jour)?;
         if p.heures_ouverture()? >= c.seuil_heures {
-            let mut fiche = ctx.salaries.get(cle).cloned().unwrap_or(Value::Null);
-            if !fiche.is_object() {
-                fiche = Value::Object(Map::new());
-            }
-            fiche["_cle"] = Value::String(cle.to_string());
-            fiches.push((prenom(&fiche), fiche, anniv));
+            let fiche = ctx.salaries.get(cle).map(|f| f.champs.clone()).unwrap_or_default();
+            fiches.push((prenom(&fiche, cle), fiche, anniv));
         }
     }
     if fiches.is_empty() {
@@ -886,7 +878,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
         .iter()
         .map(|(p, fiche, anniv)| {
             let n = if fiches.iter().filter(|(q, _, _)| q == p).count() > 1 {
-                let nom = Some(texte(fiche, "nom_affichage")).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| texte(fiche, "nom"));
+                let nom = Some(fiche.nom_affichage.texte().to_string()).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| fiche.nom.texte().to_string());
                 if nom.trim().is_empty() { p.clone() } else { format!("{} {}", p, nom.trim()) }
             } else {
                 p.clone()

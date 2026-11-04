@@ -121,7 +121,8 @@ annule-et-remplace ou un annule."
 
     // Le NIR, et pas un numero technique temporaire : sans NIR, la DGFiP n'a
     // personne a qui repondre.
-    let s = &paie.salarie;
+    // Les rubriques de la DSN se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
+    let s = &paie.salarie.en_valeur();
     if crate::ntt::nir_de(s).is_empty() {
         let qui = ["_cle", "nom"].iter().map(|k| g(s, k)).find(|v| vrai(v)).map(en_texte).unwrap_or_else(|| "Ce salarie".into());
         return impossible(format!(
@@ -139,9 +140,10 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     verifier(paie, &o.motif, &o.type_declaration, o.remplace.as_deref())?;
     let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
-    let s = &paie.salarie;
+    // Les rubriques de la DSN se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
+    let s = &paie.salarie.en_valeur();
     let ent = &ctx.entreprise;
-    crate::dsn::exiges(ent, std::iter::once(s), paie.declaree_a_la_caisse_des_conges()?)?;
+    crate::dsn::exiges(ent, std::iter::once(&paie.salarie), paie.declaree_a_la_caisse_des_conges()?)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -187,7 +189,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     f.add("S20.G00.05.011", &o.motif);
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
-    let etab = droit::bareme::entreprise_du_salarie(ent, s)?;
+    let etab = droit::bareme::entreprise_du_salarie(ent, &paie.salarie)?;
     // Le changement de logiciel nomme l'etablissement qui declarait le dernier contrat connu du salarie (S20.G00.05.012,
     // p. 138) : le sien.
     let changement = o.motif == CHANGEMENT_DE_LOGICIEL;
@@ -272,7 +274,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, ent, s, crate::changements_individu::derniere_declaree(ctx, s, &e.debut, departs)?.as_ref())?;
+    crate::ntt::poser_ntt(&mut f, ent, s, crate::changements_individu::derniere_declaree(ctx, &paie.salarie, &e.debut, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
     if !changement {

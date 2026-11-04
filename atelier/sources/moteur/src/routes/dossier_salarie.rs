@@ -373,7 +373,7 @@ fn nom_salarie(cle: &str) -> String {
 // ------------------------------------------------------------------ les mois PuppetPaie
 
 pub(crate) fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
+    p.salarie.id.to_string()
 }
 
 /// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies
@@ -399,7 +399,7 @@ pub(crate) fn etiquette(mois: &str) -> R<String> {
 
 /// `Paie` -> ce que le certificat en lit : le brut est celui du calcul, a deux decimales.
 pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
-    Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
+    Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.en_valeur() })
 }
 
 /// Ce que l'ancien logiciel a verse en `mois` pour un contrat qui continue ici : le brut, les cachets (une ligne, aux
@@ -483,7 +483,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         let fin_du_mois = socle::mois::Mois::lire(&eng.mois).map(socle::mois::Mois::dernier_jour).map_err(|x| avec("ValueError", x))?;
         mois_payes.push(MoisPaye { fin: fin_du_mois, jours: eng.jours, brut: eur2(p.brut) });
         let contrat = ContratCs { jours: jours + eng.jours, dates_travail: Vec::new(), cachets: 0, heures: None, taux_cachet: None, mois_payes, ..ContratCs::de(eng)? };
-        return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.clone() }, manquants));
+        return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.en_valeur() }, manquants));
     }
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
@@ -505,7 +505,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         "statut_categoriel_rc": texte(&eng.statut_categoriel_rc),
     });
     let entier = Engagement::nouveau(&ctx.racine, &entier, &ctx.nomme(&eng.salarie)).map_err(|m| avec("ValueError", m))?;
-    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.clone() };
+    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.en_valeur() };
     Ok((cs, manquants))
 }
 
@@ -1175,7 +1175,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
         return Err(erreur_operation(format!("Catégorie inconnue : {}. Les catégories sont {}.", joindre(&inconnues)?, CATEGORIES.join(", "))));
     }
     let cats: Vec<&'static str> = CATEGORIES.iter().copied().filter(|c| cats_demandees.iter().any(|x| x.as_str() == Some(c))).collect();
-    let fiches: Vec<&String> = ctx.salaries.iter().filter(|(k, v)| !k.starts_with('_') && v.is_object()).map(|(k, _)| k).collect();
+    let fiches: Vec<String> = ctx.salaries.keys().map(|k| k.to_string()).collect();
     let demandes: Option<Vec<Value>> = salaries.map(parcourir).transpose()?;
     let cles: Vec<String> = match &demandes {
         Some(liste) => {

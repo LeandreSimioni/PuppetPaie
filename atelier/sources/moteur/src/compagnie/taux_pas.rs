@@ -69,7 +69,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
     let par_nir: std::collections::HashMap<String, String> = ctx
         .salaries
         .iter()
-        .filter_map(|(cle, s)| s.get("nir").filter(|n| socle::fichiers::vrai(n)).map(|n| (crate::commandes::rendu::texte(n), cle.clone())))
+        .filter_map(|(cle, s)| s.nir.dite().filter(|n| !n.is_empty()).map(|n| (n.clone(), cle.to_string())))
         .collect();
     let mut fichiers = Vec::new();
     crate::routes::fiches::fichiers_dsn(dossier, &mut fichiers);

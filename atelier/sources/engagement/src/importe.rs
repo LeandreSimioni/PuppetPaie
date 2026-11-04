@@ -250,7 +250,7 @@ impl Importe {
         let quotite = lu("quotite").and_then(|q| q.replace(',', ".").parse::<f64>().ok());
         let mut engagement = crate::Engagement {
             salarie: cle.clone(),
-            nom: socle::texte::salarie_nomme_ou(Some(&sal), &cle),
+            nom: sal.nomme().unwrap_or_else(|| cle.to_string()),
             spectacle: spectacle.clone(),
             dates_travail,
             lignes,

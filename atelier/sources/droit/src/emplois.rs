@@ -12,6 +12,7 @@ use serde_json::{Map, Value};
 use socle::date::Jour;
 
 use crate::contexte::{fiche_au, valeurs_datees, Contexte};
+use crate::fiche::{Case, FicheSalarie};
 
 /// Premiere lettre en majuscule, le reste en minuscules.
 fn capitaliser(s: &str) -> String {
@@ -166,12 +167,14 @@ const UNE_VALEUR_PAR_MOIS: [&str; 5] = ["statut_categoriel_rc", "statut_conventi
 /// bornes : le refus ne garde que l'appel sur une periode qui n'aurait pas ete coupee. Le statut BOETH, qui ne change
 /// pas la paie, peut changer en cours de mois (40.072 se renseigne « pour le contrat concerne dans la periode
 /// declaree », p. 211 : celui de la fin).
-pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Resultat<Value> {
+pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Resultat<FicheSalarie> {
     let au_debut = ctx.salarie_au(cle, debut)?;
     let a_la_fin = ctx.salarie_au(cle, fin)?;
+    // Les cases de `UNE_VALEUR_PAR_MOIS` se comparent par leur nom, comme `jours_de_changement` les date.
+    let (vd, vf) = (au_debut.champs.en_valeur(), a_la_fin.champs.en_valeur());
     let lire = |v: &Value, c: &str| v.get(c).cloned().unwrap_or(Value::Null);
     for c in UNE_VALEUR_PAR_MOIS {
-        let (avant, apres) = (lire(&au_debut, c), lire(&a_la_fin, c));
+        let (avant, apres) = (lire(&vd, c), lire(&vf, c));
         if avant == apres {
             continue;
         }
@@ -180,11 +183,7 @@ pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Re
         let premier = Jour { jour: 1, ..*debut };
         let suivant = Jour { jour: 1, ..premier.plus_jours(31)? };
         let texte = |v: &Value| if v.is_null() { "(vide)".to_string() } else { repr_valeur(v) };
-        let qui = [lire(&a_la_fin, "prenom"), lire(&a_la_fin, "nom")]
-            .iter()
-            .filter_map(|v| v.as_str().filter(|s| !s.trim().is_empty()).map(str::to_string))
-            .collect::<Vec<_>>()
-            .join(" ");
+        let qui = [a_la_fin.prenom.texte(), a_la_fin.nom.texte()].iter().filter(|s| !s.trim().is_empty()).map(|s| s.to_string()).collect::<Vec<_>>().join(" ");
         return Err(socle::echec::a_la_cle(&format!(
             "{} : la fiche change une case le {} ({} -> {}), dans une periode de paie qui n'est pas coupee a ce jour-la : une \
 periode se calcule sur une seule pile de bareme. Dater le changement au premier jour d'un mois sur la fiche : le {} (il \
@@ -238,46 +237,51 @@ pub struct EmploiEngagement {
 
 /// La fiche salarie `sal` (lue a la date de la periode) telle qu'elle vaut POUR CET ENGAGEMENT : ce que l'engagement
 /// dit l'emporte ; le reste vient de la fiche.
-pub fn emploi_de(sal: &Value, eng: &EmploiEngagement) -> Resultat<Value> {
-    let sal = sal.clone();
-    let champs: [(&str, &Option<String>); 6] = [
-        ("emploi", &eng.emploi),
-        ("pcs_ese", &eng.pcs_ese),
-        ("code_emploi_ft", &eng.code_emploi_ft),
-        ("statut", &eng.statut),
-        ("statut_conventionnel", &eng.statut_conventionnel),
-        ("statut_categoriel_rc", &eng.statut_categoriel_rc),
-    ];
-    let pris: Vec<(&str, &String)> = champs
-        .iter()
-        .filter_map(|(c, v)| v.as_ref().filter(|s| !s.is_empty()).map(|s| (*c, s)))
-        .collect();
-    let affichage = eng.emploi_affichage.as_ref().filter(|s| !s.is_empty());
-    if pris.is_empty() && affichage.is_none() {
-        return Ok(sal);
+pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSalarie> {
+    let mut out = sal.clone();
+    let dit = |v: &Option<String>| v.as_ref().filter(|s| !s.is_empty()).cloned();
+    // Un choix que l'engagement dit se lit comme la fiche le lirait (`fiche::Statut`...) : hors de la liste, il se refuse.
+    fn choix<T: serde::de::DeserializeOwned>(v: &str, cle: &str) -> Resultat<T> {
+        serde_json::from_value(Value::String(v.to_string()))
+            .map_err(|_| format!("L'engagement dit « {} » pour {}, qui n'est pas un choix de la fiche du salarié.", v, cle.replace('_', " ")))
     }
-    let mut out = sal.as_object().ok_or("fiche salarie : un objet est attendu")?.clone();
-    for (c, v) in &pris {
-        out.insert((*c).into(), Value::String((*v).clone()));
+    let pris = [&eng.emploi, &eng.pcs_ese, &eng.code_emploi_ft, &eng.statut, &eng.statut_conventionnel, &eng.statut_categoriel_rc];
+    let affichage = dit(&eng.emploi_affichage);
+    if pris.iter().all(|v| dit(v).is_none()) && affichage.is_none() {
+        return Ok(out);
+    }
+    if let Some(v) = dit(&eng.emploi) {
+        out.emploi = Case::Dite(v);
+    }
+    if let Some(v) = dit(&eng.pcs_ese) {
+        out.pcs_ese = Case::Dite(v);
+    }
+    if let Some(v) = dit(&eng.code_emploi_ft) {
+        out.code_emploi_ft = Case::Dite(v);
+    }
+    if let Some(v) = dit(&eng.statut) {
+        out.statut = Case::Dite(choix(&v, "statut")?);
+    }
+    if let Some(v) = dit(&eng.statut_conventionnel) {
+        out.statut_conventionnel = Case::Dite(choix(&v, "statut_conventionnel")?);
+    }
+    if let Some(v) = dit(&eng.statut_categoriel_rc) {
+        out.statut_categoriel_rc = Case::Dite(choix(&v, "statut_categoriel_rc")?);
     }
     // Un metier choisi sur la ligne : son libelle lisible aussi, tel que
     // l'engagement l'a resolu (au feminin si la fiche le dit) ; a defaut, le
     // libelle du catalogue.
     if let Some(a) = affichage {
-        out.insert("emploi_affichage".into(), Value::String(a.clone()));
-    } else if let Some((_, code)) = pris.iter().find(|(c, _)| *c == "code_emploi_ft") {
-        if sal.get("code_emploi_ft").and_then(|v| v.as_str()) != Some(code.as_str()) {
-            match resoudre(code, None, false) {
-                Ok(r) => {
-                    out.insert("emploi_affichage".into(), r["emploi_affichage"].clone());
-                }
-                Err(_) => {
-                    out.shift_remove("emploi_affichage");
-                }
-            }
+        out.emploi_affichage = Case::Dite(a);
+    } else if let Some(code) = dit(&eng.code_emploi_ft) {
+        if sal.code_emploi_ft.dite() != Some(&code) {
+            out.emploi_affichage = match resoudre(&code, None, false) {
+                Ok(r) => serde_json::from_value(r["emploi_affichage"].clone()).unwrap_or(Case::Absente),
+                Err(_) => Case::Absente,
+            };
         }
     }
-    Ok(Value::Object(out))
+    Ok(out)
 }
 
 // ------------------------------------------------------------- l'interface

@@ -209,12 +209,14 @@ fn non_relevees(idcc: &Value) -> String {
 /// La categorie conventionnelle d'un salarie pour CET engagement :
 /// `{categorie, grille, source}` ; `categorie` vaut `null` quand rien ne
 /// permet de la lire sans deviner, et `source` dit alors pourquoi.
-pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Resultat<Value> {
+pub fn profil(idcc: &Value, fiche: &crate::fiche::ChampsSalarie, engagement: Option<&Value>) -> Resultat<Value> {
+    let (code_emploi_ft, categorie, statut, statut_rc) =
+        (fiche.code_emploi_ft.en_valeur(), fiche.categorie_conventionnelle.en_valeur(), fiche.statut.en_valeur(), fiche.statut_categoriel_rc.en_valeur());
     let t = table()?;
     let e = engagement.unwrap_or(&NUL);
     let sec = get(conv(&t, idcc), "categories");
     let valeurs = get(sec, "valeurs");
-    let code = ou(get(e, "metier"), get(fiche, "code_emploi_ft"));
+    let code = ou(get(e, "metier"), &code_emploi_ft);
     let m = if vrai(code) {
         let c = code.as_str().ok_or_else(|| format!("code emploi : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(code))))?;
         emplois::metier(c)?
@@ -225,7 +227,7 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
     let c3090 = get(mv, "classification_3090");
     let grille = get(c3090, "grille").clone();
 
-    let dit = ou(get(e, "categorie_conventionnelle"), get(fiche, "categorie_conventionnelle"));
+    let dit = ou(get(e, "categorie_conventionnelle"), &categorie);
     if vrai(dit) {
         let connue = dit.as_str().map_or(false, |s| valeurs.get(s).is_some());
         if vrai(valeurs) && !connue {
@@ -243,7 +245,7 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
     } else if vrai(get(e, "metier")) && vrai(get(mv, "statut")) {
         get(mv, "statut")
     } else {
-        get(fiche, "statut")
+        &statut
     };
     if statut.as_str() == Some("artiste") {
         return Ok(json!({"categorie": "artiste", "grille": grille, "source": "le statut artiste"}));
@@ -251,7 +253,7 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
     let est_cadre = if !get(e, "cadre").is_null() {
         vrai(get(e, "cadre"))
     } else {
-        lu_brut(get(fiche, "statut_categoriel_rc")) == "01"
+        lu_brut(&statut_rc) == "01"
     };
     let niveau = lu_brut(get(c3090, "niveau"));
     let selon_niveau = get(get(sec, "par_niveau_3090"), &niveau);
@@ -772,18 +774,19 @@ fn iso(s: &str) -> Resultat<Jour> {
 pub fn prime_anciennete(
     idcc: &Value,
     annexe: &Value,
-    fiche: &Value,
+    fiche: &crate::fiche::ChampsSalarie,
     engagement: Option<&Value>,
     jour: &Jour,
     jauge: Option<&str>,
 ) -> Resultat<Option<Value>> {
+    let (code_emploi_ft, statut, date_anciennete) = (fiche.code_emploi_ft.en_valeur(), fiche.statut.en_valeur(), fiche.date_anciennete.en_valeur());
     let t = table()?;
     let sec = get(conv(&t, idcc), "prime_anciennete");
     if !vrai(get(sec, "annexe")) || lu(annexe) != texte(cle(sec, "annexe")?) {
         return Ok(None);
     }
     let e = engagement.unwrap_or(&NUL);
-    let code = ou(get(e, "metier"), get(fiche, "code_emploi_ft"));
+    let code = ou(get(e, "metier"), &code_emploi_ft);
     let m = if vrai(code) {
         let c = code.as_str().ok_or_else(|| format!("code emploi : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(code))))?;
         emplois::metier(c)?
@@ -792,12 +795,12 @@ pub fn prime_anciennete(
     };
     let mv = m.as_ref().unwrap_or(&NUL);
     let c3090 = get(mv, "classification_3090");
-    let statut = ou(get(e, "statut"), get(fiche, "statut"));
+    let statut = ou(get(e, "statut"), &statut);
     if statut.as_str() == Some("artiste") || get(c3090, "grille").as_str() != Some("technique") {
         return Ok(None);
     }
     let article = format!("{}, {}", nom(idcc), texte(cle(sec, "article")?));
-    let depuis = ou(get(fiche, "date_anciennete"), get(e, "debut"));
+    let depuis = ou(&date_anciennete, get(e, "debut"));
     if !vrai(depuis) {
         return Ok(None);
     }

@@ -18,7 +18,7 @@ use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use engagement;
 use engagement::etats::ARefaire;
 use envois::etats::{self, est, get, getd, objet_vide, ou, quand_lisible, texte_vide, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
@@ -506,12 +506,11 @@ pub(crate) fn nic_de_l_engagement(ctx: &Contexte, mois: &str, e: &engagement::et
 /// `nic_de_l_engagement`, sur l'engagement tel qu'il est ecrit (`brut`).
 pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value) -> Option<String> {
     let fiche = match brut.pointer(&format!("/valide/paies/{}", mois)) {
-        Some(ecrite) => ecrite.pointer("/fiches/paie").filter(|f| f.is_object()).cloned()?,
+        Some(ecrite) => droit::fiche::SalarieDuContrat::lire(ecrite.pointer("/fiches/paie").filter(|f| f.is_object())?).ok()?,
         None => {
-            let mut f = ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?;
-            let nic = brut.get("etablissement").and_then(Value::as_str).filter(|n| !n.trim().is_empty());
-            if let (Some(o), Some(n)) = (f.as_object_mut(), nic) {
-                o.insert("etablissement".into(), Value::String(n.to_string()));
+            let mut f = droit::fiche::SalarieDuContrat::de(ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?);
+            if let Some(n) = brut.get("etablissement").and_then(Value::as_str).filter(|n| !n.trim().is_empty()) {
+                f.etablissement = Some(n.to_string());
             }
             f
         }
@@ -636,10 +635,6 @@ pub(crate) struct SaisieMois {
     /// Ce qui manque a chaque engagement du mois (`None` : rien), dans l'ordre de `stock::objets_du_mois` :
     /// `paies` ne porte que ceux qui ne manquent de rien.
     pub(crate) manques: Vec<Option<String>>,
-}
-
-fn texte_de(v: &Value) -> String {
-    valeur_en_texte(v)
 }
 
 /// Les etats du journal et de la saisie, calcules une fois par processus.
@@ -816,7 +811,7 @@ impl<'a> Moteur<'a> {
             }
             let Some(k) = s.identites.iter().position(|x| x == id) else { continue };
             let p = &s.paies[k];
-            let cle = texte_de(requis(&p.salarie, "_cle")?);
+            let cle = p.salarie.id.to_string();
             let debut = p.engagement.debut.iso();
             // CE QUI EST A REFAIRE : le present compare a la version sur laquelle chaque envoi est parti.
             let refaire = self.a_refaire_du_mois(mois, e, &departs);
@@ -847,7 +842,7 @@ impl<'a> Moteur<'a> {
             // de la convention), `droit::echeances`. Les documents n'en ont pas : chaque compagnie les envoie quand elle
             // veut, souvent apres la DSN qui fait remonter l'AER. Un mois passe lu a l'ouverture (`ecrit`) ne les demande pas.
             if !self.ecrit {
-                let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.get("code_emploi_ft").map(valeur_en_texte).unwrap_or_default());
+                let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.code_emploi_ft.texte().to_string());
                 let idcc = self.ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
                 let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
                 ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json()}));
@@ -1061,7 +1056,7 @@ impl<'a> Moteur<'a> {
     /// Ce que l'empreinte de la saisie retient de chaque correction portee : le mois corrige, le salarie, le contrat et
     /// la version.
     pub(crate) fn portees(regs: &[declarations::produire_regularisations::Reg]) -> Vec<Value> {
-        regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect()
+        regs.iter().map(|r| json!([r.mois, r.apres.salarie.id.to_string(), r.apres.engagement.numero, r.version])).collect()
     }
 
     /// `limite` : le dernier jour ou un annule-et-remplace est admis, jusqu'a minuit : la veille de l'echeance de depot
@@ -1707,7 +1702,7 @@ impl<'a> Moteur<'a> {
                 let Some(v) = e.valide() else { continue };
                 let brut = &*v.objet().brut;
                 let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(self.ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
-                let Some(p) = s.paies.iter().find(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(cle.as_str()) && p.engagement.numero.as_deref() == Some(numero)) else {
+                let Some(p) = s.paies.iter().find(|p| p.salarie.id == cle.as_str() && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
                 };
                 // Seule la DPAE partie se compare (`debut_declare`) : les paies parties ne se relisent pas ici, sauf
@@ -2172,9 +2167,13 @@ fn lire(m: &mut Moteur, nom: Route, charge: &Value) -> R<Value> {
 /// Ce que la DPAE d'une embauche declare, en 16 caracteres : l'identite du salarie telle que l'engagement la lit, les
 /// bornes du contrat, le spectacle, la nature ; pas les taux ni les cachets. Un test de DPAE fait sur une autre empreinte
 /// ne vaut plus.
-fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &Value) -> String {
-    let champ = |k: &str| socle::fichiers::repr(&sal.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default());
-    let ident: Vec<String> = ["nir", "nom", "prenom", "date_naissance", "lieu_naissance", "departement_naissance", "sexe", "nationalite"].iter().map(|k| champ(k)).collect();
+fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &droit::fiche::ChampsSalarie) -> String {
+    let r = |t: &str| socle::fichiers::repr(t);
+    // La derniere place est celle d'une case `nationalite` que la fiche n'a pas : vide, comme l'empreinte l'a toujours ecrite.
+    let ident: Vec<String> = vec![
+        r(sal.nir.texte()), r(sal.nom.texte()), r(sal.prenom.texte()), r(&sal.date_naissance.dite().map(|j| j.iso()).unwrap_or_default()),
+        r(sal.lieu_naissance.texte()), r(sal.departement_naissance.texte()), r(sal.sexe.dite().map_or("", |s| s.as_str())), r(""),
+    ];
     let fin = e.fin.map_or("None".to_string(), |f| f.iso());
     let spectacle = e.spectacle.clone().unwrap_or_else(|| "None".to_string());
     let brut = format!(

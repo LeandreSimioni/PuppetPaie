@@ -119,11 +119,10 @@ fn modeles(ctx: &Contexte) -> R<Value> {
     // Les salaries dont la case dit un autre modele que la compagnie : la page les nomme, la decision reste au moteur.
     let mut autrement = Vec::new();
     for (cle, sal) in &ctx.salaries {
-        if let Some(m) = Modele::de_la_fiche(sal, &format!("du salarié {}", cle)).map_err(refus)? {
+        if let Some(m) = documents::bulletin::modele_du_salarie(sal).map_err(refus)? {
             if m != modele {
-                let champ = |k: &str| sal.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
-                let nom = format!("{} {}", champ("prenom_affichage"), champ("nom_affichage")).trim().to_string();
-                let nom = if nom.is_empty() { cle.clone() } else { nom };
+                let nom = format!("{} {}", sal.prenom_affichage.texte(), sal.nom_affichage.texte()).trim().to_string();
+                let nom = if nom.is_empty() { cle.to_string() } else { nom };
                 autrement.push(json!({"cle": cle, "nom": nom, "modele": m.cle()}));
             }
         }

@@ -167,10 +167,10 @@ impl PartialEq<NumeroContrat> for String {
 /// Le numero de rang `seq` de l'annee `annee`, pour le salarie de cette fiche : `<initiales><code>.<AA>.<rang>`. Le seul
 /// qui fabrique un numero de contrat (regle 4) ; des initiales ou un code qui le sortiraient de la forme de la norme le
 /// font refuser (`NumeroContrat::lire`).
-pub fn former(fiche: &Value, annee: i32, seq: i64) -> Resultat<NumeroContrat> {
-    let champ = |k: &str| fiche.get(k).map(en_texte).ok_or_else(|| socle::fichiers::absent(k));
+pub fn former(fiche: &droit::fiche::ChampsSalarie, annee: i32, seq: i64) -> Resultat<NumeroContrat> {
+    let champ = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(socle::fichiers::absent(k)) } else { Ok(c.texte().to_string()) };
     let an = annee.to_string();
-    NumeroContrat::lire(&format!("{}{}.{}.{:02}", champ("initiales_contrat")?, champ("code_salarie")?, &an[2.min(an.len())..], seq))
+    NumeroContrat::lire(&format!("{}{}.{}.{:02}", champ(&fiche.initiales_contrat, "initiales_contrat")?, champ(&fiche.code_salarie, "code_salarie")?, &an[2.min(an.len())..], seq))
 }
 
 /// Le dernier rang pris en `annee`, par salarie (la cle de sa fiche) : le plus grand des numeros de cette annee que
@@ -358,7 +358,9 @@ mod tests {
         let n = NumeroContrat::lire("FA1.26.13").unwrap();
         assert_eq!((n.annee_et_rang(), serde_json::to_value(&n).unwrap()), (Some((2026, 13)), serde_json::json!("FA1.26.13")));
         assert!(serde_json::from_value::<NumeroContrat>(serde_json::json!("C1")).is_err());
-        let fiche = |initiales: &str| serde_json::json!({"initiales_contrat": initiales, "code_salarie": "1"});
+        let fiche = |initiales: &str| -> droit::fiche::ChampsSalarie {
+            droit::fiche::lire_champs(&serde_json::json!({"initiales_contrat": initiales, "code_salarie": "1"}), "fiche").unwrap()
+        };
         assert_eq!(former(&fiche("FA"), 2026, 3).map(String::from), Ok("FA1.26.03".to_string()));
         assert!(former(&fiche("F#"), 2026, 3).is_err());
     }

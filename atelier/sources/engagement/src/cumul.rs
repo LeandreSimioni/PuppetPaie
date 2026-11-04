@@ -70,9 +70,8 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
         return Ok(None);
     }
     let heures = e.heures.unwrap_or(0.0).round_ties_even() as i64;
-    let cle = p.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?;
     Ok(Some(Declare {
-        salarie: socle::date::en_texte(cle),
+        salarie: p.salarie.id.to_string(),
         debut: e.debut_periode()?,
         fin: e.fin_periode()?,
         numero_objet: p.spectacle.get("numero_objet").cloned().unwrap_or_else(|| Value::String(String::new())),

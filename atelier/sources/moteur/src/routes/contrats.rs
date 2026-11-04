@@ -298,7 +298,7 @@ pub(crate) fn contrat_recu_avec(
     // LE CONTRAT, pas le salarie : son numero, celui que l'ecran affiche (ou que la releve a lu) ; sans numero, l'engagement
     // de ce salarie qui commence ce jour-la.
     let numero = numero.filter(|n| !n.is_empty());
-    let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+    let cle_de = |p: &engagement::calcul::Paie| p.salarie.id.to_string();
     let trouvee = paies.iter().position(|p| {
         cle_de(p) == salarie
             && match numero {
@@ -317,7 +317,7 @@ pub(crate) fn contrat_recu_avec(
     };
     let p = &paies[rang];
     let numero_note = p.engagement.numero.clone().map_or(Value::Null, Value::from);
-    let nom = socle::texte::salarie_nomme_ou(Some(&p.salarie), &salarie);
+    let nom = p.salarie.nomme().unwrap_or_else(|| (&salarie).to_string());
     let mut detail = json!({
         "salarie": salarie, "debut": p.engagement.debut.iso(), "recu": recu,
         "numero": numero_note, "nom": nom,
@@ -625,7 +625,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let g = m.globales()?;
     let rangs: Vec<(String, String)> = paies
         .iter()
-        .map(|p| Ok((valeur_en_texte(get(&p.salarie, "_cle")?), p.engagement.debut.iso())))
+        .map(|p| Ok((p.salarie.id.to_string(), p.engagement.debut.iso())))
         .collect::<R<_>>()?;
     let avenants = crate::routes::etapes::avenants_a_faire(ctx, &mois)?;
 
@@ -658,8 +658,8 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let fin = p.engagement.fin.map(|f| f.iso());
         let mut l = Map::new();
         l.insert("salarie".into(), json!(cle_s));
-        l.insert("nom".into(), json!(socle::texte::salarie_nomme_ou(Some(sal), &cle_s)));
-        l.insert("destinataire".into(), sal.get("email").cloned().unwrap_or_else(|| json!("")));
+        l.insert("nom".into(), json!(sal.nomme().unwrap_or_else(|| (&cle_s).to_string())));
+        l.insert("destinataire".into(), sal.email.dite().map_or(json!(""), |e| json!(e)));
         l.insert("spectacle".into(), json!(p.titre()?));
         l.insert("debut".into(), json!(debut));
         l.insert("fin".into(), json!(fin));
@@ -758,14 +758,14 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Seuls les quatre champs d'identite que la demande affiche passent a `signatures_attendues` (`journal.signatures_attendues`).
 pub(crate) fn salaries_d_identite(ctx: &Contexte) -> Value {
     let mut salaries = Map::new();
-    for (k, v) in &ctx.salaries {
-        if let Value::Object(f) = v {
-            let garde: Map<String, Value> = ["prenom_affichage", "prenom", "nom_affichage", "nom"]
-                .iter()
-                .filter_map(|c| f.get(*c).map(|x| (c.to_string(), x.clone())))
-                .collect();
-            salaries.insert(k.clone(), Value::Object(garde));
+    for (k, f) in &ctx.salaries {
+        let mut garde = Map::new();
+        for (c, x) in [("prenom_affichage", &f.prenom_affichage), ("prenom", &f.prenom), ("nom_affichage", &f.nom_affichage), ("nom", &f.nom)] {
+            if !x.est_absente() {
+                garde.insert(c.to_string(), x.en_valeur());
+            }
         }
+        salaries.insert(k.to_string(), Value::Object(garde));
     }
     Value::Object(salaries)
 }
@@ -890,7 +890,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "salarie": salarie_v,
         "debut": debut_v,
         "fin": p.engagement.fin.map(|f| f.iso()),
-        "nom": socle::texte::salarie_nomme_ou(Some(sal), &valeur_en_texte(salarie_v)),
+        "nom": sal.nomme().unwrap_or_else(|| (&valeur_en_texte(salarie_v)).to_string()),
         "spectacle": p.titre()?,
         // CE QUE LE COURRIEL DIT DU CONTRAT : son nom (`contrat_ecrit.nom` de sa nature), son spectacle s'il en a un, sa
         // periode (« a partir du » pour un contrat sans terme).
@@ -908,7 +908,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "remplacable": debut > ctx.aujourdhui.iso(),
         // Sans boite courriel, l'avenant s'imprime avec les contrats (`contrats-imprimer`) : rien ne part d'ici.
         "boite_liee": crate::routes::ouverture::boite_liee(ctx)?,
-        "destinataire": sal.get("email").cloned().unwrap_or_else(|| json!("")),
+        "destinataire": sal.email.dite().map_or(json!(""), |e| json!(e)),
     }))
 }
 
@@ -960,7 +960,7 @@ fn avenant_d_un_contrat_signe_ailleurs(ctx: &Contexte, charge: &Value, numero: &
         "salarie": salarie,
         "debut": debut,
         "fin": p.engagement.fin.map(|f| f.iso()),
-        "nom": socle::texte::salarie_nomme_ou(Some(sal), &salarie),
+        "nom": sal.nomme().unwrap_or_else(|| (&salarie).to_string()),
         "spectacle": p.titre()?,
         "nom_du_contrat": nat.nom_du_contrat(),
         "pour": if vrai(&p.spectacle) { format!(" pour {}", p.titre()?) } else { String::new() },
@@ -977,7 +977,7 @@ fn avenant_d_un_contrat_signe_ailleurs(ctx: &Contexte, charge: &Value, numero: &
         "avenants": deja,
         "remplacable": false,
         "boite_liee": crate::routes::ouverture::boite_liee(ctx)?,
-        "destinataire": sal.get("email").cloned().unwrap_or_else(|| json!("")),
+        "destinataire": sal.email.dite().map_or(json!(""), |e| json!(e)),
     })))
 }
 

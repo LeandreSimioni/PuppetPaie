@@ -10,6 +10,7 @@
 use socle::texte::sans_accent;
 use crate::forme_bareme::Pile;
 use crate::natures::Nature;
+use crate::fiche::{Case, ChampsSalarie, SalarieDuContrat, Statut, StatutCategorielRc};
 use socle::date::{d, en_texte, Jour};
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::num::{add, dec, div, flottant, mul, sub, Decimal, Resultat};
@@ -159,9 +160,9 @@ fn mensuelle(nat: Option<&Nature>) -> bool {
     nat.map_or(false, |n| n.mensuelle())
 }
 
-fn nom_du_salarie(sal: &Value, defaut: &str) -> String {
-    socle::texte::salarie_nomme(sal)
-        .or_else(|| Some(en_texte(g(sal, "_cle"))).filter(|_| vrai(g(sal, "_cle"))))
+fn nom_du_salarie(sal: &SalarieDuContrat, defaut: &str) -> String {
+    sal.nomme()
+        .or_else(|| Some(sal.id.to_string()))
         .unwrap_or_else(|| defaut.to_string())
 }
 
@@ -519,15 +520,15 @@ pub fn empiler(bar: Value, sec: &Value) -> Resultat<Value> {
 // ------------------------------------------------------------ les cadres
 
 /// S21.G00.40.003 = 01 : cadre au sens de la retraite complementaire.
-pub fn est_cadre(sal: &Value) -> bool {
-    txt(g(sal, "statut_categoriel_rc")).trim() == "01"
+pub fn est_cadre(sal: &ChampsSalarie) -> bool {
+    sal.statut_categoriel_rc.dite() == Some(&StatutCategorielRc::Cadre)
 }
 
 /// Le salarie travaille-t-il dans le Bas-Rhin, le Haut-Rhin ou la Moselle ?
 /// Le code postal de SON etablissement, sinon celui de l'entreprise.
-pub fn alsace_moselle(ent: &Value, sal: &Value) -> bool {
+pub fn alsace_moselle(ent: &Value, sal: &SalarieDuContrat) -> bool {
     let mut cp = txt(g(ent, "code_postal"));
-    let nic = txt(g(sal, "etablissement")).trim().to_string();
+    let nic = sal.etablissement.as_deref().unwrap_or("").trim().to_string();
     for e in liste(g(ent, "etablissements")) {
         if e.is_object() && !nic.is_empty() && txt(g(e, "nic")) == nic {
             let c = txt(g(e, "code_postal"));
@@ -617,13 +618,13 @@ pub const SANTE_SUSPENSION_MAINTENUE: &str = "maintenue";
 
 /// La garantie sante est-elle sans objet ce mois-la pour la fiche `sal` que la paie lit : une dispense
 /// (`sante_dispense`), ou un mois entierement suspendu sans indemnisation (`SANTE_SUSPENDUE`).
-pub fn sans_sante(sal: &Value) -> bool {
-    sal.get("sante_dispense").is_some_and(vrai) || sal.get(SANTE_SUSPENDUE).is_some_and(vrai)
+pub fn sans_sante(sal: &SalarieDuContrat) -> bool {
+    !sal.sante_dispense.texte().is_empty() || sal.sante_suspendue.as_deref().is_some_and(|s| !s.is_empty())
 }
 
 /// La complementaire sante que la CONVENTION fixe, quand elle en fixe une ;
 /// `None` si la convention n'a pas de section `sante`.
-fn sante_conventionnelle(bar: &Value, sal: &Value, fin: Option<&Jour>) -> Resultat<Option<Mutuelle>> {
+fn sante_conventionnelle(bar: &Value, sal: &SalarieDuContrat, fin: Option<&Jour>) -> Resultat<Option<Mutuelle>> {
     let ent = g(bar, "_entreprise");
     let reg = regime_de(ent)?;
     let sante = g(&reg, "sante");
@@ -700,7 +701,7 @@ pub fn minimum_sante(ent: &Value, jour: &str) -> Resultat<(Option<Decimal>, Stri
 }
 
 /// Le niveau souscrit cotise-t-il au moins le minimum de la convention ?
-fn controler_minimum_sante(bar: &Value, sal: &Value, niveau: &str, taux: &Value, fin: Option<&Jour>) -> Resultat<()> {
+fn controler_minimum_sante(bar: &Value, sal: &SalarieDuContrat, niveau: &str, taux: &Value, fin: Option<&Jour>) -> Resultat<()> {
     let ent = g(bar, "_entreprise");
     let (mini, origine) = minimum_sante(ent, &jour_texte(fin))?;
     let mini = match mini {
@@ -750,7 +751,7 @@ pub fn sante_hors_fiche(ent: &Value) -> Resultat<Option<String>> {
 }
 
 /// La complementaire sante d'un permanent, selon SON contrat a lui.
-pub fn bareme_sante(bar: Value, sal: &Value, nat: Option<&Nature>, fin: Option<&Jour>) -> Resultat<Value> {
+pub fn bareme_sante(bar: Value, sal: &SalarieDuContrat, nat: Option<&Nature>, fin: Option<&Jour>) -> Resultat<Value> {
     if !mensuelle(nat) {
         return Ok(bar);
     }
@@ -818,8 +819,8 @@ la Securite sociale), et pas plus de 100.",
     if !vrai(releve) {
         return Ok(bar);
     }
-    let choix = g(sal, "sante_svp");
-    let niveau = txt(g(choix, "niveau"));
+    let choix = sal.sante_svp.dite();
+    let niveau = choix.map_or("", |c| c.niveau.texte()).to_string();
     let taux = match exiger(releve, "niveaux")?.get(&niveau) {
         Some(t) => t,
         None => {
@@ -833,10 +834,10 @@ d'office (article L911-7 du code de la sécurité sociale), et son niveau se lit
     };
     controler_minimum_sante(&bar, sal, &niveau, taux, fin)?;
     let mut total = dec(exiger(taux, "assure")?)?;
-    if vrai(g(choix, "conjoint")) {
+    if choix.is_some_and(|c| c.conjoint.oui()) {
         total = add(total, dec(exiger(taux, "conjoint")?)?);
     }
-    total = add(total, mul(dec(exiger(taux, "enfant")?)?, Decimal::from(entier(g(choix, "enfants")))));
+    total = add(total, mul(dec(exiger(taux, "enfant")?)?, Decimal::from(choix.and_then(|c| c.enfants.dite()).map_or(0, |m| entier(m.valeur())))));
     // Au moins la moitie a la charge de l'employeur (L911-7).
     let defaut = Value::from(50);
     let part_pat = div(dec(g_def(releve, "part_employeur", &defaut))?, Decimal::ONE_HUNDRED);
@@ -928,7 +929,7 @@ pub fn bareme_atmp(bar: Value) -> Resultat<Value> {
 }
 
 /// La prevoyance d'un permanent : la CONVENTION la fixe, pas le bareme.
-pub fn bareme_prevoyance(bar: Value, sal: &Value, nat: Option<&Nature>, fin: Option<&Jour>) -> Resultat<Value> {
+pub fn bareme_prevoyance(bar: Value, sal: &SalarieDuContrat, nat: Option<&Nature>, fin: Option<&Jour>) -> Resultat<Value> {
     if !mensuelle(nat) {
         return Ok(bar);
     }
@@ -1213,7 +1214,7 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
 ///
 /// La pile finie se lit une fois, typee (`forme_bareme::Pile`) : le calcul et la DSN la lisent ainsi.
 pub fn bareme_applique(
-    partage: &Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
+    partage: &Value, sal: &SalarieDuContrat, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
     majoration_chomage: bool,
 ) -> Resultat<Pile> {
     let etabs = g(partage, "_etablissements");
@@ -1223,7 +1224,7 @@ pub fn bareme_applique(
     } else {
         partage.clone()
     };
-    bar = bareme_du_statut(bar, txt(g(sal, "statut")).as_str())?;
+    bar = bareme_du_statut(bar, sal.statut.dite().map_or("", |s| s.as_str()))?;
     bar = bareme_atmp(bar)?;
     // Ce que la caisse reprend du statut tel qu'avant la nature : ses rubriques et ses cotisations (`bareme_caisse_conges`).
     let avant_la_nature = if caisse_conges == crate::caisse_conges::par_defaut(nat) {
@@ -1276,8 +1277,8 @@ pub fn entree(fiche: &Value, nic: &str) -> Option<Value> {
 }
 
 /// Le NIC de l'etablissement du salarie.
-pub fn etablissement_du_salarie(fiche: &Value, sal: &Value) -> Resultat<String> {
-    let nic = txt(g(sal, "etablissement")).trim().to_string();
+pub fn etablissement_du_salarie(fiche: &Value, sal: &SalarieDuContrat) -> Resultat<String> {
+    let nic = sal.etablissement.as_deref().unwrap_or("").trim().to_string();
     if nic.is_empty() || nic == nic_principal(fiche) {
         return Ok(nic_principal(fiche));
     }
@@ -1296,12 +1297,10 @@ fiche entreprise ne porte pas a cette date (Configuration › Entreprise › Ava
 }
 
 /// Le nom du salarie, ou `defaut` s'il n'en a pas.
-fn nom_ou(sal: &Value, defaut: &str) -> String {
-    let nom = g(sal, "nom");
-    if vrai(nom) {
-        en_texte(nom)
-    } else {
-        defaut.to_string()
+fn nom_ou(sal: &ChampsSalarie, defaut: &str) -> String {
+    match sal.nom.texte() {
+        "" => defaut.to_string(),
+        n => n.to_string(),
     }
 }
 
@@ -1339,7 +1338,7 @@ pub fn fiche_de_l_etablissement(fiche: &Value, nic: &str) -> Resultat<Value> {
 /// amorcage) le lisent donc au meme endroit, comme le bulletin (« la designation de l'etablissement dont depend le salarie »,
 /// code du travail, R. 3243-1, 1°, `atelier/reference/sources/code-du-travail/xml/R3243-1.xml`) : `etablissement_du_salarie`,
 /// puis `fiche_de_l_etablissement`.
-pub fn entreprise_du_salarie(ent: &Value, salarie: &Value) -> Resultat<Value> {
+pub fn entreprise_du_salarie(ent: &Value, salarie: &SalarieDuContrat) -> Resultat<Value> {
     fiche_de_l_etablissement(ent, &etablissement_du_salarie(ent, salarie)?)
 }
 /// Le taux AT/MP et le versement mobilite de
@@ -1443,13 +1442,12 @@ fn ajouter(bar: &Value, cle: &str, v: Value) -> Vec<Value> {
 }
 
 /// La ligne du versement mobilite, au bulletin et dans la DSN.
-pub fn bareme_vm(bar: Value, sal: &Value) -> Resultat<Value> {
+pub fn bareme_vm(bar: Value, sal: &SalarieDuContrat) -> Resultat<Value> {
     let vm = match versement_mobilite(&bar)? {
         Some(v) => v,
         None => return Ok(bar),
     };
-    let st = g(sal, "statut");
-    let artiste = (if vrai(st) { en_texte(st) } else { "artiste".to_string() }) == "artiste";
+    let artiste = sal.statut.dite().map_or(true, |s| *s == Statut::Artiste);
     let facteur = if artiste { Decimal::new(70, 2) } else { Decimal::ONE };
     let taux = rond(mul(vm.taux, facteur), 3);
     let org = org_urssaf(&bar);
@@ -1482,7 +1480,7 @@ pub fn bareme_vm(bar: Value, sal: &Value) -> Resultat<Value> {
 
 /// La cotisation salariale maladie du regime local d'Alsace-Moselle (CSS
 /// L242-13), au bulletin et dans la DSN (bloc 81, code 115).
-pub fn bareme_regime_local(bar: Value, sal: &Value) -> Resultat<Value> {
+pub fn bareme_regime_local(bar: Value, sal: &SalarieDuContrat) -> Resultat<Value> {
     if !alsace_moselle(g(&bar, "_entreprise"), sal) {
         return Ok(bar);
     }
@@ -1520,7 +1518,7 @@ ne porte pas le taux du regime local (`regime_local_alsace_moselle`).",
 }
 
 /// Le contrat de ce salarie releve-t-il du regime local ? (S21.G00.40.016)
-pub fn regime_local(bar: &Value, sal: &Value) -> bool {
+pub fn regime_local(bar: &Value, sal: &SalarieDuContrat) -> bool {
     alsace_moselle(g(bar, "_entreprise"), sal)
 }
 
@@ -1687,7 +1685,7 @@ fn poser_t1(bar: Value, retraite_pat: Decimal, retraite_sal: Decimal) -> Resulta
 /// La retraite complementaire en tranche 1, quand elle n'est pas celle du
 /// corps du bareme : la repartition de la branche pour un permanent, le taux
 /// d'une organisation patronale pour un intermittent non cadre.
-pub fn bareme_retraite_t1(bar: Value, sal: &Value, nat: Option<&Nature>) -> Resultat<Value> {
+pub fn bareme_retraite_t1(bar: Value, sal: &SalarieDuContrat, nat: Option<&Nature>) -> Resultat<Value> {
     if !vrai(g(&bar, "retraite_t1_repartition")) {
         return Ok(bar);
     }
@@ -1710,7 +1708,7 @@ pub fn bareme_retraite_t1(bar: Value, sal: &Value, nat: Option<&Nature>) -> Resu
         Some(c) if g(c, "applicable") == &Value::Bool(true) => c,
         _ => return Ok(bar),
     };
-    let st = txt(g(sal, "statut"));
+    let st = sal.statut.dite().map_or("", |s| s.as_str()).to_string();
     let statut = {
         let s = if st.is_empty() { "artiste".to_string() } else { st };
         let s = s.trim().to_lowercase();
@@ -1788,7 +1786,7 @@ la base {}, que la pile de bareme de ce contrat ne declare pas. Elle ne se place
 
 /// Le bareme du statut, avec la surcouche cadre si la fiche le dit : la
 /// section `par_categorie.cadre` (un intermittent) ou `cadre_permanent`.
-pub fn bareme_cadre(bar: Value, sal: &Value, nat: Option<&Nature>) -> Resultat<Value> {
+pub fn bareme_cadre(bar: Value, sal: &SalarieDuContrat, nat: Option<&Nature>) -> Resultat<Value> {
     if !est_cadre(sal) {
         return Ok(bar);
     }
@@ -1812,7 +1810,7 @@ intermittent : ses tranches sont mensuelles"
         )})));
     }
     // Un cadre d'un statut donne, quand la convention le distingue.
-    let st = txt(g(sal, "statut")).trim().to_lowercase();
+    let st = sal.statut.dite().map_or("", |s| s.as_str()).to_string();
     let sous = g(g(sec, "par_statut"), &st);
     let mut sec = sec.clone();
     if vrai(sous) {
@@ -2059,20 +2057,20 @@ donnees/prevoyance-conventionnelle-base.json.",
     /// an d'anciennete dans la branche du secteur prive du spectacle vivant ; pour les cadres, des l'embauche » (fiche
     /// produit Audiens, `atelier/reference/sources/audiens-3090-prevoyance-sante-fiche-produit-2021.txt`, l. 102-106).
     /// Ce temps dans la branche est un fait que seule la fiche dit (`prevoyance_branche_depuis`) : il se demande.
-    fn ouverture(reg: &Value, sal: &Value, cadre: bool, fin: Option<&Jour>) -> Resultat<(bool, String)> {
+    fn ouverture(reg: &Value, sal: &SalarieDuContrat, cadre: bool, fin: Option<&Jour>) -> Resultat<(bool, String)> {
         let b = g(reg, "beneficiaires");
         let seuil = entier(g(b, if cadre { "ouverture_cadre_mois" } else { "ouverture_non_cadre_mois" }));
         if seuil <= 0 {
             return Ok((true, "due des l'embauche".to_string()));
         }
-        let branche = g(sal, "prevoyance_branche_depuis");
+        let branche = &en_valeur(&sal.prevoyance_branche_depuis);
         if let Some(mois) = mois_entre(branche, fin) {
             return Ok((
                 mois >= seuil,
                 format!("{} mois dans la branche depuis le {} (seuil {})", mois, en_texte(branche), seuil),
             ));
         }
-        let mois_maison = mois_entre(g(sal, "date_anciennete"), fin);
+        let mois_maison = mois_entre(&en_valeur(&sal.date_anciennete), fin);
         if let Some(m) = mois_maison {
             if m >= seuil {
                 return Ok((
@@ -2150,7 +2148,7 @@ nouveau le laisserait sans couverture pendant un an.",
 
     /// Ce qu'un permanent cotise en prevoyance ce mois-la :
     /// `{"t1": {taux_pat, taux_sal, base}, "t2": ..., "due", "pourquoi"}`.
-    pub fn cotisation(idcc: &Value, sal: &Value, cadre: bool, fin: Option<&Jour>, entreprise: &Value) -> Resultat<Value> {
+    pub fn cotisation(idcc: &Value, sal: &SalarieDuContrat, cadre: bool, fin: Option<&Jour>, entreprise: &Value) -> Resultat<Value> {
         let reg = a_la_date(regime(idcc)?, fin);
         let ent = g(entreprise, "prevoyance_permanents");
         let choix = {
@@ -2351,7 +2349,7 @@ convention {}.",
 
     /// L'affiliation d'un permanent a la prevoyance de sa convention au `fin` (bloc S21.G00.70), selon la meme regle que
     /// sa cotisation (`cotisation`, `ouverture`).
-    pub fn affiliation(idcc: &Value, sal: &Value, cadre: bool, fin: &Jour, entreprise: &Value) -> Resultat<super::AffiliationPrevoyance> {
+    pub fn affiliation(idcc: &Value, sal: &SalarieDuContrat, cadre: bool, fin: &Jour, entreprise: &Value) -> Resultat<super::AffiliationPrevoyance> {
         use super::AffiliationPrevoyance as A;
         let cot = cotisation(idcc, sal, cadre, Some(fin), entreprise)?;
         if g(&cot, "due") == &Value::Bool(false) {
@@ -2362,10 +2360,10 @@ convention {}.",
         if seuil <= 0 {
             return Ok(A::DesLEmbauche);
         }
-        if let Some(j) = date(&txt(g(sal, "prevoyance_branche_depuis"))).and_then(|d| anniversaire(&d, seuil)) {
+        if let Some(j) = sal.prevoyance_branche_depuis.dite().copied().and_then(|d| anniversaire(&d, seuil)) {
             return Ok(A::Le(j));
         }
-        match date(&txt(g(sal, "date_anciennete"))).and_then(|d| anniversaire(&d, seuil)) {
+        match sal.date_anciennete.dite().copied().and_then(|d| anniversaire(&d, seuil)) {
             Some(j) => Ok(A::AuPlusTardLe(j)),
             None => Err(format!(
                 "{} : la prevoyance s'ouvre apres {} mois d'anciennete dans la branche, et sa fiche ne date ni son \
@@ -2394,7 +2392,7 @@ pub enum AffiliationPrevoyance {
 
 /// L'affiliation d'un permanent a la prevoyance de sa convention au `fin` de la periode, selon la regle de sa
 /// cotisation : le meme regime, la meme anciennete (`bareme_prevoyance`).
-pub fn affiliation_prevoyance(ent: &Value, sal: &Value, fin: &Jour) -> Resultat<AffiliationPrevoyance> {
+pub fn affiliation_prevoyance(ent: &Value, sal: &SalarieDuContrat, fin: &Jour) -> Resultat<AffiliationPrevoyance> {
     prevoyance::affiliation(g(ent, "idcc"), sal, est_cadre(sal), fin, ent)
 }
 
@@ -2721,4 +2719,9 @@ pub fn taux_atmp_au(valeur: &Value, jour: &Jour) -> Option<Decimal> {
 /// Le nom de l'arrete qui fixe les taux du socle (`risques_atmp.arrete`), pour le dire a l'ecran.
 pub fn arrete_atmp(socle: &Value) -> Option<String> {
     g(g(socle, "risques_atmp"), "arrete").as_str().map(String::from)
+}
+
+/// Une date de la fiche telle qu'un calcul de mois la lit (`AAAA-MM-JJ`, nulle si elle n'est pas dite).
+fn en_valeur(c: &Case<Jour>) -> Value {
+    c.dite().map_or(Value::Null, |j| Value::String(j.iso()))
 }

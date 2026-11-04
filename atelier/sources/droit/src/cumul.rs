@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 use crate::bareme::canon;
 use crate::catalogue::{annexes, rubrique};
 use crate::contexte::{aujourdhui, Contexte};
-use socle::date::{d, Jour};
+use socle::date::Jour;
 use socle::num::{add, flottant, nombre, Decimal, Resultat};
 
 /// Les constantes du decompte, lues dans les donnees livrees (le catalogue des rubriques et `annexes`).
@@ -341,10 +341,7 @@ pub fn position(
 
 /// Date de naissance du salarie, ou `None`.
 pub fn naissance(ctx: &Contexte, salarie: &str) -> Resultat<Option<Jour>> {
-    match ctx.salaries.get(salarie).and_then(|f| f.get("date_naissance")) {
-        Some(v) if socle::fichiers::vrai(v) => d(v).map(Some),
-        _ => Ok(None),
-    }
+    Ok(ctx.salaries.get(salarie).and_then(|f| f.date_naissance.dite().copied()))
 }
 
 /// Fin du dernier contrat declare : le depart de la fenetre par defaut.
@@ -457,8 +454,5 @@ pub fn tableau_cumul(
 /// Date anniversaire des droits, si elle est dans `config/salaries.json`
 /// (`anniversaire_droits`) ; absente tant que France Travail ne l'a pas notifiee.
 pub fn anniversaire_configure(ctx: &Contexte, salarie: &str) -> Resultat<Option<Jour>> {
-    match ctx.salaries.get(salarie).and_then(|f| f.get("anniversaire_droits")) {
-        Some(v) if socle::fichiers::vrai(v) => d(v).map(Some),
-        _ => Ok(None),
-    }
+    Ok(ctx.salaries.get(salarie).and_then(|f| f.anniversaire_droits.dite().copied()))
 }

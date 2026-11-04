@@ -158,8 +158,7 @@ pub fn cle_contrat(l: &Value) -> R<Vec<Value>> {
 /// L'indice, dans `paies`, de la paie du contrat n° `numero` de ce salarie.
 pub fn paie_du_contrat(paies: &[engagement::calcul::Paie], salarie: &str, numero: &str) -> R<Option<usize>> {
     for (i, x) in paies.iter().enumerate() {
-        let cle = x.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
-        if est(cle, salarie) && x.engagement.numero.as_deref() == Some(numero) && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
+        if x.salarie.id == salarie && x.engagement.numero.as_deref() == Some(numero) && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
             return Ok(Some(i));
         }
     }

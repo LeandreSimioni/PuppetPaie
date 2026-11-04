@@ -130,7 +130,7 @@ pub fn en_cours(ctx: &Contexte, cle: &str) -> R<Option<EnCours>> {
 pub fn a_combler(ctx: &Contexte, paies: &[Paie], motif: &str, forcer: bool) -> R<Vec<Ligne>> {
     use declarations::amorcage as am;
     let ko = |m: String| erreur("ValueError", m);
-    let cle_de = |p: &Paie| p.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")));
+    let cle_de = |p: &Paie| -> R<String> { Ok(p.salarie.id.to_string()) };
     let mut cles: Vec<String> = Vec::new();
     for p in paies {
         let c = cle_de(p)?;

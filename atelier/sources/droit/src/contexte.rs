@@ -8,7 +8,10 @@ use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::path::{Path, PathBuf};
 
+use indexmap::IndexMap;
 use serde_json::{Map, Value};
+
+use crate::fiche::{Case, ChampsEntreprise, FicheEntrepriseDatee, FicheSalarie, Salaries};
 
 use socle::date::{d, en_texte, forme_ecrite, repr_texte, Jour};
 use socle::fichiers::{dossier_du_code, vrai};
@@ -38,6 +41,14 @@ fn exiger<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
 /// La valeur de `cle` en texte ; refus si elle manque.
 fn exiger_texte(v: &Value, cle: &str) -> Resultat<String> {
     Ok(en_texte(exiger(v, cle)?))
+}
+
+/// Le texte d'une case de fiche, exigee : son absence se refuse en la nommant.
+fn exige(c: &Case<String>, cle: &str) -> Resultat<String> {
+    match c {
+        Case::Absente => Err(socle::fichiers::absent(cle)),
+        _ => Ok(c.texte().to_string()),
+    }
 }
 
 /// L'entier d'une valeur : le texte, le flottant tronque, le booleen.
@@ -1407,17 +1418,66 @@ pub struct Contexte {
     /// Quel jour on est, pour les gardes du calendrier (distinct de `date`).
     pub aujourdhui: Jour,
     /// La fiche entreprise a `lue_au`.
+    pub fiche_entreprise: ChampsEntreprise,
+    /// La meme telle qu'ecrite a cette date (`fiche_au`), pour ce qui la lit par ses cles (les baremes, les modeles).
     pub entreprise: Value,
-    entreprise_brute: std::sync::Arc<Value>,
-    /// Les fiches salaries a `lue_au` (celles qui existaient ce jour-la).
-    pub salaries: Map<String, Value>,
-    /// Les fiches telles qu'ecrites, datees : une periode se lit a sa date (`salarie_au`, `au`).
-    salaries_bruts: std::sync::Arc<Map<String, Value>>,
+    /// Les fiches telles qu'ecrites, datees, lues par leur forme : une periode se lit a sa date (`salarie_au`, `au`).
+    fiches: Arc<Fiches>,
+    /// Les fiches salaries a `lue_au` (celles qui existaient ce jour-la), dans l'ordre du fichier.
+    pub salaries: IndexMap<IdSalarie, FicheSalarie>,
     pub spectacles: Map<String, Value>,
     spectacles_bruts: std::sync::Arc<Map<String, Value>>,
     /// Le taux AT/MP d'une annee qu'une piece atteste, pour une compagnie qui n'en a pas encore pose
     /// (`avec_le_taux_atmp_lu`) ; en memoire seulement.
     atmp_lu: Option<(i32, Value)>,
+}
+
+/// Les fiches d'une compagnie telles qu'ecrites : lues par leur forme (`fiche::lire_entreprise`, `fiche::lire_salaries`),
+/// et en JSON pour l'histoire d'un champ, qui se lit par son nom (`valeurs_datees`).
+#[derive(Debug)]
+struct Fiches {
+    entreprise: FicheEntrepriseDatee,
+    entreprise_brute: Value,
+    salaries: Salaries,
+    salaries_bruts: Map<String, Value>,
+}
+
+/// Les fiches de `cfg`, lues une fois tant que leurs fichiers ne changent pas.
+fn lire_fiches(cfg: &Path) -> Resultat<Arc<Fiches>> {
+    type Cache = Mutex<HashMap<PathBuf, ((Option<(u128, u64)>, Option<(u128, u64)>), Arc<Fiches>)>>;
+    static CACHE: OnceLock<Cache> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let (pe, ps) = (cfg.join("entreprise.json"), cfg.join("salaries.json"));
+    let sig = (socle::fichiers::signature(&pe), socle::fichiers::signature(&ps));
+    if sig.0.is_some() && sig.1.is_some() {
+        if let Some((vue, f)) = cache.lock().unwrap().get(cfg) {
+            if *vue == sig {
+                socle::fichiers::noter_si_besoin(&pe);
+                socle::fichiers::noter_si_besoin(&ps);
+                return Ok(f.clone());
+            }
+        }
+    }
+    let entreprise_brute = lire_json(&pe)?;
+    let entreprise = crate::fiche::lire_entreprise(&entreprise_brute, ENTREPRISE)?;
+    let salaries_lus = lire_json(&ps)?;
+    let salaries = crate::fiche::lire_salaries(&salaries_lus, SALARIES)?;
+    let salaries_bruts: Map<String, Value> = objet(salaries_lus, "salaries.json")?.into_iter().filter(|(k, _)| !k.starts_with('_')).collect();
+    let f = Arc::new(Fiches { entreprise, entreprise_brute, salaries, salaries_bruts });
+    if sig.0.is_some() && sig.1.is_some() {
+        cache.lock().unwrap().insert(cfg.to_path_buf(), (sig, f.clone()));
+    }
+    Ok(f)
+}
+
+/// Les fiches salaries a `jour` : celles qui existaient ce jour-la.
+fn salaries_au(s: &Salaries, jour: &Jour) -> IndexMap<IdSalarie, FicheSalarie> {
+    s.fiches
+        .iter()
+        .map(|(id, f)| (id, f.au(jour)))
+        .filter(|(_, c)| !c.est_vide())
+        .map(|(id, champs)| (id.clone(), FicheSalarie { id: id.clone(), champs }))
+        .collect()
 }
 
 /// Les fiches d'une compagnie et ce qu'elle a dit d'elle-meme, sous sa racine.
@@ -1450,21 +1510,20 @@ impl Contexte {
         let date = date.unwrap_or_else(jour_reel);
         let aujourdhui = aujourdhui_brut()?;
         let cfg = racine.join(socle::fichiers::CONFIG);
-        let entreprise_brute = lire_json(&cfg.join("entreprise.json"))?;
-        let bruts = |nom: &str| -> Resultat<Map<String, Value>> {
-            Ok(objet(lire_json(&cfg.join(nom))?, nom)?.into_iter().filter(|(k, _)| !k.starts_with('_')).collect())
-        };
-        let (salaries_bruts, spectacles_bruts) = (bruts("salaries.json")?, bruts("spectacles.json")?);
+        let fiches = lire_fiches(&cfg)?;
+        let spectacles_bruts: Map<String, Value> =
+            objet(lire_json(&cfg.join("spectacles.json"))?, "spectacles.json")?.into_iter().filter(|(k, _)| !k.starts_with('_')).collect();
+        let fiche_entreprise = fiches.entreprise.au(&date);
         Ok(Contexte {
             racine: racine.to_path_buf(),
             code: dossier_du_code(),
             date,
             lue_au: date,
             aujourdhui,
-            entreprise: fiche_au(&entreprise_brute, &date, ENTREPRISE)?,
-            entreprise_brute: std::sync::Arc::new(entreprise_brute),
-            salaries: fiches_au(&salaries_bruts, &date, "salaries.json")?,
-            salaries_bruts: std::sync::Arc::new(salaries_bruts),
+            entreprise: fiche_au(&fiches.entreprise_brute, &date, ENTREPRISE)?,
+            fiche_entreprise,
+            salaries: salaries_au(&fiches.salaries, &date),
+            fiches,
             spectacles: fiches_au(&spectacles_bruts, &date, "spectacles.json")?,
             spectacles_bruts: std::sync::Arc::new(spectacles_bruts),
             atmp_lu: None,
@@ -1483,10 +1542,10 @@ impl Contexte {
             date: self.date,
             lue_au: *jour,
             aujourdhui: self.aujourdhui,
-            entreprise: fiche_au(&self.entreprise_brute, jour, ENTREPRISE)?,
-            entreprise_brute: self.entreprise_brute.clone(),
-            salaries: fiches_au(&self.salaries_bruts, jour, "salaries.json")?,
-            salaries_bruts: self.salaries_bruts.clone(),
+            fiche_entreprise: self.fiches.entreprise.au(jour),
+            entreprise: fiche_au(&self.fiches.entreprise_brute, jour, ENTREPRISE)?,
+            salaries: salaries_au(&self.fiches.salaries, jour),
+            fiches: self.fiches.clone(),
             spectacles: fiches_au(&self.spectacles_bruts, jour, "spectacles.json")?,
             spectacles_bruts: self.spectacles_bruts.clone(),
             atmp_lu: self.atmp_lu.clone(),
@@ -1512,14 +1571,14 @@ impl Contexte {
         if *jour == self.lue_au {
             return Ok(self.entreprise.clone());
         }
-        fiche_au(&self.entreprise_brute, jour, ENTREPRISE)
+        fiche_au(&self.fiches.entreprise_brute, jour, ENTREPRISE)
     }
 
-    /// La fiche salarie `cle` a `jour`, avec `_cle`. Refus : la fiche ne dit rien ce jour-la.
-    pub fn salarie_au(&self, cle: &str, jour: &Jour) -> Resultat<Value> {
-        let brute = self.salaries_bruts.get(cle).ok_or_else(|| format!("Salarie inconnu : {}.", repr_texte(cle)))?;
-        let mut f = fiche_au(brute, jour, &format!("config/salaries.json, {}", cle))?;
-        if fiche_vide(&f) {
+    /// La fiche salarie `cle` a `jour`. Refus : la fiche ne dit rien ce jour-la.
+    pub fn salarie_au(&self, cle: &str, jour: &Jour) -> Resultat<FicheSalarie> {
+        let (id, brute) = self.fiches.salaries.fiches.get_key_value(cle).ok_or_else(|| format!("Salarie inconnu : {}.", repr_texte(cle)))?;
+        let champs = brute.au(jour);
+        if champs.est_vide() {
             return Err(format!(
                 "La fiche de {} ne dit rien au {} : sa premiere valeur est posterieure. Dater sa fiche a partir de ce jour \
 (Configuration, « a partir du »).",
@@ -1527,13 +1586,12 @@ impl Contexte {
                 jour.jj_mm_aaaa()
             ));
         }
-        f.as_object_mut().map(|o| o.insert("_cle".into(), Value::String(cle.to_string())));
-        Ok(f)
+        Ok(FicheSalarie { id: id.clone(), champs })
     }
 
     /// Les cles des salaries qu'on peut encore embaucher (les archives restent dans `salaries`).
     pub fn salaries_actifs(&self) -> Vec<&str> {
-        self.salaries.iter().filter(|(_, v)| !archivee(v)).map(|(k, _)| k.as_str()).collect()
+        self.salaries.iter().filter(|(_, v)| !v.archivee()).map(|(k, _)| k.as_str()).collect()
     }
 
     /// La compagnie emploie-t-elle des permanents (des salaries payes au mois, contrats `cdi` ou `cdd`) ? Une decision de
@@ -1725,8 +1783,8 @@ impl Contexte {
     /// dit a sa date (« règle du JJ/MM/AAAA »).
     pub fn configuration_datee(&self, jour: &Jour, salarie: &str, spectacle: Option<&str>) -> Resultat<Vec<Jour>> {
         let mut out = Vec::new();
-        dates_en_vigueur(&self.entreprise_brute, jour, &mut out)?;
-        let fiches = [self.salaries_bruts.get(salarie), spectacle.and_then(|s| self.spectacles_bruts.get(s))];
+        dates_en_vigueur(&self.fiches.entreprise_brute, jour, &mut out)?;
+        let fiches = [self.fiches.salaries_bruts.get(salarie), spectacle.and_then(|s| self.spectacles_bruts.get(s))];
         for f in fiches.into_iter().flatten() {
             dates_en_vigueur(f, jour, &mut out)?;
         }
@@ -1864,7 +1922,7 @@ PSS_H_METROP).",
         let mois = Mois::lire(mois)?;
         let dernier = mois.dernier_jour();
         let mut ent = self.entreprise_au(&dernier)?;
-        let ouverts = etablissements_entre(&self.entreprise_brute, &mois.premier_jour(), &dernier)?;
+        let ouverts = etablissements_entre(&self.fiches.entreprise_brute, &mois.premier_jour(), &dernier)?;
         if let Value::Object(m) = &mut ent {
             m.insert("_gabarits".into(), Value::String(self.gabarits().to_string_lossy().into_owned()));
             if let Some(l) = ouverts {
@@ -1881,12 +1939,12 @@ PSS_H_METROP).",
 
     /// La fiche entreprise telle qu'ecrite, datee.
     pub fn entreprise_brute(&self) -> &Value {
-        &self.entreprise_brute
+        &self.fiches.entreprise_brute
     }
 
     /// La fiche salarie `cle` telle qu'ecrite, datee, `None` si la cle est inconnue.
     pub fn salarie_brut(&self, cle: &str) -> Option<&Value> {
-        self.salaries_bruts.get(cle)
+        self.fiches.salaries_bruts.get(cle)
     }
 
     /// La fiche spectacle `cle` telle qu'ecrite, datee, `None` si la cle est inconnue.
@@ -1907,18 +1965,16 @@ PSS_H_METROP).",
     /// Le salarie de cette cle tel que l'ecran le nomme (`socle::texte::salarie_nomme` : « NOM Prénom ») ; la cle sans
     /// fiche.
     pub fn nomme(&self, cle: &str) -> String {
-        socle::texte::salarie_nomme_ou(self.salaries.get(cle), cle)
+        self.salaries.get(cle).and_then(|f| f.nomme()).unwrap_or_else(|| cle.to_string())
     }
 
     /// Retrouve un salarie par cle, NIR, nom, prenom ou
     /// faute de frappe. Le nom EXACT retrouve n'importe qui, archive compris ;
     /// la recherche APPROCHANTE (prefixe, Levenshtein <= 3) ne va que parmi les actifs.
-    /// Rend la fiche avec `_cle`, ou le refus.
-    pub fn salarie(&self, nom: &str) -> Resultat<Value> {
+    /// Rend la fiche (qui porte sa cle), ou le refus.
+    pub fn salarie(&self, nom: &str) -> Resultat<FicheSalarie> {
         let cle = self.cle_du_salarie(nom)?;
-        let mut f = self.salaries[cle.as_str()].clone();
-        f.as_object_mut().map(|o| o.insert("_cle".into(), cle.into()));
-        Ok(f)
+        Ok(self.salaries[cle.as_str()].clone())
     }
 
     /// La cle de la fiche que `salarie` retrouve, sans la recopier ; la cle meme se retrouve d'abord.
@@ -1940,14 +1996,14 @@ PSS_H_METROP).",
         let brut: String = nom.replace(' ', "").to_uppercase();
         if forme_de_nir(&brut) {
             for (cle, s) in &self.salaries {
-                if s.get("nir").map_or(false, |n| vrai(n) && en_texte(n).to_uppercase() == brut[..13]) {
+                if s.nir.dite().is_some_and(|n| n.to_uppercase() == brut[..13]) {
                     return Ok(cle.to_string());
                 }
             }
         }
-        let mut trouves: Vec<&String> = Vec::new();
+        let mut trouves: Vec<&IdSalarie> = Vec::new();
         for (cle, s) in &self.salaries {
-            let (n, p) = (exiger_texte(s, "nom")?, exiger_texte(s, "prenom")?);
+            let (n, p) = (exige(&s.nom, "nom")?, exige(&s.prenom, "prenom")?);
             let ensemble = [cle_recherche(&n), cle_recherche(&p), cle_recherche(&format!("{} {}", n, p)), cle_recherche(&format!("{} {}", p, n))];
             if ensemble.contains(&q) {
                 trouves.push(cle);
@@ -1968,7 +2024,7 @@ PSS_H_METROP).",
         let actifs = self.salaries_actifs();
         let noms_de = |cle: &str| -> Resultat<[String; 2]> {
             let s = &self.salaries[cle];
-            Ok([cle_recherche(&exiger_texte(s, "prenom")?), cle_recherche(&exiger_texte(s, "nom")?)])
+            Ok([cle_recherche(&exige(&s.prenom, "prenom")?), cle_recherche(&exige(&s.nom, "nom")?)])
         };
         let mut prefixes: Vec<&str> = Vec::new();
         for cle in &actifs {
@@ -2002,10 +2058,10 @@ PSS_H_METROP).",
         }
         // Rien parmi les actifs : si une archive ressemble, le dire plutot que « inconnu ».
         for (cle, s) in &self.salaries {
-            if !archivee(s) {
+            if !s.archivee() {
                 continue;
             }
-            let (n, p) = (exiger_texte(s, "nom")?, exiger_texte(s, "prenom")?);
+            let (n, p) = (exige(&s.nom, "nom")?, exige(&s.prenom, "prenom")?);
             let ressemble = [p.as_str(), n.as_str(), cle.as_str()].iter().any(|x| {
                 let c = cle_recherche(x);
                 c.starts_with(&q) || levenshtein(&q, &c) <= 3

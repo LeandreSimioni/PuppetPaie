@@ -723,7 +723,7 @@ pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pa
     if e.sans_paie() {
         return Ok(None);
     }
-    let cle = en_texte(p.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
+    let cle = p.salarie.id.to_string();
     let fin = e.fin_periode()?;
     let taux = droit::pas::taux_dgfip(ctx, &cle, Some(e.date_du_versement()?), Some(&e.mois))?;
     let bareme = ctx.bareme(&Jour { an: fin.an, mois: fin.mois, jour: 1 })?;
@@ -759,7 +759,7 @@ pub fn prelevement_de_la_correction(
     let (debut, fin) = (versement.premier_jour(), versement.dernier_jour());
     let difference = socle::num::sub(apres.net_imposable, net_imposable_declare);
     let e = &apres.engagement;
-    let cle = en_texte(apres.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
+    let cle = apres.salarie.id.to_string();
     let taux = droit::pas::taux_dgfip(ctx, &cle, Some(fin), Some(mois_du_versement))?;
     let bareme = ctx.bareme(&debut)?;
     let t = |j: Jour| (j.an, j.mois, j.jour);

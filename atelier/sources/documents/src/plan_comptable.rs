@@ -17,7 +17,7 @@ use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::lire_json_echec as lire_json;
 use socle::fichiers::{repr, vrai};
-use socle::valeur::{getd, nom_type, objet_vide, ou, texte_vide, valeur_en_texte};
+use socle::valeur::{getd, nom_type, objet_vide, ou, valeur_en_texte};
 
 /// Les tables fixes des exports et des ecritures comptables.
 pub fn tables() -> &'static Value {
@@ -168,12 +168,9 @@ pub fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
         }
     }
     let mut msgs: Vec<String> = Vec::new();
-    let mut fiches: Vec<(&String, &Value)> = ctx.salaries.iter().collect();
+    let mut fiches: Vec<(&droit::contexte::IdSalarie, &droit::fiche::FicheSalarie)> = ctx.salaries.iter().collect();
     fiches.sort_by(|a, b| a.0.cmp(b.0));
     for (cle, s) in fiches {
-        if cle.starts_with('_') || !s.is_object() {
-            continue;
-        }
         match compte_du_salarie(&plan, s, cle) {
             Ok(c) if !c.is_empty() => {
                 comptes.insert(c);
@@ -213,14 +210,13 @@ pub enum Refus {
 
 /// Le sous-compte 421 d'un salarie, ou
 /// "" si le plan n'en veut pas.
-pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) -> Result<String, Refus> {
+pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &droit::fiche::ChampsSalarie, cle: &str) -> Result<String, Refus> {
     let net = ou(plan.get("net").unwrap_or(&Value::Null), objet_vide());
     let modele = getd(net, "par_salarie", &Value::Null).map_err(Refus::Autre)?;
     if !vrai(modele) {
         return Ok(String::new());
     }
-    let code_brut = ou(salarie.get("code_salarie").unwrap_or(&Value::Null), texte_vide());
-    let code = entier_de(valeur_en_texte(code_brut).trim());
+    let code = entier_de(salarie.code_salarie.texte().trim());
     let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;

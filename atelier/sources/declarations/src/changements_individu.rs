@@ -140,7 +140,8 @@ impl<'a> Declarations<'a> {
             }
             let mut tous = Vec::new();
             for p in paies {
-                let s = &p.salarie;
+                // Les rubriques de la DSN se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
+                let s = &p.salarie.en_valeur();
                 let nir = crate::ntt::nir_de(s);
                 tous.push(Declaree {
                     mois: mois.clone(),
@@ -192,8 +193,8 @@ devine pas. Rien n'est ecrit.",
 /// L'identite que la derniere DSN mensuelle a declaree pour `salarie` (sa fiche lue), des mois saisis jusqu'a celui de
 /// `jour` compris : ce que lit une DSN hors du mois (un signalement, une demande de taux) pour poser son NTT
 /// (`ntt::poser_ntt`).
-pub fn derniere_declaree(ctx: &Contexte, salarie: &Value, jour: &Jour, departs: &engagement::departs::Departs) -> Resultat<Option<Declaree>> {
-    Declarations::avant(ctx, &jour.mois_civil().suivant().to_string(), departs)?.derniere(salarie, &crate::ntt::brute(ctx, salarie))
+pub fn derniere_declaree(ctx: &Contexte, salarie: &droit::fiche::SalarieDuContrat, jour: &Jour, departs: &engagement::departs::Departs) -> Resultat<Option<Declaree>> {
+    Declarations::avant(ctx, &jour.mois_civil().suivant().to_string(), departs)?.derniere(&salarie.en_valeur(), &crate::ntt::brute(ctx, &salarie.id))
 }
 
 fn qui(salarie: &Value) -> String {

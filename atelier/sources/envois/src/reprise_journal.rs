@@ -217,11 +217,11 @@ pub fn reprendre_les_depots(ctx: &Contexte, qui: &str, maintenant: &str) -> Avec
 fn salarie_par_nir(ctx: &Contexte) -> Vec<(String, String)> {
     let mut v: Vec<(String, String)> = Vec::new();
     for (cle, s) in &ctx.salaries {
-        let Some(nir) = s.get("nir").filter(|n| vrai(n)).and_then(Value::as_str) else { continue };
+        let Some(nir) = s.nir.dite().filter(|n| !n.is_empty()) else { continue };
         let nir = nir.trim().to_string();
         match v.iter_mut().find(|(n, _)| *n == nir) {
-            Some(e) => e.1 = cle.clone(),
-            None => v.push((nir, cle.clone())),
+            Some(e) => e.1 = cle.to_string(),
+            None => v.push((nir, cle.to_string())),
         }
     }
     v

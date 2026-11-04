@@ -475,6 +475,7 @@ dependencies = [
 name = "droit"
 version = "0.1.0"
 dependencies = [
+ "indexmap",
  "rust_decimal",
  "serde",
  "serde_json",

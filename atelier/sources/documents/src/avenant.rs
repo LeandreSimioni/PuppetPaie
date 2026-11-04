@@ -310,12 +310,12 @@ fn lieu_du_contrat(e: &Eng) -> String {
 
 /// Les valeurs offertes au modele. `remuneration`, `brut` et `net` sont ceux
 /// de la paie calculee ; `sal` la fiche du salarie telle qu'elle vaut pour cet engagement.
-fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
+fn marqueurs(ent: &Value, fiche: &droit::fiche::ChampsSalarie, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
     let licence = match requis(ent, "licence_spectacle")? {
         Value::String(s) => s.clone(),
         autre => return Err(socle::echec::a_la_cle("Le numéro de licence de la compagnie ne se lit pas pour ce mois : le vérifier dans Configuration › Entreprise.", "licence_spectacle", en_texte(autre))),
     };
-    let mut m = parties(ent, sal, sp, e)?;
+    let mut m = parties(ent, fiche, sal, sp, e)?;
     let mut poser = |k: &str, v: String| {
         m.insert(k.to_string(), v);
     };
@@ -353,8 +353,8 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
 /// nomme comme le bareme du mois de la paie qui ecrit le document la nomme (`bareme::libelle_convention`) : le premier
 /// mois d'un contrat pour le contrat, le mois de l'avenant pour un avenant -- un contrat commence avant le logiciel n'a
 /// pas de bareme de son annee.
-pub(crate) fn parties(ent: &Value, sal: &Value, sp: &Value, e: &Eng) -> Resultat<Valeurs> {
-    let (idcc, convention) = convention_du_contrat(ent, sp, sal, &Mois::lire(&e.mois)?.premier_jour())?;
+pub(crate) fn parties(ent: &Value, fiche: &droit::fiche::ChampsSalarie, sal: &Value, sp: &Value, e: &Eng) -> Resultat<Valeurs> {
+    let (idcc, convention) = convention_du_contrat(ent, sp, fiche, &Mois::lire(&e.mois)?.premier_jour())?;
     let sig = requis(ent, "signataire")?;
     let mut m = Valeurs::new();
     let mut poser = |k: &str, v: String| {
@@ -491,17 +491,18 @@ pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Opt
         statut_conventionnel: texte("statut_conventionnel"),
         statut_categoriel_rc: texte("statut_categoriel_rc"),
     };
-    let cle = fiche.get("_cle").and_then(Value::as_str).unwrap_or_default();
-    let sal = emploi_de(&ctx.salarie_au(cle, &Jour::lire(&e.debut)?)?, &emploi)?;
+    // Les marqueurs de l'avenant nomment les cases de la fiche : elle se lit ici en JSON.
+    let lue = emploi_de(&ctx.salarie_au(fiche.id.as_str(), &Jour::lire(&e.debut)?)?, &emploi)?;
+    let sal = lue.champs.en_valeur();
     let remuneration = requis(paie, "remuneration")?.as_array().ok_or("remuneration : une liste est attendue")?;
     let (brut, net) = (paie.get("brut").unwrap_or(&nul), paie.get("net_a_payer").unwrap_or(&nul));
     let mut m = match nom_spectacle {
         Some(s) => {
             let sp = ctx.spectacle(s)?;
-            marqueurs(ent, &sal, &sp, &e, remuneration, brut, net)?
+            marqueurs(ent, &lue, &sal, &sp, &e, remuneration, brut, net)?
         }
         None => {
-            let mut m = parties(ent, &sal, &nul, &e)?;
+            let mut m = parties(ent, &lue, &sal, &nul, &e)?;
             crate::contrat_ecrit::marqueurs_au_mois(ent, &sal, eng, &nat, remuneration, brut, net, &mut m)?;
             m
         }

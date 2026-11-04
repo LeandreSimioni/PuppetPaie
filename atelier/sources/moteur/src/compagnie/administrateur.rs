@@ -474,8 +474,8 @@ fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
         }
         "signalement_reprise" => format!("SignalementReprise_{}_{}.dsn", salarie, compact),
         "fin-contrat" => {
-            let fiche = ctx.salarie(salarie).ok()?;
-            format!("SignalementFinContrat_{}_{}.dsn", valeur_en_texte(fiche.get("_cle")?), compact)
+            let cle = ctx.cle_du_salarie(salarie).ok()?;
+            format!("SignalementFinContrat_{}_{}.dsn", cle, compact)
         }
         _ => return None,
     };

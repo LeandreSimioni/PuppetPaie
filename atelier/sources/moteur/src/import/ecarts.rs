@@ -225,8 +225,8 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
     let fiches = ctx
         .salaries
         .iter()
-        .filter(|(k, v)| !k.starts_with('_') && v.is_object())
-        .map(|(_, v)| v.clone());
+        // Les cases que le releve compare se nomment : la fiche se lit ici en JSON.
+        .map(|(_, v)| v.champs.en_valeur());
     for f in fiches {
         let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
         for k in ["nom", "nom_affichage"] {
