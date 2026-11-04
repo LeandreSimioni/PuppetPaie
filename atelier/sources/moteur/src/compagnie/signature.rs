@@ -145,7 +145,7 @@ fn prenom_de(sal: &ChampsSalarie) -> R<String> {
 }
 
 /// Le texte d'une case de la fiche, exigee.
-fn exige(c: &droit::fiche::Case<String>, cle: &str) -> R<String> {
+fn exige<T: AsRef<str>>(c: &droit::fiche::Case<T>, cle: &str) -> R<String> {
     if c.est_absente() {
         return Err(erreur("KeyError", socle::fichiers::absent(cle)));
     }

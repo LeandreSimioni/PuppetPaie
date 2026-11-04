@@ -345,7 +345,7 @@ pub(crate) struct Apercu {
 /// garde son nom et sa raison sociale, que les pieces ecrivent en capitales (S21.G00.06.003) ; changer le nom d'une
 /// fiche demande une date d'effet que l'import ne devine pas.
 pub(crate) fn garder_le_nom(ctx: &Contexte, e: &mut Map<String, Value>) {
-    for (k, c) in [("nom_affichage", &ctx.entreprise.nom_affichage), ("raison_sociale", &ctx.entreprise.raison_sociale)] {
+    for (k, c) in [("nom_affichage", &ctx.entreprise.nom_affichage), ("raison_sociale", &ctx.entreprise.raison_sociale.en_texte())] {
         if let Some(v) = c.remplie().filter(|v| !v.trim().is_empty()) {
             e.insert(k.into(), Value::from(v));
         }
@@ -426,7 +426,7 @@ pub(crate) fn apercu_lu(
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &ctx.salaries {
         if let Some(n) = s.nir.dite().filter(|n| !n.is_empty()) {
-            par_nir.insert(n.clone(), cle.to_string());
+            par_nir.insert(n.to_string(), cle.to_string());
         }
     }
     let mut ordre: Vec<&SalarieDeclare> = lecture.salaries.iter().collect();

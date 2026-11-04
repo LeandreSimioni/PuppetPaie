@@ -213,9 +213,21 @@ impl Identite {
                 }
             }
         }
-        // C_MT_DCL, dix caracteres dans le gabarit de la DPAE (`dpae::employeur`) : plus long, il serait tronque sans un mot.
-        if self.texte("medecine_travail")?.chars().count() > 10 {
-            return refus("medecine_travail", "10 caracteres au plus (C_MT_DCL de la DPAE)");
+        // Ce que le type de chaque case refuse (`droit::fiche::texte_borne!` : les zones de la DPAE).
+        use droit::fiche::{CodeMedecine, CodeNaf, CodePostal, CommuneEmployeur, LigneAdresse, RaisonSociale, Telephone};
+        let types: [(&str, fn(&str) -> Option<String>); 7] = [
+            ("raison_sociale", RaisonSociale::faute),
+            ("adresse", LigneAdresse::faute),
+            ("code_postal", CodePostal::faute),
+            ("commune", CommuneEmployeur::faute),
+            ("naf", CodeNaf::faute),
+            ("declarant_dsn.tel", Telephone::faute),
+            ("medecine_travail", CodeMedecine::faute),
+        ];
+        for (cle, faute) in types {
+            if let Some(f) = faute(&self.texte(cle)?) {
+                return refus(cle, &f);
+            }
         }
         // La DUE MtoM refuse les accents (`depot::identifiants`, qui citerait la valeur : on refuse ici, avant).
         for k in ["api_dpae.nom", "api_dpae.prenom"] {

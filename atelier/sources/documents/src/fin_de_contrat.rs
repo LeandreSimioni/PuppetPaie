@@ -55,7 +55,9 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
 fn marqueurs_communs(date: &Jour, p: &Paie, ent: &droit::fiche::ChampsEntreprise) -> R<Valeurs> {
     let s = &p.salarie;
     let e = &p.engagement;
-    let ecrite = |c: &droit::fiche::Case<String>, k: &str| -> R<String> { c.ecrite(k).map(str::to_string).map_err(|m| erreur("KeyError", m)) };
+    fn ecrite<T: AsRef<str>>(c: &droit::fiche::Case<T>, k: &str) -> R<String> {
+        c.ecrite(k).map(str::to_string).map_err(|m| erreur("KeyError", m))
+    }
     let sig = ent.signataire.exigee("signataire").map_err(|m| erreur("KeyError", m))?;
     let aujourdhui = date.jj_mm_aaaa();
     let mut m = Valeurs::new();

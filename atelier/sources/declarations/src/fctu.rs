@@ -558,10 +558,10 @@ ou un annule."
     let etab = droit::bareme::entreprise_du_salarie(ent0, &paie.salarie)?;
     for (rub, case, cle) in [
         ("S21.G00.11.001", &etab.nic, "nic"),
-        ("S21.G00.11.002", &etab.naf, "naf"),
+        ("S21.G00.11.002", &etab.naf.en_texte(), "naf"),
         ("S21.G00.11.003", &etab.adresse.en_texte(), "adresse"),
-        ("S21.G00.11.004", &etab.code_postal, "code_postal"),
-        ("S21.G00.11.005", &etab.commune, "commune"),
+        ("S21.G00.11.004", &etab.code_postal.en_texte(), "code_postal"),
+        ("S21.G00.11.005", &etab.commune.en_texte(), "commune"),
         ("S21.G00.11.022", &etab.idcc, "idcc"),
     ] {
         if rub == "S21.G00.11.002" && !usage_admet(&f, rub, NATURE)? {

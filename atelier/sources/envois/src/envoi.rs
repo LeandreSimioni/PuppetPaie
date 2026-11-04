@@ -342,7 +342,9 @@ pub fn preparer_avec(
             continue;
         }
         vus.push(cle.clone());
-        let texte = |c: &droit::fiche::Case<String>, k: &str| -> Result<String, String> { if c.est_absente() { Err(cle_absente(k)) } else { Ok(c.texte().to_string()) } };
+        fn texte<T: AsRef<str>>(c: &droit::fiche::Case<T>, k: &str) -> Result<String, String> {
+            if c.est_absente() { Err(cle_absente(k)) } else { Ok(c.texte().to_string()) }
+        }
         let email = s.email.dite().filter(|e| !e.is_empty());
         let Some(email) = email else {
             return Err(format!(

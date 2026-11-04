@@ -268,7 +268,9 @@ fn attestation(ent: &droit::fiche::ChampsEntreprise, ind: &Individu, plus: &Comp
     if periodes.is_empty() || periodes.len() > COLONNES {
         return Err(format!("une attestation porte de 1 a {} periodes ({} donnees)", COLONNES, periodes.len()));
     }
-    let champ = |c: &droit::fiche::Case<String>| c.texte().to_string();
+    fn champ<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> String {
+        c.texte().to_string()
+    }
     let premier_contrat = ind.contrats.iter().find(|c| cinema_spectacle(plus, c)).map(|c| c.numero.clone()).unwrap_or_default();
     let du_contrat = |r: &str| plus.contrats.get(&premier_contrat).and_then(|m| m.get(r)).cloned().unwrap_or_default();
     let mut f = Champs::default();

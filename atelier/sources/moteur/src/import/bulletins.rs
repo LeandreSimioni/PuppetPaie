@@ -476,7 +476,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &ctx.salaries {
         if let Some(n) = s.nir.dite().filter(|n| !n.is_empty()) {
-            par_nir.insert(n.clone(), cle.to_string());
+            par_nir.insert(n.to_string(), cle.to_string());
         }
     }
     let cle_de = |nir: &str| par_nir.get(nir).cloned().unwrap_or_else(|| A_CREER.to_string());

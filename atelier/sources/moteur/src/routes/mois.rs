@@ -1721,8 +1721,8 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &SaisieCarte, data: &VueD
     let exige = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(c.clone()) };
     let salarie = SalarieVu {
         cle: s.id.clone(),
-        nom: exige(&s.nom, "nom")?,
-        prenom: if s.prenom_affichage.texte().is_empty() { exige(&s.prenom, "prenom")? } else { s.prenom_affichage.clone() },
+        nom: exige(&s.nom.en_texte(), "nom")?,
+        prenom: if s.prenom_affichage.texte().is_empty() { exige(&s.prenom.en_texte(), "prenom")? } else { s.prenom_affichage.clone() },
     };
     let spectacle = match vrai(&p.spectacle) {
         true => Some(SpectacleVu {

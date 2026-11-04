@@ -1287,9 +1287,13 @@ pub fn fiche_de_l_etablissement(fiche: &ChampsEntreprise, nic: &str) -> Resultat
         vue.complement_adresse = e.complement_adresse.clone();
         vue.complement_adresse_affichage = e.complement_adresse_affichage.clone();
     }
+    if e.code_postal.remplie().is_some() {
+        vue.code_postal = e.code_postal.clone();
+    }
+    if e.commune.remplie().is_some() {
+        vue.commune = e.commune.clone();
+    }
     for (case, de) in [
-        (&mut vue.code_postal, &e.code_postal),
-        (&mut vue.commune, &e.commune),
         (&mut vue.adresse_affichage, &e.adresse_affichage),
         (&mut vue.commune_affichage, &e.commune_affichage),
     ] {
