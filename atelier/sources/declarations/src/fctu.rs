@@ -497,7 +497,7 @@ ou un annule."
 
     let fin_jour = d(&fin.fin)?;
     let ctx = &ctx.au(&fin_jour)?;
-    let ent0 = &ctx.entreprise;
+    let ent0 = &ctx.entreprise.en_valeur();
     let s = &paie.salarie;
     let bar = crate::dsn::BaremeDuMois::nouveau((*ctx.bareme(&fin_jour)?).clone());
     let constitution = match o.date_constitution {
@@ -577,7 +577,7 @@ ou un annule."
     let orgs = ctx.organismes()?;
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
     let mut ent_licence = etab.as_object().cloned().unwrap_or_default();
-    ent_licence.insert("licence_spectacle".into(), Value::String(ctx.licence(&fin_jour)?));
+    ent_licence.insert("licence_spectacle".into(), Value::String(ctx.licence(&fin_jour)));
     let ent_l = Value::Object(ent_licence);
     for a in liste(req(&orgs, "adhesions_prevoyance")?) {
         f.add_v("S21.G00.15.001", req(a, "libelle")?)?;

@@ -54,7 +54,7 @@ pub(crate) fn regle_du_mois_incomplet(
     debut_mois: &Jour,
     fin_mois: &Jour,
 ) -> droit::periodes::RegleDuMoisIncomplet {
-    let idcc = ctx.entreprise.get("idcc").map(en_texte).unwrap_or_default();
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let fiche = ctx.salarie(salarie).ok();
     let statut = fiche.as_ref().and_then(|f| f.statut.dite()).map_or("artiste", |s| s.as_str()).to_string();
     droit::periodes::regle_du_mois_incomplet(&idcc, &statut, debut > debut_mois || fin < fin_mois)
@@ -77,7 +77,7 @@ pub(crate) fn horaire_du_mois(
         None => droit::conges::JoursTravailles::du_lundi_au_vendredi(),
     };
     let anciennete = fiche.as_ref().and_then(|f| f.date_anciennete.dite().copied()).unwrap_or(*debut_contrat);
-    let feries_non_payes = droit::conges::feries_non_payes(debut_mois, fin_mois, Some(&ctx.entreprise), &jours, &anciennete)?;
+    let feries_non_payes = droit::conges::feries_non_payes(debut_mois, fin_mois, ctx.entreprise.feries_chomes(), &jours, &anciennete)?;
     Ok(droit::periodes::Horaire { jours, feries_non_payes })
 }
 
@@ -139,9 +139,10 @@ pub(crate) fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
 
 // -------------------------------------------------- les jours ouvrables
 
-/// Les jours ouvrables d'un conge pris (`{"debut", "fin"}`) dans l'entreprise `ent` (`droit::conges::jours_ouvrables`).
-pub(crate) fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
-    jours_ouvrables(&d(requis(c, "debut")?)?, &d(requis(c, "fin")?)?, Some(ent))
+/// Les jours ouvrables d'un conge pris (`{"debut", "fin"}`) dans une entreprise qui chome `chomes`
+/// (`droit::conges::jours_ouvrables`).
+pub(crate) fn jours_ouvrables_de(c: &Value, chomes: Option<&str>) -> Resultat<i64> {
+    jours_ouvrables(&d(requis(c, "debut")?)?, &d(requis(c, "fin")?)?, chomes)
 }
 
 fn fin_mois_de(mois: &str) -> Resultat<Jour> {
@@ -491,14 +492,14 @@ struct Tenue {
 
 impl Tenue {
     /// Ce que la periode [debut, fin] tient de la reprise de l'ancien logiciel, avant tout mois produit ici.
-    fn ouvrir(ctx: &Contexte, rep: Option<&Reprise>, debut: &Jour, fin: &Jour) -> Tenue {
+    fn ouvrir(rep:Option<&Reprise>, debut: &Jour, fin: &Jour) -> Tenue {
         let mut t = Tenue { acquis: Decimal::ZERO, pris: Decimal::ZERO, brut: zero2(), avis: Vec::new() };
         if let Some(r) = rep.filter(|r| *debut <= r.date && r.date <= *fin) {
             t.acquis = add(t.acquis, r.acquis);
             t.pris += r.pris;
             t.brut = add(t.brut, r.remuneration_periode);
         } else if let Some(r) = rep.filter(|r| {
-            periode_de_reference(&r.date, Some(&ctx.entreprise)).and_then(|p| p.0.plus_jours(-1)).map_or(false, |v| *fin == v)
+            periode_de_reference(&r.date, None).and_then(|p| p.0.plus_jours(-1)).map_or(false, |v| *fin == v)
         }) {
             t.brut = add(t.brut, r.remuneration_report);
         }
@@ -569,7 +570,7 @@ fn periode(
     remuneration: bool,
 ) -> Resultat<(Decimal, Decimal, Decimal, Vec<Avis>)> {
     let rep = reprise_conges(ctx, cle_salarie)?;
-    let mut t = Tenue::ouvrir(ctx, rep.as_ref(), debut, fin);
+    let mut t = Tenue::ouvrir(rep.as_ref(), debut, fin);
     let cle = cle_de_fiche(ctx, cle_salarie);
     for (mois, paies) in mois_de_la_periode(ctx, &cle, debut, fin, jusqu_au_mois)? {
         t.ajouter(ctx, cle_salarie, &cle, rep.as_ref(), debut, fin, &mois, &paies, remuneration)?;
@@ -583,7 +584,7 @@ fn compteur(
     a_la_date: &Jour,
     jusqu_au_mois: Option<&str>,
 ) -> Resultat<Avant> {
-    let (debut, fin) = periode_de_reference(a_la_date, Some(&ctx.entreprise))?;
+    let (debut, fin) = periode_de_reference(a_la_date, None)?;
     let (acquis, pris, remuneration, avert) = periode(ctx, cle_salarie, &debut, &fin, jusqu_au_mois, true)?;
     let report = report(ctx, cle_salarie, &debut, jusqu_au_mois)?;
     // Un jour du report se paie au dixieme de la periode ou il a ete acquis (`indemnite_des_jours`).
@@ -623,8 +624,7 @@ fn compteur(
 /// mois d'avant n'a pas d'etat ecrit pour ce salarie, ou la reprise de sa fiche a change depuis), ou une periode de
 /// reference qui ne commence pas un premier du mois.
 fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> Resultat<Option<Avant>> {
-    let ent = Some(&ctx.entreprise);
-    let (debut, fin) = periode_de_reference(a_la_date, ent)?;
+    let (debut, fin) = periode_de_reference(a_la_date, None)?;
     if debut.jour != 1 {
         return Ok(None);
     }
@@ -682,7 +682,7 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
     // La periode qui finit fait son report, si `report` la parcourt : depuis la periode de la reprise, ou depuis celle
     // du premier mois paye.
     let parcourue = match &rep {
-        Some(r) => periode_de_reference(&r.date, ent)?.0 < debut,
+        Some(r) => periode_de_reference(&r.date, None)?.0 < debut,
         None => premier.is_some(),
     };
     let (mut reste, mut acquis_report, mut report_debut, mut report_fin) = (c.reports, c.acquis_report, c.report_debut, c.report_fin);
@@ -706,7 +706,7 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
         (Some(_), Some(_)) if reste > Decimal::ZERO => c.remuneration_report,
         _ => zero2(),
     };
-    let ouverte = Tenue::ouvrir(ctx, rep.as_ref(), &debut, &fin);
+    let ouverte = Tenue::ouvrir(rep.as_ref(), &debut, &fin);
     let pris_sur_la_periode = pris_de_la_reprise(ctx, cle_salarie, &debut, &fin)?;
     fini(ouverte, reste, report_debut, report_fin, acquis_report, remuneration_report, pris_sur_la_periode, avis_du_report).map(Some)
 }
@@ -760,7 +760,6 @@ struct Report {
 }
 
 fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois: Option<&str>) -> Resultat<Report> {
-    let ent = Some(&ctx.entreprise);
     let vide = Report { reports: Decimal::ZERO, acquis: Decimal::ZERO, debut: None, fin: None, avertissements: vec![], premier: None };
     let rep = reprise_conges(ctx, cle_salarie)?;
     let premier = premier_mois(ctx, cle_salarie, jusqu_au_mois)?;
@@ -770,10 +769,10 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
     if let Some(r) = &rep {
         // La reprise : le dernier bulletin de l'ancien logiciel, son reste
         // N-1, et la periode N-1 elle-meme.
-        (p_debut, p_fin) = periode_de_reference(&r.date, ent)?;
+        (p_debut, p_fin) = periode_de_reference(&r.date, None)?;
         reste = r.report;
         let avant_fin = p_debut.plus_jours(-1)?;
-        let avant_debut = periode_de_reference(&avant_fin, ent)?.0;
+        let avant_debut = periode_de_reference(&avant_fin, None)?.0;
         out.acquis = r.acquis_report;
         out.debut = Some(avant_debut);
         out.fin = Some(avant_fin);
@@ -788,7 +787,7 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
             )));
         }
     } else if let Some(premier) = &premier {
-        (p_debut, p_fin) = periode_de_reference(&Mois::lire(premier)?.premier_jour(), ent)?;
+        (p_debut, p_fin) = periode_de_reference(&Mois::lire(premier)?.premier_jour(), None)?;
         reste = Decimal::ZERO;
         if let Some(avant) = commence_avant(&paies_du_mois(ctx, premier, &cle_de_fiche(ctx, cle_salarie))?, premier)? {
             avert.push(avis_commence_avant(cle_salarie, &avant, premier));
@@ -815,7 +814,7 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
         out.debut = Some(p_debut);
         out.fin = Some(p_fin);
         let suivant = p_fin.plus_jours(1)?;
-        (p_debut, p_fin) = periode_de_reference(&suivant, ent)?;
+        (p_debut, p_fin) = periode_de_reference(&suivant, None)?;
     }
     out.reports = reste;
     out.avertissements = avert;
@@ -1020,7 +1019,7 @@ pub(crate) fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> R
     let fin_du_mois = fin_mois_de(mois)?;
     let avant = avant_le_mois(ctx, cle, &fin_du_mois, mois)?;
     let mut cpt = avant.compteur.clone();
-    let (debut, fin) = periode_de_reference(&fin_du_mois, Some(&ctx.entreprise))?;
+    let (debut, fin) = periode_de_reference(&fin_du_mois, None)?;
     // La presence de CE mois, bornee a la periode de reference.
     let p_debut = eng.debut_periode()?.max(debut);
     let p_fin = eng.fin_periode()?.min(fin);
@@ -1145,15 +1144,15 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     // Le salaire du mois tel que la ligne « mois » le paie (`calcul::lignes_brut` : le montant arrondi ligne par ligne).
     let salaire_du_mois = socle::num::eur(mul(dec(requis(&lignes[0], "taux")?)?, dec(requis(&lignes[0], "quantite")?)?));
     // L'entreprise dit quels jours feries elle chome.
-    let ent = &ctx.entreprise;
-    let ouvrables = Decimal::from(jours_ouvrables(&debut, &fin, Some(ent))?);
+    let chomes = ctx.entreprise.feries_chomes();
+    let ouvrables = Decimal::from(jours_ouvrables(&debut, &fin, chomes)?);
     let ouvrables_du_mois = if ouvrables != Decimal::ZERO { ouvrables } else { Decimal::ONE };
     let taux_jour_ouvrable = eur2(div(mul(salaire, fraction), ouvrables_du_mois));
 
     // --- les conges pris : une retenue, et une indemnite qui la couvre
     let mut pris = Decimal::ZERO;
     for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
-        pris += Decimal::from(jours_ouvrables_de(c, ent)?);
+        pris += Decimal::from(jours_ouvrables_de(c, chomes)?);
     }
     if pris != Decimal::ZERO {
         let salarie = en_texte(requis(e, "salarie")?);
@@ -1247,15 +1246,9 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             sur_l_anciennete = dit;
         }
     }
-    let null = Value::Null;
-    let pa = clauses::prime_anciennete(
-        ctx.entreprise.get("idcc").unwrap_or(&null),
-        ctx.entreprise.get("annexe_convention").unwrap_or(&null),
-        &fiche,
-        Some(e),
-        &fin_mois,
-        ctx.entreprise.get("jauge_annexe_1").and_then(|j| j.as_str()),
-    )?;
+    let ent = &ctx.entreprise;
+    let jauge = ent.jauge_annexe_1.dite().map(droit::fiche::Choix::code);
+    let pa = clauses::prime_anciennete(&ent.idcc.en_valeur(), &ent.annexe_convention.en_valeur(), &fiche, Some(e), &fin_mois, jauge)?;
     if let Some(pa) = pa {
         let Some(base_conv) = pa.get("base").filter(|b| !b.is_null()).map(dec).transpose()? else {
             return Err(format!(
@@ -1308,13 +1301,13 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
 /// Ce que le moteur a retire du decompte des jours ouvrables, et ce qu'il n'a
 /// pas pu retirer : a chaque mois qui porte un ferie.
 fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Resultat<Vec<Avis>> {
-    let ent = Some(&ctx.entreprise);
+    let dits = ctx.entreprise.feries_chomes();
     let qui = qui(ctx, e);
-    let tous = feries::chomes_entre(debut, fin, Some(&json!({"jours_feries_chomes": "tous"})))?;
+    let tous = feries::chomes_entre(debut, fin, Some(feries::TOUS))?;
     if tous.is_empty() {
         return Ok(vec![]);
     }
-    let chomes = feries::chomes_entre(debut, fin, ent)?;
+    let chomes = feries::chomes_entre(debut, fin, dits)?;
     let liste = |l: &feries::Jours| {
         let mut l = l.clone();
         l.sort();
@@ -1331,7 +1324,7 @@ fn avertir_feries(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Result
         )));
     }
     let restants: feries::Jours = tous.iter().filter(|(j, _)| !chomes.iter().any(|(c, _)| c == j)).cloned().collect();
-    if !restants.is_empty() && feries::rien_n_est_dit(ent) {
+    if !restants.is_empty() && dits.is_none() {
         out.push(avertir(format!(
             "{} : {} est ferie, et il a ete compte comme un jour travaille : \
              la fiche Entreprise ne dit pas quels jours feries la compagnie \

@@ -28,7 +28,7 @@
 //! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
 //!   salaries redevables de la taxe, effectif de l'annee meme, regle des cinq ans de L. 130-1 CSS) : 003 si l'effectif
 //!   atteint 250, 004 sinon. C'est un grand seuil, comme la PEEC : sans la case « Au moins 50 salariés » de la fiche
-//!   (`droit::contexte::CHAMP_CINQUANTE_SALARIES`), ni l'un ni l'autre ne lit l'effectif (`Effectif::atteint`) ; cochee,
+//!   (`cinquante_salaries_et_plus`, `droit::contexte::cinquante_salaries_et_plus`), ni l'un ni l'autre ne lit l'effectif (`Effectif::atteint`) ; cochee,
 //!   un effectif qui manque refuse et dit quoi remplir. Le quotient des contrats d'alternance ne se calcule pas en
 //!   decembre (l'Urssaf le renvoie debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
 //!   contribution elle-meme, calculee : `csa`).

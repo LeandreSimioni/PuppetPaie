@@ -108,11 +108,10 @@ fn donnes_par_un_texte(ctx: &Contexte) -> Resultat<Vec<String>> {
 
 /// Les contrats que cette compagnie declare a la date du contexte, dans l'ordre ou ils se presentent.
 pub fn attendus(ctx: &Contexte, base: &Value) -> Resultat<Vec<Value>> {
-    let ent = &ctx.entreprise;
-    let idcc = txt(g(ent, "idcc"));
+    let idcc = ctx.entreprise.idcc.texte().trim().to_string();
     let contrats = g(base, "contrats");
     let mut out = liste(g(contrats, "tous"));
-    if let Some(casc) = crate::adhesions::casc_svp(&ctx.code, ent)? {
+    if let Some(casc) = crate::adhesions::casc_svp(&ctx.code, &ctx.entreprise)? {
         out.push(json!({
             "cle": "casc", "libelle": casc["libelle"], "reference": casc["reference"], "type": casc["type"],
             "beneficiaires": "tous les salariés", "quoi": "CASC-SVP (activités sociales et culturelles)",

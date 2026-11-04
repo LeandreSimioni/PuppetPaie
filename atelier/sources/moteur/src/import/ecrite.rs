@@ -112,11 +112,10 @@ pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool
 fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let base = declarations::casc::base().map_err(Echec::from)?;
     let ent = &ctx.entreprise;
-    let idcc = ent.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    if idcc != valeur_en_texte(&base["idcc"]) {
+    if ent.idcc.texte() != valeur_en_texte(&base["idcc"]) {
         return Ok(None);
     }
-    if !matches!(droit::bareme::casc_exemptee(ent), Ok(false)) {
+    if !matches!(droit::bareme::casc_exemptee_de(ent), Ok(false)) {
         return Ok(None);
     }
     let faits: HashSet<String> = declarations::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();

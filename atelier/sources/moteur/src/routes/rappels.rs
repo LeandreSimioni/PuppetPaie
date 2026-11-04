@@ -616,8 +616,7 @@ fn echeancier(ctx: &Contexte) -> socle::echec::R<Echeancier> {
     };
     ce_mois.sort_by_cached_key(|e| (ordre(e.etat), e.rang()));
     a_venir.sort_by_key(|e| (e.tombe, e.date));
-    let texte = |c: &str| ctx.entreprise.get(c).filter(|v| vrai(v)).map(en_texte);
-    let compagnie = texte("nom_affichage").or_else(|| texte("raison_sociale")).unwrap_or_default();
+    let compagnie = ctx.entreprise.nommee();
     let a_faire = ce_mois.iter().filter(|x| !x.due && matches!(x.etat, AFaire | EnRetard)).count();
     let ce_mois: Vec<EcheanceDite> = ce_mois.iter().map(Echeance::dite).collect();
     let a_venir: Vec<EcheanceDite> = a_venir.iter().map(Echeance::dite).collect();
@@ -630,7 +629,7 @@ fn echeancier(ctx: &Contexte) -> socle::echec::R<Echeancier> {
         date_dit: format!("Nous sommes le {}", date_en_clair(&st.aujourdhui)),
         bienvenue: "Bienvenue sur PuppetPaie",
         compagnie,
-        idcc: ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null),
+        idcc: ctx.entreprise.idcc.en_valeur(),
         ce_mois,
         a_venir,
         a_faire,
@@ -708,7 +707,7 @@ fn annuelles(st: &Etat, base: &EcheancierBase) -> R<Vec<Echeance>> {
     let premier = premier_mois(ctx)?;
     let mut out = Vec::new();
     for annee in st.aujourdhui.an..=derniere {
-        for e in annuelles_de(base, ctx.entreprise.get("idcc")) {
+        for e in annuelles_de(base, ctx.entreprise.idcc.portee()) {
             if let Some(x) = annuelle(st, e, annee, &faites, premier)? {
                 let export = x.quoi == CLOTURE && x.etat != Fait;
                 out.push(x);
@@ -804,8 +803,8 @@ fn annuelle(st: &Etat, e: &Annuelle, annee: i32, faites: &Cochees, premier: Opti
 
 /// Les echeances annuelles de la convention de la fiche (`idcc`) : celles qui n'en nomment aucune, et celles qui la
 /// nomment.
-fn annuelles_de<'a>(base: &'a EcheancierBase, idcc: Option<&Value>) -> impl Iterator<Item = &'a Annuelle> {
-    let voulu = idcc.map_or("None".to_string(), en_texte);
+fn annuelles_de<'a>(base: &'a EcheancierBase, idcc: Option<&str>) -> impl Iterator<Item = &'a Annuelle> {
+    let voulu = idcc.map_or("None".to_string(), String::from);
     base.annuelles.iter().filter(move |e| e.idcc.is_empty() || e.idcc.contains(&voulu))
 }
 

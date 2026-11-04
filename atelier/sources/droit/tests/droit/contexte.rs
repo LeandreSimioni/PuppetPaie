@@ -34,17 +34,17 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
 
     // Le contexte d'aujourd'hui (decembre) et celui d'octobre : la meme compagnie, chacun sous ses valeurs.
     let ctx = Contexte::nouveau(&racine, Some(j("2026-12-15"))).unwrap();
-    assert_eq!(ctx.entreprise["idcc"], json!("1285"));
+    assert_eq!(ctx.entreprise.idcc.texte(), "1285");
     let octobre = ctx.du_mois("2026-10").unwrap();
-    assert_eq!((&octobre.entreprise["idcc"], &octobre.entreprise["adresse"]), (&json!("3090"), &json!("21 RUE DU PORT")));
-    assert_eq!(ctx.entreprise_du_mois("2026-11").unwrap()["adresse"], json!("8 PLACE DU MARCHE"));
+    assert_eq!((octobre.entreprise.idcc.texte(), octobre.entreprise.adresse.texte()), ("3090", "21 RUE DU PORT"));
+    assert_eq!(ctx.entreprise_du_mois("2026-11").unwrap().adresse.texte(), "8 PLACE DU MARCHE");
     // La convention que le bareme applique est celle du jour lu, quel que soit le contexte qui le lit.
     let convention = |jour: &str| ctx.bareme(&j(jour)).unwrap()["_entreprise"]["idcc"].clone();
     assert_eq!((convention("2026-10-31"), convention("2026-11-01")), (json!("3090"), json!("1285")));
     // La premiere valeur vaut de tout temps, meme ecrite avec une date.
     assert_eq!(ctx.salarie_au("BRIOCHE", &j("2020-03-01")).unwrap().nom.texte(), "BRIOCHE");
     assert_eq!(ctx.au(&j("2020-03-01")).unwrap().salaries["BRIOCHE"].emploi.texte(), "COMEDIENNE");
-    assert_eq!(ctx.entreprise_au(&j("2019-01-01")).unwrap()["idcc"], json!("3090"));
+    assert_eq!(ctx.entreprise_au(&j("2019-01-01")).idcc.texte(), "3090");
     // Une valeur non datee se refuse, et la phrase dit quoi faire.
     let e = fiche_au(&json!({"idcc": "3090"}), &j("2026-10-01"), "config/entreprise.json").unwrap_err();
     assert!(e.contains("`idcc`") && e.contains("Ajouter une compagnie"), "{}", e);

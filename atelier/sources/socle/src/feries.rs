@@ -109,69 +109,29 @@ pub fn chomes_de_droit(annee: i32) -> Resultat<Jours> {
     Ok(feries(annee)?.into_iter().filter(|(_, n)| noms.contains(n)).collect())
 }
 
-/// Les feries chomes dans cette entreprise, cette annee.
-pub fn chomes(annee: i32, entreprise: Option<&Value>) -> Resultat<Jours> {
-    let dits = entreprise.and_then(|e| e.get("jours_feries_chomes"));
-    let dits = match dits {
-        None | Some(Value::Null) => return chomes_de_droit(annee),
-        Some(d) => d,
-    };
-    if dits.as_str() == Some("tous") {
-        return feries(annee);
+/// Ce que la fiche entreprise chome : `tous` les feries, sinon le 1er mai seulement.
+pub const TOUS: &str = "tous";
+
+/// Les feries chomes dans cette entreprise, cette annee. `dits` : ce que sa fiche en dit (`jours_feries_chomes` : `tous`,
+/// `1er mai seulement`) ; rien de dit, le plancher legal.
+pub fn chomes(annee: i32, dits: Option<&str>) -> Resultat<Jours> {
+    match dits {
+        Some(TOUS) => feries(annee),
+        _ => chomes_de_droit(annee),
     }
-    if dits.as_str() == Some("1er mai seulement") {
-        return chomes_de_droit(annee);
-    }
-    // Un autre texte se lit caractere par caractere : aucun n'est le nom d'un ferie, rien n'est chome en plus.
-    let voulus: Vec<String> = match dits {
-        Value::String(s) => s.chars().map(|c| c.to_string()).collect(),
-        Value::Array(a) => a
-            .iter()
-            .map(|x| match x {
-                Value::String(s) => s.clone(),
-                autre => crate::date::en_texte(autre),
-            })
-            .collect(),
-        Value::Object(o) => o.keys().cloned().collect(),
-        autre => return Err(crate::fichiers::attendu("une liste", crate::valeur::nom_type(autre))),
-    };
-    let tous = jours_du_fichier()?;
-    let connus: Vec<&str> = tous.iter().filter_map(|j| j.get("nom").and_then(|n| n.as_str())).collect();
-    let mut inconnus: Vec<&String> = Vec::new();
-    for v in &voulus {
-        if !connus.contains(&v.as_str()) && !inconnus.contains(&v) {
-            inconnus.push(v);
-        }
-    }
-    if !inconnus.is_empty() {
-        inconnus.sort();
-        return Err(format!(
-            "Jours fériés chômés (fiche Entreprise) : {} n'est pas un jour \
-             férié légal. Les onze sont : {}.",
-            inconnus.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "),
-            connus.join(", ")
-        ));
-    }
-    Ok(feries(annee)?.into_iter().filter(|(_, n)| voulus.contains(n)).collect())
 }
 
 /// Les feries chomes d'une periode, annees a cheval comprises.
-pub fn chomes_entre(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<Jours> {
+pub fn chomes_entre(debut: &Jour, fin: &Jour, dits: Option<&str>) -> Resultat<Jours> {
     let mut out = Jours::new();
     for annee in debut.an..=fin.an {
-        for (jour, nom) in chomes(annee, entreprise)? {
+        for (jour, nom) in chomes(annee, dits)? {
             if *debut <= jour && jour <= *fin {
                 inserer(&mut out, jour, &nom);
             }
         }
     }
     Ok(out)
-}
-
-/// L'entreprise n'a pas dit quels feries elle chome : le plancher legal
-/// s'applique, et il faut le signaler.
-pub fn rien_n_est_dit(entreprise: Option<&Value>) -> bool {
-    matches!(entreprise.and_then(|e| e.get("jours_feries_chomes")), None | Some(Value::Null))
 }
 
 #[cfg(test)]

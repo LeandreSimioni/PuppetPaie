@@ -335,12 +335,14 @@ pub(crate) fn ranger_aer_detail(ctx: &Contexte, mois: Option<&str>, fichiers: Op
             fait.refusees.push((cle, periode.clone(), ecarts));
             continue;
         }
-        let signature = documents::bulletin::identite_de(&ctx.entreprise_et_gabarits(), "signature").map(|f| f.to_string_lossy().into_owned());
-        let cachet = cachet_pose(&ctx.entreprise_et_gabarits());
+        let pour_le_modele = ctx.entreprise_et_gabarits();
+        let signature = documents::bulletin::identite_de(&pour_le_modele, "signature").map(|f| f.to_string_lossy().into_owned());
+        let cachet = cachet_pose(&pour_le_modele);
+        let ent = ctx.entreprise.en_valeur();
         let mut signees: Vec<Vec<u8>> = Vec::new();
         for att in groupe {
             let a = Authentification {
-                ent: &ctx.entreprise,
+                ent: &ent,
                 aujourdhui: ctx.aujourdhui,
                 signature: signature.as_deref(),
                 // Deja verifiee ci-dessus, sur l'ensemble des attestations du salarie.
@@ -426,7 +428,7 @@ struct Message {
 /// d'affichage ou sans signataire) sont gardes.
 fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path) -> R<Vec<Message>> {
     let etiq = crate::routes::dossier_salarie::etiquette(mois)?;
-    let ent = &ctx.entreprise;
+    let ent = &ctx.entreprise.en_valeur();
     get_requis(ent, "nom_affichage")?;
     let sg = get_requis(ent, "signataire")?;
     if !sg.get("prenom_affichage").is_some_and(vrai) {
@@ -493,8 +495,8 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         // La boite qui enverrait, quand des documents sont dus.
         if !messages.is_empty() {
             expediteur = compte_de_la_boite(ctx)?.to_lowercase();
-            let sg = get_requis(&ctx.entreprise, "signataire")?;
-            let signataire = sg.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
+            let sg = ctx.entreprise.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
+            let signataire = sg.email.texte().to_lowercase();
             if !signataire.is_empty() && signataire != expediteur {
                 avertissements.push(format!(
                     "Les messages partiront de {} (la boite posee), pas de {} (le courriel du signataire, fiche Entreprise).",
@@ -549,8 +551,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// signataire ; sinon l'adresse posee avec le mot de passe (jamais le mot de passe).
 fn compte_de_la_boite(ctx: &Contexte) -> R<String> {
     if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
-        let sg = ctx.entreprise.get("signataire").filter(|v| vrai(v));
-        let mail = sg.and_then(|s| s.get("email")).filter(|v| vrai(v)).map(valeur_en_texte);
+        let mail = ctx.entreprise.signataire.dite().and_then(|s| s.email.remplie()).map(String::from);
         return Ok(mail.unwrap_or_else(|| "fictive@puppetpaie.invalid".to_string()));
     }
     let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
@@ -898,13 +899,13 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     };
     let documents = crate::compagnie::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
     let paies_servies: Vec<engagement::calcul::Paie> = paies.iter().filter(|p| cles.contains(&p.salarie.id.to_string())).cloned().collect();
-    let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois, &dues_a_part(&paies_servies)?).map_err(|m| refus_de_preparation(&m))?;
+    let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise.en_valeur(), &mois_saisie, &dossier, &choix.renvois, &dues_a_part(&paies_servies)?).map_err(|m| refus_de_preparation(&m))?;
     let messages: Vec<envoi::Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let mut avertissements: Vec<String> = documents.avertissements.clone();
     if !sans.is_empty() {
         avertissements.push(sans_courriel_dit(&noms_sans));
     }
-    let signataire = requis(&ctx.entreprise, "signataire")?.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
+    let signataire = ctx.entreprise.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?.email.texte().to_lowercase();
     if !signataire.is_empty() && signataire != expediteur {
         avertissements.push(format!(
             "Les messages partiront de {} (la boite posee), pas de {} (le courriel du signataire, fiche Entreprise).",

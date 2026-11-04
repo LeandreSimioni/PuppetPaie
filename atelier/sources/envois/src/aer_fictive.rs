@@ -36,7 +36,7 @@ use serde_json::{json, Value};
 
 use declarations::recap_dsn::{lire_recap, Contrat, Individu};
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::num::{Decimal, Resultat};
 
 /// Le « code » du nom d'archive (`AER_<siret>__<MMAAAA>_<code>_<JJMMAAAA>_<NOM>_<rang>_<id>.pdf`) : celui d'une fictive.
@@ -145,7 +145,7 @@ struct Periode {
 
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
-    let l = crate::etats::etat_dsn_du_mois(lignes, m, &Value::Null, &droit::bareme::nic_principal(&ctx.entreprise)).ok()?;
+    let l = crate::etats::etat_dsn_du_mois(lignes, m, &Value::Null, &ctx.entreprise.nic_principal()).ok()?;
     let fichier = l.get("fichier").map(socle::valeur::valeur_en_texte).filter(|f| !f.is_empty() && f != "None")?;
     let p = std::path::Path::new(&fichier);
     let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m).join(&fichier) };
@@ -264,11 +264,11 @@ fn quantite(d: Decimal) -> String {
 
 /// Le PDF d'une attestation : le salarie `ind` (et ce que la DSN dit de plus, `plus`), ses periodes (cinq au plus),
 /// l'emploi et le motif de rupture de son contrat, l'employeur `ent`, edite le `edite_le`.
-fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Periode], emploi: &str, motif: &str, idcc: &str, edite_le: Jour, remplace: Option<&str>) -> Resultat<Vec<u8>> {
+fn attestation(ent: &droit::fiche::ChampsEntreprise, ind: &Individu, plus: &Complement, periodes: &[&Periode], emploi: &str, motif: &str, idcc: &str, edite_le: Jour, remplace: Option<&str>) -> Resultat<Vec<u8>> {
     if periodes.is_empty() || periodes.len() > COLONNES {
         return Err(format!("une attestation porte de 1 a {} periodes ({} donnees)", COLONNES, periodes.len()));
     }
-    let champ = |c: &str| ent.get(c).map(en_texte).unwrap_or_default();
+    let champ = |c: &droit::fiche::Case<String>| c.texte().to_string();
     let premier_contrat = ind.contrats.iter().find(|c| cinema_spectacle(plus, c)).map(|c| c.numero.clone()).unwrap_or_default();
     let du_contrat = |r: &str| plus.contrats.get(&premier_contrat).and_then(|m| m.get(r)).cloned().unwrap_or_default();
     let mut f = Champs::default();
@@ -328,19 +328,19 @@ fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Peri
 
     cadre(&mut p1, 315.0, "1", "EMPLOYEUR");
     etiquette(&mut p1, 30.0, 343.0, "N° SIRET");
-    f.imprime(1, "EMP_SIRET", [75.0, 334.0, 253.0, 346.0], &champ("siret"), 8.5, "gauche");
+    f.imprime(1, "EMP_SIRET", [75.0, 334.0, 253.0, 346.0], &champ(&ent.siret), 8.5, "gauche");
     etiquette(&mut p1, 300.0, 343.0, "Code APE/NAF");
-    f.imprime(1, "EMP_APE", [368.0, 333.0, 432.0, 345.0], &champ("naf"), 8.5, "gauche");
+    f.imprime(1, "EMP_APE", [368.0, 333.0, 432.0, 345.0], &champ(&ent.naf), 8.5, "gauche");
     etiquette(&mut p1, 470.0, 343.0, "N° IDCC");
-    f.imprime(1, "EMP_IDCC", [515.0, 333.0, 566.0, 345.0], &champ("idcc"), 8.5, "gauche");
+    f.imprime(1, "EMP_IDCC", [515.0, 333.0, 566.0, 345.0], &champ(&ent.idcc), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 362.0, "Nom ou raison sociale");
-    f.imprime(1, "ENSEIGNE", [146.0, 352.0, 567.0, 365.0], &champ("raison_sociale"), 8.5, "gauche");
+    f.imprime(1, "ENSEIGNE", [146.0, 352.0, 567.0, 365.0], &champ(&ent.raison_sociale), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 380.0, "Adresse");
-    f.imprime(1, "ADR_EMP_CONCATENEE", [74.0, 370.0, 567.0, 383.0], &champ("adresse"), 8.5, "gauche");
+    f.imprime(1, "ADR_EMP_CONCATENEE", [74.0, 370.0, 567.0, 383.0], &champ(&ent.adresse), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 397.0, "Code postal");
-    f.imprime(1, "ADR_EMP_CP", [90.0, 388.0, 155.0, 399.0], &champ("code_postal"), 8.5, "gauche");
+    f.imprime(1, "ADR_EMP_CP", [90.0, 388.0, 155.0, 399.0], &champ(&ent.code_postal), 8.5, "gauche");
     etiquette(&mut p1, 165.0, 397.0, "Commune");
-    f.imprime(1, "ADR_EMP_LOCALITE", [224.0, 387.0, 567.0, 399.0], &champ("commune"), 8.5, "gauche");
+    f.imprime(1, "ADR_EMP_LOCALITE", [224.0, 387.0, 567.0, 399.0], &champ(&ent.commune), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 425.0, "Êtes-vous titulaire d'une licence spectacle ou d'un n° de récépissé de déclaration d'entrepreneur");
     etiquette(&mut p1, 30.0, 435.0, "de spectacles vivants valant licence ?");
     let licence = du_contrat("049");
@@ -555,8 +555,8 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
     let remplace = matches!(rubrique("S20.G00.05.002").as_str(), "03" | "05").then_some(ordre.as_str());
     let lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let ent = &ctx.entreprise;
-    let siret = ent.get("siret").map(en_texte).unwrap_or_default();
-    let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();
+    let siret = ent.siret.texte().to_string();
+    let idcc = ent.idcc.texte().to_string();
     let mut pdfs: Vec<(String, Vec<u8>)> = Vec::new();
     for ind in &individus {
         let complement = plus.get(&ind.nir).cloned().unwrap_or_default();

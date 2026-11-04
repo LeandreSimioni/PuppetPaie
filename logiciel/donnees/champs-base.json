@@ -1013,6 +1013,7 @@
     {"cle": "ouverture", "libelle": "Ouvert le", "forme": "date"},
     {"cle": "taux_atmp.code_risque", "libelle": "Code risque AT/MP", "forme": "code_atmp"},
     {"cle": "taux_atmp.valeur", "libelle": "Taux AT/MP (%)", "forme": "montant"},
+    {"cle": "taux_atmp.annee", "libelle": "Année du taux AT/MP", "forme": "chiffres", "aide": "Celle de la date d'effet du taux (D. 242-6-15) : l'écran la pose.", "ecran": false},
     {"cle": "versement_mobilite.taux", "libelle": "Versement mobilité (%)", "forme": "montant", "aide": "0 si aucun", "si_configuration": "versement_mobilite_des_etablissements"},
     {"cle": "versement_mobilite.code_insee", "libelle": "Code INSEE de la commune", "forme": "texte", "si_configuration": "versement_mobilite_des_etablissements"}
    ],
@@ -1084,6 +1085,55 @@
    "si_entreprise": null,
    "booleen_defaut": true,
    "ecran": true
+  },
+  {
+   "_note": "Le declarant inscrit au service DSN de net-entreprises, tel qu'inscrit (`envois::transport::declarant`) : la compagnie d'essai le pose (`moteur essai monter`) ; sans lui, il se lit du contact DSN.",
+   "cle": "declarant",
+   "champs": [
+    {"cle": "siret", "libelle": "SIRET", "forme": "chiffres", "ecran": false},
+    {"cle": "nom", "libelle": "Nom", "forme": "texte", "ecran": false},
+    {"cle": "prenom", "libelle": "Prénom", "forme": "texte", "ecran": false}
+   ],
+   "libelle": "Le déclarant inscrit au service DSN",
+   "forme": "structure",
+   "aide": "",
+   "longueur": null,
+   "exemple": "",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": false,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": false
+  },
+  {
+   "_note": "Le compte DPAE d'urssaf.fr (`envois::releve_retours::Client::dpae`) : la page du coffre le pose (`routes::coffre`), la compagnie d'essai aussi.",
+   "cle": "api_dpae",
+   "champs": [
+    {"cle": "nom", "libelle": "Nom", "forme": "texte", "ecran": false},
+    {"cle": "prenom", "libelle": "Prénom", "forme": "texte", "ecran": false},
+    {"cle": "siret", "libelle": "SIRET", "forme": "chiffres", "ecran": false},
+    {"cle": "service", "libelle": "Service", "forme": "texte", "ecran": false}
+   ],
+   "libelle": "Le compte DPAE d'urssaf.fr",
+   "forme": "structure",
+   "aide": "",
+   "longueur": null,
+   "exemple": "",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": false,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": false
   },
   {
    "cle": "banque",

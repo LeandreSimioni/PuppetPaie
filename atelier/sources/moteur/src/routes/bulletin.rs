@@ -3,12 +3,13 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::fiches::refus;
 use droit::contexte::Contexte;
+use droit::fiche::Case;
 use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use socle::fichiers::dossier_du_code;
 use socle::echec::{Echec, R};
@@ -114,7 +115,7 @@ pub fn modele_de_l_adresse(v: &str) -> Option<Modele> {
 // ------------------------------------------------------------------ bulletin-modeles
 
 fn modeles(ctx: &Contexte) -> R<Value> {
-    let choisi = Modele::de_la_fiche(&ctx.entreprise, "entreprise").map_err(refus)?;
+    let choisi = Modele::du_choix(ctx.entreprise.modele_bulletin.dite());
     let modele = choisi.unwrap_or(Modele::Simplifie);
     // Les salaries dont la case dit un autre modele que la compagnie : la page les nomme, la decision reste au moteur.
     let mut autrement = Vec::new();
@@ -155,11 +156,10 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
     let ctx = Contexte::nouveau(&racine, Some(socle::mois::Mois::lire(&mois)?.dernier_jour()))?;
     let s = engagement::pour_l_ecran(&ctx, &saisie)?;
-    let mut ent = ctx.entreprise.clone();
-    let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;
-    o.insert(CASE_MODELE.into(), json!(modele.cle()));
+    let mut fiche = ctx.entreprise.clone();
+    fiche.modele_bulletin = Case::Dite(modele.choix());
     // Ni le logo ni la signature du poste sur une paie fictive : ses gabarits sont un dossier qui n'existe pas.
-    o.insert("_gabarits".into(), json!(racine.join("gabarits").to_string_lossy()));
+    let ent = ctx.pour_un_modele(&fiche);
     // Une paie de l'ecran n'a pas de numero de bulletin (il se reserve au depart) : l'apercu montre celui d'un premier
     // bulletin de l'annee.
     let numeros: Vec<Option<String>> = (1..=s.paies.len()).map(|n| Some(format!("{}/{}", n, &mois[..4]))).collect();

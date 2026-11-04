@@ -111,7 +111,7 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
 /// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque. Une ligne dit ce qu'elle bloque
 /// (`bloque`), ou, quand rien ne se refuse sans elle, ce qu'elle sert (`utile`) et ce qui se passe sinon (`sinon`).
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
-    let ent = &ctx.entreprise;
+    let ent = &ctx.entreprise.en_valeur();
     let mut out: Vec<Value> = Vec::new();
     let intermittents = a_des_spectacles(ctx);
     // CE QUE LES ACTES EXIGENT DES FICHES (`exige_par` de `champs-base.json`, que chaque acte lit aussi :
@@ -200,17 +200,9 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // QUAND ELLE EST EXIGEE de la compagnie (`exige_si` de `champs-base.json`, lu par `dsn::licence_du_contrat` aussi) :
     // en 1790 et en 3252 la case se montre sans etre exigee, dans l'audiovisuel elle ne se montre pas.
     // Elle peut etre datee (une par periode) : le contexte la resout au jour.
-    match ctx.licence(&ctx.aujourdhui) {
-        Ok(l) if !l.trim().is_empty() => {}
-        _ if !licence_exigee(ent, intermittents) => {}
-        autre => {
-            let (libelle, aide) = champ("licence_spectacle");
-            let trouver = match autre {
-                Err(m) => m,
-                Ok(_) => aide,
-            };
-            out.push(manque("licence_spectacle", libelle, "la DSN", ENTREPRISE, Some("licence_spectacle"), trouver));
-        }
+    if ctx.licence(&ctx.aujourdhui).trim().is_empty() && licence_exigee(ent, intermittents) {
+        let (libelle, aide) = champ("licence_spectacle");
+        out.push(manque("licence_spectacle", libelle, "la DSN", ENTREPRISE, Some("licence_spectacle"), aide));
     }
     // L'EFFECTIF, puis le reste du bareme de l'annee : le contexte refuse lui-meme, avec la phrase qui dit ou trouver ce
     // qui manque. L'effectif a part : le bareme s'arrete au premier refus (le taux AT/MP), et tout doit sortir d'un coup.
@@ -507,7 +499,7 @@ pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> Option<String> {
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`) ?
 fn en_alsace_moselle(ctx: &Contexte) -> bool {
-    ctx.entreprise.get("code_postal").map(socle::date::en_texte).is_some_and(|c| droit::bareme::en_alsace_moselle(&c))
+    droit::bareme::en_alsace_moselle(ctx.entreprise.code_postal.texte())
 }
 
 /// Le taux AT/MP de l'annee est-il encore celui que le moteur a pose a la creation ?

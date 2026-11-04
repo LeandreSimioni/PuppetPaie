@@ -19,7 +19,7 @@ use crate::routes::engagement::texte_requis;
 use droit::contexte::Contexte;
 use droit::natures::Nature;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{dossier_du_code, vrai};
+use socle::fichiers::dossier_du_code;
 use crate::routes::catalogue::{Ecran, Place};
 
 const NATURE: Champ = Champ { nom: "nature", libelle: Affiche::new("Nature du contrat"), forme: Forme::Texte, sens: "la nature du contrat : cddu_spectacle, cdd, cdi…", avance: false };
@@ -135,7 +135,7 @@ fn refus(m: impl Into<String>) -> Echec {
 /// Les natures dont la compagnie fait les contrats : le contrat d'usage toujours ; celles d'un permanent quand elle en
 /// emploie (`emploie_des_permanents` de sa fiche).
 fn natures_de(ctx: &Contexte) -> R<Vec<std::sync::Arc<Nature>>> {
-    let permanents = ctx.entreprise.get("emploie_des_permanents").is_some_and(vrai);
+    let permanents = ctx.emploie_des_permanents();
     Ok(droit::natures::natures()
         .map_err(Echec::from)?
         .iter()
@@ -199,7 +199,7 @@ fn modeles(ctx: &Contexte) -> R<Value> {
         "natures": sortie,
         "dossier": ctx.gabarits().to_string_lossy(),
         "champs_de_l_avenant": CHAMPS_DE_L_AVENANT.iter().map(|c| format!("{{{{{}}}}}", c)).collect::<Vec<_>>(),
-        "clauses_particulieres": ctx.entreprise.get(CLAUSES).filter(|v| vrai(v)).cloned().unwrap_or(json!("")),
+        "clauses_particulieres": ctx.entreprise.clauses_particulieres.texte(),
     }))
 }
 

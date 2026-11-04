@@ -24,7 +24,6 @@ use droit::contexte::Contexte;
 use socle::date::forme_ecrite;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
 
@@ -379,12 +378,7 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
 
 /// Le nom de la compagnie, ou rien.
 pub fn nom_compagnie(ctx: &Contexte) -> String {
-    for c in ["nom_affichage", "raison_sociale", "nom"] {
-        if let Some(v) = ctx.entreprise.get(c).filter(|v| vrai(v)) {
-            return valeur_en_texte(v);
-        }
-    }
-    String::new()
+    ctx.entreprise.nommee()
 }
 
 fn entete_texte(t: &Tableau, nom: &str) -> Vec<String> {

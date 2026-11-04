@@ -112,7 +112,7 @@ pub fn droits(ctx: &Contexte, imp: &Value, nat: &Nature) -> Resultat<Option<Droi
     let (depuis, sur_l_anciennete) = crate::imprevus::anciennete_depuis(&ctx.racine, fiche.id.as_str(), &depuis, &premier)?;
     let anciennete_mois = droit::permanents::anciennete_mois(&depuis, &premier);
     let loi = dm::legal(nat, anciennete_mois, origine)?;
-    let convention = if nat.mensuelle() { dm::conventionnel(ctx.entreprise.get("idcc").unwrap_or(&NUL), anciennete_mois, origine)? } else { None };
+    let convention = if nat.mensuelle() { dm::conventionnel(&ctx.entreprise.idcc.en_valeur(), anciennete_mois, origine)? } else { None };
     Ok(Some(Droits { loi, convention, origine, anciennete_mois, sur_l_anciennete }))
 }
 
@@ -235,7 +235,7 @@ pub fn subrogation(ctx: &Contexte, imp: &Value, nat: &Nature) -> Resultat<Option
     if regimes.is_empty() {
         return Ok(None);
     }
-    let choisie = g(&ctx.entreprise, "subrogation_ij").as_str() == Some("oui");
+    let choisie = ctx.entreprise.subrogation_ij.dite() == Some(&droit::fiche::Subrogation::Oui);
     if !choisie && !regimes.iter().any(|r| r.subrogation) {
         return Ok(None);
     }

@@ -51,6 +51,7 @@ use serde_json::{json, Map, Value};
 
 use crate::import::bulletin_lu::{self, BulletinLu, Compteurs, Table};
 use droit::contexte::Contexte;
+use droit::fiche::ParCase;
 use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -386,7 +387,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     // 3. La compagnie : son Siren (`importation::siren_de_reference`, le meme pour l'export) -- la fiche, sinon les DSN
     // si elles n'en portent qu'un, sinon les bulletins et les AEM s'ils n'en portent qu'un. Une DSN, une AEM ou un
     // bulletin d'une autre entreprise n'est pas repris ; d'une DSN ou d'une AEM ecartee, RIEN n'est lu.
-    let siren_fiche = ctx.entreprise.get("siren").filter(|v| vrai(v)).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let siren_fiche = Some(ctx.entreprise.siren.texte().trim().to_string()).filter(|s| !s.is_empty());
     let sirens_dsn: std::collections::BTreeSet<String> =
         pieces.iter().filter(|(_, aem, _)| !aem).flat_map(|(_, _, e)| e.sirens.iter().cloned()).collect();
     let mut sirens_autres: std::collections::BTreeSet<String> =
@@ -600,10 +601,10 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let siens: Vec<&Lu> = rangs.iter().map(|&k| &lus[k]).collect();
         if let Some(cle) = par_nir.get(nir) {
             let fiche = &ctx.salaries[cle.as_str()];
-            let ec = ecarts_salarie(&fiche.champs.en_valeur(), &siens, &chemin_de);
+            let ec = ecarts_salarie(&fiche.champs, &siens, &chemin_de);
             // Ce qui y est vide, de ce que les bulletins impriment (la fiche qu'ils creeraient) ; ce que la DSN complete
             // deja garde la valeur de la DSN (`completer::ajouter`).
-            let champs = completer::champs_a_completer("salarie", &fiche.champs.en_valeur(), &fiche_salarie(nir, &siens)?)?;
+            let champs = completer::champs_a_completer("salarie", &fiche.champs, &fiche_salarie(nir, &siens)?)?;
             let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
             let rang = match liste.iter().position(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
                 Some(i) => {
@@ -655,7 +656,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let proposees = fiche_de_certificats(nir, &siens)?;
         if let Some(cle) = par_nir.get(nir) {
             let fiche = &ctx.salaries[cle.as_str()];
-            let champs = completer::champs_a_completer("salarie", &fiche.champs.en_valeur(), &proposees)?;
+            let champs = completer::champs_a_completer("salarie", &fiche.champs, &proposees)?;
             let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
             let rang = match liste.iter().position(|e| e.get("cle").and_then(Value::as_str) == Some(cle.as_str())) {
                 Some(i) => i,
@@ -695,7 +696,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             if reponse.get("entreprise").is_some_and(Value::is_object) {
                 fusionner_ecarts(&mut reponse["entreprise"], ec);
             } else {
-                let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), valeur_en_texte);
+                let libelle = ctx.entreprise.raison_sociale.texte().to_string();
                 reponse.insert("entreprise".into(), ri::fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({})));
             }
             let champs = completer::champs_a_completer("entreprise", &ctx.entreprise, &fiche_entreprise(&lus, dernier)?)?;
@@ -722,9 +723,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let proposees = entreprise_du_certificat(dernier)?;
         if siren_fiche.is_some() {
             let mut ec = Map::new();
-            let t = |k: &str| ctx.entreprise.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
             if let Some(compte) = &dernier.c.compte {
-                let a = documents::conges_spectacles::forme_adherent(&t(documents::conges_spectacles::CLE_ADHERENT));
+                let a = documents::conges_spectacles::forme_adherent(ctx.entreprise.congesspectacles_adherent.texte());
                 if !a.is_empty() && &a != compte {
                     ec.insert(
                         documents::conges_spectacles::CLE_ADHERENT.into(),
@@ -733,7 +733,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                 }
             }
             if !reponse.get("entreprise").is_some_and(Value::is_object) {
-                let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), valeur_en_texte);
+                let libelle = ctx.entreprise.raison_sociale.texte().to_string();
                 reponse.insert("entreprise".into(), ri::fiche_importee("entreprise", None, &libelle, "existante", json!({}), Vec::new(), json!({})));
             }
             fusionner_ecarts(&mut reponse["entreprise"], Value::Object(ec));
@@ -1580,15 +1580,16 @@ fn identite<'a>(ls: &[&'a Lu]) -> Vec<(&'static str, String, &'a Lu)> {
 
 /// Les champs d'identite que les bulletins disent autrement que la fiche (compares sans casse ni accents). L'emploi
 /// change d'un contrat a l'autre, le code salarie d'un logiciel a l'autre : ils ne sont pas compares.
-fn ecarts_salarie(fiche: &Value, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> Value {
+fn ecarts_salarie(fiche: &dyn ParCase, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> Value {
     let mut out = Map::new();
     for (cle, lu, l) in identite(ls) {
         if !matches!(cle, "nom" | "prenom" | "date_naissance" | "num_conges_spectacles") {
             continue;
         }
-        let a = fiche.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        let dite = fiche.case(cle);
+        let a = dite.as_ref().filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete.
-        if completer::vide(fiche.get(cle)) || compare(&a) == compare(&lu) {
+        if completer::vide(dite.as_ref()) || compare(&a) == compare(&lu) {
             continue;
         }
         out.insert(cle.into(), json!({"fiche": a, "bulletin": lu, "fichier": chemin(l), "page": l.page}));
@@ -1598,9 +1599,9 @@ fn ecarts_salarie(fiche: &Value, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> 
 
 /// Ce que le bulletin dit de l'entreprise autrement que la fiche (compare sans casse ni accents) : le Siret, le NAF, et
 /// la raison sociale, l'adresse, l'IDCC et le compte Urssaf -- ce que `fiche_entreprise` en lit.
-fn ecarts_entreprise(fiche: &Value, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
+fn ecarts_entreprise(fiche: &dyn ParCase, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
     let mut out = Map::new();
-    let t = |k: &str| fiche.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let t = |k: &str| fiche.case(k).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v)).unwrap_or_default();
     let siret_fiche = if t("siret").is_empty() { format!("{}{}", t("siren"), t("nic")) } else { t("siret") };
     let lue = fiche_entreprise(lus, l).unwrap_or_default();
     let de = |k: &str| lue.get(k).filter(|v| vrai(v)).map(valeur_en_texte);

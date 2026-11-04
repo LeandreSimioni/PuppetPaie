@@ -397,5 +397,5 @@ pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`, par son code postal) ?
 fn en_alsace_moselle(ctx: &Contexte) -> bool {
-    ctx.entreprise.get("code_postal").map(valeur_en_texte).is_some_and(|c| bareme::en_alsace_moselle(&c))
+    bareme::en_alsace_moselle(ctx.entreprise.code_postal.texte())
 }

@@ -181,14 +181,14 @@ fn plafond_mensuel(annee: &str) -> R<Option<Decimal>> {
 pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     let base = declarations::casc::base().map_err(|m| erreur("OSError", m))?;
     let ent = &ctx.entreprise;
-    let idcc = ent.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let idcc = ent.idcc.texte().to_string();
     if idcc != valeur_en_texte(&base["idcc"]) {
         return Err(refus(format!(
             "La CASC-SVP est une cotisation de la convention 3090 ; la fiche entreprise dit {}. Il n'y a rien a regulariser.",
             if idcc.is_empty() { "rien".to_string() } else { idcc }
         )));
     }
-    match droit::bareme::casc_exemptee(ent) {
+    match droit::bareme::casc_exemptee_de(ent) {
         Err(m) => return Err(refus(m)),
         Ok(true) => {
             return Err(refus(
@@ -336,7 +336,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         par_mois.push(MoisReg { mois: m.clone(), libelle: socle::mois::Mois::lire(m).map(|m| m.libelle(socle::mois::Graphie::Accentuee)).map_err(refus)?, masse, taux, cotisation: cot, source });
     }
 
-    let siret = ent.get("siret").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let siret = ent.siret.texte().to_string();
     let mut annees: Vec<AnneeReg> = vec![];
     for r in &par_mois {
         let an: String = r.mois.chars().take(4).collect();
@@ -358,11 +358,10 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     }
     let total = annees.iter().fold(Decimal::ZERO, |t, a| t + a.cotisation);
 
-    let nom = ent.get("raison_sociale").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    let sig = ent.get("signataire").cloned().unwrap_or(Value::Null);
-    let sig = if vrai(&sig) { sig } else { json!({}) };
-    let ou = |a: &str, b: &str| sig.get(a).filter(|v| vrai(v)).or_else(|| sig.get(b)).filter(|v| vrai(v)).map(valeur_en_texte);
-    let signe: String = [ou("prenom_affichage", "prenom"), ou("nom_affichage", "nom")].into_iter().flatten().collect::<Vec<_>>().join(" ");
+    let nom = ent.raison_sociale.texte().to_string();
+    let sig = ent.signataire.dite().cloned().unwrap_or_default();
+    let ou = |a: &droit::fiche::Case<String>, b: &droit::fiche::Case<String>| a.remplie().or_else(|| b.remplie()).map(String::from);
+    let signe: String = [ou(&sig.prenom_affichage, &sig.prenom), ou(&sig.nom_affichage, &sig.nom)].into_iter().flatten().collect::<Vec<_>>().join(" ");
     let (premier, dernier) = (&par_mois[0].libelle, &par_mois[par_mois.len() - 1].libelle);
     let periode = if premier == dernier { premier.clone() } else { format!("{} à {}", premier, dernier) };
 
@@ -624,7 +623,7 @@ fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path,
     ws.set_row_height(2, 132.0).map_err(xl)?;
     ws.set_freeze_panes(3, 0).map_err(xl)?;
     ws.set_column_range_width(0, 36, 14.0).map_err(xl)?;
-    let siret = ctx.entreprise.get("siret").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let siret = ctx.entreprise.siret.texte().to_string();
     let aujourdhui = droit::contexte::jour_reel().jj_mm_aaaa();
     let mut cumul: Vec<((String, Option<String>), Decimal)> = Vec::new();
     let texte_de = |m: &Value, cle: &str| -> String { m.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default() };

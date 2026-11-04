@@ -58,20 +58,19 @@ fn les_heures_du_mois_se_comptent_sur_les_jours_travailles_de_la_fiche() {
 /// 8 ne l'est pas, l'Ascension (14/05) tombe le jour des trois mois.
 #[test]
 fn un_ferie_chome_ne_se_paie_qu_apres_trois_mois_d_anciennete() {
-    let tous = json!({"jours_feries_chomes": "tous"});
+    let tous = "tous";
     let lv = JoursTravailles::du_lundi_au_vendredi();
-    let avril = feries_non_payes(&j("2026-04-01"), &j("2026-04-30"), Some(&tous), &lv, &j("2026-01-12")).unwrap();
+    let avril = feries_non_payes(&j("2026-04-01"), &j("2026-04-30"), Some(tous), &lv, &j("2026-01-12")).unwrap();
     assert_eq!(avril.iter().map(|(d, _)| d.iso()).collect::<Vec<_>>(), ["2026-04-06"]);
     let horaire = Horaire { jours: lv, feries_non_payes: avril };
     let p = part_du_mois(&j("2026-04-01"), &j("2026-04-30"), &j("2026-04-30"), RegleDuMoisIncomplet::HoraireReel, &horaire)
         .unwrap();
     assert_eq!((p.jours, p.jours_du_mois), (21, 22));
-    let mai = feries_non_payes(&j("2026-05-01"), &j("2026-05-31"), Some(&tous), &lv, &j("2026-02-15")).unwrap();
+    let mai = feries_non_payes(&j("2026-05-01"), &j("2026-05-31"), Some(tous), &lv, &j("2026-02-15")).unwrap();
     assert_eq!(mai.iter().map(|(d, _)| d.iso()).collect::<Vec<_>>(), ["2026-05-08"]);
     // Trois mois d'anciennete : rien. Un ferie que la compagnie travaille est un jour de travail.
-    assert!(feries_non_payes(&j("2026-04-01"), &j("2026-04-30"), Some(&tous), &lv, &j("2025-12-01")).unwrap().is_empty());
-    let premier_mai = json!({"jours_feries_chomes": "1er mai seulement"});
-    assert!(feries_non_payes(&j("2026-04-01"), &j("2026-05-31"), Some(&premier_mai), &lv, &j("2026-03-02")).unwrap().is_empty());
+    assert!(feries_non_payes(&j("2026-04-01"), &j("2026-04-30"), Some(tous), &lv, &j("2025-12-01")).unwrap().is_empty());
+    assert!(feries_non_payes(&j("2026-04-01"), &j("2026-05-31"), Some("1er mai seulement"), &lv, &j("2026-03-02")).unwrap().is_empty());
 }
 
 /// CCN 1285, art. X.3 (`atelier/reference/sources/kali-1285-x3-remuneration-artistes-20260929.md`, l. 20) : le premier

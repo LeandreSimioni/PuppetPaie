@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 
 use droit::bareme::{bareme_applique, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
-use droit::fiche::{Case, ChampsSalarie, FicheSalarie, SalarieDuContrat, Statut};
+use droit::fiche::{AccordDfs, Case, ChampsEntreprise, ChampsSalarie, FicheSalarie, OptionDfs as DfsEmployeur, SalarieDuContrat, Statut};
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
@@ -540,10 +540,8 @@ pub(crate) fn ligne_de_reduction(rg: &ReductionGenerale, brut: Decimal) -> Ligne
 /// relatif aux frais professionnels, art. 9, I, al. 2 et 3 (`atelier/reference/sources/dfs/`). « L'employeur peut opter
 /// pour la deduction forfaitaire specifique lorsqu'une convention ou un accord collectif l'a explicitement prevu ou
 /// lorsque le comite d'entreprise, le comite social et economique ou les delegues du personnel ont donne leur accord. A
-/// defaut, il appartient a chaque salarie d'accepter ou non cette option. »
-pub(crate) const DFS_ACCORD_COLLECTIF: &str = "accord_collectif";
-pub(crate) const DFS_ACCORD_CSE: &str = "accord_cse";
-pub(crate) const DFS_ACCORD_INDIVIDUEL: &str = "accord_individuel";
+/// defaut, il appartient a chaque salarie d'accepter ou non cette option. » (`droit::fiche::OptionDfs`.)
+///
 /// L'accord du salarie, quand l'option repose sur lui (fiche salarie, `deduction_forfaitaire_accord`) : art. 9, I,
 /// al. 3, « Celle-ci peut alors figurer soit dans le contrat de travail ou soit dans un avenant au contrat de travail. A
 /// defaut, l'employeur informe et recueille le consentement annuel du salarie par tout moyen. Lorsque le travailleur
@@ -575,20 +573,13 @@ pub struct OptionDfs {
 }
 
 
-fn texte_de(v: &Value, cle: &str) -> String {
-    match v.get(cle) {
-        Some(c) if vrai(c) => en_texte(c).trim().to_string(),
-        _ => String::new(),
-    }
-}
-
 /// La DFS que la fiche exerce, ou `None`. La decision vit ici (regle 2) : la profession de la fiche salarie
 /// (`deduction_forfaitaire`), l'option de l'employeur (fiche entreprise, `deduction_forfaitaire_option`) et, quand
 /// l'option repose sur chaque salarie, son accord (`deduction_forfaitaire_accord`). Arrete du 4 septembre 2025, art. 9
 /// (`atelier/reference/sources/dfs/arrete-2025-frais-professionnels/`) ; les professions, l'article 5 de l'annexe IV du
 /// CGI dans sa redaction en vigueur au 31/12/2000 (`atelier/reference/sources/dfs/cgi-annexe4-art5/`) et l'annexe 1 de
 /// l'arrete ; leur taux de l'annee, le bareme (art. 9, II et III). Une section du bareme non marquee verifiee refuse.
-pub(crate) fn deduction_forfaitaire(bar: &Pile, sal: &ChampsSalarie, ent: &Value) -> Resultat<Option<OptionDfs>> {
+pub(crate) fn deduction_forfaitaire(bar: &Pile, sal: &ChampsSalarie, ent: &ChampsEntreprise) -> Resultat<Option<OptionDfs>> {
     let profession = sal.deduction_forfaitaire.dite().map_or("", |p| p.as_str()).to_string();
     if profession.is_empty() {
         return Ok(None);
@@ -609,9 +600,8 @@ taux et les frais que l'annexe 2 de l'arrete laisse hors de l'assiette : choisir
     };
     let dfs = dfs.ok_or_else(|| socle::echec::cle("Le barème de l'année ne porte pas la déduction forfaitaire spécifique : le signaler au développeur.", "deduction_forfaitaire"))?;
     // L'option de l'employeur, et l'accord qu'elle demande.
-    let option = texte_de(ent, "deduction_forfaitaire_option");
-    match option.as_str() {
-        "" => {
+    match ent.deduction_forfaitaire_option.dite() {
+        None => {
             return Err(format!(
                 "Deduction forfaitaire specifique de {} : sa fiche dit qu'il l'exerce ({}), mais la compagnie n'a pas \
 opte pour elle (fiche entreprise, << Deduction forfaitaire specifique >>). C'est une option de l'EMPLOYEUR (arrete du \
@@ -620,11 +610,11 @@ social et economique, ou, a defaut, salarie par salarie. Rien n'est calcule.",
                 qui, profession
             ))
         }
-        DFS_ACCORD_COLLECTIF | DFS_ACCORD_CSE => {}
-        DFS_ACCORD_INDIVIDUEL => match sal.deduction_forfaitaire_accord.dite().map_or("", |a| a.as_str()) {
-            DFS_SALARIE_CONTRAT | DFS_SALARIE_CONSENTEMENT => {}
-            DFS_SALARIE_REFUS => return Ok(None),
-            "" => {
+        Some(DfsEmployeur::AccordCollectif | DfsEmployeur::AccordCse) => {}
+        Some(DfsEmployeur::AccordIndividuel) => match sal.deduction_forfaitaire_accord.dite() {
+            Some(AccordDfs::Contrat | AccordDfs::ConsentementAnnuel) => {}
+            Some(AccordDfs::Refus) => return Ok(None),
+            None => {
                 return Err(format!(
                     "Deduction forfaitaire specifique de {} : la compagnie l'exerce salarie par salarie, et la fiche ne \
 dit pas l'accord de celui-ci. L'arrete du 4 septembre 2025 (art. 9, I, al. 3) veut qu'il l'accepte, << soit dans le \
@@ -633,22 +623,7 @@ silence vaut accord >>). Dire lequel ({}, {}) ou son refus ({}). Rien n'est calc
                     qui, DFS_SALARIE_CONTRAT, DFS_SALARIE_CONSENTEMENT, DFS_SALARIE_REFUS
                 ))
             }
-            autre => {
-                return Err(format!(
-                    "Deduction forfaitaire specifique de {} : l'accord du salarie vaut << {} >>, que le logiciel ne connait \
-pas ({}, {} ou {} ; arrete du 4 septembre 2025, art. 9, I, al. 3).",
-                    qui, autre, DFS_SALARIE_CONTRAT, DFS_SALARIE_CONSENTEMENT, DFS_SALARIE_REFUS
-                ))
-            }
         },
-        autre => {
-            return Err(socle::echec::avec("La case « Déduction forfaitaire spécifique » de la fiche entreprise porte un choix inconnu : le choisir dans la liste.", serde_json::json!({"cle": "deduction_forfaitaire_option", "detail": format!(
-                "Fiche entreprise, `deduction_forfaitaire_option` = << {} >> : ce choix n'est pas connu. L'arrete du \
-4 septembre 2025 (art. 9, I, al. 2 et 3) en connait trois : un accord collectif qui l'a explicitement prevue ({}), \
-l'accord du comite social et economique ({}), ou, a defaut, l'accord de chaque salarie ({}).",
-                autre, DFS_ACCORD_COLLECTIF, DFS_ACCORD_CSE, DFS_ACCORD_INDIVIDUEL
-            )})))
-        }
     }
     if !dfs.verifie {
         return Err(socle::echec::avec("Le barème de l'année ne paie pas encore la déduction forfaitaire spécifique : ses taux ne sont pas vérifiés.", serde_json::json!({"detail": format!(
@@ -941,7 +916,7 @@ pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resulta
 /// l'entreprise, telle que `ctx` la lit. Le domaine d'activite de l'annexe 8 se lit a cette convention
 /// (`droit::caisse_conges::intermittent`).
 pub(crate) fn convention_de_l_employeur(ctx: &Contexte, fiche: FicheSalarie) -> SalarieDuContrat {
-    let idcc = ctx.fiche_entreprise.idcc.dite().filter(|i| !i.is_empty()).cloned();
+    let idcc = ctx.entreprise.idcc.dite().filter(|i| !i.is_empty()).cloned();
     SalarieDuContrat { idcc_de_l_employeur: idcc, ..SalarieDuContrat::de(fiche) }
 }
 
@@ -1102,9 +1077,8 @@ fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: SalarieDu
     let suspensions = crate::imprevus::suspendu_sans_remuneration(&ctx.racine, &cle, eng.numero.as_deref(), &eng.debut, &debut, &fin)?;
     let Some(premiere) = suspensions.first() else { return Ok(fiche) };
     let motifs: Vec<String> = suspensions.iter().map(|s| s.get("motif").map(en_texte).unwrap_or_default()).collect();
-    let bar = ctx.bareme(&fin)?;
-    let ent = droit::bareme::entreprise_du(&bar, &ctx.entreprise);
-    let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();
+    let ent = ctx.entreprise_au(&fin);
+    let idcc = ent.idcc.texte().to_string();
     let pourquoi = if idcc == "3090" {
         format!(
             "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (CCN 3090, \
@@ -1112,7 +1086,7 @@ accord sante du 19/07/2024, art. 4.2 et 15)",
             motifs.join(", ")
         )
     } else {
-        match ent.get(SANTE_SUSPENSION).map(en_texte).unwrap_or_default().trim() {
+        match ent.sante_suspension_non_indemnisee.code() {
             SANTE_SUSPENSION_SUSPENDUE => format!(
                 "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (fiche \
 entreprise, « {} »)",
@@ -1175,7 +1149,7 @@ fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &
     let Some(jours) = v.as_f64().or_else(|| en_texte(v).trim().replace(',', ".").parse().ok()).map(|x| x.ceil() as i64) else {
         return Ok(());
     };
-    let idcc = ctx.entreprise.get("idcc").map(en_texte).unwrap_or_default();
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let artiste = sal.statut.dite() == Some(&Statut::Artiste);
     let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), sal.statut_conventionnel.dite().map(|s| s.as_str()), artiste, &idcc)?;
     droit::essai::refuser_au_dela(jours, plafond.as_ref(), &format!("{} ({})", sal.nomme().unwrap_or_default(), nat.libelle))
@@ -1827,35 +1801,19 @@ impl PlafondTempsPartiel {
     }
 }
 
-/// Les valeurs de `plafond_temps_partiel` (fiche entreprise, `logiciel/donnees/champs-base.json`). Vide : la regle, le
-/// plafond proratise. « entier » : l'etablissement renonce a la proratisation (fiche 3369).
-pub(crate) const PLAFOND_PRORATISE: &str = "proratisé";
-pub(crate) const PLAFOND_ENTIER: &str = "entier";
-
 /// Le plafond du salarie `sal` (sa fiche telle que la paie la lit, pour son statut) a temps partiel de l'engagement `e`,
 /// d'apres la fiche entreprise `ent` (`plafond_temps_partiel`). Le temps partiel est celui que la DSN declare en
 /// S21.G00.40.014 (20) : une duree du contrat inferieure a la duree de reference (L. 3123-1 du code du travail,
 /// `engagement::modalite_temps_travail`). Sans reponse dans la fiche, la regle : proratise (L. 242-8, fiche 3369). Un
 /// artiste est exclu (L. 242-10, 1° ; BOSS § 1090) : la reponse de la fiche ne le concerne pas. Le calcul l'ecrit dans
 /// la paie (`Contenu::plafond_temps_partiel`), que la DSN lit.
-pub(crate) fn plafond_temps_partiel(ent: &Value, e: &Engagement, sal: &ChampsSalarie) -> Resultat<PlafondTempsPartiel> {
+pub(crate) fn plafond_temps_partiel(ent: &ChampsEntreprise, e: &Engagement, sal: &ChampsSalarie) -> Resultat<PlafondTempsPartiel> {
     if !e.nat()?.mensuelle() || e.modalite_temps_travail()? != "20" {
         return Ok(PlafondTempsPartiel::NonConcerne);
     }
-    let renonce = match ent.get("plafond_temps_partiel") {
-        None | Some(Value::Null) => false,
-        Some(Value::String(t)) if t.trim().is_empty() || t.trim() == PLAFOND_PRORATISE => false,
-        Some(Value::String(t)) if t.trim() == PLAFOND_ENTIER => true,
-        Some(autre) => {
-            return Err(socle::echec::avec("La case « Plafond de la Sécurité sociale d'un salarié à temps partiel » de la fiche entreprise porte un choix inconnu : le choisir dans la liste.", serde_json::json!({"cle": "plafond_temps_partiel", "detail": format!(
-                "Fiche entreprise, `plafond_temps_partiel` = {} : ce choix n'est pas connu. Le plafond de Securite sociale \
-d'un salarie a temps partiel se proratise a la duree de son contrat (CSS L. 242-8 ; fiche net-entreprises 3369 : << par \
-defaut >>) : laisser vide, ou << {} >>. << {} >> : l'etablissement renonce a la proratisation pour tous ses salaries a \
-temps partiel (fiche 3369 ; BOSS, assiette generale, § 760).",
-                autre, PLAFOND_PRORATISE, PLAFOND_ENTIER
-            )})))
-        }
-    };
+    // « Entier » : l'etablissement renonce a la proratisation pour tous ses salaries a temps partiel (fiche 3369 ; BOSS,
+    // assiette generale, § 760).
+    let renonce = ent.plafond_temps_partiel.dite() == Some(&droit::fiche::PlafondTempsPartiel::Entier);
     // Le statut se lit comme le bareme le lit (`plafond_de_l_engagement`, `reduction_generale`) : vide, un artiste.
     let statut = sal.statut.dite().map_or("artiste", |s| s.as_str()).to_string();
     if statut == "artiste" {

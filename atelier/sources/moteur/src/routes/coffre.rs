@@ -23,8 +23,8 @@ use crate::compagnie::administrateur::Poste;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
 use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
-use super::{ou_texte, vers_route};
-use envois::etats::{get, joindre, objet_vide, ou};
+use super::vers_route;
+use envois::etats::{get, joindre};
 use envois::google::{champ, en_texte, jeton_par_rafraichissement, DELAI, PERMISSIONS};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{vrai, MARQUEUR_COPIE};
@@ -484,7 +484,7 @@ fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Le nom et le prenom du compte Urssaf qui depose les DPAE, tels que la charge les dit, s'ils changent ceux de la fiche ;
 /// `None` s'ils sont ceux de la fiche (vides compris). SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents.
 fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static str, String)>>> {
-    let actuel = ctx.entreprise.get("api_dpae").cloned().unwrap_or(Value::Null);
+    let actuel = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
     let propres: Vec<(&'static str, String)> = ["nom", "prenom"]
         .into_iter()
         .map(|cle| {
@@ -494,7 +494,7 @@ fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static 
             (cle, sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" "))
         })
         .collect();
-    if propres.iter().all(|(k, v)| actuel.get(*k).and_then(Value::as_str).unwrap_or("") == v) {
+    if propres.iter().all(|(k, v)| actuel.case(k).as_ref().and_then(Value::as_str).unwrap_or("") == v) {
         return Ok(None);
     }
     if let Some((cle, _)) = propres.iter().find(|(_, v)| v.is_empty()) {
@@ -508,18 +508,15 @@ fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static 
 
 /// Ecrit le compte DPAE dans la fiche entreprise, par l'ecrivain de la fiche (`fiches::poser_entreprise`), date du jour ;
 /// les autres cles d'`api_dpae` sont gardees. Rend la fiche telle qu'elle vaut aujourd'hui.
-fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R<Value> {
-    let mut cfg = match ctx.entreprise.get("api_dpae").filter(|v| vrai(v)) {
-        Some(Value::Object(o)) => o.clone(),
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
-        None => serde_json::Map::new(),
-    };
+fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R<droit::fiche::ChampsEntreprise> {
+    let mut cfg = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
     for (cle, v) in propres {
-        cfg.insert(cle.to_string(), Value::String(v));
+        let case = if cle == "nom" { &mut cfg.nom } else { &mut cfg.prenom };
+        *case = droit::fiche::Case::Dite(v);
     }
-    crate::routes::fiches::poser_entreprise(ctx, "api_dpae", Value::Object(cfg), Some(ctx.aujourdhui))?;
+    crate::routes::fiches::poser_entreprise(ctx, "api_dpae", serde_json::to_value(&cfg).unwrap_or(Value::Null), Some(ctx.aujourdhui))?;
     let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join(droit::contexte::ENTREPRISE))?;
-    droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, droit::contexte::ENTREPRISE).map_err(Echec::from)
+    Ok(droit::fiche::lire_entreprise(&contenu, droit::contexte::ENTREPRISE).map_err(Echec::from)?.au(&ctx.aujourdhui))
 }
 
 // ------------------------------------------------------------------ le mot de passe du logiciel
@@ -895,7 +892,7 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
 
 /// `identifiant_du_compte` : le compte que ce mot de passe ouvre, en clair ; ce
 /// qui en manque ; et s'il se saisit sur cette ligne (`ici`).
-fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
+fn identifiant_du_compte(ent: &droit::fiche::ChampsEntreprise, service: &str) -> R<Value> {
     match service {
         "net-entreprises" => {
             let d = envois::transport::declarant(ent).map_err(|v| Echec {
@@ -922,23 +919,22 @@ fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
             Ok(json!({"texte": phrase, "manque": manque, "ici": false, "incomplet_dit": incomplet_dit, "ou": "fiche Entreprise › Qui les organismes contactent"}))
         }
         "urssaf" => {
-            let cfg = ou(get(ent, "api_dpae")?, objet_vide());
-            let siret = ou(get(cfg, "siret")?, get(ent, "siret")?);
+            let cfg = ent.api_dpae.dite().cloned().unwrap_or_default();
+            let siret = cfg.siret.remplie().unwrap_or(ent.siret.texte()).to_string();
             let mut manque: Vec<Value> = Vec::new();
-            for c in ["nom", "prenom"] {
-                if !vrai(get(cfg, c)?) {
+            for (c, case) in [("nom", &cfg.nom), ("prenom", &cfg.prenom)] {
+                if case.remplie().is_none() {
                     manque.push(json!(c));
                 }
             }
-            let noms: Vec<Value> = [get(cfg, "prenom")?, get(cfg, "nom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
-            let texte = joindre(" ", &noms)?;
+            let texte = [cfg.prenom.remplie(), cfg.nom.remplie()].into_iter().flatten().collect::<Vec<_>>().join(" ");
             // Ce qui manque, dit : le compte de la DPAE ne part pas sans lui.
             let noms_manquants: Vec<&str> = manque.iter().map(|m| match m.as_str().unwrap_or("") { "nom" => "le nom", "prenom" => "le prénom", "siret" => "le SIRET", autre => autre }).collect();
             let manque_dit = if manque.is_empty() { String::new() } else { format!("le compte Urssaf n'est pas dit ({}) : la DPAE ne partira pas", noms_manquants.join(", ")) };
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(siret)) } else { String::new() };
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, siret) } else { String::new() };
             Ok(json!({
                 "texte": phrase, "manque": manque, "ici": true, "manque_dit": manque_dit,
-                "nom": ou_texte(get(cfg, "nom")?), "prenom": ou_texte(get(cfg, "prenom")?),
+                "nom": cfg.nom.texte(), "prenom": cfg.prenom.texte(),
             }))
         }
         _ => Ok(json!({"texte": "", "manque": [], "ici": false})),
@@ -952,7 +948,7 @@ fn coffre_etat(ctx: &Contexte) -> R<Value> {
 }
 
 /// `coffre_etat` sur une fiche entreprise donnee : `poser_compte_dpae` le relit sur la fiche qu'il vient d'ecrire.
-pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
+pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &droit::fiche::ChampsEntreprise) -> R<Value> {
     let coffre = crate::compagnie::coffre::Coffre::du_poste(racine, "");
     let secrets = coffre.etat().map_err(vers_route)?;
     // UNE COMPAGNIE DONT LES ENVOIS SONT JOUES n'a rien a poser : chaque pastille le dit, en gris.

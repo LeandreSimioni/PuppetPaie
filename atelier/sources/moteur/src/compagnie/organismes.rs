@@ -166,7 +166,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let a_saisir = lignes.iter().any(|l| txt(g(l, "libelle")).is_empty() || txt(g(l, "organisme")).is_empty());
     Ok(json!({
-        "idcc": txt(g(&ctx.entreprise, "idcc")),
+        "idcc": ctx.entreprise.idcc.texte().trim(),
         "a_saisir": a_saisir,
         "mois": periode.0.mois_civil().to_string(),
         "contrats": lignes,

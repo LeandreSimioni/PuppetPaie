@@ -89,8 +89,7 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
 fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std::path::PathBuf)]) -> R<Vec<String>> {
     use std::collections::BTreeMap;
     let mut a_faire = Vec::new();
-    let texte = |k: &str| ctx.entreprise.get(k).map(socle::valeur::valeur_en_texte).unwrap_or_default();
-    let (siren, nic) = (texte("siren"), texte("nic"));
+    let (siren, nic) = (ctx.entreprise.siren.texte().to_string(), ctx.entreprise.nic.texte().to_string());
     for (retour, chemin) in notifications {
         let le = envois::releve_retours::date_publication(retour);
         let le_iso = socle::date::Jour::lire(&le).map(|j| j.iso()).unwrap_or_default();

@@ -179,7 +179,7 @@ impl<'a> Declarations<'a> {
                 tous.push(Declaree {
                     mois: mois.clone(),
                     fichier: "la paie declaree".to_string(),
-                    ntt: if nir.is_empty() { crate::ntt::numero(&self.ctx.entreprise, s).unwrap_or_default() } else { String::new() },
+                    ntt: if nir.is_empty() { crate::ntt::numero(self.ctx.entreprise.siren.texte(), s).unwrap_or_default() } else { String::new() },
                     nir,
                     nom: strip(s.nom.texte()).to_string(),
                     prenoms: strip(s.prenom.texte()).to_string(),

@@ -164,7 +164,7 @@ pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::De
     }
     let n: i32 = mois[..4].parse::<i32>().map_err(|_| format!("mois illisible : {}", mois))? - 1;
     // Redevable de la taxe d'apprentissage (L. 6242-1, I) : le motif de non-assujettissement de la fiche.
-    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, n)? {
+    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise.en_valeur(), n)? {
         return Ok(None);
     }
     // Au moins 250 salaries : l'effectif de l'annee N, la regle des cinq ans (L. 6242-1, V), comme au bloc 44 de decembre ;
@@ -247,7 +247,7 @@ de {}. Rien n'est ecrit.",
     // L'assiette : celle de la taxe d'apprentissage que les DSN de N declarent, etablissement par etablissement (le
     // montant « pour l'ensemble de ses établissements »).
     let (mut assiette, mut alsace) = (Decimal::ZERO, Decimal::ZERO);
-    for nic in crate::dsn::nics(&ctx.entreprise) {
+    for nic in ctx.entreprise.nics() {
         let a = crate::dsn::assiettes_de_l_annee(ctx, n, &nic, &["992", "993"], departs)?;
         assiette = add(assiette, a[0]);
         alsace = add(alsace, a[1]);

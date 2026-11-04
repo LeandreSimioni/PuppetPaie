@@ -49,7 +49,8 @@ fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> S
         None => Value::Null,
     };
     let spec = spectacle.and_then(|k| ctx.spectacles.get(k)).cloned().unwrap_or(Value::Null);
-    let v = Value::Array(vec![ctx.entreprise.clone(), sal, spec]);
+    // L'entreprise de meme, dans l'ordre de sa forme.
+    let v = Value::Array(vec![ctx.entreprise.en_valeur(), sal, spec]);
     fichiers::sha256_hex(v.to_string().as_bytes())
 }
 

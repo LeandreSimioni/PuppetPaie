@@ -49,7 +49,7 @@ impl EtatDsn {
 /// L'état de la DSN de `mois` ; `nic` : l'établissement (`Null` : le principal ; les états du journal sont les siens).
 pub(crate) fn du_mois(ctx: &Contexte, mois: &str, nic: &Value) -> R<EtatDsn> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let e = etats::etat_dsn_du_mois(&lignes, mois, nic, &droit::bareme::nic_principal(&ctx.entreprise))?;
+    let e = etats::etat_dsn_du_mois(&lignes, mois, nic, &ctx.entreprise.nic_principal())?;
     let quand = |e: &Value| etats::quand_lisible(e.get("quand").unwrap_or(&Value::Null));
     if vrai(&e) {
         let refusee = e.get("refusee").is_some_and(vrai);
@@ -96,7 +96,7 @@ pub(crate) fn du_mois(ctx: &Contexte, mois: &str, nic: &Value) -> R<EtatDsn> {
 /// compagnie qui n'a ni paie saisie ni DSN au journal n'a encore rien a declarer avant le mois courant (des fiches ne
 /// sont pas un passe). `None` : rien ne borne -- une compagnie qui a deja des paies ou des declarations.
 pub(crate) fn premier_mois_du(ctx: &Contexte) -> R<Option<String>> {
-    let embauche: String = ctx.entreprise.get("premiere_embauche").filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default().chars().take(7).collect();
+    let embauche: String = ctx.entreprise.premiere_embauche.dite().map(|j| j.iso()).unwrap_or_default().chars().take(7).collect();
     if !embauche.is_empty() {
         return Ok(Some(embauche));
     }

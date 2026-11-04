@@ -13,7 +13,7 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION};
 use crate::routes::catalogue::Route;
-use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
+use crate::routes::documents::{client_courriel, preuve_de};
 use crate::routes::mois::{lire_saisie, sauver_avant};
 use declarations::champs;
 use documents::fiche_questionnaire as fq;
@@ -404,17 +404,23 @@ fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(autre) => Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         None => Ok(None),
     };
-    let entreprise = objet("entreprise")?.unwrap_or(&ctx.entreprise);
+    let de_la_compagnie = ctx.entreprise.en_valeur();
+    let entreprise = objet("entreprise")?.unwrap_or(&de_la_compagnie);
     let nom = charge.get("nom").and_then(Value::as_str).unwrap_or("entreprise");
     let donnees = if nom == "entreprise" { entreprise } else { objet("donnees")?.unwrap_or(&Value::Null) };
-    Ok(json!({ "permanents": droit::contexte::emploie_des_permanents(entreprise), "montres": montres(ctx, nom, donnees, entreprise)? }))
+    Ok(json!({ "permanents": permanents_de(entreprise), "montres": montres(ctx, nom, donnees, entreprise)? }))
+}
+
+/// Le curseur des permanents (`contexte::emploie_des_permanents`) de la fiche entreprise telle que l'ecran la saisit.
+fn permanents_de(entreprise: &Value) -> bool {
+    entreprise.get("emploie_des_permanents") == Some(&Value::Bool(true))
 }
 
 /// CE QUE LA FICHE `nom` MONTRE pour `donnees` : chaque case que `champs::Champ::montre` dit a l'ecran, d'apres la
 /// fiche, l'entreprise `entreprise` (ses permanents, ses conditions) et les etablissements de la compagnie. La page ne
 /// montre que ces cases-la.
 pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &Value, entreprise: &Value) -> R<Vec<String>> {
-    let permanents = droit::contexte::emploie_des_permanents(entreprise);
+    let permanents = permanents_de(entreprise);
     let etablissements = !super::ouverture::choix_d_etablissement(ctx).is_null();
     let autre = (nom != "entreprise").then_some(entreprise);
     Ok(champs::fiche(nom)?.iter().filter(|c| c.montre(donnees, autre, permanents, etablissements)).map(|c| c.cle.clone()).collect())
@@ -430,7 +436,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     let ent = match charge.get(cle) {
         Some(v @ (Value::Object(_) | Value::Null)) => json!({ cle: v }),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
-        None => ctx.entreprise.clone(),
+        None => ctx.entreprise.en_valeur(),
     };
     // LES PLAFONDS DE LA FRANCHISE, CHIFFRES : ceux du bareme de l'annee des salaires -- `annee` dans la
     // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.
@@ -2071,15 +2077,11 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
     };
     verifier_preuve(ctx, Some(preuve), &socle::paris::maintenant()[..7], "demande de fiche (« Remplir ma fiche »)", &adresse)?;
 
-    let ent = &ctx.entreprise;
-    let compagnie = match vrai_ou(ent, "nom_affichage") {
-        Some(c) => c,
-        None => ent.get("raison_sociale").map(valeur_en_texte).unwrap_or_default(),
-    };
-    let sg = ent.get("signataire").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!({}));
-    let signataire = match vrai_ou(&sg, "prenom_affichage") {
-        Some(p) => p,
-        None => capitaliser(&sg.get("prenom").map(valeur_en_texte).unwrap_or_default()),
+    let compagnie = ctx.entreprise.nommee();
+    let sg = ctx.entreprise.signataire.dite().cloned().unwrap_or_default();
+    let signataire = match sg.prenom_affichage.remplie() {
+        Some(p) => p.to_string(),
+        None => capitaliser(sg.prenom.texte()),
     };
     let expediteur = client.compte().to_lowercase();
     let code = fq::code_fiche();

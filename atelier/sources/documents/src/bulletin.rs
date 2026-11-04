@@ -295,7 +295,7 @@ fn emploi_imprime(e: &engagement::Engagement, sal: &ChampsSalarie) -> Resultat<S
 }
 
 pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
-    let idcc = droit::minima::idcc_du_contrat(ent, sp, sal)?;
+    let idcc = droit::minima::idcc_du_contrat(&ent.get("idcc").filter(|v| vrai(v)).map(en_texte).unwrap_or_default(), sp, sal)?;
     if idcc.is_empty() {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", "idcc"));
     }
@@ -508,6 +508,22 @@ impl Modele {
                  contribution sous la ligne du bulletin qui la regroupe : sa base, le taux et le montant de la part \
                  salariale et de la part employeur."
             }
+        }
+    }
+
+    /// Le modele que dit le choix `modele_bulletin` d'une fiche lue par sa forme.
+    pub fn du_choix(c: Option<&droit::fiche::ModeleBulletin>) -> Option<Modele> {
+        c.map(|c| match c {
+            droit::fiche::ModeleBulletin::Simplifie => Modele::Simplifie,
+            droit::fiche::ModeleBulletin::Complet => Modele::Complet,
+        })
+    }
+
+    /// Le choix de la fiche qui le dit.
+    pub fn choix(self) -> droit::fiche::ModeleBulletin {
+        match self {
+            Modele::Simplifie => droit::fiche::ModeleBulletin::Simplifie,
+            Modele::Complet => droit::fiche::ModeleBulletin::Complet,
         }
     }
 

@@ -399,9 +399,13 @@ fn plain(m: impl Into<String>) -> Echec {
 }
 
 /// Le nom d'un etablissement dans une case : sa commune (celle de la fiche entreprise pour le principal), sinon son NIC.
-fn nom_de_l_etablissement(ent: &Value, nic: &str) -> String {
-    let fiche = if nic == droit::bareme::nic_principal(ent) { Some(ent.clone()) } else { droit::bareme::entree(ent, nic) };
-    let commune = fiche.and_then(|f| ["commune_affichage", "commune"].iter().filter_map(|c| f[*c].as_str()).map(str::trim).find(|c| !c.is_empty()).map(String::from));
+fn nom_de_l_etablissement(ent: &droit::fiche::ChampsEntreprise, nic: &str) -> String {
+    let communes = if nic == ent.nic_principal() {
+        Some([&ent.commune_affichage, &ent.commune])
+    } else {
+        ent.secondaires().into_iter().find(|e| e.nic.texte() == nic).map(|e| [&e.commune_affichage, &e.commune])
+    };
+    let commune = communes.and_then(|c| c.into_iter().map(|c| c.texte().trim()).find(|c| !c.is_empty()).map(String::from));
     commune.unwrap_or_else(|| format!("NIC {}", nic))
 }
 
@@ -515,7 +519,7 @@ pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value
             f
         }
     };
-    droit::bareme::etablissement_du_salarie(&ctx.entreprise, &fiche).ok()
+    droit::bareme::etablissement_de(&ctx.entreprise, &fiche).ok()
 }
 
 /// La DSN de `mois` est-elle a refaire ? Une DSN est celle d'un etablissement (`derniere` : sa ligne du journal, son NIC
@@ -530,7 +534,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
         .and_then(|d| d.get("etablissement"))
         .map(valeur_en_texte)
         .filter(|n| !n.is_empty())
-        .unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+        .unwrap_or_else(|| ctx.entreprise.nic_principal());
     let siens: Vec<&engagement::etats::Etat> = etats.iter().filter(|e| nic_de_l_engagement(ctx, mois, e).as_deref() == Some(nic.as_str())).collect();
     if siens.iter().any(|e| refaire(e).iter().any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois))) {
         return true;
@@ -695,7 +699,7 @@ impl<'a> Moteur<'a> {
     }
 
     fn nic(&self) -> String {
-        droit::bareme::nic_principal(&self.ctx.entreprise)
+        self.ctx.entreprise.nic_principal()
     }
 
     // ------------------------------------------------------ la saisie du mois
@@ -843,8 +847,8 @@ impl<'a> Moteur<'a> {
             // veut, souvent apres la DSN qui fait remonter l'AER. Un mois passe lu a l'ouverture (`ecrit`) ne les demande pas.
             if !self.ecrit {
                 let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.code_emploi_ft.texte().to_string());
-                let idcc = self.ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
-                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
+                let ent = &self.ctx.entreprise;
+                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &ent.idcc.en_valeur(), &code_emploi, ent.feries_chomes()).map_err(plain)?;
                 ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json()}));
             }
             ligne.insert("valide".into(), valide);
@@ -1164,7 +1168,7 @@ impl<'a> Moteur<'a> {
             0
         } else {
             let departs = self.departs()?;
-            let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise_du_mois(mois).map_err(plain)?).is_empty();
+            let plusieurs = !self.ctx.entreprise_du_mois(mois).map_err(plain)?.secondaires().is_empty();
             let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
             let mut n = 0;
             for e in self.etats_du_mois(mois)? {
@@ -1495,13 +1499,13 @@ impl<'a> Moteur<'a> {
     /// principal dans la premiere.
     fn groupes_dsn(&mut self, mois: &str) -> R<Vec<(Vec<String>, Value)>> {
         let ent = self.ctx.entreprise_du_mois(mois).map_err(plain)?;
-        if droit::bareme::secondaires(&ent).is_empty() {
+        if ent.secondaires().is_empty() {
             let g = self.groupes_dsn_de(mois, &Value::Null)?;
-            return Ok(vec![(vec![droit::bareme::nic_principal(&ent)], g)]);
+            return Ok(vec![(vec![ent.nic_principal()], g)]);
         }
         let point = |g: &Value| (valeur_en_texte(&g["etat"]), valeur_en_texte(&g["phrase"]), valeur_en_texte(&g["echeance"]["jour"]));
         let mut classes: Vec<(Vec<String>, Value)> = Vec::new();
-        for nic in declarations::dsn::nics(&ent) {
+        for nic in ent.nics() {
             let g = self.groupes_dsn_de(mois, &json!(nic))?;
             match classes.iter_mut().find(|(_, x)| point(x) == point(&g)) {
                 Some((nics, _)) => nics.push(nic),
@@ -1586,7 +1590,7 @@ impl<'a> Moteur<'a> {
     /// correction dans la DSN suivante » ; `produire_regularisations::regularisations_pour`). Sinon, rien n'est a faire.
     /// Ne lit que ce qui est ecrit.
     fn dsn_a_declarer(&mut self, mois: &str, nic: &Value) -> R<bool> {
-        let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise_du_mois(mois).map_err(plain)?).is_empty();
+        let plusieurs = !self.ctx.entreprise_du_mois(mois).map_err(plain)?.secondaires().is_empty();
         let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
         let de_l_etablissement = |ctx: &Contexte, m: &str, brut: &Value| !plusieurs || nic_de_l_engagement_ecrit(ctx, m, brut).as_deref() == Some(voulu.as_str());
         for e in self.etats_du_mois(mois)? {

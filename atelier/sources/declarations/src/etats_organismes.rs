@@ -98,7 +98,7 @@ fn annee_entiere(an: &str) -> R<i32> {
 }
 
 fn idcc_de(ctx: &Contexte) -> String {
-    ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
+    ctx.entreprise.idcc.texte().to_string()
 }
 
 // ===================================== 6. les cotisations par organisme
@@ -300,10 +300,10 @@ fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_moi
             quand
         ));
     }
-    let principal = droit::bareme::nic_principal(&ctx.entreprise);
+    let principal = ctx.entreprise.nic_principal();
     for m in p.mois.iter().filter(|m| !importes.contains(m)) {
         let mut une = false;
-        for nic in crate::dsn::nics(&ctx.entreprise) {
+        for nic in ctx.entreprise.nics() {
             let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
             if let Some((f, partie)) = dsn_du_mois(ctx, m, etablissement).map_err(|e| refus(e.message))? {
                 out.push((m.clone(), nic, f, partie));
@@ -572,8 +572,8 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         // La tranche A : la base 02 (« assiette brute plafonnee ») de chaque paie (`dsn::base_declaree`).
         let mut ta = zero;
         for q in &paies {
-            let nic = droit::bareme::etablissement_du_salarie(&ctx.entreprise, &q.salarie).map_err(refus)?;
-            let bar = crate::dsn::bar_du(&ctx.du_mois(&m).map_err(refus)?, &ctx.entreprise, &orgs, &nic, &m).map_err(refus)?;
+            let nic = droit::bareme::etablissement_de(&ctx.entreprise, &q.salarie).map_err(refus)?;
+            let bar = crate::dsn::bar_du(&ctx.du_mois(&m).map_err(refus)?, &ctx.entreprise.en_valeur(), &orgs, &nic, &m).map_err(refus)?;
             for e in q.elementaires() {
                 ta = add(ta, crate::dsn::base_declaree(e, &bar, "02").map_err(refus)?);
             }

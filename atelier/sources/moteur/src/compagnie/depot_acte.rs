@@ -295,7 +295,7 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 /// rien ; trop petit, c'est B1-208-11. `constitution` : le mois de constitution du fichier (`AAAA-MM`, S20.G00.05.007).
 fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution: &str) -> R<Option<i64>> {
     let du_mois = envois::journal::lire(&ctx.racine, Some("dsn"), Some(mois), false).map_err(|m| erreur("OSError", m))?;
-    let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &droit::bareme::nic_principal(&ctx.entreprise))?
+    let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &ctx.entreprise.nic_principal())?
         .into_iter()
         .filter(|l| l.get("mode").and_then(Value::as_str) == Some("test"))
         .collect();
@@ -423,7 +423,7 @@ pub fn deposer_dsn_dans(
     }
     // UNE COMPAGNIE D'ESSAI ne depose que ce qu'elle a ecrit sous SON identite : les DSN copiees de la fictive portent le
     // SIREN de la fictive, que le compte net-entreprises ne declare pas. Le refus ne cite aucun des deux numeros.
-    if crate::compagnie::essai::est_essai(&ctx.racine) && apercu.champ("siren") != valeur_en_texte(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
+    if crate::compagnie::essai::est_essai(&ctx.racine) && apercu.champ("siren") != ctx.entreprise.siren.texte() {
         return Err(erreur(
             "ErreurOperation",
             "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Déposer ici la DSN du mois, qui s'y fabrique. Rien n'est parti.",
@@ -527,7 +527,7 @@ pub fn deposer_dsn_dans(
     let versions = if apercu.est_signalement() {
         versions_du_signalement(ctx, &mois, &octets)?
     } else {
-        let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+        let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
         let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
         // Et ce qu'elle corrige des mois passes, tel que sa fabrication l'a note : un fichier qui part tel qu'il a ete

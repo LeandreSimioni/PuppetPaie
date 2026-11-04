@@ -45,8 +45,8 @@ pub fn sexe_de(nir: &str, sexe: &str) -> String {
     }
 }
 
-/// Le NTT de ce salarie dans cette entreprise.
-pub fn numero(entreprise: &Value, salarie: &FicheSalarie) -> Resultat<String> {
+/// Le NTT de ce salarie dans l'entreprise de SIREN `siren`.
+pub fn numero(siren: &str, salarie: &FicheSalarie) -> Resultat<String> {
     let s = sexe_de(salarie.nir.texte(), salarie.sexe.code());
     if s.is_empty() {
         let qui = if salarie.nom.texte().is_empty() { salarie.id.to_string() } else { salarie.nom.texte().to_string() };
@@ -55,8 +55,7 @@ pub fn numero(entreprise: &Value, salarie: &FicheSalarie) -> Resultat<String> {
             RUBRIQUE, qui
         ));
     }
-    let siren = chaine(entreprise, "siren");
-    let siren = strip(&siren).to_string();
+    let siren = strip(siren).to_string();
     if siren.chars().count() != 9 || !siren.chars().all(|c| c.is_ascii_digit()) {
         return Err(socle::echec::a_la_cle(
             &format!(
@@ -144,7 +143,7 @@ pub fn poser_nir(f: &mut Fichier, salarie: &ChampsSalarie) -> Resultat<()> {
 /// declaree pour lui (`changements_individu::Declarations::derniere`, ou `derniere_declaree`).
 pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &FicheSalarie, declaree:Option<&crate::changements_individu::Declaree>) -> Resultat<()> {
     if nir_de(salarie).is_empty() {
-        f.add(RUBRIQUE, numero(ent, salarie)?);
+        f.add(RUBRIQUE, numero(&chaine(ent, "siren"), salarie)?);
         return Ok(());
     }
     if let Some(n) = declaree.filter(|d| d.nir.is_empty()).map(|d| strip(&d.ntt)).filter(|n| !n.is_empty()) {

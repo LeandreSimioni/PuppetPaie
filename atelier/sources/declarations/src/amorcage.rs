@@ -139,7 +139,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
     let s = &paie.salarie;
-    let ent = &ctx.entreprise;
+    let ent = &ctx.entreprise.en_valeur();
     crate::dsn::exiges(ent, std::iter::once(&paie.salarie), paie.declaree_a_la_caisse_des_conges()?)?;
     let constitution = match o.date_constitution {
         Some(j) => j,

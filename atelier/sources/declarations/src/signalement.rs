@@ -398,7 +398,7 @@ annule-et-remplace (type 03)."
 
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
     let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
-    let ent = &ctx.entreprise;
+    let ent = &ctx.entreprise.en_valeur();
     let fiche = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
     let constitution = match o.date_constitution {
         Some(j) => j,

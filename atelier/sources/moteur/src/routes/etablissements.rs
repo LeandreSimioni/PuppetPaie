@@ -327,6 +327,7 @@ valeur, et la date ne se devine pas. Rien n'a été enregistré.",
     // Le controle que toute lecture de la configuration fait (`droit::contexte`), sur ce qui est ouvert, avant d'ecrire :
     // contre le bareme de cette annee et de l'annee de chaque ouverture (une annee sans socle livre ne se controle pas).
     let fiche = json!({"siren": siren, "nic": texte(donnees.get("nic")), "etablissements": nouvelles.iter().map(|(_, e)| e.clone()).collect::<Vec<_>>()});
+    let fiche: droit::fiche::ChampsEntreprise = droit::fiche::lire_champs(&fiche, "La fiche entreprise").map_err(refus)?;
     let mut annees: Vec<i32> = std::iter::once(ctx.aujourdhui.an).chain(nouvelles.iter().map(|(o, _)| o.an)).collect();
     annees.sort();
     annees.dedup();
@@ -356,7 +357,7 @@ fn poser_annee(ligne: &mut Value, annee: Option<Value>) {
 /// (`ouverture::etablissements_dits`), ceux qui ouvrent plus tard compris ; c'est contre elle qu'un enregistrement se
 /// compare.
 pub(crate) fn entreprise_montree(ctx: &Contexte) -> Value {
-    let mut e = ctx.entreprise.clone();
+    let mut e = ctx.entreprise.en_valeur();
     if let Some(o) = e.as_object_mut() {
         if o.contains_key("etablissements") || ctx.entreprise_brute().get("etablissements").is_some() {
             o.insert("etablissements".into(), Value::Array(crate::routes::ouverture::etablissements_dits(ctx)));
