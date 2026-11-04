@@ -1,0 +1,264 @@
+                                                                                                                                                                  N° 2501-NOT-SD
+
+
+                                                                                                                                                                       cerfa
+                                                                                                                                                                   N° 50482#27
+
+
+                                  NOTICE DU RELEVE DE VERSEMENT PROVISIONNEL DE TAXE SUR LES SALAIRES ANNEE 2025
+
+
+ (Cette notice vous apporte des indications sur la façon de servir le formulaire et de régler la taxe sur les salaires. Elle ne se substitue pas à la documentation officielle de
+                                                                               l'Administration).
+
+
+
+
+I               CONDITIONS D’UTILISATION DU RELEVÉ DE VERSEMENT PROVISIONNEL DE LA TAXE SUR LES SALAIRES N°2501-SD
+
+
+
+RAPPEL: Les déclarations de taxe sur les salaires doivent depuis le 1er janvier 2019 être obligatoirement souscrites par voie électronique (
+XIV de l'article 1649 quater B quater du code général des impôts (CGI) . Cette obligation complète celle prévue en matière de télérèglement prévue à l'
+article 1681 septies 5 du CGI applicable, depuis 2015, à l'ensemble des employeurs assujettis à la taxe.
+En cas de non respect des obligations de télédéclaration ou télépaiement, et conformément à l'article 1738 du CGI, les pénalités applicables s'élèvent à 0,2 % du montant
+déclaré ou payé avec un minimum de 60 €.
+Si vous avez recours aux services d'un prestataire comptable (expert-comptable, organisme de gestion agréé...), ce dernier peut vous proposer d'assurer la
+télétransmission de vos informations. Par ailleurs, vous pouvez également accéder directement, dans votre espace abonné professionnel sur le site impots.gouv.fr, au
+télérèglement en ligne de cette taxe. Pour vous guider, vous trouverez des fiches techniques sur le site www.impots.gouv.fr en renseignant « Fiche focus sur les
+téléprocédures » dans la barre de recherche : « Fiche AIU 9 : Déclarer et payer la taxe sur les salaires».
+
+
+Date et modalités de versement :
+Chaque versement de taxe sur les salaires au titre d'un mois ou d'un trimestre effectué auprès du comptable des impôts s'accompagne de la souscription du relevé de
+versement provisionnel n° 2501-SD dûment rempli.
+
+Cette souscription et le versement concomitant sont effectués avant le 15 de chaque mois pour le mois précédent, ou le 15 du mois qui suit le trimestre écoulé.
+Le service des impôts des entreprises (SIE) compétent est celui du domicile de la personne ou du siège de l'entreprise ou de l'établissement principal.
+Si l'entreprise comprend plusieurs établissements, elle devra verser un montant de taxe unique et global pour l'ensemble de ses établissements au titre du mois ou du
+trimestre.
+
+
+RAPPEL :
+Les données de la déclaration sociale nominative (DSN) qui étaient portées sur la DADS-U sont reportées sur la DSN.
+La DSN est une démarche de simplification des démarches des employeurs qui vise à remplacer les diverses déclarations et formalités administratives adressées
+jusqu'à aujourd'hui par les employeurs à une diversité d'acteurs (CPAM, Urssaf, Pôle emploi, Centre des impôts, Caisses régimes spéciaux, etc...).
+La DSN repose sur la transmission unique, mensuelle et dématérialisée des données issues de la paie et sur des signalements d'événements.
+Aussi, pour les entreprises entrant dans le champ de la DSN, les rémunérations versées à compter du 1 er janvier 2017 et soumises à la taxe sur les salaires doivent faire
+l'objet d'une déclaration dans le cadre de la DSN au lieu de la DADS-U.
+Ainsi, la base assujettie à la taxe doit être déclarée pour chaque salarié mensuellement au niveau du bloc S21.G00.79.001, code « 91 », quelle que soient les modalités
+de paiement des acomptes.
+Elle doit également être déclarée annuellement pour chaque établissement au niveau du bloc S21.G00.44.001 en différenciant :
+- code « 009 » (assujettissement) pour la base au taux normal (code « 010 » en cas de non assujettissement)
+- code « 015 » (assujettissement) pour la base au premier au taux majoré
+- code « 016 » (assujettissement) pour la base au deuxième taux majoré
+
+Pour toutes informations complémentaires relative à la DSN, reportez-vous à l'adresse suivante : http://www.dsn-info.fr/ .
+Cette nouvelle obligation ne supprime pas l'obligation de souscrire les déclarations n° 2502-SD et 2501-SD dans les conditions habituelles.
+
+
+
+Périodicité des versements
+Elle est appréciée en fonction du montant de la taxe due au titre de l'année précédente. Ainsi, votre périodicité de versement est fixée pour l'année entière.
+Elle peut être mensuelle, trimestrielle ou annuelle.
+- Si vous avez un montant annuel de taxe inférieur à 4 000 €, vous êtes dispensé d'effectuer des versements infra-annuels. Vous n'effectuez qu'un seul versement annuel
+et ne déposez qu'une déclaration annuelle (n°2502-SD) au plus tard le 15 janvier pour les salaires versés au titre de l'année précédente.
+- Si vous avez un montant annuel de taxe compris entre 4 000 € et 10 000 €, vous déposez le relevé de versement provisionnel accompagné du versement correspondant
+dans les 15 premiers jours de chaque trimestre civil pour le trimestre écoulé.
+- Si vous avez un montant annuel de taxe supérieur à 10 000 €, vous déposez le relevé de versement provisionnel accompagné du versement correspondant dans les 15
+premiers jours du mois suivant celui au titre duquel la taxe est due.
+- Enfin, vous ne devez pas effectuer de versement au titre du dernier trimestre ou du dernier mois de l'année, ni déposer le formulaire correspondant.
+Ce versement sera inclus dans le versement de taxe qui accompagne la déclaration annuelle (n°2502-SD).
+
+Mode de paiement
+La taxe sur les salaires doit obligatoirement faire l'objet d'un télépaiement.
+Pour profiter de ce service, vous devez créer votre espace personnel et adhérer au service « payer TS » à partir du site www.impots.gouv.fr, rubrique « Mon espace
+abonné ».
+Si vous disposez d'une créance sur le Trésor (crédit de TVA, excédent d'impôt sur les sociétés, ou de taxe sur les salaires) vous pouvez utiliser tout ou partie de cette
+créance pour payer un impôt professionnel acquitté auprès de votre SIE ou de la DGE. Pour cela, vous devez cocher la case correspondante située au recto du relevé
+provisionnel n°2501-SD et souscrire le formulaire n°3516. Pour obtenir des informations sur ce service et formulaire à souscrire, vous pouvez contacter votre service des
+impôts ou consulter le site impots.gouv.fr.
+
+
+II                                                                 DÉTERMINATION DU MONTANT BRUT
+
+Base imposable
+
+La taxe sur les salaires due est calculée sur le montant brut des rémunérations entendues au sens des règles prévues à l'article L. 136-2 du code de la sécurité sociale,
+sans qu'il soit toutefois fait application du deuxième alinéa du I et du 6° du II de cet article.
+Les exonérations prévues au III de l'article L. 136-2 du code de la sécurité sociale (CSS) en matière de contribution sociale généralisée (CSG) s'appliquent en matière de
+taxe sur les salaires.
+Certaines rémunérations restent spécifiquement exonérées de taxe sur les salaires par le CGI. Il en est ainsi notamment :
+- de la rémunération des personnes recrutées par les organismes et œuvres sans but lucratif visés aux a et b du 1° du 7 de l'article 261 du CGI, notamment les
+associations régies par la loi du 1er juillet 1901, ainsi que par les organismes permanents à caractère social des collectivités locales et des entreprises, à l'occasion et pour
+la durée d'une manifestation de bienfaisance ou de soutien, exonérées de TVA en application du paragraphe c du 1° du 7 du même article (CGI art. 231 bis L);
+- des rémunérations versées aux salariés bénéficiaires d'un contrat d'accompagnement dans l'emploi ou d'un contrat d'avenir définis respectivement aux articles L. 5134-20
+et L. 5134-35 du code du travail ainsi que celles versées aux titulaires, dans les départements d'outre-mer, de contrats d'insertion par l'activité prévus à l'article L. 522-8 du
+code de l'action sociale et des familles (CGI art.231 bis N);
+- de la rémunération d'un salarié à domicile dans les conditions prévues à l'article 199 sexdecies du CGI ou d'un assistant maternel régi par les articles L. 421-1 et suivants
+et L. 423-1 et suivants du code de l'action sociale et des familles versée par un particulier (CGI art. 231 bis P);
+- des rémunérations versées aux enseignants des centres de formation d'apprentis, pour les rémunérations versées à compter du 1er janvier 2006 (CGI art. 231 bis R).
+- des rémunérations versées aux personnels mis à disposition d'un établissement d'enseignement supérieur consulaire mentionné à l'article L. 711-17 du code de
+commerce et organisant des formations conduisant à la délivrance, au nom de l'État, d'un diplôme sanctionnant cinq années d'études après le baccalauréat (CGI art. 231
+bis V).
+Les rémunérations versées à compter du 1er janvier 2018 par les établissements publics de coopération culturelle mentionnés à l'article L. 1431-1 du code général des
+collectivités territoriales, ainsi que les rémunérations versées à compter du 1 er janvier 2024 par les établissements publics de coopération environnementale mentionnés au
+même article L. 1431-1 (article 8 de la loi n° 2023-1250 du 26 décembre 2023 de financement de la sécurité sociale pour 2024), ne sont pas soumises à la taxe sur les
+salaires (article 88 de la loi n° 2017-1837 du 30 décembre 2017 de finances pour 2018).
+Enfin, les rémunérations versées par les employeurs agricoles, à l'exception de ceux énumérés par les articles 53 bis et 53 ter de l'annexe III au CGI, bénéficient d'une
+exonération de fait de taxe sur les salaires en application de la jurisprudence du Conseil d'État (paragraphe 30 du BOI-TPS-TS).
+
+
+ III                                                                              CALCUL DE LA TAXE
+
+Taux d'imposition
+La taxe comporte un taux normal appliqué à la totalité des rémunérations brutes individuelles et des taux majorés appliqués aux rémunérations brutes individuelles qui
+dépassent un certain seuil.
+Pour mémoire, l'article 90 de la loi de finances pour 2018 a supprimé le 3 e taux majoré pour les rémunérations versées à compter du 1 er janvier 2018. Le barème applicable
+aux rémunérations versées à compter du 1er janvier 2025 s'établit comme suit :
+
+Calcul de la taxe due au titre du mois.
+
+Taux normal : 4,25 % applicable sur la totalité des rémunérations versées au cours du mois.
+Le 1er taux majoré (4,25 %) est calculé sur la fraction de ces rémunérations dépassant                 9 147 €           à l'année soit mensuellement        762 €    et n'excédant pas
+  18 259 € soit mensuellement            1 522 €
+Le 2ème taux majoré (9,35 %) est calculé sur la fraction de ces rémunérations dépassant                                18 259 €     soit mensuellement      1 522 €
+
+EXEMPLE : Soit un employeur assujetti à la taxe sur les salaires de 3 salariés percevant en 2025, les rémunérations brutes mensuelles suivantes : 1 000 €, 5 000 €,
+15 000 €.
+
+1er salarié     Base taux normal               1 000 € x       4,25%       =           42,50 €
+              Base 1er taux majoré     (       1 000 € -       762 €   )   x           4,25%       =            10,11 €
+
+Le montant de la rémunération étant inférieur à       1 522 €  , il n'y a pas de majoration au taux de 9,35 %
+La taxe sur les salaires s'élève donc à :    42,50 € + 10,11 €      =         52,61 €
+
+2è salarié      Base taux normal               5 000 € x        4,25%      =           212,50 €
+                Base 1er taux majoré             (     1 522 €      -     762 €    )     x     4,25%     =      32,30 €
+                Base 2è taux majoré                 (    5 000 € -    1 522 €      )     x     9,35%     =     325,19 €
+
+La taxe sur les salaires s'élève donc à          212,50 € +    32,30 € +   325,19 € =        569,99 €
+
+3è salarié      Base taux normal       15 000 €     x          4,25%       =           637,50 €
+              Base 1er taux majoré     (    1 522 €        -    762 € )    x            4,25%      =                32,30 €
+              Base 2è taux majoré      (    15 000 €       -   1 522 € )   x            9,35%      =             1 260,19 €
+
+La taxe sur les salaires s'élève donc à          637,50 € +        32,30 € +       1 260,19 €                           =   1 929,99 €
+
+La taxe totale due par l'employeur s'élève donc à          :   52,61 € +   569,99 € +         1 929,99 € =         2 552,59 €       arrondi à 2 553 €.
+
+Calcul de la taxe due au titre du trimestre.
+
+Taux normal : 4,25 % applicable sur la totalité des rémunérations versées au cours du trimestre.
+Le 1er taux majoré (4,25%) est calculé sur la fraction de ces rémunérations dépassant                        2 287 €        (soit     9 147 € à l'année) et n'excédant pas   4 565 €
+(soit     18 259 € à l'année).
+Le 2ème taux majoré (9,35%) est calculé sur la fraction de ces rémunérations dépassant                          4 565 €        soit       18 259 €   à l'année
+
+
+EXEMPLE : Soit un employeur assujetti à la taxe sur les salaires d'un salarié percevant en 2025, une rémunération brute mensuelle de 15 000 € soit 45 000 € par trimestre.
+
+Salarié          Base taux normal      45 000 €    x           4,25%       =       1 912,5 €
+              Base 1er taux majoré     (   4 565 €         -   2 287 € )   x         4,25%         =            96,81 €
+              Base 2è taux majoré      (  45 000 €         -   4 565 € )   x         9,35%         =             3 780,67 €
+
+
+La taxe due au titre du trimestre par l'employeur s'élève donc à           1 912,5 € +        96,81 € +          3 780,67 €                     = 5 789,98 € arrondi à 5 790 €.
+
+Redevables domiciliés ou établis dans les départements d'outre-mer et collectivités d'outre-mer.
+
+La taxe sur les salaires est due au taux réduit de 2,95 % dans les départements de la Guadeloupe, de la Martinique et de la Réunion, et de 2,55 % dans ceux de la Guyane
+et de Mayotte. Les taux majorés n'y sont pas applicables.
+
+Employeurs partiellement assujettis à la TVA
+
+Les employeurs ou organismes qui, l'année civile précédant celle des paiements des rémunérations, n'ont pas été assujettis à la taxe sur la valeur ajoutée sur 90 % au
+moins de leur chiffre d'affaires restent redevables de la taxe sur les salaires dans le rapport existant, au titre de cette même année civile, entre le chiffre d'affaires non
+passible de la taxe sur la valeur ajoutée et le chiffre d'affaires total.
+Pour les employeurs possédant plusieurs établissements payant la taxe sur les salaires, le même pourcentage est applicable à l'ensemble des établissements, quelle que
+soit l'activité de chacun d'eux, sauf lorsque des secteurs distincts sont constitués en matière de TVA.
+Toutefois, lorsque ce pourcentage est compris entre 10 % et 20 %, il y a lieu de substituer le pourcentage indiqué dans le tableau ci-après :
+            Pourcentage du chiffre d'affaires
+                                                   10    11     12      13     14      15      16     17     18      19     20    Plus de 20
+                 non soumis à la TVA
+              Pourcentage de taxe sur les                                                                                           Pas de
+                                                   0      2      4      6       8      10      12     14     16      18     20
+               salaires à retenir (ligne H)                                                                                        réduction
+
+Le rapport d'assujettissement à la taxe sur les salaires s'applique après la répartition du montant total de chaque rémunération brute individuelle entre les tranches du
+barème progressif d'imposition, c'est à dire au montant de chacune des fractions de la rémunération passible des taux majorés. A titre de simplification, le montant de la
+taxe due au titre du mois ou du trimestre peut également être déterminé en appliquant ce rapport directement au montant de la taxe calculée sur le montant total de
+chacune des rémunérations concernées.
+Ce rapport d'assujettissement à la TS peut faire l'objet d'une troncature au centième par l'employeur. En d'autres termes, lorsqu'il est exprimé en pourcentage, il peut être
+arrondi à l'unité inférieure.
+Par exemple, lorsque le rapport d’assujettissement calculé par l'employeur est égal à 82,7 %, il peut être arrondi à 82 %.
+Le montant de la taxe due au titre du mois ou du trimestre à faire figurer ligne A correspond au montant de la taxe due après application du pourcentage d'imposition de
+l'année.
+
+Les arrondis fiscaux
+
+La base imposable et le montant net de l'impôt dû sont arrondis à l'euro le plus proche. Les bases et cotisations inférieurs à 0,50 € sont négligées et celles supérieures ou
+égales à 0,50 € sont comptées pour 1.
+Il est préconisé d'appliquer les règles d'arrondis avant transmission au service compétent de la DGFiP, pour ne transmettre que des bases et cotisations déjà arrondies et
+sans décimales.
+Tous les calculs intermédiaires et de report doivent être effectués après avoir appliqué les règles d'arrondis, pour ne pas lever d'éventuelles anomalies de calcul et/ou report.
+
+
+ IV                                                            MESURES D'ALLÈGEMENT TOTAL OU PARTIEL
+
+
+Chiffre d'affaires n'excédant pas les limites de la franchise en base TVA (CGI. Art.293 B et 231-1 2° alinéa).
+Les rémunérations versées par les employeurs dont le chiffre d'affaires réalisé au cours de l'année civile précédant le versement de ces rémunérations n’excédant pas les
+limites définies au I,II et IV de l'article 293 B du CGI sont exonérées de taxe sur les salaires.
+
+Franchise
+La taxe sur les salaires n'est pas due pour le calcul de l'année 2025 lorsque son montant annuel n'excède pas 1 200 € ; cette limite s’apprécie quelle que soit la durée
+d'exercice de l'activité de l'employeur au cours de l'année civile.
+
+Abattement
+L'abattement prévu à l'article 1679 A du CGI en faveur des associations régies par la loi du 1er juillet 1901, des syndicats professionnels et de leurs unions mentionnées au
+titre III du livre 1er de la deuxième partie du code du travail, des mutuelles régies par le code de la mutualité lorsqu'elles emploient moins de trente salariés, ainsi que de
+leurs groupements mentionnés à l'article 239 quater D du CGI lorsqu'ils sont exclusivement constitués de personnes morales mentionnées à ce même article a été fixé pour
+l'année 2025 à 24 041 €.
+Si vous n'avez aucun versement à effectuer en raison des différentes mesures d'allègement (franchise de taxe lorsque son montant annuel n'excède pas 1 200 €,
+abattement annuel de 24 041 € en faveur de certains organismes ou associations), vous êtes dispensés du dépôt des relevés de versements provisionnels (n°2501-SD) et
+de la déclaration annuelle (n°2502-SD).
+
+Décote
+L'employeur dont le montant annuel de la taxe sur les salaires est supérieur à 1 200 €, sans excéder 2 040 €, bénéficie pour le calcul de l'année 2025 d'une décote égale
+aux trois quarts de la différence entre cette limite de 2 040 € et le montant réel de sa taxe.
+L'employeur qui estime que le montant annuel de sa taxe sera comprise entre 1 200 € et 2 040 € et dont le montant mensuel calculé sur les salaires du mois écoulé sera
+compris entre 100 € et 170 € ou, pour le montant trimestriel calculé sur les salaires du trimestre écoulé, entre 300 € et 510 €, pourra imputer sur ce montant mensuel ou
+trimestriel une décote égale aux trois quarts de la différence entre 170 € ou 510 € et le montant réel du versement concerné. Le montant de la taxe due à faire figurer ligne
+1 de l'imprimé n° 2501 correspond au montant de la taxe due après application éventuelle de la décote.
+IMPORTANT : cette décote est régularisée au moment de la liquidation annuelle réalisée sur la déclaration annuelle de liquidation et de régularisation de la taxe sur les
+salaires (n° 2502-SD).
+
+Excédent de versement résultant du report de l'année précédente à imputer (ligne 2)
+Seul l'excédent constaté sur la déclaration annuelle portant liquidation et régularisation n°2502-SD de l'année précédente et dont le remboursement n'a pas été demandé
+ou effectué ou qui n'a fait l'objet d'une demande d'imputation sur une échéance future d'impôts professionnels tels que l'IS ou la TVA (cf. page 2 de la notice), pourra être
+imputé sur le montant de la taxe due au titre du mois, du trimestre ou de l'année.
+Exemple de calcul :
+Taxe brute due mensuelle = 2 000 € (ligne 1)
+Report d'excédent de versement = 300 € (ligne 2)
+Taxe nette due : 2 000 – 300 = 1 700 € (ligne 4)
+
+
+ V                                                                                  SANCTIONS
+
+
+Toute absence ou insuffisance de paiement dans les délais des sommes dues au titre de la taxe sur les salaires donne lieu au versement d'intérêts de retard et d'une
+majoration de 5 % (art. 1727 et 1731 du CGI).
+Le non-respect de l'obligation de souscrire par voie électronique une déclaration et ses annexes ou de payer un impôt par télérèglement, virement, ou prélèvement opéré à
+l'initiative du Trésor public entraîne l'application d'une majoration de 0,2 % selon les dispositions de l'article 1738 du CGI.
+
+
+
+ VI                                                                            CAS PARTICULIERS
+
+
+En cas de cession ou de cessation d'activité, l'employeur est tenu de souscrire dans les soixante jours et au plus tard le 15 janvier de l'année suivante, la déclaration
+annuelle de liquidation et de régularisation de la taxe sur les salaires accompagnée du paiement y afférent.
+En cas de décès de l'employeur, la déclaration n° 2502 s'effectue dans les six mois du décès et au plus tard le 15 janvier de l'année suivante, accompagnée du paiement y
+afférent.
+En cas de transfert du siège ou du principal établissement, les versements s'effectuent auprès du comptable des impôts dont dépend la nouvelle adresse.
+

@@ -4,7 +4,12 @@ Les `articles-AAAAMMJJ.md`, `releve.json` et `xml/` de ce dossier sont **écrits
 `rapport`) depuis la base LEGI de la DILA (`https://echanges.dila.gouv.fr/OPENDATA/LEGI/`) ; ils ne se retouchent pas à la
 main. Les articles suivis sont la liste du texte `impots` de `atelier/sources/paie/src/releve_codes/textes.rs`, où chaque
 domaine dit pourquoi il est là ; le dernier relevé est le plus récent des `articles-*.md`. `formulaires/` garde les notices
-de la DGFiP de la taxe sur les salaires (2501-SD, 2502-SD), copiées telles que servies. Ce fichier dit, par sujet ajouté
+de la DGFiP de la taxe sur les salaires (2501-SD, 2502-SD), copiées telles que servies, chacune avec sa transcription
+`.txt` (`pdftotext -layout`, faite le 04/11/2026 sur le PDF déposé) : 2501-SD 2025, II (taux normal 4,25 % ; 1er taux
+majoré 4,25 % au-delà de 9 147 €, 2e taux majoré 9,35 % au-delà de 18 259 €), III (franchise 1 200 €, abattement 24 041 €,
+décote des trois quarts jusqu'à 2 040 €) ; 2501-SD 2026, mêmes paragraphes (9 229 €, 18 423 €, 1 200 €, 24 256 €,
+2 040 €) ; 2502-SD 2025, II B et C (mêmes valeurs 2025 ; C, 1 : le chiffre d'affaires de 293 B). Où le moteur s'en sert :
+`taxe_sur_les_salaires` des barèmes 2025 et 2026. Ce fichier dit, par sujet ajouté
 depuis qu'il existe, ce qu'on en lit et où le moteur s'en sert (les sujets plus anciens sont décrits dans les commentaires de
 `textes.rs` et dans les LISEZ-MOI des dossiers qui les citent : `bloc-44-assujettissement/`, `suspension-non-remuneree/`…).
 
