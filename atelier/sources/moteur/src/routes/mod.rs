@@ -397,6 +397,13 @@ pub(crate) fn qui_de(charge: &Value) -> String {
     }
 }
 
+/// LA CHARGE D'UNE ROUTE, lue une fois a son entree, en sa forme (`socle::forme::lire`) : une cle que la forme ne connait
+/// pas, une cle qui manque, une valeur d'une autre forme la refusent (`TypeError`, `catalogue::FORME`), la cle fautive a
+/// part ; rien ne s'ecrit.
+pub(crate) fn lire_charge<T: serde::de::DeserializeOwned>(charge: &Value) -> R<T> {
+    socle::forme::lire(charge, "La demande est mal formée.").map_err(|m| erreur("TypeError", m))
+}
+
 /// Le salarié que `nom` désigne (`Contexte::salarie`) ; refus (`KeyError`) avec la phrase de `Contexte::salarie`.
 pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<droit::fiche::FicheSalarie> {
     ctx.salarie(&cle_du_salarie(ctx, nom)?).map_err(|m| erreur("KeyError", m))
@@ -440,8 +447,21 @@ pub(crate) fn encarts_en_lignes(encarts: &[Value]) -> Vec<Value> {
 }
 
 /// LA PASTILLE D'UN ETAT, telle que la page la dessine : sa couleur (`couleur_de_l_etat`) et ses mots.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct Pastille {
+    pub couleur: &'static str,
+    pub mots: String,
+}
+
+impl Pastille {
+    pub(crate) fn de(etat: &str, mots: &str) -> Pastille {
+        Pastille { couleur: couleur_de_l_etat(etat), mots: mots.to_string() }
+    }
+}
+
+/// `Pastille::de`, en JSON.
 pub(crate) fn pastille(etat: &str, mots: &str) -> Value {
-    json!({"couleur": couleur_de_l_etat(etat), "mots": mots})
+    json!(Pastille::de(etat, mots))
 }
 
 /// « 12/09/2026 à 18:18 » : un horodatage ISO tel que l'ecran le dit ; ce qui n'en est pas un, tel quel.

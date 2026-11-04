@@ -459,7 +459,7 @@ async function agirSurRappel(r) {
  * tant que le spectacle se joue : on
  * demande seulement lesquels continuent. Tout est coché ; décocher archive,
  * et une fiche archivée se réactive d'un clic dans Configuration. */
-function boiteRevueSpectacles(r) {
+function boiteRevueSpectacles(r, charge) {
   const lignes = (r.spectacles || []).map((s, i) => `
     <label class="coche"><input type="checkbox" class="rv-garde" data-cle="${echapper(s.cle)}" checked>
       ${echapper(s.titre)}${s.numero_objet ? ` <span class="discret">${echapper(s.numero_objet)}</span>` : ""}</label>`).join("");
@@ -478,7 +478,7 @@ function boiteRevueSpectacles(r) {
     const continuent = [...document.querySelectorAll(".rv-garde")]
       .filter((c) => c.checked).map((c) => c.dataset.cle);
     try {
-      const res = await api("revue-spectacles", { annee: r.annee, continuent });
+      const res = await api("revue-spectacles", { ...charge, continuent });
       await relireEtat();
       fermerBoite();
       dire(res.phrase);
