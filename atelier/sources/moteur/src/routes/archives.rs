@@ -150,10 +150,10 @@ pub const ROUTES: &[Fiche] = &[
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        Route::DossierFormes => dossier_formes(ctx).map(|v| {
-            let p = format!("Dossiers possibles : {} ; sortes de pièces : {}.", super::compte(super::nombre(&v["salaries"]), "salarié", "salariés"), super::nombre(&v["categories"]));
-            super::phrase_en_tete(v, p)
-        }),
+        Route::DossierFormes => {
+            let super::SansCharge {} = lire_charge(charge)?;
+            en_json(dossier_formes(ctx)?)
+        }
         Route::ExportsPeriodes => exports_periodes(ctx, charge).map(|mut v| {
             v["ecran"] = ecran_des_exports(&v);
             let p = format!("Exports : {} ; mois payés : {} ; années : {}.", super::compte(super::nombre(&v["etats"]), "état", "états"), super::nombre(&v["mois"]), super::nombre(&v["annees"]));
@@ -178,7 +178,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
         }),
         Route::DossierEnvoyer => en_json(dossier_envoyer(ctx, lire_charge(charge)?, &mut || client_courriel(ctx))?),
         Route::CascEnvoyer => en_json(casc_envoyer(ctx, lire_charge(charge)?, &mut || client_courriel(ctx))?),
-        Route::Droits => droits(ctx, charge),
+        Route::Droits => en_json(droits(ctx, lire_charge(charge)?)?),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -269,49 +269,68 @@ fn annees_de(dispo: &[String]) -> Vec<String> {
     annees
 }
 
+/// Un salarie que la page propose : sa cle, son nom, s'il est actif, s'il a un courriel.
+#[derive(Debug, Serialize)]
+struct SalariePropose {
+    cle: String,
+    nom: String,
+    actif: bool,
+    email: bool,
+}
+
+/// Une categorie a cocher : son nom, et ce qu'elle porte.
+#[derive(Debug, Serialize)]
+struct CategorieProposee {
+    categorie: &'static str,
+    quoi: &'static str,
+}
+
+/// Ce que rend `dossier-formes` : les salaries, les categories a cocher, les mois et les annees, si une boite est posee
+/// (l'envoi), et le dossier ou le dossier s'ecrit.
+#[derive(Debug, Serialize)]
+struct FormesDuDossier {
+    phrase: String,
+    salaries: Vec<SalariePropose>,
+    categories: Vec<CategorieProposee>,
+    mois: Vec<String>,
+    annees: Vec<String>,
+    boite_liee: bool,
+    dossier: String,
+}
+
 /// Les salaries que la page propose.
-fn salaries_de_la_page(ctx: &Contexte) -> Vec<Value> {
+fn salaries_de_la_page(ctx: &Contexte) -> Vec<SalariePropose> {
     let mut fiches: Vec<(&droit::contexte::IdSalarie, &droit::fiche::FicheSalarie)> = ctx.salaries.iter().collect();
     fiches.sort_by(|a, b| a.0.cmp(b.0));
     fiches
         .into_iter()
-        .map(|(k, v)| {
-            let nom = format!(
-                "{} {}",
-                v.nom.texte(),
-                if v.prenom_affichage.texte().is_empty() { v.prenom.texte() } else { v.prenom_affichage.texte() }
-            );
-            json!({"cle": k, "nom": nom, "actif": matches!(v.actif, droit::fiche::Case::Absente | droit::fiche::Case::Dite(true)), "email": !v.email.texte().is_empty()})
+        .map(|(k, v)| SalariePropose {
+            cle: k.to_string(),
+            nom: format!("{} {}", v.nom.texte(), if v.prenom_affichage.texte().is_empty() { v.prenom.texte() } else { v.prenom_affichage.texte() }),
+            actif: matches!(v.actif, droit::fiche::Case::Absente | droit::fiche::Case::Dite(true)),
+            email: !v.email.texte().is_empty(),
         })
         .collect()
 }
 
 /// Ce que la page propose -- les salaries,
 /// les categories a cocher, les periodes, et si l'envoi est possible.
-fn dossier_formes(ctx: &Contexte) -> R<Value> {
+fn dossier_formes(ctx: &Contexte) -> R<FormesDuDossier> {
     let salaries = salaries_de_la_page(ctx);
     // `periodes_exportables` : les mois, puis (sans rien en dire) le logiciel du comptable.
-    let dispo: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
-    let mois: Vec<&String> = dispo.iter().collect();
-    let annees = annees_de(&dispo);
+    let mois: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
+    let annees = annees_de(&mois);
     etat_logiciel(ctx)?;
-    let boite = crate::routes::ouverture::boite_liee(ctx)?;
-    Ok(json!({
-        "salaries": salaries,
-        "categories": [
-            {"categorie": "bulletins", "quoi": "Bulletins de paie"},
-            {"categorie": "contrats", "quoi": "Contrats"},
-            {"categorie": "contrats-signes", "quoi": "Contrats signés"},
-            {"categorie": "certificats-cs", "quoi": "Certificats Congés Spectacles"},
-            {"categorie": "attestations", "quoi": "Attestations employeur (AER, AEM)"},
-            {"categorie": "documents-fin", "quoi": "Documents de fin de contrat"},
-            {"categorie": "recapitulatif", "quoi": "Fiche récapitulative"},
-        ],
-        "mois": mois,
-        "annees": annees,
-        "boite_liee": boite,
-        "dossier": ctx.racine.join("exports").join("dossiers").display().to_string(),
-    }))
+    let categories: Vec<CategorieProposee> = crate::routes::dossier_salarie::CATEGORIES.iter().map(|c| CategorieProposee { categorie: c, quoi: crate::routes::dossier_salarie::libelle_de(c) }).collect();
+    Ok(FormesDuDossier {
+        phrase: format!("Dossiers possibles : {} ; sortes de pièces : {}.", super::compte(salaries.len(), "salarié", "salariés"), categories.len()),
+        salaries,
+        categories,
+        mois,
+        annees,
+        boite_liee: crate::routes::ouverture::boite_liee(ctx)?,
+        dossier: ctx.racine.join("exports").join("dossiers").display().to_string(),
+    })
 }
 
 // ------------------------------------------------- le logiciel du comptable
@@ -886,16 +905,57 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 
 // ------------------------------------------------------------------ les droits des intermittents, l'archive d'un mois
 
+/// La charge de `droits` : le mois du tableau (aucun : celui du jour).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeDroits {
+    #[serde(default)]
+    mois: Option<Mois>,
+}
+
+/// Une rangee du tableau du mois : ce qu'elle compte, et sa valeur dans chaque colonne.
+#[derive(Debug, Serialize)]
+struct Rangee {
+    quoi: &'static str,
+    valeurs: Vec<String>,
+}
+
+/// Le tableau du mois d'un intermittent : les titres des colonnes, et ses rangees.
+#[derive(Debug, Serialize)]
+struct TableauDesDroits {
+    titres: Vec<String>,
+    lignes: Vec<Rangee>,
+}
+
+/// Ce que `droits` dit d'un intermittent : son nom, sa fenetre, ses comptes (`[quoi, valeur]`), ou il en est, ses notes,
+/// et le tableau du mois.
+#[derive(Debug, Serialize)]
+struct DroitsDUnSalarie {
+    cle: String,
+    nom: String,
+    fenetre: String,
+    lignes: Vec<(String, String)>,
+    phrase: String,
+    notes: Vec<String>,
+    colonnes: TableauDesDroits,
+}
+
+/// Ce que rend `droits` : le mois, ce que vaut ce compte, chaque intermittent.
+#[derive(Debug, Serialize)]
+struct Droits {
+    phrase: &'static str,
+    mois: String,
+    phrases: Vec<String>,
+    salaries: Vec<DroitsDUnSalarie>,
+}
+
 /// LES HEURES ET CACHETS DES INTERMITTENTS au regard des annexes 8 et 10 (`droit::cumul` : la fenetre, le plafond des
 /// cachets d'un mois, l'enseignement plafonne, le seuil, lus du bareme) : pour chaque salarie dont un engagement est connu
 /// (importe ou valide), sa position dans sa fenetre et le tableau du mois. Le compte ne porte que les engagements de cette
 /// compagnie : la phrase le dit.
-fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn droits(ctx: &Contexte, c: ChargeDroits) -> R<Droits> {
     use droit::cumul::{anniversaire_configure, position_droits, tableau_cumul};
-    let mois = match charge.get("mois").filter(|v| vrai(v)) {
-        Some(m) => valeur_en_texte(m),
-        None => ctx.aujourdhui.mois_civil().to_string(),
-    };
+    let mois = c.mois.unwrap_or_else(|| ctx.aujourdhui.mois_civil()).to_string();
     let engs = engagement::cumul::lire_engagements(ctx, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     let mut salaries = Vec::new();
@@ -904,24 +964,24 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
         let p = position_droits(ctx, cle, &engs, anniv, None)?;
         let c = &p.constantes;
         let h = |n: i64| format!("{} h", n);
-        let mut lignes = vec![json!(["Cachets déclarés", p.cachets().to_string()])];
+        let mut lignes: Vec<(String, String)> = vec![("Cachets déclarés".into(), p.cachets().to_string())];
         if p.cachets_perdus() != 0 {
-            lignes.push(json!([format!("Retenus ({} par mois au plus)", c.cachets_par_mois), p.cachets_retenus().to_string()]));
+            lignes.push((format!("Retenus ({} par mois au plus)", c.cachets_par_mois), p.cachets_retenus().to_string()));
         }
-        lignes.push(json!([format!("Convertis ({} h par cachet)", c.heures_par_cachet), h(p.cachets_retenus() * c.heures_par_cachet)]));
-        lignes.push(json!(["Heures déclarées", h(p.heures())]));
-        lignes.push(json!(["Total d'heures équivalentes", h(p.heures_retenues())]));
+        lignes.push((format!("Convertis ({} h par cachet)", c.heures_par_cachet), h(p.cachets_retenus() * c.heures_par_cachet)));
+        lignes.push(("Heures déclarées".into(), h(p.heures())));
+        lignes.push(("Total d'heures équivalentes".into(), h(p.heures_retenues())));
         if p.heures_enseignement() != 0 {
             // Deux comptes des qu'il y a de l'enseignement : ces heures ouvrent les droits (plafonnees), sans augmenter l'allocation.
-            lignes.push(json!(["Dont enseignement", h(p.heures_enseignement())]));
-            lignes.push(json!([format!("Enseignement retenu (plafond {} h)", p.plafond_enseignement()?), h(p.heures_enseignement_retenues()?)]));
-            lignes.push(json!(["Pour l'ouverture des droits", h(p.heures_ouverture()?)]));
-            lignes.push(json!(["Pour le montant de l'allocation", h(p.heures_montant())]));
+            lignes.push(("Dont enseignement".into(), h(p.heures_enseignement())));
+            lignes.push((format!("Enseignement retenu (plafond {} h)", p.plafond_enseignement()?), h(p.heures_enseignement_retenues()?)));
+            lignes.push(("Pour l'ouverture des droits".into(), h(p.heures_ouverture()?)));
+            lignes.push(("Pour le montant de l'allocation".into(), h(p.heures_montant())));
         }
-        lignes.push(json!(["Seuil des annexes 8 et 10", h(c.seuil_heures)]));
+        lignes.push(("Seuil des annexes 8 et 10".into(), h(c.seuil_heures)));
         let jours = p.jours_restants(ctx.aujourdhui);
         if anniv.is_some() && jours > 0 {
-            lignes.push(json!(["Avant le réexamen", format!("{} j", jours)]));
+            lignes.push(("Avant le réexamen".into(), format!("{} j", jours)));
         }
         let phrase = if p.atteint()? {
             format!("Seuil atteint, avec {} h de marge.", p.heures_ouverture()? - c.seuil_heures)
@@ -946,32 +1006,28 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
         if anniv.is_none() {
             notes.push("Fenêtre déduite du dernier contrat déclaré : la date anniversaire que France Travail notifie (anniversaire_droits, dans la fiche du salarié) prime sur ce calcul.".to_string());
         }
-        let colonnes: Vec<Value> = tableau_cumul(ctx, cle, &mois, &engs)?.iter().map(|x| x.canon()).collect();
-        let rangee = |quoi: &str, cle: &str, ecrire: &dyn Fn(&Value) -> String| {
-            json!({"quoi": quoi, "valeurs": colonnes.iter().map(|x| ecrire(&x[cle])).collect::<Vec<_>>()})
+        let colonnes = tableau_cumul(ctx, cle, &mois, &engs)?;
+        let rangee = |quoi: &'static str, valeur: &dyn Fn(&droit::cumul::Colonne) -> String| Rangee { quoi, valeurs: colonnes.iter().map(valeur).collect() };
+        let heures = |n: i64| format!("{} h", n);
+        let tableau = TableauDesDroits {
+            titres: colonnes.iter().map(|x| format!("{} {}", x.titre, x.sous_titre).trim().to_string()).collect(),
+            lignes: vec![
+                rangee("Cachets", &|x| x.cachets.to_string()),
+                rangee("Heures déclarées", &|x| heures(x.heures)),
+                rangee("Total d'heures", &|x| heures(x.heures_equivalentes)),
+                rangee("Salaire brut", &|x| socle::texte::euros(x.brut)),
+            ],
         };
-        let heures = |v: &Value| format!("{} h", socle::num::dec(v).map(socle::texte::virgule).unwrap_or_else(|_| valeur_en_texte(v)));
         let nom = ctx.salaries.get(cle).map(|f| crate::routes::nom_a_l_ecran(f)).unwrap_or_else(|| cle.to_string());
-        salaries.push(json!({
-            "cle": cle,
-            "nom": nom,
-            "fenetre": p.libelle_fenetre,
-            "lignes": lignes,
-            "phrase": phrase,
-            "notes": notes,
-            "colonnes": {
-                "titres": colonnes.iter().map(|x| format!("{} {}", valeur_en_texte(&x["titre"]), valeur_en_texte(&x["sous_titre"])).trim().to_string()).collect::<Vec<_>>(),
-                "lignes": [rangee("Cachets", "cachets", &valeur_en_texte), rangee("Heures déclarées", "heures", &heures), rangee("Total d'heures", "heures_equivalentes", &heures), rangee("Salaire brut", "brut", &socle::texte::euros_de)],
-            },
-        }));
+        salaries.push(DroitsDUnSalarie { cle: cle.to_string(), nom, fenetre: p.libelle_fenetre.clone(), lignes, phrase, notes, colonnes: tableau });
     }
     let phrase = if salaries.is_empty() {
         "Aucun engagement d'intermittent n'est encore validé ni importé."
     } else {
         "Ce compte ne porte que les engagements de cette compagnie : le relevé de France Travail seul fait foi, et le seuil se compte sur tous les employeurs. Ces totaux sont un plancher."
     };
-    let phrases: Vec<String> = salaries.iter().map(|s| format!("{} ({}) : {}", valeur_en_texte(&s["nom"]), valeur_en_texte(&s["fenetre"]), valeur_en_texte(&s["phrase"]))).collect();
-    Ok(json!({"mois": mois, "phrase": phrase, "phrases": phrases, "salaries": salaries}))
+    let phrases = salaries.iter().map(|s| format!("{} ({}) : {}", s.nom, s.fenetre, s.phrase)).collect();
+    Ok(Droits { phrase, mois, phrases, salaries })
 }
 
 
