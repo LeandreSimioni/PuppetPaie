@@ -39,12 +39,13 @@ pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Optio
 }
 
 fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> String {
-    // La fiche telle qu'ecrite, lue au jour : l'empreinte garde l'ordre de ses cases.
-    let sal = match ctx.salarie_brut(salarie).filter(|_| ctx.salaries.contains_key(salarie)) {
-        Some(b) => droit::contexte::fiche_au(b, &ctx.lue_au, salarie).map(|mut f| {
-            f.as_object_mut().map(|o| o.shift_remove(droit::pas::CHAMP));
-            f
-        }).unwrap_or(Value::Null),
+    // La fiche au jour, dans l'ordre de sa forme (`droit::fiche`), sans ses taux recus.
+    let sal = match ctx.salaries.get(salarie) {
+        Some(f) => {
+            let mut champs = f.champs.clone();
+            champs.taux_pas = droit::fiche::Case::Absente;
+            champs.en_valeur()
+        }
         None => Value::Null,
     };
     let spec = spectacle.and_then(|k| ctx.spectacles.get(k)).cloned().unwrap_or(Value::Null);

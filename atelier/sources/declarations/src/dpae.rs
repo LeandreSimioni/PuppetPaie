@@ -154,10 +154,9 @@ pub fn normaliser(v: &str) -> String {
         .collect()
 }
 
-/// `(v or "").upper()[:largeur].ljust(largeur)`.
-fn txt(v: &Value, largeur: usize) -> String {
-    let t = if vrai(v) { en_texte(v).to_uppercase() } else { String::new() };
-    ljust(&debut(&t, largeur), largeur)
+/// `v.upper()[:largeur].ljust(largeur)`.
+fn txt(v: &str, largeur: usize) -> String {
+    ljust(&debut(&v.to_uppercase(), largeur), largeur)
 }
 
 /// `c.isdigit()`.
@@ -395,19 +394,18 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         ecrire_zone(&mut buf, a, b, v);
     }
 
-    // Les zones de la DPAE se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
-    let s = &e.salarie.en_valeur();
+    let s = &e.salarie;
     // LE SEXE VIENT DU NIR QUAND IL Y EN A UN, de la fiche sinon : c'est la
     // meme lecture que pour le numero technique temporaire de la DSN
     // (`ntt.rs`), et il n'y en a qu'une dans le logiciel.
-    let sexe = match ntt::sexe(s).as_str() {
+    let sexe = match ntt::sexe_de(s.nir.texte(), s.sexe.code()).as_str() {
         "1" => "M",
         "2" => "F",
         _ => "",
     };
     poser(&mut buf, "horodatage", p.horodatage)?;
-    poser(&mut buf, "nom", &txt(cle(s, "nom")?, 32))?;
-    poser(&mut buf, "prenom", &txt(cle(s, "prenom")?, 32))?;
+    poser(&mut buf, "nom", &txt(s.nom.ecrite("nom")?, 32))?;
+    poser(&mut buf, "prenom", &txt(s.prenom.ecrite("prenom")?, 32))?;
     // LE NIR EST FACULTATIF ICI, et c'est tout l'interet : une DPAE sans
     // numero de securite sociale DEMANDE l'immatriculation du salarie
     // (formalite IMMA du Format 120, << demande d'immatriculation d'un
@@ -415,13 +413,13 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     // CPAM). C'est par elle que le NIR arrive -- et, en attendant, la DSN
     // declare l'individu sous son numero technique temporaire. La zone reste
     // donc a blanc, sur ses 13 caracteres.
-    poser(&mut buf, "nir", &ljust(&chaine(s.get("nir")), 13))?;
-    poser(&mut buf, "date_naissance", &d(cle(s, "date_naissance")?)?.jjmmaaaa())?;
-    poser(&mut buf, "lieu_naissance", &txt(cle(s, "lieu_naissance")?, 44))?;
+    poser(&mut buf, "nir", &ljust(s.nir.texte(), 13))?;
+    poser(&mut buf, "date_naissance", &s.date_naissance.exigee("date_naissance")?.jjmmaaaa())?;
+    poser(&mut buf, "lieu_naissance", &txt(s.lieu_naissance.ecrite("lieu_naissance")?, 44))?;
     poser(&mut buf, "date_embauche", &d(&e.debut)?.jjmmaaaa())?;
     poser(&mut buf, "heure_embauche", &p.heure_embauche)?;
     poser(&mut buf, "sexe", sexe)?;
-    poser(&mut buf, "dept_naissance", &en_texte(cle(s, "departement_naissance")?))?;
+    poser(&mut buf, "dept_naissance", s.departement_naissance.ecrite("departement_naissance")?)?;
     let nat = nature_de(e)?;
     poser(&mut buf, "type_contrat", &nat.type_contrat_dpae())?;
     // UN CDI N'A PAS DE TERME, et la zone D_FIN_CDD reste a blanc : le
@@ -432,7 +430,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
             return Err(socle::echec::cle(
                 format!(
                     "{} : un contrat {} dit sa date de fin ; la DPAE d'un CDD la porte, et l'Urssaf la refuse sans (code retour 46).",
-                    en_texte(cle(s, "nom")?),
+                    s.nom.ecrite("nom")?,
                     nat.libelle
                 ),
                 "fin",
@@ -637,7 +635,7 @@ pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat
     );
     let mut lignes: Vec<String> = vec!["DPAE - a declarer avant le debut de chaque contrat".into(), String::new()];
     for e in embauches {
-        let s = &e.salarie.en_valeur();
+        let s = &e.salarie;
         let nat = nature_de(e)?;
         // Un permanent n'a ni terme ni spectacle : la nature du contrat le
         // situe, comme sur le bulletin (`calcul.Paie.__str__`). Ce texte se
@@ -655,19 +653,19 @@ pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat
         };
         lignes.push(format!(
             "{} {} - ne(e) le {} a {} ({})",
-            en_texte(cle(s, "nom")?),
-            en_texte(cle(s, "prenom")?),
-            d(cle(s, "date_naissance")?)?.jj_mm_aaaa(),
-            en_texte(cle(s, "lieu_naissance")?),
-            en_texte(cle(s, "departement_naissance")?)
+            s.nom.ecrite("nom")?,
+            s.prenom.ecrite("prenom")?,
+            s.date_naissance.exigee("date_naissance")?.jj_mm_aaaa(),
+            s.lieu_naissance.ecrite("lieu_naissance")?,
+            s.departement_naissance.ecrite("departement_naissance")?
         ));
-        lignes.push(if s.get("nir").map_or(false, vrai) {
-            format!("  NIR {}{}", en_texte(cle(s, "nir")?), en_texte(cle(s, "nir_cle")?))
+        lignes.push(if !s.nir.texte().is_empty() {
+            format!("  NIR {}{}", s.nir.texte(), s.nir_cle.ecrite("nir_cle")?)
         } else {
             "  NIR : aucun -- cette DPAE vaut demande d'immatriculation (formalite IMMA)".to_string()
         });
         lignes.push(format!("  Embauche le {} a {}{}", d(&e.debut)?.jj_mm_aaaa(), heure, terme));
-        lignes.push(format!("  Emploi : {} - {}{}", en_texte(cle(s, "emploi")?), nat.libelle, ou));
+        lignes.push(format!("  Emploi : {} - {}{}", s.emploi.ecrite("emploi")?, nat.libelle, ou));
         lignes.push(String::new());
     }
     Ok(lignes.join("\n"))

@@ -400,7 +400,6 @@ annule-et-remplace (type 03)."
     let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
     let ent = &ctx.entreprise;
     let fiche = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
-    let salarie = fiche.en_valeur();
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -466,12 +465,12 @@ annule-et-remplace (type 03)."
     }
 
     // ------------------------------------------------------- S21 individu
-    crate::ntt::poser_nir(&mut f, &salarie)?;
-    f.add_v("S21.G00.30.002", req(&salarie, "nom")?)?;
-    f.add_v("S21.G00.30.004", req(&salarie, "prenom")?)?;
-    f.add("S21.G00.30.006", d(req(&salarie, "date_naissance")?)?.jjmmaaaa());
-    f.add_v("S21.G00.30.019", req(&salarie, "code_salarie")?)?;
-    crate::ntt::poser_ntt(&mut f, ent, &salarie, crate::changements_individu::derniere_declaree(ctx, &fiche, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
+    crate::ntt::poser_nir(&mut f, &fiche)?;
+    f.add_case("S21.G00.30.002", &fiche.nom, "nom")?;
+    f.add_case("S21.G00.30.004", &fiche.prenom, "prenom")?;
+    f.add("S21.G00.30.006", fiche.date_naissance.exigee("date_naissance")?.jjmmaaaa());
+    f.add_case("S21.G00.30.019", &fiche.code_salarie, "code_salarie")?;
+    crate::ntt::poser_ntt(&mut f, ent, &fiche,crate::changements_individu::derniere_declaree(ctx, &fiche, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());

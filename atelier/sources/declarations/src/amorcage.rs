@@ -13,7 +13,7 @@ use engagement::calcul::Paie;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::{
-    affiliations, bloc_anciennete, bloc_contrat, g, jj, jour, liste, req, usage_admet, Fichier, LOGICIEL, VERSION,
+    affiliations, bloc_anciennete, bloc_contrat, g, liste, req, usage_admet, Fichier, LOGICIEL, VERSION,
 };
 use crate::fctu::Echec;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
@@ -121,10 +121,8 @@ annule-et-remplace ou un annule."
 
     // Le NIR, et pas un numero technique temporaire : sans NIR, la DGFiP n'a
     // personne a qui repondre.
-    // Les rubriques de la DSN se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
-    let s = &paie.salarie.en_valeur();
-    if crate::ntt::nir_de(s).is_empty() {
-        let qui = ["_cle", "nom"].iter().map(|k| g(s, k)).find(|v| vrai(v)).map(en_texte).unwrap_or_else(|| "Ce salarie".into());
+    if crate::ntt::nir_de(&paie.salarie).is_empty() {
+        let qui = paie.salarie.id.to_string();
         return impossible(format!(
             "{} n'a pas de NIR : il se declare sous numero technique temporaire, et la DGFiP n'a alors personne a \
 qui repondre. Son taux de PAS restera le bareme de l'article 204 H jusqu'a son immatriculation -- c'est la loi, pas \
@@ -140,8 +138,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     verifier(paie, &o.motif, &o.type_declaration, o.remplace.as_deref())?;
     let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
-    // Les rubriques de la DSN se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
-    let s = &paie.salarie.en_valeur();
+    let s = &paie.salarie;
     let ent = &ctx.entreprise;
     crate::dsn::exiges(ent, std::iter::once(&paie.salarie), paie.declaree_a_la_caisse_des_conges()?)?;
     let constitution = match o.date_constitution {
@@ -244,36 +241,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     }
 
     // ------------------------------------------------------------ S21 individu
-    crate::ntt::poser_nir(&mut f, s)?;
-    f.add_v("S21.G00.30.002", req(s, "nom")?)?;
-    f.add_v("S21.G00.30.004", req(s, "prenom")?)?;
-    f.add("S21.G00.30.006", jj(req(s, "date_naissance")?)?);
-    for (rub, k) in [
-        ("S21.G00.30.007", "lieu_naissance"),
-        ("S21.G00.30.008", "adresse"),
-        ("S21.G00.30.009", "code_postal"),
-        ("S21.G00.30.010", "commune"),
-    ] {
-        f.add_v(rub, req(s, k)?)?;
-    }
-    // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-    f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
-    for (rub, k) in [
-        ("S21.G00.30.014", "departement_naissance"),
-        ("S21.G00.30.015", "pays_naissance"),
-        ("S21.G00.30.018", "email"),
-        ("S21.G00.30.019", "code_salarie"),
-    ] {
-        // L'adresse mel est conditionnelle (usage « C » dans chaque nature, et « conditionne a l'accord explicite » de
-        // l'individu : `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, `texte/bloc-S21.G00.30.txt`) : une fiche
-        // sans courriel n'en declare pas.
-        if k == "email" && !s.get(k).is_some_and(vrai) {
-            continue;
-        }
-        // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
-        let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
-        f.add_v(rub, &v)?;
-    }
+    crate::dsn::bloc_individu(&mut f, s, true)?;
     crate::ntt::poser_ntt(&mut f, ent, s, crate::changements_individu::derniere_declaree(ctx, &paie.salarie, &e.debut, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
@@ -283,7 +251,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
         let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
         bloc_contrat(&mut f, paie, &etab, &orgs, 1, &bar, false, &[], NATURE, emplois)?;
         // L'anciennete, due des qu'une adhesion prevoyance est declaree.
-        let depuis = if vrai(g(s, "date_anciennete")) { jour(&s["date_anciennete"])? } else { e.debut };
+        let depuis = s.date_anciennete.dite().copied().unwrap_or(e.debut);
         bloc_anciennete(&mut f, paie, 1.max(e.debut.moins(&depuis) + 1))?;
     }
 

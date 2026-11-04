@@ -210,21 +210,14 @@ pub fn servir() -> Resultat<Value> {
     ))
 }
 
-/// `S21.G00.30.015` d'une fiche : le code, s'il est dans la table « Pays » de la DSN. Absent : `'pays_naissance'` (la
-/// rubrique manque).
-pub fn de_naissance(fiche: &Value) -> Resultat<Value> {
-    let v = fiche.get("pays_naissance").cloned().ok_or_else(|| crate::fichiers::absent("pays_naissance"))?;
-    let Some(code) = v.as_str().filter(|c| !c.trim().is_empty()) else { return Ok(v) };
+/// `S21.G00.30.015` du pays de naissance `code` d'une fiche (`qui` : celui qu'elle nomme) : le code, s'il est dans la
+/// table « Pays » de la DSN ; un code blanc tel quel.
+pub fn de_naissance(code: &str, qui: &str) -> Resultat<String> {
+    if code.trim().is_empty() {
+        return Ok(code.to_string());
+    }
     match de_la_table_dsn(code)? {
-        Some(p) => Ok(Value::String(p.code)),
-        None => {
-            let qui = [fiche.get("prenom"), fiche.get("nom")]
-                .into_iter()
-                .flatten()
-                .filter_map(Value::as_str)
-                .collect::<Vec<_>>()
-                .join(" ");
-            Err(inconnu_naissance(&format!("Le pays de naissance de {}", if qui.is_empty() { "ce salarié" } else { &qui }), code))
-        }
+        Some(p) => Ok(p.code),
+        None => Err(inconnu_naissance(&format!("Le pays de naissance de {}", if qui.is_empty() { "ce salarié" } else { qui }), code)),
     }
 }

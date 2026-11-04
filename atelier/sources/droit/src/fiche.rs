@@ -63,11 +63,38 @@ impl<T: Serialize> Case<T> {
     }
 }
 
+impl<T> Case<T> {
+    /// La valeur dite, que l'acte exige : sinon le refus nomme la case (`cle`).
+    pub fn exigee(&self, cle: &str) -> Resultat<&T> {
+        self.dite().ok_or_else(|| socle::fichiers::absent(cle))
+    }
+}
+
 impl Case<String> {
     /// Le texte dit, `""` sinon.
     pub fn texte(&self) -> &str {
         self.dite().map_or("", String::as_str)
     }
+
+    /// Le texte d'une case que la fiche doit porter, vide ou non : absente, le refus la nomme (`cle`).
+    pub fn ecrite(&self, cle: &str) -> Resultat<&str> {
+        match self {
+            Case::Absente => Err(socle::fichiers::absent(cle)),
+            c => Ok(c.texte()),
+        }
+    }
+}
+
+impl<T: Choix> Case<T> {
+    /// Un choix dit, tel qu'il s'ecrit ; `""` sinon.
+    pub fn code(&self) -> &'static str {
+        self.dite().map_or("", Choix::code)
+    }
+}
+
+/// Un choix (`choix!`) : sa valeur ecrite.
+pub trait Choix {
+    fn code(&self) -> &'static str;
 }
 
 impl Case<bool> {
@@ -193,6 +220,11 @@ macro_rules! choix {
         }
         impl FormeDeCase for $nom {
             const VALEURS: &'static [&'static str] = &[$($txt),*];
+        }
+        impl Choix for $nom {
+            fn code(&self) -> &'static str {
+                self.as_str()
+            }
         }
     };
 }
@@ -634,6 +666,25 @@ impl ChampsSalarie {
         };
         let tout = format!("{} {}", ou(&self.nom_affichage, &self.nom).to_uppercase(), ou(&self.prenom_affichage, &self.prenom)).trim().to_string();
         (!tout.is_empty()).then_some(tout)
+    }
+
+    /// Ce que la fiche dit de la nationalite (`socle::codification_ue`, S21.G00.30.013).
+    pub fn nationalite(&self) -> socle::codification_ue::Nationalite {
+        socle::codification_ue::Nationalite::nouvelle(
+            self.code_nationalite_dsn.code(),
+            self.pays_nationalite.texte(),
+            self.pays_nationalite_hors_liste.texte(),
+            self.nomme(),
+        )
+    }
+
+    /// Le pays de naissance tel que la DSN le declare (S21.G00.30.015, `socle::pays::de_naissance`).
+    pub fn pays_de_naissance(&self) -> Resultat<Case<String>> {
+        let qui = format!("{} {}", self.prenom.texte(), self.nom.texte()).trim().to_string();
+        Ok(match &self.pays_naissance {
+            Case::Dite(code) => Case::Dite(socle::pays::de_naissance(code, &qui)?),
+            autre => autre.clone(),
+        })
     }
 
     /// Archivee : `actif: false`. L'absence vaut actif.
