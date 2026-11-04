@@ -13,7 +13,7 @@
 
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+
 
 use crate::courriel::Courriel;
 use crate::courriel_lecture as lecture;
@@ -34,7 +34,7 @@ const CORPS_CONTRESIGNE: &str = "Bonjour {prenom},\n\nNous avons bien reçu ta s
 // ------------------------------------------------------------------ ce que la releve rend
 
 /// Une signature trouvee, notee, contresignee (si elle a pu l'etre).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct SignatureRecue {
     pub mois: String,
     pub salarie: String,
@@ -50,18 +50,8 @@ pub struct SignatureRecue {
     pub renvoye: bool,
 }
 
-impl SignatureRecue {
-    pub fn en_json(&self) -> Value {
-        json!({
-            "mois": self.mois, "salarie": self.salarie, "nom": self.nom, "code": self.code, "adresse": self.adresse,
-            "quand": self.quand, "contrats": self.contrats, "fichier_signe": self.fichier_signe, "preuve": self.preuve,
-            "renvoye": self.renvoye,
-        })
-    }
-}
-
 /// Combien de signatures attendaient, celles qui sont arrivees, ce qui a empeche le reste.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ReleveSignatures {
     pub quand: String,
     pub attendues: usize,
@@ -107,16 +97,19 @@ impl ReleveSignatures {
         format!("{} revenu{} signé{} : {}", if n > 1 { format!("{} contrats", n) } else { "1 contrat".into() }, if n > 1 { "s" } else { "" }, if n > 1 { "s" } else { "" }, qui.join(" ; "))
     }
 
-    /// Ce que l'ouverture met dans son bilan, avec le resume.
-    pub fn en_json(&self) -> Value {
-        json!({
-            "quand": self.quand,
-            "attendues": self.attendues,
-            "recues": self.recues.iter().map(SignatureRecue::en_json).collect::<Vec<_>>(),
-            "incidents": self.incidents,
-            "resume": self.resume(),
-        })
+    /// La releve telle qu'une route la rend : ce qu'elle a trouve, et sa phrase (`resume`).
+    pub fn dite(self) -> ReleveDite {
+        let resume = self.resume();
+        ReleveDite { releve: self, resume }
     }
+}
+
+/// La releve et sa phrase (`ReleveSignatures::dite`).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ReleveDite {
+    #[serde(flatten)]
+    pub releve: ReleveSignatures,
+    pub resume: String,
 }
 
 /// Les `Message-ID` de NOS envois pour cette demande.

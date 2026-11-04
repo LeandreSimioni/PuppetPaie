@@ -5,12 +5,12 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
-use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, Ouvrir};
+use crate::routes::documents::{client_courriel, expediteur_de, refus, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
 
 use documents::plan_comptable::{controler_plan, tables};
@@ -174,12 +174,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             };
             super::phrase_en_tete(v, p)
         }),
-        Route::DossierEnvoyer => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+        Route::DossierEnvoyer => dossier_envoyer(ctx, super::lire_charge(charge)?, &mut || client_courriel(ctx)).map(|v| {
             let fichiers: Vec<String> = v["fichiers"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
             let p = format!("Dossier de {} ({}) : {}.", v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>().join(", "), t(&v, "periode"), super::compte(fichiers.len(), "fichier joint", "fichiers joints"));
             super::phrase_en_tete(v, p)
         }),
-        Route::CascEnvoyer => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+        Route::CascEnvoyer => casc_envoyer(ctx, super::lire_charge(charge)?, &mut || client_courriel(ctx)).map(|v| {
             let partis: Vec<String> = v["partis"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
             let annees: Vec<String> = v["annees"].as_array().into_iter().flatten().map(|a| super::mot(&a["annee"])).collect();
             let notee = if annees.len() > 1 { "notées régularisées" } else { "notée régularisée" };
@@ -533,26 +533,72 @@ const CORPS_DOSSIER: &str = "Bonjour {prenom},\n\nTu trouveras ci-joint ton doss
 /// certificats sont les pages memes de l'archive ; le reste se prend tel quel).
 const REEDITION_CONTRATS: &str = "Les contrats ont été réédités par notre logiciel de paie depuis les données\nd'origine : les numéros et les montants sont ceux des contrats qui t'ont été\nremis ; seule la mise en page peut avoir changé depuis.\n\n";
 
+/// La charge de `dossier-envoyer` : les salaries (aucun : chacun), la periode (le mois, l'annee, ou toutes les annees), ce
+/// que le dossier porte (tout sinon), et le mot de passe du logiciel tape pour l'envoi.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeDossierEnvoyer {
+    #[serde(default)]
+    salaries: Vec<String>,
+    #[serde(default)]
+    mois: Option<String>,
+    #[serde(default)]
+    annee: Option<AnneeDite>,
+    #[serde(default)]
+    toutes_les_annees: bool,
+    #[serde(default)]
+    categories: Option<Vec<String>>,
+    #[serde(default)]
+    motdepasse: Option<String>,
+}
+
+/// L'annee d'une charge, en nombre (AAAA) ou telle que la page la choisit (« 2026 »).
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+enum AnneeDite {
+    Nombre(i64),
+    Texte(String),
+}
+
+/// Le dossier que l'envoi refait (`dossier_salarie::construire`, qui lit encore sa demande en `Value`) : la charge sans
+/// son mot de passe, et `apercu` pour ce qui partirait sans rien ecrire.
+#[derive(Debug, serde::Serialize)]
+struct DemandeDeDossier<'a> {
+    salaries: &'a [String],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mois: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    annee: Option<&'a AnneeDite>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    toutes_les_annees: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    categories: Option<&'a [String]>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    apercu: bool,
+}
+
 /// La route `dossier-envoyer` : le dossier se refait ici (`dossier_salarie`, un fichier par salarie, ecrit dans
 /// `exports/dossiers/`), puis part a chaque salarie par la boite de la compagnie. La reponse est celle du dossier
 /// (`dossier_json`) et, sous `envoi`, ce que l'envoi a fait.
-fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+fn dossier_envoyer(ctx: &Contexte, c: ChargeDossierEnvoyer, ouvrir: Ouvrir) -> R<Value> {
     let qui = crate::routes::INTERFACE.to_string();
-    let mut demande = Map::new();
-    for cle in ["salaries", "mois", "annee", "toutes_les_annees", "categories"] {
-        if let Some(v) = charge.get(cle) {
-            demande.insert(cle.to_string(), v.clone());
-        }
-    }
+    let demande = |apercu: bool| {
+        crate::routes::en_json(DemandeDeDossier {
+            salaries: &c.salaries,
+            mois: c.mois.as_deref(),
+            annee: c.annee.as_ref(),
+            toutes_les_annees: c.toutes_les_annees,
+            categories: c.categories.as_deref(),
+            apercu,
+        })
+    };
     // CE QUI PARTIRAIT, SANS RIEN ECRIRE : chacun a son adresse, puis la preuve ; le dossier ne s'ecrit qu'ensuite.
-    let mut apercu = demande.clone();
-    apercu.insert("apercu".into(), json!(true));
-    let vu = crate::routes::dossier_salarie::construire(ctx, &Value::Object(apercu))?;
+    let vu = crate::routes::dossier_salarie::construire(ctx, &demande(true)?)?;
     adresses_de(ctx, &vu.salaries)?;
     let a_qui = format!("{} salarie(s) : {}", vu.salaries.len(), vu.salaries.iter().map(|c| ctx.nomme(c)).collect::<Vec<_>>().join(", "));
     let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
-    let forme = verifier_preuve(ctx, Some(&preuve_de(charge)), &aujourdhui.mois_civil().to_string(), "envoi du dossier aux salaries", &a_qui)?;
-    let d = crate::routes::dossier_salarie::construire(ctx, &Value::Object(demande))?;
+    let forme = verifier_preuve(ctx, Some(&Preuve::du_mot_de_passe(c.motdepasse.clone())), &aujourdhui.mois_civil().to_string(), "envoi du dossier aux salaries", &a_qui)?;
+    let d = crate::routes::dossier_salarie::construire(ctx, &demande(false)?)?;
     let mut r = crate::routes::dossier_salarie::dossier_json(&d);
     let envoi = envoyer_dossier(ctx, &d, &Preuve { donnee: Some(forme), ..Preuve::default() }, &qui, ouvrir)?;
     if let Value::Object(o) = &mut r {
@@ -684,21 +730,25 @@ fn jjmmaaaa(iso: &str) -> String {
 /// Dans cet ordre : la boite, la preuve, le dossier (ecrit, pour que la liste nominative jointe soit celle du jour),
 /// l'envoi, puis ce qui s'en garde -- les deux `.eml` dans `exports/casc-svp/envoyes/`, la ligne de
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
-fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+/// La charge de `casc-envoyer` : le jour de chaque virement fait, par annee (AAAA-MM-JJ), et le mot de passe du logiciel
+/// tape pour l'envoi.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeCasc {
+    #[serde(default)]
+    vire_le: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    motdepasse: Option<String>,
+}
+
+fn casc_envoyer(ctx: &Contexte, c: ChargeCasc, ouvrir: Ouvrir) -> R<Value> {
     let qui = crate::routes::INTERFACE.to_string();
     use crate::import::casc::{ecrire, marquer_regularise, regularisation, Demande};
-    // Les virements : une table nom -> valeur, vide si la charge n'en dit pas.
-    let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
-        None => Vec::new(),
-        Some(Value::Object(o)) => o.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
-        Some(autre) => return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
-    };
     let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
     let mut dates: Vec<(String, String)> = Vec::new();
-    for (a, d) in &vire_le {
-        let texte = valeur_en_texte(d);
-        let Some(jour) = jour_iso(&texte) else {
-            return Err(refus(format!("Date du virement {} illisible : {} (attendu AAAA-MM-JJ). Rien n'est parti.", a, repr(&d_en_repr(d)))));
+    for (a, texte) in &c.vire_le {
+        let Some(jour) = jour_iso(texte) else {
+            return Err(refus(format!("Date du virement {} illisible : {} (attendu AAAA-MM-JJ). Rien n'est parti.", a, repr(texte))));
         };
         if jour > aujourdhui {
             return Err(refus(format!(
@@ -728,7 +778,7 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
 
     let mut client = ouvrir()?;
     let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de la régularisation")))?;
-    verifier_preuve(ctx, Some(&preuve_de(charge)), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
+    verifier_preuve(ctx, Some(&Preuve::du_mot_de_passe(c.motdepasse.clone())), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
 
     // La liste nominative est la premiere chose qu'ecrit le dossier (`casc::ecrire`) : si elle ne peut s'ecrire, le refus
     // tombe avant tout autre fichier, et rien ne part.
@@ -804,11 +854,6 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
         "dossier": garde.to_string_lossy(),
         "ligne": ligne,
     }))
-}
-
-/// Le texte d'une valeur de `vire_le` comme `%r` l'ecrit : ce qui n'est pas un texte s'ecrit sans guillemets.
-fn d_en_repr(d: &Value) -> String {
-    valeur_en_texte(d)
 }
 
 /// L'erreur du disque, sous sa classe (`FileNotFoundError`, `PermissionError`, `OSError`).

@@ -120,43 +120,35 @@ impl Apercu {
         }
     }
 
-    /// `01082026` -> `2026-08` ; un signalement se date par son evenement.
-    pub fn mois_lisible(&self) -> String {
+    /// LE MOIS QUE LE FICHIER DECLARE : `01082026` -> 2026-08 ; un signalement se date par son evenement, et se range
+    /// dans le mois de ce jour.
+    pub fn mois_declare(&self) -> socle::num::Resultat<socle::mois::Mois> {
         let mois = self.champ("mois");
-        if let Ok(m) = socle::mois::Mois::de_la_dsn(&mois) {
-            return m.to_string();
-        }
-        if self.est_signalement() {
-            return self.evenement_lisible();
-        }
-        if mois.is_empty() {
-            "?".to_string()
-        } else {
-            mois.to_string()
+        match (socle::mois::Mois::de_la_dsn(mois), self.evenement()) {
+            (Ok(m), _) => Ok(m),
+            (Err(_), Some(j)) if self.est_signalement() => Ok(socle::mois::Mois::du_jour(&j)),
+            (Err(e), _) => Err(e),
         }
     }
 
-    /// `05102026` -> `2026-10-05` : l'arret par son dernier jour travaille, la fin
-    /// de contrat par sa date de fin, l'amorcage par le debut du contrat, un
-    /// amorcage de changement de logiciel par sa constitution.
-    pub fn evenement_lisible(&self) -> String {
-        let mut jour = "";
-        for s in [self.champ("dernier_jour"), self.champ("fin_contrat"), self.champ("debut_contrat")] {
-            if !s.is_empty() {
-                jour = s;
-                break;
-            }
-        }
+    /// Le jour de l'evenement d'un signalement : l'arret par son dernier jour travaille, la fin de contrat par sa date de
+    /// fin, l'amorcage par le debut du contrat, un amorcage de changement de logiciel par sa constitution.
+    pub fn evenement(&self) -> Option<socle::date::Jour> {
+        let mut jour = [self.champ("dernier_jour"), self.champ("fin_contrat"), self.champ("debut_contrat")].into_iter().find(|s| !s.is_empty()).unwrap_or("");
         if jour.is_empty() && self.champ("nature") == "08" {
             jour = self.champ("constitution");
         }
         let c: Vec<char> = jour.chars().collect();
-        if c.len() == 8 && c.iter().all(|&x| est_chiffre(x)) {
-            let t = |a: usize, b: usize| c[a..b].iter().collect::<String>();
-            format!("{}-{}-{}", t(4, 8), t(2, 4), t(0, 2))
-        } else {
-            "?".to_string()
+        if !(c.len() == 8 && c.iter().all(|&x| est_chiffre(x))) {
+            return None;
         }
+        let t = |a: usize, b: usize| c[a..b].iter().collect::<String>();
+        socle::date::Jour::lire(&format!("{}-{}-{}", t(4, 8), t(2, 4), t(0, 2))).ok()
+    }
+
+    /// `05102026` -> `2026-10-05` : le jour de l'evenement (`evenement`), ou `?`.
+    pub fn evenement_lisible(&self) -> String {
+        self.evenement().map_or_else(|| "?".to_string(), |j| j.iso())
     }
 
     /// Ce qu'on fait recopier pour prouver qu'on a regarde.
@@ -164,7 +156,7 @@ impl Apercu {
         if self.est_signalement() {
             self.evenement_lisible()
         } else {
-            self.mois_lisible()
+            self.mois_declare().map_or_else(|_| if self.champ("mois").is_empty() { "?".to_string() } else { self.champ("mois").to_string() }, |m| m.to_string())
         }
     }
 }

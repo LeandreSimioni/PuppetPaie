@@ -235,7 +235,7 @@ impl NatureSignalement {
 /// La charge de `arret-signaler`. `remplace` : l'identifiant du signalement qu'il annule et remplace (vide : aucun) ;
 /// `ordre` : son numero d'ordre (0 ou absent : le suivant) ; `le` : son jour de constitution. Le geste qu'offre le rappel
 /// d'un signalement l'ecrit aussi (`ChargeArretSignaler::de`).
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ChargeArretSignaler {
     salarie: String,
@@ -303,7 +303,7 @@ struct ChargeSuspensionOublier {
 
 /// La charge de `fin-contrat-signaler` (`remplace`, `ordre`, `test`, `le` : comme `arret-signaler`). Le geste qu'offre
 /// le rappel d'une fin de contrat l'ecrit aussi (`ChargeFinContratSignaler::de`).
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ChargeFinContratSignaler {
     mois: Mois,

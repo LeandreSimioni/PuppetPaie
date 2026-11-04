@@ -76,7 +76,7 @@ async function boitePieces(ligne, acte) {
   const mois = document.getElementById("mois").value;
   let r, lu;
   try {
-    r = await api("pieces-parties", { salarie: ligne.salarie, debut: ligne.debut, numero: ligne.numero });
+    r = await api("pieces-parties", { salarie: ligne.salarie, numero: ligne.numero });
     lu = await api("etat-par-engagement", { mois });
   } catch (e) { dire(e.message, "erreur"); return; }
   // Le moteur rend, avec le carré (`carres[].pieces`), ce que le détail montre : la phrase sans pièce, l'encart d'un

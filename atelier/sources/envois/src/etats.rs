@@ -135,11 +135,6 @@ impl<V> Dico<V> {
     }
 }
 
-/// Le numero d'une ligne de contrat, tel qu'il sert de cle : son texte, ou `""`.
-pub fn numero_de_cle(v: &Value) -> Value {
-    Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })
-}
-
 /// UN CONTRAT, tel que le journal le designe : la cle du salarie et le numero du contrat (`""` sans numero).
 pub type Paire = (String, String);
 

@@ -457,11 +457,6 @@ impl Encart {
     }
 }
 
-/// Les encarts d'une reponse, en lignes pour `moteur route --texte` : « titre : phrase ».
-pub(crate) fn encarts_en_lignes(encarts: &[Value]) -> Vec<Value> {
-    encarts.iter().map(|e| json!([mot(&e["titre"]), mot(&e["phrase"])].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" : "))).collect()
-}
-
 /// `Pastille::de`, en JSON.
 pub(crate) fn pastille(etat: &str, mots: &str) -> Value {
     json!(Pastille::de(etat, mots))

@@ -22,13 +22,12 @@ use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use envois::courriel::Courriel;
 use envois::envoi::{self, Message};
-use socle::valeur::valeur_en_texte;
 use socle::echec::{erreur, R};
 use socle::fichiers::vrai;
 use socle::echec::Echec;
@@ -36,7 +35,9 @@ use socle::fichiers::nom_du;
 use socle::html::{html_echapper, mailto};
 use socle::texte::capitaliser;
 use envois::ligne_d_envoi::{echec_d_envoi, noter, noter_echec_d_envoi, par_courriel};
-use envois::journal::{ContratParti, DetailSignature, Ligne, Version};
+use envois::journal::{ArticleModifie, ContratParti, DetailSignature, Ligne, Version};
+use socle::date::Jour;
+use socle::mois::Mois;
 use droit::contexte::IdSalarie;
 use engagement::numeros::NumeroContrat;
 
@@ -336,6 +337,17 @@ pub fn reunir_pour_imprimer(dossier: &std::path::Path, quoi: &str, etiq: &str, p
     Ok(f)
 }
 
+/// Ce que rend `contrats_imprimer` : chaque piece partie (son chemin), le PDF a imprimer (son nom et son chemin), les
+/// contrats et les avenants partis tels que le journal les note.
+#[derive(Debug, serde::Serialize)]
+pub struct Impression {
+    pub fichiers: Vec<String>,
+    pub impression: String,
+    pub chemin: String,
+    pub contrats: Vec<ContratParti>,
+    pub avenants: Vec<ContratParti>,
+}
+
 /// La route `contrats-imprimer` : les contrats choisis (comme `demander-signature` ; `None` : aucun) et les avenants
 /// choisis (`avenants`, deja verifies par la route), chacun dans son PDF dans `sorties/<mois>/envoi/` (la piece partie de
 /// chacun : un PDF de contrats par salarie, un PDF par avenant), et tous reunis en un seul PDF a imprimer (`impression`),
@@ -343,7 +355,7 @@ pub fn reunir_pour_imprimer(dossier: &std::path::Path, quoi: &str, etiq: &str, p
 /// sien, et le journal le note (`contrat-signature`, `main_propre` ; une ligne pour les contrats, une pour les avenants) ;
 /// ce qui revient signe se note ensuite d'un clic (`contrat-recu`). Rien ne quitte le poste : aucun mot de passe. `qui` :
 /// la ligne du journal.
-pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, avenants: &[(String, Vec<UnAvenant>)], qui: &str) -> R<Value> {
+pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, avenants: &[(String, Vec<UnAvenant>)], qui: &str) -> R<Impression> {
     let mois = mois.to_string();
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &departs)?;
@@ -363,7 +375,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     for (cle, ps, _) in &par_salarie {
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, ""));
         documents::contrat::ecrire_contrat(ctx, ps, &ent, &pdf, &[])?;
-        fichiers.push(json!(pdf.to_string_lossy()));
+        fichiers.push(pdf.to_string_lossy().into_owned());
         for p in ps.iter() {
             contrats.push(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, &ent)?);
         }
@@ -374,19 +386,18 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     for (salarie, aa) in avenants {
         for a in aa {
             let (pdf, c, _) = avenant_ecrit(ctx, salarie, a, &mut saisies, &departs, &aujourdhui_jj)?;
-            fichiers.push(json!(pdf.to_string_lossy()));
+            fichiers.push(pdf.to_string_lossy().into_owned());
             lignes_avenants.push(c);
         }
     }
-    let pdfs: Vec<std::path::PathBuf> = fichiers.iter().filter_map(Value::as_str).map(std::path::PathBuf::from).collect();
+    let pdfs: Vec<std::path::PathBuf> = fichiers.iter().map(std::path::PathBuf::from).collect();
     let impression = reunir_pour_imprimer(&dossier, "contrats", &etiq, &pdfs)?;
-    let mut lignes = Vec::new();
     let le_mois = Some(socle::mois::Mois::lire(&mois)?);
     if !contrats.is_empty() {
         let detail = DetailSignature { contrats: contrats.clone(), main_propre: true, expediteur: None, relance: None, acte: None, partis: None, echec_a: None };
         let versions = envois::journal::versions_des_contrats(ctx, &contrats, &departs).map_err(Echec::from)?;
         let reponse = format!("{} contrat(s) imprime(s) pour une remise en main propre", contrats.len());
-        lignes.push(noter(ctx, Ligne::ContratSignature(par_courriel(le_mois, qui, true, "", &reponse, detail, Some(versions))))?);
+        noter(ctx, Ligne::ContratSignature(par_courriel(le_mois, qui, true, "", &reponse, detail, Some(versions))))?;
     }
     if !lignes_avenants.is_empty() {
         let detail = DetailSignature { contrats: lignes_avenants.clone(), main_propre: true, expediteur: None, relance: None, acte: Some("avenant".into()), partis: None, echec_a: None };
@@ -395,12 +406,21 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
             "{} imprime(s) pour une remise en main propre",
             lignes_avenants.iter().map(|c| format!("avenant n° {} au contrat {}", c.avenant.map(|a| a.to_string()).unwrap_or_default(), c.numero_dit())).collect::<Vec<_>>().join("; ")
         );
-        lignes.push(noter(ctx, Ligne::ContratSignature(par_courriel(le_mois, qui, true, "", &reponse, detail, Some(versions))))?);
+        noter(ctx, Ligne::ContratSignature(par_courriel(le_mois, qui, true, "", &reponse, detail, Some(versions))))?;
     }
-    Ok(json!({"fichiers": fichiers, "impression": nom_du(&impression), "chemin": impression.to_string_lossy(), "contrats": contrats, "avenants": lignes_avenants, "lignes": lignes}))
+    Ok(Impression { fichiers, impression: nom_du(&impression), chemin: impression.to_string_lossy().into_owned(), contrats, avenants: lignes_avenants })
 }
 
 // ------------------------------------------------------------------ demander-signature
+
+/// Ce que rend `demander_signature` : les adresses servies, les contrats partis tels que le journal les note, et ce que
+/// la demande dit des contrats qui ne partent pas (leur salarie n'a pas de courriel).
+#[derive(Debug, Default, serde::Serialize)]
+pub struct ContratsEnvoyes {
+    pub partis: Vec<String>,
+    pub contrats: Vec<ContratParti>,
+    pub avertissements: Vec<String>,
+}
 
 /// Envoie a chaque salarie son contrat, avec le bouton « Je signe ».
 ///
@@ -412,7 +432,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
 /// LA SELECTION EST PAR CONTRAT, pas par salarie (`contrats`). `salaries` reste accepte (tous les contrats de ces
 /// salaries). UN COURRIEL PAR SALARIE, UN PDF PAR COURRIEL, tous ses contrats dedans (une page par contrat), ecrit
 /// dans `sorties/<mois>/envoi/` avec les MEMES numeros que le fichier groupe.
-pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut dyn Courriel) -> R<Value> {
+pub(crate) fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut dyn Courriel) -> R<ContratsEnvoyes> {
     let (mois, relance, remplace) = (d.mois.to_string(), d.relance, d.remplace);
     // Chaque contrat sous le numero qu'il porte, ou celui qui lui serait donne : c'est celui-la qui part.
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
@@ -576,9 +596,9 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     }
     let detail = DetailSignature { contrats: contrats.clone(), main_propre: false, expediteur: Some(expediteur.clone()), relance: Some(relance), acte: None, partis: None, echec_a: None };
     let reponse = format!("{} contrat(s) {} a la signature", contrats.len(), if relance { "relance(s)" } else { "envoye(s)" });
-    let ligne = noter(ctx, Ligne::ContratSignature(par_courriel(Some(socle::mois::Mois::lire(&mois)?), "interface", true, &partis.join(", "), &reponse, detail, Some(versions))))?;
+    noter(ctx, Ligne::ContratSignature(par_courriel(Some(socle::mois::Mois::lire(&mois)?), "interface", true, &partis.join(", "), &reponse, detail, Some(versions))))?;
     let avertissements: Vec<String> = if noms_sans.is_empty() { Vec::new() } else { vec![sans_courriel_dit(&noms_sans)] };
-    Ok(json!({"partis": partis, "contrats": contrats, "expediteur": expediteur, "ligne": ligne, "avertissements": avertissements}))
+    Ok(ContratsEnvoyes { partis, contrats, avertissements })
 }
 
 /// Ce que la demande de signature et son apercu disent des contrats coches dont le salarie n'a pas de courriel : ils ne
@@ -616,18 +636,18 @@ pub fn avenants_sans_courriel_dit(noms: &[String]) -> String {
 /// LA DEMANDE DE SIGNATURE : le mois, ce qu'elle est (une relance, un contrat refait qui remplace celui qui est parti),
 /// les contrats choisis. `etats_des_contrats` : pour une relance, l'etat de chaque contrat du mois tel que
 /// `signature-apercu` le montre (demande, revenu, caduc).
-pub struct DemandeDeSignature<'a> {
+pub(crate) struct DemandeDeSignature<'a> {
     pub mois: &'a str,
     pub relance: bool,
     pub remplace: bool,
     pub choisis: Choisis,
-    pub etats_des_contrats: Vec<Value>,
+    pub etats_des_contrats: Vec<crate::routes::contrats::ContratASigner>,
 }
 
 /// CE QUE LA DEMANDE REFUSE D'ELLE-MEME, avant la boite et avant le mot de passe : la preuve ne se demande que pour ce
 /// qui part. Une relance renvoie le meme contrat (elle n'en remplace aucun), et seulement un contrat demande par courriel,
 /// pas revenu, a jour. Rien n'est ecrit.
-pub fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
+pub(crate) fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
     if d.relance && d.remplace {
         return Err(refus("Une relance renvoie le même contrat : elle n'en remplace aucun."));
     }
@@ -654,16 +674,16 @@ fn avec_et_sans_courriel(choisis: ParSalarie) -> R<(ParSalarie, Vec<String>)> {
 }
 
 /// Une relance ne vaut que pour un contrat demande par courriel, pas revenu, a jour.
-fn verifier_relance(etats: &[Value], cles: &[(String, String)]) -> R<()> {
+fn verifier_relance(etats: &[crate::routes::contrats::ContratASigner], cles: &[(String, String)]) -> R<()> {
     for (salarie, numero) in cles {
-        let c = etats.iter().rev().find(|c| c["salarie"].as_str() == Some(salarie) && valeur_en_texte(&envois::etats::numero_de_cle(&c["numero"])) == *numero);
+        let c = etats.iter().rev().find(|c| c.salarie == *salarie && c.numero.as_deref().unwrap_or("") == numero);
         let pb = match c {
             None => "n'a jamais ete demande : il s'envoie",
-            Some(c) if !vrai(&c["demande_le"]) => "n'a jamais ete demande : il s'envoie",
-            Some(c) if vrai(&c["caduc"]) => "a change depuis son envoi : il se modifie par un avenant",
-            Some(c) if vrai(&c["recu_le"]) => "est deja revenu signe",
+            Some(c) if c.demande_le.is_none() => "n'a jamais ete demande : il s'envoie",
+            Some(c) if c.caduc => "a change depuis son envoi : il se modifie par un avenant",
+            Some(c) if c.recu_le.is_some() => "est deja revenu signe",
             // Un contrat imprime n'a pas de courriel a renvoyer : il se remet en main propre.
-            Some(c) if c["par"].as_str() == Some("imprime") => "est parti imprime, a remettre en main propre",
+            Some(c) if c.par == Some("imprime") => "est parti imprime, a remettre en main propre",
             Some(_) => continue,
         };
         return Err(refus(format!("Le contrat n° {} de {} {}, il ne se relance pas. Rien n'est parti.", numero, salarie, pb)));
@@ -695,9 +715,17 @@ pub fn contrat_signe_depose(racine: &std::path::Path, cle: &str, debut: &str) ->
     pdf
 }
 
-/// Ce que l'ecran et la ligne de commande disent de ce dossier : son chemin (la fenetre l'ouvre, et le cree), les PDF
-/// deposes, et la phrase.
-pub fn contrat_signe_dit(ctx: &Contexte, cle: &str, debut: &str) -> Value {
+/// Ce que l'ecran et la ligne de commande disent du dossier du contrat signe hors du logiciel : son chemin (la fenetre
+/// l'ouvre, et le cree), les PDF deposes, et la phrase.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ContratSigneDit {
+    pub chemin: String,
+    pub deposes: Vec<String>,
+    pub phrase: String,
+}
+
+/// Ce dossier, dit (`ContratSigneDit`).
+pub fn contrat_signe_dit(ctx: &Contexte, cle: &str, debut: &str) -> ContratSigneDit {
     let deposes: Vec<String> = contrat_signe_depose(&ctx.racine, cle, debut).iter().map(|p| nom_du(p)).collect();
     let qui = ctx.nomme(cle);
     let phrase = if deposes.is_empty() {
@@ -705,42 +733,75 @@ pub fn contrat_signe_dit(ctx: &Contexte, cle: &str, debut: &str) -> Value {
     } else {
         format!("Le contrat signé de {} ({}) part joint à chaque avenant.", qui, deposes.join(", "))
     };
-    json!({"chemin": dossier_du_contrat_signe(&ctx.racine, cle, debut).to_string_lossy(), "deposes": deposes, "phrase": phrase})
+    ContratSigneDit { chemin: dossier_du_contrat_signe(&ctx.racine, cle, debut).to_string_lossy().into_owned(), deposes, phrase }
 }
 
-/// Ce que `avenant-apercu` dit d'un avenant a envoyer, et la paie du contrat.
+/// L'AVENANT A ENVOYER OU A IMPRIMER, verifie par la route : le contrat qu'il modifie (son salarie, son premier jour, le
+/// mois ou il est parti, son numero et sa date), son numero d'avenant, son effet, ce qu'il change (`modifications`, que
+/// `avenant-apercu` a montrees), le courriel du salarie ; une relance (`relance`) reprend la piece partie, telle quelle.
+#[derive(Debug, Clone)]
 pub struct UnAvenant {
-    pub apercu: Value,
+    pub salarie: String,
+    pub debut: Jour,
+    pub mois: Mois,
+    pub contrat: Option<NumeroContrat>,
+    pub numero: i64,
+    /// Le jour du contrat qu'il modifie, AAAA-MM-JJ (sans objet pour une relance : la piece est deja ecrite).
+    pub date_contrat: String,
     pub effet: String,
+    pub modifications: Vec<ArticleModifie>,
+    pub destinataire: String,
+    /// La piece partie de l'avenant relance, dans `sorties/<mois>/envoi/`.
+    pub relance: Option<String>,
 }
 
 impl UnAvenant {
-    pub fn texte(&self, cle: &str) -> String {
-        self.apercu.get(cle).map(valeur_en_texte).unwrap_or_default()
+    /// L'avenant deja parti et pas revenu, qui repart tel quel.
+    pub fn relance(&self) -> bool {
+        self.relance.is_some()
     }
-    fn numero(&self) -> i64 {
-        self.apercu["numero"].as_i64().unwrap_or(0)
-    }
+
     /// `a["contrat"] or "(sans numéro)"`.
     fn contrat(&self) -> String {
-        if vrai(&self.apercu["contrat"]) {
-            valeur_en_texte(&self.apercu["contrat"])
-        } else {
-            "(sans numéro)".to_string()
-        }
+        self.contrat.as_deref().filter(|n| !n.is_empty()).unwrap_or("(sans numéro)").to_string()
     }
-    fn modifications(&self) -> Vec<Value> {
-        self.apercu["modifications"].as_array().cloned().unwrap_or_default()
+
+    /// Des termes dits en clair (un contrat signe hors du logiciel), pas des articles cites.
+    fn en_clair(&self) -> bool {
+        self.modifications.iter().any(ArticleModifie::en_clair)
     }
-    /// L'avenant deja parti et pas revenu, qui repart tel quel (`apercu.fichier` : sa piece partie).
-    pub fn relance(&self) -> bool {
-        vrai(&self.apercu["relance"])
+}
+
+/// Les modifications telles que la fabrique de l'avenant les lit (`documents::contrat::ecrire_avenant`, qui les lit encore
+/// en `Value`).
+pub(crate) fn pour_la_piece(modifications: &[ArticleModifie]) -> R<Vec<Value>> {
+    modifications.iter().map(|m| serde_json::to_value(m).map_err(|e| Echec::from(e.to_string()))).collect()
+}
+
+/// Ce qui se dit du contrat d'une paie dans un courriel et dans l'apercu de son avenant : son nom (`contrat_ecrit.nom`
+/// de sa nature), « pour » son spectacle s'il en a un, sa periode.
+pub(crate) struct ContratNomme {
+    pub(crate) spectacle: String,
+    pub(crate) nom_du_contrat: String,
+    pub(crate) pour: String,
+    pub(crate) periode: String,
+}
+
+impl ContratNomme {
+    pub(crate) fn de(p: &Paie) -> R<ContratNomme> {
+        let spectacle = p.titre()?;
+        Ok(ContratNomme {
+            nom_du_contrat: p.engagement.nat().map_err(Echec::from)?.nom_du_contrat(),
+            pour: if vrai(&p.spectacle) { format!(" pour {}", spectacle) } else { String::new() },
+            periode: periode_de(p),
+            spectacle,
+        })
     }
 }
 
 /// L'AVENANT `a` DU CONTRAT DE `salarie`, ECRIT : son PDF dans `sorties/<mois>/envoi/` (la piece partie, a cote de celle
 /// du contrat), et ce que le journal en dira. Une relance reprend le PDF parti, sans le reecrire. Rend le PDF, l'entree
-/// du journal et la fiche du salarie.
+/// du journal et la paie du contrat.
 fn avenant_ecrit(
     ctx: &Contexte,
     salarie: &str,
@@ -748,54 +809,50 @@ fn avenant_ecrit(
     saisies: &mut HashMap<String, (engagement::saisie::VueDuMois, Vec<Paie>)>,
     departs: &engagement::departs::Departs,
     aujourdhui_jj: &str,
-) -> R<(PathBuf, ContratParti, droit::fiche::SalarieDuContrat)> {
-    let mois_a = a.texte("mois");
+) -> R<(PathBuf, ContratParti, Paie)> {
+    let mois_a = a.mois.to_string();
     if !saisies.contains_key(&mois_a) {
         let (d, p) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_a, None, departs)?;
         saisies.insert(mois_a.clone(), (d, p));
     }
     let (_, paies) = &saisies[&mois_a];
-    let debut = a.texte("debut");
-    let numero_j = valeur_en_texte(&envois::etats::numero_de_cle(&a.apercu["contrat"]));
+    let debut = a.debut.iso();
+    let numero_j = a.contrat.as_deref().unwrap_or("").to_string();
     let Some(rang_p) = envois::etats::paie_du_contrat(paies, salarie, &numero_j)? else {
-        return Err(refus(format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, jj(&debut)?, mois_a)));
+        return Err(refus(format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, a.debut.jj_mm_aaaa(), mois_a)));
     };
     let p = &paies[rang_p];
     let ailleurs = engagement::signe_ailleurs(&ctx.racine, &p.engagement).map_err(Echec::from)?;
     let ent = documents::avenant::ent_du_mois(ctx, &mois_a)?;
     let dossier = ctx.racine.join("sorties").join(&mois_a).join("envoi");
-    let pdf = if a.relance() {
-        let f = dossier.join(a.texte("fichier"));
-        if a.texte("fichier").is_empty() || !f.is_file() {
-            return Err(refus(format!("L'avenant n° {} de {} n'est plus dans {} : il ne se relance pas. Rien n'est parti.", a.numero(), salarie, dossier.display())));
+    let pdf = match &a.relance {
+        Some(fichier) => {
+            let f = dossier.join(fichier);
+            if fichier.is_empty() || !f.is_file() {
+                return Err(refus(format!("L'avenant n° {} de {} n'est plus dans {} : il ne se relance pas. Rien n'est parti.", a.numero, salarie, dossier.display())));
+            }
+            f
         }
-        f
-    } else {
-        let f = dossier.join(format!(
-            "Avenant{}_{}_{}_{}.pdf",
-            a.numero(),
-            salarie,
-            if vrai(&a.apercu["contrat"]) { valeur_en_texte(&a.apercu["contrat"]) } else { "sans-numero".to_string() },
-            socle::mois::Mois::lire(&mois_a).map(socle::mois::Mois::etiquette).map_err(|m| erreur("ValueError", m))?
-        ));
-        documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &a.modifications(), a.numero(), &jj(&a.texte("date_contrat"))?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
-        f
+        None => {
+            let f = dossier.join(format!("Avenant{}_{}_{}_{}.pdf", a.numero, salarie, a.contrat.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans-numero"), a.mois.etiquette()));
+            documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &pour_la_piece(&a.modifications)?, a.numero, &jj(&a.date_contrat)?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
+            f
+        }
     };
-    let modifie: Vec<Value> = a.modifications().iter().map(|m| m["article"].clone()).collect();
     let c = ContratParti {
         salarie: IdSalarie::lire(salarie)?,
         debut,
-        fin: a.apercu["fin"].as_str().map(String::from),
-        numero: NumeroContrat::de_la_valeur(a.apercu.get("contrat"))?,
+        fin: p.engagement.fin.map(|f| f.iso()),
+        numero: a.contrat.clone(),
         fichier: nom_du(&pdf),
-        spectacle: a.apercu["spectacle"].as_str().map(String::from),
-        mois: socle::mois::Mois::lire(&mois_a)?,
+        spectacle: Some(p.titre()?),
+        mois: a.mois,
         acte: Some("avenant".into()),
-        avenant: a.apercu["numero"].as_i64(),
+        avenant: Some(a.numero),
         remplace: None,
         effet: Some(a.effet.clone()),
-        modifie: Some(modifie),
-        modifications: Some(a.modifications()),
+        modifie: Some(a.modifications.iter().map(|m| m.article.clone()).collect()),
+        modifications: Some(a.modifications.clone()),
         clauses: Some(clauses_du_contrat(ctx, p, &ent)),
         code: None,
         adresse: None,
@@ -808,14 +865,13 @@ fn avenant_ecrit(
         // PDF du contrat signe, depose dans son dossier, part avec lui.
         ailleurs,
     };
-    Ok((pdf, c, p.salarie.clone()))
+    Ok((pdf, c, p.clone()))
 }
 
-/// Ce que `envoyer_avenants` rend.
+/// Ce que `envoyer_avenants` rend : les adresses servies, et les avenants partis.
 pub struct Avenants {
     pub partis: Vec<String>,
-    pub avenants: Vec<Value>,
-    pub lignes: Vec<Ligne>,
+    pub avenants: Vec<ContratParti>,
 }
 
 /// Ecrit les avenants et les envoie a la signature, avec le bouton « Je signe » -- le meme circuit que le contrat. UN
@@ -832,17 +888,19 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
     // La saisie de chaque mois, lue une fois : rien ne l'ecrit pendant l'envoi.
     let mut saisies: HashMap<String, (engagement::saisie::VueDuMois, Vec<Paie>)> = HashMap::new();
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
-    let (mut partis, mut lignes, mut faits): (Vec<String>, Vec<Ligne>, Vec<Value>) = (Vec::new(), Vec::new(), Vec::new());
+    let (mut partis, mut faits): (Vec<String>, Vec<ContratParti>) = (Vec::new(), Vec::new());
     for (salarie, aa) in par_salarie {
-        let mois = aa[0].texte("mois");
-        let (an, nom_mois) = socle::mois::Mois::lire(&mois).map(|m| (m.annee(), m.nom(socle::mois::Graphie::Accentuee)))?;
+        let mois = aa[0].mois;
+        let (an, nom_mois) = (mois.annee(), mois.nom(socle::mois::Graphie::Accentuee));
         let mut pdfs: Vec<PathBuf> = Vec::new();
         let mut lignes_contrats: Vec<ContratParti> = Vec::new();
+        let mut nommes: Vec<ContratNomme> = Vec::new();
         let mut sal: Option<droit::fiche::SalarieDuContrat> = None;
         for a in aa {
-            let (pdf, mut c, s) = avenant_ecrit(ctx, salarie, a, &mut saisies, &departs, &aujourdhui_jj)?;
-            sal = Some(s);
-            c.adresse = Some(a.texte("destinataire").trim().to_lowercase());
+            let (pdf, mut c, p) = avenant_ecrit(ctx, salarie, a, &mut saisies, &departs, &aujourdhui_jj)?;
+            nommes.push(ContratNomme::de(&p)?);
+            sal = Some(p.salarie.clone());
+            c.adresse = Some(a.destinataire.trim().to_lowercase());
             c.relance = Some(a.relance());
             lignes_contrats.push(c);
             pdfs.push(pdf);
@@ -851,27 +909,25 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
         let adresse = lignes_contrats[0].adresse.clone().unwrap_or_default();
         let code = code_signature();
         let mut spectacles: Vec<String> = Vec::new();
-        for a in aa {
-            let t = a.texte("spectacle");
-            if !spectacles.contains(&t) {
-                spectacles.push(t);
+        for n in &nommes {
+            if !spectacles.contains(&n.spectacle) {
+                spectacles.push(n.spectacle.clone());
             }
         }
         // LE CONTRAT SIGNE HORS DU LOGICIEL : ses avenants le nomment par son premier jour (le numero que le logiciel lui
         // a donne n'est pas sur le papier) et disent en clair ce qui change ; le PDF depose dans son dossier part avec eux.
-        let en_clair = |a: &UnAvenant| a.modifications().iter().any(|m| m.get("phrase").is_some_and(vrai));
         let mut joints: Vec<PathBuf> = Vec::new();
         for (a, c) in aa.iter().zip(&lignes_contrats) {
             if c.ailleurs {
-                joints.extend(contrat_signe_depose(&ctx.racine, salarie, &a.texte("debut")));
+                joints.extend(contrat_signe_depose(&ctx.racine, salarie, &a.debut.iso()));
             }
         }
-        let contrat_dit = |a: &UnAvenant| -> R<String> {
-            Ok(if en_clair(a) { format!("{} commencé le {}", a.texte("nom_du_contrat"), jj(&a.texte("debut"))?) } else { format!("{} n° {}", a.texte("nom_du_contrat"), a.contrat()) })
+        let contrat_dit = |a: &UnAvenant, n: &ContratNomme| -> String {
+            if a.en_clair() { format!("{} commencé le {}", n.nom_du_contrat, a.debut.jj_mm_aaaa()) } else { format!("{} n° {}", n.nom_du_contrat, a.contrat()) }
         };
-        let un = |a: &UnAvenant| -> R<String> {
-            let ce_qui_change = if en_clair(a) {
-                let phrases: Vec<String> = a.modifications().iter().map(|m| valeur_en_texte(&m["phrase"]).trim_end_matches('.').to_string()).map(|p| {
+        let un = |a: &UnAvenant, n: &ContratNomme| -> String {
+            let ce_qui_change = if a.en_clair() {
+                let phrases: Vec<String> = a.modifications.iter().map(|m| m.phrase.clone().unwrap_or_default().trim_end_matches('.').to_string()).map(|p| {
                     let mut c = p.chars();
                     c.next().map(|x| x.to_lowercase().collect::<String>() + c.as_str()).unwrap_or_default()
                 }).collect();
@@ -879,24 +935,24 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
             } else {
                 format!(
                     "qui modifie {}",
-                    et_fr(&a.modifications().iter().map(|m| format!("l'article {} « {} »", valeur_en_texte(&m["numero"]), valeur_en_texte(&m["article"]))).collect::<Vec<_>>())
+                    et_fr(&a.modifications.iter().map(|m| format!("l'article {} « {} »", m.numero.map(|x| x.to_string()).unwrap_or_default(), m.article)).collect::<Vec<_>>())
                 )
             };
             // Le contrat signe ailleurs se nomme deja par son premier jour : sa periode ne se redit pas.
-            let periode = if en_clair(a) { String::new() } else { format!(", {}", a.texte("periode")) };
-            Ok(format!("l'avenant n° {} à ton {}{}{}, {}", a.numero(), contrat_dit(a)?, a.texte("pour"), periode, ce_qui_change))
+            let periode = if a.en_clair() { String::new() } else { format!(", {}", n.periode) };
+            format!("l'avenant n° {} à ton {}{}{}, {}", a.numero, contrat_dit(a, n), n.pour, periode, ce_qui_change)
         };
         let sujet_de = |spectacle: &str| envoi::formater(SUJET_SIGNATURE, &[("spectacle", spectacle.to_string()), ("mois", nom_mois.to_string()), ("annee", an.to_string())]);
         let (mut sujet, mut liste, quoi);
         if aa.len() == 1 {
-            let a = &aa[0];
-            sujet = if a.texte("pour").is_empty() {
-                format!("Avenant n° {} - {} - {} {}", a.numero(), capitaliser(&a.texte("nom_du_contrat")), nom_mois, an)
+            let (a, n) = (&aa[0], &nommes[0]);
+            sujet = if n.pour.is_empty() {
+                format!("Avenant n° {} - {} - {} {}", a.numero, capitaliser(&n.nom_du_contrat), nom_mois, an)
             } else {
-                format!("Avenant n° {} - {}", a.numero(), sujet_de(&a.texte("spectacle")))
+                format!("Avenant n° {} - {}", a.numero, sujet_de(&n.spectacle))
             };
-            liste = format!("Tu trouveras ci-joint {} ; le reste du contrat ne change pas.", un(a)?);
-            quoi = format!("l'avenant n° {} au {}{}", a.numero(), contrat_dit(a)?, a.texte("pour"));
+            liste = format!("Tu trouveras ci-joint {} ; le reste du contrat ne change pas.", un(a, n));
+            quoi = format!("l'avenant n° {} au {}{}", a.numero, contrat_dit(a, n), n.pour);
         } else {
             sujet = format!(
                 "Avenants - {}",
@@ -906,14 +962,11 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
                     envoi::formater(SUJET_SIGNATURE_PLURIEL, &[("mois", nom_mois.to_string()), ("annee", an.to_string())])
                 }
             );
-            let mut morceaux = Vec::new();
-            for a in aa {
-                morceaux.push(format!("  - {} ;", un(a)?));
-            }
+            let morceaux: Vec<String> = aa.iter().zip(&nommes).map(|(a, n)| format!("  - {} ;", un(a, n))).collect();
             liste = format!("Tu trouveras ci-joint {} avenants à tes contrats, un document chacun :\n{}\nLe reste de chaque contrat ne change pas.", aa.len(), morceaux.join("\n"));
             quoi = format!(
                 "les avenants suivants : {}",
-                aa.iter().map(|a| Ok(format!("n° {} au {}{}", a.numero(), contrat_dit(a)?, a.texte("pour")))).collect::<R<Vec<_>>>()?.join(" ; ")
+                aa.iter().zip(&nommes).map(|(a, n)| format!("n° {} au {}{}", a.numero, contrat_dit(a, n), n.pour)).collect::<Vec<_>>().join(" ; ")
             );
         }
         if aa.iter().any(UnAvenant::relance) {
@@ -945,7 +998,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
             c.code = Some(code.clone());
         }
         let versions = envois::journal::versions_des_contrats(ctx, &lignes_contrats, &departs).map_err(Echec::from)?;
-        let le_mois = Some(socle::mois::Mois::lire(&mois)?);
+        let le_mois = Some(mois);
         let mut identifiants: Vec<String> = Vec::new();
         let partis_ici = match envoi::envoyer_suivi(std::slice::from_ref(&message), &expediteur, client, Some(&mut identifiants), None) {
             Ok(p) => p,
@@ -961,7 +1014,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
         }
         let reponse = format!(
             "{} envoye(s) a la signature",
-            aa.iter().map(|a| format!("avenant n° {} au contrat {}", a.numero(), valeur_en_texte(&a.apercu["contrat"]))).collect::<Vec<_>>().join("; ")
+            aa.iter().map(|a| format!("avenant n° {} au contrat {}", a.numero, a.contrat.as_deref().unwrap_or_default())).collect::<Vec<_>>().join("; ")
         );
         let detail = DetailSignature {
             contrats: lignes_contrats.clone(),
@@ -972,11 +1025,9 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
             partis: None,
             echec_a: None,
         };
-        lignes.push(noter(ctx, Ligne::ContratSignature(par_courriel(le_mois, "interface", true, &partis_ici.join(", "), &reponse, detail, Some(versions))))?);
+        noter(ctx, Ligne::ContratSignature(par_courriel(le_mois, "interface", true, &partis_ici.join(", "), &reponse, detail, Some(versions))))?;
         partis.extend(partis_ici);
-        for (a, pdf) in aa.iter().zip(&pdfs) {
-            faits.push(json!({"salarie": salarie, "debut": a.texte("debut"), "numero": a.apercu["numero"], "fichier": nom_du(pdf)}));
-        }
+        faits.extend(lignes_contrats);
     }
-    Ok(Avenants { partis, avenants: faits, lignes })
+    Ok(Avenants { partis, avenants: faits })
 }

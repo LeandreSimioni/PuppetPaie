@@ -53,8 +53,9 @@ pub struct Preuve {
 }
 
 impl Preuve {
-    pub fn de_la_charge(charge: &Value) -> Preuve {
-        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None, donnee: None }
+    /// La preuve que la charge d'un acte porte : le mot de passe du logiciel tape pour lui (vide : rien n'a ete tape).
+    pub fn du_mot_de_passe(motdepasse: Option<String>) -> Preuve {
+        Preuve { motdepasse: motdepasse.filter(|m| !m.is_empty()), ..Preuve::default() }
     }
 }
 
@@ -405,11 +406,9 @@ pub fn deposer_dsn_dans(
     let apercu = depot::lire(&octets);
     // 2. le mode contre le fichier ; `presence_prouvee` : c'est ICI qu'on la prouve, jamais le transport.
     depot::verifier(&apercu, reel, None, true)?;
-    // LE MOIS QUE LE FICHIER DECLARE ; un signalement se date par son evenement (AAAA-MM-JJ), sa ligne par le mois de
-    // ce jour.
-    let lu = apercu.mois_lisible();
-    let le_mois = Mois::lire(lu.get(..7).unwrap_or(&lu)).map_err(|m| erreur("ErreurOperation", format!("Ce fichier ne dit pas le mois qu'il déclare ({}). Rien n'est parti.", m)))?;
-    let evenement = (apercu.est_signalement() && lu.len() == 10).then(|| lu.clone());
+    // LE MOIS QUE LE FICHIER DECLARE ; un signalement se date par son evenement, sa ligne par le mois de ce jour.
+    let le_mois = apercu.mois_declare().map_err(|m| erreur("ErreurOperation", format!("Ce fichier ne dit pas le mois qu'il déclare ({}). Rien n'est parti.", m)))?;
+    let evenement = if apercu.est_signalement() { apercu.evenement().map(|j| j.iso()) } else { None };
     let mois = le_mois.to_string();
     if let Some(n) = ordre_d_essai {
         if reel || apercu.est_signalement() || n < 1 {

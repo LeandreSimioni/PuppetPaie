@@ -391,7 +391,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
     let deja = etats::deja_depose(&lignes, envois::journal::Acte::Dsn, &empreinte);
     let nom = nom_du_chemin(&chemin);
     let signalement = a.est_signalement();
-    let mois = Mois::lire(&a.mois_lisible())?;
+    let mois = a.mois_declare().map_err(|m| erreur("ErreurOperation", format!("Ce fichier ne dit pas le mois qu'il déclare ({}).", m)))?;
     let mois_t = mois.to_string();
     let remplacement = if signalement { None } else { remplacement_du_fichier(&mut m, &a, mois)? };
     let recapitulatif = if signalement {
