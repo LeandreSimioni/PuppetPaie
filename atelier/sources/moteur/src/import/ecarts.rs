@@ -248,7 +248,7 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
         pousser(&mut c.conges_spectacles, t("num_conges_spectacles"));
     }
     let e = &ctx.entreprise;
-    for k in [&e.raison_sociale, &e.nom_affichage, &e.adresse, &e.adresse_affichage, &e.code_postal, &e.commune, &e.commune_affichage] {
-        pousser(&mut c.entreprise, k.remplie().map(String::from));
+    for k in [e.raison_sociale.remplie(), e.nom_affichage.remplie(), e.adresse.remplie(), e.adresse_affichage.remplie(), e.complement_adresse.remplie(), e.complement_adresse_affichage.remplie(), e.code_postal.remplie(), e.commune.remplie(), e.commune_affichage.remplie()] {
+        pousser(&mut c.entreprise, k.map(String::from));
     }
 }

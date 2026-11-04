@@ -1281,8 +1281,13 @@ pub fn fiche_de_l_etablissement(fiche: &ChampsEntreprise, nic: &str) -> Resultat
     let mut vue = fiche.clone();
     vue.nic = Case::Dite(e.nic.ecrite("nic")?.to_string());
     vue.siret = Case::Dite(format!("{}{}", fiche.siren.texte(), e.nic.texte()));
+    // L'adresse de l'etablissement vient avec son complement, vide ou non : celui du siege n'est pas le sien.
+    if e.adresse.remplie().is_some() {
+        vue.adresse = e.adresse.clone();
+        vue.complement_adresse = e.complement_adresse.clone();
+        vue.complement_adresse_affichage = e.complement_adresse_affichage.clone();
+    }
     for (case, de) in [
-        (&mut vue.adresse, &e.adresse),
         (&mut vue.code_postal, &e.code_postal),
         (&mut vue.commune, &e.commune),
         (&mut vue.adresse_affichage, &e.adresse_affichage),

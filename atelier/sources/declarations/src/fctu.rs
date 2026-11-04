@@ -525,6 +525,7 @@ ou un annule."
     f.add_case("S10.G00.01.004", &ent0.adresse, "adresse")?;
     f.add_case("S10.G00.01.005", &ent0.code_postal, "code_postal")?;
     f.add_case("S10.G00.01.006", &ent0.commune, "commune")?;
+    f.add_complement("S10.G00.01.009", &ent0.complement_adresse);
     crate::dsn::contact_emetteur(&mut f, ent0)?;
 
     // ---------------------------------------------------------- S20 declaration
@@ -551,13 +552,14 @@ ou un annule."
     f.add_case("S21.G00.06.004", &ent0.adresse, "adresse")?;
     f.add_case("S21.G00.06.005", &ent0.code_postal, "code_postal")?;
     f.add_case("S21.G00.06.006", &ent0.commune, "commune")?;
+    f.add_complement("S21.G00.06.007", &ent0.complement_adresse);
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
     let etab = droit::bareme::entreprise_du_salarie(ent0, &paie.salarie)?;
     for (rub, case, cle) in [
         ("S21.G00.11.001", &etab.nic, "nic"),
         ("S21.G00.11.002", &etab.naf, "naf"),
-        ("S21.G00.11.003", &etab.adresse, "adresse"),
+        ("S21.G00.11.003", &etab.adresse.en_texte(), "adresse"),
         ("S21.G00.11.004", &etab.code_postal, "code_postal"),
         ("S21.G00.11.005", &etab.commune, "commune"),
         ("S21.G00.11.022", &etab.idcc, "idcc"),
@@ -566,6 +568,9 @@ ou un annule."
             continue;
         }
         f.add_case(rub, case, cle)?;
+        if rub == "S21.G00.11.005" {
+            f.add_complement("S21.G00.11.006", &etab.complement_adresse);
+        }
     }
     // Les adhesions prevoyance, sans S21.G00.15.004 : la rubrique « personnel
     // couvert » est interdite dans un signalement.

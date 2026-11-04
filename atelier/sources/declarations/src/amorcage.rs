@@ -168,6 +168,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
     f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
     f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
+    f.add_complement("S10.G00.01.009", &ent.complement_adresse);
     crate::dsn::contact_emetteur(&mut f, ent)?;
 
     // ---------------------------------------------------------- S20 declaration
@@ -203,7 +204,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     for (rub, case, cle) in [
         ("S21.G00.11.001", &etab.nic, "nic"),
         ("S21.G00.11.002", &etab.naf, "naf"),
-        ("S21.G00.11.003", &etab.adresse, "adresse"),
+        ("S21.G00.11.003", &etab.adresse.en_texte(), "adresse"),
         ("S21.G00.11.004", &etab.code_postal, "code_postal"),
         ("S21.G00.11.005", &etab.commune, "commune"),
     ] {
@@ -212,6 +213,9 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
             continue;
         }
         f.add_case(rub, case, cle)?;
+        if rub == "S21.G00.11.005" {
+            f.add_complement("S21.G00.11.006", &etab.complement_adresse);
+        }
     }
 
     // Les adhesions prevoyance que le contrat designe, et elles seules -- sauf

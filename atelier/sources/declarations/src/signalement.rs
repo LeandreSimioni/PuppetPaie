@@ -424,6 +424,7 @@ annule-et-remplace (type 03)."
     f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
     f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
     f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
+    f.add_complement("S10.G00.01.009", &ent.complement_adresse);
     dsn::contact_emetteur(&mut f, ent)?;
 
     // ---------------------------------------------------------- S20 declar.
@@ -447,6 +448,7 @@ annule-et-remplace (type 03)."
     f.add_case("S21.G00.11.003", &etab.adresse, "adresse")?;
     f.add_case("S21.G00.11.004", &etab.code_postal, "code_postal")?;
     f.add_case("S21.G00.11.005", &etab.commune, "commune")?;
+    f.add_complement("S21.G00.11.006", &etab.complement_adresse);
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = ctx.organismes()?;

@@ -70,15 +70,25 @@ impl<T> Case<T> {
     }
 }
 
-impl Case<String> {
+impl<T: AsRef<str>> Case<T> {
     /// Le texte dit, `""` sinon.
     pub fn texte(&self) -> &str {
-        self.dite().map_or("", String::as_str)
+        self.dite().map_or("", AsRef::as_ref)
+    }
+
+    /// La meme case, son texte en `String` : pour une table de cases qui les ecrit toutes de meme.
+    pub fn en_texte(&self) -> Case<String> {
+        match self {
+            Case::Absente => Case::Absente,
+            Case::Nulle => Case::Nulle,
+            Case::Vide => Case::Vide,
+            Case::Dite(t) => Case::Dite(t.as_ref().to_string()),
+        }
     }
 
     /// Le texte dit, s'il n'est pas vide.
     pub fn remplie(&self) -> Option<&str> {
-        self.dite().map(String::as_str).filter(|t| !t.is_empty())
+        self.dite().map(AsRef::as_ref).filter(|t| !t.is_empty())
     }
 
     /// Le texte que la fiche porte, vide compris ; `None` : la case est absente ou nulle.
@@ -177,21 +187,84 @@ impl<'de> Deserialize<'de> for Montant {
     }
 }
 
+/// UNE LIGNE D'ADRESSE DECLAREE de l'entreprise ou d'un etablissement (la voie, puis son complement) : 32 caracteres au
+/// plus, la longueur de la plus courte des normes qui l'ecrivent. La DPAE en ecrit deux de 32 (L_ADR_EMP_1, positions
+/// 188-219, et L_ADR_EMP_2, 220-251 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 262-275) ; la DSN,
+/// 50 (S21.G00.06.004 et .007, S21.G00.11.003 et .006, S10.G00.01.004 et .009, X [1,50] :
+/// `atelier/reference/norme-dsn/texte/bloc-S21.G00.06.txt`, `bloc-S21.G00.11.txt`, `bloc-S10.G00.01.txt`). Une ligne
+/// plus longue se refuse a la saisie et a la lecture : rien ne la couperait.
+#[derive(Debug, Clone, PartialEq, Default, Serialize)]
+#[serde(transparent)]
+pub struct LigneAdresse(String);
+
+impl LigneAdresse {
+    pub const LONGUEUR: usize = 32;
+
+    /// La ligne `texte`, ou ce qui la refuse.
+    pub fn lire(texte: &str) -> Result<LigneAdresse, String> {
+        match Self::faute(texte) {
+            Some(f) => Err(f),
+            None => Ok(LigneAdresse(texte.to_string())),
+        }
+    }
+
+    /// Ce qui refuse la ligne `texte`, en une phrase qui dit quoi faire.
+    pub fn faute(texte: &str) -> Option<String> {
+        let n = texte.chars().count();
+        (n > Self::LONGUEUR).then(|| {
+            format!(
+                "« {} » a {} caractères : une ligne d'adresse en a {} au plus, ce que la DPAE écrit (norme DPAE v5.3, L_ADR_EMP_1 \
+et L_ADR_EMP_2). Passez la suite à la ligne suivante, « Complément d'adresse », ou abrégez.",
+                texte,
+                n,
+                Self::LONGUEUR
+            )
+        })
+    }
+}
+
+impl AsRef<str> for LigneAdresse {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for LigneAdresse {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        LigneAdresse::lire(&String::deserialize(d)?).map_err(serde::de::Error::custom)
+    }
+}
+
+impl FormeDeCase for LigneAdresse {
+    const FAUTE: Option<fn(&str) -> Option<String>> = Some(LigneAdresse::faute);
+}
+
+/// L'adresse d'un document en une ligne : la voie, puis son complement quand la fiche le dit (`LigneAdresse`).
+pub fn avec_complement(adresse: String, complement: Option<&str>) -> String {
+    match complement.filter(|c| !c.trim().is_empty()) {
+        Some(c) => format!("{}, {}", adresse, c),
+        None => adresse,
+    }
+}
+
 // ------------------------------------------------------------ la forme declaree
 
 /// CE QU'UNE CASE DECLARE, pour le test qui la confronte a `champs-base.json` : ses valeurs (un choix) et ses cases (une
-/// structure).
+/// structure) ; pour la saisie, la faute que son type refuse (`FormeDeCase::FAUTE`).
 #[derive(Debug, Clone)]
 pub struct Declaree {
     pub cle: &'static str,
     pub valeurs: &'static [&'static str],
     pub cases: Vec<Declaree>,
+    pub faute: Option<fn(&str) -> Option<String>>,
 }
 
 /// La forme d'un type de case.
 pub trait FormeDeCase {
     /// Les valeurs d'un choix ; aucune hors d'un choix.
     const VALEURS: &'static [&'static str] = &[];
+    /// Ce que le type refuse d'un texte saisi, en une phrase qui dit quoi corriger (`LigneAdresse`) ; rien d'ordinaire.
+    const FAUTE: Option<fn(&str) -> Option<String>> = None;
     /// Les cases d'une structure ; aucune hors d'une structure.
     fn cases() -> Vec<Declaree> {
         Vec::new()
@@ -199,7 +272,7 @@ pub trait FormeDeCase {
 }
 
 pub fn declaree<T: FormeDeCase>(cle: &'static str) -> Declaree {
-    Declaree { cle: cle.strip_prefix("r#").unwrap_or(cle), valeurs: T::VALEURS, cases: T::cases() }
+    Declaree { cle: cle.strip_prefix("r#").unwrap_or(cle), valeurs: T::VALEURS, cases: T::cases(), faute: T::FAUTE }
 }
 
 impl FormeDeCase for String {}
@@ -556,7 +629,9 @@ cases! {
         siret: String,
         nic: String,
         adresse_affichage: String,
-        adresse: String,
+        adresse: LigneAdresse,
+        complement_adresse_affichage: String,
+        complement_adresse: LigneAdresse,
         code_postal: String,
         commune_affichage: String,
         commune: String,
@@ -667,8 +742,10 @@ fiche! {
         siret: String,
         naf: String,
         code_urssaf: String,
-        adresse: String,
+        adresse: LigneAdresse,
         adresse_affichage: String,
+        complement_adresse: LigneAdresse,
+        complement_adresse_affichage: String,
         code_postal: String,
         commune: String,
         commune_affichage: String,

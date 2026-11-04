@@ -233,6 +233,17 @@ fn medecine_de(ent: &ChampsEntreprise) -> Resultat<String> {
 
 // -------------------------------------------------------- l'employeur
 
+/// UNE LIGNE D'ADRESSE DE L'EMPLOYEUR, en entier (L_ADR_EMP_1 et L_ADR_EMP_2, 32 caracteres chacune :
+/// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 262-275) : la fiche la tient a cette longueur
+/// (`droit::fiche::LigneAdresse`) ; une ligne que les caracteres admis allongent se refuse, elle ne se coupe pas.
+fn ligne_d_adresse(ligne: &str) -> Resultat<String> {
+    let l = normaliser(ligne);
+    match droit::fiche::LigneAdresse::faute(&l) {
+        Some(f) => Err(f),
+        None => Ok(ljust(&l, droit::fiche::LigneAdresse::LONGUEUR)),
+    }
+}
+
 /// Les zones employeur de la DPAE, lues dans la fiche `ent` (le SIRET : `siret_de` ; la medecine du travail :
 /// `medecine_de`).
 pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>> {
@@ -244,8 +255,8 @@ pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>
     Ok(vec![
         ("siret", siret),
         ("raison_sociale", ljust(&debut(&normaliser(ent.raison_sociale.texte()), 32), 32)),
-        ("adresse", ljust(&debut(&normaliser(ent.adresse.texte()), 32), 32)),
-        ("adresse_2", ljust(&debut(&normaliser(""), 32), 32)),
+        ("adresse", ligne_d_adresse(ent.adresse.texte())?),
+        ("adresse_2", ligne_d_adresse(ent.complement_adresse.texte())?),
         ("code_postal", ljust(&debut(ent.code_postal.texte(), 5), 5)),
         ("commune", ljust(&debut(&normaliser(ent.commune.texte()), 27), 27)),
         ("raison_sociale_2", " ".repeat(32)),

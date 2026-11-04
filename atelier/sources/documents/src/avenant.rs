@@ -82,7 +82,7 @@ pub(crate) fn texte_ou_invalide(v: &Value) -> String {
 }
 
 /// Une case texte de la fiche du salarie, que le modele exige : absente, elle se refuse ; nulle, elle ne se lit pas.
-fn case(c: &droit::fiche::Case<String>, cle: &str) -> Resultat<String> {
+fn case<T: AsRef<str>>(c: &droit::fiche::Case<T>, cle: &str) -> Resultat<String> {
     match c {
         droit::fiche::Case::Nulle => Ok(INVALIDE.to_string()),
         c => c.ecrite(cle).map(str::to_string),
@@ -90,7 +90,7 @@ fn case(c: &droit::fiche::Case<String>, cle: &str) -> Resultat<String> {
 }
 
 /// La forme lisible d'une case de la fiche du salarie si elle est dite, la forme declaree sinon (`case`).
-fn lisible(affichage: &droit::fiche::Case<String>, c: &droit::fiche::Case<String>, cle: &str) -> Resultat<String> {
+fn lisible<T: AsRef<str>>(affichage: &droit::fiche::Case<String>, c: &droit::fiche::Case<T>, cle: &str) -> Resultat<String> {
     match affichage.texte() {
         "" => case(c, cle),
         a => Ok(a.to_string()),
@@ -368,7 +368,8 @@ pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalari
         m.insert(k, v);
     };
     poser(Marqueur::EmployeurRaisonSociale, case(&ent.raison_sociale, "raison_sociale")?);
-    poser(Marqueur::EmployeurAdresse, lisible(&ent.adresse_affichage, &ent.adresse, "adresse")?);
+    let complement = ent.complement_adresse_affichage.remplie().or(ent.complement_adresse.remplie());
+    poser(Marqueur::EmployeurAdresse, droit::fiche::avec_complement(lisible(&ent.adresse_affichage, &ent.adresse, "adresse")?, complement));
     poser(Marqueur::EmployeurCodePostal, case(&ent.code_postal, "code_postal")?);
     poser(Marqueur::EmployeurCommune, lisible(&ent.commune_affichage, &ent.commune, "commune")?);
     poser(Marqueur::EmployeurSiret, case(&ent.siret, "siret")?);
