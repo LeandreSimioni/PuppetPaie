@@ -32,7 +32,6 @@ use serde_json::Value;
 use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use crate::branchement::Branchement;
 use crate::releve_retours::{self, Client};
 use crate::suites::Suites;
@@ -53,10 +52,10 @@ pub struct OrdreConnu {
 }
 
 /// Le SIREN de l'entreprise : `siren`, sinon les neuf premiers chiffres du `siret`.
-fn siren(ent: &Value) -> String {
-    match ent.get("siren").filter(|s| vrai(s)) {
-        Some(s) => valeur_en_texte(s),
-        None => ent.get("siret").map(valeur_en_texte).unwrap_or_default().chars().take(9).collect(),
+fn siren(ent: &droit::fiche::ChampsEntreprise) -> String {
+    match ent.siren.texte() {
+        "" => ent.siret.texte().chars().take(9).collect(),
+        s => s.to_string(),
     }
 }
 

@@ -391,7 +391,8 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
     // Toute la configuration est datee (`contexte::fiche_au`) : la premiere valeur vaut de tout temps.
     // Le jour d'ajout : le plus tot des deux jours (Paris, et celui du moteur, en UTC).
     let creation = socle::temps::jour_de_paris().min(droit::contexte::jour_reel());
-    ecrire(&cfg.join("entreprise.json"), &Value::Object(droit::contexte::fiche_datee(&ent)))?;
+    let fiche = droit::fiche::par_la_forme("entreprise", droit::contexte::ENTREPRISE, &Value::Object(droit::contexte::fiche_datee(&ent)))?;
+    ecrire(&cfg.join("entreprise.json"), &fiche)?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
     ecrire(

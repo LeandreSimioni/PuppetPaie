@@ -117,11 +117,9 @@ struct Cx<'a> {
     grille: &'a Value,
     lie_depuis: Option<String>,
     m: &'a Value,
-    /// La fiche, en JSON pour les conditions de la table qui nomment ses cases (`si_salarie`, `anciennete.champ`).
-    sal: &'a Value,
     fiche: &'a droit::fiche::SalarieDuContrat,
     paie: &'a Paie,
-    ent: &'a Value,
+    ent: &'a droit::fiche::ChampsEntreprise,
     annexe: Option<String>,
     organisation: Option<String>,
     nb_cachets: i64,
@@ -454,9 +452,14 @@ impl<'a> Cx<'a> {
                 return Ok(false);
             }
         }
-        for (k, source) in [("si_spectacle", &self.paie.spectacle), ("si_entreprise", self.ent), ("si_salarie", self.sal)] {
+        // Les conditions nomment les cases du spectacle, de la fiche entreprise et de celle du salarie.
+        for (k, case) in [
+            ("si_spectacle", &(|cl: &str| Some(g(&self.paie.spectacle, cl).clone())) as &dyn Fn(&str) -> Option<Value>),
+            ("si_entreprise", &|cl: &str| self.ent.case(cl)),
+            ("si_salarie", &|cl: &str| self.fiche.case(cl)),
+        ] {
             for (cl, v) in g(c, k).as_object().into_iter().flatten() {
-                if !vaut(v, g(source, cl)) {
+                if !vaut(v, &case(cl).unwrap_or(Value::Null)) {
                     return Ok(false);
                 }
             }
@@ -464,7 +467,7 @@ impl<'a> Cx<'a> {
         let a = g(c, "anciennete");
         if vrai(a) {
             let champ = en_texte(cle(a, "champ")?);
-            let ans = ans_revolus(g(self.sal, &champ), jour_de_paie(self.paie).as_deref());
+            let ans = ans_revolus(&self.fiche.case(&champ).unwrap_or(Value::Null), jour_de_paie(self.paie).as_deref());
             match ans {
                 Some(n) if (n as f64) >= cle(a, "ans")?.as_f64().ok_or("nombre attendu")? => {}
                 _ => return Ok(false),
@@ -864,14 +867,12 @@ fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = droit::minima::idcc_du_contrat(ent, &paie.spectacle, &paie.salarie)?;
+    let idcc = droit::minima::idcc_du_contrat(ent.idcc.texte(), &paie.spectacle, &paie.salarie)?;
     let tab = table()?;
     let t: &Value = &tab;
     if t.get(&idcc).is_none() {
         return Ok(None);
     }
-    let vue = paie.salarie.en_valeur();
-    let sal = &vue;
     let Some(m) = emplois::metier(paie.salarie.code_emploi_ft.texte())? else { return Ok(None) };
     let nb_cachets = paie
         .remuneration
@@ -882,7 +883,7 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
         .to_string()
         .parse::<i64>()
         .map_err(|e| e.to_string())?;
-    let organisation = ou_rien(g(ent, "organisation_patronale"));
+    let organisation = ent.organisation_patronale.dite().filter(|o| !o.is_empty()).cloned();
     let Some((grille, lie_depuis)) = grille_au(t, &idcc, organisation.as_deref(), premier_jour(paie).as_deref()) else { return Ok(None) };
     let cx = Cx {
         t,
@@ -890,11 +891,10 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
         grille,
         lie_depuis,
         m: &m,
-        sal,
         fiche: &paie.salarie,
         paie,
         ent,
-        annexe: ou_rien(g(ent, "annexe_convention")),
+        annexe: ent.annexe_convention.dite().map(|a| a.as_str().to_string()),
         organisation,
         nb_cachets,
     };

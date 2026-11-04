@@ -217,13 +217,13 @@ pub(crate) fn titre_de(v: Option<&Value>) -> String {
 }
 
 /// Les champs DECLARES que la DSN disait autrement que la fiche.
-fn ecarts(nom: &str, fiche: &Value, declare: &Map<String, Value>, mois: &str) -> R<Value> {
+fn ecarts(nom: &str, fiche: &dyn droit::fiche::ParCase, declare: &Map<String, Value>, mois: &str) -> R<Value> {
     let mut out = Map::new();
     for c in declarations::champs::fiche(nom)? {
         if !c.declare || !declare.contains_key(&c.cle) {
             continue;
         }
-        let a = fiche.get(&c.cle).unwrap_or(&Value::Null);
+        let a = &fiche.case(&c.cle).unwrap_or(Value::Null);
         let b = &declare[&c.cle];
         // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete (`import::completer`).
         if crate::import::completer::vide(Some(a)) || valeur_en_texte(a) == valeur_en_texte(b) {
@@ -344,9 +344,9 @@ pub(crate) struct Apercu {
 /// garde son nom et sa raison sociale, que les pieces ecrivent en capitales (S21.G00.06.003) ; changer le nom d'une
 /// fiche demande une date d'effet que l'import ne devine pas.
 pub(crate) fn garder_le_nom(ctx: &Contexte, e: &mut Map<String, Value>) {
-    for k in ["nom_affichage", "raison_sociale"] {
-        if let Some(v) = ctx.entreprise.get(k).filter(|v| vrai(v) && !valeur_en_texte(v).trim().is_empty()) {
-            e.insert(k.into(), v.clone());
+    for (k, c) in [("nom_affichage", &ctx.entreprise.nom_affichage), ("raison_sociale", &ctx.entreprise.raison_sociale)] {
+        if let Some(v) = c.remplie().filter(|v| !v.trim().is_empty()) {
+            e.insert(k.into(), Value::from(v));
         }
     }
 }
@@ -405,14 +405,14 @@ pub(crate) fn apercu_lu(
     if !lecture.entreprise.is_empty() {
         let mut e = fiche_entreprise(&lecture)?;
         garder_le_nom(ctx, &mut e);
-        if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !valeur_en_texte(s).trim().is_empty()) {
+        if ctx.entreprise.siren.texte().trim().is_empty() {
             let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             entreprise = fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e));
             a_creer += 1;
         } else {
-            let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), valeur_en_texte);
+            let libelle = ctx.entreprise.raison_sociale.texte().to_string();
             let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise, &lecture.dernier_mois)?;
             entreprise = fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({}));
             let champs = crate::import::completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
@@ -439,9 +439,9 @@ pub(crate) fn apercu_lu(
             titre_de(decl.fiche.get("prenom"))
         );
         if let Some(cle) = par_nir.get(&decl.nir) {
-            let ec = ecarts("salarie", &ctx.salaries[cle.as_str()].champs.en_valeur(), &decl.fiche, &decl.mois)?;
+            let ec = ecarts("salarie", &ctx.salaries[cle.as_str()].champs, &decl.fiche, &decl.mois)?;
             let mut entree = fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({}));
-            let champs = crate::import::completer::champs_a_completer("salarie", &ctx.salaries[cle.as_str()].champs.en_valeur(), &fiche_salarie(decl)?)?;
+            let champs = crate::import::completer::champs_a_completer("salarie", &ctx.salaries[cle.as_str()].champs, &fiche_salarie(decl)?)?;
             crate::import::completer::noter(&mut entree, &champs, origine_dsn(&decl.mois));
             crate::import::completer::ajouter(&mut a_completer, "salarie", Some(cle), &champs);
             salaries.push(entree);

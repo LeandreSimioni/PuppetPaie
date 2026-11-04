@@ -42,17 +42,9 @@ fn refus(message: impl Into<String>) -> Echec {
     erreur("ErreurOperation", message)
 }
 
-/// `d[cle]` : `KeyError` si elle manque.
-fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
-    match d {
-        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
-    }
-}
-
-/// `d.get(cle)` en texte, quand elle est vraie.
-fn vrai_ou(d: &Value, cle: &str) -> Option<String> {
-    d.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
+/// La case `cle` de la fiche entreprise manque.
+fn requis_manque(cle: &str) -> Echec {
+    erreur("KeyError", socle::fichiers::absent(cle))
 }
 
 /// Les clauses qu'un avenant peut modifier : ce que L1242-12 et les conventions mettent au contrat et qui bouge
@@ -130,14 +122,14 @@ pub fn code_signature() -> String {
 /// `signataire` et `raison` des courriels : le prenom d'affichage du signataire (sinon son prenom, capitalise), et
 /// le nom d'affichage de la compagnie (sinon sa raison sociale).
 pub fn signataire_et_raison(ctx: &Contexte) -> R<(String, String)> {
-    let sg = requis(&ctx.entreprise, "signataire")?;
-    let signataire = match vrai_ou(sg, "prenom_affichage") {
-        Some(p) => p,
-        None => capitaliser(&sg.get("prenom").map(valeur_en_texte).unwrap_or_default()),
+    let sg = ctx.entreprise.signataire.dite().ok_or_else(|| requis_manque("signataire"))?;
+    let signataire = match sg.prenom_affichage.texte() {
+        "" => capitaliser(sg.prenom.texte()),
+        p => p.to_string(),
     };
-    let raison = match vrai_ou(&ctx.entreprise, "nom_affichage") {
-        Some(r) => r,
-        None => valeur_en_texte(requis(&ctx.entreprise, "raison_sociale")?),
+    let raison = match ctx.entreprise.nom_affichage.texte() {
+        "" => ctx.entreprise.raison_sociale.ecrite("raison_sociale").map_err(|_| requis_manque("raison_sociale"))?.to_string(),
+        r => r.to_string(),
     };
     Ok((signataire, raison))
 }
@@ -284,7 +276,8 @@ fn contrats_choisis(ctx: &Contexte, choisis: &Choisis, mois: &str, paies: &[Paie
 fn controler_contrat<'a>(ctx: &'a Contexte, salaries: impl Iterator<Item = (&'a str, &'a ChampsSalarie)>) -> R<()> {
     // Ce que le contrat exige d'une fiche se lit a ses cases par leur nom (`champs-base.json`, `exige_par`) : en JSON.
     let vues: Vec<(String, Value)> = salaries.map(|(cle, s)| (format!("la fiche de {}", s.nomme().unwrap_or_else(|| cle.to_string())), s.en_valeur())).collect();
-    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".into(), &ctx.entreprise)];
+    let ent = ctx.entreprise.en_valeur();
+    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".into(), &ent)];
     fiches.extend(vues.iter().map(|(qui, v)| ("salarie", qui.clone(), v)));
     match declarations::champs::refus_des_manques("contrat", &fiches, &[])? {
         Some(m) => Err(refus(m)),

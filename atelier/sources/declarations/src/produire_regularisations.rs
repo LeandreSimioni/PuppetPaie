@@ -185,10 +185,10 @@ fn annulations(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &st
 /// "mois": <le mois corrige>}`. Ce que la DSN fabriquee dit porter, et ce que la ligne du journal de son depot emporte.
 pub fn versions_portees(ctx: &Contexte, regs: &[Reg], nic: &str) -> R<Vec<Value>> {
     let fiche = &ctx.entreprise;
-    let plusieurs = !droit::bareme::secondaires(fiche).is_empty();
+    let plusieurs = !fiche.secondaires().is_empty();
     let mut out = Vec::new();
     for r in regs {
-        if plusieurs && droit::bareme::etablissement_du_salarie(fiche, &r.apres.salarie).map_err(refus_valeur)? != nic {
+        if plusieurs && droit::bareme::etablissement_de(fiche, &r.apres.salarie).map_err(refus_valeur)? != nic {
             continue;
         }
         let v = json!({

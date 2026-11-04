@@ -146,3 +146,25 @@ fn le_montage_refuse_un_dossier_dans_un_depot_git() {
     assert!(!d.exists());
     let _ = std::fs::remove_dir_all(&racine);
 }
+
+/// UNE COMPAGNIE D'ESSAI MONTEE SE LIT : sa fiche porte le declarant net-entreprises et le compte DPAE de la variable, et
+/// la forme de la fiche (`droit::fiche`) les lit. Bug echappe : la forme ne les portait pas, l'essai ne se lisait plus.
+#[test]
+fn une_compagnie_d_essai_montee_se_lit_par_sa_forme() {
+    let source = dossier_de_test("essai", "fictive");
+    let config = source.join("config");
+    std::fs::create_dir_all(&config).unwrap();
+    std::fs::write(config.join("entreprise.json"), crate::outils::datee(&json!({"nom_affichage": "Fictive", "idcc": "3090"})).to_string()).unwrap();
+    for f in ["salaries.json", "spectacles.json"] {
+        std::fs::write(config.join(f), "{}").unwrap();
+    }
+    std::fs::write(source.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": "compagnie fictive fictive-du-test"}).to_string()).unwrap();
+    let d = dossier("se-lit");
+    let s = lancer(PAIE, &["essai", "monter", d.to_str().unwrap(), "--depuis", source.to_str().unwrap()], &[("PUPPETPAIE_COMPAGNIE", &identite().to_string())]);
+    assert_eq!(s.code, 0, "{}", s.texte);
+    let ctx = droit::contexte::Contexte::nouveau(&d, None).unwrap_or_else(|e| panic!("la compagnie d'essai ne se lit pas : {}", e));
+    let dpae = ctx.entreprise.api_dpae.dite().expect("le compte DPAE");
+    assert_eq!((dpae.nom.texte(), dpae.siret.texte()), ("QUENOUILLEDPAE", "98765432400019"));
+    assert_eq!(ctx.entreprise.declarant.dite().map(|x| x.prenom.texte()), Some("ARIANE MARIE"));
+    let _ = std::fs::remove_dir_all(&d);
+}

@@ -603,26 +603,16 @@ pub fn consulter(base: &str, jeton: Option<&str>, debut: &str, fin: Option<&str>
     appeler(&url, jeton).map(|(corps, _)| corps)
 }
 
-/// L'identite du declarant inscrit au service DSN. Une fiche
-/// dont `declarant_dsn` n'est pas un objet, ou dont `nom_prenom` n'est pas un
-/// texte, leve `AttributeError`.
-pub fn declarant(ent: &Value) -> Result<Value, Value> {
-    if vrai(ent.get("declarant")) {
-        return Ok(ent["declarant"].clone());
+/// L'identite du declarant inscrit au service DSN, telle que l'authentification l'envoie : celle que la fiche dit
+/// (`declarant`), sinon le SIRET et le contact DSN coupe au premier espace (le nom, puis le prenom).
+pub fn declarant(ent: &droit::fiche::ChampsEntreprise) -> Result<Value, Value> {
+    if let Some(d) = ent.declarant.dite().filter(|d| !d.est_vide()) {
+        return Ok(serde_json::to_value(d).unwrap_or(Value::Null));
     }
-    let mut brut = "";
-    if let Some(dsn) = ent.get("declarant_dsn").filter(|v| vrai(Some(v))) {
-        let o = dsn.as_object().ok_or_else(|| echec("AttributeError", "le declarant_dsn n'est pas un objet".into(), None))?;
-        brut = match o.get("nom_prenom") {
-            None => "",
-            Some(Value::String(t)) => t,
-            Some(_) => return Err(echec("AttributeError", "`nom_prenom` n'est pas un texte".into(), None)),
-        };
-    }
+    let brut = ent.declarant_dsn.dite().map_or("", |d| d.nom_prenom.texte());
     let morceaux = mots(socle::texte::strip(brut));
-    let siret = ent.get("siret").cloned().unwrap_or(Value::Null);
     let mut m = Map::new();
-    m.insert("siret".into(), siret);
+    m.insert("siret".into(), ent.siret.en_valeur());
     if morceaux.len() >= 2 {
         m.insert("nom".into(), Value::String(morceaux[0].into()));
         m.insert("prenom".into(), Value::String(morceaux[1..].join(" ")));

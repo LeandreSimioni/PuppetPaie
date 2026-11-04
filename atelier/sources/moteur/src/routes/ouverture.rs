@@ -366,7 +366,7 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
 /// datee (`etablissements::ecrire`) se montre et se saisit ; un etablissement ferme n'y est plus.
 pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
     let derniere = droit::contexte::valeurs_datees(ctx.entreprise_brute(), "etablissements").ok().and_then(|v| v.last().map(|(_, x)| (*x).clone()));
-    let principal = texte_ou_vide(ctx.entreprise.get("nic"));
+    let principal = ctx.entreprise.nic_principal();
     match derniere {
         Some(Value::Array(a)) => a.into_iter().filter(|e| e.is_object() && texte_ou_vide(e.get("nic")) != principal).collect(),
         _ => Vec::new(),
@@ -377,7 +377,7 @@ pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
 /// chacun, nomme par son nom et sa commune, avec son ouverture, et son dernier jour s'il est ferme (un engagement passe
 /// le garde). `Null` : un seul etablissement, rien a choisir.
 pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Value {
-    let principal = texte_ou_vide(ctx.entreprise.get("nic"));
+    let principal = ctx.entreprise.nic_principal();
     let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(ctx.entreprise_brute())
         .unwrap_or_default()
         .into_iter()
@@ -387,7 +387,8 @@ pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Value {
         return Value::Null;
     }
     let commune = |f: &Value| texte_ou_vide(f.get("commune_affichage").filter(|v| vrai(v)).or(f.get("commune")));
-    let mut out = vec![json!({"nic": "", "nom": format!("Le siège{}", Some(commune(&ctx.entreprise)).filter(|c| !c.is_empty()).map(|c| format!(", {}", c)).unwrap_or_default())})];
+    let siege = ctx.entreprise.commune_affichage.remplie().unwrap_or(ctx.entreprise.commune.texte()).to_string();
+    let mut out = vec![json!({"nic": "", "nom": format!("Le siège{}", Some(siege).filter(|c| !c.is_empty()).map(|c| format!(", {}", c)).unwrap_or_default())})];
     for (e, fermeture) in autres {
         let nom = [texte_ou_vide(e.get("libelle")), commune(&e)].into_iter().filter(|s| !s.trim().is_empty()).collect::<Vec<_>>().join(", ");
         // Son ouverture, et son dernier jour s'il est ferme, tels que l'option les dit.
@@ -483,18 +484,17 @@ fn documents_identite(quoi: &str) -> Value {
 
 /// `signataire_de` : la personne qui signe, telle que la fiche Entreprise la
 /// nomme, en forme lisible.
-pub(crate) fn signataire_de(ent: &Value) -> R<Value> {
-    let s = ou_vide(ent.get("signataire"));
-    objet(s, "signataire")?;
-    let lisible = |affichage: &str, brut: &str| -> String {
-        match s.get(affichage).filter(|v| vrai(v)) {
-            Some(v) => valeur_en_texte(v),
-            None => champs::titre(&texte_ou_vide(s.get(brut))),
+pub(crate) fn signataire_de(ent: &droit::fiche::ChampsEntreprise) -> R<Value> {
+    let s = ent.signataire.dite().cloned().unwrap_or_default();
+    let lisible = |affichage: &droit::fiche::Case<String>, brut: &droit::fiche::Case<String>| -> String {
+        match affichage.remplie() {
+            Some(v) => v.to_string(),
+            None => champs::titre(brut.texte()),
         }
     };
-    let (prenom, nom) = (lisible("prenom_affichage", "prenom"), lisible("nom_affichage", "nom"));
+    let (prenom, nom) = (lisible(&s.prenom_affichage, &s.prenom), lisible(&s.nom_affichage, &s.nom));
     let complet: Vec<String> = [prenom, nom].into_iter().filter(|x| !x.is_empty()).collect();
-    Ok(json!({"nom": complet.join(" "), "fonction": s.get("fonction").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!(""))}))
+    Ok(json!({"nom": complet.join(" "), "fonction": s.fonction.texte()}))
 }
 
 /// `identite` : ce qui est pose (signature, cachet, logo), et depuis quand.
@@ -594,7 +594,9 @@ fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
 
 /// Toute la configuration, verifiee, et ce que la page en tire sans un appel de plus.
 fn configuration(ctx: &Contexte) -> R<Value> {
-    let mut vue = avec_historique(&ctx.entreprise, Some(ctx.entreprise_brute()))?;
+    // La route rend la fiche telle que la page la lit : ses cases par leur nom.
+    let ent = ctx.entreprise.en_valeur();
+    let mut vue = avec_historique(&ent, Some(ctx.entreprise_brute()))?;
     if let Some(o) = vue.as_object_mut() {
         let autres = etablissements_dits(ctx);
         if autres.is_empty() {
@@ -609,7 +611,7 @@ fn configuration(ctx: &Contexte) -> R<Value> {
     }
     // Ce que chaque fiche montre (`fiches::montres`) : la page ne montre que ces cases-la.
     let avec_montres = |nom: &str, mut f: Value| -> R<Value> {
-        let m = super::fiches::montres(ctx, nom, &f["donnees"], &ctx.entreprise)?;
+        let m = super::fiches::montres(ctx, nom, &f["donnees"], &ent)?;
         f["montres"] = json!(m);
         Ok(f)
     };
@@ -637,7 +639,7 @@ fn configuration(ctx: &Contexte) -> R<Value> {
     // LA DEDUCTION FORFAITAIRE SPECIFIQUE vue de la fiche d'un salarie : l'option est celle de l'employeur, dans la fiche de
     // l'entreprise ; la fiche du salarie dit si elle s'applique (`calcul::deduction_forfaitaire` decide).
     let description_entreprise = champs::description("entreprise")?;
-    let option = super::mot(&ctx.entreprise["deduction_forfaitaire_option"]);
+    let option = ctx.entreprise.deduction_forfaitaire_option.code().to_string();
     let deduction = if option.is_empty() {
         "La compagnie ne l'applique pas : c'est une option de l'employeur, qui se règle dans la fiche de l'entreprise (« Avancé — cas particuliers »). Une fois l'option posée, la profession et l'accord du salarié se disent ici.".to_string()
     } else {
@@ -957,7 +959,7 @@ pub(crate) fn metiers(ctx: &Contexte) -> R<Value> {
     let familles = emplois::familles().map_err(plain)?;
     let ordre: HashMap<&str, usize> = familles.iter().enumerate().map(|(i, f)| (f.as_str(), i)).collect();
     let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = texte_ou_vide(ctx.entreprise.get("idcc"));
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let mut liste: Vec<Value> = emplois::catalogue().map_err(plain)?.into_iter().filter(|m| metier_visible(m, &idcc, &ajoutes, &retires)).collect();
     liste.sort_by_cached_key(|m| (ordre.get(texte_de(m, "famille").as_str()).copied().unwrap_or(ordre.len()), texte_de(m, "libelle").to_lowercase()));
     Ok(Value::Array(liste))
@@ -968,7 +970,7 @@ pub(crate) fn metiers(ctx: &Contexte) -> R<Value> {
 pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Value> {
     let noms = emplois::noms_des_conventions().map_err(plain)?;
     let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = texte_ou_vide(ctx.entreprise.get("idcc"));
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let mut out: Vec<(String, String, Value)> = Vec::new();
     for m in emplois::catalogue().map_err(plain)? {
         if metier_visible(&m, &idcc, &ajoutes, &retires) {
@@ -1234,7 +1236,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         .iter()
         .map(|x| json!({"code": x.get("code").cloned().unwrap_or(Value::Null), "nom": x.get("nom").cloned().unwrap_or(Value::Null)}))
         .collect();
-    let deduit = declarations::champs::urssaf_du_code_postal(&urssaf, ctx.entreprise.get("code_postal"));
+    let deduit = declarations::champs::urssaf_du_code_postal(&urssaf, Some(&ctx.entreprise.code_postal.en_valeur()));
 
     Ok(json!({
         "configuration": configuration,
@@ -1278,7 +1280,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
         "niveaux_sante": niveaux_sante(ctx)?,
         // Ou, quand la convention ne la fait pas choisir sur la fiche, d'ou elle vient (`bareme::sante_hors_fiche`).
-        "sante_hors_fiche": droit::bareme::sante_hors_fiche(&ctx.entreprise).map_err(plain)?,
+        "sante_hors_fiche": droit::bareme::sante_hors_fiche(&ctx.entreprise.en_valeur()).map_err(plain)?,
         // Ce que la fiche d'un permanent dit de sa complementaire sante, sous le choix du niveau.
         "sante_aide": "Obligatoire pour un salarié au mois (art. L911-7) : sans elle, le logiciel refuse de le payer plutôt que de cotiser moins que le contrat. Elle se lit sur son bulletin d'adhésion.",
         // Les conventions collectives servies, pour la fiche entreprise.

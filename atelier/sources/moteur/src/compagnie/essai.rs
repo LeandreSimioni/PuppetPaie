@@ -411,6 +411,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")
             .map_err(|e| socle::echec::du_disque(&dossier, &e))?;
     }
+    let fiche = droit::fiche::par_la_forme("entreprise", droit::contexte::ENTREPRISE, &fiche)?;
     socle::ecriture::ecrire_json(&dossier.join(droit::contexte::ENTREPRISE), &fiche, 2)?;
     Ok(Montage { dossier: absolu(dossier), depuis: nom, neuf: !deja })
 }

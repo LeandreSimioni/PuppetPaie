@@ -72,7 +72,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
     let ordre: HashMap<&str, usize> = familles.iter().enumerate().map(|(i, f)| (f.as_str(), i)).collect();
     let noms = emplois::noms_des_conventions().map_err(plain)?;
     let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = ctx.entreprise.get("idcc").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let mut liste: Vec<Map<String, Value>> = Vec::new();
     for m in emplois::catalogue().map_err(plain)? {
         let conventions: Vec<Value> = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -125,7 +125,7 @@ fn metier_retenu(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("Metier hors catalogue : {}.", code)));
     };
     // Ceux de sa convention le sont d'office ; sans IDCC, rien ne se cache.
-    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let conventions = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
     let de_la_convention = conventions.is_empty() || idcc.is_empty() || conventions.iter().any(|c| c.as_str() == Some(idcc.as_str()));
     let (mut ajoutes, mut retires) = crate::routes::ouverture::preferences_metiers(&ctx.racine)?;

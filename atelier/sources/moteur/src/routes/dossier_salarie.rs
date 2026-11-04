@@ -579,7 +579,7 @@ fn mois_puppetpaie(
     if siennes.is_empty() {
         return Ok(pages);
     }
-    let ent = ctx.entreprise_du_mois(mois)?;
+    let ent = ctx.pour_un_modele(&ctx.entreprise_du_mois(mois)?);
     let lib = socle::mois::Mois::en_clair(mois);
 
     // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie

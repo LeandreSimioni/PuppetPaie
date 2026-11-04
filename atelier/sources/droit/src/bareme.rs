@@ -994,10 +994,19 @@ pub const REPRESENTATIONS: [&str; 4] = ["aucune", "csec", "cse_adherent_fnas", "
 
 /// L'entreprise est-elle hors du dispositif CASC-SVP ? (CCN 3090, 4.22 B)
 pub fn casc_exemptee(ent: &Value) -> Resultat<bool> {
-    if !vrai(g(ent, "casc_svp_exemptee")) {
+    exemption_casc(vrai(g(ent, "casc_svp_exemptee")), &txt(g(ent, "representation_personnel")))
+}
+
+/// La meme, de la fiche entreprise.
+pub fn casc_exemptee_de(ent: &crate::fiche::ChampsEntreprise) -> Resultat<bool> {
+    exemption_casc(ent.casc_svp_exemptee.oui(), ent.representation_personnel.code())
+}
+
+fn exemption_casc(exemptee: bool, representation: &str) -> Resultat<bool> {
+    if !exemptee {
         return Ok(false);
     }
-    let rep = txt(g(ent, "representation_personnel")).trim().to_lowercase();
+    let rep = representation.trim().to_lowercase();
     if rep != "cse" && rep != "cse_adherent_fnas" {
         return Err(socle::echec::avec("La fiche entreprise dit la compagnie exemptée de la CASC-SVP, et l'exemption demande un comité social et économique : le déclarer, ou décocher l'exemption.", serde_json::json!({"cle": "casc_svp_exemptee", "detail": format!(
             "config/entreprise.json : `casc_svp_exemptee` est coche, mais \
@@ -1278,19 +1287,29 @@ pub fn entree(fiche: &Value, nic: &str) -> Option<Value> {
 
 /// Le NIC de l'etablissement du salarie.
 pub fn etablissement_du_salarie(fiche: &Value, sal: &SalarieDuContrat) -> Resultat<String> {
+    let mut nics = vec![nic_principal(fiche)];
+    nics.extend(secondaires(fiche).iter().map(|e| en_texte(g(e, "nic"))));
+    rattachement(&nics, sal)
+}
+
+/// Le meme, de la fiche entreprise.
+pub fn etablissement_de(fiche: &crate::fiche::ChampsEntreprise, sal: &SalarieDuContrat) -> Resultat<String> {
+    rattachement(&fiche.nics(), sal)
+}
+
+/// `nics` : le siege, puis les autres etablissements.
+fn rattachement(nics: &[String], sal: &SalarieDuContrat) -> Resultat<String> {
     let nic = sal.etablissement.as_deref().unwrap_or("").trim().to_string();
-    if nic.is_empty() || nic == nic_principal(fiche) {
-        return Ok(nic_principal(fiche));
+    if nic.is_empty() || nic == nics[0] {
+        return Ok(nics[0].clone());
     }
-    if entree(fiche, &nic).is_none() {
-        let mut connus = vec![nic_principal(fiche)];
-        connus.extend(secondaires(fiche).iter().map(|e| en_texte(g(e, "nic"))));
+    if !nics[1..].contains(&nic) {
         return Err(format!(
             "{} : l'engagement le rattache a l'etablissement {}, que la \
 fiche entreprise ne porte pas a cette date (Configuration › Entreprise › Avancé, « Autres établissements » : son ouverture ; connus : {}).",
             nom_ou(sal, "Ce salarie"),
             nic,
-            connus.join(", ")
+            nics.join(", ")
         ));
     }
     Ok(nic)

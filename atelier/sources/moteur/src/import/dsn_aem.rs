@@ -793,13 +793,13 @@ pub(crate) fn employeur_aem(chemin: &Path) -> Employeur {
 /// sinon celui des DSN, si elles n'en portent qu'un (plusieurs : aucune reference) ; sinon, sans DSN qui le dise, celui
 /// des autres pieces (bulletins, AEM) si elles n'en portent qu'un. `None` : rien ne dit laquelle est la compagnie.
 pub(crate) fn siren_de_reference(
-    fiche: &Value,
+    fiche: &droit::fiche::ChampsEntreprise,
     dsn: &std::collections::BTreeSet<String>,
     autres: &std::collections::BTreeSet<String>,
 ) -> Option<String> {
-    let s = fiche.get("siren").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte).map(|s| s.trim().to_string());
-    if let Some(s) = s.filter(|s| !s.is_empty()) {
-        return Some(s);
+    let s = fiche.siren.texte().trim();
+    if !s.is_empty() {
+        return Some(s.to_string());
     }
     let seul = |e: &std::collections::BTreeSet<String>| (e.len() == 1).then(|| e.iter().next().cloned()).flatten();
     if !dsn.is_empty() {

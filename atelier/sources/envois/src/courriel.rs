@@ -558,13 +558,8 @@ pub struct BoiteSimulee {
 
 impl BoiteSimulee {
     /// `entreprise` : la fiche de la compagnie (le signataire donne l'adresse de la boite).
-    pub fn nouvelle(racine: &Path, entreprise: &Value) -> BoiteSimulee {
-        let adresse = entreprise
-            .get("signataire")
-            .and_then(|s| s.get("email"))
-            .and_then(Value::as_str)
-            .filter(|e| !e.is_empty())
-            .unwrap_or("fictive@puppetpaie.invalid");
+    pub fn nouvelle(racine: &Path, entreprise: &droit::fiche::ChampsEntreprise) -> BoiteSimulee {
+        let adresse = entreprise.signataire.dite().map(|s| s.email.texte()).filter(|e| !e.is_empty()).unwrap_or("fictive@puppetpaie.invalid");
         BoiteSimulee { racine: racine.to_path_buf(), compte: adresse.to_lowercase() }
     }
 

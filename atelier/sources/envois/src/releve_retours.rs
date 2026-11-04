@@ -139,12 +139,8 @@ fn adresses_dsn(environnement: &str) -> Result<Adresses, Panne> {
     })
 }
 
-fn adresses_dpae(ent: &Value) -> Adresses {
-    let service = ent
-        .get("api_dpae")
-        .and_then(|c| c.get("service"))
-        .filter(|s| vrai(s))
-        .map(valeur_en_texte);
+fn adresses_dpae(compte: &droit::fiche::ApiDpae) -> Adresses {
+    let service = compte.service.dite().filter(|s| !s.is_empty()).cloned();
     // L'atelier seulement : un faux Urssaf local (`redirection`).
     #[cfg(feature = "atelier")]
     if let Some(b) = crate::redirection::base(crate::redirection::VARIABLE_DPAE) {
@@ -193,14 +189,13 @@ impl Client {
 
     /// `ClientDpae(ctx, majuscules, motdepasse)` : le compte Urssaf, qui n'est pas celui de la DSN.
     pub fn dpae(ctx: &Contexte, majuscules: bool, motdepasse: Option<String>) -> Client {
-        let cfg = ctx.entreprise.get("api_dpae").cloned().unwrap_or(Value::Null);
-        let champ = |k: &str| cfg.get(k).cloned().unwrap_or(Value::Null);
-        let siret = if vrai(&champ("siret")) { champ("siret") } else { ctx.entreprise.get("siret").cloned().unwrap_or(Value::Null) };
+        let compte = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
+        let siret = if compte.siret.texte().is_empty() { ctx.entreprise.siret.en_valeur() } else { compte.siret.en_valeur() };
         Client {
-            adresses: adresses_dpae(&ctx.entreprise),
+            adresses: adresses_dpae(&compte),
             jeton: None,
             expire_le: None,
-            declarant: json!({"siret": siret, "nom": champ("nom"), "prenom": champ("prenom")}),
+            declarant: json!({"siret": siret, "nom": compte.nom.en_valeur(), "prenom": compte.prenom.en_valeur()}),
             motdepasse,
             variable: VARIABLE_MOTDEPASSE_DPAE,
             majuscules,

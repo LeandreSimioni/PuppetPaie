@@ -1298,7 +1298,7 @@ fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
 /// de sa DSN passee (`echeance_dsn`). Avant elle, une compagnie qui commence saisit ce mois, et sa DSN se depose a temps.
 /// Un mois qui a deja des engagements se modifie.
 pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<()> {
-    let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
+    let embauche = ctx.entreprise.premiere_embauche.dite().map(|j| j.iso()).unwrap_or_default();
     if embauche.len() >= 7
         && mois < &embauche[..7]
         && declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(Echec::from)?.passee_au(&ctx.aujourdhui)
@@ -1987,7 +1987,7 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
     if dits.is_empty() {
         return Ok(());
     }
-    let idcc = ctx.entreprise.get("idcc").map(valeur_en_texte).unwrap_or_default();
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let qui = format!("{} {}", crate::routes::mot(&p["salarie"]["nom"]), crate::routes::mot(&p["salarie"]["prenom"])).trim().to_string();
     let quoi = dits.join(", ");
     let quoi = if qui.is_empty() { quoi[..1].to_uppercase() + &quoi[1..] } else { format!("{} : {}", qui, quoi) };

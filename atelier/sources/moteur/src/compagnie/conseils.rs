@@ -100,8 +100,8 @@ fn annexes_en_jeu(annexe: Option<&'static str>) -> Vec<&'static str> {
 }
 
 /// L'option de la fiche Entreprise : absente vaut NON.
-pub fn actifs(entreprise: &Value) -> bool {
-    entreprise.get("conseils") == Some(&Value::Bool(true))
+pub fn actifs(entreprise: &droit::fiche::ChampsEntreprise) -> bool {
+    entreprise.conseils.oui()
 }
 
 /// La banque, `donnees/conseils.json`.

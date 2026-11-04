@@ -1773,7 +1773,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     } else {
         f.add_opt("S21.G00.40.016", nat.code("S21.G00.40.016"))?;
     }
-    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(ent, &p.spectacle, &p.salarie)?);
+    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(&txt(g(ent, "idcc")), &p.spectacle, &p.salarie)?);
     f.add_opt("S21.G00.40.018", nat.code("S21.G00.40.018"))?;
     f.add_v("S21.G00.40.019", req(ent, "siret")?)?;
     f.add_opt("S21.G00.40.020", nat.code("S21.G00.40.020"))?;
@@ -2425,7 +2425,7 @@ pub struct VersementEcrit {
 /// (`bloc_versement`), qu'une regularisation annule (`versement_declare::de_la_paie`).
 pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<VersementEcrit> {
     let ctx = &ctx.du_mois(mois)?;
-    let ent = &ctx.entreprise;
+    let ent = &ctx.entreprise.en_valeur();
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
     let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
@@ -3856,7 +3856,7 @@ pub fn paies_declarees_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>, de
             None => v.paie(ctx, &data, i)?,
         };
         if let Some(n) = nic {
-            if bareme::etablissement_du_salarie(&ctx_m.entreprise, &p.salarie)? != n {
+            if bareme::etablissement_de(&ctx_m.entreprise, &p.salarie)? != n {
                 continue;
             }
         }
@@ -3873,7 +3873,7 @@ pub fn assiettes_des_ctp(ctx: &Contexte, paies: &[Paie], mois: &str, nic: &str, 
         return Ok(vec![zero(); codes.len()]);
     }
     let ctx = &ctx.du_mois(mois)?;
-    let ent = &ctx.entreprise;
+    let ent = &ctx.entreprise.en_valeur();
     let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, nic, mois)?;
     let refs: Vec<&Paie> = paies.iter().flat_map(|p| p.elementaires()).collect();
@@ -3904,7 +3904,7 @@ fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Valu
     }
     let annee: i32 = mois[..4].parse::<i32>().map_err(|e| e.to_string())? - 1;
     // Pas de solde d'une taxe que la fiche dit non due pour l'annee (R12, `assujettissement::taxe_apprentissage_non_due`).
-    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, annee)? {
+    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise.en_valeur(), annee)? {
         return Ok(None);
     }
     let assiette = assiettes_de_l_annee(ctx, annee, nic, &["992"], departs)?[0];
@@ -4083,11 +4083,11 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
                     autres.push(q);
                 }
             }
-            let nic = bareme::etablissement_du_salarie(&ctx_m.entreprise, &declaree.salarie)?;
-            let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
-            let mut ent = ctx_m.entreprise.as_object().cloned().unwrap_or_default();
-            ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&Mois::lire(&m)?.premier_jour())?));
-            let ent_e = bareme::fiche_de_l_etablissement(&Value::Object(ent), &nic)?;
+            let nic = bareme::etablissement_de(&ctx_m.entreprise, &declaree.salarie)?;
+            let bar = bar_du(&ctx_m, &ctx_m.entreprise.en_valeur(), orgs, &nic, &m)?;
+            let mut ent = ctx_m.entreprise.clone();
+            ent.licence_spectacle = droit::fiche::Case::Dite(ctx.licence(&Mois::lire(&m)?.premier_jour()));
+            let ent_e = bareme::fiche_de_l_etablissement(&ent.en_valeur(), &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
             bloc_contrat(&mut f, &declaree, &ent_e, orgs, 1, &bar, true, &[], "01", emplois_multiples(&declaree, &refs))?;
@@ -4098,7 +4098,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
                 .filter(|(k, _)| k.starts_with("S21.G00.40."))
                 .map(|(k, x)| (k.to_string(), x.trim_matches('\'').to_string()))
                 .collect();
-            return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: txt(g(&ctx_m.entreprise, "siren")) + &nic, nic, bloc }));
+            return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: ctx_m.entreprise.siren.texte().trim().to_string() + &nic, nic, bloc }));
         }
         m = Mois::lire(&m)?.precedent().to_string();
     }
@@ -4285,7 +4285,7 @@ pub fn exiges<'a>(ent: &Value, salaries: impl Iterator<Item = &'a droit::fiche::
 /// le montant.
 pub fn fabriquer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options, departs: &engagement::departs::Departs) -> Resultat<Fabriquee> {
     let ctx = &ctx.du_mois(mois)?;
-    let ent0 = ctx.entreprise.clone();
+    let ent0 = ctx.entreprise.en_valeur();
     let principal_nic = bareme::nic_principal(&ent0);
     let nic = match o.etablissement.as_deref().filter(|n| !n.is_empty()) {
         Some(n) => n.to_string(),
@@ -4335,7 +4335,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // mois que la donnee ne couvre pas refuse ici, avant tout calcul. Un annule-et-remplace prend celle de son mois.
     let norme = crate::norme::de_la_mensuelle(&lu.to_string())?;
     // En P27V01, la fiche entreprise est en NAF 2025 (`naf::verifier_pour`), avant tout calcul.
-    crate::naf::verifier_pour(&norme, &ctx.entreprise)?;
+    crate::naf::verifier_pour(&norme, &ent0)?;
     let fin_m = lu.dernier_jour();
     let mut bars: HashMap<String, std::sync::Arc<BaremeDuMois>> = HashMap::new();
     let mut bar_de = |m: &str| -> Resultat<std::sync::Arc<BaremeDuMois>> {
@@ -4349,7 +4349,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     let bar = bar_de(mois)?;
     let contribs = g(&bar, "_contributions_du_mois").clone();
     let mut ent = ent0.as_object().cloned().unwrap_or_default();
-    ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&debut_mois)?));
+    ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&debut_mois)));
     let ent = Value::Object(ent);
     let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
 

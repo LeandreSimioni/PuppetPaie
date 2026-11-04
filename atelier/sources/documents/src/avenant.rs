@@ -474,12 +474,9 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
 
 /// La fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
-    let licence = ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour())?;
     let mut ent = ctx.entreprise.clone();
-    let o = ent.as_object_mut().ok_or("fiche entreprise : un objet est attendu")?;
-    o.insert("licence_spectacle".into(), Value::String(licence));
-    o.insert("_gabarits".into(), Value::String(ctx.gabarits().to_string_lossy().into_owned()));
-    Ok(ent)
+    ent.licence_spectacle = droit::fiche::Case::Dite(ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour()));
+    Ok(ctx.pour_un_modele(&ent))
 }
 
 /// `contrat.marqueurs(p, ent)` pour une paie calculee (`paie`, sa forme JSON). `numero` : le numero

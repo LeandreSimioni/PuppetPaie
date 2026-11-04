@@ -302,13 +302,12 @@ fn latin1(octets: &[u8]) -> String {
 }
 
 /// Le code Urssaf que la DPAE de cette compagnie porte.
-fn code_urssaf(ent: &Value) -> R<String> {
-    let ecrit = ent.get("code_urssaf").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
-    let ecrit = ecrit.trim();
+fn code_urssaf(ent: &droit::fiche::ChampsEntreprise) -> R<String> {
+    let ecrit = ent.code_urssaf.texte().trim();
     if !ecrit.is_empty() {
         return Ok(ecrit.to_string());
     }
-    let territoire = crate::routes::fiches::urssaf_du_code_postal(ent.get("code_postal"))?;
+    let territoire = crate::routes::fiches::urssaf_du_code_postal(Some(&Value::from(ent.code_postal.texte())))?;
     Ok(if territoire.is_empty() { "117".to_string() } else { territoire })
 }
 
@@ -429,10 +428,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
 
     // LE MEME CONTENU, LE MEME FICHIER : une DPAE deja ecrite qui dit la meme chose (la selection, ou tout ce qui reste a
     // declarer) se reprend telle quelle : le test qu'elle a passe vaut pour le reel (regle 10).
-    let mut ent = ctx.entreprise.clone();
-    if let Some(o) = ent.as_object_mut() {
-        o.insert("_gabarits".into(), Value::String(ctx.gabarits().to_string_lossy().into_owned()));
-    }
+    let ent = ctx.entreprise_et_gabarits();
     let code = code_urssaf(&ctx.entreprise)?;
     let chemins = Chemins {
         defaut: dossier_du_code().join("modeles").join("due_tel_gabarit.txt"),
@@ -509,10 +505,7 @@ pub(crate) enum Dpae {
 /// `quand` (`AAAA-MM-JJTHH:MM:SS`, a Paris), l'heure d'embauche `heure` ; et son recapitulatif en clair dans `recap`.
 /// Ce que `dpae` ecrit, et ce que `compagnie::depart::piece_partie` refait d'une DPAE partie dont le fichier manque.
 pub(crate) fn ecrire_la_dpae(ctx: &Contexte, retenues: &[&Paie], cible: &Path, recap: &Path, heure: &Value, quand: &str) -> R<()> {
-    let mut ent = ctx.entreprise.clone();
-    if let Some(o) = ent.as_object_mut() {
-        o.insert("_gabarits".into(), Value::String(ctx.gabarits().to_string_lossy().into_owned()));
-    }
+    let ent = ctx.entreprise_et_gabarits();
     let code = code_urssaf(&ctx.entreprise)?;
     let chemins = Chemins { defaut: dossier_du_code().join("modeles").join("due_tel_gabarit.txt"), poste: ctx.gabarits() };
     let embauches: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, false)).collect();
@@ -621,7 +614,7 @@ fn partie(ctx: &Contexte, charge: &Value) -> R<Option<Value>> {
     let mois = valeur_en_texte(requis(charge, "mois")?);
     let lignes = envois::journal::lu(&ctx.racine).map_err(plain)?.lignes;
     let t = |l: &Value, k: &str| l.get(k).and_then(Value::as_str).unwrap_or("").to_string();
-    let principal = droit::bareme::nic_principal(&ctx.entreprise);
+    let principal = ctx.entreprise.nic_principal();
     let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_else(|| principal.clone());
     let paires = |v: &Value| -> BTreeSet<(String, String)> {
         v.as_array().into_iter().flatten().map(|e| (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["numero"]))).collect()

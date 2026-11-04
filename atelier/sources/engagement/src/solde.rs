@@ -18,7 +18,7 @@ use socle::mois::Mois;
 use crate::Avis;
 use socle::fichiers::vrai;
 use socle::texte::{euros, euros_de, virgule};
-use socle::num::{add, dec, dec_avec_echelle, div, eur2, flottant, mul, zero2, Decimal, Resultat};
+use socle::num::{add, dec, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
 use droit::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
 
 static NUL: Value = Value::Null;
@@ -78,8 +78,9 @@ fn texte_ou_none(v: &Option<String>) -> String {
     v.clone().unwrap_or_else(|| "None".into())
 }
 
-fn idcc(ctx: &Contexte) -> &Value {
-    ctx.entreprise.get("idcc").unwrap_or(&NUL)
+/// L'IDCC de la fiche, tel que les clauses le lisent.
+fn idcc(ctx: &Contexte) -> Value {
+    ctx.entreprise.idcc.en_valeur()
 }
 
 fn motif_de(e: &Value) -> Option<&str> {
@@ -95,7 +96,7 @@ fn profil(ctx: &Contexte, e: &Value) -> Resultat<Value> {
         .and_then(|s| ctx.salarie(s).ok())
         .map(|f| f.champs)
         .unwrap_or_default();
-    clauses::profil(idcc(ctx), &fiche, Some(e))
+    clauses::profil(&idcc(ctx), &fiche, Some(e))
 }
 
 /// L'age au dernier jour du contrat (ou aujourd'hui), en annees revolues.
@@ -128,7 +129,7 @@ pub struct Preavis {
 }
 
 pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
-    let idcc = idcc(ctx);
+    let idcc = &idcc(ctx);
     let cdd = !nature_de(e.get("nature"))?.duree_indeterminee;
     let legal = permanents::preavis_mois(anciennete, motif, cdd)?;
     let prof = profil(ctx, e)?;
@@ -267,7 +268,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     let salaire = dec_ou(e.get("salaire_mensuel"), Decimal::ZERO)?;
     let qui = qui(ctx, e);
     let motif = motif_de(e);
-    let ent = &ctx.entreprise;
+    let chomes = ctx.entreprise.feries_chomes();
     let premier = Mois::lire(mois)?.premier_jour();
 
     // --- l'indemnite compensatrice de conges payes (L3141-28 ; L1242-16 pour un CDD), quelle que soit la cause de la
@@ -295,7 +296,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
         }
         let mut pris_ce_mois = Decimal::ZERO;
         for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
-            pris_ce_mois = add(pris_ce_mois, Decimal::from(jours_ouvrables_de(c, ent)?));
+            pris_ce_mois = add(pris_ce_mois, Decimal::from(jours_ouvrables_de(c, chomes)?));
         }
         let acquis_ce_mois = jours_acquis(&d(cle(e, "debut")?)?.max(premier), &fin)?;
         let solde = sub(add(cpt.solde(), acquis_ce_mois), pris_ce_mois);
@@ -303,7 +304,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
             // Le maintien (L3141-24, II, `atelier/reference/sources/code-du-travail/xml/L3141-24.xml`) : ce que le salarie
             // aurait percu s'il avait travaille ces jours, le salaire du mois entier reparti sur les jours ouvrables du
             // mois entier, comme les conges pris (`conges::lignes_du_mois`), quel que soit le jour ou le contrat finit.
-            let ouvrables = Decimal::from(jours_ouvrables(&premier, &socle::mois::Mois::lire(mois)?.dernier_jour(), Some(ent))?);
+            let ouvrables = Decimal::from(jours_ouvrables(&premier, &socle::mois::Mois::lire(mois)?.dernier_jour(), chomes)?);
             let ouvrables = if ouvrables.is_zero() { Decimal::ONE } else { ouvrables };
             let maintien = eur2(mul(div(salaire, ouvrables), solde));
             // Les jours pris ce mois-ci ont deja consomme le report d'abord :
@@ -356,15 +357,11 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                 )));
             } else {
                 let total = remuneration_du_contrat(ctx, e, mois, brut_des_lignes(ctx, deja)?)?;
-                let taux = ent.get("indemnite_precarite_taux").filter(|x| vrai(x));
-                let montant = permanents::indemnite_precarite(total, taux.map(flottant).transpose()?)?;
+                // Le taux de la loi : la fiche entreprise ne porte aucun accord qui le change.
+                let montant = permanents::indemnite_precarite(total, None)?;
                 if montant > Decimal::ZERO {
                     stc.lignes.push(json!({"rubrique": "indemnite_precarite", "quantite": 1, "taux": flot(montant)}));
-                    let pour_cent = match taux {
-                        Some(Value::Number(n)) if n.is_i64() => (n.as_i64().unwrap_or(0) * 100).to_string(),
-                        Some(x) => repr_flottant(flottant(x)? * 100.0),
-                        None => repr_flottant(0.10 * 100.0),
-                    };
+                    let pour_cent = repr_flottant(0.10 * 100.0);
                     stc.avertissements.push(info(format!(
                         "{} : indemnité de fin de contrat {} % sur {} de \
                          rémunération totale = {} (L1243-8).",
@@ -643,7 +640,7 @@ fn indemnite_de_rupture(
     let retenu = decimal(get(&reference, "retenu"))?;
     let mut rubrique = t(cle(&sec, "rubrique")?);
     let saisi = e.get(&t(cle(&sec, "rubrique")?)).filter(|x| !x.is_null());
-    let idcc = idcc(ctx);
+    let idcc = &idcc(ctx);
     let prof = profil(ctx, e)?;
     let (mut conv_bas, mut conv_haut): (Option<Decimal>, Option<Decimal>) = (None, None);
     let mut conv_article = Value::Null;
@@ -673,7 +670,7 @@ fn indemnite_de_rupture(
         let cdd = get(&c, "cadre_de_direction");
         if vrai(cdd)
             && get(&prof, "categorie").as_str() == Some("cadre_de_direction")
-            && ou_texte(ctx.entreprise.get("annexe_convention").unwrap_or(&NUL), "") == "1"
+            && ctx.entreprise.annexe_convention.code() == "1"
             && anciennete > Decimal::from(120)
         {
             if saisi.is_none() {
@@ -1115,8 +1112,8 @@ fn indemnite_conventionnelle(
     motif: Option<&str>,
 ) -> Resultat<Value> {
     clauses::indemnite_licenciement(
-        idcc(ctx),
-        ctx.entreprise.get("annexe_convention").unwrap_or(&NUL),
+        &idcc(ctx),
+        &ctx.entreprise.annexe_convention.en_valeur(),
         &profil(ctx, e)?,
         anciennete,
         reference,

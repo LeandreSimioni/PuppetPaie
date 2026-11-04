@@ -76,6 +76,19 @@ impl Case<String> {
         self.dite().map_or("", String::as_str)
     }
 
+    /// Le texte dit, s'il n'est pas vide.
+    pub fn remplie(&self) -> Option<&str> {
+        self.dite().map(String::as_str).filter(|t| !t.is_empty())
+    }
+
+    /// Le texte que la fiche porte, vide compris ; `None` : la case est absente ou nulle.
+    pub fn portee(&self) -> Option<&str> {
+        match self {
+            Case::Absente | Case::Nulle => None,
+            c => Some(c.texte()),
+        }
+    }
+
     /// Le texte d'une case que la fiche doit porter, vide ou non : absente, le refus la nomme (`cle`).
     pub fn ecrite(&self, cle: &str) -> Resultat<&str> {
         match self {
@@ -191,6 +204,7 @@ pub fn declaree<T: FormeDeCase>(cle: &'static str) -> Declaree {
 
 impl FormeDeCase for String {}
 impl FormeDeCase for bool {}
+impl FormeDeCase for i64 {}
 impl FormeDeCase for Jour {}
 impl FormeDeCase for Mois {}
 impl FormeDeCase for Montant {}
@@ -229,6 +243,24 @@ macro_rules! choix {
     };
 }
 
+/// UNE FICHE QUI SE LIT CASE PAR CASE, par le nom que `champs-base.json` donne a chacune : une fiche lue par sa forme
+/// (`cases!`), ou une valeur qui n'en a pas (la fiche d'un spectacle, ce qu'une piece propose).
+pub trait ParCase {
+    fn case(&self, cle: &str) -> Option<Value>;
+}
+
+impl ParCase for Value {
+    fn case(&self, cle: &str) -> Option<Value> {
+        self.get(cle).cloned()
+    }
+}
+
+impl ParCase for Map<String, Value> {
+    fn case(&self, cle: &str) -> Option<Value> {
+        self.get(cle).cloned()
+    }
+}
+
 /// UNE STRUCTURE DE CASES : chacune une `Case`, une cle inconnue refusee.
 macro_rules! cases {
     ($(#[$m:meta])* pub struct $nom:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? }) => {
@@ -248,6 +280,20 @@ macro_rules! cases {
             /// Aucune case n'y est ecrite.
             pub fn est_vide(&self) -> bool {
                 true $(&& self.$champ.est_absente())*
+            }
+
+            /// La case `cle`, telle qu'elle s'ecrit ; `None` : elle est absente, ou la forme ne la declare pas. Pour ce
+            /// qui lit une case par le nom qu'une table lui donne (`champs-base.json`, un bareme, l'import).
+            pub fn case(&self, cle: &str) -> Option<Value> {
+                $( if stringify!($champ).trim_start_matches("r#") == cle {
+                    return (!self.$champ.est_absente()).then(|| self.$champ.en_valeur());
+                } )*
+                None
+            }
+        }
+        impl ParCase for $nom {
+            fn case(&self, cle: &str) -> Option<Value> {
+                $nom::case(self, cle)
             }
         }
     };
@@ -493,7 +539,9 @@ cases! {
 }
 
 cases! {
-    pub struct TauxAtmp { code_risque: String, valeur: Montant }
+    /// Le taux AT/MP d'un etablissement, et l'annee qu'il vaut (D. 242-6-15 : celle de sa date d'effet), que l'ecran pose
+    /// (`routes::etablissements`).
+    pub struct TauxAtmp { code_risque: String, valeur: Montant, annee: i64 }
 }
 
 cases! {
@@ -535,6 +583,17 @@ cases! {
     pub struct DeclarantDsn { civilite: Civilite, nom_prenom_affichage: String, nom_prenom: String, tel: String, email: String, qualite: String }
 }
 
+cases! {
+    /// Le declarant inscrit au service DSN de net-entreprises, tel qu'inscrit (`envois::transport::declarant`).
+    pub struct Declarant { siret: String, nom: String, prenom: String }
+}
+
+cases! {
+    /// Le compte DPAE d'urssaf.fr (`envois::releve_retours`) : son titulaire, son SIRET (celui de l'entreprise sinon), son
+    /// service.
+    pub struct ApiDpae { nom: String, prenom: String, siret: String, service: String }
+}
+
 // ------------------------------------------------------------------ les fiches
 
 fiche! {
@@ -546,6 +605,7 @@ fiche! {
         nom: String,
         prenom_affichage: String,
         prenom: String,
+        pseudonyme: String,
         nir: String,
         nir_cle: String,
         sexe: Sexe,
@@ -647,6 +707,8 @@ fiche! {
         etablissements: Vec<Etablissement>,
         signataire: Signataire,
         declarant_dsn: DeclarantDsn,
+        declarant: Declarant,
+        api_dpae: ApiDpae,
         banque: Banque,
         courriel_nom: String,
         courriel_signature: String,
@@ -702,6 +764,35 @@ impl ChampsEntreprise {
     /// La fiche en JSON, telle que l'ecran, les baremes et les modeles la lisent.
     pub fn en_valeur(&self) -> Value {
         serde_json::to_value(self).unwrap_or(Value::Null)
+    }
+
+    /// Le NIC du siege, ou `""`.
+    pub fn nic_principal(&self) -> String {
+        self.nic.texte().to_string()
+    }
+
+    /// Les etablissements autres que le siege.
+    pub fn secondaires(&self) -> Vec<&Etablissement> {
+        let nic = self.nic.texte();
+        self.etablissements.dite().into_iter().flatten().filter(|e| e.nic.texte() != nic).collect()
+    }
+
+    /// Le NIC du siege, puis celui de chaque autre etablissement : une DSN par etablissement.
+    pub fn nics(&self) -> Vec<String> {
+        std::iter::once(self.nic_principal()).chain(self.secondaires().iter().map(|e| e.nic.texte().to_string())).collect()
+    }
+
+    /// Les feries qu'elle chome, tels que `socle::feries::chomes` les lit ; `None` : la fiche n'en dit rien.
+    pub fn feries_chomes(&self) -> Option<&'static str> {
+        self.jours_feries_chomes.dite().map(Choix::code)
+    }
+
+    /// Le nom de la compagnie tel que l'ecran le dit : le nom d'usage, sinon la raison sociale.
+    pub fn nommee(&self) -> String {
+        match self.nom_affichage.texte() {
+            "" => self.raison_sociale.texte().to_string(),
+            n => n.to_string(),
+        }
     }
 }
 

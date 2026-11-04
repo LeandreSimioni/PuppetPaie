@@ -1124,12 +1124,7 @@ pub(crate) fn engagements(
         }
         poser("nature", e.get("nature"));
         poser("quotite_contrat", e.get("quotite_contrat"));
-        let q = if truthy(e.get("quotite_reference")) {
-            e.get("quotite_reference")
-        } else {
-            ctx.entreprise.get("quotite_reference")
-        };
-        poser("quotite_reference_saisie", q);
+        poser("quotite_reference_saisie", e.get("quotite_reference").filter(|q| truthy(Some(q))));
         poser("modalite_temps_travail_saisie", e.get("modalite_temps_travail"));
         poser("motif_recours", e.get("motif_recours"));
         poser("etablissement", e.get("etablissement"));
@@ -1144,7 +1139,7 @@ pub(crate) fn engagements(
             poser(k, e.get(k));
         }
         let mut eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
-        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&Mois::lire(&eng.mois)?.dernier_jour())?, &*eng.nat()?)?;
+        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&Mois::lire(&eng.mois)?.dernier_jour()), &*eng.nat()?)?;
         // Ce que l'ancien logiciel a verse est un fait : seul ce que la compagnie va verser se juge.
         if e.get(crate::importe::IMPORTE).is_none() {
             if let Some(refus) = versement_refuse(ctx, &eng, &qui)? {
@@ -1178,12 +1173,12 @@ fn versement_refuse(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<Opt
     let fin_mois = eng.fin_mois()?;
     let fin_cirque = match eng.fin.filter(|f| *f <= fin_mois) {
         Some(f) if !eng.nat()?.duree_indeterminee && droit::versement::au_plus_tard_cirque_1285(&f)? < verse => {
-            let ent = ctx.entreprise_au(&fin_mois)?;
+            let ent = ctx.entreprise_au(&fin_mois);
             let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
             let code = fiche.code_emploi_ft.texte().to_string();
             let metier = emplois::metier(&code)?.unwrap_or(Value::Null);
             let cirque = metier.get("minima").and_then(|m| m.get("1285")).and_then(Value::as_str) == Some("cirque");
-            (ent.get("idcc").map(en_texte).as_deref() == Some("1285") && cirque).then_some(f)
+            (ent.idcc.texte() == "1285" && cirque).then_some(f)
         }
         _ => None,
     };
@@ -1432,7 +1427,7 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
             None => Mois::lire(mois)?.premier_jour(),
         };
         let bar = ctx.bareme_lu(&jour)?;
-        let ent = ctx.entreprise_au(&jour)?;
+        let ent = ctx.entreprise_au(&jour);
         let de_l_annexe = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
         let ou = territoire(&l);
         // Les deux limites de la metropole, quand le bareme les porte : les cases et leurs aides les disent.

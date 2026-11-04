@@ -171,10 +171,9 @@ pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Re
     let au_debut = ctx.salarie_au(cle, debut)?;
     let a_la_fin = ctx.salarie_au(cle, fin)?;
     // Les cases de `UNE_VALEUR_PAR_MOIS` se comparent par leur nom, comme `jours_de_changement` les date.
-    let (vd, vf) = (au_debut.champs.en_valeur(), a_la_fin.champs.en_valeur());
-    let lire = |v: &Value, c: &str| v.get(c).cloned().unwrap_or(Value::Null);
+    let lire = |f: &FicheSalarie, c: &str| f.champs.case(c).unwrap_or(Value::Null);
     for c in UNE_VALEUR_PAR_MOIS {
-        let (avant, apres) = (lire(&vd, c), lire(&vf, c));
+        let (avant, apres) = (lire(&au_debut, c), lire(&a_la_fin, c));
         if avant == apres {
             continue;
         }

@@ -11,7 +11,7 @@ use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::qui_de;
-use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, vrai_ou, Ouvrir};
+use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
 
 use documents::plan_comptable::{controler_plan, tables};
@@ -357,7 +357,7 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
 /// 3090 a une compagnie de la 1285, ni la dette de conges a qui n'emploie pas de
 /// permanents.
 fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
-    let idcc = valeur_en_texte(ou(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), texte_vide()));
+    let idcc = ctx.entreprise.idcc.texte().to_string();
     let t = tables();
     if let Some(liste) = t["si_convention"].get(etat) {
         if !idcc.is_empty() && !liste.as_array().expect("liste").iter().any(|c| c.as_str() == Some(idcc.as_str())) {
@@ -593,7 +593,7 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
             "" => s.prenom.texte().to_string(),
             p => p.to_string(),
         };
-        let signataire = ctx.entreprise.get("signataire").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!({}));
+        let signataire = ctx.entreprise.signataire.dite().cloned().unwrap_or_default();
         let ses_pages = d.pages.get(cle).and_then(Value::as_object);
         let liste = d
             .categories
@@ -609,8 +609,8 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
                 ("periode", if d.periode == "toute la période" { String::new() } else { format!(" ({})", d.periode) }),
                 ("liste", liste),
                 ("reedition", if ses_pages.is_some_and(|p| p.contains_key("contrats")) { REEDITION_CONTRATS.to_string() } else { String::new() }),
-                ("signataire", vrai_ou(&signataire, "prenom_affichage").or_else(|| signataire.get("prenom").map(valeur_en_texte)).unwrap_or_default()),
-                ("raison_sociale", vrai_ou(&ctx.entreprise, "nom_affichage").or_else(|| ctx.entreprise.get("raison_sociale").map(valeur_en_texte)).unwrap_or_default()),
+                ("signataire", signataire.prenom_affichage.remplie().unwrap_or(signataire.prenom.texte()).to_string()),
+                ("raison_sociale", ctx.entreprise.nommee()),
             ],
         );
         messages.push(Message {

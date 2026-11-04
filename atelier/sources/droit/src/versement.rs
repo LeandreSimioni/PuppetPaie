@@ -33,7 +33,6 @@
 //! INFERENCES, ecrites comme telles : un jour fixe que le mois n'a pas (« le 31 » en avril) est son dernier jour ; « la
 //! 1re semaine du mois suivant » va du 1er au 7.
 
-use serde_json::Value;
 use socle::date::Jour;
 use socle::mois::Mois;
 use socle::num::Resultat;
@@ -44,15 +43,6 @@ use crate::natures::Nature;
 pub const CLE_PERMANENTS: &str = "date_de_versement_permanents";
 pub const CLE_INTERMITTENTS: &str = "date_de_versement_intermittents";
 pub const CLES: [&str; 2] = [CLE_PERMANENTS, CLE_INTERMITTENTS];
-
-/// La case qui dit le jour d'un contrat de nature `nat` : celle des permanents pour un contrat paye au mois.
-pub fn cle_de(nat: &Nature) -> &'static str {
-    if nat.mensuelle() {
-        CLE_PERMANENTS
-    } else {
-        CLE_INTERMITTENTS
-    }
-}
 
 /// Les formes qu'elle lit, dans la phrase d'un refus.
 const FORMES: &str = "vide (le dernier jour du mois), « fin du contrat », « le 25 » ou « le 5 du mois suivant »";
@@ -92,9 +82,10 @@ impl Versement {
 
     /// La case de la fiche entreprise `ent` qui dit le jour d'un contrat de nature `nat` (`cle_de`) ; absente : le dernier
     /// jour du mois.
-    pub fn de_la_fiche(ent: &Value, nat: &Nature) -> Resultat<Versement> {
-        match ent.get(cle_de(nat)) {
-            Some(Value::String(t)) => Versement::lire(t).map_err(|_| {
+    pub fn de_la_fiche(ent: &crate::fiche::ChampsEntreprise, nat: &Nature) -> Resultat<Versement> {
+        let dit = if nat.mensuelle() { &ent.date_de_versement_permanents } else { &ent.date_de_versement_intermittents };
+        match dit.portee() {
+            Some(t) => Versement::lire(t).map_err(|_| {
                 format!(
                     "Le jour du versement des {} que dit la configuration, « {} », ne se lit pas : écrire {} \
                      (Configuration › Entreprise).",
@@ -103,7 +94,7 @@ impl Versement {
                     FORMES
                 )
             }),
-            _ => Ok(Versement::FinDuMois),
+            None => Ok(Versement::FinDuMois),
         }
     }
 

@@ -31,12 +31,12 @@ pub fn table() -> Resultat<Arc<Value>> {
 /// (`minima-conventionnels.json`, `_regles_1734`). Le contrat le déclare (S21.G00.40.017), le bulletin l'imprime, le
 /// minimum lit sa grille. Artiste-interprète se lit au métier du catalogue (familles « Artistes », « Cirque et rue ») :
 /// un métier hors catalogue ne dit pas s'il l'est, l'IDCC se refuse (règle 1).
-pub fn idcc_du_contrat(ent: &Value, sp: &Value, sal: &crate::fiche::ChampsSalarie) -> Resultat<String> {
+pub fn idcc_du_contrat(idcc: &str, sp: &Value, sal: &crate::fiche::ChampsSalarie) -> Resultat<String> {
     let texte = |v: &Value, k: &str, defaut: &str| match g(v, k) {
         x if vrai(x) => en_texte(x),
         _ => defaut.to_string(),
     };
-    let idcc = texte(ent, "idcc", "");
+    let idcc = idcc.to_string();
     if (idcc != "2642" && idcc != "3241") || !vrai(g(sp, "emission_tv_1734")) || sal.statut.dite().is_some_and(|s| *s != crate::fiche::Statut::Artiste) {
         return Ok(idcc);
     }

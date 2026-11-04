@@ -492,12 +492,15 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<(&'static str, Stri
     ));
     out.push(("raison_sociale", valeur_en_texte(requis(ent, "raison_sociale")?)));
     out.push(("nom_naissance", texte_requis(&s.nom, "nom")?));
-    // Le nom d'usage, le statut de cadre et le pseudonyme du formulaire : la fiche ne les porte pas.
-    out.push(("nom_usage", String::new()));
+    // Le nom d'usage : le nom declare, comme le modele du certificat de la caisse le repete quand il n'y en a pas d'autre.
+    out.push(("nom_usage", texte_requis(&s.nom, "nom")?));
     out.push(("emploi", texte_requis(&s.emploi, "emploi")?));
-    out.push(("cadre", "NON".to_string()));
+    // Le modele du certificat de la caisse porte la zone « cadre » ; la lire comme le statut de retraite complementaire
+    // (S21.G00.40.003 cadre, `bareme::est_cadre`) est une INFERENCE : la seule notion de cadre des textes deposes (fiche
+    // DSN Audiens).
+    out.push(("cadre", if droit::bareme::est_cadre(s) { "OUI" } else { "NON" }.to_string()));
     out.push(("prenom", texte_requis(&s.prenom, "prenom")?));
-    out.push(("pseudonyme", String::new()));
+    out.push(("pseudonyme", s.pseudonyme.texte().to_string()));
     out.push(("debut", cases_date(&c.debut)));
     out.push(("fin", cases_date(&c.fin)));
     out.push(("nb_cachets", c.nb_jours_ou_cachets.to_string()));

@@ -205,19 +205,19 @@ fn plus(j: Jour, n: i64) -> R<Jour> {
 
 /// Les feries chomes de la compagnie, annee par annee (`feries::chomes`, la fiche Entreprise).
 struct Calendrier<'a> {
-    entreprise: Option<&'a Value>,
+    dits: Option<&'a str>,
     chomes: HashMap<i32, Vec<Jour>>,
     legaux: HashMap<i32, Vec<Jour>>,
 }
 
 impl<'a> Calendrier<'a> {
-    fn nouveau(entreprise: Option<&'a Value>) -> Calendrier<'a> {
-        Calendrier { entreprise, chomes: HashMap::new(), legaux: HashMap::new() }
+    fn nouveau(dits: Option<&'a str>) -> Calendrier<'a> {
+        Calendrier { dits, chomes: HashMap::new(), legaux: HashMap::new() }
     }
 
     fn chome(&mut self, j: Jour) -> R<bool> {
         if !self.chomes.contains_key(&j.an) {
-            let f = socle::feries::chomes(j.an, self.entreprise).map_err(|m| erreur("ValueError", m))?;
+            let f = socle::feries::chomes(j.an, self.dits).map_err(|m| erreur("ValueError", m))?;
             self.chomes.insert(j.an, f.into_iter().map(|(d, _)| d).collect());
         }
         Ok(self.chomes[&j.an].contains(&j))
@@ -663,7 +663,7 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
 pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) -> R<Vec<Value>> {
     let a = &avec_ce_qui_est_parti(ctx, a)?;
     let n = base()?;
-    let mut cal = Calendrier::nouveau(Some(&ctx.entreprise));
+    let mut cal = Calendrier::nouveau(ctx.entreprise.feries_chomes());
     let mut out = Vec::new();
     let salarie = texte(a, "salarie");
     let dernier = texte(a, "dernier_jour_travaille");
@@ -822,7 +822,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
 pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[Value], aujourdhui: Jour) -> R<Value> {
     let n = base()?;
     let o = obligation(&n, "signalement_fin_contrat")?;
-    let mut cal = Calendrier::nouveau(Some(&ctx.entreprise));
+    let mut cal = Calendrier::nouveau(ctx.entreprise.feries_chomes());
     let mut m = squelette("signalement_fin_contrat", &o);
     let d = &o["delai"];
     let butoir = cal.jours_ouvres_apres(fin, entier(d, "jours_ouvres")?)?;

@@ -34,7 +34,6 @@ use crate::import::caviardage::{self, Connus};
 use crate::compagnie::incidents;
 use droit::contexte::Contexte;
 use engagement::ecarts::{Comparaison, Grandeur};
-use socle::date::en_texte;
 use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
@@ -102,8 +101,9 @@ pub fn rapports(ctx: &Contexte) -> (Vec<Rapport>, Vec<String>) {
 }
 
 fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
-    let texte = |k: &str| ctx.entreprise.get(k).filter(|v| vrai(v)).map(en_texte);
-    let (idcc, annexe, organisation) = (texte("idcc"), texte("annexe_convention"), texte("organisation_patronale"));
+    let e = &ctx.entreprise;
+    let (idcc, annexe, organisation) =
+        (e.idcc.remplie().map(String::from), e.annexe_convention.dite().map(|a| a.as_str().to_string()), e.organisation_patronale.remplie().map(String::from));
     let mut connus = Connus::default();
     ajouter_les_fiches(ctx, &mut connus);
     let mut propre = Propre { connus: &connus, vus: Default::default() };
@@ -222,13 +222,9 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
             }
         }
     };
-    let fiches = ctx
-        .salaries
-        .iter()
-        // Les cases que le releve compare se nomment : la fiche se lit ici en JSON.
-        .map(|(_, v)| v.champs.en_valeur());
-    for f in fiches {
-        let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
+    for (_, f) in &ctx.salaries {
+        // Les cases que le releve compare se nomment (`ParCase`).
+        let t = |k: &str| f.champs.case(k).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
         for k in ["nom", "nom_affichage"] {
             pousser(&mut c.noms, t(k));
         }
@@ -252,7 +248,7 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
         pousser(&mut c.conges_spectacles, t("num_conges_spectacles"));
     }
     let e = &ctx.entreprise;
-    for k in ["raison_sociale", "nom_affichage", "adresse", "adresse_affichage", "code_postal", "commune", "commune_affichage"] {
-        pousser(&mut c.entreprise, e.get(k).filter(|v| vrai(v)).map(valeur_en_texte));
+    for k in [&e.raison_sociale, &e.nom_affichage, &e.adresse, &e.adresse_affichage, &e.code_postal, &e.commune, &e.commune_affichage] {
+        pousser(&mut c.entreprise, k.remplie().map(String::from));
     }
 }

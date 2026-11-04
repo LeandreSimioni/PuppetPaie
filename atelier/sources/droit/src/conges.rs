@@ -9,9 +9,9 @@ use socle::feries;
 use socle::num::{div, eur2, mul, Decimal, Resultat};
 
 /// Le nombre de jours ouvrables entre deux dates, bornes incluses : du lundi
-/// au samedi, moins les feries que l'entreprise chome.
-pub fn jours_ouvrables(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
-    jours_de_semaine(debut, fin, entreprise, 6)
+/// au samedi, moins les feries que l'entreprise chome (`chomes` : ce que sa fiche en dit, `ChampsEntreprise::feries_chomes`).
+pub fn jours_ouvrables(debut: &Jour, fin: &Jour, chomes: Option<&str>) -> Resultat<i64> {
+    jours_de_semaine(debut, fin, chomes, 6)
 }
 
 /// Les jours de la semaine, dans l'ordre (lundi = 0), tels que la fiche les ecrit.
@@ -131,12 +131,12 @@ l'horaire programme (Cass. soc., 20/01/1999) : cocher ceux de son contrat.",
 pub fn feries_non_payes(
     debut: &Jour,
     fin: &Jour,
-    entreprise: Option<&Value>,
+    chomes: Option<&str>,
     jours: &JoursTravailles,
     anciennete: &Jour,
 ) -> Resultat<Vec<(Jour, String)>> {
     let mut out = Vec::new();
-    for (j, nom) in feries::chomes_entre(debut, fin, entreprise)? {
+    for (j, nom) in feries::chomes_entre(debut, fin, chomes)? {
         let premier_mai = feries::chomes_de_droit(j.an)?.iter().any(|(x, _)| *x == j);
         if jours.travaille(&j) && !premier_mai && crate::permanents::anciennete_mois(anciennete, &j) < Decimal::from(3) {
             out.push((j, nom));
@@ -146,8 +146,8 @@ pub fn feries_non_payes(
 }
 
 /// Les jours de `debut` a `fin` dont le rang dans la semaine (lundi = 0) est sous `jusqu_a`, moins les feries chomes.
-fn jours_de_semaine(debut: &Jour, fin: &Jour, entreprise: Option<&Value>, jusqu_a: u32) -> Resultat<i64> {
-    let chomes = feries::chomes_entre(debut, fin, entreprise)?;
+fn jours_de_semaine(debut: &Jour, fin: &Jour, dits: Option<&str>, jusqu_a: u32) -> Resultat<i64> {
+    let chomes = feries::chomes_entre(debut, fin, dits)?;
     let (mut n, mut jour) = (0, *debut);
     while jour <= *fin {
         if jour.jour_de_la_semaine() < jusqu_a && !chomes.iter().any(|(j, _)| *j == jour) {

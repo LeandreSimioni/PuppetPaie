@@ -54,12 +54,12 @@ impl Echeance {
 }
 
 /// Le `n`-ieme jour ouvrable apres `depuis` (`n` > 0) ou avant lui (`n` < 0), `depuis` exclu.
-pub fn jour_ouvrable(depuis: &Jour, n: i64, entreprise: Option<&Value>) -> Resultat<Jour> {
+pub fn jour_ouvrable(depuis: &Jour, n: i64, chomes: Option<&str>) -> Resultat<Jour> {
     let pas = if n < 0 { -1 } else { 1 };
     let (mut jour, mut reste) = (*depuis, n.abs());
     while reste > 0 {
         jour = jour.plus_jours(pas)?;
-        if crate::conges::jours_ouvrables(&jour, &jour, entreprise)? == 1 {
+        if crate::conges::jours_ouvrables(&jour, &jour, chomes)? == 1 {
             reste -= 1;
         }
     }
@@ -78,8 +78,8 @@ pub fn dpae(debut: &Jour) -> Echeance {
 
 /// La remise du contrat a duree determinee d'un engagement qui commence le `debut` : deux jours ouvrables apres
 /// l'embauche (L. 1242-13), ou plus tot si la couche de la convention `idcc` le dit pour ce metier (`code_emploi`).
-pub fn remise_du_contrat(debut: &Jour, idcc: &Value, code_emploi: &str, entreprise: Option<&Value>) -> Resultat<Echeance> {
-    let loi = jour_ouvrable(debut, 2, entreprise)?;
+pub fn remise_du_contrat(debut: &Jour, idcc: &Value, code_emploi: &str, chomes: Option<&str>) -> Resultat<Echeance> {
+    let loi = jour_ouvrable(debut, 2, chomes)?;
     let mut e = Echeance {
         jour: loi,
         mots: "au plus tard le",
@@ -91,7 +91,7 @@ pub fn remise_du_contrat(debut: &Jour, idcc: &Value, code_emploi: &str, entrepri
     let code = code_emploi.trim().to_uppercase();
     let concerne = r["metiers"].as_array().is_some_and(|l| l.iter().any(|m| m.as_str() == Some(code.as_str())));
     if let (true, Some(n)) = (concerne, r["jours_ouvrables_avant"].as_i64()) {
-        let jour = jour_ouvrable(debut, -n, entreprise)?;
+        let jour = jour_ouvrable(debut, -n, chomes)?;
         if jour < e.jour {
             e = Echeance {
                 jour,

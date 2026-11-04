@@ -41,10 +41,9 @@ pub fn en_vigueur(contrat: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
 /// `atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt`), et l'identifiant technique (15.005) est
 /// interne au message DSN (`atelier/reference/norme-dsn/texte/bloc-S21.G00.15.txt`, l. 112-117). La compagnie n'en
 /// saisit donc rien : `Contexte::organismes` la porte meme quand `config/organismes.json` ne la nomme pas.
-pub fn casc_svp(code: &Path, ent: &Value) -> Resultat<Option<Value>> {
+pub fn casc_svp(code: &Path, ent: &crate::fiche::ChampsEntreprise) -> Resultat<Option<Value>> {
     let base = lire_json(&code.join("casc-svp-base.json"))?;
-    let idcc = |v: &Value| en_texte(v).trim().to_string();
-    if idcc(ent.get("idcc").unwrap_or(&Value::Null)) != idcc(&base["idcc"]) || crate::bareme::casc_exemptee(ent)? {
+    if ent.idcc.texte().trim() != en_texte(&base["idcc"]).trim() || crate::bareme::casc_exemptee_de(ent)? {
         return Ok(None);
     }
     let dsn = &base["dsn"];
@@ -96,10 +95,11 @@ mod tests {
     #[test]
     fn la_casc_svp_d_une_3090_ne_se_saisit_pas() {
         let code = socle::fichiers::dossier_du_code();
-        let a = casc_svp(&code, &json!({"idcc": "3090"})).unwrap().unwrap();
+        let fiche = |v| crate::fiche::lire_champs::<crate::fiche::ChampsEntreprise>(&v, "la fiche").unwrap();
+        let a = casc_svp(&code, &fiche(json!({"idcc": "3090"}))).unwrap().unwrap();
         assert_eq!((a["libelle"].as_str(), a["delegataire"].as_str()), (Some("CASCSVP"), Some("P0983")));
-        assert!(casc_svp(&code, &json!({"idcc": "1285"})).unwrap().is_none());
-        let exemptee = json!({"idcc": "3090", "casc_svp_exemptee": true, "representation_personnel": "cse"});
+        assert!(casc_svp(&code, &fiche(json!({"idcc": "1285"}))).unwrap().is_none());
+        let exemptee = fiche(json!({"idcc": "3090", "casc_svp_exemptee": true, "representation_personnel": "cse"}));
         assert!(casc_svp(&code, &exemptee).unwrap().is_none());
     }
 }

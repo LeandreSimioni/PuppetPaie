@@ -54,7 +54,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
     let mut par_numero: HashMap<String, usize> = HashMap::new();
     for (i, p) in liste.iter().enumerate() {
         if !nic.is_empty() {
-            match droit::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie) {
+            match droit::bareme::etablissement_de(&ctx.entreprise, &p.salarie) {
                 Ok(e) if e == nic => {}
                 Ok(_) => continue,
                 Err(_) => {
