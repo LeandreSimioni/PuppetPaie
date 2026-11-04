@@ -88,7 +88,7 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        Route::ValiderEngagement => valider_engagement(ctx, charge),
+        Route::ValiderEngagement => valider_engagement(ctx, crate::routes::lire_charge(charge)?),
         Route::ModifierEngagement => modifier_engagement(ctx, charge),
         Route::RetirerEngagement => retirer_engagement(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -126,7 +126,10 @@ pub(super) fn maintenant() -> String {
 /// la carte (`engagement::stock::identites`). Refus : une identite que l'ecran de `mois` ne montre pas.
 fn designe(ctx: &Contexte, mois: &str, charge: &Value) -> R<(usize, engagement::stock::Objet)> {
     let id = charge.get("engagement").ok_or_else(|| erreur("TypeError", socle::echec::charge("engagement", "l'identité de la carte")))?;
-    engagement::stock::designe(&ctx.racine, mois, id).map_err(refus)
+    // TRAVAIL A FAIRE (lot de `routes/engagement.rs`) : la charge de modifier et de retirer, en structure ; l'identite
+    // s'y lit deja en sa forme.
+    let id: engagement::stock::Identite = crate::routes::lire_charge(id)?;
+    engagement::stock::designe(&ctx.racine, mois, &id).map_err(refus)
 }
 
 
@@ -138,15 +141,13 @@ fn designe(ctx: &Contexte, mois: &str, charge: &Value) -> R<(usize, engagement::
 /// paies, une par mois qu'il couvre (`engagement::etats::valider`). Le tout se fait dans un brouillon
 /// (`engagement::stock::Brouillon`) : il lui manque un fait, la validation refuse en disant lequel, et rien n'est ecrit.
 /// Un engagement valide ne se valide pas (il se modifie par `modifier-engagement`).
-fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = texte_requis(charge, "mois")?;
-    // Valider ne se defait pas : un engagement valide se modifie (`modifier-engagement`) ou se retire.
-    if charge.get("valide").is_some() {
-        return Err(erreur("TypeError", socle::echec::cle("Valider l'engagement ne se défait pas : un engagement validé se modifie ou se retire. Rien n'est écrit.", "valide")));
-    }
+/// Sa charge est celle d'une carte (`mois::ChargeCarte`) : valider ne se defait pas, un engagement valide se modifie
+/// (`modifier-engagement`) ou se retire. L'horloge de la compagnie fictive valide par ce geste aussi.
+pub(crate) fn valider_engagement(ctx: &Contexte, carte: crate::routes::mois::ChargeCarte) -> R<Value> {
+    let mois = &carte.mois.to_string();
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
-    let id = crate::routes::mois::ecrire_une_carte(ctx, mois, charge)?;
+    let id = crate::routes::mois::ecrire_une_carte(ctx, mois, carte.engagement.as_ref(), &carte.saisie)?;
     let (i, _) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);

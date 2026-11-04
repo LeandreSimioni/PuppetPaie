@@ -1059,8 +1059,9 @@ pub(crate) fn engagements(
             };
             let salarie = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
             let feminin = sexe(&salarie) == "2";
-            declare = emplois::resoudre(&code, cadre, feminin)
-                .map_err(|m| format!("{} : {}", qui, m))?;
+            // TRAVAIL A FAIRE (chaine A) : les champs du metier se lisent ici par leurs cles (`champ`, plus bas).
+            let champs = emplois::resoudre(&code, cadre, feminin).map_err(|m| format!("{} : {}", qui, m))?;
+            declare = serde_json::to_value(champs).map_err(|e| e.to_string())?;
         }
         // Les jours travailles d'un contrat paye au mois : ceux que le moteur tire du mois (`conges::lignes_du_mois`).
         let mut jours_du_mois: Option<Value> = None;

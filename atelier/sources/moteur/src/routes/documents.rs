@@ -14,7 +14,6 @@ use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::etapes::Moteur;
-use crate::routes::qui_de;
 use droit::contexte::Contexte;
 use envois::courriel::{BoiteSimulee, Courriel};
 use envois::envoi;
@@ -111,7 +110,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             super::phrase_en_tete(v, p)
         }),
         Route::EnvoyerDocuments => envoyer_documents(ctx, charge, &mut || client_courriel(ctx)),
-        Route::DocumentsImprimer => documents_imprimer(ctx, charge, &qui_de(charge)).map(|v| {
+        Route::DocumentsImprimer => documents_imprimer(ctx, charge, &crate::routes::INTERFACE.to_string()).map(|v| {
             let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(|c| super::salarie(ctx, c).map(|s| super::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(c))).collect();
             let mois = socle::mois::Mois::en_clair(&charge.get("mois").map(valeur_en_texte).unwrap_or_default());
             let p = format!("Documents {} imprimés pour {}, à remettre en main propre.", socle::texte::de(&mois), qui.join(", "));
@@ -507,7 +506,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let lignes = m.lignes()?;
     // Ce qui est deja parti : la meme lecture que la case Documents de l'engagement (`etapes::documents_partis`).
-    let partis = crate::routes::etapes::documents_partis(ctx, &mois, &m.etats_du_mois(&mois)?, &lignes)?;
+    let partis = crate::routes::etapes::documents_partis(ctx, &mois, &m.etats_du_mois(socle::mois::Mois::lire(&mois)?)?, &lignes)?;
     let deja = messages.iter().filter_map(|x| partis.get(&x.cle)).map(|p| p.quand.as_str()).max().map(|q| json!({"quand": q, "quand_dit": format!("Le {}.", super::quand(q))}));
     let mut r = Map::new();
     r.insert("expediteur".into(), json!(expediteur));
@@ -631,7 +630,7 @@ fn envoyer_documents(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value>
     let mois = charge_texte(charge, "mois")?;
     let preuve = preuve_de(charge);
     let prepare = preparer_envoi(ctx, &mois, salaries_choisis(charge)?.as_deref(), Some(&preuve), ouvrir)?;
-    expedier_envoi(ctx, prepare, &mois, &preuve, &qui_de(charge))
+    expedier_envoi(ctx, prepare, &mois, &preuve, &crate::routes::INTERFACE.to_string())
 }
 
 /// `envoyer_documents(ctx, mois, preuve=..., qui=...)` : la meme operation, `qui` et la preuve donnes (l'horloge de

@@ -27,7 +27,7 @@ fn resoudre_metier_et_statut_non_cadre() {
                 "True" => Some(true),
                 _ => Some(false),
             };
-            *voulu = resoudre(&code, cadre, fem == "True").unwrap_or_else(|m| {
+            *voulu = resoudre(&code, cadre, fem == "True").map(|c| serde_json::to_value(c).unwrap()).unwrap_or_else(|m| {
                 refus += 1;
                 json!({ "refus": socle::echec::separer(&m).0 })
             });

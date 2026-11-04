@@ -232,7 +232,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
 fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
     let nic = a.champ("etablissement");
     let nic = if nic.is_empty() { Value::Null } else { json!(nic) };
-    let Ok(r) = m.etat_remplacement(mois, &nic) else { return Ok(Value::Null) };
+    let Ok(r) = m.etat_remplacement(socle::mois::Mois::lire(mois)?, &nic) else { return Ok(Value::Null) };
     let genre = a.champ("type_declaration");
     let remplace = if (genre == "03" || genre == "05") && r.deposee {
         let ordre = a.champ("ordre");

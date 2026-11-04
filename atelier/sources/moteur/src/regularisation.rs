@@ -61,7 +61,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
         );
     } else {
         // LA FRONTIERE EST LA VEILLE A MINUIT, pas le jour de l'echeance.
-        let veille = m.limite(mois)?;
+        let veille = m.limite(socle::mois::Mois::lire(mois)?)?;
         if ctx.aujourdhui <= veille {
             out.insert(
                 "raison".into(),
@@ -210,7 +210,7 @@ pub(crate) fn modification_de_l_engagement(m: &mut Moteur, ctx: &Contexte, mois:
     if !vrai(&etat["deposee"]) || vrai(&etat["refusee"]) {
         return Ok(Value::Null);
     }
-    let veille = m.limite(mois)?;
+    let veille = m.limite(socle::mois::Mois::lire(mois)?)?;
     let de = de_mois_en_clair(mois);
     if !vrai(&etat["regularisable"]) {
         return Ok(json!({

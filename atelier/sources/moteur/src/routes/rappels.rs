@@ -417,7 +417,7 @@ impl Echeance {
                 let arret = || json!({"salarie": objet["salarie"], "dernier_jour": objet["dernier_jour_travaille"]});
                 match o.get("cle").and_then(Value::as_str).unwrap_or("") {
                     "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
-                        action(Route::Saisie, json!({"mois": mois}), Some(Route::ModifierEngagement), "Compléter le contrat".into())
+                        action(Route::Saisie, ChargeMois { mois: self.mois? }, Some(Route::ModifierEngagement), "Compléter le contrat".into())
                     }
                     "signalement_fin_contrat" => {
                         let charge = ChargeFinContratSignaler::de(self.mois?, salarie()?);
@@ -1050,10 +1050,12 @@ fn mois_a_declarer(st: &Etat) -> R<Vec<Mois>> {
 /// LES MOIS QUI ONT QUELQUE CHOSE A FAIRE au jour `aujourdhui`, du plus ancien au plus recent : ceux que la saisie
 /// touche (`stock::mois_saisis`), et ceux dont la DSN est reclamee sans engagement (`mois_a_declarer` : une DSN sans
 /// individu, cahier technique DSN 2026.1, § 2.4). Le mois a ouvrir et l'horloge de la compagnie fictive les parcourent.
-pub(crate) fn mois_a_parcourir(ctx: &Contexte, aujourdhui: Jour) -> socle::echec::R<Vec<String>> {
+pub(crate) fn mois_a_parcourir(ctx: &Contexte, aujourdhui: Jour) -> socle::echec::R<Vec<Mois>> {
     let mut mois = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default();
     let st = Etat { ctx, aujourdhui, journal: envois::journal::lu(&ctx.racine)?.lignes };
     mois.extend(mois_a_declarer(&st)?.into_iter().map(String::from));
+    // TRAVAIL A FAIRE (chaine A) : les mois saisis (`stock::mois_saisis`) se rendent en `Mois`.
+    let mut mois = mois.iter().map(|m| Mois::lire(m)).collect::<Result<Vec<Mois>, String>>()?;
     mois.sort();
     mois.dedup();
     Ok(mois)

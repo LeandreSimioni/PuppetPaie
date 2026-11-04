@@ -10,8 +10,9 @@ use socle::fichiers::vrai;
 use socle::num::{dec, Decimal};
 use socle::valeur::valeur_en_texte;
 
-/// Ce qui se vise : le brut, le cout employeur, le net a payer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Ce qui se vise : le brut, le cout employeur, le net a payer ; la charge du montant vise le dit `brut`, `cout`, `net`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Cible {
     Brut,
     Cout,

@@ -9,28 +9,40 @@
 //!
 //! `apercu` : le mois pour l'ecran, rien d'ecrit. Un engagement valide montre la paie qu'il a ecrite ; un engagement en
 //! saisie se calcule en memoire (`paies_de_l_ecran`) ; les numeros se reservent sans rien ecrire.
+//!
+//! Chaque charge est une structure (`ChargeCarte`, `ChargeApercu`, `ChargeAjuster`, `ChargeContratsPasses`,
+//! `ChargeEmploi`, et `etapes::ChargeMois`), lue une fois (`routes::lire_charge`) ; chaque reponse en est une aussi.
+//!
+//! TRAVAIL A FAIRE (chaine A, le domaine de l'engagement) : la saisie d'un engagement (`Carte::saisie`, la vue du mois,
+//! les lignes, le spectacle d'une paie) se lit encore comme son fichier l'ecrit, en `serde_json::Value`, par ses cles ;
+//! de meme l'engagement importe (`engagement::importe` : son contrat, ses paies), les cartes importees
+//! (`import::mois::cartes`), le conseil de saisie (`compagnie::conseils`), la ligne « Pour démarrer »
+//! (`declarations::demarrage::conges_a_dire`) et la fiche d'un spectacle (`Contexte::spectacles`). Ils se declareront avec
+//! leur domaine ; ici, ils passent tels quels.
 
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::routes::fiches::{maintenant, refus, texte_requis};
+use crate::routes::fiches::{maintenant, refus};
 use crate::routes::rappels::texte;
+use crate::routes::{en_json, lire_charge};
+use crate::routes::etapes::ChargeMois;
 use engagement::calcul::Paie;
-use engagement::Avis;
+use engagement::stock::Identite;
+use engagement::viser::Cible;
 use droit::catalogue;
-use droit::contexte::{archivee, Contexte};
+use droit::contexte::{archivee, Contexte, IdSalarie};
 use droit::emplois;
 use engagement::{self, Engagement};
-use envois::etats::{get, items, ou, Dico};
 use socle::date::{en_texte, Jour};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{repr, repr_valeur, vrai};
-use socle::num::{dec, flottant, Decimal};
-use socle::valeur::{nom_type, nombre, valeur_en_texte, valeurs_egales};
-
+use socle::fichiers::{repr, vrai};
+use socle::mois::Mois;
+use socle::num::Decimal;
+use socle::valeur::{nom_type, valeur_en_texte};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
@@ -99,7 +111,12 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         route: Route::Emploi,
         geste: "Traduire un métier du catalogue en champs de la fiche salarié.",
-        charge: &[Champ { nom: "metier", libelle: Affiche::new("Métier"), forme: Forme::Texte, sens: "le code du métier au catalogue (COM010…)", avance: false }],
+        charge: &[
+            Champ { nom: "metier", libelle: Affiche::new("Métier"), forme: Forme::Texte, sens: "le code du métier au catalogue (COM010…)", avance: false },
+            Champ { nom: "cadre", libelle: Affiche::new("Cadre"), forme: Forme::OuiNon, sens: "cadre ou non ; absent : le défaut du métier au catalogue", avance: true },
+            Champ { nom: "feminin", libelle: Affiche::new("Au féminin"), forme: Forme::OuiNon, sens: "le libellé au féminin", avance: true },
+            Champ { nom: "salarie", libelle: Affiche::new("Fiche"), forme: Forme::Objet, sens: "ce que la fiche remplie dit du sexe : {nir, sexe}", avance: true },
+        ],
         exemple: r#"{"metier":"COM010"}"#,
         rend: "les champs de la fiche que le métier remplit (emploi, statut, catégorie…)",
         refus: &[MANQUE, OPERATION],
@@ -144,78 +161,268 @@ pub const ROUTES: &[Fiche] = &[
     },
 ];
 
+// ------------------------------------------------------------------ les charges
+
+/// UNE CARTE QUE L'ECRAN MONTRE AUTREMENT QU'ELLE N'EST ECRITE (`apercu`, `ajuster`) : son identite (`None` : pas encore
+/// ecrite) et ce qu'elle porte.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Carte {
+    #[serde(default)]
+    pub(crate) engagement: Option<Identite>,
+    /// TRAVAIL A FAIRE (chaine A) : la saisie d'un engagement, telle que son fichier l'ecrit.
+    pub(crate) saisie: Map<String, Value>,
+}
+
+/// LA CHARGE D'UNE CARTE QUI S'ECRIT (`enregistrer-saisie`, `valider-engagement`) : le mois de l'ecran, l'identite de la
+/// carte (absente : un engagement neuf) et ce qu'elle ecrit.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeCarte {
+    pub(crate) mois: Mois,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) engagement: Option<Identite>,
+    /// TRAVAIL A FAIRE (chaine A) : la saisie d'un engagement, telle que son fichier l'ecrit.
+    pub(crate) saisie: Map<String, Value>,
+}
+
+/// La charge de l'apercu : le mois, et les cartes que l'ecran montre autrement (`mois_designe`).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeApercu {
+    mois: Mois,
+    #[serde(default)]
+    cartes: Vec<Carte>,
+}
+
+/// La charge du montant vise : le mois et ses cartes, le rang de la carte a ajuster, ce qui se vise et combien.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeAjuster {
+    mois: Mois,
+    #[serde(default)]
+    cartes: Vec<Carte>,
+    carte: usize,
+    cible: Cible,
+    montant: f64,
+}
+
+/// La charge des contrats d'un mois passe : le mois, et le salarie dont ne lire que les siens (absent : tous).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeContratsPasses {
+    mois: Mois,
+    #[serde(default)]
+    salarie: Option<IdSalarie>,
+}
+
+/// La charge du metier : son code, et ce qui choisit sa forme (cadre, ou non ; au feminin, dit tel quel ou lu de la
+/// fiche que l'ecran remplit).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeEmploi {
+    metier: String,
+    #[serde(default)]
+    cadre: Option<bool>,
+    #[serde(default)]
+    feminin: bool,
+    #[serde(default)]
+    salarie: Option<SexeDeLaFiche>,
+}
+
+/// Ce qui dit le sexe, sur la fiche que l'ecran remplit : le NIR, sinon la case `sexe` (`ntt::sexe_de`).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SexeDeLaFiche {
+    #[serde(default)]
+    nir: String,
+    #[serde(default)]
+    sexe: String,
+}
+
+// ------------------------------------------------------------------ les reponses
+
+/// Ce que la page propose quand la saisie ne le dit pas : le taux d'une ligne de cachet neuve.
+#[derive(Debug, Serialize)]
+struct Defauts {
+    taux_cachet: Option<f64>,
+}
+
+/// LE MOIS TEL QUE L'ECRAN L'OUVRE (`saisie`).
+#[derive(Debug, Serialize)]
+struct SaisieDuMois {
+    mois: Mois,
+    phrase: Option<&'static str>,
+    /// TRAVAIL A FAIRE : les cartes importees (`import::mois::cartes`).
+    importes: Vec<Value>,
+    importes_titre: &'static str,
+    importes_dit: String,
+    ferme_aux_neufs: Option<String>,
+    defauts: Defauts,
+    /// TRAVAIL A FAIRE (chaine A) : la vue du mois (`engagement::stock::vue_du_mois`), les noms resolus.
+    saisie: Value,
+    /// L'identite de chaque engagement de `saisie.engagements`, dans son ordre : ce par quoi sa carte le designe.
+    identites: Vec<Identite>,
+}
+
+/// Une carte ecrite (`enregistrer-saisie`).
+#[derive(Debug, Serialize)]
+struct CarteEcrite {
+    phrase: String,
+    engagement: Identite,
+    a_completer: Option<String>,
+    enregistre_a: String,
+    enregistre_dit: String,
+}
+
+/// UN CONTRAT D'USAGE REPRIS D'UN AUTRE LOGICIEL QUI COURT SUR LE MOIS, et l'engagement qui le reprend.
+#[derive(Debug, Serialize)]
+struct EnCours {
+    salarie: IdSalarie,
+    nom: String,
+    spectacle: Option<String>,
+    debut: String,
+    fin: String,
+    numero: String,
+    depuis: String,
+    metier: Option<String>,
+    cadre: Option<bool>,
+    taux_cachet: Option<f64>,
+    lieu: &'static str,
+    deja_repris: bool,
+    engagement: Reprise,
+}
+
+/// L'ENGAGEMENT D'UN CONTRAT EN COURS, pour le fichier du mois : le contrat tel qu'il a ete signe, et une ligne de
+/// cachets a dater.
+#[derive(Debug, Serialize)]
+struct Reprise {
+    salarie: IdSalarie,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    spectacle: Option<String>,
+    debut: String,
+    fin: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    numero: Option<String>,
+    lignes: [LigneAReprendre; 1],
+}
+
+/// La ligne de cachets d'un contrat repris : aucun cachet encore, au taux du contrat ou au dernier saisi.
+#[derive(Debug, Serialize)]
+struct LigneAReprendre {
+    rubrique: &'static str,
+    quantite: u8,
+    taux: Option<f64>,
+    dates: [Jour; 0],
+}
+
+#[derive(Debug, Serialize)]
+struct ContratsEnCours {
+    phrase: String,
+    mois: Mois,
+    contrats: Vec<EnCours>,
+    reprise: Option<String>,
+}
+
+/// UN CONTRAT QUI TOUCHE UN MOIS PASSE, tel que le calendrier le montre. LECTURE SEULE, ET UN PLANCHER : c'est ce que la
+/// compagnie a declare, pas la position du salarie.
+#[derive(Debug, Serialize)]
+struct Passe {
+    dit: String,
+    salarie: String,
+    nom: String,
+    debut: String,
+    fin: String,
+    cachets: i64,
+    heures: i64,
+    jours: i64,
+    titre: String,
+    numero_objet: String,
+    dates: Vec<String>,
+    source: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct ContratsPasses {
+    phrase: String,
+    mois: Mois,
+    contrats: Vec<Passe>,
+    rien_dit: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct Emploi {
+    phrase: String,
+    #[serde(flatten)]
+    champs: emplois::ChampsDuMetier,
+}
+
+/// Une ligne de la carte dont le taux change, pour le montant vise. TRAVAIL A FAIRE (chaine A) : les taux et la rubrique
+/// se lisent de la saisie, telle que son fichier l'ecrit.
+#[derive(Debug, Serialize)]
+struct TauxQuiChange {
+    rang: usize,
+    rubrique: Value,
+    taux_avant: Value,
+    taux: Value,
+}
+
+/// Ce qui a change, pour l'engagement ajuste : son salaire du mois s'il change, ses lignes dont le taux change.
+#[derive(Debug, Serialize)]
+struct CeQuiChange {
+    index: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    salaire_mensuel: Option<Value>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    lignes: Vec<TauxQuiChange>,
+}
+
+/// LE MONTANT VISE (`ajuster`) : ce qui est atteint, le taux qu'il faudrait ; rien n'est ecrit.
+#[derive(Debug, Serialize)]
+struct Ajuste {
+    phrase: String,
+    cible: Cible,
+    vise: Decimal,
+    atteint: Decimal,
+    depart: Decimal,
+    ecart: Decimal,
+    facteur: Decimal,
+    tours: usize,
+    engagements: [CeQuiChange; 1],
+    paies: [VuePaie; 1],
+}
+
+// ------------------------------------------------------------------ les routes
+
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        Route::Saisie => saisie(ctx, charge),
-        Route::Apercu => apercu(ctx, charge).map(|mut v| {
-            let p = v["phrase_du_mois"].as_str().map(String::from).unwrap_or_else(|| format!("{} : {}.", valeur_en_texte(&v["libelle"]), super::compte(super::nombre(&v["paies"]), "paie", "paies")));
-            // Ce que le moteur dit de chaque engagement (les encarts de sa carte), en phrases : le mois, puis ses paies.
-            let mut lignes: Vec<Value> = Vec::new();
-            let blocs = std::iter::once(&v).chain(v["paies"].as_array().into_iter().flatten());
-            for a in blocs.flat_map(|b| ["avertissements", "informations"].map(|k| b[k].clone())).filter_map(|l| l.as_array().cloned()).flatten() {
-                if !lignes.contains(&a) {
-                    lignes.push(a);
-                }
-            }
-            v["phrases"] = Value::Array(lignes);
-            super::phrase_en_tete(v, p)
-        }),
-        Route::ContratsEnCours => contrats_en_cours_route(ctx, charge).map(|mut v| {
-            // Ce que l'ecran dit en posant les contrats qui ne sont pas encore repris : qui, et que ses jours restent a poser.
-            let restants: Vec<&Value> = v["contrats"].as_array().into_iter().flatten().filter(|c| !socle::fichiers::vrai(&c["deja_repris"])).collect();
-            let de_mois = socle::texte::de(&socle::mois::Mois::en_clair(&valeur_en_texte(&charge["mois"])));
-            let noms: Vec<String> = restants.iter().map(|c| valeur_en_texte(&c["nom"])).collect();
-            let reprise = match noms.len() {
-                0 => Value::Null,
-                1 => json!(format!("Contrat en cours repris : {} — poser ses jours {}.", noms[0], de_mois)),
-                n => json!(format!("{} contrats en cours repris ({}) — poser leurs jours {}.", n, noms.join(", "), de_mois)),
-            };
-            v["reprise"] = reprise;
-            let p = format!("Contrats d'un mois passé qui courent encore ce mois : {}.", super::nombre(&v["contrats"]));
-            super::phrase_en_tete(v, p)
-        }),
-        Route::ContratsPasses => contrats_passes_route(ctx, charge).map(|v| {
-            let p = format!("Contrats déclarés dans ce mois importé : {}.", super::nombre(&v["contrats"]));
-            super::phrase_en_tete(v, p)
-        }),
-        Route::Emploi => emploi(charge).map(|v| {
-            let p = format!("Métier : {} ({}).", valeur_en_texte(&v["emploi_affichage"]), valeur_en_texte(&v["code_emploi_ft"]));
-            super::phrase_en_tete(v, p)
-        }),
-        Route::EnregistrerSaisie => enregistrer_saisie(ctx, charge).map(|v| {
-            let p = match v["a_completer"].as_str() {
-                Some(m) => format!("Carte enregistrée ; à compléter avant de valider : {}", m),
-                None => "Carte enregistrée.".to_string(),
-            };
-            super::phrase_en_tete(v, p)
-        }),
-        Route::Ajuster => ajuster(ctx, charge).map(|v| {
-            // Le taux qu'il faudrait : chaque ligne qui change, puis le salaire du mois s'il change.
-            let c = &v["engagements"][0];
-            let mut faut: Vec<String> = c["lignes"].as_array().into_iter().flatten().map(|l| {
-                let avant = if l["taux_avant"].is_null() { String::new() } else { format!(" au lieu de {}", socle::texte::euros_de(&l["taux_avant"])) };
-                format!("{} à {}{}", valeur_en_texte(&l["rubrique"]), socle::texte::euros_de(&l["taux"]), avant)
-            }).collect();
-            if !c["salaire_mensuel"].is_null() {
-                faut.push(format!("salaire du mois à {}", socle::texte::euros_de(&c["salaire_mensuel"])));
-            }
-            let avec = if faut.is_empty() { String::new() } else { format!(" ; {}", faut.join(", ")) };
-            let cible = match v["cible"].as_str() {
-                Some("net") => "Net salarié".to_string(),
-                Some("brut") => "Brut".to_string(),
-                Some("cout") => "Coût entreprise".to_string(),
-                _ => valeur_en_texte(&v["cible"]),
-            };
-            let ecart = v["ecart"].as_str().and_then(|e| e.parse::<f64>().ok()).unwrap_or(0.0);
-            let pres = if ecart == 0.0 { " au centime près".to_string() } else { format!(" ({}{} : un taux se paie au centime)", if ecart > 0.0 { "+" } else { "" }, socle::texte::euros_de(&v["ecart"])) };
-            let p = format!("{} visé {} → {}{}{}.", cible, socle::texte::euros_de(&v["vise"]), socle::texte::euros_de(&v["atteint"]), pres, avec);
-            super::phrase_en_tete(v, p)
-        }),
+        Route::Saisie => en_json(saisie(ctx, lire_charge::<ChargeMois>(charge)?.mois)?),
+        Route::Apercu => en_json(apercu(ctx, lire_charge(charge)?)?),
+        Route::ContratsEnCours => en_json(contrats_en_cours_route(ctx, lire_charge::<ChargeMois>(charge)?.mois)?),
+        Route::ContratsPasses => en_json(contrats_passes_route(ctx, lire_charge(charge)?)?),
+        Route::Emploi => en_json(emploi(lire_charge(charge)?)?),
+        Route::EnregistrerSaisie => en_json(enregistrer_saisie(ctx, lire_charge(charge)?)?),
+        Route::Ajuster => en_json(ajuster(ctx, lire_charge(charge)?)?),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
+
 // ------------------------------------------------------------------ outils
+
+/// Le fichier d'une saisie, lu en JSON ; un fichier illisible refuse en le nommant. TRAVAIL A FAIRE : ses lecteurs
+/// (`rappels` : l'echeancier livre et celui de la compagnie ; `atmp` ; `fiches`) lisent chacun un fichier de leur domaine,
+/// qui se declarera avec lui.
+pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
+    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
+    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", socle::echec::du_disque(&chemin, &e)))?;
+    serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))
+}
+
+#[track_caller]
+fn plain(m: impl Into<String>) -> Echec {
+    socle::echec::noter_et(None, m)
+}
 
 fn vrai_opt(v: Option<&Value>) -> bool {
     v.map_or(false, vrai)
@@ -223,13 +430,6 @@ fn vrai_opt(v: Option<&Value>) -> bool {
 
 fn nombre_f(x: f64) -> Value {
     serde_json::Number::from_f64(x).map_or(Value::Null, Value::Number)
-}
-
-/// Le fichier d'une saisie, lu en JSON ; un fichier illisible refuse en le nommant.
-pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
-    let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", socle::echec::du_disque(&chemin, &e)))?;
-    serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))
 }
 
 // ============================================================ la saisie
@@ -473,7 +673,10 @@ fn jours_sur_les_lignes(
 /// Ce que la page propose quand la saisie ne le dit pas : `taux_cachet`, le taux d'une ligne de cachet neuve, celui
 /// du dernier cachet de CE mois, sinon son `taux_cachet`, sinon le dernier taux saisi du dossier (`dernier_taux`),
 /// sinon rien (`null`).
-fn defauts_de_la_saisie(ctx: &Contexte, saisie: &Value) -> Value {
+/// Ce que la page propose quand la saisie ne le dit pas : `taux_cachet`, le taux d'une ligne de cachet neuve, celui
+/// du dernier cachet de CE mois, sinon son `taux_cachet`, sinon le dernier taux saisi du dossier (`dernier_taux`),
+/// sinon rien (`null`).
+fn defauts_de_la_saisie(ctx: &Contexte, saisie: &Value) -> Defauts {
     let du_mois = || -> Option<f64> {
         let objet = saisie.as_object()?;
         for e in elements(objet.get("engagements")).ok()?.iter().rev() {
@@ -487,19 +690,17 @@ fn defauts_de_la_saisie(ctx: &Contexte, saisie: &Value) -> Value {
     };
     // Un dossier qu'on ne sait pas relire ne propose rien (`null`) : la route rend la saisie telle quelle, et
     // c'est l'apercu qui dira pourquoi.
-    let taux = du_mois().or_else(|| dernier_taux(ctx).ok().flatten()).map_or(Value::Null, nombre_f);
-    json!({"taux_cachet": taux})
+    Defauts { taux_cachet: du_mois().or_else(|| dernier_taux(ctx).ok().flatten()) }
 }
 
 /// La route `saisie`.
-fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let mois = en_texte(brut);
-    let existe = engagement::stock::a_une_saisie(&ctx.racine, &mois).map_err(Echec::from)?;
+fn saisie(ctx: &Contexte, mois: Mois) -> R<SaisieDuMois> {
+    let texte_mois = mois.to_string();
+    let existe = engagement::stock::a_une_saisie(&ctx.racine, &texte_mois).map_err(Echec::from)?;
     // Un mois neuf s'ouvre VIDE, avec le dernier taux saisi ; un mois que des engagements touchent prend du squelette ce
     // qu'il ne dit pas de lui.
-    let mut saisie = squelette(ctx, &mois)?;
-    if let Some(Value::Object(vue)) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? {
+    let mut saisie = squelette(ctx, &texte_mois)?;
+    if let Some(Value::Object(vue)) = engagement::stock::vue_du_mois(&ctx.racine, &texte_mois).map_err(Echec::from)? {
         for (k, v) in vue {
             saisie[k] = v;
         }
@@ -508,106 +709,28 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     // LES ENGAGEMENTS IMPORTES QUI TOUCHENT LE MOIS, en cartes fermees : ils se lisent, rien ne les calcule
     // (`import::mois`). Un mois qui en porte ne recoit pas d'engagement neuf : `ferme_aux_neufs` est la phrase qui le
     // dit (`null` : le mois en recoit).
-    let importes = crate::import::mois::cartes(ctx, &mois)?;
-    let ferme = ferme_aux_neufs(ctx, &mois)?;
+    let importes = crate::import::mois::cartes(ctx, &texte_mois)?;
+    let ferme = ferme_aux_neufs(ctx, &texte_mois)?;
     // CE QUE L'ECRAN DIT DE LA SAISIE : rien pour un mois importe (sa phrase est `ferme_aux_neufs`).
     let phrase = match (ferme.is_none(), existe) {
-        (false, _) => Value::Null,
-        (true, true) => json!("Saisie chargée. L'enregistrement est automatique."),
-        (true, false) => json!("Nouveau mois — l'enregistrement est automatique dès la première saisie."),
+        (false, _) => None,
+        (true, true) => Some("Saisie chargée. L'enregistrement est automatique."),
+        (true, false) => Some("Nouveau mois — l'enregistrement est automatique dès la première saisie."),
     };
     // L'en-tete des cartes importees : son titre, et combien d'engagements viennent de l'ancien logiciel.
     let n_importes = importes.len();
-    let importes_titre = if n_importes > 1 { "Importés" } else { "Importé" };
-    let importes_dit = format!("{} de l'ancien logiciel", super::compte(n_importes, "engagement", "engagements"));
-    Ok(json!({
-        "mois": brut,
-        "phrase": phrase,
-        "importes": importes,
-        "importes_titre": importes_titre, "importes_dit": importes_dit,
-        "ferme_aux_neufs": ferme,
-        "defauts": defauts,
-        "saisie": resoudre_noms(ctx, &saisie)?,
-        // L'identite de chaque engagement de `saisie.engagements`, dans son ordre : ce par quoi sa carte le designe.
-        "identites": engagement::stock::identites(&engagement::stock::objets_du_mois(&ctx.racine, &mois).map_err(Echec::from)?),
-    }))
+    Ok(SaisieDuMois {
+        mois,
+        phrase,
+        importes_titre: if n_importes > 1 { "Importés" } else { "Importé" },
+        importes_dit: format!("{} de l'ancien logiciel", super::compte(n_importes, "engagement", "engagements")),
+        importes,
+        ferme_aux_neufs: ferme,
+        defauts,
+        saisie: resoudre_noms(ctx, &saisie)?,
+        identites: engagement::stock::identites(&engagement::stock::objets_du_mois(&ctx.racine, &texte_mois).map_err(Echec::from)?),
+    })
 }
-
-#[track_caller]
-fn plain(m: impl Into<String>) -> Echec {
-    socle::echec::noter_et(None, m)
-}
-
-#[track_caller]
-fn cle_manquante(cle: &str) -> Echec {
-    erreur("KeyError", socle::fichiers::absent(cle))
-}
-
-/// `charge["cle"]`.
-fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| cle_manquante(cle))
-}
-
-/// L'ordre de ce que des fichiers de saisie portent : des textes,
-/// ou des nombres entre eux ; le reste ne se compare pas.
-fn comparer(a: &Value, b: &Value) -> R<Ordering> {
-    match (a, b) {
-        (Value::String(x), Value::String(y)) => Ok(x.cmp(y)),
-        (Value::String(_), _) | (_, Value::String(_)) => Err(pas_comparable(a, b)),
-        _ => match (nombre(a), nombre(b)) {
-            (Some(x), Some(y)) => Ok(x.partial_cmp(&y).unwrap_or(Ordering::Equal)),
-            _ => Err(pas_comparable(a, b)),
-        },
-    }
-}
-
-#[track_caller]
-fn pas_comparable(a: &Value, b: &Value) -> Echec {
-    erreur("TypeError", socle::fichiers::incomparables(nom_type(a), nom_type(b)))
-}
-
-/// `valeur or defaut`, puis `for x in ...`.
-fn parcourir(v: Option<&Value>) -> R<Vec<Value>> {
-    match v {
-        Some(x) if vrai(x) => Ok(items(x)?.into_iter().map(|c| c.into_owned()).collect()),
-        _ => Ok(Vec::new()),
-    }
-}
-
-/// Les cles d'une fiche ; refus (`AttributeError`) si ce n'est pas un objet.
-fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
-    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
-}
-
-/// Un entier, de ce qu'un JSON porte.
-fn entier_de(v: &Value) -> R<i64> {
-    match v {
-        Value::Bool(b) => Ok(*b as i64),
-        Value::Number(n) => match n.as_i64() {
-            Some(i) => Ok(i),
-            None => {
-                let x = n.as_f64().unwrap_or(0.0);
-                if x.is_nan() {
-                    Err(erreur("ValueError", "un nombre indefini (NaN) n'est pas un entier"))
-                } else if x.is_infinite() {
-                    Err(erreur("OverflowError", socle::fichiers::entier_hors_limites("infini")))
-                } else {
-                    Ok(x.trunc() as i64)
-                }
-            }
-        },
-        Value::String(s) => s
-            .trim()
-            .replace('_', "")
-            .parse::<i64>()
-            .map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(s)))),
-        autre => Err(erreur(
-            "TypeError",
-            socle::fichiers::attendu("un nombre entier", nom_type(autre)),
-        )),
-    }
-}
-
 // ------------------------------------------------------- les jours d'un engagement
 
 /// `j["jour"] if isinstance(j, dict) else j`.
@@ -645,85 +768,46 @@ pub(crate) fn bornes_brutes(ctx: &Contexte, e: &Map<String, Value>) -> (String, 
 // ------------------------------------------------------------ les fichiers de mois
 
 /// Les engagements bruts que le mois montre (`engagement::stock::vue_du_mois`), avec la cle du salarie ; vide si aucun
-/// engagement ne le touche.
-/// Un engagement dont le salarie est inconnu (ou qui n'est pas un dictionnaire)
-/// est sauté.
-pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, Map<String, Value>)>> {
+/// engagement ne le touche. Un engagement dont le salarie est inconnu (ou qui n'est pas un objet) est saute.
+/// TRAVAIL A FAIRE (chaine A) : l'engagement brut, tel que son fichier l'ecrit.
+pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(IdSalarie, Map<String, Value>)>> {
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();
-    for e in parcourir(get(&data, "engagements")?.into())? {
-        let Some(m) = e.as_object() else { continue };
-        let Some(cle) = engagement::cle_de_l_engagement(ctx, &e) else { continue };
-        out.push((cle.into(), m.clone()));
+    for e in data.get("engagements").and_then(Value::as_array).into_iter().flatten() {
+        let (Some(m), Some(cle)) = (e.as_object(), engagement::cle_de_l_engagement(ctx, e)) else { continue };
+        out.push((cle, m.clone()));
     }
     Ok(out)
 }
 
 // ------------------------------------------------------------- contrats en cours
 
-/// Un contrat ouvert un mois precedent et
-/// qui court encore sur celui-ci.
-struct EnCours {
-    salarie: String,
-    nom: String,
-    spectacle: Value,
-    debut: String,
-    fin: String,
-    numero: Value,
-    depuis: String,
-    metier: Value,
-    cadre: Value,
-    taux_cachet: Value,
-    lieu: Value,
-    deja_repris: bool,
-    lignes: Vec<Value>,
-}
-
-impl EnCours {
-    /// `sortie_json.contrat_en_cours`.
-    fn json(&self) -> Map<String, Value> {
-        let mut m = Map::new();
-        m.insert("salarie".into(), json!(self.salarie));
-        m.insert("nom".into(), json!(self.nom));
-        m.insert("spectacle".into(), self.spectacle.clone());
-        m.insert("debut".into(), json!(self.debut));
-        m.insert("fin".into(), json!(self.fin));
-        m.insert("numero".into(), self.numero.clone());
-        m.insert("depuis".into(), json!(self.depuis));
-        m.insert("metier".into(), self.metier.clone());
-        m.insert("cadre".into(), self.cadre.clone());
-        m.insert("taux_cachet".into(), self.taux_cachet.clone());
-        m.insert("lieu".into(), self.lieu.clone());
-        m.insert("deja_repris".into(), json!(self.deja_repris));
-        m
-    }
-}
 /// LES CONTRATS D'USAGE REPRIS D'UN AUTRE LOGICIEL QUI COURENT SUR `mois`. Un engagement d'ici commence un mois precedent
 /// est deja a l'ecran de `mois` (un seul objet, lu dans le fichier du mois ou il commence : `engagement::stock`), comme
 /// le contrat repris d'un permanent, qui continue dans son engagement (`engagement::importe`) ; ne restent que les
 /// contrats d'usage que l'historique importe porte. Chacun se dit repris (`deja_repris`) quand un engagement de l'ecran
 /// a son salarie, son debut et son numero. Jamais lu dans la DSN.
-fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
-    let Some(texte_mois) = mois.as_str() else {
-        return Err(erreur("TypeError", socle::fichiers::attendu("un texte", nom_type(mois))));
-    };
-    let mut out = Vec::new();
-    let mut vus: Dico<()> = Dico::nouveau();
-    // LE CONTRAT D'USAGE COMMENCE DANS L'ANCIEN LOGICIEL ET CONTINUE ICI (`engagement::importe::Importe::continue_apres`) :
-    // ses mois verses sont importes, les suivants se paient ici, sous le numero et les dates que la DSN deposee lui a
-    // donnes (regle 4). Le spectacle est celui de son numero d'objet, le cachet celui que l'ancien logiciel a paye.
-    for i in engagement::importe::qui_continuent(&ctx.racine, texte_mois).map_err(Echec::from)? {
+///
+/// LE CONTRAT D'USAGE COMMENCE DANS L'ANCIEN LOGICIEL ET CONTINUE ICI (`engagement::importe::Importe::continue_apres`) :
+/// ses mois verses sont importes, les suivants se paient ici, sous le numero et les dates que la DSN deposee lui a
+/// donnes (regle 4). Le spectacle est celui de son numero d'objet, le cachet celui que l'ancien logiciel a paye ; son
+/// engagement, pour le fichier du mois, est le contrat tel qu'il a ete signe, et une ligne de cachets a dater, au taux du
+/// contrat, sinon au dernier saisi (la page ne choisit pas de taux ; un dossier qu'on ne sait pas relire, ou qui n'a
+/// encore aucun cachet, R12, n'en propose aucun : la ligne reste a completer).
+/// TRAVAIL A FAIRE (chaine A) : l'engagement importe se lit encore par ses cles.
+fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
+    let mut out: Vec<EnCours> = Vec::new();
+    let mut vus: HashSet<(String, String, String)> = HashSet::new();
+    let t = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    for i in engagement::importe::qui_continuent(&ctx.racine, mois).map_err(Echec::from)? {
         let b = i.objet().champs();
-        let t = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let (salarie, debut, fin, numero) = (t(b, "salarie"), t(b, "debut"), t(b, "fin"), t(b, "numero"));
-        let ident = vec![json!(salarie), json!(debut), json!(numero)];
-        if vus.contient(&ident)? {
+        if !vus.insert((salarie.clone(), debut.clone(), numero.clone())) {
             continue;
         }
-        vus.poser(ident, ())?;
-        let Ok(_) = ctx.salarie(&salarie) else { continue };
+        let Ok(fiche) = ctx.salarie(&salarie) else { continue };
         let paies = i.paies();
         let derniere = paies.values().last().copied().cloned().unwrap_or_default();
         let objet_du = |x: &Map<String, Value>| ["numero_objet", "objet"].iter().map(|k| t(x, k)).find(|o| !o.is_empty()).unwrap_or_default();
@@ -733,276 +817,149 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             .iter()
             .filter(|(k, _)| !k.starts_with('_'))
             .find(|(_, s)| !numero_objet.is_empty() && s.get("numero_objet").map(valeur_en_texte).is_some_and(|n| n.eq_ignore_ascii_case(&numero_objet)))
-            .map_or(Value::Null, |(k, _)| json!(k));
+            .map(|(k, _)| k.clone());
         let taux_cachet = derniere
             .get("lignes")
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
             .find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))
-            .and_then(|l| l.get("taux").and_then(|x| valeur_en_texte(x).parse::<f64>().ok()))
-            .map_or(Value::Null, nombre_f);
+            .and_then(|l| l.get("taux").and_then(|x| valeur_en_texte(x).parse::<f64>().ok()));
+        let taux = match taux_cachet.filter(|t| *t != 0.0) {
+            Some(t) => Some(t),
+            None => dernier_taux(ctx).ok().flatten(),
+        };
+        let engagement = Reprise {
+            salarie: fiche.id.clone(),
+            spectacle: spectacle.clone(),
+            debut: debut.clone(),
+            fin: fin.clone(),
+            numero: Some(numero.clone()).filter(|n| !n.is_empty()),
+            lignes: [LigneAReprendre { rubrique: "cachet", quantite: 0, taux, dates: [] }],
+        };
         out.push(EnCours {
-            salarie: salarie.clone(),
             nom: ctx.nomme(&salarie),
+            salarie: fiche.id,
             spectacle,
             debut,
             fin,
-            numero: json!(numero),
+            numero,
             depuis: i.continue_apres().unwrap_or_default(),
-            metier: Value::Null,
-            cadre: Value::Null,
+            metier: None,
+            cadre: None,
             taux_cachet,
-            lieu: json!(""),
+            lieu: "",
             deja_repris: false,
-            lignes: Vec::new(),
+            engagement,
         });
     }
-    let mut deja: HashSet<(String, String, String)> = HashSet::new();
-    for (c, e) in engagements_du_mois(ctx, texte_mois)? {
+    let mut deja: HashSet<(IdSalarie, String, String)> = HashSet::new();
+    for (c, e) in engagements_du_mois(ctx, mois)? {
         deja.insert((c, bornes_brutes(ctx, &e).0, e.get("numero").map(valeur_en_texte).unwrap_or_default()));
     }
     for c in out.iter_mut() {
-        c.deja_repris = deja.contains(&(c.salarie.clone(), c.debut.clone(), valeur_en_texte(&c.numero)));
+        c.deja_repris = deja.contains(&(c.salarie.clone(), c.debut.clone(), c.numero.clone()));
     }
     Ok(out)
 }
 
-/// Les 7 premiers caracteres (`jour[:7]`) d'un jour de planning.
-fn mois_du_jour(j: &Value) -> R<String> {
-    match jour_de_planning(j)? {
-        Value::String(s) => Ok(s.chars().take(7).collect()),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte", nom_type(&autre)))),
-    }
-}
-
-fn jour_de_planning(x: &Value) -> R<Value> {
-    match x {
-        Value::Object(m) => m.get("jour").cloned().ok_or_else(|| cle_manquante("jour")),
-        autre => Ok(autre.clone()),
-    }
-}
-
-/// L'engagement d'un contrat en
-/// cours, pour le fichier de `mois`. Le contrat tel qu'il a ete signe, et ses
-/// lignes de paie : les jours de `mois` du planning deviennent les dates de la
-/// ligne (au meme taux, au meme lieu), ceux des mois d'apres restent en
-/// planning.
-fn engagement_de_reprise(ctx: &Contexte, c: &EnCours, mois: &str) -> R<Value> {
-    let mut e = Map::new();
-    e.insert("salarie".into(), json!(c.salarie));
-    if !c.spectacle.is_null() {
-        e.insert("spectacle".into(), c.spectacle.clone());
-    }
-    e.insert("debut".into(), json!(c.debut));
-    e.insert("fin".into(), json!(c.fin));
-    if vrai(&c.numero) {
-        e.insert("numero".into(), c.numero.clone());
-    }
-    if vrai(&c.metier) {
-        e.insert("metier".into(), c.metier.clone());
-    }
-    if !c.cadre.is_null() {
-        e.insert("cadre".into(), c.cadre.clone());
-    }
-    if vrai(&c.lieu) {
-        e.insert("lieu".into(), c.lieu.clone());
-    }
-    let mut lignes = Vec::new();
-    for src in &c.lignes {
-        let src = objet(src)?;
-        let plan = parcourir(src.get("planning"))?;
-        let mut dedans = Vec::new();
-        let mut apres = Vec::new();
-        for x in &plan {
-            let m = mois_du_jour(x)?;
-            if m == mois {
-                dedans.push(x.clone());
-            }
-        }
-        for x in &plan {
-            if mois_du_jour(x)?.as_str() > mois {
-                apres.push(x.clone());
-            }
-        }
-        if dedans.is_empty() && apres.is_empty() {
-            continue;
-        }
-        let mut l = Map::new();
-        l.insert("rubrique".into(), src.get("rubrique").cloned().unwrap_or_else(|| json!("cachet")));
-        l.insert("taux".into(), src.get("taux").cloned().unwrap_or(Value::Null));
-        if let Some(lieu) = src.get("lieu").filter(|x| vrai(x)) {
-            l.insert("lieu".into(), lieu.clone());
-        }
-        // Un cachet, une journee ou un service par date cochee ; les autres
-        // unites (des heures) ne se deduisent pas d'un nombre de jours.
-        let unite = match l["rubrique"].as_str() {
-            Some(code) => catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).map(|r| r.unite).unwrap_or_default(),
-            None => String::new(),
-        };
-        let par_date = matches!(unite.as_str(), "cachet" | "jour" | "service") && !dedans.is_empty();
-        l.insert("quantite".into(), if par_date { json!(dedans.len() as f64) } else { json!(0) });
-        if par_date {
-            if let Some(h) = src.get("heures").filter(|x| vrai(x)) {
-                l.insert("heures".into(), h.clone());
-            }
-        }
-        l.insert("dates".into(), Value::Array(dedans));
-        if !apres.is_empty() {
-            l.insert("planning".into(), Value::Array(apres));
-        }
-        lignes.push(Value::Object(l));
-    }
-    if lignes.is_empty() {
-        // Le taux du cachet du contrat, sinon le dernier saisi : la page ne choisit pas de taux. Un dossier
-        // qu'on ne sait pas relire, ou qui n'a encore aucun cachet (R12), n'en propose aucun (la ligne reste a
-        // completer).
-        let taux = if vrai(&c.taux_cachet) {
-            c.taux_cachet.clone()
-        } else {
-            crate::routes::mois::dernier_taux(ctx).ok().flatten().map_or(Value::Null, |t| json!(t))
-        };
-        lignes.push(json!({"rubrique": "cachet", "quantite": 0, "taux": taux, "dates": []}));
-    }
-    e.insert("lignes".into(), Value::Array(lignes));
-    Ok(Value::Object(e))
-}
-
-fn contrats_en_cours_route(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = exiger(charge, "mois")?;
-    let mut contrats = Vec::new();
-    for c in contrats_en_cours(ctx, mois)? {
-        let mut m = c.json();
-        m.insert("engagement".into(), engagement_de_reprise(ctx, &c, &valeur_en_texte(mois))?);
-        contrats.push(Value::Object(m));
-    }
-    Ok(json!({"mois": mois, "contrats": contrats}))
+fn contrats_en_cours_route(ctx: &Contexte, mois: Mois) -> R<ContratsEnCours> {
+    let contrats = contrats_en_cours(ctx, &mois.to_string())?;
+    // Ce que l'ecran dit en posant les contrats qui ne sont pas encore repris : qui, et que ses jours restent a poser.
+    let de_mois = socle::texte::de(&Mois::en_clair(&mois.to_string()));
+    let noms: Vec<&str> = contrats.iter().filter(|c| !c.deja_repris).map(|c| c.nom.as_str()).collect();
+    let reprise = match noms.len() {
+        0 => None,
+        1 => Some(format!("Contrat en cours repris : {} — poser ses jours {}.", noms[0], de_mois)),
+        n => Some(format!("{} contrats en cours repris ({}) — poser leurs jours {}.", n, noms.join(", "), de_mois)),
+    };
+    Ok(ContratsEnCours { phrase: format!("Contrats d'un mois passé qui courent encore ce mois : {}.", contrats.len()), mois, contrats, reprise })
 }
 
 // ------------------------------------------------------------- contrats passes
 
 const TITRE_A_COMPLETER: &str = "A COMPLETER";
 
-/// Un contrat qui touche
-/// un mois passe, tel que le calendrier le montre. LECTURE SEULE, ET UN
-/// PLANCHER : c'est ce que la compagnie a declare, pas la position du salarie.
-struct Passe {
-    salarie: Value,
-    nom: String,
-    debut: String,
-    fin: String,
-    cachets: i64,
-    heures: i64,
-    jours: i64,
-    titre: Value,
-    numero_objet: Value,
-    dates: Vec<Value>,
-    source: &'static str,
-}
-
-impl Passe {
-    fn json(&self) -> Value {
-        // Ce que la liste des contrats d'un mois passe dit de lui : ses bornes, ses cachets et ses heures.
-        let court = |iso: &str| socle::date::Jour::lire(iso).map(|j| j.jj_mm()).unwrap_or_else(|_| iso.to_string());
-        let heures = if self.heures > 0 { format!(" + {} h", self.heures) } else { String::new() };
-        let dit = format!("{}→{} · {}{}", court(&self.debut), court(&self.fin), super::compte(self.cachets.max(0) as usize, "cachet", "cachets"), heures);
-        json!({
-            "dit": dit,
-            "salarie": self.salarie, "nom": self.nom, "debut": self.debut, "fin": self.fin,
-            "cachets": self.cachets, "heures": self.heures, "jours": self.jours,
-            "titre": self.titre, "numero_objet": self.numero_objet,
-            "dates": self.dates, "source": self.source,
-        })
-    }
-}
-
-/// Les spectacles retrouves par leur cle ou par leur numero d'objet.
+/// Les spectacles retrouves par leur cle ou par leur numero d'objet. TRAVAIL A FAIRE : la fiche d'un spectacle se lit
+/// par ses cles (`Contexte::spectacles`).
 struct Spectacles<'a> {
     par_cle: &'a Map<String, Value>,
-    par_objet: Dico<&'a Value>,
+    par_objet: HashMap<String, &'a Value>,
 }
 
 impl<'a> Spectacles<'a> {
-    fn nouveau(ctx: &'a Contexte) -> R<Spectacles<'a>> {
-        let mut par_objet: Dico<&Value> = Dico::nouveau();
+    fn nouveau(ctx: &'a Contexte) -> Spectacles<'a> {
+        let mut par_objet = HashMap::new();
         for (k, v) in &ctx.spectacles {
             if k.starts_with('_') {
                 continue;
             }
-            if let Some(n) = objet(v)?.get("numero_objet").filter(|x| vrai(x)) {
-                par_objet.poser(vec![n.clone()], v)?;
+            if let Some(n) = v.get("numero_objet").filter(|x| vrai(x)) {
+                par_objet.entry(valeur_en_texte(n)).or_insert(v);
             }
         }
-        Ok(Spectacles { par_cle: &ctx.spectacles, par_objet })
+        Spectacles { par_cle: &ctx.spectacles, par_objet }
     }
 
-    /// `x` se hache.
-    fn trouver(&self, x: &Value) -> R<Option<&'a Value>> {
-        if let Value::String(s) = x {
-            if let Some(v) = self.par_cle.get(s).filter(|v| vrai(v)) {
-                return Ok(Some(v));
-            }
-        }
-        Ok(self.par_objet.get(&[x.clone()])?.copied())
+    /// Le spectacle de cle `x`, sinon de numero d'objet `x`.
+    fn trouver(&self, x: &str) -> Option<&'a Value> {
+        self.par_cle.get(x).filter(|v| vrai(v)).or_else(|| self.par_objet.get(x).copied())
     }
 }
 
 /// Le titre de la fiche, ou le numero d'objet a defaut.
-fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
+fn titre_de(spec: Option<&Value>, numero: &str) -> String {
     let t = spec.and_then(|s| s.get("titre")).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
     let t = t.trim();
-    if !t.is_empty() && t != TITRE_A_COMPLETER {
-        json!(t)
-    } else if vrai(numero) {
-        numero.clone()
-    } else {
-        json!("")
-    }
+    if !t.is_empty() && t != TITRE_A_COMPLETER { t.to_string() } else { numero.to_string() }
 }
 
 /// « NOM Prénom » d'une clé de salarié (la clé elle-même si elle est inconnue).
-fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
-    let sal = match cle {
-        Value::String(s) => ctx.salaries.get(s.as_str()),
-        Value::Array(_) | Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(cle)))),
-        _ => None,
-    };
-    Ok(match sal {
-        Some(s) => s.nomme().unwrap_or_else(|| valeur_en_texte(cle)),
-        None => valeur_en_texte(cle),
-    })
+fn nom_de(ctx: &Contexte, cle: &str) -> String {
+    ctx.salaries.get(cle).and_then(|s| s.nomme()).unwrap_or_else(|| cle.to_string())
 }
 
-/// Une quantite saisie, en flottant.
-fn quantite_de(v: &Value) -> Result<f64, Echec> {
+/// Un entier, de ce qu'un fichier porte (un nombre, ou son texte). TRAVAIL A FAIRE (chaine A) : l'engagement brut et
+/// l'engagement importe le declareront.
+fn entier_de(v: &Value) -> R<i64> {
     match v {
-        Value::Bool(b) => Ok(*b as i64 as f64),
-        Value::Number(n) => Ok(n.as_f64().unwrap_or(0.0)),
-        Value::String(s) => {
-            s.trim().replace('_', "").parse::<f64>().map_err(|_| erreur("ValueError", format!("nombre illisible : {}", repr(s))))
-        }
-        autre => Err(erreur("TypeError", format!("float() argument must be a string or a real number, not '{}'", nom_type(autre)))),
+        Value::Bool(b) => Ok(*b as i64),
+        Value::Number(n) => match n.as_i64() {
+            Some(i) => Ok(i),
+            None => {
+                let x = n.as_f64().unwrap_or(0.0);
+                if x.is_nan() {
+                    Err(erreur("ValueError", "un nombre indefini (NaN) n'est pas un entier"))
+                } else if x.is_infinite() {
+                    Err(erreur("OverflowError", socle::fichiers::entier_hors_limites("infini")))
+                } else {
+                    Ok(x.trunc() as i64)
+                }
+            }
+        },
+        Value::String(s) => s.trim().replace('_', "").parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(s)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)))),
     }
 }
 
-/// Le nombre de cachets d'un engagement : la somme des quantites de ses lignes
-/// dont la rubrique est un cachet. Une ligne qui ne dit rien de lisible
-/// (rubrique absente ou inconnue, quantite illisible) ne compte pas.
+/// Le nombre de cachets d'un engagement : la somme des quantites de ses lignes dont la rubrique est un cachet. Une ligne
+/// qui ne dit rien de lisible (rubrique absente ou inconnue, quantite illisible) ne compte pas.
 fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
     let mut cachets = 0;
-    for l in parcourir(e.get("lignes"))? {
+    for l in e.get("lignes").and_then(Value::as_array).into_iter().flatten() {
         let Some(code) = l.get("rubrique").and_then(Value::as_str) else { continue };
         let Ok(r) = catalogue::rubrique(&ctx.racine, code, &ctx.lue_au) else { continue };
         if r.unite != "cachet" {
             continue;
         }
         let q = match l.get("quantite").filter(|x| vrai(x)) {
-            Some(q) => match quantite_de(q) {
+            Some(Value::Bool(b)) => *b as i64 as f64,
+            Some(Value::Number(n)) => n.as_f64().unwrap_or(0.0),
+            Some(Value::String(s)) => match s.trim().replace('_', "").parse::<f64>() {
                 Ok(x) => x,
-                Err(e) if e.classe == Some("ValueError") => continue,
-                Err(e) => return Err(e),
+                Err(_) => continue,
             },
-            None => 0.0,
+            Some(_) | None => 0.0,
         };
         if q.is_nan() {
             continue;
@@ -1015,23 +972,74 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
     Ok(cachets)
 }
 
-/// Les contrats qui touchent `mois`, pour
-/// le calendrier des mois passes. Deux sources, la meme regle que
-/// Un mois qui a son fichier de paie est lu la (avec
-/// ses jours exacts), l'historique importe des AEM parle pour les autres.
-/// Trie par salarie puis debut. `salarie` : ses seuls contrats (absent : ceux de tous).
-fn contrats_passes(ctx: &Contexte, mois: &Value, salarie: Option<&str>) -> R<Vec<Passe>> {
-    let texte = valeur_en_texte(mois);
-    let (premier, dernier) = (format!("{}-01", texte), format!("{}-31", texte));
-    let voulu = |cle: &Value| salarie.is_none_or(|s| cle.as_str() == Some(s));
-    let spectacles = Spectacles::nouveau(ctx)?;
+/// Ce qu'une ligne de la liste dit d'un contrat passe : ses bornes, ses cachets et ses heures.
+fn dit_du_contrat(debut: &str, fin: &str, cachets: i64, heures: i64) -> String {
+    let court = |iso: &str| Jour::lire(iso).map(|j| j.jj_mm()).unwrap_or_else(|_| iso.to_string());
+    let h = if heures > 0 { format!(" + {} h", heures) } else { String::new() };
+    format!("{}→{} · {}{}", court(debut), court(fin), super::compte(cachets.max(0) as usize, "cachet", "cachets"), h)
+}
+
+/// UN CONTRAT QU'UN ENGAGEMENT IMPORTE ATTESTE (`engagement::importe::Importe::ligne_du_contrat`) ; celui d'un
+/// permanent, mois par mois : chaque paie, aux jours qu'elle paie et avec ce que son bulletin compte.
+struct Atteste {
+    salarie: String,
+    debut: String,
+    fin: String,
+    numero_objet: String,
+    cachets: i64,
+    heures: i64,
+    jours: i64,
+}
+
+/// Les contrats que les engagements importes attestent. TRAVAIL A FAIRE (chaine A) : l'engagement importe se lit encore
+/// par ses cles.
+fn historique(ctx: &Contexte) -> R<Vec<Atteste>> {
+    let texte_de = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let compte = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map_or(Ok(0), entier_de);
+    let mut out = Vec::new();
+    for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
+        let Some(Value::Object(contrat)) = i.ligne_du_contrat() else { continue };
+        let atteste = |debut: String, fin: String, chiffres: &Map<String, Value>| -> R<Atteste> {
+            Ok(Atteste {
+                salarie: texte_de(&contrat, "salarie"),
+                debut,
+                fin,
+                numero_objet: texte_de(&contrat, "numero_objet"),
+                cachets: compte(chiffres, "cachets")?,
+                heures: compte(chiffres, "heures")?,
+                jours: compte(chiffres, "jours")?,
+            })
+        };
+        if !i.permanent() {
+            out.push(atteste(texte_de(&contrat, "debut"), texte_de(&contrat, "fin"), &contrat)?);
+            continue;
+        }
+        for (m, p) in i.paies() {
+            let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
+            let debut = lu("debut").unwrap_or_else(|| format!("{}-01", m));
+            let fin = match lu("fin") {
+                Some(f) => f,
+                None => Mois::lire(&m).map(Mois::dernier_jour).map(|j| j.iso()).map_err(plain)?,
+            };
+            out.push(atteste(debut, fin, p)?);
+        }
+    }
+    Ok(out)
+}
+
+/// LES CONTRATS QUI TOUCHENT `mois`, pour le calendrier des mois passes. Deux sources : un mois qui a son fichier de paie
+/// est lu la (avec ses jours exacts), l'historique importe parle pour les autres. Trie par salarie puis debut.
+/// `salarie` : ses seuls contrats (absent : ceux de tous).
+fn contrats_passes(ctx: &Contexte, mois: &str, salarie: Option<&IdSalarie>) -> R<Vec<Passe>> {
+    let (premier, dernier) = (format!("{}-01", mois), format!("{}-31", mois));
+    let voulu = |cle: &str| salarie.is_none_or(|s| s.as_str() == cle);
+    let spectacles = Spectacles::nouveau(ctx);
 
     let mut couverts: HashSet<String> = HashSet::new();
-    // Un contrat sur plusieurs mois est dans chacun de ses fichiers de mois, avec
-    // les memes bornes : on le garde une fois, de preference tel que le fichier du
-    // mois regarde l'ecrit (c'est lui qui a les jours joues).
-    let mut vus: Dico<usize> = Dico::nouveau();
-    let mut paie: Vec<Passe> = Vec::new();
+    // Un contrat sur plusieurs mois est dans chacun de ses fichiers de mois, avec les memes bornes : on le garde une
+    // fois, de preference tel que le fichier du mois regarde l'ecrit (c'est lui qui a les jours joues).
+    let mut vus: HashMap<(String, String, String), usize> = HashMap::new();
+    let mut out: Vec<Passe> = Vec::new();
     let mut connus = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
     connus.reverse();
     for mc in &connus {
@@ -1041,37 +1049,28 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salarie: Option<&str>) -> R<Vec
             if debut.is_empty() || debut > dernier || (if fin.is_empty() { &debut } else { &fin }).as_str() < premier.as_str() {
                 continue;
             }
-            let cle = Value::String(cle);
             if !voulu(&cle) {
                 continue;
             }
-            let ref_spec = ou(e.get("spectacle").unwrap_or(&Value::Null), &Value::String(String::new())).clone();
-            let spec = spectacles.trouver(&ref_spec)?;
-            let numero = match spec.and_then(|s| s.get("numero_objet")).filter(|x| vrai(x)) {
-                Some(n) => n.clone(),
-                None => json!(valeur_en_texte(&ref_spec)),
-            };
+            let ref_spec = e.get("spectacle").filter(|s| vrai(s)).map(valeur_en_texte).unwrap_or_default();
+            let spec = spectacles.trouver(&ref_spec);
+            let numero = spec.and_then(|s| s.get("numero_objet")).filter(|x| vrai(x)).map_or_else(|| ref_spec.clone(), valeur_en_texte);
             let cachets = cachets_de(ctx, &e)?;
-            let mut dates: Vec<Value> = jours_joues(ctx, &e).into_iter().map(Value::String).collect();
+            let dates = jours_joues(ctx, &e);
             let fin = if fin.is_empty() { debut.clone() } else { fin };
-            let ident = vec![cle.clone(), json!(debut), json!(fin)];
-            let deja = vus.get(&ident)?.copied();
-            if deja.is_some() && mc.as_str() != texte {
+            let ident = (cle.to_string(), debut.clone(), fin.clone());
+            let deja = vus.get(&ident).copied();
+            if deja.is_some() && mc.as_str() != mois {
                 continue;
             }
             let jours = match e.get("jours").filter(|x| vrai(x)) {
                 Some(j) => entier_de(j)?,
                 None => dates.len() as i64,
             };
-            let mut du_mois = Vec::new();
-            for j in dates.drain(..) {
-                if mois_du_jour(&j)? == texte_ou(mois, &texte) {
-                    du_mois.push(j);
-                }
-            }
             let contrat = Passe {
-                nom: nom_de(ctx, &cle)?,
-                salarie: cle,
+                dit: dit_du_contrat(&debut, &fin, cachets, 0),
+                nom: nom_de(ctx, &cle),
+                salarie: cle.to_string(),
                 debut,
                 fin,
                 cachets,
@@ -1079,145 +1078,74 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salarie: Option<&str>) -> R<Vec
                 jours,
                 titre: titre_de(spec, &numero),
                 numero_objet: numero,
-                dates: du_mois,
+                dates: dates.into_iter().filter(|j| j.chars().take(7).eq(mois.chars())).collect(),
                 source: "paie",
             };
             match deja {
-                Some(i) => paie[i] = contrat,
+                Some(i) => out[i] = contrat,
                 None => {
-                    vus.poser(ident, paie.len())?;
-                    paie.push(contrat);
+                    vus.insert(ident, out.len());
+                    out.push(contrat);
                 }
             }
         }
     }
-    let mut out = paie;
-    for e in historique(ctx)? {
-        let e = objet(&e)?;
-        let texte_de = |k: &str| e.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
-        let (debut, fin) = (texte_de("debut"), texte_de("fin"));
-        if debut.is_empty() || debut > dernier || fin < premier {
+    for a in historique(ctx)? {
+        if a.debut.is_empty() || a.debut > dernier || a.fin < premier {
             continue;
         }
-        // Un mois produit ici se tait dans l'historique : ce sont les memes
-        // contrats, declares deux fois pendant le double run.
-        if couverts.contains(&fin.chars().take(7).collect::<String>()) {
+        // Un mois produit ici se tait dans l'historique : ce sont les memes contrats, declares deux fois pendant le
+        // double run.
+        if couverts.contains(&a.fin.chars().take(7).collect::<String>()) || !voulu(&a.salarie) {
             continue;
         }
-        let cle = e.get("salarie").cloned().unwrap_or_else(|| json!(""));
-        if !voulu(&cle) {
-            continue;
-        }
-        let numero = texte_de("numero_objet");
-        let compte = |k: &str| e.get(k).filter(|x| vrai(x)).map_or(Ok(0), entier_de);
-        let (cachets, heures, jours) = (compte("cachets")?, compte("heures")?, compte("jours")?);
-        let numero = json!(numero);
-        let spec = spectacles.par_objet.get(&[numero.clone()])?.copied();
+        let spec = spectacles.par_objet.get(&a.numero_objet).copied();
         out.push(Passe {
-            nom: nom_de(ctx, &cle)?,
-            salarie: cle,
-            debut,
-            fin,
-            cachets,
-            heures,
-            jours,
-            titre: titre_de(spec, &numero),
-            numero_objet: numero,
+            dit: dit_du_contrat(&a.debut, &a.fin, a.cachets, a.heures),
+            nom: nom_de(ctx, &a.salarie),
+            titre: titre_de(spec, &a.numero_objet),
+            salarie: a.salarie,
+            debut: a.debut,
+            fin: a.fin,
+            cachets: a.cachets,
+            heures: a.heures,
+            jours: a.jours,
+            numero_objet: a.numero_objet,
             dates: Vec::new(),
             source: "historique",
         });
     }
-    // `out.sort(key=(salarie, debut, fin))`, stable.
-    let mut refus = None;
-    out.sort_by(|a, b| {
-        let o = comparer(&a.salarie, &b.salarie).unwrap_or_else(|e| {
-            refus.get_or_insert(e);
-            Ordering::Equal
-        });
-        o.then_with(|| a.debut.cmp(&b.debut)).then_with(|| a.fin.cmp(&b.fin))
-    });
-    match refus {
-        Some(e) => Err(e),
-        None => Ok(out),
-    }
-}
-
-/// Le mois tel que `j[:7] == mois` le compare : le texte du mois.
-fn texte_ou(mois: &Value, texte: &str) -> String {
-    if mois.is_string() {
-        texte.to_string()
-    } else {
-        // Un mois qui n'est pas un texte n'egale aucun `j[:7]`.
-        "\u{0}".to_string()
-    }
-}
-
-/// Les contrats que les engagements importes attestent (`engagement::importe::Importe::ligne_du_contrat`) ; celui d'un
-/// permanent, mois par mois : chaque paie, aux jours qu'elle paie et avec ce que son bulletin compte.
-fn historique(ctx: &Contexte) -> R<Vec<Value>> {
-    let mut out = Vec::new();
-    for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
-        let Some(contrat) = i.ligne_du_contrat() else { continue };
-        if !i.permanent() {
-            out.push(contrat);
-            continue;
-        }
-        for (m, p) in i.paies() {
-            let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
-            let mut l = contrat.clone();
-            l["debut"] = json!(lu("debut").unwrap_or_else(|| format!("{}-01", m)));
-            l["fin"] = json!(lu("fin").map_or_else(|| socle::mois::Mois::lire(&m).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()), Ok).map_err(plain)?);
-            for k in ["heures", "cachets", "jours"] {
-                l[k] = p.get(k).cloned().unwrap_or(Value::Null);
-            }
-            out.push(l);
-        }
-    }
+    out.sort_by(|a, b| (&a.salarie, &a.debut, &a.fin).cmp(&(&b.salarie, &b.debut, &b.fin)));
     Ok(out)
 }
 
-fn contrats_passes_route(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = exiger(charge, "mois")?;
-    let salarie = charge.get("salarie").and_then(Value::as_str).filter(|s| !s.is_empty());
-    let contrats: Vec<Value> = contrats_passes(ctx, mois, salarie)?.iter().map(Passe::json).collect();
-    // Ce que la liste dit quand elle est vide : rien de declare pour ce salarie, ou aucun salarie choisi.
-    let rien_dit = if salarie.is_some() { "aucun contrat déclaré" } else { "aucun salarié coché" };
-    Ok(json!({"mois": mois, "contrats": contrats, "rien_dit": rien_dit}))
+fn contrats_passes_route(ctx: &Contexte, c: ChargeContratsPasses) -> R<ContratsPasses> {
+    let contrats = contrats_passes(ctx, &c.mois.to_string(), c.salarie.as_ref())?;
+    Ok(ContratsPasses {
+        phrase: format!("Contrats déclarés dans ce mois importé : {}.", contrats.len()),
+        mois: c.mois,
+        contrats,
+        // Ce que la liste dit quand elle est vide : rien de declare pour ce salarie, ou aucun salarie choisi.
+        rien_dit: if c.salarie.is_some() { "aucun contrat déclaré" } else { "aucun salarié coché" },
+    })
 }
 
 // ------------------------------------------------------------------------ emploi
 
-/// Un metier du catalogue traduit en champs de fiche, pour le formulaire salarie.
-fn emploi(charge: &Value) -> R<Value> {
-    let code = exiger(charge, "metier")?;
-    let cadre = match charge.get("cadre") {
-        None | Some(Value::Null) => None,
-        Some(c) => Some(vrai(c)),
-    };
-    // LE METIER AU FEMININ pour une salariee : le catalogue porte les deux formes (`feminin`), la fiche dit le sexe (le
-    // premier chiffre du NIR, sinon la case `sexe` : `ntt::sexe`). `feminin` donne seul suffit aussi.
-    let feminin = charge.get("feminin").is_some_and(vrai)
-        || charge.get("salarie").is_some_and(|s| declarations::ntt::sexe(s) == "2");
-    let texte = match code {
-        Value::String(s) => s.clone(),
-        autre if !vrai(autre) => String::new(),
-        autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
-    };
-    let inconnu = |t: &str| {
-        erreur(
+/// Un metier du catalogue traduit en champs de fiche, pour le formulaire salarie. LE METIER AU FEMININ pour une
+/// salariee : le catalogue porte les deux formes (`feminin`), la fiche dit le sexe (le premier chiffre du NIR, sinon la
+/// case `sexe` : `ntt::sexe_de`). `feminin` donne seul suffit aussi.
+fn emploi(c: ChargeEmploi) -> R<Emploi> {
+    let feminin = c.feminin || c.salarie.is_some_and(|s| declarations::ntt::sexe_de(&s.nir, &s.sexe) == "2");
+    if emplois::metier(&c.metier).map_err(plain)?.is_none() {
+        return Err(erreur(
             "ValueError",
-            format!(
-                "Métier {} inconnu : ni dans le catalogue des métiers, ni dans la nomenclature France Travail.",
-                if code.is_string() { repr(t) } else { repr_valeur(code) }
-            ),
-        )
-    };
-    if emplois::metier(&texte).map_err(plain)?.is_none() {
-        return Err(inconnu(&texte));
+            format!("Métier {} inconnu : ni dans le catalogue des métiers, ni dans la nomenclature France Travail.", repr(&c.metier)),
+        ));
     }
-    emplois::resoudre(&texte, cadre, feminin).map_err(plain)
+    let champs = emplois::resoudre(&c.metier, c.cadre, feminin).map_err(plain)?;
+    Ok(Emploi { phrase: format!("Métier : {} ({}).", champs.emploi_affichage, champs.code_emploi_ft.as_deref().unwrap_or_default()), champs })
 }
-
 // ---------------------------------------------------------------- rubriques cochees
 
 const GARDER_COPIES: usize = 20;
@@ -1251,8 +1179,6 @@ pub(crate) fn sauver_avant(chemin: &Path) -> R<()> {
     }
     Ok(())
 }
-
-// ------------------------------------------------------------------ le catalogue des metiers
 
 
 /// `refuser_si_clos` : un exercice cloture ne bouge plus.
@@ -1314,21 +1240,28 @@ pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) 
     Ok(())
 }
 
-/// « ENREGISTRE » : la carte d'un engagement en saisie s'ecrit, et elle seule (`ecrire_une_carte`). Charge : `mois`,
-/// `saisie` (ce que la carte ecrit pour `mois`), `engagement` (l'identite que le moteur a rendue a la carte,
-/// `engagement::stock::identites` ; absente, l'engagement est neuf). Rend `engagement` (l'identite de l'engagement
-/// ecrit), `a_completer` (ce qui lui manque encore, `null` : rien) et `enregistre_a`.
-fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = texte_requis(charge, "mois")?;
-    let _verrou = avant_d_ecrire(ctx, mois)?;
-    let id = ecrire_une_carte(ctx, mois, charge)?;
-    let (k, _) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
-    let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
-    let a_completer = manque_de(ctx, &vue, k).map_or(Value::Null, Value::String);
+
+/// « ENREGISTRE » : la carte d'un engagement en saisie s'ecrit, et elle seule (`ecrire_une_carte`). Rend l'identite de
+/// l'engagement ecrit, ce qui lui manque encore (`None` : rien) et l'heure de l'ecriture.
+fn enregistrer_saisie(ctx: &Contexte, c: ChargeCarte) -> R<CarteEcrite> {
+    let mois = c.mois.to_string();
+    let _verrou = avant_d_ecrire(ctx, &mois)?;
+    let id = ecrire_une_carte(ctx, &mois, c.engagement.as_ref(), &c.saisie)?;
+    let (k, _) = engagement::stock::designe(&ctx.racine, &mois, &id).map_err(Echec::from)?;
+    let vue = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+    let a_completer = manque_de(ctx, &vue, k);
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     let a = maintenant();
-    let enregistre_dit = format!("Enregistré à {}", a.chars().skip(11).take(5).collect::<String>());
-    Ok(json!({"engagement": id, "a_completer": a_completer, "enregistre_a": a, "enregistre_dit": enregistre_dit}))
+    Ok(CarteEcrite {
+        phrase: match &a_completer {
+            Some(m) => format!("Carte enregistrée ; à compléter avant de valider : {}", m),
+            None => "Carte enregistrée.".to_string(),
+        },
+        engagement: id,
+        a_completer,
+        enregistre_dit: format!("Enregistré à {}", a.chars().skip(11).take(5).collect::<String>()),
+        enregistre_a: a,
+    })
 }
 
 /// AVANT TOUTE ECRITURE D'UN ENGAGEMENT (saisir, valider, modifier, retirer) : une ecriture a la fois (la fenetre sert
@@ -1345,15 +1278,11 @@ pub(crate) fn avant_d_ecrire(ctx: &Contexte, mois: &str) -> R<std::sync::MutexGu
     Ok(verrou)
 }
 
-/// LA CARTE D'UN ENGAGEMENT EN SAISIE, ECRITE (`engagement::stock::ecrire_la_carte`) : `saisie` et `engagement` (son
-/// identite) de la charge. Un mois sans fichier le prend avec ce qu'il dit par defaut (`squelette` : le cachet et la
-/// date de paiement du mois). Une carte a laquelle il manque un fait s'ecrit aussi : seule la validation refuse. Rend
+/// LA CARTE D'UN ENGAGEMENT EN SAISIE, ECRITE (`engagement::stock::ecrire_la_carte`) : `saisie`, et `id`, son identite
+/// (absente : un engagement neuf). Un mois sans fichier le prend avec ce qu'il dit par defaut (`squelette` : le cachet et
+/// la date de paiement du mois). Une carte a laquelle il manque un fait s'ecrit aussi : seule la validation refuse. Rend
 /// l'identite de l'engagement ecrit. L'appelant tient le verrou (`avant_d_ecrire`).
-pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, charge: &Value) -> R<Value> {
-    let Some(Value::Object(saisie)) = charge.get("saisie") else {
-        return Err(erreur("TypeError", socle::echec::charge("saisie", "un objet")));
-    };
-    let id = charge.get("engagement").filter(|v| !v.is_null());
+pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie: &Map<String, Value>) -> R<Identite> {
     // UN ENGAGEMENT NEUF S'ECRIT DANS SON PREMIER MOIS (`engagement::stock::mois_d_ecriture`) : ce mois-la passe les memes
     // refus que celui de la carte, et donne ce qu'il dit par defaut.
     let fichier = match id {
@@ -1438,87 +1367,91 @@ pub(crate) fn manque_de(ctx: &Contexte, data: &Value, i: usize) -> Option<String
     manques_de_la_saisie(ctx, &d).swap_remove(rang)
 }
 
-fn centimes(x: Decimal) -> Decimal {
-    let mut r = x.round_dp(2);
-    r.rescale(2);
-    r
-}
+
+// ------------------------------------------------------------------ le montant vise
 
 /// Une valeur saisie : ni absente, ni `null`, ni vide.
 fn rempli(v: Option<&Value>) -> bool {
     !matches!(v, None | Some(Value::Null)) && v.and_then(Value::as_str) != Some("")
 }
 
-fn lignes_de(e: &Value) -> Vec<Value> {
-    match e.get("lignes") {
-        Some(Value::Array(a)) => a.clone(),
-        _ => Vec::new(),
-    }
-}
-
-/// Ce qui a change, engagement par engagement.
-fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
-    let nul = Value::Null;
-    let lire = |v: &'_ Value, k: &str| v.get(k).cloned().unwrap_or(Value::Null);
-    let mut d = Map::new();
-    d.insert("index".into(), json!(index));
-    if !valeurs_egales(&lire(apres, "salaire_mensuel"), &lire(avant, "salaire_mensuel")) {
-        d.insert("salaire_mensuel".into(), lire(apres, "salaire_mensuel"));
-    }
+/// Ce qui a change, de l'engagement `avant` a l'engagement `apres` (la saisie que la recherche a ajustee). TRAVAIL A
+/// FAIRE (chaine A) : la saisie d'un engagement se lit par ses cles.
+fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> CeQuiChange {
+    let lire = |v: &Value, k: &str| v.get(k).cloned().unwrap_or(Value::Null);
+    let lignes_de = |e: &Value| e.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut lignes = Vec::new();
     for (rang, (a, b)) in lignes_de(avant).iter().zip(lignes_de(apres).iter()).enumerate() {
-        let (ta, tb) = (a.get("taux").unwrap_or(&nul), b.get("taux").unwrap_or(&nul));
-        if !rempli(a.get("taux")) && !vrai(tb) {
+        let (ta, tb) = (lire(a, "taux"), lire(b, "taux"));
+        if !rempli(a.get("taux")) && !vrai(&tb) {
             continue; // restee sans taux : rien a ecrire
         }
-        if !valeurs_egales(ta, tb) {
-            lignes.push(json!({
-                "rang": rang,
-                "rubrique": b.get("rubrique").cloned().unwrap_or_else(|| json!("cachet")),
-                "taux_avant": ta, "taux": tb,
-            }));
+        if !socle::valeur::valeurs_egales(&ta, &tb) {
+            lignes.push(TauxQuiChange { rang, rubrique: b.get("rubrique").cloned().unwrap_or_else(|| json!("cachet")), taux_avant: ta, taux: tb });
         }
     }
-    if !lignes.is_empty() {
-        d.insert("lignes".into(), Value::Array(lignes));
+    let (sa, sb) = (lire(avant, "salaire_mensuel"), lire(apres, "salaire_mensuel"));
+    CeQuiChange { index, salaire_mensuel: (!socle::valeur::valeurs_egales(&sb, &sa)).then_some(sb), lignes }
+}
+
+/// Ce que la phrase du montant vise dit de la cible.
+fn cible_dite(c: Cible) -> &'static str {
+    match c {
+        Cible::Net => "Net salarié",
+        Cible::Brut => "Brut",
+        Cible::Cout => "Coût entreprise",
     }
-    Value::Object(d)
 }
 
 /// Le taux qu'il faudrait, pour que l'engagement d'une carte (`carte` : son rang dans `cartes`, `mois_designe`) coute
 /// CE montant. N'ecrit rien.
-fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cible = texte_requis(charge, "cible")?;
-    let montant = exiger(charge, "montant")?;
-    let cible_visee = match cible {
-        "net" => engagement::viser::Cible::Net,
-        "brut" => engagement::viser::Cible::Brut,
-        "cout" => engagement::viser::Cible::Cout,
-        _ => return Err(refus(format!("Cible inconnue : {}. Les trois qui se visent sont brut, cout, net.", socle::fichiers::repr(cible)))),
-    };
-    let vise = centimes(dec(montant).map_err(|m| erreur("InvalidOperation", m))?);
+fn ajuster(ctx: &Contexte, c: ChargeAjuster) -> R<Ajuste> {
+    let vise = q2(socle::num::dec_f64(c.montant).map_err(|m| erreur("InvalidOperation", m))?);
     if vise <= Decimal::ZERO {
         return Err(refus(format!("Un montant vise se dit en euros et il est positif (recu : {}).", vise)));
     }
-    let (data, places, _) = mois_designe(ctx, charge)?;
-    let k = charge.get("carte").and_then(Value::as_u64).ok_or_else(|| erreur("TypeError", socle::echec::charge("carte", "un nombre entier")))? as usize;
-    let i = *places.get(k).ok_or_else(|| refus(format!("La carte {} n'est pas dans `cartes`.", k + 1)))?;
-    let v = engagement::viser::viser(ctx, &data, &[i], cible_visee, vise).map_err(|r| match r {
+    let (data, places, _) = mois_designe(ctx, &c.mois.to_string(), &c.cartes)?;
+    let i = *places.get(c.carte).ok_or_else(|| refus(format!("La carte {} n'est pas dans `cartes`.", c.carte + 1)))?;
+    let v = engagement::viser::viser(ctx, &data, &[i], c.cible, vise).map_err(|r| match r {
         engagement::viser::RefusVisee::Refus(m) => refus(m),
         engagement::viser::RefusVisee::Calcul(m) => refus_du_calcul(ctx, &data, m),
     })?;
     let vue = vue_paie(ctx, &v.paies[i], &v.saisie["engagements"][i], &v.saisie).map_err(Echec::from)?;
-    let atteint = centimes(v.atteint);
-    let mut f = v.facteur.round_dp(6);
-    f.rescale(6);
-    Ok(json!({
-        "cible": cible,
-        "vise": vise.to_string(), "atteint": atteint.to_string(), "depart": centimes(v.depart).to_string(),
-        "ecart": (atteint - vise).to_string(),
-        "facteur": f.to_string(), "tours": v.tours,
-        "engagements": [ce_qui_a_change(&data["engagements"][i], &v.saisie["engagements"][i], i)],
-        "paies": [vue],
-    }))
+    let atteint = q2(v.atteint);
+    let mut facteur = v.facteur.round_dp(6);
+    facteur.rescale(6);
+    let change = ce_qui_a_change(&data["engagements"][i], &v.saisie["engagements"][i], i);
+    // Le taux qu'il faudrait : chaque ligne qui change, puis le salaire du mois s'il change.
+    let mut faut: Vec<String> = change
+        .lignes
+        .iter()
+        .map(|l| {
+            let avant = if l.taux_avant.is_null() { String::new() } else { format!(" au lieu de {}", socle::texte::euros_de(&l.taux_avant)) };
+            format!("{} à {}{}", valeur_en_texte(&l.rubrique), socle::texte::euros_de(&l.taux), avant)
+        })
+        .collect();
+    if let Some(s) = change.salaire_mensuel.as_ref().filter(|s| !s.is_null()) {
+        faut.push(format!("salaire du mois à {}", socle::texte::euros_de(s)));
+    }
+    let avec = if faut.is_empty() { String::new() } else { format!(" ; {}", faut.join(", ")) };
+    let ecart = atteint - vise;
+    let pres = if ecart.is_zero() {
+        " au centime près".to_string()
+    } else {
+        format!(" ({}{} : un taux se paie au centime)", if ecart > Decimal::ZERO { "+" } else { "" }, socle::texte::euros(ecart))
+    };
+    Ok(Ajuste {
+        phrase: format!("{} visé {} → {}{}{}.", cible_dite(c.cible), socle::texte::euros(vise), socle::texte::euros(atteint), pres, avec),
+        cible: c.cible,
+        vise,
+        atteint,
+        depart: q2(v.depart),
+        ecart,
+        facteur,
+        tours: v.tours,
+        engagements: [change],
+        paies: [vue],
+    })
 }
 
 // ============================================================== l'apercu
@@ -1541,32 +1474,25 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
 }
 
 /// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont ecrits, dans l'ordre de l'ecran
-/// (`vue_du_mois`), et chaque carte que l'ecran montre autrement (`cartes` : `{engagement, saisie}`, ce que la carte
-/// porte ; `engagement` est son identite, absente pour une carte qui n'est pas encore ecrite) : a sa place, ou a la
-/// suite. Rend ce mois, la place de chaque carte dans ses engagements, et l'identite de chacun de ses engagements
-/// (`Null` pour une carte pas encore ecrite). Rien ne s'ecrit.
-pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usize>, Vec<Value>)> {
-    let mois = texte_requis(charge, "mois")?;
-    let mut v = engagement::stock::vue_du_mois(&ctx.racine, mois)
-        .map_err(Echec::from)?
-        .unwrap_or_else(|| json!({"engagements": []}));
+/// (`vue_du_mois`), et chaque carte que l'ecran montre autrement (`cartes`) : a sa place, ou a la suite. Rend ce mois,
+/// la place de chaque carte dans ses engagements, et l'identite de chacun de ses engagements (`None` pour une carte pas
+/// encore ecrite). Rien ne s'ecrit. TRAVAIL A FAIRE (chaine A) : la vue du mois se lit et se compose par ses cles.
+fn mois_designe(ctx: &Contexte, mois: &str, cartes: &[Carte]) -> R<(Value, Vec<usize>, Vec<Option<Identite>>)> {
+    let mut v = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or_else(|| json!({"engagements": []}));
     v["mois"] = Value::String(mois.to_string());
     let mut tous: Vec<Value> = v.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let ids = engagement::stock::identites(&engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?);
     let mut places = Vec::new();
-    for c in charge.get("cartes").and_then(Value::as_array).into_iter().flatten() {
-        let Some(saisie) = c.get("saisie").and_then(Value::as_object) else {
-            return Err(erreur("TypeError", socle::echec::charge("cartes", "pour chaque carte, sa saisie")));
-        };
-        let mut saisie = engagement::stock::en_forme(saisie).map_err(Echec::from)?;
-        let i = match c.get("engagement").filter(|p| !p.is_null()) {
+    for c in cartes {
+        let mut saisie = engagement::stock::en_forme(&c.saisie).map_err(Echec::from)?;
+        let i = match &c.engagement {
             None => {
                 tous.push(Value::Object(saisie));
                 tous.len() - 1
             }
             Some(id) => {
                 let i = ids.iter().position(|x| x == id).filter(|i| *i < tous.len()).ok_or_else(|| {
-                    refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", socle::mois::Mois::en_clair(mois)))
+                    refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", Mois::en_clair(mois)))
                 })?;
                 // L'avenant du mois se deduit des termes dates de l'engagement ecrit (`stock::Objet::vue`) : la carte
                 // ne le porte pas.
@@ -1581,7 +1507,7 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usiz
         };
         places.push(i);
     }
-    let identites = (0..tous.len()).map(|i| ids.get(i).cloned().unwrap_or(Value::Null)).collect();
+    let identites = (0..tous.len()).map(|i| ids.get(i).cloned()).collect();
     v["engagements"] = Value::Array(tous);
     Ok((v, places, identites))
 }
@@ -1591,6 +1517,7 @@ pub(crate) struct PaieMontree {
     pub(crate) paie: Paie,
     pub(crate) recalcul: Option<Value>,
 }
+
 
 /// LES PAIES QUE L'ECRAN MONTRE POUR LA SAISIE `data` : un engagement valide se lit (sa paie ecrite, `etats::Valide::paie`),
 /// un engagement en saisie se calcule, sans rien ecrire, comme un engagement valide d'un mois d'apres le present, qui n'a
@@ -1641,30 +1568,37 @@ pub(crate) fn q2(x: Decimal) -> Decimal {
     r
 }
 
-/// LA RUPTURE de cet engagement, telle que la page la propose (« Un imprévu… ») : `null` quand elle n'a pas de sens ici
-/// -- une nature sans motif de rupture (S21.G00.62.002, CCH-11 : `Nature::motifs_rupture`), ou un contrat a terme qui ne
-/// finit pas ce mois-ci -- ; sinon le libelle de la porte et la fin du contrat (celle qu'il dit, ou son dernier jour
-/// travaille quand il est aux cachets). Les motifs et ce que chacun demande viennent de `natures`.
-fn rupture_de(e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Value> {
+/// LA RUPTURE d'un engagement, telle que la page la propose (« Un imprévu… ») : le libelle de la porte et la fin du
+/// contrat (celle qu'il dit, ou son dernier jour travaille quand il est aux cachets).
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct Rupture {
+    porte: &'static str,
+    fin: Option<Jour>,
+}
+
+/// LA RUPTURE de cet engagement : `None` quand elle n'a pas de sens ici -- une nature sans motif de rupture
+/// (S21.G00.62.002, CCH-11 : `Nature::motifs_rupture`), ou un contrat a terme qui ne finit pas ce mois-ci. Les motifs et
+/// ce que chacun demande viennent de `natures`.
+fn rupture_de(e: &engagement::Engagement, nat: &droit::natures::Nature) -> R<Option<Rupture>> {
     if nat.motifs_rupture().is_empty() {
-        return Ok(Value::Null);
+        return Ok(None);
     }
     let porte = if nat.duree_indeterminee { "La fin du contrat (licenciement, démission…)" } else { "Une rupture avant terme" };
     // Un contrat paye au mois (CDI, CDD) dit sa fin dans sa case : elle se tape, le mois ou elle a lieu.
     if nat.duree_indeterminee || nat.mensuelle() {
-        return Ok(json!({"porte": porte, "fin": e.fin.map_or(Value::Null, |f| json!(f.iso()))}));
+        return Ok(Some(Rupture { porte, fin: e.fin }));
     }
     // Un contrat aux cachets finit son dernier jour travaille ; le bloc 62 s'ecrit ce mois-la et lui seul (fiche n° 3344,
     // `fin_de_contrat` de `contrats-base.json`) : sa rupture se dit ce mois-la.
     if !e.dernier_mois()? {
-        return Ok(Value::Null);
+        return Ok(None);
     }
-    let fin = match e.fin {
+    Ok(Some(Rupture { porte, fin: Some(match e.fin {
         Some(f) => f,
         None => e.fin_periode()?,
-    };
-    Ok(json!({"porte": porte, "fin": fin.iso()}))
+    }) }))
 }
+
 
 /// LA CASE DU NUMERO DEJA DECLARE EN DSN d'un contrat commence avant le logiciel : un numero ne se recalcule pas, il se lit
 /// (regle 4) ; celui que l'ancien logiciel a declare (S21.G00.40.009) reste le sien, la saisie le porte en `numero`
@@ -1726,36 +1660,160 @@ fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &Value, mois: &str) -> V
     v
 }
 
-/// Une paie pour l'ecran. `brut` : l'engagement tel qu'il
-/// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
-/// `taux_cachet`, gardes tels qu'ecrits).
-pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> R<Value> {
+/// Le salarie d'une paie a l'ecran : sa cle, son nom, son prenom (celui d'usage s'il en a un).
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct SalarieVu {
+    cle: IdSalarie,
+    nom: droit::fiche::Case<String>,
+    prenom: droit::fiche::Case<String>,
+}
+
+/// Le spectacle d'une paie : son titre et son numero d'objet. TRAVAIL A FAIRE : la fiche d'un spectacle
+/// (`Contexte::spectacles`) se lit par ses cles.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct SpectacleVu {
+    titre: Value,
+    numero_objet: Value,
+}
+
+/// La nature du contrat : sa cle, son libelle, et s'il se paie au mois.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct NatureVue {
+    cle: String,
+    libelle: String,
+    mensuelle: bool,
+}
+
+/// LES CHEVRONS D'UN CONTRAT SUR PLUSIEURS MOIS, tels qu'on les lit au survol, de chaque cote ou il deborde du mois.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct Chevrons {
+    avant: Option<String>,
+    apres: Option<String>,
+}
+
+/// La periode de paie d'un contrat dans le mois.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct Periode {
+    debut: Jour,
+    fin: Jour,
+}
+
+/// Le contrat par rapport au mois : un contrat qui deborde n'a pas de DPAE ni de contrat imprime hors de son premier mois.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct ContratVu {
+    premier_mois: bool,
+    dernier_mois: bool,
+    a_cheval: bool,
+    chevrons: Chevrons,
+    sans_paie: bool,
+    depuis: String,
+    jusqu_a: String,
+    periode: Periode,
+    ecrits: Vec<&'static str>,
+    rupture: Option<Rupture>,
+}
+
+/// Une case qu'une ligne de frais appelle : le rang de la ligne dans la saisie, la case, ce qu'elle dit, son aide.
+/// TRAVAIL A FAIRE (chaine A) : la case et son aide se lisent de la ligne, par ses cles.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct CaseDeFrais {
+    ligne: u64,
+    case: String,
+    libelle: &'static str,
+    aide: Value,
+}
+
+/// Une ligne de la remuneration, telle que la paie la calcule.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct LigneVue {
+    rubrique: String,
+    designation: String,
+    quantite: Decimal,
+    taux: Decimal,
+    montant: Decimal,
+}
+
+/// L'emploi du salarie, tel que sa fiche le dit.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct EmploiVu {
+    libelle: droit::fiche::Case<String>,
+    code_emploi_ft: droit::fiche::Case<String>,
+    statut: droit::fiche::Case<droit::fiche::Statut>,
+    cadre: bool,
+}
+
+/// UNE PAIE POUR L'ECRAN (`apercu`, `ajuster`).
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct VuePaie {
+    resolu_dit: String,
+    contrat_dit: String,
+    /// Ce que la carte validee dit de la paie : ce qu'elle paye, en bref, son bulletin.
+    paye_dit: String,
+    bulletin_dit: Option<String>,
+    numero_bulletin: Option<String>,
+    numero_contrat: Option<engagement::numeros::NumeroContrat>,
+    salarie: SalarieVu,
+    /// UN PERMANENT N'A PAS DE SPECTACLE, et `None` est la reponse juste.
+    spectacle: Option<SpectacleVu>,
+    nature: NatureVue,
+    debut: Jour,
+    fin: Option<Jour>,
+    contrat: ContratVu,
+    dates_travail: Vec<Jour>,
+    cachets: i64,
+    /// TRAVAIL A FAIRE (chaine A) : sans cachet, le taux tel que la saisie l'ecrit.
+    taux_cachet: Value,
+    heures: Option<f64>,
+    faits_avances: Vec<&'static str>,
+    cases: Vec<CaseDeFrais>,
+    remuneration: Vec<LigneVue>,
+    /// TRAVAIL A FAIRE (chaine A) : les jours et le lieu tels que la saisie les ecrit.
+    jours: Value,
+    lieu: Value,
+    brut: Decimal,
+    net_a_payer: Decimal,
+    net_paye: Decimal,
+    net_imposable: Decimal,
+    cout_employeur: Decimal,
+    avertissements: Vec<String>,
+    informations: Vec<String>,
+    emploi: EmploiVu,
+    /// TRAVAIL A FAIRE : le conseil de saisie (`compagnie::conseils::de_saisie`) se compose en JSON.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    conseil: Option<Value>,
+    /// TRAVAIL A FAIRE : la ligne de « Pour démarrer » (`declarations::demarrage::conges_a_dire`) se compose en JSON.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    a_dire: Option<[Value; 1]>,
+}
+
+/// Une paie pour l'ecran. `brut` : l'engagement tel qu'il est ecrit dans la saisie ; `data` : la saisie du mois (pour
+/// `lieu` et `taux_cachet`, gardes tels qu'ecrits). TRAVAIL A FAIRE (chaine A) : ils se lisent par leurs cles.
+pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> R<VuePaie> {
     let e = &p.engagement;
     let nat = e.nat()?;
-    let iso = |j: &Jour| Value::String(j.iso());
     let s = &p.salarie;
-    let requis = |v: &Value, k: &str| v.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-    let exige = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(c.en_valeur()) };
-    let sal_vue = json!({
-        "cle": s.id.to_string(),
-        "nom": exige(&s.nom, "nom")?,
-        "prenom": if s.prenom_affichage.texte().is_empty() { exige(&s.prenom, "prenom")? } else { s.prenom_affichage.en_valeur() },
-    });
-    let spectacle = if vrai(&p.spectacle) {
-        json!({ "titre": requis(&p.spectacle, "titre")?, "numero_objet": p.spectacle.get("numero_objet").cloned().unwrap_or(Value::Null) })
-    } else {
-        Value::Null
+    let exige = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(c.clone()) };
+    let salarie = SalarieVu {
+        cle: s.id.clone(),
+        nom: exige(&s.nom, "nom")?,
+        prenom: if s.prenom_affichage.texte().is_empty() { exige(&s.prenom, "prenom")? } else { s.prenom_affichage.clone() },
+    };
+    let spectacle = match vrai(&p.spectacle) {
+        true => Some(SpectacleVu {
+            titre: p.spectacle.get("titre").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?,
+            numero_objet: p.spectacle.get("numero_objet").cloned().unwrap_or(Value::Null),
+        }),
+        false => None,
     };
     let mois_du_contrat = e.mois_du_contrat()?;
-    // Le taux du cachet, tel que le contrat l'imprime : celui de la premiere
-    // ligne a l'unite << cachet >> ; sans cachet, la valeur ecrite, telle quelle,
-    // et rien quand rien n'est ecrit (regle 1 : plus de 130 EUR).
+    // Le taux du cachet, tel que le contrat l'imprime : celui de la premiere ligne a l'unite « cachet » ; sans cachet, la
+    // valeur ecrite, telle quelle, et rien quand rien n'est ecrit (regle 1 : plus de 130 EUR).
     let premier_cachet = e
         .lignes
         .iter()
         .find(|l| l.get("rubrique").and_then(Value::as_str).and_then(|c| droit::catalogue::rubrique(&ctx.racine, c, &ctx.lue_au).ok()).map_or(false, |r| r.unite == "cachet"));
     let taux_cachet = match premier_cachet {
-        Some(l) => nombre_f(flottant(l.get("taux").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("taux")))?)?),
+        Some(l) => nombre_f(socle::num::flottant(l.get("taux").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("taux")))?)?),
         None => brut.get("taux_cachet").or_else(|| data.get("taux_cachet")).cloned().unwrap_or(Value::Null),
     };
     let jours = match brut.get("jours") {
@@ -1763,7 +1821,6 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         _ => Value::from(e.jours),
     };
     let lieu = brut.get("lieu").cloned().unwrap_or_else(|| Value::String(String::new()));
-    let avis: Vec<&Avis> = p.avertissements.iter().collect();
     let prelevement = p.pas.as_ref().map_or(Decimal::new(0, 2), |v| v.prelevement);
     // CE QUE LE MOTEUR A COMPRIS DE LA CARTE, en une ligne : son bulletin (ou qu'il n'y en a pas), son contrat, ses
     // bornes (et la periode de paie d'un contrat a cheval), ce qu'elle paye, le metier, le brut.
@@ -1787,7 +1844,6 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
     // LA LIGNE REPLIEE DU CONTRAT : ses bornes, son numero, et ce qu'il fait par rapport au mois (en cours depuis un
     // mois passe, se poursuit au mois suivant) ; un contrat sans terme se dit par son debut.
     let contrat_dit = {
-        let clair = |m: &str| socle::mois::Mois::en_clair(m);
         let mut t = match &e.fin {
             Some(f) => format!("Contrat du {} au {}", e.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
             None if nat.mensuelle() => format!("Contrat du {}, sans terme", e.debut.jj_mm_aaaa()),
@@ -1798,92 +1854,101 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         }
         if e.fin.is_some() {
             if !e.premier_mois()? {
-                t.push_str(&format!(" — en cours depuis {}", clair(&e.debut.iso()[..7])));
+                t.push_str(&format!(" — en cours depuis {}", Mois::en_clair(&e.debut.iso()[..7])));
             }
             if !e.dernier_mois()? {
-                t.push_str(&format!(" — se poursuit en {}", clair(&e.debut_mois()?.mois_civil().suivant().to_string())));
+                t.push_str(&format!(" — se poursuit en {}", Mois::en_clair(&e.debut_mois()?.mois_civil().suivant().to_string())));
             }
         }
         t
     };
-    let d = json!({
-        "resolu_dit": resolu_dit, "contrat_dit": contrat_dit,
-        // Ce que la carte validee dit de la paie : ce qu'elle paye, en bref, son bulletin.
-        "paye_dit": p.paye_en_bref(),
-        "bulletin_dit": p.numero_bulletin.as_ref().map(|n| format!("bulletin {}", n)),
-        "numero_bulletin": p.numero_bulletin.clone().map_or(Value::Null, Value::String),
-        "numero_contrat": e.numero.clone().map_or(Value::Null, Value::from),
-        "salarie": sal_vue,
-        // UN PERMANENT N'A PAS DE SPECTACLE, et `None` est la reponse juste.
-        "spectacle": spectacle,
-        "nature": { "cle": nat.cle, "libelle": nat.libelle, "mensuelle": nat.mensuelle() },
-        "debut": iso(&e.debut), "fin": e.fin.as_ref().map_or(Value::Null, iso),
-        // Le contrat par rapport au mois : un contrat qui deborde n'a pas de
-        // DPAE ni de contrat imprime hors de son premier mois.
-        "contrat": {
-            "premier_mois": e.premier_mois()?, "dernier_mois": e.dernier_mois()?, "a_cheval": e.a_cheval()?,
-            "chevrons": chevrons_dits(e)?,
-            "sans_paie": e.sans_paie(),
-            "depuis": mois_du_contrat.first().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
-            "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
-            "periode": { "debut": iso(&e.debut_periode()?), "fin": iso(&e.fin_periode()?) },
-            "ecrits": champs_du_contrat_ecrit(ctx, e, &nat)?,
-            "rupture": rupture_de(e, &nat)?,
+    let trop_courte = || socle::fichiers::trop_courte("les mois du contrat");
+    Ok(VuePaie {
+        resolu_dit,
+        contrat_dit,
+        paye_dit: p.paye_en_bref(),
+        bulletin_dit: p.numero_bulletin.as_ref().map(|n| format!("bulletin {}", n)),
+        numero_bulletin: p.numero_bulletin.clone(),
+        numero_contrat: e.numero.clone(),
+        salarie,
+        spectacle,
+        nature: NatureVue { cle: nat.cle.clone(), libelle: nat.libelle.clone(), mensuelle: nat.mensuelle() },
+        debut: e.debut,
+        fin: e.fin,
+        contrat: ContratVu {
+            premier_mois: e.premier_mois()?,
+            dernier_mois: e.dernier_mois()?,
+            a_cheval: e.a_cheval()?,
+            chevrons: chevrons_dits(e)?,
+            sans_paie: e.sans_paie(),
+            depuis: mois_du_contrat.first().cloned().ok_or_else(trop_courte)?,
+            jusqu_a: mois_du_contrat.last().cloned().ok_or_else(trop_courte)?,
+            periode: Periode { debut: e.debut_periode()?, fin: e.fin_periode()? },
+            ecrits: champs_du_contrat_ecrit(ctx, e, &nat)?,
+            rupture: rupture_de(e, &nat)?,
         },
-        "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
-        "cachets": e.cachets, "taux_cachet": taux_cachet,
-        "heures": e.heures.map_or(Value::Null, nombre_f),
+        dates_travail: e.dates_travail.clone(),
+        cachets: e.cachets,
+        taux_cachet,
+        heures: e.heures,
         // LES CASES « AVANCÉ » QUE CE CONTRAT PAYE AU MOIS APPELLE (`catalogue::CASES_D_UN_MOIS_PAYE`) : ses heures
         // supplementaires a temps plein, complementaires a temps partiel (`engagement::heures_en_plus::faits_appeles`).
-        "faits_avances": if nat.mensuelle() {
-            engagement::heures_en_plus::faits_appeles(ctx, e.modalite_temps_travail()? == "20")?
-        } else {
-            Vec::new()
-        },
-        // LES CASES QU'UNE LIGNE DE FRAIS APPELLE (leur rang dans la saisie, la case, ce qu'elle dit) : le lieu d'une
-        // nuitée, le restaurant d'un repas, le justificatif d'un frais au-delà de sa limite (`engagement::frais_au_dela`).
-        "cases": e.lignes.iter().filter_map(|l| Some((l.get(engagement::RANG)?.as_u64()?, l))).flat_map(|(i, l)| {
-            l.get(engagement::CASES).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str)
-                .map(move |k| json!({"ligne": i, "case": k, "libelle": libelle_de_case(k), "aide": l.get(engagement::AIDES).and_then(|a| a.get(k)).cloned().unwrap_or(Value::Null)}))
-        }).collect::<Vec<_>>(),
-        "remuneration": p.remuneration.iter().map(|l| json!({
-            "rubrique": l.code, "designation": l.designation(),
-            "quantite": l.quantite.to_string(), "taux": l.taux.to_string(), "montant": q2(l.montant).to_string(),
-        })).collect::<Vec<_>>(),
-        "jours": jours, "lieu": lieu,
-        "brut": q2(p.brut).to_string(), "net_a_payer": q2(p.net_a_payer).to_string(),
+        faits_avances: if nat.mensuelle() { engagement::heures_en_plus::faits_appeles(ctx, e.modalite_temps_travail()? == "20")? } else { Vec::new() },
+        // LES CASES QU'UNE LIGNE DE FRAIS APPELLE : le lieu d'une nuitée, le restaurant d'un repas, le justificatif d'un
+        // frais au-delà de sa limite (`engagement::frais_au_dela`).
+        cases: e
+            .lignes
+            .iter()
+            .filter_map(|l| Some((l.get(engagement::RANG)?.as_u64()?, l)))
+            .flat_map(|(i, l)| {
+                l.get(engagement::CASES).and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).map(move |k| CaseDeFrais {
+                    ligne: i,
+                    case: k.to_string(),
+                    libelle: libelle_de_case(k),
+                    aide: l.get(engagement::AIDES).and_then(|a| a.get(k)).cloned().unwrap_or(Value::Null),
+                })
+            })
+            .collect(),
+        remuneration: p
+            .remuneration
+            .iter()
+            .map(|l| LigneVue { rubrique: l.code.clone(), designation: l.designation(), quantite: l.quantite, taux: l.taux, montant: q2(l.montant) })
+            .collect(),
+        jours,
+        lieu,
+        brut: q2(p.brut),
+        net_a_payer: q2(p.net_a_payer),
         // CE QUE LA COMPAGNIE VIRE : la somme effectivement recue par le salarie (C. trav. R. 3243-1, 10°,
         // `atelier/reference/sources/code-du-travail/articles-20261029.md`), le « MONTANT NET À PAYER » du bulletin :
         // le net a payer moins l'impot preleve a la source.
-        "net_paye": q2(p.net_a_payer - prelevement).to_string(),
-        "net_imposable": q2(p.net_imposable).to_string(), "cout_employeur": q2(p.cout_employeur).to_string(),
-        "avertissements": avis.iter().filter(|a| !a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
-        "informations": avis.iter().filter(|a| a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
-        "emploi": {
-            "libelle": s.emploi.en_valeur(),
-            "code_emploi_ft": s.code_emploi_ft.en_valeur(),
-            "statut": s.statut.en_valeur(),
-            "cadre": droit::bareme::est_cadre(s),
-        },
-    });
-    Ok(d)
+        net_paye: q2(p.net_a_payer - prelevement),
+        net_imposable: q2(p.net_imposable),
+        cout_employeur: q2(p.cout_employeur),
+        avertissements: p.avertissements.iter().filter(|a| !a.info).map(|a| a.texte.clone()).collect(),
+        informations: p.avertissements.iter().filter(|a| a.info).map(|a| a.texte.clone()).collect(),
+        emploi: EmploiVu { libelle: s.emploi.clone(), code_emploi_ft: s.code_emploi_ft.clone(), statut: s.statut.clone(), cadre: droit::bareme::est_cadre(s) },
+        conseil: None,
+        a_dire: None,
+    })
 }
 
-/// LES CHEVRONS D'UN CONTRAT SUR PLUSIEURS MOIS, tels qu'on les lit au survol : ses bornes, ce qu'il fait du cote ou il
-/// deborde du mois (commence avant, se poursuit apres), et le mois voisin ou mene le clic. `Null` du cote ou il ne
-/// deborde pas.
-pub(crate) fn chevrons_dits(e: &engagement::Engagement) -> R<Value> {
-    let clair = |m: &str| socle::mois::Mois::en_clair(m);
+/// LES CHEVRONS D'UN CONTRAT SUR PLUSIEURS MOIS : ses bornes, ce qu'il fait du cote ou il deborde du mois (commence
+/// avant, se poursuit apres), et le mois voisin ou mene le clic. `None` du cote ou il ne deborde pas.
+pub(crate) fn chevrons_dits(e: &engagement::Engagement) -> R<Chevrons> {
+    let clair = |m: &str| Mois::en_clair(m);
     let bornes = match &e.fin {
         Some(f) => format!("Contrat du {} au {}", e.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
         None => format!("Contrat du {}, sans date de fin", e.debut.jj_mm_aaaa()),
     };
     let mois = e.mois_du_contrat()?;
     let premier = e.debut_mois()?;
-    let avant = (!e.premier_mois()?).then(|| -> R<String> {
-        let voisin = premier.plus_jours(-1)?.iso()[..7].to_string();
-        Ok(format!("{} — commencé en {} · voir {}", bornes, clair(mois.first().map_or("", String::as_str)), clair(&voisin)))
-    });
+    let avant = match e.premier_mois()? {
+        true => None,
+        false => {
+            let voisin = premier.plus_jours(-1)?.iso()[..7].to_string();
+            Some(format!("{} — commencé en {} · voir {}", bornes, clair(mois.first().map_or("", String::as_str)), clair(&voisin)))
+        }
+    };
     let apres = (!e.dernier_mois()?).then(|| {
         let suite = match (&e.fin, mois.last()) {
             (Some(_), Some(j)) => format!("se poursuit jusqu'en {}", clair(j)),
@@ -1891,7 +1956,7 @@ pub(crate) fn chevrons_dits(e: &engagement::Engagement) -> R<Value> {
         };
         format!("{} — {} · voir {}", bornes, suite, clair(&premier.mois_civil().suivant().to_string()))
     });
-    Ok(json!({"avant": avant.transpose()?, "apres": apres}))
+    Ok(Chevrons { avant, apres })
 }
 
 /// Ce qui, dans ce mois, porte sur une
@@ -1909,7 +1974,7 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
             ));
         }
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
-        // (CCH-11) -- donc rien a verifier de ce cote.
+        // (CCH-11) -- donc rien a verifier de ce cote. TRAVAIL A FAIRE : la fiche d'un spectacle se lit par ses cles.
         if vrai(&p.spectacle) && archivee(&p.spectacle) {
             let titre = p.spectacle.get("titre").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
             out.push(format!(
@@ -1922,8 +1987,121 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
     Ok(out)
 }
 
-/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `mois`, `cartes`
-/// (les cartes que l'ecran montre autrement qu'elles ne sont ecrites, `mois_designe`).
+/// Les trois nombres d'une carte (un engagement) ou d'un salarie (la colonne « Le mois »).
+#[derive(Debug, Clone, Serialize)]
+struct Trois {
+    net_paye: Decimal,
+    brut: Decimal,
+    cout_employeur: Decimal,
+    engagements: usize,
+}
+
+impl Trois {
+    fn de(vues: &[&VuePaie]) -> Trois {
+        let somme = |f: fn(&VuePaie) -> Decimal| q2(vues.iter().map(|v| f(v)).fold(Decimal::new(0, 2), |t, x| t + x));
+        Trois { net_paye: somme(|v| v.net_paye), brut: somme(|v| v.brut), cout_employeur: somme(|v| v.cout_employeur), engagements: vues.len() }
+    }
+}
+
+/// La ligne d'un salarie dans la colonne « Le mois » : ses trois nombres, son nom, ses engagements, et au survol le cout
+/// et le brut.
+#[derive(Debug, Serialize)]
+struct ParSalarie {
+    #[serde(flatten)]
+    trois: Trois,
+    salarie: SalarieVu,
+    nom: String,
+    engagements_dit: String,
+    survol_dit: String,
+}
+
+/// Un engagement de la saisie qui ne se calcule pas encore : ce qui lui manque, son salarie tel que la saisie l'ecrit,
+/// ses bornes comme le moteur les lit de ses lignes de travail (la carte les montre avant tout calcul), les cases du
+/// contrat ecrit qu'il appelle deja.
+#[derive(Debug, Serialize)]
+struct PaieACompleter {
+    a_completer: String,
+    salarie: CleEcrite,
+    debut: String,
+    fin: String,
+    avertissements: [String; 0],
+    informations: [String; 0],
+    contrat: EcritsSeuls,
+}
+
+/// TRAVAIL A FAIRE (chaine A) : le salarie tel que la saisie l'ecrit.
+#[derive(Debug, Serialize)]
+struct CleEcrite {
+    #[serde(rename = "_cle")]
+    cle: Value,
+}
+
+#[derive(Debug, Serialize)]
+struct EcritsSeuls {
+    ecrits: Vec<&'static str>,
+}
+
+/// Une paie de l'apercu : calculee, ou a completer.
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum PaieVue {
+    Calculee(Box<VuePaie>),
+    ACompleter(PaieACompleter),
+}
+
+impl PaieVue {
+    fn textes(&self) -> impl Iterator<Item = &String> {
+        match self {
+            PaieVue::Calculee(v) => Some(v.avertissements.iter().chain(v.informations.iter())),
+            PaieVue::ACompleter(_) => None,
+        }
+        .into_iter()
+        .flatten()
+    }
+}
+
+/// Une paie de l'apercu, et l'identite de son engagement (`None` : une carte pas encore ecrite) : la carte retrouve la
+/// sienne.
+#[derive(Debug, Serialize)]
+struct PaieDeLApercu {
+    #[serde(flatten)]
+    paie: PaieVue,
+    engagement: Option<Identite>,
+}
+
+/// Les paies de la saisie, et ce que le mois en compte.
+struct Calcul {
+    phrase_du_mois: Option<String>,
+    mois: Mois,
+    libelle: String,
+    paies: Vec<PaieVue>,
+    total_cout: Decimal,
+    total_net: Decimal,
+    blocs: Vec<Option<Trois>>,
+    par_salarie: Vec<ParSalarie>,
+    avertissements: Vec<String>,
+    informations: Vec<String>,
+}
+
+/// L'APERCU (`apercu`) : le mois tel que l'ecran le montre, rien d'ecrit.
+#[derive(Debug, Serialize)]
+struct Apercu {
+    phrase: String,
+    phrase_du_mois: Option<String>,
+    mois: Mois,
+    libelle: String,
+    paies: Vec<PaieDeLApercu>,
+    total_cout: Decimal,
+    total_net: Decimal,
+    blocs: Vec<Option<Trois>>,
+    par_salarie: Vec<ParSalarie>,
+    avertissements: Vec<String>,
+    informations: Vec<String>,
+    /// Ce que le moteur dit de chaque engagement (les encarts de sa carte), en phrases : le mois, puis ses paies.
+    phrases: Vec<String>,
+}
+
+/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur.
 ///
 /// Un engagement valide montre la paie qu'il a ecrite, avec ses numeros du moment ; s'il s'est recalcule de lui-meme,
 /// ses informations disent quand et pourquoi (`etats::phrase_du_recalcul`). Un engagement en saisie se calcule, et
@@ -1931,45 +2109,61 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
 /// L'APERCU D'UNE SAISIE DONT DES ENGAGEMENTS NE SE CALCULENT PAS ENCORE (`manques_de_la_saisie`) : les autres se
 /// calculent, et chacun de ceux-la tient sa place dans `paies` avec ce qui lui manque (`a_completer`), sans montant ;
 /// la carte qui en porte un n'a pas de total. Une saisie dont aucun refus ne se rapporte a un engagement refuse.
-fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let (data, _, identites) = mois_designe(ctx, charge)?;
+fn apercu(ctx: &Contexte, c: ChargeApercu) -> R<Apercu> {
+    let mois = c.mois.to_string();
+    let (data, _, identites) = mois_designe(ctx, &mois, &c.cartes)?;
     // Une carte neuve dans un mois ferme aux engagements neufs ne se compte pas : son ecriture serait refusee.
-    if identites.iter().any(Value::is_null) {
-        refuser_si_importe(ctx, texte_requis(charge, "mois")?)?;
+    if identites.iter().any(Option::is_none) {
+        refuser_si_importe(ctx, &mois)?;
     }
-    let mut r = apercu_des_paies(ctx, &data)?;
-    // CHAQUE PAIE PORTE L'IDENTITE DE SON ENGAGEMENT (`Null` : une carte pas encore ecrite) : la carte retrouve la sienne.
-    if let Some(Value::Array(paies)) = r.get_mut("paies") {
-        for (p, id) in paies.iter_mut().zip(identites) {
-            if let Some(p) = p.as_object_mut() {
-                p.insert("engagement".into(), id);
-            }
-            dire_les_tarifs(ctx, texte_requis(charge, "mois")?, p)?;
+    let r = apercu_des_paies(ctx, &data)?;
+    let mut paies = Vec::new();
+    for (mut paie, engagement) in r.paies.into_iter().zip(identites) {
+        if let PaieVue::Calculee(v) = &mut paie {
+            dire_les_tarifs(ctx, &mois, v)?;
+        }
+        paies.push(PaieDeLApercu { paie, engagement });
+    }
+    let phrase = r.phrase_du_mois.clone().unwrap_or_else(|| format!("{} : {}.", r.libelle, super::compte(paies.len(), "paie", "paies")));
+    let mut phrases: Vec<String> = Vec::new();
+    for t in r.avertissements.iter().chain(r.informations.iter()).chain(paies.iter().flat_map(|p| p.paie.textes())) {
+        if !phrases.contains(t) {
+            phrases.push(t.clone());
         }
     }
-    Ok(r)
+    Ok(Apercu {
+        phrase,
+        phrase_du_mois: r.phrase_du_mois,
+        mois: r.mois,
+        libelle: r.libelle,
+        paies,
+        total_cout: r.total_cout,
+        total_net: r.total_net,
+        blocs: r.blocs,
+        par_salarie: r.par_salarie,
+        avertissements: r.avertissements,
+        informations: r.informations,
+        phrases,
+    })
 }
 
 /// LE MONTANT D'UN REPAS OU D'UNE NUITEE DIT D'OU IL VIENT : une ligne au tarif de la convention (`engagement::tarif_conventionnel`,
 /// le barème de l'année, couche de la convention de la compagnie) le dit dans les informations de sa paie. Le tarif
 /// est daté : il se lit au premier jour du mois, au premier et au dernier jour de la paie dans le mois.
-fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
+fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut VuePaie) -> R<()> {
     let Ok(premier) = Jour::lire(&format!("{}-01", mois)) else { return Ok(()) };
     let mut jours = vec![premier];
-    for cle in ["debut", "fin"] {
-        if let Ok(j) = Jour::lire(&valeur_en_texte(&p[cle])) {
-            if j.iso().starts_with(mois) && !jours.contains(&j) {
-                jours.push(j);
-            }
+    for j in std::iter::once(p.debut).chain(p.fin) {
+        if j.iso().starts_with(mois) && !jours.contains(&j) {
+            jours.push(j);
         }
     }
     let mut dits: Vec<String> = Vec::new();
-    for l in p["remuneration"].as_array().into_iter().flatten() {
-        let code = valeur_en_texte(&l["rubrique"]);
-        let taux = l["taux"].as_str().and_then(|t| t.parse::<f64>().ok()).or_else(|| l["taux"].as_f64());
+    for l in &p.remuneration {
+        let taux = l.taux.to_string().parse::<f64>().ok();
         let mut tarif = None;
         for j in &jours {
-            match engagement::tarif_conventionnel(ctx, &code, j).map_err(Echec::from)? {
+            match engagement::tarif_conventionnel(ctx, &l.rubrique, j).map_err(Echec::from)? {
                 Some(t) if taux.is_some_and(|x| Some(x) == t.as_f64()) => {
                     tarif = Some(t);
                     break;
@@ -1978,7 +2172,7 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
             }
         }
         if let Some(tarif) = tarif {
-            let dit = format!("{} à {}", valeur_en_texte(&l["designation"]).to_lowercase(), socle::texte::euros_de(&tarif));
+            let dit = format!("{} à {}", l.designation.to_lowercase(), socle::texte::euros_de(&tarif));
             if !dits.contains(&dit) {
                 dits.push(dit);
             }
@@ -1988,13 +2182,10 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
         return Ok(());
     }
     let idcc = ctx.entreprise.idcc.texte().to_string();
-    let qui = format!("{} {}", crate::routes::mot(&p["salarie"]["nom"]), crate::routes::mot(&p["salarie"]["prenom"])).trim().to_string();
+    let qui = format!("{} {}", p.salarie.nom.texte(), p.salarie.prenom.texte()).trim().to_string();
     let quoi = dits.join(", ");
     let quoi = if qui.is_empty() { quoi[..1].to_uppercase() + &quoi[1..] } else { format!("{} : {}", qui, quoi) };
-    let phrase = format!("{}, le tarif de la convention collective {}.", quoi, idcc);
-    if let Some(Value::Array(infos)) = p.get_mut("informations") {
-        infos.push(json!(phrase));
-    }
+    p.informations.push(format!("{}, le tarif de la convention collective {}.", quoi, idcc));
     Ok(())
 }
 
@@ -2004,14 +2195,14 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut Value) -> R<()> {
 /// ne dit pas ses conges a la reprise, la ligne de « Pour démarrer » qui y mene (`a_dire`,
 /// `declarations::demarrage::conges_a_dire`) : le compteur de conges part du solde de l'ancien bulletin (L3141-3,
 /// `engagement::conges::reprise_conges`). `brut` : l'engagement tel que la saisie l'ecrit ; `v` : sa vue (`vue_paie`).
-fn dire_l_entree(ctx: &Contexte, mois: &str, brut: &Value, v: &mut Value) -> R<()> {
-    let debut = valeur_en_texte(&v["debut"]);
+fn dire_l_entree(ctx: &Contexte, mois: &str, brut: &Value, v: &mut VuePaie) -> R<()> {
+    let debut = v.debut.iso();
     if engagement::etats::est_validee(brut) || !engagement::stock::commence_avant_le_logiciel(&ctx.racine, &debut, mois).map_err(Echec::from)? {
         return Ok(());
     }
-    let qui = format!("{} {}", crate::routes::mot(&v["salarie"]["nom"]), crate::routes::mot(&v["salarie"]["prenom"])).trim().to_string();
-    let le = Jour::lire(&debut).map(|j| j.jj_mm_aaaa()).unwrap_or(debut);
-    let numero = valeur_en_texte(&v["numero_contrat"]);
+    let qui = format!("{} {}", v.salarie.nom.texte(), v.salarie.prenom.texte()).trim().to_string();
+    let le = v.debut.jj_mm_aaaa();
+    let numero = v.numero_contrat.as_ref().map_or("", |n| n.as_str());
     let phrase = if brut.get("numero").is_some_and(vrai) {
         format!("{} : contrat commencé le {}, avant PuppetPaie : ni DPAE ni contrat à faire ici. La DSN le déclare sous le n° {}, celui que votre ancien logiciel a déclaré.", qui, le, numero)
     } else {
@@ -2020,23 +2211,20 @@ fn dire_l_entree(ctx: &Contexte, mois: &str, brut: &Value, v: &mut Value) -> R<(
             qui, le, numero
         )
     };
-    if let Some(Value::Array(infos)) = v.get_mut("informations") {
-        infos.insert(0, json!(phrase));
-    }
-    let cle = valeur_en_texte(&v["salarie"]["cle"]);
-    if vrai(&v["nature"]["mensuelle"]) && !declarations::demarrage::conges_repris(ctx, &cle) {
-        v["a_dire"] = json!([declarations::demarrage::conges_a_dire(&cle, &qui, &format!("{}-01", mois))]);
+    v.informations.insert(0, phrase);
+    if v.nature.mensuelle && !declarations::demarrage::conges_repris(ctx, &v.salarie.cle) {
+        v.a_dire = Some([declarations::demarrage::conges_a_dire(&v.salarie.cle, &qui, &format!("{}-01", mois))]);
     }
     Ok(())
 }
 
 /// Les paies de l'apercu de `data`, une par engagement, dans son ordre.
-fn apercu_des_paies(ctx: &Contexte, data: &Value) -> R<Value> {
+fn apercu_des_paies(ctx: &Contexte, data: &Value) -> R<Calcul> {
     let refus = match apercu_de(ctx, data) {
-        Ok(v) => return Ok(v),
+        Ok(c) => return Ok(c),
         Err(refus) => refus,
     };
-    let manques = manques_de_la_saisie(ctx, &data);
+    let manques = manques_de_la_saisie(ctx, data);
     if manques.iter().all(Option::is_none) {
         return Err(refus);
     }
@@ -2044,38 +2232,39 @@ fn apercu_des_paies(ctx: &Contexte, data: &Value) -> R<Value> {
     let mut complete = data.clone();
     complete["engagements"] = Value::Array(tous.iter().zip(&manques).filter(|(_, m)| m.is_none()).map(|(e, _)| e.clone()).collect());
     let mut r = apercu_de(ctx, &complete)?;
-    let mut calculees = r["paies"].as_array().cloned().unwrap_or_default().into_iter();
-    let paies: Vec<Value> = tous
-        .iter()
-        .zip(&manques)
-        .map(|(e, m)| match m {
-            None => calculees.next().unwrap_or(Value::Null),
-            Some(m) => {
-                // Ses bornes, comme le moteur les lit de ses lignes de travail : la carte les montre avant tout calcul.
-                let (debut, fin) = e.as_object().map(|o| bornes_brutes(ctx, o)).unwrap_or_default();
-                json!({
-                    "a_completer": m, "salarie": {"_cle": e.get("salarie").cloned().unwrap_or(Value::Null)},
-                    "debut": debut, "fin": fin,
-                    "avertissements": [], "informations": [],
-                    "contrat": {"ecrits": champs_du_contrat_ecrit_en_saisie(ctx, e, &valeur_en_texte(&data["mois"]))},
-                })
+    let mut calculees = std::mem::take(&mut r.paies).into_iter();
+    let mut calcules = std::mem::take(&mut r.blocs).into_iter();
+    let mois = valeur_en_texte(&data["mois"]);
+    for (e, m) in tous.iter().zip(&manques) {
+        match m {
+            None => {
+                r.paies.extend(calculees.next());
+                r.blocs.push(calcules.next().flatten());
             }
-        })
-        .collect();
-    // Les trois nombres de chaque carte : ceux de son engagement calcule ; une carte a completer n'en a pas.
-    let mut calcules = r["blocs"].as_array().cloned().unwrap_or_default().into_iter();
-    let blocs: Vec<Value> = manques.iter().map(|m| if m.is_some() { Value::Null } else { calcules.next().unwrap_or(Value::Null) }).collect();
-    let aucun_chiffre = r["par_salarie"].as_array().is_none_or(Vec::is_empty);
-    r["phrase_du_mois"] = json!(phrase_du_mois(&paies, aucun_chiffre));
-    r["paies"] = Value::Array(paies);
-    r["blocs"] = Value::Array(blocs);
+            Some(m) => {
+                let (debut, fin) = e.as_object().map(|o| bornes_brutes(ctx, o)).unwrap_or_default();
+                r.paies.push(PaieVue::ACompleter(PaieACompleter {
+                    a_completer: m.clone(),
+                    salarie: CleEcrite { cle: e.get("salarie").cloned().unwrap_or(Value::Null) },
+                    debut,
+                    fin,
+                    avertissements: [],
+                    informations: [],
+                    contrat: EcritsSeuls { ecrits: champs_du_contrat_ecrit_en_saisie(ctx, e, &mois) },
+                }));
+                // Une carte a completer n'a pas de total.
+                r.blocs.push(None);
+            }
+        }
+    }
+    r.phrase_du_mois = phrase_du_mois(&r.paies, r.par_salarie.is_empty());
     Ok(r)
 }
 
 /// CE QUE LES CHIFFRES DU MOIS NE COMPTENT PAS, en une phrase sous eux (`None` : rien) : un engagement a completer ne
 /// se calcule pas, mais il est la ; un mois sans aucun engagement se dit aussi.
-fn phrase_du_mois(paies: &[Value], aucun_chiffre: bool) -> Option<String> {
-    let attendent = paies.iter().filter(|v| v.get("a_completer").is_some_and(vrai)).count();
+fn phrase_du_mois(paies: &[PaieVue], aucun_chiffre: bool) -> Option<String> {
+    let attendent = paies.iter().filter(|v| matches!(v, PaieVue::ACompleter(_))).count();
     match (attendent, aucun_chiffre) {
         (0, true) => Some("Aucun engagement ce mois-ci.".to_string()),
         (0, false) => None,
@@ -2084,26 +2273,25 @@ fn phrase_du_mois(paies: &[Value], aucun_chiffre: bool) -> Option<String> {
     }
 }
 
-/// L'apercu de la saisie `data` : chaque engagement se calcule.
-fn apercu_de(ctx: &Contexte, data: &Value) -> R<Value> {
-    let data = data.clone();
+/// L'apercu de la saisie `data` : chaque engagement se calcule. TRAVAIL A FAIRE (chaine A) : la saisie se lit par ses
+/// cles.
+fn apercu_de(ctx: &Contexte, data: &Value) -> R<Calcul> {
     let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let lu = socle::mois::Mois::lire(&mois)?;
-    let annee = lu.annee();
-    let montrees = paies_de_l_ecran(ctx, &data, &mois)?;
+    let lu = Mois::lire(&mois)?;
+    let montrees = paies_de_l_ecran(ctx, data, &mois)?;
     let mut paies: Vec<Paie> = montrees.iter().map(|m| m.paie.clone()).collect();
-    documents::ecrire_documents::numeroter(ctx, &mut paies, annee, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
+    documents::ecrire_documents::numeroter(ctx, &mut paies, lu.annee(), &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut vues = Vec::new();
     for (i, p) in paies.iter().enumerate() {
-        vues.push(vue_paie(ctx, p, tous.get(i).unwrap_or(&Value::Null), &data)?);
+        vues.push(vue_paie(ctx, p, tous.get(i).unwrap_or(&Value::Null), data)?);
     }
     // LES CONSEILS DE SAISIE : au plus un par carte, quand l'option de la compagnie est cochee, pour un
     // engagement en saisie seulement. Ils ne vivent qu'ici, dans la vue de l'ecran : ni dans les avertissements de la
     // paie, ni au bulletin, ni a `produire`.
     for (i, (v, c)) in vues.iter_mut().zip(crate::compagnie::conseils::de_saisie(ctx, &paies)?).enumerate() {
-        if let Some(c) = c.filter(|_| !tous.get(i).is_some_and(engagement::etats::est_validee)) {
-            v["conseil"] = c;
+        if !tous.get(i).is_some_and(engagement::etats::est_validee) {
+            v.conseil = c;
         }
     }
     for (i, v) in vues.iter_mut().enumerate() {
@@ -2111,65 +2299,51 @@ fn apercu_de(ctx: &Contexte, data: &Value) -> R<Value> {
     }
     for (v, m) in vues.iter_mut().zip(&montrees) {
         if let Some(phrase) = m.recalcul.as_ref().and_then(engagement::etats::phrase_du_recalcul) {
-            if let Some(Value::Array(a)) = v.get_mut("informations") {
-                a.insert(0, Value::String(phrase));
-            }
+            v.informations.insert(0, phrase);
         }
     }
-    let somme = |cle: &str| -> R<Decimal> {
-        let mut t = Decimal::new(0, 2);
-        for v in &vues {
-            t += dec(v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
-        }
-        Ok(q2(t))
-    };
-    let (total_cout, total_net) = (somme("cout_employeur")?, somme("net_paye")?);
+    let total_cout = q2(vues.iter().fold(Decimal::new(0, 2), |t, v| t + v.cout_employeur));
+    let total_net = q2(vues.iter().fold(Decimal::new(0, 2), |t, v| t + v.net_paye));
     // LES TROIS NOMBRES, sommes ici : par carte (une carte, un engagement) et par salarie (la colonne « Le mois »).
-    let trois = |vs: &[&Value]| -> R<Value> {
-        let mut t = [Decimal::new(0, 2), Decimal::new(0, 2), Decimal::new(0, 2)];
-        for v in vs {
-            for (k, cle) in ["net_paye", "brut", "cout_employeur"].iter().enumerate() {
-                t[k] += dec(v.get(*cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
-            }
-        }
-        Ok(json!({"net_paye": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "engagements": vs.len()}))
-    };
-    let blocs = vues.iter().map(|v| trois(&[v])).collect::<R<Vec<_>>>()?;
-    let mut salaries: Vec<(String, Value, String, Vec<&Value>)> = Vec::new();
+    let blocs = vues.iter().map(|v| Some(Trois::de(&[v]))).collect();
+    let mut salaries: Vec<(String, String, Vec<&VuePaie>)> = Vec::new();
     for (v, p) in vues.iter().zip(&paies) {
-        let s = v.get("salarie").cloned().unwrap_or(Value::Null);
-        let cle = format!("{}|{}", en_texte(s.get("nom").unwrap_or(&Value::Null)), en_texte(s.get("prenom").unwrap_or(&Value::Null)));
-        match salaries.iter_mut().find(|(c, _, _, _)| *c == cle) {
-            Some((_, _, _, vs)) => vs.push(v),
-            None => salaries.push((cle, s, super::nom_a_l_ecran(&p.salarie), vec![v])),
+        let cle = format!("{}|{}", en_texte(&v.salarie.nom.en_valeur()), en_texte(&v.salarie.prenom.en_valeur()));
+        match salaries.iter_mut().find(|(c, _, _)| *c == cle) {
+            Some((_, _, vs)) => vs.push(v),
+            None => salaries.push((cle, super::nom_a_l_ecran(&p.salarie), vec![v])),
         }
     }
-    let mut par_salarie = Vec::new();
-    for (_, s, nom, vs) in &salaries {
-        let mut t = trois(vs)?;
-        t["salarie"] = s.clone();
-        t["nom"] = json!(nom);
-        // Ce que la ligne du salarie dit : ses engagements, et au survol le cout et le brut.
-        t["engagements_dit"] = json!(super::compte(vs.len(), "engagement", "engagements"));
-        t["survol_dit"] = json!(format!("coût employeur {} · brut {}", socle::texte::euros_de(&t["cout_employeur"]), socle::texte::euros_de(&t["brut"])));
-        par_salarie.push(t);
-    }
-    let mut a_regarder = Vec::new();
-    a_regarder.extend(archives_employees(&paies)?);
+    let par_salarie = salaries
+        .iter()
+        .map(|(_, nom, vs)| {
+            let trois = Trois::de(vs);
+            ParSalarie {
+                engagements_dit: super::compte(vs.len(), "engagement", "engagements"),
+                survol_dit: format!("coût employeur {} · brut {}", socle::texte::euros(trois.cout_employeur), socle::texte::euros(trois.brut)),
+                salarie: vs[0].salarie.clone(),
+                nom: nom.clone(),
+                trois,
+            }
+        })
+        .collect::<Vec<_>>();
+    let mut avertissements = archives_employees(&paies)?;
     let mut informations = Vec::new();
     for v in &vues {
-        let textes = |k: &str| v.get(k).and_then(Value::as_array).cloned().unwrap_or_default();
-        a_regarder.extend(textes("avertissements").iter().map(en_texte));
-        informations.extend(textes("informations").iter().map(en_texte));
+        avertissements.extend(v.avertissements.iter().cloned());
+        informations.extend(v.informations.iter().cloned());
     }
-    Ok(json!({
-        "phrase_du_mois": phrase_du_mois(&vues, par_salarie.is_empty()),
-        "mois": mois,
-        "libelle": lu.libelle(socle::mois::Graphie::Titre),
-        "paies": vues,
-        "total_cout": total_cout.to_string(), "total_net": total_net.to_string(),
-        "blocs": blocs, "par_salarie": par_salarie,
-        "avertissements": a_regarder,
-        "informations": informations,
-    }))
+    let paies: Vec<PaieVue> = vues.into_iter().map(|v| PaieVue::Calculee(Box::new(v))).collect();
+    Ok(Calcul {
+        phrase_du_mois: phrase_du_mois(&paies, par_salarie.is_empty()),
+        mois: lu,
+        libelle: lu.libelle(socle::mois::Graphie::Titre),
+        paies,
+        total_cout,
+        total_net,
+        blocs,
+        par_salarie,
+        avertissements,
+        informations,
+    })
 }

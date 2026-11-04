@@ -422,7 +422,7 @@ fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: 
         return Ok("deposee");
     }
     if let Some(m) = mensuelle {
-        if crate::routes::etapes::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(m, chemin)?.is_some() {
+        if crate::routes::etapes::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(socle::mois::Mois::lire(m)?, chemin)?.is_some() {
             return Ok("paie_changee");
         }
     }

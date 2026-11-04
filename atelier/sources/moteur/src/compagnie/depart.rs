@@ -174,8 +174,8 @@ pub(crate) fn versions_portees_de(racine: &Path, fichier: &Path) -> Option<Vec<V
 /// Ce que doit etre la prochaine DSN REELLE de ce mois : `(type, ordre, remplace)`. Normale d'ordre 1 si rien n'est
 /// passe ; sinon annule-et-remplace au rang suivant -- et un refus si son delai est passe.
 fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<(String, i64, bool)> {
-    let faits = m.depots_reels(mois, nic)?;
-    let dernier = m.dernier_ordre(mois, &faits)?;
+    let faits = m.depots_reels(socle::mois::Mois::lire(mois)?, nic)?;
+    let dernier = m.dernier_ordre(socle::mois::Mois::lire(mois)?, &faits)?;
     // CE QUE LA PLATE-FORME A VU EN REEL ce mois civil, lu en silence dans les bilans archives
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : le rang se compte « au cours du mois courant » (cahier
     // technique DSN, p. 136), toutes declarations du SIREN confondues, d'ou qu'elles soient parties (un autre poste).
@@ -187,7 +187,7 @@ fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R
         None if vues.du_mois_acceptee => vues.ordre.max(1),
         None => return Ok(("01".into(), vues.ordre + 1, false)),
     };
-    m.refuser_si_hors_delai(mois)?;
+    m.refuser_si_hors_delai(socle::mois::Mois::lire(mois)?)?;
     Ok(("03".into(), dernier + 1, true))
 }
 
@@ -393,7 +393,7 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
         .map(valeur_en_texte);
     let quand = ecrite.unwrap_or_else(|| valeur_en_texte(l.get("quand").unwrap_or(&Value::Null)));
     let constitution = socle::date::Jour::lire(quand.get(..10).unwrap_or_default()).map_err(valeur)?;
-    let forme = Forme { type_dsn, ordre: m.ordre_de_la_ligne(&mois, l)?, etablissement: plusieurs.then_some(nic), constitution, remplacee_versait_pas };
+    let forme = Forme { type_dsn, ordre: m.ordre_de_la_ligne(socle::mois::Mois::lire(&mois)?, l)?, etablissement: plusieurs.then_some(nic), constitution, remplacee_versait_pas };
     let avant = envois::journal::departs_des_lignes(&lignes[..rang]);
     let ctx_m = ctx.du_mois(&mois).map_err(valeur)?;
     let mut paies: Vec<Paie> = Vec::new();
@@ -471,9 +471,9 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
 fn dsn_parties(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<Vec<declarations::dsn::Fabriquee>> {
     let lignes = m.lignes()?;
     let mut faits: Vec<(i64, usize)> = Vec::new();
-    for l in m.depots_reels(mois, nic)? {
+    for l in m.depots_reels(socle::mois::Mois::lire(mois)?, nic)? {
         let Some(rang) = lignes.iter().position(|x| *x == l) else { continue };
-        faits.push((m.ordre_de_la_ligne(mois, &l)?, rang));
+        faits.push((m.ordre_de_la_ligne(socle::mois::Mois::lire(mois)?, &l)?, rang));
     }
     faits.sort();
     let mut out: Vec<declarations::dsn::Fabriquee> = Vec::new();
@@ -697,7 +697,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
                 "La DSN de {} est deja partie : celle-ci est un ANNULE-ET-REMPLACE integral (ordre {}). Elle remplace la precedente, ordres de telepaiement compris, et s'envoie au plus tard le {} a minuit.",
                 socle::mois::Mois::en_clair(mois),
                 ordre,
-                m.limite(mois)?.jj_mm_aaaa()
+                m.limite(socle::mois::Mois::lire(mois)?)?.jj_mm_aaaa()
             )));
         }
         let f_dsn = sortie.join(&nom);
@@ -720,7 +720,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             declarations::dsn::ecrire(texte, f).map_err(|m| erreur("OSError", m))?;
         }
         // La paie que chaque DSN declare : l'ecran dira si elle change avant l'envoi.
-        let empreinte = m.empreinte_saisie_avec(mois, || Ok(Moteur::portees(&lu.regs)))?;
+        let empreinte = m.empreinte_saisie_avec(socle::mois::Mois::lire(mois)?, || Ok(Moteur::portees(&lu.regs)))?;
         for (f, _, portees) in a_ecrire {
             noter_piece_ecrite(&ctx.racine, &cle_de_piece(&f), Some(json!(empreinte)), Some(portees))?;
         }
@@ -1254,9 +1254,9 @@ fn refaire_la_dsn(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize,
     };
     // Un annule-et-remplace : la DSN qu'il remplacait versait-elle a la DGFiP ?
     let mut avant: Vec<(i64, usize)> = Vec::new();
-    for x in m.depots_reels(&mois, &nic_v)? {
+    for x in m.depots_reels(socle::mois::Mois::lire(&mois)?, &nic_v)? {
         if let Some(r) = lignes.iter().position(|y| *y == x).filter(|r| *r < rang) {
-            avant.push((m.ordre_de_la_ligne(&mois, &x)?, r));
+            avant.push((m.ordre_de_la_ligne(socle::mois::Mois::lire(&mois)?, &x)?, r));
         }
     }
     avant.sort();
