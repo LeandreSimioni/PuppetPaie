@@ -2,7 +2,7 @@
 //! au journal, un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite
 //! (`envois::releve_signatures::chercher_reponse`, le tri strict) et fait tout ce qui suit : la preuve archivee
 //! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`depart::contresigner` : le PDF parti, plus la mention de l'artiste dans sa case), le journal (sur la ligne de
-//! l'envoi, par contrat, date de la SIGNATURE, `crate::routes::contrats::contrat_recu_avec`), et le renvoi du
+//! l'envoi, par contrat, date de la SIGNATURE, `crate::routes::contrats::contrat_recu`), et le renvoi du
 //! contresigne au salarie (`envois::releve_signatures::renvoyer_contresigne`).
 //!
 //! NE LEVE PAS pour une boite absente : c'est un travail de fond, il dit ce qui l'empeche dans `incidents` et rend la
@@ -199,7 +199,15 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             };
             let debut = c.debut.clone();
             // Le contrat que cette reponse signe, par son numero : le jumeau du meme jour garde sa propre attente.
-            match crate::routes::contrats::contrat_recu_avec(ctx, &a_mois, &c.salarie, &debut, Some(c.numero_dit()), true, None, qui, Some(&courriel)) {
+            let note = match (a.mois, socle::date::Jour::lire(&debut)) {
+                (Some(mois), Ok(jour)) => {
+                    let charge = crate::routes::contrats::ChargeRecu { mois, salarie: c.salarie.to_string(), debut: jour, numero: c.numero.as_ref().map(|n| n.to_string()), avenant: None, recu: true };
+                    crate::routes::contrats::contrat_recu(ctx, &charge, qui, Some(&courriel)).map(|_| ())
+                }
+                (None, _) => Err(erreur("ErreurOperation", "la demande de signature ne dit pas son mois")),
+                (_, Err(m)) => Err(erreur("ValueError", m)),
+            };
+            match note {
                 Ok(_) => notes += 1,
                 Err(e) => r.incidents.push(format!(
                     "{} : la signature de {} est arrivee mais le contrat du {} n'a pas pu etre enregistre ({}) ; il n'est pas note signe.",

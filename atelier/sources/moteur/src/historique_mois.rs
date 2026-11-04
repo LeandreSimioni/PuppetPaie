@@ -126,7 +126,7 @@ fn nature_dsn(nature: &str, type_: &str) -> String {
 }
 
 /// Le salarie d'une ligne de contrat : le nom que la ligne porte (`detail.nom`, « NOM Prenom », ecrit par
-/// `crate::routes::contrats::contrat_recu_avec` et `releve_signatures`), sinon celui de sa fiche (`detail.salarie` est sa cle),
+/// `crate::routes::contrats::contrat_recu` et `releve_signatures`), sinon celui de sa fiche (`detail.salarie` est sa cle),
 /// sinon la cle elle-meme.
 fn qui_du_contrat(ctx: &Contexte, nom: &str, cle: &str) -> String {
     if !nom.is_empty() {

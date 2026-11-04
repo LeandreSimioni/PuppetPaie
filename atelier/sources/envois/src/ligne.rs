@@ -550,9 +550,9 @@ pub struct ContratParti {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub effet: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub modifie: Option<Vec<serde_json::Value>>,
+    pub modifie: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub modifications: Option<Vec<serde_json::Value>>,
+    pub modifications: Option<Vec<ArticleModifie>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub clauses: Option<BTreeMap<String, Option<String>>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -578,6 +578,31 @@ impl ContratParti {
     /// Le numero du contrat, tel qu'il sert de cle : son texte, ou `""`.
     pub fn numero_dit(&self) -> &str {
         self.numero.as_deref().unwrap_or("")
+    }
+}
+
+/// CE QU'UN AVENANT CHANGE, un article ou un terme : l'article du modele de contrat et son numero, l'ancien texte et le
+/// nouveau (`documents::avenant::modifications`, les paragraphes `blocs` de l'article) ; ou, pour un contrat signe hors du
+/// logiciel, le terme dit en clair (`phrase`), sans numero, et le jour ou il change (`documents::avenant::changements_en_clair`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArticleModifie {
+    pub numero: Option<usize>,
+    pub article: String,
+    pub avant: Vec<String>,
+    pub apres: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub blocs: Vec<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phrase: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jour: Option<String>,
+}
+
+impl ArticleModifie {
+    /// Un terme dit en clair (un contrat signe hors du logiciel), pas un article cite.
+    pub fn en_clair(&self) -> bool {
+        self.phrase.as_deref().is_some_and(|p| !p.is_empty())
     }
 }
 
@@ -657,7 +682,7 @@ pub struct AvenantParti {
     pub code: Option<String>,
     pub contrat: Option<NumeroContrat>,
     pub effet: Option<String>,
-    pub modifications: Vec<serde_json::Value>,
+    pub modifications: Vec<ArticleModifie>,
     pub signe: Option<String>,
 }
 

@@ -1,7 +1,7 @@
 //! Les routes des documents du mois : ce que la boite montre avant l'envoi (`envoi-apercu`), les envoyer par courriel
 //! (`envoyer-documents`) ou les imprimer (`documents-imprimer`) ; l'un et l'autre sont un depart (bulletins et
 //! certificats numerotes, une ligne au journal, la paie figee). Et ce que les envois partagent avec `contrats` et
-//! `archives` : la boite qui envoie (`client_courriel`), la preuve (`preuve_de`), les lectures de la charge.
+//! `archives` : la boite qui envoie (`client_courriel`), les lectures de la charge.
 //!
 //! L'apercu ne fait que lire : il nomme les pieces dues a chacun, que l'envoi fabrique.
 
@@ -109,7 +109,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        Route::EnvoyerDocuments => envoyer_documents(ctx, charge, &mut || client_courriel(ctx)),
+        Route::EnvoyerDocuments => envoyer_documents(ctx, crate::routes::lire_charge(charge)?, &mut || client_courriel(ctx)),
         Route::DocumentsImprimer => documents_imprimer(ctx, charge, &crate::routes::INTERFACE.to_string()).map(|v| {
             let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(|c| super::salarie(ctx, c).map(|s| super::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(c))).collect();
             let mois = socle::mois::Mois::en_clair(&charge.get("mois").map(valeur_en_texte).unwrap_or_default());
@@ -580,19 +580,9 @@ pub(crate) fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
     }
 }
 
-/// `d.get(cle) or defaut` en texte : la valeur quand elle est vraie.
-pub(crate) fn vrai_ou(d: &Value, cle: &str) -> Option<String> {
-    d.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
-}
-
 /// `charge[cle]` en texte (`KeyError` si elle manque).
 pub(crate) fn charge_texte(charge: &Value, cle: &str) -> R<String> {
     Ok(valeur_en_texte(requis(charge, cle)?))
-}
-
-/// La preuve que la charge porte : le mot de passe tape.
-pub(crate) fn preuve_de(charge: &Value) -> Preuve {
-    Preuve::de_la_charge(charge)
 }
 
 /// La boite qui envoie, selon le branchement de la compagnie (`bridage::branchement`) : le simulateur ecrit les messages
@@ -621,11 +611,23 @@ pub(super) fn expediteur_de(client: &dyn Courriel) -> String {
 
 // ------------------------------------------------------------------ envoyer-documents
 
+/// La charge de `envoyer-documents` : le mois, les salaries choisis (tous sinon), et le mot de passe du logiciel tape
+/// pour l'envoi.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeEnvoyerDocuments {
+    mois: socle::mois::Mois,
+    #[serde(default)]
+    salaries: Option<Vec<String>>,
+    #[serde(default)]
+    motdepasse: Option<String>,
+}
+
 /// Envoie a chaque salarie ses documents du mois. Irreversible.
-fn envoyer_documents(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
-    let mois = charge_texte(charge, "mois")?;
-    let preuve = preuve_de(charge);
-    let prepare = preparer_envoi(ctx, &mois, salaries_choisis(charge)?.as_deref(), Some(&preuve), ouvrir)?;
+fn envoyer_documents(ctx: &Contexte, c: ChargeEnvoyerDocuments, ouvrir: Ouvrir) -> R<Value> {
+    let mois = c.mois.to_string();
+    let preuve = Preuve::du_mot_de_passe(c.motdepasse);
+    let prepare = preparer_envoi(ctx, &mois, c.salaries.filter(|l| !l.is_empty()).as_deref(), Some(&preuve), ouvrir)?;
     expedier_envoi(ctx, prepare, &mois, &preuve, &crate::routes::INTERFACE.to_string())
 }
 

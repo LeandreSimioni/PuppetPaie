@@ -115,9 +115,9 @@ const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), form
 
 /// La charge de `revue-spectacles` : l'annee de la revue, et les spectacles qui continuent (leurs cles ; les autres
 /// s'archivent). Le geste qu'offre son rappel l'ecrit aussi.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct ChargeRevue {
+pub(crate) struct ChargeRevue {
     annee: i32,
     #[serde(default)]
     continuent: Vec<String>,
@@ -398,16 +398,16 @@ impl Echeance {
     /// spectacles) la passe ; un objet qui ne la remplit pas (un arret sans son salarie ou son dernier jour travaille)
     /// n'offre pas de geste.
     fn action(&self) -> Option<crate::routes::etapes::Action> {
-        use crate::routes::etapes::{action, deposer_dsn, ChargeMois};
+        use crate::routes::etapes::{action, deposer_dsn, ChargeAnnee, ChargeMois, ChargeObligationDArret};
         use crate::routes::imprevus::{ChargeArretSignaler, ChargeFinContratSignaler, NatureSignalement};
         let annee_dite = self.annee.map(|a| a.to_string()).unwrap_or_default();
-        let annee = || json!({"annee": annee_dite});
+        let annee = || ChargeAnnee { annee: annee_dite.clone() };
         let objet = self.objet.as_ref().unwrap_or(&Value::Null);
         let salarie = || objet["salarie"].as_str().map(String::from);
         Some(match self.quoi.as_str() {
             OBLIGATION => {
                 let o = self.obligation.as_ref()?;
-                let arret = || json!({"salarie": objet["salarie"], "dernier_jour": objet["dernier_jour_travaille"]});
+                let arret = || Some(ChargeObligationDArret { salarie: salarie()?, dernier_jour: objet["dernier_jour_travaille"].as_str()?.to_string() });
                 match o.get("cle").and_then(Value::as_str).unwrap_or("") {
                     "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
                         action(Route::Saisie, ChargeMois { mois: self.mois? }, Some(Route::ModifierEngagement), "Compléter le contrat".into())
@@ -421,8 +421,8 @@ impl Echeance {
                         let nature = if cle == "signalement_reprise" { NatureSignalement::Reprise } else { NatureSignalement::Arret };
                         action(Route::ArretSignaler, ChargeArretSignaler::de(salarie()?, dernier_jour, nature), Some(Route::Deposer), "Signaler…".into())
                     }
-                    "declaration_accident" if o.get("ou").is_some_and(Value::is_array) => action(Route::AccidentDeclare, arret(), None, "Faite le".into()),
-                    "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => action(Route::AttestationDeclare, arret(), None, "Faite le".into()),
+                    "declaration_accident" if o.get("ou").is_some_and(Value::is_array) => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
+                    "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
                     _ => action(Route::EtatDuMois, ChargeMois { mois: self.mois? }, None, "Ouvrir le mois".into()),
                 }
             }

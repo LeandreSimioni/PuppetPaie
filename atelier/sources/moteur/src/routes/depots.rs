@@ -741,7 +741,7 @@ fn deposer(ctx: &Contexte, c: ChargeDeposer) -> R<Deposee> {
     let ChargeDeposer { quoi, mois, etablissement, engagements, fichier, reel, forcer, contournement, motdepasse } = c;
     let d = Designation { quoi, mois, etablissement, engagements, fichier };
     let (fichier, _) = designee(ctx, &d)?;
-    let preuve = Preuve { motdepasse: motdepasse.filter(|m| !m.is_empty()), mois_recopie: None, donnee: None };
+    let preuve = Preuve::du_mot_de_passe(motdepasse);
     let contournement = contournement.trim();
     let mut fait = match quoi {
         Quoi::Dsn => depot_acte::deposer_dsn(ctx, &fichier, reel, Some(&preuve), "interface", forcer, contournement)?,

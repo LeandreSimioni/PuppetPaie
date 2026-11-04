@@ -1486,7 +1486,7 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[envois::journal::Lign
                     .ok_or_else(|| valeur(format!("journal : {} modifie un contrat qui n'est pas parti avant lui", nom)))?
                     .date()
             };
-            let modifs: Vec<Value> = premier.modifications.clone().unwrap_or_default();
+            let modifs = crate::compagnie::signature::pour_la_piece(premier.modifications.as_deref().unwrap_or_default())?;
             return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&date_contrat)?, &jj(premier.effet.as_deref().unwrap_or(""))?, &jour.jj_mm_aaaa(), premier.ailleurs)
                 .map_err(Echec::from);
         }

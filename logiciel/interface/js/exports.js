@@ -172,9 +172,9 @@ async function lancerDossier(route, apercu) {
   const charge = {
     salaries: qui,
     categories: [...document.querySelectorAll(".d-cat:checked")].map((c) => c.value),
-    ensemble: document.getElementById("d-ensemble").checked,
-    apercu,
   };
+  // L'envoi refait le dossier de chacun : ni aperçu, ni dossier d'ensemble.
+  if (route !== "dossier-envoyer") Object.assign(charge, { ensemble: document.getElementById("d-ensemble").checked, apercu });
   if (quand === "mois") charge.mois = periode;
   else if (quand === "annee") charge.annee = periode;
   else charge.toutes_les_annees = true;

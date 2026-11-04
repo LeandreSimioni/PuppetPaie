@@ -256,7 +256,7 @@ impl Ouverture {
             "secondes": self.secondes,
             "sauvegarde": sauvegarde,
             "retours": retours,
-            "signatures": self.signatures.as_ref().map(ReleveSignatures::en_json),
+            "signatures": self.signatures.clone().map(ReleveSignatures::dite),
             "incidents": self.incidents,
             "manquants": self.manquants,
             "retours_dpae": retours_dpae,

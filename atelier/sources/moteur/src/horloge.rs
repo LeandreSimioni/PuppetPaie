@@ -54,6 +54,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
+use crate::routes::contrats::{AvenantVoulu, ChargeRecu, ChargeSignature, ContratASigner, ContratVise};
 use droit::contexte::Contexte;
 use envois::courriel::{Courriel, ErreurCourriel};
 use socle::date::Jour;
@@ -335,7 +336,7 @@ enum Geste {
     /// Les contrats de l'embauche du `debut` reviennent signes.
     Signes { mois: Mois, debut: String },
     /// L'avenant du contrat (`salarie`, `debut`) part a la signature, puis revient signe.
-    Avenant { mois: Mois, salarie: String, debut: String, nom: String },
+    Avenant { mois: Mois, salarie: String, debut: Jour, nom: String },
     /// Le signalement d'arret (04) ou de reprise (05) de l'arret de `salarie` au `dernier` jour travaille.
     Arret { mois: Mois, salarie: String, dernier: String, cle: &'static str, nature: crate::routes::imprevus::NatureSignalement },
     /// Le signalement de fin du contrat de `salarie` qui finit le `fin`.
@@ -513,15 +514,13 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, le_mois: Mois, calendrier
             geste: Geste::Signes { mois: le_mois, debut },
         });
     }
-    if let Ok(apercu) = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois})) {
-        for c in apercu["contrats"].as_array().into_iter().flatten() {
-            let (salarie, debut) = (valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["debut"]));
-            let Some(quand) = revalide_le(ctx, mois, &salarie, &debut) else { continue };
+    if let Ok(apercu) = crate::routes::contrats::signature_apercu(ctx, le_mois) {
+        for c in apercu.contrats {
+            let Some(quand) = revalide_le(ctx, mois, &c.salarie, &c.debut.iso()) else { continue };
             if quand.get(..10).unwrap_or("") > jour_iso.as_str() {
                 continue;
             }
-            let nom = valeur_en_texte(&c["nom"]);
-            calendrier.push(Pas { quand, quoi: String::new(), geste: Geste::Avenant { mois: le_mois, salarie, debut, nom } });
+            calendrier.push(Pas { quand, quoi: String::new(), geste: Geste::Avenant { mois: le_mois, salarie: c.salarie, debut: c.debut, nom: c.nom } });
         }
     }
     calendrier.extend(signalements_dus(ctx, le_mois, jour, false));
@@ -605,23 +604,23 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let mut imprimes: Vec<Signable> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
                 let (par_courriel, sans): (Vec<Signable>, Vec<Signable>) =
-                    signables(ctx, &mois.to_string())?.into_iter().filter(|c| c.debut == *debut && c.a_envoyer).partition(|c| c.courriel);
+                    signables(ctx, *mois)?.into_iter().filter(|c| c.vise.debut.iso() == *debut && c.a_envoyer).partition(|c| c.courriel);
                 imprimes = sans;
                 if par_courriel.is_empty() {
                     return Ok(false);
                 }
                 // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-                let contrats: Vec<Value> = par_courriel.iter().map(Signable::charge).collect();
-                crate::routes::contrats::demander_signature(ctx, &json!({"mois": mois, "contrats": contrats}), &mut ouvrir)?;
+                let contrats = par_courriel.into_iter().map(|c| c.vise).collect();
+                crate::routes::contrats::demander_signature(ctx, ChargeSignature::des_contrats(*mois, contrats), &mut ouvrir)?;
                 Ok(true)
             });
             if !imprimes.is_empty() {
                 let noms = imprimes.iter().map(|c| c.nom.as_str()).collect::<Vec<_>>().join(", ");
                 let quoi = format!("contrats de l'embauche du {} imprimés pour {} (pas de courriel dans sa fiche), remis en main propre", le(debut), noms);
                 fait.extend(pas(d, &quoi, quand, |ctx| {
-                    let contrats: Vec<Value> = imprimes.iter().map(Signable::charge).collect();
-                    crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": contrats}), QUI_HORLOGE)?;
+                    let contrats = imprimes.iter().map(|c| c.vise.clone()).collect();
+                    crate::routes::contrats::contrats_imprimer(ctx, ChargeSignature::des_contrats(*mois, contrats), QUI_HORLOGE)?;
                     Ok(true)
                 }));
             }
@@ -646,33 +645,33 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
         }),
         // UN CONTRAT REVIENT SIGNE S'IL EST PARTI (par courriel ou imprime) : jamais un retour sans son depart.
         Geste::Signes { mois, debut } => pas(d, quoi, quand, |ctx| {
-            let manquent: Vec<Signable> = signables(ctx, &mois.to_string())?.into_iter().filter(|c| c.debut == *debut && !c.a_envoyer).collect();
+            let manquent: Vec<Signable> = signables(ctx, *mois)?.into_iter().filter(|c| c.vise.debut.iso() == *debut && !c.a_envoyer).collect();
             if manquent.is_empty() {
                 return Ok(false);
             }
-            for c in &manquent {
-                crate::routes::contrats::contrat_recu_par(ctx, &mois.to_string(), &c.salarie, &c.debut, Some(c.numero.as_str()), true, QUI_HORLOGE)?;
+            for c in manquent {
+                let ContratVise { salarie, debut, numero } = c.vise;
+                crate::routes::contrats::contrat_recu(ctx, &ChargeRecu { mois: *mois, salarie, debut, numero, avenant: None, recu: true }, QUI_HORLOGE, None)?;
             }
             Ok(true)
         }),
         Geste::Avenant { mois, salarie, debut, nom } => {
-            let du_contrat = |ctx: &Contexte| -> R<Option<Value>> {
-                let a = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois}))?;
-                Ok(a["contrats"].as_array().into_iter().flatten().find(|x| valeur_en_texte(&x["salarie"]) == *salarie && valeur_en_texte(&x["debut"]) == *debut).cloned())
+            let du_contrat = |ctx: &Contexte| -> R<Option<ContratASigner>> {
+                Ok(crate::routes::contrats::signature_apercu(ctx, *mois)?.contrats.into_iter().find(|x| x.salarie == *salarie && x.debut == *debut))
             };
             // La ligne de l'horloge dit ce que le journal dit : parti par courriel, ou imprime et remis en main propre.
             let imprime = std::cell::Cell::new(false);
             let mut fait = pas(d, &format!("avenant du contrat de {} envoyé à la signature", nom), quand, |ctx| {
-                let Some(x) = du_contrat(ctx)?.filter(|x| x.get("en_avenant").is_some_and(vrai)) else {
+                let Some(x) = du_contrat(ctx)?.filter(|x| x.en_avenant) else {
                     return Ok(false);
                 };
-                let numero = valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"]));
-                let voulu = json!({"salarie": salarie, "debut": debut, "numero": if numero.is_empty() { Value::Null } else { json!(numero) }, "mois": mois});
+                let numero = x.numero.as_ref().map(|n| n.to_string());
+                let voulu = AvenantVoulu { salarie: salarie.clone(), debut: *debut, numero, mois: Some(*mois), effet: None, relance: false };
                 // LA BOITE MUETTE, et jamais une autre ; sans courriel dans la fiche, l'avenant s'imprime et se remet en
                 // main propre : l'impression est son depart.
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
                 if crate::routes::contrats::envoyer_avenants(ctx, std::slice::from_ref(&voulu), &Preuve::default(), &mut ouvrir).is_err() {
-                    crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "avenants": [voulu]}), QUI_HORLOGE)?;
+                    crate::routes::contrats::contrats_imprimer(ctx, ChargeSignature::des_avenants(*mois, vec![voulu]), QUI_HORLOGE)?;
                     imprime.set(true);
                 }
                 Ok(true)
@@ -683,11 +682,18 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let signe = if imprime.get() { "signé, remis en main propre" } else { "revenu signé" };
             fait.extend(pas(d, &format!("avenant du contrat de {} {}", nom, signe), quand, |ctx| {
                 let Some(x) = du_contrat(ctx)? else { return Ok(false) };
-                if !(x.get("avenant_attendu").is_some_and(vrai) && x.get("en_attente").is_some_and(vrai)) {
+                if !(x.avenant_attendu && x.en_attente) {
                     return Ok(false);
                 }
-                let numero = valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"]));
-                crate::routes::contrats::contrat_recu_avec(ctx, &mois.to_string(), salarie, debut, Some(numero.as_str()), true, x["avenant"]["numero"].as_i64(), QUI_HORLOGE, None)?;
+                let charge = ChargeRecu {
+                    mois: *mois,
+                    salarie: salarie.clone(),
+                    debut: *debut,
+                    numero: x.numero.as_ref().map(|n| n.to_string()),
+                    avenant: x.avenant.as_ref().and_then(|a| a.numero),
+                    recu: true,
+                };
+                crate::routes::contrats::contrat_recu(ctx, &charge, QUI_HORLOGE, None)?;
                 Ok(true)
             }));
             fait
@@ -829,9 +835,8 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
 
 /// Un contrat de spectacle du mois qui n'est pas revenu signe (`signature-apercu`).
 struct Signable {
-    salarie: String,
-    debut: String,
-    numero: String,
+    /// Le contrat, tel que les routes des contrats le recoivent.
+    vise: ContratVise,
     /// « NOM Prenom ».
     nom: String,
     /// Sa fiche a un courriel : il part a la signature par courriel ; sinon il s'imprime.
@@ -840,32 +845,19 @@ struct Signable {
     a_envoyer: bool,
 }
 
-impl Signable {
-    /// Ce que les routes des contrats recoivent pour lui.
-    fn charge(&self) -> Value {
-        json!({"salarie": self.salarie, "debut": self.debut, "numero": if self.numero.is_empty() { Value::Null } else { json!(self.numero) }})
-    }
-}
-
 /// Les contrats de spectacle du mois qui ne sont pas revenus signes.
-fn signables(ctx: &Contexte, mois: &str) -> R<Vec<Signable>> {
-    let a = crate::routes::contrats::signature_apercu(ctx, &json!({"mois": mois}))?;
-    Ok(a["contrats"]
-        .as_array()
-        .map(|c| {
-            c.iter()
-                .filter(|x| !x.get("recu_le").is_some_and(vrai))
-                .map(|x| Signable {
-                    salarie: valeur_en_texte(&x["salarie"]),
-                    debut: valeur_en_texte(&x["debut"]),
-                    nom: valeur_en_texte(&x["nom"]),
-                    courriel: x.get("destinataire").is_some_and(vrai),
-                    numero: valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"])),
-                    a_envoyer: x.get("a_envoyer").is_some_and(vrai) && !x.get("en_avenant").is_some_and(vrai),
-                })
-                .collect()
+fn signables(ctx: &Contexte, mois: Mois) -> R<Vec<Signable>> {
+    Ok(crate::routes::contrats::signature_apercu(ctx, mois)?
+        .contrats
+        .into_iter()
+        .filter(|x| x.recu_le.is_none())
+        .map(|x| Signable {
+            courriel: !x.destinataire.is_empty(),
+            a_envoyer: x.a_envoyer && !x.en_avenant,
+            vise: ContratVise { numero: x.numero.as_ref().map(|n| n.to_string()), salarie: x.salarie, debut: x.debut },
+            nom: x.nom,
         })
-        .unwrap_or_default())
+        .collect())
 }
 
 // ------------------------------------------------------------------ les avenants

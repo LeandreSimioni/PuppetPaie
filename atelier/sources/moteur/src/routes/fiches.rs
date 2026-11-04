@@ -13,7 +13,8 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION};
 use crate::routes::catalogue::Route;
-use crate::routes::documents::{client_courriel, preuve_de};
+use crate::routes::documents::client_courriel;
+use crate::routes::{en_json, lire_charge, INTERFACE};
 use crate::routes::mois::{lire_saisie, sauver_avant};
 use declarations::champs;
 use documents::fiche_questionnaire as fq;
@@ -233,7 +234,6 @@ pub const ROUTES: &[Fiche] = &[
 ];
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
-    let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     match nom {
         // Supprimer la compagnie : avertir, puis effacer. Par `moteur route`, rien a lacher ; la fenetre sert elle-meme la
         // suppression confirmee, pour lacher d'abord ce qu'elle tient de la compagnie (`interface::Fenetre`).
@@ -301,10 +301,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &V
             let p = format!("Demande à {} abandonnée.", valeur_en_texte(&v["adresse"]));
             super::phrase_en_tete(v, p)
         }),
-        Route::FicheDemander => {
-            let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", None)?;
-            Ok(json!({"phrase": format!("Demande de fiche envoyée à {} (code {}) : sa fiche se crée à l'arrivée de sa réponse.", d.adresse, d.code), "code": d.code, "adresse": d.adresse}))
-        }
+        Route::FicheDemander => en_json(fiche_demander(ctx, lire_charge(charge)?)?),
         Route::FichesRelever => {
             let r = relever_fiches(ctx, None, "interface")?;
             let phrase = match (r.recues.is_empty(), r.incidents.first()) {
@@ -2081,6 +2078,31 @@ pub struct FicheDemandee {
 
 /// Envoie a `adresse` le courriel « Remplir ma fiche ». Le journal garde
 /// le code : c'est par lui que la releve reconnaitra la reponse. `client` : la boite, ouverte ici (boite simulee dans une
+
+/// La charge de `fiche-demander` : l'adresse, le prenom (pour lui ecrire), et le mot de passe du logiciel tape pour l'envoi.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeFicheDemander {
+    adresse: String,
+    prenom: String,
+    #[serde(default)]
+    motdepasse: Option<String>,
+}
+
+/// Ce que rend `fiche-demander`.
+#[derive(Debug, serde::Serialize)]
+struct DemandeDeFiche {
+    phrase: String,
+    code: String,
+    adresse: String,
+}
+
+/// `fiche-demander` : le courriel « Remplir ma fiche » part (`demander_fiche`), sous la preuve que la charge porte.
+fn fiche_demander(ctx: &Contexte, c: ChargeFicheDemander) -> R<DemandeDeFiche> {
+    let preuve = Preuve::du_mot_de_passe(c.motdepasse);
+    let d = demander_fiche(ctx, &c.adresse, &c.prenom, &preuve, INTERFACE, None)?;
+    Ok(DemandeDeFiche { phrase: format!("Demande de fiche envoyée à {} (code {}) : sa fiche se crée à l'arrivée de sa réponse.", d.adresse, d.code), code: d.code, adresse: d.adresse })
+}
 /// compagnie fictive, sinon refus « boite absente ») quand l'appelant n'en donne pas.
 pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preuve, qui: &str, client: Option<&mut dyn Courriel>) -> R<FicheDemandee> {
     let adresse = strip(adresse).to_lowercase();
@@ -2415,12 +2437,10 @@ fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value
     r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
-/// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
+/// `poser-courriel` : le courriel `email` du salarie `cle`, saisi la ou il manque (la boite des contrats a
 /// faire signer). La fiche entiere s'ecrit comme depuis l'ecran (`ecrire_fiche`), seul le courriel y change : il se
 /// verifie avec elle, et une fiche qui refuse le dit.
-pub(crate) fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = texte_requis(charge, "salarie")?;
-    let email = texte_requis(charge, "email")?;
+pub(crate) fn poser_courriel(ctx: &Contexte, cle: &str, email: &str) -> R<()> {
     let Some(Value::Object(fiche)) = ctx.salaries.get(cle).map(|f| f.champs.en_valeur()) else {
         return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
     };
@@ -2428,5 +2448,5 @@ pub(crate) fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
     donnees.insert("email".into(), Value::String(email.trim().to_string()));
     let (depuis, _) = date_proposee(ctx, "salarie", Some(cle))?;
     ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &json!(depuis.iso()), &Value::Null)?;
-    Ok(json!({"salarie": cle, "email": email.trim()}))
+    Ok(())
 }
