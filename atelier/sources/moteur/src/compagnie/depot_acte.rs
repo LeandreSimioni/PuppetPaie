@@ -170,22 +170,22 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
 
 /// Le refus, ecrit pour qu'on sache quoi faire dans la minute, a l'ecran comme par `moteur route` : un test qui a RATE se
 /// corrige, un test PERIME se refait, une absence de test se fait, par la route `deposer` sans `reel`.
-fn phrase_repetition(quoi: &str, etat: &Value) -> String {
+fn phrase_repetition(quoi: &str, etat: &etats::Repetition) -> String {
     let acte = if quoi == "dsn" { "la DSN" } else { "la DPAE" };
-    let dernier = |cle: &str| etat.get(cle).and_then(Value::as_array).and_then(|a| a.last()).cloned();
-    let situation = if vrai(&etat["conforme"]) {
+    let quand = |l: &Value| etats::quand_lisible(&l["quand"]);
+    let situation = if let Some(c) = &etat.conforme {
         format!(
             "Ce contenu est parti en test le {}, et son compte rendu n'est pas encore arrivé : l'accusé d'enregistrement dit que l'envoi est reçu, pas qu'il est conforme. Relevez les retours, puis envoyez le réel.",
-            etats::quand_lisible(&etat["conforme"]["quand"])
+            quand(c)
         )
-    } else if let Some(l) = dernier("ratees") {
+    } else if let Some(l) = etat.ratees.last() {
         format!(
             "Ce contenu a été essayé en test le {}, et l'essai a échoué : {}. C'est cela qu'il faut corriger, puis le déposer de nouveau en test.",
-            etats::quand_lisible(&l["quand"]),
-            etats::pourquoi_rate(&l)
+            quand(l),
+            etats::pourquoi_rate(l)
         )
-    } else if let Some(l) = dernier("perimees") {
-        format!("Un fichier du même nom a été essayé en test le {}, mais son contenu a changé depuis : déposez d'abord ce fichier en test.", etats::quand_lisible(&l["quand"]))
+    } else if let Some(l) = etat.perimees.last() {
+        format!("Un fichier du même nom a été essayé en test le {}, mais son contenu a changé depuis : déposez d'abord ce fichier en test.", quand(l))
     } else {
         "Ce contenu n'a jamais été déposé en test : déposez d'abord ce fichier en test.".to_string()
     };
@@ -207,12 +207,11 @@ fn exiger_repetition(lignes: &[Value], quoi: &str, chemin: &Path, contournement:
     // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
     // celui d'un test revient bel et bien (constate sur des DPAE de test : le certificat 41 les dit enregistrees,
     // code 99).
-    if etats::etat_du_test(&etat) == "testee" {
-        let l = &etat["conforme"];
+    if let (etats::EtatDuTest::Testee, Some(l)) = (etat.etat, &etat.conforme) {
         return Ok(json!({
             "test": l.get("quand").cloned().unwrap_or(Value::Null),
-            "flux": if vrai(&l["flux"]) { l["flux"].clone() } else { json!("") },
-            "empreinte": etat["empreinte"], "compte_rendu": etat["compte_rendu"],
+            "flux": etat.flux_conforme(),
+            "empreinte": etat.empreinte, "compte_rendu": etat.compte_rendu,
         }));
     }
     let raison = contournement.trim();
@@ -223,9 +222,9 @@ fn exiger_repetition(lignes: &[Value], quoi: &str, chemin: &Path, contournement:
                 "Déposer sans répétition demande un motif écrit : ce qui empêchait le test, en une phrase, qu'on relira le jour où ce dépôt posera question. Rien n'est parti.",
             ));
         }
-        return Ok(json!({"contournement": raison, "empreinte": etat["empreinte"]}));
+        return Ok(json!({"contournement": raison, "empreinte": etat.empreinte}));
     }
-    Err(avec_donnee("RepetitionManquante", phrase_repetition(quoi, &etat), "etat", etat))
+    Err(avec_donnee("RepetitionManquante", phrase_repetition(quoi, &etat), "etat", serde_json::to_value(&etat).unwrap_or_default()))
 }
 
 /// LES ENGAGEMENTS QU'UN SIGNALEMENT COUVRE : un signalement porte un individu, un contrat, un evenement
@@ -368,7 +367,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
 /// 5. seulement alors chercher le secret de l'organisme ; 6. deposer ; 7. NOTER, quoi qu'il arrive.
 pub fn deposer_dsn(
     ctx: &Contexte,
-    fichier: &Value,
+    fichier: &str,
     reel: bool,
     preuve: Option<&Preuve>,
     qui: &str,
@@ -390,7 +389,7 @@ pub fn deposer_dsn(
 #[allow(clippy::too_many_arguments)]
 pub fn deposer_dsn_dans(
     ctx: &Contexte,
-    fichier: &Value,
+    fichier: &str,
     reel: bool,
     preuve: Option<&Preuve>,
     qui: &str,
@@ -553,7 +552,7 @@ pub fn deposer_dsn_dans(
 /// declare des EMBAUCHES, et le journal retient lesquelles (salarie, premier jour).
 pub fn deposer_dpae(
     ctx: &Contexte,
-    fichier: &Value,
+    fichier: &str,
     reel: bool,
     preuve: Option<&Preuve>,
     qui: &str,
@@ -569,7 +568,7 @@ pub fn deposer_dpae(
 #[allow(clippy::too_many_arguments)]
 pub fn deposer_dpae_avec(
     ctx: &Contexte,
-    fichier: &Value,
+    fichier: &str,
     reel: bool,
     preuve: Option<&Preuve>,
     qui: &str,
@@ -580,16 +579,16 @@ pub fn deposer_dpae_avec(
     let branchement = crate::compagnie::bridage::branchement(&ctx.racine);
     branchement.ouvrir()?;
     let chemin = PathBuf::from(crate::routes::depots::resoudre(&ctx.racine, fichier)?);
-    let apercu = crate::routes::depots::apercu_depot_dpae(ctx, &json!(chemin.to_string_lossy()))?;
+    let apercu = crate::routes::depots::apercu_depot_dpae(ctx, &chemin.to_string_lossy())?;
     let octets = crate::routes::depots::lire_octets(&chemin.to_string_lossy())?;
-    let mois = valeur_en_texte(&apercu["mois"]);
+    let mois = apercu.mois.map(|m| m.to_string()).unwrap_or_default();
 
-    if reel && !vrai(&apercu["reel"]) {
+    if reel && !apercu.reel {
         return Err(erreur(
             "ErreurOperation",
             format!(
                 "Le fichier porte l'indicateur {} (envoi de test) : déposé en réel, il ne déclarerait rien. Rien n'est parti : déposez le fichier du mois, que la route deposer écrit elle-même.",
-                valeur_en_texte(&apercu["indicateur"])
+                apercu.indicateur
             ),
         ));
     }
@@ -630,10 +629,7 @@ pub fn deposer_dpae_avec(
         }
     }
 
-    let embauches: Vec<Value> = apercu["embauches"]
-        .as_array()
-        .map(|a| a.iter().map(|l| json!({"salarie": l["salarie"], "numero": l["numero"], "debut": l["debut"], "fin": l["fin"]})).collect())
-        .unwrap_or_default();
+    let embauches: Vec<Value> = apercu.embauches.iter().map(|l| json!({"salarie": l.salarie, "numero": l.numero, "debut": l.debut, "fin": l.fin})).collect();
     // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
     let declare = |cle: &str, n: &str| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["numero"].as_str() == Some(n));
     let versions = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |cle, n, _| declare(cle, n)).map_err(Echec::from)?;
@@ -643,7 +639,7 @@ pub fn deposer_dpae_avec(
         None => client.as_mut(),
     };
     let mut suites = Suites::default();
-    let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches.clone(), c, apercu["deja_depose"].clone(), &mut suites);
+    let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches.clone(), c, apercu.deja_depose.clone(), &mut suites);
     let faites = crate::compagnie::suites::faire(ctx, suites)?;
     let mut fait = fait?;
     fait.suites.extend(faites.incidents.into_iter().chain(faites.a_faire));
@@ -696,12 +692,12 @@ fn deposer_les_amorcages(ctx: &Contexte, mois: &str, embauches: &[Value], reel: 
     let teste = |f: &Path| -> bool {
         let (Ok(octets), Ok(lignes)) = (std::fs::read(f), envois::journal::lu(&ctx.racine).map(|j| j.lignes)) else { return false };
         let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        etats::repetition(&lignes, "dsn", &envois::journal::empreinte(&octets), &nom).is_ok_and(|r| vrai(&r["conforme"]))
+        etats::repetition(&lignes, "dsn", &envois::journal::empreinte(&octets), &nom).is_ok_and(|r| r.conforme.is_some())
     };
     let mut releve = false;
     let mut parties: Vec<String> = Vec::new();
     for (l, f) in retenues.iter().zip(&fichiers) {
-        let fichier = json!(f.to_string_lossy());
+        let fichier = f.to_string_lossy().into_owned();
         let mut fait = if reel && !teste(f) { deposer_dsn(ctx, &fichier, false, preuve, qui, false, contournement).map(|_| ()) } else { Ok(()) };
         if fait.is_ok() {
             fait = deposer_dsn(ctx, &fichier, reel, preuve, qui, false, contournement).map(|_| ());

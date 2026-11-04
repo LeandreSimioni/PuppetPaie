@@ -736,6 +736,7 @@ dependencies = [
  "engagement",
  "flate2",
  "rust_decimal",
+ "serde",
  "serde_json",
  "socle",
 ]
@@ -1082,6 +1083,7 @@ dependencies = [
  "rust_decimal",
  "rustls",
  "rustls-platform-verifier",
+ "serde",
  "serde_json",
  "sha2",
  "socle",

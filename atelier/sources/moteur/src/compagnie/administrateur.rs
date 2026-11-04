@@ -447,7 +447,7 @@ fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: 
     }
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let r = etats::repetition(lignes, "dsn", &empreinte, &nom)?;
-    Ok(match etats::etat_du_test(&r) {
+    Ok(match r.etat.nom() {
         "ecrite" => "a_tester",
         autre => autre,
     })

@@ -238,13 +238,13 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
 /// JOUE. La re-verification precede l'appel. Rend ce que ses retours laissent a faire.
 fn deposer_dsn_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<Vec<String>> {
     d.reverifier()?;
-    Ok(depot_acte::deposer_dsn(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?.suites)
+    Ok(depot_acte::deposer_dsn(ctx, fichier, reel, None, QUI_HORLOGE, false, "")?.suites)
 }
 
 /// JOUE. La re-verification precede l'appel.
 fn deposer_dpae_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
     d.reverifier()?;
-    depot_acte::deposer_dpae(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?;
+    depot_acte::deposer_dpae(ctx, fichier, reel, None, QUI_HORLOGE, false, "")?;
     Ok(())
 }
 
@@ -636,11 +636,11 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             if attente.is_empty() {
                 return Ok(false);
             }
-            let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e.salarie, "numero": e.numero})).collect();
-            let crate::routes::depots::Dpae::Ecrite(r) = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))? else {
+            let engagements: Vec<crate::routes::depots::EmbaucheDesignee> = attente.iter().map(|e| crate::routes::depots::EmbaucheDesignee { salarie: e.salarie.clone(), numero: e.numero.to_string() }).collect();
+            let crate::routes::depots::Dpae::Ecrite(r) = crate::routes::depots::dpae(ctx, *mois, Some(&engagements))? else {
                 return Ok(false);
             };
-            let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
+            let fichier = r.chemin;
             // La DPAE emporte la demande de taux de PAS de ses embauches (`depot_acte::deposer_dpae`).
             for reel in [false, true] {
                 deposer_dpae_joue(d, ctx, &fichier, reel)?;

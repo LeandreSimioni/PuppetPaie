@@ -14,5 +14,6 @@ engagement = { path = "../engagement" }
 documents = { path = "../documents" }
 rust_decimal = { workspace = true }
 serde_json = { workspace = true }
+serde = { workspace = true }
 # Le .zip de la DPAE : deflate et CRC-32.
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }

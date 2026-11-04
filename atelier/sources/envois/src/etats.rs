@@ -980,19 +980,6 @@ pub fn deja_depose(lignes: &[Value], quoi: &str, empreinte: &str) -> R<Value> {
     Ok(Value::Null)
 }
 
-/// OU EN EST LE TEST d'une repetition (`repetition`), dit une fois : teste et conforme (le reel peut partir), en test
-/// (son compte rendu est attendu), refuse (ses anomalies : `motif`), ou a faire (jamais essaye, ou un test d'un contenu
-/// d'avant).
-pub fn etat_du_test(r: &Value) -> &'static str {
-    if vrai(&r["conforme"]) {
-        if est(&r["compte_rendu"], "ok") { "testee" } else { "en_test" }
-    } else if vrai(&r["ratees"]) {
-        "test_refuse"
-    } else {
-        "ecrite"
-    }
-}
-
 /// Ce qui a fait echouer un depot de test, en une phrase : les anomalies des retours refuses, sinon la reponse du depot.
 pub fn pourquoi_rate(ligne: &Value) -> String {
     let mut anomalies: Vec<String> = Vec::new();
@@ -1017,7 +1004,55 @@ pub fn pourquoi_rate(ligne: &Value) -> String {
     }
 }
 
-pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R<Value> {
+/// OU EN EST LE TEST D'UN FICHIER (`repetition`) : sa derniere ligne de test conforme (`conforme`, une ligne du journal),
+/// son compte rendu (`ok`, `ko`, `attendu`, ou rien sans test conforme), les essais rates du meme contenu et ceux d'un
+/// contenu d'avant sous le meme nom, la couleur et les mots de l'encart qui le dit.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct Repetition {
+    pub empreinte: String,
+    pub fichier: String,
+    pub conforme: Option<Value>,
+    pub compte_rendu: &'static str,
+    pub ratees: Vec<Value>,
+    pub perimees: Vec<Value>,
+    pub couleur: &'static str,
+    pub motif: Option<String>,
+    pub etat: EtatDuTest,
+    pub titre: String,
+    pub phrase: String,
+}
+
+/// OU EN EST LE TEST, dit une fois : teste et conforme (le reel peut partir), en test (son compte rendu est attendu),
+/// refuse (ses anomalies : `motif`), ou a faire (jamais essaye, ou un test d'un contenu d'avant).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EtatDuTest {
+    Testee,
+    EnTest,
+    TestRefuse,
+    Ecrite,
+}
+
+impl EtatDuTest {
+    /// Son nom, tel que la reponse l'ecrit.
+    pub fn nom(self) -> &'static str {
+        match self {
+            EtatDuTest::Testee => "testee",
+            EtatDuTest::EnTest => "en_test",
+            EtatDuTest::TestRefuse => "test_refuse",
+            EtatDuTest::Ecrite => "ecrite",
+        }
+    }
+}
+
+impl Repetition {
+    /// Le flux du test conforme (`""` sans lui).
+    pub fn flux_conforme(&self) -> String {
+        self.conforme.as_ref().and_then(|c| c.get("flux")).filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default()
+    }
+}
+
+pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R<Repetition> {
     let mut conforme: Option<&Value> = None;
     let (mut ratees, mut perimees) = (Vec::new(), Vec::new());
     for l in filtrer(lignes, Some(quoi), None, false)? {
@@ -1034,9 +1069,10 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
             perimees.push(l.clone());
         }
     }
+    let conforme = conforme.filter(|c| vrai(c));
     let compte_rendu = match conforme {
-        Some(c) if vrai(c) => compte_rendu_du_depot(c)?,
-        _ => "",
+        Some(c) => compte_rendu_du_depot(c)?,
+        None => "",
     };
     let motif = ratees.last().map(pourquoi_rate);
     // LA COULEUR DE L'ENCART qui le dit (la charte des etats, `moteur::routes::couleur_de_l_etat`) : teste conforme, vert ;
@@ -1047,51 +1083,51 @@ pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R
         None if !ratees.is_empty() || !perimees.is_empty() => "orange",
         None => "gris",
     };
-    let mut r = json!({
-        "empreinte": empreinte, "fichier": nom, "conforme": conforme, "compte_rendu": compte_rendu,
-        "ratees": ratees, "perimees": perimees, "couleur": couleur, "motif": motif,
-    });
-    r["etat"] = json!(etat_du_test(&r));
-    let (titre, phrase) = phrase_du_test(&r, quoi);
-    r["titre"] = json!(titre);
-    r["phrase"] = json!(phrase);
-    Ok(r)
-}
-
-/// CE QUE L'ENCART DU TEST DIT, titre et phrase, d'apres ou il en est (`etat_du_test`) : la page et `moteur route` les
-/// lisent tels quels.
-fn phrase_du_test(r: &Value, quoi: &str) -> (String, String) {
+    let etat = match conforme {
+        Some(_) if compte_rendu == "ok" => EtatDuTest::Testee,
+        Some(_) => EtatDuTest::EnTest,
+        None if !ratees.is_empty() => EtatDuTest::TestRefuse,
+        None => EtatDuTest::Ecrite,
+    };
+    // CE QUE L'ENCART DU TEST DIT, titre et phrase, d'apres ou il en est : la page et `moteur route` les lisent tels quels.
     let cette = if quoi.eq_ignore_ascii_case(DPAE) { "Cette DPAE" } else { "Cette DSN" };
-    let quand = |l: &Value| quand_lisible(&l["quand"]);
-    let derniere = |k: &str| r[k].as_array().and_then(|l| l.last()).map(quand).unwrap_or_default();
+    let quand_conforme = conforme.map(|c| quand_lisible(&c["quand"])).unwrap_or_default();
+    let derniere = |l: &[Value]| l.last().map(|x| quand_lisible(&x["quand"])).unwrap_or_default();
     const ENSUITE: &str = "Le dépôt réel se fait une fois le test revenu conforme.";
-    match etat_du_test(r) {
-        "testee" => (
-            format!("{} est testée — conforme. Voulez-vous l'envoyer ?", cette),
-            format!("Déposée en test le {}, avec ce même contenu.", quand(&r["conforme"])),
-        ),
-        "en_test" => (
-            format!("{} est en test — son compte rendu est attendu", cette),
-            format!("Envoyée en test le {}. {}", quand(&r["conforme"]), ENSUITE),
-        ),
-        "test_refuse" => (
+    let (titre, phrase) = match etat {
+        EtatDuTest::Testee => (format!("{} est testée — conforme. Voulez-vous l'envoyer ?", cette), format!("Déposée en test le {}, avec ce même contenu.", quand_conforme)),
+        EtatDuTest::EnTest => (format!("{} est en test — son compte rendu est attendu", cette), format!("Envoyée en test le {}. {}", quand_conforme, ENSUITE)),
+        EtatDuTest::TestRefuse => (
             "Le test est refusé".into(),
             format!(
                 "Essayé le {} : {}. Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.",
-                derniere("ratees"),
-                valeur_en_texte(&r["motif"]).trim_end_matches('.')
+                derniere(&ratees),
+                motif.as_deref().unwrap_or_default().trim_end_matches('.')
             ),
         ),
-        _ if vrai(&r["perimees"]) => (
+        EtatDuTest::Ecrite if !perimees.is_empty() => (
             "Pas de test valable pour ce contenu".into(),
             format!(
                 "Un fichier du même nom a été essayé le {}, mais son contenu a changé depuis : le test ne vaut plus. {}",
-                derniere("perimees"),
+                derniere(&perimees),
                 ENSUITE
             ),
         ),
-        _ => ("D'abord, le dépôt de test".into(), format!("Ce contenu n'a jamais été déposé en test. {}", ENSUITE)),
-    }
+        EtatDuTest::Ecrite => ("D'abord, le dépôt de test".into(), format!("Ce contenu n'a jamais été déposé en test. {}", ENSUITE)),
+    };
+    Ok(Repetition {
+        empreinte: empreinte.to_string(),
+        fichier: nom.to_string(),
+        conforme: conforme.cloned(),
+        compte_rendu,
+        ratees,
+        perimees,
+        couleur,
+        motif,
+        etat,
+        titre,
+        phrase,
+    })
 }
 
 // -------------------------------------------------------------------- flux_de
@@ -1761,10 +1797,10 @@ mod tests {
         reel["empreinte"] = json!("eA");
         let l = vec![perimee, bon, rate, reel];
         let rep = repetition(&l, "dsn", "eA", "DSN.dsn").unwrap();
-        assert_eq!((&rep["compte_rendu"], &rep["conforme"]["quand"]), (&json!("ok"), &json!("2026-06-01T10:00:00")));
-        assert_eq!((rep["ratees"].as_array().unwrap().len(), rep["perimees"].as_array().unwrap().len()), (1, 1));
+        assert_eq!((rep.compte_rendu, &rep.conforme.as_ref().unwrap()["quand"]), ("ok", &json!("2026-06-01T10:00:00")));
+        assert_eq!((rep.ratees.len(), rep.perimees.len(), rep.etat), (1, 1, EtatDuTest::Testee));
         let vide = repetition(&l, "dpae", "eA", "x").unwrap();
-        assert_eq!((&vide["conforme"], &vide["compte_rendu"]), (&Value::Null, &json!("")));
+        assert_eq!((&vide.conforme, vide.compte_rendu, vide.etat), (&None, "", EtatDuTest::Ecrite));
         assert_eq!(deja_depose(&l, "dsn", "eA").unwrap()["quand"], "2026-06-02T09:00:00");
         assert_eq!(deja_depose(&l, "dsn", "eB").unwrap(), Value::Null);
         assert_eq!(compte_rendu_du_depot(&json!({"retours": [{"verdict": "OK"}, {"verdict": "KO"}]})).unwrap(), "ko");
