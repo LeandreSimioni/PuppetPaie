@@ -1004,9 +1004,12 @@
    "champs": [
     {"cle": "libelle", "libelle": "Nom", "forme": "texte", "aide": "Atelier, salle…"},
     {"cle": "siret", "libelle": "SIRET", "forme": "texte"},
+    {"cle": "nic", "libelle": "NIC", "forme": "chiffres", "derive_de": "siret", "ecran": false},
     {"cle": "adresse_affichage", "libelle": "Adresse", "forme": "texte"},
+    {"cle": "adresse", "libelle": "Adresse déclarée", "forme": "officiel", "derive_de": "adresse_affichage", "ecran": false},
     {"cle": "code_postal", "libelle": "Code postal", "forme": "texte"},
     {"cle": "commune_affichage", "libelle": "Commune", "forme": "texte"},
+    {"cle": "commune", "libelle": "Commune déclarée", "forme": "officiel", "derive_de": "commune_affichage", "ecran": false},
     {"cle": "ouverture", "libelle": "Ouvert le", "forme": "date"},
     {"cle": "taux_atmp.code_risque", "libelle": "Code risque AT/MP", "forme": "code_atmp"},
     {"cle": "taux_atmp.valeur", "libelle": "Taux AT/MP (%)", "forme": "montant"},
@@ -2366,6 +2369,32 @@
    "si_entreprise": null,
    "booleen_defaut": true,
    "ecran": true
+  },
+  {
+   "_note": "LE TAUX DE PAS RECU : le compte rendu d'une DSN le met a disposition, le moteur l'ecrit date du jour ou il commence de valoir (`moteur::routes::fiches::poser_taux_recu`, `droit::pas`). Il ne se saisit pas.",
+   "cle": "taux_pas",
+   "libelle": "Taux de prélèvement à la source reçu",
+   "forme": "structure",
+   "aide": "",
+   "champs": [
+    {"cle": "taux", "libelle": "Taux", "forme": "texte"},
+    {"cle": "type", "libelle": "Type", "forme": "texte"},
+    {"cle": "identifiant", "libelle": "Identifiant", "forme": "texte"},
+    {"cle": "mis_a_disposition", "libelle": "Mis à disposition", "forme": "texte"},
+    {"cle": "en_retour_de", "libelle": "En retour de la DSN du mois", "forme": "texte"}
+   ],
+   "longueur": null,
+   "exemple": "",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": false,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": false
   },
   {
    "cle": "historique",

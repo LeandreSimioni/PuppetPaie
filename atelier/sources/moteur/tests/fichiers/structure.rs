@@ -675,6 +675,67 @@ fn une_seule_fonction_date_une_valeur_de_fiche() {
     }
 }
 
+/// LES FICHES N'ONT QU'UNE FORME : chaque cle de `champs-base.json` (`entreprise`, `salarie`) est un champ de sa structure
+/// (`droit::fiche`), et chaque champ y a sa ligne ; de meme les cases d'une structure que la ligne decrit (`champs`, un
+/// chemin `taux.t1_cadre` pour une case d'un bloc) ; les valeurs d'un choix sont celles de son type (la ligne vide en
+/// plus). La ligne `historique` (forme `histoire`) n'est pas une donnee ; une structure sans `champs` se verifie comme un
+/// champ seul.
+#[test]
+fn champs_base_et_les_fiches_ont_les_memes_cases() {
+    use droit::fiche::{ChampsEntreprise, ChampsSalarie, Declaree, FormeDeCase};
+    fn feuilles<'a>(d: &'a [Declaree], devant: &str, out: &mut Vec<(String, &'a Declaree)>) {
+        for c in d {
+            let chemin = format!("{}{}", devant, c.cle);
+            if c.cases.is_empty() {
+                out.push((chemin, c));
+            } else {
+                feuilles(&c.cases, &format!("{}.", chemin), out);
+            }
+        }
+    }
+    fn choix(ou: &str, ligne: &Value, d: &Declaree, fautes: &mut Vec<String>) {
+        if ligne["forme"] != json!("choix") {
+            return;
+        }
+        let ecrits: BTreeSet<&str> = ligne["choix"].as_array().into_iter().flatten().filter_map(Value::as_str).filter(|v| !v.is_empty()).collect();
+        let declares: BTreeSet<&str> = d.valeurs.iter().copied().collect();
+        if ecrits != declares {
+            fautes.push(format!("{} : champs-base offre {:?}, la forme {:?}", ou, ecrits, declares));
+        }
+    }
+    let base: Value = serde_json::from_str(&std::fs::read_to_string(espace().join("../../logiciel/donnees/champs-base.json")).unwrap()).unwrap();
+    let mut fautes = Vec::new();
+    for (nom, declarees) in [("entreprise", ChampsEntreprise::cases()), ("salarie", ChampsSalarie::cases())] {
+        let lignes: Vec<&Value> = base[nom].as_array().unwrap().iter().filter(|l| l["forme"] != json!("histoire")).collect();
+        for l in &lignes {
+            let cle = l["cle"].as_str().unwrap_or("");
+            let ou = format!("{}.{}", nom, cle);
+            let Some(d) = declarees.iter().find(|d| d.cle == cle) else {
+                fautes.push(format!("{} : une ligne de champs-base.json qu'aucun champ de la fiche ne porte", ou));
+                continue;
+            };
+            choix(&ou, l, d, &mut fautes);
+            let Some(cases) = l["champs"].as_array().filter(|c| !c.is_empty()) else { continue };
+            let mut declarees_ici = Vec::new();
+            feuilles(&d.cases, "", &mut declarees_ici);
+            for s in cases {
+                let sc = s["cle"].as_str().unwrap_or("");
+                match declarees_ici.iter().find(|(c, _)| c == sc) {
+                    Some((_, ds)) => choix(&format!("{}.{}", ou, sc), s, ds, &mut fautes),
+                    None => fautes.push(format!("{}.{} : une case de champs-base.json que la structure ne porte pas", ou, sc)),
+                }
+            }
+            for (c, _) in declarees_ici.iter().filter(|(c, _)| !cases.iter().any(|s| s["cle"] == json!(c))) {
+                fautes.push(format!("{}.{} : une case de la structure sans sa ligne dans champs-base.json", ou, c));
+            }
+        }
+        for d in declarees.iter().filter(|d| !lignes.iter().any(|l| l["cle"] == json!(d.cle))) {
+            fautes.push(format!("{}.{} : un champ de la fiche sans sa ligne dans champs-base.json", nom, d.cle));
+        }
+    }
+    assert!(fautes.is_empty(), "champs-base.json et la forme des fiches (droit::fiche) se contredisent :\n{}", fautes.join("\n"));
+}
+
 /// Un seul endroit ecrit un fichier d'engagements : `engagement::stock::poser`. Hors de `stock.rs`, le chemin d'un tel
 /// fichier (`stock::chemin`) ne se nomme que pour le lire : dans la cloture (l'archive de l'exercice) et l'apercu d'un
 /// acte (le fichier designe est-il celui du mois ?).
