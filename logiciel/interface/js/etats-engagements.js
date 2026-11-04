@@ -334,7 +334,7 @@ function boiteNonActif(phrase) {
         <button class="primaire" id="r-non-actif">Le rendre non actif</button>
       </div>`, () => resoudre(false));
     document.getElementById("r-garder").onclick = () => { fermerBoite(); resoudre(false); };
-    document.getElementById("r-non-actif").onclick = () => { fermerBoite(); resoudre(true); };
+    document.getElementById("r-non-actif").onclick = () => { resoudre(true); fermerBoite(); };
   });
 }
 
