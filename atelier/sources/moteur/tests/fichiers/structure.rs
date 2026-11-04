@@ -1,7 +1,8 @@
 //! LES OS, GARDES QUOI QU'ON CHANGE DESSUS : chaque route dit en une phrase breve ce qu'elle fait, et l'exemple de sa
 //! fiche est accepte ; la page et la ligne de commande ont le meme catalogue ; une crate ne prend qu'a celles du
 //! dessous ; l'engagement ne lit pas le journal ; une seule fonction date une valeur de fiche ; un seul endroit
-//! ecrit un fichier d'engagements ; une seule fonction lit une paie, une seule l'ecrit.
+//! ecrit un fichier d'engagements ; une seule fonction lit une paie, une seule l'ecrit ; la page ne lit que ce que les
+//! routes rendent.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -1733,4 +1734,112 @@ fn chaque_forme_lue_refuse_une_cle_inconnue() {
         }
     }
     assert!(fautes.is_empty(), "une forme lue sans deny_unknown_fields :\n{}", fautes.join("\n"));
+}
+
+mod page;
+mod reponses;
+
+/// Le code des `<script>` d'une page HTML, a sa ligne (le reste blanchi, ses fins de ligne gardees).
+fn scripts_de(html: &str) -> String {
+    let mut out = String::new();
+    let mut reste = html;
+    while let Some(d) = reste.find("<script") {
+        out.extend(reste[..d].chars().filter(|c| *c == '\n'));
+        let apres = &reste[d..];
+        let ouvre = apres.find('>').map_or(apres.len(), |k| k + 1);
+        let tete = &apres[..ouvre];
+        out.extend(tete.chars().filter(|c| *c == '\n'));
+        let corps = &apres[ouvre..];
+        let f = corps.find("</script>").unwrap_or(corps.len());
+        if tete.contains("application/json") {
+            out.extend(corps[..f].chars().filter(|c| *c == '\n'));
+        } else {
+            out.push_str(&corps[..f]);
+        }
+        reste = &corps[f..];
+    }
+    out
+}
+
+/// CE QUE LA PAGE LIT D'UNE REPONSE EST DANS CETTE REPONSE : chaque route typee (son bras d'aiguillage finit par
+/// `en_json(…)` : `structure/reponses.rs`) a la forme que `serde` ecrit de son type ; chaque champ que la page lit sur
+/// ce qu'elle a recu de cette route (`structure/page.rs`, qui dit ce qui se suit et ce qui ne se suit pas) est un champ de
+/// cette forme. Un champ renomme d'un cote et pas de l'autre fait echouer le test, la route, la cle et la ligne nommees.
+/// Les routes que la page appelle et dont la reponse n'est pas encore une structure (un `json!`) se nomment, a typer.
+#[test]
+fn la_page_ne_lit_que_ce_que_les_routes_rendent() {
+    let depot = espace().join("../..");
+    let mut fichiers = Vec::new();
+    for crate_ in ["socle", "droit", "engagement", "documents", "declarations", "envois", "moteur"] {
+        fichiers.extend(sources(&espace().join(crate_).join("src")));
+    }
+    fichiers.sort();
+    let e = reponses::Espace::lire(fichiers);
+    let mut formes = reponses::Formes::new(&e);
+    let variantes: std::collections::BTreeMap<String, &'static str> = catalogue().iter().map(|f| (format!("{:?}", f.route), f.nom())).collect();
+    let mut routes: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut illisibles = Vec::new();
+    // Le bras qui sert une route est celui du module qui declare sa fiche ; elle est typee si chacun de ses bras dans ce
+    // module finit par `en_json(…)`.
+    let declarees = reponses::declarees(&e);
+    let mut par_route: std::collections::BTreeMap<String, Vec<(usize, Vec<reponses::J>)>> = std::collections::BTreeMap::new();
+    for (variante, fichier, bras) in reponses::bras(&e) {
+        if declarees.get(&variante) == Some(&fichier) {
+            par_route.entry(variante).or_default().push((fichier, bras));
+        }
+    }
+    for (variante, liste) in par_route {
+        let Some(&nom) = variantes.get(&variante) else { continue };
+        let mut lus = Vec::new();
+        for (fichier, bras) in liste {
+            match formes.du_bras(fichier, &bras) {
+                Ok(f) => lus.push(f),
+                Err(m) => illisibles.push(format!("{} ({}) : {}", nom, e.nom_du_fichier(fichier, &espace()), m)),
+            }
+        }
+        if let (Some(Some(id)), true) = (lus.first(), lus.iter().all(Option::is_some)) {
+            routes.insert(nom.to_string(), *id);
+        }
+    }
+    assert!(illisibles.is_empty(), "la reponse d'une route typee ne se lit pas :\n{}", illisibles.join("\n"));
+    // La page de l'application (js/, que index.html charge ensemble), et chaque page que sert la fenetre, a part.
+    let mut pages: Vec<Vec<(String, String)>> = Vec::new();
+    let mut js: Vec<PathBuf> = std::fs::read_dir(depot.join("logiciel/interface/js")).unwrap().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "js")).collect();
+    js.sort();
+    let nom = |p: &Path| p.strip_prefix(&depot).unwrap_or(p).display().to_string().replace("atelier/sources/../../", "");
+    let mut application: Vec<(String, String)> = js.iter().map(|p| (nom(p), std::fs::read_to_string(p).unwrap())).collect();
+    let index = depot.join("logiciel/interface/index.html");
+    application.push((nom(&index), scripts_de(&std::fs::read_to_string(&index).unwrap())));
+    pages.push(application);
+    let mut html: Vec<PathBuf> = std::fs::read_dir(espace().join("moteur/src/interface/pages")).unwrap().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "html")).collect();
+    html.sort();
+    for p in html {
+        pages.push(vec![(nom(&p), scripts_de(&std::fs::read_to_string(&p).unwrap()))]);
+    }
+    let mut fautes = Vec::new();
+    let mut appelees = BTreeSet::new();
+    let noms: BTreeSet<String> = catalogue().iter().map(|f| f.nom().to_string()).collect();
+    let mut verifies = 0;
+    for sources_de_la_page in pages {
+        let mut pg = page::Page::lire(&formes, &routes, &noms, sources_de_la_page);
+        pg.suivre();
+        verifies += pg.verifies;
+        appelees.extend(pg.appelees.iter().cloned());
+        for f in &pg.fautes {
+            let ou = if f.chemin.is_empty() { "la réponse".to_string() } else { format!("`{}`", f.chemin) };
+            fautes.push(format!("{}:{} lit `{}` sur {} de la route `{}`, qui ne l'a pas ({})", f.fichier, f.ligne, f.cle, ou, f.route, f.sur));
+        }
+    }
+    assert!(
+        fautes.is_empty(),
+        "la page lit un champ qu'aucune réponse ne porte : renomme le champ de la structure Rust (serde) ou la lecture de la page\n{}",
+        fautes.join("\n")
+    );
+    // Le suivi suit : une route typee que la page lit voit ses champs verifies.
+    assert!(verifies > 0, "aucun champ lu par la page n'a ete verifie : le suivi des reponses ne suit plus rien");
+    let a_typer: Vec<&String> = appelees.iter().filter(|r| !routes.contains_key(*r)).collect();
+    eprintln!(
+        "{} champs lus verifies ; {} routes typees ; la page appelle {} routes dont la reponse n'est pas une structure (a typer) : {}",
+        verifies, routes.len(), a_typer.len(), a_typer.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+    );
 }
