@@ -10,7 +10,9 @@ la couche de bareme `par_convention.3097` et l'entree 3097 de
 - paritarisme : accord du 03/11/2015, art. 2 (0,045 %) et 3 (collecte
   mensuelle par AGEPRO, version du 01/10/2025) ; avenant du 11/09/2024 ;
 - prevoyance : titre Ier art. 25 (renvoi aux titres), titre II art. 45
-  (techniciens intermittents non cadres, 1,50 % -- LA QUESTION OUVERTE),
+  (techniciens intermittents non cadres, 1,50 % -- absorbe par les taux
+  uniques de l'accord interbranches, avenants 5 et 7 : la note de
+  `par_convention.3097` et sa `source`),
   titre IV chapitre VII (permanents : sante legale, rien en prevoyance).
 
 Recoupement : web-conference Audiens << Nouveautes 2026 >> p. 20 (CCHSCT

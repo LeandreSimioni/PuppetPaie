@@ -4752,25 +4752,6 @@
             "note": "Aide au paritarisme de la production cinématographique : 0,045 % de la masse salariale brute, intermittents et permanents, collecte mensuelle (en DSN depuis janvier 2026)."
           }
         ],
-        "article_45": {
-          "qui": "les techniciens intermittents NON CADRES (titre II) ; ni les cadres (l'interbranche cadres, deja tout patronale pour la prevoyance), ni les artistes (titre III), ni les permanents",
-          "prevoyance": {
-            "taux_pat": 2.27,
-            "taux_sal": 0.0,
-            "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens, techniciens non cadres du cinéma, art. 45)",
-            "note": "1,50 % de la tranche A a la place de la part prevoyance de l'interbranche (0,34 patronale + 0,12 salariale en 2026), tout patronal ; le fonds collectif du spectacle pour la sante (0,77 patronal) ne change pas -- l'article ne vise que la << cotisation propre a la branche >>, le fonds n'en est pas une. 1,50 + 0,77 = 2,27."
-          },
-          "cotisation_dsn": {
-            "affectation": "203",
-            "taux": 2.27,
-            "composants": [
-              1.5,
-              0.77
-            ],
-            "note": "La ligne 059 de l'adhesion INTERBRANCHE, comme dans le socle : deux contributions arrondies separement, la prevoyance puis le fonds."
-          },
-          "note": "L'ARTICLE 45 DU TITRE II (texte de base du 19/01/2012) : << a dater du 1er janvier 2014, le taux de la cotisation propre a la branche production de films cinematographiques et de films publicitaires pour les non-cadres, actuellement fixe a 0,42 % dans l'accord interbranches, sera reevalue de 1,08 point et porte a 1,5 % du salaire tranche A >>, tout patronal. ABSORBE PAR L'ACCORD INTERBRANCHES : son avenant n° 5 du 18/12/2012 (au 01/01/2013) adopte << pour les salaries intermittents non cadres techniques et artistiques, les memes taux de cotisation a l'egard de toutes les entreprises dans le champ dudit accord >>, et son avenant n° 7 du 06/09/2021 (au 01/01/2022, etendu le 21/02/2022, article II.2.2) fixe la prevoyance des non cadres a 0,46 % de la T1 (0,34 patronal, 0,12 salarial) pour l'ensemble des entreprises du champ ; l'avenant n° 8 (21/05/2025) porte le fonds collectif des non cadres a 0,77 % au 01/01/2026. La FESAC, qui represente les producteurs de cinema, les a tous signes ; la web-conference Audiens 2026 (p. 11) ne connait d'exception que la CCNEAC. Copies : `atelier/reference/sources/accord-interbranche-prevoyance-intermittents/`. Le moteur applique donc l'interbranche SANS RIEN DEMANDER ; les taux ci-dessous ne servent qu'a une compagnie dont la fiche de parametrage Audiens appellerait encore l'article 45, et qui le dit sur sa fiche Entreprise (`prevoyance_techniciens_3097: article_45`)."
-        },
         "contributions_dsn": [
           {
             "contribution": "CCHSCT",
@@ -4803,7 +4784,48 @@
         ],
         "note": "`contributions_conventionnelles` : Le CCHSCT remplace la rubrique `ccn` du socle (la CASC-SVP de la 3090) ; le paritarisme s'y ajoute. Pour tout le monde, intermittents et permanents, techniciens et artistes : les deux textes visent tous les salaires verses. Hors bulletin : les contributions Afdas des permanents de la branche -- pas relevees a ce jour."
       },
-      "note": "RELEVEE le 25/09/2026 sur la base KALI de la DILA (entrepot local, IDCC 3097) et la web-conference Audiens << Nouveautes 2026 >> p. 20. Ce que la 3097 change au socle : (1) la contribution conventionnelle -- DEUX contributions, le CCHSCT et le paritarisme, au lieu de la CASC-SVP ; (2) peut-etre la prevoyance de ses techniciens intermittents non cadres (article 45 du titre II, voir `_a_confirmer`) ; (3) RIEN pour les intermittents cadres ni pour les artistes (titre III : l'interbranche, que rien ne modifie), ni dans l'agregat `autres_1` (formation 2,00 % + 0,10 % Afdas pour tout employeur d'intermittents).\nLe CCHSCT et le paritarisme sont deux contributions distinctes pour Audiens, qui les collecte par AGEPRO (web-conference 2026 p. 20) : elles se composent depuis `contributions_dsn` de cette couche, la compagnie n'en saisit rien. L'article 45 est absorbe par l'interbranche (`bareme.article_45`)."
+      "note": "RELEVEE le 25/09/2026 sur la base KALI de la DILA (entrepot local, IDCC 3097) et la web-conference Audiens << Nouveautes 2026 >> p. 20. Ce que la 3097 change au socle : (1) la contribution conventionnelle -- DEUX contributions, le CCHSCT et le paritarisme, au lieu de la CASC-SVP ; (2) RIEN pour la prevoyance des intermittents, techniciens comme artistes, cadres comme non cadres : l'interbranche du socle (voir `source`), ni dans l'agregat `autres_1` (formation 2,00 % + 0,10 % Afdas pour tout employeur d'intermittents).\nLe CCHSCT et le paritarisme sont deux contributions distinctes pour Audiens, qui les collecte par AGEPRO (web-conference 2026 p. 20) : elles se composent depuis `contributions_dsn` de cette couche, la compagnie n'en saisit rien.\nAucun taux de prevoyance propre a la branche : l'article 45 du titre II (1,50 % de la tranche A des techniciens non cadres au 01/01/2014) est absorbe par les taux uniques de l'accord interbranches.",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/kali-3097-contributions-prevoyance-20260925.md",
+            "emetteur": "convention",
+            "article": "CCN 3097, titre II, art. 45",
+            "citation": "actuellement fixé à 0,42 % dans l'accord interbranches"
+          },
+          {
+            "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/accord-interbranche-prevoyance-avenant5-20121218.md",
+            "emetteur": "convention",
+            "article": "Accord interbranches de prévoyance, avenant n° 5 du 18/12/2012, préambule",
+            "citation": "les mêmes taux de cotisation à l'égard de toutes les entreprises dans le champ dudit accord"
+          },
+          {
+            "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/accord-interbranche-prevoyance-avenant7-20210906.md",
+            "emetteur": "convention",
+            "article": "Accord interbranches de prévoyance, avenant n° 7 du 06/09/2021, II.2.2",
+            "citation": "0,46 % du salaire […] calculé dans la limite de la tranche 1"
+          },
+          {
+            "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/accord-interbranche-prevoyance-avenant7-20210906.md",
+            "emetteur": "convention",
+            "article": "Accord interbranches de prévoyance, avenant n° 7 du 06/09/2021, II.2.2",
+            "citation": "| Salaire T1 | 0, 34 % | 0, 12 % | 0,46 % |"
+          },
+          {
+            "fichier": "atelier/reference/sources/accord-interbranche-prevoyance-intermittents/accord-interbranche-prevoyance-avenant7-20210906.md",
+            "emetteur": "convention",
+            "article": "Accord interbranches de prévoyance, avenant n° 7 du 06/09/2021, article 2",
+            "citation": "Il doit s'appliquer à l'ensemble des entreprises entrant dans le champ d'application de l'accord"
+          },
+          {
+            "fichier": "atelier/reference/sources/audiens-parametres-2026/Audiens-Parametres-2026.txt",
+            "emetteur": "audiens",
+            "article": "Paramètres Audiens 2026, p. 4",
+            "citation": "Non cadres           0,12%               0,34%                       0,77%                      0,12%                1,11%"
+          }
+        ],
+        "raisonnement": "Le champ de l'accord interbranches (I.2.1 de l'avenant 7) ne nomme pas le cinéma : c'est l'article 45 de la 3097 qui y place la production cinématographique (« fixé à 0,42 % dans l'accord interbranches »). Les avenants 5 et 7 donnent un seul taux des non cadres à toutes les entreprises du champ (0,34 % + 0,12 % de la T1), et Audiens n'en connaît pas d'autre en 2026."
+      }
     },
     "3241": {
       "libelle": "Télédiffusion",

@@ -1027,7 +1027,7 @@ même, dans cet ordre, et elle ne s'écrit qu'à un endroit, `droit::bareme::bar
 
 ```
 établissement du salarié → statut (bareme_du_statut) → taux AT/MP → nature (bareme_de_la_nature) → caisse des
-Congés Spectacles → convention → CASC → santé → retraite en tranche 1 → catégorie (bareme_cadre) → article 45 →
+Congés Spectacles → convention → CASC → santé → retraite en tranche 1 → catégorie (bareme_cadre) →
 prévoyance → régime local → versement mobilité
 ```
 

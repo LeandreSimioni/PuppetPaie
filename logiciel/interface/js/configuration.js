@@ -805,13 +805,12 @@ const SECTIONS_FICHE = {
     // Chaque case suit ce qui la commande : les fériés chômés
     // et la prévoyance ne se montrent qu'avec des permanents, la date
     // d'adhésion qu'avec un syndicat, le CSE qu'en CCNEAC, l'exemption
-    // CASC-SVP qu'en 3090, l'article 45 qu'au cinéma.
+    // CASC-SVP qu'en 3090.
     ["Avancé — cas particuliers", ["jours_feries_chomes", "plafond_temps_partiel",
       "deduction_forfaitaire_option",
       "prevoyance_permanents", "sante_permanents", "subrogation_ij",
       "organisation_patronale", "organisation_patronale_depuis",
       "representation_personnel", "casc_svp_exemptee",
-      "prevoyance_techniciens_3097",
       "cinquante_salaries_et_plus",
       "taxe_apprentissage_motif_non_assujettissement",
       "code_urssaf", "retraite_complementaire", "etablissements"],

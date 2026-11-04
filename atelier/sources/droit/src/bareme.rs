@@ -1205,7 +1205,7 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
 
 /// LA PILE ENTIERE, ET LE SEUL ENDROIT OU ELLE S'ECRIT : l'etablissement du
 /// salarie, le statut, le taux AT/MP, la nature, la convention, la CASC, la
-/// sante, la retraite en tranche 1, la categorie, l'article 45, la
+/// sante, la retraite en tranche 1, la categorie, la
 /// prevoyance, le regime local, le versement mobilite -- dans cet ordre.
 ///
 /// Le contrat dit s'il est declare a la caisse des Conges Spectacles (`caisse_conges::affilie`) : la caisse est un
@@ -1241,7 +1241,6 @@ pub fn bareme_applique(
     bar = bareme_sante(bar, sal, Some(nat), fin_periode)?;
     bar = bareme_retraite_t1(bar, sal, Some(nat))?;
     bar = bareme_cadre(bar, sal, Some(nat))?;
-    bar = bareme_article_45(bar, sal, Some(nat))?;
     bar = bareme_prevoyance(bar, sal, Some(nat), fin_periode)?;
     bar = bareme_regime_local(bar, sal)?;
     crate::forme_bareme::lire(&bareme_vm(bar, sal)?)
@@ -1759,70 +1758,6 @@ demander a Audiens, puis a ecrire dans la couche de \
     let (_, part_sal) = repartition_t1(&bar, &statut)?;
     let (p, s) = parts_t1(taux, part_sal)?;
     poser_t1(bar, p, s)
-}
-
-/// La prevoyance d'un technicien intermittent non cadre de la 3097 (article
-/// 45), quand la fiche Entreprise le choisit.
-pub fn bareme_article_45(bar: Value, sal: &Value, nat: Option<&Nature>) -> Resultat<Value> {
-    let art = g(&bar, "article_45");
-    let ent = g(&bar, "_entreprise");
-    if !vrai(art) || txt(g(ent, "idcc")) != "3097" {
-        return Ok(bar);
-    }
-    if nat.map_or(true, |n| n.mensuelle()) || g(sal, "statut") != "technicien" || est_cadre(sal) {
-        return Ok(bar);
-    }
-    let choix = {
-        let c = txt(g(ent, "prevoyance_techniciens_3097"));
-        if c.is_empty() { "interbranche".to_string() } else { c.trim().to_string() }
-    };
-    if choix == "interbranche" {
-        return Ok(bar);
-    }
-    if choix != "article_45" {
-        return Err(socle::echec::avec("La case « Prévoyance des techniciens (cinéma) » de la fiche entreprise porte une valeur inconnue : la choisir dans la liste.", serde_json::json!({"detail": format!(
-            "Fiche Entreprise, « Prévoyance des techniciens (cinéma) » : '{}' \
-est inconnu. Les deux valeurs sont << interbranche >> (le defaut, \
-les taux de l'accord interbranches) et << article_45 >> (1,50 % \
-de la tranche A, si le contrat Audiens de la compagnie l'appelle).",
-            choix
-        )})));
-    }
-    let mut applique = Map::new();
-    let p = exiger(art, "prevoyance")?;
-    let mut rubriques = Vec::new();
-    for r in liste(exiger(&bar, "rubriques_bulletin")?) {
-        if exiger(r, "id")? == "prevoyance" {
-            let mut r2 = copie(r);
-            r2.insert("taux_pat".into(), exiger(p, "taux_pat")?.clone());
-            r2.insert("taux_sal".into(), exiger(p, "taux_sal")?.clone());
-            let libelle = g(p, "libelle");
-            let libelle = if vrai(libelle) { libelle.clone() } else { exiger(r, "libelle")?.clone() };
-            r2.insert("libelle".into(), libelle);
-            rubriques.push(Value::Object(r2));
-        } else {
-            rubriques.push(r.clone());
-        }
-    }
-    applique.insert("rubriques_bulletin".into(), Value::Array(rubriques));
-    let c = exiger(art, "cotisation_dsn")?;
-    let mut cots = Vec::new();
-    for x in liste(exiger(&bar, "cotisations_dsn")?) {
-        if g(x, "code81") == "059" && g(x, "affectation") == exiger(c, "affectation")? {
-            let mut x = copie(x);
-            x.insert("taux".into(), exiger(c, "taux")?.clone());
-            x.insert("composants".into(), Value::Array(liste(exiger(c, "composants")?).to_vec()));
-            cots.push(Value::Object(x));
-        } else {
-            cots.push(x.clone());
-        }
-    }
-    applique.insert("cotisations_dsn".into(), Value::Array(cots));
-    let mut sortie = en_map(bar);
-    for (k, v) in applique {
-        sortie.insert(k, v);
-    }
-    Ok(Value::Object(sortie))
 }
 
 /// Les cotisations DSN qu'une section de categorie AJOUTE (`cotisations_ajoutees`) : l'Apec d'un cadre, qui se declare
