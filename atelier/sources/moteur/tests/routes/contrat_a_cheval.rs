@@ -37,6 +37,12 @@ fn le_second_mois_d_un_contrat_d_usage_n_est_pas_une_embauche() {
     let jour = "2026-12-20";
     let ctx = droit::contexte::Contexte::nouveau(&c, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     assert!(moteur::routes::etapes::Moteur::nouveau(&ctx).embauches_a_declarer(None).unwrap().is_empty());
+    // LA LIGNE DU SECOND MOIS DIT SON EMBAUCHE, sa periode et son contrat, que la boite des DPAE, la carte et le detail d'une
+    // piece ecrivent (un bug qui a echappe : la route ne rendait plus ces phrases, la boite ecrivait « FULLER — »).
+    let lignes = reussi(&route(&c, "etat-par-engagement", json!({"mois": "2026-12"}), jour))["engagements"].clone();
+    let l = lignes.as_array().unwrap().iter().find(|l| l["salarie"] == "FULLER").unwrap();
+    assert!(l["embauche_dit"].as_str().unwrap().ends_with("embauche le 20/11/2026"), "{}", l);
+    assert!(l["numero_dit"] == json!("contrat n° FU1.26.01") && l["periode_dit"].as_str().is_some_and(|p| p.contains("20/11/2026")), "{}", l);
 
     let ecrite = reussi(&route(&c, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), jour)).clone();
     let decembre = String::from_utf8_lossy(&std::fs::read(ecrite["fichier"].as_str().unwrap()).unwrap()).to_string();

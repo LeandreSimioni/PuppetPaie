@@ -1042,8 +1042,10 @@ impl Ligne {
 }
 
 /// La ligne d'un engagement telle que la page la lit : son identite, sa carte fermee (qui, quand, pour quoi, le contrat,
-/// la validation, le recalcul, la frise), ses carres et le choix de sa DPAE, et la phrase d'une date d'embauche changee.
-/// Le reste (echeances, pieces, etablissement, etats des envois) ne sert qu'aux etapes du mois.
+/// la validation, le recalcul, la frise), ses carres et le choix de sa DPAE, la phrase d'une date d'embauche changee, et
+/// ce que la carte, la boite des DPAE et le detail d'une piece en disent (`periode_dit`, `valide_dit`, `validee_dit`,
+/// `repris_dit`, `embauche_dit`, `numero_dit`). Le reste (echeances, pieces, etablissement, etats des envois) ne sert
+/// qu'aux etapes du mois.
 #[derive(Debug, Serialize)]
 struct LigneDePage<'a> {
     engagement: &'a Value,
@@ -1061,6 +1063,12 @@ struct LigneDePage<'a> {
     carres: &'a [Carre],
     dpae_choix: &'a Choix,
     etats: EtatsDePage<'a>,
+    periode_dit: String,
+    valide_dit: Option<String>,
+    validee_dit: Option<String>,
+    repris_dit: Option<&'static str>,
+    embauche_dit: String,
+    numero_dit: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1076,7 +1084,15 @@ struct DpaeDePage<'a> {
 impl<'a> LigneDePage<'a> {
     fn de(l: &'a Ligne) -> LigneDePage<'a> {
         let v = &l.vue;
+        let valide = v.valide.as_deref().filter(|t| !t.is_empty()).map(super::quand);
+        let embauche = format!("embauche le {}", super::jour_en_clair(&json!(v.debut)));
         LigneDePage {
+            periode_dit: super::periode_en_clair(&json!(v.debut), &json!(v.fin)),
+            valide_dit: valide.as_ref().map(|q| format!("le {}", q)),
+            validee_dit: valide.as_ref().map(|q| format!("validée le {}", q)),
+            repris_dit: matches!(&v.contrat, ContratDit::Complet(c) if c.repris).then_some("contrat repris"),
+            embauche_dit: if vrai(&v.spectacle) { format!("{}, {}", valeur_en_texte(&v.spectacle), embauche) } else { embauche },
+            numero_dit: v.numero.as_ref().map(|n| format!("contrat n° {}", n)),
             engagement: &l.engagement,
             salarie: &v.salarie,
             nom: &v.nom,
