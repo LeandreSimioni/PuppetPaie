@@ -47,17 +47,19 @@ fn requis_manque(cle: &str) -> Echec {
     erreur("KeyError", socle::fichiers::absent(cle))
 }
 
+use documents::marqueurs::Marqueur;
+
 /// Les clauses qu'un avenant peut modifier : ce que L1242-12 et les conventions mettent au contrat et qui bouge
 /// d'une paie a l'autre -- l'emploi, les dates, le lieu, la remuneration.
-const CLAUSES_MODIFIABLES: [&str; 8] = [
-    "salarie.emploi",
-    "contrat.debut",
-    "contrat.fin",
-    "contrat.dates_travail",
-    "contrat.lieu",
-    "remuneration.detail",
-    "remuneration.brut",
-    "remuneration.hors_brut",
+const CLAUSES_MODIFIABLES: [Marqueur; 8] = [
+    Marqueur::SalarieEmploi,
+    Marqueur::ContratDebut,
+    Marqueur::ContratFin,
+    Marqueur::ContratDatesTravail,
+    Marqueur::ContratLieu,
+    Marqueur::RemunerationDetail,
+    Marqueur::RemunerationBrut,
+    Marqueur::RemunerationHorsBrut,
 ];
 
 // ------------------------------------------------------------------ les textes
@@ -166,7 +168,7 @@ pub fn clauses_du_contrat(ctx: &Contexte, p: &Paie, ent: &droit::contexte::Entre
         Ok(v) => {
             let mut m = Map::new();
             for k in CLAUSES_MODIFIABLES {
-                m.insert(k.to_string(), v.get(k).map_or(Value::Null, |x| json!(x)));
+                m.insert(k.nom().to_string(), v.get(&k).map_or(Value::Null, |x| json!(x)));
             }
             Value::Object(m)
         }
