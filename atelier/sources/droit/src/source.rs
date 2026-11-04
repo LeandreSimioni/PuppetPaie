@@ -24,10 +24,10 @@ impl TryFrom<String> for CheminDepose {
     fn try_from(s: String) -> Result<Self, String> {
         let fichier = s.split('#').next().unwrap_or_default();
         if !(fichier.starts_with("atelier/reference/") || fichier == MODE_D_EMPLOI) || fichier.contains("..") {
-            return Err(format!("« {} » n'est pas un texte déposé sous atelier/reference/", s));
+            return Err("ce fichier n'est pas un texte déposé dans la référence de l'atelier".to_string());
         }
         if s.contains('#') != fichier.ends_with(".jsonl.gz") {
-            return Err(format!("« {} » : un article d'entrepôt se nomme <entrepôt>#<code>, et lui seul", s));
+            return Err("un article d'un entrepôt de la DILA nomme son code après le fichier, et lui seul".to_string());
         }
         Ok(CheminDepose(s))
     }

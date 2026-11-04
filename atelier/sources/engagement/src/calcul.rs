@@ -1458,9 +1458,13 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // Les tranches journalieres d'un intermittent (Audiens, Parametres : « le plafond applicable est le plafond journalier »).
     if let Some(pj) = plafond_journalier.filter(|_| !nat.mensuelle()) {
         let t1 = t1_du_contrat(pj)?;
+        bases.insert("t1_journaliere".into(), brut.min(t1));
+    }
+    // Les tranches d'un cadre intermittent, au-dela de la T1 (`bareme_cadre`).
+    if let Some(pj) = plafond_journalier.filter(|_| !nat.mensuelle() && droit::bareme::est_cadre(&sal)) {
+        let t1 = t1_du_contrat(pj)?;
         let mult = |m: Option<Decimal>, cle: &str| -> Resultat<Decimal> { Ok(m.ok_or_else(|| socle::fichiers::absent(cle))?.trunc()) };
         let (t2_mult, apec_mult) = (mult(bar.t2_multiple, "t2_multiple")?, mult(bar.apec_multiple, "apec_multiple")?);
-        bases.insert("t1_journaliere".into(), brut.min(t1));
         bases.insert("t2_journaliere".into(), zero.max(brut.min(t2_mult * t1) - t1));
         // L'Apec, sur le brut dans la limite de quatre plafonds (Audiens, Parametres ; Agirc-Arrco, aide DSN) : en tout,
         // et au-dela de la T1.

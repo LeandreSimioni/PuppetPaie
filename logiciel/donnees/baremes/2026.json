@@ -3439,8 +3439,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, en-tête",
             "citation": "Cadres Non cadres Techniciens Artistes Source"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/audiens-accord-retraite-artistes-19911224.md",
+            "emetteur": "convention",
+            "article": "accord du 24/12/1991 (personnel artistique), art. 2",
+            "citation": "8,00 %     au 1er janvier 1993"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les artistes intermittents des adhérents ; l'accord du 24/12/1991 fixe le taux contractuel de la retraite complémentaire du personnel artistique à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents du SYNDEAC : retraite T1 des artistes intermittents à 10,16 % (accord du 24/12/1991)."
     },
@@ -3452,10 +3465,27 @@
       },
       "adhesion_avant": "2024-01-01",
       "source": {
-        "fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt",
-        "emetteur": "audiens",
-        "article": "Tableau n°2 : Taux spécifiques en T1 selon adhésion syndicale (ligne SNDTP)",
-        "citation": "privés (adhérents avant le 1er"
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt",
+            "emetteur": "audiens",
+            "article": "Tableau n°2 : Taux spécifiques en T1 selon adhésion syndicale (ligne SNDTP)",
+            "citation": "privés (adhérents avant le 1er"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/audiens-accord-retraite-artistes-19911224.md",
+            "emetteur": "convention",
+            "article": "accord du 24/12/1991 (personnel artistique), art. 2",
+            "citation": "8,00 %     au 1er janvier 1993"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
+          }
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les artistes intermittents des adhérents ; l'accord du 24/12/1991 fixe le taux contractuel de la retraite complémentaire du personnel artistique à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents du SNDTP d'avant le 01/01/2024 : retraite T1 des artistes intermittents à 10,16 %."
     },
@@ -3469,10 +3499,27 @@
         "SNES"
       ],
       "source": {
-        "fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt",
-        "emetteur": "audiens",
-        "article": "tableau n° 2, « Taux spécifiques en T1 selon adhésion syndicale »",
-        "citation": "La scène indépendante (ex"
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt",
+            "emetteur": "audiens",
+            "article": "tableau n° 2, « Taux spécifiques en T1 selon adhésion syndicale »",
+            "citation": "La scène indépendante (ex"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/audiens-accord-retraite-artistes-19911224.md",
+            "emetteur": "convention",
+            "article": "accord du 24/12/1991 (personnel artistique), art. 2",
+            "citation": "8,00 %     au 1er janvier 1993"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
+          }
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les artistes intermittents des adhérents ; l'accord du 24/12/1991 fixe le taux contractuel de la retraite complémentaire du personnel artistique à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents de La Scène indépendante (ex-SNES) : retraite T1 des artistes intermittents à 10,16 %."
     },
@@ -3495,8 +3542,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, en-têtes",
             "citation": "Techniciens   Artistes"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/audiens-accord-retraite-artistes-19911224.md",
+            "emetteur": "convention",
+            "article": "accord du 24/12/1991 (personnel artistique), art. 2",
+            "citation": "8,00 %     au 1er janvier 1993"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les artistes intermittents des adhérents ; l'accord du 24/12/1991 fixe le taux contractuel de la retraite complémentaire du personnel artistique à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents de l'USPA : retraite T1 des artistes intermittents à 10,16 %."
     },
@@ -3519,8 +3579,21 @@
             "emetteur": "audiens",
             "article": "tableau n°2, ligne SNEP",
             "citation": "SNEP 10.16 %"
+          },
+          {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/audiens-accord-retraite-artistes-19911224.md",
+            "emetteur": "convention",
+            "article": "accord du 24/12/1991 (personnel artistique), art. 2",
+            "citation": "8,00 %     au 1er janvier 1993"
+          },
+          {
+            "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
+            "emetteur": "agirc_arrco",
+            "article": "aide à la codification DSN, taux d'appel",
+            "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
-        ]
+        ],
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 pour les artistes intermittents des adhérents ; l'accord du 24/12/1991 fixe le taux contractuel de la retraite complémentaire du personnel artistique à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents du SNEP : retraite T1 des artistes intermittents à 10,16 %."
     },
@@ -3623,13 +3696,19 @@
             "citation": "sera de 8 p. 100 au 1er janvier 1994"
           },
           {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/audiens-accord-retraite-artistes-19911224.md",
+            "emetteur": "convention",
+            "article": "accord du 24/12/1991 (personnel artistique), art. 2",
+            "citation": "8,00 %     au 1er janvier 1993"
+          },
+          {
             "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
             "emetteur": "agirc_arrco",
             "article": "aide à la codification DSN, taux d'appel",
             "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
         ],
-        "raisonnement": "Pour les techniciens : le tableau n° 2 d'Audiens (10,16 %), l'accord du 30/12/1991 (taux contractuel de 8 %) et le taux d'appel Agirc-Arrco de 127 % (8 x 1,27 = 10,16). Le taux des artistes ne repose que sur Audiens : l'accord du 24/12/1991 qu'il cite n'est pas déposé."
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 aux techniciens et aux artistes intermittents des adhérents ; les accords du 30/12/1991 (personnels techniques) et du 24/12/1991 (personnel artistique) fixent chacun le taux contractuel à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents d'AnimFrance (ex-SPFA) : retraite T1 à 10,16 % pour les techniciens et les artistes intermittents."
     },
@@ -3661,13 +3740,19 @@
             "citation": "sera de 8 p. 100 au 1er janvier 1994"
           },
           {
+            "fichier": "atelier/reference/sources/accords-retraite-intermittents-1991/audiens-accord-retraite-artistes-19911224.md",
+            "emetteur": "convention",
+            "article": "accord du 24/12/1991 (personnel artistique), art. 2",
+            "citation": "8,00 %     au 1er janvier 1993"
+          },
+          {
             "fichier": "atelier/reference/sources/agirc-arrco/agirc-arrco-aide-codification-dsn-ct2026-v1.0-20251201.txt",
             "emetteur": "agirc_arrco",
             "article": "aide à la codification DSN, taux d'appel",
             "citation": "Le pourcentage d’appel des cotisations est porté à 127 %."
           }
         ],
-        "raisonnement": "Pour les techniciens : le tableau n° 2 d'Audiens (10,16 %), l'accord du 30/12/1991 (taux contractuel de 8 %) et le taux d'appel Agirc-Arrco de 127 % (8 x 1,27 = 10,16). Le taux des artistes ne repose que sur Audiens : l'accord du 24/12/1991 qu'il cite n'est pas déposé."
+        "raisonnement": "Le tableau n° 2 d'Audiens donne 10,16 % en T1 aux techniciens et aux artistes intermittents des adhérents ; les accords du 30/12/1991 (personnels techniques) et du 24/12/1991 (personnel artistique) fixent chacun le taux contractuel à 8 %, et Agirc-Arrco appelle les cotisations à 127 % : 8 x 1,27 = 10,16."
       },
       "note": "Adhérents de la FICAM : retraite T1 à 10,16 % pour les techniciens et les artistes intermittents."
     },
