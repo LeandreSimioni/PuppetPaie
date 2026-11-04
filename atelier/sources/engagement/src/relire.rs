@@ -113,32 +113,45 @@ pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Res
 
 /// Une `Paie` du moteur, sur l'engagement `eng`, depuis sa forme ecrite `v`.
 pub fn paie(ctx: &Contexte, eng: Engagement, v: &Value) -> Resultat<Paie> {
-    paie_lue(ctx, eng, v, None)
+    paie_lue(ctx, eng, v, None, &[])
 }
 
-/// Une `Paie` du moteur, sur l'engagement `eng`, depuis sa forme ecrite `v`, sur les fiches du salarie telles que son
-/// calcul les a lues (`fiches`, `fiches_du_calcul`) plutot que sur la fiche d'aujourd'hui.
-pub fn paie_sur_ses_fiches(ctx: &Contexte, eng: Engagement, v: &Value, fiches: &Value) -> Resultat<Paie> {
-    paie_lue(ctx, eng, v, Some(fiches))
+/// LES FICHES DU SALARIE TELLES QUE LE CALCUL D'UNE PAIE LES A LUES : celle de la paie, et celle de chaque periode
+/// elementaire d'un mois decoupe, sans les taux recus (`droit::pas::sans_taux_recus` : le taux de la paie est son `pas`).
+/// Elles s'ecrivent a cote de la paie, et ce qui relit ce qui a ete declare les relit (`lire`).
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FichesDuCalcul {
+    pub paie: droit::fiche::SalarieDuContrat,
+    pub periodes: Vec<droit::fiche::SalarieDuContrat>,
 }
 
-/// Les fiches du salarie telles que le calcul de `p` les a lues : `{"paie": <fiche>, "periodes": [<fiche de chaque
-/// periode elementaire>]}`, sans les taux recus (`droit::pas::sans_taux_recus` : le taux de la paie est son `pas`). Elles
-/// s'ecrivent a cote de la paie, et ce qui relit ce qui a ete declare les relit.
-pub fn fiches_du_calcul(p: &Paie) -> Value {
-    {
-    let sans = |s: &droit::fiche::SalarieDuContrat| {
-        let mut s = s.clone();
-        s.fiche.champs = droit::pas::sans_taux_recus(&s.fiche.champs);
-        s.en_valeur()
-    };
-    json!({ "paie": sans(&p.salarie), "periodes": p.periodes.iter().map(|q| sans(&q.salarie)).collect::<Vec<_>>() })
+impl FichesDuCalcul {
+    /// Celles que le calcul de `p` a lues.
+    pub fn de(p: &Paie) -> FichesDuCalcul {
+        let sans = |s: &droit::fiche::SalarieDuContrat| {
+            let mut s = s.clone();
+            s.fiche.champs = droit::pas::sans_taux_recus(&s.fiche.champs);
+            s
+        };
+        FichesDuCalcul { paie: sans(&p.salarie), periodes: p.periodes.iter().map(|q| sans(&q.salarie)).collect() }
+    }
+
+    /// Relues d'a cote de la paie, la seule lecture.
+    pub fn lire(v: &Value) -> Resultat<FichesDuCalcul> {
+        socle::forme::lire(v, "Les fiches lues par la paie ne se lisent pas : valider à nouveau l'engagement.")
     }
 }
 
-fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) -> Resultat<Paie> {
-    let sal = match fiches.and_then(|f| f.get("paie")).filter(|f| f.is_object()) {
-        Some(f) => droit::fiche::SalarieDuContrat::lire(f)?,
+/// Une `Paie` du moteur, sur l'engagement `eng`, depuis sa forme ecrite `v`, sur les fiches du salarie telles que son
+/// calcul les a lues plutot que sur la fiche d'aujourd'hui.
+pub fn paie_sur_ses_fiches(ctx: &Contexte, eng: Engagement, v: &Value, fiches: &FichesDuCalcul) -> Resultat<Paie> {
+    paie_lue(ctx, eng, v, Some(&fiches.paie), &fiches.periodes)
+}
+
+fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiche: Option<&droit::fiche::SalarieDuContrat>, periodes: &[droit::fiche::SalarieDuContrat]) -> Resultat<Paie> {
+    let sal = match fiche {
+        Some(f) => f.clone(),
         None => fiche_de_l_engagement(ctx, &eng)?,
     };
     let nat = eng.nat()?;
@@ -239,8 +252,7 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) 
         sub.lignes = e.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
         sub.quotite_contrat = decimal_opt(e.get("quotite"))?;
         sub.heures = decimal_opt(e.get("heures"))?;
-        let sienne = fiches.and_then(|f| f.get("periodes")).and_then(|p| p.get(n)).map(|f| json!({ "paie": f }));
-        p.periodes.push(paie_lue(ctx, sub, x, sienne.as_ref())?);
+        p.periodes.push(paie_lue(ctx, sub, x, periodes.get(n), &[])?);
     }
     Ok(paie)
 }

@@ -65,7 +65,7 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
             out.push(ContratMois {
                 mois: m.clone(),
                 cle: paie.salarie.id.to_string(),
-                fiche: paie.salarie.en_valeur(),
+                fiche: paie.salarie.champs.en_valeur(),
                 salarie: qui(&paie.salarie)?,
                 contrat: e.numero.as_deref().unwrap_or_default().to_string(),
                 nature: e.nat().map_err(|x| erreur("ErreurOperation", x))?.libelle.clone(),
