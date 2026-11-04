@@ -761,7 +761,7 @@ impl UnAvenant {
         self.relance.is_some()
     }
 
-    /// `a["contrat"] or "(sans numéro)"`.
+    /// Le numero du contrat qu'il modifie, ou « (sans numéro) ».
     fn contrat(&self) -> String {
         self.contrat.as_deref().filter(|n| !n.is_empty()).unwrap_or("(sans numéro)").to_string()
     }
