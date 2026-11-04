@@ -6,10 +6,9 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use rust_decimal::prelude::*;
 use serde_json::{Map, Value};
 
-use droit::bareme::{bareme_applique, BaremeApplique, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
+use droit::bareme::{bareme_applique, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
@@ -22,8 +21,8 @@ use socle::fichiers::vrai;
 use socle::num::{add, dec, dec_f64, div, eur, flottant, mul, pct, round3, sub, Decimal, Resultat};
 pub use droit::reduction::ReductionGenerale;
 use droit::bareme::somme_pct;
-use droit::rubrique::Rubrique;
-use droit::reduction::{au_dela_d_un_seuil, reduction_generale, reduction_generale_sous_dfs};
+use droit::forme_bareme::{Pile, Rubrique};
+use droit::reduction::{au_dela_du_seuil, reduction_generale, reduction_generale_sous_dfs};
 use droit::plafond::{plafond_permanent, pour_paie, EngagementPlafond};
 
 
@@ -588,15 +587,15 @@ fn texte_de(v: &Value, cle: &str) -> String {
 /// (`atelier/reference/sources/dfs/arrete-2025-frais-professionnels/`) ; les professions, l'article 5 de l'annexe IV du
 /// CGI dans sa redaction en vigueur au 31/12/2000 (`atelier/reference/sources/dfs/cgi-annexe4-art5/`) et l'annexe 1 de
 /// l'arrete ; leur taux de l'annee, le bareme (art. 9, II et III). Une section du bareme non marquee verifiee refuse.
-pub(crate) fn deduction_forfaitaire(bar: &Value, sal: &Value, ent: &Value) -> Resultat<Option<OptionDfs>> {
+pub(crate) fn deduction_forfaitaire(bar: &Pile, sal: &Value, ent: &Value) -> Resultat<Option<OptionDfs>> {
     let profession = texte_de(sal, "deduction_forfaitaire");
     if profession.is_empty() {
         return Ok(None);
     }
     let qui = salarie_nomme(sal).unwrap_or_default();
-    let annee = bar.get("annee").map_or("?".to_string(), en_texte);
-    let dfs = bar.get("deduction_forfaitaire").filter(|d| vrai(d));
-    let professions = dfs.and_then(|d| d.get("professions")).and_then(Value::as_object);
+    let annee = bar.annee;
+    let dfs = bar.deduction_forfaitaire.as_ref();
+    let professions = dfs.map(|d| &d.professions);
     let connues = || professions.map(|p| p.keys().cloned().collect::<Vec<_>>().join(", ")).unwrap_or_else(|| "aucune".into());
     let Some(fiche_prof) = professions.and_then(|p| p.get(&profession)) else {
         return Err(format!(
@@ -650,37 +649,31 @@ l'accord du comite social et economique ({}), ou, a defaut, l'accord de chaque s
             )})))
         }
     }
-    if !dfs.get("_verifie").map_or(false, vrai) {
+    if !dfs.verifie {
         return Err(socle::echec::avec("Le barème de l'année ne paie pas encore la déduction forfaitaire spécifique : ses taux ne sont pas vérifiés.", serde_json::json!({"detail": format!(
             "Deduction forfaitaire specifique de {} ({}) : la section deduction_forfaitaire du bareme {} n'est pas \
-marquee verifiee (\"_verifie\": true). Le moteur refuse de payer plutot que d'inventer -- comme pour un statut sans \
+marquee verifiee (\"verifie\": true). Le moteur refuse de payer plutot que d'inventer -- comme pour un statut sans \
 section verifiee.",
             qui, profession, annee
         )})));
     }
-    let categorie = texte_de(fiche_prof, "categorie");
+    let categorie = fiche_prof.categorie.clone();
     // Le taux de l'annee : celui de la profession quand l'arrete lui donne un calendrier a part (art. 9, III, pour les
     // professions hors spectacle vivant), sinon celui de sa categorie (art. 9, II).
-    let taux = fiche_prof.get("taux").filter(|t| !t.is_null()).or_else(|| dfs.get("taux").and_then(Value::as_object).and_then(|t| t.get(&categorie))).ok_or_else(|| {
+    let taux = fiche_prof.taux.or_else(|| dfs.taux.get(&categorie).map(|n| n.0)).ok_or_else(|| {
         format!(
             "Deduction forfaitaire specifique de {} ({}) : le bareme {} n'a pas de taux pour la categorie << {} >>.",
             qui, profession, annee, categorie
         )
     })?;
-    let liste = |v: Option<&Value>| -> Vec<String> {
-        match v {
-            Some(Value::Array(a)) => a.iter().map(en_texte).collect(),
-            _ => Vec::new(),
-        }
-    };
     Ok(Some(OptionDfs {
         profession,
         categorie,
-        taux: dec(taux)?,
-        rubriques: liste(dfs.get("rubriques_abattues")),
-        plafond_annuel: dec(requis(dfs, "plafond_annuel")?)?,
-        frais_hors_assiette: liste(fiche_prof.get("frais_hors_assiette")),
-        frais_cumulables: dfs.get("frais_cumulables").map_or(false, vrai),
+        taux,
+        rubriques: dfs.rubriques_abattues.clone(),
+        plafond_annuel: dfs.plafond_annuel,
+        frais_hors_assiette: fiche_prof.frais_hors_assiette.clone(),
+        frais_cumulables: dfs.frais_cumulables,
     }))
 }
 
@@ -899,15 +892,15 @@ fn tuple(j: &Jour) -> (i32, u32, u32) {
 /// depend que des fichiers du bareme, de la fiche entreprise, du salarie, de
 /// la nature, de la caisse de conges et du jour. Un mois et ses mois anterieurs la recomposaient a
 /// chaque paie, et c'etait l'essentiel du temps de calcul.
-pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool) -> Resultat<Arc<BaremeApplique>> {
-    type Cache = Mutex<HashMap<String, Arc<BaremeApplique>>>;
+pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, caisse: bool, cpf_cdd: bool, majoration: bool) -> Resultat<Arc<Pile>> {
+    type Cache = Mutex<HashMap<String, Arc<Pile>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let cle = format!("{}|{}|{}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd);
+    let cle = format!("{}|{}|{}|{}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd, majoration);
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
-    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
+    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd, majoration)?);
     socle::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }
@@ -1039,7 +1032,7 @@ fn part_patronale(r: &Rubrique) -> Option<f64> {
 }
 
 /// La pile de bareme sur laquelle se calcule la paie `p` (celle de `calculer_periode`, du meme cache).
-pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<BaremeApplique>> {
+pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Pile>> {
     let eng = &p.engagement;
     let nat = eng.nat()?;
     let caisse = droit::caisse_conges::affilie(&nat, &p.salarie, &eng.debut, eng.fin.as_ref())?;
@@ -1048,7 +1041,8 @@ pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<BaremeAp
         eng.motif_recours.as_deref(),
         &droit::cpf_cdd::le_contrat(eng.numero.as_deref(), &eng.salarie),
     )?;
-    bareme_du_salarie(ctx, &p.salarie, &nat, &eng.fin_periode()?, caisse, cpf_cdd)
+    let majoration = droit::majoration_chomage::due(&nat, eng.motif_recours.as_deref(), &eng.debut, eng.fin.as_ref());
+    bareme_du_salarie(ctx, &p.salarie, &nat, &eng.fin_periode()?, caisse, cpf_cdd, majoration)
 }
 
 /// Une date de la fiche (`AAAA-MM-JJ`), ou `None` quand le champ est vide.
@@ -1289,8 +1283,9 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
         eng.motif_recours.as_deref(),
         &droit::cpf_cdd::le_contrat(eng.numero.as_deref(), &eng.salarie),
     )?;
-    let bar = bareme_du_salarie(ctx, &sal, &nat, &fin_periode, caisse, cpf_cdd)?;
-    let rubriques_bulletin = &bar.rubriques;
+    let majoration = droit::majoration_chomage::due(&nat, eng.motif_recours.as_deref(), &eng.debut, eng.fin.as_ref());
+    let bar = bareme_du_salarie(ctx, &sal, &nat, &fin_periode, caisse, cpf_cdd, majoration)?;
+    let rubriques_bulletin = &bar.rubriques_bulletin;
     let jours = Decimal::from(eng.jours);
 
     // 7.2 : les lignes de remuneration.
@@ -1319,13 +1314,13 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                  patronal. Elle entre dans l'assiette CSG (98,25 % du brut + \
                  part patronale de prevoyance) : sans elle la CSG serait \
                  sous-declaree sans que rien ne le signale.",
-                bar.get("annee").map_or("?".to_string(), en_texte),
+                bar.annee,
                 if nat.bareme.is_some() { format!(", nature '{}'", nat.cle) } else { String::new() }
             )})))
         }
     };
-    let plafond_journalier = bar.get("plafond_journalier").filter(|v| vrai(v));
-    let t1_du_contrat = |p: &Value| -> Resultat<Decimal> { Ok(eur(mul(dec(p)?, jours))) };
+    let plafond_journalier = bar.plafond_journalier.filter(|p| !p.is_zero());
+    let t1_du_contrat = |p: Decimal| -> Resultat<Decimal> { Ok(eur(mul(p, jours))) };
     let mut plafond_prev = None;
     if prev.base.as_deref() == Some("t1_journaliere") {
         if let Some(p) = plafond_journalier {
@@ -1363,7 +1358,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                  `{}`, que le calcul de l'assiette CSG ne sait pas lire. Sa \
                  part patronale doit y entrer : sans elle la CSG serait \
                  sous-declaree.",
-                bar.get("annee").map_or("?".to_string(), en_texte), id, base
+                bar.annee, id, base
             )})));
         };
         let base_t2 = Decimal::new(0, 2).max(brut.min(Decimal::from(4) * t1) - t1);
@@ -1378,9 +1373,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     }
 
     // 7.4 : les assiettes, par rubrique de salaire.
-    let abattement = dec(requis(&bar, "abattement_csg")?)?;
-    let maj115 = dec(requis(&bar, "majoration_conges_115")?)?;
-    let maj110 = dec(requis(&bar, "majoration_conges_110")?)?;
+    let (abattement, maj115, maj110) = (bar.abattement_csg, bar.majoration_conges_115, bar.majoration_conges_110);
     let assiettes = |montant: Decimal, cs: bool| -> Assiettes {
         let mut base_prev = montant;
         if let Some(pp) = plafond_prev {
@@ -1423,7 +1416,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
 
     // 7.5 : le SMIC retenu pour la DSN.
     let smic = ctx.smic(&fin_periode)?;
-    let hpc = dec(requis(&bar, "heures_par_cachet")?)?;
+    let hpc = bar.heures_par_cachet;
     let heures_annexes = lb.iter().fold(Decimal::ZERO, |a, l| a + l.heures_annexes);
     let heures = if nat.mensuelle() { Decimal::ZERO.max(heures_annexes) } else { heures_annexes.min(mul(hpc, jours)) };
     let plafond = eur(mul(dec_f64(smic)?, heures));
@@ -1462,14 +1455,20 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     bases.insert("csg".into(), base_csg);
     bases.insert("brut_x115".into(), somme_de(&|b| b.x115));
     bases.insert("brut_x110".into(), somme_de(&|b| b.x110));
-    if let Some(pj) = plafond_journalier {
+    // Les tranches journalieres d'un intermittent (Audiens, Parametres : « le plafond applicable est le plafond journalier »).
+    if let Some(pj) = plafond_journalier.filter(|_| !nat.mensuelle()) {
         let t1 = t1_du_contrat(pj)?;
-        let mult = |cle: &str| -> Resultat<Decimal> { Ok(Decimal::from(dec(requis(&bar, cle)?)?.trunc().to_i64().unwrap_or(0))) };
+        let mult = |m: Option<Decimal>, cle: &str| -> Resultat<Decimal> { Ok(m.ok_or_else(|| socle::fichiers::absent(cle))?.trunc()) };
+        let (t2_mult, apec_mult) = (mult(bar.t2_multiple, "t2_multiple")?, mult(bar.apec_multiple, "apec_multiple")?);
         bases.insert("t1_journaliere".into(), brut.min(t1));
-        bases.insert("t2_journaliere".into(), zero.max(brut.min(mult("t2_multiple")? * t1) - t1));
-        bases.insert("apec".into(), brut.min(mult("apec_multiple")? * t1));
+        bases.insert("t2_journaliere".into(), zero.max(brut.min(t2_mult * t1) - t1));
+        // L'Apec, sur le brut dans la limite de quatre plafonds (Audiens, Parametres ; Agirc-Arrco, aide DSN) : en tout,
+        // et au-dela de la T1.
+        bases.insert("apec".into(), brut.min(apec_mult * t1));
+        bases.insert("apec_t2_journaliere".into(), zero.max(brut.min(apec_mult * t1) - t1));
         bases.insert("t2_prevoyance_journaliere".into(), zero.max(brut.min(Decimal::from(4) * t1) - t1));
-        bases.insert("cet".into(), if brut > t1 { brut } else { zero });
+        // La CET, due quand le brut depasse la T1, sur T1 + T2 : huit plafonds au plus (Agirc-Arrco, « jusqu'a 8 PSS »).
+        bases.insert("cet".into(), if brut > t1 { brut.min(t2_mult * t1) } else { zero });
     }
     if nat.mensuelle() {
         let pss = plafond_de_l_engagement(ctx, eng, &sal)?;
@@ -1494,7 +1493,9 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         bases.insert("apec_mensuelle".into(), quatre_plafonds);
         bases.insert("brut_chomage".into(), quatre_plafonds);
         bases.insert("t2_conventionnelle".into(), zero.max(brut.min(Decimal::from(4) * pss) - pss));
-        bases.insert("cet_mensuelle".into(), if brut > pss { brut } else { zero });
+        // La CET des permanents : due au-dela de la T1, sur le brut dans la limite de huit plafonds (Agirc-Arrco, « jusqu'a 8 PSS » ;
+        // Audiens, « dans la limite de la T1 + T2 »).
+        bases.insert("cet_mensuelle".into(), if brut > pss { brut.min(Decimal::from(8) * pss) } else { zero });
         bases.insert("t1_t2_mensuelle".into(), brut.min(Decimal::from(8) * pss));
     } else {
         // Le plafond d'un intermittent : celui que le bas du bulletin imprime (`plafond_de_l_engagement`), et la seule
@@ -1559,11 +1560,12 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         };
         let (mut m_pat, mut m_sal) = (zero, zero);
         let (mut taux_pat, mut taux_sal) = (r.taux_pat, r.taux_sal);
-        let (mut comp_pat, mut comp_sal) = (r.composants_pat.clone(), r.composants_sal.clone());
+        let non_vide = |c: &Vec<f64>| Some(c.clone()).filter(|c| !c.is_empty());
+        let (mut comp_pat, mut comp_sal) = (non_vide(&r.composants_pat), non_vide(&r.composants_sal));
         let manque = || "taux absent (taux_pat ou taux_sal) : le complément ne s'ajoute à rien".to_string();
         // Le complement au-dela d'un seuil : le taux reduit, plus le complement.
         if let Some(compl) = &r.complement {
-            if au_dela_d_un_seuil(&bar, brut, Decimal::ZERO.max(heures_annexes), compl.seuil_smic)? {
+            if au_dela_du_seuil(bar.reduction_generale.as_ref(), brut, Decimal::ZERO.max(heures_annexes), compl.seuil_smic) {
                 taux_pat = Some(round3(taux_pat.ok_or_else(manque)? + compl.taux));
             }
         }
@@ -1581,7 +1583,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                 taux_sal = Some(round3(taux_sal.ok_or_else(manque)? + cet_sal));
             }
         }
-        let composants = &r.composants;
+        let composants = non_vide(&r.composants);
         for a in &assiettes_r {
             if let Some(c) = &composants {
                 m_pat += somme_pct(*a, c)?;
@@ -1620,7 +1622,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // Sous DFS, la reduction se calcule sur le brut abattu, dans la limite de 130 % de celle du brut entier
     // (`reduction_generale_sous_dfs`).
     // Le SMIC horaire de la reduction (`smic_horaire_reference`) ; sans lui, pas de reduction.
-    let smic_horaire_rg = bar.get("reduction_generale").and_then(|r| r.get("smic_horaire_reference")).filter(|v| vrai(v)).map(dec).transpose()?;
+    let smic_horaire_rg = bar.reduction_generale.as_ref().and_then(|r| r.smic_horaire_reference).filter(|s| !s.is_zero());
     let absence = smic_d_une_absence(&lb, smic_horaire_rg);
     let heures_rg = absence.as_ref().and_then(|a| a.heures).unwrap_or(heures_annexes);
     if let Some(a) = &absence {
@@ -1628,8 +1630,8 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         bases.insert(HABITUELLE_HORS_ENA.into(), a.habituelle);
     }
     let rg = match bases.get("brut_dfs").filter(|_| dfs.is_some()) {
-        Some(abattu) => reduction_generale_sous_dfs(&bar, statut, brut, *abattu, heures_rg, caisse_conges)?,
-        None => reduction_generale(&bar, statut, brut, heures_rg, caisse_conges)?,
+        Some(abattu) => reduction_generale_sous_dfs(bar.reduction_generale.as_ref(), statut, brut, *abattu, heures_rg, caisse_conges)?,
+        None => reduction_generale(bar.reduction_generale.as_ref(), statut, brut, heures_rg, caisse_conges)?,
     };
     // Le SMIC se calcule sur les heures exactes du rapport ; le bulletin les dit au centieme.
     let rg = rg.map(|mut r| {

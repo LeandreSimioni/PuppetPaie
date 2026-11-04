@@ -329,8 +329,7 @@ impl Importe {
         bases.insert("brut".into(), brut);
         let fin_periode = engagement.fin_periode()?;
         let caisse = droit::caisse_conges::affilie(&nat, &sal, &engagement.debut, engagement.fin.as_ref())?;
-        let bar = crate::calcul::bareme_du_salarie(&ctx, &sal, &nat, &fin_periode, caisse, false)?;
-        let liste = |k: &str| bar.get(k).and_then(Value::as_array).cloned().unwrap_or_default();
+        let bar = crate::calcul::bareme_du_salarie(&ctx, &sal, &nat, &fin_periode, caisse, false, droit::majoration_chomage::due(&nat, engagement.motif_recours.as_deref(), &engagement.debut, engagement.fin.as_ref()))?;
         for l in cotisations.iter().filter(|l| !l.id.is_empty() && !l.base.is_zero()) {
             if let Some(cle) = bar.rubrique(&l.id).and_then(|r| r.base.clone()) {
                 bases.entry(cle).or_insert(l.base);
@@ -338,10 +337,11 @@ impl Importe {
         }
         for (code, m) in p.get("bases").and_then(Value::as_object).into_iter().flatten() {
             let Some(m) = socle::num::decimal_lu(en_texte(m).trim()) else { continue };
-            let mut cles: Vec<String> = liste("cotisations_dsn")
+            let mut cles: Vec<String> = bar
+                .cotisations_dsn
                 .iter()
-                .filter(|c| c.get("bloc78").map(en_texte).as_deref() == Some(code.as_str()))
-                .filter_map(|c| c.get("base78").map(en_texte))
+                .filter(|c| c.bloc78 == *code)
+                .map(|c| c.base78.clone())
                 .filter(|k| k != "zero")
                 .collect();
             cles.sort();

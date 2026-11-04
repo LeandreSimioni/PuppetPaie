@@ -13,7 +13,7 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Value};
 
 use droit::bareme::{self, bareme_applique};
-use droit::rubrique::Rubrique;
+use droit::forme_bareme::{CotisationDsn, Pile, Rubrique};
 use documents::bordereau::{self, Destinataire, LigneBordereau};
 use droit::reduction::au_dela_du_seuil;
 use engagement::calcul::Paie;
@@ -514,7 +514,7 @@ pub struct Cotisation {
     pub taux: Option<Value>,
     pub montant: Option<Decimal>,
     /// Le composant d'une base 31 (S21.G00.79.001, et son montant 79.004) quand la source du taux de la ligne le dit
-    /// (`_composant_79`, `bareme::bareme_sante`) ; `None` : la tranche A, sur le brut.
+    /// (`composant_79`, `bareme::bareme_sante`) ; `None` : la tranche A, sur le brut.
     pub composant79: Option<(String, Decimal)>,
     /// La part patronale de la CET (`parts_patronales_agirc_arrco`) : son code se lit dans la version de la norme du
     /// fichier (`Norme::cotisation_cet_patronale`), pas dans `code81`.
@@ -530,7 +530,7 @@ fn opt_txt(v: &Value) -> Option<String> {
 }
 
 /// Les assiettes que le calcul a ecrites dans la paie, telles quelles : rien ne se recalcule.
-pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
+pub fn bases(p: &Paie, bar: &Pile) -> Resultat<HashMap<String, Decimal>> {
     let b = &p.bases;
     let mut out = HashMap::new();
     let lue = |cle: &str| -> Resultat<Decimal> { b.get(cle).copied().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, cle)) };
@@ -540,7 +540,8 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     out.insert("brut_x115".into(), lue("brut_x115")?);
     out.insert("brut_x110".into(), lue("brut_x110")?);
     out.insert("zero".into(), zero());
-    if vrai(g(bar, "plafond_journalier")) {
+    // La tranche 1 journaliere d'un intermittent (`calcul::calculer`, 7.6), quand la pile a un plafond journalier.
+    if bar.plafond_journalier.is_some() && !p.engagement.nat()?.mensuelle() {
         out.insert("t1_journaliere".into(), lue("t1_journaliere")?);
     }
     // Les assiettes plafonnees d'un intermittent (`calcul::calculer`, 7.6) : les bases 02 et 07 portent ce que le
@@ -619,8 +620,7 @@ pub fn brut_du_51(p: &Paie) -> Decimal {
     }
 }
 
-fn somme_lignes(p: &Paie, ids: &Value, patronale_seule: bool) -> Decimal {
-    let ids: Vec<String> = liste(ids).iter().map(en_texte).collect();
+fn somme_lignes(p: &Paie, ids: &[String], patronale_seule: bool) -> Decimal {
     p.lignes
         .iter()
         .filter(|l| ids.contains(&l.id))
@@ -632,7 +632,7 @@ fn somme_lignes(p: &Paie, ids: &Value, patronale_seule: bool) -> Decimal {
 /// ce bareme et de la paie (`bareme_de`).
 pub struct BaremeDuMois {
     bar: Value,
-    piles: std::sync::Mutex<HashMap<String, std::sync::Arc<bareme::BaremeApplique>>>,
+    piles: std::sync::Mutex<HashMap<String, std::sync::Arc<Pile>>>,
 }
 
 impl BaremeDuMois {
@@ -648,8 +648,18 @@ impl std::ops::Deref for BaremeDuMois {
     }
 }
 
+/// Ce que la DSN declare de la reduction generale de la pile (ses codes ; aucun : ceux de la norme).
+fn reduction_dsn(pile: &Pile) -> droit::forme_bareme::ReductionDsn {
+    pile.reduction_generale.as_ref().and_then(|r| r.dsn.clone()).unwrap_or_default()
+}
+
+/// L'organisme de la premiere cotisation `code` de la pile.
+fn org_de(pile: &Pile, code: &str) -> Option<String> {
+    pile.cotisations_dsn.iter().find(|c| c.code81.as_deref() == Some(code)).and_then(|c| c.org.clone())
+}
+
 /// La pile de bareme de cette paie, sur le bareme du mois choisi.
-fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<bareme::BaremeApplique>> {
+fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<Pile>> {
     let nat = p.engagement.nat()?;
     let fin = p.engagement.fin_periode()?;
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
@@ -658,11 +668,12 @@ fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<bareme::Ba
         &droit::cpf_cdd::le_contrat(p.engagement.numero.as_deref(), &p.engagement.salarie),
     )?;
     let caisse = p.declaree_a_la_caisse_des_conges()?;
-    let cle = format!("{}|{}|{}|{}|{}|{}", fin.iso(), nat.cle, p.salarie, nat.mensuelle(), caisse, cpf_cdd);
+    let majoration = droit::majoration_chomage::due(&nat, p.engagement.motif_recours.as_deref(), &p.engagement.debut, p.engagement.fin.as_ref());
+    let cle = format!("{}|{}|{}|{}|{}|{}|{}", fin.iso(), nat.cle, p.salarie, nat.mensuelle(), caisse, cpf_cdd, majoration);
     if let Some(pile) = bar.piles.lock().unwrap_or_else(|e| e.into_inner()).get(&cle) {
         return Ok(pile.clone());
     }
-    let pile = std::sync::Arc::new(bareme_applique(bar, &p.salarie, &nat, Some(&fin), caisse, cpf_cdd)?);
+    let pile = std::sync::Arc::new(bareme_applique(bar, &p.salarie, &nat, Some(&fin), caisse, cpf_cdd, majoration)?);
     bar.piles.lock().unwrap_or_else(|e| e.into_inner()).insert(cle, pile.clone());
     Ok(pile)
 }
@@ -673,7 +684,7 @@ fn bareme_de(p: &Paie, bar: &BaremeDuMois) -> Resultat<std::sync::Arc<bareme::Ba
 /// bases aux memes cles (`engagement::importe::Importe::paie`). Zero quand le bareme ne declare rien sous ce code.
 pub fn base_declaree(p: &Paie, bar: &BaremeDuMois, bloc78: &str) -> Resultat<Decimal> {
     let bar = bareme_de(p, bar)?;
-    let Some(cle) = liste(req(&bar, "cotisations_dsn")?).iter().filter(|c| en_texte(g(c, "bloc78")) == bloc78).map(|c| en_texte(g(c, "base78"))).find(|k| k != "zero") else {
+    let Some(cle) = bar.cotisations_dsn.iter().filter(|c| c.bloc78 == bloc78).map(|c| c.base78.clone()).find(|k| k != "zero") else {
         return Ok(zero());
     };
     Ok(match cle_abattue(p, bloc78, &cle)?.as_str() {
@@ -690,44 +701,37 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
     let bar = bareme_de(p, bar)?;
     let bases = bases(p, &bar)?;
     let mut out: Vec<Cotisation> = Vec::new();
-    for c in liste(req(&bar, "cotisations_dsn")?) {
-        let seuil = g(c, "seuil_smic");
-        if !seuil.is_null() && !au_dela_du_seuil(&bar, p.brut, p.heures_travaillees, Some(seuil))? {
+    for c in &bar.cotisations_dsn {
+        if c.seuil_smic.is_some() && !au_dela_du_seuil(bar.reduction_generale.as_ref(), p.brut, p.heures_travaillees, c.seuil_smic) {
             continue;
         }
-        let bloc78 = en_texte(req(c, "bloc78")?);
-        let abattue = |cle: &Value| -> Resultat<Decimal> { base(&bases, &Value::String(cle_abattue(p, &bloc78, &en_texte(cle))?)) };
+        let bloc78 = c.bloc78.clone();
+        let abattue = |cle: &str| -> Resultat<Decimal> { base(&bases, &Value::String(cle_abattue(p, &bloc78, cle)?)) };
         let mut l = Cotisation {
             bloc78: bloc78.clone(),
-            base78: abattue(req(c, "base78")?)?,
-            code81: en_texte(req(c, "code81")?),
-            org: opt_txt(g(c, "org")),
-            affectation: opt_txt(g(c, "affectation")),
-            cle_total: None,
-            code_insee: None,
+            base78: abattue(&c.base78)?,
+            code81: c.code81.clone().unwrap_or_else(|| "None".into()),
+            org: c.org.clone(),
+            affectation: c.affectation.clone(),
+            cle_total: c.cle_total.clone().filter(|x| !x.is_empty()),
+            code_insee: c.code_insee.clone().filter(|x| !x.is_empty()),
             base81: None,
             taux: None,
             montant: None,
             composant79: None,
             cet: false,
         };
-        if vrai(g(c, "cle_total")) {
-            l.cle_total = Some(en_texte(&c["cle_total"]));
-        }
-        if vrai(g(c, "code_insee")) {
-            l.code_insee = Some(en_texte(&c["code_insee"]));
-        }
-        if vrai(g(c, "lignes")) {
-            l.montant = Some(somme_lignes(p, &c["lignes"], false));
-            l.composant79 = composant_79(p, &bar, &c["lignes"]);
-        } else if !req(c, "taux")?.is_null() {
-            let b = abattue(req(c, "base")?)?;
+        if !c.lignes.is_empty() {
+            l.montant = Some(somme_lignes(p, &c.lignes, false));
+            l.composant79 = composant_79(p, &bar, &c.lignes);
+        } else if let Some(taux) = c.taux {
+            let b = abattue(c.base.as_deref().ok_or_else(|| socle::fichiers::absent("base"))?)?;
             l.base81 = Some(b);
-            l.taux = Some(c["taux"].clone());
-            l.montant = Some(if vrai(g(c, "composants")) {
-                liste(&c["composants"]).iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_avec_echelle(t)?))))?
+            l.taux = Some(Value::from(taux));
+            l.montant = Some(if !c.composants.is_empty() {
+                c.composants.iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_avec_echelle(&Value::from(*t))?))))?
             } else {
-                pct(b, dec_avec_echelle(&c["taux"])?)
+                pct(b, dec_avec_echelle(&Value::from(taux))?)
             });
         }
         let unifie = l.code81 == AGIRC_ARRCO_UNIFIE;
@@ -763,7 +767,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
                 code_insee: None,
                 base81: None,
                 taux: None,
-                montant: Some(somme_lignes(p, g(contrib, "lignes"), false)),
+                montant: Some(somme_lignes(p, &liste(g(contrib, "lignes")).iter().map(en_texte).collect::<Vec<_>>(), false)),
                 composant79: None,
                 cet: false,
             },
@@ -771,26 +775,18 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
     }
     if let Some(rg) = &p.reduction_generale {
         if !rg.montant.is_zero() {
-            let dsn = g(g(&bar, "reduction_generale"), "dsn");
-            let par = |k: &str, defaut: &str| -> String {
-                let v = g(dsn, k);
-                if v.is_null() { defaut.to_string() } else { en_texte(v) }
-            };
-            let org_de = |code: &str| -> Option<String> {
-                liste(g(&bar, "cotisations_dsn"))
-                    .iter()
-                    .find(|c| txt(g(c, "code81")) == code)
-                    .and_then(|c| opt_txt(g(c, "org")))
-            };
+            let dsn = reduction_dsn(&bar);
+            let par = |v: &Option<String>, defaut: &str| -> String { v.clone().unwrap_or_else(|| defaut.to_string()) };
+            let org_de = |code: &str| -> Option<String> { org_de(&bar, code) };
             let urssaf = org_de("075");
             let ft = org_de("040");
             // Sous la base 03 : abattue sous deduction forfaitaire specifique (`cle_abattue`), comme la reduction
             // elle-meme se calcule sur le brut abattu (`droit::reduction::reduction_generale_sous_dfs`).
             let brut_03 = bases[&cle_abattue(p, "03", "brut")?];
             for (code, org, part, cle) in [
-                (par("code81_urssaf", "018"), urssaf, rg.urssaf, par("cle_total_urssaf", "018:urssaf")),
-                (par("code81_chomage", "018"), ft, rg.chomage, par("cle_total_chomage", "018:chomage")),
-                (par("code81_retraite", "106"), None, rg.agirc_arrco, "106".to_string()),
+                (par(&dsn.code81_urssaf, "018"), urssaf, rg.urssaf, par(&dsn.cle_total_urssaf, "018:urssaf")),
+                (par(&dsn.code81_chomage, "018"), ft, rg.chomage, par(&dsn.cle_total_chomage, "018:chomage")),
+                (par(&dsn.code81_retraite, "106"), None, rg.agirc_arrco, "106".to_string()),
             ] {
                 if !part.is_zero() {
                     out.push(Cotisation {
@@ -818,7 +814,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
     // 04/06/2026, `editeur-dsn/guide-urssaf-regularisation.txt`, l. 1353 : « Au niveau individuel, le montant de reduction
     // doit etre signe »). 81.003 : la remuneration des heures.
     if let Some(remuneration) = p.bases.get(engagement::heures_en_plus::REMUNERATION).copied().filter(|m| !m.is_zero()) {
-        let urssaf = liste(g(&bar, "cotisations_dsn")).iter().find(|c| txt(g(c, "code81")) == "075").and_then(|c| opt_txt(g(c, "org")));
+        let urssaf = org_de(&bar, "075");
         let brut_03 = bases[&cle_abattue(p, "03", "brut")?];
         for (code, id) in [(CODE81_REDUCTION_HEURES, engagement::heures_en_plus::REDUCTION), (CODE81_DEDUCTION_HEURES, engagement::heures_en_plus::DEDUCTION)] {
             let montant = p.lignes.iter().filter(|l| l.id == id).fold(zero(), |a, l| add(a, add(l.montant_pat, l.montant_sal)));
@@ -864,11 +860,11 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
 }
 
 /// Le composant de la base 31 des `lignes` : le type que la source du taux de la premiere qui en porte un lui donne
-/// (`_composant_79` de la pile, `bareme::bareme_sante`), et la base de cette ligne au bulletin.
-fn composant_79(p: &Paie, pile: &bareme::BaremeApplique, lignes: &Value) -> Option<(String, Decimal)> {
-    liste(lignes).iter().map(en_texte).find_map(|id| {
-        let type_79 = pile.rubrique(&id)?.composant_79.clone()?;
-        let base = p.lignes.iter().find(|l| l.id == id)?.base;
+/// (`composant_79` de la pile, `bareme::bareme_sante`), et la base de cette ligne au bulletin.
+fn composant_79(p: &Paie, pile: &Pile, lignes: &[String]) -> Option<(String, Decimal)> {
+    lignes.iter().find_map(|id| {
+        let type_79 = pile.rubrique(id)?.composant_79.clone()?;
+        let base = p.lignes.iter().find(|l| &l.id == id)?.base;
         Some((type_79, base))
     })
 }
@@ -895,9 +891,9 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Rubrique) 
         return Ok((l.montant_pat, None));
     };
     let cet_pat = cet.pat;
-    let comp = match &r.composants_pat {
-        Some(c) => c.clone(),
-        None => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?],
+    let comp = match &r.composants_pat[..] {
+        [] => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?],
+        c => c.to_vec(),
     };
     let sans = droit::bareme::somme_pct(l.base, &comp)?;
     let mut avec = comp;
@@ -933,13 +929,13 @@ ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en sépare pas sans
 /// admet la base 23 (norme p. 293, ligne 133). Une part nulle ne s'ecrit pas. En 2027 la CET a son code, 148, « entierement
 /// sous l'assiette deplafonnee » (03, 22 ou 23 ; fiche net-entreprises 2556, l. 83-87) : le code s'ecrit selon la version
 /// du fichier (`Cotisation::cet`, `Norme::cotisation_cet_patronale`), la base reste celle du 131 (type 23).
-fn parts_patronales_agirc_arrco(p: &Paie, pile: &bareme::BaremeApplique, c: &Value, l131: &Cotisation) -> Resultat<Vec<Cotisation>> {
+fn parts_patronales_agirc_arrco(p: &Paie, pile: &Pile, c: &CotisationDsn, l131: &Cotisation) -> Resultat<Vec<Cotisation>> {
     let rubrique = |id: &str| pile.rubrique(id);
     // Le 131 nomme ses lignes, ou porte un taux sur l'assiette de la ligne de retraite qu'il declare (`bareme::poser_t1`).
-    let ids: Vec<String> = if vrai(g(c, "lignes")) {
-        liste(&c["lignes"]).iter().map(en_texte).collect()
+    let ids: Vec<String> = if !c.lignes.is_empty() {
+        c.lignes.clone()
     } else {
-        let base = g(c, "base").as_str();
+        let base = c.base.as_deref();
         LIGNES_AGIRC_ARRCO.iter().filter(|id| rubrique(id).map_or(false, |r| r.base.as_deref() == base)).map(|s| s.to_string()).collect()
     };
     if ids.is_empty() || ids.iter().any(|id| !LIGNES_AGIRC_ARRCO.contains(&id.as_str())) {
@@ -951,10 +947,7 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
             LIGNES_AGIRC_ARRCO.join(", ")
         ));
     }
-    let org = liste(req(pile, "cotisations_dsn")?)
-        .iter()
-        .find(|x| txt(g(x, "code81")) == "075" && vrai(g(x, "org")))
-        .map(|x| en_texte(&x["org"]))
+    let org = org_de(pile, "075")
         .ok_or_else(|| "La part patronale Agirc-Arrco (142, 146) se declare a l'Urssaf (81.002), et le bareme ne nomme l'Urssaf sur aucune cotisation 075. Rien n'est ecrit.".to_string())?;
     let part = |code: &str, base: Decimal, taux: f64, montant: Decimal| Cotisation {
         bloc78: l131.bloc78.clone(),
@@ -2115,17 +2108,14 @@ pub fn autre_revenu(f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, debut: &Jour,
         }
     }
     let bp = bareme_de(p, bar)?;
-    for (type_54, cle) in [("92", "cotisation_sante_patronale"), ("93", "cotisation_prevoyance_retraite_supp")] {
-        let supp = g(&bp, cle);
-        if !vrai(supp) {
-            continue;
-        }
-        let montant = if vrai(g(supp, "lignes_patronales")) {
-            somme_lignes(p, &supp["lignes_patronales"], true)
+    for (type_54, supp) in [("92", &bp.cotisation_sante_patronale), ("93", &bp.cotisation_prevoyance_retraite_supp)] {
+        let Some(supp) = supp else { continue };
+        let montant = if !supp.lignes_patronales.is_empty() {
+            somme_lignes(p, &supp.lignes_patronales, true)
         } else {
-            let k = if supp.get("base").is_some() { en_texte(&supp["base"]) } else { "brut".into() };
+            let k = supp.base.clone().unwrap_or_else(|| "brut".into());
             let base_54 = bases(p, &bp)?.get(&k).copied().unwrap_or(p.brut);
-            pct(base_54, dec_avec_echelle(req(supp, "taux_sur_brut")?)?)
+            pct(base_54, supp.taux_sur_brut.ok_or_else(|| socle::fichiers::absent("taux_sur_brut"))?)
         };
         let montant = rond(montant);
         if montant.is_zero() {
@@ -2708,21 +2698,18 @@ fn lecture(p: &Paie, bar: &BaremeDuMois) -> Resultat<Lecture> {
     let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();
     let pile = bareme_de(p, bar)?;
     let mut l = Lecture { roles: Vec::new(), blocs: Vec::new() };
-    for c in liste(req(&pile, "cotisations_dsn")?) {
-        l.blocs.push((en_texte(req(c, "bloc78")?), en_texte(req(c, "base78")?)));
-        if g(c, "code81").is_null() {
-            continue;
-        }
-        let org = opt_txt(g(c, "org")).unwrap_or_default();
-        let cle_total = if vrai(g(c, "cle_total")) { Some(en_texte(&c["cle_total"])) } else { None };
+    for c in &pile.cotisations_dsn {
+        l.blocs.push((c.bloc78.clone(), c.base78.clone()));
+        let Some(code) = c.code81.clone() else { continue };
+        let org = c.org.clone().unwrap_or_default();
+        let cle_total = c.cle_total.clone().filter(|x| !x.is_empty());
         // 81.003 s'ecrit avec un organisme ou une cle de totalisation (`bases_et_cotisations`) ; il porte la base du
         // taux, pas celle d'une cotisation faite de lignes du bulletin.
-        let base = if (!org.is_empty() || cle_total.is_some()) && !vrai(g(c, "lignes")) && !g(c, "taux").is_null() {
-            Some(en_texte(req(c, "base")?))
+        let base = if (!org.is_empty() || cle_total.is_some()) && c.lignes.is_empty() && c.taux.is_some() {
+            Some(c.base.clone().ok_or_else(|| socle::fichiers::absent("base"))?)
         } else {
             None
         };
-        let code = en_texte(&c["code81"]);
         l.roles.push((code.clone(), org, Role81::Cotisation { cle: cle_total.unwrap_or(code), base }));
     }
     let nature = p.engagement.nat()?.bareme.clone().unwrap_or_else(|| "intermittent".into());
@@ -2732,25 +2719,20 @@ fn lecture(p: &Paie, bar: &BaremeDuMois) -> Resultat<Lecture> {
             l.roles.push(("059".into(), String::new(), Role81::Cotisation { cle: "059".into(), base: None }));
         }
     }
-    let dsn = g(g(&pile, "reduction_generale"), "dsn");
-    let par = |k: &str, defaut: &str| -> String {
-        let v = g(dsn, k);
-        if v.is_null() { defaut.to_string() } else { en_texte(v) }
-    };
-    let org_de = |code: &str| -> String {
-        liste(g(&pile, "cotisations_dsn")).iter().find(|c| txt(g(c, "code81")) == code).and_then(|c| opt_txt(g(c, "org"))).unwrap_or_default()
-    };
+    let dsn = reduction_dsn(&pile);
+    let par = |v: &Option<String>, defaut: &str| -> String { v.clone().unwrap_or_else(|| defaut.to_string()) };
+    let org = |code: &str| -> String { org_de(&pile, code).unwrap_or_default() };
     l.blocs.push(("03".into(), "brut".into()));
     for (code, org, part, cle) in [
-        (par("code81_urssaf", "018"), org_de("075"), "urssaf", par("cle_total_urssaf", "018:urssaf")),
-        (par("code81_chomage", "018"), org_de("040"), "chomage", par("cle_total_chomage", "018:chomage")),
-        (par("code81_retraite", "106"), String::new(), "retraite", "106".to_string()),
+        (par(&dsn.code81_urssaf, "018"), org("075"), "urssaf", par(&dsn.cle_total_urssaf, "018:urssaf")),
+        (par(&dsn.code81_chomage, "018"), org("040"), "chomage", par(&dsn.cle_total_chomage, "018:chomage")),
+        (par(&dsn.code81_retraite, "106"), String::new(), "retraite", "106".to_string()),
     ] {
         l.roles.push((code, org, Role81::Reduction { part, cle }));
     }
     // Les heures en plus : la reduction salariale et la deduction patronale, a l'Urssaf (`cotisations`).
     for code in [CODE81_REDUCTION_HEURES, CODE81_DEDUCTION_HEURES] {
-        l.roles.push((code.to_string(), org_de("075"), Role81::Cotisation { cle: code.to_string(), base: None }));
+        l.roles.push((code.to_string(), org("075"), Role81::Cotisation { cle: code.to_string(), base: None }));
     }
     Ok(l)
 }
@@ -3105,7 +3087,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &BaremeDuMois) -> Resultat<HashMap<String
     // (`cle_abattue`, la base 03 ; le 51 de type 001, `brut_du_51`) ; la CSG garde la sienne.
     let mut b = Vec::new();
     for p in paies {
-        let mut x = bases(p, bar)?;
+        let mut x = bases(p, &*bareme_de(p, bar)?)?;
         for cle in ["brut", "brut_x115", "brut_x110", "brut_plafonne", "brut_x115_plafonne"] {
             if x.contains_key(cle) {
                 let k = cle_abattue(p, "03", cle)?;
@@ -3371,7 +3353,7 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
         // atelier/reference/sources/majoration-caisses-conges/).
         let (mut artistes, mut autres) = (zero(), zero());
         for p in paies {
-            let a = bases(p, bar)?["brut_x115"];
+            let a = bases(p, &*bareme_de(p, bar)?)?["brut_x115"];
             if statut(p) == "artiste" {
                 artistes = add(artistes, a);
             } else {
@@ -3388,7 +3370,7 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
     let mut local = zero();
     for p in paies {
         if bareme::regime_local(bar, &p.salarie) {
-            local = add(local, bases(p, bar)?["brut"]);
+            local = add(local, bases(p, &*bareme_de(p, bar)?)?["brut"]);
         }
     }
     if !local.is_zero() {
@@ -3496,9 +3478,9 @@ fn ctp_de_regularisation(code: &str, siens: &[&Regularisation], bar: &BaremeDuMo
     for r in siens {
         for p in [&r.apres, &r.avant] {
             let pile = bareme_de(p, bar)?;
-            let dsn = g(g(&pile, "reduction_generale"), "dsn");
-            if txt(g(dsn, "ctp")) == code {
-                if let Some(x) = opt_txt(g(dsn, "ctp_regularisation")).filter(|x| !x.is_empty()) {
+            let dsn = reduction_dsn(&pile);
+            if dsn.ctp.as_deref() == Some(code) {
+                if let Some(x) = dsn.ctp_regularisation.clone().filter(|x| !x.is_empty()) {
                     return Ok(Some(x));
                 }
             }

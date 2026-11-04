@@ -85,13 +85,13 @@ pub struct Source {
     pub citation: String,
 }
 
-/// Ce qui fonde une valeur : un texte, ou plusieurs textes qui convergent, avec le raisonnement qui les joint. Dans un
-/// fichier, une source seule s'ecrit a plat (`{fichier, emetteur, article, citation}`), une convergence
-/// `{sources, raisonnement}`.
+/// Ce qui fonde une valeur : les textes d'un meme emetteur (`Texte`), ou des textes d'emetteurs distincts qui convergent,
+/// avec le raisonnement qui les joint. Dans un fichier, une source seule s'ecrit a plat (`{fichier, emetteur, article,
+/// citation}`), plusieurs textes d'un emetteur `{sources}`, une convergence `{sources, raisonnement}`.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(try_from = "FondementLu")]
 pub enum Fondement {
-    Texte(Source),
+    Texte(Vec<Source>),
     Convergence { sources: Vec<Source>, raisonnement: String },
 }
 
@@ -114,8 +114,11 @@ impl TryFrom<FondementLu> for Fondement {
             (Some(sources), Some(raisonnement)) if l.fichier.is_none() && l.emetteur.is_none() && l.article.is_none() && l.citation.is_none() => {
                 Ok(Fondement::Convergence { sources, raisonnement })
             }
+            (Some(sources), None) if l.fichier.is_none() && l.emetteur.is_none() && l.article.is_none() && l.citation.is_none() && !sources.is_empty() => {
+                Ok(Fondement::Texte(sources))
+            }
             (None, None) => match (l.fichier, l.emetteur, l.citation) {
-                (Some(fichier), Some(emetteur), Some(citation)) => Ok(Fondement::Texte(Source { fichier, emetteur, article: l.article, citation })),
+                (Some(fichier), Some(emetteur), Some(citation)) => Ok(Fondement::Texte(vec![Source { fichier, emetteur, article: l.article, citation }])),
                 _ => Err("une source nomme son fichier, son émetteur et sa citation".to_string()),
             },
             _ => Err("une convergence porte ses sources et son raisonnement, et rien d'autre".to_string()),
@@ -127,8 +130,7 @@ impl Fondement {
     /// Les textes qui fondent la valeur.
     pub fn sources(&self) -> Vec<&Source> {
         match self {
-            Fondement::Texte(s) => vec![s],
-            Fondement::Convergence { sources, .. } => sources.iter().collect(),
+            Fondement::Texte(sources) | Fondement::Convergence { sources, .. } => sources.iter().collect(),
         }
     }
 }

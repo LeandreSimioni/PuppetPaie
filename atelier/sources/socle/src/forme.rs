@@ -45,6 +45,38 @@ fn en_clair(m: &str) -> String {
     m.to_string()
 }
 
+/// UN MONTANT OU UN TAUX EN DECIMAL, lu comme `num::dec` le lit d'une `Value` : un entier garde son echelle nulle, un
+/// flottant sa representation la plus courte (`1.0` reste `1.0`). `#[serde(deserialize_with = "socle::forme::decimal")]`.
+pub fn decimal<'de, D: serde::Deserializer<'de>>(d: D) -> Result<crate::num::Decimal, D::Error> {
+    let v: Value = serde::Deserialize::deserialize(d)?;
+    crate::num::dec(&v).map_err(serde::de::Error::custom)
+}
+
+/// `decimal`, quand la valeur peut manquer ou etre nulle (avec `#[serde(default)]`).
+pub fn decimal_opt<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<crate::num::Decimal>, D::Error> {
+    let v: Value = serde::Deserialize::deserialize(d)?;
+    if v.is_null() {
+        return Ok(None);
+    }
+    crate::num::dec(&v).map(Some).map_err(serde::de::Error::custom)
+}
+
+/// Une cle exigee meme nulle (`Option` la tiendrait pour absente) : `#[serde(deserialize_with = "socle::forme::presente")]`,
+/// sans `default`. La part d'une rubrique s'ecrit, nulle quand il n'y en a pas.
+pub fn presente<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(d: D) -> Result<Option<T>, D::Error> {
+    <Option<T> as serde::Deserialize>::deserialize(d)
+}
+
+/// Un nombre decimal, lu comme `decimal`, la ou un champ ne se pose pas (une valeur de table).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Nombre(pub crate::num::Decimal);
+
+impl<'de> serde::Deserialize<'de> for Nombre {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        decimal(d).map(Nombre)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

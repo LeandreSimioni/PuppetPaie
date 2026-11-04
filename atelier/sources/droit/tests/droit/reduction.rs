@@ -10,7 +10,8 @@ use droit::reduction::reduction_generale;
 #[test]
 fn le_coefficient_majore_ne_s_arrondit_qu_une_fois() {
     let socle = lire(&code_livre(), "baremes/2026.json");
-    let technicien = &socle["par_statut"]["technicien"];
+    let rg: droit::forme_bareme::ReductionGenerale = socle::forme::lire(&socle["par_statut"]["technicien"]["reduction_generale"], "").unwrap();
+    let technicien = Some(&rg);
     // Une journee de 7 h payee 100 : SMIC de reference 12,02 x 7 = 84,14 ; (0,02 + 0,3781 x 0,7621^1,75) = 0,25503...
     let sans = reduction_generale(technicien, Some("technicien"), dec("100"), dec("7"), false).unwrap().unwrap();
     assert_eq!(sans.coefficient, dec("0.2550"));

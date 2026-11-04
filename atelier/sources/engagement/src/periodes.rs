@@ -173,11 +173,11 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
     let heures_mois = parts.iter().fold(Decimal::ZERO, |a, p| a + p.heures_travaillees);
     let caisse = parts.iter().any(|p| p.bases.get("brut_cs").map_or(false, |b| *b > Decimal::ZERO));
     let pile = pile_de_la_paie(ctx, derniere)?;
-    let du_mois = reduction_generale(&pile, Some(statut_du_mois.as_str()), brut_mois, heures_mois, caisse)?;
+    let du_mois = reduction_generale(pile.reduction_generale.as_ref(), Some(statut_du_mois.as_str()), brut_mois, heures_mois, caisse)?;
     for p in parts.iter_mut() {
         let rg = match &du_mois {
             Some(m) if p.brut > Decimal::ZERO && p.heures_travaillees > Decimal::ZERO => {
-                Some(reduction_au_coefficient(&*pile_de_la_paie(ctx, p)?, m.coefficient, p.brut, p.heures_travaillees)?)
+                Some(reduction_au_coefficient(pile_de_la_paie(ctx, p)?.reduction_generale.as_ref(), m.coefficient, p.brut, p.heures_travaillees)?)
             }
             _ => None,
         };

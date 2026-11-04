@@ -1422,7 +1422,7 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
         };
         let bar = ctx.bareme(&jour)?;
         let ent = ctx.entreprise_au(&jour)?;
-        let de_l_annexe = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
+        let de_l_annexe = calcul::deduction_forfaitaire(&*ctx.bareme_lu(&jour)?, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
         let ou = territoire(&l);
         // Les deux limites de la metropole, quand le bareme les porte : les cases et leurs aides les disent.
         let metropole = bar.get(lim.cle).and_then(|x| Some((dec(x.get(lim.haute)?).ok()?, dec(x.get(lim.basse)?).ok()?)));

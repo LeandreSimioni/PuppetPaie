@@ -1107,7 +1107,7 @@ fn niveaux_sante(ctx: &Contexte) -> R<Value> {
     let Ok(bar) = ctx.bareme(&ctx.aujourdhui) else { return Ok(json!([])) };
     let sec = ou_vide(ou_vide(bar.get("par_nature")).get("permanent"));
     let ajoutees = sec.get("rubriques_ajoutees").and_then(Value::as_array).cloned().unwrap_or_default();
-    let releve = ajoutees.iter().find(|r| r.get("id").and_then(Value::as_str) == Some("mutuelle")).and_then(|r| r.get("_releve_svp_sante"));
+    let releve = ajoutees.iter().find(|r| r.get("id").and_then(Value::as_str) == Some("mutuelle")).and_then(|r| r.get("releve_svp_sante"));
     let Some(releve) = releve.filter(|v| vrai(v)) else { return Ok(json!([])) };
     let niveaux = releve.get("niveaux").and_then(Value::as_object).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("niveaux")))?;
     let mut tries: Vec<(&String, &Value)> = niveaux.iter().collect();
