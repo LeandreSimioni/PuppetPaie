@@ -1195,9 +1195,7 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             let fin = socle::mois::Mois::lire(&m).map(socle::mois::Mois::dernier_jour).map_err(|x| erreur("ValueError", x))?;
             // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
             let (saisie, paies) = charger_mois(ctx, &m, &d.departs)?;
-            let vide = Vec::new();
-            let engagements = saisie.get("engagements").and_then(Value::as_array).unwrap_or(&vide);
-            for (e, pa) in engagements.iter().zip(paies.iter()) {
+            for (e, pa) in saisie.engagements.iter().zip(paies.iter()) {
                 let nat = pa.engagement.nat().map_err(|x| refus(x))?;
                 // Un contrat fini ce mois-ci a eu son solde de tout compte : les conges non pris y sont payes, il n'y a plus de dette.
                 if !nat.mensuelle() || pa.engagement.fin.is_some_and(|f| f <= fin) {
@@ -1208,8 +1206,8 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                     continue;
                 }
                 let brut_du_mois = paies.iter().filter(|q| cle_de(q) == cle).fold(zero, |a, q| add(a, q.brut));
-                let Some(cpt) = engagement::conges::provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
-                a_provisionner.push((cle, texte_ou_vide(e.get("numero")), nat.libelle.clone(), cpt));
+                let Some(cpt) = engagement::conges::provision_conges_de(pa, &m, brut_du_mois, e.salaire_mensuel.as_ref()).map_err(socle::echec::Echec::from)? else { continue };
+                a_provisionner.push((cle, e.numero.clone().unwrap_or_default(), nat.libelle.clone(), cpt));
             }
             m
         }

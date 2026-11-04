@@ -614,16 +614,17 @@ pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<SalarieDuContra
     let Some(debut) = Some(g(imp, "contrat_debut")).filter(|v| vrai(v)).map(d).transpose()? else { return Ok(fiche) };
     let mois = debut.mois_civil().to_string();
     let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { return Ok(fiche) };
-    for e in g(&data, "engagements").as_array().into_iter().flatten() {
-        if !vrai(g(e, "debut")) || d(g(e, "debut"))? != debut || cle_de(ctx, e).ok().as_deref() != Some(cle.as_str()) {
+    for e in &data.engagements {
+        let Some(debut_dit) = e.debut.as_deref().filter(|x| !x.is_empty()) else { continue };
+        if Jour::lire(debut_dit)? != debut || e.cle(ctx).as_deref() != Some(cle.as_str()) {
             continue;
         }
-        let (n_imp, n) = (s(imp, "contrat_numero"), s(e, "numero"));
+        let (n_imp, n) = (s(imp, "contrat_numero"), e.numero.clone().unwrap_or_default());
         if !n_imp.is_empty() && !n.is_empty() && n_imp != n {
             continue;
         }
         let mut f = fiche;
-        f.etablissement = g(e, "etablissement").as_str().map(str::trim).filter(|n| !n.is_empty()).map(str::to_string);
+        f.etablissement = e.etablissement.as_deref().map(str::trim).filter(|n| !n.is_empty()).map(str::to_string);
         return Ok(f);
     }
     Ok(fiche)
@@ -802,20 +803,21 @@ pub fn cachets_dans(ctx: &Contexte, imp: &Value) -> Resultat<Vec<Value>> {
     Ok(out)
 }
 
-fn cachets_de_la_saisie(ctx: &Contexte, data: &Value, mois: &str, cle: &str, premier: &Jour, dernier: &Jour) -> Resultat<Vec<Value>> {
+fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &str, cle: &str, premier: &Jour, dernier: &Jour) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
-    for (i, e) in data.get("engagements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]).iter().enumerate() {
-        if crate::cle_de_l_engagement(ctx, e).as_deref() != Some(cle) {
+    for (i, e) in data.engagements.iter().enumerate() {
+        if e.cle(ctx).as_deref() != Some(cle) {
             continue;
         }
-        for (j, l) in e.get("lignes").and_then(Value::as_array).map_or(&[][..], |a| &a[..]).iter().enumerate() {
+        for (j, l) in e.lignes().iter().enumerate() {
             let dedans: Vec<String> = dates_de_ligne(l).into_iter().filter(|x| premier <= x && x <= dernier).map(|x| x.iso()).collect();
             if dedans.is_empty() {
                 continue;
             }
             let rubrique = s(l, "rubrique");
+            // TRAVAIL A FAIRE (chaine A) : le jour paye pendant un imprevu a sa forme.
             out.push(json!({
-                "mois": mois, "engagement": i, "numero": g(e, "numero"), "spectacle": g(e, "spectacle"),
+                "mois": mois, "engagement": i, "numero": e.numero, "spectacle": e.spectacle,
                 "ligne": j, "rubrique": rubrique, "libelle": libelle_rubrique(&ctx.racine, &rubrique, &ctx.lue_au),
                 "dates": dedans, "quantite": g(l, "quantite"), "taux": g(l, "taux"),
             }));
@@ -829,12 +831,12 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &Value, mois: &str, cle: &str, pre
 /// un arret de travail est une suspension « durant laquelle le salarie ne peut exercer son activite » (bloc S21.G00.60,
 /// cahier technique DSN 2026.1 p. 265), une autre suspension, une raison « pour laquelle le contrat est suspendu »
 /// (bloc S21.G00.65, p. 281).
-pub fn avertir_les_jours_payes(ctx: &Contexte, data: &Value) -> Resultat<Vec<Vec<Avis>>> {
-    let engagements = data.get("engagements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]);
+pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) -> Resultat<Vec<Vec<Avis>>> {
+    let engagements = &data.engagements;
     let mut out: Vec<Vec<Avis>> = vec![Vec::new(); engagements.len()];
     // Les imprevus des seuls salaries de la saisie (`du_salarie`).
     let mut salaries: Vec<String> = Vec::new();
-    for cle in engagements.iter().filter_map(|e| crate::cle_de_l_engagement(ctx, e)) {
+    for cle in engagements.iter().filter_map(|e| e.cle(ctx)) {
         if !salaries.iter().any(|s| *s == cle) {
             salaries.push(cle.into());
         }
@@ -843,7 +845,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &Value) -> Resultat<Vec<Vec
     for cle in &salaries {
         siens.extend(du_salarie(&ctx.racine, cle)?);
     }
-    let mois = data.get("mois").map(en_texte).unwrap_or_default();
+    let mois = data.mois.to_string();
     for imp in &siens {
         let (premier, dernier) = (premier_jour(imp)?, dernier_jour(imp)?);
         for c in cachets_de_la_saisie(ctx, data, &mois, &s(imp, "salarie"), &premier, &dernier)? {

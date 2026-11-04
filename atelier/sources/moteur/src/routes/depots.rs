@@ -351,7 +351,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         let engs = engagement::engagements_de_la_saisie(ctx, &data).map_err(plain)?;
         engs.iter().map(|e| engagement::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
-    let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+    let mois = data.mois.to_string();
     let etiq = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::etiquette).map_err(|e| erreur("ValueError", e))?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.id.to_string(), p.engagement.numero.as_deref().unwrap_or_default().to_string()) };
@@ -397,7 +397,8 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
     // produit pas, le refus dit lesquelles (salarie, jour) et qu'il faut corriger la saisie. Ni le numero de contrat ni
     // la validation ne distinguent deux lignes.
-    if let Some(brutes) = data.get("engagements").and_then(Value::as_array).filter(|b| b.len() == paies.len()) {
+    let brutes: Vec<Value> = data.engagements.iter().map(|e| e.en_valeur()).collect();
+    if let Some(brutes) = Some(&brutes).filter(|b| b.len() == paies.len()) {
         let sans_numero = |v: &Value| -> Value {
             match v {
                 Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| *k != "numero" && *k != "valide").map(|(k, x)| (k.clone(), x.clone())).collect()),

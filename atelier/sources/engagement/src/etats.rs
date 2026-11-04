@@ -232,8 +232,8 @@ impl Valide {
 
     /// LA PAIE DE `mois`, TELLE QU'ELLE A ETE VALIDEE : ce que lit ce qui fabrique un document. `data` : la saisie du mois
     /// (`stock::vue_du_mois`), `i` : le rang de l'engagement dans cette saisie.
-    pub fn paie(&self, ctx: &Contexte, data: &Value, i: usize) -> Resultat<Paie> {
-        let mois = data.get("mois").and_then(Value::as_str).ok_or_else(|| socle::fichiers::absent("mois"))?;
+    pub fn paie(&self, ctx: &Contexte, data: &crate::saisie::VueDuMois, i: usize) -> Resultat<Paie> {
+        let mois = &data.mois.to_string();
         let x = self.ecrite(mois)?.filter(|p| p.get("paie").is_some()).ok_or_else(|| match &self.refus {
             Some(refus) => format!("{} : la paie de {} ne se calcule pas. {}", qui_de(ctx, &self.objet), socle::mois::Mois::en_clair(mois), refus),
             None => format!(
@@ -242,7 +242,7 @@ impl Valide {
                 socle::mois::Mois::en_clair(mois)
             ),
         })?;
-        let une = relire::saisie_d_un_engagement(data, i);
+        let une = relire::saisie_d_un_engagement(data, i)?;
         let mut paie = relire::paies(ctx, &une, &[&x["paie"]])?.pop().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paie"))?;
         let p = paie.ecrire();
         p.pas = x.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
@@ -486,16 +486,15 @@ pub fn paie_ecrite_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str, depar
 /// de chacun, au meme rang. Un engagement en saisie n'y est pas : aucun document ne part de lui. Un mois d'apres le
 /// present n'a pas encore de paie ecrite : celle de chaque engagement valide s'y calcule, sans s'ecrire, pour ce qui part
 /// avant lui (la DPAE, le contrat). `None` : aucune saisie.
-pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<(Value, Vec<Paie>)>> {
+pub fn validees_du_mois(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Option<(crate::saisie::VueDuMois, Vec<Paie>)>> {
     validees_du_mois_parmi(ctx, mois, departs, &|_| true)
 }
 
 /// `validees_du_mois`, reduite aux engagements valides que `garder` retient : la paie d'un engagement que l'appelant ne
 /// lit pas ne se relit pas.
-pub fn validees_du_mois_parmi(ctx: &Contexte, mois: &str, departs: &Departs, garder: &dyn Fn(&Valide) -> bool) -> Resultat<Option<(Value, Vec<Paie>)>> {
+pub fn validees_du_mois_parmi(ctx: &Contexte, mois: &str, departs: &Departs, garder: &dyn Fn(&Valide) -> bool) -> Resultat<Option<(crate::saisie::VueDuMois, Vec<Paie>)>> {
     let etats = du_mois(ctx, mois, departs)?;
     let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut gardes = Vec::new();
     let mut paies = Vec::new();
     let a_venir: Vec<usize> = if mois > mois_present(ctx).as_str() {
@@ -511,11 +510,9 @@ pub fn validees_du_mois_parmi(ctx: &Contexte, mois: &str, departs: &Departs, gar
             None => v.paie(ctx, &data, i)?,
         };
         paies.push(paie);
-        gardes.push(tous.get(i).cloned().unwrap_or(Value::Null));
+        gardes.push(data.engagements.get(i).cloned().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "engagements"))?);
     }
-    let mut reduite = data.clone();
-    reduite["engagements"] = Value::Array(gardes);
-    Ok(Some((reduite, paies)))
+    Ok(Some((crate::saisie::VueDuMois { engagements: gardes, ..data }, paies)))
 }
 
 /// LES PAIES DE `mois`, CE QUE LISENT LES ETATS : la paie ecrite de chaque engagement valide de la saisie qui en a une
@@ -802,12 +799,8 @@ pub(crate) fn calculer(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Value>
 
 /// Ce que la saisie `data` d'un mois pose pour tous ses engagements : elle-meme, sans ses engagements ni ce que le moteur
 /// tient (comme `stock::empreinte_de_saisie` la separe).
-fn mois_lu(data: &Value) -> Value {
-    let mut m = data.as_object().cloned().unwrap_or_default();
-    for k in ["engagements", "_origine", "mois"] {
-        m.remove(k);
-    }
-    Value::Object(m)
+fn mois_lu(data: &crate::saisie::VueDuMois) -> Value {
+    serde_json::to_value(crate::saisie::CeQueLeMoisDit { taux_cachet: data.taux_cachet.clone() }).unwrap_or(Value::Null)
 }
 
 /// Les paies des engagements de rangs `rangs` dans l'ecran de `mois`, d'un seul calcul du mois, au contexte du mois :
@@ -821,21 +814,21 @@ fn mois_lu(data: &Value) -> Value {
 fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<Vec<Value>> {
     let ctx = &ctx.du_mois(mois)?;
     let mut data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
-    let tous: Vec<Value> = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let salaries: Vec<String> = rangs.iter().map(|i| tous.get(*i).and_then(|e| e.get("salarie")).map(en_texte).unwrap_or_default()).collect();
+    let tous = std::mem::take(&mut data.engagements);
+    let salaries: Vec<String> = rangs.iter().map(|i| tous.get(*i).and_then(|e| e.salarie.clone()).unwrap_or_default()).collect();
     let mut gardes = Vec::new();
     let mut places = vec![None; tous.len()];
     for (i, mut e) in tous.into_iter().enumerate() {
-        if rangs.contains(&i) && e.get("valide").is_none() {
-            e["valide"] = json!({});
+        if rangs.contains(&i) && e.valide.is_none() {
+            e.valide = Some(crate::saisie::Validee::default());
         }
-        let des_siens = e.get("salarie").map(en_texte).is_some_and(|s| salaries.contains(&s));
-        if des_siens && e.get("valide").is_some() {
+        let des_siens = e.salarie.as_ref().is_some_and(|s| salaries.contains(s));
+        if des_siens && e.valide.is_some() {
             places[i] = Some(gardes.len());
             gardes.push(e);
         }
     }
-    data["engagements"] = Value::Array(gardes);
+    data.engagements = gardes;
     let (calculees, mut entrees) = empreinte::suivre(ctx, || {
         let s = crate::charger_donnees(ctx, &data)?;
         rangs
@@ -1200,9 +1193,9 @@ pub fn apres_un_imprevu(ctx: &Contexte, salarie: &str, departs: &Departs) -> Res
 fn saisie_comptee_valide(ctx: &Contexte, o: &Objet, mois: &str, salarie: Option<&str>) -> Option<String> {
     let mut data = stock::vue_du_mois(&ctx.racine, mois).ok().flatten()?;
     let i = rang_dans(ctx, o, mois).ok()?;
-    let e = data.get_mut("engagements").and_then(|es| es.get_mut(i))?;
-    if e.get("valide").is_none() {
-        e["valide"] = json!({});
+    let e = data.engagements.get_mut(i)?;
+    if e.valide.is_none() {
+        e.valide = Some(crate::saisie::Validee::default());
     }
     Some(stock::empreinte_de_saisie(&data, salarie))
 }
@@ -1231,11 +1224,12 @@ pub fn mois_du_changement(v: &Valide, passee: &Value) -> Resultat<Option<String>
         .collect();
     mois.sort();
     mois.dedup();
+    // TRAVAIL A FAIRE (chaine A) : les clauses du contrat se comparent par leur forme, pas par leurs cles.
     let garder = |x: Option<Map<String, Value>>| -> Option<Map<String, Value>> {
         x.map(|m| m.into_iter().filter(|(k, _)| CLAUSES.contains(&k.as_str()) && !(mensuel && k.as_str() == "lignes")).collect())
     };
     for m in mois {
-        if garder(v.objet.vue(&m)?) != garder(ancien.vue(&m)?) {
+        if garder(v.objet.vue_ecrite(&m)?) != garder(ancien.vue_ecrite(&m)?) {
             return Ok(Some(m));
         }
     }
@@ -1816,7 +1810,7 @@ fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: 
 }
 
 /// Ce que la version `version` dit de `mois` (`Objet::vue` de sa saisie).
-fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<crate::saisie::Carte>> {
     let saisie = version.get("saisie").and_then(Value::as_object).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "saisie"))?;
     let mut declare = o.clone();
     declare.brut = std::sync::Arc::new(Value::Object(saisie.clone()));
@@ -1842,9 +1836,8 @@ fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) ->
     let Some(ecrite) = paie_ecrite_de_la_version(o, version, mois)? else { return Ok(None) };
     let paie = ecrite.get("paie").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paie"))?;
     let Some(vue) = vue_de_la_version(o, version, mois)? else { return Ok(None) };
-    let mut data = ecrite.get(MOIS_LU).filter(|m| m.is_object()).cloned().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, MOIS_LU))?;
-    data["mois"] = json!(mois);
-    data["engagements"] = json!([vue]);
+    let dit: crate::saisie::CeQueLeMoisDit = socle::forme::lire(ecrite.get(MOIS_LU).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, MOIS_LU))?, socle::echec::PAIE_ILLISIBLE)?;
+    let data = crate::saisie::VueDuMois { mois: socle::mois::Mois::lire(mois)?, taux_cachet: dit.taux_cachet, engagements: vec![vue] };
     let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paie"))?;
     let fiches = relire::FichesDuCalcul::lire(ecrite.get("fiches").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "fiches"))?)?;
     let mut lue = relire::paie_sur_ses_fiches(ctx, eng, paie, &fiches)?;
@@ -1985,8 +1978,3 @@ pub fn phrase_du_recalcul(r: &Value) -> Option<String> {
     Some(format!("Recalculé le {} : {}.", jour, raison))
 }
 
-/// La paie de l'engagement de rang `i` dans la saisie `data` est-elle validee ? (Une saisie de l'ecran, pas encore
-/// ecrite, n'a pas de rang sur le disque : on la compare a ce qui est ecrit.)
-pub fn est_validee(v: &Value) -> bool {
-    v.get("valide").is_some_and(vrai)
-}

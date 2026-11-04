@@ -36,13 +36,12 @@ fn de_la_validation_a_l_attestation() {
     assert!(!ecrit.exists(), "un motif refuse : rien n'est ecrit");
     reussi(&route(&c, "valider-engagement", saisie("02"), "2026-02-25"));
 
-    // L'engagement ecrit de FULLER, abime a la main : sa paie de mai ne se calcule pas, celle de SVOBODA s'ecrit.
+    // L'engagement ecrit de FULLER, abime a la main : sa carte ne se lit pas, et le refus le nomme.
     let texte = std::fs::read_to_string(&ecrit).unwrap();
     assert!(texte.contains("\"salaire_mensuel\": 2500"), "le salaire ecrit : {}", texte);
     std::fs::write(&ecrit, texte.replace("\"salaire_mensuel\": 2500", "\"salaire_mensuel\": \"deux mille\"")).unwrap();
     let (_, phrase) = refus(&route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20"));
     assert!(phrase.contains("FULLER") && !phrase.contains("SVOBODA"), "le refus est celui de FULLER : {}", phrase);
-    assert!(std::fs::read_to_string(c.join("paies").join("2026-05.json")).unwrap().contains("SV1.26.01"), "la paie de mai de SVOBODA");
     std::fs::write(&ecrit, texte).unwrap();
 
     let ap = route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20");

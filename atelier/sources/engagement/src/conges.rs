@@ -1261,7 +1261,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
 
     // --- les repas et les nuitees de la carte
     if let Some(Value::Array(l)) = e.get("lignes") {
-        let (l, a) = crate::frais_au_dela(ctx, e, l.clone(), mois, &qui(ctx, e))?;
+        let (l, a) = crate::frais_au_dela(ctx, e.get("salarie").and_then(Value::as_str), l.clone(), mois, &qui(ctx, e))?;
         lignes.extend(l);
         avert.extend(a);
     }
@@ -1323,7 +1323,7 @@ pub struct Provision {
 /// `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un contrat sans compteur de
 /// l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne porte pas le compteur
 /// qu'elle devrait.
-pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> socle::num::Resultat<Option<Provision>> {
+pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&serde_json::Number>) -> socle::num::Resultat<Option<Provision>> {
     let Some(ecrit) = paie.conges.as_ref() else {
         if paie.declaree_a_la_caisse_des_conges()? {
             return Ok(None);
@@ -1336,7 +1336,7 @@ pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::De
     let mut cpt = ecrit.clone();
     cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
     let salaire = match salaire_mensuel {
-        Some(v) if socle::fichiers::vrai(v) => dec(v)?,
+        Some(n) => dec(&Value::Number(n.clone()))?,
         _ => Decimal::ZERO,
     };
     provision_du_compteur(cpt, mois, salaire).map(Some)

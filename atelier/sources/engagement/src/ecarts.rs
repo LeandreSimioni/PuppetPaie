@@ -325,37 +325,31 @@ fn comparer_une(
         }
         saisies.push(Value::Object(s));
     }
-    let mut e = Map::new();
-    e.insert("salarie".into(), json!(salarie));
-    if !mensuelle {
-        // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.
-        let par_objet = texte(p, "numero_objet").and_then(|n| {
-            ctx.spectacles.iter().find(|(_, f)| f.get("numero_objet").map(en_texte).as_deref() == Some(n.as_str())).map(|(k, _)| json!(k))
-        });
-        if let Some(sp) = p.get("spectacle").filter(|x| vrai(x)).cloned().or(par_objet) {
-            e.insert("spectacle".into(), sp);
-        }
-    }
-    if let Some(n) = nature {
-        e.insert("nature".into(), json!(n));
-    }
-    for k in ["debut", "fin"] {
-        if let Some(v) = p.get(k).filter(|x| vrai(x)) {
-            e.insert(k.into(), v.clone());
-        }
-    }
-    for k in ["emploi", "pcs_ese", "code_emploi_ft", "statut", "statut_conventionnel", "statut_categoriel_rc"] {
-        if let Some(v) = du_bulletin(k) {
-            e.insert(k.into(), v.clone());
-        }
-    }
-    e.insert("lignes".into(), Value::Array(saisies));
-    // Le jour ou l'ancien logiciel a verse : un fait (`crate::importe::IMPORTE`).
-    if let Some(v) = p.get("verse_le").filter(|x| vrai(x)) {
-        e.insert("date_paiement".into(), v.clone());
-    }
-    e.insert(crate::importe::IMPORTE.into(), json!(true));
-    let data = json!({"mois": mois, "engagements": [Value::Object(e)]});
+    // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.
+    let spectacle = (!mensuelle).then(|| {
+        let par_objet = texte(p, "numero_objet").and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.get("numero_objet").map(en_texte).as_deref() == Some(n.as_str())).map(|(k, _)| k.clone()));
+        p.get("spectacle").filter(|x| vrai(x)).map(en_texte).or(par_objet)
+    });
+    let dit = |v: Option<&Value>| v.filter(|x| vrai(x)).map(en_texte);
+    let e = crate::saisie::Carte {
+        salarie: Some(salarie.to_string()),
+        spectacle: spectacle.flatten(),
+        nature: nature.map(|n| n.to_string()),
+        debut: dit(p.get("debut")),
+        fin: dit(p.get("fin")),
+        emploi: dit(du_bulletin("emploi")),
+        pcs_ese: dit(du_bulletin("pcs_ese")),
+        code_emploi_ft: dit(du_bulletin("code_emploi_ft")),
+        statut: dit(du_bulletin("statut")),
+        statut_conventionnel: dit(du_bulletin("statut_conventionnel")),
+        statut_categoriel_rc: dit(du_bulletin("statut_categoriel_rc")),
+        lignes: Some(saisies),
+        // Le jour ou l'ancien logiciel a verse : un fait (`Carte::importe`).
+        date_paiement: dit(p.get("verse_le")),
+        importe: Some(true),
+        ..Default::default()
+    };
+    let data = crate::saisie::VueDuMois { mois: socle::mois::Mois::lire(mois)?, taux_cachet: None, engagements: vec![e] };
     let mut saisie = crate::charger_donnees(&ctx, &data).map_err(|m| a_refaire(c, m))?;
     if let Some((taux, montant, base)) = atmp_imprime {
         // Calcule au taux notifie de 1 %, la ligne AT/MP porte le facteur du contrat, et son assiette.

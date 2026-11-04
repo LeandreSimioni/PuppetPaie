@@ -6,7 +6,7 @@
 
 use std::cell::Cell;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::calcul::{fiche_de_l_engagement, DeductionForfaitaire, LigneBrut, LigneCotisation, Paie, PlafondTempsPartiel, ReductionGenerale};
 use crate::{Avis, Engagement};
@@ -78,14 +78,8 @@ fn drapeau(v: &Value, cle: &str) -> bool {
 /// (quand l'engagement n'en porte pas),
 /// les jours du contrat, les suspensions, et, pour un permanent, les lignes et les jours que le moteur a deduits. `paies` : la forme
 /// ecrite de chaque paie, dans l'ordre de la saisie.
-pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Resultat<Vec<Engagement>> {
-    let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| socle::fichiers::absent("engagements"))?;
-    let mensuels: Vec<usize> = tous
-        .iter()
-        .enumerate()
-        .filter(|(_, e)| droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle()))
-        .map(|(i, _)| i)
-        .collect();
+pub fn engagements_ecrits(ctx: &Contexte, data: &crate::saisie::VueDuMois, paies: &[&Value]) -> Resultat<Vec<Engagement>> {
+    let mensuels: Vec<usize> = data.engagements.iter().enumerate().filter(|(_, e)| e.mensuelle()).map(|(i, _)| i).collect();
     let appel = Cell::new(0usize);
     let lignes = |_: &Contexte, _: &Value, _: &str| -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)> {
         let rang = *mensuels.get(appel.get()).ok_or("rang d'engagement inconnu")?;
@@ -258,15 +252,13 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiche: Option<&droit::fi
 }
 
 /// Les paies ecrites d'une saisie de mois, dans son ordre : `ecrites[i]` est la forme ecrite de l'engagement `i`.
-pub fn paies(ctx: &Contexte, data: &Value, ecrites: &[&Value]) -> Resultat<Vec<Paie>> {
+pub fn paies(ctx: &Contexte, data: &crate::saisie::VueDuMois, ecrites: &[&Value]) -> Resultat<Vec<Paie>> {
     let engs = engagements_ecrits(ctx, data, ecrites)?;
     engs.into_iter().zip(ecrites).map(|(e, v)| paie(ctx, e, v)).collect()
 }
 
 /// La saisie `data` reduite a son engagement `i` : ce que la relecture d'une seule paie lit.
-pub fn saisie_d_un_engagement(data: &Value, i: usize) -> Value {
-    let mut m: Map<String, Value> = data.as_object().cloned().unwrap_or_default();
-    let e = data.get("engagements").and_then(Value::as_array).and_then(|a| a.get(i)).cloned().unwrap_or(Value::Null);
-    m.insert("engagements".into(), Value::Array(vec![e]));
-    Value::Object(m)
+pub fn saisie_d_un_engagement(data: &crate::saisie::VueDuMois, i: usize) -> Resultat<crate::saisie::VueDuMois> {
+    let e = data.engagements.get(i).cloned().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "engagements"))?;
+    Ok(crate::saisie::VueDuMois { mois: data.mois, taux_cachet: data.taux_cachet.clone(), engagements: vec![e] })
 }

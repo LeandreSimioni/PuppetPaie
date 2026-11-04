@@ -813,7 +813,8 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
     pas(d, quoi, quand, |ctx| {
         let objets = engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(Echec::from)?;
         let ids = engagement::stock::identites(&objets);
-        let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or(Value::Null);
+        let le_mois = socle::mois::Mois::lire(mois)?;
+        let vue = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or_else(|| engagement::saisie::VueDuMois::vide(le_mois));
         let manques = crate::routes::mois::manques_de_la_saisie(ctx, &vue);
         let mut fait = false;
         for ((o, id), manque) in objets.iter().zip(ids).zip(manques) {
@@ -821,7 +822,7 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
                 continue;
             }
             let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();
-            let charge = crate::routes::mois::ChargeCarte { mois: socle::mois::Mois::lire(mois)?, engagement: Some(id), saisie };
+            let charge = crate::routes::mois::ChargeCarte { mois: le_mois, engagement: Some(id), saisie };
             crate::routes::engagement::valider_engagement(ctx, charge)?;
             fait = true;
         }

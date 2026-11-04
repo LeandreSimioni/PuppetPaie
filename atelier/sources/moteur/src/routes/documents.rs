@@ -467,7 +467,7 @@ pub(crate) fn charger_le_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<engag
     };
     let annee: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     documents::ecrire_documents::numeroter(ctx, &mut paies, annee, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
-    Ok((data, paies))
+    Ok((data.en_valeur(), paies))
 }
 
 /// `apercu_envoi` : ce que chaque salarie recevrait, sans rien envoyer.

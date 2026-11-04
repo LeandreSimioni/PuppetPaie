@@ -174,7 +174,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
 pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
     let mut m = Map::new();
     for mois in engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).filter(|x| x.starts_with(annee)) {
-        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes::etapes::empreinte_de(&v)));
+        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes::etapes::empreinte_de(&v.en_valeur())));
         m.insert(mois, e);
     }
     Value::Object(m)

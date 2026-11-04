@@ -833,7 +833,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let effet = match (&mois_effet, siens.as_ref()) {
         (Some(me), Some(v)) => {
-            let dite = v.objet().vue(me).map_err(Echec::from)?.and_then(|x| x.get("date_modification").filter(|d| vrai(d)).map(valeur_en_texte));
+            let dite = v.objet().vue(me).map_err(Echec::from)?.and_then(|x| x.date_modification.filter(|d| !d.is_empty()));
             match dite {
                 Some(d) => d,
                 None => engagement::stock::premier_jour(me).map_err(Echec::from)?.iso(),
