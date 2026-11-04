@@ -372,7 +372,7 @@
   },
   {
    "etat": "ecritures-comptables",
-   "quoi": "le journal de paie, une pièce par mois, équilibrée — pour le logiciel du comptable (Oxygène, Sage, Quadra, EBP, Ciel, Pennylane…) ou en tableau",
+   "quoi": "le journal de paie, une pièce par mois, équilibrée — pour le logiciel du comptable (Oxygène, Sage 100, Sage 50, Quadra, EBP, Pennylane…) ou en tableau",
    "famille": "Comptabilité",
    "questions": [
     "periode",
@@ -705,7 +705,7 @@
   },
   {
    "format": "ximport",
-   "quoi": "XIMPORT.TXT — Ciel Compta, EBP (largeurs fixes)"
+   "quoi": "XIMPORT.TXT — Sage 50, ex-Ciel Compta (largeurs fixes)"
   },
   {
    "format": "oxygene",
@@ -773,7 +773,7 @@
   },
   {
    "logiciel": "ciel",
-   "nom": "Ciel Compta",
+   "nom": "Sage 50 (ex-Ciel Compta)",
    "format": "ximport",
    "pourquoi": "XIMPORT.TXT",
    "format_lisible": "XIMPORT",
@@ -783,7 +783,7 @@
    "logiciel": "ebp",
    "nom": "EBP Comptabilité",
    "format": "ebp",
-   "pourquoi": "format EBP V3 ; le XIMPORT passe aussi",
+   "pourquoi": "format EBP V3 pour Windows",
    "format_lisible": "ASCII EBP",
    "analytique": true
   },
@@ -855,7 +855,7 @@
   "quadra": {
    "nom": "Quadra",
    "compte": 8,
-   "journal": 3
+   "journal": 2
   },
   "ebp": {
    "nom": "EBP",
@@ -864,7 +864,6 @@
   },
   "pennylane": {
    "nom": "Pennylane",
-   "compte": 99,
    "journal": 5
   }
  }

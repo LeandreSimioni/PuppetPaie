@@ -18,6 +18,7 @@ pub mod fin_de_contrat;
 pub mod marqueurs;
 pub mod fiche_questionnaire;
 pub mod fiche_recapitulative;
+pub mod libelles_courts;
 pub mod plan_comptable;
 pub mod prelevement;
 pub mod tableaux_export;

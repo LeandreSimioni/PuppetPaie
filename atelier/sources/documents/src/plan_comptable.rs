@@ -138,7 +138,7 @@ fn compte_de(plan: &Map<String, Value>, k: &str) -> R<Value> {
 pub fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
     let plan = plan_comptable(ctx)?;
     let Some(lim) = tables()["limites"].get(format) else { return Ok(Vec::new()) };
-    let (lim_compte, lim_journal) = (lim["compte"].as_u64().expect("compte") as usize, lim["journal"].as_u64().expect("journal") as usize);
+    let (lim_compte, lim_journal) = (lim["compte"].as_u64().map(|n| n as usize).unwrap_or(usize::MAX), lim["journal"].as_u64().expect("journal") as usize);
     let nom_format = lim["nom"].as_str().expect("nom");
     let mut comptes: HashSet<String> = HashSet::new();
     for k in ["brut", "net", "pas"] {
