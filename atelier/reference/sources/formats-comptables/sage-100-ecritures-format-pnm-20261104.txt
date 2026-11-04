@@ -132,7 +132,7 @@ help.sage.fr/echange-interlogiciels/)
 Propriétés de la solution
 ID de la solution
 
-211010140002195
+…
 
 
 date de dernière modification
