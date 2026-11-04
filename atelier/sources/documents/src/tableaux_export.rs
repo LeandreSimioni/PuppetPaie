@@ -570,17 +570,23 @@ fn ecrire_cellule(ws: &mut Worksheet, ligne: u32, col: u16, cel: &Cel, fmt: &For
     }
 }
 
-/// Le nom de la feuille : au plus 31 caracteres, sans ceux qu'Excel refuse.
-fn nom_de_feuille(t: &str) -> String {
-    let n: String = t.chars().take(31).collect();
-    n.chars().map(|c| if "[]:*?/\\".contains(c) { '_' } else { c }).collect()
+/// Le nom de la feuille : celui de l'etat (`livre-de-paie`), qui tient dans les 31 caracteres qu'Excel admet et n'en
+/// porte aucun qu'il refuse ; le titre entier est la premiere ligne de la feuille.
+fn nom_de_feuille(t: &Tableau) -> R<&str> {
+    if t.etat.is_empty() || t.etat.chars().count() > 31 || t.etat.chars().any(|c| "[]:*?/\\'".contains(c)) {
+        return Err(refus(format!(
+            "L'état « {} » ne peut pas nommer une feuille Excel : 31 caractères au plus, sans crochet, deux-points, astérisque, point d'interrogation, barre ni apostrophe. Le renommer dans le moteur.",
+            t.etat
+        )));
+    }
+    Ok(&t.etat)
 }
 
 /// `xlsx_tableau`.
 pub fn xlsx_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut wb = Workbook::new();
     let ws = wb.add_worksheet();
-    ws.set_name(nom_de_feuille(&t.titre)).map_err(xl)?;
+    ws.set_name(nom_de_feuille(t)?).map_err(xl)?;
     let mut ligne: u32 = 0;
     for x in entete_texte(t, &lire_nom(ctx)) {
         ws.write_string_with_format(ligne, 0, &x, &format_de(true, Some(13.0), None)).map_err(xl)?;

@@ -64,11 +64,6 @@ fn blancs(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// `s[:n]`, en caracteres.
-fn debut(s: &str, n: usize) -> String {
-    s.chars().take(n).collect()
-}
-
 /// `s[a:b]`, en caracteres.
 fn tranche(s: &str, a: usize, b: usize) -> String {
     s.chars().skip(a).take(b.saturating_sub(a)).collect()
@@ -85,9 +80,40 @@ fn caler(s: String, n: usize, a_droite: bool) -> String {
     }
 }
 
-/// Espaces ramenees a une, coupe a `n`, cadre a gauche (`g`) ou a droite (`d`).
-fn zone(v: &str, n: usize, cote: char) -> String {
-    caler(debut(&blancs(v), n), n, cote == 'd')
+/// Ce qu'une zone porte, en mots, et ce qui se raccourcit pour qu'elle tienne.
+fn ce_que_porte(quoi: &str) -> (&'static str, &'static str) {
+    const PLAN: &str = "Raccourcir le libellé de ce compte dans le plan comptable de la compagnie";
+    match quoi {
+        "libelle" | "libelle30" | "LIBEC" | "Libellé" => ("le libellé", "Raccourcir le libellé de ce compte dans le plan comptable de la compagnie, ou le titre du spectacle dans Configuration › Spectacles"),
+        "libelle_compte" | "LIBCP" => ("l'intitulé du compte", PLAN),
+        "CODCP" => ("le code du compte", PLAN),
+        "journal" | "journal3" => ("le code journal", "Raccourcir le code journal dans le plan comptable de la compagnie"),
+        "compte" => ("le compte", "Choisir dans le plan comptable de la compagnie un compte qui tient"),
+        "analytique" | "affaire" | "auxiliaire" => ("le code analytique", "Raccourcir le code analytique du spectacle dans Configuration › Spectacles"),
+        "piece" | "reference" | "piece10" => ("la pièce", "Ce numéro de pièce est celui du mois : le signaler"),
+        "raison sociale" => ("le nom de la compagnie", "Abréger le nom de la compagnie dans Configuration › Entreprise"),
+        _ => ("une zone", "Cette valeur est calculée : le signaler"),
+    }
+}
+
+/// Le texte d'une zone de `logiciel` qui en prend `n` caracteres : espaces ramenees a une, entier ; plus long, l'export
+/// se refuse en disant quoi raccourcir -- rien ne se coupe. Le plan comptable, `config/plan-comptable.json`, va a part.
+fn tenir(logiciel: &str, quoi: &str, v: &str, n: usize) -> R<String> {
+    let t = blancs(v);
+    let c = t.chars().count();
+    if c > n {
+        let (porte, conseil) = ce_que_porte(quoi);
+        return Err(refus(socle::echec::avec(
+            format!("{} : « {} » a {} caractères, {} en prend {} au plus dans ce logiciel. {}.", logiciel, t, c, porte, n, conseil),
+            serde_json::json!({"zone": quoi, "fichier": crate::plan_comptable::PLAN_COMPTABLE}),
+        )));
+    }
+    Ok(t)
+}
+
+/// Une zone a largeur fixe (`tenir`), cadree a gauche (`g`) ou a droite (`d`).
+fn zone(logiciel: &str, quoi: &str, v: &str, n: usize, cote: char) -> R<String> {
+    Ok(caler(tenir(logiciel, quoi, v, n)?, n, cote == 'd'))
 }
 
 /// `"%.2f" % v` d'un montant a deux decimales.
@@ -276,10 +302,10 @@ impl Envoi<'_> {
     }
 }
 
-/// Un titre en code -- lettres et chiffres, sans accent, en majuscules, coupe a la largeur de la zone.
-fn code_du_titre(titre: &str, n: usize) -> String {
+/// Un titre en code -- lettres et chiffres, sans accent, en majuscules ; plus large que la zone, `codes_sections` le refuse.
+fn code_du_titre(titre: &str) -> String {
     let ascii = socle::texte::ascii_nfkd(titre);
-    debut(&ascii.to_uppercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>(), n)
+    ascii.to_uppercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>()
 }
 
 /// `codes_des_fiches` : titre -> code analytique, lu sur les fiches spectacle. La fiche active l'emporte, puis le
@@ -314,7 +340,7 @@ fn codes_sections(plan: &Map<String, Value>, ecritures: &[Ecriture], largeur: us
     let titres: BTreeSet<&String> = ecritures.iter().filter(|e| !e.analytique.is_empty() && e.compte == brut).map(|e| &e.analytique).collect();
     for titre in titres {
         let choisi = propres.get(titre).cloned().unwrap_or_default();
-        let code = if choisi.is_empty() { code_du_titre(titre, largeur) } else { choisi.clone() };
+        let code = if choisi.is_empty() { code_du_titre(titre) } else { choisi.clone() };
         if code.is_empty() || code.chars().count() > largeur {
             return Err(refus(format!(
                 "Analytique : le code « {} » du spectacle « {} » ne tient pas dans la zone de ce logiciel ({} caractères au plus). Le raccourcir dans Configuration › Spectacles, case « Code analytique ».",
@@ -376,7 +402,7 @@ fn fec(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         let champs = [
             e.journal.clone(),
             journal_lib.clone(),
-            format!("{}{:05}", debut(&e.date, 4), e.numero),
+            format!("{}{:05}", tranche(&e.date, 0, 4), e.numero),
             date.clone(),
             e.compte.clone(),
             libelle_compte(plan, &e.compte)?,
@@ -400,10 +426,10 @@ fn fec(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ outils communs
 
-/// Le libelle d'une ligne dans une zone etroite -- ce qui la distingue (le spectacle ou le
-/// salarie, sinon la nature ; les deux si `nature`) et le mois, qui reste entier.
-fn libelle_court(e: &Ecriture, n: usize, nature: bool) -> String {
-    let mm = format!("{}/{}", tranche(&e.date, 5, 7), debut(&e.date, 4));
+/// Le libelle d'une ligne dans une zone etroite -- ce qui la distingue (le spectacle ou le salarie, sinon la nature ;
+/// les deux si `nature`) et le mois, entier : la zone le prend ou refuse (`tenir`).
+fn libelle_court(e: &Ecriture, nature: bool) -> String {
+    let mm = format!("{}/{}", tranche(&e.date, 5, 7), tranche(&e.date, 0, 4));
     let sans_mois = match e.libelle.rfind(" -- ") {
         Some(i) => &e.libelle[..i],
         None => e.libelle.as_str(),
@@ -413,23 +439,12 @@ fn libelle_court(e: &Ecriture, n: usize, nature: bool) -> String {
         quoi = format!("{} — {}", quoi, e.analytique);
     }
     let tete_brute = if !e.analytique.is_empty() && !nature { e.analytique.clone() } else { quoi };
-    let lib = blancs(&format!("{} {}", tete_brute, mm));
-    if lib.chars().count() <= n {
-        return lib;
-    }
-    let place = (n as i64 - mm.chars().count() as i64 - 1).max(0) as usize;
-    let tete: Vec<char> = lib.chars().take(place + 1).collect();
-    let coupe = tete.iter().rposition(|c| *c == ' ');
-    let tete: String = match coupe {
-        Some(c) if c >= place / 2 => tete[..c].iter().collect(),
-        _ => lib.chars().take(place).collect(),
-    };
-    format!("{} {}", tete.trim_end_matches([' ', '—', '-']), mm)
+    blancs(&format!("{} {}", tete_brute, mm))
 }
 
-/// PAIE-2026-08 fait 12 caracteres ; Oxygene et Quadra en prennent 10.
+/// PAIE-2026-08 fait 12 caracteres ; Oxygene et Quadra en prennent 10 : PAIE202608.
 fn piece_courte(e: &Ecriture) -> String {
-    debut(&format!("PAIE{}", e.mois.replace('-', "")), 10)
+    format!("PAIE{}", e.mois.replace('-', ""))
 }
 
 /// Le sens (D ou C) et le montant d'une ecriture.
@@ -489,12 +504,12 @@ fn ximport(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         let (s, montant) = sens(e);
         let champs: BTreeMap<&str, String> = [
             ("mouvement", e.numero.to_string()),
-            ("journal", debut(&e.journal, 2)),
+            ("journal", e.journal.clone()),
             ("date", e.date.replace('-', "")),
             ("echeance", String::new()),
             ("piece", e.piece.clone()),
             ("compte", compte_de(e)),
-            ("libelle", libelle_court(e, 25, false)),
+            ("libelle", libelle_court(e, false)),
             ("montant", deux(montant).replace('.', ",")),
             ("sens", s.to_string()),
             ("pointage", String::new()),
@@ -504,7 +519,7 @@ fn ximport(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         ]
         .into_iter()
         .collect();
-        out.push(LARGEURS_XIMPORT.iter().map(|(k, n, c)| zone(&champs[k], *n, *c)).collect::<String>());
+        out.push(LARGEURS_XIMPORT.iter().map(|(k, n, c)| zone("XIMPORT", k, &champs[k], *n, *c)).collect::<R<String>>()?);
     }
     Ok(cp1252(&out))
 }
@@ -538,7 +553,7 @@ fn oxygene(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
             ("NUMCP", compte_de(e)),
             ("DTOPE", e.date.replace('-', "")),
             ("NPIEC", piece_courte(e)),
-            ("LIBEC", libelle_court(e, 40, true)),
+            ("LIBEC", tenir("Oxygène", "LIBEC", &libelle_court(e, true), 40)?),
             ("MTDEB", virgule(e.debit)),
             ("MTCRE", virgule(e.credit)),
             ("CSECT", section),
@@ -552,12 +567,12 @@ fn oxygene(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 }
 
 /// `oxygene_comptes` : « L'importation du plan comptable », fiche compte.
-fn oxygene_comptes(comptes: &[(String, String)]) -> Vec<u8> {
+fn oxygene_comptes(comptes: &[(String, String)]) -> R<Vec<u8>> {
     let mut out = vec!["NUMCP;CODCP;LIBCP".to_string()];
     for (compte, lib) in comptes {
-        out.push([csv_propre(compte), csv_propre(&debut(lib, 15)), csv_propre(&debut(lib, 50))].join(";"));
+        out.push([csv_propre(compte), csv_propre(&tenir("Oxygène", "CODCP", lib, 15)?), csv_propre(&tenir("Oxygène", "LIBCP", lib, 50)?)].join(";"));
     }
-    cp1252(&out)
+    Ok(cp1252(&out))
 }
 
 // ------------------------------------------------------------------ Sage (PNM)
@@ -571,7 +586,7 @@ const LARGEURS_PNM: [(&str, usize, char); 13] = [
 fn sage_pnm(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
     let nom = nom_compagnie(env.ctx);
     let nom = if nom.is_empty() { "Paie".to_string() } else { nom };
-    let mut out = vec![zone(&nom, 30, 'g').trim_end().to_string()];
+    let mut out = vec![tenir("Sage", "raison sociale", &nom, 30)?];
     for e in ecritures {
         borne("sage", &compte_de(e), &e.journal)?;
         let (s, montant) = sens(e);
@@ -583,7 +598,7 @@ fn sage_pnm(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
             ("type_compte", String::new()),
             ("auxiliaire", String::new()),
             ("reference", e.piece.clone()),
-            ("libelle", libelle_court(e, 25, false)),
+            ("libelle", libelle_court(e, false)),
             ("paiement", String::new()),
             ("echeance", String::new()),
             ("sens", s.to_string()),
@@ -592,13 +607,13 @@ fn sage_pnm(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         ]
         .into_iter()
         .collect();
-        let ligne = |c: &BTreeMap<&str, String>| LARGEURS_PNM.iter().map(|(k, n, cote)| zone(&c[k], *n, *cote)).collect::<String>();
-        out.push(ligne(&champs));
+        let ligne = |c: &BTreeMap<&str, String>| LARGEURS_PNM.iter().map(|(k, n, cote)| zone("Sage", k, &c[k], *n, *cote)).collect::<R<String>>();
+        out.push(ligne(&champs)?);
         let section = env.section(e);
         if !section.is_empty() {
             champs.insert("type_compte", "A".to_string());
             champs.insert("auxiliaire", section);
-            out.push(ligne(&champs));
+            out.push(ligne(&champs)?);
         }
     }
     Ok(cp1252(&out))
@@ -638,8 +653,8 @@ fn caler_zeros(compte: &str, n: usize) -> String {
 }
 
 /// Les zones a la suite, cadrees a gauche.
-fn quadra_ligne(champs: &BTreeMap<&str, String>, positions: &[(&str, usize)]) -> String {
-    positions.iter().map(|(k, n)| zone(champs.get(k).map(String::as_str).unwrap_or(""), *n, 'g')).collect()
+fn quadra_ligne(champs: &BTreeMap<&str, String>, positions: &[(&str, usize)]) -> R<String> {
+    positions.iter().map(|(k, n)| zone("Quadra", k, champs.get(k).map(String::as_str).unwrap_or(""), *n, 'g')).collect()
 }
 
 /// `quadra` : les comptes d'abord (type C), puis les ecritures (enregistrements M).
@@ -654,7 +669,7 @@ fn quadra(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
             ch.insert(k, "+000000000000".to_string());
         }
         ch.insert("type_compte", "G".to_string());
-        sortie.push(quadra_ligne(&ch, &POSITIONS_QUADRA_COMPTE));
+        sortie.push(quadra_ligne(&ch, &POSITIONS_QUADRA_COMPTE)?);
     }
     for e in ecritures {
         let (s, montant) = sens(e);
@@ -662,18 +677,18 @@ fn quadra(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         let mut ch: BTreeMap<&str, String> = BTreeMap::new();
         ch.insert("type", "M".to_string());
         ch.insert("compte", compte_quadra(&compte_de(e))?);
-        ch.insert("journal", debut(&e.journal, 2));
+        ch.insert("journal", e.journal.clone());
         ch.insert("folio", "000".to_string());
         ch.insert("date", jjmmaa(&e.date));
-        ch.insert("libelle", libelle_court(e, 20, false));
+        ch.insert("libelle", libelle_court(e, false));
         ch.insert("sens", s.to_string());
         ch.insert("montant", format!("+{:012}", centimes));
         ch.insert("affaire", env.section(e));
         ch.insert("devise", "EUR".to_string());
-        ch.insert("journal3", debut(&e.journal, 3));
-        ch.insert("libelle30", libelle_court(e, 30, false));
+        ch.insert("journal3", e.journal.clone());
+        ch.insert("libelle30", libelle_court(e, false));
         ch.insert("piece10", piece_courte(e));
-        sortie.push(quadra_ligne(&ch, &POSITIONS_QUADRA));
+        sortie.push(quadra_ligne(&ch, &POSITIONS_QUADRA)?);
     }
     Ok(cp1252(&sortie))
 }
@@ -681,8 +696,8 @@ fn quadra(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 // ------------------------------------------------------------------ EBP
 
 /// Entre guillemets, sans guillemet dedans.
-fn ebp_texte(s: &str, n: usize) -> String {
-    format!("\"{}\"", debut(&blancs(&s.replace('"', "'")), n))
+fn ebp_texte(quoi: &str, s: &str, n: usize) -> R<String> {
+    Ok(format!("\"{}\"", tenir("EBP", quoi, &s.replace('"', "'"), n)?))
 }
 
 /// Une zone sans guillemets ne contient pas de virgule.
@@ -703,8 +718,8 @@ fn ebp(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
                 e.journal.clone(),
                 compte_de(e),
                 String::new(),
-                ebp_texte(&libelle_court(e, 40, true), 40),
-                ebp_texte(&e.piece, 15),
+                ebp_texte("libelle", &libelle_court(e, true), 40)?,
+                ebp_texte("piece", &e.piece, 15)?,
                 deux(montant),
                 s.to_string(),
                 String::new(),
@@ -721,16 +736,16 @@ fn ebp(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 }
 
 /// `ebp_comptes` : COMPTES.TXT.
-fn ebp_comptes(comptes: &[(String, String)]) -> Vec<u8> {
+fn ebp_comptes(comptes: &[(String, String)]) -> R<Vec<u8>> {
     let out: Vec<String> = comptes
         .iter()
         .map(|(c, lib)| {
-            let mut z = vec![debut(&ebp_zone(c), 15), debut(&ebp_zone(lib), 60)];
+            let mut z = vec![tenir("EBP", "compte", &ebp_zone(c), 15)?, tenir("EBP", "libelle_compte", &ebp_zone(lib), 60)?];
             z.extend(std::iter::repeat(String::new()).take(8));
-            z.join(",")
+            Ok(z.join(","))
         })
-        .collect();
-    cp1252(&out)
+        .collect::<R<_>>()?;
+    Ok(cp1252(&out))
 }
 
 // ------------------------------------------------------------------ Pennylane
@@ -746,7 +761,7 @@ fn pennylane(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
             jj(&e.date),
             e.journal.clone(),
             compte_de(e),
-            format!("{} {}", e.piece, libelle_court(e, 80, true)),
+            format!("{} {}", e.piece, tenir("Pennylane", "Libellé", &libelle_court(e, true), 80)?),
             virgule(e.debit),
             virgule(e.credit),
             env.section(e),
@@ -767,7 +782,7 @@ struct Ecrivain {
     conseil: String,
     section: usize,
     /// (modele du nom, ecrivain, conseil)
-    comptes: Option<(&'static str, fn(&[(String, String)]) -> Vec<u8>, &'static str)>,
+    comptes: Option<(&'static str, fn(&[(String, String)]) -> R<Vec<u8>>, &'static str)>,
 }
 
 /// `ECRIVAINS.get(format)`.
@@ -941,16 +956,22 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let dossier = p.dossier(ctx);
         if let Some(ec) = &ecr_format {
             let io = |c: &std::path::Path, e: std::io::Error| erreur("OSError", socle::echec::du_disque(&c, &e));
-            std::fs::create_dir_all(&dossier).map_err(|e| io(&dossier, e))?;
             let env = Envoi { plan: &plan, ctx, sections };
+            // Les deux fichiers se fabriquent avant d'ecrire : une zone qui ne tient pas refuse l'export entier.
+            let ecritures = (ec.ecrire)(&ecr, &env)?;
+            let comptes = match ec.comptes {
+                Some((modele, fabrique, conseil)) => Some((modele, fabrique(&comptes_utilises(&ecr, &plan)?)?, conseil)),
+                None => None,
+            };
+            std::fs::create_dir_all(&dossier).map_err(|e| io(&dossier, e))?;
             let chemin = dossier.join(ec.fichier.replace("%s", &p.nom()));
-            std::fs::write(&chemin, (ec.ecrire)(&ecr, &env)?).map_err(|e| io(&chemin, e))?;
+            std::fs::write(&chemin, ecritures).map_err(|e| io(&chemin, e))?;
             t.fichier = Some(chemin);
-            if let Some((modele, fabrique, conseil)) = ec.comptes {
+            if let Some((modele, octets, conseil)) = comptes {
                 // COMPTES.TXT n'a pas de periode dans son nom : EBP le cherche sous ce nom-la, a cote des ecritures.
                 let nom_comptes = if modele.contains("%s") { modele.replace("%s", &p.nom()) } else { modele.to_string() };
                 let cible = dossier.join(&nom_comptes);
-                std::fs::write(&cible, fabrique(&comptes_utilises(&ecr, &plan)?)).map_err(|e| io(&cible, e))?;
+                std::fs::write(&cible, octets).map_err(|e| io(&cible, e))?;
                 t.avertissements.push(format!("Les comptes et leurs libellés sont dans « {} », à côté : {}", nom_comptes, conseil));
             }
         } else {
@@ -1069,7 +1090,7 @@ pub fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 /// Le taux REEL des cotisations patronales d'un salarie -- ses cotisations patronales sur son
 /// brut, sur les douze mois qui finissent a `jusqu_a`. Rend (taux en %, nombre de bulletins lus).
 fn taux_patronal(lignes: &[crate::etats_paie::LigneLivre], cle: &str, jusqu_a: &str) -> R<(Option<Decimal>, i64)> {
-    let annee: i64 = debut(jusqu_a, 4).parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
+    let annee: i64 = tranche(jusqu_a, 0, 4).parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
     let depart = format!("{:04}-{}", annee - 1, tranche(jusqu_a, 5, 7));
     let (mut brut, mut pat, mut n) = (zero2(), zero2(), 0i64);
     for l in lignes {

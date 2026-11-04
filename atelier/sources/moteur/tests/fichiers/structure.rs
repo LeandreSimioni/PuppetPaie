@@ -185,7 +185,9 @@ fn refus_rs(t: &str) -> Vec<(usize, String, bool)> {
         let premier = ["Err(", "ok_or(", "Echec::from(", "message:", "echec::avec(", "echec::a_la_cle(", "echec::cle(", "ok_or_else(||"].iter().any(|s| avant.ends_with(s))
             || avant.rsplit_once("map_err(|").is_some_and(|(_, r)| r.ends_with('|') && r[..r.len() - 1].chars().all(|x| x.is_alphanumeric() || x == '_'));
         let second = ["erreur(", "noter_et("].iter().any(|f| avant.rsplit_once(f).is_some_and(|(_, r)| r.ends_with(',') && r.matches(',').count() == 1 && !r.replace("Some(", "").contains('(')));
-        if !(premier || second) {
+        // La phrase d'un texte borne (`droit::fiche::texte_borne!`), apres sa mesure : `… "caractères" par caracteres, "…"`.
+        let borne = avant.rsplit_once("\"par").is_some_and(|(_, r)| r.ends_with(',') && r.len() > 1 && r[..r.len() - 1].chars().all(|x| x.is_alphanumeric() || x == '_'));
+        if !(premier || second || borne) {
             continue;
         }
         // Les valeurs composees : jusqu'a la parenthese qui ferme l'appel.

@@ -301,14 +301,14 @@ fn acte_lisible(quoi: &str) -> Option<&'static str> {
     })
 }
 
-/// Une reponse lisible ; un rapport XML complet ne tient pas dans une case.
+/// Une reponse lisible, entiere ; un rapport XML se lit au journal, pas dans une case.
 fn reponse(r: Option<&Value>) -> String {
     let t = r.filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let t = t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
     if t.starts_with('<') {
         return "rapport de l'organisme (XML, conservé au journal)".to_string();
     }
-    t.chars().take(160).collect()
+    t
 }
 
 /// Chaque acte qui a engage la compagnie -- DSN, DPAE, envois,
