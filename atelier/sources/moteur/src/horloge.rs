@@ -714,7 +714,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
         Geste::Fin { mois, salarie, fin } => pas(d, quoi, quand, |ctx| {
             let encore = crate::routes::imprevus::fins_a_signaler(ctx, mois, ctx.aujourdhui)?
                 .iter()
-                .any(|x| valeur_en_texte(&x["salarie"]) == *salarie && valeur_en_texte(&x["fin"]) == *fin && due(&x["obligation"], ctx.aujourdhui).is_some());
+                .any(|x| valeur_en_texte(&x.salarie) == *salarie && valeur_en_texte(&x.fin) == *fin && due(&x.obligation, ctx.aujourdhui).is_some());
             if !encore {
                 return Ok(false);
             }
@@ -932,11 +932,11 @@ fn signalements_dus(ctx: &Contexte, mois: &str, jour: Jour, cloture: bool) -> Ve
         }
     }
     for f in crate::routes::imprevus::fins_a_signaler(ctx, mois, jour).unwrap_or_default() {
-        let Some(butoir) = du(&f["obligation"]) else { continue };
-        if cloture && f["a_saisir"].as_array().is_some_and(|a| !a.is_empty()) {
+        let Some(butoir) = du(&f.obligation) else { continue };
+        if cloture && !f.a_saisir.is_empty() {
             continue;
         }
-        let (salarie, fin) = (valeur_en_texte(&f["salarie"]), valeur_en_texte(&f["fin"]));
+        let (salarie, fin) = (valeur_en_texte(&f.salarie), valeur_en_texte(&f.fin));
         dus.push(Pas {
             quand: format!("{}T09:30:00", butoir.iso()),
             quoi: format!("signalement de fin du contrat de {} (fin le {}) déposé", salarie, le(&fin)),

@@ -69,6 +69,12 @@ pub fn presente<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(d:
     <Option<T> as serde::Deserialize>::deserialize(d)
 }
 
+/// Une cle qui peut manquer (rien ne change) ou etre nulle (elle s'efface) : `#[serde(default, deserialize_with =
+/// "socle::forme::dite")]` sur un `Option<Option<T>>` -- absente, `None` ; nulle, `Some(None)`.
+pub fn dite<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(d: D) -> Result<Option<Option<T>>, D::Error> {
+    <Option<T> as serde::Deserialize>::deserialize(d).map(Some)
+}
+
 /// Un nombre decimal, lu comme `decimal`, la ou un champ ne se pose pas (une valeur de table).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Nombre(pub crate::num::Decimal);
