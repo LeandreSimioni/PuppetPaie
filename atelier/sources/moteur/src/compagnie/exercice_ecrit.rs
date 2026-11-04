@@ -259,20 +259,12 @@ pub(crate) fn export_compta_route(ctx: &Contexte, c: ChargeExportCompta) -> R<Ex
 pub const EXERCICES: &str = "config/exercices.json";
 
 /// `config/exercices.json` : chaque annee close (sa cloture, sous son annee) et, sous `_rouverts`, les clotures retirees,
-/// dans l'ordre ou elles l'ont ete. Lu par sa forme (`lire_exercices`), ecrit par `ecrire_exercices`.
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
-#[serde(try_from = "BTreeMap<String, EntreeDesExercices>", into = "BTreeMap<String, EntreeDesExercices>")]
+/// dans l'ordre ou elles l'ont ete. Lu par sa forme (`lire_exercices` : une cle qui n'est ni une annee ni `_rouverts`
+/// est refusee, comme une cle inconnue d'une cloture), ecrit par `ecrire_exercices`.
+#[derive(Debug, Default, Clone)]
 pub(crate) struct Exercices {
     clos: BTreeMap<String, ExerciceNote>,
     rouverts: Vec<ExerciceRouvertNote>,
-}
-
-/// Une cle de `config/exercices.json` : une annee close, ou la liste des clotures retirees (`_rouverts`).
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
-enum EntreeDesExercices {
-    Rouverts(Vec<ExerciceRouvertNote>),
-    Clos(ExerciceNote),
 }
 
 /// La cloture d'une annee : quand, par qui, l'archive (son chemin sous la racine, sa taille, son empreinte, le nombre de
@@ -310,32 +302,46 @@ struct ExerciceRouvertNote {
 /// La cle des clotures retirees.
 const ROUVERTS: &str = "_rouverts";
 
-impl TryFrom<BTreeMap<String, EntreeDesExercices>> for Exercices {
-    type Error = String;
+impl<'de> Deserialize<'de> for Exercices {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Exercices, D::Error> {
+        struct Lecteur;
+        impl<'de> serde::de::Visitor<'de> for Lecteur {
+            type Value = Exercices;
 
-    fn try_from(lu: BTreeMap<String, EntreeDesExercices>) -> Result<Exercices, String> {
-        let mut e = Exercices::default();
-        for (cle, entree) in lu {
-            let annee = cle.len() == 4 && cle.chars().all(|c| c.is_ascii_digit());
-            match entree {
-                EntreeDesExercices::Rouverts(r) if cle == ROUVERTS => e.rouverts = r,
-                EntreeDesExercices::Clos(c) if annee => {
-                    e.clos.insert(cle, c);
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("les années closes et la liste des clôtures retirées")
+            }
+
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, mut m: A) -> Result<Exercices, A::Error> {
+                let mut e = Exercices::default();
+                while let Some(cle) = m.next_key::<String>()? {
+                    if cle == ROUVERTS {
+                        e.rouverts = m.next_value()?;
+                    } else if cle.len() == 4 && cle.chars().all(|c| c.is_ascii_digit()) {
+                        let clos = m.next_value()?;
+                        e.clos.insert(cle, clos);
+                    } else {
+                        return Err(serde::de::Error::custom(format!("la clé « {} » n'est ni une année close ni la liste des clôtures retirées", cle)));
+                    }
                 }
-                _ => return Err(format!("la clé « {} » n'est ni une année close ni la liste des clôtures retirées", cle)),
+                Ok(e)
             }
         }
-        Ok(e)
+        d.deserialize_map(Lecteur)
     }
 }
 
-impl From<Exercices> for BTreeMap<String, EntreeDesExercices> {
-    fn from(e: Exercices) -> BTreeMap<String, EntreeDesExercices> {
-        let mut m: BTreeMap<String, EntreeDesExercices> = e.clos.into_iter().map(|(k, c)| (k, EntreeDesExercices::Clos(c))).collect();
-        if !e.rouverts.is_empty() {
-            m.insert(ROUVERTS.to_string(), EntreeDesExercices::Rouverts(e.rouverts));
+impl Serialize for Exercices {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        let mut m = s.serialize_map(None)?;
+        for (annee, clos) in &self.clos {
+            m.serialize_entry(annee, clos)?;
         }
-        m
+        if !self.rouverts.is_empty() {
+            m.serialize_entry(ROUVERTS, &self.rouverts)?;
+        }
+        m.end()
     }
 }
 

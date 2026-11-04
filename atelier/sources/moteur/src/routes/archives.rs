@@ -574,7 +574,7 @@ fn exporter(ctx: &Contexte, c: &ChargeExporter) -> R<EtatExporte> {
     let nom = |f: &Option<std::path::PathBuf>| f.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned());
     // (le titre, les fichiers ecrits, ses avertissements, ses donnees personnelles, ses totaux partiels, la boite posee)
     let (etat, titre, ecrits, avertissements, personnelles, partiels, boite_liee) = match exporter_objet(ctx, c)? {
-        Exporte::Casc(r) => (crate::import::casc::vers_json(&r), r.periode.clone(), r.fichiers.clone(), r.avertissements.clone(), false, Vec::new(), r.boite_liee),
+        Exporte::Casc(r) => (crate::import::casc::vers_json(&r), r.periode.clone(), r.fichiers.iter().map(|f| nom_du(std::path::Path::new(f))).collect::<Vec<_>>(), r.avertissements.clone(), false, Vec::new(), r.boite_liee),
         Exporte::Livre(l) => {
             let bulletins = l.totaux.bulletins;
             let partiels = l

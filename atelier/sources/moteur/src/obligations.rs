@@ -879,7 +879,9 @@ impl Obligation {
         let d = self.delai.as_deref().map(str::trim).filter(|d| !d.is_empty())?;
         let mut p: String = d.chars().take(1).flat_map(char::to_uppercase).chain(d.chars().skip(1)).collect();
         if let Some(dep) = self.depart.as_ref().filter(|dep| !dep.quoi.is_empty()) {
-            p.push_str(&format!(" — à compter de {}", dep.quoi));
+            // « à compter du jour », « de la reprise » : la preposition prend l'article du point de depart.
+            let quoi = dep.quoi.strip_prefix("le ").map(|r| format!("du {}", r)).unwrap_or_else(|| format!("de {}", dep.quoi));
+            p.push_str(&format!(" — à compter {}", quoi));
             if !dep.jour.is_empty() {
                 p.push_str(&format!(", le {}", jour_en_clair(&dep.jour)));
             }
