@@ -14,6 +14,7 @@ use serde_json::{json, Map, Value};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::etapes::Moteur;
+use crate::compagnie::etat_dsn::Etat;
 use super::{lire_json_tolerant, lire_texte, ou_texte};
 use declarations::champs;
 use droit::catalogue::{self, Rubrique};
@@ -763,10 +764,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         // L'ETAT DE LA DSN, lu une fois (`compagnie::etat_dsn`) ; une DSN a deposer passee l'echeance est en retard.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
         let lu = crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(nom)?, None)?;
-        let etat = match lu.0["etat"].as_str().unwrap_or("a_deposer") {
-            "a_deposer" if en_retard => "en_retard",
-            autre => autre,
-        };
+        let retard = lu.etat == Etat::ADeposer && en_retard;
         let depose = lu.deposee();
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
         // Un mois tenu avant : ses bulletins sont ceux de l'ancien logiciel, que l'import garde.
@@ -782,31 +780,31 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique) : une DSN a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
-        let a_faire = match etat {
+        let a_faire = match lu.etat {
             _ if importe => false,
             // La DSN de l'ancien logiciel, et la saisie qui ajoute au mois : ce qui reste a declarer va dans une DSN
             // suivante (`import::mois::dsn_de_l_ancien_logiciel`).
-            "importee" => crate::import::mois::dsn_de_l_ancien_logiciel(ctx, nom)?.is_some_and(|d| d.engagements > 0),
-            "passee" => m.etat_remplacement(socle::mois::Mois::lire(nom)?, &Value::Null)?.a_envoyer,
-            "attente" => false,
+            Etat::Importee => crate::import::mois::dsn_de_l_ancien_logiciel(ctx, nom)?.is_some_and(|d| d.engagements > 0),
+            Etat::Passee => m.etat_remplacement(socle::mois::Mois::lire(nom)?, &Value::Null)?.a_envoyer,
+            Etat::Attente => false,
             _ => true,
         };
         // CE QUE LA PASTILLE DIT, et sa couleur (`routes::couleur_de_l_etat`) : une DSN qui attend son bilan, ou dont
         // l'ancien logiciel garde la trace, n'est rien que la compagnie ait a faire -- une information, en gris.
-        let (couleur, mots) = match etat {
-            "passee" => ("vert", "DSN passée"),
-            "attente" => ("gris", "DSN partie, bilan attendu"),
-            "refusee" => ("rouge", "DSN refusée"),
-            "en_retard" => ("orange", "DSN en retard"),
-            "importee" => ("vert", "DSN déclarée avant PuppetPaie"),
-            "sans_trace" => ("gris", "tenu avant PuppetPaie — sa DSN est celle de l'ancien logiciel"),
-            _ => ("orange", "DSN à déposer"),
+        let (couleur, mots) = match lu.etat {
+            _ if retard => ("orange", "DSN en retard"),
+            Etat::Passee => ("vert", "DSN passée"),
+            Etat::Attente => ("gris", "DSN partie, bilan attendu"),
+            Etat::Refusee => ("rouge", "DSN refusée"),
+            Etat::Importee => ("vert", "DSN déclarée avant PuppetPaie"),
+            Etat::SansTrace => ("gris", "tenu avant PuppetPaie — sa DSN est celle de l'ancien logiciel"),
+            Etat::ADeposer => ("orange", "DSN à déposer"),
         };
         out.push(json!({
-            "mois": nom, "produit": !noms.is_empty(), "dsn": etat, "saisi_dit": "saisi",
+            "mois": nom, "produit": !noms.is_empty(), "dsn": if retard { json!("en_retard") } else { json!(lu.etat) }, "saisi_dit": "saisi",
             "pastille": {"couleur": couleur, "mots": mots},
-            "depose_le": if depose { lu.0["quand"].clone() } else { Value::Null },
-            "depose_dit": if depose && etat != "a_deposer" { json!(format!("le {}", super::jour_en_clair(&json!(valeur_en_texte(&lu.0["quand"]).chars().take(10).collect::<String>())))) } else { Value::Null },
+            "depose_le": if depose { json!(lu.quand) } else { Value::Null },
+            "depose_dit": if depose { json!(format!("le {}", super::jour_en_clair(&json!(lu.quand.clone().unwrap_or_default().chars().take(10).collect::<String>())))) } else { Value::Null },
             "documents_dit": if sortes.is_empty() { "aucun document".to_string() } else { sortes.join(" · ") },
             "echeance": limite.iso(),
             "echeance_depot": echeance.en_json(),

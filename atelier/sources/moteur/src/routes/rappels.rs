@@ -1108,7 +1108,7 @@ fn rappel_dsn(st: &Etat, le_mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
     let etat = etat_dsn::du_mois(st.ctx, socle::mois::Mois::lire(mois)?, None)?;
     if etat.refusee() {
         r.etape = A_CORRIGER.into();
-        let anomalies: Vec<String> = etat.0.get("anomalies").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();
+        let anomalies = etat.anomalies.clone().unwrap_or_default();
         r.detail = format!(
             "La DSN de {} a été REFUSÉE : {}. À corriger et à renvoyer.",
             lib,
