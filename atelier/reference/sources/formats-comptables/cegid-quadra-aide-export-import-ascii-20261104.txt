@@ -1,0 +1,137 @@
+                            Outils, Suivi : Export / Import ASCII            Cliquer ici pour voir cette page dans le contexte complet
+
+
+
+
+EXPORT / IMPORT ASCII
+
+Si le dossier d'origine et le dossier de destination ne sont pas dans la même monnaie, l'application utilise
+des règles d'usage pour les conversions.
+
+
+Nom du fichier à créer ou à lire :
+     Faites une saisie libre avec le chemin d’accès. Exemple : "C:\Tmp\export.dat".
+     Ou cliquez sur le bouton <Parcourir>, déplacez-vous jusqu’au répertoire voulu choisir un fichier ou
+     entrer le nom de fichier et son extension "export.dat" puis cliquez sur <Enregistrer>.
+
+
+
+
+                                       Export
+Cette fonction permet d’exporter les écritures de l’exercice courant d’un dossier dans un fichier dont le
+format vous est donné en annexe.
+Utilisée conjointement avec les fonctions "Importation ASCII (Compta )" ou "Importation ASCII (Immos )",
+elle est utile pour transférer un journal entre deux systèmes distants équipés tous les deux de la
+comptabilité.
+Il est possible de créer indépendamment un fichier ASCII pour la comptabilité et un pour les
+Immobilisations. Toutefois les deux fichiers doivent porter des noms différents.
+
+
+
+
+       Les écritures saisies en devises sont toujours exportées dans la monnaie de tenue du dossier.
+Le fichier peut être créé sans extension.
+Il est préférable de créer le fichier sur le disque dur, plutôt que directement sur disquette :
+
+Le déroulement de la procédure est plus rapide,
+Si le dossier a une taille importante et que le fichier obtenu dépasse les capacités d’une disquette, vous pourrez
+utiliser la commande BACKUP du DOS pour le copier du disque vers la disquette.
+
+Export de la comptabilité
+
+          Pour exporter la totalité d’un dossier de comptabilité, ne pas renseigner ni le code journal, ni les
+          dates de début et de fin.
+          Pour exporter une partie d’un dossier de comptabilité, vous pouvez spécifier le code d’un journal
+          (ou le sélectionner sur la liste affichée par <F4>) et/ou indiquer les bornes de la période à prendre
+          en compte sur les zones "Date début/Date fin".
+          Il est possible d’exporter l’ensemble des données ou seulement les comptes ou les écritures.
+          Par défaut, les soldes des exercices N-1 et N-2 sont conservés mais peuvent être remis à zéro en
+          cochant l’option correspondante,
+          Par défaut le lettrage est remis à zéro mais peut être conservé en décochant l’option
+          correspondante,
+          Pour désactiver la renumérotation des comptes alphanumériques, décochez l’option
+          correspondante,
+          Pour tenir compte de la monnaie de saisie, décochez l’option "Toujours dans la monnaie de
+          tenue".
+
+
+Envoi du fichier ASCII par e-mail
+Vous avez la possibilité d'envoyer le fichier ASCII par mail en cochant la case correspondante.
+
+     En mode PME, l'adresse saisie est mémorisée et sera proposée à nouveau lors du prochain envoi
+     En cabinet comptable,  l'adresse saisie n'est plus mémorisée et
+                       Outils, Suivi : Export / Import ASCII
+                                                                     peut être sélectionnée parmi les
+                                                                  Cliquer ici pour voir cette page dans le contexte complet
+     adresses mail enregistrées sur la fiche client associée au dossier comptable.
+
+
+
+
+      Les libellés des comptes sont exportés s'ils existent. Sinon, le libellé par défaut "Export balance" est utilisé.
+
+
+
+
+                                    Import
+Les fonctions d’importation sont directement accessibles à partir des choix Import Ascii (Compta) et
+Import Ascii(Immos) du menu Suivi des dossiers. Elles permettent de récupérer des informations issues
+d’autres applications pour alimenter un dossier comptable géré par Cegid Quadra Comptabilité
+
+         Ces procédures peuvent être lancées :
+
+               Ponctuellement (les dossiers repris seront dorénavant gérés sous la comptabilité),
+               Régulièrement lorsqu’il s’agit d’importer un journal des ventes par exemple,
+               Périodiquement si un dossier transite entre une entreprise et un cabinet comptable équipés
+               de 2 logiciels différents (version DOS et version Graphique). A noter que les transferts sont
+               alors possibles dans les deux sens puisque l'application comporte aussi des fonctions
+               d’exportation.
+
+         Utilisation de caractères "Joker" dans le nom du fichier à lire.
+
+Les caractères "Joker" sont le "*" et le "?". Ils permettent de parcourir plusieurs fichiers en une seule
+manipulation en fonction de règles précises.
+
+               Le caractère "?" remplace n’importe quel autre caractère. Par exemple, si le nom de fichier
+               est : "C:\Tmp\export?.dat", les fichiers "C:\Tmp\export.dat", "C:\Tmp\export1.dat" et
+               "C:\Tmp\export2.dat" seront traités mais les fichiers "C:\Tmp\exp.dat" et "C:\Tmp\imp.dat"
+               ne seront pas traités.
+               Le caractère "*" remplace n’importe quel groupe de caractère. Par exemple, si le nom de
+               fichier est : "C:\Tmp\ex*.dat", les fichiers "C:\Tmp\export.dat", "C:\Tmp\export1.dat",
+               "C:\Tmp\export2.dat" et "C:\Tmp\exp.dat" seront traités mais le fichier "C:\Tmp\imp.dat" ne
+               sera pas traité.
+               Pour chaque fichier à traiter, il est demandé à l’utilisateur le numéro de dossier dans lequel
+               l’import va être réalisé. Si ce dossier n’existe pas, il est créé et sa monnaie de tenue est
+               aussi demandée à l’utilisateur.
+
+         Lorsque l’import est terminé, cliquer sur <Annuler le fichier> afin que le fichier soit supprimé.
+
+
+
+
+      En cas d'absence de libellé ou de n° de pièce sur les écritures, un message d'alerte non bloquant vous avertit.
+
+     Import Compta
+
+Pour les écritures de tiers et d'analytique, le montant est dans la monnaie de tenue du dossier.
+Si le dossier de destination existe déjà, il est possible de mettre à jour ou non certains groupes
+d’informations :
+
+         "Jamais" : aucune mise à jour pour ce groupe d’information,
+         "Toujours" : mise à jour toujours faite pour ce groupe d’information
+         "En fonction du fichier" : tenir compte des paramètres inscrits dans le fichier.
+
+Si le code affaire est placé sur la ligne de comptabilité générale, l’import récupère ce code et génère la
+ligne d’analytique en conformité avec la nouvelle gestion.
+
+     Gestion des pièces jointes aux écritures.
+Le nom du fichier  est à indiquer dans l'enregistrement écriture
+                 Outils, Suivi : Export / Import ASCII
+                                                                  en position 182 sur une longueur
+                                                           Cliquer ici pour voir cette page dans le contexte complet
+de 12 (format du nom : 8 caractères suivis d'une extension de 3 caractères)
+Les fichiers images correspondants sont à localiser au même endroit que le fichier ASCII à
+importer
+Lors du traitement, le nom des fichiers images est contrôlé. En cas de doublon avec des fichiers
+existants, les images importées sont renommées.
+

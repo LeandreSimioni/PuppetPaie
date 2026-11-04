@@ -1,0 +1,493 @@
+        Rechercher un article...
+
+
+
+
+Toutes les collections     Imports / Exports   Migration
+Importer un fichier de CEGID EXPERT au format TRA
+
+
+
+Importer un fichier de CEGID EXPERT au
+format TRA
+COMPTABILITÉ - Migrez un dossier sur Pennylane depuis CEGID avec import des pièces
+jointes
+
+Mis à jour cette semaine
+
+
+  Table des matières
+
+
+Les fichiers TRA sont les types de fichiers, un peu plus robustes que les FECs, que vous
+pouvez importer de CEGID. Ils vous permettent d'importer l'intégralité de vos exercices par
+client. Le format TRA permet également de récupérer l'analytique issue de CEGID lors de la
+migration du dossier.
+
+
+
+
+   ✍️ Dans le cadre d'une migration en masse, pour un TRA contenant plus de quatre
+   exercices, il est recommandé de passer par un import FEC afin de simplifier la
+   migration. Il s'agit d'une recommandation, et non d'une limite technique du format
+   TRA.
+   Pour un import à la marge depuis CEGID Expert, privilégiez l'import TRA. Si cet
+   import échoue en raison d'un timeout, l'import d'un FEC est une option. Consultez
+   Importer un FEC.
+
+
+
+   ✍️ La taille maximum du fichier à importer ne doit pas excéder 20 Go.
+   Format TRA supporté
+   Le parcours d'import TRA est destiné à un export CEGID de dossier complet. Seuls les
+   TRA générés depuis CEGID Expert via l'option d'export Dossier complet sont
+   pleinement supportés par Pennylane. Un fichier .TRA contenant uniquement des
+   écritures, par exemple issu d'un outil tiers, n'est pas pris en charge par ce parcours.
+   Pour importer uniquement des écritures, utilisez un fichier XLS ou CSV depuis le
+   module d'import d'écritures.
+   Les autres formats de TRA peuvent parfois passer l'import, mais provoquer ensuite
+   des erreurs de cadrage : déséquilibres, pièces manquantes ou journaux mal reconnus.
+   En cas de doute, demandez au client de refaire un export Dossier Complet.
+
+
+
+   ⚠️ Un fichier TRA incomplet, par exemple sans données de TVA, peut ne pas être
+   conforme au format attendu et risque d'être rejeté à l'import.
+
+
+
+   📖 Pour découvrir comment se déroule la migration d'un dossier déjà créé sur
+   Pennylane, consultez notre article dédié Migrer la comptabilité d'un dossier déjà actif
+   sur Pennylane.
+
+
+
+
+Actions préalables
+Lorsque l'import du TRA est bien préparé, le risque d'erreur est significativement réduit,
+nous vous recommandons de suivre ces quelques étapes pour faciliter votre import.
+
+
+Préparer le dossier
+En vue de l'import de votre fichier, créez l'exercice comptable correspondant depuis les
+Paramètres > Informations entreprises > Tenue comptable.
+
+
+   📖 Consultez l'article Paramétrer les exercices comptables.
+   ⚠️ Quelques points d'attention :
+       La date de début du premier exercice fiscal sur Pennylane doit être ultérieure à la
+       date d'immatriculation de la société.
+       Si le TRA comporte des dates antérieures à la date d'immatriculation de la
+       société, remplacez les dates du TRA par la date d'immatriculation de la société.
+Vérifiez ensuite qu'il n'y a pas de donnée comptable existante sur cette période dans
+Pennylane.
+
+
+Anticiper le fonctionnement de Pennylane en matière de TVA
+Pennylane utilise automatiquement des comptes de TVA en attente (44564 et 44574) afin
+de vous permettre de déclarer la TVA sur prestation de service au moment du paiement.
+
+
+   ⚠️ Avant de migrer, assurez-vous de bien lettrer la TVA déjà déclarée de l'exercice en
+   cours (avec les écritures d'OD de vos déclarations de TVA).
+
+
+Si vous ne lettrez pas la TVA déjà déclarée de l'exercice en cours relative à des prestations
+de service, la TVA sera considérée comme non déclarée par Pennylane. Elle sera
+automatiquement transférée dans des comptes d'attente au moment de la migration. Cela
+complique le travail pour lettrer la TVA déjà déclarée dans Pennylane.
+
+
+   📖 Pour tout savoir sur le fonctionnement des comptes d'attente de TVA et sur la
+   génération des écritures de récupération de TVA (RT) dans Pennylane, consultez
+   l'article Comprendre les écritures de récupération de TVA.
+
+
+
+
+Télécharger le fichier
+Depuis le module d'Imports dans le menu Saisie Comptable, cliquez sur Importer un fichier
+(1), puis sélectionner le type de fichier à importer Export CEGID (.TRA).
+
+Téléchargez votre fichier puis cliquez sur Commencer l'import.
+
+
+
+
+   ✍️ Vous retrouvez le fichier en cours de chargement dans le module d'Imports avec
+   comme statut "En cours". Une fois téléchargé sur Pennylane, le fichier passe en statut
+   "À traiter".
+   Cliquez sur la clé à molette à droite du fichier pour préparer ou continuer l'import.
+
+
+
+
+Il suffit alors de faire correspondre chacun des comptes du fichier TRA (tout comme pour les
+FECs) avec les comptes de Pennylane. On peut au choix créer des comptes (selon les
+suggestions proposées) ou choisir les comptes du PCG de Pennylane.
+Se préparer à utiliser les comptes propres à Pennylane
+Lors de l'import de vos données comptables dans Pennylane, certains comptes sont créés
+automatiquement pour garantir le bon fonctionnement des automatisations. Il est donc
+normal que votre plan comptable ne soit pas une copie parfaite de celui de votre ancien
+logiciel.
+Pennylane génère notamment les comptes suivants :
+
+    Compte 512 : Pennylane attribue automatiquement un compte dédié à chaque compte
+    bancaire, selon le modèle 512100, 512200, 512300, etc. Cette numérotation est
+    incrémentée automatiquement. Vous ne pouvez ni choisir ni modifier le compte 512
+    attribué.
+    Comptes de TVA standardisés Pennylane : utilisez les comptes de TVA de Pennylane
+    pour profiter pleinement des automatisations. Cela implique d'abandonner vos anciens
+    comptes de TVA et de réaliser une correspondance (mapping) précise lors de l'import.
+
+
+   ⚠️ Le choix entre TVA sur les débits et TVA à l'encaissement doit être fait avec soin
+   lors de l'import. Par exemple, si vous cochez « TVA sur les débits », le compte 44574 ne
+   sera pas utilisé. Modifier ce paramètre après l'import nécessite un retraitement
+   complet qui peut s'avérer fastidieux.
+
+
+
+
+Préparer un dossier qui comporte déjà des écritures
+
+   📖 Consultez notre article Migrer la comptabilité d'un dossier déjà actif sur
+   Pennylane.
+
+
+
+
+Mapping des comptes et import
+1. Confirmations
+Dans ce premier onglet, on vous indique les données à importer ainsi que les dates
+d'écritures de l'import.
+
+
+⚠️ Il est nécessaire qu'un exercice fiscal soit créé sur les dates d'import du fichier.
+Si besoin, vous pouvez créer un exercice comptable correspondant aux dates du fichier.
+
+
+Cliquez sur Page suivante ou sur l'onglet Comptes bancaires pour poursuivre la
+configuration de l'import.
+   ⚠️ Si des données comptables sont présentes sur la période concernée par votre
+   import, Pennylane vous propose d'effacer définitivement la donnée existante pour
+   cette période. Autrement, Pennylane vous propose 2 autres options:
+
+       Effacer la donnée existante manuellement de votre côté.
+       Continuer l'import sur la donnée existante -> Cela risque de créer des doublons
+       qu'il faudra corriger manuellement.
+
+
+
+
+   ✍️ Si vos comptes auxiliaires (fournisseurs ou clients) comportent des préfixes
+   (exemple : F0003), rendez-vous dans les paramètres d'importation. Cochez Supprimer
+   un préfixe de compte auxiliaire. Pennylane va remplacer le préfixe de votre logiciel
+   par le nouveau préfixe propre à Pennylane. Pour les fournisseurs le préfixe sera 401
+   (exemple : 4010003).
+
+
+
+
+2. Configuration des comptes bancaires
+Il faut faire correspondre les comptes 512 issus du fichier TRA avec les comptes bancaires
+synchronisés sur Pennylane. Pour ce faire, cliquez sur le crayon ou sur Sélectionner ou créer
+une correspondance, et sélectionnez le compte correspondant.
+
+
+
+
+Si le compte n'est pas synchronisé, il est toujours possible d'ajouter un compte
+manuellement. Saisissez le nom de votre banque dans le libellé du compte puis créez la
+banque :
+   ⚠️ Cette étape permet uniquement d'établir une correspondance entre le compte
+   512 du FEC et celui attribué par Pennylane. Il n'est pas possible de choisir ni de
+   modifier le numéro 512 utilisé dans Pennylane.
+   Lorsque le client connectera sa banque par la suite, il aura la possibilité d'associer ce
+   compte à un compte déjà existant sur Pennylane. Ainsi, il n'y aura pas de doublons.
+
+
+Le type de compte bancaire choisi a un impact sur la connectivité du compte. Par exemple, si
+vous choisissez un compte de type épargne, il ne sera pas automatiquement proposé à la
+connexion via jedéclare.com.
+Une fois les comptes bancaires configurés, cliquez sur Page suivante.
+
+
+3. Configuration des journaux
+Il vous faut faire correspondre les journaux issus du fichier TRA avec ceux de Pennylane.
+Lors du mapping à l'import, si vous créez un journal, les types proposés sont Achat, Vente et
+Autres types. Une fois créé, un journal pour lequel vous avez choisi Autres types est de type
+spécifique dans Pennylane. Le type de journal a un impact sur les fonctionnalités Pennylane,
+notamment sur la création automatique des factures à l'import du TRA.
+
+
+Vous pouvez utiliser un journal déjà existant dans notre base de données en cliquant sur
+l'icône crayon. Si vous devez créer un nouveau journal, cliquez sur l'icône crayon à droite du
+compte et saisissez le nom du journal, puis cliquez sur Créer le journal…
+
+
+
+
+4. Configuration du plan comptable
+Il convient de faire correspondre les différents comptes du fichier TRA. Vous pouvez
+naviguer entre les différents onglets à l'aide du menu (1). Si les intitulés des comptes crées
+par défaut ne conviennent pas, vous pouvez les modifier en cliquant sur l'icône crayon (2).
+
+
+Vérifiez que chaque compte est correctement mappé, en distinguant le compte général de
+l'auxiliaire.
+
+
+Le tableau de mapping distingue le compte général du compte auxiliaire du fichier TRA :
+
+    Compte : la racine du compte général (exemple : 401).
+    Numéro de compte auxiliaire : le compte auxiliaire (exemple : 401100013).
+   ℹ️ Comparez la racine du compte général avec le début du numéro de compte
+   auxiliaire avant de valider la correspondance proposée dans la colonne Compte
+   Pennylane. Cette lecture met en évidence les racines incohérentes du fichier source.
+
+
+⚠️ Pour les comptes de TVA, on ne peut pas créer de comptes personnalisés. Il est
+nécessaire de choisir ceux du PCG de Pennylane car ils sont reliés au module de déclaration
+de TVA.
+
+
+Un nouveau compte est créé si le numéro utilisé dans le TRA est déjà utilisé par un autre
+compte dans votre dossier Pennylane. De plus, les comptes alphanumériques hors tiers
+(fournisseurs et clients) ne peuvent pas être créés dans Pennylane.
+
+
+Les comptes commençant par 41106 et 411900 sont réservés aux intégrations, il n'est pas
+possible de créer ces comptes.
+
+
+   💡 Lorsque vous quittez le module d'import, le mapping est automatiquement
+   sauvegardé. Vous pouvez réutiliser un mapping utilisé en cliquant sur le bouton
+   Réutiliser un mapping existant accessible depuis les onglets 3,4 et 5, puis en
+   sélectionnant le mapping de votre choix. En revanche, il n'est pas possible de
+   récupérer le mapping pour des formats différents (exemple : votre premier import est
+   un TRA, et le second est in fichier TXT).
+
+
+
+
+Une fois les comptes comptables renseignés correctement, cliquez sur Page suivante.
+
+
+5. Récapitulatif
+Cette étape vous permet de vérifier si toutes les écritures sont bien renseignées et si le
+ficher est prêt à être importé. Si vous avez des modifications à faire, cliquez sur l'onglet de
+votre choix. Si le fichier est prêt à être importé, cliquez sur Finaliser l'import.
+
+
+   ✍️ Si le bouton Finaliser l'import est grisé, c'est que tous les comptes ou journaux
+   n'ont pas été correctement configurés. Retournez sur les onglets précédents pour
+   terminer la configuration des comptes et des journaux.
+
+
+
+
+   Que sont les écritures auto-balancées sous le compte 47199999 ?
+   Si jamais votre fichier TRA comporte des numéros d'écritures qui ont deux dates
+   différentes, Pennylane crée automatiquement des OD de compensation afin d'avoir
+   des écritures avec les mêmes dates. Ces OD de compensation transitent dans le
+   compte 47199999, qui doit avoir un solde à 0.
+
+
+⚠️ Si vous avez choisi d'écraser les données existantes dans l'onglet Confirmations, on vous
+demander de reconfirmer votre choix en cochant cette case:
+
+
+
+
+Import des pièces jointes avec le fichier TRA
+Il est possible d'importer les pièces jointes une fois le fichier TRA importé dans Pennylane.
+
+Exporter le fichier TRA de votre outil de production comptable avec pièces jointes puis
+l'importer dans Pennylane, comme décrit plus haut.
+
+
+Une fois le fichier TRA importé, aller dans le module d'import et cliquer sur le bouton
+Joindre une archive à droite du fichier importé.
+
+
+
+
+Puis importer toutes les pièces jointes dans un fichier ZIP.
+
+
+
+
+   Archive ZIP des pièces jointes
+   Pour que l'affectation automatique des pièces jointes fonctionne, le ZIP ne doit pas
+   dépasser 20 Go, ne doit pas contenir le fichier .TRA lui-même, et chaque nom de
+   fichier doit correspondre strictement à la valeur renseignée dans la colonne de
+   référence de l'écriture dans le TRA. Les extensions (.pdf, .png, etc.) doivent être
+   présentes uniquement sur les fichiers physiques, pas dans la colonne de référence du
+   TRA.
+
+
+
+
+Contrôles post-import
+
+   ✍️ Les écritures issues du TRA sont importées à 75% environ en tant que facture dans
+   les journaux Achats et Ventes dans Pennylane. Le reste des écritures est importé dans
+   le journal OD. Pour en savoir plus consultez notre article Transformer
+   automatiquement vos imports d'écritures de ventes et d'achats en facture Pennylane.
+
+
+Cas particulier : création de transactions
+Lors d'un import de fichier TRA, sur un exercice en cours, c'est-à-dire qui contient la date du
+jour, Pennylane crée des transactions basées sur les écritures présentes dans votre fichier.
+Elles seront donc visibles depuis le module Transactions sur l'interface Comptabilité comme
+sur l'interface Gestion.
+Ces transactions ont les mêmes propriétés que les transactions Pennylane.
+
+
+   ⚠️ Si des transactions sont déjà présentes dans l'exercice en cours, les transactions du
+   TRA ne seront pas créées pour éviter les doublons.
+
+
+Pennylane crée une transaction à partir d'une écriture issue de votre fichier TRA si elle
+remplit les conditions cumulatives suivantes :
+
+    Contenir au maximum 1 ligne 512 ;
+    Contenir au maximum 1 ligne 401 ou 411 ;
+    Être équilibrée.
+
+
+   ✍️ Assurez-vous que le mapping du compte bancaire est correct pour que la
+   transaction se crée.
+
+
+
+   ⚠️ Pennylane ne crée pas de transactions pour les écritures qui contiennent plusieurs
+   lignes 512, plusieurs lignes 401 ou 411 ainsi que pour les écritures d'à-nouveaux.
+
+
+
+
+Vous pourrez visualiser les transactions créées depuis la page d'import.
+Vous recevrez également une notification dans le centre de notifications.
+Enfin vous pourrez retrouver les transactions créées lors de l'import de votre fichier TRA en
+utilisant le filtre Fichiers d'import depuis le module Transactions ou depuis le Grand livre.
+
+
+Une fois votre fichier TRA importé, plusieurs actions sont possibles. Vous pouvez :
+
+  1. Voir la Balance des écritures de classes de comptes à l'import du fichier TRA
+  2. Joindre une archive (Télécharger les pièces jointes).
+  3. Visualiser :
+         Les écritures importées dans le Grand Livre ;
+         Les transactions créées ;
+         Le mapping du fichier.
+  4. Supprimer le fichier TRA (Il ne peut pas être supprimé si l'exercice fiscal est clos.)
+
+
+
+
+    Cadrage de la balance
+Une fois le fichier TRA importé, il convient de vérifier que le solde de la balance générale sur
+Pennylane cadre bien avec le solde du fichier importé.
+
+
+Pour ce faire, depuis le module d'imports, vous pouvez cliquer sur le bouton "Balance des
+écritures de classes de comptes à l'import".
+
+Ce tableau montre les données du fichier TRA par classes de compte et compare les
+données avant et après import.
+
+
+
+
+Vous pouvez comparer les données de ce tableau avec la balance générale par classes.
+
+
+
+
+   📖 Voir article Utiliser la balance générale
+Le solde ne cadre pas lorsque des factures ou des transactions bancaires ont été importées
+dans Pennylane pour la période correspondant aux dates du fichier TRA.
+
+
+Explications des écarts :
+ Ecarts avec les classes de comptes             Source des écarts
+
+ 4 et 5                                         Transactions bancaires
+
+ 4 et 7                                         Factures clients
+
+ 4 et 6 ou 4 et 2                               Factures fournisseurs
+
+
+Si les factures et/ou les transactions importées sont déjà comptabilisées dans le fichier TRA,
+il convient donc de les archiver pour éviter qu'il y ait des doublons avec le fichier TRA.
+
+    Archivage des données (si besoin)
+Si des données comptables sont présentes sur la période concernée par votre import, il
+convient de vérifier qu'il n'y a pas de doublons avec le fichier importé.
+Vous pouvez effacer les données comptables présentes sur une période en archivant les
+données.
+
+
+   ✍️ Archiver un élément ne le supprime pas de Pennylane mais supprime son impact
+   comptable. Il sera possible de le restaurer à tout moment si vous avez besoin de le
+   comptabiliser.
+
+
+Pour archiver des factures ou des transactions bancaires, allez dans les Paramètres >
+Informations Entreprises > Actions
+
+  1. Sélectionnez la période que vous souhaitez archiver
+  2. Sélectionnez les éléments à archiver (Factures fournisseurs, factures clients,
+     transactions bancaires)
+  3. Cliquez sur Archiver
+    Clôture de l'exercice et génération de reports à nouveau
+L'exercice se clôture depuis les Paramètres > Informations Entreprises > Tenue comptable.
+Vous pouvez générer les à-nouveaux au moment de la clôture d'un exercice.
+
+
+   ✍️ Voir article Clôturer un exercice et valider les écritures.
+
+⚠️ Si on intègre deux fichiers TRA portant sur deux exercices N-1 et N, ne pas générer les à-
+nouveaux de l'exercice N-1 car ils seront intégrés dans le fichier TRA de l'exercice N.
+
+
+
+
+   ✍️ Si les à-nouveaux sont déjà présents dans le fichier importé, ne les générez pas lors
+   de la clôture. Un fichier TRA au format attendu par Pennylane contient les à-
+   nouveaux.
+Articles connexes
+
+   Importer un FEC
+
+   Importer un fichier de CEGID QUADRA au format MDB
+
+
+   Transformer automatiquement vos imports d’écritures de ventes et d’achats en
+   facture Pennylane
+
+
+   Contrôler un import CEGID Quadra au format MDB
+
+   Préparer et mapper un fichier FEC/TRA avant import (comptes tiers, journaux,
+   banques, devises)
+
+
+
+
+                                  😞😐😃
+                     Avez-vous trouvé la réponse à votre question ?
+
+
+
+
+Centre d'aide Pennylane
+
+
+
+
+Communauté                                    Academy
+

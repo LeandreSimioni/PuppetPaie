@@ -1,0 +1,511 @@
+Structure des fichiers ASCII utilisés dans le module
+  d'importation de données
+
+Format des fichiers
+Il est possible de sélectionner n'importe quel format géré par Oxygène (à l'exception des formats de taille fixe).
+
+Le format sélectionné sera utilisé pour l'ensemble des fichiers à importer. Si aucun des formats proposés ne correspond aux fichiers ASCII à
+importer, il est possible de créer dynamiquement dans la base système d'Oxygène son propre format en indiquant toutes ses caractéristiques.
+Le format créé ne doit pas être de taille fixe, ni au niveau des champs, ni au niveau des enregistrements.
+
+La variable gérant la caractéristique "En-tête contient le code" est forcée au démarrage de l’importation. Il n'est donc pas nécessaire de modifier le
+format choisi sous Oxygène pour qu'il ait cette caractéristique.
+
+Les codes doivent obligatoirement être saisis en majuscules dans l'en-tête du fichier ASCII.
+
+
+
+
+       Le format d'import conseillé est le format EXCEL .CSV (code du format dans Oxygène : EXCEL2).
+
+       Pour transformer un fichier .XLS en .CSV, il suffit d'enregistrer le fichier à partir de votre tableur, au format : CSV (séparateur : point-virgule)
+       (*.cvs)
+
+Le format CSV :
+
+- les champs sont séparés par le point-virgule (;)
+- chaque ligne se termine par Carriage Return (CR code 13) et Line Feed (LF code 10)
+- les champs avec saut de ligne (Alt-Entrée sous Excel) contiennent Line Feed (LF code 10)
+-
+
+
+
+
+L'importation des pièces
+       Il existe deux types d'importation de pièces : l'importation à partir de 4 fichiers (entêtes des pièces, lignes des pièces, échéances et
+              ventilation analytique) et l'importation à partir d'un seul fichier (toutes les données
+                     à importer sont dans un                  même fichier)
+
+
+
+
+       L'importation à partir d'un seul fichier des écritures
+Exemple de fichier : ECRITURE_1FIC.csv
+
+
+ ENTÊTE                DESCRIPTION
+
+
+ CODSOC                Code société (vérifié si renseigné)
+                       8 c maxi
+ CODAGE                Code poste analytique (en option)
+                       9 c maxi
+ NUMJL                 N° journal
+                       5 c maxi / Obligatoire
+ MONNAIE_IDENT         Code de la monnaie de la pièce
+                       3 c maxi /Si non renseigné, sera égal à la monnaie de tenue
+ NUMCP                 N° de compte
+                       13 maxi / Obligatoire
+ COURS                 Cours de la monnaie si c'est une monnaie OUT
+
+
+ CSECT                 Code section analytique (en option)
+                       20 c maxi
+ DTOPE                 Date opération au format AAAAMMJJ
+                       Obligatoire
+ NPIEC                 Référence de la pièce
+                       10 c maxi / Obligatoire (permet de distinguer les différentes
+                       pièces à importer)
+ LIBEC                 Libellé opération
+                       40 c maxi / Obligatoire
+ MTDEB                 Montant débit dans la monnaie de la pièce
+
+
+ MTCRE                 Montant crédit dans la monnaie de la pièce
+ RELET               Référence de lettrage ou Code TVA
+                     Référence de lettrage si compte lettrable (10 c maxi)
+                     Code TVA si compte supporte TVA (5c)
+ NIPIE               N° pièce interne
+                     10 c. maxi
+ LIBAUTO             Inutilisé
+
+
+ CB1                 1 - N° journal trésorerie (table journaux)
+                     5 c maxi
+ CR1                 1 - Code type règlement (table types règlement)
+                     5 c maxi
+ DE1                 1 - Date échéance au format AAAAMMJJ
+
+
+ ME1                 1- Montant échéance dans la monnaie de la pièce
+
+
+ CB2                 2 - N° journal trésorerie (table journaux)
+                     5 c maxi
+ CR2                 2- Code type règlement (table types règlement)
+                     5 c maxi
+ DE2                 2- Date échéance au format AAAAMMJJ
+
+
+ ME2                 2- Montant échéance dans la monnaie de la pièce
+
+
+ CB3                 3 - N° journal trésorerie (table journaux)
+                     5 c maxi
+ CR3                 3- Code type règlement (table types règlement)
+                     5 c maxi
+ DE3                 3- Date échéance au format AAAAMMJJ
+
+
+ ME3                 3- Montant échéance dans la monnaie de la pièce
+
+
+ CB4                 4- N° journal trésorerie (table journaux)
+                     5 c maxi
+ CR4                 4- Code type règlement (table types règlement)
+                     5 c maxi
+ DE4                 4- Date échéance au format AAAAMMJJ
+
+
+ ME4                 4- Montant échéance dans la monnaie de la pièce
+
+
+ CB5                 5- N° journal trésorerie (table journaux)
+                     5 c maxi
+ CR5                 5- Code type règlement (table types règlement)
+                     5 c maxi
+ DE5                 5- Date échéance au format AAAAMMJJ
+
+
+ ME5                 5- Montant échéance dans la monnaie de la pièce
+
+
+ NIDENT              N° identification pièce
+
+
+ NUMCP2              N° compte auxiliaire (colonne ajoutée en V 10)
+
+
+
+
+       L'importation à partir de 4 fichiers
+
+Structure du fichier ASCII "En-tête Pièce"
+
+Exemple de fichier : PIECE.csv
+
+ NPIES               N° unique d'identification de la pièce
+                     Alpha / 11 c maxi / Obligatoire
+
+ NUMJL               N° journal
+                     Alpha / 5 c maxi / Obligatoire
+
+ JLNOR               N° journal d'origine (au moment de la saisie de la pièce)
+                     Alpha / 5 c maxi / Obligatoire si le journal situé dans le champ
+                     2 est un journal Reports
+ DTOPE               Date opération
+                     JJMMAAAA / Obligatoire
+
+ NSAIS               N° saisie (ou n° bordereau (en option contactez MEMSOFT ou
+                     son réseau de revendeurs agréés) )
+                     Simple / Si non renseigné, sera incrémenté automatiquement
+ NPIEC               N° pièce
+                    Alpha / 10 c maxi / Doit être renseigné si l'option
+                    "Numérotation automatique des pièces" n'est pas active en
+                    comptabilité
+ DTPIE              Date pièce
+                    JJMMAAAA / Si non renseigné sera égal à la date d'opération
+
+ NIPIE              N° interne de la pièce
+                    Alpha / 10 c maxi / Non obligatoire
+
+ INPIE              Intitulé pièce
+                    Alpha / 40 c maxi / Obligatoire
+
+ DTSAI              Date de saisie de la pièce
+                    JJMMAAAA / Si non renseigné sera                 égal   à   la   date
+                    d'importation
+ IMPUT              Pièce imputée O/N (modifiable O/N)
+                    Alpha / 1 c / Si non renseigné sera égal à N
+
+ MONNAIE_IDENT      Code de la monnaie de la pièce
+                    3 c maxi / Si non renseigné, sera égal à la monnaie de tenue du
+                    dossier
+ COURS              Cours de la monnaie si c'est une monnaie OUT
+                      Obligatoire si monnaie OUT
+
+ DATEV              Date imputation JJMMAAAA
+                    Obligatoire si champ "IMPUT" est égal à O
+
+ HEUREV             Heure imputation HH:MM:SS
+                    Obligatoire si champ IMPUT est égal à O
+
+ USERV              Utilisateur imputation
+                    Obligatoire si champ IMPUT est égal à O
+
+ CORIG              Code origine de la pièce
+                    Si non renseigné, sera égal à IMPORT
+
+
+
+
+Structure du fichier ASCII "Ligne pièce"
+
+Exemple de fichier : MOUVE.csv
+
+ ENTÊTE             DESCRIPTION
+
+
+ V_NPIES            N° unique d'identification de la pièce (correspond au 1er champ
+                    du fichier "Entête pièce"
+                    Alpha/ 11c maxi / Obligatoire
+ NLIGS              N° unique à l'intérieur de la pièce
+                    Alpha / 17 c maxi / Obligatoire
+
+ NUMCP              N° compte
+                    Alpha / 9 c maxi /Obligatoire
+
+ CPTOR              N° compte d'origine (au moment de la saisie de la pièce)
+                    Alpha / 9 c maxi / Obligatoire si le journal de la pièce est un
+                    journal Reports analytiques (en option)
+ LIBEC              Libellé opération
+                    Alpha / 40 c maxi /Obligatoire
+
+ LCPLT              Libellé complémentaire
+                    Alpha / 40 c maxi / non obligatoire
+
+ MTDEBS             Montant débit de l'opération
+                    Double
+
+ MTCRES             Montant crédit de l'opération
+                    Double
+
+ RELET              Référence de lettrage
+                    Alpha / 10 c maxi /Obligatoire
+
+ DTLET              Date de lettrage
+                    JJMMAAAA / Non obligatoire même si la référence de lettrage
+                    est renseignée
+ RRAPB              Référence rapprochement bancaire
+                    Alpha / 10 c maxi / Non obligatoire (concerne uniquement
+                    compte Banque)
+ QUTE1              Montant quantité 1
+                    Simple / Non obligatoire
+
+ QUTE2              Montant quantité 2
+                    Simple : Non obligatoire
+
+ UNITE              Unité sur quantité 1
+                    Alpha / 2 c maxi / Non obligatoire
+
+ COTVA              Code TVA (table des codes TVA)
+                    Alpha / 5 c maxi / Obligatoire si la ligne est assujettie à la TVA
+
+ CDEVI              Inutilisé pour l'instant
+ MDEVI              Inutilisé pour l'instant
+
+
+ CTRAP              Inutilisé pour l'instant
+
+
+ COREP              Inutilisé pour l'instant
+
+
+ CPOST              Code poste analytique (table des postes analytiques - en
+                    option)
+                    Alpha / 9 c maxi / Non obligatoire
+ CCRIT              Code clé de répartition analytique (table des clés de répartition -
+                    en option)
+                    Alpha / 5 c maxi / Non obligatoire
+
+
+
+
+Structure du fichier ASCII "Echéance d'une ligne"
+
+Exemple de fichier : ECHEA.csv
+
+ ENTÊTE             DESCRIPTION
+
+
+ V_NPIES            N° unique d'identification de la pièce
+                    Alpha/ 11c maxi / Obligatoire
+                    Observations : Champ 1 de la fiche "En-tête pièce"
+ V_NLIGS            N° unique à l'intérieur de la pièce
+                    Alpha / 17 c maxi / Obligatoire
+                    Observations : Champ 2 de la fiche "Ligne pièce"
+ DTECH              Date échéance JJMMAAAA / Obligatoire
+
+
+ CTYPR              Code type règlement (table des types de règlement)
+                    Alpha / 5 c maxi / Non obligatoire
+
+ NJLTR              N° journal trésorerie prévu pour l'encaissement             ou   le
+                    décaissement (table journaux)
+                    Alpha / 5 c maxi / Non obligatoire
+ CTYEC              Code type échéance (table des types d'échéances)
+                    Alpha / 5 c maxi / Non obligatoire
+
+ MTECHS             Montant échéance dans la monnaie de la pièce
+                    Double
+
+ SIECH              Situation échéance
+                    Alpha / 1 c
+
+ BPECH              Bon à payer
+                    Alpha / 1 c
+
+ UNIQR              N° enreg. de la ligne de règlement de cette échéance
+                    Alpha / 14 c maxi
+
+ NUREL              N° de relance
+                    Entier / 3 c maxi
+
+ DERNL              Date dernière relance JJMMAAAA
+
+
+ MTPAYS             Inutilisé pour l'instant
+
+
+ OBECH              Observations
+                    Alpha / 30 c maxi
+
+
+
+
+Structure du fichier ASCII "Ventilation en sections analytiques d'une ligne"
+
+(en option)
+
+Exemple de fichier : VTSEC.csv
+
+
+  ENTETE              DESCRIPTION
+
+
+  V_NPIES             N° unique d'identification de la pièce
+                      Alpha/ 11c maxi / Obligatoire
+                      Observations : Champ 1 de la fiche "En-tête pièce"
+  V_NLIGS             N° ligne à l'intérieur de la pièce
+                      Alpha / 17 c maxi / Obligatoire
+                      Observations : Champ 2 de la fiche "Ligne pièce"
+  CSECT               Code section analytique (table sections analytiques)
+                      Alpha / 20 c maxi / Obligatoire
+
+  MTADES              Montant débit dans la monnaie de la pièce
+                      Double
+  MTACRS               Montant crédit dans la monnaie de la pièce
+                       Double
+
+
+
+
+L'importation du plan comptable
+
+Structure du fichier ASCII "Fiche compte"
+Exemple de fichier : COMPT.csv
+
+      (*) signifie que le champ possède une valeur par défaut que le logiciel utilisera si ce champ n'est pas renseigné (cf valeurs par défaut de la
+      fiche compte)
+
+ ENTÊTE              DESCRIPTION
+
+
+ NUMCP               N° compte
+                     Alpha / 13 c maxi / Obligatoire
+
+ CODCP               Intitulé réduit du compte
+                     Alpha / 15 c maxi / Non obligatoire
+
+ LIBCP               Intitulé compte
+                     Alpha / 50 c maxi / Obligatoire
+
+ JLTRT               (*) N° journal trésorerie (table journaux)
+                     Alpha / 5 c maxi /Non obligatoire / Uniquement pour les
+                     comptes de tiers
+ CTRED               (*) Centralisation des écritures du compte en édition du grand
+                     livre O/N
+                     Alpha / O ou N
+ SDFIN               (*) Doit être soldé en fin d'exercice O/N
+                     Alpha / O ou N
+
+ LETMA               (*) Lettrable automatiquement
+                     Alpha / Uniquement pour les comptes lettrables
+
+ RAPBQE              (*) Gestion du rapprochement bancaire O/N
+                     Alpha / Uniquement pour les comptes Banque
+
+ GQTE1               (*) Gestion quantité 1 O/N
+                     Alpha
+
+ GQTE2               (*) Gestion quantité 2 O/N
+                     Alpha
+
+ PXMQ1               (*) Calcul prix moyen sur quantité 1 en édition grand livre O/N
+                     Alpha
+
+ PXMQ2               (*) Calcul prix moyen sur quantité 2 en édition grand livre O/N
+                     Alpha
+
+ UNITE               (*) Unité sur quantité 1
+                     Alpha / 2 c maxi
+
+ CRAPP               Code Affaire
+                     Alpha / 10 c maxi
+
+ TPTVA               (*) TVA sur les encaissements (E) ou sur les débits (D)
+                     Alpha / 1 c / Uniquement pour les comptes supportant la TVA
+
+ OBSCP               Observations
+                     Alpha / 250 c maxi / Non obligatoire
+
+ CTYEC               (*) Code échéance (table types échéances)
+                     Alpha / 5 c maxi / Uniquement pour les comptes Tiers
+
+ CTYPR               (*) Code type règlement (table Types règlement)
+                     Alpha / 5 c maxi / Uniquement pour les comptes Tiers
+
+ ADRE1               Nom rue 1
+                     Alpha : 30 c maxi / Non obligatoire / Uniquement pour les
+                     comptes Tiers
+ ADRE2               Nom rue 2
+                     Alpha / 30 c maxi / Non obligatoire / Uniquement pour les
+                     comptes Tiers
+ CPOCP               Code postal
+                     Alpha / 5 c maxi / Non obligatoire / Uniquement pour les
+                     comptes Tiers
+ VILCP               Ville
+                     Alpha / 30 c maxi / Non obligatoire / Uniquement pour les
+                     comptes Tiers
+ TELCP               N° téléphone
+                     Alpha / 14 c maxi / Non obligatoire / Uniquement pour les
+                     comptes Tiers
+ FAXCP               N° télécopie
+                Alpha / 14 c maxi / Non obligatoire / Uniquement pour les
+                comptes Tiers
+BQECP           Nom banque
+                Alpha / 25 c maxi / Non obligatoire / Uniquement pour les
+                comptes Tiers
+AGECP           Nom agence
+                Alpha : 25 C maxi / Non obligatoire / Uniquement pour les
+                comptes Tiers
+ETABL           Etablissement
+                Alpha / 5 c maxi / Non obligatoire / Uniquement pour les
+                comptes Tiers
+GUICP           Guichet
+                Alpha / 5 c maxi / Non obligatoire / Uniquement pour les
+                comptes Tiers
+NBQCP           N° compte bancaire
+                Alpha / 11 c maxi / Non obligatoire / Uniquement pour les
+                comptes Tiers
+RIBCP           Clé RIB
+                Alpha / 2 c maxi / Non obligatoire / Uniquement pour les
+                comptes Tiers
+COTVA           (*) Code TVA (table Codes TVA)
+                Alpha / 5 c maxi / Uniquement pour les comptes supportant de
+                la TVA
+RGPAY           Règlements bons à payer O/N
+                Alpha / 1c
+
+CDEVI           Code devise : Inutilisé
+
+
+CPOST           (*) Code poste analytique (table Postes analytiques - en option)
+                Alpha / 9 c maxi / Non obligatoire / Uniquement pour les
+                comptes supportant de l'analytique
+CSECT           (*) Code section analytique (table sections analytiques - en
+                option)
+                Alpha / 20 c maxi / Non obligatoire / Uniquement pour les
+                comptes supportant de l'analytique
+CCRIT           Code clé de répartition analytique (tables Clés de répartition
+                analytiques - en option)
+                Alpha / 9 c maxi / Non obligatoire / Uniquement pour les
+                comptes supportant l'analytique
+CCTRA           Compte collectif O/N
+                Alpha / 1 c maxi
+
+CAISC           (*) Caisse créditrice O/N
+                Alpha / 1 c maxi / Uniquement pour les comptes Caisse
+
+SAANA           Saisie analytique obligatoire O/N
+                Alpha / 1 c maxi
+
+MONNAIE_IDENT   Code de la monnaie du compte
+                3 c maxi / Pour les comptes de tiers
+
+LIAISON_GEST    P=Compte liaison est un compte produit / C=Compte liaison
+                 est un compte de charge
+                1 c maxi / Uniquement pour les comptes de liaison
+PIBAN           IBAN (Préfixe)
+                4 c maxi
+
+IBAN            IBAN ( RIB)
+                30 c maxi
+
+BIC             BIC (Code identifiant de la banque / Bank Identifier Code)
+                11 c maxi
+
+NUCEE           N° CEE
+                25 c maxi / Uniquement pour les comptes de tiers
+
+TYOPE           Type Opérations Biens / Services
+                1 c (B/S) / Uniquement les comptes de charges et produits
+
+EXTERNE         Inutilisé
+
+
+NUMCP2          N° compte auxiliaire (colonne ajoutée en V10)
+
+
+LIBCP2          Intitulé compte auxiliaire (colonne ajoutée en V10)
+

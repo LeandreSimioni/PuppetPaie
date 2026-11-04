@@ -1,0 +1,199 @@
+Créer un format d'import                                                               Imprimer
+
+paramétrable
+
+RÉSUMÉ
+Cet article décrit la procédure pour créer un format d’import paramétrable dans Sage 50.
+
+
+
+LA DESCRIPTION
+
+Dans Sage 50, l’importation de données provenant d’Excel ou d’autres logiciels utilise un format
+d’import paramétrable adapté au type de contenu.
+Il est possible d'importer plusieurs catégories de données :
+
+
+   Les écritures                            Les familles
+                        Les clients
+   comptables                                d'articles
+                                                Les
+  Les taux de TVA      Les articles
+                                         remises/promotions
+Les taux Taxe Para                          Les modes de
+                     Les représentants
+   Fiscale (TPF)                             paiement
+    Les codes
+                     Les fournisseurs      Les règlements
+   analytiques
+   Les banques        Les prospects       Les commissions
+        Les             Les pièces
+ immobilisations      commerciales
+
+
+
+
+Résolution
+
+Créez un nouveau format d'import paramétrable
+
+   1. Allez dans le menu Dossier > Options > Imports paramétrables.
+
+   2. Cliquez sur le bouton Créer.
+  3. Choisissez le format d’import correspondant au type de données, puis sélectionnez OK.
+
+
+
+Étape 1 : Choisissez le fichier à importer
+
+  1. Sélectionnez le fichier texte à importer.
+    Répondez Oui à l'analyse du fichier pour détecter automatiquement le format.
+    Si la détection n'est pas faite, sélectionnez le format du fichier à importer.
+
+  2. Cliquez sur le bouton Suivant.
+
+
+
+Étape 2 : Sélectionnez le format du fichier
+
+  1. Sélectionnez le séparateur de rubriques : Tabulation, Point virgule ou Virgule.
+
+  2. Sélectionnez le séparateur d’enregistrement : Return/lineFeed, LineFeed ou Return.
+
+  3. Sélectionnez Suivant.
+
+
+
+Étape 3 : Définir les options globales de l'import
+
+  1. Indiquez le nombre de lignes d’en‑tête et de pied à ignorer.
+
+  2. Sélectionnez le format des nombres et des dates.
+   3. Cliquez sur le bouton Suivant.
+
+
+
+Étape 4 : Définir les rubriques
+
+Définissez les rubriques associées à chaque colonne en double-cliquant sur chaque champ.
+
+
+
+
+Pour chacune des rubriques :
+
+
+   1. Renseignez un nom
+
+   2. Sélectionnez la rubrique de destination ainsi que le type de rubrique (texte, date, monnaie,
+     etc.)
+
+   3. Sélectionnez le format pour les types monétaires et date
+Certains champs sont obligatoires :
+
+
+     Importation des tiers : le code, la société et le nom.
+
+     Pour l'importation des articles : Le code et la désignation courte
+
+
+       REMARQUE :
+       Laissez vide la destination pour ignorer une information.
+
+
+
+   1. Après avoir complété toutes les rubriques, cliquez sur le bouton Suivant
+
+
+
+Étape 5 : Définissez les valeurs par défaut
+
+   1. Définissez les rubriques à modifier la valeur par défaut fixé par le programme.
+
+
+
+Étape 6 : Enregistrez le format d'import
+
+   1. Donnez un nom au format d'import.
+
+   2. Cliquez sur Enregistrer.
+Importation du fichier
+
+ 1. Allez dans le menu Divers > Importer
+
+ 2. Sélectionnez votre format d'import.
+
+
+
+
+ 3. Cliquez sur le bouton OK.
+
+ 4. Sélectionnez le fichier à importer.
+
+ 5. Cliquez sur Ouvrir.
+
+ 6. Un rapport d'importation s'affiche indiquant le résultat de l'importation, cliquez sur Fermer.
+
+
+
+
+           Et si une offre plus complète faisait vraiment la différence ?
+
+
+           Version Sérénity, solution Hébergée ou Pass Facture
+           Électronique pour l'accompagnement de mise en conformité à la réforme
+           : un conseiller vous accompagne pour identifier l’offre la plus adaptée à
+           vos enjeux.
+           En savoir plus
+           (https://bupme.sage.com.dl1.ipercast.net/formation/CataloguesFormations/2-
+           %20CATALOGUE%20SERVICES%20-%20Contenu%20Clients.pdf)
+                    Complétez le formulaire (https://www.sage.com/fr-fr/cp/sage50-aller-plus-loin/)
+
+
+
+
+Solutions connexes
+
+      Créer un format d'import paramétrable : Tiers (view2.jsp?k2dockey=220810080503280)
+
+      Créer un format d'import paramétrable : Articles (view2.jsp?k2dockey=220810140643750)
+
+      Création d'un format d'import paramétrable : Pièces clients (view2.jsp?
+      k2dockey=211010150098173)
+
+      Création d'un format d'import paramétrable : Règlements clients (view2.jsp?
+      k2dockey=211010150098176)
+
+      Comment importer des écritures comptables ? (view2.jsp?k2dockey=211010160107108)
+
+      Lancer automatiquement, à l'ouverture d'un dossier, un import d'écritures avec un format
+      d'import personnalisé (view2.jsp?k2dockey=210905150058781)
+
+      Structure du fichier XImport (view2.jsp?k2dockey=210905150090804)
+
+      Structure d'un fichier au format RImport (view2.jsp?k2dockey=211010150086591)
+
+      Créer un format d'import relevé bancaire (https://fr-
+      kb.sage.com/portal/app/portlets/results/viewsolution.jsp?solutionid=220629152535430)
+
+
+
+Propriétés de la solution
+ID de la solution
+211010150066901
+
+
+date de dernière modification
+
+Wed Feb 25 10:38:02 UTC 2026
+
+LES ATTRIBUTS
+
+Détails de produit
+Version: Current version
+Version: Future versions
+
+Views
+
+14678
+
