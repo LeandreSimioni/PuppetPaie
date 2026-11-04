@@ -1580,15 +1580,6 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[envois::journal::
     socle::temps::pendant(instant, refaire)
 }
 
-/// La route `piece-partie` : `{"mois", "fichier"}`. Le chemin de la piece partie, refaite si son fichier manque
-/// (`piece_partie`), relatif a la compagnie : `{"chemin": "sorties/<mois>/[envoi/]<fichier>"}`.
-pub(crate) fn piece_partie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let champ = |k: &str| charge.get(k).and_then(Value::as_str).map(String::from).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-    let f = piece_partie(ctx, &champ("mois")?, &champ("fichier")?)?;
-    let relatif = f.strip_prefix(&ctx.racine).unwrap_or(&f).to_string_lossy().replace('\\', "/");
-    Ok(json!({"chemin": relatif}))
-}
-
 /// LE TAUX DE PAS DES PAIES QUI PARTENT : une phrase par salarie dont une paie n'a pas de taux transmis par la DGFiP qui
 /// vaille le jour de son paiement. Elle prend alors le taux non personnalise de la grille : « Lorsque le débiteur ne dispose
 /// pas d'un taux calculé par l'administration fiscale [...] il est appliqué un taux proportionnel » (CGI, art. 204 H, III,

@@ -258,7 +258,7 @@ fn fichiers_sous(d: &Path, out: &mut Vec<PathBuf>) {
 /// Fige l'annee et reunit ce qu'il faut garder en un zip. Refuse si un mois
 /// de l'annee qui a des paies n'a pas de DSN reelle acceptee (`forcer` passe outre, et c'est ecrit dans
 /// `exercices.json`), une annee deja close, et l'annee en cours.
-pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> R<Value> {
+pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> R<ExerciceClos> {
     if let Some(clos) = exercice_clos(ctx, annee)? {
         let le: String = match clos.get("le") {
             Some(v) => valeur_en_texte(v),
@@ -395,15 +395,55 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
         }),
     );
     ecrire_exercices(ctx, &tous)?;
-    Ok(json!({
-        "annee": annee, "le": le, "archive": archive.to_string_lossy(), "octets": octets.len(),
-        "empreinte": empreinte, "fichiers": n, "manques": manques,
-    }))
+    Ok(ExerciceClos { annee: annee.to_string(), le, archive: archive.to_string_lossy().into_owned(), octets: octets.len(), empreinte, fichiers: n, manques })
+}
+
+/// Un exercice clos : l'annee, quand, l'archive (son chemin, sa taille, son empreinte, le nombre de fichiers qu'elle
+/// reunit), et ce qui n'a pu s'y archiver.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct ExerciceClos {
+    pub(crate) annee: String,
+    le: String,
+    archive: String,
+    octets: usize,
+    empreinte: String,
+    pub(crate) fichiers: usize,
+    pub(crate) manques: Vec<String>,
+}
+
+/// Un exercice rouvert : l'annee, depuis quand il etait clos, et son archive, qui reste.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct ExerciceRouvert {
+    pub(crate) annee: String,
+    etait_clos_depuis: Option<String>,
+    archive: Option<String>,
+}
+
+/// Ce que fait la route `cloture` : clore l'exercice, ou le rouvrir.
+#[derive(Debug, serde::Serialize)]
+#[serde(untagged)]
+pub(crate) enum Cloture {
+    Close(ExerciceClos),
+    Rouverte(ExerciceRouvert),
+}
+
+/// La charge de `cloture` : l'annee (comme `etapes::ChargeAnnee` l'ecrit, ou en nombre), clore malgre un mois sans DSN
+/// acceptee (`forcer`), ou rouvrir ; `qui` : la ligne de commande ecrit `cli`, la page rien (`interface`).
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeCloture {
+    annee: crate::routes::dossier_salarie::AnneeDite,
+    #[serde(default)]
+    forcer: bool,
+    #[serde(default)]
+    rouvrir: bool,
+    #[serde(default)]
+    qui: Option<String>,
 }
 
 /// Retire la cloture. L'archive reste sur le disque : elle dit ce
 /// qu'etait l'annee au moment ou on l'a fermee.
-fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
+fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<ExerciceRouvert> {
     let mut tous = match crate::routes::lire_json_ou_vide(&ctx.racine.join(EXERCICES))? {
         Value::Object(o) => o,
         autre => return Err(erreur("TypeError", socle::echec::avec("Le fichier des exercices de la compagnie est abîmé.", serde_json::json!({"fichier": EXERCICES, "detail": socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))})))),
@@ -424,20 +464,16 @@ fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
         autre => return Err(erreur("AttributeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     }
     ecrire_exercices(ctx, &tous)?;
-    Ok(json!({
-        "annee": annee,
-        "etait_clos_depuis": clos.get("le").cloned().unwrap_or(Value::Null),
-        "archive": clos.get("archive").cloned().unwrap_or(Value::Null),
-    }))
+    let texte = |k: &str| clos.get(k).filter(|v| !v.is_null()).map(valeur_en_texte);
+    Ok(ExerciceRouvert { annee: annee.to_string(), etait_clos_depuis: texte("le"), archive: texte("archive") })
 }
 
-/// La route `cloture` : `{"annee", "forcer"?, "rouvrir"?, "qui"?}`.
-pub(crate) fn cloture_route(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let annee = texte_de(exiger(charge, "annee")?);
-    // `qui` : la ligne de commande ecrit `cli`, la page `interface`.
-    let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
-    if charge.get("rouvrir").is_some_and(vrai) {
-        return rouvrir_exercice(ctx, &annee, &qui);
+/// La route `cloture` : clore l'annee, ou la rouvrir.
+pub(crate) fn cloture_route(ctx: &Contexte, c: ChargeCloture) -> R<Cloture> {
+    let annee = c.annee.texte();
+    let qui = c.qui.filter(|q| !q.is_empty()).unwrap_or_else(|| crate::routes::INTERFACE.to_string());
+    if c.rouvrir {
+        return rouvrir_exercice(ctx, &annee, &qui).map(Cloture::Rouverte);
     }
-    cloturer(ctx, &annee, charge.get("forcer").is_some_and(vrai), &qui)
+    cloturer(ctx, &annee, c.forcer, &qui).map(Cloture::Close)
 }

@@ -779,10 +779,11 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             });
             if !sans.is_empty() {
                 let noms = sans.iter().map(|(_, n)| n.as_str()).collect::<Vec<_>>().join(", ");
-                let cles: Vec<&str> = sans.iter().map(|(c, _)| c.as_str()).collect();
+                let salaries: Vec<String> = sans.iter().map(|(c, _)| c.clone()).collect();
                 let quoi = format!("documents de {} imprimés pour {} (pas de courriel dans sa fiche), remis en main propre", mois_fr(&mois.to_string()), noms);
                 fait.extend(pas(d, &quoi, quand, |ctx| {
-                    crate::routes::documents::documents_imprimer(ctx, &json!({"mois": mois, "salaries": cles}), QUI_HORLOGE)?;
+                    let charge = crate::routes::documents::ChargeDocumentsImprimer { mois: *mois, salaries: salaries.clone() };
+                    crate::routes::documents::documents_imprimer(ctx, charge, QUI_HORLOGE)?;
                     Ok(true)
                 }));
             }

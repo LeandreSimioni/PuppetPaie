@@ -35,6 +35,11 @@ impl EtatDsn {
         self.est(&["passee", "attente", "refusee"])
     }
 
+    /// Passée, sans que France Travail ait encore renvoyé l'attestation employeur (AER) qu'elle en édite.
+    pub(crate) fn aer_attendue(&self) -> bool {
+        self.est(&["passee"]) && !self.0.get("aer_recue").is_some_and(socle::fichiers::vrai)
+    }
+
     /// Le bilan l'a refusée.
     pub(crate) fn refusee(&self) -> bool {
         self.est(&["refusee"])

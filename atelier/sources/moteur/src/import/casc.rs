@@ -703,11 +703,23 @@ fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path,
     Ok(())
 }
 
+/// Une annee de CASC-SVP notee regularisee : ses mois, le montant vire et le montant calcule, le jour du virement, le
+/// jour de la note et qui l'a notee.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct RegularisationNotee {
+    pub annee: String,
+    pub mois: Vec<String>,
+    pub montant: String,
+    pub calcule: String,
+    pub vire_le: String,
+    pub note_le: String,
+    pub qui: String,
+}
+
 /// La route `casc-regularise` note qu'une annee est regularisee. S'ecrit
 /// APRES le virement, jamais avant.
-pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montant: &Value, qui: &str, aujourd_hui: &str) -> R<Value> {
-    let annee_t = valeur_en_texte(annee);
-    let r = regularisation(ctx, &Demande { annee: Some(annee_t.clone()), ..Default::default() })?;
+pub fn marquer_regularise(ctx: &Contexte, annee: &str, vire_le: &str, montant: &str, qui: &str, aujourd_hui: &str) -> R<RegularisationNotee> {
+    let r = regularisation(ctx, &Demande { annee: Some(annee.to_string()), ..Default::default() })?;
     let p = fichier_suivi(ctx);
     let mut d = match lire_json(&p) {
         Ok(Value::Object(o)) => Value::Object(o),
@@ -715,20 +727,20 @@ pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montan
         Err(_) => json!({"_quoi": "Les regularisations CASC-SVP faites hors DSN. Un mois ici ne revient plus dans un dossier de regularisation."}),
     };
     let calcule = r.mois.iter().fold(Decimal::ZERO, |t, m| t + m.cotisation);
-    let entree = json!({
-        "annee": annee_t,
-        "mois": r.mois.iter().map(|m| m.mois.clone()).collect::<Vec<_>>(),
-        "montant": valeur_en_texte(montant),
-        "calcule": calcule.to_string(),
-        "vire_le": vire_le,
-        "note_le": aujourd_hui,
-        "qui": qui,
-    });
+    let entree = RegularisationNotee {
+        annee: annee.to_string(),
+        mois: r.mois.iter().map(|m| m.mois.clone()).collect(),
+        montant: montant.to_string(),
+        calcule: calcule.to_string(),
+        vire_le: vire_le.to_string(),
+        note_le: aujourd_hui.to_string(),
+        qui: qui.to_string(),
+    };
     let Value::Object(o) = &mut d else {
         return Err(erreur("AttributeError", socle::echec::avec("Le fichier de la CASC-SVP de la compagnie est abîmé.", serde_json::json!({"fichier": declarations::casc::CASC_SVP}))));
     };
     match o.entry("regularisations").or_insert_with(|| json!([])) {
-        Value::Array(a) => a.push(entree.clone()),
+        Value::Array(a) => a.push(serde_json::to_value(&entree).map_err(|e| socle::echec::Echec::from(e.to_string()))?),
         _ => return Err(erreur("AttributeError", "'regularisations' n'est pas une liste")),
     }
     ecrire_json(&p, &d, 2).map_err(|m| erreur("OSError", m))?;

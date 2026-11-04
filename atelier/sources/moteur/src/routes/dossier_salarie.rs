@@ -18,16 +18,16 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
+use socle::mois::Mois;
 
 use engagement::calcul::Paie;
 use documents::conges_spectacles::{self, ContratCs, MoisPaye, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use engagement::{self, Engagement};
-use envois::etats::{items};
 use socle::valeur::valeur_en_texte;
-use socle::valeur::nom_type;
 use documents::fiche_recapitulative::Recapitulatifs;
 use socle::fichiers::vrai;
 use documents::fabrique::{fusion_octets, fusion_pieces, Temporaire};
@@ -68,16 +68,139 @@ pub const ROUTES: &[Fiche] = &[Fiche {
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> Result<Value, Echec> {
     match nom {
-        Route::DossierSalarie => dossier_salarie_route(ctx, charge).map_err(Echec::from).map(|mut v| {
-            let liste = |k: &str| v[k].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>();
-            let (qui, fichiers) = (liste("salaries").join(", "), liste("fichiers"));
-            let p = if fichiers.is_empty() { format!("Dossier de {} ({}) : rien n'est écrit.", qui, valeur_en_texte(&v["periode"])) } else { format!("Dossier de {} ({}) : {}.", qui, valeur_en_texte(&v["periode"]), super::compte(fichiers.len(), "fichier écrit", "fichiers écrits")) };
-            let mut lignes = liste("avertissements");
-            lignes.extend(liste("refus"));
-            v["phrases"] = json!(lignes);
-            super::phrase_en_tete(v, p)
-        }),
+        Route::DossierSalarie => super::en_json(dossier_salarie(ctx, &super::lire_charge(charge)?)?),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
+    }
+}
+
+/// `dossier-salarie` : le dossier construit (`construire`), et ce qu'il a ecrit.
+fn dossier_salarie(ctx: &Contexte, demande: &DemandeDeDossier) -> R<DossierRendu> {
+    let d = construire(ctx, demande)?;
+    let p = if d.fichiers.is_empty() {
+        format!("Dossier de {} ({}) : rien n'est écrit.", d.salaries.join(", "), d.periode)
+    } else {
+        format!("Dossier de {} ({}) : {}.", d.salaries.join(", "), d.periode, super::compte(d.fichiers.len(), "fichier écrit", "fichiers écrits"))
+    };
+    Ok(DossierRendu::de(d, p, None))
+}
+
+// ------------------------------------------------------------------ les formes
+
+/// L'annee d'une demande, en nombre (AAAA) ou telle que la page la choisit (« 2026 »).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum AnneeDite {
+    Nombre(i64),
+    Texte(String),
+}
+
+impl AnneeDite {
+    pub(crate) fn texte(&self) -> String {
+        match self {
+            AnneeDite::Nombre(n) => n.to_string(),
+            AnneeDite::Texte(t) => t.clone(),
+        }
+    }
+}
+
+/// La demande d'un dossier (la charge de `dossier-salarie` ; `dossier-envoyer` la compose) : les salaries (aucun :
+/// chacun), UNE periode (le mois, l'annee, ou toutes les annees), ce qu'il porte (rien : tout), un seul fichier pour
+/// tous (`ensemble`), et `apercu` pour dire ce qui s'ecrirait sans rien ecrire.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DemandeDeDossier {
+    #[serde(default)]
+    pub(crate) salaries: Vec<String>,
+    #[serde(default)]
+    pub(crate) mois: Option<Mois>,
+    #[serde(default)]
+    pub(crate) annee: Option<AnneeDite>,
+    #[serde(default)]
+    pub(crate) toutes_les_annees: bool,
+    #[serde(default)]
+    pub(crate) categories: Vec<String>,
+    #[serde(default)]
+    pub(crate) ensemble: bool,
+    #[serde(default)]
+    pub(crate) apercu: bool,
+}
+
+/// Une table JSON dont les cles gardent l'ordre ou elles sont venues (les salaries, puis leurs categories).
+#[derive(Debug, Clone)]
+pub(crate) struct Ordonnee<V>(pub(crate) Vec<(String, V)>);
+
+impl<V> Default for Ordonnee<V> {
+    fn default() -> Self {
+        Ordonnee(Vec::new())
+    }
+}
+
+impl<V> Ordonnee<V> {
+    pub(crate) fn get(&self, cle: &str) -> Option<&V> {
+        self.0.iter().find(|(k, _)| k == cle).map(|(_, v)| v)
+    }
+
+    fn entree(&mut self, cle: &str, neuf: impl FnOnce() -> V) -> &mut V {
+        let i = match self.0.iter().position(|(k, _)| k == cle) {
+            Some(i) => i,
+            None => {
+                self.0.push((cle.to_string(), neuf()));
+                self.0.len() - 1
+            }
+        };
+        &mut self.0[i].1
+    }
+}
+
+impl<V: Serialize> Serialize for Ordonnee<V> {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_map(self.0.iter().map(|(k, v)| (k, v)))
+    }
+}
+
+/// Ce que l'envoi du dossier a fait : les adresses servies, le nombre de messages, la boite qui envoie.
+#[derive(Debug, Serialize)]
+pub(crate) struct DossierEnvoye {
+    pub(crate) partis: Vec<String>,
+    pub(crate) messages: usize,
+    pub(crate) expediteur: String,
+}
+
+/// Ce que rendent `dossier-salarie` et `dossier-envoyer` : la phrase, le dossier (ses salaries, ses categories, sa
+/// periode, ses fichiers, ses pages par salarie et par categorie, ce qu'il dit), le libelle de chaque categorie, et
+/// sous `envoi` ce que l'envoi a fait.
+#[derive(Debug, Serialize)]
+pub(crate) struct DossierRendu {
+    phrase: String,
+    salaries: Vec<String>,
+    categories: Vec<&'static str>,
+    periode: String,
+    fichiers: Vec<String>,
+    pages: Ordonnee<Ordonnee<usize>>,
+    avertissements: Vec<String>,
+    refus: Vec<String>,
+    libelles: Ordonnee<&'static str>,
+    phrases: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    envoi: Option<DossierEnvoye>,
+}
+
+impl DossierRendu {
+    pub(crate) fn de(d: Dossier, phrase: String, envoi: Option<DossierEnvoye>) -> DossierRendu {
+        let phrases = d.avertissements.iter().chain(&d.refus).cloned().collect();
+        DossierRendu {
+            phrase,
+            salaries: d.salaries,
+            categories: d.categories,
+            periode: d.periode,
+            fichiers: d.fichiers.iter().map(|f| f.to_string_lossy().into_owned()).collect(),
+            pages: d.pages,
+            avertissements: d.avertissements,
+            refus: d.refus,
+            libelles: Ordonnee(CATEGORIES.iter().map(|c| (c.to_string(), libelle_de(c))).collect()),
+            phrases,
+            envoi,
+        }
     }
 }
 
@@ -178,25 +301,15 @@ struct Periode {
 }
 
 impl Periode {
-    fn nouveau(mois: Option<&Value>, annee: Option<&Value>, toutes: bool) -> R<Periode> {
+    fn nouveau(mois: Option<Mois>, annee: Option<String>, toutes: bool) -> R<Periode> {
         let n = mois.is_some() as usize + annee.is_some() as usize + toutes as usize;
         if n != 1 {
             return Err(erreur_operation(
                 "Un dossier se demande pour UNE période : un mois (--mois AAAA-MM), une année (--annee AAAA), ou toute la période (--toutes-les-annees).",
             ));
         }
-        let mut p = Periode { mois: None, annee: None, toutes };
-        if let Some(m) = mois {
-            let Value::String(m) = m else {
-                return Err(avec("TypeError", socle::fichiers::attendu("un mois en texte (AAAA-MM)", nom_type(m))));
-            };
-            if socle::mois::Mois::lire(m).is_err() {
-                return Err(erreur_operation(format!("Mois attendu sous la forme AAAA-MM : « {} ».", m)));
-            }
-            p.mois = Some(m.clone());
-        }
-        if let Some(a) = annee {
-            let t = valeur_en_texte(a);
+        let mut p = Periode { mois: mois.map(|m| m.to_string()), annee: None, toutes };
+        if let Some(t) = annee {
             if !(t.chars().count() == 4 && t.chars().all(|x| chiffre(*&x).is_some())) {
                 return Err(erreur_operation(format!("Année attendue sous la forme AAAA : « {} ».", t)));
             }
@@ -255,30 +368,13 @@ pub(crate) struct Dossier {
     pub(crate) periode: String,
     pub(crate) fichiers: Vec<PathBuf>,
     /// `{cle: {categorie: n}}`, dans l'ordre ou les cles et les categories sont apparues.
-    pub(crate) pages: Map<String, Value>,
+    pub(crate) pages: Ordonnee<Ordonnee<usize>>,
     avertissements: Vec<String>,
     refus: Vec<String>,
     /// Les PDF de contrats signes hors du logiciel deja pris (un contrat court sur plusieurs mois).
     deposes_vus: HashSet<PathBuf>,
 }
 
-/// `dossier_json`.
-pub(crate) fn dossier_json(d: &Dossier) -> Value {
-    let mut libelles = Map::new();
-    for c in CATEGORIES {
-        libelles.insert(c.to_string(), json!(libelle_de(c)));
-    }
-    json!({
-        "salaries": d.salaries,
-        "categories": d.categories,
-        "periode": d.periode,
-        "fichiers": d.fichiers.iter().map(|f| f.to_string_lossy().into_owned()).collect::<Vec<_>>(),
-        "pages": Value::Object(d.pages.clone()),
-        "avertissements": d.avertissements,
-        "refus": d.refus,
-        "libelles": Value::Object(libelles),
-    })
-}
 
 // ------------------------------------------------------------------ les noms de fichier
 
@@ -1110,74 +1206,27 @@ pub(crate) fn aujourdhui_reel() -> Jour {
     Jour::depuis_jours_unix((t + socle::paris::decalage(t)).div_euclid(86_400)).unwrap_or_else(droit::contexte::jour_reel)
 }
 
-/// `etats::getd(charge, cle)` puis `or None` : la valeur de la charge quand elle est vraie.
-fn vraie<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Value>> {
-    match charge {
-        Value::Object(o) => Ok(o.get(cle).filter(|v| vrai(v))),
-        autre => Err(avec("AttributeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
-    }
-}
-
-/// `", ".join(liste)` d'une liste de valeurs JSON : un element qui n'est pas un texte est un `TypeError`.
-fn joindre(valeurs: &[Value]) -> R<String> {
-    let mut textes = Vec::new();
-    for (i, v) in valeurs.iter().enumerate() {
-        match v {
-            Value::String(s) => textes.push(s.clone()),
-            autre => return Err(avec("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre))))),
-        }
-    }
-    Ok(textes.join(", "))
-}
-
-/// `for x in v` (liste, cles d'un dictionnaire, caracteres d'un texte), ses refus sous leur classe.
-fn parcourir(v: &Value) -> R<Vec<Value>> {
-    items(v).map(|l| l.into_iter().map(|c| c.into_owned()).collect()).map_err(Refus::from)
-}
-
-/// `dossier_salarie` puis `dossier_json` : ce que la route rend.
-fn dossier_salarie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
-    construire(ctx, charge).map(|d| dossier_json(&d))
-}
-
 /// Le dossier construit (et ecrit, sauf `apercu`). L'envoi (`archives`, `dossier-envoyer`)
 /// en a besoin tel quel : ses salaries, ses fichiers, ses pages.
-pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
-    let salaries = vraie(charge, "salaries")?;
-    let mois = vraie(charge, "mois")?;
-    let annee = vraie(charge, "annee")?;
-    let toutes = vraie(charge, "toutes_les_annees")?.is_some();
-    let categories = vraie(charge, "categories")?;
-    let ensemble = vraie(charge, "ensemble")?.is_some();
-    let ecrire = vraie(charge, "apercu")?.is_none();
-
-    let p = Periode::nouveau(mois, annee, toutes)?;
+pub(crate) fn construire(ctx: &Contexte, demande: &DemandeDeDossier) -> R<Dossier> {
+    let annee = demande.annee.as_ref().map(AnneeDite::texte).filter(|a| !a.is_empty());
+    let (ensemble, ecrire) = (demande.ensemble, !demande.apercu);
+    let p = Periode::nouveau(demande.mois, annee, demande.toutes_les_annees)?;
     let aujourdhui = aujourdhui_reel();
-    let cats_demandees: Vec<Value> = match categories {
-        Some(c) => parcourir(c)?,
-        None => CATEGORIES.iter().map(|c| json!(c)).collect(),
-    };
-    let inconnues: Vec<Value> = cats_demandees.iter().filter(|c| !c.as_str().is_some_and(|s| CATEGORIES.contains(&s))).cloned().collect();
+    let inconnues: Vec<&str> = demande.categories.iter().map(String::as_str).filter(|c| !CATEGORIES.contains(c)).collect();
     if !inconnues.is_empty() {
-        return Err(erreur_operation(format!("Catégorie inconnue : {}. Les catégories sont {}.", joindre(&inconnues)?, CATEGORIES.join(", "))));
+        return Err(erreur_operation(format!("Catégorie inconnue : {}. Les catégories sont {}.", inconnues.join(", "), CATEGORIES.join(", "))));
     }
-    let cats: Vec<&'static str> = CATEGORIES.iter().copied().filter(|c| cats_demandees.iter().any(|x| x.as_str() == Some(c))).collect();
+    let cats: Vec<&'static str> = CATEGORIES.iter().copied().filter(|c| demande.categories.is_empty() || demande.categories.iter().any(|x| x == c)).collect();
     let fiches: Vec<String> = ctx.salaries.keys().map(|k| k.to_string()).collect();
-    let demandes: Option<Vec<Value>> = salaries.map(parcourir).transpose()?;
-    let cles: Vec<String> = match &demandes {
+    let demandes: Option<&Vec<String>> = Some(&demande.salaries).filter(|l| !l.is_empty());
+    let cles: Vec<String> = match demandes {
         Some(liste) => {
-            let mut absents = Vec::new();
-            for c in liste {
-                match c {
-                    Value::Array(_) | Value::Object(_) => return Err(avec("TypeError", socle::fichiers::pas_une_cle(nom_type(c)))),
-                    Value::String(s) if fiches.contains(&s) => {}
-                    autre => absents.push(autre.clone()),
-                }
-            }
+            let absents: Vec<&str> = liste.iter().map(String::as_str).filter(|s| !fiches.iter().any(|f| f == s)).collect();
             if !absents.is_empty() {
-                return Err(erreur_operation(format!("Salarié inconnu : {} (les clés de config/salaries.json).", joindre(&absents)?)));
+                return Err(erreur_operation(format!("Salarié inconnu : {} (les clés de config/salaries.json).", absents.join(", "))));
             }
-            liste.iter().filter_map(|c| c.as_str().map(str::to_string)).collect()
+            liste.clone()
         }
         None => {
             let mut tous: Vec<String> = fiches.iter().map(|k| (*k).clone()).collect();
@@ -1257,10 +1306,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
                     },
                     None => contenus.push((cle.clone(), vec![(*cat, octets)])),
                 }
-                let entree = d.pages.entry(cle.clone()).or_insert_with(|| json!({}));
-                if let Some(o) = entree.as_object_mut() {
-                    o.insert(cat.to_string(), json!(n));
-                }
+                *d.pages.entree(cle, Ordonnee::default).entree(cat, || n) = n;
             }
         }
     }

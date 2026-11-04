@@ -1686,12 +1686,22 @@ fn nom_aer(nom: &str) -> Option<(String, String)> {
     None
 }
 
+/// Une attestation d'une archive de nature 46 : son nom dans l'archive, sa periode (AAAA-MM ; vide quand le nom ne la
+/// dit pas), le salarie que le nom designe, et le PDF.
+#[derive(Debug, Clone)]
+pub struct AttestationAer {
+    pub nom_archive: String,
+    pub periode: String,
+    pub qui: String,
+    pub donnees: Vec<u8>,
+}
+
 /// `aer_spectacle` : les attestations d'une archive de nature 46 ; liste vide si
 /// le contenu n'est pas une archive lisible.
-pub fn aer_spectacle(o: &[u8]) -> Resultat<Value> {
+pub fn aer_spectacle(o: &[u8]) -> Resultat<Vec<AttestationAer>> {
     let membres = match repertoire_zip(o) {
         Ok(m) => m,
-        Err(e) if e.classe == Some("BadZipFile") => return Ok(json!([])),
+        Err(e) if e.classe == Some("BadZipFile") => return Ok(Vec::new()),
         Err(e) => return Err(e),
     };
     // `NameToInfo` garde le dernier membre de chaque nom.
@@ -1709,30 +1719,22 @@ pub fn aer_spectacle(o: &[u8]) -> Resultat<Value> {
         };
         let dernier = membres.iter().rev().find(|x| x.nom == m.nom).unwrap_or(m);
         let donnees = lire_membre(o, dernier)?;
-        out.push(json!({"nom_archive": m.nom, "periode": periode, "qui": qui, "donnees": socle::base64::ecrire(&donnees)}));
+        out.push(AttestationAer { nom_archive: m.nom.clone(), periode, qui, donnees });
     }
-    Ok(Value::Array(out))
+    Ok(out)
 }
 
-/// `rattacher` : pour chaque nom d'attestation, la cle du salarie ou `null`. `index`
-/// est la liste `[cle, "NOM PRENOM"]` des fiches, dans l'ordre du fichier.
-pub fn rattacher(quis: &[Value], index: &[Value]) -> Value {
-    let mut idx: Vec<(String, &str)> = index
-        .iter()
-        .filter_map(|p| Some((socle::texte::cle_recherche(p.get(1)?.as_str()?), p.get(0)?.as_str()?)))
-        .collect();
+/// `rattacher` : pour chaque nom d'attestation, la cle du salarie, ou rien. `index` : `(cle, "NOM PRENOM")` des fiches,
+/// dans l'ordre du fichier.
+pub fn rattacher(quis: &[&str], index: &[(String, String)]) -> Vec<Option<String>> {
+    let mut idx: Vec<(String, &str)> = index.iter().map(|(cle, nom)| (socle::texte::cle_recherche(nom), cle.as_str())).collect();
     idx.sort_by_key(|(n, _)| std::cmp::Reverse(n.chars().count()));
-    let cles: Vec<Value> = quis
-        .iter()
+    quis.iter()
         .map(|q| {
-            let cible = socle::texte::cle_recherche(q.as_str().unwrap_or(""));
-            idx.iter()
-                .find(|(nom, _)| !nom.is_empty() && (cible.contains(nom.as_str()) || nom.contains(cible.as_str())))
-                .map(|(_, cle)| Value::String((*cle).to_string()))
-                .unwrap_or(Value::Null)
+            let cible = socle::texte::cle_recherche(q);
+            idx.iter().find(|(nom, _)| !nom.is_empty() && (cible.contains(nom.as_str()) || nom.contains(cible.as_str()))).map(|(_, cle)| (*cle).to_string())
         })
-        .collect();
-    Value::Array(cles)
+        .collect()
 }
 
 // ------------------------------------------------- ce que le journal en lit
