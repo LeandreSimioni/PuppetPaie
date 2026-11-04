@@ -210,18 +210,19 @@ fn type_du_contact(decl: &DeclarantDsn) -> &str {
 /// 2027.1.1, `texte-2027/bloc-S21.G00.11.txt` l. 232-237). La norme 2027 y nomme les SPST autonomes : « MT01 - MEDECINE
 /// INTERNE ETABLISSEMENT » (note differentielle 2026.1.2 -> 2027.1.2, § 13,
 /// `norme-dsn/dsn-note-differentielle-ct-2026.1.2-vers-2027.1.2-20251224.txt` l. 3497-3503), et en fait la condition du
-/// contact de type 17 (`contact_sante_travail`) ; la norme 2026 n'a ni l'une ni l'autre. La fiche garde ce code pour la
-/// DPAE (`medecine_travail`, « le code de votre service de prevention et de sante au travail »).
+/// contact de type 17 (`contact_sante_travail`) ; la norme 2026 n'a ni l'une ni l'autre. La fiche garde le code de la DPAE
+/// (`medecine_travail`), ou la medecine interne s'ecrit MT999 (`droit::fiche::CodeMedecine::INTERNE`) : les deux textes nomment la
+/// meme medecine interne a l'etablissement, ce qui est une inference.
 ///
-/// Rend `MT01` quand la fiche le dit et que la version du fichier est 2027 ou apres ; sinon rien. L'identifiant d'un
+/// Rend `MT01` quand la fiche dit une medecine interne et que la version du fichier est 2027 ou apres ; sinon rien. L'identifiant d'un
 /// service EXTERNE ne s'ecrit pas encore : sa definition est « precisee dans la fiche consigne dediee », qui n'est pas
 /// deposee, et que le code de la DPAE soit cet identifiant serait une inference (la rubrique est conditionnelle).
 fn spst_ecrit(f: &Fichier, ent_e: &ChampsEntreprise) -> Resultat<Option<String>> {
-    let spst = ent_e.medecine_travail.texte().trim().to_string();
-    if spst != "MT01" || f.norme()?.version.as_str() < "P27V01" || !usage_admet(f, "S21.G00.11.025", "01")? {
+    let interne = ent_e.medecine_travail.dite().is_some_and(droit::fiche::CodeMedecine::interne);
+    if !interne || f.norme()?.version.as_str() < "P27V01" || !usage_admet(f, "S21.G00.11.025", "01")? {
         return Ok(None);
     }
-    Ok(Some(spst))
+    Ok(Some("MT01".to_string()))
 }
 
 /// LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE (S20.G00.07 de type 17). Norme 2027 (cahier technique 2027.1.1,
@@ -230,7 +231,7 @@ fn spst_ecrit(f: &Fichier, ent_e: &ChampsEntreprise) -> Resultat<Option<String>>
 /// avec la valeur MT01 - MEDECINE INTERNE ETABLISSEMENT [...], alors un bloc Contact chez le declare - S20.G00.07 de type 17
 /// [...] doit obligatoirement etre present. Dans le cas contraire, il est interdit. » ; c'est « le medecin du travail ou
 /// un interlocuteur place sous sa responsabilite, pour la transmission des arrets de travail ». Il vient de la fiche
-/// (`contact_sante_travail`, montre et demande quand le code vaut MT01, `champs-base.json`) ; sans lui, la DSN refuse.
+/// (`contact_sante_travail`, montre et demande quand le code vaut MT999, `champs-base.json`) ; sans lui, la DSN refuse.
 fn contact_sante_travail(f: &mut Fichier, ent_e: &ChampsEntreprise) -> Resultat<()> {
     if spst_ecrit(f, ent_e)?.as_deref() != Some("MT01") {
         return Ok(());
@@ -243,7 +244,7 @@ fn contact_sante_travail(f: &mut Fichier, ent_e: &ChampsEntreprise) -> Resultat<
         .collect();
     if !manque.is_empty() {
         return Err(format!(
-            "La médecine du travail de la compagnie est interne (code MT01) : la DSN déclare qui y répond, le médecin du travail ou une personne sous sa responsabilité (S20.G00.07, type 17). Manque : {}. Le saisir dans Configuration › Entreprise, « Qui répond pour la médecine du travail interne ». Rien n'est écrit.",
+            "La médecine du travail de la compagnie est interne (code MT999) : la DSN déclare qui y répond, le médecin du travail ou une personne sous sa responsabilité (S20.G00.07, type 17). Manque : {}. Le saisir dans Configuration › Entreprise, « Qui répond pour la médecine du travail interne ». Rien n'est écrit.",
             manque.join(", ")
         ));
     }

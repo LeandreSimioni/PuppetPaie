@@ -320,14 +320,42 @@ texte_borne! {
 la DSN écrivent (norme DPAE v5.3, zone « Code NAF » ; DSN, S21.G00.06.003). Corrigez-le";
 }
 
-texte_borne! {
-    /// LE CODE DU SERVICE DE SANTE AU TRAVAIL : 10 caracteres au plus. La DPAE en ecrit 10 (C_MT_DCL, positions 938-947 :
-    /// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 485-497) ; la DSN, 14 (S21.G00.11.025, X [1,14] :
-    /// `logiciel/donnees/formats-dsn-base.json`).
-    pub struct CodeMedecine : AuPlus 10 "caractères" par caracteres,
-        "« {texte} » a {n} caractères : le code d'un service de santé au travail en a {max} au plus, ce que la DPAE écrit \
-(norme DPAE v5.3, zone « Code centre de médecine du travail »). Il se lit sur l'attestation d'adhésion à ce service";
+/// LE CODE DU SERVICE DE SANTE AU TRAVAIL, celui de la DPAE : « MT » et trois chiffres, 5 caracteres. La norme DPAE
+/// (C_MT_DCL, positions 938-947 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 485-497) : « Il est
+/// attendu ici un code du type MT+ 3 positions numériques. Ex: MT542 [...] Si vous disposez d'un centre de médecine
+/// interne à l'établissement, renseignez MT999 » ; la zone en a 10, cadree a droite. La DSN 2027 ecrit la medecine
+/// interne « MT01 - MEDECINE INTERNE ETABLISSEMENT » en S21.G00.11.025 (`declarations::dsn::spst_ecrit`, qui la tire de
+/// `MT999`, `INTERNE`) ; l'identifiant d'un service externe y est defini par une fiche consigne qui n'est pas deposee.
+#[derive(Debug, Clone, PartialEq, Default, Serialize)]
+#[serde(transparent)]
+pub struct CodeMedecine(String);
+
+impl CodeMedecine {
+    pub const LONGUEUR: usize = 5;
+    /// La medecine interne a l'etablissement, dans le code de la DPAE (l. 496-497).
+    pub const INTERNE: &'static str = "MT999";
+
+    /// Ce qui refuse `texte`, en une phrase qui dit quoi faire ; rien pour un texte vide.
+    pub fn faute(texte: &str) -> Option<String> {
+        let c: Vec<char> = texte.chars().collect();
+        let bon = c.len() == Self::LONGUEUR && c[0] == 'M' && c[1] == 'T' && c[2..].iter().all(|x| x.is_ascii_digit());
+        (!texte.is_empty() && !bon).then(|| {
+            format!(
+                "« {} » n'est pas un code de service de santé au travail : la DPAE l'attend en MT suivi de trois chiffres, \
+MT542 par exemple, et MT999 pour une médecine interne à l'établissement (norme DPAE v5.3, zone « Code centre de médecine \
+du travail »). Il se lit sur l'attestation d'adhésion à ce service",
+                texte
+            )
+        })
+    }
+
+    /// La compagnie a-t-elle sa propre medecine du travail (`INTERNE`) ?
+    pub fn interne(&self) -> bool {
+        self.0 == Self::INTERNE
+    }
 }
+
+texte_borne!(@commun CodeMedecine, "caractères");
 
 texte_borne! {
     /// LE TELEPHONE de l'employeur (le contact DSN, le signataire) : 11 chiffres au plus. La DPAE en ecrit les chiffres, 11
