@@ -263,7 +263,7 @@ fn deposer_les_dsn(
     a_faire: &mut Vec<String>,
 ) -> R<bool> {
     let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
-    let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| valeur_en_texte(&x["chemin"])).collect()).unwrap_or_default();
+    let chemins: Vec<String> = f.dsn.iter().map(|x| x.chemin.clone()).collect();
     let journal = envois::journal::lu(&ctx.racine)?;
     let lignes: Vec<&Value> = journal.lignes
         .iter()
@@ -630,12 +630,11 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
         }
         Geste::Dpae { mois, debut } => pas(d, quoi, quand, |ctx| {
             let a_declarer = Moteur::nouveau(ctx).embauches_a_declarer(Some(mois))?;
-            let attente: Vec<&Value> =
-                a_declarer.as_array().map(|a| a.iter().filter(|e| e.get("debut").and_then(Value::as_str) == Some(debut.as_str())).collect()).unwrap_or_default();
+            let attente: Vec<_> = a_declarer.iter().filter(|e| e.debut == *debut).collect();
             if attente.is_empty() {
                 return Ok(false);
             }
-            let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
+            let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e.salarie, "numero": e.numero})).collect();
             let crate::routes::depots::Dpae::Ecrite(r) = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))? else {
                 return Ok(false);
             };
@@ -758,13 +757,8 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                     return Ok(false);
                 }
                 let bilan = Moteur::nouveau(ctx).bilan_du_mois(mois)?;
-                let a_envoyer = bilan["etapes"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .filter(|e| e["cle"] == json!(envois::etats::DOCUMENTS))
-                    .flat_map(|e| e["groupes"].as_array().cloned().unwrap_or_default())
-                    .any(|g| g["etat"] == json!("a_faire"));
+                use crate::routes::etapes::{EtatCase, QuelleEtape};
+                let a_envoyer = bilan.etapes.iter().filter(|e| e.cle == QuelleEtape::Documents).flat_map(|e| &e.groupes).any(|g| g.etat == EtatCase::AFaire);
                 if !a_envoyer {
                     return Ok(false);
                 }

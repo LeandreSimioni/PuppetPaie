@@ -232,19 +232,20 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
 fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
     let nic = a.champ("etablissement");
     let nic = if nic.is_empty() { Value::Null } else { json!(nic) };
-    let Ok(mut e) = m.etat_remplacement(mois, &nic) else { return Ok(Value::Null) };
+    let Ok(r) = m.etat_remplacement(mois, &nic) else { return Ok(Value::Null) };
     let genre = a.champ("type_declaration");
-    let remplace = if (genre == "03" || genre == "05") && vrai(&e["deposee"]) {
+    let remplace = if (genre == "03" || genre == "05") && r.deposee {
         let ordre = a.champ("ordre");
         let n = if ordre.is_empty() {
             0
         } else {
             entier_lu(ordre).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr(ordre))))?
         };
-        n > i128::from(e["dernier_ordre"].as_i64().unwrap_or(0))
+        n > i128::from(r.dernier_ordre.unwrap_or(0))
     } else {
         false
     };
+    let mut e = crate::routes::en_json(&r)?;
     e["fichier_remplace"] = json!(remplace);
     Ok(e)
 }

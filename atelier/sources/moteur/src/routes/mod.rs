@@ -391,13 +391,11 @@ pub(crate) fn maintenant() -> String {
 /// (`cli`, ou `ligne de commande` selon la commande) : une valeur ecrite reste identique d'une face a
 /// l'autre. Absent, vide ou pas un texte : `interface` -- la fenetre ne change pas.
 pub(crate) fn qui_de(charge: &Value) -> String {
-    qui_dit(charge.get("qui").and_then(Value::as_str))
+    charge.get("qui").and_then(Value::as_str).filter(|s| !s.trim().is_empty()).unwrap_or(INTERFACE).to_string()
 }
 
-/// `qui_de`, d'une charge lue en sa forme : `qui` vide ou absent, `interface`.
-pub(crate) fn qui_dit(qui: Option<&str>) -> String {
-    qui.filter(|s| !s.trim().is_empty()).unwrap_or("interface").to_string()
-}
+/// Qui ecrit, quand c'est la fenetre : ce qu'une route dont la charge est lue en sa forme inscrit.
+pub(crate) const INTERFACE: &str = "interface";
 
 /// LA CHARGE D'UNE ROUTE, lue une fois a son entree, en sa forme (`socle::forme::lire`) : une cle que la forme ne connait
 /// pas, une cle qui manque, une valeur d'une autre forme la refusent (`TypeError`, `catalogue::FORME`), la cle fautive a

@@ -641,16 +641,15 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let (cle_s, debut) = rangs[i].clone();
         let k = (cle_s.clone(), p.engagement.numero.as_deref().unwrap_or_default().to_string());
         let etat = crate::routes::etapes::etat_signature(
-            &crate::routes::etapes::contrat_parti_le(&departs, &cle_s, p.engagement.numero.as_deref()),
+            crate::routes::etapes::contrat_parti_le(&departs, &cle_s, p.engagement.numero.as_deref()),
             g.par.get(&k).unwrap_or(nul()),
             g.recus.get(&k).unwrap_or(nul()),
-            g.recus_par.get(&k).unwrap_or(nul()),
             g.renvoyes.contains(&k),
             g.avenants.get(&k).unwrap_or(nul()),
             avenants.contains(&(cle_s.clone(), p.engagement.numero.as_deref().unwrap_or_default().to_string())),
             ailleurs,
         );
-        if ailleurs && !vrai(&etat["caduc"]) && !vrai(&etat["avenant_attendu"]) {
+        if ailleurs && !etat.caduc && !etat.avenant_attendu {
             continue;
         }
         let sal = &p.salarie;
@@ -664,19 +663,19 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("debut".into(), json!(debut));
         l.insert("fin".into(), json!(fin));
         l.insert("numero".into(), numero);
-        l.insert("demande_le".into(), etat["fait"].clone());
+        l.insert("demande_le".into(), json!(etat.fait));
         // CE QUE LA BOITE EN FAIT : un contrat a envoyer (jamais parti, ou caduc) se coche, et part en avenant s'il est
         // deja parti, signe ou non (`en_avenant`) ; un contrat ou un avenant parti et pas revenu attend : il se note reçu signe
         // (`recu`), et seul celui parti par courriel se relance (`relancer`), quand la boite est posee. Les deux gestes
         // sont des routes et leurs charges : la page n'en compose aucun.
         let parti = l["demande_le"].clone();
-        let (recu, caduc) = (vrai(&etat["recu"]), vrai(&etat["caduc"]));
-        let avenant_en_attente = !caduc && vrai(&etat["avenant_attendu"]);
+        let (recu, caduc) = (vrai(&etat.recu), etat.caduc);
+        let avenant_en_attente = !caduc && etat.avenant_attendu;
         let en_attente = !caduc && ((vrai(&parti) && !recu) || avenant_en_attente);
         let a_envoyer = caduc || (!recu && !vrai(&parti));
-        let par = etat["par"].clone();
+        let par = etat.par.clone();
         let (ce, depuis) = if avenant_en_attente {
-            (format!("avenant n° {} ", valeur_en_texte(&etat["avenant"]["numero"])), etat["avenant"]["quand"].clone())
+            (format!("avenant n° {} ", valeur_en_texte(&etat.avenant["numero"])), etat.avenant["quand"].clone())
         } else {
             (String::new(), parti.clone())
         };
@@ -687,7 +686,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let pourquoi = format!("Relancer la signature : {}, {}.", valeur_en_texte(&l["nom"]), attente);
         let numero_charge = p.engagement.numero.clone().map_or(json!(""), Value::from);
         let (recu_g, relancer) = if en_attente {
-            let avenant = if avenant_en_attente { etat["avenant"]["numero"].clone() } else { Value::Null };
+            let avenant = if avenant_en_attente { etat.avenant["numero"].clone() } else { Value::Null };
             let recu_g = json!({"route": Route::ContratRecu, "charge": {"mois": mois, "salarie": cle_s, "debut": debut, "numero": numero_charge, "avenant": avenant, "recu": true}});
             let relancer = if !(est(&par, "courriel") && boite_liee) {
                 Value::Null
@@ -702,7 +701,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         };
         // Sa pastille : un contrat parti puis change part en avenant, signe ou non, commence ou non ; parti et pas revenu,
         // il attend sa signature. Toutes a faire : la compagnie le peut.
-        let pourquoi_dit = etat["pourquoi"].as_str().filter(|t| !t.is_empty()).map(String::from);
+        let pourquoi_dit = Some(etat.pourquoi).filter(|t| !t.is_empty()).map(String::from);
         let pastille = if caduc {
             let quand = if recu { " (signé)".to_string() } else { l["demande_le"].as_str().map_or(String::new(), |q| format!(" (parti le {})", super::quand(q))) };
             super::pastille("a_faire", &format!("{}{}", pourquoi_dit.unwrap_or_else(|| crate::routes::etapes::CONTRAT_A_REFAIRE.into()), quand))
@@ -718,15 +717,15 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("en_attente".into(), json!(en_attente));
         l.insert("recu".into(), recu_g);
         l.insert("relancer".into(), relancer);
-        l.insert("recu_le".into(), etat["recu"].clone());
-        l.insert("caduc".into(), etat["caduc"].clone());
+        l.insert("recu_le".into(), etat.recu.clone());
+        l.insert("caduc".into(), json!(etat.caduc));
         let champ = |k: &str| l.get(k).cloned().unwrap_or(Value::Null);
         let (debut, fin, numero) = (champ("debut"), champ("fin"), champ("numero"));
         l.insert("periode_dit".into(), json!(super::periode_en_clair(&debut, &fin)));
         l.insert("numero_dit".into(), if vrai(&numero) { json!(format!("contrat n° {}", valeur_en_texte(&numero))) } else { Value::Null });
-        l.insert("pourquoi".into(), etat["pourquoi"].clone());
-        l.insert("avenant".into(), etat["avenant"].clone());
-        l.insert("avenant_attendu".into(), etat["avenant_attendu"].clone());
+        l.insert("pourquoi".into(), json!(etat.pourquoi));
+        l.insert("avenant".into(), etat.avenant.clone());
+        l.insert("avenant_attendu".into(), json!(etat.avenant_attendu));
         contrats.push(Value::Object(l));
     }
     // Les contrats et les avenants a faire partir dont le salarie n'a pas de courriel : ce que l'envoi en dira.

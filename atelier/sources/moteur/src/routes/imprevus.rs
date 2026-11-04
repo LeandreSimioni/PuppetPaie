@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
-use crate::routes::{brut, cle_du_salarie, en_json, lire_charge, maintenant, qui_dit, Pastille, SansCharge};
+use crate::routes::{brut, cle_du_salarie, en_json, lire_charge, maintenant, Pastille, SansCharge, INTERFACE};
 use declarations::signalement;
 use droit::contexte::{Contexte, IdSalarie};
 use engagement::calcul::Paie;
@@ -124,7 +124,7 @@ pub const ROUTES: &[Fiche] = &[
 // ------------------------------------------------------------------ les charges
 //
 // `salarie` y est toujours ce que la personne en dit : la cle de la fiche, ou son nom (`Contexte::cle_du_salarie`), resolu
-// a l'entree de la route en `IdSalarie`. `qui` : qui ecrit (`routes::qui_dit`).
+// a l'entree de la route en `IdSalarie`. Ce qu'elles ecrivent, la fenetre l'ecrit (`routes::INTERFACE`).
 
 /// La charge de `imprevus` : les imprevus d'un mois, ou d'un salarie ; tous, sans l'un ni l'autre.
 #[derive(Debug, Deserialize)]
@@ -171,8 +171,6 @@ struct ChargeArretEnregistrer {
     jours_deja_indemnises: Option<u32>,
     #[serde(default)]
     note: Option<String>,
-    #[serde(default)]
-    qui: Option<String>,
 }
 
 /// La charge de `arret-prolonger` : l'arret (son salarie, son dernier jour travaille) et sa nouvelle fin prescrite.
@@ -182,8 +180,6 @@ struct ChargeArretProlonger {
     salarie: String,
     dernier_jour: Jour,
     fin: Jour,
-    #[serde(default)]
-    qui: Option<String>,
 }
 
 /// La charge de `arret-reprise` : la reprise, exigee meme nulle (nulle, elle s'efface).
@@ -196,8 +192,6 @@ struct ChargeArretReprise {
     reprise: Option<Jour>,
     #[serde(default)]
     motif_reprise: Option<String>,
-    #[serde(default)]
-    qui: Option<String>,
 }
 
 /// La charge de `arret-indemnites` : chaque montant, un decimal en texte (« 40.89 », tel que le releve l'ecrit et que
@@ -221,7 +215,7 @@ struct ChargeArretIndemnites {
 
 /// La nature d'un signalement d'arret (S20.G00.05.001) : 04, l'arret ; 05, la reprise.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize, Serialize)]
-enum NatureSignalement {
+pub(crate) enum NatureSignalement {
     #[default]
     #[serde(rename = "04")]
     Arret,
@@ -239,22 +233,30 @@ impl NatureSignalement {
 }
 
 /// La charge de `arret-signaler`. `remplace` : l'identifiant du signalement qu'il annule et remplace (vide : aucun) ;
-/// `ordre` : son numero d'ordre (0 ou absent : le suivant) ; `le` : son jour de constitution.
-#[derive(Debug, Deserialize)]
+/// `ordre` : son numero d'ordre (0 ou absent : le suivant) ; `le` : son jour de constitution. Le geste qu'offre le rappel
+/// d'un signalement l'ecrit aussi (`ChargeArretSignaler::de`).
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct ChargeArretSignaler {
+pub(crate) struct ChargeArretSignaler {
     salarie: String,
     dernier_jour: Jour,
     #[serde(default)]
     nature: NatureSignalement,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     remplace: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     ordre: Option<i64>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     test: Option<bool>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     le: Option<Jour>,
+}
+
+impl ChargeArretSignaler {
+    /// Le signalement de l'arret de `salarie` qui suit `dernier_jour`, de sa `nature` : le suivant, constitue aujourd'hui.
+    pub(crate) fn de(salarie: String, dernier_jour: Jour, nature: NatureSignalement) -> ChargeArretSignaler {
+        ChargeArretSignaler { salarie, dernier_jour, nature, remplace: None, ordre: None, test: None, le: None }
+    }
 }
 
 /// La charge de `arret-oublier`.
@@ -277,8 +279,6 @@ struct ChargeSuspensionEnregistrer {
     contrat: Option<NumeroContrat>,
     #[serde(default)]
     note: Option<String>,
-    #[serde(default)]
-    qui: Option<String>,
 }
 
 /// La charge de `suspension-modifier` : le debut la designe ; la fin et le motif, s'ils se disent, changent.
@@ -301,20 +301,28 @@ struct ChargeSuspensionOublier {
     debut: Jour,
 }
 
-/// La charge de `fin-contrat-signaler` (`remplace`, `ordre`, `test`, `le` : comme `arret-signaler`).
-#[derive(Debug, Deserialize)]
+/// La charge de `fin-contrat-signaler` (`remplace`, `ordre`, `test`, `le` : comme `arret-signaler`). Le geste qu'offre
+/// le rappel d'une fin de contrat l'ecrit aussi (`ChargeFinContratSignaler::de`).
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct ChargeFinContratSignaler {
+pub(crate) struct ChargeFinContratSignaler {
     mois: Mois,
     salarie: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     remplace: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     ordre: Option<i64>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     test: Option<bool>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     le: Option<Jour>,
+}
+
+impl ChargeFinContratSignaler {
+    /// Le signalement de la fin du contrat de `salarie` en `mois` : le suivant, constitue aujourd'hui.
+    pub(crate) fn de(mois: Mois, salarie: String) -> ChargeFinContratSignaler {
+        ChargeFinContratSignaler { mois, salarie, remplace: None, ordre: None, test: None, le: None }
+    }
 }
 
 /// La charge de `fin-contrat-documents`.
@@ -1314,7 +1322,7 @@ plus tôt, c'est une reprise anticipée, qui se saisit comme telle et se signale
     let trace = json!({
         "le": ctx.aujourdhui.iso(),
         "saisi_le": maintenant(),
-        "qui": qui_dit(c.qui.as_deref()),
+        "qui": INTERFACE,
         "fin_avant": avant["fin_previsionnelle"], "fin": a["fin_previsionnelle"],
         "subrogation_fin_avant": avant["subrogation_fin"], "subrogation_fin": a["subrogation_fin"],
     });
@@ -1398,7 +1406,7 @@ fn suspension_enregistrer(ctx: &Contexte, c: &ChargeSuspensionEnregistrer) -> R<
     s.insert("debut".into(), json!(debut.iso()));
     s.insert("fin".into(), json!(c.fin.iso()));
     s.insert("saisi_le".into(), json!(maintenant()));
-    s.insert("qui".into(), json!(qui_dit(c.qui.as_deref())));
+    s.insert("qui".into(), json!(INTERFACE));
     s.insert("note".into(), json!(c.note.clone().unwrap_or_default()));
     let s = Value::Object(s);
     verifier_suspension(&s, &contrat.fin)?;
@@ -1519,7 +1527,7 @@ fn arret_enregistrer(ctx: &Contexte, c: &ChargeArretEnregistrer) -> R<ReponseArr
     a.insert("prolongations".into(), json!([]));
     a.insert("reprises".into(), json!([]));
     a.insert("saisi_le".into(), json!(maintenant()));
-    a.insert("qui".into(), json!(qui_dit(c.qui.as_deref())));
+    a.insert("qui".into(), json!(INTERFACE));
     a.insert("note".into(), json!(c.note.clone().unwrap_or_default()));
     let mut arret = Value::Object(a);
     // Les jours deja indemnises (D1226-4) ne se disent que pour un arret qui ouvre le maintien de salaire.
@@ -1572,7 +1580,7 @@ fn arret_reprise(ctx: &Contexte, c: &ChargeArretReprise) -> R<ReponseArret> {
     let trace = json!({
         "le": ctx.aujourdhui.iso(),
         "saisi_le": maintenant(),
-        "qui": qui_dit(c.qui.as_deref()),
+        "qui": INTERFACE,
         "reprise_avant": avant["reprise"], "reprise_motif_avant": avant["reprise_motif"],
         "reprise": reprise, "reprise_motif": motif,
     });

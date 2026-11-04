@@ -360,10 +360,8 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
     // reelle, ou un contrat en cours depuis un mois precedent (sa DPAE part avec son premier mois), n'y est pas.
     let a_faire: BTreeSet<(String, String)> = crate::routes::etapes::Moteur::nouveau(ctx)
         .embauches_a_declarer(Some(&mois))?
-        .as_array()
         .into_iter()
-        .flatten()
-        .map(|e| (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["numero"])))
+        .map(|e| (e.salarie, e.numero.to_string()))
         .collect();
     let mut retenues: Vec<&Paie> = paies.iter().filter(|p| a_faire.contains(&cle_de(p))).collect();
     let mut marque = String::new();
@@ -586,7 +584,7 @@ pub(crate) fn designee(ctx: &Contexte, charge: &Value) -> R<(Value, Value)> {
         // partie. Une DSN refusee au bilan n'est pas partie (regle 5).
         let nic = charge.get("etablissement").filter(|n| vrai(n)).cloned().unwrap_or(Value::Null);
         let e = crate::compagnie::etat_dsn::du_mois(ctx, &mois, &nic)?;
-        if e.deposee() && !e.refusee() && !vrai(&crate::routes::etapes::Moteur::nouveau(ctx).etat_remplacement(&mois, &nic)?["a_envoyer"]) {
+        if e.deposee() && !e.refusee() && !crate::routes::etapes::Moteur::nouveau(ctx).etat_remplacement(&mois, &nic)?.a_envoyer {
             if let Some(c) = partie(ctx, charge)? {
                 return Ok((c, json!({})));
             }
