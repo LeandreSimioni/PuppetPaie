@@ -163,7 +163,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "contrats-en-cours" => contrats_en_cours_route(ctx, charge).map(|mut v| {
             // Ce que l'ecran dit en posant les contrats qui ne sont pas encore repris : qui, et que ses jours restent a poser.
             let restants: Vec<&Value> = v["contrats"].as_array().into_iter().flatten().filter(|c| !socle::fichiers::vrai(&c["deja_repris"])).collect();
-            let de_mois = socle::texte::de(&engagement::libelle_mois(&valeur_en_texte(&charge["mois"])));
+            let de_mois = socle::texte::de(&socle::mois::Mois::en_clair(&valeur_en_texte(&charge["mois"])));
             let noms: Vec<String> = restants.iter().map(|c| valeur_en_texte(&c["nom"])).collect();
             let reprise = match noms.len() {
                 0 => Value::Null,
@@ -237,7 +237,7 @@ pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
 /// dernier taux saisi -- `null` quand le dossier n'a encore aucun cachet (R12 :
 /// aucun texte ne fixe un taux de cachet, la compagnie le saisit).
 pub(crate) fn squelette(ctx: &Contexte, mois: &str) -> R<Value> {
-    socle::date::dernier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(|m| erreur("ValueError", m))?;
     let taux = dernier_taux(ctx)?.map_or(Value::Null, nombre_f);
     Ok(json!({ "mois": mois, "taux_cachet": taux, "engagements": [] }))
 }
@@ -1165,7 +1165,7 @@ fn historique(ctx: &Contexte) -> R<Vec<Value>> {
             let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
             let mut l = contrat.clone();
             l["debut"] = json!(lu("debut").unwrap_or_else(|| format!("{}-01", m)));
-            l["fin"] = json!(lu("fin").map_or_else(|| socle::date::dernier_du_mois(&m).map(|j| j.iso()), Ok).map_err(plain)?);
+            l["fin"] = json!(lu("fin").map_or_else(|| socle::mois::Mois::lire(&m).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()), Ok).map_err(plain)?);
             for k in ["heures", "cachets", "jours"] {
                 l[k] = p.get(k).cloned().unwrap_or(Value::Null);
             }
@@ -1279,7 +1279,7 @@ fn ferme_aux_neufs(ctx: &Contexte, mois: &str) -> R<Option<String>> {
         format!(
             "Le mois de {} porte des paies importées de votre ancien logiciel : il ne reçoit pas d'engagement neuf. Finissez ce mois \
              dans l'ancien logiciel.",
-            engagement::libelle_mois(mois)
+            socle::mois::Mois::en_clair(mois)
         )
     }))
 }
@@ -1565,7 +1565,7 @@ pub(crate) fn mois_designe(ctx: &Contexte, charge: &Value) -> R<(Value, Vec<usiz
             }
             Some(id) => {
                 let i = ids.iter().position(|x| x == id).filter(|i| *i < tous.len()).ok_or_else(|| {
-                    refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", engagement::libelle_mois(mois)))
+                    refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", socle::mois::Mois::en_clair(mois)))
                 })?;
                 // L'avenant du mois se deduit des termes dates de l'engagement ecrit (`stock::Objet::vue`) : la carte
                 // ne le porte pas.
@@ -1786,7 +1786,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
     // LA LIGNE REPLIEE DU CONTRAT : ses bornes, son numero, et ce qu'il fait par rapport au mois (en cours depuis un
     // mois passe, se poursuit au mois suivant) ; un contrat sans terme se dit par son debut.
     let contrat_dit = {
-        let clair = |m: &str| socle::date::libelle_du_mois_ou_tel_quel(m, socle::date::Graphie::Accentuee);
+        let clair = |m: &str| socle::mois::Mois::en_clair(m);
         let mut t = match &e.fin {
             Some(f) => format!("Contrat du {} au {}", e.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
             None if nat.mensuelle() => format!("Contrat du {}, sans terme", e.debut.jj_mm_aaaa()),
@@ -1800,7 +1800,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
                 t.push_str(&format!(" — en cours depuis {}", clair(&e.debut.iso()[..7])));
             }
             if !e.dernier_mois()? {
-                t.push_str(&format!(" — se poursuit en {}", clair(&e.debut_mois()?.mois_suivant())));
+                t.push_str(&format!(" — se poursuit en {}", clair(&e.debut_mois()?.mois_civil().suivant().to_string())));
             }
         }
         t
@@ -1872,7 +1872,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
 /// deborde du mois (commence avant, se poursuit apres), et le mois voisin ou mene le clic. `Null` du cote ou il ne
 /// deborde pas.
 pub(crate) fn chevrons_dits(e: &engagement::Engagement) -> R<Value> {
-    let clair = |m: &str| socle::date::libelle_du_mois_ou_tel_quel(m, socle::date::Graphie::Accentuee);
+    let clair = |m: &str| socle::mois::Mois::en_clair(m);
     let bornes = match &e.fin {
         Some(f) => format!("Contrat du {} au {}", e.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
         None => format!("Contrat du {}, sans date de fin", e.debut.jj_mm_aaaa()),
@@ -1888,7 +1888,7 @@ pub(crate) fn chevrons_dits(e: &engagement::Engagement) -> R<Value> {
             (Some(_), Some(j)) => format!("se poursuit jusqu'en {}", clair(j)),
             _ => "se poursuit".to_string(),
         };
-        format!("{} — {} · voir {}", bornes, suite, clair(&premier.mois_suivant()))
+        format!("{} — {} · voir {}", bornes, suite, clair(&premier.mois_civil().suivant().to_string()))
     });
     Ok(json!({"avant": avant.transpose()?, "apres": apres}))
 }
@@ -1919,10 +1919,6 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
         }
     }
     Ok(out)
-}
-
-fn annee_de(mois: &str) -> R<i32> {
-    Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", socle::fichiers::repr(mois)))?)
 }
 
 /// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `mois`, `cartes`
@@ -2091,7 +2087,8 @@ fn phrase_du_mois(paies: &[Value], aucun_chiffre: bool) -> Option<String> {
 fn apercu_de(ctx: &Contexte, data: &Value) -> R<Value> {
     let data = data.clone();
     let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee = annee_de(&mois)?;
+    let lu = socle::mois::Mois::lire(&mois)?;
+    let annee = lu.annee();
     let montrees = paies_de_l_ecran(ctx, &data, &mois)?;
     let mut paies: Vec<Paie> = montrees.iter().map(|m| m.paie.clone()).collect();
     documents::ecrire_documents::numeroter(ctx, &mut paies, annee, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
@@ -2164,11 +2161,10 @@ fn apercu_de(ctx: &Contexte, data: &Value) -> R<Value> {
         a_regarder.extend(textes("avertissements").iter().map(en_texte));
         informations.extend(textes("informations").iter().map(en_texte));
     }
-    let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", socle::fichiers::repr(&mois)))?;
     Ok(json!({
         "phrase_du_mois": phrase_du_mois(&vues, par_salarie.is_empty()),
         "mois": mois,
-        "libelle": format!("{} {}", socle::date::nom_du_mois(n as i64, socle::date::Graphie::Titre)?, annee),
+        "libelle": lu.libelle(socle::mois::Graphie::Titre),
         "paies": vues,
         "total_cout": total_cout.to_string(), "total_net": total_net.to_string(),
         "blocs": blocs, "par_salarie": par_salarie,

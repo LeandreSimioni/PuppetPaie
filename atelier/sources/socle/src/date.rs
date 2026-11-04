@@ -72,11 +72,6 @@ impl Jour {
         format!("{:04}-{:02}-{:02}", self.an, self.mois, self.jour)
     }
 
-    /// `AAAA-MM`, la cle d'un mois de paie.
-    pub fn mois_iso(&self) -> String {
-        format!("{:04}-{:02}", self.an, self.mois)
-    }
-
     /// `JJ/MM/AAAA`.
     pub fn jj_mm_aaaa(&self) -> String {
         format!("{:02}/{:02}/{:04}", self.jour, self.mois, self.an)
@@ -150,17 +145,9 @@ impl Jour {
         ((self.ordinal() + 6) % 7) as u32
     }
 
-    /// Le mois suivant, `AAAA-MM` (`Engagement::mois_du_contrat` incremente ainsi).
-    pub fn mois_suivant(&self) -> String {
-        suivant(self.an, self.mois)
-    }
-}
-
-fn suivant(an: i32, mois: u32) -> String {
-    if mois == 12 {
-        format!("{:04}-01", an + 1)
-    } else {
-        format!("{:04}-{:02}", an, mois + 1)
+    /// Le mois civil du jour.
+    pub fn mois_civil(&self) -> crate::mois::Mois {
+        crate::mois::Mois::du_jour(self)
     }
 }
 
@@ -169,76 +156,10 @@ pub fn annee_impossible(an: impl std::fmt::Display) -> String {
     format!("année impossible : {}", an)
 }
 
-pub fn mois_impossible(mois: impl std::fmt::Display) -> String {
-    format!("mois impossible : {}", mois)
-}
+use crate::mois::mois_impossible;
 
 pub fn jour_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into<i64>) -> String {
     format!("date impossible : {:04}-{:02}-{:02}", an.into(), mois.into(), jour.into())
-}
-
-/// `AAAA-MM` : quatre chiffres, un tiret, un mois de 01 a 12, rien d'autre. Un mois nomme un fichier ou un dossier :
-/// `../config` ou `2026-06/envoi` n'en sont pas.
-pub fn mois_valide(mois: &str) -> bool {
-    let b = mois.as_bytes();
-    b.len() == 7 && b[4] == b'-' && b[..4].iter().chain(&b[5..]).all(u8::is_ascii_digit) && (1..=12).contains(&(((b[5] - b'0') * 10 + (b[6] - b'0')) as u32))
-}
-
-/// Le numero du mois d'un « AAAA-MM », de 1 a 12 ; « 00 » (ou « 13 ») n'est aucun mois et se refuse, comme
-/// `premier_du_mois`, `dernier_du_mois` et `envoi::etiquette`. Le mois d'une paie est celui que sa DSN declare :
-/// « le premier jour du mois civil au titre duquel est etablie la paie », de forme `(01)(0[1-9]|1[0-2])(20)[0-9]{2}`
-/// (S20.G00.05.005, atelier/reference/norme-dsn/texte-2027/bloc-S20.G00.05.txt l. 122-129). La norme n'admet « 00 »
-/// qu'au mois d'une date de naissance inconnue (S21.G00.30.006, bloc-S21.G00.30.txt l. 143-148), ce que `champs.rs` lit
-/// du mois de naissance d'un NIR : jamais au mois d'une paie.
-pub fn numero_du_mois(mois: &str) -> Resultat<u32> {
-    let t: String = mois.chars().skip(5).take(2).collect();
-    let n: i64 = t.trim().parse().map_err(|_| format!("nombre entier illisible : {}", repr_texte(&t)))?;
-    if !(1..=12).contains(&n) {
-        return Err(mois_impossible(n));
-    }
-    Ok(n as u32)
-}
-
-/// Les trois graphies d'un nom de mois que le moteur ecrit, chacune la ou elle s'ecrivait deja :
-/// - `Titre` (« Aout ») : noms de fichiers (`DSN_Aout2026.dsn`), titres et sections des etats ;
-/// - `Minuscule` (« aout ») : sans accent, dans une phrase (le libelle d'un mois d'engagement, d'un dossier) ;
-/// - `Accentuee` (« août ») : dans une phrase en francais (courriels, contrats, avenants, ecrans).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Graphie {
-    Titre,
-    Minuscule,
-    Accentuee,
-}
-
-const MOIS_TITRE: [&str; 12] = ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"];
-const MOIS_MINUSCULE: [&str; 12] = ["janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "decembre"];
-const MOIS_ACCENTUE: [&str; 12] = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-
-/// Le nom du mois `mois` (1 a 12) dans la graphie `g` : la seule table des noms de mois du moteur. Un mois hors 1-12
-/// n'est aucun mois et se refuse (`mois_impossible`), comme `numero_du_mois` : jamais le dernier de la liste (« 00 »
-/// n'est pas decembre) ni un mois ramene de force dans l'annee.
-pub fn nom_du_mois(mois: i64, g: Graphie) -> Resultat<&'static str> {
-    if !(1..=12).contains(&mois) {
-        return Err(mois_impossible(mois));
-    }
-    let table = match g {
-        Graphie::Titre => &MOIS_TITRE,
-        Graphie::Minuscule => &MOIS_MINUSCULE,
-        Graphie::Accentuee => &MOIS_ACCENTUE,
-    };
-    Ok(table[(mois - 1) as usize])
-}
-
-/// « octobre 2026 » d'un « AAAA-MM », dans la graphie `g` ; un mois illisible ou hors 01-12 se refuse.
-pub fn libelle_du_mois(mois: &str, g: Graphie) -> Resultat<String> {
-    let n = numero_du_mois(mois)?;
-    Ok(format!("{} {}", nom_du_mois(n as i64, g)?, mois.chars().take(4).collect::<String>()))
-}
-
-/// `libelle_du_mois` pour une phrase qui ne peut pas refuser pour son mois (un bandeau, un conseil, un avertissement) :
-/// un mois illisible ou hors 01-12 s'ecrit tel quel (« 2026-00 »), jamais sous le nom d'un autre mois.
-pub fn libelle_du_mois_ou_tel_quel(mois: &str, g: Graphie) -> String {
-    libelle_du_mois(mois, g).unwrap_or_else(|_| mois.to_string())
 }
 
 /// Ce qui rend une date impossible : l'annee d'abord, sinon le mois, sinon le jour.
@@ -255,42 +176,6 @@ pub fn date_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into
 
 pub const HORS_CALENDRIER: &str = "date hors du calendrier (années 1 à 9999)";
 
-/// Le premier jour du mois `AAAA-MM`.
-pub fn premier_du_mois(mois: &str) -> Resultat<Jour> {
-    Jour::lire(&format!("{}-01", mois))
-}
-
-/// Le dernier jour du mois `AAAA-MM` ; un mois hors de 1 a 12 se refuse.
-pub fn dernier_du_mois(mois: &str) -> Resultat<Jour> {
-    let c: Vec<char> = mois.chars().collect();
-    let tranche = |a: usize, b: usize| -> String { c.iter().skip(a).take(b - a).collect() };
-    let entier = |t: String| -> Resultat<i64> {
-        t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {}", repr_texte(&t)))
-    };
-    let an = entier(tranche(0, 4))?;
-    let mo = entier(tranche(5, 7))?;
-    if !(1..=12).contains(&mo) {
-        return Err(mois_impossible(mo));
-    }
-    let an = i32::try_from(an).unwrap_or(0);
-    Jour::lire(&format!("{}-{:02}-{:02}", an, mo, jours_du_mois(an.max(1), mo as u32)))
-}
-
-/// Les mois `AAAA-MM` de `debut` a `fin` inclus (`Engagement::mois_du_contrat`).
-pub fn mois_entre(debut: &Jour, fin: &Jour) -> Vec<String> {
-    let mut sortie = Vec::new();
-    let (mut an, mut mo) = (debut.an, debut.mois);
-    while (an, mo) <= (fin.an, fin.mois) {
-        sortie.push(format!("{:04}-{:02}", an, mo));
-        if mo == 12 {
-            an += 1;
-            mo = 1;
-        } else {
-            mo += 1;
-        }
-    }
-    sortie
-}
 
 /// Une date lue dans une valeur JSON : une chaine, un nombre (lu en texte), ou la
 /// date detaillee `{"jour": ..., "lieu": ...}` qui se lit par son `jour`.
@@ -527,17 +412,6 @@ mod tests {
         assert_eq!(j(1, 1, 1).plus_jours(-1).unwrap_err(), HORS_CALENDRIER);
     }
 
-}
-
-/// L'etiquette d'un mois `AAAA-MM` dans le nom d'un fichier : « Aout2026 » (le nom du mois en titre, sans accent).
-pub fn etiquette_du_mois(mois: &str) -> Result<String, String> {
-    let lire = |t: Option<&str>| -> Result<i64, String> {
-        let t = t.unwrap_or("");
-        t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : '{}'", t))
-    };
-    let an = lire(mois.get(..4))?;
-    let mo = lire(mois.get(5..7))?;
-    Ok(format!("{}{}", nom_du_mois(mo, Graphie::Titre)?, an))
 }
 
 /// `AAAA-MM-JJ` ou `AAAAMMJJ`.

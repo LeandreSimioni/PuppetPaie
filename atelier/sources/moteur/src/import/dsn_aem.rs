@@ -129,15 +129,6 @@ pub(crate) fn jjmmaaaa(v: &str) -> String {
     }
 }
 
-/// `01072026` -> `2026-07`.
-fn mois_dsn(v: &str) -> String {
-    let c: Vec<char> = v.chars().collect();
-    if c.len() == 8 {
-        format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>())
-    } else {
-        String::new()
-    }
-}
 
 fn texte(s: &str) -> Value {
     Value::String(s.to_string())
@@ -206,7 +197,7 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
             nics.push(v.to_string());
         }
         if k == "S20.G00.05.005" {
-            mois = mois_dsn(v);
+            mois = socle::mois::Mois::de_la_dsn(v).map(|m| m.to_string()).unwrap_or_default();
         } else if k == "S20.G00.05.007" {
             depot = jjmmaaaa(v);
         } else if let Some(champ) = table(&ENTREPRISE, k) {

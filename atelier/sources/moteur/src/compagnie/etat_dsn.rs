@@ -107,7 +107,7 @@ pub(crate) fn premier_mois_du(ctx: &Contexte) -> R<Option<String>> {
     if journal.lignes.iter().any(|l| l.get("quoi").and_then(Value::as_str) == Some(etats::DSN)) {
         return Ok(None);
     }
-    Ok(Some(ctx.aujourdhui.mois_iso()))
+    Ok(Some(ctx.aujourdhui.mois_civil().to_string()))
 }
 
 /// LA DSN DE `mois` EST-ELLE DUE pour l'etablissement `nic` (`Null` : le principal) ? « La DSN est mensuelle et

@@ -254,7 +254,7 @@ pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
             valeur_en_texte(nom),
             prenom_de(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
-            engagement::libelle_mois(&r.mois),
+            socle::mois::Mois::en_clair(&r.mois),
             euros(r.declare.brut),
             euros(r.apres.brut),
             euros(r.net_deja_verse),

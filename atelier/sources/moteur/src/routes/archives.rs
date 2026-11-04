@@ -550,7 +550,7 @@ fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     adresses_de(ctx, &vu.salaries)?;
     let a_qui = format!("{} salarie(s) : {}", vu.salaries.len(), vu.salaries.iter().map(|c| ctx.nomme(c)).collect::<Vec<_>>().join(", "));
     let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
-    let forme = verifier_preuve(ctx, Some(&preuve_de(charge)), &format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois), "envoi du dossier aux salaries", &a_qui)?;
+    let forme = verifier_preuve(ctx, Some(&preuve_de(charge)), &aujourdhui.mois_civil().to_string(), "envoi du dossier aux salaries", &a_qui)?;
     let d = crate::routes::dossier_salarie::construire(ctx, &Value::Object(demande))?;
     let mut r = crate::routes::dossier_salarie::dossier_json(&d);
     let envoi = envoyer_dossier(ctx, &d, &Preuve { donnee: Some(forme), ..Preuve::default() }, &qui, ouvrir)?;
@@ -624,7 +624,7 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
     let mut client = ouvrir()?;
     let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
-    verifier_preuve(ctx, Some(preuve), &format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois), "envoi du dossier aux salaries", &a_qui)?;
+    verifier_preuve(ctx, Some(preuve), &aujourdhui.mois_civil().to_string(), "envoi du dossier aux salaries", &a_qui)?;
     let expediteur = expediteur_de(client.as_ref());
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client.as_mut(), None, None) {
         Ok(p) => p,
@@ -806,7 +806,7 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
     use droit::cumul::{anniversaire_configure, position_droits, tableau_cumul};
     let mois = match charge.get("mois").filter(|v| vrai(v)) {
         Some(m) => valeur_en_texte(m),
-        None => format!("{:04}-{:02}", ctx.aujourdhui.an, ctx.aujourdhui.mois),
+        None => ctx.aujourdhui.mois_civil().to_string(),
     };
     let engs = engagement::cumul::lire_engagements(ctx, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();

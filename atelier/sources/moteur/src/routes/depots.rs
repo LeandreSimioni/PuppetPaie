@@ -120,7 +120,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire ; une DPAE par ses
             // embauches.
             if !v["phrase"].as_str().is_some_and(|p| !p.is_empty()) {
-                let mois = engagement::libelle_mois(v["mois"].as_str().unwrap_or(""));
+                let mois = socle::mois::Mois::en_clair(v["mois"].as_str().unwrap_or(""));
                 let (nature, combien) = match v.get("embauches") {
                     Some(e) => ("DPAE".to_string(), super::compte(super::nombre(e), "embauche", "embauches")),
                     None => (super::mot(&v["libelle_nature"]), super::compte(v["salaries"].as_u64().unwrap_or(0) as usize, "salarié", "salariés")),
@@ -352,7 +352,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         engs.iter().map(|e| engagement::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let etiq = socle::date::etiquette_du_mois(&mois).map_err(|e| erreur("ValueError", e))?;
+    let etiq = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::etiquette).map_err(|e| erreur("ValueError", e))?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.clone().unwrap_or_default()) };
 
@@ -393,7 +393,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         marque = marque_a_la_minute();
     }
     if retenues.is_empty() {
-        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", engagement::libelle_mois(&mois))));
+        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", socle::mois::Mois::en_clair(&mois))));
     }
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
@@ -492,7 +492,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
 
     let fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
     let n = retenues.len();
-    let phrase = format!("DPAE {} écrite : {} embauche{}.", socle::texte::de(&engagement::libelle_mois(&mois)), n, if n > 1 { "s" } else { "" });
+    let phrase = format!("DPAE {} écrite : {} embauche{}.", socle::texte::de(&socle::mois::Mois::en_clair(&mois)), n, if n > 1 { "s" } else { "" });
     Ok(Dpae::Ecrite(json!({ "fichiers": fichiers, "phrase": phrase })))
 }
 

@@ -180,7 +180,7 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
     for f in fichiers {
         let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if !nom.strip_suffix(".json").is_some_and(socle::date::mois_valide) {
+        if !nom.strip_suffix(".json").is_some_and(|m| socle::mois::Mois::lire(m).is_ok()) {
             continue;
         }
         out.extend(du_contenu(&socle::fichiers::lire_json(&f)?, &f)?);
@@ -220,7 +220,7 @@ fn empreinte_de(imprevus: &[Value]) -> String {
 /// Les imprevus de `cle`, lus mois par mois du magasin sans se noter (`fichiers::json_partage`).
 fn siens_sans_noter(racine: &Path, cle: &str) -> Resultat<Vec<Value>> {
     let mut fichiers: Vec<PathBuf> = match std::fs::read_dir(dossier(racine)) {
-        Ok(l) => l.flatten().map(|f| f.path()).filter(|p| p.file_stem().and_then(|n| n.to_str()).is_some_and(socle::date::mois_valide) && p.extension().is_some_and(|x| x == "json")).collect(),
+        Ok(l) => l.flatten().map(|f| f.path()).filter(|p| p.file_stem().and_then(|n| n.to_str()).is_some_and(|m| socle::mois::Mois::lire(m).is_ok()) && p.extension().is_some_and(|x| x == "json")).collect(),
         Err(_) => return Ok(Vec::new()),
     };
     fichiers.sort();
@@ -338,7 +338,7 @@ pub fn du_mois(racine: &Path, mois: &str, genre_voulu: Option<&str>) -> Resultat
 }
 
 fn croisant(imprevus: Vec<Value>, mois: &str, genre_voulu: Option<&str>) -> Resultat<Vec<Value>> {
-    let (debut, fin) = (socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?);
+    let (debut, fin) = (socle::mois::Mois::lire(mois)?.premier_jour(), socle::mois::Mois::lire(mois)?.dernier_jour());
     let mut out = Vec::new();
     for imp in imprevus {
         if genre_voulu.is_some_and(|gv| gv != genre(&imp)) {
@@ -611,7 +611,7 @@ pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<Value> {
     let fiche = ctx.salarie(&s(imp, "salarie"))?;
     let cle = en_texte(g(&fiche, "_cle"));
     let Some(debut) = Some(g(imp, "contrat_debut")).filter(|v| vrai(v)).map(d).transpose()? else { return Ok(fiche) };
-    let mois = format!("{:04}-{:02}", debut.an, debut.mois);
+    let mois = debut.mois_civil().to_string();
     let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { return Ok(fiche) };
     for e in g(&data, "engagements").as_array().into_iter().flatten() {
         if !vrai(g(e, "debut")) || d(g(e, "debut"))? != debut || cle_de(ctx, e).ok().as_deref() != Some(cle.as_str()) {
@@ -799,7 +799,7 @@ pub fn cachets_dans(ctx: &Contexte, imp: &Value) -> Resultat<Vec<Value>> {
     if dernier < premier {
         return Ok(out);
     }
-    for mois in socle::date::mois_entre(&premier, &dernier) {
+    for mois in socle::mois::Mois::entre(&premier, &dernier).iter().map(socle::mois::Mois::to_string) {
         let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { continue };
         out.extend(cachets_de_la_saisie(ctx, &data, &mois, &cle, &premier, &dernier)?);
     }

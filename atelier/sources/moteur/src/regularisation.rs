@@ -150,7 +150,7 @@ fn phrase_des_dates(mois: &str, declarees: &Bornes, corrigees: &Bornes) -> R<Str
     if !autres.is_empty() {
         phrase.push_str(&format!(
             " Le contrat court aussi sur {} : chaque mois se corrige pour lui-même, et la DSN suivante porte un versement par mois civil (cahier technique DSN §2.2.2.5).",
-            autres.iter().map(|m| mois_en_clair(m)).collect::<Vec<_>>().join(" et ")
+            autres.iter().map(|m| socle::mois::Mois::en_clair(m)).collect::<Vec<_>>().join(" et ")
         ));
     }
     Ok(phrase)
@@ -163,7 +163,7 @@ fn mois_des_bornes(b: &Bornes) -> R<Vec<String>> {
         Some(f) => socle::date::Jour::lire(f).map_err(|m| erreur("ValueError", m))?,
         None => debut,
     };
-    Ok(socle::date::mois_entre(&debut, &fin))
+    Ok(socle::mois::Mois::entre(&debut, &fin).iter().map(socle::mois::Mois::to_string).collect())
 }
 
 // ------------------------------------------------- modifier la paie d'un mois deja declare
@@ -172,14 +172,9 @@ fn mois_des_bornes(b: &Bornes) -> R<Vec<String>> {
 /// la saisie enregistree.
 pub const CLASSE_NON_DECLARABLE: &str = "ModificationNonDeclarable";
 
-/// `septembre 2026`, avec ses accents.
-pub(crate) fn mois_en_clair(mois: &str) -> String {
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
-}
-
 /// `de septembre 2026`, `d'octobre 2026`.
 pub(crate) fn de_mois_en_clair(mois: &str) -> String {
-    envois::envoi::de_mois(&mois_en_clair(mois))
+    socle::texte::de(&socle::mois::Mois::en_clair(mois))
 }
 
 /// Ce que « Modifier l'engagement » dit d'un mois dont la DSN reelle est deposee, quand une modification le touche
@@ -454,7 +449,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
 /// technique DSN 2026.1, § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`).
 pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
     let partie = |m: &str| -> R<bool> { Ok(crate::compagnie::etat_dsn::du_mois(ctx, m, &Value::Null)?.partie()) };
-    let suivant = |m: &str| -> R<String> { Ok(socle::date::Jour::lire(&format!("{}-01", m)).map_err(Echec::from)?.mois_suivant()) };
+    let suivant = |m: &str| -> R<String> { Ok(socle::mois::Mois::lire(m)?.suivant().to_string()) };
     let mut porteur = suivant(mois)?;
     while partie(&porteur)? {
         porteur = suivant(&porteur)?;

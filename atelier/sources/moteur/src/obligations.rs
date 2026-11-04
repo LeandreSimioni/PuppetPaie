@@ -582,7 +582,7 @@ fn signalement_dsn(
         // alinea), telle que `echeance_dsn` la donne : reportee au jour ouvre suivant un samedi, un dimanche ou un ferie
         // (R. 133-14, I), a midi (cahier technique § 1.4.2). INFERENCE : le report de la mensuelle vaut pour le signalement
         // qui part avec elle (le texte du report parle de « la declaration sociale nominative » sans distinguer).
-        let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, &evenement.mois_iso()).map_err(|m| erreur("ValueError", m))?;
+        let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, &evenement.mois_civil().to_string()).map_err(|m| erreur("ValueError", m))?;
         m.insert("subrogation".into(), json!(true));
         m.insert("echeance_dsn".into(), echeance.en_json());
         // La connaissance ne compte pas : le delai court du mois de l'evenement.
@@ -619,7 +619,7 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
     let dj = texte(a, "dernier_jour_travaille");
     let declare = engagement::imprevus::dernier_jour_declare(a).map(|j| j.iso()).unwrap_or_default();
     let traverses: Vec<String> = match (engagement::imprevus::dernier_jour_declare(a), engagement::imprevus::dernier_jour(a)) {
-        (Ok(p), Ok(d)) if p <= d => socle::date::mois_entre(&p, &d),
+        (Ok(p), Ok(d)) if p <= d => socle::mois::Mois::entre(&p, &d).iter().map(socle::mois::Mois::to_string).collect(),
         _ => Vec::new(),
     };
     let saisi = texte(a, "saisi_le");

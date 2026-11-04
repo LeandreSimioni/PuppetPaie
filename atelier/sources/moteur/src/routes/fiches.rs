@@ -256,7 +256,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             let cout = |x: &Value| x["cout"].as_str().and_then(|c| c.parse::<f64>().ok()).unwrap_or(0.0);
             let spectacles: Vec<(String, Value)> = v["spectacles"].as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), x.clone())).collect()).unwrap_or_default();
             let total: f64 = spectacles.iter().map(|(_, x)| cout(x)).sum();
-            let jusqu_a = engagement::libelle_mois(&valeur_en_texte(&v["jusqu_a"]));
+            let jusqu_a = socle::mois::Mois::en_clair(&valeur_en_texte(&v["jusqu_a"]));
             let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, socle::texte::euros_de(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
             // La ligne de chaque spectacle et de chaque salarie, telle que sa fiche la montre.
             for cote in ["spectacles", "salaries"] {
@@ -1530,26 +1530,21 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
 /// (`dernier_mois_parti`) : ce qui est parti garde ce qu'il a dit, le reste prend la valeur nouvelle. Aucun mois parti :
 /// le premier jour du mois en cours. Une autre date se choisit, dans le passe aussi : ce qui est parti se corrige alors.
 pub(crate) fn date_proposee(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<(Jour, String)> {
-    let en_clair = |m: &str| -> R<String> {
-        let j = socle::date::premier_du_mois(m).map_err(plain)?;
-        Ok(format!("{} {}", socle::date::nom_du_mois(j.mois as i64, socle::date::Graphie::Accentuee).map_err(plain)?, j.an))
-    };
     let qui = if nom == "entreprise" { "" } else { " pour ce salarié" };
     Ok(match dernier_mois_parti(ctx, nom, cle)? {
         Some(m) => {
-            let j = socle::date::premier_du_mois(&m).map_err(plain)?;
-            let suivant = socle::date::premier_du_mois(&j.mois_suivant()).map_err(plain)?;
+            let m = socle::mois::Mois::lire(&m).map_err(plain)?;
             let phrase = format!(
                 "Proposé : le premier mois dont rien n'est parti{}. Jusqu'à {} compris, ce qui est parti garde l'ancienne valeur.",
                 qui,
-                en_clair(&m)?
+                m.libelle(socle::mois::Graphie::Accentuee)
             );
-            (suivant, phrase)
+            (m.suivant().premier_jour(), phrase)
         }
         None => {
-            let mois = format!("{:04}-{:02}", ctx.aujourdhui.an, ctx.aujourdhui.mois);
-            let phrase = format!("Proposé : le premier jour de {}, rien n'étant encore parti{}.", en_clair(&mois)?, qui);
-            (socle::date::premier_du_mois(&mois).map_err(plain)?, phrase)
+            let mois = ctx.aujourdhui.mois_civil();
+            let phrase = format!("Proposé : le premier jour de {}, rien n'étant encore parti{}.", mois.libelle(socle::mois::Graphie::Accentuee), qui);
+            (mois.premier_jour(), phrase)
         }
     })
 }
@@ -2007,7 +2002,7 @@ pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, Stri
     }
     let note = Some(valeur_en_texte(note)).filter(|n| !n.trim().is_empty());
     for (mois, numero) in suivantes {
-        let jour = socle::date::premier_du_mois(mois).map_err(plain)?;
+        let jour = socle::mois::Mois::lire(mois).map(socle::mois::Mois::premier_jour).map_err(plain)?;
         poser_champs(ctx, "entreprise", None, un_champ("licence_spectacle", json!(numero)), Some(jour), note.as_deref())?;
     }
     Ok(())

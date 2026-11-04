@@ -97,7 +97,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
         };
         n += usize::from(a_declarer);
     }
-    let lib = socle::date::libelle_du_mois_ou_tel_quel(&porteur, socle::date::Graphie::Accentuee);
+    let lib = socle::mois::Mois::en_clair(&porteur);
     let (quoi, phrase) = match n {
         0 => (String::new(), "DSN déposée par l'ancien logiciel.".to_string()),
         1 => (format!("déposée par l'ancien logiciel ; cet engagement se déclare dans celle de {}", lib), format!("DSN déposée par l'ancien logiciel ; cet engagement se déclare dans la DSN de {}.", lib)),
@@ -117,7 +117,7 @@ pub(crate) fn refuser_la_dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) ->
         None if importe(&ctx.racine, mois)? => "mois tenu avant PuppetPaie, sa DSN est celle de l'ancien logiciel et ne se fait pas ici. Pour la garder, mettez son fichier dans le dossier d'import, puis « Importer » (Configuration › Reprendre l'historique).".to_string(),
         None => return Ok(()),
     };
-    Err(socle::echec::erreur("DsnDeLAncienLogiciel", format!("{} : {} Rien n'est écrit.", engagement::libelle_mois(mois), phrase)))
+    Err(socle::echec::erreur("DsnDeLAncienLogiciel", format!("{} : {} Rien n'est écrit.", socle::mois::Mois::en_clair(mois), phrase)))
 }
 
 // ------------------------------------------------------------------ les cartes

@@ -825,7 +825,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(me) => {
             let (_d, ps) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, me, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
             let j = etats::paie_du_contrat(&ps, &salarie, &numero_parti)?.ok_or_else(|| {
-                erreur("ErreurOperation", format!("Aucune paie de {} en {} pour le contrat n° {}.", salarie, engagement::libelle_mois(me), numero_parti))
+                erreur("ErreurOperation", format!("Aucune paie de {} en {} pour le contrat n° {}.", salarie, socle::mois::Mois::en_clair(me), numero_parti))
             })?;
             (ps, j, me.clone())
         }
@@ -918,8 +918,8 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// ailleurs (le contrat du mois de la charge, ou du mois present, qui porte ce numero).
 fn avenant_d_un_contrat_signe_ailleurs(ctx: &Contexte, charge: &Value, numero: &str) -> R<Option<Value>> {
     let salarie = valeur_en_texte(cle(charge, "salarie")?);
-    let mois = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte).unwrap_or_else(|| ctx.aujourdhui.mois_iso());
-    if numero.is_empty() || !socle::date::mois_valide(&mois) {
+    let mois = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte).unwrap_or_else(|| ctx.aujourdhui.mois_civil().to_string());
+    if numero.is_empty() || !socle::mois::Mois::lire(&mois).is_ok() {
         return Ok(None);
     }
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;

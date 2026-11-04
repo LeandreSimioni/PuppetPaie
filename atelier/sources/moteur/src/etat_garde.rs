@@ -388,7 +388,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
                     format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
                 })
                 .collect();
-            let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", engagement::libelle_mois(&mois)) } else { format!("Engagements du mois : {}.", n) };
+            let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", socle::mois::Mois::en_clair(&mois)) } else { format!("Engagements du mois : {}.", n) };
             Ok(json!({ "phrase": phrase, "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))
         }
         "mois" => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
@@ -431,16 +431,9 @@ fn mois_a_ouvrir(ouverture: &Value, jour: &str) -> String {
     ouverture
         .pointer("/lectures/mois-a-ouvrir/resultat/mois")
         .and_then(Value::as_str)
-        .filter(|m| socle::date::mois_valide(m))
+        .filter(|m| socle::mois::Mois::lire(m).is_ok())
         .map(String::from)
         .unwrap_or_else(|| jour.get(..7).unwrap_or_default().to_string())
-}
-
-/// Le mois `m` decale de `pas` mois.
-fn voisin(m: &str, pas: i32) -> Option<String> {
-    let (a, n): (i32, i32) = (m.get(..4)?.parse().ok()?, m.get(5..7)?.parse().ok()?);
-    let t = a * 12 + n - 1 + pas;
-    Some(format!("{:04}-{:02}", t.div_euclid(12), t.rem_euclid(12) + 1))
 }
 
 type Rendu = Result<Value, (Option<&'static str>, String)>;
@@ -788,7 +781,7 @@ impl FileDesEtats {
             if let Some(a) = e.affiche.clone() {
                 premiers.push(a.clone());
                 for pas in [-1, 1] {
-                    if let Some(v) = voisin(&a, pas).filter(|v| suivis.contains(v)) {
+                    if let Some(v) = socle::mois::Mois::lire(&a).and_then(|m| m.plus(pas)).ok().map(|m| m.to_string()).filter(|v| suivis.contains(v)) {
                         premiers.push(v);
                     }
                 }
@@ -835,7 +828,7 @@ impl FileDesEtats {
     /// `perime`, et refait aussitot, devant tous les autres. `attendre` (la page qui veut l'etat frais) ou aucun etat
     /// garde : l'etat frais, une fois refait.
     pub fn ecran(&self, mois: &str, attendre: bool) -> R<Value> {
-        if !socle::date::mois_valide(mois) {
+        if !socle::mois::Mois::lire(mois).is_ok() {
             return Err(Echec { classe: Some("ErreurOperation"), message: format!("Mois illisible : {}.", mois) });
         }
         self.verrou().affiche = Some(mois.to_string());
@@ -888,7 +881,7 @@ impl FileDesEtats {
         match self.verrou().en_cours.clone() {
             Some(c) if c == OUVERTURE => "Lecture de la compagnie : sa configuration, ses échéances, ses rappels…".into(),
             Some(c) if c == TABLEAU => "Tableau des déclarations de la compagnie…".into(),
-            Some(m) => format!("Calcul de {}…", socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee)),
+            Some(m) => format!("Calcul de {}…", socle::mois::Mois::en_clair(&m)),
             None => "Préparation de l'écran…".into(),
         }
     }

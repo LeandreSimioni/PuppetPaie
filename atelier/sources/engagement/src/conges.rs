@@ -22,7 +22,8 @@ use droit::catalogue::rubrique;
 use droit::clauses;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
-use socle::date::{d, dernier_du_mois, en_texte, premier_du_mois, forme_ecrite, Jour};
+use socle::date::{d, en_texte, forme_ecrite, Jour};
+use socle::mois::Mois;
 use crate::Avis;
 use socle::feries;
 use socle::fichiers::{repr, vrai};
@@ -144,7 +145,7 @@ pub(crate) fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
 }
 
 fn fin_mois_de(mois: &str) -> Resultat<Jour> {
-    dernier_du_mois(mois)
+    Mois::lire(mois).map(Mois::dernier_jour)
 }
 
 // ------------------------------------------------ le compteur de conges
@@ -418,7 +419,7 @@ pub(crate) fn compte_sans_la_reprise(ctx: &Contexte, cle_salarie: &str, depuis: 
         return Ok(None);
     }
     let Some(premier) = premier_mois(ctx, cle_salarie, None)? else { return Ok(None) };
-    if *depuis >= premier_du_mois(&premier)? {
+    if *depuis >= Mois::lire(&premier)?.premier_jour() {
         return Ok(None);
     }
     Ok(commence_avant(&paies_du_mois(ctx, &premier, &cle_de_fiche(ctx, cle_salarie))?, &premier)?.map(|debut| (debut, premier)))
@@ -627,7 +628,7 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
     if debut.jour != 1 {
         return Ok(None);
     }
-    let precedent = premier_du_mois(mois)?.plus_jours(-1)?.mois_iso();
+    let precedent = Mois::lire(mois)?.premier_jour().plus_jours(-1)?.mois_civil().to_string();
     let cle = cle_de_fiche(ctx, cle_salarie);
     let paies = paies_du_mois(ctx, &precedent, &cle)?;
     let Some(a) = paies.iter().find_map(|p| p.avant.clone()) else { return Ok(None) };
@@ -787,7 +788,7 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
             )));
         }
     } else if let Some(premier) = &premier {
-        (p_debut, p_fin) = periode_de_reference(&premier_du_mois(premier)?, ent)?;
+        (p_debut, p_fin) = periode_de_reference(&Mois::lire(premier)?.premier_jour(), ent)?;
         reste = Decimal::ZERO;
         if let Some(avant) = commence_avant(&paies_du_mois(ctx, premier, &cle_de_fiche(ctx, cle_salarie))?, premier)? {
             avert.push(avis_commence_avant(cle_salarie, &avant, premier));
@@ -884,7 +885,7 @@ pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Opti
 /// La date de debut du contrat paye au mois que portent les paies `paies` du salarie en `mois`, si elle est anterieure
 /// a ce mois ; sinon `None`. Elle se lit dans l'engagement de la paie.
 fn commence_avant(paies: &[PaieLue], mois: &str) -> Resultat<Option<Jour>> {
-    let debut_du_mois = premier_du_mois(mois)?;
+    let debut_du_mois = Mois::lire(mois)?.premier_jour();
     Ok(paies.iter().filter_map(|p| p.mensuel.as_ref()).map(|m| m.contrat_debut).find(|debut| *debut < debut_du_mois))
 }
 
@@ -916,7 +917,7 @@ fn mois_de_la_periode(
         return Ok(out);
     }
     let saisis = crate::stock::mois_saisis(&ctx.racine)?;
-    for mois in socle::date::mois_entre(debut, fin) {
+    for mois in socle::mois::Mois::entre(debut, fin).iter().map(socle::mois::Mois::to_string) {
         if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) || !saisis.contains(&mois) {
             continue;
         }
@@ -1092,7 +1093,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     let quotite = dec_ou(e.get("quotite_contrat"), defaut)?;
     let salaire = dec_avec_echelle(salaire)?;
 
-    let debut_mois = premier_du_mois(mois)?;
+    let debut_mois = Mois::lire(mois)?.premier_jour();
     let fin_mois = fin_mois_de(mois)?;
     // La date de debut d'un contrat paye au mois : la meme phrase que `engagement::Engagement` (une saisie neuve sans
     // debut ne refuse pas sur « champ 'debut' absent »).
@@ -1383,9 +1384,9 @@ pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::De
 /// `salaire` du mois reparti sur ses jours ouvrables.
 pub fn provision_du_compteur(cpt: CompteurConges, mois: &str, salaire: Decimal) -> Resultat<Provision> {
     use socle::num::eur;
-    let fin = dernier_du_mois(mois)?;
+    let fin = Mois::lire(mois)?.dernier_jour();
     let solde = cpt.solde();
-    let ouvrables = match jours_ouvrables(&premier_du_mois(mois)?, &fin, None)? {
+    let ouvrables = match jours_ouvrables(&Mois::lire(mois)?.premier_jour(), &fin, None)? {
         0 => Decimal::ONE,
         n => Decimal::from(n),
     };
@@ -1401,5 +1402,5 @@ pub fn provision_du_compteur(cpt: CompteurConges, mois: &str, salaire: Decimal) 
 /// premier jour paye ici, donc du dernier jour que l'ancien logiciel a paye. `None` : la fiche ne dit pas de reprise.
 pub fn compteur_a_la_reprise(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<CompteurConges>> {
     let Some(r) = reprise_conges(ctx, cle_salarie)? else { return Ok(None) };
-    compteur_conges(ctx, cle_salarie, &r.date, &r.date.mois_iso()).map(Some)
+    compteur_conges(ctx, cle_salarie, &r.date, &r.date.mois_civil().to_string()).map(Some)
 }

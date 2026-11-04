@@ -614,7 +614,7 @@ ou un annule."
     // ------------------------------------------------------------ S21 contrat
     let siens: Vec<&Arret> = arrets.iter().collect();
     // Les emplois multiples (`40.036`) : les autres contrats du salarie dans la periode de paie du signalement.
-    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_iso(), departs)?;
+    let du_mois = crate::dsn::contrats_du_mois(ctx, &debut_p.mois_civil().to_string(), departs)?;
     let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
     bloc_contrat_fctu(&mut f, paie, &ent_l, &orgs, 1, &bar, true, &siens, NATURE, Some(fin), emplois)?;
 

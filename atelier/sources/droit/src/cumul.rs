@@ -11,7 +11,6 @@ use crate::bareme::canon;
 use crate::catalogue::{annexes, rubrique};
 use crate::contexte::{aujourdhui, Contexte};
 use socle::date::{d, Jour};
-use socle::fichiers::repr;
 use socle::num::{add, flottant, nombre, Decimal, Resultat};
 
 /// Les constantes du decompte, lues dans les donnees livrees (le catalogue des rubriques et `annexes`).
@@ -79,7 +78,7 @@ pub struct Declare {
 impl Declare {
     /// Le mois de la fin, auquel se rattachent les cachets.
     pub fn mois(&self) -> String {
-        self.fin.mois_iso()
+        self.fin.mois_civil().to_string()
     }
 
     pub fn heures_equivalentes(&self, c: &Constantes) -> i64 {
@@ -413,11 +412,6 @@ impl Colonne {
     }
 }
 
-/// Une tranche du mois `AAAA-MM`, lue comme un entier.
-fn entier_du_mois(texte: &str) -> Resultat<i32> {
-    texte.trim().parse().map_err(|_| format!("nombre entier illisible : {}", repr(texte)))
-}
-
 /// Les colonnes : le mois, l'annee civile (arretee a la fin du mois), et
 /// la fenetre des droits quand `anniversaire_droits` est dans la fiche.
 pub fn tableau_cumul(
@@ -427,18 +421,9 @@ pub fn tableau_cumul(
     engagements: &[Declare],
 ) -> Resultat<Vec<Colonne>> {
     let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
-    let tranche = |a: usize, b: usize| -> String { mois.chars().skip(a).take(b - a).collect() };
-    let annee = entier_du_mois(&tranche(0, 4))?;
-    let mo = entier_du_mois(&tranche(5, 7))?;
-    if !(1..=9999).contains(&annee) {
-        return Err(socle::date::annee_impossible(annee));
-    }
-    if !(1..=12).contains(&mo) {
-        return Err(socle::date::mois_impossible(mo));
-    }
-    let mo = mo as u32;
-    let debut_mois = Jour { an: annee, mois: mo, jour: 1 };
-    let fin_mois = Jour { an: annee, mois: mo, jour: debut_mois.jours_du_mois() };
+    let mois = socle::mois::Mois::lire(mois)?;
+    let annee = mois.annee();
+    let (debut_mois, fin_mois) = (mois.premier_jour(), mois.dernier_jour());
     let ne = naissance(ctx, salarie)?;
     let p_mois = position(ctx, &c, engagements, salarie, &(debut_mois, fin_mois, "periode".to_string()), ne);
     let p_annee = position(ctx, &c, engagements, salarie, &fenetre_annee_civile(annee, Some(fin_mois)), ne);
@@ -458,7 +443,7 @@ pub fn tableau_cumul(
         })
     };
     let mut colonnes = vec![
-        col("Période", format!("{:02}/{}", mo, annee), &p_mois, None, None)?,
+        col("Période", format!("{:02}/{}", mois.numero(), annee), &p_mois, None, None)?,
         col("Cumul", format!("année {}", annee), &p_annee, None, None)?,
     ];
     if let Some(anniv) = anniversaire_configure(ctx, salarie)? {

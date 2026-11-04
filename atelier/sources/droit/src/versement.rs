@@ -34,7 +34,8 @@
 //! 1re semaine du mois suivant » va du 1er au 7.
 
 use serde_json::Value;
-use socle::date::{dernier_du_mois, jours_du_mois, Jour};
+use socle::date::Jour;
+use socle::mois::Mois;
 use socle::num::Resultat;
 
 use crate::natures::Nature;
@@ -121,20 +122,13 @@ impl Versement {
 
     /// Le jour du versement de la paie du mois `mois` (AAAA-MM) dont la periode finit le `fin_periode`.
     pub fn jour(&self, mois: &str, fin_periode: Jour) -> Resultat<Jour> {
+        let mois = Mois::lire(mois)?;
         match *self {
-            Versement::FinDuMois => dernier_du_mois(mois),
+            Versement::FinDuMois => Ok(mois.dernier_jour()),
             Versement::FinDuContrat => Ok(fin_periode),
             Versement::Fixe { quantieme, mois_suivant } => {
-                let fin = dernier_du_mois(mois)?;
-                let (an, m) = if !mois_suivant {
-                    (fin.an, fin.mois)
-                } else if fin.mois == 12 {
-                    (fin.an + 1, 1)
-                } else {
-                    (fin.an, fin.mois + 1)
-                };
-                let q = quantieme.min(jours_du_mois(an, m));
-                Jour::nouveau(an, m, q).ok_or_else(|| socle::date::date_impossible(an, m, q))
+                let m = if mois_suivant { mois.suivant() } else { mois };
+                Ok(m.jour(quantieme.min(m.jours())).unwrap_or_else(|| m.dernier_jour()))
             }
         }
     }
@@ -143,14 +137,13 @@ impl Versement {
 /// Le dernier jour ou peut etre verse ce que declare la DSN du mois principal `mois` (AAAA-MM) : le dernier jour du
 /// mois suivant (CCH-13 de S21.G00.50.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`, l. 61-62).
 pub fn au_plus_tard_en_dsn(mois: &str) -> Resultat<Jour> {
-    dernier_du_mois(&dernier_du_mois(mois)?.mois_suivant())
+    Ok(Mois::lire(mois)?.suivant().dernier_jour())
 }
 
 /// Le dernier jour ou se regle le salaire d'un artiste de cirque dont le contrat a duree determinee finit le `fin` :
 /// « au plus tard, la 1re semaine du mois suivant la fin dudit contrat » (CCNEAC, art. X.3.5.4) ; le 7, par inference.
 pub fn au_plus_tard_cirque_1285(fin: &Jour) -> Resultat<Jour> {
-    let premier = dernier_du_mois(&format!("{:04}-{:02}", fin.an, fin.mois))?.plus_jours(1)?;
-    premier.plus_jours(6)
+    fin.mois_civil().suivant().premier_jour().plus_jours(6)
 }
 
 /// Le refus d'un versement le `verse` pour `qui`, paye au titre du mois `mois` ; `fin_cirque` : la fin du contrat a duree

@@ -189,9 +189,7 @@ impl Periode {
             let Value::String(m) = m else {
                 return Err(avec("TypeError", socle::fichiers::attendu("un mois en texte (AAAA-MM)", nom_type(m))));
             };
-            let c: Vec<char> = m.chars().collect();
-            let bon = c.len() == 7 && c[4] == '-' && c.iter().enumerate().all(|(i, x)| i == 4 || chiffre(*x).is_some());
-            if !bon {
+            if socle::mois::Mois::lire(m).is_err() {
                 return Err(erreur_operation(format!("Mois attendu sous la forme AAAA-MM : « {} ».", m)));
             }
             p.mois = Some(m.clone());
@@ -222,11 +220,7 @@ impl Periode {
             return Ok("toute la période".to_string());
         }
         if let Some(m) = &self.mois {
-            let c: Vec<char> = m.chars().collect();
-            let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
-            // « 00 » n'est aucun mois : il se refuse, comme partout.
-            let nom = socle::date::nom_du_mois(n, socle::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
-            return Ok(format!("{} {}", nom, c[..4].iter().collect::<String>()));
+            return socle::mois::Mois::lire(m).map(|m| m.libelle(socle::mois::Graphie::Minuscule)).map_err(|e| avec("ValueError", e));
         }
         Ok(self.annee.clone().unwrap_or_default())
     }
@@ -396,15 +390,9 @@ fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut Has
     documents::ecrire_documents::numeroter_en_attente(ctx, paies, annee as i32, attente, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)
 }
 
-/// `etiquette(mois)`, ses refus sous leur classe.
+/// L'etiquette d'un mois dans le nom d'un fichier (`Aout2026`) ; un mois illisible se refuse (`ValueError`).
 pub(crate) fn etiquette(mois: &str) -> R<String> {
-    socle::date::etiquette_du_mois(mois).map_err(|m| {
-        if m.starts_with("mois impossible") {
-            avec("IndexError", m)
-        } else {
-            avec("ValueError", m)
-        }
-    })
+    socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(|m| avec("ValueError", m))
 }
 
 
@@ -485,13 +473,13 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         );
         bruts += brut_du_mois;
         jours += jours_du_mois;
-        mois_payes.push(MoisPaye { fin: socle::date::dernier_du_mois(m).map_err(|x| avec("ValueError", x))?, jours: jours_du_mois, brut: brut_du_mois });
+        mois_payes.push(MoisPaye { fin: socle::mois::Mois::lire(m).map(socle::mois::Mois::dernier_jour).map_err(|x| avec("ValueError", x))?, jours: jours_du_mois, brut: brut_du_mois });
     }
     let brut = bruts + eur2(p.brut);
     // Un contrat paye au mois n'a ni cachet ni date jouee : son certificat porte ses bornes, et ses jours travailles et son
     // brut mois par mois (`conges::lignes_du_mois`) ; le 31 mars le coupe entre deux mois.
     if eng.nat()?.mensuelle() {
-        let fin_du_mois = socle::date::dernier_du_mois(&eng.mois).map_err(|x| avec("ValueError", x))?;
+        let fin_du_mois = socle::mois::Mois::lire(&eng.mois).map(socle::mois::Mois::dernier_jour).map_err(|x| avec("ValueError", x))?;
         mois_payes.push(MoisPaye { fin: fin_du_mois, jours: eng.jours, brut: eur2(p.brut) });
         let contrat = ContratCs { jours: jours + eng.jours, dates_travail: Vec::new(), cachets: 0, heures: None, taux_cachet: None, mois_payes, ..ContratCs::de(eng)? };
         return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.clone() }, manquants));
@@ -553,7 +541,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
                 avertissements.push(format!(
                     "Certificat Conges Spectacles du contrat {} : aucune paie sur le disque pour {} -- il ne porte que les mois presents.",
                     p.engagement.numero.as_deref().unwrap_or("None"),
-                    manquants.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ")
+                    manquants.iter().map(|m| socle::mois::Mois::en_clair(m)).collect::<Vec<_>>().join(", ")
                 ));
             }
         }
@@ -591,7 +579,7 @@ fn mois_puppetpaie(
         return Ok(pages);
     }
     let ent = ctx.entreprise_du_mois(mois)?;
-    let lib = engagement::libelle_mois(mois);
+    let lib = socle::mois::Mois::en_clair(mois);
 
     // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie
     // dont chaque engagement porte son numero.

@@ -12,6 +12,7 @@ use serde_json::{Map, Value};
 
 use socle::date::{d, en_texte, forme_ecrite, repr_texte, Jour};
 use socle::fichiers::{dossier_du_code, vrai};
+use socle::mois::Mois;
 use socle::num::{flottant, Resultat};
 use socle::texte::{cle_recherche, sigle};
 
@@ -1406,7 +1407,7 @@ impl Contexte {
 
     /// Le contexte du mois `AAAA-MM` : sa configuration lue au dernier jour du mois.
     pub fn du_mois(&self, mois: &str) -> Resultat<Contexte> {
-        self.au(&socle::date::dernier_du_mois(mois)?)
+        self.au(&Mois::lire(mois)?.dernier_jour())
     }
 
     /// La fiche entreprise a `jour`.
@@ -1763,9 +1764,10 @@ PSS_H_METROP).",
     /// La fiche entreprise d'un mois `AAAA-MM` telle que les documents la lisent : lue au dernier jour du mois, avec les
     /// gabarits de cette compagnie (`_gabarits`).
     pub fn entreprise_du_mois(&self, mois: &str) -> Resultat<Value> {
-        let dernier = socle::date::dernier_du_mois(mois)?;
+        let mois = Mois::lire(mois)?;
+        let dernier = mois.dernier_jour();
         let mut ent = self.entreprise_au(&dernier)?;
-        let ouverts = etablissements_entre(&self.entreprise_brute, &socle::date::premier_du_mois(mois)?, &dernier)?;
+        let ouverts = etablissements_entre(&self.entreprise_brute, &mois.premier_jour(), &dernier)?;
         if let Value::Object(m) = &mut ent {
             m.insert("_gabarits".into(), Value::String(self.gabarits().to_string_lossy().into_owned()));
             if let Some(l) = ouverts {

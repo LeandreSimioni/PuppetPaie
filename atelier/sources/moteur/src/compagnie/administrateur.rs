@@ -494,7 +494,7 @@ fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> 
             let mois = texte("mois");
             let e = r.get("echeance_depot").cloned().unwrap_or(Value::Null);
             d.insert("genre".into(), json!("dsn"));
-            d.insert("titre".into(), json!(format!("DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&mois, socle::date::Graphie::Accentuee))));
+            d.insert("titre".into(), json!(format!("DSN de {}", socle::mois::Mois::en_clair(&mois))));
             d.insert("mois".into(), json!(mois));
             d.insert("butoir".into(), e.get("jour").cloned().unwrap_or(Value::Null));
             d.insert("quand".into(), e.get("phrase").cloned().unwrap_or(Value::Null));

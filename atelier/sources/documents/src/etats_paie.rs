@@ -49,11 +49,6 @@ pub struct Demande {
     pub departs: engagement::departs::Departs,
 }
 
-/// Le nom du mois `i` abrege de quatre lettres, avec son point : « Janv. ». Les appelants parcourent les douze colonnes
-/// d'une annee (1 a 12) : un autre rang ne peut pas arriver, et donnerait une entete vide plutot qu'un autre mois.
-pub fn mois_abrege(i: usize) -> String {
-    socle::date::nom_du_mois(i as i64, socle::date::Graphie::Titre).map(|n| n.chars().take(4).collect::<String>() + ".").unwrap_or_default()
-}
 
 // ------------------------------------------------------------------ ou ca s'ecrit
 
@@ -970,8 +965,10 @@ pub fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         a_trier.push(ligne);
     }
     let mut cols = vec![col_t("salarie", "Salarié")];
-    for i in 1..=12usize {
-        cols.push(col_m(&format!("m{:02}", i), &mois_abrege(i)));
+    // Une colonne par mois de l'annee, sous son nom abrege de quatre lettres avec son point : « Janv. » (l'annee n'y paraît pas).
+    for i in 1..=12 {
+        let m = socle::mois::Mois::nouveau(1, i).map_err(|e| erreur("ValueError", e))?;
+        cols.push(col_m(&format!("m{:02}", i), &format!("{}.", m.nom(socle::mois::Graphie::Titre).chars().take(4).collect::<String>())));
     }
     cols.extend([
         col_m("brut", "Brut annuel"),

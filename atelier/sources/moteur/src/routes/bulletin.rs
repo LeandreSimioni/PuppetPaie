@@ -153,7 +153,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let racine = dossier_apercu();
     let saisie = lire_json(&racine.join("saisie.json"))?;
     let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
-    let ctx = Contexte::nouveau(&racine, Some(socle::date::dernier_du_mois(&mois)?))?;
+    let ctx = Contexte::nouveau(&racine, Some(socle::mois::Mois::lire(&mois)?.dernier_jour()))?;
     let s = engagement::pour_l_ecran(&ctx, &saisie)?;
     let mut ent = ctx.entreprise.clone();
     let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;

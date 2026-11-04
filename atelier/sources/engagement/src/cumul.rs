@@ -54,7 +54,7 @@ pub(crate) fn lire_importes(ctx: &Contexte) -> Resultat<Vec<Declare>> {
         // Un contrat qui continue ici : ce que les pieces attestent s'arrete a son dernier mois verse, la suite est
         // dans les paies de ce logiciel.
         if let Some(dernier) = i.continue_apres() {
-            e["fin"] = Value::String(socle::date::dernier_du_mois(&dernier)?.iso());
+            e["fin"] = Value::String(socle::mois::Mois::lire(&dernier)?.dernier_jour().iso());
         }
         if let Some(x) = ligne_importee(&e)? {
             out.push(x);

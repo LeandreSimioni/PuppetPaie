@@ -59,21 +59,11 @@ const SOURCE_AUDIENS: &str = "Audiens, dossier DSN : « L'échéance de paiement
 const SOURCE_AGIRC: &str = "Cahier d'aide à la codification Agirc-Arrco CT2026, p. 47 : « le prélèvement sera exécuté au plus tard le dernier jour ouvré du mois d'exigibilité des cotisations », le mois qui suit la période déclarée (ou le trimestre civil).";
 const SOURCE_AUCUNE: &str = "La DSN ne porte pas de date de paiement pour cet organisme (S21.G00.20.011 absente), et aucun texte relevé par le logiciel ne dit quand il prélève : l'organisme prélève à sa propre échéance.";
 
-fn nom_du_mois(an: i32, mois: u32) -> String {
-    // `mois` vient d'un `Jour`, donc de 1 a 12 : le repli (vide) ne peut pas arriver.
-    format!("{} {}", socle::date::nom_du_mois(mois as i64, socle::date::Graphie::Accentuee).unwrap_or_default(), an)
-}
-
 /// « d'août 2026 », « de septembre 2026 », ou « du 01/07/2026 au 30/09/2026 ».
 fn periode_lisible(debut: Option<Jour>, fin: Option<Jour>) -> String {
     match (debut, fin) {
-        (Some(d), Some(f)) if d.jour == 1 && d.an == f.an && d.mois == f.mois && f.jour == f.jours_du_mois() => {
-            let n = nom_du_mois(d.an, d.mois);
-            if n.starts_with(['a', 'o']) {
-                format!("d'{}", n)
-            } else {
-                format!("de {}", n)
-            }
+        (Some(d), Some(f)) if d.mois_civil() == f.mois_civil() && d == d.mois_civil().premier_jour() && f == f.mois_civil().dernier_jour() => {
+            socle::texte::de(&d.mois_civil().libelle(socle::mois::Graphie::Accentuee))
         }
         (Some(d), Some(f)) => format!("du {} au {}", d.jj_mm_aaaa(), f.jj_mm_aaaa()),
         _ => "d'une période illisible dans le fichier".to_string(),
@@ -82,8 +72,7 @@ fn periode_lisible(debut: Option<Jour>, fin: Option<Jour>) -> String {
 
 /// Le dernier jour ouvre (ni samedi, ni dimanche, ni fete legale) du mois qui suit `fin`.
 fn dernier_ouvre_du_mois_suivant(fin: &Jour) -> Resultat<Jour> {
-    let (an, mois) = if fin.mois == 12 { (fin.an + 1, 1) } else { (fin.an, fin.mois + 1) };
-    let mut j = Jour::nouveau(an, mois, socle::date::jours_du_mois(an, mois)).ok_or_else(|| socle::date::jour_impossible(an, mois, 31))?;
+    let mut j = fin.mois_civil().suivant().dernier_jour();
     while crate::echeance_dsn::non_ouvre(&j)?.is_some() {
         j = j.plus_jours(-1)?;
     }
@@ -92,9 +81,8 @@ fn dernier_ouvre_du_mois_suivant(fin: &Jour) -> Resultat<Jour> {
 
 /// Le `jour` du mois qui suit le mois declare `mois` (`AAAA-MM`).
 fn jour_du_mois_suivant(mois: &str, jour: u32) -> Resultat<Jour> {
-    let d = socle::date::premier_du_mois(mois)?;
-    let (an, mo) = if d.mois == 12 { (d.an + 1, 1) } else { (d.an, d.mois + 1) };
-    Jour::nouveau(an, mo, jour).ok_or_else(|| socle::date::jour_impossible(an, mo, jour))
+    let m = socle::mois::Mois::lire(mois)?.suivant();
+    m.jour(jour).ok_or_else(|| socle::date::jour_impossible(m.annee(), m.numero(), jour))
 }
 
 fn versement_de<'a>(organismes: &'a Value, id: &str) -> Option<&'a Map<String, Value>> {
@@ -140,7 +128,7 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
         };
         let (debut, fin) = (Some(o.debut), Some(o.fin));
         let periode = periode_lisible(debut, fin);
-        let regularisation = debut.is_some_and(|d| d.mois_iso() != mois);
+        let regularisation = debut.is_some_and(|d| d.mois_civil().to_string() != mois);
         let quoi = if dgfip {
             "l'impôt sur le revenu prélevé à la source sur les salaires"
         } else if let Some(q) = texte_de(norme, "objet") {

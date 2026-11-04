@@ -505,7 +505,7 @@ fn la_fictive_tient_son_annee_et_se_livre(nom: &str, decembre: usize, dpae: &[&s
     let mut dsn = serde_json::Map::new();
     for m in 1..=12 {
         let mois = format!("2026-{:02}", m);
-        let f = racine.join("sorties").join(&mois).join(format!("DSN_{}.dsn", socle::date::etiquette_du_mois(&mois).unwrap()));
+        let f = racine.join("sorties").join(&mois).join(format!("DSN_{}.dsn", socle::mois::Mois::lire(&mois).map(socle::mois::Mois::etiquette).unwrap()));
         let texte: String = std::fs::read(&f).unwrap_or_else(|_| panic!("{} manque", f.display())).iter().map(|&o| o as char).collect();
         let (mut individus, mut versements, mut types) = (Vec::new(), Vec::new(), Vec::new());
         let mut courant: Option<serde_json::Map<String, Value>> = None;

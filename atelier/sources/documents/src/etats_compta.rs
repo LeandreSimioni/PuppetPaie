@@ -1106,7 +1106,7 @@ fn provision_d_une_annee_importee(
     avert: &mut Vec<String>,
 ) -> R<usize> {
     let ko = |x: String| erreur("ErreurOperation", x);
-    let fin = socle::date::dernier_du_mois(m).map_err(|x| erreur("ValueError", x))?;
+    let fin = socle::mois::Mois::lire(m).map(socle::mois::Mois::dernier_jour).map_err(|x| erreur("ValueError", x))?;
     let lendemain = fin.plus_jours(1).map_err(|x| erreur("ValueError", x))?;
     let importes: Vec<String> = p.dispo.iter().filter(|(_, s)| **s == crate::etats_paie::IMPORTE).map(|(k, _)| k.clone()).collect();
     let premier_importe = importes.first().cloned().unwrap_or_default();
@@ -1124,12 +1124,12 @@ fn provision_d_une_annee_importee(
     // Les bruts repris d'un salarie du mois de `du` a celui de `au`, et si les bulletins repris couvrent ces mois.
     let mut bruts = |cle: &str, du: &socle::date::Jour, au: &socle::date::Jour| -> R<(Decimal, bool)> {
         let mut total = zero2();
-        for mois in importes.iter().filter(|x| x.as_str() >= du.mois_iso().as_str() && x.as_str() <= au.mois_iso().as_str()) {
+        for mois in importes.iter().filter(|x| x.as_str() >= du.mois_civil().to_string().as_str() && x.as_str() <= au.mois_civil().to_string().as_str()) {
             for q in lecture.paies(mois)?.iter().filter(|q| q.importee.is_some() && cle_de(q) == cle) {
                 total = add(total, q.brut);
             }
         }
-        Ok((total, premier_importe.as_str() <= du.mois_iso().as_str()))
+        Ok((total, premier_importe.as_str() <= du.mois_civil().to_string().as_str()))
     };
     for pa in paies.iter().filter(|q| q.importee.is_some()) {
         let nat = pa.engagement.nat().map_err(|x| refus(x))?;
@@ -1192,7 +1192,7 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut sans_compteur = 0;
     let m = match saisis.last().cloned() {
         Some(m) => {
-            let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
+            let fin = socle::mois::Mois::lire(&m).map(socle::mois::Mois::dernier_jour).map_err(|x| erreur("ValueError", x))?;
             // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
             let (saisie, paies) = charger_mois(ctx, &m, &d.departs)?;
             let vide = Vec::new();
@@ -1222,7 +1222,7 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             m
         }
     };
-    let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
+    let fin = socle::mois::Mois::lire(&m).map(socle::mois::Mois::dernier_jour).map_err(|x| erreur("ValueError", x))?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
     let livre = lignes_livre(ctx, &toutes, &mut Vec::new(), &d.departs)?;
     let mut lignes: Vec<Ligne> = Vec::new();

@@ -158,7 +158,7 @@ impl Courriel for BoiteMuette {
 /// Le mois en lettres : « octobre 2026 ».
 fn mois_fr(mois: &str) -> String {
     // Une ligne du recit ne se refuse pas pour son mois : un mois hors 01-12 s'ecrit tel quel, jamais janvier.
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
+    socle::mois::Mois::en_clair(mois)
 }
 
 /// `JJ/MM/AAAA` d'un `AAAA-MM-JJ...`.
@@ -396,7 +396,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         let ctx = d.contexte()?;
         // Les mois saisis, et ceux dont la DSN est due sans engagement : ce que le panneau et les rappels reclament.
         for mois in &crate::routes::rappels::mois_a_parcourir(&ctx, jour)? {
-            let premier = socle::date::premier_du_mois(mois).map_err(Echec::from)?;
+            let premier = socle::mois::Mois::lire(mois).map(socle::mois::Mois::premier_jour).map_err(Echec::from)?;
             if jour < premier {
                 break;
             }
@@ -406,7 +406,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
             }
             // Un mois echu dont tout est deja fait (par la personne, avant que l'horloge ne passe) est fait : rien n'est a
             // jouer pour lui.
-            let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+            let suivant = socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
             if jour >= suivant && mois_fait(&ctx, mois, jour)? {
                 clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
                 continue;
@@ -528,11 +528,11 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
     }
     calendrier.extend(signalements_dus(ctx, mois, jour, false));
 
-    let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+    let suivant = socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
     if jour < suivant {
         return Ok(false);
     }
-    let fin = socle::date::dernier_du_mois(mois).map_err(Echec::from)?;
+    let fin = socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(Echec::from)?;
     let valide_le = match crate::interface::compagnies::cree_le(d.racine) {
         Some(c) if c > suivant => c.min(jour),
         _ => suivant,

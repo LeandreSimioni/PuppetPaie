@@ -135,7 +135,7 @@ impl Importe {
             let mut m = debut[..7].to_string();
             while m.as_str() <= &fin[..7] {
                 v.push(m.clone());
-                match stock::mois_apres(&m) {
+                match socle::mois::Mois::lire(&m).map(|m| m.suivant().to_string()) {
                     Ok(n) => m = n,
                     Err(_) => break,
                 }
@@ -523,7 +523,7 @@ fn continue_ici(e: &Map<String, Value>, dernier: &str) -> Resultat<bool> {
     let texte = |k: &str| e.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
     let nature = texte("nature");
     let mensuel = !nature.is_empty() && droit::natures::nature(Some(&nature)).is_ok_and(|n| n.mensuelle());
-    let suite = stock::mois_apres(dernier)?;
+    let suite = socle::mois::Mois::lire(dernier).map(|m| m.suivant().to_string())?;
     let fin = texte("fin");
     Ok(mensuel && mois_verses(e).iter().any(|m| m == dernier) && (fin.is_empty() || fin.as_str() >= format!("{}-01", suite).as_str()))
 }
@@ -559,7 +559,7 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Map<String, Value>>) -> Resultat
         }
         let debut = e.get("debut").map(en_texte).unwrap_or_default();
         let mois = match &dernier {
-            Some(d) if continue_ici(&e, d)? => stock::mois_apres(d)?,
+            Some(d) if continue_ici(&e, d)? => socle::mois::Mois::lire(d).map(|m| m.suivant().to_string())?,
             _ if debut.len() >= 7 => debut[..7].to_string(),
             _ => verses.first().cloned().ok_or("un engagement importe sans debut ni paie")?,
         };

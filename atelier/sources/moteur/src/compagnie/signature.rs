@@ -29,7 +29,7 @@ use envois::courriel::Courriel;
 use envois::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
 use socle::echec::{erreur, R};
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::vrai;
 use socle::echec::Echec;
 use socle::fichiers::nom_du;
 use socle::html::{html_echapper, mailto};
@@ -347,7 +347,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     }
     controler_avenants(ctx, avenants)?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
-    let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
+    let etiq = socle::mois::Mois::lire(&s_mois).map(socle::mois::Mois::etiquette).map_err(|m| erreur("ValueError", m))?;
     let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;
     let (mut fichiers, mut contrats) = (Vec::new(), Vec::new());
     for (cle, ps, _) in &par_salarie {
@@ -408,9 +408,9 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None, &departs)?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
-    let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
+    let etiq = socle::mois::Mois::lire(&s_mois).map(socle::mois::Mois::etiquette).map_err(|m| erreur("ValueError", m))?;
 
-    let (an, nom_mois) = an_et_nom_du_mois(&s_mois)?;
+    let (an, nom_mois) = socle::mois::Mois::lire(&s_mois).map(|m| (m.annee(), m.nom(socle::mois::Graphie::Accentuee)))?;
     let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;
     // UN SALARIE SANS COURRIEL n'empeche pas les autres : son contrat ne part pas par courriel, il s'imprime ; les
     // autres partent. Les adresses se lisent avant d'ecrire le moindre PDF : un refus ne laisse rien sur le disque.
@@ -613,18 +613,6 @@ pub fn avenants_sans_courriel_dit(noms: &[String]) -> String {
     }
 }
 
-/// L'annee et le nom du mois d'un « AAAA-MM », pour les sujets des courriels (« octobre 2026 ») ; un mois illisible ou
-/// hors 01-12 se refuse (`date::nom_du_mois`).
-pub fn an_et_nom_du_mois(mois: &str) -> R<(i32, &'static str)> {
-    let lire = |t: Option<&str>| -> R<i64> {
-        let t = t.unwrap_or("");
-        t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
-    };
-    let an = lire(mois.get(..4))?;
-    let nom = socle::date::nom_du_mois(lire(mois.get(5..7))?, socle::date::Graphie::Accentuee).map_err(|e| erreur("IndexError", e))?;
-    Ok((an as i32, nom))
-}
-
 /// LA DEMANDE DE SIGNATURE : le mois, ce qu'elle est (une relance, un contrat refait qui remplace celui qui est parti),
 /// les contrats choisis. `etats_des_contrats` : pour une relance, l'etat de chaque contrat du mois tel que
 /// `signature-apercu` le montre (demande, revenu, caduc).
@@ -788,7 +776,7 @@ fn avenant_ecrit(
             a.numero(),
             salarie,
             if vrai(&a.apercu["contrat"]) { valeur_en_texte(&a.apercu["contrat"]) } else { "sans-numero".to_string() },
-            socle::date::etiquette_du_mois(&mois_a).map_err(|m| erreur("ValueError", m))?
+            socle::mois::Mois::lire(&mois_a).map(socle::mois::Mois::etiquette).map_err(|m| erreur("ValueError", m))?
         ));
         documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &a.modifications(), a.numero(), &jj(&a.texte("date_contrat"))?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
         f
@@ -842,7 +830,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
     let (mut partis, mut lignes, mut faits): (Vec<String>, Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new(), Vec::new());
     for (salarie, aa) in par_salarie {
         let mois = aa[0].texte("mois");
-        let (an, nom_mois) = an_et_nom_du_mois(&mois)?;
+        let (an, nom_mois) = socle::mois::Mois::lire(&mois).map(|m| (m.annee(), m.nom(socle::mois::Graphie::Accentuee)))?;
         let mut pdfs: Vec<PathBuf> = Vec::new();
         let mut lignes_contrats: Vec<Value> = Vec::new();
         let mut sal: Option<Value> = None;

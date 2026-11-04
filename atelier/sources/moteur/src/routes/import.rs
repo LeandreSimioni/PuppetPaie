@@ -869,11 +869,11 @@ fn origine(e: &Value) -> String {
         "certificat" | "AEM" => format!(
             "{}{}{}",
             if t("source") == "AEM" { "l'AEM" } else { "le certificat Congés Spectacles" },
-            if t("mois").is_empty() { String::new() } else { format!(" {}", socle::texte::de(&engagement::libelle_mois(&t("mois")))) },
+            if t("mois").is_empty() { String::new() } else { format!(" {}", socle::texte::de(&socle::mois::Mois::en_clair(&t("mois")))) },
             fichier
         ),
         _ if t("source") == "bulletin" || e.get("bulletin").is_some() => format!("le bulletin{}", fichier),
-        _ => format!("la DSN {}", socle::texte::de(&engagement::libelle_mois(&t("mois")))),
+        _ => format!("la DSN {}", socle::texte::de(&socle::mois::Mois::en_clair(&t("mois")))),
     }
 }
 
@@ -893,8 +893,8 @@ fn dire_l_etat_de_l_import(v: &mut Value) {
     let mut bornes: Vec<String> = std::iter::once(&v["du"]).chain(std::iter::once(&v["au"])).chain(reprises.iter().flat_map(|r| [&r["du"], &r["au"]])).map(super::mot).filter(|x| !x.is_empty()).map(|x| x.chars().take(7).collect()).collect();
     bornes.sort();
     let periode = match (bornes.first(), bornes.last()) {
-        (Some(du), Some(au)) if du == au => format!(", en {}", engagement::libelle_mois(du)),
-        (Some(du), Some(au)) => format!(", {} à {}", socle::texte::de(&engagement::libelle_mois(du)), engagement::libelle_mois(au)),
+        (Some(du), Some(au)) if du == au => format!(", en {}", socle::mois::Mois::en_clair(du)),
+        (Some(du), Some(au)) => format!(", {} à {}", socle::texte::de(&socle::mois::Mois::en_clair(du)), socle::mois::Mois::en_clair(au)),
         _ => String::new(),
     };
     v["repris_dit"] = if quoi.is_empty() { Value::Null } else { json!(format!("{}{}", quoi.join(", "), periode)) };
@@ -920,7 +920,7 @@ fn dire_l_etat_de_l_import(v: &mut Value) {
         if vrai(&x["en_cours"]) {
             x["en_cours_dit"] = json!(format!(
                 "Payé jusqu'en {} : son contrat continue en {}, et sa DSN le déclare avec la date de début et le numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur le bulletin.",
-                engagement::libelle_mois(&au), engagement::libelle_mois(&suite)
+                socle::mois::Mois::en_clair(&au), socle::mois::Mois::en_clair(&suite)
             ));
         }
     }
@@ -939,7 +939,7 @@ fn dire_ce_qui_est_repris(v: &mut Value) {
     let jour = super::jour_en_clair;
     let creer = |k: u64| if ecrit { if k > 1 { " créées" } else { " créée" } } else { " à créer" };
     // Les declarations.
-    let periode = if super::mot(&v["premier_mois"]).is_empty() { String::new() } else { format!(" ({} → {})", engagement::libelle_mois(&super::mot(&v["premier_mois"])), engagement::libelle_mois(&super::mot(&v["dernier_mois"]))) };
+    let periode = if super::mot(&v["premier_mois"]).is_empty() { String::new() } else { format!(" ({} → {})", socle::mois::Mois::en_clair(&super::mot(&v["premier_mois"])), socle::mois::Mois::en_clair(&super::mot(&v["dernier_mois"]))) };
     let contrats = if n(v, "contrats") > 0 {
         format!(
             "{} contrat(s) attesté(s) du {} au {} : {} {} à l'historique, {} déjà connu(s){}",
@@ -1006,7 +1006,7 @@ fn dire_ce_qui_est_repris(v: &mut Value) {
             for p in f["pages"].as_array_mut().into_iter().flatten() {
                 let page = super::mot(&p["page"]);
                 let mois = super::mot(&p["mois"]);
-                p["page_dit"] = json!(if mois.is_empty() { format!("page {}", page) } else { format!("page {} ({})", page, engagement::libelle_mois(&mois)) });
+                p["page_dit"] = json!(if mois.is_empty() { format!("page {}", page) } else { format!("page {} ({})", page, socle::mois::Mois::en_clair(&mois)) });
                 p["ou_dit"] = json!(if nb > 1 { format!("{}, page {}", chemin, page) } else { chemin.clone() });
                 for e in p["ecarts"].as_array_mut().into_iter().flatten() {
                     let champ = super::mot(&e["champ"]);
@@ -1070,7 +1070,7 @@ fn dire_la_fiche(f: &mut Value) {
         } else if e.get("bulletin").is_some() {
             (format!("le bulletin ({}) disait", fichier), super::mot(&e["bulletin"]))
         } else {
-            (format!("la DSN {} disait", socle::texte::de(&engagement::libelle_mois(&super::mot(&e["mois"])))), super::mot(&e["dsn"]))
+            (format!("la DSN {} disait", socle::texte::de(&socle::mois::Mois::en_clair(&super::mot(&e["mois"])))), super::mot(&e["dsn"]))
         };
         e["dit"] = json!(format!("{} « {} », la fiche dit « {} » : la fiche fait foi", ou, lu, super::mot(&e["fiche"])));
     }

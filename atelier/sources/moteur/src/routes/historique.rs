@@ -150,7 +150,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             });
             v["ecran"]["bouton"] = json!(format!("Reprendre ces {} dépôt(s)", n));
             for d in v["ajoutes"].as_array_mut().into_iter().flatten() {
-                let mois = d["mois"].as_str().filter(|m| !m.is_empty()).map(engagement::libelle_mois).unwrap_or_else(|| "mois inconnu".to_string());
+                let mois = d["mois"].as_str().filter(|m| !m.is_empty()).map(socle::mois::Mois::en_clair).unwrap_or_else(|| "mois inconnu".to_string());
                 d["dit"] = json!(format!("{} — {}", super::quand(&valeur_en_texte(&d["quand"])), mois));
                 let logiciel = d["logiciel"].as_str().filter(|l| !l.is_empty()).unwrap_or("logiciel inconnu").to_string();
                 d["origine_dit"] = json!(format!("déposé par {} · flux {}", logiciel, valeur_en_texte(&d["flux"])));

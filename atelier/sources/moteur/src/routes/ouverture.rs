@@ -730,7 +730,7 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
         for e in rd.flatten() {
             let nom = e.file_name().to_string_lossy().into_owned();
             // Les dossiers AAAA-MM seulement : `sorties/exercices/` n'est pas un mois.
-            if socle::date::mois_valide(&nom) && e.path().is_dir() {
+            if socle::mois::Mois::lire(&nom).is_ok() && e.path().is_dir() {
                 vus.insert(nom.clone());
                 dossiers.insert(nom, e.path());
             }

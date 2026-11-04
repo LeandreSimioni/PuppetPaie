@@ -66,14 +66,6 @@ fn sans_prives(v: &Value) -> Value {
 
 // ------------------------------------------------------------------ l'alerte CASC-SVP
 
-/// « janvier 2025 » : le nom d'un mois de l'alerte CASC-SVP. « 00 » n'est aucun mois et se refuse
-/// (`date::numero_du_mois`), comme un mois illisible.
-fn libelle_casc(m: &str) -> R<String> {
-    let n = socle::date::numero_du_mois(m).map_err(|e| erreur("ValueError", e))?;
-    let nom = socle::date::nom_du_mois(n as i64, socle::date::Graphie::Accentuee).map_err(|e| erreur("ValueError", e))?;
-    Ok(format!("{} {}", nom, m.chars().take(4).collect::<String>()))
-}
-
 /// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois (la paie
 /// versee d'un engagement importe), sa copie sous `historique/bulletins/`, ou qu'est la compagnie. `None` : un mois que
 /// l'import n'a pas retenu ; un fichier retenu introuvable refuse.
@@ -165,7 +157,8 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     if par_mois.is_empty() {
         return Ok(None);
     }
-    let periode = format!("{} à {}", libelle_casc(&par_mois[0].0)?, libelle_casc(&par_mois[par_mois.len() - 1].0)?);
+    let libelle = |m: &str| socle::mois::Mois::lire(m).map(|m| m.libelle(socle::mois::Graphie::Accentuee)).map_err(|e| erreur("ValueError", e));
+    let periode = format!("{} à {}", libelle(&par_mois[0].0)?, libelle(&par_mois[par_mois.len() - 1].0)?);
     let total = par_mois.iter().fold(Decimal::ZERO, |a, (_, c)| a + *c);
     Ok(Some(format!(
         "CASC-SVP : {} DSN déposée(s) depuis janvier 2025 ({}) ne portent peut-être pas la cotisation CASC-SVP -- un logiciel qui n'était pas paramétré l'a omise. Si Audiens ne l'a pas encaissée, {} sont à régulariser : Exports > « regularisation-casc-svp » fait le dossier (virements, courriels, liste nominative).",
@@ -818,15 +811,4 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["couleur"] = json!(crate::routes::couleur_de_l_etat("fait"));
     rapporter_les_ecarts(ctx);
     Ok(reponse)
-}
-
-#[cfg(test)]
-mod tests_mois {
-    /// Le mois « 00 » d'une alerte CASC-SVP n'est aucun mois et se refuse (ce n'est pas janvier).
-    #[test]
-    fn le_mois_00_de_l_alerte_casc_se_refuse() {
-        let refus = super::libelle_casc("2026-00").unwrap_err();
-        assert!(refus.message.contains(&socle::date::mois_impossible(0)), "{}", refus.message);
-        assert_eq!(super::libelle_casc("2025-03").unwrap(), "mars 2025");
-    }
 }

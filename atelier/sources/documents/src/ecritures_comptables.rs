@@ -47,21 +47,10 @@ impl Ecriture {
     }
 }
 
-/// Le dernier jour du mois, AAAA-MM-JJ.
-fn dernier_jour(annee: i64, mois: i64) -> R<String> {
-    let (a, m) = if mois == 12 { (annee + 1, 1) } else { (annee, mois + 1) };
-    let premier = socle::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
-    Ok(premier.plus_jours(-1).map_err(|x| erreur("ValueError", x))?.iso())
-}
-
-/// La date de l'ecriture d'un mois (son dernier jour) et son libelle (« Decembre 2026 »). « 00 » n'est aucun mois et se
-/// refuse (`date::numero_du_mois`).
+/// La date de l'ecriture d'un mois (son dernier jour, AAAA-MM-JJ) et son libelle (« Decembre 2026 »).
 fn date_et_libelle(mois: &str) -> R<(String, String)> {
-    let annee: i64 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
-    let mo = i64::from(socle::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
-    let date = dernier_jour(annee, mo)?;
-    let nom = socle::date::nom_du_mois(mo, socle::date::Graphie::Titre).map_err(|e| erreur("ValueError", e))?;
-    Ok((date, format!("{} {}", nom, annee)))
+    let mois = socle::mois::Mois::lire(mois).map_err(|e| erreur("ValueError", e))?;
+    Ok((mois.dernier_jour().iso(), mois.libelle(socle::mois::Graphie::Titre)))
 }
 
 /// `plan[cle]` : `KeyError` s'il manque.

@@ -277,7 +277,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     // ------------------------------------------------------------ S21 contrat
     if !changement {
         // Les emplois multiples (`40.036`) : les autres contrats du salarie dans le mois de l'embauche.
-        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_iso(), departs)?;
+        let du_mois = crate::dsn::contrats_du_mois(ctx, &e.debut_periode()?.mois_civil().to_string(), departs)?;
         let emplois = crate::dsn::emplois_multiples(paie, &du_mois.iter().collect::<Vec<_>>());
         bloc_contrat(&mut f, paie, &etab, &orgs, 1, &bar, false, &[], NATURE, emplois)?;
         // L'anciennete, due des qu'une adhesion prevoyance est declaree.

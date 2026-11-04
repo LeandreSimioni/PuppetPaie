@@ -749,15 +749,9 @@ const CHAMPS_BILAN: [&str; 16] = [
     "siret_declarant",
 ];
 
-/// `'01082026'` -> `'2026-08'`.
+/// `'01082026'` -> `'2026-08'` (S20.G00.05.005) ; rien s'il ne se lit pas.
 fn mois_lisible(brut: &str) -> String {
-    let c: Vec<char> = nettoye(brut).chars().collect();
-    if c.len() == 8 && c[0] == '0' && c[1] == '1' && c[2..].iter().all(|&x| est_chiffre(x)) {
-        let mm: String = c[2..4].iter().collect();
-        let aaaa: String = c[4..8].iter().collect();
-        return format!("{}-{}", aaaa, mm);
-    }
-    String::new()
+    socle::mois::Mois::de_la_dsn(&nettoye(brut)).map(|m| m.to_string()).unwrap_or_default()
 }
 
 fn bilan_depuis(champs: &[(String, String)], type_rapport: &str) -> Option<Value> {
@@ -2219,9 +2213,8 @@ fn texte_ou_vide(v: &Value) -> String {
 
 /// `DateMoisDec` est le dernier jour du mois au format JJMMAAAA (exemples de la fiche 692 : « 31032023 ») : `AAAA-MM`.
 fn mois_de_jjmmaaaa(brut: &str) -> String {
-    let c: Vec<char> = brut.chars().collect();
-    if c.len() == 8 && c.iter().all(|x| x.is_ascii_digit()) {
-        return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());
+    match socle::date::Jour::lire(brut) {
+        Ok(j) if brut.len() == 8 => j.mois_civil().to_string(),
+        _ => brut.to_string(),
     }
-    brut.to_string()
 }

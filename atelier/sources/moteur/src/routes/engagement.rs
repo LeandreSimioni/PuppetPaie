@@ -254,7 +254,7 @@ fn a_partir_de(o: &engagement::stock::Objet, devenu: &engagement::stock::Objet, 
         return None;
     }
     let du_mois = |x: &engagement::stock::Objet| -> Vec<(String, socle::date::Jour, Value)> {
-        x.changements().into_iter().filter(|(_, j, _)| j.mois_iso() == mois).collect()
+        x.changements().into_iter().filter(|(_, j, _)| j.mois_civil().to_string() == mois).collect()
     };
     let apres = du_mois(devenu);
     (apres != du_mois(o)).then(|| apres.iter().map(|(_, j, _)| *j).max()).flatten()
@@ -391,7 +391,7 @@ pub(crate) fn a_faire_en_phrases(a: &[engagement::etats::ARefaire]) -> Vec<Strin
     use engagement::etats::ARefaire;
     a.iter()
         .filter_map(|x| match x {
-            ARefaire::Dsn { mois, .. } => Some(format!("DSN de {} à corriger", engagement::libelle_mois(mois))),
+            ARefaire::Dsn { mois, .. } => Some(format!("DSN de {} à corriger", socle::mois::Mois::en_clair(mois))),
             _ => None,
         })
         .collect()

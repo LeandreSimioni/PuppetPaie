@@ -25,7 +25,7 @@ use engagement::imprevus::{self, ARRET, SUSPENSION};
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
 use socle::date::{d, en_texte, repr_texte, Jour};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::num::Decimal;
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
 
@@ -309,7 +309,7 @@ fn meme_imprevu(a: &Value, b: &Value) -> bool {
 /// L'imprevu de ce genre, de ce salarie, a ce jour de rangement (le dernier jour travaille d'un arret, le debut d'une
 /// suspension) : son indice et le fichier de son mois, tous genres compris.
 pub(crate) fn trouver(ctx: &Contexte, genre: &str, cle: &str, jour: &Jour) -> R<Option<(usize, Vec<Value>)>> {
-    let liste = magasin(imprevus::du_fichier(&ctx.racine, &jour.mois_iso()))?;
+    let liste = magasin(imprevus::du_fichier(&ctx.racine, &jour.mois_civil().to_string()))?;
     let i = liste.iter().position(|x| {
         imprevus::genre(x) == genre && valeur_en_texte(&x["salarie"]) == cle && imprevus::jour_de_rangement(x).ok() == Some(*jour)
     });
@@ -374,7 +374,7 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
     if fin >= ctx.aujourdhui {
         return Ok(true);
     }
-    Ok(!reporte_par(ctx, imp)?.iter().any(|m| valeur_en_texte(m) >= fin.mois_iso()))
+    Ok(!reporte_par(ctx, imp)?.iter().any(|m| valeur_en_texte(m) >= fin.mois_civil().to_string()))
 }
 
 // ------------------------------------------------------------------ le resume
@@ -479,8 +479,8 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
     let bornes = match &mois {
         Some(m) => Some((
-            socle::date::premier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
-            socle::date::dernier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
+            socle::mois::Mois::lire(m).map(socle::mois::Mois::premier_jour).map_err(|e| erreur("ValueError", e))?,
+            socle::mois::Mois::lire(m).map(socle::mois::Mois::dernier_jour).map_err(|e| erreur("ValueError", e))?,
         )),
         None => None,
     };
@@ -569,7 +569,7 @@ fn arret_indemnites(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     imprevus::complet(&nouveau).map_err(refus)?;
     liste[i] = nouveau.clone();
-    ecrire(ctx, &dernier.mois_iso(), liste)?;
+    ecrire(ctx, &dernier.mois_civil().to_string(), liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({"arret": resume(ctx, &n, &nouveau)?, "phrase": "Indemnités journalières notées."}))
 }
@@ -688,7 +688,7 @@ plus tôt, c'est une reprise anticipée, qui se saisit comme telle et se signale
         None => a["prolongations"] = json!([trace]),
     }
     liste[i] = a.clone();
-    ecrire(ctx, &dernier.mois_iso(), liste)?;
+    ecrire(ctx, &dernier.mois_civil().to_string(), liste)?;
 
     let nouvelle_fin = jour(&a["fin_previsionnelle"])?;
     let mut avertissements = Vec::new();
@@ -700,12 +700,12 @@ l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche n
         )));
         // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
         let declares = reporte_par(ctx, &avant)?;
-        for m in socle::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
+        for m in socle::mois::Mois::entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin).iter().map(socle::mois::Mois::to_string) {
             if declares.iter().any(|x| valeur_en_texte(x) == m) {
                 avertissements.push(json!(format!(
                     "La DSN de {} est déjà partie avec l'ancienne fin (le {}) : la paie de ce mois, où les jours ajoutés \
 tombent, est à corriger.",
-                    engagement::libelle_mois(&m),
+                    socle::mois::Mois::en_clair(&m),
                     fin_avant.jj_mm_aaaa()
                 )));
             }
@@ -804,7 +804,7 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
         )));
     }
     sans_chevauchement(ctx, &s, None)?;
-    let mois = debut.mois_iso();
+    let mois = debut.mois_civil().to_string();
     let mut liste = magasin(imprevus::du_fichier(&ctx.racine, &mois))?;
     liste.push(s.clone());
     ecrire(ctx, &mois, liste)?;
@@ -834,7 +834,7 @@ fn suspension_modifier(ctx: &Contexte, charge: &Value) -> R<Value> {
     verifier_suspension(&s, &fin_du_contrat(ctx, &s)?)?;
     sans_chevauchement(ctx, &s, Some(&avant))?;
     liste[i] = s.clone();
-    ecrire(ctx, &debut.mois_iso(), liste)?;
+    ecrire(ctx, &debut.mois_civil().to_string(), liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({"suspension": resume(ctx, &n, &s)?, "phrase": "Absence changée."}))
 }
@@ -856,7 +856,7 @@ reprendre (une fin plus tot), ou corriger les DSN deposees.",
         )));
     }
     let s = liste.remove(i);
-    ecrire(ctx, &debut.mois_iso(), liste)?;
+    ecrire(ctx, &debut.mois_civil().to_string(), liste)?;
     let n = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({"suspension": resume(ctx, &n, &s)?, "phrase": "Absence retirée : aucune déclaration ne l'avait portée."}))
 }
@@ -999,7 +999,7 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
         _ => None,
     };
 
-    let mois = dernier.mois_iso();
+    let mois = dernier.mois_civil().to_string();
     if crate::routes::imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &dernier)?.is_some() {
         return Err(refus(format!(
             "Un arret de {} au {} est deja enregistre. Le modifier plutot que d'en saisir un second : deux arrets au meme dernier jour travaille, ce sont deux declarations qui se contredisent.",
@@ -1090,14 +1090,6 @@ fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
     engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
-/// Le mois en toutes lettres (« mai 2026 ») pour une phrase ; tel quel s'il n'a pas la forme AAAA-MM.
-fn mois_dit(mois: &str) -> String {
-    match mois.get(..4) {
-        Some(_) if mois.len() == 7 => engagement::libelle_mois(mois),
-        _ => mois.to_string(),
-    }
-}
-
 /// La cle de la fiche que `nom` designe, comme partout dans le moteur (`Contexte::salarie` : la casse, les accents, le
 /// prenom, le NIR ne comptent pas). Un nom qui ne designe personne se refuse avec la phrase de `Contexte::salarie`.
 fn cle_du_nom(ctx: &Contexte, nom: &str) -> R<String> {
@@ -1137,12 +1129,12 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
         .map(|(i, x)| (i, avec_ses_bornes(&ctx.racine, x)))
         .collect();
     if siens.is_empty() {
-        return Err(refus(format!("{} n'a aucun engagement en {} : aucun contrat ne s'y termine.", nom, mois_dit(mois))));
+        return Err(refus(format!("{} n'a aucun engagement en {} : aucun contrat ne s'y termine.", nom, socle::mois::Mois::en_clair(mois))));
     }
     let finit = |x: &Value| x.get("fin").and_then(Value::as_str).is_some_and(|f| f.starts_with(mois));
     let rompu = siens.iter().position(|(_, x)| finit(x) && x.get("motif_rupture").is_some_and(vrai));
     let i = rompu.or_else(|| siens.iter().position(|(_, x)| finit(x))).ok_or_else(|| {
-        refus(format!("{} n'a aucun contrat qui se termine en {}.", nom, mois_dit(mois)))
+        refus(format!("{} n'a aucun contrat qui se termine en {}.", nom, socle::mois::Mois::en_clair(mois)))
     })?;
     Ok(siens.into_iter().nth(i).expect("rang lu dans la meme liste"))
 }
@@ -1153,7 +1145,7 @@ fn paie_de_l_engagement(paies: &[Paie], rang: usize, cle: &str, nom: &str, mois:
         .get(rang)
         .filter(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
         .cloned()
-        .ok_or_else(|| refus(format!("{} n'a aucune paie validee en {} pour ce contrat.", nom, mois_dit(mois))))
+        .ok_or_else(|| refus(format!("{} n'a aucune paie validee en {} pour ce contrat.", nom, socle::mois::Mois::en_clair(mois))))
 }
 
 /// `fin-contrat-documents` : le certificat de travail et le recu pour solde de tout compte (`documents::fin_de_contrat`)
@@ -1463,11 +1455,6 @@ fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
     crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", socle::echec::charge(cle, "un texte")))
 }
 
-/// Le nombre d'un morceau de nom de mois ; refus s'il ne se lit pas.
-fn entier(t: &str) -> R<i64> {
-    t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
-}
-
 /// Le champ `k` d'une valeur, `defaut` s'il manque.
 fn champ(v: &Value, k: &str, defaut: Value) -> Value {
     v.get(k).cloned().unwrap_or(defaut)
@@ -1637,20 +1624,6 @@ fn arrets(ctx: &Contexte) -> R<Value> {
 
 // ----------------------------------------------------------- fins de contrat
 
-/// Le dernier jour du mois.
-fn fin_du_mois(mois: &str) -> R<Jour> {
-    let an = entier(&mois.chars().take(4).collect::<String>())?;
-    let mo = entier(&mois.chars().skip(5).take(2).collect::<String>())?;
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", socle::date::mois_impossible(mo)));
-    }
-    if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", socle::date::annee_impossible(an)));
-    }
-    let dernier = socle::date::jours_du_mois(an as i32, mo as u32);
-    Jour::nouveau(an as i32, mo as u32, dernier).ok_or_else(|| erreur("ValueError", socle::date::jour_impossible(an as i64, mo as i64, dernier)))
-}
-
 /// `KeyError` quand elle est inconnue.
 fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
     let texte = match cle {
@@ -1811,7 +1784,8 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
     };
     let journal = envois::journal::lu(&ctx.racine)?;
     let etats = engagement::etats::tels_qu_ecrits(ctx, mois, &journal.departs).map_err(Echec::from)?;
-    let fin_mois = fin_du_mois(mois)?;
+    let le_mois = socle::mois::Mois::lire(mois).map_err(|e| erreur("ValueError", e))?;
+    let fin_mois = le_mois.dernier_jour();
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
@@ -1826,7 +1800,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         if !nat.signalement_fctu(motif.as_deref()) || !vrai(get(e, "fin")?) {
             continue;
         }
-        let debut_du_mois = d(&json!(format!("{}-01", mois))).map_err(|m| erreur("ValueError", m))?;
+        let debut_du_mois = le_mois.premier_jour();
         let fin = d(&e["fin"]).map_err(|m| erreur("ValueError", m))?;
         if !(debut_du_mois <= fin && fin <= fin_mois) {
             continue;
@@ -1879,7 +1853,7 @@ fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
         let fin = crate::routes::jour_en_clair(&f["fin"]);
         let nom = ctx.salarie(&valeur_en_texte(&f["salarie"])).map(|s| crate::routes::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(&f["salarie"]));
         let ailleurs = match f["mois"].as_str().filter(|m| !m.is_empty() && *m != mois) {
-            Some(m) => format!(" ({})", engagement::libelle_mois(m)),
+            Some(m) => format!(" ({})", socle::mois::Mois::en_clair(m)),
             None => String::new(),
         };
         f["qui_dit"] = json!(format!("{}, {}, fin le {}{}", nom, valeur_en_texte(&f["nature"]), fin, ailleurs));
@@ -1900,7 +1874,7 @@ pub(crate) fn fins_en_retard_avant(ctx: &Contexte, mois: &str, aujourdhui: Jour)
     let mut out = Vec::new();
     let mut m = mois.to_string();
     for _ in 0..MOIS_EN_ARRIERE {
-        m = socle::date::premier_du_mois(&m).and_then(|j| j.plus_jours(-1)).map_err(|e| erreur("ValueError", e))?.mois_iso();
+        m = socle::mois::Mois::lire(&m).map(socle::mois::Mois::premier_jour).and_then(|j| j.plus_jours(-1)).map_err(|e| erreur("ValueError", e))?.mois_civil().to_string();
         let mut celles: Vec<Value> = fins_a_signaler(ctx, &m, aujourdhui)?
             .into_iter()
             .filter(|f| f["du"] == json!(true) && f["en_retard"] == json!(true))

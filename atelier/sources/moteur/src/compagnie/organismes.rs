@@ -77,7 +77,7 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     // contrat.
     let mut encarts = vec![crate::routes::encart("information", "", "Ce que la DSN déclare de vos adhésions de prévoyance et de santé. La référence du contrat et le code de l'organisme se lisent sur le certificat d'adhésion et sur la fiche de paramétrage DSN de l'organisme. Le reste (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi, de la convention et de la fiche Entreprise.")];
     if let Some(m) = v["mois"].as_str().filter(|m| !m.is_empty()) {
-        encarts.push(crate::routes::encart("information", "", format!("Les contrats en vigueur en {}.", engagement::libelle_mois(m))));
+        encarts.push(crate::routes::encart("information", "", format!("Les contrats en vigueur en {}.", socle::mois::Mois::en_clair(m))));
     }
     if v["a_saisir"] == json!(true) {
         encarts.push(crate::routes::encart("a_faire", "", "Une référence de contrat manque : la DSN refuse les salariés que ce contrat couvre tant qu'elle n'est pas enregistrée."));
@@ -146,8 +146,8 @@ fn periode(ctx: &Contexte, charge: &Value) -> R<(Jour, Jour)> {
         m if m.is_empty() => ctx.aujourdhui.iso()[..7].to_string(),
         m => m,
     };
-    let premier = socle::date::premier_du_mois(&mois).map_err(plain)?;
-    let dernier = socle::date::dernier_du_mois(&mois).map_err(plain)?;
+    let premier = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::premier_jour).map_err(plain)?;
+    let dernier = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::dernier_jour).map_err(plain)?;
     Ok((premier, dernier))
 }
 
@@ -167,7 +167,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({
         "idcc": txt(g(&ctx.entreprise, "idcc")),
         "a_saisir": a_saisir,
-        "mois": periode.0.mois_iso(),
+        "mois": periode.0.mois_civil().to_string(),
         "contrats": lignes,
     }))
 }

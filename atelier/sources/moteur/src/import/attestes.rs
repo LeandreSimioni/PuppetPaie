@@ -100,7 +100,7 @@ pub(crate) fn chevauche(d1: &str, f1: &str, d: &str, f: &str) -> bool {
 /// Les mois `AAAA-MM` de `debut` a `fin` (ISO) ; vide si une date ne se lit pas.
 fn mois_de(debut: &str, fin: &str) -> Vec<String> {
     match (socle::date::Jour::lire(debut), socle::date::Jour::lire(fin)) {
-        (Ok(d), Ok(f)) => socle::date::mois_entre(&d, &f),
+        (Ok(d), Ok(f)) => socle::mois::Mois::entre(&d, &f).iter().map(socle::mois::Mois::to_string).collect(),
         _ => Vec::new(),
     }
 }
@@ -117,7 +117,7 @@ fn reste_du_certificat(c: &Atteste, par: &[&Atteste]) -> Result<Option<Value>, S
     let coupes: BTreeSet<String> = par.iter().filter(|p| chevauche(&p.debut, &p.fin, &c.debut, &c.fin)).flat_map(|p| mois_de(&p.debut, &p.fin)).collect();
     let restent: Vec<usize> = (0..siens.len()).filter(|i| !coupes.contains(&siens[*i])).collect();
     let (Some(&premier), Some(&dernier)) = (restent.first(), restent.last()) else { return Ok(None) };
-    let libelle = |m: &str| socle::date::libelle_du_mois_ou_tel_quel(m, socle::date::Graphie::Accentuee);
+    let libelle = |m: &str| socle::mois::Mois::en_clair(m);
     let mois_restants = restent.iter().map(|i| libelle(&siens[*i])).collect::<Vec<_>>().join(", ");
     if dernier - premier + 1 != restent.len() {
         return Err(format!(
@@ -141,8 +141,8 @@ fn reste_du_certificat(c: &Atteste, par: &[&Atteste]) -> Result<Option<Value>, S
             en_mots(coupants.iter().map(|p| p.heures).sum(), cachets, jours, brut)
         ));
     }
-    let debut = socle::date::premier_du_mois(&siens[premier]).map(|j| j.iso()).unwrap_or_default().max(c.debut.clone());
-    let fin = socle::date::dernier_du_mois(&siens[dernier]).map(|j| j.iso()).unwrap_or_default().min(c.fin.clone());
+    let debut = socle::mois::Mois::lire(&siens[premier]).map(socle::mois::Mois::premier_jour).map(|j| j.iso()).unwrap_or_default().max(c.debut.clone());
+    let fin = socle::mois::Mois::lire(&siens[dernier]).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()).unwrap_or_default().min(c.fin.clone());
     let mut ligne = c.ligne.clone();
     let mut b = reste_brut.unwrap_or_default().round_dp(2);
     b.rescale(2);

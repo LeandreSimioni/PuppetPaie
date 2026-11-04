@@ -167,9 +167,14 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         return Ok(phrase_en_tete(v, p));
     }
     // UNE ROUTE QUI PORTE UN MOIS LIT LA CONFIGURATION DE CE MOIS (`Contexte::du_mois`) : sa paie, sa DSN et ses documents
-    // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui.
-    let ctx = match charge.get("mois").and_then(Value::as_str).filter(|m| socle::date::premier_du_mois(m).is_ok()) {
-        Some(m) => contexte(o)?.du_mois(m)?,
+    // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui. Le mois de la charge se lit ici, une
+    // fois : un mois qui ne se lit pas refuse la route, rien ne s'ecrit.
+    let mois = match charge.get("mois").and_then(Value::as_str).filter(|m| !m.is_empty()) {
+        Some(m) => Some(socle::mois::Mois::lire(m).map_err(|e| erreur("ValueError", socle::echec::a_la_cle("Le mois de la demande ne se lit pas : il s'écrit AAAA-MM, de 01 à 12.", "mois", e)))?),
+        None => None,
+    };
+    let ctx = match mois {
+        Some(m) => contexte(o)?.du_mois(&m.to_string())?,
         None => contexte(o)?,
     };
     let dans = |l: &[catalogue::Fiche]| catalogue::dans(l, route).is_some();

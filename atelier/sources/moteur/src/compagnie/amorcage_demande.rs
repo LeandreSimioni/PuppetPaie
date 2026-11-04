@@ -239,7 +239,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         let raisons: Vec<String> = ecartes.iter().map(|l| format!("{} ({})", l.salarie, l.pourquoi_pas)).collect();
         return Err(erreur("AmorcageImpossible", format!("Taux de PAS non demandé : {}.", raisons.join(" ; "))));
     }
-    let mois = if d.mois.is_empty() { d.constitution.mois_iso() } else { d.mois.to_string() };
+    let mois = if d.mois.is_empty() { d.constitution.mois_civil().to_string() } else { d.mois.to_string() };
     let dossier = ctx.racine.join("sorties").join(&mois);
     let fichiers = ecrire(ctx, paies, &retenus, d.motif, &mois, d.constitution, d.envoi_test)?;
     ecrits.extend(fichiers.iter().cloned());

@@ -596,7 +596,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         let cle = texte(&p.salarie, "_cle");
         let (heures_mois, cachets_mois) = du_mois.get(&cle).copied().unwrap_or((0, 0));
         let qui = prenom(&p.salarie);
-        let mois = socle::date::libelle_du_mois_ou_tel_quel(&e.mois, socle::date::Graphie::Accentuee);
+        let mois = socle::mois::Mois::en_clair(&e.mois);
         let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
             let mut v = Valeurs::new();
             v.insert("prenom".into(), val_texte(qui.clone()));
@@ -723,7 +723,7 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
     let (debut, fin, _) = f;
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
-    for mois in socle::date::mois_entre(debut, fin) {
+    for mois in socle::mois::Mois::entre(debut, fin).iter().map(socle::mois::Mois::to_string) {
         let Ok(Some((_, paies))) = engagement::etats::validees_du_mois(ctx, &mois, departs) else { continue };
         for p in &paies {
             let e = &p.engagement;
@@ -818,7 +818,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
         pousser(
             "historique:cachets-perdus",
             base(vec![
-                ("mois", val_texte(socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee))),
+                ("mois", val_texte(socle::mois::Mois::en_clair(&m))),
                 ("cachets", val_entier(n)),
                 ("plafond", val_entier(c.cachets_par_mois)),
                 ("perdus", val_entier(n - c.cachets_par_mois)),

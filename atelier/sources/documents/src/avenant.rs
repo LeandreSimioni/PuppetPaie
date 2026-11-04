@@ -17,7 +17,8 @@ use serde_json::Value;
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
 use droit::contexte::Contexte;
-use socle::date::{d, en_texte, premier_du_mois, Jour};
+use socle::date::{d, en_texte, Jour};
+use socle::mois::Mois;
 use droit::emplois::{emploi_de, EmploiEngagement};
 use socle::fichiers::vrai;
 use socle::nfkc::nfkc;
@@ -234,8 +235,7 @@ fn remuneration_detaillee(remuneration: &[Value], e: &Eng) -> Resultat<String> {
     }
     let mut phrase = et(&morceaux);
     if !e.dernier_mois {
-        let nom = socle::date::nom_du_mois(mois_de(&e.mois)? as i64, socle::date::Graphie::Accentuee)?;
-        let quand = format!("{} {}", nom, an_de(&e.mois)?);
+        let quand = Mois::lire(&e.mois)?.libelle(socle::mois::Graphie::Accentuee);
         if !e.planning.is_empty() {
             let n = e.planning.len();
             phrase += &format!(
@@ -266,23 +266,15 @@ pub(crate) fn remuneration_hors_brut(remuneration: &[Value]) -> Resultat<String>
     Ok(if morceaux.is_empty() { String::new() } else { format!(", auxquels s'ajoutent {} hors brut", et(&morceaux)) })
 }
 
-/// Le numero du mois, de 1 a 12 : « 00 » se refuse (`date::numero_du_mois`).
-fn mois_de(mois: &str) -> Resultat<usize> {
-    socle::date::numero_du_mois(mois).map(|n| n as usize)
-}
-
-fn an_de(mois: &str) -> Resultat<i32> {
-    mois.get(..4).and_then(|m| m.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))
-}
-
 /// « pour le mois d'octobre 2026 » quand le contrat se poursuit.
 fn periode_remuneration(e: &Eng) -> Resultat<String> {
     if e.dernier_mois {
         return Ok(String::new());
     }
-    let nom = socle::date::nom_du_mois(mois_de(&e.mois)? as i64, socle::date::Graphie::Accentuee)?;
+    let mois = Mois::lire(&e.mois)?;
+    let nom = mois.nom(socle::mois::Graphie::Accentuee);
     let de = if nom.chars().next().map_or(false, |c| "aeiouyâàéèêîôû".contains(c)) { "d'" } else { "de " };
-    Ok(format!(" pour le mois {}{} {}", de, nom, an_de(&e.mois)?))
+    Ok(format!(" pour le mois {}{} {}", de, nom, mois.annee()))
 }
 
 /// Les jours joues, et OU chacun se joue quand ils different.
@@ -362,7 +354,7 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
 /// mois d'un contrat pour le contrat, le mois de l'avenant pour un avenant -- un contrat commence avant le logiciel n'a
 /// pas de bareme de son annee.
 pub(crate) fn parties(ent: &Value, sal: &Value, sp: &Value, e: &Eng) -> Resultat<Valeurs> {
-    let (idcc, convention) = convention_du_contrat(ent, sp, sal, &premier_du_mois(&e.mois)?)?;
+    let (idcc, convention) = convention_du_contrat(ent, sp, sal, &Mois::lire(&e.mois)?.premier_jour())?;
     let sig = requis(ent, "signataire")?;
     let mut m = Valeurs::new();
     let mut poser = |k: &str, v: String| {
@@ -466,7 +458,7 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
 
 /// La fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
-    let licence = ctx.licence(&Jour::lire(&format!("{}-01", mois.get(..7).ok_or("mois illisible")?))?)?;
+    let licence = ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour())?;
     let mut ent = ctx.entreprise.clone();
     let o = ent.as_object_mut().ok_or("fiche entreprise : un objet est attendu")?;
     o.insert("licence_spectacle".into(), Value::String(licence));

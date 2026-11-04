@@ -44,7 +44,8 @@ use serde_json::{Map, Value};
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
-use socle::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, forme_ecrite, Jour};
+use socle::date::{d, en_texte, forme_ecrite, Jour};
+use socle::mois::Mois;
 use droit::emplois;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, dec_avec_echelle, div, flottant, nombre, Decimal, Resultat};
@@ -359,9 +360,9 @@ impl Engagement {
         let mut premier_cachet: Option<&Value> = None;
         // Les rubriques se lisent a la fin du mois paye (le mois dit, sinon celui de la premiere date jouee). Un mois
         // illisible se refuse plus loin, avec ce qui ne va pas : d'ici la, les rubriques se lisent au jour du moteur.
-        let jour_lu = dernier_du_mois(&mois_saisi)
+        let jour_lu = Mois::lire(&mois_saisi).map(Mois::dernier_jour)
             .ok()
-            .or_else(|| jours_joues.first().and_then(|j| dernier_du_mois(&j.mois_iso()).ok()))
+            .or_else(|| jours_joues.first().and_then(|j| Some(j.mois_civil().dernier_jour())))
             .unwrap_or_else(droit::contexte::jour_reel);
         for l in &lignes {
             let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
@@ -439,12 +440,12 @@ impl Engagement {
         // fin se declare dans la DSN du mois ou il finit (bloc S21.G00.62). La paie d'un mois d'avant ne change donc pas
         // quand la rupture se saisit.
         let fin = match fin {
-            Some(f) if nat.duree_indeterminee && dernier_du_mois(&mois_saisi).is_ok_and(|m| f > m) => None,
+            Some(f) if nat.duree_indeterminee && Mois::lire(&mois_saisi).map(Mois::dernier_jour).is_ok_and(|m| f > m) => None,
             autre => autre,
         };
 
-        let debut_mois_de = |m: &str| premier_du_mois(m);
-        let fin_mois_de = |m: &str| dernier_du_mois(m);
+        let debut_mois_de = |m: &str| Mois::lire(m).map(Mois::premier_jour);
+        let fin_mois_de = |m: &str| Mois::lire(m).map(Mois::dernier_jour);
         if !mensuel && lignes.is_empty() {
             let fin = fin.unwrap();
             if !(debut < debut_mois_de(&mois_saisi)? || fin > fin_mois_de(&mois_saisi)?) {
@@ -472,11 +473,11 @@ impl Engagement {
         // Les dates jouees tiennent dans le mois, quand le mois est dit.
         let hors: Vec<Jour> = jours_joues
             .iter()
-            .filter(|j| !mois_saisi.is_empty() && j.mois_iso() != mois_saisi)
+            .filter(|j| !mois_saisi.is_empty() && j.mois_civil().to_string() != mois_saisi)
             .copied()
             .collect();
         let mois = if mois_saisi.is_empty() {
-            jours_joues.first().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?.mois_iso()
+            jours_joues.first().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?.mois_civil().to_string()
         } else {
             mois_saisi
         };
@@ -587,11 +588,11 @@ impl Engagement {
     }
 
     pub fn debut_mois(&self) -> Resultat<Jour> {
-        premier_du_mois(&self.mois)
+        Mois::lire(&self.mois).map(Mois::premier_jour)
     }
 
     pub fn fin_mois(&self) -> Resultat<Jour> {
-        dernier_du_mois(&self.mois)
+        Mois::lire(&self.mois).map(Mois::dernier_jour)
     }
 
     /// Un mois du contrat sans aucun cachet : DSN oui, bulletin non.
@@ -704,7 +705,7 @@ impl Engagement {
             Some(f) => f,
             None => self.fin_mois()?,
         };
-        Ok(mois_entre(&self.debut, &fin))
+        Ok(Mois::entre(&self.debut, &fin).iter().map(Mois::to_string).collect())
     }
 
     // ------------------------------------------------------------ les lieux
@@ -1142,7 +1143,7 @@ pub(crate) fn engagements(
             poser(k, e.get(k));
         }
         let mut eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs), &qui)?;
-        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&dernier_du_mois(&eng.mois)?)?, &*eng.nat()?)?;
+        eng.versement = droit::versement::Versement::de_la_fiche(&ctx.entreprise_au(&Mois::lire(&eng.mois)?.dernier_jour())?, &*eng.nat()?)?;
         // Ce que l'ancien logiciel a verse est un fait : seul ce que la compagnie va verser se juge.
         if e.get(crate::importe::IMPORTE).is_none() {
             if let Some(refus) = versement_refuse(ctx, &eng, &qui)? {
@@ -1245,7 +1246,7 @@ fn lignes_au_tarif(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<Option<Val
         let premier = l.get("dates").and_then(Value::as_array).and_then(|a| a.first()).map(|x| d(x.get("jour").unwrap_or(x)));
         let jour = match premier {
             Some(j) => j?,
-            None => premier_du_mois(mois)?,
+            None => Mois::lire(mois)?.premier_jour(),
         };
         if let Some(t) = tarif_conventionnel(ctx, code, &jour)? {
             l["taux"] = t;
@@ -1427,7 +1428,7 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
         let dates: Vec<Value> = l.get("dates").and_then(Value::as_array).cloned().unwrap_or_default();
         let jour = match dates.first() {
             Some(x) => jour_de(x)?,
-            None => premier_du_mois(mois)?,
+            None => Mois::lire(mois)?.premier_jour(),
         };
         let bar = ctx.bareme_lu(&jour)?;
         let ent = ctx.entreprise_au(&jour)?;
@@ -1728,7 +1729,7 @@ fn lignes_dites(ctx: &Contexte, e: &Value, qui: &str) -> Resultat<()> {
             let (ou, carte) = match jours.first() {
                 Some(j) => (
                     format!(", {} {}", if jours.len() > 1 { "les" } else { "le" }, jours.iter().map(Jour::jj_mm_aaaa).collect::<Vec<_>>().join(", ")),
-                    format!(" sur sa carte {}", socle::texte::de(&libelle_mois(&j.mois_iso()))),
+                    format!(" sur sa carte {}", socle::texte::de(&j.mois_civil().libelle(socle::mois::Graphie::Accentuee))),
                 ),
                 None => (String::new(), String::new()),
             };
@@ -1840,13 +1841,6 @@ fn sexe(fiche: &Value) -> String {
 
 // ------------------------------------------- le contrat qui deborde du mois
 
-/// `libelle_mois` : '2026-12' -> 'décembre 2026', le mois en toutes lettres, avec ses accents, des phrases et des documents
-/// qui l'appellent. Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
-/// s'ecrit tel quel (« 2026-00 »), jamais sous le nom de janvier.
-pub fn libelle_mois(mois: &str) -> String {
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
-}
-
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
 /// (sans tenir compte de la casse ni des accents), comme le fait le calcul de sa paie. `None` s'il ne nomme aucune fiche.
 pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
@@ -1952,7 +1946,7 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
                  la DPAE sont faits avec son premier mois, ce mois-ci n'a que son bulletin.",
                 qui,
                 bornes,
-                libelle_mois(&mois_du_contrat[0]),
+                Mois::en_clair(&mois_du_contrat[0]),
                 numero_dit(eng)
             ),
         });
@@ -1978,8 +1972,8 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
                  entier.{}",
                 qui,
                 bornes,
-                libelle_mois(suivant),
-                libelle_mois(suivant),
+                Mois::en_clair(suivant),
+                Mois::en_clair(suivant),
                 fin_de_phrase
             ),
         });

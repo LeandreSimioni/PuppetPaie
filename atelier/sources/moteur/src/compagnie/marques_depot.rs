@@ -10,7 +10,7 @@ use socle::echec::erreur;
 /// (`declarations::dsn::Arret::a_reporter` : les arrets qui croisent le mois, et ceux d'un mois anterieur saisis apres le
 /// depart de sa DSN).
 pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> R<Vec<Value>> {
-    socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    socle::mois::Mois::lire(mois).map(socle::mois::Mois::premier_jour).map_err(|m| erreur("ValueError", m))?;
     let mut out = Vec::new();
     for a in engagement::imprevus::tous(&ctx.racine).map_err(crate::routes::imprevus::refus_magasin)? {
         if !engagement::imprevus::est_un_arret(&a) {

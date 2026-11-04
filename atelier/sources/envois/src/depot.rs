@@ -125,9 +125,8 @@ impl Apercu {
     /// `01082026` -> `2026-08` ; un signalement se date par son evenement.
     pub fn mois_lisible(&self) -> String {
         let mois = self.champ("mois");
-        let c: Vec<char> = mois.chars().collect();
-        if c.len() == 8 && c[0] == '0' && c[1] == '1' && c[2..].iter().all(|&x| est_chiffre(x)) {
-            return format!("{}-{}", c[4..].iter().collect::<String>(), c[2..4].iter().collect::<String>());
+        if let Ok(m) = socle::mois::Mois::de_la_dsn(&mois) {
+            return m.to_string();
         }
         if self.est_signalement() {
             return self.evenement_lisible();

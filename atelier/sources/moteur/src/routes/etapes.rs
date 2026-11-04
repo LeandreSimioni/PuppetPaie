@@ -1476,7 +1476,7 @@ impl<'a> Moteur<'a> {
             (false, _) => None,
             (true, rien_du_tout) => Some(format!(
                 "Aucun engagement en {} : {}",
-                socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee),
+                socle::mois::Mois::en_clair(mois),
                 if rien_du_tout { "rien à faire" } else { "ni DPAE, ni contrat, ni document" }
             )),
         };
@@ -1568,12 +1568,12 @@ impl<'a> Moteur<'a> {
             // partie), celle que l'avertissement de « Modifier l'engagement » nomme aussi.
             let suivant = crate::regularisation::dsn_qui_porte(self.ctx, mois)?;
             let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &suivant).map_err(|m| erreur("ValueError", m))?;
-            let a = deposer_dsn(&suivant, nic, format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)));
+            let a = deposer_dsn(&suivant, nic, format!("Déposer la DSN de {}…", socle::mois::Mois::en_clair(&suivant)));
             return Ok(groupe(
                 "a_faire",
                 Value::Null,
                 String::new(),
-                format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)),
+                format!("à corriger dans la DSN de {}", socle::mois::Mois::en_clair(&suivant)),
                 echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"),
                 a,
             ));
@@ -1645,7 +1645,7 @@ impl<'a> Moteur<'a> {
     /// `mois_a_ouvrir` : le plus ancien mois passe dont une etape n'est pas
     /// verte, sinon le mois du calendrier.
     pub fn mois_a_ouvrir(&mut self) -> R<Value> {
-        let courant = self.ctx.aujourdhui.mois_iso();
+        let courant = self.ctx.aujourdhui.mois_civil().to_string();
         // A L'OUVERTURE, RIEN NE SE CALCULE : les groupes d'un mois passe se tirent de ce qui est ecrit.
         self.ecrit = true;
         // Un mois passe sans engagement dont la DSN est due (ce que les rappels reclament) s'ouvre aussi.
@@ -1656,11 +1656,11 @@ impl<'a> Moteur<'a> {
             let reste = self.etapes_restantes(&m)?;
             if !reste.is_empty() {
                 let noms: Vec<&str> = ORDRE.iter().filter(|(c, _)| reste.iter().any(|r| r == c)).map(|(_, n)| *n).collect();
-                let phrase = format!("À ouvrir : {}, où il reste {}.", socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee), noms.join(", "));
+                let phrase = format!("À ouvrir : {}, où il reste {}.", socle::mois::Mois::en_clair(&m), noms.join(", "));
                 return Ok(json!({"phrase": phrase, "mois": m, "courant": courant, "reste": reste}));
             }
         }
-        let phrase = format!("À ouvrir : {}, le mois du jour ; rien ne reste aux mois d'avant.", socle::date::libelle_du_mois_ou_tel_quel(&courant, socle::date::Graphie::Accentuee));
+        let phrase = format!("À ouvrir : {}, le mois du jour ; rien ne reste aux mois d'avant.", socle::mois::Mois::en_clair(&courant));
         Ok(json!({"phrase": phrase, "mois": courant, "courant": courant, "reste": []}))
     }
 
@@ -1799,7 +1799,7 @@ fn carres_bruts(p: &Value, mois: &str) -> Value {
     let o = &p["etats"]["documents"];
     let embauche = vrai(&p["contrat"]["premier_mois"]);
     let debut_dit = Jour::lire(&valeur_en_texte(&p["debut"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
-    let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
+    let depuis = socle::mois::Mois::en_clair(&valeur_en_texte(&p["contrat"]["depuis"]));
 
     let (etat, phrase, geste) = match pt.dpae {
         "refuse" => {
@@ -1818,7 +1818,7 @@ fn carres_bruts(p: &Value, mois: &str) -> Value {
     let cdi = &s["cdi_en_cours"];
     let ailleurs = vrai(&p["contrat"]["ailleurs"]);
     let dossier = &p["contrat"]["dossier"];
-    let nom_contrat = if vrai(cdi) && !ailleurs { format!("CDI, signé en {}", engagement::libelle_mois(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
+    let nom_contrat = if vrai(cdi) && !ailleurs { format!("CDI, signé en {}", socle::mois::Mois::en_clair(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
     let (etat, phrase, geste) = match pt.contrat {
         "a_envoyer" => ("a_faire", "Contrat à envoyer".to_string(), faire_signer(mois)),
         "a_refaire" if !vrai(&s["fait"]) => ("a_faire", majuscule_initiale(&valeur_en_texte(&s["pourquoi"])), faire_signer(mois)),
@@ -1950,7 +1950,7 @@ fn choix_dpae(p: &Value) -> Value {
         return choix(false, false, "fait", "contrat commencé avant PuppetPaie : rien à déclarer ici".into());
     }
     if !vrai(&p["contrat"]["premier_mois"]) {
-        let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
+        let depuis = socle::mois::Mois::en_clair(&valeur_en_texte(&p["contrat"]["depuis"]));
         return choix(false, false, "fait", format!("contrat en cours depuis {} — sa DPAE a été faite ce mois-là", depuis));
     }
     // RIEN NE PART D'UN ENGAGEMENT EN SAISIE : le depot le refuserait, et les autres avec lui.

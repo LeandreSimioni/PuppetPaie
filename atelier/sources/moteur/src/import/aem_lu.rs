@@ -338,7 +338,7 @@ pub fn lire_aer(octets: &[u8]) -> Option<Vec<Lecture>> {
         let page = champs.get(&nom("SAL_DT_DEB_")).and_then(|c| c.get("page")).and_then(Value::as_u64).unwrap_or(0) as usize;
         let a = Aem {
             page,
-            mois: Some(debut.mois_iso()),
+            mois: Some(debut.mois_civil().to_string()),
             numero: None,
             siret: v("EMP_SIRET"),
             ape: v("EMP_APE"),

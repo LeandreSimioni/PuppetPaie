@@ -77,7 +77,7 @@ fn jours_payes(i: &Importe) -> (String, String) {
     let mut bornes = Vec::new();
     for (m, p) in i.paies() {
         let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
-        let fin = socle::date::dernier_du_mois(&m).map(|j| j.iso()).unwrap_or_default();
+        let fin = socle::mois::Mois::lire(&m).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()).unwrap_or_default();
         bornes.push((lu("debut").unwrap_or_else(|| format!("{}-01", m)), lu("fin").unwrap_or(fin)));
     }
     (bornes.iter().map(|b| b.0.clone()).min().unwrap_or_default(), bornes.iter().map(|b| b.1.clone()).max().unwrap_or_default())
@@ -118,7 +118,7 @@ pub(crate) fn a_dire(racine: &Path) -> Vec<Value> {
     if par.is_empty() {
         return Vec::new();
     }
-    let suite = engagement::stock::mois_apres(&dernier_mois(&importes)).unwrap_or_default();
+    let suite = socle::mois::Mois::lire(&dernier_mois(&importes)).map(|m| m.suivant().to_string()).unwrap_or_default();
     let natures = natures_permanentes().unwrap_or_default();
     par.into_iter()
         .map(|(s, (n, du, au, en_cours))| {
