@@ -419,7 +419,7 @@ pub fn servir(racine: &Path, cle: &str, jour: &str) -> Option<(Value, bool)> {
 
 /// Les mois dont l'etat se tient a jour : ceux que la saisie a touches, et le mois du jour.
 fn mois_suivis(racine: &Path, jour: &str) -> Vec<String> {
-    let mut mois = engagement::stock::mois_saisis(racine).unwrap_or_default();
+    let mut mois = engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     if jour.len() >= 7 {
         mois.push(jour[..7].to_string());
     }

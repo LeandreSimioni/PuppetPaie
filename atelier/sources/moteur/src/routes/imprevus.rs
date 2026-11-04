@@ -2423,7 +2423,7 @@ fn arret_contrats(ctx: &Contexte, c: ChargeArretContrats) -> R<ReponseContrats> 
 fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
     let mut sorties: Vec<ContratAuJour> = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?;
+    let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(socle::echec::Echec::from)?.into_iter().map(String::from).collect::<Vec<_>>();
     mois.reverse();
     for m in mois {
         for (c, e) in crate::routes::mois::engagements_du_mois(ctx, &m)? {

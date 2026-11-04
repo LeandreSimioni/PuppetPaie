@@ -153,7 +153,7 @@ pub struct Declarations<'a> {
 impl<'a> Declarations<'a> {
     /// Les mois saisis avant `mois`.
     pub fn avant(ctx: &'a Contexte, mois: &str, departs: &'a engagement::departs::Departs) -> Resultat<Declarations<'a>> {
-        let mut avant: Vec<String> = engagement::stock::mois_saisis(&ctx.racine)?.into_iter().filter(|m| m.as_str() < mois).collect();
+        let mut avant: Vec<String> = engagement::stock::mois_saisis(&ctx.racine)?.into_iter().map(String::from).filter(|m| m.as_str() < mois).collect();
         avant.sort();
         avant.reverse();
         Ok(Declarations { ctx, departs, mois: avant, lus: BTreeMap::new() })

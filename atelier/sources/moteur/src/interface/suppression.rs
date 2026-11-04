@@ -236,7 +236,7 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
     let mention = json!({
         "creee_le": creee_le,
         "gardee_le": socle::paris::maintenant(),
-        "mois": engagement::stock::mois_saisis(racine).unwrap_or_default(),
+        "mois": engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>(),
         "_quoi": "Cette compagnie a ete creee dans la version demo de PuppetPaie, puis gardee au deblocage : rien de ce qui y a ete fait avant n'est parti (ni DPAE, ni contrat a la signature, ni DSN, ni document).",
     });
     socle::ecriture::ecrire_json(&racine.join(FICHIER_DEMO), &mention, 2)?;

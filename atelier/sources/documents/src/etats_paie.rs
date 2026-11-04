@@ -78,7 +78,7 @@ pub struct Periode {
 pub fn mois_disponibles(ctx: &Contexte) -> R<BTreeMap<String, &'static str>> {
     let mois = engagement::stock::mois_saisis(&ctx.racine).map_err(|m| erreur("ValueError", m))?;
     let mut dispo: BTreeMap<String, &'static str> = mois_importes(ctx)?.into_iter().map(|m| (m, IMPORTE)).collect();
-    dispo.extend(mois.into_iter().map(|m| (m, SAISIE)));
+    dispo.extend(mois.into_iter().map(|m| (m.to_string(), SAISIE)));
     Ok(dispo)
 }
 

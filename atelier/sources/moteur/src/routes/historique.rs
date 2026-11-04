@@ -167,7 +167,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
 /// porter (`etat` « à porter ») et celles deja portees par la DSN d'un mois suivant (« portée »).
 fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
     let mut out = Vec::new();
-    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from) {
         let (a_porter, portees) = crate::regularisation::corrections_du_mois(ctx, &mois)?;
         let mut corrections: Vec<Value> = portees
             .into_iter()

@@ -131,7 +131,7 @@ impl<'a> Passe<'a> {
                 groupes[i].1.push(e);
             }
         }
-        for stem in crate::stock::mois_saisis(&ctx.racine)? {
+        for stem in crate::stock::mois_saisis(&ctx.racine)?.into_iter().map(String::from) {
             if groupes.iter().any(|(m, _)| *m == stem) || self.jusqu_au.as_deref().is_some_and(|j| stem.as_str() > j) {
                 continue;
             }

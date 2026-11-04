@@ -861,7 +861,7 @@ fn commence_avant(paies: &[PaieLue], mois: &str) -> Resultat<Option<Jour>> {
 /// Le premier mois ou le salarie a la paie validee d'un contrat paye au mois.
 fn premier_mois(ctx: &Contexte, cle_salarie: &str, jusqu_au_mois: Option<&str>) -> Resultat<Option<String>> {
     let cle = cle_de_fiche(ctx, cle_salarie);
-    for mois in crate::stock::mois_saisis(&ctx.racine)? {
+    for mois in crate::stock::mois_saisis(&ctx.racine)?.into_iter().map(String::from) {
         if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) {
             return Ok(None);
         }
@@ -886,8 +886,9 @@ fn mois_de_la_periode(
         return Ok(out);
     }
     let saisis = crate::stock::mois_saisis(&ctx.racine)?;
-    for mois in socle::mois::Mois::entre(debut, fin).iter().map(socle::mois::Mois::to_string) {
-        if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) || !saisis.contains(&mois) {
+    for m in socle::mois::Mois::entre(debut, fin) {
+        let mois = m.to_string();
+        if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) || !saisis.contains(&m) {
             continue;
         }
         let paies = paies_du_mois(ctx, &mois, cle)?;
@@ -957,7 +958,7 @@ fn cumul_de_l_annee(ctx: &Contexte, mois: &str, cle: &str, quoi: impl Fn(&PaieLu
     let annee: String = mois.chars().take(4).collect();
     let cle_fiche = cle_de_fiche(ctx, cle);
     let mut total = zero2();
-    for m in crate::stock::mois_saisis(&ctx.racine)? {
+    for m in crate::stock::mois_saisis(&ctx.racine)?.into_iter().map(String::from) {
         if !m.starts_with(&annee) || m.as_str() >= mois {
             continue;
         }

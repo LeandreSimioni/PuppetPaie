@@ -388,7 +388,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         memoire.get("annees_faites").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_i64).collect()).unwrap_or_default();
 
     // CE QUI EST DU, chaque pas avec son instant : les mois qui ne sont pas faits, les annees qui ne sont pas finies.
-    let saisis = engagement::stock::mois_saisis(racine).unwrap_or_default();
+    let saisis = engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     let mut calendrier: Vec<Pas> = Vec::new();
     let mut echus: Vec<socle::mois::Mois> = Vec::new();
     {
@@ -786,7 +786,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             fait
         }
         Geste::Cloture { annee } => pas(d, quoi, quand, |ctx| {
-            let a_des_paies = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.starts_with(&format!("{}-", annee)));
+            let a_des_paies = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.to_string().starts_with(&format!("{}-", annee)));
             if Moteur::nouveau(ctx).exercice_clos(&annee.to_string())? || !a_des_paies {
                 return Ok(false);
             }
@@ -971,7 +971,7 @@ fn annee_finie(d: &HorlogeFictive, annee: i32) -> R<bool> {
     }
     let ctx = d.contexte()?;
     let a = annee.to_string();
-    if !engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.starts_with(&format!("{}-", a))) {
+    if !engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().iter().any(|m| m.to_string().starts_with(&format!("{}-", a))) {
         return Ok(true);
     }
     Ok(Moteur::nouveau(&ctx).exercice_clos(&a)? && crate::compagnie::exercice_ecrit::export_compta_a_jour(&ctx.racine, &a))

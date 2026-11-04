@@ -324,12 +324,13 @@ impl Objet {
     }
 
     /// Les mois que la saisie a touches : le premier, ceux qui ont des faits, et ceux ou un terme change.
-    pub fn mois_saisis(&self) -> Vec<String> {
-        let mut v = vec![self.fichier.clone()];
+    pub fn mois_saisis(&self) -> Vec<Mois> {
+        let Ok(premier) = Mois::lire(&self.fichier) else { return Vec::new() };
+        let mut v = vec![premier];
         if let Some(Value::Object(s)) = self.brut.get(FAITS) {
-            v.extend(s.keys().filter(|m| m.as_str() > self.fichier.as_str()).cloned());
+            v.extend(s.keys().filter_map(|m| Mois::lire(m).ok()).filter(|m| *m > premier));
         }
-        v.extend(self.changements().into_iter().map(|(_, j, _)| j.mois_civil().to_string()).filter(|m| m.as_str() > self.fichier.as_str()));
+        v.extend(self.changements().into_iter().map(|(_, j, _)| Mois::du_jour(&j)).filter(|m| *m > premier));
         v.sort();
         v.dedup();
         v
@@ -375,7 +376,7 @@ impl Objet {
     pub fn mois_couverts(&self, jusqu_a: &str) -> Resultat<Vec<String>> {
         let fin = match self.dernier_mois()? {
             Some(d) => d,
-            None => self.mois_saisis().last().cloned().unwrap_or_default().max(jusqu_a.to_string()).max(self.fichier.clone()),
+            None => self.mois_saisis().last().map(Mois::to_string).unwrap_or_default().max(jusqu_a.to_string()).max(self.fichier.clone()),
         };
         Ok(Mois::lire(&self.fichier)?.jusqu_a(Mois::lire(&fin)?).iter().map(Mois::to_string).collect())
     }
@@ -887,18 +888,19 @@ pub fn canonique(v: &Value) -> String {
 /// Les mois que la saisie a touches : les fichiers, et les mois que chaque engagement a saisis ou couvre jusqu'a sa fin ;
 /// un contrat sans terme, jusqu'au dernier mois ecrit ou jusqu'au mois d'aujourd'hui s'il est plus loin : un CDI de
 /// janvier que rien n'a saisi depuis a une paie, une DSN et des documents chaque mois qu'il court.
-pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
-    let mut v: Vec<String> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).collect();
-    let courant = droit::contexte::aujourdhui_sans_note()?.mois_civil().to_string();
-    let horizon = v.iter().max().cloned().map(|h| h.max(courant));
+pub fn mois_saisis(racine: &Path) -> Resultat<Vec<Mois>> {
+    let mut v: Vec<Mois> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).map(|m| Mois::lire(&m)).collect::<Resultat<_>>()?;
+    let courant = Mois::du_jour(&droit::contexte::aujourdhui_sans_note()?);
+    let horizon = v.iter().max().copied().map(|h| h.max(courant));
     for o in objets(racine)?.into_iter().filter(|o| !o.importe_seul()) {
         v.extend(o.mois_saisis());
+        let premier = Mois::lire(&o.fichier)?;
         let fin = match o.dernier_mois()? {
-            Some(d) => Some(d),
-            None => horizon.clone().filter(|h| h.as_str() >= o.fichier.as_str()),
+            Some(d) => Some(Mois::lire(&d)?),
+            None => horizon.filter(|h| *h >= premier),
         };
         if let Some(d) = fin {
-            v.extend(Mois::lire(&o.fichier)?.jusqu_a(Mois::lire(&d)?).iter().map(Mois::to_string));
+            v.extend(premier.jusqu_a(d));
         }
     }
     v.sort();

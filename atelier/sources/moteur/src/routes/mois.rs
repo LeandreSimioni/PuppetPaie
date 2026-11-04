@@ -481,7 +481,7 @@ pub(crate) fn dernier_taux(ctx: &Contexte) -> R<Option<f64>> {
     let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
     mois.reverse();
     for m in mois {
-        let Ok(Some(data)) = engagement::stock::vue_du_mois(&ctx.racine, &m) else { continue };
+        let Ok(Some(data)) = engagement::stock::vue_du_mois(&ctx.racine, &m.to_string()) else { continue };
         let Some(objet) = data.as_object() else { return Err(pas_de_get(&data)) };
         for e in elements(objet.get("engagements"))?.iter().rev() {
             let Some(eng) = e.as_object() else { return Err(pas_de_get(e)) };
@@ -1040,7 +1040,7 @@ fn contrats_passes(ctx: &Contexte, mois: &str, salarie: Option<&IdSalarie>) -> R
     // fois, de preference tel que le fichier du mois regarde l'ecrit (c'est lui qui a les jours joues).
     let mut vus: HashMap<(String, String, String), usize> = HashMap::new();
     let mut out: Vec<Passe> = Vec::new();
-    let mut connus = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
+    let mut connus = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?.into_iter().map(String::from).collect::<Vec<_>>();
     connus.reverse();
     for mc in &connus {
         couverts.insert(mc.clone());

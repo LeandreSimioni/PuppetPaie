@@ -1227,8 +1227,7 @@ pub fn mois_du_changement(v: &Valide, passee: &Value) -> Resultat<Option<String>
     // Les mois ou l'une des versions a une paie (`paies::mois_ecrits`), et ceux que l'une des saisies a touches.
     let mut mois: Vec<String> = crate::paies::mois_ecrits(&v.objet)?
         .into_iter()
-        .chain(v.objet.mois_saisis())
-        .chain(ancien.mois_saisis())
+        .chain(v.objet.mois_saisis().into_iter().chain(ancien.mois_saisis()).map(String::from))
         .collect();
     mois.sort();
     mois.dedup();

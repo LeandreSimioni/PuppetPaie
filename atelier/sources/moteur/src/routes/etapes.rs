@@ -2162,15 +2162,15 @@ impl<'a> Moteur<'a> {
             }
         }
         let departs = self.departs()?;
-        for m in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
+        for mm in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
+            let m = mm.to_string();
             if m.as_str() >= mois.as_str() {
                 break;
             }
             if !declarations::produire_regularisations::se_corrige_ailleurs(self.ctx, &departs, &m)? {
                 continue;
             }
-            // TRAVAIL A FAIRE (chaine A) : les mois saisis (`stock::mois_saisis`) se rendent en `Mois`.
-            for e in self.etats_du_mois(Mois::lire(&m).map_err(plain)?)? {
+            for e in self.etats_du_mois(mm)? {
                 let Some(v) = e.valide() else { continue };
                 if de_l_etablissement(self.ctx, &m, &e.objet().brut) && engagement::etats::correction_due(self.ctx, v, &departs, &m, mois).map_err(plain)?.is_some() {
                     return Ok(true);
@@ -2245,8 +2245,8 @@ impl<'a> Moteur<'a> {
         // Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
         let _derivation = engagement::conges::Derivation::ouvrir();
         let departs = self.departs()?;
-        let mois: Vec<String> = match mois {
-            Some(m) => vec![m.to_string()],
+        let mois: Vec<Mois> = match mois {
+            Some(m) => vec![m],
             None => {
                 let mut v = engagement::stock::mois_saisis(self.racine()).unwrap_or_default();
                 v.reverse();
@@ -2254,12 +2254,12 @@ impl<'a> Moteur<'a> {
             }
         };
         let mut attente = Vec::new();
-        for m in mois {
+        for le_mois in mois {
+            let m = le_mois.to_string();
             if !engagement::stock::a_une_saisie(self.racine(), &m).unwrap_or(false) {
                 continue;
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
-            let le_mois = Mois::lire(&m).map_err(plain)?;
             let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &departs).map_err(plain)?;
             // La DPAE part de l'engagement valide : un engagement en saisie n'a rien a declarer. Chacun retrouve son embauche
             // par son identite (salarie, numero du contrat).
