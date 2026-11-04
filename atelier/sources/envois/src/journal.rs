@@ -602,7 +602,7 @@ mod tests {
     fn une_declaration_refusee_au_bilan_n_est_pas_partie() {
         let ligne = |quoi: &str, salarie: &str, retours: Value, detail: Value| {
             json!({"quoi": quoi, "mode": REEL, "accepte": true, "mois": "2026-06", "quand": "2026-07-05T10:00:00", "detail": detail,
-                   "retours": retours, "versions": [{"salarie": salarie, "numero": "N1", "version": 1}]})
+                   "retours": retours, "versions": [{"salarie": salarie, "numero": "DE1.26.01", "version": 1}]})
         };
         let ko = json!([{"nature": "10", "verdict": "OK"}, {"nature": "11", "verdict": "KO"}]);
         let lignes = vec![
@@ -613,8 +613,8 @@ mod tests {
         ];
         let d = departs_des_lignes(&lignes);
         for refusee in ["ALPHA", "BETA", "GAMMA"] {
-            assert!(d.de(refusee, "N1").is_empty(), "{refusee}");
+            assert!(d.de(refusee, "DE1.26.01").is_empty(), "{refusee}");
         }
-        assert_eq!(d.de("DELTA", "N1").len(), 1);
+        assert_eq!(d.de("DELTA", "DE1.26.01").len(), 1);
     }
 }

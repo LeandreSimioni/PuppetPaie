@@ -32,3 +32,6 @@ l'atelier (`paie extraire usages`, `paie extraire formats` ; `paie/src/extraire/
 et `formats-dsn-base.json`, partie `P27V01`. La version de la norme qu'un fichier porte (`S10.G00.00.006`) se
 lit de `logiciel/donnees/norme-dsn-base.json` ; la seule valeur que ce cahier admet est « P27V01 - Année 2027 Version 1 »
 (p. 129 du PDF, `bloc-S10.G00.00.txt`).
+
+Le numéro de contrat (`engagement::numeros::NumeroContrat`) se lit sous la forme que la norme lui donne : `X [5,20]`
+(`bloc-S21.G00.40.txt`, l. 527-551) et le jeu de caractères du § 4.4.11 (`chapitre-4-controles.txt`, l. 760-780).

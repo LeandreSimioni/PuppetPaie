@@ -656,7 +656,7 @@ pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, 
     for e in parcourir(get(&data, "engagements")?.into())? {
         let Some(m) = e.as_object() else { continue };
         let Some(cle) = engagement::cle_de_l_engagement(ctx, &e) else { continue };
-        out.push((cle, m.clone()));
+        out.push((cle.into(), m.clone()));
     }
     Ok(out)
 }
@@ -1674,10 +1674,9 @@ const NUMERO_DIT: &str = "numero";
 /// La case du numero, sauf pour un contrat dont une DSN de l'ancien logiciel a declare le numero : il est lu
 /// (`engagement::importe::numero_declare_du_contrat`), il ne se dit pas.
 fn numero_a_dire(ctx: &Contexte, salarie: &str, debut: &str) -> Vec<&'static str> {
-    if engagement::importe::numero_declare_du_contrat(&ctx.racine, salarie, debut).is_some() {
-        Vec::new()
-    } else {
-        vec![NUMERO_DIT]
+    match engagement::importe::numero_declare_du_contrat(&ctx.racine, salarie, debut) {
+        Ok(true) => Vec::new(),
+        _ => vec![NUMERO_DIT],
     }
 }
 
@@ -1769,7 +1768,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
     // bornes (et la periode de paie d'un contrat a cheval), ce qu'elle paye, le metier, le brut.
     let resolu_dit = {
         let mut m = vec![if e.sans_paie() { "aucun cachet ce mois-ci".to_string() } else { format!("bulletin {}", p.numero_bulletin.clone().unwrap_or_default()) }];
-        m.push(format!("contrat {}", e.numero.clone().unwrap_or_default()));
+        m.push(format!("contrat {}", e.numero.as_deref().unwrap_or_default()));
         let mut bornes = format!("{} → {}", e.debut.jj_mm_aaaa(), e.fin.as_ref().map(|f| f.jj_mm_aaaa()).unwrap_or_default());
         if e.a_cheval()? {
             bornes.push_str(&format!(" (paie du {} au {})", e.debut_periode()?.jj_mm_aaaa(), e.fin_periode()?.jj_mm_aaaa()));
@@ -1812,7 +1811,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value) -> 
         "paye_dit": p.paye_en_bref(),
         "bulletin_dit": p.numero_bulletin.as_ref().map(|n| format!("bulletin {}", n)),
         "numero_bulletin": p.numero_bulletin.clone().map_or(Value::Null, Value::String),
-        "numero_contrat": e.numero.clone().map_or(Value::Null, Value::String),
+        "numero_contrat": e.numero.clone().map_or(Value::Null, Value::from),
         "salarie": sal_vue,
         // UN PERMANENT N'A PAS DE SPECTACLE, et `None` est la reponse juste.
         "spectacle": spectacle,

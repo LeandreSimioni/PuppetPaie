@@ -87,7 +87,7 @@ const VERSIONS: &str = "versions";
 
 /// Ce qui est parti de l'engagement `o` (`departs`), d'apres la cle de son salarie et son numero.
 pub(crate) fn ses_departs<'a>(ctx: &Contexte, o: &Objet, departs: &'a Departs) -> &'a [Depart] {
-    match (cle_du_salarie(ctx, o), o.brut.get("numero").filter(|n| vrai(n)).map(en_texte)) {
+    match (crate::cle_de_l_engagement(ctx, &o.brut), o.brut.get("numero").filter(|n| vrai(n)).map(en_texte)) {
         (Some(c), Some(n)) => departs.de(&c, &n),
         _ => &[],
     }
@@ -341,11 +341,6 @@ impl Etat {
             Etat::Partis(p) => Some(&p.valide),
         }
     }
-}
-
-/// La cle de la fiche du salarie d'un engagement (`None` s'il ne nomme aucune fiche).
-fn cle_du_salarie(ctx: &Contexte, o: &Objet) -> Option<String> {
-    crate::cle_de_l_engagement(ctx, &o.brut)
 }
 
 /// Le contrat de l'engagement `o` a-t-il ete signe hors du logiciel (`crate::signe_ailleurs_de`) ? Faux s'il ne se lit pas.
@@ -865,7 +860,7 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
         .zip(salaries)
         .map(|((paie, fiches, pas, conges, fin, config, (cle_fiches, entree_fiches)), salarie)| {
             let regles = empreinte::regles(ctx, &fin)?;
-            let cle = ctx.cle_du_salarie(&salarie).ok().unwrap_or_else(|| salarie.clone());
+            let cle = ctx.cle_du_salarie(&salarie).map_or_else(|_| salarie.clone(), String::from);
             let mut siennes = entrees.clone();
             siennes.retain(|k, _| k.strip_prefix("paies ").and_then(|r| r.split_once(' ')).is_none_or(|(_, s)| s == cle));
             siennes.retain(|k, _| k.strip_prefix(crate::conges::MENSUELS).and_then(|r| r.split_once(' ')).is_none_or(|(_, s)| s == cle));
@@ -1176,7 +1171,7 @@ pub enum Revalidation {
 pub fn apres_un_imprevu(ctx: &Contexte, salarie: &str, departs: &Departs) -> Resultat<Vec<Revalidation>> {
     let mut out = Vec::new();
     for o in stock::objets(&ctx.racine)? {
-        if !o.est_valide() || o.est_non_actif() || o.est_importe() || cle_du_salarie(ctx, &o).as_deref() != Some(salarie) {
+        if !o.est_valide() || o.est_non_actif() || o.est_importe() || crate::cle_de_l_engagement(ctx, &o.brut).as_deref() != Some(salarie) {
             continue;
         }
         if !ses_departs(ctx, &o, departs).iter().any(|d| d.envoi == Envoi::Documents) {
@@ -1556,7 +1551,7 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs, passage: bool) -> R
 /// l'etat qu'elle tient pour le mois suivant (`conges_avant_a_jour`) : un mois fini ne se relit pas, et le premier mois
 /// en cours reprend un etat juste. Une paie qui n'est pas partie se refait a sa lecture (son empreinte ne tient plus).
 fn reporter(ctx: &Contexte, o: &Objet, premier: &str, departs: &Departs) -> Resultat<()> {
-    let Some(cle) = cle_du_salarie(ctx, o) else { return Ok(()) };
+    let Some(cle) = crate::cle_de_l_engagement(ctx, &o.brut) else { return Ok(()) };
     let present = mois_present(ctx);
     for mois in crate::paies::mois_payes(&ctx.racine).into_iter().filter(|m| m.as_str() > premier && *m <= present) {
         let ctx = &ctx.du_mois(&mois)?;
@@ -1564,7 +1559,7 @@ fn reporter(ctx: &Contexte, o: &Objet, premier: &str, departs: &Departs) -> Resu
         for e in tels_qu_ecrits(ctx, &mois, departs)? {
             let Etat::Partis(p) = e else { continue };
             let v = p.valide();
-            if cle_du_salarie(ctx, &v.objet).as_deref() != Some(cle.as_str()) {
+            if crate::cle_de_l_engagement(ctx, &v.objet.brut).as_ref() != Some(&cle) {
                 continue;
             }
             if let Some(a) = v.paie_ecrite(&mois).filter(|a| a.get(CONGES_AVANT).is_some()) {

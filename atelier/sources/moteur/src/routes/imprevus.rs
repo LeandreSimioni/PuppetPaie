@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::{brut, maintenant, qui_de, salarie};
+use crate::routes::{brut, cle_du_salarie, maintenant, qui_de, salarie};
 use declarations::signalement;
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -215,12 +215,6 @@ pub(crate) fn jour(v: &Value) -> R<Jour> {
 
 fn magasin<T>(r: Result<T, String>) -> R<T> {
     r.map_err(refus_magasin)
-}
-
-/// La cle de la fiche que `nom` designe (`KeyError` si aucune).
-pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<String> {
-    let fiche = crate::routes::salarie(ctx, nom)?;
-    Ok(valeur_en_texte(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
 }
 
 /// LE CONTRAT QU'UN IMPREVU SUSPEND : parmi ceux du salarie qui couvrent `jour` (`crate::routes::imprevus::contrats_au`), celui

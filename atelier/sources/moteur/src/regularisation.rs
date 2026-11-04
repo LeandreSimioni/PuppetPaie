@@ -292,7 +292,7 @@ pub(crate) fn refus_non_declarable(
         if !modification_de_l_engagement(m, ctx, mois)?.get("confirmer").is_some_and(vrai) {
             continue;
         }
-        let nom = b_avant.get("salarie").map(valeur_en_texte).unwrap_or_else(|| cle.clone());
+        let nom = b_avant.get("salarie").map(valeur_en_texte).unwrap_or_else(|| cle.to_string());
         let debut = socle::date::Jour::lire(&engagement::debut_brut(&ctx.racine, &b_avant)).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
         let dsn = match departs.de(&cle, &numero).iter().find(|x| x.envoi == engagement::departs::Envoi::Dsn && x.mois.as_deref() == Some(mois)).and_then(|x| x.par.clone()) {
             Some(par) => format!("dans la DSN {}, qui a porté la correction {}", de_mois_en_clair(&par), de_mois_en_clair(mois)),
@@ -387,7 +387,7 @@ fn avant_apres(mois: &str, avant: Option<&Paie>, apres: &Paie) -> R<Value> {
         && r_avant["jours"] == r_apres["jours"];
     let infos_dit = format!(
         "contrat {}, {} — brut {} → {}, net {} → {}",
-        apres.engagement.numero.clone().unwrap_or_default(),
+        apres.engagement.numero.as_deref().unwrap_or_default().to_string(),
         apres.engagement.debut.jj_mm_aaaa(),
         valeur_en_texte(&r_avant["brut"]),
         valeur_en_texte(&r_apres["brut"]),

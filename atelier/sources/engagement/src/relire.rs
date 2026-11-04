@@ -102,8 +102,8 @@ pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Res
     for (e, p) in engs.iter_mut().zip(paies) {
         let v = p.get("engagement").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "engagement"))?;
         // Le numero est celui de l'engagement, pose quand le contrat part ; une paie validee avant ne le porte pas.
-        if e.numero.as_deref().map_or(true, str::is_empty) {
-            e.numero = v.get("numero").filter(|n| !n.is_null()).map(en_texte);
+        if e.numero.is_none() {
+            e.numero = crate::numeros::NumeroContrat::de_la_valeur(v.get("numero"))?;
         }
         e.jours_contrat = v.get("jours_contrat").and_then(entier_de).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "jours_contrat"))?;
         e.suspensions = v.get("suspensions").and_then(Value::as_array).cloned().unwrap_or_default();

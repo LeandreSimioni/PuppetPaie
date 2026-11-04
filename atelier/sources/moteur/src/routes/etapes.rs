@@ -484,7 +484,7 @@ pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String,
         })
         .filter_map(|e| {
             let b = &*e.objet().brut;
-            Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
+            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.get("numero").map(valeur_en_texte)?))
         })
         .collect())
 }
@@ -544,7 +544,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
         .filter(|e| e.valide().is_some())
         .filter_map(|e| {
             let b = &*e.objet().brut;
-            Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
+            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.get("numero").map(valeur_en_texte)?))
         })
         .collect();
     emportes.sort();
@@ -719,7 +719,7 @@ impl<'a> Moteur<'a> {
     /// CE QUI EST A REFAIRE de l'engagement `e` de `mois` (`a_refaire_de`), compare une fois.
     fn a_refaire_du_mois(&mut self, mois: &str, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> Rc<Vec<ARefaire>> {
         let brut = &*e.objet().brut;
-        let cle = (mois.to_string(), engagement::cle_de_l_engagement(self.ctx, brut).unwrap_or_default(), brut.get("numero").map(valeur_en_texte).unwrap_or_default());
+        let cle = (mois.to_string(), engagement::cle_de_l_engagement(self.ctx, brut).map(String::from).unwrap_or_default(), brut.get("numero").map(valeur_en_texte).unwrap_or_default());
         if e.valide().is_none() || cle.2.is_empty() {
             return Rc::new(Vec::new());
         }
@@ -837,7 +837,7 @@ impl<'a> Moteur<'a> {
             ligne.insert("nom".into(), Value::String(super::nom_a_l_ecran(sal)));
             ligne.insert("spectacle".into(), spectacle);
             ligne.insert("nature".into(), Value::String(nat.libelle.clone()));
-            ligne.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::String));
+            ligne.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::from));
             ligne.insert("debut".into(), Value::String(debut.clone()));
             ligne.insert("fin".into(), fin);
             // Son etablissement (NIC) : la DSN qui le porte.
@@ -885,7 +885,7 @@ impl<'a> Moteur<'a> {
             ligne.insert("pieces".into(), json!(pieces));
             // LA DPAE DE CET ENGAGEMENT : partie (`departs`), et ce qui en est revenu (la ligne qui la porte, par le numero du
             // contrat). Refusee au bilan, elle n'est pas partie ; la ligne dit quand elle a ete refusee.
-            let numero = p.engagement.numero.clone().unwrap_or_default();
+            let numero = p.engagement.numero.as_deref().unwrap_or_default().to_string();
             let mut dpae_v = g.dpae.get(&(cle.clone(), numero.clone())).filter(|v| vrai(v)).unwrap_or(objet_vide());
             let mut partie_le = departs.de(&cle, &numero).iter().filter(|d| d.envoi == engagement::departs::Envoi::Dpae).map(|d| d.le.clone()).max();
             // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie (`ARefaire::Dpae`) : la DPAE de
@@ -963,7 +963,7 @@ impl<'a> Moteur<'a> {
     fn ligne_a_completer(&self, mois: &str, o: &engagement::stock::Objet, manque: &str) -> R<Value> {
         let vue = o.vue(mois).map_err(plain)?.unwrap_or_default();
         let e = Value::Object(vue);
-        let cle = engagement::cle_de_l_engagement(self.ctx, &e).unwrap_or_else(|| e.get("salarie").map(valeur_en_texte).unwrap_or_default());
+        let cle = engagement::cle_de_l_engagement(self.ctx, &e).map(String::from).unwrap_or_else(|| e.get("salarie").map(valeur_en_texte).unwrap_or_default());
         let nom = self.ctx.salarie(&cle).ok().map(|f| super::nom_a_l_ecran(&f)).unwrap_or_else(|| cle.clone());
         let spectacle = match e.get("spectacle").filter(|s| vrai(s)) {
             Some(s) => self.ctx.spectacle(&valeur_en_texte(s)).ok().and_then(|f| f.get("titre").cloned()).unwrap_or_else(|| s.clone()),
@@ -1712,7 +1712,7 @@ impl<'a> Moteur<'a> {
                 };
                 // Seule la DPAE partie se compare (`debut_declare`) : les paies parties ne se relisent pas ici, sauf
                 // quand le mois a deja compare tout ce qui est a refaire (`a_refaire_du_mois`).
-                let refaire: Vec<ARefaire> = match self.refaire.get(&(m.clone(), cle.clone(), numero.to_string())) {
+                let refaire: Vec<ARefaire> = match self.refaire.get(&(m.clone(), cle.to_string(), numero.to_string())) {
                     Some(r) => r.iter().filter(|a| matches!(a, ARefaire::Dpae { .. })).cloned().collect(),
                     None => engagement::etats::a_refaire_parmi(self.ctx, v, &departs, &|s| s == engagement::departs::Envoi::Dpae),
                 };
@@ -2005,14 +2005,14 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let a_envoyer: HashSet<String> = etats
         .iter()
         .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
-        .filter_map(|e| engagement::cle_de_l_engagement(ctx, &e.objet().brut))
+        .filter_map(|e| engagement::cle_de_l_engagement(ctx, &e.objet().brut).map(String::from))
         .collect();
     for e in etats {
         if !matches!(e, engagement::etats::Etat::Partis(_)) {
             continue;
         }
         let brut = &*e.objet().brut;
-        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else { continue };
+        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut).map(String::from), brut.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else { continue };
         let dernier = departs
             .de(&cle, &numero)
             .iter()
@@ -2107,7 +2107,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     let mut out = Vec::new();
     for n in engagement::etats::non_actifs_du_mois(ctx, mois).map_err(plain)? {
         let b = &*n.objet().brut;
-        let cle = engagement::cle_de_l_engagement(ctx, &b).unwrap_or_else(|| b.get("salarie").map(valeur_en_texte).unwrap_or_default());
+        let cle = engagement::cle_de_l_engagement(ctx, &b).map(String::from).unwrap_or_else(|| b.get("salarie").map(valeur_en_texte).unwrap_or_default());
         let nom = ctx
             .salarie(&cle)
             .ok()

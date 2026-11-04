@@ -26,7 +26,7 @@ pub const AVIS: [&str; 3] = [
 /// puis le reçu ; les deux ou aucun (un reçu qui ne s'écrit pas emporte le certificat déjà posé).
 pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf; 2]> {
     let e = &p.engagement;
-    let numero = e.numero.clone().unwrap_or_else(|| "?".to_string());
+    let numero = e.numero.as_deref().unwrap_or("?").to_string();
     let Some(fin) = e.fin else {
         return Err(erreur(
             "ValueError",
@@ -79,7 +79,7 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>
     poser("salarie.adresse", req(s, "adresse")?);
     poser("salarie.code_postal", req(s, "code_postal")?);
     poser("salarie.commune", req(s, "commune")?);
-    poser("contrat.numero", e.numero.clone().unwrap_or_default());
+    poser("contrat.numero", e.numero.as_deref().unwrap_or_default().to_string());
     poser("contrat.debut", e.debut.jj_mm_aaaa());
     poser("contrat.fin", e.fin.map(|f| f.jj_mm_aaaa()).unwrap_or_default());
     poser("contrat.emploi", ou_vide(s, "emploi"));

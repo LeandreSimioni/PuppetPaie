@@ -912,7 +912,7 @@ pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: 
 /// lisent ici, et pas autrement : deux lectures d'un meme contrat feraient deux emplois.
 pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resultat<Value> {
     let nat = eng.nat()?;
-    let cle = cle_du_salarie(ctx, eng)?;
+    let cle = ctx.cle_du_salarie(&eng.salarie)?;
     let emploi = EmploiEngagement {
         emploi: eng.emploi.clone(),
         emploi_affichage: eng.emploi_affichage.clone(),
@@ -974,11 +974,6 @@ fn anciennete_a_l_embauche(mut fiche: Value, eng: &Engagement) -> Value {
     fiche
 }
 
-/// La cle de la fiche du salarie de `eng`.
-pub(crate) fn cle_du_salarie(ctx: &Contexte, eng: &Engagement) -> Resultat<String> {
-    let fiche = ctx.salarie(&eng.salarie)?;
-    Ok(fiche.get("_cle").and_then(Value::as_str).unwrap_or_default().to_string())
-}
 
 /// La paie d'un engagement, les paies deja calculees du meme mois en main (`engagement::charger_donnees`, dans l'ordre de la
 /// saisie) : la deduction forfaitaire specifique d'un salarie se plafonne par annee civile, contrats precedents du mois

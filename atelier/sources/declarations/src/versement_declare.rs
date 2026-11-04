@@ -166,7 +166,7 @@ fn frais_de(lignes: &[(String, String)], quoi: &str) -> Result<Decimal, String> 
 /// (`dsn::versement_ecrit`) : ses rubriques (bloc 50 a part, sans le bloc 52), les affiliations du contrat, et ses
 /// montants, ceux de la paie. Refus : une rubrique que l'annulation ne sait pas reprendre, un montant net social absent.
 pub fn de_la_paie(ctx: &Contexte, p: &Paie, mois: &str) -> Result<VersementDeclare, String> {
-    let numero = p.engagement.numero.clone().unwrap_or_default();
+    let numero = p.engagement.numero.as_deref().unwrap_or_default().to_string();
     let quoi = format!("la paie declaree de {}", mois);
     let ecrit = crate::dsn::versement_ecrit(ctx, p, mois)?;
     let (entete, lignes): (Vec<(String, String)>, Vec<(String, String)>) =

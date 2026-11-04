@@ -1737,12 +1737,12 @@ mod tests {
     }
 
     fn contrat(sal: &str, code: &str, empreinte: &str, acte: Value) -> Value {
-        json!({"salarie": sal, "debut": "2026-06-04", "fin": "2026-06-30", "numero": "N1", "code": code,
+        json!({"salarie": sal, "debut": "2026-06-04", "fin": "2026-06-30", "numero": "SA1.26.01", "code": code,
                "empreinte": empreinte, "acte": acte, "avenant": null, "message": "m1", "mois": "2026-06"})
     }
 
     fn recu(sal: &str, origine: &str) -> Value {
-        json!({"salarie": sal, "debut": "2026-06-04", "numero": "N1", "recu": true, "origine": origine, "quand": "2026-06-12T10:00:00"})
+        json!({"salarie": sal, "debut": "2026-06-04", "numero": "SA1.26.01", "recu": true, "origine": origine, "quand": "2026-06-12T10:00:00"})
     }
 
     fn signature(quand: &str, c: Value) -> Value {

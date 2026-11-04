@@ -1124,7 +1124,7 @@ fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
     });
     // La subrogation se tire du contrat suspendu et du droit (`routes::imprevus::subrogation_de`), comme a l'enregistrement.
     if let (Some(nom), Some(dj)) = (charge.get("salarie").filter(|v| vrai(v)), socle::date::jour_iso(&champ("dernier_jour"))) {
-        if let Ok(cle) = crate::routes::imprevus::cle_du_salarie(ctx, nom) {
+        if let Ok(cle) = crate::routes::cle_du_salarie(ctx, nom) {
             let contrat = charge.get("contrat").cloned().unwrap_or(Value::Null);
             if let Ok(c) = crate::routes::imprevus::contrat_suspendu(ctx, &cle, &dj, &contrat) {
                 let imp = json!({"genre": engagement::imprevus::ARRET, "salarie": cle, "contrat_debut": c["debut"], "motif": champ("motif"),

@@ -32,7 +32,7 @@ pub(crate) fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jo
     if eng.periode.is_some() || !eng.nat()?.mensuelle() {
         return Ok(vec![(debut, fin)]);
     }
-    let cle = crate::calcul::cle_du_salarie(ctx, eng)?;
+    let cle = ctx.cle_du_salarie(&eng.salarie)?;
     let mut jours = droit::emplois::jours_de_changement(ctx, &cle, &debut, &fin)?;
     jours.extend(jour_de_l_avenant(eng)?);
     droit::periodes::decouper(debut, fin, jours)

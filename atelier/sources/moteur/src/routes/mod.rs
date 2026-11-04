@@ -399,16 +399,18 @@ pub(crate) fn qui_de(charge: &Value) -> String {
 
 /// Le salarié que `nom` désigne (`Contexte::salarie`) ; refus (`KeyError`) avec la phrase de `Contexte::salarie`.
 pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
+    ctx.salarie(&cle_du_salarie(ctx, nom)?).map_err(|m| erreur("KeyError", m))
+}
+
+/// La cle de la fiche que `nom` designe (`Contexte::cle_du_salarie`) ; refus (`KeyError`) avec sa phrase, qui cite `nom`
+/// tel que la charge l'ecrit.
+pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<droit::contexte::IdSalarie> {
     let texte = valeur_en_texte(nom);
-    ctx.salarie(&texte).map_err(|m| {
-        let m = if m.starts_with("Salarie ") {
-            let m = match nom {
-                Value::String(_) => m,
-                autre => m.replacen(&repr_texte(&texte), &valeur_ecrite(autre), 1),
-            };
-            m
-        } else {
-            m
+    ctx.cle_du_salarie(&texte).map_err(|m| {
+        let m = match nom {
+            Value::String(_) => m,
+            autre if m.starts_with("Salarie ") => m.replacen(&repr_texte(&texte), &valeur_ecrite(autre), 1),
+            _ => m,
         };
         erreur("KeyError", m)
     })

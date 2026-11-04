@@ -316,7 +316,7 @@ pub(crate) fn contrat_recu_avec(
         )));
     };
     let p = &paies[rang];
-    let numero_note = p.engagement.numero.clone().map_or(Value::Null, Value::String);
+    let numero_note = p.engagement.numero.clone().map_or(Value::Null, Value::from);
     let nom = socle::texte::salarie_nomme_ou(Some(&p.salarie), &salarie);
     let mut detail = json!({
         "salarie": salarie, "debut": p.engagement.debut.iso(), "recu": recu,
@@ -639,7 +639,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             continue;
         }
         let (cle_s, debut) = rangs[i].clone();
-        let k = (cle_s.clone(), p.engagement.numero.clone().unwrap_or_default());
+        let k = (cle_s.clone(), p.engagement.numero.as_deref().unwrap_or_default().to_string());
         let etat = crate::routes::etapes::etat_signature(
             &crate::routes::etapes::contrat_parti_le(&departs, &cle_s, p.engagement.numero.as_deref()),
             g.par.get(&k).unwrap_or(nul()),
@@ -647,14 +647,14 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             g.recus_par.get(&k).unwrap_or(nul()),
             g.renvoyes.contains(&k),
             g.avenants.get(&k).unwrap_or(nul()),
-            avenants.contains(&(cle_s.clone(), p.engagement.numero.clone().unwrap_or_default())),
+            avenants.contains(&(cle_s.clone(), p.engagement.numero.as_deref().unwrap_or_default().to_string())),
             ailleurs,
         );
         if ailleurs && !vrai(&etat["caduc"]) && !vrai(&etat["avenant_attendu"]) {
             continue;
         }
         let sal = &p.salarie;
-        let numero = p.engagement.numero.clone().map_or(Value::Null, Value::String);
+        let numero = p.engagement.numero.clone().map_or(Value::Null, Value::from);
         let fin = p.engagement.fin.map(|f| f.iso());
         let mut l = Map::new();
         l.insert("salarie".into(), json!(cle_s));
@@ -685,7 +685,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let attente = format!("{}{} le {}", ce, if est(&par, "imprime") { "imprimé" } else { "envoyé" }, jj_mm);
         // Ce que la demande du mot de passe dit avant une relance.
         let pourquoi = format!("Relancer la signature : {}, {}.", valeur_en_texte(&l["nom"]), attente);
-        let numero_charge = p.engagement.numero.clone().map_or(json!(""), Value::String);
+        let numero_charge = p.engagement.numero.clone().map_or(json!(""), Value::from);
         let (recu_g, relancer) = if en_attente {
             let avenant = if avenant_en_attente { etat["avenant"]["numero"].clone() } else { Value::Null };
             let recu_g = json!({"route": Route::ContratRecu, "charge": {"mois": mois, "salarie": cle_s, "debut": debut, "numero": numero_charge, "avenant": avenant, "recu": true}});
@@ -815,7 +815,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let siens = engagement::etats::du_mois(ctx, &mois_parti, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
         let b = &*v.objet().brut;
-        (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte) == paies[i].engagement.numero).then_some(v)
+        (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte).as_deref() == paies[i].engagement.numero.as_deref()).then_some(v)
     });
     let passee = siens.as_ref().and_then(|v| engagement::etats::version_au_depart(ctx, v, &departs, engagement::departs::Envoi::Contrat));
     let mois_effet = match (siens.as_ref(), passee) {
@@ -848,7 +848,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let ent = documents::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = documents::avenant::modele_du_contrat(&ent, &ctx.gabarits(), &*p.engagement.nat().map_err(Echec::from)?)?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;
-    let numero_porte = Some(p.engagement.numero.clone().unwrap_or_else(|| "None".to_string()));
+    let numero_porte = Some(p.engagement.numero.as_deref().unwrap_or("None").to_string());
     let vals = documents::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
     // L'ancien texte s'ecrit du modele avec les valeurs de la version partie, au mois compare (ou, pour un contrat sans
     // terme dont cette version n'avait pas encore ecrit ce mois, a son dernier mois d'avant : ses termes s'y reconduisent).

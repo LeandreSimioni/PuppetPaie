@@ -731,7 +731,7 @@ fn paies_des_embauches(ctx: &Contexte, mois: &str, embauches: &[Value]) -> R<Vec
     let Some((data, _)) = engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(o)? else { return Ok(Vec::new()) };
     let declaree = |p: &engagement::calcul::Paie| {
         let cle = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
-        let numero = p.engagement.numero.clone().unwrap_or_default();
+        let numero = p.engagement.numero.as_deref().unwrap_or_default().to_string();
         embauches.iter().any(|e| valeur_en_texte(&e["salarie"]) == cle && valeur_en_texte(&e["numero"]) == numero)
     };
     let mut paies = Vec::new();

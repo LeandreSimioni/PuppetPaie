@@ -20,7 +20,7 @@ use socle::date::en_texte;
 /// jour. Le mois declare est celui de la fin de la periode de la paie, comme le declare `dsn::bloc_versement` (50.001).
 fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus, departs: &engagement::departs::Departs) -> Result<Option<Versement>, String> {
     let e = &pa.engagement;
-    let Some(numero) = e.numero.clone().filter(|n| !n.is_empty()) else { return Ok(None) };
+    let Some(numero) = e.numero.clone() else { return Ok(None) };
     let cle = en_texte(pa.salarie.get("_cle").unwrap_or(&Value::Null));
     let fin = e.fin_periode()?;
     let mois = fin.mois_civil().to_string();

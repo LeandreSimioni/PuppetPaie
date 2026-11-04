@@ -238,7 +238,7 @@ pub struct ContratCs {
     pub jours: i64,
     pub heures: Option<f64>,
     pub taux_cachet: Option<f64>,
-    pub numero: Option<String>,
+    pub numero: Option<engagement::numeros::NumeroContrat>,
     /// Un contrat paye au mois : chacun de ses mois payes (`MoisPaye`), dans l'ordre. Vide pour un contrat a l'activite.
     pub mois_payes: Vec<MoisPaye>,
 }
@@ -267,10 +267,7 @@ impl ContratCs {
     }
 
     fn numero_ou(&self, defaut: &str) -> String {
-        match &self.numero {
-            Some(n) if !n.is_empty() => n.clone(),
-            _ => defaut.to_string(),
-        }
+        self.numero.as_deref().unwrap_or(defaut).to_string()
     }
 }
 
@@ -410,8 +407,8 @@ pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
         let total = out.iter().fold(Decimal::ZERO, |a, c| a + c.brut);
         if total != paie.brut {
             let qui = match &e.numero {
-                Some(n) if !n.is_empty() => n.clone(),
-                _ => valeur_en_texte(paie.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
+                Some(n) => n.to_string(),
+                None => valeur_en_texte(paie.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
             };
             return Err(Refus {
                 classe: Some("ValueError"),
@@ -649,7 +646,7 @@ mod tests {
     }
 
     fn contrat(debut: Jour, fin: Jour, dates: Vec<Jour>, cachets: i64, jours: i64, heures: Option<f64>) -> ContratCs {
-        ContratCs { debut, fin, dates_travail: dates, cachets, jours, heures, taux_cachet: Some(130.0), numero: Some("FA1.26.01".into()), mois_payes: Vec::new() }
+        ContratCs { debut, fin, dates_travail: dates, cachets, jours, heures, taux_cachet: Some(130.0), numero: engagement::numeros::NumeroContrat::lire("FA1.26.01").ok(), mois_payes: Vec::new() }
     }
 
     /// L'exercice des conges va du 1er avril au 31 mars

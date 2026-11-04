@@ -448,7 +448,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool, departs: &engag
             mois: mois.to_string(),
             salarie: qui(s)?,
             cle_salarie: cle_de(s)?,
-            contrat: p.engagement.numero.clone().unwrap_or_default(),
+            contrat: p.engagement.numero.as_deref().unwrap_or_default().to_string(),
             nature: nat_libelle(p)?,
             spectacle: titre_spectacle(p),
             brut: dit("brut", p.brut),
@@ -465,7 +465,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool, departs: &engag
         });
     }
     // Ses numeros de contrat sont ecrits quand chaque engagement est valide, ou que la DSN de l'ancien logiciel les a donnes.
-    let figes = paies.iter().all(|p| p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()));
+    let figes = paies.iter().all(|p| p.engagement.numero.is_some());
     Ok((lignes, sans_pas, figes))
 }
 
@@ -848,7 +848,7 @@ pub fn livre_detaille(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let paies = lecture.paies(&m)?;
         let mut ordre: Vec<(String, String, usize)> = Vec::new();
         for (i, paie) in paies.iter().enumerate() {
-            ordre.push((qui(&paie.salarie)?, paie.engagement.numero.clone().unwrap_or_default(), i));
+            ordre.push((qui(&paie.salarie)?, paie.engagement.numero.as_deref().unwrap_or_default().to_string(), i));
         }
         ordre.sort_by(|a, b| (&a.0, &a.1).cmp(&(&b.0, &b.1)));
         for (nom, numero, i) in ordre {
@@ -1135,7 +1135,7 @@ pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                 sans.push(qui(&paie.salarie)?);
             }
             let mut l = Ligne::nouvelle();
-            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.clone().unwrap_or_default());
+            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.as_deref().unwrap_or_default().to_string());
             l.t("nir", if coord { fiche_texte(&paie.salarie, "nir") } else { String::new() });
             l.d("net_imposable", eur2(paie.net_imposable));
             match r {
@@ -1208,7 +1208,7 @@ pub fn reduction_generale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         for paie in lecture.paies(&m)?.iter() {
             let Some(rg) = &paie.reduction_generale else { continue };
             let mut l = Ligne::nouvelle();
-            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.clone().unwrap_or_default());
+            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.as_deref().unwrap_or_default().to_string());
             l.d("brut", eur2(paie.brut)).d("heures", ou_zero(rg.heures)).d("smic", eur2(rg.smic_reference)).d("coefficient", ou_zero(rg.coefficient));
             l.d("montant", eur2(rg.montant)).d("urssaf", eur2(rg.urssaf)).d("chomage", eur2(rg.chomage)).d("retraite", eur2(rg.agirc_arrco));
             lignes.push(l);
@@ -1272,7 +1272,7 @@ pub fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     for m in p.mois.clone() {
         for paie in lecture.paies(&m)?.iter() {
             let mut l = Ligne::nouvelle();
-            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.clone().unwrap_or_default());
+            l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", paie.engagement.numero.as_deref().unwrap_or_default().to_string());
             l.d("plafond", eur2(paie.plafond));
             for (k, v) in &paie.bases {
                 l.d(&format!("b_{}", k), eur2(*v));
@@ -1336,7 +1336,7 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             };
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("cle_salarie", cle_de(&paie.salarie)?);
-            l.t("contrat", e.numero.clone().unwrap_or_default()).t("spectacle", titre_spectacle(paie)).t("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
+            l.t("contrat", e.numero.as_deref().unwrap_or_default().to_string()).t("spectacle", titre_spectacle(paie)).t("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
             l.d("cachets", cachets).d("heures", heures).n("jours", e.dates_travail.len() as i64).d("brut", eur2(paie.brut));
             lignes.push(l);
         }

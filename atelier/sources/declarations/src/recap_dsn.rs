@@ -253,6 +253,6 @@ mod tests {
         assert_eq!((c.mois.brut_texte().as_str(), c.mois.mesure_texte("cachets").as_str()), ("200.00", "2"));
         assert_eq!((c.debut.as_str(), c.fin_declaree.as_str(), c.mois.remunere), ("2026-08-01", "2026-08-31", true));
         assert_eq!((c.rappel.brut_texte().as_str(), c.rappel.mesure_texte("cachets").as_str()), ("30.00", "1"));
-        assert_eq!(lire_recap(b"S21.G00.30.001,'1'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'A'\nS21.G00.51.001,'x'\nS21.G00.51.010,'A'\nS21.G00.51.013,'12,5'\n").err(), Some(socle::num::illisible("12,5")));
+        assert_eq!(lire_recap(b"S21.G00.30.001,'1'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'FA1.26.13'\nS21.G00.51.001,'x'\nS21.G00.51.010,'FA1.26.13'\nS21.G00.51.013,'12,5'\n").err(), Some(socle::num::illisible("12,5")));
     }
 }

@@ -193,11 +193,8 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
                 };
             }
             _ => {
-                // S21.G00.40.009 : 20 caracteres au plus (cahier technique, bloc S21.G00.40).
-                if v.chars().count() > 20 || v.chars().any(char::is_whitespace) {
-                    return Err(refus(format!("« {} » n'est pas un numéro de contrat de la DSN (20 caractères au plus, sans espace) : rien n'a été écrit.", v)));
-                }
-                contrat.insert("numero".into(), json!(v));
+                let n = engagement::numeros::NumeroContrat::lire(&v).map_err(|m| refus(format!("{} Rien n'a été écrit.", m)))?;
+                contrat.insert("numero".into(), n.into());
             }
         }
     }

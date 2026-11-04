@@ -147,7 +147,7 @@ pub fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &
         let cle = (
             p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).unwrap_or_default(),
             p.engagement.debut.iso(),
-            p.engagement.numero.clone().unwrap_or_default(),
+            p.engagement.numero.as_deref().unwrap_or_default().to_string(),
         );
         if let Some((_, (numero, date))) = remplacements.iter().find(|(k, _)| *k == cle) {
             un.insert("remplace".into(), json!({"numero": numero, "date": date}));
@@ -277,7 +277,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
 /// signe hors du logiciel (`ailleurs`), « commencé le 01/03/2022 » -- le numero que le logiciel lui a donne n'est pas sur
 /// le papier signe. `date_contrat` en JJ/MM/AAAA.
 fn reference_du_contrat(p: &Paie, date_contrat: &str, ailleurs: bool) -> String {
-    match p.engagement.numero.as_deref().filter(|n| !n.is_empty()) {
+    match p.engagement.numero.as_deref() {
         Some(n) if !ailleurs => format!("n° {} du {}", n, date_contrat),
         _ if ailleurs => format!("commencé le {}", date_contrat),
         _ => format!("du {}", date_contrat),
