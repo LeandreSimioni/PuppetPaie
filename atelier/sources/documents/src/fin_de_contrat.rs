@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::bulletin::{fmt_eur, identite_de, jj_mm_aaaa};
+use crate::bulletin::{fmt_eur, identite_de};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use socle::date::{en_texte, Jour};
@@ -52,9 +52,9 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
 
 /// Les mentions communes du certificat de travail et du reçu.
 fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>> {
-    // Les marqueurs du certificat nomment les cases de la fiche : elle se lit ici en JSON.
-    let s = &p.salarie.en_valeur();
+    let s = &p.salarie;
     let e = &p.engagement;
+    let ecrite = |c: &droit::fiche::Case<String>, k: &str| -> R<String> { c.ecrite(k).map(str::to_string).map_err(|m| erreur("KeyError", m)) };
     let req = |v: &Value, k: &str| -> R<String> { v.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
     let ou_vide = |v: &Value, k: &str| -> String { v.get(k).map(en_texte).unwrap_or_default() };
     let sig = ent.get("signataire").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
@@ -71,19 +71,16 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>
     poser("employeur.naf", req(ent, "naf")?);
     poser("employeur.signataire", format!("{} {}", req(sig, "prenom")?, req(sig, "nom")?));
     poser("employeur.signataire_fonction", ou_vide(sig, "fonction"));
-    poser("salarie.nom_complet", format!("{} {}", req(s, "prenom")?, req(s, "nom")?));
-    poser(
-        "salarie.date_naissance",
-        jj_mm_aaaa(s.get("date_naissance").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("date_naissance")))?).map_err(|m| erreur("ValueError", m))?,
-    );
-    poser("salarie.lieu_naissance", ou_vide(s, "lieu_naissance"));
-    poser("salarie.adresse", req(s, "adresse")?);
-    poser("salarie.code_postal", req(s, "code_postal")?);
-    poser("salarie.commune", req(s, "commune")?);
+    poser("salarie.nom_complet", format!("{} {}", ecrite(&s.prenom, "prenom")?, ecrite(&s.nom, "nom")?));
+    poser("salarie.date_naissance", s.date_naissance.exigee("date_naissance").map_err(|m| erreur("KeyError", m))?.jj_mm_aaaa());
+    poser("salarie.lieu_naissance", s.lieu_naissance.texte().to_string());
+    poser("salarie.adresse", ecrite(&s.adresse, "adresse")?);
+    poser("salarie.code_postal", ecrite(&s.code_postal, "code_postal")?);
+    poser("salarie.commune", ecrite(&s.commune, "commune")?);
     poser("contrat.numero", e.numero.as_deref().unwrap_or_default().to_string());
     poser("contrat.debut", e.debut.jj_mm_aaaa());
     poser("contrat.fin", e.fin.map(|f| f.jj_mm_aaaa()).unwrap_or_default());
-    poser("contrat.emploi", ou_vide(s, "emploi"));
+    poser("contrat.emploi", s.emploi.texte().to_string());
     poser("contrat.nature", e.nat().map_err(|m| erreur("ValueError", m))?.libelle.clone());
     poser("certificat.date", aujourdhui.clone());
     poser("recu.date", aujourdhui);
