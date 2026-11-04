@@ -170,6 +170,8 @@ function brancherDemarrage(conteneur) {
 function changementsDemarrage(liste) {
   const parFiche = new Map();
   const memes = (a, b) => JSON.stringify(a ?? "") === JSON.stringify(b ?? "");
+  // Une case de structure dont aucune sous-case n'est remplie (`signataire`, `banque`) est vide, comme une case seule.
+  const vide = (v) => v === null || v === undefined || v === "" || (typeof v === "object" && Object.values(v).every(vide));
   const fondre = (a, b) => {
     if (!a || typeof a !== "object" || !b || typeof b !== "object") return b;
     const o = { ...a };
@@ -183,7 +185,7 @@ function changementsDemarrage(liste) {
     const lu = lireFormulaire(`[data-demarrage-liste="${liste.dataset.demarrageListe}"] [data-demarrage="${li.dataset.demarrage}"] .demarrage-case`, {});
     const v = lu[k.racine];
     const avant = k.fiche.donnees[k.racine];
-    if (v === null || v === undefined || v === "" || (v === false && !avant) || memes(v, avant)) return;
+    if (vide(v) || (v === false && !avant) || memes(v, avant)) return;
     const cle = k.nom + "|" + (k.nom === "entreprise" ? "" : k.fiche.cle);
     const f = parFiche.get(cle) || { nom: k.nom, ...(k.nom === "entreprise" ? {} : { cle: k.fiche.cle }), donnees: {} };
     f.donnees[k.racine] = fondre(f.donnees[k.racine], v);

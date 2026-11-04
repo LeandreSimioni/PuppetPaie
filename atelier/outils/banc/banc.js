@@ -79,7 +79,8 @@ async function lancer(banc, { jour, moteur, depot } = {}) {
   if (!fs.existsSync(inst)) {
     fs.mkdirSync(inst, { recursive: true });
     fs.cpSync(path.join(source, "logiciel"), path.join(inst, "logiciel"), { recursive: true });
-    fs.cpSync(path.join(source, "fictives"), path.join(inst, "fictives"), { recursive: true });
+    // `fictives/` est livrée par « Publier », hors Git : un clone n'en a pas, et l'installation n'a alors que la compagnie du « + ».
+    if (fs.existsSync(path.join(source, "fictives"))) fs.cpSync(path.join(source, "fictives"), path.join(inst, "fictives"), { recursive: true });
   }
   const binaire = moteur || MOTEUR_PAR_DEFAUT.find((p) => fs.existsSync(p));
   if (!binaire || !fs.existsSync(binaire)) {
