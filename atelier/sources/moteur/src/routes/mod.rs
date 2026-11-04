@@ -31,6 +31,7 @@ use catalogue::Route;
 pub mod ouverture;
 pub mod depots;
 pub mod archives;
+pub mod libelles_courts;
 pub mod historique;
 pub mod documents;
 pub mod dossier_salarie;
@@ -211,6 +212,7 @@ fn servir(o: &HashMap<String, String>, route: Route, charge: &Value) -> Result<V
         _ if dans(filet::ROUTES) => filet::route(o, &ctx, route, &charge),
         _ if dans(import::ROUTES) => import::route(o, &ctx, route, &charge),
         _ if dans(archives::ROUTES) => archives::route(o, &ctx, route, &charge),
+        _ if dans(libelles_courts::ROUTES) => libelles_courts::route(o, &ctx, route, &charge),
         _ if dans(historique::ROUTES) => historique::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
         Route::HistoriqueMois => crate::historique_mois::route(&ctx, &charge),

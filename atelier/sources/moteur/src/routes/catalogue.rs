@@ -114,6 +114,8 @@ routes! {
         DossierFormes = "dossier-formes",
         ExportsPeriodes = "exports-periodes",
         RetenirLogiciel = "retenir-logiciel",
+        LibellesCourts = "libelles-courts",
+        LibellesCourtsEnregistrer = "libelles-courts-enregistrer",
         CascRegularise = "casc-regularise",
         Exporter = "exporter",
         DossierEnvoyer = "dossier-envoyer",
@@ -543,7 +545,7 @@ pub fn en_json(avance: bool) -> Value {
 }
 
 /// Les modules dont les routes portent leur fiche, dans l'ordre du catalogue : l'ordre ou leurs exemples se jouent.
-pub const FICHES: [&[Fiche]; 28] = [
+pub const FICHES: [&[Fiche]; 29] = [
     crate::routes::engagement::ROUTES,
     crate::etat_garde::ROUTES,
     crate::routes::mois::ROUTES,
@@ -557,6 +559,7 @@ pub const FICHES: [&[Fiche]; 28] = [
     crate::routes::coffre::ROUTES,
     crate::routes::import::ROUTES,
     crate::routes::archives::ROUTES,
+    crate::routes::libelles_courts::ROUTES,
     crate::routes::historique::ROUTES,
     crate::routes::fiches::ROUTES,
     crate::routes::identite::ROUTES,

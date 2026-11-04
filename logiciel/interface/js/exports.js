@@ -317,7 +317,58 @@ function montrerLogiciel() {
     : c.logiciels.some((l) => l.analytique && f && l.format === f.value);
   document.getElementById("x-analytique-champ").classList.toggle("cachee", !porte);
   document.getElementById("x-controle").innerHTML = (c.controle || []).map((m) =>
-    `<div class="encart alerte">${echapper(m)}</div>`).join("");
+    `<div class="encart alerte">${echapper(m)}</div>`).join("") + `<div id="x-courts"></div>`;
+  montrerCourts(choisi ? choisi.format : (f ? f.value : ""));
+}
+
+/** LES LIBELLÉS COURTS. Ce que le format choisi ne tient pas, le moteur le
+ *  dit (`libelles-courts`) : la phrase et le renvoi à la boîte, seulement s'il
+ *  y a quelque chose à raccourcir. */
+async function montrerCourts(format) {
+  const cible = document.getElementById("x-courts");
+  if (!cible) return;
+  let r;
+  try { r = await api("libelles-courts", { format }); }
+  catch (e) { cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`; return; }
+  cible.innerHTML = r.libelles.length ? `<div class="encart alerte">${echapper(r.phrase)}
+    <button class="lien" id="x-courts-ouvrir">Les raccourcir</button></div>` : "";
+  if (r.libelles.length) document.getElementById("x-courts-ouvrir").onclick = () => ouvrirCourts(r.format);
+}
+
+/** LA BOÎTE DES LIBELLÉS COURTS : chaque libellé trop long, la place qu'il a,
+ *  et la valeur courte — celle validée, sinon la proposition du moteur. On la
+ *  garde ou on la change ; « Enregistrer » les valide toutes. Le moteur
+ *  vérifie chacune et refuse sans rien écrire. */
+async function ouvrirCourts(format, phrase) {
+  let r;
+  try { r = await api("libelles-courts", { format }); }
+  catch (e) { dire(e.message, "erreur"); return; }
+  const lignes = r.libelles.map((l, i) => `<tr>
+      <td>${echapper(l.zone)}</td><td>${echapper(l.long)}</td>
+      <td><input type="text" class="x-court" data-i="${i}" size="${l.largeur + 2}" value="${echapper(l.court ?? l.propose)}"></td>
+    </tr>`).join("");
+  ouvrirBoite(`<h3>Libellés courts — ${echapper(r.nom)}</h3>
+    <div class="encart" id="x-courts-dit">${echapper(phrase || r.phrase)}</div>
+    <table class="tableau"><tr><th>Zone</th><th>Libellé</th><th>Valeur courte</th></tr>${lignes}</table>
+    <div class="actions">
+      <button class="secondaire" onclick="fermerBoite()">Fermer</button>
+      <button class="primaire" id="x-courts-enregistrer">Enregistrer</button>
+    </div>`);
+  document.getElementById("x-courts-enregistrer").onclick = async () => {
+    const libelles = [...document.querySelectorAll(".x-court")].map((c) => {
+      const l = r.libelles[Number(c.dataset.i)];
+      return { quoi: l.quoi, cle: l.cle, court: c.value };
+    });
+    try {
+      const fait = await api("libelles-courts-enregistrer", { format: r.format, libelles });
+      ouvrirCourts(r.format, fait.phrase);
+      if (document.getElementById("x-courts")) montrerCourts(r.format);
+    } catch (e) {
+      const dit = document.getElementById("x-courts-dit");
+      dit.className = "encart erreur";
+      dit.textContent = e.message;
+    }
+  };
 }
 
 /** LE CALENDRIER DES EXPORTS. Une ligne par année,
@@ -391,7 +442,14 @@ async function lancerExport(apercu) {
   cible.innerHTML = `<p class="discret">…</p>`;
   let r;
   try { r = await api("exporter", charge); }
-  catch (e) { cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`; return; }
+  catch (e) {
+    // Des libellés trop longs pour le format : le refus y renvoie.
+    const courts = e.detail && e.detail.libelles_courts;
+    cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}${courts
+      ? ` <button class="lien" id="x-courts-refus">Les raccourcir</button>` : ""}</div>`;
+    if (courts) document.getElementById("x-courts-refus").onclick = () => ouvrirCourts(courts);
+    return;
+  }
   if (r.etat === "regularisation-casc-svp") { dessinerCasc(r); return; }
   if (r.colonnes && r.sections) { dessinerTableau(r, apercu); return; }
   dessinerLivre(r, apercu);

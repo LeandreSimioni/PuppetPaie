@@ -3,9 +3,12 @@
 //! provision pour conges payes des permanents, la taxe sur les salaires.
 //!
 //! Les ecritures sont celles de `ecritures_comptables::ecritures_du_mois` (le meme plan, le meme refus d'un compte
-//! devine) ; chaque mois fait une piece (`PAIE-AAAA-MM`) et un numero d'ecriture. Les fichiers de logiciel sont
-//! ecrits en cp1252 avec remplacement (`encode("cp1252", errors="replace")`) quand le format est « Windows ».
+//! devine) ; chaque mois fait une piece (`PAIE-AAAA-MM`) et un numero d'ecriture. Chaque format de logiciel s'ecrit
+//! d'apres sa notice deposee (`SOURCE_*`) ; ceux que la notice ne dit pas en UTF-8 sont ecrits en cp1252 avec
+//! remplacement (`cp1252`). Une zone ne se coupe jamais : un libelle ou un intitule trop long prend la valeur courte que
+//! la compagnie a validee (`libelles_courts`), sinon l'export se refuse et dit combien en raccourcir.
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Map, Value};
@@ -15,6 +18,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
 use crate::ecritures_comptables::{ecritures_du_mois, Ecriture};
+use crate::libelles_courts::{Courts, Depasse, FormatBorne, Quoi};
 use socle::fichiers::vrai;
 use socle::texte::{euros, euros_de};
 use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
@@ -30,13 +34,15 @@ pub const FORMATS_ECRITURES: [&str; 13] =
     ["csv", "tsv", "xlsx", "pdf", "html", "json", "fec", "ximport", "oxygene", "sage", "quadra", "ebp", "pennylane"];
 
 const SOURCES: &str = "plan comptable : plan-comptable-base.json (plan comptable général, classes 64, 42, 43, 44), remplacé clé par clé par config/plan-comptable.json";
-const SOURCE_FEC: &str = "art. A47 A-1 du Livre des procédures fiscales (Légifrance) et BOI-CF-IOR-60-40-20, relevés le 23/09/2026";
-const SOURCE_XIMPORT: &str = "format XIMPORT de Ciel Compta : documentation Gestan (wiki.gestan.fr) et Compta-Online, relevée le 23/09/2026";
-const SOURCE_OXYGENE: &str = "Oxygène : aide en ligne de Memsoft, « Structure des fichiers ASCII » (aides.memsoft.fr), relevée le 23/09/2026";
-const SOURCE_SAGE: &str = "Sage 100 : « Description du format PNM », Sage, 2022 (fr-kb.sage.com), relevée le 23/09/2026";
-const SOURCE_EBP: &str = "EBP : notice « Format d'importation des écritures en ASCII », version du 01/07/2006, reproduite par Sofakom (revendeur EBP), relevée le 23/09/2026";
-const SOURCE_PENNYLANE: &str = "Pennylane : centre d'aide, « Importer des écritures » et « Importer un fichier de CEGID EXPERT au format TRA », relevés le 23/09/2026";
-const SOURCE_QUADRA: &str = "Quadra : « Fichier d'entrée ASCII dans QuadraCOMPTA », QC_ASC.doc, mise à jour 2023 (Cegid, diffusé par support.sofakom.fr), relevé le 23/09/2026";
+// LES NOTICES, deposees dans `atelier/reference/sources/formats-comptables/` (son LISEZ-MOI) : chaque format s'ecrit
+// d'apres la sienne, et chaque source dit le fichier et les lignes (ou l'article) ou se lisent ses zones.
+const SOURCE_FEC: &str = "FEC : art. A47 A-1 du Livre des procédures fiscales (formats-comptables/lpf-article-A47-A-1-20261030.txt) : VI, 1°, c, les zones séparées par une tabulation ; VII, 1° et 4°, les dix-huit champs dans l'ordre et leurs noms en première ligne ; XII, l'UTF-8, la virgule décimale, les dates AAAAMMJJ ; BOI-CF-IOR-60-40-20, § 70 (formats-comptables/bofip-BOI-CF-IOR-60-40-20-20170607.html) : un champ « à blanc si non utilisé » reste vide";
+const SOURCE_XIMPORT: &str = "XIMPORT : Sage 50 (ex-Ciel), « Comprendre la structure du fichier d'import XImport » (formats-comptables/sage-50-structure-ximport-20261104.txt, l. 31-48) : treize zones à la suite, sans délimiteur, la virgule décimale, les nombres à droite, le reste à gauche. La notice dit « 137 caractères » au plus, ses zones en font 138 : elles sont écrites telles que la table les donne. Le jeu de caractères et la fin de ligne n'y sont pas dits : Windows et CR LF, une inférence";
+const SOURCE_OXYGENE: &str = "Oxygène : Memsoft, « Structure des fichiers ASCII utilisés dans le module d'importation de données » (formats-comptables/memsoft-oxygene-structure-fichiers-ascii-20261104.txt) : l. 5-9, aucun format de taille fixe ; l. 19-27, le CSV à point-virgule conseillé (EXCEL2), CR LF ; l. 42-136, l'import à partir d'un seul fichier et ses zones (LIBEC 40, NPIEC 10, NUMCP 13, NUMJL 5, CSECT 20, CODAGE 9) ; l. 353-371, la fiche compte (NUMCP 13, CODCP 15 non obligatoire, LIBCP 50). Ni le séparateur décimal ni le jeu de caractères n'y sont dits : la virgule et Windows, une inférence";
+const SOURCE_SAGE: &str = "Sage : Sage 100, « Description du format PNM » (formats-comptables/sage-100-description-format-pnm-20261104.txt, l. 40-43 : la raison sociale en première ligne, 30 caractères, puis une ligne par retour chariot ; l. 86-178 : le format 105 caractères, positions et longueurs ; l. 293-309 : l'exemple, le point décimal, la ligne A d'une section). Le jeu de caractères n'y est pas dit : Windows, une inférence";
+const SOURCE_EBP: &str = "EBP : « Format d'importation des écritures en ASCII », version du 01/07/2006 (formats-comptables/ebp-format-importation-ecritures-ascii-20261104.txt, l. 52-115 : les onze zones, la virgule pour séparateur, le guillemet autour du libellé (40) et de la pièce (15), le point décimal, la ventilation analytique ; l. 124-166 : COMPTES.TXT, le compte (15) et l'intitulé (60) parmi dix zones). Le jeu de caractères n'y est pas dit, ni la largeur du poste analytique : Windows, une inférence";
+const SOURCE_PENNYLANE: &str = "Pennylane : centre d'aide, « Importer des écritures » (formats-comptables/pennylane-importer-des-ecritures-20261104.txt, l. 85-133 : la date, le numéro de compte et le débit ou le crédit obligatoires, seuls 401, 411, 410, 421, 455 et 467 en lettres, le code journal de cinq lettres au plus, la catégorie et sa famille avec le code analytique ; l. 209-220 : une pièce par numéro et par journal). La notice ne borne pas le libellé ; le séparateur et le jeu de caractères n'y sont pas dits : le point-virgule et l'UTF-8, une inférence";
+const SOURCE_QUADRA: &str = "Quadra : Cegid, « Fichier d'entrée ASCII dans QuadraCOMPTA », QC_ASC.doc, mise à jour 2023 (formats-comptables/cegid-quadra-fichier-entree-ascii-20261104.txt, l. 1-34 : l'enregistrement M, positions et longueurs, le libellé de 30 en 117 « blanc si renseigné en 22 sur 20 » ; l. 64-82 : l'enregistrement C). Le jeu de caractères n'y est pas dit : Windows, une inférence";
 
 const ESSAI: &str = " Faire un premier import d'essai sur un dossier de test avant de s'y fier.";
 
@@ -82,16 +88,12 @@ fn caler(s: String, n: usize, a_droite: bool) -> String {
 
 /// Ce qu'une zone porte, en mots, et ce qui se raccourcit pour qu'elle tienne.
 fn ce_que_porte(quoi: &str) -> (&'static str, &'static str) {
-    const PLAN: &str = "Raccourcir le libellé de ce compte dans le plan comptable de la compagnie";
     match quoi {
-        "libelle" | "libelle30" | "LIBEC" | "Libellé" => ("le libellé", "Raccourcir le libellé de ce compte dans le plan comptable de la compagnie, ou le titre du spectacle dans Configuration › Spectacles"),
-        "libelle_compte" | "LIBCP" => ("l'intitulé du compte", PLAN),
-        "CODCP" => ("le code du compte", PLAN),
         "journal" | "journal3" => ("le code journal", "Raccourcir le code journal dans le plan comptable de la compagnie"),
+        "CODAGE" => ("le poste analytique", "Raccourcir le poste analytique dans le plan comptable de la compagnie"),
         "compte" => ("le compte", "Choisir dans le plan comptable de la compagnie un compte qui tient"),
         "analytique" | "affaire" | "auxiliaire" => ("le code analytique", "Raccourcir le code analytique du spectacle dans Configuration › Spectacles"),
         "piece" | "reference" | "piece10" => ("la pièce", "Ce numéro de pièce est celui du mois : le signaler"),
-        "raison sociale" => ("le nom de la compagnie", "Abréger le nom de la compagnie dans Configuration › Entreprise"),
         _ => ("une zone", "Cette valeur est calculée : le signaler"),
     }
 }
@@ -283,14 +285,63 @@ fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, departs: &
 
 // ------------------------------------------------------------------ ce que chaque ecrivain recoit
 
-/// `Envoi` : le plan, le contexte, et les codes de section quand l'analytique est demandee.
+/// `Envoi` : le plan, le contexte, les codes de section quand l'analytique est demandee, les libelles courts valides du
+/// format, et ce qui depasse sa zone (`libelle`, `intitule`), releve au fil de l'ecriture.
 struct Envoi<'a> {
     plan: &'a Map<String, Value>,
     ctx: &'a Contexte,
     sections: Option<BTreeMap<String, String>>,
+    courts: Courts,
+    depasses: RefCell<BTreeMap<(Quoi, String), Depasse>>,
 }
 
 impl Envoi<'_> {
+    /// La valeur d'une zone de `largeur` caracteres : `long` s'il tient ; sinon sa valeur courte validee, si elle tient ;
+    /// sinon rien, et la valeur est notee (`depasses`) : l'export se refuse a la fin (`refus_des_depasses`), rien ne se
+    /// coupe.
+    fn tenir_ou_court(&self, quoi: Quoi, cle: &str, long: &str, largeur: usize) -> Option<String> {
+        let long = blancs(long);
+        if long.chars().count() <= largeur {
+            return Some(long);
+        }
+        let court = self.courts.de(quoi, cle).map(|c| blancs(c)).filter(|c| !c.is_empty() && c.chars().count() <= largeur);
+        self.depasses
+            .borrow_mut()
+            .entry((quoi, cle.to_string()))
+            .or_insert_with(|| Depasse { quoi, cle: cle.to_string(), long: long.clone(), largeur, court: court.clone() });
+        court
+    }
+
+    /// Le libelle d'une ligne dans une zone de `n` caracteres : ce qui la distingue (`libelle_court`), puis son mois,
+    /// toujours. Ce qui le distingue se remplace par sa valeur courte validee quand il ne tient pas.
+    fn libelle(&self, e: &Ecriture, nature: bool, n: usize) -> String {
+        let (tete, mois) = libelle_court(e, nature);
+        let place = n.saturating_sub(mois.chars().count() + 1);
+        match self.tenir_ou_court(Quoi::Libelle, &blancs(&tete), &tete, place) {
+            Some(t) => format!("{} {}", t, mois),
+            None => String::new(),
+        }
+    }
+
+    /// L'intitule du compte `compte` dans une zone de `n` caracteres, ou sa valeur courte validee.
+    fn intitule(&self, compte: &str, lib: &str, n: usize) -> String {
+        self.tenir_ou_court(Quoi::Compte, compte, lib, n).unwrap_or_default()
+    }
+
+    /// Ce qui ne tient pas et n'a pas de valeur courte validee : l'export se refuse, en disant combien et ou les
+    /// raccourcir ; la page y renvoie (`libelles_courts`, le format).
+    fn refus_des_depasses(&self, format: &str) -> R<()> {
+        let n = self.depasses.borrow().values().filter(|d| d.court.is_none()).count();
+        if n == 0 {
+            return Ok(());
+        }
+        let nom = FormatBorne::de(format).map(FormatBorne::nom).unwrap_or(format);
+        Err(refus(socle::echec::avec(
+            format!("{} trop long{} pour {} : les raccourcir (Exports, « Libellés courts »).", if n > 1 { format!("{} libellés", n) } else { "1 libellé".to_string() }, if n > 1 { "s" } else { "" }, nom),
+            serde_json::json!({"libelles_courts": format, "nombre": n}),
+        )))
+    }
+
     /// `Envoi.section` : le code de section d'une ligne -- seules les lignes de salaires bruts en ont une.
     fn section(&self, e: &Ecriture) -> String {
         let Some(sections) = &self.sections else { return String::new() };
@@ -426,9 +477,10 @@ fn fec(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ outils communs
 
-/// Le libelle d'une ligne dans une zone etroite -- ce qui la distingue (le spectacle ou le salarie, sinon la nature ;
-/// les deux si `nature`) et le mois, entier : la zone le prend ou refuse (`tenir`).
-fn libelle_court(e: &Ecriture, nature: bool) -> String {
+/// Le libelle d'une ligne dans une zone etroite, en deux morceaux : ce qui la distingue (le spectacle ou le salarie,
+/// sinon la nature ; les deux si `nature`), et son mois (MM/AAAA). La zone prend les deux, ou ce qui la distingue se
+/// remplace par sa valeur courte validee (`Envoi::libelle`).
+fn libelle_court(e: &Ecriture, nature: bool) -> (String, String) {
     let mm = format!("{}/{}", tranche(&e.date, 5, 7), tranche(&e.date, 0, 4));
     let sans_mois = match e.libelle.rfind(" -- ") {
         Some(i) => &e.libelle[..i],
@@ -438,8 +490,14 @@ fn libelle_court(e: &Ecriture, nature: bool) -> String {
     if nature && !e.analytique.is_empty() {
         quoi = format!("{} — {}", quoi, e.analytique);
     }
-    let tete_brute = if !e.analytique.is_empty() && !nature { e.analytique.clone() } else { quoi };
-    blancs(&format!("{} {}", tete_brute, mm))
+    let tete = if !e.analytique.is_empty() && !nature { e.analytique.clone() } else { quoi };
+    (blancs(&tete), mm)
+}
+
+/// Le libelle entier d'une ligne, quand la zone n'a pas de largeur.
+fn libelle_entier(e: &Ecriture) -> String {
+    let (tete, mois) = libelle_court(e, true);
+    format!("{} {}", tete, mois)
 }
 
 /// PAIE-2026-08 fait 12 caracteres ; Oxygene et Quadra en prennent 10 : PAIE202608.
@@ -475,23 +533,28 @@ fn virgule(v: Decimal) -> String {
     }
 }
 
-/// `LIMITES[format]` : (nom, largeur du compte, largeur du journal).
-fn limites(format: &str) -> Option<(String, usize, usize)> {
+/// `LIMITES[format]` : (nom, largeur du compte, largeur du journal) ; une largeur que la notice ne dit pas n'y est pas.
+fn limites(format: &str) -> Option<(String, Option<usize>, usize)> {
     let l = crate::plan_comptable::tables()["limites"].get(format)?;
-    Some((l["nom"].as_str()?.to_string(), l["compte"].as_u64()? as usize, l["journal"].as_u64()? as usize))
+    Some((l["nom"].as_str()?.to_string(), l["compte"].as_u64().map(|n| n as usize), l["journal"].as_u64()? as usize))
 }
 
 /// Le compte et le journal tiennent dans leurs zones, ou on refuse.
 fn borne(format: &str, compte: &str, journal: &str) -> R<()> {
     let (nom, lc, lj) = limites(format).ok_or_else(|| erreur("KeyError", format!("format inconnu : {}", socle::fichiers::repr(format))))?;
-    if compte.chars().count() > lc || journal.chars().count() > lj {
-        return Err(refus(format!("{} : le compte « {} » ou le journal « {} » dépasse sa zone ({} et {} caractères).", nom, compte, journal, lc, lj)));
+    if lc.is_some_and(|lc| compte.chars().count() > lc) {
+        return Err(refus(format!("{} : le compte « {} » dépasse sa zone ({} caractères). Choisir dans le plan comptable de la compagnie un compte qui tient.", nom, compte, lc.unwrap_or_default())));
+    }
+    if journal.chars().count() > lj {
+        return Err(refus(format!("{} : le journal « {} » dépasse sa zone ({} caractères). Raccourcir le code journal dans le plan comptable de la compagnie.", nom, journal, lj)));
     }
     Ok(())
 }
 
 // ------------------------------------------------------------------ XIMPORT
 
+/// Les treize zones de la notice (`SOURCE_XIMPORT`, l. 35-48), dans son ordre : (cle, longueur, cadrage). La version de
+/// Ciel 2003 (l. 49-52, « avec en plus ») n'est pas ecrite.
 const LARGEURS_XIMPORT: [(&str, usize, char); 13] = [
     ("mouvement", 5, 'd'), ("journal", 2, 'g'), ("date", 8, 'g'), ("echeance", 8, 'g'), ("piece", 12, 'g'), ("compte", 11, 'g'), ("libelle", 25, 'g'), ("montant", 13, 'd'),
     ("sens", 1, 'g'), ("pointage", 12, 'g'), ("analytique", 6, 'g'), ("libelle_compte", 34, 'g'), ("euro", 1, 'g'),
@@ -509,12 +572,12 @@ fn ximport(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
             ("echeance", String::new()),
             ("piece", e.piece.clone()),
             ("compte", compte_de(e)),
-            ("libelle", libelle_court(e, false)),
+            ("libelle", env.libelle(e, false, 25)),
             ("montant", deux(montant).replace('.', ",")),
             ("sens", s.to_string()),
             ("pointage", String::new()),
             ("analytique", env.section(e)),
-            ("libelle_compte", libelle_de(env.plan, e)?),
+            ("libelle_compte", env.intitule(&compte_de(e), &libelle_de(env.plan, e)?, 34)),
             ("euro", "O".to_string()),
         ]
         .into_iter()
@@ -526,6 +589,8 @@ fn ximport(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ Oxygene
 
+/// Les zones de « L'importation à partir d'un seul fichier des écritures » (`SOURCE_OXYGENE`, l. 46-136), dans l'ordre
+/// de la notice.
 fn zones_oxygene() -> Vec<String> {
     let mut z: Vec<String> =
         ["CODSOC", "CODAGE", "NUMJL", "MONNAIE_IDENT", "NUMCP", "COURS", "CSECT", "DTOPE", "NPIEC", "LIBEC", "MTDEB", "MTCRE", "RELET", "NIPIE", "LIBAUTO"].iter().map(|s| s.to_string()).collect();
@@ -547,13 +612,13 @@ fn oxygene(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         borne("oxygene", &compte_de(e), &e.journal)?;
         let section = env.section(e);
         let mut z: BTreeMap<&str, String> = zones.iter().map(|k| (k.as_str(), String::new())).collect();
-        let poste = if section.is_empty() { String::new() } else { texte_ou_vide(env.plan.get("poste_analytique")) };
+        let poste = if section.is_empty() { String::new() } else { tenir("Oxygène", "CODAGE", &texte_ou_vide(env.plan.get("poste_analytique")), 9)? };
         for (k, v) in [
             ("NUMJL", e.journal.clone()),
             ("NUMCP", compte_de(e)),
             ("DTOPE", e.date.replace('-', "")),
             ("NPIEC", piece_courte(e)),
-            ("LIBEC", tenir("Oxygène", "LIBEC", &libelle_court(e, true), 40)?),
+            ("LIBEC", env.libelle(e, true, 40)),
             ("MTDEB", virgule(e.debit)),
             ("MTCRE", virgule(e.credit)),
             ("CSECT", section),
@@ -566,17 +631,21 @@ fn oxygene(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
     Ok(cp1252(&out))
 }
 
-/// `oxygene_comptes` : « L'importation du plan comptable », fiche compte.
-fn oxygene_comptes(comptes: &[(String, String)]) -> R<Vec<u8>> {
+/// `oxygene_comptes` : « L'importation du plan comptable », fiche compte (`SOURCE_OXYGENE`, l. 353-371) : le numero,
+/// l'intitule reduit (non obligatoire : laisse vide), l'intitule.
+fn oxygene_comptes(comptes: &[(String, String)], env: &Envoi) -> R<Vec<u8>> {
     let mut out = vec!["NUMCP;CODCP;LIBCP".to_string()];
     for (compte, lib) in comptes {
-        out.push([csv_propre(compte), csv_propre(&tenir("Oxygène", "CODCP", lib, 15)?), csv_propre(&tenir("Oxygène", "LIBCP", lib, 50)?)].join(";"));
+        borne("oxygene", compte, "")?;
+        out.push([csv_propre(compte), String::new(), csv_propre(&env.intitule(compte, lib, 50))].join(";"));
     }
     Ok(cp1252(&out))
 }
 
 // ------------------------------------------------------------------ Sage (PNM)
 
+/// Le format 105 caracteres (`SOURCE_SAGE`, l. 86-178) : (cle, longueur, cadrage), aux positions 1, 4, 10, 12, 25, 26,
+/// 39, 52, 77, 78, 84, 85 et 105.
 const LARGEURS_PNM: [(&str, usize, char); 13] = [
     ("journal", 3, 'g'), ("date", 6, 'g'), ("type_piece", 2, 'g'), ("compte", 13, 'g'), ("type_compte", 1, 'g'), ("auxiliaire", 13, 'g'), ("reference", 13, 'g'),
     ("libelle", 25, 'g'), ("paiement", 1, 'g'), ("echeance", 6, 'g'), ("sens", 1, 'g'), ("montant", 20, 'd'), ("type_ecriture", 1, 'g'),
@@ -586,7 +655,7 @@ const LARGEURS_PNM: [(&str, usize, char); 13] = [
 fn sage_pnm(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
     let nom = nom_compagnie(env.ctx);
     let nom = if nom.is_empty() { "Paie".to_string() } else { nom };
-    let mut out = vec![tenir("Sage", "raison sociale", &nom, 30)?];
+    let mut out = vec![env.tenir_ou_court(Quoi::Compagnie, &nom, &nom, 30).unwrap_or_default()];
     for e in ecritures {
         borne("sage", &compte_de(e), &e.journal)?;
         let (s, montant) = sens(e);
@@ -598,7 +667,7 @@ fn sage_pnm(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
             ("type_compte", String::new()),
             ("auxiliaire", String::new()),
             ("reference", e.piece.clone()),
-            ("libelle", libelle_court(e, false)),
+            ("libelle", env.libelle(e, false, 25)),
             ("paiement", String::new()),
             ("echeance", String::new()),
             ("sens", s.to_string()),
@@ -621,12 +690,14 @@ fn sage_pnm(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ Quadra
 
-/// L'enregistrement de compte : (cle, longueur) -- les positions se suivent sans trou (QC_ASC.doc).
+/// L'enregistrement M (`SOURCE_QUADRA`, l. 9-34) : (cle, longueur), les positions se suivant sans trou de 1 a 158. Le
+/// libelle s'ecrit sur 30 en 117 : celui de 20 en 22 reste blanc (« blanc si renseigné en 22 sur 20 caract. », l. 32).
 const POSITIONS_QUADRA: [(&str, usize); 23] = [
     ("type", 1), ("compte", 8), ("journal", 2), ("folio", 3), ("date", 6), ("code_libelle", 1), ("libelle", 20), ("sens", 1), ("montant", 13), ("contrepartie", 8),
     ("echeance", 6), ("lettrage", 2), ("statistiques", 3), ("piece5", 5), ("affaire", 10), ("quantite", 10), ("piece8", 8), ("devise", 3), ("journal3", 3), ("tva", 3),
     ("libelle30", 30), ("tva2", 2), ("piece10", 10),
 ];
+/// L'enregistrement C (`SOURCE_QUADRA`, l. 64-82), de 1 a 218.
 const POSITIONS_QUADRA_COMPTE: [(&str, usize); 12] = [
     ("type", 1), ("compte", 8), ("libelle", 30), ("cle", 7), ("debit1", 13), ("credit1", 13), ("debit2", 13), ("credit2", 13), ("collectif", 8), ("adresse", 110), ("maj", 1),
     ("type_compte", 1),
@@ -636,7 +707,7 @@ const POSITIONS_QUADRA_COMPTE: [(&str, usize); 12] = [
 fn compte_quadra(compte: &str) -> R<String> {
     if compte.chars().count() > 8 {
         return Err(refus(format!(
-            "Quadra : le compte « {} » a plus de 8 caractères, la largeur de la zone. Choisir dans config/plan-comptable.json un sous-compte qui tient (par exemple « 421{{code:03}} » plutôt que « 421{{cle}} »).",
+            "Quadra : le compte « {} » a plus de 8 caractères, la largeur de la zone. Choisir dans le plan comptable de la compagnie un sous-compte qui tient (par exemple « 421{{code:03}} » plutôt que « 421{{cle}} »).",
             compte
         )));
     }
@@ -664,7 +735,7 @@ fn quadra(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         let mut ch: BTreeMap<&str, String> = BTreeMap::new();
         ch.insert("type", "C".to_string());
         ch.insert("compte", compte_quadra(&c)?);
-        ch.insert("libelle", lib);
+        ch.insert("libelle", env.intitule(&c, &lib, 30));
         for k in ["debit1", "credit1", "debit2", "credit2"] {
             ch.insert(k, "+000000000000".to_string());
         }
@@ -680,13 +751,12 @@ fn quadra(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         ch.insert("journal", e.journal.clone());
         ch.insert("folio", "000".to_string());
         ch.insert("date", jjmmaa(&e.date));
-        ch.insert("libelle", libelle_court(e, false));
         ch.insert("sens", s.to_string());
         ch.insert("montant", format!("+{:012}", centimes));
         ch.insert("affaire", env.section(e));
         ch.insert("devise", "EUR".to_string());
         ch.insert("journal3", e.journal.clone());
-        ch.insert("libelle30", libelle_court(e, false));
+        ch.insert("libelle30", env.libelle(e, false, 30));
         ch.insert("piece10", piece_courte(e));
         sortie.push(quadra_ligne(&ch, &POSITIONS_QUADRA)?);
     }
@@ -705,7 +775,8 @@ fn ebp_zone(s: &str) -> String {
     blancs(&s.replace(',', " ").replace('"', "'"))
 }
 
-/// `ebp` : toutes les zones, meme vides ; avec l'analytique, la ligne de ventilation suit l'ecriture.
+/// `ebp` : les onze zones de la notice (`SOURCE_EBP`, l. 52-80), toutes, meme vides ; avec l'analytique, la ligne de
+/// ventilation suit l'ecriture (l. 101-115).
 fn ebp(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
     let mut out = Vec::new();
     for (i, e) in ecritures.iter().enumerate() {
@@ -718,7 +789,7 @@ fn ebp(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
                 e.journal.clone(),
                 compte_de(e),
                 String::new(),
-                ebp_texte("libelle", &libelle_court(e, true), 40)?,
+                format!("\"{}\"", env.libelle(e, true, 40).replace('"', "'")),
                 ebp_texte("piece", &e.piece, 15)?,
                 deux(montant),
                 s.to_string(),
@@ -729,18 +800,19 @@ fn ebp(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
         );
         let section = env.section(e);
         if !section.is_empty() {
-            out.push(format!(">{},100.00,{}", section, deux(montant)));
+            out.push(format!(">{},100.00,{}", ebp_zone(&section), deux(montant)));
         }
     }
     Ok(cp1252(&out))
 }
 
-/// `ebp_comptes` : COMPTES.TXT.
-fn ebp_comptes(comptes: &[(String, String)]) -> R<Vec<u8>> {
+/// `ebp_comptes` : COMPTES.TXT, ses dix zones (`SOURCE_EBP`, l. 137-150).
+fn ebp_comptes(comptes: &[(String, String)], env: &Envoi) -> R<Vec<u8>> {
     let out: Vec<String> = comptes
         .iter()
         .map(|(c, lib)| {
-            let mut z = vec![tenir("EBP", "compte", &ebp_zone(c), 15)?, tenir("EBP", "libelle_compte", &ebp_zone(lib), 60)?];
+            borne("ebp", c, "")?;
+            let mut z = vec![ebp_zone(c), env.intitule(c, &ebp_zone(lib), 60)];
             z.extend(std::iter::repeat(String::new()).take(8));
             Ok(z.join(","))
         })
@@ -750,22 +822,36 @@ fn ebp_comptes(comptes: &[(String, String)]) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ Pennylane
 
-/// `pennylane` : le code journal n'a que des lettres (5 au plus). UTF-8, point-virgule.
+/// Les comptes que Pennylane prend en lettres (`SOURCE_PENNYLANE`, l. 91-93) ; les autres sont des chiffres.
+const PENNYLANE_ALPHANUMERIQUES: [&str; 6] = ["401", "411", "410", "421", "455", "467"];
+
+/// `pennylane` : une ligne par ligne d'ecriture, ses colonnes nommees (la notice fait correspondre les colonnes au
+/// premier import) ; le code journal n'a que des lettres (5 au plus) ; avec l'analytique, la categorie (le spectacle), sa
+/// famille et son code. UTF-8, point-virgule.
 fn pennylane(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
-    let mut out = vec!["Date;Code journal;Numéro de compte;Libellé;Débit;Crédit;Code analytique".to_string()];
+    let analytique = env.sections.is_some();
+    let mut entete = "Date;Code journal;Numéro de pièce;Numéro de compte;Libellé;Débit;Crédit".to_string();
+    if analytique {
+        entete.push_str(";Famille de catégories;Catégorie;Code analytique");
+    }
+    let mut out = vec![entete];
     for e in ecritures {
         if !(!e.journal.is_empty() && e.journal.chars().all(char::is_alphabetic) && e.journal.chars().count() <= 5) {
-            return Err(refus(format!("Pennylane : le code journal « {} » doit tenir en 5 lettres.", e.journal)));
+            return Err(refus(format!("Pennylane : le code journal « {} » doit tenir en 5 lettres. Le changer dans le plan comptable de la compagnie.", e.journal)));
         }
-        let champs = [
-            jj(&e.date),
-            e.journal.clone(),
-            compte_de(e),
-            format!("{} {}", e.piece, tenir("Pennylane", "Libellé", &libelle_court(e, true), 80)?),
-            virgule(e.debit),
-            virgule(e.credit),
-            env.section(e),
-        ];
+        let compte = compte_de(e);
+        if !tout_chiffres(&compte) && !PENNYLANE_ALPHANUMERIQUES.iter().any(|p| compte.starts_with(p)) {
+            return Err(refus(format!(
+                "Pennylane : le compte « {} » porte des lettres, ce que Pennylane n'accepte que pour les comptes 401, 411, 410, 421, 455 et 467. Le changer dans le plan comptable de la compagnie.",
+                compte
+            )));
+        }
+        let mut champs = vec![jj(&e.date), e.journal.clone(), e.piece.clone(), compte, libelle_entier(e), virgule(e.debit), virgule(e.credit)];
+        if analytique {
+            let code = env.section(e);
+            let (famille, categorie) = if code.is_empty() { (String::new(), String::new()) } else { ("Spectacles".to_string(), e.analytique.clone()) };
+            champs.extend([famille, categorie, code]);
+        }
         out.push(champs.iter().map(|c| csv_propre(c)).collect::<Vec<_>>().join(";"));
     }
     Ok(format!("{}\r\n", out.join("\r\n")).into_bytes())
@@ -773,16 +859,24 @@ fn pennylane(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
 
 // ------------------------------------------------------------------ les formats de logiciel
 
-/// `Ecrivain` : le fichier, l'ecrivain, la source, ce qu'on dit a celui qui l'importe, la largeur du code de
-/// section quand le format porte l'analytique, et le fichier des comptes quand le format en a un.
+/// L'analytique d'un format : il ne la porte pas, ou il la porte dans une zone que sa notice borne ou non.
+#[derive(Clone, Copy)]
+enum Analytique {
+    Non,
+    Largeur(usize),
+    SansLargeur,
+}
+
+/// `Ecrivain` : le fichier, l'ecrivain, la source, ce qu'on dit a celui qui l'importe, l'analytique du format, et le
+/// fichier des comptes quand le format en a un.
 struct Ecrivain {
     fichier: &'static str,
     ecrire: fn(&[Ecriture], &Envoi) -> R<Vec<u8>>,
     source: &'static str,
     conseil: String,
-    section: usize,
+    section: Analytique,
     /// (modele du nom, ecrivain, conseil)
-    comptes: Option<(&'static str, fn(&[(String, String)]) -> R<Vec<u8>>, &'static str)>,
+    comptes: Option<(&'static str, fn(&[(String, String)], &Envoi) -> R<Vec<u8>>, &'static str)>,
 }
 
 /// `ECRIVAINS.get(format)`.
@@ -793,15 +887,15 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
             ecrire: fec,
             source: SOURCE_FEC,
             conseil: "Extrait du journal de paie à la forme du FEC, à importer dans la comptabilité — ce n'est pas le FEC de l'entreprise, que seul le logiciel de comptabilité produit. ValidDate est vide : la validation se fait à l'import.".to_string(),
-            section: 0,
+            section: Analytique::Non,
             comptes: None,
         },
         "ximport" => Ecrivain {
             fichier: "XIMPORT-paie-%s.TXT",
             ecrire: ximport,
             source: SOURCE_XIMPORT,
-            conseil: format!("XIMPORT : format relevé dans une documentation tierce, pas chez l'éditeur.{}", ESSAI),
-            section: 6,
+            conseil: format!("Sage 50 (ex-Ciel) : Échanges > Importer des écritures, format XImport.{}", ESSAI),
+            section: Analytique::Largeur(6),
             comptes: None,
         },
         "oxygene" => Ecrivain {
@@ -809,10 +903,10 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
             ecrire: oxygene,
             source: SOURCE_OXYGENE,
             conseil: format!(
-                "Oxygène : importation de données, « Import écritures à partir d'1 seul fichier », format EXCEL2. L'aide de Memsoft ne dit ni le séparateur décimal ni le jeu de caractères : virgule et Windows ont été retenus.{}",
+                "Oxygène : importation de données, « Import écritures à partir d'1 seul fichier », format EXCEL2 (CSV à point-virgule, celui que Memsoft conseille). L'aide de Memsoft ne dit ni le séparateur décimal ni le jeu de caractères : virgule et Windows ont été retenus.{}",
                 ESSAI
             ),
-            section: 20,
+            section: Analytique::Largeur(20),
             comptes: Some(("oxygene-plan-comptable-paie-%s.csv", oxygene_comptes, "à importer d'abord, « Import plan comptable » ; un compte qui existe déjà n'a pas à y être.")),
         },
         "sage" => Ecrivain {
@@ -823,7 +917,7 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
                 "Sage 100 : Fichier > Importer, type « Écritures Sage (*.pnm) ». Journal et comptes doivent exister dans la société ; le montant est écrit au point décimal, cadré à droite.{}",
                 ESSAI
             ),
-            section: 13,
+            section: Analytique::Largeur(13),
             comptes: None,
         },
         "quadra" => Ecrivain {
@@ -834,7 +928,7 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
                 "Quadra : Suivi des dossiers > Import ASCII (Compta). Les comptes utilisés sont décrits en tête (sans toucher à un compte existant) ; les comptes de chiffres sont complétés à 8 (641100 → 64110000) ; montants en centimes signés, folio 000.{}",
                 ESSAI
             ),
-            section: 10,
+            section: Analytique::Largeur(10),
             comptes: None,
         },
         "ebp" => Ecrivain {
@@ -842,7 +936,7 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
             ecrire: ebp,
             source: SOURCE_EBP,
             conseil: format!("EBP : Outils > Import de données > Import écritures, format « EBP V3 pour Windows ».{}", ESSAI),
-            section: 10,
+            section: Analytique::SansLargeur,
             comptes: Some(("COMPTES.TXT", ebp_comptes, "EBP le lit seul s'il est dans le même dossier que le fichier des écritures, et crée les comptes absents avec leur intitulé.")),
         },
         "pennylane" => Ecrivain {
@@ -850,10 +944,10 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
             ecrire: pennylane,
             source: SOURCE_PENNYLANE,
             conseil: format!(
-                "Pennylane : Saisie > Imports > Importer un fichier > Écritures ; faire correspondre les colonnes au premier import et enregistrer le modèle. Le 421 individuel est accepté en alphanumérique.{}",
+                "Pennylane : Saisie > Imports > Importer un fichier > Écritures ; faire correspondre les colonnes au premier import et enregistrer le modèle. Le 421 individuel est accepté en lettres.{}",
                 ESSAI
             ),
-            section: 20,
+            section: Analytique::SansLargeur,
             comptes: None,
         },
         _ => return None,
@@ -940,8 +1034,13 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let mut sections = None;
     if analytique {
-        if let Some(ec) = ecr_format.as_ref().filter(|e| e.section > 0) {
-            let codes = codes_sections(&plan, &ecr, ec.section, &codes_des_fiches(&ctx.spectacles))?;
+        let largeur = match ecr_format.as_ref().map(|e| e.section) {
+            Some(Analytique::Largeur(n)) => Some(n),
+            Some(Analytique::SansLargeur) => Some(usize::MAX),
+            _ => None,
+        };
+        if let Some(largeur) = largeur {
+            let codes = codes_sections(&plan, &ecr, largeur, &codes_des_fiches(&ctx.spectacles))?;
             let dits: Vec<String> = codes.iter().map(|(titre, code)| format!("{} = {}", code, titre)).collect();
             t.avertissements.push(format!(
                 "Analytique : les salaires bruts sont ventilés par spectacle ({}). Les sections doivent exister dans le logiciel du comptable ; leurs codes se changent dans Configuration › Spectacles, case « Code analytique ».",
@@ -956,13 +1055,10 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let dossier = p.dossier(ctx);
         if let Some(ec) = &ecr_format {
             let io = |c: &std::path::Path, e: std::io::Error| erreur("OSError", socle::echec::du_disque(&c, &e));
-            let env = Envoi { plan: &plan, ctx, sections };
+            let env = envoi(ctx, &plan, sections, &format)?;
             // Les deux fichiers se fabriquent avant d'ecrire : une zone qui ne tient pas refuse l'export entier.
-            let ecritures = (ec.ecrire)(&ecr, &env)?;
-            let comptes = match ec.comptes {
-                Some((modele, fabrique, conseil)) => Some((modele, fabrique(&comptes_utilises(&ecr, &plan)?)?, conseil)),
-                None => None,
-            };
+            let (ecritures, comptes) = fabriquer(ec, &ecr, &env)?;
+            env.refus_des_depasses(&format)?;
             std::fs::create_dir_all(&dossier).map_err(|e| io(&dossier, e))?;
             let chemin = dossier.join(ec.fichier.replace("%s", &p.nom()));
             std::fs::write(&chemin, ecritures).map_err(|e| io(&chemin, e))?;
@@ -979,6 +1075,57 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         }
     }
     Ok(t)
+}
+
+/// Ce qu'un ecrivain recoit pour `format` : le plan, les sections, et les libelles courts valides de ce format.
+fn envoi<'a>(ctx: &'a Contexte, plan: &'a Map<String, Value>, sections: Option<BTreeMap<String, String>>, format: &str) -> R<Envoi<'a>> {
+    let courts = match FormatBorne::de(format) {
+        Some(f) => crate::libelles_courts::lire(&ctx.racine)?.formats.remove(&f).unwrap_or_default(),
+        None => Courts::default(),
+    };
+    Ok(Envoi { plan, ctx, sections, courts, depasses: RefCell::new(BTreeMap::new()) })
+}
+
+/// Le fichier des ecritures, et celui des comptes quand le format en a un : (modele de son nom, octets, conseil).
+type Fabrique = (Vec<u8>, Option<(&'static str, Vec<u8>, &'static str)>);
+
+/// Les fichiers d'un format, fabriques sans rien ecrire ; ce qui depasse sa zone est note dans `env`.
+fn fabriquer(ec: &Ecrivain, ecr: &[Ecriture], env: &Envoi) -> R<Fabrique> {
+    let ecritures = (ec.ecrire)(ecr, env)?;
+    let comptes = match ec.comptes {
+        Some((modele, fabrique, conseil)) => Some((modele, fabrique(&comptes_utilises(ecr, env.plan)?, env)?, conseil)),
+        None => None,
+    };
+    Ok((ecritures, comptes))
+}
+
+/// CE QUI NE TIENT PAS DANS LES ZONES DE `format`, sur tous les mois de la compagnie : chaque libelle et chaque intitule
+/// de compte trop long, avec sa valeur courte validee si elle tient. Les memes ecrivains que l'export, qui ne s'ecrit
+/// pas : la page des libelles courts lit ce que l'export refuserait.
+pub fn trop_longs(ctx: &Contexte, format: &str, departs: &engagement::departs::Departs) -> R<Vec<Depasse>> {
+    let Some(ec) = ecrivain(format).filter(|_| FormatBorne::de(format).is_some()) else { return Ok(Vec::new()) };
+    let (plan, _) = crate::plan_comptable::plan(ctx)?;
+    // Mois par mois : un mois dont les ecritures se refusent (sa paie incomplete) ne s'exporte pas, il n'a rien a
+    // raccourcir ; son refus est celui de son export.
+    let mut ecr = Vec::new();
+    for m in Periode::nouvelle(ctx, None, None, true, false)?.mois {
+        if let Ok(mut du_mois) = ecritures_du_mois(ctx, &m, &plan, departs) {
+            for e in du_mois.iter_mut() {
+                e.piece = format!("PAIE-{}", m);
+            }
+            ecr.extend(du_mois);
+        }
+    }
+    let env = envoi(ctx, &plan, None, format)?;
+    fabriquer(&ec, &ecr, &env)?;
+    let depasses = env.depasses.into_inner();
+    Ok(depasses.into_values().collect())
+}
+
+/// Le format des ecritures du logiciel retenu par la compagnie (`config/compta.json`), s'il en est un.
+pub fn format_retenu(ctx: &Contexte) -> R<Option<String>> {
+    let retenu = choix_compta(ctx)?;
+    Ok(retenu.get("logiciel").filter(|v| vrai(v)).map(valeur_en_texte).and_then(|l| logiciel_connu(&l)).map(|(_, f, _)| f))
 }
 
 // ------------------------------------------------------------------ le grand livre
