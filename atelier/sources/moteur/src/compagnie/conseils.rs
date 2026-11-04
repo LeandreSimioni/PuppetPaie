@@ -27,6 +27,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::Arc;
 
+use droit::source::Source;
 use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
@@ -271,29 +272,18 @@ fn resoudre(dedans: &str, d: &Donnees, vals: &Valeurs) -> Option<String> {
 }
 
 /// La reference lisible d'une source : le titre du document, l'article.
-fn reference_de(b: &Value, s: &Value) -> String {
-    let fichier = texte(s, "fichier");
-    let cle = match s.get("code") {
-        Some(c) => format!("{}#{}", fichier, en_texte(c)),
-        None => fichier.clone(),
-    };
-    let titre = b.get("documents").and_then(|d| d.get(&cle)).map(en_texte).unwrap_or(fichier);
-    let article = texte(s, "article");
-    if article.is_empty() {
-        titre
-    } else if s.get("code").is_some() {
-        format!("{}, art. {}", titre, article)
-    } else {
-        format!("{}, {}", titre, article)
+fn reference_de(b: &Value, s: &Source) -> String {
+    let titre = b.get("documents").and_then(|d| d.get(s.fichier.texte())).map(en_texte).unwrap_or_else(|| s.fichier.fichier().to_string());
+    match (s.article.as_deref().filter(|a| !a.is_empty()), s.fichier.code()) {
+        (None, _) => titre,
+        (Some(a), Some(_)) => format!("{}, art. {}", titre, a),
+        (Some(a), None) => format!("{}, {}", titre, a),
     }
 }
 
-fn sources_de(c: &Value) -> Vec<&Value> {
-    match c.get("source") {
-        Some(Value::Array(a)) => a.iter().collect(),
-        Some(o @ Value::Object(_)) => vec![o],
-        _ => vec![],
-    }
+/// Les sources d'un conseil (`droit::source::Source`) ; une banque dont une source ne se lit pas n'en a aucune.
+fn sources_de(c: &Value) -> Vec<Source> {
+    c.get("source").map_or(Ok(Vec::new()), |s| socle::forme::lire(s, "La banque des conseils ne se lit pas : le signaler au développeur.")).unwrap_or_default()
 }
 
 /// Le conseil rendu pour l'ecran : son identifiant, son texte (la phrase courte d'un conseil de saisie), son detail
@@ -303,7 +293,7 @@ fn sources_de(c: &Value) -> Vec<&Value> {
 fn vue(b: &Value, c: &Value, d: &Donnees, vals: &Valeurs, annexes: &[&str]) -> Option<Value> {
     let references: Vec<String> = sources_de(c)
         .iter()
-        .filter(|s| s.get("annexe").and_then(Value::as_str).map_or(true, |a| annexes.contains(&a)))
+        .filter(|s| s.annexe.as_deref().map_or(true, |a| annexes.contains(&a)))
         .map(|s| reference_de(b, s))
         .collect();
     let mut v = json!({

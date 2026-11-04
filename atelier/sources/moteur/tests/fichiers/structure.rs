@@ -1645,3 +1645,29 @@ fn sans_tests(t: &str) -> String {
     }
     v.join("\n")
 }
+
+/// UNE FORME LUE REFUSE CE QU'ELLE NE CONNAIT PAS : chaque structure derivee de `Deserialize` porte
+/// `#[serde(deny_unknown_fields)]` (atelier/AGENTS.md, « Chaque forme est declaree une fois, en Rust »), ou se lit par une
+/// autre forme qui la porte (`try_from`).
+#[test]
+fn chaque_forme_lue_refuse_une_cle_inconnue() {
+    let mut fautes = Vec::new();
+    for crate_ in ["socle", "droit", "engagement", "documents", "declarations", "envois", "moteur"] {
+        for f in sources(&espace().join(crate_).join("src")) {
+            let texte = std::fs::read_to_string(&f).unwrap();
+            let lignes: Vec<&str> = texte.lines().collect();
+            for (i, l) in lignes.iter().enumerate() {
+                if !(l.trim_start().starts_with("#[derive(") && l.contains("Deserialize")) {
+                    continue;
+                }
+                let suite: Vec<&str> = lignes[i + 1..].iter().take_while(|x| !x.contains("struct ") && !x.contains("enum ")).copied().collect();
+                let declare = lignes.get(i + 1 + suite.len()).copied().unwrap_or("");
+                let attributs = suite.join(" ");
+                if declare.contains("struct ") && !attributs.contains("deny_unknown_fields") && !attributs.contains("try_from") {
+                    fautes.push(format!("{}:{}", f.display(), i + 1));
+                }
+            }
+        }
+    }
+    assert!(fautes.is_empty(), "une forme lue sans deny_unknown_fields :\n{}", fautes.join("\n"));
+}

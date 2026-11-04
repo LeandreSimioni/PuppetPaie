@@ -64,6 +64,7 @@ pub enum Emetteur {
     Urssaf,
     Unedic,
     FranceTravail,
+    CourDesComptes,
     AgircArrco,
     Audiens,
     Afdas,
@@ -83,6 +84,9 @@ pub struct Source {
     pub emetteur: Emetteur,
     pub article: Option<String>,
     pub citation: String,
+    /// L'annexe du texte qui porte l'article (« X », « VIII » du reglement d'assurance chomage).
+    #[serde(default)]
+    pub annexe: Option<String>,
 }
 
 /// Ce qui fonde une valeur : les textes d'un meme emetteur (`Texte`), ou des textes d'emetteurs distincts qui convergent,
@@ -103,6 +107,8 @@ struct FondementLu {
     emetteur: Option<Emetteur>,
     article: Option<String>,
     citation: Option<String>,
+    #[serde(default)]
+    annexe: Option<String>,
     sources: Option<Vec<Source>>,
     raisonnement: Option<String>,
 }
@@ -118,7 +124,7 @@ impl TryFrom<FondementLu> for Fondement {
                 Ok(Fondement::Texte(sources))
             }
             (None, None) => match (l.fichier, l.emetteur, l.citation) {
-                (Some(fichier), Some(emetteur), Some(citation)) => Ok(Fondement::Texte(vec![Source { fichier, emetteur, article: l.article, citation }])),
+                (Some(fichier), Some(emetteur), Some(citation)) => Ok(Fondement::Texte(vec![Source { fichier, emetteur, article: l.article, citation, annexe: l.annexe }])),
                 _ => Err("une source nomme son fichier, son émetteur et sa citation".to_string()),
             },
             _ => Err("une convergence porte ses sources et son raisonnement, et rien d'autre".to_string()),

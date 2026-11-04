@@ -1050,7 +1050,7 @@ fn controler_effectif(bareme: &Value, eff: &Effectif, ou: &str) -> Resultat<()> 
             texte_ou_vide_defaut(v.get("quoi"), ""),
             texte_ou_vide_defaut(v.get("au_dela"), ""),
             restees.join(", "),
-            texte_ou_vide_defaut(v.get("source"), "")
+            texte_ou_vide_defaut(v.get("texte"), "")
         ));
     }
 
@@ -1119,7 +1119,7 @@ taux ne le ferait pas cotiser.",
             if ou.is_empty() { "config/baremes/<annee>.json" } else { ou },
             cle,
             attendues.iter().map(|r| format!("\"{}\"", r)).collect::<Vec<_>>().join(" ou "),
-            texte_ou_vide_defaut(v.get("source"), "")
+            texte_ou_vide_defaut(v.get("texte"), "")
         ));
     }
 

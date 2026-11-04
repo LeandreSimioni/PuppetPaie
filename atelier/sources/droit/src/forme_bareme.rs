@@ -17,7 +17,7 @@ use socle::num::Decimal;
 macro_rules! forme {
     ($(#[$m:meta])* pub struct $nom:ident { $($corps:tt)* }) => {
         $(#[$m])*
-        #[derive(Debug, Clone, Deserialize)]
+        #[derive(Debug, Clone, Default, Deserialize)]
         #[serde(deny_unknown_fields)]
         pub struct $nom {
             $($corps)*
@@ -169,13 +169,13 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct LogementEtRepas {
-    #[serde(deserialize_with = "socle::forme::decimal")]
-    pub logement: Decimal,
-    #[serde(deserialize_with = "socle::forme::decimal")]
-    pub repas: Decimal,
+forme! {
+    pub struct LogementEtRepas {
+        #[serde(deserialize_with = "socle::forme::decimal")]
+        pub logement: Decimal,
+        #[serde(deserialize_with = "socle::forme::decimal")]
+        pub repas: Decimal,
+    }
 }
 
 forme! {
@@ -308,21 +308,21 @@ forme! {
     }
 }
 
-/// Le taux qui s'ajoute au taux patronal quand la remuneration depasse `seuil_smic` fois le SMIC (sans seuil : toujours).
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Complement {
-    pub taux: f64,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub seuil_smic: Option<Decimal>,
+forme! {
+    /// Le taux qui s'ajoute au taux patronal quand la remuneration depasse `seuil_smic` fois le SMIC (sans seuil : toujours).
+    pub struct Complement {
+        pub taux: f64,
+        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        pub seuil_smic: Option<Decimal>,
+    }
 }
 
-/// Les taux patronal et salarial de la CET.
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Cet {
-    pub pat: f64,
-    pub sal: f64,
+forme! {
+    /// Les taux patronal et salarial de la CET.
+    pub struct Cet {
+        pub pat: f64,
+        pub sal: f64,
+    }
 }
 
 forme! {
@@ -336,15 +336,15 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct NiveauSante {
-    #[serde(deserialize_with = "socle::forme::decimal")]
-    pub assure: Decimal,
-    #[serde(deserialize_with = "socle::forme::decimal")]
-    pub conjoint: Decimal,
-    #[serde(deserialize_with = "socle::forme::decimal")]
-    pub enfant: Decimal,
+forme! {
+    pub struct NiveauSante {
+        #[serde(deserialize_with = "socle::forme::decimal")]
+        pub assure: Decimal,
+        #[serde(deserialize_with = "socle::forme::decimal")]
+        pub conjoint: Decimal,
+        #[serde(deserialize_with = "socle::forme::decimal")]
+        pub enfant: Decimal,
+    }
 }
 
 forme! {
@@ -479,27 +479,27 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Imputation {
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub chomage: Option<Decimal>,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub agirc_arrco: Option<Decimal>,
+forme! {
+    pub struct Imputation {
+        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        pub chomage: Option<Decimal>,
+        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        pub agirc_arrco: Option<Decimal>,
+    }
 }
 
-/// Ce que la DSN declare de la reduction : les codes 81 de ses parts, le CTP du bordereau.
-#[derive(Debug, Clone, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ReductionDsn {
-    pub code81_urssaf: Option<String>,
-    pub code81_chomage: Option<String>,
-    pub code81_retraite: Option<String>,
-    pub ctp: Option<String>,
-    pub ctp_regularisation: Option<String>,
-    pub qualifiant: Option<String>,
-    pub cle_total_chomage: Option<String>,
-    pub cle_total_urssaf: Option<String>,
+forme! {
+    /// Ce que la DSN declare de la reduction : les codes 81 de ses parts, le CTP du bordereau.
+    pub struct ReductionDsn {
+        pub code81_urssaf: Option<String>,
+        pub code81_chomage: Option<String>,
+        pub code81_retraite: Option<String>,
+        pub ctp: Option<String>,
+        pub ctp_regularisation: Option<String>,
+        pub qualifiant: Option<String>,
+        pub cle_total_chomage: Option<String>,
+        pub cle_total_urssaf: Option<String>,
+    }
 }
 
 forme! {
@@ -606,13 +606,13 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct DuCorps {
-    #[serde(default)]
-    pub rubriques_bulletin: Vec<String>,
-    #[serde(default)]
-    pub cotisations_dsn: Vec<String>,
+forme! {
+    pub struct DuCorps {
+        #[serde(default)]
+        pub rubriques_bulletin: Vec<String>,
+        #[serde(default)]
+        pub cotisations_dsn: Vec<String>,
+    }
 }
 
 forme! {
@@ -667,11 +667,11 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AtmpAlsaceMoselle {
-    pub groupe: i64,
-    pub taux: f64,
+forme! {
+    pub struct AtmpAlsaceMoselle {
+        pub groupe: i64,
+        pub taux: f64,
+    }
 }
 
 forme! {
@@ -690,7 +690,8 @@ forme! {
         pub seuil: i64,
         pub quoi: String,
         pub au_dela: String,
-        pub sous_le_seuil: String,
+        #[serde(default)]
+        pub sous_le_seuil: Option<String>,
         /// Les textes qui fondent le seuil, en clair.
         pub texte: String,
         /// Chaque valeur du bareme (son chemin) que le seuil change, et sa valeur sous le seuil.
@@ -738,13 +739,13 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RetraiteT1ParStatut {
-    #[serde(default)]
-    pub artiste: Option<f64>,
-    #[serde(default)]
-    pub technicien: Option<f64>,
+forme! {
+    pub struct RetraiteT1ParStatut {
+        #[serde(default)]
+        pub artiste: Option<f64>,
+        #[serde(default)]
+        pub technicien: Option<f64>,
+    }
 }
 
 forme! {
@@ -756,15 +757,15 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct RepartitionDeBranche {
-    #[serde(default)]
-    pub permanent: Option<String>,
-    #[serde(default)]
-    pub technicien: Option<String>,
-    #[serde(default)]
-    pub artiste: Option<String>,
+forme! {
+    pub struct RepartitionDeBranche {
+        #[serde(default)]
+        pub permanent: Option<String>,
+        #[serde(default)]
+        pub technicien: Option<String>,
+        #[serde(default)]
+        pub artiste: Option<String>,
+    }
 }
 
 forme! {
@@ -913,11 +914,11 @@ forme! {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct TauxJusquA {
-    pub jusqu_a: Option<i64>,
-    pub taux: f64,
+forme! {
+    pub struct TauxJusquA {
+        pub jusqu_a: Option<i64>,
+        pub taux: f64,
+    }
 }
 
 forme! {
