@@ -748,7 +748,7 @@ pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(IdSalari
 /// engagement, pour le fichier du mois, est le contrat tel qu'il a ete signe, et une ligne de cachets a dater, au taux du
 /// contrat, sinon au dernier saisi (la page ne choisit pas de taux ; un dossier qu'on ne sait pas relire, ou qui n'a
 /// encore aucun cachet, R12, n'en propose aucun : la ligne reste a completer).
-/// TRAVAIL A FAIRE (chaine A) : l'engagement importe se lit encore par ses cles.
+/// TRAVAIL A FAIRE (chaine A) : l'engagement ecrit lui-meme (son salarie, ses bornes, son numero) se lit encore par ses cles.
 fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
     let mut out: Vec<EnCours> = Vec::new();
     let mut vus: HashSet<(String, String, String)> = HashSet::new();
@@ -760,10 +760,9 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
             continue;
         }
         let Ok(fiche) = ctx.salarie(&salarie) else { continue };
-        let paies = i.paies();
-        let derniere = paies.values().last().copied().cloned().unwrap_or_default();
-        let objet_du = |x: &Map<String, Value>| ["numero_objet", "objet"].iter().map(|k| t(x, k)).find(|o| !o.is_empty()).unwrap_or_default();
-        let numero_objet = i.contrat().map(objet_du).filter(|o| !o.is_empty()).unwrap_or_else(|| objet_du(&derniere));
+        let derniere = i.paies().values().last();
+        let plein = |o: Option<&String>| o.map(|o| o.trim().to_string()).filter(|o| !o.is_empty());
+        let numero_objet = plein(i.contrat().and_then(|c| c.numero_objet.as_ref())).or_else(|| plein(derniere.and_then(|p| p.numero_objet.as_ref()))).unwrap_or_default();
         let spectacle = ctx
             .spectacles
             .iter()
@@ -771,12 +770,11 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
             .find(|(_, s)| !numero_objet.is_empty() && s.get("numero_objet").map(valeur_en_texte).is_some_and(|n| n.eq_ignore_ascii_case(&numero_objet)))
             .map(|(k, _)| k.clone());
         let taux_cachet = derniere
-            .get("lignes")
-            .and_then(Value::as_array)
             .into_iter()
-            .flatten()
-            .find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))
-            .and_then(|l| l.get("taux").and_then(|x| valeur_en_texte(x).parse::<f64>().ok()));
+            .flat_map(|p| p.lignes.iter())
+            .find(|l| l.rubrique.as_deref() == Some("cachet"))
+            .and_then(|l| l.taux)
+            .and_then(|x| x.to_string().parse::<f64>().ok());
         let taux = match taux_cachet.filter(|t| *t != 0.0) {
             Some(t) => Some(t),
             None => dernier_taux(ctx).ok().flatten(),
@@ -905,8 +903,8 @@ fn dit_du_contrat(debut: &str, fin: &str, cachets: i64, heures: i64) -> String {
     format!("{}→{} · {}{}", court(debut), court(fin), super::compte(cachets.max(0) as usize, "cachet", "cachets"), h)
 }
 
-/// UN CONTRAT QU'UN ENGAGEMENT IMPORTE ATTESTE (`engagement::importe::Importe::ligne_du_contrat`) ; celui d'un
-/// permanent, mois par mois : chaque paie, aux jours qu'elle paie et avec ce que son bulletin compte.
+/// UN CONTRAT QU'UN ENGAGEMENT IMPORTE ATTESTE (`engagement::importe::Importe::contrat_lu`) ; celui d'un permanent, mois
+/// par mois : chaque paie, aux jours qu'elle paie et avec ce que son bulletin compte.
 struct Atteste {
     salarie: String,
     debut: String,
@@ -917,48 +915,32 @@ struct Atteste {
     jours: i64,
 }
 
-/// Un entier, de ce que l'engagement importe porte (un nombre, ou son texte). TRAVAIL A FAIRE (chaine A) : l'engagement
-/// importe le declarera.
-fn entier_de(v: &Value) -> R<i64> {
-    match v {
-        Value::Bool(b) => Ok(*b as i64),
-        Value::Number(n) => n.as_i64().or_else(|| n.as_f64().filter(|x| x.is_finite()).map(|x| x.trunc() as i64)).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", n))),
-        Value::String(s) => s.trim().replace('_', "").parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(s)))),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)))),
-    }
-}
-
-/// Les contrats que les engagements importes attestent. TRAVAIL A FAIRE (chaine A) : l'engagement importe se lit encore
-/// par ses cles.
+/// Les contrats que les engagements importes attestent.
 fn historique(ctx: &Contexte) -> R<Vec<Atteste>> {
-    let texte_de = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    let compte = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map_or(Ok(0), entier_de);
     let mut out = Vec::new();
     for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
-        let Some(Value::Object(contrat)) = i.ligne_du_contrat() else { continue };
-        let atteste = |debut: String, fin: String, chiffres: &Map<String, Value>| -> R<Atteste> {
-            Ok(Atteste {
-                salarie: texte_de(&contrat, "salarie"),
-                debut,
-                fin,
-                numero_objet: texte_de(&contrat, "numero_objet"),
-                cachets: compte(chiffres, "cachets")?,
-                heures: compte(chiffres, "heures")?,
-                jours: compte(chiffres, "jours")?,
-            })
+        let Some(c) = i.contrat_lu() else { continue };
+        let atteste = |debut: String, fin: String, (cachets, heures, jours): (Option<i64>, Option<i64>, Option<i64>)| Atteste {
+            salarie: c.salarie.clone(),
+            debut,
+            fin,
+            numero_objet: c.contrat.numero_objet.clone().unwrap_or_default(),
+            cachets: cachets.unwrap_or(0),
+            heures: heures.unwrap_or(0),
+            jours: jours.unwrap_or(0),
         };
         if !i.permanent() {
-            out.push(atteste(texte_de(&contrat, "debut"), texte_de(&contrat, "fin"), &contrat)?);
+            out.push(atteste(c.debut.clone(), c.fin.clone(), (c.contrat.cachets, c.contrat.heures, c.contrat.jours)));
             continue;
         }
         for (m, p) in i.paies() {
-            let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
-            let debut = lu("debut").unwrap_or_else(|| format!("{}-01", m));
-            let fin = match lu("fin") {
+            let lu = |j: Option<Jour>| j.map(|j| j.iso()).filter(|j| j.starts_with(m.as_str()));
+            let debut = lu(p.debut).unwrap_or_else(|| format!("{}-01", m));
+            let fin = match lu(p.fin) {
                 Some(f) => f,
-                None => Mois::lire(&m).map(Mois::dernier_jour).map(|j| j.iso()).map_err(plain)?,
+                None => Mois::lire(m).map(Mois::dernier_jour).map(|j| j.iso()).map_err(plain)?,
             };
-            out.push(atteste(debut, fin, p)?);
+            out.push(atteste(debut, fin, (p.cachets, p.heures, p.jours)));
         }
     }
     Ok(out)

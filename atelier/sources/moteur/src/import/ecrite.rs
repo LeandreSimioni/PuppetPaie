@@ -70,16 +70,16 @@ fn sans_prives(v: &Value) -> Value {
 /// versee d'un engagement importe), sa copie sous `historique/bulletins/`, ou qu'est la compagnie. `None` : un mois que
 /// l'import n'a pas retenu ; un fichier retenu introuvable refuse.
 pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
-    let lignes: Vec<Value> = engagement::importe::paies_lues(&ctx.racine)?
+    let fichiers: Vec<String> = engagement::importe::paies_lues(&ctx.racine)?
         .into_iter()
-        .filter(|x| x.get("mois").and_then(Value::as_str) == Some(mois) && x.get("fichier").is_some_and(vrai))
+        .filter(|x| x.mois == mois)
+        .filter_map(|x| x.paie.fichier)
         .collect();
-    let Some(ligne) = lignes.last() else { return Ok(None) };
-    let chemin = dossier_bulletins(ctx).join(valeur_en_texte(&ligne["fichier"]));
+    let Some(nom) = fichiers.last() else { return Ok(None) };
+    let chemin = dossier_bulletins(ctx).join(nom);
     if chemin.exists() {
         return Ok(Some(chemin));
     }
-    let nom = valeur_en_texte(&ligne["fichier"]);
     Err(socle::echec::avec(format!("La DSN de {} a été importée, mais son fichier n'est plus dans l'historique de la compagnie.", mois), serde_json::json!({"fichier": nom})))
 }
 
@@ -121,11 +121,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let faits: HashSet<String> = declarations::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
     // `mois_disponibles` : les mois des paies declarees, et les mois saisis.
     let mut dispo: BTreeSet<String> = BTreeSet::new();
-    for x in engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)? {
-        if let Some(m) = x.get("mois").filter(|m| vrai(m)) {
-            dispo.insert(valeur_en_texte(m));
-        }
-    }
+    dispo.extend(engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)?.into_iter().map(|x| x.mois));
     dispo.extend(engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from));
     let depuis = valeur_en_texte(&base["depuis"]);
     let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
@@ -260,22 +256,19 @@ fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize 
     ambigues
 }
 
-/// Une ligne sans ce qui dit quand elle a ete importee : ce qui compare deux lectures des memes pieces.
-pub(crate) fn sans_dates_d_import(x: &Value) -> Value {
-    let mut x = x.clone();
+/// Une ligne de paie telle que sa forme la lit (`engagement::importe::PaieLue::normale`) : ce qui compare deux lectures
+/// des memes pieces, quoi que chacune taise.
+pub(crate) fn normale(x: &Value) -> R<Value> {
+    engagement::importe::PaieLue::normale(x).map_err(Echec::from)
+}
+
+/// La meme, sans ce qui dit quand elle a ete importee.
+pub(crate) fn sans_dates_d_import(x: &Value) -> R<Value> {
+    let mut x = normale(x)?;
     if let Some(o) = x.as_object_mut() {
         o.remove("importe_le");
     }
-    x
-}
-
-/// Une ligne sans les cles que l'engagement importe porte lui-meme.
-fn sans(x: &Value, cles: &[&str]) -> Map<String, Value> {
-    let mut o = x.as_object().cloned().unwrap_or_default();
-    for k in cles {
-        o.remove(*k);
-    }
-    o
+    Ok(x)
 }
 
 /// LES ENGAGEMENTS IMPORTES, tires des contrats attestes (`contrats`, une AEM ou un bulletin chacun) et des paies
@@ -284,8 +277,10 @@ fn sans(x: &Value, cles: &[&str]) -> Map<String, Value> {
 /// qu'aucun contrat atteste ne porte fait son engagement avec celles des memes salarie, debut, fin et numero de contrat. Les mois du
 /// contrat d'un permanent font un seul engagement (plus bas).
 /// Son numero est celui que la DSN deposee a declare (S21.G00.40.009), sinon celui que le bulletin imprime ; jamais un
-/// numero tire.
-fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<String, Value>> {
+/// numero tire. Chaque contrat, chaque paie, entre dans sa forme (`engagement::importe::lire_ligne`) : une ligne qui
+/// n'a pas la sienne refuse l'import entier, rien n'est ecrit.
+fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> R<Vec<engagement::importe::Neuf>> {
+    use engagement::importe::{lire_ligne, ContratLu, Neuf, PaieLue, Pieces};
     let t = |x: &Value, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     struct Groupe {
         salarie: String,
@@ -426,19 +421,16 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
     }
     let groupes = autres;
     let mut out = Vec::new();
+    let objet = |x: &Value| x.as_object().cloned().unwrap_or_default();
     for g in groupes {
-        let mut lu = Map::new();
         let lignes: Vec<&Value> = g.contrat.iter().chain(g.paies.iter()).collect();
         let le = lignes.iter().map(|x| t(x, "importe_le")).filter(|x| !x.is_empty()).min().unwrap_or_default();
-        lu.insert("le".into(), json!(le));
-        if let Some(c) = &g.contrat {
-            lu.insert("contrat".into(), Value::Object(sans(c, &["salarie", "debut", "fin", "contrat"])));
-        }
-        let mut par_mois = Map::new();
+        let contrat = g.contrat.as_ref().map(|c| lire_ligne(&objet(c), &ContratLu::BORNES, "Un contrat importé")).transpose().map_err(Echec::from)?;
+        let mut par_mois = std::collections::BTreeMap::new();
         for p in &g.paies {
-            par_mois.insert(t(p, "mois"), Value::Object(sans(p, &["salarie", "mois"])));
+            par_mois.insert(t(p, "mois"), lire_ligne(&objet(p), &PaieLue::BORNES, "Une paie importée").map_err(Echec::from)?);
         }
-        lu.insert("paies".into(), Value::Object(par_mois));
+        let pieces = Pieces { le, contrat, paies: par_mois };
         let mut e = Map::new();
         e.insert("salarie".into(), json!(g.salarie));
         e.insert("debut".into(), json!(g.debut));
@@ -450,14 +442,13 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
         if let Some(n) = declare.or(imprime) {
             e.insert("numero".into(), json!(n));
         }
-        e.insert(engagement::importe::IMPORTE.into(), Value::Object(lu));
-        out.push(e);
+        out.push(Neuf { champs: e, pieces });
     }
     out.sort_by(|a, b| {
-        let k = |e: &Map<String, Value>| ["debut", "fin", "salarie"].map(|c| e.get(c).and_then(Value::as_str).unwrap_or("").to_string());
+        let k = |e: &Neuf| ["debut", "fin", "salarie"].map(|c| e.champs.get(c).and_then(Value::as_str).unwrap_or("").to_string());
         k(a).cmp(&k(b))
     });
-    out
+    Ok(out)
 }
 
 // ------------------------------------------------------------------ l'ecriture
@@ -556,7 +547,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     }
     // CE QUE L'IMPORT A DEJA ECRIT, relu de ses engagements importes : les contrats attestes, les paies versees.
     let importes_avant = engagement::importe::tous(&ctx.racine).map_err(Echec::from)?;
-    let mut engagements: Vec<Value> = engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?;
+    let mut engagements: Vec<Value> = engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?.iter().map(engagement::importe::ContratLu::en_ligne).collect();
     let le = json!(aujourdhui.iso());
     // LES CONTRATS QUE L'IMPORT RETIENT (`import::attestes` en a decide), rattaches par NIR a la fiche qui existe
     // maintenant, comptes par bloc du compte rendu.
@@ -588,7 +579,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     // completee par un bulletin garde ce que le bulletin a ecrit ; une paie de bulletin seul s'efface devant la paie
     // declaree qu'elle complete (`rapprocher`).
     let mut par_cle: BTreeMap<(String, String, String), Value> = BTreeMap::new();
-    for x in engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)? {
+    for x in crate::routes::import::paies_historique(ctx)? {
         par_cle.insert(crate::routes::import::cle_paie(&x)?, x);
     }
     let avant = par_cle.clone();
@@ -610,10 +601,14 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
             ambigues
         ));
     }
-    let neuves = par_cle.iter().filter(|(k, v)| avant.get(*k).map(sans_dates_d_import) != Some(sans_dates_d_import(v))).count()
-        + avant.keys().filter(|k| !par_cle.contains_key(*k)).count();
+    let mut neuves = avant.keys().filter(|k| !par_cle.contains_key(*k)).count();
+    for (k, v) in &par_cle {
+        if avant.get(k).map(sans_dates_d_import).transpose()? != Some(sans_dates_d_import(v)?) {
+            neuves += 1;
+        }
+    }
     if contrats_aem + contrats_bulletins + contrats_certificats + contrats_aem_pdf + neuves > 0 || importes_avant.is_empty() {
-        let importes = engagements_importes(engagements, par_cle.into_values().collect());
+        let importes = engagements_importes(engagements, par_cle.into_values().collect())?;
         for p in engagement::importe::ecrire_tous(&ctx.racine, importes).map_err(Echec::from)? {
             fichiers.push(json!(p.display().to_string()));
         }

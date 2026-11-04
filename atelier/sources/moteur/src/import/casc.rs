@@ -58,25 +58,24 @@ struct Versee {
 /// salarie sans fiche refuse (sa ligne de la liste nominative ne se devine pas).
 fn versees_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<Versee>> {
     let mut out = Vec::new();
-    let t = |x: &Value, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
     for i in engagement::importe::du_mois(&ctx.racine, mois).map_err(socle::echec::Echec::from)? {
-        let Some(p) = i.lignes_des_paies().into_iter().find(|p| p["mois"] == json!(mois)) else { continue };
-        let Some(brut) = t(&p, "brut") else { continue };
-        let cle = t(&p, "salarie").unwrap_or_default();
+        let Some(p) = i.paies_lues().into_iter().find(|p| p.mois == mois) else { continue };
+        let Some(brut) = p.paie.brut else { continue };
+        let cle = p.salarie.clone();
         let salarie = ctx.salaries.get(cle.as_str()).cloned().ok_or_else(|| refus(format!("{} : la fiche du salarie « {} » d'un engagement importe n'existe pas.", mois, cle)))?;
-        let (debut, fin) = (t(&p, "debut"), t(&p, "fin"));
+        let (debut, fin) = (p.paie.debut.map(|j| j.iso()), p.paie.fin.map(|j| j.iso()));
         let mut activite = Vec::new();
-        if let Some(c) = i.ligne_du_contrat() {
-            let dans_le_mois = |b: &Option<String>| b.as_deref().is_some_and(|b| b.starts_with(mois));
-            if dans_le_mois(&t(&c, "debut")) && dans_le_mois(&t(&c, "fin")) {
-                for quoi in ["jours", "cachets", "heures"] {
-                    if let Some(v) = t(&c, quoi).and_then(|v| dec(&v).ok()).filter(|v| !v.is_zero()) {
-                        activite.push((quoi, v));
+        if let Some(c) = i.contrat_lu() {
+            if c.debut.starts_with(mois) && c.fin.starts_with(mois) {
+                for (quoi, n) in [("jours", c.contrat.jours), ("cachets", c.contrat.cachets), ("heures", c.contrat.heures)] {
+                    if let Some(v) = n.filter(|n| *n != 0) {
+                        activite.push((quoi, Decimal::from(v)));
                     }
                 }
             }
         }
-        out.push(Versee { salarie, brut: dec(&brut)?, numero: t(&p, "contrat").filter(|_| t(&p, "declare_par").as_deref() != Some("bulletin")), debut, fin, activite });
+        let numero = Some(p.paie.contrat.clone()).filter(|n| !n.is_empty() && p.paie.declare_par != engagement::importe::Declaration::Bulletin);
+        out.push(Versee { salarie, brut, numero, debut, fin, activite });
     }
     Ok(out)
 }

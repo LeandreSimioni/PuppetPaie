@@ -1536,7 +1536,7 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
     for i in engagement::importe::tous(&ctx.racine).map_err(plain)? {
         let c = engagement::cle_de_l_engagement(ctx, &i.objet().brut);
         if c.as_deref().is_some_and(sien) {
-            importes.extend(i.paies().into_keys());
+            importes.extend(i.paies().keys().cloned());
         }
     }
     Ok(partis.chain(importes).max())

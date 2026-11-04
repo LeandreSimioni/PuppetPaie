@@ -6,59 +6,37 @@ use serde_json::Value;
 use crate::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::cumul::{heures_enseignement, Declare};
-use socle::date::d;
-use socle::num::{dec_avec_echelle, Resultat};
+use socle::date::Jour;
+use socle::num::{Decimal, Resultat};
 
 // ------------------------------------------------------------------- lecture
 
-/// Un entier d'un contrat importe (`defaut` s'il est absent) ; `None` : une valeur qui n'en est pas un, et la
-/// ligne abimee est laissee de cote.
-fn entier_lu(v: Option<&Value>, defaut: i64) -> Option<i64> {
-    match v {
-        None => Some(defaut),
-        Some(Value::Number(n)) => match n.as_i64() {
-            Some(i) => Some(i),
-            None => n.as_f64().filter(|f| f.is_finite() && f.abs() < 9.0e18).map(|f| f.trunc() as i64),
-        },
-        Some(Value::Bool(b)) => Some(i64::from(*b)),
-        Some(Value::String(s)) => s.trim().parse().ok(),
-        Some(_) => None,
-    }
-}
-
-/// Un contrat importe, ou `None` s'il est abime (il ne fait pas
-/// tomber les autres).
-fn ligne_importee(e: &Value) -> Resultat<Option<Declare>> {
-    let Some(o) = e.as_object() else { return Ok(None) };
-    let Some(Value::String(salarie)) = o.get("salarie") else { return Ok(None) };
-    let (Some(debut), Some(fin)) = (o.get("debut"), o.get("fin")) else { return Ok(None) };
-    let (Ok(debut), Ok(fin)) = (d(debut), d(fin)) else { return Ok(None) };
-    let numero_objet = o.get("numero_objet").cloned().unwrap_or_else(|| Value::String(String::new()));
-    let (Some(heures), Some(cachets), Some(jours)) =
-        (entier_lu(o.get("heures"), 0), entier_lu(o.get("cachets"), 0), entier_lu(o.get("jours"), 0))
-    else {
-        return Ok(None);
-    };
-    let zero = Value::String("0".into());
-    let brut = dec_avec_echelle(o.get("brut").unwrap_or(&zero))?;
-    let Some(heures_enseignement) = entier_lu(o.get("heures_enseignement"), 0) else { return Ok(None) };
-    Ok(Some(Declare { salarie: salarie.clone(), debut, fin, numero_objet, heures, cachets, jours, brut, heures_enseignement }))
-}
-
 /// Les contrats que l'import atteste (`importe::contrats_lus` : une AEM, un bulletin), sauf ceux des permanents, qui
-/// n'ouvrent aucun droit. Vide tant qu'on n'a rien importe.
+/// n'ouvrent aucun droit. Vide tant qu'on n'a rien importe. Un contrat dont l'engagement n'a pas de bornes ne se compte
+/// pas : rien ne le situe.
 pub(crate) fn lire_importes(ctx: &Contexte) -> Resultat<Vec<Declare>> {
     let mut out = Vec::new();
     for i in crate::importe::tous(&ctx.racine)?.into_iter().filter(|i| !i.permanent()) {
-        let Some(mut e) = i.ligne_du_contrat() else { continue };
+        let Some(c) = i.contrat_lu() else { continue };
         // Un contrat qui continue ici : ce que les pieces attestent s'arrete a son dernier mois verse, la suite est
         // dans les paies de ce logiciel.
-        if let Some(dernier) = i.continue_apres() {
-            e["fin"] = Value::String(socle::mois::Mois::lire(&dernier)?.dernier_jour().iso());
-        }
-        if let Some(x) = ligne_importee(&e)? {
-            out.push(x);
-        }
+        let fin = match i.continue_apres() {
+            Some(dernier) => Ok(socle::mois::Mois::lire(&dernier)?.dernier_jour()),
+            None => Jour::lire(&c.fin),
+        };
+        let (Ok(debut), Ok(fin)) = (Jour::lire(&c.debut), fin) else { continue };
+        let a = &c.contrat;
+        out.push(Declare {
+            salarie: c.salarie.clone(),
+            debut,
+            fin,
+            numero_objet: Value::String(a.numero_objet.clone().unwrap_or_default()),
+            heures: a.heures.unwrap_or(0),
+            cachets: a.cachets.unwrap_or(0),
+            jours: a.jours.unwrap_or(0),
+            brut: a.brut.unwrap_or(Decimal::ZERO),
+            heures_enseignement: a.heures_enseignement.unwrap_or(0),
+        });
     }
     Ok(out)
 }

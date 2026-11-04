@@ -43,7 +43,7 @@ fn salaries_lus(racine: &Path) -> Value {
 
 /// Les contrats attestes des engagements importes, chacun avec son salarie.
 fn contrats_importes(racine: &Path) -> Vec<Value> {
-    engagement::importe::contrats_lus(racine).unwrap()
+    engagement::importe::contrats_lus(racine).unwrap().iter().map(engagement::importe::ContratLu::en_ligne).collect()
 }
 
 /// Les fichiers des engagements, tels qu'ils sont sur le disque.
@@ -158,7 +158,7 @@ fn l_apercu_annonce_ce_que_l_ecriture_trouvera() {
             }
         }
     }
-    for p in engagement::importe::paies_lues(&racine).unwrap() {
+    for p in engagement::importe::paies_lues(&racine).unwrap().iter().map(engagement::importe::PaieLue::en_ligne) {
         for k in ["brut", "net_a_payer", "net_imposable", "net_social", "cout_employeur"] {
             if let Some(v) = p[k].as_str() {
                 interdits.extend([v.to_string(), v.replace('.', ",")]);
@@ -286,8 +286,8 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let i = &importes[0];
     assert_eq!((i.objet().brut["numero"].clone(), i.objet().brut["fin"].clone()), (json!("FU1.26.01"), json!("2026-12-03")));
     let paie = i.paies()["2026-11"].clone();
-    assert_eq!((paie["declare_par"].clone(), paie["net_a_payer"].clone()), (json!("DSN"), json!("212.30")), "{:?}", paie);
-    assert!(paie["bulletin"].is_object(), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
+    assert_eq!((paie.declare_par, paie.net_a_payer.map(|n| n.to_string())), (engagement::importe::Declaration::Dsn, Some("212.30".to_string())), "{:?}", paie);
+    assert!(paie.bulletin.is_some(), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
 
     let avant = engagements_ecrits(&racine);
     assert_eq!(route("modifier-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}, "saisie": {"salarie": "FULLER"}}))["ok"], json!(false));

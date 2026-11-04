@@ -34,12 +34,12 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::calcul::LigneCotisation;
-use crate::importe::Importe;
+use crate::importe::{Importe, PaieVersee};
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::en_texte;
 use socle::mois::Mois;
 use socle::fichiers::vrai;
-use socle::num::{dec, dec_f64, Decimal};
+use socle::num::{dec_f64, Decimal};
 
 /// Ce que l'on compare d'une ligne.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -164,10 +164,6 @@ struct Lue {
     montant_employeur: Option<Decimal>,
 }
 
-fn decimal(v: Option<&Value>) -> Option<Decimal> {
-    v.filter(|x| vrai(x)).and_then(|x| dec(x).ok())
-}
-
 fn texte(o: &Map<String, Value>, k: &str) -> Option<String> {
     o.get(k).filter(|x| vrai(x)).map(en_texte)
 }
@@ -186,15 +182,15 @@ pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Ve
     let paies = imp.paies();
     // Le nombre de jours travailles que le bulletin compte (son cumul « Jours ») : celui que la paie du mois porte (le
     // mois d'un permanent), sinon celui du contrat quand il n'a qu'une paie.
-    let du_contrat = contrat.and_then(|c| c.get("jours")).and_then(Value::as_i64).filter(|_| paies.len() == 1);
+    let du_contrat = contrat.and_then(|c| c.jours).filter(|_| paies.len() == 1);
     paies
-        .into_iter()
+        .iter()
         .filter_map(|(mois, p)| {
-            let empreinte = empreinte(imp, &mois, p);
+            let empreinte = empreinte(imp, mois, p);
             if deja(&empreinte) {
                 return None;
             }
-            let logiciel = p.get("bulletin").and_then(|b| b.get("logiciel")).filter(|x| vrai(x)).map(en_texte);
+            let logiciel = p.bulletin.as_ref().and_then(|b| b.logiciel.clone()).filter(|l| !l.is_empty());
             let mut c = Comparaison {
                 empreinte,
                 mois: mois.clone(),
@@ -207,8 +203,8 @@ pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Ve
                 a_refaire: false,
                 non_rattachees: Vec::new(),
             };
-            let jours_comptes = p.get("jours").and_then(Value::as_i64).or(du_contrat);
-            c.ecarts = comparer_une(racine, brut, &mois, p, nature.as_deref(), jours_comptes, &mut c);
+            let jours_comptes = p.jours.or(du_contrat);
+            c.ecarts = comparer_une(racine, brut, mois, p, nature.as_deref(), jours_comptes, &mut c);
             Some(c)
         })
         .collect()
@@ -218,7 +214,7 @@ fn comparer_une(
     racine: &Path,
     brut: &Map<String, Value>,
     mois: &str,
-    p: &Map<String, Value>,
+    p: &PaieVersee,
     nature: Option<&str>,
     jours_comptes: Option<i64>,
     c: &mut Comparaison,
@@ -239,11 +235,11 @@ fn comparer_une(
     // LE STATUT ET L'EMPLOI DE CETTE PAIE sont ceux que son bulletin imprime (`emploi_imprime`) ; ce qu'il ne dit pas
     // se lit dans la fiche. Un salarie artiste sur un contrat, non cadre au regime general sur un autre, se calcule
     // chaque fois sous le sien.
-    let imprime = p.get("emploi_imprime").and_then(Value::as_object);
-    let du_bulletin = |k: &str| imprime.and_then(|m| m.get(k)).filter(|x| vrai(x));
-    c.statut = du_bulletin("statut").map(en_texte).or_else(|| fiche.statut.dite().map(|s| s.as_str().to_string()));
-    c.cadre = du_bulletin("statut_categoriel_rc").map(|s| en_texte(s) == "01").or_else(|| fiche.statut_categoriel_rc.dite().map(|s| *s == droit::fiche::StatutCategorielRc::Cadre));
-    let Some(Value::Array(cotisations)) = p.get("cotisations") else {
+    let imprime = p.emploi_imprime.clone().unwrap_or_default();
+    let dit = |v: &Option<String>| v.clone().filter(|x| !x.is_empty());
+    c.statut = dit(&imprime.statut).or_else(|| fiche.statut.dite().map(|s| s.as_str().to_string()));
+    c.cadre = dit(&imprime.statut_categoriel_rc).map(|s| s == "01").or_else(|| fiche.statut_categoriel_rc.dite().map(|s| *s == droit::fiche::StatutCategorielRc::Cadre));
+    let Some(cotisations) = &p.cotisations else {
         return Err("la paie importée n'a pas de bulletin : la DSN seule ne porte pas ses lignes de cotisation".into());
     };
     // LE TAUX AT/MP est celui de l'etablissement, notifie par l'Assurance Maladie. Une compagnie qui n'a pas encore pose
@@ -254,9 +250,9 @@ fn comparer_une(
     let an: i32 = annee.parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mut atmp_imprime: Option<(Option<Decimal>, Option<Decimal>, Option<Decimal>)> = None;
     if !racine.join(droit::contexte::BAREMES).join(format!("{}.json", annee)).exists() {
-        let ligne = cotisations.iter().find(|l| l.get("cotisation").and_then(Value::as_str) == Some("atmp"));
+        let ligne = cotisations.iter().find(|l| l.cotisation.as_deref() == Some("atmp"));
         atmp_imprime = ligne
-            .map(|l| (decimal(l.get("taux_employeur")), decimal(l.get("montant_employeur")), decimal(l.get("base"))))
+            .map(|l| (l.taux_employeur, l.montant_employeur, l.base))
             .filter(|(t, m, _)| t.is_some() || m.is_some_and(|m| !m.is_zero()));
         if atmp_imprime.is_some() {
             ctx = ctx.avec_le_taux_atmp_lu(an, json!(1.0));
@@ -264,12 +260,10 @@ fn comparer_une(
     }
     let atmp_lu = atmp_imprime.is_some();
     c.taux_atmp = Some(if atmp_lu { "bulletin" } else { "compagnie" });
-    let lignes = p.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
     // Les jours travailles que le bulletin dit, chacun sur chaque ligne (les jours de l'engagement en sont la reunion).
     let mut jours: Vec<Value> = Vec::new();
-    for d in p.get("dates").and_then(Value::as_array).into_iter().flatten() {
-        let (Some(a), Some(b)) = (d.get("debut").and_then(Value::as_str), d.get("fin").and_then(Value::as_str)) else { continue };
-        let (mut j, b) = (Jour::lire(a)?, Jour::lire(b)?);
+    for d in &p.dates {
+        let (mut j, b) = (d.debut, d.fin);
         while j <= b {
             jours.push(json!(j.iso()));
             j = j.plus_jours(1)?;
@@ -285,8 +279,7 @@ fn comparer_une(
     // Sans ce nombre, une periode de plus d'un jour ne dit pas combien : la paie ne se compare pas.
     let mensuelle = droit::natures::nature(nature).is_ok_and(|n| n.mensuelle());
     if jours.is_empty() && !mensuelle {
-        if let (Some(d), Some(f)) = (texte(p, "debut"), texte(p, "fin")) {
-            let (d, f) = (Jour::lire(&d)?, Jour::lire(&f)?);
+        if let (Some(d), Some(f)) = (p.debut, p.fin) {
             let periode = f.moins(&d) + 1;
             let un_mois = (d.an, d.mois) == (f.an, f.mois);
             let n = if periode == 1 { Some(1) } else { jours_comptes.filter(|n| *n >= 1 && *n <= periode && (*n == periode || un_mois)) };
@@ -303,22 +296,23 @@ fn comparer_une(
         }
     }
     let mut saisies = Vec::new();
-    for l in &lignes {
-        let libelle = l.get("libelle").map(en_texte).unwrap_or_default();
-        let Some(r) = l.get("rubrique").filter(|x| vrai(x)) else {
-            if l.get("soumis") == Some(&Value::Bool(false)) {
+    let en_f64 = |d: Decimal| d.to_string().parse::<f64>().map_err(|e| e.to_string());
+    for l in &p.lignes {
+        let libelle = &l.libelle;
+        let Some(r) = l.rubrique.as_deref().filter(|r| !r.is_empty()) else {
+            if !l.soumis {
                 continue;
             }
             return Err(format!("la ligne de rémunération « {} » ne se rattache à aucune rubrique du catalogue", libelle));
         };
         let mut s = Map::new();
-        s.insert("rubrique".into(), r.clone());
-        let quantite = l.get("quantite").filter(|x| vrai(x)).cloned().ok_or_else(|| format!("la ligne « {} » n'imprime pas sa quantité", libelle))?;
-        let taux = l.get("taux").filter(|x| vrai(x)).cloned().ok_or_else(|| format!("la ligne « {} » n'imprime pas son taux", libelle))?;
-        s.insert("quantite".into(), json!(dec(&quantite)?.to_string().parse::<f64>().map_err(|e| e.to_string())?));
-        s.insert("taux".into(), json!(dec(&taux)?.to_string().parse::<f64>().map_err(|e| e.to_string())?));
-        if let Some(h) = l.get("heures").filter(|x| vrai(x)) {
-            s.insert("heures".into(), json!(dec(h)?.to_string().parse::<f64>().map_err(|e| e.to_string())?));
+        s.insert("rubrique".into(), json!(r));
+        let quantite = l.quantite.ok_or_else(|| format!("la ligne « {} » n'imprime pas sa quantité", libelle))?;
+        let taux = l.taux.ok_or_else(|| format!("la ligne « {} » n'imprime pas son taux", libelle))?;
+        s.insert("quantite".into(), json!(en_f64(quantite)?));
+        s.insert("taux".into(), json!(en_f64(taux)?));
+        if let Some(h) = l.heures {
+            s.insert("heures".into(), json!(en_f64(h)?));
         }
         if !jours.is_empty() {
             s.insert("dates".into(), Value::Array(jours.clone()));
@@ -327,25 +321,24 @@ fn comparer_une(
     }
     // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.
     let spectacle = (!mensuelle).then(|| {
-        let par_objet = texte(p, "numero_objet").and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.get("numero_objet").map(en_texte).as_deref() == Some(n.as_str())).map(|(k, _)| k.clone()));
-        p.get("spectacle").filter(|x| vrai(x)).map(en_texte).or(par_objet)
+        let par_objet = dit(&p.numero_objet).and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.get("numero_objet").map(en_texte).as_deref() == Some(n.as_str())).map(|(k, _)| k.clone()));
+        dit(&p.spectacle).or(par_objet)
     });
-    let dit = |v: Option<&Value>| v.filter(|x| vrai(x)).map(en_texte);
     let e = crate::saisie::Carte {
         salarie: Some(salarie.to_string()),
         spectacle: spectacle.flatten(),
         nature: nature.map(|n| n.to_string()),
-        debut: dit(p.get("debut")),
-        fin: dit(p.get("fin")),
-        emploi: dit(du_bulletin("emploi")),
-        pcs_ese: dit(du_bulletin("pcs_ese")),
-        code_emploi_ft: dit(du_bulletin("code_emploi_ft")),
-        statut: dit(du_bulletin("statut")),
-        statut_conventionnel: dit(du_bulletin("statut_conventionnel")),
-        statut_categoriel_rc: dit(du_bulletin("statut_categoriel_rc")),
+        debut: p.debut.map(|j| j.iso()),
+        fin: p.fin.map(|j| j.iso()),
+        emploi: dit(&imprime.emploi),
+        pcs_ese: dit(&imprime.pcs_ese),
+        code_emploi_ft: dit(&imprime.code_emploi_ft),
+        statut: dit(&imprime.statut),
+        statut_conventionnel: dit(&imprime.statut_conventionnel),
+        statut_categoriel_rc: dit(&imprime.statut_categoriel_rc),
         lignes: Some(saisies),
         // Le jour ou l'ancien logiciel a verse : un fait (`Carte::importe`).
-        date_paiement: dit(p.get("verse_le")),
+        date_paiement: p.verse_le.map(|j| j.iso()),
         importe: Some(true),
         ..Default::default()
     };
@@ -373,19 +366,19 @@ fn comparer_une(
     let mut hors_total: Vec<String> = Vec::new();
     for l in cotisations {
         let lue = Lue {
-            libelle: l.get("libelle").map(en_texte).unwrap_or_default(),
-            base: decimal(l.get("base")),
-            taux_salarie: decimal(l.get("taux_salarie")),
-            taux_employeur: decimal(l.get("taux_employeur")),
-            montant_salarie: decimal(l.get("montant_salarie")),
-            montant_employeur: decimal(l.get("montant_employeur")),
+            libelle: l.libelle.clone(),
+            base: l.base,
+            taux_salarie: l.taux_salarie,
+            taux_employeur: l.taux_employeur,
+            montant_salarie: l.montant_salarie,
+            montant_employeur: l.montant_employeur,
         };
         if lue.montant_salarie.is_none() && lue.montant_employeur.is_none() {
             continue;
         }
-        match l.get("cotisation").and_then(Value::as_str).filter(|c| !c.is_empty()).map(str::to_string) {
+        match l.cotisation.clone().filter(|c| !c.is_empty()) {
             Some(code) => {
-                if l.get("hors_total") == Some(&Value::Bool(true)) && !hors_total.contains(&code) {
+                if l.hors_total && !hors_total.contains(&code) {
                     hors_total.push(code.clone());
                 }
                 leurs.entry(code).or_default().push(lue)
@@ -464,13 +457,13 @@ fn comparer_une(
     }
     // Les totaux du bulletin, sans ce qu'il imprime apres eux : l'ecart relatif seulement.
     let hors = |f: &dyn Fn(&LigneCotisation) -> Decimal| -> Decimal { paie.lignes.iter().filter(|l| hors_total.contains(&cotisation_de(l))).map(f).sum() };
-    for (cle, notre) in [
-        ("cotisations_salariales", paie.total_sal - hors(&|l| l.montant_sal)),
-        ("cotisations_patronales", paie.total_pat - hors(&|l| l.montant_pat)),
-        ("net_social", paie.net_social),
-        ("net_imposable", paie.net_imposable),
+    for (cle, notre, leur) in [
+        ("cotisations_salariales", paie.total_sal - hors(&|l| l.montant_sal), p.cotisations_salariales),
+        ("cotisations_patronales", paie.total_pat - hors(&|l| l.montant_pat), p.cotisations_patronales),
+        ("net_social", paie.net_social, p.net_social),
+        ("net_imposable", paie.net_imposable, p.net_imposable),
     ] {
-        let Some(leur) = decimal(p.get(cle)) else { continue };
+        let Some(leur) = leur else { continue };
         if (leur - notre).abs() > Decimal::new(1, 2) {
             let grandeur = if cle == "cotisations_patronales" { Grandeur::MontantEmployeur } else { Grandeur::MontantSalarie };
             ecarts.push(Ecart { cotisation: cle.into(), libelles: Vec::new(), grandeur, notre_taux: None, leur_taux: None, ecart_relatif: relatif(leur, notre) });
@@ -492,10 +485,9 @@ fn a_refaire(c: &mut Comparaison, raison: String) -> String {
 
 /// L'empreinte de la paie `mois` de l'engagement importe `imp` : ce qui la reconnait d'une comparaison a l'autre (son
 /// salarie, ses bornes, son numero et ce que les pieces en disent, sans la date de l'import).
-pub fn empreinte(imp: &Importe, mois: &str, p: &Map<String, Value>) -> String {
+pub fn empreinte(imp: &Importe, mois: &str, p: &PaieVersee) -> String {
     let brut = imp.objet().champs();
-    let mut paie = p.clone();
-    paie.remove("importe_le");
+    let paie = PaieVersee { importe_le: None, ..p.clone() };
     let graine = json!([brut.get("salarie"), brut.get("debut"), brut.get("fin"), brut.get("numero"), mois, paie]);
     socle::fichiers::sha256_hex(graine.to_string().as_bytes())[..16].to_string()
 }

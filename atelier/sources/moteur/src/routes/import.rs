@@ -18,7 +18,6 @@ use crate::import::dsn_aem::{self, SalarieDeclare};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, OPERATION, SALARIE};
 use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
-use envois::etats::get;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
 use socle::valeur::{nom_type, valeur_en_texte};
@@ -355,9 +354,10 @@ pub(crate) fn garder_le_nom(ctx: &Contexte, e: &mut Map<String, Value>) {
 /// La cle `_cle_engagement` : (salarie, debut, fin, numero_objet, heures, cachets, jours, str(brut)).
 pub(crate) type CleEngagement = (String, String, String, String, i128, i128, i128, String);
 
-/// Les paies versees des engagements importes, une ligne par mois (`engagement::importe::paies_lues`).
+/// Les paies versees des engagements importes, en lignes de l'import (`engagement::importe::PaieLue::en_ligne`), une
+/// par mois.
 pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
-    engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)
+    Ok(engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)?.iter().map(engagement::importe::PaieLue::en_ligne).collect())
 }
 
 /// La cle d'une paie de l'historique : (mois, salarie, contrat).
@@ -626,25 +626,6 @@ pub(crate) fn apercu_lu(
     Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), contrats_changes: Vec::new(), licences: lecture.licences.clone() })
 }
 
-/// Le nombre de valeurs distinctes : `1`, `1.0` et `true` ne font
-/// qu'une ; une liste ou un dictionnaire ne se hache pas.
-fn distincts(engagements: &[&Value], cle: &str) -> R<usize> {
-    let mut vus: HashSet<String> = HashSet::new();
-    for e in engagements {
-        let v = get(e, cle)?;
-        if !vrai(v) {
-            continue;
-        }
-        vus.insert(match v {
-            Value::String(t) => format!("s{}", t),
-            Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
-            Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
-            autre => format!("n{:?}", socle::valeur::nombre(autre).unwrap_or(0.0)),
-        });
-    }
-    Ok(vus.len())
-}
-
 /// `etat_importation` : ce qui a deja ete repris, d'apres les engagements importes, pour que la page le dise :
 /// - `importe_le`, `contrats`, `salaries`, `objets`, `du`, `au` : les contrats attestes ;
 /// - `dossier` : la boite aux lettres `import/` de la compagnie, que la page preremplit ;
@@ -660,32 +641,23 @@ fn distincts(engagements: &[&Value], cle: &str) -> R<usize> {
 fn etat_importation(racine: &Path) -> R<Value> {
     let contrats = engagement::importe::contrats_lus(racine).map_err(Echec::from)?;
     let paies = engagement::importe::paies_lues(racine).map_err(Echec::from)?;
-    let engagements: Vec<&Value> = contrats.iter().collect();
-    let dernier = |k: &str| contrats.iter().chain(paies.iter()).filter_map(|x| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte)).max().unwrap_or_default();
-    let dates = |cle: &str| -> R<Vec<String>> {
-        let mut v = Vec::new();
-        for e in &engagements {
-            let x = get(e, cle)?;
-            if vrai(x) {
-                v.push(valeur_en_texte(x));
-            }
-        }
-        v.sort();
-        Ok(v)
-    };
-    let debuts = dates("debut")?;
-    let fins = dates("fin")?;
+    let importe_le = contrats.iter().filter_map(|c| c.contrat.importe_le.clone()).chain(paies.iter().filter_map(|p| p.paie.importe_le.clone())).max().unwrap_or_default();
+    let plein = |t: &str| Some(t.to_string()).filter(|t| !t.is_empty());
+    let debut = contrats.iter().filter_map(|c| plein(&c.debut)).min().unwrap_or_default();
+    let fin = contrats.iter().filter_map(|c| plein(&c.fin)).max().unwrap_or_default();
+    let salaries: HashSet<&str> = contrats.iter().map(|c| c.salarie.as_str()).filter(|s| !s.is_empty()).collect();
+    let objets: HashSet<&str> = contrats.iter().filter_map(|c| c.contrat.numero_objet.as_deref()).collect();
     let editeur = attend_l_editeur(racine);
     let attend = editeur.iter().filter(|x| !x.get("repondu").is_some_and(vrai)).count();
     Ok(json!({
-        "importe_le": dernier("importe_le"),
-        "contrats": engagements.len(),
-        "salaries": distincts(&engagements, "salarie")?,
-        "objets": distincts(&engagements, "numero_objet")?,
-        "du": debuts.first().cloned().unwrap_or_default(),
-        "au": fins.last().cloned().unwrap_or_default(),
+        "importe_le": importe_le,
+        "contrats": contrats.len(),
+        "salaries": salaries.len(),
+        "objets": objets.len(),
+        "du": debut,
+        "au": fin,
         "dossier": racine.join("import").display().to_string(),
-        "reprises": reprises_faites(racine, &engagements, &paies),
+        "reprises": reprises_faites(racine, &contrats, &paies),
         "editeur": editeur,
         // La pastille de l'historique repris.
         "pastille_repris": super::pastille("fait", "fait"),
@@ -709,38 +681,31 @@ struct Reprise {
 
 /// `reprises` de `importation-etat` : DSN, AEM, certificats Congés Spectacles, bulletins, dans cet ordre, celles qui ont
 /// repris quelque chose.
-fn reprises_faites(racine: &Path, engagements: &[&Value], paies: &[Value]) -> Vec<Value> {
-    let le_de = |o: &Map<String, Value>| o.get("importe_le").filter(|v| v.as_str().is_some_and(|s| !s.is_empty())).cloned();
+fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], paies: &[engagement::importe::PaieLue]) -> Vec<Value> {
+    use engagement::importe::{Attestation, Declaration};
     let (mut aem, mut contrats_bulletins, mut certificats) = (Reprise::default(), Reprise::default(), Reprise::default());
-    for e in engagements {
-        let Some(o) = e.as_object() else { continue };
-        let le = le_de(o);
-        let cible = match o.get("atteste_par").and_then(Value::as_str) {
-            Some("bulletin") => &mut contrats_bulletins,
-            Some("certificat") => &mut certificats,
-            _ => &mut aem,
+    for c in contrats {
+        let cible = match c.contrat.atteste_par {
+            Attestation::Bulletin => &mut contrats_bulletins,
+            Attestation::Certificat => &mut certificats,
+            Attestation::Aem => &mut aem,
         };
-        cible.voir(o.get("debut"), o.get("fin"), le.as_ref());
+        cible.voir(&c.debut, &c.fin, c.contrat.importe_le.as_deref());
     }
     let (mut dsn, mut bulletins) = (Reprise::default(), Reprise::default());
     // Les DSN reprises : une par mois declare (la phrase de l'etat dit des declarations, pas des versements).
     let mut mois_dsn: BTreeSet<String> = BTreeSet::new();
-    {
-        for x in paies {
-            let Some(o) = x.as_object() else { continue };
-            let le = le_de(o);
-            let le = le.as_ref();
-            let par = o.get("declare_par").and_then(Value::as_str).unwrap_or("");
-            // Une paie declaree par une DSN et completee par un bulletin compte des deux cotes : elle a les deux sources.
-            if par != "bulletin" {
-                dsn.voir(o.get("mois"), o.get("mois"), le);
-                if let Some(m) = o.get("mois").and_then(Value::as_str).filter(|m| !m.is_empty()) {
-                    mois_dsn.insert(m.to_string());
-                }
+    for x in paies {
+        let le = x.paie.importe_le.as_deref();
+        // Une paie declaree par une DSN et completee par un bulletin compte des deux cotes : elle a les deux sources.
+        if x.paie.declare_par == Declaration::Dsn {
+            dsn.voir(&x.mois, &x.mois, le);
+            if !x.mois.is_empty() {
+                mois_dsn.insert(x.mois.clone());
             }
-            if par == "bulletin" || o.get("bulletin").is_some_and(vrai) {
-                bulletins.voir(o.get("mois"), o.get("mois"), le);
-            }
+        }
+        if x.paie.declare_par == Declaration::Bulletin || x.paie.bulletin.is_some() {
+            bulletins.voir(&x.mois, &x.mois, le);
         }
     }
     let copies = std::fs::read_dir(racine.join("historique").join("bulletins"))
@@ -830,15 +795,15 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
 
 impl Reprise {
     /// Une ligne de plus : ses dates (un texte non vide), et le jour ou elle a ete reprise.
-    fn voir(&mut self, debut: Option<&Value>, fin: Option<&Value>, le: Option<&Value>) {
-        let texte = |v: Option<&Value>| v.and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
+    fn voir(&mut self, debut: &str, fin: &str, le: Option<&str>) {
+        let texte = |v: Option<&str>| v.filter(|s| !s.is_empty()).map(str::to_string);
         self.nombre += 1;
-        if let Some(d) = texte(debut) {
+        if let Some(d) = texte(Some(debut)) {
             if self.du.as_ref().is_none_or(|x| &d < x) {
                 self.du = Some(d);
             }
         }
-        if let Some(f) = texte(fin) {
+        if let Some(f) = texte(Some(fin)) {
             if self.au.as_ref().is_none_or(|x| &f > x) {
                 self.au = Some(f);
             }

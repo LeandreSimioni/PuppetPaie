@@ -247,15 +247,9 @@ pub(crate) fn lire_dans(racine: &Path, d: Dossier, mois: &str) -> Resultat<Optio
 /// Le fichier de `mois` ne porte-t-il que des engagements importes seuls (`Objet::importe_seul`) ? Un tel mois n'a pas de
 /// saisie : il se lit. Un fichier illisible ou sans engagement n'est pas de l'import.
 fn importes_seuls(racine: &Path, mois: &str) -> bool {
-    let Ok(Some(f)) = lire_partage(racine, mois) else { return false };
-    let es = f.get("engagements").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
-    !es.is_empty() && es.iter().all(|e| importe_seul(e, mois))
-}
-
-/// L'engagement `e`, du fichier de `fichier`, n'est-il qu'importe (`Objet::importe_seul`) ?
-fn importe_seul(e: &Value, fichier: &str) -> bool {
-    let verses = e.get(crate::importe::IMPORTE).and_then(|i| i.get("paies")).and_then(Value::as_object);
-    e.get(crate::importe::IMPORTE).is_some_and(Value::is_object) && verses.and_then(|p| p.keys().max()).is_none_or(|m| m.as_str() >= fichier)
+    let Ok((_, t)) = tous(racine) else { return false };
+    let mut es = t.objets.iter().filter(|o| o.fichier == mois).peekable();
+    es.peek().is_some() && es.all(Objet::importe_seul)
 }
 
 // ------------------------------------------------------------------ l'objet
@@ -270,6 +264,9 @@ pub struct Objet {
     pub rang: usize,
     /// Toujours un objet JSON.
     pub brut: std::sync::Arc<Value>,
+    /// Ce que l'import a lu de lui, s'il est importe : sa zone `importe`, lue par sa forme (`importe::Pieces::lire`)
+    /// avec son fichier.
+    pub importe: Option<std::sync::Arc<crate::importe::Pieces>>,
 }
 
 impl Objet {
@@ -346,14 +343,14 @@ impl Objet {
 
     /// Est-il importe (`importe::IMPORTE`) ? Ses mois repris le sont ; il peut continuer ici (`importe_seul`).
     pub fn est_importe(&self) -> bool {
-        self.brut.get(crate::importe::IMPORTE).is_some_and(Value::is_object)
+        self.importe.is_some()
     }
 
     /// N'est-il qu'importe : tous ses mois sont repris d'un ancien logiciel, et il ne touche aucun mois d'ici. Un contrat
     /// de permanent qui continue ici vit dans le fichier de son premier mois neuf, apres tous ses mois verses
     /// (`importe::ecrire_tous`) : ce mois et les suivants sont de la saisie.
     pub fn importe_seul(&self) -> bool {
-        importe_seul(&self.brut, &self.fichier)
+        self.importe.as_ref().is_some_and(|p| p.paies.keys().max().is_none_or(|m| m.as_str() >= self.fichier.as_str()))
     }
 
     /// N'est-il plus actif (`NON_ACTIF`) ?
@@ -681,7 +678,10 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
                 ));
             }
             if e.is_object() {
-                objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: std::sync::Arc::new(e.clone()) });
+                let importe = crate::importe::Pieces::lire(e)
+                    .map_err(|m| socle::echec::avec(m, serde_json::json!({"chemin": format!("{}/{}.json", DOSSIER, f), "rang": rang})))?
+                    .map(std::sync::Arc::new);
+                objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: std::sync::Arc::new(e.clone()), importe });
             }
         }
     }
@@ -1288,7 +1288,7 @@ fn dater(o: &mut Objet, terme: &str, mois: &str, depuis: Jour, valeur: Option<Va
 impl Objet {
     /// L'engagement tel qu'une saisie gardee (`saisie`, celle d'une validation) le disait : meme fichier, meme rang.
     pub fn d_apres_la_saisie(&self, saisie: &Map<String, Value>) -> Objet {
-        Objet { racine: self.racine.clone(), fichier: self.fichier.clone(), rang: self.rang, brut: std::sync::Arc::new(Value::Object(saisie.clone())) }
+        Objet { racine: self.racine.clone(), fichier: self.fichier.clone(), rang: self.rang, brut: std::sync::Arc::new(Value::Object(saisie.clone())), importe: None }
     }
 }
 

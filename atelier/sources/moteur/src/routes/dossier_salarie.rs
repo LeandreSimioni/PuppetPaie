@@ -500,21 +500,19 @@ pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
 /// jours que le bulletin imprime) et les jours travailles. `None` sans bulletin qui donne ses jours et ses cachets : le
 /// mois reste parmi les manquants (rien ne se devine).
 fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> Option<(Decimal, Vec<Value>, i64)> {
-    let paies = i.paies();
-    let p = paies.get(mois)?;
-    let brut = eur2(socle::num::dec(p.get("brut")?).ok()?);
+    let p = i.paies().get(mois)?;
+    let brut = eur2(p.brut?);
     let mut dates: Vec<String> = Vec::new();
-    for d in p.get("dates")?.as_array()? {
-        let (a, b) = (Jour::lire(&valeur_en_texte(d.get("debut")?)).ok()?, Jour::lire(&valeur_en_texte(d.get("fin")?)).ok()?);
-        let mut j = a;
-        while j <= b {
+    for d in &p.dates {
+        let mut j = d.debut;
+        while j <= d.fin {
             dates.push(j.iso());
             j = j.plus_jours(1).ok()?;
         }
     }
-    let nombre = |x: Option<&Value>| x.map(valeur_en_texte).and_then(|t| t.trim().parse::<f64>().ok());
-    let cachets = p.get("lignes")?.as_array()?.iter().find(|l| l.get("rubrique").and_then(Value::as_str) == Some("cachet"))?;
-    let (quantite, taux) = (nombre(cachets.get("quantite"))?, nombre(cachets.get("taux"))?);
+    let nombre = |x: Option<Decimal>| x.and_then(|t| t.to_string().parse::<f64>().ok());
+    let cachets = p.lignes.iter().find(|l| l.rubrique.as_deref() == Some("cachet"))?;
+    let (quantite, taux) = (nombre(cachets.quantite)?, nombre(cachets.taux)?);
     if dates.is_empty() {
         return None;
     }
@@ -942,12 +940,14 @@ fn signatures(ctx: &Contexte, cle: &str, p: &Periode) -> Vec<PathBuf> {
 fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut Dossier) -> Vec<Page> {
     let Ok(lignes) = engagement::importe::paies_lues(&ctx.racine) else { return Vec::new() };
     let dossier = ctx.racine.join("historique").join("bulletins");
-    let texte = |x: &Value, k: &str| x.get(k).and_then(Value::as_str).unwrap_or("").to_string();
     let (mut pages, mut manquent): (Vec<Page>, Vec<String>) = (Vec::new(), Vec::new());
-    for x in &lignes {
-        let Some(b) = x.get("bulletin").filter(|b| b.is_object()) else { continue };
-        let (cle, mois, fichier) = (texte(x, "salarie"), texte(x, "mois"), texte(b, "fichier"));
-        let Some(page) = b.get("page").and_then(Value::as_u64).filter(|n| *n >= 1) else { continue };
+    for x in lignes {
+        let Some(b) = &x.paie.bulletin else { continue };
+        let (cle, mois, fichier) = (x.salarie.clone(), x.mois.clone(), b.fichier.clone());
+        let page = b.page;
+        if page < 1 {
+            continue;
+        }
         if !cles.contains(&cle) || mois.is_empty() || !p.contient(&mois) || fichier.is_empty() || fichier.contains(['/', '\\']) {
             continue;
         }
@@ -958,7 +958,7 @@ fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut 
             }
             continue;
         }
-        let debut = texte(x, "debut");
+        let debut = x.paie.debut.map(|j| j.iso()).unwrap_or_default();
         let tri = if debut.is_empty() { format!("{}-01", mois) } else { debut };
         pages.push(Page { categorie: BULLETINS, cle, tri, source, numero: page as usize - 1 });
     }

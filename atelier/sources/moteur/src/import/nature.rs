@@ -28,7 +28,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use engagement::importe::{Importe, IMPORTE};
+use engagement::importe::Importe;
 use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -65,7 +65,7 @@ fn importes(racine: &Path) -> Vec<Importe> {
 
 /// Le dernier mois repris : le plus recent que l'historique a verse (`AAAA-MM`).
 fn dernier_mois(importes: &[Importe]) -> String {
-    importes.iter().flat_map(|i| i.paies().into_keys()).max().unwrap_or_default()
+    importes.iter().flat_map(|i| i.paies().keys().cloned()).max().unwrap_or_default()
 }
 
 /// Le premier et le dernier jour que les paies d'un engagement importe paient : ceux du bulletin dans son mois, sinon le
@@ -73,9 +73,9 @@ fn dernier_mois(importes: &[Importe]) -> String {
 fn jours_payes(i: &Importe) -> (String, String) {
     let mut bornes = Vec::new();
     for (m, p) in i.paies() {
-        let lu = |k: &str| p.get(k).filter(|x| vrai(x)).map(valeur_en_texte).filter(|j| j.starts_with(&m));
-        let fin = socle::mois::Mois::lire(&m).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()).unwrap_or_default();
-        bornes.push((lu("debut").unwrap_or_else(|| format!("{}-01", m)), lu("fin").unwrap_or(fin)));
+        let lu = |j: Option<Jour>| j.map(|j| j.iso()).filter(|j| j.starts_with(m.as_str()));
+        let fin = socle::mois::Mois::lire(m).map(socle::mois::Mois::dernier_jour).map(|j| j.iso()).unwrap_or_default();
+        bornes.push((lu(p.debut).unwrap_or_else(|| format!("{}-01", m)), lu(p.fin).unwrap_or(fin)));
     }
     (bornes.iter().map(|b| b.0.clone()).min().unwrap_or_default(), bornes.iter().map(|b| b.1.clone()).max().unwrap_or_default())
 }
@@ -199,13 +199,13 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
     // La nature va sur l'engagement de chaque contrat a dire ; ce qui definit le contrat qui court encore, sur le sien.
-    let ecrits = engagement::importe::completer(&ctx.racine, |e| {
-        let a_dire = e.get(IMPORTE).and_then(|i| i.get("contrat")).and_then(|c| c.get(A_DIRE)).is_some_and(vrai);
+    let ecrits = engagement::importe::completer(&ctx.racine, |e, pieces| {
+        let a_dire = pieces.contrat.as_ref().is_some_and(|c| c.nature_a_dire);
         if e.get("salarie").and_then(Value::as_str) != Some(salarie.as_str()) || !a_dire || e.get("nature").is_some_and(vrai) {
             return false;
         }
         e.insert("nature".into(), json!(nature));
-        if e.get(IMPORTE).and_then(|i| i.get("paies")).and_then(|p| p.get(&dernier)).is_some() {
+        if pieces.paies.contains_key(&dernier) {
             for (k, v) in &contrat {
                 if k != "numero" || !e.get("numero").is_some_and(vrai) {
                     e.insert(k.clone(), v.clone());

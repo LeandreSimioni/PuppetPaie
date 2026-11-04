@@ -1284,9 +1284,10 @@ fn provision_d_une_annee_importee(
     // Les salaries dont un contrat repris court au-dela du dernier jour repris : sans fin, ou une fin apres lui.
     let continuent: BTreeSet<String> = engagement::importe::contrats_lus(&ctx.racine)
         .map_err(ko)?
-        .iter()
-        .filter(|e| e.get("fin").filter(|v| vrai(v)).map(valeur_en_texte).is_none_or(|f| f > fin.iso()))
-        .filter_map(|e| e.get("salarie").filter(|v| vrai(v)).map(valeur_en_texte))
+        .into_iter()
+        .filter(|c| c.fin.is_empty() || c.fin > fin.iso())
+        .map(|c| c.salarie)
+        .filter(|s| !s.is_empty())
         .collect();
     let paies = lecture.paies(m)?;
     // Les bruts repris d'un salarie du mois de `du` a celui de `au`, et si les bulletins repris couvrent ces mois.

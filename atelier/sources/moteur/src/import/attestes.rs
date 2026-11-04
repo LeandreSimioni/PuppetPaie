@@ -182,7 +182,7 @@ impl Registre {
     pub(crate) fn de_l_historique(ctx: &Contexte, par_cle: &HashMap<String, String>) -> R<Registre> {
         let mut tous = Vec::new();
         let mut muets = Vec::new();
-        for e in engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)? {
+        for e in engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?.iter().map(engagement::importe::ContratLu::en_ligne) {
             let t = |k: &str| e.get(k).map(valeur_en_texte).unwrap_or_default();
             let (cle, debut, fin) = (t("salarie"), t("debut"), t("fin"));
             let manque: Vec<&str> = [(cle.is_empty(), "salarié"), (debut.is_empty(), "début"), (fin.is_empty(), "fin")].iter().filter(|m| m.0).map(|m| m.1).collect();

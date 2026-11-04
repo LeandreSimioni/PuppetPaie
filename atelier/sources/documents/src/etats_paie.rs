@@ -85,7 +85,7 @@ pub fn mois_disponibles(ctx: &Contexte) -> R<BTreeMap<String, &'static str>> {
 /// Les mois ou un engagement importe a ete paye : ce que l'import a lu de ses paies (`engagement::importe`).
 pub fn mois_importes(ctx: &Contexte) -> R<BTreeSet<String>> {
     let tous = engagement::importe::tous(&ctx.racine).map_err(|m| erreur("ValueError", m))?;
-    Ok(tous.iter().flat_map(|i| i.paies().into_keys()).collect())
+    Ok(tous.iter().flat_map(|i| i.paies().keys().cloned()).collect())
 }
 
 /// Le libelle de la periode d'un etat : un mois, une annee, ou toutes les annees (de la premiere a la derniere).
