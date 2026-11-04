@@ -391,10 +391,12 @@ pub(crate) fn maintenant() -> String {
 /// (`cli`, ou `ligne de commande` selon la commande) : une valeur ecrite reste identique d'une face a
 /// l'autre. Absent, vide ou pas un texte : `interface` -- la fenetre ne change pas.
 pub(crate) fn qui_de(charge: &Value) -> String {
-    match charge.get("qui") {
-        Some(Value::String(s)) if !s.trim().is_empty() => s.clone(),
-        _ => "interface".to_string(),
-    }
+    qui_dit(charge.get("qui").and_then(Value::as_str))
+}
+
+/// `qui_de`, d'une charge lue en sa forme : `qui` vide ou absent, `interface`.
+pub(crate) fn qui_dit(qui: Option<&str>) -> String {
+    qui.filter(|s| !s.trim().is_empty()).unwrap_or("interface").to_string()
 }
 
 /// LA CHARGE D'UNE ROUTE, lue une fois a son entree, en sa forme (`socle::forme::lire`) : une cle que la forme ne connait
@@ -403,6 +405,16 @@ pub(crate) fn qui_de(charge: &Value) -> String {
 pub(crate) fn lire_charge<T: serde::de::DeserializeOwned>(charge: &Value) -> R<T> {
     socle::forme::lire(charge, "La demande est mal formée.").map_err(|m| erreur("TypeError", m))
 }
+
+/// Une reponse en JSON : chacune est une structure de son module, que `serde_json` ecrit toujours.
+pub(crate) fn en_json(v: impl serde::Serialize) -> R<Value> {
+    serde_json::to_value(v).map_err(|e| Echec::from(e.to_string()))
+}
+
+/// La charge d'une route qui ne prend rien : `{}`.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SansCharge {}
 
 /// Le salarié que `nom` désigne (`Contexte::salarie`) ; refus (`KeyError`) avec la phrase de `Contexte::salarie`.
 pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<droit::fiche::FicheSalarie> {

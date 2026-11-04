@@ -467,7 +467,7 @@ async function contratsDuJour(ou, jour, cible) {
 function contratAEnvoyer(trouve) {
   if (!trouve || !trouve.choisir) return {};
   const s = document.getElementById("im-contrat");
-  return s ? { contrat: s.value } : {};
+  return s && s.value ? { contrat: s.value } : {};
 }
 
 /** D'où vient la boîte : la carte (`{div}`) ou le dossier (`{salarie}`). */
@@ -580,7 +580,7 @@ async function boiteArret(ou) {
       salarie: p.salarie, dernier_jour: val("ar-dernier"), debut: val("ar-debut"), fin: val("ar-fin"),
       motif: val("ar-motif"), ...contratAEnvoyer(trouve),
     };
-    if (m && m.date_accident) charge.date_accident = val("ar-accident");
+    if (m && m.date_accident && val("ar-accident")) charge.date_accident = val("ar-accident");
     if (val("ar-note").trim()) charge.note = val("ar-note").trim();
     if (avecDeclaration && val("ar-connu")) charge.connu = { jour: val("ar-connu"), heure: val("ar-connu-heure") };
     let r;
@@ -668,9 +668,10 @@ function champsIndemnites(a, x) {
 /** Ce que les cases de `champsIndemnites` disent, pour `arret-indemnites` ; `null` si rien n'est saisi. */
 function chargeIndemnites(a, x) {
   const charge = { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille };
-  const lire = (id, cle) => { const c = document.getElementById(`${x}-${id}`); if (c && c.value !== "") charge[cle] = c.value; };
-  lire("ijb", "ij_brute"); lire("ijn", "ij_nette"); lire("ijbm", "ij_brute_majoree"); lire("ijnm", "ij_nette_majoree");
-  lire("deja", "jours_deja_indemnises");
+  // Un montant part en texte, tel que la case l'écrit (« 40.89 ») ; les jours, en nombre.
+  const lire = (id, cle, forme) => { const c = document.getElementById(`${x}-${id}`); if (c && c.value !== "") charge[cle] = forme(c.value); };
+  lire("ijb", "ij_brute", String); lire("ijn", "ij_nette", String); lire("ijbm", "ij_brute_majoree", String); lire("ijnm", "ij_nette_majoree", String);
+  lire("deja", "jours_deja_indemnises", Number);
   return Object.keys(charge).length > 2 ? charge : null;
 }
 
@@ -741,7 +742,7 @@ async function boiteReprise(a, apres) {
     let r;
     try {
       r = await api("arret-reprise", { salarie: a.salarie, dernier_jour: a.dernier_jour_travaille,
-        reprise: document.getElementById("re-date").value, motif_reprise: document.getElementById("re-motif").value });
+        reprise: document.getElementById("re-date").value || null, motif_reprise: document.getElementById("re-motif").value || null });
     } catch (e) { dire(e.message, "erreur"); return; }
     fermerBoite();
     dire(r.phrase);

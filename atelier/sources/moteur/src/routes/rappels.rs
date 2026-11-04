@@ -25,7 +25,7 @@ use envois::etats;
 use crate::compagnie::etat_dsn;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusFiche, FORME, OPERATION};
 use crate::routes::catalogue::Route;
-use crate::routes::{lire_charge, Pastille};
+use crate::routes::{en_json, lire_charge, Pastille, SansCharge};
 use socle::echec::{erreur, Echec};
 use std::collections::HashMap;
 use socle::fichiers::{lire_json, vrai};
@@ -114,11 +114,6 @@ const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), form
 
 // ------------------------------------------------------------------ les charges
 
-/// La charge d'une route qui ne prend rien : `{}`.
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SansCharge {}
-
 /// La charge de `revue-spectacles` : l'annee de la revue, et les spectacles qui continuent (leurs cles ; les autres
 /// s'archivent). Le geste qu'offre son rappel l'ecrit aussi.
 #[derive(Debug, Deserialize, Serialize)]
@@ -187,11 +182,6 @@ struct Faite {
     phrase: &'static str,
     cle: String,
     fait: bool,
-}
-
-/// Une reponse en JSON : chacune est une structure de ce module, que `serde_json` ecrit toujours.
-fn en_json(v: impl Serialize) -> socle::echec::R<Value> {
-    serde_json::to_value(v).map_err(|e| Echec::from(e.to_string()))
 }
 
 /// Une route de ce module.
@@ -888,8 +878,7 @@ pub(crate) const ECHEANCIER: &str = "config/echeancier.json";
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Cochees {
-    #[serde(rename = "_origine")]
-    origine: String,
+    quoi: String,
     #[serde(default)]
     fait: BTreeMap<String, Coche>,
 }
@@ -932,7 +921,7 @@ fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str) -> socle::
     } else {
         c.fait.remove(cle);
     }
-    c.origine = "Les echeances que l'utilisateur a dites faites.".to_string();
+    c.quoi = "Les echeances que l'utilisateur a dites faites.".to_string();
     let p = ctx.racine.join(ECHEANCIER);
     if let Some(parent) = p.parent() {
         crate::routes::fiches::creer_dossier(parent)?;
@@ -1229,23 +1218,23 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
         fins.extend(crate::routes::imprevus::fins_a_signaler(st.ctx, &m, st.aujourdhui)?);
     }
     for f in fins {
-        let m = Mois::lire(&en_texte(&f["mois"]))?;
-        let fin = Jour::lire(&en_texte(&f["fin"]))?;
+        let m = Mois::lire(&f.mois)?;
+        let fin = Jour::lire(&en_texte(&f.fin))?;
         if fin > st.aujourdhui {
             continue; // il n'a pas encore pris fin
         }
-        let o = &f["obligation"];
+        let o = &f.obligation;
         if !du(o) {
             continue;
         }
-        let salarie = en_texte(&f["salarie"]);
-        let a_saisir: Vec<String> = f["a_saisir"].as_array().map(|l| l.iter().map(crate::routes::imprevus::phrase_du_manque).collect()).unwrap_or_default();
+        let salarie = en_texte(&f.salarie);
+        let a_saisir: Vec<String> = f.a_saisir.iter().map(crate::routes::imprevus::phrase_du_manque).collect();
         let mut r = rappel_d_obligation(
             o,
-            format!("fin-contrat:{}:{}", salarie, en_texte(&f["fin"])),
+            format!("fin-contrat:{}:{}", salarie, en_texte(&f.fin)),
             format!("Signaler la fin du contrat de {}", salarie),
-            format!("Le contrat {} s'est terminé le {}.", texte(f.get("numero")), fin.jj_mm_aaaa()),
-            f.clone(),
+            format!("Le contrat {} s'est terminé le {}.", texte(Some(&f.numero)), fin.jj_mm_aaaa()),
+            en_json(&f)?,
         );
         r.mois = Some(m);
         r.salarie = Some(salarie.clone());
@@ -1269,7 +1258,8 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
                 continue;
             }
             let mut resume = crate::routes::imprevus::resume(st.ctx, &n, a)?;
-            resume["obligations"] = Value::Array(obligations.clone());
+            resume.poser_obligations(obligations.clone());
+            let resume = en_json(&resume)?;
             let salarie = st.ctx.nomme(&en_texte(&a["salarie"]));
             for o in obligations.iter().filter(|o| du(o)) {
                 let mut r = rappel_d_obligation(

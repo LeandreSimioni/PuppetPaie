@@ -1124,15 +1124,15 @@ fn arret_obligations(ctx: &Contexte, charge: &Value) -> R<Value> {
     // La subrogation se tire du contrat suspendu et du droit (`routes::imprevus::subrogation_de`), comme a l'enregistrement.
     if let (Some(nom), Some(dj)) = (charge.get("salarie").filter(|v| vrai(v)), socle::date::jour_iso(&champ("dernier_jour"))) {
         if let Ok(cle) = crate::routes::cle_du_salarie(ctx, nom) {
-            let contrat = charge.get("contrat").cloned().unwrap_or(Value::Null);
-            if let Ok(c) = crate::routes::imprevus::contrat_suspendu(ctx, &cle, &dj, &contrat) {
-                let imp = json!({"genre": engagement::imprevus::ARRET, "salarie": cle, "contrat_debut": c["debut"], "motif": champ("motif"),
+            let contrat = charge.get("contrat").and_then(Value::as_str);
+            if let Ok(c) = crate::routes::imprevus::contrat_suspendu(ctx, &cle, &dj, contrat) {
+                let imp = json!({"genre": engagement::imprevus::ARRET, "salarie": cle, "contrat_debut": c.debut, "motif": champ("motif"),
                     "dernier_jour_travaille": dj.iso(), "debut": champ("debut"), "fin_previsionnelle": champ("fin"), "reprise": Value::Null});
                 if socle::date::jour_iso(&champ("fin")).is_some() && socle::date::jour_iso(&champ("debut")).is_some() {
                     let (sub, sub_debut, sub_fin) = crate::routes::imprevus::subrogation_de(ctx, &imp)?;
                     a["salarie"] = json!(cle);
-                    a["contrat_debut"] = c["debut"].clone();
-                    a["contrat_numero"] = c["numero"].clone();
+                    a["contrat_debut"] = json!(c.debut);
+                    a["contrat_numero"] = c.numero.clone();
                     if sub == json!("01") {
                         a["subrogation_debut"] = sub_debut;
                         a["subrogation_fin"] = sub_fin;
