@@ -630,24 +630,13 @@ pub fn fiche_du_salarie(ctx: &Contexte, imp: &Value) -> Resultat<SalarieDuContra
     Ok(fiche)
 }
 
-/// La cle de la fiche du salarie d'un engagement de saisie.
-fn cle_de(ctx: &Contexte, e: &Value) -> Resultat<String> {
-    let nom = en_texte(g(e, "salarie"));
-    Ok(ctx.cle_du_salarie(&nom)?.to_string())
-}
-
-/// Les imprevus du contrat d'un engagement de saisie qui croisent le mois, du premier au dernier jour.
-pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<Vec<Value>> {
-    // Un contrat sans date de debut ecrite ne se designe pas : aucun imprevu ne peut le nommer (S21.G00.40.001).
-    if !vrai(g(e, "debut")) {
-        return Ok(Vec::new());
-    }
-    let cle = cle_de(ctx, e)?;
-    let debut = d(g(e, "debut"))?;
-    let numero = s(e, "numero");
+/// Les imprevus du contrat qui croisent le mois, du premier au dernier jour : le contrat de `salarie` (le nom que la carte
+/// ecrit) commence le `debut`, de numero `numero` (vide avant la validation).
+pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, numero: &str, mois: &str) -> Resultat<Vec<Value>> {
+    let cle = ctx.cle_du_salarie(salarie)?.to_string();
     let mut out = Vec::new();
     for imp in du_mois_du_salarie(&ctx.racine, mois, None, &cle)? {
-        if du_contrat(&imp, &cle, Some(numero.as_str()), &debut)? {
+        if du_contrat(&imp, &cle, Some(numero), debut)? {
             out.push(imp);
         }
     }
@@ -687,7 +676,9 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
     let heures_du_mois = eur2(mul(m.heures_par_jour, Decimal::from(m.jours_payes)));
     let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
-    for imp in du_contrat_dans_le_mois(ctx, e, mois)? {
+    // Un contrat sans date de debut ecrite ne se designe pas : aucun imprevu ne peut le nommer (S21.G00.40.001).
+    let imprevus = if vrai(g(e, "debut")) { du_contrat_dans_le_mois(ctx, &en_texte(g(e, "salarie")), &d(g(e, "debut"))?, &s(e, "numero"), mois)? } else { Vec::new() };
+    for imp in imprevus {
         let (premier, dernier) = (premier_jour(&imp)?, dernier_jour(&imp)?);
         let (debut, fin) = (premier.max(m.debut), dernier.min(m.fin));
         let jours = if debut <= fin {
