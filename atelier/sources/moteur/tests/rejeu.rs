@@ -573,6 +573,13 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
     let ligne = &fcap["sections"][0]["lignes"][0];
     assert_eq!(ligne["mois"], json!(4), "{}", fcap);
     assert!(ligne["regle"].as_str().is_some_and(|r| r.contains("partielle")), "{}", fcap);
+    // LA DSN D'UN MOIS IMPORTE NE SE FABRIQUE PAS ICI (le bug : septembre 2025, sans trace de sa DSN, s'ecrivait « 0
+    // salarié ») : sa DSN importee (decembre) ou non (septembre), le refus dit quoi faire et n'ecrit rien.
+    for (mois, dit) in [("2025-09", "« Importer »"), ("2025-12", "Elle ne se refait pas ici.")] {
+        let r = outils::route(&racine, "depot-apercu", json!({"quoi": "dsn", "mois": mois}), jour);
+        assert!(r["classe"] == json!("DsnDeLAncienLogiciel") && r["erreur"].as_str().is_some_and(|e| e.contains(dit)), "{} : {}", mois, r);
+        assert!(!racine.join("sorties").join(mois).exists(), "{} : la DSN refusee s'est ecrite", mois);
+    }
 }
 
 /// L'HOTEL DE BOURGOGNE (`atelier/fictives/fictive-hotel-de-bourgogne/`) : une compagnie de theatre (convention 1285),

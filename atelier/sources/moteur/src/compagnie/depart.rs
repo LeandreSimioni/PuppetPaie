@@ -546,23 +546,17 @@ fn pas_avant(ctx: &Contexte, mois: &str) -> R<()> {
 /// depose reste tel qu'il est parti. Un fichier deja ecrit qui dit exactement la meme chose est repris tel quel : le test
 /// qu'il a passe vaut pour lui.
 ///
-/// Refus : un mois dont aucun engagement n'est valide alors qu'il en a (rien ne part d'un engagement en saisie) ; un mois
+/// Refus : un mois de l'ancien logiciel, sa DSN importee ou non (`import::mois::refuser_la_dsn_de_l_ancien_logiciel`) ;
+/// un mois dont aucun engagement n'est valide alors qu'il en a (rien ne part d'un engagement en saisie) ; un mois
 /// deja declare dont l'annule-et-remplace n'est plus admis.
 pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabriquee> {
+    crate::import::mois::refuser_la_dsn_de_l_ancien_logiciel(ctx, mois)?;
     let _verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
     crate::routes::mois::refuser_si_clos(ctx, mois)?;
     pas_avant(ctx, mois)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
-    // LA DSN QUE L'ANCIEN LOGICIEL A DEPOSEE ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se declare
-    // dans la DSN suivante.
-    if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, mois)? {
-        return Err(erreur(
-            "DsnDeLAncienLogiciel",
-            format!("{} : {} Elle ne se refait pas ici. Rien n'est écrit.", engagement::libelle_mois(mois), valeur_en_texte(&d["phrase"])),
-        ));
-    }
     let mut avertissements: Vec<Avis> = Vec::new();
 
     // RIEN NE PART D'UN ENGAGEMENT EN SAISIE : la DSN declare les engagements valides du mois.
