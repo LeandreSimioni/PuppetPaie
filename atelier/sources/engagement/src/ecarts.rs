@@ -36,7 +36,8 @@ use serde_json::{json, Map, Value};
 use crate::calcul::LigneCotisation;
 use crate::importe::Importe;
 use droit::contexte::Contexte;
-use socle::date::{dernier_du_mois, en_texte, Jour};
+use socle::date::{en_texte, Jour};
+use socle::mois::Mois;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, Decimal};
 
@@ -223,7 +224,7 @@ fn comparer_une(
     c: &mut Comparaison,
 ) -> Result<Vec<Ecart>, String> {
     let annee = mois.get(..4).unwrap_or("");
-    let fin = dernier_du_mois(mois)?;
+    let fin = Mois::lire(mois)?.dernier_jour();
     let mut ctx = Contexte::nouveau(racine, Some(fin)).map_err(|m| a_refaire(c, m))?;
     if !ctx.code.join("baremes").join(format!("{}.json", annee)).exists() {
         return Err(format!("aucun barème livré pour {} : la période ne se calcule pas ici", annee));

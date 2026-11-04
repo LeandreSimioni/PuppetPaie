@@ -17,8 +17,6 @@ use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
-pub const ROUTE: &str = "pour-demarrer";
-
 /// Dans la fiche d'un spectacle : le titre que l'import a lu dans les bulletins de l'ancien logiciel, propose, et ou il
 /// l'a lu (la ligne « Spectacle », ou la case « Analytique »). « Pour démarrer » le propose dans la case du titre.
 pub const TITRE_PROPOSE: &str = "_titre_propose";

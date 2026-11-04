@@ -8,6 +8,228 @@ use serde_json::{json, Value};
 
 pub use crate::routes::affiche::Affiche;
 
+/// LES ROUTES, chacune une fois, par son nom : celui de `/api/<route>` et de `moteur route`. Une variante par fiche du
+/// catalogue (`au_catalogue`), et celles de l'atelier, qui n'en ont pas : l'horloge du banc, la route d'essai qui tombe.
+/// Le nom d'une route se lit une fois, a l'entree (`Route::lire`) ; le moteur ne compare plus de noms en texte, et une
+/// route mal orthographiee dans le code ne compile pas.
+macro_rules! routes {
+    (catalogue { $($v:ident = $n:literal,)* } atelier { $($a:ident = $an:literal,)* }) => {
+        #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
+        pub enum Route {
+            $($v,)*
+            $($a,)*
+        }
+
+        impl Route {
+            /// Toutes les routes, celles du catalogue d'abord.
+            pub const TOUTES: &'static [Route] = &[$(Route::$v,)* $(Route::$a,)*];
+
+            /// Le nom de la route, tel que la page et la ligne de commande l'ecrivent.
+            pub const fn nom(self) -> &'static str {
+                match self {
+                    $(Route::$v => $n,)*
+                    $(Route::$a => $an,)*
+                }
+            }
+
+            /// La route a-t-elle sa fiche au catalogue ? Celles de l'atelier n'en ont pas.
+            pub const fn au_catalogue(self) -> bool {
+                match self {
+                    $(Route::$v => true,)*
+                    $(Route::$a => false,)*
+                }
+            }
+        }
+    };
+}
+
+routes! {
+    catalogue {
+        ValiderEngagement = "valider-engagement",
+        ModifierEngagement = "modifier-engagement",
+        RetirerEngagement = "retirer-engagement",
+        Mois = "mois",
+        EtatParEngagement = "etat-par-engagement",
+        EtatDuMois = "etat-du-mois",
+        Saisie = "saisie",
+        Apercu = "apercu",
+        ContratsEnCours = "contrats-en-cours",
+        ContratsPasses = "contrats-passes",
+        Emploi = "emploi",
+        EnregistrerSaisie = "enregistrer-saisie",
+        Ajuster = "ajuster",
+        MoisAOuvrir = "mois-a-ouvrir",
+        Imprevus = "imprevus",
+        Arrets = "arrets",
+        FinsDeContrat = "fins-de-contrat",
+        ArretContrats = "arret-contrats",
+        ArretEnregistrer = "arret-enregistrer",
+        ArretProlonger = "arret-prolonger",
+        ArretReprise = "arret-reprise",
+        ArretIndemnites = "arret-indemnites",
+        ArretSignaler = "arret-signaler",
+        ArretOublier = "arret-oublier",
+        SuspensionEnregistrer = "suspension-enregistrer",
+        SuspensionModifier = "suspension-modifier",
+        SuspensionOublier = "suspension-oublier",
+        FinContratSignaler = "fin-contrat-signaler",
+        FinContratDocuments = "fin-contrat-documents",
+        DossierSalarie = "dossier-salarie",
+        SignatureApercu = "signature-apercu",
+        DemanderSignature = "demander-signature",
+        PiecesParties = "pieces-parties",
+        AvenantApercu = "avenant-apercu",
+        ContratsImprimer = "contrats-imprimer",
+        ContratRecu = "contrat-recu",
+        PoserCourriel = "poser-courriel",
+        ModelesContrat = "modeles-contrat",
+        ModeleContratLivre = "modele-contrat-livre",
+        PoserModeleContrat = "poser-modele-contrat",
+        RetirerModeleContrat = "retirer-modele-contrat",
+        ClausesParticulieres = "clauses-particulieres",
+        DepotApercu = "depot-apercu",
+        Deposer = "deposer",
+        SuivreDepot = "suivre-depot",
+        BilanRepetition = "bilan-repetition",
+        EnvoiApercu = "envoi-apercu",
+        EnvoyerDocuments = "envoyer-documents",
+        DocumentsImprimer = "documents-imprimer",
+        PiecePartie = "piece-partie",
+        CoffreEtat = "coffre-etat",
+        GoogleEtat = "google-etat",
+        CoffrePoser = "coffre-poser",
+        CoffreVerifier = "coffre-verifier",
+        CoffreOublier = "coffre-oublier",
+        MotDePasseChanger = "mot-de-passe-changer",
+        MotDePasseRetirer = "mot-de-passe-retirer",
+        GoogleAutoriser = "google-autoriser",
+        GoogleOublier = "google-oublier",
+        AdministrateurEtat = "administrateur-etat",
+        AdministrateurRattacher = "administrateur-rattacher",
+        AdministrateurDetacher = "administrateur-detacher",
+        ImportationEtat = "importation-etat",
+        ImportationApercu = "importation-apercu",
+        Importer = "importer",
+        ImportationNature = "importation-nature",
+        DossierFormes = "dossier-formes",
+        ExportsPeriodes = "exports-periodes",
+        RetenirLogiciel = "retenir-logiciel",
+        CascRegularise = "casc-regularise",
+        Exporter = "exporter",
+        DossierEnvoyer = "dossier-envoyer",
+        Droits = "droits",
+        CascEnvoyer = "casc-envoyer",
+        Exercices = "exercices",
+        Regularisations = "regularisations",
+        Cloture = "cloture",
+        ExportCompta = "export-compta",
+        Archiver = "archiver",
+        JournalReprise = "journal-reprise",
+        Permanents = "permanents",
+        TaxeSurLesSalairesRegime = "taxe-sur-les-salaires-regime",
+        VerifierFiche = "verifier-fiche",
+        EnregistrerFiche = "enregistrer-fiche",
+        ActiverFiche = "activer-fiche",
+        FicheDemander = "fiche-demander",
+        FichesRelever = "fiches-relever",
+        FicheOublierDemande = "fiche-oublier-demande",
+        TauxAtmp = "taux-atmp",
+        Effectif = "effectif",
+        Couts = "couts",
+        SauvegardeMaintenant = "sauvegarde-maintenant",
+        CompagnieSupprimer = "compagnie-supprimer",
+        Identite = "identite",
+        PoserIdentite = "poser-identite",
+        RetirerIdentite = "retirer-identite",
+        MetiersCatalogue = "metiers-catalogue",
+        MetierRetenu = "metier-retenu",
+        BulletinModeles = "bulletin-modeles",
+        BulletinModeleApercu = "bulletin-modele-apercu",
+        BulletinModeleChoisir = "bulletin-modele-choisir",
+        OrganismesContrats = "organismes-contrats",
+        OrganismesEnregistrer = "organismes-enregistrer",
+        SignalementApercu = "signalement-apercu",
+        SignalementEnvoyer = "signalement-envoyer",
+        Signalements = "signalements",
+        SignalementsLus = "signalements-lus",
+        SignalementsPartir = "signalements-partir",
+        IncidentNavigateur = "incident-navigateur",
+        DiagnosticEtat = "diagnostic-etat",
+        DiagnosticEnvoyer = "diagnostic-envoyer",
+        DiagnosticRegler = "diagnostic-regler",
+        IncidentsLire = "incidents-lire",
+        IncidentsRegrouper = "incidents-regrouper",
+        IncidentsEnvoyer = "incidents-envoyer",
+        IncidentsOublier = "incidents-oublier",
+        HistoriqueMois = "historique-mois",
+        Etat = "etat",
+        Configuration = "configuration",
+        MajEtat = "maj-etat",
+        CourrielsFictifs = "courriels-fictifs",
+        Rappels = "rappels",
+        Echeancier = "echeancier",
+        RevueSpectacles = "revue-spectacles",
+        PourDemarrer = "pour-demarrer",
+        EcheanceFaite = "echeance-faite",
+        ConseilDuJour = "conseil-du-jour",
+        ConseilsSalarie = "conseils-salarie",
+        ConseilsResume = "conseils-resume",
+        Ouverture = "ouverture",
+        ArretObligations = "arret-obligations",
+        ArretConnaissance = "arret-connaissance",
+        AccidentDeclare = "accident-declare",
+        AttestationDeclare = "attestation-declare",
+        Compagnies = "compagnies",
+        CompagnieAjouter = "compagnie-ajouter",
+        CompagnieCouleur = "compagnie-couleur",
+        CompagnieRemettreAZero = "compagnie-remettre-a-zero",
+        CompagniesGarder = "compagnies-garder",
+        AdministrateurTableau = "administrateur-tableau",
+        AdministrateurDeposer = "administrateur-deposer",
+        PortableCompleter = "portable-completer",
+        Routes = "routes",
+    }
+    atelier {
+        HorlogeRattraper = "horloge-rattraper",
+        EssaiDefautDuLogiciel = "essai-defaut-du-logiciel",
+    }
+}
+
+/// Le refus d'un nom qui n'est celui d'aucune route ; le nom va a part.
+pub const ROUTE_INCONNUE: &str = "Cette route n'existe pas : la liste des routes le dit.";
+
+impl Route {
+    /// La route nommee `nom`, s'il en est une.
+    pub fn lire(nom: &str) -> Option<Route> {
+        Route::TOUTES.iter().copied().find(|r| r.nom() == nom)
+    }
+}
+
+impl std::fmt::Display for Route {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.nom())
+    }
+}
+
+impl serde::Serialize for Route {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(self.nom())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Route {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Route, D::Error> {
+        let nom = String::deserialize(d)?;
+        Route::lire(&nom).ok_or_else(|| serde::de::Error::custom(ROUTE_INCONNUE))
+    }
+}
+
+impl From<Route> for Value {
+    fn from(r: Route) -> Value {
+        Value::String(r.nom().to_string())
+    }
+}
+
 /// Ce que fait la route.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Acte {
@@ -215,7 +437,7 @@ pub struct Refus {
 /// LA FICHE D'UNE ROUTE.
 #[derive(Clone, Copy, Debug)]
 pub struct Fiche {
-    pub nom: &'static str,
+    pub route: Route,
     /// Le geste, en une phrase breve.
     pub geste: &'static str,
     pub charge: &'static [Champ],
@@ -240,9 +462,14 @@ pub const FORME: Refus = Refus { classe: "TypeError", corriger: "le champ de la 
 pub const OPERATION: Refus = Refus { classe: "ErreurOperation", corriger: "ce que la phrase dit ; rien n'est écrit" };
 
 impl Fiche {
+    /// Le nom de la route.
+    pub const fn nom(&self) -> &'static str {
+        self.route.nom()
+    }
+
     pub fn en_json(&self) -> Value {
         json!({
-            "nom": self.nom,
+            "nom": self.nom(),
             "geste": self.geste,
             "charge": self.charge.iter().map(|c| c.en_json()).collect::<Vec<_>>(),
             "cases": cases(self.charge).iter().map(|c| c.en_json()).collect::<Vec<_>>(),
@@ -260,7 +487,7 @@ impl Fiche {
     }
 
     pub fn en_texte(&self) -> String {
-        let mut t = format!("{}{} : {}\n  Acte : {}\n  Charge :\n", self.nom, if self.avance { " (avancé)" } else { "" }, self.geste, self.acte.mot());
+        let mut t = format!("{}{} : {}\n  Acte : {}\n  Charge :\n", self.nom(), if self.avance { " (avancé)" } else { "" }, self.geste, self.acte.mot());
         for c in self.charge {
             t.push_str(&format!("    {}{} : {}\n", c.nom, if c.avance { " (avancé)" } else { "" }, c.sens));
         }
@@ -276,7 +503,7 @@ impl Fiche {
                 t.push_str(&format!("    {} : {}\n", c.nom, c.sens));
             }
         }
-        t.push_str(&format!("  Exemple : echo '{{\"route\":\"{}\",\"charge\":{}}}' | moteur route\n", self.nom, self.exemple));
+        t.push_str(&format!("  Exemple : echo '{{\"route\":\"{}\",\"charge\":{}}}' | moteur route\n", self.nom(), self.exemple));
         t.push_str(&format!("  Rend : {}\n", self.rend));
         t.push_str(&format!("  Écran : {}\n", self.ecran.texte()));
         if self.phrase > 0 {
@@ -291,14 +518,14 @@ impl Fiche {
 }
 
 /// La fiche de `nom` dans `fiches`, si elle y est.
-pub fn dans(fiches: &[Fiche], nom: &str) -> Option<Fiche> {
-    fiches.iter().find(|f| f.nom == nom).copied()
+pub fn dans(fiches: &[Fiche], route: Route) -> Option<Fiche> {
+    fiches.iter().find(|f| f.route == route).copied()
 }
 
 /// La route du catalogue, pour la page (l'acte d'une route, ce qui est avance) : avec `avance`, ce que
 /// `moteur routes --json` imprime.
 pub const ROUTES: &[Fiche] = &[Fiche {
-    nom: "routes",
+    route: Route::Routes,
     geste: "Dire les routes : leur fiche, le chemin simple d'abord.",
     charge: &[Champ { nom: "avance", libelle: Affiche::new("Toutes les routes"), forme: Forme::OuiNon, sens: "vrai : toutes les routes, les avancées comprises", avance: true }],
     exemple: r#"{"avance": true}"#,
@@ -365,7 +592,7 @@ pub fn commande(args: &[String]) -> i32 {
     let nom = args.iter().find(|a| !a.starts_with("--"));
     let tout = catalogue();
     if let Some(nom) = nom {
-        let Some(f) = dans(&tout, nom) else {
+        let Some(f) = Route::lire(nom).and_then(|r| dans(&tout, r)) else {
             eprintln!("route inconnue : {} (moteur routes --avance les dit toutes)", nom);
             return 2;
         };
@@ -382,9 +609,9 @@ pub fn commande(args: &[String]) -> i32 {
     }
     let montrees: Vec<&Fiche> = tout.iter().filter(|f| avance || !f.avance).collect();
     dire!("Les routes (echo '{{\"route\":NOM,\"charge\":{{…}}}}' | moteur route ; la fiche : moteur routes NOM ; toutes : --avance)\n");
-    let large = montrees.iter().map(|f| f.nom.len()).max().unwrap_or(0);
+    let large = montrees.iter().map(|f| f.nom().len()).max().unwrap_or(0);
     for f in &montrees {
-        dire!("  {:<large$}  {:<5}  {}  [{}]", f.nom, match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste, f.ecran.texte());
+        dire!("  {:<large$}  {:<5}  {}  [{}]", f.nom(), match f.acte { Acte::Lit => "lit", Acte::Ecrit => "écrit", Acte::Engage => "engage" }, f.geste, f.ecran.texte());
     }
     let cachees = tout.len() - montrees.len();
     if cachees > 0 {

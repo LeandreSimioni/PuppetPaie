@@ -119,12 +119,12 @@ fn demander(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     use crate::compagnie::amorcage_demande::{produire, Demande};
     let ctx = &cadre.ctx;
     let mois = match args.texte("mois") {
-        Some(m) if socle::date::mois_valide(m) => m.to_string(),
+        Some(m) if socle::mois::Mois::lire(m).is_ok() => m.to_string(),
         Some(m) => {
             dire!("--mois attend AAAA-MM, recu {}.", socle::fichiers::repr(m));
             return Ok(1);
         }
-        None => match engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().filter(|m| socle::date::mois_valide(m)).last() {
+        None => match engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().filter(|m| socle::mois::Mois::lire(m).is_ok()).last() {
             Some(m) => m,
             None => {
                 dire!("Aucun mois saisi : un signalement d'amorcage declare un contrat (bloc 40), et il n'y en a aucun.");

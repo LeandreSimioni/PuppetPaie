@@ -20,6 +20,7 @@ use socle::fichiers::{lire_json, vrai};
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
@@ -30,7 +31,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Organismes);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "organismes-contrats",
+        route: Route::OrganismesContrats,
         geste: "Dire les contrats de la DSN (prévoyance, santé…) d'un mois, et ce qui manque.",
         charge: &[Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois regardé, AAAA-MM ; le mois en cours sinon", avance: false }],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -42,7 +43,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "organismes-enregistrer",
+        route: Route::OrganismesEnregistrer,
         geste: "Écrire, à partir d'un mois, les contrats de la DSN que la compagnie dit.",
         charge: &[
             Champ { nom: "contrats", libelle: Affiche::new("Contrats"), forme: Forme::Objet, sens: "{clé du contrat: {libelle, organisme}}, ce qui est saisi", avance: false },
@@ -59,9 +60,9 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let v = match nom {
-        "organismes-contrats" => lire(ctx, charge)?,
+        Route::OrganismesContrats => lire(ctx, charge)?,
         _ => enregistrer(ctx, charge)?,
     };
     // Ce qui reste a dire a la compagnie (`a_saisir`), sinon combien de contrats la DSN declare.
@@ -71,13 +72,13 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     } else {
         format!("Contrats de la DSN : {} ; rien à saisir.", n)
     };
-    let p = if nom == "organismes-contrats" { p } else { format!("Enregistré. {}", p) };
+    let p = if nom == Route::OrganismesContrats { p } else { format!("Enregistré. {}", p) };
     let mut v = v;
     // Ce que l'ecran en dit : d'ou viennent les valeurs, les contrats de quel mois, ce qui manque ; la periode de chaque
     // contrat.
     let mut encarts = vec![crate::routes::encart("information", "", "Ce que la DSN déclare de vos adhésions de prévoyance et de santé. La référence du contrat et le code de l'organisme se lisent sur le certificat d'adhésion et sur la fiche de paramétrage DSN de l'organisme. Le reste (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi, de la convention et de la fiche Entreprise.")];
     if let Some(m) = v["mois"].as_str().filter(|m| !m.is_empty()) {
-        encarts.push(crate::routes::encart("information", "", format!("Les contrats en vigueur en {}.", engagement::libelle_mois(m))));
+        encarts.push(crate::routes::encart("information", "", format!("Les contrats en vigueur en {}.", socle::mois::Mois::en_clair(m))));
     }
     if v["a_saisir"] == json!(true) {
         encarts.push(crate::routes::encart("a_faire", "", "Une référence de contrat manque : la DSN refuse les salariés que ce contrat couvre tant qu'elle n'est pas enregistrée."));
@@ -146,8 +147,8 @@ fn periode(ctx: &Contexte, charge: &Value) -> R<(Jour, Jour)> {
         m if m.is_empty() => ctx.aujourdhui.iso()[..7].to_string(),
         m => m,
     };
-    let premier = socle::date::premier_du_mois(&mois).map_err(plain)?;
-    let dernier = socle::date::dernier_du_mois(&mois).map_err(plain)?;
+    let premier = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::premier_jour).map_err(plain)?;
+    let dernier = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::dernier_jour).map_err(plain)?;
     Ok((premier, dernier))
 }
 
@@ -167,7 +168,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({
         "idcc": txt(g(&ctx.entreprise, "idcc")),
         "a_saisir": a_saisir,
-        "mois": periode.0.mois_iso(),
+        "mois": periode.0.mois_civil().to_string(),
         "contrats": lignes,
     }))
 }

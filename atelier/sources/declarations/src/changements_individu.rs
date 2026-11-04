@@ -193,7 +193,7 @@ devine pas. Rien n'est ecrit.",
 /// `jour` compris : ce que lit une DSN hors du mois (un signalement, une demande de taux) pour poser son NTT
 /// (`ntt::poser_ntt`).
 pub fn derniere_declaree(ctx: &Contexte, salarie: &Value, jour: &Jour, departs: &engagement::departs::Departs) -> Resultat<Option<Declaree>> {
-    Declarations::avant(ctx, &jour.mois_suivant(), departs)?.derniere(salarie, &crate::ntt::brute(ctx, salarie))
+    Declarations::avant(ctx, &jour.mois_civil().suivant().to_string(), departs)?.derniere(salarie, &crate::ntt::brute(ctx, salarie))
 }
 
 fn qui(salarie: &Value) -> String {

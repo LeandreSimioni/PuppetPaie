@@ -97,7 +97,7 @@ pub fn code_ou_regle_change(ctx: &Contexte, ecrite: &Value, mois: &str, relues: 
         return true;
     }
     let ecrites = regles_de(ecrite);
-    socle::date::dernier_du_mois(mois)
+    socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour)
         .ok()
         .and_then(|fin| regles(ctx, &fin).ok())
         .is_some_and(|r| r.iter().any(|x| !ecrites.contains(x)))

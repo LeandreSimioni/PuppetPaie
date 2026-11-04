@@ -9,6 +9,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::qui_de;
 use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
@@ -30,8 +31,8 @@ use crate::routes::catalogue::{Ecran, Place};
 const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
 
 /// Une lecture sans charge de l'Historique ou des Exports.
-const fn lecture(nom: &'static str, geste: &'static str, rend: &'static str) -> Fiche {
-    Fiche { nom, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0, ecran: ECRAN }
+const fn lecture(route: Route, geste: &'static str, rend: &'static str) -> Fiche {
+    Fiche { route, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0, ecran: ECRAN }
 }
 
 /// Ou ces routes se voient a l'ecran (une place par module).
@@ -39,10 +40,10 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Exports);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
-    lecture("dossier-formes", "Dire ce que peut porter le dossier d'un salarié : catégories, périodes.", "salaries, categories, periodes"),
-    lecture("exports-periodes", "Dire ce qui s'exporte : mois, années, états, formats, logiciel comptable.", "mois, annees, etats, formats, logiciel retenu"),
+    lecture(Route::DossierFormes, "Dire ce que peut porter le dossier d'un salarié : catégories, périodes.", "salaries, categories, periodes"),
+    lecture(Route::ExportsPeriodes, "Dire ce qui s'exporte : mois, années, états, formats, logiciel comptable.", "mois, annees, etats, formats, logiciel retenu"),
     Fiche {
-        nom: "retenir-logiciel",
+        route: Route::RetenirLogiciel,
         geste: "Retenir le logiciel du comptable, dont les écritures prennent le format.",
         charge: &[Champ { nom: "logiciel", libelle: Affiche::new("Logiciel"), forme: Forme::Texte, sens: "son nom, parmi ceux que exports-periodes connaît ; absent : aucun", avance: false }, Champ { nom: "analytique", libelle: Affiche::new("Par spectacle"), forme: Forme::OuiNon, sens: "vrai : par spectacle", avance: true }],
         exemple: r#"{}"#,
@@ -54,7 +55,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "casc-regularise",
+        route: Route::CascRegularise,
         geste: "Noter régularisée, hors DSN, la CASC-SVP d'une année de mois importés.",
         charge: &[
             ANNEE,
@@ -70,7 +71,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "exporter",
+        route: Route::Exporter,
         geste: "Exporter un état (livre de paie, charges…) en tableau ou en fichier.",
         charge: &[
             Champ { nom: "etat", libelle: Affiche::new("État"), forme: Forme::Texte, sens: "l'état, parmi ceux que exports-periodes dit", avance: false },
@@ -88,7 +89,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "dossier-envoyer",
+        route: Route::DossierEnvoyer,
         geste: "Refaire le dossier de chaque salarié choisi et le lui envoyer par courriel.",
         charge: &[
             Champ { nom: "salaries", libelle: Affiche::new("Salariés"), forme: Forme::Liste, sens: "les clés de leurs fiches", avance: false },
@@ -108,7 +109,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "droits",
+        route: Route::Droits,
         geste: "Dire les heures et cachets cumulés de chaque intermittent (annexes 8 et 10).",
         charge: &[Champ { nom: "mois", libelle: Affiche::new("Mois"), forme: Forme::Mois, sens: "le mois du tableau (le mois, l'année civile), AAAA-MM ; absent : celui du jour", avance: false }],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -120,7 +121,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "casc-envoyer",
+        route: Route::CascEnvoyer,
         geste: "Envoyer à Audiens et au CASC-SVP la régularisation des mois importés.",
         charge: &[
             Champ { nom: "vire_le", libelle: Affiche::new("Virements faits"), forme: Forme::Objet, sens: "{année: jour du virement fait, AAAA-MM-JJ}", avance: false },
@@ -141,27 +142,27 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        "dossier-formes" => dossier_formes(ctx).map(|v| {
+        Route::DossierFormes => dossier_formes(ctx).map(|v| {
             let p = format!("Dossiers possibles : {} ; sortes de pièces : {}.", super::compte(super::nombre(&v["salaries"]), "salarié", "salariés"), super::nombre(&v["categories"]));
             super::phrase_en_tete(v, p)
         }),
-        "exports-periodes" => exports_periodes(ctx, charge).map(|mut v| {
+        Route::ExportsPeriodes => exports_periodes(ctx, charge).map(|mut v| {
             v["ecran"] = ecran_des_exports(&v);
             let p = format!("Exports : {} ; mois payés : {} ; années : {}.", super::compte(super::nombre(&v["etats"]), "état", "états"), super::nombre(&v["mois"]), super::nombre(&v["annees"]));
             super::phrase_en_tete(v, p)
         }),
-        "retenir-logiciel" => retenir_logiciel(ctx, charge).map(|v| {
+        Route::RetenirLogiciel => retenir_logiciel(ctx, charge).map(|v| {
             let p = if t(&v, "logiciel").is_empty() { "Aucun logiciel comptable retenu.".to_string() } else { format!("Logiciel comptable retenu : {}.", t(&v, "logiciel")) };
             super::phrase_en_tete(v, p)
         }),
-        "casc-regularise" => casc_regularise(ctx, charge).map(|v| {
+        Route::CascRegularise => casc_regularise(ctx, charge).map(|v| {
             let p = format!("CASC-SVP {} notée régularisée : {} virés le {}.", t(&v, "annee"), socle::texte::euros_de(&v["montant"]), super::quand(&t(&v, "vire_le")));
             super::phrase_en_tete(v, p)
         }),
-        "exporter" => exporter(ctx, charge).map(|mut v| {
+        Route::Exporter => exporter(ctx, charge).map(|mut v| {
             // Ce que l'ecran dit d'un etat : ses donnees personnelles, ses totaux partiels, la regularisation CASC-SVP.
             v["ecran"] = ecran_d_un_etat(&v);
             // Ce que l'etat dit de lui-meme (ce qui est du, ce qui est infere), sous la phrase : ce que l'ecran montre au-dessus du tableau.
@@ -173,19 +174,19 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             };
             super::phrase_en_tete(v, p)
         }),
-        "dossier-envoyer" => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+        Route::DossierEnvoyer => dossier_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
             let fichiers: Vec<String> = v["fichiers"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
             let p = format!("Dossier de {} ({}) : {}.", v["salaries"].as_array().into_iter().flatten().map(valeur_en_texte).collect::<Vec<_>>().join(", "), t(&v, "periode"), super::compte(fichiers.len(), "fichier joint", "fichiers joints"));
             super::phrase_en_tete(v, p)
         }),
-        "casc-envoyer" => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
+        Route::CascEnvoyer => casc_envoyer(ctx, charge, &mut || client_courriel(ctx)).map(|v| {
             let partis: Vec<String> = v["partis"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
             let annees: Vec<String> = v["annees"].as_array().into_iter().flatten().map(|a| super::mot(&a["annee"])).collect();
             let notee = if annees.len() > 1 { "notées régularisées" } else { "notée régularisée" };
             let p = format!("CASC-SVP, {} : {}, envoyé à {} ; {} {}.", t(&v, "periode"), socle::texte::euros_de(&v["total"]), partis.join(" et "), annees.join(" et "), notee);
             super::phrase_en_tete(v, p)
         }),
-        "droits" => droits(ctx, charge),
+        Route::Droits => droits(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -550,7 +551,7 @@ fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     adresses_de(ctx, &vu.salaries)?;
     let a_qui = format!("{} salarie(s) : {}", vu.salaries.len(), vu.salaries.iter().map(|c| ctx.nomme(c)).collect::<Vec<_>>().join(", "));
     let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
-    let forme = verifier_preuve(ctx, Some(&preuve_de(charge)), &format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois), "envoi du dossier aux salaries", &a_qui)?;
+    let forme = verifier_preuve(ctx, Some(&preuve_de(charge)), &aujourdhui.mois_civil().to_string(), "envoi du dossier aux salaries", &a_qui)?;
     let d = crate::routes::dossier_salarie::construire(ctx, &Value::Object(demande))?;
     let mut r = crate::routes::dossier_salarie::dossier_json(&d);
     let envoi = envoyer_dossier(ctx, &d, &Preuve { donnee: Some(forme), ..Preuve::default() }, &qui, ouvrir)?;
@@ -624,7 +625,7 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
     let mut client = ouvrir()?;
     let aujourdhui = crate::routes::dossier_salarie::aujourdhui_reel();
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
-    verifier_preuve(ctx, Some(preuve), &format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois), "envoi du dossier aux salaries", &a_qui)?;
+    verifier_preuve(ctx, Some(preuve), &aujourdhui.mois_civil().to_string(), "envoi du dossier aux salaries", &a_qui)?;
     let expediteur = expediteur_de(client.as_ref());
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client.as_mut(), None, None) {
         Ok(p) => p,
@@ -806,7 +807,7 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
     use droit::cumul::{anniversaire_configure, position_droits, tableau_cumul};
     let mois = match charge.get("mois").filter(|v| vrai(v)) {
         Some(m) => valeur_en_texte(m),
-        None => format!("{:04}-{:02}", ctx.aujourdhui.an, ctx.aujourdhui.mois),
+        None => ctx.aujourdhui.mois_civil().to_string(),
     };
     let engs = engagement::cumul::lire_engagements(ctx, None, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();

@@ -6,7 +6,7 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use moteur::routes::catalogue::{catalogue, Acte, Ecran, Place, FICHES};
+use moteur::routes::catalogue::{catalogue, Acte, Ecran, Place, Route, FICHES};
 use serde_json::{json, Value};
 
 use crate::bulletins_fictifs::{a_heures, a_repetitions, page_a, pdf};
@@ -44,15 +44,21 @@ fn sources(d: &Path) -> Vec<PathBuf> {
     v
 }
 
+/// Chaque route du catalogue a sa fiche, une seule, et chaque fiche est une route de l'enumeration `Route` qui se dit au
+/// catalogue : une route de l'atelier (`au_catalogue` faux) n'en a pas. Le nom d'une route se relit en elle (`Route::lire`).
 #[test]
 fn chaque_route_dit_brievement_ce_qu_elle_fait() {
     let tout = catalogue();
     let mut vus = BTreeSet::new();
     for f in &tout {
-        assert!(vus.insert(f.nom), "{} est deux fois au catalogue", f.nom);
-        assert!(!f.geste.is_empty() && f.geste.chars().count() <= GESTE_MAX, "{} : le geste, en {} caracteres au plus : {}", f.nom, GESTE_MAX, f.geste);
-        assert!(!f.rend.is_empty() && !f.refus.is_empty(), "{} : sa fiche dit ce qu'elle rend et ses refus", f.nom);
-        assert!(serde_json::from_str::<Value>(f.exemple).is_ok_and(|v| v.is_object()), "{} : l'exemple n'est pas un objet JSON", f.nom);
+        assert!(vus.insert(f.nom()), "{} est deux fois au catalogue", f.nom());
+        assert!(f.route.au_catalogue() && Route::lire(f.nom()) == Some(f.route), "{} : sa fiche n'est pas une route du catalogue", f.nom());
+        assert!(!f.geste.is_empty() && f.geste.chars().count() <= GESTE_MAX, "{} : le geste, en {} caracteres au plus : {}", f.nom(), GESTE_MAX, f.geste);
+        assert!(!f.rend.is_empty() && !f.refus.is_empty(), "{} : sa fiche dit ce qu'elle rend et ses refus", f.nom());
+        assert!(serde_json::from_str::<Value>(f.exemple).is_ok_and(|v| v.is_object()), "{} : l'exemple n'est pas un objet JSON", f.nom());
+    }
+    for r in Route::TOUTES.iter().filter(|r| r.au_catalogue()) {
+        assert!(vus.contains(r.nom()), "{} : une route du catalogue sans fiche", r);
     }
 }
 
@@ -328,55 +334,55 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     }
     // Le retrait de l'engagement en dernier : les exemples des imprevus portent sur celui que valider-engagement pose.
     let mut fiches = catalogue();
-    fiches.sort_by_key(|f| f.nom == "retirer-engagement");
+    fiches.sort_by_key(|f| f.route == Route::RetirerEngagement);
     // Un administrateur, pour son tableau et son dépôt groupé : la compagnie est rattachée à son registre, après les
     // exemples du mot de passe du logiciel (celui d'une compagnie seule).
     let inst = c.parent().unwrap().parent().unwrap();
     let registre = json!({"compagnies": [{"dossier": c.strip_prefix(inst).unwrap().to_string_lossy()}]});
     let mut phrases_fautives = Vec::new();
     for f in &fiches {
-        if (f.nom == "administrateur-tableau" || f.nom == "administrateur-deposer") && !inst.join("administrateur.json").exists() {
+        if (f.route == Route::AdministrateurTableau || f.route == Route::AdministrateurDeposer) && !inst.join("administrateur.json").exists() {
             std::fs::write(inst.join("administrateur.json"), registre.to_string()).unwrap();
         }
         // Un secret ne se lit jamais dans la charge : la fausse demande des essais le tape (`demande::canal_de_la_route`).
         let exemple = serde_json::from_str(f.exemple).unwrap();
-        let r = match f.nom {
-            "google-autoriser" => google_autoriser(&c, exemple),
+        let r = match f.route {
+            Route::GoogleAutoriser => google_autoriser(&c, exemple),
             // La suppression efface une compagnie ajoutee a part, pas celle des exemples.
-            "compagnie-supprimer" => {
+            Route::CompagnieSupprimer => {
                 let autre = c.parent().unwrap().join("ajoutee-a-supprimer");
                 crate::outils::copier(&c.join("config"), &autre.join("config"));
                 std::fs::write(autre.join("COPIE-DE-DEVELOPPEMENT.json"), json!({"copie_de": "compagnie fictive ajoutee", "ajoutee": true}).to_string()).unwrap();
-                let r = route(&autre, f.nom, exemple, "2026-11-02");
+                let r = route(&autre, f.nom(), exemple, "2026-11-02");
                 assert!(!autre.exists(), "compagnie-supprimer : la compagnie est encore la");
                 r
             }
             // Ce qui ne porte que sur une compagnie reelle, une fictive livree ou une compagnie creee en demo se joue dans
             // une installation a part.
-            "compagnie-couleur" | "compagnie-remettre-a-zero" | "compagnies-garder" => route(&installation_a_part(&c, f.nom).1, f.nom, exemple, "2026-11-02"),
-            "administrateur-rattacher" | "administrateur-detacher" => administrateur(&c, f.nom, exemple),
+            Route::CompagnieCouleur | Route::CompagnieRemettreAZero | Route::CompagniesGarder => route(&installation_a_part(&c, f.nom()).1, f.nom(), exemple, "2026-11-02"),
+            Route::AdministrateurRattacher | Route::AdministrateurDetacher => administrateur(&c, f.route, exemple),
             // Le dossier portable : une installation a part qui porte deja les trois systemes (rien ne se telecharge).
-            "portable-completer" => {
-                let (inst, reelle) = installation_a_part(&c, f.nom);
+            Route::PortableCompleter => {
+                let (inst, reelle) = installation_a_part(&c, f.nom());
                 for s in moteur::compagnie::maj::SYSTEMES {
                     let p = moteur::compagnie::maj::programme_de(&inst.join("logiciel"), s, "puppetpaie");
                     std::fs::create_dir_all(p.parent().unwrap()).unwrap();
                     std::fs::write(p, "").unwrap();
                 }
-                route(&reelle, f.nom, exemple, "2026-11-02")
+                route(&reelle, f.nom(), exemple, "2026-11-02")
             }
-            _ => route_avec(&c, f.nom, exemple, "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]),
+            _ => route_avec(&c, f.nom(), exemple, "2026-11-02", &[(VARIABLE_ESSAIS, "exemple")]),
         };
-        assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom, r);
-        assert!(r["resultat"]["phrase"].as_str().is_some_and(|p| !p.trim().is_empty()) && !moteur::service::en_texte(f.nom, &r).trim_start().starts_with(['{', '[']), "{} : sa phrase manque (moteur route --texte ne rend que des phrases, celles que l'écran lit) : {}", f.nom, r);
+        assert_eq!(r["ok"], json!(true), "{} refuse l'exemple de sa fiche : {}", f.nom(), r);
+        assert!(r["resultat"]["phrase"].as_str().is_some_and(|p| !p.trim().is_empty()) && !moteur::service::en_texte(f.nom(), &r).trim_start().starts_with(['{', '[']), "{} : sa phrase manque (moteur route --texte ne rend que des phrases, celles que l'écran lit) : {}", f.nom(), r);
         for p in moteur::routes::phrases_rendues(&r["resultat"]) {
             if let Some(d) = moteur::routes::affiche::defaut(p, usize::MAX, false) {
-                phrases_fautives.push(format!("{} : « {} » : {}", f.nom, p, d.corriger()));
+                phrases_fautives.push(format!("{} : « {} » : {}", f.nom(), p, d.corriger()));
             }
         }
         if f.phrase > 0 {
             let n = moteur::routes::plus_longue_phrase(&r["resultat"]);
-            assert!(n <= f.phrase, "{} : une phrase qu'elle rend (la sienne, ou celle d'une de ses lignes) passe sa place ({}) : {} caractères : {}", f.nom, f.phrase, n, r);
+            assert!(n <= f.phrase, "{} : une phrase qu'elle rend (la sienne, ou celle d'une de ses lignes) passe sa place ({}) : {} caractères : {}", f.nom(), f.phrase, n, r);
         }
     }
     assert!(phrases_fautives.is_empty(), "des phrases que rendent les routes ne sont pas faites pour l'écran (un fichier, un chemin, un terme de code) : récris-les en mots, dans le moteur :\n{}", phrases_fautives.join("\n"));
@@ -441,20 +447,20 @@ fn installation_a_part(c: &Path, test: &str) -> (PathBuf, PathBuf) {
 /// reelle porte le mot de passe de l'administrateur, une seconde se rattache (puis se detache). Une compagnie reelle n'a
 /// que le canal du poste (`demande::canal_de_la_route`) : les mots de passe que l'humain taperait sont ceux de la charge,
 /// comme la page les donne, sur le coffre d'un poste de test.
-fn administrateur(c: &Path, nom: &str, exemple: Value) -> Value {
+fn administrateur(c: &Path, route: Route, exemple: Value) -> Value {
     const ADMIN: &str = "administrateur-essai-1";
-    let (inst, a) = installation_a_part(c, nom);
+    let (inst, a) = installation_a_part(c, route.nom());
     let poste = Poste { dossier_cle: inst.join("cle-du-poste"), maintenant: "2026-11-02T10:00".into() };
     poste.coffre(&a).poser_ouverture(ADMIN, None).unwrap();
     let b = ajouter_venant(&inst, "Seconde", Venue::Neuve).unwrap().racine;
     let mut charge = exemple;
     charge["administrateur"] = json!(ADMIN);
-    if nom == "administrateur-detacher" {
-        moteur::routes::coffre::administrateur(&b, "administrateur-rattacher", &json!({"administrateur": ADMIN}), &poste).unwrap();
+    if route == Route::AdministrateurDetacher {
+        moteur::routes::coffre::administrateur(&b, Route::AdministrateurRattacher, &json!({"administrateur": ADMIN}), &poste).unwrap();
         charge["nouveau"] = json!("propre-essai-1");
         charge["confirmation"] = json!("propre-essai-1");
     }
-    match moteur::routes::coffre::administrateur(&b, nom, &charge, &poste) {
+    match moteur::routes::coffre::administrateur(&b, route, &charge, &poste) {
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(e) => json!({"ok": false, "erreur": e.message}),
     }
@@ -536,7 +542,7 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
     let depot = espace().join("../..");
     let lu = |f: &str| std::fs::read_to_string(depot.join(f)).unwrap();
     let tout = catalogue();
-    let noms: BTreeSet<&str> = tout.iter().map(|f| f.nom).collect();
+    let noms: BTreeSet<&str> = tout.iter().map(|f| f.nom()).collect();
     let mut page = String::new();
     let mut fichiers: Vec<PathBuf> = std::fs::read_dir(depot.join("logiciel/interface/js")).unwrap().flatten().map(|e| e.path()).collect();
     fichiers.extend(std::fs::read_dir(espace().join("moteur/src/interface/pages")).unwrap().flatten().map(|e| e.path()));
@@ -568,17 +574,12 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
         }
         page.push_str(&t);
     }
-    // LE GESTE QU'OFFRE UNE ETAPE OU UN RAPPEL EST UNE ROUTE (`routes::etapes::action` : la route qu'il ouvre, celle de
-    // l'acte qui suit) : l'ecran ouvre sa boite d'apres elle, le LLM l'appelle.
+    // LE GESTE QU'OFFRE UNE ETAPE OU UN RAPPEL EST UNE ROUTE (`routes::etapes::action(Route, charge, puis, libelle)` : la
+    // route qu'il ouvre, celle de l'acte qui suit, que le compilateur garde) : l'ecran ouvre sa boite d'apres elle, le LLM
+    // l'appelle.
     for f in ["etapes.rs", "rappels.rs"] {
         let source = lu(&format!("atelier/sources/moteur/src/routes/{}", f));
         assert!(!source.contains("\"geste\":"), "routes/{} nomme un geste hors du catalogue : un geste est `action(route, charge, puis, libelle)`", f);
-        for ligne in source.lines().filter(|l| l.contains("action(\"")) {
-            for morceau in ligne.split("action(\"").skip(1).chain(ligne.split("Some(\"").skip(1)) {
-                let nom = morceau.split('"').next().unwrap();
-                assert!(noms.contains(nom), "routes/{} offre le geste {} : un geste est une route du catalogue", f, nom);
-            }
-        }
     }
     let html = (lu("logiciel/interface/index.html") + &lu("atelier/sources/moteur/src/interface/pages/accueil.html")).replace("&amp;", "&");
     for p in PLACES {
@@ -588,33 +589,34 @@ fn la_page_et_la_ligne_de_commande_ont_le_meme_catalogue() {
     for p in sources(&espace().join("moteur/src/interface")) {
         fenetre.push_str(&std::fs::read_to_string(p).unwrap());
     }
-    let appelee = |nom: &str, t: &str| t.contains(&format!("\"{}\"", nom)) || t.contains(&format!("/api/{}", nom));
+    // Une route se nomme par son nom (la page, `/api/<route>`) ou, dans le moteur, par sa variante (`Route::MoisAOuvrir`).
+    let appelee = |f: &moteur::routes::catalogue::Fiche, t: &str| t.contains(&format!("\"{}\"", f.nom())) || t.contains(&format!("/api/{}", f.nom())) || t.contains(&format!("Route::{:?}", f.route));
     for f in &tout {
         match f.ecran {
             Ecran::Dessine(p) => assert!(
-                fichiers_de(p).iter().any(|x| appelee(f.nom, &lu(x))),
+                fichiers_de(p).iter().any(|x| appelee(f, &lu(x))),
                 "{} : aucune page de sa place ({}) ne l'appelle : donne à cette route sa place à l'écran (fiche, champ ecran) et appelle-la depuis cette page ({})",
-                f.nom, p.nom(), fichiers_de(p).join(", ")
+                f.nom(), p.nom(), fichiers_de(p).join(", ")
             ),
             Ecran::Auto(p, _) => {
-                assert!(f.charge.iter().all(|c| c.forme != moteur::routes::catalogue::Forme::Objet), "{} s'affiche sous « Avancé » : aucun champ de sa charge n'est un objet, que la page ne saisit pas d'une case", f.nom);
+                assert!(f.charge.iter().all(|c| c.forme != moteur::routes::catalogue::Forme::Objet), "{} s'affiche sous « Avancé » : aucun champ de sa charge n'est un objet, que la page ne saisit pas d'une case", f.nom());
                 let porte = format!("data-auto=\"{}\"", p.nom());
                 let configuration = p.nom().starts_with("Configuration › ") && html.contains("id=\"config-avance\"");
-                assert!(f.avance, "{} s'affiche sous « Avancé » de sa place : sa fiche est avancée", f.nom);
+                assert!(f.avance, "{} s'affiche sous « Avancé » de sa place : sa fiche est avancée", f.nom());
                 assert!(
                     configuration || html.contains(&porte) || fichiers_de(p).iter().any(|x| lu(x).contains(&porte)),
-                    "{} : sa place ({}) n'a pas son « Avancé » (data-auto) : appelle js/avance.js là où la page l'ouvre", f.nom, p.nom()
+                    "{} : sa place ({}) n'a pas son « Avancé » (data-auto) : appelle js/avance.js là où la page l'ouvre", f.nom(), p.nom()
                 );
             }
             Ecran::Lecture => {
-                assert!(f.acte == Acte::Lit, "{} écrit : donne à cette route sa place à l'écran (fiche, champ ecran)", f.nom);
-                assert!(appelee(f.nom, &page) || appelee(f.nom, &fenetre), "{} : ni la page ni la fenêtre ne la lisent : donne-lui sa place à l'écran, ou retire-la", f.nom);
+                assert!(f.acte == Acte::Lit, "{} écrit : donne à cette route sa place à l'écran (fiche, champ ecran)", f.nom());
+                assert!(appelee(f, &page) || appelee(f, &fenetre), "{} : ni la page ni la fenêtre ne la lisent : donne-lui sa place à l'écran, ou retire-la", f.nom());
             }
         }
     }
     for module in FICHES {
         let places: BTreeSet<&str> = module.iter().filter(|f| f.acte != Acte::Lit).filter_map(|f| f.ecran.place()).map(Place::nom).collect();
-        assert!(places.len() <= 1, "un module, une place : les routes qui écrivent de {:?} vont à {:?} ; range chacune dans le module de sa place", module.iter().map(|f| f.nom).collect::<Vec<_>>(), places);
+        assert!(places.len() <= 1, "un module, une place : les routes qui écrivent de {:?} vont à {:?} ; range chacune dans le module de sa place", module.iter().map(|f| f.nom()).collect::<Vec<_>>(), places);
     }
     let c = treteaux("servies");
     // Une route inconnue se refuse en nommant la route a part (`routes::servir`).

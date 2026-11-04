@@ -263,11 +263,10 @@ fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64
 /// Le mois de constitution (`AAAA-MM`) d'une date S20.G00.05.007 (`JJMMAAAA`) ; illisible, celui d'aujourd'hui (la
 /// date de constitution est le jour ou le fichier s'ecrit, `dsn::generer`).
 fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &socle::date::Jour) -> String {
-    let c: Vec<char> = jjmmaaaa.trim().chars().collect();
-    if c.len() == 8 && c.iter().all(char::is_ascii_digit) {
-        return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());
+    match socle::date::Jour::lire(jjmmaaaa.trim()) {
+        Ok(j) if jjmmaaaa.trim().len() == 8 => j.mois_civil().to_string(),
+        _ => aujourdhui.mois_civil().to_string(),
     }
-    aujourdhui.iso().chars().take(7).collect()
 }
 
 /// Le rang lu après `S20.G00.05.004,'` (des chiffres jusqu'au guillemet), s'il y en a un.
@@ -477,7 +476,7 @@ pub fn deposer_dsn_dans(
                     "DsnDejaDeposee",
                     format!(
                         "{} : {}. Rien n'est parti : la plate-forme n'accepte pas une seconde DSN normale pour le même mois (cahier technique DSN §1.4.3.2). Pour corriger, refaites la DSN du mois : elle sortira en annule-et-remplace.",
-                        { let l = engagement::libelle_mois(&mois); l[..1].to_uppercase() + &l[1..] },
+                        { let l = socle::mois::Mois::en_clair(&mois); l[..1].to_uppercase() + &l[1..] },
                         valeur_en_texte(&etat_mois.0["phrase"])
                     ),
                     "etat",

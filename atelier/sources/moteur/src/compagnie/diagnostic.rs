@@ -654,7 +654,7 @@ pub fn fil(maintenant: u64) -> Vec<String> {
 
 /// Une route servie par la fenetre : `source` « page » (la page l'a demandee) ou « fond » (la veille, le filet, l'etat des
 /// mois...) ; sa charge mise en forme, sa duree, son issue.
-pub fn noter_route(racine: &Path, source: &str, nom: &str, charge: &Value, duree: Duration, issue: Result<(), (&str, &str)>) {
+pub fn noter_route(racine: &Path, source: &str, nom: crate::routes::catalogue::Route, charge: &Value, duree: Duration, issue: Result<(), (&str, &str)>) {
     let forme = en_forme(Some(racine), charge);
     let ch = match &forme {
         Value::Object(o) if o.is_empty() => String::new(),
@@ -681,7 +681,7 @@ pub fn noter_route(racine: &Path, source: &str, nom: &str, charge: &Value, duree
         let issue_texte = fin.rsplit_once(", ").map_or(fin.clone(), |(a, _)| a.to_string());
         // La meme route, la meme charge, la meme issue que la derniere : le fil la compte, elle ne se garde qu'une fois.
         match e.back_mut() {
-            Some(d) if d.1 == nom && d.2 == forme && d.3 == issue_texte => d.0 = t,
+            Some(d) if d.1 == nom.nom() && d.2 == forme && d.3 == issue_texte => d.0 = t,
             _ => e.push_back((t, nom.to_string(), forme.clone(), issue_texte)),
         }
     }

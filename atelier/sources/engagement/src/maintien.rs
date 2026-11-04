@@ -515,7 +515,7 @@ fn refus_des_indemnites(qui: &str, mois: &str, premier: &Jour, dernier: &Jour, m
 CRDS : celui du relevé de la CPAM ou le montant de principe proposé. Le maintien de salaire s'en déduit ; rien n'est \
 calculé.",
         qui,
-        crate::libelle_mois(mois),
+        socle::mois::Mois::en_clair(mois),
         premier.jj_mm_aaaa(),
         dernier.jj_mm_aaaa(),
         IJ_A_DIRE,
@@ -531,7 +531,7 @@ pub fn indemnites_a_dire(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<Opti
     if !nat.mensuelle() || !vrai(g(e, "debut")) {
         return Ok(None);
     }
-    let (pm, fm) = (socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?);
+    let (pm, fm) = (socle::mois::Mois::lire(mois)?.premier_jour(), socle::mois::Mois::lire(mois)?.dernier_jour());
     let debut = d(g(e, "debut"))?.max(pm);
     let fin = match Some(g(e, "fin")).filter(|v| vrai(v)) {
         Some(f) => d(f)?.min(fm),
@@ -575,7 +575,7 @@ const IJ_A_VERIFIER: &str = "quand le relevé CPAM arrive, vérifiez le montant 
 pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrincipe, String>> {
     let regles = &droit::permanents::regles()?["indemnites_journalieres"];
     let premier = crate::imprevus::premier_jour(imp)?;
-    let veille = socle::date::premier_du_mois(&premier.mois_iso())?.plus_jours(-1)?;
+    let veille = premier.mois_civil().premier_jour().plus_jours(-1)?;
     let salarie = en_texte(g(imp, "salarie"));
     // La paie validee d'un mois du salarie ; sans elle, rien ne se propose.
     let paie = |mois: &str| -> Resultat<Result<Decimal, String>> {
@@ -583,7 +583,7 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
         Ok(if brut > Decimal::ZERO {
             Ok(brut)
         } else {
-            Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : aucune paie validée en {}.", crate::libelle_mois(mois)))
+            Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : aucune paie validée en {}.", socle::mois::Mois::en_clair(mois)))
         })
     };
     match origine(imp) {
@@ -596,12 +596,12 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
             let combien = nombre(p, "mois")?.to_string().parse::<usize>().map_err(|e| e.to_string())?;
             let (mut bruts, mut jour) = (Vec::new(), veille.clone());
             for _ in 0..combien {
-                let mois = jour.mois_iso();
+                let mois = jour.mois_civil().to_string();
                 match paie(&mois)? {
                     Ok(b) => bruts.push(b),
                     Err(phrase) => return Ok(Err(phrase)),
                 }
-                jour = socle::date::premier_du_mois(&mois)?.plus_jours(-1)?;
+                jour = socle::mois::Mois::lire(&mois)?.premier_jour().plus_jours(-1)?;
             }
             let brute = montant_de_principe(&bruts, smic, p)?;
             Ok(Ok(IjDePrincipe {
@@ -623,7 +623,7 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
             let Ok((mensuel, _)) = ctx.plafond_securite_sociale(premier.an) else {
                 return Ok(Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : le barème {} n'est pas livré.", premier.an)));
             };
-            let brut = match paie(&veille.mois_iso())? {
+            let brut = match paie(&veille.mois_civil().to_string())? {
                 Ok(b) => b,
                 Err(phrase) => return Ok(Err(phrase)),
             };
@@ -819,7 +819,7 @@ pub fn au_net(
         format!(
             "Le maintien de {} ({}) ne se reconstitue pas au centime en {} calculs de la paie : la garantie en net n'est pas \
 atteinte. Rien n'est calculé ; signaler ce mois au développeur.",
-            crate::libelle_mois(&mois),
+            socle::mois::Mois::en_clair(&mois),
             texte,
             ESSAIS
         )
@@ -844,7 +844,7 @@ atteinte. Rien n'est calculé ; signaler ce mois au développeur.",
     let retenu = convention.max(loi);
     let avis = info(format!(
         "Maintien de {} : {} {} ; reconstitué en {} calculs de la paie, au centime{}.",
-        crate::libelle_mois(&mois),
+        socle::mois::Mois::en_clair(&mois),
         texte,
         phrase,
         calculs,

@@ -65,13 +65,12 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
 use crate::routes::etapes::Moteur;
+use crate::routes::catalogue::Route;
 
 /// Qui signe, au journal, ce que l'horloge joue.
 pub const QUI_HORLOGE: &str = "horloge";
 /// La memoire de l'horloge, sous la racine de la compagnie.
 pub const FICHIER_HORLOGE: &str = "config/horloge.json";
-/// Les routes de ce module.
-pub const ROUTES: [&str; 1] = ["horloge-rattraper"];
 
 const ORIGINE: &str = "compagnie fictive : joue par l'horloge";
 const QUOI: &str = "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).";
@@ -158,7 +157,7 @@ impl Courriel for BoiteMuette {
 /// Le mois en lettres : « octobre 2026 ».
 fn mois_fr(mois: &str) -> String {
     // Une ligne du recit ne se refuse pas pour son mois : un mois hors 01-12 s'ecrit tel quel, jamais janvier.
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
+    socle::mois::Mois::en_clair(mois)
 }
 
 /// `JJ/MM/AAAA` d'un `AAAA-MM-JJ...`.
@@ -396,7 +395,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         let ctx = d.contexte()?;
         // Les mois saisis, et ceux dont la DSN est due sans engagement : ce que le panneau et les rappels reclament.
         for mois in &crate::routes::rappels::mois_a_parcourir(&ctx, jour)? {
-            let premier = socle::date::premier_du_mois(mois).map_err(Echec::from)?;
+            let premier = socle::mois::Mois::lire(mois).map(socle::mois::Mois::premier_jour).map_err(Echec::from)?;
             if jour < premier {
                 break;
             }
@@ -406,7 +405,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
             }
             // Un mois echu dont tout est deja fait (par la personne, avant que l'horloge ne passe) est fait : rien n'est a
             // jouer pour lui.
-            let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+            let suivant = socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
             if jour >= suivant && mois_fait(&ctx, mois, jour)? {
                 clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
                 continue;
@@ -528,11 +527,11 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, mois: &str, calendrier: &
     }
     calendrier.extend(signalements_dus(ctx, mois, jour, false));
 
-    let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+    let suivant = socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
     if jour < suivant {
         return Ok(false);
     }
-    let fin = socle::date::dernier_du_mois(mois).map_err(Echec::from)?;
+    let fin = socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(Echec::from)?;
     let valide_le = match crate::interface::compagnies::cree_le(d.racine) {
         Some(c) if c > suivant => c.min(jour),
         _ => suivant,
@@ -708,7 +707,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 return Ok(false);
             }
             d.reverifier()?;
-            crate::routes::imprevus::route(&HashMap::new(), ctx, "arret-signaler", &json!({"salarie": salarie, "dernier_jour": dernier, "nature": nature}))?;
+            crate::routes::imprevus::route(&HashMap::new(), ctx, Route::ArretSignaler, &json!({"salarie": salarie, "dernier_jour": dernier, "nature": nature}))?;
             deposer_les_dsn(d, ctx, mois, |x| x.champ("nature") == *nature, &mut Vec::new())?;
             Ok(true)
         }),
@@ -720,7 +719,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 return Ok(false);
             }
             d.reverifier()?;
-            crate::routes::imprevus::route(&HashMap::new(), ctx, "fin-contrat-signaler", &json!({"mois": mois, "salarie": salarie}))?;
+            crate::routes::imprevus::route(&HashMap::new(), ctx, Route::FinContratSignaler, &json!({"mois": mois, "salarie": salarie}))?;
             deposer_les_dsn(d, ctx, mois, |x| x.champ("nature") == declarations::fctu::NATURE, &mut Vec::new())?;
             Ok(true)
         }),
@@ -826,7 +825,7 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
                 continue;
             }
             let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();
-            crate::routes::engagement::route(&HashMap::new(), ctx, "valider-engagement", &json!({"mois": mois, "engagement": id, "saisie": saisie}))?;
+            crate::routes::engagement::route(&HashMap::new(), ctx, Route::ValiderEngagement, &json!({"mois": mois, "engagement": id, "saisie": saisie}))?;
             fait = true;
         }
         Ok(fait)
@@ -983,19 +982,14 @@ fn annee_finie(d: &HorlogeFictive, annee: i32) -> R<bool> {
 
 // ------------------------------------------------------------------ les routes
 
-/// La route de l'horloge : `horloge-rattraper` (`{"aujourdhui"?, "retenir"?}` -> les phrases jouees).
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+/// La route de l'horloge, `horloge-rattraper` (`{"aujourdhui"?, "retenir"?}` -> les phrases jouees).
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let jour = match charge.get("aujourdhui").filter(|v| vrai(v)) {
         Some(v) => Some(Jour::lire(&valeur_en_texte(v)).map_err(Echec::from)?),
         None => None,
     };
-    match nom {
-        "horloge-rattraper" => {
-            let retenir = charge.get("retenir").map_or(true, vrai);
-            Ok(json!(rattraper(&ctx.racine, jour, retenir)?))
-        }
-        autre => Err(Echec::from(format!("route inconnue : {}", autre))),
-    }
+    let retenir = charge.get("retenir").map_or(true, vrai);
+    Ok(json!(rattraper(&ctx.racine, jour, retenir)?))
 }
 
 // ------------------------------------------------------------------ les tests

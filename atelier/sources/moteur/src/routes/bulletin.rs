@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use serde_json::{json, Map, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::fiches::refus;
 use droit::contexte::Contexte;
 use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
@@ -21,7 +22,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Bulletin);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "bulletin-modeles",
+        route: Route::BulletinModeles,
         geste: "Dire le modèle du bulletin choisi, et les salariés qui en ont un autre.",
         charge: &[],
         exemple: r#"{}"#,
@@ -33,7 +34,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "bulletin-modele-apercu",
+        route: Route::BulletinModeleApercu,
         geste: "Montrer un bulletin d'exemple dans un modèle.",
         charge: &[MODELE],
         exemple: r#"{"modele":"complet"}"#,
@@ -45,7 +46,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Lecture,
     },
     Fiche {
-        nom: "bulletin-modele-choisir",
+        route: Route::BulletinModeleChoisir,
         geste: "Choisir le modèle du bulletin des documents faits dès aujourd'hui.",
         charge: &[MODELE],
         exemple: r#"{"modele":"simplifié"}"#,
@@ -59,9 +60,9 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "bulletin-modeles" => modeles(ctx).map(|mut v| {
+        Route::BulletinModeles => modeles(ctx).map(|mut v| {
             // Ce que l'ecran des modeles dit : a quoi sert le choix, les salaries qui en gardent un autre, ce que le choix change.
             let autrement: Vec<String> = v["salaries_autrement"].as_array().into_iter().flatten().map(|s| format!("{} ({})", super::mot(&s["nom"]), super::mot(&s["modele"]))).collect();
             v["ecran"] = json!({
@@ -72,12 +73,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let p = format!("Modèle de bulletin : {}{}.", socle::valeur::valeur_en_texte(&v["choisi"]), if v["par_defaut"] == json!(true) { " (celui du logiciel)" } else { "" });
             super::phrase_en_tete(v, p)
         }),
-        "bulletin-modele-apercu" => {
+        Route::BulletinModeleApercu => {
             let modele = modele_demande(charge)?;
             let pdf = apercu_pdf(modele).map_err(refus)?;
             Ok(json!({"phrase": format!("Bulletin d'exemple dans le modèle {}, en PDF.", modele.cle()), "modele": modele.cle(), "pdf": socle::base64::ecrire(&pdf)}))
         }
-        "bulletin-modele-choisir" => choisir(ctx, charge).map(|v| {
+        Route::BulletinModeleChoisir => choisir(ctx, charge).map(|v| {
             let p = format!("Modèle choisi : {}, pour les documents faits à partir d'aujourd'hui.", socle::valeur::valeur_en_texte(&v["choisi"]));
             super::phrase_en_tete(v, p)
         }),
@@ -153,7 +154,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let racine = dossier_apercu();
     let saisie = lire_json(&racine.join("saisie.json"))?;
     let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
-    let ctx = Contexte::nouveau(&racine, Some(socle::date::dernier_du_mois(&mois)?))?;
+    let ctx = Contexte::nouveau(&racine, Some(socle::mois::Mois::lire(&mois)?.dernier_jour()))?;
     let s = engagement::pour_l_ecran(&ctx, &saisie)?;
     let mut ent = ctx.entreprise.clone();
     let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;

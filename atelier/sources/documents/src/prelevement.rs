@@ -23,7 +23,7 @@ fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus, departs: &engagement::
     let Some(numero) = e.numero.clone().filter(|n| !n.is_empty()) else { return Ok(None) };
     let cle = en_texte(pa.salarie.get("_cle").unwrap_or(&Value::Null));
     let fin = e.fin_periode()?;
-    let mois = format!("{:04}-{:02}", fin.an, fin.mois);
+    let mois = fin.mois_civil().to_string();
     if !lus.objets.contains_key(&mois) {
         lus.objets.insert(mois.clone(), engagement::stock::objets_du_mois(&ctx.racine, &mois)?);
     }

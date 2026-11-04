@@ -212,7 +212,7 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             manque.into_iter().collect::<Vec<_>>().join(", ")
         )));
     }
-    let mois_dits = |s: &BTreeSet<String>| s.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ");
+    let mois_dits = |s: &BTreeSet<String>| s.iter().map(|m| socle::mois::Mois::en_clair(m)).collect::<Vec<_>>().join(", ");
     if !sans_bulletin.is_empty() {
         avert.push(format!("Paies reprises de la seule DSN, sans leur bulletin, hors de l'état : {}.", mois_dits(&sans_bulletin)));
     }
@@ -294,7 +294,7 @@ fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_moi
     // abattues), que ses bulletins n'impriment pas.
     let importes: Vec<String> = p.mois.iter().filter(|m| p.dispo.get(*m) == Some(&documents::etats_paie::IMPORTE)).cloned().collect();
     if !importes.is_empty() {
-        let quand = if importes.len() == p.mois.len() { format!("Les paies de {}", p.libelle) } else { format!("Les paies de {}", importes.iter().map(|m| engagement::libelle_mois(m)).collect::<Vec<_>>().join(", ")) };
+        let quand = if importes.len() == p.mois.len() { format!("Les paies de {}", p.libelle) } else { format!("Les paies de {}", importes.iter().map(|m| socle::mois::Mois::en_clair(m)).collect::<Vec<_>>().join(", ")) };
         avert.push(format!(
             "{} sont reprises d'un ancien logiciel : leurs versements ne se composent pas ici. La DSN se compose sur les assiettes que ce logiciel calcule (majorées, plafonnées), et leurs bulletins ne les impriment pas.",
             quand
@@ -601,15 +601,15 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         };
         // UNE ANNEE QUE LE LOGICIEL NE TIENT PAS EN ENTIER : la compagnie n'y a de paies (ecrites ou importees) qu'a
         // partir d'un mois apres janvier ; les mois d'avant manquent, la tranche A et la contribution sont partielles.
-        let premier = p.dispo.keys().next().cloned().unwrap_or_default();
-        let partielle = premier.starts_with(&an) && premier.as_str() > format!("{}-01", an).as_str();
-        let regle = if partielle {
-            let avant = format!("{}-{:02}", an, premier[5..7].parse::<u32>().unwrap_or(1).saturating_sub(1).max(1));
-            let manquent = if avant == format!("{}-01", an) { libelle_mois(&avant)? } else { format!("{} à {}", libelle_mois(&format!("{}-01", an))?, libelle_mois(&avant)?) };
+        let premier = p.dispo.keys().next().and_then(|m| socle::mois::Mois::lire(m).ok()).filter(|m| m.annee().to_string() == an);
+        let regle = if let Some(premier) = premier.filter(|m| m.numero() > 1) {
+            let titre = |m: socle::mois::Mois| m.libelle(socle::mois::Graphie::Titre);
+            let (janvier, avant) = (socle::mois::Mois::nouveau(premier.annee(), 1)?, premier.precedent());
+            let manquent = if avant == janvier { titre(avant) } else { format!("{} à {}", titre(janvier), titre(avant)) };
             avert.push(format!(
                 "{} est partielle : le logiciel n'a de paies qu'à partir de {} ; {} manquent. La tranche A et la contribution de {} sont celles des mois lus, pas de l'année.",
                 an,
-                libelle_mois(&premier)?,
+                titre(premier),
                 manquent,
                 an
             ));

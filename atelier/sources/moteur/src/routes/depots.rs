@@ -12,6 +12,7 @@ use serde_json::{json, Value};
 
 use crate::compagnie::depot_acte::{self, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::Route;
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -39,7 +40,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "depot-apercu",
+        route: Route::DepotApercu,
         geste: "Écrire ou reprendre la DSN ou la DPAE du mois ; dire ce qu'elle déclare.",
         charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
         exemple: DPAE_DE_L_EXEMPLE,
@@ -51,7 +52,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "deposer",
+        route: Route::Deposer,
         geste: "Déposer la DSN ou la DPAE du mois : en test, ou en réel après son test.",
         charge: &[
             QUOI,
@@ -78,7 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "suivre-depot",
+        route: Route::SuivreDepot,
         geste: "Après un dépôt réel, relever les retours et dire s'il est passé ou refusé.",
         charge: &[QUOI, Champ { nom: "flux", libelle: Affiche::new("Flux"), forme: Forme::Texte, sens: "le flux du dépôt, tel que deposer le rend", avance: false }, MOIS],
         exemple: r#"{"quoi":"dpae"}"#,
@@ -90,7 +91,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "bilan-repetition",
+        route: Route::BilanRepetition,
         geste: "Dire où en est le test de la DSN ou de la DPAE ; chercher son compte rendu.",
         charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
         exemple: DPAE_DE_L_EXEMPLE,
@@ -104,10 +105,10 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let mut v = match nom {
         // Les phrases de ses parties (le remplacement, le recapitulatif, le test), a la suite de la sienne.
-        "depot-apercu" => depot_apercu(ctx, charge).map(|mut v| {
+        Route::DepotApercu => depot_apercu(ctx, charge).map(|mut v| {
             let encarts = encarts_du_depot(&v);
             let mut lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
             lignes.extend(super::encarts_en_lignes(&encarts));
@@ -120,7 +121,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             // Une DSN se dit par sa nature, son mois et ses salaries quand rien d'autre n'est a dire ; une DPAE par ses
             // embauches.
             if !v["phrase"].as_str().is_some_and(|p| !p.is_empty()) {
-                let mois = engagement::libelle_mois(v["mois"].as_str().unwrap_or(""));
+                let mois = socle::mois::Mois::en_clair(v["mois"].as_str().unwrap_or(""));
                 let (nature, combien) = match v.get("embauches") {
                     Some(e) => ("DPAE".to_string(), super::compte(super::nombre(e), "embauche", "embauches")),
                     None => (super::mot(&v["libelle_nature"]), super::compte(v["salaries"].as_u64().unwrap_or(0) as usize, "salarié", "salariés")),
@@ -130,9 +131,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             }
             v
         }),
-        "deposer" => deposer(ctx, charge),
-        "suivre-depot" => suivre_depot(ctx, charge),
-        "bilan-repetition" => bilan_repetition(ctx, charge),
+        Route::Deposer => deposer(ctx, charge),
+        Route::SuivreDepot => suivre_depot(ctx, charge),
+        Route::BilanRepetition => bilan_repetition(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }?;
     poser_les_pastilles(&mut v);
@@ -352,7 +353,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         engs.iter().map(|e| engagement::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let etiq = socle::date::etiquette_du_mois(&mois).map_err(|e| erreur("ValueError", e))?;
+    let etiq = socle::mois::Mois::lire(&mois).map(socle::mois::Mois::etiquette).map_err(|e| erreur("ValueError", e))?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.numero.clone().unwrap_or_default()) };
 
@@ -393,7 +394,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
         marque = marque_a_la_minute();
     }
     if retenues.is_empty() {
-        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", engagement::libelle_mois(&mois))));
+        return Ok(Dpae::Rien(format!("Aucune DPAE à faire en {}. Rien n'est écrit.", socle::mois::Mois::en_clair(&mois))));
     }
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
@@ -492,7 +493,7 @@ pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Dpae> {
 
     let fichiers: Vec<Value> = vec![fichier_json(&f), fichier_json(&PathBuf::from(format!("{}.zip", f.to_string_lossy()))), fichier_json(&recap)];
     let n = retenues.len();
-    let phrase = format!("DPAE {} écrite : {} embauche{}.", socle::texte::de(&engagement::libelle_mois(&mois)), n, if n > 1 { "s" } else { "" });
+    let phrase = format!("DPAE {} écrite : {} embauche{}.", socle::texte::de(&socle::mois::Mois::en_clair(&mois)), n, if n > 1 { "s" } else { "" });
     Ok(Dpae::Ecrite(json!({ "fichiers": fichiers, "phrase": phrase })))
 }
 

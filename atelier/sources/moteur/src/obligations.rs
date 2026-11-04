@@ -47,6 +47,7 @@ use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use declarations::signalement::sauf_motifs;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 const SALARIE_ARRETE: Champ = Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé de la fiche du salarié arrêté", avance: false };
@@ -68,7 +69,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "arret-obligations",
+        route: Route::ArretObligations,
         geste: "Dire ce qu'un arrêt en cours de saisie fera naître (signalement…).",
         charge: &[
             Champ { nom: "motif", libelle: Affiche::new("Motif"), forme: Forme::Texte, sens: "le motif de l'arrêt (code DSN)", avance: false },
@@ -88,7 +89,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "arret-connaissance",
+        route: Route::ArretConnaissance,
         geste: "Dire le jour où la compagnie a connu un arrêt ou un accident.",
         charge: &[
             SALARIE_ARRETE,
@@ -106,7 +107,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "accident-declare",
+        route: Route::AccidentDeclare,
         geste: "Dire faite la déclaration d'un accident du travail ou de trajet.",
         charge: FAITE,
         exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","le":"2026-11-02","depot":"net-entreprises"}"#,
@@ -118,7 +119,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "attestation-declare",
+        route: Route::AttestationDeclare,
         geste: "Dire faite l'attestation de salaire d'un arrêt que la DSN ne porte pas.",
         charge: FAITE,
         exemple: r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-16","le":"","depot":"net-entreprises-ecran"}"#,
@@ -582,7 +583,7 @@ fn signalement_dsn(
         // alinea), telle que `echeance_dsn` la donne : reportee au jour ouvre suivant un samedi, un dimanche ou un ferie
         // (R. 133-14, I), a midi (cahier technique § 1.4.2). INFERENCE : le report de la mensuelle vaut pour le signalement
         // qui part avec elle (le texte du report parle de « la declaration sociale nominative » sans distinguer).
-        let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, &evenement.mois_iso()).map_err(|m| erreur("ValueError", m))?;
+        let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, &evenement.mois_civil().to_string()).map_err(|m| erreur("ValueError", m))?;
         m.insert("subrogation".into(), json!(true));
         m.insert("echeance_dsn".into(), echeance.en_json());
         // La connaissance ne compte pas : le delai court du mois de l'evenement.
@@ -619,7 +620,7 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
     let dj = texte(a, "dernier_jour_travaille");
     let declare = engagement::imprevus::dernier_jour_declare(a).map(|j| j.iso()).unwrap_or_default();
     let traverses: Vec<String> = match (engagement::imprevus::dernier_jour_declare(a), engagement::imprevus::dernier_jour(a)) {
-        (Ok(p), Ok(d)) if p <= d => socle::date::mois_entre(&p, &d),
+        (Ok(p), Ok(d)) if p <= d => socle::mois::Mois::entre(&p, &d).iter().map(socle::mois::Mois::to_string).collect(),
         _ => Vec::new(),
     };
     let saisi = texte(a, "saisi_le");
@@ -863,27 +864,27 @@ fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {
 
 /// Une route de ce module. Sa phrase : ce que l'arret oblige a faire, une obligation par ligne (`phrases`), chacune avec
 /// ce qu'elle dit d'elle-meme.
-pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let mut v = match nom {
-        "arret-connaissance" => arret_connaissance(ctx, charge)?,
-        "accident-declare" => accident_declare(ctx, charge)?,
-        "attestation-declare" => attestation_declare(ctx, charge)?,
-        "arret-obligations" => arret_obligations(ctx, charge)?,
+        Route::ArretConnaissance => arret_connaissance(ctx, charge)?,
+        Route::AccidentDeclare => accident_declare(ctx, charge)?,
+        Route::AttestationDeclare => attestation_declare(ctx, charge)?,
+        Route::ArretObligations => arret_obligations(ctx, charge)?,
         autre => return Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
     };
     let n = crate::routes::nombre(&v["obligations"]);
     let le = charge.get("le").map(en_texte).unwrap_or_default();
     let fait = |quoi: &str| if le.trim().is_empty() { format!("{} : la note « faite » est retirée. Obligations de l'arrêt : {}.", quoi, n) } else { format!("{} notée faite le {}. Obligations de l'arrêt : {}.", quoi, crate::routes::quand(&le), n) };
     let p = match nom {
-        "accident-declare" => fait("Déclaration d'accident"),
-        "attestation-declare" => fait("Attestation de salaire"),
-        "arret-connaissance" => format!("Jour de connaissance noté. Obligations de l'arrêt : {}.", n),
+        Route::AccidentDeclare => fait("Déclaration d'accident"),
+        Route::AttestationDeclare => fait("Attestation de salaire"),
+        Route::ArretConnaissance => format!("Jour de connaissance noté. Obligations de l'arrêt : {}.", n),
         _ => format!("Obligations de l'arrêt : {}.", n),
     };
     let lignes: Vec<Value> = en_phrases(&v["obligations"]).into_iter().map(Value::String).collect();
     v["phrases"] = Value::Array(lignes);
     // Ce que la boite d'un arret pas encore ecrit dit de ce qu'il fera naitre, en une ligne.
-    if nom == "arret-obligations" {
+    if nom == Route::ArretObligations {
         let suites: Vec<String> = v["obligations"].as_array().into_iter().flatten().map(|o| {
             let libelle = en_texte(&o["libelle"]);
             let libelle = libelle.chars().next().map(|c| c.to_lowercase().collect::<String>() + &libelle[c.len_utf8()..]).unwrap_or_default();

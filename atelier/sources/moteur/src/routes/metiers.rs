@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use serde_json::{json, Map, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::fiches::{creer_dossier, ecrire, plain, refus, texte_requis};
 use droit::contexte::Contexte;
 use droit::emplois;
@@ -24,7 +25,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Metiers);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "metiers-catalogue",
+        route: Route::MetiersCatalogue,
         geste: "Dire les métiers du catalogue, ceux de la convention et les autres.",
         charge: &[],
         exemple: r#"{}"#,
@@ -36,7 +37,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "metier-retenu",
+        route: Route::MetierRetenu,
         geste: "Proposer un métier du catalogue dans les listes, ou ne plus le proposer.",
         charge: &[Champ { nom: "code", libelle: Affiche::new("Métier"), forme: Forme::Texte, sens: "le code du métier au catalogue", avance: false }, Champ { nom: "retenu", libelle: Affiche::new("Le proposer"), forme: Forme::OuiNon, sens: "vrai : le proposer", avance: false }],
         exemple: r#"{"code":"CHE350","retenu":true}"#,
@@ -50,13 +51,13 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "metiers-catalogue" => metiers_catalogue(ctx).map(|v| {
+        Route::MetiersCatalogue => metiers_catalogue(ctx).map(|v| {
             let p = format!("Métiers du catalogue : {}. Ceux qui sont cochés se proposent dans la fiche d'un salarié et dans un engagement ; ceux de votre convention le sont d'office.", super::nombre(&v["metiers"]));
             super::phrase_en_tete(v, p)
         }),
-        "metier-retenu" => metier_retenu(ctx, charge).map(|v| {
+        Route::MetierRetenu => metier_retenu(ctx, charge).map(|v| {
             let p = format!("Métiers retenus par la compagnie : {}.", super::nombre(&v["emplois"]));
             super::phrase_en_tete(v, p)
         }),

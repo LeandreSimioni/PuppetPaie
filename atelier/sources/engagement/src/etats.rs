@@ -96,7 +96,7 @@ pub(crate) fn ses_departs<'a>(ctx: &Contexte, o: &Objet, departs: &'a Departs) -
 /// LE MOIS DU PRESENT : celui de l'horloge (`Contexte::aujourdhui` : la date du geste, la veille ou le jour). Aucune paie
 /// ne s'ecrit pour un mois d'apres : elle se calcule quand il devient le present, avec les regles qui le regissent.
 pub fn mois_present(ctx: &Contexte) -> String {
-    ctx.aujourdhui.mois_iso()
+    ctx.aujourdhui.mois_civil().to_string()
 }
 
 /// UN MOIS FINI, pour l'engagement dont `siens` est ce qui est parti : ses documents de `mois` sont partis au salarie et
@@ -235,11 +235,11 @@ impl Valide {
     pub fn paie(&self, ctx: &Contexte, data: &Value, i: usize) -> Resultat<Paie> {
         let mois = data.get("mois").and_then(Value::as_str).ok_or_else(|| socle::fichiers::absent("mois"))?;
         let x = self.ecrite(mois)?.filter(|p| p.get("paie").is_some()).ok_or_else(|| match &self.refus {
-            Some(refus) => format!("{} : la paie de {} ne se calcule pas. {}", qui_de(ctx, &self.objet), socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee), refus),
+            Some(refus) => format!("{} : la paie de {} ne se calcule pas. {}", qui_de(ctx, &self.objet), socle::mois::Mois::en_clair(mois), refus),
             None => format!(
                 "{} : la paie de {} n'est pas calculée. Revalidez l'engagement : ouvrez sa carte, puis « Modifier l'engagement ».",
                 qui_de(ctx, &self.objet),
-                socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
+                socle::mois::Mois::en_clair(mois)
             ),
         })?;
         let une = relire::saisie_d_un_engagement(data, i);
@@ -760,9 +760,8 @@ pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pa
 pub fn prelevement_de_la_correction(
     ctx: &Contexte, apres: &Paie, net_imposable_declare: Decimal, taux_origine: Option<&str>, mois_du_versement: &str,
 ) -> Resultat<PrelevementDeLaCorrection> {
-    let debut = Jour::lire(&format!("{}-01", mois_du_versement))?;
-    let fin = Jour::nouveau(debut.an, debut.mois, socle::date::jours_du_mois(debut.an, debut.mois))
-        .ok_or_else(|| socle::date::date_impossible(debut.an, debut.mois, 1))?;
+    let versement = socle::mois::Mois::lire(mois_du_versement)?;
+    let (debut, fin) = (versement.premier_jour(), versement.dernier_jour());
     let difference = socle::num::sub(apres.net_imposable, net_imposable_declare);
     let e = &apres.engagement;
     let cle = en_texte(apres.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
@@ -963,7 +962,7 @@ fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
     let mut mois: Vec<&str> = changees.iter().filter_map(|k| k.strip_prefix("paies ")?.split(' ').next()).collect();
     mois.sort();
     if let Some(m) = mois.first() {
-        return format!("la paie {} a changé", de_mois(m));
+        return format!("la paie {} a changé", socle::texte::de(&socle::mois::Mois::en_clair(m)));
     }
     // La configuration de la compagnie : une valeur datee de ses fiches qui s'applique, ou son bareme de l'annee
     // (`config/baremes/<annee>.json` : le taux AT/MP, qui vaut pour toute l'annee).
@@ -979,16 +978,6 @@ fn raison(avant: &Value, apres: &Value, parti: bool) -> String {
         return CALCUL_CORRIGE.to_string();
     }
     CONFIGURATION.to_string()
-}
-
-/// « de septembre 2026 », « d'octobre 2026 ».
-fn de_mois(mois: &str) -> String {
-    let nom = socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee);
-    if nom.starts_with(['a', 'o']) {
-        format!("d'{}", nom)
-    } else {
-        format!("de {}", nom)
-    }
 }
 
 /// Le moment d'un geste, a l'heure du moteur.
@@ -1599,7 +1588,7 @@ fn conges_avant_a_jour(ctx: &Contexte, o: &Objet, ancienne: &Value, mois: &str, 
         return Ok(None);
     }
     let cle = o.brut.get("salarie").map(en_texte).unwrap_or_default();
-    let fin = socle::date::dernier_du_mois(mois)?;
+    let fin = socle::mois::Mois::lire(mois)?.dernier_jour();
     let (avant, mut lues) = empreinte::suivre(ctx, || crate::conges::avant_le_mois(ctx, &cle, &fin, mois))?;
     let spectacle = o.brut.get("spectacle").and_then(Value::as_str);
     lues.extend([empreinte::fiches(ctx, mois, &cle, spectacle)?]);

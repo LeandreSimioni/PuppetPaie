@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use faux_drive::{ecrire, racine as racine_de, FauxDrive};
 use moteur::compagnie::archivage::{archiver, Archivage};
-use socle::date::mois_valide;
+use socle::mois::Mois;
 use envois::drive::{Drive, ErreurGoogle};
 
 const RD: &str = "PuppetPaie";
@@ -51,7 +51,7 @@ fn le_mois_est_controle_avant_tout() {
         assert!(archiver(&r, mois, RD, None).unwrap_err().message.starts_with("Mois illisible"));
     }
     // Le dossier `config` (coffre et jeton) n'a donc jamais pu partir ; le dossier `envoi` non plus.
-    assert!(!mois_valide("../config"));
-    assert!(!mois_valide("2026-06/envoi"));
+    assert!(Mois::lire("../config").is_err());
+    assert!(Mois::lire("2026-06/envoi").is_err());
 }
 

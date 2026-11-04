@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, FORME, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::fiches::{aujourd_hui, creer_dossier, ecrire, en_os, exiger, objet_du_fichier, refus, texte_requis};
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
@@ -21,7 +22,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Identite);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "identite",
+        route: Route::Identite,
         geste: "Dire la signature, le cachet et le logo de la compagnie.",
         charge: &[],
         exemple: r#"{}"#,
@@ -33,7 +34,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "poser-identite",
+        route: Route::PoserIdentite,
         geste: "Poser la signature, le cachet ou le logo (une image PNG, JPEG ou SVG).",
         charge: &[
             QUOI_IDENTITE,
@@ -49,7 +50,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "retirer-identite",
+        route: Route::RetirerIdentite,
         geste: "Retirer la signature, le cachet ou le logo posé.",
         charge: &[QUOI_IDENTITE],
         exemple: r#"{"quoi":"logo"}"#,
@@ -63,14 +64,14 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "identite" => identite(ctx).map(|mut v| {
+        Route::Identite => identite(ctx).map(|mut v| {
             ecran_de_l_identite(&mut v);
             super::phrase_en_tete(v.clone(), dire_l_identite(&v))
         }),
-        "poser-identite" => poser_identite(ctx, charge).map(|(v, poids)| super::phrase_en_tete(v.clone(), format!("Posé. {} {}", poids, dire_l_identite(&v)))),
-        "retirer-identite" => retirer_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Retiré. {}", dire_l_identite(&v)))),
+        Route::PoserIdentite => poser_identite(ctx, charge).map(|(v, poids)| super::phrase_en_tete(v.clone(), format!("Posé. {} {}", poids, dire_l_identite(&v)))),
+        Route::RetirerIdentite => retirer_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Retiré. {}", dire_l_identite(&v)))),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

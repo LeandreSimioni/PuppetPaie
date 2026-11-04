@@ -188,10 +188,6 @@ pub(crate) fn nom_copie(f: &crate::import::tri::Fichier) -> Option<String> {
     (f.empreinte.len() >= 16).then(|| format!("{}.{}", &f.empreinte[..16], ext))
 }
 
-fn mois_de(j: &Jour) -> String {
-    format!("{:04}-{:02}", j.an, j.mois)
-}
-
 /// Un texte compare sans casse, sans accents, sans espaces ni ponctuation de bord (`bulletin_lu::jetons`).
 pub(crate) fn compare(t: &str) -> String {
     bulletin_lu::jetons(t).concat()
@@ -365,7 +361,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             infos.insert("numero".into(), json!(b.numero));
             infos.insert("debut".into(), json!(b.debut.iso()));
             infos.insert("fin".into(), json!(b.fin.iso()));
-            let mois = mois_de(&b.fin);
+            let mois = b.fin.mois_civil().to_string();
             infos.insert("mois".into(), json!(mois));
             let refus = |sort: &'static str, raison: String, infos: Map<String, Value>| PageCr { page: l.page, sort, raison, infos };
             let mois_saisi = saisis.contains(&mois);
@@ -2000,7 +1996,7 @@ impl Attestee {
 
     /// Le mois dont elle parle : celui de l'AEM, celui de la fin du certificat.
     fn mois(&self) -> Option<String> {
-        self.aem.as_ref().and_then(|a| a.mois.clone()).or_else(|| self.c.fin.map(|f| mois_de(&f)))
+        self.aem.as_ref().and_then(|a| a.mois.clone()).or_else(|| self.c.fin.map(|f| f.mois_civil().to_string()))
     }
 }
 

@@ -11,6 +11,7 @@ use serde_json::{json, Map, Value};
 
 use super::veille::Veille;
 use crate::etat_garde::FileDesEtats;
+use crate::routes::catalogue::Route;
 
 /// Les refus qui ne sont pas des defauts du logiciel : une saisie en cours, un mot de passe mal tape, un mois sans
 /// paie, et ceux que la page traite elle-meme (une fiche refusee, un depot deja fait...). On ne les compte pas en incidents.
@@ -48,7 +49,7 @@ impl Refus {
 /// oublie a la fin de sa route, quoi qu'il arrive ; la compagnie vient de `racine`, jamais d'une variable du processus
 /// (deux compagnies peuvent etre servies en meme temps par deux fils) ; les sorties reseau passent par `garde_reseau`
 /// aussi. Seul `maj::controler` lance encore un processus : il eprouve le NOUVEAU programme, qui n'est pas celui-ci.
-pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
+pub fn route(racine: &Path, nom: Route, charge: &Value) -> Result<Value, Refus> {
     // LE FIL (`diagnostic`) : une route que la page n'a pas demandee (la veille, le filet, le fond) s'y note ici ; celle de
     // la page se note dans `repondre`, avec ce que la page a fait avant.
     if DANS_LA_PAGE.with(std::cell::Cell::get) {
@@ -66,7 +67,7 @@ thread_local! {
     static DANS_LA_PAGE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
-fn route_seule(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
+fn route_seule(racine: &Path, nom: Route, charge: &Value) -> Result<Value, Refus> {
     let mut o = std::collections::HashMap::new();
     o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
     // LE BANC D'ESSAI (l'atelier seulement) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
@@ -110,30 +111,30 @@ fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
 fn signalements_en_fond(racine: &Path) {
     let r = racine.to_path_buf();
     crate::routes::fil_de_routes(move || {
-        let _ = route(&r, "signalements-partir", &json!({}));
+        let _ = route(&r, Route::SignalementsPartir, &json!({}));
     });
 }
 
-fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Result<Value, Refus> {
+fn traiter(racine: &Path, nom: Route, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Result<Value, Refus> {
     match nom {
         // `xlsx` et `pdf` : deux faits du poste, que le moteur constate lui-meme.
-        "exports-periodes" => {
+        Route::ExportsPeriodes => {
             let mut c = charge.as_object().cloned().unwrap_or_default();
             c.insert("xlsx".into(), Value::Bool(true));
             c.insert("pdf".into(), Value::Bool(true));
             route(racine, nom, &Value::Object(c))
         }
-        "signalement-envoyer" => {
+        Route::SignalementEnvoyer => {
             let r = route(racine, nom, charge);
             if r.is_ok() {
                 signalements_en_fond(racine);
             }
             r
         }
-        "rappels" => route(racine, nom, &json!({})),
+        Route::Rappels => route(racine, nom, &json!({})),
         // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS : le dernier etat connu du
         // mois, tout de suite, meme perime (marque `perime`, et refait en fond) ; `attendre` : l'etat frais.
-        "mois" => {
+        Route::Mois => {
             let mois = texte(charge, "mois")?;
             match etats {
                 Some(f) => f
@@ -145,7 +146,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
         // L'OUVERTURE D'UNE COMPAGNIE, D'UN COUP ET SANS PROCESSUS : le dernier etat connu de ce que la page lit
         // en s'ouvrant (`etat_garde::FileDesEtats::ouverture`), et, lus a chaque fois a cote, ce qui vit dans la memoire de
         // la fenetre (la veille, la mise a jour) et les signalements (que l'etat garde ne suit pas).
-        "ouverture" => {
+        Route::Ouverture => {
             let Some(f) = etats else {
                 return Err(Refus::simple("ErreurOperation", "Pas d'ouverture sans la fenetre de PuppetPaie."));
             };
@@ -172,7 +173,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
 }
 
 /// La reponse a `/api/<nom>`, au format que la page attend.
-pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Value {
+pub fn repondre(racine: &Path, nom: Route, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Value {
     let debut = std::time::Instant::now();
     let debut_ms = socle::temps::maintenant_ms();
     let avant = DANS_LA_PAGE.with(|d| d.replace(true));
@@ -181,7 +182,7 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
     let duree = debut.elapsed();
     // LE FIL : la route de la page, sa charge mise en forme, sa duree, son issue. Une erreur de la page (`incident-navigateur`)
     // s'y dit comme telle.
-    if nom == "incident-navigateur" {
+    if nom == Route::IncidentNavigateur {
         let c = |k: &str| charge.get(k).map(socle::valeur::valeur_en_texte).unwrap_or_default();
         crate::compagnie::diagnostic::noter_moteur(&format!(
             "erreur JS {} : {} ({}:{})",
@@ -207,7 +208,7 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
     let mut reponse = match rendu {
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(r) => {
-            if !PAS_DES_INCIDENTS.contains(&r.classe.as_str()) && nom != "incident-navigateur" {
+            if !PAS_DES_INCIDENTS.contains(&r.classe.as_str()) && nom != Route::IncidentNavigateur {
                 // DE QUOI REJOUER LA ROUTE : sa charge mise en forme,
                 // sa duree, l'etat du mois qu'elle touche, ce que le refus portait pour la page ; et la trace -- l'endroit du
                 // code et la chaine des echecs. Le fil et la machine s'y ajoutent dans `incidents::noter`.
@@ -222,7 +223,7 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
                     detail.insert("refus".into(), crate::compagnie::diagnostic::en_forme(Some(racine), &Value::Object(r.plus.clone())));
                 }
                 let trace = crate::compagnie::diagnostic::trace_du_refus(racine, &r.message, debut_ms);
-                let _ = crate::compagnie::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom, Value::Object(detail), trace.as_deref());
+                let _ = crate::compagnie::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom.nom(), Value::Object(detail), trace.as_deref());
             }
             en_page(Err(r))
         }
@@ -235,12 +236,12 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
 
 /// UNE ROUTE DE L'INSTALLATION (`routes::accueil` : l'accueil des compagnies), servie sans compagnie : l'installation est
 /// celle du programme. La reponse au format que la page attend.
-pub fn route_de_l_installation(nom: &str, charge: &Value) -> Value {
+pub fn route_de_l_installation(nom: Route, charge: &Value) -> Value {
     let o = std::collections::HashMap::new();
     // LE BANC D'ESSAI (l'atelier seulement) : une compagnie ajoutee entre dans le scenario comme le decor de depart que le
     // rejeu refait (`scenario::rejouer`, le geste `ajouter`).
     #[cfg(feature = "atelier")]
-    if nom == "compagnie-ajouter" {
+    if nom == Route::CompagnieAjouter {
         if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
             let rendu = e.geste("ajouter", || {
                 let v = depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)).map_err(|r| r.message)?;
@@ -258,9 +259,9 @@ pub fn route_de_l_installation(nom: &str, charge: &Value) -> Value {
     }
     let rendu = en_page(depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge)));
     // Le message ecrit a l'accueil part en fond, comme celui d'une compagnie (`signalements_en_fond`).
-    if nom == "signalement-envoyer" && rendu["ok"] == json!(true) {
+    if nom == Route::SignalementEnvoyer && rendu["ok"] == json!(true) {
         crate::routes::fil_de_routes(move || {
-            let _ = crate::routes::dans_la_fenetre(&std::collections::HashMap::new(), "signalements-partir", &json!({}));
+            let _ = crate::routes::dans_la_fenetre(&std::collections::HashMap::new(), Route::SignalementsPartir, &json!({}));
         });
     }
     rendu

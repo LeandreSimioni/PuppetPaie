@@ -39,7 +39,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         },
     };
     refuser_si_pas_redirige(cadre, Organisme::Dsn, "le depot de test")?;
-    let designee = if socle::date::mois_valide(fichier) { crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dsn", "mois": fichier}))?.0 } else { json!(fichier) };
+    let designee = if socle::mois::Mois::lire(fichier).is_ok() { crate::routes::depots::designee(&cadre.ctx, &json!({"quoi": "dsn", "mois": fichier}))?.0 } else { json!(fichier) };
     // Un depot de test n'engage rien : il lui faut seulement le secret de l'organisme, donc le coffre ouvert.
     cadre.ouvrir_le_coffre();
     let environnement = args.texte("environnement").unwrap_or("production");

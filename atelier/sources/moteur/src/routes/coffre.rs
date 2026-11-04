@@ -21,6 +21,7 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
 use crate::compagnie::administrateur::Poste;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
+use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
 use super::{ou_texte, vers_route};
 use envois::etats::{get, joindre, objet_vide, ou};
@@ -60,7 +61,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Coffre);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "coffre-etat",
+        route: Route::CoffreEtat,
         geste: "Dire quels mots de passe sont posés, et depuis quand ; jamais leur valeur.",
         charge: &[],
         exemple: r#"{}"#,
@@ -72,7 +73,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "google-etat",
+        route: Route::GoogleEtat,
         geste: "Dire si le compte Google de la sauvegarde est lié.",
         charge: &[],
         exemple: r#"{}"#,
@@ -84,7 +85,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "coffre-poser",
+        route: Route::CoffrePoser,
         geste: "Poser le mot de passe d'un organisme ; pour l'Urssaf, avec le compte des DPAE.",
         charge: &[
             SERVICE,
@@ -103,7 +104,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "coffre-verifier",
+        route: Route::CoffreVerifier,
         geste: "Essayer une fois le mot de passe posé d'un organisme.",
         charge: &[SERVICE],
         exemple: r#"{"service":"urssaf"}"#,
@@ -115,7 +116,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "coffre-oublier",
+        route: Route::CoffreOublier,
         geste: "Retirer du coffre le mot de passe d'un organisme.",
         charge: &[SERVICE, MOT_DE_PASSE],
         exemple: r#"{"service":"urssaf"}"#,
@@ -127,7 +128,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "mot-de-passe-changer",
+        route: Route::MotDePasseChanger,
         geste: "Poser ou changer le mot de passe du logiciel.",
         charge: &[
             MOT_DE_PASSE,
@@ -143,7 +144,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "mot-de-passe-retirer",
+        route: Route::MotDePasseRetirer,
         geste: "Retirer le mot de passe du logiciel.",
         charge: &[MOT_DE_PASSE],
         exemple: r#"{}"#,
@@ -155,7 +156,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "google-autoriser",
+        route: Route::GoogleAutoriser,
         geste: "Lier le compte Google de la sauvegarde : Google s'ouvre, la personne accepte.",
         charge: &[MOT_DE_PASSE],
         exemple: r#"{}"#,
@@ -167,7 +168,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "google-oublier",
+        route: Route::GoogleOublier,
         geste: "Délier le compte Google de la sauvegarde : le jeton du poste s'efface.",
         charge: &[MOT_DE_PASSE],
         exemple: r#"{}"#,
@@ -179,7 +180,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "administrateur-etat",
+        route: Route::AdministrateurEtat,
         geste: "Dire ce que l'administrateur est pour cette compagnie.",
         charge: &[],
         exemple: r#"{}"#,
@@ -191,7 +192,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Lecture,
     },
     Fiche {
-        nom: "administrateur-rattacher",
+        route: Route::AdministrateurRattacher,
         geste: "Rattacher cette compagnie à l'administrateur : son mot de passe l'ouvre aussi.",
         charge: &[
             ADMINISTRATEUR,
@@ -206,7 +207,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "administrateur-detacher",
+        route: Route::AdministrateurDetacher,
         geste: "Détacher cette compagnie : elle reçoit son propre mot de passe.",
         charge: &[
             ADMINISTRATEUR,
@@ -224,7 +225,7 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let mots = |v: &Value| valeur_en_texte(&v["pastille"]["mots"]);
     // L'etat du coffre en une phrase : chaque service et ce que l'ecran en dit.
     let coffre = |fait: &str, v: Value| {
@@ -233,16 +234,16 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         super::phrase_en_tete(v, p)
     };
     match nom {
-        "coffre-etat" => coffre_etat(ctx).map(|mut v| {
+        Route::CoffreEtat => coffre_etat(ctx).map(|mut v| {
             v["ecran"] = ecran_du_coffre(ctx, &mut v);
             coffre("", v)
         }),
-        "google-etat" => google_etat(ctx).map(|v| {
+        Route::GoogleEtat => google_etat(ctx).map(|v| {
             let p = format!("Google Drive : {}.", mots(&v));
             super::phrase_en_tete(v, p)
         }),
-        "coffre-poser" => coffre_poser(ctx, charge),
-        "coffre-verifier" => crate::compagnie::coffre_verifier::route(ctx, charge).map(|v| {
+        Route::CoffrePoser => coffre_poser(ctx, charge),
+        Route::CoffreVerifier => crate::compagnie::coffre_verifier::route(ctx, charge).map(|v| {
             let service = valeur_en_texte(&v["service"]);
             // Un compte incomplet se dit avec ce qui lui manque et ou le donner (`identifiant_du_compte`).
             let manque = etat_du_coffre(ctx).ok().and_then(|e| {
@@ -255,20 +256,20 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             };
             super::phrase_en_tete(v, p)
         }),
-        "coffre-oublier" => coffre_oublier(ctx, charge).map(|v| coffre("Mot de passe retiré du coffre. ", v)),
-        "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge).map(|v| coffre("Mot de passe du logiciel posé. ", v)),
-        "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge).map(|v| coffre("Mot de passe du logiciel retiré. ", v)),
-        "google-oublier" => google_oublier(ctx, charge).map(|v| super::phrase_en_tete(v, "Compte Google délié : la sauvegarde ne va plus au Drive. L'accès accordé côté Google se retire sur myaccount.google.com.")),
-        "google-autoriser" => google_autoriser(ctx, charge).map(|v| {
+        Route::CoffreOublier => coffre_oublier(ctx, charge).map(|v| coffre("Mot de passe retiré du coffre. ", v)),
+        Route::MotDePasseChanger => mot_de_passe_changer(ctx, charge).map(|v| coffre("Mot de passe du logiciel posé. ", v)),
+        Route::MotDePasseRetirer => mot_de_passe_retirer(ctx, charge).map(|v| coffre("Mot de passe du logiciel retiré. ", v)),
+        Route::GoogleOublier => google_oublier(ctx, charge).map(|v| super::phrase_en_tete(v, "Compte Google délié : la sauvegarde ne va plus au Drive. L'accès accordé côté Google se retire sur myaccount.google.com.")),
+        Route::GoogleAutoriser => google_autoriser(ctx, charge).map(|v| {
             let p = format!("Drive lié : {}. La prochaine ouverture sauvegarde.", valeur_en_texte(&v["compte"]));
             super::phrase_en_tete(v, p)
         }),
-        "administrateur-etat" => {
+        Route::AdministrateurEtat => {
             let v = administrateur_etat(&ctx.racine);
             let p = format!("Mot de passe de la compagnie : {}.", mots(&v));
             Ok(super::phrase_en_tete(v, p))
         }
-        "administrateur-rattacher" | "administrateur-detacher" => administrateur(&ctx.racine, nom, charge, &Poste::de_ce_poste()),
+        Route::AdministrateurRattacher | Route::AdministrateurDetacher => administrateur(&ctx.racine, nom, charge, &Poste::de_ce_poste()),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -283,7 +284,7 @@ pub fn administrateur_etat(racine: &Path) -> Value {
 
 /// `administrateur-rattacher` et `administrateur-detacher`, sur le coffre de `poste` : tout se decide dans
 /// `administrateur.rs`. Le mot de passe de l'administrateur vient de la charge (la page), sinon il est tape par un humain.
-pub fn administrateur(racine: &Path, nom: &str, charge: &Value, poste: &Poste) -> R<Value> {
+pub fn administrateur(racine: &Path, nom: Route, charge: &Value, poste: &Poste) -> R<Value> {
     use crate::compagnie::administrateur as adm;
     let inst = adm::installation_de(racine);
     let admin = match chaine(charge, "administrateur") {
@@ -300,7 +301,7 @@ pub fn administrateur(racine: &Path, nom: &str, charge: &Value, poste: &Poste) -
         1 => n[0].clone(),
         k => format!("{} et {}", n[..k - 1].join(", "), n[k - 1]),
     };
-    if nom == "administrateur-rattacher" {
+    if nom == Route::AdministrateurRattacher {
         // Une compagnie qui a deja son mot de passe le donne aussi : c'est lui que celui de l'administrateur remplace.
         let actuel = if charge.get("motdepasse").is_some() {
             chaine(charge, "motdepasse").map(String::from)

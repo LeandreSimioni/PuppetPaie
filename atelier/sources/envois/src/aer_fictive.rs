@@ -143,16 +143,6 @@ struct Periode {
     paiement: String,
 }
 
-
-fn mois_suivant(m: &str) -> String {
-    let (a, mo): (i32, u32) = (m.get(..4).and_then(|x| x.parse().ok()).unwrap_or(0), m.get(5..7).and_then(|x| x.parse().ok()).unwrap_or(1));
-    if mo >= 12 {
-        format!("{:04}-01", a + 1)
-    } else {
-        format!("{:04}-{:02}", a, mo + 1)
-    }
-}
-
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
     let l = crate::etats::etat_dsn_du_mois(lignes, m, &Value::Null, &droit::bareme::nic_principal(&ctx.entreprise)).ok()?;
@@ -168,15 +158,15 @@ fn periodes(ctx: &Contexte, lignes: &[Value], mois: &str, nir: &str, c: &Contrat
         return Err(format!("contrat {} : dates illisibles dans la DSN ({} - {})", c.numero, c.debut, c.fin));
     };
     let mut out = Vec::new();
-    let mut m = c.debut.get(..7).unwrap_or(mois).to_string();
-    while m.as_str() < mois {
+    // Les mois du contrat avant celui-ci.
+    for m in debut.mois_civil().jusqu_a(socle::mois::Mois::lire(mois)?.precedent()) {
+        let m = m.to_string();
         let lues = dsn_deposee(ctx, lignes, &m).unwrap_or_default();
         let trouve = lues.iter().find(|i| i.nir == nir).and_then(|i| i.contrats.iter().find(|x| x.numero == c.numero).map(|x| (i, x)));
         if let Some((i, x)) = trouve {
             let date = i.versements.first().map(|v| v.date.clone()).unwrap_or_default();
             out.push(periode(x, debut, fin, &m, &date, out.is_empty())?);
         }
-        m = mois_suivant(&m);
     }
     // Un contrat que ce fichier ne porte que pour le rappel d'un mois deja declare (`recap_dsn::Contrat::rappel`) n'a pas
     // de periode ce mois-ci.
@@ -187,7 +177,8 @@ fn periodes(ctx: &Contexte, lignes: &[Value], mois: &str, nir: &str, c: &Contrat
 }
 
 fn periode(x: &Contrat, debut: Jour, fin: Jour, m: &str, paiement: &str, premiere: bool) -> Resultat<Periode> {
-    let (d, f) = (socle::date::premier_du_mois(m)?, socle::date::dernier_du_mois(m)?);
+    let m = socle::mois::Mois::lire(m)?;
+    let (d, f) = (m.premier_jour(), m.dernier_jour());
     Ok(Periode {
         contrat: premiere.then(|| (x.numero.clone(), debut.jj_mm_aaaa(), fin.jj_mm_aaaa(), x.objet.clone())),
         debut: if debut > d { debut } else { d },

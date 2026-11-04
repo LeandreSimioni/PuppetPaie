@@ -99,7 +99,7 @@ pub fn du_mois(mois: &str, jour_du_mois: u32) -> Resultat<Echeance> {
     let (an, mo) = (entier(&mois.chars().take(4).collect::<String>())?, entier(&mois.chars().skip(5).take(2).collect::<String>())?);
     let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
     if !(1..=12).contains(&mo) {
-        return Err(socle::date::mois_impossible(mo));
+        return Err(socle::mois::mois_impossible(mo));
     }
     if !(1..=9999).contains(&an) {
         return Err(socle::date::annee_impossible(an));

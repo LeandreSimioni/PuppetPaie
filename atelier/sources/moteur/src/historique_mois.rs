@@ -30,18 +30,17 @@ use envois::retours;
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Fiche, Refus, MOIS};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
-
-pub const ROUTE: &str = "historique-mois";
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Historique);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[Fiche {
-    nom: ROUTE,
+    route: Route::HistoriqueMois,
     geste: "Dire l'Historique d'un mois : ses documents, ses envois et ce qui en est revenu.",
     charge: &[MOIS],
     exemple: r#"{"mois":"2026-11"}"#,
@@ -899,7 +898,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Le plus recent en premier : c'est le dernier envoi qu'on vient lire ; a la meme heure, le reel devant son test.
     envois.sort_by(|a, b| (valeur_en_texte(&b["quand"]), b["mode"] == json!("reel")).cmp(&(valeur_en_texte(&a["quand"]), a["mode"] == json!("reel"))));
     let documents = documents(ctx, mois, &lignes)?;
-    let phrase = format!("Historique de {} : {} documents, {} envois.", socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee), documents.len(), envois.len());
+    let phrase = format!("Historique de {} : {} documents, {} envois.", socle::mois::Mois::en_clair(mois), documents.len(), envois.len());
     Ok(json!({"phrase": phrase, "mois": mois, "documents": documents, "envois": envois}))
 }
 

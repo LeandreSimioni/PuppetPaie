@@ -19,6 +19,7 @@ use crate::compagnie::incidents::{self, DEPOSE, EN_ATTENTE};
 use crate::compagnie::problemes;
 use droit::contexte::Contexte;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, OPERATION};
+use crate::routes::catalogue::Route;
 use envois::etats::get;
 use socle::echec::{Echec, R};
 use socle::fichiers::vrai;
@@ -39,7 +40,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Signaler);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "signalement-apercu",
+        route: Route::SignalementApercu,
         geste: "Montrer, mot pour mot, ce qu'un message au développeur emporterait.",
         charge: &[TEXTE, OU, CAPTURES],
         exemple: r#"{"texte":"La phrase de la DSN est coupée.","ecran":"Paie, novembre 2026"}"#,
@@ -51,7 +52,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "signalement-envoyer",
+        route: Route::SignalementEnvoyer,
         geste: "Écrire au développeur (un problème, une idée) ; le message part seul.",
         charge: &[TEXTE, OU, CAPTURES],
         exemple: r#"{"texte":"La phrase de la DSN est coupée.","ecran":"Paie, novembre 2026"}"#,
@@ -63,7 +64,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "signalements",
+        route: Route::Signalements,
         geste: "Dire les messages écrits au développeur, et ses réponses.",
         charge: &[],
         exemple: r#"{}"#,
@@ -75,7 +76,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "signalements-lus",
+        route: Route::SignalementsLus,
         geste: "Marquer lues les réponses du développeur.",
         charge: &[],
         exemple: r#"{}"#,
@@ -87,7 +88,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "signalements-partir",
+        route: Route::SignalementsPartir,
         geste: "Faire partir chez le développeur les messages qui attendent.",
         charge: &[],
         exemple: r#"{}"#,
@@ -99,7 +100,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Signaler, Affiche::new("Envoyer les messages qui attendent")),
     },
     Fiche {
-        nom: "incident-navigateur",
+        route: Route::IncidentNavigateur,
         geste: "Noter ce qui a cassé dans la page.",
         charge: &[Champ { nom: "message", libelle: Affiche::new("Ce que la page a vu"), forme: Forme::Texte, sens: "ce que la page a vu (et genre, fichier, ligne, pile)", avance: false }],
         exemple: r#"{"message":"exemple","genre":"erreur"}"#,
@@ -111,7 +112,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "diagnostic-etat",
+        route: Route::DiagnosticEtat,
         geste: "Dire ce qui est parti chez le développeur, et ce qui attend.",
         charge: &[],
         exemple: r#"{}"#,
@@ -123,7 +124,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "diagnostic-envoyer",
+        route: Route::DiagnosticEnvoyer,
         geste: "Envoyer au développeur les incidents qui attendent.",
         charge: &[],
         exemple: r#"{}"#,
@@ -135,7 +136,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "diagnostic-regler",
+        route: Route::DiagnosticRegler,
         geste: "Couper l'envoi des incidents au développeur, ou le rétablir.",
         charge: &[Champ { nom: "actif", libelle: Affiche::new("Envoyer les incidents"), forme: Forme::OuiNon, sens: "vrai : les envoyer", avance: false }],
         exemple: r#"{"actif":true}"#,
@@ -147,7 +148,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "incidents-lire",
+        route: Route::IncidentsLire,
         geste: "Lire les incidents gardés sur le poste.",
         charge: &[QUOI, Champ { nom: "en_attente", libelle: Affiche::new("Seulement ceux qui attendent"), forme: Forme::OuiNon, sens: "vrai : seulement ceux qui ne sont pas partis", avance: true }],
         exemple: r#"{}"#,
@@ -159,7 +160,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Signaler, Affiche::new("Lire les incidents gardés")),
     },
     Fiche {
-        nom: "incidents-regrouper",
+        route: Route::IncidentsRegrouper,
         geste: "Regrouper les incidents gardés, le plus fréquent en tête.",
         charge: &[QUOI],
         exemple: r#"{}"#,
@@ -171,7 +172,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Signaler, Affiche::new("Regrouper les incidents")),
     },
     Fiche {
-        nom: "incidents-envoyer",
+        route: Route::IncidentsEnvoyer,
         geste: "Déposer chez le développeur les incidents qui attendent.",
         charge: &[],
         exemple: r#"{}"#,
@@ -183,7 +184,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Signaler, Affiche::new("Envoyer les incidents qui attendent")),
     },
     Fiche {
-        nom: "incidents-oublier",
+        route: Route::IncidentsOublier,
         geste: "Effacer les incidents gardés, tous ou d'une nature.",
         charge: &[QUOI],
         exemple: r#"{"quoi":"logiciel"}"#,
@@ -196,7 +197,7 @@ pub const ROUTES: &[Fiche] = &[
     },
 ];
 /// Une route de ce module, pour la compagnie `ctx`.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     route_de(&ctx.racine, nom, charge)
 }
 
@@ -208,16 +209,16 @@ pub fn sans_compagnie(o: &HashMap<String, String>) -> std::path::PathBuf {
 }
 
 /// Une route de ce module, sans compagnie (`sans_compagnie`).
-pub fn route_sans_compagnie(o: &HashMap<String, String>, nom: &str, charge: &Value) -> R<Value> {
+pub fn route_sans_compagnie(o: &HashMap<String, String>, nom: Route, charge: &Value) -> R<Value> {
     let racine = sans_compagnie(o);
     std::fs::create_dir_all(&racine).map_err(|e| Echec::from(socle::echec::du_disque(&racine, &e)))?;
     route_de(&racine, nom, charge)
 }
 
-fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
+fn route_de(racine: &Path, nom: Route, charge: &Value) -> R<Value> {
     let mut v = route_seule(racine, nom, charge)?;
     let message = |l: Option<&Value>| l.map(|s| format!("« {} » : {}", super::mot(&s["texte"]), super::mot(&s["depart"]["mots"]).to_lowercase())).unwrap_or_default();
-    if nom == "signalements" || nom == "signalement-envoyer" {
+    if nom == Route::Signalements || nom == Route::SignalementEnvoyer {
         v["ecran"] = ecran_du_message();
         // Le jour et l'heure de chaque message, tels qu'on les lit.
         for s in v.get_mut("signalements").and_then(Value::as_array_mut).into_iter().flatten() {
@@ -225,35 +226,35 @@ fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
             s["quand_dit"] = json!(dit);
         }
     }
-    if nom.starts_with("diagnostic-") {
+    if nom.nom().starts_with("diagnostic-") {
         v["ecran"] = ecran_du_diagnostic(&v);
     }
     poser_les_pastilles(nom, &mut v);
     let n = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0);
     let phrase = match nom {
-        "diagnostic-regler" if v["envoi"] == json!(false) => "Le signalement des dysfonctionnements est désactivé : rien ne part plus chez l'éditeur.".to_string(),
-        "diagnostic-regler" => "Le signalement des dysfonctionnements est réactivé.".to_string(),
-        "diagnostic-envoyer" if vrai(&v["bilan"]["erreur"]) => format!("Envoi impossible : {}", super::mot(&v["bilan"]["erreur"])),
-        "diagnostic-envoyer" => format!("{} incident(s) envoyé(s).", super::mot(&v["bilan"]["envoyes"])),
-        "diagnostic-etat" => format!(
+        Route::DiagnosticRegler if v["envoi"] == json!(false) => "Le signalement des dysfonctionnements est désactivé : rien ne part plus chez l'éditeur.".to_string(),
+        Route::DiagnosticRegler => "Le signalement des dysfonctionnements est réactivé.".to_string(),
+        Route::DiagnosticEnvoyer if vrai(&v["bilan"]["erreur"]) => format!("Envoi impossible : {}", super::mot(&v["bilan"]["erreur"])),
+        Route::DiagnosticEnvoyer => format!("{} incident(s) envoyé(s).", super::mot(&v["bilan"]["envoyes"])),
+        Route::DiagnosticEtat => format!(
             "Signalement des dysfonctionnements : {} ; incidents gardés : {}, partis : {}, en attente : {}.",
             if v["envoi"] == json!(false) { "désactivé" } else { "actif" },
             n("total"),
             n("partis"),
             n("en_attente")
         ),
-        "incident-navigateur" => if v["note"] == json!(true) { "Incident noté." } else { "Rien n'est noté." }.to_string(),
-        "signalement-apercu" if v["peut_envoyer"] == json!(true) => format!("Ce message partirait chez {}, avec {} incidents et {} captures.", valeur_en_texte(&v["serveur"]), n("incidents"), n("captures")),
-        "signalement-apercu" => valeur_en_texte(&v["pourquoi"]),
-        "signalement-envoyer" => {
+        Route::IncidentNavigateur => if v["note"] == json!(true) { "Incident noté." } else { "Rien n'est noté." }.to_string(),
+        Route::SignalementApercu if v["peut_envoyer"] == json!(true) => format!("Ce message partirait chez {}, avec {} incidents et {} captures.", valeur_en_texte(&v["serveur"]), n("incidents"), n("captures")),
+        Route::SignalementApercu => valeur_en_texte(&v["pourquoi"]),
+        Route::SignalementEnvoyer => {
             let s = v["signalements"].as_array().and_then(|l| l.iter().find(|s| s["id"] == v["id"]));
             format!("{} {}", if v["deja"] == json!(true) { "Ce message est déjà enregistré." } else { "Message enregistré pour le développeur." }, s.map(|s| valeur_en_texte(&s["depart"]["mots"])).unwrap_or_default()).trim().to_string()
         }
-        "signalements" => format!("Messages au développeur : {} ; réponses non lues : {}.", v["signalements"].as_array().map_or(0, Vec::len), n("non_lues")),
-        "signalements-lus" => format!("Réponses marquées lues : {}.", n("lues")),
+        Route::Signalements => format!("Messages au développeur : {} ; réponses non lues : {}.", v["signalements"].as_array().map_or(0, Vec::len), n("non_lues")),
+        Route::SignalementsLus => format!("Réponses marquées lues : {}.", n("lues")),
         _ => return Ok(v),
     };
-    if nom == "signalements" {
+    if nom == Route::Signalements {
         v["phrases"] = json!(v["signalements"].as_array().into_iter().flatten().map(|s| message(Some(s))).collect::<Vec<_>>());
     }
     Ok(crate::routes::phrase_en_tete(v, phrase))
@@ -262,11 +263,11 @@ fn route_de(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
 /// LES PASTILLES DE CE QUE CES ROUTES RENDENT (`routes::pastille`). Le diagnostic : coupe par la compagnie, une
 /// information ; rien de note ou tout parti, fait ; des incidents en attente, une information (ils partent d'eux-memes).
 /// Un message a l'editeur : en cours ou pas encore parti, une information.
-fn poser_les_pastilles(nom: &str, v: &mut Value) {
+fn poser_les_pastilles(nom: Route, v: &mut Value) {
     let Some(o) = v.as_object_mut() else { return };
     let nombre = |o: &serde_json::Map<String, Value>, k: &str| o.get(k).and_then(Value::as_u64).unwrap_or(0);
     match nom {
-        "diagnostic-etat" | "diagnostic-envoyer" | "diagnostic-regler" => {
+        Route::DiagnosticEtat | Route::DiagnosticEnvoyer | Route::DiagnosticRegler => {
             let attente = nombre(o, "en_attente");
             let p = if o.get("envoi") == Some(&Value::Bool(false)) {
                 super::pastille("information", "désactivé")
@@ -290,7 +291,7 @@ fn poser_les_pastilles(nom: &str, v: &mut Value) {
                 g.insert("pastille".into(), p);
             }
         }
-        "signalements" | "signalement-envoyer" => {
+        Route::Signalements | Route::SignalementEnvoyer => {
             for s in o.get_mut("signalements").and_then(Value::as_array_mut).into_iter().flatten() {
                 let Some(s) = s.as_object_mut() else { continue };
                 let etat = s.get("etat").and_then(Value::as_str).map(String::from);
@@ -314,10 +315,10 @@ fn poser_les_pastilles(nom: &str, v: &mut Value) {
     }
 }
 
-fn route_seule(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
+fn route_seule(racine: &Path, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "signalements" => signalements_route(racine),
-        "incident-navigateur" => {
+        Route::Signalements => signalements_route(racine),
+        Route::IncidentNavigateur => {
             let vide = json!({});
             let rapport = if charge.is_object() { charge } else { &vide };
             let ligne = incidents::depuis_navigateur(racine, rapport);
@@ -326,8 +327,8 @@ fn route_seule(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
                 "empreinte": ligne.as_ref().and_then(|l| l.get("empreinte")).cloned().unwrap_or(Value::Null),
             }))
         }
-        "diagnostic-etat" => diagnostic_etat(racine),
-        "diagnostic-envoyer" => {
+        Route::DiagnosticEtat => diagnostic_etat(racine),
+        Route::DiagnosticEnvoyer => {
             let bilan = incidents::envoyer(racine);
             let mut etat = diagnostic_etat(racine)?;
             // La couleur du message qui le dit : un envoi impossible est refuse, sinon parti.
@@ -336,29 +337,29 @@ fn route_seule(racine: &Path, nom: &str, charge: &Value) -> R<Value> {
             etat["couleur"] = json!(couleur);
             Ok(etat)
         }
-        "incidents-envoyer" => Ok(avec_phrase(incidents::envoyer(racine), phrase_d_envoi)),
+        Route::IncidentsEnvoyer => Ok(avec_phrase(incidents::envoyer(racine), phrase_d_envoi)),
         // `{"actif": bool}` : couper ou rendre l'envoi des incidents a l'editeur.
-        "diagnostic-regler" => {
+        Route::DiagnosticRegler => {
             incidents::regler_envoi(racine, vrai(&charge["actif"]))?;
             diagnostic_etat(racine)
         }
-        "incidents-lire" => {
+        Route::IncidentsLire => {
             let (nature, en_attente) = (nature_voulue(charge), vrai(&charge["en_attente"]));
             let lignes = incidents::lire(racine, nature.as_deref(), en_attente)?;
             Ok(json!({"phrase": format!("{} incident(s) gardé(s) sur ce poste.", lignes.len()), "phrases": lignes.iter().map(phrase_d_incident).collect::<Vec<_>>(), "lignes": lignes}))
         }
-        "incidents-regrouper" => {
+        Route::IncidentsRegrouper => {
             let paquets = incidents::regrouper(racine, nature_voulue(charge).as_deref())?;
             Ok(json!({"phrase": format!("{} sorte(s) d'incident gardée(s) sur ce poste.", paquets.len()), "phrases": paquets.iter().map(phrase_de_paquet).collect::<Vec<_>>(), "paquets": paquets}))
         }
-        "incidents-oublier" => {
+        Route::IncidentsOublier => {
             let n = incidents::oublier(racine, nature_voulue(charge).as_deref());
             Ok(json!({"retires": n, "phrase": format!("{} incident(s) effacé(s) de ce poste.", n)}))
         }
-        "signalement-apercu" => problemes::apercu(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
-        "signalement-envoyer" => problemes::envoyer(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
-        "signalements-lus" => Ok(json!({"lues": problemes::signalements_lus(racine)?})),
-        "signalements-partir" => Ok(avec_phrase(problemes::partir(racine), phrase_d_envoi)),
+        Route::SignalementApercu => problemes::apercu(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
+        Route::SignalementEnvoyer => problemes::envoyer(racine, &champ(charge, "texte"), &ou_vide(charge, "ecran"), &problemes::captures_de(charge)?),
+        Route::SignalementsLus => Ok(json!({"lues": problemes::signalements_lus(racine)?})),
+        Route::SignalementsPartir => Ok(avec_phrase(problemes::partir(racine), phrase_d_envoi)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

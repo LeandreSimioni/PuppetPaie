@@ -104,7 +104,7 @@ impl Soir<'_> {
     /// Le bloc de l'individu `nom` dans la DSN mensuelle de `mois` (`sorties/<mois>/DSN_<Mois><Annee>.dsn`) : (rubrique,
     /// valeur), dans l'ordre ; vide si elle n'est pas encore fabriquee.
     pub fn bloc_dsn(&self, mois: &str, nom: &str) -> Vec<(String, String)> {
-        let f = self.racine.join("sorties").join(mois).join(format!("DSN_{}.dsn", socle::date::etiquette_du_mois(mois).unwrap()));
+        let f = self.racine.join("sorties").join(mois).join(format!("DSN_{}.dsn", socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).unwrap()));
         let Ok(octets) = std::fs::read(&f) else { return Vec::new() };
         super::individu(&octets.iter().map(|&o| o as char).collect::<String>(), nom)
     }

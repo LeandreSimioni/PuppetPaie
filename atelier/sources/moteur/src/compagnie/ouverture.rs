@@ -39,6 +39,7 @@ use envois::releve_retours::{Client, Releve};
 use crate::compagnie::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::fiches::ReleveFiches;
 use crate::compagnie::sauvegarde::{self, Sauvegarde};
 
@@ -48,7 +49,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Bandeau);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "ouverture",
+        route: Route::Ouverture,
         geste: "Ouvrir la compagnie : sauvegarder, relever retours, signatures et fiches.",
         charge: &[
             Champ { nom: "sauvegarder", libelle: Affiche::new("Sauvegarder"), forme: Forme::OuiNon, sens: "faux : ne pas sauvegarder dans le Drive", avance: true },
@@ -277,9 +278,9 @@ impl Ouverture {
 /// - `ouverture` : `{"sauvegarder"?, "retours"?, "signatures"?, "filet"?, "jours"?, "racine_drive"?, "pas_avant"?, "veille"?,
 ///   "incidents_editeur"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "ouverture" => {
+        Route::Ouverture => {
             let mut v = ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json();
             // Ce que le passage a fait et trouve, une ligne par chose : ce que l'horloge a joue, ce qui
             // manque, les incidents.

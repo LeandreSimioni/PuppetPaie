@@ -854,16 +854,9 @@ pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<P
 
 // ------------------------------------------------------------------ petits outils
 
-/// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
-pub fn nom_du_mois(m: &str) -> R<&'static str> {
-    let tranche: String = m.chars().skip(5).take(2).collect();
-    let n = socle::num::entier_lu(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
-    socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
-}
-
-/// « Septembre 2026 ».
+/// « Septembre 2026 » d'un mois `AAAA-MM` (le nom en titre) ; un mois illisible se refuse.
 pub fn libelle_mois(m: &str) -> R<String> {
-    Ok(format!("{} {}", nom_du_mois(m)?, m.chars().take(4).collect::<String>()))
+    socle::mois::Mois::lire(m).map(|m| m.libelle(socle::mois::Graphie::Titre)).map_err(|e| erreur("ValueError", e))
 }
 
 /// AAAA-MM-JJ -> JJ/MM/AAAA ; le reste tel quel.

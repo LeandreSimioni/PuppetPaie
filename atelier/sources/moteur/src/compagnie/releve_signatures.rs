@@ -250,7 +250,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         }
 
         // Le contrat contresigne, renvoye au salarie.
-        let (an, nom_mois) = crate::compagnie::signature::an_et_nom_du_mois(&a_mois)?;
+        let (an, nom_mois) = socle::mois::Mois::lire(&a_mois).map(|m| (m.annee(), m.nom(socle::mois::Graphie::Accentuee)))?;
         let pdfs: Vec<PathBuf> = signes.iter().map(|(_, p)| p.clone()).collect();
         let contresigne = Contresigne {
             a,

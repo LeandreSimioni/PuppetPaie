@@ -88,9 +88,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
             let Some((code, val)) = ligne.trim().split_once(',') else { continue };
             let val = val.trim().trim_matches('\'').to_string();
             if code == "S20.G00.05.005" {
-                let c: Vec<char> = val.chars().collect();
-                let tr = |a: usize, b: usize| -> String { c.iter().skip(a).take(b.saturating_sub(a)).collect() };
-                mois = Some(format!("{}-{}", tr(4, 8), tr(2, 4)));
+                mois = socle::mois::Mois::de_la_dsn(&val).ok().map(|m| m.to_string());
             } else if code == "S21.G00.30.001" {
                 nir = Some(val);
             } else if code.starts_with("S21.G00.50.00") {

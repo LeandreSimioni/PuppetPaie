@@ -21,6 +21,7 @@ use engagement::etats::PrelevementDeLaCorrection;
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::{contrat_court, Nature};
 use socle::date::{en_texte, Jour};
+use socle::mois::Mois;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::num::{add, dec, dec_avec_echelle, div, eur, mul, pct, sub, Decimal, Resultat};
 use droit::pas::{self, Triplet, ZONE_DEFAUT};
@@ -273,13 +274,7 @@ pub fn jj(v: &Value) -> Resultat<String> {
     Ok(jour(v)?.jjmmaaaa())
 }
 
-fn fin_mois(an: i32, mo: u32) -> Jour {
-    Jour::nouveau(an, mo, socle::date::jours_du_mois(an, mo)).unwrap()
-}
 
-fn premier(mois: &str) -> Resultat<Jour> {
-    socle::date::premier_du_mois(mois)
-}
 
 fn tuple(j: Jour) -> (i32, u32, u32) {
     (j.an, j.mois, j.jour)
@@ -362,8 +357,8 @@ impl Arret {
     /// mensuelle même si les impacts de l'absence sont portés dans une paie ultérieure. Un arret sans date de saisie, ou
     /// dont le contrat n'a rien declare de reel, ne se reporte que dans les mois qu'il croise.
     pub fn a_reporter(&self, mois: &str, departs: &engagement::departs::Departs) -> Resultat<bool> {
-        let debut_mois = socle::date::premier_du_mois(mois)?;
-        if self.couvre(&debut_mois, &socle::date::dernier_du_mois(mois)?)? {
+        let debut_mois = socle::mois::Mois::lire(mois)?.premier_jour();
+        if self.couvre(&debut_mois, &socle::mois::Mois::lire(mois)?.dernier_jour())? {
             return Ok(true);
         }
         let origine = Jour::nouveau(1900, 1, 1).ok_or("jour inexistant")?;
@@ -1025,7 +1020,8 @@ pub fn adhesion_en_vigueur(orgs: &Value, reference: &str, debut: &Jour, fin: &Jo
 
 /// Le premier et le dernier jour du mois `AAAA-MM`.
 fn bornes_du_mois(mois: &str) -> Resultat<(Jour, Jour)> {
-    Ok((socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?))
+    let mois = Mois::lire(mois)?;
+    Ok((mois.premier_jour(), mois.dernier_jour()))
 }
 
 /// Les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
@@ -3307,8 +3303,8 @@ impl Seuils {
 
 /// `assujettissement::taxe_apprentissage_non_due_au_mois` pour un mois `AAAA-MM`.
 fn taxe_apprentissage_non_due_du_mois(ent: &Value, mois: &str) -> Resultat<bool> {
-    let m: u32 = mois.get(5..7).and_then(|m| m.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))?;
-    droit::apprentissage::taxe_apprentissage_non_due_au_mois(ent, annee_du_mois(mois)?, m)
+    let m = Mois::lire(mois)?;
+    droit::apprentissage::taxe_apprentissage_non_due_au_mois(ent, m.annee(), m.numero())
 }
 
 fn lignes_bordereau(
@@ -3800,9 +3796,6 @@ pas pu etre relue (le fichier du dernier depot accepte) : on ne devine pas. Rien
 }
 
 /// L'annee d'un mois `AAAA-MM`.
-fn annee_du_mois(mois: &str) -> Resultat<i32> {
-    mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))
-}
 
 /// Le solde de la taxe d'apprentissage d'avril.
 pub struct SoldeTa {
@@ -4011,8 +4004,9 @@ pub fn generer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisatio
     Ok(fabriquer(ctx, paies, mois, regs, arrets, o, departs)?.texte)
 }
 
-fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
-    Jour::nouveau(an + (mo == 12) as i32, mo % 12 + 1, jour).unwrap_or_else(|| fin_mois(an + (mo == 12) as i32, mo % 12 + 1))
+fn echeance_mois_suivant(mois: Mois, jour: u32) -> Jour {
+    let suivant = mois.suivant();
+    suivant.jour(jour).unwrap_or_else(|| suivant.dernier_jour())
 }
 
 /// LE BAREME D'UN MOIS POUR UN ETABLISSEMENT : le bareme empile (`Contexte::bareme`) surcharge par ce que la fiche
@@ -4021,7 +4015,7 @@ fn echeance_mois_suivant(an: i32, mo: u32, jour: u32) -> Jour {
 /// regularise et le nominatif (`bar_du`) passent par elle. (La pile
 /// d'un salarie, `bareme::bareme_applique`, surcharge de meme par l'etablissement du salarie.)
 fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat<Value> {
-    Ok(bareme::taux_atmp_resolu(bareme::surcharger((*ctx.bareme(&premier(mois)?)?).clone(), ent, nic)?).0)
+    Ok(bareme::taux_atmp_resolu(bareme::surcharger((*ctx.bareme(&Mois::lire(mois)?.premier_jour())?).clone(), ent, nic)?).0)
 }
 
 /// LE BLOC 40 DECLARE du contrat de `p` (regle 4 : il se lit, il ne se recalcule pas), pour le bloc Changements contrat
@@ -4036,11 +4030,11 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
         engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle.as_str()) && b.get("numero").map(en_texte).as_deref() == Some(numero.as_str())
     };
     let Some(v) = etats.iter().filter(|e| sienne(e)).find_map(engagement::etats::Etat::valide) else { return Ok(None) };
-    let premier_mois = p.engagement.debut.mois_iso();
-    let mut m = premier(mois)?.plus_jours(-1)?.mois_iso();
+    let premier_mois = p.engagement.debut.mois_civil().to_string();
+    let mut m = Mois::lire(mois)?.precedent().to_string();
     while m >= premier_mois {
         // La compagnie telle qu'a la fin du mois declare (l'entreprise, ses etablissements) ; la fiche, celle que la paie declaree a lue.
-        let ctx_m = Contexte::nouveau(&ctx.racine, Some(socle::date::dernier_du_mois(&m)?))?;
+        let ctx_m = Contexte::nouveau(&ctx.racine, Some(socle::mois::Mois::lire(&m)?.dernier_jour()))?;
         if let Some(declaree) = engagement::etats::paie_declaree(&ctx_m, v.objet(), departs, &m)? {
             // Les autres contrats du salarie declares ce mois-la : le code emplois multiples (40.036) s'ecrit avec eux.
             let mut autres = Vec::new();
@@ -4056,7 +4050,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
             let nic = bareme::etablissement_du_salarie(&ctx_m.entreprise, &declaree.salarie)?;
             let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
             let mut ent = ctx_m.entreprise.as_object().cloned().unwrap_or_default();
-            ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&premier(&m)?)?));
+            ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&Mois::lire(&m)?.premier_jour())?));
             let ent_e = bareme::fiche_de_l_etablissement(&Value::Object(ent), &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
@@ -4070,7 +4064,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
                 .collect();
             return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: txt(g(&ctx_m.entreprise, "siren")) + &nic, nic, bloc }));
         }
-        m = premier(&m)?.plus_jours(-1)?.mois_iso();
+        m = Mois::lire(&m)?.precedent().to_string();
     }
     Ok(None)
 }
@@ -4296,15 +4290,14 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
     let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, departs)?;
     let orgs = ctx.organismes()?;
-    let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
-    let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
-    let debut_mois = premier(mois)?;
+    let lu = Mois::lire(mois)?;
+    let debut_mois = lu.premier_jour();
     // La version de la norme suit le mois principal declare (`norme-dsn-base.json`, une inference : `_inference`) ; un
     // mois que la donnee ne couvre pas refuse ici, avant tout calcul. Un annule-et-remplace prend celle de son mois.
-    let norme = crate::norme::de_la_mensuelle(&debut_mois.mois_iso())?;
+    let norme = crate::norme::de_la_mensuelle(&lu.to_string())?;
     // En P27V01, la fiche entreprise est en NAF 2025 (`naf::verifier_pour`), avant tout calcul.
     crate::naf::verifier_pour(&norme, &ctx.entreprise)?;
-    let fin_m = fin_mois(an, mo);
+    let fin_m = lu.dernier_jour();
     let mut bars: HashMap<String, std::sync::Arc<BaremeDuMois>> = HashMap::new();
     let mut bar_de = |m: &str| -> Resultat<std::sync::Arc<BaremeDuMois>> {
         if let Some(b) = bars.get(m) {
@@ -4595,7 +4588,7 @@ certificat de conformite du depot precedent.",
 
     let echeance_dsn = ctx.echeance_dsn()?;
     let echeances: HashMap<&str, Jour> = [
-        ("13000548100010", echeance_mois_suivant(an, mo, echeance_dsn)),
+        ("13000548100010", echeance_mois_suivant(lu, echeance_dsn)),
         // AUDIENS SANTE PREVOYANCE : le 25 du mois qui suit le mois declare, date qui « doit etre
         // renseignee dans le bloc paiement a destination d'Audiens Sante Prevoyance (P0983) » (Audiens, dossier DSN,
         // `atelier/reference/sources/audiens-dsn/` ; `jour_de_paiement` de `donnees/organismes-base.json`). Elle etait
@@ -4603,8 +4596,7 @@ certificat de conformite du depot precedent.",
         (
             "P0983",
             echeance_mois_suivant(
-                an,
-                mo,
+                lu,
                 crate::ordres_paiement::jour_de_paiement("P0983")?.ok_or_else(|| socle::echec::livree("organismes-base.json", "P0983.jour_de_paiement"))?,
             ),
         ),
@@ -4620,7 +4612,7 @@ certificat de conformite du depot precedent.",
         // Le bareme du mois d'origine pour CET etablissement, comme celui du bordereau courant (`bar`) : point 25.
         let bar_o = bar_de(m)?;
         let l = lignes_regularisees(&orgs, &ent0, regs, m, &bar_o, &Seuils::du_mois(ctx, m)?)?;
-        montants_o.push((m.clone(), bordereau::montant(&l, &premier(m)?)?));
+        montants_o.push((m.clone(), bordereau::montant(&l, &Mois::lire(m)?.premier_jour())?));
         lignes_o.push((m.clone(), l));
     }
     // LE TROP-VERSE A L'URSSAF (les bordereaux negatifs des mois corriges) se reprend sur le versement du mois, dans la
@@ -4694,13 +4686,13 @@ certificat de conformite du depot precedent.",
         if *mt_o < Decimal::ZERO {
             continue;
         }
-        let d_o = premier(mois_o)?;
+        let d_o = Mois::lire(mois_o)?.premier_jour();
         ordres.push(Some(Ordre {
             organisme: siret_urssaf.clone(),
             reference: vrai(g(urssaf, "reference")).then(|| en_texte(&urssaf["reference"])),
             montant: *mt_o,
             debut: d_o,
-            fin: fin_mois(d_o.an, d_o.mois),
+            fin: d_o.mois_civil().dernier_jour(),
             date_paiement: echeances.get(siret_urssaf.as_str()).copied(),
             destinataire: Destinataire::Urssaf,
             reste: zero(),
@@ -4714,7 +4706,7 @@ certificat de conformite du depot precedent.",
         f.add_v("S21.G00.20.004", req(banque, "iban")?)?;
         f.add("S21.G00.20.005", mt(*mt_o));
         f.add("S21.G00.20.006", d_o.jjmmaaaa());
-        f.add("S21.G00.20.007", fin_mois(d_o.an, d_o.mois).jjmmaaaa());
+        f.add("S21.G00.20.007", d_o.mois_civil().dernier_jour().jjmmaaaa());
         f.add("S21.G00.20.010", "05");
         if let Some(j) = echeances.get(siret_urssaf.as_str()) {
             f.add("S21.G00.20.011", j.jjmmaaaa());
@@ -4728,13 +4720,13 @@ certificat de conformite du depot precedent.",
     ecrire_lignes_23(&mut f, &lignes_23);
     let mut bordereaux = vec![BordereauEcrit { debut: debut_mois, fin: fin_m, total: mt_urssaf, lignes: lignes_23.clone() }];
     for ((mois_o, lignes), (_, montant)) in lignes_o.iter().zip(&montants_o) {
-        let d_o = premier(mois_o)?;
+        let d_o = Mois::lire(mois_o)?.premier_jour();
         f.add("S21.G00.22.001", &siret_urssaf);
         f.add("S21.G00.22.003", d_o.jjmmaaaa());
-        f.add("S21.G00.22.004", fin_mois(d_o.an, d_o.mois).jjmmaaaa());
+        f.add("S21.G00.22.004", d_o.mois_civil().dernier_jour().jjmmaaaa());
         f.add("S21.G00.22.005", mt(*montant));
         ecrire_lignes_23(&mut f, lignes);
-        bordereaux.push(BordereauEcrit { debut: d_o, fin: fin_mois(d_o.an, d_o.mois), total: *montant, lignes: lignes.clone() });
+        bordereaux.push(BordereauEcrit { debut: d_o, fin: d_o.mois_civil().dernier_jour(), total: *montant, lignes: lignes.clone() });
     }
     // L'assujettissement fiscal : une fois l'an, dans la DSN de decembre, apres les bordereaux et avant les
     // individus (arborescence de la norme, p. 118, `chapitre-8-arborescences.txt` : 20, 55, 22, 23, 44, 30) ;
@@ -4744,7 +4736,7 @@ certificat de conformite du depot precedent.",
         if let Some(m) = b.montant {
             f.add("S21.G00.44.002", mt(m));
         }
-        f.add("S21.G00.44.003", an);
+        f.add("S21.G00.44.003", lu.annee());
         if let Some(m) = &b.motif {
             f.add("S21.G00.44.004", m);
         }

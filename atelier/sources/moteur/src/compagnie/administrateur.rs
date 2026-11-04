@@ -52,6 +52,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
+use crate::routes::catalogue::Route;
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
@@ -494,7 +495,7 @@ fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> 
             let mois = texte("mois");
             let e = r.get("echeance_depot").cloned().unwrap_or(Value::Null);
             d.insert("genre".into(), json!("dsn"));
-            d.insert("titre".into(), json!(format!("DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&mois, socle::date::Graphie::Accentuee))));
+            d.insert("titre".into(), json!(format!("DSN de {}", socle::mois::Mois::en_clair(&mois))));
             d.insert("mois".into(), json!(mois));
             d.insert("butoir".into(), e.get("jour").cloned().unwrap_or(Value::Null));
             d.insert("quand".into(), e.get("phrase").cloned().unwrap_or(Value::Null));
@@ -704,7 +705,7 @@ pub fn tableau(o: &HashMap<String, String>, inst: &Path, relever: bool) -> Value
                 for d in t.get("declarations").and_then(Value::as_array).into_iter().flatten() {
                     if d.get("etape").and_then(Value::as_str) == Some("en_test") {
                         let charge = designation(&d);
-                        let _ = crate::routes::commande(&o_de(o, &r), &json!({"route": "bilan-repetition", "charge": charge}).to_string());
+                        let _ = crate::routes::servir_la_route(&o_de(o, &r), Route::BilanRepetition, &charge);
                     }
                 }
             }
@@ -779,10 +780,10 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
             charge["motdepasse"] = json!(m);
         }
         let mut sortie = json!({"compagnie": nom, "titre": d["titre"], "fichier": d["fichier"], "genre": d["genre"]});
-        let rep = crate::routes::commande(&o_de(o, racine), &json!({"route": "deposer", "charge": charge}).to_string());
+        let rep = crate::routes::servir_la_route(&o_de(o, racine), Route::Deposer, &charge);
         crate::compagnie::coffre::oublier_mot_de_passe_tape();
         match rep {
-            Ok(v) if v.get("ok") == Some(&json!(true)) => {
+            v if v.get("ok") == Some(&json!(true)) => {
                 let res = &v["resultat"];
                 sortie["parti"] = json!(true);
                 sortie["flux"] = res.get("flux").cloned().unwrap_or(Value::Null);
@@ -792,16 +793,11 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
                     "Partie en test, compte rendu attendu : le dépôt réel se fait une fois le test revenu conforme."
                 });
             }
-            Ok(v) => {
+            v => {
                 sortie["parti"] = json!(false);
                 let message = v.get("erreur").map(|e| e.as_str().map(String::from).unwrap_or_else(|| e.to_string())).unwrap_or_default();
                 sortie["refus"] = json!(socle::echec::separer(&message).0);
                 sortie["classe"] = v.get("classe").cloned().unwrap_or(Value::Null);
-            }
-            Err(m) => {
-                sortie["parti"] = json!(false);
-                sortie["refus"] = json!(m);
-                sortie["classe"] = Value::Null;
             }
         }
         resultats.push(sortie);

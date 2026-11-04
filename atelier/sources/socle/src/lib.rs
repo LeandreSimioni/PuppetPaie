@@ -18,6 +18,7 @@ pub mod html;
 pub mod iban;
 pub mod json_ascii;
 pub mod lecture_xlsx;
+pub mod mois;
 pub mod nfkc;
 pub mod num;
 pub mod paris;

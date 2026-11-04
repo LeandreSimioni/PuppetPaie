@@ -28,6 +28,7 @@ use socle::echec::erreur;
 use socle::fichiers::{sha256_hex, vrai};
 use socle::echec::Echec;
 use crate::routes::catalogue::{Acte, Fiche};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::Ecran;
 
 /// Ou ces routes se voient a l'ecran (une place par module).
@@ -35,7 +36,7 @@ const ECRAN: Ecran = Ecran::Lecture;
 
 /// La route de ce module, et sa fiche ; les deux etats d'un mois se servent de l'etat garde (`etat_garde::ROUTES`).
 pub const ROUTES: &[Fiche] = &[Fiche {
-    nom: "mois-a-ouvrir",
+    route: Route::MoisAOuvrir,
     geste: "Dire quel mois ouvrir : le plus ancien dont une étape reste à faire.",
     charge: &[],
     exemple: "{}",
@@ -75,33 +76,33 @@ fn echeance_dsn(jour: Jour, heure: &'static str, source: &str) -> Value {
 /// LE GESTE D'UN CLIC, en routes du catalogue, celles que l'ecran et le LLM appellent : la route qu'il ouvre (`route`,
 /// un apercu le plus souvent), sa charge (`charge`), la route de l'acte qui suit, s'il y en a un (`puis`), et ce que dit
 /// le bouton (`libelle`). La page ouvre sa boite d'apres la route.
-pub(crate) fn action(route: &str, charge: Value, puis: Option<&str>, libelle: String) -> Value {
+pub(crate) fn action(route: Route, charge: Value, puis: Option<Route>, libelle: String) -> Value {
     json!({"route": route, "charge": charge, "puis": puis, "libelle": libelle})
 }
 
 /// Faire signer les contrats du mois : l'apercu, puis la demande.
 fn faire_signer(mois: &str) -> Value {
-    action("signature-apercu", json!({"mois": mois}), Some("demander-signature"), "Demander la signature…".into())
+    action(Route::SignatureApercu, json!({"mois": mois}), Some(Route::DemanderSignature), "Demander la signature…".into())
 }
 
 /// Les contrats partis du mois, recus ou a relancer : l'apercu, puis noter chacun recu.
 fn contrats_en_attente(mois: &str) -> Value {
-    action("signature-apercu", json!({"mois": mois}), Some("contrat-recu"), "Reçus ou à relancer…".into())
+    action(Route::SignatureApercu, json!({"mois": mois}), Some(Route::ContratRecu), "Reçus ou à relancer…".into())
 }
 
 /// Les documents du mois : l'apercu, puis l'envoi.
 fn envoyer_documents(mois: &str, libelle: String) -> Value {
-    action("envoi-apercu", json!({"mois": mois}), Some("envoyer-documents"), libelle)
+    action(Route::EnvoiApercu, json!({"mois": mois}), Some(Route::EnvoyerDocuments), libelle)
 }
 
 /// Ce que les retours du mois ont dit (le bilan d'un refus).
 fn historique(mois: &str) -> Value {
-    action("historique-mois", json!({"mois": mois}), None, "Voir le bilan…".into())
+    action(Route::HistoriqueMois, json!({"mois": mois}), None, "Voir le bilan…".into())
 }
 
 /// Les DPAE du mois a ecrire : l'apercu du depot (qui les ecrit), puis le depot.
 fn declarer_embauches(mois: &str) -> Value {
-    action("depot-apercu", json!({"quoi": DPAE, "mois": mois}), Some("deposer"), "Envoyer les DPAE…".into())
+    action(Route::DepotApercu, json!({"quoi": DPAE, "mois": mois}), Some(Route::Deposer), "Envoyer les DPAE…".into())
 }
 
 /// La DSN du mois a ecrire, ou a reecrire : l'apercu du depot (qui l'ecrit), puis le depot, dont le test part des
@@ -111,7 +112,7 @@ pub(crate) fn deposer_dsn(mois: &str, nic: &Value, libelle: String) -> Value {
     if vrai(nic) {
         charge["etablissement"] = nic.clone();
     }
-    let mut a = action("depot-apercu", charge, Some("deposer"), libelle);
+    let mut a = action(Route::DepotApercu, charge, Some(Route::Deposer), libelle);
     a["tester"] = json!(true);
     a
 }
@@ -120,13 +121,13 @@ pub(crate) fn deposer_dsn(mois: &str, nic: &Value, libelle: String) -> Value {
 /// `avenant` (son numero) ; la route `contrat-recu` rend la phrase qui le dit et de quoi l'annuler.
 fn noter_recu(p: &Value, mois: &str, libelle: &str, avenant: Value, recu: bool) -> Value {
     let numero = p.get("numero").filter(|n| vrai(n)).cloned().unwrap_or(json!(""));
-    action("contrat-recu", json!({"mois": mois, "salarie": p["salarie"], "debut": p["debut"], "numero": numero, "avenant": avenant, "recu": recu}), None, libelle.into())
+    action(Route::ContratRecu, json!({"mois": mois, "salarie": p["salarie"], "debut": p["debut"], "numero": numero, "avenant": avenant, "recu": recu}), None, libelle.into())
 }
 
 /// L'avenant du contrat de l'engagement `p` : l'apercu, puis sa demande de signature.
 fn avenant(p: &Value, mois: &str) -> Value {
     let numero = p.get("numero").filter(|n| vrai(n)).cloned().unwrap_or(json!(""));
-    action("avenant-apercu", json!({"salarie": p["salarie"], "debut": p["debut"], "numero": numero, "mois": mois}), Some("demander-signature"), "Avenant…".into())
+    action(Route::AvenantApercu, json!({"salarie": p["salarie"], "debut": p["debut"], "numero": numero, "mois": mois}), Some(Route::DemanderSignature), "Avenant…".into())
 }
 
 /// Une etape qui n'a rien a faire ici pour les engagements de sa case (un contrat commence avant le logiciel) : faite, et
@@ -1301,7 +1302,7 @@ impl<'a> Moteur<'a> {
             charge["engagements"] = json!(embauches);
         }
         let nom = if quoi == DSN { "la DSN" } else { "la DPAE" };
-        let deposer = |libelle: String| action("depot-apercu", charge.clone(), Some("deposer"), libelle);
+        let deposer = |libelle: String| action(Route::DepotApercu, charge.clone(), Some(Route::Deposer), libelle);
         let action = match etape {
             // Le fichier ecrit ne declare plus la paie : la DSN se refait depuis les engagements valides, et repasse par
             // le test.
@@ -1476,7 +1477,7 @@ impl<'a> Moteur<'a> {
             (false, _) => None,
             (true, rien_du_tout) => Some(format!(
                 "Aucun engagement en {} : {}",
-                socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee),
+                socle::mois::Mois::en_clair(mois),
                 if rien_du_tout { "rien à faire" } else { "ni DPAE, ni contrat, ni document" }
             )),
         };
@@ -1568,12 +1569,12 @@ impl<'a> Moteur<'a> {
             // partie), celle que l'avertissement de « Modifier l'engagement » nomme aussi.
             let suivant = crate::regularisation::dsn_qui_porte(self.ctx, mois)?;
             let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &suivant).map_err(|m| erreur("ValueError", m))?;
-            let a = deposer_dsn(&suivant, nic, format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)));
+            let a = deposer_dsn(&suivant, nic, format!("Déposer la DSN de {}…", socle::mois::Mois::en_clair(&suivant)));
             return Ok(groupe(
                 "a_faire",
                 Value::Null,
                 String::new(),
-                format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)),
+                format!("à corriger dans la DSN de {}", socle::mois::Mois::en_clair(&suivant)),
                 echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"),
                 a,
             ));
@@ -1645,7 +1646,7 @@ impl<'a> Moteur<'a> {
     /// `mois_a_ouvrir` : le plus ancien mois passe dont une etape n'est pas
     /// verte, sinon le mois du calendrier.
     pub fn mois_a_ouvrir(&mut self) -> R<Value> {
-        let courant = self.ctx.aujourdhui.mois_iso();
+        let courant = self.ctx.aujourdhui.mois_civil().to_string();
         // A L'OUVERTURE, RIEN NE SE CALCULE : les groupes d'un mois passe se tirent de ce qui est ecrit.
         self.ecrit = true;
         // Un mois passe sans engagement dont la DSN est due (ce que les rappels reclament) s'ouvre aussi.
@@ -1656,11 +1657,11 @@ impl<'a> Moteur<'a> {
             let reste = self.etapes_restantes(&m)?;
             if !reste.is_empty() {
                 let noms: Vec<&str> = ORDRE.iter().filter(|(c, _)| reste.iter().any(|r| r == c)).map(|(_, n)| *n).collect();
-                let phrase = format!("À ouvrir : {}, où il reste {}.", socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee), noms.join(", "));
+                let phrase = format!("À ouvrir : {}, où il reste {}.", socle::mois::Mois::en_clair(&m), noms.join(", "));
                 return Ok(json!({"phrase": phrase, "mois": m, "courant": courant, "reste": reste}));
             }
         }
-        let phrase = format!("À ouvrir : {}, le mois du jour ; rien ne reste aux mois d'avant.", socle::date::libelle_du_mois_ou_tel_quel(&courant, socle::date::Graphie::Accentuee));
+        let phrase = format!("À ouvrir : {}, le mois du jour ; rien ne reste aux mois d'avant.", socle::mois::Mois::en_clair(&courant));
         Ok(json!({"phrase": phrase, "mois": courant, "courant": courant, "reste": []}))
     }
 
@@ -1799,7 +1800,7 @@ fn carres_bruts(p: &Value, mois: &str) -> Value {
     let o = &p["etats"]["documents"];
     let embauche = vrai(&p["contrat"]["premier_mois"]);
     let debut_dit = Jour::lire(&valeur_en_texte(&p["debut"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
-    let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
+    let depuis = socle::mois::Mois::en_clair(&valeur_en_texte(&p["contrat"]["depuis"]));
 
     let (etat, phrase, geste) = match pt.dpae {
         "refuse" => {
@@ -1818,7 +1819,7 @@ fn carres_bruts(p: &Value, mois: &str) -> Value {
     let cdi = &s["cdi_en_cours"];
     let ailleurs = vrai(&p["contrat"]["ailleurs"]);
     let dossier = &p["contrat"]["dossier"];
-    let nom_contrat = if vrai(cdi) && !ailleurs { format!("CDI, signé en {}", engagement::libelle_mois(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
+    let nom_contrat = if vrai(cdi) && !ailleurs { format!("CDI, signé en {}", socle::mois::Mois::en_clair(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
     let (etat, phrase, geste) = match pt.contrat {
         "a_envoyer" => ("a_faire", "Contrat à envoyer".to_string(), faire_signer(mois)),
         "a_refaire" if !vrai(&s["fait"]) => ("a_faire", majuscule_initiale(&valeur_en_texte(&s["pourquoi"])), faire_signer(mois)),
@@ -1950,7 +1951,7 @@ fn choix_dpae(p: &Value) -> Value {
         return choix(false, false, "fait", "contrat commencé avant PuppetPaie : rien à déclarer ici".into());
     }
     if !vrai(&p["contrat"]["premier_mois"]) {
-        let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
+        let depuis = socle::mois::Mois::en_clair(&valeur_en_texte(&p["contrat"]["depuis"]));
         return choix(false, false, "fait", format!("contrat en cours depuis {} — sa DPAE a été faite ce mois-là", depuis));
     }
     // RIEN NE PART D'UN ENGAGEMENT EN SAISIE : le depot le refuserait, et les autres avec lui.
@@ -2140,30 +2141,30 @@ fn pour_la_page(l: &Value) -> Value {
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (`mois`).
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     lire(&mut Moteur::nouveau(ctx), nom, charge)
 }
 
 /// LES ROUTES `noms`, servies par une meme lecture (`Moteur`) : ce que l'etat garde d'un mois rend en une fois
 /// (`etat_garde::refaire`). Chacune rend ce que sa route seule rendrait.
-pub fn lire_ensemble(ctx: &Contexte, noms: &[&str], charge: &Value) -> R<Vec<Value>> {
+pub fn lire_ensemble(ctx: &Contexte, noms: &[Route], charge: &Value) -> R<Vec<Value>> {
     let mut m = Moteur::nouveau(ctx);
-    noms.iter().map(|nom| lire(&mut m, nom, charge)).collect()
+    noms.iter().map(|nom| lire(&mut m, *nom, charge)).collect()
 }
 
-fn lire(m: &mut Moteur, nom: &str, charge: &Value) -> R<Value> {
+fn lire(m: &mut Moteur, nom: Route, charge: &Value) -> R<Value> {
     let ctx = m.ctx;
     match nom {
-        "etat-par-engagement" => {
+        Route::EtatParEngagement => {
             let (brut, mois) = mois_de(charge)?;
             let lignes: Vec<Value> = m.etat_par_engagement(&mois)?.iter().map(pour_la_page).collect();
             Ok(json!({"mois": brut, "engagements": lignes, "non_actifs": non_actifs(ctx, &mois)?}))
         }
-        "etat-du-mois" => {
+        Route::EtatDuMois => {
             let (_, mois) = mois_de(charge)?;
             m.etat_du_mois(&mois)
         }
-        "mois-a-ouvrir" => m.mois_a_ouvrir(),
+        Route::MoisAOuvrir => m.mois_a_ouvrir(),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
 }

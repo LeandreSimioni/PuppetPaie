@@ -52,10 +52,10 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
             continue;
         }
         let valeur = taux.as_deref().and_then(|t| socle::num::decimal_lu(&t.replace(',', ".")));
-        let source = format!("Lu dans la DSN de {} reprise par l'import (S21.G00.40.040, S21.G00.40.043).", en_clair(mois));
+        let source = format!("Lu dans la DSN de {} reprise par l'import (S21.G00.40.040, S21.G00.40.043).", socle::mois::Mois::en_clair(mois));
         if crate::routes::atmp::poser(ctx, i64::from(*an), code, valeur, &source).is_ok() {
             let dit = valeur.map(|v| format!("taux {} %", v.normalize().to_string().replace('.', ","))).unwrap_or_else(|| "sans taux (pas encore de notification)".into());
-            faits.push(format!("Accidents du travail {} : code risque {}, {}, lus dans la DSN de {}.", an, code, dit, en_clair(mois)));
+            faits.push(format!("Accidents du travail {} : code risque {}, {}, lus dans la DSN de {}.", an, code, dit, socle::mois::Mois::en_clair(mois)));
         }
     }
     if lecture.atmp.contains_key(&courante) {
@@ -66,20 +66,20 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
     if dit || de_lui_meme.as_deref() == Some(code.as_str()) {
         return;
     }
-    let source = format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040) ; taux de l'arrêté de {}.", en_clair(mois), courante);
+    let source = format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040) ; taux de l'arrêté de {}.", socle::mois::Mois::en_clair(mois), courante);
     if crate::routes::atmp::poser(ctx, i64::from(courante), code, None, &source).is_ok() {
-        faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; le taux de {} est celui de l'arrêté.", code, en_clair(mois), courante));
+        faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; le taux de {} est celui de l'arrêté.", code, socle::mois::Mois::en_clair(mois), courante));
     } else {
         // Le taux de l'annee n'est pas celui de l'arrete pour ce code (ou l'etablissement est en Alsace-Moselle) : le code
         // se garde, sans taux, et « Pour demarrer » demande le taux notifie.
         let mut m = Map::new();
         m.insert("code_risque".into(), json!(code));
-        m.insert("_source".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", en_clair(mois))));
+        m.insert("_source".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", socle::mois::Mois::en_clair(mois))));
         let p = ctx.racine.join(droit::contexte::BAREMES).join(format!("{}.json", courante));
         let mut data = socle::fichiers::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
         data["taux_atmp"] = Value::Object(m);
         if socle::ecriture::ecrire_json(&p, &data, 2).is_ok() {
-            faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; son taux de {} est celui de la notification, à saisir.", code, en_clair(mois), courante));
+            faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; son taux de {} est celui de la notification, à saisir.", code, socle::mois::Mois::en_clair(mois), courante));
         }
     }
 }
@@ -199,7 +199,7 @@ fn poser_taux_pas(ctx: &Contexte, faits: &mut Vec<String>) {
             qui.filter(|q| !q.is_empty()).unwrap_or(cle),
             texte(r, "taux").replace('.', ","),
             // Le mois du versement qui l'applique (`mis_a_disposition`, AAAAMMJJ000000) : celui que la DSN declare.
-            en_clair(&texte(r, "mis_a_disposition").get(..6).map(|m| format!("{}-{}", &m[..4], &m[4..])).unwrap_or_default())
+            texte(r, "mis_a_disposition").get(..8).and_then(socle::date::lire_aaaammjj).map(|j| j.mois_civil().libelle(socle::mois::Graphie::Accentuee)).unwrap_or_default()
         ));
     }
 }
@@ -215,7 +215,3 @@ pub(crate) fn poser_organismes_repris(ctx: &Contexte) -> Vec<String> {
     faits
 }
 
-/// « décembre 2025 » pour `2025-12`.
-fn en_clair(mois: &str) -> String {
-    crate::regularisation::mois_en_clair(mois)
-}

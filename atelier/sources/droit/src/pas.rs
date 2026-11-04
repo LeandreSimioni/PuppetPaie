@@ -177,9 +177,7 @@ fn en_retour_d_un_mois_qui_n_est_pas_avant(e: &Value, mois: Option<&str>) -> boo
 /// (`en_retour_d_un_mois_qui_n_est_pas_avant`). Deux comptes rendus du meme jour, l'un pour le mois, l'autre en retour
 /// de sa DSN, ne s'ecrasent donc pas.
 pub fn date_d_effet(mad: Jour, en_retour_de: Option<&str>) -> Jour {
-    let premier_d_apres = en_retour_de
-        .and_then(|m| socle::date::premier_du_mois(m).ok())
-        .and_then(|j| socle::date::premier_du_mois(&j.mois_suivant()).ok());
+    let premier_d_apres = en_retour_de.and_then(|m| socle::mois::Mois::lire(m).ok()).map(|m| m.suivant().premier_jour());
     premier_d_apres.map_or(mad, |p| p.max(mad))
 }
 

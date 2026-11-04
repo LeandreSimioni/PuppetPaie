@@ -354,14 +354,14 @@ fn engagement_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str) -> R<engag
             let b = &*o.brut;
             engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle) && b.get("numero").map(valeur_en_texte).as_deref() == Some(numero)
         })
-        .ok_or_else(|| valeur(format!("{} : aucun engagement de {} ne porte le contrat {} qu'une DSN partie a declare.", cle, engagement::libelle_mois(mois), numero)))
+        .ok_or_else(|| valeur(format!("{} : aucun engagement de {} ne porte le contrat {} qu'une DSN partie a declare.", cle, socle::mois::Mois::en_clair(mois), numero)))
 }
 
 /// La paie de `mois` que la version `version` de l'engagement `o` (salarie `cle`, contrat `numero`) a ecrite
 /// (`engagement::etats::paie_de_la_version_n`).
 fn paie_de_la_version(ctx: &Contexte, o: &engagement::stock::Objet, cle: &str, numero: &str, mois: &str, version: u64) -> R<Paie> {
     engagement::etats::paie_de_la_version_n(ctx, o, version, mois)?
-        .ok_or_else(|| valeur(format!("{} : la version {} du contrat {} n'a pas de paie de {}.", cle, version, numero, engagement::libelle_mois(mois))))
+        .ok_or_else(|| valeur(format!("{} : la version {} du contrat {} n'a pas de paie de {}.", cle, version, numero, socle::mois::Mois::en_clair(mois))))
 }
 
 /// Le jour ou la version `n` de l'engagement `o` a ete validee (`le` de la presente, `valide_le` d'une passee).
@@ -533,7 +533,7 @@ fn pas_avant(ctx: &Contexte, mois: &str) -> R<()> {
         "ErreurOperation",
         format!(
             "La DSN de {} se dépose à partir du {} : la norme admet un dépôt au plus un mois avant l'échéance (cahier technique DSN 2026.1, § 1.4.2). Son échéance : {}. Rien n'est parti.",
-            socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee),
+            socle::mois::Mois::en_clair(mois),
             premier.jj_mm_aaaa(),
             echeance.phrase()
         ),
@@ -552,8 +552,7 @@ fn pas_avant(ctx: &Contexte, mois: &str) -> R<()> {
 pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabriquee> {
     crate::import::mois::refuser_la_dsn_de_l_ancien_logiciel(ctx, mois)?;
     let _verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
-    let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
-    socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
+    socle::mois::Mois::lire(mois).map_err(valeur)?;
     crate::routes::mois::refuser_si_clos(ctx, mois)?;
     pas_avant(ctx, mois)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
@@ -567,7 +566,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             "EngagementEnSaisie",
             format!(
                 "{} : aucun engagement n'est valide. Rien ne part d'un engagement en saisie : le valider d'abord (« Valider l'engagement »). Rien n'est ecrit.",
-                engagement::libelle_mois(mois)
+                socle::mois::Mois::en_clair(mois)
             ),
         ));
     }
@@ -575,7 +574,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         avertissements.push(avertissement(format!(
             "{} engagement(s) de {} encore en saisie : la DSN ne les declare pas. Une fois valides, la DSN se refait.",
             en_saisie,
-            engagement::libelle_mois(mois)
+            socle::mois::Mois::en_clair(mois)
         )));
     }
     let lu = Lu::du_mois(ctx, mois)?;
@@ -592,7 +591,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
                 valeur_en_texte(p.salarie.get("nom").unwrap_or(&Value::Null)),
                 prenom_de(&p.salarie),
                 p.engagement.numero.as_deref().unwrap_or("None"),
-                engagement::libelle_mois(mois)
+                socle::mois::Mois::en_clair(mois)
             )));
         }
     }
@@ -607,7 +606,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     for nic in &nics {
         forme_de_la_dsn(ctx, &mut m, mois, nic)?;
     }
-    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
+    let etiq = socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
 
     // LES CORRECTIONS DES MOIS DEJA DECLARES : la DSN de ce mois les porte, datees de leur mois d'origine.
@@ -626,7 +625,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     if paies.is_empty() && regs.is_empty() {
         avertissements.push(info(format!(
             "Aucun salarié en {} : la DSN part quand même, sans individu (envoi néant) -- une DSN est due chaque mois.",
-            engagement::libelle_mois(mois)
+            socle::mois::Mois::en_clair(mois)
         )));
     }
     // LA DECLARATION OETH D'AVRIL : elle ajoute au bordereau Urssaf une contribution (CTP 730 ou 740).
@@ -696,7 +695,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             nom = format!("{}_AR{}.dsn", &nom[..nom.len() - ".dsn".len()], ordre);
             avertissements.push(info(format!(
                 "La DSN de {} est deja partie : celle-ci est un ANNULE-ET-REMPLACE integral (ordre {}). Elle remplace la precedente, ordres de telepaiement compris, et s'envoie au plus tard le {} a minuit.",
-                engagement::libelle_mois(mois),
+                socle::mois::Mois::en_clair(mois),
                 ordre,
                 m.limite(mois)?.jj_mm_aaaa()
             )));
@@ -806,7 +805,7 @@ fn ecart_avec_le_bulletin_parti(ctx: &Contexte, apres: &Paie, parti: &Paie, mois
         "taux": taux,
         "prelevement": prelevement.map_or(Value::Null, |p| json!(p.to_string())),
         "a_verser": a_verser.to_string(),
-        "mois_versement": crate::regularisation::mois_en_clair(mois_versement),
+        "mois_versement": socle::mois::Mois::en_clair(mois_versement),
     }))
 }
 
@@ -853,7 +852,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     faits.avertissements.extend(sans_taux_recu(ctx, paies.iter().filter(|p| cles.contains(&cle_de(p))))?);
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois, &departs).map_err(Echec::from)?;
     let an = annee_de(mois)?;
-    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
+    let etiq = socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
     let dossier = sortie.join("envoi");
     std::fs::create_dir_all(&dossier).map_err(|e| os(&dossier, e))?;
@@ -905,10 +904,10 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
                 let porteur = crate::regularisation::dsn_qui_porte_la_correction(ctx, v, &departs, mois)?;
                 let mut e = ecart_avec_le_bulletin_parti(ctx, &paies[i], &parti, &porteur)?;
                 e["rectifie"] = json!(r);
-                e["mois_origine"] = json!(crate::regularisation::mois_en_clair(mois));
+                e["mois_origine"] = json!(socle::mois::Mois::en_clair(mois));
                 e
             }
-            None => json!({"remplace": true, "rectifie": r, "mois_origine": crate::regularisation::mois_en_clair(mois)}),
+            None => json!({"remplace": true, "rectifie": r, "mois_origine": socle::mois::Mois::en_clair(mois)}),
         };
         rectificatifs.insert(i, rectif);
     }
@@ -982,7 +981,7 @@ struct Impression<'a> {
 /// (`Bulletins_<Mois>.pdf`, `CertificatsCS_<Mois>.pdf` et son recapitulatif), qui porte tous les documents numerotes.
 /// `absents` : seuls les fichiers qui manquent s'ecrivent (une piece partie refaite pour se lire).
 fn imprimer(ctx: &Contexte, mois: &str, ent: &Value, imp: &Impression, cles: &[String], absents: bool) -> R<()> {
-    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
+    let etiq = socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
     let dossier = sortie.join("envoi");
     std::fs::create_dir_all(&dossier).map_err(|e| os(&dossier, e))?;
@@ -1078,7 +1077,7 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
     let lignes = m.lignes()?;
     let texte = |l: &Value, k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let du_mois = |l: &Value| texte(l, "mois") == mois && vrai(l.get("accepte").unwrap_or(&Value::Null));
-    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
+    let etiq = socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
 
     // LA DSN MENSUELLE : la derniere ligne qui l'a deposee, le reel devant son test.
@@ -1129,14 +1128,14 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
                 fait?;
                 return Ok(sortie.join(nom));
             }
-            return Err(refus(format!("{} : aucun envoi de documents de {} n'a fait partir le bulletin n° {}.", nom, engagement::libelle_mois(mois), numero)));
+            return Err(refus(format!("{} : aucun envoi de documents de {} n'a fait partir le bulletin n° {}.", nom, socle::mois::Mois::en_clair(mois), numero)));
         }
         // Du dernier envoi au premier : le fichier est celui que le dernier envoi qui le porte a ecrit.
         for rang in envois.into_iter().rev() {
             refaire_les_documents(ctx, mois, &lignes, rang, true)?;
         }
         return envois::etats::chemin_piece(&ctx.racine, &json!(mois), &json!(nom))
-            .ok_or_else(|| refus(format!("{} : aucun envoi de documents de {} ne l'a fait partir.", nom, engagement::libelle_mois(mois))));
+            .ok_or_else(|| refus(format!("{} : aucun envoi de documents de {} ne l'a fait partir.", nom, socle::mois::Mois::en_clair(mois))));
     }
     // LA DPAE : son enregistrement, son `.zip` et son recapitulatif, d'apres la derniere ligne qui l'a deposee.
     if nom.starts_with("DPAE_") {
@@ -1560,10 +1559,10 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
                         let porteur = crate::regularisation::dsn_qui_porte_la_correction(&ctx, v, &avant, mois)?;
                         let mut e = ecart_avec_le_bulletin_parti(&ctx, &p, &parti, &porteur)?;
                         e["rectifie"] = json!(r);
-                        e["mois_origine"] = json!(crate::regularisation::mois_en_clair(mois));
+                        e["mois_origine"] = json!(socle::mois::Mois::en_clair(mois));
                         e
                     }
-                    None => json!({"remplace": true, "rectifie": r, "mois_origine": crate::regularisation::mois_en_clair(mois)}),
+                    None => json!({"remplace": true, "rectifie": r, "mois_origine": socle::mois::Mois::en_clair(mois)}),
                 };
                 rectificatifs.insert(paies.len(), rectif);
             }

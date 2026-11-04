@@ -8,6 +8,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::documents::requis;
 use crate::routes::lire_json_ou_vide;
 use crate::routes::ouverture::mois_connus;
@@ -22,16 +23,16 @@ const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), form
 const ECRAN: Ecran = Ecran::Dessine(Place::Historique);
 
 /// Une lecture sans charge.
-const fn lecture(nom: &'static str, geste: &'static str, rend: &'static str) -> Fiche {
-    Fiche { nom, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0, ecran: ECRAN }
+const fn lecture(route: Route, geste: &'static str, rend: &'static str) -> Fiche {
+    Fiche { route, geste, charge: &[], exemple: "{}", rend, refus: &[OPERATION], acte: Acte::Lit, avance: false, phrase: 0, ecran: ECRAN }
 }
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
-    lecture("exercices", "Lister les années : leurs DSN, leur clôture, leur export comptable.", "annees (chacune : DSN, clôture, export)"),
-    lecture("regularisations", "Lister les corrections à porter et portées, par mois d'origine.", "les corrections, mois par mois"),
+    lecture(Route::Exercices, "Lister les années : leurs DSN, leur clôture, leur export comptable.", "annees (chacune : DSN, clôture, export)"),
+    lecture(Route::Regularisations, "Lister les corrections à porter et portées, par mois d'origine.", "les corrections, mois par mois"),
     Fiche {
-        nom: "cloture",
+        route: Route::Cloture,
         geste: "Clore une année passée : archiver ses engagements, documents et déclarations.",
         charge: &[
             ANNEE,
@@ -47,7 +48,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "export-compta",
+        route: Route::ExportCompta,
         geste: "Écrire l'export comptable d'une année, du mois du au mois au.",
         charge: &[
             ANNEE,
@@ -64,7 +65,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "archiver",
+        route: Route::Archiver,
         geste: "Déposer les documents d'un mois dans le Drive de la compagnie.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -81,7 +82,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "journal-reprise",
+        route: Route::JournalReprise,
         geste: "Reprendre le journal des envois d'après les retours relevés.",
         charge: &[Champ { nom: "ecrire", libelle: Affiche::new("Écrire ce qui se reprend"), forme: Forme::OuiNon, sens: "vrai : écrire ce qui se reprend ; sinon, le dire seulement", avance: false }],
         exemple: r#"{}"#,
@@ -95,20 +96,20 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        "exercices" => exercices_route(ctx).map(|mut v| {
+        Route::Exercices => exercices_route(ctx).map(|mut v| {
             let lignes: Vec<Value> = v["exercices"].as_array().into_iter().flatten().map(|e| json!(format!("{} : {}", t(e, "annee"), t(&e["pastille"], "mots")))).collect();
             v["phrases"] = Value::Array(lignes);
             let p = format!("Exercices : {}.", super::nombre(&v["exercices"]));
             super::phrase_en_tete(v, p)
         }),
-        "regularisations" => regularisations(ctx).map(|v| {
+        Route::Regularisations => regularisations(ctx).map(|v| {
             let p = format!("Mois qui portent des corrections : {}.", super::nombre(&v["corrections"]));
             super::phrase_en_tete(v, p)
         }),
-        "cloture" => crate::compagnie::exercice_ecrit::cloture_route(ctx, charge).map(|v| {
+        Route::Cloture => crate::compagnie::exercice_ecrit::cloture_route(ctx, charge).map(|v| {
             let p = if v.get("etait_clos_depuis").is_some() {
                 format!("Exercice {} rouvert ; son archive reste.", t(&v, "annee"))
             } else {
@@ -118,15 +119,15 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             };
             super::phrase_en_tete(v, p)
         }),
-        "export-compta" => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge).map(|v| {
+        Route::ExportCompta => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge).map(|v| {
             let p = match v["fichier"].as_str() {
                 Some(f) => format!("Export comptable de {} : {} écritures, dans {} ({}).", t(&v, "annee"), super::nombre(&v["ecritures"]), f, t(&v, "dossier")),
                 None => format!("Export comptable de {} : {} écritures, rien n'est écrit.", t(&v, "annee"), super::nombre(&v["ecritures"])),
             };
             super::phrase_en_tete(v, p)
         }),
-        "archiver" => archiver(ctx, charge),
-        "journal-reprise" => crate::compagnie::incidents::noter_ceux_des_retours(
+        Route::Archiver => archiver(ctx, charge),
+        Route::JournalReprise => crate::compagnie::incidents::noter_ceux_des_retours(
             &ctx.racine,
             envois::reprise_journal::reprise(
                 ctx,
@@ -150,7 +151,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             });
             v["ecran"]["bouton"] = json!(format!("Reprendre ces {} dépôt(s)", n));
             for d in v["ajoutes"].as_array_mut().into_iter().flatten() {
-                let mois = d["mois"].as_str().filter(|m| !m.is_empty()).map(engagement::libelle_mois).unwrap_or_else(|| "mois inconnu".to_string());
+                let mois = d["mois"].as_str().filter(|m| !m.is_empty()).map(socle::mois::Mois::en_clair).unwrap_or_else(|| "mois inconnu".to_string());
                 d["dit"] = json!(format!("{} — {}", super::quand(&valeur_en_texte(&d["quand"])), mois));
                 let logiciel = d["logiciel"].as_str().filter(|l| !l.is_empty()).unwrap_or("logiciel inconnu").to_string();
                 d["origine_dit"] = json!(format!("déposé par {} · flux {}", logiciel, valeur_en_texte(&d["flux"])));

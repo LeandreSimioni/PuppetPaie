@@ -21,7 +21,7 @@ pub fn date_ou_refus(an: i64, mois: i64, jour: i64) -> Resultat<Jour> {
         return Err(crate::date::annee_impossible(an));
     }
     if !(1..=12).contains(&mois) {
-        return Err(crate::date::mois_impossible(mois));
+        return Err(crate::mois::mois_impossible(mois));
     }
     Jour::nouveau(an as i32, mois as u32, jour.max(0) as u32)
         .ok_or_else(|| crate::date::jour_impossible(an, mois, jour))

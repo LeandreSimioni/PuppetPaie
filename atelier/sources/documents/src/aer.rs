@@ -239,7 +239,7 @@ pub fn jour(t: &str) -> Resultat<Option<Jour>> {
         return Err(socle::date::annee_impossible(a));
     }
     if !(1..=12).contains(&m) {
-        return Err(socle::date::mois_impossible(m));
+        return Err(socle::mois::mois_impossible(m));
     }
     Jour::nouveau(a as i32, m, j).map(Some).ok_or_else(|| socle::date::jour_impossible(a, m, j))
 }
@@ -520,7 +520,7 @@ pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMu
             for q in paies_du_mois(&m).iter().filter(|q| de_lui(q) && q.engagement.numero.as_deref() == Some(numero.as_str()) && !q.engagement.sans_paie()) {
                 out.push(PaieAer::du_mois(q)?);
             }
-            m = socle::date::premier_du_mois(&m)?.mois_suivant();
+            m = socle::mois::Mois::lire(&m)?.suivant().to_string();
         }
         if !e.sans_paie() {
             out.push(PaieAer::du_mois(p)?);

@@ -71,15 +71,6 @@ impl Message {
     }
 }
 
-/// « de » devant un nom de mois, elide devant une voyelle : « de mars », « d'avril », « d'août », « d'octobre ».
-pub fn de_mois(nom: &str) -> String {
-    if nom.starts_with(['a', 'e', 'é', 'i', 'o', 'u']) {
-        format!("d'{}", nom)
-    } else {
-        format!("de {}", nom)
-    }
-}
-
 /// Le seul texte de ce depot qui s'adresse a un humain : il porte ses accents. Les champs : `{prenom}`, `{mois}`,
 /// `{annee}`, `{liste}`, `{notes}`, `{france_travail}`, `{signataire}`, `{raison_sociale}`.
 pub const CORPS: &str = "Bonjour {prenom},\n\nTu trouveras ci-joint tes documents pour {mois} {annee} :\n\n{liste}\n\n{notes}{france_travail}\nBien à toi,\n{signataire}\n{raison_sociale}\n";
@@ -169,17 +160,6 @@ fn cle_absente(cle: &str) -> String {
     socle::fichiers::absent(cle)
 }
 
-/// L'année et le mois d'un « AAAA-MM » ; refus s'ils ne se lisent pas.
-fn an_mois(mois: &str) -> Result<(i32, usize), String> {
-    let lire = |t: Option<&str>| -> Result<i64, String> {
-        let t = t.unwrap_or("");
-        t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : '{}'", t))
-    };
-    let an = lire(mois.get(..4))?;
-    let mo = lire(mois.get(5..7))?;
-    Ok((an as i32, mo as usize))
-}
-
 /// Ce que le salarie declare a son actualisation France Travail du mois (`recap_france_travail`) : une ligne par
 /// contrat, sur ce qui a ete fait DANS LE MOIS. Rien pour un permanent : chaine vide.
 pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Result<String, String> {
@@ -225,12 +205,12 @@ pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Res
     if lignes.is_empty() {
         return Ok(String::new());
     }
-    let (an, mo) = an_mois(mois)?;
-    let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
+    let m = socle::mois::Mois::lire(mois)?;
+    let (an, nom_mois) = (m.annee(), m.nom(socle::mois::Graphie::Accentuee));
     Ok(format!(
         "Pour ton actualisation France Travail {} {}, employeur {} :\n{}\nCe sont les chiffres de ton bulletin ; \
          vérifie que ce que France Travail pré-remplit est identique.\n",
-        de_mois(nom_mois),
+        socle::texte::de(nom_mois),
         an,
         employeur,
         lignes.join("\n")
@@ -350,9 +330,8 @@ pub fn preparer_avec(
     renvois: &std::collections::HashMap<String, Renvoi>,
     a_part: &std::collections::HashMap<String, Vec<&'static str>>,
 ) -> Result<Vec<Message>, String> {
-    let (an, mo) = an_mois(mois)?;
-    let etiq = socle::date::etiquette_du_mois(mois)?;
-    let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
+    let m = socle::mois::Mois::lire(mois)?;
+    let (an, etiq, nom_mois) = (m.annee(), m.etiquette(), m.nom(socle::mois::Graphie::Accentuee));
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
     let salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
@@ -415,7 +394,7 @@ pub fn preparer_avec(
         let champs = [
             ("prenom", texte("prenom_affichage")?),
             ("mois", nom_mois.to_string()),
-            ("de_mois", de_mois(nom_mois)),
+            ("de_mois", socle::texte::de(nom_mois)),
             ("annee", an.to_string()),
             ("liste", libelles.join("\n")),
             ("notes", if notes.is_empty() { String::new() } else { format!("{}\n", notes.join("\n\n")) }),

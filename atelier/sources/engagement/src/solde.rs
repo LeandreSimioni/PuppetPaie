@@ -13,7 +13,8 @@ use crate::conges::{
 };
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::Nature;
-use socle::date::{d, en_texte, premier_du_mois, repr_flottant};
+use socle::date::{d, en_texte, repr_flottant};
+use socle::mois::Mois;
 use crate::Avis;
 use socle::fichiers::vrai;
 use socle::texte::{euros, euros_de, virgule};
@@ -231,9 +232,9 @@ fn cdi_a_l_issue(ctx: &Contexte, e: &Value, fin: &socle::date::Jour) -> Resultat
     while reprise.jour_de_la_semaine() >= 5 {
         reprise = reprise.plus_jours(1)?;
     }
-    let mut mois = vec![fin.mois_iso()];
-    if reprise.mois_iso() != fin.mois_iso() {
-        mois.push(reprise.mois_iso());
+    let mut mois = vec![fin.mois_civil().to_string()];
+    if reprise.mois_civil().to_string() != fin.mois_civil().to_string() {
+        mois.push(reprise.mois_civil().to_string());
     }
     let mut trouve = None;
     for m in mois {
@@ -266,7 +267,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     let qui = qui(ctx, e);
     let motif = motif_de(e);
     let ent = &ctx.entreprise;
-    let premier = premier_du_mois(mois)?;
+    let premier = Mois::lire(mois)?.premier_jour();
 
     // --- l'indemnite compensatrice de conges payes (L3141-28 ; L1242-16 pour un CDD), quelle que soit la cause de la
     // rupture. L3141-28 « [n'est pas applicable] lorsque l'employeur est tenu d'adherer a une caisse de conges » (L3141-30) :
@@ -288,7 +289,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                  reprise », recopiés du dernier bulletin de l'ancien logiciel.",
                 qui,
                 debut.jj_mm_aaaa(),
-                crate::libelle_mois(&premier),
+                socle::mois::Mois::en_clair(&premier),
             )));
         }
         let mut pris_ce_mois = Decimal::ZERO;
@@ -301,7 +302,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
             // Le maintien (L3141-24, II, `atelier/reference/sources/code-du-travail/xml/L3141-24.xml`) : ce que le salarie
             // aurait percu s'il avait travaille ces jours, le salaire du mois entier reparti sur les jours ouvrables du
             // mois entier, comme les conges pris (`conges::lignes_du_mois`), quel que soit le jour ou le contrat finit.
-            let ouvrables = Decimal::from(jours_ouvrables(&premier, &socle::date::dernier_du_mois(mois)?, Some(ent))?);
+            let ouvrables = Decimal::from(jours_ouvrables(&premier, &socle::mois::Mois::lire(mois)?.dernier_jour(), Some(ent))?);
             let ouvrables = if ouvrables.is_zero() { Decimal::ONE } else { ouvrables };
             let maintien = eur2(mul(div(salaire, ouvrables), solde));
             // Les jours pris ce mois-ci ont deja consomme le report d'abord :
@@ -1180,18 +1181,10 @@ fn indemnite_legale(ctx: &Contexte, e: &Value, mois: &str, anciennete: Decimal, 
 /// de mois produits, le salaire mensuel du contrat.
 fn bruts_precedents(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Decimal>, Vec<Decimal>)> {
     let salarie = t(cle(e, "salarie")?);
-    let (an, mo): (i32, i32) = (
-        mois.get(..4).and_then(|s| s.parse().ok()).ok_or("mois illisible")?,
-        mois.get(5..7).and_then(|s| s.parse().ok()).ok_or("mois illisible")?,
-    );
+    let mois = Mois::lire(mois)?;
     let mut bruts = Vec::new();
     for i in 1..=12 {
-        let (mut m, mut a) = (mo - i, an);
-        while m <= 0 {
-            m += 12;
-            a -= 1;
-        }
-        let nom = format!("{:04}-{:02}", a, m);
+        let nom = mois.plus(-i)?.to_string();
         if !crate::stock::a_une_saisie(&ctx.racine, &nom)? {
             continue;
         }
@@ -1226,16 +1219,11 @@ fn remuneration_du_contrat(ctx: &Contexte, e: &Value, mois: &str, ce_mois: Decim
     let salarie = t(cle(e, "salarie")?);
     let mut total = ce_mois;
     let debut = d(cle(e, "debut")?)?;
-    let (mut an, mut mo) = (debut.an, debut.mois);
-    loop {
-        let m = format!("{:04}-{:02}", an, mo);
-        if m.as_str() > mois {
-            break;
-        }
+    for m in debut.mois_civil().jusqu_a(Mois::lire(mois)?) {
+        let m = m.to_string();
         if m != mois && crate::stock::a_une_saisie(&ctx.racine, &m)? {
             total = add(total, remuneration_du_mois(ctx, &m, &salarie)?);
         }
-        (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
     }
     Ok(total)
 }

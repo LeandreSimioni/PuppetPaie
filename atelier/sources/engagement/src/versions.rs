@@ -149,7 +149,7 @@ pub fn changements(ctx: &Contexte, avant: &Value, apres: &Value) -> Vec<String> 
     for m in mois {
         let (x, y) = (fa.get(m).and_then(Value::as_object).unwrap_or(&vide), fb.get(m).and_then(Value::as_object).unwrap_or(&vide));
         for c in changements_du_mois(ctx, x, y) {
-            out.push(format!("En {} : {}", crate::libelle_mois(m), c));
+            out.push(format!("En {} : {}", socle::mois::Mois::en_clair(m), c));
         }
     }
     out
@@ -285,10 +285,10 @@ pub(crate) fn quoi_du_depart(d: &Depart) -> String {
         (Envoi::Contrat, _) if d.avenant.is_some() => format!("l'avenant n° {}", d.avenant.as_deref().unwrap_or_default()),
         (Envoi::Contrat, _) => "le contrat".to_string(),
         (Envoi::Dpae, _) => "la DPAE".to_string(),
-        (Envoi::Documents, Some(m)) => format!("les documents {}", de(&crate::libelle_mois(m))),
+        (Envoi::Documents, Some(m)) => format!("les documents {}", de(&socle::mois::Mois::en_clair(m))),
         (Envoi::Dsn, Some(m)) => match d.par.as_deref() {
-            Some(p) => format!("la DSN {} (correction {})", de(&crate::libelle_mois(p)), de(&crate::libelle_mois(m))),
-            None => format!("la DSN {}", de(&crate::libelle_mois(m))),
+            Some(p) => format!("la DSN {} (correction {})", de(&socle::mois::Mois::en_clair(p)), de(&socle::mois::Mois::en_clair(m))),
+            None => format!("la DSN {}", de(&socle::mois::Mois::en_clair(m))),
         },
         (Envoi::Signalement, _) => "un signalement".to_string(),
         (_, None) => "un envoi".to_string(),
@@ -362,7 +362,7 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Optio
 fn phrase_de_la_frise(ctx: &Contexte, v: &Valide, departs: &Departs, siens: &[Depart]) -> String {
     let mut phrase = format!("Modifié le {}", jour_court(v.le()));
     if let Some(m) = premier_mois_change(v).filter(|m| m.as_str() != v.objet().premier_mois()) {
-        phrase.push_str(&format!(", à partir de {}", crate::libelle_mois(&m)));
+        phrase.push_str(&format!(", à partir de {}", socle::mois::Mois::en_clair(&m)));
     }
     let (mut contrat, mut dpae) = (false, false);
     let (mut documents, mut dsn) = (std::collections::BTreeSet::new(), std::collections::BTreeSet::new());
@@ -418,14 +418,14 @@ fn de_mois(mois: &std::collections::BTreeSet<String>) -> String {
     let mut etendues: Vec<(String, String)> = Vec::new();
     for m in mois {
         match etendues.last_mut() {
-            Some((_, fin)) if crate::stock::mois_apres(fin).is_ok_and(|s| &s == m) => *fin = m.clone(),
+            Some((_, fin)) if socle::mois::Mois::lire(fin).is_ok_and(|f| f.suivant() == *m) => *fin = m.clone(),
             _ => etendues.push((m.clone(), m.clone())),
         }
     }
     let dites: Vec<String> = etendues
         .iter()
         .map(|(a, b)| {
-            let (la, lb) = (crate::libelle_mois(a), crate::libelle_mois(b));
+            let (la, lb) = (socle::mois::Mois::en_clair(a), socle::mois::Mois::en_clair(b));
             let texte = if a == b {
                 la
             } else if a.get(..4) == b.get(..4) {

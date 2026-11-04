@@ -158,13 +158,6 @@ pub struct Demande {
     pub boite_liee: bool,
 }
 
-/// « mars 2025 » : le nom d'un mois de la regularisation. « 00 » n'est aucun mois et se refuse
-/// (`date::numero_du_mois`).
-fn libelle_du_mois(m: &str, an: &str) -> R<String> {
-    let mo = socle::date::numero_du_mois(m).map_err(refus)?;
-    Ok(format!("{} {}", socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee).map_err(refus)?, an))
-}
-
 fn plafond_mensuel(annee: &str) -> R<Option<Decimal>> {
     let f = socle::fichiers::dossier_du_code().join("baremes").join(format!("{}.json", annee));
     if !f.exists() {
@@ -339,7 +332,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         })?;
         let mut cot = (masse * taux / Decimal::from(100)).round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
         cot.rescale(2);
-        par_mois.push(MoisReg { mois: m.clone(), libelle: libelle_du_mois(m, &an)?, masse, taux, cotisation: cot, source });
+        par_mois.push(MoisReg { mois: m.clone(), libelle: socle::mois::Mois::lire(m).map(|m| m.libelle(socle::mois::Graphie::Accentuee)).map_err(refus)?, masse, taux, cotisation: cot, source });
     }
 
     let siret = ent.get("siret").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();

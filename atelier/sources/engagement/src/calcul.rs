@@ -763,7 +763,7 @@ cette reintegration (assiette du chomage, bloc 54 de type 35) : rien n'est calcu
 /// telle : l'annee est celle de la periode de paie, et les contrats d'un mois se suivent dans l'ordre de la saisie.
 fn dfs_deja_deduite(ctx: &Contexte, eng: &Engagement, sal: &Value, precedentes: &[Paie]) -> Resultat<Decimal> {
     let cle = sal.get("_cle").and_then(Value::as_str).map(String::from).unwrap_or_else(|| eng.salarie.clone());
-    let mois = eng.fin_periode()?.mois_iso();
+    let mois = eng.fin_periode()?.mois_civil().to_string();
     let mut deja = crate::conges::dfs_des_mois_anterieurs(ctx, &mois, &cle)?;
     for p in precedentes {
         let sienne = p.salarie.get("_cle").and_then(Value::as_str) == Some(cle.as_str()) || p.engagement.salarie == eng.salarie;
@@ -1651,7 +1651,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
 
     // 7.9 bis : les heures en plus d'un salarie paye au mois (`heures_en_plus`) : la reduction de cotisations salariales,
     // la deduction patronale, et le net exonere d'impot, que la remuneration nette fiscale ne prend pas.
-    let mois_paye = fin_periode.mois_iso();
+    let mois_paye = fin_periode.mois_civil().to_string();
     let cle_sal = sal.get("_cle").and_then(Value::as_str).map(String::from).unwrap_or_else(|| eng.salarie.clone());
     let heures_en_plus = crate::heures_en_plus::apres_les_cotisations(ctx, &bar, &lb, &lignes, brut, tot_pat, || {
         crate::conges::exonere_des_mois_anterieurs(ctx, &mois_paye, &cle_sal)
