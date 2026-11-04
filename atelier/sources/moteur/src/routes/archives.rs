@@ -30,7 +30,7 @@ use socle::ecriture::ecrire_json;
 use socle::fichiers::lire_json_echec as lire_json;
 use socle::fichiers::{nom_du, repr, vrai};
 use socle::html::courriel_en_html;
-use socle::valeur::{nom_type, valeur_en_texte};
+use socle::valeur::valeur_en_texte;
 use crate::routes::catalogue::{Ecran, Place};
 
 const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
@@ -183,18 +183,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
     }
 }
 
-/// `ctx.racine / "sorties" / mois` : `mois` doit etre un texte (`TypeError` sinon,
-/// avec la phrase de `PosixPath.__truediv__`).
-fn sous_sorties(ctx: &Contexte, mois: &Value) -> R<std::path::PathBuf> {
-    match mois {
-        Value::String(m) => Ok(ctx.racine.join("sorties").join(m)),
-        autre => Err(erreur(
-            "TypeError",
-            format!("'mois' : {}", socle::fichiers::attendu("un texte", nom_type(autre))),
-        )),
-    }
-}
-
 /// Les noms des PDF d'un dossier (sensible à la casse, fichiers cachés compris),
 /// en ordre de points de code.
 fn pdf_de(d: &Path) -> R<Vec<String>> {
@@ -217,45 +205,28 @@ fn pdf_de(d: &Path) -> R<Vec<String>> {
     Ok(noms)
 }
 
-/// `documents_du_mois` : les fichiers du mois a ouvrir ou a remettre a la main.
-pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R<Value> {
-    let base = sous_sorties(ctx, mois)?;
-    let envoi = base.join("envoi");
-    // `{...}.get(quoi)` : un texte seulement se trouve ; une liste ou un dictionnaire ne se hache pas.
-    let prefixes: Option<&[&str]> = match quoi {
-        Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
-        Value::String(q) if q == "contrats" => Some(&["Contrat_", "Contrats_"]),
-        Value::String(q) if q == "documents" => Some(&["Bulletin_", "CertificatCS_", "AER_"]),
-        _ => None,
-    };
-    let mut out = Vec::new();
-    for (d, est_base) in [(&envoi, false), (&base, true)] {
-        if !d.exists() {
-            continue;
-        }
-        for nom in pdf_de(d)? {
-            // Le PDF a imprimer reunit les pieces de plusieurs salaries : chacune se liste seule, lui jamais.
-            if nom.starts_with(crate::compagnie::signature::PREFIXE_IMPRESSION) {
-                continue;
-            }
-            if let Some(p) = prefixes {
-                if !p.iter().any(|x| nom.starts_with(x)) {
-                    continue;
-                }
-            }
-            if est_base && vrai(quoi) {
-                continue; // les fichiers groupes du mois : pas ici
-            }
-            let chemin = d.join(&nom);
-            let st = std::fs::metadata(&chemin).map_err(|e| erreur_io(&e, &chemin))?;
-            let stem = nom.strip_suffix(".pdf").filter(|s| !s.is_empty()).unwrap_or(&nom);
-            let morceaux: Vec<&str> = stem.split('_').collect();
-            let salarie = if morceaux.len() > 2 { morceaux[1] } else { "" };
-            out.push(json!({"nom": nom, "octets": st.len(), "salarie": salarie}));
-        }
+/// Une piece du mois dans `sorties/<mois>/envoi/` : son nom, et la cle du salarie qu'elle nomme (vide sinon).
+pub(crate) struct PieceDeLEnvoi {
+    pub(crate) nom: String,
+    pub(crate) salarie: String,
+}
+
+/// Les pieces du mois a ouvrir ou a remettre a la main : les PDF de `sorties/<mois>/envoi/`, chacune seule (jamais le PDF
+/// a imprimer, qui reunit celles de plusieurs salaries).
+pub(crate) fn pieces_de_l_envoi(ctx: &Contexte, mois: &str) -> R<Vec<PieceDeLEnvoi>> {
+    let envoi = ctx.racine.join("sorties").join(mois).join("envoi");
+    if !envoi.exists() {
+        return Ok(Vec::new());
     }
-    Ok(Value::Array(out))
+    Ok(pdf_de(&envoi)?
+        .into_iter()
+        .filter(|nom| !nom.starts_with(crate::compagnie::signature::PREFIXE_IMPRESSION))
+        .map(|nom| {
+            let morceaux: Vec<&str> = nom.strip_suffix(".pdf").filter(|s| !s.is_empty()).unwrap_or(&nom).split('_').collect();
+            let salarie = if morceaux.len() > 2 { morceaux[1].to_string() } else { String::new() };
+            PieceDeLEnvoi { nom, salarie }
+        })
+        .collect())
 }
 
 // -------------------------------------------------------------- dossier-formes

@@ -5,7 +5,7 @@
 //! rend, pour un mois :
 //!
 //! - `documents` : chaque fichier de `sorties/<mois>/` et de `sorties/<mois>/envoi/` (les memes listes que
-//!   l'Historique : `crate::routes::ouverture::mois_connus`, `crate::routes::archives::documents_du_mois`), range
+//!   l'Historique : `crate::routes::ouverture::mois_connus`, `crate::routes::archives::pieces_de_l_envoi`), range
 //!   par sorte, chacun avec son chemin, que la fenetre ouvre ;
 //! - `envois` : chaque ligne du journal des depots du mois (DPAE, DSN, signalements, documents, contrats), TESTS
 //!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`),
@@ -252,7 +252,7 @@ pub(crate) fn sorte_de(nom: &str) -> &'static str {
 }
 
 /// Les documents du mois : les fichiers de `sorties/<mois>/` (`mois_connus`, la liste de l'Historique) et les PDF de
-/// `sorties/<mois>/envoi/` (`documents_du_mois`). Une archive `.zip` n'est que l'emballage
+/// `sorties/<mois>/envoi/` (`pieces_de_l_envoi`). Une archive `.zip` n'est que l'emballage
 /// du fichier de meme nom qui part au depot : elle ne se liste pas.
 fn documents(ctx: &Contexte, mois: &str, lignes: &[Ligne]) -> R<Vec<Value>> {
     let noms = crate::routes::ouverture::mois_connus(&ctx.racine).into_iter().find(|(m, _)| m == mois).map(|(_, n)| n).unwrap_or_default();
@@ -260,10 +260,8 @@ fn documents(ctx: &Contexte, mois: &str, lignes: &[Ligne]) -> R<Vec<Value>> {
     for nom in noms.iter().filter(|n| !n.ends_with(".zip")) {
         out.push(json!({"nom": nom, "sorte": sorte_de(nom), "salarie": "", "chemin": format!("sorties/{}/{}", mois, nom)}));
     }
-    let envoi = crate::routes::archives::documents_du_mois(ctx, &json!(mois), &json!("tout"))?;
-    for d in envoi.as_array().into_iter().flatten() {
-        let nom = valeur_en_texte(&d["nom"]);
-        out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": d["salarie"], "chemin": format!("sorties/{}/envoi/{}", mois, nom)}));
+    for d in crate::routes::archives::pieces_de_l_envoi(ctx, mois)? {
+        out.push(json!({"nom": d.nom, "sorte": sorte_de(&d.nom), "salarie": d.salarie, "chemin": format!("sorties/{}/envoi/{}", mois, d.nom)}));
     }
     // CE QUE LE JOURNAL DIT PARTI, meme si son fichier manque : `fichier` le nomme pour `piece-partie`, qui le refait
     // (`depart::piece_partie`) et rend son chemin.
