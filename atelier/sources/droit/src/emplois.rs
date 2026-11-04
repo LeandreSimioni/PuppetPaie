@@ -101,7 +101,7 @@ pub struct ChampsDuMetier {
 /// nomme pas : `_regles.cadre_par_defaut` de `emplois-base.json`) ; sinon `cadre_par_defaut`.
 pub fn cadre_par_defaut(m: &Value, idcc: &str) -> Resultat<bool> {
     let selon: std::collections::BTreeMap<String, bool> = match m.get("cadre_selon_la_convention") {
-        Some(v) => serde_json::from_value(v.clone()).map_err(|e| socle::echec::cle(format!("emplois-base.json : {}", e), "cadre_selon_la_convention"))?,
+        Some(v) => serde_json::from_value(v.clone()).map_err(|e| socle::echec::avec("Le catalogue des métiers livré ne se lit pas : le signaler au développeur.", serde_json::json!({"fichier": "emplois-base.json", "cle": "cadre_selon_la_convention", "detail": e.to_string()})))?,
         None => Default::default(),
     };
     match selon.get(idcc.trim()) {

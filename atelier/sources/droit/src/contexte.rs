@@ -1809,7 +1809,7 @@ impl Contexte {
     pub fn entreprise_lue(&self, jour: &Jour) -> Resultat<crate::bareme::EntrepriseLue> {
         let fiche = self.entreprise_au(jour);
         let effectif = effectif_de(&self.racine, &fiche)?.valeur(jour.an);
-        Ok(crate::bareme::EntrepriseLue { fiche, effectif })
+        Ok(crate::bareme::EntrepriseLue { fiche, effectif, taux_lus: false })
     }
 
     /// (PSS mensuel, PSS horaire) de l'annee.

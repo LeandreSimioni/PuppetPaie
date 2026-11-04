@@ -588,5 +588,10 @@ fn la_fictive_du_fil_de_fer_tient_son_annee_et_se_livre() {
 /// ajoutee a des contrats partis et leurs avenants, aout sans intermittent, la tournee de mai et ses frais.
 #[test]
 fn la_fictive_de_l_hotel_de_bourgogne_tient_son_annee_et_se_livre() {
-    la_fictive_tient_son_annee_et_se_livre("fictive-hotel-de-bourgogne", 8, &["01", "02", "03", "04", "05", "06", "07", "09", "10", "11", "12"]);
+    let (racine, jour) = la_fictive_tient_son_annee_et_se_livre("fictive-hotel-de-bourgogne", 8, &["01", "02", "03", "04", "05", "06", "07", "09", "10", "11", "12"]);
+    // LES MOIS IMPORTES NE DEMANDENT PAS L'EFFECTIF D'AVANT EUX (le bug : l'export comptable de toutes les annees
+    // refusait « effectif de la compagnie non connu », des 2025) : 2025, paye par l'ancien logiciel, lit ses taux sur ses pieces,
+    // et le FNAS de la CCNEAC n'a pas a dire l'effectif de 2024 (`bareme::EntrepriseLue::taux_lus`).
+    let balance = outils::route(&racine, "exporter", json!({"etat": "balance-paie", "annee": "2025", "apercu": true}), jour);
+    assert_eq!(balance["ok"], json!(true), "{}", balance);
 }

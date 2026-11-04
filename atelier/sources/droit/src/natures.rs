@@ -404,7 +404,7 @@ struct ArtisteNonCadre {
 /// (03, 04) : « non-cadre », la categorie de sa convention (3090, art. 6.3 ; 1285, art. XI.2.1), pas le libelle du 05.
 pub fn categorie_d_emploi(classement: &str, artiste: bool) -> Resultat<Option<String>> {
     let c: CategoriesDEmploi = serde_json::from_value(fichier()?.get("categories_d_emploi").cloned().ok_or_else(|| socle::fichiers::absent("categories_d_emploi"))?)
-        .map_err(|e| socle::echec::cle(format!("contrats-base.json : {}", e), "categories_d_emploi"))?;
+        .map_err(|e| socle::echec::avec("Les catégories d'emploi livrées ne se lisent pas : le signaler au développeur.", serde_json::json!({"fichier": "contrats-base.json", "cle": "categories_d_emploi", "detail": e.to_string()})))?;
     if artiste && !matches!(classement, "03" | "04") {
         return Ok(Some(c.artiste_non_cadre.libelle));
     }
