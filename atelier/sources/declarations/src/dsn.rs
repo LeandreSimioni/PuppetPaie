@@ -1614,7 +1614,7 @@ p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans 
 ///
 /// La CCH-11 (p. 182, l. 156-160 : 40.003 = 01 => 40.002 dans 03, 04 ou 08) est un controle bloquant : verifiee ici,
 /// avant de produire.
-pub fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
+pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
     let s = &p.salarie;
     let lu = |v: &str| Some(v.trim().to_string()).filter(|v| !v.is_empty());
     let code = s.code_emploi_ft.texte().trim().to_uppercase();
@@ -1628,7 +1628,7 @@ pub fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
     };
     let rc = match (lu(s.statut_categoriel_rc.code()), &m) {
         (Some(rc), _) => rc,
-        (None, Some(m)) if !vrai(g(m, "cadre_par_defaut")) => "04".to_string(),
+        (None, Some(m)) if !droit::emplois::cadre_par_defaut(m, idcc)? => "04".to_string(),
         (None, Some(m)) => {
             return Err(format!(
                 "{} : le metier {} ({}) est cadre au catalogue, et la fiche ne dit pas cadre ou non cadre \
@@ -1720,7 +1720,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         ), "taux_atmp"));
     }
     // Les statuts se lisent, ou refusent (`statuts_du_contrat`), avant qu'une ligne du contrat soit ecrite.
-    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p)?;
+    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p, ent.idcc.texte())?;
     f.add("S21.G00.40.001", e.debut.jjmmaaaa());
     f.add("S21.G00.40.002", statut_conventionnel);
     f.add("S21.G00.40.003", statut_categoriel_rc);

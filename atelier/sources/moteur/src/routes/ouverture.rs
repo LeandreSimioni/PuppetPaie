@@ -956,7 +956,7 @@ pub(crate) fn metiers(ctx: &Contexte) -> R<Value> {
     let ordre: HashMap<&str, usize> = familles.iter().enumerate().map(|(i, f)| (f.as_str(), i)).collect();
     let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
     let idcc = ctx.entreprise.idcc.texte().to_string();
-    let mut liste: Vec<Value> = emplois::catalogue().map_err(plain)?.into_iter().filter(|m| metier_visible(m, &idcc, &ajoutes, &retires)).collect();
+    let mut liste: Vec<Value> = emplois::catalogue(&idcc).map_err(plain)?.into_iter().filter(|m| metier_visible(m, &idcc, &ajoutes, &retires)).collect();
     liste.sort_by_cached_key(|m| (ordre.get(texte_de(m, "famille").as_str()).copied().unwrap_or(ordre.len()), texte_de(m, "libelle").to_lowercase()));
     Ok(Value::Array(liste))
 }
@@ -968,7 +968,7 @@ pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Value> {
     let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
     let idcc = ctx.entreprise.idcc.texte().to_string();
     let mut out: Vec<(String, String, Value)> = Vec::new();
-    for m in emplois::catalogue().map_err(plain)? {
+    for m in emplois::catalogue(&idcc).map_err(plain)? {
         if metier_visible(&m, &idcc, &ajoutes, &retires) {
             continue;
         }

@@ -13,13 +13,19 @@
   "categories_d_emploi": {
     "_quoi": "La catégorie d'emploi que le contrat écrit imprime (R. 1221-34, 3°, du code du travail : « la catégorie socioprofessionnelle ou la catégorie d'emploi »), lue sur le classement conventionnel du salarié (S21.G00.40.002), qui « correspond aux grandes catégories socio-professionnelles auxquelles chaque salarié appartient ».",
     "_source": "atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt, l. 133-147 (les libellés de la norme) ; atelier/reference/sources/code-du-travail/xml/R1221-34.xml.",
-    "01": "agriculteur salarié de son exploitation",
-    "02": "artisan ou commerçant salarié de son entreprise",
-    "03": "cadre dirigeant",
-    "04": "cadre",
-    "05": "profession intermédiaire (technicien, contremaître, agent de maîtrise)",
-    "06": "employé administratif d'entreprise, de commerce, agent de service",
-    "07": "ouvrier"
+    "par_classement": {
+      "01": "agriculteur salarié de son exploitation",
+      "02": "artisan ou commerçant salarié de son entreprise",
+      "03": "cadre dirigeant",
+      "04": "cadre",
+      "05": "profession intermédiaire (technicien, contremaître, agent de maîtrise)",
+      "06": "employé administratif d'entreprise, de commerce, agent de service",
+      "07": "ouvrier"
+    },
+    "artiste_non_cadre": {
+      "libelle": "non-cadre",
+      "note": "L'artiste-interprète qui n'encadre pas : les conventions le disent « Non-cadres » (CCN 3090, art. 6.3, « Grille de fonctions. Artistes et artistes-interprètes », KALIARTI000028157356) ou hors de la catégorie « cadre » (CCN 1285, art. XI.2.1, KALIARTI000026922481 : seuls les groupes A et B), sans le dire technicien, contremaître ni agent de maîtrise ; son classement DSN (05) est une inférence (emplois-base.json, `_regles.statut_conventionnel`). Le contrat imprime la catégorie de la convention. Un artiste cadre (03, 04) garde « cadre »."
+    }
   },
 
   "natures": {

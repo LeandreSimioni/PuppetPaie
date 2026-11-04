@@ -399,7 +399,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
         Route::Apercu => en_json(apercu(ctx, lire_charge(charge)?)?),
         Route::ContratsEnCours => en_json(contrats_en_cours_route(ctx, lire_charge::<ChargeMois>(charge)?.mois)?),
         Route::ContratsPasses => en_json(contrats_passes_route(ctx, lire_charge(charge)?)?),
-        Route::Emploi => en_json(emploi(lire_charge(charge)?)?),
+        Route::Emploi => en_json(emploi(ctx, lire_charge(charge)?)?),
         Route::EnregistrerSaisie => en_json(enregistrer_saisie(ctx, lire_charge(charge)?)?),
         Route::Ajuster => en_json(ajuster(ctx, lire_charge(charge)?)?),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -1072,7 +1072,7 @@ fn contrats_passes_route(ctx: &Contexte, c: ChargeContratsPasses) -> R<ContratsP
 /// Un metier du catalogue traduit en champs de fiche, pour le formulaire salarie. LE METIER AU FEMININ pour une
 /// salariee : le catalogue porte les deux formes (`feminin`), la fiche dit le sexe (le premier chiffre du NIR, sinon la
 /// case `sexe` : `ntt::sexe_de`). `feminin` donne seul suffit aussi.
-fn emploi(c: ChargeEmploi) -> R<Emploi> {
+fn emploi(ctx: &Contexte, c: ChargeEmploi) -> R<Emploi> {
     let feminin = c.feminin || c.salarie.is_some_and(|s| declarations::ntt::sexe_de(&s.nir, &s.sexe) == "2");
     if emplois::metier(&c.metier).map_err(plain)?.is_none() {
         return Err(erreur(
@@ -1080,7 +1080,7 @@ fn emploi(c: ChargeEmploi) -> R<Emploi> {
             format!("Métier {} inconnu : ni dans le catalogue des métiers, ni dans la nomenclature France Travail.", repr(&c.metier)),
         ));
     }
-    let champs = emplois::resoudre(&c.metier, c.cadre, feminin).map_err(plain)?;
+    let champs = emplois::resoudre(&c.metier, c.cadre, feminin, ctx.entreprise.idcc.texte()).map_err(plain)?;
     Ok(Emploi { phrase: format!("Métier : {} ({}).", champs.emploi_affichage, champs.code_emploi_ft.as_deref().unwrap_or_default()), champs })
 }
 // ---------------------------------------------------------------- rubriques cochees

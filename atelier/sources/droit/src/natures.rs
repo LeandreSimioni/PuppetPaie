@@ -378,10 +378,37 @@ fn fichier() -> Resultat<Arc<Value>> {
     json_en_cache(&dossier_du_code().join("contrats-base.json"))
 }
 
+/// `categories_d_emploi` de `contrats-base.json`.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CategoriesDEmploi {
+    #[serde(rename = "_quoi")]
+    _quoi: String,
+    #[serde(rename = "_source")]
+    _source: String,
+    /// Le libelle de la norme, par classement conventionnel (S21.G00.40.002).
+    par_classement: std::collections::BTreeMap<String, String>,
+    artiste_non_cadre: ArtisteNonCadre,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ArtisteNonCadre {
+    libelle: String,
+    #[serde(rename = "note")]
+    _note: String,
+}
+
 /// La categorie d'emploi d'un classement conventionnel (S21.G00.40.002), telle que le contrat ecrit l'imprime
-/// (`categories_d_emploi` de `contrats-base.json`, libelles de la norme ; R1221-34, 3°).
-pub fn categorie_d_emploi(classement: &str) -> Resultat<Option<String>> {
-    Ok(fichier()?.get("categories_d_emploi").and_then(|c| c.get(classement)).and_then(texte))
+/// (`categories_d_emploi` de `contrats-base.json`, libelles de la norme ; R1221-34, 3°). L'`artiste` qui n'est pas cadre
+/// (03, 04) : « non-cadre », la categorie de sa convention (3090, art. 6.3 ; 1285, art. XI.2.1), pas le libelle du 05.
+pub fn categorie_d_emploi(classement: &str, artiste: bool) -> Resultat<Option<String>> {
+    let c: CategoriesDEmploi = serde_json::from_value(fichier()?.get("categories_d_emploi").cloned().ok_or_else(|| socle::fichiers::absent("categories_d_emploi"))?)
+        .map_err(|e| socle::echec::cle(format!("contrats-base.json : {}", e), "categories_d_emploi"))?;
+    if artiste && !matches!(classement, "03" | "04") {
+        return Ok(Some(c.artiste_non_cadre.libelle));
+    }
+    Ok(c.par_classement.get(classement).cloned())
 }
 
 /// La nature d'un engagement qui ne dit pas la sienne : le CDDU.
