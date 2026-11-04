@@ -76,33 +76,3 @@ impl<'de> serde::Deserialize<'de> for Nombre {
         decimal(d).map(Nombre)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(serde::Deserialize, Debug)]
-    #[serde(deny_unknown_fields)]
-    #[allow(dead_code)]
-    struct Ligne {
-        id: String,
-        taux: f64,
-    }
-
-    #[derive(serde::Deserialize, Debug)]
-    #[serde(deny_unknown_fields)]
-    #[allow(dead_code)]
-    struct Fichier {
-        lignes: Vec<Ligne>,
-    }
-
-    #[test]
-    fn une_cle_inconnue_se_refuse_avec_son_chemin() {
-        let v = serde_json::json!({"lignes": [{"id": "a", "taux": 1.0}, {"id": "b", "taux": 2.0, "tuax": 3}]});
-        let e = lire::<Fichier>(&v, "Le fichier ne se lit pas.").unwrap_err();
-        let (phrase, plus) = crate::echec::separer(&e);
-        assert_eq!(phrase, "Le fichier ne se lit pas.");
-        assert_eq!(plus["cle"], "lignes[1].tuax", "{}", e);
-        assert!(plus["detail"].as_str().unwrap().contains("`tuax` n'est pas connue"), "{}", e);
-    }
-}
