@@ -1166,6 +1166,41 @@ fn texte_de(d: &Map<String, Value>, cle: &str) -> R<String> {
     }
 }
 
+/// CE QUE LE TYPE D'UNE CASE REFUSE (`droit::fiche::FormeDeCase::FAUTE`, une ligne d'adresse trop longue) : la fiche
+/// telle qu'elle se lira, case par case et ligne par ligne d'une structure en lignes (les etablissements). La faute
+/// d'une forme declaree se dit sur la forme lisible dont elle se deduit, qui est ce qu'on corrige.
+fn fautes_des_types(nom: &str, champs: &[Champ], donnees: &Map<String, Value>) -> Vec<Value> {
+    let cases = match nom {
+        "entreprise" => <droit::fiche::ChampsEntreprise as droit::fiche::FormeDeCase>::cases(),
+        "salarie" => <droit::fiche::ChampsSalarie as droit::fiche::FormeDeCase>::cases(),
+        _ => Vec::new(),
+    };
+    let saisie = |champs: &[Champ], cle: &str| champs.iter().find(|c| c.cle == cle).and_then(|c| c.derive_de.clone()).unwrap_or_else(|| cle.to_string());
+    let mut fautes = Vec::new();
+    for d in &cases {
+        match donnees.get(d.cle) {
+            Some(Value::String(t)) => {
+                if let Some(f) = d.faute.and_then(|faute| faute(t)) {
+                    fautes.push(anomalie(&saisie(champs, d.cle), "erreur", f));
+                }
+            }
+            Some(Value::Array(lignes)) => {
+                for l in lignes.iter().filter_map(Value::as_object) {
+                    for s in &d.cases {
+                        let (Some(faute), Some(Value::String(t))) = (s.faute, l.get(s.cle)) else { continue };
+                        if let Some(f) = faute(t) {
+                            let qui = l.get("libelle").and_then(Value::as_str).filter(|q| !q.is_empty()).unwrap_or("un établissement");
+                            fautes.push(anomalie(d.cle, "erreur", format!("{} : {}", qui, f)));
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    fautes
+}
+
 fn anomalie(champ: &str, gravite: &str, message: impl Into<String>) -> Value {
     json!({"champ": champ, "gravite": gravite, "message": message.into()})
 }
@@ -1394,6 +1429,7 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
             anomalies.push(anomalie(&c.cle, "erreur", msg));
         }
     }
+    let des_types = fautes_des_types(nom, &champs, &donnees);
     anomalies.extend(controles_croises(nom, &donnees)?);
     // UNE REGLE DE FORME PEUT SE TROMPER et la valeur etre juste : son erreur se passe outre a l'ecran (`forcable`).
     // CE QUE L'ECRAN DIT D'UNE ERREUR, d'apres le champ : s'il part dans une declaration (`declare` ; un champ lisible,
@@ -1423,6 +1459,12 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
                 a["message"] = json!(m);
             }
         }
+    }
+    // CE QUE LE TYPE DE LA CASE REFUSE ne se passe pas outre, fiche active ou non : la fiche ne se relirait pas.
+    for mut a in des_types {
+        a["forcable"] = json!(false);
+        a["pourquoi"] = json!("La fiche ne se relirait pas : la valeur se corrige.");
+        anomalies.push(a);
     }
     Ok(anomalies)
 }

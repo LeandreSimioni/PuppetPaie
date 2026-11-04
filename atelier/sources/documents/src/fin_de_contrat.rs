@@ -63,7 +63,7 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &droit::fiche::ChampsEntreprise
         m.insert(k, v);
     };
     poser(Marqueur::EmployeurRaisonSociale, ecrite(&ent.raison_sociale, "raison_sociale")?);
-    poser(Marqueur::EmployeurAdresse, ecrite(&ent.adresse, "adresse")?);
+    poser(Marqueur::EmployeurAdresse, droit::fiche::avec_complement(ecrite(&ent.adresse.en_texte(), "adresse")?, ent.complement_adresse.remplie()));
     poser(Marqueur::EmployeurCodePostal, ecrite(&ent.code_postal, "code_postal")?);
     poser(Marqueur::EmployeurCommune, ecrite(&ent.commune, "commune")?);
     poser(Marqueur::EmployeurSiret, ecrite(&ent.siret, "siret")?);

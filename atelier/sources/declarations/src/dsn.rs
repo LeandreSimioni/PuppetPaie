@@ -93,8 +93,17 @@ impl Fichier {
         Ok(())
     }
 
+    /// LE COMPLEMENT D'ADRESSE (S10.G00.01.009, S21.G00.06.007, S21.G00.11.006 : « Complement de la localisation de la
+    /// construction », facultatif, X [1,50], `atelier/reference/norme-dsn/texte/bloc-S21.G00.06.txt` l. 98-110) : la
+    /// seconde ligne de l'adresse, ecrite entiere quand la fiche la dit, absente sinon.
+    pub fn add_complement(&mut self, rubrique: &str, case: &droit::fiche::Case<droit::fiche::LigneAdresse>) {
+        if let Some(t) = case.remplie() {
+            self.add(rubrique, t);
+        }
+    }
+
     /// La case `cle` d'une fiche, que la rubrique exige : absente ou nulle, elle refuse ; vide, elle s'ecrit vide.
-    pub fn add_case(&mut self, rubrique: &str, case: &droit::fiche::Case<String>, cle: &str) -> Resultat<()> {
+    pub fn add_case<T: AsRef<str>>(&mut self, rubrique: &str, case: &droit::fiche::Case<T>, cle: &str) -> Resultat<()> {
         match case {
             droit::fiche::Case::Absente => Err(socle::fichiers::absent(cle)),
             droit::fiche::Case::Nulle => Err(absente(rubrique)),
@@ -4487,6 +4496,7 @@ certificat de conformite du depot precedent.",
     f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
     f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
     f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
+    f.add_complement("S10.G00.01.009", &ent.complement_adresse);
     contact_emetteur(&mut f, &ent)?;
 
     f.add("S20.G00.05.001", "01");
@@ -4515,6 +4525,7 @@ certificat de conformite du depot precedent.",
     f.add_case("S21.G00.06.004", &ent.adresse, "adresse")?;
     f.add_case("S21.G00.06.005", &ent.code_postal, "code_postal")?;
     f.add_case("S21.G00.06.006", &ent.commune, "commune")?;
+    f.add_complement("S21.G00.06.007", &ent.complement_adresse);
     let doeth = if principal { crate::oeth::declaration(ctx, mois)? } else { None };
     // La contribution supplementaire a l'apprentissage, sur l'etablissement principal seul (fiches 2588 et 2963 :
     // « sur un seul établissement »).
@@ -4533,7 +4544,7 @@ certificat de conformite du depot precedent.",
     for (rubrique, case, cle) in [
         ("S21.G00.11.001", &ent_e.nic, "nic"),
         ("S21.G00.11.002", &ent_e.naf, "naf"),
-        ("S21.G00.11.003", &ent_e.adresse, "adresse"),
+        ("S21.G00.11.003", &ent_e.adresse.en_texte(), "adresse"),
         ("S21.G00.11.004", &ent_e.code_postal, "code_postal"),
         ("S21.G00.11.005", &ent_e.commune, "commune"),
         ("S21.G00.11.022", &ent_e.idcc, "idcc"),
@@ -4542,6 +4553,9 @@ certificat de conformite du depot precedent.",
             continue;
         }
         f.add_case(rubrique, case, cle)?;
+        if rubrique == "S21.G00.11.005" {
+            f.add_complement("S21.G00.11.006", &ent_e.complement_adresse);
+        }
     }
     if let Some(spst) = spst_ecrit(&f, &ent_e)? {
         f.add("S21.G00.11.025", spst);

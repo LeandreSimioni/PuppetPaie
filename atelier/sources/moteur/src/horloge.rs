@@ -221,7 +221,7 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
     // La re-verification precede TOUT geste : ce qui suit ne s'execute que dans une compagnie fictive.
     let mut jouer = || envois::journal::dater_pendant(quand, ORIGINE, || d.reverifier().and_then(|_| geste(&ctx)));
     let fait = match instant_du_pas(quand) {
-        Some(t) => socle::temps::pendant(t, jouer),
+        Some(t) => socle::temps::pendant_le_pas_fictif(t, &format!("{} {}", quand, quoi), jouer),
         None => jouer(),
     };
     let dit = match fait {

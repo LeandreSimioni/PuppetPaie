@@ -726,7 +726,7 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, bareme: &Value) -> Res
         if !siren.is_empty() && !cle_siret(&format!("{}{}", siren, nic)) {
             griefs.push(format!("{} : le SIRET {}{} n'a pas une cle juste", nom, siren, nic));
         }
-        for (cle, c) in [("adresse", &e.adresse), ("code_postal", &e.code_postal), ("commune", &e.commune)] {
+        for (cle, c) in [("adresse", &e.adresse.en_texte()), ("code_postal", &e.code_postal), ("commune", &e.commune)] {
             if c.texte().trim().is_empty() {
                 griefs.push(format!("{} : `{}` manque", nom, cle));
             }

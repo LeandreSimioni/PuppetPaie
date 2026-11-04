@@ -27,7 +27,7 @@
 //! dans son processus). L'INSTANT FIGE ET LE COMPTEUR DES ALEAS sont propres a chaque route servie, donc a son fil : des
 //! routes servies en meme temps (la page, la veille, l'etat refait en fond) ne se figent ni ne se comptent l'une l'autre.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::sync::Mutex;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -51,6 +51,9 @@ thread_local! {
     static FIGE: Cell<Option<f64>> = const { Cell::new(None) };
     /// Les tirages deja faits par la route servie sur ce fil (aleas en suite fixe).
     static TIRAGES: Cell<u64> = const { Cell::new(0) };
+    /// Le pas de l'horloge d'une compagnie fictive joue sur ce fil hors d'un rejeu (`pendant_le_pas_fictif`) : ses aleas
+    /// sont une suite fixe, tiree de ce qui le nomme.
+    static PAS_FICTIF: RefCell<Option<String>> = const { RefCell::new(None) };
 }
 
 fn etat() -> std::sync::MutexGuard<'static, Option<Simule>> {
@@ -59,6 +62,11 @@ fn etat() -> std::sync::MutexGuard<'static, Option<Simule>> {
 
 fn aleas_fixes_poses() -> bool {
     etat().as_ref().is_some_and(|s| s.aleas_fixes)
+}
+
+/// Les aleas sont-ils une suite fixe sur ce fil : le rejeu, le banc, ou un pas de l'horloge d'une fictive ?
+fn aleas_fixes_ici() -> bool {
+    aleas_fixes_poses() || PAS_FICTIF.with_borrow(Option::is_some)
 }
 
 fn montre() -> f64 {
@@ -141,6 +149,22 @@ pub fn pendant<T>(instant: f64, f: impl FnOnce() -> T) -> T {
     r
 }
 
+/// `f`, UN PAS DE L'HORLOGE D'UNE COMPAGNIE FICTIVE, le temps fige a `instant` (`pendant`). Ses aleas ne sont jamais ceux
+/// du systeme : au rejeu, ils poursuivent la suite fixe du geste ; ailleurs (la fictive livree, que son horloge fait vivre
+/// sur le poste), ils sont la suite fixe du pas, tiree de `pas` (ce qui le nomme et son heure) et d'un compteur parti de
+/// zero : deux horloges qui jouent les memes pas ecrivent les memes octets (un code de signature, un nom de courriel).
+/// Une fictive n'a aucun secret : rien ne part d'elle.
+pub fn pendant_le_pas_fictif<T>(instant: f64, pas: &str, f: impl FnOnce() -> T) -> T {
+    if aleas_fixes_poses() {
+        return pendant(instant, f);
+    }
+    let avant = (PAS_FICTIF.replace(Some(pas.to_string())), TIRAGES.replace(0));
+    let r = pendant(instant, f);
+    PAS_FICTIF.set(avant.0);
+    TIRAGES.set(avant.1);
+    r
+}
+
 /// LE REJEU commence : les aleas deviennent une suite fixe, a partir du premier tirage.
 pub fn aleas_fixes() {
     let mut e = etat();
@@ -183,7 +207,8 @@ pub fn instant_de(jour: Jour, heure: i64) -> f64 {
 /// systeme, ou, au rejeu, la suite fixe (SHA-256 du rang du tirage). Jamais pour un secret : le coffre, la cle d'une
 /// mise a jour, l'autorisation Google tirent les leurs du systeme, toujours.
 pub fn aleas(o: &mut [u8]) -> Result<(), String> {
-    let tirage = aleas_fixes_poses().then(|| {
+    let pas = PAS_FICTIF.with_borrow(Clone::clone);
+    let tirage = aleas_fixes_ici().then(|| {
         let rang = TIRAGES.get() + 1;
         TIRAGES.set(rang);
         (rang, FIGE.get().map_or(0, f64::to_bits))
@@ -193,7 +218,10 @@ pub fn aleas(o: &mut [u8]) -> Result<(), String> {
     };
     let mut bloc = 0u64;
     for morceau in o.chunks_mut(32) {
-        let h = Sha256::digest(format!("puppetpaie-rejeu-{}-{}-{}", graine, rang, bloc).as_bytes());
+        let h = match &pas {
+            None => Sha256::digest(format!("puppetpaie-rejeu-{}-{}-{}", graine, rang, bloc).as_bytes()),
+            Some(p) => Sha256::digest(format!("puppetpaie-fictive-{}-{}-{}-{}", p, graine, rang, bloc).as_bytes()),
+        };
         morceau.copy_from_slice(&h[..morceau.len()]);
         bloc += 1;
     }
@@ -203,7 +231,7 @@ pub fn aleas(o: &mut [u8]) -> Result<(), String> {
 /// UNE DUREE QU'ON ECRIT (le temps qu'a pris un envoi, un passage de la veille) : celle de la montre ; au rejeu, zero --
 /// elle ne dit rien de la compagnie, et deux rejeux doivent ecrire les memes octets.
 pub fn duree(debut: Instant) -> std::time::Duration {
-    if aleas_fixes_poses() {
+    if aleas_fixes_ici() {
         std::time::Duration::ZERO
     } else {
         debut.elapsed()
@@ -212,7 +240,7 @@ pub fn duree(debut: Instant) -> std::time::Duration {
 
 /// Le numero du processus, pour un identifiant (un `Message-ID`) : au rejeu, toujours 1.
 pub fn numero_de_processus() -> u32 {
-    if aleas_fixes_poses() {
+    if aleas_fixes_ici() {
         1
     } else {
         std::process::id()

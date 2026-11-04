@@ -936,7 +936,8 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     let (siret, naf) = (vue.siret.ecrite("siret")?, vue.naf.ecrite("naf")?);
     let etablissement = ent.etablissement(vue.nic.texte()).map(|l| {
         let ou = |usage: &Case<String>, civil: &Case<String>| usage.remplie().or(civil.portee()).unwrap_or_default().to_string();
-        let lieu = [ou(&l.adresse_affichage, &l.adresse), l.code_postal.texte().to_string(), ou(&l.commune_affichage, &l.commune)]
+        let adresse = droit::fiche::avec_complement(ou(&l.adresse_affichage, &l.adresse.en_texte()), l.complement_adresse_affichage.remplie().or(l.complement_adresse.remplie()));
+        let lieu = [adresse, l.code_postal.texte().to_string(), ou(&l.commune_affichage, &l.commune)]
             .into_iter()
             .filter(|s| !s.trim().is_empty())
             .collect::<Vec<_>>()

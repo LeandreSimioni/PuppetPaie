@@ -35,14 +35,23 @@ fn de_la_validation_a_l_attestation() {
     let ecrit = c.join("engagements").join("2026-03.json");
     assert!(!ecrit.exists(), "un motif refuse : rien n'est ecrit");
     reussi(&route(&c, "valider-engagement", saisie("02"), "2026-02-25"));
+    // Le contrat CDD se fabrique depuis l'engagement valide : un modele qui tairait une mention de L1242-12 se refuse
+    // (`refuser_les_mentions_absentes`), le PDF imprime porte donc la nature, le motif de recours et le terme.
+    let contrat = json!({"mois": "2026-03", "contrats": [{"salarie": "FULLER", "debut": "2026-03-02"}]});
+    reussi(&route(&c, "contrats-imprimer", contrat, "2026-02-25"));
+    assert!(c.join("sorties/2026-03/envoi/Contrat_FULLER_FU2.26.01_Mars2026.pdf").exists(), "le contrat CDD de FULLER");
 
-    // L'engagement ecrit de FULLER, abime a la main : sa carte ne se lit pas, et le refus le nomme.
-    let texte = std::fs::read_to_string(&ecrit).unwrap();
-    assert!(texte.contains("\"salaire_mensuel\": 2500"), "le salaire ecrit : {}", texte);
-    std::fs::write(&ecrit, texte.replace("\"salaire_mensuel\": 2500", "\"salaire_mensuel\": \"deux mille\"")).unwrap();
+    // La fiche de FULLER dit une profession de deduction forfaitaire specifique que la compagnie n'a pas choisie : sa
+    // paie de mai ne se calcule pas (`calcul::deduction_forfaitaire`), le refus le nomme, et celle de SVOBODA s'ecrit.
+    // La profession se retire depuis le debut de son contrat.
+    let dfs = |profession: &str, depuis: &str| {
+        json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "depuis": depuis, "donnees": {"deduction_forfaitaire": profession}})
+    };
+    reussi(&route(&c, "enregistrer-fiche", dfs("artiste_choregraphique", "2026-05-01"), "2026-05-20"));
     let (_, phrase) = refus(&route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20"));
     assert!(phrase.contains("FULLER") && !phrase.contains("SVOBODA"), "le refus est celui de FULLER : {}", phrase);
-    std::fs::write(&ecrit, texte).unwrap();
+    assert!(std::fs::read_to_string(c.join("paies").join("2026-05.json")).unwrap().contains("SV1.26.01"), "la paie de mai de SVOBODA");
+    reussi(&route(&c, "enregistrer-fiche", dfs("", "2026-03-02"), "2026-05-20"));
 
     let ap = route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20");
     let paies = reussi(&ap)["paies"].as_array().unwrap().clone();

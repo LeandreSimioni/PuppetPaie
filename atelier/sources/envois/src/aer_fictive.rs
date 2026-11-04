@@ -336,7 +336,7 @@ fn attestation(ent: &droit::fiche::ChampsEntreprise, ind: &Individu, plus: &Comp
     etiquette(&mut p1, 30.0, 362.0, "Nom ou raison sociale");
     f.imprime(1, "ENSEIGNE", [146.0, 352.0, 567.0, 365.0], &champ(&ent.raison_sociale), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 380.0, "Adresse");
-    f.imprime(1, "ADR_EMP_CONCATENEE", [74.0, 370.0, 567.0, 383.0], &champ(&ent.adresse), 8.5, "gauche");
+    f.imprime(1, "ADR_EMP_CONCATENEE", [74.0, 370.0, 567.0, 383.0], &droit::fiche::avec_complement(champ(&ent.adresse.en_texte()), ent.complement_adresse.remplie()), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 397.0, "Code postal");
     f.imprime(1, "ADR_EMP_CP", [90.0, 388.0, 155.0, 399.0], &champ(&ent.code_postal), 8.5, "gauche");
     etiquette(&mut p1, 165.0, 397.0, "Commune");

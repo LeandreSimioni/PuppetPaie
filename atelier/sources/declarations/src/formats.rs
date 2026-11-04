@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 // Les rubriques de la table des formats qui se saisissent dans une fiche :
 // (rubrique, fiche, champ), tels que `champs.champ_de_rubrique` les rend.
-const SAISIES: [(&str, &str, &str); 32] = [
+const SAISIES: [(&str, &str, &str); 33] = [
     ("S10.G00.01.003", "entreprise", "raison_sociale"),
     ("S21.G00.06.001", "entreprise", "siren"),
     ("S21.G00.06.002", "entreprise", "nic"),
@@ -26,6 +26,7 @@ const SAISIES: [(&str, &str, &str); 32] = [
     ("S21.G00.06.004", "entreprise", "adresse"),
     ("S21.G00.06.005", "entreprise", "code_postal"),
     ("S21.G00.06.006", "entreprise", "commune"),
+    ("S21.G00.06.007", "entreprise", "complement_adresse"),
     ("S21.G00.11.022", "entreprise", "idcc"),
     ("S21.G00.20.002", "entreprise", "france_travail_dossier_recouvrement"),
     ("S21.G00.30.001", "salarie", "nir"),

@@ -54,7 +54,7 @@ pub struct Lignes {
     pub numeros: Vec<String>,
 }
 
-fn texte_de(c: &droit::fiche::Case<String>) -> Option<String> {
+fn texte_de<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
     c.remplie().map(str::to_string)
 }
 
@@ -69,6 +69,9 @@ pub fn lignes(ent: &droit::fiche::ChampsEntreprise) -> Lignes {
     let mut lieu = Vec::new();
     if let Some(adresse) = texte_de(&ent.adresse_affichage).or_else(|| texte_de(&ent.adresse)) {
         lieu.push(adresse);
+    }
+    if let Some(complement) = texte_de(&ent.complement_adresse_affichage).or_else(|| texte_de(&ent.complement_adresse)) {
+        lieu.push(complement);
     }
     let ou: Vec<String> = [texte_de(&ent.code_postal), texte_de(&ent.commune_affichage).or_else(|| texte_de(&ent.commune))]
         .into_iter()

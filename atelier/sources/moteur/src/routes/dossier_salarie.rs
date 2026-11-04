@@ -1009,24 +1009,13 @@ pub(crate) fn entree_ecrite(nom: String, octets: Vec<u8>) -> Entree {
     Entree { nom, octets, date, heure, attributs: 0o600 << 16 }
 }
 
-/// La date et les droits du fichier.
+/// Le fichier, date de l'instant ou le zip s'ecrit (le temps du moteur, comme tout ce qu'il ecrit : deux rejeux ecrivent le
+/// meme zip), avec ses droits.
 pub(crate) fn entree_fichier(f: &Path, nom: String) -> R<Entree> {
     let octets = std::fs::read(f).map_err(|e| avec("OSError", socle::echec::du_disque(&f, &e)))?;
     let meta = std::fs::metadata(f).map_err(|e| avec("OSError", socle::echec::du_disque(&f, &e)))?;
-    let (date, heure) = horodatage_dos(secondes(&meta));
+    let (date, heure) = horodatage_dos(maintenant());
     Ok(Entree { nom, octets, date, heure, attributs: (mode(&meta) & 0xFFFF) << 16 })
-}
-
-/// `st_mtime` en secondes entieres.
-#[cfg(unix)]
-fn secondes(meta: &std::fs::Metadata) -> i64 {
-    use std::os::unix::fs::MetadataExt;
-    meta.mtime()
-}
-
-#[cfg(not(unix))]
-fn secondes(meta: &std::fs::Metadata) -> i64 {
-    meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs() as i64)
 }
 
 /// `st_mode` d'un fichier du zip. Sous Windows, il se deduit de l'attribut lecture seule : `0o100444`, sinon
