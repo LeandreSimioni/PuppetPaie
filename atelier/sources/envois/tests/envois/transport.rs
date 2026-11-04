@@ -5,8 +5,8 @@
 
 use std::io::Write;
 
-use envois::transport::{authentifier, depot, Authentification};
-use serde_json::{json, Value};
+use envois::transport::{authentifier, depot, Authentification, Identite};
+use serde_json::json;
 
 use crate::outils::{serveur, Recu, Requete};
 
@@ -40,11 +40,11 @@ fn faux() -> (String, Recu) {
     })
 }
 
-fn declarant() -> Value {
-    json!({"siret": "12345678901234", "nom": "DUPONT", "prenom": "Jean Pierre"})
+fn declarant() -> Identite {
+    Identite { siret: "12345678901234".into(), nom: "DUPONT".into(), prenom: "Jean Pierre".into() }
 }
 
-fn auth<'a>(url: &'a str, declarant: &'a Value, motdepasse: Option<&'a str>) -> Authentification<'a> {
+fn auth<'a>(url: &'a str, declarant: &'a Identite, motdepasse: Option<&'a str>) -> Authentification<'a> {
     Authentification { url, declarant, motdepasse, variable: "NET_ENTREPRISES_MOTDEPASSE", service: Some("97"), jeton: None }
 }
 
@@ -71,7 +71,7 @@ fn un_mot_de_passe_absent_ou_un_declarant_incomplet_ne_partent_pas() {
     for mdp in [None, Some("")] {
         assert!(authentifier(&auth(&url, &d, mdp)).is_err());
     }
-    let incomplet = json!({"siret": "1", "nom": "", "prenom": null});
+    let incomplet = Identite { siret: "1".into(), ..Identite::default() };
     assert!(authentifier(&auth(&url, &incomplet, Some("secret"))).is_err());
     assert!(recu.lock().unwrap().is_empty(), "rien n'est parti");
 }

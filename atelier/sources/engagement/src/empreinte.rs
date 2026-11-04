@@ -39,19 +39,11 @@ pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Optio
 }
 
 fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> String {
-    // La fiche au jour, dans l'ordre de sa forme (`droit::fiche`), sans ses taux recus.
-    let sal = match ctx.salaries.get(salarie) {
-        Some(f) => {
-            let mut champs = f.champs.clone();
-            champs.taux_pas = droit::fiche::Case::Absente;
-            champs.en_valeur()
-        }
-        None => Value::Null,
-    };
-    let spec = spectacle.and_then(|k| ctx.spectacles.get(k)).cloned().unwrap_or(Value::Null);
-    // L'entreprise de meme, dans l'ordre de sa forme.
-    let v = Value::Array(vec![ctx.entreprise.en_valeur(), sal, spec]);
-    fichiers::sha256_hex(v.to_string().as_bytes())
+    // L'entreprise, la fiche au jour sans ses taux recus, et le spectacle, chacun dans l'ordre de sa forme
+    // (`droit::fiche`) ; ce qui manque s'ecrit `null`.
+    let sal = ctx.salaries.get(salarie).map(|f| droit::fiche::ChampsSalarie { taux_pas: droit::fiche::Case::Absente, ..f.champs.clone() });
+    let spec = spectacle.and_then(|k| ctx.spectacles.get(k));
+    fichiers::sha256_hex(serde_json::to_string(&(&ctx.entreprise, &sal, &spec)).unwrap_or_default().as_bytes())
 }
 
 /// L'entree `fiches [mois, salarie, spectacle]` tient-elle encore ?

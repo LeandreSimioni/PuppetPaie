@@ -8,10 +8,8 @@
 //! fichier reel comme un reel demande sur un fichier de test. Le transport
 //! est ailleurs (`transport`).
 
-use serde_json::Value;
 
 use socle::texte::ascii_nfkd;
-use socle::fichiers::vrai;
 use crate::retours::{est_chiffre};
 use socle::echec::Echec;
 use socle::texte::{lignes_du_texte as lignes, strip};
@@ -407,24 +405,16 @@ pub fn basculer_dpae(octets: &[u8], longueur: i64) -> Resultat<Vec<u8>> {
 /// Ce que le controle des identifiants DPAE verifie sans rien lire d'ailleurs :
 /// l'identite du declarant et ses accents. `arobase` : le mot de passe porte un
 /// `@`.
-pub fn identifiants(declarant: &Value, arobase: bool) -> Resultat<Vec<String>> {
+pub fn identifiants(declarant: &crate::transport::Identite, arobase: bool) -> Resultat<Vec<String>> {
     let mut soucis = Vec::new();
-    let champ = |c: &str| declarant.get(c).filter(|v| vrai(v));
-    let manquants: Vec<&str> = [("siret", "le SIRET"), ("nom", "le nom"), ("prenom", "le prénom")].into_iter().filter(|(c, _)| champ(c).is_none()).map(|(_, m)| m).collect();
+    let manquants = declarant.manquants();
     if !manquants.is_empty() {
         soucis.push(format!(
             "Le compte des DPAE est incomplet (il manque : {}). Il se saisit dans Configuration › Mots de passe, ligne Urssaf (DPAE) : le nom et le prénom du compte ouvert sur urssaf.fr pour la DPAE.",
             manquants.join(", ")
         ));
     }
-    for c in ["nom", "prenom"] {
-        let v = match champ(c) {
-            None => "",
-            Some(Value::String(s)) => s.as_str(),
-            Some(x) => {
-                return Err(refus("TypeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(x))));
-            }
-        };
+    for (c, v) in [("nom", declarant.nom.as_str()), ("prenom", declarant.prenom.as_str())] {
         if v != ascii_nfkd(v) {
             soucis.push(format!(
                 "Le {} du declarant (« {} ») porte un accent. La DUE MtoM les refuse : corriger config/entreprise.json.",

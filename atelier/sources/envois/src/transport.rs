@@ -134,18 +134,6 @@ fn horodatage(iso: &str) -> Result<String, String> {
     Ok(jour + &heure)
 }
 
-/// Vrai pour une valeur presente et non vide (ni `null`, `false`, `0`, `""`, `[]`, `{}`).
-fn vrai(v: Option<&Value>) -> bool {
-    match v {
-        None | Some(Value::Null) | Some(Value::Bool(false)) => false,
-        Some(Value::String(s)) => !s.is_empty(),
-        Some(Value::Array(a)) => !a.is_empty(),
-        Some(Value::Object(o)) => !o.is_empty(),
-        Some(Value::Number(n)) => n.as_f64().map(|f| f != 0.0).unwrap_or(true),
-        Some(Value::Bool(true)) => true,
-    }
-}
-
 // ------------------------------------------------------------------- gzip
 
 /// Decompresse un corps gzip ; les refus (tronque, en-tete invalide, somme de controle) sont dits en francais.
@@ -603,28 +591,43 @@ pub fn consulter(base: &str, jeton: Option<&str>, debut: &str, fin: Option<&str>
     appeler(&url, jeton).map(|(corps, _)| corps)
 }
 
+/// LE DECLARANT QUI S'AUTHENTIFIE : le SIRET, le nom et le prenom du compte ouvert pour le service (vides : la fiche ne
+/// les dit pas).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Identite {
+    pub siret: String,
+    pub nom: String,
+    pub prenom: String,
+}
+
+impl Identite {
+    /// Ce qui lui manque pour s'authentifier, dit en mots.
+    pub fn manquants(&self) -> Vec<&'static str> {
+        [(&self.siret, "le SIRET"), (&self.nom, "le nom"), (&self.prenom, "le prénom")].into_iter().filter(|(c, _)| c.trim().is_empty()).map(|(_, m)| m).collect()
+    }
+}
+
 /// L'identite du declarant inscrit au service DSN, telle que l'authentification l'envoie : celle que la fiche dit
 /// (`declarant`), sinon le SIRET et le contact DSN coupe au premier espace (le nom, puis le prenom).
-pub fn declarant(ent: &droit::fiche::ChampsEntreprise) -> Result<Value, Value> {
+pub fn declarant(ent: &droit::fiche::ChampsEntreprise) -> Identite {
     if let Some(d) = ent.declarant.dite().filter(|d| !d.est_vide()) {
-        return Ok(serde_json::to_value(d).unwrap_or(Value::Null));
+        return Identite { siret: d.siret.texte().to_string(), nom: d.nom.texte().to_string(), prenom: d.prenom.texte().to_string() };
     }
     let brut = ent.declarant_dsn.dite().map_or("", |d| d.nom_prenom.texte());
     let morceaux = mots(socle::texte::strip(brut));
-    let mut m = Map::new();
-    m.insert("siret".into(), ent.siret.en_valeur());
+    let mut i = Identite { siret: ent.siret.texte().to_string(), ..Identite::default() };
     if morceaux.len() >= 2 {
-        m.insert("nom".into(), Value::String(morceaux[0].into()));
-        m.insert("prenom".into(), Value::String(morceaux[1..].join(" ")));
+        i.nom = morceaux[0].to_string();
+        i.prenom = morceaux[1..].join(" ");
     }
-    Ok(Value::Object(m))
+    i
 }
 
 /// Ce qu'une authentification envoie : le declarant inscrit au service, le mot de passe deja prepare par l'appelant, le
 /// service, et le jeton d'une session deja ouverte.
 pub struct Authentification<'a> {
     pub url: &'a str,
-    pub declarant: &'a Value,
+    pub declarant: &'a Identite,
     pub motdepasse: Option<&'a str>,
     /// La variable d'environnement que le refus nomme quand le mot de passe manque.
     pub variable: &'a str,
@@ -657,8 +660,7 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
         }
     };
     let decl = a.declarant;
-    let manquants: Vec<&str> =
-        [("siret", "le SIRET"), ("nom", "le nom"), ("prenom", "le prénom")].into_iter().filter(|(c, _)| !vrai(decl.get(*c))).map(|(_, m)| m).collect();
+    let manquants = decl.manquants();
     if !manquants.is_empty() {
         return Err(echec(
             "ErreurApi",
@@ -672,9 +674,9 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
     let service = a.service.filter(|s| !s.is_empty());
     let corps = format!(
         "<identifiants><siret>{}</siret><nom>{}</nom><prenom>{}</prenom><motdepasse>{}</motdepasse>{}</identifiants>",
-        socle::valeur::valeur_en_texte(&decl["siret"]),
-        socle::valeur::valeur_en_texte(&decl["nom"]),
-        socle::valeur::valeur_en_texte(&decl["prenom"]),
+        decl.siret,
+        decl.nom,
+        decl.prenom,
         echapper(mdp),
         service.map(|s| format!("<service>{}</service>", s)).unwrap_or_default()
     );

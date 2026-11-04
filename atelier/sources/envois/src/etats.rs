@@ -752,7 +752,7 @@ fn pluriel(n: usize) -> &'static str {
 }
 
 /// `", ".join(liste)` : chaque element doit etre un texte.
-pub fn joindre(sep: &str, v: &[Value]) -> R<String> {
+fn joindre(sep: &str, v: &[Value]) -> R<String> {
     let mut out = Vec::new();
     for (i, x) in v.iter().enumerate() {
         match x {
