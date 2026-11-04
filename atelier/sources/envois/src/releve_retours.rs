@@ -166,7 +166,7 @@ pub struct Client {
     pub adresses: Adresses,
     pub jeton: Option<String>,
     pub expire_le: Option<String>,
-    pub declarant: Value,
+    pub declarant: crate::transport::Identite,
     motdepasse: Option<String>,
     variable: &'static str,
     majuscules: bool,
@@ -175,7 +175,7 @@ pub struct Client {
 impl Client {
     /// `Client(ctx, environnement, motdepasse=...)` : le compte net-entreprises de la DSN.
     pub fn dsn(ctx: &Contexte, environnement: &str, motdepasse: Option<String>) -> Result<Client, Panne> {
-        let declarant = crate::transport::declarant(&ctx.entreprise).map_err(panne_de)?;
+        let declarant = crate::transport::declarant(&ctx.entreprise);
         Ok(Client {
             adresses: adresses_dsn(environnement)?,
             jeton: None,
@@ -190,12 +190,12 @@ impl Client {
     /// `ClientDpae(ctx, majuscules, motdepasse)` : le compte Urssaf, qui n'est pas celui de la DSN.
     pub fn dpae(ctx: &Contexte, majuscules: bool, motdepasse: Option<String>) -> Client {
         let compte = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
-        let siret = if compte.siret.texte().is_empty() { ctx.entreprise.siret.en_valeur() } else { compte.siret.en_valeur() };
+        let siret = if compte.siret.texte().is_empty() { &ctx.entreprise.siret } else { &compte.siret }.texte().to_string();
         Client {
             adresses: adresses_dpae(&compte),
             jeton: None,
             expire_le: None,
-            declarant: json!({"siret": siret, "nom": compte.nom.en_valeur(), "prenom": compte.prenom.en_valeur()}),
+            declarant: crate::transport::Identite { siret, nom: compte.nom.texte().to_string(), prenom: compte.prenom.texte().to_string() },
             motdepasse,
             variable: VARIABLE_MOTDEPASSE_DPAE,
             majuscules,

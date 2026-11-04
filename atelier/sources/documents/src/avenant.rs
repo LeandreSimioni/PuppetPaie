@@ -12,7 +12,8 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use fabrique_pdf::modele::{self, Modele, Valeurs};
+use crate::marqueurs::{pour_la_fabrique, Marqueur, ModeleLu, Valeurs};
+use fabrique_pdf::modele::{self, Modele};
 use serde_json::Value;
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
@@ -322,35 +323,35 @@ fn lieu_du_contrat(e: &Eng) -> String {
 fn marqueurs(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
     let licence = ent.licence_spectacle.ecrite("licence_spectacle")?.to_string();
     let mut m = parties(ent, fiche, sp, e)?;
-    let mut poser = |k: &str, v: String| {
-        m.insert(k.to_string(), v);
+    let mut poser = |k: Marqueur, v: String| {
+        m.insert(k, v);
     };
-    poser("employeur.licence", licence);
+    poser(Marqueur::EmployeurLicence, licence);
     // Le numero sous lequel la compagnie est affiliee a la Caisse : son numero d'adherent (`conges_spectacles::adherent`).
-    poser("employeur.congesspectacles", crate::conges_spectacles::adherent(ent)?);
-    poser("contrat.fin", Jour::lire(e.fin.as_deref().ok_or("contrat sans fin")?)?.jj_mm_aaaa());
-    poser("contrat.dates_travail", dates_travail(e)?);
-    poser("contrat.lieu", lieu_du_contrat(e));
+    poser(Marqueur::EmployeurCongesspectacles, crate::conges_spectacles::adherent(ent)?);
+    poser(Marqueur::ContratFin, Jour::lire(e.fin.as_deref().ok_or("contrat sans fin")?)?.jj_mm_aaaa());
+    poser(Marqueur::ContratDatesTravail, dates_travail(e)?);
+    poser(Marqueur::ContratLieu, lieu_du_contrat(e));
     // Le jour du versement de la paie (`engagement::Engagement::date_du_versement`, que la paie ecrite porte).
     let paiement = e.date_paiement.as_deref().filter(|p| !p.is_empty()).ok_or_else(|| socle::echec::cle("Un engagement ne se relit pas : le revalider.", "date_paiement"))?;
-    poser("contrat.date_paiement", Jour::lire(paiement)?.jj_mm_aaaa());
-    poser("remuneration.detail", remuneration_detaillee(remuneration, e)?);
-    poser("remuneration.periode", periode_remuneration(e)?);
-    poser("remuneration.hors_brut", remuneration_hors_brut(remuneration)?);
-    poser("remuneration.cachets", e.cachets.clone());
+    poser(Marqueur::ContratDatePaiement, Jour::lire(paiement)?.jj_mm_aaaa());
+    poser(Marqueur::RemunerationDetail, remuneration_detaillee(remuneration, e)?);
+    poser(Marqueur::RemunerationPeriode, periode_remuneration(e)?);
+    poser(Marqueur::RemunerationHorsBrut, remuneration_hors_brut(remuneration)?);
+    poser(Marqueur::RemunerationCachets, e.cachets.clone());
     // Sans taux de cachet, pas de marqueur : un modele qui le cite se refuse (`contrat::refuser_ce_que_le_modele_tairait`).
     if let Some(t) = &e.taux_cachet {
-        poser("remuneration.taux_cachet", fmt_eur(dec(&Value::String(t.clone()))?));
+        poser(Marqueur::RemunerationTauxCachet, fmt_eur(dec(&Value::String(t.clone()))?));
     }
-    poser("remuneration.brut", fmt_eur(dec(brut)?));
-    poser("remuneration.net_estime", fmt_eur(dec(net)?));
-    poser("spectacle.titre", texte_ou_invalide(requis(sp, "titre")?));
+    poser(Marqueur::RemunerationBrut, fmt_eur(dec(brut)?));
+    poser(Marqueur::RemunerationNetEstime, fmt_eur(dec(net)?));
+    poser(Marqueur::SpectacleTitre, texte_ou_invalide(requis(sp, "titre")?));
     // LE NUMERO D'OBJET se reporte sur le contrat « a chaque fois que cela est possible » (annexes VIII et X, art. 47 § 3 :
     // atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt l. 1183-1184, et l'annexe X,
     // l. 1161-1162) : un spectacle qui n'en a pas encore fait son contrat, qui n'en dit rien. Le bulletin, lui, l'exige
     // (`exige_par` de `champs-base.json`).
     let objet = sp.get("numero_objet").and_then(Value::as_str).map(str::trim).filter(|n| !n.is_empty());
-    poser("spectacle.objet", objet.map(|n| format!(" (numéro d'objet France Travail {})", n)).unwrap_or_default());
+    poser(Marqueur::SpectacleObjet, objet.map(|n| format!(" (numéro d'objet France Travail {})", n)).unwrap_or_default());
     Ok(m)
 }
 
@@ -363,38 +364,38 @@ pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalari
     let (idcc, convention) = convention_du_contrat(ent, sp, fiche, &Mois::lire(&e.mois)?.premier_jour())?;
     let sig = ent.signataire.exigee("signataire")?;
     let mut m = Valeurs::new();
-    let mut poser = |k: &str, v: String| {
-        m.insert(k.to_string(), v);
+    let mut poser = |k: Marqueur, v: String| {
+        m.insert(k, v);
     };
-    poser("employeur.raison_sociale", case(&ent.raison_sociale, "raison_sociale")?);
-    poser("employeur.adresse", lisible(&ent.adresse_affichage, &ent.adresse, "adresse")?);
-    poser("employeur.code_postal", case(&ent.code_postal, "code_postal")?);
-    poser("employeur.commune", lisible(&ent.commune_affichage, &ent.commune, "commune")?);
-    poser("employeur.siret", case(&ent.siret, "siret")?);
-    poser("employeur.naf", case(&ent.naf, "naf")?);
-    poser("employeur.idcc", idcc);
-    poser("employeur.convention", convention);
+    poser(Marqueur::EmployeurRaisonSociale, case(&ent.raison_sociale, "raison_sociale")?);
+    poser(Marqueur::EmployeurAdresse, lisible(&ent.adresse_affichage, &ent.adresse, "adresse")?);
+    poser(Marqueur::EmployeurCodePostal, case(&ent.code_postal, "code_postal")?);
+    poser(Marqueur::EmployeurCommune, lisible(&ent.commune_affichage, &ent.commune, "commune")?);
+    poser(Marqueur::EmployeurSiret, case(&ent.siret, "siret")?);
+    poser(Marqueur::EmployeurNaf, case(&ent.naf, "naf")?);
+    poser(Marqueur::EmployeurIdcc, idcc);
+    poser(Marqueur::EmployeurConvention, convention);
     poser(
-        "employeur.signataire",
+        Marqueur::EmployeurSignataire,
         format!("{} {}", lisible(&sig.prenom_affichage, &sig.prenom, "prenom")?, lisible(&sig.nom_affichage, &sig.nom, "nom")?),
     );
     let fonction = case(&sig.fonction, "fonction")?;
     // « en qualité d'administratrice », « de président » : l'élision devant la fonction de qui signe.
-    poser("employeur.qualite_de", de_devant(&fonction).to_string());
-    poser("employeur.signataire_fonction", fonction);
+    poser(Marqueur::EmployeurQualiteDe, de_devant(&fonction).to_string());
+    poser(Marqueur::EmployeurSignataireFonction, fonction);
     let s = fiche;
-    poser("salarie.nom", case(&s.nom, "nom")?);
-    poser("salarie.prenom", lisible(&s.prenom_affichage, &s.prenom, "prenom")?);
-    poser("salarie.nom_complet", format!("{} {}", lisible(&s.prenom_affichage, &s.prenom, "prenom")?, case(&s.nom, "nom")?));
-    poser("salarie.date_naissance", s.date_naissance.exigee("date_naissance")?.jj_mm_aaaa());
-    poser("salarie.lieu_naissance", lisible(&s.lieu_naissance_affichage, &s.lieu_naissance, "lieu_naissance")?);
-    poser("salarie.adresse", lisible(&s.adresse_affichage, &s.adresse, "adresse")?);
-    poser("salarie.code_postal", case(&s.code_postal, "code_postal")?);
-    poser("salarie.commune", lisible(&s.commune_affichage, &s.commune, "commune")?);
+    poser(Marqueur::SalarieNom, case(&s.nom, "nom")?);
+    poser(Marqueur::SalariePrenom, lisible(&s.prenom_affichage, &s.prenom, "prenom")?);
+    poser(Marqueur::SalarieNomComplet, format!("{} {}", lisible(&s.prenom_affichage, &s.prenom, "prenom")?, case(&s.nom, "nom")?));
+    poser(Marqueur::SalarieDateNaissance, s.date_naissance.exigee("date_naissance")?.jj_mm_aaaa());
+    poser(Marqueur::SalarieLieuNaissance, lisible(&s.lieu_naissance_affichage, &s.lieu_naissance, "lieu_naissance")?);
+    poser(Marqueur::SalarieAdresse, lisible(&s.adresse_affichage, &s.adresse, "adresse")?);
+    poser(Marqueur::SalarieCodePostal, case(&s.code_postal, "code_postal")?);
+    poser(Marqueur::SalarieCommune, lisible(&s.commune_affichage, &s.commune, "commune")?);
     // Le numero technique temporaire n'a rien a faire ici : un salarie pas encore immatricule lit
     // ce qui est vrai.
     poser(
-        "salarie.nir",
+        Marqueur::SalarieNir,
         if !s.nir.texte().is_empty() {
             format!("{}{}", s.nir.texte(), s.nir_cle.ecrite("nir_cle")?)
         } else {
@@ -405,22 +406,22 @@ pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalari
     if emploi_texte == INVALIDE {
         return Err("l'emploi n'est pas un texte".to_string());
     }
-    poser("salarie.emploi", emploi_texte.to_lowercase());
-    poser("salarie.qualite_de", de_devant(&emploi_texte).to_string());
+    poser(Marqueur::SalarieEmploi, emploi_texte.to_lowercase());
+    poser(Marqueur::SalarieQualiteDe, de_devant(&emploi_texte).to_string());
     // Un numero que le moteur ne porte pas (contrat pas encore numerote) n'est pas devine ni pris au compteur.
     poser(
-        "contrat.numero",
+        Marqueur::ContratNumero,
         match e.numero.as_deref() {
             Some(n) if !n.is_empty() => n.to_string(),
             _ => INVALIDE.to_string(),
         },
     );
-    poser("contrat.debut", Jour::lire(&e.debut)?.jj_mm_aaaa());
+    poser(Marqueur::ContratDebut, Jour::lire(&e.debut)?.jj_mm_aaaa());
     Ok(m)
 }
 
 /// Le paragraphe tel qu'il se LIT sur le contrat imprime.
-fn texte_brut(texte: &str, vals: &Valeurs) -> Resultat<String> {
+fn texte_brut(texte: &str, vals: &modele::Valeurs) -> Resultat<String> {
     let t = modele::texte_brut(texte, vals).map_err(|r| r.0)?;
     if t.contains(INVALIDE) {
         return Err("une valeur du modele n'est pas un texte".to_string());
@@ -443,6 +444,7 @@ pub struct Modification {
 /// Les articles du modele `m` dont un paragraphe s'ecrit autrement avec les valeurs d'aujourd'hui (`apres`) qu'avec celles
 /// de la version sur laquelle le contrat est parti (`avant`), dans l'ordre du modele.
 pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<Vec<Modification>> {
+    let (avant, apres) = (&pour_la_fabrique(avant), &pour_la_fabrique(apres));
     let mut out = Vec::new();
     for (n, (titre, corps)) in m.articles.iter().enumerate() {
         let n = n + 1;
@@ -515,7 +517,8 @@ pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &ChampsEntreprise, paie: &Value, 
 /// Le modele du contrat ecrit de la nature `nat`, celui de la compagnie s'il est dans ses gabarits, lu.
 pub fn modele_du_contrat(gabarits: &Path, nat: &droit::natures::Nature) -> Resultat<Modele> {
     let nom = nat.modele_contrat().ok_or_else(|| format!("La nature {} n'a pas de contrat écrit.", nat.libelle))?;
-    modele::lire_fichier(&socle::fichiers::modele_de(&nom, Some(gabarits), gabarits).to_string_lossy()).map_err(|r| r.0)
+    let chemin = socle::fichiers::modele_de(&nom, Some(gabarits), gabarits);
+    ModeleLu::du_fichier(&chemin).map_err(|r| r.message)?.decoupe(&chemin.to_string_lossy())
 }
 
 // ------------------------------------------- l'avenant d'un contrat signe ailleurs

@@ -824,14 +824,41 @@ impl std::ops::DerefMut for FicheSalarie {
 /// LA FICHE QUE LA PAIE D'UN CONTRAT LIT : celle du salarie a la date de la periode, telle que l'engagement la voit (son
 /// emploi l'emporte, `emplois::emploi_de`), avec ce que le contrat y ajoute : la convention de l'employeur
 /// (`caisse_conges::intermittent`), l'etablissement de rattachement (S21.G00.11.001), et la sante suspendue d'un mois
-/// sans indemnisation (`bareme::SANTE_SUSPENDUE`). Elle s'ecrit a cote de la paie (`engagement::relire::fiches_du_calcul`),
-/// la cle du salarie en `_cle`, et se relit telle quelle.
-#[derive(Debug, Clone, PartialEq)]
+/// sans indemnisation (`bareme::sans_sante`). Elle s'ecrit a cote de la paie (`engagement::relire::FichesDuCalcul`)
+/// par sa forme (`Figee`) et se relit telle quelle (`lire`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "Figee", into = "Figee")]
 pub struct SalarieDuContrat {
     pub fiche: FicheSalarie,
     pub idcc_de_l_employeur: Option<String>,
     pub etablissement: Option<String>,
     pub sante_suspendue: Option<String>,
+}
+
+/// La forme ecrite de `SalarieDuContrat` : la cle du salarie, ses champs, et ce que le contrat y ajoute.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Figee {
+    cle: IdSalarie,
+    champs: ChampsSalarie,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    idcc_de_l_employeur: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    etablissement: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sante_suspendue: Option<String>,
+}
+
+impl From<Figee> for SalarieDuContrat {
+    fn from(f: Figee) -> SalarieDuContrat {
+        SalarieDuContrat { fiche: FicheSalarie { id: f.cle, champs: f.champs }, idcc_de_l_employeur: f.idcc_de_l_employeur, etablissement: f.etablissement, sante_suspendue: f.sante_suspendue }
+    }
+}
+
+impl From<SalarieDuContrat> for Figee {
+    fn from(s: SalarieDuContrat) -> Figee {
+        Figee { cle: s.fiche.id, champs: s.fiche.champs, idcc_de_l_employeur: s.idcc_de_l_employeur, etablissement: s.etablissement, sante_suspendue: s.sante_suspendue }
+    }
 }
 
 impl std::ops::Deref for SalarieDuContrat {
@@ -847,40 +874,15 @@ impl std::ops::DerefMut for SalarieDuContrat {
     }
 }
 
-/// Les cles que le contrat ajoute a la fiche ecrite a cote de la paie.
-const CLE_DU_SALARIE: &str = "_cle";
-const IDCC_DE_L_EMPLOYEUR: &str = "idcc_de_l_employeur";
-const ETABLISSEMENT: &str = "etablissement";
-const SANTE_SUSPENDUE: &str = "_sante_suspendue";
-
 impl SalarieDuContrat {
     /// La fiche, sans rien que le contrat ajoute.
     pub fn de(fiche: FicheSalarie) -> SalarieDuContrat {
         SalarieDuContrat { fiche, idcc_de_l_employeur: None, etablissement: None, sante_suspendue: None }
     }
 
-    /// Telle qu'elle s'ecrit a cote de la paie.
-    pub fn en_valeur(&self) -> Value {
-        let mut v = self.fiche.champs.en_valeur();
-        if let Some(o) = v.as_object_mut() {
-            o.insert(CLE_DU_SALARIE.into(), Value::String(self.fiche.id.to_string()));
-            for (k, x) in [(IDCC_DE_L_EMPLOYEUR, &self.idcc_de_l_employeur), (ETABLISSEMENT, &self.etablissement), (SANTE_SUSPENDUE, &self.sante_suspendue)] {
-                if let Some(x) = x {
-                    o.insert(k.into(), Value::String(x.clone()));
-                }
-            }
-        }
-        v
-    }
-
-    /// Relue d'a cote de la paie (`en_valeur`).
+    /// Relue d'a cote de la paie, la seule lecture.
     pub fn lire(v: &Value) -> Resultat<SalarieDuContrat> {
-        let mut o = v.as_object().cloned().ok_or_else(|| refus_de_fiche("La fiche lue par la paie", "", "un objet JSON est attendu"))?;
-        let mut texte = |k: &str| o.shift_remove(k).map(|x| socle::valeur::valeur_en_texte(&x));
-        let id = texte(CLE_DU_SALARIE).ok_or_else(|| refus_de_fiche("La fiche lue par la paie", CLE_DU_SALARIE, "la clé _cle manque"))?;
-        let (idcc_de_l_employeur, etablissement, sante_suspendue) = (texte(IDCC_DE_L_EMPLOYEUR), texte(ETABLISSEMENT), texte(SANTE_SUSPENDUE));
-        let champs = lire_champs(&Value::Object(o), "La fiche lue par la paie")?;
-        Ok(SalarieDuContrat { fiche: FicheSalarie { id: IdSalarie::lire(&id)?, champs }, idcc_de_l_employeur, etablissement, sante_suspendue })
+        lire_champs(v, "La fiche lue par la paie")
     }
 }
 

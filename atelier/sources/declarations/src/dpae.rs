@@ -301,19 +301,6 @@ pub struct Embauche {
     pub spectacle: Value,
 }
 
-impl Embauche {
-    pub fn lire(v: &Value) -> Resultat<Embauche> {
-        let salarie = droit::fiche::SalarieDuContrat::lire(v.get("salarie").filter(|s| s.is_object()).ok_or_else(|| socle::echec::charge("salarie", "un objet"))?)?;
-        Ok(Embauche {
-            salarie,
-            debut: v.get("debut").cloned().unwrap_or(Value::Null),
-            fin: v.get("fin").cloned().unwrap_or(Value::Null),
-            nature: v.get("nature").filter(|n| !n.is_null()).map(en_texte),
-            spectacle: v.get("spectacle").cloned().unwrap_or(Value::Null),
-        })
-    }
-}
-
 /// Les parametres communs d'une ecriture.
 pub struct Parametres<'a> {
     /// JJMMAAAAHHMM : la minute de l'ecriture, donnee par l'appelant (heure de Paris).
@@ -870,10 +857,9 @@ mod tests {
                "emploi": "Comedienne"})
     }
 
-    fn embauche(mut s: Value, nature: &str, fin: Value) -> Embauche {
-        s["_cle"] = json!("DUPONT");
+    fn embauche(s: Value, nature: &str, fin: Value) -> Embauche {
         Embauche {
-            salarie: droit::fiche::SalarieDuContrat::lire(&s).unwrap(),
+            salarie: droit::fiche::SalarieDuContrat::de(droit::fiche::FicheSalarie { id: droit::contexte::IdSalarie::lire("DUPONT").unwrap(), champs: droit::fiche::lire_champs(&s, "fiche").unwrap() }),
             debut: json!("2026-10-01"),
             fin,
             nature: Some(nature.to_string()),
@@ -996,9 +982,9 @@ mod tests {
         ent.fiche.etablissements = droit::fiche::Case::Dite(droit::fiche::lire_champs(&json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]), "etablissements").unwrap());
         let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).unwrap();
         let nantes = base["par_departement"]["44"].as_str().unwrap().to_string();
-        let mut s = salarie();
-        s["etablissement"] = json!("00024");
-        let t = enr(&embauche(s, "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
+        let mut e = embauche(salarie(), "cdi", Value::Null);
+        e.salarie.etablissement = Some("00024".into());
+        let t = enr(&e, Some(&ent), json!("117")).unwrap();
         assert_eq!(zone(&t, "code_urssaf"), nantes);
         let t = enr(&embauche(salarie(), "cdi", Value::Null), Some(&ent), json!("117")).unwrap();
         assert_eq!(zone(&t, "code_urssaf"), "117");

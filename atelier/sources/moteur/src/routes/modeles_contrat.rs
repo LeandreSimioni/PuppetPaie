@@ -20,6 +20,7 @@ use droit::contexte::Contexte;
 use droit::natures::Nature;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::dossier_du_code;
+use documents::marqueurs::{Marqueur, ModeleLu, Valeurs, DE_L_AVENANT, DU_REMPLACEMENT};
 use crate::routes::catalogue::{Ecran, Place};
 
 const NATURE: Champ = Champ { nom: "nature", libelle: Affiche::new("Nature du contrat"), forme: Forme::Texte, sens: "la nature du contrat : cddu_spectacle, cdd, cdi…", avance: false };
@@ -94,15 +95,6 @@ pub const ROUTES: &[Fiche] = &[
 
 /// La case de la fiche entreprise des clauses particulieres de la compagnie.
 const CLAUSES: &str = "clauses_particulieres";
-
-/// Les champs qu'un modele d'avenant cite en plus de ceux du contrat (`documents::contrat::ecrire_avenant`).
-const CHAMPS_DE_L_AVENANT: [&str; 10] = [
-    "avenant.numero", "avenant.date_contrat", "avenant.reference", "avenant.effet", "avenant.date", "modification.numero", "modification.article",
-    "modification.avant", "modification.apres", "modification.phrase",
-];
-
-/// Les champs du bloc ANNULE: d'un contrat qui en remplace un autre.
-const CHAMPS_DU_REMPLACEMENT: [&str; 2] = ["remplace.numero", "remplace.date"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
@@ -190,15 +182,15 @@ fn modeles(ctx: &Contexte) -> R<Value> {
                                "bouton": if a_soi.is_some() { "Modifier le modèle" } else { "Écrire le modèle" },
                                "pastille": {"couleur": crate::routes::couleur_de_l_etat(etat), "mots": mots}}));
         }
-        let mut champs = documents::contrat_ecrit::champs_des_modeles(&nat);
-        champs.extend(CHAMPS_DU_REMPLACEMENT.iter().map(|c| json!({"marqueur": format!("{{{{{}}}}}", c), "quoi": "le contrat remplacé (bloc ANNULE: seulement)", "obligatoire": false})));
+        let mut champs = documents::contrat_ecrit::champs_des_modeles(&nat).map_err(|m| erreur("ValueError", m))?;
+        champs.extend(DU_REMPLACEMENT.iter().map(|c| json!({"marqueur": c.to_string(), "quoi": "le contrat remplacé (bloc ANNULE: seulement)", "obligatoire": false})));
         let champs_titre = format!("Ses champs ({})", champs.len());
         sortie.push(json!({"nature": nat.cle, "libelle": nat.libelle, "nom": nat.nom_du_contrat(), "modeles": pieces, "champs": champs, "champs_titre": champs_titre}));
     }
     Ok(json!({
         "natures": sortie,
         "dossier": ctx.gabarits().to_string_lossy(),
-        "champs_de_l_avenant": CHAMPS_DE_L_AVENANT.iter().map(|c| format!("{{{{{}}}}}", c)).collect::<Vec<_>>(),
+        "champs_de_l_avenant": DE_L_AVENANT.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
         "clauses_particulieres": ctx.entreprise.clauses_particulieres.texte(),
     }))
 }
@@ -216,37 +208,31 @@ fn livre(charge: &Value) -> R<Value> {
 /// champs connu du logiciel (un champ inconnu arreterait chaque contrat), et, pour un contrat, chaque mention que la loi
 /// exige de sa nature.
 fn verifier(nat: &Nature, quoi: &str, nom: &str, texte: &str) -> Result<(), String> {
-    let m = fabrique_pdf::modele::lire_modele(texte, nom).map_err(|r| format!("Ce modèle ne se lit pas : {}", r.0))?;
+    let lu = ModeleLu::lire(texte, nom)?;
+    let m = lu.decoupe(nom).map_err(|r| format!("Ce modèle ne se lit pas : {}", r))?;
     if quoi == "avenant" && m.modification.is_empty() {
         return Err("Ce modèle d'avenant n'a pas de bloc MODIFICATION: : c'est lui qui dit, article par article, ce qui change.".into());
     }
-    let connus: Vec<String> = documents::contrat_ecrit::CHAMPS
-        .iter()
-        .map(|(c, _, _)| c.to_string())
-        .chain(CHAMPS_DU_REMPLACEMENT.iter().map(|c| c.to_string()))
-        .chain(if quoi == "avenant" { CHAMPS_DE_L_AVENANT.iter().map(|c| c.to_string()).collect() } else { Vec::new() })
-        .collect();
-    let mut inconnus: Vec<String> = Vec::new();
-    for l in texte.lines().filter(|l| !l.trim_start().starts_with('#')) {
-        for (i, _) in l.match_indices("{{") {
-            if let Some((cle, _)) = fabrique_pdf::modele::marqueur_en(l, i) {
-                if !connus.iter().any(|c| c == cle) && !inconnus.iter().any(|c| c == cle) {
-                    inconnus.push(cle.to_string());
-                }
-            }
+    let permis = |c: &Marqueur| {
+        documents::contrat_ecrit::CHAMPS.iter().any(|(k, _, _)| k == c) || DU_REMPLACEMENT.contains(c) || (quoi == "avenant" && DE_L_AVENANT.contains(c))
+    };
+    let mut hors: Vec<String> = Vec::new();
+    for c in lu.morceaux.iter().filter_map(|x| match x {
+        documents::marqueurs::Morceau::Marqueur(c) => Some(c),
+        documents::marqueurs::Morceau::Texte(_) => None,
+    }) {
+        if !permis(c) && !hors.contains(&c.to_string()) {
+            hors.push(c.to_string());
         }
     }
-    if !inconnus.is_empty() {
-        return Err(format!(
-            "Ce modèle cite des champs que le logiciel ne connaît pas : {}. Les corriger d'après la liste des champs, ou les écrire en texte.",
-            inconnus.iter().map(|c| format!("{{{{{}}}}}", c)).collect::<Vec<_>>().join(", ")
-        ));
+    if !hors.is_empty() {
+        return Err(format!("Ce modèle cite des champs qu'un modèle {} ne porte pas : {}. Les corriger d'après la liste des champs, ou les écrire en texte.", if quoi == "avenant" { "d'avenant" } else { "de contrat" }, hors.join(", ")));
     }
     if quoi == "contrat" {
         // La verification ne sait pas encore ce que chaque contrat dira : une mention due « si elle est dite » (la
         // personne remplacee) se demande comme si elle l'etait.
-        let toutes: serde_json::Map<String, Value> = nat.mentions_obligatoires().into_iter().map(|(c, _, _)| (c, json!("dite"))).collect();
-        documents::contrat_ecrit::refuser_les_mentions_absentes(&std::path::Path::new("gabarits").join(nom), texte, nat, &Value::Object(toutes))?;
+        let toutes: Valeurs = documents::contrat_ecrit::mentions(nat)?.into_iter().map(|(c, _, _)| (c, "dite".to_string())).collect();
+        documents::contrat_ecrit::refuser_les_mentions_absentes(&std::path::Path::new("gabarits").join(nom), &lu, nat, &toutes)?;
     }
     Ok(())
 }

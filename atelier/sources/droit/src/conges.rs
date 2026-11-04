@@ -40,31 +40,25 @@ impl JoursTravailles {
 
     /// Les jours que dit la fiche `fiche` (sa valeur au jour lu).
     pub fn de_la_fiche(fiche: &crate::fiche::FicheSalarie) -> Resultat<Self> {
-        Self::lire(&fiche.jours_travailles.en_valeur(), fiche.id.as_str())
+        Self::de_la_case(&fiche.jours_travailles, fiche.id.as_str())
     }
 
-    /// Les jours que dit la case `jours_travailles` d'une fiche (`v`, sa valeur au jour lu ; `qui` : la cle du salarie).
-    /// Refus : une liste vide, ou un nom qui n'est pas un jour.
+    /// Les jours que dit la case `jours_travailles` d'une fiche telle qu'une charge l'ecrit (`v` ; `qui` : la cle du
+    /// salarie), lue par sa forme.
     pub fn lire(v: &Value, qui: &str) -> Resultat<Self> {
-        let v = match Some(v).filter(|v| !v.is_null()) {
-            // Une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur (`contexte::dater`).
-            None | Some(Value::Null) => return Ok(Self::du_lundi_au_vendredi()),
-            Some(Value::String(s)) if s.trim().is_empty() => return Ok(Self::du_lundi_au_vendredi()),
-            Some(v) => v,
-        };
-        let liste = v.as_array().ok_or_else(|| {
-            format!("Fiche de {} : « Jours travaillés » est une liste de jours de la semaine (lundi, mardi...).", qui)
-        })?;
+        let case: crate::fiche::Case<Vec<crate::fiche::JourDeLaSemaine>> =
+            socle::forme::lire(v, &format!("Fiche de {} : « Jours travaillés » est une liste de jours de la semaine (lundi, mardi...).", qui))?;
+        Self::de_la_case(&case, qui)
+    }
+
+    /// Les jours que dit la case `jours_travailles` d'une fiche (`qui` : la cle du salarie) ; une case que la fiche ne
+    /// dit pas (une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur, `contexte::dater`) : du
+    /// lundi au vendredi. Refus : une liste vide.
+    pub fn de_la_case(case: &crate::fiche::Case<Vec<crate::fiche::JourDeLaSemaine>>, qui: &str) -> Resultat<Self> {
+        let Some(liste) = case.dite() else { return Ok(Self::du_lundi_au_vendredi()) };
         let mut jours = [false; 7];
         for j in liste {
-            let nom = j.as_str().unwrap_or_default().trim().to_lowercase();
-            let rang = JOURS_DE_LA_SEMAINE.iter().position(|x| *x == nom).ok_or_else(|| {
-                format!(
-                    "Fiche de {} : « Jours travaillés » porte {}, qui n'est pas un jour de la semaine (lundi ... dimanche).",
-                    qui, j
-                )
-            })?;
-            jours[rang] = true;
+            jours[*j as usize] = true;
         }
         if !jours.iter().any(|x| *x) {
             return Err(format!(

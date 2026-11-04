@@ -24,7 +24,6 @@ use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERAT
 use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
 use super::vers_route;
-use envois::etats::{get, joindre};
 use envois::google::{champ, en_texte, jeton_par_rafraichissement, DELAI, PERMISSIONS};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::{vrai, MARQUEUR_COPIE};
@@ -895,26 +894,11 @@ fn google_etat(ctx: &Contexte) -> R<Value> {
 fn identifiant_du_compte(ent: &droit::fiche::ChampsEntreprise, service: &str) -> R<Value> {
     match service {
         "net-entreprises" => {
-            let d = envois::transport::declarant(ent).map_err(|v| Echec {
-                classe: match v.get("classe").and_then(Value::as_str) {
-                    Some("AttributeError") => Some("AttributeError"),
-                    _ => None,
-                },
-                message: v.get("erreur").and_then(Value::as_str).unwrap_or("").to_string(),
-            })?;
-            let mut manque: Vec<Value> = Vec::new();
-            for c in ["nom", "prenom"] {
-                if !vrai(get(&d, c)?) {
-                    manque.push(json!(c));
-                }
-            }
-            if !vrai(get(&d, "siret")?) {
-                manque.insert(0, json!("siret"));
-            }
-            let noms: Vec<Value> = [get(&d, "nom")?, get(&d, "prenom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
-            let texte = joindre(" ", &noms)?;
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(get(&d, "siret")?)) } else { String::new() };
-            let dits: Vec<&str> = manque.iter().map(|m| match m.as_str().unwrap_or("") { "nom" => "le nom", "prenom" => "le prénom", "siret" => "le SIRET", autre => autre }).collect();
+            let d = envois::transport::declarant(ent);
+            let manque: Vec<&str> = [("siret", &d.siret), ("nom", &d.nom), ("prenom", &d.prenom)].into_iter().filter(|(_, v)| v.is_empty()).map(|(c, _)| c).collect();
+            let texte = [d.nom.as_str(), d.prenom.as_str()].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" ");
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, d.siret) } else { String::new() };
+            let dits = d.manquants();
             let incomplet_dit = if manque.is_empty() { String::new() } else { format!("identifiant incomplet ({})", dits.join(", ")) };
             Ok(json!({"texte": phrase, "manque": manque, "ici": false, "incomplet_dit": incomplet_dit, "ou": "fiche Entreprise › Qui les organismes contactent"}))
         }

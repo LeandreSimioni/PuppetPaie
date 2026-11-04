@@ -846,7 +846,7 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
                 let (salarie, spectacle) = (&p.engagement.salarie, p.engagement.spectacle.as_deref());
                 let config = empreinte::configuration(ctx, &p.engagement.fin_periode()?, salarie, spectacle)?;
                 let entree_fiches = empreinte::fiches(ctx, mois, salarie, spectacle)?;
-                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?, config, entree_fiches))
+                Ok((relire::ecrire(ctx, p)?, relire::FichesDuCalcul::de(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?, config, entree_fiches))
             })
             .collect::<Resultat<Vec<_>>>()
     })?;
@@ -1847,8 +1847,8 @@ fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) ->
     data["mois"] = json!(mois);
     data["engagements"] = json!([vue]);
     let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "paie"))?;
-    let fiches = ecrite.get("fiches").filter(|f| f.is_object()).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "fiches"))?;
-    let mut lue = relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?;
+    let fiches = relire::FichesDuCalcul::lire(ecrite.get("fiches").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "fiches"))?)?;
+    let mut lue = relire::paie_sur_ses_fiches(ctx, eng, paie, &fiches)?;
     let p = lue.ecrire();
     p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
     p.conges = ecrite.get(CONGES).filter(|x| x.is_object()).map(crate::conges::CompteurConges::lire).transpose()?;

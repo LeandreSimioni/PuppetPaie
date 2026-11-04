@@ -57,10 +57,12 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
         for (permanents, spectacle) in [(false, false), (false, true), (true, false), (true, true)] {
             let nom = format!("grille-{}-{}-{}", if idcc.is_empty() { "sans" } else { idcc }, permanents, spectacle);
             let racine = neuve(&nom);
-            let mut ent = fiche_au(&lire(&racine, "config/entreprise.json"), JOUR);
-            ent["idcc"] = json!(idcc);
-            ent["emploie_des_permanents"] = json!(permanents);
-            ecrire(&racine, "config/entreprise.json", &datee(&ent));
+            let mut fichier = droit::fiche::lire_entreprise(&lire(&racine, "config/entreprise.json"), "config/entreprise.json").unwrap();
+            let valeur = if idcc.is_empty() { droit::fiche::Case::Vide } else { droit::fiche::Case::Dite(idcc.clone()) };
+            fichier.idcc = vec![droit::fiche::Datee { depuis: None, valeur, note: None }];
+            fichier.emploie_des_permanents = vec![droit::fiche::Datee { depuis: None, valeur: droit::fiche::Case::Dite(permanents), note: None }];
+            ecrire(&racine, "config/entreprise.json", &droit::fiche::ecrire_entreprise(&fichier));
+            let ent = fichier.au(&socle::date::Jour::lire(JOUR).unwrap());
             if spectacle {
                 ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": datee(&json!({"titre": "Le Banc", "actif": true}))}));
             }
@@ -82,7 +84,7 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
                 }
             }
             let demandee = par_champ(&m, "licence_spectacle").len() == 1;
-            let (montree, exigee) = (montre("licence_spectacle"), declarations::demarrage::licence_exigee(&droit::fiche::lire_champs(&ent, "entreprise").unwrap(), spectacle));
+            let (montree, exigee) = (montre("licence_spectacle"), declarations::demarrage::licence_exigee(&ent, spectacle));
             assert_eq!(demandee, exigee, "{} : la licence demandee si et seulement si exigee", nom);
             assert!(!exigee || montree, "{} : la licence exigee, case masquee", nom);
             match idcc.as_str() {

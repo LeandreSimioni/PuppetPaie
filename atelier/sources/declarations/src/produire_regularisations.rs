@@ -118,7 +118,7 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str, departs: &engage
                     format!(
                         "Correction de {} pour {} (contrat {}) : {}. Une regularisation annule ce qui a ete DECLARE : elle le lit dans la version de l'engagement sur laquelle la DSN est partie, elle ne le recalcule pas. La DSN de {} ne se produit pas tant que ce n'est pas regle.",
                         mois,
-                        apres.salarie.nom.en_valeur().as_str().unwrap_or_default().to_string(),
+                        apres.salarie.nom.texte(),
                         if numero.is_empty() { "sans numero" } else { numero.as_str() },
                         quoi,
                         mois_courant

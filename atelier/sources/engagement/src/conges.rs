@@ -22,7 +22,7 @@ use droit::catalogue::rubrique;
 use droit::clauses;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
-use socle::date::{d, en_texte, forme_ecrite, Jour};
+use socle::date::{d, en_texte, Jour};
 use socle::mois::Mois;
 use crate::Avis;
 use socle::feries;
@@ -374,7 +374,7 @@ pub struct Avant {
     pub compteur: CompteurConges,
     avis_du_report: usize,
     premier: Option<String>,
-    reprise: Value,
+    reprise: Option<droit::fiche::CongesReprise>,
 }
 
 impl Avant {
@@ -397,18 +397,18 @@ impl Avant {
             Value::String(m) => Some(m.clone()),
             _ => return Err(socle::echec::cle("Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.", "premier")),
         };
-        Ok(Avant { compteur, avis_du_report, premier, reprise: requis(v, "reprise")?.clone() })
+        Ok(Avant { compteur, avis_du_report, premier, reprise: socle::forme::lire(requis(v, "reprise")?, "Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.")? })
     }
 }
 
-/// La reprise des conges telle que la fiche du salarie la porte (`conges_reprise`), `null` sans elle : ce que l'etat
+/// La reprise des conges telle que la fiche du salarie la porte (`conges_reprise`), `None` sans elle : ce que l'etat
 /// avant un mois a pris pour acquis.
-fn reprise_ecrite(ctx: &Contexte, cle_salarie: &str) -> Value {
+fn reprise_ecrite(ctx: &Contexte, cle_salarie: &str) -> Option<droit::fiche::CongesReprise> {
     let fiche = match ctx.salaries.get(cle_salarie) {
         Some(f) => Some(f.clone()),
         None => ctx.salarie(cle_salarie).ok(),
     };
-    fiche.as_ref().map_or(Value::Null, |f| f.conges_reprise.en_valeur())
+    fiche.and_then(|f| f.conges_reprise.dite().cloned())
 }
 
 /// LE COMPTEUR QUI NE COMPTE PAS TOUT : sa periode la plus ancienne (`depuis`, le debut du report, sinon de la periode
@@ -834,51 +834,20 @@ pub struct Reprise {
     pub remuneration_periode: Decimal,
 }
 
-/// Le solde repris de l'ancien logiciel, ou `None`. Un montant illisible
-/// refuse : un solde de conges ne se devine pas.
+/// Le solde repris de l'ancien logiciel, ou `None` (la fiche n'en dit pas, ou ne dit pas sa date). Une case vide vaut
+/// zero ; un montant illisible s'est refuse a la lecture de la fiche (`fiche::Montant`).
 pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Reprise>> {
-    let fiche = match ctx.salaries.get(cle_salarie) {
-        Some(f) => Some(f.clone()),
-        None => ctx.salarie(cle_salarie).ok(),
-    };
-    let reprise = fiche.as_ref().map_or(Value::Null, |f| f.conges_reprise.en_valeur());
-    let Some(r) = Some(&reprise).filter(|r| r.is_object()) else {
-        return Ok(None);
-    };
-    let texte = |c: &str| r.get(c).filter(|x| !x.is_null()).map(en_texte).unwrap_or_default();
-    let date = r.get("date").filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
-    if date.trim().is_empty() {
-        return Ok(None);
-    }
-    let jour = Jour::lire(date.trim()).map_err(|_| {
-        format!(
-            "{} : la date des conges a la reprise ({}) n'est pas une date AAAA-MM-JJ.",
-            cle_salarie,
-            forme_ecrite(r.get("date").unwrap_or(&Value::Null))
-        )
-    })?;
-    let nombre = |c: &str| -> Resultat<Decimal> {
-        let v = texte(c).trim().replace(',', ".").replace('\u{a0}', "").replace(' ', "");
-        if v.is_empty() {
-            return Ok(Decimal::ZERO);
-        }
-        Decimal::from_str(&v).or_else(|_| Decimal::from_scientific(&v)).map_err(|_| {
-            format!(
-                "{} : conges a la reprise, {} = {} n'est pas un nombre.",
-                cle_salarie,
-                c,
-                forme_ecrite(r.get(c).unwrap_or(&Value::Null))
-            )
-        })
-    };
+    let Some(r) = reprise_ecrite(ctx, cle_salarie) else { return Ok(None) };
+    let Some(date) = r.date.dite().copied() else { return Ok(None) };
+    let nombre = |c: &droit::fiche::Case<droit::fiche::Montant>| c.dite().map_or(Decimal::ZERO, droit::fiche::Montant::decimal);
     Ok(Some(Reprise {
-        date: jour,
-        report: nombre("report")?,
-        acquis_report: nombre("acquis_report")?,
-        acquis: nombre("acquis")?,
-        pris: nombre("pris")?,
-        remuneration_report: nombre("remuneration_report")?,
-        remuneration_periode: nombre("remuneration_periode")?,
+        date,
+        report: nombre(&r.report),
+        acquis_report: nombre(&r.acquis_report),
+        acquis: nombre(&r.acquis),
+        pris: nombre(&r.pris),
+        remuneration_report: nombre(&r.remuneration_report),
+        remuneration_periode: nombre(&r.remuneration_periode),
     }))
 }
 

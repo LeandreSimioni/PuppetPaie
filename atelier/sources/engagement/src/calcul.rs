@@ -1056,7 +1056,7 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
 ///   suspendu et ne donne lieu a aucune indemnisation » ; le salarie qui veut rester affilie paie « integralement » les
 ///   deux parts, que « l'organisme assureur preleve [...] directement aupres du salarie » (accord du 19/07/2024, etendu,
 ///   art. 4.2 et 15, `atelier/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md`). Ni cotisation ni
-///   part patronale sur la paie de ce mois, donc rien a reintegrer au net fiscal : la fiche porte `SANTE_SUSPENDUE`.
+///   part patronale sur la paie de ce mois, donc rien a reintegrer au net fiscal : la fiche porte `sante_suspendue`.
 /// - **toute autre convention** (1285 : l'accord du 30/01/2026 ne parle que de la suspension « indemnisee » ; un contrat
 ///   d'entreprise) : AUCUN TEXTE DEPOSE ne dit ce que devient la sante ; le droit commun laisse le maintien facultatif
 ///   (instruction DSS/3C/5B/2021/127, II.B, `atelier/reference/sources/suspension-non-remuneree/dss-instruction-3c5b-2021-

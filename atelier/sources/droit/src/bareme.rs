@@ -604,11 +604,6 @@ enum Mutuelle {
     Pose { base: Value, total: Decimal, pat: Decimal },
 }
 
-/// La marque que la fiche lue par la paie porte quand les garanties de sante sont suspendues tout le mois
-/// (`calcul::sante_de_la_suspension`) : le bareme pose alors la paie sans mutuelle (`bareme_sante`), et la DSN ne
-/// rattache pas le salarie a l'adhesion sante ce mois-la (`dsn::affiliations_du_permanent`), comme pour une dispense.
-pub const SANTE_SUSPENDUE: &str = "_sante_suspendue";
-
 /// Le champ de la fiche entreprise qui dit ce que le contrat de sante de la compagnie fait d'un mois entierement suspendu
 /// sans indemnisation, hors de la 3090 (`logiciel/donnees/champs-base.json`, `atelier/docs/ARCHITECTURE.md`) : « suspendue » (les
 /// garanties sont suspendues, rien sur la paie), « maintenue » (garanties et cotisations maintenues sur la paie).
@@ -617,7 +612,9 @@ pub const SANTE_SUSPENSION_SUSPENDUE: &str = "suspendue";
 pub const SANTE_SUSPENSION_MAINTENUE: &str = "maintenue";
 
 /// La garantie sante est-elle sans objet ce mois-la pour la fiche `sal` que la paie lit : une dispense
-/// (`sante_dispense`), ou un mois entierement suspendu sans indemnisation (`SANTE_SUSPENDUE`).
+/// (`sante_dispense`), ou un mois entierement suspendu sans indemnisation (`SalarieDuContrat::sante_suspendue`) : le bareme pose alors la
+/// paie sans mutuelle (`bareme_sante`), et la DSN ne rattache pas le salarie a l'adhesion sante ce mois-la
+/// (`dsn::affiliations_du_permanent`), comme pour une dispense.
 pub fn sans_sante(sal: &SalarieDuContrat) -> bool {
     !sal.sante_dispense.texte().is_empty() || sal.sante_suspendue.as_deref().is_some_and(|s| !s.is_empty())
 }
