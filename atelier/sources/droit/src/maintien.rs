@@ -191,7 +191,7 @@ fn section<'a>(sec: &'a Value, origine: Origine, anciennete_mois: Decimal) -> Re
 
 /// Ce que la convention `idcc` garantit pour un arret de cette origine a cette anciennete (au premier jour de l'absence) ;
 /// `None` quand elle ne prevoit rien (la loi seule s'applique).
-pub fn conventionnel(idcc: &Value, anciennete_mois: Decimal, origine: Origine) -> Resultat<Option<Droit>> {
+pub fn conventionnel(idcc: &str, anciennete_mois: Decimal, origine: Origine) -> Resultat<Option<Droit>> {
     let Some(conv) = crate::clauses::releve(idcc)? else { return Ok(None) };
     let sec = get(&conv, "maintien_de_salaire");
     let (s, at) = section(sec, origine, anciennete_mois)?;

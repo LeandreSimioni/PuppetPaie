@@ -119,14 +119,6 @@ fn texte(v: &Value) -> String {
     en_texte(v)
 }
 
-/// Un IDCC ou une annexe en texte, sans blancs autour, vide s'il manque.
-fn lu(v: &Value) -> String {
-    if vrai(v) {
-        texte(v).trim().to_string()
-    } else {
-        String::new()
-    }
-}
 
 // ------------------------------------------------------------- la table
 const FICHIER: &str = "clauses-conventionnelles-base.json";
@@ -136,21 +128,21 @@ pub fn table() -> Resultat<Arc<Value>> {
 }
 
 /// Les clauses d'une convention dans la table, ou `Null`.
-fn conv<'a>(t: &'a Value, idcc: &Value) -> &'a Value {
-    get(get(t, "conventions"), &lu(idcc))
+fn conv<'a>(t: &'a Value, idcc: &str) -> &'a Value {
+    get(get(t, "conventions"), &idcc.trim().to_string())
 }
 
 /// Les clauses relevees de cette convention, ou `None` si elles ne le sont
 /// pas (ou si la compagnie n'a pas d'IDCC).
-pub fn releve(idcc: &Value) -> Resultat<Option<Value>> {
+pub fn releve(idcc: &str) -> Resultat<Option<Value>> {
     let t = table()?;
     Ok(Some(conv(&t, idcc)).filter(|r| !r.is_null()).cloned())
 }
 
 /// Pour les phrases : « la convention 3090 », ou « la convention collective »
 /// quand l'IDCC manque.
-pub fn nom(idcc: &Value) -> String {
-    let i = lu(idcc);
+pub fn nom(idcc: &str) -> String {
+    let i = idcc.trim().to_string();
     if i.is_empty() {
         "la convention collective".to_string()
     } else {
@@ -201,7 +193,7 @@ pub fn categorie_en_mots(c: &str) -> String {
     }
 }
 
-fn non_relevees(idcc: &Value) -> String {
+fn non_relevees(idcc: &str) -> String {
     format!("les clauses de {} ne sont pas relevées", nom(idcc))
 }
 
@@ -209,7 +201,7 @@ fn non_relevees(idcc: &Value) -> String {
 /// La categorie conventionnelle d'un salarie pour CET engagement :
 /// `{categorie, grille, source}` ; `categorie` vaut `null` quand rien ne
 /// permet de la lire sans deviner, et `source` dit alors pourquoi.
-pub fn profil(idcc: &Value, fiche: &crate::fiche::ChampsSalarie, engagement: Option<&Value>) -> Resultat<Value> {
+pub fn profil(idcc: &str, fiche: &crate::fiche::ChampsSalarie, engagement: Option<&Value>) -> Resultat<Value> {
     let (code_emploi_ft, categorie, statut, statut_rc) =
         (fiche.code_emploi_ft.en_valeur(), fiche.categorie_conventionnelle.en_valeur(), fiche.statut.en_valeur(), fiche.statut_categoriel_rc.en_valeur());
     let t = table()?;
@@ -294,7 +286,7 @@ fn lu_brut(v: &Value) -> String {
 /// rien -- pas relevee, ou pas de categorie -- et `pourquoi` le dit ; 0 quand
 /// le motif n'ouvre pas de preavis.
 pub fn preavis_mois(
-    idcc: &Value,
+    idcc: &str,
     categorie: Option<&str>,
     anciennete: Decimal,
     motif: Option<&str>,
@@ -421,14 +413,14 @@ pub fn lecture(nom_lecture: &str, taux: &[Value], annees: P) -> Resultat<P> {
 /// `(article, section)` de la clause d'annexe qui s'applique a ce salarie, ou
 /// `None`. Le personnel technique de l'annexe I se lit sur la GRILLE du metier.
 pub fn clause_d_annexe(
-    idcc: &Value,
-    annexe: &Value,
+    idcc: &str,
+    annexe: &str,
     prof: &Value,
     motif: Option<&str>,
 ) -> Resultat<Option<(String, Value)>> {
     let t = table()?;
     let sec = get(conv(&t, idcc), "indemnite_licenciement");
-    let par = get(get(sec, "par_annexe"), &lu(annexe));
+    let par = get(get(sec, "par_annexe"), &annexe.trim().to_string());
     let cat = get(prof, "categorie").as_str();
     let choix = if par.get("cadre_de_direction").is_some() && cat == Some("cadre_de_direction") {
         get(par, "cadre_de_direction")
@@ -458,8 +450,8 @@ pub fn clause_d_annexe(
 /// `bas` et `haut` sont egaux quand le texte n'a qu'une lecture ; quand ils
 /// different, le montant n'est pas tranche et l'appelant demande.
 pub fn indemnite_licenciement(
-    idcc: &Value,
-    annexe: &Value,
+    idcc: &str,
+    annexe: &str,
     prof: &Value,
     anciennete: Decimal,
     reference: Decimal,
@@ -673,7 +665,7 @@ pub fn paliers(sec: &Value, annees: P) -> Resultat<(P, Option<i64>)> {
 
 /// L'indemnite conventionnelle de mise a la retraite :
 /// `{releve, montant, article, hors_primes, prevenance_mois, cadre_de_direction}`.
-pub fn indemnite_mise_a_la_retraite(idcc: &Value, anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
+pub fn indemnite_mise_a_la_retraite(idcc: &str, anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
     let (anciennete, reference) = (P::depuis(anciennete), P::depuis(reference));
     let t = table()?;
     let sec = get(conv(&t, idcc), "mise_a_la_retraite");
@@ -715,7 +707,7 @@ pub fn indemnite_mise_a_la_retraite(idcc: &Value, anciennete: Decimal, reference
 
 /// L'indemnite conventionnelle de depart volontaire a la retraite : un
 /// palier, pas un cumul. `{releve, montant, mois, palier, article, prevenance_mois}`.
-pub fn indemnite_depart_retraite(idcc: &Value, anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
+pub fn indemnite_depart_retraite(idcc: &str, anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
     let (anciennete, reference) = (P::depuis(anciennete), P::depuis(reference));
     let t = table()?;
     let sec = get(conv(&t, idcc), "depart_a_la_retraite");
@@ -772,8 +764,8 @@ fn iso(s: &str) -> Resultat<Jour> {
 /// vaut `null` et `pourquoi` dit ce qui manque (la jauge de la salle, une
 /// grille non relevee pour cette date, le niveau du metier).
 pub fn prime_anciennete(
-    idcc: &Value,
-    annexe: &Value,
+    idcc: &str,
+    annexe: &str,
     fiche: &crate::fiche::ChampsSalarie,
     engagement: Option<&Value>,
     jour: &Jour,
@@ -782,7 +774,7 @@ pub fn prime_anciennete(
     let (code_emploi_ft, statut, date_anciennete) = (fiche.code_emploi_ft.en_valeur(), fiche.statut.en_valeur(), fiche.date_anciennete.en_valeur());
     let t = table()?;
     let sec = get(conv(&t, idcc), "prime_anciennete");
-    if !vrai(get(sec, "annexe")) || lu(annexe) != texte(cle(sec, "annexe")?) {
+    if !vrai(get(sec, "annexe")) || annexe.trim().to_string() != texte(cle(sec, "annexe")?) {
         return Ok(None);
     }
     let e = engagement.unwrap_or(&NUL);

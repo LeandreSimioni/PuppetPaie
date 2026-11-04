@@ -13,6 +13,11 @@ use std::str::FromStr;
 
 const GRAINE: u64 = 20261011;
 
+/// Un IDCC ou une annexe de l'oracle, en texte (vide : la case nulle ou vide).
+fn lu(v: &Value) -> String {
+    if socle::fichiers::vrai(v) { socle::date::en_texte(v).trim().to_string() } else { String::new() }
+}
+
 fn lire() -> Value {
     crate::outils::lire_oracle("clauses.json")
 }
@@ -174,13 +179,13 @@ fn profil() {
                     } else {
                         fiche = avec(&fiche, "code_emploi_ft", p[1].clone());
                     }
-                    out.push(ligne(champs(&fiche).and_then(|f| c::profil(&p[0], &f, eng.as_ref()))));
+                    out.push(ligne(champs(&fiche).and_then(|f| c::profil(&lu(&p[0]), &f, eng.as_ref()))));
                 }
             }
         }
         out
     });
-    section(&rel, "profil", |a| champs(&a[1]).and_then(|f| c::profil(&a[0], &f, option(&a[2]))));
+    section(&rel, "profil", |a| champs(&a[1]).and_then(|f| c::profil(&lu(&a[0]), &f, option(&a[2]))));
 }
 
 #[test]
@@ -192,13 +197,13 @@ fn preavis() {
         let mut out = Vec::new();
         for a in &anc {
             for age in &ages {
-                out.push(ligne(c::preavis_mois(&p[0], p[1].as_str(), dec(a), p[2].as_str(), dec_option(age))));
+                out.push(ligne(c::preavis_mois(&lu(&p[0]), p[1].as_str(), dec(a), p[2].as_str(), dec_option(age))));
             }
         }
         out
     });
     section(&rel, "preavis_mois", |a| {
-        c::preavis_mois(&a[0], a[1].as_str(), dec(&a[2]), a[3].as_str(), dec_option(&a[4]))
+        c::preavis_mois(&lu(&a[0]), a[1].as_str(), dec(&a[2]), a[3].as_str(), dec_option(&a[4]))
     });
 }
 
@@ -247,13 +252,13 @@ fn clause_d_annexe() {
         let mut out = Vec::new();
         for prof in &profs {
             for m in &motifs {
-                out.push(ligne(c::clause_d_annexe(&p[0], &p[1], prof, m.as_str()).map(paire)));
+                out.push(ligne(c::clause_d_annexe(&lu(&p[0]), &lu(&p[1]), prof, m.as_str()).map(paire)));
             }
         }
         out
     });
     section(&rel, "clause_d_annexe", |a| {
-        c::clause_d_annexe(&a[0], &a[1], &a[2], a[3].as_str()).map(paire)
+        c::clause_d_annexe(&lu(&a[0]), &lu(&a[1]), &a[2], a[3].as_str()).map(paire)
     });
 }
 
@@ -270,7 +275,7 @@ fn indemnite_de_licenciement() {
                 for r in &refs {
                     for age in &ages {
                         out.push(ligne(c::indemnite_licenciement(
-                            &p[0], &p[1], &p[2], dec(a), dec(r), m.as_str(), dec_option(age),
+                            &lu(&p[0]), &lu(&p[1]), &p[2], dec(a), dec(r), m.as_str(), dec_option(age),
                         )));
                     }
                 }
@@ -279,7 +284,7 @@ fn indemnite_de_licenciement() {
         out
     });
     section(&rel, "indemnite_licenciement", |a| {
-        c::indemnite_licenciement(&a[0], &a[1], &a[2], dec(&a[3]), dec(&a[4]), a[5].as_str(), dec_option(&a[6]))
+        c::indemnite_licenciement(&lu(&a[0]), &lu(&a[1]), &a[2], dec(&a[3]), dec(&a[4]), a[5].as_str(), dec_option(&a[6]))
     });
 }
 
@@ -292,7 +297,7 @@ fn retraite() {
         let mut out = Vec::new();
         for a in &anc {
             for r in &refs {
-                out.push(ligne(c::indemnite_mise_a_la_retraite(&p[0], dec(a), dec(r))));
+                out.push(ligne(c::indemnite_mise_a_la_retraite(&lu(&p[0]), dec(a), dec(r))));
             }
         }
         out
@@ -301,16 +306,16 @@ fn retraite() {
         let mut out = Vec::new();
         for a in &anc {
             for r in &refs {
-                out.push(ligne(c::indemnite_depart_retraite(&p[0], dec(a), dec(r))));
+                out.push(ligne(c::indemnite_depart_retraite(&lu(&p[0]), dec(a), dec(r))));
             }
         }
         out
     });
     section(&rel, "indemnite_mise_a_la_retraite", |a| {
-        c::indemnite_mise_a_la_retraite(&a[0], dec(&a[1]), dec(&a[2]))
+        c::indemnite_mise_a_la_retraite(&lu(&a[0]), dec(&a[1]), dec(&a[2]))
     });
     section(&rel, "indemnite_depart_retraite", |a| {
-        c::indemnite_depart_retraite(&a[0], dec(&a[1]), dec(&a[2]))
+        c::indemnite_depart_retraite(&lu(&a[0]), dec(&a[1]), dec(&a[2]))
     });
 }
 
@@ -322,7 +327,7 @@ fn prime_d_anciennete() {
         (chaines(&g["fiches_p"]), chaines(&g["eng_p"]), chaines(&g["jours"]), chaines(&g["jauges"]));
     let jours: Vec<Jour> = jours.iter().map(jour).collect();
     let prime = |idcc: &Value, annexe: &Value, fiche: &Value, eng: Option<&Value>, j: &Jour, jg: Option<&str>| {
-        champs(fiche).and_then(|f| c::prime_anciennete(idcc, annexe, &f, eng, j, jg)).map(|r| r.unwrap_or(Value::Null))
+        champs(fiche).and_then(|f| c::prime_anciennete(&lu(idcc), &lu(annexe), &f, eng, j, jg)).map(|r| r.unwrap_or(Value::Null))
     };
     blocs(&rel, "prime_anciennete", 20, |p| {
         let mut out = Vec::new();
@@ -352,15 +357,15 @@ fn prime_d_anciennete() {
 fn la_remise_du_contrat_suit_l1242_13_et_la_1285_pour_ses_musiciens() {
     let j = |s: &str| Jour::lire(s).unwrap();
     // Un vendredi : le samedi, puis le lundi (le dimanche n'est pas ouvrable).
-    let loi = droit::echeances::remise_du_contrat(&j("2026-11-20"), &json!("3090"), "ART170", None).unwrap();
+    let loi = droit::echeances::remise_du_contrat(&j("2026-11-20"), "3090", "ART170", None).unwrap();
     assert_eq!(loi.jour, j("2026-11-23"));
     assert!(loi.source.contains("L. 1242-13"), "{}", loi.source);
     // Le meme musicien sous la 1285 : quinze jours ouvrables avant le jeudi 10/12, sans compter les dimanches.
-    let musicien = droit::echeances::remise_du_contrat(&j("2026-12-10"), &json!("1285"), "ART170", None).unwrap();
+    let musicien = droit::echeances::remise_du_contrat(&j("2026-12-10"), "1285", "ART170", None).unwrap();
     assert_eq!(musicien.jour, j("2026-11-23"));
     assert!(musicien.source.contains("1285") && musicien.source.contains("XV"), "{}", musicien.source);
     // Un metier hors du titre XV, sous la 1285 : la loi seule.
-    let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), &json!("1285"), "ZZZ999", None).unwrap();
+    let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), "1285", "ZZZ999", None).unwrap();
     assert_eq!(autre.jour, j("2026-12-12"));
     assert!(autre.source.contains("L. 1242-13"), "{}", autre.source);
 }

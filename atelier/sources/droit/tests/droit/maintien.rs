@@ -3,7 +3,6 @@
 
 use droit::maintien::{conventionnel, Base, Droit, Duree, Origine, Tranche};
 use rust_decimal::Decimal;
-use serde_json::json;
 
 fn tranches(mois: i64) -> Vec<Tranche> {
     vec![Tranche { duree: Duree::Mois(mois), taux: Decimal::from(100) }, Tranche { duree: Duree::Mois(mois), taux: Decimal::from(75) }]
@@ -13,8 +12,8 @@ fn tranches(mois: i64) -> Vec<Tranche> {
 /// 3 mois à 100 % et 3 mois à 75 % », pour « tout salarié », avec la subrogation, sans carence écrite.
 #[test]
 fn la_1285_maintient_le_brut_selon_l_anciennete() {
-    let idcc = json!("1285");
-    let regime = |mois: i64, o: Origine| conventionnel(&idcc, Decimal::from(mois), o).unwrap().unwrap();
+    let idcc = "1285";
+    let regime = |mois: i64, o: Origine| conventionnel(idcc, Decimal::from(mois), o).unwrap().unwrap();
     assert!(matches!(regime(5, Origine::Maladie), Droit::PasDu(_)), "rien avant six mois");
     for (anciennete, duree) in [(6, 1), (11, 1), (12, 3), (42, 3)] {
         let Droit::Du(r) = regime(anciennete, Origine::Maladie) else { panic!("{} mois : un maintien", anciennete) };
