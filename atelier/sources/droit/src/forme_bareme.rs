@@ -119,8 +119,6 @@ forme! {
         pub contributions_dsn: Vec<ContributionDsn>,
         #[serde(default)]
         pub secteurs: Option<Secteurs>,
-        #[serde(default)]
-        pub article_45: Option<Article45>,
         // La surcouche de la compagnie (`config/baremes/<an>.json`) : le socle qu'elle reprend, son taux AT/MP.
         #[serde(default)]
         pub socle: Option<Value>,
@@ -799,32 +797,12 @@ forme! {
         pub secteurs: Option<Secteurs>,
         #[serde(default)]
         pub rubriques_bulletin: Vec<Rubrique>,
-        #[serde(default)]
-        pub article_45: Option<Article45>,
     }
 }
 
 forme! {
     /// Les seules notes d'un groupe de valeurs (les textes de valeurs qui ne portent pas de note a elles).
     pub struct Notes {}
-}
-
-forme! {
-    /// L'option de la prevoyance des techniciens non cadres de la 3097 (`bareme::bareme_article_45`).
-    pub struct Article45 {
-        pub qui: String,
-        pub prevoyance: RubriqueModifiee,
-        pub cotisation_dsn: CotisationModifieeAffectee,
-    }
-}
-
-forme! {
-    pub struct CotisationModifieeAffectee {
-        pub affectation: String,
-        pub taux: f64,
-        #[serde(default)]
-        pub composants: Vec<f64>,
-    }
 }
 
 forme! {

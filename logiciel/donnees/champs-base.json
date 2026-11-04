@@ -894,33 +894,6 @@
    "ecran": true
   },
   {
-   "_note": "L'ARTICLE 45 DE LA 3097 : absorbe par les taux\nuniques de l'accord interbranches (avenants 5 et 7) ; la case reste pour\nune compagnie dont le contrat Audiens dirait autre chose.",
-   "cle": "prevoyance_techniciens_3097",
-   "libelles": {"interbranche": "Accord interbranches", "article_45": "Article 45, 1,50 %"},
-   "libelle": "Prévoyance des techniciens (cinéma)",
-   "forme": "choix",
-   "aide": "Seulement pour une production cinématographique (convention 3097), et presque toujours à laisser vide. L'article 45 de la convention (2012) portait la prévoyance des techniciens intermittents non cadres à 1,50 % ; l'accord interbranches a depuis fixé les mêmes taux pour toutes les entreprises (0,34 % + 0,12 %). Vide ou « Accord interbranches » : ces taux. « Article 45, 1,50 % » seulement si votre fiche de paramétrage Audiens le donne.",
-   "longueur": null,
-   "exemple": "",
-   "choix": [
-    "interbranche",
-    "article_45"
-   ],
-   "declare": false,
-   "derive_de": null,
-   "rubrique": null,
-   "si_permanents": false,
-   "si": {
-    "idcc": [
-     "3097"
-    ]
-   },
-   "si_etablissements": false,
-   "si_entreprise": null,
-   "booleen_defaut": true,
-   "ecran": true
-  },
-  {
    "_note": "L'EFFECTIF, l'Urssaf le calcule et le renvoie en CRM de nature 118,\net le releve des retours l'ecrit dans config/effectifs.json\n(`envois/src/releve_retours.rs`). Avant la PREMIERE EMBAUCHE, aucun salarie :\nune compagnie neuve n'a pas a attendre cinq ans de 118 pour etre payee\n(art. L. 130-1, II, CSS). Une compagnie plus ancienne, venue d'un autre\nlogiciel, dit l'effectif des annees qui manquent (route `effectif`), qu'un 118\nremplace.",
    "cle": "premiere_embauche",
    "libelle": "Date de la première embauche",

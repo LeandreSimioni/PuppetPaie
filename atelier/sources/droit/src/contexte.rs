@@ -1690,7 +1690,6 @@ impl Contexte {
         e.insert("effectif".into(), effectif);
         e.insert("sante_permanents".into(), ou_vide("sante_permanents", Value::Object(Map::new())));
         e.insert("prevoyance_permanents".into(), ou_vide("prevoyance_permanents", Value::Object(Map::new())));
-        e.insert("prevoyance_techniciens_3097".into(), copie("prevoyance_techniciens_3097"));
         // Ce que le contrat de sante fait d'un mois entierement suspendu sans indemnisation (`calcul::sante_de_la_suspension`).
         // Absent : rien (la pile, et son empreinte, ne changent pas pour une compagnie qui ne l'a pas dit).
         if let Some(v) = ent.get(crate::bareme::SANTE_SUSPENSION).filter(|v| vrai(v)) {
