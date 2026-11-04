@@ -21,7 +21,7 @@ fn identite() -> Value {
     json!({
         "siren": "987654324", "nic": "00019",
         "raison_sociale": "CIE ESSAI QUENOUILLE", "adresse": "7 IMPASSE DES ESSAIS", "code_postal": "75011", "commune": "PARIS",
-        "naf": "9001Z", "medecine_travail": "MTESSAI7",
+        "naf": "9001Z", "medecine_travail": "MT987",
         "declarant": {"nom": "QUENOUILLE", "prenom": "ARIANE MARIE"},
         "declarant_dsn": {"civilite": "02", "nom_prenom": "QUENOUILLE ARIANE", "tel": "0199887766", "email": "essai@quenouille.invalid", "qualite": "04"},
         "api_dpae": {"nom": "QUENOUILLEDPAE", "prenom": "ARIANE", "siret": "", "service": ""}

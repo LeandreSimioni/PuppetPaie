@@ -348,10 +348,10 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
         entreprise.insert("declarant_dsn".into(), Value::Object(d));
     }
     // LA MEDECINE DU TRAVAIL INTERNE : « MT01 - MEDECINE INTERNE ETABLISSEMENT » en S21.G00.11.025 (norme 2027,
-    // `dsn::spst_ecrit`), le code que la fiche garde (`medecine_travail`). L'identifiant d'un service externe ne se reprend
+    // `dsn::spst_ecrit`) : la fiche garde le code de la DPAE, ou la medecine interne s'ecrit MT999 (`CodeMedecine::INTERNE`). L'identifiant d'un service externe ne se reprend
     // pas : sa definition est dans une fiche consigne non deposee, et qu'il soit le code de la DPAE serait une inference.
     if spst == "MT01" {
-        entreprise.insert("medecine_travail".into(), texte(&spst));
+        entreprise.insert("medecine_travail".into(), texte(droit::fiche::CodeMedecine::INTERNE));
     }
     let versements: Vec<Value> = versements
         .into_iter()

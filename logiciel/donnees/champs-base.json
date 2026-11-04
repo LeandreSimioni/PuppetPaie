@@ -468,9 +468,9 @@
    "exige_par": ["dpae"],
    "libelle": "Code du service de santé au travail",
    "forme": "texte",
-   "aide": "Le code de votre service de prévention et de santé au travail (la médecine du travail), tel que la DPAE le demande. Il figure sur l'attestation d'adhésion que ce service vous a remise. Chaque DPAE le porte : sans lui, aucune embauche ne se déclare. MT01 : la compagnie assure elle-même la médecine du travail (service interne). 10 caractères au plus, ce que la DPAE écrit.",
+   "aide": "Le code de votre service de prévention et de santé au travail (la médecine du travail), tel que la DPAE le demande : MT suivi de trois chiffres, MT542 par exemple. Il figure sur l'attestation d'adhésion que ce service vous a remise. Chaque DPAE le porte : sans lui, aucune embauche ne se déclare. MT999 : la compagnie a sa propre médecine du travail (service interne). 5 caractères, ce que la DPAE écrit.",
    "longueur": null,
-   "exemple": "",
+   "exemple": "MT542",
    "choix": [],
    "declare": false,
    "derive_de": null,
@@ -483,7 +483,7 @@
    "ecran": true
   },
   {
-   "_note": "LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE. Norme DSN 2027 (cahier technique 2027.1.1, `norme-dsn/texte-2027/bloc-S20.G00.07.txt` l. 46-65 et 81, CCH-11 de S20.G00.07.004) : si la declaration porte en S21.G00.11.025 l'identifiant de SPST « MT01 - MEDECINE INTERNE ETABLISSEMENT », un bloc « Contact chez le declare » de type « 17 - Contact au sein du service de medecine du travail interne a l'etablissement » (le medecin du travail ou une personne sous sa responsabilite, pour la transmission des arrets de travail, L315-4 CSS) doit obligatoirement etre present ; dans le cas contraire, il est interdit. La norme 2026 n'a ni l'identifiant de SPST ni le type 17. `si` et `exige_si` : le code du service de sante au travail vaut MT01. `dsn.rs` (`contact_sante_travail`) l'ecrit, `demarrage::manques` le demande.",
+   "_note": "LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE. Norme DSN 2027 (cahier technique 2027.1.1, `norme-dsn/texte-2027/bloc-S20.G00.07.txt` l. 46-65 et 81, CCH-11 de S20.G00.07.004) : si la declaration porte en S21.G00.11.025 l'identifiant de SPST « MT01 - MEDECINE INTERNE ETABLISSEMENT », un bloc « Contact chez le declare » de type « 17 - Contact au sein du service de medecine du travail interne a l'etablissement » (le medecin du travail ou une personne sous sa responsabilite, pour la transmission des arrets de travail, L315-4 CSS) doit obligatoirement etre present ; dans le cas contraire, il est interdit. La norme 2026 n'a ni l'identifiant de SPST ni le type 17. `si` et `exige_si` : le code du service de sante au travail vaut MT999, la medecine interne de la DPAE (norme DPAE v5.3, l. 496-497), que `dsn::spst_ecrit` ecrit MT01. `dsn.rs` (`contact_sante_travail`) l'ecrit, `demarrage::manques` le demande.",
    "cle": "contact_sante_travail",
    "champs": [
     {"cle": "nom_prenom_affichage", "libelle": "Nom et prénom", "forme": "affichage", "aide": "En une seule case, comme la DSN l'écrit.", "exemple": "Paul Durand"},
@@ -503,14 +503,14 @@
    "si_permanents": false,
    "si": {
     "medecine_travail": [
-     "MT01"
+     "MT999"
     ]
    },
    "si_etablissements": false,
    "si_entreprise": null,
    "exige_si": {
     "medecine_travail": [
-     "MT01"
+     "MT999"
     ]
    },
    "booleen_defaut": true,

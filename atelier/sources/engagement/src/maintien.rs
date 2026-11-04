@@ -527,26 +527,27 @@ calculé.",
 /// journalieres d'un arret qui ouvre le maintien (le refus que `ajouter` donnerait). Un engagement valide en manque
 /// quand un arret vient apres sa validation : l'ecran le montre a completer.
 pub fn indemnites_a_dire(ctx: &Contexte, carte: &crate::saisie::Carte, mois: &str) -> Resultat<Option<String>> {
-    // TRAVAIL A FAIRE (chaine A) : la carte se lit ici par ses cles, comme `imprevus::du_contrat_dans_le_mois` la lit.
-    let e = &carte.en_valeur();
-    let nat = crate::conges::nature_de(e.get("nature"))?;
-    if !nat.mensuelle() || !vrai(g(e, "debut")) {
+    let nat = carte.nature_lue()?;
+    // Un contrat sans date de debut ecrite ne se designe pas : aucun imprevu ne peut le nommer (S21.G00.40.001).
+    let (Some(debut), Some(salarie)) = (carte.debut.as_deref().filter(|j| !j.is_empty()), carte.salarie_dit()) else { return Ok(None) };
+    if !nat.mensuelle() {
         return Ok(None);
     }
     let (pm, fm) = (socle::mois::Mois::lire(mois)?.premier_jour(), socle::mois::Mois::lire(mois)?.dernier_jour());
-    let debut = d(g(e, "debut"))?.max(pm);
-    let fin = match Some(g(e, "fin")).filter(|v| vrai(v)) {
-        Some(f) => d(f)?.min(fm),
+    let debut_contrat = Jour::lire(debut)?;
+    let debut = debut_contrat.clone().max(pm);
+    let fin = match carte.fin.as_deref().filter(|f| !f.is_empty()) {
+        Some(f) => Jour::lire(f)?.min(fm),
         None => fm,
     };
-    for imp in crate::imprevus::du_contrat_dans_le_mois(ctx, e, mois)? {
+    for imp in crate::imprevus::du_contrat_dans_le_mois(ctx, salarie, &debut_contrat, carte.numero_dit().unwrap_or(""), mois)? {
         if !crate::imprevus::est_un_arret(&imp) || !droits(ctx, &imp, &nat)?.is_some_and(|dr| dr.du()) {
             continue;
         }
         let (premier, dernier) = (crate::imprevus::premier_jour(&imp)?, crate::imprevus::dernier_jour(&imp)?);
         let Some(o) = origine(&imp) else { continue };
         if let Err(majoree) = indemnites_des_jours(&imp, o, &premier, &dernier, &debut.clone().max(premier.clone()), &fin.clone().min(dernier.clone()))? {
-            return Ok(Some(refus_des_indemnites(&crate::conges::qui(ctx, e), mois, &premier, &dernier, majoree)));
+            return Ok(Some(refus_des_indemnites(&ctx.nomme(salarie), mois, &premier, &dernier, majoree)));
         }
     }
     Ok(None)

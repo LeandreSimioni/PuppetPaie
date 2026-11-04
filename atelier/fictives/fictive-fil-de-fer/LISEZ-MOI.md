@@ -33,7 +33,7 @@ fabrique et que l'import relit tel quel.
 ## Le parcours, mois par mois
 
 - **5 janvier 2026** : la compagnie s'ajoute « D'un logiciel précédent », importe ses papiers de 2025, remplit « Pour
-  démarrer » (compte Urssaf, santé au travail AST71, Congés Spectacles, signataire, première embauche, banque, taxe sur
+  démarrer » (compte Urssaf, santé au travail MT071, Congés Spectacles, signataire, première embauche, banque, taxe sur
   les salaires, la fiche d'Armand Tessier, les courriels, les titres des deux spectacles), fait la revue des spectacles.
 - **Chaque mois joué** : les engagements validés quelques jours avant le premier jour de travail, la DPAE (test puis
   réel), les contrats à la signature ; la DSN déposée après le versement du dernier jour du mois (test puis réel, entre le 2 et le
@@ -82,7 +82,7 @@ La compagnie défraie ses salariés : **les repas** (chaque jour de jeu ou de r�
 ## Ce que la compagnie sait d'elle-même (et qui ne figure pas sur les bulletins)
 
 - **Service de santé au travail** : la compagnie adhère à l'association de santé au travail de Saône-et-Loire ; le code
-  qui figure sur son attestation d'adhésion est **AST71**.
+  qui figure sur son attestation d'adhésion est **MT071**.
 - **Congés Spectacles** : le numéro d'adhérent de la compagnie à la caisse des Congés Spectacles (celui des courriers
   d'Audiens) est **2840517390C**.
 - **TVA et taxe sur les salaires** : la compagnie est une association de marionnettistes sous la franchise en base : elle

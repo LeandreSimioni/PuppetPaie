@@ -790,7 +790,7 @@ pub fn archiver(racine: &Path, canal: &str, retour: &Value, contenu: &[u8], ctyp
         Some(v) => socle::valeur::valeur_en_texte(v),
     };
     let flux = chaine("flux")?;
-    let flux = if flux.is_empty() { "sansflux".to_string() } else { debut(&flux, 24) };
+    let flux = if flux.is_empty() { "sansflux".to_string() } else { flux };
     let nom = format!("{}_nature{}_{}{}", horo, nature, flux, ext);
     let dest = dossier_archive(racine, canal)?.join(nom);
     if !dest.exists() {

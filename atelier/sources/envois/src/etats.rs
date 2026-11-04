@@ -1337,7 +1337,7 @@ fn archive_du_retour(racine: &Path, r: &Value, quoi: &Value) -> R<Option<PathBuf
     }
     let sans_flux = s("sansflux");
     let flux = match ou(get(r, "flux")?, &sans_flux) {
-        Value::String(t) => t.chars().take(24).collect::<String>(),
+        Value::String(t) => t.clone(),
         autre => return Err(erreur("TypeError", format!("'flux' : {}", socle::fichiers::attendu("un texte", nom_type(autre))))),
     };
     let motif: Vec<char> = format!("*_nature{}_{}*", valeur_en_texte(get(r, "nature")?), flux).chars().collect();

@@ -787,7 +787,7 @@ const SECTIONS_FICHE = {
       "affiliation_france_travail",
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
     // Le contact de la médecine du travail interne ne se montre que si le code du
-    // service de santé au travail vaut MT01 (`si` de champs-base.json) ; la DSN
+    // service de santé au travail vaut MT999 (`si` de champs-base.json) ; la DSN
     // l'écrit alors en S20.G00.07 de type 17.
     ["Qui signe, qui répond", ["signataire", "declarant_dsn", "contact_sante_travail"]],
     ["Paiement des cotisations", ["banque"]],
