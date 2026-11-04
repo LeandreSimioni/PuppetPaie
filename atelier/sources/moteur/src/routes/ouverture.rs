@@ -762,7 +762,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let en_retard = echeance.passee_au(&ctx.aujourdhui);
         // L'ETAT DE LA DSN, lu une fois (`compagnie::etat_dsn`) ; une DSN a deposer passee l'echeance est en retard.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
-        let lu = crate::compagnie::etat_dsn::du_mois(ctx, nom, &Value::Null)?;
+        let lu = crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(nom)?, None)?;
         let etat = match lu.0["etat"].as_str().unwrap_or("a_deposer") {
             "a_deposer" if en_retard => "en_retard",
             autre => autre,

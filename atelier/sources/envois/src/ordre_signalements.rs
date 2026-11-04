@@ -30,7 +30,6 @@ use std::path::Path;
 use serde_json::Value;
 
 use droit::contexte::Contexte;
-use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::branchement::Branchement;
 use crate::releve_retours::{self, Client};
@@ -93,20 +92,13 @@ pub fn dernier_ordre_des_bilans(racine: &Path, siren: &str) -> Result<Option<(i6
 /// Le plus grand ordre des signalements d'ESSAI que ce dossier a deposes (`detail.ordre` des lignes `dsn` en test) :
 /// la base d'essai les garde, et le meme fichier part ensuite en reel. Une ligne qui ne dit pas son ordre n'en donne pas.
 fn dernier_ordre_des_essais(racine: &Path) -> Result<i64, Echec> {
-    let lignes = crate::journal::lire(racine, Some("dsn"), None, false).map_err(|m| erreur("ErreurOperation", m))?;
+    let lignes = crate::journal::lire(racine, Some(crate::journal::Acte::Dsn), None, false).map_err(|m| erreur("ErreurOperation", m))?;
     let mut dernier = 0;
-    for l in lignes.iter().filter(|l| l.get("mode").and_then(Value::as_str) == Some("test")) {
-        let detail = l.get("detail").cloned().unwrap_or(Value::Null);
-        let nature = detail.get("nature").map(valeur_en_texte).unwrap_or_default();
-        if !crate::depot::SIGNALEMENTS.contains(&nature.as_str()) {
+    for e in lignes.iter().filter_map(crate::journal::Ligne::dsn).filter(|e| e.mode == crate::journal::Mode::Test) {
+        if !crate::depot::SIGNALEMENTS.contains(&e.detail.nature.as_deref().unwrap_or("")) {
             continue;
         }
-        let ordre = match detail.get("ordre") {
-            Some(Value::Number(n)) => n.as_i64(),
-            Some(Value::String(s)) => s.trim().parse::<i64>().ok(),
-            _ => None,
-        };
-        dernier = dernier.max(ordre.unwrap_or(0));
+        dernier = dernier.max(e.detail.ordre.as_deref().and_then(|o| o.trim().parse::<i64>().ok()).unwrap_or(0));
     }
     Ok(dernier)
 }

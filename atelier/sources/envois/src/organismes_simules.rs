@@ -20,6 +20,8 @@ use socle::echec::{erreur, R};
 use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
+use crate::journal::Ligne;
+use socle::mois::Mois;
 use crate::branchement::Branchement;
 
 const DOSSIER: &str = "organismes-simules";
@@ -268,35 +270,39 @@ fn echappe(t: &str) -> String {
     t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
-/// La ligne du journal : le fichier depose, relu la ou le depot l'a pris (`sorties/<mois>/<fichier>`). Un signalement
-/// porte le jour de son fait dans `mois` (`AAAA-MM-JJ`) ; son fichier est range sous son mois (`AAAA-MM`).
-fn fichier_depose(racine: &Path, l: &Value) -> Option<Vec<u8>> {
-    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
-    let fichier = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte)?;
+/// La ligne du journal : le fichier depose, relu la ou le depot l'a pris (`sorties/<mois>/<fichier>`) ; un signalement
+/// est range sous le mois de son fait.
+fn fichier_depose(racine: &Path, l: &Ligne) -> Option<Vec<u8>> {
+    let fichier = l.fichier().filter(|f| !f.is_empty())?.to_string();
     let p = Path::new(&fichier);
     if p.is_absolute() {
         return std::fs::read(p).ok();
     }
-    let court: String = mois.chars().take(7).collect();
-    [mois.as_str(), court.as_str()].iter().find_map(|m| std::fs::read(racine.join("sorties").join(m).join(&fichier)).ok())
+    std::fs::read(racine.join("sorties").join(mois_de(l)).join(&fichier)).ok()
 }
 
-fn nature_dsn(l: &Value) -> String {
-    l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_else(|| "01".into())
+/// Le mois de la ligne (`AAAA-MM`), ou rien.
+fn mois_de(l: &Ligne) -> String {
+    l.mois().map(|m| m.to_string()).unwrap_or_default()
 }
 
-fn reelle(l: &Value) -> bool {
-    l.get("mode").and_then(Value::as_str) == Some("reel")
+/// La nature de la DSN que la ligne porte ; une ligne qui ne la dit pas est une mensuelle.
+fn nature_dsn(l: &Ligne) -> &str {
+    Some(l.nature_dsn()).filter(|n| !n.is_empty()).unwrap_or("01")
+}
+
+fn reelle(l: &Ligne) -> bool {
+    l.reel()
 }
 
 /// Le refus annonce qui attend ce depot : le premier non servi, annonce au plus tard le jour du depot, du mois du depot
 /// s'il en dit un. Il est servi par ce depot (son flux).
-fn refus_pour(memoire: &mut Value, l: &Value, flux: &str) -> Option<Value> {
+fn refus_pour(memoire: &mut Value, l: &Ligne, flux: &str) -> Option<Value> {
     if !reelle(l) {
         return None;
     }
-    let depot = l.get("quand").and_then(Value::as_str).and_then(jour_iso)?;
-    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
+    let depot = jour_iso(l.quand())?;
+    let mois = mois_de(l);
     for a in memoire["annonces"].as_array_mut()? {
         let Some(r) = a.get("refus").cloned() else { continue };
         if a.get("servi_par").is_some() {
@@ -317,8 +323,8 @@ fn refus_pour(memoire: &mut Value, l: &Value, flux: &str) -> Option<Value> {
 /// gip-mds-specifications-schema-bilans-vt2.2-20201118.txt` : `envoi`, `idflux`, `essai_reel`, `envoi_etat` ;
 /// `declaration`, sa `declaration_identification`, son bilan `etat` et `mois`, ses anomalies `code`, `categorie`,
 /// `message`, `identifiant` de la rubrique).
-fn bilans_refuses(flux: &str, publication: &str, l: &Value, refus: &Value) -> Vec<Piece> {
-    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
+fn bilans_refuses(flux: &str, publication: &str, l: &Ligne, refus: &Value) -> Vec<Piece> {
+    let mois = mois_de(l);
     let mois_dsn = if mois.len() == 7 { format!("01{}{}", &mois[5..7], &mois[..4]) } else { String::new() };
     let t = |k: &str| echappe(refus.get(k).and_then(Value::as_str).unwrap_or(""));
     let envoi = format!("<envoi><idflux>{}</idflux><essai_reel>02</essai_reel><envoi_etat>OK</envoi_etat></envoi>", echappe(flux));
@@ -359,8 +365,8 @@ fn taux_de_simulation(nir: &str) -> String {
 /// plus tard le jour du depot, sinon `taux_de_simulation`), dans la forme du CRM nominatif recu
 /// (`envois/tests/envois/retours.rs`, `CRM_REEL` : `rapport/@identifiant`, `salarie`, `NIR`, `matricule`,
 /// `taux_imposition_PAS`). `None` quand la declaration ne porte aucun salarie de la compagnie.
-fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Value, octets: &[u8], flux: &str, publication: &str) -> R<Option<Piece>> {
-    let depot = l.get("quand").and_then(Value::as_str).and_then(jour_iso);
+fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Ligne, octets: &[u8], flux: &str, publication: &str) -> R<Option<Piece>> {
+    let depot = jour_iso(l.quand());
     let mut taux: BTreeMap<String, String> = BTreeMap::new();
     for a in memoire["annonces"].as_array().into_iter().flatten() {
         let Some(t) = a.get("taux_pas") else { continue };
@@ -418,7 +424,7 @@ fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Value, octets: &[u8], flux: &str
     );
     let mut r = retour(crate::retours::NATURE_TAUX_PAS, flux, publication, "Compte-rendu metier DGFiP, taux du PAS (compagnie fictive)");
     // Le mois de la declaration (`AAAAMM`), meme pour un signalement date du jour de son fait.
-    r["production"] = json!(l.get("mois").map(valeur_en_texte).unwrap_or_default().chars().take(7).collect::<String>().replace('-', ""));
+    r["production"] = json!(mois_de(l).replace('-', ""));
     Ok(Some(Piece { retour: r, contenu: xml.into_bytes() }))
 }
 
@@ -429,8 +435,8 @@ fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Value, octets: &[u8], flux: &str
 /// (`code_ctn`, `section`, `code_risque`, `temoin_bureau`, `taux`, `date_effet`, `date_calcul` ;
 /// `atelier/reference/sources/gip-mds-api-dsn/`, LISEZ-MOI, « La notification du taux AT/MP »). Le `type` du rapport
 /// n'est ecrit par aucun texte depose : la piece n'en porte pas. `None` quand la CARSAT n'a rien a notifier.
-fn crm_atmp(memoire: &mut Value, l: &Value, octets: &[u8], flux: &str, publication: &str) -> Option<Piece> {
-    let depot = l.get("quand").and_then(Value::as_str).and_then(jour_iso);
+fn crm_atmp(memoire: &mut Value, l: &Ligne, octets: &[u8], flux: &str, publication: &str) -> Option<Piece> {
+    let depot = jour_iso(l.quand());
     let rubriques = rubriques(octets);
     let r = |code: &str| rubriques.iter().find(|(c, _)| c == code).map(|(_, v)| v.clone()).unwrap_or_default();
     let calcul = socle::paris::maintenant().chars().take(10).collect::<String>().replace('-', "");
@@ -476,22 +482,22 @@ fn crm_atmp(memoire: &mut Value, l: &Value, octets: &[u8], flux: &str, publicati
 
 /// Les DSN mensuelles reelles de l'annee `an` que l'Urssaf a recues et acceptees, par mois : pour chaque mois et chaque
 /// etablissement, la derniere deposee ; une DSN dont le bilan est non conforme n'en est pas une.
-fn dsn_de_l_annee(racine: &Path, lignes: &[Value], an: i32) -> BTreeMap<u32, Vec<Vec<u8>>> {
-    let mut dernieres: BTreeMap<(String, String), &Value> = BTreeMap::new();
+fn dsn_de_l_annee(racine: &Path, lignes: &[Ligne], an: i32) -> BTreeMap<u32, Vec<Vec<u8>>> {
+    let mut dernieres: BTreeMap<(String, String), &Ligne> = BTreeMap::new();
     for l in lignes {
-        let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
-        if l.get("quoi").and_then(Value::as_str) != Some("dsn") || !reelle(l) || !l.get("accepte").is_some_and(vrai) || nature_dsn(l) != "01" {
+        let mois = mois_de(l);
+        if l.acte() != crate::journal::Acte::Dsn || !reelle(l) || !l.accepte() || nature_dsn(l) != "01" {
             continue;
         }
         if !mois.starts_with(&format!("{}-", an)) {
             continue;
         }
-        let etab = l.get("detail").and_then(|d| d.get("etablissement")).filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_default();
+        let etab = l.etablissement().unwrap_or_default().to_string();
         dernieres.insert((mois, etab), l);
     }
     let mut out: BTreeMap<u32, Vec<Vec<u8>>> = BTreeMap::new();
     for ((mois, _), l) in dernieres {
-        let refusee = l.get("retours").and_then(Value::as_array).into_iter().flatten().any(|r| r.get("verdict").and_then(Value::as_str) == Some("KO"));
+        let refusee = l.retours_organisme().iter().any(|r| r.ko());
         let Some(m) = mois.get(5..7).and_then(|m| m.parse::<u32>().ok()) else { continue };
         if refusee {
             continue;
@@ -531,7 +537,7 @@ fn crm_effectif(an: i32, valeur: f64, flux: &str, publication: &str) -> Piece {
 /// l'accuse et du bilan conformes : `Err(pieces)` quand net-entreprises la refuse (ses deux bilans, rien d'autre), sinon
 /// `Ok(pieces)` a ajouter (le taux du PAS, a une DSN mensuelle comme a un signalement d'amorcage ; l'effectif de l'annee
 /// precedente a la premiere DSN mensuelle d'une annee).
-pub fn reponses_dsn(ctx: &Contexte, memoire: &mut Value, lignes: &[Value], l: &Value, flux: &str, publication: &str) -> R<Result<Vec<Piece>, Vec<Piece>>> {
+pub fn reponses_dsn(ctx: &Contexte, memoire: &mut Value, lignes: &[Ligne], l: &Ligne, flux: &str, publication: &str) -> R<Result<Vec<Piece>, Vec<Piece>>> {
     if let Some(r) = refus_pour(memoire, l, flux) {
         return Ok(Err(bilans_refuses(flux, publication, l, &r)));
     }
@@ -553,7 +559,7 @@ pub fn reponses_dsn(ctx: &Contexte, memoire: &mut Value, lignes: &[Value], l: &V
         pieces.extend(crm_pas(ctx, memoire, l, &octets, flux, publication)?);
         pieces.extend(crm_atmp(memoire, l, &octets, flux, publication));
     }
-    let an: Option<i32> = l.get("mois").map(valeur_en_texte).and_then(|m| m.get(..4).and_then(|a| a.parse().ok()));
+    let an: Option<i32> = l.mois().map(Mois::annee);
     if let Some(an) = an {
         let precedente = (an - 1).to_string();
         let rendus = memoire["effectifs_rendus"].as_array().into_iter().flatten().any(|a| valeur_en_texte(a) == precedente);

@@ -22,7 +22,7 @@ use envois::courriel::Courriel;
 use envois::courriel_lecture as lecture;
 use envois::envoi::{self, Message};
 use envois::journal;
-use envois::ligne_d_envoi::{echec_d_envoi, noter};
+use envois::ligne_d_envoi::{echec_d_envoi, noter, par_courriel};
 use envois::simulation_courriels::BoiteQuiRepond;
 use socle::date::Jour;
 use socle::echec::{erreur, Echec, R};
@@ -1302,8 +1302,19 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
     }
     // CE QUI REVIENT SE RANGE SUR LA LIGNE DE LA DEMANDE : ici, qu'on y renonce.
     for code in &codes {
-        let retour = json!({"code": code, "abandon": true, "quand": maintenant(), "qui": "interface", "reponse": "demande abandonnee, sans reponse"});
-        journal::rattacher(&ctx.racine, |l| demande_de(l, code), retour).map_err(plain)?;
+        let retour = journal::RetourFiche {
+            code: code.clone(),
+            abandon: true,
+            salarie: None,
+            illisible: None,
+            erreurs: None,
+            quand: maintenant(),
+            qui: "interface".into(),
+            de: None,
+            message: None,
+            reponse: "demande abandonnee, sans reponse".into(),
+        };
+        journal::rattacher(&ctx.racine, |l| demande_de(l, code), journal::Revenu::Fiche(retour)).map_err(plain)?;
     }
     // Ni NIR ni IBAN dans la reponse : la page relit `configuration` (comme apres `fiche-demander`).
     Ok(json!({"adresse": adresse}))
@@ -2065,7 +2076,7 @@ fn adresse_valide(adresse: &str) -> bool {
 pub struct FicheDemandee {
     pub code: String,
     pub adresse: String,
-    pub ligne: Value,
+    pub ligne: envois::journal::Ligne,
 }
 
 /// Envoie a `adresse` le courriel « Remplir ma fiche ». Le journal garde
@@ -2115,19 +2126,13 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
         pieces: Vec::new(),
     };
     let mut identifiants: Vec<String> = Vec::new();
+    let demande = |message: Option<String>, expediteur: Option<String>| journal::DetailFiche { code: code.clone(), adresse: adresse.clone(), prenom: prenom.clone(), message, expediteur };
     if let Err(e) = envoi::envoyer(&[message], &expediteur, client, Some(&mut identifiants), None) {
-        let detail = json!({"code": code, "adresse": adresse, "prenom": prenom});
-        noter(ctx, "fiche-demande", None, qui, false, &adresse, &e, Some(&detail))?;
+        noter(ctx, journal::Ligne::FicheDemande(par_courriel(None, qui, false, &adresse, &e, demande(None, None), None)))?;
         return Err(echec_d_envoi(e));
     }
-    let detail = json!({
-        "code": code,
-        "adresse": adresse,
-        "prenom": prenom,
-        "message": identifiants.first().cloned().unwrap_or_default(),
-        "expediteur": expediteur,
-    });
-    let ligne = noter(ctx, "fiche-demande", None, qui, true, &adresse, &format!("fiche demandee a {}", adresse), Some(&detail))?;
+    let detail = demande(Some(identifiants.first().cloned().unwrap_or_default()), Some(expediteur.clone()));
+    let ligne = noter(ctx, journal::Ligne::FicheDemande(par_courriel(None, qui, true, &adresse, &format!("fiche demandee a {}", adresse), detail, None)))?;
     Ok(FicheDemandee { code, adresse, ligne })
 }
 
@@ -2146,29 +2151,25 @@ pub struct Attendue {
 }
 
 /// La ligne `l` est-elle la demande de fiche partie sous le code `code` ? Ce qui en revient se range sur elle.
-fn demande_de(l: &Value, code: &str) -> bool {
-    l["quoi"] == json!("fiche-demande") && l.get("accepte").is_some_and(vrai) && l["detail"]["code"] == json!(code)
+fn demande_de(l: &journal::Ligne, code: &str) -> bool {
+    l.fiche().is_some_and(|e| e.accepte && e.detail.code == code)
 }
 
 /// `fiches_attendues` : les demandes parties et pas encore revenues, les plus anciennes d'abord. Une demande a
 /// laquelle on renonce se retire (`fiche-oublier-demande`, `fiches`).
 pub fn fiches_attendues(ctx: &Contexte) -> R<Vec<Attendue>> {
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let detail = |l: &Value| -> Value { l.get("detail").filter(|d| vrai(d)).cloned().unwrap_or_else(|| json!({})) };
     let mut sortie = Vec::new();
-    for l in envois::etats::filtrer(&lignes, Some("fiche-demande"), None, false)? {
-        let d = detail(l);
-        let code = d.get("code").cloned().unwrap_or(Value::Null);
-        if !l.get("accepte").is_some_and(vrai) || !vrai(&code) || l.get("retours").is_some_and(vrai) {
+    for e in lignes.iter().filter_map(journal::Ligne::fiche) {
+        if !e.accepte || e.detail.code.is_empty() || !e.retours.is_empty() {
             continue;
         }
-        let texte = |cle: &str| d.get(cle).map(valeur_en_texte).unwrap_or_default();
         sortie.push(Attendue {
-            code: valeur_en_texte(&code),
-            adresse: texte("adresse"),
-            prenom: texte("prenom"),
-            quand: l.get("quand").and_then(Value::as_str).unwrap_or("").to_string(),
-            envoyes: d.get("message").and_then(Value::as_str).filter(|m| !m.is_empty()).map(|m| vec![m.to_string()]).unwrap_or_default(),
+            code: e.detail.code.clone(),
+            adresse: e.detail.adresse.clone(),
+            prenom: e.detail.prenom.clone(),
+            quand: e.quand.clone(),
+            envoyes: e.detail.message.clone().filter(|m| !m.is_empty()).into_iter().collect(),
         });
     }
     Ok(sortie)
@@ -2331,11 +2332,19 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         let texte_de = |cle: &str| donnees.get(cle).map(valeur_en_texte).unwrap_or_default();
         let nom = format!("{} {}", texte_de("prenom_affichage"), texte_de("nom_affichage"));
         let erreurs = f.anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).count();
-        let retour = json!({
-            "code": code, "salarie": f.cle, "illisible": illisible, "erreurs": erreurs, "quand": quand, "qui": qui,
-            "de": de, "message": ident, "reponse": format!("fiche {} par courriel", if existante.is_some() { "completee" } else { "creee" }),
-        });
-        journal::rattacher(&ctx.racine, |l| demande_de(l, &code), retour).map_err(os)?;
+        let retour = journal::RetourFiche {
+            code: code.clone(),
+            abandon: false,
+            salarie: f.cle.as_deref().map(droit::contexte::IdSalarie::lire).transpose().map_err(os)?,
+            illisible: Some(illisible.clone()),
+            erreurs: Some(erreurs),
+            quand: quand.clone(),
+            qui: qui.to_string(),
+            de: Some(de.clone()),
+            message: Some(ident.clone()),
+            reponse: format!("fiche {} par courriel", if existante.is_some() { "completee" } else { "creee" }),
+        };
+        journal::rattacher(&ctx.racine, |l| demande_de(l, &code), journal::Revenu::Fiche(retour)).map_err(os)?;
         r.recues.push(json!({"code": code, "cle": f.cle, "nom": strip(&nom), "illisible": illisible, "erreurs": erreurs}));
     }
     client.fermer();

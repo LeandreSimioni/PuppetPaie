@@ -228,7 +228,7 @@ fn etat_exercices(ctx: &Contexte) -> R<Value> {
         let export = export.exists().then_some(export);
         let mut acceptees = Vec::new();
         for x in &mois {
-            if crate::compagnie::etat_dsn::du_mois(ctx, x, &Value::Null)?.partie() {
+            if crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(x)?, None)?.partie() {
                 acceptees.push(json!(x));
             }
         }

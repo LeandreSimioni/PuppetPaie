@@ -302,8 +302,8 @@ fn acte_lisible(quoi: &str) -> Option<&'static str> {
 }
 
 /// Une reponse lisible, entiere ; un rapport XML se lit au journal, pas dans une case.
-fn reponse(r: Option<&Value>) -> String {
-    let t = r.filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+fn reponse(r: &str) -> String {
+    let t = r.to_string();
     let t = t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
     if t.starts_with('<') {
         return "rapport de l'organisme (XML, conservé au journal)".to_string();
@@ -313,26 +313,38 @@ fn reponse(r: Option<&Value>) -> String {
 
 /// Chaque acte qui a engage la compagnie -- DSN, DPAE, envois,
 /// signatures --, avec sa date, son mode, son issue et son fichier : la piste d'audit.
-pub fn journal_des_declarations(ctx: &Contexte, d: &Demande, journal: &[Value]) -> R<Tableau> {
+/// UN ACTE DU JOURNAL DES ENVOIS, tel que le journal des declarations le montre : `moteur` le tire de chaque ligne du
+/// journal (`envois::journal::Ligne`), que ce module ne lit pas.
+pub struct ActeDuJournal {
+    pub quand: String,
+    /// Sa sorte, telle que le journal l'ecrit (`dsn`, `contrat-signature`...).
+    pub quoi: String,
+    pub main_propre: bool,
+    /// Le mois qu'il declare (`AAAA-MM`), s'il en declare un.
+    pub mois: Option<String>,
+    pub mode: String,
+    pub accepte: bool,
+    pub fichier: String,
+    pub destinataire: String,
+    pub reponse: String,
+    pub origine: String,
+}
+
+pub fn journal_des_declarations(ctx: &Contexte, d: &Demande, journal: &[ActeDuJournal]) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;
     let mut lignes = Vec::new();
     for l in journal {
         // Un acte porte le mois qu'il declare ; un acte annuel se range au mois ou il a eu lieu.
-        let texte = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-        let mut m = texte("mois");
-        if m.chars().count() != 7 {
-            m = texte("quand").chars().take(7).collect();
-        }
+        let m: String = l.mois.clone().unwrap_or_else(|| l.quand.chars().take(7).collect());
         if m.chars().count() != 7 || !p.contient(&m) {
             continue;
         }
-        let quoi = texte("quoi");
         let mut x = Ligne::nouvelle();
-        x.t("quand", texte("quand").replace('T', " ").chars().take(16).collect::<String>());
-        let main_propre = quoi == "contrat-signature" && l.pointer("/detail/main_propre").is_some_and(vrai);
-        x.t("acte", if main_propre { "Contrat imprimé, à remettre en main propre".to_string() } else { acte_lisible(&quoi).map(str::to_string).unwrap_or(quoi) });
-        x.t("mois", m).t("mode", texte("mode")).t("issue", if l.get("accepte").is_some_and(vrai) { "accepté" } else { "refusé ou échoué" });
-        x.t("fichier", texte("fichier")).t("destinataire", texte("destinataire")).t("reponse", reponse(l.get("reponse"))).t("origine", texte("origine"));
+        x.t("quand", l.quand.replace('T', " ").chars().take(16).collect::<String>());
+        let main_propre = l.quoi == "contrat-signature" && l.main_propre;
+        x.t("acte", if main_propre { "Contrat imprimé, à remettre en main propre".to_string() } else { acte_lisible(&l.quoi).map(str::to_string).unwrap_or_else(|| l.quoi.clone()) });
+        x.t("mois", m).t("mode", l.mode.clone()).t("issue", if l.accepte { "accepté" } else { "refusé ou échoué" });
+        x.t("fichier", l.fichier.clone()).t("destinataire", l.destinataire.clone()).t("reponse", reponse(&l.reponse)).t("origine", l.origine.clone());
         lignes.push(x);
     }
     if lignes.is_empty() {

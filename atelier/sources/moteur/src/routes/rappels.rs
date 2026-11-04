@@ -21,7 +21,6 @@ use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
 use socle::mois::{Graphie, Mois};
 use engagement;
-use envois::etats;
 use crate::compagnie::etat_dsn;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusFiche, FORME, OPERATION};
 use crate::routes::catalogue::Route;
@@ -250,11 +249,6 @@ pub(super) fn texte(v: Option<&Value>) -> String {
     v.map_or("None".to_string(), en_texte)
 }
 
-
-/// Ce que `journal.lire(ctx, quoi, reel_seulement=...)` rend, sur des lignes deja lues.
-fn lire_journal<'a>(lignes: &'a [Value], quoi: &str, reel: bool) -> R<Vec<&'a Value>> {
-    Ok(etats::filtrer(lignes, Some(quoi), None, reel)?)
-}
 
 // ============================================================ les echeances
 
@@ -546,7 +540,7 @@ pub(super) fn brut_valeur(v: &Value) -> Value {
 pub(crate) struct Etat<'a> {
     pub(crate) ctx: &'a Contexte,
     pub(crate) aujourdhui: Jour,
-    pub(crate) journal: std::sync::Arc<Vec<Value>>,
+    pub(crate) journal: std::sync::Arc<Vec<envois::journal::Ligne>>,
 }
 
 impl Etat<'_> {
@@ -660,7 +654,7 @@ fn dsn_a_venir(st: &Etat, mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
     let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, &texte)?;
     let titre = formater(&modele.titre, &[("de_mois", socle::texte::de(&mois.libelle(Graphie::Accentuee)))])?;
     let mut e = Echeance::nouveau(DSN, format!("dsn:{}", mois), titre, String::new(), Some(mois.suivant()));
-    e.etat = if !etat_dsn::due(st.ctx, &texte, &Value::Null)? { Fait } else if echeance.passee_au(&st.aujourdhui) { EnRetard } else { AFaire };
+    e.etat = if !etat_dsn::due(st.ctx, socle::mois::Mois::lire(&texte)?, None)? { Fait } else if echeance.passee_au(&st.aujourdhui) { EnRetard } else { AFaire };
     e.due = false;
     e.mois = Some(mois);
     e.detail = dsn_detail(modele, &echeance)?;
@@ -766,7 +760,7 @@ fn annuelle(st: &Etat, e: &Annuelle, annee: i32, faites: &Cochees, premier: Opti
         x.cle = format!("{}:{}", CLOTURE, precedente);
         // LA CLOTURE VIENT APRES LA DSN DE DECEMBRE : tant qu'elle n'est pas partie, c'est son rappel qui parle.
         x.quand = format!("après la DSN de décembre, due {}", dsn_decembre.phrase());
-        let partie = etat_dsn::du_mois(ctx, &decembre, &Value::Null)?;
+        let partie = etat_dsn::du_mois(ctx, socle::mois::Mois::lire(&decembre)?, None)?;
         x.due = x.due && (partie.partie() || partie.refusee());
         x.etat = if x.etat == EnRetard && !x.due { AFaire } else { x.etat };
         if x.due {
@@ -1002,17 +996,11 @@ fn spectacles_a_revoir(ctx: &Contexte, annee: i32, faites: &Cochees) -> Vec<Spec
 /// Le mois le plus recent dont la DSN reelle est partie et n'a pas ete
 /// refusee -- passee, ou en attente de son bilan.
 fn derniere_dsn_passee(st: &Etat) -> R<Option<String>> {
-    let mut mois = BTreeSet::new();
-    for l in lire_journal(&st.journal, DSN, true)? {
-        if l.get("accepte").is_some_and(vrai) && l.get("mois").is_some_and(vrai) {
-            mois.insert(en_texte(&l["mois"]));
-        }
-    }
+    let mois: BTreeSet<Mois> = envois::journal::filtrer(&st.journal, Some(envois::journal::Acte::Dsn), None, true).filter(|l| l.accepte() && !l.signalement()).filter_map(|l| l.mois()).collect();
     let mut passes = Vec::new();
     for m in mois {
-        let e = etat_dsn::du_mois(st.ctx, &m, &Value::Null)?;
-        if !e.a_faire() {
-            passes.push(m);
+        if !etat_dsn::du_mois(st.ctx, m, None)?.a_faire() {
+            passes.push(m.to_string());
         }
     }
     Ok(passes.into_iter().max())
@@ -1035,7 +1023,7 @@ fn mois_a_declarer(st: &Etat) -> R<Vec<Mois>> {
     }
     let mut out = Vec::new();
     for m in premier.jusqu_a(dernier) {
-        if etat_dsn::due(st.ctx, &m.to_string(), &Value::Null)? {
+        if etat_dsn::due(st.ctx, m, None)? {
             out.push(m);
         }
     }
@@ -1124,7 +1112,7 @@ fn rappel_dsn(st: &Etat, le_mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
     r.engagements = engagements;
     r.validees = validees;
 
-    let etat = etat_dsn::du_mois(st.ctx, mois, &Value::Null)?;
+    let etat = etat_dsn::du_mois(st.ctx, socle::mois::Mois::lire(mois)?, None)?;
     if etat.refusee() {
         r.etape = A_CORRIGER.into();
         let anomalies: Vec<String> = etat.0.get("anomalies").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();

@@ -87,7 +87,7 @@ pub fn chemin_unique(nom: &str) -> PathBuf {
 
 /// Les lignes du journal des envois de la compagnie `racine`, telles que le moteur les lit (`envois::journal::lu`).
 pub fn journal(racine: &Path) -> Value {
-    Value::Array(envois::journal::lu(racine).unwrap().lignes.to_vec())
+    serde_json::to_value(envois::journal::lu(racine).unwrap().lignes.as_slice()).unwrap()
 }
 
 pub fn lire(racine: &Path, rel: &str) -> Value {

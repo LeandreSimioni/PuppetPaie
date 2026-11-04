@@ -17,7 +17,8 @@ use documents::plan_comptable::{controler_plan, tables};
 use droit::contexte::Contexte;
 use envois::envoi::{self, Message};
 use envois::etats::{getd, ou, texte_vide};
-use envois::ligne_d_envoi::{echec_d_envoi, noter, noter_echec_d_envoi};
+use envois::ligne_d_envoi::{echec_d_envoi, noter, noter_echec_d_envoi, par_courriel};
+use envois::journal;
 use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
@@ -515,7 +516,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         "contrats" => documents::etats_personnel::liste_des_contrats(ctx, &d),
         "registre-du-personnel" => documents::etats_personnel::registre_du_personnel(ctx, &d),
         "fichier-du-personnel" => documents::etats_personnel::fichier_du_personnel(ctx, &d),
-        "journal-des-declarations" => documents::etats_personnel::journal_des_declarations(ctx, &d, &envois::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?),
+        "journal-des-declarations" => documents::etats_personnel::journal_des_declarations(ctx, &d, &actes_du_journal(ctx)?),
         "ecritures-comptables" => documents::etats_compta::ecritures_comptables(ctx, &d),
         "grand-livre-paie" => documents::etats_compta::grand_livre(ctx, &d),
         "balance-paie" => documents::etats_compta::balance(ctx, &d),
@@ -627,21 +628,43 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
     verifier_preuve(ctx, Some(preuve), &aujourdhui.mois_civil().to_string(), "envoi du dossier aux salaries", &a_qui)?;
     let expediteur = expediteur_de(client.as_ref());
+    let detail = journal::DetailDossier {
+        periode: d.periode.clone(),
+        categories: d.categories.iter().map(|c| c.to_string()).collect(),
+        salaries: messages.iter().map(|m| Ok(journal::DossierServi { cle: droit::contexte::IdSalarie::lire(&m.cle)?, piece: m.pieces.first().map(|p| nom_du(p)) })).collect::<Result<_, String>>()?,
+        expediteur: expediteur.clone(),
+        partis: None,
+        echec_a: None,
+    };
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client.as_mut(), None, None) {
         Ok(p) => p,
         Err(e) => {
-            noter_echec_d_envoi(ctx, "dossier-salarie", None, qui, &e.partis, &e.echoue, &e.message, None, None)?;
+            noter_echec_d_envoi(ctx, journal::Ligne::DossierSalarie, None, qui, &e.partis, &e.echoue, &e.message, detail, None)?;
             return Err(echec_d_envoi(e.message));
         }
     };
-    let detail = json!({
-        "periode": d.periode,
-        "categories": d.categories,
-        "salaries": messages.iter().map(|m| json!({"cle": m.cle, "piece": m.pieces.first().map(|p| nom_du(p))})).collect::<Vec<_>>(),
-        "expediteur": expediteur,
-    });
-    let ligne = noter(ctx, "dossier-salarie", None, qui, true, &partis.join(", "), "", Some(&detail))?;
+    let ligne = noter(ctx, journal::Ligne::DossierSalarie(par_courriel(None, qui, true, &partis.join(", "), "", detail, None)))?;
     Ok(json!({"partis": partis, "messages": messages.len(), "expediteur": expediteur, "ligne": ligne}))
+}
+
+/// Les actes du journal des envois, tels que le journal des declarations les montre.
+fn actes_du_journal(ctx: &Contexte) -> R<Vec<documents::etats_personnel::ActeDuJournal>> {
+    let lignes = journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
+    Ok(lignes
+        .iter()
+        .map(|l| documents::etats_personnel::ActeDuJournal {
+            quand: l.quand().to_string(),
+            quoi: l.acte().nom().to_string(),
+            main_propre: l.main_propre(),
+            mois: l.mois().map(|m| m.to_string()),
+            mode: l.mode().nom().to_string(),
+            accepte: l.accepte(),
+            fichier: l.fichier().unwrap_or_default().to_string(),
+            destinataire: l.destinataire().to_string(),
+            reponse: l.reponse().to_string(),
+            origine: l.origine().to_string(),
+        })
+        .collect())
 }
 
 /// Un jour ISO en JJ/MM/AAAA.
@@ -733,11 +756,21 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
         },
     ];
     let compte = client.compte().to_string();
+    let date_de = |a: &str| dates.iter().find(|(k, _)| k == a).map(|(_, d)| d.clone()).unwrap_or_default();
+    let mut detail = journal::DetailCasc {
+        annees: r.annees.iter().map(|a| journal::AnneeCasc { annee: a.annee.clone(), vire_le: date_de(&a.annee), montant: a.cotisation.to_string() }).collect(),
+        mois: r.mois.iter().map(|m| m.mois.clone()).collect(),
+        total: r.total.to_string(),
+        expediteur: compte.clone(),
+        eml: Vec::new(),
+        partis: None,
+        echec_a: None,
+    };
     let mut copies: Vec<Vec<u8>> = Vec::new();
     let partis = match envoi::envoyer_suivi(&messages, &compte, client.as_mut(), None, Some(&mut copies)) {
         Ok(p) => p,
         Err(e) => {
-            noter_echec_d_envoi(ctx, "regularisation-casc", None, &qui, &e.partis, &e.echoue, &e.message, Some(json!({"annees": annees_voulues})), None)?;
+            noter_echec_d_envoi(ctx, journal::Ligne::RegularisationCasc, None, &qui, &e.partis, &e.echoue, &e.message, detail, None)?;
             return Err(echec_d_envoi(e.message));
         }
     };
@@ -753,15 +786,8 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
         std::fs::write(&p, brut).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
         emls.push(nom_du(&p));
     }
-    let date_de = |a: &str| dates.iter().find(|(k, _)| k == a).map(|(_, d)| d.clone()).unwrap_or_default();
-    let detail = json!({
-        "annees": r.annees.iter().map(|a| json!({"annee": a.annee, "vire_le": date_de(&a.annee), "montant": a.cotisation.to_string()})).collect::<Vec<_>>(),
-        "mois": r.mois.iter().map(|m| m.mois.clone()).collect::<Vec<_>>(),
-        "total": r.total.to_string(),
-        "expediteur": compte,
-        "eml": emls,
-    });
-    let ligne = noter(ctx, "regularisation-casc", None, &qui, true, &partis.join(", "), &format!("{} courriel(s) envoye(s)", partis.len()), Some(&detail))?;
+    detail.eml = emls.clone();
+    let ligne = noter(ctx, journal::Ligne::RegularisationCasc(par_courriel(None, &qui, true, &partis.join(", "), &format!("{} courriel(s) envoye(s)", partis.len()), detail, None)))?;
     // Les annees regularisees : leurs mois sortent des dossiers suivants. S'ecrit APRES le virement, jamais avant.
     let auj = socle::paris::maintenant();
     let mut notees: Vec<Value> = Vec::new();

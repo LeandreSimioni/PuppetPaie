@@ -636,17 +636,13 @@ pub(crate) fn avec_ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Value> {
         arret.a_reporter(mois, &departs).map_err(|m| erreur("ValueError", m))
     };
     let mut partis = Vec::new();
-    for l in lignes.iter() {
-        let accepte = l.get("accepte") == Some(&Value::Bool(true)) && !envois::etats::refuse_par_un_retour(l).unwrap_or(false);
-        if texte(l, "quoi") != "dsn" || texte(l, "mode") != envois::journal::REEL || !accepte {
-            continue;
-        }
-        let (nom, mois, quand) = (texte(l, "fichier"), texte(l, "mois"), texte(l, "quand"));
-        let d = l.get("detail").cloned().unwrap_or(Value::Null);
-        let (nature, type_dsn) = (texte(&d, "nature"), texte(&d, "type"));
-        let ordre = texte(&d, "ordre").trim().parse::<i64>().unwrap_or(0);
-        let du_salarie = l.get("versions").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| texte(x, "salarie") == salarie));
-        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && mois == declare && du_salarie {
+    for e in envois::journal::filtrer(&lignes, Some(envois::journal::Acte::Dsn), None, true).filter(|l| l.accepte() && !envois::etats::refuse_par_un_retour(l)).filter_map(envois::journal::Ligne::dsn) {
+        let (nom, mois, quand) = (e.fichier.clone().unwrap_or_default(), e.mois.map(|m| m.to_string()).unwrap_or_default(), e.quand.clone());
+        let d = &e.detail;
+        let (nature, type_dsn) = (d.nature.clone().unwrap_or_default(), d.type_declaration.clone().unwrap_or_default());
+        let ordre = d.ordre.as_deref().unwrap_or("").trim().parse::<i64>().unwrap_or(0);
+        let du_salarie = e.versions.iter().flatten().any(|x| x.salarie.as_str() == salarie);
+        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && d.evenement.as_deref() == Some(declare.as_str()) && du_salarie {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "fichier": format!("sorties/{}/{}", &dj[..7], nom), "quand": quand}));
         } else if nature == "01" && reporte(&mois, &quand)? {
             partis.push(json!({"nature": nature, "type": type_dsn, "ordre": ordre, "mois": mois, "fichier": format!("sorties/{}/{}", mois, nom), "quand": quand}));
@@ -819,7 +815,7 @@ pub fn de_l_arret(ctx: &Contexte, a: &Value, suivi: &Suivi, aujourdhui: Jour) ->
 
 /// Le signalement de fin de contrat (07) d'un contrat qui finit le `fin`. `cle` : la cle de la fiche du salarie (le nom
 /// du fichier que `fin-contrat-signaler` ecrit) ; `journal` : les lignes du journal des depots.
-pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[Value], aujourdhui: Jour) -> R<Value> {
+pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[envois::journal::Ligne], aujourdhui: Jour) -> R<Value> {
     let n = base()?;
     let o = obligation(&n, "signalement_fin_contrat")?;
     let mut cal = Calendrier::nouveau(ctx.entreprise.feries_chomes());
@@ -833,22 +829,21 @@ pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[Value]
 }
 
 /// Le jour ou le signalement de fin de ce contrat est parti (`fctu_depose`), s'il l'est.
-pub(crate) fn fin_signalee_le(journal: &[Value], cle: &str, fin: &Jour) -> Option<Jour> {
+pub(crate) fn fin_signalee_le(journal: &[envois::journal::Ligne], cle: &str, fin: &Jour) -> Option<Jour> {
     fctu_depose(journal, cle, fin).map(|f| f.le)
 }
 
 /// Le premier depot REEL, non refuse au bilan, du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
 /// (`Apercu::evenement_lisible`), dont le fichier est celui que `fin-contrat-signaler` ecrit pour ce salarie.
-fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {
+fn fctu_depose(journal: &[envois::journal::Ligne], cle: &str, fin: &Jour) -> Option<Fait> {
     let nom = format!("SignalementFinContrat_{}_{}.dsn", cle.to_uppercase(), fin.aaaammjj());
-    journal
-        .iter()
-        .filter(|l| texte(l, "quoi") == "dsn" && texte(l, "mode") == envois::journal::REEL && l.get("accepte").is_some_and(vrai))
+    envois::journal::filtrer(journal, Some(envois::journal::Acte::Dsn), None, true)
+        .filter(|l| l.accepte())
         // Un signalement refuse au bilan n'est pas recu (cahier technique DSN, `norme-dsn/texte/chapitre-4-controles.txt` §4.2) : il reste du.
-        .filter(|l| !envois::etats::refuse_par_un_retour(l).unwrap_or(false))
-        .filter(|l| texte(l, "mois") == fin.iso() && texte(l, "fichier").to_uppercase() == nom.to_uppercase())
+        .filter(|l| !envois::etats::refuse_par_un_retour(l))
+        .filter(|l| evenement_de(l) == fin.iso() && l.fichier().unwrap_or("").to_uppercase() == nom.to_uppercase())
         .filter_map(|l| {
-            let quand = texte(l, "quand");
+            let quand = l.quand().to_string();
             let le = Jour::lire(quand.get(..10)?).ok()?;
             Some((quand, le, l))
         })
@@ -856,8 +851,13 @@ fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {
         .map(|(quand, le, l)| Fait {
             le,
             comment: "déposé sur net-entreprises ; le bilan dit s'il est accepté".into(),
-            detail: json!({"quand": quand, "fichier": l.get("fichier"), "flux": l.get("flux"), "comment": "depot"}),
+            detail: json!({"quand": quand, "fichier": l.fichier(), "flux": l.flux(), "comment": "depot"}),
         })
+}
+
+/// Le jour de l'evenement qu'un signalement declare (`AAAA-MM-JJ`), ou rien.
+fn evenement_de(l: &envois::journal::Ligne) -> &str {
+    l.dsn().and_then(|e| e.detail.evenement.as_deref()).unwrap_or("")
 }
 
 // ------------------------------------------------------------------ les routes
@@ -1169,12 +1169,15 @@ mod essais {
     #[test]
     fn un_signalement_de_fin_refuse_au_bilan_reste_du() {
         let fin = Jour::lire("2026-03-13").unwrap();
-        let ligne = |verdict: &str| {
-            json!([{"quoi": "dsn", "mode": "reel", "accepte": true, "mois": "2026-03-13", "quand": "2026-03-14T10:00:00",
-                    "fichier": "SignalementFinContrat_FANCHON_20260313.dsn", "retours": [{"nature": "11", "verdict": verdict}]}])
+        let ligne = |verdict: &str| -> Vec<envois::journal::Ligne> {
+            vec![serde_json::from_value(json!({"quoi": "dsn", "mode": "reel", "accepte": true, "mois": "2026-03", "quand": "2026-03-14T10:00:00", "origine": "",
+                    "fichier": "SignalementFinContrat_FANCHON_20260313.dsn", "empreinte": null, "qui": "t", "destinataire": "", "flux": "", "reponse": "", "trace": null,
+                    "detail": {"nature": "07", "evenement": "2026-03-13", "repetition": null, "ordre_test": null},
+                    "retours": [{"nature": "11", "verdict": verdict, "libelle": "", "statut": null, "publication": null}]}))
+            .unwrap()]
         };
-        assert!(fctu_depose(ligne("KO").as_array().unwrap(), "fanchon", &fin).is_none());
-        assert!(fctu_depose(ligne("OK").as_array().unwrap(), "fanchon", &fin).is_some());
+        assert!(fctu_depose(&ligne("KO"), "fanchon", &fin).is_none());
+        assert!(fctu_depose(&ligne("OK"), "fanchon", &fin).is_some());
     }
 }
 

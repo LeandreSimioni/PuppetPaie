@@ -53,6 +53,8 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
 use crate::routes::catalogue::Route;
+use crate::routes::depots::{ChargeDeposer, Designation, Quoi};
+use socle::echec::Echec;
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
@@ -434,10 +436,10 @@ pub fn changer(inst: &Path, actuel: &str, nouveau: &str, confirmation: &str, pos
 /// contenu), `paie_changee` (une mensuelle qui ne declare plus la paie), `testee` (test conforme, bilan lu), `en_test`
 /// (test parti, bilan attendu), `test_refuse`, `a_tester`. Les memes lectures que l'etape de depot du mois
 /// (`crate::routes::etapes`, la route `etat-du-mois`).
-fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
+fn etape_du_fichier(ctx: &Contexte, lignes: &[envois::journal::Ligne], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
     let empreinte = envois::journal::empreinte(&octets);
-    if vrai(&etats::deja_depose(lignes, "dsn", &empreinte)?) {
+    if etats::deja_depose(lignes, envois::journal::Acte::Dsn, &empreinte).is_some() {
         return Ok("deposee");
     }
     if let Some(m) = mensuelle {
@@ -446,7 +448,7 @@ fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: 
         }
     }
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let r = etats::repetition(lignes, "dsn", &empreinte, &nom)?;
+    let r = etats::repetition(lignes, envois::journal::Acte::Dsn, &empreinte, &nom);
     Ok(match r.etat.nom() {
         "ecrite" => "a_tester",
         autre => autre,
@@ -502,7 +504,7 @@ fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
 }
 
 /// Une declaration du tableau, a partir d'un rappel de la compagnie.
-fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> {
+fn declaration(ctx: &Contexte, lignes: &[envois::journal::Ligne], r: &Value) -> R<Option<Value>> {
     let texte = |k: &str| r.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let quoi = texte("quoi");
     let mut d = Map::new();
@@ -724,8 +726,9 @@ pub fn tableau(o: &HashMap<String, String>, inst: &Path, relever: bool) -> Value
             if let Ok(t) = refaire_compagnie(o, &r) {
                 for d in t.get("declarations").and_then(Value::as_array).into_iter().flatten() {
                     if d.get("etape").and_then(Value::as_str) == Some("en_test") {
-                        let charge = designation(&d);
-                        let _ = crate::routes::servir_la_route(&o_de(o, &r), Route::BilanRepetition, &charge);
+                        if let Ok(charge) = designation(d).and_then(en_charge) {
+                            let _ = crate::routes::servir_la_route(&o_de(o, &r), Route::BilanRepetition, &charge);
+                        }
                     }
                 }
             }
@@ -794,11 +797,7 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
         mdp = Some(m);
     }
     for (racine, nom, d) in &a_faire {
-        let mut charge = designation(d);
-        charge["reel"] = json!(reel);
-        if let Some(m) = &mdp {
-            charge["motdepasse"] = json!(m);
-        }
+        let charge = en_charge(ChargeDeposer::de(designation(d)?, reel, mdp.clone()))?;
         let mut sortie = json!({"compagnie": nom, "titre": d["titre"], "fichier": d["fichier"], "genre": d["genre"]});
         let rep = crate::routes::servir_la_route(&o_de(o, racine), Route::Deposer, &charge);
         crate::compagnie::coffre::oublier_mot_de_passe_tape();
@@ -835,11 +834,13 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
     }))
 }
 
-/// La charge de depot qui designe la declaration `d` du tableau : la DSN de son mois, ou le signalement ecrit.
-fn designation(d: &Value) -> Value {
-    if d["genre"] == "dsn" {
-        json!({"quoi": "dsn", "mois": d["mois"]})
-    } else {
-        json!({"quoi": "dsn", "fichier": d["fichier"]})
-    }
+/// La designation de la declaration `d` du tableau : la DSN de son mois, ou le signalement ecrit.
+fn designation(d: &Value) -> R<Designation> {
+    let texte = |k: &str| d.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+    Ok(if d["genre"] == "dsn" { Designation::du_mois(Quoi::Dsn, socle::mois::Mois::lire(&texte("mois"))?) } else { Designation::du_fichier(texte("fichier")) })
+}
+
+/// Une charge de route, en JSON : ce que `servir_la_route` lit.
+fn en_charge(c: impl serde::Serialize) -> R<Value> {
+    serde_json::to_value(c).map_err(|e| Echec::from(e.to_string()))
 }

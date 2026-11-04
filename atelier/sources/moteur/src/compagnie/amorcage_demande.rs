@@ -98,23 +98,13 @@ fn jours_ouvres_apres(depart: Jour, combien: i64) -> R<Jour> {
 /// garde.
 pub fn en_cours(ctx: &Contexte, cle: &str) -> R<Option<EnCours>> {
     let lignes = envois::journal::lu(&ctx.racine).map_err(|m| erreur("OSError", m))?.lignes;
-    let texte = |l: &Value, k: &str| l.get(k).map(valeur_en_texte).unwrap_or_default();
-    let pour_lui = |l: &Value| l["versions"].as_array().is_some_and(|v| v.iter().any(|x| texte(x, "salarie") == cle));
-    let mut derniere: Option<&Value> = None;
-    for l in lignes.iter() {
-        if texte(l, "quoi") == "dsn"
-            && texte(l, "mode") == "reel"
-            && l.get("accepte").is_some_and(vrai)
-            && texte(&l["detail"], "nature") == declarations::amorcage::NATURE
-            && pour_lui(l)
-            && !envois::etats::refuse_par_un_retour(l)?
-        {
-            derniere = Some(l);
-        }
-    }
+    let pour_lui = |l: &envois::journal::Ligne| l.versions().is_some_and(|v| v.iter().any(|x| x.salarie.as_str() == cle));
+    let derniere = envois::journal::filtrer(&lignes, Some(envois::journal::Acte::Dsn), None, true)
+        .filter(|l| l.accepte() && l.nature_dsn() == declarations::amorcage::NATURE && pour_lui(l) && !envois::etats::refuse_par_un_retour(l))
+        .last();
     let Some(l) = derniere else { return Ok(None) };
-    let quand = texte(l, "quand");
-    let dernier_recu = droit::pas::recus(ctx, cle).map_err(|m| erreur("ValueError", m))?.last().map(|r| texte(r, "mis_a_disposition")).unwrap_or_default();
+    let quand = l.quand().to_string();
+    let dernier_recu = droit::pas::recus(ctx, cle).map_err(|m| erreur("ValueError", m))?.last().map(|r| r.get("mis_a_disposition").map(valeur_en_texte).unwrap_or_default()).unwrap_or_default();
     if chiffres(&dernier_recu) >= chiffres(&quand) {
         return Ok(None);
     }

@@ -15,6 +15,7 @@ pub mod etats;
 pub mod google;
 pub mod google_autorisation;
 pub mod journal;
+pub mod ligne;
 pub mod ligne_d_envoi;
 pub mod ordre_signalements;
 pub mod organismes_simules;

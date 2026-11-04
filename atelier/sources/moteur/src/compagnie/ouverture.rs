@@ -354,18 +354,14 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
     }
     // LES RETOURS DE LA COMPAGNIE, PAS CEUX DU BAC A SABLE : les retours des depots de test ne se comptent que
     // dans la copie de developpement.
-    let tests: Vec<Value> = if est_copie(&ctx.racine) {
+    let tests: Vec<String> = if est_copie(&ctx.racine) {
         Vec::new()
     } else {
         // Un journal illisible ne doit pas empecher la trace (l'ouverture n'echoue jamais).
-        envois::journal::lu(&ctx.racine).map(|j| j.lignes)
-            .and_then(|l| etats::flux_de_test(&l).map_err(|e| e.message))
-            .ok()
-            .and_then(|v| v.as_array().cloned())
-            .unwrap_or_default()
+        envois::journal::lu(&ctx.racine).map(|j| etats::flux_de_test(&j.lignes)).unwrap_or_default()
     };
     let hors_tests = |liste: &[Value]| -> usize {
-        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| socle::valeur::valeurs_egales(f, t)))).count()
+        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").and_then(Value::as_str) == Some(t.as_str()))).count()
     };
     let (trouves, nouveaux) = match &r.releve {
         Some(rel) => (hors_tests(&rel.trouves), hors_tests(&rel.nouveaux)),

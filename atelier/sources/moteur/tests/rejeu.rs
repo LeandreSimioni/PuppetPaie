@@ -167,12 +167,12 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
     assert_eq!(brut(&decembre), brut(&novembre).into_iter().map(|m| -m).collect::<Vec<_>>());
 
     // Partie sur la version du non actif, la correction ne ressort plus et ne se porte plus en janvier.
-    let versions = json!([{"salarie": "FULLER", "numero": "FU1.26.01", "version": na.version(), "mois": "2026-11"}]);
-    let n = envois::journal::Note {
-        quoi: "dsn", mois: Some("2026-12"), fichier: Some("DSN_Decembre2026.dsn"), mode: "reel", qui: "test", accepte: true, destinataire: "", flux: "",
-        reponse: "", trace: None, detail: None, versions: Some(&versions), quand: "2027-01-05T10:00:00", origine: "le test",
-    };
-    envois::journal::noter(&racine, &n, "").unwrap();
+    let mut e = envois::journal::Envoi::nouveau(envois::journal::Mode::Reel, "test", true, "", "", envois::journal::DetailDsn::default());
+    e.mois = Some(socle::mois::Mois::lire("2026-12").unwrap());
+    e.quand = "2027-01-05T10:00:00".into();
+    e.origine = "le test".into();
+    e.versions = Some(serde_json::from_value(json!([{"salarie": "FULLER", "numero": "FU1.26.01", "version": na.version(), "mois": "2026-11"}])).unwrap());
+    envois::journal::noter(&racine, envois::journal::Ligne::Dsn(e), Some(std::path::Path::new("DSN_Decembre2026.dsn")), "").unwrap();
     let a_refaire = na.a_refaire(&ctx("2027-01-20"), &envois::journal::lu(&racine).map(|j| j.departs).unwrap());
     assert!(!a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { .. })), "{:?}", a_refaire);
     assert!(declarations::produire_regularisations::regularisations_pour(&ctx("2027-01-20"), "2027-01", &envois::journal::lu(&racine).map(|j| j.departs).unwrap()).unwrap().is_empty());
@@ -309,8 +309,8 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     assert_eq!(bilan["verdict"], json!("KO"), "{}", ligne);
     assert!(bilan["anomalies"].to_string().contains("Code URSSAF invalide"), "{}", bilan);
     assert!(!ligne["retours"].as_array().unwrap().iter().any(|x| x["nature"] == json!("94")), "une DSN refusee n'a pas de taux : {}", ligne);
-    let etat = envois::etats::etat_dsn_du_mois(outils::journal(&racine).as_array().unwrap(), "2026-11", &json!(null), &ctx.entreprise.nic_principal()).unwrap();
-    assert_eq!(etat["refusee"], json!(true), "{}", etat);
+    let etat = envois::etats::etat_dsn_du_mois(&envois::journal::lu(&racine).unwrap().lignes, socle::mois::Mois::lire("2026-11").unwrap(), None, &ctx.entreprise.nic_principal()).unwrap();
+    assert!(etat.refusee, "{:?}", etat);
 
     // UN FICHIER REFUSE NE REPART PAS TOUT SEUL : a l'ouverture suivante, l'horloge refait la DSN a son echeance, octet
     // pour octet, et ne la redepose pas ; une fois corrigee (le telephone du declarant, S20.G00.07.002), elle part, et le
@@ -328,8 +328,8 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     std::fs::write(racine.join("config/entreprise.json"), serde_json::to_string_pretty(&entreprise).unwrap()).unwrap();
     ouvrir("2026-12-21");
     assert_eq!(de_novembre(), avant + 2, "le fichier corrige part, en test puis en reel");
-    let etat = envois::etats::etat_dsn_du_mois(outils::journal(&racine).as_array().unwrap(), "2026-11", &json!(null), &ctx.entreprise.nic_principal()).unwrap();
-    assert_eq!(etat["refusee"], json!(false), "{}", etat);
+    let etat = envois::etats::etat_dsn_du_mois(&envois::journal::lu(&racine).unwrap().lignes, socle::mois::Mois::lire("2026-11").unwrap(), None, &ctx.entreprise.nic_principal()).unwrap();
+    assert!(!etat.refusee, "{:?}", etat);
     ouvrir("2026-12-22");
     assert_eq!(de_novembre(), avant + 2, "une DSN acceptee ne repart pas");
 }

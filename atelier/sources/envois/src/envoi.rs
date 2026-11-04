@@ -42,7 +42,6 @@ use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 
 use rust_decimal::Decimal;
-use serde_json::Value;
 
 use documents::bulletin::{fmt_eur, fmt_heures};
 use engagement::calcul::Paie;
@@ -262,8 +261,8 @@ pub struct Renvoi {
 /// spectacle, ses jours travailles, ses cachets, ses heures, son brut et son net a payer ; et les totaux. Le journal le
 /// garde a chaque envoi des documents (`moteur::routes::documents::expedier_envoi`) : c'est l'« ancien » que le courriel de renvoi
 /// compare a la paie refaite. Les montants et les heures s'ecrivent comme le bulletin les ecrit.
-pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
-    let mut contrats: Vec<Value> = Vec::new();
+pub fn resume_de(paies: &[&Paie]) -> Result<ResumeDePaie, String> {
+    let mut contrats = Vec::new();
     let (mut brut, mut net) = (Decimal::ZERO, Decimal::ZERO);
     for p in paies {
         let e = &p.engagement;
@@ -274,27 +273,49 @@ pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
             None => String::new(),
         };
         let spectacle = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte) } else { None };
-        contrats.push(serde_json::json!({
-            "debut": e.debut.iso(),
-            "fin": e.fin.map(|f| f.iso()),
-            "spectacle": spectacle,
-            "jours": dates.iter().map(|d| d.iso()).collect::<Vec<_>>(),
-            "cachets": e.cachets,
-            "heures": heures,
-            "brut": fmt_eur(p.brut),
-            "net": fmt_eur(p.net_a_payer),
-        }));
+        contrats.push(ContratResume {
+            debut: e.debut.iso(),
+            fin: e.fin.map(|f| f.iso()),
+            spectacle,
+            jours: dates.iter().map(|d| d.iso()).collect(),
+            cachets: e.cachets,
+            heures,
+            brut: fmt_eur(p.brut),
+            net: fmt_eur(p.net_a_payer),
+        });
         brut += p.brut;
         net += p.net_a_payer;
     }
-    Ok(serde_json::json!({"contrats": contrats, "brut": fmt_eur(brut), "net": fmt_eur(net)}))
+    Ok(ResumeDePaie { contrats, brut: fmt_eur(brut), net: fmt_eur(net) })
+}
+
+/// LE RESUME DE LA PAIE D'UN SALARIE (`resume_de`), tel que le journal le garde avec l'envoi de ses documents.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResumeDePaie {
+    pub contrats: Vec<ContratResume>,
+    pub brut: String,
+    pub net: String,
+}
+
+/// Un contrat du resume : ses bornes, son spectacle, ses jours, ses cachets, ses heures, son brut et son net.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContratResume {
+    pub debut: String,
+    pub fin: Option<String>,
+    pub spectacle: Option<String>,
+    pub jours: Vec<String>,
+    pub cachets: i64,
+    pub heures: String,
+    pub brut: String,
+    pub net: String,
 }
 
 /// Un montant du resume (« 1 234,56 », comme le bulletin l'ecrit), tel qu'une phrase le dit ; tel quel s'il ne se lit pas.
-fn texte_de(v: &Value, cle: &str) -> String {
-    let t = v.get(cle).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
+fn en_euros(t: &str) -> String {
     let nombre = t.chars().filter(|c| !socle::texte::blanc(*c)).collect::<String>().replace(',', ".");
-    nombre.parse::<Decimal>().map(socle::texte::euros).unwrap_or(t)
+    nombre.parse::<Decimal>().map(socle::texte::euros).unwrap_or_else(|_| t.to_string())
 }
 
 /// CE QUI A CHANGE depuis l'envoi des documents, en lignes pretes pour le courriel : ce qui a change dans les
@@ -302,13 +323,15 @@ fn texte_de(v: &Value, cle: &str) -> String {
 /// « Cachets : 2 → 3 », « Jours : + 22/11 »), puis ce que sa paie en tire, du resume note a l'envoi (`ancien`) a celui
 /// de la paie refaite (`nouveau`) : « Salaire brut : 576,00 € → 720,00 € ». Vide quand rien de cela n'a bouge (le
 /// detail du bulletin seul a change).
-pub fn ce_qui_a_change(faits: &[String], ancien: &Value, nouveau: &Value) -> Vec<String> {
+pub fn ce_qui_a_change(faits: &[String], ancien: Option<&ResumeDePaie>, nouveau: Option<&ResumeDePaie>) -> Vec<String> {
     let mut out: Vec<String> = faits.iter().map(|f| format!("  - {}", f)).collect();
-    if texte_de(ancien, "brut") != texte_de(nouveau, "brut") {
-        out.push(format!("  - Salaire brut : {} → {}", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
+    let brut = |r: Option<&ResumeDePaie>| r.map(|r| en_euros(&r.brut)).unwrap_or_default();
+    let net = |r: Option<&ResumeDePaie>| r.map(|r| en_euros(&r.net)).unwrap_or_default();
+    if brut(ancien) != brut(nouveau) {
+        out.push(format!("  - Salaire brut : {} → {}", brut(ancien), brut(nouveau)));
     }
-    if texte_de(ancien, "net") != texte_de(nouveau, "net") {
-        out.push(format!("  - Net à payer : {} → {}", texte_de(ancien, "net"), texte_de(nouveau, "net")));
+    if net(ancien) != net(nouveau) {
+        out.push(format!("  - Net à payer : {} → {}", net(ancien), net(nouveau)));
     }
     out
 }

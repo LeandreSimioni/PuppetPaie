@@ -79,7 +79,7 @@ fn entier(v: &Value) -> R<i64> {
 
 /// Une DSN est-elle partie pour ce mois, et pas refusee au bilan ? (`compagnie::etat_dsn`)
 fn dsn_acceptee(ctx: &Contexte, mois: &str) -> R<bool> {
-    Ok(crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.partie())
+    Ok(crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(mois)?, None)?.partie())
 }
 
 // ------------------------------------------------------------------ l'export compta
