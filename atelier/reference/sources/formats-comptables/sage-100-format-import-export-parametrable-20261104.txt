@@ -1,7 +1,7 @@
                                   (/p      / /   g      j p
-      |            redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid%3D211010150051441_amp_hypermediatext%3Dnull_amp_g
-   Français          S'abonner (/portal/ss/logout.jsp?
-                   redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid%3D211010150051441_amp_hypermediatext%3Dnull_amp_g
+      |            redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_g
+   Français          S'abonner
+                   redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_g
     Rechercher
 
 
@@ -596,7 +596,7 @@ mots clés: fichier importer exportation importation exporter                   
 Produit: Sage 100                                                                  S'applique à: Catégorie de cas > Comment faire > un import / export
 Sage 100 Hébergé                                                                   Modules de produits > Sage 100
                                                                                    Modules de produits > Sage 100 Hébergé
-ID de la solution: 211010150051441
+ID de la solution: …
 
 
 
@@ -642,7 +642,7 @@ ID de la solution: 211010150051441
       comptables.sage.fr/authentification)                                                                Événements Sage (https://www.sage.com/fr-
                                                                                                                            fr/societe/evenements/)
       Partner Hub (https://www.sage-partner-                     Éducation (https://www.sage.com/fr-
-      hub.com/portal/assets/fr/var/)                             fr/partenaires/education/)
+      hub.com                             fr/partenaires/education/)
                                                                                                                            Investisseurs (https://www.sage.com/investors/)
 
       Boutique Partenaire (https://store.sage.fr/)               Sage Marketplace (https://fr-
@@ -663,11 +663,11 @@ ID de la solution: 211010150051441
 
 
       Conseils pour la recherche
-      (/portal/controller/view/faq/?id=3)
+     
 
 
       Voir toutes les FAQ
-      (/portal/controller/view/faq/)
+     
 
 
 

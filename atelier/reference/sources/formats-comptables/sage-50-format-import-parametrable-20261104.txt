@@ -154,33 +154,33 @@ Pour chacune des rubriques :
 
 Solutions connexes
 
-      Créer un format d'import paramétrable : Tiers (view2.jsp?k2dockey=220810080503280)
+      Créer un format d'import paramétrable : Tiers
 
-      Créer un format d'import paramétrable : Articles (view2.jsp?k2dockey=220810140643750)
+      Créer un format d'import paramétrable : Articles
 
-      Création d'un format d'import paramétrable : Pièces clients (view2.jsp?
-      k2dockey=211010150098173)
+      Création d'un format d'import paramétrable : Pièces clients
+      k2dockey=…)
 
-      Création d'un format d'import paramétrable : Règlements clients (view2.jsp?
-      k2dockey=211010150098176)
+      Création d'un format d'import paramétrable : Règlements clients
+      k2dockey=…)
 
-      Comment importer des écritures comptables ? (view2.jsp?k2dockey=211010160107108)
+      Comment importer des écritures comptables ?
 
       Lancer automatiquement, à l'ouverture d'un dossier, un import d'écritures avec un format
-      d'import personnalisé (view2.jsp?k2dockey=210905150058781)
+      d'import personnalisé
 
-      Structure du fichier XImport (view2.jsp?k2dockey=210905150090804)
+      Structure du fichier XImport
 
-      Structure d'un fichier au format RImport (view2.jsp?k2dockey=211010150086591)
+      Structure d'un fichier au format RImport
 
       Créer un format d'import relevé bancaire (https://fr-
-      kb.sage.com/portal/app/portlets/results/viewsolution.jsp?solutionid=220629152535430)
+      kb.sage.com
 
 
 
 Propriétés de la solution
 ID de la solution
-211010150066901
+…
 
 
 date de dernière modification

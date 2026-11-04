@@ -1,7 +1,7 @@
                                     (/p      / /    g     j p
-       |            redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid%3D210905150090804_amp_hypermediatext%3Dnull_amp_
-   Français           S'abonner (/portal/ss/logout.jsp?
-                    redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid%3D210905150090804_amp_hypermediatext%3Dnull_amp_
+       |            redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_
+   Français           S'abonner
+                    redir=%2Fportal%2Fapp%2Fportlets%2Fresults%2Fviewsolution.jsp%3Fsolutionid=…_amp_hypermediatext%3Dnull_amp_
     Rechercher
 
 
@@ -16,7 +16,7 @@ Comprendre la structure du fichier d'import XImport
 Créé le 30 avril 2021 | Dernière modification le 13 juin 2026
 
 
- PDF          Imprimer(/portal/app/portlets/results/viewsolution.jsp?solutionid=210905150090804&view=print)    Copier dans le presse-papier
+ PDF          Imprimer    Copier dans le presse-papier
 
 
 
@@ -114,7 +114,7 @@ Le fichier des écritures comptables au format Ximport est généré.
 
 
 Solutions connexes
-Modifier la structure d'exportation XImport en indiquant 3 caractères sur le code journal (view2.jsp?k2dockey=210905150017920)
+Modifier la structure d'exportation XImport en indiquant 3 caractères sur le code journal
    Est-ce que cela a aidé?
 
         Oui                 Non
@@ -178,7 +178,7 @@ ID de la solution: 210905150090804
                                                        Éducation (https://www.sage.com/fr-                fr/societe/evenements/)
       Partner Hub (https://www.sage-partner-           fr/partenaires/education/)
 
-      hub.com/portal/assets/fr/var/)                                                                      Investisseurs (https://www.sage.com/investors/)
+      hub.com                                                                      Investisseurs (https://www.sage.com/investors/)
                                                        Sage Marketplace (https://fr-
 
       Boutique Partenaire (https://store.sage.fr/)     marketplace.sage.com/fr-fr/home)                   Sage Foundation (https://www.sage.com/fr-
@@ -196,11 +196,11 @@ ID de la solution: 210905150090804
 
 
       Conseils pour la recherche
-      (/portal/controller/view/faq/?id=3)
+     
 
 
       Voir toutes les FAQ
-      (/portal/controller/view/faq/)
+     
 
 
 

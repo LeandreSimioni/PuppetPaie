@@ -53,8 +53,8 @@ dans la fenêtre de génération du fichier)
 
 Retrouvez dans cette documentation la structure complète du format *.pnm.
 
-description_format_pnm.pdf (view2.jsp?
-k2dockey=220407073650230&fileName=1837_20220407073618_description_format_pnm.pdf)
+description_format_pnm.pdf
+k2dockey=…&fileName=1837_20220407073618_description_format_pnm.pdf)
 
 
 
@@ -69,29 +69,29 @@ Retrouvez ci-dessous les différents messages qui pourraient apparaître dans le
 traitement (Structure > Afficher le journal de traitement) ainsi que leurs fiches associées.
 
 
-     Format de fichier incorrect ! (view2.jsp?k2dockey=211010150033258)
+     Format de fichier incorrect !
 
-     Le journal n'existe pas à la ligne XXX ! (view2.jsp?k2dockey=211010160115014)
+     Le journal n'existe pas à la ligne XXX !
 
-     L'écriture n'appartient pas à un exercice à la ligne XXX ! (view2.jsp?k2dockey=211010160115023)
+     L'écriture n'appartient pas à un exercice à la ligne XXX !
 
      La devise XXX n'existe pas dans la liste. Vérifier le paramétrage des devises ou votre fichier
-     (view2.jsp?k2dockey=211010160115026)
+    
 
-     Le compte général n'existe pas à la ligne XXX ! (view2.jsp?k2dockey=211010160115032)
+     Le compte général n'existe pas à la ligne XXX !
 
-     Une incohérence à la ligne XXX a été détectée ! (view2.jsp?k2dockey=211010150016175)
+     Une incohérence à la ligne XXX a été détectée !
 
      Les écritures générales ne sont pas équilibrées pour le journal [Code journal] [Mois] [Année] à
-     la ligne XXX (view2.jsp?k2dockey=211010150030672)
+     la ligne XXX
 
      Le solde des écritures analytiques n'est pas équilibré pour le journal [Code journal] [Mois]
      [Année] à la ligne XXX, veuillez définir une section d'attente sur le plan concerné pour
-     générer l'écart ! (view2.jsp?k2dockey=211010160115053)
+     générer l'écart !
 
      Le total des échéances pour le compte [Compte général] [Compte tiers] n'est pas équilibré
-     dans le journal [Code journal] [Mois] [Année] à la ligne XXX (view2.jsp?
-      k2dockey=211010160115056)
+     dans le journal [Code journal] [Mois] [Année] à la ligne XXX
+      k2dockey=…)
 
 
 
@@ -113,8 +113,8 @@ En complément, nous vous proposons dans le fichier ci-dessous 4 modèles de fic
 
 
 
-exemples_fichiers_pnm.zip (view2.jsp?
-k2dockey=220407080108810&fileName=1837_20220407080014_exemples_fichiers_pnm.zip)
+exemples_fichiers_pnm.zip
+k2dockey=…&fileName=1837_20220407080014_exemples_fichiers_pnm.zip)
 
 
 
