@@ -36,8 +36,6 @@ use std::path::Path;
 use serde_json::{json, Value};
 
 use droit::contexte::format_g;
-use socle::date::en_texte;
-use socle::fichiers::vrai;
 
 /// L'encre d'un tampon, et la geometrie du dessin. Le rapport 2:1 est celui
 /// d'un tampon rectangulaire courant ; il tient dans la case cachet de l'AER
@@ -56,23 +54,23 @@ pub struct Lignes {
     pub numeros: Vec<String>,
 }
 
-fn texte_de(ent: &Value, cle: &str) -> Option<String> {
-    ent.get(cle).filter(|v| vrai(v)).map(en_texte)
+fn texte_de(c: &droit::fiche::Case<String>) -> Option<String> {
+    c.remplie().map(str::to_string)
 }
 
 /// `lignes` : rendu en donnees et non dessine, pour que cela se lise sans
 /// ouvrir un fichier. Les trois groupes n'ont pas le meme poids a l'oeil : le
 /// nom est ce qu'on lit, le reste est ce qu'on verifie. `ent` est la fiche a la
 /// date du document (`Contexte::entreprise`) : la licence y est le numero du jour.
-pub fn lignes(ent: &Value) -> Lignes {
-    let nom = texte_de(ent, "nom_affichage")
-        .or_else(|| texte_de(ent, "raison_sociale"))
+pub fn lignes(ent: &droit::fiche::ChampsEntreprise) -> Lignes {
+    let nom = texte_de(&ent.nom_affichage)
+        .or_else(|| texte_de(&ent.raison_sociale))
         .unwrap_or_default();
     let mut lieu = Vec::new();
-    if let Some(adresse) = texte_de(ent, "adresse_affichage").or_else(|| texte_de(ent, "adresse")) {
+    if let Some(adresse) = texte_de(&ent.adresse_affichage).or_else(|| texte_de(&ent.adresse)) {
         lieu.push(adresse);
     }
-    let ou: Vec<String> = [texte_de(ent, "code_postal"), texte_de(ent, "commune_affichage").or_else(|| texte_de(ent, "commune"))]
+    let ou: Vec<String> = [texte_de(&ent.code_postal), texte_de(&ent.commune_affichage).or_else(|| texte_de(&ent.commune))]
         .into_iter()
         .flatten()
         .collect();
@@ -80,13 +78,13 @@ pub fn lignes(ent: &Value) -> Lignes {
         lieu.push(ou.join(" "));
     }
     let mut numeros = Vec::new();
-    if let Some(s) = texte_de(ent, "siret") {
+    if let Some(s) = texte_de(&ent.siret) {
         numeros.push(format!("SIRET {}", s));
     }
-    if let Some(s) = texte_de(ent, "naf") {
+    if let Some(s) = texte_de(&ent.naf) {
         numeros.push(format!("APE {}", s));
     }
-    if let Some(l) = texte_de(ent, "licence_spectacle") {
+    if let Some(l) = texte_de(&ent.licence_spectacle) {
         numeros.push(format!("Licence {}", l));
     }
     Lignes { nom, lieu, numeros }
@@ -117,7 +115,7 @@ fn echapper(t: &str) -> String {
 /// capitales, un filet, puis l'adresse et les numeros. C'est la mise en page
 /// d'un tampon encreur, et elle est tenue ICI pour que la page de
 /// Configuration et l'attestation montrent exactement la meme chose.
-pub fn svg(ent: &Value) -> Option<String> {
+pub fn svg(ent: &droit::fiche::ChampsEntreprise) -> Option<String> {
     let t = lignes(ent);
     if t.nom.is_empty() && t.lieu.is_empty() && t.numeros.is_empty() {
         return None;
@@ -230,7 +228,7 @@ pub fn image_fichier(page: &Value, rect: &Value, fichier: &str) -> Value {
 /// fiche, et il suit la fiche quand elle change. Un fichier pose l'emporte
 /// simplement parce qu'une compagnie qui prend la peine d'apporter son tampon
 /// veut le sien.
-pub fn image(page: &Value, rect: &Value, ent: &Value, fichier: Option<&str>) -> Option<Value> {
+pub fn image(page: &Value, rect: &Value, ent: &droit::fiche::ChampsEntreprise, fichier: Option<&str>) -> Option<Value> {
     if let Some(f) = fichier {
         if Path::new(f).exists() {
             return Some(image_fichier(page, rect, f));

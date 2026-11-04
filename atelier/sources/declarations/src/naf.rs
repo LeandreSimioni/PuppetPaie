@@ -109,25 +109,15 @@ pas. Saisir le code notifie dans Configuration › Entreprise, « Code APE (NAF)
     ))
 }
 
-/// Les codes APE que porte la fiche entreprise : le sien, et celui de chaque etablissement qui en a un.
-fn codes_de(ent: &Value) -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    if let Some(c) = ent.get("naf").and_then(Value::as_str).filter(|c| !c.trim().is_empty()) {
-        out.push(("de la fiche entreprise".to_string(), net(c)));
-    }
-    for e in droit::bareme::secondaires(ent) {
-        if let Some(c) = e.get("naf").and_then(Value::as_str).filter(|c| !c.trim().is_empty()) {
-            let nic = e.get("nic").map(|v| v.as_str().map(String::from).unwrap_or_else(|| v.to_string())).unwrap_or_default();
-            out.push((format!("de l'etablissement {}", nic), net(c)));
-        }
-    }
-    out
+/// Le code APE que porte la fiche entreprise (un autre etablissement n'en porte pas).
+fn codes_de(ent: &droit::fiche::ChampsEntreprise) -> Vec<(String, String)> {
+    ent.naf.remplie().filter(|c| !c.trim().is_empty()).map(|c| ("de la fiche entreprise".to_string(), net(c))).into_iter().collect()
 }
 
 /// Un fichier DSN de la version `norme` peut-il partir avec les codes APE de cette fiche entreprise ? Seule une version
 /// qui porte la regle `code_naf_en_naf_2025` les controle : un code NAF rev. 2 refuse avec la phrase qui dit vers quels
 /// codes il passe ; un code que la NAF 2025 ne connait pas refuse.
-pub fn verifier_pour(norme: &Norme, ent: &Value) -> Resultat<()> {
+pub fn verifier_pour(norme: &Norme, ent: &droit::fiche::ChampsEntreprise) -> Resultat<()> {
     if norme.regle(REGLE)?.is_none() {
         return Ok(());
     }

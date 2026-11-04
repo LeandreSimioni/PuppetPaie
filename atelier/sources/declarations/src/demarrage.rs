@@ -12,6 +12,7 @@
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
+use droit::fiche::ChampsEntreprise;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
 
@@ -26,10 +27,6 @@ const TITRE_A_COMPLETER: &str = "A COMPLETER";
 
 /// Où une ligne mène : ce que l'écran en dit (`ou`), et l'onglet de la Configuration qu'elle ouvre (`onglet`).
 const ENTREPRISE: (&str, &str) = ("Configuration › Entreprise", "entreprise");
-
-fn valeur<'a>(ent: &'a Value, chemin: &str) -> Option<&'a Value> {
-    chemin.split('.').try_fold(ent, |v, k| v.get(k))
-}
 
 /// Le libelle et l'aide du champ `cle` de la fiche entreprise (`champs-base.json`).
 fn champ(cle: &str) -> (String, String) {
@@ -62,7 +59,7 @@ fn manque(cle: &str, libelle: String, bloque: &str, ou: (&str, &str), champ: Opt
 /// - dans une convention ou la case se montre (`si` : 1790, 3252), la compagnie engage pour un spectacle
 ///   (`spectacle` : un spectacle configure pour « Pour demarrer », un contrat de spectacle pour la DSN). Un lieu en 1790
 ///   sans spectacle n'a rien a dire ; l'audiovisuel ne voit pas la case.
-pub fn licence_exigee(ent: &Value, spectacle: bool) -> bool {
+pub fn licence_exigee(ent: &ChampsEntreprise, spectacle: bool) -> bool {
     crate::champs::champ("entreprise", "licence_spectacle")
         .ok()
         .flatten()
@@ -111,7 +108,7 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
 /// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque. Une ligne dit ce qu'elle bloque
 /// (`bloque`), ou, quand rien ne se refuse sans elle, ce qu'elle sert (`utile`) et ce qui se passe sinon (`sinon`).
 pub fn manques(ctx: &Contexte) -> Vec<Value> {
-    let ent = &ctx.entreprise.en_valeur();
+    let ent = &ctx.entreprise;
     let mut out: Vec<Value> = Vec::new();
     let intermittents = a_des_spectacles(ctx);
     // CE QUE LES ACTES EXIGENT DES FICHES (`exige_par` de `champs-base.json`, que chaque acte lit aussi :
@@ -148,8 +145,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     for (cle, s) in ctx.salaries.iter().filter(|(_, s)| !s.archivee()) {
         let cle = cle.as_str();
         let nom = s.nomme().unwrap_or_else(|| cle.to_string());
-        // Ce qui manque se lit aux cases par leur nom (`champs-base.json`, `exige_par`) : en JSON.
-        for m in crate::champs::manquants("salarie", &s.champs.en_valeur()).unwrap_or_default() {
+        for m in crate::champs::manquants("salarie", &s.champs).unwrap_or_default() {
             out.push(ligne(m, format!("Configuration › Salariés, la fiche de {}", nom), "salarie", Some((cle, &nom))));
         }
     }
@@ -238,7 +234,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     let par_representation = |b: &Value| b["contributions_conventionnelles"].as_array().is_some_and(|l| l.iter().any(|c| c.get("par_representation").is_some()));
     // Sans CSE dit, c'est l'effectif de la paie (celui de l'annee d'avant, L. 130-1, I) qui decide (III.3.1.b) : inconnu,
     // c'est lui que la contribution demande, pas le CSE.
-    if !valeur(ent, cle).is_some_and(vrai) && ctx.bareme(&ctx.aujourdhui).is_ok_and(|b| par_representation(&b)) {
+    if ent.representation_personnel.dite().is_none() && ctx.bareme(&ctx.aujourdhui).is_ok_and(|b| par_representation(&b)) {
         match ctx.effectif().ok().and_then(|e| e.valeur(an)) {
             Some(e) if e >= 11.0 => {
                 let (libelle, aide) = champ(cle);
@@ -277,8 +273,8 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // La sante d'un permanent suspendu sans indemnisation tout un mois : hors de la 3090, aucun texte ne la dit, et le mois
     // refuse tant que la fiche ne repond pas (`calcul::sante_de_la_suspension`). Elle ne se demande que si une suspension
     // non remuneree est saisie : un champ n'apparait que parce qu'un fait l'exige.
-    let idcc = ent.get("idcc").map(socle::date::en_texte).unwrap_or_default();
-    if idcc != "3090" && !valeur(ent, droit::bareme::SANTE_SUSPENSION).is_some_and(vrai) && une_suspension_non_remuneree(ctx) {
+    let idcc = ent.idcc.texte();
+    if idcc != "3090" && !ent.sante_suspension_non_indemnisee.est_dite() && une_suspension_non_remuneree(ctx) {
         let cle = droit::bareme::SANTE_SUSPENSION;
         let (libelle, aide) = champ(cle);
         out.push(manque(cle, libelle, "le mois d'un permanent suspendu sans indemnisation tout le mois", ENTREPRISE, Some(cle), aide));

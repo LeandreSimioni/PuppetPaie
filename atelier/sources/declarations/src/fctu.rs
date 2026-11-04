@@ -497,9 +497,9 @@ ou un annule."
 
     let fin_jour = d(&fin.fin)?;
     let ctx = &ctx.au(&fin_jour)?;
-    let ent0 = &ctx.entreprise.en_valeur();
+    let ent0 = &ctx.entreprise;
     let s = &paie.salarie;
-    let bar = crate::dsn::BaremeDuMois::nouveau((*ctx.bareme(&fin_jour)?).clone());
+    let bar = crate::dsn::BaremeDuMois::nouveau((*ctx.bareme(&fin_jour)?).clone(), ctx.entreprise_lue(&fin_jour)?);
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -511,7 +511,6 @@ ou un annule."
     let norme = crate::norme::du_signalement(&constitution)?;
     crate::naf::verifier_pour(&norme, ent0)?;
     let mut f = Fichier::en_norme(norme);
-    let ent = |k: &str| -> Resultat<&Value> { req(ent0, k) };
     // ------------------------------------------------------------ S10 envoi
     f.add("S10.G00.00.001", LOGICIEL);
     f.add("S10.G00.00.002", LOGICIEL);
@@ -520,14 +519,13 @@ ou un annule."
     f.ecrire_la_version()?;
     f.add("S10.G00.00.007", "01");
     f.add("S10.G00.00.008", "01");
-    f.add_v("S10.G00.01.001", ent("siren")?)?;
-    f.add_v("S10.G00.01.002", ent("nic")?)?;
-    f.add_v("S10.G00.01.003", ent("raison_sociale")?)?;
-    f.add_v("S10.G00.01.004", ent("adresse")?)?;
-    f.add_v("S10.G00.01.005", ent("code_postal")?)?;
-    f.add_v("S10.G00.01.006", ent("commune")?)?;
+    f.add_case("S10.G00.01.001", &ent0.siren, "siren")?;
+    f.add_case("S10.G00.01.002", &ent0.nic, "nic")?;
+    f.add_case("S10.G00.01.003", &ent0.raison_sociale, "raison_sociale")?;
+    f.add_case("S10.G00.01.004", &ent0.adresse, "adresse")?;
+    f.add_case("S10.G00.01.005", &ent0.code_postal, "code_postal")?;
+    f.add_case("S10.G00.01.006", &ent0.commune, "commune")?;
     crate::dsn::contact_emetteur(&mut f, ent0)?;
-    let decl = ent("declarant_dsn")?;
 
     // ---------------------------------------------------------- S20 declaration
     f.add("S20.G00.05.001", NATURE);
@@ -541,44 +539,40 @@ ou un annule."
     }
     f.add("S20.G00.05.007", constitution.jjmmaaaa());
     f.add("S20.G00.05.010", "01");
-    f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
-    f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
-    f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
+    crate::dsn::contact_chez_le_declare(&mut f, ent0)?;
 
     // ------------------------------------------------------------ S21 entreprise
-    f.add_v("S21.G00.06.001", ent("siren")?)?;
-    f.add_v("S21.G00.06.002", ent("nic")?)?;
+    f.add_case("S21.G00.06.001", &ent0.siren, "siren")?;
+    f.add_case("S21.G00.06.002", &ent0.nic, "nic")?;
     // Code APEN et code APET : retires de la norme P27V01 (cahier 2027.1.1, p. 142 et 145) ; la version en decide.
     if usage_admet(&f, "S21.G00.06.003", NATURE)? {
-        f.add_v("S21.G00.06.003", ent("naf")?)?;
+        f.add_case("S21.G00.06.003", &ent0.naf, "naf")?;
     }
-    f.add_v("S21.G00.06.004", ent("adresse")?)?;
-    f.add_v("S21.G00.06.005", ent("code_postal")?)?;
-    f.add_v("S21.G00.06.006", ent("commune")?)?;
+    f.add_case("S21.G00.06.004", &ent0.adresse, "adresse")?;
+    f.add_case("S21.G00.06.005", &ent0.code_postal, "code_postal")?;
+    f.add_case("S21.G00.06.006", &ent0.commune, "commune")?;
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
     let etab = droit::bareme::entreprise_du_salarie(ent0, &paie.salarie)?;
-    for (rub, k) in [
-        ("S21.G00.11.001", "nic"),
-        ("S21.G00.11.002", "naf"),
-        ("S21.G00.11.003", "adresse"),
-        ("S21.G00.11.004", "code_postal"),
-        ("S21.G00.11.005", "commune"),
-        ("S21.G00.11.022", "idcc"),
+    for (rub, case, cle) in [
+        ("S21.G00.11.001", &etab.nic, "nic"),
+        ("S21.G00.11.002", &etab.naf, "naf"),
+        ("S21.G00.11.003", &etab.adresse, "adresse"),
+        ("S21.G00.11.004", &etab.code_postal, "code_postal"),
+        ("S21.G00.11.005", &etab.commune, "commune"),
+        ("S21.G00.11.022", &etab.idcc, "idcc"),
     ] {
         if rub == "S21.G00.11.002" && !usage_admet(&f, rub, NATURE)? {
             continue;
         }
-        f.add_v(rub, req(&etab, k)?)?;
+        f.add_case(rub, case, cle)?;
     }
     // Les adhesions prevoyance, sans S21.G00.15.004 : la rubrique « personnel
     // couvert » est interdite dans un signalement.
     let orgs = ctx.organismes()?;
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
-    let mut ent_licence = etab.as_object().cloned().unwrap_or_default();
-    ent_licence.insert("licence_spectacle".into(), Value::String(ctx.licence(&fin_jour)));
-    let ent_l = Value::Object(ent_licence);
+    let mut ent_l = etab.clone();
+    ent_l.licence_spectacle = droit::fiche::Case::Dite(ctx.licence(&fin_jour));
     for a in liste(req(&orgs, "adhesions_prevoyance")?) {
         f.add_v("S21.G00.15.001", req(a, "libelle")?)?;
         f.add_v("S21.G00.15.002", req(a, "delegataire")?)?;

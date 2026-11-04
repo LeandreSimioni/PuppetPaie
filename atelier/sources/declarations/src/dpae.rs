@@ -20,6 +20,8 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use droit::natures;
+use droit::contexte::EntrepriseDuDocument;
+use droit::fiche::ChampsEntreprise;
 use socle::date::{d, en_texte};
 use socle::fichiers::{dossier_du_code, json_en_cache, modele_de, repr, repr_valeur, vrai};
 #[cfg(test)]
@@ -106,14 +108,6 @@ fn zone_employeur(nom: &str) -> (usize, usize) {
 
 // ------------------------------------------------------------- les textes
 
-/// Une valeur en texte, vide si elle manque ou est vide.
-fn chaine(v: Option<&Value>) -> String {
-    match v {
-        Some(v) if vrai(v) => en_texte(v),
-        _ => String::new(),
-    }
-}
-
 /// `s[cle]` : une cle absente s'ecrit `'cle'`.
 fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
     s.get(k).ok_or_else(|| socle::fichiers::absent(k))
@@ -199,12 +193,12 @@ const NOM_GABARIT: &str = "due_tel_gabarit.txt";
 
 /// Les 990 premiers caractères du gabarit, lus en latin-1 : un octet, un caractère, et les fins de ligne
 /// CR LF et CR lues comme LF.
-fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
+fn gabarit_lu(gabarits: Option<&Path>, chemins: &Chemins) -> Resultat<Vec<char>> {
     // Le gabarit de la compagnie s'il en a un, celui livre avec le logiciel
     // sinon (`donnees/modeles/`, un enregistrement neutre) : il ne donne plus
     // que l'entete constante, tout le reste est reecrit plus bas.
-    let chemin = match ent {
-        Some(e) => modele_de(NOM_GABARIT, e, &chemins.poste),
+    let chemin = match gabarits {
+        Some(g) => modele_de(NOM_GABARIT, Some(g), &chemins.poste),
         None => chemins.defaut.clone(),
     };
     let octets = std::fs::read(&chemin).map_err(|e| socle::fichiers::panne_fichier(&e, &chemin))?;
@@ -218,9 +212,9 @@ fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
 }
 
 /// Le SIRET de la fiche, 14 chiffres, ou le refus de la DPAE.
-fn siret_de(ent: &Value) -> Resultat<String> {
-    let siret = chaine(ent.get("siret"));
-    let siret = strip(&siret).to_string();
+fn siret_de(ent: &ChampsEntreprise) -> Resultat<String> {
+    let siret = ent.siret.texte();
+    let siret = strip(siret).to_string();
     if siret.chars().count() != 14 || !tout_chiffres(&siret) {
         return Err(format!("DPAE : le SIRET de la fiche entreprise ({}) ne fait pas 14 chiffres.", repr(&siret)));
     }
@@ -229,8 +223,8 @@ fn siret_de(ent: &Value) -> Resultat<String> {
 
 /// Le code du centre de medecine du travail (C_MT_DCL, obligatoire hors travail temporaire) : `medecine_travail` de la
 /// fiche, que la DPAE exige (`exige_par` de `champs-base.json`) ; il ne se devine pas.
-fn medecine_de(ent: &Value) -> Resultat<String> {
-    let mt = strip(&chaine(ent.get("medecine_travail"))).to_string();
+fn medecine_de(ent: &ChampsEntreprise) -> Resultat<String> {
+    let mt = strip(ent.medecine_travail.texte()).to_string();
     if mt.is_empty() {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas le code du service de santé au travail, que la DPAE exige : le lire sur l'adhésion au service de santé au travail, et le saisir dans Configuration › Entreprise.", "medecine_travail"));
     }
@@ -241,25 +235,22 @@ fn medecine_de(ent: &Value) -> Resultat<String> {
 
 /// Les zones employeur de la DPAE, lues dans la fiche `ent` (le SIRET : `siret_de` ; la medecine du travail :
 /// `medecine_de`).
-pub fn employeur(ent: &Value) -> Resultat<Vec<(&'static str, String)>> {
+pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>> {
     let siret = siret_de(ent)?;
     let mt = medecine_de(ent)?;
-    // Le telephone : celui du declarant DSN, sinon celui de l'entreprise, sinon celui du signataire, sinon rien.
-    let tel_de = |k: &str| -> Option<&Value> { ent.get(k).filter(|v| vrai(v)).and_then(|v| v.get("tel")).filter(|v| vrai(v)) };
-    let tel = tel_de("declarant_dsn")
-        .or_else(|| ent.get("tel").filter(|v| vrai(v)))
-        .or_else(|| tel_de("signataire"));
-    let tel = chiffres(&chaine(tel));
+    // Le telephone : celui du declarant DSN, sinon celui du signataire, sinon rien.
+    let tel = ent.declarant_dsn.dite().and_then(|d| d.tel.remplie()).or_else(|| ent.signataire.dite().and_then(|s| s.tel.remplie()));
+    let tel = chiffres(tel.unwrap_or_default());
     Ok(vec![
         ("siret", siret),
-        ("raison_sociale", ljust(&debut(&normaliser(&chaine(ent.get("raison_sociale"))), 32), 32)),
-        ("adresse", ljust(&debut(&normaliser(&chaine(ent.get("adresse"))), 32), 32)),
-        ("adresse_2", ljust(&debut(&normaliser(&chaine(ent.get("complement_adresse"))), 32), 32)),
-        ("code_postal", ljust(&debut(&chaine(ent.get("code_postal")), 5), 5)),
-        ("commune", ljust(&debut(&normaliser(&chaine(ent.get("commune"))), 27), 27)),
+        ("raison_sociale", ljust(&debut(&normaliser(ent.raison_sociale.texte()), 32), 32)),
+        ("adresse", ljust(&debut(&normaliser(ent.adresse.texte()), 32), 32)),
+        ("adresse_2", ljust(&debut(&normaliser(""), 32), 32)),
+        ("code_postal", ljust(&debut(ent.code_postal.texte(), 5), 5)),
+        ("commune", ljust(&debut(&normaliser(ent.commune.texte()), 27), 27)),
         ("raison_sociale_2", " ".repeat(32)),
         ("tel", ljust(&debut(&tel, 11), 11)),
-        ("naf", ljust(&debut(&chaine(ent.get("naf")), 5), 5)),
+        ("naf", ljust(&debut(ent.naf.texte(), 5), 5)),
         ("medecine_travail", rjust(&debut(&mt, 10), 10)),
     ])
 }
@@ -281,15 +272,15 @@ fn urssaf_existe(code: &str) -> Resultat<bool> {
 /// duquel est situe l'etablissement devant employer le salarie » (code du travail, R. 1221-3, 1°,
 /// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`), lue au departement de son code postal
 /// (`urssaf-dpae-base.json`, `par_departement`). Le code de la fiche entreprise est celui du siege.
-fn urssaf_d_un_etablissement(vue: &Value) -> Resultat<String> {
+fn urssaf_d_un_etablissement(vue: &ChampsEntreprise) -> Resultat<String> {
     let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
-    let code = crate::champs::urssaf_du_code_postal(&base, vue.get("code_postal"));
+    let code = crate::champs::urssaf_du_code_postal(&base, vue.code_postal.texte());
     if code.is_empty() {
         return Err(format!(
             "La DPAE ne sait pas a quelle Urssaf aller : l'etablissement {} a le code postal {}, qu'aucune Urssaf de la table \
 ne couvre (Configuration › Entreprise › Avancé, « Autres établissements »).",
-            en_texte(vue.get("siret").unwrap_or(&Value::Null)),
-            repr_valeur(vue.get("code_postal").unwrap_or(&Value::Null))
+            vue.siret.texte(),
+            repr(vue.code_postal.texte())
         ));
     }
     Ok(code)
@@ -330,7 +321,7 @@ pub struct Parametres<'a> {
     pub heure_embauche: String,
     /// Le code Urssaf voulu, tel que l'appelant l'a donne (`""` : celui du gabarit).
     pub code_urssaf: Value,
-    pub ent: Option<&'a Value>,
+    pub ent: Option<&'a EntrepriseDuDocument>,
     pub chemins: &'a Chemins,
 }
 
@@ -358,13 +349,13 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     if let Some(ent) = p.ent {
         // « N° SIRET de l'établissement » (N_SIRET, `norme-dpae/v5.3_FormatDPAE_EMAIL.txt` l. 235-243) : celui ou le salarie
         // est rattache (`droit::bareme::entreprise_du_salarie`), avec son adresse.
-        let ent = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
-        for (nom, v) in employeur(ent)? {
+        let etab = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
+        for (nom, v) in employeur(etab)? {
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, a, b, &v);
         }
-        if ent.get("_etablissement").is_some_and(vrai) {
-            code_urssaf = json!(urssaf_d_un_etablissement(ent)?);
+        if etab.nic.texte() != ent.nic_principal() {
+            code_urssaf = json!(urssaf_d_un_etablissement(etab)?);
         }
     }
     if vrai(&code_urssaf) {
@@ -457,9 +448,8 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     // CE QUE LA DPAE EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit : la naissance,
     // zones D_NAISSANCE_SAL, L_LIEU_NAISS_SAL et le departement de naissance, « O », et le sexe sans NIR, zone SEXE,
     // `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`) : tout ce qui manque, d'un coup, avant d'ecrire.
-    let mut fiches: Vec<(&str, String, &Value)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), e)).into_iter().collect();
-    let vues: Vec<(String, Value)> = embauches.iter().map(|e| (format!("la fiche de {}", e.salarie.nomme().unwrap_or_default()), e.salarie.champs.en_valeur())).collect();
-    fiches.extend(vues.iter().map(|(qui, v)| ("salarie", qui.clone(), v)));
+    let mut fiches: Vec<(&str, String, &dyn droit::fiche::ParCase)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), &e.fiche as &dyn droit::fiche::ParCase)).into_iter().collect();
+    fiches.extend(embauches.iter().map(|e| ("salarie", format!("la fiche de {}", e.salarie.nomme().unwrap_or_default()), &e.salarie.champs as &dyn droit::fiche::ParCase)));
     if let Some(m) = crate::champs::refus_des_manques("dpae", &fiches, &[]).map_err(|e| e.message)? {
         return Err(m);
     }
@@ -467,7 +457,7 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     let mut gabarit: Option<Vec<char>> = None;
     for e in embauches {
         if gabarit.is_none() {
-            gabarit = Some(gabarit_lu(p.ent, p.chemins)?);
+            gabarit = Some(gabarit_lu(p.ent.map(|e| e.gabarits.as_path()), p.chemins)?);
         }
         out.push(enregistrement(e, p, gabarit.as_deref().unwrap_or(&[]))?);
     }
@@ -891,10 +881,11 @@ mod tests {
         }
     }
 
-    fn entreprise() -> Value {
-        json!({"siret": "12345691500016", "raison_sociale": "Cie Fictive", "adresse": "1 rue Fictive",
+    fn entreprise() -> EntrepriseDuDocument {
+        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "raison_sociale": "Cie Fictive", "adresse": "1 rue Fictive",
                "code_postal": "45000", "commune": "Orléans", "naf": "9001Z", "medecine_travail": "MT42",
-               "tel": "01 02 03 04 05"})
+               "declarant_dsn": {"tel": "01 02 03 04 05"}}), "entreprise").unwrap();
+        EntrepriseDuDocument { fiche, gabarits: std::env::temp_dir().join("puppetpaie-dpae-sans-gabarits") }
     }
 
     fn chemins() -> Chemins {
@@ -904,11 +895,11 @@ mod tests {
         }
     }
 
-    fn parametres<'a>(ent: Option<&'a Value>, code: Value, chemins: &'a Chemins) -> Parametres<'a> {
+    fn parametres<'a>(ent: Option<&'a EntrepriseDuDocument>, code: Value, chemins: &'a Chemins) -> Parametres<'a> {
         Parametres { horodatage: "031020261407", heure_embauche: "0800".into(), code_urssaf: code, ent, chemins }
     }
 
-    fn enr(e: &Embauche, ent: Option<&Value>, code: Value) -> Resultat<String> {
+    fn enr(e: &Embauche, ent: Option<&EntrepriseDuDocument>, code: Value) -> Resultat<String> {
         let c = chemins();
         enregistrements(std::slice::from_ref(e), &parametres(ent, code, &c)).map(|mut v| v.remove(0))
     }
@@ -1000,9 +991,9 @@ mod tests {
     #[test]
     fn la_dpae_d_un_autre_etablissement_va_a_l_urssaf_de_son_territoire() {
         let mut ent = entreprise();
-        ent["siren"] = json!("123456915");
-        ent["nic"] = json!("00016");
-        ent["etablissements"] = json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]);
+        ent.fiche.siren = droit::fiche::Case::Dite("123456915".into());
+        ent.fiche.nic = droit::fiche::Case::Dite("00016".into());
+        ent.fiche.etablissements = droit::fiche::Case::Dite(droit::fiche::lire_champs(&json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]), "etablissements").unwrap());
         let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).unwrap();
         let nantes = base["par_departement"]["44"].as_str().unwrap().to_string();
         let mut s = salarie();
@@ -1032,7 +1023,7 @@ mod tests {
         assert_eq!(ch("medecine_travail"), "      MT42");
         // Un SIRET qui ne fait pas 14 chiffres : refus.
         let mut mauvais = entreprise();
-        mauvais["siret"] = json!("1234");
+        mauvais.fiche.siret = droit::fiche::Case::Dite("1234".into());
         let m = enr(&e, Some(&mauvais), json!("117")).unwrap_err();
         assert!(m.contains("SIRET") && m.contains("'1234'"), "{}", m);
     }
@@ -1066,21 +1057,21 @@ mod tests {
         t.splice(0..4, "ZZZZ".chars());
         let octets: Vec<u8> = t.iter().map(|&c| c as u8).collect();
         std::fs::write(gab.join(NOM_GABARIT), octets).unwrap();
-        let ent = json!({"_gabarits": gab.to_string_lossy()});
+        let ent = gab.clone();
         let poste = d.join("poste");
-        assert_eq!(modele_de(NOM_GABARIT, &ent, &poste), gab.join(NOM_GABARIT));
+        assert_eq!(modele_de(NOM_GABARIT, Some(&ent), &poste), gab.join(NOM_GABARIT));
         // Une copie de developpement n'emprunte rien au poste, et prend le modele livre.
         std::fs::create_dir_all(poste.join("gabarits")).unwrap();
         std::fs::write(poste.join("gabarits").join(NOM_GABARIT), b"x").unwrap();
         let vide = d.join("copie").join("gabarits");
         std::fs::create_dir_all(&vide).unwrap();
-        let ent = json!({"_gabarits": vide.to_string_lossy()});
-        assert_eq!(modele_de(NOM_GABARIT, &ent, &poste.join("gabarits")), poste.join("gabarits").join(NOM_GABARIT));
+        let ent = vide.clone();
+        assert_eq!(modele_de(NOM_GABARIT, Some(&ent), &poste.join("gabarits")), poste.join("gabarits").join(NOM_GABARIT));
         std::fs::write(d.join("copie").join(MARQUEUR_COPIE), "{}").unwrap();
-        assert_eq!(modele_de(NOM_GABARIT, &ent, &poste.join("gabarits")), dossier_du_code().join("modeles").join(NOM_GABARIT));
+        assert_eq!(modele_de(NOM_GABARIT, Some(&ent), &poste.join("gabarits")), dossier_du_code().join("modeles").join(NOM_GABARIT));
         // Un gabarit trop court est refuse.
         std::fs::write(gab.join(NOM_GABARIT), b"court\n").unwrap();
-        let ent = json!({"_gabarits": gab.to_string_lossy()});
+        let ent = gab.clone();
         let c = Chemins { defaut: PathBuf::new(), poste };
         let m = gabarit_lu(Some(&ent), &c).unwrap_err();
         assert!(m.contains("gabarit DUE"), "{}", m);

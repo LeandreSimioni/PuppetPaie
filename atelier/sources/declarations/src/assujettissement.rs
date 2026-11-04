@@ -91,7 +91,7 @@ enum MoisDeLAnnee {
 /// Les douze mois de l'annee de la DSN, pour l'etablissement `nic`. Le mois de la DSN est `paies` (celles qu'elle
 /// declare) ; un autre mois se lit dans ses engagements : leurs paies declarees (`dsn::paies_declarees_du_mois`) si
 /// `montants`, sinon leurs seuls contrats. Un mois sans saisie n'a pas eu de salarie.
-fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool, departs: &engagement::departs::Departs) -> Resultat<Vec<MoisDeLAnnee>> {
+fn mois_de_l_annee(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, nic: &str, mois: &str, paies: &[Paie], montants: bool, departs: &engagement::departs::Departs) -> Resultat<Vec<MoisDeLAnnee>> {
     let an = &mois[..4];
     let mut out = Vec::new();
     for m in 1..=12u32 {
@@ -109,7 +109,7 @@ fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[
         } else {
             let mut garde = Vec::new();
             for p in crate::dsn::contrats_du_mois(ctx, &m, departs)? {
-                if droit::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
+                if droit::bareme::etablissement_de(ent, &p.salarie)? == nic {
                     garde.push(p);
                 }
             }
@@ -192,7 +192,7 @@ fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Dec
 
 /// L'assiette de la PEEC de l'etablissement : les remunerations de l'annee qui servent de base aux cotisations de
 /// securite sociale, la base 03 de chaque contrat (celle que la DSN de chaque mois a declaree ou declare).
-fn assiette_peec(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
+fn assiette_peec(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, orgs: &Value, nic: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
     let mut total = Decimal::ZERO;
     for m in annee {
         match m {
@@ -234,7 +234,7 @@ pub fn ctp_sans_la_taxe_non_due(ctps: Vec<Value>, non_due: bool) -> Vec<Value> {
 /// sinon, le motif lu dans la fiche entreprise. `ctp` : les codes du bordereau, deja sans la taxe quand le motif vaut
 /// (`ctp_sans_la_taxe_non_due`). Un motif hors de la table, le motif 007 a partir du millesime 2026, une fiche qui dit
 /// un motif quand le bordereau paie la taxe (garde-fou : `blocs` lui donne un bordereau qui ne la paie plus) : refus.
-fn taxe_d_apprentissage(ent: &Value, ctp: &[String], an: i32) -> Resultat<Bloc44> {
+fn taxe_d_apprentissage(ent: &droit::fiche::ChampsEntreprise, ctp: &[String], an: i32) -> Resultat<Bloc44> {
     let paye = ctp.iter().any(|c| CTP_TAXE_APPRENTISSAGE.contains(&c.as_str()));
     let champ = champ_du_motif();
     let motif = motif_de_la_fiche(ent).map_err(|e| format!("DSN de decembre {} : {}", an, e))?;
@@ -277,7 +277,7 @@ ou la table livrée. Rien n'est écrit.",
 /// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
 /// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
 pub fn blocs(
-    ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
+    ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, ent_e: &droit::fiche::ChampsEntreprise, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
 ) -> Resultat<Vec<Bloc44>> {
     if mois.len() != 7 || &mois[5..7] != "12" {
         return Ok(Vec::new());
@@ -303,7 +303,7 @@ pub fn blocs(
     // Ce qui demande les montants de l'annee : la taxe sur les salaires et la PEEC.
     let ts = taxe_sur_les_salaires_de_la_fiche(ent).map_err(|m| format!("DSN de decembre {}, bloc S21.G00.44 : {} Rien n'est ecrit.", an, m))?;
     if ts.is_some() {
-        let cp = txt(g(ent_e, "code_postal"));
+        let cp = ent_e.code_postal.texte().to_string();
         if cp.starts_with("97") || cp.starts_with("98") {
             return Err(format!(
                 "DSN de decembre {} : l'etablissement {} est outre-mer (code postal {}), ou la taxe sur les salaires a un taux \

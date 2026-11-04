@@ -152,10 +152,6 @@ pub(super) fn nul() -> &'static Value {
 
 // ------------------------------------------------------------------ signature-apercu
 
-/// `d["cle"]` sur une fiche : `KeyError` si elle manque.
-pub(super) fn get_requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
-    d.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
-}
 
 // ------------------------------------------------------------------ envoi-apercu
 
@@ -262,8 +258,8 @@ fn periodes_attendues(ctx: &Contexte, par_mois: &mut HashMap<String, Vec<engagem
 }
 
 /// `chemin_identite("cachet")` : le tampon pose, quelle que soit son extension (png, jpg, svg).
-fn cachet_pose(ent: &Value) -> Option<String> {
-    let dossier = documents::bulletin::gabarits_de(ent)?.join("identite");
+fn cachet_pose(gabarits: &Path) -> Option<String> {
+    let dossier = gabarits.join("identite");
     [".png", ".jpg", ".svg"].iter().map(|e| dossier.join(format!("cachet{}", e))).find(|f| f.exists()).map(|f| f.to_string_lossy().into_owned())
 }
 
@@ -335,14 +331,13 @@ pub(crate) fn ranger_aer_detail(ctx: &Contexte, mois: Option<&str>, fichiers: Op
             fait.refusees.push((cle, periode.clone(), ecarts));
             continue;
         }
-        let pour_le_modele = ctx.entreprise_et_gabarits();
-        let signature = documents::bulletin::identite_de(&pour_le_modele, "signature").map(|f| f.to_string_lossy().into_owned());
-        let cachet = cachet_pose(&pour_le_modele);
-        let ent = ctx.entreprise.en_valeur();
+        let signature = documents::bulletin::identite_de(&ctx.gabarits(), "signature").map(|f| f.to_string_lossy().into_owned());
+        let cachet = cachet_pose(&ctx.gabarits());
+        let ent = &ctx.entreprise;
         let mut signees: Vec<Vec<u8>> = Vec::new();
         for att in groupe {
             let a = Authentification {
-                ent: &ent,
+                ent,
                 aujourdhui: ctx.aujourdhui,
                 signature: signature.as_deref(),
                 // Deja verifiee ci-dessus, sur l'ensemble des attestations du salarie.
@@ -428,11 +423,12 @@ struct Message {
 /// d'affichage ou sans signataire) sont gardes.
 fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path) -> R<Vec<Message>> {
     let etiq = crate::routes::dossier_salarie::etiquette(mois)?;
-    let ent = &ctx.entreprise.en_valeur();
-    get_requis(ent, "nom_affichage")?;
-    let sg = get_requis(ent, "signataire")?;
-    if !sg.get("prenom_affichage").is_some_and(vrai) {
-        get_requis(sg, "prenom")?;
+    let ent = &ctx.entreprise;
+    let requis = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(()) };
+    requis(&ent.nom_affichage, "nom_affichage")?;
+    let sg = ent.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
+    if sg.prenom_affichage.remplie().is_none() {
+        requis(&sg.prenom, "prenom")?;
     }
     let (certificats, _) = crate::routes::dossier_salarie::certificats_dus(ctx, paies)?;
     let mut messages: Vec<Message> = Vec::new();
@@ -899,7 +895,7 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     };
     let documents = crate::compagnie::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
     let paies_servies: Vec<engagement::calcul::Paie> = paies.iter().filter(|p| cles.contains(&p.salarie.id.to_string())).cloned().collect();
-    let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise.en_valeur(), &mois_saisie, &dossier, &choix.renvois, &dues_a_part(&paies_servies)?).map_err(|m| refus_de_preparation(&m))?;
+    let messages = envoi::preparer_avec(&paies_servies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois, &dues_a_part(&paies_servies)?).map_err(|m| refus_de_preparation(&m))?;
     let messages: Vec<envoi::Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let mut avertissements: Vec<String> = documents.avertissements.clone();
     if !sans.is_empty() {

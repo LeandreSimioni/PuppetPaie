@@ -188,7 +188,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
             if idcc.is_empty() { "rien".to_string() } else { idcc }
         )));
     }
-    match droit::bareme::casc_exemptee_de(ent) {
+    match droit::bareme::casc_exemptee(ent) {
         Err(m) => return Err(refus(m)),
         Ok(true) => {
             return Err(refus(

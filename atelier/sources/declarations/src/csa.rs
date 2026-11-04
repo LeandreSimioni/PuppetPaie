@@ -164,7 +164,7 @@ pub fn declaration(ctx: &Contexte, mois: &str, departs: &engagement::departs::De
     }
     let n: i32 = mois[..4].parse::<i32>().map_err(|_| format!("mois illisible : {}", mois))? - 1;
     // Redevable de la taxe d'apprentissage (L. 6242-1, I) : le motif de non-assujettissement de la fiche.
-    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise.en_valeur(), n)? {
+    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, n)? {
         return Ok(None);
     }
     // Au moins 250 salaries : l'effectif de l'annee N, la regle des cinq ans (L. 6242-1, V), comme au bloc 44 de decembre ;

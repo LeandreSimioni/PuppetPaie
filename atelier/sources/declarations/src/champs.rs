@@ -23,6 +23,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::echec::Echec;
+use droit::fiche::ParCase;
 
 type R<T> = Result<T, Echec>;
 
@@ -165,7 +166,7 @@ impl Champ {
     }
 
     /// Le champ s'applique-t-il a la fiche `donnees` : sa condition `si`, et `exige_si` quand il en a une.
-    fn applicable(&self, donnees: &Value) -> bool {
+    fn applicable(&self, donnees: &dyn ParCase) -> bool {
         condition_remplie(&self.si, donnees) && (self.exige_si.is_null() || self.exige(donnees))
     }
 }
@@ -214,7 +215,7 @@ pub struct Manquant {
 /// CE QUI MANQUE A LA FICHE `donnees` (`entreprise`, `salarie`) pour les actes de la compagnie : chaque champ, et chaque
 /// case de structure, qui porte `exige_par` ou `utile_pour`, s'il s'applique (`si`, `exige_si` ; une case suit sa
 /// structure) et qu'il est vide. Un champ declare se dit par sa forme lisible (`derive_de`).
-pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
+pub fn manquants(nom: &str, donnees: &dyn ParCase) -> R<Vec<Manquant>> {
     // La case que l'ecran montre pour `c` : celle dont il se deduit, s'il se deduit.
     fn montre<'a>(liste: &'a [Champ], c: &'a Champ) -> &'a Champ {
         c.derive_de.as_deref().and_then(|d| liste.iter().find(|x| x.cle == d)).unwrap_or(c)
@@ -229,12 +230,12 @@ pub fn manquants(nom: &str, donnees: &Value) -> R<Vec<Manquant>> {
     };
     for c in tous.iter().filter(|c| c.applicable(donnees)) {
         let m = montre(&tous, c);
-        voir(c, m, (c.cle.clone(), m.cle.clone()), m.libelle.clone(), donnees.get(&c.cle));
+        voir(c, m, (c.cle.clone(), m.cle.clone()), m.libelle.clone(), donnees.case(&c.cle).as_ref());
         for s in &c.champs {
             let ms = montre(&c.champs, s);
             let chemin = (format!("{}.{}", c.cle, s.cle), format!("{}.{}", c.cle, ms.cle));
             let m = if ms.aide.is_empty() { c } else { ms };
-            voir(s, m, chemin, format!("{} ({})", c.libelle, en_minuscule(&ms.libelle)), donnees.get(&c.cle).and_then(|o| o.get(&s.cle)));
+            voir(s, m, chemin, format!("{} ({})", c.libelle, en_minuscule(&ms.libelle)), donnees.case(&c.cle).and_then(|o| o.get(&s.cle).cloned()).as_ref());
         }
     }
     Ok(out)
@@ -251,11 +252,11 @@ pub fn utile(nom: &str, cle: &str) -> bool {
 /// LE REFUS D'UN ACTE quand une fiche qu'il lit n'a pas ce qu'il exige (`exige_par`) : tout ce qui manque, d'un coup,
 /// fiche par fiche. `fiches` : (`entreprise` ou `salarie`, qui, la fiche) ; `sauf` : les cases qu'un fait de l'acte ne demande
 /// pas. `None` : rien ne manque.
-pub fn refus_des_manques(acte: &str, fiches: &[(&str, String, &Value)], sauf: &[&str]) -> R<Option<String>> {
+pub fn refus_des_manques(acte: &str, fiches: &[(&str, String, &dyn ParCase)], sauf: &[&str]) -> R<Option<String>> {
     let mut lignes = Vec::new();
     for (nom, qui, donnees) in fiches {
         let manque: Vec<String> =
-            manquants(nom, donnees)?.into_iter().filter(|m| m.actes.iter().any(|a| a == acte) && !sauf.contains(&m.cle.as_str())).map(|m| m.libelle).collect();
+            manquants(nom, *donnees)?.into_iter().filter(|m| m.actes.iter().any(|a| a == acte) && !sauf.contains(&m.cle.as_str())).map(|m| m.libelle).collect();
         if !manque.is_empty() {
             let manque: Vec<String> = manque.iter().map(|l| format!("« {} »", l)).collect();
             lignes.push(format!("{} dans {}", manque.join(", "), qui));
@@ -700,13 +701,13 @@ fn comme_la_page(v: Option<&Value>) -> String {
 /// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
 /// jugent sur ce que l'ecran montre. Une liste de conditions est remplie quand l'une l'est ; une condition absente est
 /// remplie.
-pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
+pub fn condition_remplie(si: &Value, donnees: &dyn ParCase) -> bool {
     if let Some(l) = si.as_array() {
         return l.iter().any(|s| condition_remplie(s, donnees));
     }
     let Some(o) = si.as_object() else { return true };
     o.iter().all(|(k, vals)| {
-        let v = comme_la_page(donnees.get(k));
+        let v = comme_la_page(donnees.case(k).as_ref());
         let vals = vals.as_array().map(Vec::as_slice).unwrap_or(&[]);
         vals.iter().any(|x| x.as_str() == Some(v.as_str())) || (vals.iter().any(|x| x == "*") && !v.is_empty() && v != "false")
     })
@@ -718,7 +719,7 @@ impl Champ {
     /// `entreprise`) aussi, la compagnie emploie des permanents s'il ne vaut que pour eux (`si_permanents`) et a plusieurs
     /// etablissements s'il les nomme (`si_etablissements`). La page montre ce que cette fonction dit (`moteur::routes::
     /// fiches::montres`), et rien d'autre.
-    pub fn montre(&self, donnees: &Value, entreprise: Option<&Value>, permanents: bool, etablissements: bool) -> bool {
+    pub fn montre(&self, donnees: &dyn ParCase, entreprise: Option<&dyn ParCase>, permanents: bool, etablissements: bool) -> bool {
         self.ecran
             && !self.calcule()
             && condition_remplie(&self.si, donnees)
@@ -731,7 +732,7 @@ impl Champ {
     /// fiche (« Pour demarrer », `demarrage::manques`) et la declaration qui le lit (la DSN, pour la licence) la lisent
     /// toutes deux. Un champ sans `exige_si` n'est exige de personne par cette voie. Un champ exige est toujours montre
     /// (`tests/routes/demarrage.rs` le verifie sur toutes les conventions).
-    pub fn exige(&self, donnees: &Value) -> bool {
+    pub fn exige(&self, donnees: &dyn ParCase) -> bool {
         !self.exige_si.is_null() && condition_remplie(&self.exige_si, donnees) && condition_remplie(&self.si, donnees)
     }
 }
@@ -1179,7 +1180,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !choisi.is_empty() {
             if let Ok(base) = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("urssaf-dpae-base.json")) {
-                let deduit = urssaf_du_code_postal(&base, d.get("code_postal"));
+                let deduit = urssaf_du_code_postal(&base, &d.get("code_postal").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default());
                 if !deduit.is_empty() && deduit != choisi {
                     out.push(anomalie(
                         "code_urssaf",
@@ -1437,8 +1438,8 @@ fn urssaf_du_departement(base: &Value, dep: &str) -> String {
 
 /// Idem, depuis un code postal francais. L'outre-mer
 /// se lit sur TROIS chiffres (97139 -> 971), la metropole sur deux.
-pub fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String {
-    let v: Vec<char> = cp.filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default().chars().filter(|c| c.is_ascii_digit()).collect();
+pub fn urssaf_du_code_postal(base: &Value, cp: &str) -> String {
+    let v: Vec<char> = cp.chars().filter(|c| c.is_ascii_digit()).collect();
     if v.len() < 2 {
         return String::new();
     }

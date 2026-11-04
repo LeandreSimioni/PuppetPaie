@@ -141,9 +141,9 @@ pub fn poser_nir(f: &mut Fichier, salarie: &ChampsSalarie) -> Resultat<()> {
 /// les deux identites declarees par l'employeur », et « le NTT le plus ancien en cours de validite » :
 /// `norme-dsn/texte/bloc-S21.G00.30.txt`, l. 348-354) ; sinon rien. `declaree` : l'identite que la derniere DSN a
 /// declaree pour lui (`changements_individu::Declarations::derniere`, ou `derniere_declaree`).
-pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &FicheSalarie, declaree:Option<&crate::changements_individu::Declaree>) -> Resultat<()> {
+pub fn poser_ntt(f: &mut Fichier, ent: &droit::fiche::ChampsEntreprise, salarie: &FicheSalarie, declaree:Option<&crate::changements_individu::Declaree>) -> Resultat<()> {
     if nir_de(salarie).is_empty() {
-        f.add(RUBRIQUE, numero(&chaine(ent, "siren"), salarie)?);
+        f.add(RUBRIQUE, numero(ent.siren.texte(), salarie)?);
         return Ok(());
     }
     if let Some(n) = declaree.filter(|d| d.nir.is_empty()).map(|d| strip(&d.ntt)).filter(|n| !n.is_empty()) {

@@ -404,22 +404,24 @@ fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(autre) => Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         None => Ok(None),
     };
-    let de_la_compagnie = ctx.entreprise.en_valeur();
-    let entreprise = objet("entreprise")?.unwrap_or(&de_la_compagnie);
+    let entreprise: &dyn droit::fiche::ParCase = match objet("entreprise")? {
+        Some(e) => e,
+        None => &ctx.entreprise,
+    };
     let nom = charge.get("nom").and_then(Value::as_str).unwrap_or("entreprise");
-    let donnees = if nom == "entreprise" { entreprise } else { objet("donnees")?.unwrap_or(&Value::Null) };
+    let donnees: &dyn droit::fiche::ParCase = if nom == "entreprise" { entreprise } else { objet("donnees")?.unwrap_or(&Value::Null) };
     Ok(json!({ "permanents": permanents_de(entreprise), "montres": montres(ctx, nom, donnees, entreprise)? }))
 }
 
 /// Le curseur des permanents (`contexte::emploie_des_permanents`) de la fiche entreprise telle que l'ecran la saisit.
-fn permanents_de(entreprise: &Value) -> bool {
-    entreprise.get("emploie_des_permanents") == Some(&Value::Bool(true))
+fn permanents_de(entreprise: &dyn droit::fiche::ParCase) -> bool {
+    entreprise.case("emploie_des_permanents") == Some(Value::Bool(true))
 }
 
 /// CE QUE LA FICHE `nom` MONTRE pour `donnees` : chaque case que `champs::Champ::montre` dit a l'ecran, d'apres la
 /// fiche, l'entreprise `entreprise` (ses permanents, ses conditions) et les etablissements de la compagnie. La page ne
 /// montre que ces cases-la.
-pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &Value, entreprise: &Value) -> R<Vec<String>> {
+pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &dyn droit::fiche::ParCase, entreprise: &dyn droit::fiche::ParCase) -> R<Vec<String>> {
     let permanents = permanents_de(entreprise);
     let etablissements = !super::ouverture::choix_d_etablissement(ctx).is_null();
     let autre = (nom != "entreprise").then_some(entreprise);
@@ -434,9 +436,13 @@ pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &Value, entreprise: &V
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.get(cle) {
-        Some(v @ (Value::Object(_) | Value::Null)) => json!({ cle: v }),
+        Some(Value::Null) => droit::fiche::ChampsEntreprise { taxe_sur_les_salaires: droit::fiche::Case::Nulle, ..Default::default() },
+        Some(v @ Value::Object(_)) => droit::fiche::ChampsEntreprise {
+            taxe_sur_les_salaires: droit::fiche::Case::Dite(droit::fiche::lire_champs(v, cle).map_err(plain)?),
+            ..Default::default()
+        },
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
-        None => ctx.entreprise.en_valeur(),
+        None => ctx.entreprise.clone(),
     };
     // LES PLAFONDS DE LA FRANCHISE, CHIFFRES : ceux du bareme de l'annee des salaires -- `annee` dans la
     // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.

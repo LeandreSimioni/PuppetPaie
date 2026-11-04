@@ -139,17 +139,16 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
     let s = &paie.salarie;
-    let ent = &ctx.entreprise.en_valeur();
+    let ent = &ctx.entreprise;
     crate::dsn::exiges(ent, std::iter::once(&paie.salarie), paie.declaree_a_la_caisse_des_conges()?)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
     };
     // Le bareme ne sert a rien ici : le taux AT/MP est interdit en nature 08.
-    let bar = Value::Object(Default::default());
+    let bar = crate::dsn::BaremeDuMois::nouveau(Value::Object(Default::default()), droit::bareme::EntrepriseLue { fiche: ent.clone(), effectif: None });
     let remplace = o.remplace.as_deref().filter(|r| !r.is_empty());
 
-    let ent_ = |k: &str| -> Resultat<&Value> { req(ent, k) };
     // La version de la norme d'un signalement suit le jour ou il est constitue (`norme-dsn-base.json`, une inference).
     let norme = crate::norme::du_signalement(&constitution)?;
     crate::naf::verifier_pour(&norme, ent)?;
@@ -163,14 +162,13 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     f.add("S10.G00.00.007", "01");
     // << 02 - envoi neant >> n'a pas de sens ici.
     f.add("S10.G00.00.008", "01");
-    f.add_v("S10.G00.01.001", ent_("siren")?)?;
-    f.add_v("S10.G00.01.002", ent_("nic")?)?;
-    f.add_v("S10.G00.01.003", ent_("raison_sociale")?)?;
-    f.add_v("S10.G00.01.004", ent_("adresse")?)?;
-    f.add_v("S10.G00.01.005", ent_("code_postal")?)?;
-    f.add_v("S10.G00.01.006", ent_("commune")?)?;
+    f.add_case("S10.G00.01.001", &ent.siren, "siren")?;
+    f.add_case("S10.G00.01.002", &ent.nic, "nic")?;
+    f.add_case("S10.G00.01.003", &ent.raison_sociale, "raison_sociale")?;
+    f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
+    f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
+    f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
     crate::dsn::contact_emetteur(&mut f, ent)?;
-    let decl = ent_("declarant_dsn")?;
 
     // ---------------------------------------------------------- S20 declaration
     f.add("S20.G00.05.001", NATURE);
@@ -191,33 +189,29 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     // p. 138) : le sien.
     let changement = o.motif == CHANGEMENT_DE_LOGICIEL;
     if changement {
-        let siret = if vrai(g(&etab, "siret")) {
-            en_texte(&etab["siret"])
-        } else {
-            format!("{}{}", en_texte(req(&etab, "siren")?), en_texte(req(&etab, "nic")?))
+        let siret = match etab.siret.remplie() {
+            Some(s) => s.to_string(),
+            None => format!("{}{}", etab.siren.ecrite("siren")?, etab.nic.ecrite("nic")?),
         };
         f.add("S20.G00.05.012", siret);
     }
-    f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
-    f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
-    f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
+    crate::dsn::contact_chez_le_declare(&mut f, ent)?;
 
     // ------------------------------------------------------------ S21 entreprise
-    f.add_v("S21.G00.06.001", ent_("siren")?)?;
-    f.add_v("S21.G00.06.002", ent_("nic")?)?;
-    for (rub, k) in [
-        ("S21.G00.11.001", "nic"),
-        ("S21.G00.11.002", "naf"),
-        ("S21.G00.11.003", "adresse"),
-        ("S21.G00.11.004", "code_postal"),
-        ("S21.G00.11.005", "commune"),
+    f.add_case("S21.G00.06.001", &ent.siren, "siren")?;
+    f.add_case("S21.G00.06.002", &ent.nic, "nic")?;
+    for (rub, case, cle) in [
+        ("S21.G00.11.001", &etab.nic, "nic"),
+        ("S21.G00.11.002", &etab.naf, "naf"),
+        ("S21.G00.11.003", &etab.adresse, "adresse"),
+        ("S21.G00.11.004", &etab.code_postal, "code_postal"),
+        ("S21.G00.11.005", &etab.commune, "commune"),
     ] {
         // Le code APET : obligatoire en amorcage en P26V01, retire de la norme P27V01 (cahier 2027.1.1, p. 145).
         if rub == "S21.G00.11.002" && !usage_admet(&f, rub, NATURE)? {
             continue;
         }
-        f.add_v(rub, req(&etab, k)?)?;
+        f.add_case(rub, case, cle)?;
     }
 
     // Les adhesions prevoyance que le contrat designe, et elles seules -- sauf

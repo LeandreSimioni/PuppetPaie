@@ -190,9 +190,9 @@ struct Organismes {
 }
 
 impl Organismes {
-    fn lire(ctx: &Contexte, ent: &Value) -> Resultat<Organismes> {
+    fn lire(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise) -> Resultat<Organismes> {
         let base = socle::fichiers::lire_json(&ctx.code.join("organismes-base.json"))?;
-        Ok(Organismes { compagnie: ctx.organismes()?, base, idcc: ent.get("idcc").map(en_texte).unwrap_or_default() })
+        Ok(Organismes { compagnie: ctx.organismes()?, base, idcc: ent.idcc.texte().to_string() })
     }
 
     fn versements(&self) -> Vec<&Value> {
@@ -243,7 +243,7 @@ impl Organismes {
 /// de prevoyance (L1242-12, 8° ; R1221-34, 14°), les mentions de renvoi (R1221-34, 8° a 10° et 14°, que R1221-35 permet
 /// de dire par un renvoi aux textes), et les clauses particulieres -- celles de l'engagement, sinon celles que la
 /// compagnie ecrit une fois dans sa configuration.
-pub fn poser_les_mentions(ctx: &Contexte, ent: &Value, sal: &droit::fiche::ChampsSalarie, eng: &Value, nat: &Nature, m: &mut Valeurs) -> Resultat<()> {
+pub fn poser_les_mentions(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, sal: &droit::fiche::ChampsSalarie, eng: &Value, nat: &Nature, m: &mut Valeurs) -> Resultat<()> {
     let nom = qui(m);
     // LA CATEGORIE D'EMPLOI : le classement conventionnel (S21.G00.40.002), sinon le statut cadre ou non cadre de la
     // retraite complementaire (S21.G00.40.003), sinon le statut du spectacle (artiste, technicien).
@@ -307,7 +307,7 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &Value, sal: &droit::fiche::Champ
     }
     protection.push('.');
     m.insert("mentions.protection_sociale".into(), protection);
-    let clauses = ecrit(eng, "clauses_particulieres").or_else(|| ent.get("clauses_particulieres").filter(|v| vrai(v)).map(en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty()));
+    let clauses = ecrit(eng, "clauses_particulieres").or_else(|| ent.clauses_particulieres.remplie().map(|s| s.trim().to_string()).filter(|s| !s.is_empty()));
     m.insert("contrat.clauses_particulieres".into(), clauses.unwrap_or_else(|| "Aucune.".into()));
     Ok(())
 }

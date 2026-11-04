@@ -11,7 +11,7 @@ use serde_json::{json, Map, Value};
 use crate::bulletin::{fmt_eur, identite_de};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::echec::{erreur, R};
 use socle::num::eur2;
 
@@ -42,8 +42,8 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
     let mut valeurs = valeurs_cert.clone();
     valeurs.insert("solde.inventaire".into(), json!(inventaire(p)));
     valeurs.insert("solde.net".into(), json!(fmt_eur(eur2(p.net_a_payer))));
-    ecrire_papier(&socle::fichiers::modele_de("certificat-travail.modele", &ent, &poste), valeurs_cert, &certificat, &ent, true)?;
-    if let Err(e) = ecrire_papier(&socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", &ent, &poste), valeurs, &recu, &ent, false) {
+    ecrire_papier(&socle::fichiers::modele_de("certificat-travail.modele", Some(&ent.gabarits), &poste), valeurs_cert, &certificat, &ent, true)?;
+    if let Err(e) = ecrire_papier(&socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", Some(&ent.gabarits), &poste), valeurs, &recu, &ent, false) {
         let _ = std::fs::remove_file(&certificat);
         return Err(e);
     }
@@ -51,26 +51,24 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
 }
 
 /// Les mentions communes du certificat de travail et du reçu.
-fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>> {
+fn marqueurs_communs(date: &Jour, p: &Paie, ent: &droit::fiche::ChampsEntreprise) -> R<Map<String, Value>> {
     let s = &p.salarie;
     let e = &p.engagement;
     let ecrite = |c: &droit::fiche::Case<String>, k: &str| -> R<String> { c.ecrite(k).map(str::to_string).map_err(|m| erreur("KeyError", m)) };
-    let req = |v: &Value, k: &str| -> R<String> { v.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
-    let ou_vide = |v: &Value, k: &str| -> String { v.get(k).map(en_texte).unwrap_or_default() };
-    let sig = ent.get("signataire").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
+    let sig = ent.signataire.exigee("signataire").map_err(|m| erreur("KeyError", m))?;
     let aujourdhui = date.jj_mm_aaaa();
     let mut m = Map::new();
     let mut poser = |k: &str, v: String| {
         m.insert(k.to_string(), Value::String(v));
     };
-    poser("employeur.raison_sociale", req(ent, "raison_sociale")?);
-    poser("employeur.adresse", req(ent, "adresse")?);
-    poser("employeur.code_postal", req(ent, "code_postal")?);
-    poser("employeur.commune", req(ent, "commune")?);
-    poser("employeur.siret", req(ent, "siret")?);
-    poser("employeur.naf", req(ent, "naf")?);
-    poser("employeur.signataire", format!("{} {}", req(sig, "prenom")?, req(sig, "nom")?));
-    poser("employeur.signataire_fonction", ou_vide(sig, "fonction"));
+    poser("employeur.raison_sociale", ecrite(&ent.raison_sociale, "raison_sociale")?);
+    poser("employeur.adresse", ecrite(&ent.adresse, "adresse")?);
+    poser("employeur.code_postal", ecrite(&ent.code_postal, "code_postal")?);
+    poser("employeur.commune", ecrite(&ent.commune, "commune")?);
+    poser("employeur.siret", ecrite(&ent.siret, "siret")?);
+    poser("employeur.naf", ecrite(&ent.naf, "naf")?);
+    poser("employeur.signataire", format!("{} {}", ecrite(&sig.prenom, "prenom")?, ecrite(&sig.nom, "nom")?));
+    poser("employeur.signataire_fonction", sig.fonction.texte().to_string());
     poser("salarie.nom_complet", format!("{} {}", ecrite(&s.prenom, "prenom")?, ecrite(&s.nom, "nom")?));
     poser("salarie.date_naissance", s.date_naissance.exigee("date_naissance").map_err(|m| erreur("KeyError", m))?.jj_mm_aaaa());
     poser("salarie.lieu_naissance", s.lieu_naissance.texte().to_string());
@@ -104,14 +102,14 @@ fn inventaire(p: &Paie) -> String {
 
 /// Le papier de `modele`, par la fabrique (style « attestation »). `signe` : le certificat s'établit signé de
 /// l'employeur.
-fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent: &Value, signe: bool) -> R<()> {
+fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent: &droit::contexte::EntrepriseDuDocument, signe: bool) -> R<()> {
     let texte = crate::contrat::lire_modele_texte(modele)?;
     let mut d = crate::contrat::enveloppe("attestation", ent);
     let mut un = Map::new();
     un.insert("texte".into(), json!(texte));
     un.insert("valeurs".into(), Value::Object(valeurs));
     if signe {
-        if let Some(s) = identite_de(ent, "signature") {
+        if let Some(s) = identite_de(&ent.gabarits, "signature") {
             un.insert("signature_employeur".into(), json!(crate::conges_spectacles::chemin_texte(&s)));
         }
     }

@@ -39,8 +39,8 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     assert_eq!((octobre.entreprise.idcc.texte(), octobre.entreprise.adresse.texte()), ("3090", "21 RUE DU PORT"));
     assert_eq!(ctx.entreprise_du_mois("2026-11").unwrap().adresse.texte(), "8 PLACE DU MARCHE");
     // La convention que le bareme applique est celle du jour lu, quel que soit le contexte qui le lit.
-    let convention = |jour: &str| ctx.bareme(&j(jour)).unwrap()["_entreprise"]["idcc"].clone();
-    assert_eq!((convention("2026-10-31"), convention("2026-11-01")), (json!("3090"), json!("1285")));
+    let convention = |jour: &str| ctx.entreprise_lue(&j(jour)).unwrap().fiche.idcc.texte().to_string();
+    assert_eq!((convention("2026-10-31"), convention("2026-11-01")), ("3090".to_string(), "1285".to_string()));
     // La premiere valeur vaut de tout temps, meme ecrite avec une date.
     assert_eq!(ctx.salarie_au("BRIOCHE", &j("2020-03-01")).unwrap().nom.texte(), "BRIOCHE");
     assert_eq!(ctx.au(&j("2020-03-01")).unwrap().salaries["BRIOCHE"].emploi.texte(), "COMEDIENNE");
