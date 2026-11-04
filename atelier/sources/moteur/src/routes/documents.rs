@@ -510,7 +510,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let lignes = m.lignes()?;
     // Ce qui est deja parti : la meme lecture que la case Documents de l'engagement (`etapes::documents_partis`).
     let partis = crate::routes::etapes::documents_partis(ctx, &mois, &m.etats_du_mois(&mois)?, &lignes)?;
-    let deja = messages.iter().filter_map(|x| partis.get(&x.cle)).filter_map(|p| p["quand"].as_str()).max().map(|q| json!({"quand": q, "quand_dit": format!("Le {}.", super::quand(q))}));
+    let deja = messages.iter().filter_map(|x| partis.get(&x.cle)).map(|p| p.quand.as_str()).max().map(|q| json!({"quand": q, "quand_dit": format!("Le {}.", super::quand(q))}));
     let mut r = Map::new();
     r.insert("expediteur".into(), json!(expediteur));
     r.insert("expediteur_dit".into(), json!(format!("Courriels depuis {}", expediteur)));
@@ -810,10 +810,9 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::P
             choix.a_jour.insert(cle.clone());
             continue;
         };
-        let quand = parti.get("quand").map(valeur_en_texte).unwrap_or_default();
+        let quand = parti.quand.clone();
         let envoye_le = jour_iso(quand.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or(quand);
-        let ancien = parti.get("resume").cloned().unwrap_or(Value::Null);
-        let changements = envoi::ce_qui_a_change(faits, &ancien, choix.resumes.get(cle).unwrap_or(&Value::Null));
+        let changements = envoi::ce_qui_a_change(faits, &parti.resume, choix.resumes.get(cle).unwrap_or(&Value::Null));
         let declaration = declaration.as_ref().map(|d| d(cle)).unwrap_or_default();
         choix.renvois.insert(cle.clone(), envoi::Renvoi { envoye_le, changements, declaration });
     }
