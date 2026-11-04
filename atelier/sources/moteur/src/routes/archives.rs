@@ -10,7 +10,6 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
-use crate::routes::qui_de;
 use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
 
@@ -422,7 +421,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let vire_le = crate::routes::fiches::exiger(charge, "vire_le")?;
     let montant = crate::routes::fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
-    let qui = qui_de(charge);
+    let qui = crate::routes::INTERFACE.to_string();
     crate::import::casc::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
 }
 
@@ -537,7 +536,7 @@ const REEDITION_CONTRATS: &str = "Les contrats ont été réédités par notre l
 /// `exports/dossiers/`), puis part a chaque salarie par la boite de la compagnie. La reponse est celle du dossier
 /// (`dossier_json`) et, sous `envoi`, ce que l'envoi a fait.
 fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
-    let qui = qui_de(charge);
+    let qui = crate::routes::INTERFACE.to_string();
     let mut demande = Map::new();
     for cle in ["salaries", "mois", "annee", "toutes_les_annees", "categories"] {
         if let Some(v) = charge.get(cle) {
@@ -663,7 +662,7 @@ fn jjmmaaaa(iso: &str) -> String {
 /// l'envoi, puis ce qui s'en garde -- les deux `.eml` dans `exports/casc-svp/envoyes/`, la ligne de
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
-    let qui = qui_de(charge);
+    let qui = crate::routes::INTERFACE.to_string();
     use crate::import::casc::{ecrire, marquer_regularise, regularisation, Demande};
     // Les virements : une table nom -> valeur, vide si la charge n'en dit pas.
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {

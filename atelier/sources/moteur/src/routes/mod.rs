@@ -11,7 +11,7 @@
 //! « Un probleme, une idee ? » (`filet`), l'accueil des compagnies (`accueil` : les routes de l'installation), et les lectures que les ecrans partagent (`ouverture`). Chacun dit ses routes et
 //! leurs fiches (`ROUTES`, `catalogue::FICHES`), comme les modules des obligations,
 //! des conseils et de l'ouverture ; l'aiguillage ne fait rien d'autre que les servir (et l'horloge
-//! du banc, hors catalogue). Ce que les routes partagent (lire un fichier, le salarie d'une charge, `qui_de`) est ici.
+//! du banc, hors catalogue). Ce que les routes partagent (lire un fichier, le salarie d'une charge, `INTERFACE`) est ici.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -387,14 +387,7 @@ pub(crate) fn maintenant() -> String {
     socle::paris::maintenant()[..16].replacen('T', " ", 1)
 }
 
-/// QUI ECRIT. Les routes inscrivent `interface` : c'est la fenetre. La ligne de commande (`moteur ...`) ajoute `qui` a la charge
-/// (`cli`, ou `ligne de commande` selon la commande) : une valeur ecrite reste identique d'une face a
-/// l'autre. Absent, vide ou pas un texte : `interface` -- la fenetre ne change pas.
-pub(crate) fn qui_de(charge: &Value) -> String {
-    charge.get("qui").and_then(Value::as_str).filter(|s| !s.trim().is_empty()).unwrap_or(INTERFACE).to_string()
-}
-
-/// Qui ecrit, quand c'est la fenetre : ce qu'une route dont la charge est lue en sa forme inscrit.
+/// QUI ECRIT : ce que les routes inscrivent, la fenetre comme la ligne de commande (`moteur route`, qui sert les memes).
 pub(crate) const INTERFACE: &str = "interface";
 
 /// LA CHARGE D'UNE ROUTE, lue une fois a son entree, en sa forme (`socle::forme::lire`) : une cle que la forme ne connait

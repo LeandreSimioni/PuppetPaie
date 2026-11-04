@@ -329,8 +329,8 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
 /// normale (`DsnDejaDeposee` tranche) ; un refus sinon.
 fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let faits = m.depots_reels(mois, nic)?;
-    let dernier = m.dernier_ordre(mois, &faits)?;
+    let faits = m.depots_reels(socle::mois::Mois::lire(mois)?, nic)?;
+    let dernier = m.dernier_ordre(socle::mois::Mois::lire(mois)?, &faits)?;
     if !["03", "05"].contains(&a.champ("type_declaration")) {
         return Ok(false);
     }
@@ -344,7 +344,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
         None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
         None => return Ok(false),
     };
-    m.refuser_si_hors_delai(mois)?;
+    m.refuser_si_hors_delai(socle::mois::Mois::lire(mois)?)?;
     let ordre: i64 = a.champ("ordre").trim().parse().unwrap_or(0);
     if ordre <= dernier {
         return Err(erreur(
@@ -489,7 +489,7 @@ pub fn deposer_dsn_dans(
         let change = if apercu.est_signalement() {
             None
         } else {
-            crate::routes::etapes::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(&mois, &chemin)?
+            crate::routes::etapes::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(socle::mois::Mois::lire(&mois)?, &chemin)?
         };
         if let Some(c) = change {
             return Err(erreur(

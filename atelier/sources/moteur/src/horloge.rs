@@ -262,7 +262,7 @@ fn deposer_les_dsn(
     garder: impl Fn(&envois::depot::Apercu) -> bool,
     a_faire: &mut Vec<String>,
 ) -> R<bool> {
-    let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
+    let f = Moteur::nouveau(ctx).fichiers_deposables(socle::mois::Mois::lire(mois)?)?;
     let chemins: Vec<String> = f.dsn.iter().map(|x| x.chemin.clone()).collect();
     let journal = envois::journal::lu(&ctx.racine)?;
     let lignes: Vec<&Value> = journal.lignes
@@ -390,12 +390,13 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     // CE QUI EST DU, chaque pas avec son instant : les mois qui ne sont pas faits, les annees qui ne sont pas finies.
     let saisis = engagement::stock::mois_saisis(racine).unwrap_or_default();
     let mut calendrier: Vec<Pas> = Vec::new();
-    let mut echus: Vec<String> = Vec::new();
+    let mut echus: Vec<socle::mois::Mois> = Vec::new();
     {
         let ctx = d.contexte()?;
         // Les mois saisis, et ceux dont la DSN est due sans engagement : ce que le panneau et les rappels reclament.
-        for mois in &crate::routes::rappels::mois_a_parcourir(&ctx, jour)? {
-            let premier = socle::mois::Mois::lire(mois).map(socle::mois::Mois::premier_jour).map_err(Echec::from)?;
+        for le_mois in crate::routes::rappels::mois_a_parcourir(&ctx, jour)? {
+            let mois = &le_mois.to_string();
+            let premier = le_mois.premier_jour();
             if jour < premier {
                 break;
             }
@@ -405,13 +406,13 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
             }
             // Un mois echu dont tout est deja fait (par la personne, avant que l'horloge ne passe) est fait : rien n'est a
             // jouer pour lui.
-            let suivant = socle::mois::Mois::lire(mois).map(socle::mois::Mois::dernier_jour).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
-            if jour >= suivant && mois_fait(&ctx, mois, jour)? {
+            let suivant = le_mois.dernier_jour().plus_jours(1).map_err(Echec::from)?;
+            if jour >= suivant && mois_fait(&ctx, le_mois, jour)? {
                 clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
                 continue;
             }
             if les_pas_du_mois(&d, &ctx, mois, &mut calendrier)? {
-                echus.push(mois.clone());
+                echus.push(le_mois);
             }
         }
     }
@@ -438,9 +439,10 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     // refuse se regarde a chaque ouverture ; un signalement qui attend la saisie (`fins_a_signaler`, `a_saisir` : une case
     // de la carte vide) est a la personne, et les rappels le lui disent : le mois se rouvre quand sa saisie change
     // (`empreinte_du_mois`).
-    for mois in &echus {
+    for le_mois in echus {
+        let mois = &le_mois.to_string();
         let ctx = d.contexte()?;
-        if mois_fait(&ctx, mois, jour)? {
+        if mois_fait(&ctx, le_mois, jour)? {
             clos.insert(mois.clone(), json!(empreinte_du_mois(racine, mois)));
         } else {
             clos.remove(mois);
@@ -629,7 +631,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             fait
         }
         Geste::Dpae { mois, debut } => pas(d, quoi, quand, |ctx| {
-            let a_declarer = Moteur::nouveau(ctx).embauches_a_declarer(Some(mois))?;
+            let a_declarer = Moteur::nouveau(ctx).embauches_a_declarer(Some(socle::mois::Mois::lire(mois)?))?;
             let attente: Vec<_> = a_declarer.iter().filter(|e| e.debut == *debut).collect();
             if attente.is_empty() {
                 return Ok(false);
@@ -756,7 +758,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 if !crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.partie() {
                     return Ok(false);
                 }
-                let bilan = Moteur::nouveau(ctx).bilan_du_mois(mois)?;
+                let bilan = Moteur::nouveau(ctx).bilan_du_mois(socle::mois::Mois::lire(mois)?)?;
                 use crate::routes::etapes::{EtatCase, QuelleEtape};
                 let a_envoyer = bilan.etapes.iter().filter(|e| e.cle == QuelleEtape::Documents).flat_map(|e| &e.groupes).any(|g| g.etat == EtatCase::AFaire);
                 if !a_envoyer {
@@ -957,8 +959,8 @@ fn empreinte_du_mois(racine: &Path, mois: &str) -> String {
 
 /// UN MOIS FAIT : toutes ses etapes sont vertes (`etapes_restantes`, ce que l'ecran montre) et aucun signalement n'est a
 /// faire que l'horloge puisse ecrire, sa date butoir passee ou non (`signalements_dus`).
-fn mois_fait(ctx: &Contexte, mois: &str, jour: Jour) -> R<bool> {
-    Ok(Moteur::nouveau(ctx).etapes_restantes(mois)?.is_empty() && signalements_dus(ctx, mois, jour, true).is_empty())
+fn mois_fait(ctx: &Contexte, mois: socle::mois::Mois, jour: Jour) -> R<bool> {
+    Ok(Moteur::nouveau(ctx).etapes_restantes(mois)?.is_empty() && signalements_dus(ctx, &mois.to_string(), jour, true).is_empty())
 }
 
 /// L'annee `annee` est-elle finie pour l'horloge : passee fin janvier de l'annee d'apres, et close et exportee, ou sans

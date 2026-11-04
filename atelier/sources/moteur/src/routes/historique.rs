@@ -132,7 +132,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             envois::reprise_journal::reprise(
                 ctx,
                 charge.get("ecrire").is_some_and(vrai),
-                &crate::routes::qui_de(charge),
+                &crate::routes::INTERFACE.to_string(),
                 &socle::paris::iso_secondes(socle::temps::secondes()),
             ),
         )
