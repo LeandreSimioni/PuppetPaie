@@ -450,7 +450,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
             Some(n) => engagement::etats::paie_ecrite_de(ctx, m, &cle, n, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(|e| avec("ValueError", e))?).map_err(|e| avec("ValueError", e))?,
             None => None,
         };
-        let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
+        let Some(paie) = ecrite.as_ref().map(|x| &x.paie) else {
             match importe.as_ref().and_then(|i| verse_par_l_ancien_logiciel(i, m)) {
                 Some((brut, l, j)) => {
                     bruts += brut;

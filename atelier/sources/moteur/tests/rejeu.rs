@@ -490,9 +490,9 @@ fn la_fictive_tient_son_annee_et_se_livre(nom: &str, decembre: usize, dpae: &[&s
         let m = outils::lire(&racine, &format!("engagements/{}.json", mois));
         let v: Vec<Value> = m["engagements"].as_array().unwrap().iter().flat_map(|e| {
             ecrites.iter().filter(move |(_, p)| p["salarie"] == e["salarie"] && p["numero"] == e["numero"] && !e["valide"].is_null()).map(move |(pm, p)| {
-                let q = &p["paie"];
+                let q = &p["presente"]["paie"];
                 // L'identifiant du compte rendu qui porte le taux se tire au hasard au simulateur, hors du rejeu (l'horloge).
-                let mut pas = p["pas"].clone();
+                let mut pas = p["presente"]["pas"].clone();
                 if let Some(o) = pas.as_object_mut() {
                     o.remove("identifiant");
                 }

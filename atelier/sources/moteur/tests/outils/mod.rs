@@ -95,10 +95,10 @@ pub fn lire(racine: &Path, rel: &str) -> Value {
 }
 
 /// La paie ecrite de `mois` du contrat du salarie `salarie` (le premier qu'il a dans le mois, ou celui du numero
-/// `numero`), telle que `paies/<mois>.json` la porte ; `Null` s'il n'en a pas.
+/// `numero`), telle que `paies/<mois>.json` la porte (`presente`) ; `Null` s'il n'en a pas.
 pub fn paie_ecrite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> Value {
     let f = lire(racine, &format!("paies/{}.json", mois));
-    f["paies"].as_array().into_iter().flatten().find(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).cloned().unwrap_or(Value::Null)
+    f["paies"].as_array().into_iter().flatten().find(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).map(|e| e["presente"].clone()).unwrap_or(Value::Null)
 }
 
 pub fn ecrire(racine: &Path, rel: &str, v: &Value) {

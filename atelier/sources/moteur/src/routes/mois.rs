@@ -1447,7 +1447,7 @@ fn mois_designe(ctx: &Contexte, mois: Mois, cartes: &[Carte]) -> R<(VueDuMois, V
 /// Une paie que l'ecran montre, et pourquoi elle s'est recalculee d'elle-meme (`{"le", "raison"}`), s'il y a lieu.
 pub(crate) struct PaieMontree {
     pub(crate) paie: Paie,
-    pub(crate) recalcul: Option<Value>,
+    pub(crate) recalcul: Option<engagement::paie_ecrite::Recalcul>,
 }
 
 

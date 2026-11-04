@@ -859,7 +859,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             let mut trouvee = None;
             for m in mois.iter().rev() {
                 if let Some(p) = engagement::etats::paie_ecrite_de_la_version(o, x, m).map_err(Echec::from)? {
-                    trouvee = p.get("paie").cloned();
+                    trouvee = Some(p.paie.clone());
                     break;
                 }
             }

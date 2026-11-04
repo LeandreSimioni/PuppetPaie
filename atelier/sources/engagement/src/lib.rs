@@ -30,6 +30,7 @@ pub mod relire;
 pub mod saisie;
 pub mod solde;
 pub mod numeros;
+pub mod paie_ecrite;
 pub mod paies;
 pub mod stock;
 pub mod versions;
