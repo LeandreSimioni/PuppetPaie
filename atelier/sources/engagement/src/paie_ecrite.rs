@@ -1,6 +1,6 @@
 //! LA PAIE ECRITE : ce que la validation d'un engagement ecrit de sa paie d'un mois (`etats::calculer_les_rangs`), dans le
 //! fichier de ce mois (`paies`), et ce que ses envois y posent ensuite (le numero du bulletin, le premier N CE, le
-//! bulletin qu'elle rectifie, pourquoi elle s'est recalculee). Une seule forme, lue par `PaieEcrite::lire` seule et ecrite
+//! bulletin qu'elle rectifie, pourquoi elle s'est recalculee). Une seule forme, lue avec le fichier des paies (`paies`) et ecrite
 //! par serde ; une cle inconnue refuse en se nommant.
 
 use std::collections::BTreeMap;
@@ -8,7 +8,6 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
-use socle::num::Resultat;
 
 /// UNE PAIE ECRITE.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -63,11 +62,6 @@ pub struct Recalcul {
 }
 
 impl PaieEcrite {
-    /// LA SEULE LECTURE D'UNE PAIE ECRITE.
-    pub fn lire(v: &Value) -> Resultat<PaieEcrite> {
-        socle::forme::lire(v, socle::echec::PAIE_ILLISIBLE)
-    }
-
     /// Le compteur de conges sans ses avertissements, pour comparer deux paies sur leurs chiffres.
     pub fn conges_sans_avis(&self) -> Option<crate::conges::CompteurConges> {
         self.conges.clone().map(|c| crate::conges::CompteurConges { avertissements: Vec::new(), ..c })
