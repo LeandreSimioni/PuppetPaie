@@ -442,16 +442,6 @@ impl Arret {
     }
 }
 
-fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
-    let t = json_en_cache(&dossier_du_code().join("arrets-base.json"))?;
-    for c in liste(&t["subrogation"]["codes"]) {
-        if txt(g(c, "libelle")) == libelle {
-            return Ok(txt(g(c, "code")));
-        }
-    }
-    Err(socle::echec::livree("arrets-base.json", &format!("subrogation.{}", libelle)))
-}
-
 /// Le bloc « Arret de travail - S21.G00.60 » (`signalement.bloc_60`).
 ///
 /// Ce que chaque nature admet du bloc se lit dans le tableau des usages (cahier technique 2026.1, p. 363-382,
@@ -466,7 +456,7 @@ pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: Option<&droit::
     f.add("S21.G00.60.003", jj(g(v, "fin_previsionnelle"))?);
     if usage_admet(f, "S21.G00.60.004", nature)? && vrai(g(v, "subrogation")) {
         f.add_v("S21.G00.60.004", g(v, "subrogation"))?;
-        if a.s("subrogation") == nomenclature_subrogation("oui")? {
+        if crate::signalement::avec_subrogation(a)? {
             let Some((iban, bic)) = banque.and_then(|b| b.iban.remplie().zip(b.bic.remplie())) else {
                 return Err("Subrogation demandee : l'IBAN et le BIC de la compagnie (S21.G00.60.007 et .008) sont \
 obligatoires -- CCH-11. Ils se lisent dans la fiche entreprise, ils ne se saisissent pas dans l'arret."

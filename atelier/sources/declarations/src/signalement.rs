@@ -14,7 +14,7 @@ use serde_json::Value;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{d, en_texte, Jour};
 use crate::dsn::{self, Arret, Fichier, LOGICIEL, VERSION};
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use socle::fichiers::{repr, repr_valeur, vrai};
 use socle::num::Resultat;
 
 pub const ARRET: &str = "04";
@@ -56,33 +56,10 @@ fn s(v: &Value, k: &str) -> String {
     en_texte(g(v, k))
 }
 
-fn nomenclatures() -> Resultat<std::sync::Arc<Value>> {
-    json_en_cache(&dossier_du_code().join("arrets-base.json"))
-}
-
-/// Les codes de `arrets-base.json[quoi]`, dans l'ordre du fichier.
-fn codes(quoi: &str) -> Resultat<Vec<Value>> {
-    let n = nomenclatures()?;
-    Ok(n[quoi]["codes"].as_array().cloned().unwrap_or_default())
-}
-
-fn code<'a>(liste: &'a [Value], c: &Value) -> Option<&'a Value> {
-    let c = c.as_str()?;
-    liste.iter().find(|x| x["code"].as_str() == Some(c))
-}
-
-fn code_subrogation_oui() -> Resultat<String> {
-    for c in codes("subrogation")? {
-        if c["libelle"].as_str() == Some("oui") {
-            return Ok(en_texte(&c["code"]));
-        }
-    }
-    Err(socle::echec::livree("arrets-base.json", "subrogation"))
-}
-
+/// L'arret est-il subroge ? Son code de subrogation est le « oui » de la norme (`engagement::imprevus::Bloc60`).
 pub fn avec_subrogation(a: &Arret) -> Resultat<bool> {
     let sub = if vrai(g(&a.v, "subrogation")) { s(&a.v, "subrogation") } else { String::new() };
-    Ok(sub == code_subrogation_oui()?)
+    Ok(sub == engagement::imprevus::bloc_60()?.subrogation_oui()?)
 }
 
 fn nature_inconnue(nature: &str) -> String {
@@ -99,8 +76,8 @@ pub fn verifier(a: &Arret, nature: &str, constitution: Option<&Jour>) -> R<Vec<S
     if nature != ARRET && nature != REPRISE {
         return impossible(nature_inconnue(nature));
     }
-    let motifs = codes("motifs_arret")?;
-    let motif = match code(&motifs, g(v, "motif")) {
+    let bloc = engagement::imprevus::bloc_60()?;
+    let motif = match bloc.motifs_arret.code(g(v, "motif")) {
         Some(m) => m.clone(),
         None => {
             return impossible(format!(
@@ -110,9 +87,9 @@ pub fn verifier(a: &Arret, nature: &str, constitution: Option<&Jour>) -> R<Vec<S
         }
     };
     let m_s = s(v, "motif");
-    let libelle = en_texte(g(&motif, "libelle"));
+    let libelle = motif.libelle.clone();
 
-    if vrai(g(&motif, "annulation")) {
+    if motif.annulation {
         return impossible(
             "Le motif « 99 - annulation » est interdit dans un signalement d'arret ou de reprise (CCH-12). Un \
 signalement deja depose se reprend par un annule-et-remplace : meme salarie, meme contrat, type 03, et \
@@ -120,7 +97,7 @@ l'identifiant du dernier envoi valide."
                 .into(),
         );
     }
-    if vrai(g(&motif, "temps_partiel_therapeutique")) {
+    if motif.temps_partiel_therapeutique {
         return impossible(format!(
             "Le motif {} (temps partiel therapeutique) est interdit dans un signalement (CCH-14) : il ne se \
 declare qu'en DSN mensuelle ou en FCTU, et impose un bloc « Temps partiel Therapeutique - S21.G00.66 » que le \
@@ -128,7 +105,7 @@ moteur n'ecrit pas.",
             m_s
         ));
     }
-    if vrai(g(&motif, "reserve")) {
+    if motif.reserve {
         return impossible(format!(
             "Le motif {} est une valeur de reserve de la norme : elle n'a pas encore de sens declare.",
             m_s
@@ -174,7 +151,7 @@ contrat-la qui est suspendu.",
         ));
     }
 
-    if vrai(g(&motif, "date_accident")) {
+    if motif.date_accident {
         if !vrai(g(v, "date_accident")) {
             return impossible(format!(
                 "Motif {} ({}) : la date de l'accident ou de la premiere constatation (S21.G00.60.012) est \
@@ -206,11 +183,11 @@ et a maintenir le salaire."
                     .into(),
             );
         }
-        let subs = codes("subrogation")?;
-        if code(&subs, g(v, "subrogation")).is_none() {
+        let subs = &bloc.subrogation.codes;
+        if bloc.subrogation.code(g(v, "subrogation")).is_none() {
             let liste: Vec<String> = subs
                 .iter()
-                .map(|c| format!("{} ({})", en_texte(&c["code"]), en_texte(&c["libelle"])))
+                .map(|c| format!("{} ({})", c.code, c.libelle))
                 .collect();
             return impossible(format!(
                 "Subrogation {} : la norme ne connait que {}.",
@@ -286,8 +263,7 @@ reprise.",
         }
     }
     if vrai(g(v, "reprise_motif")) {
-        let reprises = codes("motifs_reprise")?;
-        let mr = match code(&reprises, g(v, "reprise_motif")) {
+        let mr = match bloc.motifs_reprise.code(g(v, "reprise_motif")) {
             Some(m) => m,
             None => {
                 return impossible(format!(
@@ -296,7 +272,7 @@ reprise.",
                 ))
             }
         };
-        if vrai(g(mr, "temps_partiel_therapeutique")) {
+        if mr.temps_partiel_therapeutique {
             return impossible(format!(
                 "Le motif de reprise {} (temps partiel therapeutique) est interdit dans un signalement -- \
 CCH-12.",
@@ -497,24 +473,15 @@ annule-et-remplace (type 03)."
     Ok(texte)
 }
 
-/// Les motifs pour lesquels un signalement DSN ne nait pas (`sauf_motifs.codes`) : ceux que la DSN ne couvre pas.
-pub fn sauf_motifs(o: &Value) -> Vec<String> {
-    o.get("sauf_motifs").and_then(|s| s.get("codes")).and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default()
-}
-
 /// L'avertissement d'un signalement de nature `nature` (04 ou 05) dont le motif n'est pas couvert par la DSN
 /// (`sauf_motifs.avertissement`) : la norme l'admet, le moteur ne le refuse pas (regle 7), il dit que l'Assurance Maladie
 /// ne le traite pas et ce qui se fait a la place. `None` pour un motif couvert. Appele par `verifier`.
 pub fn avertissement_hors_dsn(nature: &str, motif: &str) -> Result<Option<String>, String> {
-    let cle = match nature {
-        ARRET => "signalement_arret",
-        REPRISE => "signalement_reprise",
+    let base = crate::obligations::base()?;
+    let o = match nature {
+        ARRET => base.obligations.signalement_arret,
+        REPRISE => base.obligations.signalement_reprise,
         _ => return Ok(None),
     };
-    let n = json_en_cache(&dossier_du_code().join("obligations-base.json"))?;
-    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| socle::echec::livree("obligations-base.json", cle))?;
-    if !sauf_motifs(o).iter().any(|m| m == motif) {
-        return Ok(None);
-    }
-    Ok(o["sauf_motifs"].get("avertissement").and_then(Value::as_str).filter(|t| !t.is_empty()).map(str::to_string))
+    Ok(o.sauf_motifs.filter(|s| s.codes.iter().any(|m| m == motif)).map(|s| s.avertissement).filter(|t| !t.is_empty()))
 }

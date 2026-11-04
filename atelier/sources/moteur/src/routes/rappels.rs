@@ -1220,7 +1220,7 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
     // obligations comptees par `obligations::de_l_arret` au jour du rappel.
     let arrets = crate::routes::imprevus::tous_les_arrets(st.ctx)?;
     if !arrets.is_empty() {
-        let n = crate::routes::imprevus::nomenclatures(st.ctx)?;
+        let n = crate::routes::imprevus::nomenclatures()?;
         let suivi = crate::obligations::Suivi::lire(st.ctx)?;
         for a in &arrets {
             let obligations = crate::obligations::de_l_arret(st.ctx, a, &suivi, st.aujourdhui)?;

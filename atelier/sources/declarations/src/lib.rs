@@ -19,6 +19,7 @@ pub mod formats;
 pub mod naf;
 pub mod norme;
 pub mod ntt;
+pub mod obligations;
 pub mod oeth;
 pub mod ordres_paiement;
 pub mod produire_regularisations;

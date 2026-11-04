@@ -638,7 +638,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
     }
     // LES ARRETS DE TRAVAIL : la DSN mensuelle REPORTE ceux que `Arret::a_reporter` y met, signales ou non.
     let arrets = &lu.arrets;
-    let nomenclature = crate::routes::imprevus::nomenclatures(ctx)?;
+    let nomenclature = crate::routes::imprevus::nomenclatures()?;
     let jour = |v: &Value| -> R<String> { documents::bulletin::jj_mm_aaaa(v).map_err(valeur) };
     let mut non_signales = 0;
     for a in arrets {
