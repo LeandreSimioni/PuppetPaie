@@ -605,6 +605,7 @@ fiche! {
         nom: String,
         prenom_affichage: String,
         prenom: String,
+        pseudonyme: String,
         nir: String,
         nir_cle: String,
         sexe: Sexe,

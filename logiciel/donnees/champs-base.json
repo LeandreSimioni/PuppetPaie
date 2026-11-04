@@ -1387,6 +1387,25 @@
    "ecran": true
   },
   {
+   "_note": "Le pseudonyme du certificat d'emploi de la caisse des Congés Spectacles (`documents::conges_spectacles`), et rien d'autre : aucune déclaration ne le porte.",
+   "cle": "pseudonyme",
+   "libelle": "Pseudonyme",
+   "forme": "texte",
+   "aide": "Le nom de scène, s'il en a un.",
+   "longueur": null,
+   "exemple": "",
+   "choix": [],
+   "declare": false,
+   "derive_de": null,
+   "rubrique": null,
+   "si_permanents": false,
+   "si": null,
+   "si_etablissements": false,
+   "si_entreprise": null,
+   "booleen_defaut": true,
+   "ecran": true
+  },
+  {
    "_note": "CE CHAMP EST CELUI QU'ON NE PEUT PAS DEVINER, et celui qui manque le\nplus souvent a une premiere embauche. Son aide dit donc aussi quoi\nfaire quand il n'y en a pas encore -- c'est la question qui se pose\nvraiment, et la reponse de la norme n'est pas celle qu'on croit.",
    "cle": "nir",
    "libelle": "Numéro de sécurité sociale",
