@@ -777,6 +777,11 @@ impl ChampsEntreprise {
         self.etablissements.dite().into_iter().flatten().filter(|e| e.nic.texte() != nic).collect()
     }
 
+    /// L'autre etablissement de ce NIC, `None` : le siege, ou un NIC que la fiche ne porte pas.
+    pub fn etablissement(&self, nic: &str) -> Option<&Etablissement> {
+        self.secondaires().into_iter().find(|e| e.nic.texte() == nic)
+    }
+
     /// Le NIC du siege, puis celui de chaque autre etablissement : une DSN par etablissement.
     pub fn nics(&self) -> Vec<String> {
         std::iter::once(self.nic_principal()).chain(self.secondaires().iter().map(|e| e.nic.texte().to_string())).collect()

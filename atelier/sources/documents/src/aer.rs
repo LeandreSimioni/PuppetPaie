@@ -46,7 +46,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use engagement::cachet;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::fichiers::vrai;
 use socle::num::{Decimal, Resultat};
 
@@ -162,24 +162,24 @@ pub struct Cadre5 {
     pub courriel: String,
 }
 
-/// `ent[cle]` : la cle doit exister (`KeyError`).
-fn req<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
+/// Une case que le cadre 5 exige : absente, elle se refuse (`KeyError`).
+fn req(c: &droit::fiche::Case<String>, cle: &str) -> Resultat<String> {
+    c.ecrite(cle).map(str::to_string)
 }
 
 impl Cadre5 {
-    pub fn depuis(ent: &Value, aujourdhui: &Jour) -> Resultat<Cadre5> {
-        let sig = req(ent, "signataire")?;
-        let dec = req(ent, "declarant_dsn")?;
+    pub fn depuis(ent: &droit::fiche::ChampsEntreprise, aujourdhui: &Jour) -> Resultat<Cadre5> {
+        let sig = ent.signataire.exigee("signataire")?;
+        let dec = ent.declarant_dsn.exigee("declarant_dsn")?;
         // Le lieu de signature est le siege, pas le lieu du spectacle.
-        let lieu = match ent.get("commune_affichage").filter(|v| vrai(v)) {
-            Some(v) => en_texte(v),
-            None => en_texte(req(ent, "commune")?),
+        let lieu = match ent.commune_affichage.remplie() {
+            Some(v) => v.to_string(),
+            None => req(&ent.commune, "commune")?,
         };
         Ok(Cadre5 {
-            nom: en_texte(req(sig, "nom")?),
-            prenom: en_texte(req(sig, "prenom")?),
-            qualite: en_texte(req(sig, "fonction")?),
+            nom: req(&sig.nom, "nom")?,
+            prenom: req(&sig.prenom, "prenom")?,
+            qualite: req(&sig.fonction, "fonction")?,
             lieu,
             jour: format!("{:02}", aujourdhui.jour),
             mois: format!("{:02}", aujourdhui.mois),
@@ -187,9 +187,9 @@ impl Cadre5 {
             // << Personne a joindre concernant cette attestation >> : c'est le
             // declarant DSN, pas le signataire. France Travail rappelle pour
             // une question de declaration, et c'est l'employeur qui les depose.
-            correspondant: en_texte(req(dec, "nom_prenom")?),
-            telephone: en_texte(req(dec, "tel")?),
-            courriel: en_texte(req(dec, "email")?).to_lowercase(),
+            correspondant: req(&dec.nom_prenom, "nom_prenom")?,
+            telephone: req(&dec.tel, "tel")?,
+            courriel: req(&dec.email, "email")?.to_lowercase(),
         })
     }
 
@@ -429,7 +429,7 @@ fn rect_de(case: &Value) -> Option<(&Value, [f64; 4])> {
 
 /// Ce que `authentifier` recoit, en dehors du PDF lui-meme.
 pub struct Authentification<'a> {
-    pub ent: &'a Value,
+    pub ent: &'a droit::fiche::ChampsEntreprise,
     /// Le jour de la signature : celui du logiciel (Paris), donne par l'appelant.
     pub aujourdhui: Jour,
     /// La signature de la compagnie (PNG, JPEG ou SVG), si elle en a une.

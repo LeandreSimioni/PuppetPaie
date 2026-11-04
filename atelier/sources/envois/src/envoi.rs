@@ -324,7 +324,7 @@ pub const RIEN_DANS_LE_RESUME: &str = "  - le détail de ton bulletin ; tes jour
 /// (`aer`, `attestation_fctu`) ; le courriel le dit, sans rien promettre.
 pub fn preparer_avec(
     paies: &[Paie],
-    ent: &Value,
+    ent: &droit::fiche::ChampsEntreprise,
     mois: &str,
     dossier: &Path,
     renvois: &std::collections::HashMap<String, Renvoi>,
@@ -379,15 +379,15 @@ pub fn preparer_avec(
         if a_part.contains(&"attestation_fctu") {
             notes.push(NOTE_SANS_ATTESTATION_FCTU);
         }
-        let nom_affichage = en_texte(ent.get("nom_affichage").ok_or_else(|| cle_absente("nom_affichage"))?);
+        let nom_affichage = ent.nom_affichage.ecrite("nom_affichage").map_err(|_| cle_absente("nom_affichage"))?.to_string();
         let mut ft = recap_france_travail(&siennes, mois, &nom_affichage)?;
         if !ft.is_empty() && !notes.is_empty() {
             ft = format!("\n{}", ft);
         }
-        let signataire = ent.get("signataire").ok_or_else(|| cle_absente("signataire"))?;
-        let nom_signataire = match signataire.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => en_texte(v),
-            None => en_texte(signataire.get("prenom").ok_or_else(|| cle_absente("prenom"))?),
+        let signataire = ent.signataire.dite().ok_or_else(|| cle_absente("signataire"))?;
+        let nom_signataire = match signataire.prenom_affichage.remplie() {
+            Some(v) => v.to_string(),
+            None => signataire.prenom.ecrite("prenom").map_err(|_| cle_absente("prenom"))?.to_string(),
         };
         let courts: Vec<&str> = presents.iter().map(|c| chercher(&COURTS, c)).collect();
         let renvoi = renvois.get(&cle);

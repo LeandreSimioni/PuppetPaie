@@ -1418,7 +1418,7 @@ impl<'a> Moteur<'a> {
             } else {
                 let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.code_emploi_ft.texte().to_string());
                 let ent = &self.ctx.entreprise;
-                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &ent.idcc.en_valeur(), &code_emploi, ent.feries_chomes()).map_err(plain)?;
+                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, ent.idcc.texte(), &code_emploi, ent.feries_chomes()).map_err(plain)?;
                 Some(Echeances { dpae: droit::echeances::dpae(&p.engagement.debut), contrat: remise })
             };
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.

@@ -13,6 +13,7 @@ use serde_json::{json, Map, Value};
 
 use crate::avenant::valeurs_de_la_paie;
 use crate::bulletin::{identite_de, FORMAT, LOGO_LARGEUR, LOGO_MARGE_DROITE, LOGO_MARGE_HAUT};
+use droit::contexte::EntrepriseDuDocument;
 use engagement::calcul::Paie;
 use crate::conges_spectacles::chemin_texte;
 use droit::contexte::Contexte;
@@ -23,11 +24,11 @@ type R<T> = Result<T, Refus>;
 
 
 /// Le haut d'une description : le format, le style, le logo de la compagnie.
-pub fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
+pub fn enveloppe(style: &str, ent: &EntrepriseDuDocument) -> Map<String, Value> {
     let mut d = Map::new();
     d.insert("format".into(), json!(FORMAT));
     d.insert("style".into(), json!(style));
-    if let Some(logo) = identite_de(ent, "logo") {
+    if let Some(logo) = identite_de(&ent.gabarits, "logo") {
         d.insert(
             "logo".into(),
             json!({"chemin": chemin_texte(&logo), "largeur": LOGO_LARGEUR, "marge_haut": LOGO_MARGE_HAUT,
@@ -114,7 +115,7 @@ pub fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value {
 
 /// Les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
 /// le modele les imprime (`ECHELLE_GARDEE`).
-pub fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeurs> {
+pub fn valeurs_de_paie(ctx: &Contexte, ent: &EntrepriseDuDocument, p: &Paie) -> R<Valeurs> {
     socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
     let r = (|| -> R<Valeurs> {
         let canon = p.canon(ctx)?;
@@ -130,13 +131,13 @@ pub type Remplacements = [((String, String, String), (String, String))];
 /// `contrat.description` puis `fabrique.figer` : la description de ces contrats, un document par
 /// paie, le modele en texte. `remplacements` : ces contrats-la annulent et remplacent celui qui est parti avant
 /// eux, et le disent en tete.
-pub fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &Remplacements) -> R<Value> {
+pub fn description(ctx: &Contexte, paies: &[Paie], ent: &EntrepriseDuDocument, remplacements: &Remplacements) -> R<Value> {
     let mut d = enveloppe("contrat", ent);
-    let signature = identite_de(ent, "signature");
+    let signature = identite_de(&ent.gabarits, "signature");
     let mut documents = Vec::new();
     for p in paies {
         let nat = p.engagement.nat()?;
-        let modele = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
+        let modele = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, Some(&ent.gabarits), &ctx.gabarits());
         let texte = lire_modele_texte(&modele)?;
         let v = valeurs_de_paie(ctx, ent, p)?;
         if v.values().any(|t| t.contains("VALEUR-SANS-TEXTE")) {
@@ -229,7 +230,7 @@ pub fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &str) -> S
 /// Le contrat de `paies` (un par page), ecrit a `chemin`. Le contrat parti se refait ainsi, depuis la version de
 /// l'engagement qui est partie ; son exemplaire contresigne est ce PDF-la, plus la mention de l'artiste
 /// (`fabrique_pdf::marquage::contresigner`).
-pub fn ecrire_contrat(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
+pub fn ecrire_contrat(ctx: &Contexte, paies: &[Paie], ent: &EntrepriseDuDocument, chemin: &Path, remplacements: &Remplacements) -> R<()> {
     crate::fabrique::ecrire_pdf(&description(ctx, paies, ent, remplacements)?, chemin).map_err(Refus::from)
 }
 
@@ -242,9 +243,9 @@ fn nom_de_l_avenant(nat: &droit::natures::Nature) -> R<String> {
 /// `avenant.description` puis `fabrique.figer` : le modele de l'avenant en texte, les valeurs du contrat et les
 /// siennes, et les articles modifies avec l'ancien texte et le nouveau. Un avenant au contrat signe ailleurs (`ailleurs`)
 /// ne cite aucun article du modele de contrat : les refus qui gardent ces articles ne le regardent pas.
-fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], extra: &[(&str, String)], ailleurs: bool) -> R<Value> {
+fn description_avenant(ctx: &Contexte, p: &Paie, ent: &EntrepriseDuDocument, modifs: &[Value], extra: &[(&str, String)], ailleurs: bool) -> R<Value> {
     let nat = p.engagement.nat()?;
-    let modele = socle::fichiers::modele_de(&nom_de_l_avenant(&nat)?, ent, &ctx.gabarits());
+    let modele = socle::fichiers::modele_de(&nom_de_l_avenant(&nat)?, Some(&ent.gabarits), &ctx.gabarits());
     let mut d = enveloppe("avenant", ent);
     let v = valeurs_de_paie(ctx, ent, p)?;
     // Les memes refus que le contrat : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
@@ -255,7 +256,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     let mut un = Map::new();
     un.insert("valeurs".into(), valeurs_en_ordre(&v, extra));
     if !ailleurs {
-        let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, ent, &ctx.gabarits());
+        let contrat = socle::fichiers::modele_de(&crate::contrat_ecrit::nom_du_modele(&nat)?, Some(&ent.gabarits), &ctx.gabarits());
         let texte_contrat = lire_modele_texte(&contrat)?;
         refuser_ce_que_le_modele_tairait(&contrat, &texte_contrat, &un["valeurs"])?;
         crate::contrat_ecrit::refuser_les_mentions_absentes(&contrat, &texte_contrat, &nat, &un["valeurs"]).map_err(|m| Refus { classe: Some("ModeleIncomplet"), message: m })?;
@@ -265,7 +266,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
         .map(|m| json!({"numero": m["numero"], "article": m["article"], "avant": m["avant"], "apres": m["apres"], "phrase": m.get("phrase").cloned().unwrap_or(Value::Null)}))
         .collect();
     un.insert("modifications".into(), Value::Array(articles));
-    if let Some(s) = identite_de(ent, "signature") {
+    if let Some(s) = identite_de(&ent.gabarits, "signature") {
         un.insert("signature".into(), json!(chemin_texte(&s)));
     }
     un.insert("texte".into(), json!(lire_modele_texte(&modele)?));
@@ -292,7 +293,7 @@ fn reference_du_contrat(p: &Paie, date_contrat: &str, ailleurs: bool) -> String 
 pub fn ecrire_avenant(
     ctx: &Contexte,
     p: &Paie,
-    ent: &Value,
+    ent: &EntrepriseDuDocument,
     chemin: &Path,
     modifs: &[Value],
     numero: i64,
@@ -305,7 +306,7 @@ pub fn ecrire_avenant(
         return Err(Refus { classe: Some("ValueError"), message: "Rien n'a changé : pas d'avenant à écrire.".into() });
     }
     let nom = nom_de_l_avenant(&*p.engagement.nat()?)?;
-    let fichier = socle::fichiers::modele_de(&nom, ent, &ctx.gabarits());
+    let fichier = socle::fichiers::modele_de(&nom, Some(&ent.gabarits), &ctx.gabarits());
     let m = fabrique_pdf::modele::lire_fichier(&fichier.to_string_lossy()).map_err(|r| Refus { classe: Some("ValueError"), message: r.0 })?;
     if m.modification.is_empty() {
         return Err(Refus { classe: Some("ValueError"), message: format!("{} n'a pas de bloc MODIFICATION:.", nom) });

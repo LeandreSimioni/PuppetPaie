@@ -514,7 +514,7 @@ pub(crate) fn ecrire_la_dpae(ctx: &Contexte, retenues: &[&Paie], cible: &Path, r
 }
 
 /// Les parametres d'une ecriture de DPAE.
-fn parametres_de<'a>(horodatage: &'a str, heure: &str, code: &str, ent: &'a Value, chemins: &'a Chemins) -> Parametres<'a> {
+fn parametres_de<'a>(horodatage: &'a str, heure: &str, code: &str, ent: &'a droit::contexte::EntrepriseDuDocument, chemins: &'a Chemins) -> Parametres<'a> {
     Parametres { horodatage, heure_embauche: heure.to_string(), code_urssaf: json!(code), ent: Some(ent), chemins }
 }
 

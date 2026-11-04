@@ -736,7 +736,7 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, bareme: &Value) -> Res
         // (`bareme::surcharger`, `bareme::taux_atmp_d_un_etablissement`).
         let an = texte_ou_vide(bareme.get("annee"));
         let d_une_autre_annee = e.taux_atmp.dite().and_then(|t| t.annee.dite()).is_some_and(|a| *a != 0 && a.to_string() != an.trim());
-        let atmp = crate::bareme::taux_atmp_d_un_etablissement(&serde_json::to_value(e).unwrap_or(Value::Null), &an);
+        let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, &an);
         let atmp_juste = vrai_opt(atmp.get("code_risque"))
             && (d_une_autre_annee
                 || crate::bareme::taux_atmp_applique(bareme, &atmp, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some());
@@ -1373,6 +1373,22 @@ impl PartialEq<IdSalarie> for String {
     }
 }
 
+/// LA FICHE ENTREPRISE QU'UN DOCUMENT LIT : ses cases, et le dossier `gabarits/` de CETTE compagnie, ou il trouve son
+/// modele, la signature, le logo ou le cachet. La compagnie vient du contexte, jamais d'une variable du processus : la
+/// fenetre sert plusieurs compagnies dans le meme processus.
+#[derive(Debug, Clone)]
+pub struct EntrepriseDuDocument {
+    pub fiche: ChampsEntreprise,
+    pub gabarits: PathBuf,
+}
+
+impl std::ops::Deref for EntrepriseDuDocument {
+    type Target = ChampsEntreprise;
+    fn deref(&self) -> &ChampsEntreprise {
+        &self.fiche
+    }
+}
+
 /// Les donnees de la compagnie, lues une fois, et resolues a une date (`lue_au`).
 #[derive(Debug, Clone)]
 pub struct Contexte {
@@ -1595,10 +1611,8 @@ impl Contexte {
         self.racine.join("gabarits")
     }
 
-    /// La fiche entreprise et le dossier `gabarits/` de CETTE compagnie (`_gabarits`) : ce qu'un document lit pour
-    /// trouver son modele, la signature, le logo ou le cachet. La compagnie vient du contexte, jamais d'une variable
-    /// du processus : la fenetre sert plusieurs compagnies dans le meme processus.
-    pub fn entreprise_et_gabarits(&self) -> Value {
+    /// La fiche entreprise de ce contexte, telle qu'un document la lit.
+    pub fn entreprise_et_gabarits(&self) -> EntrepriseDuDocument {
         self.pour_un_modele(&self.entreprise)
     }
 
@@ -1786,49 +1800,16 @@ impl Contexte {
     fn bareme_sans_cache(&self, jour: &Jour) -> Resultat<Value> {
         let ent = &self.entreprise_au(jour);
         let brut = self.bareme_brut(jour.an, ent).map_err(|r| r.message)?;
-        let mut bar = objet(a_la_date(&brut, jour, &["smic_horaire"])?, "bareme")?;
-        // La pile porte ce qu'elle lit de la fiche en JSON, comme tout le bareme : chaque case par son nom.
-        let dite = |cle: &str| ent.case(cle).filter(vrai);
-        let ou_vide = |cle: &str, vide: Value| dite(cle).unwrap_or(vide);
-        let copie = |cle: &str| ent.case(cle).unwrap_or(Value::Null);
-        let effectif = match effectif_de(&self.racine, ent)?.valeur(jour.an) {
-            Some(x) => serde_json::Number::from_f64(x).map_or(Value::Null, Value::Number),
-            None => Value::Null,
-        };
-        let mut e = Map::new();
-        e.insert("idcc".into(), copie("idcc"));
-        e.insert("annexe_convention".into(), copie("annexe_convention"));
-        e.insert("representation_personnel".into(), copie("representation_personnel"));
-        e.insert("casc_svp_exemptee".into(), Value::Bool(ent.casc_svp_exemptee.oui()));
-        e.insert("effectif".into(), effectif);
-        e.insert("sante_permanents".into(), ou_vide("sante_permanents", Value::Object(Map::new())));
-        e.insert("prevoyance_permanents".into(), ou_vide("prevoyance_permanents", Value::Object(Map::new())));
-        // Ce que le contrat de sante fait d'un mois entierement suspendu sans indemnisation (`calcul::sante_de_la_suspension`).
-        // Absent : rien (la pile, et son empreinte, ne changent pas pour une compagnie qui ne l'a pas dit).
-        if let Some(v) = dite(crate::bareme::SANTE_SUSPENSION) {
-            e.insert(crate::bareme::SANTE_SUSPENSION.into(), v);
-        }
-        e.insert("organisation_patronale".into(), copie("organisation_patronale"));
-        e.insert("organisation_patronale_depuis".into(), copie("organisation_patronale_depuis"));
-        e.insert("premiere_embauche".into(), copie("premiere_embauche"));
-        e.insert("code_postal".into(), copie("code_postal"));
-        e.insert("etablissements".into(), ou_vide("etablissements", Value::Array(vec![])));
-        // Le motif de non-assujettissement a la taxe d'apprentissage : la pile retire la taxe du bulletin et du
-        // nominatif quand il vaut pour le mois (`bareme::bareme_taxe_apprentissage`). Absent : rien.
-        if let Some(m) = dite(crate::apprentissage::CHAMP_MOTIF_TAXE_APPRENTISSAGE) {
-            e.insert(crate::apprentissage::CHAMP_MOTIF_TAXE_APPRENTISSAGE.into(), m);
-        }
-        bar.insert("_entreprise".into(), Value::Object(e));
-        // Les etablissements secondaires : leur taux AT/MP et leur versement
-        // mobilite remplacent ceux du siege pour leurs salaries.
-        let seconds = ent.secondaires();
-        if !seconds.is_empty() {
-            let mut m = Map::new();
-            m.insert("nic".into(), Value::String(ent.nic_principal()));
-            m.insert("etablissements".into(), serde_json::to_value(seconds).unwrap_or(Value::Null));
-            bar.insert("_etablissements".into(), Value::Object(m));
-        }
+        let bar = objet(a_la_date(&brut, jour, &["smic_horaire"])?, "bareme")?;
         Ok(Value::Object(bar))
+    }
+
+    /// LA COMPAGNIE TELLE QUE LA PILE DU BAREME LA LIT a `jour` (`bareme::bareme_applique`) : sa fiche a ce jour, et son
+    /// effectif de l'annee.
+    pub fn entreprise_lue(&self, jour: &Jour) -> Resultat<crate::bareme::EntrepriseLue> {
+        let fiche = self.entreprise_au(jour);
+        let effectif = effectif_de(&self.racine, &fiche)?.valeur(jour.an);
+        Ok(crate::bareme::EntrepriseLue { fiche, effectif })
     }
 
     /// (PSS mensuel, PSS horaire) de l'annee.
@@ -1873,6 +1854,14 @@ PSS_H_METROP).",
         }
     }
 
+    /// Les autres etablissements que la fiche dit en dernier (ouverts ou fermes depuis), hors le siege : ce que l'ecran en
+    /// montre.
+    pub fn etablissements_dits(&self) -> Vec<crate::fiche::Etablissement> {
+        let tout = Jour::nouveau(9999, 12, 31).map(|j| self.fiches.entreprise.au(&j)).unwrap_or_default();
+        let principal = self.entreprise.nic_principal();
+        tout.etablissements.dite().into_iter().flatten().filter(|e| e.nic.texte() != principal).cloned().collect()
+    }
+
     /// La fiche entreprise d'un mois `AAAA-MM` : lue au dernier jour du mois, avec chaque autre etablissement ouvert un
     /// jour au moins du mois (`etablissements_entre`).
     pub fn entreprise_du_mois(&self, mois: &str) -> Resultat<ChampsEntreprise> {
@@ -1885,14 +1874,9 @@ PSS_H_METROP).",
         Ok(ent)
     }
 
-    /// LA FICHE ENTREPRISE TELLE QU'UN MODELE DE DOCUMENT LA LIT : ses cases par leur nom, et le dossier `gabarits/` de
-    /// cette compagnie (`_gabarits`), ou il trouve son modele, la signature, le logo ou le cachet.
-    pub fn pour_un_modele(&self, ent: &ChampsEntreprise) -> Value {
-        let mut v = ent.en_valeur();
-        if let Some(o) = v.as_object_mut() {
-            o.insert("_gabarits".into(), Value::String(self.gabarits().to_string_lossy().into_owned()));
-        }
-        v
+    /// La fiche entreprise `ent` telle qu'un document de cette compagnie la lit (`EntrepriseDuDocument`).
+    pub fn pour_un_modele(&self, ent: &ChampsEntreprise) -> EntrepriseDuDocument {
+        EntrepriseDuDocument { fiche: ent.clone(), gabarits: self.gabarits() }
     }
 
     /// Le numero de licence de la fiche entreprise a la date (vide : pas de licence).

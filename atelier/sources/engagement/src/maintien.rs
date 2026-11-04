@@ -112,7 +112,7 @@ pub fn droits(ctx: &Contexte, imp: &Value, nat: &Nature) -> Resultat<Option<Droi
     let (depuis, sur_l_anciennete) = crate::imprevus::anciennete_depuis(&ctx.racine, fiche.id.as_str(), &depuis, &premier)?;
     let anciennete_mois = droit::permanents::anciennete_mois(&depuis, &premier);
     let loi = dm::legal(nat, anciennete_mois, origine)?;
-    let convention = if nat.mensuelle() { dm::conventionnel(&ctx.entreprise.idcc.en_valeur(), anciennete_mois, origine)? } else { None };
+    let convention = if nat.mensuelle() { dm::conventionnel(ctx.entreprise.idcc.texte(), anciennete_mois, origine)? } else { None };
     Ok(Some(Droits { loi, convention, origine, anciennete_mois, sur_l_anciennete }))
 }
 

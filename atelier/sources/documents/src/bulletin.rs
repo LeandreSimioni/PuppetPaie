@@ -6,10 +6,10 @@
 use engagement::calcul::Paie;
 use engagement::conges::CompteurConges;
 use droit::contexte::Contexte;
-use droit::fiche::{Case, ChampsSalarie, FicheSalarie};
+use droit::fiche::{Case, ChampsEntreprise, ChampsSalarie, FicheSalarie};
 use droit::cumul::{tableau_cumul, Colonne};
 use engagement::cumul::Passe;
-use socle::date::{d, en_texte, forme_ecrite, Jour};
+use socle::date::{d, en_texte, Jour};
 use socle::mois::Mois;
 use socle::fichiers::vrai;
 use socle::texte::euros;
@@ -255,8 +255,7 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
 /// classement que la fiche porte dans la grille (`classement_conventionnel`) ; `None` quand ni l'une ni l'autre ne se
 /// lisent.
 fn classification(idcc: &str, sal: &ChampsSalarie) -> Resultat<Option<String>> {
-    let idcc_v = Value::String(idcc.to_string());
-    let profil = droit::clauses::profil(&idcc_v, sal, None)?;
+    let profil = droit::clauses::profil(idcc, sal, None)?;
     let table = droit::clauses::table()?;
     let categorie = profil.get("categorie").and_then(Value::as_str).map(|c| {
         let dit = table.pointer(&format!("/conventions/{}/categories/valeurs/{}", idcc, c)).and_then(Value::as_str);
@@ -294,8 +293,8 @@ fn emploi_imprime(e: &engagement::Engagement, sal: &ChampsSalarie) -> Resultat<S
     }
 }
 
-pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
-    let idcc = droit::minima::idcc_du_contrat(&ent.get("idcc").filter(|v| vrai(v)).map(en_texte).unwrap_or_default(), sp, sal)?;
+pub fn convention_du_contrat(ent: &ChampsEntreprise, sp: &Value, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
+    let idcc = droit::minima::idcc_du_contrat(ent.idcc.texte(), sp, sal)?;
     if idcc.is_empty() {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", "idcc"));
     }
@@ -526,35 +525,14 @@ impl Modele {
             Modele::Complet => droit::fiche::ModeleBulletin::Complet,
         }
     }
-
-    /// Le modele que dit la case `modele_bulletin` d'une fiche : vide ou absente, aucun ; inconnue, refus.
-    pub fn de_la_fiche(fiche: &Value, quelle: &str) -> Resultat<Option<Modele>> {
-        let v = match fiche.get(CASE_MODELE) {
-            None | Some(Value::Null) => return Ok(None),
-            Some(Value::String(v)) => v.trim(),
-            Some(autre) => {
-                return Err(format!("La fiche {} dit un modèle de bulletin illisible : {} (un texte est attendu).", quelle, autre))
-            }
-        };
-        if v.is_empty() {
-            return Ok(None);
-        }
-        Modele::TOUS.iter().copied().find(|m| m.cle() == v).map(Some).ok_or_else(|| {
-            format!(
-                "La fiche {} demande le modèle de bulletin « {} », que le logiciel ne connaît pas : « simplifié » ou \
-                 « complet ».",
-                quelle, v
-            )
-        })
-    }
 }
 
 /// Le modele du bulletin d'une paie : la case de la fiche du salarie l'emporte ; sinon celle de la compagnie ; sinon le
 /// simplifie.
-pub fn modele_du_bulletin(ent: &Value, sal: &FicheSalarie) -> Resultat<Modele> {
+pub fn modele_du_bulletin(ent: &ChampsEntreprise, sal: &FicheSalarie) -> Resultat<Modele> {
     match modele_du_salarie(sal)? {
         Some(m) => Ok(m),
-        None => Ok(Modele::de_la_fiche(ent, "entreprise")?.unwrap_or(Modele::Simplifie)),
+        None => Ok(Modele::du_choix(ent.modele_bulletin.dite()).unwrap_or(Modele::Simplifie)),
     }
 }
 
@@ -932,7 +910,7 @@ pub struct Jeu<'a> {
 }
 
 /// Les blocs d'UN bulletin.
-fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
+fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     let p = j.paie;
     let (sal, e, sp) = (&p.salarie, &p.engagement, &p.spectacle);
     let conv = convention_du_contrat(ent, sp, sal, &e.fin_mois()?)?;
@@ -943,32 +921,30 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let tiret = format!("{}—{}", NBSP, NBSP);
     let barre = format!(" {}|{} ", NBSP, NBSP);
 
-    let nom_affichage = texte(ent, "nom_affichage")?;
-    let adresse_defaut = texte(ent, "adresse")?;
-    let adresse = ent.get("adresse_affichage").map_or(adresse_defaut, en_texte);
-    let code_postal = texte(ent, "code_postal")?;
-    let commune_defaut = texte(ent, "commune")?;
-    let commune = ent.get("commune_affichage").map_or(commune_defaut, en_texte);
-    let licence = texte(ent, "licence_spectacle")?;
+    let nom_affichage = ent.nom_affichage.ecrite("nom_affichage")?;
+    let adresse_defaut = ent.adresse.ecrite("adresse")?;
+    let adresse = ent.adresse_affichage.portee().unwrap_or(adresse_defaut);
+    let code_postal = ent.code_postal.ecrite("code_postal")?;
+    let commune_defaut = ent.commune.ecrite("commune")?;
+    let commune = ent.commune_affichage.portee().unwrap_or(commune_defaut);
+    let licence = ent.licence_spectacle.ecrite("licence_spectacle")?;
     // « Le nom et l'adresse de l'employeur ainsi que, le cas echeant, la designation de l'etablissement dont depend le
     // salarie » et l'activite « de l'etablissement d'emploi » (code du travail, R. 3243-1, 1° et 2°,
     // `atelier/reference/sources/code-du-travail/xml/R3243-1.xml`) : l'en-tete dit l'employeur, le cadre EMPLOYEUR
     // l'etablissement du contrat, celui sous lequel la DSN le declare (`droit::bareme::entreprise_du_salarie`).
     let vue = droit::bareme::entreprise_du_salarie(ent, sal)?;
-    let (siret, naf) = (texte(&vue, "siret")?, texte(&vue, "naf")?);
-    let etablissement = vue.get("_etablissement").filter(|v| vrai(v)).and_then(|n| {
-        let l = droit::bareme::entree(ent, &en_texte(n))?;
-        let lieu = [l.get("adresse_affichage").filter(|v| vrai(v)).or(l.get("adresse")), l.get("code_postal"), l.get("commune_affichage").filter(|v| vrai(v)).or(l.get("commune"))]
+    let (siret, naf) = (vue.siret.ecrite("siret")?, vue.naf.ecrite("naf")?);
+    let etablissement = ent.etablissement(vue.nic.texte()).map(|l| {
+        let ou = |usage: &Case<String>, civil: &Case<String>| usage.remplie().or(civil.portee()).unwrap_or_default().to_string();
+        let lieu = [ou(&l.adresse_affichage, &l.adresse), l.code_postal.texte().to_string(), ou(&l.commune_affichage, &l.commune)]
             .into_iter()
-            .flatten()
-            .map(en_texte)
             .filter(|s| !s.trim().is_empty())
             .collect::<Vec<_>>()
             .join(" ");
-        let nom = l.get("libelle").filter(|v| vrai(v)).map(en_texte).unwrap_or_default();
-        Some(if nom.trim().is_empty() { lieu } else { format!("{}, {}", nom, lieu) })
+        let nom = l.libelle.texte();
+        if nom.trim().is_empty() { lieu } else { format!("{}, {}", nom, lieu) }
     });
-    let (siret_siege, naf_siege) = (texte(ent, "siret")?, texte(ent, "naf")?);
+    let (siret_siege, naf_siege) = (ent.siret.ecrite("siret")?, ent.naf.ecrite("naf")?);
     let mut blocs = vec![
         para(vec![m(nom_affichage, true, None)], 13.0, Some(ARDOISE), 0.0, 0.0),
         para(
@@ -1088,7 +1064,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         k("Urssaf :"),
         mt(format!(
             " {}\n",
-            ent.get("urssaf_compte").filter(|v| vrai(v)).map(en_texte).unwrap_or_default()
+            ent.urssaf_compte.texte()
         )),
         k("Conv. collective :"),
         mt(format!(" IDCC {} - {}\n", conv.0, conv.1)),
@@ -1225,30 +1201,21 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
 
 // ------------------------------------------------------------ la description
 
-/// Le dossier `gabarits/` de LA COMPAGNIE dont `ent` est la fiche (`_gabarits`,
-/// `Contexte::entreprise_et_gabarits`). Sans `_gabarits`, aucun : la compagnie ne se devine pas d'une variable du
-/// processus (la fenetre en sert plusieurs) ; un document sans dossier n'a ni logo ni signature posee.
-pub fn gabarits_de(ent: &Value) -> Option<PathBuf> {
-    match ent.get("_gabarits") {
-        Some(g) if vrai(g) => Some(PathBuf::from(en_texte(g))),
-        _ => None,
-    }
-}
-
 /// Un chemin en texte : sans `.` ni séparateur double.
 fn chemin_texte(p: &Path) -> String {
     p.components().collect::<PathBuf>().to_string_lossy().into_owned()
 }
 
-/// `identite_de` : le fichier d'identite (`logo`, `signature`) de la compagnie, ou `None`.
-pub fn identite_de(ent: &Value, nom: &str) -> Option<PathBuf> {
-    let dossier = gabarits_de(ent)?.join("identite");
+/// `identite_de` : le fichier d'identite (`logo`, `signature`) de la compagnie dont `gabarits` est le dossier de
+/// gabarits (`Contexte::gabarits`), ou `None`.
+pub fn identite_de(gabarits: &Path, nom: &str) -> Option<PathBuf> {
+    let dossier = gabarits.join("identite");
     IDENTITE_EXTENSIONS.iter().map(|ext| dossier.join(format!("{}{}", nom, ext))).find(|f| f.exists())
 }
 
 /// `description` : un document par jeu, chacun sur sa page ; au modele complet (la case du salarie, sinon celle de la
 /// compagnie : `modele_du_bulletin`), l'annexe suit le bulletin, document a part (une page neuve).
-pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
+pub fn description(jeux: &[Jeu], ent: &droit::contexte::EntrepriseDuDocument) -> Resultat<Value> {
     let mut d = Map::new();
     d.insert("format".into(), json!(FORMAT));
     d.insert(
@@ -1262,7 +1229,7 @@ pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
                "image": {"chemin": chemin_texte(&socle::fichiers::dossier_du_code().join("puppetpaie-mot.svg")),
                          "largeur": PIED_MOT_LARGEUR, "descente": PIED_MOT_DESCENTE}}),
     );
-    if let Some(logo) = identite_de(ent, "logo") {
+    if let Some(logo) = identite_de(&ent.gabarits, "logo") {
         d.insert(
             "logo".into(),
             json!({"chemin": chemin_texte(&logo), "largeur": LOGO_LARGEUR,
@@ -1306,7 +1273,7 @@ pub fn jeux_et_description(
     ctx: &Contexte,
     paies: &[Paie],
     numeros: &[Option<String>],
-    ent: &Value,
+    ent: &droit::contexte::EntrepriseDuDocument,
     mois: &str,
     paies_du_mois: Option<&[Paie]>,
     borne_au_mois: bool,
@@ -1314,16 +1281,6 @@ pub fn jeux_et_description(
     departs: &engagement::departs::Departs,
     passe: &Passe,
 ) -> Resultat<Value> {
-    // La licence est DATEE : l'appelant la resout au mois du bulletin.
-    if let Some(l) = ent.get("licence_spectacle") {
-        if !l.is_null() && !l.is_string() {
-            return Err(socle::echec::a_la_cle(
-                "Le numéro de licence de la compagnie ne se lit pas pour ce mois : le vérifier dans Configuration › Entreprise.",
-                "licence_spectacle",
-                forme_ecrite(l),
-            ));
-        }
-    }
     if numeros.len() != paies.len() {
         return Err(format!("{} numeros de bulletin pour {} paies.", numeros.len(), paies.len()));
     }

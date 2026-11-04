@@ -1248,7 +1248,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     }
     let ent = &ctx.entreprise;
     let jauge = ent.jauge_annexe_1.dite().map(droit::fiche::Choix::code);
-    let pa = clauses::prime_anciennete(&ent.idcc.en_valeur(), &ent.annexe_convention.en_valeur(), &fiche, Some(e), &fin_mois, jauge)?;
+    let pa = clauses::prime_anciennete(ent.idcc.texte(), ent.annexe_convention.code(), &fiche, Some(e), &fin_mois, jauge)?;
     if let Some(pa) = pa {
         let Some(base_conv) = pa.get("base").filter(|b| !b.is_null()).map(dec).transpose()? else {
             return Err(format!(

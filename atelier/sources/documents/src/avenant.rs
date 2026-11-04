@@ -17,6 +17,7 @@ use serde_json::Value;
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
 use droit::contexte::Contexte;
+use droit::fiche::ChampsEntreprise;
 use socle::date::{en_texte, Jour};
 use socle::mois::Mois;
 use droit::emplois::{emploi_de, EmploiEngagement};
@@ -92,14 +93,6 @@ fn lisible(affichage: &droit::fiche::Case<String>, c: &droit::fiche::Case<String
     match affichage.texte() {
         "" => case(c, cle),
         a => Ok(a.to_string()),
-    }
-}
-
-/// Forme lisible si elle existe, forme administrative sinon.
-pub(crate) fn aff<'a>(fiche: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    match fiche.get(format!("{}_affichage", cle)) {
-        Some(v) if vrai(v) => Ok(v),
-        _ => requis(fiche, cle),
     }
 }
 
@@ -326,11 +319,8 @@ fn lieu_du_contrat(e: &Eng) -> String {
 
 /// Les valeurs offertes au modele. `remuneration`, `brut` et `net` sont ceux
 /// de la paie calculee ; `fiche` celle du salarie telle qu'elle vaut pour cet engagement.
-fn marqueurs(ent: &Value, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
-    let licence = match requis(ent, "licence_spectacle")? {
-        Value::String(s) => s.clone(),
-        autre => return Err(socle::echec::a_la_cle("Le numéro de licence de la compagnie ne se lit pas pour ce mois : le vérifier dans Configuration › Entreprise.", "licence_spectacle", en_texte(autre))),
-    };
+fn marqueurs(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
+    let licence = ent.licence_spectacle.ecrite("licence_spectacle")?.to_string();
     let mut m = parties(ent, fiche, sp, e)?;
     let mut poser = |k: &str, v: String| {
         m.insert(k.to_string(), v);
@@ -369,26 +359,26 @@ fn marqueurs(ent: &Value, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &E
 /// nomme comme le bareme du mois de la paie qui ecrit le document la nomme (`bareme::libelle_convention`) : le premier
 /// mois d'un contrat pour le contrat, le mois de l'avenant pour un avenant -- un contrat commence avant le logiciel n'a
 /// pas de bareme de son annee.
-pub(crate) fn parties(ent: &Value, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &Eng) -> Resultat<Valeurs> {
+pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &Eng) -> Resultat<Valeurs> {
     let (idcc, convention) = convention_du_contrat(ent, sp, fiche, &Mois::lire(&e.mois)?.premier_jour())?;
-    let sig = requis(ent, "signataire")?;
+    let sig = ent.signataire.exigee("signataire")?;
     let mut m = Valeurs::new();
     let mut poser = |k: &str, v: String| {
         m.insert(k.to_string(), v);
     };
-    poser("employeur.raison_sociale", texte_ou_invalide(requis(ent, "raison_sociale")?));
-    poser("employeur.adresse", texte_ou_invalide(aff(ent, "adresse")?));
-    poser("employeur.code_postal", texte_ou_invalide(requis(ent, "code_postal")?));
-    poser("employeur.commune", texte_ou_invalide(aff(ent, "commune")?));
-    poser("employeur.siret", texte_ou_invalide(requis(ent, "siret")?));
-    poser("employeur.naf", texte_ou_invalide(requis(ent, "naf")?));
+    poser("employeur.raison_sociale", case(&ent.raison_sociale, "raison_sociale")?);
+    poser("employeur.adresse", lisible(&ent.adresse_affichage, &ent.adresse, "adresse")?);
+    poser("employeur.code_postal", case(&ent.code_postal, "code_postal")?);
+    poser("employeur.commune", lisible(&ent.commune_affichage, &ent.commune, "commune")?);
+    poser("employeur.siret", case(&ent.siret, "siret")?);
+    poser("employeur.naf", case(&ent.naf, "naf")?);
     poser("employeur.idcc", idcc);
     poser("employeur.convention", convention);
     poser(
         "employeur.signataire",
-        format!("{} {}", en_texte(aff(sig, "prenom")?), en_texte(aff(sig, "nom")?)),
+        format!("{} {}", lisible(&sig.prenom_affichage, &sig.prenom, "prenom")?, lisible(&sig.nom_affichage, &sig.nom, "nom")?),
     );
-    let fonction = texte_ou_invalide(requis(sig, "fonction")?);
+    let fonction = case(&sig.fonction, "fonction")?;
     // « en qualité d'administratrice », « de président » : l'élision devant la fonction de qui signe.
     poser("employeur.qualite_de", de_devant(&fonction).to_string());
     poser("employeur.signataire_fonction", fonction);
@@ -473,7 +463,7 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
 }
 
 /// La fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
-pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
+pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<droit::contexte::EntrepriseDuDocument> {
     let mut ent = ctx.entreprise.clone();
     ent.licence_spectacle = droit::fiche::Case::Dite(ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour()));
     Ok(ctx.pour_un_modele(&ent))
@@ -484,7 +474,7 @@ pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
 /// differe de celui de la reponse du calcul. Le contrat d'un spectacle lit ses dates, ses cachets et son spectacle ;
 /// celui d'un permanent son salaire au mois et sa duree du travail (`contrat_ecrit::marqueurs_au_mois`) ; tous deux
 /// les mentions que la loi exige de tout contrat ecrit (`contrat_ecrit::poser_les_mentions`).
-pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Option<&Option<String>>) -> Resultat<Valeurs> {
+pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &ChampsEntreprise, paie: &Value, numero: Option<&Option<String>>) -> Resultat<Valeurs> {
     let nul = Value::Null;
     let eng = requis(paie, "engagement")?;
     let nat = crate::contrat_ecrit::nature_de_la_paie(paie)?;
@@ -523,9 +513,9 @@ pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Opt
 }
 
 /// Le modele du contrat ecrit de la nature `nat`, celui de la compagnie s'il est dans ses gabarits, lu.
-pub fn modele_du_contrat(ent: &Value, gabarits: &Path, nat: &droit::natures::Nature) -> Resultat<Modele> {
+pub fn modele_du_contrat(gabarits: &Path, nat: &droit::natures::Nature) -> Resultat<Modele> {
     let nom = nat.modele_contrat().ok_or_else(|| format!("La nature {} n'a pas de contrat écrit.", nat.libelle))?;
-    modele::lire_fichier(&socle::fichiers::modele_de(&nom, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
+    modele::lire_fichier(&socle::fichiers::modele_de(&nom, Some(gabarits), gabarits).to_string_lossy()).map_err(|r| r.0)
 }
 
 // ------------------------------------------- l'avenant d'un contrat signe ailleurs

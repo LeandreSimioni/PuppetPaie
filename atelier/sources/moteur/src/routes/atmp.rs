@@ -311,7 +311,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         "ou_le_lire": "La CARSAT notifie à la compagnie son code risque et son taux : la notification se lit dans le compte AT/MP de net-entreprises (compte entreprise › Accidents du travail et maladies professionnelles).",
         "ou_le_changer": "Si la notification dit un autre code, ou un autre taux, ou si la compagnie n'en a pas encore reçu (999ZZ), changez-les dans « Avancé » ci-dessous.",
         "codes": risques.iter().map(risque_en_json).collect::<Vec<_>>(),
-        "etablissements": crate::routes::ouverture::etablissements_dits(ctx).iter().map(|e| d_un_etablissement(e, an, socle.as_ref(), arrete.as_deref())).collect::<Vec<_>>(),
+        "etablissements": ctx.etablissements_dits().iter().map(|e| d_un_etablissement(e, an, socle.as_ref(), arrete.as_deref())).collect::<Vec<_>>(),
     }))
 }
 
@@ -319,12 +319,12 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
 /// etablissement, le classement suivant l'activite qui y est exercee (D. 242-6-1, `code-de-la-securite-sociale/xml/D242-6-1.xml` ;
 /// arrete du 17/10/1995, art. 1, I, 1°) ; un code « TC » a le taux de l'arrete de l'annee quel que soit l'effectif
 /// (D. 242-6-14, I), lu au meme endroit que pour la compagnie (`bareme::taux_atmp_applique`).
-fn d_un_etablissement(e: &Value, an: i64, socle: Option<&Value>, arrete: Option<&str>) -> Value {
+fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&Value>, arrete: Option<&str>) -> Value {
     let t = bareme::taux_atmp_d_un_etablissement(e, &an.to_string());
     let code = t.get("code_risque").map(valeur_en_texte).unwrap_or_default();
     let r = socle.and_then(|s| bareme::risques_atmp(s).into_iter().find(|r| r.code == code));
     let nom_code = r.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
-    let cp = e.get("code_postal").map(valeur_en_texte).unwrap_or_default();
+    let cp = e.code_postal.texte().to_string();
     let taux = socle.and_then(|s| bareme::taux_atmp_applique(s, &t, bareme::en_alsace_moselle(&cp)));
     let arrete = arrete.map(String::from).unwrap_or_else(|| format!("l'arrêté de tarification de {}", an));
     let mut phrases = Vec::new();
@@ -348,8 +348,8 @@ fn d_un_etablissement(e: &Value, an: i64, socle: Option<&Value>, arrete: Option<
         (None, _) => format!("Son taux est celui que la CARSAT notifie à cet établissement (compte AT/MP sur net-entreprises) : saisissez-le avec le code {}.", nom_code),
     });
     json!({
-        "nic": e.get("nic").cloned().unwrap_or(Value::Null),
-        "libelle": e.get("libelle").cloned().unwrap_or(Value::Null),
+        "nic": json!(e.nic.portee()),
+        "libelle": json!(e.libelle.portee()),
         "resume": format!("Code risque {}{}", nom_code, taux.map(|x| format!(", taux {}", en_pourcent(x))).unwrap_or_default()),
         "risque": r.as_ref().map(risque_en_json),
         "explication": phrases.join(" "),

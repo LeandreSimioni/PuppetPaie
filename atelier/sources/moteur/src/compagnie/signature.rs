@@ -161,7 +161,7 @@ fn nom_complet_de(sal: &ChampsSalarie) -> R<String> {
 
 /// Ce que le contrat dit, clause par clause (l'avenant qui le modifiera doit citer l'ancien
 /// texte a cote du nouveau). `{}` si le contrat ne s'ecrit pas.
-pub fn clauses_du_contrat(ctx: &Contexte, p: &Paie, ent: &Value) -> Value {
+pub fn clauses_du_contrat(ctx: &Contexte, p: &Paie, ent: &droit::contexte::EntrepriseDuDocument) -> Value {
     match documents::contrat::valeurs_de_paie(ctx, ent, p) {
         Ok(v) => {
             let mut m = Map::new();
@@ -274,11 +274,8 @@ fn contrats_choisis(ctx: &Contexte, choisis: &Choisis, mois: &str, paies: &[Paie
 /// compagnie et ces `salaries` (`(cle, fiche)`) : tout ce qui manque, d'un coup, avant d'ecrire le moindre PDF. Un
 /// avenant est un contrat : il passe par le meme controle.
 fn controler_contrat<'a>(ctx: &'a Contexte, salaries: impl Iterator<Item = (&'a str, &'a ChampsSalarie)>) -> R<()> {
-    // Ce que le contrat exige d'une fiche se lit a ses cases par leur nom (`champs-base.json`, `exige_par`) : en JSON.
-    let vues: Vec<(String, Value)> = salaries.map(|(cle, s)| (format!("la fiche de {}", s.nomme().unwrap_or_else(|| cle.to_string())), s.en_valeur())).collect();
-    let ent = ctx.entreprise.en_valeur();
-    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".into(), &ent)];
-    fiches.extend(vues.iter().map(|(qui, v)| ("salarie", qui.clone(), v)));
+    let mut fiches: Vec<(&str, String, &dyn droit::fiche::ParCase)> = vec![("entreprise", "la fiche entreprise".into(), &ctx.entreprise)];
+    fiches.extend(salaries.map(|(cle, s)| ("salarie", format!("la fiche de {}", s.nomme().unwrap_or_else(|| cle.to_string())), s as &dyn droit::fiche::ParCase)));
     match declarations::champs::refus_des_manques("contrat", &fiches, &[])? {
         Some(m) => Err(refus(m)),
         None => Ok(()),
@@ -293,7 +290,7 @@ pub(crate) fn controler_avenants(ctx: &Contexte, avenants: &[(String, Vec<UnAven
 /// Le contrat tel qu'il part, pour le journal : qui, quand, sous quel numero, dans quel fichier, et ce qu'il dit, clause
 /// par clause. La version de l'engagement sur laquelle il part, la ligne du journal la porte (`journal::versions_des_contrats`).
 #[allow(clippy::too_many_arguments)]
-fn entree_du_contrat(ctx: &Contexte, p: &Paie, cle: &str, pdf: &std::path::Path, titre: &str, mois: &str, ent: &Value) -> Map<String, Value> {
+fn entree_du_contrat(ctx: &Contexte, p: &Paie, cle: &str, pdf: &std::path::Path, titre: &str, mois: &str, ent: &droit::contexte::EntrepriseDuDocument) -> Map<String, Value> {
     let mut c = Map::new();
     c.insert("salarie".into(), json!(cle));
     c.insert("debut".into(), json!(p.engagement.debut.iso()));

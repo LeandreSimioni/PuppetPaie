@@ -824,12 +824,14 @@ fn numero_en_nom(n: &str) -> String {
 /// CE QUE LES BULLETINS EXIGENT DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit) :
 /// l'entreprise, et le spectacle de chaque paie dont la nature declare un numero d'objet (S21.G00.40.050, la marque des
 /// annexes VIII et X) ; tout ce qui manque, d'un coup, avant que rien ne s'ecrive.
-fn exiges_des_bulletins<'a>(ent: &Value, paies: impl Iterator<Item = &'a Paie>) -> R<()> {
-    let mut fiches: Vec<(&str, String, &Value)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+fn exiges_des_bulletins<'a>(ent: &droit::fiche::ChampsEntreprise, paies: impl Iterator<Item = &'a Paie>) -> R<()> {
+    let mut fiches: Vec<(&str, String, &dyn droit::fiche::ParCase)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+    let mut spectacles: Vec<&Value> = Vec::new();
     for p in paies {
-        if !p.engagement.nat().map_err(valeur)?.ecrit("S21.G00.40.050") || fiches.iter().any(|(_, _, f)| **f == p.spectacle) {
+        if !p.engagement.nat().map_err(valeur)?.ecrit("S21.G00.40.050") || spectacles.contains(&&p.spectacle) {
             continue;
         }
+        spectacles.push(&p.spectacle);
         let titre = p.spectacle.get("titre").filter(|t| vrai(t)).map(valeur_en_texte).unwrap_or_default();
         fiches.push(("spectacle", format!("Spectacles, la fiche de {}", titre), &p.spectacle));
     }
@@ -980,7 +982,7 @@ struct Impression<'a> {
 /// `CertificatCS_<cle>_<Mois>.pdf` par salarie de `cles`, dans `sorties/<mois>/envoi/`, et l'archive du mois
 /// (`Bulletins_<Mois>.pdf`, `CertificatsCS_<Mois>.pdf` et son recapitulatif), qui porte tous les documents numerotes.
 /// `absents` : seuls les fichiers qui manquent s'ecrivent (une piece partie refaite pour se lire).
-fn imprimer(ctx: &Contexte, mois: &str, ent: &Value, imp: &Impression, cles: &[String], absents: bool) -> R<()> {
+fn imprimer(ctx: &Contexte, mois: &str, ent: &droit::contexte::EntrepriseDuDocument, imp: &Impression, cles: &[String], absents: bool) -> R<()> {
     let etiq = socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
     let dossier = sortie.join("envoi");

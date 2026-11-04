@@ -365,12 +365,8 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
 /// LES AUTRES ETABLISSEMENTS OUVERTS tels que la fiche les dit en dernier (ceux qui ouvrent plus tard compris) : la liste
 /// datee (`etablissements::ecrire`) se montre et se saisit ; un etablissement ferme n'y est plus.
 pub(crate) fn etablissements_dits(ctx: &Contexte) -> Vec<Value> {
-    let derniere = droit::contexte::valeurs_datees(ctx.entreprise_brute(), "etablissements").ok().and_then(|v| v.last().map(|(_, x)| (*x).clone()));
-    let principal = ctx.entreprise.nic_principal();
-    match derniere {
-        Some(Value::Array(a)) => a.into_iter().filter(|e| e.is_object() && texte_ou_vide(e.get("nic")) != principal).collect(),
-        _ => Vec::new(),
-    }
+    // La route rend la fiche telle que la page la lit.
+    ctx.etablissements_dits().iter().map(|e| serde_json::to_value(e).unwrap_or(Value::Null)).collect()
 }
 
 /// CE QU'UN ENGAGEMENT CHOISIT quand la compagnie a d'autres etablissements que le siege : le siege (`nic` vide) puis
@@ -1236,7 +1232,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         .iter()
         .map(|x| json!({"code": x.get("code").cloned().unwrap_or(Value::Null), "nom": x.get("nom").cloned().unwrap_or(Value::Null)}))
         .collect();
-    let deduit = declarations::champs::urssaf_du_code_postal(&urssaf, Some(&ctx.entreprise.code_postal.en_valeur()));
+    let deduit = declarations::champs::urssaf_du_code_postal(&urssaf, ctx.entreprise.code_postal.texte());
 
     Ok(json!({
         "configuration": configuration,
@@ -1280,7 +1276,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
         "niveaux_sante": niveaux_sante(ctx)?,
         // Ou, quand la convention ne la fait pas choisir sur la fiche, d'ou elle vient (`bareme::sante_hors_fiche`).
-        "sante_hors_fiche": droit::bareme::sante_hors_fiche(&ctx.entreprise.en_valeur()).map_err(plain)?,
+        "sante_hors_fiche": droit::bareme::sante_hors_fiche(&ctx.entreprise).map_err(plain)?,
         // Ce que la fiche d'un permanent dit de sa complementaire sante, sous le choix du niveau.
         "sante_aide": "Obligatoire pour un salarié au mois (art. L911-7) : sans elle, le logiciel refuse de le payer plutôt que de cotiser moins que le contrat. Elle se lit sur son bulletin d'adhésion.",
         // Les conventions collectives servies, pour la fiche entreprise.

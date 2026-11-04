@@ -876,7 +876,7 @@ pub(crate) fn bareme_du_salarie(ctx: &Contexte, sal: &SalarieDuContrat, nat: &Na
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
-    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd, majoration)?);
+    let bar = Arc::new(bareme_applique(&*ctx.bareme(fin)?, &ctx.entreprise_lue(fin)?, sal, nat, Some(fin), caisse, cpf_cdd, majoration)?);
     socle::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }

@@ -79,8 +79,8 @@ fn texte_ou_none(v: &Option<String>) -> String {
 }
 
 /// L'IDCC de la fiche, tel que les clauses le lisent.
-fn idcc(ctx: &Contexte) -> Value {
-    ctx.entreprise.idcc.en_valeur()
+fn idcc(ctx: &Contexte) -> &str {
+    ctx.entreprise.idcc.texte()
 }
 
 fn motif_de(e: &Value) -> Option<&str> {
@@ -922,7 +922,7 @@ fn phrase_de_la_convention(
     haut: Option<Decimal>,
     m_legal: Decimal,
     pourquoi: &Value,
-    idcc: &Value,
+    idcc: &str,
 ) -> String {
     if !releve {
         return format!("les clauses de {} ne sont pas relevees : seule la loi est calculee", clauses::nom(idcc));
@@ -1113,7 +1113,7 @@ fn indemnite_conventionnelle(
 ) -> Resultat<Value> {
     clauses::indemnite_licenciement(
         &idcc(ctx),
-        &ctx.entreprise.annexe_convention.en_valeur(),
+        ctx.entreprise.annexe_convention.code(),
         &profil(ctx, e)?,
         anciennete,
         reference,

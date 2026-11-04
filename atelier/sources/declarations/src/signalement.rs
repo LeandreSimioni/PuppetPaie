@@ -398,7 +398,7 @@ annule-et-remplace (type 03)."
 
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
     let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
-    let ent = &ctx.entreprise.en_valeur();
+    let ent = &ctx.entreprise;
     let fiche = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
@@ -418,14 +418,13 @@ annule-et-remplace (type 03)."
     f.ecrire_la_version()?;
     f.add("S10.G00.00.007", "01");
     f.add("S10.G00.00.008", "01");
-    f.add_v("S10.G00.01.001", req(ent, "siren")?)?;
-    f.add_v("S10.G00.01.002", req(ent, "nic")?)?;
-    f.add_v("S10.G00.01.003", req(ent, "raison_sociale")?)?;
-    f.add_v("S10.G00.01.004", req(ent, "adresse")?)?;
-    f.add_v("S10.G00.01.005", req(ent, "code_postal")?)?;
-    f.add_v("S10.G00.01.006", req(ent, "commune")?)?;
+    f.add_case("S10.G00.01.001", &ent.siren, "siren")?;
+    f.add_case("S10.G00.01.002", &ent.nic, "nic")?;
+    f.add_case("S10.G00.01.003", &ent.raison_sociale, "raison_sociale")?;
+    f.add_case("S10.G00.01.004", &ent.adresse, "adresse")?;
+    f.add_case("S10.G00.01.005", &ent.code_postal, "code_postal")?;
+    f.add_case("S10.G00.01.006", &ent.commune, "commune")?;
     dsn::contact_emetteur(&mut f, ent)?;
-    let decl = req(ent, "declarant_dsn")?;
 
     // ---------------------------------------------------------- S20 declar.
     f.add("S20.G00.05.001", nature);
@@ -436,21 +435,18 @@ annule-et-remplace (type 03)."
         f.add("S20.G00.05.006", r);
     }
     f.add("S20.G00.05.007", constitution.jjmmaaaa());
-    f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
-    f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
-    f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
+    crate::dsn::contact_chez_le_declare(&mut f, ent)?;
 
     // ------------------------------------------------------ S21 entreprise
-    f.add_v("S21.G00.06.001", req(ent, "siren")?)?;
-    f.add_v("S21.G00.06.002", req(ent, "nic")?)?;
+    f.add_case("S21.G00.06.001", &ent.siren, "siren")?;
+    f.add_case("S21.G00.06.002", &ent.nic, "nic")?;
     // L'etablissement est celui du salarie, comme dans ses mensuelles (`droit::bareme::entreprise_du_salarie`) : le NIC est
     // une donnee identifiante (cahier technique DSN 2026.1, § 2.5.1, p. 67).
     let etab = droit::bareme::entreprise_du_salarie(ent, &fiche)?;
-    f.add_v("S21.G00.11.001", req(&etab, "nic")?)?;
-    f.add_v("S21.G00.11.003", req(&etab, "adresse")?)?;
-    f.add_v("S21.G00.11.004", req(&etab, "code_postal")?)?;
-    f.add_v("S21.G00.11.005", req(&etab, "commune")?)?;
+    f.add_case("S21.G00.11.001", &etab.nic, "nic")?;
+    f.add_case("S21.G00.11.003", &etab.adresse, "adresse")?;
+    f.add_case("S21.G00.11.004", &etab.code_postal, "code_postal")?;
+    f.add_case("S21.G00.11.005", &etab.commune, "commune")?;
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = ctx.organismes()?;
@@ -475,10 +471,13 @@ annule-et-remplace (type 03)."
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());
     f.add_v("S21.G00.40.009", g(&a.v, "contrat_numero"))?;
-    f.add_v("S21.G00.40.019", req(&etab, "siret")?)?;
+    f.add_case("S21.G00.40.019", &etab.siret, "siret")?;
 
-    let banque = req(ent, "banque")?;
-    if nature != REPRISE && vrai(g(&a.v, "subrogation")) && avec_subrogation(a)? && !(vrai(g(banque, "iban")) && vrai(g(banque, "bic"))) {
+    if ent.banque.est_absente() {
+        return Err(socle::fichiers::absent("banque").into());
+    }
+    let banque = ent.banque.dite();
+    if nature != REPRISE && vrai(g(&a.v, "subrogation")) && avec_subrogation(a)? && !banque.is_some_and(|b| b.iban.remplie().is_some() && b.bic.remplie().is_some()) {
         return impossible(
             "Subrogation demandee : l'IBAN et le BIC de la compagnie (S21.G00.60.007 et .008) sont obligatoires \
 -- CCH-11. Ils se lisent dans la fiche entreprise, ils ne se saisissent pas dans l'arret."

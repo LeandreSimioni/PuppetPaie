@@ -939,7 +939,7 @@ impl Fenetre {
         }
         let Phase::Ouverte { racine, .. } = self.phase() else { return rien() };
         if quoi == "cachet-automatique" {
-            let ent = droit::contexte::Contexte::nouveau(&racine, None).map(|c| c.entreprise.en_valeur()).unwrap_or(Value::Null);
+            let ent = droit::contexte::Contexte::nouveau(&racine, None).map(|c| c.entreprise).unwrap_or_default();
             return match engagement::cachet::svg(&ent) {
                 Some(d) => Reponse::nouvelle(200, "image/svg+xml; charset=utf-8", d),
                 None => rien(),

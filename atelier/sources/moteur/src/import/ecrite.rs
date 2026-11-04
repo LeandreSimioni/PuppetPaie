@@ -115,7 +115,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     if ent.idcc.texte() != valeur_en_texte(&base["idcc"]) {
         return Ok(None);
     }
-    if !matches!(droit::bareme::casc_exemptee_de(ent), Ok(false)) {
+    if !matches!(droit::bareme::casc_exemptee(ent), Ok(false)) {
         return Ok(None);
     }
     let faits: HashSet<String> = declarations::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();

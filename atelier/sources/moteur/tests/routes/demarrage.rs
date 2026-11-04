@@ -82,7 +82,7 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
                 }
             }
             let demandee = par_champ(&m, "licence_spectacle").len() == 1;
-            let (montree, exigee) = (montre("licence_spectacle"), declarations::demarrage::licence_exigee(&ent, spectacle));
+            let (montree, exigee) = (montre("licence_spectacle"), declarations::demarrage::licence_exigee(&droit::fiche::lire_champs(&ent, "entreprise").unwrap(), spectacle));
             assert_eq!(demandee, exigee, "{} : la licence demandee si et seulement si exigee", nom);
             assert!(!exigee || montree, "{} : la licence exigee, case masquee", nom);
             match idcc.as_str() {

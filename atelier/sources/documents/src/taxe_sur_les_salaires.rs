@@ -82,7 +82,7 @@ pub struct RegimeTaxeSalaires {
 /// `taxe_sur_les_salaires` de la fiche entreprise `ent`, et ce que le moteur en conclut (CGI art. 231, 1). `plafonds` :
 /// ceux de la franchise en base de TVA, lus au bareme de l'annee (`plafonds_franchise`) ; la conclusion les nomme quand
 /// on les a, elle dit « les plafonds » sinon. Ils ne changent rien a la decision.
-pub fn regime_taxe_sur_les_salaires(ent: &Value, plafonds: Option<(Decimal, Decimal)>) -> RegimeTaxeSalaires {
+pub fn regime_taxe_sur_les_salaires(ent: &droit::fiche::ChampsEntreprise, plafonds: Option<(Decimal, Decimal)>) -> RegimeTaxeSalaires {
     // Les deux plafonds, en mots de compagnie, pour la conclusion.
     let les_plafonds = match plafonds {
         Some((services, total)) => format!(
@@ -92,7 +92,7 @@ pub fn regime_taxe_sur_les_salaires(ent: &Value, plafonds: Option<(Decimal, Deci
         ),
         None => "les plafonds de la franchise en base de TVA".to_string(),
     };
-    let fiche = g(ent, CHAMP_TAXE_SUR_LES_SALAIRES);
+    let fiche = ent.taxe_sur_les_salaires.dite();
     let mut champs = vec!["tva"];
     let manque = |champs: Vec<&'static str>, quoi: String, consequence: &str| RegimeTaxeSalaires {
         decision: Err(format!(
@@ -113,11 +113,11 @@ decembre ne se fait pas.",
             pourquoi
         ),
     };
-    let part_taxee = match fiche.get("tva").and_then(Value::as_str).unwrap_or("") {
+    let part_taxee = match fiche.map_or("", |f| f.tva.code()) {
         "exoneree" => Decimal::ONE_HUNDRED,
         "assujettie" => {
             champs.push("part_tva");
-            let part = match fiche.get("part_tva") {
+            let part = match fiche.and_then(|f| f.part_tva.dite()).map(|m| m.valeur()) {
                 None | Some(Value::Null) => None,
                 Some(Value::String(s)) if s.trim().is_empty() => None,
                 Some(v) => match dec_avec_echelle(v) {
@@ -174,8 +174,8 @@ sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
     } else {
         format!("sur {} % de ses salaires, la part de ses recettes qui n'était pas soumise à la TVA", socle::texte::virgule(part_taxee))
     };
-    match fiche.get("sous_franchise") {
-        Some(Value::Bool(true)) => {
+    match fiche.and_then(|f| f.sous_franchise.dite().copied()) {
+        Some(true) => {
             return non_due(
                 champs,
                 &format!(
@@ -184,7 +184,7 @@ sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
                 ),
             )
         }
-        Some(Value::Bool(false)) => {}
+        Some(false) => {}
         _ => {
             return manque(
                 champs,
@@ -200,7 +200,7 @@ sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
         }
     }
     champs.push("association_1679A");
-    let association = fiche.get("association_1679A") == Some(&Value::Bool(true));
+    let association = fiche.is_some_and(|f| f.association_1679A.oui());
     RegimeTaxeSalaires {
         decision: Ok(Some(part_taxee)),
         association,
@@ -312,7 +312,7 @@ art. 231 et 293 B{depuis}.",
 
 /// Ce que la DSN de decembre lit : `None` si la taxe n'est pas due, sinon la part taxee des remunerations en
 /// pourcentage. Une fiche qui ne dit pas tout : refus, avec ce qu'il faut dire (`regime_taxe_sur_les_salaires`).
-pub fn taxe_sur_les_salaires_de_la_fiche(ent: &Value) -> Resultat<Option<Decimal>> {
+pub fn taxe_sur_les_salaires_de_la_fiche(ent: &droit::fiche::ChampsEntreprise) -> Resultat<Option<Decimal>> {
     regime_taxe_sur_les_salaires(ent, None).decision
 }
 

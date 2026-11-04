@@ -43,7 +43,7 @@ pub fn en_vigueur(contrat: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
 /// saisit donc rien : `Contexte::organismes` la porte meme quand `config/organismes.json` ne la nomme pas.
 pub fn casc_svp(code: &Path, ent: &crate::fiche::ChampsEntreprise) -> Resultat<Option<Value>> {
     let base = lire_json(&code.join("casc-svp-base.json"))?;
-    if ent.idcc.texte().trim() != en_texte(&base["idcc"]).trim() || crate::bareme::casc_exemptee_de(ent)? {
+    if ent.idcc.texte().trim() != en_texte(&base["idcc"]).trim() || crate::bareme::casc_exemptee(ent)? {
         return Ok(None);
     }
     let dsn = &base["dsn"];

@@ -124,12 +124,9 @@ forme! {
         pub socle: Option<Value>,
         #[serde(default)]
         pub taux_atmp: Option<TauxAtmp>,
-        // Ce que le moteur pose sur la pile : la fiche entreprise que la paie lit, ses etablissements, celui du salarie, la
-        // prevoyance que la convention a fixee a un permanent, les contributions de branche du mois (DSN).
-        #[serde(rename = "_entreprise", default)]
-        pub entreprise: Value,
-        #[serde(rename = "_etablissements", default)]
-        pub etablissements: Option<Value>,
+        // Ce que le moteur pose sur la pile : l'etablissement du salarie, la prevoyance que la convention a fixee a un
+        // permanent, les contributions de branche du mois (DSN). La compagnie, la pile la recoit typee
+        // (`bareme::EntrepriseLue`), elle ne la porte pas.
         #[serde(rename = "_etablissement", default)]
         pub etablissement: Option<String>,
         #[serde(rename = "_prevoyance_appliquee", default)]
