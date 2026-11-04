@@ -521,7 +521,7 @@ leur mois. Les conseils (`compagnie/conseils.rs`) et la position des droits
 
 Une **option de la compagnie** (fiche Entreprise, `conseils`, décochée par défaut) : sans elle, aucune route ne rend
 rien. Le texte, ses chiffres et ses sources sont des données (`logiciel/donnees/conseils.json`, chaque citation lue à
-l'identique dans un texte déposé, `tests/fichiers/conseils_banque.rs`) ; `moteur/src/compagnie/conseils.rs` n'a que les conditions.
+l'identique dans un texte déposé, `tests/fichiers/sources.rs`) ; `moteur/src/compagnie/conseils.rs` n'a que les conditions.
 Trois familles, qui parlent à l'employeur :
 
 | | où | ce qui décide |
@@ -871,7 +871,7 @@ journalières, prévoyance de l'accord interbranches. Appliquée à une
 administratrice en CDI, elle lui donnerait des plafonds à la journée et la
 prévoyance de quelqu'un d'autre, en silence.
 `droit::bareme::bareme_cadre` lit `par_categorie.cadre_permanent` quand le contrat est
-mensuel, et refuse si la section n'est pas vérifiée (`_verifie`) : mêmes taux Agirc-Arrco (le régime est unifié), mais l'Apec sur
+mensuel, et refuse si la section n'est pas vérifiée (`verifie`) : mêmes taux Agirc-Arrco (le régime est unifié), mais l'Apec sur
 quatre plafonds **du mois** et la CET sur des tranches mensuelles. Sa
 prévoyance, elle, vient de la convention.
 
@@ -1031,7 +1031,8 @@ Congés Spectacles → convention → CASC → santé → retraite en tranche 1 
 prévoyance → régime local → versement mobilité
 ```
 
-Le calcul du bulletin et la DSN (`dsn::cotisations`, le bloc 54) lisent le barème de cette pile ; en sauter un étage,
+La pile finie se lit une fois, typée (`droit::forme_bareme::Pile`, qui refuse une clé inconnue) ; le calcul du bulletin
+et la DSN (`dsn::cotisations`, le bloc 54) lisent ces types ; en sauter un étage,
 ce serait déclarer les cotisations de quelqu'un d'autre.
 
 La section `par_nature` empile par identifiant (`rubriques` remplace,
@@ -1041,10 +1042,10 @@ du statut, et la nature ne change que la destination de la part chômage
 (`018:urssaf` et CTP 668 pour un permanent, `018:chomage` et CTP 671 pour un
 intermittent).
 
-**La section `par_nature.permanent`** des barèmes 2025 et 2026 est vérifiée (`_verifie`). La fiche de paramétrage
+**La section `par_nature.permanent`** des barèmes 2025 et 2026 est vérifiée (`verifie`). La fiche de paramétrage
 Audiens (version 139) porte les permanents : la **santé** (1,44 / 1,84 / 2,04 % du PMSS selon le niveau) et la
 **CASC-SVP** (0,50 % de la tranche A). La **prévoyance des permanents** vient de la convention, pas du barème (voir
-plus haut), et la rubrique porte `_rempli_par` comme la mutuelle. Les identifiants techniques des deux
+plus haut), et la rubrique porte `rempli_par` comme la mutuelle. Les identifiants techniques des deux
 **affiliations DSN 059** viennent de la fiche de paramétrage de l'entreprise, qui n'existe qu'une fois l'entreprise
 adhérée au régime de sa branche : ce sont ses références d'adhésion, saisies dans `config/organismes.json`. La santé ne
 se relève pas dans un barème : c'est un **forfait** dont le niveau se lit sur

@@ -623,7 +623,7 @@ confirmee, le moteur ne paie donc pas.\n  {}",
             annee,
             idcc,
             texte_ou_vide_defaut(couche.get("libelle"), ""),
-            texte_ou_vide_defaut(couche.get("_a_confirmer"), "")
+            texte_ou_vide_defaut(couche.get("a_confirmer"), "")
         ));
     }
     Ok(match couche.get("bareme") {
@@ -871,7 +871,7 @@ pas.\n  {}",
             annee,
             nom,
             texte_ou_vide_defaut(couche.get("libelle"), ""),
-            texte_ou_vide_defaut(couche.get("_a_confirmer"), "")
+            texte_ou_vide_defaut(couche.get("a_confirmer"), "")
         ));
     }
     // Le garde-fou du garde-fou : une cle de plus serait declaree et jamais appliquee.
@@ -1050,7 +1050,7 @@ fn controler_effectif(bareme: &Value, eff: &Effectif, ou: &str) -> Resultat<()> 
             texte_ou_vide_defaut(v.get("quoi"), ""),
             texte_ou_vide_defaut(v.get("au_dela"), ""),
             restees.join(", "),
-            texte_ou_vide_defaut(v.get("source"), "")
+            texte_ou_vide_defaut(v.get("texte"), "")
         ));
     }
 
@@ -1119,7 +1119,7 @@ taux ne le ferait pas cotiser.",
             if ou.is_empty() { "config/baremes/<annee>.json" } else { ou },
             cle,
             attendues.iter().map(|r| format!("\"{}\"", r)).collect::<Vec<_>>().join(" ou "),
-            texte_ou_vide_defaut(v.get("source"), "")
+            texte_ou_vide_defaut(v.get("texte"), "")
         ));
     }
 
@@ -1658,6 +1658,15 @@ impl Contexte {
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
         let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)?), jour.iso());
         socle::fichiers::garde_notee(cache, cle, || self.bareme_sans_cache(jour).map(Arc::new))
+    }
+
+    /// Le bareme resolu a ce jour, lu (`forme_bareme::Pile`) : ce que lit ce qui ne passe pas par la pile d'un contrat.
+    pub fn bareme_lu(&self, jour: &Jour) -> Resultat<Arc<crate::forme_bareme::Pile>> {
+        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<crate::forme_bareme::Pile>>>>;
+        static CACHE: OnceLock<Cache> = OnceLock::new();
+        let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+        let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)?), jour.iso());
+        socle::fichiers::garde_notee(cache, cle, || crate::forme_bareme::lire(&*self.bareme(jour)?).map(Arc::new))
     }
 
     fn bareme_sans_cache(&self, jour: &Jour) -> Resultat<Value> {

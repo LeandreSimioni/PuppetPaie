@@ -14,7 +14,8 @@
             "brut_x110": "330",
             "brut_x115": "334.5",
             "brut_x115_plafonne": "334.5",
-            "csg": "298.08"
+            "csg": "298.08",
+            "t1_journaliere": "300"
           },
           "brut": "300",
           "cout_employeur": "471.85",
@@ -1685,7 +1686,7 @@
       },
       "2026-11/DSN_Novembre2026.dsn": {
         "quand": "2026-12-15T10:00:00",
-        "empreinte_saisie": "247189879fc12aa5",
+        "empreinte_saisie": "9dc5ea2272e87aab",
         "versions_portees": []
       }
     },
@@ -1707,7 +1708,8 @@
               "brut_x110": "330",
               "brut_x115": "334.5",
               "brut_x115_plafonne": "334.5",
-              "csg": "298.08"
+              "csg": "298.08",
+              "t1_journaliere": "300"
             },
             "brut": "300",
             "cout_employeur": "471.85",
@@ -2035,7 +2037,7 @@
               "existe racine:config/effectifs.json": "non",
               "existe racine:config/rubriques-compagnie.json": "non",
               "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "db105831e932fc984562dadaff82cb63bd0521c2b8b4bfaa8982eebf27c1ba14",
-              "fichier code:baremes/2026.json": "535644c293a44e5ab13b555ec52416f2aaf9d0d7a64cb05bf883fffcfe13e035",
+              "fichier code:baremes/2026.json": "013e5b34908a118bcb55b5d6edf1ac2aaee383a72dfe5e988b2e913acf605a0a",
               "fichier code:contrats-base.json": "4e5652727bf2301cfc2d914ff4b4ba3233a1457e3fe5305a10aec7ebae5df7fd",
               "fichier code:emplois-base.json": "a043caebe7dabb890d186dc8a4464623ff1214a3275228a125eb8a73691ae0ed",
               "fichier code:minima-conventionnels.json": "951120a7290658f78b7f6c72293604f7aa733f1482b5fca5863d51ad6fa99134",

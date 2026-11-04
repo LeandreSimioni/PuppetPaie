@@ -1318,15 +1318,24 @@ struct Limites {
     au_dela: &'static str,
     cle: &'static str,
     case: &'static str,
-    haute: &'static str,
-    basse: &'static str,
-    /// La cle de `frais_hors_metropole` qui porte sa limite hors de la metropole.
-    hors_metropole: &'static str,
+    /// Les limites de la metropole au bareme (la haute, la basse).
+    metropole: fn(&droit::forme_bareme::Pile) -> Option<(Decimal, Decimal)>,
+    /// Sa limite hors de la metropole (`frais_hors_metropole`), et son nom.
+    hors_metropole: fn(&droit::forme_bareme::LogementEtRepas) -> Decimal,
+    nom_hors_metropole: &'static str,
 }
 
 const FRAIS_LIMITES: [Limites; 2] = [
-    Limites { rubrique: NUITEE, au_dela: NUITEE_AU_DELA, cle: "logement_grand_deplacement", case: PARIS, haute: "paris", basse: "autres", hors_metropole: "logement" },
-    Limites { rubrique: REPAS, au_dela: REPAS_AU_DELA, cle: "repas_deplacement", case: RESTAURANT, haute: "restaurant", basse: "hors_restaurant", hors_metropole: "repas" },
+    Limites {
+        rubrique: NUITEE, au_dela: NUITEE_AU_DELA, cle: "logement_grand_deplacement", case: PARIS,
+        metropole: |b| b.logement_grand_deplacement.as_ref().map(|f| (f.paris, f.autres)),
+        hors_metropole: |z| z.logement, nom_hors_metropole: "logement",
+    },
+    Limites {
+        rubrique: REPAS, au_dela: REPAS_AU_DELA, cle: "repas_deplacement", case: RESTAURANT,
+        metropole: |b| b.repas_deplacement.as_ref().map(|f| (f.restaurant, f.hors_restaurant)),
+        hors_metropole: |z| z.repas, nom_hors_metropole: "repas",
+    },
 ];
 
 /// Une ligne de cette rubrique se saisit-elle sur la carte d'un contrat paye au mois ? Ses repas et ses nuitees, aux
@@ -1420,12 +1429,12 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
             Some(x) => jour_de(x)?,
             None => premier_du_mois(mois)?,
         };
-        let bar = ctx.bareme(&jour)?;
+        let bar = ctx.bareme_lu(&jour)?;
         let ent = ctx.entreprise_au(&jour)?;
         let de_l_annexe = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
         let ou = territoire(&l);
         // Les deux limites de la metropole, quand le bareme les porte : les cases et leurs aides les disent.
-        let metropole = bar.get(lim.cle).and_then(|x| Some((dec(x.get(lim.haute)?).ok()?, dec(x.get(lim.basse)?).ok()?)));
+        let metropole = (lim.metropole)(&bar);
         let mut part = None;
         if a_l_etranger(&l) && !de_l_annexe {
             etrangeres.push(out.len());
@@ -1457,8 +1466,15 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, e: &Value, lignes: Vec<Value>, mois:
                 }
                 Some("taaf") => Decimal::ZERO,
                 Some(t) => {
-                    let cle = format!("frais_hors_metropole.{}.{}", t, lim.hors_metropole);
-                    bar.get("frais_hors_metropole").and_then(|x| x.get(t)).and_then(|x| x.get(lim.hors_metropole)).map(dec).transpose()?.ok_or_else(|| erreur_bareme(&cle))?
+                    let cle = format!("frais_hors_metropole.{}.{}", t, lim.nom_hors_metropole);
+                    let zones = bar.frais_hors_metropole.as_ref();
+                    let zone = match t {
+                        "dom" => zones.map(|z| &z.dom),
+                        "pacifique" => zones.map(|z| &z.pacifique),
+                        "monaco" => zones.map(|z| &z.monaco),
+                        _ => None,
+                    };
+                    zone.map(lim.hors_metropole).ok_or_else(|| erreur_bareme(&cle))?
                 }
             };
             if taux > limite {

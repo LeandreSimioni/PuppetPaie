@@ -8,6 +8,7 @@
 //! ci-dessous) et l'etablissement du salarie (`etablissement_du_salarie`, `surcharger`).
 
 use socle::texte::sans_accent;
+use crate::forme_bareme::Pile;
 use crate::natures::Nature;
 use socle::date::{d, en_texte, Jour};
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
@@ -200,11 +201,11 @@ Ajouter une section par_statut['{}'] au bareme.",
 
     let mut trous: Vec<String> = Vec::new();
     for r in liste(g(section, "rubriques_bulletin")) {
-        if vrai(g(r, "_rempli_par")) {
+        if vrai(g(r, "rempli_par")) {
             continue;
         }
         if g(r, "taux_pat").is_null() && g(r, "taux_sal").is_null() && !vrai(g(r, "composants")) {
-            let quoi = g(r, "_a_confirmer");
+            let quoi = g(r, "a_confirmer");
             trous.push(format!(
                 "{} ({})",
                 en_texte(g(r, "id")),
@@ -212,28 +213,12 @@ Ajouter une section par_statut['{}'] au bareme.",
             ));
         }
     }
-    if !trous.is_empty() || !vrai(g(section, "_verifie")) {
+    if !trous.is_empty() || !vrai(g(section, "verifie")) {
         let mut detail: Vec<String> = Vec::new();
         if !trous.is_empty() {
             detail.push(format!("{} rubrique(s) sans taux :\n    - {}", trous.len(), trous.join("\n    - ")));
         }
-        let absents: Vec<String> = liste(g(section, "_mecanismes_absents")).iter().map(en_texte).collect();
-        if !absents.is_empty() {
-            detail.push(format!(
-                "{} mecanisme(s) que le moteur ne calcule pas :\n    - {}",
-                absents.len(),
-                absents.join("\n    - ")
-            ));
-        }
-        let inferes: Vec<String> = liste(g(section, "rubriques_bulletin"))
-            .iter()
-            .filter(|r| vrai(g(r, "_infere")))
-            .map(|r| en_texte(g(r, "id")))
-            .collect();
-        if !inferes.is_empty() {
-            detail.push(format!("taux INFERE, pas releve : {}", inferes.join(", ")));
-        }
-        let etat = g(section, "_etat");
+        let etat = g(section, "note");
         let detail = if detail.is_empty() {
             "(rien de precis n'est signale)".to_string()
         } else {
@@ -244,7 +229,7 @@ Ajouter une section par_statut['{}'] au bareme.",
 Rien de tout cela ne se devine : un taux se releve (Urssaf, \
 BOSS, fiche de parametrage Audiens, bulletin de reference), un \
 mecanisme se decide. Tant que la section n'est pas marquee \
-\"_verifie\": true par un humain, le moteur refuse.",
+\"verifie\": true par un humain, le moteur refuse.",
             statut,
             annee(&bar),
             if vrai(etat) { en_texte(etat) } else { "Section non marquee verifiee.".to_string() },
@@ -295,7 +280,7 @@ donnerait des cotisations fausses sans que rien ne le signale.",
             g(r, "taux_pat").is_null()
                 && g(r, "taux_sal").is_null()
                 && !vrai(g(r, "composants"))
-                && !vrai(g(r, "_rempli_par"))
+                && !vrai(g(r, "rempli_par"))
         })
         .map(|r| format!("rubriques_ajoutees[{}]", en_texte(g(r, "id"))))
         .collect();
@@ -306,13 +291,13 @@ donnerait des cotisations fausses sans que rien ne le signale.",
             uniques.push(t);
         }
     }
-    if !uniques.is_empty() || !vrai(g(sec, "_verifie")) {
-        let etat = g(sec, "_etat");
+    if !uniques.is_empty() || !vrai(g(sec, "verifie")) {
+        let etat = g(sec, "note");
         return Err(socle::echec::avec(format!("Le barème {} ne paie pas encore cette nature de contrat : ses taux ne sont pas vérifiés.", annee(&bar)), serde_json::json!({"detail": format!(
             "Contrat de nature '{}', bareme {} : refus de payer.\n  {}\n  A remplir : {}\n  \
 Un taux se releve (BOSS, Agirc-Arrco, contrat de mutuelle, \
 fiche de parametrage Audiens), il ne se devine pas. Tant que la \
-section par_nature['{}'] n'est pas marquee \"_verifie\": true \
+section par_nature['{}'] n'est pas marquee \"verifie\": true \
 par un humain, le moteur refuse.",
             nat.cle,
             annee(&bar),
@@ -371,6 +356,35 @@ section par_nature['{}'].cpf_cdd qui dise son taux et sa cotisation. Rien n'est 
     Ok(Value::Object(applique))
 }
 
+/// LA MAJORATION DU CHOMAGE QUE LE CONTRAT NE DOIT PAS (`majoration_chomage::due` : un CDD d'usage de plus de trois mois).
+/// Le bareme la porte sur le corps (`majoration_chomage_cddu` : la ligne du bulletin, son taux, sa cotisation 041) ; un
+/// contrat qui ne la doit pas paie la ligne sans elle et ne declare pas la cotisation. Une pile qui ne la porte pas (un
+/// permanent) n'a rien a retirer.
+pub fn bareme_majoration_chomage(bar: Value, due: bool) -> Resultat<Value> {
+    let sec = g(&bar, "majoration_chomage_cddu").clone();
+    let code = txt(g(&sec, "code81"));
+    let porte = liste(g(&bar, "cotisations_dsn")).iter().any(|c| txt(g(c, "code81")) == code);
+    if due || !vrai(&sec) || !porte {
+        return Ok(bar);
+    }
+    let taux = dec(exiger(&sec, "taux")?)?;
+    let rubrique = txt(g(&sec, "rubrique"));
+    let mut applique = en_map(bar);
+    let mut rubriques: Vec<Value> = liste(exiger_m(&applique, "rubriques_bulletin")?).to_vec();
+    let r = rubriques
+        .iter_mut()
+        .find(|r| txt(g(r, "id")) == rubrique)
+        .ok_or_else(|| socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", "majoration_chomage_cddu.rubrique", &rubrique))?;
+    let avant = dec(exiger(r, "taux_pat")?)?;
+    if let Some(o) = r.as_object_mut() {
+        o.insert("taux_pat".into(), nd(sub(avant, taux)));
+    }
+    applique.insert("rubriques_bulletin".into(), Value::Array(rubriques));
+    let cotisations: Vec<Value> = liste(applique.get("cotisations_dsn").unwrap_or(&NUL)).iter().filter(|c| txt(g(c, "code81")) != code).cloned().collect();
+    applique.insert("cotisations_dsn".into(), Value::Array(cotisations));
+    Ok(Value::Object(applique))
+}
+
 /// LA TAXE D'APPRENTISSAGE NON DUE. Quand la fiche entreprise dit un motif de non-assujettissement
 /// (table MNATA, `taxe_apprentissage_motif_non_assujettissement`) qui vaut pour la periode d'emploi `fin`
 /// (`apprentissage::taxe_apprentissage_non_due_au_mois`), la taxe n'est pas due : C. trav. L. 6241-1, I et III, dit
@@ -404,12 +418,12 @@ pub fn bareme_taxe_apprentissage(bar: Value, fin: Option<&Jour>) -> Resultat<Val
     Ok(Value::Object(applique))
 }
 
-/// Les chemins de la section qui portent encore un `_a_confirmer`.
+/// Les chemins de la section qui portent encore un `a_confirmer`.
 pub fn a_confirmer(noeud: &Value, chemin: &str) -> Vec<String> {
     let mut out = Vec::new();
     match noeud {
         Value::Object(o) => {
-            if vrai(g(noeud, "_a_confirmer")) {
+            if vrai(g(noeud, "a_confirmer")) {
                 out.push(if chemin.is_empty() { "(section)".to_string() } else { chemin.to_string() });
             }
             for (cle, v) in o {
@@ -702,7 +716,7 @@ accord du 19/07/2024, art. 13).\n  \
 Soit le niveau souscrit est plus haut (le lire sur le bulletin \
 d'adhesion, `sante_svp.niveau`), soit les taux des niveaux ont \
 change et sont a relire sur la fiche de parametrage Audiens de \
-l'annee (bareme, rubrique `mutuelle`, `_releve_svp_sante`). Rien \
+l'annee (bareme, rubrique `mutuelle`, `releve_svp_sante`). Rien \
 n'est calcule.",
             nom_du_salarie(sal, "ce salarie"),
             niveau,
@@ -799,7 +813,7 @@ la Securite sociale), et pas plus de 100.",
     let releve = liste(g(sec, "rubriques_ajoutees"))
         .iter()
         .find(|r| g(r, "id") == "mutuelle")
-        .map(|r| g(r, "_releve_svp_sante"))
+        .map(|r| g(r, "releve_svp_sante"))
         .unwrap_or(&NUL);
     if !vrai(releve) {
         return Ok(bar);
@@ -825,14 +839,14 @@ d'office (article L911-7 du code de la sécurité sociale), et son niveau se lit
     total = add(total, mul(dec(exiger(taux, "enfant")?)?, Decimal::from(entier(g(choix, "enfants")))));
     // Au moins la moitie a la charge de l'employeur (L911-7).
     let defaut = Value::from(50);
-    let part_pat = div(dec(g_def(releve, "_part_employeur", &defaut))?, Decimal::ONE_HUNDRED);
+    let part_pat = div(dec(g_def(releve, "part_employeur", &defaut))?, Decimal::ONE_HUNDRED);
     let composant = txt(g(g(releve, "composant_79"), "type"));
     let bar = poser_mutuelle(bar, None, total, part_pat, None)?;
     composant_79(bar, "mutuelle", &composant)
 }
 
 /// Le type de composant de base assujettie (S21.G00.79.001) que la base 31 de la ligne `id` declare, quand la source de
-/// son taux le dit (`_composant_79` sur la ligne ; `dsn::cotisations` le lit) : sans lui, la DSN garde la tranche A.
+/// son taux le dit (`composant_79` sur la ligne ; `dsn::cotisations` le lit) : sans lui, la DSN garde la tranche A.
 fn composant_79(bar: Value, id: &str, type_79: &str) -> Resultat<Value> {
     if type_79.is_empty() {
         return Ok(bar);
@@ -842,7 +856,7 @@ fn composant_79(bar: Value, id: &str, type_79: &str) -> Resultat<Value> {
     for r in liste(exiger_m(&applique, "rubriques_bulletin")?) {
         if g(r, "id") == id {
             let mut r = copie(r);
-            r.insert("_composant_79".into(), texte(type_79));
+            r.insert("composant_79".into(), texte(type_79));
             rubriques.push(Value::Object(r));
         } else {
             rubriques.push(r.clone());
@@ -876,7 +890,7 @@ pub fn bareme_atmp(bar: Value) -> Resultat<Value> {
     let mut rubriques = Vec::new();
     let mut vu = false;
     for r in liste(g(&bar, "rubriques_bulletin")) {
-        let facteur = g(r, "_facteur_atmp");
+        let facteur = g(r, "facteur_atmp");
         if facteur.is_null() {
             rubriques.push(r.clone());
             continue;
@@ -1049,10 +1063,10 @@ pub fn bareme_caisse_conges(bar: Value, avant_la_nature: &Value, nat: &Nature, a
     }
     let cle = if affilie { "affilie" } else { "non_affilie" };
     let sec = g(g(&bar, "par_caisse_conges"), cle).clone();
-    if !vrai(&sec) || !vrai(g(&sec, "_verifie")) {
+    if !vrai(&sec) || !vrai(g(&sec, "verifie")) {
         return Err(socle::echec::avec(format!("Le barème {} ne sait pas payer ce contrat avec les Congés Spectacles : le signaler au développeur.", annee(&bar)), serde_json::json!({"detail": format!(
             "Contrat de nature '{}' {} la caisse des Conges Spectacles, et le bareme {} n'a pas de section \
-par_caisse_conges['{}'] marquee \"_verifie\": true. Le payer comme sa nature le decrit donnerait {}. Refus.",
+par_caisse_conges['{}'] marquee \"verifie\": true. Le payer comme sa nature le decrit donnerait {}. Refus.",
             nat.cle,
             if affilie { "declare a" } else { "non declare a" },
             annee(&bar),
@@ -1197,10 +1211,11 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
 /// Le contrat dit s'il est declare a la caisse des Conges Spectacles (`caisse_conges::affilie`) : la caisse est un
 /// etage, pose juste apres la nature (`bareme_caisse_conges`).
 ///
-/// La pile rendue porte ses rubriques du bulletin typees (`rubrique::rubriques`), et plus en JSON.
+/// La pile finie se lit une fois, typee (`forme_bareme::Pile`) : le calcul et la DSN la lisent ainsi.
 pub fn bareme_applique(
     partage: &Value, sal: &Value, nat: &Nature, fin_periode: Option<&Jour>, caisse_conges: bool, cpf_cdd: bool,
-) -> Resultat<BaremeApplique> {
+    majoration_chomage: bool,
+) -> Resultat<Pile> {
     let etabs = g(partage, "_etablissements");
     let mut bar = if vrai(etabs) {
         let nic = etablissement_du_salarie(etabs, sal)?;
@@ -1219,6 +1234,7 @@ pub fn bareme_applique(
     bar = bareme_de_la_nature(bar, nat)?;
     bar = bareme_caisse_conges(bar, &avant_la_nature, nat, caisse_conges)?;
     bar = bareme_cpf_cdd(bar, nat, cpf_cdd)?;
+    bar = bareme_majoration_chomage(bar, majoration_chomage)?;
     bar = bareme_taxe_apprentissage(bar, fin_periode)?;
     bar = bareme_convention(bar, Some(nat))?;
     bar = bareme_casc(bar)?;
@@ -1228,34 +1244,7 @@ pub fn bareme_applique(
     bar = bareme_article_45(bar, sal, Some(nat))?;
     bar = bareme_prevoyance(bar, sal, Some(nat), fin_periode)?;
     bar = bareme_regime_local(bar, sal)?;
-    let mut pile = bareme_vm(bar, sal)?;
-    let rubriques = crate::rubrique::rubriques(&pile)?;
-    if let Some(m) = pile.as_object_mut() {
-        m.shift_remove("rubriques_bulletin");
-    }
-    Ok(BaremeApplique { pile, rubriques })
-}
-
-/// LA PILE APPLIQUEE A UN SALARIE : le bareme empile, et ses rubriques du bulletin, lues une fois. Elle se lit comme le
-/// bareme (`Deref`) pour tout le reste.
-#[derive(Debug, Clone)]
-pub struct BaremeApplique {
-    pub pile: Value,
-    pub rubriques: Vec<crate::rubrique::Rubrique>,
-}
-
-impl BaremeApplique {
-    /// La rubrique `id`, si la pile la porte.
-    pub fn rubrique(&self, id: &str) -> Option<&crate::rubrique::Rubrique> {
-        self.rubriques.iter().find(|r| r.id == id)
-    }
-}
-
-impl std::ops::Deref for BaremeApplique {
-    type Target = Value;
-    fn deref(&self) -> &Value {
-        &self.pile
-    }
+    crate::forme_bareme::lire(&bareme_vm(bar, sal)?)
 }
 
 /// La fiche de l'entreprise que la pile du bareme porte (`_entreprise`, celle que la paie a lue), sinon `ent` : un
@@ -1871,7 +1860,7 @@ pub fn bareme_cadre(bar: Value, sal: &Value, nat: Option<&Nature>) -> Resultat<V
     let mensuelle = mensuelle(nat);
     let nom = if mensuelle { "cadre_permanent" } else { "cadre" };
     let sec = g(g(&bar, "par_categorie"), nom);
-    if !vrai(sec) || !vrai(g(sec, "_verifie")) {
+    if !vrai(sec) || !vrai(g(sec, "verifie")) {
         return Err(socle::echec::avec("Le barème de l'année ne sait pas payer un cadre : le signaler au développeur.", serde_json::json!({"detail": format!(
             "Cadre (statut categoriel 01){} : le bareme {} n'a pas de section \
 par_categorie['{}'] verifiee. Prevoyance, retraite et Apec d'un \
@@ -1970,23 +1959,6 @@ intermittent : ses tranches sont mensuelles"
     }
     ajouter_cotisations(&mut cots, liste(g(&sec, "cotisations_ajoutees")), nom, &bar)?;
     applique.insert("cotisations_dsn".into(), Value::Array(cots));
-    if vrai(g(&sec, "plafond_journalier")) {
-        applique.insert("plafond_journalier".into(), sec["plafond_journalier"].clone());
-    }
-    // Les multiples des tranches (T2 jusqu'a 8 x T1, Apec sur 4 x T1) : des
-    // donnees de la section. Un cadre permanent n'en a pas.
-    let cles: &[&str] = if mensuelle { &[] } else { &["t2_multiple", "apec_multiple"] };
-    for cle in cles {
-        if !vrai(g(&sec, cle)) {
-            return Err(socle::echec::avec("Le barème de l'année est incomplet pour un cadre : le signaler au développeur.", serde_json::json!({"detail": format!(
-                "Cadre : la section par_categorie['cadre'] du bareme {} ne dit \
-pas `{}` (Audiens, Parametres de l'annee). Il ne se devine pas.",
-                annee(&bar),
-                cle
-            )})));
-        }
-        applique.insert((*cle).to_string(), sec[*cle].clone());
-    }
     let mut sortie = en_map(bar);
     for (k, v) in applique {
         sortie.insert(k, v);

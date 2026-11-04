@@ -148,7 +148,7 @@ pub(crate) struct Suites {
 ///   autres cotisations salariales, a leur taux moyen sur le brut, laissent apres la reduction ; la limite annuelle de
 ///   7 500 EUR se compte sur ce net, dans l'annee civile, chez l'employeur (`deja`).
 pub(crate) fn apres_les_cotisations(
-    ctx: &Contexte, bar: &Value, lb: &[LigneBrut], lignes: &[LigneCotisation], brut: Decimal, tot_pat: Decimal, deja: impl FnOnce() -> Resultat<Decimal>,
+    ctx: &Contexte, bar: &droit::forme_bareme::Pile, lb: &[LigneBrut], lignes: &[LigneCotisation], brut: Decimal, tot_pat: Decimal, deja: impl FnOnce() -> Resultat<Decimal>,
 ) -> Resultat<Option<Suites>> {
     let siennes: Vec<&LigneBrut> = lb.iter().filter(|l| l.code == HEURE_SUPPLEMENTAIRE || l.code == HEURE_COMPLEMENTAIRE).collect();
     let remuneration = siennes.iter().fold(Decimal::new(0, 2), |a, l| a + l.montant);
@@ -202,7 +202,7 @@ pub(crate) fn apres_les_cotisations(
     }
 
     // L'exoneration d'impot : le net des heures.
-    let abattement = dec_avec_echelle(bar.get("abattement_csg").ok_or_else(|| socle::fichiers::absent("abattement_csg"))?)?;
+    let abattement = bar.abattement_csg;
     let taux_csg = lignes.iter().find(|l| l.id == "csg_ded").and_then(|l| l.taux_sal).map(socle::num::dec_f64).transpose()?.unwrap_or(Decimal::ZERO);
     let csg_deductible = eur2(remuneration * abattement * taux_csg / Decimal::ONE_HUNDRED);
     let autres = sal(&|l| !matches!(l.id.as_str(), "csg_ded" | "csg_crds_nd" | "mutuelle"));

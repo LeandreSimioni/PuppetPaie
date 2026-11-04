@@ -11,6 +11,11 @@ use serde_json::{json, Value};
 
 const ORACLE: &str = "calcul-pieces.json";
 
+/// La section `reduction_generale` d'un bareme de la grille, lue comme la pile la lit.
+fn section(bar: &Value) -> Result<Option<droit::forme_bareme::ReductionGenerale>, String> {
+    bar.get("reduction_generale").filter(|v| !v.is_null()).map(|v| socle::forme::lire(v, "section illisible")).transpose()
+}
+
 
 /// `{"ok": canon(v)}` ou `{"refus": message}`.
 fn essai(r: Result<Value, String>) -> Value {
@@ -61,7 +66,7 @@ fn la_reduction_generale() {
         let mut vus = Vec::new();
         for b in rel["grilles"][&cle].as_array().unwrap() {
             points += 1;
-            let r = reduction_generale(bar, statut.as_deref(), dec(b.as_str().unwrap()), dec(h), caisse);
+            let r = section(bar).and_then(|rg| reduction_generale(rg.as_ref(), statut.as_deref(), dec(b.as_str().unwrap()), dec(h), caisse));
             appliquees += matches!(r, Ok(Some(_))) as usize;
             vus.push(essai(r.map(|o| o.map_or(Value::Null, |x| x.canon()))));
         }
@@ -84,7 +89,8 @@ fn le_seuil_de_smic() {
         let mut vus = Vec::new();
         for b in rel["grilles"][&cle].as_array().unwrap() {
             points += 1;
-            vus.push(essai(au_dela_du_seuil(bar, dec(b.as_str().unwrap()), dec(h), Some(&g["seuil"])).map(Value::Bool)));
+            let seuil = Some(&g["seuil"]).filter(|s| !s.is_null()).map(socle::num::dec).transpose();
+            vus.push(essai(section(bar).and_then(|rg| Ok(au_dela_du_seuil(rg.as_ref(), dec(b.as_str().unwrap()), dec(h), seuil?))).map(Value::Bool)));
         }
         groupe(g, vus);
     }

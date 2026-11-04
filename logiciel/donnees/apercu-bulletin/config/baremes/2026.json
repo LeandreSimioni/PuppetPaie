@@ -1,7 +1,7 @@
 {
   "annee": 2026,
   "socle": 2026,
-  "_quoi": "La surcouche de la compagnie fictive de l'apercu : son taux AT/MP, fabrique.",
+  "note": "La surcouche de la compagnie fictive de l'apercu : son taux AT/MP, fabrique.",
   "taux_atmp": {
     "valeur": 1.25,
     "code_risque": "923AD",

@@ -9,6 +9,9 @@ publish = false
 [dependencies]
 rust_decimal = { workspace = true }
 serde_json = { workspace = true }
+# Les formes lues (`forme::lire`) : une structure derivee, et le chemin de la cle fautive.
+serde = { workspace = true }
+serde_path_to_error = { workspace = true }
 # L'empreinte d'un fichier lu, et les aleas en suite fixe du temps simule.
 sha2 = { workspace = true }
 getrandom = { workspace = true }
