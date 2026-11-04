@@ -1121,8 +1121,8 @@ pub(crate) fn sauver_avant(chemin: &Path) -> R<()> {
 /// `refuser_si_clos` : un exercice cloture ne bouge plus.
 pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
     let annee: String = mois.chars().take(4).collect();
-    if let Some(clos) = crate::routes::rappels::exercice_clos(ctx, &annee)?.filter(vrai) {
-        let le: String = clos.get("le").filter(|v| vrai(v)).map_or_else(|| "?".to_string(), valeur_en_texte).chars().take(10).collect();
+    if let Some(clos) = crate::routes::rappels::exercice_clos(ctx, &annee)? {
+        let le: String = clos.le.chars().take(10).collect();
         return Err(refus(format!(
             "L'exercice {} est cloture depuis le {} : {} ne se modifie plus. Rouvrir l'exercice (Historique > L'exercice, ou \
              la route `cloture` avec `rouvrir`) avant de toucher a ce mois.",

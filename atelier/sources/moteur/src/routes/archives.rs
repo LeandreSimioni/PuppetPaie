@@ -6,7 +6,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::import::casc::{marquer_regularise, RegularisationNotee};
@@ -16,21 +16,19 @@ use socle::mois::Mois;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::documents::{client_courriel, expediteur_de, refus, Ouvrir};
-use crate::routes::engagement::{booleen, maintenant};
+use crate::routes::engagement::maintenant;
 
 use documents::plan_comptable::{controler_plan, tables};
 use droit::contexte::Contexte;
 use envois::envoi::{self, Message};
-use envois::etats::{getd, ou, texte_vide};
 use envois::ligne_d_envoi::{echec_d_envoi, noter, noter_echec_d_envoi, par_courriel};
 use envois::journal;
 use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
 use socle::fichiers::lire_json_echec as lire_json;
-use socle::fichiers::{nom_du, repr, vrai};
+use socle::fichiers::{nom_du, repr};
 use socle::html::courriel_en_html;
-use socle::valeur::valeur_en_texte;
 use crate::routes::catalogue::{Ecran, Place};
 
 const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
@@ -148,34 +146,15 @@ pub const ROUTES: &[Fiche] = &[
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
-    let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
         Route::DossierFormes => {
             let super::SansCharge {} = lire_charge(charge)?;
             en_json(dossier_formes(ctx)?)
         }
-        Route::ExportsPeriodes => exports_periodes(ctx, charge).map(|mut v| {
-            v["ecran"] = ecran_des_exports(&v);
-            let p = format!("Exports : {} ; mois payés : {} ; années : {}.", super::compte(super::nombre(&v["etats"]), "état", "états"), super::nombre(&v["mois"]), super::nombre(&v["annees"]));
-            super::phrase_en_tete(v, p)
-        }),
-        Route::RetenirLogiciel => retenir_logiciel(ctx, charge).map(|v| {
-            let p = if t(&v, "logiciel").is_empty() { "Aucun logiciel comptable retenu.".to_string() } else { format!("Logiciel comptable retenu : {}.", t(&v, "logiciel")) };
-            super::phrase_en_tete(v, p)
-        }),
+        Route::ExportsPeriodes => en_json(exports_periodes(ctx, lire_charge(charge)?)?),
+        Route::RetenirLogiciel => en_json(retenir_logiciel(ctx, lire_charge(charge)?)?),
         Route::CascRegularise => en_json(casc_regularise(ctx, lire_charge(charge)?)?),
-        Route::Exporter => exporter(ctx, charge).map(|mut v| {
-            // Ce que l'ecran dit d'un etat : ses donnees personnelles, ses totaux partiels, la regularisation CASC-SVP.
-            v["ecran"] = ecran_d_un_etat(&v);
-            // Ce que l'etat dit de lui-meme (ce qui est du, ce qui est infere), sous la phrase : ce que l'ecran montre au-dessus du tableau.
-            v["phrases"] = v["avertissements"].clone();
-            let titre = if v["titre"].is_string() { t(&v, "titre") } else { t(&v, "periode") };
-            let p = match v["fichier"].as_str() {
-                Some(f) => format!("{} : écrit dans {}.", titre, f),
-                None => format!("{} : aperçu, rien n'est écrit.", titre),
-            };
-            super::phrase_en_tete(v, p)
-        }),
+        Route::Exporter => en_json(exporter(ctx, &lire_charge(charge)?)?),
         Route::DossierEnvoyer => en_json(dossier_envoyer(ctx, lire_charge(charge)?, &mut || client_courriel(ctx))?),
         Route::CascEnvoyer => en_json(casc_envoyer(ctx, lire_charge(charge)?, &mut || client_courriel(ctx))?),
         Route::Droits => en_json(droits(ctx, lire_charge(charge)?)?),
@@ -306,33 +285,58 @@ fn dossier_formes(ctx: &Contexte) -> R<FormesDuDossier> {
 
 // ------------------------------------------------- le logiciel du comptable
 
-/// Ce que la page montre -- les logiciels,
-/// celui retenu (`config/compta.json`), et ce que le plan comptable ne tiendrait
-/// pas dans son format.
-pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
+/// `config/compta.json` : le logiciel du comptable (vide : aucun) et l'analytique, retenus une fois pour toutes ; ecrit
+/// par `retenir-logiciel`. Les ecritures comptables le lisent aussi (`documents::etats_compta::choix_compta`).
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ChoixCompta {
+    _quoi: String,
+    logiciel: String,
+    analytique: bool,
+}
+
+/// `config/compta.json`, lu par sa forme ; rien de retenu s'il n'existe pas.
+fn choix_compta(ctx: &Contexte) -> R<ChoixCompta> {
     let chemin = ctx.racine.join(documents::etats_compta::COMPTA);
-    let choix = if chemin.exists() { lire_json(&chemin)? } else { json!({}) };
-    let retenu = getd(&choix, "logiciel", &Value::Null)?;
-    let retenu = ou(retenu, texte_vide());
-    let analytique = vrai(getd(&choix, "analytique", &Value::Null)?);
-    let controle = match retenu {
-        Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
-        Value::String(nom) => {
-            let logiciels = tables()["logiciels"].as_array().expect("logiciels");
-            match logiciels.iter().find(|l| l["logiciel"].as_str() == Some(nom)) {
-                Some(l) => controler_plan(ctx, l["format"].as_str().expect("format"))?,
-                None => Vec::new(),
-            }
-        }
-        _ => Vec::new(),
+    if !chemin.exists() {
+        return Ok(ChoixCompta::default());
+    }
+    socle::forme::lire(&lire_json(&chemin)?, "Le logiciel du comptable retenu (config/compta.json) ne se lit pas.").map_err(|m| erreur("ValueError", m))
+}
+
+/// Un logiciel du comptable que la page propose : tel que les tables des exports le livrent
+/// (`documents::plan_comptable::tables`), et ce que l'ecran en dit une fois choisi.
+#[derive(Debug, Serialize)]
+struct LogicielPropose {
+    #[serde(flatten)]
+    livre: Value,
+    dit: String,
+}
+
+/// Ce que la page montre du logiciel du comptable : les logiciels, celui retenu (vide : aucun), l'analytique, et ce que
+/// le plan comptable ne tiendrait pas dans son format.
+#[derive(Debug, Serialize)]
+pub(crate) struct LogicielDuComptable {
+    logiciels: Vec<LogicielPropose>,
+    logiciel: String,
+    analytique: bool,
+    controle: Vec<String>,
+}
+
+/// Le logiciel du comptable, tel que la page le montre.
+pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<LogicielDuComptable> {
+    let choix = choix_compta(ctx)?;
+    let livres = tables()["logiciels"].as_array().cloned().unwrap_or_default();
+    let controle = match livres.iter().find(|l| l["logiciel"].as_str() == Some(choix.logiciel.as_str())) {
+        Some(l) => controler_plan(ctx, l["format"].as_str().unwrap_or(""))?,
+        None => Vec::new(),
     };
     // Ce que l'ecran dit de chaque logiciel, une fois choisi.
-    let mut logiciels = tables()["logiciels"].clone();
-    for l in logiciels.as_array_mut().into_iter().flatten() {
-        l["dit"] = json!(format!("Fichier {} : {}. Retenu pour les prochaines fois.", super::mot(&l["format_lisible"]), super::mot(&l["pourquoi"])));
-    }
-    Ok(json!({"logiciels": logiciels, "logiciel": retenu, "analytique": analytique, "controle": controle}))
+    let logiciels = livres
+        .into_iter()
+        .map(|l| LogicielPropose { dit: format!("Fichier {} : {}. Retenu pour les prochaines fois.", super::mot(&l["format_lisible"]), super::mot(&l["pourquoi"])), livre: l })
+        .collect();
+    Ok(LogicielDuComptable { logiciels, logiciel: choix.logiciel, analytique: choix.analytique, controle })
 }
 
 /// La page ne propose pas la CASC-SVP de la
@@ -352,50 +356,113 @@ fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
     true
 }
 
-/// Les mois et les annees qu'il y a
-/// matiere a exporter, les etats, les formats, et le logiciel du comptable. `xlsx`
-/// (la bibliotheque est-elle la ?) et `pdf` (la fabrique est-elle installee ?)
-/// sont deux faits du poste, que la page dit dans la charge.
-fn exports_periodes(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let dispo: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
+/// La charge de `exports-periodes` : deux faits du poste, que la fenetre constate (`interface::api`) -- la bibliotheque
+/// des classeurs est-elle la (`xlsx`), la fabrique des PDF est-elle installee (`pdf`).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeExportsPeriodes {
+    #[serde(default)]
+    xlsx: bool,
+    #[serde(default)]
+    pdf: bool,
+}
+
+/// CE QUE REND `exports-periodes` : sa phrase, les mois et les annees qu'il y a matiere a exporter, les etats que la
+/// compagnie peut demander, les formats et les regroupements (tels que les tables des exports les livrent), le dossier
+/// des exports, les deux faits du poste, le logiciel du comptable, et ce que l'ecran dit (`ecran`).
+#[derive(Debug, Serialize)]
+struct ExportsPossibles {
+    phrase: String,
+    mois: Vec<String>,
+    annees: Vec<String>,
+    etats: Vec<Value>,
+    formats: Value,
+    regroupements: Value,
+    dossier: String,
+    xlsx: bool,
+    pdf: bool,
+    compta: LogicielDuComptable,
+    ecran: EcranDesExports,
+}
+
+/// CE QUE L'ECRAN DES EXPORTS DIT : rien a exporter, les regroupements, l'analytique, le format, les coordonnees, le
+/// dossier, les categories du dossier d'un salarie.
+#[derive(Debug, Serialize)]
+struct EcranDesExports {
+    vide: Option<&'static str>,
+    regroupement_livre: &'static str,
+    regroupement: &'static str,
+    analytique: &'static str,
+    format_libre: &'static str,
+    brique_absente: &'static str,
+    coordonnees: &'static str,
+    dossier: String,
+    categories: &'static str,
+}
+
+/// Les mois et les annees qu'il y a matiere a exporter, les etats, les formats, et le logiciel du comptable.
+fn exports_periodes(ctx: &Contexte, c: ChargeExportsPeriodes) -> R<ExportsPossibles> {
+    let mois: Vec<String> = documents::etats_paie::mois_disponibles(ctx)?.into_keys().collect();
     let t = tables();
-    let etats: Vec<&Value> = t["etats"].as_array().expect("etats").iter().filter(|e| etat_concerne(ctx, e["etat"].as_str().expect("etat"))).collect();
-    let annees = annees_de(&dispo);
-    let compta = etat_logiciel(ctx)?;
-    let fait = |k: &str| charge.get(k).is_some_and(vrai);
-    Ok(json!({
-        "mois": dispo,
-        "annees": annees,
-        "etats": etats,
-        "formats": t["formats"],
-        "regroupements": t["regroupements"],
-        "dossier": ctx.racine.join("exports").display().to_string(),
-        "xlsx": fait("xlsx"),
-        "pdf": fait("pdf"),
-        "compta": compta,
-    }))
+    let etats: Vec<Value> = t["etats"].as_array().expect("etats").iter().filter(|e| etat_concerne(ctx, e["etat"].as_str().expect("etat"))).cloned().collect();
+    let annees = annees_de(&mois);
+    let dossier = ctx.racine.join("exports").display().to_string();
+    let ecran = EcranDesExports {
+        vide: mois.is_empty().then_some("Aucune paie saisie : il n'y a rien à exporter pour l'instant."),
+        regroupement_livre: "Par salarié, ce qu'on envoie au comptable ; par mois, ce qu'on rapproche de la banque ; par spectacle, ce qui justifie une subvention. Les trois disent la même chose, et le total ne bouge pas.",
+        regroupement: "Le total ne bouge pas : seule la répartition des lignes change.",
+        analytique: "Les salaires bruts ventilés par spectacle. Le code de chaque spectacle se règle sur sa fiche : Configuration › Spectacles, case « Code analytique ». Vide, il est tiré du titre.",
+        format_libre: "Le format se choisit ci-dessous.",
+        brique_absente: "brique absente, le CSV sera écrit",
+        coordonnees: "Le NIR, la naissance, l'adresse. Sans la case, rien de tout cela ne sort ; un fichier qui les porte ne s'envoie qu'à qui en a besoin.",
+        dossier: format!("{} — et nulle part ailleurs : un export emporte des salaires", dossier),
+        categories: "Une seule case : un PDF. Plusieurs : un ZIP, un PDF par catégorie.",
+    };
+    Ok(ExportsPossibles {
+        phrase: format!("Exports : {} ; mois payés : {} ; années : {}.", super::compte(etats.len(), "état", "états"), mois.len(), annees.len()),
+        mois,
+        annees,
+        etats,
+        formats: t["formats"].clone(),
+        regroupements: t["regroupements"].clone(),
+        dossier,
+        xlsx: c.xlsx,
+        pdf: c.pdf,
+        compta: etat_logiciel(ctx)?,
+        ecran,
+    })
+}
+
+/// La charge de `retenir-logiciel` : le logiciel du comptable (absent ou vide : aucun), et l'analytique.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeRetenirLogiciel {
+    #[serde(default)]
+    logiciel: Option<String>,
+    #[serde(default)]
+    analytique: bool,
+}
+
+/// Ce que rend `retenir-logiciel` : sa phrase, et le logiciel du comptable tel que la page le montre.
+#[derive(Debug, Serialize)]
+struct LogicielRetenu {
+    phrase: String,
+    #[serde(flatten)]
+    compta: LogicielDuComptable,
 }
 
 /// Le logiciel du comptable, et l'analytique, retenus une fois pour
 /// toutes. Rend le controle du plan pour ce logiciel. Ce n'est pas un export : un reglage, pas une donnee de paie.
-fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let logiciel = charge.get("logiciel").filter(|v| vrai(v));
-    let analytique = booleen(charge, "analytique", false);
-    let nom = logiciel.map(valeur_en_texte).unwrap_or_default();
-    if logiciel.is_some() {
-        let connus = documents::plan_comptable::logiciels_connus();
-        if !connus.iter().any(|l| *l == nom) {
-            return Err(refus(format!("Logiciel inconnu : « {} ».", nom)));
-        }
+fn retenir_logiciel(ctx: &Contexte, c: ChargeRetenirLogiciel) -> R<LogicielRetenu> {
+    let nom = c.logiciel.unwrap_or_default();
+    if !nom.is_empty() && !documents::plan_comptable::logiciels_connus().iter().any(|l| *l == nom) {
+        return Err(refus(format!("Logiciel inconnu : « {} ».", nom)));
     }
-    let chemin = ctx.racine.join(documents::etats_compta::COMPTA);
-    let contenu = json!({
-        "_quoi": "Le logiciel du comptable, retenu pour les écritures comptables (Exports).",
-        "logiciel": nom,
-        "analytique": analytique,
-    });
-    ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
-    crate::routes::archives::etat_logiciel(ctx).map_err(Echec::from)
+    let choix = ChoixCompta { _quoi: "Le logiciel du comptable, retenu pour les écritures comptables (Exports).".to_string(), logiciel: nom, analytique: c.analytique };
+    ecrire_json(&ctx.racine.join(documents::etats_compta::COMPTA), &en_json(&choix)?, 2).map_err(|m| erreur("OSError", m))?;
+    let compta = etat_logiciel(ctx)?;
+    let phrase = if compta.logiciel.is_empty() { "Aucun logiciel comptable retenu.".to_string() } else { format!("Logiciel comptable retenu : {}.", compta.logiciel) };
+    Ok(LogicielRetenu { phrase, compta })
 }
 
 /// Un nombre d'une charge, ecrit en nombre ou tel que la page le saisit (« 2025 », « 12.80 »).
@@ -445,33 +512,110 @@ fn casc_regularise(ctx: &Contexte, c: ChargeCascRegularise) -> R<CascNotee> {
     Ok(CascNotee { phrase: format!("CASC-SVP {} notée régularisée : {} virés le {}.", notee.annee, montant, super::quand(&notee.vire_le)), notee })
 }
 
-/// `charge[cle] or None` : un texte, ou rien.
-fn texte_ou_rien(charge: &Value, cle: &str) -> Option<String> {
-    charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
+/// La charge de `exporter` : l'etat (le livre de paie sans lui), la periode (le mois, l'annee, ou toutes les annees),
+/// le regroupement, le format, les coordonnees des salaries, l'apercu (rien n'est ecrit), et pour les ecritures
+/// comptables le logiciel du comptable et l'analytique. Un texte vide vaut absent : la page envoie ses cases telles
+/// qu'elles sont.
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeExporter {
+    #[serde(default)]
+    etat: Option<String>,
+    #[serde(default)]
+    mois: Option<String>,
+    #[serde(default)]
+    annee: Option<AnneeDite>,
+    #[serde(default)]
+    toutes_les_annees: bool,
+    #[serde(default)]
+    regroupement: Option<String>,
+    #[serde(default)]
+    format: Option<String>,
+    #[serde(default)]
+    coordonnees: bool,
+    #[serde(default)]
+    apercu: bool,
+    #[serde(default)]
+    logiciel: Option<String>,
+    #[serde(default)]
+    analytique: Option<bool>,
 }
 
-/// Le verbe unique, `exporter <etat>`. Lit la charge (etat, mois, annee,
-/// toutes_les_annees, regroupement, format, coordonnees, apercu, logiciel, analytique), refuse un etat inconnu,
-/// ne passe a l'etat que ce que sa forme demande, puis rend l'etat tel que `js.brut` le rend.
-fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
-    Ok(match exporter_objet(ctx, charge)? {
-        Exporte::Casc(v) => v,
-        Exporte::Livre(l) => l.json(),
-        Exporte::Tableau(t) => documents::tableaux_export::brut_tableau(&t),
-    })
+/// Un texte de la charge, vide : rien.
+fn dit(t: &Option<String>) -> Option<String> {
+    t.clone().filter(|t| !t.is_empty())
+}
+
+/// CE QUE REND `exporter` : sa phrase, l'etat tel que son module le rend (le livre de paie, un tableau, la
+/// regularisation CASC-SVP), ce qu'il dit de lui-meme sous la phrase (`phrases` : ses avertissements, ce qui est du, ce
+/// qui est infere), et ce que l'ecran en dit (`ecran`).
+#[derive(Debug, Serialize)]
+pub(crate) struct EtatExporte {
+    phrase: String,
+    #[serde(flatten)]
+    etat: Value,
+    phrases: Vec<String>,
+    ecran: EcranDUnEtat,
+}
+
+/// CE QUE L'ECRAN DIT D'UN ETAT EXPORTE : ses donnees personnelles, ses totaux partiels, et pour la regularisation
+/// CASC-SVP ce que disent ses deux etapes.
+#[derive(Debug, Serialize)]
+struct EcranDUnEtat {
+    personnelles: Option<&'static str>,
+    partiels: Option<String>,
+    virement: &'static str,
+    automatique: &'static str,
+    a_la_main: &'static str,
+}
+
+/// Le verbe unique, `exporter <etat>` : l'etat demande, tel que l'ecran le montre.
+fn exporter(ctx: &Contexte, c: &ChargeExporter) -> R<EtatExporte> {
+    let nom = |f: &Option<std::path::PathBuf>| f.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned());
+    // (le titre, les fichiers ecrits, ses avertissements, ses donnees personnelles, ses totaux partiels, la boite posee)
+    let (etat, titre, ecrits, avertissements, personnelles, partiels, boite_liee) = match exporter_objet(ctx, c)? {
+        Exporte::Casc(r) => (crate::import::casc::vers_json(&r), r.periode.clone(), r.fichiers.clone(), r.avertissements.clone(), false, Vec::new(), r.boite_liee),
+        Exporte::Livre(l) => {
+            let bulletins = l.totaux.bulletins;
+            let partiels = l
+                .totaux
+                .inconnus
+                .iter()
+                .map(|(colonne, n)| {
+                    let sur = bulletins.saturating_sub(*n);
+                    format!("{} sur {} bulletin{} sur {}", colonne.replace('_', " "), sur, if sur == 1 { "" } else { "s" }, bulletins)
+                })
+                .collect();
+            (l.json(), l.periode.clone(), nom(&l.fichier).into_iter().collect(), l.avertissements.clone(), false, partiels, false)
+        }
+        Exporte::Tableau(t) => (documents::tableaux_export::brut_tableau(&t), t.titre.clone(), nom(&t.fichier).into_iter().collect(), t.avertissements.clone(), t.donnees_personnelles, Vec::new(), false),
+    };
+    let phrase = if ecrits.is_empty() { format!("{} : aperçu, rien n'est écrit.", titre) } else { format!("{} : écrit dans {}.", titre, ecrits.join(", ")) };
+    let ecran = EcranDUnEtat {
+        personnelles: personnelles.then_some("Cet état porte des données personnelles : il reste dans prive/, et ne s'envoie qu'à qui en a besoin."),
+        partiels: (!partiels.is_empty()).then(|| format!("Totaux partiels : {}.", partiels.join(" ; "))),
+        virement: "Vers Audiens Santé Prévoyance – Encaissement. L'IBAN se lit dans l'espace employeur Audiens ou sur la page employeurs du CASC-SVP.",
+        automatique: if boite_liee {
+            "Audiens reçoit les masses et les dates des virements ; le CASC-SVP, la liste nominative. Une copie reste dans le dossier, et les années sont notées régularisées."
+        } else {
+            "La boîte courriel n'est pas posée : Configuration › Courriel. Une fois posée, l'envoi se fait d'ici en un clic."
+        },
+        a_la_main: "Joindre la liste nominative au courriel du CASC-SVP, recopier les deux courriels ci-dessous, puis noter la régularisation.",
+    };
+    Ok(EtatExporte { phrase, etat, phrases: avertissements, ecran })
 }
 
 /// Ce qu'un export rend, avant d'etre mis en JSON (le chemin ecrit en entier, les montants en `Decimal`).
 pub(crate) enum Exporte {
-    Casc(Value),
+    Casc(crate::import::casc::Regularisation),
     Livre(documents::etats_paie::LivreDePaie),
     Tableau(documents::tableaux_export::Tableau),
 }
 
 /// `exporter`, avant la mise en JSON ; sans `format`, le CSV.
-pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
+pub(crate) fn exporter_objet(ctx: &Contexte, c: &ChargeExporter) -> R<Exporte> {
     use documents::etats_paie::Demande;
-    let etat = texte_ou_rien(charge, "etat").unwrap_or_else(|| "livre-de-paie".to_string());
+    let etat = dit(&c.etat).unwrap_or_else(|| "livre-de-paie".to_string());
     let tables = documents::plan_comptable::tables();
     let etats = tables["etats"].as_array().map(Vec::as_slice).unwrap_or(&[]);
     let Some(forme) = etats.iter().find(|e| e["etat"].as_str() == Some(etat.as_str())) else {
@@ -480,15 +624,15 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         return Err(refus(format!("État inconnu : « {} ». Les états possibles sont {}.", etat, noms.join(", "))));
     };
     let mut d = Demande {
-        mois: texte_ou_rien(charge, "mois"),
-        annee: texte_ou_rien(charge, "annee"),
-        toutes: charge.get("toutes_les_annees").is_some_and(vrai),
-        regroupement: texte_ou_rien(charge, "regroupement").unwrap_or_else(|| "salarie".to_string()),
-        format: texte_ou_rien(charge, "format").unwrap_or_else(|| "csv".to_string()),
-        coordonnees: charge.get("coordonnees").is_some_and(vrai),
-        ecrire: !charge.get("apercu").is_some_and(vrai),
-        logiciel: texte_ou_rien(charge, "logiciel"),
-        analytique: charge.get("analytique").map(vrai),
+        mois: dit(&c.mois),
+        annee: c.annee.as_ref().map(AnneeDite::texte).filter(|a| !a.is_empty()),
+        toutes: c.toutes_les_annees,
+        regroupement: dit(&c.regroupement).unwrap_or_else(|| "salarie".to_string()),
+        format: dit(&c.format).unwrap_or_else(|| "csv".to_string()),
+        coordonnees: c.coordonnees,
+        ecrire: !c.apercu,
+        logiciel: dit(&c.logiciel),
+        analytique: c.analytique,
         departs: envois::journal::lu(&ctx.racine).map(|j| j.departs)?,
     };
     if etat == "regularisation-casc-svp" {
@@ -497,7 +641,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         if d.ecrire {
             crate::import::casc::ecrire(ctx, &mut r)?;
         }
-        return Ok(Exporte::Casc(crate::import::casc::vers_json(&r)));
+        return Ok(Exporte::Casc(r));
     }
     if etat == "livre-de-paie" {
         return Ok(Exporte::Livre(documents::etats_paie::livre_de_paie(ctx, &d)?));
@@ -999,38 +1143,4 @@ fn droits(ctx: &Contexte, c: ChargeDroits) -> R<Droits> {
     };
     let phrases = salaries.iter().map(|s| format!("{} ({}) : {}", s.nom, s.fenetre, s.phrase)).collect();
     Ok(Droits { phrase, mois, phrases, salaries })
-}
-
-
-/// CE QUE L'ECRAN DES EXPORTS DIT (`ecran` de `exports-periodes`) : rien a exporter, les regroupements, l'analytique, le
-/// format, les coordonnees, le dossier.
-fn ecran_des_exports(v: &Value) -> Value {
-    json!({
-        "vide": if super::nombre(&v["mois"]) == 0 { json!("Aucune paie saisie : il n'y a rien à exporter pour l'instant.") } else { Value::Null },
-        "regroupement_livre": "Par salarié, ce qu'on envoie au comptable ; par mois, ce qu'on rapproche de la banque ; par spectacle, ce qui justifie une subvention. Les trois disent la même chose, et le total ne bouge pas.",
-        "regroupement": "Le total ne bouge pas : seule la répartition des lignes change.",
-        "analytique": "Les salaires bruts ventilés par spectacle. Le code de chaque spectacle se règle sur sa fiche : Configuration › Spectacles, case « Code analytique ». Vide, il est tiré du titre.",
-        "format_libre": "Le format se choisit ci-dessous.",
-        "brique_absente": "brique absente, le CSV sera écrit",
-        "coordonnees": "Le NIR, la naissance, l'adresse. Sans la case, rien de tout cela ne sort ; un fichier qui les porte ne s'envoie qu'à qui en a besoin.",
-        "dossier": format!("{} — et nulle part ailleurs : un export emporte des salaires", super::mot(&v["dossier"])),
-        "categories": "Une seule case : un PDF. Plusieurs : un ZIP, un PDF par catégorie.",
-    })
-}
-
-/// CE QUE L'ECRAN DIT D'UN ETAT EXPORTE (`ecran` de `exporter`) : ses donnees personnelles, ses totaux partiels, et pour
-/// la regularisation CASC-SVP ce que disent ses deux etapes.
-fn ecran_d_un_etat(v: &Value) -> Value {
-    let bulletins = v["totaux"]["bulletins"].as_u64().unwrap_or(0);
-    let partiels: Vec<String> = v["totaux"]["inconnus"].as_object().into_iter().flatten().map(|(c, n)| {
-        let sur = bulletins.saturating_sub(n.as_u64().unwrap_or(0));
-        format!("{} sur {} bulletin{} sur {}", c.replace('_', " "), sur, if sur == 1 { "" } else { "s" }, bulletins)
-    }).collect();
-    json!({
-        "personnelles": if vrai(&v["donnees_personnelles"]) { json!("Cet état porte des données personnelles : il reste dans prive/, et ne s'envoie qu'à qui en a besoin.") } else { Value::Null },
-        "partiels": if partiels.is_empty() { Value::Null } else { json!(format!("Totaux partiels : {}.", partiels.join(" ; "))) },
-        "virement": "Vers Audiens Santé Prévoyance – Encaissement. L'IBAN se lit dans l'espace employeur Audiens ou sur la page employeurs du CASC-SVP.",
-        "automatique": if vrai(&v["boite_liee"]) { "Audiens reçoit les masses et les dates des virements ; le CASC-SVP, la liste nominative. Une copie reste dans le dossier, et les années sont notées régularisées." } else { "La boîte courriel n'est pas posée : Configuration › Courriel. Une fois posée, l'envoi se fait d'ici en un clic." },
-        "a_la_main": "Joindre la liste nominative au courriel du CASC-SVP, recopier les deux courriels ci-dessous, puis noter la régularisation.",
-    })
 }

@@ -27,7 +27,7 @@ use crate::routes::catalogue::Route;
 use crate::routes::{en_json, lire_charge, Pastille, SansCharge};
 use socle::echec::{erreur, Echec};
 use std::collections::HashMap;
-use socle::fichiers::{lire_json, vrai};
+use socle::fichiers::vrai;
 use crate::routes::catalogue::{Ecran, Place};
 
 // ------------------------------------------------------------------ les refus
@@ -337,7 +337,7 @@ pub(crate) struct Echeance {
     /// Une DSN : son echeance de depot (`echeance_dsn::Echeance::en_json`).
     echeance_depot: Option<Value>,
     /// Une obligation due : l'obligation telle que `obligations.rs` l'a calculee.
-    obligation: Option<Value>,
+    obligation: Option<crate::obligations::Obligation>,
     /// Ce sur quoi elle porte (la fin de contrat, l'arret resume), que la page repasse au geste qui la fait.
     objet: Option<Value>,
 }
@@ -408,7 +408,8 @@ impl Echeance {
             OBLIGATION => {
                 let o = self.obligation.as_ref()?;
                 let arret = || Some(ChargeObligationDArret { salarie: salarie()?, dernier_jour: objet["dernier_jour_travaille"].as_str()?.to_string() });
-                match o.get("cle").and_then(Value::as_str).unwrap_or("") {
+                let hors_dsn = matches!(o.ou, Some(crate::obligations::Ou::Lieux(_)));
+                match o.cle {
                     "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
                         action(Route::Saisie, ChargeMois { mois: self.mois? }, Some(Route::ModifierEngagement), "Compléter le contrat".into())
                     }
@@ -421,8 +422,8 @@ impl Echeance {
                         let nature = if cle == "signalement_reprise" { NatureSignalement::Reprise } else { NatureSignalement::Arret };
                         action(Route::ArretSignaler, ChargeArretSignaler::de(salarie()?, dernier_jour, nature), Some(Route::Deposer), "Signaler…".into())
                     }
-                    "declaration_accident" if o.get("ou").is_some_and(Value::is_array) => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
-                    "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
+                    "declaration_accident" if hors_dsn => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
+                    "attestation_salaire" if hors_dsn => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
                     _ => action(Route::EtatDuMois, ChargeMois { mois: self.mois? }, None, "Ouvrir le mois".into()),
                 }
             }
@@ -507,7 +508,7 @@ pub(crate) struct EcheanceDite {
     /// Une DSN : son echeance de depot, telle que `declarations::echeance_dsn` l'ecrit.
     pub(crate) echeance_depot: Option<Value>,
     /// Une obligation due, telle que `obligations.rs` l'a calculee.
-    pub(crate) obligation: Option<Value>,
+    pub(crate) obligation: Option<crate::obligations::Obligation>,
     /// Ce sur quoi elle porte (la fin de contrat de `imprevus`, l'arret resume), sans ses cles `_`.
     pub(crate) objet: Option<Value>,
     /// Le geste qui la fait (`etapes::action` : une route du catalogue et son bouton).
@@ -785,7 +786,7 @@ fn annuelles_de<'a>(base: &'a EcheancierBase, idcc: Option<&str>) -> impl Iterat
 /// Vrai, faux, ou `None` quand on ne peut pas le savoir.
 fn fait_annuel(ctx: &Contexte, e: &Annuelle, annee: i32, faites: &Cochees) -> R<Option<bool>> {
     if e.fait_par == FaitPar::ExerciceClos {
-        return Ok(Some(exercice_clos(ctx, &(annee - 1).to_string())?.as_ref().is_some_and(vrai)));
+        return Ok(Some(exercice_clos(ctx, &(annee - 1).to_string())?.is_some()));
     }
     // Le taux AT/MP se saisit dans la page : pose pour l'annee (ou un taux collectif que l'annee reprend d'elle-meme,
     // `Contexte::taux_atmp_de`), il vaut releve.
@@ -955,16 +956,8 @@ fn date_en_clair(j: &Jour) -> String {
 // -------------------------------------------------------------- l'exercice
 
 /// La cloture de l'annee (ou `None`).
-pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
-    let p = ctx.racine.join(crate::compagnie::exercice_ecrit::EXERCICES);
-    if !socle::fichiers::existe(&p) {
-        return Ok(None);
-    }
-    // Lu une fois tant qu'il ne change pas, le refus d'un fichier illisible inchange (`lire_json`).
-    match &*socle::fichiers::json_en_cache_ou(&p, lire_json)? {
-        Value::Object(o) => Ok(o.iter().find(|(k, _)| !k.starts_with('_') && k.as_str() == &annee[..4.min(annee.len())]).map(|(_, v)| v.clone())),
-        autre => Err(avec_classe("AttributeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
-    }
+pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<crate::compagnie::exercice_ecrit::ExerciceNote>> {
+    Ok(crate::compagnie::exercice_ecrit::lire_exercices(&ctx.racine)?.de(annee).cloned())
 }
 
 /// Les mois de l'annee connus du dossier.
@@ -1241,8 +1234,8 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
             for o in obligations.iter().filter(|o| du(o)) {
                 let mut r = rappel_d_obligation(
                     o,
-                    format!("{}:{}:{}", en_texte(&o["cle"]), en_texte(&a["salarie"]), en_texte(&a["dernier_jour_travaille"])),
-                    format!("{} — {}", en_texte(&o["libelle"]), salarie),
+                    format!("{}:{}:{}", o.cle, en_texte(&a["salarie"]), en_texte(&a["dernier_jour_travaille"])),
+                    format!("{} — {}", o.libelle, salarie),
                     format!("{}, {}.", arret_en_clair(&resume), periode_de_l_arret(&resume)),
                     resume.clone(),
                 );
@@ -1260,24 +1253,22 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Echeance>> {
 }
 
 /// Une obligation due : a faire, ou en retard.
-fn du(o: &Value) -> bool {
-    matches!(o.get("etat").and_then(Value::as_str), Some(crate::obligations::A_FAIRE) | Some(crate::obligations::EN_RETARD))
+fn du(o: &crate::obligations::Obligation) -> bool {
+    o.etat == crate::obligations::A_FAIRE || o.etat == crate::obligations::EN_RETARD
 }
 
 /// Le rappel d'une obligation : son titre, sa question, et ce que le moteur en a calcule -- la date butoir (`jour`), le
 /// retard, la phrase -- ; `objet` : ce sur quoi elle porte, que la page repasse au geste qui la fait.
-fn rappel_d_obligation(o: &Value, cle: String, titre: String, question: String, objet: Value) -> Echeance {
-    let butoir = o.get("butoir").and_then(Value::as_str).map(str::to_string);
-    let tombe = butoir.as_deref().and_then(|b| Mois::lire(b.get(..7)?).ok());
+fn rappel_d_obligation(o: &crate::obligations::Obligation, cle: String, titre: String, question: String, objet: Value) -> Echeance {
+    let tombe = o.butoir.as_deref().and_then(|b| Mois::lire(b.get(..7)?).ok());
     let mut r = Echeance::nouveau(OBLIGATION, cle, titre, question, tombe);
-    r.etat = if o.get("etat").and_then(Value::as_str) == Some(crate::obligations::EN_RETARD) { EnRetard } else { AFaire };
-    r.etape = en_texte(&o["etat"]);
-    if let Some(j) = butoir.as_deref().and_then(|b| Jour::lire(b).ok()) {
+    r.etat = if o.etat == crate::obligations::EN_RETARD { EnRetard } else { AFaire };
+    r.etape = o.etat.to_string();
+    if let Some(j) = o.butoir.as_deref().and_then(|b| Jour::lire(b).ok()) {
         r.le(&j);
     }
-    let delai = o.get("delai").and_then(Value::as_str).unwrap_or("");
-    let phrase = o.get("phrase").and_then(Value::as_str).unwrap_or("");
-    r.detail = if delai.is_empty() { phrase.to_string() } else { format!("Délai : {}. {}", delai, phrase) };
+    let delai = o.delai.as_deref().unwrap_or("");
+    r.detail = if delai.is_empty() { o.phrase.clone() } else { format!("Délai : {}. {}", delai, o.phrase) };
     r.obligation = Some(o.clone());
     r.objet = Some(objet);
     r

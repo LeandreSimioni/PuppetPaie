@@ -2195,24 +2195,9 @@ impl<'a> Moteur<'a> {
 
     // ------------------------------------------------------- les autres routes
 
-    /// `exercice_clos` : la cloture de l'annee de ce mois, ou `None`. `config/exercices.json` est celui de la cloture
-    /// (`compagnie::exercice_ecrit`), lu tel qu'il est.
+    /// `exercice_clos` : l'annee de ce mois est-elle close (`compagnie::exercice_ecrit::lire_exercices`) ?
     pub(crate) fn exercice_clos(&self, mois_ou_annee: &str) -> R<bool> {
-        let p = self.racine().join(crate::compagnie::exercice_ecrit::EXERCICES);
-        if !socle::fichiers::existe(&p) {
-            return Ok(false);
-        }
-        // LU UNE FOIS TANT QU'IL NE CHANGE PAS : `etat` le demandait pour chaque mois. Le refus d'un fichier
-        // illisible ne change pas (`OSError`, `JSONDecodeError`), et ne se garde pas.
-        let v = socle::fichiers::json_en_cache_ou(&p, |p| {
-            let t = socle::fichiers::lire_texte(p).map_err(|e| erreur("OSError", socle::echec::du_disque(&p, &e)))?;
-            serde_json::from_str::<Value>(&t).map_err(|e| erreur("JSONDecodeError", e.to_string()))
-        })?;
-        let Value::Object(o) = &*v else {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&v))));
-        };
-        let annee: String = mois_ou_annee.chars().take(4).collect();
-        Ok(o.iter().filter(|(k, _)| !k.starts_with('_')).find(|(k, _)| **k == annee).is_some_and(|(_, x)| vrai(x)))
+        Ok(crate::compagnie::exercice_ecrit::lire_exercices(self.racine())?.de(mois_ou_annee).is_some())
     }
 
     /// `mois_a_ouvrir` : le plus ancien mois passe dont une etape n'est pas

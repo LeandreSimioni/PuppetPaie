@@ -164,7 +164,7 @@ struct ChargeArretEnregistrer {
     #[serde(default)]
     date_accident: Option<Jour>,
     #[serde(default)]
-    connu: Option<Value>,
+    connu: Option<crate::obligations::ConnaissanceDite>,
     #[serde(default)]
     contrat: Option<NumeroContrat>,
     #[serde(default)]
@@ -646,28 +646,27 @@ fn ecrire(ctx: &Contexte, mois: &str, liste: Vec<Value>) -> R<()> {
     imprevus::ecrire(&ctx.racine, mois, liste).map_err(|m| erreur("OSError", m))
 }
 
-/// Ce qui est parti d'un imprevu (`obligations::avec_ce_qui_est_parti` : les envois du journal, tels qu'il les lit).
-fn ses_envois(ctx: &Contexte, imp: &Value) -> R<Vec<Value>> {
-    let imp = crate::obligations::avec_ce_qui_est_parti(ctx, imp)?;
-    Ok(imp["envois"].as_array().cloned().unwrap_or_default())
+/// Ce qui est parti d'un imprevu (`obligations::ce_qui_est_parti` : les envois du journal, tels qu'il les lit).
+fn ses_envois(ctx: &Contexte, imp: &Value) -> R<Vec<crate::obligations::EnvoiDeLArret>> {
+    crate::obligations::ce_qui_est_parti(ctx, imp)
 }
 
-/// Les DSN mensuelles qui ont reporte l'imprevu (nature 01).
-fn reporte_par(ctx: &Contexte, imp: &Value) -> R<Vec<Value>> {
-    Ok(ses_envois(ctx, imp)?.iter().filter(|x| x["nature"] == json!("01")).map(|x| x.get("mois").cloned().unwrap_or(Value::Null)).collect())
+/// Les mois des DSN mensuelles qui ont reporte l'imprevu (nature 01).
+fn reporte_par(ctx: &Contexte, imp: &Value) -> R<Vec<String>> {
+    Ok(ses_envois(ctx, imp)?.into_iter().filter(|x| x.nature == "01").filter_map(|x| x.mois).collect())
 }
 
 /// Un signalement de cette nature (04, 05) est-il parti pour cet arret ?
 fn envoye(ctx: &Contexte, imp: &Value, nature: &str) -> R<bool> {
-    Ok(ses_envois(ctx, imp)?.iter().any(|x| x["nature"] == json!(nature)))
+    Ok(ses_envois(ctx, imp)?.iter().any(|x| x.nature == nature))
 }
 
 /// Le jour ou le signalement NORMAL (type 01) de cette nature (04, 05) est parti pour cet arret, s'il l'est
-/// (`obligations::avec_ce_qui_est_parti` : un depot reel accepte, que le bilan n'a pas refuse).
+/// (`obligations::ce_qui_est_parti` : un depot reel accepte, que le bilan n'a pas refuse).
 fn parti_le(ctx: &Contexte, imp: &Value, nature: &str) -> R<Option<Jour>> {
     let envois = ses_envois(ctx, imp)?;
-    let premier = envois.iter().filter(|x| x["nature"] == json!(nature) && x["type"] == json!(signalement::NORMALE)).filter_map(|x| x["quand"].as_str()).min().map(str::to_string);
-    premier.map(|q| jour(&json!(q.chars().take(10).collect::<String>()))).transpose()
+    let premier = envois.iter().filter(|x| x.nature == nature && x.type_declaration == signalement::NORMALE).map(|x| x.quand.as_str()).min().map(str::to_string);
+    premier.map(|q| Jour::lire(&q.chars().take(10).collect::<String>()).map_err(|m| erreur("ValueError", m))).transpose()
 }
 
 /// Le nom d'un signalement : `<base>.dsn` ; un annule-et-remplace, `<base>_AR<ordre>.dsn`, a cote du signalement parti
@@ -701,7 +700,7 @@ fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
     if fin >= ctx.aujourdhui {
         return Ok(true);
     }
-    Ok(!reporte_par(ctx, imp)?.iter().any(|m| valeur_en_texte(m) >= fin.mois_civil().to_string()))
+    Ok(!reporte_par(ctx, imp)?.iter().any(|m| *m >= fin.mois_civil().to_string()))
 }
 
 // ------------------------------------------------------------------ le resume
@@ -737,9 +736,9 @@ pub(crate) struct ArretResume {
     saisi_le: Value,
     pub signale: bool,
     signalement_du: bool,
-    signalements: Vec<Value>,
+    signalements: Vec<crate::obligations::EnvoiDeLArret>,
     reporte_par_dit: Vec<String>,
-    reporte_par: Vec<Value>,
+    reporte_par: Vec<String>,
     etat: EtatDuSignalement,
 }
 
@@ -798,7 +797,7 @@ pub(crate) struct ResumeDArret {
     #[serde(flatten)]
     dit: Dit,
     #[serde(skip_serializing_if = "Option::is_none")]
-    obligations: Option<Vec<Value>>,
+    obligations: Option<Vec<crate::obligations::Obligation>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     parti: Option<Vec<Parti>>,
 }
@@ -822,7 +821,7 @@ pub(crate) struct ResumeDeSuspension {
     note: Value,
     saisi_le: Value,
     reporte_par_dit: Vec<String>,
-    reporte_par: Vec<Value>,
+    reporte_par: Vec<String>,
     cachets: Vec<Cachet>,
     #[serde(flatten)]
     dit: Dit,
@@ -900,7 +899,7 @@ struct DejaSignale {
 struct Parti {
     phrase: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pastille: Option<Value>,
+    pastille: Option<crate::routes::Pastille>,
     #[serde(skip_serializing_if = "Option::is_none")]
     discret: Option<bool>,
 }
@@ -911,10 +910,10 @@ fn jour_dit(iso: &str) -> String {
 }
 
 impl Dit {
-    fn de(arret: bool, libelle: &str, reprise: &Value, premier: &str, dernier: &str, contrat: &Value, debut: &Value, signalements: &[Value]) -> Dit {
+    fn de(arret: bool, libelle: &str, reprise: &Value, premier: &str, dernier: &str, contrat: &Value, debut: &Value, signalements: &[crate::obligations::EnvoiDeLArret]) -> Dit {
         let jour = |v: &Value| crate::routes::jour_en_clair(v);
         let deja = |nature: &str| {
-            let n = signalements.iter().filter(|s| s["nature"] == json!(nature)).count();
+            let n = signalements.iter().filter(|s| s.nature == nature).count();
             (n > 0).then(|| format!("Déjà signalé {} fois", n))
         };
         Dit {
@@ -958,7 +957,7 @@ fn cachet_dit(c: Value) -> Cachet {
 /// CE QUI EST PARTI D'UN IMPREVU, ET CE QUI EN RESTE DU : une ligne courte par morceau, dans l'ordre ou l'ecran les lit --
 /// les prolongations, les signalements, la DSN qui l'a declare, puis chaque obligation, faite ou due (avec sa pastille) ;
 /// « rien n'est encore parti » sinon.
-fn ce_qui_est_parti(prolongations: &Value, signalements: &[Value], reporte_par_dit: &[String], obligations: &[Value]) -> Vec<Parti> {
+fn ce_qui_est_parti(prolongations: &Value, signalements: &[crate::obligations::EnvoiDeLArret], reporte_par_dit: &[String], obligations: &[crate::obligations::Obligation]) -> Vec<Parti> {
     let jour = |v: &Value| crate::routes::jour_en_clair(v);
     let minuscule = |t: String| -> String { t.chars().take(1).flat_map(char::to_lowercase).chain(t.chars().skip(1)).collect() };
     let dite = |phrase: String| Parti { phrase, pastille: None, discret: None };
@@ -967,18 +966,21 @@ fn ce_qui_est_parti(prolongations: &Value, signalements: &[Value], reporte_par_d
         parti.push(dite(format!("prolongé jusqu'au {} (avis du {})", jour(&p["fin"]), jour(&p["le"]))));
     }
     for s in signalements {
-        let quoi = if s["nature"] == json!("05") { "reprise signalée" } else if s["type"] == json!("03") { "signalement rectifié" } else { "signalé" };
-        parti.push(dite(format!("{} le {}", quoi, crate::routes::quand(&valeur_en_texte(&s["quand"])))));
+        let quoi = if s.nature == "05" { "reprise signalée" } else if s.type_declaration == "03" { "signalement rectifié" } else { "signalé" };
+        parti.push(dite(format!("{} le {}", quoi, crate::routes::quand(&s.quand))));
     }
     if !reporte_par_dit.is_empty() {
         parti.push(dite(format!("déclaré par la DSN {}", reporte_par_dit.join(", "))));
     }
     for o in obligations {
-        let libelle = minuscule(valeur_en_texte(&o["libelle"]));
-        if vrai(&o["fait"]["le"]) && o["ou"].is_array() {
-            parti.push(dite(format!("{}, faite le {}", libelle, jour(&o["fait"]["le"]))));
-        } else if o["du"] == json!(true) {
-            parti.push(Parti { pastille: Some(o["pastille"].clone()), ..dite(format!("{}, {}", libelle, valeur_en_texte(&o["butoir_dit"]))) });
+        let libelle = minuscule(o.libelle.clone());
+        match &o.fait {
+            Some(f) if !f.le().is_empty() && matches!(o.ou, Some(crate::obligations::Ou::Lieux(_))) => {
+                parti.push(dite(format!("{}, faite le {}", libelle, crate::routes::quand(f.le()))));
+            }
+            // Une obligation due sans date butoir (son delai ne se compte pas) dit son etat, pas une butoir absente.
+            _ if o.du => parti.push(Parti { pastille: Some(o.pastille.clone()), ..dite(format!("{}, {}", libelle, o.butoir_dit.clone().unwrap_or_else(|| o.pastille.mots.clone()))) }),
+            _ => {}
         }
     }
     if parti.is_empty() {
@@ -989,7 +991,7 @@ fn ce_qui_est_parti(prolongations: &Value, signalements: &[Value], reporte_par_d
 
 impl Resume {
     /// Les obligations d'un arret (`obligations::de_l_arret`), posees sur lui ; une absence n'en a pas.
-    pub(crate) fn poser_obligations(&mut self, obligations: Vec<Value>) {
+    pub(crate) fn poser_obligations(&mut self, obligations: Vec<crate::obligations::Obligation>) {
         if let Resume::Arret(a) = self {
             a.obligations = Some(obligations);
         }
@@ -1016,7 +1018,7 @@ impl Resume {
         };
         let mut l = vec![format!("{} ({}) : {}, du {} au {} — {}", mot(salarie), mot(contrat), libelle, quand(premier), quand(dernier), etat)];
         if let Some(o) = obligations {
-            l.extend(crate::obligations::en_phrases(&Value::Array(o.to_vec())).into_iter().map(|o| format!("  {}", o)));
+            l.extend(crate::obligations::en_phrases(o).into_iter().map(|o| format!("  {}", o)));
         }
         l
     }
@@ -1343,7 +1345,7 @@ l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche n
     // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
     let declares = reporte_par(ctx, &avant)?;
     for m in Mois::entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin).iter().map(Mois::to_string) {
-        if declares.iter().any(|x| valeur_en_texte(x) == m) {
+        if declares.iter().any(|x| *x == m) {
             avertissements.push(format!(
                 "La DSN de {} est déjà partie avec l'ancienne fin (le {}) : la paie de ce mois, où les jours ajoutés \
 tombent, est à corriger.",
@@ -1547,8 +1549,8 @@ fn arret_enregistrer(ctx: &Contexte, c: &ChargeArretEnregistrer) -> R<ReponseArr
     // Le jour où la compagnie a su l'accident, point de départ des 48 heures de la déclaration (R441-3) : contrôlé ici,
     // écrit avec l'arrêt.
     let connu = match &c.connu {
-        Some(v) if vrai(v) => Some(crate::obligations::connaissance_saisie(ctx, &arret, "accident", v)?),
-        _ => None,
+        Some(dite) => Some(crate::obligations::connaissance_saisie(ctx, &arret, crate::obligations::DeQuoi::Accident, dite)?),
+        None => None,
     };
 
     let mois = dernier.mois_civil().to_string();
@@ -1563,8 +1565,8 @@ fn arret_enregistrer(ctx: &Contexte, c: &ChargeArretEnregistrer) -> R<ReponseArr
     let mut liste = magasin(imprevus::du_fichier(&ctx.racine, &mois))?;
     liste.push(arret.clone());
     ecrire(ctx, &mois, liste)?;
-    if let Some((champ, valeur)) = connu {
-        crate::obligations::connaissance_ecrire(ctx, &arret, champ, valeur)?;
+    if let Some(saisie) = connu {
+        crate::obligations::connaissance_ecrire(ctx, &arret, crate::obligations::DeQuoi::Accident, saisie)?;
     }
     reponse_arret(ctx, &arret, "Arrêt enregistré.")
 }
@@ -2012,9 +2014,8 @@ fn libelle_motif(n: &Value, motif: &Value) -> R<String> {
 /// Un arret resume (`ArretResume`).
 pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<ArretResume> {
     let envois = ses_envois(ctx, a)?;
-    let nature = |e: &Value| e["nature"].as_str().map(str::to_string);
-    let signalements: Vec<Value> = envois.iter().filter(|e| matches!(nature(e).as_deref(), Some("04") | Some("05"))).cloned().collect();
-    let mois: Vec<Value> = envois.iter().filter(|e| nature(e).as_deref() == Some("01")).map(|e| e["mois"].clone()).collect();
+    let (signalements, mois): (Vec<_>, Vec<_>) = envois.into_iter().filter(|e| matches!(e.nature.as_str(), "04" | "05" | "01")).partition(|e| e.nature != "01");
+    let mois: Vec<String> = mois.into_iter().filter_map(|e| e.mois).collect();
     let champ = |k: &str| a.get(k).cloned().unwrap_or(Value::Null);
     let motif = champ("motif");
     let motif_libelle = libelle_motif(n, &motif)?;
@@ -2072,7 +2073,7 @@ fn arrets(ctx: &Contexte) -> R<ReponseArrets> {
             let t = |v: &Value| if vrai(v) { valeur_en_texte(v) } else { String::new() };
             let fin = if vrai(&b.fin_previsionnelle) { format!(", fin prévue le {}", crate::routes::quand(&t(&b.fin_previsionnelle))) } else { String::new() };
             phrases.push(format!("{} : dernier jour travaillé le {}{} — {} — {}", t(&b.salarie), crate::routes::quand(&t(&b.dernier_jour_travaille)), fin, b.motif_libelle, b.etat.dit()));
-            phrases.extend(crate::obligations::en_phrases(&Value::Array(obligations.clone())).into_iter().map(|o| format!("  {}", o)));
+            phrases.extend(crate::obligations::en_phrases(&obligations).into_iter().map(|o| format!("  {}", o)));
         }
         r.poser_obligations(obligations);
         r.dire_ce_qui_est_parti();
@@ -2266,8 +2267,8 @@ pub(crate) struct FinASignaler {
     preavis: Value,
     pub a_saisir: Vec<Manque>,
     pub du: bool,
-    pastille: Value,
-    pub obligation: Value,
+    pastille: crate::routes::Pastille,
+    pub obligation: crate::obligations::Obligation,
     #[serde(skip_serializing_if = "Option::is_none")]
     qui_dit: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -2310,17 +2311,13 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         let a_saisir = ce_qui_manque(ctx, e)?;
         // LE DELAI ET OU ON EN EST (`obligations::de_la_fin`).
         let obligation = crate::obligations::de_la_fin(ctx, cle.as_deref(), fin, &journal.lignes, aujourdhui)?;
-        // Due : il manque de quoi signaler, aucun delai ne se lit, ou le delai court. Sa pastille : celle du delai passe
+        // Due : il manque de quoi signaler, ou le delai court. Sa pastille : celle du delai passe
         // (« en retard » l'emporte : la date butoir ne se tait pas parce qu'une case manque), sinon ce qui manque, sinon
         // celle du delai.
         let incomplet = !a_saisir.is_empty();
-        let du = incomplet || obligation.is_null() || obligation.get("du").is_some_and(vrai);
-        let en_retard = obligation.get("etat").and_then(Value::as_str) == Some(crate::obligations::EN_RETARD);
-        let pastille = if incomplet && !en_retard {
-            json!(Pastille::de("a_faire", "à compléter"))
-        } else {
-            obligation.get("pastille").cloned().unwrap_or(Value::Null)
-        };
+        let du = incomplet || obligation.du;
+        let en_retard = obligation.etat == crate::obligations::EN_RETARD;
+        let pastille = if incomplet && !en_retard { Pastille::de("a_faire", "à compléter") } else { obligation.pastille.clone() };
         out.push(FinASignaler {
             salarie: salarie.clone(),
             mois: mois.to_string(),
@@ -2469,6 +2466,6 @@ fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
 }
 
 /// Les mois des DSN qui ont porte un imprevu, tels que l'ecran les lit (« de novembre 2026 »).
-fn mois_de_la_dsn(mois: &[Value]) -> Vec<String> {
-    mois.iter().map(|m| crate::regularisation::de_mois_en_clair(&valeur_en_texte(m))).collect()
+fn mois_de_la_dsn(mois: &[String]) -> Vec<String> {
+    mois.iter().map(|m| crate::regularisation::de_mois_en_clair(m)).collect()
 }

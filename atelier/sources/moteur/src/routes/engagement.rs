@@ -9,7 +9,6 @@ use serde_json::{Map, Value};
 use droit::contexte::Contexte;
 use engagement::stock::Identite;
 use socle::echec::{erreur, Echec, Refus, R};
-use socle::fichiers::vrai;
 use socle::mois::Mois;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusDit, FORME, MOIS};
@@ -176,11 +175,6 @@ pub(super) fn en_echec(r: Refus) -> Echec {
 /// `charge["cle"]` : un texte requis.
 pub(super) fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
     crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", socle::echec::charge(cle, "un texte")))
-}
-
-/// La valeur de `cle` de la charge, vraie ou fausse ; `defaut` si elle manque.
-pub(super) fn booleen(charge: &Value, cle: &str, defaut: bool) -> bool {
-    charge.get(cle).map_or(defaut, vrai)
 }
 
 /// L'heure de Paris, a la seconde.

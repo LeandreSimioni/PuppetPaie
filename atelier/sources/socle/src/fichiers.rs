@@ -626,11 +626,6 @@ pub fn pas_une_paire(rang: usize, nom_type: &str) -> String {
     element(rang, &format!("une paire (clé, valeur) est attendue, lu : {}", nature(nom_type)))
 }
 
-/// « un texte ne se modifie pas par clé » : une valeur qui n'est ni un objet ni une liste, là où l'on écrit dedans.
-pub fn non_modifiable(nom_type: &str) -> String {
-    format!("{} ne se modifie pas par clé", nature(nom_type))
-}
-
 /// Un nombre que l'on voudrait entier et qui ne tient pas : infini, ou hors de ce qu'un entier porte.
 pub fn entier_hors_limites(n: &str) -> String {
     format!("nombre entier hors limites : {}", n)

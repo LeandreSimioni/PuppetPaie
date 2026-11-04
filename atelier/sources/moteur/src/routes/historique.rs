@@ -3,18 +3,16 @@
 //! depuis ce que les retours attestent.
 
 use std::collections::{BTreeSet, HashMap};
-use std::path::Path;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::documents::requis;
-use crate::routes::lire_json_ou_vide;
 use crate::routes::ouverture::mois_connus;
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
-use socle::valeur::{nom_type, valeur_en_texte};
+use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 
 const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
@@ -97,26 +95,17 @@ pub const ROUTES: &[Fiche] = &[
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
-    let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        Route::Exercices => exercices_route(ctx).map(|mut v| {
-            let lignes: Vec<Value> = v["exercices"].as_array().into_iter().flatten().map(|e| json!(format!("{} : {}", t(e, "annee"), t(&e["pastille"], "mots")))).collect();
-            v["phrases"] = Value::Array(lignes);
-            let p = format!("Exercices : {}.", super::nombre(&v["exercices"]));
-            super::phrase_en_tete(v, p)
-        }),
+        Route::Exercices => {
+            let super::SansCharge {} = super::lire_charge(charge)?;
+            super::en_json(exercices_route(ctx)?)
+        }
         Route::Regularisations => regularisations(ctx).map(|v| {
             let p = format!("Mois qui portent des corrections : {}.", super::nombre(&v["corrections"]));
             super::phrase_en_tete(v, p)
         }),
         Route::Cloture => super::en_json(cloture(ctx, super::lire_charge(charge)?)?),
-        Route::ExportCompta => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge).map(|v| {
-            let p = match v["fichier"].as_str() {
-                Some(f) => format!("Export comptable de {} : {} écritures, dans {} ({}).", t(&v, "annee"), super::nombre(&v["ecritures"]), f, t(&v, "dossier")),
-                None => format!("Export comptable de {} : {} écritures, rien n'est écrit.", t(&v, "annee"), super::nombre(&v["ecritures"])),
-            };
-            super::phrase_en_tete(v, p)
-        }),
+        Route::ExportCompta => super::en_json(crate::compagnie::exercice_ecrit::export_compta_route(ctx, super::lire_charge(charge)?)?),
         Route::Archiver => archiver(ctx, charge),
         Route::JournalReprise => crate::compagnie::incidents::noter_ceux_des_retours(
             &ctx.racine,
@@ -211,68 +200,88 @@ fn cloture(ctx: &Contexte, c: crate::compagnie::exercice_ecrit::ChargeCloture) -
     Ok(ClotureDite { phrase, cloture })
 }
 
-/// Les clotures, sans les cles `_...`.
-fn exercices_clos(racine: &Path) -> R<Map<String, Value>> {
-    let v = lire_json_ou_vide(&racine.join(crate::compagnie::exercice_ecrit::EXERCICES))?;
-    match v {
-        Value::Object(o) => Ok(o.into_iter().filter(|(k, _)| !k.starts_with('_')).collect()),
-        autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre)))),
-    }
+/// Ce que rend `exercices` : sa phrase, une ligne par annee (`phrases`), chaque annee, et le dossier des archives.
+#[derive(Debug, serde::Serialize)]
+struct ExercicesDits {
+    phrase: String,
+    phrases: Vec<String>,
+    exercices: Vec<ExerciceDit>,
+    dossier: String,
 }
 
-/// La route `exercices` : `{"exercices": etat_exercices, "dossier": ...}`.
-fn exercices_route(ctx: &Contexte) -> R<Value> {
-    let liste = etat_exercices(ctx)?;
-    Ok(json!({"exercices": liste, "dossier": ctx.racine.join("sorties").join("exercices").display().to_string()}))
+/// Une annee connue du dossier : ses mois, ses DSN acceptees, sa cloture, son export compta, sa pastille, et sa ligne.
+#[derive(Debug, serde::Serialize)]
+struct ExerciceDit {
+    infos_dit: String,
+    annee: String,
+    mois: Vec<String>,
+    dsn_acceptees: Vec<String>,
+    clos: Option<crate::compagnie::exercice_ecrit::ExerciceNote>,
+    pastille: super::Pastille,
+    export: Option<ExportDeLAnnee>,
 }
 
-/// `etat_exercices` : chaque annee connue du dossier -- ses mois, sa cloture,
-/// son export.
-fn etat_exercices(ctx: &Contexte) -> R<Value> {
-    let clos = exercices_clos(&ctx.racine)?;
+/// L'export compta d'une annee : son fichier, et quand il a ete ecrit.
+#[derive(Debug, serde::Serialize)]
+struct ExportDeLAnnee {
+    fichier: String,
+    ecrit: Option<String>,
+}
+
+/// La route `exercices` : chaque annee connue du dossier -- ses mois, sa cloture, son export -- et le dossier des archives.
+fn exercices_route(ctx: &Contexte) -> R<ExercicesDits> {
+    let exercices = etat_exercices(ctx)?;
+    Ok(ExercicesDits {
+        phrase: format!("Exercices : {}.", exercices.len()),
+        phrases: exercices.iter().map(|e| format!("{} : {}", e.annee, e.pastille.mots)).collect(),
+        exercices,
+        dossier: ctx.racine.join("sorties").join("exercices").display().to_string(),
+    })
+}
+
+/// `etat_exercices` : chaque annee connue du dossier, de la plus recente a la plus ancienne.
+fn etat_exercices(ctx: &Contexte) -> R<Vec<ExerciceDit>> {
+    let lus = crate::compagnie::exercice_ecrit::lire_exercices(&ctx.racine)?;
+    let clos = lus.clos();
     let mois_tous: Vec<String> = mois_connus(&ctx.racine).into_iter().map(|(m, _)| m).collect();
     let mut annees: BTreeSet<String> = mois_tous.iter().map(|m| m.chars().take(4).collect()).collect();
     annees.extend(clos.keys().cloned());
     let mut out = Vec::new();
     for a in annees.iter().rev() {
-        let mut mois: Vec<&String> = mois_tous.iter().filter(|x| x.starts_with(a.as_str())).collect();
+        let mut mois: Vec<String> = mois_tous.iter().filter(|x| x.starts_with(a.as_str())).cloned().collect();
         mois.sort();
-        let export = ctx.racine.join("sorties").join("exercices").join(format!("Compta_{}.csv", a));
-        let export = export.exists().then_some(export);
+        let chemin = ctx.racine.join("sorties").join("exercices").join(format!("Compta_{}.csv", a));
         let mut acceptees = Vec::new();
         for x in &mois {
             if crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(x)?, None)?.partie() {
-                acceptees.push(json!(x));
+                acceptees.push(x.clone());
             }
         }
-        let export_json = match &export {
-            Some(p) => {
-                json!({
-                    "fichier": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                    "ecrit": crate::compagnie::depart::ecrit_le(&ctx.racine, p),
-                })
-            }
-            None => Value::Null,
-        };
+        let export = chemin.exists().then(|| ExportDeLAnnee {
+            fichier: chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
+            ecrit: crate::compagnie::depart::ecrit_le(&ctx.racine, &chemin).as_str().filter(|e| !e.is_empty()).map(str::to_string),
+        });
         // Ce que la ligne de l'annee dit : ses mois, ses DSN acceptees, sa cloture et son export compta.
-        let clos_dit = clos.get(a).map(|c| format!(" · clos le {}", super::quand(&super::mot(&c["le"])))).unwrap_or_default();
-        let export_dit = match export_json.get("ecrit").filter(|e| vrai(e)) {
-            Some(e) => format!(" · export compta du {}", super::quand(&super::mot(e))),
-            None if !export_json.is_null() => " · export compta".to_string(),
+        let note = clos.get(a);
+        let clos_dit = note.map(|c| format!(" · clos le {}", super::quand(&c.le))).unwrap_or_default();
+        let export_dit = match &export {
+            Some(ExportDeLAnnee { ecrit: Some(e), .. }) => format!(" · export compta du {}", super::quand(e)),
+            Some(_) => " · export compta".to_string(),
             None => " · pas d'export compta".to_string(),
         };
-        let n_dsn = super::nombre(&json!(acceptees));
-        let infos_dit = format!("{} mois · {}{}{}", super::nombre(&json!(mois)), super::compte(n_dsn, "DSN acceptée", "DSN acceptées"), clos_dit, export_dit);
-        out.push(json!({
-            "infos_dit": infos_dit,
-            "annee": a, "mois": mois, "dsn_acceptees": acceptees,
-            "clos": clos.get(a).cloned().unwrap_or(Value::Null),
+        let infos_dit = format!("{} mois · {}{}{}", mois.len(), super::compte(acceptees.len(), "DSN acceptée", "DSN acceptées"), clos_dit, export_dit);
+        out.push(ExerciceDit {
+            infos_dit,
+            annee: a.clone(),
+            mois,
+            dsn_acceptees: acceptees,
+            clos: note.cloned(),
             // Sa pastille : close, faite ; ouverte, une information (une annee se clot quand la compagnie le veut).
-            "pastille": if clos.contains_key(a.as_str()) { super::pastille("fait", "clos") } else { super::pastille("information", "ouvert") },
-            "export": export_json,
-        }));
+            pastille: if note.is_some() { super::Pastille::de("fait", "clos") } else { super::Pastille::de("information", "ouvert") },
+            export,
+        });
     }
-    Ok(Value::Array(out))
+    Ok(out)
 }
 
 /// DEPOSER LES DOCUMENTS D'UN MOIS DANS LE DRIVE (`archivage::archiver`) : `PuppetPaie/<mois>` du compte lie. Une

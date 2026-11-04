@@ -706,7 +706,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let Some(a) = a else { return Ok(false) };
             let encore = crate::obligations::de_l_arret(ctx, &a, &crate::obligations::Suivi::lire(ctx)?, ctx.aujourdhui)?
                 .iter()
-                .any(|o| o["cle"] == json!(cle) && due(o, ctx.aujourdhui).is_some());
+                .any(|o| o.cle == *cle && due(o, ctx.aujourdhui).is_some());
             if !encore {
                 return Ok(false);
             }
@@ -801,7 +801,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             if !Moteur::nouveau(ctx).exercice_clos(&annee.to_string())? || crate::compagnie::exercice_ecrit::export_compta_a_jour(&ctx.racine, &annee.to_string()) {
                 return Ok(false);
             }
-            crate::compagnie::exercice_ecrit::export_compta_route(ctx, &json!({"annee": annee.to_string()}))?;
+            crate::compagnie::exercice_ecrit::export_compta(ctx, &annee.to_string(), 1, 12, true)?;
             Ok(true)
         }),
     }
@@ -875,16 +875,15 @@ fn revalide_le(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Option
 // ------------------------------------------------------------------ les signalements
 
 /// Une obligation que le moteur dit a faire (ou en retard) : sa date butoir, qu'elle soit passee ou non.
-fn a_faire(o: &Value) -> Option<Jour> {
-    let etat = o.get("etat").and_then(Value::as_str)?;
-    if etat != crate::obligations::A_FAIRE && etat != crate::obligations::EN_RETARD {
+fn a_faire(o: &crate::obligations::Obligation) -> Option<Jour> {
+    if o.etat != crate::obligations::A_FAIRE && o.etat != crate::obligations::EN_RETARD {
         return None;
     }
-    Jour::lire(o.get("butoir").and_then(Value::as_str)?).ok()
+    Jour::lire(o.butoir.as_deref()?).ok()
 }
 
 /// Une obligation a faire (`a_faire`) dont la date butoir est passee ou d'aujourd'hui : sa butoir.
-fn due(o: &Value, jour: Jour) -> Option<Jour> {
+fn due(o: &crate::obligations::Obligation, jour: Jour) -> Option<Jour> {
     a_faire(o).filter(|b| *b <= jour)
 }
 
@@ -902,7 +901,7 @@ fn due(o: &Value, jour: Jour) -> Option<Jour> {
 /// qui attend la saisie : il est a la personne.
 fn signalements_dus(ctx: &Contexte, le_mois: Mois, jour: Jour, cloture: bool) -> Vec<Pas> {
     let mois = &le_mois.to_string();
-    let du = |o: &Value| if cloture { a_faire(o) } else { due(o, jour) };
+    let du = |o: &crate::obligations::Obligation| if cloture { a_faire(o) } else { due(o, jour) };
     let mut dus = Vec::new();
     use crate::routes::imprevus::NatureSignalement;
     let natures = [("signalement_arret", NatureSignalement::Arret, "d'arrêt"), ("signalement_reprise", NatureSignalement::Reprise, "de reprise")];
@@ -911,7 +910,7 @@ fn signalements_dus(ctx: &Contexte, le_mois: Mois, jour: Jour, cloture: bool) ->
         for a in arrets.iter().filter(|a| valeur_en_texte(&a["dernier_jour_travaille"]).starts_with(mois)) {
             let obligations = crate::obligations::de_l_arret(ctx, a, &suivi, jour).unwrap_or_default();
             for (cle, nature, dit) in natures {
-                let Some(butoir) = obligations.iter().find(|o| o["cle"] == json!(cle)).and_then(du) else { continue };
+                let Some(butoir) = obligations.iter().find(|o| o.cle == cle).and_then(du) else { continue };
                 let (salarie, dernier) = (valeur_en_texte(&a["salarie"]), valeur_en_texte(&a["dernier_jour_travaille"]));
                 dus.push(Pas {
                     quand: format!("{}T09:30:00", butoir.iso()),
