@@ -1,6 +1,5 @@
-//! Les corrections des mois deja declares : l'etat d'un mois depose (`etat_mois` : se corrige-t-il par regularisation),
-//! la liste des corrections (`corrections_par_mois`, route `regularisations`) ; et ce que la saisie d'un mois declare
-//! en dit (`modification_de_l_engagement`). Rien n'est ecrit.
+//! Les corrections des mois deja declares : la liste des corrections (`corrections_par_mois`, route `regularisations`) ;
+//! et ce que la saisie d'un mois declare en dit (`modification_de_l_engagement`). Rien n'est ecrit.
 //!
 //! Corriger, c'est modifier l'engagement et le revalider. Ce qui est a corriger se tire de la comparaison entre la
 //! version presente de l'engagement valide et celle sur laquelle la DSN est partie
@@ -13,7 +12,6 @@ use serde_json::{json, Map, Value};
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
-use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -27,66 +25,6 @@ fn non_regularisable(message: impl Into<String>) -> Echec {
 }
 
 // ------------------------------------------------------------------ le mois d'origine
-
-/// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
-pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Value> {
-    let Some(mois) = mois_v.as_str() else {
-        return Err(erreur("TypeError", format!("'mois' : {}", socle::fichiers::attendu("un texte", nom_type(mois_v)))));
-    };
-    let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
-    let limite = echeance.jour;
-    let passee = echeance.passee_au(&ctx.aujourdhui);
-    let dsn = crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?;
-    let deposee = dsn.deposee();
-    let mut out = Map::new();
-    out.insert("mois".into(), json!(mois));
-    out.insert("deposee".into(), json!(deposee));
-    out.insert("passee".into(), json!(dsn.0["etat"] == "passee"));
-    out.insert("refusee".into(), json!(dsn.refusee()));
-    out.insert("echeance".into(), json!(limite.iso()));
-    out.insert("echeance_depot".into(), echeance.en_json());
-    out.insert("echeance_passee".into(), json!(passee));
-    out.insert("regularisable".into(), json!(false));
-    out.insert("raison".into(), json!(""));
-    if !deposee {
-        let suite = if passee { format!(" (en retard : la DSN de {} se depose en test, puis en reel)", mois) } else { String::new() };
-        out.insert(
-            "raison".into(),
-            json!(format!("Aucune DSN reelle n'est partie pour {} : ce mois se saisit et se depose normalement{}.", mois, suite)),
-        );
-    } else if dsn.refusee() {
-        out.insert(
-            "raison".into(),
-            json!(format!("La DSN de {} a ete REFUSEE : elle se corrige et se redepose, il n'y a rien a regulariser.", mois)),
-        );
-    } else {
-        // LA FRONTIERE EST LA VEILLE A MINUIT, pas le jour de l'echeance.
-        let veille = m.limite(socle::mois::Mois::lire(mois)?)?;
-        if ctx.aujourdhui <= veille {
-            out.insert(
-                "raison".into(),
-                json!(format!(
-                    "La DSN de {} est partie et l'annule-et-remplace est admis jusqu'au {} a minuit : modifier le mois et refaire la DSN, elle partira en annule-et-remplace.",
-                    mois,
-                    veille.jj_mm_aaaa()
-                )),
-            );
-        } else {
-            out.insert("regularisable".into(), json!(true));
-            out.insert(
-                "raison".into(),
-                json!(format!(
-                    "La DSN de {} est deposee et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance du {}) : une correction part dans la DSN du mois courant, datee de {}.",
-                    mois,
-                    veille.jj_mm_aaaa(),
-                    limite.jj_mm_aaaa(),
-                    mois
-                )),
-            );
-        }
-    }
-    Ok(Value::Object(out))
-}
 
 /// Le resume d'une paie que la page compare : montants, cotisations, activite.
 fn resume(p: &Paie) -> Value {
@@ -187,12 +125,14 @@ pub(crate) fn modification_de_l_engagement(m: &mut Moteur, ctx: &Contexte, mois:
     if let Some(porteur) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, &mois.to_string())?.map(|d| d.porteur) {
         return Ok(Some(DsnDeposee::Corrigee { porteur }));
     }
-    let etat = etat_mois(m, ctx, &Value::String(mois.to_string()))?;
-    if !vrai(&etat["deposee"]) || vrai(&etat["refusee"]) {
+    let dsn = crate::compagnie::etat_dsn::du_mois(ctx, &mois.to_string(), &Value::Null)?;
+    if !dsn.deposee() || dsn.refusee() {
         return Ok(None);
     }
-    if !vrai(&etat["regularisable"]) {
-        return Ok(Some(DsnDeposee::Remplacee { limite: m.limite(mois)? }));
+    // LA FRONTIERE EST LA VEILLE A MINUIT, pas le jour de l'echeance.
+    let veille = m.limite(mois)?;
+    if ctx.aujourdhui <= veille {
+        return Ok(Some(DsnDeposee::Remplacee { limite: veille }));
     }
     Ok(Some(DsnDeposee::Corrigee { porteur: dsn_qui_porte(ctx, &mois.to_string())? }))
 }

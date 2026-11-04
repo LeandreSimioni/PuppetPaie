@@ -14,6 +14,7 @@
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
 //! Un numero de contrat s'ecrit dans l'engagement a sa validation (`engagement::numeros`) ; tout ce qui part le lit la.
 
+use socle::mois::Mois;
 use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -173,21 +174,21 @@ pub(crate) fn versions_portees_de(racine: &Path, fichier: &Path) -> Option<Vec<V
 
 /// Ce que doit etre la prochaine DSN REELLE de ce mois : `(type, ordre, remplace)`. Normale d'ordre 1 si rien n'est
 /// passe ; sinon annule-et-remplace au rang suivant -- et un refus si son delai est passe.
-fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<(String, i64, bool)> {
-    let faits = m.depots_reels(socle::mois::Mois::lire(mois)?, nic)?;
-    let dernier = m.dernier_ordre(socle::mois::Mois::lire(mois)?, &faits)?;
+fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, le_mois: Mois, nic: &Value) -> R<(String, i64, bool)> {
+    let faits = m.depots_reels(le_mois, nic)?;
+    let dernier = m.dernier_ordre(le_mois, &faits)?;
     // CE QUE LA PLATE-FORME A VU EN REEL ce mois civil, lu en silence dans les bilans archives
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : le rang se compte « au cours du mois courant » (cahier
     // technique DSN, p. 136), toutes declarations du SIREN confondues, d'ou qu'elles soient parties (un autre poste).
     let constitution: String = ctx.aujourdhui.iso().chars().take(7).collect();
-    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, &le_mois.to_string())?;
     let dernier = match dernier {
         Some(d) => d.max(vues.ordre),
         // Une mensuelle du mois acceptee en reel que le journal ignore : la suivante la remplace.
         None if vues.du_mois_acceptee => vues.ordre.max(1),
         None => return Ok(("01".into(), vues.ordre + 1, false)),
     };
-    m.refuser_si_hors_delai(socle::mois::Mois::lire(mois)?)?;
+    m.refuser_si_hors_delai(le_mois)?;
     Ok(("03".into(), dernier + 1, true))
 }
 
@@ -549,10 +550,10 @@ fn pas_avant(ctx: &Contexte, mois: &str) -> R<()> {
 /// Refus : un mois de l'ancien logiciel, sa DSN importee ou non (`import::mois::refuser_la_dsn_de_l_ancien_logiciel`) ;
 /// un mois dont aucun engagement n'est valide alors qu'il en a (rien ne part d'un engagement en saisie) ; un mois
 /// deja declare dont l'annule-et-remplace n'est plus admis.
-pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabriquee> {
+pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFabriquee> {
+    let mois = &le_mois.to_string();
     crate::import::mois::refuser_la_dsn_de_l_ancien_logiciel(ctx, mois)?;
     let _verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
-    socle::mois::Mois::lire(mois).map_err(valeur)?;
     crate::routes::mois::refuser_si_clos(ctx, mois)?;
     pas_avant(ctx, mois)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
@@ -604,9 +605,9 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     // Un mois deja declare dont l'annule-et-remplace n'est plus admis : refuse AVANT d'ecrire quoi que ce soit.
     let nics: Vec<Value> = if plusieurs { std::iter::once(principal.clone()).chain(secondaires.iter().cloned()).map(Value::String).collect() } else { vec![Value::Null] };
     for nic in &nics {
-        forme_de_la_dsn(ctx, &mut m, mois, nic)?;
+        forme_de_la_dsn(ctx, &mut m, le_mois, nic)?;
     }
-    let etiq = socle::mois::Mois::lire(mois).map(socle::mois::Mois::etiquette).map_err(valeur)?;
+    let etiq = le_mois.etiquette();
     let sortie = ctx.racine.join("sorties").join(mois);
 
     // LES CORRECTIONS DES MOIS DEJA DECLARES : la DSN de ce mois les porte, datees de leur mois d'origine.
@@ -688,7 +689,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             Some(x) if *x != principal => format!("DSN_{}_{}.dsn", etiq, x),
             _ => format!("DSN_{}.dsn", etiq),
         };
-        let (type_dsn, ordre, remplace) = forme_de_la_dsn(ctx, &mut m, mois, nic)?;
+        let (type_dsn, ordre, remplace) = forme_de_la_dsn(ctx, &mut m, le_mois, nic)?;
         let mut remplacee_versait_pas = None;
         if remplace {
             remplacee_versait_pas = remplacee_versait_pas_de(ctx, &mut m, mois, nic)?;
@@ -697,7 +698,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
                 "La DSN de {} est deja partie : celle-ci est un ANNULE-ET-REMPLACE integral (ordre {}). Elle remplace la precedente, ordres de telepaiement compris, et s'envoie au plus tard le {} a minuit.",
                 socle::mois::Mois::en_clair(mois),
                 ordre,
-                m.limite(socle::mois::Mois::lire(mois)?)?.jj_mm_aaaa()
+                m.limite(le_mois)?.jj_mm_aaaa()
             )));
         }
         let f_dsn = sortie.join(&nom);
@@ -720,7 +721,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             declarations::dsn::ecrire(texte, f).map_err(|m| erreur("OSError", m))?;
         }
         // La paie que chaque DSN declare : l'ecran dira si elle change avant l'envoi.
-        let empreinte = m.empreinte_saisie_avec(socle::mois::Mois::lire(mois)?, || Ok(Moteur::portees(&lu.regs)))?;
+        let empreinte = m.empreinte_saisie_avec(le_mois, || Ok(Moteur::portees(&lu.regs)))?;
         for (f, _, portees) in a_ecrire {
             noter_piece_ecrite(&ctx.racine, &cle_de_piece(&f), Some(json!(empreinte)), Some(portees))?;
         }
