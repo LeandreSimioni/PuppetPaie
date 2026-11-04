@@ -275,7 +275,7 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
         droit::emplois::par_intitule(&intitule, crate::import::bulletins::compare)?.map(|(c, _)| c)
     };
     if let Some(c) = du_catalogue {
-        let femme = declarations::ntt::sexe(&json!({"nir": decl.nir})) == "2";
+        let femme = declarations::ntt::sexe_de(&decl.nir, "") == "2";
         if let Some(l) = droit::emplois::resoudre(&c, None, femme)?.get("emploi_affichage").filter(|l| vrai(l)) {
             f.insert("emploi_affichage".into(), l.clone());
         }

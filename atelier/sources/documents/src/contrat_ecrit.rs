@@ -52,7 +52,7 @@ fn qui(m: &Valeurs) -> String {
 /// et le terme d'un CDD, le lieu, la remuneration, sa periodicite, la duree du travail. `remuneration`, `brut`, `net` :
 /// ceux de la paie calculee du mois.
 #[allow(clippy::too_many_arguments)]
-pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, remuneration: &[Value], brut: &Value, net: &Value, m: &mut Valeurs) -> Resultat<()> {
+pub fn marqueurs_au_mois(eng: &Value, nat: &Nature, remuneration: &[Value], brut: &Value, net: &Value, m: &mut Valeurs) -> Resultat<()> {
     let nom = qui(m);
     // LE TERME (L1242-12, 2°) : un contrat a duree determinee le dit ; un CDI n'en a pas.
     match texte(eng, "fin") {
@@ -151,7 +151,6 @@ pub fn marqueurs_au_mois(ent: &Value, sal: &Value, eng: &Value, nat: &Nature, re
         duree.push_str(", soit la durée légale de trente-cinq heures par semaine (article L. 3121-27 du code du travail)");
     }
     m.insert("contrat.duree_travail".into(), duree);
-    let _ = (ent, sal);
     Ok(())
 }
 
@@ -244,17 +243,17 @@ impl Organismes {
 /// de prevoyance (L1242-12, 8° ; R1221-34, 14°), les mentions de renvoi (R1221-34, 8° a 10° et 14°, que R1221-35 permet
 /// de dire par un renvoi aux textes), et les clauses particulieres -- celles de l'engagement, sinon celles que la
 /// compagnie ecrit une fois dans sa configuration.
-pub fn poser_les_mentions(ctx: &Contexte, ent: &Value, sal: &Value, eng: &Value, nat: &Nature, m: &mut Valeurs) -> Resultat<()> {
+pub fn poser_les_mentions(ctx: &Contexte, ent: &Value, sal: &droit::fiche::ChampsSalarie, eng: &Value, nat: &Nature, m: &mut Valeurs) -> Resultat<()> {
     let nom = qui(m);
     // LA CATEGORIE D'EMPLOI : le classement conventionnel (S21.G00.40.002), sinon le statut cadre ou non cadre de la
     // retraite complementaire (S21.G00.40.003), sinon le statut du spectacle (artiste, technicien).
-    let lu = |c: &str| sal.get(c).filter(|v| vrai(v)).map(en_texte);
-    let categorie = match lu("statut_conventionnel").map(|c| natures::categorie_d_emploi(&c)).transpose()?.flatten() {
+    let lu = |c: &'static str| Some(c.to_string()).filter(|c| !c.is_empty());
+    let categorie = match lu(sal.statut_conventionnel.code()).map(|c| natures::categorie_d_emploi(&c)).transpose()?.flatten() {
         Some(c) => c,
-        None => match lu("statut_categoriel_rc").as_deref() {
-            Some("01" | "02") => "cadre".to_string(),
-            Some("04") => "non cadre".to_string(),
-            _ => lu("statut").ok_or_else(|| {
+        None => match sal.statut_categoriel_rc.code() {
+            "01" | "02" => "cadre".to_string(),
+            "04" => "non cadre".to_string(),
+            _ => lu(sal.statut.code()).ok_or_else(|| {
                 format!("La fiche de {} ne dit pas sa catégorie d'emploi, que le contrat écrit porte (R. 1221-34, 3°) : choisir son métier dans la liste, ou saisir son classement conventionnel sur sa fiche. Rien n'est écrit.", nom)
             })?,
         },

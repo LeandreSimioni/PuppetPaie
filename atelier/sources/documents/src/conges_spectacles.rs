@@ -13,7 +13,7 @@ use socle::date::{repr_flottant, Jour};
 use engagement::Engagement;
 use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
-use socle::num::{dec, dec_f64, Decimal};
+use socle::num::{dec_f64, Decimal};
 use socle::echec::Refus;
 
 type R<T> = Result<T, Refus>;
@@ -215,16 +215,6 @@ pub fn arrondi_euro(x: Decimal) -> i64 {
     x.round_dp_with_strategy(0, RoundingStrategy::MidpointAwayFromZero).to_i64().unwrap_or(0)
 }
 
-/// `base_conge` : le brut, plafonne au triple du minimum conventionnel quand la fiche en porte un.
-fn base_conge(brut: Decimal, salarie: &Value) -> R<Decimal> {
-    match salarie.get("minimum_conventionnel_cachet") {
-        Some(mini) if vrai(mini) => {
-            let m = dec(&Value::String(valeur_en_texte(mini)))? * Decimal::from(3);
-            Ok(brut.min(m))
-        }
-        _ => Ok(brut),
-    }
-}
 
 // ----------------------------------------------------- decoupage au 31 mars
 
@@ -276,7 +266,7 @@ impl ContratCs {
 pub struct PaieCs {
     pub engagement: ContratCs,
     pub brut: Decimal,
-    pub salarie: Value,
+    pub salarie: droit::fiche::ChampsSalarie,
 }
 
 /// Les 31 mars strictement traverses par un contrat.
@@ -361,7 +351,7 @@ pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
                 fin,
                 nb_jours_ou_cachets: nb,
                 brut,
-                base: base_conge(brut, &paie.salarie)?,
+                base: brut,
                 emission: fin,
             });
         }
@@ -398,7 +388,7 @@ pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
             fin: *fin,
             nb_jours_ou_cachets: *nb,
             brut,
-            base: base_conge(brut, &paie.salarie)?,
+            base: brut,
             emission: *fin,
         });
         numero += 1;
@@ -408,7 +398,7 @@ pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
         if total != paie.brut {
             let qui = match &e.numero {
                 Some(n) => n.to_string(),
-                None => valeur_en_texte(paie.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
+                None => texte_requis(&paie.salarie.nom, "nom")?,
             };
             return Err(Refus {
                 classe: Some("ValueError"),
@@ -463,6 +453,11 @@ fn siret_espace(siret: &Value) -> String {
     }
 }
 
+/// Une case texte de la fiche du salarie que le certificat exige : absente, elle se refuse.
+fn texte_requis(c: &droit::fiche::Case<String>, k: &str) -> R<String> {
+    c.ecrite(k).map(str::to_string).map_err(|_| cle_absente(k))
+}
+
 fn requis<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
     v.get(k).ok_or_else(|| cle_absente(k))
 }
@@ -479,30 +474,30 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<(&'static str, Stri
     let s = &p.salarie;
     let sig = requis(ent, "signataire")?;
     let agrement = ou_vide(ent, "congesspectacles_agrement");
-    let adresse_defaut = requis(s, "adresse")?;
-    let commune_defaut = requis(s, "commune")?;
+    let adresse_defaut = texte_requis(&s.adresse, "adresse")?;
+    let commune_defaut = texte_requis(&s.commune, "commune")?;
+    // La forme lisible quand la fiche la porte, la forme declaree sinon.
+    let lisible = |c: &droit::fiche::Case<String>, defaut: String| if c.est_absente() { defaut } else { c.texte().to_string() };
     let mut out: Vec<(&'static str, String)> = Vec::new();
-    out.push(("dest_nom", format!("{} {}", valeur_en_texte(requis(s, "prenom")?), valeur_en_texte(requis(s, "nom")?))));
-    out.push(("dest_adresse", valeur_en_texte(s.get("adresse_affichage").unwrap_or(adresse_defaut))));
-    out.push((
-        "dest_commune",
-        format!("{} {}", valeur_en_texte(requis(s, "code_postal")?), valeur_en_texte(s.get("commune_affichage").unwrap_or(commune_defaut))),
-    ));
+    out.push(("dest_nom", format!("{} {}", texte_requis(&s.prenom, "prenom")?, texte_requis(&s.nom, "nom")?)));
+    out.push(("dest_adresse", lisible(&s.adresse_affichage, adresse_defaut)));
+    out.push(("dest_commune", format!("{} {}", texte_requis(&s.code_postal, "code_postal")?, lisible(&s.commune_affichage, commune_defaut))));
     out.push(("dest_pays", "France".to_string()));
     out.push(("siret", siret_espace(requis(ent, "siret")?)));
     out.push(("compte", ou_vide(ent, "congesspectacles_adherent")));
     out.push(("num_ce", c.numero.to_string()));
     out.push((
         "nir",
-        format!("{} {}", ou_vide(s, "nir"), ou_vide(s, "nir_cle")).trim_matches(socle::texte::blanc).to_string(),
+        format!("{} {}", s.nir.texte(), s.nir_cle.texte()).trim_matches(socle::texte::blanc).to_string(),
     ));
     out.push(("raison_sociale", valeur_en_texte(requis(ent, "raison_sociale")?)));
-    out.push(("nom_naissance", valeur_en_texte(requis(s, "nom")?)));
-    out.push(("nom_usage", ou_vide(s, "nom_usage")));
-    out.push(("emploi", valeur_en_texte(requis(s, "emploi")?)));
-    out.push(("cadre", if s.get("cadre").map_or(false, vrai) { "OUI" } else { "NON" }.to_string()));
-    out.push(("prenom", valeur_en_texte(requis(s, "prenom")?)));
-    out.push(("pseudonyme", ou_vide(s, "pseudonyme")));
+    out.push(("nom_naissance", texte_requis(&s.nom, "nom")?));
+    // Le nom d'usage, le statut de cadre et le pseudonyme du formulaire : la fiche ne les porte pas.
+    out.push(("nom_usage", String::new()));
+    out.push(("emploi", texte_requis(&s.emploi, "emploi")?));
+    out.push(("cadre", "NON".to_string()));
+    out.push(("prenom", texte_requis(&s.prenom, "prenom")?));
+    out.push(("pseudonyme", String::new()));
     out.push(("debut", cases_date(&c.debut)));
     out.push(("fin", cases_date(&c.fin)));
     out.push(("nb_cachets", c.nb_jours_ou_cachets.to_string()));
@@ -616,8 +611,8 @@ pub fn recapitulatif(paires: &[(&PaieCs, i64)], ent: &Value) -> R<String> {
         for c in certificats(p, *premier)? {
             let nom = format!(
                 "{} {}",
-                valeur_en_texte(p.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
-                valeur_en_texte(p.salarie.get("prenom_affichage").ok_or_else(|| cle_absente("prenom_affichage"))?)
+                texte_requis(&p.salarie.nom, "nom")?,
+                texte_requis(&p.salarie.prenom_affichage, "prenom_affichage")?
             );
             lignes.push(format!(
                 "  N CE {:<6} {:<22} {} -> {}  {:>2} jour(s)/cachet(s)  brut {:>5}  base {:>5}",

@@ -63,11 +63,38 @@ impl<T: Serialize> Case<T> {
     }
 }
 
+impl<T> Case<T> {
+    /// La valeur dite, que l'acte exige : sinon le refus nomme la case (`cle`).
+    pub fn exigee(&self, cle: &str) -> Resultat<&T> {
+        self.dite().ok_or_else(|| socle::fichiers::absent(cle))
+    }
+}
+
 impl Case<String> {
     /// Le texte dit, `""` sinon.
     pub fn texte(&self) -> &str {
         self.dite().map_or("", String::as_str)
     }
+
+    /// Le texte d'une case que la fiche doit porter, vide ou non : absente, le refus la nomme (`cle`).
+    pub fn ecrite(&self, cle: &str) -> Resultat<&str> {
+        match self {
+            Case::Absente => Err(socle::fichiers::absent(cle)),
+            c => Ok(c.texte()),
+        }
+    }
+}
+
+impl<T: Choix> Case<T> {
+    /// Un choix dit, tel qu'il s'ecrit ; `""` sinon.
+    pub fn code(&self) -> &'static str {
+        self.dite().map_or("", Choix::code)
+    }
+}
+
+/// Un choix (`choix!`) : sa valeur ecrite.
+pub trait Choix {
+    fn code(&self) -> &'static str;
 }
 
 impl Case<bool> {
@@ -193,6 +220,11 @@ macro_rules! choix {
         }
         impl FormeDeCase for $nom {
             const VALEURS: &'static [&'static str] = &[$($txt),*];
+        }
+        impl Choix for $nom {
+            fn code(&self) -> &'static str {
+                self.as_str()
+            }
         }
     };
 }
@@ -636,6 +668,25 @@ impl ChampsSalarie {
         (!tout.is_empty()).then_some(tout)
     }
 
+    /// Ce que la fiche dit de la nationalite (`socle::codification_ue`, S21.G00.30.013).
+    pub fn nationalite(&self) -> socle::codification_ue::Nationalite {
+        socle::codification_ue::Nationalite::nouvelle(
+            self.code_nationalite_dsn.code(),
+            self.pays_nationalite.texte(),
+            self.pays_nationalite_hors_liste.texte(),
+            self.nomme(),
+        )
+    }
+
+    /// Le pays de naissance tel que la DSN le declare (S21.G00.30.015, `socle::pays::de_naissance`).
+    pub fn pays_de_naissance(&self) -> Resultat<Case<String>> {
+        let qui = format!("{} {}", self.prenom.texte(), self.nom.texte()).trim().to_string();
+        Ok(match &self.pays_naissance {
+            Case::Dite(code) => Case::Dite(socle::pays::de_naissance(code, &qui)?),
+            autre => autre.clone(),
+        })
+    }
+
     /// Archivee : `actif: false`. L'absence vaut actif.
     pub fn archivee(&self) -> bool {
         self.actif.dite() == Some(&false)
@@ -759,8 +810,20 @@ compagnie à nouveau (« Ajouter une compagnie », d'un logiciel précédent) ou
     )
 }
 
+/// Le refus d'une ecriture de fiche que sa forme ne lit pas : rien ne s'ecrit, la valeur se corrige.
+fn refus_d_ecriture(fichier: &str, chemin: &str, detail: &str) -> String {
+    let ou = if chemin.is_empty() { String::new() } else { format!(", à « {} »", chemin) };
+    format!("{}{} ne s'écrirait pas : {}. Rien n'est écrit : corriger cette valeur.", fichier, ou, detail)
+}
+
+type Phrase = fn(&str, &str, &str) -> String;
+
 /// LA LECTURE DE `config/salaries.json` (`fichier` : son nom dans les refus), la seule.
 pub fn lire_salaries(v: &Value, fichier: &str) -> Resultat<Salaries> {
+    salaries_par(v, fichier, refus_de_fiche)
+}
+
+fn salaries_par(v: &Value, fichier: &str, refus_de_fiche: Phrase) -> Resultat<Salaries> {
     let o = v.as_object().ok_or_else(|| refus_de_fiche(fichier, "", "un objet JSON est attendu"))?;
     let mut out = Salaries::default();
     for (k, f) in o {
@@ -782,6 +845,10 @@ pub fn lire_salaries(v: &Value, fichier: &str) -> Resultat<Salaries> {
 
 /// LA LECTURE DE `config/entreprise.json`, la seule.
 pub fn lire_entreprise(v: &Value, fichier: &str) -> Resultat<FicheEntrepriseDatee> {
+    entreprise_par(v, fichier, refus_de_fiche)
+}
+
+fn entreprise_par(v: &Value, fichier: &str, refus_de_fiche: Phrase) -> Resultat<FicheEntrepriseDatee> {
     // La note du fichier (`_source`) ne se lit pas.
     let mut v = v.clone();
     if let Some(o) = v.as_object_mut() {
@@ -809,11 +876,17 @@ pub fn ecrire_entreprise(e: &FicheEntrepriseDatee) -> Value {
 
 /// LE CONTENU D'UN FICHIER DE FICHES, PASSE PAR SA FORME avant de s'ecrire (`nom` : `salarie` ou `entreprise` ; une autre
 /// fiche passe telle quelle) : ce qui ne se lit pas se refuse, rien n'est ecrit ; ce qui se lit s'ecrit tel que la forme
-/// l'ecrit.
+/// l'ecrit, la note du fichier (`_source`) en tete.
 pub fn par_la_forme(nom: &str, fichier: &str, contenu: &Value) -> Resultat<Value> {
     match nom {
-        "salarie" => Ok(ecrire_salaries(&lire_salaries(contenu, fichier)?)),
-        "entreprise" => Ok(ecrire_entreprise(&lire_entreprise(contenu, fichier)?)),
+        "salarie" => Ok(ecrire_salaries(&salaries_par(contenu, fichier, refus_d_ecriture)?)),
+        "entreprise" => {
+            let mut v = ecrire_entreprise(&entreprise_par(contenu, fichier, refus_d_ecriture)?);
+            if let (Some(n), Some(o)) = (contenu.get(NOTE_DU_FICHIER), v.as_object_mut()) {
+                o.shift_insert(0, NOTE_DU_FICHIER.into(), n.clone());
+            }
+            Ok(v)
+        }
         _ => Ok(contenu.clone()),
     }
 }

@@ -55,25 +55,41 @@ pub fn code_du_pays(iso: &str) -> &'static str {
     }
 }
 
-fn texte(fiche: &Value, cle: &str) -> Option<String> {
-    fiche.get(cle).filter(|v| vrai(v)).map(|v| crate::valeur::valeur_en_texte(v).trim().to_string()).filter(|t| !t.is_empty())
+/// CE QU'UNE FICHE DIT DE LA NATIONALITE : le code choisi (`code_nationalite_dsn`), le pays de la liste
+/// (`pays_nationalite`), le pays ecrit hors de la liste (`pays_nationalite_hors_liste`), chacun sans blancs et `None`
+/// quand elle ne le dit pas ; et qui elle nomme, pour les refus.
+#[derive(Debug, Clone, Default)]
+pub struct Nationalite {
+    pub code: Option<String>,
+    pub pays: Option<String>,
+    pub hors: Option<String>,
+    pub qui: String,
 }
 
-fn qui(fiche: &Value) -> String {
-    crate::texte::salarie_nomme(fiche).unwrap_or_else(|| "ce salarié".to_string())
+impl Nationalite {
+    pub fn nouvelle(code: &str, pays: &str, hors: &str, qui: Option<String>) -> Nationalite {
+        let dit = |t: &str| Some(t.trim().to_string()).filter(|t| !t.is_empty());
+        Nationalite { code: dit(code), pays: dit(pays), hors: dit(hors), qui: qui.unwrap_or_else(|| "ce salarié".to_string()) }
+    }
+
+    /// D'une fiche en JSON (une saisie a verifier, une table d'export), lue par ses cases.
+    pub fn en_json(fiche: &Value) -> Nationalite {
+        let texte = |cle: &str| fiche.get(cle).filter(|v| vrai(v)).map(crate::valeur::valeur_en_texte).unwrap_or_default();
+        Nationalite::nouvelle(&texte("code_nationalite_dsn"), &texte("pays_nationalite"), &texte("pays_nationalite_hors_liste"), crate::texte::salarie_nomme(fiche))
+    }
 }
 
 /// Ce qui ne va pas dans le pays de nationalite ecrit hors de la liste (`pays_nationalite_hors_liste`), avant toute
 /// codification : un pays de la liste a cote, ou un pays que la liste connait (son nom ou son code). `None` : rien a
 /// dire (pas de pays hors liste, ou un pays que la liste ne connait pas).
-pub fn faute_hors_liste(fiche: &Value) -> Resultat<Option<String>> {
-    let Some(hors) = texte(fiche, "pays_nationalite_hors_liste") else { return Ok(None) };
-    if let Some(pays) = texte(fiche, "pays_nationalite") {
+pub fn faute_hors_liste(fiche: &Nationalite) -> Resultat<Option<String>> {
+    let Some(hors) = fiche.hors.clone() else { return Ok(None) };
+    if let Some(pays) = fiche.pays.clone() {
         return Ok(Some(format!(
             "La fiche de {} dit deux pays de nationalité : {} dans la liste, et « {} » hors de la liste. Garder l'un ou \
              l'autre : le pays de la liste, dont la nationalité DSN se déduit, ou le pays hors de la liste avec la \
              nationalité choisie.",
-            qui(fiche),
+            fiche.qui,
             pays,
             hors
         )));
@@ -87,7 +103,7 @@ pub fn faute_hors_liste(fiche: &Value) -> Resultat<Option<String>> {
         format!(
             "Le pays de nationalité de {} (« {} ») est dans la liste ({}, {}) : le choisir dans « Pays de nationalité » ; \
              la nationalité que la DSN déclare s'en déduit et ne se choisit pas.",
-            qui(fiche),
+            fiche.qui,
             hors,
             p.nom,
             p.code
@@ -99,30 +115,30 @@ pub fn faute_hors_liste(fiche: &Value) -> Resultat<Option<String>> {
 /// (la fiche ne dit pas si c'est l'EEE ou le reste du monde) ; un pays et un code qui se contredisent. Un pays de
 /// nationalite hors de la liste livree (`pays.rs`) refuse aussi, sauf ecrit comme tel (`pays_nationalite_hors_liste`) :
 /// la codification est alors celle que l'administrateur a choisie.
-pub fn codification_ue(fiche: &Value) -> Resultat<String> {
-    let code = texte(fiche, "code_nationalite_dsn");
+pub fn codification_ue(fiche: &Nationalite) -> Resultat<String> {
+    let code = fiche.code.clone();
     if let Some(m) = faute_hors_liste(fiche)? {
         return Err(m);
     }
-    if let Some(hors) = texte(fiche, "pays_nationalite_hors_liste") {
+    if let Some(hors) = fiche.hors.clone() {
         return match code.as_deref() {
             None => Err(format!(
                 "Le pays de nationalité de {} (« {} ») n'est pas dans la liste du logiciel : la nationalité que la DSN \
                  déclare ne s'en déduit pas. Dans sa fiche, la choisir (S21.G00.30.013, cahier technique DSN p. 173 : \
                  02 Union européenne, 03 Espace économique européen hors Union, 04 reste du monde).",
-                qui(fiche),
+                fiche.qui,
                 hors
             )),
             Some("01") => Err(format!(
                 "La fiche de {} dit la nationalité française (01) et un pays de nationalité hors de la liste (« {} ») : \
                  la France est dans la liste. Choisir 02, 03 ou 04, ou la France dans « Pays de nationalité ».",
-                qui(fiche),
+                fiche.qui,
                 hors
             )),
             Some(c) => Ok(c.to_string()),
         };
     }
-    let Some(pays) = texte(fiche, "pays_nationalite") else {
+    let Some(pays) = fiche.pays.clone() else {
         return match code.as_deref() {
             None => Err(crate::fichiers::absent("code_nationalite_dsn")),
             Some("03") => Err(format!(
@@ -130,7 +146,7 @@ pub fn codification_ue(fiche: &Value) -> Resultat<String> {
                  fait du 03 l'Espace économique européen hors Union (Islande, Liechtenstein, Norvège), et le reste du monde \
                  est 04 (S21.G00.30.013, cahier technique p. 173). Dans sa fiche, indiquer son pays de nationalité, ou \
                  choisir de nouveau la nationalité (04 pour un pays hors Union et hors EEE).",
-                qui(fiche)
+                fiche.qui
             )),
             Some(c) => Ok(c.to_string()),
         };
@@ -138,7 +154,7 @@ pub fn codification_ue(fiche: &Value) -> Resultat<String> {
     // LE PAYS SE LIT DANS LA LISTE LIVREE (`pays.rs`) : un code qu'elle ne connait pas refuse ; un territoire
     // prend la codification de son pays de rattachement.
     let Some(p) = crate::pays::du_code(&pays)? else {
-        return Err(crate::pays::inconnu_nationalite(&format!("Le pays de nationalité de {}", qui(fiche)), &pays));
+        return Err(crate::pays::inconnu_nationalite(&format!("Le pays de nationalité de {}", fiche.qui), &pays));
     };
     let iso = p.code.clone();
     let attendu = crate::pays::codification(&p);
@@ -148,7 +164,7 @@ pub fn codification_ue(fiche: &Value) -> Resultat<String> {
         Some(c) if c != attendu && !(c == "03" && attendu == "04") && !(c == "02" && attendu == "03") => Err(format!(
             "La fiche de {} dit la nationalité {} et le pays de nationalité {}, qui se déclare {} (S21.G00.30.013 : 01 \
              France, 02 Union européenne, 03 EEE hors Union, 04 reste du monde). Corriger l'un ou l'autre dans sa fiche.",
-            qui(fiche),
+            fiche.qui,
             c,
             iso,
             attendu

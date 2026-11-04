@@ -283,7 +283,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &V
             let p = valeur_en_texte(&v["consequence"]);
             super::phrase_en_tete(v, p)
         }),
-        Route::VerifierFiche => verifier_fiche(ctx, charge).map(|mut v| {
+        Route::VerifierFiche => verifier_fiche(charge).map(|mut v| {
             let lignes: Vec<Value> = v["anomalies"].as_array().into_iter().flatten().map(|a| json!(format!("{} : {}", valeur_en_texte(&a["champ"]), valeur_en_texte(&a["message"])))).collect();
             let p = if lignes.is_empty() { "La fiche est juste.".to_string() } else { format!("Anomalies de la fiche : {}.", lignes.len()) };
             v["phrases"] = Value::Array(lignes);
@@ -921,24 +921,15 @@ pub(crate) fn avec_libelles(nom: &str, anomalies: &mut [Value]) -> R<()> {
 
 /// `verifier-fiche` : les anomalies de la fiche telle qu'elle SERAIT derivee, ce qui
 /// serait declare, et ce que le moteur proposerait pour les cases vides.
-fn verifier_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn verifier_fiche(charge: &Value) -> R<Value> {
     let nom_brut = exiger(charge, "nom")?;
     let donnees = exiger(charge, "donnees")?;
     let mut copie = copie_en_objet(donnees)?;
     let nom = nom_de_fiche(nom_brut)?;
     deriver(nom, &mut copie, false)?;
     let mut anomalies = champs::verifier_fiche(nom, &copie)?;
-    // Une case que la fiche ne decrit pas se dit comme a l'ecriture (`ecrire_fiche`), face a la fiche qu'elle completerait.
-    let (vide, montree) = (Value::Object(Map::new()), crate::routes::etablissements::entreprise_montree(ctx));
-    let cle = charge.get("cle").and_then(Value::as_str).filter(|k| !k.is_empty());
-    // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
-    let lue = cle.and_then(|k| ctx.salaries.get(k)).map(|f| f.champs.en_valeur());
-    let ancienne: &Value = match nom {
-        "entreprise" => &montree,
-        "salarie" => lue.as_ref().unwrap_or(&vide),
-        _ => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
-    };
-    anomalies.extend(champs::cases_inconnues(nom, &copie, ancienne, true)?);
+    // Une case que la fiche ne decrit pas se dit comme a l'ecriture (`ecrire_fiche`).
+    anomalies.extend(champs::cases_inconnues(nom, &copie, true)?);
     let objet = donnees.as_object();
     let declare = match objet {
         Some(o) => champs::apercu_derive(nom, o)?,
@@ -1582,8 +1573,9 @@ fn poser_champs(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees: Map<Strin
     };
     let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &ctx.lue_au, &format!("config/{}", fichier)).map_err(plain)?;
     ecrire_datee(brute, nom, &ancienne, &donnees, false, depuis, note, &ctx.lue_au)?;
+    let contenu = par_sa_forme(nom, contenu)?;
     sauver_avant(&chemin)?;
-    ecrire(&chemin, Value::Object(contenu))
+    ecrire(&chemin, contenu)
 }
 
 /// UN TAUX DE PAS RECU S'ECRIT DANS LA FICHE DE SON SALARIE (`droit::pas::CHAMP`), date du jour ou il commence de valoir
@@ -1596,8 +1588,9 @@ pub(crate) fn poser_taux_recu(ctx: &Contexte, salarie: &str, valeur: Value, depu
     };
     let ancienne = droit::contexte::fiche_au(&Value::Object(brute.clone()), &depuis, droit::contexte::SALARIES).map_err(plain)?;
     ecrire_datee(brute, "salarie", &ancienne, &un_champ(droit::pas::CHAMP, valeur), true, Some(depuis), Some(note), &depuis)?;
+    let contenu = par_sa_forme("salarie", contenu)?;
     sauver_avant(&chemin)?;
-    ecrire(&chemin, Value::Object(contenu))
+    ecrire(&chemin, contenu)
 }
 
 /// Un seul champ, pour `poser_champs`.
@@ -1946,7 +1939,7 @@ cette fiche-là, ou corrigez le numéro.",
         }
     }
     let mut anomalies = crate::routes::fiches::verifier(nom, &entiere)?;
-    anomalies.extend(champs::cases_inconnues(nom, &donnees, ancienne, !matches!(forcer, Forcer::Tout))?);
+    anomalies.extend(champs::cases_inconnues(nom, &donnees, !matches!(forcer, Forcer::Tout))?);
     if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(nom, &anomalies));
     }
@@ -1961,7 +1954,7 @@ cette fiche-là, ou corrigez le numéro.",
         if let Some(l) = etablissements {
             crate::routes::etablissements::ecrire(ctx, &mut contenu, &donnees, &l, depuis, note.as_deref())?;
         }
-        return finir_fiche(None, &chemin, contenu, anomalies);
+        return finir_fiche(nom, None, &chemin, contenu, anomalies);
     }
     if cle.as_deref().map_or(true, str::is_empty) {
         // UNE FICHE NEUVE : la cle se fabrique ici et nulle part ailleurs.
@@ -1974,7 +1967,7 @@ cette fiche-là, ou corrigez le numéro.",
     };
     ecrire_datee(&mut brute, nom, ancienne, &donnees, false, depuis, note.as_deref(), &ctx.lue_au)?;
     contenu.insert(k, Value::Object(brute));
-    finir_fiche(cle, &chemin, contenu, anomalies)
+    finir_fiche(nom, cle, &chemin, contenu, anomalies)
 }
 
 /// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (`import::completer`) : chaque champ de `champs` va dans la fiche
@@ -2017,20 +2010,27 @@ pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, Stri
     Ok(())
 }
 
-fn finir_fiche(cle: Option<String>, chemin: &Path, contenu: Map<String, Value>, anomalies: Vec<Value>) -> R<FicheEcrite> {
+fn finir_fiche(nom: &str, cle: Option<String>, chemin: &Path, contenu: Map<String, Value>, anomalies: Vec<Value>) -> R<FicheEcrite> {
     let avant = Value::Object(objet_du_fichier(chemin)?);
-    let apres = Value::Object(contenu.clone());
+    let apres = par_sa_forme(nom, contenu)?;
     let ecrit = avant != apres;
     let (a, n) = match cle.as_deref() {
-        Some(k) => (avant.get(k).cloned().unwrap_or(Value::Null), apres.get(k).cloned().unwrap_or(Value::Null)),
-        None => (avant, apres),
+        Some(k) => (avant.get(k).unwrap_or(&Value::Null), apres.get(k).unwrap_or(&Value::Null)),
+        None => (&avant, &apres),
     };
     let champs: Vec<String> = n.as_object().into_iter().flatten().filter(|(k, v)| !k.starts_with('_') && a.get(k.as_str()) != Some(*v)).map(|(k, _)| k.clone()).collect();
     if ecrit {
         sauver_avant(chemin)?;
-        ecrire(chemin, Value::Object(contenu))?;
+        ecrire(chemin, apres)?;
     }
     Ok(FicheEcrite { cle, anomalies, ecrit, champs })
+}
+
+/// LE FICHIER D'UNE FICHE, PASSE PAR SA FORME avant de s'ecrire (`droit::fiche::par_la_forme`) : une cle ou une valeur
+/// qu'elle ne lit pas se refuse, et rien n'est ecrit.
+fn par_sa_forme(nom: &str, contenu: Map<String, Value>) -> R<Value> {
+    let fichier = format!("config/{}", fichier_de(nom).unwrap_or_default());
+    droit::fiche::par_la_forme(nom, &fichier, &Value::Object(contenu)).map_err(plain)
 }
 
 // ------------------------------------------------------------------ la fiche demandee par courriel

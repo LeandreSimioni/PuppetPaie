@@ -399,7 +399,7 @@ pub(crate) fn etiquette(mois: &str) -> R<String> {
 
 /// `Paie` -> ce que le certificat en lit : le brut est celui du calcul, a deux decimales.
 pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
-    Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.en_valeur() })
+    Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.champs.clone() })
 }
 
 /// Ce que l'ancien logiciel a verse en `mois` pour un contrat qui continue ici : le brut, les cachets (une ligne, aux
@@ -483,7 +483,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         let fin_du_mois = socle::mois::Mois::lire(&eng.mois).map(socle::mois::Mois::dernier_jour).map_err(|x| avec("ValueError", x))?;
         mois_payes.push(MoisPaye { fin: fin_du_mois, jours: eng.jours, brut: eur2(p.brut) });
         let contrat = ContratCs { jours: jours + eng.jours, dates_travail: Vec::new(), cachets: 0, heures: None, taux_cachet: None, mois_payes, ..ContratCs::de(eng)? };
-        return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.en_valeur() }, manquants));
+        return Ok((PaieCs { engagement: contrat, brut, salarie: p.salarie.champs.clone() }, manquants));
     }
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
@@ -505,7 +505,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         "statut_categoriel_rc": texte(&eng.statut_categoriel_rc),
     });
     let entier = Engagement::nouveau(&ctx.racine, &entier, &ctx.nomme(&eng.salarie)).map_err(|m| avec("ValueError", m))?;
-    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.en_valeur() };
+    let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.champs.clone() };
     Ok((cs, manquants))
 }
 
@@ -718,8 +718,8 @@ fn mois_puppetpaie(
                 for (cle, siens) in &paires {
                     let nom = siens
                         .first()
-                        .and_then(|(pc, _)| pc.salarie.get("nom"))
-                        .map(valeur_en_texte)
+                        .and_then(|(pc, _)| pc.salarie.nom.ecrite("nom").ok())
+                        .map(str::to_string)
                         .ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?;
                     let mut ses_pages: Vec<usize> = Vec::new();
                     let mut etrangeres: Vec<i64> = Vec::new();

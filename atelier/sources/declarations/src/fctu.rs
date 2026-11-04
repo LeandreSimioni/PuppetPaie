@@ -10,7 +10,7 @@ use serde_json::Value;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::{
-    autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, jj, jour, liste, primes_et_indemnites,
+    autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, jour, liste, primes_et_indemnites,
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use engagement::Engagement;
@@ -498,8 +498,7 @@ ou un annule."
     let fin_jour = d(&fin.fin)?;
     let ctx = &ctx.au(&fin_jour)?;
     let ent0 = &ctx.entreprise;
-    // Les rubriques de la DSN se composent des cases de la fiche par leur nom : elle se lit ici en JSON.
-    let s = &paie.salarie.en_valeur();
+    let s = &paie.salarie;
     let bar = crate::dsn::BaremeDuMois::nouveau((*ctx.bareme(&fin_jour)?).clone());
     let constitution = match o.date_constitution {
         Some(j) => j,
@@ -587,29 +586,7 @@ ou un annule."
     }
 
     // ------------------------------------------------------------ S21 individu
-    crate::ntt::poser_nir(&mut f, s)?;
-    f.add_v("S21.G00.30.002", req(s, "nom")?)?;
-    f.add_v("S21.G00.30.004", req(s, "prenom")?)?;
-    f.add("S21.G00.30.006", jj(req(s, "date_naissance")?)?);
-    for (rub, k) in [
-        ("S21.G00.30.007", "lieu_naissance"),
-        ("S21.G00.30.008", "adresse"),
-        ("S21.G00.30.009", "code_postal"),
-        ("S21.G00.30.010", "commune"),
-    ] {
-        f.add_v(rub, req(s, k)?)?;
-    }
-    // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-    f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
-    for (rub, k) in [
-        ("S21.G00.30.014", "departement_naissance"),
-        ("S21.G00.30.015", "pays_naissance"),
-        ("S21.G00.30.019", "code_salarie"),
-    ] {
-        // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
-        let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
-        f.add_v(rub, &v)?;
-    }
+    crate::dsn::bloc_individu(&mut f, s, false)?;
     crate::ntt::poser_ntt(&mut f, &ent_l, s, crate::changements_individu::derniere_declaree(ctx, &paie.salarie, &fin_jour, departs)?.as_ref())?;
 
     // ------------------------------------------------------------ S21 contrat
@@ -641,9 +618,9 @@ ou un annule."
     }
 
     // ------------------------------------------------------------ S21 anciennete
-    let depuis = match s.get("date_anciennete") {
-        Some(v) => jour(v)?,
-        None => e.debut,
+    let depuis = match &s.date_anciennete {
+        droit::fiche::Case::Absente => e.debut,
+        c => *c.exigee("date_anciennete")?,
     };
     bloc_anciennete(&mut f, paie, fin_jour.moins(&depuis) + 1)?;
 

@@ -166,7 +166,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let code_ue = if texte(&["code_nationalite_dsn", "pays_nationalite", "pays_nationalite_hors_liste"], "").is_empty() {
             Ok(String::new())
         } else {
-            socle::codification_ue::codification_ue(f)
+            socle::codification_ue::codification_ue(&socle::codification_ue::Nationalite::en_json(f))
         };
         // LE PAYS, quand la fiche le porte : le registre dit la nationalite (C. trav.,
         // art. D1221-23, 1°), la categorie DSN la suit entre parentheses ; sans pays, la categorie seule.

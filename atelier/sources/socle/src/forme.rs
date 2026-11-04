@@ -42,7 +42,7 @@ fn en_clair(m: &str) -> String {
         return format!("la valeur n'a pas la forme attendue : {}", r.replace(", expected ", ", attendu "));
     }
     if let Some(r) = m.strip_prefix("unknown variant ") {
-        return format!("la valeur {} n'est pas connue ici", r.replace(", expected one of ", " (attendues : ").replace(", expected ", " (attendue : ") + ")");
+        return format!("la valeur {} n'est pas connue ici", r.replace(", expected one of ", " (attendues : ").replace(", expected ", " (attendue : ").replace("` or `", "` ou `") + ")");
     }
     m.to_string()
 }
