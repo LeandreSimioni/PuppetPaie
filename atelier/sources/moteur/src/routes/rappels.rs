@@ -21,6 +21,7 @@ use engagement;
 use envois::etats;
 use crate::compagnie::etat_dsn;
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusFiche, FORME, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::qui_de;
 use crate::routes::fiches::{entier, exiger};
 use crate::routes::ouverture::marquer_echeance;
@@ -46,7 +47,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "rappels",
+        route: Route::Rappels,
         geste: "Dire ce que la compagnie a à faire ce jour : DSN, fins de contrat, DPAE…",
         charge: &[],
         exemple: r#"{}"#,
@@ -58,7 +59,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "echeancier",
+        route: Route::Echeancier,
         geste: "Lire les échéances du mois et de l'année.",
         charge: &[],
         exemple: "{}",
@@ -70,7 +71,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "revue-spectacles",
+        route: Route::RevueSpectacles,
         geste: "Archiver les spectacles qui ne continuent pas, et noter la revue faite.",
         charge: &[ANNEE, Champ { nom: "continuent", libelle: Affiche::new("Spectacles qui continuent"), forme: Forme::Liste, sens: "les spectacles qui continuent (leurs clés) ; les autres s'archivent", avance: false }],
         exemple: r#"{"annee":2026,"continuent":["le-banc-des-menteurs"]}"#,
@@ -82,7 +83,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
-        nom: "pour-demarrer",
+        route: Route::PourDemarrer,
         geste: "Dire ce que la compagnie peut remplir d'avance pour ses premiers actes.",
         charge: &[],
         exemple: r#"{}"#,
@@ -94,7 +95,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Paie),
     },
     Fiche {
-        nom: "echeance-faite",
+        route: Route::EcheanceFaite,
         geste: "Cocher une échéance annuelle que seule la compagnie peut dire faite.",
         charge: &[
             Champ { nom: "cle", libelle: Affiche::new("Échéance"), forme: Forme::Texte, sens: "l'échéance et son année, « quoi:AAAA » (celle que rappels ou echeancier rendent)", avance: false },
@@ -113,9 +114,9 @@ pub const ROUTES: &[Fiche] = &[
 const ANNEE: Champ = Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false };
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> socle::echec::R<Value> {
+pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> socle::echec::R<Value> {
     match nom {
-        "rappels" => rappels(ctx).map(|mut v| {
+        Route::Rappels => rappels(ctx).map(|mut v| {
             let lignes: Vec<Value> = v["rappels"]
                 .as_array()
                 .into_iter()
@@ -129,7 +130,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "echeancier" => echeancier(ctx).map(|mut v| {
+        Route::Echeancier => echeancier(ctx).map(|mut v| {
             let ligne = |x: &Value| {
                 let quand = super::mot(&x["quand"]);
                 json!(format!("{} ({}{})", super::mot(&x["titre"]), super::mot(&x["pastille"]["mots"]), if quand.is_empty() { String::new() } else { format!(", {}", quand) }))
@@ -142,17 +143,17 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "revue-spectacles" => revue_spectacles(o, ctx, charge).map(|v| {
+        Route::RevueSpectacles => revue_spectacles(o, ctx, charge).map(|v| {
             let p = format!("Spectacles qui continuent : {} ; archivés : {}.", super::nombre(&v["continuent"]), super::nombre(&v["archives"]));
             super::phrase_en_tete(v, p)
         }),
-        "echeance-faite" => echeance_faite(ctx, charge).map(|v| {
+        Route::EcheanceFaite => echeance_faite(ctx, charge).map(|v| {
             let p = if v["fait"] == json!(true) { "Échéance cochée : faite." } else { "Échéance décochée." };
             super::phrase_en_tete(v, p)
         }),
         // Ce que la compagnie peut remplir d'avance, d'un coup ; ce que le moteur a pose de lui-meme se dit en information
         // (gris) ; les acces aux organismes et le Drive se proposent (`acces_proposes`).
-        "pour-demarrer" => {
+        Route::PourDemarrer => {
             let (proposes, simules) = acces_proposes(ctx)?;
             declarations::demarrage::route(ctx, proposes, simules).map(|mut v| {
                 if let Some(Value::Array(p)) = v.get_mut("poses") {
@@ -199,7 +200,7 @@ fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
     let mut continuent: Vec<String> = garder.iter().filter_map(|g| g.as_str().map(String::from)).collect();
     continuent.sort();
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(|m| socle::echec::noter_et(None, m))?;
-    let configuration = crate::routes::ouverture::route(o, &neuf, "configuration", &json!({}))?;
+    let configuration = crate::routes::ouverture::route(o, &neuf, Route::Configuration, &json!({}))?;
     Ok(json!({"annee": annee, "archives": archives, "continuent": continuent, "configuration": configuration}))
 }
 
@@ -358,30 +359,30 @@ impl Echeance {
                 let arret = || json!({"salarie": objet["salarie"], "dernier_jour": objet["dernier_jour_travaille"]});
                 match o.get("cle").and_then(Value::as_str).unwrap_or("") {
                     "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
-                        action("saisie", json!({"mois": mois}), Some("modifier-engagement"), "Compléter le contrat".into())
+                        action(Route::Saisie, json!({"mois": mois}), Some(Route::ModifierEngagement), "Compléter le contrat".into())
                     }
                     "signalement_fin_contrat" => {
-                        action("fin-contrat-signaler", json!({"mois": mois, "salarie": objet["salarie"]}), Some("deposer"), "Signaler…".into())
+                        action(Route::FinContratSignaler, json!({"mois": mois, "salarie": objet["salarie"]}), Some(Route::Deposer), "Signaler…".into())
                     }
                     cle @ ("signalement_arret" | "signalement_arret_rectificatif" | "signalement_reprise") => {
                         let mut charge = arret();
                         charge["nature"] = json!(if cle == "signalement_reprise" { "05" } else { "04" });
-                        action("arret-signaler", charge, Some("deposer"), "Signaler…".into())
+                        action(Route::ArretSignaler, charge, Some(Route::Deposer), "Signaler…".into())
                     }
-                    "declaration_accident" if o.get("ou").is_some_and(Value::is_array) => action("accident-declare", arret(), None, "Faite le".into()),
-                    "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => action("attestation-declare", arret(), None, "Faite le".into()),
-                    _ => action("etat-du-mois", json!({"mois": mois}), None, "Ouvrir le mois".into()),
+                    "declaration_accident" if o.get("ou").is_some_and(Value::is_array) => action(Route::AccidentDeclare, arret(), None, "Faite le".into()),
+                    "attestation_salaire" if o.get("ou").is_some_and(Value::is_array) => action(Route::AttestationDeclare, arret(), None, "Faite le".into()),
+                    _ => action(Route::EtatDuMois, json!({"mois": mois}), None, "Ouvrir le mois".into()),
                 }
             }
             DSN => deposer_dsn(&mois, &Value::Null, "Vérifier et envoyer".into()),
-            DPAE => action("depot-apercu", json!({"quoi": DPAE, "mois": mois}), Some("deposer"), "Préparer la DPAE".into()),
-            CLOTURE => action("cloture", annee(), None, format!("Clôturer {}", self.annee.clone().unwrap_or_default()).trim().to_string()),
-            EXPORT_COMPTA => action("export-compta", annee(), None, "Exporter pour la compta".into()),
+            DPAE => action(Route::DepotApercu, json!({"quoi": DPAE, "mois": mois}), Some(Route::Deposer), "Préparer la DPAE".into()),
+            CLOTURE => action(Route::Cloture, annee(), None, format!("Clôturer {}", self.annee.clone().unwrap_or_default()).trim().to_string()),
+            EXPORT_COMPTA => action(Route::ExportCompta, annee(), None, "Exporter pour la compta".into()),
             // Tous continuent, tant qu'on n'en a pas décoché un : la boîte s'ouvre ainsi.
             REVUE_SPECTACLES => {
                 let mut charge = annee();
                 charge["continuent"] = self.spectacles.iter().map(|s| s["cle"].clone()).collect();
-                action("revue-spectacles", charge, None, "Choisir les spectacles".into())
+                action(Route::RevueSpectacles, charge, None, "Choisir les spectacles".into())
             }
             _ => Value::Null,
         }

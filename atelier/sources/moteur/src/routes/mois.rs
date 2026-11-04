@@ -33,6 +33,7 @@ use socle::valeur::{nom_type, nombre, valeur_en_texte, valeurs_egales};
 
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::engagement::SAISIE_INCOMPLETE;
 use crate::routes::catalogue::{Ecran, Place};
 
@@ -48,7 +49,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "saisie",
+        route: Route::Saisie,
         geste: "Lire les engagements d'un mois, leurs identités et le cachet par défaut.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -60,7 +61,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "apercu",
+        route: Route::Apercu,
         geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
         charge: &[MOIS, CARTES],
         exemple: r#"{"mois":"2026-11","cartes":[]}"#,
@@ -72,7 +73,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "contrats-en-cours",
+        route: Route::ContratsEnCours,
         geste: "Lire les contrats d'un mois passé qui courent encore ce mois.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -84,7 +85,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "contrats-passes",
+        route: Route::ContratsPasses,
         geste: "Lire les contrats déclarés d'un mois importé.",
         charge: &[MOIS, Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé d'un salarié, pour ne lire que les siens", avance: true }],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -96,7 +97,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "emploi",
+        route: Route::Emploi,
         geste: "Traduire un métier du catalogue en champs de la fiche salarié.",
         charge: &[Champ { nom: "metier", libelle: Affiche::new("Métier"), forme: Forme::Texte, sens: "le code du métier au catalogue (COM010…)", avance: false }],
         exemple: r#"{"metier":"COM010"}"#,
@@ -108,7 +109,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Lecture,
     },
     Fiche {
-        nom: "enregistrer-saisie",
+        route: Route::EnregistrerSaisie,
         geste: "Écrire la carte d'un engagement en saisie, et elle seule.",
         charge: &[
             MOIS,
@@ -124,7 +125,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "ajuster",
+        route: Route::Ajuster,
         geste: "Trouver le taux qui donne un net, un brut ou un coût voulu.",
         charge: &[
             MOIS,
@@ -144,10 +145,10 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "saisie" => saisie(ctx, charge),
-        "apercu" => apercu(ctx, charge).map(|mut v| {
+        Route::Saisie => saisie(ctx, charge),
+        Route::Apercu => apercu(ctx, charge).map(|mut v| {
             let p = v["phrase_du_mois"].as_str().map(String::from).unwrap_or_else(|| format!("{} : {}.", valeur_en_texte(&v["libelle"]), super::compte(super::nombre(&v["paies"]), "paie", "paies")));
             // Ce que le moteur dit de chaque engagement (les encarts de sa carte), en phrases : le mois, puis ses paies.
             let mut lignes: Vec<Value> = Vec::new();
@@ -160,7 +161,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "contrats-en-cours" => contrats_en_cours_route(ctx, charge).map(|mut v| {
+        Route::ContratsEnCours => contrats_en_cours_route(ctx, charge).map(|mut v| {
             // Ce que l'ecran dit en posant les contrats qui ne sont pas encore repris : qui, et que ses jours restent a poser.
             let restants: Vec<&Value> = v["contrats"].as_array().into_iter().flatten().filter(|c| !socle::fichiers::vrai(&c["deja_repris"])).collect();
             let de_mois = socle::texte::de(&socle::mois::Mois::en_clair(&valeur_en_texte(&charge["mois"])));
@@ -174,22 +175,22 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let p = format!("Contrats d'un mois passé qui courent encore ce mois : {}.", super::nombre(&v["contrats"]));
             super::phrase_en_tete(v, p)
         }),
-        "contrats-passes" => contrats_passes_route(ctx, charge).map(|v| {
+        Route::ContratsPasses => contrats_passes_route(ctx, charge).map(|v| {
             let p = format!("Contrats déclarés dans ce mois importé : {}.", super::nombre(&v["contrats"]));
             super::phrase_en_tete(v, p)
         }),
-        "emploi" => emploi(charge).map(|v| {
+        Route::Emploi => emploi(charge).map(|v| {
             let p = format!("Métier : {} ({}).", valeur_en_texte(&v["emploi_affichage"]), valeur_en_texte(&v["code_emploi_ft"]));
             super::phrase_en_tete(v, p)
         }),
-        "enregistrer-saisie" => enregistrer_saisie(ctx, charge).map(|v| {
+        Route::EnregistrerSaisie => enregistrer_saisie(ctx, charge).map(|v| {
             let p = match v["a_completer"].as_str() {
                 Some(m) => format!("Carte enregistrée ; à compléter avant de valider : {}", m),
                 None => "Carte enregistrée.".to_string(),
             };
             super::phrase_en_tete(v, p)
         }),
-        "ajuster" => ajuster(ctx, charge).map(|v| {
+        Route::Ajuster => ajuster(ctx, charge).map(|v| {
             // Le taux qu'il faudrait : chaque ligne qui change, puis le salaire du mois s'il change.
             let c = &v["engagements"][0];
             let mut faut: Vec<String> = c["lignes"].as_array().into_iter().flatten().map(|l| {

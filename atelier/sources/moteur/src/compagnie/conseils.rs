@@ -42,6 +42,7 @@ use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, OPERATION, SALARIE};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
@@ -52,7 +53,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de lecture des conseils, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "conseil-du-jour",
+        route: Route::ConseilDuJour,
         geste: "Dire le conseil du jour (« Le saviez-vous ? »).",
         charge: &[Champ { nom: "decalage", libelle: Affiche::new("Autre conseil"), forme: Forme::Nombre, sens: "un autre conseil : +1 le suivant, -1 le précédent", avance: false }],
         exemple: r#"{}"#,
@@ -64,7 +65,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "conseils-salarie",
+        route: Route::ConseilsSalarie,
         geste: "Dire les conseils qui valent pour un salarié.",
         charge: &[SALARIE],
         exemple: r#"{"salarie":"FULLER"}"#,
@@ -76,7 +77,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
-        nom: "conseils-resume",
+        route: Route::ConseilsResume,
         geste: "Dire les conseils qui valent pour la compagnie, en résumé.",
         charge: &[],
         exemple: r#"{}"#,
@@ -919,23 +920,23 @@ fn et(noms: &[String]) -> String {
 // ------------------------------------------------------------------ routes
 
 /// L'aiguillage des trois routes de lecture. La phrase : le texte du conseil, ou ceux de la liste un par un (`phrases`).
-pub fn route(ctx: &Contexte, route: &str, charge: &Value) -> R<Value> {
+pub fn route(ctx: &Contexte, route: Route, charge: &Value) -> R<Value> {
     let liste = |conseils: Vec<Value>| {
         let lignes: Vec<Value> = conseils.iter().map(|c| c["texte"].clone()).collect();
         json!({ "phrase": format!("Conseils : {}.", conseils.len()), "phrases": lignes, "conseils": conseils })
     };
     match route {
-        "conseil-du-jour" => {
+        Route::ConseilDuJour => {
             let decalage = charge.get("decalage").and_then(Value::as_i64).unwrap_or(0);
             let v = du_jour(ctx, decalage)?;
             let p = v["conseil"]["texte"].as_str().map(String::from).unwrap_or_else(|| "Pas de conseil aujourd'hui.".to_string());
             Ok(crate::routes::phrase_en_tete(v, p))
         }
-        "conseils-salarie" => {
+        Route::ConseilsSalarie => {
             let cle = charge.get("salarie").map(en_texte).unwrap_or_default();
             Ok(liste(du_salarie(ctx, &cle)?))
         }
-        "conseils-resume" => Ok(liste(resume(ctx)?)),
+        Route::ConseilsResume => Ok(liste(resume(ctx)?)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

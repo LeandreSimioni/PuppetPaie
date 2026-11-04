@@ -12,6 +12,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, ILLISIBLE, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
 use crate::routes::mois::{lire_saisie, sauver_avant};
 use declarations::champs;
@@ -45,7 +46,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Fiches);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "permanents",
+        route: Route::Permanents,
         geste: "Dire les cases que montre la fiche en cours de saisie.",
         charge: &[
             Champ { nom: "entreprise", libelle: Affiche::new("Fiche Entreprise"), forme: Forme::Objet, sens: "la fiche Entreprise en cours de saisie ; sans elle, celle de la compagnie", avance: false },
@@ -61,7 +62,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "taxe-sur-les-salaires-regime",
+        route: Route::TaxeSurLesSalairesRegime,
         geste: "Dire le régime de la taxe sur les salaires d'après les réponses de la fiche.",
         charge: &[
             Champ { nom: "taxe_sur_les_salaires", libelle: Affiche::new("Réponses"), forme: Forme::Objet, sens: "les réponses en cours de saisie ; sans elles, celles de la compagnie", avance: false },
@@ -76,7 +77,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "verifier-fiche",
+        route: Route::VerifierFiche,
         geste: "Vérifier une fiche avant de l'écrire : anomalies, valeurs déclarées.",
         charge: &[NOM_FICHE, CLE_FICHE, DONNEES],
         exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics"}}"#,
@@ -88,7 +89,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "enregistrer-fiche",
+        route: Route::EnregistrerFiche,
         geste: "Écrire une fiche (entreprise, salarié, spectacle) ; ce qui change se date.",
         charge: &[
             NOM_FICHE,
@@ -108,7 +109,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "activer-fiche",
+        route: Route::ActiverFiche,
         geste: "Archiver une fiche de salarié ou de spectacle, ou la réactiver.",
         charge: &[NOM_FICHE, CLE_FICHE, Champ { nom: "actif", libelle: Affiche::new("Active"), forme: Forme::OuiNon, sens: "vrai : réactiver ; faux : archiver", avance: false }],
         exemple: r#"{"nom":"spectacle","cle":"le-banc-des-menteurs","actif":true}"#,
@@ -120,7 +121,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "fiche-demander",
+        route: Route::FicheDemander,
         geste: "Demander à une personne, par courriel, de remplir sa fiche.",
         charge: &[
             Champ { nom: "adresse", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "son courriel", avance: false },
@@ -136,7 +137,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "fiches-relever",
+        route: Route::FichesRelever,
         geste: "Relever dans la boîte les fiches que les personnes ont remplies.",
         charge: &[],
         exemple: r#"{}"#,
@@ -148,7 +149,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "fiche-oublier-demande",
+        route: Route::FicheOublierDemande,
         geste: "Renoncer aux demandes de fiche restées sans réponse d'une personne.",
         charge: &[Champ { nom: "adresse", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "le courriel à qui la fiche a été demandée", avance: false }],
         exemple: r#"{"adresse":"isadora@exemple.invalid"}"#,
@@ -160,7 +161,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "taux-atmp",
+        route: Route::TauxAtmp,
         geste: "Dire le code risque et le taux AT/MP d'une année ; les poser s'il y a lieu.",
         charge: &[
             Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false },
@@ -176,7 +177,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "effectif",
+        route: Route::Effectif,
         geste: "Dire l'effectif d'une année ; le poser quand l'Urssaf ne l'a pas renvoyé.",
         charge: &[
             Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année civile mesurée, AAAA ; absente : celles qui manquent pour payer cette année", avance: false },
@@ -191,7 +192,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Fiches, Affiche::new("Dire ou poser l'effectif")),
     },
     Fiche {
-        nom: "couts",
+        route: Route::Couts,
         geste: "Dire le coût de l'année, spectacle par spectacle.",
         charge: &[Champ { nom: "annee", libelle: Affiche::new("Année"), forme: Forme::Nombre, sens: "l'année, AAAA", avance: false }],
         exemple: r#"{"annee":"2026"}"#,
@@ -203,7 +204,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
-        nom: "sauvegarde-maintenant",
+        route: Route::SauvegardeMaintenant,
         geste: "Sauvegarder maintenant le dossier de la compagnie dans le Drive.",
         charge: &[],
         exemple: r#"{}"#,
@@ -215,7 +216,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Dessine(Place::Fiches),
     },
     Fiche {
-        nom: crate::routes::COMPAGNIE_SUPPRIMER,
+        route: Route::CompagnieSupprimer,
         geste: "Supprimer la compagnie de ce poste : avertir, puis effacer tout son dossier.",
         charge: &[
             Champ { nom: "confirme", libelle: Affiche::new("Effacer"), forme: Forme::OuiNon, sens: "vrai : effacer ; sans lui, la route dit seulement ce qui sera effacé et ce qu'elle demande", avance: false },
@@ -231,14 +232,14 @@ pub const ROUTES: &[Fiche] = &[
     },
 ];
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     match nom {
         // Supprimer la compagnie : avertir, puis effacer. Par `moteur route`, rien a lacher ; la fenetre sert elle-meme la
         // suppression confirmee, pour lacher d'abord ce qu'elle tient de la compagnie (`interface::Fenetre`).
-        crate::routes::COMPAGNIE_SUPPRIMER => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
+        Route::CompagnieSupprimer => crate::interface::suppression::route(&ctx.racine, charge, &|_| {}).map_err(|m| erreur("ErreurOperation", m)),
         // La sauvegarde seule, comme la seconde moitie d'un passage de la veille (`compagnie::ouverture`).
-        "sauvegarde-maintenant" => {
+        Route::SauvegardeMaintenant => {
             use crate::compagnie::ouverture::{ouverture, Clients, Options};
             let opt = Options::de_la_charge(&json!({"sauvegarde_seule": true, "incidents_editeur": false}));
             let r = ouverture(ctx, &opt, Clients::default(), None);
@@ -251,7 +252,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             };
             Ok(json!({"phrase": phrase, "sauvegarde": s, "erreur": erreur.join(" ")}))
         }
-        "couts" => couts(o, ctx, charge).map(|mut v| {
+        Route::Couts => couts(o, ctx, charge).map(|mut v| {
             // Chaque spectacle et son cout, comme l'ecran les liste ; le total de l'annee en tete.
             let cout = |x: &Value| x["cout"].as_str().and_then(|c| c.parse::<f64>().ok()).unwrap_or(0.0);
             let spectacles: Vec<(String, Value)> = v["spectacles"].as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), x.clone())).collect()).unwrap_or_default();
@@ -274,37 +275,37 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, socle::texte::euros_de(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), socle::texte::euros_de(&x["brut"]))).collect::<Vec<_>>());
             super::phrase_en_tete(v, p)
         }),
-        "permanents" => permanents(ctx, charge).map(|v| {
+        Route::Permanents => permanents(ctx, charge).map(|v| {
             let p = if v["permanents"] == json!(true) { "La compagnie emploie des permanents." } else { "La compagnie n'emploie pas de permanents." };
             super::phrase_en_tete(v, p)
         }),
-        "taxe-sur-les-salaires-regime" => taxe_sur_les_salaires_regime(ctx, charge).map(|v| {
+        Route::TaxeSurLesSalairesRegime => taxe_sur_les_salaires_regime(ctx, charge).map(|v| {
             let p = valeur_en_texte(&v["consequence"]);
             super::phrase_en_tete(v, p)
         }),
-        "verifier-fiche" => verifier_fiche(ctx, charge).map(|mut v| {
+        Route::VerifierFiche => verifier_fiche(ctx, charge).map(|mut v| {
             let lignes: Vec<Value> = v["anomalies"].as_array().into_iter().flatten().map(|a| json!(format!("{} : {}", valeur_en_texte(&a["champ"]), valeur_en_texte(&a["message"])))).collect();
             let p = if lignes.is_empty() { "La fiche est juste.".to_string() } else { format!("Anomalies de la fiche : {}.", lignes.len()) };
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "taux-atmp" => crate::routes::atmp::route(ctx, charge).map(|mut v| {
+        Route::TauxAtmp => crate::routes::atmp::route(ctx, charge).map(|mut v| {
             // Ce que dit la saisie avancee d'un taux notifie.
             v["aide"] = json!("Le taux vide : celui de l'arrêté de l'année, quand il s'applique au code choisi. Avec 999ZZ, pas de taux.");
             v
         }),
-        "effectif" => effectif(ctx, charge),
-        "activer-fiche" => activer_fiche_route(o, ctx, charge),
-        "enregistrer-fiche" => enregistrer_fiche(ctx, charge),
-        "fiche-oublier-demande" => oublier_demande(o, ctx, charge).map(|v| {
+        Route::Effectif => effectif(ctx, charge),
+        Route::ActiverFiche => activer_fiche_route(o, ctx, charge),
+        Route::EnregistrerFiche => enregistrer_fiche(ctx, charge),
+        Route::FicheOublierDemande => oublier_demande(o, ctx, charge).map(|v| {
             let p = format!("Demande à {} abandonnée.", valeur_en_texte(&v["adresse"]));
             super::phrase_en_tete(v, p)
         }),
-        "fiche-demander" => {
+        Route::FicheDemander => {
             let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", None)?;
             Ok(json!({"phrase": format!("Demande de fiche envoyée à {} (code {}) : sa fiche se crée à l'arrivée de sa réponse.", d.adresse, d.code), "code": d.code, "adresse": d.adresse}))
         }
-        "fiches-relever" => {
+        Route::FichesRelever => {
             let r = relever_fiches(ctx, None, "interface")?;
             let phrase = match (r.recues.is_empty(), r.incidents.first()) {
                 (false, _) => format!("{}.", r.resume()),
@@ -1228,7 +1229,7 @@ pub(crate) fn ecrire(chemin: &Path, v: Value) -> R<()> {
 /// Ce que la page lit de la compagnie (la route `etat`), relu apres une ecriture : la page n'a rien d'autre a relire.
 pub(crate) fn etat_relu(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(plain)?;
-    crate::routes::ouverture::route(o, &neuf, "etat", &json!({}))
+    crate::routes::ouverture::route(o, &neuf, Route::Etat, &json!({}))
 }
 
 /// L'heure de Paris, a la seconde.

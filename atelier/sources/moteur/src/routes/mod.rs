@@ -25,6 +25,7 @@ use droit::contexte::Contexte;
 use socle::num::Resultat;
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
 use crate::service::contexte;
+use catalogue::Route;
 
 
 pub mod ouverture;
@@ -53,9 +54,6 @@ pub mod accueil;
 pub mod catalogue;
 pub mod affiche;
 
-/// Supprimer la compagnie : avertir, puis effacer (`interface::suppression::route`).
-pub const COMPAGNIE_SUPPRIMER: &str = "compagnie-supprimer";
-
 /// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `moteur route` sous Linux (un
 /// fil neuf n'en a que 2). Un calcul qui remonte les mois d'avant s'y empile ; un debordement de pile ne se rattrape pas
 /// (`catch_unwind` n'y peut rien), il fermerait la fenetre.
@@ -69,9 +67,6 @@ pub fn fil_de_routes<F: FnOnce() + Send + 'static>(f: F) {
     }
 }
 
-/// La route d'essai qui tombe (`commande`, en essai seulement).
-pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
-
 /// Le fil remis propre apres une route servie dans la fenetre (`dans_la_fenetre`, `etat_garde::FileDesEtats`) : plus
 /// de mot de passe tape, les nombres a leur ecriture normale, aucun registre de lectures ouvert.
 pub(crate) fn remettre_le_fil() {
@@ -82,20 +77,18 @@ pub(crate) fn remettre_le_fil() {
 
 /// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL. La fenetre sert ses routes dans son
 /// processus (`interface::api::route`, la file des etats), et le fil d'une connexion en sert d'autres ensuite. Cette
-/// fonction fait la route (`commande`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel` et le
-/// fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` : il ne
-/// survit jamais a sa route), les nombres a leur ecriture normale (`num::ECHELLE_GARDEE`), le registre des lectures
+/// fonction fait la route (`servir_la_route`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel`
+/// et le fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` :
+/// il ne survit jamais a sa route), les nombres a leur ecriture normale (`num::ECHELLE_GARDEE`), le registre des lectures
 /// qu'un calcul aurait laisse ouvert en tombant ferme (`fichiers::suivre`).
 ///
 /// `moteur route` et la ligne de commande (`commandes::Cadre`) appellent `commande` directement : le processus meurt avec
 /// sa commande, et le mot de passe qu'elle a fait taper (`demande::autoriser_acte`) sert a toute la commande.
-pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value) -> Value {
-    let entree = json!({"route": route, "charge": charge}).to_string();
-    let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| commande(o, &entree)));
+pub fn dans_la_fenetre(o: &HashMap<String, String>, route: Route, charge: &Value) -> Value {
+    let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| servir_la_route(o, route, charge)));
     remettre_le_fil();
     match rendu {
-        Ok(Ok(rep)) => rep,
-        Ok(Err(m)) => json!({"ok": false, "erreur": m}),
+        Ok(rep) => rep,
         Err(panique) => {
             let pourquoi = panique
                 .downcast_ref::<&str>()
@@ -107,17 +100,36 @@ pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value)
     }
 }
 
-/// `moteur route [--racine R] [--date D]`.
+/// `moteur route [--racine R] [--date D]` : la demande `{"route", "charge"}` lue (la route une fois, par son nom :
+/// `Route::lire`), puis servie.
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
+    Ok(match lire_la_demande(entree) {
+        Ok((route, charge)) => servir_la_route(o, route, &charge),
+        Err(e) => reponse(crate::service::compagnie_nommee(o).then(|| crate::service::racine_de(o)).as_deref(), "", Err(e)),
+    })
+}
+
+/// La route et la charge d'une demande ; un refus si elle ne se lit pas, ne nomme pas sa route, ou en nomme une qui
+/// n'existe pas.
+fn lire_la_demande(entree: &str) -> Result<(Route, Value), Echec> {
+    let d: Value = serde_json::from_str(entree)
+        .map_err(|e| Echec::from(socle::echec::avec("La demande ne se lit pas : ce n'est pas du JSON.", json!({"detail": e.to_string()}))))?;
+    let nom = d.get("route").and_then(Value::as_str).unwrap_or_default();
+    if nom.is_empty() {
+        return Err(socle::echec::avec("La demande ne nomme pas sa route.", json!({"cle": "route"})).into());
+    }
+    let route = Route::lire(nom).ok_or_else(|| Echec::from(socle::echec::avec(catalogue::ROUTE_INCONNUE, json!({"route": nom}))))?;
+    Ok((route, d.get("charge").cloned().unwrap_or_else(|| json!({}))))
+}
+
+/// La route `route` servie sur `charge`, et ce que l'ecran et le LLM en lisent (`reponse`).
+pub(crate) fn servir_la_route(o: &HashMap<String, String>, route: Route, charge: &Value) -> Value {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
     let _code = socle::fichiers::code_fige();
     // Ce que la compagnie porte (les engagements, le journal de ce qui est parti) se lit une fois par geste (`fichiers::geste`).
     let _geste = socle::fichiers::geste();
     crate::compagnie::incidents::brancher_l_engagement();
-    let d: Value = serde_json::from_str(entree).unwrap_or(Value::Null);
-    let route = d.get("route").and_then(Value::as_str).unwrap_or_default();
-    let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
-    let rendu = servir(o, entree, route, &charge);
+    let rendu = servir(o, route, charge);
     // Ce que la route rend, reussite ou refus, est ce que l'ecran lit : ses phrases passent ici (`phrase_a_sa_place`).
     let racine = crate::service::compagnie_nommee(o).then(|| crate::service::racine_de(o));
     if let (Ok(v), Some(r)) = (&rendu, &racine) {
@@ -125,17 +137,11 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
             phrase_a_sa_place(r, route, v);
         }
     }
-    Ok(reponse(racine.as_deref(), route, rendu))
+    reponse(racine.as_deref(), route.nom(), rendu)
 }
 
 /// La route `route` servie : ce qu'elle rend, ou son refus.
-fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value) -> Result<Value, Echec> {
-    if let Err(e) = serde_json::from_str::<Value>(entree) {
-        return Err(socle::echec::avec("La demande ne se lit pas : ce n'est pas du JSON.", json!({"detail": e.to_string()})).into());
-    }
-    if route.is_empty() {
-        return Err(socle::echec::avec("La demande ne nomme pas sa route.", json!({"cle": "route"})).into());
-    }
+fn servir(o: &HashMap<String, String>, route: Route, charge: &Value) -> Result<Value, Echec> {
     let charge = charge.clone();
     // Le mot de passe du logiciel tape pour cette route ouvre aussi le coffre (`coffre::retenir_mot_de_passe_tape`) ;
     // dans la fenetre, le temps de cette route seulement (`dans_la_fenetre`).
@@ -144,8 +150,11 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
     }
     // UNE ROUTE QUI TOMBE, pour les essais seulement (`garde_reseau::en_essai`, que Cargo pose) : la fenetre doit rendre
     // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes/`). Le fil est laisse sale
-    // expres, comme un calcul qui tombe le laisserait.
-    if route == ROUTE_QUI_TOMBE && socle::garde_reseau::en_essai() {
+    // expres, comme un calcul qui tombe le laisserait. Hors des essais, elle n'existe pas.
+    if route == Route::EssaiDefautDuLogiciel {
+        if !socle::garde_reseau::en_essai() {
+            return Err(socle::echec::avec(catalogue::ROUTE_INCONNUE, json!({"route": route})).into());
+        }
         socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
         panic!("la route d'essai tombe expres");
     }
@@ -159,7 +168,7 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         return filet::route_sans_compagnie(o, route, &charge);
     }
     // Le catalogue lui-meme, ce que `moteur routes --json` imprime : il ne porte sur aucune compagnie non plus.
-    if catalogue::dans(catalogue::ROUTES, route).is_some() {
+    if route == Route::Routes {
         let mut v = catalogue::en_json(charge.get("avance").is_some_and(vrai));
         let lignes: Vec<Value> = v["routes"].as_array().into_iter().flatten().map(|f| json!(format!("{} : {}", mot(&f["nom"]), mot(&f["geste"])))).collect();
         let p = format!("Routes : {} (la fiche de chacune : moteur routes NOM).", lignes.len());
@@ -204,7 +213,7 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         _ if dans(archives::ROUTES) => archives::route(o, &ctx, route, &charge),
         _ if dans(historique::ROUTES) => historique::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
-        _ if dans(crate::historique_mois::ROUTES) => crate::historique_mois::route(&ctx, &charge),
+        Route::HistoriqueMois => crate::historique_mois::route(&ctx, &charge),
         _ if dans(dossier_salarie::ROUTES) => dossier_salarie::route(o, &ctx, route, &charge),
         _ if dans(ouverture::ROUTES) => ouverture::route(o, &ctx, route, &charge),
         _ if dans(rappels::ROUTES) => rappels::route(o, &ctx, route, &charge),
@@ -216,8 +225,8 @@ fn servir(o: &HashMap<String, String>, entree: &str, route: &str, charge: &Value
         _ if dans(crate::compagnie::ouverture::ROUTES) => crate::compagnie::ouverture::route(o, &ctx, route, &charge),
         // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
         // absence » lit ; `horloge::HorlogeFictive`).
-        r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
-        autre => return Err(socle::echec::avec("Cette route n'existe pas : la liste des routes le dit.", json!({"route": autre})).into()),
+        Route::HorlogeRattraper => crate::horloge::route(o, &ctx, &charge),
+        autre => return Err(socle::echec::avec(catalogue::ROUTE_INCONNUE, json!({"route": autre})).into()),
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     // Les mots de passe et les comptes (`routes::coffre`), le filet et les messages au developpeur (`routes::filet`) ne
@@ -317,18 +326,18 @@ pub fn phrases_rendues(v: &Value) -> Vec<&str> {
 /// UNE PHRASE PLUS LONGUE QUE SA PLACE (la `phrase` de la fiche ; `plus_longue_phrase`) se lit entiere, et note un incident silencieux au
 /// developpeur : la route, la place, la longueur ; jamais la phrase, qui peut nommer un salarie. On la corrige a la cause,
 /// en l'ecrivant plus breve.
-fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
+fn phrase_a_sa_place(racine: &Path, route: Route, rendu: &Value) {
     // UNE REPONSE SANS PHRASE d'une route du catalogue (un avertissement, une variante que l'exemple de sa fiche ne joue
     // pas) : ni l'ecran ni `moteur route --texte` n'ont rien a lire. Le meme incident silencieux, pour la reponse qui l'a
     // oubliee. (L'horloge du banc, hors catalogue, rend ses phrases en liste.)
-    let au_catalogue = catalogue::catalogue().iter().any(|f| f.nom == route);
+    let au_catalogue = route.au_catalogue();
     if au_catalogue && !rendu.get("phrase").and_then(Value::as_str).is_some_and(|p| !p.trim().is_empty()) {
         let resume = format!("La route {} a rendu une réponse sans phrase.", route);
         let cles: Vec<&str> = rendu.as_object().map(|o| o.keys().map(String::as_str).collect()).unwrap_or_default();
         let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
             nature: crate::compagnie::incidents::LOGICIEL,
             resume: &resume,
-            ou: route,
+            ou: route.nom(),
             quoi: "PhraseManquante",
             detail: json!({"route": route, "cles": cles}),
             sans_contexte: true,
@@ -343,14 +352,14 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
         let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
             nature: crate::compagnie::incidents::LOGICIEL,
             resume: &resume,
-            ou: route,
+            ou: route.nom(),
             quoi: "PhrasePasFaitePourLEcran",
             detail: json!({"route": route, "defaut": format!("{:?}", d)}),
             sans_contexte: true,
             ..Default::default()
         });
     }
-    let Some(place) = catalogue::catalogue().iter().find(|f| f.nom == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
+    let Some(place) = catalogue::catalogue().iter().find(|f| f.route == route).map(|f| f.phrase).filter(|p| *p > 0) else { return };
     let longueur = plus_longue_phrase(rendu);
     if longueur <= place {
         return;
@@ -359,7 +368,7 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
     let _ = crate::compagnie::incidents::noter(racine, &crate::compagnie::incidents::Note {
         nature: crate::compagnie::incidents::LOGICIEL,
         resume: &resume,
-        ou: route,
+        ou: route.nom(),
         quoi: "PhraseTropLongue",
         detail: json!({"route": route, "place": place, "longueur": longueur}),
         sans_contexte: true,
@@ -369,7 +378,7 @@ fn phrase_a_sa_place(racine: &Path, route: &str, rendu: &Value) {
 
 /// Les routes qui ecrivent ou engagent, d'apres l'acte de leur fiche : apres elles, la fenetre verifie les etats des mois
 /// (`interface/api.rs`).
-pub fn est_une_ecriture(route: &str) -> bool {
+pub fn est_une_ecriture(route: Route) -> bool {
     catalogue::FICHES.iter().any(|l| catalogue::dans(l, route).is_some_and(|f| f.acte != catalogue::Acte::Lit))
 }
 

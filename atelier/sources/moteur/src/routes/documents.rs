@@ -12,6 +12,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::etapes::Moteur;
 use crate::routes::qui_de;
 use droit::contexte::Contexte;
@@ -39,7 +40,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "envoi-apercu",
+        route: Route::EnvoiApercu,
         geste: "Montrer les documents du mois de chaque salarié, et à qui ils partiraient.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -51,7 +52,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "envoyer-documents",
+        route: Route::EnvoyerDocuments,
         geste: "Envoyer à chaque salarié ses documents du mois par courriel ; la paie se fige.",
         charge: &[MOIS, SALARIES],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -68,7 +69,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "documents-imprimer",
+        route: Route::DocumentsImprimer,
         geste: "Imprimer les documents du mois, à remettre en main propre ; la paie se fige.",
         charge: &[MOIS, SALARIES],
         exemple: r#"{"mois":"2026-11","salaries":["SVOBODA"]}"#,
@@ -80,7 +81,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "piece-partie",
+        route: Route::PiecePartie,
         geste: "Dire où est une pièce partie d'un mois, refaite à l'identique si elle manque.",
         charge: &[MOIS, Champ { nom: "fichier", libelle: Affiche::new("Pièce"), forme: Forme::Texte, sens: "le nom de la pièce, tel que le journal le dit", avance: false }],
         exemple: r#"{"mois":"2026-11","fichier":"DPAE_Novembre2026.txt"}"#,
@@ -94,9 +95,9 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "envoi-apercu" => envoi_apercu(ctx, charge).map(|mut v| {
+        Route::EnvoiApercu => envoi_apercu(ctx, charge).map(|mut v| {
             let t = |x: &Value, k: &str| super::mot(&x[k]);
             let mut lignes: Vec<Value> = v["messages"].as_array().into_iter().flatten().map(|m| {
                 let pieces: Vec<String> = m["sortes"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
@@ -109,8 +110,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "envoyer-documents" => envoyer_documents(ctx, charge, &mut || client_courriel(ctx)),
-        "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)).map(|v| {
+        Route::EnvoyerDocuments => envoyer_documents(ctx, charge, &mut || client_courriel(ctx)),
+        Route::DocumentsImprimer => documents_imprimer(ctx, charge, &qui_de(charge)).map(|v| {
             let qui: Vec<String> = v["salaries"].as_array().into_iter().flatten().map(|c| super::salarie(ctx, c).map(|s| super::nom_a_l_ecran(&s)).unwrap_or_else(|_| valeur_en_texte(c))).collect();
             let mois = socle::mois::Mois::en_clair(&charge.get("mois").map(valeur_en_texte).unwrap_or_default());
             let p = format!("Documents {} imprimés pour {}, à remettre en main propre.", socle::texte::de(&mois), qui.join(", "));
@@ -119,7 +120,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["phrases"] = Value::Array(avert);
             v
         }),
-        "piece-partie" => crate::compagnie::depart::piece_partie_route(ctx, charge).map(|v| {
+        Route::PiecePartie => crate::compagnie::depart::piece_partie_route(ctx, charge).map(|v| {
             let p = "La pièce partie, telle qu'elle est partie.".to_string();
             super::phrase_en_tete(v, p)
         }),

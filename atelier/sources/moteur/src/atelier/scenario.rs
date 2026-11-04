@@ -55,6 +55,8 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 use socle::date::Jour;
 
+use crate::routes::catalogue::Route;
+
 /// Le fichier des gestes, dans le dossier du scenario.
 pub const GESTES: &str = "gestes.jsonl";
 /// Le dossier des pieces deposees, par empreinte.
@@ -69,8 +71,8 @@ const CLES_DE_DEPOT: [&str; 4] = ["dossier", "export", "fichier", "chemin"];
 
 /// Les routes dont la cle `dossier` vide (ou absente) veut dire `import/` de la compagnie (`crate::routes::import::dossier_import`).
 #[cfg(feature = "atelier")]
-fn lit_la_boite_aux_lettres(route: &str) -> bool {
-    route.starts_with("importation") || route == "importer"
+fn lit_la_boite_aux_lettres(route: Route) -> bool {
+    route == Route::Importer || route.nom().starts_with("importation")
 }
 
 /// LE MARQUEUR D'UNE FICTIVE AUX ENVOIS SIMULES, pose sur une fictive ajoutee (le geste `simuler`) : `copie_de` dit
@@ -417,7 +419,9 @@ fn rejouer_les_gestes(
             }
             Some(_) => {}
             None => {
-                let route = g.get("route").and_then(Value::as_str).ok_or(format!("geste {} : ni `geste` ni `route`", n))?;
+                let nom = g.get("route").and_then(Value::as_str).ok_or(format!("geste {} : ni `geste` ni `route`", n))?;
+                // Un nom qui n'est celui d'aucune route (une route d'avant, retiree) se rejoue comme le moteur le refuse.
+                let route = Route::lire(nom);
                 let Some(racine) = racines.get(compagnie) else {
                     r.autres_compagnies += 1;
                     continue;
@@ -429,13 +433,16 @@ fn rejouer_les_gestes(
                 let charge = poser_les_pieces(scenario, racine, travail, n, g)?;
                 let mut o = std::collections::HashMap::new();
                 o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
-                let rep = crate::routes::dans_la_fenetre(&o, route, &charge);
+                let rep = match route {
+                    Some(route) => crate::routes::dans_la_fenetre(&o, route, &charge),
+                    None => json!({"ok": false, "erreur": crate::routes::catalogue::ROUTE_INCONNUE, "route": nom}),
+                };
                 r.routes_rejouees += 1;
                 let ok = rep.get("ok") == Some(&Value::Bool(true));
                 // Ce que l'horloge de la fictive a joue (la route `horloge-rattraper`, ou la veille par `ouverture`), date du geste.
                 let jouees = match route {
-                    "horloge-rattraper" => rep.pointer("/resultat"),
-                    "ouverture" => rep.pointer("/resultat/horloge"),
+                    Some(Route::HorlogeRattraper) => rep.pointer("/resultat"),
+                    Some(Route::Ouverture) => rep.pointer("/resultat/horloge"),
                     _ => None,
                 };
                 for p in jouees.and_then(Value::as_array).into_iter().flatten() {
@@ -447,7 +454,7 @@ fn rejouer_les_gestes(
                         "geste {} ({} {}) : {} au rejeu, {} a l'enregistrement{}",
                         n,
                         heure(t),
-                        route,
+                        nom,
                         if ok { "reussit" } else { "refuse" },
                         if attendu { "reussi" } else { "refuse" },
                         rep.get("erreur").map(|e| format!(" : {}", socle::valeur::valeur_en_texte(e))).unwrap_or_default()
@@ -464,9 +471,9 @@ fn rejouer_les_gestes(
 /// (`enregistrer-fiche`), reussies a l'enregistrement. Tout autre geste valide, envoie, depose, coche ou avance le
 /// calendrier : `None`.
 fn saisie_d_un_geste(g: &Value) -> Option<Value> {
-    let carte = match g.get("route").and_then(Value::as_str)? {
-        "valider-engagement" | "enregistrer-saisie" => "enregistrer-saisie",
-        "enregistrer-fiche" => "enregistrer-fiche",
+    let carte = match g.get("route").and_then(Value::as_str).and_then(Route::lire)? {
+        Route::ValiderEngagement | Route::EnregistrerSaisie => Route::EnregistrerSaisie.nom(),
+        Route::EnregistrerFiche => Route::EnregistrerFiche.nom(),
         _ => return None,
     };
     if g.get("ok") == Some(&Value::Bool(false)) || g.get("ecrit") == Some(&Value::Bool(false)) {
@@ -916,7 +923,7 @@ mod enregistreur {
         /// UNE ROUTE, servie par `servir` sous l'enregistreur : le temps fige a son debut, ce qu'on avait depose recopie,
         /// l'empreinte de la compagnie avant et apres, puis sa ligne. Une lecture, quand on ne les enregistre pas, est
         /// seulement servie.
-        pub fn route(&self, racine: &Path, nom: &str, charge: &Value, servir: impl FnOnce() -> Value) -> Value {
+        pub fn route(&self, racine: &Path, nom: Route, charge: &Value, servir: impl FnOnce() -> Value) -> Value {
             if !self.lectures && !crate::routes::est_une_ecriture(nom) {
                 return servir();
             }
@@ -959,7 +966,7 @@ mod enregistreur {
 
         /// Ce que la route lit hors du moteur : un dossier ou un fichier nomme par la charge (`CLES_DE_DEPOT`), ou la
         /// boite aux lettres `import/` de la compagnie. Chaque fichier entre dans `pieces/`.
-        fn recopier_les_pieces(&self, racine: &Path, route: &str, charge: &Value) -> Map<String, Value> {
+        fn recopier_les_pieces(&self, racine: &Path, route: Route, charge: &Value) -> Map<String, Value> {
             let mut out = Map::new();
             for cle in CLES_DE_DEPOT {
                 let valeur = charge.get(cle).and_then(Value::as_str).map(str::trim);

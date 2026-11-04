@@ -44,7 +44,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use serde_json::{json, Value};
+use serde_json::json;
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
@@ -63,21 +63,6 @@ pub struct Cadre {
 }
 
 impl Cadre {
-    /// Une route du moteur (`moteur route NOM`), sans lancer de processus : son `resultat`, ou son refus.
-    pub fn route(&self, nom: &str, charge: Value) -> Result<Value, Echec> {
-        let entree = json!({"route": nom, "charge": charge}).to_string();
-        match crate::routes::commande(&self.o, &entree) {
-            Ok(r) if r.get("ok").and_then(Value::as_bool) == Some(true) => Ok(r.get("resultat").cloned().unwrap_or(Value::Null)),
-            Ok(r) => {
-                let classe = r.get("classe").and_then(Value::as_str).map(classe_connue);
-                Err(Echec { classe, message: r.get("erreur").map(rendu::texte).unwrap_or_default() })
-            }
-            Err(m) => {
-                Err(Echec { classe: None, message: m })
-            }
-        }
-    }
-
     /// Un plantage : une ligne dans le journal des incidents (sa classe et sa nature), puis la phrase seule a l'ecran
     /// (sortie d'erreur), code 1.
     pub fn plantage(&self, e: Echec) -> i32 {
@@ -113,23 +98,6 @@ impl Cadre {
             eprintln!("! {}", phrase);
         }
     }
-}
-
-/// La classe d'un refus rendue en `&'static str` pour `Echec` (une classe inconnue devient `RuntimeError`).
-fn classe_connue(c: &str) -> &'static str {
-    const CONNUES: [&str; 32] = [
-        "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "KeyError", "ValueError",
-        "FileNotFoundError", "PermissionError", "OSError", "UnicodeDecodeError", "JSONDecodeError", "TypeError", "AttributeError",
-        "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionBridee", "CompteursVerrouilles", "CalculRefuse",
-        // Les classes des actes : un depot, une correction, un arret.
-        "DsnDejaDeposee", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
-        "ExerciceClos", "ActeReelRefuse",
-        // Les envois (theme 2) : une sortie absente, une boite absente ou en panne.
-        "SortieAbsente", "BoiteAbsente", "ErreurCourriel",
-        // Le refus d'un envoi depuis une fictive ajoutee (`bridage::branchement`).
-        "EnvoiBride",
-    ];
-    CONNUES.iter().find(|x| **x == c).copied().unwrap_or("RuntimeError")
 }
 
 type Executer = fn(&Cadre, &Args) -> i32;

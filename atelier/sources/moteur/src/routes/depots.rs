@@ -12,6 +12,7 @@ use serde_json::{json, Value};
 
 use crate::compagnie::depot_acte::{self, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, MOIS, OPERATION};
+use crate::routes::catalogue::Route;
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -39,7 +40,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "depot-apercu",
+        route: Route::DepotApercu,
         geste: "Écrire ou reprendre la DSN ou la DPAE du mois ; dire ce qu'elle déclare.",
         charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
         exemple: DPAE_DE_L_EXEMPLE,
@@ -51,7 +52,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "deposer",
+        route: Route::Deposer,
         geste: "Déposer la DSN ou la DPAE du mois : en test, ou en réel après son test.",
         charge: &[
             QUOI,
@@ -78,7 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "suivre-depot",
+        route: Route::SuivreDepot,
         geste: "Après un dépôt réel, relever les retours et dire s'il est passé ou refusé.",
         charge: &[QUOI, Champ { nom: "flux", libelle: Affiche::new("Flux"), forme: Forme::Texte, sens: "le flux du dépôt, tel que deposer le rend", avance: false }, MOIS],
         exemple: r#"{"quoi":"dpae"}"#,
@@ -90,7 +91,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "bilan-repetition",
+        route: Route::BilanRepetition,
         geste: "Dire où en est le test de la DSN ou de la DPAE ; chercher son compte rendu.",
         charge: &[QUOI, MOIS, ETABLISSEMENT, ENGAGEMENTS, SIGNALEMENT],
         exemple: DPAE_DE_L_EXEMPLE,
@@ -104,10 +105,10 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let mut v = match nom {
         // Les phrases de ses parties (le remplacement, le recapitulatif, le test), a la suite de la sienne.
-        "depot-apercu" => depot_apercu(ctx, charge).map(|mut v| {
+        Route::DepotApercu => depot_apercu(ctx, charge).map(|mut v| {
             let encarts = encarts_du_depot(&v);
             let mut lignes: Vec<Value> = ["remplacement", "recapitulatif", "repetition"].iter().filter_map(|k| v[*k]["phrase"].as_str().filter(|p| !p.is_empty()).map(|p| json!(p))).collect();
             lignes.extend(super::encarts_en_lignes(&encarts));
@@ -130,9 +131,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             }
             v
         }),
-        "deposer" => deposer(ctx, charge),
-        "suivre-depot" => suivre_depot(ctx, charge),
-        "bilan-repetition" => bilan_repetition(ctx, charge),
+        Route::Deposer => deposer(ctx, charge),
+        Route::SuivreDepot => suivre_depot(ctx, charge),
+        Route::BilanRepetition => bilan_repetition(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }?;
     poser_les_pastilles(&mut v);

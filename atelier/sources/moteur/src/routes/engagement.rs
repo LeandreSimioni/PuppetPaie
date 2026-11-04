@@ -11,6 +11,7 @@ use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusDit, FORME, MOIS};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 const IDENTITE: Champ = Champ {
@@ -36,7 +37,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches. Toutes ecrivent.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "valider-engagement",
+        route: Route::ValiderEngagement,
         geste: "Valider l'engagement d'une carte : l'écrire et calculer ses paies.",
         charge: &[MOIS, Champ { nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "l'identité de la carte ; absente pour un engagement neuf", avance: false }, SAISIE],
         exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-27"]}]}}"#,
@@ -48,7 +49,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "modifier-engagement",
+        route: Route::ModifierEngagement,
         geste: "Modifier un engagement validé : écrire ce que sa carte ouverte montre.",
         charge: &[
             MOIS,
@@ -71,7 +72,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "retirer-engagement",
+        route: Route::RetirerEngagement,
         geste: "Retirer l'engagement d'une carte, ou le rendre non actif si un envoi est parti.",
         charge: &[MOIS, IDENTITE, Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu a été lu, et l'engagement devient non actif", avance: false }],
         exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"confirme":true}"#,
@@ -85,11 +86,11 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "valider-engagement" => valider_engagement(ctx, charge),
-        "modifier-engagement" => modifier_engagement(ctx, charge),
-        "retirer-engagement" => retirer_engagement(ctx, charge),
+        Route::ValiderEngagement => valider_engagement(ctx, charge),
+        Route::ModifierEngagement => modifier_engagement(ctx, charge),
+        Route::RetirerEngagement => retirer_engagement(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

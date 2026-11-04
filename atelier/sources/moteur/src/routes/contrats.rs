@@ -9,6 +9,7 @@ use serde_json::{json, Map, Value};
 
 use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
+use crate::routes::catalogue::Route;
 use crate::routes::documents::{charge_texte, client_courriel, cle, liste_de, nul, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::Moteur;
@@ -39,7 +40,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "signature-apercu",
+        route: Route::SignatureApercu,
         geste: "Montrer les contrats du mois : à envoyer, en attente de signature, en avenant.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -51,7 +52,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "demander-signature",
+        route: Route::DemanderSignature,
         geste: "Faire signer par courriel les contrats et les avenants cochés.",
         charge: &[
             MOIS,
@@ -75,7 +76,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "pieces-parties",
+        route: Route::PiecesParties,
         geste: "Lister ce qui est parti pour un contrat : DPAE, contrat envoyé, signé, preuve.",
         charge: &[
             Champ { nom: "numero", libelle: Affiche::new("Numéro du contrat"), forme: Forme::Texte, sens: "le numéro du contrat, tel que signature-apercu ou etat-par-engagement le rend", avance: false },
@@ -90,7 +91,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "avenant-apercu",
+        route: Route::AvenantApercu,
         geste: "Montrer l'avenant d'un contrat : ce qui change, par article ou en clair.",
         charge: &[
             SALARIE,
@@ -107,7 +108,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "contrats-imprimer",
+        route: Route::ContratsImprimer,
         geste: "Réunir en un PDF les contrats et avenants cochés, à remettre en main propre.",
         charge: &[MOIS, CONTRATS, Champ { nom: "avenants", libelle: Affiche::new("Avenants"), forme: Forme::Objet, sens: "les avenants cochés : [{salarie, debut, numero, mois, effet}]", avance: false }],
         exemple: r#"{"mois":"2026-11","contrats":[{"salarie":"SVOBODA","debut":"2026-11-02"}]}"#,
@@ -119,7 +120,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "contrat-recu",
+        route: Route::ContratRecu,
         geste: "Noter qu'un contrat (ou un avenant) est revenu signé, ou retirer la note.",
         charge: &[
             MOIS,
@@ -138,7 +139,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "poser-courriel",
+        route: Route::PoserCourriel,
         geste: "Poser le courriel d'un salarié, là où il manque.",
         charge: &[SALARIE, Champ { nom: "email", libelle: Affiche::new("Courriel"), forme: Forme::Texte, sens: "son adresse de courriel", avance: false }],
         exemple: r#"{"salarie":"FULLER","email":"loie.fuller@exemple.invalid"}"#,
@@ -152,14 +153,14 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let t = |v: &Value, k: &str| super::mot(&v[k]);
     match nom {
-        "poser-courriel" => crate::routes::fiches::poser_courriel(ctx, charge).map(|v| {
+        Route::PoserCourriel => crate::routes::fiches::poser_courriel(ctx, charge).map(|v| {
             let p = format!("Courriel de {} : {}.", t(&v, "salarie"), t(&v, "email"));
             super::phrase_en_tete(v, p)
         }),
-        "signature-apercu" => signature_apercu(ctx, charge).map(|mut v| {
+        Route::SignatureApercu => signature_apercu(ctx, charge).map(|mut v| {
             let mut lignes: Vec<Value> = v["contrats"].as_array().into_iter().flatten().map(|c| {
                 let a = if t(c, "destinataire").is_empty() { "pas de courriel : il s'imprime".to_string() } else { t(c, "destinataire") };
                 json!(format!("{} ({}) : {}", t(c, "nom"), t(c, "numero"), a))
@@ -180,7 +181,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             v["phrases"] = Value::Array(lignes);
             super::phrase_en_tete(v, p)
         }),
-        "avenant-apercu" => avenant_apercu(ctx, charge).map(|mut v| {
+        Route::AvenantApercu => avenant_apercu(ctx, charge).map(|mut v| {
             let n = super::nombre(&v["modifications"]);
             let quand = |k: &str| super::quand(&t(&v, k));
             let ailleurs = vrai(&v["ailleurs"]);
@@ -231,9 +232,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let p = format!("Avenant {} au contrat {} de {}, à effet du {} : {}.", t(&v, "numero"), reference, t(&v, "nom"), super::jour_en_clair(&v["effet"]), super::compte(n, "modification", "modifications"));
             super::phrase_en_tete(v, p)
         }),
-        "pieces-parties" => pieces_parties(ctx, charge),
-        "demander-signature" => demander_signature(ctx, charge, &mut || client_courriel(ctx)),
-        "contrats-imprimer" => contrats_imprimer_par(ctx, charge, "interface").map(|v| {
+        Route::PiecesParties => pieces_parties(ctx, charge),
+        Route::DemanderSignature => demander_signature(ctx, charge, &mut || client_courriel(ctx)),
+        Route::ContratsImprimer => contrats_imprimer_par(ctx, charge, "interface").map(|v| {
             // Chaque piece imprimee par son numero, comme l'ecran la coche.
             let quoi: Vec<String> = v["contrats"].as_array().into_iter().flatten().map(|c| format!("contrat n° {}", t(c, "numero")))
                 .chain(v["avenants"].as_array().into_iter().flatten().map(|c| format!("avenant n° {} au contrat n° {}", t(c, "avenant"), t(c, "numero"))))
@@ -241,7 +242,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let p = format!("À faire signer en main propre : {} ; imprimés.", quoi.join(", "));
             super::phrase_en_tete(v, p)
         }),
-        "contrat-recu" => contrat_recu(ctx, charge),
+        Route::ContratRecu => contrat_recu(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -375,7 +376,7 @@ pub(crate) fn contrat_recu_avec(
         "phrase": phrase,
         "recu": if recu { detail["quand"].clone() } else { Value::Null },
         // De quoi revenir sur la note : la meme route, le mot contraire.
-        "annuler": {"route": "contrat-recu", "charge": {"mois": mois, "salarie": salarie, "debut": debut, "numero": numero_note, "avenant": avenant, "recu": !recu}},
+        "annuler": {"route": Route::ContratRecu, "charge": {"mois": mois, "salarie": salarie, "debut": debut, "numero": numero_note, "avenant": avenant, "recu": !recu}},
         "ligne": ligne,
     }))
 }
@@ -687,13 +688,13 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let numero_charge = p.engagement.numero.clone().map_or(json!(""), Value::String);
         let (recu_g, relancer) = if en_attente {
             let avenant = if avenant_en_attente { etat["avenant"]["numero"].clone() } else { Value::Null };
-            let recu_g = json!({"route": "contrat-recu", "charge": {"mois": mois, "salarie": cle_s, "debut": debut, "numero": numero_charge, "avenant": avenant, "recu": true}});
+            let recu_g = json!({"route": Route::ContratRecu, "charge": {"mois": mois, "salarie": cle_s, "debut": debut, "numero": numero_charge, "avenant": avenant, "recu": true}});
             let relancer = if !(est(&par, "courriel") && boite_liee) {
                 Value::Null
             } else if avenant_en_attente {
-                json!({"route": "demander-signature", "pourquoi": pourquoi, "charge": {"mois": mois, "avenants": [{"salarie": cle_s, "debut": debut, "numero": numero_charge, "mois": mois, "relance": true}]}})
+                json!({"route": Route::DemanderSignature, "pourquoi": pourquoi, "charge": {"mois": mois, "avenants": [{"salarie": cle_s, "debut": debut, "numero": numero_charge, "mois": mois, "relance": true}]}})
             } else {
-                json!({"route": "demander-signature", "pourquoi": pourquoi, "charge": {"mois": mois, "relance": true, "contrats": [{"salarie": cle_s, "debut": debut, "numero": numero_charge}]}})
+                json!({"route": Route::DemanderSignature, "pourquoi": pourquoi, "charge": {"mois": mois, "relance": true, "contrats": [{"salarie": cle_s, "debut": debut, "numero": numero_charge}]}})
             };
             (recu_g, relancer)
         } else {

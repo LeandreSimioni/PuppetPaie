@@ -46,6 +46,7 @@ type R<T> = Result<T, Echec>;
 const FORMAT: u64 = 4;
 
 use crate::routes::catalogue::{Acte, Fiche, ILLISIBLE, MOIS};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::Ecran;
 
 /// Ou ces routes se voient a l'ecran (une place par module).
@@ -54,7 +55,7 @@ const ECRAN: Ecran = Ecran::Lecture;
 /// Les routes que l'etat d'un mois sert, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "mois",
+        route: Route::Mois,
         geste: "Lire tout l'écran d'un mois d'un coup : engagements, étapes, imprévus.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -66,7 +67,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "etat-par-engagement",
+        route: Route::EtatParEngagement,
         geste: "Lire l'état de chaque engagement du mois : ses carrés DPAE, Contrat, Documents.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -78,7 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "etat-du-mois",
+        route: Route::EtatDuMois,
         geste: "Lire les quatre étapes du mois : DPAE, Contrats, DSN, Documents.",
         charge: &[MOIS],
         exemple: r#"{"mois":"2026-11"}"#,
@@ -97,11 +98,11 @@ pub const ROUTES: &[Fiche] = &[
 /// routes, et rendues telles quelles (resultat ou refus).
 /// Les arrets n'y sont plus : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
 /// du journal non plus : elle se montre dans l'Historique, avec les envois et leurs retours.
-const LECTURES: [(&str, bool); 4] = [
-    ("saisie", true),
-    ("contrats-en-cours", true),
-    ("fins-de-contrat", true),
-    ("imprevus", true),
+const LECTURES: [(Route, bool); 4] = [
+    (Route::Saisie, true),
+    (Route::ContratsEnCours, true),
+    (Route::FinsDeContrat, true),
+    (Route::Imprevus, true),
 ];
 
 /// La cle de l'etat garde de l'OUVERTURE dans la file : a cote des mois, jamais confondue avec eux.
@@ -111,14 +112,14 @@ pub const OUVERTURE: &str = "ouverture";
 /// rendue telle quelle (resultat ou refus), au format d'une reponse de la page. Ce qui vit dans la memoire de la fenetre
 /// (la veille, la mise a jour) et ce que l'ecran ne garde pas (`journal/signalements.json`) se lit a chaque ouverture,
 /// a cote (`interface/api.rs`).
-const LECTURES_OUVERTURE: [(&str, &str); 7] = [
-    ("etat", "{}"),
-    ("mois-a-ouvrir", "{}"),
-    ("echeancier", "{}"),
-    ("rappels", "{}"),
-    ("pour-demarrer", "{}"),
-    ("conseils-resume", "{}"),
-    ("conseil-du-jour", r#"{"decalage": 0}"#),
+const LECTURES_OUVERTURE: [(Route, &str); 7] = [
+    (Route::Etat, "{}"),
+    (Route::MoisAOuvrir, "{}"),
+    (Route::Echeancier, "{}"),
+    (Route::Rappels, "{}"),
+    (Route::PourDemarrer, "{}"),
+    (Route::ConseilsResume, "{}"),
+    (Route::ConseilDuJour, r#"{"decalage": 0}"#),
 ];
 
 /// Le fichier de l'etat de l'OUVERTURE, a la racine de la compagnie : le seul etat qui s'ecrit.
@@ -247,9 +248,8 @@ fn garde(racine: &Path, empreinte: &str) -> Option<Value> {
 
 /// Une route du moteur, faite dans ce processus, rendue comme la page la recoit (`{"ok", "resultat"}` ou
 /// `{"ok": false, "erreur": {"type", "message", ...}}`).
-fn lecture(o: &HashMap<String, String>, route: &str, charge: Value) -> Value {
-    let entree = json!({"route": route, "charge": charge}).to_string();
-    let rep = crate::routes::commande(o, &entree).unwrap_or_else(|m| json!({"ok": false, "erreur": m}));
+fn lecture(o: &HashMap<String, String>, route: Route, charge: Value) -> Value {
+    let rep = crate::routes::servir_la_route(o, route, &charge);
     crate::interface::api::en_page(crate::interface::api::depuis_reponse(rep))
 }
 
@@ -258,12 +258,12 @@ fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
     let mut l = Map::new();
     for (route, du_mois) in LECTURES {
         let charge = if du_mois { json!({ "mois": mois }) } else { json!({}) };
-        l.insert(route.to_string(), lecture(o, route, charge));
+        l.insert(route.nom().to_string(), lecture(o, route, charge));
     }
     // L'APERCU : ce que la page demande des qu'un mois s'affiche (`calculerApercu`), sur la saisie qu'elle vient de lire
     // (`{"mois": mois}`, le mois enregistre) ; la page ne le redemande que quand on modifie la saisie.
-    if l.get("saisie").and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
-        l.insert("apercu".into(), lecture(o, "apercu", json!({"mois": mois})));
+    if l.get(Route::Saisie.nom()).and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
+        l.insert(Route::Apercu.nom().into(), lecture(o, Route::Apercu, json!({"mois": mois})));
     }
     Value::Object(l)
 }
@@ -280,7 +280,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
             // L'OUVERTURE : les lectures de la page qui s'ouvre (`LECTURES_OUVERTURE`), telles quelles.
             let mut l = Map::new();
             for (route, charge) in LECTURES_OUVERTURE {
-                l.insert(route.to_string(), lecture(o, route, serde_json::from_str(charge).unwrap_or_else(|_| json!({}))));
+                l.insert(route.nom().to_string(), lecture(o, route, serde_json::from_str(charge).unwrap_or_else(|_| json!({}))));
             }
             json!({
                 "format": FORMAT,
@@ -291,7 +291,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
             })
         } else {
             let lus = lectures(o, mois);
-            let mut deux = crate::routes::etapes::lire_ensemble(ctx, &["etat-par-engagement", "etat-du-mois"], &charge)?.into_iter();
+            let mut deux = crate::routes::etapes::lire_ensemble(ctx, &[Route::EtatParEngagement, Route::EtatDuMois], &charge)?.into_iter();
             let (par_engagement, du_mois) = (deux.next().unwrap_or(Value::Null), deux.next().unwrap_or(Value::Null));
             json!({
                 "format": FORMAT,
@@ -360,23 +360,23 @@ fn du_mois(racine: &Path, etat: &Value) -> R<Value> {
 fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
     use crate::interface::api::{en_page, Refus};
     let mut l = etat.get("lectures").and_then(Value::as_object).cloned().unwrap_or_default();
-    l.insert("etat-par-engagement".into(), en_page(Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))));
+    l.insert(Route::EtatParEngagement.nom().into(), en_page(Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))));
     l.insert(
-        "etat-du-mois".into(),
+        Route::EtatDuMois.nom().into(),
         en_page(du_mois(racine, etat).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))),
     );
     // La phrase de l'ecran du mois : celle de ses etapes (`etat-du-mois`).
-    let phrase = l.get("etat-du-mois").and_then(|e| e["resultat"]["phrase"].as_str()).unwrap_or("").to_string();
+    let phrase = l.get(Route::EtatDuMois.nom()).and_then(|e| e["resultat"]["phrase"].as_str()).unwrap_or("").to_string();
     json!({ "phrase": phrase, "mois": brut, "lectures": l })
 }
 
 /// `etat-par-engagement`, `etat-du-mois` et `mois`, servis par l'etat du mois : pour les deux premiers, le meme JSON que
 /// `routes::etapes`.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     let (brut, mois) = crate::routes::etapes::mois_de(charge)?;
     let etat = lire(o, ctx, &mois)?;
     match nom {
-        "etat-par-engagement" => {
+        Route::EtatParEngagement => {
             let n = crate::routes::nombre(etat.get("engagements").unwrap_or(&Value::Null));
             // Chaque engagement, ce que disent ses carres, et la ligne de sa frise.
             let phrases: Vec<String> = etat["engagements"]
@@ -391,7 +391,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
             let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", socle::mois::Mois::en_clair(&mois)) } else { format!("Engagements du mois : {}.", n) };
             Ok(json!({ "phrase": phrase, "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))
         }
-        "mois" => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
+        Route::Mois => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
         _ => du_mois(&ctx.racine, &etat),
     }
 }

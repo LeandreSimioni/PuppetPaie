@@ -38,9 +38,6 @@ use socle::fichiers::vrai;
 /// La marque d'un contrat repris dont la nature reste a dire.
 pub const A_DIRE: &str = engagement::importe::A_DIRE;
 
-/// La route de ce module.
-pub const ROUTE: &str = "importation-nature";
-
 /// Les natures qu'un permanent peut recevoir.
 fn natures_permanentes() -> R<Vec<std::sync::Arc<droit::natures::Nature>>> {
     let toutes = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?;

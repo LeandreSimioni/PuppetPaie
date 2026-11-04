@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::etapes::Moteur;
 use crate::routes::mois::lire_saisie;
 use super::{lire_json_tolerant, lire_texte, ou_texte};
@@ -140,7 +141,7 @@ const AIDES: &[(&str, &str)] = &[
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "etat",
+        route: Route::Etat,
         geste: "Dire tout ce que la page lit en s'ouvrant : configuration, Historique, listes.",
         charge: &[],
         exemple: r#"{}"#,
@@ -152,7 +153,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "configuration",
+        route: Route::Configuration,
         geste: "Dire les fiches de la compagnie, vérifiées.",
         charge: &[],
         exemple: r#"{}"#,
@@ -164,7 +165,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "maj-etat",
+        route: Route::MajEtat,
         geste: "Dire la version du logiciel.",
         charge: &[],
         exemple: r#"{}"#,
@@ -176,7 +177,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: Ecran::Auto(Place::Fiches, Affiche::new("Dire la version")),
     },
     Fiche {
-        nom: "courriels-fictifs",
+        route: Route::CourrielsFictifs,
         geste: "Dire les courriels joués d'une compagnie fictive.",
         charge: &[Champ { nom: "apres", libelle: Affiche::new("Depuis"), forme: Forme::Texte, sens: "seulement ceux d'après cet instant", avance: true }],
         exemple: r#"{}"#,
@@ -190,23 +191,23 @@ pub const ROUTES: &[Fiche] = &[
 ];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "etat" => etat(ctx).map(|v| {
+        Route::Etat => etat(ctx).map(|v| {
             let p = dire_la_configuration(&v["configuration"]);
             super::phrase_en_tete(v, p)
         }),
         // La part « configuration » de l'etat, pour les routes qui la rendent apres un enregistrement.
-        "configuration" => configuration(ctx).map(|v| {
+        Route::Configuration => configuration(ctx).map(|v| {
             let p = dire_la_configuration(&v);
             super::phrase_en_tete(v, p)
         }),
-        "maj-etat" => version().map(|mut v| {
+        Route::MajEtat => version().map(|mut v| {
             let prete = if vrai(&v["prete"]) { format!(" La version {} est prête.", valeur_en_texte(&v["prete"])) } else { String::new() };
             v["phrase"] = json!(format!("Version installée : {}.{}", valeur_en_texte(&v["courante"]), prete));
             v
         }),
-        "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge).map(|mut v| {
+        Route::CourrielsFictifs => crate::simulation_courriels::courriels_fictifs(ctx, charge).map(|mut v| {
             let lignes: Vec<Value> = v["courriels"].as_array().into_iter().flatten().map(|m| json!(format!("{} → {} : {}", super::mot(&m["de"]), super::mot(&m["a"]), super::mot(&m["sujet"])))).collect();
             // Ce que la fenetre d'une compagnie fictive en dit : combien sont joues, et le circuit de chaque genre.
             let n = lignes.len();

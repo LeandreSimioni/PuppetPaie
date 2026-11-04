@@ -16,6 +16,7 @@ use serde_json::{json, Map, Value};
 
 use crate::import::dsn_aem::{self, SalarieDeclare};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, OPERATION, SALARIE};
+use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
 use envois::etats::get;
 use socle::echec::{erreur, Echec, R};
@@ -33,7 +34,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Import);
 /// Les routes de ce module, et leurs fiches : dans l'ordre d'un import (regarder, reprendre, dire la nature).
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "importation-etat",
+        route: Route::ImportationEtat,
         geste: "Dire ce qui est repris d'un ancien logiciel, et la boîte où déposer.",
         charge: &[],
         exemple: r#"{}"#,
@@ -45,7 +46,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "importation-apercu",
+        route: Route::ImportationApercu,
         geste: "Dire ce qu'un import reprendrait (bulletins, DSN, AEM), sans rien écrire.",
         charge: &[DOSSIER],
         exemple: r#"{}"#,
@@ -57,7 +58,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "importer",
+        route: Route::Importer,
         geste: "Reprendre les pièces d'un ancien logiciel : fiches, engagements importés.",
         charge: &[DOSSIER],
         exemple: r#"{}"#,
@@ -69,7 +70,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: crate::import::nature::ROUTE,
+        route: Route::ImportationNature,
         geste: "Dire la nature des contrats repris d'un permanent, qu'aucune pièce ne dit.",
         charge: &[
             SALARIE,
@@ -134,13 +135,13 @@ fn poser_les_pastilles(v: &mut Value) {
 }
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     // Chaque PDF de la boite aux lettres se releve une fois pour toute la route (`import::releve`).
     let _releves = crate::import::releve::Releves::ouvrir();
     match nom {
         // `{"dossier": ...}` (vide ou absent : `import/` de la compagnie) : la boite aux lettres entiere, bulletins
         // compris (`import::bulletins`).
-        "importation-apercu" => {
+        Route::ImportationApercu => {
             let v = avec_les_pastilles(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse));
             let t = |x: &Value, k: &str| super::mot(&x[k]);
             let b = &v["bulletins"];
@@ -152,7 +153,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let p = format!("Dans le dossier lu : {}DSN : {} ; AEM : {}. Rien n'est écrit.", bulletins, t(&v, "dsn"), t(&v, "aem"));
             Ok(super::phrase_en_tete(v, p))
         }
-        "importation-etat" => etat_importation(&ctx.racine).map(|mut v| {
+        Route::ImportationEtat => etat_importation(&ctx.racine).map(|mut v| {
             dire_l_etat_de_l_import(&mut v);
             let t = |k: &str| super::mot(&v[k]);
             let p = if t("importe_le").is_empty() {
@@ -162,9 +163,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             };
             super::phrase_en_tete(v, p)
         }),
-        "importer" => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),
+        Route::Importer => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),
         // La nature des contrats repris qu'aucun bulletin ne dit.
-        crate::import::nature::ROUTE => crate::import::nature::dire(ctx, charge),
+        Route::ImportationNature => crate::import::nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }

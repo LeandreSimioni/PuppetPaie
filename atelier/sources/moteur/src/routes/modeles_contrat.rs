@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use serde_json::{json, Value};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, OPERATION};
+use crate::routes::catalogue::Route;
 use crate::routes::engagement::texte_requis;
 use droit::contexte::Contexte;
 use droit::natures::Nature;
@@ -30,7 +31,7 @@ const ECRAN: Ecran = Ecran::Dessine(Place::ModelesContrat);
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[
     Fiche {
-        nom: "modeles-contrat",
+        route: Route::ModelesContrat,
         geste: "Lister les modèles de contrat et d'avenant, livrés ou propres.",
         charge: &[],
         exemple: r#"{}"#,
@@ -42,7 +43,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "modele-contrat-livre",
+        route: Route::ModeleContratLivre,
         geste: "Lire le texte d'un modèle livré, pour en partir.",
         charge: &[NATURE, QUOI],
         exemple: r#"{"nature":"cddu_spectacle","quoi":"contrat"}"#,
@@ -54,7 +55,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "poser-modele-contrat",
+        route: Route::PoserModeleContrat,
         geste: "Poser le modèle de contrat ou d'avenant propre à la compagnie.",
         charge: &[NATURE, QUOI, Champ { nom: "texte", libelle: Affiche::new("Modèle"), forme: Forme::Texte, sens: "le modèle entier (le format des modèles livrés : TITRE:, ARTICLE:…)", avance: false }],
         exemple: r#"{"nature":"cddu_spectacle","quoi":"avenant","texte":"TITRE: Avenant n° {{avenant.numero}}\n\nMODIFICATION:\nL'article {{modification.numero}} est désormais rédigé ainsi : « {{modification.apres}} »\n\nARTICLE: Le reste\nLe reste du contrat est inchangé.\n"}"#,
@@ -66,7 +67,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "retirer-modele-contrat",
+        route: Route::RetirerModeleContrat,
         geste: "Remettre le modèle livré à la place de celui de la compagnie.",
         charge: &[NATURE, QUOI],
         exemple: r#"{"nature":"cddu_spectacle","quoi":"avenant"}"#,
@@ -78,7 +79,7 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
     Fiche {
-        nom: "clauses-particulieres",
+        route: Route::ClausesParticulieres,
         geste: "Écrire les clauses particulières que chaque contrat reprend dès aujourd'hui.",
         charge: &[Champ { nom: "texte", libelle: Affiche::new("Clauses"), forme: Forme::Texte, sens: "les clauses ; vide : aucune", avance: false }],
         exemple: r#"{"texte":"Les répétitions ont lieu au théâtre."}"#,
@@ -104,25 +105,25 @@ const CHAMPS_DE_L_AVENANT: [&str; 10] = [
 const CHAMPS_DU_REMPLACEMENT: [&str; 2] = ["remplace.numero", "remplace.date"];
 
 /// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        "modeles-contrat" => modeles(ctx).map(|mut v| {
+        Route::ModelesContrat => modeles(ctx).map(|mut v| {
             v["ecran"] = ecran_des_modeles(&v);
             super::phrase_en_tete(v.clone(), dire_les_modeles(&v))
         }),
-        "modele-contrat-livre" => livre(charge).map(|v| {
+        Route::ModeleContratLivre => livre(charge).map(|v| {
             let p = format!("Modèle livré {}.", socle::valeur::valeur_en_texte(&v["libelle"]));
             super::phrase_en_tete(v, p)
         }),
-        "poser-modele-contrat" => poser(ctx, charge).map(|v| {
+        Route::PoserModeleContrat => poser(ctx, charge).map(|v| {
             let p = format!("Modèle de la compagnie posé. {}", dire_les_modeles(&v));
             super::phrase_en_tete(v, p)
         }),
-        "retirer-modele-contrat" => retirer(ctx, charge).map(|v| {
+        Route::RetirerModeleContrat => retirer(ctx, charge).map(|v| {
             let p = format!("Modèle de la compagnie retiré : le modèle livré revient. {}", dire_les_modeles(&v));
             super::phrase_en_tete(v, p)
         }),
-        "clauses-particulieres" => clauses(ctx, charge),
+        Route::ClausesParticulieres => clauses(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }

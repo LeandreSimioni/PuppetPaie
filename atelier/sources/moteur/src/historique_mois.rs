@@ -30,18 +30,17 @@ use envois::retours;
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Fiche, Refus, MOIS};
+use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
 type R<T> = Result<T, Echec>;
-
-pub const ROUTE: &str = "historique-mois";
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Historique);
 
 /// Les routes de ce module, et leurs fiches.
 pub const ROUTES: &[Fiche] = &[Fiche {
-    nom: ROUTE,
+    route: Route::HistoriqueMois,
     geste: "Dire l'Historique d'un mois : ses documents, ses envois et ce qui en est revenu.",
     charge: &[MOIS],
     exemple: r#"{"mois":"2026-11"}"#,
