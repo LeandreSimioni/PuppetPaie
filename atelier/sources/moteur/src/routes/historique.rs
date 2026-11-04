@@ -109,16 +109,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             let p = format!("Mois qui portent des corrections : {}.", super::nombre(&v["corrections"]));
             super::phrase_en_tete(v, p)
         }),
-        Route::Cloture => crate::compagnie::exercice_ecrit::cloture_route(ctx, charge).map(|v| {
-            let p = if v.get("etait_clos_depuis").is_some() {
-                format!("Exercice {} rouvert ; son archive reste.", t(&v, "annee"))
-            } else {
-                let manques: Vec<String> = v["manques"].as_array().into_iter().flatten().map(socle::valeur::valeur_en_texte).collect();
-                let reste = if manques.is_empty() { String::new() } else { format!(" Pas archivé : {}.", manques.iter().map(|m| m.trim_end_matches('.')).collect::<Vec<_>>().join(" ; ")) };
-                format!("Exercice {} clos : {} fichiers archivés.{}", t(&v, "annee"), t(&v, "fichiers"), reste)
-            };
-            super::phrase_en_tete(v, p)
-        }),
+        Route::Cloture => super::en_json(cloture(ctx, super::lire_charge(charge)?)?),
         Route::ExportCompta => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge).map(|v| {
             let p = match v["fichier"].as_str() {
                 Some(f) => format!("Export comptable de {} : {} écritures, dans {} ({}).", t(&v, "annee"), super::nombre(&v["ecritures"]), f, t(&v, "dossier")),
@@ -196,6 +187,28 @@ fn regularisations(ctx: &Contexte) -> R<Value> {
         c["pastille"] = super::pastille(if c.get("portee_par").is_some_and(vrai) { "fait" } else { "a_faire" }, &mots);
     }
     Ok(json!({"corrections": corrections}))
+}
+
+/// Ce que rend `cloture` : sa phrase, et l'exercice clos ou rouvert.
+#[derive(Debug, serde::Serialize)]
+struct ClotureDite {
+    phrase: String,
+    #[serde(flatten)]
+    cloture: crate::compagnie::exercice_ecrit::Cloture,
+}
+
+/// `cloture` : clore une annee passee, ou la rouvrir (`exercice_ecrit::cloture_route`), et le dire.
+fn cloture(ctx: &Contexte, c: crate::compagnie::exercice_ecrit::ChargeCloture) -> R<ClotureDite> {
+    use crate::compagnie::exercice_ecrit::Cloture;
+    let cloture = crate::compagnie::exercice_ecrit::cloture_route(ctx, c)?;
+    let phrase = match &cloture {
+        Cloture::Rouverte(r) => format!("Exercice {} rouvert ; son archive reste.", r.annee),
+        Cloture::Close(e) => {
+            let reste = if e.manques.is_empty() { String::new() } else { format!(" Pas archivé : {}.", e.manques.iter().map(|m| m.trim_end_matches('.')).collect::<Vec<_>>().join(" ; ")) };
+            format!("Exercice {} clos : {} fichiers archivés.{}", e.annee, e.fichiers, reste)
+        }
+    };
+    Ok(ClotureDite { phrase, cloture })
 }
 
 /// Les clotures, sans les cles `_...`.

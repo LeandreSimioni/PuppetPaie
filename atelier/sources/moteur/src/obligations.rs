@@ -865,15 +865,19 @@ fn evenement_de(l: &envois::journal::Ligne) -> &str {
 /// Une route de ce module. Sa phrase : ce que l'arret oblige a faire, une obligation par ligne (`phrases`), chacune avec
 /// ce qu'elle dit d'elle-meme.
 pub fn route(ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
+    let mut le = String::new();
+    let mut faite = |c: ChargeFaite| {
+        le = c.le.clone();
+        c
+    };
     let mut v = match nom {
         Route::ArretConnaissance => arret_connaissance(ctx, charge)?,
-        Route::AccidentDeclare => accident_declare(ctx, charge)?,
-        Route::AttestationDeclare => attestation_declare(ctx, charge)?,
+        Route::AccidentDeclare => accident_declare(ctx, &faite(crate::routes::lire_charge(charge)?))?,
+        Route::AttestationDeclare => attestation_declare(ctx, &faite(crate::routes::lire_charge(charge)?))?,
         Route::ArretObligations => arret_obligations(ctx, charge)?,
         autre => return Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),
     };
     let n = crate::routes::nombre(&v["obligations"]);
-    let le = charge.get("le").map(en_texte).unwrap_or_default();
     let fait = |quoi: &str| if le.trim().is_empty() { format!("{} : la note « faite » est retirée. Obligations de l'arrêt : {}.", quoi, n) } else { format!("{} notée faite le {}. Obligations de l'arrêt : {}.", quoi, crate::routes::quand(&le), n) };
     let p = match nom {
         Route::AccidentDeclare => fait("Déclaration d'accident"),
@@ -920,9 +924,12 @@ fn requis<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
 
 /// L'arret de ce salarie a ce dernier jour travaille : (la cle du salarie, l'arret).
 fn l_arret(ctx: &Contexte, charge: &Value) -> R<(String, Value)> {
-    let nom = en_texte(requis(charge, "salarie")?);
-    let dernier = en_texte(requis(charge, "dernier_jour")?);
-    let cle = ctx.cle_du_salarie(&nom).map_err(|m| erreur("KeyError", m))?.to_string();
+    l_arret_de(ctx, &en_texte(requis(charge, "salarie")?), &en_texte(requis(charge, "dernier_jour")?))
+}
+
+/// L'arret du salarie `nom` (sa cle, ou son nom) dont le dernier jour travaille est `dernier` : (sa cle, l'arret).
+fn l_arret_de(ctx: &Contexte, nom: &str, dernier: &str) -> R<(String, Value)> {
+    let cle = ctx.cle_du_salarie(nom).map_err(|m| erreur("KeyError", m))?.to_string();
     for a in crate::routes::imprevus::tous_les_arrets(ctx)? {
         if texte(&a, "salarie") == cle && texte(&a, "dernier_jour_travaille") == dernier {
             return Ok((cle, a));
@@ -932,8 +939,7 @@ fn l_arret(ctx: &Contexte, charge: &Value) -> R<(String, Value)> {
 }
 
 /// Un jour saisi : vide pour effacer, sinon une date lisible qui n'est pas dans le futur.
-fn jour_saisi(ctx: &Contexte, v: &Value, quoi: &str) -> R<Option<Jour>> {
-    let t = en_texte(v);
+fn jour_saisi(ctx: &Contexte, t: &str, quoi: &str) -> R<Option<Jour>> {
     if t.trim().is_empty() {
         return Ok(None);
     }
@@ -949,10 +955,10 @@ fn jour_saisi(ctx: &Contexte, v: &Value, quoi: &str) -> R<Option<Jour>> {
     Ok(Some(j))
 }
 
-fn heure_saisie(charge: &Value) -> R<Option<String>> {
-    match charge.get("heure").map(en_texte).filter(|h| !h.trim().is_empty()) {
+fn heure_saisie(heure: Option<&str>) -> R<Option<String>> {
+    match heure.filter(|h| !h.trim().is_empty()) {
         None => Ok(None),
-        Some(h) => match lire_heure(&h) {
+        Some(h) => match lire_heure(h) {
             Some(m) => Ok(Some(heure_lisible(m))),
             None => Err(refus(format!("Heure {} illisible : HH:MM, de 00:00 a 23:59. Rien n'est ecrit.", repr(&h)))),
         },
@@ -989,8 +995,8 @@ pub(crate) fn connaissance_saisie(ctx: &Contexte, a: &Value, de: &str, saisie: &
             texte(a, "motif")
         )));
     }
-    let j = jour_saisi(ctx, requis(saisie, "jour")?, "La connaissance")?;
-    let heure = heure_saisie(saisie)?;
+    let j = jour_saisi(ctx, &en_texte(requis(saisie, "jour")?), "La connaissance")?;
+    let heure = heure_saisie(saisie.get("heure").map(en_texte).as_deref())?;
     if let (Some(j), "accident", Some(acc)) = (j, de, jour(a.get("date_accident").unwrap_or(&Value::Null))) {
         if j < acc {
             return Err(refus(format!(
@@ -1015,7 +1021,7 @@ pub(crate) fn connaissance_ecrire(ctx: &Contexte, a: &Value, champ: &str, valeur
 /// `accident-declare` : `{salarie, dernier_jour, le, depot, heure?, reference?}` -- la declaration d'accident du travail
 /// faite, dite par la compagnie : le jour, ou (un code de `declaration_accident.ou`), et la reference qu'elle en a (le
 /// numero de l'accuse de net-entreprises, celui du recommande). Un `le` vide la retire.
-fn accident_declare(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn accident_declare(ctx: &Contexte, charge: &ChargeFaite) -> R<Value> {
     dire_faite(ctx, charge, &Faite {
         obligation: "declaration_accident",
         champ: "accident_declare",
@@ -1032,7 +1038,7 @@ fn accident_declare(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// (un code de `attestation_salaire.ou` : `net-entreprises-ecran`, `net-entreprises-edi`), et la reference de l'accuse.
 /// Un `le` vide la retire. Refuse un arret dont le motif ne l'appelle pas, un jour futur, un lieu inconnu, un jour avant la
 /// connaissance de l'arret saisie : rien n'est alors ecrit.
-fn attestation_declare(ctx: &Contexte, charge: &Value) -> R<Value> {
+fn attestation_declare(ctx: &Contexte, charge: &ChargeFaite) -> R<Value> {
     dire_faite(ctx, charge, &Faite {
         obligation: "attestation_salaire",
         champ: "attestation_salaire",
@@ -1057,17 +1063,44 @@ struct Faite {
     accident: bool,
 }
 
-fn dire_faite(ctx: &Contexte, charge: &Value, f: &Faite) -> R<Value> {
-    let (cle, a) = l_arret(ctx, charge)?;
+/// La charge de `accident-declare` et de `attestation-declare` : l'arret (le salarie et son dernier jour travaille, comme
+/// `etapes::ChargeObligationDArret` les ecrit), le jour ou l'obligation a ete faite (vide : la note se retire), ou, a
+/// quelle heure, et la reference de l'accuse.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeFaite {
+    salarie: String,
+    dernier_jour: Jour,
+    le: String,
+    #[serde(default)]
+    depot: Option<String>,
+    #[serde(default)]
+    heure: Option<String>,
+    #[serde(default)]
+    reference: Option<String>,
+}
+
+/// Une obligation hors DSN dite faite, telle que la fiche de suivi de l'arret la garde.
+#[derive(Debug, serde::Serialize)]
+struct ObligationFaite {
+    le: String,
+    heure: Option<String>,
+    depot: String,
+    reference: String,
+    saisi_le: String,
+}
+
+fn dire_faite(ctx: &Contexte, charge: &ChargeFaite, f: &Faite) -> R<Value> {
+    let (cle, a) = l_arret_de(ctx, &charge.salarie, &charge.dernier_jour.iso())?;
     let motif = texte(&a, "motif");
     if !motif_appelle(f.obligation, &motif)? {
         return Err(refus(format!("L'arret de {} (motif {}) {}. Rien n'est ecrit.", cle, motif, f.hors_motif)));
     }
-    let le = jour_saisi(ctx, requis(charge, "le")?, f.quoi)?;
+    let le = jour_saisi(ctx, &charge.le, f.quoi)?;
     let valeur = match le {
         None => Value::Null,
         Some(le) => {
-            let depot = en_texte(requis(charge, "depot")?);
+            let depot = charge.depot.clone().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("depot")))?;
             let o = obligation(&*base()?, f.obligation)?;
             let codes: Vec<String> = o["ou"].as_array().map(|l| l.iter().map(|x| texte(x, "code")).collect()).unwrap_or_default();
             if !codes.contains(&depot) {
@@ -1096,13 +1129,14 @@ fn dire_faite(ctx: &Contexte, charge: &Value, f: &Faite) -> R<Value> {
                     }
                 }
             }
-            json!({
-                "le": le.iso(),
-                "heure": heure_saisie(charge)?,
-                "depot": depot,
-                "reference": charge.get("reference").map(en_texte).unwrap_or_default(),
-                "saisi_le": crate::routes::maintenant(),
-            })
+            let faite = ObligationFaite {
+                le: le.iso(),
+                heure: heure_saisie(charge.heure.as_deref())?,
+                depot,
+                reference: charge.reference.clone().unwrap_or_default(),
+                saisi_le: crate::routes::maintenant(),
+            };
+            serde_json::to_value(faite).map_err(|e| socle::echec::Echec::from(e.to_string()))?
         }
     };
     let mut suivi = Suivi::lire(ctx)?;

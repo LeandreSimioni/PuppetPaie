@@ -396,7 +396,7 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
         return l;
     }
     if o.starts_with(b"PK") {
-        let aer = retours::aer_spectacle(o).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default();
+        let aer = retours::aer_spectacle(o).unwrap_or_default();
         l.titre = "Archive d'attestations employeur (AER)".into();
         if aer.is_empty() {
             let n = retours::membres_du_zip(o).len();
@@ -404,8 +404,7 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
         } else {
             l.phrases.push(format!("{} attestation{} employeur rematérialisée{} :", aer.len(), if aer.len() > 1 { "s" } else { "" }, if aer.len() > 1 { "s" } else { "" }));
             for a in &aer {
-                let p = valeur_en_texte(&a["periode"]);
-                l.phrases.push(format!("{}{}", valeur_en_texte(&a["qui"]), if p.is_empty() { String::new() } else { format!(" (période {})", p) }));
+                l.phrases.push(format!("{}{}", a.qui, if a.periode.is_empty() { String::new() } else { format!(" (période {})", a.periode) }));
             }
             l.phrases.push("Chaque AER se range aussi parmi les documents du mois, prête à partir au salarié.".into());
         }
