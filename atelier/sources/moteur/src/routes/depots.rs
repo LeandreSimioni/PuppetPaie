@@ -807,7 +807,7 @@ fn suivre_depot(ctx: &Contexte, c: ChargeSuivre) -> R<Suivi> {
         let nic = ligne.and_then(Ligne::etablissement);
         // Sans son mois, rien ne dit ou en est la DSN : elle attend.
         let e = mois.map(|m| crate::compagnie::etat_dsn::du_mois(ctx, m, nic)).transpose()?;
-        passe = e.as_ref().is_some_and(|e| e.0["etat"] == "passee");
+        passe = e.as_ref().is_some_and(|e| e.etat == crate::compagnie::etat_dsn::Etat::Passee);
         refuse = e.as_ref().is_some_and(|e| e.refusee());
     }
     // Ce que l'ecran en dit, et en quelle couleur, une fois le depot tranche.

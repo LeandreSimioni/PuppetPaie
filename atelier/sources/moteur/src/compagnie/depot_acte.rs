@@ -474,10 +474,10 @@ pub fn deposer_dsn_dans(
                     format!(
                         "{} : {}. Rien n'est parti : la plate-forme n'accepte pas une seconde DSN normale pour le même mois (cahier technique DSN §1.4.3.2). Pour corriger, refaites la DSN du mois : elle sortira en annule-et-remplace.",
                         { let l = socle::mois::Mois::en_clair(&mois); l[..1].to_uppercase() + &l[1..] },
-                        valeur_en_texte(&etat_mois.0["phrase"])
+                        etat_mois.phrase.clone().unwrap_or_default()
                     ),
                     "etat",
-                    etat_mois.0,
+                    crate::routes::en_json(&etat_mois)?,
                 ));
             }
         }

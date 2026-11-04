@@ -16,7 +16,7 @@
 //! LES FORMES. Chaque charge est une structure lue une fois a l'entree (`routes::lire_charge`) ; chaque reponse, une
 //! structure. Ce que ce module lit d'un autre domaine se lit tel qu'il est : l'imprevu ecrit (`engagement::imprevus`, qui
 //! en declare les champs), la saisie des engagements (`engagement::stock`), le journal des envois (`envois::journal`), les
-//! obligations d'un arret (`crate::obligations`), les nomenclatures livrees du bloc 60 (`arrets-base.json`, que lisent
+//! obligations d'un arret (`crate::obligations`), les nomenclatures livrees du bloc 60 (`engagement::imprevus::Bloc60`, que lisent
 //! aussi `declarations` et `engagement`) et des suspensions (`droit::permanents`).
 
 use std::collections::HashMap;
@@ -28,12 +28,12 @@ use crate::routes::{brut, cle_du_salarie, en_json, lire_charge, maintenant, Past
 use declarations::signalement;
 use droit::contexte::{Contexte, IdSalarie};
 use engagement::calcul::Paie;
-use engagement::imprevus::{self, ARRET, SUSPENSION};
+use engagement::imprevus::{self, Bloc60, CodeDuBloc60, ARRET, SUSPENSION};
 use engagement::numeros::NumeroContrat;
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
 use socle::date::{d, en_texte, Jour};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use socle::fichiers::vrai;
 use socle::mois::Mois;
 use socle::num::Decimal;
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
@@ -347,8 +347,8 @@ fn remplace_dit(r: &Option<String>) -> Option<String> {
 struct ReponseImprevus {
     phrase: String,
     imprevus: Vec<Resume>,
-    motifs_arret: Vec<Value>,
-    motifs_reprise: Vec<Value>,
+    motifs_arret: Vec<CodeDuBloc60>,
+    motifs_reprise: Vec<CodeDuBloc60>,
     motifs_suspension: Vec<MotifSuspension>,
     phrases: Vec<String>,
 }
@@ -360,9 +360,9 @@ struct ReponseArrets {
     phrases: Vec<String>,
     arrets: Vec<Resume>,
     a_signaler: Vec<Resume>,
-    motifs: Vec<Value>,
-    motifs_reprise: Vec<Value>,
-    subrogation: Value,
+    motifs: Vec<CodeDuBloc60>,
+    motifs_reprise: Vec<CodeDuBloc60>,
+    subrogation: Vec<CodeDuBloc60>,
 }
 
 /// `fins-de-contrat`.
@@ -782,7 +782,7 @@ pub(crate) struct ResumeDArret {
     ij_nette: Value,
     ij_brute_majoree: Value,
     ij_nette_majoree: Value,
-    origine: Value,
+    origine: Option<String>,
     ij_attendues: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     ij_proposees: Option<IjProposees>,
@@ -1025,13 +1025,13 @@ impl Resume {
 }
 
 /// UN IMPREVU TEL QUE LA PAGE LE LIT (`Resume`), avec les cachets qui tombent dedans.
-pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Resume> {
+pub(crate) fn resume(ctx: &Contexte, n: &Bloc60, imp: &Value) -> R<Resume> {
     let cachets: Vec<Cachet> = magasin(imprevus::cachets_dans(ctx, imp))?.into_iter().map(cachet_dit).collect();
     let premier = magasin(imprevus::premier_jour(imp))?.iso();
     let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
     if imprevus::est_un_arret(imp) {
         let base = resume_arret(ctx, n, imp)?;
-        let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
+        let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?;
         let ouvert = ouvre_le_maintien(ctx, imp)?;
         let majoree = ouvert
             && engagement::maintien::origine(imp).is_some_and(|o| o.professionnelle() || o == droit::maintien::Origine::Trajet)
@@ -1068,7 +1068,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Resume> {
             ij_nette: imp["ij_nette"].clone(),
             ij_brute_majoree: imp["ij_brute_majoree"].clone(),
             ij_nette_majoree: imp["ij_nette_majoree"].clone(),
-            origine: motif.get("origine").cloned().unwrap_or(Value::Null),
+            origine: motif.and_then(|m| m.origine),
             ij_attendues: ouvert,
             ij_proposees,
             ij_majoree_attendue: majoree,
@@ -1142,7 +1142,7 @@ fn motifs_de_suspension() -> R<Vec<MotifSuspension>> {
 fn imprevus(ctx: &Contexte, c: ChargeImprevus) -> R<ReponseImprevus> {
     let cle = c.salarie.as_deref().filter(|s| !s.is_empty()).map(|nom| cle_du_nom(ctx, nom)).transpose()?;
     let bornes = c.mois.map(|m| (m.premier_jour(), m.dernier_jour()));
-    let n = nomenclatures(ctx)?;
+    let n = nomenclatures()?;
     let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut out = Vec::new();
     for imp in magasin(imprevus::tous(&ctx.racine))? {
@@ -1168,8 +1168,8 @@ fn imprevus(ctx: &Contexte, c: ChargeImprevus) -> R<ReponseImprevus> {
         phrase: format!("Imprévus : {}.", out.len()),
         phrases: out.iter().flat_map(Resume::en_lignes).collect(),
         imprevus: out,
-        motifs_arret: saisissables(&n, "motifs_arret")?,
-        motifs_reprise: saisissables(&n, "motifs_reprise")?,
+        motifs_arret: n.motifs_arret.saisissables(),
+        motifs_reprise: n.motifs_reprise.saisissables(),
         motifs_suspension: motifs_de_suspension()?,
     })
 }
@@ -1496,12 +1496,12 @@ pub(crate) fn dernier_jour_saisi(ctx: &Contexte, salarie: &str, declare: &str) -
 /// `{"arret": resume, "phrase"}` : l'arret tel que la page le lit (`resume`, avec les cachets qui tombent dedans), et ce
 /// qui se lit du geste.
 fn reponse_arret(ctx: &Contexte, arret: &Value, phrase: &str) -> R<ReponseArret> {
-    Ok(ReponseArret { arret: resume(ctx, &*nomenclatures(ctx)?, arret)?, phrase: phrase.to_string() })
+    Ok(ReponseArret { arret: resume(ctx, &nomenclatures()?, arret)?, phrase: phrase.to_string() })
 }
 
 /// `{"suspension": resume, "phrase"}`.
 fn reponse_suspension(ctx: &Contexte, s: &Value, phrase: &str) -> R<ReponseSuspension> {
-    Ok(ReponseSuspension { suspension: resume(ctx, &*nomenclatures(ctx)?, s)?, phrase: phrase.to_string() })
+    Ok(ReponseSuspension { suspension: resume(ctx, &nomenclatures()?, s)?, phrase: phrase.to_string() })
 }
 
 /// `arret-enregistrer`. Les controles de la norme sont ceux du signalement (`signalement::verifier`, nature 04), avant
@@ -1969,50 +1969,21 @@ pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
     Ok(imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(imprevus::est_un_arret).collect())
 }
 
-/// Les nomenclatures du bloc 60 (`arrets-base.json`), telles qu'elles sont livrees.
-pub(crate) fn nomenclatures(ctx: &Contexte) -> R<std::sync::Arc<Value>> {
-    let _ = ctx;
-    json_en_cache(&dossier_du_code().join("arrets-base.json")).map_err(plain)
-}
-
-/// Les codes de `nomenclatures()[quoi]["codes"]`.
-fn codes(n: &Value, quoi: &str) -> R<Vec<Value>> {
-    let section = n.get(quoi).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(quoi)))?;
-    let liste = section.get("codes").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("codes")))?;
-    Ok(items(liste)?.into_iter().map(|c| c.into_owned()).collect())
-}
-
-/// Les codes saisissables d'une nomenclature (`motifs_arret`, `motifs_reprise`).
-fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
-    let mut out = Vec::new();
-    for c in codes(n, quoi)? {
-        if vrai(get(&c, "saisissable")?) {
-            out.push(c);
-        }
-    }
-    Ok(out)
+/// Les nomenclatures du bloc 60 (`arrets-base.json`), lues par leur forme (`engagement::imprevus::bloc_60`).
+pub(crate) fn nomenclatures() -> R<Bloc60> {
+    imprevus::bloc_60().map_err(plain)
 }
 
 /// Le libelle du motif d'arret dans les codes de la norme, `?` s'il n'y est pas.
-fn libelle_motif(n: &Value, motif: &Value) -> R<String> {
+fn libelle_motif(n: &Bloc60, motif: &Value) -> R<String> {
     if matches!(motif, Value::Array(_) | Value::Object(_)) {
         return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(motif))));
     }
-    let Some(m) = motif.as_str() else { return Ok("?".to_string()) };
-    let mut trouve: Option<Value> = None;
-    for c in codes(n, "motifs_arret")? {
-        if get(&c, "code")?.as_str() == Some(m) {
-            trouve = Some(c);
-        }
-    }
-    match trouve {
-        Some(c) => Ok(valeur_en_texte(getd(&c, "libelle", &json!("?"))?)),
-        None => Ok("?".to_string()),
-    }
+    Ok(n.motifs_arret.code(motif).map_or_else(|| "?".to_string(), |c| c.libelle.clone()))
 }
 
 /// Un arret resume (`ArretResume`).
-pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<ArretResume> {
+pub(crate) fn resume_arret(ctx: &Contexte, n: &Bloc60, a: &Value) -> R<ArretResume> {
     let envois = ses_envois(ctx, a)?;
     let (signalements, mois): (Vec<_>, Vec<_>) = envois.into_iter().filter(|e| matches!(e.nature.as_str(), "04" | "05" | "01")).partition(|e| e.nature != "01");
     let mois: Vec<String> = mois.into_iter().filter_map(|e| e.mois).collect();
@@ -2059,7 +2030,7 @@ pub(crate) fn resume_arret(ctx: &Contexte, n: &Value, a: &Value) -> R<ArretResum
 /// (`resume`), avec ses obligations, ceux qu'aucun signalement n'a annonces, et les nomenclatures du bloc 60.
 fn arrets(ctx: &Contexte) -> R<ReponseArrets> {
     let tous = tous_les_arrets(ctx)?;
-    let n = nomenclatures(ctx)?;
+    let n = nomenclatures()?;
     let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut resumes = Vec::new();
     let mut phrases = Vec::new();
@@ -2080,15 +2051,14 @@ fn arrets(ctx: &Contexte) -> R<ReponseArrets> {
         resumes.push(r);
     }
     let a_signaler: Vec<Resume> = resumes.iter().filter(|r| matches!(r, Resume::Arret(x) if !x.base.signale && x.base.signalement_du)).cloned().collect();
-    let subrogation = n.get("subrogation").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("subrogation")))?;
     Ok(ReponseArrets {
         phrase: format!("{}, {} à signaler.", crate::routes::compte(resumes.len(), "arrêt de travail", "arrêts de travail"), a_signaler.len()),
         phrases,
         arrets: resumes,
         a_signaler,
-        motifs: saisissables(&n, "motifs_arret")?,
-        motifs_reprise: saisissables(&n, "motifs_reprise")?,
-        subrogation: subrogation.get("codes").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("codes")))?.clone(),
+        motifs: n.motifs_arret.saisissables(),
+        motifs_reprise: n.motifs_reprise.saisissables(),
+        subrogation: n.subrogation.codes,
     })
 }
 

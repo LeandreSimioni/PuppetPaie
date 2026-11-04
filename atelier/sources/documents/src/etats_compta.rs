@@ -955,15 +955,43 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
 }
 
 /// Le logiciel du comptable et l'analytique que la compagnie a retenus, sous sa racine.
-pub const COMPTA: &str = "config/compta.json";
+const COMPTA: &str = "config/compta.json";
 
-/// `choix_compta` : le logiciel du comptable et l'analytique, tels que retenus (`config/compta.json`).
-fn choix_compta(ctx: &Contexte) -> R<Value> {
-    let chemin = ctx.racine.join(COMPTA);
-    if chemin.exists() {
-        socle::fichiers::lire_json_echec(&chemin)
-    } else {
-        Ok(Value::Object(Map::new()))
+/// `config/compta.json` : le logiciel du comptable (vide : aucun) et l'analytique, retenus une fois pour toutes. Lu par
+/// `ChoixCompta::lu` seule (les ecritures comptables, la page des exports), ecrit par `ChoixCompta::ecrire` seule
+/// (`retenir-logiciel`).
+#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChoixCompta {
+    _quoi: String,
+    pub logiciel: String,
+    pub analytique: bool,
+}
+
+impl ChoixCompta {
+    /// Le choix `logiciel` (vide : aucun) et `analytique`, tel qu'il s'ecrit.
+    pub fn nouveau(logiciel: String, analytique: bool) -> ChoixCompta {
+        ChoixCompta { _quoi: "Le logiciel du comptable, retenu pour les écritures comptables (Exports).".to_string(), logiciel, analytique }
+    }
+
+    /// `config/compta.json`, lu par sa forme ; rien de retenu s'il n'existe pas.
+    pub fn lu(racine: &std::path::Path) -> R<ChoixCompta> {
+        let chemin = racine.join(COMPTA);
+        if !chemin.exists() {
+            return Ok(ChoixCompta::default());
+        }
+        socle::forme::lire(&socle::fichiers::lire_json_echec(&chemin)?, "Le logiciel du comptable retenu (config/compta.json) ne se lit pas.").map_err(|m| erreur("ValueError", m))
+    }
+
+    /// Le choix ecrit dans `config/compta.json`.
+    pub fn ecrire(&self, racine: &std::path::Path) -> R<()> {
+        let v = serde_json::to_value(self).map_err(|e| erreur("ValueError", e.to_string()))?;
+        socle::ecriture::ecrire_json(&racine.join(COMPTA), &v, 2).map_err(|m| erreur("OSError", m))
+    }
+
+    /// Le logiciel retenu, s'il en est un.
+    fn retenu(&self) -> Option<String> {
+        Some(self.logiciel.clone()).filter(|l| !l.is_empty())
     }
 }
 
@@ -974,15 +1002,15 @@ fn choix_compta(ctx: &Contexte) -> R<Value> {
 pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert: Vec<String> = Vec::new();
-    let retenu = choix_compta(ctx)?;
+    let retenu = ChoixCompta::lu(&ctx.racine)?;
     let mut format = d.format.clone();
     let mut logiciel = d.logiciel.clone().filter(|l| !l.is_empty());
     if logiciel.is_none() && format.is_empty() {
-        logiciel = retenu.get("logiciel").filter(|v| vrai(v)).map(valeur_en_texte);
+        logiciel = retenu.retenu();
     }
     let analytique = match d.analytique {
         Some(a) => a,
-        None => retenu.get("analytique").is_some_and(vrai),
+        None => retenu.analytique,
     };
     if let Some(l) = &logiciel {
         let Some((nom, fmt, pourquoi)) = logiciel_connu(l) else {
@@ -1124,8 +1152,8 @@ pub fn trop_longs(ctx: &Contexte, format: &str, departs: &engagement::departs::D
 
 /// Le format des ecritures du logiciel retenu par la compagnie (`config/compta.json`), s'il en est un.
 pub fn format_retenu(ctx: &Contexte) -> R<Option<String>> {
-    let retenu = choix_compta(ctx)?;
-    Ok(retenu.get("logiciel").filter(|v| vrai(v)).map(valeur_en_texte).and_then(|l| logiciel_connu(&l)).map(|(_, f, _)| f))
+    let retenu = ChoixCompta::lu(&ctx.racine)?;
+    Ok(retenu.retenu().and_then(|l| logiciel_connu(&l)).map(|(_, f, _)| f))
 }
 
 // ------------------------------------------------------------------ le grand livre

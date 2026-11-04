@@ -18,6 +18,7 @@ use crate::routes::catalogue::Route;
 use crate::routes::documents::{client_courriel, expediteur_de, refus, Ouvrir};
 use crate::routes::engagement::maintenant;
 
+use documents::etats_compta::ChoixCompta;
 use documents::plan_comptable::{controler_plan, tables};
 use droit::contexte::Contexte;
 use envois::envoi::{self, Message};
@@ -25,8 +26,6 @@ use envois::ligne_d_envoi::{echec_d_envoi, noter, noter_echec_d_envoi, par_courr
 use envois::journal;
 use socle::date::jour_iso;
 use socle::echec::{erreur, Echec, R};
-use socle::ecriture::ecrire_json;
-use socle::fichiers::lire_json_echec as lire_json;
 use socle::fichiers::{nom_du, repr};
 use socle::html::courriel_en_html;
 use crate::routes::catalogue::{Ecran, Place};
@@ -285,25 +284,6 @@ fn dossier_formes(ctx: &Contexte) -> R<FormesDuDossier> {
 
 // ------------------------------------------------- le logiciel du comptable
 
-/// `config/compta.json` : le logiciel du comptable (vide : aucun) et l'analytique, retenus une fois pour toutes ; ecrit
-/// par `retenir-logiciel`. Les ecritures comptables le lisent aussi (`documents::etats_compta::choix_compta`).
-#[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct ChoixCompta {
-    _quoi: String,
-    logiciel: String,
-    analytique: bool,
-}
-
-/// `config/compta.json`, lu par sa forme ; rien de retenu s'il n'existe pas.
-fn choix_compta(ctx: &Contexte) -> R<ChoixCompta> {
-    let chemin = ctx.racine.join(documents::etats_compta::COMPTA);
-    if !chemin.exists() {
-        return Ok(ChoixCompta::default());
-    }
-    socle::forme::lire(&lire_json(&chemin)?, "Le logiciel du comptable retenu (config/compta.json) ne se lit pas.").map_err(|m| erreur("ValueError", m))
-}
-
 /// Un logiciel du comptable que la page propose : tel que les tables des exports le livrent
 /// (`documents::plan_comptable::tables`), et ce que l'ecran en dit une fois choisi.
 #[derive(Debug, Serialize)]
@@ -325,7 +305,7 @@ pub(crate) struct LogicielDuComptable {
 
 /// Le logiciel du comptable, tel que la page le montre.
 pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<LogicielDuComptable> {
-    let choix = choix_compta(ctx)?;
+    let choix = ChoixCompta::lu(&ctx.racine)?;
     let livres = tables()["logiciels"].as_array().cloned().unwrap_or_default();
     let controle = match livres.iter().find(|l| l["logiciel"].as_str() == Some(choix.logiciel.as_str())) {
         Some(l) => controler_plan(ctx, l["format"].as_str().unwrap_or(""))?,
@@ -458,8 +438,7 @@ fn retenir_logiciel(ctx: &Contexte, c: ChargeRetenirLogiciel) -> R<LogicielReten
     if !nom.is_empty() && !documents::plan_comptable::logiciels_connus().iter().any(|l| *l == nom) {
         return Err(refus(format!("Logiciel inconnu : « {} ».", nom)));
     }
-    let choix = ChoixCompta { _quoi: "Le logiciel du comptable, retenu pour les écritures comptables (Exports).".to_string(), logiciel: nom, analytique: c.analytique };
-    ecrire_json(&ctx.racine.join(documents::etats_compta::COMPTA), &en_json(&choix)?, 2).map_err(|m| erreur("OSError", m))?;
+    ChoixCompta::nouveau(nom, c.analytique).ecrire(&ctx.racine)?;
     let compta = etat_logiciel(ctx)?;
     let phrase = if compta.logiciel.is_empty() { "Aucun logiciel comptable retenu.".to_string() } else { format!("Logiciel comptable retenu : {}.", compta.logiciel) };
     Ok(LogicielRetenu { phrase, compta })

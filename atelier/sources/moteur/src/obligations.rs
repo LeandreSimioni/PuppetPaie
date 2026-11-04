@@ -43,8 +43,10 @@ use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::ecran::Pastille;
 use socle::echec::R;
+pub use declarations::obligations::{Ou, TexteDepose};
+use declarations::obligations::{BaseDesObligations, DeBase};
 use socle::echec::erreur;
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::{repr, vrai};
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::catalogue::Route;
@@ -143,225 +145,14 @@ const JOURS: [&str; 7] = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "sa
 
 // ------------------------------------------------------------------ les donnees
 
-/// `obligations-base.json` : chaque obligation, son delai, son point de depart et ses textes. Les notes du fichier
-/// (`_quoi`, `_pourquoi_ici`, `_textes`, `jours_ouvres`) ne servent pas au calcul.
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct BaseDesObligations {
-    _quoi: String,
-    _pourquoi_ici: String,
-    _textes: String,
-    #[serde(rename = "jours_ouvres")]
-    _jours_ouvres: NoteDesJoursOuvres,
-    obligations: LesObligations,
-}
-
-/// Ce que le fichier dit d'un jour ouvre (la regle est dans `Calendrier::jours_ouvres_apres`).
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct NoteDesJoursOuvres {
-    _regle: String,
-    _inference: String,
-}
-
-/// Les obligations que le moteur sait compter, une par cle.
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct LesObligations {
-    signalement_arret: DeBase,
-    signalement_arret_rectificatif: DeBase,
-    signalement_reprise: DeBase,
-    signalement_fin_contrat: DeBase,
-    declaration_accident: DeBase,
-    declaration_maladie_professionnelle: DeBase,
-    attestation_salaire: DeBase,
-}
-
-/// Une obligation telle que le fichier la livre : ce qu'elle est, ou elle se fait, qui la recoit, son delai (sans
-/// subrogation, avec, ou unique), les motifs qui l'appellent ou n'en font pas naitre, ses suites et ses textes.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct DeBase {
-    libelle: String,
-    nait_de: String,
-    qui: String,
-    #[serde(default)]
-    ou: Option<Ou>,
-    destinataire: String,
-    #[serde(default)]
-    motifs: Vec<String>,
-    #[serde(default)]
-    sauf_motifs: Option<SaufMotifs>,
-    #[serde(default)]
-    delai: Option<Delai>,
-    #[serde(default)]
-    delai_sans_subrogation: Option<Delai>,
-    #[serde(default)]
-    delai_avec_subrogation: Option<Delai>,
-    #[serde(default)]
-    connaissance_presumee: Option<String>,
-    #[serde(default)]
-    exceptions: Vec<String>,
-    #[serde(default)]
-    inferences: Vec<String>,
-    #[serde(default)]
-    a_avoir: Vec<String>,
-    #[serde(default)]
-    _a_avoir_source: Option<String>,
-    #[serde(default)]
-    suites: Option<Suites>,
-    textes: Vec<TexteDepose>,
-}
-
-/// Ou une obligation se fait : une phrase (un signalement, que le logiciel ecrit), ou les lieux ou la faire soi-meme
-/// (hors DSN), que la page propose et que `accident-declare` et `attestation-declare` acceptent.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum Ou {
-    Phrase(String),
-    Lieux(Vec<Lieu>),
-}
-
-/// Un lieu ou faire une obligation hors DSN : son code, ce qu'en dit l'ecran (court, puis en entier), le texte qui le
-/// decrit, et pour net-entreprises ce qu'il faudrait pour y deposer un fichier.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Lieu {
-    code: String,
-    court: String,
-    libelle: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    edi: Option<String>,
-    texte: String,
-}
-
-/// Un texte depose qui fonde une obligation : sa reference, son fichier, ce qu'il dit.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct TexteDepose {
-    reference: String,
-    fichier: String,
-    dit: String,
-}
-
-/// Les motifs d'arret que la DSN ne couvre pas, et pourquoi.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SaufMotifs {
-    codes: Vec<String>,
-    #[serde(rename = "pourquoi")]
-    _pourquoi: String,
-    #[serde(rename = "avertissement")]
-    _avertissement: String,
-    #[serde(rename = "texte")]
-    _texte: TexteDepose,
-}
-
-/// Un delai : en jours ouvres, en jours, en heures (dimanches et feries non compris), ou avec la DSN mensuelle ; et la
-/// phrase qui le dit.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Delai {
-    #[serde(default)]
-    jours_ouvres: Option<i64>,
-    #[serde(default)]
-    jours: Option<i64>,
-    #[serde(default)]
-    heures: Option<i64>,
-    #[serde(default, rename = "sans_dimanches")]
-    _sans_dimanches: Option<bool>,
-    #[serde(default, rename = "sans_feries")]
-    _sans_feries: Option<bool>,
-    #[serde(default, rename = "avec_la_mensuelle")]
-    _avec_la_mensuelle: Option<bool>,
-    #[serde(default, rename = "depart")]
-    _depart: Option<String>,
-    dit: String,
-}
-
-/// Ce qui suit une declaration d'accident.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Suites {
-    #[serde(default)]
-    reserves: Option<Reserves>,
-    #[serde(default)]
-    feuille_accident: Option<FeuilleDAccident>,
-}
-
-/// Les reserves motivees (R. 441-6) : dix jours francs apres la declaration.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Reserves {
-    libelle: String,
-    jours_francs: i64,
-    #[serde(rename = "depuis")]
-    _depuis: String,
-    texte: TexteDepose,
-    inference: String,
-}
-
-/// La feuille d'accident a remettre au salarie (L. 441-5).
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct FeuilleDAccident {
-    libelle: String,
-    texte: TexteDepose,
-}
-
-impl LesObligations {
-    fn de(&self, cle: &str) -> R<&DeBase> {
-        Ok(match cle {
-            "signalement_arret" => &self.signalement_arret,
-            "signalement_arret_rectificatif" => &self.signalement_arret_rectificatif,
-            "signalement_reprise" => &self.signalement_reprise,
-            "signalement_fin_contrat" => &self.signalement_fin_contrat,
-            "declaration_accident" => &self.declaration_accident,
-            "declaration_maladie_professionnelle" => &self.declaration_maladie_professionnelle,
-            "attestation_salaire" => &self.attestation_salaire,
-            autre => return Err(livree(autre)),
-        })
-    }
-}
-
-impl DeBase {
-    /// Les motifs que la DSN ne couvre pas (`sauf_motifs.codes`), aucun sinon.
-    fn sauf(&self) -> &[String] {
-        self.sauf_motifs.as_ref().map_or(&[], |s| &s.codes)
-    }
-
-    /// Le delai `quoi` (`delai`, `delai_sans_subrogation`, `delai_avec_subrogation`), que l'obligation doit porter.
-    fn delai_de<'a>(&self, d: &'a Option<Delai>, quoi: &str) -> R<&'a Delai> {
-        d.as_ref().ok_or_else(|| livree(&format!("{}.{}", self.libelle, quoi)))
-    }
-
-    /// Le point de depart presume, que l'obligation doit porter quand elle court de la connaissance.
-    fn presume(&self) -> R<String> {
-        self.connaissance_presumee.clone().ok_or_else(|| livree("connaissance_presumee"))
-    }
-
-    /// Les codes des lieux ou la faire soi-meme (aucun pour un signalement).
-    fn lieux(&self) -> &[Lieu] {
-        match &self.ou {
-            Some(Ou::Lieux(l)) => l,
-            _ => &[],
-        }
-    }
+/// `obligations-base.json`, lu par sa forme (`declarations::obligations::base`, son seul lecteur).
+fn base() -> R<BaseDesObligations> {
+    declarations::obligations::base().map_err(|m| erreur("ValueError", m))
 }
 
 /// Un nombre que le delai doit porter.
 fn nombre(n: Option<i64>, quoi: &str) -> R<i64> {
-    n.ok_or_else(|| livree(quoi))
-}
-
-fn livree(cle: &str) -> socle::echec::Echec {
-    erreur("KeyError", socle::echec::livree("obligations-base.json", cle))
-}
-
-/// `obligations-base.json`, lu par sa forme (le texte est lu une fois tant qu'il ne change pas).
-fn base() -> R<BaseDesObligations> {
-    let v = json_en_cache(&dossier_du_code().join("obligations-base.json")).map_err(|m| erreur("OSError", m))?;
-    socle::forme::lire(&v, "Les obligations livrées avec le logiciel ne se lisent pas : le signaler au développeur.").map_err(|m| erreur("ValueError", m))
+    n.ok_or_else(|| erreur("KeyError", declarations::obligations::livree(quoi)))
 }
 
 /// Le motif d'arret appelle-t-il l'obligation `cle` (ses `motifs`) ?
@@ -378,16 +169,6 @@ pub fn motif_appelle_la_declaration(motif: &str) -> R<bool> {
 /// (`signalement_arret.sauf_motifs`). La liste des arrets s'en sert pour ne pas dire « a signaler » ce qui ne se signale pas.
 pub fn signalement_du(motif: &str) -> R<bool> {
     Ok(!base()?.obligations.signalement_arret.sauf().iter().any(|m| m == motif))
-}
-
-/// Le code « oui » de la subrogation (`arrets-base.json`, S21.G00.60.004).
-fn code_subrogation_oui() -> R<String> {
-    let n = json_en_cache(&dossier_du_code().join("arrets-base.json")).map_err(|m| erreur("OSError", m))?;
-    n["subrogation"]["codes"]
-        .as_array()
-        .and_then(|a| a.iter().find(|c| c["libelle"].as_str() == Some("oui")))
-        .map(|c| en_texte(&c["code"]))
-        .ok_or_else(|| erreur("KeyError", socle::echec::livree("arrets-base.json", "subrogation")))
 }
 
 // --------------------------------------------------------------- le calendrier
@@ -986,7 +767,7 @@ fn signalement_dsn(
             "La subrogation de cet arrêt n'est pas dite : c'est elle qui fixe le délai (cinq jours ouvrés sans subrogation, avec la DSN du mois avec ; CSS R. 133-14, II).",
         ));
     }
-    if en_texte(subrogation) == code_subrogation_oui()? {
+    if en_texte(subrogation) == engagement::imprevus::bloc_60().map_err(|m| erreur("ValueError", m))?.subrogation_oui().map_err(|m| erreur("KeyError", m))? {
         let d = o.delai_de(&o.delai_avec_subrogation, "delai_avec_subrogation")?;
         // SUBROGE, la date butoir est l'echeance de la DSN mensuelle du mois de l'evenement (R. 133-14, II, premier
         // alinea), telle que `echeance_dsn` la donne : reportee au jour ouvre suivant un samedi, un dimanche ou un ferie

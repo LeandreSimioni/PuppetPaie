@@ -66,15 +66,11 @@ pub(crate) fn mois_importes(racine: &Path) -> R<Vec<String>> {
     Ok(mois.into_iter().filter(|m| !engagement::stock::a_une_saisie(racine, m).unwrap_or(false)).collect())
 }
 
-/// LA DSN QUE L'IMPORT A LUE POUR `mois` : le fichier de l'ancien logiciel (`engagement::importe::dsn_deposee`), ou
-/// `None`, que la saisie touche aussi le mois ou non. Rend `{"importee": true, "etablie_le", "fichier"}` -- la date est
-/// celle que le fichier porte (S20.G00.05.007, sa constitution), pas celle d'un depot : aucun bilan de la plate-forme
-/// n'est lu pour lui.
-pub(crate) fn dsn_importee(racine: &Path, mois: &str) -> R<Option<Value>> {
-    Ok(engagement::importe::dsn_deposee(racine, mois).map_err(Echec::from)?.map(|x| {
-        let dit = |v: Option<String>| v.map(|t| t.trim().to_string()).unwrap_or_default();
-        json!({"importee": true, "passee": false, "refusee": false, "etablie_le": dit(x.paie.depose_le), "fichier": dit(x.paie.fichier)})
-    }))
+/// LA DSN QUE L'IMPORT A LUE POUR `mois` (`engagement::importe::dsn_deposee`), que la saisie touche aussi le mois ou
+/// non : `Some` du jour que le fichier de l'ancien logiciel porte (S20.G00.05.007, sa constitution ; vide s'il n'en porte
+/// pas), pas celui d'un depot -- aucun bilan de la plate-forme n'est lu pour lui. `None` : aucune.
+pub(crate) fn dsn_importee_le(racine: &Path, mois: &str) -> R<Option<String>> {
+    Ok(engagement::importe::dsn_deposee(racine, mois).map_err(Echec::from)?.map(|x| x.paie.depose_le.map(|t| t.trim().to_string()).unwrap_or_default()))
 }
 
 /// LA DSN D'UN MOIS DONT L'ANCIEN LOGICIEL A DEPOSE LA DSN, que la page Paie et la boite d'ouverture disent avec les
@@ -489,7 +485,7 @@ pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let manques = cartes.iter().filter(|c| c["manque"].as_array().is_some_and(|l| !l.is_empty())).count();
     Ok(Some(json!({
         "mois": mois,
-        "dsn": crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(mois)?, None)?.0,
+        "dsn": crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(mois)?, None)?,
         "paies": cartes,
         "totaux": totaux,
         "incompletes": manques,
