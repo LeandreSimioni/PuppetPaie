@@ -111,3 +111,12 @@ son imputation sur la vieillesse de base et sa limite (§ 450-480), sa ligne au 
 exonérées (§ 440). Où : `droit/src/heures_en_plus.rs`, `engagement/src/heures_en_plus.rs`, `logiciel/donnees/permanents-base.json`
 (`heures_en_plus`). Non porté : les heures structurelles (§ 70, 230-250), le forfait en heures ou en jours (§ 100, 160), le
 rachat de RTT (chapitre 3).
+
+## `boss-protection-sociale-complementaire-20260101.pdf` — Autres éléments de rémunération › Protection sociale complémentaire
+
+URL : `http://boss.gouv.fr/portail/sites/siteboss/accueil/autres-elements-de-remuneration/protection-sociale-complementair.html`,
+**version en vigueur au 01/01/2026**, imprimée le 04/11/2026. Chapitre 1 : les contributions des employeurs au
+financement de la prévoyance complémentaire exclues de l'assiette des cotisations (principe, conditions du caractère
+collectif et obligatoire, limites). C'est l'assiette **sociale** ; le net **imposable** relève du BOFiP
+(`../bofip/BOI-RSA-BASE-30-10-20-*`). Où : la prévoyance et le Fonds collectif santé des intermittents au barème
+(leur `source`), et la part patronale de la mutuelle des permanents.
