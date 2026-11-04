@@ -356,12 +356,29 @@ fn du_mois(racine: &Path, etat: &Value) -> R<Value> {
     Ok(du_mois)
 }
 
+/// `etat-par-engagement` tel que la route et l'ecran de `mois` le rendent, d'un seul endroit : chaque engagement, ce que
+/// disent ses carres, la ligne de sa frise, et la phrase du mois.
+fn par_engagement(etat: &Value, brut: &Value) -> Value {
+    let n = crate::routes::nombre(etat.get("engagements").unwrap_or(&Value::Null));
+    let phrases: Vec<String> = etat["engagements"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|e| {
+            let carres: Vec<String> = e["carres"].as_array().into_iter().flatten().chain(std::iter::once(&e["versions"])).filter_map(|c| c["phrase"].as_str().map(String::from)).collect();
+            format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
+        })
+        .collect();
+    let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", socle::mois::Mois::en_clair(brut.as_str().unwrap_or_default())) } else { format!("Engagements du mois : {}.", n) };
+    json!({ "phrase": phrase, "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) })
+}
+
 /// Tout l'ecran de `mois`, tel que la page le lit (`chargerMois`) : `lectures`, une entree par route, au format d'une
 /// reponse de la page.
 fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
     use crate::interface::api::{en_page, Refus};
     let mut l = etat.get("lectures").and_then(Value::as_object).cloned().unwrap_or_default();
-    l.insert(Route::EtatParEngagement.nom().into(), en_page(Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))));
+    l.insert(Route::EtatParEngagement.nom().into(), en_page(Ok(par_engagement(etat, brut))));
     l.insert(
         Route::EtatDuMois.nom().into(),
         en_page(du_mois(racine, etat).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))),
@@ -378,21 +395,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &V
     let (brut, mois) = (json!(le_mois), le_mois.to_string());
     let etat = lire(o, ctx, &mois)?;
     match nom {
-        Route::EtatParEngagement => {
-            let n = crate::routes::nombre(etat.get("engagements").unwrap_or(&Value::Null));
-            // Chaque engagement, ce que disent ses carres, et la ligne de sa frise.
-            let phrases: Vec<String> = etat["engagements"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|e| {
-                    let carres: Vec<String> = e["carres"].as_array().into_iter().flatten().chain(std::iter::once(&e["versions"])).filter_map(|c| c["phrase"].as_str().map(String::from)).collect();
-                    format!("{} ({}) : {}", crate::routes::mot(&e["nom"]), crate::routes::mot(&e["numero"]), carres.join(" ; "))
-                })
-                .collect();
-            let phrase = if n == 0 { format!("Aucun engagement enregistré en {}.", socle::mois::Mois::en_clair(&mois)) } else { format!("Engagements du mois : {}.", n) };
-            Ok(json!({ "phrase": phrase, "phrases": phrases, "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))
-        }
+        Route::EtatParEngagement => Ok(par_engagement(&etat, &brut)),
         Route::Mois => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
         _ => du_mois(&ctx.racine, &etat),
     }
