@@ -203,10 +203,10 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     f.add_case("S21.G00.06.002", &ent.nic, "nic")?;
     for (rub, case, cle) in [
         ("S21.G00.11.001", &etab.nic, "nic"),
-        ("S21.G00.11.002", &etab.naf, "naf"),
+        ("S21.G00.11.002", &etab.naf.en_texte(), "naf"),
         ("S21.G00.11.003", &etab.adresse.en_texte(), "adresse"),
-        ("S21.G00.11.004", &etab.code_postal, "code_postal"),
-        ("S21.G00.11.005", &etab.commune, "commune"),
+        ("S21.G00.11.004", &etab.code_postal.en_texte(), "code_postal"),
+        ("S21.G00.11.005", &etab.commune.en_texte(), "commune"),
     ] {
         // Le code APET : obligatoire en amorcage en P26V01, retire de la norme P27V01 (cahier 2027.1.1, p. 145).
         if rub == "S21.G00.11.002" && !usage_admet(&f, rub, NATURE)? {

@@ -187,57 +187,252 @@ impl<'de> Deserialize<'de> for Montant {
     }
 }
 
-/// UNE LIGNE D'ADRESSE DECLAREE de l'entreprise ou d'un etablissement (la voie, puis son complement) : 32 caracteres au
-/// plus, la longueur de la plus courte des normes qui l'ecrivent. La DPAE en ecrit deux de 32 (L_ADR_EMP_1, positions
-/// 188-219, et L_ADR_EMP_2, 220-251 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 262-275) ; la DSN,
-/// 50 (S21.G00.06.004 et .007, S21.G00.11.003 et .006, S10.G00.01.004 et .009, X [1,50] :
-/// `atelier/reference/norme-dsn/texte/bloc-S21.G00.06.txt`, `bloc-S21.G00.11.txt`, `bloc-S10.G00.01.txt`). Une ligne
-/// plus longue se refuse a la saisie et a la lecture : rien ne la couperait.
+// ------------------------------------------------------- les textes que les normes bornent
+
+/// La borne d'un texte declare : au plus, ou exactement, sa longueur.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Borne {
+    AuPlus,
+    Exactement,
+}
+
+impl Borne {
+    fn hors(self, n: usize, longueur: usize) -> bool {
+        match self {
+            Borne::AuPlus => n > longueur,
+            Borne::Exactement => n != longueur,
+        }
+    }
+}
+
+/// Le nombre de caracteres d'un texte.
+fn caracteres(t: &str) -> usize {
+    t.chars().count()
+}
+
+/// Le nombre de chiffres d'un texte (`socle::texte::est_chiffre`).
+fn chiffres(t: &str) -> usize {
+    t.chars().filter(|c| socle::texte::est_chiffre(*c)).count()
+}
+
+/// UN TEXTE DECLARE QUE LES NORMES BORNENT : il en a `LONGUEUR` (`Borne`), comptes par sa mesure, la longueur de la plus
+/// courte des normes qui l'ecrivent. Hors de la borne, il se refuse a la lecture (`lire`, que la lecture du fichier
+/// appelle) et a la saisie (`FormeDeCase::FAUTE`, par `declarations::champs::fautes_des_types`), en une phrase qui dit
+/// quoi faire (`{texte}`, `{n}` sa mesure, `{max}` la borne) : rien ne le couperait. Un texte vide n'est pas le sien :
+/// c'est une case vide (`Case::Vide`).
+macro_rules! texte_borne {
+    (@commun $nom:ident, $unite:literal) => {
+        impl $nom {
+            /// Le texte `texte`, ou ce qui le refuse.
+            pub fn lire(texte: &str) -> Result<$nom, String> {
+                match Self::faute(texte) {
+                    Some(f) => Err(f),
+                    None => Ok($nom(texte.to_string())),
+                }
+            }
+        }
+
+        impl AsRef<str> for $nom {
+            fn as_ref(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl std::ops::Deref for $nom {
+            type Target = str;
+            fn deref(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl std::fmt::Display for $nom {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(&self.0)
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $nom {
+            fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+                $nom::lire(&String::deserialize(d)?).map_err(serde::de::Error::custom)
+            }
+        }
+
+        impl FormeDeCase for $nom {
+            const FAUTE: Option<fn(&str) -> Option<String>> = Some($nom::faute);
+            const LONGUEUR: Option<(usize, &'static str)> = Some(($nom::LONGUEUR, $unite));
+        }
+    };
+    ($(#[$m:meta])* pub struct $nom:ident : $borne:ident $max:literal $unite:literal par $mesure:ident, $phrase:literal;) => {
+        $(#[$m])*
+        #[derive(Debug, Clone, PartialEq, Default, Serialize)]
+        #[serde(transparent)]
+        pub struct $nom(String);
+
+        impl $nom {
+            pub const LONGUEUR: usize = $max;
+
+            /// Ce qui refuse `texte`, en une phrase qui dit quoi faire ; rien pour un texte vide.
+            pub fn faute(texte: &str) -> Option<String> {
+                let n = $mesure(texte);
+                (!texte.is_empty() && Borne::$borne.hors(n, Self::LONGUEUR)).then(|| format!($phrase, texte = texte, n = n, max = Self::LONGUEUR))
+            }
+        }
+
+        texte_borne!(@commun $nom, $unite);
+    };
+}
+
+texte_borne! {
+    /// UNE LIGNE D'ADRESSE DECLAREE de l'entreprise ou d'un etablissement (la voie, puis son complement) : 32 caracteres au
+    /// plus. La DPAE en ecrit deux de 32 (L_ADR_EMP_1, positions 188-219, et L_ADR_EMP_2, 220-251 :
+    /// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 262-276) ; la DSN, 50 (S21.G00.06.004 et .007,
+    /// S21.G00.11.003 et .006, S10.G00.01.004 et .009, X [1,50] : `atelier/reference/norme-dsn/texte/bloc-S21.G00.06.txt`,
+    /// `bloc-S21.G00.11.txt`, `bloc-S10.G00.01.txt`).
+    pub struct LigneAdresse : AuPlus 32 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : une ligne d'adresse en a {max} au plus, ce que la DPAE écrit (norme DPAE v5.3, \
+zone « Adresse de l'établissement »). Passez la suite à la ligne suivante, « Complément d'adresse », ou abrégez";
+}
+
+texte_borne! {
+    /// LA COMMUNE DECLAREE de l'entreprise ou d'un etablissement : 27 caracteres au plus. La DPAE en ecrit 27
+    /// (L_BUR_DIST_EMP, positions 257-283 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 284-292) ; la DSN,
+    /// 50 (S10.G00.01.006, S21.G00.06.006, S21.G00.11.005, X [1,50] : `logiciel/donnees/formats-dsn-base.json`).
+    pub struct CommuneEmployeur : AuPlus 27 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : la commune d'un établissement en a {max} au plus, ce que la DPAE écrit (norme DPAE \
+v5.3, zone « Commune de l'établissement »). Abrégez-la";
+}
+
+texte_borne! {
+    /// LE CODE POSTAL de l'entreprise ou d'un etablissement : 5 caracteres. La DPAE en ecrit 5 (C_POSTAL_EMP, positions
+    /// 252-256 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 277-283) ; la DSN aussi (S10.G00.01.005,
+    /// S21.G00.06.005, S21.G00.11.004, X [5,5] : `logiciel/donnees/formats-dsn-base.json`).
+    pub struct CodePostal : Exactement 5 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : un code postal en a {max}, ce que la DPAE et la DSN écrivent (norme DPAE v5.3, \
+zone « Code postal de l'établissement » ; DSN, S21.G00.11.004). Corrigez-le";
+}
+
+texte_borne! {
+    /// LE CODE APE (NAF) de l'entreprise : 5 caracteres. La DPAE en ecrit 5 (C_NAF_NN, positions 661-665 :
+    /// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 397-403) ; la DSN aussi (S21.G00.06.003, S21.G00.11.002,
+    /// X [5,5] : `logiciel/donnees/formats-dsn-base.json`).
+    pub struct CodeNaf : Exactement 5 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : un code APE en a {max}, quatre chiffres et une lettre, sans point, ce que la DPAE et \
+la DSN écrivent (norme DPAE v5.3, zone « Code NAF » ; DSN, S21.G00.06.003). Corrigez-le";
+}
+
+texte_borne! {
+    /// LE CODE DU SERVICE DE SANTE AU TRAVAIL : 10 caracteres au plus. La DPAE en ecrit 10 (C_MT_DCL, positions 938-947 :
+    /// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 485-497) ; la DSN, 14 (S21.G00.11.025, X [1,14] :
+    /// `logiciel/donnees/formats-dsn-base.json`).
+    pub struct CodeMedecine : AuPlus 10 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : le code d'un service de santé au travail en a {max} au plus, ce que la DPAE écrit \
+(norme DPAE v5.3, zone « Code centre de médecine du travail »). Il se lit sur l'attestation d'adhésion à ce service";
+}
+
+texte_borne! {
+    /// LE TELEPHONE de l'employeur (le contact DSN, le signataire) : 11 chiffres au plus. La DPAE en ecrit les chiffres, 11
+    /// au plus (N_TEL_EMP, positions 542-552 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 380-385) ; la
+    /// DSN, le texte, 20 caracteres au plus (S10.G00.02.005, S20.G00.07.002, X [10,20] :
+    /// `logiciel/donnees/formats-dsn-base.json`), que son controle des formats tient.
+    pub struct Telephone : AuPlus 11 "chiffres" par chiffres,
+        "« {texte} » a {n} chiffres : un téléphone en a {max} au plus, ce que la DPAE écrit (norme DPAE v5.3, zone « Numéro de téléphone »). \
+Écrivez-le sans l'indicatif international, en dix chiffres (0102030405)";
+}
+
+texte_borne! {
+    /// LE NOM DECLARE d'un salarie : 32 caracteres au plus. La DPAE en ecrit 32 (L_NOM_PATRO_SAL, positions 284-315 :
+    /// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 293-300) ; la DSN, 80 (S21.G00.30.002, X [1,80] :
+    /// `logiciel/donnees/formats-dsn-base.json`).
+    pub struct NomDeclare : AuPlus 32 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : un nom déclaré en a {max} au plus, ce que la DPAE écrit (norme DPAE v5.3, \
+zone « Nom du salarié »). Abrégez-le";
+}
+
+texte_borne! {
+    /// LE PRENOM DECLARE d'un salarie : 32 caracteres au plus. La DPAE en ecrit 32 (L_PRENOMS_SAL, positions 316-347 :
+    /// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 301-308) ; la DSN, 80 (S21.G00.30.004, X [1,80] :
+    /// `logiciel/donnees/formats-dsn-base.json`).
+    pub struct PrenomDeclare : AuPlus 32 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : un prénom déclaré en a {max} au plus, ce que la DPAE écrit (norme DPAE v5.3, \
+zone « Prénom du salarié »). Abrégez-le";
+}
+
+texte_borne! {
+    /// LE LIEU DE NAISSANCE DECLARE d'un salarie (la commune ou le pays) : 24 caracteres au plus. La DPAE en ecrit 24
+    /// (L_LIEU_NAISS_SAL, positions 369-392 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 323-332) ; la
+    /// DSN, 30 (S21.G00.30.007, X [1,30] : `logiciel/donnees/formats-dsn-base.json`).
+    pub struct LieuNaissance : AuPlus 24 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : un lieu de naissance déclaré en a {max} au plus, ce que la DPAE écrit (norme DPAE \
+v5.3, zone « Lieu de naissance du salarié »). Abrégez-le";
+}
+
+texte_borne! {
+    /// LE DEPARTEMENT DE NAISSANCE d'un salarie : 2 caracteres. La DPAE en ecrit 2 (C_DEPT_NAISS_SAL, positions 828-829 :
+    /// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 427-433) ; la DSN aussi (S21.G00.30.014, X [2,2] :
+    /// `logiciel/donnees/formats-dsn-base.json`).
+    pub struct DepartementNaissance : Exactement 2 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : un département de naissance en a {max} (75, 2A, 99 pour une naissance à \
+l'étranger), ce que la DPAE et la DSN écrivent (norme DPAE v5.3, zone « Code du département de naissance » ; DSN, S21.G00.30.014). Corrigez-le";
+}
+
+texte_borne! {
+    /// LE NUMERO DE SECURITE SOCIALE d'un salarie, sans sa cle : 13 caracteres. La DPAE en ecrit 13 (N_SECU_SOC, positions
+    /// 348-360 : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 309-315) ; la DSN aussi (S21.G00.30.001,
+    /// X [13,13] : `logiciel/donnees/formats-dsn-base.json`).
+    pub struct Nir : Exactement 13 "caractères" par caracteres,
+        "« {texte} » a {n} caractères : un numéro de sécurité sociale en a {max}, sans sa clé, ce que la DPAE et la DSN \
+écrivent (norme DPAE v5.3, zone « Numéro de sécurité sociale » ; DSN, S21.G00.30.001). Les deux derniers chiffres vont dans la case « Clé »";
+}
+
+/// LA RAISON SOCIALE DECLAREE : 60 caracteres au plus, en deux lignes de 32 coupees entre deux mots. La DSN en ecrit 60
+/// (S10.G00.01.003, X [1,60] : `logiciel/donnees/formats-dsn-base.json`) ; la DPAE, deux lignes de 32 (L_RAISON_SOC_1,
+/// positions 152-183, et L_RAISON_SOC_2, « Nom ou raison sociale (ligne 2) », 510-541 :
+/// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 249-256 et 374-379).
 #[derive(Debug, Clone, PartialEq, Default, Serialize)]
 #[serde(transparent)]
-pub struct LigneAdresse(String);
+pub struct RaisonSociale(String);
 
-impl LigneAdresse {
-    pub const LONGUEUR: usize = 32;
+impl RaisonSociale {
+    pub const LONGUEUR: usize = 60;
+    /// Une ligne de la DPAE.
+    pub const LIGNE: usize = 32;
 
-    /// La ligne `texte`, ou ce qui la refuse.
-    pub fn lire(texte: &str) -> Result<LigneAdresse, String> {
-        match Self::faute(texte) {
-            Some(f) => Err(f),
-            None => Ok(LigneAdresse(texte.to_string())),
+    /// Ses deux lignes de la DPAE (`LIGNE` chacune au plus) : la premiere aussi longue que les mots le permettent, la
+    /// seconde le reste, vide quand tout tient sur la premiere ; sinon, la phrase qui dit quoi faire.
+    pub fn en_deux_lignes(texte: &str) -> Result<(String, String), String> {
+        if caracteres(texte) <= Self::LIGNE {
+            return Ok((texte.to_string(), String::new()));
+        }
+        let c: Vec<char> = texte.chars().collect();
+        let deux = (1..=Self::LIGNE).rev().find(|&i| c[i] == ' ').map(|i| (c[..i].iter().collect::<String>(), c[i + 1..].iter().collect::<String>()));
+        match deux {
+            Some((premiere, seconde)) if caracteres(&seconde) <= Self::LIGNE => Ok((premiere, seconde)),
+            _ => Err(format!(
+                "« {} » ne tient pas en deux lignes de {} caractères coupées entre deux mots, ce que la DPAE écrit (norme DPAE \
+v5.3, zone « Nom ou raison sociale », lignes 1 et 2). Abrégez le mot le plus long, ou la fin",
+                texte,
+                Self::LIGNE
+            )),
         }
     }
 
-    /// Ce qui refuse la ligne `texte`, en une phrase qui dit quoi faire.
+    /// Ce qui refuse `texte`, en une phrase qui dit quoi faire ; rien pour un texte vide.
     pub fn faute(texte: &str) -> Option<String> {
-        let n = texte.chars().count();
-        (n > Self::LONGUEUR).then(|| {
-            format!(
-                "« {} » a {} caractères : une ligne d'adresse en a {} au plus, ce que la DPAE écrit (norme DPAE v5.3, L_ADR_EMP_1 \
-et L_ADR_EMP_2). Passez la suite à la ligne suivante, « Complément d'adresse », ou abrégez",
+        let n = caracteres(texte);
+        if n > Self::LONGUEUR {
+            return Some(format!(
+                "« {} » a {} caractères : une raison sociale déclarée en a {} au plus, ce que la DSN écrit (S10.G00.01.003). \
+Abrégez-la",
                 texte,
                 n,
                 Self::LONGUEUR
-            )
-        })
+            ));
+        }
+        Self::en_deux_lignes(texte).err()
     }
 }
 
-impl AsRef<str> for LigneAdresse {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for LigneAdresse {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        LigneAdresse::lire(&String::deserialize(d)?).map_err(serde::de::Error::custom)
-    }
-}
-
-impl FormeDeCase for LigneAdresse {
-    const FAUTE: Option<fn(&str) -> Option<String>> = Some(LigneAdresse::faute);
-}
+texte_borne!(@commun RaisonSociale, "caractères");
 
 /// L'adresse d'un document en une ligne : la voie, puis son complement quand la fiche le dit (`LigneAdresse`).
 pub fn avec_complement(adresse: String, complement: Option<&str>) -> String {
@@ -257,6 +452,8 @@ pub struct Declaree {
     pub valeurs: &'static [&'static str],
     pub cases: Vec<Declaree>,
     pub faute: Option<fn(&str) -> Option<String>>,
+    /// La borne de son texte et ce qu'elle compte (`texte_borne!`), que l'aide de sa ligne de `champs-base.json` dit.
+    pub longueur: Option<(usize, &'static str)>,
 }
 
 /// La forme d'un type de case.
@@ -265,6 +462,8 @@ pub trait FormeDeCase {
     const VALEURS: &'static [&'static str] = &[];
     /// Ce que le type refuse d'un texte saisi, en une phrase qui dit quoi corriger (`LigneAdresse`) ; rien d'ordinaire.
     const FAUTE: Option<fn(&str) -> Option<String>> = None;
+    /// La borne d'un texte declare (`texte_borne!`) et ce qu'elle compte ; aucune d'ordinaire.
+    const LONGUEUR: Option<(usize, &'static str)> = None;
     /// Les cases d'une structure ; aucune hors d'une structure.
     fn cases() -> Vec<Declaree> {
         Vec::new()
@@ -272,7 +471,7 @@ pub trait FormeDeCase {
 }
 
 pub fn declaree<T: FormeDeCase>(cle: &'static str) -> Declaree {
-    Declaree { cle: cle.strip_prefix("r#").unwrap_or(cle), valeurs: T::VALEURS, cases: T::cases(), faute: T::FAUTE }
+    Declaree { cle: cle.strip_prefix("r#").unwrap_or(cle), valeurs: T::VALEURS, cases: T::cases(), faute: T::FAUTE, longueur: T::LONGUEUR }
 }
 
 impl FormeDeCase for String {}
@@ -632,9 +831,9 @@ cases! {
         adresse: LigneAdresse,
         complement_adresse_affichage: String,
         complement_adresse: LigneAdresse,
-        code_postal: String,
+        code_postal: CodePostal,
         commune_affichage: String,
-        commune: String,
+        commune: CommuneEmployeur,
         ouverture: Jour,
         taux_atmp: TauxAtmp,
         versement_mobilite: VersementMobilite,
@@ -648,14 +847,14 @@ cases! {
         prenom: String,
         nom: String,
         fonction: String,
-        tel: String,
+        tel: Telephone,
         email: String,
     }
 }
 
 cases! {
     /// Le contact DSN (S20.G00.07).
-    pub struct DeclarantDsn { civilite: Civilite, nom_prenom_affichage: String, nom_prenom: String, tel: String, email: String, qualite: String }
+    pub struct DeclarantDsn { civilite: Civilite, nom_prenom_affichage: String, nom_prenom: String, tel: Telephone, email: String, qualite: String }
 }
 
 cases! {
@@ -677,17 +876,17 @@ fiche! {
         code_salarie: String,
         initiales_contrat: String,
         nom_affichage: String,
-        nom: String,
+        nom: NomDeclare,
         prenom_affichage: String,
-        prenom: String,
+        prenom: PrenomDeclare,
         pseudonyme: String,
-        nir: String,
+        nir: Nir,
         nir_cle: String,
         sexe: Sexe,
         date_naissance: Jour,
-        lieu_naissance: String,
+        lieu_naissance: LieuNaissance,
         lieu_naissance_affichage: String,
-        departement_naissance: String,
+        departement_naissance: DepartementNaissance,
         pays_naissance: String,
         code_nationalite_dsn: CodeNationalite,
         pays_nationalite: String,
@@ -736,18 +935,18 @@ fiche! {
     /// LA FICHE DE L'ENTREPRISE a un jour (son siege et, en `etablissements`, les autres).
     pub struct ChampsEntreprise, datee FicheEntrepriseDatee {
         nom_affichage: String,
-        raison_sociale: String,
+        raison_sociale: RaisonSociale,
         siren: String,
         nic: String,
         siret: String,
-        naf: String,
+        naf: CodeNaf,
         code_urssaf: String,
         adresse: LigneAdresse,
         adresse_affichage: String,
         complement_adresse: LigneAdresse,
         complement_adresse_affichage: String,
-        code_postal: String,
-        commune: String,
+        code_postal: CodePostal,
+        commune: CommuneEmployeur,
         commune_affichage: String,
         idcc: String,
         annexe_convention: AnnexeConvention,
@@ -757,7 +956,7 @@ fiche! {
         jauge_annexe_1: JaugeAnnexe1,
         subrogation_ij: Subrogation,
         urssaf_compte: String,
-        medecine_travail: String,
+        medecine_travail: CodeMedecine,
         contact_sante_travail: ContactSanteTravail,
         licence_spectacle: String,
         france_travail_dossier_recouvrement: String,
@@ -799,11 +998,11 @@ impl ChampsSalarie {
     /// « NOM Prénom », tel que l'ecran le nomme (`socle::texte::salarie_nomme`) : le nom et le prenom d'usage, sinon ceux de
     /// l'etat civil. `None` : la fiche ne nomme personne.
     pub fn nomme(&self) -> Option<String> {
-        let ou = |usage: &Case<String>, civil: &Case<String>| {
+        let ou = |usage: &Case<String>, civil: &str| {
             let u = socle::texte::strip(usage.texte()).to_string();
-            if u.is_empty() { socle::texte::strip(civil.texte()).to_string() } else { u }
+            if u.is_empty() { socle::texte::strip(civil).to_string() } else { u }
         };
-        let tout = format!("{} {}", ou(&self.nom_affichage, &self.nom).to_uppercase(), ou(&self.prenom_affichage, &self.prenom)).trim().to_string();
+        let tout = format!("{} {}", ou(&self.nom_affichage, self.nom.texte()).to_uppercase(), ou(&self.prenom_affichage, self.prenom.texte())).trim().to_string();
         (!tout.is_empty()).then_some(tout)
     }
 

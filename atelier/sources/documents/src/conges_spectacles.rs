@@ -454,7 +454,7 @@ fn siret_espace(siret: &str) -> String {
 }
 
 /// Une case texte de la fiche du salarie que le certificat exige : absente, elle se refuse.
-fn texte_requis(c: &droit::fiche::Case<String>, k: &str) -> R<String> {
+fn texte_requis<T: AsRef<str>>(c: &droit::fiche::Case<T>, k: &str) -> R<String> {
     c.ecrite(k).map(str::to_string).map_err(|_| cle_absente(k))
 }
 

@@ -759,7 +759,7 @@ pub(crate) fn salaries_d_identite(ctx: &Contexte) -> Value {
     let mut salaries = Map::new();
     for (k, f) in &ctx.salaries {
         let mut garde = Map::new();
-        for (c, x) in [("prenom_affichage", &f.prenom_affichage), ("prenom", &f.prenom), ("nom_affichage", &f.nom_affichage), ("nom", &f.nom)] {
+        for (c, x) in [("prenom_affichage", &f.prenom_affichage), ("prenom", &f.prenom.en_texte()), ("nom_affichage", &f.nom_affichage), ("nom", &f.nom.en_texte())] {
             if !x.est_absente() {
                 garde.insert(c.to_string(), x.en_valeur());
             }

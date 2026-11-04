@@ -1166,9 +1166,10 @@ fn texte_de(d: &Map<String, Value>, cle: &str) -> R<String> {
     }
 }
 
-/// CE QUE LE TYPE D'UNE CASE REFUSE (`droit::fiche::FormeDeCase::FAUTE`, une ligne d'adresse trop longue) : la fiche
-/// telle qu'elle se lira, case par case et ligne par ligne d'une structure en lignes (les etablissements). La faute
-/// d'une forme declaree se dit sur la forme lisible dont elle se deduit, qui est ce qu'on corrige.
+/// CE QUE LE TYPE D'UNE CASE REFUSE (`droit::fiche::FormeDeCase::FAUTE`, un texte hors de la borne des normes) : la fiche
+/// telle qu'elle se lira, case par case, case par case d'un bloc (le contact DSN, le signataire) et ligne par ligne d'une
+/// structure en lignes (les etablissements). La faute d'une forme declaree se dit sur la forme lisible dont elle se
+/// deduit, qui est ce qu'on corrige.
 fn fautes_des_types(nom: &str, champs: &[Champ], donnees: &Map<String, Value>) -> Vec<Value> {
     let cases = match nom {
         "entreprise" => <droit::fiche::ChampsEntreprise as droit::fiche::FormeDeCase>::cases(),
@@ -1182,6 +1183,14 @@ fn fautes_des_types(nom: &str, champs: &[Champ], donnees: &Map<String, Value>) -
             Some(Value::String(t)) => {
                 if let Some(f) = d.faute.and_then(|faute| faute(t)) {
                     fautes.push(anomalie(&saisie(champs, d.cle), "erreur", f));
+                }
+            }
+            Some(Value::Object(bloc)) => {
+                for s in &d.cases {
+                    let (Some(faute), Some(Value::String(t))) = (s.faute, bloc.get(s.cle)) else { continue };
+                    if let Some(f) = faute(t) {
+                        fautes.push(anomalie(d.cle, "erreur", f));
+                    }
                 }
             }
             Some(Value::Array(lignes)) => {

@@ -320,7 +320,9 @@ fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs, annexes: &[&str]
 /// Le prenom du salarie, tel que sa fiche l'affiche (`prenom_affichage`, sinon `prenom`, en capitales initiales s'il
 /// est tout en majuscules) ; sans prenom, son nom, sinon sa cle.
 pub fn prenom(sal: &droit::fiche::ChampsSalarie, cle: &str) -> String {
-    let lu = |c: &droit::fiche::Case<String>| Some(c.texte().trim().to_string()).filter(|s| !s.is_empty());
+    fn lu<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
+        Some(c.texte().trim().to_string()).filter(|s| !s.is_empty())
+    }
     if let Some(p) = lu(&sal.prenom_affichage) {
         return p;
     }

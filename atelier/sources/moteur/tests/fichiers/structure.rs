@@ -679,8 +679,8 @@ fn une_seule_fonction_date_une_valeur_de_fiche() {
 /// LES FICHES N'ONT QU'UNE FORME : chaque cle de `champs-base.json` (`entreprise`, `salarie`) est un champ de sa structure
 /// (`droit::fiche`), et chaque champ y a sa ligne ; de meme les cases d'une structure que la ligne decrit (`champs`, un
 /// chemin `taux.t1_cadre` pour une case d'un bloc) ; les valeurs d'un choix sont celles de son type (la ligne vide en
-/// plus). La ligne `historique` (forme `histoire`) n'est pas une donnee ; une structure sans `champs` se verifie comme un
-/// champ seul.
+/// plus) ; l'aide d'une case que les normes bornent dit sa longueur (`droit::fiche::texte_borne!`). La ligne `historique`
+/// (forme `histoire`) n'est pas une donnee ; une structure sans `champs` se verifie comme un champ seul.
 #[test]
 fn champs_base_et_les_fiches_ont_les_memes_cases() {
     use droit::fiche::{ChampsEntreprise, ChampsSalarie, Declaree, FormeDeCase};
@@ -704,6 +704,13 @@ fn champs_base_et_les_fiches_ont_les_memes_cases() {
             fautes.push(format!("{} : champs-base offre {:?}, la forme {:?}", ou, ecrits, declares));
         }
     }
+    fn longueur(ou: &str, ligne: &Value, d: &Declaree, fautes: &mut Vec<String>) {
+        let Some((n, unite)) = d.longueur else { return };
+        let dite = format!("{} {}", n, unite);
+        if !ligne["aide"].as_str().unwrap_or("").contains(&dite) {
+            fautes.push(format!("{} : son aide ne dit pas sa longueur, « {} » (`texte_borne!`)", ou, dite));
+        }
+    }
     let base: Value = serde_json::from_str(&std::fs::read_to_string(espace().join("../../logiciel/donnees/champs-base.json")).unwrap()).unwrap();
     let mut fautes = Vec::new();
     for (nom, declarees) in [("entreprise", ChampsEntreprise::cases()), ("salarie", ChampsSalarie::cases())] {
@@ -716,13 +723,17 @@ fn champs_base_et_les_fiches_ont_les_memes_cases() {
                 continue;
             };
             choix(&ou, l, d, &mut fautes);
+            longueur(&ou, l, d, &mut fautes);
             let Some(cases) = l["champs"].as_array().filter(|c| !c.is_empty()) else { continue };
             let mut declarees_ici = Vec::new();
             feuilles(&d.cases, "", &mut declarees_ici);
             for s in cases {
                 let sc = s["cle"].as_str().unwrap_or("");
                 match declarees_ici.iter().find(|(c, _)| c == sc) {
-                    Some((_, ds)) => choix(&format!("{}.{}", ou, sc), s, ds, &mut fautes),
+                    Some((_, ds)) => {
+                        choix(&format!("{}.{}", ou, sc), s, ds, &mut fautes);
+                        longueur(&format!("{}.{}", ou, sc), s, ds, &mut fautes);
+                    }
                     None => fautes.push(format!("{}.{} : une case de champs-base.json que la structure ne porte pas", ou, sc)),
                 }
             }

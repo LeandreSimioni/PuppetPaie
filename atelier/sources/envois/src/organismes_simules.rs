@@ -390,7 +390,7 @@ fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Value, octets: &[u8], flux: &str
         individus.push((nir, matricule));
     }
     for (nir, matricule) in individus {
-        let Some((cle, _)) = ctx.salaries.iter().find(|(_, s)| s.nir.dite().is_some_and(|n| *n == nir)) else { continue };
+        let Some((cle, _)) = ctx.salaries.iter().find(|(_, s)| s.nir.texte() == nir) else { continue };
         if !vus.insert(nir.clone()) {
             continue;
         }

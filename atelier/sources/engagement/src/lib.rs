@@ -2064,7 +2064,9 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resul
         let metier = e.metier.clone().unwrap_or_default();
         let m = emplois::metier(&metier)?.unwrap_or(Value::Null);
         if e.cadre == Some(false) && m.get("cadre_par_defaut").map_or(false, vrai) {
-            let texte = |c: &droit::fiche::Case<String>| c.dite().filter(|x| !x.is_empty()).cloned();
+            fn texte<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
+                c.remplie().map(str::to_string)
+            }
             let libelle = m.get("libelle").filter(|x| vrai(x)).map(en_texte).unwrap_or_else(|| metier.clone());
             let msg = format!(
                 "{} {}, {} : case cadre decochee, alors que ce metier est \

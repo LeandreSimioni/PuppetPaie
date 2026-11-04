@@ -5,7 +5,7 @@
 //! fichier se depose sur net-entreprises.fr (rubrique DPAE) des que l'engagement
 //! est valide, et au plus tard avant le debut du travail.
 //!
-//! Comme pour l'AEM, on part d'un enregistrement reel
+//! On part d'un enregistrement
 //! (`gabarits/due_tel_gabarit.txt`) et on ne remplace que les zones variables.
 //!
 //! La DPAE lit de chaque embauche la fiche du salarie, le debut et la fin de
@@ -67,7 +67,7 @@ pub const CHAMPS: [(&str, usize, usize); 14] = [
     ("prenom", 315, 347),
     ("nir", 347, 360),
     ("date_naissance", 360, 368),  // JJMMAAAA
-    ("lieu_naissance", 368, 412),
+    ("lieu_naissance", 368, 392),  // L_LIEU_NAISS_SAL, 24 ; puis 20 blancs reserves (RESERVE_APRES_LIEU)
     ("date_embauche", 412, 420),   // JJMMAAAA
     ("heure_embauche", 420, 424),  // HHMM
     ("sexe", 730, 731),            // M / F
@@ -95,6 +95,10 @@ pub const EMPLOYEUR: [(&str, usize, usize); 10] = [
     ("naf", 660, 665),              // C_NAF_NN
     ("medecine_travail", 937, 947), // C_MT_DCL, cadre a droite comme le gabarit
 ];
+
+/// « Réservé », 393-412, « 20 blancs » (`atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 333-337), apres le
+/// lieu de naissance.
+const RESERVE_APRES_LIEU: (usize, usize) = (392, 412);
 
 fn champ(nom: &str) -> (usize, usize) {
     let (_, a, b) = CHAMPS.iter().find(|(n, _, _)| *n == nom).expect("zone de la DPAE");
@@ -132,49 +136,58 @@ fn rjust(s: &str, n: usize) -> String {
     o
 }
 
-/// `s[:n]`, en caracteres.
-fn debut(s: &str, n: usize) -> String {
-    s.chars().take(n).collect()
+/// LES CARACTERES QUE LE FORMAT 120 ADMET DANS UNE ZONE (« Caractères autorisés »,
+/// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`) : les capitales A-Z et l'espace, les chiffres quand la zone
+/// les admet, et ses signes. L'apostrophe que la norme imprime (‘, U+2018) n'est pas du latin-1, la table du fichier :
+/// c'est l'apostrophe ASCII (INFERENCE).
+pub struct Jeu {
+    chiffres: bool,
+    signes: &'static str,
 }
 
-/// Les caracteres que le Format 120 admet : A-Z, 0-9, espace, - et &.
-/// Le texte passe en NFKD, ne garde que l'ASCII, se met en majuscules ; le
-/// reste devient une espace.
-pub fn normaliser(v: &str) -> String {
+/// L_RAISON_SOC_1 (l. 256) : A-Z, 0-9, espace, moins et &.
+pub const RAISON_SOCIALE: Jeu = Jeu { chiffres: true, signes: "-&" };
+/// L_ADR_EMP_1 (l. 269-270) et L_BUR_DIST_EMP (l. 291-292) : A-Z, 0-9, espace, moins, &, point, virgule et apostrophe.
+/// L_ADR_EMP_2 (l. 271-276) n'en dit pas : le jeu de la premiere ligne (INFERENCE).
+pub const ADRESSE: Jeu = Jeu { chiffres: true, signes: "-&.,'" };
+/// L_NOM_PATRO_SAL (l. 300) et L_PRENOMS_SAL (l. 308) : A-Z, espace, moins, & et point.
+pub const IDENTITE: Jeu = Jeu { chiffres: false, signes: "-&." };
+/// L_LIEU_NAISS_SAL (l. 331-332) : A-Z, 0-9, espace, moins, virgule, apostrophe et point.
+pub const LIEU: Jeu = Jeu { chiffres: true, signes: "-,'." };
+
+/// Le texte dans le jeu d'une zone : il passe en NFKD, ne garde que l'ASCII, se met en majuscules ; ce que la zone
+/// n'admet pas devient une espace.
+pub fn normaliser(v: &str, jeu: &Jeu) -> String {
     ascii_nfkd(v)
         .to_uppercase()
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == ' ' || c == '-' || c == '&' { c } else { ' ' })
+        .map(|c| if c.is_ascii_uppercase() || c == ' ' || (jeu.chiffres && c.is_ascii_digit()) || jeu.signes.contains(c) { c } else { ' ' })
         .collect()
 }
 
-/// `v.upper()[:largeur].ljust(largeur)`.
-fn txt(v: &str, largeur: usize) -> String {
-    ljust(&debut(&v.to_uppercase(), largeur), largeur)
+/// `texte` entier s'il tient dans `largeur` ; plus long, ce que son type refuse (`faute`) : rien ne se coupe.
+fn entiere(texte: &str, largeur: usize, faute: fn(&str) -> Option<String>) -> Resultat<String> {
+    let n = texte.chars().count();
+    if n <= largeur {
+        return Ok(texte.to_string());
+    }
+    Err(faute(texte).unwrap_or_else(|| format!("« {} » a {} caractères : la zone de la DPAE en a {} (norme DPAE v5.3).", texte, n, largeur)))
 }
 
-/// `c.isdigit()`.
-fn est_chiffre(c: char) -> bool {
-    let n = c as u32;
-    socle::nfkd_ascii::CHIFFRES.binary_search_by(|(a, b)| {
-        if n < *a {
-            std::cmp::Ordering::Greater
-        } else if n > *b {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Equal
-        }
-    }).is_ok()
+/// UNE ZONE DE TEXTE de `largeur` caracteres, « cadrés à gauche, complétés par des blancs » (l. 30) : `texte` dans le
+/// jeu de la zone, entier (`entiere`).
+fn zone_texte(texte: &str, jeu: &Jeu, largeur: usize, faute: fn(&str) -> Option<String>) -> Resultat<String> {
+    Ok(ljust(&entiere(&normaliser(texte, jeu), largeur, faute)?, largeur))
 }
 
 /// Non vide, et rien que des chiffres.
 fn tout_chiffres(t: &str) -> bool {
-    !t.is_empty() && t.chars().all(est_chiffre)
+    !t.is_empty() && t.chars().all(socle::texte::est_chiffre)
 }
 
 /// Les chiffres d'un numéro de téléphone.
 fn chiffres(t: &str) -> String {
-    t.chars().filter(|&c| est_chiffre(c)).collect()
+    t.chars().filter(|&c| socle::texte::est_chiffre(c)).collect()
 }
 
 // ------------------------------------------------------- le gabarit
@@ -233,36 +246,51 @@ fn medecine_de(ent: &ChampsEntreprise) -> Resultat<String> {
 
 // -------------------------------------------------------- l'employeur
 
-/// UNE LIGNE D'ADRESSE DE L'EMPLOYEUR, en entier (L_ADR_EMP_1 et L_ADR_EMP_2, 32 caracteres chacune :
-/// `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 262-275) : la fiche la tient a cette longueur
-/// (`droit::fiche::LigneAdresse`) ; une ligne que les caracteres admis allongent se refuse, elle ne se coupe pas.
-fn ligne_d_adresse(ligne: &str) -> Resultat<String> {
-    let l = normaliser(ligne);
-    match droit::fiche::LigneAdresse::faute(&l) {
-        Some(f) => Err(f),
-        None => Ok(ljust(&l, droit::fiche::LigneAdresse::LONGUEUR)),
+/// La largeur d'une zone employeur.
+fn largeur(nom: &str) -> usize {
+    let (a, b) = zone_employeur(nom);
+    b - a
+}
+
+/// LA RAISON SOCIALE EN DEUX LIGNES (L_RAISON_SOC_1 et L_RAISON_SOC_2, « Nom ou raison sociale (ligne 2) », 32
+/// caracteres chacune : `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 249-256 et 374-379), coupees entre
+/// deux mots (`droit::fiche::RaisonSociale::en_deux_lignes`), la seconde a blanc quand tout tient sur la premiere.
+fn raison_sociale(texte: &str) -> Resultat<(String, String)> {
+    let (premiere, seconde) = droit::fiche::RaisonSociale::en_deux_lignes(&normaliser(texte, &RAISON_SOCIALE))?;
+    Ok((ljust(&premiere, largeur("raison_sociale")), ljust(&seconde, largeur("raison_sociale_2"))))
+}
+
+/// Le telephone (N_TEL_EMP, l. 380-385) : les chiffres de celui du declarant DSN, sinon de celui du signataire, sinon
+/// rien ; plus de 11, ce que la fiche refuse (`droit::fiche::Telephone`).
+fn telephone(ent: &ChampsEntreprise) -> Resultat<String> {
+    let tel = ent.declarant_dsn.dite().and_then(|d| d.tel.remplie()).or_else(|| ent.signataire.dite().and_then(|s| s.tel.remplie()));
+    let tel = tel.unwrap_or_default();
+    if let Some(f) = droit::fiche::Telephone::faute(tel) {
+        return Err(f);
     }
+    Ok(ljust(&chiffres(tel), largeur("tel")))
 }
 
 /// Les zones employeur de la DPAE, lues dans la fiche `ent` (le SIRET : `siret_de` ; la medecine du travail :
-/// `medecine_de`).
+/// `medecine_de`), chacune entiere dans le jeu de caracteres que la norme lui admet (`Jeu`) : la fiche les tient a leur
+/// longueur (`droit::fiche::texte_borne!`) ; une valeur que les caracteres admis allongent se refuse, elle ne se coupe pas.
 pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>> {
+    use droit::fiche::{CodeMedecine, CodeNaf, CodePostal, CommuneEmployeur, LigneAdresse};
     let siret = siret_de(ent)?;
     let mt = medecine_de(ent)?;
-    // Le telephone : celui du declarant DSN, sinon celui du signataire, sinon rien.
-    let tel = ent.declarant_dsn.dite().and_then(|d| d.tel.remplie()).or_else(|| ent.signataire.dite().and_then(|s| s.tel.remplie()));
-    let tel = chiffres(tel.unwrap_or_default());
+    let (raison, raison_2) = raison_sociale(ent.raison_sociale.texte())?;
     Ok(vec![
         ("siret", siret),
-        ("raison_sociale", ljust(&debut(&normaliser(ent.raison_sociale.texte()), 32), 32)),
-        ("adresse", ligne_d_adresse(ent.adresse.texte())?),
-        ("adresse_2", ligne_d_adresse(ent.complement_adresse.texte())?),
-        ("code_postal", ljust(&debut(ent.code_postal.texte(), 5), 5)),
-        ("commune", ljust(&debut(&normaliser(ent.commune.texte()), 27), 27)),
-        ("raison_sociale_2", " ".repeat(32)),
-        ("tel", ljust(&debut(&tel, 11), 11)),
-        ("naf", ljust(&debut(ent.naf.texte(), 5), 5)),
-        ("medecine_travail", rjust(&debut(&mt, 10), 10)),
+        ("raison_sociale", raison),
+        ("adresse", zone_texte(ent.adresse.texte(), &ADRESSE, largeur("adresse"), LigneAdresse::faute)?),
+        ("adresse_2", zone_texte(ent.complement_adresse.texte(), &ADRESSE, largeur("adresse_2"), LigneAdresse::faute)?),
+        ("code_postal", ljust(&entiere(ent.code_postal.texte(), largeur("code_postal"), CodePostal::faute)?, largeur("code_postal"))),
+        ("commune", zone_texte(ent.commune.texte(), &ADRESSE, largeur("commune"), CommuneEmployeur::faute)?),
+        ("raison_sociale_2", raison_2),
+        ("tel", telephone(ent)?),
+        ("naf", ljust(&entiere(ent.naf.texte(), largeur("naf"), CodeNaf::faute)?, largeur("naf"))),
+        // C_MT_DCL, cadre a droite comme le gabarit.
+        ("medecine_travail", rjust(&entiere(&mt, largeur("medecine_travail"), CodeMedecine::faute)?, largeur("medecine_travail"))),
     ])
 }
 
@@ -325,6 +353,11 @@ pub struct Parametres<'a> {
 
 fn poser(buf: &mut [char], nom: &str, valeur: &str) -> Resultat<()> {
     let (a, b) = champ(nom);
+    ecrire_zone(buf, nom, a, b, valeur)
+}
+
+/// `valeur` en `[a, b)`, a la largeur exacte de la zone : rien ne se coupe.
+fn ecrire_zone(buf: &mut [char], nom: &str, a: usize, b: usize, valeur: &str) -> Resultat<()> {
     let n = valeur.chars().count();
     if n != b - a {
         return Err(format!("{}: {} fait {} car., attendu {}", nom, repr(valeur), n, b - a));
@@ -333,11 +366,6 @@ fn poser(buf: &mut [char], nom: &str, valeur: &str) -> Resultat<()> {
         buf[a + i] = c;
     }
     Ok(())
-}
-
-fn ecrire_zone(buf: &mut [char], a: usize, b: usize, valeur: &str) {
-    let v: Vec<char> = valeur.chars().collect();
-    buf[a..b].copy_from_slice(&v[..b - a]);
 }
 
 /// Un enregistrement de 990 caracteres.
@@ -350,7 +378,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         let etab = &droit::bareme::entreprise_du_salarie(ent, &e.salarie)?;
         for (nom, v) in employeur(etab)? {
             let (a, b) = zone_employeur(nom);
-            ecrire_zone(&mut buf, a, b, &v);
+            ecrire_zone(&mut buf, nom, a, b, &v)?;
         }
         if etab.nic.texte() != ent.nic_principal() {
             code_urssaf = json!(urssaf_d_un_etablissement(etab)?);
@@ -380,7 +408,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
                 repr_valeur(&code_urssaf),
             ));
         }
-        ecrire_zone(&mut buf, a, b, v);
+        ecrire_zone(&mut buf, "code_urssaf", a, b, v)?;
     }
 
     let s = &e.salarie;
@@ -393,8 +421,13 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         _ => "",
     };
     poser(&mut buf, "horodatage", p.horodatage)?;
-    poser(&mut buf, "nom", &txt(s.nom.ecrite("nom")?, 32))?;
-    poser(&mut buf, "prenom", &txt(s.prenom.ecrite("prenom")?, 32))?;
+    // Les zones du salarie, chacune entiere dans le jeu que la norme lui admet (`Jeu`) : la fiche les tient a leur longueur.
+    let zone = |nom: &str| {
+        let (a, b) = champ(nom);
+        b - a
+    };
+    poser(&mut buf, "nom", &zone_texte(s.nom.ecrite("nom")?, &IDENTITE, zone("nom"), droit::fiche::NomDeclare::faute)?)?;
+    poser(&mut buf, "prenom", &zone_texte(s.prenom.ecrite("prenom")?, &IDENTITE, zone("prenom"), droit::fiche::PrenomDeclare::faute)?)?;
     // LE NIR EST FACULTATIF ICI, et c'est tout l'interet : une DPAE sans
     // numero de securite sociale DEMANDE l'immatriculation du salarie
     // (formalite IMMA du Format 120, << demande d'immatriculation d'un
@@ -402,9 +435,11 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     // CPAM). C'est par elle que le NIR arrive -- et, en attendant, la DSN
     // declare l'individu sous son numero technique temporaire. La zone reste
     // donc a blanc, sur ses 13 caracteres.
-    poser(&mut buf, "nir", &ljust(s.nir.texte(), 13))?;
+    poser(&mut buf, "nir", &ljust(&entiere(s.nir.texte(), zone("nir"), droit::fiche::Nir::faute)?, zone("nir")))?;
     poser(&mut buf, "date_naissance", &s.date_naissance.exigee("date_naissance")?.jjmmaaaa())?;
-    poser(&mut buf, "lieu_naissance", &txt(s.lieu_naissance.ecrite("lieu_naissance")?, 44))?;
+    poser(&mut buf, "lieu_naissance", &zone_texte(s.lieu_naissance.ecrite("lieu_naissance")?, &LIEU, zone("lieu_naissance"), droit::fiche::LieuNaissance::faute)?)?;
+    let (a, b) = RESERVE_APRES_LIEU;
+    ecrire_zone(&mut buf, "reserve", a, b, &" ".repeat(b - a))?;
     poser(&mut buf, "date_embauche", &d(&e.debut)?.jjmmaaaa())?;
     poser(&mut buf, "heure_embauche", &p.heure_embauche)?;
     poser(&mut buf, "sexe", sexe)?;
@@ -879,7 +914,7 @@ mod tests {
     }
 
     fn entreprise() -> EntrepriseDuDocument {
-        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "raison_sociale": "Cie Fictive", "adresse": "1 rue Fictive",
+        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "raison_sociale": "Compagnie Fictive des Marionnettes d'Orléans", "adresse": "1, rue Fictive",
                "code_postal": "45000", "commune": "Orléans", "naf": "9001Z", "medecine_travail": "MT42",
                "declarant_dsn": {"tel": "01 02 03 04 05"}}), "entreprise").unwrap();
         EntrepriseDuDocument { fiche, gabarits: std::env::temp_dir().join("puppetpaie-dpae-sans-gabarits") }
@@ -1011,8 +1046,11 @@ mod tests {
             t.chars().skip(a).take(b - a).collect::<String>()
         };
         assert_eq!(ch("siret"), "12345691500016");
-        assert_eq!(ch("raison_sociale").trim_end(), "CIE FICTIVE");
-        assert_eq!(ch("adresse").trim_end(), "1 RUE FICTIVE");
+        // La raison sociale en deux lignes coupees entre deux mots (L_RAISON_SOC_1 et _2), sans l'apostrophe que la zone
+        // n'admet pas ; l'adresse garde sa virgule (L_ADR_EMP_1, l. 269-270).
+        assert_eq!(ch("raison_sociale").trim_end(), "COMPAGNIE FICTIVE DES");
+        assert_eq!(ch("raison_sociale_2").trim_end(), "MARIONNETTES D ORLEANS");
+        assert_eq!(ch("adresse").trim_end(), "1, RUE FICTIVE");
         assert_eq!(ch("code_postal"), "45000");
         assert_eq!(ch("commune").trim_end(), "ORLEANS");
         assert_eq!(ch("tel"), "0102030405 ");
@@ -1025,14 +1063,19 @@ mod tests {
         assert!(m.contains("SIRET") && m.contains("'1234'"), "{}", m);
     }
 
+    /// Chaque zone a son jeu (« Caractères autorisés », `norme-dpae/v5.3_FormatDPAE_EMAIL.txt`, l. 256, 269-270, 300,
+    /// 331-332).
     #[test]
-    fn normaliser_ne_garde_que_ce_que_le_format_120_admet() {
-        assert_eq!(normaliser("Théâtre de l'Œuvre & Cie - Ça"), "THEATRE DE L UVRE & CIE - CA");
-        assert_eq!(normaliser("Strauß Łukasz"), "STRAU UKASZ");
-        assert_eq!(normaliser("Nguyễn Thị Hồng"), "NGUYEN THI HONG");
-        assert_eq!(normaliser("ﬁn ½ ™ Ａｂ² \u{a0}x"), "FIN 12 TM AB2  X");
-        assert_eq!(normaliser("a.b,c/d"), "A B C D");
-        assert_eq!(normaliser(""), "");
+    fn normaliser_ne_garde_que_ce_que_le_format_120_admet_dans_la_zone() {
+        assert_eq!(normaliser("Théâtre de l'Œuvre & Cie - Ça", &RAISON_SOCIALE), "THEATRE DE L UVRE & CIE - CA");
+        assert_eq!(normaliser("Strauß Łukasz", &RAISON_SOCIALE), "STRAU UKASZ");
+        assert_eq!(normaliser("Nguyễn Thị Hồng", &RAISON_SOCIALE), "NGUYEN THI HONG");
+        assert_eq!(normaliser("ﬁn ½ ™ Ａｂ² \u{a0}x", &RAISON_SOCIALE), "FIN 12 TM AB2  X");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &RAISON_SOCIALE), "12  R  DE L UVRE 2 & 3");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &ADRESSE), "12, R. DE L'UVRE 2 & 3");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &IDENTITE), "    R. DE L UVRE   &  ");
+        assert_eq!(normaliser("12, r. de l'Œuvre/2 & 3", &LIEU), "12, R. DE L'UVRE 2   3");
+        assert_eq!(normaliser("", &ADRESSE), "");
     }
 
     #[test]

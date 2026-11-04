@@ -52,7 +52,7 @@ pub fn idcc_du_contrat(idcc: &str, sp: &Value, sal: &crate::fiche::ChampsSalarie
              complément (convention de l'entreprise). Choisir un métier du catalogue.",
             texte(sp, "titre", ""),
             code.unwrap_or_else(|| "(aucun)".into()),
-            sal.nom.dite().filter(|n| !n.is_empty()).cloned().unwrap_or_else(|| "ce salarié".to_string())
+            sal.nom.remplie().unwrap_or("ce salarié")
         )),
         Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => Ok("1734".into()),
         Some(_) => Ok(idcc),

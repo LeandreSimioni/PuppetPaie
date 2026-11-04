@@ -592,11 +592,11 @@ fn plain(m: impl Into<String>) -> Echec {
 /// Le nom d'un etablissement dans une case : sa commune (celle de la fiche entreprise pour le principal), sinon son NIC.
 fn nom_de_l_etablissement(ent: &droit::fiche::ChampsEntreprise, nic: &str) -> String {
     let communes = if nic == ent.nic_principal() {
-        Some([&ent.commune_affichage, &ent.commune])
+        Some([ent.commune_affichage.texte(), ent.commune.texte()])
     } else {
-        ent.secondaires().into_iter().find(|e| e.nic.texte() == nic).map(|e| [&e.commune_affichage, &e.commune])
+        ent.secondaires().into_iter().find(|e| e.nic.texte() == nic).map(|e| [e.commune_affichage.texte(), e.commune.texte()])
     };
-    let commune = communes.and_then(|c| c.into_iter().map(|c| c.texte().trim()).find(|c| !c.is_empty()).map(String::from));
+    let commune = communes.and_then(|c| c.into_iter().map(str::trim).find(|c| !c.is_empty()).map(String::from));
     commune.unwrap_or_else(|| format!("NIC {}", nic))
 }
 

@@ -6,6 +6,22 @@ pub fn blanc(c: char) -> bool {
     matches!(c, '\u{9}'..='\u{d}' | '\u{1c}'..='\u{20}' | '\u{85}' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
 }
 
+/// Un chiffre decimal d'Unicode (`str.isdigit()` : la table `nfkd_ascii::CHIFFRES`).
+pub fn est_chiffre(c: char) -> bool {
+    let n = c as u32;
+    crate::nfkd_ascii::CHIFFRES
+        .binary_search_by(|(a, b)| {
+            if n < *a {
+                std::cmp::Ordering::Greater
+            } else if n > *b {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        })
+        .is_ok()
+}
+
 /// Le texte sans le blanc autour (`blanc`).
 pub fn strip(s: &str) -> &str {
     s.trim_matches(blanc)

@@ -274,11 +274,11 @@ fn classification(idcc: &str, sal: &ChampsSalarie) -> Resultat<Option<String>> {
 /// capitales, puis son prenom (`prenom_affichage`, sinon `prenom`). La DSN et la DPAE declarent le nom sans accents ;
 /// le bulletin est lu par le salarie, sous son nom.
 fn nom_imprime(sal: &ChampsSalarie) -> Resultat<String> {
-    let lu = |cases: [&Case<String>; 2]| -> Option<String> {
-        cases.iter().map(|c| c.texte()).find(|t| !t.trim().is_empty()).map(str::to_string)
+    let lu = |cases: [&str; 2]| -> Option<String> {
+        cases.into_iter().find(|t| !t.trim().is_empty()).map(str::to_string)
     };
-    let nom = lu([&sal.nom_affichage, &sal.nom]).ok_or_else(|| socle::fichiers::absent("nom"))?;
-    let prenom = lu([&sal.prenom_affichage, &sal.prenom]).ok_or_else(|| socle::fichiers::absent("prenom"))?;
+    let nom = lu([sal.nom_affichage.texte(), sal.nom.texte()]).ok_or_else(|| socle::fichiers::absent("nom"))?;
+    let prenom = lu([sal.prenom_affichage.texte(), sal.prenom.texte()]).ok_or_else(|| socle::fichiers::absent("prenom"))?;
     Ok(format!("{} {}", nom.to_uppercase(), prenom))
 }
 
@@ -937,7 +937,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     let etablissement = ent.etablissement(vue.nic.texte()).map(|l| {
         let ou = |usage: &Case<String>, civil: &Case<String>| usage.remplie().or(civil.portee()).unwrap_or_default().to_string();
         let adresse = droit::fiche::avec_complement(ou(&l.adresse_affichage, &l.adresse.en_texte()), l.complement_adresse_affichage.remplie().or(l.complement_adresse.remplie()));
-        let lieu = [adresse, l.code_postal.texte().to_string(), ou(&l.commune_affichage, &l.commune)]
+        let lieu = [adresse, l.code_postal.texte().to_string(), ou(&l.commune_affichage, &l.commune.en_texte())]
             .into_iter()
             .filter(|s| !s.trim().is_empty())
             .collect::<Vec<_>>()

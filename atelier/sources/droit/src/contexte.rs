@@ -44,7 +44,7 @@ fn exiger_texte(v: &Value, cle: &str) -> Resultat<String> {
 }
 
 /// Le texte d'une case de fiche, exigee : son absence se refuse en la nommant.
-fn exige(c: &Case<String>, cle: &str) -> Resultat<String> {
+fn exige<T: AsRef<str>>(c: &Case<T>, cle: &str) -> Resultat<String> {
     match c {
         Case::Absente => Err(socle::fichiers::absent(cle)),
         _ => Ok(c.texte().to_string()),
@@ -726,7 +726,7 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, bareme: &Value) -> Res
         if !siren.is_empty() && !cle_siret(&format!("{}{}", siren, nic)) {
             griefs.push(format!("{} : le SIRET {}{} n'a pas une cle juste", nom, siren, nic));
         }
-        for (cle, c) in [("adresse", &e.adresse.en_texte()), ("code_postal", &e.code_postal), ("commune", &e.commune)] {
+        for (cle, c) in [("adresse", &e.adresse.en_texte()), ("code_postal", &e.code_postal.en_texte()), ("commune", &e.commune.en_texte())] {
             if c.texte().trim().is_empty() {
                 griefs.push(format!("{} : `{}` manque", nom, cle));
             }
@@ -1943,7 +1943,7 @@ PSS_H_METROP).",
         let brut: String = nom.replace(' ', "").to_uppercase();
         if forme_de_nir(&brut) {
             for (cle, s) in &self.salaries {
-                if s.nir.dite().is_some_and(|n| n.to_uppercase() == brut[..13]) {
+                if s.nir.dite().is_some_and(|n| n.as_ref().to_uppercase() == brut[..13]) {
                     return Ok(cle.to_string());
                 }
             }

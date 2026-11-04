@@ -163,7 +163,7 @@ pub struct Cadre5 {
 }
 
 /// Une case que le cadre 5 exige : absente, elle se refuse (`KeyError`).
-fn req(c: &droit::fiche::Case<String>, cle: &str) -> Resultat<String> {
+fn req<T: AsRef<str>>(c: &droit::fiche::Case<T>, cle: &str) -> Resultat<String> {
     c.ecrite(cle).map(str::to_string)
 }
 
