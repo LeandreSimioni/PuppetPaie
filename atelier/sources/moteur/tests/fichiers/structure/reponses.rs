@@ -641,6 +641,7 @@ fn renomme(nom: &str, regle: Option<&str>) -> String {
             }
             s
         }
+        Some("kebab-case") => renomme(nom, Some("snake_case")).replace('_', "-"),
         Some("lowercase") => nom.to_lowercase(),
         Some("UPPERCASE") => nom.to_uppercase(),
         Some(autre) => panic!("rename_all = {:?} : la regle n'est pas lue ici ; ajoute-la a `renomme`", autre),

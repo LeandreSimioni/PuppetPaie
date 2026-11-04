@@ -125,7 +125,7 @@ pub(crate) fn modification_de_l_engagement(m: &mut Moteur, ctx: &Contexte, mois:
     if let Some(porteur) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, &mois.to_string())?.map(|d| d.porteur) {
         return Ok(Some(DsnDeposee::Corrigee { porteur }));
     }
-    let dsn = crate::compagnie::etat_dsn::du_mois(ctx, &mois.to_string(), &Value::Null)?;
+    let dsn = crate::compagnie::etat_dsn::du_mois(ctx, mois, None)?;
     if !dsn.deposee() || dsn.refusee() {
         return Ok(None);
     }
@@ -352,7 +352,7 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
 /// l'ancien logiciel, `engagement::importe::dsn_deposee`). Une correction se declare dans la DSN suivante (cahier
 /// technique DSN 2026.1, § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`).
 pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
-    let partie = |m: &str| -> R<bool> { Ok(crate::compagnie::etat_dsn::du_mois(ctx, m, &Value::Null)?.partie()) };
+    let partie = |m: &str| -> R<bool> { Ok(crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(m)?, None)?.partie()) };
     let suivant = |m: &str| -> R<String> { Ok(socle::mois::Mois::lire(m)?.suivant().to_string()) };
     let mut porteur = suivant(mois)?;
     while partie(&porteur)? {

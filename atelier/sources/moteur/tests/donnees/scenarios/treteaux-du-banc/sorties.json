@@ -1309,7 +1309,7 @@
         "quoi": "dsn",
         "quand": "2026-11-20T07:00:00",
         "origine": "compagnie fictive : joue par l'horloge",
-        "mois": "2026-11-20",
+        "mois": "2026-11",
         "fichier": "Amorcage01_FULLER_20261120.dsn",
         "empreinte": "f1c77fe343b0ea67",
         "mode": "test",
@@ -1347,7 +1347,8 @@
           "pas_bareme": 0,
           "repetition": null,
           "ordre_test": null,
-          "etablissement": "00011"
+          "etablissement": "00011",
+          "evenement": "2026-11-20"
         },
         "versions": [
           {
@@ -1419,7 +1420,7 @@
         "quoi": "dsn",
         "quand": "2026-11-20T07:00:00",
         "origine": "compagnie fictive : joue par l'horloge",
-        "mois": "2026-11-20",
+        "mois": "2026-11",
         "fichier": "Amorcage01_FULLER_20261120.dsn",
         "empreinte": "f1c77fe343b0ea67",
         "mode": "reel",
@@ -1468,7 +1469,8 @@
             "compte_rendu": "ok"
           },
           "ordre_test": null,
-          "etablissement": "00011"
+          "etablissement": "00011",
+          "evenement": "2026-11-20"
         },
         "versions": [
           {

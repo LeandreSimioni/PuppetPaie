@@ -265,10 +265,7 @@ fn deposer_les_dsn(
     let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
     let chemins: Vec<String> = f.dsn.iter().map(|x| x.chemin.clone()).collect();
     let journal = envois::journal::lu(&ctx.racine)?;
-    let lignes: Vec<&Value> = journal.lignes
-        .iter()
-        .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("accepte").is_some_and(vrai))
-        .collect();
+    let lignes: Vec<&envois::journal::Ligne> = envois::journal::filtrer(&journal.lignes, Some(envois::journal::Acte::Dsn), None, false).filter(|l| l.accepte()).collect();
     let mut fait = false;
     for chemin in chemins {
         let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
@@ -278,11 +275,11 @@ fn deposer_les_dsn(
         if !garder(&envois::depot::lire(&octets)) || envois::depot::lire(&octets).champ("nature").trim() == declarations::amorcage::NATURE {
             continue;
         }
-        let empreinte = json!(envois::journal::empreinte(&octets));
+        let empreinte = envois::journal::empreinte(&octets);
         let mut deja = false;
-        for l in lignes.iter().filter(|l| l.get("fichier").and_then(Value::as_str) == Some(nom.as_str())) {
-            let refuse = etats::refuse_par_un_retour(l)?;
-            deja |= (l.get("mode").and_then(Value::as_str) == Some("reel") && !refuse) || (refuse && l.get("empreinte") == Some(&empreinte));
+        for l in lignes.iter().filter(|l| l.fichier() == Some(nom.as_str())) {
+            let refuse = etats::refuse_par_un_retour(l);
+            deja |= (l.reel() && !refuse) || (refuse && l.empreinte() == Some(empreinte.as_str()));
         }
         if deja {
             continue;
@@ -401,7 +398,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
                 break;
             }
             // Un mois fait dont la DSN est refusee apres coup (un bilan arrive plus tard) n'est plus fait.
-            if clos.get(mois).and_then(Value::as_str) == Some(empreinte_du_mois(racine, mois).as_str()) && !crate::compagnie::etat_dsn::du_mois(&ctx, mois, &Value::Null)?.refusee() {
+            if clos.get(mois).and_then(Value::as_str) == Some(empreinte_du_mois(racine, mois).as_str()) && !crate::compagnie::etat_dsn::du_mois(&ctx, socle::mois::Mois::lire(mois)?, None)?.refusee() {
                 continue;
             }
             // Un mois echu dont tout est deja fait (par la personne, avant que l'horloge ne passe) est fait : rien n'est a
@@ -548,7 +545,7 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, le_mois: Mois, calendrier
     if jour < echeance {
         return Ok(false);
     }
-    let (quand_dsn, quand_documents) = if crate::compagnie::etat_dsn::du_mois(ctx, mois, &Value::Null)?.refusee() {
+    let (quand_dsn, quand_documents) = if crate::compagnie::etat_dsn::du_mois(ctx, socle::mois::Mois::lire(mois)?, None)?.refusee() {
         let maintenant = maintenant_du(jour);
         (maintenant.clone(), maintenant)
     } else {
@@ -674,7 +671,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 // LA BOITE MUETTE, et jamais une autre ; sans courriel dans la fiche, l'avenant s'imprime et se remet en
                 // main propre : l'impression est son depart.
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-                if crate::routes::contrats::envoyer_avenants(ctx, std::slice::from_ref(&voulu), &Preuve::de_la_charge(&json!({})), &mut ouvrir).is_err() {
+                if crate::routes::contrats::envoyer_avenants(ctx, std::slice::from_ref(&voulu), &Preuve::default(), &mut ouvrir).is_err() {
                     crate::routes::contrats::contrats_imprimer_par(ctx, &json!({"mois": mois, "avenants": [voulu]}), QUI_HORLOGE)?;
                     imprime.set(true);
                 }
@@ -690,7 +687,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                     return Ok(false);
                 }
                 let numero = valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"]));
-                crate::routes::contrats::contrat_recu_avec(ctx, &mois.to_string(), salarie, debut, Some(numero.as_str()), true, &x["avenant"]["numero"], QUI_HORLOGE, None)?;
+                crate::routes::contrats::contrat_recu_avec(ctx, &mois.to_string(), salarie, debut, Some(numero.as_str()), true, x["avenant"]["numero"].as_i64(), QUI_HORLOGE, None)?;
                 Ok(true)
             }));
             fait
@@ -727,7 +724,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
         Geste::Dsn { mois, echeance } => {
             let mut a_faire: Vec<String> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
-                if crate::compagnie::etat_dsn::du_mois(ctx, &mois.to_string(), &Value::Null)?.partie() {
+                if crate::compagnie::etat_dsn::du_mois(ctx, *mois, None)?.partie() {
                     return Ok(false);
                 }
                 // LA DSN SE FABRIQUE A SON DEPOT, depuis les engagements valides du mois, DATEE DE SON ECHEANCE quel que
@@ -755,7 +752,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             let mut sans: Vec<(String, String)> = Vec::new();
             let mut fait = pas(d, quoi, quand, |ctx| {
                 // LES DOCUMENTS D'UN MOIS DONT LA DSN N'EST PAS ACCEPTEE ne partent pas : ils suivent sa DSN, jamais avant.
-                if !crate::compagnie::etat_dsn::du_mois(ctx, &mois.to_string(), &Value::Null)?.partie() {
+                if !crate::compagnie::etat_dsn::du_mois(ctx, *mois, None)?.partie() {
                     return Ok(false);
                 }
                 let bilan = Moteur::nouveau(ctx).bilan_du_mois(*mois)?;
@@ -767,7 +764,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 sans = crate::routes::documents::sans_courriel(ctx, &mois.to_string())?;
                 // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
                 let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-                match crate::routes::documents::envoyer_documents_de(ctx, &mois.to_string(), &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
+                match crate::routes::documents::envoyer_documents_de(ctx, &mois.to_string(), &Preuve::default(), QUI_HORLOGE, &mut ouvrir) {
                     Ok(_) => Ok(true),
                     // Un mois sans documents a remettre par courriel.
                     Err(e) if est_une_erreur_d_operation(&e) => Ok(false),

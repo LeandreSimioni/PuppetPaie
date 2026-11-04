@@ -144,16 +144,16 @@ struct Periode {
 }
 
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
-fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
-    let l = crate::etats::etat_dsn_du_mois(lignes, m, &Value::Null, &ctx.entreprise.nic_principal()).ok()?;
-    let fichier = l.get("fichier").map(socle::valeur::valeur_en_texte).filter(|f| !f.is_empty() && f != "None")?;
+fn dsn_deposee(ctx: &Contexte, lignes: &[crate::journal::Ligne], m: socle::mois::Mois) -> Option<Vec<Individu>> {
+    let l = crate::etats::etat_dsn_du_mois(lignes, m, None, &ctx.entreprise.nic_principal())?;
+    let fichier = l.fichier.filter(|f| !f.is_empty())?;
     let p = std::path::Path::new(&fichier);
-    let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m).join(&fichier) };
+    let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m.to_string()).join(&fichier) };
     lire_recap(&std::fs::read(chemin).ok()?).ok()
 }
 
 /// Les periodes d'un contrat qui finit ce mois-ci : une par mois du contrat dont la DSN reelle le porte.
-fn periodes(ctx: &Contexte, lignes: &[Value], mois: &str, nir: &str, c: &Contrat, paiement: &str) -> Resultat<Vec<Periode>> {
+fn periodes(ctx: &Contexte, lignes: &[crate::journal::Ligne], mois: &str, nir: &str, c: &Contrat, paiement: &str) -> Resultat<Vec<Periode>> {
     let (Ok(debut), Ok(fin)) = (Jour::lire(&c.debut), Jour::lire(&c.fin)) else {
         return Err(format!("contrat {} : dates illisibles dans la DSN ({} - {})", c.numero, c.debut, c.fin));
     };
@@ -161,7 +161,7 @@ fn periodes(ctx: &Contexte, lignes: &[Value], mois: &str, nir: &str, c: &Contrat
     // Les mois du contrat avant celui-ci.
     for m in debut.mois_civil().jusqu_a(socle::mois::Mois::lire(mois)?.precedent()) {
         let m = m.to_string();
-        let lues = dsn_deposee(ctx, lignes, &m).unwrap_or_default();
+        let lues = dsn_deposee(ctx, lignes, socle::mois::Mois::lire(&m)?).unwrap_or_default();
         let trouve = lues.iter().find(|i| i.nir == nir).and_then(|i| i.contrats.iter().find(|x| x.numero == c.numero).map(|x| (i, x)));
         if let Some((i, x)) = trouve {
             let date = i.versements.first().map(|v| v.date.clone()).unwrap_or_default();

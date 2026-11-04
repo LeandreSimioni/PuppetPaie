@@ -18,10 +18,10 @@ use serde_json::{json, Value};
 use crate::courriel::Courriel;
 use crate::courriel_lecture as lecture;
 use crate::envoi::{self, Message};
-use crate::journal::{self, Note};
+use crate::etats::Attendue;
+use crate::journal::{self, ContratAttendu, DetailContresigne, Envoi, Ligne, Mode};
 use socle::echec::R;
 use socle::paris::maintenant;
-use socle::valeur::valeur_en_texte;
 
 /// La fin du nom de l'exemplaire contresigne d'un contrat (le contrat parti, `<souche>` ; contresigne, `<souche>_signe.pdf`) :
 /// la piece jointe du courriel qui le renvoie au signataire.
@@ -44,7 +44,7 @@ pub struct SignatureRecue {
     /// ISO, la date du message.
     pub quand: String,
     /// `[{salarie, debut, fin, numero, spectacle, fichier, avenant, mois}]`, tels que le journal les donne.
-    pub contrats: Vec<Value>,
+    pub contrats: Vec<ContratAttendu>,
     pub fichier_signe: String,
     pub preuve: String,
     pub renvoye: bool,
@@ -94,9 +94,9 @@ impl ReleveSignatures {
                     .iter()
                     .map(|c| {
                         n += 1;
-                        let numero = texte_de(c, "numero");
-                        match c.get("avenant").filter(|a| !a.is_null()) {
-                            Some(a) => format!("avenant {} au {}", valeur_en_texte(a), numero),
+                        let numero = c.numero_dit().to_string();
+                        match c.avenant {
+                            Some(a) => format!("avenant {} au {}", a, numero),
                             None => numero,
                         }
                     })
@@ -119,13 +119,9 @@ impl ReleveSignatures {
     }
 }
 
-fn texte_de(d: &Value, cle: &str) -> String {
-    d.get(cle).map(valeur_en_texte).unwrap_or_default()
-}
-
-/// `a["envoyes"]` : les `Message-ID` de NOS envois pour cette demande.
-pub fn identifiants_de(a: &Value) -> Vec<String> {
-    a.get("envoyes").and_then(Value::as_array).map(|l| l.iter().map(valeur_en_texte).collect()).unwrap_or_default()
+/// Les `Message-ID` de NOS envois pour cette demande.
+pub fn identifiants_de(a: &Attendue) -> Vec<String> {
+    a.envoyes.clone()
 }
 
 // ------------------------------------------------------------------ la reponse
@@ -141,10 +137,8 @@ pub struct Reponse {
 /// LA REPONSE A LA DEMANDE `a` (une signature attendue, `etats::signatures_attendues`), triee strictement. `expediteur` :
 /// la boite de la compagnie. Ce qui ecarte une reponse se dit dans `incidents`. `Err` : la boite ne repond pas (une erreur
 /// de transport ne se corrige pas en essayant le code suivant).
-pub fn chercher_reponse(client: &mut dyn Courriel, a: &Value, expediteur: &str, incidents: &mut Vec<String>) -> Result<Option<Reponse>, ()> {
-    let code = texte_de(a, "code");
-    let a_nom = texte_de(a, "nom");
-    let a_adresse = texte_de(a, "adresse");
+pub fn chercher_reponse(client: &mut dyn Courriel, a: &Attendue, expediteur: &str, incidents: &mut Vec<String>) -> Result<Option<Reponse>, ()> {
+    let (code, a_nom, a_adresse) = (a.code.clone(), a.nom.clone(), a.adresse.clone());
     let envoyes = identifiants_de(a);
     let identifiants = match client.rechercher(&format!("\"{}\"", code), 10) {
         Ok(i) => i,
@@ -196,9 +190,9 @@ pub fn chercher_reponse(client: &mut dyn Courriel, a: &Value, expediteur: &str, 
 /// Ce qui part avec le contrat contresigne.
 pub struct Contresigne<'a> {
     /// La demande (`etats::signatures_attendues`).
-    pub a: &'a Value,
+    pub a: &'a Attendue,
     /// Les contrats qu'elle porte, chacun avec son `avenant` quand c'en est un.
-    pub contrats: &'a [Value],
+    pub contrats: &'a [ContratAttendu],
     pub est_avenant: bool,
     /// L'adresse de la reponse, et sa date lisible.
     pub de: &'a str,
@@ -216,19 +210,14 @@ pub struct Contresigne<'a> {
 /// LE CONTRAT CONTRESIGNE, RENVOYE AU SALARIE, puis sa ligne `contrat-contresigne` au journal. `qui` : la ligne.
 pub fn renvoyer_contresigne(racine: &Path, client: &mut dyn Courriel, c: &Contresigne, qui: &str) -> R<()> {
     let a = c.a;
-    let a_mois = texte_de(a, "mois");
     let nb = c.contrats.len();
     let mut spectacles: Vec<String> = Vec::new();
     for x in c.contrats {
-        let s = texte_de(x, "spectacle");
-        if !spectacles.contains(&s) {
-            spectacles.push(s);
+        if !spectacles.contains(&x.spectacle) {
+            spectacles.push(x.spectacle.clone());
         }
     }
-    let avenant_de = |x: &Value| match x.get("avenant").filter(|v| socle::fichiers::vrai(v)) {
-        Some(v) => valeur_en_texte(v),
-        None => valeur_en_texte(a.get("avenant").unwrap_or(&Value::Null)),
-    };
+    let avenant_de = |x: &ContratAttendu| x.avenant.filter(|v| *v != 0).or(a.avenant).map(|v| v.to_string()).unwrap_or_default();
     let numeros: Vec<String> = c.contrats.iter().map(avenant_de).collect();
     let (sujet, quoi) = if c.est_avenant {
         (
@@ -246,14 +235,14 @@ pub fn renvoyer_contresigne(racine: &Path, client: &mut dyn Courriel, c: &Contre
         )
     };
     let message = Message {
-        cle: texte_de(a, "salarie"),
-        nom: texte_de(a, "nom"),
+        cle: a.salarie.to_string(),
+        nom: a.nom.clone(),
         destinataire: c.de.to_string(),
         sujet,
         corps: envoi::formater(
             CORPS_CONTRESIGNE,
             &[
-                ("prenom", texte_de(a, "prenom")),
+                ("prenom", a.prenom.clone()),
                 ("quand", c.quand_lisible.to_string()),
                 ("quoi", quoi),
                 ("signataire", c.signataire.to_string()),
@@ -265,23 +254,8 @@ pub fn renvoyer_contresigne(racine: &Path, client: &mut dyn Courriel, c: &Contre
     };
     envoi::envoyer(&[message], c.expediteur, client, None, None).map_err(|e| socle::echec::Echec::from(e.to_string()))?;
     let noms_signes: Vec<String> = c.signes.iter().map(|p| socle::fichiers::nom_du(p)).collect();
-    let detail = json!({"salarie": texte_de(a, "salarie"), "nom": texte_de(a, "nom"), "code": texte_de(a, "code"), "contrats": c.contrats, "fichiers": noms_signes});
-    let premier = c.signes[0].to_string_lossy().into_owned();
-    let note = Note {
-        quoi: "contrat-contresigne",
-        mois: Some(&a_mois),
-        fichier: Some(&premier),
-        mode: journal::REEL,
-        qui,
-        accepte: true,
-        destinataire: c.de,
-        flux: "",
-        reponse: "contrat contresigne renvoye au salarie",
-        trace: None,
-        detail: Some(&detail),
-        versions: None,
-        quand: "",
-        origine: "",
-    };
-    journal::noter(racine, &note, &maintenant()).map(|_| ()).map_err(socle::echec::Echec::from)
+    let detail = DetailContresigne { salarie: a.salarie.clone(), nom: a.nom.clone(), code: a.code.clone(), contrats: c.contrats.to_vec(), fichiers: noms_signes };
+    let mut e = Envoi::nouveau(Mode::Reel, qui, true, c.de, "contrat contresigne renvoye au salarie", detail);
+    e.mois = a.mois;
+    journal::noter(racine, Ligne::ContratContresigne(e), Some(&c.signes[0]), &maintenant()).map(|_| ()).map_err(socle::echec::Echec::from)
 }

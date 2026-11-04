@@ -371,10 +371,10 @@ pub(crate) struct ApercuDsn {
     pub(crate) pas_bareme: usize,
     pub(crate) ordres_phrase: &'static str,
     pub(crate) ordres_titre: String,
-    pub(crate) ordres: Vec<Value>,
+    pub(crate) ordres: Vec<declarations::ordres_paiement::OrdreEnClair>,
     pub(crate) ordres_erreur: Option<&'static str>,
     pub(crate) couleur_ordres: &'static str,
-    pub(crate) deja_depose: Value,
+    pub(crate) deja_depose: Option<envois::ligne::Ligne>,
     pub(crate) remplacement: Option<RemplacementDuFichier>,
     pub(crate) recapitulatif: Option<Recapitulatif>,
     pub(crate) repetition: etats::Repetition,
@@ -388,7 +388,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
     let mut m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let empreinte = envois::journal::empreinte(&contenu);
-    let deja = etats::deja_depose(&lignes, "dsn", &empreinte)?;
+    let deja = etats::deja_depose(&lignes, envois::journal::Acte::Dsn, &empreinte);
     let nom = nom_du_chemin(&chemin);
     let signalement = a.est_signalement();
     let mois = Mois::lire(&a.mois_lisible())?;
@@ -402,7 +402,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
             Err(erreur) => Recapitulatif::Illisible { erreur },
         })
     };
-    let repetition = etats::repetition(&lignes, "dsn", &empreinte, &nom)?;
+    let repetition = etats::repetition(&lignes, envois::journal::Acte::Dsn, &empreinte, &nom);
     // LES ORDRES DE PAIEMENT EN CLAIR : a qui, pour quoi, combien, pour quand -- ceux de la DSN fabriquee
     // depuis les paies qu'elle couvre (`depart::refabriquer`) ; un fichier qui ne dit plus ce que disent les paies n'en
     // montre aucun.
@@ -412,7 +412,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
     } else {
         let nic = a.champ("etablissement");
         let nic = Some(nic).filter(|n| !n.is_empty());
-        match crate::compagnie::depart::refabriquer(ctx, std::path::Path::new(&chemin), &mois_t, nic)? {
+        match crate::compagnie::depart::refabriquer(ctx, std::path::Path::new(&chemin), mois, nic)? {
             Some(f) => (declarations::ordres_paiement::decrire(&f.ordres, &mois_t, &organismes, ctx.echeance_dsn()?)?, None),
             None => (Vec::new(), Some("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
         }

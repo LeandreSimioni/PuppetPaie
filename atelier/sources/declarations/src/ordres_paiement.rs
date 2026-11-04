@@ -46,7 +46,7 @@
 //! quand la norme dit 81.002 « non concerne » (Agirc-Arrco, Conges Spectacles : `texte/bloc-S21.G00.81.txt`, l. 372 et
 //! 379). Ce qu'il en advient est dit a un seul endroit, `bordereau::credit`.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 use documents::bordereau::{self, Destinataire};
 use socle::date::Jour;
@@ -107,7 +107,7 @@ fn texte_de<'a>(v: Option<&'a Value>, cle: &str) -> Option<&'a str> {
 /// `credit` (le trop-verse que l'ordre ne reprend pas ou reprend, et ce que la compagnie en fait ; `null` sans
 /// trop-verse). `organismes` : `Contexte::organismes` (Null s'il manque) ; `jour_echeance` : 5 ou 15
 /// (`Contexte::echeance_dsn`).
-pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jour_echeance: u32) -> Resultat<Vec<Value>> {
+pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jour_echeance: u32) -> Resultat<Vec<OrdreEnClair>> {
     let mut out = Vec::new();
     for o in ordres {
         let config = versement_de(organismes, &o.organisme);
@@ -160,23 +160,53 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
         } else {
             (None, "date non dite par la DSN".to_string(), SOURCE_AUCUNE)
         };
-        let credit = bordereau::credit(o.destinataire, &organisme, o.reste, o.deduit).map(|c| {
-            json!({"reste": crate::dsn::mt(c.reste), "deduit": crate::dsn::mt(c.deduit), "titre": c.titre, "que_faire": c.que_faire,
-                "source": c.source})
+        let credit = bordereau::credit(o.destinataire, &organisme, o.reste, o.deduit)
+            .map(|c| CreditEnClair { reste: crate::dsn::mt(c.reste), deduit: crate::dsn::mt(c.deduit), titre: c.titre, que_faire: c.que_faire, source: c.source });
+        out.push(OrdreEnClair {
+            organisme,
+            identifiant: o.organisme.clone(),
+            objet,
+            montant: crate::dsn::mt(o.montant),
+            periode: PeriodeEnClair { du: debut.map(|j| j.iso()), au: fin.map(|j| j.iso()) },
+            date: date.map(|j| j.iso()),
+            quand,
+            source,
+            credit,
         });
-        out.push(json!({
-            "organisme": organisme,
-            "identifiant": o.organisme,
-            "objet": objet,
-            "montant": crate::dsn::mt(o.montant),
-            "periode": {"du": debut.map(|j| j.iso()), "au": fin.map(|j| j.iso())},
-            "date": date.map(|j| j.iso()),
-            "quand": quand,
-            "source": source,
-            "credit": credit,
-        }));
     }
     Ok(out)
+}
+
+/// UN ORDRE DE TELEPAIEMENT EN CLAIR (`decrire`), tel que la boite du depot le montre.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct OrdreEnClair {
+    pub organisme: String,
+    pub identifiant: String,
+    pub objet: String,
+    pub montant: String,
+    pub periode: PeriodeEnClair,
+    pub date: Option<String>,
+    pub quand: String,
+    pub source: &'static str,
+    pub credit: Option<CreditEnClair>,
+}
+
+/// La periode d'un ordre : du, au (`AAAA-MM-JJ`).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PeriodeEnClair {
+    pub du: Option<String>,
+    pub au: Option<String>,
+}
+
+/// Le trop-verse d'un ordre (`bordereau::credit`) : ce qu'il ne reprend pas, ce qu'il reprend, et ce que la compagnie en
+/// fait.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CreditEnClair {
+    pub reste: String,
+    pub deduit: String,
+    pub titre: String,
+    pub que_faire: String,
+    pub source: &'static str,
 }
 
 /// LE VERSEMENT NORMATIF D'UN ORGANISME : l'entree de `donnees/organismes-base.json` dont `siret` est

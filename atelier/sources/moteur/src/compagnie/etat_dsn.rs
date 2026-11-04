@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 use droit::contexte::Contexte;
 use envois::etats;
 use socle::echec::R;
-use socle::fichiers::vrai;
+use socle::mois::Mois;
 
 /// L'état de la DSN d'un mois : `etat` (« passee », « attente », « refusee » : le journal, et `anomalies` pour une
 /// refusée, `aer_recue` ce que France Travail en a renvoyé ; « importee » : la DSN de l'ancien logiciel ;
@@ -46,25 +46,23 @@ impl EtatDsn {
     }
 }
 
-/// L'état de la DSN de `mois` ; `nic` : l'établissement (`Null` : le principal ; les états du journal sont les siens).
-pub(crate) fn du_mois(ctx: &Contexte, mois: &str, nic: &Value) -> R<EtatDsn> {
+/// L'état de la DSN de `mois` ; `nic` : l'établissement (`None` : le principal ; les états du journal sont les siens).
+pub(crate) fn du_mois(ctx: &Contexte, le_mois: Mois, nic: Option<&str>) -> R<EtatDsn> {
+    let mois = &le_mois.to_string();
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    let e = etats::etat_dsn_du_mois(&lignes, mois, nic, &ctx.entreprise.nic_principal())?;
-    let quand = |e: &Value| etats::quand_lisible(e.get("quand").unwrap_or(&Value::Null));
-    if vrai(&e) {
-        let refusee = e.get("refusee").is_some_and(vrai);
-        let passee = e.get("passee").is_some_and(vrai);
-        let (etat, courte, phrase) = if refusee {
-            ("refusee", "refusée".to_string(), format!("DSN déposée le {} — REFUSÉE par la plate-forme", quand(&e)))
-        } else if passee {
-            ("passee", "déposée — passée".to_string(), format!("DSN déposée le {} — passée", quand(&e)))
+    if let Some(e) = etats::etat_dsn_du_mois(&lignes, le_mois, nic, &ctx.entreprise.nic_principal()) {
+        let quand = etats::quand_lisible(&e.quand);
+        let (etat, courte, phrase) = if e.refusee {
+            ("refusee", "refusée".to_string(), format!("DSN déposée le {} — REFUSÉE par la plate-forme", quand))
+        } else if e.passee {
+            ("passee", "déposée — passée".to_string(), format!("DSN déposée le {} — passée", quand))
         } else {
-            ("attente", "déposée — retour attendu".to_string(), format!("DSN déposée le {} — retour attendu", quand(&e)))
+            ("attente", "déposée — retour attendu".to_string(), format!("DSN déposée le {} — retour attendu", quand))
         };
         return Ok(EtatDsn(json!({
-            "etat": etat, "courte": courte, "phrase": phrase, "quand": e.get("quand").cloned().unwrap_or(Value::Null),
-            "anomalies": e.get("anomalies").cloned().unwrap_or(Value::Null),
-            "aer_recue": e.get("aer_recue").cloned().unwrap_or(Value::Null),
+            "etat": etat, "courte": courte, "phrase": phrase, "quand": e.quand,
+            "anomalies": e.anomalies,
+            "aer_recue": e.aer_recue,
         })));
     }
     if let Some(d) = crate::import::mois::dsn_importee(&ctx.racine, mois)? {
@@ -104,7 +102,7 @@ pub(crate) fn premier_mois_du(ctx: &Contexte) -> R<Option<String>> {
         return Ok(None);
     }
     let journal = envois::journal::lu(&ctx.racine)?;
-    if journal.lignes.iter().any(|l| l.get("quoi").and_then(Value::as_str) == Some(etats::DSN)) {
+    if journal.lignes.iter().any(|l| l.acte() == envois::journal::Acte::Dsn) {
         return Ok(None);
     }
     Ok(Some(ctx.aujourdhui.mois_civil().to_string()))
@@ -116,8 +114,8 @@ pub(crate) fn premier_mois_du(ctx: &Contexte) -> R<Option<String>> {
 /// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt` l. 2291-2309) : elle est due chaque mois,
 /// avec ou sans salarie, a partir du premier mois du (`premier_mois_du`), tant qu'elle reste a faire
 /// (`EtatDsn::a_faire`). LE SEUL ENDROIT QUI LE DIT : l'echeancier, les rappels et le panneau des etapes le lisent.
-pub(crate) fn due(ctx: &Contexte, mois: &str, nic: &Value) -> R<bool> {
-    if premier_mois_du(ctx)?.is_some_and(|p| mois < p.as_str()) {
+pub(crate) fn due(ctx: &Contexte, mois: Mois, nic: Option<&str>) -> R<bool> {
+    if premier_mois_du(ctx)?.is_some_and(|p| mois.to_string() < p) {
         return Ok(false);
     }
     Ok(du_mois(ctx, mois, nic)?.a_faire())

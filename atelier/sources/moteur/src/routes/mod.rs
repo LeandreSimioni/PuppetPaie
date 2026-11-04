@@ -428,15 +428,9 @@ pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<droit::contexte::
 
 /// LA COULEUR D'UN ETAT, la meme sur tout l'ecran : `vert` ce qui est fait, `orange` ce qui reste a faire et que la
 /// compagnie peut faire (une signature attendue se relance), `rouge` ce qui est refuse, `gris` ce qui n'est qu'une
-/// information (rien a faire). La page dessine la couleur qu'on lui donne ; elle n'en choisit aucune.
-pub(crate) fn couleur_de_l_etat(etat: &str) -> &'static str {
-    match etat {
-        "fait" => "vert",
-        "a_faire" | "en_attente" | "en_retard" => "orange",
-        "refuse" => "rouge",
-        _ => "gris",
-    }
-}
+/// information (rien a faire). La page dessine la couleur qu'on lui donne ; elle n'en choisit aucune. Sa pastille :
+/// `Pastille`.
+pub(crate) use socle::ecran::{couleur_de_l_etat, Pastille};
 
 /// UN ENCART, tel que la page le dessine (`encart` de js/tuyau.js) : un titre en gras, sa phrase, la couleur de l'etat.
 /// La page n'ecrit aucune phrase : ce qu'une boite dit d'un cas, la route le rend ainsi.
@@ -466,19 +460,6 @@ impl Encart {
 /// Les encarts d'une reponse, en lignes pour `moteur route --texte` : « titre : phrase ».
 pub(crate) fn encarts_en_lignes(encarts: &[Value]) -> Vec<Value> {
     encarts.iter().map(|e| json!([mot(&e["titre"]), mot(&e["phrase"])].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" : "))).collect()
-}
-
-/// LA PASTILLE D'UN ETAT, telle que la page la dessine : sa couleur (`couleur_de_l_etat`) et ses mots.
-#[derive(Debug, Clone, serde::Serialize)]
-pub(crate) struct Pastille {
-    pub couleur: &'static str,
-    pub mots: String,
-}
-
-impl Pastille {
-    pub(crate) fn de(etat: &str, mots: &str) -> Pastille {
-        Pastille { couleur: couleur_de_l_etat(etat), mots: mots.to_string() }
-    }
 }
 
 /// `Pastille::de`, en JSON.

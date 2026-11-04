@@ -57,9 +57,9 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
     let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
     let mois_declare = |retour: &Value| -> Option<String> {
         let flux = texte(retour.get("flux"));
-        let l = journal.lignes.iter().find(|l| !flux.is_empty() && texte(l.get("flux")) == flux)?;
-        let nature = texte(l.get("detail").and_then(|d| d.get("nature")));
-        (texte(l.get("quoi")) == "dsn" && nature == "01").then(|| texte(l.get("mois"))).filter(|m| !m.is_empty())
+        let l = journal.lignes.iter().find(|l| !flux.is_empty() && l.flux() == flux)?;
+        let nature = l.nature_dsn();
+        (l.acte() == envois::journal::Acte::Dsn && nature == "01").then(|| l.mois().map(|m| m.to_string())).flatten()
     };
     let mut tous = Vec::new();
     for (retour, chemin) in crm {
@@ -138,7 +138,7 @@ fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std:
 /// Un depot refuse s'ecrit au journal des incidents, test comme reel. LE CAS URGENT SE DISTINGUE ICI : un refus en REEL
 /// alors que la repetition etait conforme.
 fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
-    let apres_test = d.reel && d.repetition.get("test").is_some_and(vrai);
+    let apres_test = d.reel && d.repetition.as_ref().is_some_and(|r| r.test.is_some());
     let _ = crate::compagnie::incidents::noter(
         &ctx.racine,
         &crate::compagnie::incidents::Note {
@@ -146,7 +146,7 @@ fn noter_incident_depot(ctx: &Contexte, d: &envois::suites::DepotRefuse) {
             ou: &format!("depot-{}", d.quoi),
             quoi: &d.classe,
             resume: &d.message,
-            detail: json!({"reel": d.reel, "apres_test_conforme": apres_test, "repetition": if vrai(&d.repetition) { d.repetition.clone() } else { json!({}) }}),
+            detail: json!({"reel": d.reel, "apres_test_conforme": apres_test, "repetition": d.repetition.as_ref().map_or(json!({}), |r| json!(r))}),
             ..Default::default()
         },
     );

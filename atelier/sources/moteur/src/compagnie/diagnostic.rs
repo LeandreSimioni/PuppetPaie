@@ -998,17 +998,10 @@ pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
         let depots = &journal.lignes;
         let du_mois: Vec<Value> = depots
             .iter()
-            .filter(|d| d.get("mois").and_then(Value::as_str) == Some(mois))
+            .filter(|d| d.mois().is_some_and(|m| m.to_string() == mois))
             .map(|d| {
-                let mut x = Map::new();
-                for k in ["quoi", "quand", "mode", "accepte", "nature", "annule_et_remplace", "type_envoi"] {
-                    if let Some(v) = d.get(k) {
-                        x.insert(k.into(), v.clone());
-                    }
-                }
-                let verdicts: Vec<Value> = d.get("retours").and_then(Value::as_array).into_iter().flatten().map(|r| json!(format!("{} {}", r["nature"].as_str().unwrap_or("?"), r["verdict"].as_str().unwrap_or("?")))).collect();
-                x.insert("retours".into(), Value::Array(verdicts));
-                Value::Object(x)
+                let verdicts: Vec<String> = d.retours_organisme().iter().map(|r| format!("{} {}", r.nature, r.verdict.as_deref().unwrap_or("?"))).collect();
+                json!({"quoi": d.acte().nom(), "quand": d.quand(), "mode": d.mode().nom(), "accepte": d.accepte(), "retours": verdicts})
             })
             .collect();
         let n = du_mois.len();
