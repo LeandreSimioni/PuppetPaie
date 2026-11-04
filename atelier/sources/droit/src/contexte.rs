@@ -1419,7 +1419,7 @@ pub struct Contexte {
     pub aujourdhui: Jour,
     /// La fiche entreprise a `lue_au`.
     pub fiche_entreprise: ChampsEntreprise,
-    /// La meme, en JSON (`ChampsEntreprise::en_valeur`), pour ce qui la lit par ses cles (les baremes, les modeles).
+    /// La meme telle qu'ecrite a cette date (`fiche_au`), pour ce qui la lit par ses cles (les baremes, les modeles).
     pub entreprise: Value,
     /// Les fiches telles qu'ecrites, datees, lues par leur forme : une periode se lit a sa date (`salarie_au`, `au`).
     fiches: Arc<Fiches>,
@@ -1520,7 +1520,7 @@ impl Contexte {
             date,
             lue_au: date,
             aujourdhui,
-            entreprise: fiche_entreprise.en_valeur(),
+            entreprise: fiche_au(&fiches.entreprise_brute, &date, ENTREPRISE)?,
             fiche_entreprise,
             salaries: salaries_au(&fiches.salaries, &date),
             fiches,
@@ -1543,7 +1543,7 @@ impl Contexte {
             lue_au: *jour,
             aujourdhui: self.aujourdhui,
             fiche_entreprise: self.fiches.entreprise.au(jour),
-            entreprise: self.fiches.entreprise.au(jour).en_valeur(),
+            entreprise: fiche_au(&self.fiches.entreprise_brute, jour, ENTREPRISE)?,
             salaries: salaries_au(&self.fiches.salaries, jour),
             fiches: self.fiches.clone(),
             spectacles: fiches_au(&self.spectacles_bruts, jour, "spectacles.json")?,
@@ -1571,7 +1571,7 @@ impl Contexte {
         if *jour == self.lue_au {
             return Ok(self.entreprise.clone());
         }
-        Ok(self.fiches.entreprise.au(jour).en_valeur())
+        fiche_au(&self.fiches.entreprise_brute, jour, ENTREPRISE)
     }
 
     /// La fiche salarie `cle` a `jour`. Refus : la fiche ne dit rien ce jour-la.

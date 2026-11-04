@@ -424,8 +424,8 @@ pub(crate) fn apercu_lu(
     // 2. Les salaries, par NIR.
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &ctx.salaries {
-        if let Some(n) = s.get("nir").filter(|v| vrai(v)) {
-            par_nir.insert(valeur_en_texte(n), cle.clone());
+        if let Some(n) = s.nir.dite().filter(|n| !n.is_empty()) {
+            par_nir.insert(n.clone(), cle.to_string());
         }
     }
     let mut ordre: Vec<&SalarieDeclare> = lecture.salaries.iter().collect();
@@ -439,9 +439,9 @@ pub(crate) fn apercu_lu(
             titre_de(decl.fiche.get("prenom"))
         );
         if let Some(cle) = par_nir.get(&decl.nir) {
-            let ec = ecarts("salarie", &ctx.salaries[cle], &decl.fiche, &decl.mois)?;
+            let ec = ecarts("salarie", &ctx.salaries[cle.as_str()].champs.en_valeur(), &decl.fiche, &decl.mois)?;
             let mut entree = fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({}));
-            let champs = crate::import::completer::champs_a_completer("salarie", &ctx.salaries[cle], &fiche_salarie(decl)?)?;
+            let champs = crate::import::completer::champs_a_completer("salarie", &ctx.salaries[cle.as_str()].champs.en_valeur(), &fiche_salarie(decl)?)?;
             crate::import::completer::noter(&mut entree, &champs, origine_dsn(&decl.mois));
             crate::import::completer::ajouter(&mut a_completer, "salarie", Some(cle), &champs);
             salaries.push(entree);

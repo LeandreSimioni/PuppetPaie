@@ -125,17 +125,17 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                             ecarts.push(format!("{} : la paie dit {}, le fichier {}", cle, attendu[cle], fichier));
                         }
                     }
-                    let emploi = p.salarie.get("emploi");
-                    let attendu_emploi: Option<&str> = match emploi {
-                        None | Some(Value::Null) => Some(""),
-                        Some(Value::String(s)) => Some(s.as_str()),
-                        Some(v) if !vrai(v) => Some(""),
-                        Some(_) => None,
+                    let emploi = p.salarie.emploi.en_valeur();
+                    let attendu_emploi: Option<&str> = match &emploi {
+                        Value::Null => Some(""),
+                        Value::String(s) => Some(s.as_str()),
+                        v if !vrai(v) => Some(""),
+                        _ => None,
                     };
                     if attendu_emploi != Some(c.emploi.as_str()) {
-                        let dit = match emploi {
-                            None | Some(Value::Null) => "None".to_string(),
-                            Some(v) => socle::valeur::valeur_en_texte(v),
+                        let dit = match &emploi {
+                            Value::Null => "None".to_string(),
+                            v => socle::valeur::valeur_en_texte(v),
                         };
                         ecarts.push(format!("emploi : la paie dit {}, le fichier {}", dit, c.emploi));
                     }

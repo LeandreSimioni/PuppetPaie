@@ -28,7 +28,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use droit::source::Source;
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;

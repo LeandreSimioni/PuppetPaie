@@ -782,7 +782,12 @@ pub fn lire_salaries(v: &Value, fichier: &str) -> Resultat<Salaries> {
 
 /// LA LECTURE DE `config/entreprise.json`, la seule.
 pub fn lire_entreprise(v: &Value, fichier: &str) -> Resultat<FicheEntrepriseDatee> {
-    socle::forme::lire_en_phrase(v, |chemin, detail| refus_de_fiche(fichier, chemin, detail))
+    // La note du fichier (`_source`) ne se lit pas.
+    let mut v = v.clone();
+    if let Some(o) = v.as_object_mut() {
+        o.shift_remove(NOTE_DU_FICHIER);
+    }
+    socle::forme::lire_en_phrase(&v, |chemin, detail| refus_de_fiche(fichier, chemin, detail))
 }
 
 /// `config/salaries.json` tel qu'il s'ecrit.

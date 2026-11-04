@@ -358,8 +358,8 @@ fn resume_nul() -> Value {
 /// Le nom d'un salarie tel que la page le montre : « NOM Prenom ».
 fn nom_de(p: &Paie) -> String {
     let sal = &p.salarie;
-    let texte = |k: &str| sal.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
-    format!("{} {}", texte("nom").unwrap_or_default(), texte("prenom_affichage").or_else(|| texte("prenom")).unwrap_or_default())
+    let prenom = if sal.prenom_affichage.texte().is_empty() { sal.prenom.texte() } else { sal.prenom_affichage.texte() };
+    format!("{} {}", sal.nom.texte(), prenom)
 }
 
 /// AVANT, APRES, DIFFERENCE : deux paies ecrites d'un contrat (`avant` : la derniere declaree, `None` pour un contrat

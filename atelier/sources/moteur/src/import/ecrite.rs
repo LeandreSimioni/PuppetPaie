@@ -551,8 +551,8 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     let frais = Contexte::nouveau(&ctx.racine, None).map_err(Echec::from)?;
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &frais.salaries {
-        if let Some(n) = s.get("nir").filter(|v| vrai(v)) {
-            par_nir.insert(valeur_en_texte(n), cle.clone());
+        if let Some(n) = s.nir.dite().filter(|n| !n.is_empty()) {
+            par_nir.insert(n.clone(), cle.to_string());
         }
     }
     // CE QUE L'IMPORT A DEJA ECRIT, relu de ses engagements importes : les contrats attestes, les paies versees.

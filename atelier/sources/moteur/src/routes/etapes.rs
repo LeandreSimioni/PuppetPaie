@@ -18,7 +18,7 @@ use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use engagement;
 use engagement::etats::ARefaire;
 use envois::etats::{self, est, get, getd, objet_vide, ou, quand_lisible, texte_vide, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
@@ -635,10 +635,6 @@ pub(crate) struct SaisieMois {
     /// Ce qui manque a chaque engagement du mois (`None` : rien), dans l'ordre de `stock::objets_du_mois` :
     /// `paies` ne porte que ceux qui ne manquent de rien.
     pub(crate) manques: Vec<Option<String>>,
-}
-
-fn texte_de(v: &Value) -> String {
-    valeur_en_texte(v)
 }
 
 /// Les etats du journal et de la saisie, calcules une fois par processus.

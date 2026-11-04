@@ -21,7 +21,7 @@ use crate::routes::rappels::texte;
 use engagement::calcul::Paie;
 use engagement::Avis;
 use droit::catalogue;
-use droit::contexte::Contexte;
+use droit::contexte::{archivee, Contexte};
 use droit::emplois;
 use engagement::{self, Engagement};
 use envois::etats::{get, items, ou, Dico};

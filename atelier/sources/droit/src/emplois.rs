@@ -243,7 +243,7 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
     // Un choix que l'engagement dit se lit comme la fiche le lirait (`fiche::Statut`...) : hors de la liste, il se refuse.
     fn choix<T: serde::de::DeserializeOwned>(v: &str, cle: &str) -> Resultat<T> {
         serde_json::from_value(Value::String(v.to_string()))
-            .map_err(|_| format!("L'engagement dit « {} » pour `{}`, qui n'est pas une valeur de la fiche salarie.", v, cle))
+            .map_err(|_| format!("L'engagement dit « {} » pour {}, qui n'est pas un choix de la fiche du salarié.", v, cle.replace('_', " ")))
     }
     let pris = [&eng.emploi, &eng.pcs_ese, &eng.code_emploi_ft, &eng.statut, &eng.statut_conventionnel, &eng.statut_categoriel_rc];
     let affichage = dit(&eng.emploi_affichage);

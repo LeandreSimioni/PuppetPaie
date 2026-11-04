@@ -903,7 +903,9 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let lignes_journal = m.lignes()?;
     let faites = etats::embauches_par_depot(&lignes_journal)?;
     let mut par_nir: HashMap<String, (&String, &Value)> = HashMap::new();
-    for (cle, s) in &ctx.salaries {
+    // L'identite d'une embauche se compare aux cases de la fiche par leur nom : en JSON.
+    let vues: Vec<(String, Value)> = ctx.salaries.iter().map(|(k, f)| (k.to_string(), f.champs.en_valeur())).collect();
+    for (cle, s) in &vues {
         let nir = etats::get(s, "nir")?;
         if !vrai(nir) {
             continue;
@@ -958,7 +960,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
             if !champ("nir").trim().is_empty() {
                 return None;
             }
-            ctx.salaries.iter().find(|(_, s)| identite(s))
+            vues.iter().find(|(_, s)| identite(s)).map(|(k, s)| (k, s))
         });
         let (cle, s) = match trouve {
             Some((c, s)) => (Some(c), s),

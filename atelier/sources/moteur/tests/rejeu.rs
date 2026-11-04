@@ -289,7 +289,7 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     };
     let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();
     let (salarie, fiche) = ctx.salaries.iter().next().map(|(c, f)| (c.clone(), f.clone())).unwrap();
-    assert!(fiche["nir"].is_string(), "la fiche de la comedienne porte son NIR");
+    assert!(fiche.nir.est_dite(), "la fiche de la comedienne porte son NIR");
 
     en_attente();
     annoncer(json!({"taux_pas": {"salarie": salarie, "taux": "4.30"}}));

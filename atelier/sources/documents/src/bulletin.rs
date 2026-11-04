@@ -536,9 +536,7 @@ impl Modele {
 /// Le modele du bulletin d'une paie : la case de la fiche du salarie l'emporte ; sinon celle de la compagnie ; sinon le
 /// simplifie.
 pub fn modele_du_bulletin(ent: &Value, sal: &FicheSalarie) -> Resultat<Modele> {
-    let nom = sal.id.to_string();
-    let case = Value::Object([(CASE_MODELE.to_string(), sal.modele_bulletin.en_valeur())].into_iter().collect());
-    match Modele::de_la_fiche(&case, &format!("du salarié {}", nom).trim().to_string())? {
+    match modele_du_salarie(sal)? {
         Some(m) => Ok(m),
         None => Ok(Modele::de_la_fiche(ent, "entreprise")?.unwrap_or(Modele::Simplifie)),
     }
@@ -1375,4 +1373,12 @@ fn exige(c: &Case<String>, cle: &str) -> Resultat<String> {
         return Err(socle::fichiers::absent(cle));
     }
     Ok(c.texte().to_string())
+}
+
+/// Le modele du bulletin que la fiche du salarie choisit, `None` si elle n'en choisit pas.
+pub fn modele_du_salarie(sal: &FicheSalarie) -> Resultat<Option<Modele>> {
+    Ok(sal.modele_bulletin.dite().map(|m| match m {
+        droit::fiche::ModeleBulletin::Simplifie => Modele::Simplifie,
+        droit::fiche::ModeleBulletin::Complet => Modele::Complet,
+    }))
 }

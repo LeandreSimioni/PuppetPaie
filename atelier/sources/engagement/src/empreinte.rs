@@ -39,7 +39,14 @@ pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Optio
 }
 
 fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> String {
-    let sal = ctx.salaries.get(salarie).map_or(Value::Null, |f| droit::pas::sans_taux_recus(&f.champs).en_valeur());
+    // La fiche telle qu'ecrite, lue au jour : l'empreinte garde l'ordre de ses cases.
+    let sal = match ctx.salarie_brut(salarie).filter(|_| ctx.salaries.contains_key(salarie)) {
+        Some(b) => droit::contexte::fiche_au(b, &ctx.lue_au, salarie).map(|mut f| {
+            f.as_object_mut().map(|o| o.shift_remove(droit::pas::CHAMP));
+            f
+        }).unwrap_or(Value::Null),
+        None => Value::Null,
+    };
     let spec = spectacle.and_then(|k| ctx.spectacles.get(k)).cloned().unwrap_or(Value::Null);
     let v = Value::Array(vec![ctx.entreprise.clone(), sal, spec]);
     fichiers::sha256_hex(v.to_string().as_bytes())

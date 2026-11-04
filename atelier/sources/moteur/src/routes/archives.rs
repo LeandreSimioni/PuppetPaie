@@ -11,7 +11,7 @@ use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::qui_de;
-use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, requis, vrai_ou, Ouvrir};
+use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
 
 use documents::plan_comptable::{controler_plan, tables};
@@ -279,17 +279,17 @@ fn annees_de(dispo: &[String]) -> Vec<String> {
 
 /// Les salaries que la page propose.
 fn salaries_de_la_page(ctx: &Contexte) -> Vec<Value> {
-    let mut fiches: Vec<(&String, &Value)> = ctx.salaries.iter().filter(|(k, v)| !k.starts_with('_') && v.is_object()).collect();
+    let mut fiches: Vec<(&droit::contexte::IdSalarie, &droit::fiche::FicheSalarie)> = ctx.salaries.iter().collect();
     fiches.sort_by(|a, b| a.0.cmp(b.0));
     fiches
         .into_iter()
         .map(|(k, v)| {
             let nom = format!(
                 "{} {}",
-                valeur_en_texte(v.get("nom").unwrap_or(texte_vide())),
-                valeur_en_texte(ou(v.get("prenom_affichage").unwrap_or(&Value::Null), v.get("prenom").unwrap_or(texte_vide())))
+                v.nom.texte(),
+                if v.prenom_affichage.texte().is_empty() { v.prenom.texte() } else { v.prenom_affichage.texte() }
             );
-            json!({"cle": k, "nom": nom, "actif": v.get("actif").map_or(true, vrai), "email": v.get("email").is_some_and(vrai)})
+            json!({"cle": k, "nom": nom, "actif": matches!(v.actif, droit::fiche::Case::Absente | droit::fiche::Case::Dite(true)), "email": !v.email.texte().is_empty()})
         })
         .collect()
 }
@@ -565,8 +565,8 @@ fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
 fn adresses_de(ctx: &Contexte, cles: &[String]) -> R<Vec<String>> {
     cles.iter()
         .map(|cle| {
-            let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
-            s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).ok_or_else(|| {
+            let s = ctx.salaries.get(cle.as_str()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
+            s.email.dite().filter(|e| !e.is_empty()).cloned().ok_or_else(|| {
                 refus(format!("Pas d'adresse e-mail pour {} : compléter sa fiche avant d'envoyer. Rien n'est parti.", ctx.nomme(cle)))
             })
         })
@@ -587,10 +587,11 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
     let mut messages: Vec<Message> = Vec::new();
     let adresses = adresses_de(ctx, &d.salaries)?;
     for ((cle, f), email) in d.salaries.iter().zip(&d.fichiers).zip(adresses) {
-        let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
-        let prenom = match vrai_ou(s, "prenom_affichage") {
-            Some(p) => p,
-            None => valeur_en_texte(requis(s, "prenom")?),
+        let s = ctx.salaries.get(cle.as_str()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
+        let prenom = match s.prenom_affichage.texte() {
+            "" if s.prenom.est_absente() => return Err(erreur("KeyError", socle::fichiers::absent("prenom"))),
+            "" => s.prenom.texte().to_string(),
+            p => p.to_string(),
         };
         let signataire = ctx.entreprise.get("signataire").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!({}));
         let ses_pages = d.pages.get(cle).and_then(Value::as_object);
@@ -864,7 +865,7 @@ fn droits(ctx: &Contexte, charge: &Value) -> R<Value> {
             json!({"quoi": quoi, "valeurs": colonnes.iter().map(|x| ecrire(&x[cle])).collect::<Vec<_>>()})
         };
         let heures = |v: &Value| format!("{} h", socle::num::dec(v).map(socle::texte::virgule).unwrap_or_else(|_| valeur_en_texte(v)));
-        let nom = ctx.salaries.get(cle).map(crate::routes::nom_a_l_ecran).unwrap_or_else(|| cle.to_string());
+        let nom = ctx.salaries.get(cle).map(|f| crate::routes::nom_a_l_ecran(f)).unwrap_or_else(|| cle.to_string());
         salaries.push(json!({
             "cle": cle,
             "nom": nom,

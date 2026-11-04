@@ -45,7 +45,7 @@ fn jjmmaaaa(iso: &str) -> String {
 
 /// Ce qui a ete verse a un salarie un mois importe, tel que l'engagement importe le porte.
 struct Versee {
-    salarie: Value,
+    salarie: droit::fiche::FicheSalarie,
     brut: Decimal,
     numero: Option<String>,
     debut: Option<String>,
@@ -63,7 +63,7 @@ fn versees_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<Versee>> {
         let Some(p) = i.lignes_des_paies().into_iter().find(|p| p["mois"] == json!(mois)) else { continue };
         let Some(brut) = t(&p, "brut") else { continue };
         let cle = t(&p, "salarie").unwrap_or_default();
-        let salarie = ctx.salaries.get(&cle).cloned().ok_or_else(|| refus(format!("{} : la fiche du salarie « {} » d'un engagement importe n'existe pas.", mois, cle)))?;
+        let salarie = ctx.salaries.get(cle.as_str()).cloned().ok_or_else(|| refus(format!("{} : la fiche du salarie « {} » d'un engagement importe n'existe pas.", mois, cle)))?;
         let (debut, fin) = (t(&p, "debut"), t(&p, "fin"));
         let mut activite = Vec::new();
         if let Some(c) = i.ligne_du_contrat() {
@@ -260,7 +260,8 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         let mut mois_sal: Vec<(String, String, Decimal)> = vec![];
         let an: String = m.chars().take(4).collect();
         for p in paies {
-            let s = &p.salarie;
+            // Les colonnes de l'etat nomment les cases de la fiche : elle se lit ici en JSON.
+            let s = p.salarie.champs.en_valeur();
             let champ = |cle: &str| s.get(cle).filter(|v| vrai(v)).map(valeur_en_texte);
             let brut = p.brut;
             let nir = champ("nir").unwrap_or_default();
