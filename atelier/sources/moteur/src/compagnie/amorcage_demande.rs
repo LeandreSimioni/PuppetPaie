@@ -159,7 +159,7 @@ pub fn a_combler(ctx: &Contexte, paies: &[Paie], motif: &str, forcer: bool) -> R
         let mut l = Ligne {
             salarie: cle.clone(),
             libelle: s.get("libelle").map(valeur_en_texte).unwrap_or_default(),
-            contrat: p.engagement.numero.clone().unwrap_or_default(),
+            contrat: p.engagement.numero.as_deref().unwrap_or_default().to_string(),
             pourquoi_pas: String::new(),
             indice: i,
         };

@@ -930,7 +930,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let n = COLONNES;
     let nat = e.nat()?;
     let permanent = nat.mensuelle();
-    let numero = e.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "-".to_string());
+    let numero = e.numero.as_deref().unwrap_or("-").to_string();
     let tiret = format!("{}—{}", NBSP, NBSP);
     let barre = format!(" {}|{} ", NBSP, NBSP);
 

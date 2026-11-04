@@ -497,7 +497,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             let Some(cle) = engagement::cle_de_l_engagement(ctx, &o.brut) else { continue };
             for l in lus.iter().filter(|l| l.mois_saisi) {
                 if o.couvre(&l.mois).map_err(|m| erreur("ErreurOperation", m))? {
-                    saisis_ici.insert((cle.clone(), l.mois.clone()));
+                    saisis_ici.insert((cle.to_string(), l.mois.clone()));
                 }
             }
         }

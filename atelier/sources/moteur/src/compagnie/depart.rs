@@ -962,7 +962,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     imprimer(ctx, mois, &ent, &impression, cles, false)?;
     let mut poses: Vec<(usize, (Option<String>, Option<(i64, i64)>))> = a_poser.into_iter().collect();
     poses.sort_by_key(|(i, _)| *i);
-    faits.a_poser = poses.into_iter().map(|(i, (b, ce))| (cle_de(&paies[i]), paies[i].engagement.numero.clone().unwrap_or_default(), b, ce)).collect();
+    faits.a_poser = poses.into_iter().map(|(i, (b, ce))| (cle_de(&paies[i]), paies[i].engagement.numero.as_deref().unwrap_or_default().to_string(), b, ce)).collect();
     Ok(faits)
 }
 

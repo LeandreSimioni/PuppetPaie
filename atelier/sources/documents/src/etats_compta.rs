@@ -1170,7 +1170,7 @@ fn provision_d_une_annee_importee(
         }
         let salaire = paies.iter().filter(|q| q.importee.is_some() && cle_de(q) == cle).fold(zero2(), |a, q| add(a, q.brut));
         let provision = engagement::conges::provision_du_compteur(cpt, m, salaire).map_err(ko)?;
-        a_provisionner.push((cle, pa.engagement.numero.clone().unwrap_or_default(), nat.libelle.clone(), provision));
+        a_provisionner.push((cle, pa.engagement.numero.as_deref().unwrap_or_default().to_string(), nat.libelle.clone(), provision));
     }
     Ok(sans_compteur)
 }

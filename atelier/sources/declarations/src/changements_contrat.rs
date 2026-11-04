@@ -159,7 +159,7 @@ fn qui(p: &Paie) -> String {
     format!(
         "{}, contrat {}",
         socle::texte::salarie_nomme_ou(Some(&p.salarie), cle),
-        p.engagement.numero.clone().unwrap_or_else(|| "sans numero".into())
+        p.engagement.numero.as_deref().unwrap_or("sans numero").to_string()
     )
 }
 
@@ -403,7 +403,7 @@ pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, m
 /// date declaree ne se lit pas, ou que le jour de la correction n'est pas connu : le bloc ne se devine pas (regle 1).
 pub fn ancienne_date_de_debut(lignes: &mut Vec<String>, debut: usize, r: &crate::dsn::Regularisation, nouveau: &Jour, fin_mois: Jour) -> Resultat<()> {
     let e = &r.apres.engagement;
-    let numero = e.numero.clone().unwrap_or_default();
+    let numero = e.numero.as_deref().unwrap_or_default().to_string();
     if r.declare.lignes.is_empty() && r.declare.fichier.is_empty() {
         return Ok(());
     }

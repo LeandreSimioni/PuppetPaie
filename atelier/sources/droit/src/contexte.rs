@@ -1297,6 +1297,103 @@ pub fn emploie_des_permanents(entreprise: &Value) -> bool {
     entreprise.get("emploie_des_permanents") == Some(&Value::Bool(true))
 }
 
+/// LA CLE D'UN SALARIE : celle de sa fiche dans `config/salaries.json`, interne au logiciel (aucun texte n'en fixe la
+/// forme). Elle se retrouve d'un nom par `Contexte::cle_du_salarie`, ou se lit d'un fichier, d'une charge (`lire`, ou
+/// `serde` : la meme chaine) ; un type a part, pour qu'elle ne se confonde pas avec un autre texte (un nom, un numero).
+/// INFERENCE du code : une cle n'est jamais vide (`moteur::routes::fiches::cle_neuve` refuse de nommer une fiche sans
+/// nom) ; rien de plus ne vaut pour toutes les cles qui existent (celles qu'un import ou un jeu d'essai a ecrites).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize, serde::Serialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct IdSalarie(String);
+
+impl IdSalarie {
+    /// La cle ecrite `texte` ; vide, elle se refuse.
+    pub fn lire(texte: &str) -> Resultat<IdSalarie> {
+        if texte.is_empty() {
+            return Err("cle de salarie vide".to_string());
+        }
+        Ok(IdSalarie(texte.to_string()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for IdSalarie {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for IdSalarie {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::borrow::Borrow<str> for IdSalarie {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for IdSalarie {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl TryFrom<String> for IdSalarie {
+    type Error = String;
+    fn try_from(s: String) -> Resultat<IdSalarie> {
+        IdSalarie::lire(&s)
+    }
+}
+
+impl From<IdSalarie> for String {
+    fn from(c: IdSalarie) -> String {
+        c.0
+    }
+}
+
+impl From<IdSalarie> for Value {
+    fn from(c: IdSalarie) -> Value {
+        Value::String(c.0)
+    }
+}
+
+impl PartialEq<str> for IdSalarie {
+    fn eq(&self, autre: &str) -> bool {
+        self.0 == autre
+    }
+}
+
+impl PartialEq<&str> for IdSalarie {
+    fn eq(&self, autre: &&str) -> bool {
+        self.0 == *autre
+    }
+}
+
+impl PartialEq<String> for IdSalarie {
+    fn eq(&self, autre: &String) -> bool {
+        self.0 == *autre
+    }
+}
+
+impl PartialEq<IdSalarie> for &str {
+    fn eq(&self, autre: &IdSalarie) -> bool {
+        *self == autre.0
+    }
+}
+
+impl PartialEq<IdSalarie> for String {
+    fn eq(&self, autre: &IdSalarie) -> bool {
+        *self == autre.0
+    }
+}
+
 /// Les donnees de la compagnie, lues une fois, et resolues a une date (`lue_au`).
 #[derive(Debug, Clone)]
 pub struct Contexte {
@@ -1819,13 +1916,17 @@ PSS_H_METROP).",
     /// Rend la fiche avec `_cle`, ou le refus.
     pub fn salarie(&self, nom: &str) -> Resultat<Value> {
         let cle = self.cle_du_salarie(nom)?;
-        let mut f = self.salaries[&cle].clone();
-        f.as_object_mut().map(|o| o.insert("_cle".into(), Value::String(cle)));
+        let mut f = self.salaries[cle.as_str()].clone();
+        f.as_object_mut().map(|o| o.insert("_cle".into(), cle.into()));
         Ok(f)
     }
 
     /// La cle de la fiche que `salarie` retrouve, sans la recopier ; la cle meme se retrouve d'abord.
-    pub fn cle_du_salarie(&self, nom: &str) -> Resultat<String> {
+    pub fn cle_du_salarie(&self, nom: &str) -> Resultat<IdSalarie> {
+        IdSalarie::lire(&self.cle_trouvee(nom)?)
+    }
+
+    fn cle_trouvee(&self, nom: &str) -> Resultat<String> {
         if self.salaries.contains_key(nom) {
             return Ok(nom.to_string());
         }

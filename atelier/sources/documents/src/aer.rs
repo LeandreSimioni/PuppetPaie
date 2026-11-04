@@ -311,10 +311,10 @@ impl PaieAer {
     pub fn du_mois(p: &engagement::calcul::Paie) -> Resultat<PaieAer> {
         let e = &p.engagement;
         let (d, f) = (e.debut_mois()?, e.fin_mois()?);
-        let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.clone().unwrap_or_default()))?;
+        let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.as_deref().unwrap_or_default().to_string()))?;
         let heures = if e.nat()?.mensuelle() { p.heures_travaillees } else { socle::num::dec_f64(e.heures.unwrap_or(0.0))? };
         Ok(PaieAer {
-            numero: e.numero.clone().unwrap_or_default(),
+            numero: e.numero.as_deref().unwrap_or_default().to_string(),
             debut: if e.debut > d { e.debut } else { d },
             fin: if fin < f { fin } else { f },
             cachets: Decimal::from(e.cachets),
@@ -514,7 +514,7 @@ pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMu
         if !due(p)? {
             continue;
         }
-        let numero = e.numero.clone().unwrap_or_default();
+        let numero = e.numero.as_deref().unwrap_or_default().to_string();
         let mut m = e.debut.iso()[..7].to_string();
         while m.as_str() < periode {
             for q in paies_du_mois(&m).iter().filter(|q| de_lui(q) && q.engagement.numero.as_deref() == Some(numero.as_str()) && !q.engagement.sans_paie()) {

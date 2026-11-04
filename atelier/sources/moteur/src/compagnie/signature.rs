@@ -296,7 +296,7 @@ fn entree_du_contrat(ctx: &Contexte, p: &Paie, cle: &str, pdf: &std::path::Path,
     c.insert("salarie".into(), json!(cle));
     c.insert("debut".into(), json!(p.engagement.debut.iso()));
     c.insert("fin".into(), p.engagement.fin.map_or(Value::Null, |f| json!(f.iso())));
-    c.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::String));
+    c.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::from));
     c.insert("fichier".into(), json!(nom_du(pdf)));
     c.insert("spectacle".into(), json!(titre));
     c.insert("mois".into(), json!(mois));
@@ -307,7 +307,7 @@ fn entree_du_contrat(ctx: &Contexte, p: &Paie, cle: &str, pdf: &std::path::Path,
 /// Le nom du PDF des contrats d'un salarie : `Contrat_<cle>_<numero>_<mois>.pdf`, `Contrats_..._<n1>+<n2>_...` quand il en
 /// porte plusieurs (une page par contrat).
 fn nom_du_pdf(cle: &str, ps: &[Paie], etiq: &str, suffixe: &str) -> String {
-    let numeros: Vec<String> = ps.iter().map(|p| p.engagement.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "sans-numero".to_string())).collect();
+    let numeros: Vec<String> = ps.iter().map(|p| p.engagement.numero.as_deref().unwrap_or("sans-numero").to_string()).collect();
     format!("Contrat{}_{}_{}_{}{}.pdf", if ps.len() > 1 { "s" } else { "" }, cle, numeros.join("+"), etiq, suffixe)
 }
 
@@ -424,7 +424,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             for p in ps {
                 let debut = p.engagement.debut.iso();
                 // Le contrat qui part est remplace, lui (son numero) : un autre contrat du salarie n'a rien a remplacer.
-                let n = p.engagement.numero.clone().unwrap_or_default();
+                let n = p.engagement.numero.as_deref().unwrap_or_default().to_string();
                 let Some(parti) = envois::etats::contrat_parti(&lignes, k, &n)? else {
                     return Err(refus(format!("Le contrat de {} du {} n'est jamais parti : il n'a rien à remplacer, il s'envoie. Rien n'est parti.", k, jj(&debut)?)));
                 };
@@ -436,7 +436,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
                     )));
                 }
                 let numero = if vrai(&parti.numero) { valeur_en_texte(&parti.numero) } else { "(sans numéro)".to_string() };
-                remplacements.push(((k.clone(), debut, p.engagement.numero.clone().unwrap_or_default()), (numero, jj(&parti.date())?)));
+                remplacements.push(((k.clone(), debut, p.engagement.numero.as_deref().unwrap_or_default().to_string()), (numero, jj(&parti.date())?)));
             }
         }
     }
@@ -465,7 +465,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
         }
         let sujet_de = |spectacle: &str| envoi::formater(SUJET_SIGNATURE, &[("spectacle", spectacle.to_string()), ("mois", nom_mois.to_string()), ("annee", an.to_string())]);
         let du_au = |p: &Paie, titre: &str| -> R<String> { Ok(format!("{}, {}", titre, periode_de(p))) };
-        let numero_de = |p: &Paie| p.engagement.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "(sans numéro)".to_string());
+        let numero_de = |p: &Paie| p.engagement.numero.as_deref().unwrap_or("(sans numéro)").to_string();
         let (mut sujet, mut liste, le_signer, quoi, exemplaire);
         if ps.len() == 1 {
             let p = &ps[0];
@@ -534,7 +534,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             c.insert("relance".into(), json!(relance));
             c.insert("empreinte".into(), json!(empreinte));
             if remplace {
-                let propre = p.engagement.numero.clone().unwrap_or_default();
+                let propre = p.engagement.numero.as_deref().unwrap_or_default().to_string();
                 let numero = remplacements.iter().find(|(k, _)| *k == (cle.clone(), debut.clone(), propre.clone())).map(|(_, (n, _))| n.clone()).unwrap_or_default();
                 c.insert("acte".into(), json!("remplace"));
                 c.insert("remplace".into(), json!(numero));
@@ -637,7 +637,7 @@ pub fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
     if !d.relance {
         return Ok(());
     }
-    let cles: Vec<(String, String)> = par_salarie.iter().flat_map(|(k, ps, _)| ps.iter().map(|p| (k.clone(), p.engagement.numero.clone().unwrap_or_default()))).collect();
+    let cles: Vec<(String, String)> = par_salarie.iter().flat_map(|(k, ps, _)| ps.iter().map(|p| (k.clone(), p.engagement.numero.as_deref().unwrap_or_default().to_string()))).collect();
     verifier_relance(&d.etats_des_contrats, &cles)
 }
 

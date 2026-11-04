@@ -442,7 +442,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     let mut cherche = Map::new();
     cherche.insert("salarie".into(), json!(cle));
     cherche.insert("debut".into(), json!(debut));
-    cherche.insert("numero".into(), eng.numero.clone().map_or(Value::Null, Value::String));
+    cherche.insert("numero".into(), eng.numero.clone().map_or(Value::Null, Value::from));
     let importe = engagement::importe::continue_par(&ctx.racine, &cherche).map_err(|e| avec("ValueError", e))?;
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
@@ -498,7 +498,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     let fin = eng.fin.map_or(Value::Null, |f| json!(f.iso()));
     let entier = json!({
         "salarie": eng.salarie, "spectacle": texte(&eng.spectacle), "dates_travail": dates, "lignes": lignes,
-        "debut": eng.debut.iso(), "fin": fin, "numero": texte(&eng.numero), "jours": jours + eng.jours,
+        "debut": eng.debut.iso(), "fin": fin, "numero": eng.numero, "jours": jours + eng.jours,
         "taux_cachet": eng.taux_cachet, "date_paiement": texte(&eng.date_paiement), "lieu": eng.lieu,
         "emploi": texte(&eng.emploi), "pcs_ese": texte(&eng.pcs_ese), "code_emploi_ft": texte(&eng.code_emploi_ft),
         "statut": texte(&eng.statut), "statut_conventionnel": texte(&eng.statut_conventionnel),
@@ -596,7 +596,7 @@ fn mois_puppetpaie(
         // Un engagement valide porte son numero, ecrit a sa validation ; un engagement en saisie n'en a
         // pas, et un numero ne s'invente pas.
         let (data, mut figees) = charger(ctx, mois)?;
-        let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.as_deref().is_some_and(|n| !n.is_empty())).collect();
+        let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.is_some()).collect();
         if partis.is_empty() {
             if categories.contains(CONTRATS) {
                 d.refus.push(format!("{} : contrats non réédités — aucun n'est parti à la signature, et un numéro ne s'invente pas.", lib));
@@ -646,17 +646,17 @@ fn mois_puppetpaie(
                 .map(|i| &source[*i])
                 .filter(|p| {
                     cle_de(p) == *cle
-                        && p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty())
+                        && p.engagement.numero.is_some()
                         && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false)
                         && !contrats_vus.contains(p.engagement.numero.as_deref().unwrap_or(""))
                 })
                 .cloned()
                 .collect();
-            contrats_vus.extend(a_lui.iter().filter_map(|p| p.engagement.numero.clone()));
+            contrats_vus.extend(a_lui.iter().filter_map(|p| p.engagement.numero.clone().map(String::from)));
             let sans = indices
                 .iter()
                 .map(|i| &source[*i])
-                .filter(|p| cle_de(p) == *cle && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false) && p.engagement.numero.as_deref().map_or(true, str::is_empty))
+                .filter(|p| cle_de(p) == *cle && engagement::contrat_a_signer(&ctx.racine, &p.engagement).unwrap_or(false) && p.engagement.numero.is_none())
                 .count();
             if sans > 0 {
                 d.refus.push(format!("{}, {} : {} contrat(s) sans numéro lu, non réédité(s).", lib, cle, sans));
@@ -781,8 +781,7 @@ fn mois_puppetpaie(
                     .iter()
                     .map(|i| &paies[*i])
                     .filter(|p| cle_de(p) == *cle)
-                    .filter_map(|p| p.engagement.numero.clone())
-                    .filter(|n| !n.is_empty())
+                    .filter_map(|p| p.engagement.numero.clone().map(String::from))
                     .collect();
                 let hors: Vec<&String> = portes.difference(&connus).collect();
                 if ecrit && !hors.is_empty() {

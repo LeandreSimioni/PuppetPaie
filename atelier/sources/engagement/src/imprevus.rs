@@ -839,8 +839,8 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &Value) -> Resultat<Vec<Vec
     // Les imprevus des seuls salaries de la saisie (`du_salarie`).
     let mut salaries: Vec<String> = Vec::new();
     for cle in engagements.iter().filter_map(|e| crate::cle_de_l_engagement(ctx, e)) {
-        if !salaries.contains(&cle) {
-            salaries.push(cle);
+        if !salaries.iter().any(|s| *s == cle) {
+            salaries.push(cle.into());
         }
     }
     let mut siens = Vec::new();

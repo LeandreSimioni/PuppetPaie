@@ -63,7 +63,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                 }
             }
         }
-        let n = p.engagement.numero.clone().unwrap_or_else(|| "None".to_string());
+        let n = p.engagement.numero.as_deref().unwrap_or("None").to_string();
         if !par_numero.contains_key(&n) {
             ordre.push(n.clone());
         }

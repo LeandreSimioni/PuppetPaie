@@ -287,7 +287,7 @@ struct MoisPaye {
     debut: Jour,
     fin: Jour,
     contrat_debut: Jour,
-    numero: Option<String>,
+    numero: Option<crate::numeros::NumeroContrat>,
     /// Les jours de conges que la paie decompte (`conges_pris_de_la_paie`).
     pris: Decimal,
     /// Un arret de travail du contrat range dans ce mois (`imprevus`).

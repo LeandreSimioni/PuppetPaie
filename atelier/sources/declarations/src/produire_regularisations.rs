@@ -112,7 +112,7 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str, departs: &engage
                 out.push(ajout(mois.clone(), version, decidee_le, apres)?);
                 continue;
             }
-            let numero = apres.engagement.numero.clone().unwrap_or_default();
+            let numero = apres.engagement.numero.as_deref().unwrap_or_default().to_string();
             let refus = |quoi: &str| {
                 erreur(
                     "MoisNonRegularisable",
@@ -194,7 +194,7 @@ pub fn versions_portees(ctx: &Contexte, regs: &[Reg], nic: &str) -> R<Vec<Value>
         }
         let v = json!({
             "salarie": valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)),
-            "numero": r.apres.engagement.numero.clone().unwrap_or_default(),
+            "numero": r.apres.engagement.numero.as_deref().unwrap_or_default().to_string(),
             "version": r.version,
             "mois": r.mois,
         });
@@ -214,7 +214,7 @@ pub fn versions_portees(ctx: &Contexte, regs: &[Reg], nic: &str) -> R<Vec<Value>
 /// qui le porte), et le versement de la correction declare son net. Son bulletin est celui de son mois, qui part avec
 /// les documents de ce mois (`moteur::compagnie::depart::fabriquer_documents`).
 fn ajout(mois: String, version: u64, decidee_le: Option<Jour>, apres: Paie) -> R<Reg> {
-    if !apres.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
+    if apres.engagement.numero.is_none() {
         return Err(erreur(
             "MoisNonRegularisable",
             format!("{} : le contrat ajoute apres la DSN de ce mois n'a pas de numero (S21.G00.40.009). Le revalider.", mois),

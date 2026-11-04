@@ -777,7 +777,7 @@ pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<HashMap<Strin
         let brut = &*v.objet().brut;
         if let Some(c) = engagement::cle_de_l_engagement(ctx, &brut) {
             let contrat = brut.get("numero").map(valeur_en_texte).unwrap_or_default();
-            par_salarie.entry(c).or_default().push((contrat, engagement::versions::depuis(ctx, v, depuis)));
+            par_salarie.entry(c.into()).or_default().push((contrat, engagement::versions::depuis(ctx, v, depuis)));
         }
     }
     Ok(par_salarie

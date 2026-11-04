@@ -220,7 +220,7 @@ preavis ({}) -- CCH-12 de S21.G00.62.006.",
 /// a ete effectue ou qu'il n'y en a pas. Sur un preavis NON effectue (02, 03, 10, 50, 51, 61), le dernier jour paye au
 /// salaire habituel precede le debut du preavis (CCH-12) : sans saisie, le moteur refuse plutot que de le deviner.
 pub fn dernier_jour_paye(e: &Engagement) -> Resultat<Jour> {
-    let numero = e.numero.clone().unwrap_or_else(|| "None".into());
+    let numero = e.numero.as_deref().unwrap_or("None").to_string();
     let fin = e.fin.ok_or_else(|| format!("S21.G00.62.006 : le contrat {} n'a pas de fin.", numero))?;
     let preavis = e.preavis.as_ref().filter(|p| vrai(p));
     let type_preavis = preavis.map(|p| en_texte(g(p, "type"))).filter(|t| !t.is_empty());
@@ -383,7 +383,7 @@ signalement sans elle. Rien n'est ecrit.",
 
     // CCH-11 de S21.G00.62.002 : le motif doit etre autorise pour la nature du contrat (091/092 pas pour un CDD).
     let nat = e.nat()?;
-    if let Some(refus) = nat.motif_rupture_refuse(&fin.motif, &e.numero.clone().unwrap_or_else(|| "None".into())) {
+    if let Some(refus) = nat.motif_rupture_refuse(&fin.motif, &e.numero.as_deref().unwrap_or("None").to_string()) {
         return Err(Echec::Impossible(refus));
     }
 
@@ -393,7 +393,7 @@ signalement sans elle. Rien n'est ecrit.",
         avertissements.push(format!(
             "Contrat {} : un {} arrivé à son terme n'a pas besoin de signalement de fin de contrat ; sa fin part dans la \
 DSN du mois, par le circuit dérogatoire. Ce signalement ne se fait que si le salarié le demande.",
-            e.numero.clone().unwrap_or_default(),
+            e.numero.as_deref().unwrap_or_default().to_string(),
             nat.libelle
         ));
     }
@@ -488,7 +488,7 @@ ou un annule."
     if let Some(pourquoi) = droit::preavis::desaccord_du_preavis(&fin.type_preavis, &indemnites_de_preavis_versees(paie)?)? {
         return Err(Echec::Impossible(format!(
             "Contrat {} : {}",
-            paie.engagement.numero.clone().unwrap_or_else(|| "None".into()),
+            paie.engagement.numero.as_deref().unwrap_or("None").to_string(),
             pourquoi
         )));
     }

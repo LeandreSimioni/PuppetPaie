@@ -34,6 +34,7 @@ use serde_json::{Map, Value};
 
 use crate::calcul::{Importee, LigneCotisation, Paie, PlafondTempsPartiel};
 use crate::stock::{self, Objet};
+use crate::numeros::NumeroContrat;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::num::Decimal;
@@ -255,7 +256,7 @@ impl Importe {
             lignes,
             debut,
             fin,
-            numero: Some(self.texte("numero")).filter(|n| !n.is_empty()).or_else(|| p.get("bulletin").and_then(|b| b.get("contrat")).filter(|x| vrai(x)).map(en_texte)),
+            numero: NumeroContrat::de_la_valeur(self.objet.brut.get("numero").filter(|n| vrai(n)).or_else(|| p.get("bulletin").and_then(|b| b.get("contrat"))))?,
             mois: mois.to_string(),
             planning: Vec::new(),
             planning_lieux: BTreeMap::new(),
@@ -461,19 +462,22 @@ pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, num
 /// LE NUMERO QU'UNE DSN DE L'ANCIEN LOGICIEL A DECLARE pour l'engagement `brut` : celui de sa derniere paie importee
 /// qu'une DSN deposee declare (`declare_par: "DSN"`, S21.G00.40.009). Cette DSN est partie : le numero est lu, il ne se
 /// dit plus et ne change plus (`numeros::a_la_validation`). `None` pour un engagement d'ici, ou repris des seuls bulletins.
-pub fn numero_declare(brut: &Value) -> Option<String> {
-    let paies = brut.get(IMPORTE)?.get("paies")?.as_object()?;
-    paies
-        .values()
-        .rev()
-        .filter(|p| p.get("declare_par").and_then(Value::as_str) == Some("DSN"))
-        .find_map(|p| p.get("contrat").filter(|n| vrai(n)).map(en_texte))
+/// La norme l'a deja contraint : il se lit comme tout numero (`NumeroContrat::lire`).
+pub fn numero_declare(brut: &Value) -> Resultat<Option<NumeroContrat>> {
+    let Some(paies) = brut.get(IMPORTE).and_then(|i| i.get("paies")).and_then(Value::as_object) else { return Ok(None) };
+    let declare = paies.values().rev().filter(|p| p.get("declare_par").and_then(Value::as_str) == Some("DSN")).find_map(|p| p.get("contrat").filter(|n| vrai(n)));
+    NumeroContrat::de_la_valeur(declare)
 }
 
-/// Le numero qu'une DSN de l'ancien logiciel a declare pour le contrat de `salarie` commence le `debut`
-/// (`numero_declare`), lu sur l'engagement repris qui le porte.
-pub fn numero_declare_du_contrat(racine: &Path, salarie: &str, debut: &str) -> Option<String> {
-    tous(racine).ok()?.iter().filter(|i| i.texte("salarie") == salarie && i.texte("debut") == debut).find_map(|i| numero_declare(&i.objet.brut))
+/// Une DSN de l'ancien logiciel a-t-elle declare le numero du contrat de `salarie` commence le `debut`
+/// (`numero_declare`, lu sur l'engagement repris qui le porte) ?
+pub fn numero_declare_du_contrat(racine: &Path, salarie: &str, debut: &str) -> Resultat<bool> {
+    for i in tous(racine)?.iter().filter(|i| i.texte("salarie") == salarie && i.texte("debut") == debut) {
+        if numero_declare(&i.objet.brut)?.is_some() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 impl Importe {

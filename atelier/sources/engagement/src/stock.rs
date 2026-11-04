@@ -917,7 +917,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &
     if let Some(cle) = crate::cle_de_l_engagement(ctx, &e) {
         let debut = crate::debut_brut(racine, &e);
         if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
-            return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or(cle), &debut));
+            return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or_else(|| cle.into()), &debut));
         }
     }
     let (fichier, rang) = match id {

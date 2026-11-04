@@ -61,7 +61,8 @@ pub struct Engagement {
     pub debut: Jour,
     /// `None` seulement pour un contrat permanent ouvert.
     pub fin: Option<Jour>,
-    pub numero: Option<String>,
+    /// Le numero du contrat (S21.G00.40.009) : `numeros::former` le donne a la validation ; `None` avant.
+    pub numero: Option<numeros::NumeroContrat>,
     pub mois: String,
     pub planning: Vec<Jour>,
     pub planning_lieux: BTreeMap<Jour, String>,
@@ -269,7 +270,7 @@ fn liste<'a>(v: Option<&'a Value>, nom: &str) -> Resultat<&'a [Value]> {
 impl Engagement {
     /// « NOM Prénom, contrat N » : qui une phrase de refus désigne.
     pub fn qui(&self) -> String {
-        format!("{}, contrat {}", self.nom, self.numero.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans numero"))
+        format!("{}, contrat {}", self.nom, self.numero.as_deref().unwrap_or("sans numero"))
     }
 
     /// L'engagement que `v` décrit (`salarie`,
@@ -538,7 +539,7 @@ impl Engagement {
             lignes,
             debut,
             fin,
-            numero: chaine(get("numero")),
+            numero: numeros::NumeroContrat::de_la_valeur(get("numero"))?,
             mois,
             planning,
             planning_lieux,
@@ -777,7 +778,7 @@ impl Engagement {
         m.insert("lignes".into(), canon_valeur(&Value::Array(self.lignes.clone()))?);
         m.insert("debut".into(), iso(&self.debut));
         m.insert("fin".into(), self.fin.as_ref().map_or(Value::Null, iso));
-        m.insert("numero".into(), texte(&self.numero));
+        m.insert("numero".into(), self.numero.clone().map_or(Value::Null, Value::from));
         m.insert("mois".into(), Value::String(self.mois.clone()));
         m.insert("planning".into(), jours(&self.planning));
         m.insert("planning_lieux".into(), lieux(&self.planning_lieux));
@@ -1843,7 +1844,7 @@ fn sexe(fiche: &Value) -> String {
 
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
 /// (sans tenir compte de la casse ni des accents), comme le fait le calcul de sa paie. `None` s'il ne nomme aucune fiche.
-pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
+pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<droit::contexte::IdSalarie> {
     let nom = e.get("salarie").and_then(Value::as_str)?;
     ctx.cle_du_salarie(nom).ok()
 }
@@ -1868,7 +1869,7 @@ fn qui_de(fiche: &Value) -> Resultat<String> {
 
 /// « (n° FA1.26.13) » quand le contrat porte son numero ; rien sinon.
 fn numero_dit(eng: &Engagement) -> String {
-    eng.numero.as_deref().filter(|n| !n.is_empty()).map_or_else(String::new, |n| format!(" (n° {})", n))
+    eng.numero.as_ref().map_or_else(String::new, |n| format!(" (n° {})", n))
 }
 
 /// LE CONTRAT DE CET ENGAGEMENT SE FAIT-IL SIGNER PAR LE LOGICIEL ? Oui quand sa nature a un contrat ecrit (`contrat_ecrit`
@@ -2001,7 +2002,7 @@ pub fn vue_requise(racine: &Path, mois: &str) -> Resultat<Value> {
 fn un_numero_un_salarie(paies: &[crate::calcul::Paie], mois: &str) -> Resultat<()> {
     let mut vus: BTreeMap<String, String> = BTreeMap::new();
     for p in paies {
-        let Some(n) = p.engagement.numero.as_deref().filter(|n| !n.is_empty()) else { continue };
+        let Some(n) = p.engagement.numero.as_deref() else { continue };
         let cle = p.salarie.get("_cle").map(en_texte).unwrap_or_default();
         match vus.get(n) {
             Some(autre) if *autre != cle => {
