@@ -30,8 +30,10 @@ fn en_clair(m: &str) -> String {
     let m = m.split(" at line ").next().unwrap_or(m);
     if let Some(r) = m.strip_prefix("unknown field ") {
         let cle = r.split(',').next().unwrap_or(r);
-        let attendues = r.split_once("expected ").map(|(_, a)| a.replace("one of ", "")).unwrap_or_default();
-        return format!("la clé {} n'est pas connue ici (attendues : {})", cle, attendues);
+        return match r.split_once("expected ") {
+            Some((_, a)) => format!("la clé {} n'est pas connue ici (attendues : {})", cle, a.replace("one of ", "")),
+            None => format!("la clé {} n'est pas connue ici : aucune n'est attendue", cle),
+        };
     }
     if let Some(r) = m.strip_prefix("missing field ") {
         return format!("la clé {} manque", r);

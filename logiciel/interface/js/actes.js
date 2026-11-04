@@ -48,7 +48,7 @@ function ouvrirGeste(action, mois, seulement, sur = {}) {
     case "attestation-declare": return boiteObligationFaite(sur.objet || {}, sur.obligation || {});
     case "cloture": return boiteCloture(c.annee);
     case "export-compta": return lancerExportCompta(c.annee);
-    case "revue-spectacles": return boiteRevueSpectacles(sur);
+    case "revue-spectacles": return boiteRevueSpectacles(sur, c);
   }
 }
 

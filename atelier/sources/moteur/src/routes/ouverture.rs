@@ -14,7 +14,6 @@ use serde_json::{json, Map, Value};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, OPERATION};
 use crate::routes::catalogue::Route;
 use crate::routes::etapes::Moteur;
-use crate::routes::mois::lire_saisie;
 use super::{lire_json_tolerant, lire_texte, ou_texte};
 use declarations::champs;
 use droit::catalogue::{self, Rubrique};
@@ -25,8 +24,7 @@ use droit::permanents;
 use engagement::{self};
 use envois::etats::get;
 use socle::echec::{erreur, Echec};
-use socle::ecriture::ecrire_json;
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
 use crate::routes::catalogue::{Ecran, Place};
 
@@ -1298,43 +1296,6 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
     }))
 }
 
-/// Coche (ou decoche) une echeance que seul
-/// l'utilisateur peut dire faite.
-pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str) -> R<()> {
-    let (quoi, annee) = match cle.split_once(':') {
-        Some((q, a)) => (q, a),
-        None => (cle, ""),
-    };
-    let base = lire_saisie(&socle::fichiers::dossier_du_code().join("echeancier-base.json"))?;
-    let annuelles = base.get("annuelles").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("annuelles")))?;
-    let e = annuelles.iter().find(|x| x.get("cle").and_then(Value::as_str) == Some(quoi));
-    let chiffres = !annee.is_empty() && annee.chars().all(|c| c.is_ascii_digit());
-    let Some(e) = e.filter(|_| chiffres) else {
-        return Err(erreur("ErreurOperation", format!("Echeance inconnue : {}.", repr(cle))));
-    };
-    if e.get("fait_par").and_then(Value::as_str) != Some("coche") {
-        let titre = e.get("titre").and_then(Value::as_str).unwrap_or("");
-        let n: i64 = annee.parse().unwrap_or(0);
-        let titre = titre.replace("{annee}", annee).replace("{annee_precedente}", &(n - 1).to_string()).replace("{jour_dsn}", "");
-        return Err(erreur(
-            "ErreurOperation",
-            format!("« {} » ne se coche pas : le logiciel le voit fait quand c'est fait.", titre),
-        ));
-    }
-    let p = ctx.racine.join(crate::routes::rappels::ECHEANCIER);
-    let mut faits = super::rappels::cochees(ctx)?;
-    if fait {
-        faits.insert(cle.to_string(), json!({"le": ctx.aujourdhui.iso(), "qui": qui}));
-    } else {
-        faits.shift_remove(cle);
-    }
-    let d = json!({"_origine": "Les echeances que l'utilisateur a dites faites.", "fait": faits});
-    if let Some(parent) = p.parent() {
-        creer_dossier(parent)?;
-    }
-    ecrire_json(&p, &d, 2).map_err(en_os)
-}
-
 /// Le contenu du fichier `VERSION`, ou `0.0.0`.
 pub(crate) fn courante(code: &Path) -> R<String> {
     let p = code.join("VERSION");
@@ -1385,16 +1346,6 @@ pub(crate) fn version() -> R<Value> {
         "signee": true,
         "avant": avant,
     }))
-}
-
-#[track_caller]
-fn en_os(m: String) -> Echec {
-    erreur("OSError", m)
-}
-
-/// Crée le dossier et ses parents ; rien s'il existe.
-fn creer_dossier(d: &std::path::Path) -> R<()> {
-    std::fs::create_dir_all(d).map_err(|e| erreur("OSError", socle::echec::du_disque(&d, &e)))
 }
 
 

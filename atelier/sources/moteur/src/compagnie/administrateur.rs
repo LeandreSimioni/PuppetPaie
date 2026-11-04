@@ -593,8 +593,9 @@ pub fn tableau_compagnie(ctx: &Contexte) -> R<Value> {
     let rappels = crate::routes::rappels::rappels(ctx).map_err(|e| erreur("ErreurOperation", e.message))?;
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let mut declarations = Vec::new();
-    for r in rappels.get("rappels").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-        if let Some(d) = declaration(ctx, &lignes, r)? {
+    for r in &rappels.rappels {
+        let r = serde_json::to_value(r).map_err(|e| erreur("ErreurOperation", e.to_string()))?;
+        if let Some(d) = declaration(ctx, &lignes, &r)? {
             declarations.push(d);
         }
     }
