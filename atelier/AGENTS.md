@@ -39,11 +39,15 @@ cite.**
   l'engagement de son salarié, et lui seul** ; le mois n'est jamais une unité d'écriture ; un mois importé ne reçoit pas
   d'engagement neuf. L'engagement ne lit pas le journal ; le moteur le lit une fois par geste (`envois::journal::lu`) ;
   le numéro du contrat est la clé de ce qui est parti.
+- **Chaque forme est déclarée une fois, en Rust** : une donnée lue ou rendue (fichier, barème, charge et réponse d'une
+  route) est une structure (`serde`), lue par une seule fonction stricte ; aucune lecture par clé texte, aucune clé
+  inconnue, aucune exception. Les notes d'un fichier sont `source`, `note` et `quoi`.
 - **Un geste, une route, qui obéit** : ni état, ni bouton, ni refus de plus pour une règle (le droit vit dans le calcul) ;
   un refus dit quoi corriger et n'écrit rien ; la route rend ce que la page lit, **phrases comprises** (gardé par
   `la_page_n_ecrit_aucune_phrase`).
 - **Reconstruire, c'est renommer et rebrancher** : vérifier une fois à la main sur une fictive, puis supprimer l'ancien
-  et ses tests dans le même geste. Rien sans l'aval de Léandre ; une pause demandée est une pause.
+  et ses tests dans le même geste ; un lot finit avec moins de lignes et de tests (sauf une forme qu'on déclare). Rien
+  sans l'aval de Léandre ; une pause demandée est une pause.
 
 ## Deux acteurs : la personne devant l'écran, et un LLM en ligne de commande
 
@@ -85,11 +89,13 @@ zéro).
   ni de message à un Opus qui a fini.
 - **En tête de chaque consigne** : un test de l'ancien parcours qui casse se supprime ; aucune donnée destinée à être
   remplacée ne se convertit ; aucun test de plus de 30 secondes ; rien en fond ; aucun acte réel lancé à la main.
-- **Les cibles Cargo**, l'orchestrateur les choisit, une par worktree ; une cible qui change de checkout se nettoie
-  d'abord (`cargo clean -p`), sinon elle masque le code présent.
+- **Les cibles Cargo**, l'orchestrateur les choisit, une par worktree, gardée d'un lot à l'autre (une cible neuve coûte
+  une longue compilation) ; **deux chaînes au plus**, deux worktrees gardés où les lots se suivent. Une cible qui change
+  de checkout se nettoie d'abord (`cargo clean --profile essais -p <crate>`), sinon elle masque le code présent.
 - **Ne se délègue pas** : une décision de conception, un acte qui engage, ce qui toucherait au coffre. Un sous-agent **ne
   réécrit jamais l'historique**.
-- **Aucun Python, ni code ni outil, aucun script de patch** : Rust, Edit/Write, Playwright en Node.
+- **Aucun Python, ni code ni outil, aucun script de patch** : Rust, Edit/Write, Playwright en Node. Un script ne montre
+  jamais une requête d'authentification ni son corps.
 
 ## Où sont les choses
 
@@ -111,7 +117,8 @@ une règle sans texte déposé est un souvenir.
 
 - Le texte brut tel que servi (`<émetteur>-<objet>-<AAAAMMJJ>.<ext>`), sa transcription s'il ne se lit pas, **un
   `LISEZ-MOI.md` par dossier** (URL, date, **où le moteur s'en sert**) ; une inférence se dit telle ; le code **cite le
-  fichier déposé**. Les codes se relèvent par `moteur releve-codes`, jamais à la main.
+  fichier déposé** ; chaque taux livré porte sa `source { fichier, article, citation }`, qu'un test vérifie dans le
+  texte. Les codes se relèvent par `moteur releve-codes`, jamais à la main.
 - **Ce qui ne se republie pas** : un document d'organisme privé entre par sa transcription et son URL, l'original va
   dans `reference-privee/` du privé ; une pièce réelle (bulletin, courrier, relevé) ne va **que** là, le public n'en
   garde que l'attendu, sans nom ni NIR. `atelier/reference/` ne se convertit jamais.
@@ -156,7 +163,8 @@ atelier/sources/moteur/bin/linux/moteur route --racine <copie d'une fictive>`.
 
 **Une PR dont la suite est rouge ne se fusionne pas.** La suite complète (`cargo nextest run --cargo-profile essais`,
 dans `atelier/sources`) ne se lance qu'**une fois par séance, à la fin, par l'orchestrateur** ; un exécutant ne lance
-que les binaires qu'il nomme (`-E 'binary(routes)'`).
+que les binaires qu'il nomme (`-E 'binary(routes)'`). Avant la suite, `rm -rf "${CARGO_TARGET_DIR:-target}/tmp"`
+(les dossiers de travail des tests, ~3 Go).
 
 - **Le nombre de tests ne monte pas** : un test par règle d'un texte déposé, un par bug réel échappé, un rejeu par
   fictive ; **les tests de structure sont les bienvenus** ; un test qui fige un détail ne s'écrit pas. Un test monte sa
