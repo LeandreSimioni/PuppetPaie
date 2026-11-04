@@ -417,7 +417,7 @@ impl Echeance {
                 let arret = || json!({"salarie": objet["salarie"], "dernier_jour": objet["dernier_jour_travaille"]});
                 match o.get("cle").and_then(Value::as_str).unwrap_or("") {
                     "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
-                        action(Route::Saisie, json!({"mois": mois}), Some(Route::ModifierEngagement), "Compléter le contrat".into())
+                        action(Route::Saisie, ChargeMois { mois: self.mois? }, Some(Route::ModifierEngagement), "Compléter le contrat".into())
                     }
                     "signalement_fin_contrat" => {
                         let charge = ChargeFinContratSignaler::de(self.mois?, salarie()?);

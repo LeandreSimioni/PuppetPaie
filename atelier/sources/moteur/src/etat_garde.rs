@@ -254,15 +254,16 @@ fn lecture(o: &HashMap<String, String>, route: Route, charge: Value) -> Value {
 }
 
 /// Les lectures de l'ecran de `mois` (`LECTURES`, puis l'apercu de la saisie enregistree).
-fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
+fn lectures(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> Value {
     let mut l = Map::new();
     for (route, du_mois) in LECTURES {
         let charge = if du_mois { json!({ "mois": mois }) } else { json!({}) };
         l.insert(route.nom().to_string(), lecture(o, route, charge));
     }
     // L'APERCU : ce que la page demande des qu'un mois s'affiche (`calculerApercu`), sur la saisie qu'elle vient de lire
-    // (`{"mois": mois}`, le mois enregistre) ; la page ne le redemande que quand on modifie la saisie.
-    if l.get(Route::Saisie.nom()).and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
+    // (`{"mois": mois}`, le mois enregistre), quand le mois a une saisie ; la page ne le redemande que quand on modifie
+    // la saisie.
+    if engagement::stock::a_une_saisie(&ctx.racine, mois).unwrap_or(false) {
         l.insert(Route::Apercu.nom().into(), lecture(o, Route::Apercu, json!({"mois": mois})));
     }
     Value::Object(l)
@@ -290,7 +291,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
                 "lectures": l,
             })
         } else {
-            let lus = lectures(o, mois);
+            let lus = lectures(o, ctx, mois);
             let mut deux = crate::routes::etapes::lire_ensemble(ctx, &[Route::EtatParEngagement, Route::EtatDuMois], &charge)?.into_iter();
             let (par_engagement, du_mois) = (deux.next().unwrap_or(Value::Null), deux.next().unwrap_or(Value::Null));
             json!({

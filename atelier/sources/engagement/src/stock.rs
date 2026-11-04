@@ -697,10 +697,20 @@ pub fn objets_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
     Ok(tous(racine)?.1.du_mois(mois)?.into_iter().cloned().collect())
 }
 
-/// L'IDENTITE DE CHAQUE ENGAGEMENT D'UNE LISTE (le plan) : son salarie, son premier jour et son rang parmi ceux du meme
-/// salarie qui commencent le meme jour (l'ordre de leur fichier, qui est le meme pour tous : le fichier de leur
-/// premier mois). C'est elle que l'ecran tient pour designer une carte.
-pub fn identites(objets: &[Objet]) -> Vec<Value> {
+/// L'IDENTITE D'UN ENGAGEMENT A L'ECRAN, ce par quoi sa carte le designe : son salarie et son premier jour tels que
+/// l'engagement les ecrit (le debut est vide tant qu'il n'a aucun jour : `debut_brut`), et son rang parmi ceux du meme
+/// salarie qui commencent le meme jour (l'ordre de leur fichier, qui est le meme pour tous : le fichier de leur premier
+/// mois). Le moteur la rend a la page (`identites`), la page la renvoie telle quelle.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Identite {
+    pub salarie: String,
+    pub debut: String,
+    pub rang: usize,
+}
+
+/// L'IDENTITE DE CHAQUE ENGAGEMENT D'UNE LISTE (le plan), dans son ordre.
+pub fn identites(objets: &[Objet]) -> Vec<Identite> {
     let paires: Vec<(String, String)> = objets
         .iter()
         .map(|o| {
@@ -711,16 +721,13 @@ pub fn identites(objets: &[Objet]) -> Vec<Value> {
     paires
         .iter()
         .enumerate()
-        .map(|(i, (s, d))| {
-            let rang = paires[..i].iter().filter(|(s2, d2)| s2 == s && d2 == d).count();
-            serde_json::json!({"salarie": s, "debut": d, "rang": rang})
-        })
+        .map(|(i, (s, d))| Identite { salarie: s.clone(), debut: d.clone(), rang: paires[..i].iter().filter(|(s2, d2)| s2 == s && d2 == d).count() })
         .collect()
 }
 
 /// L'ENGAGEMENT QUE DESIGNE L'IDENTITE `id` (`identites`) dans l'ecran de `mois`, et sa place dans cet ecran (l'ordre
 /// de `vue_du_mois`). Refus : une identite que l'ecran ne montre pas.
-pub fn designe(racine: &Path, mois: &str, id: &Value) -> Resultat<(usize, Objet)> {
+pub fn designe(racine: &Path, mois: &str, id: &Identite) -> Resultat<(usize, Objet)> {
     let objets = objets_du_mois(racine, mois)?;
     let k = identites(&objets).iter().position(|x| x == id).ok_or_else(|| {
         format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois. Rien n'est écrit.", socle::mois::Mois::en_clair(mois))
@@ -911,7 +918,7 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
 /// `etats::modifier`), une identite que l'ecran ne montre pas, un engagement du salarie et du premier jour d'un engagement
 /// importe, des bornes qui laisseraient hors du contrat un mois ou il a des jours payes, un engagement neuf que l'ecran
 /// de `mois` ne montrerait pas.
-pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Value>, saisie: &Map<String, Value>, defauts: &Map<String, Value>) -> Resultat<Value> {
+pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie: &Map<String, Value>, defauts: &Map<String, Value>) -> Resultat<Identite> {
     let racine = &ctx.racine;
     let e = Value::Object(saisie.clone());
     if let Some(cle) = crate::cle_de_l_engagement(ctx, &e) {

@@ -819,7 +819,8 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
                 continue;
             }
             let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();
-            crate::routes::engagement::route(&HashMap::new(), ctx, Route::ValiderEngagement, &json!({"mois": mois, "engagement": id, "saisie": saisie}))?;
+            let charge = crate::routes::mois::ChargeCarte { mois: socle::mois::Mois::lire(mois)?, engagement: Some(id), saisie };
+            crate::routes::engagement::valider_engagement(ctx, charge)?;
             fait = true;
         }
         Ok(fait)

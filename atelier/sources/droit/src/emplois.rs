@@ -82,9 +82,24 @@ pub fn nomme_par_l_annexe8(m: &Value, idcc: &str) -> bool {
     !idcc.is_empty() && porte("conventions") && !porte("conventions_hors_liste")
 }
 
+/// LES SEPT CHAMPS DECLARES POUR UN METIER, tels que la fiche du salarie les ecrit : l'emploi declare et son libelle,
+/// les codes PCS-ESE et France Travail, le statut, les statuts conventionnel (S21.G00.40.002) et categoriel de retraite
+/// complementaire (S21.G00.40.003).
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub struct ChampsDuMetier {
+    pub emploi: String,
+    pub emploi_affichage: String,
+    pub pcs_ese: Option<String>,
+    pub code_emploi_ft: Option<String>,
+    pub statut: String,
+    pub statut_conventionnel: Option<String>,
+    pub statut_categoriel_rc: &'static str,
+}
+
 /// Les sept champs declares pour ce metier (`emploi_affichage` compris).
 /// `cadre` a `None` prend le defaut du catalogue. Refuse un code inconnu.
-pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<Value> {
+/// TRAVAIL A FAIRE : la fiche d'un metier du catalogue (`emplois-base.json`) se lit encore par ses cles.
+pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<ChampsDuMetier> {
     let m = metier(code)?.ok_or_else(|| {
         format!(
             "Metier {} inconnu : ni dans le catalogue (emplois-base.json), ni \
@@ -95,32 +110,22 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<Valu
         None => vrai(m.get("cadre_par_defaut").ok_or_else(|| socle::fichiers::absent("cadre_par_defaut"))?),
         Some(c) => c,
     };
-    let texte = |c: &str| m.get(c).filter(|v| vrai(v)).cloned();
-    let choisi = if feminin { texte("feminin") } else { texte("libelle") };
-    let libelle = match choisi {
+    let texte = |c: &str| m.get(c).filter(|v| vrai(v)).map(socle::date::en_texte);
+    let requis = |c: &str| m.get(c).map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent(c));
+    let libelle = match if feminin { texte("feminin") } else { texte("libelle") } {
         Some(l) => l,
-        None => m.get("libelle").cloned().ok_or_else(|| socle::fichiers::absent("libelle"))?,
+        None => requis("libelle")?,
     };
-    let valeur = |c: &str| m.get(c).cloned().unwrap_or(Value::Null);
-    let mut out = Map::new();
-    out.insert("emploi".into(), m.get("emploi").cloned().ok_or_else(|| socle::fichiers::absent("emploi"))?);
-    out.insert("emploi_affichage".into(), libelle);
-    out.insert("pcs_ese".into(), valeur("pcs_ese"));
-    out.insert("code_emploi_ft".into(), valeur("code"));
-    out.insert("statut".into(), m.get("statut").cloned().ok_or_else(|| socle::fichiers::absent("statut"))?);
-    out.insert(
-        "statut_conventionnel".into(),
-        if est_cadre {
-            Value::String("04".into())
-        } else {
-            statut_non_cadre(&m).map_or(Value::Null, Value::String)
-        },
-    );
-    out.insert(
-        "statut_categoriel_rc".into(),
-        Value::String(if est_cadre { "01" } else { "04" }.into()),
-    );
-    Ok(Value::Object(out))
+    let valeur = |c: &str| m.get(c).filter(|v| !v.is_null()).map(socle::date::en_texte);
+    Ok(ChampsDuMetier {
+        emploi: requis("emploi")?,
+        emploi_affichage: libelle,
+        pcs_ese: valeur("pcs_ese"),
+        code_emploi_ft: valeur("code"),
+        statut: requis("statut")?,
+        statut_conventionnel: if est_cadre { Some("04".into()) } else { statut_non_cadre(&m) },
+        statut_categoriel_rc: if est_cadre { "01" } else { "04" },
+    })
 }
 
 /// Le statut conventionnel DSN (40.002) d'un metier declare NON cadre.
@@ -275,7 +280,7 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
     } else if let Some(code) = dit(&eng.code_emploi_ft) {
         if sal.code_emploi_ft.dite() != Some(&code) {
             out.emploi_affichage = match resoudre(&code, None, false) {
-                Ok(r) => serde_json::from_value(r["emploi_affichage"].clone()).unwrap_or(Case::Absente),
+                Ok(r) => Case::Dite(r.emploi_affichage),
                 Err(_) => Case::Absente,
             };
         }

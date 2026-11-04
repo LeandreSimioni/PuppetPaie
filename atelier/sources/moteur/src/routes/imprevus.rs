@@ -2427,7 +2427,7 @@ fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
     mois.reverse();
     for m in mois {
         for (c, e) in crate::routes::mois::engagements_du_mois(ctx, &m)? {
-            if c != cle {
+            if c.as_str() != cle {
                 continue;
             }
             let (debut, fin) = crate::routes::mois::bornes_brutes(ctx, &e);

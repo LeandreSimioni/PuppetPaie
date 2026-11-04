@@ -276,8 +276,9 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     };
     if let Some(c) = du_catalogue {
         let femme = declarations::ntt::sexe_de(&decl.nir, "") == "2";
-        if let Some(l) = droit::emplois::resoudre(&c, None, femme)?.get("emploi_affichage").filter(|l| vrai(l)) {
-            f.insert("emploi_affichage".into(), l.clone());
+        let l = droit::emplois::resoudre(&c, None, femme)?.emploi_affichage;
+        if !l.is_empty() {
+            f.insert("emploi_affichage".into(), Value::String(l));
         }
     }
     let mut f = declarations::champs::combler_affichage("salarie", &f)?;

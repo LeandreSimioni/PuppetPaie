@@ -1726,7 +1726,8 @@ pub(crate) fn statut_et_metier(statut: Option<&str>, emploi: Option<&str>, femme
     if let Some((code, feminin)) = droit::emplois::par_intitule(intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
         let cadre = f.get("statut_categoriel_rc").map(valeur_en_texte).map(|s| s == "01");
         let r = droit::emplois::resoudre(&code, cadre, feminin || femme).map_err(|m| erreur("ErreurOperation", m))?;
-        for (k, v) in r.as_object().into_iter().flatten() {
+        // TRAVAIL A FAIRE (lot de l'import) : la fiche importee se compose encore par ses cles.
+        for (k, v) in crate::routes::en_json(r)?.as_object().into_iter().flatten() {
             if v.is_null() || (k == "statut" && f.contains_key("statut")) {
                 continue;
             }

@@ -164,14 +164,14 @@ pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) ->
 
 /// L'identite (`engagement::stock::identites`) de la carte du premier engagement de `salarie` dans l'ecran de `mois`
 /// (de numero `numero` s'il est dit).
-pub fn identite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> Value {
+pub fn identite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> engagement::stock::Identite {
     let vue = engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap();
     let k = vue["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).expect("la carte");
     identite_a(racine, mois, k)
 }
 
 /// L'identite de la `k`-ieme carte de l'ecran de `mois`.
-pub fn identite_a(racine: &Path, mois: &str, k: usize) -> Value {
+pub fn identite_a(racine: &Path, mois: &str, k: usize) -> engagement::stock::Identite {
     engagement::stock::identites(&engagement::stock::objets_du_mois(racine, mois).unwrap()).swap_remove(k)
 }
 

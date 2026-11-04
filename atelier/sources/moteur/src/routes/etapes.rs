@@ -825,7 +825,7 @@ fn radical(nom: &str) -> &str {
 pub(crate) struct SaisieMois {
     pub(crate) paies: Vec<Paie>,
     /// L'identite de chaque engagement de `paies` (`engagement::stock::identites`, sur tous les engagements du mois).
-    pub(crate) identites: Vec<Value>,
+    pub(crate) identites: Vec<engagement::stock::Identite>,
     /// Ce qui manque a chaque engagement du mois (`None` : rien), dans l'ordre de `stock::objets_du_mois` :
     /// `paies` ne porte que ceux qui ne manquent de rien.
     pub(crate) manques: Vec<Option<String>>,
@@ -867,7 +867,7 @@ enum ContratDit {
 struct ContratComplet {
     premier_mois: bool,
     dernier_mois: bool,
-    chevrons: Value,
+    chevrons: super::mois::Chevrons,
     depuis: String,
     jusqu_a: String,
     repris: bool,
@@ -1036,11 +1036,11 @@ pub(crate) struct Ligne {
     carres: Vec<Carre>,
     dpae_choix: Choix,
     versions: Value,
-    engagement: Value,
+    engagement: engagement::stock::Identite,
 }
 
 impl Ligne {
-    fn de(vue: Vue, mois: &str, versions: Value, engagement: Value) -> Ligne {
+    fn de(vue: Vue, mois: &str, versions: Value, engagement: engagement::stock::Identite) -> Ligne {
         Ligne { carres: carres(&vue, mois), dpae_choix: choix_dpae(&vue), vue, versions, engagement }
     }
 }
@@ -1052,7 +1052,7 @@ impl Ligne {
 /// qu'aux etapes du mois.
 #[derive(Debug, Serialize)]
 struct LigneDePage<'a> {
-    engagement: &'a Value,
+    engagement: &'a engagement::stock::Identite,
     salarie: &'a str,
     nom: &'a str,
     spectacle: &'a Value,
