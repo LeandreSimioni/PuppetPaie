@@ -3,12 +3,14 @@
 
 use std::collections::HashMap;
 
-use serde_json::{json, Map, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 use droit::contexte::Contexte;
+use engagement::stock::Identite;
 use socle::echec::{erreur, Echec, Refus, R};
 use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use socle::mois::Mois;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as RefusDit, FORME, MOIS};
 use crate::routes::catalogue::Route;
@@ -85,14 +87,79 @@ pub const ROUTES: &[Fiche] = &[
     },
 ];
 
-/// Une route de ce module.
+/// Une route de ce module : sa charge lue en sa forme, sa reponse une structure.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
+    use crate::routes::{en_json, lire_charge};
     match nom {
-        Route::ValiderEngagement => valider_engagement(ctx, crate::routes::lire_charge(charge)?),
-        Route::ModifierEngagement => modifier_engagement(ctx, charge),
-        Route::RetirerEngagement => retirer_engagement(ctx, charge),
+        Route::ValiderEngagement => en_json(valider_engagement(ctx, lire_charge(charge)?)?),
+        Route::ModifierEngagement => en_json(modifier_engagement(ctx, lire_charge(charge)?)?),
+        Route::RetirerEngagement => en_json(retirer_engagement(ctx, lire_charge(charge)?)?),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
+}
+
+/// La charge de « Modifier l'engagement » : le mois de la carte, son identite, ce qu'elle montre ; l'avertissement lu
+/// (`confirme`) et le jour du mois d'ou vaut un terme change (`jour`, le 1er sinon).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeModifier {
+    mois: Mois,
+    engagement: Identite,
+    /// TRAVAIL A FAIRE (chaine A) : la saisie d'un engagement, telle que son fichier l'ecrit.
+    saisie: Map<String, Value>,
+    #[serde(default)]
+    confirme: bool,
+    #[serde(default)]
+    jour: Option<u32>,
+}
+
+/// La charge de « Retirer cet engagement » : le mois de la carte, son identite, l'avertissement lu (`confirme`).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeRetirer {
+    mois: Mois,
+    engagement: Identite,
+    #[serde(default)]
+    confirme: bool,
+}
+
+/// Ce que rend « Valider l'engagement » : l'identite de la carte ecrite, et la phrase.
+#[derive(Debug, Serialize)]
+pub(crate) struct Validation {
+    pub(crate) engagement: Identite,
+    pub(crate) phrase: &'static str,
+}
+
+/// Ce que rend « Modifier l'engagement » : fait (`change` dit si quelque chose s'est ecrit), ou l'avertissement a
+/// confirmer, rien d'ecrit.
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum Modification {
+    Faite { change: bool, phrase: String },
+    Avertie { avertissement: Avertissement, phrase: &'static str, phrases: Vec<String> },
+}
+
+/// L'avertissement d'une modification : chaque engagement touche, ce que le changement entraine pour lui, et d'ou vaut
+/// un terme change (`jour`, `null` quand il vaut du debut).
+#[derive(Debug, Serialize)]
+struct Avertissement {
+    engagements: Vec<Touche>,
+    jour: Option<String>,
+}
+
+/// Un engagement que la modification touche : nomme (`qui`), une ligne par consequence.
+#[derive(Debug, Serialize)]
+struct Touche {
+    qui: String,
+    consequences: Vec<String>,
+}
+
+/// Ce que rend « Retirer cet engagement » : la phrase ; un envoi parti, l'avertissement a confirmer.
+#[derive(Debug, Serialize)]
+struct Retrait {
+    phrase: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    avertissement: Option<String>,
 }
 
 // ------------------------------------------------------------------ outils
@@ -122,14 +189,10 @@ pub(super) fn maintenant() -> String {
     socle::paris::iso_secondes(t)
 }
 
-/// L'ENGAGEMENT QU'UNE CARTE MONTRE : celui que designe `engagement` dans la charge, l'identite que le moteur a rendue a
-/// la carte (`engagement::stock::identites`). Refus : une identite que l'ecran de `mois` ne montre pas.
-fn designe(ctx: &Contexte, mois: &str, charge: &Value) -> R<(usize, engagement::stock::Objet)> {
-    let id = charge.get("engagement").ok_or_else(|| erreur("TypeError", socle::echec::charge("engagement", "l'identité de la carte")))?;
-    // TRAVAIL A FAIRE (lot de `routes/engagement.rs`) : la charge de modifier et de retirer, en structure ; l'identite
-    // s'y lit deja en sa forme.
-    let id: engagement::stock::Identite = crate::routes::lire_charge(id)?;
-    engagement::stock::designe(&ctx.racine, mois, &id).map_err(refus)
+/// L'ENGAGEMENT QU'UNE CARTE MONTRE : celui que designe son identite, que le moteur lui a rendue
+/// (`engagement::stock::identites`). Refus : une identite que l'ecran de `mois` ne montre pas.
+fn designe(ctx: &Contexte, mois: &str, id: &Identite) -> R<(usize, engagement::stock::Objet)> {
+    engagement::stock::designe(&ctx.racine, mois, id).map_err(refus)
 }
 
 
@@ -143,7 +206,7 @@ fn designe(ctx: &Contexte, mois: &str, charge: &Value) -> R<(usize, engagement::
 /// Un engagement valide ne se valide pas (il se modifie par `modifier-engagement`).
 /// Sa charge est celle d'une carte (`mois::ChargeCarte`) : valider ne se defait pas, un engagement valide se modifie
 /// (`modifier-engagement`) ou se retire. L'horloge de la compagnie fictive valide par ce geste aussi.
-pub(crate) fn valider_engagement(ctx: &Contexte, carte: crate::routes::mois::ChargeCarte) -> R<Value> {
+pub(crate) fn valider_engagement(ctx: &Contexte, carte: crate::routes::mois::ChargeCarte) -> R<Validation> {
     let mois = &carte.mois.to_string();
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
@@ -160,7 +223,7 @@ pub(crate) fn valider_engagement(ctx: &Contexte, carte: crate::routes::mois::Cha
     if let Some(cle) = engagement::cle_de_l_engagement(ctx, e) {
         crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &engagement::debut_brut(&ctx.racine, e))?;
     }
-    Ok(json!({"engagement": id, "phrase": "Engagement validé."}))
+    Ok(Validation { engagement: id, phrase: "Engagement validé." })
 }
 
 // ------------------------------------------------------------------ modifier-engagement
@@ -183,21 +246,15 @@ pub(crate) fn valider_engagement(ctx: &Contexte, carte: crate::routes::mois::Cha
 /// Refus, et rien n'est ecrit : un engagement qui n'est pas valide (il se saisit sur sa carte), importe, d'un mois tenu
 /// avant PuppetPaie, d'un exercice clos ; un jour qui n'est pas un jour du contrat dans ce mois ; un changement que la
 /// norme ne permet plus de declarer (`crate::regularisation::refus_non_declarable`) ; une saisie qui ne se calcule pas.
-fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = texte_requis(charge, "mois")?;
-    let Some(Value::Object(saisie)) = charge.get("saisie") else {
-        return Err(erreur("TypeError", socle::echec::charge("saisie", "un objet")));
-    };
-    let confirme = booleen(charge, "confirme", false);
+fn modifier_engagement(ctx: &Contexte, charge: ChargeModifier) -> R<Modification> {
+    let ChargeModifier { mois, engagement: id, saisie, confirme, jour } = charge;
+    let mois = &mois.to_string();
     // Le jour du mois de la carte ou un terme change, quand on le dit (le 1er sinon).
-    let jour = match charge.get("jour").filter(|v| vrai(v)) {
-        None => None,
-        Some(v) => Some(valeur_en_texte(v).trim().parse::<u32>().map_err(|_| {
-            refus(format!("« le {} » : un jour du mois est attendu, de 1 à 31. Rien n'est écrit.", valeur_en_texte(v)))
-        })?),
-    };
+    if let Some(j) = jour.filter(|j| !(1..=31).contains(j)) {
+        return Err(refus(format!("« le {} » : un jour du mois est attendu, de 1 à 31. Rien n'est écrit.", j)));
+    }
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    let (i, o) = designe(ctx, mois, charge)?;
+    let (i, o) = designe(ctx, mois, &id)?;
     if !o.est_valide() {
         return Err(refus(format!(
             "{} : cet engagement n'est pas validé ; il se saisit sur sa carte, puis « Valider l'engagement ». Rien n'est écrit.",
@@ -207,12 +264,12 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     // LA MODIFICATION SE FAIT DANS UN BROUILLON (`engagement::stock::Brouillon`) : calculee en memoire, elle ne s'ecrit
     // sur le disque que quand elle est faite ; rien n'a change, un avertissement a confirmer, un refus : rien n'est ecrit.
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
-    let depuis = match modifier_puis_revalider(ctx, mois, i, &o, saisie, confirme, jour)? {
+    let depuis = match modifier_puis_revalider(ctx, mois, i, &o, &saisie, confirme, jour)? {
         Issue::Ecrite(depuis) => depuis,
-        Issue::Rien => return Ok(json!({"change": false, "phrase": "Rien n'a changé : rien n'est écrit."})),
+        Issue::Rien => return Ok(Modification::Faite { change: false, phrase: "Rien n'a changé : rien n'est écrit.".into() }),
         Issue::Avertir(a) => {
             let phrases = avertissement_en_phrases(&a);
-            return Ok(json!({"avertissement": a, "phrase": "Ce qui est parti le demande : rien n'est écrit sans confirme.", "phrases": phrases}));
+            return Ok(Modification::Avertie { avertissement: a, phrase: "Ce qui est parti le demande : rien n'est écrit sans confirme.", phrases });
         }
     };
     brouillon.ecrire().map_err(Echec::from)?;
@@ -226,7 +283,7 @@ fn modifier_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(j) => format!("Engagement modifié. {}", vaut_a_partir_du(&j)),
         None => "Engagement modifié.".to_string(),
     };
-    Ok(json!({"change": true, "phrase": phrase}))
+    Ok(Modification::Faite { change: true, phrase })
 }
 
 /// Ce que la modification a donne.
@@ -234,7 +291,7 @@ enum Issue {
     /// Rien n'a change.
     Rien,
     /// Ce qui est parti le demande : l'avertissement, a confirmer.
-    Avertir(Value),
+    Avertir(Avertissement),
     /// Ecrite : l'engagement revalide ; le jour d'ou vaut un terme qu'elle change dans un mois d'apres le premier.
     Ecrite(Option<socle::date::Jour>),
 }
@@ -287,24 +344,18 @@ fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement:
     // jour d'ou vaut un terme change, qui se dit quand ce n'est pas le 1er.
     let lignes = ce_que_le_changement_entraine(ctx, &v, &departs)?;
     if !confirme && !lignes.is_empty() {
-        let jour = depuis.map_or(Value::Null, |j| json!(vaut_a_partir_du(&j)));
-        let en_valeur = json!([{"qui": engagement::etats::qui_de(ctx, v.objet()), "consequences": lignes}]);
-        return Ok(Issue::Avertir(json!({"engagements": en_valeur, "jour": jour})));
+        let touche = Touche { qui: engagement::etats::qui_de(ctx, v.objet()), consequences: lignes };
+        return Ok(Issue::Avertir(Avertissement { engagements: vec![touche], jour: depuis.map(|j| vaut_a_partir_du(&j)) }));
     }
     Ok(Issue::Ecrite(depuis))
 }
 
 /// L'avertissement d'une modification en phrases : ce que le changement entraine pour chaque engagement touche, puis
 /// d'ou vaut un terme change (`jour`).
-fn avertissement_en_phrases(a: &Value) -> Vec<Value> {
-    let mut lignes = Vec::new();
-    for e in a["engagements"].as_array().into_iter().flatten() {
-        for c in e["consequences"].as_array().into_iter().flatten() {
-            lignes.push(json!(format!("{} : {}", valeur_en_texte(&e["qui"]), valeur_en_texte(c))));
-        }
-    }
-    if let Some(j) = a["jour"].as_str() {
-        lignes.push(json!(format!("{} (jour : un autre jour du mois)", j)));
+fn avertissement_en_phrases(a: &Avertissement) -> Vec<String> {
+    let mut lignes: Vec<String> = a.engagements.iter().flat_map(|e| e.consequences.iter().map(move |c| format!("{} : {}", e.qui, c))).collect();
+    if let Some(j) = &a.jour {
+        lignes.push(format!("{} (jour : un autre jour du mois)", j));
     }
     lignes
 }
@@ -346,19 +397,16 @@ fn un_bulletin_rectificatif(mois: &str) -> String {
 /// (`crate::regularisation::modification_de_l_engagement`) : un annule-et-remplace jusqu'a la limite, ensuite la correction
 /// dans la DSN qui porte (`crate::regularisation::dsn_qui_porte`).
 fn la_dsn_qui_change(m: &mut crate::routes::etapes::Moteur, ctx: &Contexte, mois: &str) -> R<String> {
-    let de = crate::regularisation::de_mois_en_clair(mois);
-    let d = crate::regularisation::modification_de_l_engagement(m, ctx, mois)?;
-    Ok(if d.get("confirmer").is_some_and(vrai) {
-        format!(
-            "la correction dans la DSN {} (celle {}, déposée, ne se remplace plus)",
-            crate::regularisation::de_mois_en_clair(&valeur_en_texte(&d["porteur"])),
-            de
-        )
-    } else if d.is_null() {
-        format!("la DSN {} à corriger", de)
-    } else {
-        let limite = socle::date::Jour::lire(&valeur_en_texte(&d["limite"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
-        format!("un annule-et-remplace de la DSN {}, admis jusqu'au {} à minuit", de, limite)
+    use crate::regularisation::{de_mois_en_clair, DsnDeposee};
+    let de = de_mois_en_clair(mois);
+    Ok(match crate::regularisation::modification_de_l_engagement(m, ctx, Mois::lire(mois)?)? {
+        Some(DsnDeposee::Corrigee { porteur }) => {
+            format!("la correction dans la DSN {} (celle {}, déposée, ne se remplace plus)", de_mois_en_clair(&porteur), de)
+        }
+        Some(DsnDeposee::Remplacee { limite }) => {
+            format!("un annule-et-remplace de la DSN {}, admis jusqu'au {} à minuit", de, limite.jj_mm_aaaa())
+        }
+        None => format!("la DSN {} à corriger", de),
     })
 }
 
@@ -369,23 +417,23 @@ fn la_dsn_qui_change(m: &mut crate::routes::etapes::Moteur, ctx: &Contexte, mois
 /// (`engagement::etats::supprimer`). Des qu'un envoi est parti, la route avertit sans rien ecrire (`avertissement` : ce
 /// qui est parti) ; renvoyee avec `confirme`, l'engagement devient non actif (`engagement::etats::desactiver`) et la
 /// phrase dit ce que cela rend a faire (la DSN d'un mois a corriger). Rien ne part de lui-meme.
-fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = texte_requis(charge, "mois")?;
+fn retirer_engagement(ctx: &Contexte, charge: ChargeRetirer) -> R<Retrait> {
+    let mois = &charge.mois.to_string();
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
-    let (i, o) = designe(ctx, mois, charge)?;
+    let (i, o) = designe(ctx, mois, &charge.engagement)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
-    if !booleen(charge, "confirme", false) {
+    if !charge.confirme {
         let parti = !engagement::etats::ce_qui_est_parti(ctx, &o, &departs).is_empty();
         return match engagement::etats::supprimer(ctx, &o, &departs) {
-            Ok(()) => Ok(json!({"phrase": "Engagement retiré."})),
-            Err(m) if parti => Ok(json!({"phrase": m.clone(), "avertissement": m})),
+            Ok(()) => Ok(Retrait { phrase: "Engagement retiré.".into(), avertissement: None }),
+            Err(m) if parti => Ok(Retrait { phrase: m.clone(), avertissement: Some(m) }),
             Err(m) => Err(Echec::from(m)),
         };
     }
     let n = engagement::etats::desactiver(ctx, mois, i, &departs).map_err(Echec::from)?;
     let a_faire = a_faire_en_phrases(&n.a_refaire(ctx, &departs));
     let phrase = if a_faire.is_empty() { "Engagement non actif.".to_string() } else { format!("Engagement non actif. À faire : {}.", a_faire.join(", ")) };
-    Ok(json!({"phrase": phrase}))
+    Ok(Retrait { phrase, avertissement: None })
 }
 
 /// Ce qu'un engagement non actif rend a faire, en phrases pour l'ecran.

@@ -421,7 +421,7 @@ function boiteAvertissement(a) {
     document.getElementById("av-non").onclick = () => fermerBoite();
     document.getElementById("av-oui").onclick = () => {
       const jour = document.getElementById("av-jour");
-      repondre({ jour: jour ? jour.value : null });
+      repondre({ jour: jour && jour.value ? Number(jour.value) : null });
       fermerBoite();
     };
   });

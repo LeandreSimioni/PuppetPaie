@@ -206,41 +206,60 @@ pub fn mot_de_passe_ouvre(poste: &Poste, racine: &Path, motdepasse: &str) -> boo
 /// L'administrateur de l'installation, tel que l'ecran le dit : les compagnies qu'il gere, et ce que la compagnie
 /// `racine` est pour lui. `question` : les compagnies dont le mot de passe ouvrirait aussi `racine`, quand il y a lieu de
 /// demander « meme administrateur ? » (une compagnie reelle sans mot de passe, et au moins une autre qui en a un).
-pub fn etat(inst: &Path, racine: Option<&Path>, poste: &Poste) -> Value {
+pub(crate) fn etat(inst: &Path, racine: &Path, poste: &Poste) -> EtatAdministrateur {
     let groupe = rattachees(inst);
-    let noms: Vec<String> = groupe.iter().map(|r| nom_de(inst, r)).collect();
-    let mut v = json!({"compagnies": noms, "administrateur": !groupe.is_empty()});
-    let Some(racine) = racine else { return v };
+    let compagnies: Vec<String> = groupe.iter().map(|r| nom_de(inst, r)).collect();
     let fictive = compagnies::est_fictive(racine);
     let rattachee = !fictive && est_rattachee(inst, racine);
-    v["rattachee"] = json!(rattachee);
-    v["fictive"] = json!(fictive);
     // Les autres compagnies que le mot de passe de l'administrateur ouvre : celles du registre, sinon celles qui ont deja
     // un mot de passe (il n'y a pas encore d'administrateur : l'une d'elles le devient).
     let autres: Vec<String> = if !groupe.is_empty() {
-        sans(groupe, inst, racine).iter().map(|r| nom_de(inst, r)).collect()
+        sans(groupe.clone(), inst, racine).iter().map(|r| nom_de(inst, r)).collect()
     } else {
         reelles(inst).into_iter().filter(|c| relatif(inst, &c.racine) != relatif(inst, racine) && exigee(poste, &c.racine)).map(|c| c.nom).collect()
     };
-    v["autres"] = json!(autres);
     // Les autres, en liste lisible (« A, B et C »), et ce que le titre du mot de passe en dit.
-    let en_liste = match autres.as_slice() {
+    let autres_dit = match autres.as_slice() {
         [] => String::new(),
         [un] => un.clone(),
         [tete @ .., dernier] => format!("{} et {}", tete.join(", "), dernier),
     };
-    v["autres_dit"] = json!(en_liste);
-    v["ouvre_aussi_dit"] = if en_liste.is_empty() { Value::Null } else { json!(format!("il ouvre aussi {}", en_liste)) };
-    v["peut_rattacher"] = json!(!fictive && !rattachee && !autres.is_empty() && !crate::compagnie::bridage::est_bride_de(inst));
-    v["question"] = json!(!fictive && !rattachee && !autres.is_empty() && !exigee(poste, racine) && !crate::compagnie::bridage::est_bride_de(inst));
-    v["mot_de_passe_pose"] = json!(exigee(poste, racine));
-    // La pastille de la compagnie pour l'administrateur : rattachee, faite ; son propre mot de passe, une information.
-    v["pastille"] = if rattachee {
-        crate::routes::pastille("fait", "rattachée")
-    } else {
-        crate::routes::pastille("information", "son propre mot de passe")
-    };
-    v
+    let bridee = crate::compagnie::bridage::est_bride_de(inst);
+    let pose = exigee(poste, racine);
+    EtatAdministrateur {
+        administrateur: !groupe.is_empty(),
+        compagnies,
+        rattachee,
+        fictive,
+        ouvre_aussi_dit: (!autres_dit.is_empty()).then(|| format!("il ouvre aussi {}", autres_dit)),
+        peut_rattacher: !fictive && !rattachee && !autres.is_empty() && !bridee,
+        question: !fictive && !rattachee && !autres.is_empty() && !pose && !bridee,
+        mot_de_passe_pose: pose,
+        // La pastille de la compagnie pour l'administrateur : rattachee, faite ; son propre mot de passe, une information.
+        pastille: if rattachee { crate::routes::Pastille::de("fait", "rattachée") } else { crate::routes::Pastille::de("information", "son propre mot de passe") },
+        autres,
+        autres_dit,
+    }
+}
+
+/// Ce que l'administrateur est pour une compagnie (`etat`), ce que l'ecran des mots de passe et la page du mot de passe
+/// lisent.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct EtatAdministrateur {
+    /// Les compagnies qu'il gere.
+    pub(crate) compagnies: Vec<String>,
+    /// Vrai : l'installation a un administrateur.
+    pub(crate) administrateur: bool,
+    pub(crate) rattachee: bool,
+    pub(crate) fictive: bool,
+    /// Les autres compagnies que son mot de passe ouvre, et en liste lisible.
+    pub(crate) autres: Vec<String>,
+    pub(crate) autres_dit: String,
+    pub(crate) ouvre_aussi_dit: Option<String>,
+    pub(crate) peut_rattacher: bool,
+    pub(crate) question: bool,
+    pub(crate) mot_de_passe_pose: bool,
+    pub(crate) pastille: crate::routes::Pastille,
 }
 
 /// Remplace `chemin` par `octets`, d'un coup (a cote puis a la place) ; 0600 sous Unix.

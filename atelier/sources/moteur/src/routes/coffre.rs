@@ -264,9 +264,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             super::phrase_en_tete(v, p)
         }),
         Route::AdministrateurEtat => {
-            let v = administrateur_etat(&ctx.racine);
-            let p = format!("Mot de passe de la compagnie : {}.", mots(&v));
-            Ok(super::phrase_en_tete(v, p))
+            let etat = administrateur_etat(&ctx.racine);
+            let phrase = format!("Mot de passe de la compagnie : {}.", etat.pastille.mots);
+            super::en_json(EtatAdministrateurDit { phrase, etat })
         }
         Route::AdministrateurRattacher | Route::AdministrateurDetacher => administrateur(&ctx.racine, nom, charge, &Poste::de_ce_poste()),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -276,9 +276,17 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
 // ------------------------------------------------------------------ l'administrateur
 
 /// Ce que l'administrateur de l'installation est pour la compagnie `racine` (`administrateur::etat`).
-pub fn administrateur_etat(racine: &Path) -> Value {
+pub(crate) fn administrateur_etat(racine: &Path) -> crate::compagnie::administrateur::EtatAdministrateur {
     let inst = crate::compagnie::administrateur::installation_de(racine);
-    crate::compagnie::administrateur::etat(&inst, Some(racine), &Poste::de_ce_poste())
+    crate::compagnie::administrateur::etat(&inst, racine, &Poste::de_ce_poste())
+}
+
+/// Ce que rend `administrateur-etat` : la phrase qui le dit, et l'etat.
+#[derive(Debug, serde::Serialize)]
+struct EtatAdministrateurDit {
+    phrase: String,
+    #[serde(flatten)]
+    etat: crate::compagnie::administrateur::EtatAdministrateur,
 }
 
 /// `administrateur-rattacher` et `administrateur-detacher`, sur le coffre de `poste` : tout se decide dans
@@ -312,7 +320,7 @@ pub fn administrateur(racine: &Path, nom: Route, charge: &Value, poste: &Poste) 
         };
         let noms = adm::rattacher(&inst, racine, &admin, actuel.as_deref(), poste).map_err(refus)?;
         let phrase = format!("Compagnie rattachée à l'administrateur : {} s'ouvrent avec le même mot de passe.", en_liste(&noms));
-        return Ok(json!({"compagnies": noms, "etat": adm::etat(&inst, Some(racine), poste), "phrase": phrase}));
+        return Ok(json!({"compagnies": noms, "etat": adm::etat(&inst, racine, poste), "phrase": phrase}));
     }
     let lignes = ["Le NOUVEAU mot de passe de cette compagnie, à elle seule.".to_string(), "La frappe ne s'affiche pas.".to_string()];
     let nouveau = secret_a_poser(charge, "nouveau", "PuppetPaie : son propre mot de passe", &lignes)?;
@@ -321,7 +329,7 @@ pub fn administrateur(racine: &Path, nom: Route, charge: &Value, poste: &Poste) 
         None => nouveau.clone(),
     };
     adm::detacher(&inst, racine, &admin, &nouveau, &confirmation, poste).map_err(refus)?;
-    Ok(json!({"etat": adm::etat(&inst, Some(racine), poste), "phrase": "Compagnie détachée : elle s'ouvre désormais avec son propre mot de passe."}))
+    Ok(json!({"etat": adm::etat(&inst, racine, poste), "phrase": "Compagnie détachée : elle s'ouvre désormais avec son propre mot de passe."}))
 }
 
 // ------------------------------------------------------------------ outils
@@ -990,14 +998,10 @@ pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &droit::fiche::ChampsEnt
 /// rien ; chaque service porte aussi ce que sa confirmation d'oubli demande (`oublier`).
 fn ecran_du_coffre(ctx: &Contexte, v: &mut Value) -> Value {
     let fictive = crate::compagnie::bridage::branchement(&ctx.racine).joue();
-    let adm = if fictive { json!({}) } else { administrateur_etat(&ctx.racine) };
-    let autres: Vec<String> = adm["autres"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-    let en_liste = match autres.len() {
-        0 => String::new(),
-        1 => autres[0].clone(),
-        k => format!("{} et {}", autres[..k - 1].join(", "), autres[k - 1]),
-    };
-    let rattachee = vrai(&adm["rattachee"]);
+    let adm = (!fictive).then(|| administrateur_etat(&ctx.racine));
+    let en_liste = adm.as_ref().map(|a| a.autres_dit.clone()).unwrap_or_default();
+    let rattachee = adm.as_ref().is_some_and(|a| a.rattachee);
+    let peut_rattacher = adm.as_ref().is_some_and(|a| a.peut_rattacher);
     let pose = vrai(&v["mot_de_passe_pose"]);
     for s in v["services"].as_array_mut().into_iter().flatten() {
         s["oublier"] = json!(format!("Oublier le mot de passe {} ? Les retours et les dépôts ne seront plus possibles jusqu'à ce qu'il soit reposé.", valeur_en_texte(&s["libelle"])));
@@ -1021,7 +1025,7 @@ fn ecran_du_coffre(ctx: &Contexte, v: &mut Value) -> Value {
         },
         "administrateur": if rattachee {
             json!({"dit": format!("cette compagnie s'ouvre avec {}, d'un seul mot de passe", en_liste), "note": "Détachée, elle a son propre mot de passe : celui de l'administrateur ne l'ouvre plus, et elle dépose seule."})
-        } else if vrai(&adm["peut_rattacher"]) {
+        } else if peut_rattacher {
             json!({"dit": format!("le mot de passe de {} peut ouvrir aussi cette compagnie", en_liste), "note": "Rattachée, elle s'ouvre avec le mot de passe de l'administrateur, et ses déclarations prêtes partent avec celles des autres compagnies, d'un seul mot de passe."})
         } else {
             Value::Null

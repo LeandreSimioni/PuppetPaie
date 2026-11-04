@@ -3,9 +3,8 @@
 //! Il se fabrique (sexe + SIREN + matricule), il ne se saisit pas. Les
 //! regles de forme CSL-11, CSL-12, CCH-13 et la longueur [11,40] sont ici.
 
-use socle::date::en_texte;
 use crate::dsn::Fichier;
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::repr;
 use crate::formats;
 use socle::num::Resultat;
 use crate::usages::{lignes, rubrique_valeur, strip};
@@ -17,19 +16,6 @@ pub const RUBRIQUE_NIR: &str = "S21.G00.30.001";
 // Le marqueur sur lequel on decoupe un fichier en individus : un individu
 // sous NTT n'a pas de NIR.
 pub const RUBRIQUE_NOM: &str = "S21.G00.30.002";
-
-/// La valeur de `cle` de la fiche en texte, vide si elle manque ou est vide.
-fn chaine(fiche: &Value, cle: &str) -> String {
-    match fiche.get(cle) {
-        Some(v) if vrai(v) => en_texte(v),
-        _ => String::new(),
-    }
-}
-
-/// Le code sexe de la norme : "1", "2", ou "" si la fiche ne le dit pas.
-pub fn sexe(salarie: &Value) -> String {
-    sexe_de(&chaine(salarie, "nir"), &chaine(salarie, "sexe"))
-}
 
 /// Le code sexe d'un NIR (son premier chiffre), sinon de la case `sexe` ; "" si ni l'un ni l'autre ne le dit.
 pub fn sexe_de(nir: &str, sexe: &str) -> String {

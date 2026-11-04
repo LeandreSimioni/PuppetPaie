@@ -65,7 +65,6 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
 use crate::routes::etapes::Moteur;
-use crate::routes::catalogue::Route;
 
 /// Qui signe, au journal, ce que l'horloge joue.
 pub const QUI_HORLOGE: &str = "horloge";
@@ -340,7 +339,7 @@ enum Geste {
     /// L'avenant du contrat (`salarie`, `debut`) part a la signature, puis revient signe.
     Avenant { mois: String, salarie: String, debut: String, nom: String },
     /// Le signalement d'arret (04) ou de reprise (05) de l'arret de `salarie` au `dernier` jour travaille.
-    Arret { mois: String, salarie: String, dernier: String, cle: &'static str, nature: &'static str },
+    Arret { mois: String, salarie: String, dernier: String, cle: &'static str, nature: crate::routes::imprevus::NatureSignalement },
     /// Le signalement de fin du contrat de `salarie` qui finit le `fin`.
     Fin { mois: String, salarie: String, fin: String },
     /// La DSN du mois, fabriquee a son echeance.
@@ -708,8 +707,8 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 return Ok(false);
             }
             d.reverifier()?;
-            crate::routes::imprevus::route(&HashMap::new(), ctx, Route::ArretSignaler, &json!({"salarie": salarie, "dernier_jour": dernier, "nature": nature}))?;
-            deposer_les_dsn(d, ctx, mois, |x| x.champ("nature") == *nature, &mut Vec::new())?;
+            crate::routes::imprevus::signaler_l_arret(ctx, &crate::routes::imprevus::ChargeArretSignaler::de(salarie.clone(), Jour::lire(dernier)?, *nature), None)?;
+            deposer_les_dsn(d, ctx, mois, |x| x.champ("nature") == nature.code(), &mut Vec::new())?;
             Ok(true)
         }),
         Geste::Fin { mois, salarie, fin } => pas(d, quoi, quand, |ctx| {
@@ -720,7 +719,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
                 return Ok(false);
             }
             d.reverifier()?;
-            crate::routes::imprevus::route(&HashMap::new(), ctx, Route::FinContratSignaler, &json!({"mois": mois, "salarie": salarie}))?;
+            crate::routes::imprevus::signaler_la_fin(ctx, &crate::routes::imprevus::ChargeFinContratSignaler::de(socle::mois::Mois::lire(mois)?, salarie.clone()), false)?;
             deposer_les_dsn(d, ctx, mois, |x| x.champ("nature") == declarations::fctu::NATURE, &mut Vec::new())?;
             Ok(true)
         }),
@@ -912,7 +911,8 @@ fn due(o: &Value, jour: Jour) -> Option<Jour> {
 fn signalements_dus(ctx: &Contexte, mois: &str, jour: Jour, cloture: bool) -> Vec<Pas> {
     let du = |o: &Value| if cloture { a_faire(o) } else { due(o, jour) };
     let mut dus = Vec::new();
-    let natures = [("signalement_arret", declarations::signalement::ARRET, "d'arrêt"), ("signalement_reprise", declarations::signalement::REPRISE, "de reprise")];
+    use crate::routes::imprevus::NatureSignalement;
+    let natures = [("signalement_arret", NatureSignalement::Arret, "d'arrêt"), ("signalement_reprise", NatureSignalement::Reprise, "de reprise")];
     let arrets = crate::routes::imprevus::tous_les_arrets(ctx).unwrap_or_default();
     if let Ok(suivi) = crate::obligations::Suivi::lire(ctx) {
         for a in arrets.iter().filter(|a| valeur_en_texte(&a["dernier_jour_travaille"]).starts_with(mois)) {

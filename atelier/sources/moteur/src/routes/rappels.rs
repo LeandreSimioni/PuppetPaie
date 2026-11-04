@@ -667,13 +667,9 @@ fn dsn_a_venir(st: &Etat, mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
     e.detail = dsn_detail(modele, &echeance)?;
     e.source = formater(&modele.source, &[])?;
     e.date = Some(echeance.jour);
-    e.quand = echeance_phrase(&echeance);
+    e.quand = echeance.phrase();
     e.echeance_depot = Some(echeance.en_json());
     Ok(e)
-}
-
-fn echeance_phrase(e: &declarations::echeance_dsn::Echeance) -> String {
-    e.en_json()["phrase"].as_str().map(String::from).unwrap_or_else(|| e.jour.jj_mm_aaaa())
 }
 
 fn dsn_detail(modele: &ModeleDsn, echeance: &declarations::echeance_dsn::Echeance) -> R<String> {
@@ -770,7 +766,7 @@ fn annuelle(st: &Etat, e: &Annuelle, annee: i32, faites: &Cochees, premier: Opti
         x.annee = Some(precedente);
         x.cle = format!("{}:{}", CLOTURE, precedente);
         // LA CLOTURE VIENT APRES LA DSN DE DECEMBRE : tant qu'elle n'est pas partie, c'est son rappel qui parle.
-        x.quand = format!("après la DSN de décembre, due {}", echeance_phrase(&dsn_decembre));
+        x.quand = format!("après la DSN de décembre, due {}", dsn_decembre.phrase());
         let partie = etat_dsn::du_mois(ctx, &decembre, &Value::Null)?;
         x.due = x.due && (partie.partie() || partie.refusee());
         x.etat = if x.etat == EnRetard && !x.due { AFaire } else { x.etat };
@@ -1115,7 +1111,7 @@ fn rappel_dsn(st: &Etat, le_mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
     let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
     r.etat = if echeance.passee_au(&st.aujourdhui) { EnRetard } else { AFaire };
     r.date = Some(echeance.jour);
-    r.quand = echeance_phrase(&echeance);
+    r.quand = echeance.phrase();
     r.source = formater(&modele.source, &[])?;
     r.echeance_depot = Some(echeance.en_json());
 
@@ -1179,9 +1175,9 @@ fn rappel_dsn(st: &Etat, le_mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
 fn ajouter_les_mois_de_l_ancien_logiciel(st: &Etat, mois: &str, r: &mut Echeance) -> R<()> {
     for m in engagement::stock::mois_saisis(st.racine()).unwrap_or_default().into_iter().filter(|m| m.as_str() < mois) {
         let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(st.ctx, &m)? else { continue };
-        if d["porteur"] == json!(mois) && d["engagements"].as_u64().is_some_and(|n| n > 0) {
+        if d.porteur == mois && d.engagements > 0 {
             let lib = socle::mois::Mois::lire(&m).map(|m| m.libelle(socle::mois::Graphie::Accentuee)).map_err(Refus::from)?;
-            r.detail.push_str(&format!(" {} : {}", socle::texte::capitaliser(&lib), en_texte(&d["phrase"])));
+            r.detail.push_str(&format!(" {} : {}", socle::texte::capitaliser(&lib), d.phrase));
         }
     }
     Ok(())
