@@ -507,21 +507,6 @@ fn garder_vrais(d: Dico<Value>) -> R<Dico<Value>> {
     Ok(out)
 }
 
-pub fn contrats_recus_comment(lignes: &[Value]) -> R<Value> {
-    let mut etat: Dico<Value> = Dico::nouveau();
-    for d in &lignes.iter().map(revenus).collect::<R<Vec<_>>>()?.concat() {
-        // La note d'un avenant (signe, ou defait) ne dit rien du contrat lui-meme.
-        if vrai(get(d, "avenant")?) {
-            continue;
-        }
-        let k = cle_contrat(d)?;
-        let main = s("main");
-        let v = if vrai(get(d, "recu")?) { ou(get(d, "origine")?, &main).clone() } else { Value::Null };
-        etat.poser(k, v)?;
-    }
-    Ok(garder_vrais(etat)?.sortie(Clone::clone))
-}
-
 pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Value) -> R<Value> {
     // Par CONTRAT (salarie, numero) : une reponse ne releve que le contrat qu'elle signe (Retours Windows, B, suite).
     let recus = contrats_recus(lignes)?;
