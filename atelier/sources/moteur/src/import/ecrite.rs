@@ -258,7 +258,7 @@ fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize 
 
 /// Une ligne de paie telle que sa forme la lit (`engagement::importe::PaieLue::normale`) : ce qui compare deux lectures
 /// des memes pieces, quoi que chacune taise.
-pub(crate) fn normale(x: &Value) -> R<Value> {
+fn normale(x: &Value) -> R<Value> {
     engagement::importe::PaieLue::normale(x).map_err(Echec::from)
 }
 

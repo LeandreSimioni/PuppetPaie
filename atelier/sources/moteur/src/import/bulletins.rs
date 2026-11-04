@@ -1040,7 +1040,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let mut ligne = ligne;
         let ecarts = completer(&mut ligne, &l.b, &copie, l.page, ctx.entreprise.idcc.texte());
         let ligne = Value::Object(ligne);
-        let etat_paie = if avant.as_ref().map(super::ecrite::sans_dates_d_import).transpose()? == Some(super::ecrite::normale(&ligne)?) {
+        let etat_paie = if avant.as_ref().map(super::ecrite::sans_dates_d_import).transpose()? == Some(super::ecrite::sans_dates_d_import(&ligne)?) {
             "deja"
         } else if source == "bulletin" {
             "nouvelle"
