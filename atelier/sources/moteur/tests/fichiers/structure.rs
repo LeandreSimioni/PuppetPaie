@@ -1838,8 +1838,14 @@ fn la_page_ne_lit_que_ce_que_les_routes_rendent() {
     // Le suivi suit : une route typee que la page lit voit ses champs verifies.
     assert!(verifies > 0, "aucun champ lu par la page n'a ete verifie : le suivi des reponses ne suit plus rien");
     let a_typer: Vec<&String> = appelees.iter().filter(|r| !routes.contains_key(*r)).collect();
+    let mut toutes: Vec<String> = variantes
+        .iter()
+        .filter(|(_, n)| !routes.contains_key(**n))
+        .map(|(v, n)| format!("{} ({})", n, declarees.get(v).map(|f| e.nom_du_fichier(*f, &espace())).unwrap_or_default()))
+        .collect();
+    toutes.sort_by(|a, b| a.split(" (").nth(1).cmp(&b.split(" (").nth(1)));
     eprintln!(
-        "{} champs lus verifies ; {} routes typees ; la page appelle {} routes dont la reponse n'est pas une structure (a typer) : {}",
-        verifies, routes.len(), a_typer.len(), a_typer.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+        "{} champs lus verifies ; {} routes typees ; la page appelle {} routes dont la reponse n'est pas une structure (a typer) : {}\nnon typees ({}) :\n{}",
+        verifies, routes.len(), a_typer.len(), a_typer.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "), toutes.len(), toutes.join("\n")
     );
 }

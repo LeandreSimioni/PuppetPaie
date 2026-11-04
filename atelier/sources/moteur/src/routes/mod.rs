@@ -441,7 +441,26 @@ pub(crate) fn couleur_de_l_etat(etat: &str) -> &'static str {
 /// UN ENCART, tel que la page le dessine (`encart` de js/tuyau.js) : un titre en gras, sa phrase, la couleur de l'etat.
 /// La page n'ecrit aucune phrase : ce qu'une boite dit d'un cas, la route le rend ainsi.
 pub(crate) fn encart(etat: &str, titre: impl Into<String>, phrase: impl Into<String>) -> Value {
-    json!({"couleur": couleur_de_l_etat(etat), "titre": titre.into(), "phrase": phrase.into()})
+    json!(Encart::de(etat, titre, phrase))
+}
+
+/// UN ENCART, tel que la page le dessine (`encart` de js/tuyau.js) : un titre en gras, sa phrase, la couleur de l'etat.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct Encart {
+    pub couleur: &'static str,
+    pub titre: String,
+    pub phrase: String,
+}
+
+impl Encart {
+    pub(crate) fn de(etat: &str, titre: impl Into<String>, phrase: impl Into<String>) -> Encart {
+        Encart { couleur: couleur_de_l_etat(etat), titre: titre.into(), phrase: phrase.into() }
+    }
+
+    /// L'encart en une ligne pour `moteur route --texte` : « titre : phrase ».
+    pub(crate) fn en_ligne(&self) -> String {
+        [self.titre.as_str(), self.phrase.as_str()].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" : ")
+    }
 }
 
 /// Les encarts d'une reponse, en lignes pour `moteur route --texte` : « titre : phrase ».

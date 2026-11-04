@@ -16,10 +16,12 @@ use crate::depot::{self, Apercu};
 use crate::releve_retours::{Client, Panne};
 use crate::suites::{DepotRefuse, Suites};
 
-/// Ce qui vient de partir, et ce que l'organisme a repondu.
+/// Ce qui vient de partir, et ce que l'organisme a repondu : la reponse de la route `deposer`. `ligne` est la ligne
+/// ecrite au journal ; `mois`, celui que le fichier declare (rien s'il ne se lit pas).
+#[derive(Debug, serde::Serialize)]
 pub struct DepotFait {
     pub quoi: String,
-    pub mois: String,
+    pub mois: Option<socle::mois::Mois>,
     pub reel: bool,
     pub reponse: String,
     pub flux: String,
@@ -32,17 +34,6 @@ pub struct DepotFait {
     /// Ce que le depot a entraine, en phrases : chaque demande de taux de PAS partie avec une DPAE, ce que les retours
     /// laissent a faire.
     pub suites: Vec<String>,
-}
-
-impl DepotFait {
-    /// La reponse de la route `deposer`.
-    pub fn en_json(&self) -> Value {
-        json!({
-            "quoi": self.quoi, "mois": self.mois, "reel": self.reel, "reponse": self.reponse, "flux": self.flux,
-            "trace": self.trace.as_ref().map(|t| t.to_string_lossy().into_owned()),
-            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition, "suites": self.suites,
-        })
-    }
 }
 
 /// Ce que `moteur` a verifie et prepare avant le depot.
@@ -203,7 +194,7 @@ pub fn deposer_dsn(
     });
     let ligne = noter(ctx, "dsn", d, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
     let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
-    Ok(DepotFait { quoi: "dsn".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
+    Ok(DepotFait { quoi: "dsn".into(), mois: socle::mois::Mois::lire(d.mois).ok(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 
 /// Depose une DPAE. `contenu` : le fichier tel qu'il part (bascule en test faite) ; `embauches` : ce qu'elle declare
@@ -248,7 +239,7 @@ pub fn deposer_dpae(
     let detail = json!({"preuve": d.preuve, "repetition": d.repetition, "embauches": embauches});
     let ligne = noter(ctx, "dpae", d, true, "urssaf", &flux, &reponse, Some(&trace), &detail, Some(d.versions))?;
     let ligne = repondu_aussitot(ctx, joue, ligne, suites)?;
-    Ok(DepotFait { quoi: "dpae".into(), mois: d.mois.into(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
+    Ok(DepotFait { quoi: "dpae".into(), mois: socle::mois::Mois::lire(d.mois).ok(), reel: d.reel, reponse, flux, trace: Some(trace), ligne, deja, repetition: d.repetition.clone(), suites: Vec::new() })
 }
 
 #[cfg(test)]

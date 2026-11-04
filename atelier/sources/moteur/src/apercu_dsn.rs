@@ -24,6 +24,9 @@ use socle::fichiers::{repr, vrai};
 use socle::num::{decimal_lu, entier_lu, q2};
 
 use socle::echec::Echec;
+use socle::mois::Mois;
+use serde::Serialize;
+use crate::routes::Pastille;
 use crate::routes::depots::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes::etapes::Moteur;
 use documents::ecrire_documents::paies_aux_numeros_declares;
@@ -42,7 +45,7 @@ fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, 
 // ------------------------------------------------------------------ recapitulatif_dsn
 
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
-fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
+fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<RecapDsn, String> {
     let sals = lire_recap(octets)?;
     // Un mois sans engagement n'a rien a comparer.
     let (mut compare, liste) = match saisie_aux_numeros_declares(ctx, mois) {
@@ -150,27 +153,38 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                 n_ecarts += 1;
             }
             let (cachets, heures, jours) = (m.mesure_texte("cachets"), m.mesure_texte("heures"), m.mesure_texte("jours"));
-            contrats_json.push(json!({
-                "activite_dit": activite_dite(&cachets, &heures, &jours, correction),
-                "dates_dit": dates_dites(&c.debut, &c.fin),
-                "fin_dit": if correction { "mois déjà déclaré".to_string() } else if !c.fin_declaree.is_empty() { format!("fin le {}", crate::routes::jour_en_clair(&json!(c.fin_declaree))) } else { "en cours".to_string() },
-                "numero": c.numero, "debut": c.debut, "fin": c.fin, "emploi": c.emploi,
-                "nature": c.nature, "objet": c.objet, "brut": brut,
-                "jours": m.mesure_texte("jours"), "cachets": m.mesure_texte("cachets"),
-                "heures": m.mesure_texte("heures"),
-                "fin_declaree": c.fin_declaree, "motif_fin": c.motif_fin, "remunere": m.remunere,
-                "paie": p.is_some(), "correction": correction,
+            let fin_dit = if correction {
+                "mois déjà déclaré".to_string()
+            } else if !c.fin_declaree.is_empty() {
+                format!("fin le {}", crate::routes::jour_en_clair(&json!(c.fin_declaree)))
+            } else {
+                "en cours".to_string()
+            };
+            contrats_json.push(ContratDuFichier {
+                activite_dit: activite_dite(&cachets, &heures, &jours, correction),
+                dates_dit: dates_dites(&c.debut, &c.fin),
+                fin_dit,
+                numero: c.numero.clone(),
+                debut: c.debut.clone(),
+                fin: c.fin.clone(),
+                emploi: c.emploi.clone(),
+                nature: c.nature.clone(),
+                objet: c.objet.clone(),
+                brut,
+                jours,
+                cachets,
+                heures,
+                fin_declaree: c.fin_declaree.clone(),
+                motif_fin: c.motif_fin.clone(),
+                remunere: m.remunere,
+                paie: p.is_some(),
+                correction,
                 // Un contrat du fichier qui ne dit pas ce que dit la paie : a corriger, la compagnie le peut.
-                "pastille_ecarts": if ecarts.is_empty() { Value::Null } else { crate::routes::pastille("a_faire", &ecarts.join(" ; ")) },
-                "ecarts": ecarts,
-            }));
+                pastille_ecarts: (!ecarts.is_empty()).then(|| Pastille::de("a_faire", &ecarts.join(" ; "))),
+                ecarts,
+            });
         }
-        let versements: Vec<Value> = sal
-            .versements
-            .iter()
-            .map(|v| json!({"date": v.date, "net_verse": v.net_verse, "net_fiscal": v.net_fiscal, "taux_pas": v.taux_pas, "montant_pas": v.montant_pas}))
-            .collect();
-        salaries_json.push(json!({"nir": sal.nir, "nom": sal.nom, "prenoms": sal.prenoms, "contrats": contrats_json, "versements": versements}));
+        salaries_json.push(SalarieDuFichier { nir: sal.nir.clone(), nom: sal.nom.clone(), prenoms: sal.prenoms.clone(), contrats: contrats_json, versements: sal.versements.clone() });
     }
     let mut absents = Vec::new();
     for n in &ordre {
@@ -178,15 +192,16 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             continue;
         }
         let p = &liste[par_numero[n]];
-        absents.push(json!({
-            "salarie": p.salarie.id.to_string(),
-            "nom": p.salarie.nomme().unwrap_or_else(|| ("Ce salarié").to_string()),
-            "numero": n,
-            "debut": p.engagement.debut.iso(),
-            "fin": p.engagement.fin.map_or(String::new(), |f| f.iso()),
-            "dit": format!("{} — contrat {}, du {}", p.salarie.nomme().unwrap_or_else(|| ("Ce salarié").to_string()), n, p.engagement.debut.jj_mm_aaaa()),
-            "pastille": crate::routes::pastille("a_faire", "absent du fichier"),
-        }));
+        let nom = p.salarie.nomme().unwrap_or_else(|| ("Ce salarié").to_string());
+        absents.push(AbsentDuFichier {
+            salarie: p.salarie.id.to_string(),
+            dit: format!("{} — contrat {}, du {}", nom, n, p.engagement.debut.jj_mm_aaaa()),
+            nom,
+            numero: n.clone(),
+            debut: p.engagement.debut.iso(),
+            fin: p.engagement.fin.map_or(String::new(), |f| f.iso()),
+            pastille: Pastille::de("a_faire", "absent du fichier"),
+        });
     }
     let conforme = compare && absents.is_empty() && n_ecarts == 0;
     let s = |n: usize| if n > 1 { "s" } else { "" };
@@ -217,22 +232,102 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
     } else {
         String::new()
     };
-    Ok(json!({
-        "salaries": salaries_json, "absents": absents,
-        "titre": titre, "phrase": phrase,
-        "compare": compare, "conforme": conforme,
+    Ok(RecapDsn {
+        salaries: salaries_json,
+        absents,
+        titre,
+        phrase,
+        compare,
+        conforme,
         // La couleur du bilan : conforme, vert ; un ecart ou un absent, orange ; rien a comparer, gris.
-        "couleur": if conforme { "vert" } else if compare { "orange" } else { "gris" },
-    }))
+        couleur: if conforme { "vert" } else if compare { "orange" } else { "gris" },
+    })
 }
 
 // ------------------------------------------------------------------ l'apercu
 
-/// L'annule-et-remplace du mois, ou `null` s'il ne se lit pas.
-fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
+/// CE QUE LA DSN DECLARE, CONTRAT PAR CONTRAT, compare aux contrats saisis (`recapitulatif_dsn`) : ses salaries, les
+/// contrats de la paie absents du fichier, le titre et la phrase de l'encart, sa couleur.
+#[derive(Debug, Serialize)]
+pub(crate) struct RecapDsn {
+    salaries: Vec<SalarieDuFichier>,
+    absents: Vec<AbsentDuFichier>,
+    titre: String,
+    pub(crate) phrase: String,
+    compare: bool,
+    conforme: bool,
+    couleur: &'static str,
+}
+
+/// Le recapitulatif, ou pourquoi il ne se lit pas.
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub(crate) enum Recapitulatif {
+    Lu(RecapDsn),
+    Illisible { erreur: String },
+}
+
+/// Un salarie du fichier : son identite, ses contrats, ses versements.
+#[derive(Debug, Serialize)]
+struct SalarieDuFichier {
+    nir: String,
+    nom: String,
+    prenoms: String,
+    contrats: Vec<ContratDuFichier>,
+    versements: Vec<declarations::recap_dsn::Versement>,
+}
+
+/// Un contrat du fichier, ce qu'il declare pour le mois (ou en correction d'un mois deja declare), en clair, et ses
+/// ecarts a la paie.
+#[derive(Debug, Serialize)]
+struct ContratDuFichier {
+    activite_dit: String,
+    dates_dit: String,
+    fin_dit: String,
+    numero: String,
+    debut: String,
+    fin: String,
+    emploi: String,
+    nature: String,
+    objet: String,
+    brut: String,
+    jours: String,
+    cachets: String,
+    heures: String,
+    fin_declaree: String,
+    motif_fin: String,
+    remunere: bool,
+    paie: bool,
+    correction: bool,
+    pastille_ecarts: Option<Pastille>,
+    ecarts: Vec<String>,
+}
+
+/// Un contrat de la paie du mois que le fichier ne porte pas.
+#[derive(Debug, Serialize)]
+struct AbsentDuFichier {
+    salarie: String,
+    nom: String,
+    numero: String,
+    debut: String,
+    fin: String,
+    dit: String,
+    pastille: Pastille,
+}
+
+/// L'ANNULE-ET-REMPLACE DU MOIS (`Moteur::etat_remplacement`), et si ce fichier remplace la DSN reelle deja partie.
+#[derive(Debug, Serialize)]
+pub(crate) struct RemplacementDuFichier {
+    #[serde(flatten)]
+    pub(crate) etat: crate::routes::etapes::Remplacement,
+    pub(crate) fichier_remplace: bool,
+}
+
+/// L'annule-et-remplace du mois, ou rien s'il ne se lit pas.
+fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: Mois) -> R<Option<RemplacementDuFichier>> {
     let nic = a.champ("etablissement");
     let nic = if nic.is_empty() { Value::Null } else { json!(nic) };
-    let Ok(r) = m.etat_remplacement(socle::mois::Mois::lire(mois)?, &nic) else { return Ok(Value::Null) };
+    let Ok(r) = m.etat_remplacement(mois, &nic) else { return Ok(None) };
     let genre = a.champ("type_declaration");
     let remplace = if (genre == "03" || genre == "05") && r.deposee {
         let ordre = a.champ("ordre");
@@ -245,13 +340,48 @@ fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
     } else {
         false
     };
-    let mut e = crate::routes::en_json(&r)?;
-    e["fichier_remplace"] = json!(remplace);
-    Ok(e)
+    Ok(Some(RemplacementDuFichier { etat: r, fichier_remplace: remplace }))
+}
+
+/// CE QUE LE FICHIER DSN DECLARE, en clair (`apercu_depot_dsn`) : son en-tete, ce qu'il declare, ses ordres de
+/// telepaiement, s'il est deja depose (`deja_depose` : la ligne du journal), l'annule-et-remplace, le recapitulatif et le
+/// test.
+#[derive(Debug, Serialize)]
+pub(crate) struct ApercuDsn {
+    pub(crate) fichier: String,
+    pub(crate) nom: String,
+    pub(crate) description: String,
+    pub(crate) mois: Mois,
+    pub(crate) nature_envoi: String,
+    pub(crate) reel: bool,
+    pub(crate) signalement: bool,
+    pub(crate) nature: String,
+    pub(crate) libelle_nature: String,
+    pub(crate) evenement: String,
+    pub(crate) type_declaration: String,
+    pub(crate) libelle_type: &'static str,
+    pub(crate) ordre: String,
+    pub(crate) fraction: String,
+    pub(crate) remplace: String,
+    pub(crate) constitution: String,
+    pub(crate) siren: String,
+    pub(crate) salaries: usize,
+    pub(crate) lignes: usize,
+    pub(crate) pas_versements: usize,
+    pub(crate) pas_bareme: usize,
+    pub(crate) ordres_phrase: &'static str,
+    pub(crate) ordres_titre: String,
+    pub(crate) ordres: Vec<Value>,
+    pub(crate) ordres_erreur: Option<&'static str>,
+    pub(crate) couleur_ordres: &'static str,
+    pub(crate) deja_depose: Value,
+    pub(crate) remplacement: Option<RemplacementDuFichier>,
+    pub(crate) recapitulatif: Option<Recapitulatif>,
+    pub(crate) repetition: etats::Repetition,
 }
 
 /// `apercu_depot_dsn` : ce qui partirait, en clair, sans rien envoyer ni demander.
-pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
+pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
     let chemin = resoudre(&ctx.racine, fichier)?;
     let contenu = lire_octets(&chemin)?;
     let a = depot::lire(&contenu);
@@ -261,32 +391,33 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let deja = etats::deja_depose(&lignes, "dsn", &empreinte)?;
     let nom = nom_du_chemin(&chemin);
     let signalement = a.est_signalement();
-    let mois = a.mois_lisible();
-    let remplacement = if signalement { Value::Null } else { remplacement_du_fichier(&mut m, &a, &mois)? };
+    let mois = Mois::lire(&a.mois_lisible())?;
+    let mois_t = mois.to_string();
+    let remplacement = if signalement { None } else { remplacement_du_fichier(&mut m, &a, mois)? };
     let recapitulatif = if signalement {
-        Value::Null
+        None
     } else {
-        match recapitulatif_dsn(ctx, &contenu, &mois, a.champ("etablissement")) {
-            Ok(v) => v,
-            Err(message) => json!({ "erreur": message }),
-        }
+        Some(match recapitulatif_dsn(ctx, &contenu, &mois_t, a.champ("etablissement")) {
+            Ok(v) => Recapitulatif::Lu(v),
+            Err(erreur) => Recapitulatif::Illisible { erreur },
+        })
     };
     let repetition = etats::repetition(&lignes, "dsn", &empreinte, &nom)?;
     // LES ORDRES DE PAIEMENT EN CLAIR : a qui, pour quoi, combien, pour quand -- ceux de la DSN fabriquee
     // depuis les paies qu'elle couvre (`depart::refabriquer`) ; un fichier qui ne dit plus ce que disent les paies n'en
     // montre aucun.
-    let organismes = ctx.du_mois(&mois)?.organismes()?;
+    let organismes = ctx.du_mois(&mois_t)?.organismes()?;
     let (ordres, ordres_erreur) = if signalement {
-        (Vec::new(), Value::Null)
+        (Vec::new(), None)
     } else {
         let nic = a.champ("etablissement");
         let nic = Some(nic).filter(|n| !n.is_empty());
-        match crate::compagnie::depart::refabriquer(ctx, std::path::Path::new(&chemin), &mois, nic)? {
-            Some(f) => (declarations::ordres_paiement::decrire(&f.ordres, &mois, &organismes, ctx.echeance_dsn()?)?, Value::Null),
-            None => (Vec::new(), json!("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
+        match crate::compagnie::depart::refabriquer(ctx, std::path::Path::new(&chemin), &mois_t, nic)? {
+            Some(f) => (declarations::ordres_paiement::decrire(&f.ordres, &mois_t, &organismes, ctx.echeance_dsn()?)?, None),
+            None => (Vec::new(), Some("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
         }
     };
-    let genre = a.champ("type_declaration");
+    let genre = a.champ("type_declaration").to_string();
     let nature = a.champ("nature");
     let libelle_type = TYPES.iter().find(|(c, _)| *c == genre).map_or("?", |(_, l)| *l);
     let description = format!(
@@ -302,30 +433,40 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         a.lignes,
         a.champ("siren")
     );
-    Ok(json!({
-        "fichier": chemin, "nom": nom, "description": description,
-        "mois": mois, "nature_envoi": a.champ("nature_envoi"),
-        "reel": a.reel(),
-        "signalement": signalement,
-        "nature": if nature.is_empty() { depot::MENSUELLE } else { nature },
-        "libelle_nature": a.nature_lisible(),
-        "evenement": if signalement { a.evenement_lisible() } else { String::new() },
-        "type_declaration": genre,
-        "libelle_type": libelle_type,
-        "ordre": a.champ("ordre"), "fraction": a.champ("fraction"),
-        "remplace": a.champ("remplace"), "constitution": en_clair_jjmmaaaa(&a.champ("constitution")),
-        "siren": a.champ("siren"), "salaries": a.salaries, "lignes": a.lignes,
-        "pas_versements": a.pas_versements, "pas_bareme": a.pas_bareme,
+    Ok(ApercuDsn {
+        fichier: chemin.clone(),
+        nom,
+        description,
+        mois,
+        nature_envoi: a.champ("nature_envoi").to_string(),
+        reel: a.reel(),
+        signalement,
+        nature: if nature.is_empty() { depot::MENSUELLE.to_string() } else { nature.to_string() },
+        libelle_nature: a.nature_lisible(),
+        evenement: if signalement { a.evenement_lisible() } else { String::new() },
+        type_declaration: genre,
+        libelle_type,
+        ordre: a.champ("ordre").to_string(),
+        fraction: a.champ("fraction").to_string(),
+        remplace: a.champ("remplace").to_string(),
+        constitution: en_clair_jjmmaaaa(a.champ("constitution")),
+        siren: a.champ("siren").to_string(),
+        salaries: a.salaries,
+        lignes: a.lignes,
+        pas_versements: a.pas_versements,
+        pas_bareme: a.pas_bareme,
         // Ce que la boite dit sous les ordres.
-        "ordres_phrase": if ordres.is_empty() { "Aucun ordre de télépaiement dans ce fichier." } else { "Chaque organisme prélèvera ce montant sur le compte de la compagnie ; la date se lit dans la DSN ou dans le texte qui la fixe (au survol)." },
-        "ordres": ordres, "ordres_erreur": ordres_erreur,
+        ordres_phrase: if ordres.is_empty() { "Aucun ordre de télépaiement dans ce fichier." } else { "Chaque organisme prélèvera ce montant sur le compte de la compagnie ; la date se lit dans la DSN ou dans le texte qui la fixe (au survol)." },
+        ordres_titre: format!("Ordres de télépaiement ({})", ordres.len()),
+        ordres,
+        ordres_erreur,
         // Un depot reel les declenche tous : a regarder (orange) ; joues, rien ne part (une information).
-        "couleur_ordres": crate::routes::couleur_de_l_etat(if crate::compagnie::bridage::branchement(&ctx.racine).joue() { "information" } else { "a_faire" }),
-        "deja_depose": deja,
-        "remplacement": remplacement,
-        "recapitulatif": recapitulatif,
-        "repetition": repetition,
-    }))
+        couleur_ordres: crate::routes::couleur_de_l_etat(if crate::compagnie::bridage::branchement(&ctx.racine).joue() { "information" } else { "a_faire" }),
+        deja_depose: deja,
+        remplacement,
+        recapitulatif,
+        repetition,
+    })
 }
 
 /// Une date de la norme (JJMMAAAA, S20.G00.05.007) telle qu'on la lit : JJ/MM/AAAA. Autre chose se montre tel quel.

@@ -514,9 +514,9 @@ pub(crate) struct DsnFabriquee {
 
 impl DsnFabriquee {
     /// Ce que la fabrique dit avant le depot : les avertissements, et les informations.
-    pub(crate) fn avis(&self) -> Value {
+    pub(crate) fn avis(&self) -> (Vec<String>, Vec<String>) {
         let de = |info: bool| self.avertissements.iter().filter(|a| a.info == info).map(|a| a.texte.clone()).collect::<Vec<_>>();
-        json!({"avertissements": de(false), "informations": de(true)})
+        (de(false), de(true))
     }
 }
 

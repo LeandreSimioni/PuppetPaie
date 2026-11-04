@@ -43,6 +43,7 @@ use crate::routes::catalogue::{Acte, Fiche};
 use crate::routes::catalogue::Route;
 use crate::routes::catalogue::Ecran;
 use crate::routes::{couleur_de_l_etat, en_json, lire_charge, SansCharge};
+use crate::routes::depots::{Designation, EmbaucheDesignee, Quoi};
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Lecture;
@@ -305,16 +306,16 @@ fn historique(mois: &str) -> Action {
 }
 
 /// Les DPAE du mois a ecrire : l'apercu du depot (qui les ecrit), puis le depot.
-fn declarer_embauches(mois: &str) -> Action {
-    action(Route::DepotApercu, json!({"quoi": DPAE, "mois": mois}), Some(Route::Deposer), "Envoyer les DPAE…".into())
+fn declarer_embauches(mois: Mois) -> Action {
+    action(Route::DepotApercu, Designation::du_mois(Quoi::Dpae, mois), Some(Route::Deposer), "Envoyer les DPAE…".into())
 }
 
 /// La DSN du mois a ecrire, ou a reecrire : l'apercu du depot (qui l'ecrit), puis le depot, dont le test part des
 /// qu'elle est ecrite (`tester`).
-pub(crate) fn deposer_dsn(mois: &str, nic: &Value, libelle: String) -> Action {
-    let mut charge = json!({"quoi": DSN, "mois": mois});
+pub(crate) fn deposer_dsn(mois: Mois, nic: &Value, libelle: String) -> Action {
+    let mut charge = Designation::du_mois(Quoi::Dsn, mois);
     if vrai(nic) {
-        charge["etablissement"] = nic.clone();
+        charge.etablissement = Some(valeur_en_texte(nic));
     }
     Action { tester: true, ..action(Route::DepotApercu, charge, Some(Route::Deposer), libelle) }
 }
@@ -1232,11 +1233,11 @@ pub(crate) struct Remplacement {
     pub(crate) deposee: bool,
     pub(crate) dernier_ordre: Option<i64>,
     prochain_ordre: i64,
-    limite: Jour,
+    pub(crate) limite: Jour,
     admis: bool,
     saisie_modifiee: Option<bool>,
     pub(crate) a_envoyer: bool,
-    phrase: String,
+    pub(crate) phrase: String,
     corrigee_par_la_suivante: bool,
 }
 
@@ -1850,10 +1851,10 @@ impl<'a> Moteur<'a> {
         let etape = if quoi == DSN && self.paie_changee_depuis_l_ecriture(le_mois, &chemin)?.is_some() {
             "paie_changee"
         } else {
-            etats::etat_du_test(&r)
+            r.etat.nom()
         };
         // UN TEST REFUSE SE DIT AVEC SES ANOMALIES, la ou l'on propose d'envoyer : le code et le message du bilan.
-        let refus = r["motif"].as_str().filter(|_| etape == "test_refuse").map(|m| m.trim_end_matches('.').to_string());
+        let refus = r.motif.as_deref().filter(|_| etape == "test_refuse").map(|m| m.trim_end_matches('.').to_string());
         Ok(Some((etape, premier, refus)))
     }
 
@@ -1861,22 +1862,20 @@ impl<'a> Moteur<'a> {
     /// designe (`depots::designee` : le mois, l'etablissement, les embauches que le fichier ecrit declare) ; sinon `defaut`.
     fn action_de_depot(&mut self, le_mois: Mois, quoi: &str, nic: &Value, defaut: Option<Action>) -> R<(Option<Action>, Option<String>)> {
         let Some((etape, fichier, refus)) = self.chemin_de_depot(le_mois, quoi, nic)? else { return Ok((defaut, None)) };
-        let mois = &le_mois.to_string();
-        let mut charge = json!({"quoi": quoi, "mois": mois});
+        let mut charge = Designation::du_mois(if quoi == DSN { Quoi::Dsn } else { Quoi::Dpae }, le_mois);
         if quoi == DSN && vrai(nic) {
-            charge["etablissement"] = nic.clone();
+            charge.etablissement = Some(valeur_en_texte(nic));
         }
         if quoi == DPAE {
-            let a = crate::routes::depots::apercu_depot_dpae(self.ctx, &json!(fichier.chemin))?;
-            let embauches: Vec<Value> = a["embauches"].as_array().into_iter().flatten().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"]})).collect();
-            charge["engagements"] = json!(embauches);
+            let a = crate::routes::depots::apercu_depot_dpae(self.ctx, &fichier.chemin)?;
+            charge.engagements = Some(a.embauches.into_iter().map(|e| EmbaucheDesignee { salarie: e.salarie, numero: e.numero.unwrap_or_default() }).collect());
         }
         let nom = if quoi == DSN { "la DSN" } else { "la DPAE" };
         let deposer = |libelle: String| action(Route::DepotApercu, charge.clone(), Some(Route::Deposer), libelle);
         let action = match etape {
             // Le fichier ecrit ne declare plus la paie : la DSN se refait depuis les engagements valides, et repasse par
             // le test.
-            "paie_changee" => deposer_dsn(mois, nic, format!("Réécrire {} et la tester…", nom)),
+            "paie_changee" => deposer_dsn(le_mois, nic, format!("Réécrire {} et la tester…", nom)),
             "ecrite" => deposer(format!("Tester {}…", nom)),
             "en_test" => deposer("Voir le test en cours…".into()),
             "testee" => deposer(format!("Envoyer {} testée…", nom)),
@@ -1935,7 +1934,7 @@ impl<'a> Moteur<'a> {
             let g = match point.as_str() {
                 "refuse" => Groupe::de(EtatCase::Refuse, Some(Compte::Nombre(n)), n.to_string(), format!("refusée{} · l'éditeur est prévenu", plur(n, "", "s")), echeance_de(&siens, true), Some(historique(mois))),
                 "a_faire" => {
-                    let (a, refus) = self.action_de_depot(le_mois, DPAE, &Value::Null, Some(declarer_embauches(mois)))?;
+                    let (a, refus) = self.action_de_depot(le_mois, DPAE, &Value::Null, Some(declarer_embauches(le_mois)))?;
                     // Le jour de l'embauche passe, la DPAE qui devait le preceder (L. 1221-10) est en retard ; elle se depose
                     // toujours.
                     let echeance = echeance_de(&siens, true);
@@ -2101,7 +2100,7 @@ impl<'a> Moteur<'a> {
             }
             // Avant son premier jour de depot, la case reste a deposer : c'est le depot qui dit le jour
             // (`compagnie::depart::fabriquer_dsn`).
-            let (a, refus) = self.action_de_depot(le_mois, DSN, nic, Some(deposer_dsn(mois, nic, "Déposer la DSN…".into())))?;
+            let (a, refus) = self.action_de_depot(le_mois, DSN, nic, Some(deposer_dsn(le_mois, nic, "Déposer la DSN…".into())))?;
             let etat = if a_declarer { "à déposer" } else { "à déposer, sans salarié" };
             let quoi = refus.map_or_else(|| etat.to_string(), |r| format!("{} · {}", etat, r));
             return Ok(Groupe::de(EtatCase::AFaire, None, String::new(), quoi, Some(au_depot), a));
@@ -2117,7 +2116,7 @@ impl<'a> Moteur<'a> {
         if modifiee && r.a_envoyer {
             // Un annule-et-remplace deja ecrit montre son chemin ; sinon, le refaire.
             let ecrit = self.chemin_de_depot(le_mois, DSN, nic)?.is_some();
-            let (a, refus) = if ecrit { self.action_de_depot(le_mois, DSN, nic, None)? } else { (Some(deposer_dsn(mois, nic, libelle)), None) };
+            let (a, refus) = if ecrit { self.action_de_depot(le_mois, DSN, nic, None)? } else { (Some(deposer_dsn(le_mois, nic, libelle)), None) };
             let quoi = refus.map_or_else(|| "à refaire".to_string(), |x| format!("à refaire · {}", x));
             return Ok(Groupe::de(EtatCase::AFaire, None, String::new(), quoi, Some(veille), a));
         }
@@ -2126,7 +2125,7 @@ impl<'a> Moteur<'a> {
             // partie), celle que l'avertissement de « Modifier l'engagement » nomme aussi.
             let suivant = crate::regularisation::dsn_qui_porte(self.ctx, mois)?;
             let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &suivant).map_err(|m| erreur("ValueError", m))?;
-            let a = deposer_dsn(&suivant, nic, format!("Déposer la DSN de {}…", Mois::en_clair(&suivant)));
+            let a = deposer_dsn(Mois::lire(&suivant)?, nic, format!("Déposer la DSN de {}…", Mois::en_clair(&suivant)));
             return Ok(Groupe::de(
                 EtatCase::AFaire,
                 None,
@@ -2367,7 +2366,7 @@ fn carres(p: &Vue, mois: &str) -> Vec<Carre> {
             let motif = motif_dpae(d);
             (EtatCase::Refuse, format!("DPAE refusée {} : {}", le_jour(&d.fait), motif), route(historique(mois)))
         }
-        "a_faire" => (EtatCase::AFaire, "DPAE à déposer".to_string(), route(declarer_embauches(mois))),
+        "a_faire" => (EtatCase::AFaire, "DPAE à déposer".to_string(), Mois::lire(mois).ok().and_then(|m| route(declarer_embauches(m)))),
         RIEN_A_DECLARER => (EtatCase::Fait, format!("Contrat commencé le {}, avant PuppetPaie : rien à déclarer ici", debut_dit), None),
         _ if !embauche => (EtatCase::Fait, format!("DPAE faite en {}, à l'embauche", depuis), None),
         _ if d.passee => (EtatCase::Fait, format!("DPAE déposée {}, passée", le_jour(&d.fait)), None),

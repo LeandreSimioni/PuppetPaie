@@ -57,7 +57,7 @@ pub struct Contrat {
     pub motif_fin: String,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default, Clone, serde::Serialize)]
 pub struct Versement {
     pub date: String,
     pub net_verse: String,

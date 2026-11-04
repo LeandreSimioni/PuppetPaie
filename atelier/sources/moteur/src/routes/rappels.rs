@@ -406,7 +406,6 @@ impl Echeance {
     fn action(&self) -> Option<crate::routes::etapes::Action> {
         use crate::routes::etapes::{action, deposer_dsn, ChargeMois};
         use crate::routes::imprevus::{ChargeArretSignaler, ChargeFinContratSignaler, NatureSignalement};
-        let mois = self.mois.map(String::from).unwrap_or_default();
         let annee_dite = self.annee.map(|a| a.to_string()).unwrap_or_default();
         let annee = || json!({"annee": annee_dite});
         let objet = self.objet.as_ref().unwrap_or(&Value::Null);
@@ -433,8 +432,8 @@ impl Echeance {
                     _ => action(Route::EtatDuMois, ChargeMois { mois: self.mois? }, None, "Ouvrir le mois".into()),
                 }
             }
-            DSN => deposer_dsn(&mois, &Value::Null, "Vérifier et envoyer".into()),
-            DPAE => action(Route::DepotApercu, json!({"quoi": DPAE, "mois": mois}), Some(Route::Deposer), "Préparer la DPAE".into()),
+            DSN => deposer_dsn(self.mois?, &Value::Null, "Vérifier et envoyer".into()),
+            DPAE => action(Route::DepotApercu, crate::routes::depots::Designation::du_mois(crate::routes::depots::Quoi::Dpae, self.mois?), Some(Route::Deposer), "Préparer la DPAE".into()),
             CLOTURE => action(Route::Cloture, annee(), None, format!("Clôturer {}", annee_dite).trim().to_string()),
             EXPORT_COMPTA => action(Route::ExportCompta, annee(), None, "Exporter pour la compta".into()),
             // Tous continuent, tant qu'on n'en a pas décoché un : la boîte s'ouvre ainsi.
