@@ -550,10 +550,10 @@ function fichesImportees(fiches, titre) {
     const etat = pastilleDeLEtat(f.pastille);
     // Ce que le moteur dit de la fiche : d'où elle vient, ce qu'elle reçoit, ce qu'une pièce disait autrement.
     const luDans = f.lu_dans_dit ? `<div class="acte-dernier">${echapper(f.lu_dans_dit)}</div>` : "";
-    const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
-      `<div class="acte-dernier"><b>${echapper(champ)}</b> ${echapper(e.dit || "")}</div>`).join("");
-    const ecarts = Object.entries(f.ecarts || {}).map(([champ, e]) =>
-      `<div class="acte-dernier"><b>${echapper(champ)}</b> — ${echapper(e.dit || "")}</div>`).join("");
+    const completes = (f.completer || []).map((e) =>
+      `<div class="acte-dernier"><b>${echapper(e.champ)}</b> ${echapper(e.dit || "")}</div>`).join("");
+    const ecarts = (f.ecarts || []).map((e) =>
+      `<div class="acte-dernier"><b>${echapper(e.champ)}</b> — ${echapper(e.dit || "")}</div>`).join("");
     // UNE VALEUR FAUSSE DES PIÈCES se dit, avec le libellé de sa case ; une
     // case vide n'est pas une faute (ce qu'un acte exige, « Pour démarrer »
     // le dit après l'import).

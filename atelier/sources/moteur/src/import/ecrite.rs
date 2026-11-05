@@ -29,21 +29,12 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
+use crate::import::reponse::{brut, Copie, EtatFiche, Importation};
 
 type R<T> = Result<T, Echec>;
 
 fn en_os(e: &std::io::Error, p: &Path) -> Echec {
     erreur("OSError", socle::echec::du_disque(p, e))
-}
-
-
-/// Les cles qui commencent par `_` s'en vont.
-fn sans_prives(v: &Value) -> Value {
-    match v {
-        Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), sans_prives(x))).collect()),
-        Value::Array(a) => Value::Array(a.iter().map(sans_prives).collect()),
-        autre => autre.clone(),
-    }
 }
 
 // ------------------------------------------------------------------ l'alerte CASC-SVP
@@ -420,7 +411,7 @@ fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Vec<en
 
 /// Ce qu'une ecriture a fait.
 struct Ecrit {
-    fichiers: Vec<Value>,
+    fichiers: Vec<String>,
     contrats_aem: usize,
     contrats_bulletins: usize,
     contrats_certificats: usize,
@@ -440,27 +431,28 @@ impl Ecrit {
 
 /// Ecrit ce que l'apercu `imp` annonce : les fiches (et leur place dans `reponse`), puis les engagements importes
 /// (`engagements_importes` : les contrats des AEM et des bulletins, les paies versees).
-fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Value, note: &Value) -> R<Ecrit> {
+fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Importation, note: &Value) -> R<Ecrit> {
     let aujourdhui = ctx.date;
     // Les fiches, comme celles de l'ecran (`forcer` : une fiche importee avec des anomalies est ecrite quand meme).
     let mut ecrits: BTreeSet<String> = BTreeSet::new();
     let mut restent_a_creer = 0usize;
     for a in &imp.a_creer {
         let e = crate::routes::fiches::ecrire_fiche(ctx, a.nom, None, &Value::Object(a.donnees.clone()), crate::routes::fiches::Forcer::Tout, &Value::Null, note)?;
-        let emplacement: &mut Value = match (a.nom, a.rang) {
-            ("entreprise", _) => &mut reponse["entreprise"],
-            ("salarie", Some(i)) => &mut reponse["salaries"][i],
-            (_, Some(i)) => &mut reponse["spectacles"][i],
-            _ => {
-                restent_a_creer += 1;
-                continue;
-            }
+        let emplacement = match (a.nom, a.rang) {
+            ("entreprise", _) => reponse.entreprise.as_mut(),
+            ("salarie", Some(i)) => reponse.salaries.get_mut(i),
+            (_, Some(i)) => reponse.spectacles.get_mut(i),
+            _ => None,
         };
-        emplacement["cle"] = e.cle.map_or(Value::Null, Value::String);
-        emplacement["etat"] = json!("creee");
+        let Some(emplacement) = emplacement else {
+            restent_a_creer += 1;
+            continue;
+        };
+        emplacement.cle = e.cle;
+        emplacement.etat = EtatFiche::Creee;
         let mut anomalies = e.anomalies;
         crate::routes::fiches::avec_libelles(a.nom, &mut anomalies)?;
-        emplacement["anomalies"] = sans_prives(&Value::Array(anomalies));
+        emplacement.anomalies = anomalies.iter().map(brut).collect();
         let fichier = match a.nom {
             "entreprise" => "entreprise.json",
             "salarie" => "salaries.json",
@@ -475,20 +467,14 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         if faits.is_empty() {
             continue;
         }
-        let liste = match a.nom {
-            "entreprise" => None,
-            "salarie" => Some("salaries"),
-            _ => Some("spectacles"),
+        let emplacement = match a.nom {
+            "entreprise" => reponse.entreprise.as_mut(),
+            "salarie" => reponse.salaries.iter_mut().find(|e| e.cle.as_deref() == a.cle.as_deref()),
+            _ => reponse.spectacles.iter_mut().find(|e| e.cle.as_deref() == a.cle.as_deref()),
         };
-        let emplacement = match liste {
-            None => Some(&mut reponse["entreprise"]),
-            Some(l) => reponse[l].as_array_mut().and_then(|v| v.iter_mut().find(|e| e.get("cle").and_then(Value::as_str) == a.cle.as_deref())),
-        };
-        if let Some(e) = emplacement.filter(|e| e.is_object()) {
-            e["etat"] = json!("completee");
-            if let Some(Value::Object(c)) = e.get_mut("completer") {
-                c.retain(|k, _| faits.contains_key(k));
-            }
+        if let Some(e) = emplacement {
+            e.etat = EtatFiche::Completee;
+            e.completer.retain(|c| faits.contains_key(&c.champ));
         }
         let fichier = match a.nom {
             "entreprise" => "entreprise.json",
@@ -499,7 +485,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         completees += 1;
     }
     crate::routes::fiches::dater_licences_suivantes(ctx, &imp.licences, note)?;
-    let mut fichiers: Vec<Value> = ecrits.into_iter().map(Value::String).collect();
+    let mut fichiers: Vec<String> = ecrits.into_iter().collect();
     let mut avertissements: Vec<String> = Vec::new();
 
     // Les engagements importes, avec les fiches telles qu'elles sont MAINTENANT.
@@ -575,18 +561,13 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     if contrats_aem + contrats_bulletins + contrats_certificats + contrats_aem_pdf + neuves > 0 || importes_avant.is_empty() {
         let importes = engagements_importes(engagements, par_cle.into_values().collect());
         for p in engagement::importe::ecrire_tous(&ctx.racine, importes).map_err(Echec::from)? {
-            fichiers.push(json!(p.display().to_string()));
+            fichiers.push(p.display().to_string());
         }
     }
     Ok(Ecrit { fichiers, contrats_aem, contrats_bulletins, contrats_certificats, contrats_aem_pdf, paies: neuves, restent_a_creer, completees, avertissements })
 }
 
 // ------------------------------------------------------------------ la route
-
-/// `importer` : `{"dossier": ...}`, la boite aux lettres `import/` (vide ou absent : celle de la compagnie).
-pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    importer_dossier(ctx, charge)
-}
 
 /// LES MOIS IMPORTES SONT DECLARES S'ILS L'ONT ETE : les depots DSN que les retours deja releves attestent
 /// entrent au journal avec l'historique, pour qu'un mois tenu avant ne se dise pas « en retard »
@@ -621,7 +602,7 @@ fn dossier_bulletins(ctx: &Contexte) -> PathBuf {
 /// La copie de ce que le dossier lu reprend, dans `historique/bulletins/`, sous le nom de sa copie. RIEN NE S'ECRASE :
 /// un fichier deja copie et identique est laisse ; un autre contenu sous le meme nom est laisse aussi, et SIGNALE (il
 /// n'est pas relu). Rend le compte, et les noms a relire.
-fn copier_repris(ctx: &Contexte, lu: &crate::import::bulletins::DossierLu) -> R<(Value, Vec<String>)> {
+fn copier_repris(ctx: &Contexte, lu: &crate::import::bulletins::DossierLu) -> R<(Copie, Vec<String>)> {
     let dossier = dossier_bulletins(ctx);
     let (mut copies, mut identiques) = (0usize, 0usize);
     let (mut differents, mut noms): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
@@ -649,18 +630,19 @@ fn copier_repris(ctx: &Contexte, lu: &crate::import::bulletins::DossierLu) -> R<
         copies += 1;
         noms.push(nom.clone());
     }
-    Ok((json!({"copies": copies, "identiques": identiques, "differents": differents, "dossier": dossier.display().to_string()}), noms))
+    Ok((Copie { copies, identiques, differents, dossier: dossier.display().to_string() }, noms))
 }
 
-/// `importer` avec `{"dossier": ...}` : la copie de ce qui est repris, l'apercu relu dans la copie, l'ecriture.
-fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
+/// `importer` : `{"dossier": ...}`, la boite aux lettres `import/` (vide ou absent : celle de la compagnie) -- la copie
+/// de ce qui est repris, l'apercu relu dans la copie, l'ecriture.
+pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Importation> {
     let aujourdhui = ctx.date;
     let dossier = crate::routes::import::dossier_import(ctx, charge)?;
     // 1. Le dossier tel qu'il est : son compte rendu (pour l'ecran), et la copie de ce qu'il reprend.
-    let (tri, copie, noms, deposes) = crate::import::bulletins::lire_dossier(ctx, &dossier, &HashMap::new(), |lu| {
+    let (tri, copie, noms, deposes) = crate::import::bulletins::lire_dossier(ctx, &dossier, &HashMap::new(), |mut lu| {
         let (copie, noms) = copier_repris(ctx, &lu)?;
         crate::import::incident::noter_les_non_lus(ctx, &lu);
-        let tri = lu.ap.reponse.get("tri").cloned().unwrap_or(Value::Null);
+        let tri = std::mem::take(&mut lu.ap.reponse.tri);
         // La copie se relit sous le nom du fichier depose.
         let deposes: HashMap<String, String> = lu.copies.iter().map(|(i, nom)| (nom.clone(), lu.tri.fichiers[*i].chemin.clone())).collect();
         Ok((tri, copie, noms, deposes))
@@ -682,62 +664,54 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let _ = std::fs::remove_dir_all(&relu);
     let mut imp = rendu?;
 
-    let mut reponse = Value::Object(std::mem::take(&mut imp.reponse));
+    let mut reponse = std::mem::take(&mut imp.reponse);
     // Le compte rendu est celui du dossier lu (`tri`) : ses chemins, ses fichiers non repris (la relecture ne les voit pas).
-    let mut avertissements: Vec<Value> =
-        reponse["avertissements"].as_array().into_iter().flatten().cloned().collect();
-    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-    if !differents.is_empty() {
-        avertissements.push(json!(avertissement_differents(&differents, "ce dossier")));
+    if !copie.differents.is_empty() {
+        reponse.avertissements.push(avertissement_differents(&copie.differents, "ce dossier"));
     }
     if let Some(alerte) = alerte_apres_import(ctx)? {
-        avertissements.push(json!(alerte));
+        reponse.avertissements.push(alerte);
     }
-    reponse["tri"] = tri;
-    reponse["source"] = json!(dossier.display().to_string());
+    reponse.tri = tri;
+    reponse.source = dossier.display().to_string();
     let note = json!(format!("Importe du dossier import/ le {}", aujourdhui.jj_mm_aaaa()));
     let e = ecrire(ctx, &imp, &mut reponse, &note)?;
-    avertissements.extend(e.avertissements.iter().map(|a| json!(a)));
-    reponse["avertissements"] = Value::Array(avertissements);
-    reponse["contrats_nouveaux"] = json!(e.contrats_aem);
-    if reponse.get("bulletins").is_some_and(Value::is_object) {
-        reponse["bulletins"]["contrats_nouveaux"] = json!(e.contrats_bulletins);
+    reponse.avertissements.extend(e.avertissements.iter().cloned());
+    reponse.contrats_nouveaux = e.contrats_aem;
+    reponse.bulletins.contrats_nouveaux = e.contrats_bulletins;
+    if let Some(c) = reponse.certificats.as_mut() {
+        c.contrats_nouveaux = e.contrats_certificats;
     }
-    if reponse.get("certificats").is_some_and(Value::is_object) {
-        reponse["certificats"]["contrats_nouveaux"] = json!(e.contrats_certificats);
+    if let Some(c) = reponse.aem_pdf.as_mut() {
+        c.contrats_nouveaux = e.contrats_aem_pdf;
     }
-    if reponse.get("aem_pdf").is_some_and(Value::is_object) {
-        reponse["aem_pdf"]["contrats_nouveaux"] = json!(e.contrats_aem_pdf);
-    }
-    reponse["rien_a_faire"] = json!(e.rien());
-    reponse["ecrit"] = json!(true);
-    reponse["fichiers"] = Value::Array(e.fichiers);
-    reponse["copie"] = copie;
-    reponse["depots_repris"] = json!(depots_attestes_au_journal(ctx)?);
+    reponse.rien_a_faire = e.rien();
+    reponse.ecrit = true;
+    reponse.fichiers = e.fichiers;
+    reponse.copie = Some(copie);
+    reponse.depots_repris = Some(depots_attestes_au_journal(ctx)?);
     // Ce que les DSN reprises disent de la configuration hors de la fiche (le taux AT/MP, les organismes), lu avec les
     // fiches telles que l'import les a ecrites.
     if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
         let mut faits = crate::import::parametrage::parametrer(&frais);
         // La nature des contrats repris des permanents, quand leur DSN reprise la dit.
         faits.extend(crate::import::nature::dire_depuis_les_dsn(&ctx.racine, &ctx.date));
-        reponse["parametrage"] = json!(faits);
+        reponse.parametrage = faits;
     }
     // Ce que l'ecran dit de l'import fait, et sa couleur : l'ecriture a eu lieu, c'est fait (ce qui reste a dire a ses
     // propres lignes : la nature des contrats repris, « Pour demarrer »).
-    let n = |v: &Value| v.as_u64().unwrap_or(0);
-    let b = &reponse["bulletins"];
-    let ecrite = |f: &&Value| matches!(f.get("etat").and_then(Value::as_str), Some("creee" | "completee"));
-    let de = |k: &str| reponse[k].as_array().into_iter().flatten().filter(ecrite).count();
+    let ecrite = |f: &crate::import::reponse::FicheImportee| matches!(f.etat, EtatFiche::Creee | EtatFiche::Completee);
+    let de = |l: &[crate::import::reponse::FicheImportee]| l.iter().filter(|f| ecrite(f)).count();
     // Les fiches ecrites, par sorte : l'entreprise, les salaries, les spectacles.
     let mut fiches: Vec<String> = Vec::new();
-    if ecrite(&&reponse["entreprise"]) {
+    if reponse.entreprise.as_ref().is_some_and(ecrite) {
         fiches.push("l'entreprise".into());
     }
-    if de("salaries") > 0 {
-        fiches.push(crate::routes::compte(de("salaries"), "salarié", "salariés"));
+    if de(&reponse.salaries) > 0 {
+        fiches.push(crate::routes::compte(de(&reponse.salaries), "salarié", "salariés"));
     }
-    if de("spectacles") > 0 {
-        fiches.push(crate::routes::compte(de("spectacles"), "spectacle", "spectacles"));
+    if de(&reponse.spectacles) > 0 {
+        fiches.push(crate::routes::compte(de(&reponse.spectacles), "spectacle", "spectacles"));
     }
     // UN SPECTACLE SANS TITRE (`completer::A_COMPLETER`) : les bulletins en proposent un a valider
     // (`demarrage::TITRE_PROPOSE`), ou les pieces ne portent que son numero d'objet ; le contrat imprime le titre, la phrase
@@ -760,14 +734,16 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
         (0, s) => format!(" Titre à dire pour {} spectacle(s) : les pièces ne portent que le numéro d'objet (Pour démarrer).", s),
         (p, s) => format!(" Titre à dire pour {} spectacle(s), dont {} proposé(s) d'après les bulletins (Pour démarrer).", p + s, p),
     };
-    reponse["phrase"] = json!(format!(
+    reponse.dire();
+    let b = &reponse.bulletins;
+    reponse.phrase = format!(
         "Repris : {}, {} ; fiches écrites : {}.{}",
-        crate::routes::compte((n(&reponse["contrats_nouveaux"]) + n(&b["contrats_nouveaux"])) as usize, "contrat", "contrats"),
-        crate::routes::compte((n(&b["paies_nouvelles"]) + n(&b["paies_completees"])) as usize, "bulletin", "bulletins"),
+        crate::routes::compte(reponse.contrats_nouveaux + b.contrats_nouveaux, "contrat", "contrats"),
+        crate::routes::compte(b.paies_nouvelles + b.paies_completees, "bulletin", "bulletins"),
         if fiches.is_empty() { "aucune".to_string() } else { fiches.join(", ") },
         titres
-    ));
-    reponse["couleur"] = json!(crate::routes::couleur_de_l_etat("fait"));
+    );
+    reponse.fait();
     rapporter_les_ecarts(ctx);
     Ok(reponse)
 }

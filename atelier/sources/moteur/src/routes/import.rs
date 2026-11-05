@@ -15,6 +15,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::import::dsn_aem::{self, SalarieDeclare};
+use crate::import::reponse::{n_mots, DitPar, Ecart, EtatFiche, FicheImportee, Importation, Origine};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME, OPERATION, SALARIE};
 use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
@@ -89,50 +90,6 @@ pub const ROUTES: &[Fiche] = &[
         ecran: ECRAN,
     },
 ];
-/// UNE REPONSE DE L'IMPORT, AVEC SES PASTILLES (`routes::pastille`) : celle de chaque sort
-/// (`import::bulletins::pastilles_des_sorts`), celle de chaque fiche que l'import cree, complete ou laisse
-/// (`fiche_importee` : creee, completee ou deja la, faite ; a creer ou a completer, a faire), celle de chaque ecart entre
-/// un bulletin et une DSN (le bulletin l'emporte, a voir ; sinon note, une information).
-pub(crate) fn avec_les_pastilles(mut v: Value) -> Value {
-    poser_les_pastilles(&mut v);
-    dire_ce_qui_est_repris(&mut v);
-    if let Some(o) = v.as_object_mut() {
-        o.insert("pastilles".into(), crate::import::bulletins::pastilles_des_sorts());
-        // L'encart de ce qui est repris, ou qu'il n'y a rien a reprendre : fait.
-        if o.get("ecrit").is_some_and(vrai) || o.get("rien_a_faire").is_some_and(vrai) {
-            o.insert("encart".into(), super::pastille("fait", "repris"));
-        }
-    }
-    v
-}
-
-fn poser_les_pastilles(v: &mut Value) {
-    match v {
-        Value::Object(o) => {
-            let fiche = ["salarie", "spectacle", "entreprise"].contains(&o.get("nom").and_then(Value::as_str).unwrap_or("")) && o.contains_key("libelle");
-            if fiche {
-                let a_completer = o.get("completer").and_then(Value::as_object).is_some_and(|c| !c.is_empty());
-                let p = match o.get("etat").and_then(Value::as_str).unwrap_or("") {
-                    "completee" => super::pastille("fait", "complétée"),
-                    "existante" if a_completer => super::pastille("a_faire", "à compléter"),
-                    "existante" => super::pastille("fait", "existe déjà"),
-                    "creee" => super::pastille("fait", "créée"),
-                    _ => super::pastille("a_faire", "à créer"),
-                };
-                o.insert("pastille".into(), p);
-            }
-            if let Some(l) = o.get("le_bulletin_l_emporte").map(vrai) {
-                o.insert("pastille".into(), if l { super::pastille("a_faire", "le bulletin l'emporte") } else { super::pastille("information", "noté") });
-            }
-            for x in o.values_mut() {
-                poser_les_pastilles(x);
-            }
-        }
-        Value::Array(a) => a.iter_mut().for_each(poser_les_pastilles),
-        _ => {}
-    }
-}
-
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     // Chaque PDF de la boite aux lettres se releve une fois pour toute la route (`import::releve`).
@@ -140,23 +97,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
     match nom {
         // `{"dossier": ...}` (vide ou absent : `import/` de la compagnie) : la boite aux lettres entiere, bulletins
         // compris (`import::bulletins`).
-        Route::ImportationApercu => {
-            let v = avec_les_pastilles(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse));
-            let t = |x: &Value, k: &str| super::mot(&x[k]);
-            let b = &v["bulletins"];
-            let bulletins = if b.is_object() {
-                format!("{} bulletins lus (du {} au {}), {} à reprendre, fiches à créer : {} ; ", t(b, "lus"), super::quand(&t(b, "du")), super::quand(&t(b, "au")), t(b, "repris"), t(b, "fiches_a_creer"))
-            } else {
-                String::new()
-            };
-            let p = format!("Dans le dossier lu : {}DSN : {} ; AEM : {}. Rien n'est écrit.", bulletins, t(&v, "dsn"), t(&v, "aem"));
-            Ok(super::phrase_en_tete(v, p))
-        }
+        Route::ImportationApercu => super::en_json(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?),
         Route::ImportationEtat => {
             let _: super::SansCharge = super::lire_charge(charge)?;
             super::en_json(etat_importation(&ctx.racine)?)
         }
-        Route::Importer => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),
+        Route::Importer => super::en_json(crate::import::ecrite::importer(ctx, charge)?),
         // La nature des contrats repris qu'aucun bulletin ne dit.
         Route::ImportationNature => crate::import::nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
@@ -200,15 +146,6 @@ pub(crate) fn dossier_de_travail() -> PathBuf {
     std::env::temp_dir().join(format!("puppetpaie-tri-{}-{}", std::process::id(), marque))
 }
 
-/// `brut(valeur)` : un dictionnaire perd ses cles qui commencent par `_`.
-pub(crate) fn brut(v: &Value) -> Value {
-    match v {
-        Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), brut(x))).collect()),
-        Value::Array(a) => Value::Array(a.iter().map(brut).collect()),
-        autre => autre.clone(),
-    }
-}
-
 /// Chaque mot d'un texte avec sa première lettre en capitale, `""` s'il manque.
 pub(crate) fn titre_de(v: Option<&Value>) -> String {
     match v.filter(|x| vrai(x)) {
@@ -218,32 +155,24 @@ pub(crate) fn titre_de(v: Option<&Value>) -> String {
 }
 
 /// Les champs DECLARES que la DSN disait autrement que la fiche.
-fn ecarts(nom: &str, fiche: &dyn droit::fiche::ParCase, declare: &Map<String, Value>, mois: &str) -> R<Value> {
-    let mut out = Map::new();
+fn ecarts(nom: &str, fiche: &dyn droit::fiche::ParCase, declare: &Map<String, Value>, mois: &str) -> R<Vec<Ecart>> {
+    let mut out = Vec::new();
     for c in declarations::champs::fiche(nom)? {
-        if !c.declare || !declare.contains_key(&c.cle) {
-            continue;
-        }
-        let a = &fiche.case(&c.cle).unwrap_or(Value::Null);
-        let b = &declare[&c.cle];
+        let Some(b) = declare.get(&c.cle).filter(|_| c.declare) else { continue };
+        let a = fiche.case(&c.cle).unwrap_or(Value::Null);
         // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete (`import::completer`).
-        if crate::import::completer::vide(Some(a)) || valeur_en_texte(a) == valeur_en_texte(b) {
+        if crate::import::completer::vide(Some(&a)) || valeur_en_texte(&a) == valeur_en_texte(b) {
             continue;
         }
         // Une structure (la banque) ne differe que par ce que la DSN en declare : ses notes et autres cles restent.
-        if let (Value::Object(x), Value::Object(y)) = (a, b) {
+        if let (Value::Object(x), Value::Object(y)) = (&a, b) {
             if y.iter().all(|(k, v)| x.get(k).map(valeur_en_texte) == Some(valeur_en_texte(v))) {
                 continue;
             }
         }
-        out.insert(c.cle.clone(), json!({"fiche": a, "dsn": b, "mois": mois}));
+        out.push(Ecart::new(&c.cle, a, DitPar::Dsn { dsn: b.clone(), mois: mois.to_string() }));
     }
-    Ok(Value::Object(out))
-}
-
-/// Une fiche que l'import cree, laisse, ou sur laquelle il a a redire.
-pub(crate) fn fiche_importee(nom: &str, cle: Option<&str>, libelle: &str, etat: &str, ecarts: Value, anomalies: Vec<Value>, donnees: Value) -> Value {
-    json!({"nom": nom, "cle": cle, "libelle": libelle, "etat": etat, "ecarts": brut(&ecarts), "anomalies": brut(&Value::Array(anomalies)), "donnees": brut(&donnees)})
+    Ok(out)
 }
 
 /// Ce qu'une fiche neuve recoit d'une DSN.
@@ -324,7 +253,7 @@ pub(crate) struct ACreer {
 
 /// Ce que l'import ferait : la reponse (`sortie_json.importation`), et ce dont l'ecriture a besoin.
 pub(crate) struct Apercu {
-    pub(crate) reponse: Map<String, Value>,
+    pub(crate) reponse: Importation,
     pub(crate) a_creer: Vec<ACreer>,
     /// Les fiches existantes que l'import completerait (`import::completer`).
     pub(crate) a_completer: Vec<crate::import::completer::ACompleter>,
@@ -441,11 +370,11 @@ pub(crate) fn apercu_lu(
     }
 
     // 1. L'entreprise : seulement si la fiche est vide.
-    let mut entreprise = Value::Null;
+    let mut entreprise: Option<FicheImportee> = None;
     let mut a_creer = 0usize;
     let mut a_creer_liste: Vec<ACreer> = Vec::new();
     let mut a_completer: Vec<crate::import::completer::ACompleter> = Vec::new();
-    let origine_dsn = |mois: &str| json!({"source": "dsn", "mois": mois});
+    let vide = Map::new();
     if !lecture.entreprise.is_empty() {
         let mut e = fiche_entreprise(&lecture)?;
         garder_le_nom(ctx, &mut e);
@@ -453,14 +382,15 @@ pub(crate) fn apercu_lu(
             let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
-            entreprise = fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e));
+            entreprise = Some(FicheImportee::new("entreprise", None, &libelle, EtatFiche::ACreer, Vec::new(), anomalies, &e));
             a_creer += 1;
         } else {
             let libelle = ctx.entreprise.raison_sociale.texte().to_string();
             let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise, &lecture.dernier_mois)?;
-            entreprise = fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({}));
+            let mut f = FicheImportee::new("entreprise", None, &libelle, EtatFiche::Existante, ec, Vec::new(), &vide);
             let champs = crate::import::completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
-            crate::import::completer::noter(&mut entreprise, &champs, origine_dsn(&lecture.dernier_mois));
+            f.noter(&champs, &Origine::dsn(&lecture.dernier_mois));
+            entreprise = Some(f);
             crate::import::completer::ajouter(&mut a_completer, "entreprise", None, &champs);
         }
     }
@@ -484,9 +414,9 @@ pub(crate) fn apercu_lu(
         );
         if let Some(cle) = par_nir.get(&decl.nir) {
             let ec = ecarts("salarie", &ctx.salaries[cle.as_str()].champs, &decl.fiche, &decl.mois)?;
-            let mut entree = fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({}));
+            let mut entree = FicheImportee::new("salarie", Some(cle), &libelle, EtatFiche::Existante, ec, Vec::new(), &vide);
             let champs = crate::import::completer::champs_a_completer("salarie", &ctx.salaries[cle.as_str()].champs, &fiche_salarie(decl)?)?;
-            crate::import::completer::noter(&mut entree, &champs, origine_dsn(&decl.mois));
+            entree.noter(&champs, &Origine::dsn(&decl.mois));
             crate::import::completer::ajouter(&mut a_completer, "salarie", Some(cle), &champs);
             salaries.push(entree);
             continue;
@@ -494,7 +424,7 @@ pub(crate) fn apercu_lu(
         let donnees = fiche_salarie(decl)?;
         let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
         a_creer_liste.push(ACreer { nom: "salarie", rang: Some(salaries.len()), donnees: donnees.clone() });
-        salaries.push(fiche_importee("salarie", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(donnees)));
+        salaries.push(FicheImportee::new("salarie", None, &libelle, EtatFiche::ACreer, Vec::new(), anomalies, &donnees));
         cles_a_venir.insert(decl.nir.clone());
         a_creer += 1;
     }
@@ -550,7 +480,7 @@ pub(crate) fn apercu_lu(
     for o in &objets {
         if let Some(cle) = connus.get(&o.numero.to_uppercase()) {
             let titre = ctx.spectacles[cle].get("titre").map_or("?".to_string(), valeur_en_texte);
-            spectacles.push(fiche_importee("spectacle", Some(cle), &format!("{} ({})", titre, o.numero), "existante", json!({}), Vec::new(), json!({})));
+            spectacles.push(FicheImportee::new("spectacle", Some(cle), &format!("{} ({})", titre, o.numero), EtatFiche::Existante, Vec::new(), Vec::new(), &vide));
             continue;
         }
         let source = if o.aem { "AEM" } else { "DSN" };
@@ -562,14 +492,14 @@ pub(crate) fn apercu_lu(
         donnees.insert("_vu_dans".into(), json!(format!("{} de {} a {} ({} contrat(s))", source, o.premier, o.dernier, o.contrats)));
         let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         a_creer_liste.push(ACreer { nom: "spectacle", rang: Some(spectacles.len()), donnees: donnees.clone() });
-        spectacles.push(fiche_importee(
+        spectacles.push(FicheImportee::new(
             "spectacle",
             None,
             &format!("numéro d'objet {}, sans titre (déclarations de {} à {})", o.numero, o.premier, o.dernier),
-            "a_creer",
-            json!({}),
+            EtatFiche::ACreer,
+            Vec::new(),
             anomalies,
-            Value::Object(donnees),
+            &donnees,
         ));
         a_creer += 1;
     }
@@ -627,27 +557,22 @@ pub(crate) fn apercu_lu(
         let paie = paie_declaree(mois, contrat, nir, v, objet)?;
         paies.push(engagement::importe::PaieLue { mois: mois.clone(), salarie: cle.cloned().unwrap_or_else(|| "<a creer>".to_string()), paie });
     }
-    let Value::Object(reponse) = json!({
-        "source": source,
-        "dsn": lecture.fichiers,
-        "aem": n_aem,
-        "premier_mois": lecture.premier_mois,
-        "dernier_mois": lecture.dernier_mois,
-        "entreprise": entreprise,
-        "salaries": salaries,
-        "spectacles": spectacles,
-        "contrats": contrats.len(),
-        "contrats_nouveaux": 0,
-        "contrats_du": contrats_du,
-        "contrats_au": contrats_au,
-        "contrats_sans_fiche": sans_fiche,
-        "avertissements": avertissements,
-        "rien_a_faire": rien_a_faire,
-        "ecrit": false,
-        "fichiers": [],
-        "copie": {},
-    }) else {
-        unreachable!("un objet")
+    let reponse = Importation {
+        source: source.to_string(),
+        dsn: lecture.fichiers,
+        aem: n_aem,
+        premier_mois: lecture.premier_mois.clone(),
+        dernier_mois: lecture.dernier_mois.clone(),
+        entreprise,
+        salaries,
+        spectacles,
+        contrats: contrats.len(),
+        contrats_du,
+        contrats_au,
+        contrats_sans_fiche: sans_fiche,
+        avertissements,
+        rien_a_faire,
+        ..Importation::default()
     };
     Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), contrats_changes: Vec::new(), licences: lecture.licences.clone() })
 }
@@ -678,12 +603,12 @@ fn etat_importation(racine: &Path) -> R<EtatImportation> {
     let reprises = reprises_faites(racine, &contrats, &paies);
     // L'historique repris en une ligne (`repris_dit`), et son titre : le jour de la derniere reprise.
     let de = |source: &str| reprises.iter().find(|r| r.source == source);
-    let nombre = |source: &str| de(source).map_or(0, |r| r.nombre) as u64;
+    let nombre = |source: &str| de(source).map_or(0, |r| r.nombre);
     let quoi: Vec<String> = [
         n_mots(nombre("bulletins"), "bulletin"),
-        n_mots(de("DSN").and_then(|r| r.declarations).unwrap_or(0) as u64 + nombre("AEM"), "déclaration"),
+        n_mots(de("DSN").and_then(|r| r.declarations).unwrap_or(0) + nombre("AEM"), "déclaration"),
         n_mots(nombre("certificats"), "certificat"),
-        n_mots(contrats.len() as u64, "contrat"),
+        n_mots(contrats.len(), "contrat"),
     ]
     .into_iter()
     .filter(|x| !x.is_empty())
@@ -924,183 +849,5 @@ impl Reprise {
                 self.le = Some(l);
             }
         }
-    }
-}
-
-// ------------------------------------------------------------------ ce que l'ecran de l'import dit
-
-/// « 3 bulletins » : `n` et le mot, au pluriel quand il le faut ; rien pour zero.
-fn n_mots(n: u64, mot: &str) -> String {
-    match n {
-        0 => String::new(),
-        1 => format!("1 {}", mot),
-        n => format!("{} {}s", n, mot),
-    }
-}
-
-/// D'ou vient une valeur reprise : la DSN d'un mois, un bulletin (fichier, page), un certificat Congés Spectacles ou une
-/// AEM (son mois, son fichier).
-fn origine(e: &Value) -> String {
-    let t = |k: &str| super::mot(&e[k]);
-    let fichier = if t("fichier").is_empty() { String::new() } else { format!(" ({}{})", t("fichier"), if t("page").is_empty() { String::new() } else { format!(", page {}", t("page")) }) };
-    match t("source").as_str() {
-        "certificat" | "AEM" => format!(
-            "{}{}{}",
-            if t("source") == "AEM" { "l'AEM" } else { "le certificat Congés Spectacles" },
-            if t("mois").is_empty() { String::new() } else { format!(" {}", socle::texte::de(&socle::mois::Mois::en_clair(&t("mois")))) },
-            fichier
-        ),
-        _ if t("source") == "bulletin" || e.get("bulletin").is_some() => format!("le bulletin{}", fichier),
-        _ => format!("la DSN {}", socle::texte::de(&socle::mois::Mois::en_clair(&t("mois")))),
-    }
-}
-
-/// CE QUE L'APERCU OU LA REPRISE D'UN DOSSIER DIT (`importation-apercu`, `importer`) : les declarations, les bulletins,
-/// les certificats et les AEM en PDF lus, le dossier fichier par fichier, ce que le bouton reprendrait, et pour chaque
-/// fiche ce qu'elle recoit d'une piece (`completer`) ou ce qu'une piece disait autrement (`ecarts`).
-fn dire_ce_qui_est_repris(v: &mut Value) {
-    if !v.is_object() || v.get("tri").is_none() && v.get("dsn").is_none() {
-        return;
-    }
-    let ecrit = vrai(&v["ecrit"]);
-    let n = |x: &Value, k: &str| x[k].as_u64().unwrap_or(0);
-    let s = |k: u64| if k > 1 { "s" } else { "" };
-    let jour = super::jour_en_clair;
-    let creer = |k: u64| if ecrit { if k > 1 { " créées" } else { " créée" } } else { " à créer" };
-    // Les declarations.
-    let periode = if super::mot(&v["premier_mois"]).is_empty() { String::new() } else { format!(" ({} → {})", socle::mois::Mois::en_clair(&super::mot(&v["premier_mois"])), socle::mois::Mois::en_clair(&super::mot(&v["dernier_mois"]))) };
-    let contrats = if n(v, "contrats") > 0 {
-        format!(
-            "{} contrat(s) attesté(s) du {} au {} : {} {} à l'historique, {} déjà connu(s){}",
-            n(v, "contrats"), jour(&v["contrats_du"]), jour(&v["contrats_au"]), n(v, "contrats_nouveaux"), if ecrit { "ajouté(s)" } else { "à ajouter" },
-            n(v, "contrats").saturating_sub(n(v, "contrats_nouveaux") + n(v, "contrats_sans_fiche")),
-            if n(v, "contrats_sans_fiche") > 0 { format!(", {} sans fiche", n(v, "contrats_sans_fiche")) } else { String::new() }
-        )
-    } else {
-        "aucun contrat attesté par une AEM".to_string()
-    };
-    v["declarations_dit"] = json!(if n(v, "dsn") + n(v, "aem") > 0 { format!("{} DSN{}, {} fichier(s) AEM : {}.", n(v, "dsn"), periode, n(v, "aem"), contrats) } else { "Aucune DSN ni fichier d'AEM déposé dans le dossier.".to_string() });
-    // Les bulletins.
-    let b = v["bulletins"].clone();
-    if n(&b, "pages") > 0 {
-        let ajouts: Vec<String> = [
-            if n(&b, "paies_nouvelles") > 0 { format!("{} paie{} qu'aucune DSN ne déclare", n(&b, "paies_nouvelles"), s(n(&b, "paies_nouvelles"))) } else { String::new() },
-            if n(&b, "paies_completees") > 0 { let k = n(&b, "paies_completees"); format!("{} paie{} déclarée{} complétée{} (cotisations, coût employeur, lignes)", k, s(k), s(k), s(k)) } else { String::new() },
-            if n(&b, "contrats_nouveaux") > 0 { let k = n(&b, "contrats_nouveaux"); format!("{} contrat{} attesté{}", k, s(k), s(k)) } else { String::new() },
-            if n(&b, "fiches_a_creer") > 0 { let k = n(&b, "fiches_a_creer"); format!("{} fiche{}{}", k, s(k), creer(k)) } else { String::new() },
-        ].into_iter().filter(|x| !x.is_empty()).collect();
-        let du = if super::mot(&b["du"]).is_empty() { String::new() } else { format!(" du {} au {}", jour(&b["du"]), jour(&b["au"])) };
-        v["bulletins"]["dit"] = json!(format!(
-            "{} bulletin{} lu{} sur {} page{}{} ; {} {}{}.",
-            n(&b, "lus"), s(n(&b, "lus")), s(n(&b, "lus")), n(&b, "pages"), s(n(&b, "pages")), du, n(&b, "repris"), if ecrit { "repris" } else { "à reprendre" },
-            if ajouts.is_empty() { String::new() } else { format!(" : {}", ajouts.join(", ")) }
-        ));
-    }
-    // Les certificats Congés Spectacles et les AEM en PDF.
-    for (cle, piece, pieces, aucune) in [("certificats", "certificat", "certificats", "Aucun certificat ne porte"), ("aem_pdf", "attestation", "attestations", "Aucune AEM ne porte")] {
-        let c = v[cle].clone();
-        if n(&c, "lus") == 0 {
-            continue;
-        }
-        let ajouts: Vec<String> = [
-            if n(&c, "contrats_nouveaux") > 0 { let k = n(&c, "contrats_nouveaux"); format!("{} contrat{} attesté{}", k, s(k), s(k)) } else { String::new() },
-            if n(&c, "confirmes") > 0 { let k = n(&c, "confirmes"); format!("{} déjà attesté{} par une autre pièce", k, s(k)) } else { String::new() },
-            if n(&c, "fiches_a_creer") > 0 { let k = n(&c, "fiches_a_creer"); format!("{} fiche{}{}", k, s(k), creer(k)) } else { String::new() },
-        ].into_iter().filter(|x| !x.is_empty()).collect();
-        let du = if super::mot(&c["du"]).is_empty() { String::new() } else { format!(" du {} au {}", jour(&c["du"]), jour(&c["au"])) };
-        let reste: Vec<String> = c["reste_a_saisir"].as_array().into_iter().flatten().map(super::mot).collect();
-        v[cle]["dit"] = json!(format!(
-            "{} {} lu{}{}{}.{}",
-            n(&c, "lus"), if n(&c, "lus") > 1 { pieces } else { piece }, s(n(&c, "lus")), du,
-            if ajouts.is_empty() { String::new() } else { format!(" : {}", ajouts.join(", ")) },
-            if reste.is_empty() { String::new() } else { format!(" {}, et reste à saisir dans chaque fiche : {}.", aucune, reste.join(" ; ")) }
-        ));
-    }
-    // Le dossier, fichier par fichier.
-    let total = n(&v["tri"], "total");
-    if v["tri"].is_object() {
-        v["tri"]["dit"] = json!(format!("{} fichier{} dans {}", total, s(total), super::mot(&v["tri"]["dossier"])));
-        // Chaque fichier : d'ou il vient (une copie, une archive), ses pages, et ou se lit l'ecart d'une page.
-        for f in v["tri"]["fichiers"].as_array_mut().into_iter().flatten() {
-            let chemin = super::mot(&f["chemin"]);
-            f["de_dit"] = if vrai(&f["doublon_de"]) {
-                json!(format!("(copie de {})", super::mot(&f["doublon_de"])))
-            } else if vrai(&f["archive"]) {
-                json!(format!("(dans {})", super::mot(&f["archive"])))
-            } else {
-                Value::Null
-            };
-            let nb = f["pages"].as_array().map_or(0, Vec::len);
-            f["pages_dit"] = json!(format!("{} pages", nb));
-            for p in f["pages"].as_array_mut().into_iter().flatten() {
-                let page = super::mot(&p["page"]);
-                let mois = super::mot(&p["mois"]);
-                p["page_dit"] = json!(if mois.is_empty() { format!("page {}", page) } else { format!("page {} ({})", page, socle::mois::Mois::en_clair(&mois)) });
-                p["ou_dit"] = json!(if nb > 1 { format!("{}, page {}", chemin, page) } else { chemin.clone() });
-                for e in p["ecarts"].as_array_mut().into_iter().flatten() {
-                    let champ = super::mot(&e["champ"]);
-                    e["champ_dit"] = json!(match champ.as_str() {
-                        "brut" => "brut",
-                        "net_imposable" => "net imposable",
-                        "net_a_payer" => "net à payer",
-                        "pas" => "prélèvement à la source",
-                        autre => autre,
-                    });
-                }
-            }
-        }
-    }
-    v["titre_dit"] = json!(if ecrit { "Repris" } else { "Serait repris" });
-    // Ce que le bouton reprendrait.
-    let a_ecrire = |f: &Value| f["etat"] == "a_creer" || (f["etat"] == "existante" && f["completer"].as_object().is_some_and(|o| !o.is_empty()));
-    let compte = |k: &str| v[k].as_array().into_iter().flatten().filter(|f| a_ecrire(f)).count() as u64;
-    let (ns, nsp) = (compte("salaries"), compte("spectacles"));
-    let nc = n(v, "contrats_nouveaux") + n(&b, "contrats_nouveaux");
-    let np = n(&b, "paies_nouvelles") + n(&b, "paies_completees");
-    let quoi: Vec<String> = [
-        if a_ecrire(&v["entreprise"]) { "la fiche de la compagnie".to_string() } else { String::new() },
-        n_mots(ns, "salarié"), n_mots(nsp, "spectacle"), n_mots(nc, "contrat"), n_mots(np, "bulletin"),
-    ].into_iter().filter(|x| !x.is_empty()).collect();
-    v["reprendre"] = json!(quoi.join(", "));
-    // Ce que chaque fiche recoit, ou ce qu'une piece disait autrement.
-    for k in ["salaries", "spectacles"] {
-        for f in v[k].as_array_mut().into_iter().flatten() {
-            dire_la_fiche(f);
-        }
-    }
-    dire_la_fiche(&mut v["entreprise"]);
-}
-
-/// Une fiche reprise : d'ou elle vient (`lu_dans_dit`), chaque case qu'une piece remplit (`completer.*.dit`) et chaque
-/// ecart d'une piece (`ecarts.*.dit`) ; la fiche fait foi.
-fn dire_la_fiche(f: &mut Value) {
-    if !f.is_object() {
-        return;
-    }
-    if f["lu_dans"].is_object() {
-        f["lu_dans_dit"] = json!(format!("Lu dans {}", origine(&f["lu_dans"])));
-    }
-    let completee = f["etat"] == "completee";
-    for (champ, e) in f["completer"].as_object_mut().into_iter().flatten() {
-        let valeur = match &e["valeur"] {
-            Value::Array(l) => l.iter().map(|x| if let Value::Object(o) = x { o.values().map(super::mot).collect::<Vec<_>>().join(" ") } else { super::mot(x) }).collect::<Vec<_>>().join(", "),
-            Value::Object(o) => o.iter().map(|(k, x)| format!("{} {}", k, super::mot(x))).collect::<Vec<_>>().join(", "),
-            autre => super::mot(autre),
-        };
-        e["dit"] = json!(format!("{} « {} », lu dans {} : la case était vide", if completee { "a reçu" } else { "recevra" }, valeur, origine(e)));
-        let _ = champ;
-    }
-    for (_, e) in f["ecarts"].as_object_mut().into_iter().flatten() {
-        let fichier = format!("{}{}", super::mot(&e["fichier"]), if super::mot(&e["page"]).is_empty() { String::new() } else { format!(", page {}", super::mot(&e["page"])) });
-        let (ou, lu) = if e.get("certificat").is_some() {
-            (format!("le certificat ({}) disait", fichier), super::mot(&e["certificat"]))
-        } else if e.get("aem").is_some() {
-            (format!("l'AEM ({}) disait", fichier), super::mot(&e["aem"]))
-        } else if e.get("bulletin").is_some() {
-            (format!("le bulletin ({}) disait", fichier), super::mot(&e["bulletin"]))
-        } else {
-            (format!("la DSN {} disait", socle::texte::de(&socle::mois::Mois::en_clair(&super::mot(&e["mois"])))), super::mot(&e["dsn"]))
-        };
-        e["dit"] = json!(format!("{} « {} », la fiche dit « {} » : la fiche fait foi", ou, lu, super::mot(&e["fiche"])));
     }
 }

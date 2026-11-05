@@ -882,15 +882,16 @@ pub enum Refus {
 }
 
 impl Refus {
-    pub fn code(&self) -> &'static str {
+    pub fn code(&self) -> crate::import::reponse::Sort {
+        use crate::import::reponse::Sort;
         match self {
-            Refus::SansTexte(_) => "sans_texte",
-            Refus::SansEntetes(_) => "sans_entetes",
-            Refus::Ambigu(_) => "ambigu",
-            Refus::Annexe => "annexe",
-            Refus::LibelleInconnu(_) => "libelle_inconnu",
-            Refus::Incomplet(_) => "incomplet",
-            Refus::Incoherent(_) => "incoherent",
+            Refus::SansTexte(_) => Sort::SansTexte,
+            Refus::SansEntetes(_) => Sort::SansEntetes,
+            Refus::Ambigu(_) => Sort::Ambigu,
+            Refus::Annexe => Sort::Annexe,
+            Refus::LibelleInconnu(_) => Sort::LibelleInconnu,
+            Refus::Incomplet(_) => Sort::Incomplet,
+            Refus::Incoherent(_) => Sort::Incoherent,
         }
     }
 
