@@ -7,9 +7,10 @@
 //! range par libelle.
 
 use serde::Deserialize;
-use socle::fichiers::{dossier_du_code, lire_json, repr, signature};
+use socle::echec::APart;
+use socle::fichiers::{dossier_du_code, repr, signature};
 use socle::num::Resultat;
-use serde_json::{Map, Value};
+use crate::fiche::{Case, ChampsRubrique, Datee, FicheDatee, RubriqueDatee, VoirListe};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -145,33 +146,33 @@ impl Rubrique {
                 repr(code), repr(&self.nature), joindre(&NATURES)));
         }
         if !COMPTE_POUR.contains(&self.compte_pour.as_str()) {
-            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
+            return Err(mal_decrite(code, format!(
                 "Rubrique {} : compte_pour {} inconnu. Connus : {}.",
-                repr(code), repr(&self.compte_pour), joindre(&COMPTE_POUR))})));
+                repr(code), repr(&self.compte_pour), joindre(&COMPTE_POUR))));
         }
         if self.source.is_empty() {
-            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
+            return Err(mal_decrite(code, format!(
                 "Rubrique {} : `source` est vide. Une rubrique dit d'ou vient \
-                 sa regle, sinon personne ne pourra la verifier.", repr(code))})));
+                 sa regle, sinon personne ne pourra la verifier.", repr(code))));
         }
         if self.conges_spectacles && !self.soumis {
-            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
+            return Err(mal_decrite(code, format!(
                 "Rubrique {} : `conges_spectacles` sans `soumis`. Les Conges \
                  Spectacles sont une cotisation : leur assiette ne peut pas \
-                 depasser ce qui entre dans l'assiette des cotisations.", repr(code))})));
+                 depasser ce qui entre dans l'assiette des cotisations.", repr(code))));
         }
         if self.heures_forfait.is_some() && self.unite == "heure" {
-            return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
+            return Err(mal_decrite(code, format!(
                 "Rubrique {} : `heures_forfait` sur une rubrique dont l'unite \
                  est l'heure. Les heures y sont un fait, pas un forfait : \
-                 elles compteraient deux fois.", repr(code))})));
+                 elles compteraient deux fois.", repr(code))));
         }
         if let Some(c) = &self.dsn_autres_bruts {
             if !AUTRES_BRUTS.iter().any(|(k, _)| k == c) {
-                return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
+                return Err(mal_decrite(code, format!(
                     "Rubrique {} : `dsn_autres_bruts` vaut {}, qui n'est pas une \
                      valeur de S21.G00.54.001. Voir AUTRES_BRUTS, releve dans le \
-                     cahier technique NEODeS 2026.1.", repr(code), repr(c))})));
+                     cahier technique NEODeS 2026.1.", repr(code), repr(c))));
             }
         }
         Ok(())
@@ -185,14 +186,14 @@ impl Rubrique {
             "frais" => Ok(HorsAssiette::Frais),
             "indemnite" => Ok(HorsAssiette::Revenu),
             "retenue" => Ok(HorsAssiette::Mouvement),
-            autre => Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(&self.code)), serde_json::json!({"detail": format!(
+            autre => Err(mal_decrite(&self.code, format!(
                 "Rubrique {} : hors assiette (`soumis` faux) et de nature {}. Le montant net social \
                  (S21.G00.58.004, bulletin) ne sait pas si cette ligne est un revenu, un remboursement de frais \
                  ou un mouvement de tresorerie, et ne le devine pas. Hors assiette, la nature doit etre `frais` \
                  (remboursement de frais professionnels : hors du montant net social), `indemnite` (une somme \
                  versee a l'occasion du travail, exoneree ou non : dans le montant net social) ou `retenue` \
                  (acompte, avance, saisie : hors du montant net social).",
-                repr(&self.code), repr(autre))}))),
+                repr(&self.code), repr(autre)))),
         }
     }
 
@@ -268,16 +269,13 @@ impl Rubrique {
 
 // ------------------------------------------------------------------- lecture
 
-/// Un fichier absent est un dictionnaire vide.
-fn lire(p: &Path) -> Resultat<Value> {
-    if !socle::fichiers::existe(p) {
-        return Ok(Value::Object(Map::new()));
-    }
-    lire_json(p)
+/// Le refus d'une rubrique qui ne se construit pas : la phrase, et ce qui ne va pas a part.
+fn mal_decrite(code: &str, detail: String) -> String {
+    socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), APart { detail: Some(detail), ..APart::default() })
 }
 
 /// `rubriques-base.json`, entier : ses notes, les annexes VIII et X, les rubriques livrees (chacune une fiche que la
-/// compagnie peut ajuster champ par champ, lue par `FicheDeRubrique` une fois ajustee).
+/// compagnie peut ajuster case par case, `ChampsRubrique`).
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Base {
@@ -295,7 +293,7 @@ struct Base {
     _deux_compteurs: String,
     annexes: Annexes,
     #[serde(deserialize_with = "socle::forme::en_ordre")]
-    rubriques: Vec<(String, Map<String, Value>)>,
+    rubriques: Vec<(String, ChampsRubrique)>,
 }
 
 /// Le seuil et la fenetre des annexes VIII et X (`rubriques-base.json`, `annexes`).
@@ -312,8 +310,8 @@ pub struct Annexes {
 
 /// LA SEULE LECTURE DE `rubriques-base.json` : sa forme.
 fn base() -> Resultat<Base> {
-    socle::forme::lire(
-        &lire_json(&dossier_du_code().join("rubriques-base.json"))?,
+    socle::forme::lire_fichier(
+        &dossier_du_code().join("rubriques-base.json"),
         "Les rubriques livrées avec le logiciel ne se lisent pas : le signaler au développeur.",
     )
 }
@@ -323,108 +321,84 @@ pub fn annexes() -> Resultat<Annexes> {
     Ok(base()?.annexes)
 }
 
-/// UNE RUBRIQUE TELLE QU'UN FICHIER L'ECRIT : livree (`rubriques-base.json`), ou la compagnie par-dessus, champ par
-/// champ, a la date lue (`config/rubriques-compagnie.json`). Sa seule lecture : `construire`.
-#[derive(Deserialize)]
+/// `config/rubriques-compagnie.json` : les rubriques propres a la compagnie, chacune une fiche datee (`RubriqueDatee`).
+#[derive(Deserialize, Default)]
 #[serde(deny_unknown_fields)]
-struct FicheDeRubrique {
-    libelle: String,
-    unite: String,
-    nature: String,
-    #[serde(default)]
-    saisie: Vec<String>,
-    soumis: bool,
-    imposable: bool,
-    conges_spectacles: bool,
-    source: String,
-    #[serde(default)]
-    sens: Option<String>,
-    #[serde(default)]
-    heures_forfait: Option<f64>,
-    #[serde(default)]
-    plafond: Option<String>,
-    #[serde(default)]
-    aem: Option<String>,
-    #[serde(default)]
-    dsn_type: Option<String>,
-    #[serde(default)]
-    dsn_autres_bruts: Option<String>,
-    #[serde(default)]
-    annexe: Option<String>,
-    #[serde(default)]
-    plafond_mensuel: Option<i64>,
-    #[serde(default)]
-    plafond_annuel_heures: Option<PlafondAnnuelHeures>,
-    #[serde(default)]
-    compte_pour: Option<String>,
-    #[serde(default)]
-    salaire_de_base: bool,
-    #[serde(default)]
-    retabli: bool,
-    #[serde(default)]
-    suspension: bool,
-    #[serde(default)]
-    arret_de_travail: bool,
-    #[serde(default)]
-    conges_pris: bool,
-    #[serde(default)]
-    dsn_bloc52: Option<String>,
-    #[serde(default)]
-    dit: Option<String>,
+struct RubriquesDeLaCompagnie {
+    #[serde(default, deserialize_with = "socle::forme::en_ordre")]
+    rubriques: Vec<(String, RubriqueDatee)>,
 }
 
-fn construire(code: &str, d: Map<String, Value>, origine: &str) -> Resultat<Rubrique> {
-    let f: FicheDeRubrique =
-        socle::forme::lire(&Value::Object(d), &format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)))?;
+/// Le fichier des rubriques de la compagnie, s'il existe ; absent, il n'en dit aucune.
+fn de_la_compagnie(racine: &Path) -> Resultat<RubriquesDeLaCompagnie> {
+    let p = racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE);
+    if !socle::fichiers::existe(&p) {
+        return Ok(RubriquesDeLaCompagnie::default());
+    }
+    crate::fiche::lire_fichier(&p, &format!("config/{}", RUBRIQUES_COMPAGNIE))
+}
+
+/// LA RUBRIQUE DU CALCUL, construite de ses cases (`ChampsRubrique`), sa seule construction : une case que la rubrique
+/// doit dire, ou qui ne dit pas ce que sa forme attend, se refuse en la nommant.
+fn construire(code: &str, f: ChampsRubrique, origine: &str) -> Resultat<Rubrique> {
+    let faute = |cle: &str, quoi: &str| mal_decrite(code, format!("Rubrique {} : `{}` {}.", repr(code), cle, quoi));
+    fn dite<T>(c: Case<T>, cle: &str, faute: &dyn Fn(&str, &str) -> String) -> Resultat<T> {
+        match c {
+            Case::Dite(v) => Ok(v),
+            Case::Absente => Err(faute(cle, "manque")),
+            _ => Err(faute(cle, "est vide")),
+        }
+    }
+    fn ou_rien<T>(c: Case<T>, cle: &str, faute: &dyn Fn(&str, &str) -> String) -> Resultat<Option<T>> {
+        match c {
+            Case::Dite(v) => Ok(Some(v)),
+            Case::Absente | Case::Nulle => Ok(None),
+            Case::Vide => Err(faute(cle, "est vide")),
+        }
+    }
+    fn texte(c: Case<String>) -> Option<String> {
+        match c {
+            Case::Dite(t) => Some(t),
+            Case::Vide => Some(String::new()),
+            Case::Absente | Case::Nulle => None,
+        }
+    }
+    let texte_dit = |c: Case<String>, cle: &str| match c {
+        Case::Absente | Case::Nulle => Err(faute(cle, "manque")),
+        c => Ok(c.texte().to_string()),
+    };
+    let oui = |c: Case<bool>, cle: &str| ou_rien(c, cle, &faute).map(|b| b.unwrap_or(false));
     let r = Rubrique {
         code: code.to_string(),
-        libelle: f.libelle,
-        unite: f.unite,
-        nature: f.nature,
-        saisie: f.saisie,
-        soumis: f.soumis,
-        imposable: f.imposable,
-        conges_spectacles: f.conges_spectacles,
-        source: f.source,
-        sens: f.sens.unwrap_or_else(|| "+".into()),
-        heures_forfait: f.heures_forfait,
-        plafond: f.plafond,
-        aem: f.aem,
-        dsn_type: f.dsn_type,
-        dsn_autres_bruts: f.dsn_autres_bruts,
-        annexe: f.annexe,
-        plafond_mensuel: f.plafond_mensuel,
-        plafond_annuel_heures: f.plafond_annuel_heures,
-        compte_pour: f.compte_pour.unwrap_or_else(|| "droits_et_montant".into()),
-        salaire_de_base: f.salaire_de_base,
-        retabli: f.retabli,
-        suspension: f.suspension,
-        arret_de_travail: f.arret_de_travail,
-        conges_pris: f.conges_pris,
-        dsn_bloc52: f.dsn_bloc52,
+        libelle: texte_dit(f.libelle, "libelle")?,
+        unite: texte_dit(f.unite, "unite")?,
+        nature: texte_dit(f.nature, "nature")?,
+        saisie: ou_rien(f.saisie, "saisie", &faute)?.unwrap_or_default(),
+        soumis: dite(f.soumis, "soumis", &faute)?,
+        imposable: dite(f.imposable, "imposable", &faute)?,
+        conges_spectacles: dite(f.conges_spectacles, "conges_spectacles", &faute)?,
+        source: texte_dit(f.source, "source")?,
+        sens: texte(f.sens).unwrap_or_else(|| "+".into()),
+        heures_forfait: ou_rien(f.heures_forfait, "heures_forfait", &faute)?.map(|m| m.flottant()).transpose()?,
+        plafond: texte(f.plafond),
+        aem: texte(f.aem),
+        dsn_type: texte(f.dsn_type),
+        dsn_autres_bruts: texte(f.dsn_autres_bruts),
+        annexe: texte(f.annexe),
+        plafond_mensuel: ou_rien(f.plafond_mensuel, "plafond_mensuel", &faute)?,
+        plafond_annuel_heures: ou_rien(f.plafond_annuel_heures, "plafond_annuel_heures", &faute)?,
+        compte_pour: texte(f.compte_pour).unwrap_or_else(|| "droits_et_montant".into()),
+        salaire_de_base: oui(f.salaire_de_base, "salaire_de_base")?,
+        retabli: oui(f.retabli, "retabli")?,
+        suspension: oui(f.suspension, "suspension")?,
+        arret_de_travail: oui(f.arret_de_travail, "arret_de_travail")?,
+        conges_pris: oui(f.conges_pris, "conges_pris")?,
+        dsn_bloc52: texte(f.dsn_bloc52),
         origine: origine.to_string(),
-        dit: f.dit,
+        dit: texte(f.dit),
     };
     r.verifier()?;
     Ok(r)
-}
-
-/// Les rubriques propres a la compagnie (`config/rubriques-compagnie.json`, `{"rubriques": {code: fiche}}`), chacune une
-/// fiche datee comme toute la configuration (`contexte::fiche_au`), lues a `jour` : une rubrique changee a une date ne
-/// change pas les paies d'avant. Une fiche qui ne dit encore rien a `jour` n'existe pas.
-fn propres_au(racine: &Path, jour: &Jour) -> Resultat<Vec<(String, Map<String, Value>)>> {
-    let propres = lire(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE))?;
-    let mut out = Vec::new();
-    if let Some(Value::Object(m)) = propres.get("rubriques") {
-        for (c, v) in m {
-            let f = crate::contexte::fiche_au(v, jour, &format!("config/{}, {}", RUBRIQUES_COMPAGNIE, c))?;
-            if crate::contexte::fiche_vide(&f) {
-                continue;
-            }
-            out.push((c.clone(), f.as_object().cloned().unwrap_or_default()));
-        }
-    }
-    Ok(out)
 }
 
 /// Le fichier des rubriques propres a la compagnie, sous `config/`.
@@ -432,29 +406,34 @@ pub const RUBRIQUES_COMPAGNIE: &str = "rubriques-compagnie.json";
 
 /// Une rubrique de la compagnie a-t-elle une valeur datee ? Sinon le catalogue est le meme a toute date.
 fn rubriques_datees(racine: &Path) -> Resultat<bool> {
-    let propres = lire(&racine.join(socle::fichiers::CONFIG).join(RUBRIQUES_COMPAGNIE))?;
-    Ok(propres.get("rubriques").and_then(Value::as_object).is_some_and(|m| {
-        m.values()
-            .filter_map(Value::as_object)
-            .flat_map(|f| f.values())
-            .filter_map(Value::as_array)
-            .flatten()
-            .any(|e| e.get("depuis").is_some_and(|d| !d.is_null()))
-    }))
+    struct UneDatee(bool);
+    impl VoirListe for UneDatee {
+        fn liste<T: serde::Serialize>(&mut self, _: &'static str, liste: &[Datee<T>]) {
+            self.0 |= liste.iter().any(|e| e.depuis.is_some());
+        }
+    }
+    let mut datee = UneDatee(false);
+    for (_, r) in de_la_compagnie(racine)?.rubriques {
+        r.voir_listes(&mut datee);
+    }
+    Ok(datee.0)
 }
 
+/// LE CATALOGUE A `jour` : les rubriques livrees, chacune sous les cases que la compagnie en dit a cette date, puis les
+/// siennes (`config/rubriques-compagnie.json`, datees comme toute la configuration : une rubrique changee a une date ne
+/// change pas les paies d'avant ; une rubrique qui ne dit encore rien a `jour` n'existe pas).
 fn construire_catalogue(racine: &Path, jour: &Jour) -> Resultat<Vec<Rubrique>> {
-    // code -> (champs, propre a la compagnie)
-    let mut brut: Vec<(String, Map<String, Value>, bool)> = base()?.rubriques.into_iter().map(|(c, v)| (c, v, false)).collect();
+    // code -> (cases, propre a la compagnie)
+    let mut brut: Vec<(String, ChampsRubrique, bool)> = base()?.rubriques.into_iter().map(|(c, v)| (c, v, false)).collect();
     if socle::fichiers::est_dossier(racine) {
-        for (c, v) in propres_au(racine, jour)? {
-            if let Some(e) = brut.iter_mut().find(|e| e.0 == c) {
-                // ajustement d'une rubrique de base
-                for (k, x) in v {
-                    e.1.insert(k, x);
-                }
-            } else {
-                brut.push((c, v, true));
+        for (c, datee) in de_la_compagnie(racine)?.rubriques {
+            let v = datee.au(jour);
+            if v.est_vide() {
+                continue;
+            }
+            match brut.iter_mut().find(|e| e.0 == c) {
+                Some(e) => e.1.par_dessus(&v),
+                None => brut.push((c, v, true)),
             }
         }
     }

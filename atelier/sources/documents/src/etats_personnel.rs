@@ -66,7 +66,7 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
             out.push(ContratMois {
                 mois: m.clone(),
                 cle: paie.salarie.id.to_string(),
-                fiche: paie.salarie.champs.en_valeur(),
+                fiche: socle::ecriture::en_valeur(&paie.salarie.champs),
                 nationalite: paie.salarie.champs.nationalite(),
                 salarie: qui(&paie.salarie)?,
                 contrat: e.numero.as_deref().unwrap_or_default().to_string(),
@@ -229,7 +229,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 /// demande a l'ouverture du dossier. Pas de periode : ce sont les fiches d'aujourd'hui.
 pub fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // Les colonnes nomment les cases de la fiche : elle se lit ici en JSON.
-    let mut fiches: Vec<(String, Value)> = ctx.salaries.iter().map(|(k, f)| (k.to_string(), f.champs.en_valeur())).collect();
+    let mut fiches: Vec<(String, Value)> = ctx.salaries.iter().map(|(k, f)| (k.to_string(), socle::ecriture::en_valeur(&f.champs))).collect();
     fiches.sort_by(|a, b| a.0.cmp(&b.0));
     let mut lignes = Vec::new();
     for (cle, f) in &fiches {

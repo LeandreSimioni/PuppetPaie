@@ -11,7 +11,7 @@ use std::path::Path;
 /// refuse.
 #[test]
 fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
-    use droit::contexte::{dater, fiche_au, fiche_datee};
+    use droit::fiche::{lire_champs, ChampsEntreprise, ChampsSalarie, FicheDatee, FicheEntrepriseDatee, FicheSalarieDatee};
     use socle::date::Jour;
     let racine = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("configuration-datee-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&racine);
@@ -19,15 +19,17 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     let j = |s: &str| Jour::lire(s).unwrap();
     let plate = json!({"raison_sociale": "CIE DATEE", "idcc": "3090", "annexe_convention": "4", "adresse": "21 RUE DU PORT",
                        "premiere_embauche": "2026-01-01"});
-    let mut ent = fiche_datee(plate.as_object().unwrap());
-    dater(&mut ent, "idcc", json!("1285"), Some(&j("2026-11-01")), Some("passage en CCNEAC"));
-    dater(&mut ent, "annexe_convention", json!(""), Some(&j("2026-11-01")), None);
-    dater(&mut ent, "adresse", json!("8 PLACE DU MARCHE"), Some(&j("2026-11-01")), None);
-    let mut sal = fiche_datee(json!({"nom": "BRIOCHE", "prenom": "FANCHON"}).as_object().unwrap());
-    dater(&mut sal, "emploi", json!("COMEDIENNE"), Some(&j("2026-10-15")), None);
+    let e = |v: Value| lire_champs::<ChampsEntreprise>(&v, "la fiche").unwrap();
+    let mut ent = FicheEntrepriseDatee::neuve(&e(plate));
+    assert!(ent.dater("idcc", &e(json!({"idcc": "1285"})), Some(&j("2026-11-01")), Some("passage en CCNEAC")));
+    assert!(ent.dater("annexe_convention", &e(json!({"annexe_convention": ""})), Some(&j("2026-11-01")), None));
+    assert!(ent.dater("adresse", &e(json!({"adresse": "8 PLACE DU MARCHE"})), Some(&j("2026-11-01")), None));
+    let s = |v: Value| lire_champs::<ChampsSalarie>(&v, "la fiche").unwrap();
+    let mut sal = FicheSalarieDatee::neuve(&s(json!({"nom": "BRIOCHE", "prenom": "FANCHON"})));
+    assert!(sal.dater("emploi", &s(json!({"emploi": "COMEDIENNE"})), Some(&j("2026-10-15")), None));
     let ecrire = |rel: &str, v: Value| std::fs::write(racine.join("config").join(rel), v.to_string()).unwrap();
-    ecrire("entreprise.json", Value::Object(ent));
-    ecrire("salaries.json", json!({ "BRIOCHE": sal }));
+    ecrire("entreprise.json", socle::ecriture::en_valeur(&ent));
+    ecrire("salaries.json", json!({ "BRIOCHE": socle::ecriture::en_valeur(&sal) }));
     ecrire("spectacles.json", json!({}));
     std::fs::create_dir_all(racine.join("config").join("baremes")).unwrap();
     ecrire("baremes/2026.json", json!({"annee": 2026, "socle": 2026, "taux_atmp": {"valeur": 1.25, "code_risque": "923AD"}}));
@@ -46,7 +48,7 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     assert_eq!(ctx.au(&j("2020-03-01")).unwrap().salaries["BRIOCHE"].emploi.texte(), "COMEDIENNE");
     assert_eq!(ctx.entreprise_au(&j("2019-01-01")).idcc.texte(), "3090");
     // Une valeur non datee se refuse, et la phrase dit quoi faire.
-    let e = fiche_au(&json!({"idcc": "3090"}), &j("2026-10-01"), "config/entreprise.json").unwrap_err();
-    assert!(e.contains("`idcc`") && e.contains("Ajouter une compagnie"), "{}", e);
+    let e = lire_champs::<FicheEntrepriseDatee>(&json!({"idcc": "3090"}), "config/entreprise.json").unwrap_err();
+    assert!(e.contains("« idcc »") && e.contains("Ajouter une compagnie"), "{}", e);
     std::fs::remove_dir_all(&racine).unwrap();
 }

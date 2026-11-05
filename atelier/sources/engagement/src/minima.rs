@@ -469,8 +469,8 @@ impl<'a> Cx<'a> {
         // Les conditions nomment les cases du spectacle, de la fiche entreprise et de celle du salarie.
         for (k, case) in [
             ("si_spectacle", &(|cl: &str| Some(g(&self.paie.spectacle, cl).clone())) as &dyn Fn(&str) -> Option<Value>),
-            ("si_entreprise", &|cl: &str| self.ent.case(cl)),
-            ("si_salarie", &|cl: &str| self.fiche.case(cl)),
+            ("si_entreprise", &|cl: &str| droit::fiche::case_en(self.ent, cl, serde_json::value::Serializer).and_then(Result::ok)),
+            ("si_salarie", &|cl: &str| droit::fiche::case_en(&self.fiche.champs, cl, serde_json::value::Serializer).and_then(Result::ok)),
         ] {
             for (cl, v) in g(c, k).as_object().into_iter().flatten() {
                 if !vaut(v, &case(cl).unwrap_or(Value::Null)) {
@@ -481,7 +481,7 @@ impl<'a> Cx<'a> {
         let a = g(c, "anciennete");
         if vrai(a) {
             let champ = en_texte(cle(a, "champ")?);
-            let ans = ans_revolus(&self.fiche.case(&champ).unwrap_or(Value::Null), jour_de_paie(self.paie).as_deref());
+            let ans = ans_revolus(&droit::fiche::case_en(&self.fiche.champs, &champ, serde_json::value::Serializer).and_then(Result::ok).unwrap_or(Value::Null), jour_de_paie(self.paie).as_deref());
             match ans {
                 Some(n) if (n as f64) >= cle(a, "ans")?.as_f64().ok_or("nombre attendu")? => {}
                 _ => return Ok(false),

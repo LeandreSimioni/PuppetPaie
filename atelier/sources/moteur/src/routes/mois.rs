@@ -2093,7 +2093,7 @@ fn apercu_de(ctx: &Contexte, data: &VueDuMois) -> R<Calcul> {
     let blocs = vues.iter().map(|v| Some(Trois::de(&[v]))).collect();
     let mut salaries: Vec<(String, String, Vec<&VuePaie>)> = Vec::new();
     for (v, p) in vues.iter().zip(&paies) {
-        let cle = format!("{}|{}", en_texte(&v.salarie.nom.en_valeur()), en_texte(&v.salarie.prenom.en_valeur()));
+        let cle = format!("{}|{}", en_texte(&socle::ecriture::en_valeur(&v.salarie.nom)), en_texte(&socle::ecriture::en_valeur(&v.salarie.prenom)));
         match salaries.iter_mut().find(|(c, _, _)| *c == cle) {
             Some((_, _, vs)) => vs.push(v),
             None => salaries.push((cle, super::nom_a_l_ecran(&p.salarie), vec![v])),

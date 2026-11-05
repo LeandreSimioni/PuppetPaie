@@ -25,7 +25,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{json, Value};
+use serde_json::json;
 
 use droit::contexte::Contexte;
 use engagement::importe::Importe;
@@ -90,8 +90,7 @@ fn jours_payes(i: &Importe) -> (String, String) {
 /// Le nom d'un salarié à l'écran, tel que sa fiche le porte aujourd'hui ; sa clé à défaut (pas de fiche, ou un fichier
 /// des salariés qui ne se lit pas : ce que l'import dit n'en dépend pas).
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
-    let fiches = crate::routes::lire_json_ou_vide(&racine.join(droit::contexte::SALARIES)).unwrap_or(Value::Null);
-    let lues = droit::fiche::lire_salaries(&fiches, droit::contexte::SALARIES).ok();
+    let lues = droit::fiche::lire_fichier::<droit::fiche::Salaries>(&racine.join(droit::contexte::SALARIES), droit::contexte::SALARIES).ok();
     lues.and_then(|s| s.fiches.get(cle).and_then(|f| f.au(&socle::temps::jour_de_paris()).nomme())).unwrap_or_else(|| cle.to_string())
 }
 

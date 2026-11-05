@@ -224,7 +224,7 @@ fn ajouter_les_fiches(ctx: &Contexte, c: &mut Connus) {
     };
     for (_, f) in &ctx.salaries {
         // Les cases que le releve compare se nomment (`ParCase`).
-        let t = |k: &str| f.champs.case(k).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
+        let t = |k: &str| droit::fiche::case_en(&f.champs, k, serde_json::value::Serializer).and_then(Result::ok).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
         for k in ["nom", "nom_affichage"] {
             pousser(&mut c.noms, t(k));
         }

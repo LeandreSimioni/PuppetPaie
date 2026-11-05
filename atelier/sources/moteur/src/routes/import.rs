@@ -155,7 +155,7 @@ pub(crate) fn titre_de(v: Option<&Value>) -> String {
 }
 
 /// Les champs DECLARES que la DSN disait autrement que la fiche.
-fn ecarts(nom: &str, fiche: &dyn droit::fiche::ParCase, declare: &Map<String, Value>, mois: &str) -> R<Vec<Ecart>> {
+fn ecarts(nom: &str, fiche: &dyn declarations::champs::ParCase, declare: &Map<String, Value>, mois: &str) -> R<Vec<Ecart>> {
     let mut out = Vec::new();
     for c in declarations::champs::fiche(nom)? {
         let Some(b) = declare.get(&c.cle).filter(|_| c.declare) else { continue };

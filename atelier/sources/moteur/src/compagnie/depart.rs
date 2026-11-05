@@ -817,7 +817,7 @@ fn numero_en_nom(n: &str) -> String {
 /// l'entreprise, et le spectacle de chaque paie dont la nature declare un numero d'objet (S21.G00.40.050, la marque des
 /// annexes VIII et X) ; tout ce qui manque, d'un coup, avant que rien ne s'ecrive.
 fn exiges_des_bulletins<'a>(ent: &droit::fiche::ChampsEntreprise, paies: impl Iterator<Item = &'a Paie>) -> R<()> {
-    let mut fiches: Vec<(&str, String, &dyn droit::fiche::ParCase)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+    let mut fiches: Vec<(&str, String, &dyn declarations::champs::ParCase)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
     let mut spectacles: Vec<&Value> = Vec::new();
     for p in paies {
         if !p.engagement.nat().map_err(valeur)?.ecrit("S21.G00.40.050") || spectacles.contains(&&p.spectacle) {

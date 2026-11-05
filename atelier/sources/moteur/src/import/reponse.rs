@@ -4,7 +4,7 @@
 //! (`Importation::dire`, une fois tout ecrit).
 //!
 //! Restent des formes ouvertes : ce que porte une fiche (`donnees`, la case de la fiche d'un ecart : les cases de
-//! `champs-base.json`, lues par `droit::fiche::ParCase`) et ses anomalies (`declarations::champs::verifier_fiche`).
+//! `champs-base.json`, lues par `declarations::champs::ParCase`) et ses anomalies (`declarations::champs::verifier_fiche`).
 
 use serde::Serialize;
 use serde_json::{Map, Value};

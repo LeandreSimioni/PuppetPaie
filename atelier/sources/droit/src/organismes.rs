@@ -15,17 +15,19 @@
 //! `affiliations_par_nature.permanent.references` a `null`, et la DSN refuse le permanent (`dsn::affiliations`), pas la
 //! compagnie.
 //!
-//! `config/organismes.json` est DATE comme toute la configuration (`contexte::fiche_au`) : sa cle
+//! `config/organismes.json` est DATE comme toute la configuration (`fiche::dater`) : sa cle
 //! `adhesions_prevoyance` est une liste `{depuis, valeur}`. Les identifiants d'adhesion (S21.G00.15.005) ne bougent
 //! jamais : relus dans le fichier, et un identifiant nouveau n'en reprend aucun qu'une autre periode porte.
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use socle::date::{en_texte, Jour};
 use socle::fichiers::{lire_json, vrai};
 use socle::num::Resultat;
 
-use crate::contexte::{fiche_au, toutes_les_valeurs, Contexte, ORGANISMES};
+use crate::contexte::{Contexte, ORGANISMES};
+use crate::fiche::Datee;
 
 /// Audiens, delegataire des contrats de branche du spectacle (S21.G00.15.002).
 const AUDIENS: &str = "P0983";
@@ -53,29 +55,66 @@ pub fn base(ctx: &Contexte) -> Resultat<Value> {
     lire_json(&ctx.code.join("organismes-base.json"))
 }
 
+/// `config/organismes.json` : ce que la compagnie a saisi (Configuration › Organismes et contrats), date. Ecrit par
+/// `moteur::compagnie::organismes`, lu par `saisis`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FichierOrganismes {
+    #[serde(rename = "_quoi", default, skip_serializing_if = "Option::is_none")]
+    pub quoi: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub adhesions_prevoyance: Vec<Datee<Vec<Adhesion>>>,
+}
+
+/// UNE ADHESION DE PREVOYANCE OU DE SANTE (bloc S21.G00.15) : le contrat (`cle`), sa reference (15.001), l'organisme
+/// (15.002), son type (15.003), son identifiant (15.005), et ses dates.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Adhesion {
+    pub cle: String,
+    pub libelle: String,
+    pub delegataire: String,
+    pub r#type: String,
+    pub reference: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contribution: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub depuis: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jusqu_a: Option<String>,
+}
+
+/// LA LECTURE DE `config/organismes.json`, la seule ; absent, il ne dit rien.
+pub fn fichier_organismes(ctx: &Contexte) -> Resultat<FichierOrganismes> {
+    let p = ctx.racine.join(socle::fichiers::CONFIG).join(ORGANISMES);
+    if !p.is_file() {
+        return Ok(FichierOrganismes::default());
+    }
+    crate::fiche::lire_fichier(&p, &format!("config/{}", ORGANISMES))
+}
+
 /// Ce que la compagnie a saisi, a la date du contexte (`{"adhesions_prevoyance": [...]}`, ou `{}` si rien), et les
 /// identifiants d'adhesion qu'une periode quelconque du fichier porte. Le fichier ne porte que ce qu'aucun texte ne
 /// donne : de lui ne se lisent que les adhesions, et une adhesion qui recopie un contrat qu'un texte donne entier
 /// (`donnes_par_un_texte`) n'est pas une saisie, sous quelque convention qu'on lise. Son identifiant reste pris : il a
 /// pu partir dans une DSN.
 pub fn saisis(ctx: &Contexte) -> Resultat<(Value, Vec<u32>)> {
-    let p = ctx.racine.join(socle::fichiers::CONFIG).join(ORGANISMES);
-    if !p.is_file() {
-        return Ok((json!({}), Vec::new()));
-    }
-    let brut = lire_json(&p)?;
-    let prises = toutes_les_valeurs(brut.get("adhesions_prevoyance"))
-        .into_iter()
-        .flat_map(liste)
-        .filter_map(|a| txt(g(&a, "reference")).parse::<u32>().ok())
+    let fichier = fichier_organismes(ctx)?;
+    let prises = fichier
+        .adhesions_prevoyance
+        .iter()
+        .flat_map(|e| e.valeur.dite().into_iter().flatten())
+        .filter_map(|a| a.reference.trim().parse::<u32>().ok())
         .collect();
-    let au = fiche_au(&brut, &ctx.lue_au, &format!("config/{}", ORGANISMES))?;
+    let au = crate::fiche::valeur_au(&fichier.adhesions_prevoyance, &ctx.lue_au);
     let textes = donnes_par_un_texte(ctx)?;
-    let adhesions: Vec<Value> = liste(g(&au, "adhesions_prevoyance"))
+    let adhesions: Vec<&Adhesion> = au
+        .dite()
         .into_iter()
+        .flatten()
         .filter(|a| {
-            let libelle = txt(g(a, "libelle")).to_uppercase();
-            let contribution = txt(g(a, "contribution")).to_uppercase();
+            let libelle = a.libelle.trim().to_uppercase();
+            let contribution = a.contribution.as_deref().unwrap_or("").trim().to_uppercase();
             !textes.contains(&libelle) && !(!contribution.is_empty() && libelle == contribution)
         })
         .collect();

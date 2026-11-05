@@ -249,14 +249,14 @@ fn valeur_vraie_en_texte(v: &Value) -> Option<String> {
     }
 }
 
-/// Un fichier de `prive/config/` : `None` s'il n'y est pas ; une erreur s'il y est sans se lire.
-fn lire_config(cfg: &Path, nom: &str) -> R<Option<Value>> {
+/// Un fichier de `prive/config/`, lu par sa forme (`droit::fiche::lire_fichier`) : `None` s'il n'y est pas ; une erreur
+/// s'il y est sans se lire.
+fn lire_config<T: serde::de::DeserializeOwned>(cfg: &Path, nom: &str) -> R<Option<T>> {
     let p = cfg.join(nom);
     if !p.exists() {
         return Ok(None);
     }
-    let t = std::fs::read_to_string(&p).map_err(|e| format!("prive/config/{} illisible ({})", nom, e))?;
-    serde_json::from_str(&t).map(Some).map_err(|e| format!("prive/config/{} illisible ({})", nom, e))
+    droit::fiche::lire_fichier(&p, &format!("prive/config/{}", nom)).map(Some)
 }
 
 fn objet<'a>(v: &'a Value, quoi: &str) -> R<&'a serde_json::Map<String, Value>> {
@@ -282,15 +282,16 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
     if !cfg.is_dir() {
         return Ok(Vec::new());
     }
-    if let Some(ent) = lire_config(&cfg, "entreprise.json")? {
-        let ent = objet(&ent, "prive/config/entreprise.json")?;
-        // Toute valeur qu'une fiche datee a portee, a quelque date que ce soit (`contexte::toutes_les_valeurs`).
+    use crate::routes::fiches::{portees, valeurs_portees};
+    if let Some(ent) = lire_config::<droit::fiche::FicheEntrepriseDatee>(&cfg, "entreprise.json")? {
+        // Toute valeur qu'une fiche datee a portee, a quelque date que ce soit (`routes::fiches::portees`).
+        let ent = portees(&ent);
         for cle in CLES_ENTREPRISE {
-            for v in droit::contexte::toutes_les_valeurs(ent.get(cle)).into_iter().filter_map(valeur_vraie_en_texte) {
+            for v in valeurs_portees(&ent, cle).filter_map(valeur_vraie_en_texte) {
                 poser(v, cle.to_string());
             }
         }
-        for banque in droit::contexte::toutes_les_valeurs(ent.get("banque")).into_iter().filter(|b| valeur_vraie_en_texte(b).is_some()) {
+        for banque in valeurs_portees(&ent, "banque").filter(|b| valeur_vraie_en_texte(b).is_some()) {
             let banque = objet(banque, "prive/config/entreprise.json : banque")?;
             for cle in ["iban", "bic"] {
                 if let Some(v) = banque.get(cle).and_then(valeur_vraie_en_texte) {
@@ -299,20 +300,17 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
             }
         }
     }
-    if let Some(sal) = lire_config(&cfg, "salaries.json")? {
-        for (k, s) in objet(&sal, "prive/config/salaries.json")? {
-            if k.starts_with('_') {
-                continue;
-            }
-            let s = objet(s, "une fiche de prive/config/salaries.json")?;
+    if let Some(sal) = lire_config::<droit::fiche::Salaries>(&cfg, "salaries.json")? {
+        for s in sal.fiches.values() {
+            let s = portees(s);
             for cle in CLES_SALARIE {
-                for v in droit::contexte::toutes_les_valeurs(s.get(cle)).into_iter().filter_map(valeur_vraie_en_texte) {
+                for v in valeurs_portees(&s, cle).filter_map(valeur_vraie_en_texte) {
                     poser(v, format!("salarie.{}", cle));
                 }
             }
             // Le nom seul est trop courant pour être un motif ; le nom ET le prénom collés le sont beaucoup moins.
-            for nom in droit::contexte::toutes_les_valeurs(s.get("nom")).into_iter().filter_map(valeur_vraie_en_texte) {
-                for prenom in droit::contexte::toutes_les_valeurs(s.get("prenom")).into_iter().filter_map(valeur_vraie_en_texte) {
+            for nom in valeurs_portees(&s, "nom").filter_map(valeur_vraie_en_texte) {
+                for prenom in valeurs_portees(&s, "prenom").filter_map(valeur_vraie_en_texte) {
                     poser(format!("{} {}", nom, prenom), "salarie (identite)".to_string());
                 }
             }

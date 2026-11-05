@@ -51,7 +51,7 @@ use serde_json::{json, Map, Value};
 
 use crate::import::bulletin_lu::{self, BulletinLu, Compteurs, Table};
 use droit::contexte::Contexte;
-use droit::fiche::ParCase;
+use declarations::champs::ParCase;
 use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -550,7 +550,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             // deja garde la valeur de la DSN (`completer::ajouter`).
             let champs = completer::champs_a_completer("salarie", &fiche.champs, &fiche_salarie(nir, &siens, ctx.entreprise.idcc.texte())?)?;
             let entree = fiche_existante(&mut reponse.salaries, "salarie", cle, || {
-                format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&fiche.prenom.en_valeur()).filter(|p| !p.is_null())))
+                format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&socle::ecriture::en_valeur(&fiche.prenom)).filter(|p| !p.is_null())))
             });
             entree.ajouter_ecarts(ec);
             noter_par_champ(entree, &champs, &siens, &chemin_de);
@@ -593,7 +593,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             let fiche = &ctx.salaries[cle.as_str()];
             let champs = completer::champs_a_completer("salarie", &fiche.champs, &proposees)?;
             let entree = fiche_existante(&mut reponse.salaries, "salarie", cle, || {
-                format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&fiche.prenom.en_valeur()).filter(|p| !p.is_null())))
+                format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&socle::ecriture::en_valeur(&fiche.prenom)).filter(|p| !p.is_null())))
             });
             entree.noter(&champs, &origine_cert(dernier));
             completer::ajouter(&mut ap.a_completer, "salarie", Some(cle), &champs);
@@ -1938,7 +1938,7 @@ fn entreprise_du_certificat(p: &Attestee) -> R<Map<String, Value>> {
 /// catalogue que nomme l'emploi du certificat. `None` : rien ne le dit.
 fn statut_de(ctx: &Contexte, par_nir: &HashMap<String, String>, a_creer: &[ACreer], nir: &str, c: &crate::import::certificat_lu::Certificat) -> R<Option<String>> {
     let lu = |v: Option<&Value>| v.filter(|x| vrai(x)).map(valeur_en_texte).filter(|s| !s.trim().is_empty());
-    if let Some(s) = par_nir.get(nir).and_then(|k| lu(ctx.salaries.get(k.as_str()).map(|f| f.statut.en_valeur()).filter(|s| !s.is_null()).as_ref())) {
+    if let Some(s) = par_nir.get(nir).and_then(|k| lu(ctx.salaries.get(k.as_str()).map(|f| socle::ecriture::en_valeur(&f.statut)).filter(|s| !s.is_null()).as_ref())) {
         return Ok(Some(s));
     }
     if let Some(s) = a_creer.iter().filter(|a| a.nom == "salarie" && a.donnees.get("nir").map(valeur_en_texte).as_deref() == Some(nir)).find_map(|a| lu(a.donnees.get("statut"))) {

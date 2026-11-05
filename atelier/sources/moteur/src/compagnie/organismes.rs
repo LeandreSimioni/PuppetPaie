@@ -5,18 +5,18 @@
 //! les contrats que les textes donnent entiers (ceux de toutes les compagnies, ceux de la convention, la CASC-SVP, les
 //! contributions de branche du bareme). Une compagnie qui n'a rien a saisir n'a rien a enregistrer.
 //!
-//! LE FICHIER EST DATE comme toute la configuration (`contexte::fiche_au`) : sa cle `adhesions_prevoyance` est une
+//! LE FICHIER EST DATE comme toute la configuration (`droit::fiche::dater`) : sa cle `adhesions_prevoyance` est une
 //! liste `{depuis, valeur}`. Enregistrer pour un mois ecrit ce qui change a partir du premier jour de ce mois
-//! (`contexte::dater`) ; ce qui precede garde ses contrats. La premiere composition vaut de tout temps. Les identifiants
+//! (`droit::fiche::dater`) ; ce qui precede garde ses contrats. La premiere composition vaut de tout temps. Les identifiants
 //! d'adhesion (S21.G00.15.005) attribues ne bougent plus.
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use droit::organismes::{attendus, base, composer, couvre, ligne, saisis};
 use socle::date::{en_texte, Jour};
 use socle::ecriture::ecrire_json;
-use socle::fichiers::{lire_json, vrai};
+use socle::fichiers::vrai;
 use socle::echec::Echec;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, ILLISIBLE, OPERATION};
@@ -122,17 +122,6 @@ fn chemin(ctx: &Contexte) -> std::path::PathBuf {
     ctx.racine.join(socle::fichiers::CONFIG).join(droit::contexte::ORGANISMES)
 }
 
-/// Le fichier date tel qu'il est sur le disque ; vide s'il n'existe pas.
-fn fichier_date(ctx: &Contexte) -> R<Map<String, Value>> {
-    let p = chemin(ctx);
-    if !p.is_file() {
-        return Ok(Map::new());
-    }
-    match lire_json(&p).map_err(plain)? {
-        Value::Object(m) => Ok(m),
-        _ => Err(plain("config/organismes.json : un objet est attendu.")),
-    }
-}
 
 /// Une ligne se montre-t-elle a cette compagnie ? Un contrat des permanents (`role` : prevoyance ou sante, les
 /// affiliations d'un salarie paye au mois) ne se montre qu'a une compagnie qui en emploie (rien a remplir pour qui
@@ -175,7 +164,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `organismes-enregistrer` : `{"contrats": {cle: {libelle, organisme}}, "mois": "AAAA-MM"}` ; compose les adhesions
 /// du mois (sous la configuration du mois) avec ce qui est saisi, refuse un contrat propose dont la reference manque,
-/// ecrit ce qui change a partir du premier jour du mois (`contexte::dater` : la premiere composition vaut de tout
+/// ecrit ce qui change a partir du premier jour du mois (`droit::fiche::dater` : la premiere composition vaut de tout
 /// temps), et rend la lecture. Ce qui precede le mois ne change pas.
 pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let saisies = g(charge, "contrats").as_object().cloned().unwrap_or_default();
@@ -202,22 +191,22 @@ pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let adhesions = Value::Array(adhesions);
     let (en_vigueur, _) = saisis(&du_mois.au(&periode.0).map_err(plain)?).map_err(plain)?;
     // Le fichier ne garde que la saisie : tout autre cle se recompose des textes (`droit::organismes`).
-    let mut date = fichier_date(ctx)?;
-    date.retain(|k, _| k == "adhesions_prevoyance");
-    date.insert(
-        "_quoi".into(),
-        json!("Ce que la compagnie a saisi dans Configuration › Organismes et contrats, et les identifiants d'adhesion \
+    let mut date = droit::organismes::fichier_organismes(ctx).map_err(plain)?;
+    date.quoi = Some(
+        "Ce que la compagnie a saisi dans Configuration › Organismes et contrats, et les identifiants d'adhesion \
 attribues, date : chaque cle est une liste {depuis, valeur}. Le reste se compose des textes livres a la date de chaque \
-mois. Ne pas modifier a la main."),
+mois. Ne pas modifier a la main."
+            .to_string(),
     );
     if en_vigueur.get("adhesions_prevoyance") != Some(&adhesions) {
-        droit::contexte::dater(&mut date, "adhesions_prevoyance", adhesions, Some(&periode.0), None);
+        let lues: Vec<droit::organismes::Adhesion> = droit::fiche::lire_saisie(&adhesions, "config/organismes.json").map_err(plain)?;
+        droit::fiche::dater(&mut date.adhesions_prevoyance, droit::fiche::Case::Dite(lues), Some(&periode.0), None);
     }
     let p = chemin(ctx);
     if let Some(parent) = p.parent() {
         std::fs::create_dir_all(parent).map_err(|e| plain(e.to_string()))?;
     }
     crate::routes::mois::sauver_avant(&p)?;
-    ecrire_json(&p, &Value::Object(date), 2).map_err(plain)?;
+    ecrire_json(&p, &date, 2).map_err(plain)?;
     lire(ctx, charge)
 }

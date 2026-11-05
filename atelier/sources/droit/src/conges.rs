@@ -52,7 +52,7 @@ impl JoursTravailles {
     }
 
     /// Les jours que dit la case `jours_travailles` d'une fiche (`qui` : la cle du salarie) ; une case que la fiche ne
-    /// dit pas (une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur, `contexte::dater`) : du
+    /// dit pas (une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur, `fiche::dater`) : du
     /// lundi au vendredi. Refus : une liste vide.
     pub fn de_la_case(case: &crate::fiche::Case<Vec<crate::fiche::JourDeLaSemaine>>, qui: &str) -> Resultat<Self> {
         let Some(liste) = case.dite() else { return Ok(Self::du_lundi_au_vendredi()) };

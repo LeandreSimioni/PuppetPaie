@@ -107,14 +107,15 @@ pub fn ecrire(racine: &Path, rel: &str, v: &Value) {
     std::fs::write(p, serde_json::to_vec_pretty(v).unwrap()).unwrap();
 }
 
-/// Une fiche de la configuration datee (`contexte::fiche_au`), lue a `jour` (AAAA-MM-JJ).
-pub fn fiche_au(datee: &Value, jour: &str) -> Value {
-    droit::contexte::fiche_au(datee, &socle::date::Jour::lire(jour).unwrap(), "test").unwrap()
+/// Une fiche de la configuration datee, lue par sa forme `F` (`droit::fiche::FicheDatee`) a `jour` (AAAA-MM-JJ).
+pub fn fiche_au<F: droit::fiche::FicheDatee>(datee: &Value, jour: &str) -> Value {
+    socle::ecriture::en_valeur(&droit::fiche::lire_champs::<F>(datee, "test").unwrap().au(&socle::date::Jour::lire(jour).unwrap()))
 }
 
-/// La fiche datee d'une compagnie de test : chaque valeur de `plate` de tout temps (`contexte::fiche_datee`).
+/// La fiche datee d'une compagnie de test : chaque valeur de `plate` de tout temps (`droit::fiche::dater`), ses notes `_…`
+/// telles quelles.
 pub fn datee(plate: &Value) -> Value {
-    Value::Object(droit::contexte::fiche_datee(plate.as_object().unwrap()))
+    Value::Object(plate.as_object().unwrap().iter().map(|(k, v)| (k.clone(), if k.starts_with('_') { v.clone() } else { serde_json::json!([{"valeur": v}]) })).collect())
 }
 
 /// Les noms des fichiers d'un dossier, triés (vide s'il n'existe pas).

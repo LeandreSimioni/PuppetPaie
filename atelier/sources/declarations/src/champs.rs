@@ -23,9 +23,39 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::echec::Echec;
-use droit::fiche::ParCase;
 
 type R<T> = Result<T, Echec>;
+
+/// UNE FICHE QUI SE LIT CASE PAR CASE, par le nom que `champs-base.json` donne a chacune, en JSON comme cette table :
+/// une fiche lue par sa forme (`droit::fiche::case_en`), ou une saisie qui n'en a pas encore (une charge de l'ecran, ce
+/// qu'une piece propose).
+pub trait ParCase {
+    fn case(&self, cle: &str) -> Option<Value>;
+}
+
+impl ParCase for Value {
+    fn case(&self, cle: &str) -> Option<Value> {
+        self.get(cle).cloned()
+    }
+}
+
+impl ParCase for Map<String, Value> {
+    fn case(&self, cle: &str) -> Option<Value> {
+        self.get(cle).cloned()
+    }
+}
+
+macro_rules! par_sa_forme {
+    ($($t:ty),*) => {
+        $(impl ParCase for $t {
+            fn case(&self, cle: &str) -> Option<Value> {
+                droit::fiche::case_en(self, cle, serde_json::value::Serializer).and_then(Result::ok)
+            }
+        })*
+    };
+}
+
+par_sa_forme!(droit::fiche::ChampsSalarie, droit::fiche::ChampsEntreprise, droit::fiche::ChampsSpectacle);
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {

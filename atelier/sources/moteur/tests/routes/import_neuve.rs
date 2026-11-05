@@ -32,13 +32,13 @@ fn route(racine: &Path, nom: &str, charge: Value) -> Value {
 
 /// La fiche entreprise ecrite, lue au jour du test.
 fn entreprise_lue(racine: &Path) -> Value {
-    fiche_au(&lire(racine, "config/entreprise.json"), JOUR)
+    fiche_au::<droit::fiche::FicheEntrepriseDatee>(&lire(racine, "config/entreprise.json"), JOUR)
 }
 
 /// Les fiches des salaries ecrites, lues au jour du test.
 fn salaries_lus(racine: &Path) -> Value {
     let brutes = lire(racine, "config/salaries.json");
-    Value::Object(brutes.as_object().unwrap().iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), fiche_au(v, JOUR))).collect())
+    Value::Object(brutes.as_object().unwrap().iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), fiche_au::<droit::fiche::FicheSalarieDatee>(v, JOUR))).collect())
 }
 
 /// Les contrats attestes des engagements importes, chacun avec son salarie.

@@ -391,23 +391,20 @@ ans d'une entreprise creee a vingt salaries, L5212-4 ; seuil pas encore franchi,
 /// lu dans le socle livre ; une annee sans socle se lit chez la compagnie.
 pub fn smic_au_31_decembre(ctx: &Contexte, millesime: i32) -> Resultat<Decimal> {
     let jour = Jour::nouveau(millesime, 12, 31).ok_or_else(|| format!("annee hors limites : {}", millesime))?;
-    let socle = ctx.socle_livre(millesime)?;
-    let liste = match socle.as_ref().and_then(|s| s.get("smic_horaire")) {
-        Some(l) if vrai(l) => l,
+    let socle = droit::contexte::socle_livre_lu(millesime)?;
+    let liste = match socle.as_ref().map(|s| &s.smic_horaire) {
+        Some(l) if !l.is_empty() => l,
         _ => return dec_f64(ctx.smic(&jour)?),
     };
-    let mut entrees: Vec<&Value> = liste.as_array().map(|a| a.iter().collect()).unwrap_or_default();
-    entrees.sort_by_key(|e| socle::date::en_texte(&e["depuis"]));
+    let mut entrees: Vec<&droit::forme_bareme::Datee> = liste.iter().collect();
+    entrees.sort_by_key(|e| e.depuis.clone().unwrap_or_default());
     let mut val = None;
     for e in entrees {
-        if Jour::lire(&socle::date::en_texte(&e["depuis"]))? <= jour {
-            val = Some(&e["valeur"]);
+        if Jour::lire(e.depuis.as_deref().unwrap_or(""))? <= jour {
+            val = Some(e.valeur);
         }
     }
-    match val {
-        Some(v) => dec_avec_echelle(v),
-        None => Err(format!("Aucun SMIC au {} dans le socle {}.", jour.iso(), millesime)),
-    }
+    val.ok_or_else(|| format!("Aucun SMIC au {} dans le socle {}.", jour.iso(), millesime))
 }
 
 /// L'effectif dit-il l'entreprise assujettie pour ce millesime ? Le code A04 du

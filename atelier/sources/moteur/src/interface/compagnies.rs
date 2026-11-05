@@ -115,9 +115,9 @@ pub const PREFIXE_AJOUTEE: &str = "ajoutee-";
 /// La fiche entreprise telle qu'elle vaut aujourd'hui ; vide si elle ne se lit pas (la tuile dit alors le dossier, et
 /// la compagnie, ouverte, dit pourquoi).
 fn fiche(racine: &Path) -> Value {
-    lire(&racine.join(droit::contexte::ENTREPRISE))
-        .and_then(|b| droit::contexte::fiche_au(&b, &droit::contexte::jour_reel(), droit::contexte::ENTREPRISE).ok())
-        .unwrap_or_else(|| json!({}))
+    droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&racine.join(droit::contexte::ENTREPRISE), droit::contexte::ENTREPRISE)
+        .map(|f| socle::ecriture::en_valeur(&f.au(&droit::contexte::jour_reel())))
+        .unwrap_or_else(|_| json!({}))
 }
 
 fn texte(v: &Value) -> String {
@@ -388,10 +388,11 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
     let mut ent = serde_json::Map::new();
     ent.insert("nom_affichage".into(), Value::String(nom.clone()));
     crate::routes::fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
-    // Toute la configuration est datee (`contexte::fiche_au`) : la premiere valeur vaut de tout temps.
+    // Toute la configuration est datee (`droit::fiche::dater`) : la premiere valeur vaut de tout temps.
     // Le jour d'ajout : le plus tot des deux jours (Paris, et celui du moteur, en UTC).
     let creation = socle::temps::jour_de_paris().min(droit::contexte::jour_reel());
-    let fiche = droit::fiche::par_la_forme("entreprise", droit::contexte::ENTREPRISE, &Value::Object(droit::contexte::fiche_datee(&ent)))?;
+    let plate: droit::fiche::ChampsEntreprise = droit::fiche::lire_saisie(&ent, droit::contexte::ENTREPRISE)?;
+    let fiche = socle::ecriture::en_valeur(&<droit::fiche::FicheEntrepriseDatee as droit::fiche::FicheDatee>::neuve(&plate));
     ecrire(&cfg.join("entreprise.json"), &fiche)?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;

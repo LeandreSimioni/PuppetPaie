@@ -1274,17 +1274,19 @@ forme! {
 forme! {
     pub struct TauxJusquA {
         pub jusqu_a: Option<i64>,
-        pub taux: f64,
+        #[serde(deserialize_with = "socle::forme::decimal")]
+        pub taux: Decimal,
     }
 }
 
 forme! {
     pub struct Paritarisme {
-        pub taux: f64,
-        #[serde(default)]
-        pub plancher: Option<f64>,
-        #[serde(default)]
-        pub plafond: Option<f64>,
+        #[serde(deserialize_with = "socle::forme::decimal")]
+        pub taux: Decimal,
+        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        pub plancher: Option<Decimal>,
+        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        pub plafond: Option<Decimal>,
         #[serde(default)]
         pub assiette: Option<String>,
         #[serde(default)]

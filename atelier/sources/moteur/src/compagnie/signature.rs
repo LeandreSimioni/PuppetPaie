@@ -274,8 +274,8 @@ fn contrats_choisis(ctx: &Contexte, choisis: &Choisis, mois: &str, paies: &[Paie
 /// compagnie et ces `salaries` (`(cle, fiche)`) : tout ce qui manque, d'un coup, avant d'ecrire le moindre PDF. Un
 /// avenant est un contrat : il passe par le meme controle.
 fn controler_contrat<'a>(ctx: &'a Contexte, salaries: impl Iterator<Item = (&'a str, &'a ChampsSalarie)>) -> R<()> {
-    let mut fiches: Vec<(&str, String, &dyn droit::fiche::ParCase)> = vec![("entreprise", "la fiche entreprise".into(), &ctx.entreprise)];
-    fiches.extend(salaries.map(|(cle, s)| ("salarie", format!("la fiche de {}", s.nomme().unwrap_or_else(|| cle.to_string())), s as &dyn droit::fiche::ParCase)));
+    let mut fiches: Vec<(&str, String, &dyn declarations::champs::ParCase)> = vec![("entreprise", "la fiche entreprise".into(), &ctx.entreprise)];
+    fiches.extend(salaries.map(|(cle, s)| ("salarie", format!("la fiche de {}", s.nomme().unwrap_or_else(|| cle.to_string())), s as &dyn declarations::champs::ParCase)));
     match declarations::champs::refus_des_manques("contrat", &fiches, &[])? {
         Some(m) => Err(refus(m)),
         None => Ok(()),

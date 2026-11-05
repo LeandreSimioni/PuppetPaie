@@ -4132,8 +4132,8 @@ pub fn exiges<'a>(ent: &ChampsEntreprise, salaries: impl Iterator<Item = &'a dro
             vues.push(s);
         }
     }
-    let mut fiches: Vec<(&str, String, &dyn droit::fiche::ParCase)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
-    fiches.extend(vues.iter().map(|s| ("salarie", format!("la fiche de {}", s.nomme().unwrap_or_else(|| s.id.to_string())), &s.champs as &dyn droit::fiche::ParCase)));
+    let mut fiches: Vec<(&str, String, &dyn crate::champs::ParCase)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
+    fiches.extend(vues.iter().map(|s| ("salarie", format!("la fiche de {}", s.nomme().unwrap_or_else(|| s.id.to_string())), &s.champs as &dyn crate::champs::ParCase)));
     match crate::champs::refus_des_manques("dsn", &fiches, if caisse_conges { &[] } else { &[documents::conges_spectacles::CLE_ADHERENT] }).map_err(|e| e.message)? {
         Some(m) => Err(m),
         None => Ok(()),
@@ -4804,16 +4804,16 @@ certificat de conformite du depot precedent.",
         };
         // LES IDENTIFIANTS DU MOIS DECLARE : NIR, nom, prenoms et date de naissance tels qu'au dernier jour du
         // mois, pour qu'un changement date apres lui n'entre pas dans sa DSN (`changements_individu::identite_du_mois`).
-        let brute = socle::ecriture::en_valeur(&ctx.salarie_brut(fiche.id.as_str()));
-        let ident = crate::changements_individu::identite_du_mois(fiche, &brute, &fin_m)?;
+        let brute = ctx.salarie_brut(fiche.id.as_str());
+        let ident = crate::changements_individu::identite_du_mois(fiche, brute, &fin_m)?;
         bloc_individu(&mut f, &ident, true)?;
         // L'identite DECLAREE, relue dans la derniere paie declaree qui le porte : son NTT, s'il etait declare sans NIR
         // (`ntt::poser_ntt`).
-        let declaree = declarations.derniere(&ident, &brute)?;
+        let declaree = declarations.derniere(&ident, brute)?;
         crate::ntt::poser_ntt(&mut f, &ent_e, &ident, declaree.as_ref())?;
         // LE BLOC 31 : ce qui differe de l'identite declaree, a l'ancienne valeur, date par l'historique de la fiche ; un
         // changement que la fiche ne date pas refuse.
-        crate::changements_individu::ecrire(&mut f, &ident, &brute, declaree.as_ref(), mois, &fin_m)?;
+        crate::changements_individu::ecrire(&mut f, &ident, brute, declaree.as_ref(), mois, &fin_m)?;
         let taux_pas = pas_par_salarie.get(cle).cloned().flatten();
 
         for (i, p) in lot.iter().enumerate() {

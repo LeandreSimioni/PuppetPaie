@@ -1000,7 +1000,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &str) -> R<ApercuDpae> 
     let faites = etats::embauches_par_depot(&lignes_journal);
     let mut par_nir: HashMap<String, (&String, &Value)> = HashMap::new();
     // L'identite d'une embauche se compare aux cases de la fiche par leur nom : en JSON.
-    let vues: Vec<(String, Value)> = ctx.salaries.iter().map(|(k, f)| (k.to_string(), f.champs.en_valeur())).collect();
+    let vues: Vec<(String, Value)> = ctx.salaries.iter().map(|(k, f)| (k.to_string(), socle::ecriture::en_valeur(&f.champs))).collect();
     for (cle, s) in &vues {
         let nir = etats::get(s, "nir")?;
         if !vrai(nir) {

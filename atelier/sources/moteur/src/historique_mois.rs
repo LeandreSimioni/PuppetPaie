@@ -134,7 +134,7 @@ fn qui_du_contrat(ctx: &Contexte, nom: &str, cle: &str) -> String {
     }
     let cle = cle.to_string();
     let fiche = ctx.salarie_brut(&cle).map(|b| b.au(&ctx.lue_au));
-    let f = |k: &str| fiche.as_ref().and_then(|x| x.case(k)).filter(vrai).map(|v| valeur_en_texte(&v)).unwrap_or_default();
+    let f = |k: &str| fiche.as_ref().and_then(|x| droit::fiche::case_en(x, k, serde_json::value::Serializer).and_then(Result::ok)).filter(vrai).map(|v| valeur_en_texte(&v)).unwrap_or_default();
     let prenom = if f("prenom_affichage").is_empty() { f("prenom") } else { f("prenom_affichage") };
     let nom = [f("nom"), prenom].iter().filter(|x| !x.is_empty()).cloned().collect::<Vec<_>>().join(" ");
     if nom.is_empty() { cle } else { nom }

@@ -803,21 +803,25 @@ fn l_engagement_ne_lit_pas_le_journal() {
     }
 }
 
-/// Une valeur d'une fiche (entreprise, salarie, spectacle) se date a un seul endroit : `routes::fiches::ecrire_datee`,
-/// que l'ecran, les gestes d'une case et l'import appellent. Ailleurs dans le moteur, `contexte::dater` ne date que le
-/// fichier des organismes et la fiche d'une compagnie d'essai, posee neuve sous une autre identite.
+/// UNE VALEUR D'UNE FICHE (entreprise, salarie, spectacle) SE DATE A UN SEUL ENDROIT : `routes::fiches::ecrire_datee`, que
+/// l'ecran, les gestes d'une case et l'import appellent, par `FicheAEcrire::ecrire_case`, qui la date par la forme de la
+/// fiche (`droit::fiche::FicheDatee::dater`, et dessous `droit::fiche::dater`, la seule fonction qui date). Ailleurs dans
+/// le moteur, `droit::fiche::dater` ne date que le fichier des organismes ; une fiche neuve (`FicheDatee::neuve`) n'a
+/// rien a dater.
 #[test]
 fn une_seule_fonction_date_une_valeur_de_fiche() {
-    const AUTRES: [&str; 2] = ["moteur/src/compagnie/organismes.rs", "moteur/src/compagnie/essai.rs"];
     let fiches = espace().join("moteur/src/routes/fiches.rs");
     let texte = std::fs::read_to_string(&fiches).unwrap();
     let debut = texte.find("pub(crate) fn ecrire_datee(").unwrap();
     let fin = debut + texte[debut..].find("\n}\n").unwrap();
-    assert_eq!(texte[..debut].matches("contexte::dater(").count() + texte[fin..].matches("contexte::dater(").count(), 0, "fiches.rs ne date que par `ecrire_datee`");
+    assert_eq!(texte[..debut].matches(".ecrire_case(").count() + texte[fin..].matches(".ecrire_case(").count(), 0, "fiches.rs ne date que par `ecrire_datee`");
+    assert_eq!(texte.matches("FicheDatee::dater(").count(), 1, "seul `FicheAEcrire::ecrire_case` date une case d'une fiche");
     for p in sources(&espace().join("moteur/src")).into_iter().filter(|p| *p != fiches) {
         let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
-        if std::fs::read_to_string(&p).unwrap().contains("contexte::dater(") {
-            assert!(AUTRES.contains(&rel.as_str()), "{} date une valeur de fiche : il passe par `fiches::ecrire_datee`", rel);
+        let t = std::fs::read_to_string(&p).unwrap();
+        assert!(!t.contains(".ecrire_case(") && !t.contains(".dater(") && !t.contains("FicheDatee::dater("), "{} date une valeur de fiche : il passe par `fiches::ecrire_datee`", rel);
+        if t.contains("fiche::dater(") {
+            assert_eq!(rel, "moteur/src/compagnie/organismes.rs", "{} date une valeur de fiche : il passe par `fiches::ecrire_datee`", rel);
         }
     }
 }

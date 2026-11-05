@@ -469,8 +469,8 @@ pub fn enregistrements(embauches: &[Embauche], p: &Parametres) -> Resultat<Vec<S
     // CE QUE LA DPAE EXIGE DES FICHES (`exige_par` de `champs-base.json`, la liste que « Pour demarrer » lit : la naissance,
     // zones D_NAISSANCE_SAL, L_LIEU_NAISS_SAL et le departement de naissance, « O », et le sexe sans NIR, zone SEXE,
     // `atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`) : tout ce qui manque, d'un coup, avant d'ecrire.
-    let mut fiches: Vec<(&str, String, &dyn droit::fiche::ParCase)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), &e.fiche as &dyn droit::fiche::ParCase)).into_iter().collect();
-    fiches.extend(embauches.iter().map(|e| ("salarie", format!("la fiche de {}", e.salarie.nomme().unwrap_or_default()), &e.salarie.champs as &dyn droit::fiche::ParCase)));
+    let mut fiches: Vec<(&str, String, &dyn crate::champs::ParCase)> = p.ent.map(|e| ("entreprise", "la fiche entreprise".to_string(), &e.fiche as &dyn crate::champs::ParCase)).into_iter().collect();
+    fiches.extend(embauches.iter().map(|e| ("salarie", format!("la fiche de {}", e.salarie.nomme().unwrap_or_default()), &e.salarie.champs as &dyn crate::champs::ParCase)));
     if let Some(m) = crate::champs::refus_des_manques("dpae", &fiches, &[]).map_err(|e| e.message)? {
         return Err(m);
     }

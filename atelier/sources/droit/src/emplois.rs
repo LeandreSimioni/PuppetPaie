@@ -389,7 +389,7 @@ pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Re
     let au_debut = ctx.salarie_au(cle, debut)?;
     let a_la_fin = ctx.salarie_au(cle, fin)?;
     // Les cases de `UNE_VALEUR_PAR_MOIS` se comparent par leur nom, comme `jours_de_changement` les date.
-    let lire = |f: &FicheSalarie, c: &str| f.champs.case(c).unwrap_or(Value::Null);
+    let lire = |f: &FicheSalarie, c: &str| crate::fiche::case_en(&f.champs, c, serde_json::value::Serializer).and_then(Result::ok).unwrap_or(Value::Null);
     for c in UNE_VALEUR_PAR_MOIS {
         let (avant, apres) = (lire(&au_debut, c), lire(&a_la_fin, c));
         if avant == apres {
@@ -431,7 +431,7 @@ pub fn jours_de_changement(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) 
     let mut out = Vec::new();
     for j in jours {
         let (avant, apres) = (brute.au(&j.plus_jours(-1)?), brute.au(&j));
-        if UNE_VALEUR_PAR_MOIS.iter().any(|c| avant.case(c) != apres.case(c)) {
+        if !avant.memes_cases(&apres, &UNE_VALEUR_PAR_MOIS) {
             out.push(j);
         }
     }

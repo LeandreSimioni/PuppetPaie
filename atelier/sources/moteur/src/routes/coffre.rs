@@ -501,7 +501,7 @@ fn compte_dpae_change(ctx: &Contexte, charge: &Value) -> R<Option<Vec<(&'static 
             (cle, sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" "))
         })
         .collect();
-    if propres.iter().all(|(k, v)| actuel.case(k).as_ref().and_then(Value::as_str).unwrap_or("") == v) {
+    if propres.iter().all(|(k, v)| droit::fiche::case_en(&actuel, k, serde_json::value::Serializer).and_then(Result::ok).as_ref().and_then(Value::as_str).unwrap_or("") == v) {
         return Ok(None);
     }
     if let Some((cle, _)) = propres.iter().find(|(_, v)| v.is_empty()) {
@@ -522,8 +522,7 @@ fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R
         *case = droit::fiche::Case::Dite(v);
     }
     crate::routes::fiches::poser_entreprise(ctx, "api_dpae", serde_json::to_value(&cfg).unwrap_or(Value::Null), Some(ctx.aujourdhui))?;
-    let contenu = crate::routes::lire_json_ou_vide(&ctx.racine.join(droit::contexte::ENTREPRISE))?;
-    Ok(droit::fiche::lire_entreprise(&contenu, droit::contexte::ENTREPRISE).map_err(Echec::from)?.au(&ctx.aujourdhui))
+    Ok(droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&ctx.racine.join(droit::contexte::ENTREPRISE), droit::contexte::ENTREPRISE).map_err(Echec::from)?.au(&ctx.aujourdhui))
 }
 
 // ------------------------------------------------------------------ le mot de passe du logiciel

@@ -9,7 +9,6 @@ use crate::formats;
 use socle::num::Resultat;
 use crate::usages::strip;
 use droit::fiche::{ChampsSalarie, FicheSalarie};
-use serde_json::Value;
 
 pub const RUBRIQUE:&str = "S21.G00.30.020";
 pub const RUBRIQUE_NIR: &str = "S21.G00.30.001";
@@ -103,10 +102,6 @@ pub fn nir_de(salarie: &ChampsSalarie) -> String {
     strip(salarie.nir.texte()).to_string()
 }
 
-/// La fiche datee du salarie `salarie`, ou rien.
-pub fn brute(ctx: &droit::contexte::Contexte, salarie: &droit::contexte::IdSalarie) -> Value {
-    socle::ecriture::en_valeur(&ctx.salarie_brut(salarie.as_str()))
-}
 
 /// S21.G00.30.001, quand il y en a un -- et rien du tout sinon.
 pub fn poser_nir(f: &mut Fichier, salarie: &ChampsSalarie) -> Resultat<()> {

@@ -42,7 +42,7 @@ fn suites(racine: &Path, notifications: Vec<(Value, PathBuf)>) -> Vec<String> {
 #[test]
 fn la_notification_lue_pose_le_taux_de_l_annee_a_sa_date_d_effet() {
     let racine = ajouter_venant(&dossier_de_test("notification_atmp", "pose"), "Les Tréteaux Notifiés", Venue::Neuve).unwrap().racine;
-    let mut ent = fiche_au(&lire(&racine, "config/entreprise.json"), "2025-12-15");
+    let mut ent = fiche_au::<droit::fiche::FicheEntrepriseDatee>(&lire(&racine, "config/entreprise.json"), "2025-12-15");
     ent["siren"] = json!("123456873");
     ent["nic"] = json!("00017");
     ecrire(&racine, "config/entreprise.json", &datee(&ent));

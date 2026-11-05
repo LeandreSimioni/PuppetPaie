@@ -88,9 +88,6 @@ const RUBRIQUES: [(&str, &[&str]); 12] = [
     ("declarant_dsn.qualite", &["S20.G00.07.004"]),
 ];
 
-/// Ce que la fiche de la fictive dit de SON identite, et qui ne doit pas survivre sous celle de la variable : ce que la
-/// variable remplace, plus ce qui en derive (l'affichage, le complement d'adresse, le telephone de repli de la DPAE).
-const RETIREES: [&str; 8] = ["siret", "nom_affichage", "adresse_affichage", "commune_affichage", "complement_adresse", "tel", "etablissements", "_source"];
 
 /// Ce que la copie ne prend pas de la fictive (relatif a sa racine).
 const NON_COPIES: [&str; 3] = [MARQUEUR, envois::retours::RETOURS, crate::horloge::FICHIER_HORLOGE];
@@ -242,11 +239,16 @@ impl Identite {
     /// La fiche de la fictive, sous cette identite : les cles de la variable posees, ce qui en derive recompose (le SIRET, le
     /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire. Chaque valeur posee vaut
     /// de tout temps, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
-    pub fn appliquer(&self, fiche: &Value) -> Result<Value, String> {
-        let mut brute = fiche.as_object().cloned().ok_or_else(|| socle::echec::avec("La fiche entreprise de la fictive est abîmée.", json!({"fichier": droit::contexte::ENTREPRISE})))?;
-        for k in RETIREES {
-            brute.remove(k);
+    pub fn appliquer(&self, fiche: &droit::fiche::FicheEntrepriseDatee) -> Result<droit::fiche::FicheEntrepriseDatee, String> {
+        let mut brute = fiche.clone();
+        // Ce que la fiche de la fictive dit de SON identite, et qui ne survit pas sous celle de la variable : ce que la variable
+        // remplace, et ce qui en derive (l'affichage, le complement d'adresse).
+        for liste in [&mut brute.siret, &mut brute.nom_affichage, &mut brute.adresse_affichage, &mut brute.commune_affichage] {
+            liste.clear();
         }
+        brute.complement_adresse.clear();
+        brute.etablissements.clear();
+        brute.source = None;
         let mut f = Map::new();
         let (siren, nic) = (self.texte("siren")?, self.texte("nic")?);
         let siret = format!("{}{}", siren, nic);
@@ -277,15 +279,9 @@ impl Identite {
             "_source".into(),
             json!(format!("COMPAGNIE D'ESSAI (moteur essai monter) : l'identite vient de {} ; le reste, de la compagnie fictive copiee. Ne se commite jamais.", VARIABLE)),
         );
-        for (k, v) in f {
-            brute.remove(&k);
-            if k.starts_with('_') {
-                brute.insert(k, v);
-            } else {
-                droit::contexte::dater(&mut brute, &k, v, None, None);
-            }
-        }
-        Ok(Value::Object(brute))
+        let plate: droit::fiche::ChampsEntreprise = droit::fiche::lire_saisie(&f, droit::contexte::ENTREPRISE)?;
+        brute.par_dessus(&<droit::fiche::FicheEntrepriseDatee as droit::fiche::FicheDatee>::neuve(&plate));
+        Ok(brute)
     }
 }
 
@@ -406,7 +402,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         Some(s) => s.join(droit::contexte::ENTREPRISE),
         None => dossier.join(droit::contexte::ENTREPRISE),
     };
-    let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| socle::echec::du_disque(&base_fiche, &e))?;
+    let fiche: droit::fiche::FicheEntrepriseDatee = droit::fiche::lire_fichier(&base_fiche, droit::contexte::ENTREPRISE)?;
     let fiche = id.appliquer(&fiche)?;
 
     if let Some(s) = &src {
@@ -423,7 +419,6 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")
             .map_err(|e| socle::echec::du_disque(&dossier, &e))?;
     }
-    let fiche = droit::fiche::par_la_forme("entreprise", droit::contexte::ENTREPRISE, &fiche)?;
     socle::ecriture::ecrire_json(&dossier.join(droit::contexte::ENTREPRISE), &fiche, 2)?;
     Ok(Montage { dossier: absolu(dossier), depuis: nom, neuf: !deja })
 }

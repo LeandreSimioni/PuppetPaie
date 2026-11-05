@@ -201,7 +201,7 @@ fn recapitulatif_dsn(ctx: &Contexte, d: &DsnLue, mois: &str, nic: &str) -> Resul
                             ecarts.push(format!("{} : la paie dit {}, le fichier {}", cle, attendu[cle], fichier));
                         }
                     }
-                    let emploi = p.salarie.emploi.en_valeur();
+                    let emploi = socle::ecriture::en_valeur(&p.salarie.emploi);
                     let attendu_emploi: Option<&str> = match &emploi {
                         Value::Null => Some(""),
                         Value::String(s) => Some(s.as_str()),

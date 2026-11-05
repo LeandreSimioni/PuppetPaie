@@ -264,7 +264,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         let an: String = m.chars().take(4).collect();
         for p in paies {
             // Les colonnes de l'etat nomment les cases de la fiche (`ParCase`).
-            let champ = |cle: &str| p.salarie.champs.case(cle).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
+            let champ = |cle: &str| droit::fiche::case_en(&p.salarie.champs, cle, serde_json::value::Serializer).and_then(Result::ok).filter(|v| vrai(v)).map(|v| valeur_en_texte(&v));
             let brut = p.brut;
             let nir = champ("nir").unwrap_or_default();
             masse += brut;

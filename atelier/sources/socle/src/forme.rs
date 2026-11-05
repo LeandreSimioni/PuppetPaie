@@ -157,6 +157,140 @@ impl<'de> serde::Deserialize<'de> for Nombre {
     }
 }
 
+/// UNE VALEUR QUI PEUT NE RIEN DIRE : nulle (`null`), vide (`""`), ou dite, lue en `T` sans passer par une valeur
+/// intermediaire (le chemin d'un refus va jusqu'a la cle fautive de `T`). C'est la lecture d'une case de fiche
+/// (`droit::fiche::Case`), qui garde ces trois formes pour se reecrire telle qu'elle est lue.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Remplie<T> {
+    Nulle,
+    Vide,
+    Dite(T),
+}
+
+impl<'de, T: serde::Deserialize<'de>> serde::Deserialize<'de> for Remplie<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        use serde::de::value::{BoolDeserializer, F64Deserializer, I64Deserializer, MapAccessDeserializer, SeqAccessDeserializer, StrDeserializer, U64Deserializer};
+        struct Lue<T>(std::marker::PhantomData<T>);
+        impl<'de, T: serde::Deserialize<'de>> serde::de::Visitor<'de> for Lue<T> {
+            type Value = Remplie<T>;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("une valeur, nulle ou vide")
+            }
+            fn visit_unit<E: serde::de::Error>(self) -> Result<Self::Value, E> {
+                Ok(Remplie::Nulle)
+            }
+            fn visit_none<E: serde::de::Error>(self) -> Result<Self::Value, E> {
+                Ok(Remplie::Nulle)
+            }
+            fn visit_some<D: serde::Deserializer<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
+                d.deserialize_any(self)
+            }
+            fn visit_bool<E: serde::de::Error>(self, b: bool) -> Result<Self::Value, E> {
+                T::deserialize(BoolDeserializer::<E>::new(b)).map(Remplie::Dite)
+            }
+            fn visit_i64<E: serde::de::Error>(self, i: i64) -> Result<Self::Value, E> {
+                T::deserialize(I64Deserializer::<E>::new(i)).map(Remplie::Dite)
+            }
+            fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<Self::Value, E> {
+                T::deserialize(U64Deserializer::<E>::new(u)).map(Remplie::Dite)
+            }
+            fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<Self::Value, E> {
+                T::deserialize(F64Deserializer::<E>::new(x)).map(Remplie::Dite)
+            }
+            fn visit_str<E: serde::de::Error>(self, s: &str) -> Result<Self::Value, E> {
+                if s.is_empty() {
+                    return Ok(Remplie::Vide);
+                }
+                T::deserialize(StrDeserializer::<E>::new(s)).map(Remplie::Dite)
+            }
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(self, a: A) -> Result<Self::Value, A::Error> {
+                T::deserialize(SeqAccessDeserializer::new(a)).map(Remplie::Dite)
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, a: A) -> Result<Self::Value, A::Error> {
+                T::deserialize(MapAccessDeserializer::new(a)).map(Remplie::Dite)
+            }
+        }
+        d.deserialize_any(Lue(std::marker::PhantomData))
+    }
+}
+
+/// UN NOMBRE TEL QU'IL EST ECRIT : un entier, un flottant, ou un texte qui se lit en decimal (`num::decimal_lu`, `12,5`
+/// compris), garde tel quel pour se reecrire de meme (`droit::fiche::Montant`).
+#[derive(Debug, Clone, PartialEq)]
+pub enum NombreEcrit {
+    Entier(i64),
+    Naturel(u64),
+    Flottant(f64),
+    Texte(String),
+}
+
+impl<'de> serde::Deserialize<'de> for NombreEcrit {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Lu;
+        impl serde::de::Visitor<'_> for Lu {
+            type Value = NombreEcrit;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("un nombre")
+            }
+            fn visit_i64<E: serde::de::Error>(self, i: i64) -> Result<NombreEcrit, E> {
+                Ok(NombreEcrit::Entier(i))
+            }
+            fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<NombreEcrit, E> {
+                Ok(i64::try_from(u).map_or(NombreEcrit::Naturel(u), NombreEcrit::Entier))
+            }
+            fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<NombreEcrit, E> {
+                Ok(NombreEcrit::Flottant(x))
+            }
+            fn visit_str<E: serde::de::Error>(self, s: &str) -> Result<NombreEcrit, E> {
+                match crate::num::decimal_lu(s) {
+                    Some(_) => Ok(NombreEcrit::Texte(s.to_string())),
+                    None => Err(E::custom(format!("{} n'est pas un nombre", crate::ecriture::json_en_ligne(s)))),
+                }
+            }
+            fn visit_bool<E: serde::de::Error>(self, b: bool) -> Result<NombreEcrit, E> {
+                Err(E::custom(format!("{} n'est pas un nombre", b)))
+            }
+        }
+        d.deserialize_any(Lu)
+    }
+}
+
+/// UN OBJET DE FICHES ET SA NOTE (`config/salaries.json`, `config/spectacles.json`) : la note (`note`, la seule cle en
+/// `_` admise), et les fiches dans l'ordre du fichier, chacune sous sa cle lue en `K`. Une autre cle en `_` et une cle
+/// repetee refusent. `#[serde(deserialize_with)]` ne s'y pose pas : la forme l'appelle de son `Deserialize`.
+pub fn fiches_et_note<'de, D, K, F>(d: D, note: &'static str) -> Result<(Option<String>, Vec<(K, F)>), D::Error>
+where
+    D: serde::Deserializer<'de>,
+    K: serde::Deserialize<'de>,
+    F: serde::Deserialize<'de>,
+{
+    use serde::de::IntoDeserializer;
+    struct Lues<K, F>(&'static str, std::marker::PhantomData<(K, F)>);
+    impl<'de, K: serde::Deserialize<'de>, F: serde::Deserialize<'de>> serde::de::Visitor<'de> for Lues<K, F> {
+        type Value = (Option<String>, Vec<(K, F)>);
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("un objet de fiches")
+        }
+        fn visit_map<A: serde::de::MapAccess<'de>>(self, mut m: A) -> Result<Self::Value, A::Error> {
+            let (mut note, mut fiches, mut vues) = (None, Vec::new(), std::collections::HashSet::new());
+            while let Some(k) = m.next_key::<String>()? {
+                if k == self.0 {
+                    note = Some(m.next_value()?);
+                } else if k.starts_with('_') {
+                    return Err(serde::de::Error::custom(format!("la clé {} n'est pas connue ici (attendue : {})", k, self.0)));
+                } else if !vues.insert(k.clone()) {
+                    return Err(serde::de::Error::custom(format!("la clé {} est répétée", k)));
+                } else {
+                    let cle = K::deserialize(k.as_str().into_deserializer())?;
+                    fiches.push((cle, m.next_value()?));
+                }
+            }
+            Ok((note, fiches))
+        }
+    }
+    d.deserialize_map(Lues(note, std::marker::PhantomData))
+}
+
 /// `lire`, quand la phrase du refus nomme elle-meme la cle fautive : `phrase(chemin, detail)` la compose (le fichier
 /// d'une compagnie, qu'elle corrige : `droit::fiche`).
 pub fn lire_en_phrase<T: DeserializeOwned>(v: &Value, phrase: impl Fn(&str, &str) -> String) -> Resultat<T> {

@@ -14,7 +14,7 @@ use std::process::{Command, Stdio};
 
 use serde_json::json;
 
-use crate::outils::dossier_de_test;
+use crate::outils::{datee, dossier_de_test};
 
 /// Inventé : la marque `999` dans ses treize chiffres.
 const NIR_INVENTE: &str = "285129991234567";
@@ -47,10 +47,11 @@ fn monter(test: &str, avec_prive: bool) -> PathBuf {
     if avec_prive {
         let cfg = depot.join("prive/config");
         std::fs::create_dir_all(&cfg).unwrap();
-        let entreprise = json!({"siret": siret(), "siren": "42", "banque": {"iban": iban(), "bic": ""}});
+        // Les fiches telles que le logiciel les ecrit : datees, lues par leur forme (le NIR sans sa cle).
+        let entreprise = datee(&json!({"siret": siret(), "siren": "42", "banque": {"iban": iban(), "bic": ""}}));
         let salaries = json!({
-            "_commentaire": "inventés",
-            "FICTIVENOM": {"nom": NOM, "prenom": PRENOM, "nir": NIR_INVENTE, "email": COURRIEL, "adresse": "1 rue"},
+            "_source": "inventés",
+            "FICTIVENOM": datee(&json!({"nom": NOM, "prenom": PRENOM, "nir": &NIR_INVENTE[..13], "email": COURRIEL, "adresse": "1 rue"})),
         });
         std::fs::write(cfg.join("entreprise.json"), entreprise.to_string()).unwrap();
         std::fs::write(cfg.join("salaries.json"), salaries.to_string()).unwrap();

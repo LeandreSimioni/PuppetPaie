@@ -509,20 +509,6 @@ fn lire_texte(p: &Path) -> R<String> {
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", socle::echec::du_disque(&p, &e)))
 }
 
-/// Le JSON d'un fichier UTF-8.
-fn lire_json(p: &Path) -> R<Value> {
-    serde_json::from_str(&lire_texte(p)?).map_err(|e| erreur("JSONDecodeError", e.to_string()))
-}
-
-/// `_lire_json(p)` : `{}` si le fichier n'existe pas.
-pub(crate) fn lire_json_ou_vide(p: &Path) -> R<Value> {
-    if p.exists() {
-        lire_json(p)
-    } else {
-        Ok(Value::Object(Map::new()))
-    }
-}
-
 pub(crate) fn vers_route(x: crate::compagnie::coffre::Echec) -> Echec {
     Echec { classe: Some(x.classe), message: x.message }
 }

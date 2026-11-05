@@ -14,18 +14,15 @@
 //! CE QUI A ETE DECLARE SE RELIT, IL NE SE RECALCULE PAS (regles 1 et 4) : l'identite de reference est celle de la fiche
 //! que lit la paie declaree la plus recente du salarie, d'un mois anterieur au mois declare (`dsn::paies_declarees_du_mois`,
 //! la version de l'engagement sur laquelle sa DSN est partie). La date du changement est celle que la fiche datee porte :
-//! le `depuis` de la valeur qui suit la derniere qui porte l'ancienne valeur declaree (`contexte::dater`). Une fiche qui
+//! le `depuis` de la valeur qui suit la derniere qui porte l'ancienne valeur declaree (`droit::fiche::dater`). Une fiche qui
 //! ne date pas le changement refuse : la date ne se devine pas.
 
 use std::collections::BTreeMap;
 
-use serde_json::Value;
-
-use droit::contexte::{fiche_au, valeurs_datees, Contexte};
-use droit::fiche::{ChampsSalarie, FicheSalarie};
-use socle::date::{en_texte, Jour};
+use droit::contexte::Contexte;
+use droit::fiche::{Case, ChampsSalarie, Datee, FicheSalarie, FicheSalarieDatee};
+use socle::date::Jour;
 use crate::dsn::Fichier;
-use socle::fichiers::vrai;
 use socle::num::Resultat;
 use crate::usages::strip;
 
@@ -39,6 +36,8 @@ pub struct Identifiant {
     pub libelle: &'static str,
     pub ecrite: fn(&ChampsSalarie) -> String,
     pub poser: fn(&mut ChampsSalarie, &ChampsSalarie),
+    /// Ses valeurs dans la fiche datee, de la plus ancienne a la plus recente, telles que le bloc 30 les ecrit.
+    pub datees: fn(&FicheSalarieDatee) -> Vec<(Option<Jour>, Option<String>)>,
 }
 
 /// Les identifiants, dans l'ordre du bloc 31 (p. 177).
@@ -50,6 +49,7 @@ pub const IDENTIFIANTS: [Identifiant; 4] = [
         libelle: "NIR",
         ecrite: |s| strip(s.nir.texte()).to_string(),
         poser: |s, au| s.nir = au.nir.clone(),
+        datees: |b| datees(&b.nir, |c| Some(strip(c.texte()).to_string())),
     },
     Identifiant {
         champ: "nom",
@@ -58,6 +58,7 @@ pub const IDENTIFIANTS: [Identifiant; 4] = [
         libelle: "nom de famille",
         ecrite: |s| strip(s.nom.texte()).to_string(),
         poser: |s, au| s.nom = au.nom.clone(),
+        datees: |b| datees(&b.nom, |c| Some(strip(c.texte()).to_string())),
     },
     Identifiant {
         champ: "prenom",
@@ -66,6 +67,7 @@ pub const IDENTIFIANTS: [Identifiant; 4] = [
         libelle: "prenoms",
         ecrite: |s| strip(s.prenom.texte()).to_string(),
         poser: |s, au| s.prenom = au.prenom.clone(),
+        datees: |b| datees(&b.prenom, |c| Some(strip(c.texte()).to_string())),
     },
     Identifiant {
         champ: "date_naissance",
@@ -74,6 +76,7 @@ pub const IDENTIFIANTS: [Identifiant; 4] = [
         libelle: "date de naissance",
         ecrite: |s| s.date_naissance.dite().map(Jour::jjmmaaaa).unwrap_or_default(),
         poser: |s, au| s.date_naissance = au.date_naissance.clone(),
+        datees: |b| datees(&b.date_naissance, |c| c.dite().map(Jour::jjmmaaaa)),
     },
 ];
 
@@ -109,32 +112,18 @@ impl Declaree {
     }
 }
 
-fn texte(v: Option<&Value>) -> String {
-    match v {
-        Some(x) if vrai(x) => strip(&en_texte(x)).to_string(),
-        _ => String::new(),
-    }
-}
-
-/// La valeur d'un identifiant de la fiche telle que le bloc 30 l'ecrit (la date de naissance en JJMMAAAA). `None` :
-/// une date illisible, qui ne ressemble donc a aucune valeur declaree.
-fn ecrite(champ: &str, v: Option<&Value>) -> Option<String> {
-    if champ == "date_naissance" {
-        let v = v.filter(|x| vrai(x))?;
-        return socle::date::d(v).ok().map(|j| j.jjmmaaaa());
-    }
-    Some(texte(v))
+/// Les valeurs d'une liste datee, de la plus ancienne a la plus recente, telles que le bloc 30 les ecrit (`ecrite` ;
+/// `None` : une valeur qui ne ressemble a aucune valeur declaree).
+fn datees<T>(liste: &[Datee<T>], ecrite: fn(&Case<T>) -> Option<String>) -> Vec<(Option<Jour>, Option<String>)> {
+    droit::fiche::valeurs_datees(liste).into_iter().map(|e| (e.depuis, ecrite(&e.valeur))).collect()
 }
 
 /// La fiche telle que le bloc 30 doit la lire pour le mois declare : ses identifiants tels qu'ils valaient le dernier
 /// jour du mois (`fin`), lus dans la fiche datee (`brute`), le reste tel quel. Un changement d'identite date APRES le
 /// mois declare n'entre pas dans sa DSN, sans quoi 31.001 depasserait le dernier jour du mois principal declare
 /// (§ 4.4.12, p. 99) -- il ira dans la DSN du mois ou il prend effet.
-pub fn identite_du_mois(salarie: &FicheSalarie, brute: &Value, fin: &Jour) -> Resultat<FicheSalarie> {
-    let au: ChampsSalarie = match brute {
-        Value::Null => ChampsSalarie::default(),
-        b => droit::fiche::lire_champs(&fiche_au(b, fin, droit::contexte::SALARIES)?, droit::contexte::SALARIES)?,
-    };
+pub fn identite_du_mois(salarie: &FicheSalarie, brute: Option<&FicheSalarieDatee>, fin: &Jour) -> Resultat<FicheSalarie> {
+    let au: ChampsSalarie = brute.map(|b| b.au(fin)).unwrap_or_default();
     let mut sortie = salarie.clone();
     for i in &IDENTIFIANTS {
         (i.poser)(&mut sortie.champs, &au);
@@ -195,9 +184,9 @@ impl<'a> Declarations<'a> {
     /// L'identite que la derniere DSN qui le porte a declaree pour ce salarie, ou `None` s'il n'a jamais ete declare.
     /// Il se reconnait a un NIR que sa fiche (`brute`, datee) a porte, sinon a son matricule
     /// (30.019 ; il finit le NTT et ne change pas sans NIR, `moteur::routes::fiches::ecrire_fiche`).
-    pub fn derniere(&mut self, salarie: &ChampsSalarie, brute: &Value) -> Resultat<Option<Declaree>> {
+    pub fn derniere(&mut self, salarie: &ChampsSalarie, brute: Option<&FicheSalarieDatee>) -> Resultat<Option<Declaree>> {
         let mut nirs: Vec<String> = vec![crate::ntt::nir_de(salarie)];
-        nirs.extend(valeurs_datees(brute, IDENTIFIANTS[0].champ)?.into_iter().map(|(_, v)| texte(Some(v))));
+        nirs.extend(brute.into_iter().flat_map(IDENTIFIANTS[0].datees).filter_map(|(_, v)| v));
         nirs.retain(|n| !n.is_empty());
         let matricule = strip(salarie.code_salarie.texte()).to_string();
         for i in 0..self.mois.len() {
@@ -227,7 +216,7 @@ devine pas. Rien n'est ecrit.",
 /// `jour` compris : ce que lit une DSN hors du mois (un signalement, une demande de taux) pour poser son NTT
 /// (`ntt::poser_ntt`).
 pub fn derniere_declaree(ctx: &Contexte, salarie: &droit::fiche::SalarieDuContrat, jour: &Jour, departs: &engagement::departs::Departs) -> Resultat<Option<Declaree>> {
-    Declarations::avant(ctx, &jour.mois_civil().suivant().to_string(), departs)?.derniere(salarie, &crate::ntt::brute(ctx, &salarie.id))
+    Declarations::avant(ctx, &jour.mois_civil().suivant().to_string(), departs)?.derniere(salarie, ctx.salarie_brut(salarie.id.as_str()))
 }
 
 fn qui(salarie: &ChampsSalarie) -> String {
@@ -247,13 +236,13 @@ fn decrire(d: &Declaree) -> String {
 
 /// Le jour d'effet que la fiche datee `brute` donne au changement de `champ` depuis la valeur `declaree` : le `depuis`
 /// de la valeur qui suit la derniere qui la porte, au plus tard la fin du mois declare (`fin`).
-fn date_d_effet(brute: &Value, champ: &str, declaree: &str, fin: &Jour) -> Resultat<Option<Jour>> {
-    let valeurs = valeurs_datees(brute, champ)?;
+fn date_d_effet(brute: Option<&FicheSalarieDatee>, identifiant: &Identifiant, declaree: &str, fin: &Jour) -> Resultat<Option<Jour>> {
+    let valeurs = brute.map(identifiant.datees).unwrap_or_default();
     let mut meilleur: Option<Jour> = None;
     for paire in valeurs.windows(2) {
         let ((_, v), (suivant, _)) = (&paire[0], &paire[1]);
         if let Some(suivant) = suivant.filter(|s| s <= fin) {
-            if ecrite(champ, Some(v)).as_deref() == Some(declaree) {
+            if v.as_deref() == Some(declaree) {
                 meilleur = Some(suivant);
             }
         }
@@ -267,11 +256,11 @@ fn date_d_effet(brute: &Value, champ: &str, declaree: &str, fin: &Jour) -> Resul
 ///
 /// Le NIR qui ARRIVE (declare sans NIR, sous un NTT) n'a pas d'« ancien NIR » : la norme fait le lien par le NTT porte
 /// a cote du NIR (30.020, p. 175 ; `ntt.rs`), pas par le bloc 31.
-pub fn ecrire(f: &mut Fichier, salarie: &ChampsSalarie, brute: &Value, declaree: Option<&Declaree>, mois: &str, fin: &Jour) -> Resultat<()> {
+pub fn ecrire(f: &mut Fichier, salarie: &ChampsSalarie, brute: Option<&FicheSalarieDatee>, declaree: Option<&Declaree>, mois: &str, fin: &Jour) -> Resultat<()> {
     let Some(d) = declaree else { return Ok(()) };
     let mut par_date: BTreeMap<Jour, Vec<(&str, String)>> = BTreeMap::new();
     let mut sans_date: Vec<String> = Vec::new();
-    for Identifiant { champ, r31, libelle, ecrite: valeur, .. } in &IDENTIFIANTS {
+    for identifiant @ Identifiant { champ, r31, libelle, ecrite: valeur, .. } in &IDENTIFIANTS {
         let (champ, r31, libelle) = (*champ, *r31, *libelle);
         let avant = d.valeur(champ);
         let maintenant = valeur(salarie);
@@ -294,7 +283,7 @@ dans la fiche, ou le remplacer par le NIR corrige, date. Rien n'est ecrit.",
                 ));
             }
         }
-        match date_d_effet(brute, champ, avant, fin)? {
+        match date_d_effet(brute, identifiant, avant, fin)? {
             Some(j) => par_date.entry(j).or_default().push((r31, avant.to_string())),
             None => sans_date.push(format!(
                 "  - {} : declare(e) \u{ab} {} \u{bb} dans la DSN de {} ({}), \u{ab} {} \u{bb} dans la fiche",
@@ -326,7 +315,7 @@ enregistrer, puis saisir la nouvelle : l'ecran demande alors la date d'effet). R
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use serde_json::{json, Value};
 
     fn declaree() -> Declaree {
         Declaree {
@@ -350,12 +339,13 @@ mod tests {
     }
 
     /// Une fiche datee : chaque valeur de tout temps, puis `apres` (champ, depuis, valeur).
-    fn fiche(valeurs: Value, apres: &[(&str, &str, &str)]) -> Value {
-        let mut f = droit::contexte::fiche_datee(valeurs.as_object().unwrap());
+    fn fiche(valeurs: Value, apres: &[(&str, &str, &str)]) -> FicheSalarieDatee {
+        use droit::fiche::FicheDatee;
+        let mut f = FicheSalarieDatee::neuve(&lue(&valeurs));
         for (champ, depuis, v) in apres {
-            droit::contexte::dater(&mut f, champ, json!(v), Some(&Jour::lire(depuis).unwrap()), None);
+            assert!(f.dater(champ, &lue(&json!({ *champ: v })), Some(&Jour::lire(depuis).unwrap()), None));
         }
-        Value::Object(f)
+        f
     }
 
     #[test]
@@ -363,9 +353,9 @@ mod tests {
         let s = json!({"nir": "2901075999009", "nom": "CLAIRON", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6"});
         let b = fiche(s.clone(), &[]);
         let mut f = Fichier::nouveau();
-        ecrire(&mut f, &lue(&s), &b, Some(&declaree()), "2026-09", &fin()).unwrap();
+        ecrire(&mut f, &lue(&s), Some(&b), Some(&declaree()), "2026-09", &fin()).unwrap();
         assert!(f.lignes.is_empty());
-        ecrire(&mut f, &lue(&s), &b, None, "2026-09", &fin()).unwrap();
+        ecrire(&mut f, &lue(&s), Some(&b), None, "2026-09", &fin()).unwrap();
         assert!(f.lignes.is_empty());
     }
 
@@ -375,18 +365,18 @@ mod tests {
         let s = lue(&s);
         let b = fiche(json!({"nom": "CLAIRON"}), &[("nom", "2026-09-15", "DUVAL")]);
         let mut f = Fichier::nouveau();
-        ecrire(&mut f, &s, &b, Some(&declaree()), "2026-09", &fin()).unwrap();
+        ecrire(&mut f, &s, Some(&b), Some(&declaree()), "2026-09", &fin()).unwrap();
         assert_eq!(f.lignes, vec!["S21.G00.31.001,'15092026'", "S21.G00.31.009,'CLAIRON'"]);
         // Une fiche qui n'a jamais porte la valeur declaree ne date rien.
         let b = fiche(json!({"nom": "AUTRE"}), &[("nom", "2026-09-15", "DUVAL")]);
-        let e = ecrire(&mut Fichier::nouveau(), &s, &b, Some(&declaree()), "2026-09", &fin()).unwrap_err();
+        let e = ecrire(&mut Fichier::nouveau(), &s, Some(&b), Some(&declaree()), "2026-09", &fin()).unwrap_err();
         assert!(e.contains("nom de famille") && e.contains("CLAIRON") && e.contains("DUVAL"), "{}", e);
     }
 
     #[test]
     fn un_nir_declare_ne_disparait_pas() {
         let s = json!({"nir": "", "nom": "CLAIRON", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6"});
-        let e = ecrire(&mut Fichier::nouveau(), &lue(&s), &fiche(s.clone(), &[]), Some(&declaree()), "2026-09", &fin()).unwrap_err();
+        let e = ecrire(&mut Fichier::nouveau(), &lue(&s), Some(&fiche(s.clone(), &[])), Some(&declaree()), "2026-09", &fin()).unwrap_err();
         assert!(e.contains("n'a plus de NIR"), "{}", e);
     }
 
@@ -395,7 +385,7 @@ mod tests {
         let s = json!({"nom": "DUVAL", "adresse": "NOUVELLE"});
         let b = fiche(json!({"nom": "CLAIRON", "adresse": "ANCIENNE"}), &[("nom", "2026-10-02", "DUVAL"), ("adresse", "2026-10-02", "NOUVELLE")]);
         let s = FicheSalarie { id: droit::contexte::IdSalarie::lire("DUVAL").unwrap(), champs: lue(&s) };
-        let m = identite_du_mois(&s, &b, &fin()).unwrap();
+        let m = identite_du_mois(&s, Some(&b), &fin()).unwrap();
         assert_eq!(m.nom.texte(), "CLAIRON");
         // Ce qui n'identifie pas se lit tel quel (la derniere valeur connue, § 2.1.2.4.2 par analogie).
         assert_eq!(m.adresse.texte(), "NOUVELLE");

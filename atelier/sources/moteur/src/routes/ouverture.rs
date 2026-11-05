@@ -396,9 +396,10 @@ pub(crate) struct ChoixEtablissement {
 /// le garde). `None` : un seul etablissement, rien a choisir.
 pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Option<Vec<ChoixEtablissement>> {
     let principal = ctx.entreprise.nic_principal();
-    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(&socle::ecriture::en_valeur(ctx.entreprise_brute()))
+    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(&ctx.entreprise_brute().etablissements)
         .unwrap_or_default()
         .into_iter()
+        .map(|(e, f)| (socle::ecriture::en_valeur(&e), f))
         .filter(|(e, _)| texte_ou_vide(e.get("nic")) != principal)
         .collect();
     if autres.is_empty() {
@@ -676,16 +677,16 @@ fn fiches_attendues(ctx: &Contexte) -> R<Vec<FicheAttendue>> {
 
 /// La fiche telle qu'elle vaut, avec `historique` : les valeurs qu'une autre a remplacees dans la fiche datee `brute`, et
 /// jusqu'a quand elles valaient (la veille du `depuis` de la suivante), avec la note du changement. La page les montre.
-fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
+fn avec_historique(fiche: &Value, brute: &[(&'static str, Vec<crate::routes::fiches::Portee>)]) -> R<Value> {
     let mut lignes = Vec::new();
-    for (champ, _) in brute.and_then(Value::as_object).into_iter().flatten().filter(|(k, _)| !k.starts_with('_')) {
-        let liste = brute.and_then(|b| b.get(champ)).and_then(Value::as_array).cloned().unwrap_or_default();
-        let valeurs = droit::contexte::valeurs_datees(brute.unwrap(), champ).map_err(Echec::from)?;
+    for (champ, liste) in brute {
+        let mut valeurs: Vec<&crate::routes::fiches::Portee> = liste.iter().collect();
+        valeurs.sort_by_key(|p| p.depuis); // stable : a meme date, dans l'ordre ecrit
         for paire in valeurs.windows(2) {
-            let Some(depuis) = paire[1].0 else { continue };
-            let note = liste.iter().find(|e| e.get("depuis").and_then(Value::as_str) == Some(depuis.iso().as_str())).and_then(|e| e.get("note")).cloned();
+            let Some(depuis) = paire[1].depuis else { continue };
+            let note = liste.iter().find(|e| e.depuis == Some(depuis)).and_then(|e| e.note.clone());
             let veille = depuis.plus_jours(-1).map_err(Echec::from)?;
-            lignes.push(json!({"champ": champ, "valeur": paire[0].1, "jusqu_au": veille.iso(), "jusqu_au_dit": format!("jusqu'au {}", veille.jj_mm_aaaa()), "note": note.unwrap_or(Value::Null)}));
+            lignes.push(json!({"champ": champ, "valeur": paire[0].valeur, "jusqu_au": veille.iso(), "jusqu_au_dit": format!("jusqu'au {}", veille.jj_mm_aaaa()), "note": note}));
         }
     }
     let mut f = fiche.clone();
@@ -774,8 +775,8 @@ pub(crate) fn configuration_dite(ctx: &Contexte) -> R<ConfigurationDite> {
 /// Toute la configuration, verifiee, et ce que la page en tire sans un appel de plus.
 fn configuration(ctx: &Contexte) -> R<ConfigurationDeLaPage> {
     // La route rend la fiche telle que la page la lit : ses cases par leur nom.
-    let ent = ctx.entreprise.en_valeur();
-    let mut vue = avec_historique(&ent, Some(&socle::ecriture::en_valeur(ctx.entreprise_brute())))?;
+    let ent = socle::ecriture::en_valeur(&ctx.entreprise);
+    let mut vue = avec_historique(&ent, &crate::routes::fiches::portees(ctx.entreprise_brute()))?;
     if let Some(o) = vue.as_object_mut() {
         let autres = etablissements_dits(ctx);
         if autres.is_empty() {
@@ -792,9 +793,9 @@ fn configuration(ctx: &Contexte) -> R<ConfigurationDeLaPage> {
     let salaries = ctx
         .salaries
         .iter()
-        .map(|(k, v)| fiche_verifiee(ctx, "salarie", Some(k.as_str()), &avec_historique(&v.champs.en_valeur(), ctx.salarie_brut(k.as_str()).map(socle::ecriture::en_valeur).as_ref())?, &ent))
+        .map(|(k, v)| fiche_verifiee(ctx, "salarie", Some(k.as_str()), &avec_historique(&socle::ecriture::en_valeur(&v.champs), &ctx.salarie_brut(k.as_str()).map(crate::routes::fiches::portees).unwrap_or_default())?, &ent))
         .collect::<R<Vec<_>>>()?;
-    let spectacles = ctx.spectacles.iter().map(|(k, v)| fiche_verifiee(ctx, "spectacle", Some(k), &avec_historique(&socle::ecriture::en_valeur(v), ctx.spectacle_brut(k).map(socle::ecriture::en_valeur).as_ref())?, &ent)).collect::<R<Vec<_>>>()?;
+    let spectacles = ctx.spectacles.iter().map(|(k, v)| fiche_verifiee(ctx, "spectacle", Some(k), &avec_historique(&socle::ecriture::en_valeur(v), &ctx.spectacle_brut(k).map(crate::routes::fiches::portees).unwrap_or_default())?, &ent)).collect::<R<Vec<_>>>()?;
     // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre (orange) : une valeur saisie et fausse,
     // les memes que la pastille de chaque fiche. Une case vide n'en est jamais une : ce qu'un acte exige, « Pour demarrer » le dit.
     let erreurs: usize = std::iter::once(&entreprise).chain(salaries.iter()).chain(spectacles.iter()).map(VueFiche::erreurs).sum();

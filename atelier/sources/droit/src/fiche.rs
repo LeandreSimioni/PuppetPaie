@@ -1,20 +1,19 @@
 //! LES FICHES DE LA COMPAGNIE, DECLAREES UNE FOIS : celle d'un salarie (`config/salaries.json`) et celle de l'entreprise
 //! avec ses autres etablissements (`config/entreprise.json`). La structure est la forme : chaque champ y a son type, une
-//! cle qu'elle ne connait pas se refuse a la lecture (`lire_salaries`, `lire_entreprise`, les seules qui les lisent), et
-//! l'ecriture passe par elle (`ecrire_salaries`, `ecrire_entreprise`). `donnees/champs-base.json` en garde la
+//! cle qu'elle ne connait pas se refuse a la lecture (`lire_fichier`, la seule qui les lit), et
+//! l'ecriture passe par elle (`socle::ecriture`). `donnees/champs-base.json` en garde la
 //! presentation (libelles, aide, conditions d'affichage, ordre) : chacune de ses cles est un champ d'ici, et chaque champ
 //! d'ici y a sa ligne (garde par `moteur/tests/fichiers/structure.rs`). La ligne `historique` (forme `histoire`) n'est
 //! pas une donnee : la route de la fiche la compose des listes datees.
 //!
-//! Le fichier est date (`contexte::fiche_au`) : chaque champ y est une liste `[{"depuis"?, "valeur", "note"?}]`
+//! Le fichier est date (`FicheDatee`) : chaque champ y est une liste `[{"depuis"?, "valeur", "note"?}]`
 //! (`Datee`) ; la fiche a un jour (`ChampsSalarie`, `ChampsEntreprise`) en est la valeur en vigueur. Une valeur s'ecrit
-//! nulle ou vide quand la fiche ne disait rien avant elle (`contexte::dater`) : `Case` garde ces deux formes, pour que le
+//! nulle ou vide quand la fiche ne disait rien avant elle (`dater`) : `Case` garde ces deux formes, pour que le
 //! fichier se reecrive tel qu'il est lu.
 
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::{Map, Value};
 
 use socle::date::Jour;
 use socle::mois::Mois;
@@ -52,14 +51,6 @@ impl<T> Case<T> {
     /// Pour `skip_serializing_if` : une case absente ne s'ecrit pas.
     pub fn est_absente(&self) -> bool {
         matches!(self, Case::Absente)
-    }
-}
-
-impl<T: Serialize> Case<T> {
-    /// La case en JSON, telle que la fiche l'ecrit (nulle si elle est absente) : pour une table qui la confronte a ses
-    /// valeurs.
-    pub fn en_valeur(&self) -> Value {
-        serde_json::to_value(self).unwrap_or(Value::Null)
     }
 }
 
@@ -137,19 +128,21 @@ impl<T: Serialize> Serialize for Case<T> {
     }
 }
 
-impl<'de, T: DeserializeOwned> Deserialize<'de> for Case<T> {
+/// Lue par sa forme (`socle::forme::Remplie`) : le chemin d'un refus va jusqu'a la case fautive.
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Case<T> {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        match Value::deserialize(d)? {
-            Value::Null => Ok(Case::Nulle),
-            Value::String(s) if s.is_empty() => Ok(Case::Vide),
-            v => serde_json::from_value(v).map(Case::Dite).map_err(serde::de::Error::custom),
-        }
+        Ok(match socle::forme::Remplie::<T>::deserialize(d)? {
+            socle::forme::Remplie::Nulle => Case::Nulle,
+            socle::forme::Remplie::Vide => Case::Vide,
+            socle::forme::Remplie::Dite(v) => Case::Dite(v),
+        })
     }
 }
 
 /// UN MONTANT OU UN NOMBRE D'UNE FICHE : un nombre JSON, ou un texte qui se lit en decimal (`12,5` compris), garde tel
-/// qu'il est ecrit.
-#[derive(Debug, Clone, PartialEq)]
+/// qu'il est ecrit (`socle::forme::NombreEcrit`).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(from = "socle::forme::NombreEcrit")]
 pub enum Montant {
     Entier(i64),
     Naturel(u64),
@@ -237,34 +230,14 @@ impl Serialize for Montant {
     }
 }
 
-impl<'de> Deserialize<'de> for Montant {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        struct Lu;
-        impl serde::de::Visitor<'_> for Lu {
-            type Value = Montant;
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("un nombre")
-            }
-            fn visit_i64<E: serde::de::Error>(self, i: i64) -> Result<Montant, E> {
-                Ok(Montant::Entier(i))
-            }
-            fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<Montant, E> {
-                Ok(i64::try_from(u).map_or(Montant::Naturel(u), Montant::Entier))
-            }
-            fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<Montant, E> {
-                Ok(Montant::Flottant(x))
-            }
-            fn visit_str<E: serde::de::Error>(self, s: &str) -> Result<Montant, E> {
-                match socle::num::decimal_lu(s) {
-                    Some(_) => Ok(Montant::Texte(s.to_string())),
-                    None => Err(E::custom(format!("{} n'est pas un nombre", socle::ecriture::json_en_ligne(s)))),
-                }
-            }
-            fn visit_bool<E: serde::de::Error>(self, b: bool) -> Result<Montant, E> {
-                Err(E::custom(format!("{} n'est pas un nombre", b)))
-            }
+impl From<socle::forme::NombreEcrit> for Montant {
+    fn from(n: socle::forme::NombreEcrit) -> Montant {
+        match n {
+            socle::forme::NombreEcrit::Entier(i) => Montant::Entier(i),
+            socle::forme::NombreEcrit::Naturel(u) => Montant::Naturel(u),
+            socle::forme::NombreEcrit::Flottant(x) => Montant::Flottant(x),
+            socle::forme::NombreEcrit::Texte(s) => Montant::Texte(s),
         }
-        d.deserialize_any(Lu)
     }
 }
 
@@ -624,22 +597,37 @@ macro_rules! choix {
     };
 }
 
-/// UNE FICHE QUI SE LIT CASE PAR CASE, par le nom que `champs-base.json` donne a chacune : une fiche lue par sa forme
-/// (`cases!`), ou une valeur qui n'en a pas (la fiche d'un spectacle, ce qu'une piece propose).
-pub trait ParCase {
-    fn case(&self, cle: &str) -> Option<Value>;
+/// CE QUI REGARDE LES CASES D'UNE FICHE PAR LEUR NOM, celui que `champs-base.json` donne a chacune (une table qui les
+/// nomme, un bareme, l'import) : chacune lui est donnee typee (`Cases::voir`), qu'il ecrit comme il l'entend.
+pub trait VoirCase {
+    fn case<T: Serialize>(&mut self, cle: &'static str, case: &Case<T>);
 }
 
-impl ParCase for Value {
-    fn case(&self, cle: &str) -> Option<Value> {
-        self.get(cle).cloned()
-    }
+/// UNE FICHE QUI SE MONTRE CASE PAR CASE (`cases!`) a qui la regarde (`VoirCase`).
+pub trait Cases {
+    fn voir<V: VoirCase>(&self, v: &mut V);
 }
 
-impl ParCase for Map<String, Value> {
-    fn case(&self, cle: &str) -> Option<Value> {
-        self.get(cle).cloned()
+/// LA CASE `cle` DE `fiche`, ecrite par `s` (une table qui la confronte a ses valeurs l'ecrit dans sa forme) ; `None` :
+/// elle est absente, ou la forme ne la declare pas.
+pub fn case_en<F: Cases + ?Sized, S: Serializer>(fiche: &F, cle: &str, s: S) -> Option<Result<S::Ok, S::Error>> {
+    struct Une<'a, S: Serializer> {
+        cle: &'a str,
+        s: Option<S>,
+        ecrite: Option<Result<S::Ok, S::Error>>,
     }
+    impl<S: Serializer> VoirCase for Une<'_, S> {
+        fn case<T: Serialize>(&mut self, cle: &'static str, case: &Case<T>) {
+            if cle == self.cle && !case.est_absente() {
+                if let Some(s) = self.s.take() {
+                    self.ecrite = Some(case.serialize(s));
+                }
+            }
+        }
+    }
+    let mut une = Une { cle, s: Some(s), ecrite: None };
+    fiche.voir(&mut une);
+    une.ecrite
 }
 
 /// UNE STRUCTURE DE CASES : chacune une `Case`, une cle inconnue refusee. Ses `notes` (d'une fiche datee) ne sont pas des
@@ -665,25 +653,31 @@ macro_rules! cases {
                 true $(&& self.$champ.est_absente())*
             }
 
-            /// La case `cle`, telle qu'elle s'ecrit ; `None` : elle est absente, ou la forme ne la declare pas. Pour ce
-            /// qui lit une case par le nom qu'une table lui donne (`champs-base.json`, un bareme, l'import).
-            pub fn case(&self, cle: &str) -> Option<Value> {
-                $( if stringify!($champ).trim_start_matches("r#") == cle {
-                    return (!self.$champ.est_absente()).then(|| self.$champ.en_valeur());
+            /// Les cases `cles` (leurs noms) sont-elles les memes dans `autre` ?
+            pub fn memes_cases(&self, autre: &$nom, cles: &[&str]) -> bool {
+                $( if cles.contains(&stringify!($champ).trim_start_matches("r#")) && self.$champ != autre.$champ {
+                    return false;
                 } )*
-                None
+                true
+            }
+
+            /// Les cases que `autre` dit (ni absentes) remplacent les siennes ; ses notes restent.
+            pub fn par_dessus(&mut self, autre: &$nom) {
+                $( if !autre.$champ.est_absente() {
+                    self.$champ = autre.$champ.clone();
+                } )*
             }
         }
-        impl ParCase for $nom {
-            fn case(&self, cle: &str) -> Option<Value> {
-                $nom::case(self, cle)
+        impl Cases for $nom {
+            fn voir<V: VoirCase>(&self, v: &mut V) {
+                $( v.case(stringify!($champ).trim_start_matches("r#"), &self.$champ); )*
             }
         }
     };
 }
 
 /// UNE FICHE DATEE : ses champs a un jour (`$plate`, des `cases!`), et la fiche telle qu'ecrite (`$datee`), chaque champ
-/// une liste datee ; `au` lit l'une dans l'autre, comme `contexte::fiche_au`.
+/// une liste datee ; `au` lit l'une dans l'autre, la valeur en vigueur de chaque champ (`valeur_au`).
 macro_rules! fiche {
     ($(#[$m:meta])* pub struct $plate:ident, datee $datee:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? } $( notes { $( $(#[$nm:meta])* $note:ident ),* $(,)? } )?) => {
         cases! { $(#[$m])* pub struct $plate { $( $(#[$fm])* $champ : $t ),* } $( notes { $( $(#[$nm])* $note ),* } )? }
@@ -720,8 +714,92 @@ macro_rules! fiche {
                 $( out.extend(self.$champ.iter().filter_map(|e| e.depuis).filter(|j| j <= jour).max()); )*
                 out
             }
+
+            /// Les listes et les notes que `autre` porte remplacent les siennes, entieres ; les autres restent.
+            pub fn par_dessus(&mut self, autre: &$datee) {
+                $( if !autre.$champ.is_empty() {
+                    self.$champ = autre.$champ.clone();
+                } )*
+                $( $( if autre.$note.is_some() {
+                    self.$note = autre.$note.clone();
+                } )* )?
+            }
+        }
+
+        impl FicheDatee for $datee {
+            type Plate = $plate;
+
+            fn au(&self, jour: &Jour) -> $plate {
+                $datee::au(self, jour)
+            }
+
+            fn depuis(&self, cle: &str) -> Vec<Option<Jour>> {
+                $datee::depuis(self, cle)
+            }
+
+            fn dater(&mut self, cle: &str, plate: &$plate, depuis: Option<&Jour>, note: Option<&str>) -> bool {
+                $( if stringify!($champ).trim_start_matches("r#") == cle {
+                    if plate.$champ.est_absente() {
+                        return false;
+                    }
+                    dater(&mut self.$champ, plate.$champ.clone(), depuis, note);
+                    return true;
+                } )*
+                false
+            }
+
+            fn noter(&mut self, plate: &$plate) {
+                $( $( if plate.$note.is_some() {
+                    self.$note = plate.$note.clone();
+                } )* )?
+                let _ = plate;
+            }
+
+            fn neuve(plate: &$plate) -> $datee {
+                let mut f = $datee::default();
+                $( if !plate.$champ.est_absente() {
+                    dater(&mut f.$champ, plate.$champ.clone(), None, None);
+                } )*
+                f.noter(plate);
+                f
+            }
+
+            fn voir_listes<V: VoirListe>(&self, v: &mut V) {
+                $( v.liste(stringify!($champ).trim_start_matches("r#"), &self.$champ); )*
+            }
         }
     };
+}
+
+/// UNE FICHE DATEE (`fiche!`) : la fiche telle qu'ecrite, chaque champ une liste datee, et sa fiche a un jour
+/// (`Plate`). Elle s'ecrit par `dater` (une case de `Plate`, qui vaut a partir de `depuis`), ses notes par `noter`.
+pub trait FicheDatee: Clone + Default + PartialEq + Serialize + DeserializeOwned {
+    type Plate: Cases + Clone + Default + Serialize + DeserializeOwned;
+
+    /// Ses champs en vigueur a `jour`, ses notes telles qu'ecrites.
+    fn au(&self, jour: &Jour) -> Self::Plate;
+
+    /// Les jours ou le champ `cle` prend une valeur, du plus ancien au plus recent (`None` d'abord) ; aucun pour un champ
+    /// que la fiche ne dit pas, ou que la forme ne declare pas.
+    fn depuis(&self, cle: &str) -> Vec<Option<Jour>>;
+
+    /// LA CASE `cle` DE `plate` S'ECRIT DATEE (`dater`) ; faux : la forme ne la declare pas, ou `plate` ne la dit pas.
+    fn dater(&mut self, cle: &str, plate: &Self::Plate, depuis: Option<&Jour>, note: Option<&str>) -> bool;
+
+    /// Les notes que `plate` porte remplacent les siennes ; les autres restent.
+    fn noter(&mut self, plate: &Self::Plate);
+
+    /// Une fiche neuve : chaque case dite de `plate` vaut de tout temps, ses notes telles quelles.
+    fn neuve(plate: &Self::Plate) -> Self;
+
+    /// Chaque liste datee, sous son nom, a qui la regarde.
+    fn voir_listes<V: VoirListe>(&self, v: &mut V);
+}
+
+/// CE QUI REGARDE LES LISTES DATEES D'UNE FICHE PAR LEUR NOM (l'historique que l'ecran montre, les gardes qui cherchent
+/// ce qui nomme une personne) : chacune lui est donnee typee (`FicheDatee::voir_listes`).
+pub trait VoirListe {
+    fn liste<T: Serialize>(&mut self, cle: &'static str, liste: &[Datee<T>]);
 }
 
 /// UNE VALEUR DATEE : de tout temps sans `depuis`, ou a partir de ce jour ; `note` dit d'ou elle vient.
@@ -737,10 +815,36 @@ pub struct Datee<T> {
 
 /// La valeur en vigueur a `jour` : celle dont le `depuis` est le plus recent sans le depasser (a meme date, la derniere
 /// ecrite ; sans `depuis`, de tout temps). Avant la premiere, la case est absente.
-fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Case<T> {
+pub fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Case<T> {
     let mut entrees: Vec<&Datee<T>> = liste.iter().collect();
     entrees.sort_by_key(|e| e.depuis);
     entrees.into_iter().filter(|e| e.depuis.map_or(true, |j| j <= *jour)).last().map_or(Case::Absente, |e| e.valeur.clone())
+}
+
+/// LA CONFIGURATION DE LA COMPAGNIE EST DATEE, comme les baremes : chaque valeur d'une fiche (l'entreprise et sa
+/// convention, ses etablissements, un salarie, un spectacle, les organismes, les rubriques de la compagnie) s'ecrit en
+/// liste datee (`Datee`) et se lit a la date de la periode payee (`valeur_au`), jamais « telle qu'aujourd'hui » : une
+/// valeur changee a une date ne touche pas ce qui precede. La premiere valeur d'un champ s'ecrit sans `depuis` : elle
+/// vaut DE TOUT TEMPS, jusqu'a la suivante (un contrat commence avant que la fiche soit saisie, un mois repris d'un
+/// autre logiciel trouvent la fiche). Un champ dont toutes les valeurs sont datees ne dit rien avant la premiere.
+///
+/// ECRIRE UNE VALEUR DATEE, la seule fonction qui le fait : `valeur` vaut a partir de `depuis` (`None` : de tout temps) ;
+/// ce qui precede reste ce qu'il etait. La premiere valeur d'une liste vaut de tout temps, quel que soit `depuis` : avant
+/// elle, la fiche ne disait rien d'autre. Une valeur deja ecrite au meme jour est remplacee (une correction du meme jour
+/// d'effet). `note` dit pourquoi.
+pub fn dater<T>(liste: &mut Vec<Datee<T>>, valeur: Case<T>, depuis: Option<&Jour>, note: Option<&str>) {
+    let depuis = if liste.is_empty() { None } else { depuis.copied() };
+    liste.retain(|e| e.depuis != depuis);
+    liste.push(Datee { depuis, valeur, note: note.map(str::trim).filter(|n| !n.is_empty()).map(str::to_string) });
+    liste.sort_by_key(|e| e.depuis); // stable : a meme date, la derniere ecrite gagne
+}
+
+/// LES VALEURS D'UNE LISTE DATEE, de la plus ancienne a la plus recente : `None` pour celle de tout temps (a meme date,
+/// dans l'ordre ecrit).
+pub fn valeurs_datees<T>(liste: &[Datee<T>]) -> Vec<&Datee<T>> {
+    let mut out: Vec<&Datee<T>> = liste.iter().collect();
+    out.sort_by_key(|e| e.depuis);
+    out
 }
 
 // ------------------------------------------------------------------ les choix
@@ -1123,6 +1227,11 @@ fiche! {
         clauses_particulieres: String,
         conseils: bool,
     }
+    notes {
+        /// D'ou vient le fichier (une compagnie d'essai le dit).
+        #[serde(rename = "_source")]
+        source,
+    }
 }
 
 choix! {
@@ -1156,6 +1265,41 @@ fiche! {
         titre_propose,
         #[serde(rename = "_titre_lu_dans")]
         titre_lu_dans,
+    }
+}
+
+impl FormeDeCase for crate::catalogue::PlafondAnnuelHeures {}
+
+fiche! {
+    /// UNE RUBRIQUE TELLE QU'UN FICHIER L'ECRIT, case par case : livree (`rubriques-base.json`, de tout temps), ou la
+    /// compagnie par-dessus, case par case, datee comme toute la configuration (`config/rubriques-compagnie.json`).
+    /// `catalogue::construire` en fait la `Rubrique` du calcul.
+    pub struct ChampsRubrique, datee RubriqueDatee {
+        libelle: String,
+        unite: String,
+        nature: String,
+        saisie: Vec<String>,
+        soumis: bool,
+        imposable: bool,
+        conges_spectacles: bool,
+        source: String,
+        sens: String,
+        heures_forfait: Montant,
+        plafond: String,
+        aem: String,
+        dsn_type: String,
+        dsn_autres_bruts: String,
+        annexe: String,
+        plafond_mensuel: i64,
+        plafond_annuel_heures: crate::catalogue::PlafondAnnuelHeures,
+        compte_pour: String,
+        salaire_de_base: bool,
+        retabli: bool,
+        suspension: bool,
+        arret_de_travail: bool,
+        conges_pris: bool,
+        dsn_bloc52: String,
+        dit: String,
     }
 }
 
@@ -1210,19 +1354,9 @@ impl ChampsSalarie {
     pub fn archivee(&self) -> bool {
         self.actif.dite() == Some(&false)
     }
-
-    /// La fiche en JSON, telle que l'ecran et les tables de `champs-base.json` la lisent.
-    pub fn en_valeur(&self) -> Value {
-        serde_json::to_value(self).unwrap_or(Value::Null)
-    }
 }
 
 impl ChampsEntreprise {
-    /// La fiche en JSON, telle que l'ecran, les baremes et les modeles la lisent.
-    pub fn en_valeur(&self) -> Value {
-        serde_json::to_value(self).unwrap_or(Value::Null)
-    }
-
     /// Le NIC du siege, ou `""`.
     pub fn nic_principal(&self) -> String {
         self.nic.texte().to_string()
@@ -1336,69 +1470,35 @@ impl SalarieDuContrat {
     pub fn de(fiche: FicheSalarie) -> SalarieDuContrat {
         SalarieDuContrat { fiche, idcc_de_l_employeur: None, etablissement: None, sante_suspendue: None }
     }
-
-    /// Relue d'a cote de la paie, la seule lecture.
-    pub fn lire(v: &Value) -> Resultat<SalarieDuContrat> {
-        lire_champs(v, "La fiche lue par la paie")
-    }
 }
 
 // ------------------------------------------------------------- les fichiers
 
-/// Les fiches de `config/salaries.json`, dans l'ordre du fichier, et sa note (`_source`).
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Salaries {
-    pub source: Option<String>,
-    pub fiches: IndexMap<IdSalarie, FicheSalarieDatee>,
-}
-
 /// La note d'un fichier de fiches : la seule cle en `_` qu'il admet.
 const NOTE_DU_FICHIER: &str = "_source";
 
-/// UN FICHIER DE FICHES (`config/spectacles.json`) : sa note (`_source`), et ses fiches par cle, dans l'ordre du fichier.
-/// Une autre cle en `_` se refuse.
+/// UN FICHIER DE FICHES (`config/salaries.json`, `config/spectacles.json`) : sa note (`_source`), et ses fiches par cle
+/// (`K`), dans l'ordre du fichier. Une autre cle en `_`, une cle repetee se refusent (`socle::forme::fiches_et_note`).
 #[derive(Debug, Clone, PartialEq)]
-pub struct FichierDeFiches<F> {
+pub struct FichierDeFiches<K: std::hash::Hash + Eq, F> {
     pub source: Option<String>,
-    pub fiches: IndexMap<String, F>,
+    pub fiches: IndexMap<K, F>,
 }
 
-impl<F> Default for FichierDeFiches<F> {
+impl<K: std::hash::Hash + Eq, F> Default for FichierDeFiches<K, F> {
     fn default() -> Self {
         FichierDeFiches { source: None, fiches: IndexMap::new() }
     }
 }
 
-impl<'de, F: Deserialize<'de>> Deserialize<'de> for FichierDeFiches<F> {
+impl<'de, K: std::hash::Hash + Eq + Deserialize<'de>, F: Deserialize<'de>> Deserialize<'de> for FichierDeFiches<K, F> {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        struct Lu<F>(std::marker::PhantomData<F>);
-        impl<'de, F: Deserialize<'de>> serde::de::Visitor<'de> for Lu<F> {
-            type Value = FichierDeFiches<F>;
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("un objet de fiches")
-            }
-            fn visit_map<A: serde::de::MapAccess<'de>>(self, mut m: A) -> Result<Self::Value, A::Error> {
-                let mut out = FichierDeFiches::default();
-                while let Some(k) = m.next_key::<String>()? {
-                    if k == NOTE_DU_FICHIER {
-                        out.source = Some(m.next_value()?);
-                    } else if k.starts_with('_') {
-                        return Err(serde::de::Error::custom(format!("la clé {} n'est pas connue ici (attendue : {})", k, NOTE_DU_FICHIER)));
-                    } else {
-                        let f = m.next_value()?;
-                        if out.fiches.insert(k.clone(), f).is_some() {
-                            return Err(serde::de::Error::custom(format!("la clé {} est répétée", k)));
-                        }
-                    }
-                }
-                Ok(out)
-            }
-        }
-        d.deserialize_map(Lu(std::marker::PhantomData))
+        let (source, fiches) = socle::forme::fiches_et_note(d, NOTE_DU_FICHIER)?;
+        Ok(FichierDeFiches { source, fiches: fiches.into_iter().collect() })
     }
 }
 
-impl<F: Serialize> Serialize for FichierDeFiches<F> {
+impl<K: std::hash::Hash + Eq + Serialize, F: Serialize> Serialize for FichierDeFiches<K, F> {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
         let mut m = s.serialize_map(Some(self.fiches.len() + usize::from(self.source.is_some())))?;
@@ -1412,11 +1512,16 @@ impl<F: Serialize> Serialize for FichierDeFiches<F> {
     }
 }
 
-/// `config/spectacles.json`.
-pub type Spectacles = FichierDeFiches<FicheSpectacleDatee>;
+/// `config/salaries.json`.
+pub type Salaries = FichierDeFiches<IdSalarie, FicheSalarieDatee>;
 
-/// LA LECTURE DE `config/spectacles.json` (`fichier` : son nom dans les refus), la seule.
-pub fn lire_spectacles(chemin: &std::path::Path, fichier: &str) -> Resultat<Spectacles> {
+/// `config/spectacles.json`.
+pub type Spectacles = FichierDeFiches<String, FicheSpectacleDatee>;
+
+/// LA LECTURE D'UN FICHIER DE FICHES (`config/entreprise.json` en `FicheEntrepriseDatee`, `config/salaries.json` en
+/// `Salaries`, `config/spectacles.json` en `Spectacles`), la seule : `fichier` le nomme dans les refus, qui disent la cle
+/// fautive jusqu'a sa case et quoi faire.
+pub fn lire_fichier<T: DeserializeOwned>(chemin: &std::path::Path, fichier: &str) -> Resultat<T> {
     socle::forme::lire_fichier_en_phrase(chemin, |cle, detail| refus_de_fiche(fichier, cle, detail))
 }
 
@@ -1436,84 +1541,16 @@ fn refus_d_ecriture(fichier: &str, chemin: &str, detail: &str) -> String {
     format!("{}{} ne s'écrirait pas : {}. Rien n'est écrit : corriger cette valeur.", fichier, ou, detail)
 }
 
-type Phrase = fn(&str, &str, &str) -> String;
-
-/// LA LECTURE DE `config/salaries.json` (`fichier` : son nom dans les refus), la seule.
-pub fn lire_salaries(v: &Value, fichier: &str) -> Resultat<Salaries> {
-    salaries_par(v, fichier, refus_de_fiche)
+/// Les champs d'une fiche a un jour (ou toute forme d'une fiche), lus de `v` (une charge, une fiche composee) : le
+/// refus nomme la cle jusqu'a sa case.
+pub fn lire_champs<T: DeserializeOwned>(v: &(impl Serialize + ?Sized), quoi: &str) -> Resultat<T> {
+    socle::forme::lire_en_phrase(&socle::ecriture::en_valeur(v), |chemin, detail| refus_de_fiche(quoi, chemin, detail))
 }
 
-fn salaries_par(v: &Value, fichier: &str, refus_de_fiche: Phrase) -> Resultat<Salaries> {
-    let o = v.as_object().ok_or_else(|| refus_de_fiche(fichier, "", "un objet JSON est attendu"))?;
-    let mut out = Salaries::default();
-    for (k, f) in o {
-        if k == NOTE_DU_FICHIER {
-            out.source = Some(socle::valeur::valeur_en_texte(f));
-            continue;
-        }
-        if k.starts_with('_') {
-            return Err(refus_de_fiche(fichier, k, &format!("la clé {} n'est pas connue ici (attendue : {})", k, NOTE_DU_FICHIER)));
-        }
-        let id = IdSalarie::lire(k).map_err(|e| refus_de_fiche(fichier, k, &e))?;
-        let fiche: FicheSalarieDatee = socle::forme::lire_en_phrase(f, |chemin, detail| {
-            refus_de_fiche(fichier, &format!("{}{}{}", k, if chemin.is_empty() { "" } else { "." }, chemin), detail)
-        })?;
-        out.fiches.insert(id, fiche);
-    }
-    Ok(out)
-}
-
-/// LA LECTURE DE `config/entreprise.json`, la seule.
-pub fn lire_entreprise(v: &Value, fichier: &str) -> Resultat<FicheEntrepriseDatee> {
-    entreprise_par(v, fichier, refus_de_fiche)
-}
-
-fn entreprise_par(v: &Value, fichier: &str, refus_de_fiche: Phrase) -> Resultat<FicheEntrepriseDatee> {
-    // La note du fichier (`_source`) ne se lit pas.
-    let mut v = v.clone();
-    if let Some(o) = v.as_object_mut() {
-        o.shift_remove(NOTE_DU_FICHIER);
-    }
-    socle::forme::lire_en_phrase(&v, |chemin, detail| refus_de_fiche(fichier, chemin, detail))
-}
-
-/// `config/salaries.json` tel qu'il s'ecrit.
-pub fn ecrire_salaries(s: &Salaries) -> Value {
-    let mut m = Map::new();
-    if let Some(n) = &s.source {
-        m.insert(NOTE_DU_FICHIER.into(), Value::String(n.clone()));
-    }
-    for (id, f) in &s.fiches {
-        m.insert(id.to_string(), serde_json::to_value(f).unwrap_or(Value::Null));
-    }
-    Value::Object(m)
-}
-
-/// `config/entreprise.json` tel qu'il s'ecrit.
-pub fn ecrire_entreprise(e: &FicheEntrepriseDatee) -> Value {
-    serde_json::to_value(e).unwrap_or(Value::Null)
-}
-
-/// LE CONTENU D'UN FICHIER DE FICHES, PASSE PAR SA FORME avant de s'ecrire (`nom` : `salarie` ou `entreprise` ; une autre
-/// fiche passe telle quelle) : ce qui ne se lit pas se refuse, rien n'est ecrit ; ce qui se lit s'ecrit tel que la forme
-/// l'ecrit, la note du fichier (`_source`) en tete.
-pub fn par_la_forme(nom: &str, fichier: &str, contenu: &Value) -> Resultat<Value> {
-    match nom {
-        "salarie" => Ok(ecrire_salaries(&salaries_par(contenu, fichier, refus_d_ecriture)?)),
-        "entreprise" => {
-            let mut v = ecrire_entreprise(&entreprise_par(contenu, fichier, refus_d_ecriture)?);
-            if let (Some(n), Some(o)) = (contenu.get(NOTE_DU_FICHIER), v.as_object_mut()) {
-                o.shift_insert(0, NOTE_DU_FICHIER.into(), n.clone());
-            }
-            Ok(v)
-        }
-        _ => Ok(contenu.clone()),
-    }
-}
-
-/// Les champs d'une fiche a un jour, lus d'une valeur plate (une charge, une fiche composee) : le refus nomme la cle.
-pub fn lire_champs<T: DeserializeOwned>(v: &Value, quoi: &str) -> Resultat<T> {
-    socle::forme::lire_en_phrase(v, |chemin, detail| refus_de_fiche(quoi, chemin, detail))
+/// CE QU'UNE ECRITURE VA POSER DANS LE FICHIER `fichier`, lu par sa forme avant de s'ecrire : ce qui ne se lit pas se
+/// refuse en nommant la cle jusqu'a sa case, et rien n'est ecrit.
+pub fn lire_saisie<T: DeserializeOwned>(v: &(impl Serialize + ?Sized), fichier: &str) -> Resultat<T> {
+    socle::forme::lire_en_phrase(&socle::ecriture::en_valeur(v), |chemin, detail| refus_d_ecriture(fichier, chemin, detail))
 }
 
 #[cfg(test)]
@@ -1533,8 +1570,8 @@ mod tests {
                 "conges_reprise": [{"valeur": {"date": "2026-01-01", "report": 30, "remuneration_report": 47321.04}}]
             }
         });
-        let s = lire_salaries(&v, "config/salaries.json").unwrap();
-        assert_eq!(ecrire_salaries(&s), v);
+        let s = lire_champs::<Salaries>(&v, "config/salaries.json").unwrap();
+        assert_eq!(socle::ecriture::en_valeur(&s), v);
         let f = &s.fiches[&IdSalarie::lire("FULLER").unwrap()];
         assert_eq!(f.au(&Jour::lire("2026-11-01").unwrap()).actif, Case::Nulle);
         assert!(f.au(&Jour::lire("2026-11-02").unwrap()).actif.oui());
@@ -1543,7 +1580,7 @@ mod tests {
     /// Une cle inconnue se refuse, et la phrase nomme le fichier et la cle.
     #[test]
     fn une_cle_inconnue_se_refuse_en_la_nommant() {
-        let e = lire_salaries(&json!({"FULLER": {"prevoyance_techniciens_3097": [{"valeur": true}]}}), "config/salaries.json").unwrap_err();
+        let e = lire_champs::<Salaries>(&json!({"FULLER": {"prevoyance_techniciens_3097": [{"valeur": true}]}}), "config/salaries.json").unwrap_err();
         assert!(e.contains("config/salaries.json") && e.contains("prevoyance_techniciens_3097"), "{}", e);
     }
 }

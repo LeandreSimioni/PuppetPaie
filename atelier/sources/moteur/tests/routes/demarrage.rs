@@ -57,11 +57,11 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
         for (permanents, spectacle) in [(false, false), (false, true), (true, false), (true, true)] {
             let nom = format!("grille-{}-{}-{}", if idcc.is_empty() { "sans" } else { idcc }, permanents, spectacle);
             let racine = neuve(&nom);
-            let mut fichier = droit::fiche::lire_entreprise(&lire(&racine, "config/entreprise.json"), "config/entreprise.json").unwrap();
+            let mut fichier = droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&racine.join("config/entreprise.json"), "config/entreprise.json").unwrap();
             let valeur = if idcc.is_empty() { droit::fiche::Case::Vide } else { droit::fiche::Case::Dite(idcc.clone()) };
             fichier.idcc = vec![droit::fiche::Datee { depuis: None, valeur, note: None }];
             fichier.emploie_des_permanents = vec![droit::fiche::Datee { depuis: None, valeur: droit::fiche::Case::Dite(permanents), note: None }];
-            ecrire(&racine, "config/entreprise.json", &droit::fiche::ecrire_entreprise(&fichier));
+            ecrire(&racine, "config/entreprise.json", &socle::ecriture::en_valeur(&fichier));
             let ent = fichier.au(&socle::date::Jour::lire(JOUR).unwrap());
             if spectacle {
                 ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": datee(&json!({"titre": "Le Banc", "actif": true}))}));
@@ -124,7 +124,7 @@ fn un_matricule_deja_porte_se_refuse() {
         .unwrap()
         .iter()
         .filter(|(k, _)| !k.starts_with('_'))
-        .map(|(_, s)| fiche_au(s, JOUR)["code_salarie"].as_str().unwrap_or_default().to_string())
+        .map(|(_, s)| fiche_au::<droit::fiche::FicheSalarieDatee>(s, JOUR)["code_salarie"].as_str().unwrap_or_default().to_string())
         .collect();
     assert_eq!(matricules.len(), 2);
     assert!(matricules.contains(&"1".to_string()) && matricules.contains(&"2".to_string()), "{:?}", matricules);

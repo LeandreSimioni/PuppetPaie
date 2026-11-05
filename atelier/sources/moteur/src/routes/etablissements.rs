@@ -134,9 +134,9 @@ fn au(frise: &Frise, jour: &Jour) -> Option<Value> {
 /// ECRIRE LA LISTE QUE L'ECRAN DONNE (`liste`) dans la fiche entreprise `contenu`, datee : voir l'en-tete. `depuis` est la
 /// date d'effet de la boite « Ce qui change » ; sans elle, un changement qui se date se refuse.
 pub(crate) fn ecrire(
-    ctx: &Contexte, contenu: &mut Map<String, Value>, donnees: &Map<String, Value>, liste_ecran: &Value, depuis: Option<Jour>, note: Option<&str>,
+    ctx: &Contexte, contenu: &mut droit::fiche::FicheEntrepriseDatee, donnees: &Map<String, Value>, liste_ecran: &Value, depuis: Option<Jour>, note: Option<&str>,
 ) -> R<()> {
-    if !contenu.contains_key("etablissements") && liste(Some(liste_ecran)).is_empty() {
+    if contenu.etablissements.is_empty() && liste(Some(liste_ecran)).is_empty() {
         // Une compagnie qui n'en a jamais eu : rien a dater.
         return Ok(());
     }
@@ -189,14 +189,8 @@ pub(crate) fn ecrire(
     }
 
     // L'histoire telle que la fiche la dit : une frise par etablissement.
-    let versions: Vec<(Option<Jour>, Vec<Value>)> = match contenu.get("etablissements") {
-        Some(v) => droit::contexte::valeurs_datees(&json!({"etablissements": v}), "etablissements")
-            .map_err(|m| refus(m))?
-            .into_iter()
-            .map(|(j, l)| (j, liste(Some(l))))
-            .collect(),
-        None => Vec::new(),
-    };
+    let versions: Vec<(Option<Jour>, Vec<Value>)> =
+        droit::fiche::valeurs_datees(&contenu.etablissements).into_iter().map(|e| (e.depuis, liste(Some(&socle::ecriture::en_valeur(&e.valeur))))).collect();
     let ouverts: Vec<Value> = versions.last().map(|(_, l)| l.clone()).unwrap_or_default();
     let mut frises: BTreeMap<String, Frise> = BTreeMap::new();
     for (i, (j, l)) in versions.iter().enumerate() {
@@ -332,7 +326,7 @@ valeur, et la date ne se devine pas. Rien n'a été enregistré.",
             droit::contexte::controler_etablissements(&fiche, &bar).map_err(refus)?;
         }
     }
-    contenu.insert("etablissements".into(), Value::Array(datee));
+    contenu.etablissements = droit::fiche::lire_saisie(&Value::Array(datee), droit::contexte::ENTREPRISE).map_err(refus)?;
     Ok(())
 }
 
@@ -353,7 +347,7 @@ fn poser_annee(ligne: &mut Value, annee: Option<Value>) {
 /// (`ouverture::etablissements_dits`), ceux qui ouvrent plus tard compris ; c'est contre elle qu'un enregistrement se
 /// compare.
 pub(crate) fn entreprise_montree(ctx: &Contexte) -> Value {
-    let mut e = ctx.entreprise.en_valeur();
+    let mut e = socle::ecriture::en_valeur(&ctx.entreprise);
     if let Some(o) = e.as_object_mut() {
         if o.contains_key("etablissements") || !ctx.entreprise_brute().etablissements.is_empty() {
             o.insert("etablissements".into(), Value::Array(crate::routes::ouverture::etablissements_dits(ctx)));

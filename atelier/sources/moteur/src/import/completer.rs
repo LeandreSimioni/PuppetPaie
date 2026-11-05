@@ -10,7 +10,7 @@
 //! Un champ que la piece ne porte pas ne s'invente pas (regle 1) : on ne complete que de ce que la DSN ou le bulletin
 //! imprime, par le meme chemin que la fiche qu'il creerait.
 
-use droit::fiche::ParCase;
+use declarations::champs::ParCase;
 use serde_json::{Map, Value};
 
 use socle::echec::R;

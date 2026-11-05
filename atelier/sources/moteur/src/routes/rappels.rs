@@ -609,7 +609,7 @@ fn echeancier(ctx: &Contexte) -> socle::echec::R<Echeancier> {
         date_dit: format!("Nous sommes le {}", date_en_clair(&st.aujourdhui)),
         bienvenue: "Bienvenue sur PuppetPaie",
         compagnie,
-        idcc: ctx.entreprise.idcc.en_valeur(),
+        idcc: socle::ecriture::en_valeur(&ctx.entreprise.idcc),
         ce_mois,
         a_venir,
         a_faire,
