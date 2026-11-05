@@ -1,0 +1,63 @@
+Grille d'aide au remplissage "Indemnités"
+
+Fiches consignes correspondantes: http://dsn-info.custhelp.com/app/answers/detail/a_id/397
+http://www.dsn-info.fr/documentation/consignes-declaratives-dsn.pdf
+
+Préambule :
+Les sommes à caractère indemnitaires sont liées à la rupture d'un contrat de travail ou à l'arrivée au terme de celui-ci .
+Toutes ces différentes indemnités sont à valoriser dans le bloc 52 , en adéquation avec le code afférent et sans période de rattachment .
+Les indemnités liées à la rupture de contrat ne sont pas retenues dans le calcul de l'allocation chômage, mais elles servent à calculer un nombre de jours de différé d'indemnisation et donc à déterminer la date du premier jour
+indemnisable pour Pôle emploi .
+
+Colonnes du tableau, dans l'ordre de chaque ligne ci-dessous :
+Catégorie | Indemnités | Commentaires | Période de rattachement (Avec / Sans) | Valorisation en DSN : intégration du montant dans le salaire brut soumis à contributions Assurance Chômage S21.G00.51 de type "002" ; valorisation dans le bloc S21.G00.52 "Prime, gratification et indemnité" (Intégration, Code Type) | Types de contrat applicable (CDD, CDI, Contrat Apprentissage, Contrat de mission) | Description Pôle Emploi
+Sur toutes les lignes : période de rattachement « Sans » (x), intégration au salaire brut soumis à contributions Assurance Chômage « Non », intégration dans le bloc S21.G00.52 « Oui ».
+Les croix de la colonne « Types de contrat » sont notées ci-dessous entre crochets.
+
+== Générale ==
+
+Code 020 | Indemnité compensatrice de congés payés | Indemnité versée à l'issue du solde de tout compte | [CDD, CDI, Contrat Apprentissage, Contrat de mission]
+Code 023 | Indemnité compensatrice de préavis payé non effectué | [CDI] | Compensation du préavis payé non effectué
+Code 034 | Indemnité de congés payés | Indemnité versée mensuellement en lieu et place de l'indemnité compensatrice de congés payés | [CDD, CDI, Contrat Apprentissage, Contrat de mission] | spéciale BTP fiche 686
+Code 011 | Indemnité légale de fin de CDD | appelée également indemnité de précarité ou fin de contrat à durée déterminée | [CDD] | (Art. L 1243-8 du CT) - L'indemnité de fin de contrat est égale au minimum à 10 % de la rémunération brute totale versée durant le contrat.
+Code 012 | Indemnité légale de fin de mission | dédiée aux intérimaires (IFM) | [Contrat de mission] | (Article L.1251-32) prévoit que son montant est au minimum égal à 10 % de la rémunération totale brute due au salarié
+Code 016 | Indemnité légale versée à l'apprenti | [CDI, Contrat Apprentissage, Contrat de mission] | (versée en cas de risque sérieux d’atteinte à la santé ou à l’intégrité physique ou morale (Art. L 6225-2 du CT).
+Code 025 | Indemnité compensatrice des droits acquis dans le cadre d’un CET | A dissocier de la Prime de Rachat de Compte Epargne Temps (voir Grille de remplissage Prime) | [CDI] | Payée à l'issue du contrat au moment de la rupture
+Code 017 | Dommages et intérêts dus à un CDD ou à une rupture de période d’essai | dommages et intérêts liés à la rupture anticipée du contrat du fait de l'employeur ou à une rupture de période d'essai (on parle délai de prévenance) | [CDD] | (Art. L 1243-4 du CT) - Ces indemnités sont dues dans le cadre d’une rupture anticipée du CDD par l’employeur au salarié .
+Code 019 | Indemnité suite à clause de non concurrence | [CDD, CDI, Contrat Apprentissage, Contrat de mission]
+Code 021 | Indemnité conventionnelle | vient s'ajouter éventuellement à l'indemnité légale de licenciement (en fonction de la convention collective) | [CDD, CDI, Contrat Apprentissage, Contrat de mission] | Supplémentaire aux indemnités légales .
+Code 022 | Indemnité transactionnelle | Versée en plus de toute indemnité légale suite à un accord employeur / salarié | [CDD, CDI, Contrat Apprentissage, Contrat de mission] | Pour Pôle emploi toutes les indemnités qui ne sont pas fondées sur un texte règlementaire ou conventionnel. Accord Transactionnel des 2 parties .
+
+== Rupture Conventionnelle ==
+
+Code 001 | Indemnité spécifique de rupture conventionnelle | [CDI] | Pour ruptures conventionnelles : Il s’agit du minimum légal correspondant à cette indemnité (art. L 1237-13 du CT)
+
+== Départ à la retraite ==
+
+Code 003 | Indemnité légale de mise à la retraite par l'employeur | [CDI] | (art. L 1237-7 du CT)
+Code 004 | Indemnité conventionnelle de mise à la retraite par l'employeur | vient s'ajouter éventuellement à l'indemnité légale de licenciement (en fonction de la convention collective) | [CDI]
+Code 005 | Indemnité légale de départ à la retraite du salarié | [CDI] | (Art. L 1237-9 du CT)
+Code 006 | Indemnité conventionnelle de départ à la retraite du salarié | vient s'ajouter éventuellement à l'indemnité légale de licenciement (en fonction de la convention collective) | [CDI]
+
+== Licencement ==
+
+Code 007 | Indemnité légale de licenciement | [CDI] | (Art. L 1234-9 et R-1234-1 à 1234-5 du CT.) l’indemnité correspond à 1/5éme de mois de salaire par année d’ancienneté.
+Code 008 | Indemnité légale supplémentaire de licenciement | Correspond au supplément de l'indemnité légale, pour une ancienneté supérieure à 10 ans (renseigner le montant supplémentaire à l'indemnité légale de licenciement) | [CDI] | (Art. L 1234-9 et R-1234-1 à 1234-5 du CT.). l’indemnité correspond à 2/15éme de mois de salaire par année d’ancienneté à compter de la 11 éme année
+Code 010 | Indemnité légale spécifique de licenciement | Correspond à une indemnité due par l'employeur en cas de non-respect de la procédure de licenciement économique | [CDI] | (Art. L-1235-15 du code du travail)
+
+== Accident du Travail / Maladie Professionnelle ==
+
+Code 032 | Indemnité compensatrice de préavis pour inaptitude suite à un Accident du Travail ou une Maladie Professionnelle | [CDI] | Compensation du préavis payé non effectué pour inaptitude suite à AT MP
+Code 009 | Indemnité légale spéciale de licenciement | consécutive à une inaptitude physique suite Accident du Travail ou Maladie Professionnelle | [CDI] | (Art. L 12216-14 du CT) consécutive à une inaptitude physique suite Accident du Travail ou Maladie Professionnelle ;
+
+== Autres indemnités particulières présentes en Norme NEODeS DSN ==
+
+Code 002 | Indemnité versée à l'occasion de la cessation forcée des fonctions des mandataires sociaux | [CDD, CDI]
+Code 013 | Indemnité légale due aux journalistes | [CDD, CDI] | (Art. L 7112-2 du CT)
+Code 033 | Indemnité forfaitaire de conciliation prud’homale | [CDI]
+Code 039 | Complément de rémunération à la charge de l'état | []
+Code 900 | Indemnité d'expatriation | [CDI]
+Code 901 | Indemnité d'impatriation | [CDI]
+Code 018 | Indemnité due en raison d'un sinistre | [CDI] | (Art ; L 1234-13 et L-1243-4 du CT)
+Code 014 | Indemnité légale de clientèle | [CDD, CDI] | (Art. L 7313-13 du CT)
+Code 015 | Indemnité légale due au personnel naviguant de l'aviation civile | [CDI] | (Art. R-423-1 du Code de l’aviation civile )
