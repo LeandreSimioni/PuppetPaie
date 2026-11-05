@@ -338,7 +338,7 @@ enum Geste {
     /// L'avenant du contrat (`salarie`, `debut`) part a la signature, puis revient signe.
     Avenant { mois: Mois, salarie: String, debut: Jour, nom: String },
     /// Le signalement d'arret (04) ou de reprise (05) de l'arret de `salarie` au `dernier` jour travaille.
-    Arret { mois: Mois, salarie: String, dernier: String, cle: &'static str, nature: crate::routes::imprevus::NatureSignalement },
+    Arret { mois: Mois, salarie: String, dernier: String, cle: crate::obligations::CleDObligation, nature: crate::routes::imprevus::NatureSignalement },
     /// Le signalement de fin du contrat de `salarie` qui finit le `fin`.
     Fin { mois: Mois, salarie: String, fin: String },
     /// La DSN du mois, fabriquee a son echeance.
@@ -904,7 +904,7 @@ fn signalements_dus(ctx: &Contexte, le_mois: Mois, jour: Jour, cloture: bool) ->
     let du = |o: &crate::obligations::Obligation| if cloture { a_faire(o) } else { due(o, jour) };
     let mut dus = Vec::new();
     use crate::routes::imprevus::NatureSignalement;
-    let natures = [("signalement_arret", NatureSignalement::Arret, "d'arrêt"), ("signalement_reprise", NatureSignalement::Reprise, "de reprise")];
+    let natures = [(crate::obligations::CleDObligation::SignalementArret, NatureSignalement::Arret, "d'arrêt"), (crate::obligations::CleDObligation::SignalementReprise, NatureSignalement::Reprise, "de reprise")];
     let arrets = crate::routes::imprevus::tous_les_arrets(ctx).unwrap_or_default();
     if let Ok(suivi) = crate::obligations::Suivi::lire(ctx) {
         for a in arrets.iter().filter(|a| valeur_en_texte(&a["dernier_jour_travaille"]).starts_with(mois)) {

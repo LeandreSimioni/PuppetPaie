@@ -364,118 +364,7 @@ pub fn du_contrat(imp: &Value, cle: &str, numero: Option<&str>, debut: &Jour) ->
     Ok(n_imp.is_empty() || n.is_empty() || n_imp == n)
 }
 
-// ------------------------------------------------------------- les nomenclatures
-
-/// LES NOMENCLATURES DU BLOC « Arret de travail - S21.G00.60 » (`logiciel/donnees/arrets-base.json`) : motif de l'arret,
-/// motif de la reprise, subrogation. Leur forme est declaree ici et `bloc_60` est la seule fonction qui lit le fichier ;
-/// le bulletin (`lignes_du_mois`), le signalement et la DSN (`declarations`), les obligations et la page des imprevus
-/// (le moteur) la lisent par elle.
-#[derive(Debug, Clone, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Bloc60 {
-    _quoi: String,
-    _pourquoi_ici: String,
-    _source: SourceDuBloc60,
-    pub motifs_arret: Nomenclature,
-    pub motifs_reprise: Nomenclature,
-    pub subrogation: Nomenclature,
-}
-
-/// D'ou viennent les codes : le cahier technique, sa copie deposee, quand il a ete relu.
-#[derive(Debug, Clone, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SourceDuBloc60 {
-    #[serde(rename = "titre")]
-    _titre: String,
-    #[serde(rename = "copie")]
-    _copie: String,
-    #[serde(rename = "relu_le")]
-    _relu_le: String,
-    #[serde(rename = "conformite_2027")]
-    _conformite_2027: String,
-}
-
-/// Une nomenclature : sa rubrique, ses codes dans l'ordre du fichier, et les notes qui disent ses drapeaux.
-#[derive(Debug, Clone, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Nomenclature {
-    _rubrique: String,
-    pub codes: Vec<CodeDuBloc60>,
-    #[serde(default)]
-    _quoi: Option<String>,
-    #[serde(default)]
-    _ligne_du_bulletin: Option<String>,
-    #[serde(default)]
-    _regle: Option<String>,
-    #[serde(default)]
-    _date_accident: Option<String>,
-    #[serde(default)]
-    _maintien_legal: Option<String>,
-    #[serde(default)]
-    _origine: Option<String>,
-    #[serde(default)]
-    _temps_partiel_therapeutique: Option<String>,
-    #[serde(default)]
-    _annulation: Option<String>,
-}
-
-/// Un code de la norme, tel que la page le propose : son libelle, la ligne du bulletin qui nomme l'absence
-/// (`rubrique`), s'il se saisit, et ce qu'il emporte (la date de l'accident, le maintien de la loi et son origine, un
-/// temps partiel therapeutique, une valeur de reserve, l'annulation).
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct CodeDuBloc60 {
-    pub code: String,
-    pub libelle: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rubrique: Option<String>,
-    pub saisissable: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub date_accident: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub maintien_legal: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub origine: Option<String>,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub temps_partiel_therapeutique: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub reserve: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub annulation: bool,
-    #[serde(default, rename = "_norme", skip_serializing)]
-    _norme: Option<String>,
-}
-
-impl Nomenclature {
-    /// Le code `c` de la nomenclature, s'il y est (une valeur qui n'est pas un texte n'y est pas).
-    pub fn code(&self, c: &Value) -> Option<&CodeDuBloc60> {
-        let c = c.as_str()?;
-        self.codes.iter().find(|x| x.code == c)
-    }
-
-    /// Ceux que la page propose (`saisissable`).
-    pub fn saisissables(&self) -> Vec<CodeDuBloc60> {
-        self.codes.iter().filter(|c| c.saisissable).cloned().collect()
-    }
-}
-
-impl Bloc60 {
-    /// Le code « oui » de la subrogation (S21.G00.60.004), que le fichier doit porter.
-    pub fn subrogation_oui(&self) -> Resultat<&str> {
-        self.subrogation.codes.iter().find(|c| c.libelle == "oui").map(|c| c.code.as_str()).ok_or_else(|| socle::echec::livree("arrets-base.json", "subrogation.oui"))
-    }
-}
-
-/// `arrets-base.json`, lu par sa forme (le texte est lu une fois tant qu'il ne change pas).
-pub fn bloc_60() -> Resultat<Bloc60> {
-    let v = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("arrets-base.json"))?;
-    socle::forme::lire(&*v, "Les codes du bloc arrêt de travail livrés avec le logiciel ne se lisent pas : le signaler au développeur.")
-}
-
-/// Le motif d'arret (`arrets-base.json`, `motifs_arret`), s'il existe.
-pub fn motif_d_arret(code: &str) -> Resultat<Option<CodeDuBloc60>> {
-    Ok(bloc_60()?.motifs_arret.codes.into_iter().find(|c| c.code == code))
-}
+// ------------------------------------------------------------- les motifs de suspension
 
 /// Le motif de suspension (`permanents-base.json`, section `suspensions`), s'il existe.
 pub fn motif_de_suspension(code: &str) -> Resultat<Option<Value>> {
@@ -754,7 +643,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, nume
 /// la rubrique de son motif (`arrets-base.json`, `rubrique` ; le catalogue la marque `arret_de_travail`), une suspension non remuneree sous
 /// `absence_non_remuneree`. Une suspension que `permanents-base.json` dit remuneree (637 : C. trav. L3142-2, « n'entrainent
 /// pas de reduction de la remuneration ») ne retire rien. Le maintien de salaire d'un arret est celui SAISI SUR L'ARRET
-/// pour ce mois (`maintien`) : la loi le dit (`maintien_possible`), elle ne le verse pas -- les indemnites journalieres a
+/// pour ce mois (`maintien`) : la loi le dit (`droit::maintien::legal`), elle ne le verse pas -- les indemnites journalieres a
 /// deduire (D1226-5) ne se devinent pas.
 ///
 /// LA RETENUE AU REEL DU MOIS. « La retenue par heure d'absence d'un salarie paye au mois doit etre en
@@ -806,7 +695,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
         );
         let code = s(&imp, "motif");
         if est_un_arret(&imp) {
-            let motif = motif_d_arret(&code)?;
+            let motif = droit::arrets::motif_d_arret(&code)?;
             // Le bulletin nomme l'absence d'apres le motif de l'arret (S21.G00.60.001) : sa rubrique est celle du motif
             // (`arrets-base.json`, `rubrique`).
             let rubrique = motif.as_ref().and_then(|m| m.rubrique.clone()).unwrap_or_default();
@@ -834,7 +723,7 @@ nomme cette absence. Rien n'est calcule.",
                 dernier.jj_mm_aaaa(),
                 au_reel
             )));
-            if motif.as_ref().is_some_and(|m| m.maintien_legal) {
+            if motif.as_ref().is_some_and(|m| m.origine.is_some()) {
                 crate::maintien::ajouter(ctx, e, &imp, &nat, mois, m, &mut maintien)?;
             }
         } else {
@@ -948,7 +837,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
             let i = c["engagement"].as_u64().unwrap_or(0) as usize;
             let dates: Vec<String> = c["dates"].as_array().map_or_else(Vec::new, |a| a.iter().filter_map(|x| d(x).ok()).map(|x| x.jj_mm_aaaa()).collect());
             let quoi = if est_un_arret(imp) {
-                let motif = motif_d_arret(&s(imp, "motif"))?;
+                let motif = droit::arrets::motif_d_arret(&s(imp, "motif"))?;
                 format!(
                     "l'arret de travail ({}) du {} au {} : un salarie en arret ne peut exercer son activite (bloc S21.G00.60)",
                     motif.as_ref().map_or("inconnu de la norme", |m| m.libelle.as_str()),

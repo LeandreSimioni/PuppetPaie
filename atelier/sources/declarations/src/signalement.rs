@@ -56,10 +56,10 @@ fn s(v: &Value, k: &str) -> String {
     en_texte(g(v, k))
 }
 
-/// L'arret est-il subroge ? Son code de subrogation est le « oui » de la norme (`engagement::imprevus::Bloc60`).
+/// L'arret est-il subroge ? Son code de subrogation est le « oui » de la norme (`droit::arrets::Bloc60`).
 pub fn avec_subrogation(a: &Arret) -> Resultat<bool> {
     let sub = if vrai(g(&a.v, "subrogation")) { s(&a.v, "subrogation") } else { String::new() };
-    Ok(sub == engagement::imprevus::bloc_60()?.subrogation_oui()?)
+    Ok(sub == droit::arrets::bloc_60()?.subrogation_oui()?)
 }
 
 fn nature_inconnue(nature: &str) -> String {
@@ -76,7 +76,7 @@ pub fn verifier(a: &Arret, nature: &str, constitution: Option<&Jour>) -> R<Vec<S
     if nature != ARRET && nature != REPRISE {
         return impossible(nature_inconnue(nature));
     }
-    let bloc = engagement::imprevus::bloc_60()?;
+    let bloc = droit::arrets::bloc_60()?;
     let motif = match bloc.motifs_arret.code(g(v, "motif")) {
         Some(m) => m.clone(),
         None => {

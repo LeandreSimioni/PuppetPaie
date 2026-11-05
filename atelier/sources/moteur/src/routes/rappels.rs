@@ -334,8 +334,8 @@ pub(crate) struct Echeance {
     spectacles: Vec<SpectacleARevoir>,
     salarie: Option<String>,
     a_saisir: Vec<String>,
-    /// Une DSN : son echeance de depot (`echeance_dsn::Echeance::en_json`).
-    echeance_depot: Option<Value>,
+    /// Une DSN : son echeance de depot (`echeance_dsn::Echeance::dite`).
+    echeance_depot: Option<declarations::echeance_dsn::EcheanceDite>,
     /// Une obligation due : l'obligation telle que `obligations.rs` l'a calculee.
     obligation: Option<crate::obligations::Obligation>,
     /// Ce sur quoi elle porte (la fin de contrat, l'arret resume), que la page repasse au geste qui la fait.
@@ -409,21 +409,22 @@ impl Echeance {
                 let o = self.obligation.as_ref()?;
                 let arret = || Some(ChargeObligationDArret { salarie: salarie()?, dernier_jour: objet["dernier_jour_travaille"].as_str()?.to_string() });
                 let hors_dsn = matches!(o.ou, Some(crate::obligations::Ou::Lieux(_)));
+                use crate::obligations::CleDObligation as C;
                 match o.cle {
-                    "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
+                    C::SignalementFinContrat if !self.a_saisir.is_empty() => {
                         action(Route::Saisie, ChargeMois { mois: self.mois? }, Some(Route::ModifierEngagement), "Compléter le contrat".into())
                     }
-                    "signalement_fin_contrat" => {
+                    C::SignalementFinContrat => {
                         let charge = ChargeFinContratSignaler::de(self.mois?, salarie()?);
                         action(Route::FinContratSignaler, charge, Some(Route::Deposer), "Signaler…".into())
                     }
-                    cle @ ("signalement_arret" | "signalement_arret_rectificatif" | "signalement_reprise") => {
+                    cle @ (C::SignalementArret | C::SignalementArretRectificatif | C::SignalementReprise) => {
                         let dernier_jour = Jour::lire(objet["dernier_jour_travaille"].as_str()?).ok()?;
-                        let nature = if cle == "signalement_reprise" { NatureSignalement::Reprise } else { NatureSignalement::Arret };
+                        let nature = if cle == C::SignalementReprise { NatureSignalement::Reprise } else { NatureSignalement::Arret };
                         action(Route::ArretSignaler, ChargeArretSignaler::de(salarie()?, dernier_jour, nature), Some(Route::Deposer), "Signaler…".into())
                     }
-                    "declaration_accident" if hors_dsn => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
-                    "attestation_salaire" if hors_dsn => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
+                    C::DeclarationAccident if hors_dsn => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
+                    C::AttestationSalaire if hors_dsn => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
                     _ => action(Route::EtatDuMois, ChargeMois { mois: self.mois? }, None, "Ouvrir le mois".into()),
                 }
             }
@@ -506,7 +507,7 @@ pub(crate) struct EcheanceDite {
     pub(crate) salarie: Option<String>,
     pub(crate) a_saisir: Vec<String>,
     /// Une DSN : son echeance de depot, telle que `declarations::echeance_dsn` l'ecrit.
-    pub(crate) echeance_depot: Option<Value>,
+    pub(crate) echeance_depot: Option<declarations::echeance_dsn::EcheanceDite>,
     /// Une obligation due, telle que `obligations.rs` l'a calculee.
     pub(crate) obligation: Option<crate::obligations::Obligation>,
     /// Ce sur quoi elle porte (la fin de contrat de `imprevus`, l'arret resume), sans ses cles `_`.
@@ -662,7 +663,7 @@ fn dsn_a_venir(st: &Etat, mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
     e.source = formater(&modele.source, &[])?;
     e.date = Some(echeance.jour);
     e.quand = echeance.phrase();
-    e.echeance_depot = Some(echeance.en_json());
+    e.echeance_depot = Some(echeance.dite());
     Ok(e)
 }
 
@@ -1091,7 +1092,7 @@ fn rappel_dsn(st: &Etat, le_mois: Mois, modele: &ModeleDsn) -> R<Echeance> {
     r.date = Some(echeance.jour);
     r.quand = echeance.phrase();
     r.source = formater(&modele.source, &[])?;
-    r.echeance_depot = Some(echeance.en_json());
+    r.echeance_depot = Some(echeance.dite());
 
     let (engagements, validees) = engagements_valides(st.ctx, mois);
     if !engagement::stock::a_une_saisie(&st.ctx.racine, mois).unwrap_or(false) {

@@ -275,14 +275,8 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &V
             v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, socle::texte::euros_de(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), socle::texte::euros_de(&x["brut"]))).collect::<Vec<_>>());
             super::phrase_en_tete(v, p)
         }),
-        Route::Permanents => permanents(ctx, charge).map(|v| {
-            let p = if v["permanents"] == json!(true) { "La compagnie emploie des permanents." } else { "La compagnie n'emploie pas de permanents." };
-            super::phrase_en_tete(v, p)
-        }),
-        Route::TaxeSurLesSalairesRegime => taxe_sur_les_salaires_regime(ctx, charge).map(|v| {
-            let p = valeur_en_texte(&v["consequence"]);
-            super::phrase_en_tete(v, p)
-        }),
+        Route::Permanents => en_json(permanents(ctx, lire_charge(charge)?)?),
+        Route::TaxeSurLesSalairesRegime => en_json(taxe_sur_les_salaires_regime(ctx, lire_charge(charge)?)?),
         Route::VerifierFiche => verifier_fiche(charge).map(|mut v| {
             let lignes: Vec<Value> = v["anomalies"].as_array().into_iter().flatten().map(|a| json!(format!("{} : {}", valeur_en_texte(&a["champ"]), valeur_en_texte(&a["message"])))).collect();
             let p = if lignes.is_empty() { "La fiche est juste.".to_string() } else { format!("Anomalies de la fiche : {}.", lignes.len()) };
@@ -392,22 +386,44 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------ permanents
 
-/// `permanents` : `{"entreprise": {...}}`, la fiche Entreprise en cours de saisie -- sans elle, celle de la compagnie.
-/// Rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que pour les
-/// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case.
-fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let objet = |k: &str| match charge.get(k) {
-        Some(e @ Value::Object(_)) => Ok(Some(e)),
-        Some(autre) => Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
-        None => Ok(None),
-    };
-    let entreprise: &dyn droit::fiche::ParCase = match objet("entreprise")? {
+/// La charge de `permanents` : la fiche Entreprise en cours de saisie (sans elle, celle de la compagnie) ; ou une autre
+/// fiche (`nom` : salarie, spectacle) et ses donnees en cours de saisie.
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargePermanents {
+    #[serde(default)]
+    entreprise: Option<serde_json::Map<String, Value>>,
+    #[serde(default)]
+    nom: Option<String>,
+    #[serde(default)]
+    donnees: Option<serde_json::Map<String, Value>>,
+}
+
+/// Ce que rend `permanents` : la phrase, le curseur des permanents, et les cases que la fiche montre.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct Permanents {
+    phrase: &'static str,
+    permanents: bool,
+    montres: Vec<String>,
+}
+
+/// `permanents` : rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que
+/// pour les permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case.
+fn permanents(ctx: &Contexte, charge: ChargePermanents) -> R<Permanents> {
+    let saisie = charge.entreprise.map(Value::Object);
+    let entreprise: &dyn droit::fiche::ParCase = match &saisie {
         Some(e) => e,
         None => &ctx.entreprise,
     };
-    let nom = charge.get("nom").and_then(Value::as_str).unwrap_or("entreprise");
-    let donnees: &dyn droit::fiche::ParCase = if nom == "entreprise" { entreprise } else { objet("donnees")?.unwrap_or(&Value::Null) };
-    Ok(json!({ "permanents": permanents_de(entreprise), "montres": montres(ctx, nom, donnees, entreprise)? }))
+    let nom = charge.nom.as_deref().unwrap_or("entreprise");
+    let autre = Value::Object(charge.donnees.unwrap_or_default());
+    let donnees: &dyn droit::fiche::ParCase = if nom == "entreprise" { entreprise } else { &autre };
+    let p = permanents_de(entreprise);
+    Ok(Permanents {
+        phrase: if p { "La compagnie emploie des permanents." } else { "La compagnie n'emploie pas de permanents." },
+        permanents: p,
+        montres: montres(ctx, nom, donnees, entreprise)?,
+    })
 }
 
 /// Le curseur des permanents (`contexte::emploie_des_permanents`) de la fiche entreprise telle que l'ecran la saisit.
@@ -427,49 +443,96 @@ pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &dyn droit::fiche::Par
 
 // ------------------------------------------------------- taxe-sur-les-salaires-regime
 
-/// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
-/// lui, celle de la compagnie. Rend la conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art.
-/// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien.
-fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
+/// La charge de `taxe-sur-les-salaires-regime` : les reponses en cours de saisie (absentes : celles de la compagnie ;
+/// nulles : aucune), et l'annee des salaires (absente : l'annee en cours).
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeTaxeSurLesSalaires {
+    #[serde(default, deserialize_with = "socle::forme::dite")]
+    taxe_sur_les_salaires: Option<Option<serde_json::Map<String, Value>>>,
+    #[serde(default)]
+    annee: Option<i64>,
+}
+
+/// Les plafonds de la franchise en base de TVA, au bareme de l'annee.
+#[derive(Debug, Clone, serde::Serialize)]
+struct PlafondsDeLaFranchise {
+    prestations_de_services: String,
+    total: String,
+}
+
+/// Les deux reponses a la question de la franchise : sous les plafonds (`true`), au-dessus (`false`).
+#[derive(Debug, Clone, serde::Serialize)]
+struct ChoixDeLaFranchise {
+    #[serde(rename = "true")]
+    sous: String,
+    #[serde(rename = "false")]
+    dessus: String,
+}
+
+/// La question de la franchise : son aide, ses reponses, ses plafonds et l'annee.
+#[derive(Debug, Clone, serde::Serialize)]
+struct Franchise {
+    aide: String,
+    choix: ChoixDeLaFranchise,
+    plafonds: Option<PlafondsDeLaFranchise>,
+    annee: i32,
+}
+
+/// Ce que rend `taxe-sur-les-salaires-regime` : la phrase (la consequence), la question de la franchise, les cases a
+/// montrer, la consequence, si la reponse est complete, si la taxe est due et sur quelle part.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct RegimeDeLaTaxe {
+    phrase: String,
+    franchise: Franchise,
+    champs: Vec<&'static str>,
+    consequence: String,
+    complet: bool,
+    due: bool,
+    part_taxee: Option<String>,
+}
+
+/// `taxe-sur-les-salaires-regime` : ce que la fiche en cours de saisie dit -- sans lui, celle de la compagnie. Rend la
+/// conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art. 231, 1) : les cases a montrer,
+/// la consequence en clair, et si la reponse est complete. La page n'en decide rien.
+fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: ChargeTaxeSurLesSalaires) -> R<RegimeDeLaTaxe> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
-    let ent = match charge.get(cle) {
-        Some(Value::Null) => droit::fiche::ChampsEntreprise { taxe_sur_les_salaires: droit::fiche::Case::Nulle, ..Default::default() },
-        Some(v @ Value::Object(_)) => droit::fiche::ChampsEntreprise {
-            taxe_sur_les_salaires: droit::fiche::Case::Dite(droit::fiche::lire_champs(v, cle).map_err(plain)?),
+    let ent = match charge.taxe_sur_les_salaires {
+        Some(None) => droit::fiche::ChampsEntreprise { taxe_sur_les_salaires: droit::fiche::Case::Nulle, ..Default::default() },
+        Some(Some(v)) => droit::fiche::ChampsEntreprise {
+            taxe_sur_les_salaires: droit::fiche::Case::Dite(droit::fiche::lire_champs(&Value::Object(v), cle).map_err(plain)?),
             ..Default::default()
         },
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         None => ctx.entreprise.clone(),
     };
     // LES PLAFONDS DE LA FRANCHISE, CHIFFRES : ceux du bareme de l'annee des salaires -- `annee` dans la
     // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.
-    let annee = match charge.get("annee") {
-        None | Some(Value::Null) => ctx.aujourdhui.an,
-        Some(v) => match v.as_i64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
-            Some(a) if (1900..=2999).contains(&a) => a as i32,
-            _ => return Err(erreur("ValueError", socle::date::annee_impossible(valeur_ecrite(v)))),
-        },
+    let annee = match charge.annee {
+        None => ctx.aujourdhui.an,
+        Some(a) if (1900..=2999).contains(&a) => a as i32,
+        Some(a) => return Err(erreur("ValueError", socle::date::annee_impossible(a))),
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
     let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_deref(), annee);
     // La conclusion nomme les deux plafonds.
     let r = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ent, q.plafonds);
-    Ok(json!({
-        "franchise": {
-            "aide": q.aide,
-            "choix": { "true": q.sous, "false": q.dessus },
-            "plafonds": q.plafonds.map(|(s, t)| json!({
-                "prestations_de_services": s.normalize().to_string(),
-                "total": t.normalize().to_string(),
-            })),
-            "annee": annee,
+    Ok(RegimeDeLaTaxe {
+        phrase: r.consequence.clone(),
+        franchise: Franchise {
+            aide: q.aide,
+            choix: ChoixDeLaFranchise { sous: q.sous, dessus: q.dessus },
+            plafonds: q.plafonds.map(|(s, t)| PlafondsDeLaFranchise { prestations_de_services: s.normalize().to_string(), total: t.normalize().to_string() }),
+            annee,
         },
-        "champs": r.champs,
-        "consequence": r.consequence,
-        "complet": r.decision.is_ok(),
-        "due": matches!(r.decision, Ok(Some(_))),
-        "part_taxee": match r.decision { Ok(Some(p)) => json!(p.normalize().to_string()), _ => Value::Null },
-    }))
+        champs: r.champs,
+        consequence: r.consequence,
+        complet: r.decision.is_ok(),
+        due: matches!(r.decision, Ok(Some(_))),
+        part_taxee: match r.decision {
+            Ok(Some(p)) => Some(p.normalize().to_string()),
+            _ => None,
+        },
+    })
 }
 
 // ------------------------------------------------------------------ outils

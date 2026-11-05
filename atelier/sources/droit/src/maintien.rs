@@ -19,9 +19,10 @@ use socle::fichiers::vrai;
 use socle::num::{dec_avec_echelle, div, Decimal, Resultat};
 use serde_json::Value;
 
-/// Ce qui a cause l'arret, lu sur son motif (S21.G00.60.001 : 01 maladie, 04 trajet, 05 maladie professionnelle, 06
-/// accident du travail).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Ce qui a cause l'arret, quand c'est une maladie ou un accident : le champ `origine` d'un motif S21.G00.60.001 de
+/// `arrets-base.json` (`crate::arrets`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Origine {
     Maladie,
     AccidentDuTravail,
@@ -30,15 +31,10 @@ pub enum Origine {
 }
 
 impl Origine {
-    /// L'origine d'un motif d'arret (`arrets-base.json`), ou `None` pour un motif qui n'appelle pas de maintien.
-    pub fn du_motif(code: &str) -> Option<Origine> {
-        match code {
-            "01" => Some(Origine::Maladie),
-            "04" => Some(Origine::Trajet),
-            "05" => Some(Origine::MaladieProfessionnelle),
-            "06" => Some(Origine::AccidentDuTravail),
-            _ => None,
-        }
+    /// L'origine d'un motif d'arret (`arrets-base.json`), ou `None` pour un motif qui n'appelle pas de maintien (ou
+    /// que la norme ne connait pas).
+    pub fn du_motif(code: &str) -> Resultat<Option<Origine>> {
+        Ok(crate::arrets::motif_d_arret(code)?.and_then(|m| m.origine))
     }
 
     /// Le mot qui la nomme dans `couvre` d'une clause d'accident du travail.

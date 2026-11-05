@@ -173,19 +173,58 @@ pub struct FeuilleDAccident {
     pub texte: TexteDepose,
 }
 
+/// Une obligation que le moteur sait compter : chacune est un champ de `LesObligations`, et son nom (`nom`) est la cle du
+/// fichier, celle que la page et les rappels lisent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CleDObligation {
+    SignalementArret,
+    SignalementArretRectificatif,
+    SignalementReprise,
+    SignalementFinContrat,
+    DeclarationAccident,
+    DeclarationMaladieProfessionnelle,
+    AttestationSalaire,
+}
+
+impl CleDObligation {
+    /// Son nom, la cle de `obligations-base.json`.
+    pub fn nom(self) -> &'static str {
+        match self {
+            CleDObligation::SignalementArret => "signalement_arret",
+            CleDObligation::SignalementArretRectificatif => "signalement_arret_rectificatif",
+            CleDObligation::SignalementReprise => "signalement_reprise",
+            CleDObligation::SignalementFinContrat => "signalement_fin_contrat",
+            CleDObligation::DeclarationAccident => "declaration_accident",
+            CleDObligation::DeclarationMaladieProfessionnelle => "declaration_maladie_professionnelle",
+            CleDObligation::AttestationSalaire => "attestation_salaire",
+        }
+    }
+}
+
+impl Serialize for CleDObligation {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(self.nom())
+    }
+}
+
+impl std::fmt::Display for CleDObligation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.nom())
+    }
+}
+
 impl LesObligations {
-    /// L'obligation dont le moteur dit la cle (`Obligation::cle`).
-    pub fn de(&self, cle: &str) -> Resultat<&DeBase> {
-        Ok(match cle {
-            "signalement_arret" => &self.signalement_arret,
-            "signalement_arret_rectificatif" => &self.signalement_arret_rectificatif,
-            "signalement_reprise" => &self.signalement_reprise,
-            "signalement_fin_contrat" => &self.signalement_fin_contrat,
-            "declaration_accident" => &self.declaration_accident,
-            "declaration_maladie_professionnelle" => &self.declaration_maladie_professionnelle,
-            "attestation_salaire" => &self.attestation_salaire,
-            autre => return Err(livree(autre)),
-        })
+    /// L'obligation `cle`, telle que le fichier la livre.
+    pub fn de(&self, cle: CleDObligation) -> &DeBase {
+        match cle {
+            CleDObligation::SignalementArret => &self.signalement_arret,
+            CleDObligation::SignalementArretRectificatif => &self.signalement_arret_rectificatif,
+            CleDObligation::SignalementReprise => &self.signalement_reprise,
+            CleDObligation::SignalementFinContrat => &self.signalement_fin_contrat,
+            CleDObligation::DeclarationAccident => &self.declaration_accident,
+            CleDObligation::DeclarationMaladieProfessionnelle => &self.declaration_maladie_professionnelle,
+            CleDObligation::AttestationSalaire => &self.attestation_salaire,
+        }
     }
 }
 
