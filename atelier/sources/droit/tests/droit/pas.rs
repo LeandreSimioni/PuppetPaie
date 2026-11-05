@@ -3,7 +3,6 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{code_livre, lire_oracle, oracle};
-use droit::bareme::canon;
 use socle::date::Jour;
 use socle::num::dec;
 use droit::pas::{du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
@@ -38,10 +37,15 @@ fn erreur(e: ErreurPas) -> String {
     }
 }
 
+/// Un champ du versement en texte : un nombre normalise (`0.10` et `0.1` s'ecrivent `0.1`).
 fn texte(v: &Value) -> String {
-    match canon(v) {
+    match v {
         Value::Null => "None".to_string(),
-        Value::String(s) => s,
+        Value::String(s) => s.clone(),
+        Value::Number(_) => match dec(v).unwrap().normalize().to_string() {
+            z if z == "-0" => "0".to_string(),
+            s => s,
+        },
         autre => autre.to_string(),
     }
 }

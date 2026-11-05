@@ -5,13 +5,10 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{Map, Value};
-
-use crate::bareme::canon;
 use crate::catalogue::{annexes, rubrique};
 use crate::contexte::{aujourdhui, Contexte};
 use socle::date::Jour;
-use socle::num::{add, nombre, Decimal, Resultat};
+use socle::num::{add, Decimal, Resultat};
 
 /// Les constantes du decompte, lues dans les donnees livrees (le catalogue des rubriques et `annexes`).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -60,7 +57,6 @@ pub struct Declare {
     pub salarie: String,
     pub debut: Jour,
     pub fin: Jour,
-    pub numero_objet: Value,
     pub heures: i64,
     pub cachets: i64,
     pub jours: i64,
@@ -83,27 +79,6 @@ impl Declare {
     pub fn heures_montant(&self, c: &Constantes) -> i64 {
         self.heures_equivalentes(c) - self.heures_enseignement
     }
-
-    pub fn canon(&self, c: &Constantes) -> Value {
-        let mut m = Map::new();
-        m.insert("salarie".into(), Value::String(self.salarie.clone()));
-        m.insert("debut".into(), Value::String(self.debut.iso()));
-        m.insert("fin".into(), Value::String(self.fin.iso()));
-        m.insert("numero_objet".into(), canon(&self.numero_objet));
-        m.insert("heures".into(), entier(self.heures));
-        m.insert("cachets".into(), entier(self.cachets));
-        m.insert("jours".into(), entier(self.jours));
-        m.insert("brut".into(), Value::String(nombre(self.brut)));
-        m.insert("heures_enseignement".into(), entier(self.heures_enseignement));
-        m.insert("mois".into(), Value::String(self.mois()));
-        m.insert("heures_equivalentes".into(), entier(self.heures_equivalentes(c)));
-        m.insert("heures_montant".into(), entier(self.heures_montant(c)));
-        Value::Object(m)
-    }
-}
-
-fn entier(n: i64) -> Value {
-    Value::String(n.to_string())
 }
 
 /// Etat d'un salarie sur une fenetre.
@@ -217,40 +192,6 @@ impl Position {
         let h = self.constantes.heures_par_cachet;
         Ok(-((-self.manque()?).div_euclid(h)))
     }
-
-    /// La forme canonique de la position : ses lignes et tous ses comptes.
-    pub fn canon(&self, aujourdhui: Jour) -> Resultat<Value> {
-        let c = &self.constantes;
-        let mut m = Map::new();
-        m.insert("salarie".into(), Value::String(self.salarie.clone()));
-        m.insert("debut".into(), Value::String(self.debut.iso()));
-        m.insert("fin".into(), Value::String(self.fin.iso()));
-        m.insert("libelle_fenetre".into(), Value::String(self.libelle_fenetre.clone()));
-        m.insert("engagements".into(), Value::Array(self.engagements.iter().map(|e| e.canon(c)).collect()));
-        m.insert("date_naissance".into(), self.date_naissance.map_or(Value::Null, |j| Value::String(j.iso())));
-        m.insert("cachets".into(), entier(self.cachets()));
-        m.insert("heures".into(), entier(self.heures()));
-        m.insert("heures_equivalentes".into(), entier(self.heures_equivalentes()));
-        let par_mois: Map<String, Value> = self.cachets_par_mois().into_iter().map(|(k, n)| (k, entier(n))).collect();
-        m.insert("cachets_par_mois".into(), Value::Object(par_mois));
-        m.insert("cachets_retenus".into(), entier(self.cachets_retenus()));
-        m.insert("cachets_perdus".into(), entier(self.cachets_perdus()));
-        m.insert("mois_plafonnes".into(), Value::Array(self.mois_plafonnes().into_iter().map(Value::String).collect()));
-        m.insert("heures_retenues".into(), entier(self.heures_retenues()));
-        m.insert("heures_enseignement".into(), entier(self.heures_enseignement()));
-        m.insert("plafond_enseignement".into(), entier(self.plafond_enseignement()?));
-        m.insert("heures_enseignement_retenues".into(), entier(self.heures_enseignement_retenues()?));
-        m.insert("heures_montant".into(), entier(self.heures_montant()));
-        m.insert("heures_ouverture".into(), entier(self.heures_ouverture()?));
-        m.insert("enseignement_perdu".into(), entier(self.enseignement_perdu()?));
-        m.insert("jours".into(), entier(self.jours()));
-        m.insert("brut".into(), Value::String(nombre(self.brut())));
-        m.insert("manque".into(), entier(self.manque()?));
-        m.insert("atteint".into(), Value::Bool(self.atteint()?));
-        m.insert("cachets_manquants".into(), entier(self.cachets_manquants()?));
-        m.insert("jours_restants".into(), entier(self.jours_restants(aujourdhui)));
-        Ok(Value::Object(m))
-    }
 }
 
 
@@ -358,23 +299,6 @@ pub struct Colonne {
     pub echeance: Option<Jour>,
     pub enseignement: i64,
     pub heures_ouverture: Option<i64>,
-}
-
-impl Colonne {
-    pub fn canon(&self) -> Value {
-        let mut m = Map::new();
-        m.insert("titre".into(), Value::String(self.titre.clone()));
-        m.insert("sous_titre".into(), Value::String(self.sous_titre.clone()));
-        m.insert("cachets".into(), entier(self.cachets));
-        m.insert("heures".into(), entier(self.heures));
-        m.insert("heures_equivalentes".into(), entier(self.heures_equivalentes));
-        m.insert("brut".into(), Value::String(nombre(self.brut)));
-        m.insert("reste".into(), self.reste.map_or(Value::Null, entier));
-        m.insert("echeance".into(), self.echeance.map_or(Value::Null, |j| Value::String(j.iso())));
-        m.insert("enseignement".into(), entier(self.enseignement));
-        m.insert("heures_ouverture".into(), self.heures_ouverture.map_or(Value::Null, entier));
-        Value::Object(m)
-    }
 }
 
 /// Les colonnes : le mois, l'annee civile (arretee a la fin du mois), et

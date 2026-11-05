@@ -499,7 +499,7 @@ impl Tenue {
             t.pris += r.pris;
             t.brut = add(t.brut, r.remuneration_periode);
         } else if let Some(r) = rep.filter(|r| {
-            periode_de_reference(&r.date, None).and_then(|p| p.0.plus_jours(-1)).map_or(false, |v| *fin == v)
+            periode_de_reference(&r.date).and_then(|p| p.0.plus_jours(-1)).map_or(false, |v| *fin == v)
         }) {
             t.brut = add(t.brut, r.remuneration_report);
         }
@@ -584,7 +584,7 @@ fn compteur(
     a_la_date: &Jour,
     jusqu_au_mois: Option<&str>,
 ) -> Resultat<Avant> {
-    let (debut, fin) = periode_de_reference(a_la_date, None)?;
+    let (debut, fin) = periode_de_reference(a_la_date)?;
     let (acquis, pris, remuneration, avert) = periode(ctx, cle_salarie, &debut, &fin, jusqu_au_mois, true)?;
     let report = report(ctx, cle_salarie, &debut, jusqu_au_mois)?;
     // Un jour du report se paie au dixieme de la periode ou il a ete acquis (`indemnite_des_jours`).
@@ -624,7 +624,7 @@ fn compteur(
 /// mois d'avant n'a pas d'etat ecrit pour ce salarie, ou la reprise de sa fiche a change depuis), ou une periode de
 /// reference qui ne commence pas un premier du mois.
 fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> Resultat<Option<Avant>> {
-    let (debut, fin) = periode_de_reference(a_la_date, None)?;
+    let (debut, fin) = periode_de_reference(a_la_date)?;
     if debut.jour != 1 {
         return Ok(None);
     }
@@ -682,7 +682,7 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
     // La periode qui finit fait son report, si `report` la parcourt : depuis la periode de la reprise, ou depuis celle
     // du premier mois paye.
     let parcourue = match &rep {
-        Some(r) => periode_de_reference(&r.date, None)?.0 < debut,
+        Some(r) => periode_de_reference(&r.date)?.0 < debut,
         None => premier.is_some(),
     };
     let (mut reste, mut acquis_report, mut report_debut, mut report_fin) = (c.reports, c.acquis_report, c.report_debut, c.report_fin);
@@ -770,10 +770,10 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
     if let Some(r) = &rep {
         // La reprise : le dernier bulletin de l'ancien logiciel, son reste
         // N-1, et la periode N-1 elle-meme.
-        (p_debut, p_fin) = periode_de_reference(&r.date, None)?;
+        (p_debut, p_fin) = periode_de_reference(&r.date)?;
         reste = r.report;
         let avant_fin = p_debut.plus_jours(-1)?;
-        let avant_debut = periode_de_reference(&avant_fin, None)?.0;
+        let avant_debut = periode_de_reference(&avant_fin)?.0;
         out.acquis = r.acquis_report;
         out.debut = Some(avant_debut);
         out.fin = Some(avant_fin);
@@ -788,7 +788,7 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
             )));
         }
     } else if let Some(premier) = &premier {
-        (p_debut, p_fin) = periode_de_reference(&Mois::lire(premier)?.premier_jour(), None)?;
+        (p_debut, p_fin) = periode_de_reference(&Mois::lire(premier)?.premier_jour())?;
         reste = Decimal::ZERO;
         if let Some(avant) = commence_avant(&paies_du_mois(ctx, premier, &cle_de_fiche(ctx, cle_salarie))?, premier)? {
             avert.push(avis_commence_avant(cle_salarie, &avant, premier));
@@ -817,7 +817,7 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
         out.debut = Some(p_debut);
         out.fin = Some(p_fin);
         let suivant = p_fin.plus_jours(1)?;
-        (p_debut, p_fin) = periode_de_reference(&suivant, None)?;
+        (p_debut, p_fin) = periode_de_reference(&suivant)?;
     }
     out.reports = reste;
     out.avertissements = avert;
@@ -992,7 +992,7 @@ pub(crate) fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> R
     let fin_du_mois = fin_mois_de(mois)?;
     let avant = avant_le_mois(ctx, cle, &fin_du_mois, mois)?;
     let mut cpt = avant.compteur.clone();
-    let (debut, fin) = periode_de_reference(&fin_du_mois, None)?;
+    let (debut, fin) = periode_de_reference(&fin_du_mois)?;
     // La presence de CE mois, bornee a la periode de reference.
     let p_debut = eng.debut_periode()?.max(debut);
     let p_fin = eng.fin_periode()?.min(fin);

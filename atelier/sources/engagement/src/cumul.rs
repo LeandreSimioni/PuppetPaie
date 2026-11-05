@@ -1,7 +1,6 @@
 //! Ce que la compagnie a declare, pour les cumuls des annexes 8 et 10 (`droit::cumul`) : les engagements importes, puis les
 //! paies de ses engagements, une ligne declaree (`Declare`) par paie d'intermittent.
 
-use serde_json::Value;
 
 use crate::calcul::Paie;
 use droit::contexte::Contexte;
@@ -47,7 +46,6 @@ pub(crate) fn lire_importes(ctx: &Contexte) -> Resultat<Vec<Declare>> {
             salarie: c.salarie.clone(),
             debut,
             fin,
-            numero_objet: Value::String(a.numero_objet.clone().unwrap_or_default()),
             heures: a.heures.unwrap_or(0),
             cachets: a.cachets.unwrap_or(0),
             jours: a.jours.unwrap_or(0),
@@ -69,7 +67,6 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
         salarie: p.salarie.id.to_string(),
         debut: e.debut_periode()?,
         fin: e.fin_periode()?,
-        numero_objet: p.spectacle.get("numero_objet").cloned().unwrap_or_else(|| Value::String(String::new())),
         heures,
         cachets: e.cachets,
         jours: e.jours,

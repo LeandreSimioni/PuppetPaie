@@ -17,8 +17,8 @@ use socle::date::{d, en_texte};
 use socle::mois::Mois;
 use crate::Avis;
 use socle::fichiers::vrai;
-use socle::texte::{euros, euros_de, virgule};
-use socle::num::{add, dec, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
+use socle::texte::{euros, virgule};
+use socle::num::{add, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
 use droit::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
 
 static NUL: Value = Value::Null;
@@ -43,10 +43,6 @@ fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
 
 fn t(v: &Value) -> String {
     en_texte(v)
-}
-
-fn decimal(v: &Value) -> Resultat<Decimal> {
-    dec(v)
 }
 
 /// Le plus grand de `a` et `b` : `a` a egalite.
@@ -784,8 +780,8 @@ fn indemnite_de_rupture(
             nat.libelle
         ));
     }
-    let reference = get(&indemnite_legale(ctx, e, mois, anciennete, motif)?, "reference").clone();
-    let retenu = decimal(get(&reference, "retenu"))?;
+    let reference = salaire_de_reference(ctx, e, mois)?;
+    let retenu = reference.retenu;
     let mut rubrique = rubrique_sec.clone();
     let saisi = e.get(&rubrique_sec).filter(|x| !x.is_null());
     let idcc = &idcc(ctx);
@@ -795,10 +791,14 @@ fn indemnite_de_rupture(
     let mut conv_releve = false;
     let mut ouvert = false;
     let mut supplement_rub = format!("{}_conventionnelle", rubrique_sec);
-    let (mut legale, article, quoi, c): (Value, &str, &str, Conventionnelle);
+    // Le palier de la loi (en annees) et ses mois de salaire, au depart a la retraite.
+    let mut palier: Option<(i64, Decimal)> = None;
+    let (legale, article, quoi, c): (permanents::IndemniteLegale, &str, &str, Conventionnelle);
 
     if fin_cdi == permanents::FinDeCdi::DepartALaRetraite {
-        legale = permanents::indemnite_depart_retraite(anciennete, retenu)?;
+        let depart = permanents::indemnite_depart_retraite(anciennete, retenu)?;
+        palier = depart.palier.filter(|p| *p != 0).map(|p| (p, depart.mois));
+        legale = permanents::IndemniteLegale { montant: depart.montant, du: depart.du, pourquoi: depart.pourquoi, annees: None };
         article = "L1237-9 et D1237-1";
         quoi = "depart a la retraite";
         c = Conventionnelle::de_la_retraite(clauses::indemnite_depart_retraite(idcc, anciennete, retenu)?);
@@ -834,15 +834,10 @@ fn indemnite_de_rupture(
         c = Conventionnelle::de_la_retraite(mise);
     } else {
         let rc = permanents::indemnite_rupture_conventionnelle(anciennete, retenu)?;
-        let plancher = get(&rc, "plancher");
-        if vrai(plancher) && vrai(get(&rc, "pourquoi")) {
-            stc.avertissements.push(info(format!("{} : {}", qui, t(get(&rc, "pourquoi")))));
+        if let (Some(_), Some(pourquoi)) = (rc.plancher, rc.pourquoi.as_deref().filter(|p| !p.is_empty())) {
+            stc.avertissements.push(info(format!("{} : {}", qui, pourquoi)));
         }
-        legale = json!({
-            "montant": if vrai(plancher) { plancher.clone() } else { Value::String(zero2().to_string()) },
-            "du": !plancher.is_null(),
-            "pourquoi": get(&rc, "pourquoi"),
-        });
+        legale = permanents::IndemniteLegale { montant: rc.plancher.unwrap_or_else(zero2), du: rc.plancher.is_some(), pourquoi: rc.pourquoi, annees: None };
         article = "L1237-13";
         quoi = "rupture conventionnelle";
         supplement_rub = "indemnite_rupture_conventionnelle_supplement".into();
@@ -870,10 +865,10 @@ fn indemnite_de_rupture(
         conv_haut = c.haut.map(de_p).transpose()?;
     }
     let conv_pourquoi = c.pourquoi.clone();
-    legale["reference"] = reference.clone();
+    let pourquoi_legal = legale.pourquoi.clone().unwrap_or_default();
 
-    let du_legal = vrai(get(&legale, "du"));
-    let m_legal = if du_legal { decimal(get(&legale, "montant"))? } else { zero2() };
+    let du_legal = legale.du;
+    let m_legal = if du_legal { legale.montant } else { zero2() };
     let bas = plus_grand(m_legal, conv_bas.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
     let haut = plus_grand(m_legal, conv_haut.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
     let du = du_legal || bas > Decimal::ZERO;
@@ -891,7 +886,7 @@ fn indemnite_de_rupture(
                 qui,
                 quoi,
                 euros(montant),
-                t(get(&legale, "pourquoi"))
+                pourquoi_legal
             ));
         }
         if montant < bas {
@@ -935,7 +930,7 @@ fn indemnite_de_rupture(
             "{} : pas d'indemnite legale de {} -- {} Et {}.",
             qui,
             quoi,
-            t(get(&legale, "pourquoi")),
+            pourquoi_legal,
             phrase
         )));
         return Ok(());
@@ -979,7 +974,7 @@ fn indemnite_de_rupture(
             "{} : pas d'indemnite de {} -- {} Et {}.",
             qui,
             quoi,
-            ou_texte(get(&legale, "pourquoi"), ""),
+            pourquoi_legal,
             phrase
         )));
         return Ok(());
@@ -1012,14 +1007,7 @@ fn indemnite_de_rupture(
             )));
         }
     }
-    let mut detail = String::new();
-    if fin_cdi == permanents::FinDeCdi::DepartALaRetraite && vrai(get(&legale, "palier")) {
-        detail = format!(
-            " -- palier de {} ans de la loi, {} mois de salaire",
-            t(get(&legale, "palier")),
-            t(cle(&legale, "mois")?)
-        );
-    }
+    let detail = palier.map_or_else(String::new, |(ans, mois)| format!(" -- palier de {} ans de la loi, {} mois de salaire", ans, mois));
     stc.avertissements.push(info(format!(
         "{} : indemnité de {} {} ({} mois d'ancienneté, salaire de \
          référence {} par {}){} -- loi ({}) : {} ; {}.{}",
@@ -1027,8 +1015,8 @@ fn indemnite_de_rupture(
         quoi,
         euros(montant),
         arrondir_jours(anciennete),
-        euros_de(get(&reference, "retenu")),
-        t(get(&reference, "regle")),
+        euros(reference.retenu),
+        reference.regle,
         detail,
         article,
         euros(m_legal),
@@ -1133,10 +1121,10 @@ fn indemnite_de_licenciement(
     if saisi.is_none() && !(nat.duree_indeterminee && motif.is_some_and(|m| !m.is_empty())) {
         return Ok(());
     }
-    let legale = indemnite_legale(ctx, e, mois, anciennete, motif)?;
-    let reference = get(&legale, "reference").clone();
-    let conv = indemnite_conventionnelle(ctx, e, anciennete, decimal(get(&reference, "retenu"))?, motif)?;
-    let m_legal = if vrai(get(&legale, "du")) { decimal(get(&legale, "montant"))? } else { zero2() };
+    let reference = salaire_de_reference(ctx, e, mois)?;
+    let legale = permanents::indemnite_licenciement(anciennete, reference.retenu, motif)?;
+    let conv = indemnite_conventionnelle(ctx, e, anciennete, reference.retenu, motif)?;
+    let m_legal = if legale.du { legale.montant } else { zero2() };
     let conv_du = conv.du;
     let (conv_bas, conv_haut) = (conv.bas.map(de_p).transpose()?, conv.haut.map(de_p).transpose()?);
     let bas = plus_grand(m_legal, if conv_du { conv_bas.unwrap_or_else(zero2) } else { zero2() });
@@ -1188,7 +1176,7 @@ fn indemnite_de_licenciement(
         montant = bas;
     }
     if montant <= Decimal::ZERO {
-        let pourquoi = if vrai(get(&legale, "pourquoi")) { Some(t(get(&legale, "pourquoi"))) } else { conv.pourquoi.clone().filter(|p| !p.is_empty()) };
+        let pourquoi = legale.pourquoi.clone().filter(|p| !p.is_empty()).or_else(|| conv.pourquoi.clone().filter(|p| !p.is_empty()));
         if let Some(pourquoi) = pourquoi {
             stc.avertissements.push(info(format!("{} : pas d'indemnite de licenciement -- {}", qui, pourquoi)));
         }
@@ -1213,8 +1201,8 @@ fn indemnite_de_licenciement(
         qui,
         euros(montant),
         arrondir_jours(anciennete),
-        euros_de(get(&reference, "retenu")),
-        t(get(&reference, "regle")),
+        euros(reference.retenu),
+        reference.regle,
         euros(m_legal),
         phrase_conventionnelle(&conv, m_legal)?,
         if supplement > Decimal::ZERO {
@@ -1307,13 +1295,10 @@ fn phrase_conventionnelle(conv: &clauses::Indemnite, m_legal: Decimal) -> Result
     })
 }
 
-/// L'indemnite legale de licenciement et son salaire de reference.
-fn indemnite_legale(ctx: &Contexte, e: &Value, mois: &str, anciennete: Decimal, motif: Option<&str>) -> Resultat<Value> {
+/// Le salaire de reference des indemnites de fin de contrat (R1234-4), sur les bruts des derniers mois.
+fn salaire_de_reference(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<permanents::SalaireDeReference> {
     let (douze, trois) = bruts_precedents(ctx, e, mois)?;
-    let reference = permanents::salaire_de_reference(&douze, &trois);
-    let mut out = permanents::indemnite_licenciement(anciennete, decimal(get(&reference, "retenu"))?, motif)?;
-    out["reference"] = reference;
-    Ok(out)
+    Ok(permanents::salaire_de_reference(&douze, &trois))
 }
 
 /// Les bruts mensuels des douze et des trois derniers mois (R1234-4) ; faute

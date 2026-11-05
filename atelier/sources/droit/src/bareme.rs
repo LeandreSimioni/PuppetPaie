@@ -1662,32 +1662,6 @@ intermittent : ses tranches sont mensuelles"
     Ok(bar)
 }
 
-// ------------------------------------------------------------ la canonisation
-
-/// La forme canonique d'une valeur : nombres en chaines
-/// normalisees, cles `_` retirees sauf `_cle`.
-pub fn canon(v: &serde_json::Value) -> serde_json::Value {
-    use serde_json::Value;
-    match v {
-        Value::Number(n) => {
-            let x = if let Some(i) = n.as_i64() {
-                Decimal::from(i)
-            } else if let Some(u) = n.as_u64() {
-                Decimal::from(u)
-            } else {
-                socle::num::dec_f64(n.as_f64().unwrap_or(0.0)).unwrap_or_default()
-            };
-            let s = x.normalize().to_string();
-            Value::String(if s == "-0" { "0".to_string() } else { s })
-        }
-        Value::Array(a) => Value::Array(a.iter().map(canon).collect()),
-        Value::Object(o) => Value::Object(
-            o.iter().filter(|(k, _)| !k.starts_with('_') || k.as_str() == "_cle").map(|(k, x)| (k.clone(), canon(x))).collect(),
-        ),
-        autre => autre.clone(),
-    }
-}
-
 // ------------------------------------------------ la prevoyance de branche
 
 pub mod prevoyance;

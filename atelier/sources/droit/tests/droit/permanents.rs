@@ -8,6 +8,7 @@ use socle::date::Jour;
 use socle::num::{Decimal, Resultat};
 use droit::permanents as p;
 use serde_json::{json, Value};
+use socle::ecriture::en_valeur;
 use std::str::FromStr;
 
 fn lire() -> Value {
@@ -53,22 +54,12 @@ fn section(rel: &Value, nom: &str, f: impl Fn(&[Value]) -> Resultat<Value>) {
     oracle_selon("permanents.json", &format!("/{}", nom), &Value::Array(cas), egal);
 }
 
-fn option(v: &Value) -> Option<&Value> {
-    if v.is_null() {
-        None
-    } else {
-        Some(v)
-    }
-}
-
 #[test]
 fn les_conges() {
     let rel = lire();
     section(&rel, "arrondir_jours", |a| Ok(dec_texte(p::arrondir_jours(dec(&a[0])))));
     section(&rel, "plafonner", |a| p::plafonner(dec(&a[0])).map(dec_texte));
-    section(&rel, "periode_de_reference", |a| {
-        p::periode_de_reference(&jour(&a[0]), option(&a[1])).map(|(d, f)| json!([d.iso(), f.iso()]))
-    });
+    section(&rel, "periode_de_reference", |a| p::periode_de_reference(&jour(&a[0])).map(|(d, f)| json!([d.iso(), f.iso()])));
     section(&rel, "jours_acquis", |a| p::jours_acquis(&jour(&a[0]), &jour(&a[1])).map(dec_texte));
     section(&rel, "indemnite_conges", |a| {
         p::indemnite_conges(dec(&a[0]), dec(&a[1]), dec(&a[2]), dec(&a[3])).map(|i| {
@@ -92,18 +83,18 @@ fn la_fin_du_contrat() {
     });
     section(&rel, "salaire_de_reference", |a| {
         let liste = |v: &Value| v.as_array().unwrap().iter().map(dec).collect::<Vec<_>>();
-        Ok(p::salaire_de_reference(&liste(&a[0]), &liste(&a[1])))
+        Ok(en_valeur(&p::salaire_de_reference(&liste(&a[0]), &liste(&a[1]))))
     });
     section(&rel, "indemnite_licenciement", |a| {
-        p::indemnite_licenciement(dec(&a[0]), dec(&a[1]), motif(&a[2]))
+        p::indemnite_licenciement(dec(&a[0]), dec(&a[1]), motif(&a[2])).map(|i| en_valeur(&i))
     });
     section(&rel, "indemnite_mise_a_la_retraite", |a| {
-        p::indemnite_mise_a_la_retraite(dec(&a[0]), dec(&a[1]))
+        p::indemnite_mise_a_la_retraite(dec(&a[0]), dec(&a[1])).map(|i| en_valeur(&i))
     });
     section(&rel, "indemnite_rupture_conventionnelle", |a| {
-        p::indemnite_rupture_conventionnelle(dec(&a[0]), dec(&a[1]))
+        p::indemnite_rupture_conventionnelle(dec(&a[0]), dec(&a[1])).map(|i| en_valeur(&i))
     });
-    section(&rel, "indemnite_depart_retraite", |a| p::indemnite_depart_retraite(dec(&a[0]), dec(&a[1])));
+    section(&rel, "indemnite_depart_retraite", |a| p::indemnite_depart_retraite(dec(&a[0]), dec(&a[1])).map(|i| en_valeur(&i)));
     section(&rel, "rupture", |a| p::rupture(motif(&a[0])).map(|o| o.map_or(Value::Null, |(fin, rubrique)| json!({"cle": fin.cle(), "rubrique": rubrique}))));
     section(&rel, "code_52_permis", |a| {
         p::code_52_permis(motif(&a[0]), motif(&a[1])).map(|o| o.map_or(Value::Null, Value::String))

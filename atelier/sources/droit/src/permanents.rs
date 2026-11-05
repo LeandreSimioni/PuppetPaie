@@ -2,19 +2,15 @@
 //!
 //! Le module calcule, il ne decide pas : les nombres vivent dans `permanents-base.json`, avec l'article qui les porte,
 //! lu une fois par sa forme (`regles`, la seule lecture : `Regles` et ses types).
-//!
-//! Les resultats sont des `serde_json::Value` ; un `Decimal` y est
-//! ecrit en chaine (`"149.66"`), un entier en nombre.
 
 use crate::natures::Nature;
 use crate::source::Fondement;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use socle::date::{jours_du_mois, Jour};
 use socle::feries::date_ou_refus;
-use socle::fichiers::{forme_en_cache, repr, vrai, FormeGardee};
+use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::num::{add, sub, div, eur2, mul, zero2, Decimal, Resultat};
 use rust_decimal::prelude::*;
-use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
@@ -576,25 +572,6 @@ pub fn motif_de_suspension(code: &str) -> Resultat<Option<MotifDeSuspension>> {
 }
 
 // ------------------------------------------------------------ les aides
-fn entier(v: &Value) -> Resultat<i64> {
-    match v {
-        Value::Number(n) => n
-            .as_i64()
-            .or_else(|| n.as_f64().map(|x| x.trunc() as i64))
-            .ok_or_else(|| socle::fichiers::entier_hors_limites(&n.to_string())),
-        Value::String(s) => s
-            .trim()
-            .parse::<i64>()
-            .map_err(|_| format!("nombre entier illisible : {}", repr(s))),
-        autre => Err(socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre))),
-    }
-}
-
-/// Un `Decimal` dans un resultat : sa chaine, a son echelle.
-fn dv(x: Decimal) -> Value {
-    Value::String(x.to_string())
-}
-
 fn douze() -> Decimal {
     Decimal::from(12)
 }
@@ -609,21 +586,11 @@ fn dit(liste: &ParMotif, motif: Option<&str>) -> Option<String> {
 }
 
 // --------------------------------------------------------------- les conges
-/// Les bornes de la periode de reference qui contient `jour` : du 1er juin
-/// au 31 mai, sauf accord (`conges_payes.debut_periode_mois`).
-pub fn periode_de_reference(jour: &Jour, entreprise: Option<&Value>) -> Resultat<(Jour, Jour)> {
+/// Les bornes de la periode de reference qui contient `jour` : du 1er juin au 31 mai (`conges_payes.periode_de_reference`).
+pub fn periode_de_reference(jour: &Jour) -> Resultat<(Jour, Jour)> {
     let rg = regles()?;
     let r = &rg.conges_payes.periode_de_reference;
-    let dit = entreprise
-        .and_then(|e| e.get("conges_payes"))
-        .filter(|c| vrai(c))
-        .and_then(|c| c.get("debut_periode_mois"))
-        .filter(|m| vrai(m));
-    let mois = match dit {
-        Some(m) => entier(m)?,
-        None => r.debut_mois,
-    };
-    let dj = r.debut_jour;
+    let (mois, dj) = (r.debut_mois, r.debut_jour);
     let an = if (jour.mois as i64, jour.jour as i64) >= (mois, dj) { jour.an } else { jour.an - 1 } as i64;
     let debut = date_ou_refus(an, mois, dj)?;
     let fin = date_ou_refus(an + 1, mois, dj)?.plus_jours(-1)?;
@@ -913,9 +880,57 @@ pub fn delai_de_prevenance(debut: &Jour, notification: &Jour) -> Resultat<DelaiD
     Ok(DelaiDePrevenance { texte: tranche.texte.clone(), presence_jours, expiration })
 }
 
+/// Le salaire de reference de l'indemnite de licenciement (R1234-4) : la moyenne des douze derniers mois, le tiers des
+/// trois derniers, et le plus favorable des deux (`retenu`, par la regle `regle`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SalaireDeReference {
+    pub moyenne_12_mois: Decimal,
+    pub tiers_3_mois: Decimal,
+    pub retenu: Decimal,
+    /// `moyenne_12_mois` ou `tiers_3_mois`.
+    pub regle: &'static str,
+}
+
+/// Une indemnite legale (licenciement, mise a la retraite) : son montant, si elle est due, et pourquoi elle ne l'est
+/// pas ; les annees d'anciennete qui la comptent, quand elle l'est.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct IndemniteLegale {
+    pub montant: Decimal,
+    pub du: bool,
+    pub pourquoi: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annees: Option<Decimal>,
+}
+
+impl IndemniteLegale {
+    fn non_due(pourquoi: String) -> IndemniteLegale {
+        IndemniteLegale { montant: zero2(), du: false, pourquoi: Some(pourquoi), annees: None }
+    }
+}
+
+/// Le plancher legal de l'indemnite de rupture conventionnelle (`None` : la loi n'en donne pas), les annees qui le
+/// comptent, et la phrase qui l'explique.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct PlancherDeLaRupture {
+    pub plancher: Option<Decimal>,
+    pub annees: Decimal,
+    pub pourquoi: Option<String>,
+}
+
+/// L'indemnite legale de depart a la retraite : son montant, les mois de salaire et le palier (en annees) qui la
+/// donnent.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct IndemniteDuDepart {
+    pub montant: Decimal,
+    pub du: bool,
+    pub mois: Decimal,
+    pub palier: Option<i64>,
+    pub pourquoi: Option<String>,
+}
+
 /// Le salaire de reference de l'indemnite de licenciement : la moyenne des
 /// douze derniers mois ou le tiers des trois derniers, le plus favorable.
-pub fn salaire_de_reference(douze_derniers: &[Decimal], trois_derniers: &[Decimal]) -> Value {
+pub fn salaire_de_reference(douze_derniers: &[Decimal], trois_derniers: &[Decimal]) -> SalaireDeReference {
     let moyenne = if douze_derniers.is_empty() {
         zero2()
     } else {
@@ -928,34 +943,33 @@ pub fn salaire_de_reference(douze_derniers: &[Decimal], trois_derniers: &[Decima
         let s = trois_derniers.iter().fold(Decimal::ZERO, |a, b| add(a, *b));
         eur2(div(s, Decimal::from(3)))
     };
-    json!({
-        "moyenne_12_mois": dv(moyenne),
-        "tiers_3_mois": dv(tiers),
-        "retenu": dv(moyenne.max(tiers)),
-        "regle": if moyenne >= tiers { "moyenne_12_mois" } else { "tiers_3_mois" },
-    })
+    SalaireDeReference {
+        moyenne_12_mois: moyenne,
+        tiers_3_mois: tiers,
+        retenu: moyenne.max(tiers),
+        regle: if moyenne >= tiers { "moyenne_12_mois" } else { "tiers_3_mois" },
+    }
 }
 
-/// L'indemnite legale de licenciement : `{montant, du, pourquoi}` (+ `annees`
-/// quand elle est due).
+/// L'indemnite legale de licenciement.
 pub fn indemnite_licenciement(
     anciennete: Decimal,
     reference: Decimal,
     motif_rupture: Option<&str>,
-) -> Resultat<Value> {
+) -> Resultat<IndemniteLegale> {
     let rg = regles()?;
     let r = &rg.indemnite_licenciement;
     if let Some(e) = dit(&r.motifs_sans_indemnite, motif_rupture) {
-        return Ok(json!({"montant": dv(zero2()), "du": false, "pourquoi": e}));
+        return Ok(IndemniteLegale::non_due(e));
     }
     let mini = r.anciennete_minimale_mois;
     if anciennete < mini {
-        return Ok(json!({"montant": dv(zero2()), "du": false, "pourquoi": format!(
+        return Ok(IndemniteLegale::non_due(format!(
             "{} mois d'anciennete, et l'indemnite legale de licenciement en demande {} (L1234-9).",
-            mois_complets(anciennete), mini)}));
+            mois_complets(anciennete), mini)));
     }
     let (montant, annees) = bareme_licenciement(anciennete, reference)?;
-    Ok(json!({"montant": dv(montant), "du": true, "pourquoi": null, "annees": dv(annees)}))
+    Ok(IndemniteLegale { montant, du: true, pourquoi: None, annees: Some(annees) })
 }
 
 /// Le montant de R1234-2, sans condition ni exclusion : un quart de mois
@@ -1052,45 +1066,45 @@ pub fn code_52_permis(code: Option<&str>, motif_rupture: Option<&str>) -> Result
 
 /// L'indemnite de mise a la retraite : le bareme du licenciement, sans ses
 /// exclusions de motif.
-pub fn indemnite_mise_a_la_retraite(anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
+pub fn indemnite_mise_a_la_retraite(anciennete: Decimal, reference: Decimal) -> Resultat<IndemniteLegale> {
     let mini = anciennete_minimale()?;
     if anciennete < mini {
-        return Ok(json!({"montant": dv(zero2()), "du": false, "pourquoi": format!(
+        return Ok(IndemniteLegale::non_due(format!(
             "{} mois d'anciennete : L1237-7 renvoie a l'indemnite de L1234-9, qui en demande {}. \
              La convention collective peut en prevoir une.",
-            mois_complets(anciennete), mini)}));
+            mois_complets(anciennete), mini)));
     }
     let (montant, annees) = bareme_licenciement(anciennete, reference)?;
-    Ok(json!({"montant": dv(montant), "du": true, "pourquoi": null, "annees": dv(annees)}))
+    Ok(IndemniteLegale { montant, du: true, pourquoi: None, annees: Some(annees) })
 }
 
 /// Le plancher de l'indemnite de rupture conventionnelle (L1237-13 : celle de L1234-9). Sous l'anciennete minimale de
 /// L1234-9, au prorata des mois complets quand `rupture_conventionnelle.indemnite` le dit (la circulaire DGT 2009-4, au
-/// taux de R1234-2 en vigueur), avec la phrase qui le dit (`pourquoi`) ; sinon pas de plancher (`null`).
-pub fn indemnite_rupture_conventionnelle(anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
+/// taux de R1234-2 en vigueur), avec la phrase qui le dit (`pourquoi`) ; sinon pas de plancher.
+pub fn indemnite_rupture_conventionnelle(anciennete: Decimal, reference: Decimal) -> Resultat<PlancherDeLaRupture> {
     let mini = anciennete_minimale()?;
     if anciennete < mini {
         if regles()?.rupture_conventionnelle.indemnite.prorata_sous_l_anciennete_minimale && !mois_complets(anciennete).is_zero() {
             let (plancher, annees) = bareme_licenciement(anciennete, reference)?;
-            return Ok(json!({"plancher": dv(plancher), "annees": dv(annees), "pourquoi": format!(
+            return Ok(PlancherDeLaRupture { plancher: Some(plancher), annees, pourquoi: Some(format!(
                 "{} mois complets d'ancienneté, moins que les {} de L1234-9 : la circulaire DGT 2009-4 (5.3) dit \
                  l'indemnité spécifique due « au prorata du nombre de mois de présence » ; le plancher est celui de \
                  R1234-2 en vigueur (un quart de mois par année) sur ces mois. C'est la lecture de l'administration, \
                  qui homologue la convention, pas la loi.",
-                mois_complets(anciennete), mini)}));
+                mois_complets(anciennete), mini)) });
         }
-        return Ok(json!({"plancher": null, "annees": dv(div(anciennete, Decimal::from(12))), "pourquoi": format!(
+        return Ok(PlancherDeLaRupture { plancher: None, annees: div(anciennete, Decimal::from(12)), pourquoi: Some(format!(
             "{} mois d'anciennete : L1237-13 renvoie a l'indemnite de L1234-9, qui en demande {}, \
              donc la loi ne donne pas de plancher. Le montant de la convention se saisit.",
-            mois_complets(anciennete), mini)}));
+            mois_complets(anciennete), mini)) });
     }
     let (plancher, annees) = bareme_licenciement(anciennete, reference)?;
-    Ok(json!({"plancher": dv(plancher), "annees": dv(annees), "pourquoi": null}))
+    Ok(PlancherDeLaRupture { plancher: Some(plancher), annees, pourquoi: None })
 }
 
 /// L'indemnite de depart volontaire a la retraite : un PALIER, pas un cumul,
 /// et rien sous le premier.
-pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
+pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Resultat<IndemniteDuDepart> {
     let rg = regles()?;
     let annees = div(anciennete, douze());
     let mut tries: Vec<&PalierDeDepart> = rg.depart_a_la_retraite.indemnite.taux.iter().collect();
@@ -1099,16 +1113,20 @@ pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Res
         return Err(socle::echec::livree("permanents-base.json", "depart_a_la_retraite.indemnite.taux"));
     };
     let Some(palier) = tries.iter().filter(|t| annees >= t.anciennete_annees).last() else {
-        return Ok(json!({"montant": dv(zero2()), "du": false, "mois": dv(Decimal::ZERO),
-            "palier": null, "pourquoi": format!(
+        return Ok(IndemniteDuDepart { montant: zero2(), du: false, mois: Decimal::ZERO, palier: None, pourquoi: Some(format!(
             "{} an(s) d'anciennete, et l'indemnite legale de depart a la retraite commence a {} ans \
              (D1237-1) -- il n'y a pas de prorata en dessous. La convention collective, elle, \
              en prevoit souvent une des la premiere annee.",
-            annees_lisibles(annees), premier.anciennete_annees)}));
+            annees_lisibles(annees), premier.anciennete_annees)) });
     };
     let mois = palier.mois_de_salaire;
-    Ok(json!({"montant": dv(eur2(mul(mois, reference))), "du": true, "mois": dv(mois),
-        "palier": palier.anciennete_annees.trunc().to_i64().unwrap_or(0), "pourquoi": null}))
+    Ok(IndemniteDuDepart {
+        montant: eur2(mul(mois, reference)),
+        du: true,
+        mois,
+        palier: Some(palier.anciennete_annees.trunc().to_i64().unwrap_or(0)),
+        pourquoi: None,
+    })
 }
 
 /// Les années à un chiffre après la virgule, au pair sur le demi, en texte.
