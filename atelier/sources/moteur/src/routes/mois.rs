@@ -24,7 +24,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use crate::routes::fiches::{maintenant, refus};
 use crate::routes::rappels::texte;
@@ -35,7 +35,7 @@ use engagement::saisie::{Carte as SaisieCarte, VueDuMois};
 use engagement::stock::Identite;
 use engagement::viser::Cible;
 use droit::catalogue;
-use droit::contexte::{archivee, Contexte, IdSalarie};
+use droit::contexte::{Contexte, IdSalarie};
 use droit::emplois;
 use engagement::{self, Chiffre, LignePaie};
 use socle::date::{en_texte, Jour};
@@ -652,7 +652,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
             .spectacles
             .iter()
             .filter(|(k, _)| !k.starts_with('_'))
-            .find(|(_, s)| !numero_objet.is_empty() && s.get("numero_objet").map(valeur_en_texte).is_some_and(|n| n.eq_ignore_ascii_case(&numero_objet)))
+            .find(|(_, s)| !numero_objet.is_empty() && s.numero_objet.portee().is_some_and(|n| n.eq_ignore_ascii_case(&numero_objet)))
             .map(|(k, _)| k.clone());
         let taux_cachet = derniere
             .into_iter()
@@ -710,39 +710,34 @@ fn contrats_en_cours_route(ctx: &Contexte, mois: Mois) -> R<ContratsEnCours> {
 
 // ------------------------------------------------------------- contrats passes
 
-const TITRE_A_COMPLETER: &str = "A COMPLETER";
 
-/// Les spectacles retrouves par leur cle ou par leur numero d'objet. TRAVAIL A FAIRE : la fiche d'un spectacle se lit
-/// par ses cles (`Contexte::spectacles`).
+const TITRE_A_COMPLETER: &str = "A COMPLETER";
+/// Les spectacles retrouves par leur cle ou par leur numero d'objet.
 struct Spectacles<'a> {
-    par_cle: &'a Map<String, Value>,
-    par_objet: HashMap<String, &'a Value>,
+    ctx: &'a Contexte,
+    par_objet: HashMap<String, &'a droit::fiche::ChampsSpectacle>,
 }
 
 impl<'a> Spectacles<'a> {
     fn nouveau(ctx: &'a Contexte) -> Spectacles<'a> {
         let mut par_objet = HashMap::new();
-        for (k, v) in &ctx.spectacles {
-            if k.starts_with('_') {
-                continue;
-            }
-            if let Some(n) = v.get("numero_objet").filter(|x| vrai(x)) {
-                par_objet.entry(valeur_en_texte(n)).or_insert(v);
+        for v in ctx.spectacles.values() {
+            if let Some(n) = v.numero_objet.remplie() {
+                par_objet.entry(n.to_string()).or_insert(v);
             }
         }
-        Spectacles { par_cle: &ctx.spectacles, par_objet }
+        Spectacles { ctx, par_objet }
     }
 
     /// Le spectacle de cle `x`, sinon de numero d'objet `x`.
-    fn trouver(&self, x: &str) -> Option<&'a Value> {
-        self.par_cle.get(x).filter(|v| vrai(v)).or_else(|| self.par_objet.get(x).copied())
+    fn trouver(&self, x: &str) -> Option<&'a droit::fiche::ChampsSpectacle> {
+        self.ctx.spectacles.get(x).or_else(|| self.par_objet.get(x).copied())
     }
 }
 
 /// Le titre de la fiche, ou le numero d'objet a defaut.
-fn titre_de(spec: Option<&Value>, numero: &str) -> String {
-    let t = spec.and_then(|s| s.get("titre")).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
-    let t = t.trim();
+fn titre_de(spec: Option<&droit::fiche::ChampsSpectacle>, numero: &str) -> String {
+    let t = spec.and_then(|s| s.titre.remplie()).unwrap_or_default().trim();
     if !t.is_empty() && t != TITRE_A_COMPLETER { t.to_string() } else { numero.to_string() }
 }
 
@@ -857,7 +852,7 @@ fn contrats_passes(ctx: &Contexte, mois: &str, salarie: Option<&IdSalarie>) -> R
             }
             let ref_spec = e.spectacle.clone().unwrap_or_default();
             let spec = spectacles.trouver(&ref_spec);
-            let numero = spec.and_then(|s| s.get("numero_objet")).filter(|x| vrai(x)).map_or_else(|| ref_spec.clone(), valeur_en_texte);
+            let numero = spec.and_then(|s| s.numero_objet.remplie()).map_or_else(|| ref_spec.clone(), str::to_string);
             let cachets = cachets_de(ctx, &e)?;
             let dates = jours_joues(ctx, &e);
             let fin = if fin.is_empty() { debut.clone() } else { fin };
@@ -1766,7 +1761,7 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
         }
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
         // (CCH-11) -- donc rien a verifier de ce cote. TRAVAIL A FAIRE : la fiche d'un spectacle se lit par ses cles.
-        if vrai(&p.spectacle) && archivee(&p.spectacle) {
+        if vrai(&p.spectacle) && p.spectacle.get("actif") == Some(&Value::Bool(false)) {
             let titre = p.spectacle.get("titre").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
             out.push(format!(
                 "Le spectacle « {} » (objet {}) est archive : pour le jouer a nouveau, le reactiver (Configuration › Spectacles).",

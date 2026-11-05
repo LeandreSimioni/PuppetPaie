@@ -358,8 +358,8 @@ fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Value>> {
 /// (le montant soumis, apres l'abattement d'un contrat court ; C. trav. R. 3243-1, 9°), son taux, son montant. Le
 /// « Cumul annuel » du modele (art. 1, V) n'est pas imprime : le moteur ne le calcule pas.
 fn lignes_pas_tableau(p: &Paie, pas: Option<&Versement>, colonnes: i64) -> Resultat<Vec<Value>> {
-    let taux = match pas.map(|v| &v.taux) {
-        Some(t) if vrai(t) => dec(t)?,
+    let taux = match pas.and_then(|v| v.taux.as_ref()) {
+        Some(t) if t.non_nul() => t.dec()?,
         _ => dec(&json!("0.00"))?,
     };
     let montant = pas.map_or(Decimal::new(0, 2), |v| v.prelevement);

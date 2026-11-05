@@ -36,7 +36,6 @@ use serde_json::{json, Value};
 use crate::calcul::LigneCotisation;
 use crate::importe::{Importe, PaieVersee};
 use droit::contexte::Contexte;
-use socle::date::en_texte;
 use socle::mois::Mois;
 use socle::num::{dec_f64, Decimal};
 
@@ -311,7 +310,7 @@ fn comparer_une(
     }
     // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.
     let spectacle = (!mensuelle).then(|| {
-        let par_objet = dit(&p.numero_objet).and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.get("numero_objet").map(en_texte).as_deref() == Some(n.as_str())).map(|(k, _)| k.clone()));
+        let par_objet = dit(&p.numero_objet).and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.numero_objet.portee() == Some(n.as_str())).map(|(k, _)| k.clone()));
         dit(&p.spectacle).or(par_objet)
     });
     let e = crate::saisie::Carte {

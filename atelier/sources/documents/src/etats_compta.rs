@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Map, Value};
 
-use droit::contexte::{archivee, Contexte};
+use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
@@ -361,14 +361,14 @@ fn code_du_titre(titre: &str) -> String {
 
 /// `codes_des_fiches` : titre -> code analytique, lu sur les fiches spectacle. La fiche active l'emporte, puis le
 /// numero le plus recent.
-fn codes_des_fiches(spectacles: &Map<String, Value>) -> BTreeMap<String, String> {
-    let mut rangees: Vec<(&String, &Value)> = spectacles.iter().filter(|(_, v)| v.is_object()).collect();
-    rangees.sort_by_cached_key(|(_, v)| (!archivee(v), texte_ou_vide(v.get("numero_objet"))));
+fn codes_des_fiches(spectacles: Vec<&droit::fiche::ChampsSpectacle>) -> BTreeMap<String, String> {
+    let mut rangees = spectacles;
+    rangees.sort_by_cached_key(|v| (!v.archivee(), v.numero_objet.texte().to_string()));
     let mut out = BTreeMap::new();
-    for (_, v) in rangees {
-        let code = texte_ou_vide(v.get("code_analytique")).trim().to_string();
-        if !code.is_empty() && v.get("titre").is_some_and(vrai) {
-            out.insert(valeur_en_texte(&v["titre"]), code);
+    for v in rangees {
+        let code = v.code_analytique.texte().trim().to_string();
+        if let Some(titre) = v.titre.remplie().filter(|_| !code.is_empty()) {
+            out.insert(titre.to_string(), code);
         }
     }
     out
@@ -1068,7 +1068,7 @@ pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             _ => None,
         };
         if let Some(largeur) = largeur {
-            let codes = codes_sections(&plan, &ecr, largeur, &codes_des_fiches(&ctx.spectacles))?;
+            let codes = codes_sections(&plan, &ecr, largeur, &codes_des_fiches(ctx.spectacles.values().collect()))?;
             let dits: Vec<String> = codes.iter().map(|(titre, code)| format!("{} = {}", code, titre)).collect();
             t.avertissements.push(format!(
                 "Analytique : les salaires bruts sont ventilés par spectacle ({}). Les sections doivent exister dans le logiciel du comptable ; leurs codes se changent dans Configuration › Spectacles, case « Code analytique ».",

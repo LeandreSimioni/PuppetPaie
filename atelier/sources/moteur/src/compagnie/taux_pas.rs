@@ -19,7 +19,7 @@ pub(crate) fn ko(m: String) -> Echec {
 /// identifiant, meme taux, meme instant) ne s'ecrit pas deux fois.
 pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
     let mut changements = Vec::new();
-    let mut ecrits: Vec<(String, Value)> = Vec::new();
+    let mut ecrits: Vec<(String, droit::fiche::TauxPas)> = Vec::new();
     for r in releves {
         let cle = r.get("salarie").and_then(Value::as_str).unwrap_or("").to_string();
         let get = |k: &str| r.get(k).cloned().unwrap_or(Value::Null);
@@ -28,18 +28,19 @@ pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Ve
         if let Some(m) = en_retour_de {
             valeur[droit::pas::EN_RETOUR_DE] = json!(m);
         }
-        let Some(mad) = droit::pas::mise_a_disposition(&valeur) else {
+        let lu: droit::fiche::TauxPas = droit::fiche::lire_champs(&valeur, "Le taux de PAS reçu").map_err(ko)?;
+        let Some(mad) = droit::pas::mise_a_disposition(&lu) else {
             return Err(ko(format!("{} : un taux de PAS recu sans sa date de mise a disposition ne s'ecrit pas ({}).", cle, valeur)));
         };
         let depuis = droit::pas::date_d_effet(mad, en_retour_de);
-        let deja = droit::pas::recus(ctx, &cle).map_err(ko)?.into_iter().chain(ecrits.iter().filter(|(c, _)| *c == cle).map(|(_, v)| v.clone())).any(|v| v == valeur);
+        let deja = droit::pas::recus(ctx, &cle).map_err(ko)?.into_iter().chain(ecrits.iter().filter(|(c, _)| *c == cle).map(|(_, v)| v.clone())).any(|v| v == lu);
         if deja {
             continue;
         }
         crate::routes::fiches::poser_taux_recu(ctx, &cle, valeur.clone(), depuis, source)?;
         let t = |k: &str| crate::commandes::rendu::champ(&valeur, k);
         changements.push(format!("{} : taux {}, type {}, identifiant {}, mis a disposition le {}", cle, t("taux"), t("type"), t("identifiant"), mad.jj_mm_aaaa()));
-        ecrits.push((cle, valeur));
+        ecrits.push((cle, lu));
     }
     if !changements.is_empty() {
         refaire_les_engagements(ctx)?;

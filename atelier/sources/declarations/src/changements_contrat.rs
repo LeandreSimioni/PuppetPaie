@@ -32,7 +32,6 @@
 
 
 
-use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
@@ -144,11 +143,12 @@ fn ddmmaaaa(v: &str) -> Option<Jour> {
     Jour::lire(&format!("{}-{}-{}", s(4, 8), s(2, 4), s(0, 2))).ok()
 }
 
-/// Les jours ou ces champs de la fiche datee `brute` ont change : le `depuis` de chaque valeur qui en suit une autre.
-fn changements_dates(brute: &Value, champs: &[&str]) -> Resultat<Vec<(Jour, String)>> {
+/// Les jours ou ces champs d'une fiche datee ont change (`depuis` : les jours ou un champ prend une valeur) : le `depuis` de chaque
+/// valeur qui en suit une autre.
+fn changements_dates(depuis: impl Fn(&str) -> Vec<Option<Jour>>, champs: &[&str]) -> Resultat<Vec<(Jour, String)>> {
     let mut out = Vec::new();
     for c in champs {
-        out.extend(droit::contexte::valeurs_datees(brute, c)?.into_iter().skip(1).filter_map(|(j, _)| j.map(|j| (j, c.to_string()))));
+        out.extend(depuis(c).into_iter().skip(1).filter_map(|j| j.map(|j| (j, c.to_string()))));
     }
     Ok(out)
 }
@@ -176,10 +176,10 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
             candidats.push((j, "la date de modification de la saisie du mois (`date_modification`)".into()));
         }
     }
-    for (j, c) in changements_dates(&crate::ntt::brute(ctx, &p.salarie.id), md.fiche)? {
+    for (j, c) in changements_dates(|c| ctx.salarie_brut(p.salarie.id.as_str()).map_or_else(Vec::new, |b| b.depuis(c)), md.fiche)? {
         candidats.push((j, format!("la fiche du salarie (`{}`)", c)));
     }
-    for (j, c) in changements_dates(ctx.entreprise_brute(), md.entreprise)? {
+    for (j, c) in changements_dates(|c| ctx.entreprise_brute().depuis(c), md.entreprise)? {
         candidats.push((j, format!("la fiche entreprise (`{}`)", c)));
     }
     if md.annuelle && decl.mois[..4] < mois[..4] {

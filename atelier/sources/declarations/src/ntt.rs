@@ -105,7 +105,7 @@ pub fn nir_de(salarie: &ChampsSalarie) -> String {
 
 /// La fiche datee du salarie `salarie`, ou rien.
 pub fn brute(ctx: &droit::contexte::Contexte, salarie: &droit::contexte::IdSalarie) -> Value {
-    ctx.salarie_brut(salarie.as_str()).cloned().unwrap_or(Value::Null)
+    socle::ecriture::en_valeur(&ctx.salarie_brut(salarie.as_str()))
 }
 
 /// S21.G00.30.001, quand il y en a un -- et rien du tout sinon.

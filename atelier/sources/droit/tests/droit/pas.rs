@@ -50,7 +50,7 @@ fn ligne_versement(r: Result<Versement, ErreurPas>) -> String {
     match r {
         Err(e) => erreur(e),
         Ok(v) => {
-            let c = v.canon();
+            let c = socle::ecriture::en_valeur(&v);
             ["taux", "type", "identifiant", "abattement", "montant_soumis", "prelevement"]
                 .iter()
                 .map(|k| texte(&c[*k]))
@@ -90,7 +90,7 @@ fn pile(b: &Value, le: Option<Jour>) -> droit::forme_bareme::Pile {
 }
 
 fn triplet(v: &Value) -> Option<Triplet> {
-    v.as_array().map(|a| (a[0].clone(), a[1].clone(), a[2].clone()))
+    v.as_array().map(|a| Triplet { taux: socle::forme::lire(&a[0], "le taux").unwrap(), type_taux: a[1].as_str().map(String::from), identifiant: a[2].as_str().map(String::from) })
 }
 
 #[test]

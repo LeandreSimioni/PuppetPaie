@@ -679,7 +679,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     // 7. Les spectacles, par numero d'objet, avec leur titre quand le bulletin le donne.
     let mut connus: HashMap<String, String> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
-        connus.insert(sp.get("numero_objet").map_or(String::new(), valeur_en_texte).to_uppercase(), cle.clone());
+        connus.insert(sp.numero_objet.texte().to_uppercase(), cle.clone());
     }
     let mut par_objet: BTreeMap<String, Vec<usize>> = BTreeMap::new();
     for (k, l) in lus.iter().enumerate() {
@@ -710,7 +710,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             }
         };
         if let Some(cle) = connus.get(numero) {
-            let fiche = &ctx.spectacles[cle];
+            let fiche = &socle::ecriture::en_valeur(&ctx.spectacles[cle]);
             let mut ec = Vec::new();
             // UN TITRE VIDE OU « A COMPLETER » (celui que l'import des DSN donne, la DSN ne portant pas le titre) recoit
             // le titre propose ; un vrai titre saisi reste, et l'ecart avec la ligne « Spectacle » est seulement signale.

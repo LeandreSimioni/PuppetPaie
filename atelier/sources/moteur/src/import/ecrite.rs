@@ -26,7 +26,6 @@ use droit::contexte::Contexte;
 use engagement::importe::{Attestation, ContratLu, Declaration, PaieLue, PaieVersee};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
 use crate::import::reponse::{brut, Copie, EtatFiche, Importation};
@@ -705,9 +704,9 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Importation> {
     // le dit. Lu dans les fiches telles que l'import les a ecrites.
     let (mut proposes, mut sans_titre) = (0, 0);
     if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {
-        for sp in frais.spectacles.values().filter(|sp| sp.get("actif") != Some(&json!(false))) {
-            if sp.get("titre").map(valeur_en_texte).is_some_and(|t| t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)) {
-                if sp.get(declarations::demarrage::TITRE_PROPOSE).is_some_and(vrai) {
+        for sp in frais.spectacles.values().filter(|sp| !sp.archivee()) {
+            if sp.titre.portee().is_some_and(|t| t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)) {
+                if sp.titre_propose.as_deref().is_some_and(|t| !t.is_empty()) {
                     proposes += 1;
                 } else {
                     sans_titre += 1;

@@ -1103,10 +1103,11 @@ fn avertissement_de_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, donnees:
     let montree = crate::routes::etablissements::entreprise_montree(ctx);
     // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
     let lue = cle.and_then(|k| ctx.salaries.get(k)).map(|f| f.champs.en_valeur());
+    let spectacle_lu = cle.and_then(|k| ctx.spectacles.get(k)).map(socle::ecriture::en_valeur);
     let ancienne: &Value = match nom {
         "entreprise" => &montree,
         "salarie" => lue.as_ref().unwrap_or(&vide),
-        "spectacle" => cle.and_then(|k| ctx.spectacles.get(k)).unwrap_or(&vide),
+        "spectacle" => spectacle_lu.as_ref().unwrap_or(&vide),
         autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
     };
     let usage = if nom == "entreprise" { jour_des_intermittents_a_confirmer(ancienne, donnees) } else { None };
@@ -1297,7 +1298,7 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
     let qui = if nom == "salarie" {
         super::salarie(ctx, &json!(cle)).map(|s| super::nom_a_l_ecran(&s)).ok()
     } else {
-        ctx.spectacle(cle).ok().and_then(|s| s.get("titre").and_then(Value::as_str).filter(|t| !t.trim().is_empty()).map(String::from))
+        ctx.spectacle(cle).ok().and_then(|s| s.titre.portee().filter(|t| !t.trim().is_empty()).map(String::from))
     }
     .unwrap_or_else(|| cle.to_string());
     let p = match (nom, actif) {
@@ -1863,7 +1864,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     // L'ecriture d'une fiche compare ses cases par leur nom (`champs-base.json`) : la fiche lue, en JSON.
     let lue = match nom {
         "salarie" => cle.as_deref().and_then(|k| ctx.salaries.get(k)).map(|f| f.champs.en_valeur()),
-        _ => cle.as_deref().and_then(|k| ctx.spectacles.get(k)).cloned(),
+        _ => cle.as_deref().and_then(|k| ctx.spectacles.get(k)).map(socle::ecriture::en_valeur),
     };
     let ancienne: &Value = if nom == "entreprise" {
         &montree
@@ -1944,11 +1945,11 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         if !numero.is_empty() {
             let porteur = ctx.spectacles.iter().find(|(k, s)| {
                 Some(k.as_str()) != cle.as_deref()
-                    && s.get("numero_objet").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().eq_ignore_ascii_case(numero)
+                    && s.numero_objet.texte().trim().eq_ignore_ascii_case(numero)
             });
             if let Some((k, s)) = porteur {
-                let qui = match s.get("titre").filter(|t| !crate::import::completer::vide(Some(t))) {
-                    Some(t) => format!("du spectacle « {} » (fiche {})", valeur_en_texte(t), k),
+                let qui = match s.titre.remplie().filter(|t| !t.trim().is_empty() && !t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)) {
+                    Some(t) => format!("du spectacle « {} » (fiche {})", t, k),
                     None => format!("de la fiche {}", k),
                 };
                 return Err(refus(format!(

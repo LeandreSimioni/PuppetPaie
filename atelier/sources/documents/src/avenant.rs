@@ -503,7 +503,7 @@ pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &ChampsEntreprise, paie: &Value, 
     let mut m = match nom_spectacle {
         Some(s) => {
             let sp = ctx.spectacle(s)?;
-            marqueurs(ent, &lue, &sp, &e, remuneration, brut, net)?
+            marqueurs(ent, &lue, &engagement::calcul::spectacle_de_la_paie(&sp), &e, remuneration, brut, net)?
         }
         None => {
             let mut m = parties(ent, &lue, &nul, &e)?;
@@ -554,7 +554,7 @@ fn valeur_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, terme: &str, v:
         "cadre" => if vrai(v) { "cadre".into() } else { "non cadre".into() },
         "nature" => droit::natures::nature(Some(&texte)).map(|n| n.libelle.clone()).unwrap_or(texte),
         "motif_recours" => nat.libelle_motif_recours(&texte).unwrap_or(texte),
-        "spectacle" => ctx.spectacle(&texte).ok().and_then(|s| s.get("titre").map(en_texte)).unwrap_or(texte),
+        "spectacle" => ctx.spectacle(&texte).ok().and_then(|s| s.titre.portee().map(str::to_string)).unwrap_or(texte),
         "emploi" => format!("« {} »", texte),
         _ => texte,
     }

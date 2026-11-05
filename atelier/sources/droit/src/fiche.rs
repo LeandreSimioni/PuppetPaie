@@ -177,6 +177,25 @@ impl Montant {
         }
     }
 
+    /// Le decimal, un flottant par sa forme la plus courte (`socle::num::dec_f64`) ; un texte se lit sans virgule.
+    pub fn dec(&self) -> Resultat<Decimal> {
+        match self {
+            Montant::Flottant(x) => socle::num::dec_f64(*x),
+            Montant::Texte(s) => socle::num::dec_texte(s),
+            autre => Ok(autre.decimal()),
+        }
+    }
+
+    /// Un nombre qui n'est pas zero, ou un texte : ce qu'une valeur JSON vraie dit.
+    pub fn non_nul(&self) -> bool {
+        match self {
+            Montant::Entier(i) => *i != 0,
+            Montant::Naturel(u) => *u != 0,
+            Montant::Flottant(x) => *x != 0.0,
+            Montant::Texte(s) => !s.is_empty(),
+        }
+    }
+
     /// Le flottant ; un texte se lit sans virgule.
     pub fn flottant(&self) -> Resultat<f64> {
         match self {
@@ -623,15 +642,17 @@ impl ParCase for Map<String, Value> {
     }
 }
 
-/// UNE STRUCTURE DE CASES : chacune une `Case`, une cle inconnue refusee.
+/// UNE STRUCTURE DE CASES : chacune une `Case`, une cle inconnue refusee. Ses `notes` (d'une fiche datee) ne sont pas des
+/// cases : des textes qui ne se datent pas, que la fiche porte tels qu'ecrits.
 macro_rules! cases {
-    ($(#[$m:meta])* pub struct $nom:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? }) => {
+    ($(#[$m:meta])* pub struct $nom:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? } $( notes { $( $(#[$nm:meta])* $note:ident ),* $(,)? } )?) => {
         $(#[$m])*
         #[allow(non_snake_case)] // `association_1679A`, la cle ecrite
         #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
         #[serde(deny_unknown_fields)]
         pub struct $nom {
             $( $(#[$fm])* #[serde(default, skip_serializing_if = "Case::est_absente")] pub $champ: Case<$t>, )*
+            $( $( $(#[$nm])* #[serde(default, skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
         }
         impl FormeDeCase for $nom {
             fn cases() -> Vec<Declaree> {
@@ -664,20 +685,40 @@ macro_rules! cases {
 /// UNE FICHE DATEE : ses champs a un jour (`$plate`, des `cases!`), et la fiche telle qu'ecrite (`$datee`), chaque champ
 /// une liste datee ; `au` lit l'une dans l'autre, comme `contexte::fiche_au`.
 macro_rules! fiche {
-    ($(#[$m:meta])* pub struct $plate:ident, datee $datee:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? }) => {
-        cases! { $(#[$m])* pub struct $plate { $( $(#[$fm])* $champ : $t ),* } }
+    ($(#[$m:meta])* pub struct $plate:ident, datee $datee:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? } $( notes { $( $(#[$nm:meta])* $note:ident ),* $(,)? } )?) => {
+        cases! { $(#[$m])* pub struct $plate { $( $(#[$fm])* $champ : $t ),* } $( notes { $( $(#[$nm])* $note ),* } )? }
 
         /// La fiche telle qu'ecrite : chaque champ une liste datee.
         #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
         #[serde(deny_unknown_fields)]
         pub struct $datee {
             $( #[serde(default, skip_serializing_if = "Vec::is_empty")] pub $champ: Vec<Datee<$t>>, )*
+            $( $( $(#[$nm])* #[serde(default, skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
         }
 
         impl $datee {
-            /// Ses champs en vigueur a `jour`.
+            /// Ses champs en vigueur a `jour`, ses notes telles qu'ecrites.
             pub fn au(&self, jour: &Jour) -> $plate {
-                $plate { $( $champ: valeur_au(&self.$champ, jour), )* }
+                $plate { $( $champ: valeur_au(&self.$champ, jour), )* $( $( $note: self.$note.clone(), )* )? }
+            }
+
+            /// Les jours ou le champ `cle` prend une valeur, du plus ancien au plus recent (`None` : la valeur de tout
+            /// temps, d'abord) ; aucun pour un champ que la fiche ne dit pas, ou que la forme ne declare pas.
+            pub fn depuis(&self, cle: &str) -> Vec<Option<Jour>> {
+                $( if stringify!($champ).trim_start_matches("r#") == cle {
+                    let mut j: Vec<Option<Jour>> = self.$champ.iter().map(|e| e.depuis).collect();
+                    j.sort();
+                    return j;
+                } )*
+                Vec::new()
+            }
+
+            /// Le `depuis` de la valeur en vigueur a `jour` de chaque champ ; un champ dont seule la valeur de tout temps
+            /// s'applique n'en donne pas.
+            pub fn dates_en_vigueur(&self, jour: &Jour) -> Vec<Jour> {
+                let mut out = Vec::new();
+                $( out.extend(self.$champ.iter().filter_map(|e| e.depuis).filter(|j| j <= jour).max()); )*
+                out
             }
         }
     };
@@ -1084,6 +1125,61 @@ fiche! {
     }
 }
 
+choix! {
+    /// Le genre d'un programme audiovisuel (2642) : les minima de ses techniciens en dependent.
+    pub enum GenreAudiovisuel { Fiction = "fiction", Flux = "flux", Autre = "autre" }
+}
+
+choix! {
+    /// Le format d'un film (3097) : les minima de ses comediens en dependent.
+    pub enum FormatCinema { Long = "long", Court = "court" }
+}
+
+fiche! {
+    /// LA FICHE D'UN SPECTACLE a un jour (`config/spectacles.json`). Ses notes, ecrites par l'import, disent d'ou il
+    /// vient et le titre que les bulletins de l'ancien logiciel proposent (`declarations::demarrage`).
+    pub struct ChampsSpectacle, datee FicheSpectacleDatee {
+        titre: String,
+        numero_objet: String,
+        code_analytique: String,
+        genre_audiovisuel: GenreAudiovisuel,
+        emission_tv_1734: bool,
+        format_cinema: FormatCinema,
+        derogation_annexe_iii_3097: bool,
+        alias: Vec<String>,
+        actif: bool,
+    }
+    notes {
+        #[serde(rename = "_vu_dans")]
+        vu_dans,
+        #[serde(rename = "_titre_propose")]
+        titre_propose,
+        #[serde(rename = "_titre_lu_dans")]
+        titre_lu_dans,
+    }
+}
+
+impl ChampsSpectacle {
+    /// Archivee : `actif: false`. L'absence vaut actif.
+    pub fn archivee(&self) -> bool {
+        self.actif.dite() == Some(&false)
+    }
+}
+
+/// UN SPECTACLE TROUVE (`contexte::Contexte::spectacle`) : sa cle dans `config/spectacles.json`, et sa fiche au jour.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Spectacle {
+    pub cle: String,
+    pub champs: ChampsSpectacle,
+}
+
+impl std::ops::Deref for Spectacle {
+    type Target = ChampsSpectacle;
+    fn deref(&self) -> &ChampsSpectacle {
+        &self.champs
+    }
+}
+
 impl ChampsSalarie {
     /// « NOM Prénom », tel que l'ecran le nomme (`socle::texte::salarie_nomme`) : le nom et le prenom d'usage, sinon ceux de
     /// l'etat civil. `None` : la fiche ne nomme personne.
@@ -1258,6 +1354,71 @@ pub struct Salaries {
 
 /// La note d'un fichier de fiches : la seule cle en `_` qu'il admet.
 const NOTE_DU_FICHIER: &str = "_source";
+
+/// UN FICHIER DE FICHES (`config/spectacles.json`) : sa note (`_source`), et ses fiches par cle, dans l'ordre du fichier.
+/// Une autre cle en `_` se refuse.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FichierDeFiches<F> {
+    pub source: Option<String>,
+    pub fiches: IndexMap<String, F>,
+}
+
+impl<F> Default for FichierDeFiches<F> {
+    fn default() -> Self {
+        FichierDeFiches { source: None, fiches: IndexMap::new() }
+    }
+}
+
+impl<'de, F: Deserialize<'de>> Deserialize<'de> for FichierDeFiches<F> {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct Lu<F>(std::marker::PhantomData<F>);
+        impl<'de, F: Deserialize<'de>> serde::de::Visitor<'de> for Lu<F> {
+            type Value = FichierDeFiches<F>;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("un objet de fiches")
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(self, mut m: A) -> Result<Self::Value, A::Error> {
+                let mut out = FichierDeFiches::default();
+                while let Some(k) = m.next_key::<String>()? {
+                    if k == NOTE_DU_FICHIER {
+                        out.source = Some(m.next_value()?);
+                    } else if k.starts_with('_') {
+                        return Err(serde::de::Error::custom(format!("la clé {} n'est pas connue ici (attendue : {})", k, NOTE_DU_FICHIER)));
+                    } else {
+                        let f = m.next_value()?;
+                        if out.fiches.insert(k.clone(), f).is_some() {
+                            return Err(serde::de::Error::custom(format!("la clé {} est répétée", k)));
+                        }
+                    }
+                }
+                Ok(out)
+            }
+        }
+        d.deserialize_map(Lu(std::marker::PhantomData))
+    }
+}
+
+impl<F: Serialize> Serialize for FichierDeFiches<F> {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        let mut m = s.serialize_map(Some(self.fiches.len() + usize::from(self.source.is_some())))?;
+        if let Some(n) = &self.source {
+            m.serialize_entry(NOTE_DU_FICHIER, n)?;
+        }
+        for (k, f) in &self.fiches {
+            m.serialize_entry(k, f)?;
+        }
+        m.end()
+    }
+}
+
+/// `config/spectacles.json`.
+pub type Spectacles = FichierDeFiches<FicheSpectacleDatee>;
+
+/// LA LECTURE DE `config/spectacles.json` (`fichier` : son nom dans les refus), la seule.
+pub fn lire_spectacles(chemin: &std::path::Path, fichier: &str) -> Resultat<Spectacles> {
+    socle::forme::lire_fichier_en_phrase(chemin, |cle, detail| refus_de_fiche(fichier, cle, detail))
+}
 
 /// Le refus d'une fiche qui ne se lit pas : le fichier, la cle, et quoi faire.
 fn refus_de_fiche(fichier: &str, chemin: &str, detail: &str) -> String {

@@ -355,7 +355,7 @@ fn poser_annee(ligne: &mut Value, annee: Option<Value>) {
 pub(crate) fn entreprise_montree(ctx: &Contexte) -> Value {
     let mut e = ctx.entreprise.en_valeur();
     if let Some(o) = e.as_object_mut() {
-        if o.contains_key("etablissements") || ctx.entreprise_brute().get("etablissements").is_some() {
+        if o.contains_key("etablissements") || !ctx.entreprise_brute().etablissements.is_empty() {
             o.insert("etablissements".into(), Value::Array(crate::routes::ouverture::etablissements_dits(ctx)));
         }
     }

@@ -23,7 +23,7 @@ pub struct PaieEcrite {
     /// Ce dont le calcul dependait (`empreinte`).
     pub empreinte: Empreinte,
     /// Le prelevement a la source (`etats::prelevement`).
-    #[serde(default, skip_serializing_if = "Option::is_none", with = "pas")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pas: Option<droit::pas::Versement>,
     /// Le compteur de conges d'un permanent a la fin du mois, et ce qu'il tient pour le mois suivant.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "compteur")]
@@ -65,17 +65,6 @@ impl PaieEcrite {
     /// Le compteur de conges sans ses avertissements, pour comparer deux paies sur leurs chiffres.
     pub fn conges_sans_avis(&self) -> Option<crate::conges::CompteurConges> {
         self.conges.clone().map(|c| crate::conges::CompteurConges { avertissements: Vec::new(), ..c })
-    }
-}
-
-/// Le prelevement, tel que `droit::pas::Versement` l'ecrit et le relit.
-mod pas {
-    use super::*;
-    pub fn serialize<S: Serializer>(v: &Option<droit::pas::Versement>, s: S) -> Result<S::Ok, S::Error> {
-        v.as_ref().map(droit::pas::Versement::canon).serialize(s)
-    }
-    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<droit::pas::Versement>, D::Error> {
-        Option::<Value>::deserialize(d)?.map(|v| droit::pas::Versement::lire(&v)).transpose().map_err(serde::de::Error::custom)
     }
 }
 

@@ -775,12 +775,12 @@ impl DocumentsFabriques {
 /// (`engagement::etats::prelevement_de_la_correction`, au taux du bulletin parti pour un trop-verse : BOFiP,
 /// BOI-IR-PAS-30-10-50, § 1 et § 90, `atelier/reference/sources/bofip/BOI-IR-PAS-30-10-50-extrait-regularisation.md`).
 fn ecart_avec_le_bulletin_parti(ctx: &Contexte, apres: &Paie, parti: &Paie, mois_versement: &str) -> R<Value> {
-    let taux_parti = parti.pas.as_ref().map(|p| valeur_en_texte(&p.taux)).filter(|t| !t.is_empty());
+    let taux_parti = parti.pas.as_ref().and_then(|p| p.taux.as_ref().map(droit::fiche::Montant::ecrit)).filter(|t| !t.is_empty());
     let d_net = apres.net_a_payer - parti.net_a_payer;
     let pas_c = engagement::etats::prelevement_de_la_correction(ctx, apres, parti.net_imposable, taux_parti.as_deref(), mois_versement).map_err(valeur)?;
     let (indu, prelevement) = (pas_c.indu(), pas_c.prelevement);
     let taux = match (indu, taux_parti) {
-        (false, _) => pas_c.versement.taux.clone(),
+        (false, _) => socle::ecriture::en_valeur(&pas_c.versement.taux),
         (true, Some(t)) => json!(t),
         (true, None) => Value::Null,
     };
@@ -1581,7 +1581,7 @@ fn sans_taux_recu<'a>(ctx: &Contexte, paies: impl Iterator<Item = &'a Paie>) -> 
     let mut lignes: Vec<String> = Vec::new();
     // La paie dit le taux qu'elle a pris (`Paie::pas`, ecrit a la validation) : un autre type que « 01 » (taux transmis
     // par la DGFiP, S21.G00.50.007) est la grille.
-    for p in paies.filter(|p| p.pas.as_ref().is_some_and(|v| v.type_taux.as_str() != Some("01"))) {
+    for p in paies.filter(|p| p.pas.as_ref().is_some_and(|v| v.type_taux.as_deref() != Some("01"))) {
         let paye_le = p.engagement.date_du_versement().map_err(Echec::from)?;
         let pourquoi = droit::pas::avertissements(ctx, Some(&[cle_de(p)]), Some(paye_le), Some(&p.engagement.mois)).map_err(Echec::from)?;
         let demande = crate::compagnie::amorcage_demande::en_cours(ctx, &cle_de(p))?

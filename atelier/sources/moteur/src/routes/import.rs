@@ -476,7 +476,7 @@ pub(crate) fn apercu_lu(
     }
     let mut connus: HashMap<String, String> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
-        let n = sp.get("numero_objet").map_or(String::new(), valeur_en_texte).to_uppercase();
+        let n = sp.numero_objet.texte().to_uppercase();
         connus.insert(n, cle.clone());
     }
     objets.sort_by(|a, b| a.premier.cmp(&b.premier));
@@ -484,7 +484,7 @@ pub(crate) fn apercu_lu(
     let mut spectacles = Vec::new();
     for o in &objets {
         if let Some(cle) = connus.get(&o.numero.to_uppercase()) {
-            let titre = ctx.spectacles[cle].get("titre").map_or("?".to_string(), valeur_en_texte);
+            let titre = ctx.spectacles[cle].titre.portee().unwrap_or("?").to_string();
             spectacles.push(FicheImportee::new("spectacle", Some(cle), &format!("{} ({})", titre, o.numero), EtatFiche::Existante, Vec::new(), Vec::new(), &vide));
             continue;
         }

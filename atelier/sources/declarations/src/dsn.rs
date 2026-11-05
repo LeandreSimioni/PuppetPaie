@@ -85,6 +85,12 @@ impl Fichier {
     }
 
     /// Pose `rubrique` d'une valeur JSON écrite en texte ; refus sur `null`.
+    /// Une rubrique dite par un texte, exigee : sans lui, le refus la nomme.
+    pub fn add_ecrit(&mut self, rubrique: &str, valeur: Option<String>) -> Resultat<()> {
+        self.add(rubrique, valeur.ok_or_else(|| absente(rubrique))?);
+        Ok(())
+    }
+
     pub fn add_v(&mut self, rubrique: &str, valeur: &Value) -> Resultat<()> {
         if valeur.is_null() {
             return Err(absente(rubrique));
@@ -1971,7 +1977,7 @@ pub fn bloc_anciennete(f: &mut Fichier, p: &Paie, jours: i64) -> Resultat<()> {
 /// assistants maternels et familiaux, que seuls PAJEmploi et les departements declarent : le moteur ne l'ecrit pas.
 fn pas_du_versement(
     taux_pas: Option<&Triplet>, bar: &Pile, montant: Decimal, le: Jour, court: bool,
-) -> Resultat<(Value, Value, Value, Decimal)> {
+) -> Resultat<(Option<droit::fiche::Montant>, Option<String>, Option<String>, Decimal)> {
     let r = pas::du_versement(taux_pas, bar, montant, Some(le), court, ZONE_DEFAUT).map_err(|e| e.message().to_string())?;
     Ok((r.taux, r.type_taux, r.identifiant, r.montant_soumis))
 }
@@ -2347,12 +2353,12 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, rang: i64, taux
             ), "pas"))
         }
     };
-    f.add_v("S21.G00.50.006", &taux)?;
-    f.add_v("S21.G00.50.007", &type_taux)?;
-    if en_texte(&type_taux) == "01" {
-        f.add_v("S21.G00.50.008", &identifiant)?;
+    f.add_ecrit("S21.G00.50.006", taux.as_ref().map(droit::fiche::Montant::ecrit))?;
+    f.add_ecrit("S21.G00.50.007", type_taux.clone())?;
+    if type_taux.as_deref() == Some("01") {
+        f.add_ecrit("S21.G00.50.008", identifiant.clone())?;
     }
-    f.add("S21.G00.50.009", mt(pct(soumis, dec_avec_echelle(&taux)?)));
+    f.add("S21.G00.50.009", mt(pct(soumis, droit::pas::taux_du_versement(taux.as_ref())?)));
     f.add("S21.G00.50.013", mt(soumis));
 
     // Un mois decoupe : les remunerations de chaque periode elementaire, datees de ses bornes (« La periode a
@@ -2628,13 +2634,13 @@ fn bloc_regularisation(
     f.add("S21.G00.50.004", mt(d_net));
     let v = &pas_c.versement;
     let (taux, type_taux, identifiant, soumis) = (&v.taux, &v.type_taux, &v.identifiant, v.montant_soumis);
-    f.add_v("S21.G00.50.006", &taux)?;
-    f.add_v("S21.G00.50.007", &type_taux)?;
-    if en_texte(&type_taux) == "01" {
-        f.add_v("S21.G00.50.008", &identifiant)?;
+    f.add_ecrit("S21.G00.50.006", taux.as_ref().map(droit::fiche::Montant::ecrit))?;
+    f.add_ecrit("S21.G00.50.007", type_taux.clone())?;
+    if type_taux.as_deref() == Some("01") {
+        f.add_ecrit("S21.G00.50.008", identifiant.clone())?;
     }
     let indu = d_ni < Decimal::ZERO;
-    f.add("S21.G00.50.009", if indu { "0.00".into() } else { mt(pct(soumis, dec_avec_echelle(&taux)?)) });
+    f.add("S21.G00.50.009", if indu { "0.00".into() } else { mt(pct(soumis, droit::pas::taux_du_versement(taux.as_ref())?)) });
     f.add("S21.G00.50.013", if indu { "0.00".into() } else { mt(soumis) });
 
     annuler_le_declare(f, r, &["51", "53"])?;
@@ -4798,7 +4804,7 @@ certificat de conformite du depot precedent.",
         };
         // LES IDENTIFIANTS DU MOIS DECLARE : NIR, nom, prenoms et date de naissance tels qu'au dernier jour du
         // mois, pour qu'un changement date apres lui n'entre pas dans sa DSN (`changements_individu::identite_du_mois`).
-        let brute = ctx.salarie_brut(fiche.id.as_str()).cloned().unwrap_or(Value::Null);
+        let brute = socle::ecriture::en_valeur(&ctx.salarie_brut(fiche.id.as_str()));
         let ident = crate::changements_individu::identite_du_mois(fiche, &brute, &fin_m)?;
         bloc_individu(&mut f, &ident, true)?;
         // L'identite DECLAREE, relue dans la derniere paie declaree qui le porte : son NTT, s'il etait declare sans NIR

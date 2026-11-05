@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use droit::contexte::{archivee, Contexte};
+use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::mois::{Graphie, Mois};
 use engagement;
@@ -976,11 +976,11 @@ fn spectacles_a_revoir(ctx: &Contexte, annee: i32, faites: &Cochees) -> Vec<Spec
     }
     ctx.spectacles
         .iter()
-        .filter(|(_, s)| !archivee(s))
+        .filter(|(_, s)| !s.archivee())
         .map(|(cle, s)| SpectacleARevoir {
             cle: cle.clone(),
-            titre: brut_valeur(&s.get("titre").filter(|t| vrai(t)).cloned().unwrap_or_else(|| Value::String(cle.clone()))),
-            numero_objet: brut_valeur(&s.get("numero_objet").filter(|t| vrai(t)).cloned().unwrap_or(Value::Null)),
+            titre: brut_valeur(&Value::String(s.titre.remplie().unwrap_or(cle).to_string())),
+            numero_objet: brut_valeur(&s.numero_objet.remplie().map_or(Value::Null, |n| Value::String(n.to_string()))),
         })
         .collect()
 }

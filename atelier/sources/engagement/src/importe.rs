@@ -38,7 +38,7 @@ use crate::numeros::NumeroContrat;
 use crate::saisie::Carte;
 use crate::stock::{self, Objet};
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::num::{Decimal, Resultat};
 
 /// Dans un engagement importe : ce que l'import a lu de lui (`Pieces`).
@@ -593,9 +593,9 @@ impl Importe {
         let cle = Carte::texte(&self.carte().salarie);
         let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(&cle)?);
         let objet = p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone())).unwrap_or_default().to_uppercase();
-        let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.get("numero_objet").map(en_texte).map(|n| n.to_uppercase()) == Some(objet.clone())).map(|(k, _)| k.clone());
+        let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.numero_objet.portee().map(str::to_uppercase) == Some(objet.clone())).map(|(k, _)| k.clone());
         let spec = match &spectacle {
-            Some(k) => ctx.spectacle(k)?,
+            Some(k) => crate::calcul::spectacle_de_la_paie(&ctx.spectacle(k)?),
             None => Value::Null,
         };
         let imprime = p.emploi_imprime.clone().unwrap_or_default();
@@ -746,9 +746,9 @@ impl Importe {
         c.numero_bulletin = p.bulletin.as_ref().and_then(|b| b.numero.clone()).filter(|n| !n.is_empty());
         c.bases = bases;
         c.pas = p.pas.map(|prelevement| droit::pas::Versement {
-            taux: p.taux_pas.and_then(|t| t.to_string().parse::<f64>().ok()).map_or(Value::Null, Value::from),
-            type_taux: p.type_pas.clone().map_or(Value::Null, Value::String),
-            identifiant: p.identifiant_pas.clone().map_or(Value::Null, Value::String),
+            taux: p.taux_pas.and_then(|t| t.to_string().parse::<f64>().ok()).map(droit::fiche::Montant::Flottant),
+            type_taux: p.type_pas.clone(),
+            identifiant: p.identifiant_pas.clone(),
             abattement: zero,
             montant_soumis: p.net_imposable.unwrap_or(zero),
             prelevement,

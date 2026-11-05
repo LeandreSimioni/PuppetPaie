@@ -160,10 +160,20 @@ impl<'de> serde::Deserialize<'de> for Nombre {
 /// `lire`, quand la phrase du refus nomme elle-meme la cle fautive : `phrase(chemin, detail)` la compose (le fichier
 /// d'une compagnie, qu'elle corrige : `droit::fiche`).
 pub fn lire_en_phrase<T: DeserializeOwned>(v: &Value, phrase: impl Fn(&str, &str) -> String) -> Resultat<T> {
-    serde_path_to_error::deserialize(v).map_err(|e| {
-        let chemin = e.path().to_string();
-        let chemin = if chemin == "." { String::new() } else { chemin };
-        let detail = en_clair(&e.inner().to_string());
-        crate::echec::avec(phrase(&chemin, &detail), APart { cle: Some(chemin), detail: Some(detail).filter(|d| !d.is_empty()), ..APart::default() })
-    })
+    serde_path_to_error::deserialize(v).map_err(|e| refus_en_phrase(&phrase, &e))
+}
+
+/// `lire_en_phrase`, du fichier JSON `fichier` (sa lecture notee au registre d'un calcul suivi, `fichiers::lire_texte`) ;
+/// le disque qui refuse se dit par `echec::du_disque`.
+pub fn lire_fichier_en_phrase<T: DeserializeOwned>(fichier: &Path, phrase: impl Fn(&str, &str) -> String) -> Resultat<T> {
+    let texte = crate::fichiers::lire_texte(fichier).map_err(|e| crate::echec::du_disque(fichier, &e))?;
+    let mut d = serde_json::Deserializer::from_str(&texte);
+    serde_path_to_error::deserialize(&mut d).map_err(|e| refus_en_phrase(&phrase, &e))
+}
+
+fn refus_en_phrase(phrase: &impl Fn(&str, &str) -> String, e: &serde_path_to_error::Error<serde_json::Error>) -> String {
+    let chemin = e.path().to_string();
+    let chemin = if chemin == "." { String::new() } else { chemin };
+    let detail = en_clair(&e.inner().to_string());
+    crate::echec::avec(phrase(&chemin, &detail), APart { cle: Some(chemin), detail: Some(detail).filter(|d| !d.is_empty()), ..APart::default() })
 }

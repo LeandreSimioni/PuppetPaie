@@ -104,7 +104,7 @@ pub fn en_cours(ctx: &Contexte, cle: &str) -> R<Option<EnCours>> {
         .last();
     let Some(l) = derniere else { return Ok(None) };
     let quand = l.quand().to_string();
-    let dernier_recu = droit::pas::recus(ctx, cle).map_err(|m| erreur("ValueError", m))?.last().map(|r| r.get("mis_a_disposition").map(valeur_en_texte).unwrap_or_default()).unwrap_or_default();
+    let dernier_recu = droit::pas::recus(ctx, cle).map_err(|m| erreur("ValueError", m))?.last().map(|r| r.mis_a_disposition.portee().unwrap_or_default().to_string()).unwrap_or_default();
     if chiffres(&dernier_recu) >= chiffres(&quand) {
         return Ok(None);
     }
@@ -133,7 +133,7 @@ pub fn a_combler(ctx: &Contexte, paies: &[Paie], motif: &str, forcer: bool) -> R
     for cle in &cles {
         let mut besoin: Option<(usize, Value)> = None;
         for (i, p) in paies.iter().enumerate().filter(|(_, p)| cle_de(p).is_ok_and(|c| c == *cle)) {
-            let s = droit::pas::situation(ctx, cle, Some(p.engagement.date_du_versement().map_err(ko)?), Some(&p.engagement.mois)).map_err(ko)?;
+            let s = socle::ecriture::en_valeur(&droit::pas::situation(ctx, cle, Some(p.engagement.date_du_versement().map_err(ko)?), Some(&p.engagement.mois)).map_err(ko)?);
             if s["situation"] == droit::pas::SANS_NIR || s.get("a_demander").is_some_and(vrai) {
                 besoin = Some((i, s));
                 break;

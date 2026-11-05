@@ -268,6 +268,15 @@ fn reintegrations(lignes: &[LigneCotisation]) -> Decimal {
     csg_nd + lignes.iter().filter(|l| l.id == "mutuelle").fold(zero, |a, l| a + l.montant_pat)
 }
 
+/// La fiche du spectacle telle que la paie la porte (`Contenu::spectacle`) : ses cases au jour, et sa cle (`_cle`).
+pub fn spectacle_de_la_paie(sp: &droit::fiche::Spectacle) -> Value {
+    let mut v = socle::ecriture::en_valeur(&sp.champs);
+    if let Some(o) = v.as_object_mut() {
+        o.insert("_cle".into(), Value::String(sp.cle.clone()));
+    }
+    v
+}
+
 /// Une paie d'un engagement : ce que son calcul a produit, ou sa forme ecrite relue (`relire`). Elle se lit partout, ce
 /// qu'elle porte a travers `Contenu` ; elle ne se construit et ne s'ecrit que dans cette crate, qui seule calcule.
 #[derive(Debug, Clone)]
@@ -1226,7 +1235,7 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     let spec = if nat.mensuelle() {
         Value::Null
     } else {
-        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
+        crate::calcul::spectacle_de_la_paie(&ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
     };
     // Le contrat est-il declare a la caisse des Conges Spectacles ? (`caisse_conges::affilie` : un CDDU de moins de
     // douze mois, un CDD de droit commun de moins de douze mois d'un artiste.)

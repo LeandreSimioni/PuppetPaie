@@ -746,7 +746,7 @@ pub fn prelevement_de_la_correction(
             None => None,
         }
     } else {
-        Some(pct(versement.montant_soumis, dec_avec_echelle(&versement.taux)?))
+        Some(pct(versement.montant_soumis, droit::pas::taux_du_versement(versement.taux.as_ref())?))
     };
     Ok(PrelevementDeLaCorrection { difference, versement, prelevement })
 }

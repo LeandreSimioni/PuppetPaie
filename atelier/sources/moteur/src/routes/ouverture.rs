@@ -396,7 +396,7 @@ pub(crate) struct ChoixEtablissement {
 /// le garde). `None` : un seul etablissement, rien a choisir.
 pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Option<Vec<ChoixEtablissement>> {
     let principal = ctx.entreprise.nic_principal();
-    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(ctx.entreprise_brute())
+    let autres: Vec<(Value, Option<socle::date::Jour>)> = droit::contexte::histoire_des_etablissements(&socle::ecriture::en_valeur(ctx.entreprise_brute()))
         .unwrap_or_default()
         .into_iter()
         .filter(|(e, _)| texte_ou_vide(e.get("nic")) != principal)
@@ -775,7 +775,7 @@ pub(crate) fn configuration_dite(ctx: &Contexte) -> R<ConfigurationDite> {
 fn configuration(ctx: &Contexte) -> R<ConfigurationDeLaPage> {
     // La route rend la fiche telle que la page la lit : ses cases par leur nom.
     let ent = ctx.entreprise.en_valeur();
-    let mut vue = avec_historique(&ent, Some(ctx.entreprise_brute()))?;
+    let mut vue = avec_historique(&ent, Some(&socle::ecriture::en_valeur(ctx.entreprise_brute())))?;
     if let Some(o) = vue.as_object_mut() {
         let autres = etablissements_dits(ctx);
         if autres.is_empty() {
@@ -792,9 +792,9 @@ fn configuration(ctx: &Contexte) -> R<ConfigurationDeLaPage> {
     let salaries = ctx
         .salaries
         .iter()
-        .map(|(k, v)| fiche_verifiee(ctx, "salarie", Some(k.as_str()), &avec_historique(&v.champs.en_valeur(), ctx.salarie_brut(k.as_str()))?, &ent))
+        .map(|(k, v)| fiche_verifiee(ctx, "salarie", Some(k.as_str()), &avec_historique(&v.champs.en_valeur(), ctx.salarie_brut(k.as_str()).map(socle::ecriture::en_valeur).as_ref())?, &ent))
         .collect::<R<Vec<_>>>()?;
-    let spectacles = ctx.spectacles.iter().map(|(k, v)| fiche_verifiee(ctx, "spectacle", Some(k), &avec_historique(v, ctx.spectacle_brut(k))?, &ent)).collect::<R<Vec<_>>>()?;
+    let spectacles = ctx.spectacles.iter().map(|(k, v)| fiche_verifiee(ctx, "spectacle", Some(k), &avec_historique(&socle::ecriture::en_valeur(v), ctx.spectacle_brut(k).map(socle::ecriture::en_valeur).as_ref())?, &ent)).collect::<R<Vec<_>>>()?;
     // LES ERREURS DE CONFIGURATION, toutes fiches comptees, que le bandeau montre (orange) : une valeur saisie et fausse,
     // les memes que la pastille de chaque fiche. Une case vide n'en est jamais une : ce qu'un acte exige, « Pour demarrer » le dit.
     let erreurs: usize = std::iter::once(&entreprise).chain(salaries.iter()).chain(spectacles.iter()).map(VueFiche::erreurs).sum();
@@ -812,8 +812,8 @@ fn configuration(ctx: &Contexte) -> R<ConfigurationDeLaPage> {
     };
     // LES NUMEROS D'OBJET SANS TITRE (importes des DSN, « A COMPLETER »), archives : la liste des spectacles les groupe sous
     // cette phrase.
-    let sans_titre: Vec<&Value> = ctx.spectacles.values().filter(|s| s.get("actif") == Some(&json!(false)) && super::mot(&s["titre"]).trim().eq_ignore_ascii_case("a completer")).collect();
-    let ans: Vec<u32> = sans_titre.iter().filter_map(|s| super::mot(&s["numero_objet"]).get(..2).and_then(|a| a.parse::<u32>().ok())).map(|a| 2000 + a).collect();
+    let sans_titre: Vec<&droit::fiche::ChampsSpectacle> = ctx.spectacles.values().filter(|s| s.archivee() && s.titre.texte().trim().eq_ignore_ascii_case("a completer")).collect();
+    let ans: Vec<u32> = sans_titre.iter().filter_map(|s| s.numero_objet.texte().get(..2).and_then(|a| a.parse::<u32>().ok())).map(|a| 2000 + a).collect();
     let numeros_sans_titre = match (sans_titre.len(), ans.iter().min(), ans.iter().max()) {
         (0, _, _) => None,
         (n, de, a) => {
@@ -1486,8 +1486,8 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         .into_iter()
         .map(|k| {
             let v = &ctx.spectacles[k];
-            let titre = v.get("titre").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
-            Ok(SpectacleDeLaListe { cle: k.to_string(), titre: titre.clone(), numero_objet: v.get("numero_objet").cloned().unwrap_or(Value::Null) })
+            let titre = Some(socle::ecriture::en_valeur(&v.titre)).filter(|_| !v.titre.est_absente()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
+            Ok(SpectacleDeLaListe { cle: k.to_string(), titre, numero_objet: socle::ecriture::en_valeur(&v.numero_objet) })
         })
         .collect::<R<Vec<_>>>()?;
 

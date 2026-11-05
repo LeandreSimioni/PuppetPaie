@@ -16,7 +16,7 @@ use socle::num::Resultat;
 use serde_json::{Map, Value};
 use socle::date::Jour;
 
-use crate::contexte::{fiche_au, valeurs_datees, Contexte};
+use crate::contexte::Contexte;
 use crate::fiche::{Case, FicheSalarie, Statut};
 
 /// `emplois-base.json` : le catalogue des metiers, dans l'ordre ou le deroulant les montre, et les noms courts des
@@ -395,8 +395,7 @@ pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Re
         if avant == apres {
             continue;
         }
-        let brute = ctx.salarie_brut(cle).unwrap_or(&Value::Null);
-        let le = valeurs_datees(brute, c)?.into_iter().filter_map(|(j, _)| j).filter(|j| j > debut && j <= fin).last();
+        let le = ctx.salarie_brut(cle).map_or_else(Vec::new, |b| b.depuis(c)).into_iter().flatten().filter(|j| j > debut && j <= fin).last();
         let premier = Jour { jour: 1, ..*debut };
         let suivant = Jour { jour: 1, ..premier.plus_jours(31)? };
         let texte = |v: &Value| if v.is_null() { "(vide)".to_string() } else { repr_valeur(v) };
@@ -422,17 +421,17 @@ vaut pour tout ce mois-ci) ou le {} (il vaut a partir du mois suivant).",
 /// se decoupe en periodes elementaires (`periodes::bornes` ; norme DSN 2026.1, § 2.1.3.2, p. 28 : « passage de non
 /// cadre a cadre en cours de periode de paie »). Vide : le mois se paie d'un seul tenant.
 pub fn jours_de_changement(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Resultat<Vec<Jour>> {
-    let brute = ctx.salarie_brut(cle).unwrap_or(&Value::Null);
+    let Some(brute) = ctx.salarie_brut(cle) else { return Ok(Vec::new()) };
     let mut jours: Vec<Jour> = Vec::new();
     for c in UNE_VALEUR_PAR_MOIS {
-        jours.extend(valeurs_datees(brute, c)?.into_iter().filter_map(|(j, _)| j).filter(|j| j > debut && j <= fin));
+        jours.extend(brute.depuis(c).into_iter().flatten().filter(|j| j > debut && j <= fin));
     }
     jours.sort();
     jours.dedup();
     let mut out = Vec::new();
     for j in jours {
-        let (avant, apres) = (fiche_au(brute, &j.plus_jours(-1)?, cle)?, fiche_au(brute, &j, cle)?);
-        if UNE_VALEUR_PAR_MOIS.iter().any(|c| avant.get(*c) != apres.get(*c)) {
+        let (avant, apres) = (brute.au(&j.plus_jours(-1)?), brute.au(&j));
+        if UNE_VALEUR_PAR_MOIS.iter().any(|c| avant.case(c) != apres.case(c)) {
             out.push(j);
         }
     }

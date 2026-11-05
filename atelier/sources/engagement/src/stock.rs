@@ -1083,7 +1083,7 @@ pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
 
 /// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
 fn meme_spectacle(ctx: &Contexte, a: &str, b: &str) -> bool {
-    let cle = |v: &str| ctx.spectacle(v).ok().and_then(|f| f.get("_cle").cloned());
+    let cle = |v: &str| ctx.spectacle(v).ok().map(|f| f.cle);
     cle(a).is_some_and(|x| Some(x) == cle(b))
 }
 

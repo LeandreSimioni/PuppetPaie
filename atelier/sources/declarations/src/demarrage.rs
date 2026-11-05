@@ -68,7 +68,7 @@ pub fn licence_exigee(ent: &ChampsEntreprise, spectacle: bool) -> bool {
 
 /// La compagnie emploie-t-elle des intermittents ? Un spectacle actif le dit : un CDDU se rattache a un spectacle.
 fn a_des_spectacles(ctx: &Contexte) -> bool {
-    std::fs::read(ctx.racine.join(socle::fichiers::CONFIG).join("spectacles.json"))
+    std::fs::read(ctx.racine.join(droit::contexte::SPECTACLES))
         .ok()
         .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
         .and_then(|v| v.as_object().map(|o| o.iter().any(|(k, s)| !k.starts_with('_') && s.get("actif") != Some(&json!(false)))))
@@ -84,7 +84,7 @@ fn spectacles_declares(ctx: &Contexte) -> Vec<String> {
         }
         let nature = o.carte().nature.as_deref();
         let Some(sp) = o.carte().spectacle.as_deref().filter(|s| !s.trim().is_empty()) else { continue };
-        let Some(cle) = ctx.spectacle(sp).ok().and_then(|f| f.get("_cle").and_then(Value::as_str).map(str::to_string)) else { continue };
+        let Some(cle) = ctx.spectacle(sp).ok().map(|f| f.cle) else { continue };
         if droit::natures::nature(nature).is_ok_and(|n| n.ecrit("S21.G00.40.050")) && !out.contains(&cle) {
             out.push(cle);
         }
@@ -153,7 +153,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // sa nature dans `contrats-base.json`) le porte : rien de remplissable s'il n'y a pas a le remplir.
     for cle in spectacles_declares(ctx) {
         let Some(sp) = ctx.spectacles.get(&cle) else { continue };
-        let titre = sp.get("titre").filter(|t| vrai(t)).map(socle::date::en_texte).unwrap_or_else(|| cle.clone());
+        let titre = sp.titre.remplie().map(str::to_string).unwrap_or_else(|| cle.clone());
         for m in crate::champs::manquants("spectacle", sp).unwrap_or_default() {
             let mut l = ligne(m, format!("Configuration › Spectacles, la fiche de {}", titre), "spectacle", None);
             l["spectacle"] = json!(cle);
@@ -165,18 +165,18 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // LE TITRE D'UN SPECTACLE QUE L'IMPORT N'A PAS ECRIT (« A COMPLETER » sur une fiche active : le contrat et le bulletin
     // l'imprimeraient tel quel) : la case se demande, avec le titre que les bulletins de l'ancien logiciel portent
     // (`TITRE_PROPOSE`), a valider ou a corriger, et le numero d'objet auquel il correspond.
-    for (cle, sp) in ctx.spectacles.iter().filter(|(k, s)| !k.starts_with('_') && s.get("actif") != Some(&json!(false))) {
-        let lu = |k: &str| sp.get(k).filter(|t| vrai(t)).map(socle::date::en_texte).map(|t| t.trim().to_string()).filter(|t| !t.is_empty());
-        if !lu("titre").is_none_or(|t| t.eq_ignore_ascii_case(TITRE_A_COMPLETER)) {
+    for (cle, sp) in ctx.spectacles.iter().filter(|(_, s)| !s.archivee()) {
+        let lu = |t: Option<&str>| t.map(|t| t.trim().to_string()).filter(|t| !t.is_empty());
+        if !lu(sp.titre.remplie()).is_none_or(|t| t.eq_ignore_ascii_case(TITRE_A_COMPLETER)) {
             continue;
         }
-        let objet = lu("numero_objet").unwrap_or_else(|| cle.clone());
-        let propose = lu(TITRE_PROPOSE);
+        let objet = lu(sp.numero_objet.remplie()).unwrap_or_else(|| cle.clone());
+        let propose = lu(sp.titre_propose.as_deref());
         let trouver = match &propose {
             Some(t) => format!(
                 "Proposé : « {} », lu dans la case « {} » des bulletins de l'ancien logiciel pour le numéro d'objet {}. Validez-le ou corrigez-le.",
                 t,
-                lu(TITRE_LU_DANS).unwrap_or_else(|| "Spectacle".into()),
+                lu(sp.titre_lu_dans.as_deref()).unwrap_or_else(|| "Spectacle".into()),
                 objet
             ),
             None => format!("Aucune pièce reprise ne porte le titre du numéro d'objet {} : celui que vous avez déclaré à France Travail.", objet),

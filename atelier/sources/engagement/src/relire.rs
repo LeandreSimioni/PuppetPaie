@@ -157,7 +157,7 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiche: Option<&droit::fi
     let spectacle = if nat.mensuelle() {
         Value::Null
     } else {
-        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
+        crate::calcul::spectacle_de_la_paie(&ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
     };
     let smic = flottant(v.get("smic").ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "smic"))?)?;
     let tp = PlafondTempsPartiel::lire(v.get(PLAFOND_TEMPS_PARTIEL).and_then(Value::as_str).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, PLAFOND_TEMPS_PARTIEL))?)?;

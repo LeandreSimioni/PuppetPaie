@@ -137,8 +137,8 @@ fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
     if numero.is_empty() {
         return None;
     }
-    ctx.spectacles.iter().filter(|(k, _)| !k.starts_with('_')).find(|(_, s)| texte(s, "numero_objet").eq_ignore_ascii_case(numero)).map(|(k, s)| {
-        let t = texte(s, "titre");
+    ctx.spectacles.iter().find(|(_, s)| s.numero_objet.texte().trim().eq_ignore_ascii_case(numero)).map(|(k, s)| {
+        let t = s.titre.texte().trim().to_string();
         (k.clone(), if t.eq_ignore_ascii_case(A_COMPLETER) { String::new() } else { t })
     })
 }

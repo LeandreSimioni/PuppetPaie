@@ -133,8 +133,8 @@ fn qui_du_contrat(ctx: &Contexte, nom: &str, cle: &str) -> String {
         return nom.to_string();
     }
     let cle = cle.to_string();
-    let fiche = ctx.salarie_brut(&cle);
-    let f = |k: &str| fiche.and_then(|x| x.get(k)).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let fiche = ctx.salarie_brut(&cle).map(|b| b.au(&ctx.lue_au));
+    let f = |k: &str| fiche.as_ref().and_then(|x| x.case(k)).filter(vrai).map(|v| valeur_en_texte(&v)).unwrap_or_default();
     let prenom = if f("prenom_affichage").is_empty() { f("prenom") } else { f("prenom_affichage") };
     let nom = [f("nom"), prenom].iter().filter(|x| !x.is_empty()).cloned().collect::<Vec<_>>().join(" ");
     if nom.is_empty() { cle } else { nom }

@@ -1144,13 +1144,12 @@ pub fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                 Some(v) => {
                     l.d("abattement", v.abattement).d("assiette", v.montant_soumis);
                     // Un taux ou un type que la paie ne dit pas (une paie importee dont les pieces ne l'impriment pas) reste vide.
-                    let code = if v.type_taux.is_null() { String::new() } else { valeur_en_texte(&v.type_taux) };
+                    let code = v.type_taux.clone().unwrap_or_default();
                     l.t("type", if code.is_empty() { String::new() } else { format!("{} — {}", code, type_de_taux(&code)) });
-                    if v.taux.is_null() {
-                        l.rien("taux");
-                    } else {
-                        l.d("taux", socle::num::dec(&v.taux).map_err(|m| erreur("InvalidOperation", m))?);
-                    }
+                    match &v.taux {
+                        None => l.rien("taux"),
+                        Some(t) => l.d("taux", t.dec().map_err(|m| erreur("InvalidOperation", m))?),
+                    };
                     l.d("prelevement", eur2(v.prelevement));
                 }
                 None => {
