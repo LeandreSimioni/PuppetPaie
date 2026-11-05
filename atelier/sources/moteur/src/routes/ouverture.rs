@@ -1344,7 +1344,7 @@ struct NiveauDeSante {
 /// permanents). Vide quand le bareme n'en porte pas, ou ne se lit pas encore (une fiche entreprise incomplete).
 fn niveaux_sante(ctx: &Contexte) -> Vec<NiveauDeSante> {
     use rust_decimal::prelude::ToPrimitive;
-    let Ok(pile) = ctx.bareme_lu(&ctx.aujourdhui) else { return vec![] };
+    let Ok(pile) = ctx.bareme(&ctx.aujourdhui) else { return vec![] };
     let releve = pile.par_nature.get("permanent").and_then(|p| p.rubriques_ajoutees.iter().find(|r| r.id == "mutuelle")).and_then(|r| r.releve_svp_sante.as_ref());
     let Some(releve) = releve else { return vec![] };
     releve

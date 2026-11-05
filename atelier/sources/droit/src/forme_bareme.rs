@@ -103,7 +103,7 @@ forme! {
         pub regime_local_alsace_moselle: Option<RegimeLocal>,
         /// Le versement mobilite de la compagnie ou de l'etablissement (sa fiche) : `bareme::versement_mobilite` le lit.
         #[serde(default)]
-        pub versement_mobilite: Option<Value>,
+        pub versement_mobilite: Option<VersementMobiliteEcrit>,
         #[serde(default)]
         pub par_organisation_patronale: BTreeMap<String, Organisation>,
         #[serde(default)]
@@ -121,19 +121,59 @@ forme! {
         pub secteurs: Option<Secteurs>,
         // La surcouche de la compagnie (`config/baremes/<an>.json`) : le socle qu'elle reprend, son taux AT/MP.
         #[serde(default)]
-        pub socle: Option<Value>,
+        pub socle: Option<MarqueSocle>,
         #[serde(default)]
         pub taux_atmp: Option<TauxAtmp>,
-        // Ce que le moteur pose sur la pile : l'etablissement du salarie, la prevoyance que la convention a fixee a un
-        // permanent, les contributions de branche du mois (DSN). La compagnie, la pile la recoit typee
-        // (`bareme::EntrepriseLue`), elle ne la porte pas.
-        #[serde(rename = "_etablissement", default)]
+        // Ce que le moteur pose sur la pile : l'etablissement du salarie (`bareme::surcharger`). La compagnie, la pile la
+        // recoit typee (`bareme::EntrepriseLue`), elle ne la porte pas.
+        #[serde(skip)]
         pub etablissement: Option<String>,
-        #[serde(rename = "_prevoyance_appliquee", default)]
-        pub prevoyance_appliquee: Option<Value>,
-        #[serde(rename = "_contributions_du_mois", default)]
-        pub contributions_du_mois: Option<Value>,
     }
+}
+
+/// Le socle que la surcouche d'une compagnie reprend : celui de son annee (`true`), ou celui d'une annee dite.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum MarqueSocle {
+    Le(bool),
+    De(i64),
+}
+
+/// LE VERSEMENT MOBILITE QUE LA COMPAGNIE OU L'ETABLISSEMENT ECRIT : son taux et la commune de l'etablissement, ou une
+/// reponse en mots (« aucun », `seuils_effectif.non_portees`).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum VersementMobiliteEcrit {
+    Dit(String),
+    Ecrit(VersementMobiliteTaux),
+}
+
+forme! {
+    /// Le taux du versement mobilite et la commune (code INSEE) de l'etablissement, l'autorite qui le fixe.
+    pub struct VersementMobiliteTaux {
+        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        pub taux: Option<Decimal>,
+        #[serde(default)]
+        pub code_insee: Option<String>,
+        #[serde(default)]
+        pub autorite: Option<String>,
+    }
+}
+
+impl VersementMobiliteEcrit {
+    /// Rien d'ecrit : une reponse vide.
+    pub fn est_vide(&self) -> bool {
+        matches!(self, VersementMobiliteEcrit::Dit(s) if s.is_empty())
+    }
+}
+
+/// La date et l'effet d'une notification du taux AT/MP qu'un retour a posee (`moteur::routes::atmp::poser_notifie`).
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NotificationAtmp {
+    pub le: String,
+    pub calcul: String,
+    pub effet: String,
 }
 
 forme! {
@@ -222,8 +262,8 @@ forme! {
 
 forme! {
     pub struct PasParDefaut {
-        #[serde(deserialize_with = "socle::forme::decimal")]
-        pub abattement_contrats_courts: Decimal,
+        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        pub abattement_contrats_courts: Option<Decimal>,
         pub grilles: Vec<GrillePas>,
     }
 }
@@ -358,10 +398,10 @@ forme! {
         pub libelle: Option<String>,
         #[serde(default)]
         pub base: Option<String>,
-        #[serde(default)]
-        pub taux_pat: Option<f64>,
-        #[serde(default)]
-        pub taux_sal: Option<f64>,
+        #[serde(default, deserialize_with = "socle::forme::dite")]
+        pub taux_pat: Option<Option<f64>>,
+        #[serde(default, deserialize_with = "socle::forme::dite")]
+        pub taux_sal: Option<Option<f64>>,
         #[serde(default)]
         pub composants: Option<Vec<f64>>,
         #[serde(default)]
@@ -420,8 +460,8 @@ forme! {
     /// Une modification d'une cotisation du corps par une couche (`cotisations_dsn` d'une categorie, par code81 ou
     /// `code81:affectation`).
     pub struct CotisationModifiee {
-        #[serde(default)]
-        pub taux: Option<f64>,
+        #[serde(default, deserialize_with = "socle::forme::dite")]
+        pub taux: Option<Option<f64>>,
         #[serde(default)]
         pub composants: Option<Vec<f64>>,
         #[serde(default)]
@@ -503,9 +543,9 @@ forme! {
         #[serde(default)]
         pub verifie: bool,
         #[serde(default)]
-        pub rubriques_bulletin: Vec<Rubrique>,
+        pub rubriques_bulletin: Option<Vec<Rubrique>>,
         #[serde(default)]
-        pub cotisations_dsn: Vec<CotisationDsn>,
+        pub cotisations_dsn: Option<Vec<CotisationDsn>>,
         #[serde(default)]
         pub reduction_generale: Option<ReductionGenerale>,
         #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
@@ -563,7 +603,7 @@ forme! {
         #[serde(default)]
         pub reduction_generale: Option<ReductionGenerale>,
         #[serde(default)]
-        pub cotisations_dsn: Vec<CotisationDsn>,
+        pub cotisations_dsn: Option<Vec<CotisationDsn>>,
     }
 }
 
@@ -813,12 +853,12 @@ forme! {
         pub libelle: Option<String>,
         #[serde(default)]
         pub base: Option<BaseParPopulation>,
+        #[serde(default, deserialize_with = "socle::forme::dite")]
+        pub taux_pat: Option<Option<f64>>,
+        #[serde(default, deserialize_with = "socle::forme::dite")]
+        pub taux_sal: Option<Option<f64>>,
         #[serde(default)]
-        pub taux_pat: Option<f64>,
-        #[serde(default)]
-        pub taux_sal: Option<f64>,
-        #[serde(default)]
-        pub masquer_base_et_taux: bool,
+        pub masquer_base_et_taux: Option<bool>,
         #[serde(default)]
         pub par_representation: BTreeMap<String, TauxParPopulation>,
         #[serde(default)]
@@ -915,11 +955,11 @@ forme! {
 /// LE TAUX AT/MP DE LA COMPAGNIE OU DE L'ETABLISSEMENT : la surcouche de l'annee (`moteur::routes::atmp`), ce que le
 /// moteur en reprend d'une annee d'avant (`bareme::taux_atmp_reporte`) ou en dit quand il manque. Les cles en `_` sont
 /// celles que la compagnie a ecrites.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TauxAtmp {
-    #[serde(default)]
-    pub valeur: Option<Value>,
+    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+    pub valeur: Option<Decimal>,
     #[serde(default)]
     pub code_risque: Option<String>,
     #[serde(rename = "_source", default)]
@@ -927,11 +967,11 @@ pub struct TauxAtmp {
     #[serde(rename = "_pose_a_la_creation", default)]
     pub pose_a_la_creation: Option<bool>,
     #[serde(rename = "_notification", default)]
-    pub notification: Option<Value>,
+    pub notification: Option<NotificationAtmp>,
     #[serde(rename = "_manque", default)]
     pub manque: Option<String>,
     #[serde(rename = "_reporte_de", default)]
-    pub reporte_de: Option<Value>,
+    pub reporte_de: Option<i32>,
     #[serde(rename = "_alsace_moselle", default)]
     pub alsace_moselle: Option<bool>,
     #[serde(rename = "_etablissement_neuf", default)]

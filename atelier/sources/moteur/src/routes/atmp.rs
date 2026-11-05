@@ -320,21 +320,15 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
 /// arrete du 17/10/1995, art. 1, I, 1°) ; un code « TC » a le taux de l'arrete de l'annee quel que soit l'effectif
 /// (D. 242-6-14, I), lu au meme endroit que pour la compagnie (`bareme::taux_atmp_applique`).
 fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&Value>, arrete: Option<&str>) -> Value {
-    let t = bareme::taux_atmp_d_un_etablissement(e, &an.to_string());
-    let code = t.get("code_risque").map(valeur_en_texte).unwrap_or_default();
+    let t = bareme::taux_atmp_d_un_etablissement(e, &an.to_string()).unwrap_or_default();
+    let code = t.code_risque.clone().unwrap_or_default();
     let r = socle.and_then(|s| bareme::risques_atmp(s).into_iter().find(|r| r.code == code));
     let nom_code = r.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
     let cp = e.code_postal.texte().to_string();
-    let taux = socle.and_then(|s| bareme::taux_atmp_applique(s, &t, bareme::en_alsace_moselle(&cp)));
+    let taux = socle.and_then(|s| bareme::taux_atmp_applique(&bareme::risques_atmp(s), &t, bareme::en_alsace_moselle(&cp)));
     let arrete = arrete.map(String::from).unwrap_or_else(|| format!("l'arrêté de tarification de {}", an));
     let mut phrases = Vec::new();
-    if t.get("_code_de_la_compagnie").is_some_and(vrai) {
-        phrases.push(format!(
-            "Le code risque {} est celui de la compagnie, posé par le logiciel. Le code d'un établissement suit l'activité qui y est exercée (arrêté du 17 octobre 1995, art. 1 ; code de la sécurité sociale, art. D. 242-6-1) : si la CARSAT notifie un autre code à cet établissement, changez-le ici.",
-            nom_code
-        ));
-    }
-    phrases.push(match (&taux, t.get("valeur").filter(|v| !v.is_null())) {
+    phrases.push(match (&taux, t.valeur) {
         (Some(_), Some(_)) => "Le taux est celui que vous avez saisi, tel que la notification de la CARSAT le dit.".to_string(),
         (Some(x), None) if r.as_ref().is_some_and(|r| r.tc) => format!(
             "Le taux de ce risque est collectif, le même quel que soit l'effectif (code de la sécurité sociale, art. D. 242-6-14, et {}) : {} en {}.",

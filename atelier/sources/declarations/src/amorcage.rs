@@ -146,7 +146,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
         None => aujourdhui()?,
     };
     // Le bareme ne sert a rien ici : le taux AT/MP est interdit en nature 08.
-    let bar = crate::dsn::BaremeDuMois::nouveau(Value::Object(Default::default()), droit::bareme::EntrepriseLue { fiche: ent.clone(), effectif: None, taux_lus: false });
+    let bar = crate::dsn::BaremeDuMois::nouveau(droit::forme_bareme::Pile::default(), droit::bareme::EntrepriseLue { fiche: ent.clone(), effectif: None, taux_lus: false });
     let remplace = o.remplace.as_deref().filter(|r| !r.is_empty());
 
     // La version de la norme d'un signalement suit le jour ou il est constitue (`norme-dsn-base.json`, une inference).
@@ -226,7 +226,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
     } else {
         // Celles auxquelles le salarie est affilie a l'embauche (`dsn::rattachements`) : un bloc 15 que nul bloc 70 ne
         // cite n'aurait personne de couvert.
-        let refs = affiliations(&orgs, &*e.nat()?, &Value::Null, (e.debut_periode()?, e.fin_periode()?))?;
+        let refs = affiliations(&orgs, &*e.nat()?, &[], (e.debut_periode()?, e.fin_periode()?))?;
         crate::dsn::rattachements(paie, &orgs, ent, refs)?.into_iter().map(|a| a.reference).collect()
     };
     for a in liste(req(&orgs, "adhesions_prevoyance")?) {

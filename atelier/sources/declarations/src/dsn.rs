@@ -665,21 +665,23 @@ fn somme_lignes(p: &Paie, ids: &[String], patronale_seule: bool) -> Decimal {
 /// la pile d'une paie a chaque bloc qui la declare (versement, bases, cotisations, bordereau), et elle ne depend que de
 /// ce bareme et de la paie (`bareme_de`).
 pub struct BaremeDuMois {
-    bar: Value,
+    bar: Pile,
+    /// Les contributions de branche du mois, posees par la DSN (`contributions_dsn`).
+    pub contributions_du_mois: Vec<Value>,
     /// La compagnie telle que ce bareme la lit (`Contexte::entreprise_lue`, au meme jour).
     pub entreprise: EntrepriseLue,
     piles: std::sync::Mutex<HashMap<String, std::sync::Arc<Pile>>>,
 }
 
 impl BaremeDuMois {
-    pub fn nouveau(bar: Value, entreprise: EntrepriseLue) -> BaremeDuMois {
-        BaremeDuMois { bar, entreprise, piles: Default::default() }
+    pub fn nouveau(bar: Pile, entreprise: EntrepriseLue) -> BaremeDuMois {
+        BaremeDuMois { bar, contributions_du_mois: Vec::new(), entreprise, piles: Default::default() }
     }
 }
 
 impl std::ops::Deref for BaremeDuMois {
-    type Target = Value;
-    fn deref(&self) -> &Value {
+    type Target = Pile;
+    fn deref(&self) -> &Pile {
         &self.bar
     }
 }
@@ -732,7 +734,7 @@ pub fn base_declaree(p: &Paie, bar: &BaremeDuMois, bloc78: &str) -> Resultat<Dec
 
 /// Les cotisations d'un versement, dans l'ordre du bareme.
 pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
-    let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();
+    let contribs = bar.contributions_du_mois.clone();
     let exclues = places_non_affiliees(p, &bar.entreprise.fiche)?;
     let bar = bareme_de(p, bar)?;
     let bases = bases(p, &bar)?;
@@ -1067,7 +1069,7 @@ fn bornes_du_mois(mois: &str) -> Resultat<(Jour, Jour)> {
 
 /// Les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
 /// periode `debut`..=`fin`.
-pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
+pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &[Value], (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
     let cle = nat.bareme().unwrap_or("intermittent").to_string();
     let sec = g(g(orgs, "affiliations_par_nature"), &cle);
     if !vrai(sec) {
@@ -1101,7 +1103,7 @@ population, ce que la plate-forme accepte sans rien dire. Rien n'est écrit.",
             out.push(r);
         }
     }
-    for c in liste(contribs) {
+    for c in contribs {
         if g(c, "natures").get(&cle).is_some() {
             out.push(en_texte(g(c, "reference")));
         }
@@ -1321,8 +1323,8 @@ compagnie ; rien n'est declare.",
 }
 
 /// `places_par_contrat` : combien d'identifiants d'affiliation un contrat se reserve.
-pub fn places_par_contrat(bar: &Value) -> i64 {
-    3.max(2 + liste(g(bar, "contributions_dsn")).len() as i64)
+pub fn places_par_contrat(bar: &Pile) -> i64 {
+    3.max(2 + bar.contributions_dsn.len() as i64)
 }
 
 /// Les references de chaque nature (hors `ref`), en vigueur pendant le mois.
@@ -1396,14 +1398,14 @@ d'affiliation par contrat). Rien n'est ecrit.",
 
 
 /// `contributions_dsn` : les contributions declarees sous une adhesion Audiens.
-fn contributions_dsn(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Value, mois: &str, bar: &Value) -> Resultat<Vec<Value>> {
+fn contributions_dsn(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Value, mois: &str, bar: &Pile) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
     if let Some(c) = casc_svp(ctx, ent, orgs, mois)? {
         out.push(c);
     }
-    let specs: Vec<&Value> = liste(g(bar, "contributions_dsn"))
+    let specs: Vec<&droit::forme_bareme::ContributionDsn> = bar.contributions_dsn
         .iter()
-        .filter(|c| c.is_object() && mois >= txt(g(c, "en_dsn_depuis")).as_str())
+        .filter(|c| mois >= c.en_dsn_depuis.as_str())
         .collect();
     if specs.is_empty() {
         return Ok(out);
@@ -1412,7 +1414,7 @@ fn contributions_dsn(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Value, mois:
     let adhesions = liste(g(orgs, "adhesions_prevoyance"));
     let mut deja: HashMap<String, i64> = HashMap::new();
     for spec in specs {
-        let nom = en_texte(req(spec, "contribution")?);
+        let nom = spec.contribution.clone();
         let adh = adhesions.iter().find(|a| {
             txt(g(a, "contribution")).to_uppercase() == nom.to_uppercase() || txt(g(a, "libelle")).to_uppercase() == nom.to_uppercase()
         });
@@ -1424,7 +1426,7 @@ fn contributions_dsn(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Value, mois:
 du mois n'ont pas l'adhesion de cette contribution, que le logiciel compose depuis le bareme. Rien n'est ecrit.",
                     ent.idcc.texte(),
                     nom,
-                    en_texte(g(spec, "en_dsn_depuis"))
+                    spec.en_dsn_depuis
                 ))
             }
         };
@@ -1455,7 +1457,7 @@ contrat). Rien n'est ecrit.",
         let mut o = Map::new();
         o.insert("reference".into(), Value::String(reference));
         o.insert("libelle".into(), adh["libelle"].clone());
-        o.insert("lignes".into(), req(spec, "lignes")?.clone());
+        o.insert("lignes".into(), Value::from(spec.lignes.clone()));
         o.insert("natures".into(), Value::Object(natures));
         out.push(Value::Object(o));
     }
@@ -1696,13 +1698,14 @@ pub fn bloc_contrat_fctu(
     let e = &p.engagement;
     let s = &p.salarie;
     let nat = e.nat()?;
-    let atmp = g(bar, "taux_atmp");
+    let atmp = bar.taux_atmp.clone().unwrap_or_default();
     let ecrit_atmp = usage_admet(f, "S21.G00.40.043", nature_dsn)?;
     // SIG-11 : sous le code risque 999ZZ (pas encore de notification), le taux (40.043) est interdit ; sous tout autre
     // code, il est obligatoire (`norme-dsn/texte/bloc-S21.G00.40.txt`, l. 1309-1313).
-    let sans_notification = txt(g(atmp, "code_risque")) == bareme::SANS_NOTIFICATION;
-    if ecrit_atmp && (!vrai(g(atmp, "code_risque")) || (!sans_notification && !vrai(g(atmp, "valeur")))) {
-        let annee = if bar.get("annee").is_some() { en_texte(&bar["annee"]) } else { "?".into() };
+    let code_risque = atmp.code_risque.clone().unwrap_or_default();
+    let sans_notification = code_risque == bareme::SANS_NOTIFICATION;
+    if ecrit_atmp && (code_risque.is_empty() || (!sans_notification && !atmp.valeur.is_some_and(|v| !v.is_zero()))) {
+        let annee = bar.annee.to_string();
         return Err(socle::echec::cle(format!(
             "Bareme {} : le taux AT/MP manque (sa valeur et son code risque). C'est le taux AT/MP notifie a l'etablissement, \
 declare en S21.G00.40.043 ; il ne se devine pas.",
@@ -1809,9 +1812,9 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     f.add_opt("S21.G00.40.037", nat.code("S21.G00.40.037"))?;
     si_admise(f, nature_dsn, "S21.G00.40.039", nat.code("S21.G00.40.039"))?;
     if ecrit_atmp {
-        si_admise(f, nature_dsn, "S21.G00.40.040", Some(en_texte(&atmp["code_risque"])))?;
+        si_admise(f, nature_dsn, "S21.G00.40.040", Some(code_risque.clone()))?;
         if !sans_notification {
-            si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_avec_echelle(&atmp["valeur"])?, 2)))?;
+            si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(atmp.valeur.unwrap_or_default(), 2)))?;
         }
     }
     licence_du_contrat(f, nature_dsn, ent, nat.ecrit("S21.G00.40.050"))?;
@@ -1856,7 +1859,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         f.add("S21.G00.65.003", jj(req(s, "fin")?)?);
     }
     let places = places_par_contrat(bar);
-    let refs = affiliations(orgs, &nat, g(bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
+    let refs = affiliations(orgs, &nat, &bar.contributions_du_mois, (e.debut_periode()?, e.fin_periode()?))?;
     for a in rattachements(p, orgs, &bar.entreprise.fiche, refs)? {
         if let Some(o) = a.option {
             si_admise(f, nature_dsn, "S21.G00.70.004", Some(o))?;
@@ -1974,7 +1977,7 @@ pub fn bloc_anciennete(f: &mut Fichier, p: &Paie, jours: i64) -> Resultat<()> {
 /// lit dans l'ecart entre 50.002 et 50.013 (norme 2026.1, p. 245). S21.G00.50.012 est reservee aux abattements des
 /// assistants maternels et familiaux, que seuls PAJEmploi et les departements declarent : le moteur ne l'ecrit pas.
 fn pas_du_versement(
-    taux_pas: Option<&Triplet>, bar: &Value, montant: Decimal, le: Jour, court: bool,
+    taux_pas: Option<&Triplet>, bar: &Pile, montant: Decimal, le: Jour, court: bool,
 ) -> Resultat<(Value, Value, Value, Decimal)> {
     let r = pas::du_versement(taux_pas, bar, montant, Some(le), court, ZONE_DEFAUT).map_err(|e| e.message().to_string())?;
     Ok((r.taux, r.type_taux, r.identifiant, r.montant_soumis))
@@ -2425,7 +2428,7 @@ pub fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Verseme
     let orgs = ctx.organismes()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let e = &p.engagement;
-    let refs = affiliations(&orgs, &*e.nat()?, g(&bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
+    let refs = affiliations(&orgs, &*e.nat()?, &bar.contributions_du_mois, (e.debut_periode()?, e.fin_periode()?))?;
     let affiliations = rattachements(p, &orgs, &bar.entreprise.fiche, refs)?
         .into_iter()
         .map(|a| ((202 + a.place as i64).to_string(), a.reference))
@@ -2721,7 +2724,7 @@ struct Lecture {
 }
 
 fn lecture(p: &Paie, bar: &BaremeDuMois) -> Resultat<Lecture> {
-    let contribs = liste(g(bar, "_contributions_du_mois")).to_vec();
+    let contribs = bar.contributions_du_mois.clone();
     let pile = bareme_de(p, bar)?;
     let mut l = Lecture { roles: Vec::new(), blocs: Vec::new() };
     for c in &pile.cotisations_dsn {
@@ -3058,13 +3061,13 @@ fn lire(v: &[(String, Decimal)], cle: &str) -> Option<Decimal> {
     v.iter().find(|(k, _)| k == cle).map(|(_, x)| *x)
 }
 
-fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
+fn taux_at_du_ctp(ctp: &Value, bar: &Pile) -> Resultat<String> {
     if !vrai(g(ctp, "taux_at")) {
         return Ok(String::new());
     }
     // LE TAUX DU BAREME DU MOIS DECLARE : il peut changer en cours d'annee (1,69 puis 1,65 au 01/06/2025) ; `taux_at` du CTP
     // dit seulement « cette ligne porte le taux AT » ("bareme"), le taux ne se recopie pas.
-    if !vrai(g(g(bar, "taux_atmp"), "valeur")) {
+    let Some(valeur) = bar.taux_atmp.as_ref().and_then(|t| t.valeur).filter(|v| !v.is_zero()) else {
         if txt(g(ctp, "taux_at")) == "bareme" {
             return Err(socle::echec::cle(
                 "Le bareme du mois n'a pas de taux AT/MP, et un CTP de la DSN le porte. C'est le taux notifie par l'Assurance Maladie (Configuration › Entreprise). Rien n'est ecrit.",
@@ -3072,8 +3075,8 @@ fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
             ));
         }
         return Ok(en_texte(&ctp["taux_at"]));
-    }
-    let mut valeur = dec_avec_echelle(g(g(bar, "taux_atmp"), "valeur"))?;
+    };
+    let mut valeur = valeur;
     if txt(g(ctp, "statut")) == "artiste" {
         valeur = mul(valeur, Decimal::new(70, 2));
     }
@@ -3400,8 +3403,7 @@ contrairement à celle d'un intermittent. Aucune saisie de la compagnie ne le co
         }
     }
     if !local.is_zero() {
-        let ctp = g(g(bar, "regime_local_alsace_moselle"), "ctp");
-        let code = if vrai(ctp) { en_texte(ctp) } else { "381".into() };
+        let code = bar.regime_local_alsace_moselle.as_ref().map(|r| r.ctp.clone()).filter(|c| !c.is_empty()).unwrap_or_else(|| "381".into());
         lignes.push(ligne(code, "920".into(), String::new(), Some(rond(local)), None, None));
     }
     if let Some(s) = solde_ta {
@@ -3889,12 +3891,12 @@ pub fn assiettes_de_l_annee(ctx: &Contexte, annee: i32, nic: &str, codes: &[&str
     Ok(total)
 }
 
-fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Value, nic: &str, departs: &engagement::departs::Departs) -> Resultat<Option<SoldeTa>> {
+fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Pile, nic: &str, departs: &engagement::departs::Departs) -> Resultat<Option<SoldeTa>> {
     if &mois[5..7] != "04" {
         return Ok(None);
     }
-    let sec = g(bar, "solde_taxe_apprentissage");
-    if g(sec, "taux").is_null() || !liste(g(orgs, "ctp_urssaf")).iter().any(|c| txt(g(c, "code")) == "992") {
+    let Some(taux) = bar.solde_taxe_apprentissage.as_ref().map(|s| s.taux) else { return Ok(None) };
+    if !liste(g(orgs, "ctp_urssaf")).iter().any(|c| txt(g(c, "code")) == "992") {
         return Ok(None);
     }
     let annee: i32 = mois[..4].parse::<i32>().map_err(|e| e.to_string())? - 1;
@@ -3906,12 +3908,13 @@ fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Valu
     if assiette.is_zero() {
         return Ok(None);
     }
-    let org = liste(g(bar, "cotisations_dsn"))
+    let org = bar
+        .cotisations_dsn
         .iter()
-        .find(|c| txt(g(c, "code81")) == "075" && vrai(g(c, "org")))
-        .map(|c| en_texte(&c["org"]))
+        .find(|c| c.code81.as_deref() == Some("075") && c.org.as_deref().is_some_and(|o| !o.is_empty()))
+        .and_then(|c| c.org.clone())
         .unwrap_or_else(|| "78861779300013".into());
-    let montant = div(mul(assiette, dec_avec_echelle(&sec["taux"])?), Decimal::ONE_HUNDRED)
+    let montant = div(mul(assiette, taux), Decimal::ONE_HUNDRED)
         .round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
     Ok(Some(SoldeTa { annee, assiette, montant, org }))
 }
@@ -4045,7 +4048,7 @@ fn echeance_mois_suivant(mois: Mois, jour: u32) -> Jour {
 /// seule facon de l'obtenir (regle 8 : chaque etablissement a son taux AT/MP) : le bordereau courant, le bordereau
 /// regularise et le nominatif (`bar_du`) passent par elle. (La pile
 /// d'un salarie, `bareme::bareme_applique`, surcharge de meme par l'etablissement du salarie.)
-fn bareme_du_nic(ctx: &Contexte, ent: &ChampsEntreprise, lue: &EntrepriseLue, nic: &str, mois: &str) -> Resultat<Value> {
+fn bareme_du_nic(ctx: &Contexte, ent: &ChampsEntreprise, lue: &EntrepriseLue, nic: &str, mois: &str) -> Resultat<Pile> {
     Ok(bareme::taux_atmp_resolu(bareme::surcharger((*ctx.bareme(&Mois::lire(mois)?.premier_jour())?).clone(), ent, nic)?, &lue.fiche).0)
 }
 
@@ -4104,15 +4107,9 @@ pub fn bar_du(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Value, nic: &str, m
     let lue = ctx.entreprise_lue(&Mois::lire(m)?.premier_jour())?;
     let b = bareme_du_nic(ctx, ent, &lue, nic, m)?;
     let c = contributions_dsn(ctx, ent, orgs, m, &b)?;
-    if c.is_empty() {
-        return Ok(BaremeDuMois::nouveau(b, lue));
-    }
-    let mut o = match b {
-        Value::Object(o) => o,
-        _ => Map::new(),
-    };
-    o.insert("_contributions_du_mois".into(), Value::Array(c));
-    Ok(BaremeDuMois::nouveau(Value::Object(o), lue))
+    let mut bar = BaremeDuMois::nouveau(b, lue);
+    bar.contributions_du_mois = c;
+    Ok(bar)
 }
 
 fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
@@ -4341,7 +4338,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
         Ok(b)
     };
     let bar = bar_de(mois)?;
-    let contribs = g(&bar, "_contributions_du_mois").clone();
+    let contribs = bar.contributions_du_mois.clone();
     let mut ent = ent0.clone();
     ent.licence_spectacle = Case::Dite(ctx.licence(&debut_mois));
     let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
@@ -4552,7 +4549,7 @@ certificat de conformite du depot precedent.",
     }
     for r in regs {
         let b = bar_de(&r.mois)?;
-        let refs = affiliations(&orgs, &*r.apres.engagement.nat()?, g(&b, "_contributions_du_mois"), (r.apres.engagement.debut_periode()?, r.apres.engagement.fin_periode()?))?;
+        let refs = affiliations(&orgs, &*r.apres.engagement.nat()?, &b.contributions_du_mois, (r.apres.engagement.debut_periode()?, r.apres.engagement.fin_periode()?))?;
         couvertes.extend(rattachements(&r.apres, &orgs, &b.entreprise.fiche, refs)?.into_iter().map(|a| a.reference));
     }
     for a in liste(req(&orgs, "adhesions_prevoyance")?) {

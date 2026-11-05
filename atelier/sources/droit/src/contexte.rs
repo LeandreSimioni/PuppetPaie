@@ -737,9 +737,9 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, bareme: &Value) -> Res
         let an = texte_ou_vide(bareme.get("annee"));
         let d_une_autre_annee = e.taux_atmp.dite().and_then(|t| t.annee.dite()).is_some_and(|a| *a != 0 && a.to_string() != an.trim());
         let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, &an);
-        let atmp_juste = vrai_opt(atmp.get("code_risque"))
+        let atmp_juste = atmp.as_ref().is_some_and(|t| t.code_risque.as_deref().is_some_and(|c| !c.is_empty())
             && (d_une_autre_annee
-                || crate::bareme::taux_atmp_applique(bareme, &atmp, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some());
+                || crate::bareme::taux_atmp_applique(&crate::bareme::risques_atmp(bareme), t, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some()));
         if !atmp_juste {
             griefs.push(format!(
                 "{} : son code risque AT/MP et son taux, tels que la CARSAT les notifie a CET etablissement (Configuration › \
@@ -1801,28 +1801,18 @@ impl Contexte {
 
     /// Le bareme resolu a ce jour, garde et partage : il se lit sans se copier ; ce qui le change (la pile d'un contrat,
     /// `bareme::bareme_applique` ; la surcharge d'un etablissement) en part.
-    pub fn bareme(&self, jour: &Jour) -> Resultat<Arc<Value>> {
-        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<Value>>>>;
+    pub fn bareme(&self, jour: &Jour) -> Resultat<Arc<crate::forme_bareme::Pile>> {
+        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<crate::forme_bareme::Pile>>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
         let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)), jour.iso());
         socle::fichiers::garde_notee(cache, cle, || self.bareme_sans_cache(jour).map(Arc::new))
     }
 
-    /// Le bareme resolu a ce jour, lu (`forme_bareme::Pile`) : ce que lit ce qui ne passe pas par la pile d'un contrat.
-    pub fn bareme_lu(&self, jour: &Jour) -> Resultat<Arc<crate::forme_bareme::Pile>> {
-        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<crate::forme_bareme::Pile>>>>;
-        static CACHE: OnceLock<Cache> = OnceLock::new();
-        let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-        let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)), jour.iso());
-        socle::fichiers::garde_notee(cache, cle, || crate::forme_bareme::lire(&*self.bareme(jour)?).map(Arc::new))
-    }
-
-    fn bareme_sans_cache(&self, jour: &Jour) -> Resultat<Value> {
+    fn bareme_sans_cache(&self, jour: &Jour) -> Resultat<crate::forme_bareme::Pile> {
         let ent = &self.entreprise_au(jour);
         let brut = self.bareme_brut(jour.an, ent).map_err(|r| r.message)?;
-        let bar = objet(a_la_date(&brut, jour, &["smic_horaire"])?, "bareme")?;
-        Ok(Value::Object(bar))
+        crate::forme_bareme::lire(&a_la_date(&brut, jour, &["smic_horaire"])?)
     }
 
     /// LA COMPAGNIE TELLE QUE LA PILE DU BAREME LA LIT a `jour` (`bareme::bareme_applique`) : sa fiche a ce jour, et son

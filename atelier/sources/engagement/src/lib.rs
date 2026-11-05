@@ -1278,7 +1278,12 @@ const SAISIE_INCOMPLETE: [&str; 7] =
 /// pas encore a ce jour ; le taux se saisit.
 pub fn tarif_conventionnel(ctx: &Contexte, code: &str, jour: &Jour) -> Resultat<Option<Value>> {
     let bar = ctx.bareme(jour)?;
-    Ok(bar.get("tarifs_conventionnels").and_then(|t| t.get(code)).filter(|v| v.is_number()).cloned())
+    let tarif = bar.tarifs_conventionnels.as_ref().and_then(|t| match code {
+        "repas" => t.repas,
+        "nuitee" => t.nuitee,
+        _ => None,
+    });
+    Ok(tarif.and_then(|t| if t.scale() == 0 { i64::try_from(t).ok().map(Value::from) } else { t.to_string().parse::<f64>().ok().map(Value::from) }))
 }
 
 /// Les lignes d'un engagement au cachet dont la rubrique a un tarif de la convention (`tarif_conventionnel`) et qui ne
@@ -1474,7 +1479,7 @@ pub(crate) fn frais_au_dela(ctx: &Contexte, salarie: Option<&str>, lignes: Vec<V
             Some(x) => jour_de(x)?,
             None => Mois::lire(mois)?.premier_jour(),
         };
-        let bar = ctx.bareme_lu(&jour)?;
+        let bar = ctx.bareme(&jour)?;
         let ent = ctx.entreprise_au(&jour);
         let de_l_annexe = calcul::deduction_forfaitaire(&bar, &sal, &ent)?.is_some_and(|o| o.frais_hors_assiette.iter().any(|f| f == lim.rubrique));
         let ou = territoire(&l);

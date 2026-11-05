@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 use serde_json::{Map, Value};
 
 use crate::contexte::Contexte;
+use crate::forme_bareme::{GrillePas, PasParDefaut, Pile};
 use socle::date::{en_texte, jours_du_mois, Jour};
 use socle::num::nombre;
 use socle::fichiers::{repr, vrai};
@@ -198,10 +199,10 @@ fn en_vigueur<'a>(recus: &'a [Value], le: Jour, mois: Option<&str>) -> Option<&'
 
 pub const ZONE_DEFAUT: &str = "metropole";
 
-fn section(bareme: &Value) -> R<&Value> {
-    match bareme.get("pas_taux_par_defaut") {
-        Some(s) if vrai(s) => Ok(s),
-        _ => Err(ErreurPas::SansGrille(
+/// La section des taux par defaut du bareme (`pas_taux_par_defaut`).
+fn section(bareme: &Pile) -> R<&PasParDefaut> {
+    bareme.pas_taux_par_defaut.as_ref().ok_or_else(|| {
+        ErreurPas::SansGrille(
             "Le bareme ne porte pas de section `pas_taux_par_defaut` : sans \
              elle, le moteur ne sait pas quel taux appliquer a qui n'a pas de \
              taux DGFiP.\n\
@@ -209,112 +210,63 @@ fn section(bareme: &Value) -> R<&Value> {
              defaut et abattement pour les contrats courts), et le socle \
              livre de l'annee en cours la porte."
                 .to_string(),
-        )),
-    }
-}
-
-fn str_iso(v: &Value) -> Resultat<Jour> {
-    depuis_iso(&en_texte(v))
-}
-
-/// Une date en AAAA-MM-JJ, `None` s'il n'y en a pas.
-fn le_texte(le: Option<Jour>) -> String {
-    le.map_or("None".to_string(), |j| j.iso())
-}
-
-/// Une valeur du bareme, deja resolue ou encore datee (`[{depuis, valeur}]`).
-pub fn valeur_datee(v: &Value, le: Option<Jour>) -> R<Value> {
-    let Value::Array(entrees) = v else { return Ok(v.clone()) };
-    let cle = |e: &Value| -> Resultat<String> { Ok(en_texte(e.get("depuis").ok_or_else(|| socle::fichiers::absent("depuis"))?)) };
-    let mut tries: Vec<(String, &Value)> = Vec::new();
-    for e in entrees {
-        tries.push((cle(e)?, e));
-    }
-    tries.sort_by(|a, b| a.0.cmp(&b.0));
-    let mut retenu = None;
-    for (_, e) in tries {
-        let dans = match le {
-            None => true,
-            Some(l) => str_iso(&e["depuis"])? <= l,
-        };
-        if dans {
-            retenu = Some(e.get("valeur").cloned().ok_or_else(|| socle::fichiers::absent("valeur"))?);
-        }
-    }
-    retenu.ok_or_else(|| {
-        ErreurPas::SansGrille(format!(
-            "Aucun abattement contrats courts applicable au {} : la premiere \
-             valeur connue est posterieure.",
-            le_texte(le)
-        ))
+        )
     })
 }
 
-/// L'abattement contrats courts en vigueur : la moitie du SMIC net imposable.
-pub fn abattement(bareme: &Value, le: Option<Jour>) -> R<Decimal> {
-    let v = section(bareme)?.get("abattement_contrats_courts").ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("abattement_contrats_courts")))?;
-    Ok(dec_avec_echelle(&valeur_datee(v, le)?)?)
+/// L'abattement contrats courts en vigueur : la moitie du SMIC net imposable (le bareme le porte a sa date).
+pub fn abattement(bareme: &Pile) -> R<Decimal> {
+    section(bareme)?.abattement_contrats_courts.ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("abattement_contrats_courts")))
 }
 
 /// La grille en vigueur a cette date pour cette zone (elles changent au 1er mai).
-pub fn grille<'a>(bareme: &'a Value, le: Option<Jour>, zone: &str) -> R<&'a Value> {
-    let grilles = section(bareme)?.get("grilles").and_then(Value::as_array).ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("grilles")))?;
-    let mut meilleure: Option<(&Value, String)> = None;
-    for g in grilles {
-        if en_texte(g.get("zone").unwrap_or(&Value::Null)) != zone {
-            continue;
-        }
-        let depuis = en_texte(g.get("depuis").ok_or_else(|| socle::fichiers::absent("depuis"))?);
+pub fn grille<'a>(bareme: &'a Pile, le: Option<Jour>, zone: &str) -> R<&'a GrillePas> {
+    let grilles = &section(bareme)?.grilles;
+    let mut meilleure: Option<&GrillePas> = None;
+    for g in grilles.iter().filter(|g| g.zone == zone) {
         if let Some(l) = le {
-            if depuis_iso(&depuis)? > l {
+            if depuis_iso(&g.depuis)? > l {
                 continue;
             }
         }
         // `max` garde la premiere des egales.
-        if meilleure.as_ref().map_or(true, |(_, m)| depuis > *m) {
-            meilleure = Some((g, depuis));
+        if meilleure.map_or(true, |m| g.depuis > m.depuis) {
+            meilleure = Some(g);
         }
     }
-    match meilleure {
-        Some((g, _)) => Ok(g),
-        None => {
-            let connues: BTreeSet<String> = grilles.iter().map(|g| en_texte(&g["zone"])).collect();
-            Err(ErreurPas::SansGrille(format!(
-                "Aucune grille de taux par defaut pour la zone {} au {}. Zones \
-                 connues du bareme : {}.",
-                repr(zone),
-                le.map_or("?".to_string(), |j| j.iso()),
-                connues.into_iter().collect::<Vec<_>>().join(", ")
-            )))
-        }
-    }
-}
-
-/// `"%.2f" % taux`.
-fn deux_decimales(v: &Value) -> Resultat<String> {
-    match v {
-        Value::Number(n) => Ok(format!("{:.2}", n.as_f64().unwrap_or(0.0))),
-        Value::Bool(b) => Ok(format!("{:.2}", f64::from(u8::from(*b)))),
-        autre => Err(socle::fichiers::attendu("un nombre", socle::valeur::nom_type(autre))),
-    }
+    meilleure.ok_or_else(|| {
+        let connues: BTreeSet<&str> = grilles.iter().map(|g| g.zone.as_str()).collect();
+        ErreurPas::SansGrille(format!(
+            "Aucune grille de taux par defaut pour la zone {} au {}. Zones \
+             connues du bareme : {}.",
+            repr(zone),
+            le.map_or("?".to_string(), |j| j.iso()),
+            connues.into_iter().collect::<Vec<_>>().join(", ")
+        ))
+    })
 }
 
 /// `(taux, type de taux)` pour un montant DEJA abattu.
-pub fn taux_par_defaut(bareme: &Value, montant: Decimal, le: Option<Jour>, zone: &str) -> R<(String, String)> {
+pub fn taux_par_defaut(bareme: &Pile, montant: Decimal, le: Option<Jour>, zone: &str) -> R<(String, String)> {
     let g = grille(bareme, le, zone)?;
-    let type_taux = en_texte(g.get("type").ok_or_else(|| socle::fichiers::absent("type"))?);
-    let tranches = g.get("tranches").and_then(Value::as_array).ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("tranches")))?;
-    for t in tranches {
-        let (bas, haut, taux) = match t.as_array().map(Vec::as_slice) {
-            Some([b, h, x]) => (b, h, x),
-            _ => return Err(ErreurPas::Autre(format!("tranche de la grille du PAS illisible (bas, haut, taux attendus) : {}", t))),
+    let nombre = |x: f64| dec_avec_echelle_f64(x);
+    for t in &g.tranches {
+        let (bas, haut, taux) = match t.as_slice() {
+            [Some(b), h, Some(x)] => (*b, *h, *x),
+            _ => return Err(ErreurPas::Autre(format!("tranche de la grille du PAS illisible (bas, haut, taux attendus) : {:?}", t))),
         };
-        if montant >= dec_avec_echelle(bas)? && (haut.is_null() || montant < dec_avec_echelle(haut)?) {
-            return Ok((deux_decimales(taux)?, type_taux));
+        if montant >= nombre(bas)? && haut.map_or(Ok(true), |h| nombre(h).map(|h| montant < h))? {
+            return Ok((format!("{:.2}", taux), g.genre.clone()));
         }
     }
     // Seul un montant negatif tombe ici : taux zero.
-    Ok(("0.00".to_string(), type_taux))
+    Ok(("0.00".to_string(), g.genre.clone()))
+}
+
+/// Le decimal d'un flottant du bareme, son echelle gardee (`socle::num::dec_avec_echelle`).
+fn dec_avec_echelle_f64(x: f64) -> Resultat<Decimal> {
+    let s = socle::date::repr_flottant(x);
+    s.parse::<Decimal>().or_else(|_| Decimal::from_scientific(&s)).map_err(|_| format!("nombre hors de portee : {}", s))
 }
 
 /// Le prelevement d'un versement, par l'un des deux chemins.
@@ -365,7 +317,7 @@ pub fn plancher(x: Decimal, zero: Decimal) -> Decimal {
 /// Tout le bloc 50 cote PAS quand aucun taux DGFiP ne s'applique ; pas
 /// d'identifiant (S21.G00.50.008 est interdite hors taux DGFiP).
 pub fn rubriques_par_defaut(
-    bareme: &Value,
+    bareme: &Pile,
     remuneration_nette_fiscale: Decimal,
     le: Option<Jour>,
     contrat_court: bool,
@@ -373,7 +325,7 @@ pub fn rubriques_par_defaut(
 ) -> R<Versement> {
     let rnf = eur(remuneration_nette_fiscale);
     let zero = Decimal::new(0, 2);
-    let abat = if contrat_court { abattement(bareme, le)? } else { zero };
+    let abat = if contrat_court { abattement(bareme)? } else { zero };
     // L'abattement ne creuse pas : il se limite a ce qu'il y a a abattre.
     let abat = eur(abat.min(plancher(rnf, zero)));
     let soumis = eur(plancher(sub(rnf, abat), zero));
@@ -445,7 +397,7 @@ pub fn sans_taux_recus(fiche: &crate::fiche::ChampsSalarie) -> crate::fiche::Cha
 /// remuneration nette fiscale entiere, sans abattement.
 pub fn du_versement(
     taux: Option<&Triplet>,
-    bareme: &Value,
+    bareme: &Pile,
     remuneration_nette_fiscale: Decimal,
     le: Option<Jour>,
     contrat_court: bool,

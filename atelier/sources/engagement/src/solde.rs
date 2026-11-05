@@ -130,6 +130,21 @@ pub struct Preavis {
     pub pourquoi: Option<String>,
 }
 
+/// LE TERME D'UN PREAVIS DE `mois` MOIS ENTIERS qui suit la fin `fin` du travail : le meme quantieme `mois` mois plus tard,
+/// le dernier jour du mois quand ce quantieme n'existe pas. Lecture : le preavis court du lendemain de la fin saisie (le
+/// texte, L1234-3, le fait courir de la presentation de la lettre, que le moteur ne connait pas). `None` : une duree
+/// qui n'est pas en mois entiers.
+fn terme_du_preavis(fin: &socle::date::Jour, mois: Decimal) -> Option<socle::date::Jour> {
+    use rust_decimal::prelude::ToPrimitive;
+    if !mois.fract().is_zero() {
+        return None;
+    }
+    let rang = i64::from(fin.an) * 12 + i64::from(fin.mois) - 1 + mois.to_i64()?;
+    let (an, m) = (i32::try_from(rang / 12).ok()?, u32::try_from(rang % 12).ok()? + 1);
+    let dernier = socle::date::Jour { an, mois: m, jour: 1 }.jours_du_mois();
+    socle::date::Jour::nouveau(an, m, fin.jour.min(dernier))
+}
+
 pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
     let idcc = &idcc(ctx);
     let cdd = !nature_de(e.get("nature"))?.duree_indeterminee;
@@ -396,6 +411,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     // --- le preavis non effectue : L1234-5 pour un licenciement ; les autres fins de contrat ont leurs articles
     // (`preavis.indemnite_compensatrice`), et certaines n'ouvrent aucune indemnite (037, 059, 039, 091).
     let anciennete = anciennete_mois(&d(cle(e, "debut")?)?, &fin);
+    let mut anciennete_de_l_indemnite = anciennete;
     let indemnite = if e.get("preavis_non_effectue").is_some_and(vrai) {
         Some(permanents::indemnite_de_preavis(motif)?)
     } else {
@@ -433,6 +449,21 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
         }
         match mois_preavis.filter(|m| !m.is_zero()) {
             Some(m) => {
+                // « L'inexécution du préavis de licenciement n'a pas pour conséquence d'avancer la date à laquelle le
+                // contrat prend fin » (C. trav. L1234-4, `code-du-travail/xml/L1234-4.xml`) : l'ancienneté que
+                // l'indemnité de licenciement compte (R1234-1, « par année de service dans l'entreprise ») court
+                // jusqu'au terme du préavis.
+                if matches!(indemnite, IndemniteDePreavis::Licenciement) {
+                    if let Some(terme) = terme_du_preavis(&fin, m) {
+                        anciennete_de_l_indemnite = anciennete_mois(&d(cle(e, "debut")?)?, &terme);
+                        stc.avertissements.push(info(format!(
+                            "{} : le préavis non effectué ne fait pas finir le contrat plus tôt (code du travail, L1234-4) : \
+                             l'ancienneté de l'indemnité de licenciement se compte jusqu'au {}, terme du préavis (lecture : il court du lendemain de la fin du travail).",
+                            qui,
+                            terme.jj_mm_aaaa()
+                        )));
+                    }
+                }
                 // La rubrique, et avec elle le code du bloc 52, suit le motif : 023, ou 032 pour le 092 (L1226-14).
                 let rubrique = permanents::rubrique_de_l_indemnite_de_preavis(motif)?;
                 stc.lignes.push(json!({"rubrique": rubrique, "quantite": flot(m), "taux": flot(salaire)}));
@@ -478,7 +509,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     delai_de_prevenance(ctx, e, mois, deja, &fin, salaire, motif, &nat, &qui, &mut stc)?;
 
     // --- l'indemnite de rupture, et laquelle depend du motif
-    indemnite_de_rupture(ctx, e, mois, anciennete, motif, &nat, &mut stc)?;
+    indemnite_de_rupture(ctx, e, mois, anciennete_de_l_indemnite, motif, &nat, &mut stc)?;
 
     // --- le type de preavis que le signalement declarera (S21.G00.63.001) et ce que ce solde verse : le
     // signalement refuse un desaccord (`fctu::generer`) ; le solde le dit des la saisie.

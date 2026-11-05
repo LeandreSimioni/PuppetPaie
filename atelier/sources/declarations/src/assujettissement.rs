@@ -59,7 +59,7 @@ use droit::contexte::Contexte;
 use droit::apprentissage::{champ_du_motif, motif_de_la_fiche, taxe_apprentissage_non_due, MILLESIME_ASSOCIATIONS_REDEVABLES, MNATA_ASSOCIATIONS};
 use crate::dsn::{g, liste, txt};
 use documents::taxe_sur_les_salaires::{assiette_taxe_sur_les_salaires, fractions_majorees, taxe_sur_les_salaires_de_la_fiche};
-use socle::num::{add, dec_avec_echelle, div, eur, mul, Decimal, Resultat};
+use socle::num::{add, div, eur, mul, Decimal, Resultat};
 
 /// Un bloc S21.G00.44 : le code taxe (44.001) et, s'il y en a un, le montant (44.002). Le millesime (44.003) est
 /// l'annee de la DSN de decembre.
@@ -151,22 +151,15 @@ fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
 /// la part assujettie appliquee a chacune (CGI art. 231, 1 et 2 bis ; BOFiP BOI-TPS-TS-30, § 240 : « en appliquant le
 /// rapport d'assujettissement [...] à chacune des fractions des rémunérations individuelles passibles des taux
 /// majorés »).
-fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Decimal) -> Resultat<(Decimal, Decimal, Decimal)> {
-    let ts = g(bar, "taxe_sur_les_salaires");
-    let seuil = |k: &str| -> Resultat<Decimal> {
-        match ts.get(k) {
-            Some(v) => dec_avec_echelle(v),
-            None => Err(socle::echec::cle(
-                "Le barème de l'année ne porte pas la taxe sur les salaires : ses seuils se lisent sur la notice 2501-SD de l'année ; le signaler au développeur.",
-                &format!("taxe_sur_les_salaires.{}", k),
-            )),
-        }
-    };
-    let (s1, s2) = (seuil("seuil_1")?, seuil("seuil_2")?);
-    let abattement = match bar.get("abattement_csg").filter(|v| socle::fichiers::vrai(v)) {
-        Some(v) => dec_avec_echelle(v)?,
-        None => Decimal::ONE,
-    };
+fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &droit::forme_bareme::Pile, pct: Decimal) -> Resultat<(Decimal, Decimal, Decimal)> {
+    let ts = bar.taxe_sur_les_salaires.as_ref().ok_or_else(|| {
+        socle::echec::cle(
+            "Le barème de l'année ne porte pas la taxe sur les salaires : ses seuils se lisent sur la notice 2501-SD de l'année ; le signaler au développeur.",
+            "taxe_sur_les_salaires.seuil_1",
+        )
+    })?;
+    let (s1, s2) = (ts.seuil_1, ts.seuil_2);
+    let abattement = if bar.abattement_csg.is_zero() { Decimal::ONE } else { bar.abattement_csg };
     let mut par_salarie: BTreeMap<String, Decimal> = BTreeMap::new();
     for m in annee {
         match m {
@@ -277,7 +270,7 @@ ou la table livrée. Rien n'est écrit.",
 /// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
 /// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
 pub fn blocs(
-    ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, ent_e: &droit::fiche::ChampsEntreprise, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
+    ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, ent_e: &droit::fiche::ChampsEntreprise, orgs: &Value, bar: &droit::forme_bareme::Pile, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
 ) -> Resultat<Vec<Bloc44>> {
     if mois.len() != 7 || &mois[5..7] != "12" {
         return Ok(Vec::new());
