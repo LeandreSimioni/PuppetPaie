@@ -1147,7 +1147,7 @@ forme! {
         #[serde(default)]
         pub quoi: Option<String>,
         #[serde(default)]
-        pub taux_atmp: Option<TauxAtmp>,
+        pub taux_atmp: Option<TauxAtmpEcrit>,
         #[serde(default)]
         pub versement_mobilite: Option<VersementMobiliteEcrit>,
         #[serde(default)]
@@ -1297,11 +1297,27 @@ forme! {
 /// LE TAUX AT/MP DE LA COMPAGNIE OU DE L'ETABLISSEMENT : la surcouche de l'annee (`moteur::routes::atmp`), ce que le
 /// moteur en reprend d'une annee d'avant (`bareme::taux_atmp_reporte`) ou en dit quand il manque. Les cles en `_` sont
 /// celles que la compagnie a ecrites.
+#[derive(Debug, Clone, Default)]
+pub struct TauxAtmp {
+    pub valeur: Option<Decimal>,
+    pub code_risque: Option<String>,
+    pub provenance: Option<String>,
+    pub pose_a_la_creation: Option<bool>,
+    pub notification: Option<NotificationAtmp>,
+    pub manque: Option<String>,
+    pub reporte_de: Option<i32>,
+    pub alsace_moselle: Option<bool>,
+    pub etablissement_neuf: Option<bool>,
+}
+
+/// LE TAUX AT/MP TEL QUE LA SURCOUCHE DE L'ANNEE L'ECRIT (`moteur::routes::atmp`), ou que le moteur le reprend d'une
+/// annee d'avant (`bareme::taux_atmp_reporte`) : sa valeur, ou la liste datee de ses valeurs quand une notification le
+/// change en cours d'annee. Les cles en `_` sont celles que le moteur y ecrit.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct TauxAtmp {
-    #[serde(default, deserialize_with = "datee::decimal_opt")]
-    pub valeur: Option<Decimal>,
+pub struct TauxAtmpEcrit {
+    #[serde(default)]
+    pub valeur: Option<ValeurAtmp>,
     #[serde(default)]
     pub code_risque: Option<String>,
     #[serde(rename = "_source", default)]
@@ -1320,6 +1336,84 @@ pub struct TauxAtmp {
     pub etablissement_neuf: Option<bool>,
 }
 
+/// Le taux AT/MP ecrit : un nombre, ou ses valeurs datees `[{depuis, valeur}]`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum ValeurAtmp {
+    Seule(socle::forme::Nombre),
+    Datee(Vec<TauxAtmpDate>),
+}
+
+/// Une valeur datee du taux AT/MP : sa date d'effet.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TauxAtmpDate {
+    pub depuis: String,
+    pub valeur: socle::forme::Nombre,
+}
+
+impl ValeurAtmp {
+    /// Les valeurs, de la plus ancienne a la plus recente : `(depuis, valeur)`, sans date pour un nombre seul.
+    pub fn valeurs(&self) -> Vec<(Option<&str>, Decimal)> {
+        match self {
+            ValeurAtmp::Seule(n) => vec![(None, n.0)],
+            ValeurAtmp::Datee(l) => {
+                let mut v: Vec<(Option<&str>, Decimal)> = l.iter().map(|e| (Some(e.depuis.as_str()), e.valeur.0)).collect();
+                v.sort_by(|a, b| a.0.cmp(&b.0));
+                v
+            }
+        }
+    }
+
+    /// LE TAUX EN VIGUEUR CE JOUR-LA, ramene dans l'annee pour l'ecran : la valeur dont le `depuis` est le plus recent au
+    /// plus tard ce jour ; avant la premiere, la premiere.
+    pub fn au(&self, jour: &socle::date::Jour) -> Option<Decimal> {
+        let v = self.valeurs();
+        let iso = jour.iso();
+        v.iter().rev().find(|(d, _)| d.map_or(true, |d| d <= iso.as_str())).or(v.first()).map(|(_, x)| *x)
+    }
+
+    /// LE TAUX QUE LA PAIE DE CE JOUR APPLIQUE, et le `depuis` de la valeur retenue : avant la premiere date d'effet, il
+    /// n'y en a pas (il ne se devine pas).
+    pub fn en_vigueur(&self, jour: &socle::date::Jour) -> socle::num::Resultat<(Decimal, Option<socle::date::Jour>)> {
+        let mut retenue = None;
+        for (d, x) in self.valeurs() {
+            let depuis = d.map(socle::date::Jour::lire).transpose()?;
+            if depuis.map_or(true, |j| j <= *jour) {
+                retenue = Some((x, depuis));
+            }
+        }
+        retenue.ok_or_else(|| format!("Le taux AT/MP de la compagnie n'a aucune valeur au {} : sa première date d'effet est postérieure.", jour.jj_mm_aaaa()))
+    }
+}
+
+impl TauxAtmpEcrit {
+    /// Le taux tel que la paie de `jour` le lit (`ValeurAtmp::en_vigueur`), et le `depuis` de la valeur retenue.
+    pub fn au_jour(&self, jour: &socle::date::Jour) -> socle::num::Resultat<(TauxAtmp, Option<socle::date::Jour>)> {
+        let (valeur, depuis) = match &self.valeur {
+            Some(v) => {
+                let (x, d) = v.en_vigueur(jour)?;
+                (Some(x), d)
+            }
+            None => (None, None),
+        };
+        Ok((
+            TauxAtmp {
+                valeur,
+                code_risque: self.code_risque.clone(),
+                provenance: self.provenance.clone(),
+                pose_a_la_creation: self.pose_a_la_creation,
+                notification: self.notification.clone(),
+                manque: self.manque.clone(),
+                reporte_de: self.reporte_de,
+                alsace_moselle: self.alsace_moselle,
+                etablissement_neuf: self.etablissement_neuf,
+            },
+            depuis,
+        ))
+    }
+}
+
 /// LE SOCLE LIVRE `fichier` LU A `jour` (`lire_au`) : la phrase d'un refus est celle d'un bareme que le moteur ne sait pas
 /// lire, la cle a part.
 pub(crate) fn lire_le_socle(fichier: &std::path::Path, jour: &socle::date::Jour, organisation: Option<&str>) -> socle::num::Resultat<(Pile, Vec<socle::date::Jour>)> {
@@ -1327,9 +1421,8 @@ pub(crate) fn lire_le_socle(fichier: &std::path::Path, jour: &socle::date::Jour,
 }
 
 /// LA SURCOUCHE DE LA COMPAGNIE `fichier` : la phrase d'un refus dit ce que la compagnie corrige, la cle a part.
-/// Son taux AT/MP se date (une notification en cours d'annee) : elle se lit a `jour`, comme le socle (`lire_au`).
-pub(crate) fn lire_la_surcouche(fichier: &std::path::Path, jour: &socle::date::Jour, organisation: Option<&str>) -> socle::num::Resultat<(Surcouche, Vec<socle::date::Jour>)> {
-    lire_au(fichier, jour, organisation, "Le barème propre à la compagnie (config/baremes) porte une clé ou une valeur que le moteur ne sait pas lire : la corriger, ou le signaler au développeur.")
+pub(crate) fn lire_la_surcouche(fichier: &std::path::Path) -> socle::num::Resultat<Surcouche> {
+    socle::forme::lire_fichier(fichier, "Le barème propre à la compagnie (config/baremes) porte une clé ou une valeur que le moteur ne sait pas lire : la corriger, ou le signaler au développeur.")
 }
 
 impl Pile {

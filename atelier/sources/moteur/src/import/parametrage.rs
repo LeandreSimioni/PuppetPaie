@@ -34,8 +34,8 @@ fn texte(v: &Value, k: &str) -> String {
 fn deja_pose(ctx: &Contexte, an: i32) -> (bool, Option<String>) {
     match ctx.taux_atmp_de(an) {
         Some(Ok(t)) => {
-            let code = t.get("code_risque").filter(|c| vrai(c)).map(valeur_en_texte);
-            if t.get("_pose_a_la_creation").is_some_and(vrai) || t.get("_reporte_de").is_some() {
+            let code = t.code_risque.clone().filter(|c| !c.is_empty());
+            if t.pose_a_la_creation == Some(true) || t.reporte_de.is_some() {
                 (false, code)
             } else {
                 (true, code)

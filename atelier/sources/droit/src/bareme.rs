@@ -8,7 +8,7 @@
 
 use socle::texte::sans_accent;
 use crate::forme_bareme::{
-    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp,
+    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp, TauxAtmpEcrit, ValeurAtmp,
     VersementMobiliteEcrit,
 };
 use crate::natures::Nature;
@@ -1669,7 +1669,8 @@ intermittent : ses tranches sont mensuelles"
 
 /// La forme canonique d'une valeur : nombres en chaines
 /// normalisees, cles `_` retirees sauf `_cle`.
-pub fn canon(v: &Value) -> Value {
+pub fn canon(v: &serde_json::Value) -> serde_json::Value {
+    use serde_json::Value;
     match v {
         Value::Number(n) => {
             let x = if let Some(i) = n.as_i64() {
@@ -2280,23 +2281,7 @@ pub fn somme_pct(a: Decimal, taux: &[f64]) -> Resultat<Decimal> {
 
 // ------------------------------------------------------------ les risques AT/MP de l'arrete de l'annee
 
-// Le socle livre tel que le moteur le lit encore en JSON (`Contexte::socle_livre`, la surcouche d'une annee
-// d'avant) : ce qui se lit ici par cle tombe quand le socle se lira par sa forme.
-use serde_json::{Map, Value};
 
-static NUL: Value = Value::Null;
-
-fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
-    v.get(k).unwrap_or(&NUL)
-}
-
-fn liste(v: &Value) -> &[Value] {
-    v.as_array().map(Vec::as_slice).unwrap_or(&[])
-}
-
-fn nd(x: Decimal) -> Value {
-    serde_json::Number::from_f64(flt(x)).map(Value::Number).unwrap_or(Value::Null)
-}
 
 /// UN RISQUE AT/MP QUE LE SOCLE DE L'ANNEE CONNAIT (`risques_atmp.codes`), tel que l'annexe 1 de l'arrete de tarification
 /// de l'annee l'ecrit (`atelier/reference/sources/tarification-atmp/`, transcription des annexes l. 497-561).
@@ -2320,29 +2305,10 @@ pub struct RisqueAtmp {
 /// interdit alors le taux (SIG-11, l. 1311-1313).
 pub const SANS_NOTIFICATION: &str = "999ZZ";
 
-/// Les risques que le socle `socle` connait (vide pour une annee sans table : son arrete n'est pas depose).
-pub fn risques_atmp(socle: &Value) -> Vec<RisqueAtmp> {
-    let texte = |v: &Value| v.as_str().map(str::trim).filter(|s| !s.is_empty()).map(String::from);
-    liste(g(g(socle, "risques_atmp"), "codes"))
-        .iter()
-        .filter_map(|r| {
-            Some(RisqueAtmp {
-                code: texte(g(r, "code"))?,
-                code_arrete: texte(g(r, "code_arrete")),
-                libelle: texte(g(r, "libelle")).unwrap_or_default(),
-                precisions: texte(g(r, "precisions")),
-                taux: g(r, "taux").as_f64().and_then(|t| Decimal::try_from(t).ok()).map(|t| t.round_dp(2)),
-                tc: vrai(g(r, "tc")),
-                alsace_moselle: g(g(r, "alsace_moselle"), "groupe").as_i64().zip(g(g(r, "alsace_moselle"), "taux").as_f64().and_then(|t| Decimal::try_from(t).ok()).map(|t| t.round_dp(2))),
-            })
-        })
-        .collect()
-}
-
 /// Le risque que le socle pose a la creation d'une compagnie (`risques_atmp.par_defaut`), s'il le connait.
-pub fn risque_par_defaut(socle: &Value) -> Option<RisqueAtmp> {
-    let code = g(g(socle, "risques_atmp"), "par_defaut").as_str()?;
-    risques_atmp(socle).into_iter().find(|r| r.code == code)
+pub fn risque_par_defaut(socle: &Pile) -> Option<RisqueAtmp> {
+    let code = socle.risques_atmp.as_ref()?.par_defaut.as_deref()?;
+    risques_de(socle).into_iter().find(|r| r.code == code)
 }
 
 /// LE TAUX QUE L'ARRETE FIXE pour ce risque : le taux net collectif de l'annexe 1 quand il s'applique, c'est-a-dire pour
@@ -2464,18 +2430,18 @@ mod tests_risques_atmp {
     /// l'annexe 3 vaut et le taux se saisit (art. 4).
     #[test]
     fn le_taux_d_un_risque_tc_est_celui_de_l_arrete_quel_que_soit_l_effectif() {
-        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
+        let socle = crate::contexte::socle_livre_lu(2026).unwrap().unwrap();
         let r = risque_par_defaut(&socle).unwrap();
         assert_eq!((r.code.as_str(), r.code_arrete.as_deref(), r.tc), ("923AD", Some("92.3AD"), true));
         assert_eq!(taux_de_l_arrete(&r, Some(false), false), Some(Decimal::new(150, 2)));
         assert_eq!(taux_de_l_arrete(&r, None, false), Some(Decimal::new(150, 2)));
         assert_eq!(taux_de_l_arrete(&r, Some(true), true), None);
         assert_eq!(r.alsace_moselle, Some((3, Decimal::new(334, 2))));
-        let gestion = risques_atmp(&socle).into_iter().find(|r| r.code == "921CC").unwrap();
+        let gestion = risques_de(&socle).into_iter().find(|r| r.code == "921CC").unwrap();
         assert_eq!(taux_de_l_arrete(&gestion, Some(true), false), Some(Decimal::new(107, 2)));
         assert_eq!(taux_de_l_arrete(&gestion, Some(false), false), None);
         assert_eq!(taux_de_l_arrete(&gestion, None, false), None);
-        let sans = risques_atmp(&socle).into_iter().find(|r| r.code == SANS_NOTIFICATION).unwrap();
+        let sans = risques_de(&socle).into_iter().find(|r| r.code == SANS_NOTIFICATION).unwrap();
         assert_eq!(taux_de_l_arrete(&sans, Some(true), false), None);
     }
 
@@ -2485,8 +2451,8 @@ mod tests_risques_atmp {
     /// en Alsace-Moselle, le taux se saisit (art. 4 de l'arrete).
     #[test]
     fn le_taux_d_un_etablissement_en_risque_tc_est_celui_de_l_arrete() {
-        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
-        let bar = Pile { annee: 2026, risques_atmp: Some(socle::forme::lire(&socle["risques_atmp"], "risques").unwrap()), ..Pile::default() };
+        let socle = crate::contexte::socle_livre_lu(2026).unwrap().unwrap();
+        let bar = Pile { annee: 2026, risques_atmp: socle.risques_atmp.clone(), ..Pile::default() };
         let fiche: ChampsEntreprise = crate::fiche::lire_champs(&serde_json::json!({"nic": "00017", "etablissements": [
             {"nic": "00025", "code_postal": "44000", "taux_atmp": {"code_risque": "923AD"}},
             {"nic": "00033", "code_postal": "67000", "taux_atmp": {"code_risque": "923AD"}},
@@ -2508,8 +2474,8 @@ mod tests_risques_atmp {
     /// (D. 242-6-15) ne vaut pas pour la suivante.
     #[test]
     fn un_etablissement_neuf_a_le_taux_collectif_trois_annees() {
-        let socle = socle::fichiers::lire_json(&dossier_du_code().join("baremes").join("2026.json")).unwrap();
-        let bar = Pile { annee: 2026, risques_atmp: Some(socle::forme::lire(&socle["risques_atmp"], "risques").unwrap()), ..Pile::default() };
+        let socle = crate::contexte::socle_livre_lu(2026).unwrap().unwrap();
+        let bar = Pile { annee: 2026, risques_atmp: socle.risques_atmp.clone(), ..Pile::default() };
         let fiche: ChampsEntreprise = crate::fiche::lire_champs(&serde_json::json!({"nic": "00017", "etablissements": [
             {"nic": "00025", "code_postal": "44000", "ouverture": "2024-06-01", "taux_atmp": {"code_risque": "921CC"}},
             {"nic": "00033", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC"}},
@@ -2529,16 +2495,16 @@ mod tests_risques_atmp {
     /// l'arrete n'est pas depose demandent le taux notifie de l'annee.
     #[test]
     fn le_taux_collectif_d_un_risque_tc_se_lit_dans_l_arrete_de_chaque_annee() {
-        let lire = |an: i32| socle::fichiers::lire_json(&dossier_du_code().join("baremes").join(format!("{}.json", an))).unwrap();
+        let lire = |an: i32| crate::contexte::socle_livre_lu(an).unwrap().unwrap();
         let (s25, s26) = (lire(2025), lire(2026));
-        let pose = |code: &str, t: f64| serde_json::json!({"code_risque": code, "valeur": t});
+        let pose = |code: &str, t: f64| TauxAtmpEcrit { code_risque: Some(code.into()), valeur: Some(ValeurAtmp::Seule(socle::forme::Nombre(dec_f64(t).unwrap()))), ..TauxAtmpEcrit::default() };
         let t = taux_atmp_reporte(2026, Some(&s26), (2025, &pose("923AD", 1.65)), Some(&s25), false).unwrap().unwrap();
-        assert_eq!((t["code_risque"].as_str(), socle::num::dec(&t["valeur"]).unwrap()), (Some("923AD"), Decimal::new(150, 2)));
+        assert_eq!((t.code_risque.as_deref(), t.valeur.map(|v| v.valeurs()[0].1)), (Some("923AD"), Some(Decimal::new(150, 2))));
         assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &pose("923AD", 2.10)), Some(&s25), false).unwrap().is_err());
         assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &pose("921CC", 1.04)), Some(&s25), false).unwrap().is_err());
         assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &pose("923AD", 1.65)), Some(&s25), true).unwrap().is_err());
         assert!(taux_atmp_reporte(2027, None, (2026, &pose("923AD", 1.50)), Some(&s26), false).unwrap().is_err());
-        assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &serde_json::json!({"valeur": 1.65})), Some(&s25), false).is_none());
+        assert!(taux_atmp_reporte(2026, Some(&s26), (2025, &TauxAtmpEcrit { valeur: Some(ValeurAtmp::Seule(socle::forme::Nombre(Decimal::new(165, 2)))), ..TauxAtmpEcrit::default() }), Some(&s25), false).is_none());
     }
 }
 
@@ -2559,19 +2525,23 @@ const OU_SAISIR_ATMP: &str = "Ils se lisent sur la notification de la CARSAT (co
 /// celui de l'arrete de l'annee, et la compagnie n'a rien a redire au 1er janvier. Il ne se reprend que si celui d'avant
 /// etait deja ce taux collectif (`socle_avant`) : un taux notifie propre a la compagnie ne dit rien de l'annee suivante.
 /// Tout autre cas (un risque sans TC, 999ZZ, l'Alsace-Moselle, une annee dont l'arrete n'est pas depose) demande le taux
-/// notifie de l'annee : `Err` dit lequel et ou le saisir. `None` : aucun code n'a ete dit avant.
-pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Value>, avant: (i32, &Value), socle_avant: Option<&Value>, alsace_moselle: bool) -> Option<Result<Map<String, Value>, String>> {
+/// notifie de l'annee : `Err` dit lequel et ou le saisir. `None` : aucun code n'a ete dit avant. Un taux d'avant que
+/// sa notification datait en cours d'annee (une liste) n'etait pas le taux collectif de l'annee : il ne se reprend pas.
+pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Pile>, avant: (i32, &TauxAtmpEcrit), socle_avant: Option<&Pile>, alsace_moselle: bool) -> Option<Result<TauxAtmpEcrit, String>> {
     let (pa, pose) = avant;
-    let code = g(pose, "code_risque").as_str().map(str::trim).filter(|c| !c.is_empty())?.to_string();
+    let code = pose.code_risque.as_deref().map(str::trim).filter(|c| !c.is_empty())?.to_string();
     if code == SANS_NOTIFICATION {
         return Some(Err(format!(
             "Le code risque et le taux AT/MP de {} manquent : en {}, la compagnie n'avait pas encore de notification (999ZZ). {}",
             an, pa, OU_SAISIR_ATMP
         )));
     }
-    let r_avant = socle_avant.and_then(|s| risques_atmp(s).into_iter().find(|r| r.code == code));
+    let r_avant = socle_avant.and_then(|s| risques_de(s).into_iter().find(|r| r.code == code));
     let nom = r_avant.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
-    let valeur_avant = g(pose, "valeur").as_f64().and_then(|t| Decimal::try_from(t).ok()).map(|t| t.round_dp(2));
+    let valeur_avant = match &pose.valeur {
+        Some(ValeurAtmp::Seule(n)) => Some(n.0.round_dp(2)),
+        _ => None,
+    };
     let collectif_avant = r_avant.as_ref().and_then(|r| taux_de_l_arrete(r, None, alsace_moselle));
     let notifie = |pourquoi: String| {
         Err(format!("Le taux AT/MP de {} manque (code risque {}). {} Celui de {} se lit sur la notification de la CARSAT (compte AT/MP sur net-entreprises) et se saisit dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».", an, nom, pourquoi, an))
@@ -2586,11 +2556,8 @@ pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Value>, avant: (i32, &Value)
             valeur_avant.map(|t| format!(" ({})", pourcent(t))).unwrap_or_default()
         )));
     }
-    let Some(r) = socle_an.and_then(|s| risques_atmp(s).into_iter().find(|r| r.code == code)) else {
-        return Some(notifie(format!(
-            "Son taux est celui de l'arrêté de tarification de {}, que le logiciel n'a pas.",
-            an
-        )));
+    let Some(r) = socle_an.and_then(|s| risques_de(s).into_iter().find(|r| r.code == code)) else {
+        return Some(notifie(format!("Son taux est celui de l'arrêté de tarification de {}, que le logiciel n'a pas.", an)));
     };
     if !r.tc {
         return Some(notifie("Ce risque n'a un taux collectif que sous 20 salariés (code de la sécurité sociale, art. D. 242-6-2) : au-delà, c'est celui que la CARSAT notifie.".into()));
@@ -2598,40 +2565,21 @@ pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Value>, avant: (i32, &Value)
     let Some(t) = taux_de_l_arrete(&r, None, false) else {
         return Some(notifie(format!("L'arrêté de tarification de {} ne donne pas son taux.", an)));
     };
-    let mut m = Map::new();
-    m.insert("valeur".into(), nd(t));
-    m.insert("code_risque".into(), Value::String(code));
-    m.insert("_reporte_de".into(), Value::from(pa));
-    m.insert(
-        "_source".into(),
-        Value::String(format!(
+    Some(Ok(TauxAtmpEcrit {
+        valeur: Some(ValeurAtmp::Seule(socle::forme::Nombre(ecrit(t)))),
+        code_risque: Some(code),
+        reporte_de: Some(pa),
+        provenance: Some(format!(
             "Code risque notifié, dit pour {} ; taux collectif de {} ({}, « TC » : code de la sécurité sociale, art. D. 242-6-14), atelier/reference/sources/tarification-atmp/.",
             pa,
             socle_an.and_then(arrete_atmp).unwrap_or_else(|| format!("l'arrêté de tarification de {}", an)),
             r.code_arrete.as_deref().unwrap_or(&r.code)
         )),
-    );
-    Some(Ok(m))
-}
-
-/// LE TAUX AT/MP EN VIGUEUR CE JOUR-LA, tel que `taux_atmp.valeur` l'ecrit : un nombre, ou une liste datee
-/// `[{depuis, valeur}]` quand une notification change le taux en cours d'annee (la valeur dont le `depuis` est le plus
-/// recent au plus tard ce jour ; avant la premiere, la premiere). `None` : pas de taux.
-pub fn taux_atmp_au(valeur: &Value, jour: &Jour) -> Option<Decimal> {
-    match valeur {
-        Value::Array(a) => {
-            let mut v: Vec<(String, &Value)> = a.iter().map(|e| (en_texte(g(e, "depuis")), g(e, "valeur"))).collect();
-            v.sort_by(|x, y| x.0.cmp(&y.0));
-            let jour = jour.iso();
-            let choisi = v.iter().rev().find(|(d, _)| *d <= jour).or(v.first())?;
-            socle::num::dec(choisi.1).ok()
-        }
-        Value::Null => None,
-        v => socle::num::dec(v).ok(),
-    }
+        ..TauxAtmpEcrit::default()
+    }))
 }
 
 /// Le nom de l'arrete qui fixe les taux du socle (`risques_atmp.arrete`), pour le dire a l'ecran.
-pub fn arrete_atmp(socle: &Value) -> Option<String> {
-    g(g(socle, "risques_atmp"), "arrete").as_str().map(String::from)
+pub fn arrete_atmp(socle: &Pile) -> Option<String> {
+    socle.risques_atmp.as_ref().map(|r| r.arrete.clone())
 }

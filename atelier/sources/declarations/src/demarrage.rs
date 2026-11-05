@@ -387,33 +387,33 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
 pub fn poses(ctx: &Contexte) -> Vec<Value> {
     let an = ctx.aujourdhui.an;
     let Some(Ok(t)) = ctx.taux_atmp_de(an) else { return Vec::new() };
-    let reporte_de = t.get("_reporte_de").and_then(Value::as_i64);
-    let notification = t.get("_notification").filter(|n| vrai(n));
-    let a_la_creation = t.get("_pose_a_la_creation").is_some_and(vrai);
+    let reporte_de = t.reporte_de;
+    let notification = t.notification.as_ref();
+    let a_la_creation = t.pose_a_la_creation == Some(true);
     if notification.is_none() && (!(a_la_creation || reporte_de.is_some()) || en_alsace_moselle(ctx)) {
         return Vec::new();
     }
-    let code = t.get("code_risque").map(socle::date::en_texte).unwrap_or_default();
-    let socle = ctx.socle_livre(an).ok().flatten().unwrap_or(Value::Null);
-    let risque = droit::bareme::risques_atmp(&socle).into_iter().find(|r| r.code == code);
+    let code = t.code_risque.clone().unwrap_or_default();
+    let risque = droit::contexte::socle_livre_lu(an).ok().flatten().and_then(|s| droit::bareme::risques_de(&s).into_iter().find(|r| r.code == code));
     let taux = t
-        .get("valeur")
-        .and_then(|v| droit::bareme::taux_atmp_au(v, &ctx.aujourdhui))
+        .valeur
+        .as_ref()
+        .and_then(|v| v.au(&ctx.aujourdhui))
         .map(|v| format!("{:.2} %", v.round_dp(2)).replace('.', ","))
         .unwrap_or_default();
     let nom = risque.as_ref().map(|r| r.code_arrete.clone().unwrap_or_else(|| r.code.clone())).unwrap_or_else(|| code.clone());
     let libelle = format!("Accidents du travail : code risque {}, taux {} en {}", nom, taux, an);
     // Le taux que la notification de la CARSAT a pose (`moteur::routes::atmp::poser_notifie`) : d'ou il vient.
     if let Some(n) = notification {
-        let date = |k: &str| n.get(k).and_then(Value::as_str).and_then(|d| socle::date::Jour::lire(d).ok()).map(|j| j.jj_mm_aaaa());
+        let date = |d: &str| socle::date::Jour::lire(d).ok().map(|j| j.jj_mm_aaaa());
         return vec![json!({
             "cle": "taux_atmp",
             "libelle": libelle,
             "texte": format!(
                 "{}Le code risque et le taux sont ceux de la notification de la CARSAT{}, en vigueur depuis le {} : le logiciel les a lus dans les retours de la DSN et posés de lui-même. Rien à recopier.",
                 risque.as_ref().map(|r| format!("« {} » ", r.libelle)).unwrap_or_default(),
-                date("calcul").or_else(|| date("le")).map(|d| format!(" du {}", d)).unwrap_or_default(),
-                date("effet").unwrap_or_default()
+                date(&n.calcul).or_else(|| date(&n.le)).map(|d| format!(" du {}", d)).unwrap_or_default(),
+                date(&n.effet).unwrap_or_default()
             ),
             "ou": ENTREPRISE.0, "onglet": ENTREPRISE.1,
             "champ": "taux_atmp",
@@ -499,5 +499,5 @@ fn en_alsace_moselle(ctx: &Contexte) -> bool {
 
 /// Le taux AT/MP de l'annee est-il encore celui que le moteur a pose a la creation ?
 fn pose_a_la_creation(ctx: &Contexte) -> bool {
-    matches!(ctx.taux_atmp_de(ctx.aujourdhui.an), Some(Ok(t)) if t.get("_pose_a_la_creation").is_some_and(vrai))
+    matches!(ctx.taux_atmp_de(ctx.aujourdhui.an), Some(Ok(t)) if t.pose_a_la_creation == Some(true))
 }

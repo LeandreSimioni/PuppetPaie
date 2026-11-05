@@ -171,19 +171,15 @@ pub(crate) fn ecrire(
             }
         };
         let mut atmp = o.get("taux_atmp").and_then(Value::as_object).cloned().unwrap_or_default();
-        let du_siege = ctx.taux_atmp_de(ouverture.an).and_then(Result::ok).and_then(|t| t.get("code_risque").filter(|c| vrai(c)).map(valeur_en_texte));
+        let du_siege = ctx.taux_atmp_de(ouverture.an).and_then(Result::ok).and_then(|t| t.code_risque).filter(|c| !c.is_empty());
         let code = texte(atmp.get("code_risque")).trim().to_string();
         if code.is_empty() {
             match du_siege {
                 Some(code) => {
                     atmp.insert("code_risque".into(), Value::String(code));
-                    atmp.insert("_code_de_la_compagnie".into(), Value::Bool(true));
                 }
                 None => griefs.push(format!("{} : son code risque AT/MP, tel que la CARSAT le notifie", nom)),
             }
-        } else if du_siege.as_deref() != Some(code.as_str()) {
-            // Un autre code que celui de la compagnie : celui que la CARSAT a notifie.
-            atmp.shift_remove("_code_de_la_compagnie");
         }
         o.insert("taux_atmp".into(), Value::Object(atmp));
         nouvelles.push((ouverture, Value::Object(o)));

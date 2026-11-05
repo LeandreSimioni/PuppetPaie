@@ -791,7 +791,7 @@ fn fait_annuel(ctx: &Contexte, e: &Annuelle, annee: i32, faites: &Cochees) -> R<
     }
     // Le taux AT/MP se saisit dans la page : pose pour l'annee (ou un taux collectif que l'annee reprend d'elle-meme,
     // `Contexte::taux_atmp_de`), il vaut releve.
-    if e.cle == "at-mp" && matches!(ctx.taux_atmp_de(annee), Some(Ok(t)) if t.get("valeur").is_some_and(|x| !x.is_null())) {
+    if e.cle == "at-mp" && matches!(ctx.taux_atmp_de(annee), Some(Ok(t)) if t.valeur.is_some()) {
         return Ok(Some(true));
     }
     if e.fait_par == FaitPar::Coche {
