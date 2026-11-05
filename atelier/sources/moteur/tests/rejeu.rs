@@ -489,14 +489,14 @@ fn la_fictive_tient_son_annee_et_se_livre(nom: &str, decembre: usize, dpae: &[&s
     for mois in engagement::stock::mois_saisis(&racine).unwrap().into_iter().filter(|m| racine.join(format!("engagements/{}.json", m)).exists()) {
         let m = outils::lire(&racine, &format!("engagements/{}.json", mois));
         let v: Vec<Value> = m["engagements"].as_array().unwrap().iter().flat_map(|e| {
-            ecrites.iter().filter(move |(_, p)| p["salarie"] == e["salarie"] && p["numero"] == e["numero"] && !e["valide"].is_null()).map(move |(pm, p)| {
+            ecrites.iter().filter(move |(_, p)| p["salarie"] == e["saisie"]["carte"]["salarie"] && p["numero"] == e["saisie"]["carte"]["numero"] && !e["valide"].is_null()).map(move |(pm, p)| {
                 let q = &p["presente"]["paie"];
                 // L'identifiant du compte rendu qui porte le taux ne dit rien de la paie.
                 let mut pas = p["presente"]["pas"].clone();
                 if let Some(o) = pas.as_object_mut() {
                     o.remove("identifiant");
                 }
-                json!({"salarie": e["salarie"], "numero": e["numero"], "mois": pm, "brut": q["brut"], "net_a_payer": q["net_a_payer"],
+                json!({"salarie": e["saisie"]["carte"]["salarie"], "numero": e["saisie"]["carte"]["numero"], "mois": pm, "brut": q["brut"], "net_a_payer": q["net_a_payer"],
                        "net_imposable": q["net_imposable"], "cout_employeur": q["cout_employeur"], "pas": pas})
             })
         }).collect();

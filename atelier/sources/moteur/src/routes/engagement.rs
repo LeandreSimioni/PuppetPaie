@@ -306,11 +306,11 @@ fn a_partir_de(o: &engagement::stock::Objet, devenu: &engagement::stock::Objet, 
     if !devenu.mensuel() {
         return None;
     }
-    let du_mois = |x: &engagement::stock::Objet| -> Vec<(String, socle::date::Jour, Value)> {
-        x.changements().into_iter().filter(|(_, j, _)| j.mois_civil().to_string() == mois).collect()
+    let du_mois = |x: &engagement::stock::Objet| -> Vec<engagement::stock::Avenant> {
+        x.avenants().iter().filter(|a| a.depuis.mois_civil().to_string() == mois).cloned().collect()
     };
     let apres = du_mois(devenu);
-    (apres != du_mois(o)).then(|| apres.iter().map(|(_, j, _)| *j).max()).flatten()
+    (apres != du_mois(o)).then(|| apres.iter().map(|a| a.depuis).max()).flatten()
 }
 
 /// La modification elle-meme, dans le brouillon ouvert : l'engagement `o`, de rang `i`, se rouvre, prend sa saisie et
@@ -364,15 +364,15 @@ const UN_AVENANT: &str = "un avenant à faire signer";
 /// (`crate::regularisation::dpae_d_une_date_changee`).
 pub(crate) fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<String>> {
     use engagement::etats::ARefaire;
-    let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
-    let presente = saisie(v.objet().brut.get("valide"));
+    let presente = v.objet().brut.valide.as_ref().and_then(|x| x.saisie.as_ref()).map(|s| s.carte.debut_lu(&ctx.racine)).unwrap_or_default();
+
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for a in engagement::etats::a_refaire(ctx, v, departs) {
         match a {
             ARefaire::Avenant { .. } => out.push(UN_AVENANT.to_string()),
             ARefaire::Dpae { debut_declare, .. } => {
-                let (rien_a_refaire, phrase) = crate::regularisation::dpae_d_une_date_changee(&debut_declare, &engagement::debut_brut(&ctx.racine, &presente));
+                let (rien_a_refaire, phrase) = crate::regularisation::dpae_d_une_date_changee(&debut_declare, &presente);
                 if !rien_a_refaire {
                     out.push(phrase);
                 }

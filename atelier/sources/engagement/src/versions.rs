@@ -3,34 +3,27 @@
 //! qui ouvre la frise : par version, sa date, ce qui a change depuis la precedente (« Cachets : 4 → 5 ») et ce qui est
 //! parti sur elle. Un engagement jamais modifie apres un envoi n'a pas de frise.
 
-use serde_json::{json, Map, Value};
+use serde::Serialize;
+use serde_json::{Number, Value};
 
 use crate::departs::{Depart, Departs, Envoi};
 use crate::etats::{ses_departs, ARefaire, Valide};
-use crate::stock::{DATES, FAITS};
+use crate::saisie::{Carte, Champ, Groupe, Valeur};
+use crate::stock::{Saisie, Version};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
-use socle::fichiers::vrai;
-use socle::texte::{euros_de, virgule};
+use socle::texte::{euros, virgule};
 
 /// « 14/11 » d'un jour ISO ; tel quel s'il ne se lit pas.
 fn jour_court(iso: &str) -> String {
     Jour::lire(iso.get(..10).unwrap_or(iso)).map(|j| j.jj_mm()).unwrap_or_else(|_| iso.to_string())
 }
 
-/// Le jour d'une date de ligne, nue ou `{"jour", "lieu"}`.
-fn jour_de(x: &Value) -> String {
-    match x {
-        Value::Object(m) => m.get("jour").map(en_texte).unwrap_or_default(),
-        autre => en_texte(autre),
-    }
-}
-
 /// Ce qui change dans les jours d'une ligne, et seulement cela : « Jours : + 16/11 », « Jours : − 14/11 »,
 /// « Jours : + 16/11 · − 14/11 ». `None` si la ligne a les memes jours.
 fn jours_changes(x: &Value, y: &Value) -> Option<String> {
     let js = |l: &Value| {
-        let mut j: Vec<String> = l.get("dates").and_then(Value::as_array).into_iter().flatten().map(jour_de).filter(|d| !d.is_empty()).collect();
+        let mut j: Vec<String> = l.get("dates").and_then(Value::as_array).into_iter().flatten().map(crate::jour_ecrit).filter(|d| !d.is_empty()).collect();
         j.sort();
         j.dedup();
         j
@@ -44,12 +37,11 @@ fn jours_changes(x: &Value, y: &Value) -> Option<String> {
     (!parts.is_empty()).then(|| format!("Jours : {}", parts.join(" · ")))
 }
 
-/// Le premier et le dernier jour d'une saisie : ses bornes dites, sinon ses jours travailles (`crate::debut_brut`,
-/// `crate::dates_engagement`).
-fn bornes(ctx: &Contexte, s: &Map<String, Value>) -> (String, String) {
-    let e = Value::Object(s.clone());
-    let fin = s.get("fin").filter(|v| vrai(v)).map(en_texte);
-    (crate::debut_brut(&ctx.racine, &e), fin.unwrap_or_else(|| crate::dates_engagement(&ctx.racine, &e).iter().map(jour_de).max().unwrap_or_default()))
+/// Le premier et le dernier jour d'une carte : ses bornes dites, sinon ses jours travailles (`Carte::debut_lu`,
+/// `Carte::dates`).
+fn bornes(ctx: &Contexte, s: &Carte) -> (String, String) {
+    let fin = s.fin.clone().filter(|f| !f.is_empty());
+    (s.debut_lu(&ctx.racine), fin.unwrap_or_else(|| s.dates(&ctx.racine).iter().map(crate::jour_ecrit).max().unwrap_or_default()))
 }
 
 /// Le libelle d'une rubrique au catalogue, ou son code.
@@ -77,79 +69,93 @@ fn nom_du_taux(libelle: &str, unite: &str) -> String {
 }
 
 /// Les clauses de l'engagement hors lignes et bornes : leur nom a l'ecran.
-const CLAUSES: [(&str, &str); 13] = [
-    ("salarie", "Salarié"),
-    ("spectacle", "Spectacle"),
-    ("lieu", "Lieu"),
-    ("etablissement", "Établissement"),
-    ("nature", "Nature du contrat"),
-    ("motif_recours", "Motif de recours"),
-    ("salaire_mensuel", "Salaire mensuel"),
-    ("quotite_contrat", "Quotité du contrat"),
-    ("modalite_temps_travail", "Temps de travail"),
-    ("metier", "Métier"),
-    ("emploi", "Emploi"),
-    ("cadre", "Cadre"),
-    ("numero", "Numéro du contrat"),
+const CLAUSES: [(Champ, &str); 13] = [
+    (Champ::Salarie, "Salarié"),
+    (Champ::Spectacle, "Spectacle"),
+    (Champ::Lieu, "Lieu"),
+    (Champ::Etablissement, "Établissement"),
+    (Champ::Nature, "Nature du contrat"),
+    (Champ::MotifRecours, "Motif de recours"),
+    (Champ::SalaireMensuel, "Salaire mensuel"),
+    (Champ::QuotiteContrat, "Quotité du contrat"),
+    (Champ::ModaliteTempsTravail, "Temps de travail"),
+    (Champ::Metier, "Métier"),
+    (Champ::Emploi, "Emploi"),
+    (Champ::Cadre, "Cadre"),
+    (Champ::Numero, "Numéro du contrat"),
 ];
 
-/// Une valeur de clause en mots.
-fn en_mots(cle: &str, v: Option<&Value>) -> String {
+/// Une valeur en mots : en euros (`euros`), un nombre a la virgule, un oui-non, un texte ; « — » sans valeur.
+fn en_mots(v: Option<&Valeur>, en_euros: bool) -> String {
+    let nombre = |n: &Number| socle::num::dec_texte(&n.to_string());
     match v {
-        None | Some(Value::Null) => "—".into(),
-        Some(Value::Bool(b)) => if *b { "oui" } else { "non" }.into(),
-        Some(x) if cle == "salaire_mensuel" || cle == "taux" => euros_de(x),
-        Some(x @ Value::Number(_)) => socle::num::dec(x).map(virgule).unwrap_or_else(|_| en_texte(x)),
-        Some(x) => en_texte(x),
+        None => "—".into(),
+        Some(Valeur::Oui(b)) => if *b { "oui" } else { "non" }.into(),
+        Some(Valeur::Nombre(n)) if en_euros => nombre(n).map(euros).unwrap_or_else(|_| n.to_string()),
+        Some(Valeur::Nombre(n)) => nombre(n).map(virgule).unwrap_or_else(|_| n.to_string()),
+        Some(Valeur::Texte(t)) if en_euros => t.trim().replace(',', ".").parse().map(euros).unwrap_or_else(|_| t.clone()),
+        Some(Valeur::Texte(t)) => t.clone(),
+    }
+}
+
+/// La valeur d'un champ d'une ligne de paie. TRAVAIL A FAIRE (chaine A) : la ligne a sa forme, et ses champs leur type.
+fn de_la_ligne(l: &Value, cle: &str) -> Option<Valeur> {
+    match l.get(cle)? {
+        Value::Bool(b) => Some(Valeur::Oui(*b)),
+        Value::Number(n) => Some(Valeur::Nombre(n.clone())),
+        Value::Null => None,
+        x => Some(Valeur::Texte(en_texte(x))),
     }
 }
 
 /// CE QUI A CHANGE d'une saisie a l'autre, en mots, dans l'ordre ou l'on lit un engagement : les bornes, chaque ligne
 /// (son nombre, son taux, ses jours, son lieu), puis les autres clauses ; chaque terme qui change a une date (« À partir
 /// du 01/09 : Salaire mensuel : … → … ») ; et les faits de chaque mois suivant d'un contrat qui deborde.
-pub fn changements(ctx: &Contexte, avant: &Value, apres: &Value) -> Vec<String> {
-    let vide = Map::new();
-    let (a, b) = (avant.as_object().unwrap_or(&vide), apres.as_object().unwrap_or(&vide));
-    let mut out = changements_du_mois(ctx, a, b);
-    let par_mois = |m: &Map<String, Value>, k: &str| m.get(k).and_then(Value::as_object).cloned().unwrap_or_default();
-    // Un terme a une date : sa derniere valeur datee au plus tard ce jour, ou celle du premier mois.
-    let au = |m: &Map<String, Value>, terme: &str, jour: &str| -> Option<Value> {
-        let datees = par_mois(m, DATES);
-        let derniere = datees.get(terme).and_then(Value::as_array).into_iter().flatten().filter(|e| e.get("depuis").map(en_texte).is_some_and(|d| d.as_str() <= jour)).last().cloned();
-        match derniere {
-            Some(e) => e.get("valeur").cloned().filter(|v| !v.is_null()),
-            None => m.get(terme).cloned(),
+pub fn changements(ctx: &Contexte, avant: Option<&Saisie>, apres: Option<&Saisie>) -> Vec<String> {
+    let vide = Saisie::default();
+    let (a, b) = (avant.unwrap_or(&vide), apres.unwrap_or(&vide));
+    let mut out = changements_du_mois(ctx, &a.carte, &b.carte);
+    // Les termes au `jour` : ceux du premier mois, et chaque avenant venu jusqu'a lui.
+    let au = |s: &Saisie, jour: &Jour| {
+        let mut c = s.carte.du_groupe(&[Groupe::Terme]);
+        for x in s.avenants.iter().filter(|x| x.depuis <= *jour) {
+            c.recouvrir(&x.termes);
+            for k in &x.retires {
+                c.ote(*k);
+            }
         }
+        c
     };
-    let (da, db) = (par_mois(a, DATES), par_mois(b, DATES));
-    let mut jours: Vec<(String, String)> = Vec::new();
-    for (k, liste) in da.iter().chain(db.iter()) {
-        for e in liste.as_array().into_iter().flatten() {
-            jours.push((e.get("depuis").map(en_texte).unwrap_or_default(), k.clone()));
-        }
-    }
+    let mut jours: Vec<Jour> = a.avenants.iter().chain(&b.avenants).map(|x| x.depuis).collect();
     jours.sort();
     jours.dedup();
-    let mut dits: Vec<String> = Vec::new();
-    for (jour, _) in &jours {
-        if dits.contains(jour) {
-            continue;
-        }
-        dits.push(jour.clone());
-        let termes: Vec<&String> = jours.iter().filter(|(j, _)| j == jour).map(|(_, k)| k).collect();
-        let tels = |m: &Map<String, Value>| -> Map<String, Value> { termes.iter().filter_map(|k| au(m, k, jour).map(|v| ((*k).clone(), v))).collect() };
+    for jour in jours {
+        // Les termes que l'un ou l'autre change ce jour-la, tels qu'ils sont ce jour-la.
+        let termes: Vec<Champ> = a
+            .avenants
+            .iter()
+            .chain(&b.avenants)
+            .filter(|x| x.depuis == jour)
+            .flat_map(|x| Champ::des(&[Groupe::Terme]).filter(|k| x.termes.dit(*k)).chain(x.retires.iter().copied()).collect::<Vec<_>>())
+            .collect();
+        let tels = |s: &Saisie| {
+            let (tous, mut c) = (au(s, &jour), Carte::default());
+            for k in &termes {
+                c.prendre(&tous, *k);
+            }
+            c
+        };
         for c in changements_du_mois(ctx, &tels(a), &tels(b)) {
-            out.push(format!("À partir du {} : {}", jour_court(jour), c));
+            out.push(format!("À partir du {} : {}", jour.jj_mm(), c));
         }
     }
-    let (fa, fb) = (par_mois(a, FAITS), par_mois(b, FAITS));
-    let mut mois: Vec<&String> = fa.keys().chain(fb.keys()).collect();
+    let mut mois: Vec<&socle::mois::Mois> = a.faits.keys().chain(b.faits.keys()).collect();
     mois.sort();
     mois.dedup();
+    let rien = Carte::default();
     for m in mois {
-        let (x, y) = (fa.get(m).and_then(Value::as_object).unwrap_or(&vide), fb.get(m).and_then(Value::as_object).unwrap_or(&vide));
-        for c in changements_du_mois(ctx, x, y) {
-            out.push(format!("En {} : {}", socle::mois::Mois::en_clair(m), c));
+        for c in changements_du_mois(ctx, a.faits.get(m).unwrap_or(&rien), b.faits.get(m).unwrap_or(&rien)) {
+            out.push(format!("En {} : {}", socle::mois::Mois::en_clair(&m.to_string()), c));
         }
     }
     out
@@ -159,35 +165,34 @@ pub fn changements(ctx: &Contexte, avant: &Value, apres: &Value) -> Vec<String> 
 /// le terme n'est pas dit.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TermeChange {
-    pub terme: String,
+    pub terme: Champ,
     pub jour: Jour,
-    pub avant: Option<Value>,
-    pub apres: Option<Value>,
+    pub avant: Option<Valeur>,
+    pub apres: Option<Valeur>,
 }
 
 /// LES TERMES QUI CHANGENT entre la saisie sur laquelle le contrat a ete convenu (`convenue`) et celle d'aujourd'hui
-/// (`presente`), jour par jour : chaque jour ou un terme du contrat (`etats::CLAUSES` que `stock::DATES` peut dater) ne
+/// (`presente`), jour par jour : chaque jour ou un terme du contrat (`etats::CLAUSES` qu'un avenant peut dater) ne
 /// vaut pas ce qui etait convenu. L'ancienne valeur est celle que le contrat disait ce jour-la, ou celle qu'un changement
-/// plus tot de la meme liste vient de poser ; un changement qui ne change rien ne se dit pas.
-pub fn termes_changes(convenue: &Value, presente: &Value) -> Vec<TermeChange> {
-    let datees = |s: &Value, k: &str| -> Vec<(String, Option<Value>)> {
-        s.get(DATES).and_then(|t| t.get(k)).and_then(Value::as_array).into_iter().flatten()
-            .filter_map(|e| Some((e.get("depuis").map(en_texte)?, e.get("valeur").cloned().filter(|v| !v.is_null()))))
-            .collect()
+/// plus tot du meme terme vient de poser ; un changement qui ne change rien ne se dit pas.
+pub fn termes_changes(convenue: &Saisie, presente: &Saisie) -> Vec<TermeChange> {
+    // Les jours ou un avenant de `s` change le terme `k`, et la valeur qu'il lui donne.
+    let datees = |s: &Saisie, k: Champ| -> Vec<(Jour, Option<Valeur>)> {
+        s.avenants.iter().filter(|x| x.termes.dit(k) || x.retires.contains(&k)).map(|x| (x.depuis, x.termes.valeur_du(k))).collect()
     };
-    let au = |s: &Value, k: &str, jour: &str| -> Option<Value> {
-        match datees(s, k).into_iter().filter(|(d, _)| d.as_str() <= jour).last() {
+    let au = |s: &Saisie, k: Champ, jour: &Jour| -> Option<Valeur> {
+        match datees(s, k).into_iter().filter(|(d, _)| d <= jour).last() {
             Some((_, v)) => v,
-            None => s.get(k).cloned().filter(|v| !v.is_null()),
+            None => s.carte.valeur_du(k),
         }
     };
-    let pareil = |a: &Option<Value>, b: &Option<Value>| a.as_ref().map(crate::stock::canonique) == b.as_ref().map(crate::stock::canonique);
+    let pareil = |a: &Option<Valeur>, b: &Option<Valeur>| socle::ecriture::canonique(a) == socle::ecriture::canonique(b);
     let mut out = Vec::new();
-    for k in crate::etats::CLAUSES.iter().filter(|k| crate::stock::TERMES.contains(k)) {
-        let mut jours: Vec<String> = datees(convenue, k).into_iter().chain(datees(presente, k)).map(|(d, _)| d).collect();
+    for k in crate::etats::CLAUSES.iter().copied().filter(|k| k.groupe() == Groupe::Terme) {
+        let mut jours: Vec<Jour> = datees(convenue, k).into_iter().chain(datees(presente, k)).map(|(d, _)| d).collect();
         jours.sort();
         jours.dedup();
-        let mut dernier: Option<(String, Option<Value>)> = None;
+        let mut dernier: Option<(Jour, Option<Valeur>)> = None;
         for j in jours {
             let (c, p) = (au(convenue, k, &j), au(presente, k, &j));
             let avant = match &dernier {
@@ -197,8 +202,7 @@ pub fn termes_changes(convenue: &Value, presente: &Value) -> Vec<TermeChange> {
             if pareil(&avant, &p) {
                 continue;
             }
-            let Ok(jour) = Jour::lire(j.get(..10).unwrap_or(&j)) else { continue };
-            out.push(TermeChange { terme: k.to_string(), jour, avant, apres: p.clone() });
+            out.push(TermeChange { terme: k, jour: j, avant, apres: p.clone() });
             dernier = Some((j, p));
         }
     }
@@ -210,15 +214,13 @@ pub fn termes_changes(convenue: &Value, presente: &Value) -> Vec<TermeChange> {
 /// que dit la frise, et ce que dit le renvoi des documents partis sur la version `n`. Vide si `n` est le present ou ne se
 /// lit pas.
 pub fn depuis(ctx: &Contexte, v: &Valide, n: u64) -> Vec<String> {
-    match (v.version_numero(n), v.objet().brut.get("valide")) {
-        (Some(passee), Some(present)) if v.version() != Some(n) => {
-            changements(ctx, passee.get("saisie").unwrap_or(&Value::Null), present.get("saisie").unwrap_or(&Value::Null))
-        }
+    match (v.version_numero(n), &v.objet().brut.valide) {
+        (Some(passee), Some(present)) if v.version() != Some(n) => changements(ctx, passee.saisie(), present.saisie.as_ref()),
         _ => Vec::new(),
     }
 }
 
-fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, Value>) -> Vec<String> {
+fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Vec<String> {
     let mut out = Vec::new();
     let ((da, fa), (db, fb)) = (bornes(ctx, a), bornes(ctx, b));
     if da != db {
@@ -227,8 +229,7 @@ fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, V
     if fa != fb {
         out.push(format!("Fin : {} → {}", jour_court(&fa), jour_court(&fb)));
     }
-    let lignes = |m: &Map<String, Value>| m.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
-    let (la, lb) = (lignes(a), lignes(b));
+    let (la, lb) = (a.lignes(), b.lignes());
     let code = |l: &Value| l.get("rubrique").map(en_texte).unwrap_or_default();
     // Les lignes se rapprochent par leur rubrique, dans l'ordre : la deuxieme ligne de cachets de l'une va avec la
     // deuxieme de l'autre.
@@ -245,21 +246,26 @@ fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, V
         for k in 0..xs.len().max(ys.len()) {
             match (xs.get(k), ys.get(k)) {
                 (Some(_), None) => out.push(format!("{} : retiré", lib)),
-                (None, Some(y)) => out.push(format!("{} : ajouté ({})", lib, en_mots("quantite", y.get("quantite")))),
+                (None, Some(y)) => out.push(format!("{} : ajouté ({})", lib, en_mots(de_la_ligne(y, "quantite").as_ref(), false))),
                 (Some(x), Some(y)) => {
-                    let champ = |l: &Value, k: &str| l.get(k).cloned().unwrap_or(Value::Null);
-                    let (qx, qy) = (champ(x, "quantite"), champ(y, "quantite"));
-                    if qx.as_f64() != qy.as_f64() {
-                        out.push(format!("{} : {} → {}", au_pluriel(&lib), en_mots("quantite", Some(&qx)), en_mots("quantite", Some(&qy))));
+                    let (qx, qy) = (x.get("quantite").and_then(Value::as_f64), y.get("quantite").and_then(Value::as_f64));
+                    if qx != qy {
+                        out.push(format!(
+                            "{} : {} → {}",
+                            au_pluriel(&lib),
+                            en_mots(de_la_ligne(x, "quantite").as_ref(), false),
+                            en_mots(de_la_ligne(y, "quantite").as_ref(), false)
+                        ));
                     }
-                    let (tx, ty) = (champ(x, "taux"), champ(y, "taux"));
-                    if en_mots("taux", Some(&tx)) != en_mots("taux", Some(&ty)) {
-                        out.push(format!("{} : {} → {}", nom_du_taux(&lib, &unite), en_mots("taux", Some(&tx)), en_mots("taux", Some(&ty))));
+                    let (tx, ty) = (en_mots(de_la_ligne(x, "taux").as_ref(), true), en_mots(de_la_ligne(y, "taux").as_ref(), true));
+                    if tx != ty {
+                        out.push(format!("{} : {} → {}", nom_du_taux(&lib, &unite), tx, ty));
                     }
                     if let Some(j) = jours_changes(x, y) {
                         out.push(j);
                     }
-                    let (lx, ly) = (en_mots("lieu", x.get("lieu")), en_mots("lieu", y.get("lieu")));
+                    let lieu = |l: &Value| en_mots(de_la_ligne(l, "lieu").as_ref(), false);
+                    let (lx, ly) = (lieu(x), lieu(y));
                     if lx != ly {
                         out.push(format!("Lieu : {} → {}", lx, ly));
                     }
@@ -269,7 +275,8 @@ fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, V
         }
     }
     for (cle, nom) in CLAUSES {
-        let (x, y) = (en_mots(cle, a.get(cle)), en_mots(cle, b.get(cle)));
+        let en_euros = cle == Champ::SalaireMensuel;
+        let (x, y) = (en_mots(a.valeur_du(cle).as_ref(), en_euros), en_mots(b.valeur_du(cle).as_ref(), en_euros));
         if x != y {
             out.push(format!("{} : {} → {}", nom, x, y));
         }
@@ -316,43 +323,59 @@ fn enumerer(xs: &[String]) -> String {
     }
 }
 
-/// LA FRISE D'UN ENGAGEMENT VALIDE, s'il a ete modifie apres un envoi : `{"phrase", "versions"}`, la phrase de la ligne
-/// sous la carte et, de la plus ancienne a la presente, chaque version (`version`, `le`, `changements`, `partis`).
-/// `None` : aucune version passee, jamais modifie apres un envoi, ou la paie de `mois` est restee celle de la version
-/// d'avant (un contrat au mois change a partir d'un mois suivant : ce mois-ci reste tel qu'il est parti).
-pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Option<Value> {
+/// LA FRISE D'UN ENGAGEMENT VALIDE, s'il a ete modifie apres un envoi : la phrase de la ligne sous la carte et, de la
+/// plus ancienne a la presente, chaque version.
+#[derive(Debug, Clone, Serialize)]
+pub struct Frise {
+    pub phrase: String,
+    pub versions: Vec<VersionDeLaFrise>,
+}
+
+/// Une version, dans la frise : son numero, quand elle a ete validee, son titre et son jour tels que la frise les lit, ce
+/// qui a change depuis la precedente, et ce qui est parti sur elle.
+#[derive(Debug, Clone, Serialize)]
+pub struct VersionDeLaFrise {
+    pub version: Option<u64>,
+    pub le: String,
+    pub jour: String,
+    pub titre_dit: String,
+    pub jour_dit: String,
+    pub changements: Vec<String>,
+    pub partis: Vec<String>,
+}
+
+/// LA FRISE de l'engagement valide `v` (`Frise`). `None` : aucune version passee, jamais modifie apres un envoi, ou la
+/// paie de `mois` est restee celle de la version d'avant (un contrat au mois change a partir d'un mois suivant : ce
+/// mois-ci reste tel qu'il est parti).
+pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Option<Frise> {
     let passees = v.versions();
-    let paie_du_mois = |x: &Value| crate::etats::paie_ecrite_de_la_version(v.objet(), x, mois).ok().flatten().map(|p| p.paie.clone());
-    let present = v.objet().brut.get("valide");
-    if passees.last().zip(present).is_none_or(|(a, p)| paie_du_mois(a).is_some() && paie_du_mois(a) == paie_du_mois(p)) {
+    let paie_du_mois = |x: Version| crate::etats::paie_ecrite_de_la_version(v.objet(), x, mois).ok().flatten().map(|p| p.paie.clone());
+    let present = v.objet().brut.valide.as_ref().map(Version::Presente);
+    if passees.last().map(Version::Passee).zip(present).is_none_or(|(a, p)| paie_du_mois(a).is_some() && paie_du_mois(a) == paie_du_mois(p)) {
         return None;
     }
     let siens = ses_departs(ctx, v.objet(), departs);
-    let present = v.objet().brut.get("valide").cloned().unwrap_or(Value::Null);
-    let numero = |x: &Value| x.get("version").and_then(Value::as_u64);
-    let toutes: Vec<(&Value, String)> = passees
+    let toutes: Vec<(Option<Version>, String)> = passees
         .iter()
-        .map(|x| (x, x.get("valide_le").map(en_texte).unwrap_or_default()))
-        .chain(std::iter::once((&present, v.le().to_string())))
+        .map(|x| (Some(Version::Passee(x)), x.valide_le.clone().unwrap_or_default()))
+        .chain(std::iter::once((present, v.le().to_string())))
         .collect();
     let mut versions = Vec::new();
-    let mut precedente: Option<&Value> = None;
+    let mut precedente: Option<Option<Version>> = None;
     for (x, le) in &toutes {
-        let n = numero(x);
+        let n = x.and_then(|x| x.numero());
         let mut partis: Vec<String> = siens
             .iter()
             .filter(|d| Some(d.version) == n)
             .map(|d| format!("{}, le {}", quoi_du_depart(d), jour_court(&d.le)))
             .collect();
         partis.dedup();
-        let changes = precedente.map_or_else(Vec::new, |p| changements(ctx, p.get("saisie").unwrap_or(&Value::Null), x.get("saisie").unwrap_or(&Value::Null)));
-        // Le titre de la version et son jour, tels que la frise les lit.
+        let changes = precedente.map_or_else(Vec::new, |p| changements(ctx, p.and_then(|p| p.saisie()), x.and_then(|x| x.saisie())));
         let titre_dit = format!("Version {}", n.map(|n| n.to_string()).unwrap_or_default()).trim().to_string();
-        let jour_dit = format!("le {}", jour_court(le));
-        versions.push(json!({"version": n, "le": le, "jour": jour_court(le), "titre_dit": titre_dit, "jour_dit": jour_dit, "changements": changes, "partis": partis}));
-        precedente = Some(x);
+        versions.push(VersionDeLaFrise { version: n, le: le.clone(), jour: jour_court(le), titre_dit, jour_dit: format!("le {}", jour_court(le)), changements: changes, partis });
+        precedente = Some(*x);
     }
-    Some(json!({"phrase": phrase_de_la_frise(ctx, v, departs, siens), "versions": versions}))
+    Some(Frise { phrase: phrase_de_la_frise(ctx, v, departs, siens), versions })
 }
 
 /// LA LIGNE SOUS LA CARTE : quand l'engagement a change, a partir de quel mois si ce n'est pas son premier, et ce qui
@@ -406,9 +429,9 @@ fn phrase_de_la_frise(ctx: &Contexte, v: &Valide, departs: &Departs, siens: &[De
 /// Le premier mois dont la paie a change au dernier changement de l'engagement valide `v` (sa derniere version passee
 /// contre son present) ; `None` si aucune ne se lit autrement.
 fn premier_mois_change(v: &Valide) -> Option<String> {
-    let avant = v.versions().last()?;
-    let present = v.objet().brut.get("valide")?;
-    let paie = |x: &Value, m: &str| crate::etats::paie_ecrite_de_la_version(v.objet(), x, m).ok().flatten().map(|p| p.paie.clone());
+    let avant = Version::Passee(v.versions().last()?);
+    let present = Version::Presente(v.objet().brut.valide.as_ref()?);
+    let paie = |x: Version, m: &str| crate::etats::paie_ecrite_de_la_version(v.objet(), x, m).ok().flatten().map(|p| p.paie.clone());
     crate::paies::mois_ecrits(v.objet()).ok()?.into_iter().find(|m| paie(avant, m) != paie(present, m))
 }
 

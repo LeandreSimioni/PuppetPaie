@@ -82,8 +82,8 @@ fn spectacles_declares(ctx: &Contexte) -> Vec<String> {
         if o.est_non_actif() || o.importe_seul() {
             continue;
         }
-        let nature = o.brut.get("nature").and_then(Value::as_str);
-        let Some(sp) = o.brut.get("spectacle").and_then(Value::as_str).filter(|s| !s.trim().is_empty()) else { continue };
+        let nature = o.carte().nature.as_deref();
+        let Some(sp) = o.carte().spectacle.as_deref().filter(|s| !s.trim().is_empty()) else { continue };
         let Some(cle) = ctx.spectacle(sp).ok().and_then(|f| f.get("_cle").and_then(Value::as_str).map(str::to_string)) else { continue };
         if droit::natures::nature(nature).is_ok_and(|n| n.ecrit("S21.G00.40.050")) && !out.contains(&cle) {
             out.push(cle);
@@ -342,7 +342,6 @@ pub fn conges_repris(ctx: &Contexte, salarie: &str) -> bool {
 /// neuf (`engagement::importe`), valide ou non. Un intermittent n'en est pas (ses conges sont ceux des Conges
 /// Spectacles) ; un contrat ne d'ici n'a rien d'avant.
 fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
-    let t = |e: &Value, k: &str| e.get(k).filter(|v| vrai(v)).map(socle::date::en_texte).unwrap_or_default();
     let mensuel = |nature: &str| droit::natures::nature(Some(nature)).is_ok_and(|n| n.mensuelle());
     // (salarie, debut du contrat, premier jour paye ici)
     let mut contrats: Vec<(String, String, String)> = Vec::new();
@@ -353,9 +352,9 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
         if !(o.est_valide() || o.est_importe()) || o.est_non_actif() || o.importe_seul() {
             continue;
         }
-        let e = &*o.brut;
-        let (salarie, debut) = (t(&e, "salarie"), t(&e, "debut"));
-        if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&t(&e, "nature")) {
+        let e = o.carte();
+        let (salarie, debut) = (engagement::saisie::Carte::texte(&e.salarie), engagement::saisie::Carte::texte(&e.debut));
+        if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&engagement::saisie::Carte::texte(&e.nature)) {
             continue;
         }
         vus.push(salarie.clone());

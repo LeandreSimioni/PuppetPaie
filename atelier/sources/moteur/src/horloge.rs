@@ -554,7 +554,7 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, le_mois: Mois, calendrier
         let revalide = engagement::stock::objets_du_mois(d.racine, mois)
             .map_err(Echec::from)?
             .iter()
-            .filter_map(|o| o.brut.get("valide").and_then(|v| v.get("le")).and_then(Value::as_str).map(|t| t.chars().take(19).collect::<String>()))
+            .filter_map(|o| o.brut.valide.as_ref().map(|v| v.le.chars().take(19).collect::<String>()))
             .max();
         let documents = format!("{}T11:00:00", echeance.iso());
         (format!("{}T10:00:00", echeance.iso()), revalide.filter(|r| *r > documents).unwrap_or(documents))
@@ -868,8 +868,8 @@ fn signables(ctx: &Contexte, mois: Mois) -> R<Vec<Signable>> {
 fn revalide_le(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Option<String> {
     engagement::stock::objets_du_mois(&ctx.racine, mois).ok()?.into_iter().find_map(|o| {
         let b = &*o.brut;
-        let sien = engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie) && engagement::debut_brut(&ctx.racine, &b) == debut;
-        sien.then(|| o.brut.get("valide").and_then(|v| v.get("le")).and_then(Value::as_str).map(|t| t.chars().take(19).collect()))?
+        let sien = engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(salarie) && engagement::debut_brut(&ctx.racine, b) == debut;
+        sien.then(|| o.brut.valide.as_ref().map(|v| v.le.chars().take(19).collect()))?
     })
 }
 

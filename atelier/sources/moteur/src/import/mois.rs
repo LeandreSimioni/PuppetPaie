@@ -451,9 +451,9 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     for i in importes {
         let contrat = i.contrat_lu();
         let paie = i.paies_lues().into_iter().find(|p| p.mois == mois);
-        let brut = &*i.objet().brut;
-        let (s, d) = (texte(&brut, "salarie"), texte(&brut, "debut"));
-        let dpae = dpae_de(&embauches, &certifiees, &s, &texte(&brut, "numero"), &d);
+        let brut = i.objet().carte();
+        let (s, d) = (engagement::saisie::Carte::texte(&brut.salarie), engagement::saisie::Carte::texte(&brut.debut));
+        let dpae = dpae_de(&embauches, &certifiees, &s, &engagement::saisie::Carte::texte(&brut.numero), &d);
         cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));
     }
     cartes.sort_by(|a, b| (texte(a, "debut"), texte(a, "nom")).cmp(&(texte(b, "debut"), texte(b, "nom"))));

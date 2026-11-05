@@ -915,26 +915,46 @@ pub(crate) fn jours_des_lignes(racine: &Path, lignes: &[Value], cle: &str) -> Ve
     out
 }
 
-/// Les lignes d'un engagement tel que son fichier l'ecrit. TRAVAIL A FAIRE (chaine A) : l'engagement ecrit a sa forme
-/// (`stock::Objet::brut`).
-fn lignes_ecrites(e: &Value) -> &[Value] {
-    e.get("lignes").and_then(|l| l.as_array()).map_or(&[][..], |a| &a[..])
+/// Le jour d'une date de ligne (`"AAAA-MM-JJ"` ou `{"jour": …}`), en texte.
+pub fn jour_ecrit(x: &Value) -> String {
+    match x {
+        Value::Object(m) => m.get("jour").map(en_texte).unwrap_or_default(),
+        autre => en_texte(autre),
+    }
 }
 
-/// Les jours joues d'un engagement tel que son fichier l'ecrit (`Carte::dates`).
-pub fn dates_engagement(racine: &Path, e: &Value) -> Vec<Value> {
-    jours_des_lignes(racine, lignes_ecrites(e), "dates")
-}
-
-/// Les jours au planning d'un engagement tel que son fichier l'ecrit (`Carte::planning`).
-pub fn planning_engagement(racine: &Path, e: &Value) -> Vec<Value> {
-    jours_des_lignes(racine, lignes_ecrites(e), "planning")
-}
-
-/// Les jours du contrat entier qu'un engagement brut connait : ses dates
-/// jouees et son planning, sans doublon.
-pub fn jours_du_contrat(racine: &Path, e: &Value) -> usize {
-    jours_de_lignes(racine, lignes_ecrites(e))
+/// LES LIGNES D'UN MOIS SANS FAITS d'un contrat d'usage, tirees des lignes `source` du dernier mois qui en dit
+/// (`stock::Objet::lignes_du_planning`) : une ligne par ligne qui a des jours au planning de `mois` ou apres, a la meme
+/// rubrique, au meme taux et au meme lieu, ses jours de `mois` en dates et ceux d'apres au planning ; un cachet, une
+/// journee ou un service par date (une autre unite, des heures, ne se deduit pas d'un nombre de jours : quantite 0, a
+/// completer).
+pub(crate) fn lignes_du_planning(racine: &Path, source: &[Value], mois: &str) -> Resultat<Vec<Value>> {
+    let mut lignes = Vec::new();
+    for l in source {
+        let plan: Vec<Value> = l.get("planning").and_then(Value::as_array).cloned().unwrap_or_default();
+        let dedans: Vec<Value> = plan.iter().filter(|x| jour_ecrit(x).starts_with(mois)).cloned().collect();
+        let apres: Vec<Value> = plan.iter().filter(|x| jour_ecrit(x).get(..7).is_some_and(|m| m > mois)).cloned().collect();
+        if dedans.is_empty() && apres.is_empty() {
+            continue;
+        }
+        let code = l.get("rubrique").map(en_texte).unwrap_or_else(|| "cachet".into());
+        let unite = Mois::lire(mois).map(Mois::dernier_jour).and_then(|j| rubrique(racine, &code, &j)).map(|r| r.unite).unwrap_or_default();
+        let par_date = matches!(unite.as_str(), "cachet" | "jour" | "service");
+        let mut n = Map::new();
+        n.insert("rubrique".into(), Value::String(code));
+        n.insert("taux".into(), l.get("taux").cloned().unwrap_or(Value::Null));
+        if let Some(lieu) = l.get("lieu").filter(|x| vrai(x)) {
+            n.insert("lieu".into(), lieu.clone());
+        }
+        n.insert("quantite".into(), if par_date { Value::from(dedans.len()) } else { Value::from(0) });
+        if let Some(h) = l.get("heures").filter(|x| par_date && vrai(x)) {
+            n.insert("heures".into(), h.clone());
+        }
+        n.insert("dates".into(), Value::Array(dedans));
+        n.insert("planning".into(), Value::Array(apres));
+        lignes.push(Value::Object(n));
+    }
+    Ok(lignes)
 }
 
 /// Les jours, sans doublon, que des lignes jouent ou planifient.
@@ -948,10 +968,28 @@ pub(crate) fn jours_de_lignes(racine: &Path, lignes: &[Value]) -> usize {
     vus.len()
 }
 
+/// Le nom d'un salarie tel qu'une donnee le dit. TRAVAIL A FAIRE (chaine A) : `conges.rs` (l. 43) le passe encore en
+/// valeur ; il ne reste alors que le texte.
+pub(crate) trait NomDit {
+    fn nom_dit(&self) -> Option<String>;
+}
+
+impl NomDit for &str {
+    fn nom_dit(&self) -> Option<String> {
+        Some(self.to_string())
+    }
+}
+
+impl NomDit for &Value {
+    fn nom_dit(&self) -> Option<String> {
+        chaine(Some(self))
+    }
+}
+
 /// Le salarie qu'un refus nomme en tete, tel que l'ecran le nomme partout (`Contexte::nomme` : « NOM Prénom ») ;
 /// « Cet engagement » quand la carte n'a pas encore de salarie.
-pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&Value>) -> String {
-    chaine(salarie).filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(&c)).unwrap_or_else(|| "Cet engagement".to_string())
+pub(crate) fn salarie_nomme<N: NomDit>(ctx: &Contexte, salarie: Option<N>) -> String {
+    salarie.and_then(|s| s.nom_dit()).filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(&c)).unwrap_or_else(|| "Cet engagement".to_string())
 }
 
 /// Ce que `conges::lignes_du_mois` rend pour un engagement paye
@@ -1110,14 +1148,14 @@ pub(crate) fn engagements(
         poser("jours", e.get("jours").or(jours_du_mois.as_ref()));
         // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
-        let continue_ = match (e.get("jours_contrat"), e.as_object()) {
-            (None, Some(o)) if !nat.mensuelle() && crate::debut_brut(&ctx.racine, e).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
-                crate::importe::continue_par(&ctx.racine, o)?.and_then(|i| i.jours_du_contrat_continue(jours_du_contrat(&ctx.racine, e))).map(Value::from)
+        let continue_ = match &carte.jours_contrat {
+            None if !nat.mensuelle() && carte.debut_lu(&ctx.racine).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
+                crate::importe::continue_par(&ctx.racine, carte)?.and_then(|i| i.jours_du_contrat_continue(carte.jours_du_contrat(&ctx.racine))).map(Value::from)
             }
             _ => None,
         };
         poser("jours_contrat", e.get("jours_contrat").or(continue_.as_ref()));
-        poser("planning", Some(&Value::Array(planning_engagement(&ctx.racine, e))));
+        poser("planning", Some(&Value::Array(carte.planning(&ctx.racine))));
         poser("lignes", lignes.as_ref());
         poser("date_paiement", e.get("date_paiement"));
         poser("lieu", e.get("lieu"));
@@ -1841,13 +1879,14 @@ fn sexe(fiche: &droit::fiche::ChampsSalarie) -> String {
 
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
 /// (sans tenir compte de la casse ni des accents), comme le fait le calcul de sa paie. `None` s'il ne nomme aucune fiche.
-pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<droit::contexte::IdSalarie> {
-    let nom = e.get("salarie").and_then(Value::as_str)?;
-    ctx.cle_du_salarie(nom).ok()
+/// La fiche du salarie de l'engagement ecrit `e`, lue comme le calcul la lit (`Carte::cle`).
+pub fn cle_de_l_engagement(ctx: &Contexte, e: &stock::Ecrit) -> Option<droit::contexte::IdSalarie> {
+    e.saisie.carte.cle(ctx)
 }
-/// Le debut d'un engagement brut, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour joue.
-pub fn debut_brut(racine: &Path, e: &Value) -> String {
-    debut_de(racine, e.get("debut").filter(|d| vrai(d)).map(en_texte), lignes_ecrites(e))
+/// Le debut de l'engagement ecrit `e`, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour
+/// joue (`Carte::debut_lu`).
+pub fn debut_brut(racine: &Path, e: &stock::Ecrit) -> String {
+    e.saisie.carte.debut_lu(racine)
 }
 
 /// Le debut dit, sinon le premier jour joue des lignes.
@@ -2177,4 +2216,33 @@ pub fn lue_sans_paie(ctx: &Contexte, data: &saisie::VueDuMois) -> Resultat<Vec<c
 #[cfg(feature = "ecran")]
 pub fn preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<solde::Preavis> {
     solde::duree_du_preavis(ctx, e, anciennete, motif)
+}
+
+/// LES LIGNES `presentes` SONT-ELLES CELLES DE `partie` ARRETEES A LA `fin` (AAAA-MM-JJ) d'un contrat rompu
+/// (`etats::seule_la_rupture`) : une ligne garde ses jours jusqu'a la fin, celle qui n'en a plus disparait, et la quantite
+/// d'une ligne coupee ne croit pas.
+pub(crate) fn lignes_coupees_a_la_fin(partie: &[Value], presentes: &[Value], fin: &str) -> bool {
+    let dates = |l: &Value| -> Vec<String> { l.get("dates").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default() };
+    let quantite = |l: &Value| l.get("quantite").and_then(Value::as_f64).unwrap_or(0.0);
+    let sans = |l: &Value, k: &[&str]| -> Map<String, Value> {
+        l.as_object().map(|o| o.iter().filter(|(c, _)| !k.contains(&c.as_str())).map(|(c, x)| (c.clone(), x.clone())).collect()).unwrap_or_default()
+    };
+    let mut attendues: Vec<(Value, bool)> = Vec::new();
+    for l in partie {
+        let jours = dates(l);
+        let gardes: Vec<String> = jours.iter().filter(|j| j.as_str() <= fin).cloned().collect();
+        if !jours.is_empty() && gardes.is_empty() {
+            continue;
+        }
+        let mut l = l.clone();
+        let coupee = gardes.len() != jours.len();
+        if coupee {
+            if let Some(o) = l.as_object_mut() {
+                o.insert("dates".into(), Value::Array(gardes.into_iter().map(Value::String).collect()));
+            }
+        }
+        attendues.push((l, coupee));
+    }
+    presentes.len() == attendues.len()
+        && presentes.iter().zip(&attendues).all(|(p, (a, coupee))| if *coupee { sans(p, &["quantite"]) == sans(a, &["quantite"]) && quantite(p) <= quantite(a) } else { p == a })
 }

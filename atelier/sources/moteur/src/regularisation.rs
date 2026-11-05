@@ -14,7 +14,6 @@ use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use socle::num::{q2, Decimal};
 use socle::echec::Echec;
 use crate::routes::etapes::Moteur;
@@ -184,7 +183,7 @@ pub(crate) fn refus_non_declarable(
 ) -> R<Option<String>> {
     let brut = |o: &engagement::stock::Objet| o.brut.clone();
     let (b_avant, b_apres) = (brut(avant), brut(apres));
-    let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b_avant), b_avant.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else {
+    let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b_avant), b_avant.saisie.carte.numero_dit().map(String::from)) else {
         return Ok(None);
     };
     let meme_salarie = engagement::cle_de_l_engagement(ctx, &b_apres).as_deref() == Some(cle.as_str());
@@ -196,7 +195,7 @@ pub(crate) fn refus_non_declarable(
         if !matches!(modification_de_l_engagement(m, ctx, socle::mois::Mois::lire(mois)?)?, Some(DsnDeposee::Corrigee { .. })) {
             continue;
         }
-        let nom = b_avant.get("salarie").map(valeur_en_texte).unwrap_or_else(|| cle.to_string());
+        let nom = b_avant.saisie.carte.salarie.clone().unwrap_or_else(|| cle.to_string());
         let debut = socle::date::Jour::lire(&engagement::debut_brut(&ctx.racine, &b_avant)).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
         let dsn = match departs.de(&cle, &numero).iter().find(|x| x.envoi == engagement::departs::Envoi::Dsn && x.mois.as_deref() == Some(mois)).and_then(|x| x.par.clone()) {
             Some(par) => format!("dans la DSN {}, qui a porté la correction {}", de_mois_en_clair(&par), de_mois_en_clair(mois)),

@@ -14,7 +14,6 @@ use serde_json::{json, Value};
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::valeur::valeur_en_texte;
 use socle::texte::euros;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -164,7 +163,7 @@ fn annulations(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &st
         }
         let lu = versement_declare::dernier_declare(ctx, n.objet(), departs, mois, mois_courant)
             .map_err(refus_valeur)?
-            .ok_or_else(|| refus_valeur(format!("{} : aucune DSN partie n'a declare le contrat {} de ce mois", mois, valeur_en_texte(n.objet().brut.get("numero").unwrap_or(&Value::Null)))))?;
+            .ok_or_else(|| refus_valeur(format!("{} : aucune DSN partie n'a declare le contrat {} de ce mois", mois, n.objet().carte().numero.clone().unwrap_or_default())))?;
         let apres = lu.avant.annulee();
         out.push(Reg {
             mois: mois.to_string(),

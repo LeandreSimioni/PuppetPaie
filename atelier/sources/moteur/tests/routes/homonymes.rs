@@ -42,7 +42,7 @@ fn un_homonyme_ne_porte_rien_de_l_autre() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|e| (e["salarie"].as_str().unwrap().to_string(), e["numero"].as_str().unwrap().to_string()))
+        .map(|e| (e["saisie"]["carte"]["salarie"].as_str().unwrap().to_string(), e["saisie"]["carte"]["numero"].as_str().unwrap().to_string()))
         .collect();
     let numero = |k: &str| numeros.iter().find(|(s, _)| s == k).unwrap().1.clone();
 

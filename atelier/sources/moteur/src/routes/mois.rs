@@ -748,14 +748,13 @@ pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(IdSalari
 /// engagement, pour le fichier du mois, est le contrat tel qu'il a ete signe, et une ligne de cachets a dater, au taux du
 /// contrat, sinon au dernier saisi (la page ne choisit pas de taux ; un dossier qu'on ne sait pas relire, ou qui n'a
 /// encore aucun cachet, R12, n'en propose aucun : la ligne reste a completer).
-/// TRAVAIL A FAIRE (chaine A) : l'engagement ecrit lui-meme (son salarie, ses bornes, son numero) se lit encore par ses cles.
 fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
     let mut out: Vec<EnCours> = Vec::new();
     let mut vus: HashSet<(String, String, String)> = HashSet::new();
-    let t = |x: &Map<String, Value>, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     for i in engagement::importe::qui_continuent(&ctx.racine, mois).map_err(Echec::from)? {
-        let b = i.objet().champs();
-        let (salarie, debut, fin, numero) = (t(b, "salarie"), t(b, "debut"), t(b, "fin"), t(b, "numero"));
+        let b = i.objet().carte();
+        let t = engagement::saisie::Carte::texte;
+        let (salarie, debut, fin, numero) = (t(&b.salarie), t(&b.debut), t(&b.fin), t(&b.numero));
         if !vus.insert((salarie.clone(), debut.clone(), numero.clone())) {
             continue;
         }
@@ -1438,7 +1437,7 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &VueDuMois, mois: &str) -> 
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     let etats = if disque.is_some() { engagement::etats::du_mois(ctx, mois, &departs)? } else { Vec::new() };
     // TRAVAIL A FAIRE (chaine A) : l'engagement ecrit (`stock::Objet::champs`) se lit par ses cles.
-    let qui = |b: &Map<String, Value>| (b.get("salarie").map(en_texte), b.get("numero").filter(|n| vrai(n)).map(valeur_en_texte));
+    let qui = |b: &engagement::saisie::Carte| (b.salarie.clone(), b.numero_dit().map(String::from));
     let mut lues: Vec<Option<PaieMontree>> = Vec::new();
     for e in &data.engagements {
         let mut lue = None;
@@ -1446,7 +1445,7 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &VueDuMois, mois: &str) -> 
             let sien = (e.salarie.clone(), e.numero_dit().map(String::from));
             // Un mois d'apres le present n'a pas encore de paie ecrite : l'engagement valide s'y calcule pour l'ecran.
             let a_venir = |x: &engagement::etats::Etat| mois > engagement::etats::mois_present(ctx).as_str() && x.valide().is_some_and(|v| v.paie_ecrite(mois).is_none());
-            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && !a_venir(x) && sien.1.is_some() && qui(x.objet().champs()) == sien);
+            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && !a_venir(x) && sien.1.is_some() && qui(x.objet().carte()) == sien);
             if let (Some((j, x)), Some(d)) = (trouve, disque.as_ref()) {
                 let v = x.valide().ok_or("engagement en saisie")?;
                 lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois) });

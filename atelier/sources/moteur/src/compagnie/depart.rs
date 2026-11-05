@@ -346,7 +346,7 @@ fn engagement_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str) -> R<engag
         .chain(engagement::stock::non_actifs_du_mois(&ctx.racine, mois)?)
         .find(|o| {
             let b = &*o.brut;
-            engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle) && b.get("numero").map(valeur_en_texte).as_deref() == Some(numero)
+            engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(cle) && b.saisie.carte.numero.as_deref() == Some(numero)
         })
         .ok_or_else(|| valeur(format!("{} : aucun engagement de {} ne porte le contrat {} qu'une DSN partie a declare.", cle, socle::mois::Mois::en_clair(mois), numero)))
 }
@@ -360,9 +360,9 @@ fn paie_de_la_version(ctx: &Contexte, o: &engagement::stock::Objet, cle: &str, n
 
 /// Le jour ou la version `n` de l'engagement `o` a ete validee (`le` de la presente, `valide_le` d'une passee).
 fn valide_le(o: &engagement::stock::Objet, n: u64) -> Option<socle::date::Jour> {
-    let passees = o.brut.get("versions").and_then(Value::as_array).into_iter().flatten();
-    let v = o.brut.get("valide").into_iter().chain(passees).find(|v| v.get("version").and_then(Value::as_u64) == Some(n))?;
-    let le = v.get("valide_le").or_else(|| v.get("le")).and_then(Value::as_str)?;
+    use engagement::stock::Version;
+    let v = o.brut.valide.iter().map(Version::Presente).chain(o.brut.versions.iter().map(Version::Passee)).find(|v| v.numero() == Some(n))?;
+    let le = v.valide_le()?;
     socle::date::Jour::lire(le.get(..10)?).ok()
 }
 

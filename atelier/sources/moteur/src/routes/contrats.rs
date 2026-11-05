@@ -26,7 +26,6 @@ use socle::date::{jour_iso, Jour};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::repr;
 use socle::mois::Mois;
-use socle::valeur::valeur_en_texte;
 
 
 const CONTRATS: Champ = Champ { nom: "contrats", libelle: Affiche::new("Contrats"), forme: Forme::Objet, sens: "les contrats choisis : [{salarie, debut, numero}]", avance: false };
@@ -1265,7 +1264,7 @@ fn version_validee(ctx: &Contexte, mois: &str, salarie: &str, numero: Option<&st
     Ok(engagement::etats::du_mois(ctx, mois, departs)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
         let b = &*v.objet().brut;
-        (engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(salarie) && b.get("numero").map(valeur_en_texte).as_deref() == numero).then_some(v)
+        (engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(salarie) && b.saisie.carte.numero.as_deref() == numero).then_some(v)
     }))
 }
 
@@ -1290,16 +1289,10 @@ fn avenant_d_un_contrat_signe_ailleurs(ctx: &Contexte, c: &ChargeAvenant) -> R<O
     }
     let debut = p.engagement.debut;
     let Some(v) = version_validee(ctx, &mois_t, salarie, Some(numero), &departs)? else { return Ok(None) };
-    let presente = v.objet().brut.get("valide").and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
+    let presente = v.objet().brut.valide.as_ref().and_then(|x| x.saisie.clone()).unwrap_or_default();
     let convenue = match engagement::etats::version_au_depart(ctx, &v, &departs, engagement::departs::Envoi::Contrat) {
-        Some(x) => x.get("saisie").cloned().unwrap_or(Value::Null),
-        None => {
-            let mut s = presente.clone();
-            if let Some(o) = s.as_object_mut() {
-                o.remove(engagement::stock::DATES);
-            }
-            s
-        }
+        Some(x) => x.saisie().cloned().unwrap_or_default(),
+        None => engagement::stock::Saisie { avenants: Vec::new(), ..presente.clone() },
     };
     let nat = p.engagement.nat().map_err(Echec::from)?;
     let changes = engagement::versions::termes_changes(&convenue, &presente);

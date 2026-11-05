@@ -569,8 +569,8 @@ pub fn changements_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, change
     changes
         .iter()
         .map(|c| {
-            let (titre, nom) = terme_nomme(&c.terme);
-            let dit = |v: &Option<Value>| v.as_ref().map(|x| valeur_en_clair(ctx, nat, &c.terme, x));
+            let (titre, nom) = terme_nomme(c.terme.nom());
+            let dit = |v: &Option<engagement::saisie::Valeur>| v.as_ref().map(|x| valeur_en_clair(ctx, nat, c.terme.nom(), &serde_json::to_value(x).unwrap_or(Value::Null)));
             let (avant, apres) = (dit(&c.avant), dit(&c.apres));
             let quand = format!("À compter du {}", c.jour.jj_mm_aaaa());
             let phrase = match (&avant, &apres) {

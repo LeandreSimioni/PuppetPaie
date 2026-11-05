@@ -539,13 +539,13 @@ fn noter_ligne(d: &mut engagement::departs::Departs, l: &Ligne) {
 /// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du
 /// salarie, le numero du contrat, l'engagement), sa version. Ce que la ligne du journal de l'envoi porte : elles se lisent
 /// AVANT l'envoi, qui ne part pas d'un engagement a revalider (`Valide::a_revalider`).
-pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &engagement::departs::Departs, garder: impl Fn(&str, &str, &serde_json::Value) -> bool) -> Resultat<Vec<Version>> {
+pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &engagement::departs::Departs, garder: impl Fn(&str, &str, &engagement::stock::Ecrit) -> bool) -> Resultat<Vec<Version>> {
     let mut out = Vec::new();
     for e in engagement::etats::du_mois(ctx, mois, departs)? {
         let Some(v) = e.valide() else { continue };
         let brut = &*v.objet().brut;
-        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(serde_json::Value::as_str)) else { continue };
-        if garder(&cle, numero, &brut) {
+        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, brut), brut.saisie.carte.numero.as_deref()) else { continue };
+        if garder(&cle, numero, brut) {
             if let Some(phrase) = v.a_revalider(ctx) {
                 return Err(phrase);
             }
@@ -563,7 +563,7 @@ pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Contra
     mois.dedup();
     let mut out: Vec<Version> = Vec::new();
     for m in mois {
-        let siens = |cle: &str, n: &str, _: &serde_json::Value| contrats.iter().any(|c| c.mois == m && c.salarie.as_str() == cle && c.numero_dit() == n);
+        let siens = |cle: &str, n: &str, _: &engagement::stock::Ecrit| contrats.iter().any(|c| c.mois == m && c.salarie.as_str() == cle && c.numero_dit() == n);
         for x in versions_du_mois(ctx, &m.to_string(), departs, siens)? {
             if !out.contains(&x) {
                 out.push(x);
