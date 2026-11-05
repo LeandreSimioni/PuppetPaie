@@ -1039,6 +1039,14 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         };
         let mut ligne = ligne;
         let ecarts = completer(&mut ligne, &l.b, &copie, l.page, ctx.entreprise.idcc.texte());
+        // Le contrat que le bulletin atteste ; celui d'un permanent ne compte que son mois : ses heures, ses cachets et
+        // ses jours sont ceux de la paie de ce mois (le contrat entier n'en garde pas : `import::ecrite`).
+        let atteste = l.compteurs.as_ref().map_err(|m| format!("ses compteurs ne se lisent pas ({})", m)).and_then(|c| engagement(l, c, &salarie, &copie));
+        if let (Ok((cle, _)), false) = (&atteste, marque_d_intermittent(&l.b)) {
+            for (k, n) in [("heures", cle.4), ("cachets", cle.5), ("jours", cle.6)] {
+                ligne.insert(k.into(), json!(n as i64));
+            }
+        }
         let ligne = Value::Object(ligne);
         let etat_paie = if avant.as_ref().map(super::ecrite::sans_dates_d_import).transpose()? == Some(super::ecrite::sans_dates_d_import(&ligne)?) {
             "deja"
@@ -1090,12 +1098,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         infos.insert("paie".into(), json!(etat_paie));
 
         // Le contrat atteste.
-        let etat_contrat = match &l.compteurs {
-            Err(m) => {
-                phrases.push(format!("contrat non repris : ses compteurs ne se lisent pas ({})", m));
-                "inconnu"
-            }
-            Ok(c) => match engagement(l, c, &salarie, &copie) {
+        let etat_contrat = match atteste {
                 Err(m) => {
                     phrases.push(format!("contrat non repris : {}", m));
                     "inconnu"
@@ -1126,7 +1129,6 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                         "nouveau"
                     }
                 }
-            },
         };
         infos.insert("contrat".into(), json!(etat_contrat));
         if let Ok(c) = &l.compteurs {

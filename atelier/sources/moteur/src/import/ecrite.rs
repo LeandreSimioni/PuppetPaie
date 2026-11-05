@@ -32,8 +32,12 @@ use socle::echec::Echec;
 type R<T> = Result<T, Echec>;
 
 
-/// Les colonnes qu'un bulletin ajoute a une paie (`import::bulletins::completer`).
-const COLONNES_BULLETIN: [&str; 12] = [
+/// Les colonnes qu'un bulletin ajoute a une paie (`import::bulletins::completer`) ; les heures, cachets et jours sont
+/// ceux du mois d'un permanent.
+const COLONNES_BULLETIN: [&str; 15] = [
+    "heures",
+    "cachets",
+    "jours",
     "spectacle",
     "analytique",
     "cotisations_salariales",
@@ -394,17 +398,6 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> R<Vec<engage
     }
     for (salarie, _, mut gs) in paquets {
         gs.sort_by_key(premier_mois);
-        // Ce que le bulletin d'un mois atteste de ce mois (ses heures, ses jours) reste a la paie de ce mois.
-        for g in gs.iter_mut().filter(|g| g.paies.len() == 1) {
-            let Some(c) = g.contrat.clone() else { continue };
-            if let Some(p) = g.paies[0].as_object_mut() {
-                for k in ["heures", "cachets", "jours"] {
-                    if let Some(v) = c.get(k).filter(|_| !p.contains_key(k)) {
-                        p.insert(k.into(), v.clone());
-                    }
-                }
-            }
-        }
         let paies: Vec<Value> = gs.iter().flat_map(|g| g.paies.iter().cloned()).collect();
         let declarees: Vec<&Value> = paies.iter().filter(|p| !declaree_par_bulletin(p)).collect();
         let debut = declarees.iter().map(|p| t(p, "debut")).find(|d| !d.is_empty()).unwrap_or_else(|| gs.iter().map(|g| g.debut.clone()).min().unwrap_or_default());

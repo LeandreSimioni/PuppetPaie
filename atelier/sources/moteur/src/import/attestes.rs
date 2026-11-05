@@ -177,23 +177,44 @@ pub(crate) type Remplaces = Vec<String>;
 
 impl Registre {
     /// Le registre de l'historique : les contrats des engagements importes, rattaches a leur NIR par la fiche
-    /// (`par_cle` : cle de fiche -> NIR). Un contrat sans salarie, sans debut ou sans fin, ou dont la fiche n'a pas de
-    /// NIR, ne se compare a rien : il n'atteste rien, et le registre le dit (`muets`).
+    /// (`par_cle` : cle de fiche -> NIR). LE CONTRAT D'UN PERMANENT (`Importe::permanent`, celui que l'ecriture fond en un
+    /// engagement : `import::ecrite`) s'atteste mois par mois, comme ses bulletins l'ont atteste : chaque mois verse, aux
+    /// dates du mois dans le contrat, compte ce que sa paie porte ; un contrat sans terme (un CDI : « Date de fin
+    /// previsionnelle : un CDI n'en a pas », `contrats-base.json`, S21.G00.40.010) n'est donc pas muet. Un autre contrat
+    /// sans salarie, sans debut ou sans fin, ou dont la fiche n'a pas de NIR, ne se compare a rien : il n'atteste rien,
+    /// et le registre le dit (`muets`).
     pub(crate) fn de_l_historique(ctx: &Contexte, par_cle: &HashMap<String, String>) -> R<Registre> {
         let mut tous = Vec::new();
         let mut muets = Vec::new();
-        for e in engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?.iter().map(engagement::importe::ContratLu::en_ligne) {
-            let t = |k: &str| e.get(k).map(valeur_en_texte).unwrap_or_default();
-            let (cle, debut, fin) = (t("salarie"), t("debut"), t("fin"));
-            let manque: Vec<&str> = [(cle.is_empty(), "salarié"), (debut.is_empty(), "début"), (fin.is_empty(), "fin")].iter().filter(|m| m.0).map(|m| m.1).collect();
+        for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
+            let Some(c) = i.contrat_lu() else { continue };
+            let e = c.en_ligne();
+            let (cle, debut, fin) = (c.salarie.clone(), c.debut.clone(), c.fin.clone());
+            let permanent = i.permanent();
+            let manque: Vec<&str> =
+                [(cle.is_empty(), "salarié"), (debut.is_empty(), "début"), (fin.is_empty() && !permanent, "fin")].iter().filter(|m| m.0).map(|m| m.1).collect();
             let quel = format!("le contrat de l'historique {}{} du {} au {}", if cle.is_empty() { "" } else { "de " }, cle, if debut.is_empty() { "?".into() } else { jj(&debut) }, if fin.is_empty() { "?".into() } else { jj(&fin) });
             if !manque.is_empty() {
                 muets.push(format!("{} n'a pas de {} : il ne se compare à aucune pièce, une pièce du même contrat l'ajouterait une seconde fois", quel, manque.join(", ni de ")));
                 continue;
             }
-            match par_cle.get(&cle) {
-                Some(nir) => tous.push(lu(nir, &e, "historique")),
-                None => muets.push(format!("{} : la fiche de ce salarié n'a pas de NIR, il ne se compare à aucune pièce, une pièce du même contrat l'ajouterait une seconde fois", quel)),
+            let Some(nir) = par_cle.get(&cle) else {
+                muets.push(format!("{} : la fiche de ce salarié n'a pas de NIR, il ne se compare à aucune pièce, une pièce du même contrat l'ajouterait une seconde fois", quel));
+                continue;
+            };
+            if !permanent {
+                tous.push(lu(nir, &e, "historique"));
+                continue;
+            }
+            for (mois, p) in i.paies() {
+                let Ok(m) = socle::mois::Mois::lire(mois) else { continue };
+                let (premier, dernier) = (m.premier_jour().iso(), m.dernier_jour().iso());
+                let mut a = lu(nir, &e, "historique");
+                a.debut = premier.max(debut.clone());
+                a.fin = if fin.is_empty() { dernier } else { dernier.min(fin.clone()) };
+                (a.heures, a.cachets, a.jours) = (p.heures.unwrap_or(0) as i128, p.cachets.unwrap_or(0) as i128, p.jours.unwrap_or(0) as i128);
+                a.brut = p.brut;
+                tous.push(a);
             }
         }
         Ok(Registre { tous, retenus: Vec::new(), changes: Vec::new(), muets })

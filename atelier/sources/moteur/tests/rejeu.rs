@@ -594,4 +594,9 @@ fn la_fictive_de_l_hotel_de_bourgogne_tient_son_annee_et_se_livre() {
     // et le FNAS de la CCNEAC n'a pas a dire l'effectif de 2024 (`bareme::EntrepriseLue::taux_lus`).
     let balance = outils::route(&racine, "exporter", json!({"etat": "balance-paie", "annee": "2025", "apercu": true}), jour);
     assert_eq!(balance["ok"], json!(true), "{}", balance);
+    // LES MEMES PIECES REIMPORTEES N'ANNONCENT RIEN (le bug : chaque reimport annoncait 24 contrats, les mois des deux CDI
+    // sans terme, et 3 paies de decembre « completees ») : le contrat d'un permanent s'atteste mois par mois, et la paie
+    // du mois porte ce que son bulletin compte.
+    let apercu = outils::reussi(&outils::route(&racine, "importation-apercu", json!({}), jour)).clone();
+    assert_eq!(apercu["rien_a_faire"], json!(true), "{}", apercu["phrase"]);
 }
