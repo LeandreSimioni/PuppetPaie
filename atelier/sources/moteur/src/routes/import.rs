@@ -20,7 +20,7 @@ use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
-use socle::valeur::{nom_type, valeur_en_texte};
+use socle::valeur::valeur_en_texte;
 use crate::routes::catalogue::{Ecran, Place};
 
 
@@ -152,7 +152,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             let p = format!("Dans le dossier lu : {}DSN : {} ; AEM : {}. Rien n'est écrit.", bulletins, t(&v, "dsn"), t(&v, "aem"));
             Ok(super::phrase_en_tete(v, p))
         }
-        Route::ImportationEtat => etat_importation(&ctx.racine).map(|mut v| {
+        Route::ImportationEtat => super::lire_charge::<super::SansCharge>(charge).and_then(|_| etat_importation(&ctx.racine)).map(|mut v| {
             dire_l_etat_de_l_import(&mut v);
             let t = |k: &str| super::mot(&v[k]);
             let p = if t("importe_le").is_empty() {
@@ -169,6 +169,14 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
     }
 }
 
+/// La charge de `importation-apercu` et d'`importer` : le dossier a lire (vide ou absent : la boite aux lettres).
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeDossier {
+    #[serde(default)]
+    dossier: Option<String>,
+}
+
 /// Le dossier a trier : `charge.dossier`, ou `import/` a la racine de la compagnie s'il est vide ou absent.
 ///
 /// LA BOITE AUX LETTRES DE LA COMPAGNIE SE CREE VIDE : `import/` qui n'existe pas encore est
@@ -177,10 +185,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
 /// refuse (`import::tri::trier`).
 pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
     let boite = ctx.racine.join("import");
-    let d = match charge.get("dossier").filter(|v| vrai(v)) {
+    let charge: ChargeDossier = super::lire_charge(charge)?;
+    let d = match charge.dossier.filter(|s| !s.trim().is_empty()) {
         None => boite.clone(),
-        Some(Value::String(s)) => PathBuf::from(crate::routes::depots::normaliser(s)),
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un chemin en texte", nom_type(autre)))),
+        Some(s) => PathBuf::from(crate::routes::depots::normaliser(&s)),
     };
     let la_boite = |p: &Path| {
         p.file_name() == boite.file_name()
@@ -328,7 +336,7 @@ pub(crate) struct Apercu {
     pub(crate) a_completer: Vec<crate::import::completer::ACompleter>,
     pub(crate) contrats: Vec<dsn_aem::ContratAtteste>,
     /// Les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
-    pub(crate) paies: Vec<Value>,
+    pub(crate) paies: Vec<engagement::importe::PaieLue>,
     /// LES CONTRATS QUE L'IMPORT RETIENT, de toutes les pieces (AEM deposees, AEM en PDF, bulletins, certificats) : le
     /// registre de l'import les a dits nouveaux (`import::attestes`). Chacun avec le NIR qui le rattache (`salarie` vaut
     /// `<a creer>` tant que la fiche n'existe pas) et le bloc du compte rendu qui le compte.
@@ -354,16 +362,57 @@ pub(crate) fn garder_le_nom(ctx: &Contexte, e: &mut Map<String, Value>) {
 /// La cle `_cle_engagement` : (salarie, debut, fin, numero_objet, heures, cachets, jours, str(brut)).
 pub(crate) type CleEngagement = (String, String, String, String, i128, i128, i128, String);
 
-/// Les paies versees des engagements importes, en lignes de l'import (`engagement::importe::PaieLue::en_ligne`), une
-/// par mois.
-pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
-    Ok(engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)?.iter().map(engagement::importe::PaieLue::en_ligne).collect())
+/// Les paies versees des engagements importes, une par mois.
+pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<engagement::importe::PaieLue>> {
+    engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)
 }
 
-/// La cle d'une paie de l'historique : (mois, salarie, contrat).
-pub(crate) fn cle_paie(x: &Value) -> R<(String, String, String)> {
-    let k = |c: &str| -> R<String> { x.get(c).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c))) };
-    Ok((k("mois")?, k("salarie")?, k("contrat")?))
+/// UN VERSEMENT QUE LA DSN DECLARE, EN PAIE VERSEE : ses montants et ses dates, tels que la DSN les ecrit (`dsn_aem::
+/// lire_dsn`). Un montant ou une date qui ne se lit pas refuse l'import, et le dit : rien ne se devine (regle 1).
+fn paie_declaree(mois: &str, contrat: &str, nir: &str, v: &Map<String, Value>, objet: String) -> R<engagement::importe::PaieVersee> {
+    use engagement::importe::{Declaration, PaieVersee};
+    let texte = |k: &str| v.get(k).map(valeur_en_texte).filter(|s| !s.trim().is_empty());
+    // La rubrique de la DSN que chaque valeur est (`dsn_aem::lire_une_dsn`).
+    let rubrique = |k: &str| match k {
+        "debut" => "S21.G00.40.001",
+        "fin" => "S21.G00.40.010",
+        "quotite" => "S21.G00.40.013",
+        "verse_le" => "S21.G00.50.001",
+        "net_imposable" => "S21.G00.50.002",
+        "net_verse" => "S21.G00.50.004",
+        "taux_pas" => "S21.G00.50.006",
+        "pas" => "S21.G00.50.009",
+        "brut" => "S21.G00.51.013",
+        _ => "S21.G00.78.004",
+    };
+    let refus = |k: &str, x: &str, quoi: &str| {
+        erreur(
+            "ErreurOperation",
+            format!(
+                "La DSN de {} du dossier porte, en {}, « {} », qui n'est pas {} : corrigez-la ou retirez-la du dossier, puis relancez l'import.",
+                socle::mois::Mois::en_clair(mois),
+                rubrique(k),
+                x,
+                quoi
+            ),
+        )
+    };
+    let montant = |k: &str| -> R<Option<socle::num::Decimal>> {
+        texte(k).map(|x| socle::num::decimal_lu(&x).ok_or_else(|| refus(k, &x, "un montant"))).transpose()
+    };
+    let jour = |k: &str| -> R<Option<socle::date::Jour>> { texte(k).map(|x| socle::date::Jour::lire(&x).map_err(|_| refus(k, &x, "une date"))).transpose() };
+    let mut p = PaieVersee::vide(contrat.to_string(), Declaration::Dsn);
+    p.nir = Some(nir.to_string());
+    p.numero_objet = Some(objet).filter(|o| !o.trim().is_empty());
+    (p.debut, p.fin, p.verse_le) = (jour("debut")?, jour("fin")?, jour("verse_le")?);
+    (p.quotite, p.brut, p.net_imposable, p.net_verse) = (montant("quotite")?, montant("brut")?, montant("net_imposable")?, montant("net_verse")?);
+    (p.pas, p.taux_pas) = (montant("pas")?, montant("taux_pas")?);
+    (p.type_pas, p.identifiant_pas, p.depose_le, p.fichier) = (texte("type_pas"), texte("identifiant_pas"), texte("depot"), texte("fichier"));
+    for (code, b) in v.get("bases").and_then(Value::as_object).into_iter().flatten() {
+        let x = valeur_en_texte(b);
+        p.bases.insert(code.clone(), socle::num::decimal_lu(&x).ok_or_else(|| refus("base", &x, "un montant"))?);
+    }
+    Ok(p)
 }
 
 /// L'apercu de ce qu'un dossier de DSN et un dossier d'AEM donneraient (l'un ou l'autre peut manquer : rien n'en
@@ -549,7 +598,7 @@ pub(crate) fn apercu_lu(
     }
 
     // 5. Les paies declarees par les DSN : ce que chaque versement a porte.
-    let deja_paies: HashSet<(String, String, String)> = paies_historique(ctx)?.iter().map(cle_paie).collect::<R<_>>()?;
+    let deja_paies: HashSet<(String, String, String)> = paies_historique(ctx)?.iter().map(engagement::importe::PaieLue::cle).collect();
     let mut paies_nouvelles = 0usize;
     for ((mois, nir, contrat), _) in &lecture.paies {
         let cle = par_nir.get(nir);
@@ -569,37 +618,20 @@ pub(crate) fn apercu_lu(
         .filter(|c| !c.numero_objet.is_empty())
         .map(|c| ((c.nir.clone(), c.debut.iso(), c.fin.iso()), c.numero_objet.clone()))
         .collect();
-    let mut paies: Vec<Value> = Vec::new();
+    let mut paies: Vec<engagement::importe::PaieLue> = Vec::new();
     for ((mois, nir, contrat), v) in &lecture.paies {
         let cle = par_nir.get(nir);
         if cle.is_none() && !cles_a_venir.contains(nir) {
             continue;
         }
-        let texte = |k: &str| v.get(k).cloned().unwrap_or_else(|| json!(""));
+        let texte = |k: &str| v.get(k).map(valeur_en_texte).unwrap_or_default();
         let objet = match v.get("objet").filter(|x| vrai(x)) {
-            Some(o) => o.clone(),
-            None => {
-                let k = (nir.clone(), valeur_en_texte(&texte("debut")), valeur_en_texte(&texte("fin")));
-                json!(objets_aem.get(&k).cloned().unwrap_or_default())
-            }
+            Some(o) => valeur_en_texte(o),
+            None => objets_aem.get(&(nir.clone(), texte("debut"), texte("fin"))).cloned().unwrap_or_default(),
         };
-        paies.push(json!({
-            "mois": mois, "salarie": cle.cloned().unwrap_or_else(|| "<a creer>".to_string()), "nir": nir,
-            "contrat": contrat, "numero_objet": objet,
-            "debut": texte("debut"), "fin": texte("fin"), "quotite": texte("quotite"),
-            "brut": texte("brut"), "net_imposable": texte("net_imposable"),
-            // 50.004 est le net verse, pas le net a payer : la DSN ne declare pas celui-ci, un bulletin le donnera.
-            "net_verse": texte("net_verse"), "net_a_payer": "", "pas": texte("pas"),
-            "taux_pas": texte("taux_pas"), "type_pas": texte("type_pas"), "identifiant_pas": texte("identifiant_pas"),
-            "verse_le": texte("verse_le"),
-            "declare_par": "DSN", "depose_le": texte("depot"),
-            "fichier": texte("fichier"),
-        }));
-        if let Some(b) = v.get("bases").filter(|b| b.as_object().is_some_and(|o| !o.is_empty())) {
-            if let Some(Value::Object(l)) = paies.last_mut() {
-                l.insert("bases".into(), b.clone());
-            }
-        }
+        // 50.004 est le net verse, pas le net a payer : la DSN ne declare pas celui-ci, un bulletin le donnera.
+        let paie = paie_declaree(mois, contrat, nir, v, objet)?;
+        paies.push(engagement::importe::PaieLue { mois: mois.clone(), salarie: cle.cloned().unwrap_or_else(|| "<a creer>".to_string()), paie });
     }
     let Value::Object(reponse) = json!({
         "source": source,

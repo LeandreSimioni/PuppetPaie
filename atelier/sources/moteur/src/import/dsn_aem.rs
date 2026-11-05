@@ -642,7 +642,7 @@ pub(crate) struct ContratAtteste {
     pub(crate) cachets: i128,
     pub(crate) jours: i128,
     /// Le brut en euros, deux décimales.
-    pub(crate) brut: String,
+    pub(crate) brut: socle::num::Decimal,
     /// Le numero de l'attestation (zone 36..42), et sa date de signature (858..866, AAAA-MM-JJ si c'en est une).
     pub(crate) numero_attestation: String,
     pub(crate) date_attestation: String,
@@ -650,13 +650,17 @@ pub(crate) struct ContratAtteste {
 }
 
 /// Le contrat atteste, tel qu'un engagement importe le porte (`salarie` : la cle de sa fiche).
-pub(crate) fn ligne_du_contrat(c: &ContratAtteste, salarie: &str) -> serde_json::Value {
-    serde_json::json!({
-        "salarie": salarie, "debut": c.debut.iso(), "fin": c.fin.iso(), "numero_objet": c.numero_objet,
-        "heures": c.heures as i64, "cachets": c.cachets as i64, "jours": c.jours as i64, "brut": c.brut,
-        "atteste_par": "AEM", "numero_attestation": c.numero_attestation,
-        "atteste_le": c.date_attestation, "fichier": c.fichier,
-    })
+pub(crate) fn ligne_du_contrat(c: &ContratAtteste, salarie: &str) -> engagement::importe::ContratLu {
+    use engagement::importe::{Attestation, ContratAtteste as Atteste, ContratLu};
+    let plein = |s: &str| Some(s.to_string()).filter(|s| !s.trim().is_empty());
+    let mut a = Atteste::vide(Attestation::Aem);
+    a.numero_objet = plein(&c.numero_objet);
+    (a.heures, a.cachets, a.jours) = (Some(c.heures as i64), Some(c.cachets as i64), Some(c.jours as i64));
+    a.brut = Some(c.brut);
+    a.numero_attestation = plein(&c.numero_attestation);
+    a.atteste_le = plein(&c.date_attestation);
+    a.fichier = plein(&c.fichier);
+    ContratLu { salarie: salarie.to_string(), debut: c.debut.iso(), fin: c.fin.iso(), numero: None, contrat: a }
 }
 
 /// Tous les contrats attestes d'un dossier AEM_EDI, dedoublonnes, et les
@@ -721,7 +725,7 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
                     heures,
                     cachets: c1 + c2,
                     jours,
-                    brut: brut.to_string(),
+                    brut,
                     numero_attestation: tranche(&l, 36, 42).trim_matches(blanc).to_string(),
                     date_attestation: aaaammjj(&tranche(&l, 858, 866)),
                     fichier: nom.clone(),

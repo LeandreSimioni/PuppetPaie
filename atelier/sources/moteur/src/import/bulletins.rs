@@ -60,8 +60,9 @@ use socle::fichiers::vrai;
 use crate::import::completer as completer;
 use crate::import::tri::Sorte;
 use socle::num::Decimal;
-use socle::texte::{euros, euros_de};
+use socle::texte::euros;
 use crate::import::attestes::{Atteste, Registre};
+use engagement::importe::{Attestation, ContratAtteste, ContratLu, Declaration, PaieLue, PaieVersee};
 use crate::routes::import::{self as ri, ACreer, Apercu, CleEngagement};
 
 /// Les sorts du compte rendu, dans l'ordre ou il les compte.
@@ -192,10 +193,6 @@ pub(crate) fn nom_copie(f: &crate::import::tri::Fichier) -> Option<String> {
 /// Un texte compare sans casse, sans accents, sans espaces ni ponctuation de bord (`bulletin_lu::jetons`).
 pub(crate) fn compare(t: &str) -> String {
     bulletin_lu::jetons(t).concat()
-}
-
-fn dec(x: &Option<Decimal>) -> Value {
-    x.map_or(Value::Null, |v| Value::String(v.to_string()))
 }
 
 /// Le NIR imprime : 13 caracteres, ou 15 avec la cle (alors verifiee).
@@ -484,10 +481,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     let nir_de_cle: HashMap<String, String> = par_nir.iter().map(|(n, c)| (c.clone(), n.clone())).collect();
     let mut registre = Registre::de_l_historique(ctx, &nir_de_cle)?;
     let historique_paies = ri::paies_historique(ctx)?;
-    let mut hist_par_cle: HashMap<(String, String, String), Value> = HashMap::new();
-    for x in &historique_paies {
-        hist_par_cle.insert(ri::cle_paie(x)?, x.clone());
-    }
+    let hist_par_cle: HashMap<(String, String, String), PaieLue> = historique_paies.iter().map(|x| (x.cle(), x.clone())).collect();
 
     // Ce qui est saisi ici : (salarie, mois) que paie un engagement saisi. Un bulletin qui en est, sans paie declaree
     // du meme salarie et du meme mois a completer (DSN de cet apercu, paie importee), est « deja saisi ».
@@ -507,7 +501,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         .paies
         .iter()
         .chain(historique_paies.iter())
-        .map(|x| (x.get("nir").map(valeur_en_texte).unwrap_or_default(), x.get("mois").map(valeur_en_texte).unwrap_or_default()))
+        .map(|x| (x.paie.nir.clone().unwrap_or_default(), x.mois.clone()))
         .collect();
     let mut gardes: Vec<Lu> = Vec::new();
     for l in lus {
@@ -533,9 +527,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         if f.sorte == Sorte::Dsn {
             let mut n = 0usize;
             let mut nouveaux = 0usize;
-            for x in ap.paies.iter().filter(|x| x.get("fichier").map(valeur_en_texte).as_deref() == Some(nom.as_str())) {
+            for x in ap.paies.iter().filter(|x| x.paie.fichier.as_deref() == Some(nom.as_str())) {
                 n += 1;
-                if !hist_par_cle.contains_key(&ri::cle_paie(x)?) {
+                if !hist_par_cle.contains_key(&x.cle()) {
                     nouveaux += 1;
                 }
             }
@@ -907,15 +901,20 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     // le bulletin complete la paie declaree du meme mois dont le contrat contient sa periode, quand il n'y en a qu'une.
     let mut par_mois: HashMap<(String, String), Vec<(String, String, String, Cible)>> = HashMap::new();
     let mut vus: HashSet<(String, String, String)> = HashSet::new();
+    // (mois, NIR, contrat, debut, fin) d'une paie, en texte.
+    let reperes = |x: &PaieLue| {
+        let iso = |j: Option<Jour>| j.map(|j| j.iso()).unwrap_or_default();
+        (x.mois.clone(), x.paie.nir.clone().unwrap_or_default(), x.paie.contrat.clone(), iso(x.paie.debut), iso(x.paie.fin))
+    };
     for (k, x) in ap.paies.iter().enumerate() {
-        let t = |c: &str| x.get(c).map(valeur_en_texte).unwrap_or_default();
-        vus.insert((t("mois"), t("nir"), t("contrat")));
-        index.entry((t("nir"), t("debut"), t("fin"))).or_default().push((t("mois"), t("contrat"), Cible::Dsn(k)));
-        if !t("contrat").is_empty() {
-            par_numero.entry((t("nir"), t("mois"), t("contrat"))).or_default().push((t("mois"), t("contrat"), Cible::Dsn(k)));
+        let (mois, nir, contrat, debut, fin) = reperes(x);
+        vus.insert((mois.clone(), nir.clone(), contrat.clone()));
+        index.entry((nir.clone(), debut.clone(), fin.clone())).or_default().push((mois.clone(), contrat.clone(), Cible::Dsn(k)));
+        if !contrat.is_empty() {
+            par_numero.entry((nir.clone(), mois.clone(), contrat.clone())).or_default().push((mois.clone(), contrat.clone(), Cible::Dsn(k)));
         }
-        if !t("debut").is_empty() {
-            par_mois.entry((t("nir"), t("mois"))).or_default().push((t("debut"), t("fin"), t("contrat"), Cible::Dsn(k)));
+        if !debut.is_empty() {
+            par_mois.entry((nir, mois)).or_default().push((debut, fin, contrat, Cible::Dsn(k)));
         }
     }
     // Une paie que l'historique tient d'un bulletin seul s'efface devant la DSN qui la declare (la DSN est lue apres le
@@ -923,15 +922,15 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     // (`import::ecrite::rapprocher`).
     let mut de_bulletin: HashSet<(String, String, String)> = HashSet::new();
     for x in &historique_paies {
-        let t = |c: &str| x.get(c).map(valeur_en_texte).unwrap_or_default();
-        if t("nir").is_empty() || !vus.insert((t("mois"), t("nir"), t("contrat"))) {
+        let (mois, nir, contrat, debut, fin) = reperes(x);
+        if nir.is_empty() || !vus.insert((mois.clone(), nir.clone(), contrat.clone())) {
             continue;
         }
-        let cle = ri::cle_paie(x)?;
-        if t("declare_par") == "bulletin" {
+        let cle = x.cle();
+        if x.paie.declare_par == Declaration::Bulletin {
             de_bulletin.insert(cle.clone());
         }
-        index.entry((t("nir"), t("debut"), t("fin"))).or_default().push((t("mois"), t("contrat"), Cible::Historique(cle)));
+        index.entry((nir, debut, fin)).or_default().push((mois, contrat, Cible::Historique(cle)));
     }
     let mut prises: HashMap<String, (String, usize, Decimal, Decimal)> = HashMap::new();
     let (mut paies_nouvelles, mut paies_completees) = (0usize, 0usize);
@@ -996,15 +995,15 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         prises.insert(ident, (chemin.clone(), l.page, l.b.brut, l.b.net_a_payer));
 
         // La paie.
-        let (ligne, source, avant): (Map<String, Value>, &str, Option<Value>) = match &cible {
+        let (mut ligne, source, avant): (PaieLue, &str, Option<PaieLue>) = match &cible {
             Some((_, _, Cible::Dsn(k))) => {
                 let x = ap.paies[*k].clone();
-                let avant = ri::cle_paie(&x).ok().and_then(|c| hist_par_cle.get(&c).cloned());
-                (x.as_object().cloned().unwrap_or_default(), "dsn", avant)
+                let avant = hist_par_cle.get(&x.cle()).cloned();
+                (x, "dsn", avant)
             }
             Some((_, _, Cible::Historique(c))) => {
                 let x = hist_par_cle[c].clone();
-                (x.as_object().cloned().unwrap_or_default(), "historique", Some(x))
+                (x.clone(), "historique", Some(x))
             }
             None => {
                 let contrat = match &l.b.numero {
@@ -1013,42 +1012,21 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                         if nb_pages > 1 { format!("{} page {}", copie, l.page) } else { copie.clone() }
                     }
                 };
-                let mut m = Map::new();
-                for (k, v) in [
-                    ("mois", json!(l.mois)),
-                    ("salarie", json!(salarie)),
-                    ("nir", json!(l.nir)),
-                    ("contrat", json!(contrat)),
-                    ("numero_objet", json!("")),
-                    ("debut", json!(debut)),
-                    ("fin", json!(fin)),
-                    ("brut", json!("")),
-                    ("net_imposable", json!("")),
-                    ("net_a_payer", json!("")),
-                    ("pas", json!("")),
-                    ("verse_le", json!("")),
-                    ("declare_par", json!("bulletin")),
-                    ("depose_le", json!("")),
-                    ("fichier", json!(copie)),
-                ] {
-                    m.insert(k.into(), v);
-                }
-                let avant = hist_par_cle.get(&ri::cle_paie(&Value::Object(m.clone()))?).cloned();
-                (m, "bulletin", avant)
+                let mut paie = PaieVersee::vide(contrat, Declaration::Bulletin);
+                (paie.nir, paie.debut, paie.fin, paie.fichier) = (Some(l.nir.clone()), Some(l.b.debut), Some(l.b.fin), Some(copie.clone()));
+                let x = PaieLue { mois: l.mois.clone(), salarie: salarie.clone(), paie };
+                let avant = hist_par_cle.get(&x.cle()).cloned();
+                (x, "bulletin", avant)
             }
         };
-        let mut ligne = ligne;
-        let ecarts = completer(&mut ligne, &l.b, &copie, l.page, ctx.entreprise.idcc.texte());
+        let ecarts = completer(&mut ligne.paie, &l.b, &copie, l.page, ctx.entreprise.idcc.texte())?;
         // Le contrat que le bulletin atteste ; celui d'un permanent ne compte que son mois : ses heures, ses cachets et
         // ses jours sont ceux de la paie de ce mois (le contrat entier n'en garde pas : `import::ecrite`).
         let atteste = l.compteurs.as_ref().map_err(|m| format!("ses compteurs ne se lisent pas ({})", m)).and_then(|c| engagement(l, c, &salarie, &copie));
         if let (Ok((cle, _)), false) = (&atteste, marque_d_intermittent(&l.b)) {
-            for (k, n) in [("heures", cle.4), ("cachets", cle.5), ("jours", cle.6)] {
-                ligne.insert(k.into(), json!(n as i64));
-            }
+            (ligne.paie.heures, ligne.paie.cachets, ligne.paie.jours) = (Some(cle.4 as i64), Some(cle.5 as i64), Some(cle.6 as i64));
         }
-        let ligne = Value::Object(ligne);
-        let etat_paie = if avant.as_ref().map(super::ecrite::sans_dates_d_import).transpose()? == Some(super::ecrite::sans_dates_d_import(&ligne)?) {
+        let etat_paie = if avant.as_ref().map(PaieLue::sans_date_d_import) == Some(ligne.sans_date_d_import()) {
             "deja"
         } else if source == "bulletin" {
             "nouvelle"
@@ -1061,7 +1039,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             _ => {}
         }
         if etat_paie != "deja" {
-            paies_liste.push(ligne.clone());
+            paies_liste.push(ligne.en_ligne());
             if etat_paie == "nouvelle" {
                 paies_nouvelles += 1;
             } else {
@@ -1071,8 +1049,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let mut phrases: Vec<String> = vec![match (etat_paie, source) {
             ("deja", _) => "paie déjà dans l'historique".to_string(),
             ("nouvelle", _) => "paie nouvelle : aucune DSN ne la déclare".to_string(),
-            (_, "dsn") => format!("complète la paie déclarée en DSN ({})", valeur_en_texte(&ligne["mois"])),
-            _ => format!("complète la paie de l'historique ({})", valeur_en_texte(&ligne["mois"])),
+            (_, "dsn") => format!("complète la paie déclarée en DSN ({})", ligne.mois),
+            _ => format!("complète la paie de l'historique ({})", ligne.mois),
         }];
         if !ecarts.is_empty() {
             let gagnants: Vec<&str> = ecarts.iter().filter(|e| e.2).map(|e| e.0).collect();
@@ -1113,18 +1091,18 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
                     if pareils.iter().any(|a| compte(a) == le_sien) {
                         phrases.push("contrat déjà attesté".into());
                         "deja"
-                    } else if let Some(a) = pareils.iter().find(|a| a.par != "AEM") {
+                    } else if let Some(a) = pareils.iter().find(|a| a.par != Attestation::Aem) {
                         phrases.push(format!(
                             "un contrat attesté aux mêmes dates ({}) porte d'autres compteurs : il est gardé, celui du bulletin n'est pas ajouté (le contrat attesté dit {}, le bulletin {})",
                             a.d_ou(),
                             a.en_mots(),
                             en_mots
                         ));
-                        infos.insert("contrat_bulletin".into(), ligne_contrat);
+                        infos.insert("contrat_bulletin".into(), ligne_contrat.en_ligne());
                         "ecart"
                     } else {
                         phrases.push("contrat attesté ajouté".into());
-                        contrats_liste.push(ligne_contrat.clone());
+                        contrats_liste.push(ligne_contrat.en_ligne());
                         phrases.extend(registre.ajouter(&l.nir, ligne_contrat, "bulletin", "bulletins"));
                         "nouveau"
                     }
@@ -1173,8 +1151,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         .iter()
         .chain(historique_paies.iter())
         .map(|x| {
-            let t = |k: &str| x.get(k).map(valeur_en_texte).unwrap_or_default();
-            (t("nir"), t("debut"), t("fin"))
+            let (_, nir, _, debut, fin) = reperes(x);
+            (nir, debut, fin)
         })
         .collect();
     let chevauche = crate::import::attestes::chevauche;
@@ -1195,7 +1173,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let pareils = registre.pareils(nir, &d, &f, cl.source());
         // UN CERTIFICAT DONT D'AUTRES PIECES N'ATTESTENT QUE DES MOIS (un bulletin, une AEM, chacun le sien) atteste seul
         // ses autres mois (`attestes::reste_du_certificat`) ; un certificat deja repris ne se reprend pas deux fois.
-        let mut reste: Option<Value> = None;
+        let mut reste: Option<ContratLu> = None;
         let mut sans_reste: Option<String> = None;
         if !est_aem && !pareils.is_empty() && !pareils.iter().any(Atteste::de_certificat) {
             let statut = statut_de(ctx, &par_nir, &ap.a_creer, nir, c)?;
@@ -1256,7 +1234,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         // Le reste d'un certificat : ses dates et ses compteurs sont ceux du reste.
         let (d, f, du_au) = match &reste {
             Some(l) => {
-                let (rd, rf) = (valeur_en_texte(&l["debut"]), valeur_en_texte(&l["fin"]));
+                let (rd, rf) = (l.debut.clone(), l.fin.clone());
                 let jj = |x: &str| Jour::lire(x).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| x.to_string());
                 let mut sources: Vec<String> = pareils.iter().map(Atteste::d_ou).collect();
                 sources.dedup();
@@ -1286,9 +1264,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         let lu = match (&cl.aem, reste) {
             (Some(a), _) => contrat_de_l_aem(a, &cle_de(nir), &copie),
             (None, Some(l)) => {
-                let n = |k: &str| l.get(k).and_then(Value::as_i64).unwrap_or(0);
-                let quoi = if n("cachets") > 0 { format!("{} cachet(s)", n("cachets")) } else { format!("{} jour(s)", n("jours")) };
-                let brut_reste = euros_de(&l["brut"]);
+                let n = |x: Option<i64>| x.unwrap_or(0);
+                let quoi = if n(l.contrat.cachets) > 0 { format!("{} cachet(s)", n(l.contrat.cachets)) } else { format!("{} jour(s)", n(l.contrat.jours)) };
+                let brut_reste = euros(l.contrat.brut.unwrap_or_default());
                 Ok((l, format!("{}, {} de brut : ce que dit le certificat moins ce que disent les autres pièces ; son brut, {}, est arrondi à l'euro", quoi, brut_reste, euros(brut))))
             }
             (None, None) => {
@@ -1304,7 +1282,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             Ok((ligne, quoi)) => {
                 infos.insert("contrat".into(), json!("nouveau"));
                 let raison = if est_aem {
-                    format!("{} {} : contrat attesté ajouté ({}, {} de brut)", nom, du_au, quoi, euros_de(&ligne["brut"]))
+                    format!("{} {} : contrat attesté ajouté ({}, {} de brut)", nom, du_au, quoi, euros(ligne.contrat.brut.unwrap_or_default()))
                 } else if est_reste {
                     format!("certificat Congés Spectacles {} contrat attesté ajouté ({}) ; les heures, que le certificat ne porte pas, n'y sont pas", du_au, quoi)
                 } else {
@@ -1796,72 +1774,92 @@ fn fiche_entreprise(lus: &[Lu], l: &Lu) -> R<Map<String, Value>> {
     Ok(f)
 }
 
-/// Complete une ligne de paie par le bulletin. Sur le brut, le net imposable, le net a payer et le PAS, le bulletin
-/// l'emporte ; ailleurs il remplit ce qui est vide et note ce qui differe. Rend les ecarts : (champ, valeur d'avant,
-/// le bulletin l'emporte, valeur du bulletin).
-fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page: usize, idcc: &str) -> Vec<(&'static str, String, bool, String)> {
+/// Complete une paie par le bulletin. Sur le brut, le net imposable, le net a payer et le PAS, le bulletin l'emporte ;
+/// ailleurs il remplit ce qui est vide et note ce qui differe. Rend les ecarts : (champ, valeur d'avant, le bulletin
+/// l'emporte, valeur du bulletin).
+fn completer(ligne: &mut PaieVersee, b: &BulletinLu, chemin: &str, page: usize, idcc: &str) -> R<Vec<(&'static str, String, bool, String)>> {
+    use engagement::importe::{BulletinSource, CotisationImprimee, DatesTravaillees, EmploiImprime, LigneImprimee};
     let mut ecarts = Vec::new();
     let pas = b.pas.as_ref().and_then(|p| p.montant);
-    for (champ, v) in [("brut", Some(b.brut)), ("net_imposable", b.net_imposable), ("net_a_payer", Some(b.net_a_payer)), ("pas", pas)] {
+    for (champ, place, v) in [
+        ("brut", &mut ligne.brut, Some(b.brut)),
+        ("net_imposable", &mut ligne.net_imposable, b.net_imposable),
+        ("net_a_payer", &mut ligne.net_a_payer, Some(b.net_a_payer)),
+        ("pas", &mut ligne.pas, pas),
+    ] {
         let Some(v) = v else { continue };
-        let avant = ligne.get(champ).map(valeur_en_texte).unwrap_or_default();
-        let vide = avant.trim().is_empty();
-        let differe = !vide && socle::num::decimal_lu(avant.trim()).is_none_or(|a| a != v);
-        if differe {
-            ecarts.push((champ, avant, true, v.to_string()));
+        if let Some(avant) = place.filter(|a| *a != v) {
+            ecarts.push((champ, avant.to_string(), true, v.to_string()));
         }
-        if vide || differe {
-            ligne.insert(champ.into(), json!(v.to_string()));
-        }
+        *place = Some(v);
     }
-    let objet = b.numero_objet.clone().unwrap_or_default();
-    let avant = ligne.get("numero_objet").map(valeur_en_texte).unwrap_or_default();
-    if avant.trim().is_empty() {
-        if !objet.is_empty() {
-            ligne.insert("numero_objet".into(), json!(objet));
-        }
-    } else if !objet.is_empty() && avant.to_uppercase() != objet.to_uppercase() {
-        ecarts.push(("numero_objet", avant, false, objet));
+    let plein = |x: &Option<String>| x.clone().filter(|s| !s.trim().is_empty());
+    let objet = plein(&b.numero_objet);
+    match (&ligne.numero_objet, objet) {
+        (None, o) => ligne.numero_objet = o,
+        (Some(avant), Some(o)) if avant.to_uppercase() != o.to_uppercase() => ecarts.push(("numero_objet", avant.clone(), false, o)),
+        _ => {}
     }
     // Le taux du prelevement que le bulletin imprime, quand la DSN ne l'a pas declare.
-    if let Some(t) = b.pas.as_ref().and_then(|p| p.taux).filter(|_| ligne.get("taux_pas").map(valeur_en_texte).unwrap_or_default().trim().is_empty()) {
-        ligne.insert("taux_pas".into(), json!(t.to_string()));
+    if ligne.taux_pas.is_none() {
+        ligne.taux_pas = b.pas.as_ref().and_then(|p| p.taux);
     }
-    if ligne.get("verse_le").map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
-        if let Some(r) = b.regle_le {
-            ligne.insert("verse_le".into(), json!(r.iso()));
+    if ligne.verse_le.is_none() {
+        ligne.verse_le = b.regle_le;
+    }
+    for (place, x) in [(&mut ligne.spectacle, &b.spectacle), (&mut ligne.analytique, &b.analytique)] {
+        if let Some(x) = plein(x) {
+            *place = Some(x);
         }
     }
-    let v = b.to_json();
-    let mut poser = |k: &str, x: Value| {
-        if !x.is_null() {
-            ligne.insert(k.into(), x);
+    for (place, x) in [
+        (&mut ligne.cotisations_salariales, b.total_salarie),
+        (&mut ligne.cotisations_patronales, b.total_employeur),
+        (&mut ligne.cout_employeur, b.cout_employeur),
+        (&mut ligne.net_social, b.net_social),
+        (&mut ligne.net_avant_impot, b.net_avant_impot),
+    ] {
+        if x.is_some() {
+            *place = x;
         }
-    };
-    poser("spectacle", json!(b.spectacle));
-    poser("analytique", json!(b.analytique));
-    poser("cotisations_salariales", dec(&b.total_salarie));
-    poser("cotisations_patronales", dec(&b.total_employeur));
-    poser("cout_employeur", dec(&b.cout_employeur));
-    poser("net_social", dec(&b.net_social));
-    poser("net_avant_impot", dec(&b.net_avant_impot));
-    poser("lignes", v["lignes"].clone());
-    poser("dates", v["dates_travaillees"].clone());
-    poser("cotisations", v["cotisations"].clone());
+    }
+    ligne.lignes = b
+        .lignes
+        .iter()
+        .map(|l| LigneImprimee { quantite: l.quantite, libelle: l.libelle.clone(), taux: l.taux, montant: l.montant, soumis: l.soumis, rubrique: l.rubrique.clone(), heures: l.heures })
+        .collect();
+    ligne.dates = b.dates_travaillees.iter().map(|(debut, fin)| DatesTravaillees { debut: *debut, fin: *fin }).collect();
+    ligne.cotisations = Some(
+        b.cotisations
+            .iter()
+            .map(|c| CotisationImprimee {
+                famille: c.famille.clone(),
+                libelle: c.libelle.clone(),
+                cotisation: c.cotisation.clone(),
+                base: c.base,
+                taux_employeur: c.taux_employeur,
+                montant_employeur: c.montant_employeur,
+                taux_salarie: c.taux_salarie,
+                montant_salarie: c.montant_salarie,
+                hors_total: c.hors_total,
+            })
+            .collect(),
+    );
     // Le statut et l'emploi que CE bulletin imprime : un salarie artiste un mois peut etre technicien, ou non cadre au
     // regime general, un autre ; la comparaison des calculs lit celui de la paie (`engagement::ecarts`), pas la fiche.
     let imprime = statut_et_metier(b.salarie.statut.as_deref(), b.salarie.emploi.as_deref(), false, idcc).unwrap_or_default();
     if !imprime.is_empty() {
-        poser("emploi_imprime", Value::Object(imprime));
+        let lu: EmploiImprime = socle::forme::lire(&Value::Object(imprime), "L'emploi qu'un bulletin imprime ne se lit pas : à signaler au développeur.").map_err(|m| erreur("ErreurOperation", m))?;
+        ligne.emploi_imprime = Some(lu);
     }
-    poser("bulletin", json!({"fichier": chemin, "page": page, "logiciel": b.logiciel, "numero": b.numero, "contrat": b.contrat}));
-    ecarts
+    ligne.bulletin = Some(BulletinSource { fichier: chemin.to_string(), page: page as u64, logiciel: b.logiciel.clone(), numero: b.numero.clone(), contrat: b.contrat.clone() });
+    Ok(ecarts)
 }
 
 /// Le contrat qu'un bulletin atteste, tel qu'un engagement importe le porte (`importe.contrat`), et sa cle `_cle_engagement`.
 /// Les heures se comptent en heures entieres comme celles d'une saisie (`cumul::engagement_de_paie` : arrondi au
 /// pair) ; des cachets ou des jours qui ne sont pas entiers, ou un compteur inconnu, ne font pas de contrat.
-fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(CleEngagement, Value), String> {
+fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(CleEngagement, ContratLu), String> {
     // LES JOURS TRAVAILLES sont ceux qu'atteste l'attestation employeur mensuelle de l'intermittent (annexes 8 et 10) ;
     // un permanent paye au mois n'en a pas, et son bulletin n'imprime ni dates travaillees ni cumul de jours : son
     // contrat ne compte pas de jours (0), il ne les « ignore » pas.
@@ -1889,19 +1887,11 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
     let (debut, fin) = (l.b.debut.iso(), l.b.fin.iso());
     let cle: CleEngagement =
         (salarie.to_string(), debut.clone(), fin.clone(), objet.clone(), heures as i128, cachets as i128, jours as i128, brut.to_string());
-    let mut m = Map::new();
-    m.insert("salarie".into(), json!(salarie));
-    m.insert("debut".into(), json!(debut));
-    m.insert("fin".into(), json!(fin));
-    m.insert("numero_objet".into(), json!(objet));
-    m.insert("heures".into(), json!(heures));
-    m.insert("cachets".into(), json!(cachets));
-    m.insert("jours".into(), json!(jours));
-    m.insert("brut".into(), json!(brut.to_string()));
-    if enseignement > 0 {
-        m.insert("heures_enseignement".into(), json!(enseignement));
-    }
-    m.insert("atteste_par".into(), json!("bulletin"));
+    let plein = |x: &Option<String>| x.clone().filter(|s| !s.trim().is_empty());
+    let mut a = ContratAtteste::vide(Attestation::Bulletin);
+    a.numero_objet = Some(objet).filter(|o| !o.trim().is_empty());
+    (a.heures, a.cachets, a.jours, a.brut) = (Some(heures), Some(cachets), Some(jours), Some(brut));
+    a.heures_enseignement = Some(enseignement).filter(|h| *h > 0);
     // LA NATURE DU CONTRAT : aucun des bulletins lus ne l'imprime en mention (`bulletins-lecture-base.json`), et rien sur la
     // page ne la fixe a coup sur. Deux marques disent un engagement du spectacle : la cotisation Congés Spectacles
     // (due pour l'artiste ou le technicien qui n'est pas employe douze mois de suite, D. 7121-41 du code du travail,
@@ -1910,19 +1900,12 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
     // CDDU (regle 6), comme partout ailleurs. Sans aucune, c'est le contrat d'un permanent -- CDI ou CDD de droit
     // commun, que le bulletin ne dit pas et qu'on ne devine pas : il est marque « a dire », se demande apres l'import
     // (`import::nature`), et ne se lit pas en CDDU en attendant.
-    if !marque_d_intermittent(&l.b) {
-        m.insert(crate::import::nature::A_DIRE.into(), json!(true));
-    }
-    if let Some(n) = &l.b.numero {
-        m.insert("numero_bulletin".into(), json!(n));
-    }
+    a.nature_a_dire = !marque_d_intermittent(&l.b);
+    a.numero_bulletin = plein(&l.b.numero);
     // Le numero du contrat, quand le bulletin l'imprime : il se lit, il ne se tire pas (regle 4).
-    if let Some(n) = &l.b.contrat {
-        m.insert("numero_contrat".into(), json!(n));
-    }
-    m.insert("fichier".into(), json!(chemin));
-    m.insert("page".into(), json!(l.page));
-    Ok((cle, Value::Object(m)))
+    a.numero_contrat = plein(&l.b.contrat);
+    (a.fichier, a.page) = (Some(chemin.to_string()), Some(l.page as u64));
+    Ok((cle, ContratLu { salarie: salarie.to_string(), debut, fin, numero: None, contrat: a }))
 }
 
 /// Le bulletin porte-t-il une marque d'engagement du spectacle : un numero d'objet, ou une cotisation Congés
@@ -2099,7 +2082,7 @@ fn statut_de(ctx: &Contexte, par_nir: &HashMap<String, String>, a_creer: &[ACree
 /// Le contrat qu'une AEM en PDF atteste, tel qu'un engagement importe le porte (la forme du contrat d'une AEM deposee,
 /// `import::ecrite`), et ce qu'il compte en mots : la periode du mois (`aem_lu::Aem::periode`), ses heures, ses
 /// cachets isoles et groupes, ses jours, son brut et son numero d'objet, tels qu'imprimes.
-fn contrat_de_l_aem(a: &crate::import::aem_lu::Aem, salarie: &str, copie: &str) -> Result<(Value, String), String> {
+fn contrat_de_l_aem(a: &crate::import::aem_lu::Aem, salarie: &str, copie: &str) -> Result<(ContratLu, String), String> {
     let (Some((debut, fin)), Some(brut)) = (a.periode(), a.brut) else {
         return Err("l'AEM ne dit pas tout ce qu'un contrat demande".into());
     };
@@ -2108,20 +2091,14 @@ fn contrat_de_l_aem(a: &crate::import::aem_lu::Aem, salarie: &str, copie: &str) 
     brut.rescale(2);
     let pluriel = |n: i64, mot: &str| format!("{} {}{}", n, mot, if n > 1 { "s" } else { "" });
     let quoi: Vec<String> = [(heures, "heure"), (cachets, "cachet"), (jours, "jour")].iter().filter(|x| x.0 > 0).map(|x| pluriel(x.0, x.1)).collect();
-    let mut m = Map::new();
-    m.insert("salarie".into(), json!(salarie));
-    m.insert("debut".into(), json!(debut.iso()));
-    m.insert("fin".into(), json!(fin.iso()));
-    m.insert("numero_objet".into(), json!(a.numero_objet.clone().unwrap_or_default()));
-    m.insert("heures".into(), json!(heures));
-    m.insert("cachets".into(), json!(cachets));
-    m.insert("jours".into(), json!(jours));
-    m.insert("brut".into(), json!(brut.to_string()));
-    m.insert("atteste_par".into(), json!("AEM"));
-    m.insert("numero_attestation".into(), json!(a.numero.clone().unwrap_or_default()));
-    m.insert("fichier".into(), json!(copie));
-    m.insert("page".into(), json!(a.page));
-    Ok((Value::Object(m), if quoi.is_empty() { "aucune heure, aucun cachet, aucun jour".into() } else { quoi.join(", ") }))
+    let plein = |x: &Option<String>| x.clone().filter(|s| !s.trim().is_empty());
+    let mut c = ContratAtteste::vide(Attestation::Aem);
+    c.numero_objet = plein(&a.numero_objet);
+    (c.heures, c.cachets, c.jours, c.brut) = (Some(heures), Some(cachets), Some(jours), Some(brut));
+    c.numero_attestation = plein(&a.numero);
+    (c.fichier, c.page) = (Some(copie.to_string()), Some(a.page as u64));
+    let ligne = ContratLu { salarie: salarie.to_string(), debut: debut.iso(), fin: fin.iso(), numero: None, contrat: c };
+    Ok((ligne, if quoi.is_empty() { "aucune heure, aucun cachet, aucun jour".into() } else { quoi.join(", ") }))
 }
 
 /// Le contrat qu'un certificat atteste, tel qu'un engagement importe le porte, et ce qu'il compte en mots.
@@ -2131,7 +2108,7 @@ fn contrat_de_l_aem(a: &crate::import::aem_lu::Aem, salarie: &str, copie: &str) 
 /// annexes-8-10.txt`, l. 5802) ; le certificat n'a qu'une case pour les deux. Inference : pour un artiste, elle compte
 /// des cachets ; pour un technicien, des jours. Sans statut, rien ne le dit : pas de contrat. Les heures, que le
 /// certificat ne porte pas, ne s'inventent pas (0) ; le brut est celui du certificat, « arrondi à l'euro le plus proche ».
-fn contrat_du_certificat(c: &crate::import::certificat_lu::Certificat, statut: Option<&str>, salarie: &str, copie: &str) -> Result<(Value, String), String> {
+fn contrat_du_certificat(c: &crate::import::certificat_lu::Certificat, statut: Option<&str>, salarie: &str, copie: &str) -> Result<(ContratLu, String), String> {
     let (Some(debut), Some(fin), Some(nombre), Some(brut)) = (c.debut, c.fin, c.nombre, c.brut) else {
         return Err("le certificat ne dit pas tout ce qu'un contrat demande".into());
     };
@@ -2148,28 +2125,13 @@ fn contrat_du_certificat(c: &crate::import::certificat_lu::Certificat, statut: O
     };
     let mut brut = brut;
     brut.rescale(2);
-    let mut m = Map::new();
-    m.insert("salarie".into(), json!(salarie));
-    m.insert("debut".into(), json!(debut.iso()));
-    m.insert("fin".into(), json!(fin.iso()));
-    m.insert("numero_objet".into(), json!(""));
-    m.insert("heures".into(), json!(0));
-    m.insert("cachets".into(), json!(cachets));
-    m.insert("jours".into(), json!(jours));
-    m.insert("brut".into(), json!(brut.to_string()));
-    m.insert("atteste_par".into(), json!("certificat"));
-    if let Some(n) = &c.numero {
-        m.insert("numero_certificat".into(), json!(n));
-    }
-    if let Some(b) = c.base_conge {
-        m.insert("base_conge".into(), json!(b.to_string()));
-    }
-    if let Some(s) = c.signe_le {
-        m.insert("atteste_le".into(), json!(s.iso()));
-    }
-    m.insert("fichier".into(), json!(copie));
-    m.insert("page".into(), json!(c.page));
-    Ok((Value::Object(m), quoi))
+    let mut a = ContratAtteste::vide(Attestation::Certificat);
+    (a.heures, a.cachets, a.jours, a.brut) = (Some(0), Some(cachets), Some(jours), Some(brut));
+    a.numero_certificat = c.numero.clone();
+    a.base_conge = c.base_conge;
+    a.atteste_le = c.signe_le.map(|s| s.iso());
+    (a.fichier, a.page) = (Some(copie.to_string()), Some(c.page as u64));
+    Ok((ContratLu { salarie: salarie.to_string(), debut: debut.iso(), fin: fin.iso(), numero: None, contrat: a }, quoi))
 }
 
 /// Les compteurs de chaque bulletin lu (`bulletin_lu::compteurs`), confrontes a ses cumuls avec ses freres : les autres

@@ -24,8 +24,8 @@
 //!
 //! Ce qui le lit : les cumuls des annexes 8 et 10 (`cumul`, par ce que le contrat atteste), le mois tenu avant
 //! PuppetPaie (`contrats_lus`, `paies_lues` : un contrat atteste, une paie versee), et les etats, qui lisent chacune de
-//! ses paies dans les mots du moteur (`Importe::paie`, par `etats::paies_du_mois`). L'import lit et ecrit les memes
-//! en lignes (`ContratLu::en_ligne`, `PaieLue::en_ligne`, `lire_ligne`).
+//! ses paies dans les mots du moteur (`Importe::paie`, par `etats::paies_du_mois`). L'import manipule les memes formes,
+//! avec les bornes de leur engagement (`ContratLu`, `PaieLue`), de la lecture des pieces a l'ecriture (`Neuf`).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -320,79 +320,122 @@ impl Pieces {
     }
 }
 
-/// UNE LIGNE DE L'IMPORT EN FORME : `ligne` sans les cles `bornes` (ce que l'engagement porte lui-meme : son salarie, ses
-/// dates, son mois...), une valeur vide (`""`, nulle) valant absente. Une cle que la forme ne connait pas, une valeur qui
-/// n'a pas la sienne, se refuse (`quoi` dit laquelle).
-pub fn lire_ligne<T: serde::de::DeserializeOwned>(ligne: &Map<String, Value>, bornes: &[&str], quoi: &str) -> Resultat<T> {
-    let propre: Map<String, Value> =
-        ligne.iter().filter(|(k, v)| !bornes.contains(&k.as_str()) && !v.is_null() && v.as_str().is_none_or(|s| !s.trim().is_empty())).map(|(k, v)| (k.clone(), v.clone())).collect();
-    socle::forme::lire(&Value::Object(propre), &format!("{} ne se lit pas : à signaler au développeur.", quoi))
-}
-
-/// Une forme declaree, en objet JSON.
-fn en_objet<T: Serialize>(x: &T) -> Map<String, Value> {
-    match serde_json::to_value(x).expect("une forme declaree s'ecrit") {
-        Value::Object(m) => m,
-        _ => Map::new(),
-    }
-}
-
-/// Un contrat atteste, avec les bornes de son engagement.
-#[derive(Debug, Clone, PartialEq)]
+/// UN CONTRAT ATTESTE, AVEC LES BORNES DE SON ENGAGEMENT : la ligne que l'import manipule, de la lecture de la piece a
+/// l'engagement ecrit (`Neuf`). `salarie` est la cle de la fiche (`<a creer>` tant qu'elle n'existe pas) ; `numero`, le
+/// numero de contrat de l'engagement qui le porte. Elle se rend a la page telle qu'elle s'ecrit (`Serialize`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ContratLu {
     pub salarie: String,
     pub debut: String,
     pub fin: String,
+    #[serde(rename = "contrat", skip_serializing_if = "Option::is_none")]
     pub numero: Option<String>,
+    #[serde(flatten)]
     pub contrat: ContratAtteste,
 }
 
 impl ContratLu {
-    /// Les cles de la ligne que l'engagement porte lui-meme.
-    pub const BORNES: [&'static str; 4] = ["salarie", "debut", "fin", "contrat"];
-
-    /// En une ligne de l'import : `{"salarie", "debut", "fin", "contrat"?, <ce qu'il atteste>}`.
+    /// En une ligne de la reponse : `{"salarie", "debut", "fin", "contrat"?, <ce qu'il atteste>}`.
     pub fn en_ligne(&self) -> Value {
-        let mut l = Map::new();
-        for (k, v) in [("salarie", &self.salarie), ("debut", &self.debut), ("fin", &self.fin)] {
-            l.insert(k.into(), Value::String(v.clone()));
-        }
-        if let Some(n) = &self.numero {
-            l.insert("contrat".into(), Value::String(n.clone()));
-        }
-        l.extend(en_objet(&self.contrat));
-        Value::Object(l)
+        serde_json::to_value(self).expect("une forme declaree s'ecrit")
     }
 }
 
-/// Une paie versee, avec son mois et le salarie de son engagement.
-#[derive(Debug, Clone, PartialEq)]
+/// UNE PAIE VERSEE, AVEC SON MOIS ET LE SALARIE DE SON ENGAGEMENT : la ligne de paie que l'import manipule, de la
+/// lecture de la DSN ou du bulletin a l'engagement ecrit.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PaieLue {
     pub mois: String,
     pub salarie: String,
+    #[serde(flatten)]
     pub paie: PaieVersee,
 }
 
 impl PaieLue {
-    /// Les cles de la ligne que l'engagement porte lui-meme.
-    pub const BORNES: [&'static str; 2] = ["mois", "salarie"];
-
-    /// En une ligne de l'import : `{"mois", "salarie", <ce qui a ete verse>}`.
+    /// En une ligne de la reponse : `{"mois", "salarie", <ce qui a ete verse>}`.
     pub fn en_ligne(&self) -> Value {
-        let mut l = Map::new();
-        l.insert("mois".into(), Value::String(self.mois.clone()));
-        l.insert("salarie".into(), Value::String(self.salarie.clone()));
-        l.extend(en_objet(&self.paie));
-        Value::Object(l)
+        serde_json::to_value(self).expect("une forme declaree s'ecrit")
     }
 
-    /// La ligne `ligne` de l'import, en forme (`lire_ligne`) puis en ligne : deux lignes des memes pieces se comparent
-    /// ainsi, quoi que chacune taise.
-    pub fn normale(ligne: &Value) -> Resultat<Value> {
-        let m = ligne.as_object().cloned().unwrap_or_default();
-        let texte = |k: &str| m.get(k).map(en_texte).unwrap_or_default();
-        let paie = lire_ligne(&m, &Self::BORNES, "Une paie importée")?;
-        Ok(PaieLue { mois: texte("mois"), salarie: texte("salarie"), paie }.en_ligne())
+    /// Ce qui la reconnait d'un import a l'autre : (mois, salarie, contrat).
+    pub fn cle(&self) -> (String, String, String) {
+        (self.mois.clone(), self.salarie.clone(), self.paie.contrat.clone())
+    }
+
+    /// La meme, sans ce qui dit quand elle a ete importee : deux lectures des memes pieces se comparent ainsi.
+    pub fn sans_date_d_import(&self) -> PaieLue {
+        let mut p = self.clone();
+        p.paie.importe_le = None;
+        p
+    }
+}
+
+impl PaieVersee {
+    /// Une paie dont on ne sait encore que ce qui la reconnait et ce qui la declare.
+    pub fn vide(contrat: String, declare_par: Declaration) -> PaieVersee {
+        PaieVersee {
+            contrat,
+            declare_par,
+            nir: None,
+            numero_objet: None,
+            debut: None,
+            fin: None,
+            quotite: None,
+            brut: None,
+            net_imposable: None,
+            net_verse: None,
+            net_a_payer: None,
+            net_avant_impot: None,
+            net_social: None,
+            cotisations_salariales: None,
+            cotisations_patronales: None,
+            cout_employeur: None,
+            pas: None,
+            taux_pas: None,
+            type_pas: None,
+            identifiant_pas: None,
+            verse_le: None,
+            depose_le: None,
+            fichier: None,
+            bases: BTreeMap::new(),
+            heures: None,
+            cachets: None,
+            jours: None,
+            spectacle: None,
+            analytique: None,
+            lignes: Vec::new(),
+            dates: Vec::new(),
+            cotisations: None,
+            emploi_imprime: None,
+            bulletin: None,
+            importe_le: None,
+        }
+    }
+}
+
+impl ContratAtteste {
+    /// Un contrat dont on ne sait encore que ce qui l'atteste.
+    pub fn vide(atteste_par: Attestation) -> ContratAtteste {
+        ContratAtteste {
+            atteste_par,
+            numero_objet: None,
+            heures: None,
+            cachets: None,
+            jours: None,
+            heures_enseignement: None,
+            brut: None,
+            base_conge: None,
+            nature_a_dire: false,
+            nature: None,
+            numero_bulletin: None,
+            numero_contrat: None,
+            numero_attestation: None,
+            numero_certificat: None,
+            atteste_le: None,
+            fichier: None,
+            page: None,
+            importe_le: None,
+        }
     }
 }
 
