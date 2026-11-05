@@ -20,7 +20,8 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
-use envois::depot::{self, Apercu};
+use declarations::dsn_lue::DsnLue;
+use envois::depot;
 use envois::etats;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -253,32 +254,18 @@ fn refuser_si_copie(ctx: &Contexte, quoi: &str) -> R<()> {
 fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64>> {
     let Some(c) = calcule else { return Ok(None) };
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", socle::echec::du_disque(&chemin, &e)))?;
-    Ok(Some(rang_dans_le_fichier(&octets).map_or(c, |m| c.max(m))))
+    Ok(Some(rang_dans_le_fichier(&octets)?.map_or(c, |m| c.max(m))))
 }
 
-/// Le mois de constitution (`AAAA-MM`) d'une date S20.G00.05.007 (`JJMMAAAA`) ; illisible, celui d'aujourd'hui (la
-/// date de constitution est le jour ou le fichier s'ecrit, `dsn::generer`).
-fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &socle::date::Jour) -> String {
-    match socle::date::Jour::lire(jjmmaaaa.trim()) {
-        Ok(j) if jjmmaaaa.trim().len() == 8 => j.mois_civil().to_string(),
-        _ => aujourdhui.mois_civil().to_string(),
-    }
+/// Le mois de constitution (`AAAA-MM`) d'une DSN (S20.G00.05.007) ; sans elle, celui d'aujourd'hui (la date de
+/// constitution est le jour ou le fichier s'ecrit, `dsn::generer`).
+fn mois_de_constitution(a: &DsnLue, aujourdhui: &socle::date::Jour) -> String {
+    a.depot.unwrap_or(*aujourdhui).mois_civil().to_string()
 }
 
-/// Le rang lu après `S20.G00.05.004,'` (des chiffres jusqu'au guillemet), s'il y en a un.
-fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
-    let motif = b"S20.G00.05.004,'";
-    let mut i = 0;
-    while i + motif.len() <= octets.len() {
-        if &octets[i..i + motif.len()] == motif {
-            let chiffres: Vec<u8> = octets[i + motif.len()..].iter().take_while(|b| b.is_ascii_digit()).copied().collect();
-            if !chiffres.is_empty() && octets.get(i + motif.len() + chiffres.len()) == Some(&b'\'') {
-                return String::from_utf8_lossy(&chiffres).parse().ok();
-            }
-        }
-        i += 1;
-    }
-    None
+/// Le rang que la DSN porte (S20.G00.05.004), s'il y en a un.
+fn rang_dans_le_fichier(octets: &[u8]) -> R<Option<i64>> {
+    Ok(declarations::dsn_lue::lire(octets, "")?.ordre.and_then(|o| o.parse().ok()))
 }
 
 /// `prochain_ordre_de_test` : l'ordre a donner au prochain essai de ce mois, ou `None` pour le premier. Les
@@ -305,7 +292,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, le_mois: Mois, nic: Option<&str>, cons
         if let Some(nom) = l.fichier().filter(|f| !f.is_empty()) {
             let p = ctx.racine.join("sorties").join(mois).join(nom);
             if p.exists() {
-                if let Some(n) = std::fs::read(&p).ok().and_then(|o| rang_dans_le_fichier(&o)) {
+                if let Some(n) = std::fs::read(&p).ok().map(|o| rang_dans_le_fichier(&o)).transpose()?.flatten() {
                     connus.push(n);
                 }
             }
@@ -317,18 +304,18 @@ fn prochain_ordre_de_test(ctx: &Contexte, le_mois: Mois, nic: Option<&str>, cons
 /// Le garde-fou du depot REEL d'une mensuelle, ecrit depuis la
 /// norme. `Ok(true)` : un annule-et-remplace en regle (rien a forcer) ; `Ok(false)` : une premiere DSN ou une
 /// normale (`DsnDejaDeposee` tranche) ; un refus sinon.
-fn verifier_depot_remplacement(ctx: &Contexte, le_mois: Mois, a: &Apercu, nic: Option<&str>) -> R<bool> {
+fn verifier_depot_remplacement(ctx: &Contexte, le_mois: Mois, a: &DsnLue, nic: Option<&str>) -> R<bool> {
     let mois = &le_mois.to_string();
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let faits = m.depots_reels(le_mois, nic)?;
     let dernier = m.dernier_ordre(le_mois, &faits)?;
-    if !["03", "05"].contains(&a.champ("type_declaration")) {
+    if !["03", "05"].contains(&a.type_declaration.as_deref().unwrap_or_default()) {
         return Ok(false);
     }
     // CE QUE LA PLATE-FORME A VU EN REEL au mois de constitution du fichier, lu en silence dans les bilans archives
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : une mensuelle reelle envoyee d'un autre poste compte, comme
     // a la production (`depart::forme_a_produire`).
-    let constitution = mois_de_constitution(a.champ("constitution"), &ctx.aujourdhui);
+    let constitution = mois_de_constitution(a, &ctx.aujourdhui);
     let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
     let dernier = match dernier {
         Some(d) => d.max(vues.ordre),
@@ -336,7 +323,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, le_mois: Mois, a: &Apercu, nic: O
         None => return Ok(false),
     };
     m.refuser_si_hors_delai(le_mois)?;
-    let ordre: i64 = a.champ("ordre").trim().parse().unwrap_or(0);
+    let ordre: i64 = a.ordre.as_deref().unwrap_or_default().trim().parse().unwrap_or(0);
     if ordre <= dernier {
         return Err(erreur(
             "OrdreTropPetit",
@@ -400,7 +387,7 @@ pub fn deposer_dsn_dans(
     }
     let chemin = PathBuf::from(crate::routes::depots::resoudre(&ctx.racine, fichier)?);
     let octets = crate::routes::depots::lire_octets(&chemin.to_string_lossy())?;
-    let apercu = depot::lire(&octets);
+    let apercu = declarations::dsn_lue::lire(&octets, "")?;
     // 2. le mode contre le fichier ; `presence_prouvee` : c'est ICI qu'on la prouve, jamais le transport.
     depot::verifier(&apercu, reel, None, true)?;
     // LE MOIS QUE LE FICHIER DECLARE ; un signalement se date par son evenement, sa ligne par le mois de ce jour.
@@ -417,13 +404,13 @@ pub fn deposer_dsn_dans(
     }
     // UNE COMPAGNIE D'ESSAI ne depose que ce qu'elle a ecrit sous SON identite : les DSN copiees de la fictive portent le
     // SIREN de la fictive, que le compte net-entreprises ne declare pas. Le refus ne cite aucun des deux numeros.
-    if crate::compagnie::essai::est_essai(&ctx.racine) && apercu.champ("siren") != ctx.entreprise.siren.texte() {
+    if crate::compagnie::essai::est_essai(&ctx.racine) && apercu.emetteur.as_deref().unwrap_or_default() != ctx.entreprise.siren.texte() {
         return Err(erreur(
             "ErreurOperation",
             "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Déposer ici la DSN du mois, qui s'y fabrique. Rien n'est parti.",
         ));
     }
-    let nic: Option<&str> = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty());
+    let nic: Option<&str> = apercu.etablissement().filter(|n| !n.is_empty());
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
 
     let (mut forme, mut repetition) = (String::new(), None);
@@ -433,7 +420,7 @@ pub fn deposer_dsn_dans(
     // avant la preuve : aucun mot de passe n'y change rien.
     if reel && apercu.est_signalement() {
         let dernier = envois::journal::dernier_ordre_des_signalements(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
-        let ordre: i64 = apercu.champ("ordre").trim().parse().unwrap_or(0);
+        let ordre: i64 = apercu.ordre.as_deref().unwrap_or_default().trim().parse().unwrap_or(0);
         if ordre <= dernier {
             return Err(erreur(
                 "ErreurOperation",
@@ -510,7 +497,7 @@ pub fn deposer_dsn_dans(
 
     // UN ESSAI DE PLUS SUR UN MOIS DEJA ESSAYE part en annule-et-remplace, a l'ordre suivant : la base de test
     // garde les essais. JAMAIS PLUS BAS QUE L'ORDRE DU FICHIER.
-    let ordre_test = if reel || apercu.est_signalement() { None } else { prochain_ordre_de_test(ctx, le_mois, nic, &mois_de_constitution(apercu.champ("constitution"), &ctx.aujourdhui))? };
+    let ordre_test = if reel || apercu.est_signalement() { None } else { prochain_ordre_de_test(ctx, le_mois, nic, &mois_de_constitution(&apercu, &ctx.aujourdhui))? };
     let ordre_test = ordre_test.max(ordre_d_essai);
     let ordre_test = ordre_d_essai_du_fichier(ordre_test, &chemin)?;
 
@@ -521,7 +508,7 @@ pub fn deposer_dsn_dans(
     let versions = if apercu.est_signalement() {
         versions_du_signalement(ctx, le_mois, &octets)?
     } else {
-        let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
+        let nic = apercu.etablissement().filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
         let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
         // Et ce qu'elle corrige des mois passes, tel que sa fabrication l'a note : un fichier qui part tel qu'il a ete

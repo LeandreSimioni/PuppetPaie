@@ -1,57 +1,22 @@
 //! La preparation des depots, sans reseau.
 //!
-//! Ce que le fichier declare (`lire`), le passage en test en memoire
-//! (`basculer_dsn`, `renumeroter`, `basculer_dpae`), les garde-fous du depot
-//! (`verifier`) et le controle des identifiants du declarant DPAE. Un depot de
-//! test ne part jamais avec la nature `02` ni l'indicateur `120` : la bascule
-//! les remplace avant tout envoi, et `verifier` refuse un test demande sur un
-//! fichier reel comme un reel demande sur un fichier de test. Le transport
-//! est ailleurs (`transport`).
+//! Le passage en test en memoire (`basculer_dsn`, `renumeroter`, `basculer_dpae`), les garde-fous du depot (`verifier`,
+//! sur ce que le fichier declare, lu par `declarations::dsn_lue::lire`) et le controle des identifiants du declarant
+//! DPAE. Un depot de test ne part jamais avec la nature `02` ni l'indicateur `120` : la bascule les remplace avant tout
+//! envoi, et `verifier` refuse un test demande sur un fichier reel comme un reel demande sur un fichier de test. Le
+//! transport est ailleurs (`transport`).
 
-
-use socle::texte::ascii_nfkd;
-use crate::retours::{est_chiffre};
+use declarations::dsn_lue::DsnLue;
 use socle::echec::Echec;
-use socle::texte::{lignes_du_texte as lignes, strip};
+use socle::texte::{ascii_nfkd, strip};
 
 type Resultat<T> = Result<T, Echec>;
 
 pub const NATURE_TEST: &str = "01";
-pub const NATURE_REEL: &str = "02";
+pub use declarations::dsn_lue::{MENSUELLE, NATURE_REEL};
 pub const RUB_NATURE: &str = "S10.G00.00.005";
-pub const MENSUELLE: &str = "01";
 pub use declarations::norme::SIGNALEMENTS;
 
-/// Les rubriques relues dans le fichier, dans l'ordre des champs de l'apercu.
-/// `dernier_jour`, `fin_contrat` et `debut_contrat` datent un signalement
-/// (arret, fin de contrat, amorcage), que le mois principal ne date pas ;
-/// `etablissement` suit les declarations d'une compagnie a plusieurs.
-pub const LECTURE: [(&str, &str); 14] = [
-    ("nature_envoi", RUB_NATURE),
-    ("logiciel", "S10.G00.00.001"),
-    ("siren", "S10.G00.01.001"),
-    ("nature", "S20.G00.05.001"),
-    ("type_declaration", "S20.G00.05.002"),
-    ("fraction", "S20.G00.05.003"),
-    ("ordre", "S20.G00.05.004"),
-    ("mois", "S20.G00.05.005"),
-    ("remplace", "S20.G00.05.006"),
-    ("constitution", "S20.G00.05.007"),
-    ("dernier_jour", "S21.G00.60.002"),
-    ("fin_contrat", "S21.G00.62.001"),
-    ("debut_contrat", "S21.G00.40.001"),
-    ("etablissement", "S21.G00.11.001"),
-];
-
-pub const NATURES: [(&str, &str); 7] = [
-    ("01", "DSN mensuelle"),
-    ("04", "signalement arrêt de travail"),
-    ("05", "signalement reprise suite à arrêt de travail"),
-    ("07", "signalement fin de contrat de travail unique"),
-    ("08", "signalement amorçage des données variables"),
-    ("09", "DSN de substitution"),
-    ("10", "signalement déclaration préalable à l'embauche"),
-];
 
 pub const TYPES: [(&str, &str); 5] = [
     ("01", "déclaration normale"),
@@ -75,172 +40,6 @@ fn refus(classe: &'static str, message: impl Into<String>) -> Echec {
 #[track_caller]
 fn depot_refuse(message: impl Into<String>) -> Echec {
     refus("DepotRefuse", message)
-}
-
-// ------------------------------------------------------------- l'apercu
-
-/// Ce qu'un fichier DSN declare : `dsn_api.Apercu` sans son chemin.
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Apercu {
-    pub champs: Vec<(&'static str, String)>,
-    pub salaries: usize,
-    pub versements: Vec<String>,
-    pub lignes: usize,
-    pub pas_versements: usize,
-    pub pas_bareme: usize,
-}
-
-impl Apercu {
-    pub fn champ(&self, nom: &str) -> &str {
-        self.champs.iter().find(|(n, _)| *n == nom).map_or("", |(_, v)| v.as_str())
-    }
-
-    pub fn reel(&self) -> bool {
-        self.champ("nature_envoi") == NATURE_REEL
-    }
-
-    fn nature_ou_mensuelle(&self) -> &str {
-        let n = self.champ("nature");
-        if n.is_empty() {
-            MENSUELLE
-        } else {
-            n
-        }
-    }
-
-    pub fn est_signalement(&self) -> bool {
-        SIGNALEMENTS.contains(&self.nature_ou_mensuelle())
-    }
-
-    pub fn nature_lisible(&self) -> String {
-        let n = self.nature_ou_mensuelle();
-        match NATURES.iter().find(|(c, _)| *c == n) {
-            Some((_, l)) => l.to_string(),
-            None => format!("nature {}", self.champ("nature")),
-        }
-    }
-
-    /// LE MOIS QUE LE FICHIER DECLARE : `01082026` -> 2026-08 ; un signalement se date par son evenement, et se range
-    /// dans le mois de ce jour.
-    pub fn mois_declare(&self) -> socle::num::Resultat<socle::mois::Mois> {
-        let mois = self.champ("mois");
-        match (socle::mois::Mois::de_la_dsn(mois), self.evenement()) {
-            (Ok(m), _) => Ok(m),
-            (Err(_), Some(j)) if self.est_signalement() => Ok(socle::mois::Mois::du_jour(&j)),
-            (Err(e), _) => Err(e),
-        }
-    }
-
-    /// Le jour de l'evenement d'un signalement : l'arret par son dernier jour travaille, la fin de contrat par sa date de
-    /// fin, l'amorcage par le debut du contrat, un amorcage de changement de logiciel par sa constitution.
-    pub fn evenement(&self) -> Option<socle::date::Jour> {
-        let mut jour = [self.champ("dernier_jour"), self.champ("fin_contrat"), self.champ("debut_contrat")].into_iter().find(|s| !s.is_empty()).unwrap_or("");
-        if jour.is_empty() && self.champ("nature") == "08" {
-            jour = self.champ("constitution");
-        }
-        let c: Vec<char> = jour.chars().collect();
-        if !(c.len() == 8 && c.iter().all(|&x| est_chiffre(x))) {
-            return None;
-        }
-        let t = |a: usize, b: usize| c[a..b].iter().collect::<String>();
-        socle::date::Jour::lire(&format!("{}-{}-{}", t(4, 8), t(2, 4), t(0, 2))).ok()
-    }
-
-    /// `05102026` -> `2026-10-05` : le jour de l'evenement (`evenement`), ou `?`.
-    pub fn evenement_lisible(&self) -> String {
-        self.evenement().map_or_else(|| "?".to_string(), |j| j.iso())
-    }
-
-    /// Ce qu'on fait recopier pour prouver qu'on a regarde.
-    pub fn confirmation_attendue(&self) -> String {
-        if self.est_signalement() {
-            self.evenement_lisible()
-        } else {
-            self.mois_declare().map_or_else(|_| if self.champ("mois").is_empty() { "?".to_string() } else { self.champ("mois").to_string() }, |m| m.to_string())
-        }
-    }
-}
-
-/// Des octets lus en latin-1 : un octet, un caractère, et les fins de
-/// ligne `\r\n` et `\r` lues comme `\n`.
-fn texte_latin1(o: &[u8]) -> String {
-    let mut s = String::with_capacity(o.len());
-    let mut i = 0;
-    while i < o.len() {
-        if o[i] == b'\r' {
-            s.push('\n');
-            if o.get(i + 1) == Some(&b'\n') {
-                i += 1;
-            }
-        } else {
-            s.push(o[i] as char);
-        }
-        i += 1;
-    }
-    s
-}
-
-/// La rubrique et sa valeur.
-fn rubrique_de(ligne: &str) -> Option<(&str, &str)> {
-    let c: Vec<char> = ligne.chars().take(16).collect();
-    let chiffres = [1, 2, 5, 6, 8, 9, 11, 12, 13];
-    if c.len() < 16
-        || c[0] != 'S'
-        || c[3] != '.'
-        || c[4] != 'G'
-        || c[7] != '.'
-        || c[10] != '.'
-        || c[14] != ','
-        || c[15] != '\''
-        || !chiffres.iter().all(|&i| c[i].is_ascii_digit())
-    {
-        return None;
-    }
-    let reste = &ligne[16..];
-    let valeur = reste.strip_suffix('\'')?;
-    Some((&ligne[..14], valeur))
-}
-
-/// La premiere valeur de chaque rubrique.
-fn rubriques(texte: &str) -> Vec<(&str, &str)> {
-    let mut out: Vec<(&str, &str)> = Vec::new();
-    for l in lignes(texte) {
-        if let Some((r, v)) = rubrique_de(l) {
-            if !out.iter().any(|(x, _)| *x == r) {
-                out.push((r, v));
-            }
-        }
-    }
-    out
-}
-
-/// Une ligne (coupee sur
-/// `\n` seul) qui commence par `<rubrique>,'` et finit par `'`.
-fn valeurs_de(texte: &str, rubrique: &str) -> Vec<String> {
-    let debut = format!("{},'", rubrique);
-    texte
-        .split('\n')
-        .filter_map(|l| l.strip_prefix(debut.as_str())?.strip_suffix('\'').map(str::to_string))
-        .collect()
-}
-
-/// `dsn_api.lire`, sur les octets du fichier.
-pub fn lire(octets: &[u8]) -> Apercu {
-    let texte = texte_latin1(octets);
-    let r = rubriques(&texte);
-    let champs = LECTURE
-        .iter()
-        .map(|(nom, rub)| (*nom, r.iter().find(|(x, _)| x == rub).map_or(String::new(), |(_, v)| v.to_string())))
-        .collect();
-    let types = valeurs_de(&texte, "S21.G00.50.007");
-    Apercu {
-        champs,
-        salaries: declarations::ntt::individus(&texte).len(),
-        versements: valeurs_de(&texte, "S21.G00.20.005"),
-        lignes: lignes(&texte).len(),
-        pas_versements: types.len(),
-        pas_bareme: types.iter().filter(|x| *x != "01").count(),
-    }
 }
 
 // ------------------------------------------------ la bascule en test, en memoire
@@ -321,8 +120,8 @@ fn nettoye(s: &str) -> &str {
 
 /// Le mode demande doit correspondre au fichier, et un reel
 /// exige une preuve.
-pub fn verifier(a: &Apercu, reel: bool, mois_confirme: Option<&str>, presence_prouvee: bool) -> Resultat<()> {
-    let nature_envoi = a.champ("nature_envoi");
+pub fn verifier(a: &DsnLue, reel: bool, mois_confirme: Option<&str>, presence_prouvee: bool) -> Resultat<()> {
+    let nature_envoi = a.nature_envoi.as_deref().unwrap_or("");
     if reel && nature_envoi != NATURE_REEL {
         return Err(depot_refuse(format!(
             "Le fichier porte {}='{}' (envoi de test) et vous demandez un depot REEL. Un fichier de test depose reellement ne declare RIEN : les donnees ne sont pas conservees. Deposez le fichier du mois, que la route deposer ecrit elle-meme.",

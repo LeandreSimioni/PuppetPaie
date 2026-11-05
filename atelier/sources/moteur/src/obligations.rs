@@ -1009,7 +1009,7 @@ pub(crate) fn fin_signalee_le(journal: &[envois::journal::Ligne], cle: &str, fin
 }
 
 /// Le premier depot REEL, non refuse au bilan, du signalement de fin de ce contrat : une ligne `dsn` du journal, au jour de la fin
-/// (`Apercu::evenement_lisible`), dont le fichier est celui que `fin-contrat-signaler` ecrit pour ce salarie.
+/// (`DsnLue::evenement_lisible`), dont le fichier est celui que `fin-contrat-signaler` ecrit pour ce salarie.
 fn fctu_depose(journal: &[envois::journal::Ligne], cle: &str, fin: &Jour) -> Option<Fait> {
     let nom = format!("SignalementFinContrat_{}_{}.dsn", cle.to_uppercase(), fin.aaaammjj());
     envois::journal::filtrer(journal, Some(envois::journal::Acte::Dsn), None, true)

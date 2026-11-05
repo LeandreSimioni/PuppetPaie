@@ -21,6 +21,7 @@ use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;
 
 use crate::journal::Ligne;
+use declarations::dsn_lue::DsnLue;
 use socle::mois::Mois;
 use crate::branchement::Branchement;
 
@@ -136,75 +137,6 @@ pub fn annoncer(racine: &Path, branchement: Branchement, annonce: &Value) -> R<(
     ecrire(racine, &v)
 }
 
-// ------------------------------------------------------------------ une DSN deposee, relue
-
-/// Les rubriques d'un fichier DSN, dans l'ordre : `(code, valeur)`.
-fn rubriques(octets: &[u8]) -> Vec<(String, String)> {
-    let texte = socle::texte::texte_latin1(octets);
-    socle::texte::lignes_du_texte(&texte)
-        .into_iter()
-        .filter_map(|l| {
-            let (c, v) = l.trim().split_once(',')?;
-            Some((c.to_string(), v.trim().trim_matches('\'').to_string()))
-        })
-        .collect()
-}
-
-/// JJMMAAAA.
-fn jour_dsn(v: &str) -> Option<Jour> {
-    let c: Vec<u32> = v.chars().map(|x| x.to_digit(10)).collect::<Option<_>>()?;
-    if c.len() != 8 {
-        return None;
-    }
-    let n = |a: usize, b: usize| c[a..b].iter().fold(0, |s, x| s * 10 + x);
-    Jour::nouveau(n(4, 8) as i32, n(2, 4), n(0, 2))
-}
-
-/// Un contrat tel que la DSN le declare, pour le decompte de l'effectif.
-struct Contrat {
-    debut: Option<Jour>,
-    fin: Option<Jour>,
-    rupture: Option<Jour>,
-    reference: f64,
-    quotite: f64,
-    modalite: String,
-    motif_recours: String,
-}
-
-/// Par individu (son NIR), ses contrats.
-fn contrats_par_individu(octets: &[u8]) -> BTreeMap<String, Vec<Contrat>> {
-    let mut out: BTreeMap<String, Vec<Contrat>> = BTreeMap::new();
-    let mut individu = String::new();
-    for (c, v) in rubriques(octets) {
-        match c.as_str() {
-            "S20.G00.05.001" => individu.clear(),
-            "S21.G00.30.001" => individu = v,
-            "S21.G00.40.001" => out.entry(individu.clone()).or_default().push(Contrat {
-                debut: jour_dsn(&v),
-                fin: None,
-                rupture: None,
-                reference: 0.0,
-                quotite: 0.0,
-                modalite: String::new(),
-                motif_recours: String::new(),
-            }),
-            _ => {
-                let Some(k) = out.get_mut(&individu).and_then(|l| l.last_mut()) else { continue };
-                match c.as_str() {
-                    "S21.G00.40.010" => k.fin = jour_dsn(&v),
-                    "S21.G00.40.012" => k.reference = v.parse().unwrap_or(0.0),
-                    "S21.G00.40.013" => k.quotite = v.parse().unwrap_or(0.0),
-                    "S21.G00.40.014" => k.modalite = v,
-                    "S21.G00.40.021" => k.motif_recours = v,
-                    "S21.G00.62.001" => k.rupture = jour_dsn(&v),
-                    _ => {}
-                }
-            }
-        }
-    }
-    out
-}
-
 /// L'effectif d'un mois, d'apres les DSN de ce mois (une par etablissement), comme R. 130-1 du code de la securite
 /// sociale le compte (`atelier/reference/sources/code-de-la-securite-sociale/articles-20261029.md`, « L'effectif au sens
 /// de la securite sociale ») : chaque personne titulaire d'un contrat compte a due proportion des jours du mois ou elle
@@ -212,30 +144,34 @@ fn contrats_par_individu(octets: &[u8]) -> BTreeMap<String, Vec<Contrat>> {
 /// de sa duree contractuelle a la duree de reference (dernier alinea de L. 1111-2 du code du travail : la quotite du
 /// contrat, S21.G00.40.013, sur celle de la categorie, S21.G00.40.012) ; un CDD qui remplace un salarie absent
 /// (motif de recours 01, S21.G00.40.021) n'est pas compte (II, premier alinea, qui renvoie a la deuxieme phrase du 2° de
-/// L. 1111-2). Une personne compte au plus une fois par jour, au plus fort de ses contrats de ce jour.
-fn effectif_du_mois(an: i32, mois: u32, dsn: &[Vec<u8>]) -> f64 {
+/// L. 1111-2). Une personne (son NIR, sinon son NTT) compte au plus une fois par jour, au plus fort de ses contrats de ce
+/// jour.
+fn effectif_du_mois(an: i32, mois: u32, dsn: &[DsnLue]) -> f64 {
+    use rust_decimal::prelude::ToPrimitive;
     let n = socle::date::jours_du_mois(an, mois);
     let premier = Jour::nouveau(an, mois, 1).expect("mois");
     let dernier = Jour::nouveau(an, mois, n).expect("mois");
+    let nombre = |q: Option<socle::num::Decimal>| q.and_then(|q| q.to_f64()).unwrap_or(0.0);
     let mut par_jour: BTreeMap<String, Vec<f64>> = BTreeMap::new();
-    for octets in dsn {
-        for (nir, contrats) in contrats_par_individu(octets) {
-            let jours = par_jour.entry(nir).or_insert_with(|| vec![0.0; n as usize]);
-            for k in contrats {
-                if k.motif_recours == "01" {
-                    continue;
-                }
-                let Some(debut) = k.debut else { continue };
-                let fin = k.rupture.or(k.fin).unwrap_or(dernier);
-                if debut > dernier || fin < premier {
-                    continue;
-                }
-                let poids = if k.modalite == "20" && k.reference > 0.0 { (k.quotite / k.reference).min(1.0) } else { 1.0 };
-                let (a, b) = (if debut < premier { 1 } else { debut.jour }, if fin > dernier { n } else { fin.jour });
-                for j in a..=b {
-                    let p = &mut jours[(j - 1) as usize];
-                    *p = p.max(poids);
-                }
+    for d in dsn {
+        for k in &d.contrats {
+            let ind = &d.individus[k.individu];
+            let qui = if ind.nir.is_empty() { format!("NTT {}", ind.ntt.as_deref().unwrap_or_default()) } else { ind.nir.clone() };
+            let jours = par_jour.entry(qui).or_insert_with(|| vec![0.0; n as usize]);
+            if k.motif_recours.as_deref() == Some("01") {
+                continue;
+            }
+            let Some(debut) = k.debut else { continue };
+            let fin = k.fin_declaree.or(k.fin).unwrap_or(dernier);
+            if debut > dernier || fin < premier {
+                continue;
+            }
+            let (reference, quotite) = (nombre(k.quotite_reference), nombre(k.quotite));
+            let poids = if k.modalite.as_deref() == Some("20") && reference > 0.0 { (quotite / reference).min(1.0) } else { 1.0 };
+            let (a, b) = (if debut < premier { 1 } else { debut.jour }, if fin > dernier { n } else { fin.jour });
+            for j in a..=b {
+                let p = &mut jours[(j - 1) as usize];
+                *p = p.max(poids);
             }
         }
     }
@@ -245,7 +181,7 @@ fn effectif_du_mois(an: i32, mois: u32, dsn: &[Vec<u8>]) -> f64 {
 /// L'effectif salarie annuel de `an` : la moyenne des effectifs des mois de l'annee, les mois sans salarie ecartes, le
 /// resultat tronque au centieme (L. 130-1, I, et R. 130-1, I, du code de la securite sociale, memes releves). `None` quand
 /// aucun mois n'a de salarie.
-pub fn effectif_annuel(an: i32, dsn_par_mois: &BTreeMap<u32, Vec<Vec<u8>>>) -> Option<f64> {
+pub fn effectif_annuel(an: i32, dsn_par_mois: &BTreeMap<u32, Vec<DsnLue>>) -> Option<f64> {
     let mois: Vec<f64> = (1..=12).map(|m| dsn_par_mois.get(&m).map_or(0.0, |d| effectif_du_mois(an, m, d))).filter(|e| *e > 0.0).collect();
     if mois.is_empty() {
         return None;
@@ -270,15 +206,14 @@ fn echappe(t: &str) -> String {
     t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
-/// La ligne du journal : le fichier depose, relu la ou le depot l'a pris (`sorties/<mois>/<fichier>`) ; un signalement
-/// est range sous le mois de son fait.
-fn fichier_depose(racine: &Path, l: &Ligne) -> Option<Vec<u8>> {
-    let fichier = l.fichier().filter(|f| !f.is_empty())?.to_string();
-    let p = Path::new(&fichier);
-    if p.is_absolute() {
-        return std::fs::read(p).ok();
-    }
-    std::fs::read(racine.join("sorties").join(mois_de(l)).join(&fichier)).ok()
+/// La DSN de la ligne du journal, relue la ou le depot l'a prise (`sorties/<mois>/<fichier>`) ; un signalement est range
+/// sous le mois de son fait. `None` : le fichier n'est plus la.
+fn dsn_deposee(racine: &Path, l: &Ligne) -> R<Option<DsnLue>> {
+    let Some(fichier) = l.fichier().filter(|f| !f.is_empty()) else { return Ok(None) };
+    let p = Path::new(fichier);
+    let chemin = if p.is_absolute() { p.to_path_buf() } else { racine.join("sorties").join(mois_de(l)).join(fichier) };
+    let Ok(octets) = std::fs::read(&chemin) else { return Ok(None) };
+    declarations::dsn_lue::lire(&octets, fichier).map(Some)
 }
 
 /// Le mois de la ligne (`AAAA-MM`), ou rien.
@@ -365,7 +300,7 @@ fn taux_de_simulation(nir: &str) -> String {
 /// plus tard le jour du depot, sinon `taux_de_simulation`), dans la forme du CRM nominatif recu
 /// (`envois/tests/envois/retours.rs`, `CRM_REEL` : `rapport/@identifiant`, `salarie`, `NIR`, `matricule`,
 /// `taux_imposition_PAS`). `None` quand la declaration ne porte aucun salarie de la compagnie.
-fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Ligne, octets: &[u8], flux: &str, publication: &str) -> R<Option<Piece>> {
+fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Ligne, d: &DsnLue, flux: &str, publication: &str) -> R<Option<Piece>> {
     let depot = jour_iso(l.quand());
     let mut taux: BTreeMap<String, String> = BTreeMap::new();
     for a in memoire["annonces"].as_array().into_iter().flatten() {
@@ -377,25 +312,8 @@ fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Ligne, octets: &[u8], flux: &str
     }
     let mut salaries = String::new();
     let mut vus = BTreeSet::new();
-    let (mut nir, mut matricule) = (String::new(), String::new());
-    let mut individus: Vec<(String, String)> = Vec::new();
-    for (c, v) in rubriques(octets) {
-        match c.as_str() {
-            "S21.G00.30.001" => {
-                if !nir.is_empty() {
-                    individus.push((nir.clone(), matricule.clone()));
-                }
-                nir = v;
-                matricule.clear();
-            }
-            "S21.G00.30.019" => matricule = v,
-            _ => {}
-        }
-    }
-    if !nir.is_empty() {
-        individus.push((nir, matricule));
-    }
-    for (nir, matricule) in individus {
+    for ind in d.individus.iter().filter(|i| !i.nir.is_empty()) {
+        let (nir, matricule) = (ind.nir.clone(), ind.code_salarie.clone().unwrap_or_default());
         let Some((cle, _)) = ctx.salaries.iter().find(|(_, s)| s.nir.texte() == nir) else { continue };
         if !vus.insert(nir.clone()) {
             continue;
@@ -435,10 +353,10 @@ fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Ligne, octets: &[u8], flux: &str
 /// (`code_ctn`, `section`, `code_risque`, `temoin_bureau`, `taux`, `date_effet`, `date_calcul` ;
 /// `atelier/reference/sources/gip-mds-api-dsn/`, LISEZ-MOI, « La notification du taux AT/MP »). Le `type` du rapport
 /// n'est ecrit par aucun texte depose : la piece n'en porte pas. `None` quand la CARSAT n'a rien a notifier.
-fn crm_atmp(memoire: &mut Value, l: &Ligne, octets: &[u8], flux: &str, publication: &str) -> Option<Piece> {
+fn crm_atmp(memoire: &mut Value, l: &Ligne, d: &DsnLue, flux: &str, publication: &str) -> Option<Piece> {
     let depot = jour_iso(l.quand());
-    let rubriques = rubriques(octets);
-    let r = |code: &str| rubriques.iter().find(|(c, _)| c == code).map(|(_, v)| v.clone()).unwrap_or_default();
+    let texte = |v: Option<&str>| echappe(v.unwrap_or_default());
+    let mois = d.mois.map(|m| format!("01{:02}{}", m.numero(), m.annee())).unwrap_or_default();
     let calcul = socle::paris::maintenant().chars().take(10).collect::<String>().replace('-', "");
     let mut taux = String::new();
     for a in memoire["annonces"].as_array_mut().into_iter().flatten() {
@@ -470,11 +388,11 @@ fn crm_atmp(memoire: &mut Value, l: &Ligne, octets: &[u8], flux: &str, publicati
          <rang>1</rang><nature>{}</nature><type>{}</type><mois>{}</mois><SIREN>{}</SIREN><nic_affectation>{}</nic_affectation>\
          </declaration_identification><declaration_bilan><etat>OK</etat>{}</declaration_bilan></declaration></ns2:rapport>",
         echappe(flux),
-        echappe(&r("S20.G00.05.001")),
-        echappe(&r("S20.G00.05.002")),
-        echappe(&r("S20.G00.05.005")),
-        echappe(&r("S21.G00.06.001")),
-        echappe(&r("S21.G00.11.001")),
+        texte(d.nature.as_deref()),
+        texte(d.type_declaration.as_deref()),
+        echappe(&mois),
+        texte(d.entreprise.siren.as_deref()),
+        texte(d.etablissement()),
         taux
     );
     Some(Piece { retour: retour(crate::retours::NATURE_TAUX_ATMP, flux, publication, "Compte-rendu metier taux AT/MP, notification de la Carsat (compagnie fictive)"), contenu: xml.into_bytes() })
@@ -482,7 +400,7 @@ fn crm_atmp(memoire: &mut Value, l: &Ligne, octets: &[u8], flux: &str, publicati
 
 /// Les DSN mensuelles reelles de l'annee `an` que l'Urssaf a recues et acceptees, par mois : pour chaque mois et chaque
 /// etablissement, la derniere deposee ; une DSN dont le bilan est non conforme n'en est pas une.
-fn dsn_de_l_annee(racine: &Path, lignes: &[Ligne], an: i32) -> BTreeMap<u32, Vec<Vec<u8>>> {
+fn dsn_de_l_annee(racine: &Path, lignes: &[Ligne], an: i32) -> R<BTreeMap<u32, Vec<DsnLue>>> {
     let mut dernieres: BTreeMap<(String, String), &Ligne> = BTreeMap::new();
     for l in lignes {
         let mois = mois_de(l);
@@ -495,18 +413,18 @@ fn dsn_de_l_annee(racine: &Path, lignes: &[Ligne], an: i32) -> BTreeMap<u32, Vec
         let etab = l.etablissement().unwrap_or_default().to_string();
         dernieres.insert((mois, etab), l);
     }
-    let mut out: BTreeMap<u32, Vec<Vec<u8>>> = BTreeMap::new();
+    let mut out: BTreeMap<u32, Vec<DsnLue>> = BTreeMap::new();
     for ((mois, _), l) in dernieres {
         let refusee = l.retours_organisme().iter().any(|r| r.ko());
         let Some(m) = mois.get(5..7).and_then(|m| m.parse::<u32>().ok()) else { continue };
         if refusee {
             continue;
         }
-        if let Some(o) = fichier_depose(racine, l) {
-            out.entry(m).or_default().push(o);
+        if let Some(d) = dsn_deposee(racine, l)? {
+            out.entry(m).or_default().push(d);
         }
     }
-    out
+    Ok(out)
 }
 
 /// Le compte rendu NEOReS de nature 118 de l'Urssaf : l'effectif moyen annuel de l'annee `an` (type de parametre A01,
@@ -547,24 +465,24 @@ pub fn reponses_dsn(ctx: &Contexte, memoire: &mut Value, lignes: &[Ligne], l: &L
     }
     // La demande de taux par anticipation (BOI-IR-PAS-30-10-20, § 20) : le compte rendu du taux, rien d'autre.
     if nature_dsn(l) == declarations::amorcage::NATURE {
-        if let Some(octets) = fichier_depose(&ctx.racine, l) {
-            pieces.extend(crm_pas(ctx, memoire, l, &octets, flux, publication)?);
+        if let Some(d) = dsn_deposee(&ctx.racine, l)? {
+            pieces.extend(crm_pas(ctx, memoire, l, &d, flux, publication)?);
         }
         return Ok(Ok(pieces));
     }
     if nature_dsn(l) != "01" {
         return Ok(Ok(pieces));
     }
-    if let Some(octets) = fichier_depose(&ctx.racine, l) {
-        pieces.extend(crm_pas(ctx, memoire, l, &octets, flux, publication)?);
-        pieces.extend(crm_atmp(memoire, l, &octets, flux, publication));
+    if let Some(d) = dsn_deposee(&ctx.racine, l)? {
+        pieces.extend(crm_pas(ctx, memoire, l, &d, flux, publication)?);
+        pieces.extend(crm_atmp(memoire, l, &d, flux, publication));
     }
     let an: Option<i32> = l.mois().map(Mois::annee);
     if let Some(an) = an {
         let precedente = (an - 1).to_string();
         let rendus = memoire["effectifs_rendus"].as_array().into_iter().flatten().any(|a| valeur_en_texte(a) == precedente);
         if !rendus {
-            if let Some(e) = effectif_annuel(an - 1, &dsn_de_l_annee(&ctx.racine, lignes, an - 1)) {
+            if let Some(e) = effectif_annuel(an - 1, &dsn_de_l_annee(&ctx.racine, lignes, an - 1)?) {
                 pieces.push(crm_effectif(an - 1, e, flux, publication));
                 memoire["effectifs_rendus"].as_array_mut().expect("liste").push(json!(precedente));
             }
@@ -589,9 +507,9 @@ pub fn garder(racine: &Path, avant: &Value, apres: &Value) -> R<()> {
 mod tests {
     use super::*;
 
-    /// Une DSN reduite a ce que le decompte lit : un individu et ses contrats `(debut, fin, modalite, reference, quotite,
+    /// Une DSN reduite a ce que le decompte lit, lue : un individu et ses contrats `(debut, fin, modalite, reference, quotite,
     /// motif de recours)`, dates JJMMAAAA.
-    fn dsn(individus: &[(&str, &[(&str, &str, &str, &str, &str, &str)])]) -> Vec<u8> {
+    fn dsn(individus: &[(&str, &[(&str, &str, &str, &str, &str, &str)])]) -> DsnLue {
         let mut t = String::from("S20.G00.05.001,'01'\n");
         for (nir, contrats) in individus {
             t.push_str(&format!("S21.G00.30.001,'{}'\n", nir));
@@ -606,7 +524,7 @@ mod tests {
                 }
             }
         }
-        t.into_bytes()
+        declarations::dsn_lue::lire(t.as_bytes(), "essai.dsn").unwrap()
     }
 
     /// R. 130-1 du code de la securite sociale (`atelier/reference/sources/code-de-la-securite-sociale/articles-20261029.md`) :
@@ -615,7 +533,7 @@ mod tests {
     /// salarie hors de la moyenne et le resultat tronque au centieme (I).
     #[test]
     fn l_effectif_annuel_se_compte_comme_r_130_1_le_dit() {
-        let mut par_mois: BTreeMap<u32, Vec<Vec<u8>>> = BTreeMap::new();
+        let mut par_mois: BTreeMap<u32, Vec<DsnLue>> = BTreeMap::new();
         // Janvier (31 jours) : un CDI a temps plein tout le mois (1), un mi-temps (75,84 h sur 151,67 : 0,5) du 16 au 31
         // (16 jours : 0,258...), un CDDU de deux jours (2/31), un CDD de remplacement (ecarte).
         par_mois.insert(

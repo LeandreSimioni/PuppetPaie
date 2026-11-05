@@ -260,7 +260,7 @@ fn deposer_les_dsn(
     d: &HorlogeFictive,
     ctx: &Contexte,
     mois: Mois,
-    garder: impl Fn(&envois::depot::Apercu) -> bool,
+    garder: impl Fn(&declarations::dsn_lue::DsnLue) -> bool,
     a_faire: &mut Vec<String>,
 ) -> R<bool> {
     let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
@@ -273,7 +273,8 @@ fn deposer_les_dsn(
         let Ok(octets) = std::fs::read(&chemin) else { continue };
         // LA DEMANDE DE TAUX NE PART QU'AVEC LA DPAE (`depot_acte::deposer_dpae`) : un signalement d'amorcage reste d'un
         // essai ne part pas avec la DSN du mois.
-        if !garder(&envois::depot::lire(&octets)) || envois::depot::lire(&octets).champ("nature").trim() == declarations::amorcage::NATURE {
+        let lue = declarations::dsn_lue::lire(&octets, &nom)?;
+        if !garder(&lue) || lue.nature.as_deref() == Some(declarations::amorcage::NATURE) {
             continue;
         }
         let empreinte = envois::journal::empreinte(&octets);
@@ -286,7 +287,7 @@ fn deposer_les_dsn(
             continue;
         }
         // Un signalement qui ne part pas se nomme : le pas est celui de la DSN du mois.
-        let signalement = envois::depot::lire(&octets).champ("nature").trim() != "01";
+        let signalement = lue.nature_ou_mensuelle() != declarations::dsn_lue::MENSUELLE;
         for reel in [false, true] {
             a_faire.extend(deposer_dsn_joue(d, ctx, &chemin, reel).map_err(|mut e| {
                 if signalement {
@@ -712,7 +713,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             }
             d.reverifier()?;
             crate::routes::imprevus::signaler_l_arret(ctx, &crate::routes::imprevus::ChargeArretSignaler::de(salarie.clone(), Jour::lire(dernier)?, *nature), None)?;
-            deposer_les_dsn(d, ctx, *mois, |x| x.champ("nature") == nature.code(), &mut Vec::new())?;
+            deposer_les_dsn(d, ctx, *mois, |x| x.nature.as_deref() == Some(nature.code()), &mut Vec::new())?;
             Ok(true)
         }),
         Geste::Fin { mois, salarie, fin } => pas(d, quoi, quand, |ctx| {
@@ -724,7 +725,7 @@ fn jouer(d: &HorlogeFictive, p: &Pas) -> Vec<String> {
             }
             d.reverifier()?;
             crate::routes::imprevus::signaler_la_fin(ctx, &crate::routes::imprevus::ChargeFinContratSignaler::de(*mois, salarie.clone()), false)?;
-            deposer_les_dsn(d, ctx, *mois, |x| x.champ("nature") == declarations::fctu::NATURE, &mut Vec::new())?;
+            deposer_les_dsn(d, ctx, *mois, |x| x.nature.as_deref() == Some(declarations::fctu::NATURE), &mut Vec::new())?;
             Ok(true)
         }),
         Geste::Dsn { mois, echeance } => {
