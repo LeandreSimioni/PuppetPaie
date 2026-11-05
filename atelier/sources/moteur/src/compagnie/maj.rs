@@ -204,14 +204,19 @@ pub fn version_lue(v: &str) -> String {
 }
 
 /// LA SEULE LECTURE D'UN FICHIER DE `maj/` (`reglage.json`, `prete.json`, `appliquee.json`) : sa forme, stricte (une cle
-/// qu'elle ne connait pas refuse) ; `None` s'il n'existe pas. `phrase` est celle du refus, qui dit quoi corriger.
+/// qu'elle ne connait pas refuse) ; `None` s'il n'existe pas. `phrase` est celle du refus, qui dit quoi corriger ; le
+/// chemin du fichier va a part.
 fn lire_forme<T: serde::de::DeserializeOwned>(p: &Path, phrase: &str) -> R<Option<T>> {
     let texte = match std::fs::read_to_string(p) {
         Ok(t) => t,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(socle::echec::du_disque(p, &e)),
     };
-    socle::forme::lire_texte(&texte, phrase).map(Some)
+    socle::forme::lire_texte(&texte, phrase).map(Some).map_err(|e| {
+        let (dite, mut plus) = socle::echec::separer(&e);
+        plus.insert("chemin".into(), json!(p.to_string_lossy()));
+        socle::echec::avec(dite, Value::Object(plus))
+    })
 }
 
 pub(crate) fn ecrire_json(p: &Path, v: &Value) -> R<()> {
@@ -254,7 +259,7 @@ struct Reglage {
 /// Le reglage de l'installation, `maj/reglage.json` : (depot pose, editeur), ou rien de pose s'il n'existe pas.
 /// `editeur` ne sert qu'a autoriser la publication : le poste de l'editeur recoit comme les autres.
 pub fn reglage(inst: &Path) -> R<(Option<String>, bool)> {
-    let r: Reglage = lire_forme(&dossier_maj(inst).join(REGLAGE), "Le réglage de la mise à jour (maj/reglage.json) ne se lit pas : il ne porte que « depot » et « editeur ».")?.unwrap_or_default();
+    let r: Reglage = lire_forme(&dossier_maj(inst).join(REGLAGE), "Le réglage de la mise à jour ne se lit pas : il ne dit que le dépôt d'où l'installation reçoit, et si ce poste est celui de l'éditeur.")?.unwrap_or_default();
     Ok((r.depot.filter(|s| !s.is_empty()), r.editeur))
 }
 
@@ -283,7 +288,7 @@ const PRETE: &str = "prete.json";
 /// est stricte, la seule qu'ecrit `telecharger` : le relais d'une version neuve (`appliquer_depuis`) lit ce qu'a ecrit le
 /// code de l'installation posee, et une autre forme refuse la bascule (l'ancienne version reste en place et le dit).
 fn prete_dans(maj: &Path) -> R<Option<Prete>> {
-    let p: Option<Prete> = lire_forme(&maj.join(PRETE), "La mise à jour prête ne se lit pas : effacez maj/prete.json de l'installation, elle se téléchargera de nouveau.")?;
+    let p: Option<Prete> = lire_forme(&maj.join(PRETE), "La mise à jour prête ne se lit pas : effacez son fichier, elle se téléchargera de nouveau.")?;
     Ok(p.filter(|p| maj.join(&p.version).join(LOGICIEL).join("donnees").is_dir()))
 }
 
@@ -1400,7 +1405,7 @@ fn phrase_du_calcul(calcul: &str) -> String {
 /// a jour ». Si `vue` ne s'ecrit pas, la phrase se dit quand meme : mieux vaut la relire que ne jamais la lire.
 fn dire_l_installation(inst: &Path, suivi: &Recherche) {
     let chemin = dossier_maj(inst).join(APPLIQUEE);
-    let mut a = match lire_forme::<Appliquee>(&chemin, "La version installée (maj/appliquee.json) ne se lit pas : elle ne se dit pas au lancement.") {
+    let mut a = match lire_forme::<Appliquee>(&chemin, "La version installée ne se lit pas : elle ne se dit pas au lancement.") {
         Ok(Some(a)) if !a.vue => a,
         Ok(_) => return,
         Err(e) => return noter(inst, &e),
