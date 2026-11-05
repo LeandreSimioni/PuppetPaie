@@ -223,7 +223,11 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
             continue;
         }
         let dsn = crate::import::ecrite::dsn_importee(ctx, m).map_err(refus)?;
-        if dsn.as_deref().and_then(|c| crate::import::ecrite::lire_dsn_casc(c, &contrat_casc)).is_some_and(|(_, porte)| porte) {
+        let porte = match dsn.as_deref() {
+            Some(c) => crate::import::ecrite::lire_dsn_casc(c, &contrat_casc)?.is_some_and(|(_, porte)| porte),
+            None => false,
+        };
+        if porte {
             portees.push(m.clone());
             continue;
         }

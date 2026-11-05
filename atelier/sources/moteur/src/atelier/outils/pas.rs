@@ -61,7 +61,7 @@ fn amorcer(cadre: &Cadre) -> Result<i32, Echec> {
         dire!("Dossier introuvable : {}", export.display());
         return Ok(1);
     }
-    let releves = crate::compagnie::taux_pas::derniers_taux_des_dsn(ctx, &export);
+    let releves = crate::compagnie::taux_pas::derniers_taux_des_dsn(ctx, &export)?;
     let nom = export.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let chgts = crate::compagnie::taux_pas::enregistrer(ctx, &releves, &format!("amorcage depuis les DSN deposees ({})", nom))?;
     dire!("Amorcage depuis les DSN deposees ({}) :", export.display());

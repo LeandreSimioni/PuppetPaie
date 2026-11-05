@@ -58,24 +58,15 @@ pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>
 
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a
 /// l'adhesion que la DSN nomme `contrat` en bloc 15). `None` : illisible.
-pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
-    let d = crate::import::dsn_aem::lire_une_dsn(chemin)?;
-    let octets = std::fs::read(chemin).ok()?;
-    let (mut refs, mut rattachees): (HashSet<String>, HashSet<String>) = (HashSet::new(), HashSet::new());
-    let mut libelle: Option<String> = None;
-    for ligne in socle::texte::lignes_du_texte(&socle::texte::texte_latin1(&octets)) {
-        let (k, v) = ligne.split_once(',').unwrap_or((&ligne, ""));
-        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'');
-        if k == "S21.G00.15.001" {
-            libelle = Some(v.to_string());
-        } else if k == "S21.G00.15.005" && libelle.as_deref() == Some(contrat) {
-            refs.insert(v.to_string());
-        } else if k == "S21.G00.70.013" {
-            rattachees.insert(v.to_string());
-        }
-    }
-    let porte = refs.iter().any(|r| rattachees.contains(r));
-    Some((d, porte))
+pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Result<Option<(crate::import::dsn_aem::DsnLue, bool)>, Echec> {
+    let Some(d) = crate::import::dsn_aem::lire_une_dsn(chemin)? else { return Ok(None) };
+    let porte = d
+        .adhesions
+        .iter()
+        .filter(|a| a.libelle == contrat)
+        .filter_map(|a| a.reference.as_ref())
+        .any(|r| d.rattachements.contains(r));
+    Ok(Some((d, porte)))
 }
 
 /// L'alerte apres l'import : une compagnie de la 3090 qui arrive de CoolPaie avec des DSN de 2025
@@ -105,15 +96,12 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
             Ok(None) => continue,
             Err(_) => return Ok(None),
         };
-        let Some((d, porte)) = lire_dsn_casc(&chemin, &contrat) else { return Ok(None) };
+        let Some((d, porte)) = lire_dsn_casc(&chemin, &contrat)? else { return Ok(None) };
         if porte {
             continue;
         }
         let mut masse = socle::num::zero2();
-        for v in d["versements"].as_array().into_iter().flatten() {
-            let Some(brut) = v.get("brut").filter(|b| vrai(b)) else { continue };
-            let tb = valeur_en_texte(brut);
-            let b = socle::num::decimal_lu(&tb).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&tb)))?;
+        for b in d.versements.iter().filter(|v| v.contrat.is_some()).filter_map(|v| v.brut) {
             masse += b;
         }
         let an: String = m.chars().take(4).collect();

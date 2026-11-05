@@ -293,11 +293,13 @@ impl Trieur {
             lire_pdf(&mut f);
         } else if apres_bom(&octets).starts_with(b"S10.G00.00.001,") {
             match crate::import::dsn_aem::lire_une_dsn(&f.disque) {
-                Some(d) => {
+                Ok(Some(d)) => {
                     f.sorte = Sorte::Dsn;
-                    f.mois = d.get("mois").and_then(Value::as_str).map(String::from);
+                    f.mois = Some(d.mois.to_string());
                 }
-                None => {
+                // Une DSN fautive reste une DSN : sa lecture refuse l'import, et dit quoi corriger (`dsn_aem::lire_dsn`).
+                Err(_) => f.sorte = Sorte::Dsn,
+                Ok(None) => {
                     f.sorte = Sorte::Illisible;
                     f.raison = Some("commence comme une DSN, mais ne dit pas son mois (S20.G00.05.005)".into());
                 }
