@@ -2,7 +2,6 @@
 //! nominatif (cotisation 129), le bordereau (CTP 987) et le bloc S21.G00.44 (013/014). Le droit la juge sur ce que la
 //! DSN ecrit d'un contrat : nature (40.007), dispositif (40.008), motif de recours (40.021).
 
-use socle::date::en_texte;
 use socle::num::Resultat;
 
 use crate::natures::Nature;
@@ -56,12 +55,7 @@ S21.G00.44 sur une supposition.",
 /// Ce que la DSN ecrit d'un contrat de nature `nat` : nature, dispositif, motif (celui de la nature, sinon celui de
 /// l'engagement).
 pub fn codes_de(nat: &Nature, motif_recours: Option<&str>) -> (String, String, String) {
-    let code = |r: &str| -> String {
-        nat.codes.get(r).map(|v| match v.get("valeur") {
-            Some(x) => en_texte(x),
-            None => en_texte(v),
-        }).unwrap_or_default()
-    };
+    let code = |r: &str| -> String { nat.code(r).unwrap_or_default() };
     let motif = match code("S21.G00.40.021") {
         m if !m.is_empty() => m,
         _ => motif_recours.unwrap_or_default().to_string(),

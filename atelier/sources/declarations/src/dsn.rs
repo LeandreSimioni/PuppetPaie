@@ -20,7 +20,7 @@ use droit::reduction::au_dela_du_seuil;
 use engagement::calcul::Paie;
 use engagement::etats::PrelevementDeLaCorrection;
 use droit::contexte::{aujourdhui, Contexte};
-use droit::natures::{contrat_court, Nature};
+use droit::natures::{contrat_court, Mesure, Nature, TypeDeRemuneration};
 use socle::date::{en_texte, Jour};
 use socle::mois::Mois;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
@@ -778,7 +778,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
         }
     }
     let nat = p.engagement.nat()?;
-    let nature = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
+    let nature = nat.bareme().unwrap_or("intermittent").to_string();
     for contrib in &contribs {
         let natures = g(contrib, "natures");
         if natures.get(&nature).is_none() {
@@ -1068,7 +1068,7 @@ fn bornes_du_mois(mois: &str) -> Resultat<(Jour, Jour)> {
 /// Les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
 /// periode `debut`..=`fin`.
 pub fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
-    let cle = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
+    let cle = nat.bareme().unwrap_or("intermittent").to_string();
     let sec = g(g(orgs, "affiliations_par_nature"), &cle);
     if !vrai(sec) {
         return Err(socle::echec::avec(format!(
@@ -1526,7 +1526,7 @@ fn motif_rupture(p: &Paie, nat: &Nature) -> Resultat<String> {
     let connus: Vec<String> = nat
         .motifs_rupture()
         .iter()
-        .map(|m| format!("{} ({})", en_texte(g(m, "code")), en_texte(g(m, "libelle"))))
+        .map(|m| format!("{} ({})", m.code, m.libelle))
         .collect();
     Err(socle::echec::cle(format!(
         "Contrat {} ({}) : il se termine le {}, et le motif de la rupture (S21.G00.62.002) n'est pas dit. Un {} ne \
@@ -1731,17 +1731,17 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     if !nat.duree_indeterminee || e.fin.is_some() {
         f.add_opt("S21.G00.40.010", e.fin.map(|j| j.jjmmaaaa()))?;
     }
-    f.add("S21.G00.40.011", &nat.unite_quotite);
+    f.add("S21.G00.40.011", nat.unite_quotite());
     let quotite = e.quotite()?;
     // Le plafond de la nature (`contrats-base.json`, `unite_quotite.plafond`) vaut pour 40.012 comme pour 40.013 :
     // CCH-12 du bloc 40 (journee, 31.00), CCH-13 (heure, 250.00) ; cahier technique 2026.1, p. 189.
     let depasse = |rubrique: &str, quoi: &str, valeur: String| -> Resultat<()> {
-        let Some(plafond) = nat.plafond_quotite else { return Ok(()) };
+        let plafond = nat.plafond_quotite();
         let q: f64 = valeur.parse().unwrap_or(0.0);
         if q <= plafond {
             return Ok(());
         }
-        let cch = match nat.unite_quotite.as_str() {
+        let cch = match nat.unite_quotite() {
             "12" | "20" => " CCH-12",
             "10" | "21" => " CCH-13",
             _ => "",
@@ -1755,7 +1755,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
             quoi,
             valeur,
             qt_f(plafond)?,
-            nat.unite_quotite,
+            nat.unite_quotite(),
             rubrique,
             cch
         ))
@@ -1846,7 +1846,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         f.add("S21.G00.62.006", crate::fctu::dernier_jour_paye(e)?.jjmmaaaa());
         // 62.017 d'un CDDU suit le motif : 01 (circuit derogatoire) pour le 031, 02 sinon (CCH-12, `Nature::codes_fin`).
         for (rub, val) in nat.codes_fin(Some(&motif)) {
-            f.add_v(&rub, &val)?;
+            f.add(&rub, val);
         }
     }
     for s in &e.suspensions {
@@ -1911,7 +1911,7 @@ Rien n'est ecrit.",
 /// refuse. Une duree collective plus courte (32 h) passe. Un contrat d'usage (en jours) n'est pas concerne.
 fn quotite_de_reference_sans_heures_supplementaires(f: &Fichier, p: &Paie, nat: &droit::natures::Nature, reference: f64) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("quotite_reference_sans_heures_supplementaires")? else { return Ok(()) };
-    let Some(legale) = nat.quotite_reference_defaut.filter(|_| nat.mensuelle()) else { return Ok(()) };
+    let Some(legale) = nat.quotite_reference_defaut().filter(|_| nat.mensuelle()) else { return Ok(()) };
     if reference <= legale {
         return Ok(());
     }
@@ -1991,21 +1991,19 @@ pub fn court(p: &Paie, le: Jour) -> Resultat<bool> {
 pub fn remunerations(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe: i64) -> Resultat<()> {
     let e = &p.engagement;
     let nat = e.nat()?;
-    for code in nat.types_remuneration() {
-        let code = en_texte(&code);
-        let montant = match code.as_str() {
-            "001" => brut_du_51(p),
-            "002" => p.assiette_chomage,
-            "003" => p.salaire_retabli,
-            "010" => p.salaire_de_base,
-            autre => return Err(format!("type de rémunération inconnu : {}", socle::fichiers::repr(autre))),
+    for &t in nat.types_remuneration() {
+        let montant = match t {
+            TypeDeRemuneration::Brute => brut_du_51(p),
+            TypeDeRemuneration::AssietteChomage => p.assiette_chomage,
+            TypeDeRemuneration::SalaireRetabli => p.salaire_retabli,
+            TypeDeRemuneration::SalaireDeBase => p.salaire_de_base,
         };
         f.add("S21.G00.51.001", debut.jjmmaaaa());
         f.add("S21.G00.51.002", fin.jjmmaaaa());
         f.add_opt("S21.G00.51.010", e.numero.clone())?;
-        f.add("S21.G00.51.011", &code);
+        f.add("S21.G00.51.011", t.code());
         f.add("S21.G00.51.013", ms(montant, signe));
-        if code == "002" {
+        if t == TypeDeRemuneration::AssietteChomage {
             activites(f, p, signe)?;
         }
     }
@@ -2047,30 +2045,26 @@ pub fn mesures_d_activite(p: &Paie) -> Resultat<Vec<(String, Decimal, String)>> 
     let nat = e.nat()?;
     let mut out = Vec::new();
     for u in nat.unites_activite() {
-        let mesure = en_texte(req(&u, "mesure")?);
-        let valeur = match mesure.as_str() {
-            "jours" => Decimal::from(e.jours),
-            "cachets" => Decimal::from(e.cachets),
-            "heures" => match e.heures {
+        let valeur = match u.mesure {
+            Mesure::Jours => Decimal::from(e.jours),
+            Mesure::Cachets => Decimal::from(e.cachets),
+            Mesure::Heures => match e.heures {
                 Some(h) if h != 0.0 => socle::num::dec_f64(h)?,
                 _ => Decimal::ZERO,
             },
-            "heures_travaillees" => p.heures_travaillees,
-            autre => return Err(format!("mesure inconnue : {}", socle::fichiers::repr(autre))),
         };
-        if vrai(g(&u, "si_non_nul")) && valeur.is_zero() {
+        if u.si_non_nul && valeur.is_zero() {
             continue;
         }
         // Une unite que seule la caisse des Conges Spectacles demande (`contrats-base.json`, `si_caisse_conges`).
-        if vrai(g(&u, "si_caisse_conges")) && !p.declaree_a_la_caisse_des_conges()? {
+        if u.si_caisse_conges && !p.declaree_a_la_caisse_des_conges()? {
             continue;
         }
-        let t = if u.get("type").is_some() { en_texte(&u["type"]) } else { "01".into() };
-        out.push((t, valeur, en_texte(req(&u, "code")?)));
+        out.push((u.type_d_activite().to_string(), valeur, u.code.clone()));
     }
-    if let Some(a) = nat.unite_absence().filter(vrai) {
+    if let Some(a) = nat.unite_absence() {
         if !p.heures_absence.is_zero() {
-            out.push((en_texte(req(&a, "type")?), p.heures_absence, en_texte(req(&a, "code")?)));
+            out.push((a.type_activite.clone(), p.heures_absence, a.code.clone()));
         }
     }
     Ok(out)
@@ -2746,7 +2740,7 @@ fn lecture(p: &Paie, bar: &BaremeDuMois) -> Resultat<Lecture> {
         };
         l.roles.push((code.clone(), org, Role81::Cotisation { cle: cle_total.unwrap_or(code), base }));
     }
-    let nature = p.engagement.nat()?.bareme.clone().unwrap_or_else(|| "intermittent".into());
+    let nature = p.engagement.nat()?.bareme().unwrap_or("intermittent").to_string();
     for contrib in &contribs {
         if g(contrib, "natures").get(&nature).is_some() {
             l.blocs.push(("31".into(), "zero".into()));

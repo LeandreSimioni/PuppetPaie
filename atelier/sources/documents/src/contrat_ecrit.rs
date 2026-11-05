@@ -127,7 +127,7 @@ pub fn marqueurs_au_mois(eng: &Value, nat: &Nature, remuneration: &[Value], brut
     let q = dec(&json!(q))?;
     // Le temps partiel comme la DSN le declare (S21.G00.40.014, `Engagement::modalite_temps_travail`) : la modalite
     // saisie, sinon une quotite sous la reference de l'entreprise, plafonnee a la duree legale.
-    let legale = nat.quotite_reference_defaut.map(|r| dec(&json!(r))).transpose()?;
+    let legale = nat.quotite_reference_defaut().map(|r| dec(&json!(r))).transpose()?;
     let reference = match (texte(eng, "quotite_reference_saisie").map(|r| dec(&json!(r))).transpose()?, legale) {
         (Some(r), Some(l)) => r.min(l),
         (r, l) => r.or(l).unwrap_or(q),
@@ -161,11 +161,6 @@ fn minuscule_initiale(s: &str) -> String {
         Some(p) => p.to_lowercase().chain(c).collect(),
         None => String::new(),
     }
-}
-
-/// Une phrase de renvoi de la nature (`contrat_ecrit.phrases`).
-fn phrase(nat: &Nature, cle: &str) -> Option<String> {
-    nat.contrat_ecrit.get("phrases").and_then(|p| p.get(cle)).and_then(Value::as_str).map(str::to_string)
 }
 
 /// Un organisme que le contrat nomme : son nom, et son adresse quand la donnee la porte.
@@ -260,8 +255,10 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, 
         },
     };
     m.insert(Marqueur::SalarieCategorie, categorie);
-    if let Some(motif) = phrase(nat, "motif") {
-        m.insert(Marqueur::ContratMotif, motif);
+    // LES PHRASES DE RENVOI de la nature (R. 1221-35) : une nature sans contrat ecrit n'en fait pas.
+    let phrases = nat.phrases().ok_or_else(|| format!("La nature {} n'a pas de contrat écrit.", nat.libelle))?;
+    if let Some(motif) = &phrases.motif {
+        m.insert(Marqueur::ContratMotif, motif.clone());
     }
     m.insert(
         Marqueur::ContratPeriodeEssai,
@@ -284,10 +281,9 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, 
             None => "aucun".into(),
         },
     );
-    for (cle, texte) in [(Marqueur::MentionsFormation, phrase(nat, "formation")), (Marqueur::MentionsRupture, phrase(nat, "rupture"))] {
-        m.insert(cle, texte.unwrap_or_default());
-    }
-    let conges = phrase(nat, "conges").unwrap_or_default();
+    m.insert(Marqueur::MentionsFormation, phrases.formation.clone());
+    m.insert(Marqueur::MentionsRupture, phrases.rupture.clone());
+    let conges = phrases.conges.clone();
     let conges = if conges.contains("{congesspectacles}") { conges.replace("{congesspectacles}", &crate::conges_spectacles::adherent(ent)?) } else { conges };
     m.insert(Marqueur::MentionsConges, conges);
     // LES REGIMES OBLIGATOIRES ET LA PROTECTION SOCIALE COMPLEMENTAIRE (R1221-34, 14°) : le regime de base que la nature
@@ -327,10 +323,10 @@ pub fn est_propre(chemin: &Path) -> bool {
 /// marqueur, le texte qui l'exige, et si elle n'est due que dite.
 pub fn mentions(nat: &Nature) -> Result<Vec<(Marqueur, String, bool)>, String> {
     nat.mentions_obligatoires()
-        .into_iter()
-        .map(|(cle, pourquoi, si_dite)| {
-            let m = Marqueur::lire(&cle).ok_or_else(|| socle::echec::avec(format!("La table livrée des natures exige du {} une mention que le logiciel ne connaît pas : le signaler au développeur.", nat.nom_du_contrat()), json!({"fichier": "contrats-base.json", "marqueur": cle})))?;
-            Ok((m, pourquoi, si_dite))
+        .iter()
+        .map(|x| {
+            let m = Marqueur::lire(&x.marqueur).ok_or_else(|| socle::echec::avec(format!("La table livrée des natures exige du {} une mention que le logiciel ne connaît pas : le signaler au développeur.", nat.nom_du_contrat()), json!({"fichier": "contrats-base.json", "marqueur": x.marqueur})))?;
+            Ok((m, x.texte.clone(), x.si_dite))
         })
         .collect()
 }

@@ -1272,7 +1272,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                  part patronale de prevoyance) : sans elle la CSG serait \
                  sous-declaree sans que rien ne le signale.",
                 bar.annee,
-                if nat.bareme.is_some() { format!(", nature '{}'", nat.cle) } else { String::new() }
+                if nat.bareme().is_some() { format!(", nature '{}'", nat.cle) } else { String::new() }
             )})))
         }
     };
@@ -1852,7 +1852,7 @@ devine pas.",
             l.get("quantite").map(en_texte).unwrap_or_default()
         ));
     }
-    let legale = dec_f64(nat.quotite_reference_defaut.ok_or_else(|| socle::echec::livree("contrats-base.json", &format!("{}.quotite_reference_defaut", nat.libelle)))?)?;
+    let legale = dec_f64(nat.quotite_reference_defaut().ok_or_else(|| socle::echec::livree("contrats-base.json", &format!("{}.quotite_reference_defaut", nat.libelle)))?)?;
     let reference = match e.quotite_reference()? {
         Some(r) => legale.min(dec_f64(r)?),
         None => legale,
