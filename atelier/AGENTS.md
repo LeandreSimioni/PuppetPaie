@@ -59,6 +59,13 @@ s'écrit à côté** : un manque du LLM est un manque du moteur. Rien ne se déb
 `tests/fichiers/structure.rs`, sans liste d'exceptions, et prouvé en jouant (tout cliquer ; une compagnie créée depuis
 zéro).
 
+**Le moteur rend, l'écran et le LLM lisent la même réponse** ; l'écran n'a que ses règles d'affichage. **Où chaque route
+se voit, c'est sa fiche qui le dit** (`Fiche::ecran`, obligatoire, `routes/catalogue.rs`) : `Dessine(place)` (un écran
+fait main de cette place l'appelle), `Auto(place, bouton)` (sous « Avancé » de sa place, `js/avance.js` la dessine
+depuis sa fiche : son nom n'est écrit dans aucun JS), `Lecture` (elle nourrit un écran, n'écrit rien). Les pages sont
+`logiciel/interface/` et `atelier/sources/moteur/src/interface/pages/` (l'accueil). On ne cherche donc jamais une route
+par son nom dans le JS : on lit sa fiche.
+
 ## La preuve d'un lot
 
 - **Un lot dit ce qu'il touche** : chaque fonction, clé, format changés, et **chaque lecteur** trouvé par `grep`.
