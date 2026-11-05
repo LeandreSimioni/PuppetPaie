@@ -1193,8 +1193,8 @@ fn versement_refuse(ctx: &Contexte, eng: &Engagement, qui: &str) -> Resultat<Opt
             let ent = ctx.entreprise_au(&fin_mois);
             let fiche = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
             let code = fiche.code_emploi_ft.texte().to_string();
-            let metier = emplois::metier(&code)?.unwrap_or(Value::Null);
-            let cirque = metier.get("minima").and_then(|m| m.get("1285")).and_then(Value::as_str) == Some("cirque");
+            let metier = emplois::metier(&code)?;
+            let cirque = metier.as_ref().and_then(|m| m.au_catalogue()).and_then(|f| f.minima.ccn_1285.as_deref()) == Some("cirque");
             (ent.idcc.texte() == "1285" && cirque).then_some(f)
         }
         _ => None,
@@ -2062,12 +2062,12 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resul
     let tous = &data.engagements;
     for (p, e) in paies.iter_mut().zip(tous) {
         let metier = e.metier.clone().unwrap_or_default();
-        let m = emplois::metier(&metier)?.unwrap_or(Value::Null);
-        if e.cadre == Some(false) && !m.is_null() && emplois::cadre_par_defaut(&m, ctx.entreprise.idcc.texte())? {
+        let m = emplois::metier(&metier)?;
+        if let Some(m) = m.filter(|m| e.cadre == Some(false) && m.cadre_par_defaut(ctx.entreprise.idcc.texte())) {
             fn texte<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
                 c.remplie().map(str::to_string)
             }
-            let libelle = m.get("libelle").filter(|x| vrai(x)).map(en_texte).unwrap_or_else(|| metier.clone());
+            let libelle = Some(m.libelle()).filter(|l| !l.is_empty()).unwrap_or_else(|| metier.clone());
             let msg = format!(
                 "{} {}, {} : case cadre decochee, alors que ce metier est \
                  habituellement cadre. Si c'est voulu, rien a faire ; sinon, \

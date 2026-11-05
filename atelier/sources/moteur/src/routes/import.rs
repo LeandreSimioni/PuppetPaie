@@ -188,9 +188,9 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     }
     // Le statut de bareme se deduit du code emploi France Travail, a defaut de la PCS (354x : artistes).
     let code = f.get("code_emploi_ft").map_or(String::new(), valeur_en_texte);
-    let m = droit::emplois::metier(&code)?.unwrap_or_else(|| json!({}));
-    let statut = match m.get("statut").filter(|v| vrai(v)) {
-        Some(s) => s.clone(),
+    let m = droit::emplois::metier(&code)?;
+    let statut = match &m {
+        Some(m) => json!(m.statut()),
         None => json!(if f.get("pcs_ese").map_or(String::new(), valeur_en_texte).starts_with("354") { "artiste" } else { "technicien" }),
     };
     f.insert("statut".into(), statut);
@@ -199,7 +199,7 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     // est celui du code emploi, sinon celui que nomme l'intitule declare (S21.G00.40.006), s'il en nomme un seul
     // (`emplois::par_intitule`, comme pour un bulletin).
     let intitule = f.get("emploi").map_or(String::new(), valeur_en_texte);
-    let du_catalogue = if m.get("libelle").is_some_and(vrai) {
+    let du_catalogue = if m.is_some() {
         Some(code.clone())
     } else {
         droit::emplois::par_intitule(&intitule, crate::import::bulletins::compare)?.map(|(c, _)| c)

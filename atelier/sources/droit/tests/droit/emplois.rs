@@ -3,7 +3,7 @@
 //! oracles, que `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit.
 
 use crate::outils::{lire_oracle, oracle};
-use droit::emplois::{metier, resoudre, statut_non_cadre};
+use droit::emplois::{metier, resoudre};
 use serde_json::{json, Value};
 
 #[test]
@@ -14,11 +14,11 @@ fn resoudre_metier_et_statut_non_cadre() {
         let code = e["code"].as_str().unwrap().to_string();
         let m = metier(&code).unwrap();
         if e.get("non_cadre").is_some() {
-            e["non_cadre"] = statut_non_cadre(m.as_ref().unwrap()).map_or(Value::Null, Value::String);
+            e["non_cadre"] = m.as_ref().unwrap().statut_non_cadre().map_or(Value::Null, Value::String);
         }
         // Un code de la seule nomenclature : l'oracle ne garde que son statut de non-cadre.
         if !(e["metier"].is_null() && e.get("non_cadre").is_some()) {
-            e["metier"] = m.unwrap_or(Value::Null);
+            e["metier"] = m.map_or(Value::Null, |m| serde_json::to_value(m).unwrap());
         }
         for (cle, voulu) in e["resolu"].as_object_mut().unwrap() {
             let (cadre, fem) = cle.split_once('|').unwrap();

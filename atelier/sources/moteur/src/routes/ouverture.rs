@@ -1226,77 +1226,6 @@ pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> RubriqueDeLaPage {
     }
 }
 
-/// Les preferences de metiers de la compagnie (`config/metiers-ajoutes.json`) :
-/// `(codes ajoutes, codes retires)`.
-pub(crate) fn preferences_metiers(racine: &Path) -> R<(Vec<String>, Vec<String>)> {
-    let p = racine.join(crate::routes::metiers::METIERS_AJOUTES);
-    if !p.exists() {
-        return Ok((vec![], vec![]));
-    }
-    let v = lire_objet(&p)?;
-    let liste = |k: &str| -> Vec<String> { v.get(k).and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default() };
-    objet(&v, "metiers-ajoutes.json")?;
-    Ok((liste("codes"), liste("retires")))
-}
-
-/// Ce metier est-il dans le deroulant de cette compagnie ? Ceux de
-/// sa convention le sont d'office ; elle en ajoute d'une autre, elle en retire
-/// des siens (Configuration > Metiers).
-pub(crate) fn metier_visible(m: &Value, idcc: &str, ajoutes: &[String], retires: &[String]) -> bool {
-    let code = m.get("code").and_then(Value::as_str).unwrap_or("");
-    if retires.iter().any(|c| c == code) {
-        return false;
-    }
-    let conventions = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
-    // Sans IDCC (une compagnie qui s'installe), rien ne se cache.
-    let de_la_convention = conventions.is_empty() || idcc.is_empty() || conventions.iter().any(|c| c.as_str() == Some(idcc));
-    de_la_convention || ajoutes.iter().any(|c| c == code)
-}
-
-fn texte_de(m: &Value, k: &str) -> String {
-    m.get(k).map(valeur_en_texte).unwrap_or_default()
-}
-
-/// `metiers` : le catalogue des metiers, groupe par famille (les artistes en
-/// tete), chaque convention voyant ses metiers et seulement eux.
-pub(crate) fn metiers(ctx: &Contexte) -> R<Value> {
-    let familles = emplois::familles().map_err(plain)?;
-    let ordre: HashMap<&str, usize> = familles.iter().enumerate().map(|(i, f)| (f.as_str(), i)).collect();
-    let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = ctx.entreprise.idcc.texte().to_string();
-    let mut liste: Vec<Value> = emplois::catalogue(&idcc).map_err(plain)?.into_iter().filter(|m| metier_visible(m, &idcc, &ajoutes, &retires)).collect();
-    liste.sort_by_cached_key(|m| (ordre.get(texte_de(m, "famille").as_str()).copied().unwrap_or(ordre.len()), texte_de(m, "libelle").to_lowercase()));
-    Ok(Value::Array(liste))
-}
-
-/// `metiers_autres_conventions` : les metiers des AUTRES conventions, ceux que
-/// la compagnie peut ajouter a son deroulant.
-pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Value> {
-    let noms = emplois::noms_des_conventions().map_err(plain)?;
-    let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = ctx.entreprise.idcc.texte().to_string();
-    let mut out: Vec<(String, String, Value)> = Vec::new();
-    for m in emplois::catalogue(&idcc).map_err(plain)? {
-        if metier_visible(&m, &idcc, &ajoutes, &retires) {
-            continue;
-        }
-        let conventions = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
-        let de: Vec<String> = conventions
-            .iter()
-            .map(|c| {
-                let cle = valeur_en_texte(c);
-                format!("{} ({})", noms.get(&cle).map(valeur_en_texte).unwrap_or_else(|| cle.clone()), cle)
-            })
-            .collect();
-        let de = de.join(", ");
-        let mut e = m.as_object().cloned().unwrap_or_default();
-        e.insert("de".into(), Value::String(de.clone()));
-        out.push((de, texte_de(&m, "libelle").to_lowercase(), Value::Object(e)));
-    }
-    out.sort_by(|a, b| (&a.0, &a.1).cmp(&(&b.0, &b.1)));
-    Ok(Value::Array(out.into_iter().map(|(_, _, v)| v).collect()))
-}
-
 /// `faits_de_rupture` : les faits a demander a l'ecran pour CE motif, et eux
 /// seuls (« si compagnie simple, interface simple »).
 fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
@@ -1544,9 +1473,9 @@ pub struct EtatDeLaPage {
     spectacles: Vec<SpectacleDeLaListe>,
     rubriques: Vec<RubriqueDeLaPage>,
     rubrique_par_defaut: RubriqueParDefaut,
-    emplois: Value,
+    emplois: Vec<emplois::MetierDuDeroulant>,
     familles_emplois: Vec<String>,
-    emplois_autres: Value,
+    emplois_autres: Vec<super::metiers::MetierAutre>,
     natures: Vec<NatureDeLaPage>,
     nature_defaut: String,
     types_preavis: Vec<droit::preavis::TypePreavis>,
@@ -1648,11 +1577,11 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         rubriques,
         rubrique_par_defaut,
         // Le catalogue des metiers, deja dans l'ordre des familles.
-        emplois: metiers(ctx)?,
+        emplois: super::metiers::metiers(ctx)?,
         familles_emplois: emplois::familles().map_err(plain)?,
         // Les metiers des autres conventions : on les AJOUTE a son deroulant,
         // ils n'y sont pas d'office.
-        emplois_autres: metiers_autres_conventions(ctx)?,
+        emplois_autres: super::metiers::metiers_autres_conventions(ctx)?,
         // LES NATURES DE CONTRAT. Un engagement qui ne dit rien est un CDDU du
         // spectacle : c'est le defaut que l'ecran garde.
         natures: natures(ctx)?,

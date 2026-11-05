@@ -45,7 +45,7 @@ pub fn idcc_du_contrat(idcc: &str, sp: &Value, sal: &crate::fiche::ChampsSalarie
         Some(c) => crate::emplois::metier(c)?,
         None => None,
     };
-    match metier.as_ref().map(|m| g(m, "famille")).filter(|f| !f.is_null()) {
+    match metier.as_ref().and_then(|m| m.au_catalogue()).map(|f| f.famille.as_str()) {
         None => Err(format!(
             "Spectacle {}, émission de télévision (convention 1734) : le métier {} de {} n'est pas au catalogue, et \
              le logiciel ne sait pas s'il est artiste-interprète (1734) ou musicien, metteur en scène, artiste de \
@@ -54,7 +54,7 @@ pub fn idcc_du_contrat(idcc: &str, sp: &Value, sal: &crate::fiche::ChampsSalarie
             code.unwrap_or_else(|| "(aucun)".into()),
             sal.nom.remplie().unwrap_or("ce salarié")
         )),
-        Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => Ok("1734".into()),
+        Some("Artistes" | "Cirque et rue") => Ok("1734".into()),
         Some(_) => Ok(idcc),
     }
 }

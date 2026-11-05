@@ -208,9 +208,8 @@ pub fn profil(idcc: &str, fiche: &crate::fiche::ChampsSalarie, engagement: Optio
     let valeurs = get(sec, "valeurs");
     let code = code_emploi(e, fiche)?;
     let m = code.as_deref().map(emplois::metier).transpose()?.flatten();
-    let mv = m.as_ref().unwrap_or(&NUL);
-    let c3090 = get(mv, "classification_3090");
-    let grille = get(c3090, "grille").clone();
+    let c3090 = m.as_ref().and_then(|m| m.classification_3090());
+    let grille = c3090.map_or(Value::Null, |c| json!(c.grille));
 
     let dit = match get(e, "categorie_conventionnelle") {
         v if vrai(v) => Some(v.clone()),
@@ -230,8 +229,8 @@ pub fn profil(idcc: &str, fiche: &crate::fiche::ChampsSalarie, engagement: Optio
 
     let statut = if vrai(get(e, "statut")) {
         get(e, "statut").as_str()
-    } else if vrai(get(e, "metier")) && vrai(get(mv, "statut")) {
-        get(mv, "statut").as_str()
+    } else if vrai(get(e, "metier")) && m.is_some() {
+        m.as_ref().map(|m| m.statut().as_str())
     } else {
         Some(fiche.statut.code())
     };
@@ -243,7 +242,7 @@ pub fn profil(idcc: &str, fiche: &crate::fiche::ChampsSalarie, engagement: Optio
     } else {
         fiche.statut_categoriel_rc.code() == "01"
     };
-    let niveau = lu_brut(get(c3090, "niveau"));
+    let niveau = c3090.map(|c| c.niveau.clone()).unwrap_or_default();
     let selon_niveau = get(get(sec, "par_niveau_3090"), &niveau);
     let code = code.unwrap_or_default();
     if est_cadre {
@@ -273,15 +272,6 @@ fn code_emploi(e: &Value, fiche: &crate::fiche::ChampsSalarie) -> Resultat<Optio
     match get(e, "metier") {
         v if vrai(v) => Ok(Some(v.as_str().ok_or_else(|| format!("code emploi : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(v))))?.to_string())),
         _ => Ok(fiche.code_emploi_ft.remplie().map(str::to_string)),
-    }
-}
-
-/// Une valeur en texte, vide si elle manque ou est vide, blancs gardés.
-fn lu_brut(v: &Value) -> String {
-    if vrai(v) {
-        texte(v)
-    } else {
-        String::new()
     }
 }
 
@@ -785,10 +775,10 @@ pub fn prime_anciennete(
     let code = code_emploi(e, fiche)?;
     let m = code.as_deref().map(emplois::metier).transpose()?.flatten();
     let code = code.unwrap_or_default();
-    let mv = m.as_ref().unwrap_or(&NUL);
-    let c3090 = get(mv, "classification_3090");
+    let c3090 = m.as_ref().and_then(|m| m.classification_3090());
+    let famille = m.as_ref().map_or("", |m| m.famille());
     let statut = if vrai(get(e, "statut")) { get(e, "statut").as_str() } else { Some(fiche.statut.code()) };
-    if statut == Some("artiste") || get(c3090, "grille").as_str() != Some("technique") {
+    if statut == Some("artiste") || c3090.map(|c| c.grille.as_str()) != Some("technique") {
         return Ok(None);
     }
     let article = format!("{}, {}", nom(idcc), texte(cle(sec, "article")?));
@@ -823,16 +813,15 @@ pub fn prime_anciennete(
         ));
         return Ok(Some(out));
     };
-    let niveau = get(get(sec, "niveaux"), &lu_brut(get(c3090, "niveau")));
+    let niveau = get(get(sec, "niveaux"), &c3090.map(|c| c.niveau.clone()).unwrap_or_default());
     if !vrai(niveau) {
         out["pourquoi"] = Value::String(format!("le niveau 3090 du metier {} n'est pas connu", code));
         return Ok(Some(out));
     }
     let niveau = niveau.as_str().ok_or("niveau illisible")?;
-    let famille = get(mv, "famille");
     let costume = get(sec, "familles_costume")
         .as_array()
-        .map_or(false, |l| l.iter().any(|x| x == famille));
+        .map_or(false, |l| l.iter().any(|x| x.as_str() == Some(famille)));
     let base = if costume {
         cle(cle(g, "costume")?, niveau)?
     } else {

@@ -1,18 +1,194 @@
 //! Les metiers du spectacle et la fiche telle qu'elle vaut pour un engagement (`emploi_de`, `emploi_du_mois`).
 //!
-//! Deux fichiers livres avec le code : `emplois-base.json` (le catalogue) et
-//! `nomenclature-emplois-ft.json` (les codes France Travail).
+//! Deux fichiers livres avec le code, chacun lu par sa forme, une fois tant qu'il ne change pas : `emplois-base.json`
+//! (le catalogue, `BaseEmplois`) et `nomenclature-emplois-ft.json` (les codes France Travail, `Nomenclature`). Un
+//! metier se lit par `metier`, qui rend un `Metier` : celui du catalogue, sinon celui de la nomenclature.
 //!
 //! De l'interface (l'accueil, `moteur::routes::ouverture`) : `catalogue`, `familles`,
 //! `noms_des_conventions` et `controler_fiche`.
 
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use std::collections::BTreeMap;
+use std::sync::{Arc, OnceLock};
+
+use serde::{Deserialize, Serialize};
+use socle::fichiers::{forme_en_cache, repr, repr_valeur, vrai, FormeGardee};
 use socle::num::Resultat;
 use serde_json::{Map, Value};
 use socle::date::Jour;
 
 use crate::contexte::{fiche_au, valeurs_datees, Contexte};
-use crate::fiche::{Case, FicheSalarie};
+use crate::fiche::{Case, FicheSalarie, Statut};
+
+/// `emplois-base.json` : le catalogue des metiers, dans l'ordre ou le deroulant les montre, et les noms courts des
+/// conventions. `_perimetre`, `_regles` et `_sources` disent d'ou vient chaque champ.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BaseEmplois {
+    #[serde(rename = "_quoi")]
+    _quoi: String,
+    #[serde(rename = "_perimetre")]
+    _perimetre: String,
+    #[serde(rename = "_regles")]
+    _regles: BTreeMap<String, String>,
+    #[serde(rename = "_sources")]
+    _sources: Vec<String>,
+    /// IDCC -> le nom court de la convention.
+    #[serde(rename = "_conventions")]
+    pub conventions: BTreeMap<String, String>,
+    #[serde(deserialize_with = "socle::forme::en_ordre")]
+    pub emplois: Vec<(String, FicheDuCatalogue)>,
+}
+
+/// Un metier du catalogue : ce que les declarations demandent (le libelle et sa forme declaree S21.G00.40.006, la
+/// PCS-ESE 40.004, le statut artiste ou technicien, le statut conventionnel 40.002, cadre par defaut 40.003), sa famille,
+/// les conventions dont le deroulant le montre, et la ligne de minima et de classification de chaque convention qui
+/// le nomme (`_regles` de `emplois-base.json`).
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct FicheDuCatalogue {
+    pub libelle: String,
+    pub feminin: String,
+    pub pcs_ese: String,
+    pub statut: Statut,
+    pub famille: String,
+    pub cadre_par_defaut: bool,
+    /// Le defaut cadre d'une convention qui le dit autrement (le dramaturge, cadre dans la 1285).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub cadre_selon_la_convention: BTreeMap<String, bool>,
+    pub statut_conventionnel: String,
+    pub minima: Minima,
+    pub emploi: String,
+    pub annexe: u8,
+    /// L'annexe que la nomenclature France Travail donne au code, quand le catalogue en retient une autre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub annexe_nomenclature: Option<u8>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub conventions: Vec<String>,
+    /// Les conventions dont le deroulant le montre sans que leur liste de l'annexe 8 le nomme.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub conventions_hors_liste: Vec<String>,
+    /// IDCC -> le classement conventionnel du metier dans cette convention.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub classement: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub classification_1285: Option<Classification1285>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub classification_2642: Option<Fonction>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub classification_3090: Option<Classification3090>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub classification_3097: Option<Classification3097>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    #[serde(rename = "_2642", default, skip_serializing)]
+    _note_2642: Option<String>,
+    #[serde(rename = "_3097", default, skip_serializing)]
+    _note_3097: Option<String>,
+    #[serde(rename = "_un_code_deux_fonctions", default, skip_serializing)]
+    _un_code_deux_fonctions: Option<String>,
+}
+
+/// La ligne de minima de chaque convention qui nomme le metier : la 3090 par annexe (annexe -> ligne), les autres en
+/// une ligne.
+#[derive(Debug, Clone, PartialEq, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Minima {
+    #[serde(rename = "3090", default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub ccn_3090: BTreeMap<String, String>,
+    #[serde(rename = "1285", default, skip_serializing_if = "Option::is_none")]
+    pub ccn_1285: Option<String>,
+    #[serde(rename = "2642", default, skip_serializing_if = "Option::is_none")]
+    pub ccn_2642: Option<String>,
+    #[serde(rename = "3097", default, skip_serializing_if = "Option::is_none")]
+    pub ccn_3097: Option<String>,
+}
+
+impl Minima {
+    /// La ligne de minima d'une convention qui n'en a qu'une (1285, 2642, 3097), ou `None`.
+    pub fn ligne(&self, idcc: &str) -> Option<&str> {
+        match idcc.trim() {
+            "1285" => self.ccn_1285.as_deref(),
+            "2642" => self.ccn_2642.as_deref(),
+            "3097" => self.ccn_3097.as_deref(),
+            _ => None,
+        }
+    }
+}
+
+/// La classification de la CCNEAC (1285) : le groupe de la grille des emplois autres qu'artistiques, et l'emploi
+/// repere de l'article XI.3.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Classification1285 {
+    pub groupe: Option<u32>,
+    pub emploi_xi3: String,
+}
+
+/// La classification de la 3090 : la grille (technique, administratif) et le niveau.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Classification3090 {
+    pub grille: String,
+    pub niveau: String,
+}
+
+/// La fonction du metier dans la grille de la 2642.
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Fonction {
+    pub fonction: String,
+}
+
+/// La fonction du metier dans la grille de la 3097 (titre II), et l'emploi repere du titre IV qui donne le salaire d'un
+/// permanent (`minima-conventionnels.json`, `3097._permanents` : seuls les metiers qui le disent sont compares).
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Classification3097 {
+    pub fonction: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub titre_iv: Option<String>,
+}
+
+/// `nomenclature-emplois-ft.json` : les codes emploi France Travail (S21.G00.40.005), leur libelle et leur annexe.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Nomenclature {
+    #[serde(rename = "_quoi")]
+    _quoi: String,
+    #[serde(rename = "_source")]
+    _source: String,
+    #[serde(rename = "_version")]
+    _version: String,
+    #[serde(rename = "_evolution_2016")]
+    _evolution_2016: String,
+    pub emplois: BTreeMap<String, EmploiFt>,
+}
+
+/// Un code de la nomenclature : son libelle et son annexe (8 technicien, 10 artiste).
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmploiFt {
+    pub libelle: String,
+    pub annexe: u8,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evolution_2016: Option<String>,
+}
+
+const CATALOGUE_ILLISIBLE: &str = "Le catalogue des métiers livré avec le logiciel ne se lit pas : le signaler au développeur.";
+
+/// LA SEULE LECTURE D'`emplois-base.json`.
+pub fn base() -> Resultat<Arc<BaseEmplois>> {
+    static CACHE: OnceLock<FormeGardee<BaseEmplois>> = OnceLock::new();
+    forme_en_cache(&CACHE, "emplois-base.json", |v| socle::forme::lire(v, CATALOGUE_ILLISIBLE))
+}
+
+/// LA SEULE LECTURE DE `nomenclature-emplois-ft.json`.
+pub fn nomenclature() -> Resultat<Arc<Nomenclature>> {
+    static CACHE: OnceLock<FormeGardee<Nomenclature>> = OnceLock::new();
+    forme_en_cache(&CACHE, "nomenclature-emplois-ft.json", |v| {
+        socle::forme::lire(v, "La nomenclature des emplois France Travail livrée avec le logiciel ne se lit pas : le signaler au développeur.")
+    })
+}
 
 /// Premiere lettre en majuscule, le reste en minuscules.
 fn capitaliser(s: &str) -> String {
@@ -23,63 +199,139 @@ fn capitaliser(s: &str) -> String {
     }
 }
 
-fn statut_de_l_annexe(annexe: &Value) -> &'static str {
-    let a = annexe.as_i64().or_else(|| annexe.as_f64().map(|x| x as i64));
-    if a == Some(10) { "artiste" } else { "technicien" }
+/// Un metier, par son code : celui du catalogue, ou, hors catalogue, celui de la nomenclature France Travail (un code
+/// et une annexe ; ni PCS, ni niveau, ni minima).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Metier {
+    pub code: String,
+    #[serde(flatten)]
+    pub fiche: FicheDuMetier,
 }
 
-/// Un metier par son code, catalogue d'abord, nomenclature ensuite. `None` si
-/// le code n'existe nulle part.
-pub fn metier(code: &str) -> Resultat<Option<Value>> {
+/// D'ou vient un metier : le catalogue, ou la nomenclature seule.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum FicheDuMetier {
+    Catalogue(FicheDuCatalogue),
+    Nomenclature(EmploiFt),
+}
+
+impl Metier {
+    /// Sa fiche du catalogue, ou `None` hors catalogue.
+    pub fn au_catalogue(&self) -> Option<&FicheDuCatalogue> {
+        match &self.fiche {
+            FicheDuMetier::Catalogue(f) => Some(f),
+            FicheDuMetier::Nomenclature(_) => None,
+        }
+    }
+
+    /// Le libelle lisible : celui du catalogue, ou celui de la nomenclature en casse ordinaire.
+    pub fn libelle(&self) -> String {
+        match &self.fiche {
+            FicheDuMetier::Catalogue(f) => f.libelle.clone(),
+            FicheDuMetier::Nomenclature(n) => capitaliser(&n.libelle),
+        }
+    }
+
+    /// Le libelle au feminin (hors catalogue, le meme).
+    pub fn feminin(&self) -> String {
+        match &self.fiche {
+            FicheDuMetier::Catalogue(f) => f.feminin.clone(),
+            FicheDuMetier::Nomenclature(n) => capitaliser(&n.libelle),
+        }
+    }
+
+    /// La forme declaree de l'emploi (S21.G00.40.006).
+    pub fn emploi(&self) -> &str {
+        match &self.fiche {
+            FicheDuMetier::Catalogue(f) => &f.emploi,
+            FicheDuMetier::Nomenclature(n) => &n.libelle,
+        }
+    }
+
+    /// L'annexe de l'assurance chomage : 8 (technicien) ou 10 (artiste).
+    pub fn annexe(&self) -> u8 {
+        match &self.fiche {
+            FicheDuMetier::Catalogue(f) => f.annexe,
+            FicheDuMetier::Nomenclature(n) => n.annexe,
+        }
+    }
+
+    /// Le statut : celui du catalogue ; hors catalogue, artiste pour l'annexe 10, technicien sinon.
+    pub fn statut(&self) -> Statut {
+        match &self.fiche {
+            FicheDuMetier::Catalogue(f) => f.statut,
+            FicheDuMetier::Nomenclature(n) if n.annexe == 10 => Statut::Artiste,
+            FicheDuMetier::Nomenclature(_) => Statut::Technicien,
+        }
+    }
+
+    /// La famille du catalogue ; « Hors catalogue » sinon.
+    pub fn famille(&self) -> &str {
+        self.au_catalogue().map_or("Hors catalogue", |f| f.famille.as_str())
+    }
+
+    /// La PCS-ESE du catalogue (hors catalogue : aucune).
+    pub fn pcs_ese(&self) -> Option<&str> {
+        self.au_catalogue().map(|f| f.pcs_ese.as_str())
+    }
+
+    /// La classification 3090 du catalogue, ou `None`.
+    pub fn classification_3090(&self) -> Option<&Classification3090> {
+        self.au_catalogue().and_then(|f| f.classification_3090.as_ref())
+    }
+
+    /// La liste de l'annexe 8 de la convention `idcc` nomme-t-elle ce metier ? Ce n'est pas le deroulant : un metier
+    /// porte dans `conventions` les conventions dont le deroulant le montre, dont celles qui le portent sans que leur liste
+    /// le nomme (`conventions_hors_liste`, et la regle de lecture des listes 6 et 7 dans `_regles` de `emplois-base.json`).
+    /// Un metier hors catalogue ne dit pas sur quelle liste il est : non.
+    pub fn nomme_par_l_annexe8(&self, idcc: &str) -> bool {
+        let idcc = idcc.trim();
+        self.au_catalogue().is_some_and(|f| !idcc.is_empty() && f.conventions.iter().any(|c| c == idcc) && !f.conventions_hors_liste.iter().any(|c| c == idcc))
+    }
+
+    /// Le metier est-il cadre, faute d'engagement qui le dise, dans la convention `idcc` ? `cadre_selon_la_convention`
+    /// l'emporte pour la convention qu'il nomme (le dramaturge, cadre dans la 1285, art. XI.2.1, que la grille 3090 ne
+    /// nomme pas : `_regles.cadre_par_defaut` de `emplois-base.json`) ; sinon `cadre_par_defaut`. Hors catalogue : non.
+    pub fn cadre_par_defaut(&self, idcc: &str) -> bool {
+        self.au_catalogue().is_some_and(|f| f.cadre_selon_la_convention.get(idcc.trim()).copied().unwrap_or(f.cadre_par_defaut))
+    }
+
+    /// Le defaut cadre de ce metier change-t-il d'une convention a l'autre (`cadre_selon_la_convention`) ? Une carte qui le
+    /// dit garde alors ce qu'elle dit (`engagement::stock::en_forme`).
+    pub fn cadre_selon_la_convention(&self) -> bool {
+        self.au_catalogue().is_some_and(|f| !f.cadre_selon_la_convention.is_empty())
+    }
+
+    /// Le statut conventionnel DSN (40.002) du metier declare NON cadre. L'artiste-interprete : 05, par inference
+    /// (`_regles.statut_conventionnel` de `emplois-base.json` : « Non-cadres » de la 3090, art. 6.3, hors de la categorie
+    /// cadre de la 1285, art. XI.2.1 ; 05 par l'exemple de la fiche net-entreprises 3344, l. 364-366).
+    pub fn statut_non_cadre(&self) -> Option<String> {
+        if let Some(st) = self.au_catalogue().map(|f| f.statut_conventionnel.as_str()).filter(|s| !s.is_empty() && *s != "04") {
+            return Some(st.to_string());
+        }
+        if self.statut() == Statut::Artiste {
+            return Some("05".into());
+        }
+        let c = self.classification_3090()?;
+        if c.niveau.starts_with("cadre") || c.niveau.starts_with("agent") {
+            return Some("05".into());
+        }
+        Some(if c.grille == "administratif" { "06" } else { "07" }.into())
+    }
+}
+
+/// Un metier par son code (blancs et casse ignores), catalogue d'abord, nomenclature ensuite. `None` si le code n'existe
+/// nulle part.
+pub fn metier(code: &str) -> Resultat<Option<Metier>> {
+    let code = code.trim().to_uppercase();
     if code.is_empty() {
         return Ok(None);
     }
-    let code = code.trim().to_uppercase();
-    let ici = dossier_du_code();
-    let base = json_en_cache(&ici.join("emplois-base.json"))?;
-    if let Some(m) = base.get("emplois").and_then(|e| e.get(&code)) {
-        if vrai(m) {
-            let mut m = m.as_object().cloned().unwrap_or_default();
-            m.insert("code".into(), Value::String(code));
-            m.insert("catalogue".into(), Value::Bool(true));
-            return Ok(Some(Value::Object(m)));
-        }
+    if let Some((_, f)) = base()?.emplois.iter().find(|(c, _)| *c == code) {
+        return Ok(Some(Metier { code, fiche: FicheDuMetier::Catalogue(f.clone()) }));
     }
-    let nomenclature = json_en_cache(&ici.join("nomenclature-emplois-ft.json"))?;
-    if let Some(n) = nomenclature.get("emplois").and_then(|e| e.get(&code)) {
-        if vrai(n) {
-            let libelle = n.get("libelle").and_then(|l| l.as_str()).ok_or_else(|| socle::fichiers::absent("libelle"))?;
-            let annexe = n.get("annexe").ok_or_else(|| socle::fichiers::absent("annexe"))?;
-            let cap = Value::String(capitaliser(libelle));
-            let mut m = Map::new();
-            m.insert("code".into(), Value::String(code));
-            m.insert("libelle".into(), cap.clone());
-            m.insert("feminin".into(), cap);
-            m.insert("emploi".into(), Value::String(libelle.to_string()));
-            m.insert("annexe".into(), annexe.clone());
-            m.insert("statut".into(), Value::String(statut_de_l_annexe(annexe).into()));
-            m.insert("famille".into(), Value::String("Hors catalogue".into()));
-            m.insert("cadre_par_defaut".into(), Value::Bool(false));
-            m.insert("pcs_ese".into(), Value::Null);
-            m.insert("statut_conventionnel".into(), Value::Null);
-            m.insert("minima".into(), Value::Object(Map::new()));
-            m.insert("catalogue".into(), Value::Bool(false));
-            return Ok(Some(Value::Object(m)));
-        }
-    }
-    Ok(None)
-}
-
-/// La liste de l'annexe 8 de la convention `idcc` nomme-t-elle ce metier (`metier`) ? Ce n'est pas le deroulant : un
-/// metier porte dans `conventions` les conventions dont le deroulant le montre, dont celles qui le portent sans que
-/// leur liste le nomme (`conventions_hors_liste`, et la regle de lecture des listes 6 et 7 dans `_regles` de
-/// `emplois-base.json`). Un metier hors catalogue ne dit pas sur quelle liste il est : non.
-pub fn nomme_par_l_annexe8(m: &Value, idcc: &str) -> bool {
-    let idcc = idcc.trim();
-    let porte = |cle: &str| {
-        m.get(cle).and_then(Value::as_array).is_some_and(|l| l.iter().any(|c| socle::date::en_texte(c).trim() == idcc))
-    };
-    !idcc.is_empty() && porte("conventions") && !porte("conventions_hors_liste")
+    Ok(nomenclature()?.emplois.get(&code).cloned().map(|n| Metier { code, fiche: FicheDuMetier::Nomenclature(n) }))
 }
 
 /// LES SEPT CHAMPS DECLARES POUR UN METIER, tels que la fiche du salarie les ecrit : l'emploi declare et son libelle,
@@ -96,29 +348,9 @@ pub struct ChampsDuMetier {
     pub statut_categoriel_rc: &'static str,
 }
 
-/// Le metier `m` est-il cadre, faute d'engagement qui le dise, dans la convention `idcc` ? `cadre_selon_la_convention`
-/// l'emporte pour la convention qu'il nomme (le dramaturge, cadre dans la 1285, art. XI.2.1, que la grille 3090 ne
-/// nomme pas : `_regles.cadre_par_defaut` de `emplois-base.json`) ; sinon `cadre_par_defaut`.
-pub fn cadre_par_defaut(m: &Value, idcc: &str) -> Resultat<bool> {
-    let selon: std::collections::BTreeMap<String, bool> = match m.get("cadre_selon_la_convention") {
-        Some(v) => serde_json::from_value(v.clone()).map_err(|e| socle::echec::avec("Le catalogue des métiers livré ne se lit pas : le signaler au développeur.", serde_json::json!({"fichier": "emplois-base.json", "cle": "cadre_selon_la_convention", "detail": e.to_string()})))?,
-        None => Default::default(),
-    };
-    match selon.get(idcc.trim()) {
-        Some(c) => Ok(*c),
-        None => Ok(vrai(m.get("cadre_par_defaut").ok_or_else(|| socle::fichiers::absent("cadre_par_defaut"))?)),
-    }
-}
-
-/// Le defaut cadre de ce metier change-t-il d'une convention a l'autre (`cadre_selon_la_convention`) ? Une carte qui le
-/// dit garde alors ce qu'elle dit (`engagement::stock::en_forme`).
-pub fn cadre_selon_la_convention(m: &Value) -> bool {
-    m.get("cadre_selon_la_convention").is_some()
-}
-
 /// Les sept champs declares pour ce metier (`emploi_affichage` compris).
-/// `cadre` a `None` prend le defaut du catalogue dans la convention `idcc` (`cadre_par_defaut`). Refuse un code inconnu.
-/// TRAVAIL A FAIRE : la fiche d'un metier du catalogue (`emplois-base.json`) se lit encore par ses cles.
+/// `cadre` a `None` prend le defaut du catalogue dans la convention `idcc` (`Metier::cadre_par_defaut`). Refuse un code
+/// inconnu.
 pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> Resultat<ChampsDuMetier> {
     let m = metier(code)?.ok_or_else(|| {
         format!(
@@ -126,56 +358,17 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> R
              dans la nomenclature France Travail (nomenclature-emplois-ft.json).",
             repr(code))
     })?;
-    let est_cadre = match cadre {
-        None => cadre_par_defaut(&m, idcc)?,
-        Some(c) => c,
-    };
-    let texte = |c: &str| m.get(c).filter(|v| vrai(v)).map(socle::date::en_texte);
-    let requis = |c: &str| m.get(c).map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent(c));
-    let libelle = match if feminin { texte("feminin") } else { texte("libelle") } {
-        Some(l) => l,
-        None => requis("libelle")?,
-    };
-    let valeur = |c: &str| m.get(c).filter(|v| !v.is_null()).map(socle::date::en_texte);
+    let est_cadre = cadre.unwrap_or_else(|| m.cadre_par_defaut(idcc));
+    let libelle = Some(if feminin { m.feminin() } else { m.libelle() }).filter(|l| !l.is_empty()).unwrap_or_else(|| m.libelle());
     Ok(ChampsDuMetier {
-        emploi: requis("emploi")?,
+        emploi: m.emploi().to_string(),
         emploi_affichage: libelle,
-        pcs_ese: valeur("pcs_ese"),
-        code_emploi_ft: valeur("code"),
-        statut: requis("statut")?,
-        statut_conventionnel: if est_cadre { Some("04".into()) } else { statut_non_cadre(&m) },
+        pcs_ese: m.pcs_ese().map(str::to_string),
+        code_emploi_ft: Some(m.code.clone()),
+        statut: m.statut().as_str().to_string(),
+        statut_conventionnel: if est_cadre { Some("04".into()) } else { m.statut_non_cadre() },
         statut_categoriel_rc: if est_cadre { "01" } else { "04" },
     })
-}
-
-/// Le statut conventionnel DSN (40.002) d'un metier declare NON cadre. L'artiste-interprete : 05, par inference
-/// (`_regles.statut_conventionnel` de `emplois-base.json` : « Non-cadres » de la 3090, art. 6.3, hors de la categorie
-/// cadre de la 1285, art. XI.2.1 ; 05 par l'exemple de la fiche net-entreprises 3344, l. 364-366).
-pub fn statut_non_cadre(m: &Value) -> Option<String> {
-    if let Some(st) = m.get("statut_conventionnel").and_then(|s| s.as_str()) {
-        if !st.is_empty() && st != "04" {
-            return Some(st.to_string());
-        }
-    }
-    if m.get("statut").and_then(|s| s.as_str()) == Some("artiste") {
-        return Some("05".into());
-    }
-    let c = m.get("classification_3090").filter(|v| vrai(v));
-    let lire = |cle: &str, defaut: &'static str| -> String {
-        c.and_then(|c| c.get(cle))
-            .and_then(|v| v.as_str())
-            .unwrap_or(defaut)
-            .to_string()
-    };
-    let niveau = lire("niveau", "");
-    let grille = lire("grille", "technique");
-    if niveau.starts_with("cadre") || niveau.starts_with("agent") {
-        return Some("05".into());
-    }
-    if !niveau.is_empty() {
-        return Some(if grille == "administratif" { "06" } else { "07" }.into());
-    }
-    None
 }
 
 /// Ce qu'un contrat paye au mois ne laisse pas changer en cours de mois : ce qui choisit la pile du bareme (le statut
@@ -312,31 +505,45 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
 
 // ------------------------------------------------------------- l'interface
 
+/// Un metier du catalogue tel qu'un deroulant le montre : son code, ses libelles, sa famille, son statut et son annexe,
+/// sa PCS-ESE, s'il est cadre par defaut dans la convention de la compagnie, son niveau 3090, et les conventions dont le
+/// deroulant le montre.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MetierDuDeroulant {
+    pub code: String,
+    pub libelle: String,
+    pub feminin: String,
+    pub famille: String,
+    pub statut: Statut,
+    pub annexe: u8,
+    pub pcs_ese: String,
+    pub cadre_par_defaut: bool,
+    pub niveau_3090: Option<String>,
+    pub conventions: Vec<String>,
+}
+
 /// Le catalogue du spectacle vivant, le defaut cadre de chaque metier lu dans la convention `idcc`, pour un
 /// deroulant, dans l'ordre du fichier.
-pub fn catalogue(idcc: &str) -> Resultat<Vec<Value>> {
-    let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
-    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| socle::fichiers::absent("emplois"))?;
-    let mut out = Vec::new();
-    for (code, m) in emplois {
-        let champ = |k: &str| m.get(k).cloned().ok_or_else(|| socle::fichiers::absent(k));
-        let niveau = m.get("classification_3090").filter(|v| vrai(v)).and_then(|c| c.get("niveau")).cloned().unwrap_or(Value::Null);
-        let conventions = m.get("conventions").filter(|v| vrai(v)).cloned().unwrap_or_else(|| Value::Array(vec![]));
-        let mut e = Map::new();
-        e.insert("code".into(), Value::String(code.clone()));
-        e.insert("libelle".into(), champ("libelle")?);
-        e.insert("feminin".into(), champ("feminin")?);
-        e.insert("famille".into(), champ("famille")?);
-        e.insert("statut".into(), champ("statut")?);
-        e.insert("annexe".into(), champ("annexe")?);
-        e.insert("pcs_ese".into(), champ("pcs_ese")?);
-        e.insert("cadre_par_defaut".into(), Value::Bool(cadre_par_defaut(m, idcc)?));
-        e.insert("niveau_3090".into(), niveau);
-        e.insert("conventions".into(), conventions);
-        e.insert("catalogue".into(), Value::Bool(true));
-        out.push(Value::Object(e));
-    }
-    Ok(out)
+pub fn catalogue(idcc: &str) -> Resultat<Vec<MetierDuDeroulant>> {
+    Ok(base()?
+        .emplois
+        .iter()
+        .map(|(code, f)| {
+            let m = Metier { code: code.clone(), fiche: FicheDuMetier::Catalogue(f.clone()) };
+            MetierDuDeroulant {
+                cadre_par_defaut: m.cadre_par_defaut(idcc),
+                code: code.clone(),
+                libelle: f.libelle.clone(),
+                feminin: f.feminin.clone(),
+                famille: f.famille.clone(),
+                statut: f.statut,
+                annexe: f.annexe,
+                pcs_ese: f.pcs_ese.clone(),
+                niveau_3090: f.classification_3090.as_ref().map(|c| c.niveau.clone()),
+                conventions: f.conventions.clone(),
+            }
+        })
+        .collect())
 }
 
 /// Le metier du catalogue qu'un intitule imprime nomme (un bulletin d'un logiciel precedent : « MUSICIEN »), compare
@@ -347,12 +554,9 @@ pub fn par_intitule(intitule: &str, norme: impl Fn(&str) -> String) -> Resultat<
     if cherche.is_empty() {
         return Ok(None);
     }
-    let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
-    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| socle::fichiers::absent("emplois"))?;
     let mut trouves: Vec<(String, bool)> = Vec::new();
-    for (code, m) in emplois {
-        let t = |k: &str| m.get(k).and_then(Value::as_str).map(&norme).unwrap_or_default();
-        let (libelle, feminin, emploi) = (t("libelle"), t("feminin"), t("emploi"));
+    for (code, f) in &base()?.emplois {
+        let (libelle, feminin, emploi) = (norme(&f.libelle), norme(&f.feminin), norme(&f.emploi));
         if [&libelle, &feminin, &emploi].contains(&&cherche) {
             trouves.push((code.clone(), feminin == cherche && libelle != cherche));
         }
@@ -361,9 +565,8 @@ pub fn par_intitule(intitule: &str, norme: impl Fn(&str) -> String) -> Resultat<
 }
 
 /// IDCC -> le nom court de la convention.
-pub fn noms_des_conventions() -> Resultat<Map<String, Value>> {
-    let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
-    Ok(base.get("_conventions").and_then(Value::as_object).cloned().unwrap_or_default())
+pub fn noms_des_conventions() -> Resultat<BTreeMap<String, String>> {
+    Ok(base()?.conventions.clone())
 }
 
 /// Les familles du catalogue, dans l'ordre ou les
@@ -374,12 +577,7 @@ pub fn familles() -> Resultat<Vec<String>> {
         "Artistes", "Musique", "Cirque et rue", "Mise en scène et création", "Régie et plateau", "Son", "Lumière",
         "Décor et construction", "Costume, coiffure, maquillage", "Production et administration", "Audiovisuel dans le spectacle",
     ];
-    let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
-    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| socle::fichiers::absent("emplois"))?;
-    let mut vues = std::collections::BTreeSet::new();
-    for m in emplois.values() {
-        vues.insert(m.get("famille").and_then(Value::as_str).ok_or_else(|| socle::fichiers::absent("famille"))?.to_string());
-    }
+    let vues: std::collections::BTreeSet<String> = base()?.emplois.iter().map(|(_, f)| f.famille.clone()).collect();
     let mut out: Vec<String> = ORDRE.iter().filter(|f| vues.contains(**f)).map(|f| f.to_string()).collect();
     out.extend(vues.iter().filter(|f| !ORDRE.contains(&f.as_str())).cloned());
     Ok(out)
@@ -389,9 +587,8 @@ pub fn familles() -> Resultat<Vec<String>> {
 /// catalogue. Des phrases d'avertissement, jamais d'erreur : la fiche peut
 /// avoir raison contre le catalogue.
 pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, socle::echec::Echec> {
-    use socle::valeur::valeurs_egales;
-    use socle::valeur::valeur_ecrite;
     use socle::valeur::nom_type;
+    use socle::valeur::valeur_ecrite;
     use socle::echec::erreur;
     let mut avis = Vec::new();
     let code = match d.get("code_emploi_ft") {
@@ -406,26 +603,22 @@ pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, socle::ech
         avis.push(format!("Code emploi France Travail {} inconnu de la nomenclature (S21.G00.40.005).", repr(&code)));
         return Ok(avis);
     };
-    let texte = |v: Option<&Value>| v.map(socle::valeur::valeur_en_texte).unwrap_or_default();
-    let libelle = texte(m.get("libelle"));
+    let libelle = m.libelle();
     if let Some(statut) = d.get("statut").filter(|v| vrai(v)) {
-        if !m.get("statut").map_or(false, |x| valeurs_egales(statut, x)) {
-            let annexe = m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))).unwrap_or(0);
+        if statut.as_str() != Some(m.statut().as_str()) {
             avis.push(format!(
                 "Le code emploi {} ({}) est de l'annexe {}, donc {} ; la fiche dit {}.",
-                code, libelle, annexe, texte(m.get("statut")), valeur_ecrite(statut)
+                code, libelle, m.annexe(), m.statut(), valeur_ecrite(statut)
             ));
         }
     }
-    let attendu = m.get("pcs_ese").filter(|v| vrai(v));
     let saisi = d.get("pcs_ese").filter(|v| vrai(v));
-    if let (Some(attendu), Some(saisi)) = (attendu, saisi) {
-        let Value::String(_) = saisi else {
+    if let (Some(attendu), Some(saisi)) = (m.pcs_ese().filter(|p| !p.is_empty()), saisi) {
+        let Value::String(s) = saisi else {
             return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(saisi))));
         };
-        let (a, s) = (texte(Some(attendu)), texte(Some(saisi)));
-        if s.to_lowercase() != a.to_lowercase() {
-            avis.push(format!("PCS-ESE {} pour {} ; le catalogue attend {} (fiche Insee de la rubrique).", s, libelle, a));
+        if s.to_lowercase() != attendu.to_lowercase() {
+            avis.push(format!("PCS-ESE {} pour {} ; le catalogue attend {} (fiche Insee de la rubrique).", s, libelle, attendu));
         }
     }
     Ok(avis)

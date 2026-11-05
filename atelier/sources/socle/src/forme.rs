@@ -75,6 +75,29 @@ pub fn dite<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(d: D) 
     <Option<T> as serde::Deserialize>::deserialize(d).map(Some)
 }
 
+/// UN OBJET DONT L'ORDRE COMPTE (un catalogue montre dans l'ordre du fichier), lu en paires `(cle, valeur)` :
+/// `#[serde(deserialize_with = "socle::forme::en_ordre")]` sur un `Vec<(String, T)>`. Une cle repetee refuse.
+pub fn en_ordre<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(d: D) -> Result<Vec<(String, T)>, D::Error> {
+    struct Visiteur<T>(std::marker::PhantomData<T>);
+    impl<'de, T: serde::Deserialize<'de>> serde::de::Visitor<'de> for Visiteur<T> {
+        type Value = Vec<(String, T)>;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("un objet")
+        }
+        fn visit_map<A: serde::de::MapAccess<'de>>(self, mut m: A) -> Result<Self::Value, A::Error> {
+            let mut out: Vec<(String, T)> = Vec::new();
+            while let Some((k, v)) = m.next_entry::<String, T>()? {
+                if out.iter().any(|(x, _)| *x == k) {
+                    return Err(serde::de::Error::custom(format!("la clé {} est répétée", k)));
+                }
+                out.push((k, v));
+            }
+            Ok(out)
+        }
+    }
+    d.deserialize_map(Visiteur(std::marker::PhantomData))
+}
+
 /// Un nombre decimal, lu comme `decimal`, la ou un champ ne se pose pas (une valeur de table).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Nombre(pub crate::num::Decimal);

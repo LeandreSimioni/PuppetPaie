@@ -78,7 +78,7 @@ le 10/10/2026, lot V2f (`prive/journal/norme/corrections/PASSATION-V2f.md`).
    françaises (NAF) » : dans les mêmes termes que l'artiste de l'annexe 10, sans distinguer CDD et CDDU ; D. 7121-38
    (« le personnel artistique et technique employé de façon intermittente »), D. 7121-40 et D. 7121-41 ne distinguent pas
    non plus. Le technicien est le salarié dont le métier est au catalogue (`emplois-base.json`) et dont la fonction est
-   nommée par la liste de la convention de l'employeur (`droit::emplois::nomme_par_l_annexe8` : `conventions` sans
+   nommée par la liste de la convention de l'employeur (`droit::emplois::Metier::nomme_par_l_annexe8` : `conventions` sans
    `conventions_hors_liste` ; la liste 6 pour la 1285, la 7 pour la 3090, circulaire Unedic 2016-25,
    `../unedic-circulaire-2016-25-annexes-8-10.txt`, l. 567-573 ; le staffeur, le bottier ou le serrurier ne sont que sur
    la 6, le poursuiteur ou le directeur artistique que sur la 7). L'administrateur,

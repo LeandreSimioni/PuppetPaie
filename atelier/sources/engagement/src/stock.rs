@@ -1085,7 +1085,7 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Carte, le: Opti
 /// CE QU'UNE CARTE ECRIT, DANS LA FORME ECRITE : ni ce que le moteur tient seul ni ce qu'il deduit ; la nature
 /// seulement si elle n'est pas celle par defaut (un engagement muet a la nature par defaut, `natures::defaut`) ; `cadre`
 /// seulement s'il s'ecarte du defaut du metier au catalogue (`emplois::metier`), et toujours pour un metier dont le
-/// defaut change d'une convention a l'autre (`emplois::cadre_selon_la_convention`). Une carte ecrite deux fois a
+/// defaut change d'une convention a l'autre (`emplois::Metier::cadre_selon_la_convention`). Une carte ecrite deux fois a
 /// l'identique s'ecrit donc de meme, et sa relecture ne voit aucun changement.
 /// L'apercu lit chaque carte dans cette forme aussi.
 pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
@@ -1098,8 +1098,8 @@ pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
         Some(m) => droit::emplois::metier(m)
             .ok()
             .flatten()
-            .filter(|f| !droit::emplois::cadre_selon_la_convention(f))
-            .map(|f| f.get("cadre_par_defaut").is_some_and(vrai)),
+            .filter(|f| !f.cadre_selon_la_convention())
+            .map(|f| f.cadre_par_defaut("")),
         None => None,
     };
     if catalogue.is_some() && saisie.cadre == catalogue {

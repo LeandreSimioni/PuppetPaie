@@ -24,12 +24,11 @@
 //! rattachement, pas la nationalite de ceux qui y naissent). Les Feroe font exception : les traites ne s'y appliquent
 //! pas (`codification_ue::TERRITOIRES_HORS_UNION`), leur codification est celle d'un pays hors de l'Union.
 
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
-use crate::fichiers::{dossier_du_code, json_en_cache};
+use crate::fichiers::{forme_en_cache, FormeGardee};
 use crate::num::Resultat;
 
 /// Une ligne de la liste : le code ISO, le nom et le nom officiel du COG, le pays de rattachement d'un territoire.
@@ -74,30 +73,10 @@ struct Ecarte {
     _pourquoi: String,
 }
 
-/// Une table livree, lue et construite une fois tant que son fichier ne change pas (chemin, date, taille) ; servie du
-/// cache, elle se note quand meme au registre d'un calcul suivi. La fiche d'un salarie la consulte a chaque champ, et
-/// l'ecran recoit la liste triee.
-type Garde<T> = Mutex<Option<(PathBuf, Option<(u128, u64)>, Arc<Vec<T>>)>>;
-
-fn garde<T>(cache: &'static OnceLock<Garde<T>>, nom: &str, construire: impl Fn(&serde_json::Value) -> Resultat<Vec<T>>) -> Resultat<Arc<Vec<T>>> {
-    let chemin = dossier_du_code().join(nom);
-    let sig = crate::fichiers::signature(&chemin);
-    let cache = cache.get_or_init(|| Mutex::new(None));
-    if let Some((p, s, v)) = cache.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-        if *p == chemin && sig.is_some() && *s == sig {
-            crate::fichiers::noter_si_besoin(&chemin);
-            return Ok(v.clone());
-        }
-    }
-    let v = Arc::new(construire(&*json_en_cache(&chemin)?)?);
-    *cache.lock().unwrap_or_else(|e| e.into_inner()) = Some((chemin, sig, v.clone()));
-    Ok(v)
-}
-
 /// La liste livree, dans l'ordre du COG.
 pub fn liste() -> Resultat<Arc<Vec<Pays>>> {
-    static CACHE: OnceLock<Garde<Pays>> = OnceLock::new();
-    garde(&CACHE, "pays-base.json", |base| {
+    static CACHE: OnceLock<FormeGardee<Vec<Pays>>> = OnceLock::new();
+    forme_en_cache(&CACHE, "pays-base.json", |base| {
         let b: BasePays = crate::forme::lire(base, "La liste des pays livrée avec le logiciel ne se lit pas : le signaler au développeur.")?;
         Ok(b.pays)
     })
@@ -174,8 +153,8 @@ struct BasePaysDsn {
 
 /// La table « Pays » de la DSN, dans l'ordre de la nomenclature.
 pub fn table_dsn() -> Resultat<Arc<Vec<PaysDsn>>> {
-    static CACHE: OnceLock<Garde<PaysDsn>> = OnceLock::new();
-    garde(&CACHE, "pays-dsn-base.json", |base| {
+    static CACHE: OnceLock<FormeGardee<Vec<PaysDsn>>> = OnceLock::new();
+    forme_en_cache(&CACHE, "pays-dsn-base.json", |base| {
         let b: BasePaysDsn = crate::forme::lire(base, "La table des pays de la DSN livrée avec le logiciel ne se lit pas : le signaler au développeur.")?;
         Ok(b.pays)
     })

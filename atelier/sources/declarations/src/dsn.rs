@@ -1608,7 +1608,7 @@ pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
     let s = &p.salarie;
     let lu = |v: &str| Some(v.trim().to_string()).filter(|v| !v.is_empty());
     let code = s.code_emploi_ft.texte().trim().to_uppercase();
-    let m = droit::emplois::metier(&code)?.filter(|m| m.get("catalogue") == Some(&Value::Bool(true)));
+    let m = droit::emplois::metier(&code)?.filter(|m| m.au_catalogue().is_some());
     let metier_dit = if code.is_empty() {
         "la fiche n'a pas de metier (code emploi)".to_string()
     } else if m.is_none() {
@@ -1618,7 +1618,7 @@ pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
     };
     let rc = match (lu(s.statut_categoriel_rc.code()), &m) {
         (Some(rc), _) => rc,
-        (None, Some(m)) if !droit::emplois::cadre_par_defaut(m, idcc)? => "04".to_string(),
+        (None, Some(m)) if !m.cadre_par_defaut(idcc) => "04".to_string(),
         (None, Some(m)) => {
             return Err(format!(
                 "{} : le metier {} ({}) est cadre au catalogue, et la fiche ne dit pas cadre ou non cadre \
@@ -1626,7 +1626,7 @@ pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
 « Cadre ou non cadre » sur la fiche : 01 (cadre, et refaire la paie) ou 04 (non cadre).",
                 qui_contrat(p),
                 code,
-                txt(g(m, "libelle"))
+                m.libelle()
             ))
         }
         (None, None) => {
@@ -1650,7 +1650,7 @@ metiers, ou saisir « Cadre ou non cadre » et « Classement conventionnel (DSN)
         Some(sc) => Some(sc),
         None => m.as_ref().and_then(|m| match rc.as_str() {
             "01" => Some("04".to_string()),
-            "04" => droit::emplois::statut_non_cadre(m),
+            "04" => m.statut_non_cadre(),
             _ => None,
         }),
     };

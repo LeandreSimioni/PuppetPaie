@@ -400,11 +400,10 @@ pub fn du_jour(ctx: &Contexte, decalage: i64) -> Resultat<Value> {
 /// sinon (rien ne se devine).
 fn annexe_de(sal: &droit::fiche::ChampsSalarie) -> Resultat<Option<&'static str>> {
     let Some(m) = emplois::metier(sal.code_emploi_ft.texte())? else { return Ok(None) };
-    Ok(match texte(&m, "statut").as_str() {
-        "artiste" => Some("X"),
-        "technicien" => Some("VIII"),
-        _ => None,
-    })
+    Ok(Some(match m.statut() {
+        droit::fiche::Statut::Artiste => "X",
+        droit::fiche::Statut::Technicien => "VIII",
+    }))
 }
 
 /// Les constantes de l'article 30 pour une annexe (`conseils.json`, `annexes`).

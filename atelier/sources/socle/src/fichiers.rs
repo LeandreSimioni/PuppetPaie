@@ -365,6 +365,27 @@ impl Drop for CodeFige {
 
 type Cache = Mutex<HashMap<PathBuf, ((u128, u64), Arc<Value>)>>;
 
+/// Le cache d'une table livree lue par sa forme (`forme_en_cache`) : le chemin, sa signature, la table construite.
+pub type FormeGardee<T> = Mutex<Option<(PathBuf, Option<(u128, u64)>, Arc<T>)>>;
+
+/// UNE TABLE LIVREE (`donnees/<nom>`), lue par sa forme et construite par `construire` une fois tant que son fichier ne
+/// change pas (chemin, date, taille) ; servie du cache, elle se note quand meme au registre d'un calcul suivi. Un calcul
+/// la consulte a chaque champ : elle ne se relit pas a chaque fois.
+pub fn forme_en_cache<T>(cache: &'static OnceLock<FormeGardee<T>>, nom: &str, construire: impl Fn(&Value) -> Resultat<T>) -> Resultat<Arc<T>> {
+    let chemin = dossier_du_code().join(nom);
+    let sig = signature(&chemin);
+    let cache = cache.get_or_init(|| Mutex::new(None));
+    if let Some((p, s, v)) = cache.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        if *p == chemin && sig.is_some() && *s == sig {
+            noter_si_besoin(&chemin);
+            return Ok(v.clone());
+        }
+    }
+    let v = Arc::new(construire(&*json_en_cache(&chemin)?)?);
+    *cache.lock().unwrap_or_else(|e| e.into_inner()) = Some((chemin, sig, v.clone()));
+    Ok(v)
+}
+
 /// Un fichier JSON lu une fois tant qu'il ne change pas (objet partage : on
 /// ne le modifie pas).
 pub fn json_en_cache(chemin: &Path) -> Resultat<Arc<Value>> {

@@ -23,7 +23,6 @@ use crate::natures::Nature;
 use crate::fiche::SalarieDuContrat;
 use socle::date::Jour;
 use crate::emplois;
-use socle::fichiers::vrai;
 use socle::num::Resultat;
 
 /// Ce que la pile du bareme decrit sans contrat : le CORPS est un intermittent affilie (le CDDU), la section
@@ -57,7 +56,7 @@ pub fn douze_mois_ou_plus(debut: &Jour, fin: &Jour) -> Resultat<bool> {
 ///   entreprises enumeres dans la meme liste », domaines « definis par les numeros d'identifiant des conventions
 ///   collectives (IDCC) » (art. 1er, § 2, et art. 71, `unedic-annexe8-convention-20241115.txt`, l. 16-22 et 1530 s.) :
 ///   un metier du catalogue dont la liste de la convention de l'employeur nomme la fonction
-///   (`emplois::nomme_par_l_annexe8` ; `IDCC_DE_L_EMPLOYEUR` sur la fiche). Un metier hors catalogue ne dit pas sur
+///   (`emplois::Metier::nomme_par_l_annexe8` ; `IDCC_DE_L_EMPLOYEUR` sur la fiche). Un metier hors catalogue ne dit pas sur
 ///   quelle liste il est : non.
 /// La caisse des Conges Spectacles ne distingue pas davantage : elle sert « le personnel artistique et technique
 /// employe de facon intermittente » (C. trav. D. 7121-38 ; D. 7121-40, D. 7121-41,
@@ -83,11 +82,11 @@ pub fn intermittent(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<bool> {
     let Some(m) = emplois::metier(&code)? else {
         return Ok(false);
     };
-    match m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))) {
-        Some(10) => Ok(true),
-        Some(8) => {
+    match m.annexe() {
+        10 => Ok(true),
+        8 => {
             let idcc = sal.idcc_de_l_employeur.clone().unwrap_or_default();
-            Ok(emplois::nomme_par_l_annexe8(&m, &idcc))
+            Ok(m.nomme_par_l_annexe8(&idcc))
         }
         _ => Ok(false),
     }
@@ -101,14 +100,14 @@ pub fn hors_de_l_annexe8(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<Optio
         return Ok(None);
     }
     let code = sal.code_emploi_ft.texte().trim().to_string();
-    let Some(m) = emplois::metier(&code)?.filter(|m| m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))) == Some(8)) else {
+    let Some(m) = emplois::metier(&code)?.filter(|m| m.annexe() == 8) else {
         return Ok(None);
     };
     let idcc = sal.idcc_de_l_employeur.clone().unwrap_or_default();
-    if idcc.trim().is_empty() || emplois::nomme_par_l_annexe8(&m, &idcc) {
+    if idcc.trim().is_empty() || m.nomme_par_l_annexe8(&idcc) {
         return Ok(None);
     }
-    let libelle = m.get("libelle").filter(|l| vrai(l)).map(socle::date::en_texte).unwrap_or(code);
+    let libelle = Some(m.libelle()).filter(|l| !l.is_empty()).unwrap_or(code);
     Ok(Some((libelle, idcc.trim().to_string())))
 }
 
