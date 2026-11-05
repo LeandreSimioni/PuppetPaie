@@ -1,19 +1,10 @@
 {
- "_quoi": "Les minima conventionnels que le logiciel sait comparer a une ligne de paie : cachets d'artistes par grille, cachet ou service de repetition, taux horaire des techniciens par niveau. Ce n'est PAS le texte entier des grilles (voir la copie dans atelier/reference/sources/) : c'est ce qui suffit a dire << ce cachet est sous le minimum >>. L'avertissement est NON BLOQUANT : le minimum depend de choses que le moteur ne sait pas toujours (jauge, role, nombre de representations sur trois mois), il dit lequel il a pris.",
- "_sources": [
-  "legifrance-3090-avenant-salaires-20250721",
-  "legifrance-1285-accord-salaires-20240502",
-  "kali-1285-accord-salaires-20260701",
-  "spiac-cgt-pav-minima-20260101"
- ],
- "_regles": {
-  "periode": "les paliers au cachet se lisent sur le nombre de representations : 'mois' = dans le mois de paie (annexe 4), 'trimestre' = sur 3 mois ou 90 jours (annexe 1 theatre). Le moteur compte les cachets du mois ; pour un palier trimestriel il prend donc la colonne la plus haute atteignable dans le mois, ce qui ne peut que sous-estimer le minimum -- jamais crier a tort.",
-  "jauge": "quand la grille depend de la jauge et que la paie ne la dit pas, le moteur prend la plus petite jauge : le minimum le plus bas, donc l'avertissement le plus rare.",
-  "annexe": "la fiche entreprise dit son annexe de la CCN 3090 (`annexe_convention`). Sans elle, le moteur prend le plus bas des minima des annexes ou le metier a une ligne, et le dit."
- },
+ "quoi": "Les minima conventionnels que le logiciel sait comparer a une ligne de paie : cachets d'artistes par grille, cachet ou service de repetition, taux horaire des techniciens par niveau. Ce n'est PAS le texte entier des grilles (voir la copie dans atelier/reference/sources/) : c'est ce qui suffit a dire << ce cachet est sous le minimum >>. L'avertissement est NON BLOQUANT : le minimum depend de choses que le moteur ne sait pas toujours (jauge, role, nombre de representations sur trois mois), il dit lequel il a pris.",
+ "note": "Chaque convention porte sa source ; chaque grille la sienne quand elle en a une. La periode : les paliers au cachet se lisent sur le nombre de representations : 'mois' = dans le mois de paie (annexe 4), 'trimestre' = sur 3 mois ou 90 jours (annexe 1 theatre). Le moteur compte les cachets du mois ; pour un palier trimestriel il prend donc la colonne la plus haute atteignable dans le mois, ce qui ne peut que sous-estimer le minimum -- jamais crier a tort. La jauge : quand la grille depend de la jauge et que la paie ne la dit pas, le moteur prend la plus petite jauge : le minimum le plus bas, donc l'avertissement le plus rare. L'annexe : la fiche entreprise dit son annexe de la CCN 3090 (`annexe_convention`). Sans elle, le moteur prend le plus bas des minima des annexes ou le metier a une ligne, et le dit.",
+ "conventions": {
  "3090": {
   "libelle": "CCN des entreprises du secteur privé du spectacle vivant",
-  "source": "legifrance-3090-avenant-salaires-20250721",
+  "source": {"fichier": "atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md", "emetteur": "convention", "citation": "Rôle (artiste dramatique) Salles jusqu'à 200 places 119,42 101,20 87,03"},
   "texte": "avenant du 21/07/2025, etendu par arrete du 17/02/2026 (JO 24/02/2026)",
   "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028157262",
   "en_vigueur": "2025-09-01",
@@ -102,7 +93,7 @@
      "service_musicien": 47.52
     },
     "techniciens": {
-     "_libelle": "taux horaire, theatre jusqu'a 200 places (201-500 et +500 places sont plus hauts)",
+     "note": "taux horaire, theatre jusqu'a 200 places (201-500 et +500 places sont plus hauts)",
      "cadre_groupe_1": 14.91,
      "cadre_groupe_2": 14.91,
      "cadre_groupe_3": 14.91,
@@ -202,7 +193,7 @@
      "service_isole": 73.83
     },
     "techniciens": {
-     "_libelle": "clauses communes (la grille propre a l'annexe 2 distingue les jauges)",
+     "note": "clauses communes (la grille propre a l'annexe 2 distingue les jauges)",
      "cadre_groupe_1": 17.53,
      "cadre_groupe_2": 17.53,
      "cadre_groupe_3": 15.57,
@@ -600,7 +591,7 @@
      "cachet_libelle": "cachet de repetition, 1 ou 2 services de 4 heures dans la meme journee"
     },
     "techniciens": {
-     "_libelle": "techniciens en tournee, taux horaire. La grille ne nomme que le cadre groupe 2 (20,27) : les groupes 1 et 3 prennent les clauses communes (17,53 et 15,57), le plus bas que le texte permet -- recopier 20,27 faisait crier a tort sur un conseiller technique (groupe 3), releve le 24/09/2026",
+     "note": "techniciens en tournee, taux horaire. La grille ne nomme que le cadre groupe 2 (20,27) : les groupes 1 et 3 prennent les clauses communes (17,53 et 15,57), le plus bas que le texte permet -- recopier 20,27 faisait crier a tort sur un conseiller technique (groupe 3), releve le 24/09/2026",
      "cadre_groupe_1": 17.53,
      "cadre_groupe_2": 20.27,
      "cadre_groupe_3": 15.57,
@@ -635,7 +626,7 @@
      "service_isole": 63.17
     },
     "techniciens": {
-     "_libelle": "clauses communes, sauf le cadre groupe 3 : l'annexe 5 (personnels techniques) le met a 15,26, sous les 15,57 des clauses communes -- le plus bas des deux, pour ne jamais crier a tort (24/09/2026)",
+     "note": "clauses communes, sauf le cadre groupe 3 : l'annexe 5 (personnels techniques) le met a 15,26, sous les 15,57 des clauses communes -- le plus bas des deux, pour ne jamais crier a tort (24/09/2026)",
      "cadre_groupe_1": 17.53,
      "cadre_groupe_2": 17.53,
      "cadre_groupe_3": 15.26,
@@ -648,7 +639,7 @@
   },
   "clauses_communes": {
    "techniciens": {
-    "_libelle": "grille des emplois techniques, taux horaire, quand aucune annexe ne donne mieux",
+    "note": "grille des emplois techniques, taux horaire, quand aucune annexe ne donne mieux",
     "cadre_groupe_1": 17.53,
     "cadre_groupe_2": 17.53,
     "cadre_groupe_3": 15.57,
@@ -658,8 +649,7 @@
     "employe": 11.88
    },
    "administratifs_mensuel_echelons": {
-    "_source": "avenant du 21/07/2025, clauses communes, grille administrative et commerciale pour 151,67 h (KALIARTI000053721751)",
-    "_regle": "Echelon 1 : moins de 5 ans dans l'entreprise et la fonction ; 2 : plus de 5 ans ; 3 : plus de 10 ; 4 : plus de 15 ; 5 : plus de 20. Lu sur `poste_depuis` ; sans elle, l'echelon 1. Le cadre du groupe 1 n'a qu'une valeur.",
+    "note": "avenant du 21/07/2025, clauses communes, grille administrative et commerciale pour 151,67 h (KALIARTI000053721751). Echelon 1 : moins de 5 ans dans l'entreprise et la fonction ; 2 : plus de 5 ans ; 3 : plus de 10 ; 4 : plus de 15 ; 5 : plus de 20. Lu sur `poste_depuis` ; sans elle, l'echelon 1. Le cadre du groupe 1 n'a qu'une valeur.",
     "cadre_groupe_1": [
      3578.18
     ],
@@ -710,7 +700,7 @@
  },
  "1285": {
   "libelle": "CCN des entreprises artistiques et culturelles (CCNEAC)",
-  "source": "legifrance-1285-accord-salaires-20240502",
+  "source": {"fichier": "atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md", "emetteur": "convention", "citation": "CDI et CDD > 4 mois Minimum brut mensuel 2 143,56"},
   "texte": "accord du 02/05/2024, etendu par arrete du 23/07/2024 (JO 09/08/2024)",
   "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635964",
   "en_vigueur": "2024-06-01",
@@ -784,7 +774,7 @@
   "repetition": {
    "service": 61.05,
    "service_libelle": "service de repetition, artistes dramatiques et choregraphiques, CDD < 1 mois",
-   "_par_categorie": "Le service de repetition selon la grille de l'artiste (art. 1.1.2 a 1.1.4 de l'accord du 02/05/2024). Une journee de deux services se paie en deux cachets : le minimum d'un service est la moitie de la journee, arrondie au centime inferieur. Pour un musicien, l'ensemble ne se lit pas sur la paie : le plus bas des quatre, les musiques actuelles (116,45 la journee de 2 services, soit 58,22 le service) -- sous les 61,05 des dramatiques. Le cirque et les dramatiques gardent 61,05.",
+   "note": "Le service de repetition selon la grille de l'artiste (art. 1.1.2 a 1.1.4 de l'accord du 02/05/2024). Une journee de deux services se paie en deux cachets : le minimum d'un service est la moitie de la journee, arrondie au centime inferieur. Pour un musicien, l'ensemble ne se lit pas sur la paie : le plus bas des quatre, les musiques actuelles (116,45 la journee de 2 services, soit 58,22 le service) -- sous les 61,05 des dramatiques. Le cirque et les dramatiques gardent 61,05.",
    "par_categorie": {
     "musicien_autres": {
      "service": 58.22,
@@ -801,11 +791,9 @@
    }
   },
   "emplois_autres_qu_artistiques": {
-   "_source": "Accord du 02/05/2024, article 1.2 (grille des salaires bruts minima pour un horaire de 151 h 40), en vigueur au 01/06/2024 ; carriere en douze echelons, coefficients 100 a 133 (article X.4.1, base KALI) -- chaque montant de la grille est verifie contre son coefficient a deux centimes pres.",
+   "note": "Accord du 02/05/2024, article 1.2 (grille des salaires bruts minima pour un horaire de 151 h 40), en vigueur au 01/06/2024 ; carriere en douze echelons, coefficients 100 a 133 (article X.4.1, base KALI) -- chaque montant de la grille est verifie contre son coefficient a deux centimes pres. 151 h 40 min = 151,67 h : le temps plein mensuel de 35 heures (35 x 52 / 12). Un salaire horaire se compare au montant de l'echelon divise par 151,67 ; un salaire mensuel, au montant proratise sur les heures que la ligne paie. L'echelon est ATTRIBUE par l'employeur a l'embauche (X.4.1), et progresse d'au moins un echelon tous les deux ans jusqu'au septieme (X.4.2). Il se pose sur la fiche du salarie (`echelon_ccneac`, de 1 a 12). Sans lui, le moteur compare a l'echelon 1 -- le plus bas : il ne crie jamais a tort, et il ne voit pas un salarie de dix ans paye au premier echelon.",
    "heures_mensuelles": 151.67,
-   "_heures": "151 h 40 min = 151,67 h : le temps plein mensuel de 35 heures (35 x 52 / 12). Un salaire horaire se compare au montant de l'echelon divise par 151,67 ; un salaire mensuel, au montant proratise sur les heures que la ligne paie.",
    "echelon_par_defaut": 1,
-   "_echelon": "L'echelon est ATTRIBUE par l'employeur a l'embauche (X.4.1), et progresse d'au moins un echelon tous les deux ans jusqu'au septieme (X.4.2). Il se pose sur la fiche du salarie (`echelon_ccneac`, de 1 a 12). Sans lui, le moteur compare a l'echelon 1 -- le plus bas : il ne crie jamais a tort, et il ne voit pas un salarie de dix ans paye au premier echelon.",
    "groupes": {
     "1": [
      3495.87,
@@ -935,18 +923,16 @@
     ]
    }
   },
-  "_non_lu": {
-   "_quoi": "LES VALEURS QUI DORMENT ICI : relevees, et que le moteur n'applique pas. Nommees plutot que tues, parce qu'une table de minima ou l'on ne distingue pas ce qui est releve de ce qui est applique ne se lit plus.",
-   "emplois_autres_qu_artistiques.echelon_par_defaut": "Les planchers d'anciennete de X.4.2 -- un echelon tous les deux ans jusqu'au septieme, et pour un CDD repete des filieres non artistiques le troisieme echelon apres cinq ans et 1 500 heures, le sixieme apres dix ans et 3 000 heures, le neuvieme apres quinze ans et 4 500 heures -- ne sont pas calcules : le moteur lit l'echelon de la fiche (`echelon_ccneac`), ou compare au premier. Les calculer demanderait la date d'entree dans l'emploi et le cumul des heures de tous les CDD, que le moteur n'a pas."
-  },
+  "note": "LES VALEURS QUI DORMENT ICI : relevees, et que le moteur n'applique pas. Nommees plutot que tues, parce qu'une table de minima ou l'on ne distingue pas ce qui est releve de ce qui est applique ne se lit plus. L'echelon par defaut : les planchers d'anciennete de X.4.2 -- un echelon tous les deux ans jusqu'au septieme, et pour un CDD repete des filieres non artistiques le troisieme echelon apres cinq ans et 1 500 heures, le sixieme apres dix ans et 3 000 heures, le neuvieme apres quinze ans et 4 500 heures -- ne sont pas calcules : le moteur lit l'echelon de la fiche (`echelon_ccneac`), ou compare au premier. Les calculer demanderait la date d'entree dans l'emploi et le cumul des heures de tous les CDD, que le moteur n'a pas.",
   "accords": [
    {
-    "_quoi": "LES ACCORDS DE SALAIRES QUI SUIVENT LA GRILLE CI-DESSUS, chacun avec sa grille entiere, de la meme forme. Un accord lie une compagnie adherente d'une de ses organisations d'employeurs signataires des la date que chacune de ses stipulations se donne, toute compagnie de la convention a partir de son extension (C. trav. L2262-1 et L2261-15, atelier/reference/sources/legi-entrepot/articles.jsonl.gz). Le dernier accord qui lie la compagnie au premier jour travaille donne le minimum (`droit::minima::grille_au`) ; une valeur datee du bareme tiree d'un accord (`accord` dans l'entree) se lit de la meme date (`droit::minima::lie_depuis`).",
-    "source": "kali-1285-accord-salaires-20260701",
+    "quoi": "LES ACCORDS DE SALAIRES QUI SUIVENT LA GRILLE CI-DESSUS, chacun avec sa grille entiere, de la meme forme. Un accord lie une compagnie adherente d'une de ses organisations d'employeurs signataires des la date que chacune de ses stipulations se donne, toute compagnie de la convention a partir de son extension (C. trav. L2262-1 et L2261-15, atelier/reference/sources/legi-entrepot/articles.jsonl.gz). Le dernier accord qui lie la compagnie au premier jour travaille donne le minimum (`droit::minima::grille_au`) ; une valeur datee du bareme tiree d'un accord (`accord` dans l'entree) se lit de la meme date (`droit::minima::lie_depuis`).",
+    "id": "kali-1285-accord-salaires-20260701",
+    "source": {"fichier": "atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-art1.1.1-KALIARTI000054981896-20261102.xml", "emetteur": "convention", "citation": "Cachet forfaitaire jour – 1 ou 2 cachets dans le mois 162,75"},
     "texte": "accord du 01/07/2026, etendu par arrete du 07/09/2026 (JORF du 19/09/2026)",
     "en_vigueur": "2026-08-01",
     "etendu_le": "2026-09-19",
-    "_dates": "Accord du 1er juillet 2026 relatif aux salaires pour l'annee 2026 (KALITEXT000054981887), article 5 : << a compter du 1er aout 2026 pour les montants des salaires minima conventionnels ; a compter du 1er septembre 2026 pour les montants des indemnites et primes >>. Arrete d'extension du 7 septembre 2026 (NOR TRST2622487A), article 2 : l'extension prend effet a la publication, au JORF du 19/09/2026. Fichiers : atelier/reference/sources/kali-1285-accord-salaires-2026/ (art5-KALIARTI000054981906, jorf-1285-arrete-extension-art2-JORFARTI000054860826).",
+    "note": "Les signataires : les six organisations d'employeurs signataires, telles que le texte KALI les ecrit (balise SIGNPATRON de kali-1285-accord-salaires-2026-texte-KALITEXT000054981887-version-20261102.xml : SYNDEAC, SMA, Forces musicales, FSICPA, FNAR, Scene Ensemble) ; << Les Forces musicales >> est le nom de la page de signature du texte signe (atelier/reference/sources/ccneac-accord-nao-2026-signe.pdf), la meme organisation. Se compare au sigle de `organisation_patronale` de la fiche. Les cachets : articles 1.1.1 a 1.1.4 (KALIARTI000054981896 a ...899), au 01/08/2026. Dramatiques : 162,75 (1 ou 2 cachets dans le mois), 141,63 (plus de 2). Cirque : le cachet de base par jour des repetitions, 122,10, le plus bas de la grille (le plateau ne se lit pas sur la paie). Musiciens : autres entreprises (art. X.3.3.D), representation, service de 3 heures 118,09 ; musiques actuelles, cas general 166,75. Lyrique soliste 165,93 et choeur 142,36, representations, cas general. Les dates : accord du 1er juillet 2026 relatif aux salaires pour l'annee 2026 (KALITEXT000054981887), article 5 : << a compter du 1er aout 2026 pour les montants des salaires minima conventionnels ; a compter du 1er septembre 2026 pour les montants des indemnites et primes >>. Arrete d'extension du 7 septembre 2026 (NOR TRST2622487A), article 2 : l'extension prend effet a la publication, au JORF du 19/09/2026. Fichiers : atelier/reference/sources/kali-1285-accord-salaires-2026/ (art5-KALIARTI000054981906, jorf-1285-arrete-extension-art2-JORFARTI000054860826).",
     "signataires": [
      "SYNDEAC",
      "SMA",
@@ -956,7 +942,6 @@
      "FNAR",
      "Scène Ensemble"
     ],
-    "_signataires": "Les six organisations d'employeurs signataires, telles que le texte KALI les ecrit (balise SIGNPATRON de kali-1285-accord-salaires-2026-texte-KALITEXT000054981887-version-20261102.xml : SYNDEAC, SMA, Forces musicales, FSICPA, FNAR, Scene Ensemble) ; << Les Forces musicales >> est le nom de la page de signature du texte signe (atelier/reference/sources/ccneac-accord-nao-2026-signe.pdf), la meme organisation. Se compare au sigle de `organisation_patronale` de la fiche.",
     "cachets": {
      "dramatique": {
       "libelle": "Artiste dramatique ou chorégraphique, cachet forfaitaire jour, CDD < 1 mois",
@@ -1023,11 +1008,10 @@
       ]
      }
     },
-    "_cachets": "Articles 1.1.1 a 1.1.4 (KALIARTI000054981896 a ...899), au 01/08/2026. Dramatiques : 162,75 (1 ou 2 cachets dans le mois), 141,63 (plus de 2). Cirque : le cachet de base par jour des repetitions, 122,10, le plus bas de la grille (le plateau ne se lit pas sur la paie). Musiciens : autres entreprises (art. X.3.3.D), representation, service de 3 heures 118,09 ; musiques actuelles, cas general 166,75. Lyrique soliste 165,93 et choeur 142,36, representations, cas general.",
     "repetition": {
      "service": 61.05,
      "service_libelle": "service de repetition, artistes dramatiques et choregraphiques, CDD < 1 mois",
-     "_par_categorie": "Le service de repetition selon la grille de l'artiste (art. 1.1.2 a 1.1.4). Une journee de deux services se paie en deux cachets : le minimum d'un service est la moitie de la journee, arrondie au centime inferieur. Pour un musicien, le plus bas des ensembles : les musiques actuelles (118,20 la journee de 2 services, soit 59,10 le service). Le cirque (service isole de repetition) et les dramatiques gardent 61,05.",
+     "note": "Le service de repetition selon la grille de l'artiste (art. 1.1.2 a 1.1.4). Une journee de deux services se paie en deux cachets : le minimum d'un service est la moitie de la journee, arrondie au centime inferieur. Pour un musicien, le plus bas des ensembles : les musiques actuelles (118,20 la journee de 2 services, soit 59,10 le service). Le cirque (service isole de repetition) et les dramatiques gardent 61,05.",
      "par_categorie": {
       "musicien_autres": {
        "service": 59.1,
@@ -1044,7 +1028,7 @@
      }
     },
     "emplois_autres_qu_artistiques": {
-     "_source": "Article 1.2 (KALIARTI000054981900, grille des salaires bruts minima pour un horaire de 151 h 40), au 01/08/2026 ; douze echelons (article X.4).",
+     "note": "Article 1.2 (KALIARTI000054981900, grille des salaires bruts minima pour un horaire de 151 h 40), au 01/08/2026 ; douze echelons (article X.4).",
      "heures_mensuelles": 151.67,
      "echelon_par_defaut": 1,
      "groupes": {
@@ -1067,8 +1051,8 @@
       "unite": "mois",
       "heures": 151.67,
       "categories": ["dramatique"],
-      "source": "kali-1285-accord-salaires-20260701",
-      "_lecture": "Art. 1.1.1 : CDI et CDD de plus de 4 mois 2 143,56 ; CDD de moins de 4 mois 2 252,37 ; avec fractionnement 2 469,98 -- le plus bas. Les stagiaires : -30 % la 1re annee, -15 % la 2e (`stagiaire_ccneac` sur la fiche).",
+      "source": {"fichier": "atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-art1.1.1-KALIARTI000054981896-20261102.xml", "emetteur": "convention", "citation": "Cachet forfaitaire jour – 1 ou 2 cachets dans le mois 162,75"},
+      "note": "Art. 1.1.1 : CDI et CDD de plus de 4 mois 2 143,56 ; CDD de moins de 4 mois 2 252,37 ; avec fractionnement 2 469,98 -- le plus bas. Les stagiaires : -30 % la 1re annee, -15 % la 2e (`stagiaire_ccneac` sur la fiche).",
       "valeurs": {
        "CDI et CDD de plus de 4 mois": 2143.56
       },
@@ -1102,8 +1086,8 @@
       "unite": "mois",
       "heures": 151.67,
       "categories": ["cirque"],
-      "source": "kali-1285-accord-salaires-20260701",
-      "_lecture": "Art. 1.1.4 : salaire mensuel 2 252,37, plateau de 5 artistes ou moins comme au-dela, et en creation.",
+      "source": {"fichier": "atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-art1.1.1-KALIARTI000054981896-20261102.xml", "emetteur": "convention", "citation": "Cachet forfaitaire jour – 1 ou 2 cachets dans le mois 162,75"},
+      "note": "Art. 1.1.4 : salaire mensuel 2 252,37, plateau de 5 artistes ou moins comme au-dela, et en creation.",
       "valeurs": {
        "salaire mensuel": 2252.37
       }
@@ -1115,8 +1099,8 @@
       "unite": "mois",
       "heures": 151.67,
       "categories": ["musicien_autres"],
-      "source": "kali-1285-accord-salaires-20260701",
-      "_lecture": "Art. 1.1.2 : CDI des musiques actuelles 2 856,24, le plus bas des quatre ensembles (sans nomenclature 2 902,08, autres entreprises 2 856,35, avec nomenclature 3 250,97 le tuttiste) ; un CDD de plus d'un mois est plus haut (2 962,85, CDDU 3 123,31). L'ensemble ne se lit pas sur la paie.",
+      "source": {"fichier": "atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-art1.1.1-KALIARTI000054981896-20261102.xml", "emetteur": "convention", "citation": "Cachet forfaitaire jour – 1 ou 2 cachets dans le mois 162,75"},
+      "note": "Art. 1.1.2 : CDI des musiques actuelles 2 856,24, le plus bas des quatre ensembles (sans nomenclature 2 902,08, autres entreprises 2 856,35, avec nomenclature 3 250,97 le tuttiste) ; un CDD de plus d'un mois est plus haut (2 962,85, CDDU 3 123,31). L'ensemble ne se lit pas sur la paie.",
       "valeurs": {
        "CDI, musiques actuelles (le plus bas des ensembles)": 2856.24
       }
@@ -1128,8 +1112,8 @@
       "unite": "mois",
       "heures": 151.67,
       "categories": ["choeur"],
-      "source": "kali-1285-accord-salaires-20260701",
-      "_lecture": "Art. 1.1.3 : CDI par anciennete dans l'entreprise (1re a 3e annee 2 165,00 ; 4e a 6e 2 214,45 ; 7e a 9e 2 285,41 ; 10e a 12e 2 358,87 ; 13e a 15e 2 434,88 ; 16e a 18e 2 502,33 -- le texte ecrit << 6e a 18e >>, [INFERENCE] la 16e, qui suit la 15e ; a partir de la 19e, 3 % tous les 3 ans, non porte) ; CDD de droit commun 2 165,00 ; CDDU 2 282,29. L'anciennete se lit sur `poste_depuis` (dans la fonction chez l'employeur, donc au plus l'anciennete dans l'entreprise : jamais a tort).",
+      "source": {"fichier": "atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-art1.1.1-KALIARTI000054981896-20261102.xml", "emetteur": "convention", "citation": "Cachet forfaitaire jour – 1 ou 2 cachets dans le mois 162,75"},
+      "note": "Art. 1.1.3 : CDI par anciennete dans l'entreprise (1re a 3e annee 2 165,00 ; 4e a 6e 2 214,45 ; 7e a 9e 2 285,41 ; 10e a 12e 2 358,87 ; 13e a 15e 2 434,88 ; 16e a 18e 2 502,33 -- le texte ecrit << 6e a 18e >>, [INFERENCE] la 16e, qui suit la 15e ; a partir de la 19e, 3 % tous les 3 ans, non porte) ; CDD de droit commun 2 165,00 ; CDDU 2 282,29. L'anciennete se lit sur `poste_depuis` (dans la fonction chez l'employeur, donc au plus l'anciennete dans l'entreprise : jamais a tort).",
       "valeurs": {
        "CDI": 2165.0
       },
@@ -1198,8 +1182,8 @@
       "unite": "mois",
       "heures": 151.67,
       "categories": ["lyrique_soliste"],
-      "source": "kali-1285-accord-salaires-20260701",
-      "_lecture": "Art. 1.1.3 : CDI et CDD de droit commun 2 626,66 ; CDDU de plus d'un mois 2 870,08.",
+      "source": {"fichier": "atelier/reference/sources/kali-1285-accord-salaires-2026/kali-1285-accord-salaires-2026-art1.1.1-KALIARTI000054981896-20261102.xml", "emetteur": "convention", "citation": "Cachet forfaitaire jour – 1 ou 2 cachets dans le mois 162,75"},
+      "note": "Art. 1.1.3 : CDI et CDD de droit commun 2 626,66 ; CDDU de plus d'un mois 2 870,08.",
       "valeurs": {
        "CDI": 2626.66
       }
@@ -1217,8 +1201,8 @@
     "categories": [
      "dramatique"
     ],
-    "source": "legifrance-1285-accord-salaires-20240502",
-    "_lecture": "Art. 1.1.1 : CDI et CDD de plus de 4 mois 2 143,56 ; CDD de moins de 4 mois 2 252,37 ; avec fractionnement 2 469,98 -- le plus bas. Les stagiaires : -30 % la 1re annee, -15 % la 2e (`stagiaire_ccneac` sur la fiche).",
+    "source": {"fichier": "atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md", "emetteur": "convention", "citation": "CDI et CDD > 4 mois Minimum brut mensuel 2 143,56"},
+    "note": "Art. 1.1.1 : CDI et CDD de plus de 4 mois 2 143,56 ; CDD de moins de 4 mois 2 252,37 ; avec fractionnement 2 469,98 -- le plus bas. Les stagiaires : -30 % la 1re annee, -15 % la 2e (`stagiaire_ccneac` sur la fiche).",
     "valeurs": {
      "CDI et CDD de plus de 4 mois": 2143.56
     },
@@ -1254,8 +1238,8 @@
     "categories": [
      "cirque"
     ],
-    "source": "legifrance-1285-accord-salaires-20240502",
-    "_lecture": "Art. 1.1.4 : salaire mensuel 2 252,37, plateau de 5 artistes ou moins comme au-dela, et en creation.",
+    "source": {"fichier": "atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md", "emetteur": "convention", "citation": "CDI et CDD > 4 mois Minimum brut mensuel 2 143,56"},
+    "note": "Art. 1.1.4 : salaire mensuel 2 252,37, plateau de 5 artistes ou moins comme au-dela, et en creation.",
     "valeurs": {
      "salaire mensuel": 2252.37
     }
@@ -1269,8 +1253,8 @@
     "categories": [
      "musicien_autres"
     ],
-    "source": "legifrance-1285-accord-salaires-20240502",
-    "_lecture": "Art. 1.1.2 : CDI des musiques actuelles 2 814,03, le plus bas des quatre ensembles (sans nomenclature 2 859,19, autres entreprises 2 814,14, avec nomenclature 3 250,97 le tuttiste) ; un CDD de plus d'un mois est plus haut (2 919,06, CDDU 3 077,15). L'ensemble ne se lit pas sur la paie.",
+    "source": {"fichier": "atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md", "emetteur": "convention", "citation": "CDI et CDD > 4 mois Minimum brut mensuel 2 143,56"},
+    "note": "Art. 1.1.2 : CDI des musiques actuelles 2 814,03, le plus bas des quatre ensembles (sans nomenclature 2 859,19, autres entreprises 2 814,14, avec nomenclature 3 250,97 le tuttiste) ; un CDD de plus d'un mois est plus haut (2 919,06, CDDU 3 077,15). L'ensemble ne se lit pas sur la paie.",
     "valeurs": {
      "CDI, musiques actuelles (le plus bas des ensembles)": 2814.03
     }
@@ -1284,8 +1268,8 @@
     "categories": [
      "choeur"
     ],
-    "source": "legifrance-1285-accord-salaires-20240502",
-    "_lecture": "Art. 1.1.3 : CDI par anciennete dans l'entreprise (1re a 3e annee 2 143,56 ... 16e a 18e 2 477,55 ; au-dela, 3 % tous les 3 ans, non porte) ; CDD de droit commun 2 143,56 ; CDDU 2 259,69. L'anciennete se lit sur `poste_depuis` (dans la fonction chez l'employeur, donc au plus l'anciennete dans l'entreprise : jamais a tort).",
+    "source": {"fichier": "atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md", "emetteur": "convention", "citation": "CDI et CDD > 4 mois Minimum brut mensuel 2 143,56"},
+    "note": "Art. 1.1.3 : CDI par anciennete dans l'entreprise (1re a 3e annee 2 143,56 ... 16e a 18e 2 477,55 ; au-dela, 3 % tous les 3 ans, non porte) ; CDD de droit commun 2 143,56 ; CDDU 2 259,69. L'anciennete se lit sur `poste_depuis` (dans la fonction chez l'employeur, donc au plus l'anciennete dans l'entreprise : jamais a tort).",
     "valeurs": {
      "CDI": 2143.56
     },
@@ -1356,8 +1340,8 @@
     "categories": [
      "lyrique_soliste"
     ],
-    "source": "legifrance-1285-accord-salaires-20240502",
-    "_lecture": "Art. 1.1.3 : CDI et CDD de droit commun 2 600,65 ; CDDU de plus d'un mois 2 841,66.",
+    "source": {"fichier": "atelier/reference/sources/legifrance-1285-accord-salaires-20240502.md", "emetteur": "convention", "citation": "CDI et CDD > 4 mois Minimum brut mensuel 2 143,56"},
+    "note": "Art. 1.1.3 : CDI et CDD de droit commun 2 600,65 ; CDDU de plus d'un mois 2 841,66.",
     "valeurs": {
      "CDI": 2600.65
     }
@@ -1366,20 +1350,11 @@
  },
  "2642": {
   "libelle": "CCN de la production audiovisuelle (IDCC 2642)",
-  "source": "spiac-cgt-pav-minima-20260101",
   "texte": "avenants n° 17 (18/01/2024), 19 (08/07/2024) et 20 (29/11/2024), etendus, sur la grille de l'avenant n° 4 (03/07/2012)",
   "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000018828041",
   "en_vigueur": "2025-07-01",
   "etendu": true,
-  "_methode": "AUCUN TEXTE NE DONNE LA GRILLE EN VIGUEUR. La derniere grille chiffree de la base KALI est celle de l'avenant n° 4 (au 01/07/2012, KALIARTI000026562986) ; depuis, des pourcentages : +0,5 % (avenant 7, 01/10/2016), +0,5 % (avenant 9, 01/08/2017), CDI +2,5 % (avenant 11, 01/10/2019), CDDU B +2,5 % jusqu'a 1 000 EUR la semaine / +1,5 % au-dessus et CDI +5 % (avenant 14, 01/01/2023), +1 % pour tous (avenant 14 art. 4, 01/07/2023), CDI +1,5 % (avenant 15, 01/09/2023), CDDU B +5 % jusqu'a 1 100 EUR / +3 % (avenant 17, 01/02/2024), puis par GENRE de programme : fiction +2,5 / +1,5 % et flux +1 % au 01/07/2024 (avenant 19), fiction +2,2 / +1 %, flux +1 %, autres genres +1 % au 01/07/2025 (avenants 17 art. 5-6 et 19 art. 6) ; CDI +1,5 % plancher 1 828,83 EUR (avenant 20, 01/01/2025). Les montants ci-dessous sont ceux de la grille consolidee publiee par le SPIAC-CGT (au 01/01/2026, source `spiac-cgt-pav-minima-20260101`), RECALCULES le 25/09/2026 depuis la grille de 2012 et cette chaine : ecart de moins d'un demi-centime sur chaque emploi essaye, dans les trois genres. Arrondis au centime INFERIEUR : un avertissement ne crie jamais a tort.",
-  "_regles_2642": {
-   "semaine": "Un CDDU de categorie B se paie a la semaine de 35 heures (IV.2.1) : c'est le montant de la grille.",
-   "jour": "CDDU de 4 jours ou moins : le minimum journalier est le minimum de la semaine divise par 4,5 (IV.2.1), soit la semaine / 31,5 heures ramenee a l'heure.",
-   "mois": "CDDU a plein temps de 3 mois consecutifs ou plus : base mensuelle, semaine x 3,8, sans descendre sous 130 % du SMIC (IV.2.1).",
-   "genre": "Depuis le 01/07/2024, le minimum depend du GENRE du programme (fiction, flux, autre -- documentaire, captation de spectacle vivant). Le genre se lit sur la fiche du spectacle (`genre_audiovisuel`) ; sans lui, le moteur prend le plus bas des genres ou l'emploi figure.",
-   "specialise": "Les variantes << specialise >> (fiction lourde) sont relevees mais jamais prises par defaut : elles sont plus hautes.",
-   "artistes": "Les artistes se comparent par CATEGORIE, la reference `minima` du metier dans la 2642 (dramatique, choregraphique, lyrique_soliste, lyrique_choeur, varietes, chanteur, musicien, figurant, doublure_lumiere, realisateur) : un metier sans elle n'est compare a rien -- l'annexe 6 va de 110,89 a 432,86, et prendre la plus basse pour tous ne dirait rien. Le cachet se compare a la ligne que dit la fiche, sinon a la plus basse de la categorie. Les realisateurs n'ont de grille qu'en fiction (annexe A de l'accord du 15/09/2023) : un programme d'un autre genre, ou sans genre, n'est pas compare."
-  },
+  "note": "AUCUN TEXTE NE DONNE LA GRILLE EN VIGUEUR. La derniere grille chiffree de la base KALI est celle de l'avenant n° 4 (au 01/07/2012, KALIARTI000026562986) ; depuis, des pourcentages : +0,5 % (avenant 7, 01/10/2016), +0,5 % (avenant 9, 01/08/2017), CDI +2,5 % (avenant 11, 01/10/2019), CDDU B +2,5 % jusqu'a 1 000 EUR la semaine / +1,5 % au-dessus et CDI +5 % (avenant 14, 01/01/2023), +1 % pour tous (avenant 14 art. 4, 01/07/2023), CDI +1,5 % (avenant 15, 01/09/2023), CDDU B +5 % jusqu'a 1 100 EUR / +3 % (avenant 17, 01/02/2024), puis par GENRE de programme : fiction +2,5 / +1,5 % et flux +1 % au 01/07/2024 (avenant 19), fiction +2,2 / +1 %, flux +1 %, autres genres +1 % au 01/07/2025 (avenants 17 art. 5-6 et 19 art. 6) ; CDI +1,5 % plancher 1 828,83 EUR (avenant 20, 01/01/2025). Les montants ci-dessous sont ceux de la grille consolidee publiee par le SPIAC-CGT (au 01/01/2026, source `spiac-cgt-pav-minima-20260101`), RECALCULES le 25/09/2026 depuis la grille de 2012 et cette chaine : ecart de moins d'un demi-centime sur chaque emploi essaye, dans les trois genres. Arrondis au centime INFERIEUR : un avertissement ne crie jamais a tort. La semaine : un CDDU de categorie B se paie a la semaine de 35 heures (IV.2.1) : c'est le montant de la grille. Le jour : CDDU de 4 jours ou moins : le minimum journalier est le minimum de la semaine divise par 4,5 (IV.2.1), soit la semaine / 31,5 heures ramenee a l'heure. Le mois : CDDU a plein temps de 3 mois consecutifs ou plus : base mensuelle, semaine x 3,8, sans descendre sous 130 % du SMIC (IV.2.1). Le genre : depuis le 01/07/2024, le minimum depend du GENRE du programme (fiction, flux, autre -- documentaire, captation de spectacle vivant). Le genre se lit sur la fiche du spectacle (`genre_audiovisuel`) ; sans lui, le moteur prend le plus bas des genres ou l'emploi figure. Les variantes << specialise >> (fiction lourde) sont relevees mais jamais prises par defaut : elles sont plus hautes. Les artistes se comparent par CATEGORIE, la reference `minima` du metier dans la 2642 (dramatique, choregraphique, lyrique_soliste, lyrique_choeur, varietes, chanteur, musicien, figurant, doublure_lumiere, realisateur) : un metier sans elle n'est compare a rien -- l'annexe 6 va de 110,89 a 432,86, et prendre la plus basse pour tous ne dirait rien. Le cachet se compare a la ligne que dit la fiche, sinon a la plus basse de la categorie. Les realisateurs n'ont de grille qu'en fiction (annexe A de l'accord du 15/09/2023) : un programme d'un autre genre, ou sans genre, n'est pas compare.",
   "cddu_semaine_35h": {
    "1er assistant décorateur": {
     "filiere": "B",
@@ -2724,7 +2699,7 @@
     "categories": [
      "dramatique"
     ],
-    "source": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
+    "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "journee de repetition ou d'enregistrement": 289.23,
      "journee unique": 304.99,
@@ -2740,7 +2715,7 @@
     "categories": [
      "choregraphique"
     ],
-    "source": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
+    "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "soliste": 432.86,
      "corps de ballet": 289.23
@@ -2756,7 +2731,7 @@
      "lyrique_soliste",
      "chanteur"
     ],
-    "source": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
+    "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "soliste": 432.86,
      "preparation, soliste": 165.96
@@ -2771,7 +2746,7 @@
     "categories": [
      "lyrique_choeur"
     ],
-    "source": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
+    "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "choeur": 289.23,
      "preparation, choeur": 110.89
@@ -2787,7 +2762,7 @@
      "varietes",
      "chanteur"
     ],
-    "source": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
+    "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "repetition de 4 h ou moins": 184.9,
      "repetition de plus de 4 h": 289.23,
@@ -2803,9 +2778,9 @@
     "categories": [
      "musicien"
     ],
-    "source": "accord du 16/09/2015, titre II, art. 4, modifie par l'avenant n° 20, art. 3.3 -- au 01/07/2025",
+    "note": "accord du 16/09/2015, titre II, art. 4, modifie par l'avenant n° 20, art. 3.3 -- au 01/07/2025",
     "abattement_max": 25,
-    "_abattement": "ensemble de 10 musiciens ou plus : -10 %, -15 % a 20, -20 % a 30, -25 % a 40 et plus -- la taille de l'ensemble ne se lit pas sur la paie",
+    "abattement_motif": "ensemble de 10 musiciens ou plus : -10 %, -15 % a 20, -20 % a 30, -25 % a 40 et plus -- la taille de l'ensemble ne se lit pas sur la paie",
     "valeurs": {
      "service de 3 h": 111.35,
      "service de 4 h": 144.76,
@@ -2825,7 +2800,7 @@
     "categories": [
      "figurant"
     ],
-    "source": "avenant n° 20, art. 3.1, au 01/01/2025 : cachet minimum journalier",
+    "note": "avenant n° 20, art. 3.1, au 01/01/2025 : cachet minimum journalier",
     "valeurs": {
      "figurant, ensemble de 30 ou plus": 96.0,
      "figurant, ensemble de moins de 30": 98.0
@@ -2840,7 +2815,7 @@
     "categories": [
      "doublure_lumiere"
     ],
-    "source": "avenant n° 20, art. 3.1, au 01/01/2025 : cachet minimum journalier",
+    "note": "avenant n° 20, art. 3.1, au 01/01/2025 : cachet minimum journalier",
     "valeurs": {
      "doublure lumiere": 122.0
     }
@@ -2857,7 +2832,7 @@
     "si_spectacle": {
      "genre_audiovisuel": "fiction"
     },
-    "source": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
+    "note": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
     "valeurs": {
      "journee de 9 h": 300.07
     }
@@ -2874,7 +2849,7 @@
     "si_spectacle": {
      "genre_audiovisuel": "fiction"
     },
-    "source": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
+    "note": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
     "valeurs": {
      "semaine de 45 h": 1500.96
     }
@@ -2891,7 +2866,7 @@
     "si_spectacle": {
      "genre_audiovisuel": "fiction"
     },
-    "source": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
+    "note": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
     "valeurs": {
      "mois (semaines de 45 h)": 5250.04
     }
@@ -2900,19 +2875,12 @@
  },
  "3097": {
   "libelle": "CCN de la production cinématographique et de films publicitaires (IDCC 3097)",
-  "source": "kali-entrepot",
+  "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3097", "emetteur": "convention", "article": "KALIARTI000050329476", "citation": "Les salaires minima sont garantis sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorées de 25 %."},
   "texte": "CCN du 19/01/2012 et ses avenants de salaires, etendus : titre II du 23/01/2024 (au 01/03/2024) et de classification du 26/09/2025 (au 01/05/2026), titre III du 01/08/2023, titre IV du 26/03/2025 (au 01/05/2025)",
   "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028059838",
   "en_vigueur": "2026-05-01",
   "etendu": true,
-  "_regles_3097": {
-   "techniciens": "Titre II, annexe I : un salaire minimum HEBDOMADAIRE par fonction, << garanti sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorees de 25 % >> -- 40 heures payees au taux de base. Le taux horaire minimum est donc la semaine / 40, et c'est lui que le moteur compare au taux d'une ligne (montant / heures) : l'hypothese la plus basse, qui ne compte aucune majoration (heures supplementaires, nuit, dimanche, contrats courts -- chapitre VI) comme due. Les grilles de tournage (annexe II, semaines de 5 et 6 jours avec heures d'equivalence) sortent du meme taux horaire.",
-   "annexe_iii": "Titre II, annexe III (films a petit budget, SUR DEROGATION de la commission paritaire, prorogee pour cinq ans par l'avenant du 26/03/2025, au 11/04/2025) : au-dela de 850 EUR, le minimum est 850 EUR plus 37 % de la difference entre le salaire de reference (annexe I) et 850 ; en deca, le salaire de reference. Le reste du salaire de reference est un interessement aux recettes, hors paie. Le moteur ne l'applique que si la fiche du spectacle le dit (`derogation_annexe_iii_3097`).",
-   "artistes": "Titre III, sous-titre I (artistes-interpretes) : l'engagement a la journee est un cachet (chaque salaire journalier correspond a un cachet, 4.4.1) ; a la semaine, 5 ou 6 cachets. Le minimum d'un cachet est celui de la journee si le contrat en compte moins de cinq, sinon le plus bas de la semaine rapporte au cachet (la semaine de 5 jours / 5). Le format du film se lit sur la fiche du spectacle (`format_cinema`) ; sans lui, le court-metrage, le plus bas.",
-   "complement": "Titre III, sous-titre II (acteurs de complement), annexe III.2 de l'avenant du 01/08/2023 : longs-metrages seulement. Meme regle journee / semaine. Silhouette et doublure : la variante la plus basse (muette, simple) faute de savoir laquelle.",
-   "permanents": "Titre IV : un salaire mensuel de base par niveau (annexe IV.A) et par emploi repere (IV.B), plus des complements de 3 % (autonomie, technicite, responsabilite) propres a chaque salarie -- le moteur compare au salaire de base, le plus bas. Seuls les metiers qui disent leur emploi repere (`classification_3097.titre_iv`) sont compares.",
-   "realisateurs": "Les realisateurs sont des artistes cadres de l'annexe X ; ils se comparent a la semaine ou a la journee (grilles sans duree), par categorie : `realisateur` (REA016) ou `realisateur_publicite` (REA120). Annexe III si la fiche du spectacle le dit."
-  },
+  "note": "Les techniciens : titre II, annexe I : un salaire minimum HEBDOMADAIRE par fonction, << garanti sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorees de 25 % >> -- 40 heures payees au taux de base. Le taux horaire minimum est donc la semaine / 40, et c'est lui que le moteur compare au taux d'une ligne (montant / heures) : l'hypothese la plus basse, qui ne compte aucune majoration (heures supplementaires, nuit, dimanche, contrats courts -- chapitre VI) comme due. Les grilles de tournage (annexe II, semaines de 5 et 6 jours avec heures d'equivalence) sortent du meme taux horaire. L'annexe III : titre II, annexe III (films a petit budget, SUR DEROGATION de la commission paritaire, prorogee pour cinq ans par l'avenant du 26/03/2025, au 11/04/2025) : au-dela de 850 EUR, le minimum est 850 EUR plus 37 % de la difference entre le salaire de reference (annexe I) et 850 ; en deca, le salaire de reference. Le reste du salaire de reference est un interessement aux recettes, hors paie. Le moteur ne l'applique que si la fiche du spectacle le dit (`derogation_annexe_iii_3097`). Les artistes : titre III, sous-titre I (artistes-interpretes) : l'engagement a la journee est un cachet (chaque salaire journalier correspond a un cachet, 4.4.1) ; a la semaine, 5 ou 6 cachets. Le minimum d'un cachet est celui de la journee si le contrat en compte moins de cinq, sinon le plus bas de la semaine rapporte au cachet (la semaine de 5 jours / 5). Le format du film se lit sur la fiche du spectacle (`format_cinema`) ; sans lui, le court-metrage, le plus bas. Le complement : titre III, sous-titre II (acteurs de complement), annexe III.2 de l'avenant du 01/08/2023 : longs-metrages seulement. Meme regle journee / semaine. Silhouette et doublure : la variante la plus basse (muette, simple) faute de savoir laquelle. Les permanents : titre IV : un salaire mensuel de base par niveau (annexe IV.A) et par emploi repere (IV.B), plus des complements de 3 % (autonomie, technicite, responsabilite) propres a chaque salarie -- le moteur compare au salaire de base, le plus bas. Seuls les metiers qui disent leur emploi repere (`classification_3097.titre_iv`) sont compares. Les realisateurs sont des artistes cadres de l'annexe X ; ils se comparent a la semaine ou a la journee (grilles sans duree), par categorie : `realisateur` (REA016) ou `realisateur_publicite` (REA120). Annexe III si la fiche du spectacle le dit. Ne sont pas compares non plus : les semaines de tournage a heures d'equivalence (annexe II du titre II), qui sortent du meme taux horaire que l'annexe I ; les artistes des films publicitaires, sans grille dans la 3097 ; les repetitions des artistes hors tournage (54,37 EUR le service, `artistes.long`) ; les acteurs de complement d'un court-metrage, sans grille. Releve dans le texte, pas porte dans la table ni compare : le mensuel des realisateurs (contrat d'au moins 5 mois, 8 563,37 EUR ; hors production, << prorata du salaire mensuel >>) : la duree du contrat de production et la nature du contrat ne se lisent pas surement -- un realisateur paye au mois n'est pas compare.",
   "techniciens_semaine_39h": {
    "1er assistant costume cinéma": 1397.66,
    "1er assistant décorateur cinéma": 1435.39,
@@ -3031,23 +2999,23 @@
    "Électricien de prise de vues cinéma": 1009.05,
    "Étalonneur cinéma": 2110.45
   },
-  "_heures_payees_de_la_semaine": 40,
-  "_avant_2026_05": {
-   "_quoi": "Les deux fonctions reevaluees par l'avenant du 26/09/2025 (art. 4.4), a leur montant de l'annexe I de 2024, pour un contrat commence avant le 01/05/2026.",
+  "heures_payees_de_la_semaine": 40,
+  "avant_2026_05": {
+   "quoi": "Les deux fonctions reevaluees par l'avenant du 26/09/2025 (art. 4.4), a leur montant de l'annexe I de 2024, pour un contrat commence avant le 01/05/2026.",
    "montants": {
     "Directeur de casting cinéma": 1479.49,
     "Chargé de la figuration cinéma": 1070.37
-   }
+   },
+   "note": "Au 01/05/2026 (avenant du 26/09/2025, art. 4) : secretaire de production supprimee ; 1er assistant a la distribution des roles -> directeur de casting, chef menuisier -> chef menuisier traceur, sous-chef menuisier -> sous-chef menuisier traceur, accessoiriste de decor -> accessoiriste aux meubles ; quatorze fonctions creees (superviseur de decor, assistant dessinateur decoration, administrateur de decor, assistant de direction de casting, repereur, etalonneur, assistant etalonneur, assistant ensemblier, assistant regisseur d'exterieurs, assistant accessoiriste de plateau, rippeur de meublage et de construction, coordinateur de production, assistant de production, assistant de production adjoint). L'article 7 fait entrer les intitules nouveaux en vigueur a leur integration dans l'annexe VIII du reglement d'assurance chomage : les codes France Travail des fonctions creees n'existent pas encore dans la nomenclature de 2016."
   },
-  "_fonctions_2026_05": "Au 01/05/2026 (avenant du 26/09/2025, art. 4) : secretaire de production supprimee ; 1er assistant a la distribution des roles -> directeur de casting, chef menuisier -> chef menuisier traceur, sous-chef menuisier -> sous-chef menuisier traceur, accessoiriste de decor -> accessoiriste aux meubles ; quatorze fonctions creees (superviseur de decor, assistant dessinateur decoration, administrateur de decor, assistant de direction de casting, repereur, etalonneur, assistant etalonneur, assistant ensemblier, assistant regisseur d'exterieurs, assistant accessoiriste de plateau, rippeur de meublage et de construction, coordinateur de production, assistant de production, assistant de production adjoint). L'article 7 fait entrer les intitules nouveaux en vigueur a leur integration dans l'annexe VIII du reglement d'assurance chomage : les codes France Travail des fonctions creees n'existent pas encore dans la nomenclature de 2016.",
   "annexe_iii": {
    "socle": 850.0,
    "part_au_dela": 37,
    "depuis": "2025-04-11",
-   "_source": "avenant du 26/03/2025, annexe II (KALIARTI000051910015) ; avant : 821,51 EUR + 35 % (avenant du 23/01/2024)."
+   "note": "avenant du 26/03/2025, annexe II (KALIARTI000051910015) ; avant : 821,51 EUR + 35 % (avenant du 23/01/2024)."
   },
   "artistes": {
-   "_source": "avenant du 01/08/2023 (titre III), annexe III.1 et annexe de l'accord du 09/07/2014 (courts-metrages), au 01/09/2023",
+   "note": "avenant du 01/08/2023 (titre III), annexe III.1 et annexe de l'accord du 09/07/2014 (courts-metrages), au 01/09/2023",
    "long": {
     "journee": 418.25,
     "semaine_5j": 1266.7,
@@ -3064,7 +3032,7 @@
    }
   },
   "complement": {
-   "_source": "avenant du 01/08/2023, annexe III.2 au sous-titre II du titre III (longs-metrages), au 01/09/2023",
+   "note": "avenant du 01/08/2023, annexe III.2 au sous-titre II du titre III (longs-metrages), au 01/09/2023",
    "figuration": {
     "journee": 107.0,
     "semaine_5j": 501.6,
@@ -3092,7 +3060,7 @@
    }
   },
   "permanents_mensuel": {
-   "_source": "avenant du 26/03/2025 (titre IV), annexes IV.A et IV.B, au 01/05/2025 : salaire mensuel de base, sans les complements",
+   "note": "avenant du 26/03/2025 (titre IV), annexes IV.A et IV.B, au 01/05/2025 : salaire mensuel de base, sans les complements",
    "niveaux": {
     "cadre_a": 2779.57,
     "cadre_b": 2229.81,
@@ -3129,9 +3097,6 @@
     "Employé administratif": "employe_a"
    }
   },
-  "_non_lu": {
-   "_autres": "Ne sont pas compares non plus : les semaines de tournage a heures d'equivalence (annexe II du titre II), qui sortent du meme taux horaire que l'annexe I ; les artistes des films publicitaires, sans grille dans la 3097 ; les repetitions des artistes hors tournage (54,37 EUR le service, `artistes.long`) ; les acteurs de complement d'un court-metrage, sans grille."
-  },
   "grilles_complementaires": [
    {
     "nom": "réalisateurs, la semaine (annexe I)",
@@ -3142,8 +3107,8 @@
     "population": "tous",
     "statut": "artiste",
     "heures": null,
-    "source": "KALIARTI000050329476 (avenant du 23/01/2024, titre II, annexe I : realisateurs)",
-    "_lecture": "Contrat de moins de 5 mois 3 015,27 ; contrat hors production du film, engagement d'une semaine ou plus, 1 977,68 -- le plus bas, la paie ne disant pas si le contrat est de production.",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3097", "emetteur": "convention", "article": "KALIARTI000050329476", "citation": "Les salaires minima sont garantis sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorées de 25 %."},
+    "note": "Contrat de moins de 5 mois 3 015,27 ; contrat hors production du film, engagement d'une semaine ou plus, 1 977,68 -- le plus bas, la paie ne disant pas si le contrat est de production.",
     "valeurs": {
      "contrat de moins de 5 mois": 3015.27,
      "hors production du film": 1977.68
@@ -3158,14 +3123,14 @@
     "population": "tous",
     "statut": "artiste",
     "heures": null,
-    "source": "KALIARTI000050329476 (avenant du 23/01/2024, titre II, annexe I : realisateurs)",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3097", "emetteur": "convention", "article": "KALIARTI000050329476", "citation": "Les salaires minima sont garantis sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorées de 25 %."},
     "si_spectacle": {
      "derogation_annexe_iii_3097": true
     },
     "remplace": [
      "réalisateurs, la semaine (annexe I)"
     ],
-    "_lecture": "Annexe III (KALIARTI000050329478) : 1 588,97 la semaine, plus un interessement de 2 852,61 hors paie ; le mensuel de l'article 52 ne s'y applique pas.",
+    "note": "Annexe III (KALIARTI000050329478) : 1 588,97 la semaine, plus un interessement de 2 852,61 hors paie ; le mensuel de l'article 52 ne s'y applique pas.",
     "valeurs": {
      "annexe III": 1588.97
     }
@@ -3179,8 +3144,8 @@
     "population": "tous",
     "statut": "artiste",
     "heures": null,
-    "source": "KALIARTI000050329476 (avenant du 23/01/2024, titre II, annexe I : realisateurs)",
-    "_lecture": "Contrat hors production du film, engagement de moins de 5 jours consecutifs : 494,42 la journee. Une journee de production n'a pas de minimum propre (la semaine / 5 serait plus haute) : le plus bas.",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3097", "emetteur": "convention", "article": "KALIARTI000050329476", "citation": "Les salaires minima sont garantis sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorées de 25 %."},
+    "note": "Contrat hors production du film, engagement de moins de 5 jours consecutifs : 494,42 la journee. Une journee de production n'a pas de minimum propre (la semaine / 5 serait plus haute) : le plus bas.",
     "valeurs": {
      "hors production, moins de 5 jours": 494.42
     }
@@ -3194,7 +3159,7 @@
     "population": "tous",
     "statut": "artiste",
     "heures": null,
-    "source": "KALIARTI000050329476 (avenant du 23/01/2024, titre II, annexe I : realisateurs)",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3097", "emetteur": "convention", "article": "KALIARTI000050329476", "citation": "Les salaires minima sont garantis sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorées de 25 %."},
     "valeurs": {
      "engagement d'une semaine ou plus": 3733.93
     }
@@ -3208,30 +3173,21 @@
     "population": "tous",
     "statut": "artiste",
     "heures": null,
-    "source": "KALIARTI000050329476 (avenant du 23/01/2024, titre II, annexe I : realisateurs)",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3097", "emetteur": "convention", "article": "KALIARTI000050329476", "citation": "Les salaires minima sont garantis sur la base de 39 heures : 35 heures au salaire horaire de base et 4 heures majorées de 25 %."},
     "valeurs": {
      "engagement de moins de 5 jours": 933.48
     }
    }
-  ],
-  "_non_porte": {
-   "_quoi": "Releve dans le texte, pas porte dans la table ni compare.",
-   "realisateurs_au_mois": "le mensuel des realisateurs (contrat d'au moins 5 mois, 8 563,37 EUR ; hors production, << prorata du salaire mensuel >>) : la duree du contrat de production et la nature du contrat ne se lisent pas surement -- un realisateur paye au mois n'est pas compare."
-  }
+  ]
  },
   "3252": {
     "libelle": "CCN des entreprises au service de la création et de l'événement (IDCC 3252)",
-    "source": "kali-entrepot",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3252", "emetteur": "convention", "article": "KALIARTI000051948357", "citation": "Le niveau et le salaire minimum applicables à une fonction non-référencée dans les grilles de classification"},
     "texte": "CCN du 27/06/2024, art. 7.2, 7.3 et annexes I a V, version de l'avenant n° 3 du 22/04/2025 ; doublage : avenant n° 1 du 07/11/2022 ; mannequins : avenant n° 2 du 22/01/2025",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000051346072",
     "en_vigueur": "2025-05-17",
     "etendu": true,
-    "_regles_3252": {
-      "niveaux": "Art. 7.3 : un minimum mensuel par niveau (1 a 5 non cadres, 6 a 10 cadres), majore de 3 % apres 3 ans et de 8 % apres 8 ans dans l'entreprise ET le poste. La table porte le montant de moins de 3 ans : le plus bas.",
-      "cddu": "Annexes I a IV : un taux HORAIRE par fonction pour un CDDU ; annexes II a IV = mensuel de reference / 151,67 x 1,04 (verifie ligne a ligne). Une fonction << non applicable >> n'a pas de CDDU et n'est pas dans la grille.",
-      "doublage": "Cachets du doublage (colonne au 01/01/2023 de l'annexe 1 de l'avenant n° 1), cinema, television et narration, et chanteurs : une seule grille, la plus basse sans classement.",
-      "mannequins": "Taux horaires des mannequins HORS conges payes (10 % en sus), avenant n° 2, art. 3.4 de l'annexe V."
-    },
+    "note": "niveaux : Art. 7.3 : un minimum mensuel par niveau (1 a 5 non cadres, 6 a 10 cadres), majore de 3 % apres 3 ans et de 8 % apres 8 ans dans l'entreprise ET le poste. La table porte le montant de moins de 3 ans : le plus bas. ; cddu : Annexes I a IV : un taux HORAIRE par fonction pour un CDDU ; annexes II a IV = mensuel de reference / 151,67 x 1,04 (verifie ligne a ligne). Une fonction << non applicable >> n'a pas de CDDU et n'est pas dans la grille. ; doublage : Cachets du doublage (colonne au 01/01/2023 de l'annexe 1 de l'avenant n° 1), cinema, television et narration, et chanteurs : une seule grille, la plus basse sans classement. ; mannequins : Taux horaires des mannequins HORS conges payes (10 % en sus), avenant n° 2, art. 3.4 de l'annexe V. Hors champ, ce qui n'est pas un minimum de salaire : les prix a la ligne du doublage (7,26 EUR des 45 lignes, 6,00 de 51 a 110, degressivite jusqu'a 4,06) sont un complement du cachet, calcule sur le nombre de lignes de l'oeuvre que la paie ne connait pas ; le cachet minimum, lui, est compare.",
     "grilles": [
       {
         "nom": "niveaux (art. 7.3)",
@@ -3239,7 +3195,7 @@
         "statut": "tous",
         "unite": "mois",
         "heures": 151.67,
-        "source": "KALIARTI000051948357",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3252", "emetteur": "convention", "article": "KALIARTI000051948357", "citation": "Le niveau et le salaire minimum applicables à une fonction non-référencée dans les grilles de classification"},
         "valeurs": {
           "niveau 1": 1802,
           "niveau 2": 1851,
@@ -3272,7 +3228,7 @@
               "niveau 9": 95,
               "niveau 10": 102
             },
-            "_source": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
+            "note": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
           },
           {
             "nom": "8 ans dans l'entreprise et le poste (+8 %)",
@@ -3293,7 +3249,7 @@
               "niveau 9": 253,
               "niveau 10": 271
             },
-            "_source": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
+            "note": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
           }
         ]
       },
@@ -3303,7 +3259,7 @@
         "statut": "tous",
         "unite": "mois",
         "heures": 151.67,
-        "source": "art. 7.2, annexes I a V",
+        "note": "art. 7.2, annexes I a V",
         "valeurs": {
           "Chargé d'accueil, standardiste bilingue [Accueil]": 2007.0,
           "Chargé d'accueil, standardiste [Accueil]": 1802.0,
@@ -4066,7 +4022,7 @@
               "Directeur scouting [Scouting]": 95,
               "Directeur d'agence [Direction]": 102
             },
-            "_source": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
+            "note": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
           },
           {
             "nom": "8 ans dans l'entreprise et le poste (+8 %)",
@@ -4452,7 +4408,7 @@
               "Directeur scouting [Scouting]": 253,
               "Directeur d'agence [Direction]": 271
             },
-            "_source": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
+            "note": "Article 7.3 (KALIARTI000051948357, VIGUEUR_ETEN au 17/05/2025) : << La remuneration mensuelle brute minimale d'un salarie justifiant de 3 annees de presence cumulees dans l'entreprise et le poste ne peut etre inferieure au salaire minimum [...] majore de 3 %. Cette majoration est portee a 8 % apres 8 annees >> ; les montants du tableau (arrondis a l'euro) font foi ; article 7.2 : les contrats anterieurs dans l'entreprise et le poste comptent. Source kali-3252-anciennete-3-8-ans-20260929."
           }
         ]
       },
@@ -4462,7 +4418,7 @@
         "statut": "technicien",
         "unite": "heure",
         "heures": 1,
-        "source": "annexes I a IV (CDDU)",
+        "note": "annexes I a IV (CDDU)",
         "valeurs": {
           "Ingénieur du son [Son]": 34.1,
           "Chef opérateur du son [Son]": 29.8,
@@ -4699,7 +4655,7 @@
         "statut": "artiste",
         "unite": "cachet",
         "heures": null,
-        "source": "KALIARTI000047046175 / 176 / 177",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3252", "emetteur": "convention", "article": "KALIARTI000047046175", "citation": "Grille de rémunération des artistes-interprètes à partir du 1er janvier 2023"},
         "valeurs": {
           "cat1a_1-6_lignes_demi_journee": 121.73,
           "cat1b_7-14_lignes_demi_journee_ambiance": 192.73,
@@ -4746,7 +4702,7 @@
         "statut": "artiste",
         "unite": "heure",
         "heures": 1,
-        "source": "KALIARTI000051642282",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3252", "emetteur": "convention", "article": "KALIARTI000051642282", "citation": "La rémunération de la prestation du mannequin est mentionnée au contrat de travail en salaire brut"},
         "valeurs": {
           "essayage_technique_adulte": 81.05,
           "cat1_adulte": 111.75,
@@ -4771,8 +4727,8 @@
           "MAN010"
         ],
         "facteur": 0.625,
-        "_facteur": "de 5 a 8 h, la journee est un forfait de 5 h (le taux effectif le plus bas : 5/8 du taux horaire)",
-        "_source_facteur": "Annexe V, art. 3.4.2 (KALIARTI000051642282) : un contrat de 5 a 8 h se paie au journalier (= horaire x 5), les heures au-dela de 8 au taux horaire, une heure au moins est due. Un taux horaire compare a toutes les heures crierait a tort sur une journee de 8 h ; le plancher horaire est donc le taux x 5/8."
+        "facteur_motif": "de 5 a 8 h, la journee est un forfait de 5 h (le taux effectif le plus bas : 5/8 du taux horaire)",
+        "note": "Annexe V, art. 3.4.2 (KALIARTI000051642282) : un contrat de 5 a 8 h se paie au journalier (= horaire x 5), les heures au-dela de 8 au taux horaire, une heure au moins est due. Un taux horaire compare a toutes les heures crierait a tort sur une journee de 8 h ; le plancher horaire est donc le taux x 5/8."
       },
       {
         "nom": "mannequins, la journée",
@@ -4783,8 +4739,8 @@
         "codes": [
           "MAN010"
         ],
-        "source": "KALIARTI000051642282",
-        "_source": "Annexe V, art. 3.4.2 (KALIARTI000051642282, en vigueur au 01/06/2025 ; avenant n° 2 du 22/01/2025) : journalier = horaire x 5 ; hebdomadaire 5 jours = journalier x 5 - 10 % ; montants HORS conges payes. Source kali-3252-mannequins-annexe-v-avenant-2-20260929.",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3252", "emetteur": "convention", "article": "KALIARTI000051642282", "citation": "La rémunération de la prestation du mannequin est mentionnée au contrat de travail en salaire brut"},
+        "note": "Annexe V, art. 3.4.2 (KALIARTI000051642282, en vigueur au 01/06/2025 ; avenant n° 2 du 22/01/2025) : journalier = horaire x 5 ; hebdomadaire 5 jours = journalier x 5 - 10 % ; montants HORS conges payes. Source kali-3252-mannequins-annexe-v-avenant-2-20260929.",
         "valeurs": {
           "essayage_technique_adulte": 405.25,
           "cat1_adulte": 558.75,
@@ -4802,8 +4758,8 @@
         "codes": [
           "MAN010"
         ],
-        "source": "KALIARTI000051642282",
-        "_source": "Annexe V, art. 3.4.2 (KALIARTI000051642282, en vigueur au 01/06/2025 ; avenant n° 2 du 22/01/2025) : journalier = horaire x 5 ; hebdomadaire 5 jours = journalier x 5 - 10 % ; montants HORS conges payes. Source kali-3252-mannequins-annexe-v-avenant-2-20260929.",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3252", "emetteur": "convention", "article": "KALIARTI000051642282", "citation": "La rémunération de la prestation du mannequin est mentionnée au contrat de travail en salaire brut"},
+        "note": "Annexe V, art. 3.4.2 (KALIARTI000051642282, en vigueur au 01/06/2025 ; avenant n° 2 du 22/01/2025) : journalier = horaire x 5 ; hebdomadaire 5 jours = journalier x 5 - 10 % ; montants HORS conges payes. Source kali-3252-mannequins-annexe-v-avenant-2-20260929.",
         "valeurs": {
           "essayage_technique_adulte": 1823.6,
           "cat1_adulte": 2514.4,
@@ -4821,8 +4777,8 @@
         "codes": [
           "DIR020"
         ],
-        "source": "KALIARTI000047056515",
-        "_source": "Accord du 05/02/2013, titre III, dans la version de l'avenant n° 1 du 07/11/2022 (KALIARTI000047056515, VIGUEUR_ETEN au 01/01/2023), colonne << au 1er janvier 2023 >> : la direction artistique est payee a la seance (journee, demi-journee, quart de journee) sans duree du travail ; le moteur compare le taux d'une ligne << Journee de travail >> a la ligne que dit la fiche, sinon a la plus basse. Les preparations, verifications et conformations sont des forfaits de tache, pas des journees : non comparees. Source kali-3252-doublage-directeurs-artistiques-20260929.",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3252", "emetteur": "convention", "article": "KALIARTI000047056515", "citation": "cadre engagé pour assurer la direction artistique du doublage d'une œuvre audiovisuelle"},
+        "note": "Accord du 05/02/2013, titre III, dans la version de l'avenant n° 1 du 07/11/2022 (KALIARTI000047056515, VIGUEUR_ETEN au 01/01/2023), colonne << au 1er janvier 2023 >> : la direction artistique est payee a la seance (journee, demi-journee, quart de journee) sans duree du travail ; le moteur compare le taux d'une ligne << Journee de travail >> a la ligne que dit la fiche, sinon a la plus basse. Les preparations, verifications et conformations sont des forfaits de tache, pas des journees : non comparees. Source kali-3252-doublage-directeurs-artistiques-20260929.",
         "valeurs": {
           "cinema, enregistrement, jusqu'a 3 jours (par jour)": 854.62,
           "cinema, enregistrement, au-dela de 3 jours (par jour)": 749.55,
@@ -4837,27 +4793,16 @@
           "documentaires, reportages, institutionnels, 1/2 journee": 253.55
         }
       }
-    ],
-    "_non_porte": {
-      "_quoi": "Releve dans le texte, pas porte dans la table ni compare. RIEN : anciennete, mannequins a la journee et a la semaine, directeurs artistiques sont portes ; les prix a la ligne du doublage sont hors champ (`_hors_champ`)."
-    },
-    "_hors_champ": {
-      "_quoi": "Ce qui n'est pas un minimum de salaire : une remuneration a la ligne, a la minute, une indemnite. Rien a comparer, et ce n'est pas un manque.",
-      "doublage_a_la_ligne": "les prix a la ligne du doublage (7,26 EUR des 45 lignes, 6,00 de 51 a 110, degressivite jusqu'a 4,06) sont un complement du cachet, calcule sur le nombre de lignes de l'oeuvre que la paie ne connait pas ; le cachet minimum, lui, est compare."
-    }
+    ]
   },
   "2412": {
     "libelle": "CCN de la production de films d'animation (IDCC 2412)",
-    "source": "kali-entrepot",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2412", "emetteur": "convention", "article": "KALIARTI000050506609", "citation": "Salaires minima conventionnels (CDI et CDD de droit commun)"},
     "texte": "avenant n° 19 du 14/06/2024 (NAO 2024), bareme annexe ; CCN du 06/07/2004 etendue par arrete du 18/07/2005",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635129",
     "en_vigueur": "2024-07-01",
     "etendu": true,
-    "_regles_2412": {
-      "fonctions": "Un minimum par fonction et categorie (I, II, III A cadres ; III B a VI non cadres) : CDDU a la journee de 7 h, a la semaine de 35 h ou 39 h, au mois ; CDI et CDD de droit commun au mois (35 h). Les montants CDDU se correspondent (jour x 5 = semaine de 35 h) : la table garde la semaine de 35 h.",
-      "portee": "L'annexe est titree << adherents SPI / AnimFrance >> : l'art. 3 fixe l'effet au 01/07/2024 pour eux, sinon au lendemain de l'arrete d'extension, non trouve dans la base.",
-      "annexe_fait_foi": "L'art. 2 de l'avenant n° 19 recopie les hausses de l'avenant n° 18 ; les montants de l'annexe ont augmente davantage. L'annexe fait foi."
-    },
+    "note": "fonctions : Un minimum par fonction et categorie (I, II, III A cadres ; III B a VI non cadres) : CDDU a la journee de 7 h, a la semaine de 35 h ou 39 h, au mois ; CDI et CDD de droit commun au mois (35 h). Les montants CDDU se correspondent (jour x 5 = semaine de 35 h) : la table garde la semaine de 35 h. ; portee : L'annexe est titree << adherents SPI / AnimFrance >> : l'art. 3 fixe l'effet au 01/07/2024 pour eux, sinon au lendemain de l'arrete d'extension, non trouve dans la base. ; annexe_fait_foi : L'art. 2 de l'avenant n° 19 recopie les hausses de l'avenant n° 18 ; les montants de l'annexe ont augmente davantage. L'annexe fait foi. Releve dans le texte, pas porte : les minima CDDU a la semaine de 39 h (heures majorees comprises) : la semaine de 35 h les couvre au taux de base.",
     "grilles": [
       {
         "nom": "CDDU, semaine de 35 h",
@@ -4865,7 +4810,7 @@
         "statut": "technicien",
         "unite": "semaine",
         "heures": 35,
-        "source": "KALIARTI000050506609",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2412", "emetteur": "convention", "article": "KALIARTI000050506609", "citation": "Salaires minima conventionnels (CDI et CDD de droit commun)"},
         "valeurs": {
           "1er assistant réalisateur [II]": 723.48,
           "2e assistant réalisateur [IV]": 474.4,
@@ -5022,7 +4967,7 @@
         "statut": "tous",
         "unite": "mois",
         "heures": 151.67,
-        "source": "KALIARTI000050506609",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2412", "emetteur": "convention", "article": "KALIARTI000050506609", "citation": "Salaires minima conventionnels (CDI et CDD de droit commun)"},
         "valeurs": {
           "Chargé de négociation/business affairs [I]": 3332.16,
           "Contrôleur de gestion [I]": 3332.16,
@@ -5231,25 +5176,16 @@
           "Figurant MOCAP [III B]": 2056.53
         }
       }
-    ],
-    "_non_porte": {
-      "_quoi": "Releve dans le texte, pas porte dans la table ni compare.",
-      "semaine_39h": "les minima CDDU a la semaine de 39 h (heures majorees comprises) : la semaine de 35 h les couvre au taux de base."
-    }
+    ]
   },
   "3241": {
     "libelle": "CCN de la télédiffusion (IDCC 3241)",
-    "source": "kali-entrepot",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3241", "emetteur": "convention", "article": "KALIARTI000054880884", "citation": "Au 1er juin 2026 (mensuel)"},
     "texte": "accords du 11/05/2026 (permanents ; CDDU), au 01/06/2026",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000044261829",
     "en_vigueur": "2026-06-01",
     "etendu": true,
-    "_regles_3241": {
-      "permanents": "Niveaux I a VI, echelons A, B, C, mensuel pour 35 h ; deux grilles selon l'effectif (moins de 50, 50 et plus). La table porte celle de moins de 50 : la plus basse.",
-      "cddu": "Liste 1 : un minimum JOURNALIER de 8 h par niveau ; M1 jusqu'a 350 jours ou 2 800 h dans la branche, M2 (+5 %) au-dela. La table porte M1. Niveau 8 de gre a gre, jamais sous le M1 du 7-2.",
-      "liste_2": "La liste 2 (artistes) est un salaire JOURNALIER de 8 h (accord du 11/05/2026, art. 2 : << salaire brut minimum journalier (8 heures) >>) ; le moteur le compare au cachet, qui paie une journee.",
-      "niveau_1": "L'annexe CDDU donne 119,83 EUR au niveau 1, soit +1,81 % sur la grille de juillet 2024 (117,70, accord du 14/06/2024) quand l'accord de 2026 annonce +1 % : un palier de 2025 d'environ +0,8 % est suppose mais publie nulle part (BOCC 2025 et 2026, KALI, relus le 29/09/2026). Sans effet sur la paie : c'est la grille de 2026, publiee, qui est comparee."
-    },
+    "note": "permanents : Niveaux I a VI, echelons A, B, C, mensuel pour 35 h ; deux grilles selon l'effectif (moins de 50, 50 et plus). La table porte celle de moins de 50 : la plus basse. ; cddu : Liste 1 : un minimum JOURNALIER de 8 h par niveau ; M1 jusqu'a 350 jours ou 2 800 h dans la branche, M2 (+5 %) au-dela. La table porte M1. Niveau 8 de gre a gre, jamais sous le M1 du 7-2. ; liste_2 : La liste 2 (artistes) est un salaire JOURNALIER de 8 h (accord du 11/05/2026, art. 2 : << salaire brut minimum journalier (8 heures) >>) ; le moteur le compare au cachet, qui paie une journee. ; niveau_1 : L'annexe CDDU donne 119,83 EUR au niveau 1, soit +1,81 % sur la grille de juillet 2024 (117,70, accord du 14/06/2024) quand l'accord de 2026 annonce +1 % : un palier de 2025 d'environ +0,8 % est suppose mais publie nulle part (BOCC 2025 et 2026, KALI, relus le 29/09/2026). Sans effet sur la paie : c'est la grille de 2026, publiee, qui est comparee.",
     "grilles": [
       {
         "nom": "permanents, moins de 50 salariés",
@@ -5257,7 +5193,7 @@
         "statut": "tous",
         "unite": "mois",
         "heures": 151.67,
-        "source": "KALIARTI000054880884",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3241", "emetteur": "convention", "article": "KALIARTI000054880884", "citation": "Au 1er juin 2026 (mensuel)"},
         "valeurs": {
           "I-A": 1870,
           "I-B": 1875,
@@ -5299,7 +5235,7 @@
               "V-C": 377.5,
               "VI": 540.04
             },
-            "_source": "Annexe 1 de l'accord du 11/05/2026 sur les salaires des permanents (KALIARTI000054880884, VIGUEUR_ETEN au 01/06/2026), colonne << + 50 salaries >> ; article 22 de la CCN du 02/07/2021 (KALIARTI000046212430) : 22.1 moins de 50 salaries et hors groupe de plus de 50, 22.2 au-dela. Le texte ne dit pas comment compter l'effectif : la fiche Entreprise le dit (`cinquante_salaries_3241`). Source kali-3241-permanents-art-22-20260929."
+            "note": "Annexe 1 de l'accord du 11/05/2026 sur les salaires des permanents (KALIARTI000054880884, VIGUEUR_ETEN au 01/06/2026), colonne << + 50 salaries >> ; article 22 de la CCN du 02/07/2021 (KALIARTI000046212430) : 22.1 moins de 50 salaries et hors groupe de plus de 50, 22.2 au-dela. Le texte ne dit pas comment compter l'effectif : la fiche Entreprise le dit (`cinquante_salaries_3241`). Source kali-3241-permanents-art-22-20260929."
           }
         ]
       },
@@ -5309,7 +5245,7 @@
         "statut": "technicien",
         "unite": "jour",
         "heures": 8,
-        "source": "KALIARTI000054880855",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3241", "emetteur": "convention", "article": "KALIARTI000054880855", "citation": "Salaire brut minimum journalier (8 heures)"},
         "valeurs": {
           "niveau 1": 119.83,
           "niveau 2": 138.68,
@@ -5345,7 +5281,7 @@
               "niveau 7-1": 11.17,
               "niveau 7-2": 14.2
             },
-            "_source": "Accord du 11/05/2026 sur les salaires des CDDU (KALIARTI000054880855 ; BOCC 2026-23, NOR ASET2650556M), colonne M2 ; accord du 22/12/2006, art. 4.3 (KALIARTI000022241853) : M2 = M1 + 5 % pour qui a exerce la fonction << pendant une duree egale ou superieure a 350 jours travailles ou 2 800 heures >> en telediffusion, production audiovisuelle, production cinematographique ou prestation technique -- un cumul de carriere, dit sur la fiche du salarie (`experimente_3241`). Sources kali-3241-cddu-m1-m2-20260929 et bocc-3241-salaires-cddu-20260511."
+            "note": "Accord du 11/05/2026 sur les salaires des CDDU (KALIARTI000054880855 ; BOCC 2026-23, NOR ASET2650556M), colonne M2 ; accord du 22/12/2006, art. 4.3 (KALIARTI000022241853) : M2 = M1 + 5 % pour qui a exerce la fonction << pendant une duree egale ou superieure a 350 jours travailles ou 2 800 heures >> en telediffusion, production audiovisuelle, production cinematographique ou prestation technique -- un cumul de carriere, dit sur la fiche du salarie (`experimente_3241`). Sources kali-3241-cddu-m1-m2-20260929 et bocc-3241-salaires-cddu-20260511."
           }
         ]
       },
@@ -5355,7 +5291,7 @@
         "statut": "artiste",
         "unite": "cachet",
         "heures": null,
-        "source": "KALIARTI000054880855",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3241", "emetteur": "convention", "article": "KALIARTI000054880855", "citation": "Salaire brut minimum journalier (8 heures)"},
         "valeurs": {
           "Participant": 59.6,
           "Musicien (directe ou publique)": 131.74,
@@ -5377,22 +5313,16 @@
           "Silhouette": 119.19
         }
       }
-    ],
-    "_non_porte": {
-      "_quoi": "Releve dans le texte, pas porte dans la table ni compare. RIEN : la grille des 50 salaries et plus et le M2 sont portes."
-    }
+    ]
   },
   "1734": {
     "libelle": "CCN des artistes-interprètes engagés pour des émissions de télévision (IDCC 1734)",
-    "source": "kali-entrepot",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#1734", "emetteur": "convention", "article": "KALIARTI000049300569", "citation": "Barème de rémunération au 1er février 2024"},
     "texte": "avenant du 18/01/2024, au 01/02/2024",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635286",
     "en_vigueur": "2024-02-01",
     "etendu": true,
-    "_regles_1734": {
-      "journees": "Des prix de journee par genre d'emission, sans duree : compares au cachet. Aucun bareme plus recent dans la base, alors que l'art. 5.15 prevoit une revision annuelle.",
-      "idcc_par_contrat": "La 1734 ne s'applique qu'aux contrats d'artistes-interpretes d'une emission (case du Spectacle, 2642 et 3241) : c'est la convention du CONTRAT (`droit::minima::idcc_du_contrat`) qui choisit cette grille."
-    },
+    "note": "journees : Des prix de journee par genre d'emission, sans duree : compares au cachet. Aucun bareme plus recent dans la base, alors que l'art. 5.15 prevoit une revision annuelle. ; idcc_par_contrat : La 1734 ne s'applique qu'aux contrats d'artistes-interpretes d'une emission (case du Spectacle, 2642 et 3241) : c'est la convention du CONTRAT (`droit::minima::idcc_du_contrat`) qui choisit cette grille. Hors champ, ce qui n'est pas un minimum de salaire : les indemnites de costume (art. 5.13) : une indemnite, pas un salaire minimum.",
     "grilles": [
       {
         "nom": "prix de journée et forfaits",
@@ -5400,7 +5330,7 @@
         "statut": "artiste",
         "unite": "cachet",
         "heures": null,
-        "source": "KALIARTI000049300569",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#1734", "emetteur": "convention", "article": "KALIARTI000049300569", "citation": "Barème de rémunération au 1er février 2024"},
         "valeurs": {
           "dramatique - journée répétition ou enregistrement": 286.37,
           "dramatique - journée unique": 301.97,
@@ -5417,26 +5347,16 @@
           "prestation destinée à l'actualité en magazine (art. 6.3.1, <= 2 h, <= 4 min à l'image)": 168.48
         }
       }
-    ],
-    "_non_porte": {
-      "_quoi": "Releve dans le texte, pas porte dans la table ni compare. RIEN : les indemnites de costume sont hors champ (`_hors_champ`)."
-    },
-    "_hors_champ": {
-      "_quoi": "Ce qui n'est pas un minimum de salaire : une remuneration a la ligne, a la minute, une indemnite. Rien a comparer, et ce n'est pas un manque.",
-      "indemnites_costume": "les indemnites de costume (art. 5.13) : une indemnite, pas un salaire minimum."
-    }
+    ]
   },
   "2121": {
     "libelle": "CCN de l'édition, annexe IX (édition phonographique) (IDCC 2121)",
-    "source": "kali-entrepot",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2121", "emetteur": "convention", "article": "KALIARTI000054262231", "citation": "les salaires minima annuels et mensuels sont augmentés de 1,18 %"},
     "texte": "accord NAO du 03/02/2026 de l'edition phonographique, au 01/03/2026",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635096",
     "en_vigueur": "2026-03-01",
     "etendu": true,
-    "_regles_2121": {
-      "permanents": "Les minima de l'ex-CCN 2770, maintenus par l'accord de remplacement du 12/04/2024 (art. 2.3.4) jusqu'au 20/04/2028 : une garantie mensuelle = l'annuel / 12,5. L'avenant n° 17 du 30/09/2025 ne vaut que pour l'edition de livres.",
-      "artistes": "Titre III (musiciens, choeurs, choristes) : le cachet de base du service de 3 h, 188 EUR (travail 75,20 + fixation 37,60 + exploitation mode A 75,20) ; le service de 4 h, 250,68 EUR. Les remunerations du titre II (a la minute utilisee) et les composantes ne sont pas des cachets : non comparees."
-    },
+    "note": "permanents : Les minima de l'ex-CCN 2770, maintenus par l'accord de remplacement du 12/04/2024 (art. 2.3.4) jusqu'au 20/04/2028 : une garantie mensuelle = l'annuel / 12,5. L'avenant n° 17 du 30/09/2025 ne vaut que pour l'edition de livres. ; artistes : Titre III (musiciens, choeurs, choristes) : le cachet de base du service de 3 h, 188 EUR (travail 75,20 + fixation 37,60 + exploitation mode A 75,20) ; le service de 4 h, 250,68 EUR. Les remunerations du titre II (a la minute utilisee) et les composantes ne sont pas des cachets : non comparees. Releve dans le texte, pas porte : la grille des techniciens est journaliere et ne dit pas la duree de la journee (l'article 4.10 du chapitre 2 majore les 11e et 12e heures des contrats de moins de 5 jours : une journee de 10 h s'en infere, sans etre ecrite) : une ligne a l'heure n'est donc pas comparee ; la journee de tournage d'une videomusique (art. 2.2.1 du titre II : 256,54 EUR pour 10 h au plus), degressive selon le nombre d'artistes du groupe (art. 2.1.3) : le groupe ne se lit pas sur la paie, la degressivite n'est pas relevee. Hors champ, ce qui n'est pas un minimum de salaire : les artistes principaux, lyriques et dramatiques, payes a la minute utilisee (art. 2.1.2 du titre II : 323,31 EUR la premiere tranche de 20 minutes, puis degressif) : le prix de ce que l'employeur exploite, pas d'un temps de travail.",
     "grilles": [
       {
         "nom": "permanents du disque",
@@ -5444,7 +5364,7 @@
         "statut": "tous",
         "unite": "mois",
         "heures": 151.67,
-        "source": "KALIARTI000054262231",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2121", "emetteur": "convention", "article": "KALIARTI000054262231", "citation": "les salaires minima annuels et mensuels sont augmentés de 1,18 %"},
         "valeurs": {
           "niveau I": 1829.34,
           "niveau II": 1829.34,
@@ -5463,7 +5383,7 @@
         "statut": "artiste",
         "unite": "cachet",
         "heures": null,
-        "source": "KALIARTI000054273017",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2121", "emetteur": "convention", "article": "KALIARTI000054273017", "citation": "les dispositions du présent titre III fixent les conditions particulières"},
         "valeurs": {
           "service de 3 h (cachet de base)": 188.0,
           "service de 4 h": 250.68
@@ -5475,8 +5395,8 @@
         "statut": "technicien",
         "unite": "jour",
         "heures": null,
-        "source": "bocc-2121-nao-phono-20260203",
-        "_lecture": "Annexe I de l'accord NAO du 03/02/2026 (BOCC 2026-12, p. 140-167), 105 fonctions, salaire journalier. La journee n'a pas de duree dans le texte : la grille se compare a une ligne payee a la journee, jamais a l'heure. Chaque fonction a cinq colonnes (phonogramme studio et captation, phonogramme captation, videogramme tournage et captation, videogramme captation, spectacle vivant promotionnel) et quatre lignes selon la duree du contrat (moins de 5 jours, 5 jours, 10 jours sur 21, 15 jours sur 30) : l'activite ne se lit pas sur la paie, la valeur portee est la PLUS BASSE des cellules de la fonction.",
+        "source": {"fichier": "atelier/reference/sources/bocc-2121-nao-phono-20260203.md", "emetteur": "convention", "citation": "Salaire journalier pour un contrat de 5 jours dans le cadre des activités « phonogramme » ou « spectacle vivant promotionnel »"},
+        "note": "Annexe I de l'accord NAO du 03/02/2026 (BOCC 2026-12, p. 140-167), 105 fonctions, salaire journalier. La journee n'a pas de duree dans le texte : la grille se compare a une ligne payee a la journee, jamais a l'heure. Chaque fonction a cinq colonnes (phonogramme studio et captation, phonogramme captation, videogramme tournage et captation, videogramme captation, spectacle vivant promotionnel) et quatre lignes selon la duree du contrat (moins de 5 jours, 5 jours, 10 jours sur 21, 15 jours sur 30) : l'activite ne se lit pas sur la paie, la valeur portee est la PLUS BASSE des cellules de la fonction.",
         "valeurs": {
           "1er assistant OPV": 252.72,
           "1er assistant réalisateur": 250.33,
@@ -5591,12 +5511,12 @@
         "statut": "technicien",
         "unite": "jour",
         "heures": null,
-        "source": "bocc-2121-nao-phono-20260203",
+        "source": {"fichier": "atelier/reference/sources/bocc-2121-nao-phono-20260203.md", "emetteur": "convention", "citation": "Salaire journalier pour un contrat de 5 jours dans le cadre des activités « phonogramme » ou « spectacle vivant promotionnel »"},
         "duree_contrat_max_jours": 4,
         "remplace": [
           "techniciens du disque, annexe I de la NAO"
         ],
-        "_lecture": "Ligne 1 de l'annexe I : le salaire journalier d'un contrat de moins de 5 jours (phonogramme, spectacle vivant promotionnel), et celui du videogramme. La plus basse des colonnes de la ligne 1. Elle ne s'applique que si les dates du contrat se lisent.",
+        "note": "Ligne 1 de l'annexe I : le salaire journalier d'un contrat de moins de 5 jours (phonogramme, spectacle vivant promotionnel), et celui du videogramme. La plus basse des colonnes de la ligne 1. Elle ne s'applique que si les dates du contrat se lisent.",
         "valeurs": {
           "1er assistant OPV": 252.72,
           "1er assistant réalisateur": 250.33,
@@ -5705,30 +5625,16 @@
           "Électricien": 179.67
         }
       }
-    ],
-    "_non_porte": {
-      "_quoi": "Releve dans le texte, pas porte dans la table ni compare.",
-      "techniciens_a_l_heure": "la grille des techniciens est journaliere et ne dit pas la duree de la journee (l'article 4.10 du chapitre 2 majore les 11e et 12e heures des contrats de moins de 5 jours : une journee de 10 h s'en infere, sans etre ecrite). Une ligne a l'heure n'est donc pas comparee.",
-      "videomusique": "la journee de tournage d'une videomusique (art. 2.2.1 du titre II : 256,54 EUR pour 10 h au plus), degressive selon le nombre d'artistes du groupe (art. 2.1.3) : le groupe ne se lit pas sur la paie, la degressivite n'est pas relevee."
-    },
-    "_hors_champ": {
-      "_quoi": "Ce qui n'est pas un minimum de salaire : une remuneration a la ligne, a la minute, une indemnite. Rien a comparer, et ce n'est pas un manque.",
-      "titre_ii_minute_utilisee": "les artistes principaux, lyriques et dramatiques, payes a la minute utilisee (art. 2.1.2 du titre II : 323,31 EUR la premiere tranche de 20 minutes, puis degressif) : le prix de ce que l'employeur exploite, pas d'un temps de travail."
-    }
+    ]
   },
   "1922": {
     "libelle": "CCN de la radiodiffusion (IDCC 1922)",
-    "source": "kali-entrepot",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#1922", "emetteur": "convention", "article": "KALIARTI000052283593", "citation": "rappellent au présent article la formule permettant le calcul des salaires"},
     "texte": "accord du 27/06/2025 (valeurs de point), classification de l'accord du 05/12/2008",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635741",
     "en_vigueur": "2025-10-01",
     "etendu": true,
-    "_regles_1922": {
-      "formule": "SC = 120 x point A (15,14) + (indice - 120) x point B (10,19), des le mois qui suit l'arrete d'extension. Mensuel a temps plein (art. 7 de l'accord de 2008), ramene a 151,67 h -- DEDUIT : le texte ne dit ni << mensuel >> ni << 35 h >>.",
-      "types": "Types de radio (article 2 de l'accord du 05/12/2008) : type 1, les services independants de proximite (categories A et B) ; type 2, les services decrochant sur un reseau national de categories D et E et les reseaux D et E de moins de 30 millions d'habitants ; type 3, les tetes de reseau national de plus de 30 millions d'habitants. La fiche Entreprise le dit (`type_radio_1922`) ; sans elle, le type 1, le plus bas. Porte dans les `majorations` de la grille.",
-      "cddu": "Aucun minimum des CDDU de la radio : l'accord collectif du 29/11/2007 relatif aux CDD d'usage (BOCC 2008/6, etendu le 09/07/2008 ; source bocc-1922-cddu-accord-20071129) est un accord d'etape qui renvoie les << conditions minimales d'emploi >> a une negociation ulterieure, jamais conclue (KALI et BOCC 2007-2009, 2024-2026 relus le 29/09/2026). Un intermittent de la radio n'a donc de minimum que le SMIC -- et, artiste, la convention des artistes dramatiques, lyriques et de variete a laquelle l'accord renvoie (art. 1.1.2). Le seul bareme a la pige est celui des journalistes (accord du 05/12/2008 relatif aux salaires, annexe III), hors du champ de ce logiciel.",
-      "anciennete": "Points d'anciennete dans la fonction (article 3) : la date d'entree dans la fonction se pose sur la fiche du salarie (`poste_depuis`) ; sans elle, aucun point."
-    },
+    "note": "formule : SC = 120 x point A (15,14) + (indice - 120) x point B (10,19), des le mois qui suit l'arrete d'extension. Mensuel a temps plein (art. 7 de l'accord de 2008), ramene a 151,67 h -- DEDUIT : le texte ne dit ni << mensuel >> ni << 35 h >>. ; types : Types de radio (article 2 de l'accord du 05/12/2008) : type 1, les services independants de proximite (categories A et B) ; type 2, les services decrochant sur un reseau national de categories D et E et les reseaux D et E de moins de 30 millions d'habitants ; type 3, les tetes de reseau national de plus de 30 millions d'habitants. La fiche Entreprise le dit (`type_radio_1922`) ; sans elle, le type 1, le plus bas. Porte dans les `majorations` de la grille. ; cddu : Aucun minimum des CDDU de la radio : l'accord collectif du 29/11/2007 relatif aux CDD d'usage (BOCC 2008/6, etendu le 09/07/2008 ; source bocc-1922-cddu-accord-20071129) est un accord d'etape qui renvoie les << conditions minimales d'emploi >> a une negociation ulterieure, jamais conclue (KALI et BOCC 2007-2009, 2024-2026 relus le 29/09/2026). Un intermittent de la radio n'a donc de minimum que le SMIC -- et, artiste, la convention des artistes dramatiques, lyriques et de variete a laquelle l'accord renvoie (art. 1.1.2). Le seul bareme a la pige est celui des journalistes (accord du 05/12/2008 relatif aux salaires, annexe III), hors du champ de ce logiciel. ; anciennete : Points d'anciennete dans la fonction (article 3) : la date d'entree dans la fonction se pose sur la fiche du salarie (`poste_depuis`) ; sans elle, aucun point.",
     "grilles": [
       {
         "nom": "indices de référence",
@@ -5736,7 +5642,7 @@
         "statut": "tous",
         "unite": "mois",
         "heures": 151.67,
-        "source": "KALIARTI000052283593",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#1922", "emetteur": "convention", "article": "KALIARTI000052283593", "citation": "rappellent au présent article la formule permettant le calcul des salaires"},
         "valeurs": {
           "indice 121": 1826.99,
           "indice 124": 1857.56,
@@ -5775,7 +5681,7 @@
               "indice 174": 101.9,
               "indice 180": 101.9
             },
-            "_source": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 2 b : << pour toutes les fonctions dont l'indice de reference est egal ou superieur a 124 et jusqu'a 199 : l'indice applicable a chaque fonction est majore de 10 points ; a partir de l'indice de reference 200, les indices applicables sont les indices de reference >>. Points B (15,14 / 10,19 : accord du 27/06/2025)."
+            "note": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 2 b : << pour toutes les fonctions dont l'indice de reference est egal ou superieur a 124 et jusqu'a 199 : l'indice applicable a chaque fonction est majore de 10 points ; a partir de l'indice de reference 200, les indices applicables sont les indices de reference >>. Points B (15,14 / 10,19 : accord du 27/06/2025)."
           },
           {
             "nom": "radio de type 3 (+20 points B de 124 à 179, +30 de 180 à 199)",
@@ -5795,7 +5701,7 @@
               "indice 174": 203.8,
               "indice 180": 305.7
             },
-            "_source": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 2 c."
+            "note": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 2 c."
           },
           {
             "nom": "3 ans dans la fonction",
@@ -5822,7 +5728,7 @@
               "indice 270": 50.95,
               "indice 300": 50.95
             },
-            "_source": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 3 : << jusqu'a l'indice de reference 145 inclus [...] apres 3 ans d'anciennete + 2 points, apres 6 ans + 2 points supplementaires >> ; de 146 a 210 : + 3 et + 3 ; au-dessus de 210 : + 5 et + 5 ; << Seul l'indice de reference d'une fonction, avant toute autre majoration, est pris en consideration >> ; << Les points supplementaires [...] sont des points B >> ; << La periode d'occupation de fonctions referencees de debutant n'est pas prise en compte >> (l'indice 121, d'entree : pas de majoration)."
+            "note": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 3 : << jusqu'a l'indice de reference 145 inclus [...] apres 3 ans d'anciennete + 2 points, apres 6 ans + 2 points supplementaires >> ; de 146 a 210 : + 3 et + 3 ; au-dessus de 210 : + 5 et + 5 ; << Seul l'indice de reference d'une fonction, avant toute autre majoration, est pris en consideration >> ; << Les points supplementaires [...] sont des points B >> ; << La periode d'occupation de fonctions referencees de debutant n'est pas prise en compte >> (l'indice 121, d'entree : pas de majoration)."
           },
           {
             "nom": "6 ans dans la fonction",
@@ -5849,26 +5755,20 @@
               "indice 270": 101.9,
               "indice 300": 101.9
             },
-            "_source": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 3."
+            "note": "accord du 05/12/2008 relatif aux classifications (BOCC 2009/7, NOR ASET0950172M ; source bocc-1922-classifications-20081205), article 3."
           }
         ]
       }
-    ],
-    "_non_porte": {
-      "_quoi": "Releve dans le texte, pas porte dans la table ni compare. RIEN : types de radio et anciennete sont portes."
-    }
+    ]
   },
   "1790": {
     "libelle": "CCN des espaces de loisirs, d'attractions et culturels (IDCC 1790)",
-    "source": "kali-entrepot",
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#1790", "emetteur": "convention", "article": "KALIARTI000054871994", "citation": "Comme suite aux réunions de négociation de la commission paritaire nationale de la convention collective des espaces de loisirs, d'attractions et culturels"},
     "texte": "avenant n° 76 du 13/03/2026, au 01/04/2026",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635453",
     "en_vigueur": "2026-04-01",
     "etendu": true,
-    "_regles_1790": {
-      "mensuel": "Une remuneration minimale mensuelle par niveau et echelon ; le taux horaire = mensuel / 151,67 (le texte).",
-      "cachet": "Un << cachet spectacle >> par niveau, du II au VIII (6 % du mensuel de la ligne) : compare au cachet d'un artiste."
-    },
+    "note": "mensuel : Une remuneration minimale mensuelle par niveau et echelon ; le taux horaire = mensuel / 151,67 (le texte). ; cachet : Un << cachet spectacle >> par niveau, du II au VIII (6 % du mensuel de la ligne) : compare au cachet d'un artiste.",
     "grilles": [
       {
         "nom": "niveaux et échelons",
@@ -5876,7 +5776,7 @@
         "statut": "tous",
         "unite": "mois",
         "heures": 151.67,
-        "source": "KALIARTI000054871994",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#1790", "emetteur": "convention", "article": "KALIARTI000054871994", "citation": "Comme suite aux réunions de négociation de la commission paritaire nationale de la convention collective des espaces de loisirs, d'attractions et culturels"},
         "valeurs": {
           "niveau I.1": 1851.85,
           "niveau I.2": 1870.9,
@@ -5909,7 +5809,7 @@
               "niveau VII": 182.66,
               "niveau VIII": 220.3
             },
-            "_source": "Avenant n° 76 du 13/03/2026 (KALIARTI000054871994, en vigueur au 01/04/2026), colonne << Forfait jour annuel >> de la grille des remunerations minimales conventionnelles mensuelles (IV.3 et V a VIII seulement) ; avenant n° 41, chapitre IV (KALIARTI000025980949) : le forfait vise les cadres du niveau V et plus et les agents de maitrise au coefficient 280 (IV.3), << au-dessus des minima conventionnels d'au moins 5 % >>, 218 jours. Source kali-1790-avenant-76-forfait-jour-20260929."
+            "note": "Avenant n° 76 du 13/03/2026 (KALIARTI000054871994, en vigueur au 01/04/2026), colonne << Forfait jour annuel >> de la grille des remunerations minimales conventionnelles mensuelles (IV.3 et V a VIII seulement) ; avenant n° 41, chapitre IV (KALIARTI000025980949) : le forfait vise les cadres du niveau V et plus et les agents de maitrise au coefficient 280 (IV.3), << au-dessus des minima conventionnels d'au moins 5 % >>, 218 jours. Source kali-1790-avenant-76-forfait-jour-20260929."
           }
         ]
       },
@@ -5919,7 +5819,7 @@
         "statut": "artiste",
         "unite": "cachet",
         "heures": null,
-        "source": "KALIARTI000054871994",
+        "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#1790", "emetteur": "convention", "article": "KALIARTI000054871994", "citation": "Comme suite aux réunions de négociation de la commission paritaire nationale de la convention collective des espaces de loisirs, d'attractions et culturels"},
         "valeurs": {
           "niveau II.1": 112.93,
           "niveau II.2": 114.0,
@@ -5936,9 +5836,7 @@
           "niveau VIII": 264.36
         }
       }
-    ],
-    "_non_porte": {
-      "_quoi": "Releve dans le texte, pas porte dans la table ni compare. RIEN : le forfait jours est porte."
-    }
+    ]
   }
+ }
 }

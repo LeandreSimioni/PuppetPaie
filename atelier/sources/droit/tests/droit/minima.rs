@@ -14,7 +14,7 @@ use crate::outils::{code_livre, lire};
 /// `legi-entrepot/articles.jsonl.gz`. Un accord que rien n'etend ne lie que les adherents.
 #[test]
 fn un_accord_lie_l_adherente_des_sa_date_et_toute_compagnie_des_son_extension() {
-    let t = lire(&code_livre(), "minima-conventionnels.json");
+    let t: droit::minima::Table = socle::forme::lire(&lire(&code_livre(), "minima-conventionnels.json"), "").unwrap();
     let a = accord(&t, "kali-1285-accord-salaires-20260701").expect("l'accord de 2026 de la 1285 est dans la table");
     let lie = |org: Option<&str>, depuis: &str| lie_depuis(a, org, depuis);
 
@@ -29,7 +29,7 @@ fn un_accord_lie_l_adherente_des_sa_date_et_toute_compagnie_des_son_extension() 
         assert_eq!(lie(org, "2026-09-01").as_deref(), Some("2026-09-19"), "{:?}", org);
     }
     // Un accord qui n'est pas etendu ne lie que les adherentes.
-    let non_etendu = json!({"signataires": ["SYNDEAC"]});
+    let non_etendu: droit::minima::Convention = socle::forme::lire(&json!({"signataires": ["SYNDEAC"]}), "").unwrap();
     assert_eq!(lie_depuis(&non_etendu, Some("SYNDEAC"), "2026-08-01").as_deref(), Some("2026-08-01"));
     assert_eq!(lie_depuis(&non_etendu, None, "2026-08-01"), None);
 

@@ -1737,7 +1737,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     } else {
         f.add_opt("S21.G00.40.016", nat.code("S21.G00.40.016"))?;
     }
-    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(ent.idcc.texte(), &p.spectacle, &p.salarie)?);
+    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(ent.idcc.texte(), &engagement::minima::spectacle_du_contrat(&p.spectacle), &p.salarie)?);
     f.add_opt("S21.G00.40.018", nat.code("S21.G00.40.018"))?;
     f.add_case("S21.G00.40.019", &ent.siret, "siret")?;
     f.add_opt("S21.G00.40.020", nat.code("S21.G00.40.020"))?;

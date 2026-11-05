@@ -1377,7 +1377,7 @@
       "domaine": "conventions / minima",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Dans le spectacle vivant privé, le cachet minimum d'un artiste dramatique dépend de la taille de la salle et du nombre de représentations. Le cachet de répétition (1 ou 2 services le même jour) est de {minima:3090/annexes/1/repetition/cachet} € au minimum.",
+      "texte": "Dans le spectacle vivant privé, le cachet minimum d'un artiste dramatique dépend de la taille de la salle et du nombre de représentations. Le cachet de répétition (1 ou 2 services le même jour) est de {minima:conventions/3090/annexes/1/repetition/cachet} € au minimum.",
       "source": [
         {
           "fichier": "atelier/reference/sources/legifrance-3090-avenant-salaires-20250721.md",

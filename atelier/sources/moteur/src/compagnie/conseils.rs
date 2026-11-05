@@ -227,7 +227,7 @@ impl Donnees {
         Donnees {
             annee,
             bareme: json_en_cache(&code.join("baremes").join(format!("{}.json", annee))).ok(),
-            minima: droit::minima::table().ok(),
+            minima: json_en_cache(&code.join("minima-conventionnels.json")).ok(),
         }
     }
 }

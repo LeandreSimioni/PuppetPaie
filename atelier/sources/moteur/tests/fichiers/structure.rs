@@ -649,7 +649,7 @@ fn une_crate_ne_prend_qu_a_celles_du_dessous() {
 
 /// LES COUCHES FERMEES, de bas en haut (l'ordre de `une_crate_ne_prend_qu_a_celles_du_dessous`) : leur JSON n'existe
 /// qu'au bord, lu et ecrit par une forme. La liste ne fait que grandir : une couche finie s'y ajoute, et ne recule plus.
-const COUCHES_FERMEES: [&str; 1] = ["socle"];
+const COUCHES_FERMEES: [&str; 2] = ["socle", "droit"];
 
 /// LE BORD, nomme par son role : les seuls modules d'une couche fermee ou le JSON se manipule sans forme. `forme` le lit
 /// (une donnee, un texte, un fichier, en sa structure `serde`) ; `ecriture` et `json_ascii` ecrivent une forme.
