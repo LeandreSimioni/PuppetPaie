@@ -14,7 +14,7 @@ use crate::dsn::{
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use engagement::Engagement;
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::{repr, vrai};
 use socle::num::Resultat;
 
 pub const NATURE: &str = "07";
@@ -57,32 +57,19 @@ fn type_de_declaration(code: &str) -> Option<&'static str> {
     TYPES.iter().find(|(c, _)| *c == code).map(|(_, l)| *l)
 }
 
-fn nomenclatures() -> Resultat<std::sync::Arc<Value>> {
-    json_en_cache(&dossier_du_code().join("fctu-base.json"))
+/// `fctu-base.json`, lu par sa forme (`droit::preavis::base`).
+fn nomenclatures() -> Resultat<droit::preavis::BaseFctu> {
+    droit::preavis::base()
 }
 
 /// `FinDeContrat.libelle_preavis` : le libelle du type de preavis, « ? » s'il est inconnu.
 pub fn libelle_preavis(type_preavis: &str) -> Resultat<String> {
-    Ok(codes("types_preavis")?
-        .iter()
-        .find(|c| en_texte(&c["code"]) == type_preavis)
-        .and_then(|c| c.get("libelle").map(en_texte))
-        .unwrap_or_else(|| "?".to_string()))
+    Ok(nomenclatures()?.types_preavis.du_code(type_preavis).map_or_else(|| "?".to_string(), |c| c.libelle.clone()))
 }
 
-/// `_codes(quoi)` : les codes d'une nomenclature, par code.
-fn codes(quoi: &str) -> Resultat<Vec<Value>> {
-    let n = nomenclatures()?;
-    Ok(liste(&n[quoi]["codes"]).to_vec())
-}
-
-fn defaut(quoi: &str) -> Resultat<String> {
-    for c in codes(quoi)? {
-        if vrai(g(&c, "defaut")) {
-            return Ok(en_texte(&c["code"]));
-        }
-    }
-    Err(socle::echec::livree("fctu-base.json", quoi))
+/// Le code par defaut d'une nomenclature.
+fn defaut(n: &droit::preavis::Nomenclature, quoi: &str) -> Resultat<String> {
+    n.defaut().map(str::to_string).ok_or_else(|| socle::echec::livree("fctu-base.json", quoi))
 }
 
 /// La fin d'un contrat, telle qu'elle se declare (dates AAAA-MM-JJ). Le dernier jour travaille et paye
@@ -138,8 +125,8 @@ fn d(s: &str) -> Resultat<Jour> {
 /// `fctu-base.json` : 02, 03, 10, 50, 51, 61, que nomme la CCH-12 de S21.G00.62.006 (cahier technique DSN 2026.1,
 /// p. 275). Un type inconnu refuse.
 pub fn preavis_non_effectue(type_preavis: &str) -> Resultat<bool> {
-    match codes("types_preavis")?.iter().find(|c| en_texte(&c["code"]) == type_preavis) {
-        Some(c) => Ok(vrai(g(c, "non_effectue"))),
+    match nomenclatures()?.types_preavis.du_code(type_preavis) {
+        Some(c) => Ok(c.non_effectue),
         None => Err(format!(
             "Type de préavis {} inconnu de la norme (S21.G00.63.001) : le choisir dans la liste.",
             repr(type_preavis)
@@ -155,13 +142,7 @@ pub fn preavis_non_effectue(type_preavis: &str) -> Resultat<bool> {
 /// refuse par le point de depot. Un seul endroit : la liste des fins a signaler (`moteur::routes::imprevus::ce_qui_manque`) et
 /// `verifier` la lisent ici.
 pub fn notification_exigee(motif: &str) -> Resultat<bool> {
-    let n = nomenclatures()?;
-    let motifs = n
-        .get("notification_rupture")
-        .and_then(|x| x.get("motifs"))
-        .and_then(Value::as_array)
-        .ok_or_else(|| socle::echec::livree("fctu-base.json", "notification_rupture.motifs"))?;
-    Ok(motifs.iter().any(|m| en_texte(m) == motif))
+    Ok(nomenclatures()?.notification_rupture.motifs.iter().any(|m| m == motif))
 }
 
 // ------------------------------------------------ le type de preavis et ce que la paie verse
@@ -263,9 +244,9 @@ pub fn verifier(fin: &FinDeContrat, e: &Engagement, type_declaration: &str) -> R
             TYPES.iter().map(|(c, l)| format!("{} - {}", c, l)).collect::<Vec<_>>().join(", ")
         )));
     }
-    let tous = codes("types_preavis")?;
-    let preavis = match tous.iter().find(|c| en_texte(&c["code"]) == fin.type_preavis) {
-        Some(p) => p.clone(),
+    let types = nomenclatures()?.types_preavis;
+    let preavis = match types.du_code(&fin.type_preavis) {
+        Some(p) => p,
         None => {
             return Err(Echec::Impossible(format!(
                 "Type de preavis {} inconnu de la norme (S21.G00.63.001). Les types sont dans fctu-base.json.",
@@ -273,8 +254,8 @@ pub fn verifier(fin: &FinDeContrat, e: &Engagement, type_declaration: &str) -> R
             )))
         }
     };
-    let libelle = en_texte(&preavis["libelle"]);
-    let dates = vrai(&preavis["dates"]);
+    let libelle = preavis.libelle.clone();
+    let dates = preavis.dates;
     let (debut_p, fin_p) = (fin.preavis_debut.as_deref(), fin.preavis_fin.as_deref());
 
     // Le bloc 63 est (1,*) : un FCTU en porte toujours un.
@@ -321,21 +302,19 @@ S21.G00.63.002.",
     }
 
     // CCH-11 et CCH-12 du bloc 63 : deux motifs limitent le type de preavis.
-    let n = nomenclatures()?;
-    let limite = g(g(&n["types_preavis"], "types_permis_par_motif"), &fin.motif);
-    if vrai(limite) {
-        let permis: Vec<String> = liste(&limite["types"]).iter().map(en_texte).collect();
+    if let Some(limite) = types.permis_au_motif(&fin.motif) {
+        let permis = &limite.types;
         if !permis.contains(&fin.type_preavis) {
             let mut noms = Vec::new();
-            for c in &permis {
-                let lib = tous.iter().find(|x| en_texte(&x["code"]) == *c).map(|x| en_texte(&x["libelle"]));
+            for c in permis {
+                let lib = types.du_code(c).map(|x| x.libelle.clone());
                 noms.push(format!("« {} - {} »", c, lib.ok_or_else(|| socle::fichiers::absent(c))?));
             }
             return Err(Echec::Impossible(format!(
                 "Preavis « {} » avec le motif de rupture {} : {} n'y permet que {}. {}",
                 libelle,
                 fin.motif,
-                en_texte(&limite["controle"]),
+                limite.controle,
                 noms.join(", "),
                 if fin.motif == "043" || fin.motif == "110" {
                     "Une rupture conventionnelle n'a pas de preavis : sa convention FIXE la date de rupture (L1237-13)."
@@ -426,7 +405,7 @@ pub fn bloc_62_63(f: &mut Fichier, fin: &FinDeContrat, e: &Engagement) -> Result
     // dire qu'il n'y en a pas.
     match &fin.transaction {
         Some(t) => f.add("S21.G00.62.008", t),
-        None => f.add("S21.G00.62.008", defaut("transaction")?),
+        None => f.add("S21.G00.62.008", defaut(&nomenclatures()?.transaction, "transaction")?),
     }
     // S21.G00.62.020 : « cette date doit etre renseignee au premier jour du
     // mois (sous la forme 01mmaaaa) » -- cahier technique p. 278.
@@ -599,7 +578,7 @@ ou un annule."
     // La date de versement : la fin de la periode de paie.
     f.add("S21.G00.50.001", fin_p.jjmmaaaa());
     f.add("S21.G00.50.003", "01");
-    f.add("S21.G00.50.020", defaut("rattachement_versement")?);
+    f.add("S21.G00.50.020", defaut(&nomenclatures()?.rattachement_versement, "rattachement_versement")?);
     // Un mois decoupe en periodes elementaires : les remunerations et les bases de chacune, datees de ses bornes.
     let bornes = |q: &engagement::calcul::Paie| -> Resultat<(Jour, Jour)> {
         if paie.periodes.is_empty() { Ok((debut_p, fin_p)) } else { Ok((q.engagement.debut_periode()?, q.engagement.fin_periode()?)) }

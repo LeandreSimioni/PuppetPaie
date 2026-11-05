@@ -25,5 +25,6 @@ pub mod ordres_paiement;
 pub mod produire_regularisations;
 pub mod recap_dsn;
 pub mod signalement;
+pub mod urssaf;
 pub mod usages;
 pub mod versement_declare;

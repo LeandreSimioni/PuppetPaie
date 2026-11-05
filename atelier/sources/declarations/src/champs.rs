@@ -1223,18 +1223,16 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     if nom == "entreprise" {
         let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !choisi.is_empty() {
-            if let Ok(base) = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("urssaf-dpae-base.json")) {
-                let deduit = urssaf_du_code_postal(&base, &d.get("code_postal").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default());
-                if !deduit.is_empty() && deduit != choisi {
-                    out.push(anomalie(
-                        "code_urssaf",
-                        "avertissement",
-                        format!(
-                            "l'Urssaf de votre adresse est la {} ; c'est elle qui reçoit normalement vos DPAE et DSN. Une Urssaf qui ne vous gère pas peut les faire rejeter.",
-                            deduit
-                        ),
-                    ));
-                }
+            let deduit = crate::urssaf::base().map_err(Echec::from)?.du_code_postal(&d.get("code_postal").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default());
+            if !deduit.is_empty() && deduit != choisi {
+                out.push(anomalie(
+                    "code_urssaf",
+                    "avertissement",
+                    format!(
+                        "l'Urssaf de votre adresse est la {} ; c'est elle qui reçoit normalement vos DPAE et DSN. Une Urssaf qui ne vous gère pas peut les faire rejeter.",
+                        deduit
+                    ),
+                ));
             }
         }
     }
@@ -1476,26 +1474,6 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         anomalies.push(a);
     }
     Ok(anomalies)
-}
-
-/// L'organisme du TERRITOIRE de ce departement. Une
-/// suggestion, pas une decision.
-fn urssaf_du_departement(base: &Value, dep: &str) -> String {
-    let d = dep.trim().to_uppercase();
-    let table = base.get("par_departement").and_then(Value::as_object);
-    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(valeur_en_texte);
-    lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
-}
-
-/// Idem, depuis un code postal francais. L'outre-mer
-/// se lit sur TROIS chiffres (97139 -> 971), la metropole sur deux.
-pub fn urssaf_du_code_postal(base: &Value, cp: &str) -> String {
-    let v: Vec<char> = cp.chars().filter(|c| c.is_ascii_digit()).collect();
-    if v.len() < 2 {
-        return String::new();
-    }
-    let n = if v[0] == '9' && (v[1] == '7' || v[1] == '8') { 3 } else { 2 };
-    urssaf_du_departement(base, &v.iter().take(n).collect::<String>())
 }
 
 /// La signature des courriels de la fiche Entreprise : du HTML colle, dont la seule regle est le poids.

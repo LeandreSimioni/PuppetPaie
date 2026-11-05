@@ -28,7 +28,7 @@ use envois::simulation_courriels::BoiteQuiRepond;
 use socle::date::Jour;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::{repr, vrai};
 use socle::html::{html_echapper, mailto};
 use socle::texte::{capitaliser, strip};
 use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
@@ -903,26 +903,6 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
     Ok(faits)
 }
 
-/// L'organisme du territoire, ou "".
-fn urssaf_du_departement(dep: &str) -> R<String> {
-    let table = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).map_err(|m| Echec::from(m))?;
-    let d = socle::texte::strip(dep).to_uppercase();
-    let par = table.get("par_departement");
-    let lire = |k: &str| par.and_then(|p| p.get(k)).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
-    Ok(lire(&d).or_else(|| if d == "2A" || d == "2B" { lire("20") } else { None }).unwrap_or_default())
-}
-
-/// `urssaf.pour_code_postal`.
-pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
-    let v: Vec<char> = texte_ou_vide(cp).chars().filter(|c| champs::est_chiffre(*c)).collect();
-    if v.len() < 2 {
-        return Ok(String::new());
-    }
-    let debut: String = v.iter().collect::<String>();
-    let n = if debut.starts_with("97") || debut.starts_with("98") { 3 } else { 2 };
-    urssaf_du_departement(&v.iter().take(n).collect::<String>())
-}
-
 /// Ce que le moteur PROPOSERAIT pour une case encore vide.
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
@@ -939,7 +919,7 @@ fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
             }
         }
     } else if nom == "entreprise" && socle::texte::strip(&texte_ou_vide(donnees.get("code_urssaf"))).is_empty() {
-        let code = urssaf_du_code_postal(donnees.get("code_postal"))?;
+        let code = declarations::urssaf::base().map_err(Echec::from)?.du_code_postal(&texte_ou_vide(donnees.get("code_postal")));
         if !code.is_empty() {
             propose.insert(
                 "code_urssaf".into(),

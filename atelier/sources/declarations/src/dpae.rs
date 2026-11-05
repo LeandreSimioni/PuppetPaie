@@ -23,7 +23,7 @@ use droit::natures;
 use droit::contexte::EntrepriseDuDocument;
 use droit::fiche::ChampsEntreprise;
 use socle::date::{d, en_texte};
-use socle::fichiers::{dossier_du_code, json_en_cache, modele_de, repr, repr_valeur, vrai};
+use socle::fichiers::{modele_de, repr, repr_valeur, vrai};
 #[cfg(test)]
 use socle::fichiers::MARQUEUR_COPIE;
 use crate::ntt;
@@ -296,24 +296,12 @@ pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>
 
 // ------------------------------------------------------- l'Urssaf
 
-/// Ce code est-il celui d'un organisme de recouvrement
-/// connu (`urssaf-dpae-base.json`) ?
-fn urssaf_existe(code: &str) -> Resultat<bool> {
-    let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
-    let c = strip(code);
-    Ok(base
-        .get("organismes")
-        .and_then(Value::as_array)
-        .map_or(false, |o| o.iter().any(|x| x.get("code").map_or(false, |v| en_texte(v) == c))))
-}
-
 /// L'Urssaf qui recoit la DPAE d'un salarie d'un autre etablissement que le siege : celle « dans le ressort territorial
 /// duquel est situe l'etablissement devant employer le salarie » (code du travail, R. 1221-3, 1°,
 /// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`), lue au departement de son code postal
 /// (`urssaf-dpae-base.json`, `par_departement`). Le code de la fiche entreprise est celui du siege.
 fn urssaf_d_un_etablissement(vue: &ChampsEntreprise) -> Resultat<String> {
-    let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
-    let code = crate::champs::urssaf_du_code_postal(&base, vue.code_postal.texte());
+    let code = crate::urssaf::base()?.du_code_postal(vue.code_postal.texte());
     if code.is_empty() {
         return Err(format!(
             "La DPAE ne sait pas a quelle Urssaf aller : l'etablissement {} a le code postal {}, qu'aucune Urssaf de la table \
@@ -401,7 +389,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         // tard, sur une embauche qui n'est alors pas declaree. La liste est
         // celle de la Table des Urssaf (`urssaf-codes-types-personnel.csv`), relevee et
         // datee.
-        if !urssaf_existe(v)? {
+        if !crate::urssaf::base()?.existe(v) {
             return Err(socle::echec::a_la_cle(
                 "Le code Urssaf de la fiche entreprise n'est pas celui d'un organisme de recouvrement connu : le point de dépôt le refuserait. Le code se lit sur les bordereaux Urssaf de la compagnie.",
                 "code_urssaf",
@@ -882,6 +870,7 @@ pub fn lire_certificat(contenu: &str) -> Vec<Value> {
 mod tests {
     use super::*;
     use serde_json::json;
+    use socle::fichiers::dossier_du_code;
 
     /// Le gabarit neutre livre avec le logiciel.
     fn neutre() -> Vec<char> {
@@ -1026,8 +1015,7 @@ mod tests {
         ent.fiche.siren = droit::fiche::Case::Dite("123456915".into());
         ent.fiche.nic = droit::fiche::Case::Dite("00016".into());
         ent.fiche.etablissements = droit::fiche::Case::Dite(droit::fiche::lire_champs(&json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]), "etablissements").unwrap());
-        let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).unwrap();
-        let nantes = base["par_departement"]["44"].as_str().unwrap().to_string();
+        let nantes = crate::urssaf::base().unwrap().du_departement("44");
         let mut e = embauche(salarie(), "cdi", Value::Null);
         e.salarie.etablissement = Some("00024".into());
         let t = enr(&e, Some(&ent), json!("117")).unwrap();

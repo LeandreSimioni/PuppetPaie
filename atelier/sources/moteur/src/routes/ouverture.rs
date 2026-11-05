@@ -25,7 +25,7 @@ use droit::permanents;
 use engagement::{self};
 use envois::etats::get;
 use socle::echec::{erreur, Echec};
-use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use socle::fichiers::{dossier_du_code, vrai};
 use socle::valeur::{nom_type, valeur_en_texte};
 use crate::routes::catalogue::{Ecran, Place};
 
@@ -222,15 +222,6 @@ fn brut(v: &Value) -> Value {
         Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), brut(x))).collect()),
         Value::Array(a) => Value::Array(a.iter().map(brut).collect()),
         autre => autre.clone(),
-    }
-}
-
-/// Un nombre lu du fichier : un entier reste entier (`12`, pas `12.0`).
-fn nombre(x: f64) -> Value {
-    if x.fract() == 0.0 && x.abs() < 1e15 {
-        json!(x as i64)
-    } else {
-        json!(x)
     }
 }
 
@@ -920,8 +911,70 @@ fn formes_de(r: &Rubrique) -> Vec<&'static str> {
     [("activite", activite), ("mensuelle", mensuelle)].into_iter().filter(|(_, oui)| *oui).map(|(f, _)| f).collect()
 }
 
-pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
-    let non_appliques: Vec<&str> = [
+/// Un code et son libelle, dans une liste ou l'on choisit (le genre d'un avantage, le lieu d'une ligne de frais).
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct Choix {
+    code: String,
+    libelle: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    defaut: Option<bool>,
+}
+
+/// Un nombre lu du fichier, rendu entier quand il l'est (`12`, pas `12.0`).
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct NombreLu(f64);
+
+impl serde::Serialize for NombreLu {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        if self.0.fract() == 0.0 && self.0.abs() < 1e15 {
+            s.serialize_i64(self.0 as i64)
+        } else {
+            s.serialize_f64(self.0)
+        }
+    }
+}
+
+/// UNE RUBRIQUE QUI PAIE, telle que la carte d'un engagement la propose : ce que le catalogue en dit, et ce que la page en
+/// tire sans rien decider (ses genres, ses lieux, ses formes, ce qu'elle promet sans que rien ne le tienne, ses mots).
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct RubriqueDeLaPage {
+    lieux: Vec<Choix>,
+    lieu_aide: Option<&'static str>,
+    code: String,
+    libelle: String,
+    unite: String,
+    nature: String,
+    saisie: Vec<String>,
+    sens: String,
+    heures_forfait: Option<NombreLu>,
+    plafond: Option<String>,
+    aem: Option<String>,
+    dsn_type: Option<String>,
+    dsn_autres_bruts: Option<String>,
+    annexe: Option<String>,
+    soumis: bool,
+    imposable: bool,
+    conges_spectacles: bool,
+    compte_pour: String,
+    plafond_mensuel: Option<i64>,
+    plafond_annuel_heures: Option<Value>,
+    origine: String,
+    /// Les cartes qui la proposent en ligne (« activite », « mensuelle ») : un contrat paye au mois ne porte en ligne que
+    /// ses repas et ses nuitees (`engagement::se_saisit_au_mois`), un contrat d'usage tout ce qui n'est pas reserve au mois.
+    formes: Vec<&'static str>,
+    /// Le statut du salarie auquel elle est reservee (« artiste »), ou rien : `statut` de `salaries` de la route etat.
+    reservee_au_statut: Option<&'static str>,
+    genres: Vec<Choix>,
+    /// CE QUE LA RUBRIQUE PROMET SANS QUE RIEN NE LE TIENNE.
+    non_appliques: Vec<&'static str>,
+    source: String,
+    dit: Option<String>,
+    /// Les mots entre les cases de sa ligne : « quantité à taux € », ou « base € à taux % » pour un pourcentage.
+    mots: [&'static str; 2],
+}
+
+pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> RubriqueDeLaPage {
+    let non_appliques: Vec<&'static str> = [
         ("annexe", r.annexe.as_deref()),
         ("plafond", r.plafond.as_deref()),
         ("aem", r.aem.as_deref()),
@@ -931,52 +984,57 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
     .filter(|(_, v)| v.is_some_and(|s| !s.is_empty()))
     .map(|(c, _)| c)
     .collect();
-    // Les valeurs de `genre`, quand la rubrique le demande : les cinq avantages
-    // en nature du bloc 54.
+    // Les valeurs de `genre`, quand la rubrique le demande : les cinq avantages en nature du bloc 54.
     let avec_genre = r.saisie.iter().any(|s| s == "genre") && r.dsn_autres_bruts.as_deref().is_some_and(|c| catalogue::AVANTAGES_EN_NATURE.contains(&c));
-    let genres: Vec<Value> = if avec_genre {
+    let genres: Vec<Choix> = if avec_genre {
         GENRES_EN_CLAIR
             .iter()
-            .map(|(g, libelle)| {
-                json!({"code": g, "libelle": libelle, "defaut": Some(*g) == r.dsn_autres_bruts.as_deref()})
-            })
+            .map(|(g, libelle)| Choix { code: g.to_string(), libelle: libelle.to_string(), defaut: Some(Some(*g) == r.dsn_autres_bruts.as_deref()) })
             .collect()
     } else {
         vec![]
     };
     // LE LIEU D'UNE LIGNE DE NUITEE OU DE REPAS (`engagement::TERRITOIRE`), sous « Avancé » : la metropole d'abord (rien
     // a choisir), l'outre-mer et Monaco, puis chaque lieu de la table des missions a l'etranger (`droit::missions::lieux`).
-    let lieux: Vec<Value> = if [engagement::NUITEE, engagement::REPAS].contains(&r.code.as_str()) {
-        std::iter::once(json!({"code": "", "libelle": "Métropole"}))
-            .chain(engagement::TERRITOIRES.iter().map(|(c, l)| json!({"code": c, "libelle": l})))
-            .chain(droit::missions::lieux().unwrap_or_default().into_iter().map(|(c, l)| json!({"code": c, "libelle": l})))
+    let choix = |code: &str, libelle: &str| Choix { code: code.to_string(), libelle: libelle.to_string(), defaut: None };
+    let lieux: Vec<Choix> = if [engagement::NUITEE, engagement::REPAS].contains(&r.code.as_str()) {
+        std::iter::once(choix("", "Métropole"))
+            .chain(engagement::TERRITOIRES.iter().map(|(c, l)| choix(c, l)))
+            .chain(droit::missions::lieux().unwrap_or_default().into_iter().map(|(c, l)| choix(&c, &l)))
             .collect()
     } else {
         vec![]
     };
-    json!({
-        "lieux": lieux,
-        "lieu_aide": if lieux.is_empty() { Value::Null } else { json!(LIEU_AIDE) },
-        "code": r.code, "libelle": r.libelle, "unite": r.unite, "nature": r.nature, "saisie": r.saisie,
-        "sens": r.sens, "heures_forfait": r.heures_forfait.map(nombre), "plafond": r.plafond,
-        "aem": r.aem, "dsn_type": r.dsn_type, "dsn_autres_bruts": r.dsn_autres_bruts, "annexe": r.annexe,
-        "soumis": r.soumis, "imposable": r.imposable, "conges_spectacles": r.conges_spectacles,
-        "compte_pour": r.compte_pour, "plafond_mensuel": r.plafond_mensuel,
-        "plafond_annuel_heures": r.plafond_annuel_heures, "origine": r.origine,
-        // Les cartes qui la proposent en ligne (« activite », « mensuelle ») : un contrat paye au mois ne porte en ligne
-        // que ses repas et ses nuitees (`engagement::se_saisit_au_mois`), un contrat d'usage tout ce qui n'est pas reserve
-        // au mois.
-        "formes": formes_de(r),
-        // Le statut du salarie auquel elle est reservee (« artiste »), ou rien : `statut` de `salaries` de la route etat.
-        "reservee_au_statut": r.reservee_au_statut(),
-        "genres": genres,
-        // CE QUE LA RUBRIQUE PROMET SANS QUE RIEN NE LE TIENNE.
-        "non_appliques": non_appliques,
-        "source": r.source,
-        "dit": r.dit,
-        // Les mots entre les cases de sa ligne : « quantité à taux € », ou « base € à taux % » pour un pourcentage.
-        "mots": if r.saisie.iter().any(|s| s == "taux_majoration") { ["€ à", "%"] } else { ["à", "€"] },
-    })
+    RubriqueDeLaPage {
+        lieu_aide: (!lieux.is_empty()).then_some(LIEU_AIDE),
+        lieux,
+        code: r.code.clone(),
+        libelle: r.libelle.clone(),
+        unite: r.unite.clone(),
+        nature: r.nature.clone(),
+        saisie: r.saisie.clone(),
+        sens: r.sens.clone(),
+        heures_forfait: r.heures_forfait.map(NombreLu),
+        plafond: r.plafond.clone(),
+        aem: r.aem.clone(),
+        dsn_type: r.dsn_type.clone(),
+        dsn_autres_bruts: r.dsn_autres_bruts.clone(),
+        annexe: r.annexe.clone(),
+        soumis: r.soumis,
+        imposable: r.imposable,
+        conges_spectacles: r.conges_spectacles,
+        compte_pour: r.compte_pour.clone(),
+        plafond_mensuel: r.plafond_mensuel,
+        plafond_annuel_heures: r.plafond_annuel_heures.clone(),
+        origine: r.origine.clone(),
+        formes: formes_de(r),
+        reservee_au_statut: r.reservee_au_statut(),
+        genres,
+        non_appliques,
+        source: r.source.clone(),
+        dit: r.dit.clone(),
+        mots: if r.saisie.iter().any(|s| s == "taux_majoration") { ["€ à", "%"] } else { ["à", "€"] },
+    }
 }
 
 /// Les preferences de metiers de la compagnie (`config/metiers-ajoutes.json`) :
@@ -1107,10 +1165,38 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     Ok(faits)
 }
 
-/// Les natures de contrat, telles que l'ecran doit les proposer.
-/// Tout vient de `contrats-base.json`. SAUF LES NATURES PAYEES AU MOIS : elles
-/// ne descendent que si la fiche entreprise dit employer des permanents.
-fn natures(ctx: &Contexte) -> R<Value> {
+/// UNE NATURE DE CONTRAT telle que l'ecran la propose : ce que `contrats-base.json` en dit, et ce que la page en tire sans
+/// rien decider (les faits a demander et le signalement, motif par motif ; ses mots).
+#[derive(Debug, Clone, serde::Serialize)]
+struct NatureDeLaPage {
+    cle: String,
+    libelle: String,
+    aide: String,
+    mensuelle: bool,
+    duree_indeterminee: bool,
+    /// Un permanent ne se rattache a AUCUN spectacle : le numero d'objet (S21.G00.40.050) est INTERDIT hors des natures 02
+    /// et 10 (CCH-11).
+    spectacle: bool,
+    /// La fin se signale-t-elle (`Nature::signalement_fctu`) : au motif par defaut, et motif par motif -- un CDDU a son
+    /// terme (031) part dans la mensuelle, rompu avant (036, 037...) il se signale. La page ne decide rien.
+    signalement_fctu: bool,
+    signalement_par_motif: BTreeMap<String, bool>,
+    motifs_rupture: Vec<Value>,
+    faits_de_rupture: BTreeMap<String, Vec<&'static str>>,
+    motif_rupture_defaut: Option<String>,
+    motifs_recours: Vec<Value>,
+    motif_recours_exige: bool,
+    quotite_defaut: Option<NombreLu>,
+    /// Le bouton qui propose la duree d'un temps plein, et le choix vide des motifs de fin (le defaut d'une fin qui ne se
+    /// signale pas : le CDDU a son terme).
+    temps_plein_dit: Option<String>,
+    motif_rupture_vide_dit: String,
+    unite_quotite: String,
+}
+
+/// Les natures de contrat, telles que l'ecran doit les proposer. Tout vient de `contrats-base.json`. SAUF LES NATURES
+/// PAYEES AU MOIS : elles ne descendent que si la fiche entreprise dit employer des permanents.
+fn natures(ctx: &Contexte) -> R<Vec<NatureDeLaPage>> {
     let toutes = natures::natures().map_err(plain)?;
     let defaut = natures::defaut().map_err(plain)?;
     let permanents = ctx.emploie_des_permanents();
@@ -1122,109 +1208,92 @@ fn natures(ctx: &Contexte) -> R<Value> {
     let mut sortie = Vec::new();
     for n in ordre {
         let motifs = n.motifs_rupture();
-        let (mut faits, mut signales) = (Map::new(), Map::new());
+        let (mut faits, mut signales) = (BTreeMap::new(), BTreeMap::new());
         for m in &motifs {
             let code = m.get("code").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
-            faits.insert(valeur_en_texte(&code), json!(faits_de_rupture(n, &code)?));
-            signales.insert(valeur_en_texte(&code), json!(n.signalement_fctu(Some(&valeur_en_texte(&code)))));
+            faits.insert(valeur_en_texte(&code), faits_de_rupture(n, &code)?);
+            signales.insert(valeur_en_texte(&code), n.signalement_fctu(Some(&valeur_en_texte(&code))));
         }
-        sortie.push(json!({
-            "cle": n.cle, "libelle": n.libelle, "aide": n.aide,
-            "mensuelle": n.mensuelle(), "duree_indeterminee": n.duree_indeterminee,
-            // Un permanent ne se rattache a AUCUN spectacle : le numero d'objet
-            // (S21.G00.40.050) est INTERDIT hors des natures 02 et 10 (CCH-11).
-            "spectacle": n.interdit("S21.G00.40.050").map_or(true, |s| s.is_empty()),
-            // La fin se signale-t-elle (`Nature::signalement_fctu`) : au motif par defaut, et motif par motif -- un CDDU
-            // a son terme (031) part dans la mensuelle, rompu avant (036, 037...) il se signale. La page ne decide rien.
-            "signalement_fctu": n.signalement_fctu(None),
-            "signalement_par_motif": signales,
-            "motifs_rupture": motifs,
-            "faits_de_rupture": faits,
-            "motif_rupture_defaut": n.motif_rupture_par_defaut(),
-            "motifs_recours": n.motifs_recours(),
-            "motif_recours_exige": n.motif_recours_exige(),
-            "quotite_defaut": n.quotite_reference_defaut.map(nombre),
-            // Le bouton qui propose la duree d'un temps plein, et le choix vide des motifs de fin (le defaut d'une fin qui ne
-            // se signale pas : le CDDU a son terme).
-            "temps_plein_dit": n.quotite_reference_defaut.map(|q| format!("temps plein {} h", socle::texte::virgule(socle::num::dec_f64(q).unwrap_or_default()))),
-            "motif_rupture_vide_dit": match n.motif_rupture_par_defaut() {
+        sortie.push(NatureDeLaPage {
+            cle: n.cle.clone(),
+            libelle: n.libelle.clone(),
+            aide: n.aide.clone(),
+            mensuelle: n.mensuelle(),
+            duree_indeterminee: n.duree_indeterminee,
+            spectacle: n.interdit("S21.G00.40.050").map_or(true, |s| s.is_empty()),
+            signalement_fctu: n.signalement_fctu(None),
+            signalement_par_motif: signales,
+            motifs_rupture: motifs,
+            faits_de_rupture: faits,
+            motif_rupture_defaut: n.motif_rupture_par_defaut(),
+            motifs_recours: n.motifs_recours(),
+            motif_recours_exige: n.motif_recours_exige(),
+            quotite_defaut: n.quotite_reference_defaut.map(NombreLu),
+            temps_plein_dit: n.quotite_reference_defaut.map(|q| format!("temps plein {} h", socle::texte::virgule(socle::num::dec_f64(q).unwrap_or_default()))),
+            motif_rupture_vide_dit: match n.motif_rupture_par_defaut() {
                 Some(d) if !n.signalement_fctu(None) => format!("— {}, à son terme —", d),
                 _ => "— à choisir —".to_string(),
             },
-            "unite_quotite": n.unite_quotite,
-        }));
+            unite_quotite: n.unite_quotite.clone(),
+        });
     }
-    Ok(Value::Array(sortie))
+    Ok(sortie)
 }
 
-/// Les niveaux de garantie que le bareme connait, pour la
-/// fiche salarie. Vide quand le bareme n'en porte pas.
-fn niveaux_sante(ctx: &Contexte) -> R<Value> {
-    let Ok(bar) = ctx.bareme(&ctx.aujourdhui) else { return Ok(json!([])) };
-    let sec = ou_vide(ou_vide(bar.get("par_nature")).get("permanent"));
-    let ajoutees = sec.get("rubriques_ajoutees").and_then(Value::as_array).cloned().unwrap_or_default();
-    let releve = ajoutees.iter().find(|r| r.get("id").and_then(Value::as_str) == Some("mutuelle")).and_then(|r| r.get("releve_svp_sante"));
-    let Some(releve) = releve.filter(|v| vrai(v)) else { return Ok(json!([])) };
-    let niveaux = releve.get("niveaux").and_then(Value::as_object).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("niveaux")))?;
-    let mut tries: Vec<(&String, &Value)> = niveaux.iter().collect();
-    tries.sort_by(|a, b| a.0.cmp(b.0));
-    Ok(Value::Array(
-        tries
-            .into_iter()
-            .map(|(n, t)| {
-                let champ = |k: &str| t.get(k).cloned().unwrap_or(Value::Null);
-                json!({"niveau": n, "assure": champ("assure"), "conjoint": champ("conjoint"), "enfant": champ("enfant"), "libelle": format!("niveau {} — {} % du PMSS pour l'assuré seul", n, super::mot(&champ("assure")))})
-            })
-            .collect(),
-    ))
+/// Un niveau de complementaire sante que le bareme connait : son numero, sa cotisation (en % du PMSS) pour l'assure, le
+/// conjoint et chaque enfant, et ce que le choix en dit.
+#[derive(Debug, Clone, serde::Serialize)]
+struct NiveauDeSante {
+    niveau: String,
+    assure: Option<f64>,
+    conjoint: Option<f64>,
+    enfant: Option<f64>,
+    libelle: String,
 }
 
-/// Les conventions collectives que le bareme sait servir, pour
-/// la fiche. La page ne les invente pas, et elle n'en invente pas le libelle :
-/// `par_convention` du socle dit lesquelles existent, et si leur couche de taux
-/// est RELEVEE (`applicable`).
-fn conventions(ctx: &Contexte) -> R<Value> {
-    let dossier = ctx.code.join("baremes");
-    let mut fichiers: Vec<PathBuf> = Vec::new();
-    if let Ok(rd) = std::fs::read_dir(&dossier) {
-        for e in rd.flatten() {
-            if e.file_name().to_string_lossy().ends_with(".json") {
-                fichiers.push(e.path());
-            }
-        }
-    }
-    // Le socle de l'annee en cours, et a defaut le plus recent livre : la liste
-    // des conventions ne depend pas d'un mois de paie.
-    fichiers.sort();
-    fichiers.reverse();
-    let voulu = dossier.join(format!("{}.json", ctx.aujourdhui.an));
-    let mut candidats: Vec<PathBuf> = if voulu.exists() { vec![voulu] } else { vec![] };
-    candidats.extend(fichiers);
-    let mut par = Map::new();
-    for f in candidats {
-        // Lu une fois tant qu'il ne change pas (`json_en_cache`), et non a chaque appel.
-        let Ok(v) = socle::fichiers::json_en_cache(&f) else { continue };
-        let Some(d) = v.as_object() else { continue };
-        if let Some(Value::Object(p)) = d.get("par_convention").filter(|x| vrai(x)) {
-            par = p.clone();
-        }
-        if !par.is_empty() {
-            break;
-        }
-    }
-    let mut items: Vec<(&String, &Value)> = par.iter().filter(|(k, _)| !k.starts_with('_')).collect();
-    items.sort_by(|a, b| a.0.cmp(b.0));
-    Ok(Value::Array(
-        items
-            .into_iter()
-            .map(|(k, v)| {
-                let libelle = v.get("libelle").filter(|l| vrai(l)).cloned().unwrap_or_else(|| json!(k));
-                let applicable = v.get("applicable") != Some(&Value::Bool(false));
-                let option_dit = format!("IDCC {} — {}{}", k, valeur_en_texte(&libelle), if applicable { "" } else { " (taux non relevés)" });
-                json!({"idcc": k, "libelle": libelle, "applicable": applicable, "option_dit": option_dit})
-            })
-            .collect(),
-    ))
+/// Les niveaux de garantie que le bareme connait, pour la fiche salarie (`releve_svp_sante` de la rubrique `mutuelle` des
+/// permanents). Vide quand le bareme n'en porte pas, ou ne se lit pas encore (une fiche entreprise incomplete).
+fn niveaux_sante(ctx: &Contexte) -> Vec<NiveauDeSante> {
+    use rust_decimal::prelude::ToPrimitive;
+    let Ok(pile) = ctx.bareme_lu(&ctx.aujourdhui) else { return vec![] };
+    let releve = pile.par_nature.get("permanent").and_then(|p| p.rubriques_ajoutees.iter().find(|r| r.id == "mutuelle")).and_then(|r| r.releve_svp_sante.as_ref());
+    let Some(releve) = releve else { return vec![] };
+    releve
+        .niveaux
+        .iter()
+        .map(|(n, t)| NiveauDeSante {
+            niveau: n.clone(),
+            assure: t.assure.to_f64(),
+            conjoint: t.conjoint.to_f64(),
+            enfant: t.enfant.to_f64(),
+            libelle: format!("niveau {} — {} % du PMSS pour l'assuré seul", n, t.assure),
+        })
+        .collect()
+}
+
+/// Une convention collective que le bareme sait servir : son IDCC, son libelle, si sa couche de taux est RELEVEE
+/// (`applicable`), et l'option qui la propose.
+#[derive(Debug, Clone, serde::Serialize)]
+struct ConventionServie {
+    idcc: String,
+    libelle: String,
+    applicable: bool,
+    option_dit: String,
+}
+
+/// Les conventions collectives que le bareme sait servir, pour la fiche (`Contexte::conventions_servies`). La page ne les
+/// invente pas, et elle n'en invente pas le libelle.
+fn conventions(ctx: &Contexte) -> R<Vec<ConventionServie>> {
+    Ok(ctx
+        .conventions_servies()
+        .map_err(plain)?
+        .into_iter()
+        .map(|(idcc, c)| {
+            let libelle = if c.libelle.trim().is_empty() { idcc.clone() } else { c.libelle };
+            let option_dit = format!("IDCC {} — {}{}", idcc, libelle, if c.applicable { "" } else { " (taux non relevés)" });
+            ConventionServie { idcc, libelle, applicable: c.applicable, option_dit }
+        })
+        .collect())
 }
 
 // -------------------------------------------------------------------- l'etat
@@ -1262,8 +1331,8 @@ struct RubriqueParDefaut {
 /// Un organisme de recouvrement que la DPAE fait choisir.
 #[derive(Debug, Clone, serde::Serialize)]
 struct OrganismeUrssaf {
-    code: Value,
-    nom: Value,
+    code: String,
+    nom: String,
 }
 
 /// CE QUE LA PAGE LIT EN S'OUVRANT (`etat`) : la configuration verifiee et sa phrase, l'auteur, ce qu'une compagnie
@@ -1284,25 +1353,25 @@ pub struct EtatDeLaPage {
     historique: Vec<MoisDuBilan>,
     salaries: Vec<SalarieDeLaListe>,
     spectacles: Vec<SpectacleDeLaListe>,
-    rubriques: Vec<Value>,
+    rubriques: Vec<RubriqueDeLaPage>,
     rubrique_par_defaut: RubriqueParDefaut,
     emplois: Value,
     familles_emplois: Vec<String>,
     emplois_autres: Value,
-    natures: Value,
+    natures: Vec<NatureDeLaPage>,
     nature_defaut: String,
-    types_preavis: Vec<Value>,
+    types_preavis: Vec<droit::preavis::TypePreavis>,
     aides: Aides,
-    transaction: Vec<Value>,
-    niveaux_sante: Value,
+    transaction: Vec<droit::preavis::Code>,
+    niveaux_sante: Vec<NiveauDeSante>,
     sante_hors_fiche: Option<String>,
     sante_aide: &'static str,
-    conventions: Value,
+    conventions: Vec<ConventionServie>,
     organismes_urssaf: Vec<OrganismeUrssaf>,
     urssaf_deduit_dit: String,
     urssaf_deduit: String,
-    pays: Value,
-    pays_naissance: Value,
+    pays: Vec<socle::pays::PaysDeNationalite>,
+    pays_naissance: Vec<socle::pays::PaysServi>,
 }
 
 /// La route `etat` : tout ce que la page lit en s'ouvrant.
@@ -1336,7 +1405,7 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
     // Le catalogue qui paie, deja dans l'ordre ou le proposer.
     let cat = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?;
     // Une rubrique que le moteur pose (`saisie` vide) ne se propose pas.
-    let rubriques: Vec<Value> = cat.iter().filter(|r| !r.saisie.is_empty()).map(rubrique_json).collect();
+    let rubriques: Vec<RubriqueDeLaPage> = cat.iter().filter(|r| !r.saisie.is_empty()).map(rubrique_de_la_page).collect();
     // La rubrique d'une ligne neuve, par forme de paie et par statut du salarie (sans salarie, celui d'un artiste, comme
     // la paie le lit) : le moteur la choisit, la page la pose. Sur la carte d'un contrat d'usage, la premiere rubrique de
     // salaire qu'il propose (`catalogue::par_defaut`) ; sur celle d'un contrat paye au mois, son premier frais
@@ -1347,29 +1416,18 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         activite: ParStatut { artiste: activite("artiste"), technicien: activite("technicien") },
         mensuelle: ParStatut { artiste: au_mois.clone(), technicien: au_mois },
     };
-
     // LA FIN D'UN CONTRAT, telle qu'elle se saisit. Les types de preavis
     // SAISISSABLES seulement.
-    let fctu = json_en_cache(&dossier_du_code().join("fctu-base.json")).map_err(plain)?;
-    let codes = |quoi: &str| -> R<Vec<Value>> {
-        let n = fctu.get(quoi).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(quoi)))?;
-        Ok(n.get("codes").and_then(Value::as_array).cloned().unwrap_or_default())
-    };
-    let types_preavis: Vec<Value> = codes("types_preavis")?.into_iter().filter(|c| c.get("saisissable").is_some_and(vrai)).collect();
-    let transaction = codes("transaction")?;
+    let fctu = droit::preavis::base().map_err(plain)?;
+    let types_preavis: Vec<droit::preavis::TypePreavis> = fctu.types_preavis.codes.into_iter().filter(|c| c.saisissable).collect();
+    let transaction = fctu.transaction.codes;
 
     // Les organismes de recouvrement, pour que le code Urssaf de la DPAE se
     // CHOISISSE au lieu de se taper ; et celui que le moteur prend quand la
     // fiche n'en dit rien : l'organisme du territoire.
-    let urssaf = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).map_err(plain)?;
-    let organismes_urssaf: Vec<OrganismeUrssaf> = urssaf
-        .get("organismes")
-        .and_then(Value::as_array)
-        .ok_or_else(|| erreur("KeyError", socle::fichiers::absent("organismes")))?
-        .iter()
-        .map(|x| OrganismeUrssaf { code: x.get("code").cloned().unwrap_or(Value::Null), nom: x.get("nom").cloned().unwrap_or(Value::Null) })
-        .collect();
-    let deduit = declarations::champs::urssaf_du_code_postal(&urssaf, ctx.entreprise.code_postal.texte());
+    let urssaf = declarations::urssaf::base().map_err(plain)?;
+    let deduit = urssaf.du_code_postal(ctx.entreprise.code_postal.texte());
+    let organismes_urssaf: Vec<OrganismeUrssaf> = urssaf.organismes.into_iter().map(|o| OrganismeUrssaf { code: o.code, nom: o.nom }).collect();
     let branchement = crate::compagnie::bridage::branchement(&ctx.racine);
     let joue = branchement.joue();
 
@@ -1414,7 +1472,7 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         aides: Aides(AIDES),
         transaction,
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
-        niveaux_sante: niveaux_sante(ctx)?,
+        niveaux_sante: niveaux_sante(ctx),
         // Ou, quand la convention ne la fait pas choisir sur la fiche, d'ou elle vient (`bareme::sante_hors_fiche`).
         sante_hors_fiche: droit::bareme::sante_hors_fiche(&ctx.entreprise).map_err(plain)?,
         // Ce que la fiche d'un permanent dit de sa complementaire sante, sous le choix du niveau.
@@ -1426,7 +1484,7 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         urssaf_deduit: if deduit.is_empty() { "117".to_string() } else { deduit },
         // LES PAYS : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
         // deduit. Le pays de naissance et le pays de nationalite s'y choisissent.
-        pays: pays_dits(socle::pays::servir().map_err(plain)?),
+        pays: socle::pays::servir().map_err(plain)?,
         // Le pays de naissance : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
         pays_naissance: socle::pays::servir_naissance().map_err(plain)?,
     })
@@ -1590,15 +1648,6 @@ fn coulisses_fictives() -> Coulisses {
             ["L'horloge de la compagnie fictive", "La compagnie vit sans vous. À chaque ouverture, ce qui tombait depuis votre dernier passage a été fait par un administrateur fictif, chaque geste à sa date limite : le 1er du mois, le mois s'écrit ; le jour d'une embauche, sa DPAE part et son contrat revient signé ; le 15, la DSN du mois précédent part, puis les documents aux salariés ; fin janvier, l'année passée se clôt. Avant la date limite, c'est à vous : faites la DPAE deux jours avant, ou la DSN le 14, et l'horloge ne la refera pas. Ajoutez ou retirez un contrat : à votre retour, le mois est réécrit et tout est à jour."],
         ],
     }
-}
-
-/// Les pays servis a la fiche, chacun avec ce que la case de nationalite dit quand elle s'en deduit.
-fn pays_dits(mut pays: Value) -> Value {
-    for p in pays.as_array_mut().into_iter().flatten() {
-        let nom = super::mot(&p["nom"]);
-        p["deduit_dit"] = json!(format!("déduite de la nationalité ({})", nom));
-    }
-    pays
 }
 
 /// Le circuit d'un genre de courriel joue : ce que recoit le destinataire, ses etapes, ce qu'elles disent, et ce qui se

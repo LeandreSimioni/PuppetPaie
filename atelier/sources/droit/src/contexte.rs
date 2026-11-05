@@ -1606,6 +1606,27 @@ impl Contexte {
         socle(&self.code.join("baremes"), an)
     }
 
+    /// LES CONVENTIONS QUE LE SOCLE SERT (`par_convention`), lues par leur forme : celles du socle livre de l'annee du
+    /// jour, a defaut du plus recent livre. Elles ne dependent d'aucune compagnie : la fiche qui n'a pas encore choisi la
+    /// sienne les propose.
+    pub fn conventions_servies(&self) -> Resultat<BTreeMap<String, crate::forme_bareme::Convention>> {
+        let dossier = self.code.join("baremes");
+        let jour = self.aujourdhui;
+        let an = match socle(&dossier, jour.an)? {
+            Some(_) => jour.an,
+            None => socle::fichiers::lister(&dossier)
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|p| p.file_stem()?.to_str()?.parse::<i32>().ok())
+                .max()
+                .ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?,
+        };
+        let brut = socle(&dossier, an)?.ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?;
+        // Le dernier jour de l'annee du socle quand il est d'une annee passee : ses valeurs datees y valent toutes.
+        let a = if an == jour.an { jour } else { Jour::lire(&format!("{}-12-31", an))? };
+        Ok(crate::forme_bareme::lire(&a_la_date(&brut, &a, &["smic_horaire"])?)?.par_convention)
+    }
+
     /// Le dossier des gabarits de la compagnie.
     pub fn gabarits(&self) -> PathBuf {
         self.racine.join("gabarits")

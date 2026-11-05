@@ -428,7 +428,7 @@ fn code_urssaf(ent: &droit::fiche::ChampsEntreprise) -> R<String> {
     if !ecrit.is_empty() {
         return Ok(ecrit.to_string());
     }
-    let territoire = crate::routes::fiches::urssaf_du_code_postal(Some(&Value::from(ent.code_postal.texte())))?;
+    let territoire = declarations::urssaf::base().map_err(plain)?.du_code_postal(ent.code_postal.texte());
     Ok(if territoire.is_empty() { "117".to_string() } else { territoire })
 }
 
