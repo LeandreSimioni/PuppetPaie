@@ -1852,7 +1852,7 @@ devine pas.",
             l.get("quantite").map(en_texte).unwrap_or_default()
         ));
     }
-    let legale = dec_f64(nat.quotite_reference_defaut().ok_or_else(|| socle::echec::livree("contrats-base.json", &format!("{}.quotite_reference_defaut()", nat.libelle)))?)?;
+    let legale = dec_f64(nat.quotite_reference_defaut().ok_or_else(|| socle::echec::livree("contrats-base.json", &format!("{}.quotite_reference_defaut", nat.libelle)))?)?;
     let reference = match e.quotite_reference()? {
         Some(r) => legale.min(dec_f64(r)?),
         None => legale,
