@@ -1538,9 +1538,9 @@ PSS_H_METROP).",
     /// LES ORGANISMES ET CONTRATS DE LA DSN a `lue_au`, composes depuis les textes livres et la configuration de cette
     /// date (convention, bareme, `config/organismes.json` pour ce que la compagnie a saisi) : `organismes::composer`.
     /// Ce qu'un texte donne entier vaut sans que la compagnie ait rien enregistre.
-    pub fn organismes(&self) -> Resultat<serde_json::Value> {
+    pub fn organismes(&self) -> Resultat<crate::organismes::Organismes> {
         let (saisi, prises) = crate::organismes::saisis(self)?;
-        crate::organismes::composer(self, &saisi, prises, &serde_json::Map::new(), None)
+        crate::organismes::composer(self, &saisi, prises, &std::collections::BTreeMap::new(), None)
     }
 
     // -------------------------------------------------------------- recherche

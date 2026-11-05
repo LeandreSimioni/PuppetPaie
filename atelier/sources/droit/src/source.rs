@@ -144,3 +144,23 @@ impl Fondement {
         }
     }
 }
+
+/// UN OBJET D'UN FICHIER LIVRE ET SES NOTES (atelier/AGENTS.md : `source`, `note`, `quoi`) : elles ne se lisent pas au
+/// calcul. La forme est stricte (`deny_unknown_fields`) et sa source, un `Fondement`, se verifie au test des sources.
+macro_rules! forme_notee {
+    ($(#[$m:meta])* pub struct $nom:ident { $($corps:tt)* }) => {
+        $(#[$m])*
+        #[derive(Debug, Clone, serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        pub struct $nom {
+            $($corps)*
+            #[serde(default)]
+            pub quoi: Option<String>,
+            #[serde(default)]
+            pub note: Option<String>,
+            #[serde(default)]
+            pub source: Option<$crate::source::Fondement>,
+        }
+    };
+}
+pub(crate) use forme_notee;

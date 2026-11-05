@@ -5,8 +5,6 @@
 
 use super::{alsace_moselle, arrondi4, deux_virgule, jour_texte, nom_du_salarie, ChampsEntreprise, Decimal, Jour, Mutuelle, Resultat, SalarieDuContrat};
 use crate::fiche::ExtensionT2;
-use crate::source::Fondement;
-use serde::Deserialize;
 use socle::echec::APart;
 use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::forme::Nombre;
@@ -14,23 +12,7 @@ use socle::num::div;
 use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
-/// Un objet du catalogue et ses notes (`quoi`, `note`, `source`) : elles ne se lisent pas au calcul.
-macro_rules! forme {
-    ($(#[$m:meta])* pub struct $nom:ident { $($corps:tt)* }) => {
-        $(#[$m])*
-        #[derive(Debug, Clone, Deserialize)]
-        #[serde(deny_unknown_fields)]
-        pub struct $nom {
-            $($corps)*
-            #[serde(default)]
-            pub quoi: Option<String>,
-            #[serde(default)]
-            pub note: Option<String>,
-            #[serde(default)]
-            pub source: Option<Fondement>,
-        }
-    };
-}
+use crate::source::forme_notee as forme;
 
 forme! {
     /// `prevoyance-conventionnelle-base.json`, entier : le plancher national des cadres, et le regime de chaque

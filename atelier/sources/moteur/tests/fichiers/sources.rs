@@ -1,6 +1,6 @@
 //! LE VERIFICATEUR DES SOURCES : toute valeur qu'un fichier livre fonde sur un texte le cite (`droit::source`), et la citation
 //! s'y lit (atelier/AGENTS.md, « Les sources »). Pour chaque `source` des baremes (`logiciel/donnees/baremes/`), des
-//! regles des permanents (`permanents-base.json`), des natures de contrat (`contrats-base.json`), de la prevoyance de branche (`prevoyance-conventionnelle-base.json`) et de la banque des conseils (`conseils.json`) : le fichier est depose dans le depot, la citation s'y lit a l'identique (a la
+//! regles des permanents (`permanents-base.json`), des natures de contrat (`contrats-base.json`), de la prevoyance de branche (`prevoyance-conventionnelle-base.json`), des organismes (`organismes-base.json`), de la CASC-SVP (`casc-svp-base.json`) et de la banque des conseils (`conseils.json`) : le fichier est depose dans le depot, la citation s'y lit a l'identique (a la
 //! casse, aux blancs, aux apostrophes et aux guillemets pres ; « […] » separe des fragments ; l'article d'un entrepot de la
 //! DILA, toutes ses versions deposees) ; les textes d'un fondement `Texte` ont un seul emetteur, une convergence en a au
 //! moins deux. Un conseil nomme le titre lisible de chacun de ses documents.
@@ -206,7 +206,7 @@ fn verifier(tous: &[(String, Fondement)]) -> Vec<String> {
 #[test]
 fn chaque_source_est_un_texte_depose_et_sa_citation_s_y_lit() {
     let mut tous = Vec::new();
-    for nom in ["baremes/2025.json", "baremes/2026.json", "permanents-base.json", "contrats-base.json", "prevoyance-conventionnelle-base.json"] {
+    for nom in ["baremes/2025.json", "baremes/2026.json", "permanents-base.json", "contrats-base.json", "prevoyance-conventionnelle-base.json", "organismes-base.json", "casc-svp-base.json"] {
         fondements(&lu(nom), nom, &mut tous);
     }
     let banque = lu("conseils.json");

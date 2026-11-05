@@ -178,10 +178,10 @@ fn plafond_mensuel(annee: &str) -> R<Option<Decimal>> {
 
 /// La regularisation CASC-SVP que demande `d`, calculee sans rien ecrire (l'ecriture des fichiers : `ecrire`).
 pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
-    let base = declarations::casc::base().map_err(|m| erreur("OSError", m))?;
+    let base = droit::adhesions::casc_svp_base().map_err(|m| erreur("OSError", m))?;
     let ent = &ctx.entreprise;
     let idcc = ent.idcc.texte().to_string();
-    if idcc != valeur_en_texte(&base["idcc"]) {
+    if idcc != base.idcc {
         return Err(refus(format!(
             "La CASC-SVP est une cotisation de la convention 3090 ; la fiche entreprise dit {}. Il n'y a rien a regulariser.",
             if idcc.is_empty() { "rien".to_string() } else { idcc }
@@ -197,7 +197,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         Ok(false) => {}
     }
     let faits = declarations::casc::mois_regularises(ctx).map_err(|m| erreur("OSError", m))?;
-    let depuis = valeur_en_texte(&base["depuis"]);
+    let depuis = base.depuis.clone();
     let mut candidats: Vec<String> = crate::import::mois::mois_importes(&ctx.racine)?
         .into_iter()
         .filter(|m| m.as_str() >= depuis.as_str() && !faits.contains(m))
@@ -216,7 +216,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     let mut avert: Vec<String> = vec![];
     let mut portees: Vec<String> = vec![];
     let mut lues: Vec<(String, Vec<Versee>)> = vec![];
-    let contrat_casc = valeur_en_texte(&base["dsn"]["contrat"]);
+    let contrat_casc = base.dsn.contrat.clone();
     for m in &candidats {
         let paies = versees_du_mois(ctx, m)?;
         if paies.is_empty() {
@@ -323,15 +323,11 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
                 }
             }
         }
-        let taux_v = base["taux"].get(&an).ok_or_else(|| {
+        let taux = base.taux.de(&an).ok_or_else(|| {
             refus(format!(
                 "Le taux de la CASC-SVP pour {} n'est pas releve (donnees/casc-svp-base.json) : l'export refuse plutot que de prolonger celui d'une autre annee.",
                 an
             ))
-        })?;
-        let taux = dec(&match taux_v {
-            Value::Number(n) if n.is_f64() => repr_flottant(n.as_f64().unwrap_or(0.0)),
-            autre => valeur_en_texte(autre),
         })?;
         let mut cot = (masse * taux / Decimal::from(100)).round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
         cot.rescale(2);
@@ -346,7 +342,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
             Some(p) => p,
             None => {
                 annees.push(AnneeReg {
-                    libelle_virement: valeur_en_texte(&base["reglement"]["libelle"]).replace("{siret}", &siret).replace("{annee}", &an),
+                    libelle_virement: base.reglement.libelle.replace("{siret}", &siret).replace("{annee}", &an),
                     annee: an,
                     masse: Decimal::ZERO,
                     taux: r.taux,
@@ -384,20 +380,20 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
             format!("- le {}, {}, libellé « {} » ;", date, euros(a.cotisation), a.libelle_virement)
         })
         .collect();
-    let beneficiaire = valeur_en_texte(&base["reglement"]["beneficiaire"]);
+    let beneficiaire = base.reglement.beneficiaire.clone();
     let corps_audiens = format!(
         "Bonjour,\n\nNotre logiciel de paie n'était pas paramétré pour déclarer la cotisation CASC-SVP en DSN (contrat CASCSVP) : elle manque à nos DSN de {}. Nous régularisons par virement, comme l'indique la page employeurs du CASC-SVP, et nos DSN la porteront désormais.\n\n{} — SIRET {} — IDCC 3090.\n\nMasses salariales soumises à cotisation (tranche 1 Agirc-Arrco) :\n\n{}\n\nVirements effectués vers {} :\n{}\n\nLa liste nominative des salariés part en parallèle au CASC-SVP.\n\nBien cordialement,\n\n{}\n{}\n",
         periode, nom, siret, tableau.join("\n"), beneficiaire, virements.join("\n"), signe, nom
     );
-    let a_audiens = valeur_en_texte(&base["courriel_audiens"]["a"]);
+    let a_audiens = base.courriel_audiens.a.clone();
     let corps_casc = format!(
         "Bonjour,\n\nNotre logiciel de paie ne déclarait pas la cotisation CASC-SVP en DSN. Nous régularisons auprès d'Audiens ({}) les cotisations de {}, et vous trouverez en pièce jointe la liste nominative de nos salariés pour cette période.\n\n{} — SIRET {} — IDCC 3090.\n\nBien cordialement,\n\n{}\n{}\n",
         a_audiens, periode, nom, siret, signe, nom
     );
-    let courriel_audiens = Courriel { a: a_audiens.clone(), objet: valeur_en_texte(&base["courriel_audiens"]["objet"]).replace("{siret}", &siret), corps: corps_audiens, piece_jointe: None };
+    let courriel_audiens = Courriel { a: a_audiens.clone(), objet: base.courriel_audiens.objet.replace("{siret}", &siret), corps: corps_audiens, piece_jointe: None };
     let courriel_casc = Courriel {
-        a: valeur_en_texte(&base["courriel_casc"]["a"]),
-        objet: valeur_en_texte(&base["courriel_casc"]["objet"]).replace("{siret}", &siret),
+        a: base.courriel_casc.a.clone(),
+        objet: base.courriel_casc.objet.replace("{siret}", &siret),
         corps: corps_casc,
         piece_jointe: Some("CASC-SVP_liste-nominative.xlsx (le modele du CASC-SVP, rempli)"),
     };
@@ -405,7 +401,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         "Faire {} virement(s), un par année, à {} — l'IBAN se lit sur la page employeurs du CASC-SVP ({}) ou dans l'espace Audiens :",
         annees.len(),
         beneficiaire,
-        valeur_en_texte(&base["page"])
+        base.page
     )];
     for a in &annees {
         a_faire.push(format!("    {} : {}, libellé « {} »", a.annee, euros(a.cotisation), a.libelle_virement));

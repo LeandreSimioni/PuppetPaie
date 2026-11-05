@@ -52,12 +52,10 @@
 
 use std::collections::BTreeMap;
 
-use serde_json::Value;
-
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::apprentissage::{champ_du_motif, motif_de_la_fiche, taxe_apprentissage_non_due, MILLESIME_ASSOCIATIONS_REDEVABLES, MNATA_ASSOCIATIONS};
-use crate::dsn::{g, liste, txt};
+
 use documents::taxe_sur_les_salaires::{assiette_taxe_sur_les_salaires, fractions_majorees, taxe_sur_les_salaires_de_la_fiche};
 use socle::num::{add, div, eur, mul, Decimal, Resultat};
 
@@ -185,7 +183,7 @@ fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &droit::forme_ba
 
 /// L'assiette de la PEEC de l'etablissement : les remunerations de l'annee qui servent de base aux cotisations de
 /// securite sociale, la base 03 de chaque contrat (celle que la DSN de chaque mois a declaree ou declare).
-fn assiette_peec(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, orgs: &Value, nic: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
+fn assiette_peec(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, orgs: &droit::organismes::Organismes, nic: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
     let mut total = Decimal::ZERO;
     for m in annee {
         match m {
@@ -216,11 +214,11 @@ fn effectif_atteint(ctx: &Contexte, seuil: i64, annee_paie: i32, quoi: &str) -> 
 /// Les CTP du bordereau (`ctp_urssaf` du fichier des organismes), sans ceux de la taxe d'apprentissage (992, 993) quand
 /// elle n'est pas due (`non_due` : `taxe_apprentissage_non_due_au_mois` pour le bordereau d'un mois,
 /// `taxe_apprentissage_non_due` pour le bloc 44 d'un millesime).
-pub fn ctp_sans_la_taxe_non_due(ctps: Vec<Value>, non_due: bool) -> Vec<Value> {
+pub fn ctp_sans_la_taxe_non_due(ctps: Vec<droit::organismes::Ctp>, non_due: bool) -> Vec<droit::organismes::Ctp> {
     if !non_due {
         return ctps;
     }
-    ctps.into_iter().filter(|c| !CTP_TAXE_APPRENTISSAGE.contains(&txt(g(c, "code")).as_str())).collect()
+    ctps.into_iter().filter(|c| !CTP_TAXE_APPRENTISSAGE.contains(&c.code.trim())).collect()
 }
 
 /// Le bloc de la taxe d'apprentissage : 001 si le bordereau la paie (CTP 992 ou 993), 002 et son motif MNATA (44.004)
@@ -270,7 +268,7 @@ ou la table livrée. Rien n'est écrit.",
 /// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
 /// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
 pub fn blocs(
-    ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, ent_e: &droit::fiche::ChampsEntreprise, orgs: &Value, bar: &droit::forme_bareme::Pile, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
+    ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, ent_e: &droit::fiche::ChampsEntreprise, orgs: &droit::organismes::Organismes, bar: &droit::forme_bareme::Pile, nic: &str, mois: &str, paies: &[Paie], departs: &engagement::departs::Departs,
 ) -> Resultat<Vec<Bloc44>> {
     if mois.len() != 7 || &mois[5..7] != "12" {
         return Ok(Vec::new());
@@ -279,9 +277,9 @@ pub fn blocs(
     let an: i32 = an_txt.parse().map_err(|_| format!("mois illisible : {}", mois))?;
     // Le bordereau que la DSN ecrit : sans la taxe d'apprentissage quand la fiche dit un motif qui vaut (R12).
     let ctp: Vec<String> =
-        ctp_sans_la_taxe_non_due(liste(g(orgs, "ctp_urssaf")).to_vec(), taxe_apprentissage_non_due(ent, an)?)
+        ctp_sans_la_taxe_non_due(orgs.ctp_urssaf().to_vec(), taxe_apprentissage_non_due(ent, an)?)
             .iter()
-            .map(|c| txt(g(c, "code")))
+            .map(|c| c.code.trim().to_string())
             .collect();
     let mut out = Vec::new();
 
@@ -347,6 +345,7 @@ pas son assiette. Rien n'est ecrit.",
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dsn::{g, liste, txt};
 
     #[test]
     fn la_fiche_propose_les_motifs_de_la_table_mnata_livree() {

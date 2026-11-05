@@ -10,7 +10,7 @@ use serde_json::Value;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::{
-    autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, liste, primes_et_indemnites,
+    autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, primes_et_indemnites,
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use engagement::Engagement;
@@ -557,10 +557,10 @@ ou un annule."
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
     let mut ent_l = etab.clone();
     ent_l.licence_spectacle = droit::fiche::Case::Dite(ctx.licence(&fin_jour));
-    for a in liste(req(&orgs, "adhesions_prevoyance")?) {
-        f.add_v("S21.G00.15.001", req(a, "libelle")?)?;
-        f.add_v("S21.G00.15.002", req(a, "delegataire")?)?;
-        f.add_v("S21.G00.15.005", req(a, "reference")?)?;
+    for a in &orgs.adhesions_prevoyance {
+        f.add("S21.G00.15.001", &a.libelle);
+        f.add("S21.G00.15.002", &a.delegataire);
+        f.add("S21.G00.15.005", &a.reference);
     }
 
     // ------------------------------------------------------------ S21 individu

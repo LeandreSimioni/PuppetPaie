@@ -13,8 +13,9 @@
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
-use droit::organismes::{attendus, base, composer, couvre, ligne, saisis};
+use droit::organismes::{attendus, composer, ligne, saisis, Adhesion, Attendu, Saisie};
 use socle::date::{en_texte, Jour};
+use std::collections::BTreeMap;
 use socle::ecriture::ecrire_json;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
@@ -126,8 +127,8 @@ fn chemin(ctx: &Contexte) -> std::path::PathBuf {
 /// Une ligne se montre-t-elle a cette compagnie ? Un contrat des permanents (`role` : prevoyance ou sante, les
 /// affiliations d'un salarie paye au mois) ne se montre qu'a une compagnie qui en emploie (rien a remplir pour qui
 /// n'emploie pas de permanent) : le curseur est `Contexte::emploie_des_permanents`, le meme que partout.
-fn se_montre(ctx: &Contexte, spec: &Value) -> bool {
-    txt(g(spec, "role")).is_empty() || ctx.emploie_des_permanents()
+fn se_montre(ctx: &Contexte, spec: &Attendu) -> bool {
+    spec.role.as_deref().unwrap_or_default().trim().is_empty() || ctx.emploie_des_permanents()
 }
 
 /// La periode que l'ecran regarde : le mois `mois` de la charge (celui de l'onglet Paie), sinon celui du jour.
@@ -142,18 +143,14 @@ fn periode(ctx: &Contexte, charge: &Value) -> R<(Jour, Jour)> {
 }
 
 /// `organismes-contrats` : une ligne par contrat attendu qui vaut pour la compagnie (`se_montre`) et pour la periode
-/// regardee (`couvre`) ; `a_saisir` : une de ces lignes attend encore ce que la compagnie seule peut dire.
+/// regardee (`Attendu::couvre`) ; `a_saisir` : une de ces lignes attend encore ce que la compagnie seule peut dire.
 pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     let periode = periode(ctx, charge)?;
     let ctx = &ctx.au(&periode.1).map_err(plain)?;
     let (saisi, _) = saisis(ctx).map_err(plain)?;
-    let mut lignes: Vec<Value> = Vec::new();
-    for s in attendus(ctx, &base(ctx).map_err(plain)?).map_err(plain)? {
-        if se_montre(ctx, &s) && couvre(&s, &periode).map_err(plain)? {
-            lignes.push(ligne(&s, &saisi));
-        }
-    }
-    let a_saisir = lignes.iter().any(|l| txt(g(l, "libelle")).is_empty() || txt(g(l, "organisme")).is_empty());
+    let lignes: Vec<droit::organismes::Ligne> =
+        attendus(ctx).map_err(plain)?.iter().filter(|s| se_montre(ctx, s) && s.couvre(&periode)).map(|s| ligne(s, &saisi)).collect();
+    let a_saisir = lignes.iter().any(|l| l.libelle.is_empty() || l.organisme.is_empty());
     Ok(json!({
         "idcc": ctx.entreprise.idcc.texte().trim(),
         "a_saisir": a_saisir,
@@ -167,28 +164,17 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// ecrit ce qui change a partir du premier jour du mois (`droit::fiche::dater` : la premiere composition vaut de tout
 /// temps), et rend la lecture. Ce qui precede le mois ne change pas.
 pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let saisies = g(charge, "contrats").as_object().cloned().unwrap_or_default();
+    let saisies: BTreeMap<String, Saisie> = socle::forme::lire::<Option<BTreeMap<String, Saisie>>>(g(charge, "contrats"), "Les contrats saisis ne se lisent pas : chacun dit sa référence (libelle) et son organisme.")
+        .map_err(refus)?
+        .unwrap_or_default();
     let periode = periode(ctx, charge)?;
     let du_mois = ctx.au(&periode.1).map_err(plain)?;
     let (saisi, prises) = saisis(&du_mois).map_err(plain)?;
     let compose = composer(&du_mois, &saisi, prises, &saisies, Some(&periode)).map_err(refus)?;
     // Ce qu'un texte donne entier (sa reference de contrat et son identifiant) ne s'ecrit pas : il se recompose a la
     // date de chaque mois, sous la convention de ce mois.
-    let fixes: Vec<String> = attendus(&du_mois, &base(&du_mois).map_err(plain)?)
-        .map_err(plain)?
-        .iter()
-        .filter(|s| vrai(g(s, "libelle")))
-        .map(|s| txt(g(s, "cle")))
-        .collect();
-    let adhesions: Vec<Value> = compose
-        .get("adhesions_prevoyance")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter(|a| !fixes.contains(&txt(g(a, "cle"))))
-        .cloned()
-        .collect();
-    let adhesions = Value::Array(adhesions);
+    let fixes: Vec<String> = attendus(&du_mois).map_err(plain)?.iter().filter(|s| !s.libelle_donne().is_empty()).map(|s| s.cle.trim().to_string()).collect();
+    let adhesions: Vec<Adhesion> = compose.adhesions_prevoyance.into_iter().filter(|a| !fixes.contains(&a.cle)).collect();
     let (en_vigueur, _) = saisis(&du_mois.au(&periode.0).map_err(plain)?).map_err(plain)?;
     // Le fichier ne garde que la saisie : tout autre cle se recompose des textes (`droit::organismes`).
     let mut date = droit::organismes::fichier_organismes(ctx).map_err(plain)?;
@@ -198,9 +184,9 @@ attribues, date : chaque cle est une liste {depuis, valeur}. Le reste se compose
 mois. Ne pas modifier a la main."
             .to_string(),
     );
-    if en_vigueur.get("adhesions_prevoyance") != Some(&adhesions) {
-        let lues: Vec<droit::organismes::Adhesion> = droit::fiche::lire_saisie(&adhesions, "config/organismes.json").map_err(plain)?;
-        droit::fiche::dater(&mut date.adhesions_prevoyance, droit::fiche::Case::Dite(lues), Some(&periode.0), None);
+    // Rien de saisi en vigueur s'ecrit aussi : la composition du mois devient la saisie de la periode.
+    if en_vigueur.is_empty() || en_vigueur != adhesions {
+        droit::fiche::dater(&mut date.adhesions_prevoyance, droit::fiche::Case::Dite(adhesions), Some(&periode.0), None);
     }
     let p = chemin(ctx);
     if let Some(parent) = p.parent() {

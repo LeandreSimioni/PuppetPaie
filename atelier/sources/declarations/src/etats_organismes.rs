@@ -338,15 +338,11 @@ fn nom_de_la_dsn(m: &str, partie: bool) -> String {
 
 /// SIRET -> libelle, lu dans les organismes de la compagnie (`Contexte::organismes`).
 fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
-    let d = ctx.organismes()?;
     let mut out: Vec<(String, String)> = Vec::new();
-    for v in d.get("versements").and_then(Value::as_array).into_iter().flatten() {
-        if let Some(siret) = v.get("siret").filter(|s| vrai(s)) {
-            let (k, lib) = (valeur_en_texte(siret), v.get("libelle").map(valeur_en_texte).unwrap_or_default());
-            match out.iter_mut().find(|(c, _)| *c == k) {
-                Some(x) => x.1 = lib,
-                None => out.push((k, lib)),
-            }
+    for v in ctx.organismes()?.versements() {
+        match out.iter_mut().find(|(c, _)| *c == v.siret) {
+            Some(x) => x.1 = v.libelle.clone(),
+            None => out.push((v.siret.clone(), v.libelle.clone())),
         }
     }
     Ok(out)

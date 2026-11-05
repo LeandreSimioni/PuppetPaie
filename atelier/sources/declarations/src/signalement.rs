@@ -47,11 +47,6 @@ fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
     v.get(k).unwrap_or(&NUL)
 }
 
-/// `v[k]` : la cle doit exister (`KeyError`).
-fn req<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
-}
-
 fn s(v: &Value, k: &str) -> String {
     en_texte(g(v, k))
 }
@@ -429,13 +424,10 @@ annule-et-remplace (type 03)."
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = ctx.organismes()?;
     let jour = engagement::imprevus::dernier_jour_declare(&a.v)?;
-    for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-        if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {
-            continue;
-        }
-        f.add_v("S21.G00.15.001", req(ad, "libelle")?)?;
-        f.add_v("S21.G00.15.002", req(ad, "delegataire")?)?;
-        f.add_v("S21.G00.15.005", req(ad, "reference")?)?;
+    for ad in orgs.adhesions_prevoyance.iter().filter(|ad| ad.en_vigueur(&jour, &jour)) {
+        f.add("S21.G00.15.001", &ad.libelle);
+        f.add("S21.G00.15.002", &ad.delegataire);
+        f.add("S21.G00.15.005", &ad.reference);
     }
 
     // ------------------------------------------------------- S21 individu

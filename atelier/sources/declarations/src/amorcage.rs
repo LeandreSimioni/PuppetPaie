@@ -13,7 +13,7 @@ use engagement::calcul::Paie;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::{
-    affiliations, bloc_anciennete, bloc_contrat, g, liste, req, usage_admet, Fichier, LOGICIEL, VERSION,
+    affiliations, bloc_anciennete, bloc_contrat, g, liste, usage_admet, Fichier, LOGICIEL, VERSION,
 };
 use crate::fctu::Echec;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
@@ -229,13 +229,13 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options, departs: &engagement::d
         let refs = affiliations(&orgs, &*e.nat()?, &[], (e.debut_periode()?, e.fin_periode()?))?;
         crate::dsn::rattachements(paie, &orgs, ent, refs)?.into_iter().map(|a| a.reference).collect()
     };
-    for a in liste(req(&orgs, "adhesions_prevoyance")?) {
-        if !rattachees.contains(&en_texte(req(a, "reference")?)) {
+    for a in &orgs.adhesions_prevoyance {
+        if !rattachees.contains(&a.reference) {
             continue;
         }
-        f.add_v("S21.G00.15.001", req(a, "libelle")?)?;
-        f.add_v("S21.G00.15.002", req(a, "delegataire")?)?;
-        f.add_v("S21.G00.15.005", req(a, "reference")?)?;
+        f.add("S21.G00.15.001", &a.libelle);
+        f.add("S21.G00.15.002", &a.delegataire);
+        f.add("S21.G00.15.005", &a.reference);
     }
 
     // ------------------------------------------------------------ S21 individu

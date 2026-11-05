@@ -13,7 +13,6 @@ use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use droit::fiche::ChampsEntreprise;
-use socle::fichiers::vrai;
 use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
@@ -290,7 +289,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // LES CONTRATS DES PERMANENTS : c'est tout ce que la compagnie a a saisir des organismes (le reste, les textes le
     // donnent : `droit::organismes`). Sans eux, le mois d'un permanent se refuse (`dsn::affiliations`).
     if let (true, Ok(orgs)) = (ctx.emploie_des_permanents(), ctx.organismes()) {
-        if !orgs.pointer("/affiliations_par_nature/permanent/references").is_some_and(vrai) {
+        if orgs.par_nature.permanent.references.is_empty() {
             out.push(manque(
                 "organismes_permanents",
                 "Les contrats de prévoyance et de santé des permanents".into(),

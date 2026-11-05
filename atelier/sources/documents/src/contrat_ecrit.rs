@@ -176,58 +176,37 @@ impl Organisme {
     }
 }
 
-/// Les organismes de la compagnie : ses versements et ses adhesions (`config/organismes.json`, `Contexte::organismes`),
-/// et la partie normative livree (`organismes-base.json`), qui porte les adresses.
+/// Les organismes de la compagnie : ses versements et ses adhesions (`Contexte::organismes`), et la partie normative
+/// livree (`organismes-base.json`), qui porte les adresses et les organismes que la branche designe.
 struct Organismes {
-    compagnie: Value,
-    base: Value,
+    compagnie: droit::organismes::Organismes,
     idcc: String,
 }
 
 impl Organismes {
     fn lire(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise) -> Resultat<Organismes> {
-        let base = socle::fichiers::lire_json(&ctx.code.join("organismes-base.json"))?;
-        Ok(Organismes { compagnie: ctx.organismes()?, base, idcc: ent.idcc.texte().to_string() })
+        Ok(Organismes { compagnie: ctx.organismes()?, idcc: ent.idcc.texte().to_string() })
     }
 
-    fn versements(&self) -> Vec<&Value> {
-        fn de(v: &Value) -> Vec<&Value> {
-            v.get("versements").and_then(Value::as_array).map(|a| a.iter().collect()).unwrap_or_default()
-        }
-        let mut tous = de(&self.compagnie);
-        tous.extend(de(&self.base));
-        tous
-    }
-
-    /// L'organisme de ce siret : son nom, et l'adresse que la compagnie ou la donnee livree lui donne.
+    /// L'organisme de ce siret : son nom, et l'adresse que la donnee livree lui donne.
     fn par_siret(&self, siret: &str) -> Option<Organisme> {
-        let siens: Vec<&Value> = self.versements().into_iter().filter(|v| v.get("siret").and_then(Value::as_str) == Some(siret)).collect();
-        let nom = siens.iter().find_map(|v| v.get("nom").and_then(Value::as_str))?;
-        let adresse = siens.iter().find_map(|v| v.get("adresse").and_then(Value::as_str)).map(str::to_string);
-        Some(Organisme { nom: nom.to_string(), adresse })
+        let v = self.compagnie.base.versement(siret)?;
+        Some(Organisme { nom: v.nom.clone(), adresse: v.adresse.clone() })
     }
 
     /// La caisse de retraite complementaire : l'organisme a qui la compagnie verse la cotisation du regime unifie
     /// Agirc-Arrco (code 131 du bloc S21.G00.81, `organismes-base.json`).
     fn retraite(&self) -> Option<Organisme> {
-        let siret = self.versements().into_iter().find(|v| v.get("codes81").and_then(Value::as_array).is_some_and(|c| c.iter().any(|x| x.as_str() == Some("131"))))?.get("siret")?.as_str()?.to_string();
-        self.par_siret(&siret)
+        let v = self.compagnie.versements().iter().find(|v| v.codes81.iter().any(|c| c == "131"))?;
+        self.par_siret(&v.siret)
     }
 
     /// L'organisme de l'adhesion `cle` (la prevoyance, la sante) : celui que la compagnie a enregistre, sinon celui que
     /// la branche designe (`organisme_fixe` des contrats de `organismes-base.json`). `None` : elle n'a pas ce contrat.
     fn adhesion(&self, cle: &str) -> Option<Organisme> {
-        let enregistre = self.compagnie.get("adhesions_prevoyance").and_then(Value::as_array).and_then(|a| {
-            a.iter().find(|x| x.get("cle").and_then(Value::as_str) == Some(cle)).and_then(|x| x.get("delegataire").and_then(Value::as_str))
-        });
+        let enregistre = self.compagnie.adhesions_prevoyance.iter().find(|a| a.cle == cle).map(|a| a.delegataire.as_str());
         let designe = || {
-            ["tous", self.idcc.as_str()].iter().find_map(|k| {
-                self.base.pointer(&format!("/contrats/{}", k)).and_then(Value::as_array).and_then(|a| {
-                    a.iter()
-                        .find(|x| x.get("cle").and_then(Value::as_str) == Some(cle) && x.get("organisme_fixe").is_some_and(vrai))
-                        .and_then(|x| x.get("organisme").and_then(Value::as_str))
-                })
-            })
+            self.compagnie.base.contrats_de(&self.idcc).filter(|c| c.cle == cle && c.organisme_fixe).find_map(|c| c.organisme.as_deref())
         };
         self.par_siret(enregistre.or_else(designe)?)
     }
@@ -269,7 +248,7 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, 
     );
     // LES ORGANISMES : le nom ET l'adresse (L1242-12, 8°) ; une adresse que la donnee ne porte pas ne se devine pas.
     let org = Organismes::lire(ctx, ent)?;
-    let retraite = org.retraite().ok_or_else(|| socle::echec::avec(format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la table livrée des versements n'en nomme aucune : le signaler au développeur. Rien n'est écrit.", nom), serde_json::json!({"fichier": "organismes-base.json", "cle": "131"})))?;
+    let retraite = org.retraite().ok_or_else(|| socle::echec::avec(format!("Le contrat de {} nomme sa caisse de retraite complémentaire (L. 1242-12, 8°), et la table livrée des versements n'en nomme aucune : le signaler au développeur. Rien n'est écrit.", nom), socle::echec::APart { fichier: Some("organismes-base.json".into()), cle: Some("131".into()), ..Default::default() }))?;
     let manque_adresse = |o: &Organisme| format!("Le contrat de {} donne « le nom et l'adresse » de {} (L. 1242-12, 8°), et cette adresse n'est pas connue du logiciel. Rien n'est écrit.", nom, o.nom);
     m.insert(Marqueur::OrganismesRetraite, retraite.nom_et_adresse().ok_or_else(|| manque_adresse(&retraite))?);
     let (cle_prevoyance, cle_sante) = if nat.permanent() { ("prevoyance_permanents", "sante_permanents") } else { ("interbranche", "tsintermittents") };

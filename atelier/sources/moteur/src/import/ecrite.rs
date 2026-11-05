@@ -24,7 +24,6 @@ use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use engagement::importe::{Attestation, ContratLu, Declaration, PaieLue, PaieVersee};
-use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::num::Decimal;
 use socle::echec::Echec;
@@ -74,9 +73,9 @@ pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Result<Option<(decl
 /// `ErreurOperation` de la regularisation (`regularisation_casc_svp(ecrire=False)`) vaut « rien ». Seuls comptent
 /// le nombre de mois, la periode et le total, que cette fonction calcule comme la regularisation.
 fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
-    let base = declarations::casc::base().map_err(Echec::from)?;
+    let base = droit::adhesions::casc_svp_base().map_err(Echec::from)?;
     let ent = &ctx.entreprise;
-    if ent.idcc.texte() != valeur_en_texte(&base["idcc"]) {
+    if ent.idcc.texte() != base.idcc {
         return Ok(None);
     }
     if !matches!(droit::bareme::casc_exemptee(ent), Ok(false)) {
@@ -87,8 +86,8 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let mut dispo: BTreeSet<String> = BTreeSet::new();
     dispo.extend(engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)?.into_iter().map(|x| x.mois));
     dispo.extend(engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from));
-    let depuis = valeur_en_texte(&base["depuis"]);
-    let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
+    let depuis = base.depuis.clone();
+    let contrat = base.dsn.contrat.clone();
     let mut par_mois: Vec<(String, Decimal)> = Vec::new();
     for m in dispo.iter().filter(|m| **m >= depuis && !faits.contains(*m)) {
         let chemin = match dsn_importee(ctx, m) {
@@ -105,8 +104,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
             masse += b;
         }
         let an: String = m.chars().take(4).collect();
-        let Some(taux) = base["taux"].get(&an) else { return Ok(None) };
-        let taux = socle::num::dec(taux).map_err(Echec::from)?;
+        let Some(taux) = base.taux.de(&an) else { return Ok(None) };
         let cot = (masse * taux / Decimal::from(100)).round_dp_with_strategy(2, rust_decimal::RoundingStrategy::MidpointAwayFromZero);
         par_mois.push((m.clone(), cot));
     }

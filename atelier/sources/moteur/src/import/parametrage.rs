@@ -121,11 +121,10 @@ fn poser_organismes(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String
     if a_saisir.is_empty() || libres.is_empty() {
         return;
     }
-    let roles: Vec<(String, String)> = droit::organismes::base(ctx)
-        .and_then(|b| droit::organismes::attendus(ctx, &b))
+    let roles: Vec<(String, String)> = droit::organismes::attendus(ctx)
         .unwrap_or_default()
         .iter()
-        .map(|s| (texte(s, "cle"), texte(s, "role")))
+        .map(|s| (s.cle.trim().to_string(), s.role.as_deref().unwrap_or_default().trim().to_string()))
         .collect();
     let role_de = |l: &Value| roles.iter().find(|(c, _)| *c == texte(l, "cle")).map(|(_, r)| r.clone()).unwrap_or_default();
     let mut paires: Vec<(&Value, &Adhesion, bool)> = Vec::new();
