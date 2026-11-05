@@ -13,7 +13,7 @@ use crate::conges::{
 };
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::Nature;
-use socle::date::{d, en_texte, repr_flottant};
+use socle::date::{d, en_texte};
 use socle::mois::Mois;
 use crate::Avis;
 use socle::fichiers::vrai;
@@ -28,6 +28,8 @@ static NUL: Value = Value::Null;
 struct Solde {
     lignes: Vec<Value>,
     avertissements: Vec<Avis>,
+    /// La ligne de l'indemnite compensatrice de conges payes (son rang dans `lignes`), ses jours et son montant.
+    conges_payes: Option<(usize, Decimal, Decimal)>,
 }
 
 fn get<'a>(v: &'a Value, k: &str) -> &'a Value {
@@ -313,8 +315,9 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
             let mut cpt2 = cpt.clone();
             cpt2.reports = sub(cpt.reports, entame);
             let ind = indemnite_des_jours(&cpt2, solde, maintien)?;
+            stc.conges_payes = Some((stc.lignes.len(), solde, ind.retenu));
             stc.lignes.push(json!({
-                "rubrique": "indemnite_compensatrice_conges",
+                "rubrique": permanents::regles()?.conges_payes.indemnite_compensatrice.rubrique,
                 "quantite": flot(solde),
                 "taux": flot(taux_au_montant(ind.retenu, solde)),
             }));
@@ -358,10 +361,10 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
             } else {
                 let total = remuneration_du_contrat(ctx, e, mois, brut_des_lignes(ctx, deja)?)?;
                 // Le taux de la loi : la fiche entreprise ne porte aucun accord qui le change.
-                let montant = permanents::indemnite_precarite(total, None)?;
+                let montant = permanents::indemnite_precarite(total)?;
                 if montant > Decimal::ZERO {
-                    stc.lignes.push(json!({"rubrique": "indemnite_precarite", "quantite": 1, "taux": flot(montant)}));
-                    let pour_cent = repr_flottant(0.10 * 100.0);
+                    stc.lignes.push(json!({"rubrique": permanents::regles()?.indemnite_precarite.rubrique, "quantite": 1, "taux": flot(montant)}));
+                    let pour_cent = virgule(mul(permanents::regles()?.indemnite_precarite.taux, Decimal::from(100)).normalize());
                     stc.avertissements.push(info(format!(
                         "{} : indemnité de fin de contrat {} % sur {} de \
                          rémunération totale = {} (L1243-8).",
@@ -470,7 +473,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
     }
 
     // --- le delai de prevenance d'une fin d'essai a l'initiative de l'employeur (L1221-25)
-    delai_de_prevenance(ctx, e, &fin, salaire, motif, &nat, &qui, &mut stc)?;
+    delai_de_prevenance(ctx, e, mois, deja, &fin, salaire, motif, &nat, &qui, &mut stc)?;
 
     // --- l'indemnite de rupture, et laquelle depend du motif
     indemnite_de_rupture(ctx, e, mois, anciennete, motif, &nat, &mut stc)?;
@@ -507,10 +510,14 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
 
 /// L1221-25 : l'employeur qui met fin a l'essai (034) previent le salarie dans un delai qui depend de sa presence ; s'il
 /// ne l'a pas respecte, le salarie a droit, sauf faute grave, a une indemnite egale aux salaires qu'il aurait percus
-/// jusqu'a l'expiration du delai (`preavis.delai_de_prevenance`, ses lectures dans `_lecture`). La ligne : la part du
-/// delai apres la fin du contrat, le salaire de chaque mois pour ses heures (`droit::periodes::part_du_mois`) ; DSN 52 « 017 ».
+/// jusqu'a l'expiration du delai, « indemnité compensatrice de congés payés comprise » (`preavis.delai_de_prevenance`).
+/// La ligne : la part du delai apres la fin du contrat, le salaire de chaque mois pour ses heures
+/// (`droit::periodes::part_du_mois`) ; DSN 52 « 017 ». Les conges que ces jours acquierent (`conges_du_delai`) s'ajoutent
+/// a l'indemnite compensatrice de conges payes du solde.
+#[allow(clippy::too_many_arguments)]
 fn delai_de_prevenance(
-    ctx: &Contexte, e: &Value, fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, qui: &str, stc: &mut Solde,
+    ctx: &Contexte, e: &Value, mois: &str, deja: &[Value], fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature,
+    qui: &str, stc: &mut Solde,
 ) -> Resultat<()> {
     let Some(regle) = permanents::regle_du_delai_de_prevenance(motif)? else {
         return Ok(());
@@ -594,18 +601,85 @@ fn delai_de_prevenance(
         j = f.plus_jours(1)?;
     }
     stc.lignes.push(json!({"rubrique": regle.rubrique, "quantite": flot(fraction), "taux": flot(salaire)}));
+    let montant = eur2(mul(fraction, salaire));
+    let conges = conges_du_delai(ctx, e, mois, fin, &delai.expiration, salaire, montant, stc)?;
+    let avantages = avantages_du_mois(ctx, deja)?;
+    let avantages = if avantages.is_empty() {
+        "Les avantages : le bulletin de ce mois n'en porte aucun, il n'y a rien à ajouter.".to_string()
+    } else {
+        format!(
+            "Les avantages : le bulletin de ce mois porte {} ; la part qui en revient aux jours du délai n'est PAS ajoutée \
+             (le moteur ne sait pas la compter) : l'ajouter à la main.",
+            avantages.join(", ")
+        )
+    };
     stc.avertissements.push(avertir(format!(
         "{} : {} ; le contrat finit le {} : {} jour(s) travaillé(s) du délai non effectué(s), payés {} au salaire mensuel, pour \
-         leurs heures (L1221-25, indemnité compensatrice ; Cass. soc., 20/01/1999 ; DSN 52 : 017). Elle comprend les avantages et \
-         l'indemnité compensatrice de congés payés de ces jours : le moteur ne les a PAS ajoutés, à vérifier. Le décompte \
-         de la présence et du délai est une lecture (permanents-base.json, `preavis.delai_de_prevenance.note`).",
+         leurs heures (L1221-25, indemnité compensatrice ; DSN 52 : 017). L1221-25 la veut « indemnité compensatrice de congés \
+         payés comprise » : {} {} Le décompte de la présence et du délai est une lecture (permanents-base.json, \
+         `preavis.delai_de_prevenance.note`).",
         qui,
         dit,
         fin.jj_mm_aaaa(),
         jours,
-        euros(mul(fraction, salaire))
+        euros(montant),
+        conges,
+        avantages
     )));
     Ok(())
+}
+
+/// LES CONGES DU DELAI NON EFFECTUE (L1221-25 : « indemnité compensatrice de congés payés comprise ») : les jours que la
+/// presence du lendemain de la fin `fin` a l'expiration `expiration` aurait acquis (`permanents::jours_acquis`, L3141-3),
+/// payes au plus favorable du dixieme de ce que le delai paie (`montant`, la remuneration de ces jours) et du maintien
+/// (le salaire du mois `mois` sur ses jours ouvrables, comme le solde ; L3141-24). Ils s'ajoutent a la ligne de
+/// l'indemnite compensatrice de conges payes du solde, ou en font une. Un salarie dont la caisse des Conges Spectacles
+/// paie les conges n'en a pas chez l'employeur (L3141-30). Rend la phrase qui le dit.
+#[allow(clippy::too_many_arguments)]
+fn conges_du_delai(
+    ctx: &Contexte, e: &Value, mois: &str, fin: &socle::date::Jour, expiration: &socle::date::Jour, salaire: Decimal, montant: Decimal,
+    stc: &mut Solde,
+) -> Resultat<String> {
+    if crate::calcul::saisie_declaree_a_la_caisse_des_conges(ctx, e, fin)? {
+        return Ok("ses congés sont payés par la caisse des Congés Spectacles (L3141-30), rien à ajouter.".to_string());
+    }
+    let jours = jours_acquis(&fin.plus_jours(1)?, expiration)?;
+    if jours.is_zero() {
+        return Ok("le délai n'acquiert aucun jour de congé.".to_string());
+    }
+    let m = Mois::lire(mois)?;
+    let ouvrables = Decimal::from(jours_ouvrables(&m.premier_jour(), &m.dernier_jour(), ctx.entreprise.feries_chomes())?);
+    let ouvrables = if ouvrables.is_zero() { Decimal::ONE } else { ouvrables };
+    let ind = permanents::indemnite_conges(jours, montant, jours, eur2(mul(div(salaire, ouvrables), jours)))?;
+    let rubrique = permanents::regles()?.conges_payes.indemnite_compensatrice.rubrique.clone();
+    let (rang, total_jours, total) = match stc.conges_payes {
+        Some((rang, j, m)) => (rang, add(j, jours), add(m, ind.retenu)),
+        None => {
+            stc.lignes.push(Value::Null);
+            (stc.lignes.len() - 1, jours, ind.retenu)
+        }
+    };
+    stc.lignes[rang] = json!({"rubrique": rubrique, "quantite": flot(total_jours), "taux": flot(taux_au_montant(total, total_jours))});
+    stc.conges_payes = Some((rang, total_jours, total));
+    Ok(format!(
+        "ces jours acquièrent {} jour(s) de congé (L3141-3), payés {} ({}, L3141-24), ajoutés à l'indemnité compensatrice de \
+         congés payés.",
+        virgule(arrondir_jours(jours)),
+        euros(ind.retenu),
+        ind.regle
+    ))
+}
+
+/// Les avantages en nature que les lignes du mois `deja` portent (leur libelle).
+fn avantages_du_mois(ctx: &Contexte, deja: &[Value]) -> Resultat<Vec<String>> {
+    let mut out = Vec::new();
+    for l in deja {
+        let r = rubrique(&ctx.racine, &t(cle(l, "rubrique")?), &ctx.lue_au)?;
+        if r.nature == "avantage_nature" {
+            out.push(r.libelle);
+        }
+    }
+    Ok(out)
 }
 
 /// Ce que la fin d'un contrat ouvre au salarie, selon sa cause : licenciement,
@@ -688,6 +762,9 @@ fn indemnite_de_rupture(
     } else {
         let rc = permanents::indemnite_rupture_conventionnelle(anciennete, retenu)?;
         let plancher = get(&rc, "plancher");
+        if vrai(plancher) && vrai(get(&rc, "pourquoi")) {
+            stc.avertissements.push(info(format!("{} : {}", qui, t(get(&rc, "pourquoi")))));
+        }
         legale = json!({
             "montant": if vrai(plancher) { plancher.clone() } else { Value::String(zero2().to_string()) },
             "du": !plancher.is_null(),
@@ -1056,7 +1133,7 @@ fn indemnite_de_licenciement(
     verifier_les_plafonds(ctx, mois, montant, "licenciement", &qui)?;
     let part_legale = plus_petit(montant, m_legal);
     if part_legale > Decimal::ZERO {
-        let mut ligne = json!({"rubrique": "indemnite_licenciement", "quantite": 1, "taux": flot(part_legale)});
+        let mut ligne = json!({"rubrique": permanents::regles()?.indemnite_licenciement.rubrique, "quantite": 1, "taux": flot(part_legale)});
         if saisi.is_some() {
             ligne["montant"] = json!(flot(part_legale));
         }

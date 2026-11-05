@@ -30,7 +30,7 @@ use socle::fichiers::{repr, vrai};
 use socle::texte::{euros, virgule};
 use socle::num::{add, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
 use droit::conges::{jours_ouvrables, IndemniteDesJours};
-use droit::permanents::{arrondir_jours, jours_acquis, periode_de_reference, plafonner, Acquisition};
+use droit::permanents::{arrondir_jours, duree_du_conge, jours_acquis, periode_de_reference, plafonner, Acquisition};
 
 // ------------------------------------------------------------ les aides
 
@@ -687,7 +687,8 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
     };
     let (mut reste, mut acquis_report, mut report_debut, mut report_fin) = (c.reports, c.acquis_report, c.report_debut, c.report_fin);
     if parcourue {
-        let acquis_total = plafonner(tenue.acquis)?;
+        // L3141-7 : la periode qui se clot donne sa duree de conge, a l'entier superieur.
+        let acquis_total = duree_du_conge(plafonner(tenue.acquis)?)?;
         let deja = c.pris_sur_la_periode;
         let (pris, acquis) = (sub(tenue.pris, deja), sub(acquis_total, deja));
         let sur_reste = pris.min(reste.max(Decimal::ZERO));
@@ -800,6 +801,8 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
         // Les jours deja pris par l'ancien logiciel sur SA periode N sont
         // imputes sur N, pas sur le report.
         let deja = pris_de_la_reprise(ctx, cle_salarie, &p_debut, &p_fin)?;
+        // L3141-7 : la periode close donne sa duree de conge, a l'entier superieur.
+        let acquis = duree_du_conge(acquis)?;
         let acquis_total = acquis;
         let (pris, acquis) = (sub(pris, deja), sub(acquis, deja));
         let sur_reste = pris.min(reste.max(Decimal::ZERO));

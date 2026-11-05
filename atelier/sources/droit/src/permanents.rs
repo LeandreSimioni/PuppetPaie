@@ -12,7 +12,7 @@ use serde::Deserialize;
 use socle::date::{jours_du_mois, Jour};
 use socle::feries::date_ou_refus;
 use socle::fichiers::{forme_en_cache, repr, vrai, FormeGardee};
-use socle::num::{add, sub, dec, dec_f64, div, eur2, mul, zero2, Decimal, Resultat};
+use socle::num::{add, sub, div, eur2, mul, zero2, Decimal, Resultat};
 use rust_decimal::prelude::*;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -64,7 +64,6 @@ forme! {
         pub maintien_de_salaire: Maintien,
         pub indemnites_journalieres: IndemnitesJournalieres,
         pub suspensions: Suspensions,
-        pub documents_de_fin_de_contrat: DocumentsDeFin,
     }
 }
 
@@ -85,13 +84,31 @@ forme! {
 }
 
 forme! {
+    /// Ce qui n'a pas de valeur a soi : le texte qui fonde ce que le moteur fait (`source`), et ce qu'il en dit.
+    pub struct Fondee {}
+}
+
+forme! {
     pub struct AcquisitionDesConges {
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub jours_par_mois: Decimal,
-        pub unite: String,
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub maximum_annuel: Decimal,
-        pub arrondi: String,
+        pub arrondi: ArrondiDuConge,
+    }
+}
+
+/// Vers ou s'arrondit une duree de conge qui n'est pas un nombre entier de jours (L3141-7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VersArrondi {
+    EntierSuperieur,
+}
+
+forme! {
+    /// `conges_payes.acquisition.arrondi` : L3141-7.
+    pub struct ArrondiDuConge {
+        pub vers: VersArrondi,
     }
 }
 
@@ -104,22 +121,15 @@ forme! {
 
 forme! {
     pub struct Indemnisation {
-        pub regle: String,
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub dixieme: Decimal,
-        pub maladie_non_professionnelle: MaladieNonProfessionnelle,
-    }
-}
-
-forme! {
-    pub struct MaladieNonProfessionnelle {
-        #[serde(deserialize_with = "socle::forme::decimal")]
-        pub taux_assimilation: Decimal,
     }
 }
 
 forme! {
     pub struct IndemniteCompensatriceDeConges {
+        /// La rubrique de la ligne que le solde ecrit (`rubriques-base.json`).
+        pub rubrique: String,
         pub dsn_bloc52: CodeDsn,
     }
 }
@@ -129,8 +139,7 @@ forme! {
     pub struct Precarite {
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub taux: Decimal,
-        #[serde(deserialize_with = "socle::forme::decimal")]
-        pub taux_reduit_par_accord: Decimal,
+        pub rubrique: String,
         pub dsn_bloc52: CodeDsn,
         /// Les natures de contrat (`contrats-base.json`) qui n'y ont pas droit, et pourquoi.
         pub natures_exclues: BTreeMap<String, String>,
@@ -172,6 +181,7 @@ forme! {
     pub struct RegleDuDelaiDePrevenance {
         pub motif_rupture: String,
         pub rubrique: String,
+        pub dsn_bloc52: CodeDsn,
         pub tranches: Vec<TrancheDeDelai>,
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub cdd_essai_minimum_jours: Decimal,
@@ -209,8 +219,9 @@ forme! {
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub anciennete_minimale_mois: Decimal,
         pub taux: Vec<TauxDeLicenciement>,
-        pub salaire_de_reference: SalaireDeReference,
+        pub salaire_de_reference: Fondee,
         pub motifs_sans_indemnite: ParMotif,
+        pub rubrique: String,
         pub dsn_bloc52: CodeDsn,
     }
 }
@@ -222,19 +233,6 @@ forme! {
         pub jusqu_a_annees: Option<Decimal>,
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub fraction_de_mois: Decimal,
-    }
-}
-
-forme! {
-    pub struct SalaireDeReference {
-        pub regle: String,
-        pub formules: Vec<Formule>,
-    }
-}
-
-forme! {
-    pub struct Formule {
-        pub cle: String,
     }
 }
 
@@ -262,7 +260,9 @@ forme! {
 }
 
 forme! {
+    /// Ce qu'une indemnite supporte, que sa rubrique (`rubriques-base.json`) porte a l'identique.
     pub struct RegimeDUneIndemnite {
+        pub rubrique: String,
         pub imposable: bool,
         pub soumis: bool,
     }
@@ -291,28 +291,17 @@ forme! {
         pub motif_rupture: String,
         pub dsn_bloc52: CodeDsn,
         pub rubrique: String,
-        pub indemnite: Plancher,
-        pub preavis: PreavisDeRupture,
-        pub calendrier: Calendrier,
+        pub indemnite: PlancherDeRupture,
+        pub preavis: Fondee,
+        pub calendrier: Fondee,
     }
 }
 
 forme! {
-    pub struct Plancher {
-        pub plancher: String,
-    }
-}
-
-forme! {
-    pub struct PreavisDeRupture {
-        pub du: bool,
-    }
-}
-
-forme! {
-    pub struct Calendrier {
-        pub retractation_jours_calendaires: i64,
-        pub instruction_jours_ouvrables: i64,
+    /// Le plancher de l'indemnite de rupture conventionnelle : celle de L1234-9 ; sous son anciennete minimale, au prorata
+    /// des mois de presence quand `prorata_sous_l_anciennete_minimale` (la circulaire DGT 2009-4, 5.3).
+    pub struct PlancherDeRupture {
+        pub prorata_sous_l_anciennete_minimale: bool,
     }
 }
 
@@ -320,18 +309,11 @@ forme! {
     pub struct MiseALaRetraite {
         pub motif_rupture: String,
         pub dsn_bloc52: CodeDsn,
+        pub dsn_bloc52_conventionnelle: CodeDsn,
         pub rubrique: String,
-        pub indemnite: Plancher,
-        pub preavis: PreavisDeRupture,
-        pub age: Age,
-    }
-}
-
-forme! {
-    pub struct Age {
-        pub verifie: bool,
-        pub delai_question_mois_avant_anniversaire: i64,
-        pub delai_reponse_mois: i64,
+        pub indemnite: Fondee,
+        pub preavis: Fondee,
+        pub age: Fondee,
     }
 }
 
@@ -339,16 +321,17 @@ forme! {
     pub struct DepartALaRetraite {
         pub motif_rupture: String,
         pub dsn_bloc52: CodeDsn,
+        pub dsn_bloc52_conventionnelle: CodeDsn,
         pub rubrique: String,
         pub indemnite: IndemniteDeDepart,
-        pub preavis: PreavisDeRupture,
+        pub preavis: Fondee,
     }
 }
 
 forme! {
     pub struct IndemniteDeDepart {
         pub taux: Vec<PalierDeDepart>,
-        pub salaire_de_reference: SalaireDeReference,
+        pub salaire_de_reference: Fondee,
     }
 }
 
@@ -579,14 +562,6 @@ impl MotifDeSuspension {
     }
 }
 
-forme! {
-    pub struct DocumentsDeFin {
-        pub attestation_france_travail: String,
-        pub certificat_de_travail: String,
-        pub recu_pour_solde_de_tout_compte: String,
-    }
-}
-
 const ILLISIBLE: &str = "Les règles des contrats permanents livrées avec le logiciel ne se lisent pas : le signaler au développeur.";
 
 /// LA SEULE LECTURE DE `permanents-base.json` : sa forme.
@@ -679,33 +654,38 @@ pub fn plafonner(acquis: Decimal) -> Resultat<Decimal> {
     Ok(acquis.min(regles()?.conges_payes.acquisition.maximum_annuel))
 }
 
-/// Le solde affiche : au demi-jour superieur.
+/// LA DUREE DU CONGE qu'une periode de reference a acquise, quand elle se clot (L3141-7 : un nombre de jours qui n'est
+/// pas entier « est porté au nombre entier immédiatement supérieur ») : `acquis`, deja plafonne, arrondi
+/// (`conges_payes.acquisition.arrondi`).
+pub fn duree_du_conge(acquis: Decimal) -> Resultat<Decimal> {
+    Ok(match regles()?.conges_payes.acquisition.arrondi.vers {
+        // Un nombre deja entier garde son ecriture (`30.0`).
+        VersArrondi::EntierSuperieur if acquis.fract().is_zero() => acquis,
+        VersArrondi::EntierSuperieur => acquis.ceil(),
+    })
+}
+
+/// Le compte affiche : au demi-jour superieur (un affichage, pas une regle).
 pub fn arrondir_jours(jours: Decimal) -> Decimal {
     let demi = (jours * Decimal::from(2)).ceil();
     div(demi, Decimal::from(2)).normalize()
 }
 
-/// L'indemnite pour des jours de conges pris : le dixieme, le maintien, et
-/// celui qui gagne.
+/// L'indemnite pour des jours de conges pris (L3141-24) : le dixieme de la remuneration de la periode, au prorata des
+/// jours qu'elle a acquis, le maintien, et celui qui gagne.
 pub fn indemnite_conges(
     jours_pris: Decimal,
     remuneration_periode: Decimal,
     jours_acquis_periode: Decimal,
     maintien: Decimal,
-) -> Resultat<Value> {
+) -> Resultat<crate::conges::IndemniteDesJours> {
     let taux = regles()?.conges_payes.indemnisation.dixieme;
     let dixieme = if jours_acquis_periode > Decimal::ZERO {
         eur2(div(mul(mul(remuneration_periode, taux), jours_pris), jours_acquis_periode))
     } else {
         zero2()
     };
-    let maintien = eur2(maintien);
-    Ok(json!({
-        "dixieme": dv(dixieme),
-        "maintien": dv(maintien),
-        "retenu": dv(dixieme.max(maintien)),
-        "regle": if dixieme > maintien { "dixieme" } else { "maintien" },
-    }))
+    Ok(crate::conges::la_plus_forte(dixieme, maintien))
 }
 
 
@@ -730,8 +710,7 @@ pub fn indemnite_des_jours(
     let reste = sub(jours, sur_report);
     let mut dixieme = zero2();
     let dixieme_de = |jours: Decimal, a: Acquisition| -> Resultat<Decimal> {
-        let v = indemnite_conges(jours, a.remuneration, if a.jours != Decimal::ZERO { a.jours } else { jours }, Decimal::ZERO)?;
-        dec(v.get("dixieme").ok_or_else(|| socle::fichiers::absent("dixieme"))?)
+        Ok(indemnite_conges(jours, a.remuneration, if a.jours != Decimal::ZERO { a.jours } else { jours }, Decimal::ZERO)?.dixieme)
     };
     if sur_report != Decimal::ZERO {
         dixieme += dixieme_de(sur_report, report)?;
@@ -759,14 +738,10 @@ pub fn precarite_due(nature: &Nature, motif_rupture: Option<&str>) -> Resultat<O
     Ok(r.motifs_rupture_exclus.get(motif_texte(motif_rupture)).cloned())
 }
 
-/// 10 % de la remuneration totale brute versee pendant le CDD ; `taux` est
-/// le taux reduit, et seulement quand un accord le prevoit.
-pub fn indemnite_precarite(remuneration_totale: Decimal, taux: Option<f64>) -> Resultat<Decimal> {
-    let t = match taux {
-        Some(x) => dec_f64(x)?,
-        None => regles()?.indemnite_precarite.taux,
-    };
-    Ok(eur2(mul(remuneration_totale, t)))
+/// 10 % de la remuneration totale brute versee pendant le CDD (L1243-8 ; la fiche entreprise ne porte aucun accord de
+/// L1243-9).
+pub fn indemnite_precarite(remuneration_totale: Decimal) -> Resultat<Decimal> {
+    Ok(eur2(mul(remuneration_totale, regles()?.indemnite_precarite.taux)))
 }
 
 /// L'anciennete en mois : les mois complets et la fraction du mois entame.
@@ -977,7 +952,7 @@ pub fn indemnite_licenciement(
     if anciennete < mini {
         return Ok(json!({"montant": dv(zero2()), "du": false, "pourquoi": format!(
             "{} mois d'anciennete, et l'indemnite legale de licenciement en demande {} (L1234-9).",
-            arrondir_jours(anciennete), mini)}));
+            mois_complets(anciennete), mini)}));
     }
     let (montant, annees) = bareme_licenciement(anciennete, reference)?;
     Ok(json!({"montant": dv(montant), "du": true, "pourquoi": null, "annees": dv(annees)}))
@@ -986,9 +961,11 @@ pub fn indemnite_licenciement(
 /// Le montant de R1234-2, sans condition ni exclusion : un quart de mois
 /// par annee jusqu'a dix ans, un tiers au-dela. Sert au licenciement, a la
 /// mise a la retraite et a la rupture conventionnelle.
+/// R1234-1 : « En cas d'année incomplète, l'indemnité est calculée proportionnellement au nombre de mois complets » ; le
+/// mois entame ne compte pas.
 fn bareme_licenciement(anciennete: Decimal, reference: Decimal) -> Resultat<(Decimal, Decimal)> {
     let rg = regles()?;
-    let annees = div(anciennete, douze());
+    let annees = div(mois_complets(anciennete), douze());
     let (mut total, mut bas) = (Decimal::ZERO, Decimal::ZERO);
     for t in &rg.indemnite_licenciement.taux {
         let haut = t.jusqu_a_annees.unwrap_or(annees);
@@ -1000,6 +977,11 @@ fn bareme_licenciement(anciennete: Decimal, reference: Decimal) -> Resultat<(Dec
         }
     }
     Ok((eur2(mul(total, reference)), annees))
+}
+
+/// Les mois complets d'une anciennete en mois.
+fn mois_complets(anciennete: Decimal) -> Decimal {
+    anciennete.floor()
 }
 
 /// L'anciennete minimale de l'indemnite de licenciement (L1234-9), en mois.
@@ -1076,21 +1058,31 @@ pub fn indemnite_mise_a_la_retraite(anciennete: Decimal, reference: Decimal) -> 
         return Ok(json!({"montant": dv(zero2()), "du": false, "pourquoi": format!(
             "{} mois d'anciennete : L1237-7 renvoie a l'indemnite de L1234-9, qui en demande {}. \
              La convention collective peut en prevoir une.",
-            arrondir_jours(anciennete), mini)}));
+            mois_complets(anciennete), mini)}));
     }
     let (montant, annees) = bareme_licenciement(anciennete, reference)?;
     Ok(json!({"montant": dv(montant), "du": true, "pourquoi": null, "annees": dv(annees)}))
 }
 
-/// Le plancher de l'indemnite de rupture conventionnelle ; `None` sous
-/// huit mois d'anciennete.
+/// Le plancher de l'indemnite de rupture conventionnelle (L1237-13 : celle de L1234-9). Sous l'anciennete minimale de
+/// L1234-9, au prorata des mois complets quand `rupture_conventionnelle.indemnite` le dit (la circulaire DGT 2009-4, au
+/// taux de R1234-2 en vigueur), avec la phrase qui le dit (`pourquoi`) ; sinon pas de plancher (`null`).
 pub fn indemnite_rupture_conventionnelle(anciennete: Decimal, reference: Decimal) -> Resultat<Value> {
     let mini = anciennete_minimale()?;
     if anciennete < mini {
+        if regles()?.rupture_conventionnelle.indemnite.prorata_sous_l_anciennete_minimale && !mois_complets(anciennete).is_zero() {
+            let (plancher, annees) = bareme_licenciement(anciennete, reference)?;
+            return Ok(json!({"plancher": dv(plancher), "annees": dv(annees), "pourquoi": format!(
+                "{} mois complets d'ancienneté, moins que les {} de L1234-9 : la circulaire DGT 2009-4 (5.3) dit \
+                 l'indemnité spécifique due « au prorata du nombre de mois de présence » ; le plancher est celui de \
+                 R1234-2 en vigueur (un quart de mois par année) sur ces mois. C'est la lecture de l'administration, \
+                 qui homologue la convention, pas la loi.",
+                mois_complets(anciennete), mini)}));
+        }
         return Ok(json!({"plancher": null, "annees": dv(div(anciennete, Decimal::from(12))), "pourquoi": format!(
             "{} mois d'anciennete : L1237-13 renvoie a l'indemnite de L1234-9, qui en demande {}, \
              donc la loi ne donne pas de plancher. Le montant de la convention se saisit.",
-            arrondir_jours(anciennete), mini)}));
+            mois_complets(anciennete), mini)}));
     }
     let (plancher, annees) = bareme_licenciement(anciennete, reference)?;
     Ok(json!({"plancher": dv(plancher), "annees": dv(annees), "pourquoi": null}))

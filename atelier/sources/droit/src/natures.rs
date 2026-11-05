@@ -188,7 +188,7 @@ struct Dpae {
     #[serde(rename = "quoi")]
     _quoi: String,
     #[serde(rename = "source")]
-    _source: String,
+    _source: crate::source::Fondement,
     type_contrat: TypeContratDpae,
     date_fin: DateFinDpae,
 }
@@ -594,7 +594,7 @@ struct Fichier {
     #[serde(rename = "note")]
     _note: String,
     #[serde(rename = "source")]
-    _source: String,
+    _source: crate::source::Fondement,
     categories_d_emploi: CategoriesDEmploi,
     /// Dans l'ordre du fichier.
     #[serde(deserialize_with = "socle::forme::en_ordre")]
