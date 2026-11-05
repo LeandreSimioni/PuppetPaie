@@ -610,7 +610,7 @@ pub fn indemnite_licenciement(
     if lectures.is_empty() {
         let p = format!(
             "{} mois d'anciennete, et {} en demande {}",
-            quantifier(a, 1),
+            plancher(a),
             article,
             texte(cle(sec, "anciennete_minimale_mois")?)
         );
