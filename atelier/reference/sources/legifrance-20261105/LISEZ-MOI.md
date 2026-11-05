@@ -15,3 +15,10 @@ aussi.
 **Une lecture, pas un texte** : qu'une rupture de CDD pendant l'essai n'ouvre pas l'indemnité de précarité se déduit de
 L1243-1 (la rupture anticipée n'est encadrée qu'« après l'expiration de la période d'essai ») et de L1243-8 (l'indemnité
 n'est due qu'« à l'issue » du contrat) ; L1243-10 ne nomme pas ce cas. Aucun arrêt déposé ne la confirme.
+
+## Envoyés ensuite, le même jour
+
+| Fichier | Articles | Où le moteur s'en sert |
+|---|---|---|
+| `legifrance-code-travail-L1234-1-a-L1234-8-20261105` | préavis et indemnité compensatrice de préavis. **Page imprimée dans sa « version en vigueur au 01 mai 2008 »** : L1234-1 à L1234-7 n'ont pas changé depuis ; L1234-8 y est la version close le 24/12/2025 (la version actuelle n'est pas déposée ; le moteur ne cite pas L1234-8). L1234-7 : « La cessation de l'entreprise ne libère pas l'employeur de l'obligation de respecter le préavis. » | `permanents-base.json`, `preavis.indemnite_compensatrice.motifs_a_trancher["065"]` |
+| `legifrance-code-travail-L3142-79-a-L3142-88-20261105` | congés des salariés candidats ou élus à un mandat parlementaire ou local, version en vigueur au 05/11/2026 (L3142-83 à L3142-88 depuis le 24/12/2025) | `permanents-base.json`, `conges_payes` : le 8° de L3141-5 (mandat électif local) y renvoie |
