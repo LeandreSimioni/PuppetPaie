@@ -109,7 +109,7 @@ fn a_dire_par_salarie(importes: &[Importe]) -> BTreeMap<String, (usize, String, 
 /// Les salaries dont des contrats repris attendent leur nature : `[{salarie, nom, contrats, du, au, en_cours, suite,
 /// natures: [{cle, libelle, demande}]}]`, dans l'ordre des cles. `en_cours` : il est paye le dernier mois repris, son
 /// contrat court peut-etre encore (`suite` : le mois qui suit). Ne leve jamais : un historique illisible n'a rien a dire.
-pub(crate) fn a_dire(racine: &Path) -> Vec<Value> {
+pub(crate) fn a_dire(racine: &Path) -> Vec<ADire> {
     let importes = importes(racine);
     let par = a_dire_par_salarie(&importes);
     if par.is_empty() {
@@ -117,16 +117,72 @@ pub(crate) fn a_dire(racine: &Path) -> Vec<Value> {
     }
     let suite = socle::mois::Mois::lire(&dernier_mois(&importes)).map(|m| m.suivant().to_string()).unwrap_or_default();
     let natures = natures_permanentes().unwrap_or_default();
+    let jour = |iso: &str| socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string());
     par.into_iter()
-        .map(|(s, (n, du, au, en_cours))| {
-            let natures: Vec<Value> =
-                natures.iter().map(|x| json!({"cle": x.cle, "libelle": x.libelle, "demande": demande(x, en_cours)})).collect();
+        .map(|(salarie, (contrats, du, au, en_cours))| {
+            let natures = natures.iter().map(|x| NatureProposee { cle: x.cle.clone(), libelle: x.libelle.clone(), demande: demande(x, en_cours) }).collect();
             // Le mois de la derniere DSN qui l'a declare, tel que l'ecran le lit (« de novembre 2026 »).
             let au_dit = crate::regularisation::de_mois_en_clair(au.get(..7).unwrap_or(&au));
-            json!({"salarie": s, "nom": nom_du_salarie(racine, &s), "contrats": n, "du": du, "au": au, "au_dit": au_dit, "en_cours": en_cours,
-                   "suite": if en_cours { json!(suite) } else { Value::Null }, "natures": natures})
+            let nom = nom_du_salarie(racine, &salarie);
+            let periode = if du.is_empty() { String::new() } else { format!(", du {} au {}", jour(&du), jour(&au)) };
+            let dit = format!(
+                "{} contrat{} repris{} : ses bulletins n'ont pas de Congés Spectacles ni de numéro d'objet, c'est un contrat de permanent.",
+                contrats,
+                if contrats > 1 { "s" } else { "" },
+                periode
+            );
+            let en_cours_dit = en_cours.then(|| {
+                format!(
+                    "Payé jusqu'en {} : son contrat continue en {}, et sa DSN le déclare avec la date de début et le numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur le bulletin.",
+                    socle::mois::Mois::en_clair(au.get(..7).unwrap_or(&au)),
+                    socle::mois::Mois::en_clair(&suite)
+                )
+            });
+            ADire {
+                numero_placeholder: format!("sur la DSN {}", au_dit),
+                choix_dit: format!("Nature du contrat de {}", nom),
+                salarie,
+                nom,
+                contrats,
+                du,
+                au,
+                au_dit,
+                en_cours,
+                suite: en_cours.then(|| suite.clone()),
+                natures,
+                dit,
+                en_cours_dit,
+            }
         })
         .collect()
+}
+
+/// Les contrats d'un salarie dont la nature reste a dire, et ce que la page en dit.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct ADire {
+    pub(crate) salarie: String,
+    pub(crate) nom: String,
+    pub(crate) contrats: usize,
+    pub(crate) du: String,
+    pub(crate) au: String,
+    pub(crate) au_dit: String,
+    /// Paye le dernier mois repris : son contrat court peut-etre encore (`suite` : le mois qui suit).
+    pub(crate) en_cours: bool,
+    pub(crate) suite: Option<String>,
+    pub(crate) natures: Vec<NatureProposee>,
+    pub(crate) numero_placeholder: String,
+    pub(crate) choix_dit: String,
+    pub(crate) dit: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) en_cours_dit: Option<String>,
+}
+
+/// Une nature de permanent qui peut se dire, et ce qu'elle demande d'un contrat qui court encore.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct NatureProposee {
+    pub(crate) cle: String,
+    pub(crate) libelle: String,
+    pub(crate) demande: Vec<&'static str>,
 }
 
 fn refus(m: impl Into<String>) -> socle::echec::Echec {
@@ -264,7 +320,7 @@ pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
     let Ok(permises) = natures_permanentes() else { return Vec::new() };
     let mut faits = Vec::new();
     for x in a_dire(racine) {
-        let salarie = texte(&x, "salarie");
+        let salarie = x.salarie.clone();
         let Ok(ctx) = Contexte::nouveau(racine, Some(*quand)) else { break };
         let nir = ctx.salaries.get(salarie.as_str()).map(|f| f.nir.texte().to_string()).unwrap_or_default();
         if nir.is_empty() {
@@ -277,7 +333,7 @@ pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
         else {
             continue;
         };
-        let en_cours = x.get("en_cours").is_some_and(vrai);
+        let en_cours = x.en_cours;
         let lu = |k: &str| p.get(k).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
         let mut charge = Map::new();
         charge.insert("salarie".into(), json!(salarie));

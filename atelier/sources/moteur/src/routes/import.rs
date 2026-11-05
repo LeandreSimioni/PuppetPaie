@@ -152,16 +152,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
             let p = format!("Dans le dossier lu : {}DSN : {} ; AEM : {}. Rien n'est écrit.", bulletins, t(&v, "dsn"), t(&v, "aem"));
             Ok(super::phrase_en_tete(v, p))
         }
-        Route::ImportationEtat => super::lire_charge::<super::SansCharge>(charge).and_then(|_| etat_importation(&ctx.racine)).map(|mut v| {
-            dire_l_etat_de_l_import(&mut v);
-            let t = |k: &str| super::mot(&v[k]);
-            let p = if t("importe_le").is_empty() {
-                "Rien n'est repris d'un ancien logiciel. Ses bulletins, DSN ou AEM se déposent dans le dossier d'import de la compagnie, puis s'importent.".to_string()
-            } else {
-                format!("Repris le {} : {} contrats, {} salariés, du {} au {}.", super::quand(&t("importe_le")), t("contrats"), t("salaries"), super::quand(&t("du")), super::quand(&t("au")))
-            };
-            super::phrase_en_tete(v, p)
-        }),
+        Route::ImportationEtat => {
+            let _: super::SansCharge = super::lire_charge(charge)?;
+            super::en_json(etat_importation(&ctx.racine)?)
+        }
         Route::Importer => crate::import::ecrite::importer(ctx, charge).map(avec_les_pastilles),
         // La nature des contrats repris qu'aucun bulletin ne dit.
         Route::ImportationNature => crate::import::nature::dire(ctx, charge),
@@ -670,7 +664,7 @@ pub(crate) fn apercu_lu(
 ///   compte ceux qui n'ont pas de reponse.
 ///
 /// Ces ajouts ne levent jamais : une ligne qui n'a pas la forme attendue n'est pas comptee.
-fn etat_importation(racine: &Path) -> R<Value> {
+fn etat_importation(racine: &Path) -> R<EtatImportation> {
     let contrats = engagement::importe::contrats_lus(racine).map_err(Echec::from)?;
     let paies = engagement::importe::paies_lues(racine).map_err(Echec::from)?;
     let importe_le = contrats.iter().filter_map(|c| c.contrat.importe_le.clone()).chain(paies.iter().filter_map(|p| p.paie.importe_le.clone())).max().unwrap_or_default();
@@ -680,26 +674,112 @@ fn etat_importation(racine: &Path) -> R<Value> {
     let salaries: HashSet<&str> = contrats.iter().map(|c| c.salarie.as_str()).filter(|s| !s.is_empty()).collect();
     let objets: HashSet<&str> = contrats.iter().filter_map(|c| c.contrat.numero_objet.as_deref()).collect();
     let editeur = attend_l_editeur(racine);
-    let attend = editeur.iter().filter(|x| !x.get("repondu").is_some_and(vrai)).count();
-    Ok(json!({
-        "importe_le": importe_le,
-        "contrats": contrats.len(),
-        "salaries": salaries.len(),
-        "objets": objets.len(),
-        "du": debut,
-        "au": fin,
-        "dossier": racine.join("import").display().to_string(),
-        "reprises": reprises_faites(racine, &contrats, &paies),
-        "editeur": editeur,
-        // La pastille de l'historique repris.
-        "pastille_repris": super::pastille("fait", "fait"),
-        "attend_editeur": attend,
-        // Les contrats repris dont la nature reste a dire, par salarie.
-        "a_dire": crate::import::nature::a_dire(racine),
-        // Les permanents dont le contrat continue et dont la fiche ne dit pas les conges a la reprise.
-        // Ce qu'on met dans la boite aux lettres, ce qui s'en lit, ce qui restera a dire (`import::guide`).
-        "guide": crate::import::guide::guide(),
-    }))
+    let attend_editeur = editeur.iter().filter(|x| !x.repondu).count();
+    let reprises = reprises_faites(racine, &contrats, &paies);
+    // L'historique repris en une ligne (`repris_dit`), et son titre : le jour de la derniere reprise.
+    let de = |source: &str| reprises.iter().find(|r| r.source == source);
+    let nombre = |source: &str| de(source).map_or(0, |r| r.nombre) as u64;
+    let quoi: Vec<String> = [
+        n_mots(nombre("bulletins"), "bulletin"),
+        n_mots(de("DSN").and_then(|r| r.declarations).unwrap_or(0) as u64 + nombre("AEM"), "déclaration"),
+        n_mots(nombre("certificats"), "certificat"),
+        n_mots(contrats.len() as u64, "contrat"),
+    ]
+    .into_iter()
+    .filter(|x| !x.is_empty())
+    .collect();
+    let mut bornes: Vec<String> =
+        [&debut, &fin].into_iter().chain(reprises.iter().flat_map(|r| [&r.du, &r.au])).filter(|x| !x.is_empty()).map(|x| x.chars().take(7).collect()).collect();
+    bornes.sort();
+    let periode = match (bornes.first(), bornes.last()) {
+        (Some(du), Some(au)) if du == au => format!(", en {}", socle::mois::Mois::en_clair(du)),
+        (Some(du), Some(au)) => format!(", {} à {}", socle::texte::de(&socle::mois::Mois::en_clair(du)), socle::mois::Mois::en_clair(au)),
+        _ => String::new(),
+    };
+    let repris_dit = (!quoi.is_empty()).then(|| format!("{}{}", quoi.join(", "), periode));
+    let le = std::iter::once(importe_le.clone()).chain(reprises.iter().map(|r| r.le.clone())).filter(|x| !x.is_empty()).max();
+    let repris_titre = match le {
+        Some(l) => format!("Historique repris le {}", super::quand(&l.chars().take(10).collect::<String>())),
+        None => "Historique repris".to_string(),
+    };
+    let phrase = if importe_le.is_empty() {
+        "Rien n'est repris d'un ancien logiciel. Ses bulletins, DSN ou AEM se déposent dans le dossier d'import de la compagnie, puis s'importent.".to_string()
+    } else {
+        format!("Repris le {} : {} contrats, {} salariés, du {} au {}.", super::quand(&importe_le), contrats.len(), salaries.len(), super::quand(&debut), super::quand(&fin))
+    };
+    Ok(EtatImportation {
+        phrase,
+        contrats: contrats.len(),
+        salaries: salaries.len(),
+        objets: objets.len(),
+        importe_le,
+        du: debut,
+        au: fin,
+        dossier: racine.join("import").display().to_string(),
+        reprises,
+        editeur,
+        pastille_repris: super::Pastille::de("fait", "fait"),
+        attend_editeur,
+        a_dire: crate::import::nature::a_dire(racine),
+        guide: crate::import::guide::guide(),
+        repris_dit,
+        repris_titre,
+    })
+}
+
+/// `importation-etat` : ce qui a deja ete repris, et ce que la page en dit.
+#[derive(Debug, serde::Serialize)]
+struct EtatImportation {
+    phrase: String,
+    importe_le: String,
+    contrats: usize,
+    salaries: usize,
+    objets: usize,
+    du: String,
+    au: String,
+    dossier: String,
+    reprises: Vec<RepriseVue>,
+    editeur: Vec<MessageEditeur>,
+    /// La pastille de l'historique repris.
+    pastille_repris: super::Pastille,
+    attend_editeur: usize,
+    /// Les contrats repris dont la nature reste a dire, par salarie.
+    a_dire: Vec<crate::import::nature::ADire>,
+    /// Ce qu'on met dans la boite aux lettres, ce qui s'en lit, ce qui restera a dire (`import::guide`).
+    guide: crate::import::guide::Guide,
+    repris_dit: Option<String>,
+    repris_titre: String,
+}
+
+/// Une source reprise, telle que la page la lit.
+#[derive(Debug, serde::Serialize)]
+struct RepriseVue {
+    source: &'static str,
+    quoi: &'static str,
+    nombre: usize,
+    du: String,
+    au: String,
+    le: String,
+    /// Les DSN reprises : une par mois declare.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    declarations: Option<usize>,
+    /// Les bulletins : les contrats qu'ils attestent, et les pieces copiees sous `historique/bulletins/`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    contrats: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    copies: Option<usize>,
+}
+
+/// Un incident ou un signalement de ce poste qui parle de l'import, tel que la page le lit.
+#[derive(Debug, serde::Serialize)]
+struct MessageEditeur {
+    canal: &'static str,
+    quand: String,
+    resume: String,
+    parti: bool,
+    repondu: bool,
+    pastille: super::Pastille,
+    titre_dit: String,
 }
 
 /// Une source reprise : combien, de quand a quand, quel jour.
@@ -713,7 +793,7 @@ struct Reprise {
 
 /// `reprises` de `importation-etat` : DSN, AEM, certificats Congés Spectacles, bulletins, dans cet ordre, celles qui ont
 /// repris quelque chose.
-fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], paies: &[engagement::importe::PaieLue]) -> Vec<Value> {
+fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], paies: &[engagement::importe::PaieLue]) -> Vec<RepriseVue> {
     use engagement::importe::{Attestation, Declaration};
     let (mut aem, mut contrats_bulletins, mut certificats) = (Reprise::default(), Reprise::default(), Reprise::default());
     for c in contrats {
@@ -744,14 +824,19 @@ fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], p
         .map(|d| d.flatten().filter(|e| e.path().is_file()).count())
         .unwrap_or(0);
     let mut out = Vec::new();
-    let base = |source: &str, quoi: &str, r: &Reprise| {
-        json!({"source": source, "quoi": quoi, "nombre": r.nombre, "du": r.du.clone().unwrap_or_default(),
-               "au": r.au.clone().unwrap_or_default(), "le": r.le.clone().unwrap_or_default()})
+    let base = |source: &'static str, quoi: &'static str, r: &Reprise| RepriseVue {
+        source,
+        quoi,
+        nombre: r.nombre,
+        du: r.du.clone().unwrap_or_default(),
+        au: r.au.clone().unwrap_or_default(),
+        le: r.le.clone().unwrap_or_default(),
+        declarations: None,
+        contrats: None,
+        copies: None,
     };
     if dsn.nombre > 0 {
-        let mut d = base("DSN", "versements déclarés", &dsn);
-        d["declarations"] = json!(mois_dsn.len());
-        out.push(d);
+        out.push(RepriseVue { declarations: Some(mois_dsn.len()), ..base("DSN", "versements déclarés", &dsn) });
     }
     if aem.nombre > 0 {
         out.push(base("AEM", "contrats attestés", &aem));
@@ -760,12 +845,10 @@ fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], p
         out.push(base("certificats", "certificats Congés Spectacles", &certificats));
     }
     if bulletins.nombre > 0 || contrats_bulletins.nombre > 0 || copies > 0 {
-        let mut b = base("bulletins", "bulletins de paie", &bulletins);
-        if b["le"] == json!("") {
-            b["le"] = json!(contrats_bulletins.le.clone().unwrap_or_default());
+        let mut b = RepriseVue { contrats: Some(contrats_bulletins.nombre), copies: Some(copies), ..base("bulletins", "bulletins de paie", &bulletins) };
+        if b.le.is_empty() {
+            b.le = contrats_bulletins.le.clone().unwrap_or_default();
         }
-        b["contrats"] = json!(contrats_bulletins.nombre);
-        b["copies"] = json!(copies);
         out.push(b);
     }
     out
@@ -774,7 +857,7 @@ fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], p
 /// `editeur` de `importation-etat` : les incidents (`journal/incidents.json`) et les signalements
 /// (`journal/signalements.json`) de ce poste qui parlent de l'import -- un incident de nature `refus` n'en est pas : la
 /// phrase a ete dite a l'ecran. Rien que ce qu'ils portent deja (caviarde).
-fn attend_l_editeur(racine: &Path) -> Vec<Value> {
+fn attend_l_editeur(racine: &Path) -> Vec<MessageEditeur> {
     let parle_d_import = |t: &str| {
         let t = t.to_lowercase();
         t.contains("import") || t.contains("repris")
@@ -795,34 +878,30 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
         if etat == crate::compagnie::incidents::SANS_OBJET {
             continue;
         }
-        out.push(json!({
-            "canal": "incident", "quand": texte(&l, "quand"),
-            "resume": if resume.is_empty() { genre } else { resume },
-            "parti": etat == crate::compagnie::incidents::DEPOSE, "repondu": false,
-        }));
+        out.push(message("incident", texte(&l, "quand"), if resume.is_empty() { genre } else { resume }, etat == crate::compagnie::incidents::DEPOSE, false));
     }
     for s in crate::compagnie::problemes::signalements(racine) {
         let debut = texte(&s, "texte");
         if !parle_d_import(&debut) {
             continue;
         }
-        out.push(json!({
-            "canal": "signalement", "quand": texte(&s, "quand"), "resume": debut,
-            "numero": s.get("numero").cloned().unwrap_or(Value::Null),
-            "parti": s.get("etat").and_then(Value::as_str) == Some("arrive"), "repondu": s.get("reponse").is_some_and(vrai),
-        }));
-    }
-    // Sa pastille : la reponse recue, faite ; le reste attend l'editeur, rien que la compagnie ait a faire.
-    for x in out.iter_mut() {
-        x["pastille"] = if x["repondu"] == true {
-            super::pastille("fait", "réponse reçue")
-        } else if x["parti"] == true {
-            super::pastille("information", "attend l'éditeur")
-        } else {
-            super::pastille("information", "pas encore parti")
-        };
+        let (parti, repondu) = (s.get("etat").and_then(Value::as_str) == Some("arrive"), s.get("reponse").is_some_and(vrai));
+        out.push(message("signalement", texte(&s, "quand"), debut, parti, repondu));
     }
     out
+}
+
+/// Un message a l'editeur, son titre et sa pastille : la reponse recue, faite ; le reste attend l'editeur, rien que la
+/// compagnie ait a faire.
+fn message(canal: &'static str, quand: String, resume: String, parti: bool, repondu: bool) -> MessageEditeur {
+    let quoi = if canal == "signalement" { "Message à l'éditeur" } else { "Incident" };
+    let titre_dit = if quand.is_empty() { quoi.to_string() } else { format!("{} du {}", quoi, super::quand(&quand)) };
+    let pastille = match (repondu, parti) {
+        (true, _) => super::Pastille::de("fait", "réponse reçue"),
+        (false, true) => super::Pastille::de("information", "attend l'éditeur"),
+        (false, false) => super::Pastille::de("information", "pas encore parti"),
+    };
+    MessageEditeur { canal, quand, resume, parti, repondu, pastille, titre_dit }
 }
 
 impl Reprise {
@@ -873,55 +952,6 @@ fn origine(e: &Value) -> String {
         ),
         _ if t("source") == "bulletin" || e.get("bulletin").is_some() => format!("le bulletin{}", fichier),
         _ => format!("la DSN {}", socle::texte::de(&socle::mois::Mois::en_clair(&t("mois")))),
-    }
-}
-
-/// CE QUE L'ETAT DE L'IMPORT DIT (`importation-etat`) : l'historique repris en une ligne (`repris_dit`), et pour chaque
-/// contrat de permanent dont la nature reste a dire, ce qu'il est (`dit`) et, s'il court encore, ce que sa DSN declare
-/// (`en_cours_dit`).
-fn dire_l_etat_de_l_import(v: &mut Value) {
-    let reprises: Vec<Value> = v["reprises"].as_array().cloned().unwrap_or_default();
-    let de = |source: &str| reprises.iter().find(|r| r["source"] == source).cloned().unwrap_or(json!({}));
-    let n = |x: &Value, k: &str| x[k].as_u64().unwrap_or(0);
-    let quoi: Vec<String> = [
-        n_mots(n(&de("bulletins"), "nombre"), "bulletin"),
-        n_mots(n(&de("DSN"), "declarations") + n(&de("AEM"), "nombre"), "déclaration"),
-        n_mots(n(&de("certificats"), "nombre"), "certificat"),
-        n_mots(n(v, "contrats"), "contrat"),
-    ].into_iter().filter(|x| !x.is_empty()).collect();
-    let mut bornes: Vec<String> = std::iter::once(&v["du"]).chain(std::iter::once(&v["au"])).chain(reprises.iter().flat_map(|r| [&r["du"], &r["au"]])).map(super::mot).filter(|x| !x.is_empty()).map(|x| x.chars().take(7).collect()).collect();
-    bornes.sort();
-    let periode = match (bornes.first(), bornes.last()) {
-        (Some(du), Some(au)) if du == au => format!(", en {}", socle::mois::Mois::en_clair(du)),
-        (Some(du), Some(au)) => format!(", {} à {}", socle::texte::de(&socle::mois::Mois::en_clair(du)), socle::mois::Mois::en_clair(au)),
-        _ => String::new(),
-    };
-    v["repris_dit"] = if quoi.is_empty() { Value::Null } else { json!(format!("{}{}", quoi.join(", "), periode)) };
-    // Le titre de la ligne : le jour de la derniere reprise.
-    let le = std::iter::once(super::mot(&v["importe_le"])).chain(reprises.iter().map(|r| super::mot(&r["le"]))).filter(|x| !x.is_empty()).max();
-    v["repris_titre"] = json!(match le {
-        Some(l) => format!("Historique repris le {}", super::jour_en_clair(&json!(l.chars().take(10).collect::<String>()))),
-        None => "Historique repris".to_string(),
-    });
-    // Ce qui attend l'editeur : un message ou un incident, et son jour.
-    for x in v["editeur"].as_array_mut().into_iter().flatten() {
-        let quoi = if x["canal"] == "signalement" { "Message à l'éditeur" } else { "Incident" };
-        let quand = super::mot(&x["quand"]);
-        x["titre_dit"] = json!(if quand.is_empty() { quoi.to_string() } else { format!("{} du {}", quoi, super::quand(&quand)) });
-    }
-    for x in v["a_dire"].as_array_mut().into_iter().flatten() {
-        x["numero_placeholder"] = json!(format!("sur la DSN {}", super::mot(&x["au_dit"])));
-        x["choix_dit"] = json!(format!("Nature du contrat de {}", super::mot(&x["nom"])));
-        let (au, suite) = (super::mot(&x["au"]).chars().take(7).collect::<String>(), super::mot(&x["suite"]));
-        let contrats = x["contrats"].as_u64().unwrap_or(0);
-        let du = if super::mot(&x["du"]).is_empty() { String::new() } else { format!(", du {} au {}", super::jour_en_clair(&x["du"]), super::jour_en_clair(&x["au"])) };
-        x["dit"] = json!(format!("{} contrat{} repris{} : ses bulletins n'ont pas de Congés Spectacles ni de numéro d'objet, c'est un contrat de permanent.", contrats, if contrats > 1 { "s" } else { "" }, du));
-        if vrai(&x["en_cours"]) {
-            x["en_cours_dit"] = json!(format!(
-                "Payé jusqu'en {} : son contrat continue en {}, et sa DSN le déclare avec la date de début et le numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur le bulletin.",
-                socle::mois::Mois::en_clair(&au), socle::mois::Mois::en_clair(&suite)
-            ));
-        }
     }
 }
 
