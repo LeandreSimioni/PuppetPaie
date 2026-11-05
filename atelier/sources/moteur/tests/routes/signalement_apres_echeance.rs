@@ -34,17 +34,17 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
     let mut bareme = lire(&c, "config/baremes/2026.json");
     let surcouche = json!({
         "versement_mobilite": "aucun",
-        "cotisations_dsn": [{"code81": "049", "taux": 0.35, "base": "brut_x115"}],
-        "rubriques_bulletin": [{"id": "autres_2", "taux_pat": 0.35, "base": "brut_x115"}],
+        "cotisations_dsn": {"049": {"taux": 0.35, "base": "brut_x115"}},
+        "rubriques": {"autres_2": {"taux_pat": 0.35, "base": "brut_x115"}},
         "par_statut": {"technicien": {
-            "cotisations_dsn": [{"code81": "049", "taux": 0.5, "base": "brut_x115"}],
-            "rubriques_bulletin": [{"id": "autres_2", "taux_pat": 0.5, "base": "brut_x115"}],
+            "cotisations_dsn": {"049": {"taux": 0.5, "base": "brut_x115"}},
+            "rubriques": {"autres_2": {"taux_pat": 0.5, "base": "brut_x115"}},
             "reduction_generale": {"tdelta": 0.3821}
         }},
         "par_nature": {"permanent": {
-            "cotisations_dsn": [{"code81": "049", "taux": 0.5, "base": "brut_x115", "base78": "brut"}, {"code81": "128", "taux": 1.0}],
+            "cotisations_dsn": {"049": {"taux": 0.5, "base": "brut_x115", "base78": "brut"}, "128": {"taux": 1.0}},
             "rubriques": {"autres_2": {"taux_pat": 0.5, "base": "brut_x115"}},
-            "rubriques_ajoutees": [{"id": "autres_4", "taux_pat": 1.0, "composants": [1.0]}]
+            "rubriques_ajoutees": {"autres_4": {"taux_pat": 1.0, "composants": [1.0]}}
         }}
     });
     bareme.as_object_mut().unwrap().extend(surcouche.as_object().unwrap().clone());

@@ -120,14 +120,14 @@ pub fn attendus(ctx: &Contexte, base: &Value) -> Resultat<Vec<Value>> {
     }
     // Les contributions de branche en DSN : la convention de la date dit lesquelles (`Contexte::contributions_dsn`).
     for c in ctx.contributions_dsn(&ctx.lue_au)? {
-        let nom = txt(g(&c, "contribution"));
+        let nom = c.contribution.clone();
         if nom.is_empty() {
             continue;
         }
         out.push(json!({
             "cle": format!("contribution_{}", nom.to_lowercase()), "contribution": nom, "libelle_defaut": nom,
             "type": "01", "beneficiaires": "selon le contrat",
-            "quoi": format!("Contribution {} (en DSN depuis {})", nom, txt(g(&c, "en_dsn_depuis"))),
+            "quoi": format!("Contribution {} (en DSN depuis {})", nom, c.en_dsn_depuis),
             "organisme": AUDIENS, "organisme_fixe": true,
         }));
     }

@@ -2,7 +2,7 @@
 //! spectacles), l'effectif, et le bareme de l'annee empile (le socle livre, la convention, la surcouche de la
 //! compagnie) puis lu a la date.
 //!
-//! Les fiches et les baremes restent des `serde_json::Value`. Un refus est une `String`.
+//! Les fiches restent des `serde_json::Value` ; le bareme se lit par ses formes (`forme_bareme`). Un refus est une `String`.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -12,18 +12,17 @@ use indexmap::IndexMap;
 use serde_json::{Map, Value};
 
 use crate::fiche::{Case, ChampsEntreprise, Datee, Etablissement, FicheEntrepriseDatee, FicheSalarie, Salaries};
+use crate::forme_bareme::{CotisationDsn, CotisationModifiee, CoucheConvention, CoucheNature, NatureModifiee, NonPortee, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, Surcouche, TauxAtmpEcrit, ValeurAtmp, VersementMobiliteEcrit};
+use socle::echec::APart;
+use socle::num::Decimal;
 
-use socle::date::{d, en_texte, forme_ecrite, repr_texte, Jour};
+use socle::date::{d, en_texte, repr_texte, Jour};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::mois::Mois;
 use socle::num::{flottant, Resultat};
-use socle::texte::{cle_recherche, sigle};
+use socle::texte::cle_recherche;
 
 // ------------------------------------------------------------ les petits outils
-
-fn vrai_opt(v: Option<&Value>) -> bool {
-    v.map_or(false, vrai)
-}
 
 /// Une valeur en texte, vide si elle manque ou est vide.
 fn texte_ou_vide(v: Option<&Value>) -> String {
@@ -48,22 +47,6 @@ fn exige<T: AsRef<str>>(c: &Case<T>, cle: &str) -> Resultat<String> {
     match c {
         Case::Absente => Err(socle::fichiers::absent(cle)),
         _ => Ok(c.texte().to_string()),
-    }
-}
-
-/// L'entier d'une valeur : le texte, le flottant tronque, le booleen.
-fn entier(v: &Value) -> Resultat<i64> {
-    match v {
-        Value::Number(n) => n
-            .as_i64()
-            .or_else(|| n.as_f64().filter(|x| x.is_finite()).map(|x| x.trunc() as i64))
-            .ok_or_else(|| socle::fichiers::entier_hors_limites(&n.to_string())),
-        Value::String(s) => s
-            .trim()
-            .parse::<i64>()
-            .map_err(|_| format!("nombre entier illisible : {}", repr_texte(s))),
-        Value::Bool(b) => Ok(i64::from(*b)),
-        autre => Err(socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre))),
     }
 }
 
@@ -514,90 +497,52 @@ fn socle(dossier: &Path, an: i32) -> Result<Option<Value>, String> {
     lire_json(&p).map(Some)
 }
 
-/// (cle, valeur, affectation) d'une entree nommee.
-fn identite(e: &Value) -> Option<(&'static str, String, String)> {
-    if !e.is_object() {
-        return None;
-    }
-    for cle in ["id", "code81"] {
-        if let Some(x) = e.get(cle) {
-            if !x.is_null() {
-                return Some((cle, en_texte(x), texte_ou_vide(e.get("affectation"))));
-            }
-        }
-    }
-    None
+/// Le fichier du socle livre de l'annee, s'il est livre.
+fn fichier_du_socle(dossier: &Path, an: i32) -> Option<PathBuf> {
+    let p = dossier.join(format!("{}.json", an));
+    socle::fichiers::existe(&p).then_some(p)
 }
 
-/// Une liste de valeurs se remplace, une liste
-/// d'objets NOMMES se fond (les entrees anonymes de la base sont gardees).
-fn fusionner_listes(base: &[Value], dessus: &[Value]) -> Value {
-    let mut sortie: Vec<Value> = base.to_vec();
-    let mut rangs: Vec<((&'static str, String, String), usize)> = Vec::new();
-    for (i, e) in sortie.iter().enumerate() {
-        if let Some(id) = identite(e) {
-            if !rangs.iter().any(|(r, _)| *r == id) {
-                rangs.push((id, i));
-            }
-        }
-    }
-    if rangs.is_empty() {
-        return Value::Array(dessus.to_vec());
-    }
-    for e in dessus {
-        let rang = identite(e).and_then(|id| rangs.iter().find(|(r, _)| *r == id).map(|(_, i)| *i));
-        match rang {
-            None => sortie.push(e.clone()),
-            Some(i) => sortie[i] = fusionner(&sortie[i], e),
-        }
-    }
-    Value::Array(sortie)
+/// LE SOCLE LIVRE DE L'ANNEE `an`, seul (sans convention ni compagnie), lu au 1er janvier : ce que la tarification AT/MP
+/// de l'annee en dit (`bareme::risques_de`, `bareme::arrete_atmp`). `None` : il n'est pas livre.
+pub fn socle_livre_lu(an: i32) -> Resultat<Option<Pile>> {
+    let Some(fichier) = fichier_du_socle(&dossier_du_code().join("baremes"), an) else { return Ok(None) };
+    let jour = Jour::nouveau(an, 1, 1).ok_or_else(|| format!("Année {} hors du calendrier.", an))?;
+    Ok(Some(crate::forme_bareme::lire_le_socle(&fichier, &jour, None)?.0))
 }
 
-/// `dessus` par-dessus `base`, en descendant.
-pub fn fusionner(base: &Value, dessus: &Value) -> Value {
-    match (base, dessus) {
-        (Value::Object(b), Value::Object(h)) => {
-            let mut out = b.clone();
-            for (cle, val) in h {
-                let v = match out.get(cle) {
-                    Some(existant) => fusionner(existant, val),
-                    None => val.clone(),
-                };
-                out.insert(cle.clone(), v);
-            }
-            Value::Object(out)
-        }
-        (Value::Array(b), Value::Array(h)) => fusionner_listes(b, h),
-        _ => dessus.clone(),
+/// LA COUCHE DE LA CONVENTION COLLECTIVE `idcc` (`par_convention` du socle), ce qu'elle fond dans le socle ; `None` : un
+/// socle qui ne couvre aucune convention, ou une convention qui n'a rien a fondre.
+fn convention<'a>(pile: &'a Pile, idcc: &str) -> Result<Option<&'a CoucheConvention>, String> {
+    if pile.par_convention.is_empty() {
+        return Ok(None);
     }
-}
-
-/// La couche de la convention collective de l'entreprise.
-fn convention(socle_annee: &Value, idcc: &str) -> Result<Value, String> {
-    let par_conv = match socle_annee.get("par_convention") {
-        Some(p) if vrai(p) => p,
-        _ => return Ok(Value::Object(Map::new())),
-    };
-    let annee = texte_ou_vide_defaut(socle_annee.get("annee"), "?");
-    let connues: Vec<&str> =
-        par_conv.as_object().map(|o| o.keys().map(String::as_str).filter(|k| !k.starts_with('_')).collect()).unwrap_or_default();
-    let idcc = idcc.trim().to_string();
+    let annee = pile.annee;
+    let connues: Vec<&str> = pile.par_convention.keys().map(String::as_str).collect();
+    let idcc = idcc.trim();
     if idcc.is_empty() {
-        return Err(socle::echec::avec("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", serde_json::json!({"cle": "idcc", "detail": format!(
-            "Bareme {} : la fiche entreprise ne dit pas son `idcc`, et les \
+        return Err(socle::echec::avec(
+            "La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.",
+            APart {
+                cle: Some("idcc".into()),
+                detail: Some(format!(
+                    "Bareme {} : la fiche entreprise ne dit pas son `idcc`, et les \
 cotisations conventionnelles en dependent.\n\
 \x20 Conventions couvertes : {}.\n\
 \x20 A ecrire dans config/entreprise.json : \"idcc\": \"3090\".",
-            annee,
-            connues.join(", ")
-        )})));
+                    annee,
+                    connues.join(", ")
+                )),
+                ..APart::default()
+            },
+        ));
     }
-    let couche = match par_conv.get(&idcc) {
-        Some(c) if c.is_object() => c,
-        _ => {
-            return Err(socle::echec::avec("La convention collective de la compagnie n'est pas couverte par le barème : le signaler au développeur.", serde_json::json!({"detail": format!(
-                "Bareme {} : la convention collective {} n'a pas de couche dans le \
+    let Some(couche) = pile.par_convention.get(idcc) else {
+        return Err(socle::echec::avec(
+            "La convention collective de la compagnie n'est pas couverte par le barème : le signaler au développeur.",
+            APart {
+                detail: Some(format!(
+                    "Bareme {} : la convention collective {} n'a pas de couche dans le \
 socle, et le moteur refuse de payer avec celle d'une autre \
 branche.\n\
 \x20 Couvertes a ce jour : {}.\n\
@@ -605,83 +550,161 @@ branche.\n\
 cette convention (celle qui remplace la CASC-SVP, la prevoyance \
 de ses intermittents cadres), a relever puis a ajouter dans \
 `par_convention` de donnees/baremes/{}.json, avec leur source.",
-                annee,
-                idcc,
-                connues.join(", "),
-                annee
-            )})));
-        }
+                    annee,
+                    idcc,
+                    connues.join(", "),
+                    annee
+                )),
+                ..APart::default()
+            },
+        ));
     };
-    if couche.get("applicable") == Some(&Value::Bool(false)) {
+    if !couche.applicable {
         return Err(format!(
             "Bareme {}, convention {} ({}) : la couche est RELEVEE mais pas \
 confirmee, le moteur ne paie donc pas.\n  {}",
             annee,
             idcc,
-            texte_ou_vide_defaut(couche.get("libelle"), ""),
-            texte_ou_vide_defaut(couche.get("a_confirmer"), "")
+            couche.libelle,
+            couche.a_confirmer.as_deref().unwrap_or("")
         ));
     }
-    Ok(match couche.get("bareme") {
-        Some(b) if vrai(b) => b.clone(),
-        _ => Value::Object(Map::new()),
-    })
+    Ok(couche.bareme.as_ref())
 }
 
-/// Une valeur en texte : le defaut ne sert que si la cle manque (`null` s'ecrit `None`).
-fn texte_ou_vide_defaut(v: Option<&Value>, defaut: &str) -> String {
-    v.map_or_else(|| defaut.to_string(), en_texte)
+/// Une couche change ce que le bareme n'a pas : elle se corrige.
+fn inconnue(ou: &str, quoi: &str) -> String {
+    socle::echec::cle(format!("{} change « {} », que le barème de l'année n'a pas : la corriger.", ou, quoi), quoi)
 }
 
-/// Le bareme de l'annee tel que le moteur le lira.
-fn bareme_de_l_annee(dossier: &Path, an: i32, fichier: Option<Value>, idcc: Option<&str>) -> Result<Value, Refus> {
-    let ou = format!("config/baremes/{}.json", an);
-    let fichier = match fichier {
-        None => {
-            if socle(dossier, an)?.is_none() {
-                return Err(introuvable(format!(
-                    "Le logiciel n'a pas les taux de {} (SMIC, plafond de la Sécurité sociale, cotisations) : il a ceux de {}. Une paie de {} ne se calcule pas avec cette version.",
-                    an,
-                    disponibles(dossier),
-                    an
-                )));
-            }
-            return Err(introuvable(format!(
-                "Le code risque et le taux AT/MP de {} ne sont pas dits. Ils se lisent sur la notification de la CARSAT (compte AT/MP sur net-entreprises) et se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».",
-                an
-            )));
+/// Le code d'une cotisation de la DSN dans une couche : `code81`, ou `code81:affectation`.
+fn code_de(c: &CotisationDsn) -> String {
+    let code = c.code81.clone().unwrap_or_default();
+    match c.affectation.as_deref().filter(|a| !a.is_empty()) {
+        Some(a) => format!("{}:{}", code, a),
+        None => code,
+    }
+}
+
+/// Ce qu'une couche ecrit des rubriques `liste`, par leur `id`.
+fn modifier_rubriques(liste: &mut [Rubrique], mods: &BTreeMap<String, RubriqueModifiee>, ou: &str) -> Resultat<()> {
+    for (id, m) in mods {
+        let r = liste.iter_mut().find(|r| r.id == *id).ok_or_else(|| inconnue(ou, id))?;
+        crate::bareme::modifier(r, m);
+    }
+    Ok(())
+}
+
+/// Ce qu'une couche ecrit des cotisations `liste`, par leur code (`code_de`).
+fn modifier_cotisations(liste: &mut [CotisationDsn], mods: &BTreeMap<String, CotisationModifiee>, ou: &str) -> Resultat<()> {
+    for (code, m) in mods {
+        let mut vue = false;
+        for c in liste.iter_mut().filter(|c| code_de(c) == *code) {
+            crate::bareme::modifier_cotisation(c, m);
+            vue = true;
         }
-        Some(f) => f,
-    };
-    let marque = match fichier.get("socle") {
-        Some(m) if vrai(m) => m,
-        _ => return Ok(fichier),
-    };
-    let an_socle = if marque == &Value::Bool(true) { i64::from(an) } else { entier(marque)? };
-    let s = match i32::try_from(an_socle).ok().map(|a| socle(dossier, a)).transpose()? {
-        Some(Some(s)) => s,
-        _ => {
-            return Err(introuvable(format!(
-                "Bareme {} : {} demande le socle {}, qui n'est pas livre.\n\
-\x20 Socles disponibles : {}. Un socle neuf s'ecrit en janvier, \
-depuis le plus recent.",
-                an,
-                ou,
-                an_socle,
-                disponibles(dossier)
-            )));
-        }
-    };
-    // Les trois etages, dans l'ordre : droit commun, convention, compagnie.
-    // `idcc` absent = on ne demande pas la resolution par convention.
-    let mut s = s;
-    if let Some(idcc) = idcc {
-        let couche = convention(&s, idcc)?;
-        if vrai(&couche) {
-            s = fusionner(&s, &couche);
+        if !vue {
+            return Err(inconnue(ou, code));
         }
     }
-    Ok(fusionner(&s, &fichier))
+    Ok(())
+}
+
+/// Ce qu'une couche ecrit des modifications de rubriques d'une section s'ajoute a ce qu'elles portaient.
+fn par_dessus_rubriques(section: &mut BTreeMap<String, RubriqueModifiee>, mods: &BTreeMap<String, RubriqueModifiee>) {
+    for (id, m) in mods {
+        crate::bareme::par_dessus(section.entry(id.clone()).or_default(), m);
+    }
+}
+
+/// Ce qu'une couche ecrit de la reduction generale d'une section s'ajoute a ce qu'elle portait.
+fn reduction_par_dessus(r: &mut ReductionGenerale, m: &ReductionGenerale) {
+    macro_rules! si {
+        ($($c:ident),*) => { $( if m.$c.is_some() { r.$c = m.$c.clone(); } )* };
+    }
+    si!(verifie, formule, tmin, tdelta, puissance, t, plafond_smic, smic_horaire_reference, imputation, dsn, majoration_caisse_conges, source, note);
+    if !m.statuts.is_empty() {
+        r.statuts = m.statuts.clone();
+    }
+}
+
+/// Ce qu'une couche ecrit de la section d'une nature.
+fn modifier_la_nature(nat: &mut CoucheNature, m: &NatureModifiee, ou: &str) -> Resultat<()> {
+    par_dessus_rubriques(&mut nat.rubriques, &m.rubriques);
+    modifier_rubriques(&mut nat.rubriques_ajoutees, &m.rubriques_ajoutees, ou)?;
+    if !m.cotisations_dsn.is_empty() {
+        let l = nat.cotisations_dsn.as_mut().ok_or_else(|| inconnue(ou, "cotisations_dsn"))?;
+        modifier_cotisations(l, &m.cotisations_dsn, ou)?;
+    }
+    Ok(())
+}
+
+/// LA COUCHE DE LA CONVENTION FONDUE DANS LE SOCLE : ses tarifs, ses contributions, son champ s'ajoutent ; ce qu'elle
+/// ecrit des rubriques et des sections du socle les change ; la section d'un statut qu'elle donne est la sienne entiere.
+fn fondre_la_convention(pile: &mut Pile, c: &CoucheConvention, idcc: &str) -> Resultat<()> {
+    let ou = format!("La couche de la convention {} du barème {}", idcc, pile.annee);
+    if let Some(t) = &c.tarifs_conventionnels {
+        pile.tarifs_conventionnels = Some(t.clone());
+    }
+    for x in &c.contributions_conventionnelles {
+        match pile.contributions_conventionnelles.iter_mut().find(|y| y.id == x.id) {
+            Some(y) => *y = x.clone(),
+            None => pile.contributions_conventionnelles.push(x.clone()),
+        }
+    }
+    if !c.contributions_dsn.is_empty() {
+        pile.contributions_dsn = c.contributions_dsn.clone();
+    }
+    if let Some(s) = &c.secteurs {
+        pile.secteurs = Some(s.clone());
+    }
+    modifier_rubriques(&mut pile.rubriques_bulletin, &c.rubriques, &ou)?;
+    for (n, m) in &c.par_nature {
+        modifier_la_nature(pile.par_nature.entry(n.clone()).or_default(), m, &ou)?;
+    }
+    for (k, m) in &c.par_categorie {
+        let cat = pile.par_categorie.entry(k.clone()).or_default();
+        par_dessus_rubriques(&mut cat.rubriques, &m.rubriques);
+        for (s, sec) in &m.par_statut {
+            cat.par_statut.insert(s.clone(), sec.clone());
+        }
+    }
+    Ok(())
+}
+
+/// LA SURCOUCHE DE LA COMPAGNIE PAR-DESSUS : son annee, son taux AT/MP, son versement mobilite, et ce qu'elle decide
+/// des rubriques et des cotisations au-dela d'un seuil d'effectif (`controler_effectif`). Rend le `depuis` du taux AT/MP
+/// de `jour`, quand une notification le date.
+fn fondre_la_surcouche(pile: &mut Pile, s: Surcouche, jour: &Jour, ou: &str) -> Resultat<Option<Jour>> {
+    let ou = format!("La surcouche de la compagnie ({})", ou);
+    pile.annee = s.annee;
+    let mut depuis = None;
+    if let Some(t) = &s.taux_atmp {
+        let (t, d) = t.au_jour(jour)?;
+        pile.taux_atmp = Some(t);
+        depuis = d;
+    }
+    if s.versement_mobilite.is_some() {
+        pile.versement_mobilite = s.versement_mobilite;
+    }
+    modifier_rubriques(&mut pile.rubriques_bulletin, &s.rubriques, &ou)?;
+    modifier_cotisations(&mut pile.cotisations_dsn, &s.cotisations_dsn, &ou)?;
+    for (k, m) in &s.par_statut {
+        let st = pile.par_statut.get_mut(k).ok_or_else(|| inconnue(&ou, &format!("par_statut.{}", k)))?;
+        if !m.rubriques.is_empty() {
+            modifier_rubriques(st.rubriques_bulletin.as_mut().ok_or_else(|| inconnue(&ou, "rubriques_bulletin"))?, &m.rubriques, &ou)?;
+        }
+        if !m.cotisations_dsn.is_empty() {
+            modifier_cotisations(st.cotisations_dsn.as_mut().ok_or_else(|| inconnue(&ou, "cotisations_dsn"))?, &m.cotisations_dsn, &ou)?;
+        }
+        if let Some(r) = &m.reduction_generale {
+            reduction_par_dessus(st.reduction_generale.get_or_insert_with(ReductionGenerale::default), r);
+        }
+    }
+    for (n, m) in &s.par_nature {
+        modifier_la_nature(pile.par_nature.get_mut(n).ok_or_else(|| inconnue(&ou, &format!("par_nature.{}", n)))?, m, &ou)?;
+    }
+    Ok(depuis)
 }
 
 // ----------------------------------------- l'entreprise et ses etablissements
@@ -703,9 +726,20 @@ fn cle_siret(siret: &str) -> bool {
     total % 10 == 0
 }
 
+/// La pile porte-t-elle un versement mobilite (une reponse, ou un taux) ?
+fn versement_mobilite_dit(pile: &Pile) -> bool {
+    match &pile.versement_mobilite {
+        Some(VersementMobiliteEcrit::Dit(s)) => !s.is_empty(),
+        Some(VersementMobiliteEcrit::Ecrit(t)) => t.taux.is_some() || t.code_insee.is_some() || t.autorite.is_some() || t.source.is_some() || t.note.is_some(),
+        None => false,
+    }
+}
+
 /// Les etablissements de la fiche se tiennent-ils (SIRET, NIC, une fois chacun) ?
-pub fn controler_etablissements(fiche: &ChampsEntreprise, bareme: &Value) -> Resultat<()> {
+pub fn controler_etablissements(fiche: &ChampsEntreprise, pile: &Pile) -> Resultat<()> {
     let siren = fiche.siren.texte();
+    let an = pile.annee.to_string();
+    let risques = crate::bareme::risques_de(pile);
     let mut vus = vec![fiche.nic_principal()];
     let mut griefs: Vec<String> = Vec::new();
     for e in fiche.secondaires() {
@@ -734,12 +768,10 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, bareme: &Value) -> Res
         // Le code risque se dit toujours ; le taux, sauf quand l'arrete de l'annee le fixe (`bareme::taux_atmp_applique`).
         // Le taux d'une autre annee que celle du bareme ne se controle pas ici : la paie de l'annee le demande
         // (`bareme::surcharger`, `bareme::taux_atmp_d_un_etablissement`).
-        let an = texte_ou_vide(bareme.get("annee"));
-        let d_une_autre_annee = e.taux_atmp.dite().and_then(|t| t.annee.dite()).is_some_and(|a| *a != 0 && a.to_string() != an.trim());
+        let d_une_autre_annee = e.taux_atmp.dite().and_then(|t| t.annee.dite()).is_some_and(|a| *a != 0 && a.to_string() != an);
         let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, &an);
         let atmp_juste = atmp.as_ref().is_some_and(|t| t.code_risque.as_deref().is_some_and(|c| !c.is_empty())
-            && (d_une_autre_annee
-                || crate::bareme::taux_atmp_applique(&crate::bareme::risques_atmp(bareme), t, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some()));
+            && (d_une_autre_annee || crate::bareme::taux_atmp_applique(&risques, t, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some()));
         if !atmp_juste {
             griefs.push(format!(
                 "{} : son code risque AT/MP et son taux, tels que la CARSAT les notifie a CET etablissement (Configuration › \
@@ -747,7 +779,7 @@ Entreprise › Avancé, « Établissements »)",
                 nom
             ));
         }
-        if vrai_opt(bareme.get("versement_mobilite")) && matches!(e.versement_mobilite, Case::Absente | Case::Nulle) {
+        if versement_mobilite_dit(pile) && matches!(e.versement_mobilite, Case::Absente | Case::Nulle) {
             griefs.push(format!(
                 "{} : le siège paie un versement mobilité ; celui de cet établissement dépend de sa commune et de \
 l'effectif qu'il y emploie (CGCT, L. 2333-64, I) : son taux et le code INSEE de sa commune, ou 0 s'il n'en paie pas \
@@ -759,74 +791,51 @@ l'effectif qu'il y emploie (CGCT, L. 2333-64, I) : son taux et le code INSEE de 
     if griefs.is_empty() {
         return Ok(());
     }
-    Err(socle::echec::avec("Les établissements de la fiche entreprise se mêlent : chacun se déclare dans sa propre DSN, avec ce qui est à lui.", serde_json::json!({"detail": format!(
-        "config/entreprise.json, etablissements : chaque etablissement se \
+    Err(socle::echec::avec(
+        "Les établissements de la fiche entreprise se mêlent : chacun se déclare dans sa propre DSN, avec ce qui est à lui.",
+        APart {
+            detail: Some(format!(
+                "config/entreprise.json, etablissements : chaque etablissement se \
 declare dans sa propre DSN, avec ce qui est a lui.\n  - {}",
-        griefs.join("\n  - ")
-    )})))
+                griefs.join("\n  - ")
+            )),
+            ..APart::default()
+        },
+    ))
 }
 
 /// Le secteur de la fiche est-il un de ceux du bareme ?
-fn controler_secteur(bareme: &Value, fiche: &ChampsEntreprise) -> Resultat<()> {
-    let sec = match bareme.get("secteurs") {
-        Some(s) if vrai(s) => s,
-        _ => return Ok(()),
-    };
-    let champ = exiger(sec, "champ")?;
-    let dit = texte_ou_vide(champ.as_str().and_then(|c| fiche.case(c)).as_ref()).trim().to_string();
-    let portes: Vec<&Value> = exiger(sec, "portes")?.as_array().map(|a| a.iter().collect()).unwrap_or_default();
-    if portes.iter().any(|p| p.as_str() == Some(&dit)) {
+fn controler_secteur(pile: &Pile, fiche: &ChampsEntreprise) -> Resultat<()> {
+    let Some(sec) = &pile.secteurs else { return Ok(()) };
+    let dit = sec.champ.dit(fiche);
+    if sec.portes.iter().any(|p| *p == dit) {
         return Ok(());
     }
     Err(format!(
         "Convention {} : {}\n  Fiche Entreprise, « {} » : {}. Portés : {}.",
         fiche.idcc.portee().unwrap_or("None"),
-        en_texte(exiger(sec, "refus")?),
-        texte_ou_vide_defaut(sec.get("libelle"), &en_texte(champ)),
+        sec.refus,
+        sec.libelle,
         if dit.is_empty() { "non renseigné".to_string() } else { dit },
-        portes.iter().map(|p| en_texte(p)).collect::<Vec<_>>().join(", ")
+        sec.portes.join(", ")
     ))
 }
 
-/// La couche de l'organisation patronale `nom`.
-fn couche_organisation<'a>(bareme: &'a Value, nom: &str) -> Option<&'a Value> {
-    let cle = sigle(nom);
-    if cle.is_empty() {
-        return None;
-    }
-    for (k, c) in bareme.get("par_organisation_patronale")?.as_object()? {
-        if k.starts_with('_') || !c.is_object() {
-            continue;
-        }
-        let alias = c.get("alias").filter(|a| vrai(a)).and_then(Value::as_array);
-        if cle == sigle(k) || alias.map_or(false, |a| a.iter().any(|x| sigle(&en_texte(x)) == cle)) {
-            return Some(c);
-        }
-    }
-    None
-}
-
-/// Ce que `bareme::bareme_retraite_t1` lit d'une couche d'organisation.
-const COUCHE_ORGANISATION_LUE: [&str; 5] = ["libelle", "applicable", "alias", "retraite_t1", "adhesion_avant"];
-
 /// L'organisation patronale de la fiche est-elle une de celles du bareme ?
-fn controler_organisation_patronale(bareme: &Value, fiche: &ChampsEntreprise) -> Resultat<()> {
+fn controler_organisation_patronale(pile: &Pile, fiche: &ChampsEntreprise) -> Resultat<()> {
     let nom = fiche.organisation_patronale.texte().trim().to_string();
     if nom.is_empty() {
         return Ok(());
     }
-    let annee = texte_ou_vide_defaut(bareme.get("annee"), "?");
-    let connues: Vec<&str> = bareme
-        .get("par_organisation_patronale")
-        .and_then(Value::as_object)
-        .map(|o| o.keys().map(String::as_str).filter(|k| !k.starts_with('_')).collect())
-        .unwrap_or_default();
-    let couche = match couche_organisation(bareme, &nom) {
-        Some(c) => c,
-        None => {
-            return Err(socle::echec::avec("L'organisation patronale de la compagnie n'est pas couverte par le barème : le signaler au développeur.", serde_json::json!({"detail": format!(
-                "Bareme {} : la fiche entreprise declare une adhesion a \
-l'organisation patronale {} , et le socle n'a pas de couche pour \
+    let annee = pile.annee;
+    let connues: Vec<&str> = pile.par_organisation_patronale.keys().map(String::as_str).collect();
+    let Some(couche) = crate::bareme::couche_organisation(pile, &nom) else {
+        return Err(socle::echec::avec(
+            "L'organisation patronale de la compagnie n'est pas couverte par le barème : le signaler au développeur.",
+            APart {
+                detail: Some(format!(
+                    "Bareme {} : la fiche entreprise declare une adhesion a \
+l'organisation patronale {}, et le socle n'a pas de couche pour \
 elle.\n\
 \x20 Couvertes a ce jour : {}.\n\
 \x20 Ce qui manque n'est pas du code : les taux que cette adhesion \
@@ -835,136 +844,36 @@ parametrage de l'organisme), puis a ecrire dans \
 `par_organisation_patronale` de donnees/baremes/{}.json.\n\
 \x20 Une compagnie qui n'adhere a rien laisse ce champ vide, et rien \
 ne change pour elle.",
-                annee,
-                repr_texte(&nom),
-                if connues.is_empty() { "aucune".to_string() } else { connues.join(", ") },
-                annee
-            )
-            .replace(" , et le socle", ", et le socle")})));
-        }
+                    annee,
+                    repr_texte(&nom),
+                    if connues.is_empty() { "aucune".to_string() } else { connues.join(", ") },
+                    annee
+                )),
+                ..APart::default()
+            },
+        ));
     };
-    if couche.get("applicable") != Some(&Value::Bool(true)) {
+    if !couche.applicable {
         return Err(format!(
             "Bareme {}, adhesion a l'organisation patronale {} ({}) : la \
 couche existe mais n'est pas applicable, le moteur ne paie donc \
 pas.\n  {}",
             annee,
             nom,
-            texte_ou_vide_defaut(couche.get("libelle"), ""),
-            texte_ou_vide_defaut(couche.get("a_confirmer"), "")
-        ));
-    }
-    // Le garde-fou du garde-fou : une cle de plus serait declaree et jamais appliquee.
-    let mut inconnues: Vec<&str> = couche
-        .as_object()
-        .into_iter()
-        .flat_map(|o| o.keys())
-        .map(String::as_str)
-        .filter(|k| !k.starts_with('_') && !COUCHE_ORGANISATION_LUE.contains(k))
-        .collect();
-    inconnues.sort();
-    if !inconnues.is_empty() {
-        let mut lues = COUCHE_ORGANISATION_LUE.to_vec();
-        lues.sort();
-        return Err(format!(
-            "Bareme {}, adhesion {} : la couche porte {}, que rien n'empile -- \
-ce serait declare et jamais applique.\n\
-\x20 Ce que le moteur lit d'une couche : {}.",
-            annee,
-            nom,
-            inconnues.join(", "),
-            lues.join(", ")
+            couche.libelle,
+            couche.a_confirmer.as_deref().unwrap_or("")
         ));
     }
     Ok(())
 }
 
-/// La valeur au bout d'un chemin du bareme (`a.b`,
-/// `[id ou code81]` dans une liste d'objets, `[rang]` dans une liste de valeurs).
-fn valeur_du_chemin<'a>(bareme: &'a Value, chemin: &str) -> Option<&'a Value> {
-    let c: Vec<char> = chemin.chars().collect();
-    let mut morceaux: Vec<String> = Vec::new();
-    let mut i = 0;
-    while i < c.len() {
-        if c[i] == '[' {
-            match c[i + 1..].iter().position(|x| *x == ']') {
-                Some(f) => {
-                    morceaux.push(c[i..=i + 1 + f].iter().collect());
-                    i += f + 2;
-                }
-                None => i += 1,
-            }
-        } else if c[i] == '.' || c[i] == ']' {
-            i += 1;
-        } else {
-            let mut j = i;
-            while j < c.len() && !".[]".contains(c[j]) {
-                j += 1;
-            }
-            morceaux.push(c[i..j].iter().collect());
-            i = j;
-        }
-    }
-    let mut cur = bareme;
-    for t in morceaux {
-        if t.starts_with('[') {
-            let liste = cur.as_array().filter(|l| !l.is_empty())?;
-            let cle = &t[1..t.len() - 1];
-            if liste[0].is_object() {
-                cur = liste.iter().find(|e| {
-                    e.is_object()
-                        && [en_texte(e.get("id").unwrap_or(&Value::Null)), en_texte(e.get("code81").unwrap_or(&Value::Null))]
-                            .iter()
-                            .any(|x| x == cle)
-                })?;
-            } else {
-                let chiffres = cle.trim_start_matches('-');
-                if chiffres.is_empty() || !chiffres.chars().all(|c| c.is_ascii_digit()) {
-                    return None;
-                }
-                let rang: i64 = cle.parse().ok()?;
-                let n = liste.len() as i64;
-                if rang >= n {
-                    return None;
-                }
-                // Un rang negatif compte depuis la fin.
-                cur = liste.get(usize::try_from(if rang < 0 { n + rang } else { rang }).ok()?)?;
-            }
-        } else {
-            cur = cur.as_object()?.get(&t)?;
-        }
-    }
-    Some(cur)
-}
-
-/// Le flottant d'une valeur, un booleen comptant 1 ou 0 ; `None` s'il ne se lit pas.
-fn flottant_ou_rien(v: &Value) -> Option<f64> {
-    match v {
-        Value::Bool(b) => Some(f64::from(u8::from(*b))),
-        autre => flottant(autre).ok(),
-    }
-}
-
-/// Deux valeurs sont-elles le meme nombre ?
-fn meme_nombre(a: Option<&Value>, b: &Value) -> bool {
-    let Some(a) = a else { return false };
-    match (flottant_ou_rien(a), flottant_ou_rien(b)) {
-        (Some(x), Some(y)) => (x - y).abs() < 1e-9,
-        _ => a == b,
-    }
-}
-
-/// Le bareme fondu dit-il ce qu'il faut pour
-/// l'effectif de l'entreprise ? Un bareme sans `seuils_effectif` ne se controle pas.
-fn controler_effectif(bareme: &Value, eff: &Effectif, ou: &str) -> Resultat<()> {
-    let decl = match bareme.get("seuils_effectif") {
-        Some(dc) if dc.is_object() => dc,
-        _ => return Ok(()),
-    };
-    let an = i32::try_from(entier(bareme.get("annee").unwrap_or(&Value::Null))?).map_err(|e| e.to_string())?;
+/// La pile dit-elle ce qu'il faut pour l'effectif de l'entreprise (`seuils_effectif`) ? Un bareme sans seuils ne se
+/// controle pas.
+fn controler_effectif(pile: &Pile, eff: &Effectif, ou: &str) -> Resultat<()> {
+    let Some(decl) = &pile.seuils_effectif else { return Ok(()) };
+    let an = pile.annee;
     let mut atteints: BTreeMap<i64, bool> = BTreeMap::new();
-    let mut atteint = |seuil: &Value| -> Resultat<bool> {
-        let s = entier(seuil)?;
+    let mut atteint = |s: i64| -> Resultat<bool> {
         if let Some(b) = atteints.get(&s) {
             return Ok(*b);
         }
@@ -972,134 +881,114 @@ fn controler_effectif(bareme: &Value, eff: &Effectif, ou: &str) -> Resultat<()> 
         atteints.insert(s, b);
         Ok(b)
     };
+    let ou = if ou.is_empty() { "config/baremes/<annee>.json" } else { ou };
     let (mut griefs, mut noms): (Vec<String>, Vec<String>) = (vec![], vec![]);
-    let vide = Vec::new();
-    let liste = |cle: &str| decl.get(cle).filter(|v| vrai(v)).and_then(Value::as_array).unwrap_or(&vide);
 
-    for v in liste("valeurs") {
-        if !atteint(exiger(v, "seuil")?)? {
+    for v in &decl.valeurs {
+        if !atteint(v.seuil)? {
             // SOUS LE SEUIL : quand le socle dit que sa valeur est alors la seule due (`sous_le_seuil`, et le
             // texte qu'il cite : pour la formation, C. trav. L. 6331-1 et L. 6331-1 A, CSS L. 130-1, II), une surcouche
             // qui en ecrit une autre -- restee d'avant un franchissement a la baisse -- ferait payer ce qui n'est pas du.
-            if let (Some(texte), Some(Value::Object(chemins))) = (v.get("sous_le_seuil").filter(|t| vrai(t)), v.get("chemins")) {
-                let mut autres: Vec<String> = chemins
+            if let Some(texte) = v.sous_le_seuil.as_deref().filter(|t| !t.is_empty()) {
+                let mut autres: Vec<String> = v
+                    .effets
                     .iter()
-                    .filter_map(|(c, attendu)| {
-                        let ecrit = valeur_du_chemin(bareme, c)?;
-                        (!meme_nombre(Some(ecrit), attendu)).then(|| format!("{} = {} (le socle : {})", c, en_texte(ecrit), en_texte(attendu)))
+                    .filter_map(|e| {
+                        let ecrit = e.lu(pile)?;
+                        (!ecrit.meme(&e.sous_le_seuil())).then(|| format!("{} = {} (le socle : {})", e, ecrit, e.sous_le_seuil()))
                     })
                     .collect();
                 if !autres.is_empty() {
                     autres.sort();
-                    let cle = texte_ou_vide_defaut(v.get("cle"), "None");
-                    noms.push(format!("{} (sous le seuil)", cle));
+                    noms.push(format!("{} (sous le seuil)", v.cle));
                     griefs.push(format!(
                         "  - {} : l'effectif n'atteint pas le seuil de {} salaries, et la surcouche ecrit une autre valeur que celle du socle
     {}
     Ecrit : {}
     A FAIRE : effacer ces valeurs de la surcouche ({}) ; le socle porte celle qui est due.
     Source : {}",
-                        cle,
-                        en_texte(exiger(v, "seuil")?),
-                        texte_ou_vide_defaut(v.get("quoi"), ""),
+                        v.cle,
+                        v.seuil,
+                        v.quoi,
                         autres.join(" ; "),
-                        if ou.is_empty() { "config/baremes/<annee>.json" } else { ou },
-                        en_texte(texte)
+                        ou,
+                        texte
                     ));
                 }
             }
             continue;
         }
-        let mut restees: Vec<&str> = Vec::new();
-        if let Some(Value::Object(chemins)) = v.get("chemins") {
-            for (c, attendu) in chemins {
-                if meme_nombre(valeur_du_chemin(bareme, c), attendu) {
-                    restees.push(c);
-                }
-            }
-        }
+        let mut restees: Vec<String> =
+            v.effets.iter().filter(|e| e.lu(pile).is_some_and(|l| l.meme(&e.sous_le_seuil()))).map(|e| e.to_string()).collect();
         if restees.is_empty() {
             continue;
         }
         restees.sort();
-        noms.push(texte_ou_vide_defaut(v.get("cle"), "None"));
+        noms.push(v.cle.clone());
         griefs.push(format!(
             "  - {} (a partir de {} salaries)\n    {}\n    A ECRIRE : {}\n    Encore au taux du socle : {}\n    Source : {}",
-            texte_ou_vide_defaut(v.get("cle"), "None"),
-            en_texte(exiger(v, "seuil")?),
-            texte_ou_vide_defaut(v.get("quoi"), ""),
-            texte_ou_vide_defaut(v.get("au_dela"), ""),
+            v.cle,
+            v.seuil,
+            v.quoi,
+            v.au_dela,
             restees.join(", "),
-            texte_ou_vide_defaut(v.get("texte"), "")
+            v.texte
         ));
     }
 
-    for v in liste("non_portees") {
-        let cle_v = match v.get("cle_bareme") {
-            Some(c) if vrai(c) => Some(c),
-            _ => v.get("cle"),
-        };
-        let cle = cle_v.map_or("None".to_string(), en_texte);
-        let rep = cle_v.and_then(Value::as_str).and_then(|c| bareme.get(c));
-        let porte_si_taux = vrai_opt(v.get("porte_si_taux"));
-        let rep_objet = rep.map_or(false, Value::is_object);
-        if !atteint(exiger(v, "seuil")?)? {
-            if porte_si_taux && rep_objet {
+    for v in &decl.non_portees {
+        let cle = v.cle.to_string();
+        let NonPortee::VersementMobilite = v.cle;
+        let rep = &pile.versement_mobilite;
+        let taux_ecrit = matches!(rep, Some(VersementMobiliteEcrit::Ecrit(_)));
+        if !atteint(v.seuil)? {
+            if taux_ecrit {
                 // Un taux ecrit sous le seuil : la compagnie paierait ce qu'elle ne doit pas.
                 noms.push(format!("{} (sous le seuil)", cle));
                 griefs.push(format!(
                     "  - {} : un taux est ecrit dans la surcouche, et il n'est \
 du qu'a partir de {} salaries (CGCT L2333-64, L2531-2). \
 L'effacer, ou ecrire \"aucun\".",
-                    cle,
-                    en_texte(exiger(v, "seuil")?)
+                    cle, v.seuil
                 ));
             }
             continue;
         }
-        let mut attendues: Vec<&str> = match v.get("reponses") {
-            Some(Value::Object(o)) => o.keys().map(String::as_str).filter(|r| !r.starts_with('_')).collect(),
-            _ => vec![],
-        };
-        if let Some(Value::String(r)) = rep {
-            if attendues.contains(&r.as_str()) {
-                continue;
-            }
-        }
-        if porte_si_taux && rep_objet {
-            let r = rep.unwrap();
-            if r.get("taux").map_or(false, |t| !t.is_null()) && texte_ou_vide(r.get("code_insee")).trim().chars().count() == 5 {
-                continue; // porte : un taux et une commune
-            }
+        let mut attendues: Vec<&str> = v.reponses.keys().map(String::as_str).filter(|r| !r.starts_with('_')).collect();
+        match rep {
+            Some(VersementMobiliteEcrit::Dit(r)) if attendues.contains(&r.as_str()) => continue,
+            Some(VersementMobiliteEcrit::Ecrit(t)) if t.taux.is_some() && t.code_insee.as_deref().unwrap_or("").trim().chars().count() == 5 => continue,
+            _ => {}
         }
         noms.push(format!("{} (non porte)", cle));
         let constat = match rep {
-            None | Some(Value::Null) => "Rien n'est ecrit sur ce point.".to_string(),
-            Some(r) if porte_si_taux && r.is_object() => format!(
-                "La valeur ecrite ({}) n'a pas son taux ET le code INSEE (cinq \
+            None => "Rien n'est ecrit sur ce point.".to_string(),
+            Some(VersementMobiliteEcrit::Ecrit(t)) => format!(
+                "La valeur ecrite (taux {}, code INSEE {}) n'a pas son taux ET le code INSEE (cinq \
 caracteres) de la commune de l'etablissement : les deux se \
 lisent sur la deliberation de l'autorite ou sur le bordereau \
 Urssaf.",
-                forme_ecrite(r)
+                t.taux.map_or("absent".to_string(), |x| x.to_string()),
+                t.code_insee.as_deref().map_or("absent".to_string(), |c| format!("« {} »", c))
             ),
-            Some(r) => format!(
-                "La valeur ecrite ({}) ne le debloque pas : il n'y a ni \
+            Some(VersementMobiliteEcrit::Dit(r)) => format!(
+                "La valeur ecrite (« {} ») ne le debloque pas : il n'y a ni \
 rubrique, ni ligne DSN, ni CTP pour la porter -- ecrire un \
 taux ne le ferait pas cotiser.",
-                forme_ecrite(r)
+                r
             ),
         };
         attendues.sort();
         griefs.push(format!(
             "  - {} (a partir de {} salaries) -- LE MOTEUR NE LE PORTE PAS\n    {}\n    {}\n    A ECRIRE dans {} : \"{}\": {}, et rien d'autre ne le debloque.\n    Source : {}",
-            texte_ou_vide_defaut(v.get("cle"), "None"),
-            en_texte(exiger(v, "seuil")?),
-            texte_ou_vide_defaut(v.get("quoi"), ""),
+            cle,
+            v.seuil,
+            v.quoi,
             constat,
-            if ou.is_empty() { "config/baremes/<annee>.json" } else { ou },
+            ou,
             cle,
             attendues.iter().map(|r| format!("\"{}\"", r)).collect::<Vec<_>>().join(" ou "),
-            texte_ou_vide_defaut(v.get("texte"), "")
+            v.texte.as_deref().unwrap_or("")
         ));
     }
 
@@ -1118,7 +1007,7 @@ faux, sans un mot : c'est ce que le moteur faisait avant le \
 \x20 Une valeur SURCHARGEE est tenue pour decidee : le moteur verifie \
 qu'une decision a ete prise, pas laquelle -- comme pour le taux \
 AT/MP, que lui seul ne peut pas connaitre.",
-        texte_ou_vide_defaut(bareme.get("annee"), "?"),
+        an,
         eff.valeur(an).map_or("?".to_string(), format_g),
         noms.join(", "),
         griefs.join("\n")
@@ -1126,12 +1015,24 @@ AT/MP, que lui seul ne peut pas connaitre.",
 }
 
 /// Les quatre, dans l'ordre du plus structurel au plus chiffre.
-fn controler(bareme: &Value, fiche: &ChampsEntreprise, eff: &Effectif, ou: &str) -> Resultat<()> {
-    controler_secteur(bareme, fiche)?;
-    controler_etablissements(fiche, bareme)?;
-    controler_organisation_patronale(bareme, fiche)?;
-    controler_effectif(bareme, eff, ou)
+fn controler(pile: &Pile, fiche: &ChampsEntreprise, eff: &Effectif, ou: &str) -> Resultat<()> {
+    controler_secteur(pile, fiche)?;
+    controler_etablissements(fiche, pile)?;
+    controler_organisation_patronale(pile, fiche)?;
+    controler_effectif(pile, eff, ou)
 }
+
+/// LE `depuis` DU SMIC EN VIGUEUR a `jour` (la liste reste datee dans la pile : `Contexte::smic`), et sa valeur.
+fn smic_en_vigueur(liste: &[crate::forme_bareme::Datee], jour: &Jour) -> Resultat<Option<(Jour, Decimal)>> {
+    let mut entrees: Vec<(Jour, Decimal)> = Vec::new();
+    for e in liste {
+        let depuis = e.depuis.as_deref().ok_or_else(|| socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", "smic_horaire.depuis", ""))?;
+        entrees.push((Jour::lire(depuis)?, e.valeur));
+    }
+    entrees.sort_by_key(|(j, _)| *j);
+    Ok(entrees.into_iter().filter(|(j, _)| j <= jour).last())
+}
+
 // ----------------------------------------------------- les listes datees
 
 /// Une liste datee : `[{depuis, valeur}, ...]`, dont une entree au plus sans `depuis` (la valeur de tout temps). La forme
@@ -1180,60 +1081,6 @@ fn valeur_au<'a>(liste: &'a Value, jour: &Jour) -> Resultat<Option<&'a Value>> {
     Ok(entrees.into_iter().filter(|(j, _)| j.map_or(true, |j| j <= *jour)).last().map(|(_, v)| v))
 }
 
-/// LES VALEURS DATEES QUI VIENNENT D'UN ACCORD DE SALAIRES : une entree `{depuis, valeur, accord}` d'une liste datee ne
-/// vaut pour la compagnie adherente de `organisation` que du jour ou l'accord `accord` (decrit dans la table des minima,
-/// `droit::minima::accord`) la lie (`droit::minima::lie_depuis`) ; son `depuis` devient ce jour, et l'entree disparait
-/// tant que l'accord ne la lie pas. Une entree qui nomme un accord que la table ne decrit pas se refuse.
-fn dater_les_accords(v: &mut Value, organisation: Option<&str>) -> Resultat<()> {
-    let d_un_accord = est_liste_datee(v) && v.as_array().is_some_and(|a| a.iter().any(|e| e.get("accord").is_some()));
-    match v {
-        Value::Object(o) => o.values_mut().try_for_each(|x| dater_les_accords(x, organisation)),
-        Value::Array(a) if d_un_accord => {
-            let t = crate::minima::table()?;
-            let mut gardees = Vec::new();
-            for mut e in std::mem::take(a) {
-                let Some(source) = e.as_object_mut().and_then(|o| o.remove("accord")) else {
-                    gardees.push(e);
-                    continue;
-                };
-                let source = en_texte(&source);
-                let accord = crate::minima::accord(&t, &source)
-                    .ok_or_else(|| socle::echec::livree("minima-conventionnels.json", &source))?;
-                let depuis = depuis_entree(&e)?.map(|j| j.iso()).unwrap_or_default();
-                if let Some(j) = crate::minima::lie_depuis(accord, organisation, &depuis) {
-                    e["depuis"] = Value::String(j);
-                    gardees.push(e);
-                }
-            }
-            *a = gardees;
-            Ok(())
-        }
-        Value::Array(a) => a.iter_mut().try_for_each(|x| dater_les_accords(x, organisation)),
-        _ => Ok(()),
-    }
-}
-
-/// Remplace chaque liste datee `[{depuis, valeur}]` par
-/// sa valeur au jour. Une liste sans entree applicable est une erreur : un taux
-/// qui n'existe pas encore ne se devine pas. Les cles de `garder` restent des listes.
-fn a_la_date(obj: &Value, jour: &Jour, garder: &[&str]) -> Resultat<Value> {
-    if let Value::Object(o) = obj {
-        let mut out = Map::new();
-        for (k, v) in o {
-            out.insert(k.clone(), if garder.contains(&k.as_str()) { v.clone() } else { a_la_date(v, jour, garder)? });
-        }
-        return Ok(Value::Object(out));
-    }
-    if est_liste_datee(obj) {
-        return valeur_au(obj, jour)?
-            .cloned()
-            .ok_or_else(|| format!("Bareme : aucune valeur applicable au {} dans {}.", jour.iso(), forme_ecrite(obj)));
-    }
-    if let Value::Array(a) = obj {
-        return Ok(Value::Array(a.iter().map(|v| a_la_date(v, jour, garder)).collect::<Resultat<Vec<_>>>()?));
-    }
-    Ok(obj.clone())
-}
 
 
 // --------------------------------------------------------------- le Contexte
@@ -1411,7 +1258,14 @@ pub struct Contexte {
     spectacles_bruts: std::sync::Arc<Map<String, Value>>,
     /// Le taux AT/MP d'une annee qu'une piece atteste, pour une compagnie qui n'en a pas encore pose
     /// (`avec_le_taux_atmp_lu`) ; en memoire seulement.
-    atmp_lu: Option<(i32, Value)>,
+    atmp_lu: Option<(i32, Decimal)>,
+}
+
+/// LA PILE D'UN JOUR, et le `depuis` de chaque valeur datee qui s'y applique (`Contexte::regles_datees`).
+#[derive(Debug)]
+struct PileLue {
+    pile: Arc<Pile>,
+    regles: Vec<Jour>,
 }
 
 /// Les fiches d'une compagnie telles qu'ecrites : lues par leur forme (`fiche::lire_entreprise`, `fiche::lire_salaries`),
@@ -1535,8 +1389,10 @@ impl Contexte {
     /// pourcent) quand la compagnie n'a pas encore pose le sien (`config/baremes/<an>.json`). Ce taux est propre a
     /// l'etablissement, notifie par l'Assurance Maladie : il ne se devine pas, il se lit, ici du bulletin d'un autre
     /// logiciel qui l'a applique. Rien ne s'ecrit ; une compagnie qui a pose le sien garde le sien.
-    pub fn avec_le_taux_atmp_lu(mut self, an: i32, valeur: Value) -> Contexte {
-        self.atmp_lu = Some((an, valeur));
+    pub fn avec_le_taux_atmp_lu(mut self, an: i32, valeur: Decimal) -> Contexte {
+        // Le taux tel qu'un bareme l'ecrit : sa forme la plus courte (`socle::forme::decimal`).
+        let ecrit = valeur.to_string().parse::<f64>().ok().and_then(|f| socle::num::dec_f64(f).ok()).unwrap_or(valeur);
+        self.atmp_lu = Some((an, ecrit));
         self
     }
 
@@ -1612,19 +1468,14 @@ impl Contexte {
     pub fn conventions_servies(&self) -> Resultat<BTreeMap<String, crate::forme_bareme::Convention>> {
         let dossier = self.code.join("baremes");
         let jour = self.aujourdhui;
-        let an = match socle(&dossier, jour.an)? {
+        let an = match fichier_du_socle(&dossier, jour.an) {
             Some(_) => jour.an,
-            None => socle::fichiers::lister(&dossier)
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|p| p.file_stem()?.to_str()?.parse::<i32>().ok())
-                .max()
-                .ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?,
+            None => annees_du_socle(&dossier).into_iter().max().ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?,
         };
-        let brut = socle(&dossier, an)?.ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?;
+        let fichier = fichier_du_socle(&dossier, an).ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?;
         // Le dernier jour de l'annee du socle quand il est d'une annee passee : ses valeurs datees y valent toutes.
         let a = if an == jour.an { jour } else { Jour::lire(&format!("{}-12-31", an))? };
-        Ok(crate::forme_bareme::lire(&a_la_date(&brut, &a, &["smic_horaire"])?)?.par_convention)
+        Ok(crate::forme_bareme::lire_le_socle(&fichier, &a, None)?.0.par_convention)
     }
 
     /// Le dossier des gabarits de la compagnie.
@@ -1653,22 +1504,103 @@ impl Contexte {
         format!("{}|{}|{}|{:?}|{:?}|{:?}", self.racine.display(), self.code.display(), an, sig, ent, self.atmp_lu)
     }
 
-    /// Le socle livre + la couche de la convention que la fiche `ent` nomme + la surcouche de la compagnie, confrontes
-    /// aux faits d'entreprise de cette fiche. Les listes datees restent des listes. `ent` est la fiche entreprise au
-    /// jour lu : une compagnie qui change de convention en cours d'annee lit chaque jour sous la sienne.
-    fn bareme_brut(&self, an: i32, ent: &ChampsEntreprise) -> Result<Arc<Value>, Refus> {
-        // Garde tant que les fichiers et la fiche sont les memes, avec ce qu'il a lu (`garde_notee`). Un refus ne se garde
-        // pas.
-        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<Value>>>>;
+    /// LA PILE DE `jour` : le socle livre + la couche de la convention que la fiche `ent` nomme + la surcouche de la
+    /// compagnie, lus a ce jour et confrontes aux faits d'entreprise de cette fiche. `ent` est la fiche entreprise au jour
+    /// lu : une compagnie qui change de convention en cours d'annee lit chaque jour sous la sienne. Garde tant que les
+    /// fichiers et la fiche sont les memes, avec ce qu'il a lu (`garde_notee`) ; un refus ne se garde pas.
+    fn pile_lue(&self, jour: &Jour, ent: &ChampsEntreprise) -> Result<Arc<PileLue>, Refus> {
+        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<PileLue>>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-        socle::fichiers::garde_notee(cache, self.empreinte_bareme_de(an, ent), || self.bareme_brut_sans_cache(an, ent).map(Arc::new))
+        let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, ent), jour.iso());
+        socle::fichiers::garde_notee(cache, cle, || {
+            let (pile, regles) = self.empiler(jour, ent)?;
+            // Le controle est ici, le seul endroit qui compose un bareme.
+            controler(&pile, ent, &effectif_de(&self.racine, ent)?, &format!("config/baremes/{}.json", jour.an))?;
+            Ok(Arc::new(PileLue { pile: Arc::new(pile), regles }))
+        })
+    }
+
+    /// LES TROIS ETAGES EMPILES A `jour`, avant leur controle : le socle de l'annee que la surcouche reprend, la couche de
+    /// la convention que la fiche `ent` nomme, la surcouche de la compagnie ; et le `depuis` de chaque valeur datee qui s'y
+    /// applique (le SMIC compris).
+    fn empiler(&self, jour: &Jour, ent: &ChampsEntreprise) -> Result<(Pile, Vec<Jour>), Refus> {
+        let an = jour.an;
+        let ou = format!("config/baremes/{}.json", an);
+        let dossier = self.code.join("baremes");
+        let organisation = ent.organisation_patronale.dite().map(String::as_str);
+        let p = self.racine.join(BAREMES).join(format!("{}.json", an));
+        let mut regles = Vec::new();
+        let mut surcouche = if socle::fichiers::existe(&p) {
+            Some(crate::forme_bareme::lire_la_surcouche(&p)?)
+        } else {
+            match &self.atmp_lu {
+                Some((a, v)) if *a == an => Some(Surcouche {
+                    annee: an,
+                    socle: an,
+                    taux_atmp: Some(TauxAtmpEcrit { valeur: Some(ValeurAtmp::Seule(socle::forme::Nombre(*v))), ..TauxAtmpEcrit::default() }),
+                    ..Surcouche::default()
+                }),
+                _ => None,
+            }
+        };
+        // Le taux AT/MP que la compagnie n'a pas dit pour l'annee se lit de celui qu'elle a dit avant
+        // (`bareme::taux_atmp_reporte`) ; ce qui ne se reprend pas dit pourquoi, et ce qu'il faut saisir.
+        if !surcouche.as_ref().is_some_and(|s| s.taux_atmp.is_some()) {
+            match self.taux_atmp_reporte_de(an, ent) {
+                Some(Ok(t)) => surcouche.get_or_insert_with(|| Surcouche { annee: an, socle: an, ..Surcouche::default() }).taux_atmp = Some(t),
+                Some(Err(pourquoi)) => match surcouche.as_mut() {
+                    Some(s) => s.taux_atmp = Some(TauxAtmpEcrit { manque: Some(pourquoi), ..TauxAtmpEcrit::default() }),
+                    None if fichier_du_socle(&dossier, an).is_some() => return Err(introuvable(pourquoi)),
+                    None => {}
+                },
+                None => {}
+            }
+        }
+        let Some(surcouche) = surcouche else {
+            if fichier_du_socle(&dossier, an).is_none() {
+                return Err(introuvable(format!(
+                    "Le logiciel n'a pas les taux de {} (SMIC, plafond de la Sécurité sociale, cotisations) : il a ceux de {}. Une paie de {} ne se calcule pas avec cette version.",
+                    an,
+                    disponibles(&dossier),
+                    an
+                )));
+            }
+            return Err(introuvable(format!(
+                "Le code risque et le taux AT/MP de {} ne sont pas dits. Ils se lisent sur la notification de la CARSAT (compte AT/MP sur net-entreprises) et se saisissent dans Configuration › Entreprise, « Accidents du travail (AT/MP) ».",
+                an
+            )));
+        };
+        let Some(fichier) = fichier_du_socle(&dossier, surcouche.socle) else {
+            return Err(introuvable(format!(
+                "Bareme {} : {} demande le socle {}, qui n'est pas livre.\n\
+\x20 Socles disponibles : {}. Un socle neuf s'ecrit en janvier, \
+depuis le plus recent.",
+                an,
+                ou,
+                surcouche.socle,
+                disponibles(&dossier)
+            )));
+        };
+        // Les trois etages, dans l'ordre : droit commun, convention, compagnie.
+        let (mut pile, r) = crate::forme_bareme::lire_le_socle(&fichier, jour, organisation)?;
+        regles.extend(r);
+        regles.extend(smic_en_vigueur(&pile.smic_horaire, jour)?.map(|(j, _)| j));
+        if let Some(idcc) = ent.idcc.portee() {
+            if let Some(c) = convention(&pile, idcc)?.cloned() {
+                fondre_la_convention(&mut pile, &c, idcc)?;
+            }
+        }
+        regles.extend(fondre_la_surcouche(&mut pile, surcouche, jour, &ou)?);
+        regles.sort();
+        regles.dedup();
+        Ok((pile, regles))
     }
 
     /// LE TAUX AT/MP DE L'ANNEE `an` QUE LA COMPAGNIE N'A PAS DIT, d'apres le dernier qu'elle a dit dans les annees d'avant
     /// (sa surcouche `config/baremes/<annee>.json`, `ANNEES_DU_TAUX_ATMP` au plus) : `bareme::taux_atmp_reporte`. `None`
     /// : aucun code dit avant.
-    pub fn taux_atmp_reporte(&self, an: i32) -> Option<Result<Map<String, Value>, String>> {
+    pub fn taux_atmp_reporte(&self, an: i32) -> Option<Result<TauxAtmpEcrit, String>> {
         self.taux_atmp_reporte_de(an, &self.entreprise)
     }
 
@@ -1676,98 +1608,42 @@ impl Contexte {
     /// l'annee dit (`config/baremes/<an>.json`, `taux_atmp`), sinon celui qui se reprend d'une annee d'avant
     /// (`taux_atmp_reporte`, qui porte `_reporte_de`). `Some(Err)` : pourquoi il ne se reprend pas, ou la surcouche
     /// illisible ; `None` : rien de dit ni d'avant. Tout ce qui demande « le taux de l'annee est-il pose ? » lit ici.
-    pub fn taux_atmp_de(&self, an: i32) -> Option<Result<Map<String, Value>, String>> {
+    pub fn taux_atmp_de(&self, an: i32) -> Option<Result<TauxAtmpEcrit, String>> {
         let p = self.racine.join(BAREMES).join(format!("{}.json", an));
         if socle::fichiers::existe(&p) {
-            match lire_json(&p) {
-                Ok(v) => {
-                    if let Some(t) = v.get("taux_atmp").and_then(Value::as_object) {
-                        return Some(Ok(t.clone()));
-                    }
-                }
+            match crate::forme_bareme::lire_la_surcouche(&p) {
+                Ok(Surcouche { taux_atmp: Some(t), .. }) => return Some(Ok(t)),
+                Ok(_) => {}
                 Err(e) => return Some(Err(e)),
             }
         }
         self.taux_atmp_reporte(an)
     }
 
-    fn taux_atmp_reporte_de(&self, an: i32, ent: &ChampsEntreprise) -> Option<Result<Map<String, Value>, String>> {
+    fn taux_atmp_reporte_de(&self, an: i32, ent: &ChampsEntreprise) -> Option<Result<TauxAtmpEcrit, String>> {
         let dossier = self.racine.join(BAREMES);
         let (pa, pose) = (an - ANNEES_DU_TAUX_ATMP..an).rev().find_map(|y| {
             let p = dossier.join(format!("{}.json", y));
-            let t = socle::fichiers::existe(&p).then(|| lire_json(&p).ok()).flatten()?.get("taux_atmp")?.clone();
-            t.get("code_risque").and_then(Value::as_str).is_some_and(|c| !c.trim().is_empty()).then_some((y, t))
+            let t = socle::fichiers::existe(&p).then(|| crate::forme_bareme::lire_la_surcouche(&p).ok()).flatten()?.taux_atmp?;
+            t.code_risque.as_deref().is_some_and(|c| !c.trim().is_empty()).then_some((y, t))
         })?;
-        let socles = self.code.join("baremes");
-        let socle_an = socle(&socles, an).ok().flatten();
-        let socle_avant = socle(&socles, pa).ok().flatten();
+        let socle_an = socle_livre_lu(an).ok().flatten();
+        let socle_avant = socle_livre_lu(pa).ok().flatten();
         let alsace = crate::bareme::en_alsace_moselle(ent.code_postal.texte());
         crate::bareme::taux_atmp_reporte(an, socle_an.as_ref(), (pa, &pose), socle_avant.as_ref(), alsace)
     }
 
-    fn bareme_brut_sans_cache(&self, an: i32, ent: &ChampsEntreprise) -> Result<Value, Refus> {
-        let fondu = self.bareme_fondu_de(an, ent)?;
-        // Le controle est ici, le seul endroit qui compose un bareme.
-        controler(&fondu, ent, &effectif_de(&self.racine, ent)?, &format!("config/baremes/{}.json", an))?;
-        Ok(fondu)
+    /// LE BAREME DE `jour` AVANT SON CONTROLE (le socle, la convention, la surcouche de la compagnie) : ce contre quoi une
+    /// fiche qu'on enregistre se controle avant d'etre ecrite (`controler_etablissements`).
+    pub fn bareme_fondu(&self, jour: &Jour) -> Resultat<Pile> {
+        self.empiler(jour, &self.entreprise).map(|(p, _)| p).map_err(|r| r.message)
     }
 
-    /// LE BAREME DE L'ANNEE `an` AVANT SON CONTROLE (le socle, la convention, la surcouche de la compagnie) : ce contre
-    /// quoi une fiche qu'on enregistre se controle avant d'etre ecrite (`controler_etablissements`).
-    pub fn bareme_fondu(&self, an: i32) -> Resultat<Value> {
-        self.bareme_fondu_de(an, &self.entreprise).map_err(|r| r.message)
-    }
-
-    fn bareme_fondu_de(&self, an: i32, ent: &ChampsEntreprise) -> Result<Value, Refus> {
-        let p = self.racine.join(BAREMES).join(format!("{}.json", an));
-        let mut fichier = if socle::fichiers::existe(&p) {
-            Some(lire_json(&p)?)
-        } else {
-            match &self.atmp_lu {
-                Some((a, v)) if *a == an => Some(serde_json::json!({"annee": an, "socle": an, "taux_atmp": {"valeur": v, "code_risque": null}})),
-                _ => None,
-            }
-        };
-        // Le taux AT/MP que la compagnie n'a pas dit pour l'annee se lit de celui qu'elle a dit avant
-        // (`bareme::taux_atmp_reporte`) ; ce qui ne se reprend pas dit pourquoi, et ce qu'il faut saisir.
-        if !fichier.as_ref().is_some_and(|f| f.get("taux_atmp").is_some_and(Value::is_object)) {
-            match self.taux_atmp_reporte_de(an, ent) {
-                Some(Ok(t)) => {
-                    let f = fichier.get_or_insert_with(|| serde_json::json!({"annee": an, "socle": an}));
-                    if let Some(o) = f.as_object_mut() {
-                        o.insert("taux_atmp".into(), Value::Object(t));
-                    }
-                }
-                Some(Err(pourquoi)) => match fichier.as_mut().and_then(Value::as_object_mut) {
-                    Some(o) => {
-                        o.insert("taux_atmp".into(), serde_json::json!({ "_manque": pourquoi }));
-                    }
-                    None if socle(&self.code.join("baremes"), an)?.is_some() => return Err(introuvable(pourquoi)),
-                    None => {}
-                },
-                None => {}
-            }
-        }
-        let mut fondu = bareme_de_l_annee(&self.code.join("baremes"), an, fichier, ent.idcc.portee())?;
-        dater_les_accords(&mut fondu, ent.organisation_patronale.dite().map(String::as_str))?;
-        Ok(fondu)
-    }
-
-    /// Le bareme applicable A CETTE DATE. Les listes
-    /// `{depuis, valeur}` deviennent la valeur en vigueur (sauf `smic_horaire`,
-    /// qui se resout a la fin de la periode payee : voir `smic`), et le bareme
-    /// porte `_entreprise` (et `_etablissements` s'il y en a plusieurs) : ce
-    /// que le calcul et la DSN doivent savoir de la fiche.
-    /// LES REGLES DATEES QUI S'APPLIQUENT A CE JOUR : le `depuis` de la valeur en vigueur de chaque liste datee
-    /// `[{depuis, valeur}]` du bareme de l'annee (le socle, la convention, la compagnie), du plus ancien au plus recent,
-    /// sans doublon. Une paie qui s'est calculee sous d'autres regles le dit a sa date (« regle du JJ/MM/AAAA »).
+    /// LES REGLES DATEES QUI S'APPLIQUENT A CE JOUR : le `depuis` de chaque valeur datee en vigueur du bareme de
+    /// l'annee (le socle, la convention, la compagnie), du plus ancien au plus recent, sans doublon. Une paie qui s'est
+    /// calculee sous d'autres regles le dit a sa date (« regle du JJ/MM/AAAA »).
     pub fn regles_datees(&self, jour: &Jour) -> Resultat<Vec<Jour>> {
-        let brut = self.bareme_brut(jour.an, &self.entreprise_au(jour)).map_err(|r| r.message)?;
-        let mut out = Vec::new();
-        dates_en_vigueur(&brut, jour, &mut out)?;
-        out.sort();
-        out.dedup();
-        Ok(out)
+        Ok(self.pile_lue(jour, &self.entreprise_au(jour)).map_err(|r| r.message)?.regles.clone())
     }
 
     /// LES VALEURS DATEES DE LA COMPAGNIE QUI S'APPLIQUENT A CE JOUR a l'engagement du salarie `salarie` sur le spectacle
@@ -1790,29 +1666,19 @@ impl Contexte {
     /// la fiche entreprise nomme ce jour-la, dans le socle de l'annee (la meme liste que le bareme fondu porte). Elles ne
     /// dependent que de la convention : un bareme que l'effectif ou le taux AT/MP rendent illisible les a quand meme.
     /// Une annee sans socle, ou une fiche sans convention couverte, n'en a aucune (le refus se dit au bareme).
-    pub fn contributions_dsn(&self, jour: &Jour) -> Resultat<Vec<Value>> {
-        let Some(socle_an) = socle(&self.code.join("baremes"), jour.an)? else { return Ok(Vec::new()) };
+    pub fn contributions_dsn(&self, jour: &Jour) -> Resultat<Vec<crate::forme_bareme::ContributionDsn>> {
+        let Some(fichier) = fichier_du_socle(&self.code.join("baremes"), jour.an) else { return Ok(Vec::new()) };
         let ent = self.entreprise_au(jour);
         let Some(idcc) = ent.idcc.portee() else { return Ok(Vec::new()) };
-        let Ok(couche) = convention(&socle_an, idcc) else { return Ok(Vec::new()) };
-        let couche = a_la_date(&couche, jour, &[])?;
-        Ok(couche.get("contributions_dsn").and_then(Value::as_array).cloned().unwrap_or_default())
+        let (socle_an, _) = crate::forme_bareme::lire_le_socle(&fichier, jour, ent.organisation_patronale.dite().map(String::as_str))?;
+        let Ok(Some(couche)) = convention(&socle_an, idcc) else { return Ok(Vec::new()) };
+        Ok(couche.contributions_dsn.clone())
     }
 
     /// Le bareme resolu a ce jour, garde et partage : il se lit sans se copier ; ce qui le change (la pile d'un contrat,
     /// `bareme::bareme_applique` ; la surcharge d'un etablissement) en part.
-    pub fn bareme(&self, jour: &Jour) -> Resultat<Arc<crate::forme_bareme::Pile>> {
-        type Cache = Mutex<HashMap<String, socle::fichiers::Notee<Arc<crate::forme_bareme::Pile>>>>;
-        static CACHE: OnceLock<Cache> = OnceLock::new();
-        let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-        let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)), jour.iso());
-        socle::fichiers::garde_notee(cache, cle, || self.bareme_sans_cache(jour).map(Arc::new))
-    }
-
-    fn bareme_sans_cache(&self, jour: &Jour) -> Resultat<crate::forme_bareme::Pile> {
-        let ent = &self.entreprise_au(jour);
-        let brut = self.bareme_brut(jour.an, ent).map_err(|r| r.message)?;
-        crate::forme_bareme::lire(&a_la_date(&brut, jour, &["smic_horaire"])?)
+    pub fn bareme(&self, jour: &Jour) -> Resultat<Arc<Pile>> {
+        Ok(self.pile_lue(jour, &self.entreprise_au(jour)).map_err(|r| r.message)?.pile.clone())
     }
 
     /// LA COMPAGNIE TELLE QUE LA PILE DU BAREME LA LIT a `jour` (`bareme::bareme_applique`) : sa fiche a ce jour, et son
@@ -1823,44 +1689,36 @@ impl Contexte {
         Ok(crate::bareme::EntrepriseLue { fiche, effectif, taux_lus: false })
     }
 
-    /// (PSS mensuel, PSS horaire) de l'annee.
+    /// (PSS mensuel, PSS horaire) de l'annee, d'apres la fiche entreprise de ce contexte.
     pub fn plafond_securite_sociale(&self, annee: i32) -> Resultat<(i64, i64)> {
-        let brut = match self.bareme_brut(annee, &self.entreprise) {
-            Ok(b) => b,
-            Err(r) => return Err(r.message),
-        };
-        let sec = brut.get("plafond_securite_sociale").filter(|v| vrai(v)).cloned().unwrap_or(Value::Null);
-        match (sec.get("mensuel").filter(|v| vrai(v)), sec.get("horaire").filter(|v| vrai(v))) {
-            (Some(m), Some(h)) => Ok((entier(m)?, entier(h)?)),
-            _ => Err(socle::echec::avec("Le barème de l'année n'a pas le plafond de la Sécurité sociale : le signaler au développeur.", serde_json::json!({"detail": format!(
-                "Pas de plafond de Securite sociale pour {} dans \
+        let jour = Jour::nouveau(annee, 1, 1).ok_or_else(|| format!("Année {} hors du calendrier.", annee))?;
+        let lue = self.pile_lue(&jour, &self.entreprise).map_err(|r| r.message)?;
+        let entier = |x: Decimal| x.trunc().to_string().parse::<i64>().ok().filter(|n| *n != 0);
+        match lue.pile.plafond_securite_sociale.as_ref().and_then(|p| entier(p.mensuel).zip(entier(p.horaire))) {
+            Some(mh) => Ok(mh),
+            None => Err(socle::echec::avec(
+                "Le barème de l'année n'a pas le plafond de la Sécurité sociale : le signaler au développeur.",
+                APart {
+                    detail: Some(format!(
+                        "Pas de plafond de Securite sociale pour {} dans \
 config/baremes/{}.json : ajouter la section \
 plafond_securite_sociale ({{\"mensuel\": ..., \"horaire\": ...}}), \
 relevee sur la table des parametres du BOSS (PSS_M_METROP, \
 PSS_H_METROP).",
-                annee, annee
-            )}))),
+                        annee, annee
+                    )),
+                    ..APart::default()
+                },
+            )),
         }
     }
 
-    /// Le SMIC horaire applicable a la date (le bareme liste
-    /// les revalorisations ; la derniere dont `depuis <= date` gagne).
+    /// Le SMIC horaire applicable a la date (le bareme liste les revalorisations ; la derniere dont `depuis <= date`
+    /// gagne).
     pub fn smic(&self, jour: &Jour) -> Resultat<f64> {
-        let brut = self.bareme_brut(jour.an, &self.entreprise_au(jour)).map_err(|r| r.message)?;
-        let liste = exiger(&brut, "smic_horaire")?.as_array().ok_or_else(|| socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", "smic_horaire", ""))?;
-        let mut entrees: Vec<&Value> = liste.iter().collect();
-        for e in &entrees {
-            exiger(e, "depuis")?;
-        }
-        entrees.sort_by_key(|e| en_texte(&e["depuis"]));
-        let mut val = None;
-        for e in entrees {
-            if d(&e["depuis"])? <= *jour {
-                val = Some(exiger(e, "valeur")?);
-            }
-        }
-        match val {
-            Some(v) => flottant(v),
+        let lue = self.pile_lue(jour, &self.entreprise_au(jour)).map_err(|r| r.message)?;
+        match smic_en_vigueur(&lue.pile.smic_horaire, jour)? {
+            Some((_, v)) => v.to_string().parse::<f64>().map_err(|e| e.to_string()),
             None => Err(format!("Aucun SMIC applicable au {} dans le bareme.", jour.iso())),
         }
     }

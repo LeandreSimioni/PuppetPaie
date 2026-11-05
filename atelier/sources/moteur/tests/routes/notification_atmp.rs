@@ -58,7 +58,8 @@ fn la_notification_lue_pose_le_taux_de_l_annee_a_sa_date_d_effet() {
     let a_faire = suites(&racine, vec![notification(&racine, "n2.xml", "123456873", "00017", &[("923AD", "1,90", "20260701", "20260615")])]);
     assert!(a_faire.is_empty(), "{:?}", a_faire);
     let t = &lire(&racine, "config/baremes/2026.json")["taux_atmp"];
-    let au = |j: &str| droit::bareme::taux_atmp_au(&t["valeur"], &socle::date::Jour::lire(j).unwrap()).unwrap().to_string();
+    let valeur: droit::forme_bareme::ValeurAtmp = socle::forme::lire(&t["valeur"], "le taux").unwrap();
+    let au = |j: &str| valeur.au(&socle::date::Jour::lire(j).unwrap()).unwrap().to_string();
     assert_eq!((au("2026-06-30"), au("2026-07-01")), ("1.7".to_string(), "1.9".to_string()), "{}", t);
 
     // Un autre etablissement : rien ne se pose, et cela se dit.

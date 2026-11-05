@@ -3330,10 +3330,10 @@
         "au_dela": "1,00 %, et `par_nature.permanent.rubriques_ajoutees[autres_4].taux_pat` avec -- c'est la SOMME affichee des composants (0,55, donc 1,00 ; la CPF-CDD d'un CDD s'y ajoute d'elle-meme). UNE SURCOUCHE ECRITE AVANT LE 13/10/2026 portait la formation dans `par_nature.permanent.rubriques.autres_1` (son troisieme composant, 1,00, et un `taux_pat` de 1,316) : l'y laisser la ferait payer deux fois ; `autres_1` ne garde que la CSA et le dialogue social (0,30 + 0,016 = 0,316), ce que le socle porte deja -- effacer `autres_1` de la surcouche.",
         "texte": "Code du travail, art. L. 6331-1 : 0,55 % sous onze salaries, 1,00 % a partir de onze. Le CTP Urssaf de la ligne (959 sous onze salaries) est celui de `organismes-base.json` (table des CTP de l'Urssaf) et non de cette ligne du bareme : il se verifie sur l'appel de cotisations.",
         "sous_le_seuil": "Sous le seuil, la valeur du socle est due, et aucune autre : << L'employeur de moins de onze salaries [...] 0,55 % >> (C. trav. L. 6331-1), et << l'effectif salarie et le franchissement d'un seuil d'effectif salarie sont determines selon les modalites prevues a l'article L. 130-1 du code de la securite sociale >> (L. 6331-1 A) : le seuil n'est franchi qu'apres cinq annees civiles consecutives, et << le franchissement a la baisse d'un seuil d'effectif sur une annee civile a pour effet de faire a nouveau courir >> ce delai (CSS L. 130-1, II). Releve LEGI du 13/10/2026 (atelier/reference/sources/code-du-travail/articles-20261013.md, code-de-la-securite-sociale/articles-20261013.md) ; guide Urssaf des contributions de formation du 12/03/2026, l. 568-586 (atelier/reference/sources/majoration-caisses-conges/). Une surcouche qui porte 1,00 alors que l'effectif est (repasse) sous le seuil ferait payer 1 % au lieu de 0,55 % : le moteur refuse (`contexte::controler_effectif`).",
-        "chemins": {
-          "par_nature.permanent.cotisations_dsn[128].taux": 0.55,
-          "par_nature.permanent.rubriques_ajoutees[autres_4].composants[0]": 0.55
-        }
+        "effets": [
+          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "128", "taux": 0.55}},
+          {"composant_ajoute": {"nature": "permanent", "rubrique": "autres_4", "rang": 0, "taux": 0.55}}
+        ]
       },
       {
         "cle": "fnal",
@@ -3341,14 +3341,14 @@
         "quoi": "Le FNAL passe de 0,10 % sur le salaire PLAFONNE a 0,50 % sur le brut TOTAL a partir de cinquante salaries. Ce n'est donc pas qu'un taux : l'ASSIETTE change avec lui, et surcharger le seul taux produirait 0,50 % d'un plafond -- faux, et invisible. L'artiste porte le taux abattu de 30 % (0,07 sous cinquante).",
         "au_dela": "0,50 %, ET la `base` de chaque rubrique et de chaque ligne DSN concernee (t1_mensuelle_x115 -> brut_x115 pour un permanent, dont l'assiette ne se majore que s'il est declare a la caisse des Conges Spectacles ; brut_x115_plafonne -> brut_x115 pour un intermittent, dont l'assiette reste majoree de 11,5 %, CSS L. 243-1-3 ; et le 78.004 du bloc 02 de l'intermittent, brut_plafonne, reste la base plafonnee). Le `tdelta` de la reduction generale suit (voir ci-dessous), et l'echeance de la DSN aussi.",
         "texte": "BOSS, table des parametres 2026 : COT_FNAL_49_METROP 0,10 pour les entreprises de moins de cinquante salaries. Table des CTP de l'Urssaf : 332 FNAL PLAFONNE -- le CTP change avec l'assiette, et il est porte par `organismes-base.json`, pas par le bareme.",
-        "chemins": {
-          "rubriques_bulletin[autres_2].taux_pat": 0.07,
-          "cotisations_dsn[049].taux": 0.07,
-          "par_statut.technicien.rubriques_bulletin[autres_2].taux_pat": 0.10,
-          "par_statut.technicien.cotisations_dsn[049].taux": 0.10,
-          "par_nature.permanent.rubriques.autres_2.taux_pat": 0.10,
-          "par_nature.permanent.cotisations_dsn[049].taux": 0.10
-        }
+        "effets": [
+          {"taux_patronal": {"section": "corps", "rubrique": "autres_2", "taux": 0.07}},
+          {"taux_dsn": {"section": "corps", "code81": "049", "taux": 0.07}},
+          {"taux_patronal": {"section": {"statut": "technicien"}, "rubrique": "autres_2", "taux": 0.10}},
+          {"taux_dsn": {"section": {"statut": "technicien"}, "code81": "049", "taux": 0.10}},
+          {"taux_patronal": {"section": {"nature": "permanent"}, "rubrique": "autres_2", "taux": 0.10}},
+          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "049", "taux": 0.10}}
+        ]
       },
       {
         "cle": "tdelta",
@@ -3356,16 +3356,14 @@
         "quoi": "Le parametre T de la reduction generale degressive depend du FNAL que l'employeur paie : 0,3781 au FNAL 0,10 %, 0,3821 au FNAL 0,50 %. Les quatre dix-milliemes d'ecart sont exactement le quart de point de FNAL en plus, que la reduction impute aussi.",
         "au_dela": "0,3821.",
         "texte": "Art. D. 241-7 CSS, valeurs reajustees par le decret 2025-1446 du 31/12/2025. La valeur du socle est celle des employeurs au FNAL 0,10 %.",
-        "chemins": {
-          "par_statut.technicien.reduction_generale.tdelta": 0.3781
-        }
+        "effets": [
+          {"reduction_generale": {"statut": "technicien", "parametre": "tdelta", "valeur": 0.3781}}
+        ]
       }
     ],
     "non_portees": [
       {
         "cle": "versement_mobilite",
-        "cle_bareme": "versement_mobilite",
-        "porte_si_taux": true,
         "seuil": 11,
         "quoi": "LE VERSEMENT MOBILITE (ex-versement transport) est du par les employeurs de onze salaries et plus etablis dans le ressort d'une autorite organisatrice de la mobilite qui l'a institue. Son taux est fixe localement : il n'a pas de valeur de droit commun, et ce socle n'en porte aucune. Le moteur ne sait ni le calculer, ni le declarer -- ni rubrique, ni ligne DSN, ni CTP.",
         "texte": "Code general des collectivites territoriales, art. L. 2333-64 (hors Ile-de-France) et L. 2531-2 (Ile-de-France), releves dans la base LEGI par `moteur releve-codes moissonner` (CGCT, LEGITEXT000006070633), texte lu le 21/09/2026 : `atelier/reference/sources/code-general-des-collectivites-territoriales/`, XML a l'appui. Ce qu'ils disent : L2333-64 assujettit hors Ile-de-France les employeurs d'AU MOINS ONZE salaries etablis dans le ressort d'une autorite qui a institue le versement, et renvoie a L130-1 du code de la securite sociale pour le decompte de l'effectif ; L2531-2 dit la meme chose pour l'Ile-de-France, avec le meme seuil et le meme renvoi. Le seuil de onze que ce controle applique est donc celui du texte. Le taux applicable, lui, ne se lit dans aucun code -- il se demande a l'autorite organisatrice ou se lit sur le bordereau Urssaf.",
@@ -4567,14 +4565,12 @@
           },
           "note": "Indemnités journalières de déplacement de la CCN 3090 depuis le 1er septembre 2025 : 70,28 € la chambre et le petit-déjeuner, 17,85 € le repas principal."
         },
-        "rubriques_bulletin": [
-          {
-            "id": "ccn",
+        "rubriques": {
+          "ccn": {
             "libelle": "Cotisations conventionnelles IDCC 3090",
             "base": "brut_plafonne",
             "taux_pat": 0.5,
             "taux_sal": null,
-            "masquer_base_et_taux": true,
             "source": {
               "sources": [
                 {
@@ -4606,7 +4602,7 @@
             },
             "note": "CASC-SVP de la 3090 : 0,50 % depuis 2026, dans la limite de la tranche A de la sécurité sociale ; une entreprise de la CCNEAC paie le FNAS.\nLe corps du bareme l'assied sur le brut et non sur la tranche A parce que les cachets n'approchent jamais le plafond journalier ; c'est ainsi que les DSN acceptees la portent. A revoir le jour ou un cachet depassera 220 EUR par jour."
           }
-        ],
+        },
         "par_categorie": {
           "cadre": {
             "rubriques": {
