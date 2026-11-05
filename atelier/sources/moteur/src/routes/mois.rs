@@ -2148,7 +2148,7 @@ fn apercu_des_paies(ctx: &Contexte, data: &VueDuMois) -> R<Calcul> {
             Some(m) => {
                 let (debut, fin) = bornes_brutes(ctx, e);
                 r.paies.push(PaieVue::ACompleter(PaieACompleter {
-                    a_completer: m.clone(),
+                    a_completer: socle::echec::separer(m).0,
                     salarie: CleEcrite { cle: e.salarie.clone() },
                     debut,
                     fin,

@@ -23,6 +23,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::conges::{avertir, flot, info};
+use droit::permanents::MotifDeSuspension;
 use droit::contexte::Contexte;
 use droit::fiche::SalarieDuContrat;
 use socle::date::{d, en_texte, Jour};
@@ -367,13 +368,12 @@ pub fn du_contrat(imp: &Value, cle: &str, numero: Option<&str>, debut: &Jour) ->
 // ------------------------------------------------------------- les motifs de suspension
 
 /// Le motif de suspension (`permanents-base.json`, section `suspensions`), s'il existe.
-pub fn motif_de_suspension(code: &str) -> Resultat<Option<Value>> {
-    let regles = droit::permanents::regles()?;
-    Ok(regles["suspensions"]["motifs"].as_array().and_then(|l| l.iter().find(|m| m["code"].as_str() == Some(code))).cloned())
+pub fn motif_de_suspension(code: &str) -> Resultat<Option<MotifDeSuspension>> {
+    droit::permanents::motif_de_suspension(code)
 }
 
 /// Ce que le motif d'une suspension interdit de declarer : un motif inconnu, ou le 200 (conges payes).
-pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<Value> {
+pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<MotifDeSuspension> {
     let Some(m) = motif_de_suspension(code)? else {
         return Err(socle::echec::cle(
             format!(
@@ -384,13 +384,10 @@ pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<Value> {
             "motif",
         ));
     };
-    if vrai(g(&m, "_ne_pas_declarer")) {
-        let regles = droit::permanents::regles()?;
+    if let Some(pourquoi) = &m.ne_se_declare_pas {
         return Err(format!(
             "Motif de suspension {} ({}) : {} Les conges payes pris se saisissent dans le mois (« conges pris »).",
-            code,
-            en_texte(g(&m, "libelle")),
-            en_texte(&regles["suspensions"]["_conges_payes_ne_sont_pas_une_suspension"])
+            code, m.libelle, pourquoi
         ));
     }
     Ok(m)
@@ -422,7 +419,7 @@ pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &st
                 "{} : corrigez les dates de son absence « {} », dans « Les imprévus » : elle finit le {}, avant son \
                  premier jour, le {}.",
                 qui,
-                en_texte(g(&motif, "libelle")),
+                motif.libelle,
                 fin.jj_mm_aaaa(),
                 debut.jj_mm_aaaa()
             ));
@@ -449,7 +446,7 @@ pub fn suspendu_sans_remuneration(
         if !est_une_suspension(&imp) || !du_contrat(&imp, cle, numero, contrat_debut)? || !croise(&imp, debut, fin)? {
             continue;
         }
-        let remunere = motif_de_suspension(&s(&imp, "motif"))?.is_none_or(|m| vrai(g(&m, "remunere")));
+        let remunere = motif_de_suspension(&s(&imp, "motif"))?.is_none_or(|m| m.remunere);
         if !remunere {
             siennes.push(imp);
         }
@@ -487,7 +484,7 @@ pub fn jours_de_conges_non_acquis(
         if !est_une_suspension(&imp) || !du_contrat(&imp, cle, numero, contrat_debut)? {
             continue;
         }
-        let acquiert = motif_de_suspension(&s(&imp, "motif"))?.is_none_or(|m| vrai(g(&m, "acquiert_conges")));
+        let acquiert = motif_de_suspension(&s(&imp, "motif"))?.is_none_or(|m| m.acquiert_conges);
         if acquiert {
             continue;
         }
@@ -522,7 +519,7 @@ pub fn anciennete_depuis(racine: &Path, cle: &str, depuis: &Jour, a: &Jour) -> R
         }
         let code = s(&imp, "motif");
         let Some(motif) = motif_de_suspension(&code)? else { continue };
-        if vrai(g(&motif, "remunere")) {
+        if motif.remunere {
             continue;
         }
         let (d, f) = (premier_jour(&imp)?.max(*depuis), dernier_jour(&imp)?.min(*a));
@@ -530,8 +527,8 @@ pub fn anciennete_depuis(racine: &Path, cle: &str, depuis: &Jour, a: &Jour) -> R
             continue;
         }
         let jours = f.moins(&d) + 1;
-        let libelle = en_texte(g(&motif, "libelle"));
-        if g(&motif, "anciennete").as_str() == Some("moitie") {
+        let libelle = motif.libelle.clone();
+        if motif.anciennete == Some(droit::permanents::AncienneteDeSuspension::Moitie) {
             retranches += jours / 2;
             dit.push(info(format!(
                 "{} : {} ({}) du {} au {} -- {} jour(s) compte(s) pour moitie dans l'anciennete (C. trav. L1225-54).",
@@ -728,15 +725,15 @@ nomme cette absence. Rien n'est calcule.",
             }
         } else {
             let motif = verifier_motif_de_suspension(&code, &qui)?;
-            let libelle = en_texte(g(&motif, "libelle"));
-            if vrai(g(&motif, "remunere")) {
+            let libelle = motif.libelle.clone();
+            if motif.remunere {
                 avert.push(info(format!(
                     "{} : absence ({}) du {} au {} : un congé rémunéré, rien n'est retiré du salaire ({}).",
                     qui,
                     libelle,
                     premier.jj_mm_aaaa(),
                     dernier.jj_mm_aaaa(),
-                    en_texte(g(&motif, "_remunere"))
+                    motif.texte()
                 )));
             } else {
                 lignes.extend(retenue("absence_non_remuneree"));

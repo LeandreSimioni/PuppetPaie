@@ -102,7 +102,7 @@ fn la_fin_du_contrat() {
         p::indemnite_rupture_conventionnelle(dec(&a[0]), dec(&a[1]))
     });
     section(&rel, "indemnite_depart_retraite", |a| p::indemnite_depart_retraite(dec(&a[0]), dec(&a[1])));
-    section(&rel, "rupture", |a| p::rupture(motif(&a[0])).map(|o| o.unwrap_or(Value::Null)));
+    section(&rel, "rupture", |a| p::rupture(motif(&a[0])).map(|o| o.map_or(Value::Null, |(fin, rubrique)| json!({"cle": fin.cle(), "rubrique": rubrique}))));
     section(&rel, "code_52_permis", |a| {
         p::code_52_permis(motif(&a[0]), motif(&a[1])).map(|o| o.map_or(Value::Null, Value::String))
     });

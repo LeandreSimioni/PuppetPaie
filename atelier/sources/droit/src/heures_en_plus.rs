@@ -29,9 +29,9 @@ pub struct Reparties {
     pub avis: Vec<String>,
 }
 
-fn loi() -> Resultat<Value> {
-    let r = crate::permanents::regles()?;
-    r.get("heures_en_plus").cloned().ok_or_else(|| socle::fichiers::absent("heures_en_plus"))
+/// La loi, a defaut d'accord (`permanents-base.json`, `heures_en_plus`).
+fn loi() -> Resultat<crate::permanents::HeuresEnPlus> {
+    Ok(crate::permanents::regles()?.heures_en_plus.clone())
 }
 
 fn champ<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
@@ -93,10 +93,9 @@ pub fn supplementaires(idcc: &str, heures: Decimal, a_50: Decimal, deja: Decimal
                     virgule(a_50), virgule(heures)
                 ));
             }
-            let l = loi()?;
-            let hebdo = champ(champ(&l, "heures_supplementaires")?, "paliers_hebdomadaires")?.as_array().cloned().unwrap_or_default();
+            let hebdo = loi()?.heures_supplementaires.paliers_hebdomadaires;
             let (premier, second) = match (hebdo.first(), hebdo.get(1)) {
-                (Some(a), Some(b)) => (nombre(a, "majoration")?, nombre(b, "majoration")?),
+                (Some(a), Some(b)) => (a.majoration, b.majoration),
                 _ => return Err(socle::echec::livree("permanents-base.json", "heures_en_plus.heures_supplementaires.paliers_hebdomadaires")),
             };
             ajouter(&mut r.paliers, heures - a_50, premier);
@@ -126,9 +125,7 @@ pub fn complementaires(idcc: &str, heures: Decimal, contrat: Decimal) -> Resulta
     if heures <= Decimal::ZERO {
         return Ok(r);
     }
-    let l = loi()?;
-    let hc = champ(&l, "heures_complementaires")?;
-    let paliers = champ(hc, "paliers")?.as_array().cloned().unwrap_or_default();
+    let hc = loi()?.heures_complementaires;
     let part = |nom: &str| -> Resultat<Decimal> {
         match nom {
             "dixieme" => Ok(contrat / Decimal::from(10)),
@@ -139,9 +136,9 @@ pub fn complementaires(idcc: &str, heures: Decimal, contrat: Decimal) -> Resulta
     let mut debut = Decimal::ZERO;
     let mut reste = heures;
     let mut derniere = Decimal::ZERO;
-    for p in &paliers {
-        let fin = part(&socle::valeur::valeur_en_texte(champ(p, "jusqu_au")?))?;
-        derniere = nombre(p, "majoration")?;
+    for p in &hc.paliers {
+        let fin = part(p.jusqu_au.nom())?;
+        derniere = p.majoration;
         let ici = (fin - debut).max(Decimal::ZERO).min(reste);
         if ici > Decimal::ZERO {
             ajouter(&mut r.paliers, ici, derniere);
@@ -154,7 +151,7 @@ pub fn complementaires(idcc: &str, heures: Decimal, contrat: Decimal) -> Resulta
     }
     let plafond = match de_la_convention(idcc, "heures_complementaires")?.and_then(|c| c.get("plafond").cloned()).filter(vrai) {
         Some(p) => socle::valeur::valeur_en_texte(&p),
-        None => socle::valeur::valeur_en_texte(champ(hc, "plafond_sans_accord")?),
+        None => hc.plafond_sans_accord.nom().to_string(),
     };
     let limite = part(&plafond)?;
     if heures > limite {
@@ -181,17 +178,18 @@ fn ajouter(v: &mut Vec<Palier>, heures: Decimal, majoration: Decimal) {
 
 /// Le taux maximum de la reduction de cotisations salariales (D241-21 : 11,31 %).
 pub fn taux_maximum_de_reduction() -> Resultat<Decimal> {
-    nombre(champ(&loi()?, "reduction_salariale")?, "taux_maximum")
+    Ok(loi()?.reduction_salariale.taux_maximum)
 }
 
 /// La deduction patronale par heure supplementaire (D241-24) : 1,50 EUR sous vingt salaries, 0,50 EUR a partir de vingt.
 pub fn deduction_par_heure(au_moins_20: bool) -> Resultat<Decimal> {
-    nombre(champ(&loi()?, "deduction_patronale")?, if au_moins_20 { "au_moins_20_salaries" } else { "moins_de_20_salaries" })
+    let d = loi()?.deduction_patronale;
+    Ok(if au_moins_20 { d.au_moins_20_salaries } else { d.moins_de_20_salaries })
 }
 
 /// La limite annuelle de l'exoneration d'impot sur le revenu (CGI 81 quater : 7 500 EUR).
 pub fn limite_de_l_exoneration() -> Resultat<Decimal> {
-    nombre(champ(&loi()?, "exoneration_impot")?, "limite_annuelle")
+    Ok(loi()?.exoneration_impot.limite_annuelle)
 }
 
 #[cfg(test)]

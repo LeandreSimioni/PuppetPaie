@@ -101,7 +101,7 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
                 .get("motif")
                 .map(socle::date::en_texte)
                 .and_then(|m| engagement::imprevus::motif_de_suspension(&m).ok().flatten())
-                .is_some_and(|m| !m.get("remunere").is_some_and(vrai))
+                .is_some_and(|m| !m.remunere)
     })
 }
 

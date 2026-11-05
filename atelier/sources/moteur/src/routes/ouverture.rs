@@ -241,14 +241,6 @@ fn lire_objet(p: &Path) -> R<Value> {
     serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))
 }
 
-fn ou_vide<'a>(v: Option<&'a Value>) -> &'a Value {
-    static VIDE: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
-    match v {
-        Some(x) if vrai(x) => x,
-        _ => VIDE.get_or_init(|| Value::Object(Map::new())),
-    }
-}
-
 // ------------------------------------------------------------ la configuration
 
 /// La pastille d'une fiche, et la raison de ce qui est a corriger ou a verifier, qui se lit au survol.
@@ -1239,22 +1231,14 @@ fn faits_de_rupture(n: &Nature, m: &str) -> R<Vec<&'static str>> {
     // La rupture conventionnelle, ou le moteur refuse sans le fait (CGI 80
     // duodecies 6°).
     let sec = permanents::rupture(Some(&m)).map_err(plain)?;
-    if sec.as_ref().and_then(|s| s.get("_cle")).and_then(Value::as_str) == Some("rupture_conventionnelle") {
+    if sec.is_some_and(|(fin, _)| fin == permanents::FinDeCdi::RuptureConventionnelle) {
         faits.push("en_droit_a_la_retraite");
     }
     // Un contrat a duree indeterminee dont le motif ouvre un preavis, et dont le preavis non effectue se paie : pas
     // celui que le texte n'indemnise pas (`preavis.indemnite_compensatrice.motifs_sans_indemnite` : 059, 039, 091).
     let sans_indemnite = matches!(permanents::indemnite_de_preavis(Some(&m)).map_err(plain)?, permanents::IndemniteDePreavis::Aucune(_));
     if n.duree_indeterminee && !sans_indemnite {
-        let regles = permanents::regles().map_err(plain)?;
-        let preavis = regles.get("preavis").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("preavis")))?;
-        let sans = ou_vide(preavis.get("motifs_sans_preavis"));
-        let dedans = match sans {
-            Value::Object(o) => o.contains_key(&m),
-            Value::Array(a) => a.iter().any(|x| x.as_str() == Some(m.as_str())),
-            _ => false,
-        };
-        if !dedans {
+        if !permanents::sans_preavis(Some(&m)).map_err(plain)? {
             faits.push("preavis_non_effectue");
         }
     }

@@ -252,7 +252,7 @@ pub static TEXTES: &[Texte] = &[
             // l'article L. 161-17-2 AUGMENTE DE TROIS ANNEES >>. Sans lui, la
             // condition d'age de la mise a la retraite ne se verifie pas, et
             // le moteur AVERTIT au lieu de verifier
-            // (`permanents-base.json`, `_pourquoi_pas_verifie`).
+            // (`permanents-base.json`, `mise_a_la_retraite.age.note`).
             Domaine { cle: "age_de_la_retraite", titre: "L'age auquel la retraite s'ouvre", numeros: &["L161-17-2", "L351-1", "L351-8"] },
             // L'EFFECTIF DE L'URSSAF : moyenne annuelle,
             // regle des cinq ans -- celui que porte le CRM 118 et qui regle

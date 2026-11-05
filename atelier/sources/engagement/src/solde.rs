@@ -517,7 +517,7 @@ fn delai_de_prevenance(
     };
     // Un CDD : seulement s'il stipule une periode d'essai d'au moins une semaine (L1221-25, renvoi a L1242-10).
     if !nat.duree_indeterminee {
-        let minimum = dec_avec_echelle(cle(&regle, "cdd_essai_minimum_jours")?)?;
+        let minimum = regle.cdd_essai_minimum_jours;
         let Some(essai) = e.get("periode_essai_jours").filter(|x| !x.is_null()) else {
             return Err(socle::echec::cle(format!(
                 "{} : fin de periode d'essai a l'initiative de l'employeur (034) d'un contrat a duree determinee : L1221-25 \
@@ -593,13 +593,12 @@ fn delai_de_prevenance(
         jours += part.jours;
         j = f.plus_jours(1)?;
     }
-    let rubrique = t(cle(&regle, "rubrique")?);
-    stc.lignes.push(json!({"rubrique": rubrique, "quantite": flot(fraction), "taux": flot(salaire)}));
+    stc.lignes.push(json!({"rubrique": regle.rubrique, "quantite": flot(fraction), "taux": flot(salaire)}));
     stc.avertissements.push(avertir(format!(
         "{} : {} ; le contrat finit le {} : {} jour(s) travaillé(s) du délai non effectué(s), payés {} au salaire mensuel, pour \
          leurs heures (L1221-25, indemnité compensatrice ; Cass. soc., 20/01/1999 ; DSN 52 : 017). Elle comprend les avantages et \
          l'indemnité compensatrice de congés payés de ces jours : le moteur ne les a PAS ajoutés, à vérifier. Le décompte \
-         de la présence et du délai est une lecture (permanents-base.json, `preavis.delai_de_prevenance._lecture`).",
+         de la présence et du délai est une lecture (permanents-base.json, `preavis.delai_de_prevenance.note`).",
         qui,
         dit,
         fin.jj_mm_aaaa(),
@@ -621,10 +620,9 @@ fn indemnite_de_rupture(
     stc: &mut Solde,
 ) -> Resultat<()> {
     let qui = qui(ctx, e);
-    let Some(sec) = permanents::rupture(motif)? else {
+    let Some((fin_cdi, rubrique_sec)) = permanents::rupture(motif)? else {
         return indemnite_de_licenciement(ctx, e, mois, anciennete, motif, nat, stc);
     };
-    let cle_sec = t(cle(&sec, "_cle")?);
     if !nat.duree_indeterminee {
         return Err(format!(
             "{} : motif de rupture {} ({}) sur un {}. Ces ruptures-la sont \
@@ -632,29 +630,29 @@ fn indemnite_de_rupture(
              au titre III du livre II, qui ne traite que de lui.",
             qui,
             motif.unwrap_or("None"),
-            cle_sec.replace('_', " "),
+            fin_cdi.cle().replace('_', " "),
             nat.libelle
         ));
     }
     let reference = get(&indemnite_legale(ctx, e, mois, anciennete, motif)?, "reference").clone();
     let retenu = decimal(get(&reference, "retenu"))?;
-    let mut rubrique = t(cle(&sec, "rubrique")?);
-    let saisi = e.get(&t(cle(&sec, "rubrique")?)).filter(|x| !x.is_null());
+    let mut rubrique = rubrique_sec.clone();
+    let saisi = e.get(&rubrique_sec).filter(|x| !x.is_null());
     let idcc = &idcc(ctx);
     let prof = profil(ctx, e)?;
     let (mut conv_bas, mut conv_haut): (Option<Decimal>, Option<Decimal>) = (None, None);
     let mut conv_article = Value::Null;
     let mut conv_releve = false;
     let mut ouvert = false;
-    let mut supplement_rub = format!("{}_conventionnelle", t(cle(&sec, "rubrique")?));
+    let mut supplement_rub = format!("{}_conventionnelle", rubrique_sec);
     let (mut legale, article, quoi, c): (Value, &str, &str, Value);
 
-    if cle_sec == "depart_a_la_retraite" {
+    if fin_cdi == permanents::FinDeCdi::DepartALaRetraite {
         legale = permanents::indemnite_depart_retraite(anciennete, retenu)?;
         article = "L1237-9 et D1237-1";
         quoi = "depart a la retraite";
         c = clauses::indemnite_depart_retraite(idcc, anciennete, retenu)?;
-    } else if cle_sec == "mise_a_la_retraite" {
+    } else if fin_cdi == permanents::FinDeCdi::MiseALaRetraite {
         legale = permanents::indemnite_mise_a_la_retraite(anciennete, retenu)?;
         article = "L1237-7";
         quoi = "mise a la retraite";
@@ -775,7 +773,7 @@ fn indemnite_de_rupture(
             ));
         }
     } else if let (Some(cb), Some(ch)) = (conv_bas, conv_haut) {
-        if cb != ch && ch > m_legal && cle_sec != "rupture_conventionnelle" {
+        if cb != ch && ch > m_legal && fin_cdi != permanents::FinDeCdi::RuptureConventionnelle {
             return Err(socle::echec::cle(format!(
                 "{} : {} se lit de deux façons, de {} à {} ; la loi donne {}. \
                  Saisir le montant retenu.",
@@ -801,7 +799,7 @@ fn indemnite_de_rupture(
         )));
         return Ok(());
     }
-    if cle_sec == "rupture_conventionnelle" && saisi.is_none() {
+    if fin_cdi == permanents::FinDeCdi::RuptureConventionnelle && saisi.is_none() {
         // Le montant est celui de la convention signee, que le moteur n'a pas.
         stc.avertissements.push(avertir(format!(
             "{} : RUPTURE CONVENTIONNELLE -- l'indemnité spécifique est due \
@@ -817,7 +815,7 @@ fn indemnite_de_rupture(
         )));
         return Ok(());
     }
-    if cle_sec == "rupture_conventionnelle" {
+    if fin_cdi == permanents::FinDeCdi::RuptureConventionnelle {
         // Deux rubriques pour une seule indemnite : l'impot depend d'un fait du salarie.
         let droit = e.get("en_droit_a_la_retraite").filter(|x| !x.is_null());
         let Some(droit) = droit else {
@@ -856,10 +854,10 @@ fn indemnite_de_rupture(
     }
     // L137-12 : une contribution patronale sur la part exoneree, due et non calculee.
     let regles = permanents::regles()?;
-    let contrib = cle(&regles, "regime_des_indemnites_de_rupture")?.get("contribution_patronale").filter(|x| vrai(x));
-    if let (Some(contrib), Some(m)) = (contrib, motif) {
-        if get(contrib, "motifs").as_array().is_some_and(|l| l.iter().any(|x| x.as_str() == Some(m))) {
-            let taux = dec_avec_echelle(cle(contrib, "taux")?)?;
+    let contrib = &regles.regime_des_indemnites_de_rupture.contribution_patronale;
+    if let Some(m) = motif {
+        if contrib.motifs.iter().any(|x| x == m) {
+            let taux = contrib.taux;
             stc.avertissements.push(avertir(format!(
                 "{} : l'employeur doit en plus la CONTRIBUTION DE {} % sur la \
                  part exonérée de cette indemnité (L137-12 du code de la \
@@ -874,7 +872,7 @@ fn indemnite_de_rupture(
         }
     }
     let mut detail = String::new();
-    if cle_sec == "depart_a_la_retraite" && vrai(get(&legale, "palier")) {
+    if fin_cdi == permanents::FinDeCdi::DepartALaRetraite && vrai(get(&legale, "palier")) {
         detail = format!(
             " -- palier de {} ans de la loi, {} mois de salaire",
             t(get(&legale, "palier")),
@@ -901,7 +899,7 @@ fn indemnite_de_rupture(
         }
     )));
     let prevenance = get(&c, "prevenance_mois");
-    if vrai(prevenance) && cle_sec != "rupture_conventionnelle" {
+    if vrai(prevenance) && fin_cdi != permanents::FinDeCdi::RuptureConventionnelle {
         stc.avertissements.push(avertir(format!(
             "{} : {} impose un DELAI DE PREVENANCE de {} mois, par lettre \
              recommandee, a qui prend l'initiative du depart a la retraite. \
@@ -949,18 +947,17 @@ fn phrase_de_la_convention(
 /// Les deux plafonds de L242-1 II 7° : au-dela, le moteur refuse.
 fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &str, qui: &str) -> Resultat<()> {
     let regles = permanents::regles()?;
-    let regles_plafonds = cle(cle(&regles, "regime_des_indemnites_de_rupture")?, "plafonds")?;
+    let regles_plafonds = &regles.regime_des_indemnites_de_rupture.plafonds;
     let an: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| format!("nombre entier illisible : {}", mois))?;
     let Ok((mensuel, _)) = ctx.plafond_securite_sociale(an) else {
         return Ok(());
     };
     let annuel = mul(Decimal::from(mensuel), Decimal::from(12));
-    for (k, quel) in [
-        ("cotisations_exoneration_pass", "exoneree"),
-        ("cotisations_assujettissement_total_pass", "hors de l'assiette"),
+    for (combien, quel) in [
+        (regles_plafonds.cotisations_exoneration_pass, "exoneree"),
+        (regles_plafonds.cotisations_assujettissement_total_pass, "hors de l'assiette"),
     ] {
-        let combien = cle(regles_plafonds, k)?;
-        let seuil = mul(annuel, dec_avec_echelle(combien)?);
+        let seuil = mul(annuel, combien);
         if montant > seuil {
             return Err(format!(
                 "{} : indemnité de {} de {}, au-delà de {} plafonds \
@@ -971,7 +968,7 @@ fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &st
                 qui,
                 quoi,
                 euros(montant),
-                t(combien),
+                combien,
                 euros(seuil),
                 quel
             ));

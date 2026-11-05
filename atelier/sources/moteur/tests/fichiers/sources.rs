@@ -1,6 +1,6 @@
 //! LE VERIFICATEUR DES SOURCES : toute valeur qu'un fichier livre fonde sur un texte le cite (`droit::source`), et la citation
-//! s'y lit (atelier/AGENTS.md, « Les sources »). Pour chaque `source` des baremes (`logiciel/donnees/baremes/`) et de la
-//! banque des conseils (`conseils.json`) : le fichier est depose dans le depot, la citation s'y lit a l'identique (a la
+//! s'y lit (atelier/AGENTS.md, « Les sources »). Pour chaque `source` des baremes (`logiciel/donnees/baremes/`), des
+//! regles des permanents (`permanents-base.json`) et de la banque des conseils (`conseils.json`) : le fichier est depose dans le depot, la citation s'y lit a l'identique (a la
 //! casse, aux blancs, aux apostrophes et aux guillemets pres ; « […] » separe des fragments ; l'article d'un entrepot de la
 //! DILA, toutes ses versions deposees) ; les textes d'un fondement `Texte` ont un seul emetteur, une convergence en a au
 //! moins deux. Un conseil nomme le titre lisible de chacun de ses documents.
@@ -173,10 +173,21 @@ fn verifier(tous: &[(String, Fondement)]) -> Vec<String> {
                 }
                 normaliser(xml, true)
             }
-            // Une page HTML se lit sans ses balises (`1<sup>er</sup>`).
+            // Une page HTML se lit sans ses balises (`1<sup>er</sup>`) ; un XML, avec (une fiche de parametrage cite ses
+            // `<taux>`) ou sans (un article LEGI cite ses alineas d'un `<p>` a l'autre).
             None => {
-                let html = s.fichier.fichier().ends_with(".html");
-                textes.entry(chemin.clone()).or_insert_with(|| normaliser(&String::from_utf8_lossy(&std::fs::read(&chemin).unwrap()), html)).clone()
+                let nom = s.fichier.fichier();
+                textes
+                    .entry(chemin.clone())
+                    .or_insert_with(|| {
+                        let brut = String::from_utf8_lossy(&std::fs::read(&chemin).unwrap()).into_owned();
+                        match (nom.ends_with(".html"), nom.ends_with(".xml")) {
+                            (true, _) => normaliser(&brut, true),
+                            (_, true) => format!("{}\u{0}{}", normaliser(&brut, false), normaliser(&brut, true)),
+                            _ => normaliser(&brut, false),
+                        }
+                    })
+                    .clone()
             }
         };
         let fr = fragments(&s.citation);
@@ -195,8 +206,8 @@ fn verifier(tous: &[(String, Fondement)]) -> Vec<String> {
 #[test]
 fn chaque_source_est_un_texte_depose_et_sa_citation_s_y_lit() {
     let mut tous = Vec::new();
-    for an in ["2025", "2026"] {
-        fondements(&lu(&format!("baremes/{}.json", an)), &format!("baremes/{}.json", an), &mut tous);
+    for nom in ["baremes/2025.json", "baremes/2026.json", "permanents-base.json"] {
+        fondements(&lu(nom), nom, &mut tous);
     }
     let banque = lu("conseils.json");
     for c in banque["conseils"].as_array().unwrap() {

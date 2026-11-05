@@ -1884,9 +1884,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
 fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &Value) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("bloc_65_sans_maintien_de_remuneration")? else { return Ok(()) };
     let motif = txt(req(s, "motif")?);
-    let regles = droit::permanents::regles()?;
-    let m = liste(&regles["suspensions"]["motifs"]).into_iter().find(|m| txt(g(m, "code")) == motif);
-    let Some(m) = m.filter(|m| vrai(g(m, "remunere"))) else { return Ok(()) };
+    let Some(m) = droit::permanents::motif_de_suspension(&motif)?.filter(|m| m.remunere) else { return Ok(()) };
     Err(format!(
         "{} : suspension au motif {} ({}), du {} au {}, saisie comme imprevu. Ce motif est un conge remunere \
 ({}). En norme {}, le bloc S21.G00.65 ne declare qu'une << absence a temps plein du \
@@ -1895,10 +1893,10 @@ ne retire rien du salaire) et ne se declare pas en suspension : retirer l'imprev
 Rien n'est ecrit.",
         qui_contrat(p),
         motif,
-        txt(g(m, "libelle")),
+        m.libelle,
         txt(g(s, "debut")),
         txt(g(s, "fin")),
-        txt(g(m, "_remunere")),
+        m.texte(),
         f.norme()?.version,
         texte
     ))

@@ -39,6 +39,7 @@ use crate::Avis;
 use droit::contexte::Contexte;
 use droit::maintien::{self as dm, Base, Droit, Duree, Origine, Regime};
 use droit::natures::Nature;
+use droit::permanents::{Principe, PrincipeAccident};
 use socle::date::{d, en_texte, Jour};
 use socle::fichiers::vrai;
 use socle::num::{dec_avec_echelle, div, eur2, mul, Decimal, Resultat};
@@ -296,12 +297,12 @@ fn ij_du_jour(imp: &Value, majoree: bool) -> Resultat<Option<(Decimal, Decimal)>
 /// Le premier jour indemnise par la caisse (R323-1 ; L433-1) et le jour ou l'indemnite d'un accident du travail se
 /// majore (R433-3), en rang depuis le premier jour d'absence.
 fn jours_de_la_caisse(origine: Origine) -> Resultat<(i64, Option<i64>)> {
-    let ij = &droit::permanents::regles()?["indemnites_journalieres"];
-    let n = |k: &str| ij.get(k).and_then(Value::as_i64).ok_or_else(|| socle::fichiers::absent(k));
+    let rg = droit::permanents::regles()?;
+    let ij = &rg.indemnites_journalieres;
     Ok(if origine.professionnelle() || origine == Origine::Trajet {
-        (0, Some(n("majoree_des_le_jour")? - 1))
+        (0, Some(ij.majoree_des_le_jour - 1))
     } else {
-        (n("debut_maladie")? - 1, None)
+        (ij.debut_maladie - 1, None)
     })
 }
 
@@ -363,10 +364,8 @@ pub fn ajouter(ctx: &Contexte, e: &Value, imp: &Value, nat: &Nature, mois: &str,
         Some(g(imp, "subrogation_fin")).filter(|v| vrai(v)).map(d).transpose()?,
     );
     let regles = droit::permanents::regles()?;
-    let rij = &regles["indemnites_journalieres"];
-    let csg_ded = dec_avec_echelle(&rij["csg_deductible"])?;
-    let pas_jours = rij["pas_maladie_jours"].as_i64().unwrap_or(0);
-    let pas_accident = dec_avec_echelle(&rij["pas_accident"])?;
+    let rij = &regles.indemnites_journalieres;
+    let (csg_ded, pas_jours, pas_accident) = (rij.csg_deductible, rij.pas.maladie_jours, rij.pas.accident);
 
     // Les indemnites de la caisse, jour par jour du mois (rang depuis le premier jour d'absence).
     let ij = match indemnites_des_jours(imp, dr.origine, &premier, &dernier, &debut, &fin)? {
@@ -554,7 +553,7 @@ pub fn indemnites_a_dire(ctx: &Contexte, carte: &crate::saisie::Carte, mois: &st
 }
 /// LE MONTANT DE PRINCIPE DES INDEMNITES D'UN ARRET, propose avant le releve de la caisse : par jour, brut et net de CSG et
 /// CRDS (et, pour un accident du travail, de trajet ou une maladie professionnelle, le taux majore des le 29e jour), et la phrase qui le dit.
-/// Textes : `logiciel/donnees/permanents-base.json`, `indemnites_journalieres._principe` et `._principe_accident`.
+/// Textes : `logiciel/donnees/permanents-base.json`, `indemnites_journalieres.principe` et `.principe_accident`, leurs `note`.
 pub struct IjDePrincipe {
     pub brute: Decimal,
     pub nette: Decimal,
@@ -576,7 +575,8 @@ const IJ_A_VERIFIER: &str = "quand le relevé CPAM arrive, vérifiez le montant 
 /// plus le gain journalier net, ce salaire diminue du taux forfaitaire de 21 % (R433-4, dernier alinea ; R331-5, al. 2 ;
 /// arrete du 28 mars 2013). Net : CSG (L136-8, II, 1°, b) et CRDS (ordonnance n° 96-50, art. 14, I, et 19).
 pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrincipe, String>> {
-    let regles = &droit::permanents::regles()?["indemnites_journalieres"];
+    let rg = droit::permanents::regles()?;
+    let regles = &rg.indemnites_journalieres;
     let premier = crate::imprevus::premier_jour(imp)?;
     let veille = premier.mois_civil().premier_jour().plus_jours(-1)?;
     let salarie = en_texte(g(imp, "salarie"));
@@ -591,12 +591,12 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
     };
     match origine(imp)? {
         Some(Origine::Maladie) => {
-            let p = &regles["principe"];
+            let p = &regles.principe;
             // Le SMIC du plafond, au bareme de son annee : sans lui, rien ne se propose.
             let Some(smic) = ctx.smic(&veille).ok().and_then(|s| Decimal::try_from(s).ok()) else {
                 return Ok(Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : le barème {} n'est pas livré.", veille.an)));
             };
-            let combien = nombre(p, "mois")?.to_string().parse::<usize>().map_err(|e| e.to_string())?;
+            let combien = p.mois;
             let (mut bruts, mut jour) = (Vec::new(), veille.clone());
             for _ in 0..combien {
                 let mois = jour.mois_civil().to_string();
@@ -609,18 +609,18 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
             let brute = montant_de_principe(&bruts, smic, p)?;
             Ok(Ok(IjDePrincipe {
                 brute,
-                nette: net_de_csg_crds(brute, p)?,
+                nette: net_de_csg_crds(brute, p.csg, p.crds),
                 majorees: None,
                 phrase: format!("Montant de principe (la moitié du salaire journalier des trois derniers mois) : {}", IJ_A_VERIFIER),
             }))
         }
         Some(Origine::AccidentDuTravail | Origine::Trajet | Origine::MaladieProfessionnelle) => {
-            let p = &regles["principe_accident"];
+            let p = &regles.principe_accident;
             let accident = match imp.get("date_accident").filter(|x| vrai(x)) {
                 Some(x) => d(x)?,
                 None => return Ok(Err(IJ_AU_RELEVE.to_string())),
             };
-            if accident < d(p.get("plafond_depuis").ok_or_else(|| socle::fichiers::absent("plafond_depuis"))?)? {
+            if accident < p.plafond_depuis {
                 return Ok(Err(IJ_AU_RELEVE.to_string()));
             }
             let Ok((mensuel, _)) = ctx.plafond_securite_sociale(premier.an) else {
@@ -633,8 +633,8 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
             let (brute, majoree) = montants_d_accident(brut, Decimal::from(mensuel * 12), p)?;
             Ok(Ok(IjDePrincipe {
                 brute,
-                nette: net_de_csg_crds(brute, p)?,
-                majorees: Some((majoree, net_de_csg_crds(majoree, p)?)),
+                nette: net_de_csg_crds(brute, p.csg, p.crds),
+                majorees: Some((majoree, net_de_csg_crds(majoree, p.csg, p.crds))),
                 phrase: format!("Montant de principe (60 % du salaire journalier du mois précédent, 80 % dès le 29e jour) : {}", IJ_A_VERIFIER),
             }))
         }
@@ -642,32 +642,27 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
     }
 }
 
-/// Une regle chiffree de `permanents-base.json`.
-fn nombre(p: &Value, k: &str) -> Resultat<Decimal> {
-    dec_avec_echelle(p.get(k).ok_or_else(|| socle::fichiers::absent(k))?)
-}
-
 /// L'indemnite brute d'un jour de maladie, des paies des trois mois (`bruts`) au SMIC horaire du plafond (`smic`), selon
 /// les regles `principe` de `permanents-base.json` (voir `ij_de_principe`).
-fn montant_de_principe(bruts: &[Decimal], smic: Decimal, p: &Value) -> Resultat<Decimal> {
-    let plafond = eur2(mul(mul(nombre(p, "plafond_smic")?, smic), nombre(p, "heures_du_mois")?));
+fn montant_de_principe(bruts: &[Decimal], smic: Decimal, p: &Principe) -> Resultat<Decimal> {
+    let plafond = eur2(mul(mul(p.plafond_smic, smic), p.heures_du_mois));
     let total = bruts.iter().fold(Decimal::ZERO, |t, b| t + (*b).min(plafond));
-    Ok(eur2(mul(div(total, nombre(p, "diviseur")?), nombre(p, "fraction")?)))
+    Ok(eur2(mul(div(total, p.diviseur), p.fraction)))
 }
 
 /// Les indemnites brutes d'un jour d'accident, normale et majoree, de la paie du mois anterieur (`brut`) au plafond
 /// annuel de la Securite sociale (`pass`), selon les regles `principe_accident` (voir `ij_de_principe`).
-fn montants_d_accident(brut: Decimal, pass: Decimal, p: &Value) -> Resultat<(Decimal, Decimal)> {
-    let journalier = div(brut, nombre(p, "diviseur")?);
-    let base = journalier.min(eur2(div(mul(pass, nombre(p, "plafond_pass")?), Decimal::from(100))));
-    let gain_net = journalier - div(mul(journalier, nombre(p, "taux_forfaitaire")?), Decimal::from(100));
-    let au_taux = |k: &str| -> Resultat<Decimal> { Ok(eur2(mul(base, nombre(p, k)?).min(gain_net))) };
-    Ok((au_taux("fraction")?, au_taux("fraction_majoree")?))
+fn montants_d_accident(brut: Decimal, pass: Decimal, p: &PrincipeAccident) -> Resultat<(Decimal, Decimal)> {
+    let journalier = div(brut, p.diviseur);
+    let base = journalier.min(eur2(div(mul(pass, p.plafond_pass), Decimal::from(100))));
+    let gain_net = journalier - div(mul(journalier, p.taux_forfaitaire), Decimal::from(100));
+    let au_taux = |fraction: Decimal| eur2(mul(base, fraction).min(gain_net));
+    Ok((au_taux(p.fraction), au_taux(p.fraction_majoree)))
 }
 
-/// Une indemnite brute nette de la CSG et de la CRDS des revenus de remplacement.
-fn net_de_csg_crds(brute: Decimal, p: &Value) -> Resultat<Decimal> {
-    Ok(eur2(brute - mul(brute, div(nombre(p, "csg")? + nombre(p, "crds")?, Decimal::from(100)))))
+/// Une indemnite brute nette de la CSG et de la CRDS des revenus de remplacement (en pourcent).
+fn net_de_csg_crds(brute: Decimal, csg: Decimal, crds: Decimal) -> Decimal {
+    eur2(brute - mul(brute, div(csg + crds, Decimal::from(100))))
 }
 
 /// Les lignes du mois : le maintien (le plus favorable des complements, plus les indemnites subrogees qu'il avance), et,
@@ -887,14 +882,14 @@ mod tests {
     #[test]
     fn l_indemnite_de_principe_est_la_fraction_du_salaire_journalier_plafonne() {
         let regles = droit::permanents::regles().unwrap();
-        let p = &regles["indemnites_journalieres"]["principe"];
+        let p = &regles.indemnites_journalieres.principe;
         let smic = Decimal::new(1202, 2);
         // 2 487,39 par mois : sous le plafond (1,4 × 12,02 × 151,67 = 2 552,30) ; 7 462,17 / 91,25 / 2.
         let sous = montant_de_principe(&[Decimal::new(248739, 2); 3], smic, p).unwrap();
-        assert_eq!((sous, net_de_csg_crds(sous, p).unwrap()), (Decimal::new(4089, 2), Decimal::new(3815, 2)));
+        assert_eq!((sous, net_de_csg_crds(sous, p.csg, p.crds)), (Decimal::new(4089, 2), Decimal::new(3815, 2)));
         // 4 000 par mois : chaque paie retenue au plafond.
         assert_eq!(montant_de_principe(&[Decimal::from(4000); 3], smic, p).unwrap(), Decimal::new(4196, 2));
-        let a = &regles["indemnites_journalieres"]["principe_accident"];
+        let a = &regles.indemnites_journalieres.principe_accident;
         let pass = Decimal::from(48060);
         // 2 487,39 : 81,77 par jour ; 60 % = 49,06 ; 80 % = 65,41, ramené au gain net de 79 % = 64,60.
         assert_eq!(montants_d_accident(Decimal::new(248739, 2), pass, a).unwrap(), (Decimal::new(4906, 2), Decimal::new(6460, 2)));

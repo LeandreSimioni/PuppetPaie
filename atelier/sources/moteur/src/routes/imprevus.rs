@@ -1086,8 +1086,8 @@ pub(crate) fn resume(ctx: &Contexte, n: &Bloc60, imp: &Value) -> R<Resume> {
         })));
     }
     let reportee = reporte_par(ctx, imp)?;
-    let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
-    let libelle = motif.get("libelle").map_or_else(|| "?".to_string(), valeur_en_texte);
+    let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?;
+    let libelle = motif.as_ref().map_or_else(|| "?".to_string(), |m| m.libelle.clone());
     let dit = Dit::de(false, &libelle, &Value::Null, &premier, &dernier, &imp["contrat_numero"], &imp["debut"], &[]);
     Ok(Resume::Suspension(Box::new(ResumeDeSuspension {
         genre: SUSPENSION,
@@ -1096,7 +1096,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Bloc60, imp: &Value) -> R<Resume> {
         contrat_debut: imp["contrat_debut"].clone(),
         motif: imp["motif"].clone(),
         motif_libelle: libelle,
-        remunere: motif.get("remunere").is_some_and(vrai),
+        remunere: motif.as_ref().is_some_and(|m| m.remunere),
         debut: imp["debut"].clone(),
         fin: imp["fin"].clone(),
         premier_jour: premier,
@@ -1114,8 +1114,8 @@ pub(crate) fn resume(ctx: &Contexte, n: &Bloc60, imp: &Value) -> R<Resume> {
 /// Un motif d'absence qui se declare, tel que la page le propose.
 #[derive(Debug, Serialize)]
 struct MotifSuspension {
-    code: Value,
-    libelle: Value,
+    code: String,
+    libelle: String,
     libelle_dit: String,
     remunere: bool,
 }
@@ -1123,15 +1123,14 @@ struct MotifSuspension {
 /// Les motifs d'une suspension qui se DECLARENT (`permanents-base.json`, section `suspensions`, sans le 200).
 fn motifs_de_suspension() -> R<Vec<MotifSuspension>> {
     let regles = droit::permanents::regles().map_err(refus_magasin)?;
-    Ok(regles["suspensions"]["motifs"]
-        .as_array()
-        .map_or(&[][..], |a| &a[..])
+    Ok(regles
+        .suspensions
+        .motifs
         .iter()
-        .filter(|m| !m.get("_ne_pas_declarer").is_some_and(vrai))
+        .filter(|m| m.ne_se_declare_pas.is_none())
         .map(|m| {
-            let remunere = m.get("remunere").is_some_and(vrai);
-            let libelle_dit = format!("{}{}", valeur_en_texte(&m["libelle"]), if remunere { " (payé)" } else { "" });
-            MotifSuspension { code: m["code"].clone(), libelle: m["libelle"].clone(), libelle_dit, remunere }
+            let libelle_dit = format!("{}{}", m.libelle, if m.remunere { " (payé)" } else { "" });
+            MotifSuspension { code: m.code.clone(), libelle: m.libelle.clone(), libelle_dit, remunere: m.remunere }
         })
         .collect())
 }
