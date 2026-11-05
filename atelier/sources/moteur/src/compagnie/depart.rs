@@ -203,14 +203,6 @@ fn verse_a_la_dgfip(f: &declarations::dsn::Fabriquee) -> bool {
     f.ordres.iter().any(|o| o.reference.as_deref() == Some(declarations::dsn::DGFIP_PAS))
 }
 
-/// Le jour de constitution (S20.G00.05.007, `JJMMAAAA`) d'une DSN deja ecrite.
-fn constitution_de(chemin: &Path) -> Option<socle::date::Jour> {
-    let octets = std::fs::read(chemin).ok()?;
-    let t = envois::depot::lire(&octets).champ("constitution").to_string();
-    let (j, m, a) = (t.get(0..2)?, t.get(2..4)?, t.get(4..8)?);
-    socle::date::Jour::lire(&format!("{}-{}-{}", a, m, j)).ok()
-}
-
 // ------------------------------------------------------------- ce qu'une DSN porte
 
 /// La forme d'une DSN mensuelle : son en-tete, l'etablissement qu'elle declare, et le jour de sa constitution.
@@ -326,10 +318,10 @@ pub(crate) fn refabriquer(ctx: &Contexte, chemin: &Path, mois: socle::mois::Mois
 fn refabriquer_sur(ctx: &Contexte, lu: Option<&Lu>, chemin: &Path, le_mois: socle::mois::Mois, nic: Option<&str>) -> R<Option<declarations::dsn::Fabriquee>> {
     let mois = &le_mois.to_string();
     let Ok(octets) = std::fs::read(chemin) else { return Ok(None) };
-    let Some(constitution) = constitution_de(chemin) else { return Ok(None) };
-    let entete = envois::depot::lire(&octets);
-    let type_dsn = entete.champ("type_declaration").to_string();
-    let Ok(ordre) = entete.champ("ordre").trim().parse::<i64>() else { return Ok(None) };
+    let entete = declarations::dsn_lue::lire(&octets, "")?;
+    let Some(constitution) = entete.depot else { return Ok(None) };
+    let type_dsn = entete.type_declaration.clone().unwrap_or_default();
+    let Ok(ordre) = entete.ordre.as_deref().unwrap_or_default().trim().parse::<i64>() else { return Ok(None) };
     let plusieurs = !ctx.entreprise_du_mois(mois).map_err(valeur)?.secondaires().is_empty();
     let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| ctx.entreprise.nic_principal());
     let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };

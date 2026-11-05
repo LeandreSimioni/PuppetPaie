@@ -11,7 +11,8 @@ use socle::echec::{erreur, Echec, R};
 use socle::mois::Mois;
 
 use crate::branchement::{reponse_fictive, Branchement};
-use crate::depot::{self, Apercu};
+use crate::depot;
+use declarations::dsn_lue::DsnLue;
 use crate::ligne::{Acte, DetailDpae, DetailDsn, EmbaucheDeclaree, Envoi, Ligne, Mode, Ouverture, Version};
 use crate::releve_retours::{Client, Panne};
 use crate::suites::{DepotRefuse, Suites};
@@ -43,7 +44,7 @@ pub struct Depot<'a> {
     pub octets: &'a [u8],
     /// Le mois que le fichier declare ; pour un signalement, celui de son evenement (`evenement`).
     pub mois: Mois,
-    /// Le jour de l'evenement qu'un signalement declare (`depot::Apercu::evenement_lisible`).
+    /// Le jour de l'evenement qu'un signalement declare (`DsnLue::evenement_lisible`).
     pub evenement: Option<String>,
     pub reel: bool,
     pub qui: &'a str,
@@ -129,7 +130,7 @@ pub fn deposer_dsn(
     ctx: &Contexte,
     branchement: Branchement,
     d: &Depot,
-    apercu: &Apercu,
+    apercu: &DsnLue,
     environnement: &str,
     ordre_test: Option<i64>,
     suites: &mut Suites,
@@ -144,7 +145,7 @@ pub fn deposer_dsn(
         let mut client = Client::dsn(ctx, environnement, d.motdepasse.clone()).map_err(Panne::en_echec)?;
         client.authentifier().map_err(Panne::en_echec)?;
         // La verification est refaite ici : la derniere porte avant le reseau.
-        depot::verifier(&depot::lire(d.octets), d.reel, None, true)?;
+        depot::verifier(&declarations::dsn_lue::lire(d.octets, "")?, d.reel, None, true)?;
         let mut contenu = d.octets.to_vec();
         if !d.reel {
             contenu = depot::basculer_dsn(&contenu)?;
@@ -156,12 +157,12 @@ pub fn deposer_dsn(
         let (reponse, _type) = client.deposer_octets(&url, &contenu, "dsn").map_err(Panne::en_echec)?;
         Ok(reponse)
     };
-    let champ = |k: &str| Some(apercu.champ(k).to_string());
+    let texte = |v: Option<&str>| Some(v.unwrap_or_default().to_string());
     let preuve = Some(d.preuve.to_string());
     let reponse = match envoi() {
         Ok(r) => r,
         Err(e) => {
-            let detail = DetailDsn { preuve, erreur: Some(e.classe.unwrap_or("Exception").into()), repetition: d.repetition.cloned(), nature: champ("nature"), ordre: champ("ordre"), evenement: d.evenement.clone(), ..Default::default() };
+            let detail = DetailDsn { preuve, erreur: Some(e.classe.unwrap_or("Exception").into()), repetition: d.repetition.cloned(), nature: texte(apercu.nature.as_deref()), ordre: texte(apercu.ordre.as_deref()), evenement: d.evenement.clone(), ..Default::default() };
             let ligne = Ligne::Dsn(envoi_du_depot(d, false, "net-entreprises", "", &e.phrase(), None, detail, false));
             return Err(echec(ctx, Acte::Dsn, d, ligne, e, suites));
         }
@@ -171,18 +172,18 @@ pub fn deposer_dsn(
     let trace = archiver_reponse(&ctx.racine, "depot-dsn", &d.evenement.clone().unwrap_or_else(|| d.mois.to_string()), &reponse)?;
     let detail = DetailDsn {
         preuve,
-        type_declaration: champ("type_declaration"),
+        type_declaration: texte(apercu.type_declaration.as_deref()),
         // LA NATURE : un signalement se numerote a la suite de tous ceux deja partis (`journal::dernier_ordre_des_signalements`).
-        nature: champ("nature"),
+        nature: texte(apercu.nature.as_deref()),
         // LE RANG DECLARE : le prochain annule-et-remplace se numerote au-dessus de cet ordre.
-        ordre: champ("ordre"),
-        versements: Some(apercu.versements.clone()),
-        salaries: Some(apercu.salaries),
+        ordre: texte(apercu.ordre.as_deref()),
+        versements: Some(apercu.versements_organismes.iter().map(|m| m.to_string()).collect()),
+        salaries: Some(apercu.individus.len()),
         // CE QUI A ETE PRELEVE SUR LA GRILLE, et non sur le taux du salarie : la seule trace qui reste.
-        pas_bareme: Some(apercu.pas_bareme),
+        pas_bareme: Some(apercu.pas_bareme()),
         repetition: d.repetition.cloned(),
         ordre_test,
-        etablissement: champ("etablissement"),
+        etablissement: texte(apercu.etablissement()),
         evenement: d.evenement.clone(),
         ..Default::default()
     };

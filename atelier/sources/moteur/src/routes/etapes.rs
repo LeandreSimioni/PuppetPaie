@@ -800,9 +800,9 @@ pub(crate) fn empreinte_de(v: &Value) -> String {
 ///   `DPAE_<Mois>.txt` : l'ordre inverse des noms).
 pub(crate) fn ordre_de_depot(nom: &str, chemin: &Path) -> (u8, i64, String, std::cmp::Reverse<String>) {
     if suffixe(nom).to_lowercase() == ".dsn" {
-        let apercu = std::fs::read(chemin).map(|o| envois::depot::lire(&o)).ok();
+        let apercu = std::fs::read(chemin).ok().and_then(|o| declarations::dsn_lue::lire(&o, nom).ok());
         let signalement = apercu.as_ref().is_some_and(|a| a.est_signalement());
-        let lu = apercu.as_ref().and_then(|a| a.champ("ordre").trim().parse::<i64>().ok());
+        let lu = apercu.as_ref().and_then(|a| a.ordre.as_deref()?.trim().parse::<i64>().ok());
         if signalement {
             return (1, lu.unwrap_or(0), nom.to_string(), std::cmp::Reverse(String::new()));
         }
@@ -1847,7 +1847,7 @@ impl<'a> Moteur<'a> {
                 return true;
             }
             let octets = std::fs::read(&f.chemin).unwrap_or_default();
-            envois::depot::lire(&octets).champ("etablissement") == valeur_en_texte(nic)
+            declarations::dsn_lue::lire(&octets, "").is_ok_and(|d| d.etablissement() == Some(valeur_en_texte(nic).as_str()))
         };
         let Some(premier) = fichiers.de(quoi).iter().find(de_l_etablissement).cloned() else {
             return Ok(None);

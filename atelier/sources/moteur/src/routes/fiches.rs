@@ -1006,8 +1006,16 @@ pub(crate) fn pieces_importees(ctx: &Contexte) -> std::path::PathBuf {
 }
 
 /// `usages_declares` : combien de DSN deja deposees declarent cette valeur dans la rubrique de la case (`rubrique`, de la
-/// table des champs), telle qu'une DSN l'ecrit, et sur quels mois. Une case sans rubrique n'est dans aucune DSN.
-fn usages_declares(ctx: &Contexte, rubrique: Option<&str>, valeur: &Value) -> R<Value> {
+/// table des champs), telle qu'une DSN l'ecrit, et sur quels mois (`AAAA-MM`). Une case sans rubrique n'est dans aucune
+/// DSN.
+#[derive(Debug, Clone, serde::Serialize)]
+pub(crate) struct DejaDeclare {
+    pub(crate) declarations: usize,
+    pub(crate) du: Option<String>,
+    pub(crate) au: Option<String>,
+}
+
+fn usages_declares(ctx: &Contexte, rubrique: Option<&str>, valeur: &Value) -> R<DejaDeclare> {
     let valeur = valeur_en_texte(valeur);
     let (mut n, mut mois) = (0usize, Vec::<String>::new());
     if let Some(rubrique) = rubrique {
@@ -1022,7 +1030,7 @@ fn usages_declares(ctx: &Contexte, rubrique: Option<&str>, valeur: &Value) -> R<
             }
         }
     }
-    Ok(json!({"declarations": n, "du": mois.iter().min(), "au": mois.iter().max()}))
+    Ok(DejaDeclare { declarations: n, du: mois.iter().min().cloned(), au: mois.iter().max().cloned() })
 }
 
 /// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes (`_...`) qu'elle ne dit pas,
@@ -1177,7 +1185,8 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
         });
         let o = entree.as_object_mut().unwrap();
         if c.is_some_and(|c| c.declare) {
-            o.insert("deja_declare".into(), usages_declares(ctx, c.and_then(|c| c.rubrique.as_deref()), &avant)?);
+            let deja = usages_declares(ctx, c.and_then(|c| c.rubrique.as_deref()), &avant)?;
+            o.insert("deja_declare".into(), serde_json::to_value(deja).map_err(|e| erreur("ValueError", e.to_string()))?);
         }
         if let Some(c) = c.filter(|c| c.calcule()) {
             let source = c.derive_de.as_deref().unwrap_or("");

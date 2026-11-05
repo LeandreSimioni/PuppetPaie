@@ -1050,7 +1050,7 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
         .filter(|(nom, c)| c.is_file() && Path::new(nom).extension().map_or(false, |e| e.to_string_lossy().to_lowercase() == "dsn"))
         // LA MENSUELLE, PAS UN SIGNALEMENT : un signalement d'arret ou de fin ecrit apres la DSN du mois, dans
         // le meme dossier, devenait « la DSN a deposer » du rappel.
-        .filter(|(_, c)| std::fs::read(c).map(|o| !envois::depot::lire(&o).est_signalement()).unwrap_or(false))
+        .filter(|(nom, c)| std::fs::read(c).is_ok_and(|o| declarations::dsn_lue::lire(&o, nom).is_ok_and(|d| !d.est_signalement())))
         .collect();
     fichiers.sort_by_cached_key(|(nom, c)| crate::routes::etapes::ordre_de_depot(nom, c));
     fichiers.into_iter().next().map(|(nom, c)| (nom, c.to_string_lossy().into_owned()))

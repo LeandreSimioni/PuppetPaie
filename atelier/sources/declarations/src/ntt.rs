@@ -7,15 +7,12 @@ use crate::dsn::Fichier;
 use socle::fichiers::repr;
 use crate::formats;
 use socle::num::Resultat;
-use crate::usages::{lignes, rubrique_valeur, strip};
+use crate::usages::strip;
 use droit::fiche::{ChampsSalarie, FicheSalarie};
 use serde_json::Value;
 
 pub const RUBRIQUE:&str = "S21.G00.30.020";
 pub const RUBRIQUE_NIR: &str = "S21.G00.30.001";
-// Le marqueur sur lequel on decoupe un fichier en individus : un individu
-// sous NTT n'a pas de NIR.
-pub const RUBRIQUE_NOM: &str = "S21.G00.30.002";
 
 /// Le code sexe d'un NIR (son premier chiffre), sinon de la case `sexe` ; "" si ni l'un ni l'autre ne le dit.
 pub fn sexe_de(nir: &str, sexe: &str) -> String {
@@ -138,61 +135,33 @@ pub fn poser_ntt(f: &mut Fichier, ent: &droit::fiche::ChampsEntreprise, salarie:
     Ok(())
 }
 
-/// CCH-12 et CCH-14, verifies sur le fichier seul.
+/// CCH-12 et CCH-14, verifies sur le fichier seul, relu (`dsn_lue::lire`).
 pub fn verifier_fichier(texte: &str) -> Resultat<()> {
-    refuser_les_doublons(&individus(texte))
+    refuser_les_doublons(&crate::dsn_lue::lire(texte.as_bytes(), "").map_err(|e| e.message)?.individus)
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Individu {
-    pub nom: String,
-    pub nir: String,
-    pub ntt: String,
-}
-
-/// Les blocs Individu d'un fichier DSN.
-pub fn individus(texte: &str) -> Vec<Individu> {
-    let mut trouves: Vec<Individu> = Vec::new();
-    let vide = |nir: &str| Individu { nom: String::new(), nir: nir.to_string(), ntt: String::new() };
-    for ligne in lignes(texte) {
-        let (rubrique, valeur) = rubrique_valeur(ligne);
-        if rubrique == RUBRIQUE_NIR {
-            trouves.push(vide(valeur));
-        } else if rubrique == RUBRIQUE_NOM {
-            if trouves.last().map_or(true, |c| !c.nom.is_empty()) {
-                trouves.push(vide(""));
-            }
-            trouves.last_mut().unwrap().nom = valeur.to_string();
-        } else if rubrique == RUBRIQUE {
-            if let Some(c) = trouves.last_mut() {
-                c.ntt = valeur.to_string();
-            }
-        }
-    }
-    trouves
-}
-
-fn refuser_les_doublons(individus: &[Individu]) -> Resultat<()> {
+fn refuser_les_doublons(individus: &[crate::dsn_lue::IndividuDeclare]) -> Resultat<()> {
     let mut vus_nir: Vec<(&str, &str)> = Vec::new();
     let mut vus_ntt: Vec<(&str, &str)> = Vec::new();
     for i in individus {
-        if i.nir.is_empty() && i.ntt.is_empty() {
+        let (nom, ntt) = (i.nom.as_deref().unwrap_or_default(), i.ntt.as_deref().unwrap_or_default());
+        if i.nir.is_empty() && ntt.is_empty() {
             return Err(format!(
                 "{} est declare sans numero d'inscription au repertoire et sans numero technique temporaire. La norme exige l'un ou l'autre (CCH-12, S21.G00.30.020) : sans cela l'individu n'est identifie par rien.",
-                i.nom
+                nom
             ));
         }
-        for (cle, vus, quoi) in [(&i.nir, &mut vus_nir, "NIR"), (&i.ntt, &mut vus_ntt, "NTT")] {
+        for (cle, vus, quoi) in [(i.nir.as_str(), &mut vus_nir, "NIR"), (ntt, &mut vus_ntt, "NTT")] {
             if cle.is_empty() {
                 continue;
             }
-            if let Some((_, autre)) = vus.iter().find(|(c, _)| *c == cle.as_str()) {
+            if let Some((_, autre)) = vus.iter().find(|(c, _)| *c == cle) {
                 return Err(format!(
                     "Le meme {} ({}) identifie deux individus de la meme declaration, {} et {}. La norme l'interdit (CCH-14) : un identifiant qui designe deux personnes rend la declaration intracable.",
-                    quoi, cle, autre, i.nom
+                    quoi, cle, autre, nom
                 ));
             }
-            vus.push((cle.as_str(), i.nom.as_str()));
+            vus.push((cle, nom));
         }
     }
     Ok(())

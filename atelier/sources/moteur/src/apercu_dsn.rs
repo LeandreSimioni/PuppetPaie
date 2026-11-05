@@ -5,7 +5,7 @@
 //!
 //! Les pieces reprises du reste du moteur : `Moteur::etat_remplacement` (l'annule-et-
 //! remplace d'un etablissement), `engagement::etats::validees_du_mois` et
-//! `ecrire_documents::paies_aux_numeros_declares` (les paies validees, numerotees), `depot::lire` (la lecture du
+//! `ecrire_documents::paies_aux_numeros_declares` (les paies validees, numerotees), `dsn_lue::lire` (la lecture du
 //! fichier), `etats::{deja_depose, repetition}` (le journal).
 //!
 //! Un nombre `NaN`, `Infinity`, ou dont l'exposant sortirait des 28 chiffres de `rust_decimal`, se refuse comme un
@@ -17,7 +17,7 @@ use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use envois::depot::{self, Apercu};
+use envois::depot;
 use envois::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
@@ -118,8 +118,7 @@ impl VersementDuFichier {
 }
 
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
-fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<RecapDsn, String> {
-    let d = declarations::dsn_lue::lire(octets, "").map_err(|e| e.message)?;
+fn recapitulatif_dsn(ctx: &Contexte, d: &DsnLue, mois: &str, nic: &str) -> Result<RecapDsn, String> {
     // Un mois sans engagement n'a rien a comparer.
     let (mut compare, liste) = match saisie_aux_numeros_declares(ctx, mois) {
         Ok(l) if !l.is_empty() => (true, l),
@@ -162,7 +161,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             vus.insert(c.numero.clone());
             let p = par_numero.get(&c.numero).map(|&i| &liste[i]);
             let mut ecarts: Vec<String> = Vec::new();
-            let brut = q2(m.brut);
+            let brut = q2(m.brut.unwrap_or_default());
             match p {
                 _ if correction => {}
                 None => {
@@ -400,13 +399,13 @@ pub(crate) struct RemplacementDuFichier {
 }
 
 /// L'annule-et-remplace du mois, ou rien s'il ne se lit pas.
-fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: Mois) -> R<Option<RemplacementDuFichier>> {
-    let nic = a.champ("etablissement");
+fn remplacement_du_fichier(m: &mut Moteur, a: &DsnLue, mois: Mois) -> R<Option<RemplacementDuFichier>> {
+    let nic = a.etablissement().unwrap_or_default();
     let nic = if nic.is_empty() { Value::Null } else { json!(nic) };
     let Ok(r) = m.etat_remplacement(mois, &nic) else { return Ok(None) };
-    let genre = a.champ("type_declaration");
+    let genre = a.type_declaration.as_deref().unwrap_or_default();
     let remplace = if (genre == "03" || genre == "05") && r.deposee {
-        let ordre = a.champ("ordre");
+        let ordre = a.ordre.as_deref().unwrap_or_default();
         let n = if ordre.is_empty() {
             0
         } else {
@@ -460,7 +459,7 @@ pub(crate) struct ApercuDsn {
 pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
     let chemin = resoudre(&ctx.racine, fichier)?;
     let contenu = lire_octets(&chemin)?;
-    let a = depot::lire(&contenu);
+    let a = declarations::dsn_lue::lire(&contenu, "")?;
     let mut m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let empreinte = envois::journal::empreinte(&contenu);
@@ -473,7 +472,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
     let recapitulatif = if signalement {
         None
     } else {
-        Some(match recapitulatif_dsn(ctx, &contenu, &mois_t, a.champ("etablissement")) {
+        Some(match recapitulatif_dsn(ctx, &a, &mois_t, a.etablissement().unwrap_or_default()) {
             Ok(v) => Recapitulatif::Lu(v),
             Err(erreur) => Recapitulatif::Illisible { erreur },
         })
@@ -486,51 +485,50 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
     let (ordres, ordres_erreur) = if signalement {
         (Vec::new(), None)
     } else {
-        let nic = a.champ("etablissement");
+        let nic = a.etablissement().unwrap_or_default();
         let nic = Some(nic).filter(|n| !n.is_empty());
         match crate::compagnie::depart::refabriquer(ctx, std::path::Path::new(&chemin), mois, nic)? {
             Some(f) => (declarations::ordres_paiement::decrire(&f.ordres, &mois_t, &organismes, ctx.echeance_dsn()?)?, None),
             None => (Vec::new(), Some("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
         }
     };
-    let genre = a.champ("type_declaration").to_string();
-    let nature = a.champ("nature");
+    let genre = a.type_declaration.as_deref().unwrap_or_default().to_string();
     let libelle_type = TYPES.iter().find(|(c, _)| *c == genre).map_or("?", |(_, l)| *l);
     let description = format!(
         "{} — {} (type {}), ordre {}, fraction {}, constituée le {}. {} salarié{}, {} lignes, SIREN {}.",
         nom,
         libelle_type,
         genre,
-        a.champ("ordre"),
-        a.champ("fraction"),
-        en_clair_jjmmaaaa(a.champ("constitution")),
-        a.salaries,
-        if a.salaries > 1 { "s" } else { "" },
+        a.ordre.as_deref().unwrap_or_default(),
+        a.fraction.as_deref().unwrap_or_default(),
+        a.depot.map(|j| j.jj_mm_aaaa()).unwrap_or_default(),
+        a.individus.len(),
+        if a.individus.len() > 1 { "s" } else { "" },
         a.lignes,
-        a.champ("siren")
+        a.emetteur.as_deref().unwrap_or_default()
     );
     Ok(ApercuDsn {
         fichier: chemin.clone(),
         nom,
         description,
         mois,
-        nature_envoi: a.champ("nature_envoi").to_string(),
+        nature_envoi: a.nature_envoi.as_deref().unwrap_or_default().to_string(),
         reel: a.reel(),
         signalement,
-        nature: if nature.is_empty() { depot::MENSUELLE.to_string() } else { nature.to_string() },
+        nature: a.nature_ou_mensuelle().to_string(),
         libelle_nature: a.nature_lisible(),
         evenement: if signalement { a.evenement_lisible() } else { String::new() },
         type_declaration: genre,
         libelle_type,
-        ordre: a.champ("ordre").to_string(),
-        fraction: a.champ("fraction").to_string(),
-        remplace: a.champ("remplace").to_string(),
-        constitution: en_clair_jjmmaaaa(a.champ("constitution")),
-        siren: a.champ("siren").to_string(),
-        salaries: a.salaries,
+        ordre: a.ordre.as_deref().unwrap_or_default().to_string(),
+        fraction: a.fraction.as_deref().unwrap_or_default().to_string(),
+        remplace: a.remplace.as_deref().unwrap_or_default().to_string(),
+        constitution: a.depot.map(|j| j.jj_mm_aaaa()).unwrap_or_default(),
+        siren: a.emetteur.as_deref().unwrap_or_default().to_string(),
+        salaries: a.individus.len(),
         lignes: a.lignes,
-        pas_versements: a.pas_versements,
-        pas_bareme: a.pas_bareme,
+        pas_versements: a.pas_versements(),
+        pas_bareme: a.pas_bareme(),
         // Ce que la boite dit sous les ordres.
         ordres_phrase: if ordres.is_empty() { "Aucun ordre de télépaiement dans ce fichier." } else { "Chaque organisme prélèvera ce montant sur le compte de la compagnie ; la date se lit dans la DSN ou dans le texte qui la fixe (au survol)." },
         ordres_titre: format!("Ordres de télépaiement ({})", ordres.len()),
@@ -543,15 +541,6 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &str) -> R<ApercuDsn> {
         recapitulatif,
         repetition,
     })
-}
-
-/// Une date de la norme (JJMMAAAA, S20.G00.05.007) telle qu'on la lit : JJ/MM/AAAA. Autre chose se montre tel quel.
-fn en_clair_jjmmaaaa(d: &str) -> String {
-    if d.len() == 8 && d.bytes().all(|b| b.is_ascii_digit()) {
-        format!("{}/{}/{}", &d[..2], &d[2..4], &d[4..])
-    } else {
-        d.to_string()
-    }
 }
 
 /// Un nombre du fichier, a la francaise ; une correction le signe d'un vrai moins (« −184 » : ce qui s'ajoute a ce qui a

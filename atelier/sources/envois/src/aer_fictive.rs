@@ -130,7 +130,7 @@ fn periode(c: &ContratDeclare, x: &Mesures, debut: Jour, fin: Jour, m: socle::mo
         heures: x.heures,
         cachets: x.cachets,
         jours: x.jours,
-        brut: x.brut,
+        brut: x.brut.unwrap_or_default(),
         paiement: paiement.map(|j| j.jj_mm_aaaa()).unwrap_or_default(),
     }
 }

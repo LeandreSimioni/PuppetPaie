@@ -1326,9 +1326,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             pages_incoherentes
         ));
     }
-    // UN CONTRAT QUE LA DSN DECLARE SANS SES MONTANTS (`routes::import::SansMontants`) : son bulletin, lu ici ou deja
+    // UN CONTRAT QUE LA DSN DECLARE SANS SES NETS (`routes::import::SansNets`) : son bulletin, lu ici ou deja
     // repris, les donne ; sinon l'apercu le dit, contrat par contrat.
-    for s in &ap.sans_montants {
+    for s in &ap.sans_nets {
         let ligne = ap.paies.iter().find(|x| x.mois == s.mois && x.paie.nir.as_deref() == Some(s.nir.as_str()) && x.paie.contrat == s.contrat);
         let dates = ligne.map(|x| (x.paie.debut, x.paie.fin));
         let complete = ligne.is_some_and(|x| x.paie.bulletin.is_some())

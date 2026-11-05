@@ -3,7 +3,12 @@
 //! sa preuve et un fichier reel, l'annule-et-remplace (`atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt`, l. 84-88 :
 //! 01 normale, 02 normale sans individu, 03 et 05 leurs annule-et-remplace). Fichiers fabriques, NIR et SIREN inventes.
 
-use envois::depot::{basculer_dpae, basculer_dsn, est_reel, lire, renumeroter, verifier};
+use declarations::dsn_lue::DsnLue;
+use envois::depot::{basculer_dpae, basculer_dsn, est_reel, renumeroter, verifier};
+
+fn lire(octets: &[u8]) -> DsnLue {
+    declarations::dsn_lue::lire(octets, "essai.dsn").unwrap()
+}
 
 fn dsn(nature_envoi: &str) -> Vec<u8> {
     format!(
@@ -27,7 +32,7 @@ fn flux(indicateur: &str, n: usize) -> Vec<u8> {
 fn le_test_ne_part_jamais_en_02() {
     for nature in ["02", "01", "03", "99"] {
         let s = basculer_dsn(&dsn(nature)).unwrap();
-        assert_eq!(lire(&s).champ("nature_envoi"), "01", "{}", nature);
+        assert_eq!(lire(&s).nature_envoi.as_deref(), Some("01"), "{}", nature);
     }
 }
 
@@ -46,9 +51,9 @@ fn la_bascule_dpae_repasse_chaque_enregistrement_en_tst() {
 #[test]
 fn la_renumerotation_fait_un_annule_et_remplace() {
     let a = lire(&renumeroter(&dsn("01"), "7").unwrap());
-    assert_eq!((a.champ("type_declaration"), a.champ("ordre")), ("03", "7"));
+    assert_eq!((a.type_declaration.as_deref(), a.ordre.as_deref()), (Some("03"), Some("7")));
     let t = String::from_utf8(dsn("01")).unwrap().replace("S20.G00.05.002,'01'", "S20.G00.05.002,'02'");
-    assert_eq!(lire(&renumeroter(t.as_bytes(), "2").unwrap()).champ("type_declaration"), "05");
+    assert_eq!(lire(&renumeroter(t.as_bytes(), "2").unwrap()).type_declaration.as_deref(), Some("05"));
     // Sans numero d'ordre, rien ne se renumerote.
     let sans = String::from_utf8(dsn("01")).unwrap().replace("S20.G00.05.004,'1'\r\n", "");
     assert!(renumeroter(sans.as_bytes(), "2").is_err());

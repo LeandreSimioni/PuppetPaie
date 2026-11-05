@@ -426,7 +426,7 @@ pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
         for champ in demande(nat, en_cours) {
             let v = match champ {
                 Demande::Numero => Some(numero.clone()).filter(|n| !n.is_empty()),
-                Demande::Salaire => p.montants.as_ref().and_then(|m| m.salaire_habituel).map(|m| m.to_string()),
+                Demande::Salaire => p.paie.mesures.salaire_habituel.map(|m| m.to_string()),
                 Demande::Debut => c.and_then(|c| c.debut).map(|j| j.iso()),
                 Demande::Fin => c.and_then(|c| c.fin).map(|j| j.iso()),
                 Demande::Quotite => c.and_then(|c| c.quotite).map(|q| q.to_string()),

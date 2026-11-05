@@ -759,7 +759,7 @@ fn deposer(ctx: &Contexte, c: ChargeDeposer) -> R<Deposee> {
     };
     let phrase = std::iter::once(tranche).chain(fait.suites.iter().cloned()).collect::<Vec<_>>().join(" ");
     // APRES LA DSN REELLE D'UN MOIS QUI A DES SALARIES, la boite d'avis : leurs documents partent de l'etape 4.
-    let avis = (reel && quoi == Quoi::Dsn && envois::depot::lire(&lire_octets(&resoudre(&ctx.racine, &fichier)?)?).salaries > 0)
+    let avis = (reel && quoi == Quoi::Dsn && !declarations::dsn_lue::lire(&lire_octets(&resoudre(&ctx.racine, &fichier)?)?, &fichier)?.individus.is_empty())
         .then(|| Encart::de("information", "Les documents des salariés", "Ils partent de l'étape 4, « Envoyer les documents », qui dit ce qu'il leur manque encore."));
     etats::poser_les_pastilles(&mut fait.ligne);
     poser_les_pastilles(&mut fait.deja);
