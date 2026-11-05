@@ -690,11 +690,8 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
                         if r.compte_pour != "ouverture_des_droits" {
                             continue;
                         }
-                        let pl = r.plafond_annuel_heures.clone().unwrap_or(Value::Null);
-                        let bas = pl.get("moins_de_50_ans").and_then(Value::as_i64);
-                        let haut = pl.get("50_ans_et_plus").and_then(Value::as_i64);
-                        if let (Some(bas), Some(haut)) = (bas, haut) {
-                            trouve = Some(base(vec![("plafond", val_entier(bas)), ("plafond_50", val_entier(haut))]));
+                        if let Some(pl) = r.plafond_annuel_heures {
+                            trouve = Some(base(vec![("plafond", val_entier(pl.moins_de_50_ans)), ("plafond_50", val_entier(pl.cinquante_ans_et_plus))]));
                         }
                         break;
                     }

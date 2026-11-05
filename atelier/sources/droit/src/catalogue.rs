@@ -6,6 +6,7 @@
 //! comme toute la configuration, lues a la date de la periode. Le catalogue se
 //! range par libelle.
 
+use serde::Deserialize;
 use socle::fichiers::{dossier_du_code, lire_json, repr, signature, vrai};
 use socle::num::Resultat;
 use serde_json::{Map, Value};
@@ -83,15 +84,14 @@ pub const AUTRES_BRUTS: &[(&str, &str)] = &[
     ("96", "Potentiel nouveau type E"),
 ];
 
-/// Les champs d'une rubrique : tout autre
-/// champ dans un fichier est refuse.
-const CHAMPS_CONNUS: [&str; 27] = [
-    "code", "libelle", "unite", "nature", "saisie", "soumis", "imposable",
-    "conges_spectacles", "source", "sens", "heures_forfait", "plafond", "aem",
-    "dsn_type", "dsn_autres_bruts", "annexe", "plafond_mensuel",
-    "plafond_annuel_heures", "compte_pour", "salaire_de_base", "retabli",
-    "suspension", "arret_de_travail", "conges_pris", "dsn_bloc52", "origine", "dit",
-];
+/// Le plafond annuel d'heures d'une rubrique (l'enseignement, annexe X) : selon l'age du salarie.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlafondAnnuelHeures {
+    pub moins_de_50_ans: i64,
+    #[serde(rename = "50_ans_et_plus")]
+    pub cinquante_ans_et_plus: i64,
+}
 
 /// Une forme de paie : ce que le bulletin appelle une ligne.
 #[derive(Debug, Clone, PartialEq)]
@@ -113,7 +113,7 @@ pub struct Rubrique {
     pub dsn_autres_bruts: Option<String>,
     pub annexe: Option<String>,
     pub plafond_mensuel: Option<i64>,
-    pub plafond_annuel_heures: Option<Value>,
+    pub plafond_annuel_heures: Option<PlafondAnnuelHeures>,
     pub compte_pour: String,
     pub salaire_de_base: bool,
     pub retabli: bool,
@@ -276,105 +276,134 @@ fn lire(p: &Path) -> Resultat<Value> {
     lire_json(p)
 }
 
-fn base_json() -> Resultat<Value> {
-    lire(&dossier_du_code().join("rubriques-base.json"))
+/// `rubriques-base.json`, entier : ses notes, les annexes VIII et X, les rubriques livrees (chacune une fiche que la
+/// compagnie peut ajuster champ par champ, lue par `FicheDeRubrique` une fois ajustee).
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Base {
+    #[serde(rename = "_quoi")]
+    _quoi: String,
+    #[serde(rename = "_pourquoi_si_court")]
+    _pourquoi_si_court: String,
+    #[serde(rename = "_jours")]
+    _jours: String,
+    #[serde(rename = "_heures")]
+    _heures: String,
+    #[serde(rename = "_annexes")]
+    _annexes: String,
+    #[serde(rename = "_deux_compteurs")]
+    _deux_compteurs: String,
+    annexes: Annexes,
+    #[serde(deserialize_with = "socle::forme::en_ordre")]
+    rubriques: Vec<(String, Map<String, Value>)>,
+}
+
+/// Le seuil et la fenetre des annexes VIII et X (`rubriques-base.json`, `annexes`).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Annexes {
+    /// Les heures qui ouvrent les droits (507).
+    pub seuil_heures: i64,
+    /// La fenetre ou elles se comptent, en jours (365).
+    pub fenetre_jours: i64,
+    #[serde(rename = "_source")]
+    _source: String,
+}
+
+/// LA SEULE LECTURE DE `rubriques-base.json` : sa forme.
+fn base() -> Resultat<Base> {
+    socle::forme::lire(
+        &lire_json(&dossier_du_code().join("rubriques-base.json"))?,
+        "Les rubriques livrées avec le logiciel ne se lisent pas : le signaler au développeur.",
+    )
 }
 
 /// Le seuil et la fenetre des annexes VIII et X.
-pub fn annexes() -> Resultat<Value> {
-    let b = base_json()?;
-    let a = b.get("annexes").cloned().unwrap_or(Value::Object(Map::new()));
-    let ok = |c: &str| a.get(c).map_or(false, vrai);
-    if !ok("seuil_heures") || !ok("fenetre_jours") {
-        return Err(socle::echec::livree("rubriques-base.json", "annexes"));
-    }
-    Ok(a)
+pub fn annexes() -> Resultat<Annexes> {
+    Ok(base()?.annexes)
 }
 
-/// Un champ exige ; son absence se refuse en le nommant.
-fn requis<'a>(d: &'a Map<String, Value>, cle: &str) -> Resultat<&'a Value> {
-    d.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
+/// UNE RUBRIQUE TELLE QU'UN FICHIER L'ECRIT : livree (`rubriques-base.json`), ou la compagnie par-dessus, champ par
+/// champ, a la date lue (`config/rubriques-compagnie.json`). Sa seule lecture : `construire`.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FicheDeRubrique {
+    libelle: String,
+    unite: String,
+    nature: String,
+    #[serde(default)]
+    saisie: Vec<String>,
+    soumis: bool,
+    imposable: bool,
+    conges_spectacles: bool,
+    source: String,
+    #[serde(default)]
+    sens: Option<String>,
+    #[serde(default)]
+    heures_forfait: Option<f64>,
+    #[serde(default)]
+    plafond: Option<String>,
+    #[serde(default)]
+    aem: Option<String>,
+    #[serde(default)]
+    dsn_type: Option<String>,
+    #[serde(default)]
+    dsn_autres_bruts: Option<String>,
+    #[serde(default)]
+    annexe: Option<String>,
+    #[serde(default)]
+    plafond_mensuel: Option<i64>,
+    #[serde(default)]
+    plafond_annuel_heures: Option<PlafondAnnuelHeures>,
+    #[serde(default)]
+    compte_pour: Option<String>,
+    #[serde(default)]
+    salaire_de_base: bool,
+    #[serde(default)]
+    retabli: bool,
+    #[serde(default)]
+    suspension: bool,
+    #[serde(default)]
+    arret_de_travail: bool,
+    #[serde(default)]
+    conges_pris: bool,
+    #[serde(default)]
+    dsn_bloc52: Option<String>,
+    #[serde(default)]
+    dit: Option<String>,
 }
 
-fn chaine_opt(d: &Map<String, Value>, cle: &str) -> Option<String> {
-    match d.get(cle) {
-        None | Some(Value::Null) => None,
-        Some(Value::String(s)) => Some(s.clone()),
-        Some(autre) => Some(autre.to_string()),
-    }
-}
-
-fn entier(v: &Value) -> i64 {
-    // Un entier, depuis un nombre (tronque) ou une chaine.
-    match v {
-        Value::Number(n) => n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64),
-        Value::String(s) => s.trim().parse().unwrap_or(0),
-        Value::Bool(b) => *b as i64,
-        _ => 0,
-    }
-}
-
-fn construire(code: &str, d: &Map<String, Value>, origine: &str) -> Resultat<Rubrique> {
-    let mut inconnus: Vec<&str> = d
-        .keys()
-        .map(|k| k.as_str())
-        .filter(|k| !CHAMPS_CONNUS.contains(k))
-        .collect();
-    if !inconnus.is_empty() {
-        inconnus.sort();
-        return Err(socle::echec::avec(format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)), serde_json::json!({"detail": format!(
-            "Rubrique {} : champ(s) inconnu(s) {}. Les champs admis sont ceux des rubriques livrees, \
-             rubriques-base.json.", repr(code), inconnus.join(", "))})));
-    }
-    let texte = |v: &Value| match v {
-        Value::String(s) => s.clone(),
-        autre => autre.to_string(),
-    };
-    let libelle = texte(requis(d, "libelle")?);
-    let unite = texte(requis(d, "unite")?);
-    let nature = texte(requis(d, "nature")?);
-    let saisie = d
-        .get("saisie")
-        .and_then(|v| v.as_array())
-        .map(|a| a.iter().map(texte).collect())
-        .unwrap_or_default();
-    let soumis = vrai(requis(d, "soumis")?);
-    let imposable = vrai(requis(d, "imposable")?);
-    let conges_spectacles = vrai(requis(d, "conges_spectacles")?);
-    let source = match requis(d, "source")? {
-        Value::String(s) => s.clone(),
-        v if vrai(v) => v.to_string(),
-        _ => String::new(),
-    };
-    let drapeau = |c: &str| d.get(c).map_or(false, vrai);
+fn construire(code: &str, d: Map<String, Value>, origine: &str) -> Resultat<Rubrique> {
+    let f: FicheDeRubrique =
+        socle::forme::lire(&Value::Object(d), &format!("La rubrique {} est mal décrite : le signaler au développeur.", repr(code)))?;
     let r = Rubrique {
         code: code.to_string(),
-        libelle,
-        unite,
-        nature,
-        saisie,
-        soumis,
-        imposable,
-        conges_spectacles,
-        source,
-        sens: chaine_opt(d, "sens").unwrap_or_else(|| "+".into()),
-        heures_forfait: d.get("heures_forfait").and_then(|v| v.as_f64()),
-        plafond: chaine_opt(d, "plafond"),
-        aem: chaine_opt(d, "aem"),
-        dsn_type: chaine_opt(d, "dsn_type"),
-        dsn_autres_bruts: chaine_opt(d, "dsn_autres_bruts"),
-        annexe: chaine_opt(d, "annexe"),
-        plafond_mensuel: d.get("plafond_mensuel").filter(|v| !v.is_null()).map(entier),
-        plafond_annuel_heures: d.get("plafond_annuel_heures").filter(|v| !v.is_null()).cloned(),
-        compte_pour: chaine_opt(d, "compte_pour").unwrap_or_else(|| "droits_et_montant".into()),
-        salaire_de_base: drapeau("salaire_de_base"),
-        retabli: drapeau("retabli"),
-        suspension: drapeau("suspension"),
-        arret_de_travail: drapeau("arret_de_travail"),
-        conges_pris: drapeau("conges_pris"),
-        dsn_bloc52: chaine_opt(d, "dsn_bloc52"),
+        libelle: f.libelle,
+        unite: f.unite,
+        nature: f.nature,
+        saisie: f.saisie,
+        soumis: f.soumis,
+        imposable: f.imposable,
+        conges_spectacles: f.conges_spectacles,
+        source: f.source,
+        sens: f.sens.unwrap_or_else(|| "+".into()),
+        heures_forfait: f.heures_forfait,
+        plafond: f.plafond,
+        aem: f.aem,
+        dsn_type: f.dsn_type,
+        dsn_autres_bruts: f.dsn_autres_bruts,
+        annexe: f.annexe,
+        plafond_mensuel: f.plafond_mensuel,
+        plafond_annuel_heures: f.plafond_annuel_heures,
+        compte_pour: f.compte_pour.unwrap_or_else(|| "droits_et_montant".into()),
+        salaire_de_base: f.salaire_de_base,
+        retabli: f.retabli,
+        suspension: f.suspension,
+        arret_de_travail: f.arret_de_travail,
+        conges_pris: f.conges_pris,
+        dsn_bloc52: f.dsn_bloc52,
         origine: origine.to_string(),
-        dit: chaine_opt(d, "dit"),
+        dit: f.dit,
     };
     r.verifier()?;
     Ok(r)
@@ -415,14 +444,8 @@ fn rubriques_datees(racine: &Path) -> Resultat<bool> {
 }
 
 fn construire_catalogue(racine: &Path, jour: &Jour) -> Resultat<Vec<Rubrique>> {
-    let b = base_json()?;
     // code -> (champs, propre a la compagnie)
-    let mut brut: Vec<(String, Map<String, Value>, bool)> = Vec::new();
-    if let Some(Value::Object(m)) = b.get("rubriques") {
-        for (c, v) in m {
-            brut.push((c.clone(), v.as_object().cloned().unwrap_or_default(), false));
-        }
-    }
+    let mut brut: Vec<(String, Map<String, Value>, bool)> = base()?.rubriques.into_iter().map(|(c, v)| (c, v, false)).collect();
     if socle::fichiers::est_dossier(racine) {
         for (c, v) in propres_au(racine, jour)? {
             if let Some(e) = brut.iter_mut().find(|e| e.0 == c) {
@@ -436,9 +459,8 @@ fn construire_catalogue(racine: &Path, jour: &Jour) -> Resultat<Vec<Rubrique>> {
         }
     }
     let mut out = Vec::new();
-    for (code, mut d, propre) in brut {
-        d.remove("_propre");
-        out.push(construire(&code, &d, if propre { "compagnie" } else { "base" })?);
+    for (code, d, propre) in brut {
+        out.push(construire(&code, d, if propre { "compagnie" } else { "base" })?);
     }
     out.sort_by_key(|r| r.libelle.to_lowercase());
     Ok(out)

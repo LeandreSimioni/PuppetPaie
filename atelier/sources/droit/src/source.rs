@@ -59,6 +59,8 @@ pub enum Emetteur {
     Convention,
     /// Le Bulletin officiel de la securite sociale.
     Boss,
+    /// Le ministere du travail : ses circulaires, au Bulletin officiel du ministere.
+    Ministere,
     /// La DGFiP : BOFiP, notices des formulaires.
     Dgfip,
     Urssaf,

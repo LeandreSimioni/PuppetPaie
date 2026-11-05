@@ -71,7 +71,9 @@ fn les_conges() {
     });
     section(&rel, "jours_acquis", |a| p::jours_acquis(&jour(&a[0]), &jour(&a[1])).map(dec_texte));
     section(&rel, "indemnite_conges", |a| {
-        p::indemnite_conges(dec(&a[0]), dec(&a[1]), dec(&a[2]), dec(&a[3]))
+        p::indemnite_conges(dec(&a[0]), dec(&a[1]), dec(&a[2]), dec(&a[3])).map(|i| {
+            json!({"dixieme": dec_texte(i.dixieme), "maintien": dec_texte(i.maintien), "retenu": dec_texte(i.retenu), "regle": i.regle})
+        })
     });
 }
 
@@ -82,7 +84,7 @@ fn la_fin_du_contrat() {
         p::precarite_due(&nat(&a[0]), motif(&a[1])).map(|o| o.map_or(Value::Null, Value::String))
     });
     section(&rel, "indemnite_precarite", |a| {
-        p::indemnite_precarite(dec(&a[0]), a[1].as_f64()).map(dec_texte)
+        p::indemnite_precarite(dec(&a[0])).map(dec_texte)
     });
     section(&rel, "anciennete_mois", |a| Ok(dec_texte(p::anciennete_mois(&jour(&a[0]), &jour(&a[1])))));
     section(&rel, "preavis_mois", |a| {
@@ -125,3 +127,29 @@ fn le_maintien() {
     section(&rel, "duree_du_maintien", |a| p::duree_du_maintien(dec(&a[0])).map(tranches));
 }
 
+
+/// Ce que `permanents-base.json` dit d'une indemnite (son code du bloc S21.G00.52, ce qu'elle supporte), sa rubrique
+/// (`rubriques-base.json`) le porte a l'identique : la ligne que le solde ecrit se declare et se cotise comme le texte le dit.
+#[test]
+fn chaque_indemnite_a_le_code_et_le_regime_de_sa_rubrique() {
+    let rg = p::regles().unwrap();
+    let r = |code: &str| droit::catalogue::rubrique(std::path::Path::new("/nulle-part"), code, &Jour::lire("2026-10-01").unwrap()).unwrap();
+    let codes = [
+        (rg.conges_payes.indemnite_compensatrice.rubrique.clone(), &rg.conges_payes.indemnite_compensatrice.dsn_bloc52),
+        (rg.indemnite_precarite.rubrique.clone(), &rg.indemnite_precarite.dsn_bloc52),
+        (rg.preavis.delai_de_prevenance.rubrique.clone(), &rg.preavis.delai_de_prevenance.dsn_bloc52),
+        (rg.indemnite_licenciement.rubrique.clone(), &rg.indemnite_licenciement.dsn_bloc52),
+        (rg.rupture_conventionnelle.rubrique.clone(), &rg.rupture_conventionnelle.dsn_bloc52),
+        (rg.mise_a_la_retraite.rubrique.clone(), &rg.mise_a_la_retraite.dsn_bloc52),
+        (format!("{}_conventionnelle", rg.mise_a_la_retraite.rubrique), &rg.mise_a_la_retraite.dsn_bloc52_conventionnelle),
+        (rg.depart_a_la_retraite.rubrique.clone(), &rg.depart_a_la_retraite.dsn_bloc52),
+        (format!("{}_conventionnelle", rg.depart_a_la_retraite.rubrique), &rg.depart_a_la_retraite.dsn_bloc52_conventionnelle),
+    ];
+    for (rubrique, code) in codes {
+        assert_eq!(r(&rubrique).dsn_bloc52.as_deref(), Some(code.code.as_str()), "{}", rubrique);
+    }
+    for (cle, regime) in &rg.regime_des_indemnites_de_rupture.par_indemnite {
+        let lue = r(&regime.rubrique);
+        assert_eq!((lue.imposable, lue.soumis), (regime.imposable, regime.soumis), "{} ({})", cle, regime.rubrique);
+    }
+}

@@ -1138,7 +1138,7 @@ pub(crate) struct RubriqueDeLaPage {
     conges_spectacles: bool,
     compte_pour: String,
     plafond_mensuel: Option<i64>,
-    plafond_annuel_heures: Option<Value>,
+    plafond_annuel_heures: Option<droit::catalogue::PlafondAnnuelHeures>,
     origine: String,
     /// Les cartes qui la proposent en ligne (« activite », « mensuelle ») : un contrat paye au mois ne porte en ligne que
     /// ses repas et ses nuitees (`engagement::se_saisit_au_mois`), un contrat d'usage tout ce qui n'est pas reserve au mois.
@@ -1206,7 +1206,7 @@ pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> RubriqueDeLaPage {
         conges_spectacles: r.conges_spectacles,
         compte_pour: r.compte_pour.clone(),
         plafond_mensuel: r.plafond_mensuel,
-        plafond_annuel_heures: r.plafond_annuel_heures.clone(),
+        plafond_annuel_heures: r.plafond_annuel_heures,
         origine: r.origine.clone(),
         formes: formes_de(r),
         reservee_au_statut: r.reservee_au_statut(),

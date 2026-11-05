@@ -26,13 +26,6 @@ pub struct Constantes {
     pub fenetre_jours: i64,
 }
 
-fn entier_de(v: &Value) -> i64 {
-    match v {
-        Value::Number(n) => n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64),
-        Value::String(s) => s.trim().parse().unwrap_or(0),
-        _ => 0,
-    }
-}
 
 impl Constantes {
     pub fn lire(racine: &Path, jour: &Jour) -> Resultat<Constantes> {
@@ -41,8 +34,8 @@ impl Constantes {
         Ok(Constantes {
             heures_par_cachet: cachet.heures_forfait.unwrap_or(0.0) as i64,
             cachets_par_mois: cachet.plafond_mensuel.unwrap_or(0),
-            seuil_heures: entier_de(&a["seuil_heures"]),
-            fenetre_jours: entier_de(&a["fenetre_jours"]),
+            seuil_heures: a.seuil_heures,
+            fenetre_jours: a.fenetre_jours,
         })
     }
 }
@@ -51,9 +44,10 @@ impl Constantes {
 /// donnee ; sans date de naissance, le plafond bas.
 pub fn plafond_enseignement(racine: &Path, date_naissance: Option<Jour>, a_la_date: Jour) -> Resultat<i64> {
     let r = rubrique(racine, "enseignement", &a_la_date)?;
-    let p = r.plafond_annuel_heures.filter(|p| socle::fichiers::vrai(p)).unwrap_or(Value::Object(Map::new()));
-    let bas = p.get("moins_de_50_ans").map_or(0, entier_de);
-    let haut = p.get("50_ans_et_plus").map_or(bas, entier_de);
+    let Some(p) = r.plafond_annuel_heures else {
+        return Err(socle::echec::livree("rubriques-base.json", "rubriques.enseignement.plafond_annuel_heures"));
+    };
+    let (bas, haut) = (p.moins_de_50_ans, p.cinquante_ans_et_plus);
     let Some(n) = date_naissance else { return Ok(bas) };
     let avant = (a_la_date.mois, a_la_date.jour) < (n.mois, n.jour);
     let age = a_la_date.an - n.an - i32::from(avant);
