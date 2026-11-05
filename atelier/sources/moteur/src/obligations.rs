@@ -43,7 +43,7 @@ use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::ecran::Pastille;
 use socle::echec::R;
-pub use declarations::obligations::{Ou, TexteDepose};
+pub use declarations::obligations::{CleDObligation, Ou, TexteDepose};
 use declarations::obligations::{BaseDesObligations, DeBase};
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
@@ -156,13 +156,13 @@ fn nombre(n: Option<i64>, quoi: &str) -> R<i64> {
 }
 
 /// Le motif d'arret appelle-t-il l'obligation `cle` (ses `motifs`) ?
-fn motif_appelle(cle: &str, motif: &str) -> R<bool> {
-    Ok(base()?.obligations.de(cle)?.motifs.iter().any(|m| m == motif))
+fn motif_appelle(cle: CleDObligation, motif: &str) -> R<bool> {
+    Ok(base()?.obligations.de(cle).motifs.iter().any(|m| m == motif))
 }
 
 /// Le motif d'arret appelle-t-il la declaration d'accident (`declaration_accident.motifs`) ?
 pub fn motif_appelle_la_declaration(motif: &str) -> R<bool> {
-    motif_appelle("declaration_accident", motif)
+    motif_appelle(CleDObligation::DeclarationAccident, motif)
 }
 
 /// Un signalement d'arret (04) est-il du pour ce motif ? Non pour ceux que la DSN ne couvre pas
@@ -479,7 +479,7 @@ pub struct Suite {
 /// `connaissance`).
 #[derive(Debug, Clone, Serialize)]
 pub struct Obligation {
-    pub cle: &'static str,
+    pub cle: CleDObligation,
     pub libelle: String,
     nait_de: String,
     qui: String,
@@ -518,7 +518,7 @@ pub struct Obligation {
 
 impl Obligation {
     /// L'obligation `cle` telle que la base la dit, avant d'etre comptee : son delai ne se compte pas encore.
-    fn squelette(cle: &'static str, o: &DeBase) -> Obligation {
+    fn squelette(cle: CleDObligation, o: &DeBase) -> Obligation {
         let mut ob = Obligation {
             cle,
             libelle: o.libelle.clone(),
@@ -635,8 +635,8 @@ impl Obligation {
         // LE JOUR OU LA COMPAGNIE L'A SU se dit la ou le delai en court (`arret-connaissance`) : l'accident, et le
         // signalement d'un arret sans subrogation -- subroge, il court du mois de l'arret.
         let connaissance = match self.cle {
-            "signalement_arret" => Some(("arret", "Connaissance de l'arrêt")),
-            "declaration_accident" => Some(("accident", "Connaissance de l'accident")),
+            CleDObligation::SignalementArret => Some(("arret", "Connaissance de l'arrêt")),
+            CleDObligation::DeclarationAccident => Some(("accident", "Connaissance de l'accident")),
             _ => None,
         };
         self.connaissance = match connaissance {
@@ -754,7 +754,7 @@ fn signalement_dsn(
     ctx: &Contexte,
     cal: &mut Calendrier,
     aujourdhui: Jour,
-    cle: &'static str,
+    cle: CleDObligation,
     o: &DeBase,
     subrogation: &Value,
     depart: Depart,
@@ -879,8 +879,8 @@ fn obligations_de(ctx: &Contexte, a: &Value, envois: &[EnvoiDeLArret], suivi: &S
     let o = &n.signalement_arret;
     if !o.sauf().contains(&motif) {
         match (debut, connu_de_l_arret(o)?) {
-            (Some(debut), Some(depart)) => out.push(signalement_dsn(ctx, &mut cal, aujourdhui, "signalement_arret", o, &subrogation, depart, debut, envoi(envois, "04"))?),
-            _ => out.push(Obligation::squelette("signalement_arret", o).indeterminee("Le début de cet arrêt est illisible : le délai ne se compte pas.")),
+            (Some(debut), Some(depart)) => out.push(signalement_dsn(ctx, &mut cal, aujourdhui, CleDObligation::SignalementArret, o, &subrogation, depart, debut, envoi(envois, "04"))?),
+            _ => out.push(Obligation::squelette(CleDObligation::SignalementArret, o).indeterminee("Le début de cet arrêt est illisible : le délai ne se compte pas.")),
         }
     }
 
@@ -888,7 +888,7 @@ fn obligations_de(ctx: &Contexte, a: &Value, envois: &[EnvoiDeLArret], suivi: &S
     // signalement d'arret, qui la portait plus courte (fiche net-entreprises 1983 ; `rectificatif_du`).
     let o = &n.signalement_arret_rectificatif;
     if let Some((depart, fait)) = rectificatif_du(a, envois) {
-        let mut m = Obligation::squelette("signalement_arret_rectificatif", o);
+        let mut m = Obligation::squelette(CleDObligation::SignalementArretRectificatif, o);
         let d = o.delai_de(&o.delai, "delai")?;
         let butoir = cal.jours_ouvres_apres(depart.jour, nombre(d.jours_ouvres, "delai.jours_ouvres")?)?;
         m.conclure(aujourdhui, Some(&depart), butoir, None, &d.dit, fait);
@@ -899,7 +899,7 @@ fn obligations_de(ctx: &Contexte, a: &Value, envois: &[EnvoiDeLArret], suivi: &S
     // le jour meme ou la compagnie connait l'arret.
     let o = &n.attestation_salaire;
     if o.motifs.contains(&motif) {
-        let mut m = Obligation::squelette("attestation_salaire", o);
+        let mut m = Obligation::squelette(CleDObligation::AttestationSalaire, o);
         match (debut, connu_de_l_arret(o)?) {
             (Some(_), Some(depart)) => {
                 let d = o.delai_de(&o.delai, "delai")?;
@@ -915,7 +915,7 @@ fn obligations_de(ctx: &Contexte, a: &Value, envois: &[EnvoiDeLArret], suivi: &S
     // LA DECLARATION D'ACCIDENT DU TRAVAIL OU DE TRAJET (hors DSN).
     let o = &n.declaration_accident;
     if o.motifs.contains(&motif) {
-        let mut m = Obligation::squelette("declaration_accident", o);
+        let mut m = Obligation::squelette(CleDObligation::DeclarationAccident, o);
         let d = o.delai_de(&o.delai, "delai")?;
         let quoi = "la connaissance de l'accident par la compagnie";
         let depart = match (connaissance(&fiche, DeQuoi::Accident, quoi), a.get("date_accident").and_then(jour)) {
@@ -954,7 +954,7 @@ fn obligations_de(ctx: &Contexte, a: &Value, envois: &[EnvoiDeLArret], suivi: &S
     // LA MALADIE PROFESSIONNELLE : la victime la declare, pas la compagnie.
     let o = &n.declaration_maladie_professionnelle;
     if o.motifs.contains(&motif) {
-        let m = Obligation::squelette("declaration_maladie_professionnelle", o);
+        let m = Obligation::squelette(CleDObligation::DeclarationMaladieProfessionnelle, o);
         match cessation {
             None => out.push(m.indeterminee("Le dernier jour travaillé de cet arrêt est illisible.")),
             Some(debut) => {
@@ -980,7 +980,7 @@ fn obligations_de(ctx: &Contexte, a: &Value, envois: &[EnvoiDeLArret], suivi: &S
     if let (Some(rep), Some(fin)) = (a.get("reprise").and_then(jour), a.get("fin_previsionnelle").and_then(jour)) {
         if rep < fin && !o.sauf().contains(&motif) {
             let depart = Depart { jour: rep, minute: None, quoi: "la reprise".into(), presume: None };
-            out.push(signalement_dsn(ctx, &mut cal, aujourdhui, "signalement_reprise", o, &subrogation, depart, rep, envoi(envois, "05"))?);
+            out.push(signalement_dsn(ctx, &mut cal, aujourdhui, CleDObligation::SignalementReprise, o, &subrogation, depart, rep, envoi(envois, "05"))?);
         }
     }
     Ok(out.into_iter().map(Obligation::dire_le_butoir).collect())
@@ -994,7 +994,7 @@ pub fn de_la_fin(ctx: &Contexte, cle: Option<&str>, fin: Jour, journal: &[envois
     let n = base()?.obligations;
     let o = &n.signalement_fin_contrat;
     let mut cal = Calendrier::nouveau(ctx.entreprise.feries_chomes());
-    let mut m = Obligation::squelette("signalement_fin_contrat", o);
+    let mut m = Obligation::squelette(CleDObligation::SignalementFinContrat, o);
     let d = o.delai_de(&o.delai, "delai")?;
     let butoir = cal.jours_ouvres_apres(fin, nombre(d.jours_ouvres, "delai.jours_ouvres")?)?;
     let fait = cle.and_then(|c| fctu_depose(journal, c, &fin));
@@ -1199,7 +1199,7 @@ pub(crate) fn connaissance_ecrire(ctx: &Contexte, a: &Value, de: DeQuoi, saisie:
 /// recommande). Un `le` vide la retire.
 fn accident_declare(ctx: &Contexte, charge: ChargeFaite) -> R<ObligationsDeLArret> {
     dire_faite(ctx, &charge, &Faite {
-        obligation: "declaration_accident",
+        obligation: CleDObligation::DeclarationAccident,
         connaissance: DeQuoi::Accident,
         hors_motif: "n'est pas un accident du travail ou de trajet : il n'y a pas de declaration d'accident a dire faite",
         quoi: "La declaration",
@@ -1216,7 +1216,7 @@ fn accident_declare(ctx: &Contexte, charge: ChargeFaite) -> R<ObligationsDeLArre
 /// n'est alors ecrit.
 fn attestation_declare(ctx: &Contexte, charge: ChargeFaite) -> R<ObligationsDeLArret> {
     dire_faite(ctx, &charge, &Faite {
-        obligation: "attestation_salaire",
+        obligation: CleDObligation::AttestationSalaire,
         connaissance: DeQuoi::Arret,
         hors_motif: "est couvert par la DSN : l'attestation de salaire passe par le signalement d'arret, il n'y a pas d'attestation hors DSN a dire faite",
         quoi: "L'attestation",
@@ -1229,7 +1229,7 @@ fn attestation_declare(ctx: &Contexte, charge: ChargeFaite) -> R<ObligationsDeLA
 /// Une obligation hors DSN que la compagnie dit faite : laquelle (sa cle, qui est aussi celle de sa fiche de suivi), ce
 /// qui la borne, et comment les phrases la nomment.
 struct Faite {
-    obligation: &'static str,
+    obligation: CleDObligation,
     connaissance: DeQuoi,
     hors_motif: &'static str,
     quoi: &'static str,
@@ -1279,7 +1279,7 @@ fn dire_faite(ctx: &Contexte, charge: &ChargeFaite, f: &Faite) -> R<ObligationsD
         None => None,
         Some(le) => {
             let depot = charge.depot.clone().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("depot")))?;
-            let codes: Vec<String> = base()?.obligations.de(f.obligation)?.lieux().iter().map(|x| x.code.clone()).collect();
+            let codes: Vec<String> = base()?.obligations.de(f.obligation).lieux().iter().map(|x| x.code.clone()).collect();
             if !codes.contains(&depot) {
                 return Err(refus(format!("Ou {} a-t-elle ete faite ? {} n'est pas connu ; les lieux sont : {}. Rien n'est ecrit.", f.quoi.to_lowercase(), repr(&depot), codes.join(", "))));
             }

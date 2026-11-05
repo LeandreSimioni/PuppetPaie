@@ -409,21 +409,22 @@ impl Echeance {
                 let o = self.obligation.as_ref()?;
                 let arret = || Some(ChargeObligationDArret { salarie: salarie()?, dernier_jour: objet["dernier_jour_travaille"].as_str()?.to_string() });
                 let hors_dsn = matches!(o.ou, Some(crate::obligations::Ou::Lieux(_)));
+                use crate::obligations::CleDObligation as C;
                 match o.cle {
-                    "signalement_fin_contrat" if !self.a_saisir.is_empty() => {
+                    C::SignalementFinContrat if !self.a_saisir.is_empty() => {
                         action(Route::Saisie, ChargeMois { mois: self.mois? }, Some(Route::ModifierEngagement), "Compléter le contrat".into())
                     }
-                    "signalement_fin_contrat" => {
+                    C::SignalementFinContrat => {
                         let charge = ChargeFinContratSignaler::de(self.mois?, salarie()?);
                         action(Route::FinContratSignaler, charge, Some(Route::Deposer), "Signaler…".into())
                     }
-                    cle @ ("signalement_arret" | "signalement_arret_rectificatif" | "signalement_reprise") => {
+                    cle @ (C::SignalementArret | C::SignalementArretRectificatif | C::SignalementReprise) => {
                         let dernier_jour = Jour::lire(objet["dernier_jour_travaille"].as_str()?).ok()?;
-                        let nature = if cle == "signalement_reprise" { NatureSignalement::Reprise } else { NatureSignalement::Arret };
+                        let nature = if cle == C::SignalementReprise { NatureSignalement::Reprise } else { NatureSignalement::Arret };
                         action(Route::ArretSignaler, ChargeArretSignaler::de(salarie()?, dernier_jour, nature), Some(Route::Deposer), "Signaler…".into())
                     }
-                    "declaration_accident" if hors_dsn => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
-                    "attestation_salaire" if hors_dsn => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
+                    C::DeclarationAccident if hors_dsn => action(Route::AccidentDeclare, arret()?, None, "Faite le".into()),
+                    C::AttestationSalaire if hors_dsn => action(Route::AttestationDeclare, arret()?, None, "Faite le".into()),
                     _ => action(Route::EtatDuMois, ChargeMois { mois: self.mois? }, None, "Ouvrir le mois".into()),
                 }
             }
