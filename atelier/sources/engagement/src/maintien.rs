@@ -93,7 +93,7 @@ impl Droits {
 }
 
 /// L'origine d'un arret, lue sur son motif ; `None` pour un motif sans maintien (maternite, paternite...).
-pub fn origine(imp: &Value) -> Option<Origine> {
+pub fn origine(imp: &Value) -> Resultat<Option<Origine>> {
     Origine::du_motif(&en_texte(g(imp, "motif")))
 }
 
@@ -102,7 +102,7 @@ pub fn origine(imp: &Value) -> Option<Origine> {
 /// ne se lit que pour un contrat paye au mois : ses clauses de maintien sont celles des permanents (3252 : « ces clauses
 /// sont celles des PERMANENTS », `clauses-conventionnelles-base.json`) ; la loi exclut les intermittents (L1226-1).
 pub fn droits(ctx: &Contexte, imp: &Value, nat: &Nature) -> Resultat<Option<Droits>> {
-    let Some(origine) = origine(imp) else { return Ok(None) };
+    let Some(origine) = origine(imp)? else { return Ok(None) };
     let premier = crate::imprevus::premier_jour(imp)?;
     let fiche = ctx.salarie(&en_texte(g(imp, "salarie")))?;
     let depuis = match fiche.date_anciennete.dite() {
@@ -545,7 +545,7 @@ pub fn indemnites_a_dire(ctx: &Contexte, carte: &crate::saisie::Carte, mois: &st
             continue;
         }
         let (premier, dernier) = (crate::imprevus::premier_jour(&imp)?, crate::imprevus::dernier_jour(&imp)?);
-        let Some(o) = origine(&imp) else { continue };
+        let Some(o) = origine(&imp)? else { continue };
         if let Err(majoree) = indemnites_des_jours(&imp, o, &premier, &dernier, &debut.clone().max(premier.clone()), &fin.clone().min(dernier.clone()))? {
             return Ok(Some(refus_des_indemnites(&ctx.nomme(salarie), mois, &premier, &dernier, majoree)));
         }
@@ -589,7 +589,7 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &Value) -> Resultat<Result<IjDePrinci
             Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : aucune paie validée en {}.", socle::mois::Mois::en_clair(mois)))
         })
     };
-    match origine(imp) {
+    match origine(imp)? {
         Some(Origine::Maladie) => {
             let p = &regles["principe"];
             // Le SMIC du plafond, au bareme de son annee : sans lui, rien ne se propose.

@@ -767,7 +767,7 @@ fn signalement_dsn(
             "La subrogation de cet arrêt n'est pas dite : c'est elle qui fixe le délai (cinq jours ouvrés sans subrogation, avec la DSN du mois avec ; CSS R. 133-14, II).",
         ));
     }
-    if en_texte(subrogation) == engagement::imprevus::bloc_60().map_err(|m| erreur("ValueError", m))?.subrogation_oui().map_err(|m| erreur("KeyError", m))? {
+    if en_texte(subrogation) == droit::arrets::bloc_60().map_err(|m| erreur("ValueError", m))?.subrogation_oui().map_err(|m| erreur("KeyError", m))? {
         let d = o.delai_de(&o.delai_avec_subrogation, "delai_avec_subrogation")?;
         // SUBROGE, la date butoir est l'echeance de la DSN mensuelle du mois de l'evenement (R. 133-14, II, premier
         // alinea), telle que `echeance_dsn` la donne : reportee au jour ouvre suivant un samedi, un dimanche ou un ferie

@@ -6,6 +6,7 @@
 
 pub mod adhesions;
 pub mod apprentissage;
+pub mod arrets;
 pub mod bareme;
 pub mod caisse_conges;
 pub mod catalogue;

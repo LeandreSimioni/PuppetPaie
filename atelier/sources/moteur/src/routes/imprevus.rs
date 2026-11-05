@@ -16,7 +16,7 @@
 //! LES FORMES. Chaque charge est une structure lue une fois a l'entree (`routes::lire_charge`) ; chaque reponse, une
 //! structure. Ce que ce module lit d'un autre domaine se lit tel qu'il est : l'imprevu ecrit (`engagement::imprevus`, qui
 //! en declare les champs), la saisie des engagements (`engagement::stock`), le journal des envois (`envois::journal`), les
-//! obligations d'un arret (`crate::obligations`), les nomenclatures livrees du bloc 60 (`engagement::imprevus::Bloc60`, que lisent
+//! obligations d'un arret (`crate::obligations`), les nomenclatures livrees du bloc 60 (`droit::arrets::Bloc60`, que lisent
 //! aussi `declarations` et `engagement`) et des suspensions (`droit::permanents`).
 
 use std::collections::HashMap;
@@ -28,7 +28,8 @@ use crate::routes::{brut, cle_du_salarie, en_json, lire_charge, maintenant, Past
 use declarations::signalement;
 use droit::contexte::{Contexte, IdSalarie};
 use engagement::calcul::Paie;
-use engagement::imprevus::{self, Bloc60, CodeDuBloc60, ARRET, SUSPENSION};
+use droit::arrets::{Bloc60, CodeDuBloc60};
+use engagement::imprevus::{self, ARRET, SUSPENSION};
 use engagement::numeros::NumeroContrat;
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
 use socle::date::{d, en_texte, Jour};
@@ -782,7 +783,7 @@ pub(crate) struct ResumeDArret {
     ij_nette: Value,
     ij_brute_majoree: Value,
     ij_nette_majoree: Value,
-    origine: Option<String>,
+    origine: Option<droit::maintien::Origine>,
     ij_attendues: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     ij_proposees: Option<IjProposees>,
@@ -1031,10 +1032,10 @@ pub(crate) fn resume(ctx: &Contexte, n: &Bloc60, imp: &Value) -> R<Resume> {
     let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
     if imprevus::est_un_arret(imp) {
         let base = resume_arret(ctx, n, imp)?;
-        let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?;
+        let motif = magasin(droit::arrets::motif_d_arret(&valeur_en_texte(&imp["motif"])))?;
         let ouvert = ouvre_le_maintien(ctx, imp)?;
         let majoree = ouvert
-            && engagement::maintien::origine(imp).is_some_and(|o| o.professionnelle() || o == droit::maintien::Origine::Trajet)
+            && motif.as_ref().and_then(|m| m.origine).is_some_and(|o| o.professionnelle() || o == droit::maintien::Origine::Trajet)
             && magasin(imprevus::dernier_jour(imp))?.moins(&magasin(imprevus::premier_jour(imp))?) >= 28;
         // LE MONTANT DE PRINCIPE, propose tant que l'arret ne dit pas le sien (`engagement::maintien::ij_de_principe`) : la
         // page en remplit les cases, la personne le garde ou le corrige ; sinon, la phrase dit ou le lire.
@@ -1969,9 +1970,9 @@ pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
     Ok(imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(imprevus::est_un_arret).collect())
 }
 
-/// Les nomenclatures du bloc 60 (`arrets-base.json`), lues par leur forme (`engagement::imprevus::bloc_60`).
+/// Les nomenclatures du bloc 60 (`arrets-base.json`), lues par leur forme (`droit::arrets::bloc_60`).
 pub(crate) fn nomenclatures() -> R<Bloc60> {
-    imprevus::bloc_60().map_err(plain)
+    droit::arrets::bloc_60().map_err(plain)
 }
 
 /// Le libelle du motif d'arret dans les codes de la norme, `?` s'il n'y est pas.
