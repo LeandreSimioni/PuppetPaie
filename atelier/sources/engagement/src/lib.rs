@@ -628,7 +628,7 @@ impl Engagement {
         }
         Ok(match self.quotite_reference_saisie {
             Some(q) if q != 0.0 => Some(q),
-            _ => nat.quotite_reference_defaut,
+            _ => nat.quotite_reference_defaut(),
         })
     }
 
@@ -646,7 +646,7 @@ impl Engagement {
             return Ok(m.clone());
         }
         let nat = self.nat()?;
-        let reference = match (self.quotite_reference()?, nat.quotite_reference_defaut.filter(|_| nat.mensuelle())) {
+        let reference = match (self.quotite_reference()?, nat.quotite_reference_defaut().filter(|_| nat.mensuelle())) {
             (Some(r), Some(legale)) => Some(r.min(legale)),
             (r, _) => r,
         };

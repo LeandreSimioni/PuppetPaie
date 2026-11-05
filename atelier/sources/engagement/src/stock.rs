@@ -509,7 +509,7 @@ impl Objet {
         let terme = |x: &Map<String, Value>, k: &str| -> Resultat<Option<Value>> {
             match x.get(k).filter(|y| !y.is_null()) {
                 Some(y) => Ok(Some(y.clone())),
-                None if k == "quotite_contrat" => Ok(crate::conges::nature_de(x.get("nature"))?.quotite_reference_defaut.map(Value::from)),
+                None if k == "quotite_contrat" => Ok(crate::conges::nature_de(x.get("nature"))?.quotite_reference_defaut().map(Value::from)),
                 None => Ok(None),
             }
         };

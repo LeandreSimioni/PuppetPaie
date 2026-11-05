@@ -41,7 +41,7 @@ pub const A_DIRE: &str = engagement::importe::A_DIRE;
 /// Les natures qu'un permanent peut recevoir.
 fn natures_permanentes() -> R<Vec<std::sync::Arc<droit::natures::Nature>>> {
     let toutes = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?;
-    Ok(toutes.iter().filter(|n| n.paie == "mensuelle").cloned().collect())
+    Ok(toutes.iter().filter(|n| n.mensuelle()).cloned().collect())
 }
 
 /// Ce qu'une nature demande d'un contrat qui court encore : une case de la charge d'`importation-nature`.

@@ -1059,7 +1059,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
             ))
         }
     };
-    let defaut = dec_f64(nat.quotite_reference_defaut.ok_or_else(|| socle::echec::livree("contrats-base.json", "quotite_reference_defaut"))?)?;
+    let defaut = dec_f64(nat.quotite_reference_defaut().ok_or_else(|| socle::echec::livree("contrats-base.json", "quotite_reference_defaut"))?)?;
     let quotite = dec_ou(e.get("quotite_contrat"), defaut)?;
     let salaire = dec_avec_echelle(salaire)?;
 

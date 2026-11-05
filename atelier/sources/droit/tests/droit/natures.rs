@@ -26,14 +26,14 @@ fn les_natures_et_contrat_court() {
         let codes: serde_json::Map<String, Value> =
             v["codes"].as_object().unwrap().keys().map(|r| (r.clone(), json!([n.code(r), n.interdit(r), n.ecrit(r)]))).collect();
         *v = json!({
-            "libelle": n.libelle, "paie": n.paie, "duree_indeterminee": n.duree_indeterminee, "unite_quotite": n.unite_quotite,
-            "plafond_quotite": n.plafond_quotite, "quotite_reference_defaut": n.quotite_reference_defaut, "bareme": n.bareme,
+            "libelle": n.libelle, "paie": n.paie, "duree_indeterminee": n.duree_indeterminee, "unite_quotite": n.unite_quotite(),
+            "plafond_quotite": n.plafond_quotite(), "quotite_reference_defaut": n.quotite_reference_defaut(), "bareme": n.bareme(),
             "mensuelle": n.mensuelle(), "permanent": n.permanent(), "codes": codes,
             "motif_rupture_par_defaut": n.motif_rupture_par_defaut(), "motifs_rupture": n.motifs_rupture(),
             "motifs_recours": n.motifs_recours(), "motif_recours_exige": n.motif_recours_exige(),
             "signalement_fctu": n.signalement_fctu(None), "codes_fin": n.codes_fin(None),
             "signalement_par_motif": n.motifs_rupture().iter().map(|m| {
-                let code = m["code"].as_str().unwrap();
+                let code = m.code.as_str();
                 (code.to_string(), json!([n.signalement_fctu(Some(code)), n.codes_fin(Some(code))]))
             }).collect::<serde_json::Map<String, Value>>(), "type_contrat_dpae": n.type_contrat_dpae(),
             "date_fin_dpae": n.date_fin_dpae(), "types_remuneration": n.types_remuneration(),

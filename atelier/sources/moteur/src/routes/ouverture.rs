@@ -1228,10 +1228,10 @@ pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> RubriqueDeLaPage {
 
 /// `faits_de_rupture` : les faits a demander a l'ecran pour CE motif, et eux
 /// seuls (« si compagnie simple, interface simple »).
-fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
+fn faits_de_rupture(n: &Nature, m: &str) -> R<Vec<&'static str>> {
     const SANS_NOTIFICATION: [&str; 5] = ["031", "043", "065", "083", "084"];
     const LICENCIEMENTS: [&str; 8] = ["014", "020", "087", "088", "091", "092", "095", "096"];
-    let m = if vrai(motif) { valeur_en_texte(motif) } else { String::new() };
+    let m = m.to_string();
     if m.is_empty() {
         return Ok(vec![]);
     }
@@ -1299,10 +1299,10 @@ struct NatureDeLaPage {
     /// terme (031) part dans la mensuelle, rompu avant (036, 037...) il se signale. La page ne decide rien.
     signalement_fctu: bool,
     signalement_par_motif: BTreeMap<String, bool>,
-    motifs_rupture: Vec<Value>,
+    motifs_rupture: Vec<natures::MotifDeRupture>,
     faits_de_rupture: BTreeMap<String, Vec<&'static str>>,
     motif_rupture_defaut: Option<String>,
-    motifs_recours: Vec<Value>,
+    motifs_recours: Vec<natures::MotifDeRecours>,
     motif_recours_exige: bool,
     quotite_defaut: Option<NombreLu>,
     /// Le bouton qui propose la duree d'un temps plein, et le choix vide des motifs de fin (le defaut d'une fin qui ne se
@@ -1327,10 +1327,9 @@ fn natures(ctx: &Contexte) -> R<Vec<NatureDeLaPage>> {
     for n in ordre {
         let motifs = n.motifs_rupture();
         let (mut faits, mut signales) = (BTreeMap::new(), BTreeMap::new());
-        for m in &motifs {
-            let code = m.get("code").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
-            faits.insert(valeur_en_texte(&code), faits_de_rupture(n, &code)?);
-            signales.insert(valeur_en_texte(&code), n.signalement_fctu(Some(&valeur_en_texte(&code))));
+        for m in motifs {
+            faits.insert(m.code.clone(), faits_de_rupture(n, &m.code)?);
+            signales.insert(m.code.clone(), n.signalement_fctu(Some(&m.code)));
         }
         sortie.push(NatureDeLaPage {
             cle: n.cle.clone(),
@@ -1341,18 +1340,18 @@ fn natures(ctx: &Contexte) -> R<Vec<NatureDeLaPage>> {
             spectacle: n.interdit("S21.G00.40.050").map_or(true, |s| s.is_empty()),
             signalement_fctu: n.signalement_fctu(None),
             signalement_par_motif: signales,
-            motifs_rupture: motifs,
+            motifs_rupture: motifs.to_vec(),
             faits_de_rupture: faits,
             motif_rupture_defaut: n.motif_rupture_par_defaut(),
-            motifs_recours: n.motifs_recours(),
+            motifs_recours: n.motifs_recours().to_vec(),
             motif_recours_exige: n.motif_recours_exige(),
-            quotite_defaut: n.quotite_reference_defaut.map(NombreLu),
-            temps_plein_dit: n.quotite_reference_defaut.map(|q| format!("temps plein {} h", socle::texte::virgule(socle::num::dec_f64(q).unwrap_or_default()))),
+            quotite_defaut: n.quotite_reference_defaut().map(NombreLu),
+            temps_plein_dit: n.quotite_reference_defaut().map(|q| format!("temps plein {} h", socle::texte::virgule(socle::num::dec_f64(q).unwrap_or_default()))),
             motif_rupture_vide_dit: match n.motif_rupture_par_defaut() {
                 Some(d) if !n.signalement_fctu(None) => format!("— {}, à son terme —", d),
                 _ => "— à choisir —".to_string(),
             },
-            unite_quotite: n.unite_quotite.clone(),
+            unite_quotite: n.unite_quotite().to_string(),
         });
     }
     Ok(sortie)

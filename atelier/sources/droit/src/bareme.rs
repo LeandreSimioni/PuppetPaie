@@ -256,8 +256,8 @@ mecanisme se decide. Tant que la section n'est pas marquee \
 /// Le bareme du statut, avec la surcouche de la NATURE DU CONTRAT
 /// (`par_nature`). Sans section verifiee et sans trou, on REFUSE.
 pub fn bareme_de_la_nature(bar: Value, nat: &Nature) -> Resultat<Value> {
-    let nom = match &nat.bareme {
-        Some(n) if !n.is_empty() => n.clone(),
+    let nom = match nat.bareme() {
+        Some(n) if !n.is_empty() => n.to_string(),
         _ => return Ok(bar),
     };
     let sec = g(g(&bar, "par_nature"), &nom);
@@ -321,7 +321,7 @@ pub fn bareme_cpf_cdd(bar: Value, nat: &Nature, cpf_cdd: bool) -> Resultat<Value
     if !cpf_cdd {
         return Ok(bar);
     }
-    let nom = nat.bareme.clone().unwrap_or_default();
+    let nom = nat.bareme().unwrap_or_default().to_string();
     let sec = g(g(g(&bar, "par_nature"), &nom), "cpf_cdd").clone();
     if !vrai(&sec) {
         return Err(socle::echec::avec(format!("Le barème {} ne porte pas la contribution formation d'un CDD : le signaler au développeur.", annee(&bar)), serde_json::json!({"detail": format!(
@@ -798,7 +798,7 @@ la Securite sociale), et pas plus de 100.",
     if sans_sante(sal) {
         return sans_mutuelle(bar);
     }
-    let sec = match &nat.and_then(|n| n.bareme.clone()) {
+    let sec = match nat.and_then(|n| n.bareme()) {
         Some(b) => g(g(&bar, "par_nature"), b),
         None => &NUL,
     };
