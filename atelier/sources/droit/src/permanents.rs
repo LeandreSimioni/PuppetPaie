@@ -592,7 +592,7 @@ const ILLISIBLE: &str = "Les règles des contrats permanents livrées avec le lo
 /// LA SEULE LECTURE DE `permanents-base.json` : sa forme.
 pub fn regles() -> Resultat<Arc<Regles>> {
     static CACHE: OnceLock<FormeGardee<Regles>> = OnceLock::new();
-    forme_en_cache(&CACHE, "permanents-base.json", |v| socle::forme::lire(v, ILLISIBLE))
+    forme_en_cache(&CACHE, "permanents-base.json", ILLISIBLE, Ok)
 }
 
 /// Le motif de suspension `code` (`suspensions.motifs`), s'il existe.

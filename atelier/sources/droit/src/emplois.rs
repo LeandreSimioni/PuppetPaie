@@ -179,15 +179,13 @@ const CATALOGUE_ILLISIBLE: &str = "Le catalogue des métiers livré avec le logi
 /// LA SEULE LECTURE D'`emplois-base.json`.
 pub fn base() -> Resultat<Arc<BaseEmplois>> {
     static CACHE: OnceLock<FormeGardee<BaseEmplois>> = OnceLock::new();
-    forme_en_cache(&CACHE, "emplois-base.json", |v| socle::forme::lire(v, CATALOGUE_ILLISIBLE))
+    forme_en_cache(&CACHE, "emplois-base.json", CATALOGUE_ILLISIBLE, Ok)
 }
 
 /// LA SEULE LECTURE DE `nomenclature-emplois-ft.json`.
 pub fn nomenclature() -> Resultat<Arc<Nomenclature>> {
     static CACHE: OnceLock<FormeGardee<Nomenclature>> = OnceLock::new();
-    forme_en_cache(&CACHE, "nomenclature-emplois-ft.json", |v| {
-        socle::forme::lire(v, "La nomenclature des emplois France Travail livrée avec le logiciel ne se lit pas : le signaler au développeur.")
-    })
+    forme_en_cache(&CACHE, "nomenclature-emplois-ft.json", "La nomenclature des emplois France Travail livrée avec le logiciel ne se lit pas : le signaler au développeur.", Ok)
 }
 
 /// Premiere lettre en majuscule, le reste en minuscules.

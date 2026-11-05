@@ -2,8 +2,14 @@
 //! (`serde::Deserialize`), dont chaque type porte `#[serde(deny_unknown_fields)]` (garde par
 //! `moteur/tests/fichiers/structure.rs`) : une cle que la forme ne connait pas est refusee, sans exception. `lire` est la
 //! seule fonction qui la lit ; son refus est une phrase du moteur, la cle fautive (son chemin dans la donnee) et ce qui ne
-//! va pas a part (`echec::a_la_cle`).
+//! va pas a part (`echec::APart`).
+//!
+//! C'est un des trois modules du BORD (avec `ecriture` et `json_ascii`, qui ecrivent) : le seul endroit d'une couche
+//! fermee ou le JSON se manipule sans forme (`moteur/tests/fichiers/structure.rs`, `une_couche_fermee_ne_lit_que_des_formes`).
 
+use std::path::Path;
+
+use crate::echec::APart;
 use crate::num::Resultat;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -11,18 +17,46 @@ use serde_json::Value;
 /// La donnee `v` lue en `T`. `phrase` est celle du refus, pour l'ecran (« Le barème livré ne se lit pas : le signaler au
 /// développeur. ») ; le chemin de la cle et le detail vont a part.
 pub fn lire<T: DeserializeOwned>(v: &Value, phrase: &str) -> Resultat<T> {
-    serde_path_to_error::deserialize(v).map_err(|e| refus(phrase, &e))
+    serde_path_to_error::deserialize(v).map_err(|e| refus(phrase, None, &e))
 }
 
 /// Le texte JSON `texte` lu en `T` (`lire`, sans passer par une `Value`).
 pub fn lire_texte<T: DeserializeOwned>(texte: &str, phrase: &str) -> Resultat<T> {
     let mut d = serde_json::Deserializer::from_str(texte);
-    serde_path_to_error::deserialize(&mut d).map_err(|e| refus(phrase, &e))
+    serde_path_to_error::deserialize(&mut d).map_err(|e| refus(phrase, None, &e))
 }
 
-fn refus(phrase: &str, e: &serde_path_to_error::Error<serde_json::Error>) -> String {
-    let chemin = e.path().to_string();
-    crate::echec::a_la_cle(phrase, if chemin == "." { "" } else { &chemin }, en_clair(&e.inner().to_string()))
+/// Le fichier JSON `fichier` lu en `T` (`lire_texte`, sa lecture notee au registre d'un calcul suivi :
+/// `fichiers::lire_texte`). Le disque qui refuse se dit par `echec::du_disque` ; une forme fausse par `phrase`, le
+/// chemin du fichier, la cle et le detail a part.
+pub fn lire_fichier<T: DeserializeOwned>(fichier: &Path, phrase: &str) -> Resultat<T> {
+    let texte = crate::fichiers::lire_texte(fichier).map_err(|e| crate::echec::du_disque(fichier, &e))?;
+    let mut d = serde_json::Deserializer::from_str(&texte);
+    serde_path_to_error::deserialize(&mut d).map_err(|e| refus(phrase, Some(fichier), &e))
+}
+
+/// La longueur, en octets, de l'objet JSON qui ouvre `texte` (ce qu'un refus porte a part, `echec::avec`), s'il en
+/// ouvre un.
+pub fn objet_en_tete(texte: &str) -> Option<usize> {
+    let mut lu = serde_json::Deserializer::from_str(texte).into_iter::<serde::de::IgnoredAny>();
+    match (texte.starts_with('{'), lu.next()) {
+        (true, Some(Ok(_))) => Some(lu.byte_offset()),
+        _ => None,
+    }
+}
+
+fn refus(phrase: &str, fichier: Option<&Path>, e: &serde_path_to_error::Error<serde_json::Error>) -> String {
+    let cle = e.path().to_string();
+    let detail = en_clair(&e.inner().to_string());
+    crate::echec::avec(
+        phrase,
+        APart {
+            chemin: fichier.map(|f| f.to_string_lossy().into_owned()),
+            cle: Some(if cle == "." { String::new() } else { cle }),
+            detail: Some(detail).filter(|d| !d.is_empty()),
+            ..APart::default()
+        },
+    )
 }
 
 /// Le message de serde, dit en francais pour ce qu'il a de courant ; le reste tel quel.
@@ -47,20 +81,35 @@ fn en_clair(m: &str) -> String {
     m.to_string()
 }
 
-/// UN MONTANT OU UN TAUX EN DECIMAL, lu comme `num::dec` le lit d'une `Value` : un entier garde son echelle nulle, un
-/// flottant sa representation la plus courte (`1.0` reste `1.0`). `#[serde(deserialize_with = "socle::forme::decimal")]`.
+/// UN MONTANT OU UN TAUX EN DECIMAL : un entier garde son echelle nulle, un flottant sa representation la plus courte
+/// (`1.0` reste `1.0`, `num::dec_f64`), un nombre ecrit en texte se lit (`num::dec_texte`).
+/// `#[serde(deserialize_with = "socle::forme::decimal")]`.
 pub fn decimal<'de, D: serde::Deserializer<'de>>(d: D) -> Result<crate::num::Decimal, D::Error> {
-    let v: Value = serde::Deserialize::deserialize(d)?;
-    crate::num::dec(&v).map_err(serde::de::Error::custom)
+    struct EnDecimal;
+    impl serde::de::Visitor<'_> for EnDecimal {
+        type Value = crate::num::Decimal;
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            f.write_str("un nombre")
+        }
+        fn visit_i64<E: serde::de::Error>(self, i: i64) -> Result<Self::Value, E> {
+            Ok(i.into())
+        }
+        fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<Self::Value, E> {
+            Ok(u.into())
+        }
+        fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<Self::Value, E> {
+            crate::num::dec_f64(x).map_err(E::custom)
+        }
+        fn visit_str<E: serde::de::Error>(self, s: &str) -> Result<Self::Value, E> {
+            crate::num::dec_texte(s).map_err(E::custom)
+        }
+    }
+    d.deserialize_any(EnDecimal)
 }
 
 /// `decimal`, quand la valeur peut manquer ou etre nulle (avec `#[serde(default)]`).
 pub fn decimal_opt<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<crate::num::Decimal>, D::Error> {
-    let v: Value = serde::Deserialize::deserialize(d)?;
-    if v.is_null() {
-        return Ok(None);
-    }
-    crate::num::dec(&v).map(Some).map_err(serde::de::Error::custom)
+    <Option<Nombre> as serde::Deserialize>::deserialize(d).map(|n| n.map(|n| n.0))
 }
 
 /// Une cle exigee meme nulle (`Option` la tiendrait pour absente) : `#[serde(deserialize_with = "socle::forme::presente")]`,
@@ -115,6 +164,6 @@ pub fn lire_en_phrase<T: DeserializeOwned>(v: &Value, phrase: impl Fn(&str, &str
         let chemin = e.path().to_string();
         let chemin = if chemin == "." { String::new() } else { chemin };
         let detail = en_clair(&e.inner().to_string());
-        crate::echec::a_la_cle(&phrase(&chemin, &detail), &chemin, detail)
+        crate::echec::avec(phrase(&chemin, &detail), APart { cle: Some(chemin), detail: Some(detail).filter(|d| !d.is_empty()), ..APart::default() })
     })
 }

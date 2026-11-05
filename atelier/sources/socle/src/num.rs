@@ -24,11 +24,14 @@ pub fn dec(v: &Value) -> Resultat<Decimal> {
                 dec_f64(n.as_f64().unwrap_or(f64::NAN))
             }
         }
-        Value::String(s) => Decimal::from_str(s.trim())
-            .or_else(|_| Decimal::from_scientific(s.trim()))
-            .map_err(|_| illisible(s)),
+        Value::String(s) => dec_texte(s),
         autre => Err(format!("nombre attendu, lu {}", autre)),
     }
+}
+
+/// Le decimal d'un nombre ecrit en texte (`"12.5"`, `" 1e3 "`), blancs autour ignores.
+pub fn dec_texte(s: &str) -> Resultat<Decimal> {
+    Decimal::from_str(s.trim()).or_else(|_| Decimal::from_scientific(s.trim())).map_err(|_| illisible(s))
 }
 
 /// Le refus d'un nombre qui ne se lit pas, avec le texte en cause.

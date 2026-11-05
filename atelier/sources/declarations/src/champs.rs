@@ -1348,7 +1348,9 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         // Un pays de nationalite hors de la liste se dit sur sa propre case (forme « pays »), pas deux fois.
         // Un pays ecrit « hors de la liste » qui n'en est pas un, ou a cote d'un pays de la liste, se dit sur
         // sa case a lui ; sinon c'est la nationalite choisie qui manque ou qui ne va pas, sur la sienne.
-        let fiche = socle::codification_ue::Nationalite::en_json(&Value::Object(d.clone()));
+        let texte = |cle: &str| d.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        let qui = socle::texte::salarie_nomme(&texte("nom"), &texte("nom_affichage"), &texte("prenom"), &texte("prenom_affichage"));
+        let fiche = socle::codification_ue::Nationalite::nouvelle(&texte("code_nationalite_dsn"), &texte("pays_nationalite"), &texte("pays_nationalite_hors_liste"), qui);
         let pays_inconnu = match d.get("pays_nationalite").filter(|v| vrai(v)) {
             Some(Value::String(p)) => socle::pays::du_code(p).map_err(plain)?.is_none(),
             _ => false,

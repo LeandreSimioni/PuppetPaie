@@ -173,27 +173,13 @@ pub fn de(mot: &str) -> String {
 
 /// LE SALARIE TEL QUE L'ECRAN LE NOMME, partout ou le moteur parle de lui (refus, avis, listes, phrases d'un envoi) :
 /// « NOM Prénom » comme la page le montre : le nom avec ses accents (`nom_affichage`, sinon `nom`) en capitales, puis le
-/// prénom d'usage (`prenom_affichage`, sinon `prenom`).
-/// Une fiche datée (`[{"valeur"}, {"depuis", "valeur"}]`, telle que `config/salaries.json` l'écrit) se lit à sa
-/// dernière valeur. `None` si la fiche ne porte ni nom ni prénom.
-pub fn salarie_nomme(fiche: &serde_json::Value) -> Option<String> {
-    use serde_json::Value;
-    let t = |k: &str| -> String {
-        let v = match fiche.get(k) {
-            Some(Value::Array(versions)) => versions.last().and_then(|v| v.get("valeur")),
-            autre => autre,
-        };
-        match v {
-            Some(Value::String(s)) => strip(s).to_string(),
-            Some(Value::Null) | None => String::new(),
-            Some(autre) => crate::valeur::valeur_en_texte(autre).trim().to_string(),
-        }
+/// prénom d'usage (`prenom_affichage`, sinon `prenom`). `None` si la fiche ne porte ni nom ni prénom.
+pub fn salarie_nomme(nom: &str, nom_affichage: &str, prenom: &str, prenom_affichage: &str) -> Option<String> {
+    let l_un_ou_l_autre = |usage: &str, etat_civil: &str| match strip(usage) {
+        "" => strip(etat_civil).to_string(),
+        u => u.to_string(),
     };
-    let ou = |usage: &str, etat_civil: &str| match t(usage) {
-        v if v.is_empty() => t(etat_civil),
-        v => v,
-    };
-    let tout = format!("{} {}", ou("nom_affichage", "nom").to_uppercase(), ou("prenom_affichage", "prenom")).trim().to_string();
+    let tout = format!("{} {}", l_un_ou_l_autre(nom_affichage, nom).to_uppercase(), l_un_ou_l_autre(prenom_affichage, prenom)).trim().to_string();
     (!tout.is_empty()).then_some(tout)
 }
 
@@ -232,21 +218,14 @@ pub fn virgule(x: rust_decimal::Decimal) -> String {
     x.normalize().to_string().replace('.', ",")
 }
 
-/// `salarie_nomme`, ou la clé de sa fiche quand elle ne nomme personne (ou qu'il n'y a pas de fiche).
-pub fn salarie_nomme_ou(fiche: Option<&serde_json::Value>, cle: &str) -> String {
-    fiche.and_then(salarie_nomme).unwrap_or_else(|| cle.to_string())
-}
-
 #[cfg(test)]
 mod tests {
     use super::salarie_nomme;
-    use serde_json::json;
 
     #[test]
     fn le_salarie_est_nomme_comme_la_page_le_montre() {
-        let f = json!({"nom": "SERAPHIN", "nom_affichage": "Séraphin", "prenom": "Loie", "prenom_affichage": "Loïe"});
-        assert_eq!(salarie_nomme(&f).as_deref(), Some("SÉRAPHIN Loïe"));
-        let f = json!({"nom": "Martin", "prenom": "Léa"});
-        assert_eq!(salarie_nomme(&f).as_deref(), Some("MARTIN Léa"));
+        assert_eq!(salarie_nomme("SERAPHIN", "Séraphin", "Loie", "Loïe").as_deref(), Some("SÉRAPHIN Loïe"));
+        assert_eq!(salarie_nomme("Martin", "", "Léa", " ").as_deref(), Some("MARTIN Léa"));
+        assert_eq!(salarie_nomme("", "", "", ""), None);
     }
 }

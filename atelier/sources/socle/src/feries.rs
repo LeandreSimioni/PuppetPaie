@@ -7,13 +7,87 @@
 //! `Jours` : la date et le nom de chaque jour, dans l'ordre du fichier livre.
 
 use crate::date::Jour;
-use crate::fichiers::{dossier_du_code, json_en_cache, repr};
+use crate::fichiers::{forme_en_cache, FormeGardee};
 use crate::num::Resultat;
-use serde_json::Value;
-use std::sync::Arc;
+use serde::Deserialize;
+use std::sync::{Arc, OnceLock};
 
 /// La date et le nom de chaque jour, une date une fois, dans l'ordre ou elle vient.
 pub type Jours = Vec<(Jour, String)>;
+
+/// `feries-base.json` : les fetes legales de L3133-1, dans l'ordre de l'article.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BaseFeries {
+    #[serde(rename = "quoi")]
+    _quoi: String,
+    #[serde(rename = "source")]
+    _source: String,
+    #[serde(rename = "note")]
+    _note: String,
+    jours: Vec<FeteLue>,
+}
+
+/// Une fete du fichier : a date fixe (`mois`, `jour`), ou comptee depuis le dimanche de Paques (`paques`, en jours).
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FeteLue {
+    nom: String,
+    #[serde(rename = "article")]
+    _article: String,
+    #[serde(default)]
+    mois: Option<i64>,
+    #[serde(default)]
+    jour: Option<i64>,
+    #[serde(default)]
+    paques: Option<i64>,
+    /// Chome par la loi elle-meme (L3133-4 : le 1er mai).
+    #[serde(default)]
+    chome_de_droit: bool,
+    #[serde(default, rename = "chome_article")]
+    _chome_article: Option<String>,
+}
+
+/// Le jour d'une fete : fixe dans l'annee, ou a tant de jours du dimanche de Paques.
+enum Quand {
+    Fixe { mois: i64, jour: i64 },
+    Paques(i64),
+}
+
+/// Une fete legale, telle que le fichier livre la dit.
+struct Fete {
+    nom: String,
+    quand: Quand,
+    chome_de_droit: bool,
+}
+
+const ILLISIBLE: &str = "Les jours fériés livrés avec le logiciel ne se lisent pas : le signaler au développeur.";
+
+/// LA SEULE LECTURE de `feries-base.json`, une fois tant qu'il ne change pas. Une fete dit sa date fixe ou son ecart a
+/// Paques, l'un ou l'autre.
+fn fetes() -> Resultat<Arc<Vec<Fete>>> {
+    static CACHE: OnceLock<FormeGardee<Vec<Fete>>> = OnceLock::new();
+    forme_en_cache(&CACHE, "feries-base.json", ILLISIBLE, |b: BaseFeries| {
+        b.jours
+            .into_iter()
+            .enumerate()
+            .map(|(i, f)| {
+                let quand = match (f.mois, f.jour, f.paques) {
+                    (Some(mois), Some(jour), None) => Quand::Fixe { mois, jour },
+                    (None, None, Some(p)) => Quand::Paques(p),
+                    _ => {
+                        return Err(crate::echec::a_la_cle(
+                            ILLISIBLE,
+                            &format!("jours[{}]", i),
+                            "une fête dit son mois et son jour, ou son écart à Pâques, l'un ou l'autre",
+                        ))
+                    }
+                };
+                Ok(Fete { nom: f.nom, quand, chome_de_droit: f.chome_de_droit })
+            })
+            .collect()
+    })
+}
 
 /// Le jour `an`-`mois`-`jour`, ou le refus qui dit ce qui ne va pas (l'annee, le mois, le jour).
 pub fn date_ou_refus(an: i64, mois: i64, jour: i64) -> Resultat<Jour> {
@@ -31,33 +105,6 @@ fn inserer(out: &mut Jours, jour: Jour, nom: &str) {
     match out.iter_mut().find(|(j, _)| *j == jour) {
         Some(e) => e.1 = nom.to_string(),
         None => out.push((jour, nom.to_string())),
-    }
-}
-
-/// `feries-base.json`, lu une fois tant qu'il ne change pas.
-pub fn nomenclature() -> Resultat<Arc<Value>> {
-    json_en_cache(&dossier_du_code().join("feries-base.json"))
-}
-
-fn jours_du_fichier() -> Resultat<Vec<Value>> {
-    let n = nomenclature()?;
-    n.get("jours")
-        .and_then(|j| j.as_array())
-        .cloned()
-        .ok_or_else(|| crate::fichiers::absent("jours"))
-}
-
-fn entier(v: &Value, cle: &str) -> Resultat<i64> {
-    match v {
-        Value::Number(n) => n
-            .as_i64()
-            .or_else(|| n.as_f64().map(|x| x.trunc() as i64))
-            .ok_or_else(|| format!("{} : nombre hors de portée", repr(cle))),
-        Value::String(s) => s
-            .trim()
-            .parse::<i64>()
-            .map_err(|_| format!("nombre entier illisible : {}", repr(s))),
-        autre => Err(format!("{} : {}", repr(cle), crate::fichiers::attendu("un nombre entier", crate::valeur::nom_type(autre)))),
     }
 }
 
@@ -81,32 +128,21 @@ pub fn paques(annee: i32) -> Resultat<Jour> {
 pub fn feries(annee: i32) -> Resultat<Jours> {
     let mut out = Jours::new();
     let dimanche = paques(annee)?;
-    for j in jours_du_fichier()? {
-        let nom = j.get("nom").and_then(|n| n.as_str()).ok_or_else(|| crate::fichiers::absent("nom"))?;
-        let jour = match j.get("paques") {
-            Some(p) => dimanche.plus_jours(entier(p, "paques")?)?,
-            None => {
-                let mois = entier(j.get("mois").ok_or_else(|| crate::fichiers::absent("mois"))?, "mois")?;
-                let jr = entier(j.get("jour").ok_or_else(|| crate::fichiers::absent("jour"))?, "jour")?;
-                date_ou_refus(annee as i64, mois, jr)?
-            }
+    for f in fetes()?.iter() {
+        let jour = match f.quand {
+            Quand::Paques(ecart) => dimanche.plus_jours(ecart)?,
+            Quand::Fixe { mois, jour } => date_ou_refus(annee as i64, mois, jour)?,
         };
-        inserer(&mut out, jour, nom);
+        inserer(&mut out, jour, &f.nom);
     }
     Ok(out)
 }
 
 /// Ceux que la loi rend chomes : le 1er mai, et lui seul.
 pub fn chomes_de_droit(annee: i32) -> Resultat<Jours> {
-    let mut noms = Vec::new();
-    for j in jours_du_fichier()? {
-        if crate::fichiers::vrai(j.get("chome_de_droit").unwrap_or(&Value::Null)) {
-            if let Some(n) = j.get("nom").and_then(|n| n.as_str()) {
-                noms.push(n.to_string());
-            }
-        }
-    }
-    Ok(feries(annee)?.into_iter().filter(|(_, n)| noms.contains(n)).collect())
+    let fetes = fetes()?;
+    let noms: Vec<&str> = fetes.iter().filter(|f| f.chome_de_droit).map(|f| f.nom.as_str()).collect();
+    Ok(feries(annee)?.into_iter().filter(|(_, n)| noms.contains(&n.as_str())).collect())
 }
 
 /// Ce que la fiche entreprise chome : `tous` les feries, sinon le 1er mai seulement.

@@ -2,6 +2,8 @@
 //! separateurs `, ` et `: ` (ou `,` et `:` serres) ; les flottants sous leur forme la plus courte qui se relit, en
 //! notation scientifique hors de 1e-4 .. 1e16. Les octets qu'un coffre deja scelle ou qu'une signature couvre ne
 //! changent pas d'une version a l'autre.
+//!
+//! Un des trois modules du BORD (`forme` lit ; `ecriture` et `json_ascii` ecrivent) : ce qui s'ecrit est une forme.
 
 use serde_json::Value;
 
@@ -43,9 +45,9 @@ pub fn repr_flottant(f: f64) -> String {
 
 /// Le JSON en ASCII (tout autre caractere en `\uXXXX`), cles triees si `trie`. Sans
 /// `indent`, les separateurs sont `, ` et `: ` (ou `,` et `:` si `serre`).
-pub fn dumps(v: &Value, indent: Option<usize>, serre: bool, trie: bool) -> String {
+pub fn dumps<T: serde::Serialize + ?Sized>(v: &T, indent: Option<usize>, serre: bool, trie: bool) -> String {
     let mut s = String::new();
-    ecrire(v, indent, serre, trie, 0, &mut s);
+    ecrire(&serde_json::to_value(v).unwrap_or(Value::Null), indent, serre, trie, 0, &mut s);
     s
 }
 

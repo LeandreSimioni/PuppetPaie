@@ -1026,12 +1026,7 @@ impl ChampsSalarie {
     /// « NOM Prénom », tel que l'ecran le nomme (`socle::texte::salarie_nomme`) : le nom et le prenom d'usage, sinon ceux de
     /// l'etat civil. `None` : la fiche ne nomme personne.
     pub fn nomme(&self) -> Option<String> {
-        let ou = |usage: &Case<String>, civil: &str| {
-            let u = socle::texte::strip(usage.texte()).to_string();
-            if u.is_empty() { socle::texte::strip(civil).to_string() } else { u }
-        };
-        let tout = format!("{} {}", ou(&self.nom_affichage, self.nom.texte()).to_uppercase(), ou(&self.prenom_affichage, self.prenom.texte())).trim().to_string();
-        (!tout.is_empty()).then_some(tout)
+        socle::texte::salarie_nomme(self.nom.texte(), self.nom_affichage.texte(), self.prenom.texte(), self.prenom_affichage.texte())
     }
 
     /// Ce que la fiche dit de la nationalite (`socle::codification_ue`, S21.G00.30.013).

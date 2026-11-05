@@ -199,12 +199,6 @@ impl From<Mois> for String {
     }
 }
 
-impl From<Mois> for serde_json::Value {
-    fn from(m: Mois) -> serde_json::Value {
-        serde_json::Value::String(m.to_string())
-    }
-}
-
 impl PartialEq<str> for Mois {
     fn eq(&self, autre: &str) -> bool {
         Mois::lire(autre).is_ok_and(|m| m == *self)

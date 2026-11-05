@@ -264,7 +264,7 @@ fn relever_xlsx(
         let rid = format!("{}.{}", texte(bloc), texte(id));
         let genre = type_id.and_then(|t| types.get(&cle(t)));
         let Some(genre) = genre else {
-            sans_type.push((rid, type_id.map_or(Value::Null, Cellule::json)));
+            sans_type.push((rid, json!(type_id)));
             continue;
         };
         let mut fmt = Map::new();

@@ -5,26 +5,42 @@
 //! ligne LF ; les flottants sous leur forme la plus courte qui revient au meme nombre, l'exposant signe sur deux
 //! chiffres (`1e+16`, `1e-05`) et la decimale gardee (`100.0`). Un entier lu hors de 64 bits devient un flottant a la
 //! lecture (pas d'`arbitrary_precision`) : il s'ecrit alors comme le flottant qu'il est devenu.
+//!
+//! C'est un des trois modules du BORD (`forme` lit ; `ecriture` et `json_ascii` ecrivent) : ce qui s'ecrit est une forme
+//! (`serde::Serialize`), que le module seul met en JSON.
 
 use std::path::Path;
 
+use serde::Serialize;
 use serde_json::Value;
 
 use crate::num::Resultat;
 
+/// La forme `v` en valeur JSON, pour l'ecrire. Une forme que serde n'ecrit pas (une cle de table qui n'est pas un texte)
+/// est un defaut du logiciel : elle s'ecrit `null`, et la relecture stricte la refuse.
+fn en_valeur<T: Serialize + ?Sized>(v: &T) -> Value {
+    serde_json::to_value(v).unwrap_or(Value::Null)
+}
+
 /// Le JSON de `v`, indente de `indent`, sous la forme du module.
-pub fn json_indente(v: &Value, indent: usize) -> String {
+pub fn json_indente<T: Serialize + ?Sized>(v: &T, indent: usize) -> String {
     let mut s = String::new();
-    ecrire(v, indent, 0, &mut s);
+    ecrire(&en_valeur(v), indent, 0, &mut s);
     s
 }
 
 /// Le JSON de `v` sur une ligne : separateurs `, ` et
 /// `: `, cles triees (par point de code), non-ASCII laisse tel quel.
-pub fn json_trie(v: &Value) -> String {
+pub fn json_trie<T: Serialize + ?Sized>(v: &T) -> String {
     let mut s = String::new();
-    ecrire_trie(v, &mut s);
+    ecrire_trie(&en_valeur(v), &mut s);
     s
+}
+
+/// Le JSON de `v` sur une ligne, serre, tel que serde l'ecrit : ce qu'un refus porte a part (`echec::avec`), que
+/// `echec::separer` relit ; jamais un fichier.
+pub fn json_en_ligne<T: Serialize + ?Sized>(v: &T) -> String {
+    serde_json::to_string(v).unwrap_or_else(|_| "null".into())
 }
 
 fn ecrire_trie(v: &Value, s: &mut String) {
@@ -192,11 +208,13 @@ fn pair_a_egalite(x: f64, chiffres: String, exp: i32) -> String {
 
 /// Ecrit `donnees` dans `chemin` : cree le dossier, ecrit en
 /// LF, le JSON suivi d'un saut de ligne.
-pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()> {
+pub fn ecrire_json<T: Serialize + ?Sized>(chemin: &Path, donnees: &T, indent: usize) -> Resultat<()> {
     if let Some(dossier) = chemin.parent() {
         std::fs::create_dir_all(dossier).map_err(|e| crate::echec::du_disque(&dossier, &e))?;
     }
-    let mut texte = json_indente(donnees, indent);
+    let donnees = en_valeur(donnees);
+    let mut texte = String::new();
+    ecrire(&donnees, indent, 0, &mut texte);
     texte.push('\n');
     // ATOMIQUE : le fichier s'ecrit a cote puis prend sa place d'un coup. `std::fs::write` tronque d'abord,
     // puis ecrit : un lecteur arrive entre les deux (l'etat du mois se refait dans le fil de la fenetre, `etat_garde::

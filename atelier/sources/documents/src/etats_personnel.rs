@@ -39,6 +39,7 @@ struct ContratMois {
     mois: String,
     cle: String,
     fiche: Value,
+    nationalite: socle::codification_ue::Nationalite,
     salarie: String,
     contrat: String,
     nature: String,
@@ -66,6 +67,7 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
                 mois: m.clone(),
                 cle: paie.salarie.id.to_string(),
                 fiche: paie.salarie.champs.en_valeur(),
+                nationalite: paie.salarie.champs.nationalite(),
                 salarie: qui(&paie.salarie)?,
                 contrat: e.numero.as_deref().unwrap_or_default().to_string(),
                 nature: e.nat().map_err(|x| erreur("ErreurOperation", x))?.libelle.clone(),
@@ -166,7 +168,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let code_ue = if texte(&["code_nationalite_dsn", "pays_nationalite", "pays_nationalite_hors_liste"], "").is_empty() {
             Ok(String::new())
         } else {
-            socle::codification_ue::codification_ue(&socle::codification_ue::Nationalite::en_json(f))
+            socle::codification_ue::codification_ue(&c.nationalite)
         };
         // LE PAYS, quand la fiche le porte : le registre dit la nationalite (C. trav.,
         // art. D1221-23, 1°), la categorie DSN la suit entre parentheses ; sans pays, la categorie seule.

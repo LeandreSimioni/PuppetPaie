@@ -368,10 +368,11 @@ type Cache = Mutex<HashMap<PathBuf, ((u128, u64), Arc<Value>)>>;
 /// Le cache d'une table livree lue par sa forme (`forme_en_cache`) : le chemin, sa signature, la table construite.
 pub type FormeGardee<T> = Mutex<Option<(PathBuf, Option<(u128, u64)>, Arc<T>)>>;
 
-/// UNE TABLE LIVREE (`donnees/<nom>`), lue par sa forme et construite par `construire` une fois tant que son fichier ne
-/// change pas (chemin, date, taille) ; servie du cache, elle se note quand meme au registre d'un calcul suivi. Un calcul
-/// la consulte a chaque champ : elle ne se relit pas a chaque fois.
-pub fn forme_en_cache<T>(cache: &'static OnceLock<FormeGardee<T>>, nom: &str, construire: impl Fn(&Value) -> Resultat<T>) -> Resultat<Arc<T>> {
+/// UNE TABLE LIVREE (`donnees/<nom>`), lue par sa forme `B` (`forme::lire_fichier`, `phrase` pour son refus) et
+/// construite par `construire` une fois tant que son fichier ne change pas (chemin, date, taille) ; servie du cache, elle
+/// se note quand meme au registre d'un calcul suivi. Un calcul la consulte a chaque champ : elle ne se relit pas a chaque
+/// fois.
+pub fn forme_en_cache<B: serde::de::DeserializeOwned, T>(cache: &'static OnceLock<FormeGardee<T>>, nom: &str, phrase: &str, construire: impl Fn(B) -> Resultat<T>) -> Resultat<Arc<T>> {
     let chemin = dossier_du_code().join(nom);
     let sig = signature(&chemin);
     let cache = cache.get_or_init(|| Mutex::new(None));
@@ -381,7 +382,7 @@ pub fn forme_en_cache<T>(cache: &'static OnceLock<FormeGardee<T>>, nom: &str, co
             return Ok(v.clone());
         }
     }
-    let v = Arc::new(construire(&*json_en_cache(&chemin)?)?);
+    let v = Arc::new(construire(crate::forme::lire_fichier(&chemin, phrase)?)?);
     *cache.lock().unwrap_or_else(|e| e.into_inner()) = Some((chemin, sig, v.clone()));
     Ok(v)
 }
@@ -466,10 +467,10 @@ fn garder_dans_le_geste(chemin: &Path, v: Option<Arc<Value>>) {
 
 /// Ce que le geste vient d'ecrire dans `chemin` (`ecriture::ecrire_json`) : si le geste l'a lu, c'est ce qu'il a
 /// en main ; il ne relit pas ce qu'il a ecrit.
-pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: &Value) {
+pub(crate) fn ecrit_pendant_le_geste(chemin: &Path, v: Value) {
     GESTE.with(|g| {
         if let Some(l) = g.borrow_mut().as_mut().filter(|l| l.contains_key(chemin)) {
-            l.insert(chemin.to_path_buf(), Some(Arc::new(v.clone())));
+            l.insert(chemin.to_path_buf(), Some(Arc::new(v)));
         }
     });
 }
@@ -716,9 +717,10 @@ pub fn lire_texte_echec(p: &Path) -> Result<String, crate::echec::Echec> {
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", crate::echec::du_disque(&p, &e)))
 }
 
-/// Un fichier JSON (`lire_texte_echec`, puis `JSONDecodeError` s'il ne se lit pas).
+/// Un fichier JSON (`lire_texte_echec`, puis `JSONDecodeError` s'il ne se lit pas : la phrase en mots, le chemin et ce
+/// qui ne va pas a part, `echec::du_disque`).
 pub fn lire_json_echec(p: &Path) -> Result<Value, crate::echec::Echec> {
-    serde_json::from_str(&lire_texte_echec(p)?).map_err(|e| crate::echec::erreur("JSONDecodeError", e.to_string()))
+    serde_json::from_str(&lire_texte_echec(p)?).map_err(|e| crate::echec::erreur("JSONDecodeError", crate::echec::du_disque(p, &e)))
 }
 
 /// Le nom d'un chemin, ou son texte entier s'il n'en a pas.

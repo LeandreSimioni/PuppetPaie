@@ -22,9 +22,6 @@
 //! pas le pays de nationalite, seulement `30.013` : rien a inventer. Un pays de la liste ecrit la ne compte pas comme
 //! hors liste (il se choisit dans la liste, la codification s'en deduit) ; la France non plus (01 refuse).
 
-use serde_json::Value;
-
-use crate::fichiers::vrai;
 use crate::num::Resultat;
 
 /// Les Etats membres de l'Union (TUE art. 52 § 1, sans le Royaume-Uni), en codes ISO a deux lettres, la France a part.
@@ -70,12 +67,6 @@ impl Nationalite {
     pub fn nouvelle(code: &str, pays: &str, hors: &str, qui: Option<String>) -> Nationalite {
         let dit = |t: &str| Some(t.trim().to_string()).filter(|t| !t.is_empty());
         Nationalite { code: dit(code), pays: dit(pays), hors: dit(hors), qui: qui.unwrap_or_else(|| "ce salarié".to_string()) }
-    }
-
-    /// D'une fiche en JSON (une saisie a verifier, une table d'export), lue par ses cases.
-    pub fn en_json(fiche: &Value) -> Nationalite {
-        let texte = |cle: &str| fiche.get(cle).filter(|v| vrai(v)).map(crate::valeur::valeur_en_texte).unwrap_or_default();
-        Nationalite::nouvelle(&texte("code_nationalite_dsn"), &texte("pays_nationalite"), &texte("pays_nationalite_hors_liste"), crate::texte::salarie_nomme(fiche))
     }
 }
 

@@ -645,8 +645,7 @@ const ILLISIBLE: &str = "Les natures de contrat livrées avec le logiciel ne se 
 /// est l'un des trois du Format 120 ; la nature par defaut est l'une des natures).
 fn lu() -> Resultat<Arc<Contrats>> {
     static CACHE: OnceLock<FormeGardee<Contrats>> = OnceLock::new();
-    forme_en_cache(&CACHE, "contrats-base.json", |v| {
-        let f: Fichier = socle::forme::lire(v, ILLISIBLE)?;
+    forme_en_cache(&CACHE, "contrats-base.json", ILLISIBLE, |f: Fichier| {
         let mut natures = Vec::new();
         for (cle, mut n) in f.natures {
             if !TYPES_CONTRAT_DPAE.iter().any(|(k, _)| *k == n.dpae.type_contrat.valeur) {

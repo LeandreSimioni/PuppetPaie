@@ -92,10 +92,12 @@ fn jours_payes(i: &Importe) -> (String, String) {
     (bornes.iter().map(|b| b.0.clone()).min().unwrap_or_default(), bornes.iter().map(|b| b.1.clone()).max().unwrap_or_default())
 }
 
-/// Le nom d'un salarié à l'écran ; sa clé à défaut.
+/// Le nom d'un salarié à l'écran, tel que sa fiche le porte aujourd'hui ; sa clé à défaut (pas de fiche, ou un fichier
+/// des salariés qui ne se lit pas : ce que l'import dit n'en dépend pas).
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
     let fiches = crate::routes::lire_json_ou_vide(&racine.join(droit::contexte::SALARIES)).unwrap_or(Value::Null);
-    socle::texte::salarie_nomme_ou(fiches.get(cle).filter(|f| f.is_object()), cle)
+    let lues = droit::fiche::lire_salaries(&fiches, droit::contexte::SALARIES).ok();
+    lues.and_then(|s| s.fiches.get(cle).and_then(|f| f.au(&socle::temps::jour_de_paris()).nomme())).unwrap_or_else(|| cle.to_string())
 }
 
 /// Les contrats a dire de chaque salarie : (nombre, premier jour paye, dernier jour paye, paye le dernier mois repris).

@@ -1022,7 +1022,6 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &str) -> R<ApercuDpae> 
     // La nature de chaque embauche, par son nom court (« CDDU ») : le fichier ne dit que CDD, CDI ou CTT (Format 120).
     let mut natures: HashMap<(String, String), String> = HashMap::new();
     let mut mois_vus: Vec<String> = Vec::new();
-    let vide = json!({});
     let mut lignes = Vec::new();
     for e in &enrs {
         let champ = |k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.as_str()).unwrap_or("");
@@ -1058,12 +1057,9 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &str) -> R<ApercuDpae> 
             }
             vues.iter().find(|(_, s)| identite(s)).map(|(k, s)| (k, s))
         });
-        let (cle, s) = match trouve {
-            Some((c, s)) => (Some(c), s),
-            None => (None, &vide),
-        };
+        let cle = trouve.map(|(c, _)| c);
         let debut = iso_depuis_jjmmaaaa(champ("date_embauche"));
-        let nom = socle::texte::salarie_nomme(s).unwrap_or_else(|| "salarie inconnu de la configuration".to_string());
+        let nom = cle.and_then(|c| ctx.salaries.get(c.as_str())).and_then(|f| f.champs.nomme()).unwrap_or_else(|| "salarie inconnu de la configuration".to_string());
         let type_brut = champ("type_contrat").trim_matches(socle::texte::blanc);
         let type_contrat = cle.and_then(|c| natures.get(&(c.clone(), debut.clone()))).cloned().unwrap_or_else(|| {
             let t = droit::natures::TYPES_CONTRAT_DPAE.iter().find(|(k, _)| *k == type_brut);
