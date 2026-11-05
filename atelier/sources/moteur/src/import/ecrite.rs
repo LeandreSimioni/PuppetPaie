@@ -58,8 +58,8 @@ pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>
 
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a
 /// l'adhesion que la DSN nomme `contrat` en bloc 15). `None` : illisible.
-pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Result<Option<(crate::import::dsn_aem::DsnLue, bool)>, Echec> {
-    let Some(d) = crate::import::dsn_aem::lire_une_dsn(chemin)? else { return Ok(None) };
+pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Result<Option<(declarations::dsn_lue::DsnLue, bool)>, Echec> {
+    let Some(d) = declarations::dsn_lue::lire_une_dsn(chemin)? else { return Ok(None) };
     let porte = d
         .adhesions
         .iter()
@@ -101,7 +101,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
             continue;
         }
         let mut masse = socle::num::zero2();
-        for b in d.versements.iter().filter(|v| v.contrat.is_some()).filter_map(|v| v.brut) {
+        for b in d.versements.iter().filter(|v| !v.contrats().is_empty()).filter_map(|v| v.brut(d.mois)) {
             masse += b;
         }
         let an: String = m.chars().take(4).collect();

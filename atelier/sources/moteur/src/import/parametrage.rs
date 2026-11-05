@@ -1,6 +1,6 @@
 //! L'IMPORT QUI PARAMETRE LA COMPAGNIE : ce que les DSN reprises disent de la configuration et que la fiche Entreprise ne
 //! porte pas, pose apres l'ecriture des fiches (`ecrite::importer`). La fiche Entreprise recoit deja des DSN ce qu'elle
-//! declare (`dsn_aem::lire_une_dsn` : l'entreprise, le compte qui paie, le numero Conges Spectacles, la licence, le
+//! declare (`declarations::dsn_lue::lire` : l'entreprise, le compte qui paie, le numero Conges Spectacles, la licence, le
 //! contact DSN, la medecine du travail interne) ; ici se pose ce qui vit ailleurs :
 //!
 //! - LE CODE RISQUE ET LE TAUX AT/MP (S21.G00.40.040, .043 ; `norme-dsn/texte/bloc-S21.G00.40.txt` l. 1224-1315) dans la
@@ -19,7 +19,8 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::import::dsn_aem::{Adhesion, LectureDsn};
+use crate::import::dsn_aem::LectureDsn;
+use declarations::dsn_lue::Adhesion;
 use droit::contexte::Contexte;
 use socle::fichiers::vrai;
 use socle::valeur::valeur_en_texte;

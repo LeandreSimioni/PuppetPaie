@@ -77,20 +77,18 @@ fn instant_du_jour(j: Jour) -> String {
 /// transmis le mois au cours duquel la DSN […] a été déposée » (meme page, § 30), mais la DSN qui applique le
 /// taux n'en porte pas la date. INFERENCE (aucun texte ne date un taux lu dans une DSN) : le releve est date du jour du versement
 /// (`mis_a_disposition`), la mise a disposition la plus tardive que les textes permettent ; le compte rendu de la DSN suivante
-/// le remplace. Chaque DSN se lit par `import::dsn_aem::lire_une_dsn` ; une DSN fautive refuse.
+/// le remplace. Chaque DSN se lit par `declarations::dsn_lue::lire_une_dsn` ; une DSN fautive refuse.
 pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<Value>, Echec> {
     let par_nir: std::collections::HashMap<String, String> = ctx
         .salaries
         .iter()
         .filter_map(|(cle, s)| s.nir.dite().filter(|n| !n.is_empty()).map(|n| (n.to_string(), cle.to_string())))
         .collect();
-    let mut fichiers = Vec::new();
-    crate::routes::fiches::fichiers_dsn(dossier, &mut fichiers);
-    fichiers.sort();
+    let fichiers = declarations::dsn_lue::fichiers(dossier);
     // salarie -> mois -> releve (dans l'ordre d'insertion des salaries, mois tries).
     let mut trouve: Vec<(String, std::collections::BTreeMap<socle::mois::Mois, Value>)> = Vec::new();
     for f in fichiers {
-        let Some(d) = crate::import::dsn_aem::lire_une_dsn(&f)? else { continue };
+        let Some(d) = declarations::dsn_lue::lire_une_dsn(&f)? else { continue };
         for v in &d.versements {
             // « -1 » : un CDD court sans taux personnalise (`norme-dsn/texte/bloc-S21.G00.50.txt`, S21.G00.50.008) ;
             // aucun taux n'a ete transmis. Sans la date du versement (S21.G00.50.001), le taux ne se date pas.

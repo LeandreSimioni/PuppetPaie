@@ -7,7 +7,7 @@
 //!
 //! | sorte | ce que le contenu dit |
 //! |---|---|
-//! | `dsn` | l'en-tete `S10.G00.00.001,` (comme `importation::fichiers_dsn`), et un mois declare (`importation::lire_une_dsn`) |
+//! | `dsn` | l'en-tete `S10.G00.00.001,` (`declarations::dsn_lue::est_une_dsn`), et un mois declare (`dsn_lue::lire_une_dsn`) |
 //! | `aem` | chaque enregistrement fait 1000 caracteres, commence par `AEMEDIC2` et porte ses dates aux positions que `importation::lire_aem` lit |
 //! | `pdf_texte` | un PDF (`%PDF-`) que la fabrique ouvre, et dont au moins une page a des mots |
 //! | `pdf_sans_texte` | un PDF que la fabrique ouvre, sans un seul mot (lettres en traces, ou page scannee : pas d'OCR) |
@@ -291,8 +291,8 @@ impl Trieur {
         }
         if est_un_pdf(&octets) {
             lire_pdf(&mut f);
-        } else if apres_bom(&octets).starts_with(b"S10.G00.00.001,") {
-            match crate::import::dsn_aem::lire_une_dsn(&f.disque) {
+        } else if declarations::dsn_lue::est_une_dsn(&octets) {
+            match declarations::dsn_lue::lire_une_dsn(&f.disque) {
                 Ok(Some(d)) => {
                     f.sorte = Sorte::Dsn;
                     f.mois = Some(d.mois.to_string());
@@ -403,7 +403,7 @@ impl Trieur {
     }
 }
 
-/// Les marques d'ordre d'octets UTF-8 en tete (comme `importation::fichiers_dsn`).
+/// Les marques d'ordre d'octets UTF-8 en tete.
 fn apres_bom(mut o: &[u8]) -> &[u8] {
     while o.starts_with(b"\xef\xbb\xbf") {
         o = &o[3..];

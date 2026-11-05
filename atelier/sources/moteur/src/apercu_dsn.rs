@@ -30,7 +30,7 @@ use crate::routes::Pastille;
 use crate::routes::depots::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes::etapes::Moteur;
 use documents::ecrire_documents::paies_aux_numeros_declares;
-use declarations::recap_dsn::{lire_recap, norm};
+use declarations::dsn_lue::{ContratDeclare, DsnLue, Mesures, VersementLu};
 
 type R<T> = Result<T, Echec>;
 
@@ -44,9 +44,82 @@ fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, 
 
 // ------------------------------------------------------------------ recapitulatif_dsn
 
+/// `format(d.normalize(), "f")`, avec `0` pour zero.
+fn norm(d: rust_decimal::Decimal) -> String {
+    if d.is_zero() {
+        "0".to_string()
+    } else {
+        d.normalize().to_string()
+    }
+}
+
+/// Une mesure d'activite (`jours`, `cachets`, `heures`) en texte.
+fn mesure_texte(m: &Mesures, cle: &str) -> String {
+    norm(match cle {
+        "jours" => m.jours,
+        "cachets" => m.cachets,
+        _ => m.heures,
+    })
+}
+
+/// Un jour de la DSN en AAAA-MM-JJ, vide s'il manque.
+fn jour_texte(j: Option<socle::date::Jour>) -> String {
+    j.map(|j| j.iso()).unwrap_or_default()
+}
+
+/// Un contrat du fichier (`DsnLue`) en texte, et ce qu'il declare pour le mois et en rappel d'un mois deja declare.
+struct ContratLu {
+    numero: String,
+    debut: String,
+    fin: String,
+    emploi: String,
+    nature: String,
+    objet: String,
+    fin_declaree: String,
+    motif_fin: String,
+    mois: Mesures,
+    rappel: Mesures,
+}
+
+impl ContratLu {
+    fn de(d: &DsnLue, c: &ContratDeclare) -> ContratLu {
+        let numero = c.numero.clone().unwrap_or_default();
+        let t = |v: &Option<String>| v.clone().unwrap_or_default();
+        ContratLu {
+            mois: d.mesures(&c.nir, &numero, false),
+            rappel: d.mesures(&c.nir, &numero, true),
+            debut: jour_texte(c.debut),
+            fin: jour_texte(c.fin),
+            emploi: t(&c.emploi.emploi),
+            nature: t(&c.nature_dsn),
+            objet: t(&c.objet),
+            fin_declaree: jour_texte(c.fin_declaree),
+            motif_fin: t(&c.motif_fin),
+            numero,
+        }
+    }
+}
+
+/// Un versement du fichier (S21.G00.50.001, .004, .002, .006, .009), tel qu'il l'ecrit.
+#[derive(Debug, Serialize)]
+struct VersementDuFichier {
+    date: String,
+    net_verse: String,
+    net_fiscal: String,
+    taux_pas: String,
+    montant_pas: String,
+}
+
+impl VersementDuFichier {
+    fn de(v: &VersementLu) -> VersementDuFichier {
+        let t = |m: Option<rust_decimal::Decimal>| m.map(|m| m.to_string()).unwrap_or_default();
+        VersementDuFichier { date: jour_texte(v.verse_le), net_verse: t(v.net_verse), net_fiscal: t(v.net_imposable), taux_pas: t(v.taux_pas), montant_pas: t(v.pas) }
+    }
+}
+
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
 fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<RecapDsn, String> {
-    let sals = lire_recap(octets)?;
+    let d = declarations::dsn_lue::lire(octets, "").map_err(|e| e.message)?.ok_or("ce fichier ne dit pas le mois qu'il déclare (S20.G00.05.005)")?;
     // Un mois sans engagement n'a rien a comparer.
     let (mut compare, liste) = match saisie_aux_numeros_declares(ctx, mois) {
         Ok(l) if !l.is_empty() => (true, l),
@@ -75,12 +148,13 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
     let mut vus: HashSet<String> = HashSet::new();
     let mut salaries_json = Vec::new();
     let (mut n_contrats, mut n_ecarts, mut n_corrections) = (0usize, 0usize, 0usize);
-    for sal in &sals {
+    for sal in &d.individus {
+        let contrats: Vec<ContratLu> = d.contrats_de(&sal.nir).map(|c| ContratLu::de(&d, c)).collect();
         let mut contrats_json = Vec::new();
         // Un contrat se dit par ce qu'il declare pour le mois, comparé a la paie du mois, et par ses rappels d'un mois deja
-        // declare (`recap_dsn::Contrat`), qui ne se comparent pas a la paie du mois. Un contrat qui n'a que des rappels
+        // declare (`dsn_lue::Remuneration::rappel`), qui ne se comparent pas a la paie du mois. Un contrat qui n'a que des rappels
         // n'a pas de ligne du mois.
-        for (c, correction) in sal.contrats.iter().flat_map(|c| [(c, false), (c, true)]) {
+        for (c, correction) in contrats.iter().flat_map(|c| [(c, false), (c, true)]) {
             let m = if correction { &c.rappel } else { &c.mois };
             if (correction || c.rappel.remunere) && !m.remunere {
                 continue;
@@ -88,7 +162,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             vus.insert(c.numero.clone());
             let p = par_numero.get(&c.numero).map(|&i| &liste[i]);
             let mut ecarts: Vec<String> = Vec::new();
-            let brut = m.brut_texte();
+            let brut = q2(m.brut);
             match p {
                 _ if correction => {}
                 None => {
@@ -121,7 +195,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                         attendu.insert(cle, norm(avant + valeur));
                     }
                     for cle in ["brut", "jours", "cachets", "heures"] {
-                        let fichier = if cle == "brut" { brut.clone() } else { m.mesure_texte(cle) };
+                        let fichier = if cle == "brut" { brut.clone() } else { mesure_texte(m, cle) };
                         let a = decimal_lu(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
                         let f = decimal_lu(&fichier).ok_or_else(|| socle::num::illisible(&fichier))?;
                         if norm(f) != norm(a) {
@@ -152,7 +226,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             if !ecarts.is_empty() {
                 n_ecarts += 1;
             }
-            let (cachets, heures, jours) = (m.mesure_texte("cachets"), m.mesure_texte("heures"), m.mesure_texte("jours"));
+            let (cachets, heures, jours) = (mesure_texte(m, "cachets"), mesure_texte(m, "heures"), mesure_texte(m, "jours"));
             let fin_dit = if correction {
                 "mois déjà déclaré".to_string()
             } else if !c.fin_declaree.is_empty() {
@@ -184,7 +258,9 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                 ecarts,
             });
         }
-        salaries_json.push(SalarieDuFichier { nir: sal.nir.clone(), nom: sal.nom.clone(), prenoms: sal.prenoms.clone(), contrats: contrats_json, versements: sal.versements.clone() });
+        let versements = d.versements_de(&sal.nir).map(VersementDuFichier::de).collect();
+        let (nom, prenoms) = (sal.nom.clone().unwrap_or_default(), sal.prenom.clone().unwrap_or_default());
+        salaries_json.push(SalarieDuFichier { nir: sal.nir.clone(), nom, prenoms, contrats: contrats_json, versements });
     }
     let mut absents = Vec::new();
     for n in &ordre {
@@ -274,7 +350,7 @@ struct SalarieDuFichier {
     nom: String,
     prenoms: String,
     contrats: Vec<ContratDuFichier>,
-    versements: Vec<declarations::recap_dsn::Versement>,
+    versements: Vec<VersementDuFichier>,
 }
 
 /// Un contrat du fichier, ce qu'il declare pour le mois (ou en correction d'un mois deja declare), en clair, et ses

@@ -3,7 +3,7 @@
 //! (`importation-etat`, `guide`) ; chaque phrase dit ce que le code de l'import lit, et rien d'autre :
 //! - les bulletins : `bulletin_lu` (`Entreprise`, `Salarie`, `BulletinLu`), et la fiche que `bulletins` en tire
 //!   (`fiche_entreprise`, `statut_et_metier`) ;
-//! - les DSN : `dsn_aem::lire_une_dsn` (`DsnLue` : `EntrepriseDeclaree`, `IndividuDeclare`, `ContratDeclare`, `VersementLu`, le bloc 20, la licence 40.049,
+//! - les DSN : `declarations::dsn_lue::lire` (`DsnLue` : `EntrepriseDeclaree`, `IndividuDeclare`, `ContratDeclare`, `VersementLu`, le bloc 20, la licence 40.049,
 //!   le numero d'adherent Conges Spectacles 40.022, le contact S20.G00.07) et `parametrage` (le code risque 40.040, les
 //!   adhesions S21.G00.15) ;
 //! - les certificats Congés Spectacles : `certificat_lu` (`Certificat`), et ce que `bulletins` en tire

@@ -268,6 +268,42 @@ pub(crate) struct Apercu {
     pub(crate) contrats_changes: Vec<crate::import::attestes::Change>,
     /// La suite des licences que les pieces donnent (mois `AAAA-MM`, numero), la plus ancienne d'abord (`poser_licence`).
     pub(crate) licences: Vec<(String, String)>,
+    /// Les contrats que la DSN declare payes sans que ses montants se rattachent a eux (`dsn_aem::PaieDeclaree`).
+    pub(crate) sans_montants: Vec<SansMontants>,
+}
+
+/// UN CONTRAT QUE LA DSN DECLARE SANS SES MONTANTS : son versement paie aussi d'autres contrats (`avec`), ou plusieurs
+/// versements le paient (`avec` vide). Ses montants viennent de son bulletin ; sans lui, l'apercu le dit (`phrase`).
+#[derive(Clone, Debug)]
+pub(crate) struct SansMontants {
+    pub(crate) mois: String,
+    pub(crate) nir: String,
+    pub(crate) contrat: String,
+    pub(crate) qui: String,
+    pub(crate) avec: Vec<String>,
+}
+
+impl SansMontants {
+    /// Ce que l'apercu dit d'un tel contrat qu'aucun bulletin ne complete.
+    pub(crate) fn phrase(&self) -> String {
+        let pourquoi = match self.avec.as_slice() {
+            [] => "plusieurs versements de la DSN le paient".to_string(),
+            [un] => format!("son versement dans la DSN paie aussi le contrat {}", un),
+            autres => format!("son versement dans la DSN paie aussi les contrats {}", autres.join(", ")),
+        };
+        format!(
+            "{}, contrat {} ({}) : {}, sans dire ce qui revient à chacun, et aucun bulletin ne le donne. L'engagement est repris sans montants : importez son bulletin.",
+            self.qui,
+            self.contrat,
+            socle::mois::Mois::en_clair(&self.mois),
+            pourquoi
+        )
+    }
+}
+
+/// Le salarie qu'une DSN declare, en clair : son nom, son prenom.
+fn libelle_de(i: &declarations::dsn_lue::IndividuDeclare) -> String {
+    format!("{} {}", i.nom.clone().unwrap_or_default(), i.prenom.as_deref().map(declarations::champs::titre).unwrap_or_default())
 }
 
 /// LE NOM QUE LA PERSONNE A DONNE A LA COMPAGNIE (« Ajouter une compagnie ») reste le sien : la fiche que l'import cree
@@ -289,19 +325,22 @@ pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<engagement::importe::Pai
     engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)
 }
 
-/// UN VERSEMENT QUE LA DSN DECLARE, EN PAIE VERSEE : ses montants et ses dates, tels que la DSN les ecrit
-/// (`dsn_aem::lire_une_dsn`, qui refuse une DSN dont un montant ou une date ne se lit pas).
+/// UN CONTRAT QU'UN VERSEMENT DE LA DSN PAIE, EN PAIE VERSEE : ses dates, et les montants du versement s'il ne paie que
+/// lui (`dsn_aem::PaieDeclaree`), tels que la DSN les ecrit (`declarations::dsn_lue::lire`, qui refuse une DSN dont un
+/// montant ou une date ne se lit pas).
 fn paie_declaree(contrat: &str, p: &dsn_aem::PaieDeclaree, objet: Option<String>) -> engagement::importe::PaieVersee {
     use engagement::importe::{Declaration, PaieVersee};
-    let (v, c) = (&p.versement, p.contrat.as_ref());
+    let c = p.contrat.as_ref();
     let mut x = PaieVersee::vide(contrat.to_string(), Declaration::Dsn);
-    x.nir = Some(v.nir.clone());
+    x.nir = Some(p.nir.clone());
     x.numero_objet = objet;
-    (x.debut, x.fin, x.verse_le) = (c.and_then(|c| c.debut), c.and_then(|c| c.fin), v.verse_le);
-    (x.quotite, x.brut, x.net_imposable, x.net_verse) = (c.and_then(|c| c.quotite), v.brut, v.net_imposable, v.net_verse);
-    (x.pas, x.taux_pas, x.type_pas, x.identifiant_pas) = (v.pas, v.taux_pas, v.type_pas.clone(), v.identifiant_pas.clone());
+    (x.debut, x.fin, x.verse_le, x.quotite) = (c.and_then(|c| c.debut), c.and_then(|c| c.fin), p.verse_le, c.and_then(|c| c.quotite));
+    if let Some(m) = &p.montants {
+        (x.brut, x.net_imposable, x.net_verse) = (m.brut, m.net_imposable, m.net_verse);
+        (x.pas, x.taux_pas, x.type_pas, x.identifiant_pas) = (m.pas, m.taux_pas, m.type_pas.clone(), m.identifiant_pas.clone());
+        x.bases = m.bases.clone();
+    }
     (x.depose_le, x.fichier) = (p.depot.map(|j| j.iso()), Some(p.fichier.clone()).filter(|f| !f.is_empty()));
-    x.bases = v.bases.clone();
     x
 }
 
@@ -374,11 +413,7 @@ pub(crate) fn apercu_lu(
     let mut salaries = Vec::new();
     let mut cles_a_venir: HashSet<String> = HashSet::new();
     for decl in ordre {
-        let libelle = format!(
-            "{} {}",
-            decl.individu.nom.clone().unwrap_or_default(),
-            decl.individu.prenom.as_deref().map(declarations::champs::titre).unwrap_or_default()
-        );
+        let libelle = libelle_de(&decl.individu);
         if let Some(cle) = par_nir.get(&decl.nir) {
             let ec = ecarts("salarie", &ctx.salaries[cle.as_str()].champs, &decl.fiche(), &decl.mois)?;
             let mut entree = FicheImportee::new("salarie", Some(cle), &libelle, EtatFiche::Existante, ec, Vec::new(), &vide);
@@ -510,6 +545,7 @@ pub(crate) fn apercu_lu(
         .map(|c| ((c.nir.clone(), c.debut.iso(), c.fin.iso()), c.numero_objet.clone()))
         .collect();
     let mut paies: Vec<engagement::importe::PaieLue> = Vec::new();
+    let mut sans_montants: Vec<SansMontants> = Vec::new();
     for ((mois, nir, contrat), v) in &lecture.paies {
         let cle = par_nir.get(nir);
         if cle.is_none() && !cles_a_venir.contains(nir) {
@@ -520,6 +556,10 @@ pub(crate) fn apercu_lu(
             let (debut, fin) = (c.and_then(|c| c.debut)?, c.and_then(|c| c.fin)?);
             objets_aem.get(&(nir.clone(), debut.iso(), fin.iso())).cloned()
         });
+        if v.montants.is_none() {
+            let qui = lecture.salaries.iter().find(|s| s.nir == *nir).map(|s| libelle_de(&s.individu)).unwrap_or_else(|| nir.clone());
+            sans_montants.push(SansMontants { mois: mois.clone(), nir: nir.clone(), contrat: contrat.clone(), qui, avec: v.avec.clone() });
+        }
         // 50.004 est le net verse, pas le net a payer : la DSN ne declare pas celui-ci, un bulletin le donnera.
         let paie = paie_declaree(contrat, v, objet);
         paies.push(engagement::importe::PaieLue { mois: mois.clone(), salarie: cle.cloned().unwrap_or_else(|| "<a creer>".to_string()), paie });
@@ -541,7 +581,7 @@ pub(crate) fn apercu_lu(
         rien_a_faire,
         ..Importation::default()
     };
-    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), contrats_changes: Vec::new(), licences: lecture.licences.clone() })
+    Ok(Apercu { reponse, a_creer: a_creer_liste, a_completer, contrats, paies, contrats_attestes: Vec::new(), contrats_changes: Vec::new(), licences: lecture.licences.clone(), sans_montants })
 }
 
 /// `etat_importation` : ce qui a deja ete repris, d'apres les engagements importes, pour que la page le dise :

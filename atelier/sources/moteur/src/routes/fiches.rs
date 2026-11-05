@@ -1005,54 +1005,22 @@ pub(crate) fn pieces_importees(ctx: &Contexte) -> std::path::PathBuf {
     ctx.racine.join("historique").join("bulletins")
 }
 
-/// Les fichiers (et dossiers) dont le nom finit par
-/// `.dsn`, sans suivre les liens vers des dossiers.
-pub(crate) fn fichiers_dsn(dossier: &Path, sortie: &mut Vec<std::path::PathBuf>) {
-    let Ok(entrees) = std::fs::read_dir(dossier) else { return };
-    for e in entrees.flatten() {
-        let chemin = e.path();
-        if e.file_name().to_string_lossy().ends_with(".dsn") {
-            sortie.push(chemin.clone());
-        }
-        if e.file_type().map_or(false, |t| t.is_dir()) {
-            fichiers_dsn(&chemin, sortie);
-        }
-    }
-}
-
-/// `usages_declares` : combien de DSN deja deposees portent cette valeur (telle
-/// qu'une DSN l'ecrit, `,'VALEUR'`), et sur quelle periode.
-fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
-    let jeton = format!(",'{}'", valeur_en_texte(valeur));
-    let prefixe = "S20.G00.05.005,";
-    let (mut fichiers, mut mois) = (0, Vec::<String>::new());
-    for dossier in [pieces_importees(ctx), ctx.racine.join("sorties")] {
-        if !dossier.exists() {
-            continue;
-        }
-        let mut trouves = Vec::new();
-        fichiers_dsn(&dossier, &mut trouves);
-        for f in trouves {
-            let Ok(octets) = std::fs::read(&f) else { continue };
-            // latin-1, puis les fins de ligne universelles de `read_text`.
-            let brut: String = octets.iter().map(|b| *b as char).collect();
-            let texte = brut.replace("\r\n", "\n").replace('\r', "\n");
-            if !texte.contains(&jeton) {
-                continue;
-            }
-            fichiers += 1;
-            for l in socle::texte::lignes_du_texte(&texte) {
-                if let Some(reste) = l.strip_prefix(prefixe) {
-                    let mp: Vec<char> = reste.trim_matches('\'').chars().collect();
-                    if mp.len() == 8 {
-                        mois.push(format!("{}-{}", mp[4..8].iter().collect::<String>(), mp[2..4].iter().collect::<String>()));
-                    }
-                    break;
+/// `usages_declares` : combien de DSN deja deposees declarent cette valeur dans la rubrique de la case (`rubrique`, de la
+/// table des champs), telle qu'une DSN l'ecrit, et sur quels mois. Une case sans rubrique n'est dans aucune DSN.
+fn usages_declares(ctx: &Contexte, rubrique: Option<&str>, valeur: &Value) -> R<Value> {
+    let valeur = valeur_en_texte(valeur);
+    let mut mois: Vec<String> = Vec::new();
+    if let Some(rubrique) = rubrique {
+        for dossier in [pieces_importees(ctx), ctx.racine.join("sorties")] {
+            for f in declarations::dsn_lue::fichiers(&dossier) {
+                let Some(d) = declarations::dsn_lue::lire_une_dsn(&f)? else { continue };
+                if d.declare(rubrique, &valeur) {
+                    mois.push(d.mois.to_string());
                 }
             }
         }
     }
-    json!({"declarations": fichiers, "du": mois.iter().min(), "au": mois.iter().max()})
+    Ok(json!({"declarations": mois.len(), "du": mois.iter().min(), "au": mois.iter().max()}))
 }
 
 /// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes (`_...`) qu'elle ne dit pas,
@@ -1207,7 +1175,7 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
         });
         let o = entree.as_object_mut().unwrap();
         if c.is_some_and(|c| c.declare) {
-            o.insert("deja_declare".into(), usages_declares(ctx, &avant));
+            o.insert("deja_declare".into(), usages_declares(ctx, c.and_then(|c| c.rubrique.as_deref()), &avant)?);
         }
         if let Some(c) = c.filter(|c| c.calcule()) {
             let source = c.derive_de.as_deref().unwrap_or("");

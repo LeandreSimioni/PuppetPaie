@@ -214,11 +214,11 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         .iter()
         .enumerate()
         .filter_map(|(i, f)| match f.sorte {
-            Sorte::Dsn => Some((i, false, crate::import::dsn_aem::employeur_dsn(&f.disque))),
-            Sorte::Aem => Some((i, true, crate::import::dsn_aem::employeur_aem(&f.disque))),
+            Sorte::Dsn => Some(crate::import::dsn_aem::employeur_dsn(&f.disque).map(|e| (i, false, e))),
+            Sorte::Aem => Some(Ok((i, true, crate::import::dsn_aem::employeur_aem(&f.disque)))),
             _ => None,
         })
-        .collect();
+        .collect::<R<_>>()?;
 
     // 2. Les bulletins, page par page.
     let table = Table::livree().map_err(|m| erreur("ErreurOperation", format!("La table de lecture des bulletins ne se lit pas : {}", m)))?;
@@ -1325,6 +1325,22 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             "{} bulletin(s) ne retombent pas sur leurs propres totaux (brut, net) : le bulletin fait foi, ses montants imprimés sont repris tels quels ; le compte rendu dit l'écart, page par page.",
             pages_incoherentes
         ));
+    }
+    // UN CONTRAT QUE LA DSN DECLARE SANS SES MONTANTS (`routes::import::SansMontants`) : son bulletin, lu ici ou deja
+    // repris, les donne ; sinon l'apercu le dit, contrat par contrat.
+    for s in &ap.sans_montants {
+        let ligne = ap.paies.iter().find(|x| x.mois == s.mois && x.paie.nir.as_deref() == Some(s.nir.as_str()) && x.paie.contrat == s.contrat);
+        let dates = ligne.map(|x| (x.paie.debut, x.paie.fin));
+        let complete = ligne.is_some_and(|x| x.paie.bulletin.is_some())
+            || historique_paies.iter().any(|h| {
+                h.mois == s.mois
+                    && h.paie.nir.as_deref() == Some(s.nir.as_str())
+                    && h.paie.bulletin.is_some()
+                    && (h.paie.contrat == s.contrat || (h.paie.declare_par == Declaration::Bulletin && Some((h.paie.debut, h.paie.fin)) == dates))
+            });
+        if !complete {
+            reponse.avertissements.push(s.phrase());
+        }
     }
     reponse.contrats_nouveaux = registre.nombre("declarations");
     reponse.rien_a_faire = reponse.rien_a_faire
