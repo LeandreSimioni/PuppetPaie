@@ -60,10 +60,10 @@ pub fn base(ctx: &Contexte) -> Resultat<Value> {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FichierOrganismes {
-    #[serde(rename = "_quoi", default, skip_serializing_if = "Option::is_none")]
-    pub quoi: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub adhesions_prevoyance: Vec<Datee<Vec<Adhesion>>>,
+    #[serde(rename = "_quoi", default, skip_serializing_if = "Option::is_none")]
+    pub quoi: Option<String>,
 }
 
 /// UNE ADHESION DE PREVOYANCE OU DE SANTE (bloc S21.G00.15) : le contrat (`cle`), sa reference (15.001), l'organisme
