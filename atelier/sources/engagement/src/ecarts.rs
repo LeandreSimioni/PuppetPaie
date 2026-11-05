@@ -251,7 +251,7 @@ fn comparer_une(
             .map(|l| (l.taux_employeur, l.montant_employeur, l.base))
             .filter(|(t, m, _)| t.is_some() || m.is_some_and(|m| !m.is_zero()));
         if atmp_imprime.is_some() {
-            ctx = ctx.avec_le_taux_atmp_lu(an, json!(1.0));
+            ctx = ctx.avec_le_taux_atmp_lu(an, Decimal::ONE);
         }
     }
     let atmp_lu = atmp_imprime.is_some();
@@ -350,7 +350,7 @@ fn comparer_une(
         });
         if let (Some(f), Some(applique)) = (facteur, applique) {
             let notifie = (applique / dec_f64(f)?).round_dp(2);
-            ctx = ctx.avec_le_taux_atmp_lu(an, json!(notifie.to_string().parse::<f64>().map_err(|e| e.to_string())?));
+            ctx = ctx.avec_le_taux_atmp_lu(an, notifie);
             saisie = crate::charger_donnees(&ctx, &data).map_err(|m| a_refaire(c, m))?;
         }
     }

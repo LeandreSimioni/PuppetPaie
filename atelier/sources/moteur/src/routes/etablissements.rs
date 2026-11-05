@@ -332,7 +332,7 @@ valeur, et la date ne se devine pas. Rien n'a été enregistré.",
     annees.sort();
     annees.dedup();
     for an in annees {
-        if let Ok(bar) = ctx.bareme_fondu(an) {
+        if let Some(Ok(bar)) = socle::date::Jour::nouveau(an, 1, 1).map(|j| ctx.bareme_fondu(&j)) {
             droit::contexte::controler_etablissements(&fiche, &bar).map_err(refus)?;
         }
     }

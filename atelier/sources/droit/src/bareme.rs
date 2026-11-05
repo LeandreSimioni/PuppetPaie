@@ -102,7 +102,7 @@ fn nom_du_salarie(sal: &SalarieDuContrat, defaut: &str) -> String {
 }
 
 /// Ce qu'une couche ecrit d'une rubrique remplace ce que la rubrique portait.
-fn modifier(r: &mut Rubrique, m: &RubriqueModifiee) {
+pub(crate) fn modifier(r: &mut Rubrique, m: &RubriqueModifiee) {
     macro_rules! si {
         ($($c:ident),*) => { $( if let Some(x) = &m.$c { r.$c = Some(x.clone()); } )* };
     }
@@ -122,7 +122,7 @@ fn modifier(r: &mut Rubrique, m: &RubriqueModifiee) {
 
 /// Ce qu'une couche ecrit d'une modification s'ajoute a ce qu'une autre en ecrit (une couche de statut sur celle de sa
 /// categorie).
-fn par_dessus(base: &mut RubriqueModifiee, m: &RubriqueModifiee) {
+pub(crate) fn par_dessus(base: &mut RubriqueModifiee, m: &RubriqueModifiee) {
     macro_rules! si {
         ($($c:ident),*) => { $( if m.$c.is_some() { base.$c = m.$c.clone(); } )* };
     }
@@ -130,7 +130,7 @@ fn par_dessus(base: &mut RubriqueModifiee, m: &RubriqueModifiee) {
 }
 
 /// Ce qu'une couche ecrit d'une cotisation de la DSN remplace ce qu'elle portait.
-fn modifier_cotisation(c: &mut CotisationDsn, m: &CotisationModifiee) {
+pub(crate) fn modifier_cotisation(c: &mut CotisationDsn, m: &CotisationModifiee) {
     if let Some(t) = m.taux {
         c.taux = t;
     }
@@ -139,6 +139,9 @@ fn modifier_cotisation(c: &mut CotisationDsn, m: &CotisationModifiee) {
     }
     if let Some(x) = &m.base {
         c.base = Some(x.clone());
+    }
+    if let Some(x) = &m.base78 {
+        c.base78 = x.clone();
     }
     if let Some(x) = &m.lignes {
         c.lignes = x.clone();
@@ -156,7 +159,7 @@ fn cotisation_par_dessus(base: &mut CotisationModifiee, m: &CotisationModifiee) 
     macro_rules! si {
         ($($c:ident),*) => { $( if m.$c.is_some() { base.$c = m.$c.clone(); } )* };
     }
-    si!(taux, composants, base, lignes, source, note);
+    si!(taux, composants, base, base78, lignes, source, note);
 }
 
 // ---------------------------------------------------------------- le statut

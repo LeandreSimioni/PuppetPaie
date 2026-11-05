@@ -425,7 +425,7 @@ pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Option<Vec<ChoixEtablisse
 /// Les lignes des autres etablissements demandent-elles leur versement mobilite ? Oui quand le siege en paie un : le
 /// controle des etablissements l'exige alors de chacun (`droit::contexte::controler_etablissements`).
 fn versement_mobilite_des_etablissements(ctx: &Contexte) -> bool {
-    ctx.bareme_fondu(ctx.aujourdhui.an).ok().and_then(|b| b.get("versement_mobilite").cloned()).is_some_and(|v| v.is_object())
+    ctx.bareme_fondu(&ctx.aujourdhui).is_ok_and(|b| matches!(b.versement_mobilite, Some(droit::forme_bareme::VersementMobiliteEcrit::Ecrit(_))))
 }
 
 /// `salaries_au_mois` : les salaries qui ont, ou ont eu, un contrat paye au mois. Lu dans les engagements : la nature se
