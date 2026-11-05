@@ -626,12 +626,12 @@ silence vaut accord >>). Dire lequel ({}, {}) ou son refus ({}). Rien n'est calc
         },
     }
     if !dfs.verifie {
-        return Err(socle::echec::avec("Le barème de l'année ne paie pas encore la déduction forfaitaire spécifique : ses taux ne sont pas vérifiés.", serde_json::json!({"detail": format!(
+        return Err(socle::echec::avec("Le barème de l'année ne paie pas encore la déduction forfaitaire spécifique : ses taux ne sont pas vérifiés.", crate::Detail::du(None, format!(
             "Deduction forfaitaire specifique de {} ({}) : la section deduction_forfaitaire du bareme {} n'est pas \
 marquee verifiee (\"verifie\": true). Le moteur refuse de payer plutot que d'inventer -- comme pour un statut sans \
 section verifiee.",
             qui, profession, annee
-        )})));
+        ))));
     }
     let categorie = fiche_prof.categorie.clone();
     // Le taux de l'annee : celui de la profession quand l'arrete lui donne un calendrier a part (art. 9, III, pour les
@@ -680,27 +680,27 @@ fn dfs_applicable(
 ) -> Resultat<()> {
     let qui = eng.qui();
     if nat.mensuelle() {
-        return Err(socle::echec::avec(format!("{} : la déduction forfaitaire spécifique ne se porte que sur un contrat d'usage, pas sur un contrat payé au mois.", qui), serde_json::json!({"detail": format!(
+        return Err(socle::echec::avec(format!("{} : la déduction forfaitaire spécifique ne se porte que sur un contrat d'usage, pas sur un contrat payé au mois.", qui), crate::Detail::du(None, format!(
             "{} : une deduction forfaitaire specifique sur un contrat paye au mois ({}). Le logiciel ne la porte que sur \
 un contrat d'usage : pour un salarie au mois, l'assiette du chomage (reglement general d'assurance chomage, art. 49), sa \
 prevoyance conventionnelle, ses tranches de retraite et son assiette minimum ne sont pas encore calculees sous deduction \
 (atelier/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>). Rien n'est calcule.",
             qui, nat.libelle
-        )})));
+        ))));
     }
     if let Some(r) = rubriques_bulletin.iter().find(|r| r.id.starts_with("apec")) {
-        return Err(socle::echec::avec(format!("{} : la déduction forfaitaire spécifique ne se porte pas sur la paie d'un cadre : aucun texte ne dit l'assiette de l'Apec sous déduction.", qui), serde_json::json!({"detail": format!(
+        return Err(socle::echec::avec(format!("{} : la déduction forfaitaire spécifique ne se porte pas sur la paie d'un cadre : aucun texte ne dit l'assiette de l'Apec sous déduction.", qui), crate::Detail::du(None, format!(
             "{} : une deduction forfaitaire specifique sur la paie d'un cadre (ligne << {} >>). L'assiette de l'Apec sous \
 deduction n'est dans aucun texte depose (atelier/reference/sources/dfs/LISEZ-MOI.md, << Ce qui manque >>) : le logiciel \
 ne la devine pas. Rien n'est calcule.",
             qui,
             r.libelle.clone().unwrap_or_default()
-        )})));
+        ))));
     }
     for l in lb.iter().filter(|l| !l.soumis && !l.montant.is_zero()) {
         let genre = rubrique(racine, &l.code, jour)?.hors_assiette()?;
         if genre == HorsAssiette::Revenu {
-            return Err(socle::echec::avec(format!("{} : la ligne « {} » est hors assiette sans être un remboursement de frais, et il est sous déduction forfaitaire spécifique : la soumettre, ou en faire un remboursement de frais.", qui, l.libelle), serde_json::json!({"detail": format!(
+            return Err(socle::echec::avec(format!("{} : la ligne « {} » est hors assiette sans être un remboursement de frais, et il est sous déduction forfaitaire spécifique : la soumettre, ou en faire un remboursement de frais.", qui, l.libelle), crate::Detail::du(None, format!(
                 "{} : la ligne << {} >> est hors assiette et n'est pas un remboursement de frais, pour un salarie sous \
 deduction forfaitaire specifique ({}). La tolerance du BOSS (Frais professionnels, § 2320) ne laisse hors de l'assiette \
 que les remboursements de frais au sens de l'arrete du 4 septembre 2025 ; le rescrit BOSS-RES-000010 (§ 2325) veut une \
@@ -709,11 +709,11 @@ l'abattement >>, et aucun texte depose ne dit ce que devient une autre indemnite
 devine pas : si c'est un remboursement de frais, sa rubrique est de nature `frais` ; si elle entre dans l'assiette, \
 elle est soumise. Rien n'est calcule.",
                 qui, l.libelle, o.profession
-            )})));
+            ))));
         }
         let frais = genre == HorsAssiette::Frais;
         if frais && !o.frais_cumulables && !o.frais_hors_assiette.contains(&l.code) {
-            return Err(socle::echec::avec(format!("{} : la ligne « {} » rembourse des frais sous déduction forfaitaire spécifique, et le logiciel ne porte pas leur réintégration dans l'assiette.", qui, l.libelle), serde_json::json!({"detail": format!(
+            return Err(socle::echec::avec(format!("{} : la ligne « {} » rembourse des frais sous déduction forfaitaire spécifique, et le logiciel ne porte pas leur réintégration dans l'assiette.", qui, l.libelle), crate::Detail::du(None, format!(
                 "{} : la ligne << {} >> rembourse des frais a un salarie sous deduction forfaitaire specifique ({}). \
 L'arrete du 4 septembre 2025 (art. 9, I, al. 4) les reintegre alors dans l'assiette avant l'abattement, sauf ceux de \
 la liste de son annexe 2 : pour cette profession, {} ; et le bareme ne porte pas la tolerance du BOSS (Frais \
@@ -727,7 +727,7 @@ cette reintegration (assiette du chomage, bloc 54 de type 35) : rien n'est calcu
                 } else {
                     o.frais_hors_assiette.join(", ")
                 }
-            )})));
+            ))));
         }
     }
     Ok(())
@@ -1108,7 +1108,7 @@ entreprise, « {} »)",
             SANTE_SUSPENSION_MAINTENUE => return Ok(fiche),
             autre => {
                 let qui = [fiche.prenom.texte(), fiche.nom.texte()].into_iter().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
-                return Err(socle::echec::avec(format!("{} : son contrat est suspendu sans indemnisation, et la fiche entreprise ne dit pas ce que devient sa complémentaire santé : le dire dans Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation ».", if qui.is_empty() { cle.clone() } else { qui.clone() }), serde_json::json!({"cle": SANTE_SUSPENSION, "detail": format!(
+                return Err(socle::echec::avec(format!("{} : son contrat est suspendu sans indemnisation, et la fiche entreprise ne dit pas ce que devient sa complémentaire santé : le dire dans Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation ».", if qui.is_empty() { cle.clone() } else { qui.clone() }), crate::Detail::du(Some(SANTE_SUSPENSION), format!(
                     "{} : son contrat est suspendu sans indemnisation sur toute la periode payee (du {} au {} ; suspension {} \
 depuis le {}). Que devient sa complementaire sante ce mois-la ? Sous la convention {}, aucun texte ne le dit : c'est le \
 contrat de sante de la compagnie qui tranche (le maintien est facultatif, instruction DSS du 17/06/2021, II.B). {}A dire \
@@ -1124,7 +1124,7 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
                     SANTE_SUSPENSION,
                     SANTE_SUSPENSION_SUSPENDUE,
                     SANTE_SUSPENSION_MAINTENUE
-                )})));
+                ))));
             }
         }
     };
@@ -1251,12 +1251,12 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     if caisse {
         // La caisse paie ses conges (D. 7121-41) : l'employeur ne les paie pas en plus.
         if let Some(l) = lb.iter().find(|l| matches!(l.code.as_str(), "absence_conges_payes" | "indemnite_conges_payes" | "indemnite_compensatrice_conges")) {
-            return Err(socle::echec::avec("Cette ligne paie des congés à un salarié déclaré à la caisse des Congés Spectacles : c'est la caisse qui les lui verse ; retirer la ligne.", serde_json::json!({"detail": format!(
+            return Err(socle::echec::avec("Cette ligne paie des congés à un salarié déclaré à la caisse des Congés Spectacles : c'est la caisse qui les lui verse ; retirer la ligne.", crate::Detail::du(None, format!(
                 "{} : la ligne << {} >> paie des conges a un salarie que l'employeur declare a la caisse des \
 Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'est la caisse qui les lui verse. Les payer aussi au bulletin serait les payer deux fois. Refus.",
                 eng.qui(),
                 l.code
-            )})));
+            ))));
         }
     }
     let rubriques: Vec<Decimal> = soumises.iter().map(|l| l.montant).collect();
@@ -1266,14 +1266,14 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     let (prev, taux_prev) = match bar.rubrique("prevoyance") {
         Some(p @ Rubrique { taux_pat: Some(t), .. }) => (p, dec_f64(*t)?),
         _ => {
-            return Err(socle::echec::avec("Le barème de l'année n'a pas de prévoyance avec un taux patronal : le signaler au développeur.", serde_json::json!({"detail": format!(
+            return Err(socle::echec::avec("Le barème de l'année n'a pas de prévoyance avec un taux patronal : le signaler au développeur.", crate::Detail::du(None, format!(
                 "Bareme {}{} : aucune rubrique `prevoyance` avec un taux \
                  patronal. Elle entre dans l'assiette CSG (98,25 % du brut + \
                  part patronale de prevoyance) : sans elle la CSG serait \
                  sous-declaree sans que rien ne le signale.",
                 bar.annee,
                 if nat.bareme().is_some() { format!(", nature '{}'", nat.cle) } else { String::new() }
-            )})))
+            ))))
         }
     };
     let plafond_journalier = bar.plafond_journalier.filter(|p| !p.is_zero());
@@ -1310,13 +1310,13 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
             None
         };
         let Some(t1) = t1 else {
-            return Err(socle::echec::avec("Le barème de l'année porte une prévoyance que le calcul de la CSG ne sait pas lire : le signaler au développeur.", serde_json::json!({"detail": format!(
+            return Err(socle::echec::avec("Le barème de l'année porte une prévoyance que le calcul de la CSG ne sait pas lire : le signaler au développeur.", crate::Detail::du(None, format!(
                 "Bareme {} : la ligne de prevoyance `{}` porte l'assiette \
                  `{}`, que le calcul de l'assiette CSG ne sait pas lire. Sa \
                  part patronale doit y entrer : sans elle la CSG serait \
                  sous-declaree.",
                 bar.annee, id, base
-            )})));
+            ))));
         };
         let base_t2 = Decimal::new(0, 2).max(brut.min(Decimal::from(4) * t1) - t1);
         tranches_prev = add(tranches_prev, div(mul(base_t2, dec_f64(taux)?), Decimal::ONE_HUNDRED));

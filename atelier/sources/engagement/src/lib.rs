@@ -2246,3 +2246,18 @@ pub(crate) fn lignes_coupees_a_la_fin(partie: &[Value], presentes: &[Value], fin
     presentes.len() == attendues.len()
         && presentes.iter().zip(&attendues).all(|(p, (a, coupee))| if *coupee { sans(p, &["quantite"]) == sans(a, &["quantite"]) && quantite(p) <= quantite(a) } else { p == a })
 }
+
+/// CE QU'UN REFUS DU CALCUL PORTE A PART (`socle::echec::avec`) : le champ a dire, quand il y en a un, et le detail, pour
+/// le developpeur.
+#[derive(serde::Serialize)]
+pub(crate) struct Detail {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cle: Option<&'static str>,
+    detail: String,
+}
+
+impl Detail {
+    pub(crate) fn du(cle: Option<&'static str>, detail: String) -> Detail {
+        Detail { cle, detail }
+    }
+}

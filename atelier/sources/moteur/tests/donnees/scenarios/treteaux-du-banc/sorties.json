@@ -1095,35 +1095,13 @@
     ],
     "engagements/2026-11.json": {
       "mois": "2026-11",
-      "taux_cachet": null,
       "engagements": [
         {
-          "salarie": "FULLER",
-          "spectacle": "le-banc-des-menteurs",
-          "lignes": [
-            {
-              "rubrique": "cachet",
-              "quantite": 2,
-              "taux": 150,
-              "lieu": "Salle fictive de Rezé",
-              "dates": [
-                "2026-11-20",
-                "2026-11-21"
-              ]
-            }
-          ],
-          "numero": "FU1.26.01",
-          "numero_pour": {
-            "salarie": "FULLER",
-            "debut": "2026-11-20",
-            "le": "2026-11-20T05:00:00"
-          },
-          "valide": {
-            "le": "2026-11-20T05:00:00",
-            "version": 1,
-            "saisie": {
+          "saisie": {
+            "carte": {
               "salarie": "FULLER",
               "spectacle": "le-banc-des-menteurs",
+              "numero": "FU1.26.01",
               "lignes": [
                 {
                   "rubrique": "cachet",
@@ -1135,9 +1113,36 @@
                     "2026-11-21"
                   ]
                 }
-              ],
-              "numero": "FU1.26.01"
+              ]
             }
+          },
+          "valide": {
+            "le": "2026-11-20T05:00:00",
+            "version": 1,
+            "saisie": {
+              "carte": {
+                "salarie": "FULLER",
+                "spectacle": "le-banc-des-menteurs",
+                "numero": "FU1.26.01",
+                "lignes": [
+                  {
+                    "rubrique": "cachet",
+                    "quantite": 2,
+                    "taux": 150,
+                    "lieu": "Salle fictive de Rezé",
+                    "dates": [
+                      "2026-11-20",
+                      "2026-11-21"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "numero_pour": {
+            "salarie": "FULLER",
+            "debut": "2026-11-20",
+            "le": "2026-11-20T05:00:00"
           }
         }
       ]
