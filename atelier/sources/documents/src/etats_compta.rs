@@ -20,8 +20,8 @@ use crate::etats_paie::{ecrire_fini, finir, lignes_livre, charger_mois, Demande,
 use crate::ecritures_comptables::{ecritures_du_mois, Ecriture};
 use crate::libelles_courts::{Courts, Depasse, FormatBorne, Quoi};
 use socle::fichiers::vrai;
-use socle::texte::{euros, euros_de};
-use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
+use socle::texte::euros;
+use socle::num::{add, div, eur, eur2, mul, sub, zero2, Decimal};
 use crate::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, nom_compagnie, refus, totaliser, Ligne, Section, Tableau, Val,
     FORMATS_TABLEAU, R, TOTAL_GENERAL,
@@ -1528,16 +1528,6 @@ pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ------------------------------------------------------------------ la taxe sur les salaires
 
-/// `Decimal(str(v))` d'une valeur du bareme.
-fn dec_du_bareme(v: &Value) -> R<Decimal> {
-    dec_avec_echelle(v).map_err(|m| erreur("InvalidOperation", m))
-}
-
-/// `ts[cle]` : `KeyError` s'il manque.
-fn du_bareme<'a>(ts: &'a Value, cle: &str) -> R<&'a Value> {
-    ts.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
-}
-
 /// `taxe_sur_les_salaires` : la taxe sur les salaires d'une annee (CGI art. 231), salarie par salarie, et ce qui
 /// reste a payer apres franchise, decote et abattement. Se calcule sur une ANNEE (ses seuils sont annuels).
 pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
@@ -1563,8 +1553,8 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         avert.push(format!("{} Rien à calculer.", regime.consequence));
     }
     let bar = ctx.bareme(&jour).map_err(socle::echec::Echec::from)?;
-    let ts = match bar.get("taxe_sur_les_salaires").filter(|v| vrai(v)) {
-        Some(t) => t.clone(),
+    let ts = match bar.taxe_sur_les_salaires.clone() {
+        Some(t) => t,
         None => {
             return Err(refus(format!(
                 "Le barème {} ne porte pas la taxe sur les salaires (seuils, franchise, abattement) : ils se lisent sur la notice 2501-SD de l'année.",
@@ -1572,10 +1562,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             )))
         }
     };
-    let abatt = match bar.get("abattement_csg").filter(|v| vrai(v)) {
-        Some(v) => dec_du_bareme(v)?,
-        None => Decimal::ONE,
-    };
+    let abatt = if bar.abattement_csg.is_zero() { Decimal::ONE } else { bar.abattement_csg };
     let zero = zero2();
     // cle -> (salarie, brut, base, mois) dans l'ordre d'insertion
     let mut ordre: Vec<String> = Vec::new();
@@ -1606,11 +1593,11 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             x.3.insert(m.clone());
         }
     }
-    let s1 = dec_du_bareme(du_bareme(&ts, "seuil_1")?)?;
-    let s2 = dec_du_bareme(du_bareme(&ts, "seuil_2")?)?;
-    let taux_normal = dec_du_bareme(du_bareme(&ts, "taux_normal")?)?;
-    let maj_1 = dec_du_bareme(du_bareme(&ts, "majoration_1")?)?;
-    let maj_2 = dec_du_bareme(du_bareme(&ts, "majoration_2")?)?;
+    let s1 = ts.seuil_1;
+    let s2 = ts.seuil_2;
+    let taux_normal = ts.taux_normal;
+    let maj_1 = ts.majoration_1;
+    let maj_2 = ts.majoration_2;
     let cent = Decimal::ONE_HUNDRED;
     let mut rangs: Vec<&String> = ordre.iter().collect();
     rangs.sort_by(|a, b| par[*a].0.cmp(&par[*b].0));
@@ -1631,8 +1618,8 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let pct_a = part.unwrap_or(Decimal::ZERO);
     let due = if part.is_some() { quant(div(mul(brute, pct_a), cent), 0) } else { zero };
-    let franchise = dec_du_bareme(du_bareme(&ts, "franchise")?)?;
-    let limite = dec_du_bareme(du_bareme(&ts, "decote_jusqu_a")?)?;
+    let franchise = ts.franchise;
+    let limite = ts.decote_jusqu_a;
     let mut etapes = vec![format!("taxe brute {} × {} % taxés (CGI art. 231, 1) = {}", euros(brute), socle::texte::virgule(pct_a), euros(due))];
     let mut net;
     if due <= franchise {
@@ -1646,7 +1633,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         net = due;
     }
     if regime.association && net > Decimal::ZERO {
-        let ab = dec_du_bareme(du_bareme(&ts, "abattement_1679A")?)?;
+        let ab = ts.abattement_1679a;
         let reste = sub(net, ab);
         let reste = if reste > zero { reste } else { zero };
         etapes.push(format!("abattement des associations (art. 1679 A) : {}, reste {}", euros(ab), euros(reste)));
@@ -1676,8 +1663,8 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("brut", "Brut"),
         col_m("base", "Base (assiette CSG sans réduction)"),
         col_m("taux_normal", "4,25 %"),
-        col_m("majoration_1", &format!("+4,25 % au-delà de {}", euros_de(du_bareme(&ts, "seuil_1")?))),
-        col_m("majoration_2", &format!("+9,35 % au-delà de {}", euros_de(du_bareme(&ts, "seuil_2")?))),
+        col_m("majoration_1", &format!("+4,25 % au-delà de {}", euros(ts.seuil_1))),
+        col_m("majoration_2", &format!("+9,35 % au-delà de {}", euros(ts.seuil_2))),
         col_m("taxe", "Taxe brute"),
     ];
     t.sources = vec!["CGI art. 231 et 1679 A ; notices 2501-SD et 2502-SD de la DGFiP (seuils, franchise, décote, abattement de l'année)".to_string()];

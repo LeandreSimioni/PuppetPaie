@@ -1,12 +1,12 @@
-//! Le prelevement a la source contre `pas.json` : la grille de l'article 204 H du CGI (`taux_par_defaut`, `du_versement`,
-//! l'abattement des contrats courts), de 0 a 10 000 EUR, de part et d'autre des changements de bareme.
+//! Le prelevement a la source contre `pas.json` : la grille de l'article 204 H du CGI (`taux_par_defaut`, `du_versement`),
+//! de 0 a 10 000 EUR, de part et d'autre des changements de bareme.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{code_livre, lire_oracle, oracle};
 use droit::bareme::canon;
 use socle::date::Jour;
 use socle::num::dec;
-use droit::pas::{abattement, du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
+use droit::pas::{du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
@@ -70,20 +70,27 @@ fn baremes() -> HashMap<&'static str, Value> {
     ])
 }
 
-fn triplet(v: &Value) -> Option<Triplet> {
-    v.as_array().map(|a| (a[0].clone(), a[1].clone(), a[2].clone()))
+/// La pile d'un bareme brut au jour `le`, pour ce que le PAS en lit : sa section `pas_taux_par_defaut`, l'abattement
+/// date resolu a ce jour (la derniere valeur dont le `depuis` ne le depasse pas), comme `Contexte::bareme` le resout.
+fn pile(b: &Value, le: Option<Jour>) -> droit::forme_bareme::Pile {
+    let mut sec = b.get("pas_taux_par_defaut").cloned();
+    if let Some(Value::Array(datees)) = sec.as_ref().and_then(|s| s.get("abattement_contrats_courts")).cloned() {
+        let mut vues: Vec<&Value> = datees.iter().filter(|e| le.map_or(true, |l| Jour::lire(e["depuis"].as_str().unwrap()).unwrap() <= l)).collect();
+        vues.sort_by_key(|e| e["depuis"].as_str().unwrap().to_string());
+        let o = sec.as_mut().unwrap().as_object_mut().unwrap();
+        match vues.last() {
+            Some(e) => o.insert("abattement_contrats_courts".into(), e["valeur"].clone()),
+            None => o.remove("abattement_contrats_courts"),
+        };
+    }
+    droit::forme_bareme::Pile {
+        pas_taux_par_defaut: sec.map(|s| socle::forme::lire(&s, "pas_taux_par_defaut").unwrap()),
+        ..Default::default()
+    }
 }
 
-#[test]
-fn l_abattement_suit_la_date() {
-    let b = baremes();
-    let mut cas = attendus()["grille"]["abattement"].clone();
-    for (cle, v) in cas.as_object_mut().unwrap() {
-        let p: Vec<&str> = cle.split('|').collect();
-        *v = Value::String(abattement(&b[p[0]], jour(p[1])).map_or_else(erreur, socle::num::nombre));
-    }
-    assert!(cas.as_object().unwrap().len() > 50);
-    oracle("pas.json", "/grille/abattement", &cas);
+fn triplet(v: &Value) -> Option<Triplet> {
+    v.as_array().map(|a| (a[0].clone(), a[1].clone(), a[2].clone()))
 }
 
 #[test]
@@ -92,7 +99,7 @@ fn le_taux_par_defaut_de_zero_a_dix_mille_euros() {
     let mut cas = a["grille"]["taux_par_defaut"].clone();
     for (cle, v) in cas.as_object_mut().unwrap() {
         let p: Vec<&str> = cle.split('|').collect();
-        *v = ligne(montants(&a).into_iter().map(|m| taux_par_defaut(&b[p[0]], m, jour(p[1]), p[2]).map_or_else(erreur, |(t, ty)| format!("{},{}", t, ty))).collect());
+        *v = ligne(montants(&a).into_iter().map(|m| taux_par_defaut(&pile(&b[p[0]], jour(p[1])), m, jour(p[1]), p[2]).map_or_else(erreur, |(t, ty)| format!("{},{}", t, ty))).collect());
     }
     assert!(cas.as_object().unwrap().len() * montants(&a).len() > 8000);
     oracle("pas.json", "/grille/taux_par_defaut", &cas);
@@ -106,7 +113,7 @@ fn le_prelevement_d_un_versement() {
     for (cle, v) in cas.as_object_mut().unwrap() {
         let p: Vec<&str> = cle.split('|').collect();
         let t = triplet(&triplets[p[4].parse::<usize>().unwrap()]);
-        *v = ligne(montants(&a).into_iter().map(|m| ligne_versement(du_versement(t.as_ref(), &b[p[0]], m, jour(p[1]), p[3] == "True", p[2]))).collect());
+        *v = ligne(montants(&a).into_iter().map(|m| ligne_versement(du_versement(t.as_ref(), &pile(&b[p[0]], jour(p[1])), m, jour(p[1]), p[3] == "True", p[2]))).collect());
     }
     assert!(cas.as_object().unwrap().len() > 40);
     oracle("pas.json", "/grille/du_versement", &cas);

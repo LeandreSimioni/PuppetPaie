@@ -12,12 +12,6 @@ use socle::texte::euros;
 /// Le champ de la fiche entreprise qui dit la taxe sur les salaires.
 pub const CHAMP_TAXE_SUR_LES_SALAIRES: &str = "taxe_sur_les_salaires";
 
-const NUL: Value = Value::Null;
-
-fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
-    v.get(k).unwrap_or(&NUL)
-}
-
 // ------------------------------------------------------------ la taxe sur les salaires, salarie par salarie
 
 /// L'assiette de la taxe sur les salaires d'une paie : celle de la CSG, sans la reduction de 1,75 % (CGI art. 231, 1 :
@@ -246,18 +240,17 @@ pub struct QuestionFranchise {
 
 /// Les plafonds de la franchise en base de TVA au bareme `bar` (`taxe_sur_les_salaires.plafonds_franchise`) : prestations
 /// de services, total. `None` si le bareme ne les porte pas.
-pub fn plafonds_franchise(bar: Option<&Value>) -> Option<(Decimal, Decimal)> {
-    let pf = g(g(bar?, CHAMP_TAXE_SUR_LES_SALAIRES), "plafonds_franchise");
-    let lire = |k: &str| pf.get(k).and_then(|v| dec_avec_echelle(v).ok());
-    Some((lire("prestations_de_services")?, lire("total")?))
+pub fn plafonds_franchise(bar: Option<&droit::forme_bareme::Pile>) -> Option<(Decimal, Decimal)> {
+    let pf = &bar?.taxe_sur_les_salaires.as_ref()?.plafonds_franchise;
+    Some((pf.prestations_de_services, pf.total))
 }
 
 /// La question des plafonds pour les remunerations de `annee` (le chiffre d'affaires de `annee - 1`), depuis le bareme
 /// de `annee` (`bar`, `None` s'il n'y en a pas). Un bareme sans plafonds ne fait pas refuser : la question se pose sans
 /// montants, et le dit.
-pub fn question_franchise(bar: Option<&Value>, annee: i32) -> QuestionFranchise {
+pub fn question_franchise(bar: Option<&droit::forme_bareme::Pile>, annee: i32) -> QuestionFranchise {
     let avant = annee - 1;
-    let pf = bar.map(|b| g(g(b, CHAMP_TAXE_SUR_LES_SALAIRES), "plafonds_franchise"));
+    let pf = bar.and_then(|b| b.taxe_sur_les_salaires.as_ref()).map(|t| &t.plafonds_franchise);
     let lus = plafonds_franchise(bar);
     let Some((services, total)) = lus else {
         return QuestionFranchise {
@@ -273,9 +266,7 @@ art. 293 B) : ils se lisent dans cet article, pour le chiffre d'affaires de {}. 
     };
     // Une version de 293 B entree en vigueur en cours d'annee se dit (2025 : le 01/03).
     let depuis = pf
-        .and_then(|pf| pf.get("en_vigueur_depuis"))
-        .and_then(Value::as_str)
-        .and_then(|s| socle::date::Jour::lire(s).ok())
+        .and_then(|pf| socle::date::Jour::lire(&pf.en_vigueur_depuis).ok())
         .filter(|j| j.an == annee && (j.mois, j.jour) != (1, 1))
         .map(|j| format!(", en vigueur depuis le {}", j.jj_mm_aaaa()))
         .unwrap_or_default();
