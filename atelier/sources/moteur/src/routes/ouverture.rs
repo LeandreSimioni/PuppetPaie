@@ -436,27 +436,15 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
     // Un fichier illisible est ignore ; les autres se lisent.
     let fichiers = engagement::stock::fichiers(&ctx.racine);
     let lus = fichiers.iter().filter_map(|f| engagement::stock::lire_fichier(&ctx.racine, f).ok().flatten());
-    let objets: Vec<Map<String, Value>> =
-        lus.flat_map(|m| m.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default()).filter_map(|e| e.as_object().cloned()).collect();
-    for e in &objets {
-        // La nature du premier mois, et chaque nature qu'un changement date lui donne ensuite (`stock::DATES`).
-        let datees = e.get(engagement::stock::DATES).and_then(|t| t.get("nature")).and_then(Value::as_array).into_iter().flatten().map(|x| x.get("valeur"));
-        let natures = std::iter::once(e.get("nature")).chain(datees);
-        if !natures.flatten().filter_map(Value::as_str).any(|n| mensuelles.contains(n)) {
+    for e in lus.flat_map(|m| m.engagements) {
+        // La nature du premier mois, et chaque nature qu'un avenant lui donne ensuite.
+        let s = &e.saisie;
+        let natures = std::iter::once(&s.carte.nature).chain(s.avenants.iter().map(|a| &a.termes.nature));
+        if !natures.flatten().any(|n| mensuelles.contains(n)) {
             continue;
         }
-        let noms: Vec<Value> = match e.get("salaries").filter(|x| vrai(x)) {
-            Some(Value::Array(a)) => a.clone(),
-            Some(autre) => vec![autre.clone()],
-            None => vec![e.get("salarie").cloned().unwrap_or(Value::Null)],
-        };
-        for nom in noms {
-            if !vrai(&nom) {
-                continue;
-            }
-            if let Ok(c) = ctx.cle_du_salarie(&valeur_en_texte(&nom)) {
-                trouves.insert(c.to_string());
-            }
+        if let Some(c) = s.carte.cle(ctx) {
+            trouves.insert(c.to_string());
         }
     }
     Ok(trouves.into_iter().collect())

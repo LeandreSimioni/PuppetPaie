@@ -704,7 +704,7 @@ pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String,
         })
         .filter_map(|e| {
             let b = &*e.objet().brut;
-            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.get("numero").map(valeur_en_texte)?))
+            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.saisie.carte.numero.clone()?))
         })
         .collect())
 }
@@ -717,24 +717,18 @@ pub(crate) fn debut_declare(refaire: &[ARefaire]) -> Option<String> {
     })
 }
 
-/// L'etablissement (NIC) dont releve l'engagement `e` pour `mois` : celui de la fiche de son salarie telle que le calcul
-/// de sa paie du mois l'a lue (`fiches`) ; sans paie ecrite du mois, de sa fiche d'aujourd'hui.
-pub(crate) fn nic_de_l_engagement(ctx: &Contexte, mois: &str, e: &engagement::etats::Etat) -> Option<String> {
-    nic_de_l_engagement_ecrit(ctx, mois, &e.objet().brut)
+/// L'etablissement (NIC) dont releve l'engagement `e` : celui de la fiche de son salarie, ou celui que l'engagement dit
+/// (`etablissement`).
+pub(crate) fn nic_de_l_engagement(ctx: &Contexte, e: &engagement::etats::Etat) -> Option<String> {
+    nic_de_l_engagement_ecrit(ctx, &e.objet().brut)
 }
 
-/// `nic_de_l_engagement`, sur l'engagement tel qu'il est ecrit (`brut`).
-pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value) -> Option<String> {
-    let fiche = match brut.pointer(&format!("/valide/paies/{}", mois)) {
-        Some(ecrite) => droit::fiche::SalarieDuContrat::lire(ecrite.pointer("/fiches/paie").filter(|f| f.is_object())?).ok()?,
-        None => {
-            let mut f = droit::fiche::SalarieDuContrat::de(ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?);
-            if let Some(n) = brut.get("etablissement").and_then(Value::as_str).filter(|n| !n.trim().is_empty()) {
-                f.etablissement = Some(n.to_string());
-            }
-            f
-        }
-    };
+/// `nic_de_l_engagement`, sur l'engagement tel qu'il est ecrit.
+pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, brut: &engagement::stock::Ecrit) -> Option<String> {
+    let mut fiche = droit::fiche::SalarieDuContrat::de(ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?);
+    if let Some(n) = brut.saisie.carte.etablissement.as_deref().filter(|n| !n.trim().is_empty()) {
+        fiche.etablissement = Some(n.to_string());
+    }
     droit::bareme::etablissement_de(&ctx.entreprise, &fiche).ok()
 }
 
@@ -746,7 +740,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &envois::journ
     // Une ligne qui ne dit pas ce qu'elle a emporte ne se compare a rien.
     let Some(emportes) = derniere.versions() else { return false };
     let nic = derniere.etablissement().map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
-    let siens: Vec<&engagement::etats::Etat> = etats.iter().filter(|e| nic_de_l_engagement(ctx, mois, e).as_deref() == Some(nic.as_str())).collect();
+    let siens: Vec<&engagement::etats::Etat> = etats.iter().filter(|e| nic_de_l_engagement(ctx, e).as_deref() == Some(nic.as_str())).collect();
     if siens.iter().any(|e| refaire(e).iter().any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois))) {
         return true;
     }
@@ -757,7 +751,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &envois::journ
         .filter(|e| e.valide().is_some())
         .filter_map(|e| {
             let b = &*e.objet().brut;
-            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.get("numero").map(valeur_en_texte)?))
+            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.saisie.carte.numero.clone()?))
         })
         .collect();
     emportes.sort();
@@ -1323,7 +1317,7 @@ impl<'a> Moteur<'a> {
     /// CE QUI EST A REFAIRE de l'engagement `e` de `mois` (`a_refaire_de`), compare une fois.
     fn a_refaire_du_mois(&mut self, mois: &str, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> Rc<Vec<ARefaire>> {
         let brut = &*e.objet().brut;
-        let cle = (mois.to_string(), engagement::cle_de_l_engagement(self.ctx, brut).map(String::from).unwrap_or_default(), brut.get("numero").map(valeur_en_texte).unwrap_or_default());
+        let cle = (mois.to_string(), engagement::cle_de_l_engagement(self.ctx, brut).map(String::from).unwrap_or_default(), brut.saisie.carte.numero.clone().unwrap_or_default());
         if e.valide().is_none() || cle.2.is_empty() {
             return Rc::new(Vec::new());
         }
@@ -1425,7 +1419,7 @@ impl<'a> Moteur<'a> {
             let premier_mois = p.engagement.premier_mois().map_err(plain)?;
             let dernier_mois = p.engagement.dernier_mois().map_err(plain)?;
             // Son etablissement (NIC) : la DSN qui le porte.
-            let etablissement = nic_de_l_engagement(self.ctx, mois, e);
+            let etablissement = nic_de_l_engagement(self.ctx, e);
             // LES ECHEANCES de l'engagement : sa DPAE (L. 1221-10) et la remise de son contrat (L. 1242-13, ou la couche
             // de la convention), `droit::echeances`. Les documents n'en ont pas : chaque compagnie les envoie quand elle
             // veut, souvent apres la DSN qui fait remonter l'AER. Un mois passe lu a l'ouverture (`ecrit`) ne les demande pas.
@@ -1547,7 +1541,7 @@ impl<'a> Moteur<'a> {
             };
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
             let frise = e.valide().and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
-            out.push(Ligne::de(vue, le_mois, frise.unwrap_or(Value::Null), id.clone()));
+            out.push(Ligne::de(vue, le_mois, frise.map_or(Value::Null, |f| socle::ecriture::en_valeur(&f)), id.clone()));
         }
         Ok(out)
     }
@@ -1766,7 +1760,7 @@ impl<'a> Moteur<'a> {
             let mut n = 0;
             for e in self.etats_du_mois(le_mois)? {
                 let Some(v) = e.valide() else { continue };
-                if plusieurs && nic_de_l_engagement(self.ctx, mois, &e).as_deref() != Some(voulu.as_str()) {
+                if plusieurs && nic_de_l_engagement(self.ctx, &e).as_deref() != Some(voulu.as_str()) {
                     continue;
                 }
                 if engagement::etats::correction_due(self.ctx, v, &departs, mois, "9999-12").map_err(plain)?.is_some() {
@@ -2163,7 +2157,7 @@ impl<'a> Moteur<'a> {
         let mois = &le_mois.to_string();
         let plusieurs = !self.ctx.entreprise_du_mois(mois).map_err(plain)?.secondaires().is_empty();
         let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
-        let de_l_etablissement = |ctx: &Contexte, m: &str, brut: &Value| !plusieurs || nic_de_l_engagement_ecrit(ctx, m, brut).as_deref() == Some(voulu.as_str());
+        let de_l_etablissement = |ctx: &Contexte, _m: &str, brut: &engagement::stock::Ecrit| !plusieurs || nic_de_l_engagement_ecrit(ctx, brut).as_deref() == Some(voulu.as_str());
         for e in self.etats_du_mois(le_mois)? {
             if e.valide().is_some() && de_l_etablissement(self.ctx, mois, &e.objet().brut) {
                 return Ok(true);
@@ -2259,7 +2253,7 @@ impl<'a> Moteur<'a> {
             for e in &etats_m {
                 let Some(v) = e.valide() else { continue };
                 let brut = &*v.objet().brut;
-                let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(self.ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
+                let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(self.ctx, brut), brut.saisie.carte.numero.as_deref()) else { continue };
                 let Some(p) = s.paies.iter().find(|p| p.salarie.id == cle.as_str() && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
                 };
@@ -2560,7 +2554,7 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
             continue;
         }
         let brut = &*e.objet().brut;
-        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut).map(String::from), brut.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else { continue };
+        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, brut).map(String::from), brut.saisie.carte.numero_dit().map(String::from)) else { continue };
         let dernier = departs
             .de(&cle, &numero)
             .iter()
@@ -2662,23 +2656,23 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<NonActif>> {
     let mut out = Vec::new();
     for n in engagement::etats::non_actifs_du_mois(ctx, mois).map_err(plain)? {
         let b = &*n.objet().brut;
-        let cle = engagement::cle_de_l_engagement(ctx, &b).map(String::from).unwrap_or_else(|| b.get("salarie").map(valeur_en_texte).unwrap_or_default());
+        let cle = engagement::cle_de_l_engagement(ctx, &b).map(String::from).unwrap_or_else(|| b.saisie.carte.salarie.clone().unwrap_or_default());
         let nom = ctx
             .salarie(&cle)
             .ok()
             .map(|f| super::nom_a_l_ecran(&f))
             .unwrap_or_else(|| cle.clone());
         let debut = engagement::debut_brut(&ctx.racine, &b);
-        let fin_ecrite = b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or(Value::Null);
+        let fin_ecrite = b.saisie.carte.fin.clone().filter(|f| !f.is_empty()).map(Value::String).unwrap_or(Value::Null);
         let fin = match &fin_ecrite {
-            Value::Null => engagement::dates_engagement(&ctx.racine, &b).iter().map(|d| d.get("jour").map_or_else(|| valeur_en_texte(d), valeur_en_texte)).max(),
+            Value::Null => b.saisie.carte.dates(&ctx.racine).iter().map(engagement::jour_ecrit).max(),
             f => Some(valeur_en_texte(f)),
         };
-        let numero = b.get("numero").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "sans numéro".to_string());
+        let numero = b.saisie.carte.numero_dit().map_or_else(|| "sans numéro".to_string(), String::from);
         out.push(NonActif {
             salarie: cle,
             nom: nom.trim().to_string(),
-            numero: b.get("numero").and_then(Value::as_str).map(String::from),
+            numero: b.saisie.carte.numero.clone(),
             dit: format!("contrat {}, {}", numero, super::periode_en_clair(&json!(debut), &fin_ecrite)),
             debut,
             fin,

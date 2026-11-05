@@ -18,7 +18,7 @@ use crate::num::Resultat;
 
 /// La forme `v` en valeur JSON, pour l'ecrire. Une forme que serde n'ecrit pas (une cle de table qui n'est pas un texte)
 /// est un defaut du logiciel : elle s'ecrit `null`, et la relecture stricte la refuse.
-fn en_valeur<T: Serialize + ?Sized>(v: &T) -> Value {
+pub fn en_valeur<T: Serialize + ?Sized>(v: &T) -> Value {
     serde_json::to_value(v).unwrap_or(Value::Null)
 }
 
@@ -41,6 +41,42 @@ pub fn json_trie<T: Serialize + ?Sized>(v: &T) -> String {
 /// `echec::separer` relit ; jamais un fichier.
 pub fn json_en_ligne<T: Serialize + ?Sized>(v: &T) -> String {
     serde_json::to_string(v).unwrap_or_else(|_| "null".into())
+}
+
+/// LA FORME `v` ECRITE SANS CE QUI NE CHANGE RIEN A CE QU'ELLE DIT, pour la comparer ou en tirer une empreinte : les cles
+/// triees, un nombre ecrit comme un flottant (`180` et `180.0` sont le meme taux : la page ecrit l'un, un fichier
+/// l'autre), un nombre ecrit en texte comme ce nombre.
+pub fn canonique<T: Serialize + ?Sized>(v: &T) -> String {
+    canonique_de(&en_valeur(v))
+}
+
+/// `canonique`, sans les listes vides : une ligne sans `planning` et une ligne au planning vide disent la meme chose.
+pub fn comparable<T: Serialize + ?Sized>(v: &T) -> String {
+    fn sans_vides(v: &Value) -> Value {
+        match v {
+            Value::Object(m) => Value::Object(m.iter().filter(|(_, x)| !x.as_array().is_some_and(Vec::is_empty)).map(|(k, x)| (k.clone(), sans_vides(x))).collect()),
+            Value::Array(a) => Value::Array(a.iter().map(sans_vides).collect()),
+            autre => autre.clone(),
+        }
+    }
+    canonique_de(&sans_vides(&en_valeur(v)))
+}
+
+fn canonique_de(v: &Value) -> String {
+    match v {
+        Value::Object(m) => {
+            let mut cles: Vec<&String> = m.keys().collect();
+            cles.sort();
+            let corps: Vec<String> = cles.iter().map(|k| format!("{}:{}", Value::String((*k).clone()), canonique_de(&m[*k]))).collect();
+            format!("{{{}}}", corps.join(","))
+        }
+        Value::Array(a) => format!("[{}]", a.iter().map(canonique_de).collect::<Vec<_>>().join(",")),
+        Value::Number(n) => n.as_f64().map_or_else(|| n.to_string(), |f| format!("{:?}", f)),
+        Value::String(t) if !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit() || c == b'.' || c == b'-') && t.parse::<f64>().is_ok() => {
+            format!("{:?}", t.parse::<f64>().unwrap_or_default())
+        }
+        autre => autre.to_string(),
+    }
 }
 
 fn ecrire_trie(v: &Value, s: &mut String) {

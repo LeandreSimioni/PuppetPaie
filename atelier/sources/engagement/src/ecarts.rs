@@ -38,7 +38,6 @@ use crate::importe::{Importe, PaieVersee};
 use droit::contexte::Contexte;
 use socle::date::en_texte;
 use socle::mois::Mois;
-use socle::fichiers::vrai;
 use socle::num::{dec_f64, Decimal};
 
 /// Ce que l'on compare d'une ligne.
@@ -164,14 +163,11 @@ struct Lue {
     montant_employeur: Option<Decimal>,
 }
 
-fn texte(o: &Map<String, Value>, k: &str) -> Option<String> {
-    o.get(k).filter(|x| vrai(x)).map(en_texte)
-}
 
 /// Les comparaisons de chaque paie de l'engagement importe `imp`, mois par mois. `deja` : la paie de cette empreinte (`empreinte`) est
 /// deja comparee, elle ne se compare pas deux fois.
 pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
-    let brut = imp.objet().champs();
+    let brut = imp.objet().carte();
     let contrat = imp.contrat();
     let nature = imp.nature();
     // UN CONTRAT DONT LA NATURE RESTE A DIRE (`nature_a_dire`, celui d'un permanent : `import::nature`) ne se compare
@@ -212,7 +208,7 @@ pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Ve
 
 fn comparer_une(
     racine: &Path,
-    brut: &Map<String, Value>,
+    brut: &crate::saisie::Carte,
     mois: &str,
     p: &PaieVersee,
     nature: Option<&str>,
@@ -230,7 +226,7 @@ fn comparer_une(
         c.a_refaire = true;
         return Err("la convention collective de l'entreprise n'est pas renseignée : le calcul n'aurait pas sa couche".into());
     }
-    let salarie = texte(brut, "salarie").ok_or("l'engagement importé ne nomme pas son salarié")?;
+    let salarie = brut.salarie_dit().map(String::from).ok_or("l'engagement importé ne nomme pas son salarié")?;
     let fiche = ctx.salarie(&salarie).map_err(|m| a_refaire(c, m))?;
     // LE STATUT ET L'EMPLOI DE CETTE PAIE sont ceux que son bulletin imprime (`emploi_imprime`) ; ce qu'il ne dit pas
     // se lit dans la fiche. Un salarie artiste sur un contrat, non cadre au regime general sur un autre, se calcule
@@ -486,8 +482,8 @@ fn a_refaire(c: &mut Comparaison, raison: String) -> String {
 /// L'empreinte de la paie `mois` de l'engagement importe `imp` : ce qui la reconnait d'une comparaison a l'autre (son
 /// salarie, ses bornes, son numero et ce que les pieces en disent, sans la date de l'import).
 pub fn empreinte(imp: &Importe, mois: &str, p: &PaieVersee) -> String {
-    let brut = imp.objet().champs();
+    let brut = imp.objet().carte();
     let paie = PaieVersee { importe_le: None, ..p.clone() };
-    let graine = json!([brut.get("salarie"), brut.get("debut"), brut.get("fin"), brut.get("numero"), mois, paie]);
-    socle::fichiers::sha256_hex(graine.to_string().as_bytes())[..16].to_string()
+    let graine = socle::ecriture::json_en_ligne(&(&brut.salarie, &brut.debut, &brut.fin, &brut.numero, mois, paie));
+    socle::fichiers::sha256_hex(graine.as_bytes())[..16].to_string()
 }

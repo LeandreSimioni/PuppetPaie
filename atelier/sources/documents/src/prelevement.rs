@@ -5,7 +5,6 @@
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::pas::Versement;
-use socle::date::en_texte;
 
 /// Le prelevement de la paie declaree (`engagement::etats::paie_declaree`), ou `None` : aucune DSN partie n'a declare
 /// le mois de sa paie pour son engagement (une paie ajoutee apres le depot, que la correction du mois suivant
@@ -26,10 +25,7 @@ fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus, departs: &engagement::
     if !lus.objets.contains_key(&mois) {
         lus.objets.insert(mois.clone(), engagement::stock::objets_du_mois(&ctx.racine, &mois)?);
     }
-    let objet = lus.objets[&mois].iter().find(|o| {
-        let b = &*o.brut;
-        engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle.as_str()) && b.get("numero").map(en_texte).as_deref() == Some(numero.as_str())
-    });
+    let objet = lus.objets[&mois].iter().find(|o| engagement::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle.as_str()) && o.carte().numero.as_deref() == Some(numero.as_str()));
     let Some(o) = objet else { return Ok(None) };
     Ok(engagement::etats::paie_declaree(ctx, o, departs, &mois)?.and_then(|p| p.pas.clone()))
 }

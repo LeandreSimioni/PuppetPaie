@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use droit::contexte::{Contexte, IdSalarie};
 use socle::date::en_texte;
@@ -24,8 +24,15 @@ use socle::num::Resultat;
 use crate::departs::Departs;
 use crate::stock::{self, Objet};
 
-/// Pour qui le numero a ete donne : la cle du salarie et le debut du contrat a ce moment-la, et quand.
-const POUR: &str = "numero_pour";
+/// POUR QUI LE NUMERO A ETE DONNE (`stock::Ecrit::numero_pour`) : la cle du salarie et le debut du contrat a ce
+/// moment-la, et quand.
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct NumeroPour {
+    pub salarie: String,
+    pub debut: String,
+    pub le: String,
+}
 
 /// UN NUMERO DE CONTRAT, tel que la DSN le declare en S21.G00.40.009 : de 5 a 20 caracteres (`X [5,20]`,
 /// `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 527-551), pris parmi [a-z], [A-Z], [0-9], le trait
@@ -62,6 +69,11 @@ impl NumeroContrat {
             None => Ok(None),
             Some(n) => NumeroContrat::lire(&en_texte(n)).map(Some),
         }
+    }
+
+    /// Le numero d'un texte dit : absent ou vide, aucun ; une autre forme que celle de la norme se refuse.
+    pub fn du_texte(t: Option<&str>) -> Resultat<Option<NumeroContrat>> {
+        t.filter(|n| !n.is_empty()).map(NumeroContrat::lire).transpose()
     }
 
     pub fn as_str(&self) -> &str {
@@ -194,7 +206,7 @@ fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>, d
         if sauf == Some((o.fichier.as_str(), o.rang)) {
             continue;
         }
-        let (Some(cle), Some(n)) = (crate::cle_de_l_engagement(ctx, &o.brut), NumeroContrat::de_la_valeur(o.brut.get("numero"))?) else { continue };
+        let (Some(cle), Some(n)) = (crate::cle_de_l_engagement(ctx, &o.brut), NumeroContrat::du_texte(o.carte().numero.as_deref())?) else { continue };
         noter(cle, &n);
     }
     for (cle, n) in departs.engagements() {
@@ -224,7 +236,7 @@ pub fn dernier_bulletin_importe(racine: &std::path::Path, annee: i64) -> Resulta
 /// Un envoi a-t-il porte le numero `n` de l'engagement `o` (du salarie `cle`) ? Ce qui est parti sous lui (`departs`),
 /// ou une version de lui gardee parce qu'un envoi l'avait emportee.
 fn porte_par_un_envoi(o: &Objet, cle: &str, n: &str, departs: &Departs) -> bool {
-    if o.brut.get("versions").and_then(Value::as_array).is_some_and(|v| !v.is_empty()) {
+    if !o.brut.versions.is_empty() {
         return true;
     }
     !departs.de(cle, n).is_empty()
@@ -236,11 +248,11 @@ fn porte_par_un_envoi(o: &Objet, cle: &str, n: &str, departs: &Departs) -> bool 
 /// Le contrat importe que `o` continue porte le sien : c'est le meme contrat, pas une copie -- le contrat d'usage qui
 /// continue ici (`importe::continue_par`).
 fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
-    let continue_ = crate::importe::continue_par(&ctx.racine, o.champs())?.map(|i| (i.objet().fichier.clone(), i.objet().rang));
+    let continue_ = crate::importe::continue_par(&ctx.racine, o.carte())?.map(|i| (i.objet().fichier.clone(), i.objet().rang));
     Ok(stock::objets(&ctx.racine)?.into_iter().any(|x| {
         (x.fichier.as_str(), x.rang) < (o.fichier.as_str(), o.rang)
             && continue_.as_ref() != Some(&(x.fichier.clone(), x.rang))
-            && x.brut.get("numero").map(en_texte).as_deref() == Some(n)
+            && x.carte().numero.as_deref() == Some(n)
     }))
 }
 
@@ -248,14 +260,13 @@ fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
 /// Il garde celui qu'il porte, sauf si son salarie ou son debut a change depuis qu'il l'a recu et qu'aucun envoi ne l'a
 /// porte : il en recoit alors un nouveau, comme un engagement qui n'en a pas.
 pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: &Departs) -> Resultat<()> {
-    let e = &*o.brut;
-    let cle = ctx.cle_du_salarie(&e.get("salarie").map(en_texte).unwrap_or_default())?;
+    let cle = ctx.cle_du_salarie(o.carte().salarie.as_deref().unwrap_or_default())?;
     let fiche = ctx.salarie(&cle)?;
-    let debut = crate::debut_brut(&ctx.racine, e);
-    let porte = NumeroContrat::de_la_valeur(o.brut.get("numero"))?;
+    let debut = crate::debut_brut(&ctx.racine, &o.brut);
+    let porte = NumeroContrat::du_texte(o.carte().numero.as_deref())?;
     // UN NUMERO PARTI NE CHANGE PLUS : celui de la validation que la modification remplace, des qu'un envoi l'a porte ;
     // celui qu'une DSN de l'ancien logiciel a declare pour un contrat repris (`importe::numero_declare`).
-    let parti = NumeroContrat::de_la_valeur(o.brut.get(crate::etats::PRECEDENTE).and_then(|p| p.pointer("/saisie/numero")))?;
+    let parti = NumeroContrat::du_texte(o.brut.precedente.as_ref().and_then(|p| p.saisie.as_ref()).and_then(|s| s.carte.numero.as_deref()))?;
     let parti = match parti.filter(|p| porte_par_un_envoi(o, &cle, p, departs)) {
         Some(p) => Some(p),
         None => crate::importe::numero_declare(o)?,
@@ -265,15 +276,15 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
             return Err(format!(
                 "{} : ce contrat est parti sous le n° {} ; un numéro parti ne change plus (il identifie le contrat en DSN, \
                  S21.G00.40.009). Rien n'est écrit.",
-                crate::salarie_nomme(ctx, o.brut.get("salarie")),
+                crate::salarie_nomme(ctx, o.carte().salarie.as_deref()),
                 parti
             ));
         }
     }
     if let Some(n) = porte {
-        let garde = match o.brut.get(POUR) {
+        let garde = match &o.brut.numero_pour {
             Some(p) => {
-                let meme = p.get("salarie").map(en_texte).as_deref() == Some(cle.as_str()) && p.get("debut").map(en_texte) == Some(debut.clone());
+                let meme = p.salarie == cle.as_str() && p.debut == debut;
                 meme || porte_par_un_envoi(o, &cle, &n, departs)
             }
             // Un numero venu avec la saisie (un contrat repris d'un autre logiciel, sous la forme qu'il avait) : le sien,
@@ -286,8 +297,10 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
     }
     let annee: i32 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("date illisible : {}", debut))?;
     let dernier = derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?.get(&cle).copied().unwrap_or(0);
-    o.brut_mut().insert("numero".into(), former(&fiche, annee, dernier + 1)?.into());
-    o.brut_mut().insert(POUR.into(), json!({"salarie": cle, "debut": debut, "le": le}));
+    let numero = former(&fiche, annee, dernier + 1)?;
+    let e = o.brut_mut();
+    e.saisie.carte.numero = Some(numero.to_string());
+    e.numero_pour = Some(NumeroPour { salarie: cle.to_string(), debut, le: le.to_string() });
     Ok(())
 }
 

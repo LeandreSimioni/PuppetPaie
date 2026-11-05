@@ -509,7 +509,7 @@ pub fn deposer_dsn_dans(
         versions_du_signalement(ctx, le_mois, &octets)?
     } else {
         let nic = apercu.etablissement().filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
-        let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+        let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
         // Et ce qu'elle corrige des mois passes, tel que sa fabrication l'a note : un fichier qui part tel qu'il a ete
         // ecrit emporte ce qu'il porte, pas ce qu'une DSN fabriquee aujourd'hui porterait (regle 4). Un essai d'un

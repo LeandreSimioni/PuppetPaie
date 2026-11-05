@@ -20,7 +20,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use engagement::importe::{Attestation, ContratLu, Declaration, PaieLue, PaieVersee};
@@ -377,20 +377,18 @@ fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Vec<en
             let numero = declare(&g).or_else(|| imprime(&g));
             let paies = g.paies.iter().map(|p| (p.mois.clone(), p.paie.clone())).collect();
             let pieces = Pieces { le, contrat: g.contrat.map(|c| c.contrat), paies };
-            let mut e = Map::new();
-            e.insert("salarie".into(), json!(g.salarie));
-            e.insert("debut".into(), json!(g.debut));
-            if !g.fin.is_empty() {
-                e.insert("fin".into(), json!(g.fin));
-            }
-            if let Some(n) = numero {
-                e.insert("numero".into(), json!(n));
-            }
-            Neuf { champs: e, pieces }
+            let carte = engagement::saisie::Carte {
+                salarie: Some(g.salarie),
+                debut: Some(g.debut),
+                fin: Some(g.fin).filter(|f| !f.is_empty()),
+                numero,
+                ..Default::default()
+            };
+            Neuf { carte, pieces }
         })
         .collect();
     out.sort_by(|a, b| {
-        let k = |e: &Neuf| ["debut", "fin", "salarie"].map(|c| e.champs.get(c).and_then(Value::as_str).unwrap_or("").to_string());
+        let k = |e: &Neuf| [&e.carte.debut, &e.carte.fin, &e.carte.salarie].map(engagement::saisie::Carte::texte);
         k(a).cmp(&k(b))
     });
     out

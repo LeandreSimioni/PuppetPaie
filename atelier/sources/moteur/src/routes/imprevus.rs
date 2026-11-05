@@ -1627,19 +1627,25 @@ fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
     engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.map(|(d, p)| (d.en_valeur(), p)).ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
+/// La carte d'un engagement de la saisie que cette route lit encore en valeur (`engagement::saisie::Carte`) ; une carte qui
+/// ne se lit pas ne dit rien.
+fn carte_de(e: &Value) -> engagement::saisie::Carte {
+    engagement::saisie::Carte::lire(e).unwrap_or_default()
+}
+
 /// L'engagement brut avec ses bornes : un contrat aux cachets ne les ecrit pas, il commence son premier jour travaille et
 /// finit son dernier (`engagement::debut_brut`, `engagement::dates_engagement`).
 fn avec_ses_bornes(racine: &std::path::Path, e: &Value) -> Value {
     let mut e = e.clone();
     let jour = |j: &Value| j.get("jour").map_or_else(|| valeur_en_texte(j), valeur_en_texte);
     if !e.get("debut").is_some_and(vrai) {
-        let debut = engagement::debut_brut(racine, &e);
+        let debut = carte_de(&e).debut_lu(racine);
         if !debut.is_empty() {
             e["debut"] = json!(debut);
         }
     }
     if !e.get("fin").is_some_and(vrai) {
-        if let Some(fin) = engagement::dates_engagement(racine, &e).iter().map(jour).max() {
+        if let Some(fin) = carte_de(&e).dates(racine).iter().map(jour).max() {
             e["fin"] = json!(fin);
         }
     }
@@ -1655,7 +1661,7 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
     let siens: Vec<(usize, Value)> = eng
         .iter()
         .enumerate()
-        .filter(|(_, x)| engagement::cle_de_l_engagement(ctx, x).as_deref() == Some(cle))
+        .filter(|(_, x)| carte_de(x).cle(ctx).as_deref() == Some(cle))
         .map(|(i, x)| (i, avec_ses_bornes(&ctx.racine, x)))
         .collect();
     if siens.is_empty() {
@@ -2200,7 +2206,7 @@ déclarent tous deux.",
     } else if let Some(dernier) = e.get("dernier_jour_paye").filter(|j| vrai(j)).map(valeur_en_texte) {
         // Hors preavis non effectue, aucun jour de la paie ne vient apres le dernier jour paye.
         let jour = |j: &Value| j.get("jour").map_or_else(|| valeur_en_texte(j), valeur_en_texte);
-        let apres: Vec<String> = engagement::dates_engagement(&ctx.racine, e).iter().map(jour).filter(|j| *j > dernier).collect();
+        let apres: Vec<String> = carte_de(e).dates(&ctx.racine).iter().map(jour).filter(|j| *j > dernier).collect();
         if !apres.is_empty() {
             let dire = |j: &str| socle::date::jour_iso(j).map_or_else(|| j.to_string(), |x| x.jj_mm());
             manques.push(manque(

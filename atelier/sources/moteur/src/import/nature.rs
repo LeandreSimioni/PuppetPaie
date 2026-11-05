@@ -25,15 +25,13 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use engagement::importe::Importe;
 use socle::date::Jour;
-use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 
 /// La marque d'un contrat repris dont la nature reste a dire.
 pub const A_DIRE: &str = engagement::importe::A_DIRE;
@@ -66,9 +64,6 @@ fn demande(n: &droit::natures::Nature, en_cours: bool) -> Vec<Demande> {
     }
 }
 
-fn texte(e: &Value, k: &str) -> String {
-    e.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
-}
 
 /// Les engagements importes (vide s'ils ne se lisent pas).
 fn importes(racine: &Path) -> Vec<Importe> {
@@ -105,7 +100,7 @@ fn a_dire_par_salarie(importes: &[Importe]) -> BTreeMap<String, (usize, String, 
     let dernier = dernier_mois(importes);
     let mut par: BTreeMap<String, (usize, String, String, bool)> = BTreeMap::new();
     for i in importes.iter().filter(|i| i.a_dire()) {
-        let salarie = texte(&i.objet().brut, "salarie");
+        let salarie = engagement::saisie::Carte::texte(&i.objet().carte().salarie);
         let (du, au) = jours_payes(i);
         let x = par.entry(salarie).or_insert((0, du.clone(), au.clone(), false));
         x.0 += 1;
@@ -295,7 +290,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &ChargeNature) -> R<NatureDite> {
     let dernier = dernier_mois(&importes);
     // Le contrat qui court encore : son debut, sa fin s'il a un terme, son numero -- lus sur la DSN deja deposee ; ce
     // qui s'en ecrit sur l'engagement repris.
-    let mut contrat = Map::new();
+    let mut contrat = engagement::saisie::Carte::default();
     let mut debut_dit: Option<String> = None;
     for champ in demande(nat, en_cours) {
         let v = charge.lu(champ).ok_or_else(|| {
@@ -325,37 +320,37 @@ pub(crate) fn dire(ctx: &Contexte, charge: &ChargeNature) -> R<NatureDite> {
                 if champ == Demande::Debut {
                     debut_dit = Some(j.clone());
                 }
-                contrat.insert(if champ == Demande::Debut { "debut" } else { "fin" }.into(), json!(j));
+                *(if champ == Demande::Debut { &mut contrat.debut } else { &mut contrat.fin }) = Some(j);
             }
             Demande::Salaire | Demande::Quotite => {
                 let s = v.replace([' ', '\u{a0}'], "").replace(',', ".");
                 let (cle, quoi) = if champ == Demande::Salaire {
-                    ("salaire_mensuel", "un salaire mensuel brut")
+                    (&mut contrat.salaire_mensuel, "un salaire mensuel brut")
                 } else {
-                    ("quotite_contrat", "une durée du travail en heures par mois")
+                    (&mut contrat.quotite_contrat, "une durée du travail en heures par mois")
                 };
                 match s.parse::<socle::num::Decimal>() {
-                    Ok(d) if d > socle::num::Decimal::ZERO => contrat.insert(cle.into(), json!(d.to_string().parse::<f64>().unwrap_or_default())),
+                    Ok(d) if d > socle::num::Decimal::ZERO => *cle = serde_json::Number::from_f64(d.to_string().parse::<f64>().unwrap_or_default()),
                     _ => return Err(refus(format!("« {} » n'est pas {} : rien n'a été écrit.", v, quoi))),
                 };
             }
             Demande::Numero => {
                 let n = engagement::numeros::NumeroContrat::lire(&v).map_err(|m| refus(format!("{} Rien n'a été écrit.", m)))?;
-                contrat.insert("numero".into(), n.into());
+                contrat.numero = Some(n.to_string());
             }
         }
     }
     // La nature va sur l'engagement de chaque contrat a dire ; ce qui definit le contrat qui court encore, sur le sien.
     let ecrits = engagement::importe::completer(&ctx.racine, |e, pieces| {
         let a_dire = pieces.contrat.as_ref().is_some_and(|c| c.nature_a_dire);
-        if e.get("salarie").and_then(Value::as_str) != Some(salarie.as_str()) || !a_dire || e.get("nature").is_some_and(vrai) {
+        if e.salarie.as_deref() != Some(salarie.as_str()) || !a_dire || e.nature.as_deref().is_some_and(|n| !n.is_empty()) {
             return false;
         }
-        e.insert("nature".into(), json!(nature));
+        e.nature = Some(nature.to_string());
         if pieces.paies.contains_key(&dernier) {
-            for (k, v) in &contrat {
-                if k != "numero" || !e.get("numero").is_some_and(vrai) {
-                    e.insert(k.clone(), v.clone());
+            for k in engagement::saisie::Champ::TOUS.iter().copied().filter(|k| contrat.dit(*k)) {
+                if k != engagement::saisie::Champ::Numero || e.numero_dit().is_none() {
+                    e.prendre(&contrat, k);
                 }
             }
         }

@@ -15,8 +15,6 @@ use serde_json::Value;
 
 use crate::paie_ecrite::PaieEcrite;
 use crate::stock::{self, Dossier, Objet};
-use socle::date::en_texte;
-use socle::fichiers::vrai;
 use socle::mois::Mois;
 use socle::num::Resultat;
 
@@ -50,10 +48,9 @@ pub fn chemin(racine: &std::path::Path, mois: &str) -> std::path::PathBuf {
 }
 
 /// Le salarie et le numero du contrat de l'engagement `o` ; `None` sans numero (un engagement que rien n'a valide).
-/// TRAVAIL A FAIRE (chaine A) : l'engagement ecrit (`stock::Objet::brut`) se lit par ses cles.
 fn cle(o: &Objet) -> Option<(String, String)> {
-    let numero = o.brut.get("numero").filter(|n| vrai(n)).map(en_texte)?;
-    Some((o.brut.get("salarie").map(en_texte).unwrap_or_default(), numero))
+    let numero = o.carte().numero_dit()?.to_string();
+    Some((o.carte().salarie.clone().unwrap_or_default(), numero))
 }
 
 /// LA LECTURE D'UN FICHIER DE PAIES : celui de `mois`, tel que le geste l'a lu ou que le brouillon le tient, lu par sa

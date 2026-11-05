@@ -29,17 +29,16 @@
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::calcul::{Importee, LigneCotisation, Paie, PlafondTempsPartiel};
 use crate::numeros::NumeroContrat;
+use crate::saisie::Carte;
 use crate::stock::{self, Objet};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
-use socle::fichiers::vrai;
 use socle::num::{Decimal, Resultat};
 
 /// Dans un engagement importe : ce que l'import a lu de lui (`Pieces`).
@@ -301,25 +300,6 @@ pub struct BulletinSource {
     pub contrat: Option<String>,
 }
 
-/// La phrase d'un engagement importe qui ne se lit pas : il se refait en reimportant ses pieces.
-const ILLISIBLE: &str = "Un engagement importé ne se lit pas : il se refait en réimportant les pièces de l'ancien logiciel (Configuration › Reprendre l'historique).";
-
-impl Pieces {
-    /// LA SEULE LECTURE DE LA ZONE `importe` de l'engagement ecrit `e` : `None` s'il n'est pas importe ; une zone qui n'a
-    /// pas sa forme se refuse.
-    pub fn lire(e: &Value) -> Resultat<Option<Pieces>> {
-        match e.get(IMPORTE) {
-            None => Ok(None),
-            Some(v) => socle::forme::lire(v, ILLISIBLE).map(Some),
-        }
-    }
-
-    /// LA SEULE ECRITURE DE LA ZONE, telle qu'elle se pose sur l'engagement.
-    pub fn en_valeur(&self) -> Value {
-        serde_json::to_value(self).expect("une forme declaree s'ecrit")
-    }
-}
-
 /// UN CONTRAT ATTESTE, AVEC LES BORNES DE SON ENGAGEMENT : la ligne que l'import manipule, de la lecture de la piece a
 /// l'engagement ecrit (`Neuf`). `salarie` est la cle de la fiche (`<a creer>` tant qu'elle n'existe pas) ; `numero`, le
 /// numero de contrat de l'engagement qui le porte. Elle se rend a la page telle qu'elle s'ecrit (`Serialize`).
@@ -441,18 +421,16 @@ impl ContratAtteste {
 
 // ------------------------------------------------------------------ l'engagement importe
 
-/// Un engagement importe : l'engagement tel qu'il est ecrit, et ses pieces.
+/// Un engagement importe : l'engagement tel qu'il est ecrit, ses pieces avec lui.
 #[derive(Debug, Clone)]
 pub struct Importe {
     objet: Objet,
-    pieces: Arc<Pieces>,
 }
 
 impl Importe {
     /// L'engagement `o` s'il est importe.
     pub fn de(o: Objet) -> Option<Importe> {
-        let pieces = o.importe.clone()?;
-        Some(Importe { objet: o, pieces })
+        o.est_importe().then_some(Importe { objet: o })
     }
 
     /// L'engagement tel qu'il est ecrit.
@@ -462,32 +440,32 @@ impl Importe {
 
     /// Ce que l'import a lu de lui.
     pub fn pieces(&self) -> &Pieces {
-        &self.pieces
+        self.objet.pieces().expect("un engagement importe a ses pieces (`de`)")
     }
 
-    /// Un champ de l'engagement lui-meme (son salarie, ses bornes, son numero, sa nature), en texte.
-    fn texte(&self, k: &str) -> String {
-        self.objet.brut.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default()
+    /// La carte de l'engagement lui-meme (son salarie, ses bornes, son numero, sa nature).
+    fn carte(&self) -> &Carte {
+        self.objet.carte()
     }
 
     /// Quand il a ete importe.
     pub fn le(&self) -> &str {
-        &self.pieces.le
+        &self.pieces().le
     }
 
     /// Ce que l'AEM, le bulletin ou le certificat atteste du contrat, s'il l'est.
     pub fn contrat(&self) -> Option<&ContratAtteste> {
-        self.pieces.contrat.as_ref()
+        self.pieces().contrat.as_ref()
     }
 
     /// Ce qui a ete verse, mois par mois.
     pub fn paies(&self) -> &BTreeMap<String, PaieVersee> {
-        &self.pieces.paies
+        &self.pieces().paies
     }
 
     /// La nature du contrat : celle qui a ete dite (l'engagement), sinon celle que la piece atteste.
     pub fn nature(&self) -> Option<String> {
-        Some(self.texte("nature")).filter(|n| !n.is_empty()).or_else(|| self.contrat().and_then(|c| c.nature.clone()))
+        Some(Carte::texte(&self.carte().nature)).filter(|n| !n.is_empty()).or_else(|| self.contrat().and_then(|c| c.nature.clone()))
     }
 
     /// Sa nature reste-t-elle a dire ? Le bulletin d'un permanent ne la porte pas (`nature_a_dire`), et personne ne l'a
@@ -508,9 +486,9 @@ impl Importe {
     /// sa nature dite (`import::nature`) ; sans numero, rien ne se reprend.
     pub fn continue_apres(&self) -> Option<String> {
         let dernier = self.paies().keys().max()?.clone();
-        let fin = self.texte("fin");
+        let fin = Carte::texte(&self.carte().fin);
         let par_aem = self.contrat().is_some_and(|c| c.atteste_par == Attestation::Aem);
-        let continue_ = fin.len() >= 7 && &fin[..7] > dernier.as_str() && !par_aem && !self.permanent() && !self.texte("numero").is_empty();
+        let continue_ = fin.len() >= 7 && &fin[..7] > dernier.as_str() && !par_aem && !self.permanent() && !Carte::texte(&self.carte().numero).is_empty();
         continue_.then_some(dernier)
     }
 
@@ -518,7 +496,7 @@ impl Importe {
     /// ceux ou il a ete verse. Le contrat d'un permanent ne touche que les mois ou il a ete verse : des mois d'avant le
     /// premier bulletin repris, les pieces ne disent rien, et ceux d'apres le dernier sont ceux d'ici.
     pub fn mois(&self) -> Vec<String> {
-        let (debut, fin) = (self.texte("debut"), self.texte("fin"));
+        let (debut, fin) = (Carte::texte(&self.carte().debut), Carte::texte(&self.carte().fin));
         let mut v: Vec<String> = self.paies().keys().cloned().collect();
         if debut.len() >= 7 && !self.permanent() {
             let fin = match self.continue_apres() {
@@ -552,8 +530,8 @@ impl Importe {
             contrat.nature = Some(n);
         }
         contrat.importe_le = contrat.importe_le.or_else(|| Some(self.le().to_string()).filter(|l| !l.is_empty()));
-        let numero = Some(self.texte("numero")).filter(|n| !n.is_empty());
-        Some(ContratLu { salarie: self.texte("salarie"), debut: self.texte("debut"), fin: self.texte("fin"), numero, contrat })
+        let numero = Some(Carte::texte(&self.carte().numero)).filter(|n| !n.is_empty());
+        Some(ContratLu { salarie: Carte::texte(&self.carte().salarie), debut: Carte::texte(&self.carte().debut), fin: Carte::texte(&self.carte().fin), numero, contrat })
     }
 
     /// Les paies versees, une par mois, avec le salarie de l'engagement.
@@ -564,7 +542,7 @@ impl Importe {
     fn paie_lue(&self, mois: &str, p: &PaieVersee) -> PaieLue {
         let mut paie = p.clone();
         paie.importe_le = paie.importe_le.or_else(|| Some(self.le().to_string()).filter(|l| !l.is_empty()));
-        PaieLue { mois: mois.to_string(), salarie: self.texte("salarie"), paie }
+        PaieLue { mois: mois.to_string(), salarie: Carte::texte(&self.carte().salarie), paie }
     }
 }
 
@@ -595,7 +573,7 @@ impl Importe {
     ///
     /// Ce que les pieces ne disent pas vaut zero et se nomme (`Importee::non_dits`) : un etat le laisse vide.
     pub fn paie(&self, ctx: &Contexte, mois: &str) -> Resultat<Paie> {
-        let p = self.paies().get(mois).ok_or_else(|| format!("{} : aucune paie importee en {}", self.texte("salarie"), mois))?;
+        let p = self.paies().get(mois).ok_or_else(|| format!("{} : aucune paie importee en {}", Carte::texte(&self.carte().salarie), mois))?;
         let contrat = self.contrat();
         let zero = Decimal::new(0, 2);
         let mut non_dits: Vec<&'static str> = montants(p).iter().filter(|(_, m)| m.is_none()).map(|(k, _)| *k).collect();
@@ -603,7 +581,7 @@ impl Importe {
         let nature = self.nature();
         let nat = droit::natures::nature(nature.as_deref())?;
         let ctx = ctx.du_mois(mois)?;
-        let cle = self.texte("salarie");
+        let cle = Carte::texte(&self.carte().salarie);
         let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(&cle)?);
         let objet = p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone())).unwrap_or_default().to_uppercase();
         let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.get("numero_objet").map(en_texte).map(|n| n.to_uppercase()) == Some(objet.clone())).map(|(k, _)| k.clone());
@@ -612,12 +590,12 @@ impl Importe {
             None => Value::Null,
         };
         let imprime = p.emploi_imprime.clone().unwrap_or_default();
-        let debut = match Jour::lire(&self.texte("debut")) {
+        let debut = match Jour::lire(&Carte::texte(&self.carte().debut)) {
             Ok(j) => j,
             Err(e) => p.debut.ok_or(e)?,
         };
         // Le contrat d'un permanent finit a sa fin, dite ou declaree, jamais a celle du mois que paie un bulletin.
-        let fin = match Jour::lire(&self.texte("fin")) {
+        let fin = match Jour::lire(&Carte::texte(&self.carte().fin)) {
             Ok(f) => Some(f),
             Err(_) if self.permanent() => None,
             Err(_) => p.fin,
@@ -645,7 +623,7 @@ impl Importe {
             lignes: lignes_lues.iter().map(|l| serde_json::to_value(l).expect("une forme declaree s'ecrit")).collect(),
             debut,
             fin,
-            numero: match NumeroContrat::de_la_valeur(self.objet.brut.get("numero"))? {
+            numero: match NumeroContrat::du_texte(self.carte().numero.as_deref())? {
                 Some(n) => Some(n),
                 None => p.bulletin.as_ref().and_then(|b| b.contrat.as_deref()).filter(|n| !n.trim().is_empty()).map(NumeroContrat::lire).transpose()?,
             },
@@ -809,7 +787,7 @@ pub fn dsn_deposee(racine: &Path, mois: &str) -> Resultat<Option<PaieLue>> {
 
 /// L'engagement importe du salarie `cle` (la cle de sa fiche) qui commence le `debut` et touche `mois`, s'il y en a un.
 pub fn celui_de(racine: &Path, mois: &str, cle: &str, debut: &str) -> Resultat<Option<Importe>> {
-    Ok(du_mois(racine, mois)?.into_iter().find(|i| i.texte("salarie") == cle && i.texte("debut") == debut))
+    Ok(du_mois(racine, mois)?.into_iter().find(|i| Carte::texte(&i.carte().salarie) == cle && Carte::texte(&i.carte().debut) == debut))
 }
 
 /// Les contrats d'usage importes qui continuent en `mois` (`Importe::continue_apres`) : verses avant lui par l'ancien
@@ -817,20 +795,19 @@ pub fn celui_de(racine: &Path, mois: &str, cle: &str, debut: &str) -> Resultat<O
 pub fn qui_continuent(racine: &Path, mois: &str) -> Resultat<Vec<Importe>> {
     Ok(tous(racine)?
         .into_iter()
-        .filter(|i| i.continue_apres().is_some_and(|d| d.as_str() < mois) && i.texte("fin").get(..7).is_some_and(|f| f >= mois))
+        .filter(|i| i.continue_apres().is_some_and(|d| d.as_str() < mois) && Carte::texte(&i.carte().fin).get(..7).is_some_and(|f| f >= mois))
         .collect())
 }
 
 /// Le contrat importe que l'engagement `e` de la saisie continue : meme salarie, meme debut, meme numero, et il continue
 /// apres son dernier mois verse (`continue_apres`).
-pub fn continue_par(racine: &Path, e: &Map<String, Value>) -> Resultat<Option<Importe>> {
-    let t = |k: &str| e.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
-    let (salarie, debut, numero) = (t("salarie"), t("debut"), t("numero"));
+pub fn continue_par(racine: &Path, e: &Carte) -> Resultat<Option<Importe>> {
+    let (salarie, debut, numero) = (Carte::texte(&e.salarie), Carte::texte(&e.debut), Carte::texte(&e.numero));
     if salarie.is_empty() || debut.is_empty() || numero.is_empty() {
         return Ok(None);
     }
     Ok(tous(racine)?.into_iter().find(|i| {
-        i.continue_apres().is_some() && i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero
+        i.continue_apres().is_some() && Carte::texte(&i.carte().salarie) == salarie && Carte::texte(&i.carte().debut) == debut && Carte::texte(&i.carte().numero) == numero
     }))
 }
 
@@ -838,7 +815,7 @@ pub fn continue_par(racine: &Path, e: &Map<String, Value>) -> Resultat<Option<Im
 /// salarie, debut et numero : c'est lui, ou le contrat d'usage qu'il continue ici (`continue_par`). L'ecran le dit sur
 /// la carte. Faux quand rien ne se lit, ou sans numero.
 pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, numero: &str) -> bool {
-    !numero.is_empty() && tous(racine).unwrap_or_default().iter().any(|i| i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero)
+    !numero.is_empty() && tous(racine).unwrap_or_default().iter().any(|i| Carte::texte(&i.carte().salarie) == salarie && Carte::texte(&i.carte().debut) == debut && Carte::texte(&i.carte().numero) == numero)
 }
 
 /// LE NUMERO QU'UNE DSN DE L'ANCIEN LOGICIEL A DECLARE pour l'engagement `o` : celui de sa derniere paie importee
@@ -846,7 +823,7 @@ pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, num
 /// dit plus et ne change plus (`numeros::a_la_validation`). `None` pour un engagement d'ici, ou repris des seuls bulletins.
 /// La norme l'a deja contraint : il se lit comme tout numero (`NumeroContrat::lire`).
 pub fn numero_declare(o: &Objet) -> Resultat<Option<NumeroContrat>> {
-    let Some(pieces) = &o.importe else { return Ok(None) };
+    let Some(pieces) = o.pieces() else { return Ok(None) };
     let declare = pieces.paies.values().rev().filter(|p| p.declare_par == Declaration::Dsn).map(|p| p.contrat.as_str()).find(|n| !n.trim().is_empty());
     declare.map(NumeroContrat::lire).transpose()
 }
@@ -854,7 +831,7 @@ pub fn numero_declare(o: &Objet) -> Resultat<Option<NumeroContrat>> {
 /// Une DSN de l'ancien logiciel a-t-elle declare le numero du contrat de `salarie` commence le `debut`
 /// (`numero_declare`, lu sur l'engagement repris qui le porte) ?
 pub fn numero_declare_du_contrat(racine: &Path, salarie: &str, debut: &str) -> Resultat<bool> {
-    for i in tous(racine)?.iter().filter(|i| i.texte("salarie") == salarie && i.texte("debut") == debut) {
+    for i in tous(racine)?.iter().filter(|i| Carte::texte(&i.carte().salarie) == salarie && Carte::texte(&i.carte().debut) == debut) {
         if numero_declare(&i.objet)?.is_some() {
             return Ok(true);
         }
@@ -893,27 +870,21 @@ pub fn refus(qui: &str, debut: &str) -> String {
 
 // ------------------------------------------------------------------ l'ecriture
 
-/// UN ENGAGEMENT IMPORTE A ECRIRE : l'engagement lui-meme (son salarie, ses bornes, son numero, ce qui a ete dit de lui),
-/// et ses pieces.
+/// UN ENGAGEMENT IMPORTE A ECRIRE : l'engagement lui-meme (son salarie, ses bornes, son numero, ce qui a ete dit de lui :
+/// la carte de son premier mois), et ses pieces.
 #[derive(Debug, Clone)]
 pub struct Neuf {
-    pub champs: Map<String, Value>,
+    pub carte: Carte,
     pub pieces: Pieces,
-}
-
-impl Neuf {
-    fn texte(&self, k: &str) -> String {
-        self.champs.get(k).filter(|x| vrai(x)).map(en_texte).unwrap_or_default()
-    }
 }
 
 /// LE CONTRAT DE PERMANENT QUI CONTINUE ICI : sa nature est dite et payee au mois, il a ete verse le dernier mois repris
 /// (`dernier`), et il ne finit pas avant le mois qui suit.
 fn continue_ici(e: &Neuf, dernier: &str) -> Resultat<bool> {
-    let nature = e.texte("nature");
+    let nature = Carte::texte(&e.carte.nature);
     let mensuel = !nature.is_empty() && droit::natures::nature(Some(&nature)).is_ok_and(|n| n.mensuelle());
     let suite = socle::mois::Mois::lire(dernier).map(|m| m.suivant().to_string())?;
-    let fin = e.texte("fin");
+    let fin = Carte::texte(&e.carte.fin);
     Ok(mensuel && e.pieces.paies.contains_key(dernier) && (fin.is_empty() || fin.as_str() >= format!("{}-01", suite).as_str()))
 }
 
@@ -926,30 +897,30 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Neuf>) -> Resultat<Vec<PathBuf>>
     let existants = tous(racine)?;
     let dernier = importes.iter().flat_map(|e| e.pieces.paies.keys().cloned()).max();
     let mut repris = vec![false; existants.len()];
-    let mut par_mois: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+    let mut par_mois: BTreeMap<String, Vec<stock::Ecrit>> = BTreeMap::new();
     for mut e in importes {
-        let salarie = e.texte("salarie");
+        let salarie = Carte::texte(&e.carte.salarie);
         let meme = (0..existants.len()).find(|&k| {
             let x = &existants[k];
-            !repris[k] && x.texte("salarie") == salarie && x.paies().keys().any(|m| e.pieces.paies.contains_key(m))
+            !repris[k] && Carte::texte(&x.carte().salarie) == salarie && x.paies().keys().any(|m| e.pieces.paies.contains_key(m))
         });
+        let mut ecrit = stock::Ecrit { saisie: stock::Saisie { carte: e.carte.clone(), ..Default::default() }, ..Default::default() };
         if let Some(k) = meme {
             repris[k] = true;
-            let mut x = existants[k].objet.champs().clone();
-            x.remove(IMPORTE);
-            if e.texte("nature").is_empty() && x.get("nature").is_some_and(vrai) {
-                e.champs = x;
+            let x = &existants[k].objet.brut;
+            if e.carte.nature.as_deref().is_none_or(str::is_empty) && x.saisie.carte.nature.as_deref().is_some_and(|n| !n.is_empty()) {
+                ecrit = (**x).clone();
+                e.carte = ecrit.saisie.carte.clone();
             }
         }
-        let debut = e.texte("debut");
+        let debut = Carte::texte(&e.carte.debut);
         let mois = match &dernier {
             Some(d) if continue_ici(&e, d)? => socle::mois::Mois::lire(d).map(|m| m.suivant().to_string())?,
             _ if debut.len() >= 7 => debut[..7].to_string(),
             _ => e.pieces.paies.keys().next().cloned().ok_or("un engagement importe sans debut ni paie")?,
         };
-        let mut champs = e.champs;
-        champs.insert(IMPORTE.into(), e.pieces.en_valeur());
-        par_mois.entry(mois).or_default().push(Value::Object(champs));
+        ecrit.importe = Some(e.pieces);
+        par_mois.entry(mois).or_default().push(ecrit);
     }
     let mut touches: Vec<String> = existants.iter().map(|i| i.objet.fichier.clone()).collect();
     touches.extend(par_mois.keys().cloned());
@@ -959,41 +930,31 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Neuf>) -> Resultat<Vec<PathBuf>>
     for f in touches {
         let existe = stock::lire_fichier(racine, &f)?;
         let neufs = par_mois.remove(&f).unwrap_or_default();
-        let mut contenu = existe.clone().unwrap_or_default();
-        contenu.insert("mois".into(), Value::String(f.clone()));
-        let mut es: Vec<Value> = contenu.get("engagements").and_then(Value::as_array).into_iter().flatten().filter(|e| e.get(IMPORTE).is_none()).cloned().collect();
-        es.extend(neufs);
-        let vide = es.is_empty() && contenu.keys().all(|k| k == "mois" || k == "engagements");
-        contenu.insert("engagements".into(), Value::Array(es));
+        let mut contenu = existe.clone().unwrap_or(stock::FichierDuMois { mois: socle::mois::Mois::lire(&f)?, taux_cachet: None, engagements: Vec::new() });
+        contenu.engagements.retain(|e| e.importe.is_none());
+        contenu.engagements.extend(neufs);
         if existe.as_ref() == Some(&contenu) {
             continue;
         }
-        if vide {
+        if contenu.engagements.is_empty() && contenu.taux_cachet.is_none() {
             if existe.is_some() {
                 ecrits.push(stock::retirer(racine, &f)?);
             }
             continue;
         }
-        ecrits.push(stock::poser(racine, &f, &Value::Object(contenu))?);
+        ecrits.push(stock::poser(racine, &contenu)?);
     }
     Ok(ecrits)
 }
 
 /// CE QUE L'IMPORT COMPLETE DE LUI-MEME : ce que les pieces ne disaient pas et que la personne dit apres l'import (la
-/// nature d'un contrat de permanent, son numero). `completer` recoit chaque engagement importe (ses champs, a changer, et
-/// ses pieces) et dit s'il l'a change ; ceux-la se reecrivent. Rend combien ont change.
-pub fn completer(racine: &Path, mut completer: impl FnMut(&mut Map<String, Value>, &Pieces) -> bool) -> Resultat<usize> {
-    let mut tous: Vec<Neuf> = tous(racine)?
-        .into_iter()
-        .map(|i| {
-            let mut champs = i.objet.champs().clone();
-            champs.remove(IMPORTE);
-            Neuf { champs, pieces: (*i.pieces).clone() }
-        })
-        .collect();
+/// nature d'un contrat de permanent, son numero). `completer` recoit chaque engagement importe (sa carte, a changer, et
+/// ses pieces) et dit s'il l'a changee ; ceux-la se reecrivent. Rend combien ont change.
+pub fn completer(racine: &Path, mut completer: impl FnMut(&mut Carte, &Pieces) -> bool) -> Resultat<usize> {
+    let mut tous: Vec<Neuf> = tous(racine)?.into_iter().map(|i| Neuf { carte: i.carte().clone(), pieces: i.pieces().clone() }).collect();
     let mut changes = 0usize;
     for e in tous.iter_mut() {
-        if completer(&mut e.champs, &e.pieces) {
+        if completer(&mut e.carte, &e.pieces) {
             changes += 1;
         }
     }
