@@ -24,7 +24,7 @@ use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use socle::date::{d, en_texte, Jour};
 use socle::mois::Mois;
-use crate::Avis;
+use crate::{Avis, Chiffre, LignePaie};
 use socle::feries;
 use socle::fichiers::{repr, vrai};
 use socle::texte::{euros, virgule};
@@ -1023,8 +1023,8 @@ pub(crate) fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Dec
     let jour = &paie.engagement.fin_periode()?;
     let mut total = Decimal::ZERO;
     for l in &paie.engagement.lignes {
-        if rubrique(racine, &en_texte(requis(l, "rubrique")?), jour)?.conges_pris {
-            total += dec_avec_echelle(requis(l, "quantite")?)?;
+        if rubrique(racine, l.rubrique.as_deref().ok_or_else(|| socle::fichiers::absent("rubrique"))?, jour)?.conges_pris {
+            total += l.quantite.as_ref().ok_or_else(|| socle::fichiers::absent("quantite"))?.dec_avec_echelle()?;
         }
     }
     Ok(total)
@@ -1036,7 +1036,11 @@ pub(crate) fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Dec
 /// L'ordre des lignes est celui du bulletin : le salaire de base, les
 /// absences, les indemnites, les primes, le solde de tout compte, puis les repas et les nuitees que la carte porte en
 /// lignes, aux limites de tout salarie (`crate::frais_au_dela`). Et les jours travailles du mois.
-pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)> {
+pub(crate) fn lignes_du_mois(ctx: &Contexte, carte: &crate::saisie::Carte, mois: &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)> {
+    // TRAVAIL A FAIRE (chaine A) : le mois d'un permanent lit encore sa carte par ses cles (ce qu'il passe a
+    // `droit::clauses::prime_anciennete`, `solde`, `imprevus::lignes_du_mois`, `heures_en_plus::lignes`).
+    let brut = carte.en_valeur();
+    let e = &brut;
     let nat = nature_de(e.get("nature"))?;
     if !nat.mensuelle() {
         return Err(format!("{} n'est pas un contrat paye au mois : ses lignes se saisissent.", nat.libelle));
@@ -1106,16 +1110,14 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
 
     // `heures` est par unite (`Rubrique::heures`) : un mois vaut la quotite,
     // et la fraction, en `quantite`, en fait la part ; `precision` la dit sur le bulletin.
-    let mut lignes = vec![json!({
-        "rubrique": "mois", "quantite": flot(fraction), "taux": flot(salaire),
-        "heures": flot(eur2(quotite)),
-    })];
-    if let Some(p) = part.sur_le_bulletin(heures_par_jour) {
-        lignes[0]["precision"] = json!(p);
-    }
-
+    let mois_paye = LignePaie {
+        heures: Some(Chiffre::de_f64(flot(eur2(quotite)))),
+        precision: part.sur_le_bulletin(heures_par_jour),
+        ..LignePaie::de("mois", Chiffre::de_f64(flot(fraction)), Chiffre::de_f64(flot(salaire)))
+    };
     // Le salaire du mois tel que la ligne « mois » le paie (`calcul::lignes_brut` : le montant arrondi ligne par ligne).
-    let salaire_du_mois = socle::num::eur(mul(dec(requis(&lignes[0], "taux")?)?, dec(requis(&lignes[0], "quantite")?)?));
+    let salaire_du_mois = socle::num::eur(mul(Chiffre::de_f64(flot(salaire)).dec()?, Chiffre::de_f64(flot(fraction)).dec()?));
+    let mut lignes = vec![mois_paye];
     // L'entreprise dit quels jours feries elle chome.
     let chomes = ctx.entreprise.feries_chomes();
     let ouvrables = Decimal::from(jours_ouvrables(&debut, &fin, chomes)?);
@@ -1132,11 +1134,8 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         let cpt = compteur_conges(ctx, &salarie, &fin, mois)?;
         let maintien = eur2(mul(taux_jour_ouvrable, pris));
         let ind = indemnite_des_jours(&cpt, pris, maintien)?;
-        lignes.push(json!({"rubrique": "absence_conges_payes", "quantite": flot(pris), "taux": flot(taux_jour_ouvrable)}));
-        lignes.push(json!({
-            "rubrique": "indemnite_conges_payes", "quantite": flot(pris),
-            "taux": flot(taux_au_montant(ind.retenu, pris)),
-        }));
+        lignes.push(LignePaie::de("absence_conges_payes", Chiffre::de_f64(flot(pris)), Chiffre::de_f64(flot(taux_jour_ouvrable))));
+        lignes.push(LignePaie::de("indemnite_conges_payes", Chiffre::de_f64(flot(pris)), Chiffre::de_f64(flot(taux_au_montant(ind.retenu, pris)))));
         avert.push(info(format!(
             "{} : {} jour(s) ouvrable(s) de conges. Indemnite retenue : {} \
              ({}) -- le dixieme donnait {}, le maintien {} (L3141-24). \
@@ -1183,12 +1182,9 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     let jours_travailles = (reel.jours - absents).max(0);
 
     // --- les primes
-    for pr in e.get("primes").and_then(|p| p.as_array()).map_or(&[][..], |a| &a[..]) {
-        let montant = socle::num::flottant(requis(pr, "montant")?)?;
-        lignes.push(json!({
-            "rubrique": pr.get("rubrique").cloned().unwrap_or_else(|| json!("prime")),
-            "quantite": 1, "taux": montant,
-        }));
+    for pr in carte.primes.iter().flatten() {
+        let montant = Chiffre::Nombre(pr.montant.clone()).flottant()?;
+        lignes.push(LignePaie::de(pr.rubrique.as_deref().unwrap_or("prime"), Chiffre::entier(1), Chiffre::de_f64(montant)));
     }
 
     // --- les heures supplementaires d'un temps plein, complementaires d'un temps partiel
@@ -1235,7 +1231,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         let reference = Decimal::from_str("151.67").unwrap();
         let base = eur2(div(mul(base_conv, quotite), reference));
         let montant = eur2(div(mul(base, pourcentage), Decimal::ONE_HUNDRED));
-        lignes.push(json!({"rubrique": "prime_anciennete", "quantite": 1, "taux": flot(montant)}));
+        lignes.push(LignePaie::de("prime_anciennete", Chiffre::entier(1), Chiffre::de_f64(flot(montant))));
         let proratise = if quotite != reference { format!(" proratisé à {} h", virgule(quotite)) } else { String::new() };
         avert.push(info(format!(
             "{} : prime d'ancienneté {} % ({} an(s) de présence) du salaire \
@@ -1256,15 +1252,20 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     if let Some(f) = e.get("fin").filter(|x| vrai(x)) {
         let f = d(f)?;
         if debut_mois <= f && f <= fin_mois {
-            let (l, a) = crate::solde::solde_de_tout_compte(ctx, e, mois, &lignes)?;
-            lignes.extend(l);
+            // TRAVAIL A FAIRE (chaine B) : le solde de tout compte (`solde`) lit et rend encore ses lignes en valeur ; elles
+            // passent ici, au bord, par la forme de la ligne.
+            let deja: Vec<_> = lignes.iter().map(socle::ecriture::en_valeur).collect();
+            let (l, a) = crate::solde::solde_de_tout_compte(ctx, e, mois, &deja)?;
+            for x in &l {
+                lignes.push(socle::forme::lire(x, "Une ligne du solde de tout compte ne se lit pas : le signaler au développeur.")?);
+            }
             avert.extend(a);
         }
     }
 
     // --- les repas et les nuitees de la carte
-    if let Some(Value::Array(l)) = e.get("lignes") {
-        let (l, a) = crate::frais_au_dela(ctx, e.get("salarie").and_then(Value::as_str), l.clone(), mois, &qui(ctx, e))?;
+    if let Some(l) = &carte.lignes {
+        let (l, a) = crate::frais_au_dela(ctx, carte.salarie.as_deref(), l.clone(), mois, &qui(ctx, e))?;
         lignes.extend(l);
         avert.extend(a);
     }

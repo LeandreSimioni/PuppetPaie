@@ -31,7 +31,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use crate::calcul::LigneCotisation;
 use crate::importe::{Importe, PaieVersee};
@@ -257,11 +257,11 @@ fn comparer_une(
     let atmp_lu = atmp_imprime.is_some();
     c.taux_atmp = Some(if atmp_lu { "bulletin" } else { "compagnie" });
     // Les jours travailles que le bulletin dit, chacun sur chaque ligne (les jours de l'engagement en sont la reunion).
-    let mut jours: Vec<Value> = Vec::new();
+    let mut jours: Vec<crate::DateDeLigne> = Vec::new();
     for d in &p.dates {
         let (mut j, b) = (d.debut, d.fin);
         while j <= b {
-            jours.push(json!(j.iso()));
+            jours.push(crate::DateDeLigne::Nue(j.iso()));
             j = j.plus_jours(1)?;
         }
     }
@@ -287,7 +287,7 @@ fn comparer_une(
                 });
             };
             for i in 0..n {
-                jours.push(json!(d.plus_jours(i)?.iso()));
+                jours.push(crate::DateDeLigne::Nue(d.plus_jours(i)?.iso()));
             }
         }
     }
@@ -301,19 +301,13 @@ fn comparer_une(
             }
             return Err(format!("la ligne de rémunération « {} » ne se rattache à aucune rubrique du catalogue", libelle));
         };
-        let mut s = Map::new();
-        s.insert("rubrique".into(), json!(r));
         let quantite = l.quantite.ok_or_else(|| format!("la ligne « {} » n'imprime pas sa quantité", libelle))?;
         let taux = l.taux.ok_or_else(|| format!("la ligne « {} » n'imprime pas son taux", libelle))?;
-        s.insert("quantite".into(), json!(en_f64(quantite)?));
-        s.insert("taux".into(), json!(en_f64(taux)?));
-        if let Some(h) = l.heures {
-            s.insert("heures".into(), json!(en_f64(h)?));
-        }
-        if !jours.is_empty() {
-            s.insert("dates".into(), Value::Array(jours.clone()));
-        }
-        saisies.push(Value::Object(s));
+        saisies.push(crate::LignePaie {
+            heures: l.heures.map(|h| en_f64(h).map(crate::Chiffre::de_f64)).transpose()?,
+            dates: jours.clone(),
+            ..crate::LignePaie::de(r, crate::Chiffre::de_f64(en_f64(quantite)?), crate::Chiffre::de_f64(en_f64(taux)?))
+        });
     }
     // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.
     let spectacle = (!mensuelle).then(|| {

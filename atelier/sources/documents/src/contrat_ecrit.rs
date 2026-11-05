@@ -38,7 +38,7 @@ fn texte<'a>(eng: &'a Value, cle: &str) -> Option<&'a str> {
     eng.get(cle).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty())
 }
 
-/// Ce que la saisie dit du contrat ecrit (`engagement::CHAMPS_DU_CONTRAT_ECRIT`), non vide.
+/// Ce que la saisie dit du contrat ecrit (`engagement::ContratEcrit`), non vide.
 fn ecrit(eng: &Value, cle: &str) -> Option<String> {
     eng.pointer(&format!("/contrat_ecrit/{}", cle)).filter(|v| vrai(v)).map(en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
 }

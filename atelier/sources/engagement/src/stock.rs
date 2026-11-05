@@ -405,7 +405,7 @@ impl Objet {
             None if !self.mensuel() => {
                 // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie ; sans jour encore, a son
                 // premier mois : seul un contrat paye au mois court sans terme.
-                let mut jours: Vec<String> = c.dates(&self.racine).iter().chain(c.planning(&self.racine).iter()).map(crate::jour_ecrit).collect();
+                let mut jours: Vec<String> = c.dates(&self.racine).iter().chain(c.planning(&self.racine).iter()).map(|j| j.jour().to_string()).collect();
                 jours.sort();
                 let dernier = jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| socle::mois::Mois::lire(m).is_ok());
                 Ok(Some(dernier.map_or(self.fichier.clone(), |m| m.max(self.fichier.clone()))))
@@ -582,7 +582,7 @@ impl Objet {
     /// rubrique, au meme taux et au meme lieu, ses jours de `mois` en dates et ceux d'apres au planning ; un cachet, une
     /// journee ou un service par date (une autre unite, des heures, ne se deduit pas d'un nombre de jours : quantite 0, a
     /// completer). Sans planning, aucune ligne.
-    fn lignes_du_planning(&self, mois: &str) -> Resultat<Vec<Value>> {
+    fn lignes_du_planning(&self, mois: &str) -> Resultat<Vec<crate::LignePaie>> {
         let faits = &self.brut.saisie.faits;
         let dit = faits.keys().filter(|m| m.to_string().as_str() < mois && m.to_string().as_str() > self.fichier.as_str()).max();
         let source = match dit {

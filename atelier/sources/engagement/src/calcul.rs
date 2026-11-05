@@ -19,7 +19,7 @@ use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
 use socle::num::nombre;
 use socle::fichiers::vrai;
-use socle::num::{add, dec, dec_f64, div, eur, flottant, mul, pct, round3, sub, Decimal, Resultat};
+use socle::num::{add, dec_f64, div, eur, mul, pct, round3, sub, Decimal, Resultat};
 pub use droit::reduction::ReductionGenerale;
 use droit::bareme::somme_pct;
 use droit::forme_bareme::{Pile, Rubrique};
@@ -159,17 +159,15 @@ impl LigneBrut {
 pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<LigneBrut>> {
     let mut out = Vec::new();
     for l in &eng.lignes {
-        let r = rubrique(&ctx.racine, &en_texte(requis(l, "rubrique")?), &ctx.lue_au)?;
-        let q = dec(requis(l, "quantite")?)?;
-        let taux = dec(requis(l, "taux")?)?;
-        let heures = match l.get("heures") {
-            None | Some(Value::Null) => None,
-            Some(h) => Some(flottant(h)?),
-        };
+        let requis = |x: &Option<crate::Chiffre>, cle: &str| x.clone().ok_or_else(|| socle::fichiers::absent(cle));
+        let r = rubrique(&ctx.racine, l.rubrique.as_deref().ok_or_else(|| socle::fichiers::absent("rubrique"))?, &ctx.lue_au)?;
+        let q = requis(&l.quantite, "quantite")?.dec()?;
+        let taux = requis(&l.taux, "taux")?.dec()?;
+        let heures = l.heures_lues()?;
         let signe = if r.sens == "-" { -Decimal::ONE } else { Decimal::ONE };
         // Le signe porte aussi sur les heures : une absence en retire.
         let h = dec_f64(r.heures(en_f64(q), heures))?;
-        let dsn_autres_bruts = code_54(&r, l)?;
+        let dsn_autres_bruts = code_54(&r, l.genre.as_deref())?;
         out.push(LigneBrut {
             code: r.code,
             libelle: r.libelle,
@@ -188,7 +186,7 @@ pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<Lign
             dsn_bloc52: r.dsn_bloc52,
             arret_de_travail: r.arret_de_travail,
             dsn_autres_bruts,
-            precision: l.get("precision").and_then(Value::as_str).map(str::to_string),
+            precision: l.precision.clone(),
         });
     }
     Ok(out)
@@ -411,7 +409,7 @@ impl Paie {
 
     /// Les lignes saisies de cette paie, une par ligne de remuneration (`minima::saisies_de`).
     #[cfg(feature = "ecran")]
-    pub fn saisies(&self) -> Vec<&Value> {
+    pub fn saisies(&self) -> Vec<Option<&crate::LignePaie>> {
         crate::minima::saisies_de(self)
     }
 
@@ -963,7 +961,7 @@ fn anciennete_a_l_embauche(mut fiche: SalarieDuContrat, eng: &Engagement) -> Sal
 /// Un maintien de salaire garanti en net (`maintien::au_net`) se reconstitue par ce meme calcul, refait sur les lignes du
 /// mois jusqu'a ce que le net garanti soit atteint au centime ; la paie est alors celle de ce montant.
 pub(crate) fn calculer_apres(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
-    let mut paie_des = |lignes: Vec<Value>| -> Resultat<Paie> {
+    let mut paie_des = |lignes: Vec<crate::LignePaie>| -> Resultat<Paie> {
         let mut e = eng.clone();
         e.lignes = lignes;
         calculer_du_mois(ctx, &e, precedentes)
@@ -1157,8 +1155,8 @@ pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &Value, 
 /// L. 1242-10 pour un CDD, L. 1221-19 pour un CDI, la convention 3090 art. 7.4 pour un artiste en CDI). Sa categorie se lit
 /// sur la fiche du salarie telle que l'engagement la voit (`fiche_de_l_engagement`).
 fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &ChampsSalarie) -> Resultat<()> {
-    let Some(v) = eng.ecrit.get("periode_essai_jours") else { return Ok(()) };
-    let Some(jours) = v.as_f64().or_else(|| en_texte(v).trim().replace(',', ".").parse().ok()).map(|x| x.ceil() as i64) else {
+    let Some(v) = &eng.ecrit.periode_essai_jours else { return Ok(()) };
+    let Some(jours) = v.flottant().ok().or_else(|| v.en_texte().trim().replace(',', ".").parse().ok()).map(|x| x.ceil() as i64) else {
         return Ok(());
     };
     let idcc = ctx.entreprise.idcc.texte().to_string();
@@ -1629,7 +1627,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     for (l, b) in eng.lignes.iter().zip(lb.iter()) {
         if b.code == crate::maintien::IJ_NETTES {
             *bases.entry(crate::maintien::IJ_SUBROGEES.into()).or_insert(zero) += b.montant;
-            *bases.entry(crate::maintien::IJ_ASSIETTE_PAS.into()).or_insert(zero) += socle::num::dec_avec_echelle(l.get("assiette_pas").unwrap_or(&Value::Null)).unwrap_or(zero);
+            *bases.entry(crate::maintien::IJ_ASSIETTE_PAS.into()).or_insert(zero) += l.assiette_pas.as_ref().and_then(|a| a.dec_avec_echelle().ok()).unwrap_or(zero);
         }
     }
 
@@ -1842,14 +1840,14 @@ pub(crate) fn plafond_temps_partiel(ent: &ChampsEntreprise, e: &Engagement, sal:
 /// une ligne d'heures tapee a la main ne dit pas si elle en est, et refuse plutot que de le deviner.
 pub(crate) fn duree_du_temps_partiel(e: &Engagement) -> Resultat<(Decimal, Decimal)> {
     let nat = e.nat()?;
-    if let Some(l) = e.lignes.iter().find(|l| l.get("rubrique").and_then(Value::as_str) == Some("heure")) {
+    if let Some(l) = e.lignes.iter().find(|l| l.rubrique.as_deref() == Some("heure")) {
         return Err(format!(
             "{} : le plafond de Securite sociale de ce salarie a temps partiel se corrige a la duree de son \
 contrat << majoree du nombre d'heures complementaires >> du mois (CSS R. 242-2, I, dernier alinea), et la paie porte des \
 heures en plus du salaire mensuel ({} h) : heures complementaires ou non, le logiciel ne le sait pas. Refus : il ne les \
 devine pas.",
             e.qui(),
-            l.get("quantite").map(en_texte).unwrap_or_default()
+            l.quantite.as_ref().map(crate::Chiffre::en_texte).unwrap_or_default()
         ));
     }
     let legale = dec_f64(nat.quotite_reference_defaut().ok_or_else(|| socle::echec::livree("contrats-base.json", &format!("{}.quotite_reference_defaut", nat.libelle)))?)?;
@@ -1861,8 +1859,8 @@ devine pas.",
     let complementaires = e
         .lignes
         .iter()
-        .filter(|l| l.get("rubrique").and_then(Value::as_str) == Some(crate::heures_en_plus::HEURE_COMPLEMENTAIRE))
-        .map(|l| dec(l.get("quantite").unwrap_or(&Value::Null)))
+        .filter(|l| l.rubrique.as_deref() == Some(crate::heures_en_plus::HEURE_COMPLEMENTAIRE))
+        .map(|l| l.quantite.as_ref().ok_or_else(|| "nombre attendu, lu null".to_string()).and_then(crate::Chiffre::dec))
         .sum::<Resultat<Decimal>>()?;
     Ok((e.quotite()? + complementaires, reference))
 }

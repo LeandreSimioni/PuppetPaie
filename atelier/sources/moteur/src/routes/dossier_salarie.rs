@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 use socle::mois::Mois;
 
 use engagement::calcul::Paie;
@@ -499,7 +499,7 @@ pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
 /// Ce que l'ancien logiciel a verse en `mois` pour un contrat qui continue ici : le brut, les cachets (une ligne, aux
 /// jours que le bulletin imprime) et les jours travailles. `None` sans bulletin qui donne ses jours et ses cachets : le
 /// mois reste parmi les manquants (rien ne se devine).
-fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> Option<(Decimal, Vec<Value>, i64)> {
+fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> Option<(Decimal, Vec<engagement::LignePaie>, i64)> {
     let p = i.paies().get(mois)?;
     let brut = eur2(p.brut?);
     let mut dates: Vec<String> = Vec::new();
@@ -517,7 +517,11 @@ fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> 
         return None;
     }
     let jours = dates.len() as i64;
-    Some((brut, vec![json!({"rubrique": "cachet", "quantite": quantite, "taux": taux, "dates": dates})], jours))
+    let cachet = engagement::LignePaie {
+        dates: dates.into_iter().map(engagement::DateDeLigne::Nue).collect(),
+        ..engagement::LignePaie::de("cachet", engagement::Chiffre::de_f64(quantite), engagement::Chiffre::de_f64(taux))
+    };
+    Some((brut, vec![cachet], jours))
 }
 
 /// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Les mois d'avant se lisent
@@ -529,7 +533,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     let mois_du = eng.mois_du_contrat()?;
     let debut = eng.debut.iso();
     let mut manquants: Vec<String> = Vec::new();
-    let mut lignes: Vec<Value> = Vec::new();
+    let mut lignes: Vec<engagement::LignePaie> = Vec::new();
     // Un contrat commence dans l'ancien logiciel : ses mois d'avant sont ceux que l'engagement importe a verses.
     let cherche = engagement::saisie::Carte { salarie: Some(cle.to_string()), debut: Some(debut.clone()), numero: eng.numero.as_ref().map(|n| n.to_string()), ..Default::default() };
     let importe = engagement::importe::continue_par(&ctx.racine, &cherche).map_err(|e| avec("ValueError", e))?;
@@ -554,8 +558,8 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
         };
         let illisible = |k: &str| avec("ValueError", format!("{} : paie ecrite illisible : `{}`", m, k));
         let e = paie.get("engagement").ok_or_else(|| illisible("engagement"))?;
-        if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
-            lignes.extend(l.iter().cloned());
+        if let Some(l) = e.get("lignes").filter(|l| vrai(l)) {
+            lignes.extend(engagement::relire::lignes_ecrites(l).map_err(|x| avec("ValueError", x))?);
         }
         let (brut_du_mois, jours_du_mois) = (
             eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?),
@@ -577,22 +581,30 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
     for l in lignes.iter_mut() {
-        if let Value::Object(o) = l {
-            o.shift_remove("planning");
-        }
+        l.planning.clear();
     }
     // Les jours du contrat entier : ceux de ses lignes de travail (`engagement::dates_engagement`).
     let dates = engagement::saisie::Carte { lignes: Some(lignes.clone()), ..Default::default() }.dates(&ctx.racine);
-    let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
-    let fin = eng.fin.map_or(Value::Null, |f| json!(f.iso()));
-    let entier = json!({
-        "salarie": eng.salarie, "spectacle": texte(&eng.spectacle), "dates_travail": dates, "lignes": lignes,
-        "debut": eng.debut.iso(), "fin": fin, "numero": eng.numero, "jours": jours + eng.jours,
-        "taux_cachet": eng.taux_cachet, "date_paiement": texte(&eng.date_paiement), "lieu": eng.lieu,
-        "emploi": texte(&eng.emploi), "pcs_ese": texte(&eng.pcs_ese), "code_emploi_ft": texte(&eng.code_emploi_ft),
-        "statut": texte(&eng.statut), "statut_conventionnel": texte(&eng.statut_conventionnel),
-        "statut_categoriel_rc": texte(&eng.statut_categoriel_rc),
-    });
+    let entier = engagement::Assemble {
+        salarie: Some(eng.salarie.clone()),
+        spectacle: eng.spectacle.clone(),
+        dates_travail: dates,
+        lignes: Some(lignes),
+        debut: Some(eng.debut.iso()),
+        fin: eng.fin.map(|f| f.iso()),
+        numero: eng.numero.as_ref().map(|n| n.to_string()),
+        jours: Some(engagement::Chiffre::entier(jours + eng.jours)),
+        taux_cachet: eng.taux_cachet.map(engagement::Chiffre::de_f64),
+        date_paiement: eng.date_paiement.clone(),
+        lieu: Some(eng.lieu.clone()),
+        emploi: eng.emploi.clone(),
+        pcs_ese: eng.pcs_ese.clone(),
+        code_emploi_ft: eng.code_emploi_ft.clone(),
+        statut: eng.statut.clone(),
+        statut_conventionnel: eng.statut_conventionnel.clone(),
+        statut_categoriel_rc: eng.statut_categoriel_rc.clone(),
+        ..Default::default()
+    };
     let entier = Engagement::nouveau(&ctx.racine, &entier, &ctx.nomme(&eng.salarie)).map_err(|m| avec("ValueError", m))?;
     let cs = PaieCs { engagement: ContratCs::de(&entier)?, brut, salarie: p.salarie.champs.clone() };
     Ok((cs, manquants))

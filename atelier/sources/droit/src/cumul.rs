@@ -11,7 +11,7 @@ use crate::bareme::canon;
 use crate::catalogue::{annexes, rubrique};
 use crate::contexte::{aujourdhui, Contexte};
 use socle::date::Jour;
-use socle::num::{add, flottant, nombre, Decimal, Resultat};
+use socle::num::{add, nombre, Decimal, Resultat};
 
 /// Les constantes du decompte, lues dans les donnees livrees (le catalogue des rubriques et `annexes`).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -251,32 +251,6 @@ impl Position {
         m.insert("jours_restants".into(), entier(self.jours_restants(aujourdhui)));
         Ok(Value::Object(m))
     }
-}
-
-/// La part d'enseignement d'une liste de lignes de paie, en heures entieres :
-/// les rubriques dont le catalogue dit `compte_pour = ouverture_des_droits`.
-pub fn heures_enseignement(ctx: &Contexte, lignes: &[Value]) -> Resultat<i64> {
-    let mut heures = 0.0;
-    for l in lignes {
-        let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
-        let code = match code {
-            Value::String(s) => s.clone(),
-            autre => socle::date::en_texte(autre),
-        };
-        let r = rubrique(&ctx.racine, &code, &ctx.lue_au)?;
-        if r.compte_pour != "ouverture_des_droits" {
-            continue;
-        }
-        let q = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
-        let saisies = match l.get("heures") {
-            None | Some(Value::Null) => None,
-            Some(x) => Some(flottant(x)?),
-        };
-        // Le signe porte aussi sur les heures, comme au calcul (`calcul::lignes_brut`) : une ligne « - » en retire.
-        let signe = if r.sens == "-" { -1.0 } else { 1.0 };
-        heures += signe * r.heures(q, saisies);
-    }
-    Ok(heures.round_ties_even() as i64)
 }
 
 

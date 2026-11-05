@@ -32,9 +32,10 @@
 //! l'arret (ameli, « La subrogation de salaire en cas d'arret de travail » ; net-entreprises, fiche 3028 :
 //! `atelier/reference/sources/subrogation-indemnites-journalieres/`).
 
-use serde_json::{json, Map, Value};
+use serde_json::Value;
 
 use crate::conges::{flot, info};
+use crate::ligne::{Chiffre, LignePaie};
 use crate::Avis;
 use droit::contexte::Contexte;
 use droit::maintien::{self as dm, Base, Droit, Duree, Origine, Regime};
@@ -273,7 +274,7 @@ pub struct DuMois {
 /// Ce qu'il faut pour reconstituer une garantie nette : la part du salaire retiree et son pourcentage, suite par suite
 /// de jours ; les indemnites nettes que le salarie percoit hors du bulletin (sans subrogation) et celles des jours que le
 /// texte n'indemnise pas.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct AuNet {
     pub texte: String,
     pub net: bool,
@@ -668,48 +669,52 @@ fn net_de_csg_crds(brute: Decimal, csg: Decimal, crds: Decimal) -> Decimal {
 /// Les lignes du mois : le maintien (le plus favorable des complements, plus les indemnites subrogees qu'il avance), et,
 /// subroge, la deduction des indemnites brutes et le reversement des nettes. Quand la convention garantit du net (ou
 /// plafonne au net), la ligne du maintien porte ce qu'il faut pour le reconstituer (`au_net`, sous la cle `maintien`).
-pub fn lignes(dmois: &DuMois, mois: &str) -> Vec<Value> {
+pub fn lignes(dmois: &DuMois, mois: &str) -> Vec<LignePaie> {
     let mut out = Vec::new();
     let plancher = eur2(dmois.ij_subrogees_brutes);
     let direct = eur2(dmois.loi.max(dmois.convention_brut.unwrap_or(Decimal::ZERO)));
     let montant = direct + plancher;
     if montant > Decimal::ZERO || dmois.au_net.is_some() {
         let q = if dmois.heures > Decimal::ZERO { eur2(dmois.heures) } else { Decimal::ONE };
-        let mut l = Map::new();
-        l.insert("rubrique".into(), json!("maintien_salaire"));
-        l.insert("quantite".into(), json!(flot(q)));
-        l.insert("taux".into(), Value::String(div(montant, q).normalize().to_string()));
+        let mut l = LignePaie::de("maintien_salaire", Chiffre::de_f64(flot(q)), Chiffre::texte_de(div(montant, q).normalize()));
         // Une somme, pas des heures de travail : les heures de l'absence restent celles de sa retenue (S21.G00.53).
-        l.insert("heures".into(), json!(0));
-        if let Some(a) = &dmois.au_net {
-            l.insert(
-                "maintien".into(),
-                json!({
-                    "mois": mois,
-                    "texte": a.texte,
-                    "net": a.net,
-                    "plafond_net": a.plafond_net,
-                    "parts": a.parts.iter().map(|(x, f)| json!([x.to_string(), f.to_string()])).collect::<Vec<_>>(),
-                    "ij_nettes_hors_bulletin": eur2(a.ij_nettes_hors_bulletin).to_string(),
-                    "ij_nettes_hors_garantie": eur2(a.ij_nettes_hors_garantie).to_string(),
-                    "complement_brut": eur2(a.complement_brut).to_string(),
-                    "complement_direct": direct.to_string(),
-                    "plancher": plancher.to_string(),
-                }),
-            );
-        }
-        out.push(Value::Object(l));
+        l.heures = Some(Chiffre::entier(0));
+        l.maintien = dmois.au_net.as_ref().map(|a| {
+            Box::new(Reconstitution {
+                mois: mois.to_string(),
+                au_net: AuNet {
+                    ij_nettes_hors_bulletin: eur2(a.ij_nettes_hors_bulletin),
+                    ij_nettes_hors_garantie: eur2(a.ij_nettes_hors_garantie),
+                    complement_brut: eur2(a.complement_brut),
+                    ..a.clone()
+                },
+                complement_direct: direct,
+                plancher,
+            })
+        });
+        out.push(l);
     }
     if dmois.ij_subrogees_jours > 0 {
         let j = Decimal::from(dmois.ij_subrogees_jours);
-        out.push(json!({"rubrique": IJ_BRUTES, "quantite": dmois.ij_subrogees_jours, "taux": div(plancher, j).normalize().to_string(), "heures": 0, "ij": true}));
-        out.push(json!({
-            "rubrique": IJ_NETTES, "quantite": dmois.ij_subrogees_jours,
-            "taux": div(eur2(dmois.ij_subrogees_nettes), j).normalize().to_string(),
-            "heures": 0, "ij": true, "assiette_pas": eur2(dmois.assiette_pas).to_string(),
-        }));
+        let ij = |rubrique: &str, montant: Decimal| LignePaie {
+            heures: Some(Chiffre::entier(0)),
+            ij: Some(true),
+            ..LignePaie::de(rubrique, Chiffre::entier(dmois.ij_subrogees_jours), Chiffre::texte_de(div(montant, j).normalize()))
+        };
+        out.push(ij(IJ_BRUTES, plancher));
+        out.push(LignePaie { assiette_pas: Some(Chiffre::texte_de(eur2(dmois.assiette_pas))), ..ij(IJ_NETTES, eur2(dmois.ij_subrogees_nettes)) });
     }
     out
+}
+
+/// LA LIGNE DU MAINTIEN GARANTI EN NET : ce qu'il faut pour le reconstituer (`au_net`) -- le mois, la garantie, le
+/// complement de la loi en brut et les indemnites subrogees qu'il avance.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Reconstitution {
+    pub mois: String,
+    pub au_net: AuNet,
+    pub complement_direct: Decimal,
+    pub plancher: Decimal,
 }
 
 // ------------------------------------------------------------------ le net reconstitue
@@ -727,21 +732,14 @@ const ESSAIS: usize = 40;
 /// baisse son complement jusqu'a `net0`. La loi, en brut, reste le plancher (la plus favorable). `paie(lignes)` est le
 /// calcul de la paie du mois, le seul : rien ne se calcule ici a cote de lui.
 pub fn au_net(
-    lignes: &[Value],
-    paie: &mut dyn FnMut(Vec<Value>) -> Resultat<crate::calcul::Paie>,
+    lignes: &[LignePaie],
+    paie: &mut dyn FnMut(Vec<LignePaie>) -> Resultat<crate::calcul::Paie>,
 ) -> Resultat<Option<(Decimal, Avis)>> {
-    let Some(i) = lignes.iter().position(|l| l.get("maintien").is_some_and(Value::is_object)) else { return Ok(None) };
-    let spec = lignes[i]["maintien"].clone();
-    let n = |k: &str| dec_avec_echelle(&spec[k]);
-    let (plancher, direct, complement_brut) = (n("plancher")?, n("complement_direct")?, n("complement_brut")?);
-    let (hors_bulletin, hors_garantie) = (n("ij_nettes_hors_bulletin")?, n("ij_nettes_hors_garantie")?);
-    let parts: Vec<(Decimal, Decimal)> = spec["parts"]
-        .as_array()
-        .map_or(&[][..], |a| &a[..])
-        .iter()
-        .map(|p| Ok((dec_avec_echelle(&p[0])?, dec_avec_echelle(&p[1])?)))
-        .collect::<Resultat<_>>()?;
-    let avec = |montant: Option<Decimal>| -> Vec<Value> {
+    let Some((i, spec)) = lignes.iter().enumerate().find_map(|(i, l)| l.maintien.as_deref().map(|s| (i, s.clone()))) else { return Ok(None) };
+    let (plancher, direct, complement_brut) = (spec.plancher, spec.complement_direct, spec.au_net.complement_brut);
+    let (hors_bulletin, hors_garantie) = (spec.au_net.ij_nettes_hors_bulletin, spec.au_net.ij_nettes_hors_garantie);
+    let parts = spec.au_net.parts.clone();
+    let avec = |montant: Option<Decimal>| -> Vec<LignePaie> {
         let mut out = Vec::new();
         for (k, l) in lignes.iter().enumerate() {
             if k == i {
@@ -750,19 +748,19 @@ pub fn au_net(
                 }
                 continue;
             }
-            if montant.is_none() && g(l, "ij").as_bool() == Some(true) {
+            if montant.is_none() && l.ij == Some(true) {
                 continue;
             }
             out.push(l.clone());
         }
         out
     };
-    let sans_absence: Vec<Value> = avec(None).into_iter().filter(|l| g(l, "arret").as_bool() != Some(true)).collect();
+    let sans_absence: Vec<LignePaie> = avec(None).into_iter().filter(|l| l.arret != Some(true)).collect();
     let net0 = paie(sans_absence)?.net_a_payer;
     let net_abs = paie(avec(None))?.net_a_payer;
     let retire: Decimal = parts.iter().map(|p| p.0).sum();
     let perdu = net0 - net_abs;
-    let cible = if spec["net"].as_bool() == Some(true) {
+    let cible = if spec.au_net.net {
         let mut c = net_abs + hors_garantie;
         if retire > Decimal::ZERO {
             for (x, f) in &parts {
@@ -811,8 +809,8 @@ pub fn au_net(
         }
         Ok(None)
     };
-    let texte = en_texte(&spec["texte"]);
-    let mois = en_texte(&spec["mois"]);
+    let texte = spec.au_net.texte.clone();
+    let mois = spec.mois.clone();
     let echec = || {
         format!(
             "Le maintien de {} ({}) ne se reconstitue pas au centime en {} calculs de la paie : la garantie en net n'est pas \
@@ -852,14 +850,18 @@ atteinte. Rien n'est calculé ; signaler ce mois au développeur.",
 }
 
 /// Les lignes d'un engagement, la ligne du maintien portee a `montant` (le resultat de `au_net`).
-pub fn avec_le_montant(lignes: &[Value], montant: Decimal) -> Vec<Value> {
+pub fn avec_le_montant(lignes: &[LignePaie], montant: Decimal) -> Vec<LignePaie> {
     lignes
         .iter()
         .map(|l| {
-            if l.get("maintien").is_some_and(Value::is_object) {
-                let q = dec_avec_echelle(g(l, "quantite")).unwrap_or(Decimal::ONE);
+            if l.maintien.is_some() {
+                let q = l.quantite.as_ref().and_then(|q| q.dec_avec_echelle().ok()).unwrap_or(Decimal::ONE);
                 let q = if q > Decimal::ZERO { q } else { Decimal::ONE };
-                json!({"rubrique": l["rubrique"], "quantite": flot(q), "taux": div(montant, q).normalize().to_string(), "heures": 0})
+                LignePaie {
+                    rubrique: l.rubrique.clone(),
+                    heures: Some(Chiffre::entier(0)),
+                    ..LignePaie::de("", Chiffre::de_f64(flot(q)), Chiffre::texte_de(div(montant, q).normalize()))
+                }
             } else {
                 l.clone()
             }
@@ -870,6 +872,7 @@ pub fn avec_le_montant(lignes: &[Value], montant: Decimal) -> Vec<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     /// CSS R323-5 : « la moitié du revenu d'activité antérieur » ; R323-4, 1° : « 1/91,25 du montant des trois dernières
     /// paies », chacune « dans la limite d'un plafond égal à 1,4 fois le salaire minimum de croissance [...] calculé pour un
@@ -910,7 +913,7 @@ mod tests {
                 ..DuMois::default()
             };
             let l = lignes(&m, "2026-03");
-            dec_avec_echelle(&l[0]["taux"]).unwrap()
+            l[0].taux.as_ref().unwrap().dec_avec_echelle().unwrap()
         };
         assert_eq!(montant(500, 300, 0), Decimal::from(500));
         assert_eq!(montant(300, 500, 0), Decimal::from(500));

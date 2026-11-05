@@ -13,13 +13,15 @@ use std::path::Path;
 
 use socle::num::Resultat;
 
+use crate::ligne::{DateDeLigne, LignePaie};
+
 /// LES GROUPES DES CHAMPS D'UNE CARTE.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Groupe {
     /// Ce que tous les mois de l'engagement partagent : le salarie, les bornes du contrat, son numero.
     Partage,
     /// LES TERMES DU CONTRAT, qui valent jusqu'a ce qu'ils changent (`stock::Avenant`) : sa nature, son motif, sa duree du
-    /// travail, son salaire, son emploi, ce que son contrat ecrit dit en plus (`CHAMPS_DU_CONTRAT_ECRIT`), son
+    /// travail, son salaire, son emploi, ce que son contrat ecrit dit en plus (`ContratEcrit`), son
     /// spectacle, son lieu, son etablissement et son metier.
     Terme,
     /// Ce qui n'appartient qu'a un mois : ses lignes (celles d'un contrat paye au mois se composent chaque mois), ses
@@ -181,10 +183,9 @@ carte! {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub clauses_particulieres: Option<String>,
         #[champ(Fait, Lignes)]
-        /// Les lignes de paie de la carte. TRAVAIL A FAIRE (chaine A) : la ligne a sa forme (`calcul::lignes_brut`,
-        /// `Engagement::lignes`, `frais_au_dela`, `conges::lignes_du_mois` la lisent par ses cles).
+        /// Les lignes de paie de la carte (`ligne::LignePaie`).
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub lignes: Option<Vec<Value>>,
+        pub lignes: Option<Vec<LignePaie>>,
         #[champ(Fait, CongesPris)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub conges_pris: Option<Vec<CongePris>>,
@@ -314,7 +315,7 @@ impl Simple for bool {
 macro_rules! rien_de_simple {
     ($($t:ty),*) => { $( impl Simple for $t { fn simple(&self) -> Option<Valeur> { None } } )* };
 }
-rien_de_simple!(Vec<Value>, Vec<CongePris>, Vec<Prime>, Preavis, Avant, Validee);
+rien_de_simple!(Vec<LignePaie>, Vec<CongePris>, Vec<Prime>, Preavis, Avant, Validee);
 
 impl Serialize for Champ {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
@@ -385,7 +386,7 @@ impl Carte {
     }
 
     /// Les lignes de la carte (aucune si elle n'en dit pas).
-    pub fn lignes(&self) -> &[Value] {
+    pub fn lignes(&self) -> &[LignePaie] {
         self.lignes.as_deref().unwrap_or(&[])
     }
 
@@ -400,13 +401,13 @@ impl Carte {
     }
 
     /// Les jours joues de ses lignes de travail (`crate::jours_des_lignes`).
-    pub fn dates(&self, racine: &Path) -> Vec<Value> {
-        crate::jours_des_lignes(racine, self.lignes(), "dates")
+    pub fn dates(&self, racine: &Path) -> Vec<DateDeLigne> {
+        crate::jours_des_lignes(racine, self.lignes(), false)
     }
 
     /// Les jours que ses lignes de travail mettent au planning.
-    pub fn planning(&self, racine: &Path) -> Vec<Value> {
-        crate::jours_des_lignes(racine, self.lignes(), "planning")
+    pub fn planning(&self, racine: &Path) -> Vec<DateDeLigne> {
+        crate::jours_des_lignes(racine, self.lignes(), true)
     }
 
     /// Les jours du contrat entier que la carte connait.

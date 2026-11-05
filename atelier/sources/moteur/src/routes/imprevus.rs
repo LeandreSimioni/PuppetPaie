@@ -1637,7 +1637,7 @@ fn carte_de(e: &Value) -> engagement::saisie::Carte {
 /// finit son dernier (`engagement::debut_brut`, `engagement::dates_engagement`).
 fn avec_ses_bornes(racine: &std::path::Path, e: &Value) -> Value {
     let mut e = e.clone();
-    let jour = |j: &Value| j.get("jour").map_or_else(|| valeur_en_texte(j), valeur_en_texte);
+    let jour = |j: &engagement::DateDeLigne| j.jour().to_string();
     if !e.get("debut").is_some_and(vrai) {
         let debut = carte_de(&e).debut_lu(racine);
         if !debut.is_empty() {
@@ -2205,7 +2205,7 @@ déclarent tous deux.",
         ));
     } else if let Some(dernier) = e.get("dernier_jour_paye").filter(|j| vrai(j)).map(valeur_en_texte) {
         // Hors preavis non effectue, aucun jour de la paie ne vient apres le dernier jour paye.
-        let jour = |j: &Value| j.get("jour").map_or_else(|| valeur_en_texte(j), valeur_en_texte);
+        let jour = |j: &engagement::DateDeLigne| j.jour().to_string();
         let apres: Vec<String> = carte_de(e).dates(&ctx.racine).iter().map(jour).filter(|j| *j > dernier).collect();
         if !apres.is_empty() {
             let dire = |j: &str| socle::date::jour_iso(j).map_or_else(|| j.to_string(), |x| x.jj_mm());

@@ -2665,7 +2665,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<NonActif>> {
         let debut = engagement::debut_brut(&ctx.racine, &b);
         let fin_ecrite = b.saisie.carte.fin.clone().filter(|f| !f.is_empty()).map(Value::String).unwrap_or(Value::Null);
         let fin = match &fin_ecrite {
-            Value::Null => b.saisie.carte.dates(&ctx.racine).iter().map(engagement::jour_ecrit).max(),
+            Value::Null => b.saisie.carte.dates(&ctx.racine).iter().map(|j| j.jour().to_string()).max(),
             f => Some(valeur_en_texte(f)),
         };
         let numero = b.saisie.carte.numero_dit().map_or_else(|| "sans numéro".to_string(), String::from);

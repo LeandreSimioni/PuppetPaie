@@ -9,7 +9,7 @@ use std::cell::Cell;
 use serde_json::{json, Value};
 
 use crate::calcul::{fiche_de_l_engagement, DeductionForfaitaire, LigneBrut, LigneCotisation, Paie, PlafondTempsPartiel, ReductionGenerale};
-use crate::{Avis, Engagement};
+use crate::{Avis, Engagement, LignePaie};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::fichiers::vrai;
@@ -20,12 +20,12 @@ use socle::num::{dec, flottant, Decimal, Resultat};
 pub fn ecrire(ctx: &Contexte, p: &Paie) -> Resultat<Value> {
     let mut v = p.canon(ctx)?;
     v["avertissements"] = avis(&p.avertissements);
-    v["engagement"]["lignes"] = Value::Array(p.engagement.lignes.clone());
+    v["engagement"]["lignes"] = socle::ecriture::en_valeur(&p.engagement.lignes);
     v[PLAFOND_TEMPS_PARTIEL] = json!(p.plafond_temps_partiel.code());
     if let Some(Value::Array(periodes)) = v.get_mut("periodes") {
         for (x, q) in periodes.iter_mut().zip(&p.periodes) {
             x["avertissements"] = avis(&q.avertissements);
-            x["engagement"]["lignes"] = Value::Array(q.engagement.lignes.clone());
+            x["engagement"]["lignes"] = socle::ecriture::en_valeur(&q.engagement.lignes);
             x[PLAFOND_TEMPS_PARTIEL] = json!(q.plafond_temps_partiel.code());
         }
     }
@@ -35,6 +35,11 @@ pub fn ecrire(ctx: &Contexte, p: &Paie) -> Resultat<Value> {
 /// Dans une paie ecrite : le plafond d'un salarie a temps partiel tel que le calcul l'a applique
 /// (`calcul::PlafondTempsPartiel`), que la DSN declare en S21.G00.40.084.
 pub const PLAFOND_TEMPS_PARTIEL: &str = "plafond_temps_partiel";
+
+/// LES LIGNES DE PAIE QU'UNE PAIE ECRITE GARDE (`ecrire`), lues par leur forme (`LignePaie`).
+pub fn lignes_ecrites(v: &Value) -> Resultat<Vec<LignePaie>> {
+    socle::forme::lire(v, "Les lignes de paie d'une paie écrite ne se lisent pas : valider à nouveau l'engagement.")
+}
 
 fn avis(v: &[Avis]) -> Value {
     Value::Array(v.iter().map(|a| json!({ "texte": a.texte, "info": a.info })).collect())
@@ -81,13 +86,13 @@ fn drapeau(v: &Value, cle: &str) -> bool {
 pub fn engagements_ecrits(ctx: &Contexte, data: &crate::saisie::VueDuMois, paies: &[&Value]) -> Resultat<Vec<Engagement>> {
     let mensuels: Vec<usize> = data.engagements.iter().enumerate().filter(|(_, e)| e.mensuelle()).map(|(i, _)| i).collect();
     let appel = Cell::new(0usize);
-    let lignes = |_: &Contexte, _: &Value, _: &str| -> Resultat<(Vec<Value>, Vec<Avis>, Option<i64>)> {
+    let lignes = |_: &Contexte, _: &crate::saisie::Carte, _: &str| -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)> {
         let rang = *mensuels.get(appel.get()).ok_or("rang d'engagement inconnu")?;
         appel.set(appel.get() + 1);
         let ecrit = paies.get(rang).and_then(|p| p.get("engagement"));
-        let l = ecrit.and_then(|e| e.get("lignes")).and_then(Value::as_array);
+        let l = ecrit.and_then(|e| e.get("lignes")).ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "lignes"))?;
         let jours = ecrit.and_then(|e| e.get("jours")).and_then(|j| socle::date::en_texte(j).trim().parse::<i64>().ok());
-        Ok((l.cloned().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "lignes"))?, Vec::new(), jours))
+        Ok((lignes_ecrites(l)?, Vec::new(), jours))
     };
     let (mut engs, _) = crate::engagements(ctx, data, &lignes)?;
     if engs.len() != paies.len() {
@@ -243,7 +248,7 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiche: Option<&droit::fi
         };
         let mut sub = eng.clone();
         sub.periode = Some((debut, fin));
-        sub.lignes = e.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
+        sub.lignes = e.get("lignes").map(lignes_ecrites).transpose()?.unwrap_or_default();
         sub.quotite_contrat = decimal_opt(e.get("quotite"))?;
         sub.heures = decimal_opt(e.get("heures"))?;
         p.periodes.push(paie_lue(ctx, sub, x, periodes.get(n), &[])?);

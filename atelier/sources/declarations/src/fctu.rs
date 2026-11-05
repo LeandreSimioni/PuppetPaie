@@ -10,7 +10,7 @@ use serde_json::Value;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::{
-    autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, jour, liste, primes_et_indemnites,
+    autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, liste, primes_et_indemnites,
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use engagement::Engagement;
@@ -203,10 +203,10 @@ preavis ({}) -- CCH-12 de S21.G00.62.006.",
 pub fn dernier_jour_paye(e: &Engagement) -> Resultat<Jour> {
     let numero = e.numero.as_deref().unwrap_or("None").to_string();
     let fin = e.fin.ok_or_else(|| format!("S21.G00.62.006 : le contrat {} n'a pas de fin.", numero))?;
-    let preavis = e.preavis.as_ref().filter(|p| vrai(p));
-    let type_preavis = preavis.map(|p| en_texte(g(p, "type"))).filter(|t| !t.is_empty());
-    let debut_preavis = match preavis.map(|p| g(p, "debut")).filter(|v| vrai(v)) {
-        Some(v) => Some(jour(v)?),
+    let preavis = e.preavis.as_ref();
+    let type_preavis = preavis.map(|p| p.genre.clone()).filter(|t| !t.is_empty());
+    let debut_preavis = match preavis.and_then(|p| p.debut.as_deref()).filter(|v| !v.is_empty()) {
+        Some(v) => Some(Jour::lire(v)?),
         None => None,
     };
     let jour_paye = match e.dernier_jour_paye.as_deref() {

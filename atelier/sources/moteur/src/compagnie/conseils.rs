@@ -461,10 +461,7 @@ fn gain_repetition(ctx: &Contexte, p: &Paie, heures_cachet: Decimal) -> Resultat
         if l.code != "repetition" || l.heures_annexes.is_zero() {
             continue;
         }
-        let dates: BTreeSet<String> = s.get("dates").and_then(Value::as_array).into_iter().flatten().map(|j| match j {
-            Value::Object(m) => m.get("jour").map(en_texte).unwrap_or_default(),
-            autre => en_texte(autre),
-        }).filter(|j| !j.is_empty()).collect();
+        let dates: BTreeSet<String> = s.map_or(&[][..], |s| &s.dates[..]).iter().map(|j| j.jour().to_string()).filter(|j| !j.is_empty()).collect();
         if dates.is_empty() {
             continue;
         }

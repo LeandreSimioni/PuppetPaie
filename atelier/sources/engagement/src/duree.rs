@@ -13,11 +13,11 @@
 
 use std::collections::BTreeMap;
 
-use serde_json::Value;
+use crate::{Chiffre, LignePaie};
 
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
-use socle::date::{d, en_texte, Jour};
+use socle::date::Jour;
 use socle::num::{dec_f64, Resultat};
 use socle::texte::virgule;
 
@@ -29,11 +29,11 @@ const JOURNEE: f64 = 24.0;
 
 /// Les heures de travail de chaque jour des lignes `lignes` d'un engagement, et si l'une d'elles est une moyenne (une
 /// ligne qui repartit ses heures sur plusieurs jours).
-fn heures_par_jour(ctx: &Contexte, lignes: &[Value]) -> Resultat<BTreeMap<Jour, (f64, bool)>> {
+fn heures_par_jour(ctx: &Contexte, lignes: &[LignePaie]) -> Resultat<BTreeMap<Jour, (f64, bool)>> {
     let mut jours: BTreeMap<Jour, (f64, bool)> = BTreeMap::new();
     for l in lignes {
-        let Some(code) = l.get("rubrique") else { continue };
-        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
+        let Some(code) = &l.rubrique else { continue };
+        let r = rubrique(&ctx.racine, code, &ctx.lue_au)?;
         let travail = r.nature == "salaire"
             && matches!(r.unite.as_str(), "heure" | "jour" | "service")
             && r.heures_forfait.is_none()
@@ -41,12 +41,15 @@ fn heures_par_jour(ctx: &Contexte, lignes: &[Value]) -> Resultat<BTreeMap<Jour, 
         if !travail {
             continue;
         }
-        let dates: Vec<Jour> = l.get("dates").and_then(Value::as_array).into_iter().flatten().filter_map(|x| d(x.get("jour").unwrap_or(x)).ok()).collect();
+        let dates: Vec<Jour> = l.dates.iter().filter_map(|x| x.lu().ok()).collect();
         if dates.is_empty() {
             continue;
         }
-        let nombre = |k: &str| l.get(k).and_then(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.trim().replace(',', ".").parse().ok())));
-        let total = r.heures(nombre("quantite").unwrap_or(0.0), nombre("heures"));
+        let nombre = |c: &Option<Chiffre>| match c.as_ref()? {
+            Chiffre::Nombre(n) => n.as_f64(),
+            Chiffre::Texte(s) => s.trim().replace(',', ".").parse().ok(),
+        };
+        let total = r.heures(nombre(&l.quantite).unwrap_or(0.0), nombre(&l.heures));
         let par_jour = total / dates.len() as f64;
         for j in &dates {
             let x = jours.entry(*j).or_insert((0.0, false));
@@ -58,7 +61,7 @@ fn heures_par_jour(ctx: &Contexte, lignes: &[Value]) -> Resultat<BTreeMap<Jour, 
 }
 
 /// LE REFUS : un jour de plus de 24 heures dans l'engagement `e` de `qui`. `None` quand il n'y en a pas.
-pub fn plus_d_une_journee(ctx: &Contexte, lignes: &[Value], qui: &str) -> Resultat<Option<String>> {
+pub fn plus_d_une_journee(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<Option<String>> {
     let trop: Vec<(Jour, (f64, bool))> = heures_par_jour(ctx, lignes)?.into_iter().filter(|(_, (h, _))| *h > JOURNEE + 1e-9).collect();
     let Some((j, (h, moyenne))) = trop.first() else { return Ok(None) };
     Ok(Some(format!(
@@ -73,7 +76,7 @@ pub fn plus_d_une_journee(ctx: &Contexte, lignes: &[Value], qui: &str) -> Result
 
 /// CE QUI SE DIT SANS SE REFUSER : les jours de l'engagement `e` de `qui` au-dela de la duree quotidienne maximale
 /// (L. 3121-18). `None` quand il n'y en a pas.
-pub fn au_dela_du_maximum(ctx: &Contexte, lignes: &[Value], qui: &str) -> Resultat<Option<String>> {
+pub fn au_dela_du_maximum(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<Option<String>> {
     let longs: Vec<(Jour, (f64, bool))> =
         heures_par_jour(ctx, lignes)?.into_iter().filter(|(_, (h, _))| *h > MAXIMUM_QUOTIDIEN + 1e-9 && *h <= JOURNEE + 1e-9).collect();
     if longs.is_empty() {

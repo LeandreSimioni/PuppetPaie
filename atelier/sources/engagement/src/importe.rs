@@ -31,7 +31,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use crate::calcul::{Importee, LigneCotisation, Paie, PlafondTempsPartiel};
 use crate::numeros::NumeroContrat;
@@ -231,6 +231,15 @@ pub struct LigneImprimee {
     pub rubrique: Option<String>,
     #[serde(default)]
     pub heures: Option<Decimal>,
+}
+
+impl LigneImprimee {
+    /// La ligne de paie qu'elle dit a l'engagement importe : sa rubrique, sa quantite, son taux et ses heures (son libelle
+    /// et son montant restent ceux du bulletin, `remuneration_lue`).
+    pub fn en_ligne_de_paie(&self) -> crate::LignePaie {
+        let c = |x: &Option<Decimal>| x.map(crate::Chiffre::texte_de);
+        crate::LignePaie { rubrique: self.rubrique.clone(), quantite: c(&self.quantite), taux: c(&self.taux), heures: c(&self.heures), ..crate::LignePaie::default() }
+    }
 }
 
 /// Des jours travailles que le bulletin imprime, de `debut` a `fin`.
@@ -620,7 +629,7 @@ impl Importe {
             nom: sal.nomme().unwrap_or_else(|| cle.to_string()),
             spectacle: spectacle.clone(),
             dates_travail,
-            lignes: lignes_lues.iter().map(|l| serde_json::to_value(l).expect("une forme declaree s'ecrit")).collect(),
+            lignes: lignes_lues.iter().map(LigneImprimee::en_ligne_de_paie).collect(),
             debut,
             fin,
             numero: match NumeroContrat::du_texte(self.carte().numero.as_deref())? {
@@ -661,7 +670,7 @@ impl Importe {
             suspensions: Vec::new(),
             avant: None,
             periode: None,
-            ecrit: Map::new(),
+            ecrit: crate::ContratEcrit::default(),
         };
         let remuneration = remuneration_lue(&engagement, &lignes_lues, &ctx)?;
         if lignes_lues.iter().all(|l| l.rubrique.as_deref().is_none_or(str::is_empty)) {
@@ -975,7 +984,7 @@ fn remuneration_lue(e: &crate::Engagement, lignes: &[LigneImprimee], ctx: &Conte
         let rattachee = l.rubrique.as_deref().is_some_and(|r| !r.trim().is_empty()) && l.quantite.is_some() && l.taux.is_some();
         if rattachee {
             let mut seule = e.clone();
-            seule.lignes = vec![serde_json::to_value(l).expect("une forme declaree s'ecrit")];
+            seule.lignes = vec![l.en_ligne_de_paie()];
             for mut b in crate::calcul::lignes_brut(&seule, ctx)? {
                 b.montant = montant;
                 out.push(b);

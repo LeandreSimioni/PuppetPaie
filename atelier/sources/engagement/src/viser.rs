@@ -2,12 +2,12 @@
 //! montant donne. La recherche refait le calcul de la saisie pour l'ecran (`pour_l_ecran`) a chaque essai, les salaires
 //! des engagements vises multiplies par un meme facteur ; rien ne s'ecrit.
 
-use serde_json::{json, Value};
+use crate::{Chiffre, LignePaie};
 
 use crate::calcul::Paie;
 use crate::saisie::{Carte, VueDuMois};
 use droit::contexte::Contexte;
-use socle::num::{dec, Decimal};
+use socle::num::Decimal;
 
 /// Ce qui se vise : le brut, le cout employeur, le net a payer ; la charge du montant vise le dit `brut`, `cout`, `net`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -51,37 +51,36 @@ fn centimes(x: Decimal) -> Decimal {
     r
 }
 
-/// Un taux ou un total en nombre JSON.
-fn flottant(x: Decimal) -> Value {
-    x.to_string().parse::<f64>().ok().and_then(serde_json::Number::from_f64).map_or(Value::Null, Value::Number)
+/// Un taux ou un total en nombre.
+fn flottant(x: Decimal) -> Option<Chiffre> {
+    x.to_string().parse::<f64>().ok().and_then(serde_json::Number::from_f64).map(Chiffre::Nombre)
 }
 
-/// Une valeur saisie : ni absente, ni `null`, ni vide.
-fn rempli(v: Option<&Value>) -> bool {
-    !matches!(v, None | Some(Value::Null)) && v.and_then(Value::as_str) != Some("")
+/// Une valeur saisie : ni absente, ni vide.
+fn rempli(v: &Option<Chiffre>) -> bool {
+    match v {
+        None => false,
+        Some(Chiffre::Texte(t)) => !t.is_empty(),
+        Some(Chiffre::Nombre(_)) => true,
+    }
 }
 
 /// Une valeur absente, vide ou nulle.
-fn absent_ou_zero(v: Option<&Value>) -> bool {
-    !rempli(v) || v.is_some_and(|x| socle::valeur::nombre(x) == Some(0.0))
+fn absent_ou_zero(v: &Option<Chiffre>) -> bool {
+    !rempli(v) || matches!(v, Some(Chiffre::Nombre(n)) if n.as_f64() == Some(0.0))
 }
 
-fn rubrique_de(ctx: &Contexte, ligne: &Value) -> Option<droit::catalogue::Rubrique> {
-    let code = match ligne.get("rubrique") {
-        None => "cachet",
-        Some(Value::String(s)) => s.as_str(),
-        Some(_) => return None,
-    };
-    droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).ok()
+fn rubrique_de(ctx: &Contexte, ligne: &LignePaie) -> Option<droit::catalogue::Rubrique> {
+    droit::catalogue::rubrique(&ctx.racine, ligne.rubrique.as_deref().unwrap_or("cachet"), &ctx.lue_au).ok()
 }
 
 /// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.
-fn ligne_ajustable(ctx: &Contexte, ligne: &Value) -> bool {
-    rubrique_de(ctx, ligne).is_some_and(|r| r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && !absent_ou_zero(ligne.get("taux")))
+fn ligne_ajustable(ctx: &Contexte, ligne: &LignePaie) -> bool {
+    rubrique_de(ctx, ligne).is_some_and(|r| r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && !absent_ou_zero(&ligne.taux))
 }
 
-fn taux_vide(l: &Value) -> bool {
-    matches!(l.get("taux"), Some(Value::Null)) || l.get("taux").and_then(Value::as_str) == Some("")
+fn taux_vide(l: &LignePaie) -> bool {
+    matches!(&l.taux, Some(Chiffre::Texte(t)) if t.is_empty())
 }
 
 /// L'engagement de rang `i` de la saisie.
@@ -100,7 +99,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
         let mut sans_taux: Vec<(usize, String)> = Vec::new();
         for (k, ligne) in lignes.iter().enumerate() {
             let Some(r) = rubrique_de(ctx, ligne) else { continue };
-            if r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && absent_ou_zero(ligne.get("taux")) && rempli(ligne.get("quantite")) && !absent_ou_zero(ligne.get("quantite")) {
+            if r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && absent_ou_zero(&ligne.taux) && rempli(&ligne.quantite) && !absent_ou_zero(&ligne.quantite) {
                 sans_taux.push((k, r.libelle));
             }
         }
@@ -116,7 +115,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
             )));
         }
         if let Some(l) = sans_taux.first().and_then(|(k, _)| e.lignes.as_mut().and_then(|ls| ls.get_mut(*k))) {
-            l["taux"] = json!(1.0);
+            l.taux = Some(Chiffre::de_f64(1.0));
         }
     }
     // Les AUTRES blocs du mois repartent comme la page les enverrait d'ordinaire : sans leurs lignes incompletes.
@@ -124,7 +123,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
         let Some(ls) = e.lignes.as_mut() else { continue };
         if rangs.contains(&i) {
             for l in ls.iter_mut().filter(|l| taux_vide(l)) {
-                l["taux"] = json!(0);
+                l.taux = Some(Chiffre::entier(0));
             }
         } else {
             ls.retain(|l| !taux_vide(l));
@@ -134,8 +133,8 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
 }
 
 /// Un montant multiplie par `facteur`, au centime, en flottant.
-fn mis_a_l_echelle(x: &Value, facteur: Decimal) -> R<Value> {
-    let a = dec(x).map_err(refus)?;
+fn mis_a_l_echelle(x: &Chiffre, facteur: Decimal) -> R<Option<Chiffre>> {
+    let a = x.dec().map_err(refus)?;
     let p = a.checked_mul(facteur).ok_or_else(|| refus("Montant trop grand pour l'ajustement."))?;
     Ok(flottant(centimes(p)))
 }
@@ -144,8 +143,8 @@ fn mis_a_l_echelle(x: &Value, facteur: Decimal) -> R<Value> {
 fn a_l_echelle(ctx: &Contexte, e: &mut Carte, facteur: Decimal) -> R<bool> {
     let mut touche = false;
     if let Some(s) = &e.salaire_mensuel {
-        e.salaire_mensuel = match mis_a_l_echelle(&Value::Number(s.clone()), facteur)? {
-            Value::Number(n) => Some(n),
+        e.salaire_mensuel = match mis_a_l_echelle(&Chiffre::Nombre(s.clone()), facteur)? {
+            Some(Chiffre::Nombre(n)) => Some(n),
             _ => return Err(refus("Montant trop grand pour l'ajustement.")),
         };
         touche = true;
@@ -154,7 +153,9 @@ fn a_l_echelle(ctx: &Contexte, e: &mut Carte, facteur: Decimal) -> R<bool> {
         if !ligne_ajustable(ctx, l) {
             continue;
         }
-        l["taux"] = mis_a_l_echelle(&l["taux"], facteur)?;
+        if let Some(t) = &l.taux {
+            l.taux = mis_a_l_echelle(t, facteur)?;
+        }
         touche = true;
     }
     Ok(touche)

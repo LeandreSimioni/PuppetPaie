@@ -592,8 +592,8 @@ pub struct MoisDuContrat<'a> {
 /// salaire entier quand les heures sont toutes celles du mois. Un taux arrondi au centime AVANT de multiplier laissait
 /// 0,07 EUR de salaire sur un mois entier d'absence (2 310 / 151,67 = 15,23, x 151,67 = 2 309,93) : aucun texte ne
 /// l'arrondit (Cass. soc. 11/02/1982, ci-dessous, est un quotient).
-fn taux_exact(montant: Decimal, quantite: Decimal) -> Value {
-    Value::String(div(montant, quantite).normalize().to_string())
+fn taux_exact(montant: Decimal, quantite: Decimal) -> crate::Chiffre {
+    crate::Chiffre::texte_de(div(montant, quantite).normalize())
 }
 
 /// LA FICHE DU SALARIE D'UN IMPREVU, rattachee a l'etablissement du contrat qu'il suspend (`calcul::etablissement_du_contrat`) :
@@ -659,7 +659,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, nume
 ///
 /// Rend aussi les jours travailles que les absences retirees ote du mois (un arret, une suspension non remuneree) :
 /// `conges::lignes_du_mois` en tire les jours travailles du mois.
-pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<Value>, Vec<Avis>, i64)> {
+pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<crate::LignePaie>, Vec<Avis>, i64)> {
     let qui = crate::conges::qui(ctx, e);
     let (mut lignes, mut avert, mut absents) = (Vec::new(), Vec::new(), 0i64);
     let nat = crate::conges::nature_de(e.get("nature"))?;
@@ -678,9 +678,9 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
             0
         };
         let heures = eur2(mul(m.heures_par_jour, Decimal::from(jours)));
-        let retenue = |rubrique: &str| -> Option<Value> {
+        let retenue = |rubrique: &str| -> Option<crate::LignePaie> {
             match &taux_horaire {
-                Some(t) if heures > Decimal::ZERO => Some(json!({"rubrique": rubrique, "quantite": flot(heures), "taux": t})),
+                Some(t) if heures > Decimal::ZERO => Some(crate::LignePaie::de(rubrique, crate::Chiffre::de_f64(flot(heures)), t.clone())),
                 _ => None,
             }
         };
@@ -707,10 +707,7 @@ nomme cette absence. Rien n'est calcule.",
                     motif.as_ref().map_or("inconnu de la norme", |m| m.libelle.as_str())
                 ), "arrets-base.json"));
             }
-            lignes.extend(retenue(&rubrique).map(|mut l| {
-                l["arret"] = json!(true);
-                l
-            }));
+            lignes.extend(retenue(&rubrique).map(|l| crate::LignePaie { arret: Some(true), ..l }));
             absents += jours;
             avert.push(info(format!(
                 "{} : arrêt de travail ({}) du {} au {} : {} ; la DSN de chaque mois qu'il traverse le déclare.",
@@ -757,8 +754,8 @@ nomme cette absence. Rien n'est calcule.",
 // ------------------------------------------------------------- les jours payes
 
 /// Les jours d'une ligne de saisie (`dates`), lus.
-fn dates_de_ligne(l: &Value) -> Vec<Jour> {
-    l.get("dates").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().filter_map(|x| d(x).ok()).collect())
+fn dates_de_ligne(l: &crate::LignePaie) -> Vec<Jour> {
+    l.dates.iter().filter_map(|x| x.lu().ok()).collect()
 }
 
 /// Le libelle d'une rubrique, ou son code si le catalogue ne la connait pas.
@@ -796,12 +793,12 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &
             if dedans.is_empty() {
                 continue;
             }
-            let rubrique = s(l, "rubrique");
+            let rubrique = l.code().to_string();
             // TRAVAIL A FAIRE (chaine A) : le jour paye pendant un imprevu a sa forme.
             out.push(json!({
                 "mois": mois, "engagement": i, "numero": e.numero, "spectacle": e.spectacle,
                 "ligne": j, "rubrique": rubrique, "libelle": libelle_rubrique(&ctx.racine, &rubrique, &ctx.lue_au),
-                "dates": dedans, "quantite": g(l, "quantite"), "taux": g(l, "taux"),
+                "dates": dedans, "quantite": l.quantite, "taux": l.taux,
             }));
         }
     }

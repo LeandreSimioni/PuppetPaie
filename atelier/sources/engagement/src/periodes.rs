@@ -6,19 +6,21 @@
 
 use std::collections::BTreeMap;
 
-use serde_json::{json, Value};
+
 
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, LigneCotisation, Paie, ReductionGenerale};
 use droit::reduction::{reduction_au_coefficient, reduction_generale};
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
-use crate::{Avis, Engagement};
-use socle::num::{dec, eur2, Decimal, Resultat};
+use socle::date::Jour;
+use crate::{Avis, Chiffre, Engagement, LignePaie};
+use socle::num::{eur2, Decimal, Resultat};
 
 
 /// Le jour ou l'avenant de la saisie du mois decoupe la paie (`droit::periodes::jour_de_l_avenant`).
 fn jour_de_l_avenant(eng: &Engagement) -> Resultat<Option<Jour>> {
-    droit::periodes::jour_de_l_avenant(eng.avant.as_ref(), eng.date_modification.as_deref(), eng.debut_periode()?, eng.fin_periode()?, &eng.qui())
+    // TRAVAIL A FAIRE (chaine B) : `droit::periodes::jour_de_l_avenant` lit encore les termes d'avant en valeur.
+    let avant = eng.avant.as_ref().map(socle::ecriture::en_valeur);
+    droit::periodes::jour_de_l_avenant(avant.as_ref(), eng.date_modification.as_deref(), eng.debut_periode()?, eng.fin_periode()?, &eng.qui())
 }
 
 /// Les bornes des periodes elementaires de la paie de `eng` : une seule (la periode payee) pour un mois d'un seul
@@ -48,13 +50,13 @@ pub(crate) fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jo
 /// encore ; le logiciel ne choisit pas.
 pub(crate) fn engagements_des_periodes(ctx: &Contexte, eng: &Engagement, bornes: &[(Jour, Jour)]) -> Resultat<Vec<Engagement>> {
     let ligne = match eng.lignes.as_slice() {
-        [l] if l.get("rubrique").and_then(Value::as_str) == Some("mois") => l,
+        [l] if l.rubrique.as_deref() == Some("mois") => l,
         _ => {
             let autres: Vec<String> = eng
                 .lignes
                 .iter()
-                .filter(|l| l.get("rubrique").and_then(Value::as_str) != Some("mois"))
-                .map(|l| l.get("rubrique").map(en_texte).unwrap_or_else(|| "?".into()))
+                .filter(|l| l.rubrique.as_deref() != Some("mois"))
+                .map(|l| l.rubrique.clone().unwrap_or_else(|| "?".into()))
                 .collect();
             return Err(format!(
                 "{} : la paie de ce mois se decoupe en periodes elementaires (un changement de statut, de categorie ou de \
@@ -67,11 +69,12 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
             ));
         }
     };
-    let salaire_apres = dec(ligne.get("taux").ok_or_else(|| socle::fichiers::absent("taux"))?)?;
+    let salaire_apres = ligne.taux.as_ref().ok_or_else(|| socle::fichiers::absent("taux"))?.dec()?;
     let quotite_apres = eng.quotite()?;
     let avenant = jour_de_l_avenant(eng)?;
+    let terme = |x: &Option<serde_json::Number>, cle: &str| x.clone().map(Chiffre::Nombre).ok_or_else(|| socle::fichiers::absent(cle)).and_then(|c| c.dec());
     let (salaire_avant, quotite_avant) = match &eng.avant {
-        Some(a) => (dec(&a["salaire_mensuel"])?, dec(&a["quotite_contrat"])?),
+        Some(a) => (terme(&a.salaire_mensuel, "salaire_mensuel")?, terme(&a.quotite_contrat, "quotite_contrat")?),
         None => (salaire_apres, quotite_apres),
     };
     let fin_mois = eng.fin_mois()?;
@@ -89,10 +92,9 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
         e.periode = Some((*d, *f));
         e.quotite_contrat = Some(crate::conges::flot(quotite));
         let (q, h) = (crate::conges::flot(part.fraction), crate::conges::flot(eur2(quotite)));
-        let mut ligne = json!({"rubrique": "mois", "quantite": q, "taux": crate::conges::flot(salaire), "heures": h});
-        if let Some(p) = part.sur_le_bulletin(droit::conges::heures_par_jour(quotite, &horaire.jours)) {
-            ligne["precision"] = json!(p);
-        }
+        let mut ligne = LignePaie::de("mois", Chiffre::de_f64(q), Chiffre::de_f64(crate::conges::flot(salaire)));
+        ligne.heures = Some(Chiffre::de_f64(h));
+        ligne.precision = part.sur_le_bulletin(droit::conges::heures_par_jour(quotite, &horaire.jours));
         e.lignes = vec![ligne];
         // Les heures que la DSN mesure (S21.G00.53, « heures » d'un contrat paye au mois) : celles de la ligne de la
         // periode, comme `Engagement::nouveau` les tire des lignes du mois.

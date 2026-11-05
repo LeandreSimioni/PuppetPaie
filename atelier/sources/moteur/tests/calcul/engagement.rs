@@ -52,7 +52,10 @@ fn les_engagements_fabriques_et_leurs_refus() {
     let racine = dossier_de_test("engagement", "directs");
     let mut refus = 0;
     for c in directs.as_array_mut().unwrap() {
-        c["attendu"] = Engagement::nouveau(&racine, &c["kwargs"], c["kwargs"]["salarie"].as_str().filter(|s| !s.trim().is_empty()).unwrap_or("Cet engagement")).map_or_else(|m| json!({"refus": socle::echec::separer(&m).0}), |e| releve(&e));
+        let qui = c["kwargs"]["salarie"].as_str().filter(|s| !s.trim().is_empty()).unwrap_or("Cet engagement").to_string();
+        c["attendu"] = engagement::Assemble::lire(&c["kwargs"])
+            .and_then(|a| Engagement::nouveau(&racine, &a, &qui))
+            .map_or_else(|m| json!({"refus": socle::echec::separer(&m).0}), |e| releve(&e));
         refus += c["attendu"].get("refus").is_some() as usize;
     }
     // un refus par cas `refus_*`

@@ -914,12 +914,12 @@ fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Optio
 }
 
 /// Le minimum d'une ligne de remuneration (`saisie` : la ligne telle que saisie, pour ses dates), ou rien.
-fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: &Value) -> Resultat<Option<Minimum>> {
+fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: Option<&crate::LignePaie>) -> Resultat<Option<Minimum>> {
     let statut = cx.statut();
     // Le service de repetition de la 3090 : un minimum par service ou par heure selon
     // l'annexe, jamais le cachet de la journee.
     if repetition(&l.code) && cx.idcc == "3090" && statut == "artiste" {
-        let dates: BTreeSet<String> = g(saisie, "dates").as_array().into_iter().flatten().map(en_texte).collect();
+        let dates: BTreeSet<String> = saisie.map_or(&[][..], |s| &s.dates[..]).iter().map(|d| d.jour().to_string()).collect();
         let par_jour = (!dates.is_empty()).then(|| div(l.quantite, Decimal::from(dates.len())));
         return Ok(cx.plancher_service_3090(par_jour)?.map(|(montant, quoi, heure)| Minimum {
             montant,
@@ -942,12 +942,12 @@ fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: &Value) -> Resultat<Option<Minim
 }
 
 /// Les lignes saisies de cette paie, une par ligne de remuneration ; `Null` quand elles ne se correspondent pas.
-pub(crate) fn saisies_de(paie: &Paie) -> Vec<&Value> {
+pub(crate) fn saisies_de(paie: &Paie) -> Vec<Option<&crate::LignePaie>> {
     let lignes = &paie.remuneration;
     if paie.engagement.lignes.len() == lignes.len() {
-        paie.engagement.lignes.iter().collect()
+        paie.engagement.lignes.iter().map(Some).collect()
     } else {
-        vec![&NUL; lignes.len()]
+        vec![None; lignes.len()]
     }
 }
 

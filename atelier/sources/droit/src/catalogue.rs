@@ -7,13 +7,13 @@
 //! range par libelle.
 
 use serde::Deserialize;
-use socle::fichiers::{dossier_du_code, lire_json, repr, signature, vrai};
+use socle::fichiers::{dossier_du_code, lire_json, repr, signature};
 use socle::num::Resultat;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
-use socle::date::{en_texte, repr_texte, Jour};
+use socle::date::{repr_texte, Jour};
 
 /// Les unites que le moteur sait compter.
 pub const UNITES: [&str; 8] =
@@ -543,12 +543,9 @@ pub fn rubrique(racine: &Path, code: &str, jour: &Jour) -> Resultat<Rubrique> {
 
 /// Le code S21.G00.54.001 de cette ligne de paie, ou `None` : `genre` de la
 /// saisie precise lequel des cinq avantages en nature.
-pub fn code_54(r: &Rubrique, ligne: &Value) -> Resultat<Option<String>> {
+pub fn code_54(r: &Rubrique, genre: Option<&str>) -> Resultat<Option<String>> {
     let Some(code) = &r.dsn_autres_bruts else { return Ok(None) };
-    let genre = match ligne.get("genre") {
-        Some(g) if vrai(g) => en_texte(g).trim().to_string(),
-        _ => String::new(),
-    };
+    let genre = genre.unwrap_or("").trim().to_string();
     if genre.is_empty() {
         return Ok(Some(code.clone()));
     }

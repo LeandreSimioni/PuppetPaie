@@ -7,7 +7,7 @@
 //! fiscale. Un contrat d'usage n'en a pas : ses heures sont ses lignes. Textes : `logiciel/donnees/permanents-base.json`,
 //! `heures_en_plus`, qui les cite.
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::calcul::{LigneBrut, LigneCotisation};
 use crate::conges::{avertir, flot, info, qui};
@@ -63,7 +63,7 @@ fn heures(e: &Value, k: &str) -> Resultat<Decimal> {
 /// par mois, a temps `partiel` ou non : une ligne par majoration, au taux horaire du contrat majore. INFERENCE, ecrite
 /// comme telle : le taux horaire est le salaire mensuel du contrat sur ses heures par mois ; le BOSS (§ 310) y ajoute les
 /// primes qui sont la contrepartie du travail, que la carte ne distingue pas des autres.
-pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, quotite: Decimal, partiel: bool) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, quotite: Decimal, partiel: bool) -> Resultat<(Vec<crate::LignePaie>, Vec<Avis>)> {
     let (sup, a_50, comp) = (heures(e, HEURES_SUPPLEMENTAIRES)?, heures(e, HEURES_SUPPLEMENTAIRES_A_50)?, heures(e, HEURES_COMPLEMENTAIRES)?);
     if sup.is_zero() && comp.is_zero() && a_50.is_zero() {
         return Ok((Vec::new(), Vec::new()));
@@ -102,12 +102,10 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, qu
     let mut out = Vec::new();
     for p in &reparties.paliers {
         let taux = (horaire * (Decimal::ONE_HUNDRED + p.majoration) / Decimal::ONE_HUNDRED).round_dp(4);
-        out.push(json!({
-            "rubrique": rubrique,
-            "quantite": flot(p.heures),
-            "taux": flot(taux),
-            "precision": format!("majorées de {} %", virgule(p.majoration.normalize())),
-        }));
+        out.push(crate::LignePaie {
+            precision: Some(format!("majorées de {} %", virgule(p.majoration.normalize()))),
+            ..crate::LignePaie::de(rubrique, crate::Chiffre::de_f64(flot(p.heures)), crate::Chiffre::de_f64(flot(taux)))
+        });
     }
     let mut avis = vec![info(format!(
         "{} : {} heures {} au taux horaire de son contrat ({}, le salaire mensuel sur ses {} h), {}.",

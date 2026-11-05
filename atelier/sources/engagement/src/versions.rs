@@ -4,14 +4,15 @@
 //! parti sur elle. Un engagement jamais modifie apres un envoi n'a pas de frise.
 
 use serde::Serialize;
-use serde_json::{Number, Value};
+use serde_json::Number;
+use crate::{Chiffre, LignePaie};
 
 use crate::departs::{Depart, Departs, Envoi};
 use crate::etats::{ses_departs, ARefaire, Valide};
 use crate::saisie::{Carte, Champ, Groupe, Valeur};
 use crate::stock::{Saisie, Version};
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::texte::{euros, virgule};
 
 /// « 14/11 » d'un jour ISO ; tel quel s'il ne se lit pas.
@@ -21,9 +22,9 @@ fn jour_court(iso: &str) -> String {
 
 /// Ce qui change dans les jours d'une ligne, et seulement cela : « Jours : + 16/11 », « Jours : − 14/11 »,
 /// « Jours : + 16/11 · − 14/11 ». `None` si la ligne a les memes jours.
-fn jours_changes(x: &Value, y: &Value) -> Option<String> {
-    let js = |l: &Value| {
-        let mut j: Vec<String> = l.get("dates").and_then(Value::as_array).into_iter().flatten().map(crate::jour_ecrit).filter(|d| !d.is_empty()).collect();
+fn jours_changes(x: &LignePaie, y: &LignePaie) -> Option<String> {
+    let js = |l: &LignePaie| {
+        let mut j: Vec<String> = l.dates.iter().map(|d| d.jour().to_string()).filter(|d| !d.is_empty()).collect();
         j.sort();
         j.dedup();
         j
@@ -41,7 +42,7 @@ fn jours_changes(x: &Value, y: &Value) -> Option<String> {
 /// `Carte::dates`).
 fn bornes(ctx: &Contexte, s: &Carte) -> (String, String) {
     let fin = s.fin.clone().filter(|f| !f.is_empty());
-    (s.debut_lu(&ctx.racine), fin.unwrap_or_else(|| s.dates(&ctx.racine).iter().map(crate::jour_ecrit).max().unwrap_or_default()))
+    (s.debut_lu(&ctx.racine), fin.unwrap_or_else(|| s.dates(&ctx.racine).iter().map(|j| j.jour().to_string()).max().unwrap_or_default()))
 }
 
 /// Le libelle d'une rubrique au catalogue, ou son code.
@@ -98,13 +99,19 @@ fn en_mots(v: Option<&Valeur>, en_euros: bool) -> String {
     }
 }
 
-/// La valeur d'un champ d'une ligne de paie. TRAVAIL A FAIRE (chaine A) : la ligne a sa forme, et ses champs leur type.
-fn de_la_ligne(l: &Value, cle: &str) -> Option<Valeur> {
-    match l.get(cle)? {
-        Value::Bool(b) => Some(Valeur::Oui(*b)),
-        Value::Number(n) => Some(Valeur::Nombre(n.clone())),
-        Value::Null => None,
-        x => Some(Valeur::Texte(en_texte(x))),
+/// Un nombre d'une ligne de paie, en valeur simple.
+fn du_chiffre(c: &Option<Chiffre>) -> Option<Valeur> {
+    match c.as_ref()? {
+        Chiffre::Nombre(n) => Some(Valeur::Nombre(n.clone())),
+        Chiffre::Texte(t) => Some(Valeur::Texte(t.clone())),
+    }
+}
+
+/// La quantite d'une ligne, en flottant quand elle est un nombre.
+fn quantite_nombre(l: &LignePaie) -> Option<f64> {
+    match &l.quantite {
+        Some(Chiffre::Nombre(n)) => n.as_f64(),
+        _ => None,
     }
 }
 
@@ -230,7 +237,7 @@ fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Vec<String> {
         out.push(format!("Fin : {} → {}", jour_court(&fa), jour_court(&fb)));
     }
     let (la, lb) = (a.lignes(), b.lignes());
-    let code = |l: &Value| l.get("rubrique").map(en_texte).unwrap_or_default();
+    let code = |l: &LignePaie| l.code().to_string();
     // Les lignes se rapprochent par leur rubrique, dans l'ordre : la deuxieme ligne de cachets de l'une va avec la
     // deuxieme de l'autre.
     let mut vues: Vec<String> = Vec::new();
@@ -241,30 +248,30 @@ fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Vec<String> {
     }
     for c in vues {
         let (lib, unite) = libelle(ctx, &c);
-        let xs: Vec<&Value> = la.iter().filter(|l| code(l) == c).collect();
-        let ys: Vec<&Value> = lb.iter().filter(|l| code(l) == c).collect();
+        let xs: Vec<&LignePaie> = la.iter().filter(|l| code(l) == c).collect();
+        let ys: Vec<&LignePaie> = lb.iter().filter(|l| code(l) == c).collect();
         for k in 0..xs.len().max(ys.len()) {
             match (xs.get(k), ys.get(k)) {
                 (Some(_), None) => out.push(format!("{} : retiré", lib)),
-                (None, Some(y)) => out.push(format!("{} : ajouté ({})", lib, en_mots(de_la_ligne(y, "quantite").as_ref(), false))),
+                (None, Some(y)) => out.push(format!("{} : ajouté ({})", lib, en_mots(du_chiffre(&y.quantite).as_ref(), false))),
                 (Some(x), Some(y)) => {
-                    let (qx, qy) = (x.get("quantite").and_then(Value::as_f64), y.get("quantite").and_then(Value::as_f64));
+                    let (qx, qy) = (quantite_nombre(x), quantite_nombre(y));
                     if qx != qy {
                         out.push(format!(
                             "{} : {} → {}",
                             au_pluriel(&lib),
-                            en_mots(de_la_ligne(x, "quantite").as_ref(), false),
-                            en_mots(de_la_ligne(y, "quantite").as_ref(), false)
+                            en_mots(du_chiffre(&x.quantite).as_ref(), false),
+                            en_mots(du_chiffre(&y.quantite).as_ref(), false)
                         ));
                     }
-                    let (tx, ty) = (en_mots(de_la_ligne(x, "taux").as_ref(), true), en_mots(de_la_ligne(y, "taux").as_ref(), true));
+                    let (tx, ty) = (en_mots(du_chiffre(&x.taux).as_ref(), true), en_mots(du_chiffre(&y.taux).as_ref(), true));
                     if tx != ty {
                         out.push(format!("{} : {} → {}", nom_du_taux(&lib, &unite), tx, ty));
                     }
                     if let Some(j) = jours_changes(x, y) {
                         out.push(j);
                     }
-                    let lieu = |l: &Value| en_mots(de_la_ligne(l, "lieu").as_ref(), false);
+                    let lieu = |l: &LignePaie| en_mots(l.lieu.clone().map(Valeur::Texte).as_ref(), false);
                     let (lx, ly) = (lieu(x), lieu(y));
                     if lx != ly {
                         out.push(format!("Lieu : {} → {}", lx, ly));
