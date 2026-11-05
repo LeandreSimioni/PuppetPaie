@@ -98,14 +98,14 @@ fn paiement_de(d: &DsnLue, nir: &str) -> Option<Jour> {
 }
 
 /// Les periodes d'un contrat de la DSN `d` qui finit ce mois-ci : une par mois du contrat dont la DSN reelle le porte.
-fn periodes(ctx: &Contexte, lignes: &[crate::journal::Ligne], d: &DsnLue, c: &ContratDeclare) -> Resultat<Vec<Periode>> {
+fn periodes(ctx: &Contexte, lignes: &[crate::journal::Ligne], d: &DsnLue, le_mois: socle::mois::Mois, c: &ContratDeclare) -> Resultat<Vec<Periode>> {
     let numero = t(&c.numero);
     let (Some(debut), Some(fin)) = (c.debut, c.fin) else {
         return Err(format!("contrat {} : dates illisibles dans la DSN", numero));
     };
     let mut out = Vec::new();
     // Les mois du contrat avant celui-ci.
-    for m in debut.mois_civil().jusqu_a(d.mois.precedent()) {
+    for m in debut.mois_civil().jusqu_a(le_mois.precedent()) {
         let Some(lue) = dsn_deposee(ctx, lignes, m) else { continue };
         if lue.contrats_de(&c.nir).any(|x| x.numero == c.numero) {
             let mesures = lue.mesures(&c.nir, numero, false);
@@ -116,7 +116,7 @@ fn periodes(ctx: &Contexte, lignes: &[crate::journal::Ligne], d: &DsnLue, c: &Co
     // pas de periode ce mois-ci.
     let mesures = d.mesures(&c.nir, numero, false);
     if mesures.remunere || out.is_empty() {
-        out.push(periode(c, &mesures, debut, fin, d.mois, paiement_de(d, &c.nir), out.is_empty()));
+        out.push(periode(c, &mesures, debut, fin, le_mois, paiement_de(d, &c.nir), out.is_empty()));
     }
     Ok(out)
 }
@@ -487,7 +487,8 @@ fn nom_dans_l_archive(siret: &str, mois: &str, edite_le: Jour, ind: &IndividuDec
 /// DSN declare la fin d'un contrat d'usage (cinq periodes par PDF, les mois anterieurs du contrat lus dans les DSN
 /// reelles deposees). `None` : aucune AER Cinema Spectacle n'est due ce mois-ci, France Travail ne publie rien.
 pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Resultat<Option<Vec<u8>>> {
-    let d = declarations::dsn_lue::lire(dsn, "").map_err(|e| e.message)?.ok_or("la DSN ne dit pas le mois qu'elle déclare (S20.G00.05.005)")?;
+    let d = declarations::dsn_lue::lire(dsn, "").map_err(|e| e.message)?;
+    let le_mois = d.mois.ok_or("la DSN ne dit pas le mois qu'elle déclare (S20.G00.05.005)")?;
     // Le type et l'ordre de la declaration (S20.G00.05.002 et .004) : 03 et 05 annulent et remplacent.
     let ordre = t(&d.ordre).to_string();
     let remplace = matches!(t(&d.type_declaration), "03" | "05").then_some(ordre.as_str());
@@ -504,7 +505,7 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
         finis.sort_by_key(|c| (c.debut, c.fin));
         let mut toutes: Vec<Periode> = Vec::new();
         for c in &finis {
-            toutes.extend(periodes(ctx, &lignes, &d, c)?);
+            toutes.extend(periodes(ctx, &lignes, &d, le_mois, c)?);
         }
         let emploi = finis.iter().map(|c| t(&c.emploi.emploi)).find(|e| !e.is_empty()).unwrap_or_default().to_string();
         let motif = finis.last().map(|c| t(&c.motif_fin)).unwrap_or_default().to_string();

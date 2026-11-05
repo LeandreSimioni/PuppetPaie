@@ -89,6 +89,7 @@ pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -
     let mut trouve: Vec<(String, std::collections::BTreeMap<socle::mois::Mois, Value>)> = Vec::new();
     for f in fichiers {
         let Some(d) = declarations::dsn_lue::lire_une_dsn(&f)? else { continue };
+        let Some(mois) = d.mois else { continue };
         for v in &d.versements {
             // « -1 » : un CDD court sans taux personnalise (`norme-dsn/texte/bloc-S21.G00.50.txt`, S21.G00.50.008) ;
             // aucun taux n'a ete transmis. Sans la date du versement (S21.G00.50.001), le taux ne se date pas.
@@ -103,9 +104,9 @@ pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -
             });
             match trouve.iter_mut().find(|(k, _)| k == cle) {
                 Some((_, mm)) => {
-                    mm.insert(d.mois, rel);
+                    mm.insert(mois, rel);
                 }
-                None => trouve.push((cle.clone(), [(d.mois, rel)].into_iter().collect())),
+                None => trouve.push((cle.clone(), [(mois, rel)].into_iter().collect())),
             }
         }
     }

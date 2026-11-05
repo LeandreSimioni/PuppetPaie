@@ -120,7 +120,7 @@ fn noms_tries(dossier: &Path) -> Vec<String> {
 
 /// Les paies d'une DSN : une par contrat qu'un versement paie, avec les montants du versement s'il ne paie que lui
 /// (`PaieDeclaree`).
-fn paies_de(info: &DsnLue) -> Vec<PaieDeclaree> {
+fn paies_de(info: &DsnLue, mois: socle::mois::Mois) -> Vec<PaieDeclaree> {
     let mut payeurs: HashMap<(&str, &str), usize> = HashMap::new();
     for v in &info.versements {
         for c in v.contrats() {
@@ -128,8 +128,8 @@ fn paies_de(info: &DsnLue) -> Vec<PaieDeclaree> {
         }
     }
     let montants = |v: &VersementLu| MontantsVerses {
-        brut: v.brut(info.mois),
-        salaire_habituel: v.salaire_habituel(info.mois),
+        brut: v.brut(mois),
+        salaire_habituel: v.salaire_habituel(mois),
         net_imposable: v.net_imposable,
         net_verse: v.net_verse,
         taux_pas: v.taux_pas,
@@ -162,24 +162,25 @@ fn paies_de(info: &DsnLue) -> Vec<PaieDeclaree> {
 /// (`declarations::dsn_lue::lire`).
 pub(crate) fn lire_dsn(dossier: &Path) -> Result<LectureDsn, Echec> {
     let mut out = LectureDsn::default();
-    let mut lues: Vec<DsnLue> = Vec::new();
+    let mut lues: Vec<(socle::mois::Mois, DsnLue)> = Vec::new();
     for f in declarations::dsn_lue::fichiers(dossier) {
-        match declarations::dsn_lue::lire_une_dsn(&f)? {
-            Some(info) => lues.push(info),
-            None => out.illisibles.push(f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()),
+        // Une DSN sans mois principal (S20.G00.05.005) ne dit pas quel mois elle declare : elle est ignoree, en le disant.
+        match declarations::dsn_lue::lire_une_dsn(&f)?.and_then(|i| Some((i.mois?, i))) {
+            Some(lue) => lues.push(lue),
+            _ => out.illisibles.push(f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()),
         }
     }
     // Par mois declare, puis par date de depot : un annule-et-remplace depose apres l'original fait foi.
-    lues.sort_by(|a, b| (a.mois, a.depot, &a.fichier).cmp(&(b.mois, b.depot, &b.fichier)));
+    lues.sort_by(|(ma, a), (mb, b)| (ma, a.depot, &a.fichier).cmp(&(mb, b.depot, &b.fichier)));
     out.fichiers = lues.len();
     if let (Some(p), Some(d)) = (lues.first(), lues.last()) {
-        out.premier_mois = p.mois.to_string();
-        out.dernier_mois = d.mois.to_string();
+        out.premier_mois = p.0.to_string();
+        out.dernier_mois = d.0.to_string();
     }
     let mut index_salaries: HashMap<String, usize> = HashMap::new();
     let mut index_objets: HashMap<String, usize> = HashMap::new();
-    for info in &lues {
-        let mois = info.mois.to_string();
+    for (le_mois, info) in &lues {
+        let mois = le_mois.to_string();
         out.etablissements.extend(info.etablissements.iter().cloned());
         out.nics_siege.extend(info.nic_siege.clone());
         out.entreprise.suivre(&info.entreprise);
@@ -193,7 +194,7 @@ pub(crate) fn lire_dsn(dossier: &Path) -> Result<LectureDsn, Echec> {
             info.contrats.iter().filter_map(|c| c.code_risque.clone().map(|r| (r, c.taux_at))).collect();
         if risques.len() == 1 {
             if let Some((code, taux)) = risques.into_iter().next() {
-                out.atmp.insert(info.mois.annee(), (mois.clone(), code, taux));
+                out.atmp.insert(le_mois.annee(), (mois.clone(), code, taux));
             }
         }
         if !info.adhesions.is_empty() {
@@ -217,7 +218,7 @@ pub(crate) fn lire_dsn(dossier: &Path) -> Result<LectureDsn, Echec> {
                 out.objets[i].contrats += 1;
             }
         }
-        for p in paies_de(info) {
+        for p in paies_de(info, *le_mois) {
             out.paies.insert((mois.clone(), p.nir.clone(), p.numero.clone()), p);
         }
         for ind in &info.individus {

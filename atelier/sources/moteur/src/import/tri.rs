@@ -293,13 +293,13 @@ impl Trieur {
             lire_pdf(&mut f);
         } else if declarations::dsn_lue::est_une_dsn(&octets) {
             match declarations::dsn_lue::lire_une_dsn(&f.disque) {
-                Ok(Some(d)) => {
+                Ok(Some(declarations::dsn_lue::DsnLue { mois: Some(m), .. })) => {
                     f.sorte = Sorte::Dsn;
-                    f.mois = Some(d.mois.to_string());
+                    f.mois = Some(m.to_string());
                 }
                 // Une DSN fautive reste une DSN : sa lecture refuse l'import, et dit quoi corriger (`dsn_aem::lire_dsn`).
                 Err(_) => f.sorte = Sorte::Dsn,
-                Ok(None) => {
+                Ok(_) => {
                     f.sorte = Sorte::Illisible;
                     f.raison = Some("commence comme une DSN, mais ne dit pas son mois (S20.G00.05.005)".into());
                 }

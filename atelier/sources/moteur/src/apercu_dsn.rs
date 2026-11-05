@@ -119,7 +119,7 @@ impl VersementDuFichier {
 
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
 fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<RecapDsn, String> {
-    let d = declarations::dsn_lue::lire(octets, "").map_err(|e| e.message)?.ok_or("ce fichier ne dit pas le mois qu'il déclare (S20.G00.05.005)")?;
+    let d = declarations::dsn_lue::lire(octets, "").map_err(|e| e.message)?;
     // Un mois sans engagement n'a rien a comparer.
     let (mut compare, liste) = match saisie_aux_numeros_declares(ctx, mois) {
         Ok(l) if !l.is_empty() => (true, l),

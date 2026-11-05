@@ -40,12 +40,13 @@ fn en_os(e: &std::io::Error, p: &Path) -> Echec {
 // ------------------------------------------------------------------ l'alerte CASC-SVP
 
 /// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois (la paie
-/// versee d'un engagement importe), sa copie sous `historique/bulletins/`, ou qu'est la compagnie. `None` : un mois que
-/// l'import n'a pas retenu ; un fichier retenu introuvable refuse.
+/// versee qu'une DSN declare, d'un engagement importe ; celle d'un bulletin seul nomme son PDF), sa copie sous
+/// `historique/bulletins/`, ou qu'est la compagnie. `None` : un mois que l'import n'a pas retenu ; un fichier retenu
+/// introuvable refuse.
 pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
     let fichiers: Vec<String> = engagement::importe::paies_lues(&ctx.racine)?
         .into_iter()
-        .filter(|x| x.mois == mois)
+        .filter(|x| x.mois == mois && x.paie.declare_par == Declaration::Dsn)
         .filter_map(|x| x.paie.fichier)
         .collect();
     let Some(nom) = fichiers.last() else { return Ok(None) };
@@ -101,7 +102,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
             continue;
         }
         let mut masse = socle::num::zero2();
-        for b in d.versements.iter().filter(|v| !v.contrats().is_empty()).filter_map(|v| v.brut(d.mois)) {
+        for b in d.versements.iter().filter(|v| !v.contrats().is_empty()).filter_map(|v| d.mois.and_then(|m| v.brut(m))) {
             masse += b;
         }
         let an: String = m.chars().take(4).collect();

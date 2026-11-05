@@ -323,8 +323,8 @@ pub struct Mesures {
 /// CE QUE DECLARE UNE DSN DEPOSEE.
 #[derive(Clone, Debug)]
 pub struct DsnLue {
-    /// Le mois principal declare (S20.G00.05.005).
-    pub mois: Mois,
+    /// Le mois principal declare (S20.G00.05.005) ; un signalement n'en declare pas.
+    pub mois: Option<Mois>,
     /// Le type et le numero d'ordre de la declaration (S20.G00.05.002, .004).
     pub type_declaration: Option<String>,
     pub ordre: Option<String>,
@@ -362,7 +362,7 @@ impl DsnLue {
     pub fn mesures(&self, nir: &str, numero: &str, rappel: bool) -> Mesures {
         let mut m = Mesures::default();
         for r in self.versements_de(nir).flat_map(|v| v.remunerations.iter()) {
-            if r.contrat.as_deref() != Some(numero) || r.rappel(self.mois) != rappel {
+            if r.contrat.as_deref() != Some(numero) || self.mois.is_some_and(|m| r.rappel(m)) != rappel {
                 continue;
             }
             if let Some(montant) = r.montant {
@@ -537,8 +537,8 @@ impl Fautes {
         self.valeur(k, v, "une date (JJMMAAAA)", jour_dsn(v))
     }
     /// Un refus dit quoi corriger et n'ecrit rien.
-    fn refus(self, mois: &Mois) -> Option<Echec> {
-        let de = mois.libelle(socle::mois::Graphie::Accentuee);
+    fn refus(self, mois: Option<Mois>) -> Option<Echec> {
+        let de = mois.map(|m| format!(" de {}", m.libelle(socle::mois::Graphie::Accentuee))).unwrap_or_default();
         let ce = match self.0? {
             Faute::Valeur { rubrique, valeur, quoi } => format!("porte, en {}, « {} », qui n'est pas {}", rubrique, valeur, quoi),
             Faute::Rubrique { ligne, version: Some(v) } => format!("porte la rubrique {}, que la norme DSN {} ne connaît pas", ligne, v),
@@ -546,7 +546,7 @@ impl Fautes {
         };
         Some(socle::echec::erreur(
             "ErreurOperation",
-            format!("La DSN de {} {} : corrigez-la ou retirez-la, puis recommencez.", de, ce),
+            format!("La DSN{} {} : corrigez-la ou retirez-la, puis recommencez.", de, ce),
         ))
     }
 }
@@ -558,18 +558,18 @@ fn premier(a: &mut Option<String>, v: &Option<String>) {
     }
 }
 
-/// La DSN du fichier `chemin` (`lire`) ; `Ok(None)` aussi si le fichier ne se lit pas.
+/// La DSN du fichier `chemin` (`lire`) ; `Ok(None)` si le fichier ne se lit pas ou n'est pas une DSN (`est_une_dsn`).
 pub fn lire_une_dsn(chemin: &Path) -> Result<Option<DsnLue>, Echec> {
-    let Ok(octets) = std::fs::read(chemin) else { return Ok(None) };
-    lire(&octets, &chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default())
+    let Some(octets) = std::fs::read(chemin).ok().filter(|o| est_une_dsn(o)) else { return Ok(None) };
+    lire(&octets, &chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()).map(Some)
 }
 
-/// UNE DSN, LUE (`fichier` : son nom). `Ok(None)` si elle ne dit pas son mois (une DSN illisible, que l'import ignore en
-/// le disant). Une valeur qui n'est pas ce que sa rubrique dit (un montant, une date), ou une ligne qui n'est pas une
+/// UNE DSN, LUE (`fichier` : son nom), un signalement sans mois principal compris. Une valeur qui n'est pas ce que sa
+/// rubrique dit (un montant, une date), ou une ligne qui n'est pas une
 /// rubrique, refuse : rien ne se devine (regle 1). La rubrique se controle au tableau des usages de la version que le
 /// fichier declare (S10.G00.00.006, `usages-dsn-base.json`) ; une version que le logiciel ne livre pas (une DSN d'avant
 /// 2026) ne se controle que par la forme de ses rubriques (`usages::est_rubrique`).
-pub fn lire(octets: &[u8], fichier: &str) -> Result<Option<DsnLue>, Echec> {
+pub fn lire(octets: &[u8], fichier: &str) -> Result<DsnLue, Echec> {
     let contenu = texte_latin1(octets);
     // L'indicateur d'ordre des octets d'UTF-8, lu en latin-1, n'est pas une rubrique.
     let lignes = lignes_du_texte(contenu.trim_start_matches("\u{ef}\u{bb}\u{bf}"));
@@ -810,8 +810,7 @@ pub fn lire(octets: &[u8], fichier: &str) -> Result<Option<DsnLue>, Echec> {
             _ => {}
         }
     }
-    let Some(mois) = mois else { return Ok(None) };
-    if let Some(refus) = fautes.refus(&mois) {
+    if let Some(refus) = fautes.refus(mois) {
         return Err(refus);
     }
     let emetteur_est_l_entreprise = emetteur_siren.is_some() && emetteur_siren == e.siren;
@@ -857,7 +856,7 @@ pub fn lire(octets: &[u8], fichier: &str) -> Result<Option<DsnLue>, Echec> {
     if spst == "MT01" {
         e.medecine_travail = Some(droit::fiche::CodeMedecine::INTERNE.to_string());
     }
-    Ok(Some(DsnLue {
+    Ok(DsnLue {
         mois,
         type_declaration,
         ordre,
@@ -872,7 +871,7 @@ pub fn lire(octets: &[u8], fichier: &str) -> Result<Option<DsnLue>, Echec> {
         adhesions,
         rattachements,
         rubriques,
-    }))
+    })
 }
 
 #[cfg(test)]
@@ -891,12 +890,12 @@ mod tests {
                  S21.G00.53.001,'01'\nS21.G00.53.002,'2'\nS21.G00.53.003,'37'\n\
                  S21.G00.51.001,'01072026'\nS21.G00.51.010,'FA1.26.13'\nS21.G00.51.011,'001'\nS21.G00.51.013,'30.00'\n\
                  S21.G00.53.001,'01'\nS21.G00.53.002,'1'\nS21.G00.53.003,'37'\n";
-        let d = lire(f.as_bytes(), "essai.dsn").unwrap().unwrap();
+        let d = lire(f.as_bytes(), "essai.dsn").unwrap();
         let (mois, rappel) = (d.mesures("1850", "FA1.26.13", false), d.mesures("1850", "FA1.26.13", true));
         assert_eq!((socle::num::q2(mois.brut), mois.cachets.normalize().to_string(), mois.remunere), ("200.00".to_string(), "2".to_string(), true));
         assert_eq!((socle::num::q2(rappel.brut), rappel.cachets.normalize().to_string()), ("30.00".to_string(), "1".to_string()));
         assert_eq!(d.contrats[0].fin_declaree.map(|j| j.iso()).as_deref(), Some("2026-08-31"));
-        assert_eq!(d.versements[0].brut(d.mois).map(socle::num::q2).as_deref(), Some("200.00"));
+        assert_eq!(d.versements[0].brut(d.mois.unwrap()).map(socle::num::q2).as_deref(), Some("200.00"));
         let faux = "S20.G00.05.005,'01082026'\nS21.G00.30.001,'1'\nS21.G00.50.001,'31082026'\nS21.G00.51.001,'01082026'\nS21.G00.51.010,'FA1.26.13'\nS21.G00.51.013,'12,5'\n";
         assert!(lire(faux.as_bytes(), "essai.dsn").unwrap_err().message.contains("« 12,5 », qui n'est pas un montant"));
     }

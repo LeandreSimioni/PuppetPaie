@@ -1009,18 +1009,20 @@ pub(crate) fn pieces_importees(ctx: &Contexte) -> std::path::PathBuf {
 /// table des champs), telle qu'une DSN l'ecrit, et sur quels mois. Une case sans rubrique n'est dans aucune DSN.
 fn usages_declares(ctx: &Contexte, rubrique: Option<&str>, valeur: &Value) -> R<Value> {
     let valeur = valeur_en_texte(valeur);
-    let mut mois: Vec<String> = Vec::new();
+    let (mut n, mut mois) = (0usize, Vec::<String>::new());
     if let Some(rubrique) = rubrique {
         for dossier in [pieces_importees(ctx), ctx.racine.join("sorties")] {
             for f in declarations::dsn_lue::fichiers(&dossier) {
                 let Some(d) = declarations::dsn_lue::lire_une_dsn(&f)? else { continue };
                 if d.declare(rubrique, &valeur) {
-                    mois.push(d.mois.to_string());
+                    // Un signalement declare la valeur sans mois principal (S20.G00.05.005).
+                    n += 1;
+                    mois.extend(d.mois.map(|m| m.to_string()));
                 }
             }
         }
     }
-    Ok(json!({"declarations": mois.len(), "du": mois.iter().min(), "au": mois.iter().max()}))
+    Ok(json!({"declarations": n, "du": mois.iter().min(), "au": mois.iter().max()}))
 }
 
 /// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes (`_...`) qu'elle ne dit pas,
