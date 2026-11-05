@@ -1727,7 +1727,7 @@ pub(crate) fn version() -> R<Version> {
     // La mise a jour est celle de l'INSTALLATION : son reglage (`maj::reglage`), sa version prete (`maj::prete`).
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
     let (depot, editeur) = crate::compagnie::maj::reglage(&inst).map_err(|e| erreur("ValueError", e))?;
-    let prete = crate::compagnie::maj::prete(&inst);
+    let prete = crate::compagnie::maj::prete(&inst).map_err(|e| erreur("ValueError", e))?;
     let courante_v = courante(&code)?;
     let avant = if code.join(".avant").join("donnees").is_dir() { Some(courante(&code.join(".avant"))?) } else { None };
     let dite = match &prete {

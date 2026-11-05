@@ -34,11 +34,10 @@
 //! telle quelle dans `maj/<version>/logiciel/`, y lit `VERSION`, et refuse si ce n'est pas la version annoncee. Changer
 //! cette forme, c'est couper toutes les installations posees de leurs mises a jour, sans retour possible : leur code ne se
 //! change que par une mise a jour.
-//! De meme pour `derniere.json` : `version`, et sous `archives` une entree par systeme (`archive`, `sha256`,
-//! `signature` ; `systemes` pour la tout-systeme) ; on peut AJOUTER une cle a sa racine (`fictives`), jamais en retirer ni
-//! en changer une, et rien sous `archives` qui ne soit un systeme (une installation posee refuse alors tout
-//! `derniere.json`). `archive`, `sha256` et `signature` a la racine, que lit une installation qui ne connait qu'une
-//! archive, sont ceux de l'archive de Windows.
+//! De meme pour `derniere.json` (`Publiee`) : sa forme est stricte, chaque installation posee refuse un `derniere.json`
+//! qui porte une cle qu'elle ne connait pas. On ne peut donc ni ajouter, ni retirer, ni changer une cle sans couper
+//! toutes les installations posees. `archive`, `sha256` et `signature` a la racine, que lit une installation qui ne
+//! connait qu'une archive, sont ceux de l'archive de Windows.
 //! `tests/fichiers/mise_a_jour.rs` deballe l'archive comme le fait le code des installations posees.
 //!
 //! L'ARCHIVE D'INSTALLATION, a cote (`puppetpaie-<version>-<systeme>-installation.zip`) : ce que l'installeur Windows
@@ -49,7 +48,7 @@
 //! porte aussi `PORTABLE.json` a sa racine : decompressee sur une cle USB, elle est portable.
 //!
 //! LES FICTIVES VOYAGENT A PART : `puppetpaie-<version>-fictives.zip`, signee, nommee dans `derniere.json` sous `fictives`
-//! (une cle qu'une installation posee qui ne la connait pas ignore) avec l'EMPREINTE de leur contenu. Une installation ne
+//! avec l'EMPREINTE de leur contenu. Une installation ne
 //! la telecharge que si l'empreinte n'est pas celle qu'elle retient (`fictives/.livraison.json`) : une Release aux memes
 //! fictives ne coute rien. Quand elle a change, la livraison REMPLACE les fictives du poste au lancement suivant, jouees
 //! ou non, photos d'origine comprises (`preparer_les_fictives`, `poser_les_fictives_pretes`). La mise a jour du logiciel,
@@ -69,10 +68,11 @@
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use crate::atelier::publier::{dire_les_archives, generer_cle, generer_cle_github, marquer_les_fictives, poser_les_fictives, publier, publier_depuis_l_environnement};
+use crate::atelier::publier::{generer_cle, generer_cle_github, marquer_les_fictives, poser_les_fictives, publier, publier_depuis_l_environnement};
 
 /// La cle publique de l'editeur (Ed25519, 32 octets en base64) : toute archive non signee par elle est refusee.
 pub const CLE_PUBLIQUE: &str = "sDj5+46oBt7Yy1x00VJ1ThJNOwf5jT5+bttXEN/yAIU=";
@@ -203,8 +203,15 @@ pub fn version_lue(v: &str) -> String {
     }
 }
 
-fn lire_json(p: &Path) -> Option<Value> {
-    serde_json::from_str(&std::fs::read_to_string(p).ok()?).ok()
+/// LA SEULE LECTURE D'UN FICHIER DE `maj/` (`reglage.json`, `prete.json`, `appliquee.json`) : sa forme, stricte (une cle
+/// qu'elle ne connait pas refuse) ; `None` s'il n'existe pas. `phrase` est celle du refus, qui dit quoi corriger.
+fn lire_forme<T: serde::de::DeserializeOwned>(p: &Path, phrase: &str) -> R<Option<T>> {
+    let texte = match std::fs::read_to_string(p) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(socle::echec::du_disque(p, &e)),
+    };
+    socle::forme::lire_texte(&texte, phrase).map(Some)
 }
 
 pub(crate) fn ecrire_json(p: &Path, v: &Value) -> R<()> {
@@ -234,16 +241,21 @@ fn logiciel_de(inst: &Path) -> PathBuf {
 
 const REGLAGE: &str = "reglage.json";
 
+/// `maj/reglage.json`, pose a la main : le depot d'ou l'installation recoit, et si ce poste est celui de l'editeur.
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Reglage {
+    #[serde(default)]
+    depot: Option<String>,
+    #[serde(default)]
+    editeur: bool,
+}
+
 /// Le reglage de l'installation, `maj/reglage.json` : (depot pose, editeur), ou rien de pose s'il n'existe pas.
 /// `editeur` ne sert qu'a autoriser la publication : le poste de l'editeur recoit comme les autres.
 pub fn reglage(inst: &Path) -> R<(Option<String>, bool)> {
-    let p = dossier_maj(inst).join(REGLAGE);
-    if !p.exists() {
-        return Ok((None, false));
-    }
-    let d = lire_json(&p).filter(Value::is_object).ok_or_else(|| socle::echec::avec("Le réglage de la mise à jour ne se lit pas.", json!({"chemin": p.to_string_lossy()})))?;
-    let depot = d.get("depot").and_then(Value::as_str).filter(|s| !s.is_empty()).map(String::from);
-    Ok((depot, d.get("editeur").and_then(Value::as_bool).unwrap_or(false)))
+    let r: Reglage = lire_forme(&dossier_maj(inst).join(REGLAGE), "Le réglage de la mise à jour (maj/reglage.json) ne se lit pas : il ne porte que « depot » et « editeur ».")?.unwrap_or_default();
+    Ok((r.depot.filter(|s| !s.is_empty()), r.editeur))
 }
 
 /// Le depot d'ou l'installation recoit : celui qui est pose, sinon `DEPOT_PAR_DEFAUT`.
@@ -251,33 +263,32 @@ pub fn depot(pose: Option<String>) -> String {
     pose.unwrap_or_else(|| DEPOT_PAR_DEFAUT.to_string())
 }
 
-/// LA VERSION PRETE (`maj/prete.json`, que `telecharger` ecrit) : sa version, ses notes, sa phrase `calcul` (ce qu'elle
-/// change d'un calcul de paie, vide : rien) et sa raison `exigee` (vide : elle n'est pas indispensable avant de declarer).
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// LA VERSION PRETE (`maj/prete.json`, que `telecharger` ecrit) : sa version, quand elle a ete prise et par quelles
+/// archives, ses notes, sa phrase `calcul` (ce qu'elle change d'un calcul de paie, vide : rien) et sa raison `exigee`
+/// (vide : elle n'est pas indispensable avant de declarer).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Prete {
     pub version: String,
+    pub quand: String,
+    pub archives: Vec<String>,
     pub notes: String,
     pub calcul: String,
     pub exigee: String,
 }
 
-/// LA SEULE LECTURE DE `prete.json`, dans le dossier `maj` : la version prete dont le logiciel est la, ou `None`. Elle
-/// reste tolerante, a dessein : le relais d'une version neuve (`appliquer_depuis`) lit le `prete.json` qu'a ecrit
-/// l'installation posee, de quelque version qu'elle soit (une `archive` au lieu d'`archives`, une cle qui manque) ; un
-/// refus la laisserait sans mise a jour. C'est un contrat avec les installations posees (« Publier une version ») : la
-/// forme ecrite ne change pas, et la lecture ne prend que ce qu'elle lit, par cette fonction.
-fn prete_dans(maj: &Path) -> Option<Prete> {
-    let d = lire_json(&maj.join("prete.json"))?;
-    let version = d.get("version")?.as_str()?.to_string();
-    if !maj.join(&version).join("logiciel").join("donnees").is_dir() {
-        return None;
-    }
-    let texte = |cle: &str| d.get(cle).and_then(Value::as_str).unwrap_or_default().to_string();
-    Some(Prete { notes: texte("notes"), calcul: texte("calcul"), exigee: texte("exigee"), version })
+const PRETE: &str = "prete.json";
+
+/// LA SEULE LECTURE DE `prete.json`, dans le dossier `maj` : la version prete dont le logiciel est la, ou `None`. Sa forme
+/// est stricte, la seule qu'ecrit `telecharger` : le relais d'une version neuve (`appliquer_depuis`) lit ce qu'a ecrit le
+/// code de l'installation posee, et une autre forme refuse la bascule (l'ancienne version reste en place et le dit).
+fn prete_dans(maj: &Path) -> R<Option<Prete>> {
+    let p: Option<Prete> = lire_forme(&maj.join(PRETE), "La mise à jour prête ne se lit pas : effacez maj/prete.json de l'installation, elle se téléchargera de nouveau.")?;
+    Ok(p.filter(|p| maj.join(&p.version).join(LOGICIEL).join("donnees").is_dir()))
 }
 
 /// La version telechargee, controlee, a appliquer.
-pub fn prete(inst: &Path) -> Option<Prete> {
+pub fn prete(inst: &Path) -> R<Option<Prete>> {
     prete_dans(&dossier_maj(inst))
 }
 
@@ -337,44 +348,152 @@ fn lire_depot_suivi(depot: &str, nom: &str, suivre: &dyn Fn(u64, Option<u64>)) -
     lire_tout(&mut f, attendus).map_err(dit)
 }
 
-/// `derniere.json` du depot : la `version`, et sous `archives` une entree par systeme publie (`SYSTEMES`, `TOUT_SYSTEME`),
-/// chacune avec son `archive` (le nom du fichier, a cote), son `sha256` et sa `signature`. Toute autre forme est refusee.
-pub fn derniere(depot: &str) -> R<Value> {
+/// `derniere.json`, LA VERSION PUBLIEE : ce qu'ecrit `atelier::publier::publier_signe` et que lit chaque installation, une
+/// seule forme, stricte (une cle qu'elle ne connait pas refuse tout le fichier : une cle ajoutee a la publication coupe
+/// donc les installations posees de leurs mises a jour). `archive`, `sha256` et `signature` a la racine sont ceux de
+/// l'archive de Windows, pour les installations qui ne lisent qu'une archive ; `compagnie::maj` ne les lit pas.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Publiee {
+    pub version: String,
+    pub publiee_le: String,
+    pub notes: String,
+    pub calcul: String,
+    pub exigee: String,
+    pub archives: Archives,
+    pub fictives: FictivesPubliees,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature: Option<String>,
+}
+
+/// Les archives de mise a jour publiees, une par systeme fabrique (`SYSTEMES`) et celle de tous (`TOUT_SYSTEME`).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Archives {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub windows: Option<ArchivePubliee>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub linux: Option<ArchivePubliee>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mac: Option<ArchivePubliee>,
+    #[serde(rename = "tout-systeme", default, skip_serializing_if = "Option::is_none")]
+    pub tout_systeme: Option<ArchivePubliee>,
+}
+
+/// Une archive signee : le nom du fichier, a cote, son condensat et la signature de l'editeur. Celle de tous les systemes
+/// dit sous `systemes` ceux qu'elle porte (ceux qui ont ete fabriques) ; celle d'un systeme n'en dit aucun.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ArchivePubliee {
+    pub archive: String,
+    pub sha256: String,
+    pub signature: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub systemes: Vec<String>,
+}
+
+/// Les fictives, signees comme une archive, et l'empreinte de leur contenu.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FictivesPubliees {
+    pub archive: String,
+    pub sha256: String,
+    pub signature: String,
+    pub empreinte: String,
+}
+
+impl ArchivePubliee {
+    /// Ce que `archive_verifiee` verifie : le nom, le condensat, la signature.
+    fn signee(&self) -> (&str, &str, &str) {
+        (&self.archive, &self.sha256, &self.signature)
+    }
+}
+
+impl FictivesPubliees {
+    /// Ce que `archive_verifiee` verifie : le nom, le condensat, la signature.
+    fn signee(&self) -> (&str, &str, &str) {
+        (&self.archive, &self.sha256, &self.signature)
+    }
+}
+
+impl Archives {
+    /// L'archive publiee sous la cle `cle` (un systeme, ou `TOUT_SYSTEME`).
+    pub fn de(&self, cle: &str) -> Option<&ArchivePubliee> {
+        match cle {
+            "windows" => self.windows.as_ref(),
+            "linux" => self.linux.as_ref(),
+            "mac" => self.mac.as_ref(),
+            TOUT_SYSTEME => self.tout_systeme.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// Chaque archive publiee, sous sa cle, dans l'ordre des systemes puis celle de tous.
+    pub fn toutes(&self) -> impl Iterator<Item = (&'static str, &ArchivePubliee)> {
+        SYSTEMES.into_iter().chain([TOUT_SYSTEME]).filter_map(|k| self.de(k).map(|a| (k, a)))
+    }
+
+    /// Pose l'archive de la cle `cle`.
+    pub fn poser(&mut self, cle: &str, a: ArchivePubliee) {
+        match cle {
+            "windows" => self.windows = Some(a),
+            "linux" => self.linux = Some(a),
+            "mac" => self.mac = Some(a),
+            _ => self.tout_systeme = Some(a),
+        }
+    }
+}
+
+/// `derniere.json` du depot (`Publiee`). Toute autre forme est refusee.
+pub fn derniere(depot: &str) -> R<Publiee> {
     derniere_dite(depot).map_err(|(_, e)| e)
 }
 
 /// `derniere`, l'echec avec son mot : le depot ne repond pas, ou il repond quelque chose qui n'est pas un `derniere.json`.
-fn derniere_dite(depot: &str) -> Result<Value, Echec> {
+fn derniere_dite(depot: &str) -> Result<Publiee, Echec> {
     let octets = lire_depot_suivi(depot, DERNIERE, &|_, _| {})?;
     derniere_lue(&octets).map_err(|e| (ILLISIBLE, e))
 }
 
+const PUBLIEE_ILLISIBLE: &str = "La version publiée ne se lit pas : la mise à jour se refera à la prochaine.";
+
 /// La version publiee (`derniere.json`) qui ne se lit pas : la phrase en mots, la cle a part.
 fn publiee_illisible(cle: &str, detail: impl std::fmt::Display) -> String {
-    socle::echec::avec("La version publiée ne se lit pas : la mise à jour se refera à la prochaine.", json!({"fichier": "derniere.json", "cle": cle, "detail": detail.to_string()}))
+    socle::echec::avec(PUBLIEE_ILLISIBLE, json!({"fichier": DERNIERE, "cle": cle, "detail": detail.to_string()}))
 }
 
-fn derniere_lue(octets: &[u8]) -> R<Value> {
-    let d: Value = serde_json::from_slice(octets).map_err(|e| publiee_illisible("", e))?;
-    if d.get("version").and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
-        return Err(publiee_illisible("version", "").into());
+/// LA SEULE LECTURE DE `derniere.json` : sa forme (`Publiee`), puis ce qu'elle ne dit pas d'elle-meme : une version, au
+/// moins une archive, aucun champ vide, et la liste des systemes de celle de tous.
+pub(crate) fn derniere_lue(octets: &[u8]) -> R<Publiee> {
+    let texte = std::str::from_utf8(octets).map_err(|e| publiee_illisible("", e))?;
+    let d: Publiee = socle::forme::lire_texte(texte, PUBLIEE_ILLISIBLE)?;
+    if d.version.is_empty() {
+        return Err(publiee_illisible("version", ""));
     }
-    let archives = d.get("archives").and_then(Value::as_object).filter(|a| !a.is_empty()).ok_or_else(|| publiee_illisible("archives", ""))?;
-    for (systeme, a) in archives {
-        if systeme != TOUT_SYSTEME && !SYSTEMES.contains(&systeme.as_str()) {
-            return Err(publiee_illisible("archives", systeme).into());
-        }
-        for k in ["archive", "sha256", "signature"] {
-            if a.get(k).and_then(Value::as_str).filter(|s| !s.is_empty()).is_none() {
-                return Err(publiee_illisible(&format!("archives.{}.{}", systeme, k), "").into());
+    if d.archives.toutes().next().is_none() {
+        return Err(publiee_illisible("archives", ""));
+    }
+    for (systeme, a) in d.archives.toutes() {
+        for (k, v) in [("archive", &a.archive), ("sha256", &a.sha256), ("signature", &a.signature)] {
+            if v.is_empty() {
+                return Err(publiee_illisible(&format!("archives.{}.{}", systeme, k), ""));
             }
         }
+        if (systeme == TOUT_SYSTEME) == a.systemes.is_empty() {
+            return Err(publiee_illisible(&format!("archives.{}.systemes", systeme), ""));
+        }
+        if let Some(x) = a.systemes.iter().find(|x| !SYSTEMES.contains(&x.as_str())) {
+            return Err(publiee_illisible(&format!("archives.{}.systemes", systeme), x));
+        }
     }
-    // Celle de tous les systemes dit lesquels elle porte : ceux qui ont ete fabriques.
-    if let Some(t) = archives.get(TOUT_SYSTEME) {
-        let portes = t.get("systemes").and_then(Value::as_array).filter(|l| !l.is_empty()).ok_or_else(|| publiee_illisible("archives.tout-systeme.systemes", ""))?;
-        if let Some(x) = portes.iter().find(|x| !x.as_str().is_some_and(|x| SYSTEMES.contains(&x))) {
-            return Err(publiee_illisible("archives.tout-systeme.systemes", x).into());
+    let f = &d.fictives;
+    for (k, v) in [("archive", &f.archive), ("sha256", &f.sha256), ("signature", &f.signature), ("empreinte", &f.empreinte)] {
+        if v.is_empty() {
+            return Err(publiee_illisible(&format!("fictives.{}", k), ""));
         }
     }
     Ok(d)
@@ -514,15 +633,12 @@ fn controler(neuf: &Path, racine: &Path) -> R<()> {
 /// entre dans une installation : la mise a jour, les fictives, les systemes qu'un dossier portable ajoute
 /// (`completer_le_portable`). Un echec de lecture porte `HORS_LIGNE` ou `INTROUVABLE` ; une archive qui n'est pas la
 /// notre, `ALTEREE` ou `SIGNATURE_REFUSEE`.
-fn archive_verifiee(depot: &str, a: &Value, cles: &[&str], suivre: &dyn Fn(u64, Option<u64>)) -> Result<Vec<u8>, Echec> {
-    let nom = a.get("archive").and_then(Value::as_str).filter(|n| !n.is_empty()).ok_or((INTROUVABLE, publiee_illisible("archives.archive", "")))?;
+fn archive_verifiee(depot: &str, (nom, attendu, signature): (&str, &str, &str), cles: &[&str], suivre: &dyn Fn(u64, Option<u64>)) -> Result<Vec<u8>, Echec> {
     let octets = lire_depot_suivi(depot, nom, suivre)?;
     let sha = condensat(&octets);
-    let attendu = a.get("sha256").and_then(Value::as_str).unwrap_or_default();
     if sha != attendu {
         return Err((ALTEREE, socle::echec::avec("Une archive téléchargée est altérée : elle se télécharge de nouveau à la prochaine mise à jour.", json!({"fichier": nom, "condensat": sha, "attendu": attendu}))));
     }
-    let signature = a.get("signature").and_then(Value::as_str).ok_or((SIGNATURE_REFUSEE, format!("{} non signee : derniere.json n'a pas de « signature »", nom)))?;
     if !signee_par_l_une(&octets, signature, cles) {
         return Err((SIGNATURE_REFUSEE, format!("la signature de {} n'est pas celle de l'editeur", nom)));
     }
@@ -543,10 +659,10 @@ pub fn systemes_poses(code: &Path) -> Vec<&'static str> {
 /// l'ordre ou les essayer (pour un systeme seul, la sienne d'abord ; pour plusieurs, celle de tous, une seule archive).
 /// Vide : la version est publiee sans l'un d'eux (« Publier » choisit Windows seul, Windows et Linux, ou les trois),
 /// l'installation ne telecharge rien.
-fn jeux_a_essayer<'a>(d: &'a Value, systemes: &[&'static str]) -> Vec<Vec<(&'static str, &'a Value)>> {
-    let porte = |a: &Value| systemes.iter().all(|s| a["systemes"].as_array().is_some_and(|l| l.iter().any(|x| x.as_str() == Some(s))));
-    let siens: Option<Vec<(&'static str, &Value)>> = systemes.iter().map(|s| d["archives"].get(*s).map(|a| (*s, a))).collect();
-    let tous = d["archives"].get(TOUT_SYSTEME).filter(|a| porte(a)).map(|a| vec![(TOUT_SYSTEME, a)]);
+fn jeux_a_essayer<'a>(d: &'a Publiee, systemes: &[&'static str]) -> Vec<Vec<(&'static str, &'a ArchivePubliee)>> {
+    let porte = |a: &ArchivePubliee| systemes.iter().all(|s| a.systemes.iter().any(|x| x == s));
+    let siens: Option<Vec<(&'static str, &ArchivePubliee)>> = systemes.iter().map(|s| d.archives.de(s).map(|a| (*s, a))).collect();
+    let tous = d.archives.de(TOUT_SYSTEME).filter(|a| porte(a)).map(|a| vec![(TOUT_SYSTEME, a)]);
     let v: Vec<_> = if systemes.len() > 1 { [tous, siens] } else { [siens, tous] }.into_iter().flatten().collect();
     v
 }
@@ -556,8 +672,8 @@ fn jeux_a_essayer<'a>(d: &'a Value, systemes: &[&'static str]) -> Vec<Vec<(&'sta
 /// fichiers communs sont les memes), la controle et la pose prete. Rend les cles des archives prises. Une archive
 /// telechargee dont le condensat ou la signature ne vaut pas est refusee sans essayer l'autre : ce n'est pas qu'elle
 /// manque, c'est qu'elle n'est pas la notre.
-fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Recherche) -> Result<String, Echec> {
-    let version = d["version"].as_str().unwrap_or_default();
+fn telecharger(inst: &Path, depot: &str, d: &Publiee, cles: &[&str], suivi: &Recherche) -> Result<Prete, Echec> {
+    let version = d.version.as_str();
     let systemes = systemes_poses(&logiciel_de(inst));
     let jeux = jeux_a_essayer(d, &systemes);
     if jeux.is_empty() {
@@ -570,7 +686,7 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Reche
         let mut recues = Vec::new();
         for (k, a) in jeu {
             let suivre = |recus: u64, attendus: Option<u64>| suivi.poser(Etape::Telechargement, Some(version), |p| (p.recus, p.attendus) = (recus, attendus));
-            match archive_verifiee(depot, a, cles, &suivre) {
+            match archive_verifiee(depot, a.signee(), cles, &suivre) {
                 Ok(o) => recues.push((k, o)),
                 Err((m, e)) if m == HORS_LIGNE || m == INTROUVABLE => {
                     mot = m;
@@ -608,18 +724,21 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Reche
             return Err(au_controle(format!("le nouveau code ne demarre pas sur {} : {}", racine.display(), p)));
         }
     }
-    let noms: Vec<&str> = prises.iter().map(|(k, _)| *k).collect();
-    ecrire_json(
-        &dossier_maj(inst).join("prete.json"),
-        &json!({
-            "version": version, "quand": socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
-            "archives": noms,
-            "notes": d.get("notes").cloned().unwrap_or(json!("")), "calcul": d.get("calcul").cloned().unwrap_or(json!("")),
-            "exigee": d.get("exigee").cloned().unwrap_or(json!("")),
-        }),
-    )
-    .map_err(au_controle)?;
-    Ok(noms.join(", "))
+    let prete = Prete {
+        version: version.to_string(),
+        quand: socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
+        archives: prises.iter().map(|(k, _)| k.to_string()).collect(),
+        notes: d.notes.clone(),
+        calcul: d.calcul.clone(),
+        exigee: d.exigee.clone(),
+    };
+    ecrire_prete(&dossier_maj(inst), &prete).map_err(au_controle)?;
+    Ok(prete)
+}
+
+/// LA SEULE ECRITURE DE `prete.json` (`Prete`).
+fn ecrire_prete(maj: &Path, p: &Prete) -> R<()> {
+    ecrire_json(&maj.join(PRETE), &serde_json::to_value(p).map_err(|e| e.to_string())?)
 }
 
 /// Le nom d'un systeme tel qu'on le lit.
@@ -656,7 +775,7 @@ pub fn completer_le_portable(inst: &Path, portable: bool, cles: &[&str]) -> R<Va
     if version == "0.0.0" {
         return Err(socle::echec::avec(format!("Ce dossier n'est pas une installation de PuppetPaie. {}", rien), json!({"chemin": inst.to_string_lossy()})));
     }
-    if a_installer(inst).is_some() {
+    if a_installer(inst)?.is_some() {
         return Err(format!("Une mise à jour attend le redémarrage : redémarrez PuppetPaie, puis recommencez. {}", rien));
     }
     let manquants: Vec<&'static str> = SYSTEMES.into_iter().filter(|s| !programme_de(&code, s, "puppetpaie").is_file()).collect();
@@ -666,11 +785,11 @@ pub fn completer_le_portable(inst: &Path, portable: bool, cles: &[&str]) -> R<Va
         let hors_ligne = |e: &str| format!("Le dépôt ne répond pas ({}). {} Reconnectez-vous, puis recommencez.", e, rien);
         let depot = depot_de_la_version(&depot(reglage(inst)?.0), &version);
         let d = derniere_dite(&depot).map_err(|(mot, e)| if mot == HORS_LIGNE { hors_ligne(&e) } else { format!("Le dépôt ne donne pas la version {} ({}). {}", version_lue(&version), e, rien) })?;
-        if d["version"].as_str() != Some(version.as_str()) {
+        if d.version != version {
             return Err(format!("Le dépôt n'a plus la version installée ({}) : mettez PuppetPaie à jour, puis recommencez. {}", version_lue(&version), rien));
         }
         // Chaque systeme manquant, son archive : la sienne, sinon celle de tous qui le porte (une seule fois pour plusieurs).
-        let mut a_prendre: Vec<(&Value, Vec<&'static str>)> = Vec::new();
+        let mut a_prendre: Vec<(&ArchivePubliee, Vec<&'static str>)> = Vec::new();
         for s in &manquants {
             match jeux_a_essayer(&d, &[s]).into_iter().next().and_then(|j| j.into_iter().next()) {
                 Some((TOUT_SYSTEME, a)) => match a_prendre.iter_mut().find(|(x, _)| std::ptr::eq(*x, a)) {
@@ -693,7 +812,7 @@ pub fn completer_le_portable(inst: &Path, portable: bool, cles: &[&str]) -> R<Va
                     eprintln!("{} : {} Mo reçus sur {} Mo", qui, mo(recus), mo(attendus.unwrap_or(0)));
                 }
             };
-            let octets = archive_verifiee(&depot, a, cles, &suivre).map_err(|(mot, e)| if mot == HORS_LIGNE { hors_ligne(&e) } else { format!("{} : {}. {}", qui, e, rien) })?;
+            let octets = archive_verifiee(&depot, a.signee(), cles, &suivre).map_err(|(mot, e)| if mot == HORS_LIGNE { hors_ligne(&e) } else { format!("{} : {}. {}", qui, e, rien) })?;
             let dite = zip::ZipArchive::new(std::io::Cursor::new(&octets[..]))
                 .ok()
                 .and_then(|mut z| z.by_name("VERSION").ok().and_then(|mut f| { let mut t = String::new(); f.read_to_string(&mut t).ok().map(|_| t.trim().to_string()) }));
@@ -779,16 +898,15 @@ fn deballer_les_fictives(octets: &[u8], cible: &Path) -> R<()> {
 }
 
 /// LES FICTIVES SE METTENT A JOUR A PART DU LOGICIEL. `derniere.json` les nomme sous `fictives` (`archive`, `sha256`,
-/// `signature`, `empreinte`) -- une cle qu'une installation posee qui ne la connait pas ignore : elle ne lit que
-/// `version` et `archives`. Une installation ne les telecharge QUE si leur empreinte n'est pas celle qu'elle retient
+/// `signature`, `empreinte`). Une installation ne les telecharge QUE si leur empreinte n'est pas celle qu'elle retient
 /// (`fictives/.livraison.json`) ni celle qui l'attend deja prete : une Release aux memes fictives ne coute rien. Recues,
 /// condensat et signature verifies comme une archive du logiciel, et leur `.livraison.json` disant l'empreinte annoncee,
 /// elles attendent dans `maj/fictives-pretes/` le prochain lancement (`poser_les_fictives_pretes`). Un DEPOT DE TRAVAIL
 /// (l'installation porte `.git` : le poste de l'editeur, ou `fictives/` est suivi par Git et d'ou partent les
 /// livraisons) ne les recoit pas. Rend ce qui s'est passe, ou `None` s'il n'y avait rien a faire.
-pub fn preparer_les_fictives(inst: &Path, depot: &str, d: &Value, cles: &[&str]) -> Option<String> {
-    let f = d.get("fictives")?;
-    let empreinte = f.get("empreinte").and_then(Value::as_str).filter(|e| !e.is_empty())?;
+pub fn preparer_les_fictives(inst: &Path, depot: &str, d: &Publiee, cles: &[&str]) -> Option<String> {
+    let f = &d.fictives;
+    let empreinte = f.empreinte.as_str();
     let maj = dossier_maj(inst);
     let pretes = maj.join(FICTIVES_PRETES);
     let vise = pretes.join(crate::interface::compagnies::DOSSIER_FICTIVES);
@@ -800,7 +918,7 @@ pub fn preparer_les_fictives(inst: &Path, depot: &str, d: &Value, cles: &[&str])
     }
     let court = &empreinte[..empreinte.len().min(12)];
     let essai = || -> R<()> {
-        let octets = archive_verifiee(depot, f, cles, &|_, _| {}).map_err(|(_, e)| e)?;
+        let octets = archive_verifiee(depot, f.signee(), cles, &|_, _| {}).map_err(|(_, e)| e)?;
         let part = maj.join(format!("{}.part", FICTIVES_PRETES));
         let _ = std::fs::remove_dir_all(&part);
         deballer_les_fictives(&octets, &part)?;
@@ -976,7 +1094,7 @@ fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Rech
             noter(inst, &t);
         }
     }
-    let v = d["version"].as_str().unwrap_or_default().to_string();
+    let v = d.version.clone();
     if !plus_recente(&v, &courante(&c)) {
         suivi.poser(Etape::AJour, Some(&courante(&c)), |p| p.sans_ce_systeme = None);
         return format!("version {}, a jour", cour);
@@ -990,10 +1108,14 @@ fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Rech
         suivi.poser(Etape::AJour, Some(&courante(&c)), |p| p.sans_ce_systeme = Some(v.clone()));
         return format!("version {} -- la {} est publiee sans l'un de ses systemes ({}) : cette installation garde sa version", cour, lue, systemes.join(", "));
     }
-    let deja = prete(inst).map(|p| p.version).as_deref() == Some(v.as_str());
-    if deja {
-        suivi.prete(inst, &v);
-        return format!("version {} -- la {} est prete", cour, lue);
+    // Un `prete.json` qui ne se lit pas se remplace : le telechargement qui suit le recrit.
+    match prete(inst) {
+        Ok(Some(p)) if p.version == v => {
+            suivi.prete(&p);
+            return format!("version {} -- la {} est prete", cour, lue);
+        }
+        Ok(_) => {}
+        Err(e) => noter(inst, &e),
     }
     // `moteur maj --sans-telecharger` (le seul appel sans telechargement, sur un suivi que personne ne lit) : la version
     // existe, rien n'est recu. On le dit tel quel, sans pretendre « a jour » ni « prete ».
@@ -1001,8 +1123,9 @@ fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Rech
         return format!("version {} -- la {} est publiee, pas encore telechargee (`moteur maj` la prepare)", cour, lue);
     }
     match telecharger(inst, &depot, &d, cles, suivi) {
-        Ok(prise) => {
-            suivi.prete(inst, &v);
+        Ok(p) => {
+            suivi.prete(&p);
+            let prise = p.archives.join(", ");
             format!(
                 "version {} -- la {} est telechargee, controlee, prete : elle s'appliquera au prochain demarrage{}",
                 cour,
@@ -1143,11 +1266,10 @@ impl Recherche {
 
     /// La version `v` est prete (`maj/prete.json`) : elle s'applique au redemarrage ; sa phrase `calcul` et sa raison
     /// `exigee` se gardent pour l'indicateur.
-    fn prete(&self, inst: &Path, v: &str) {
-        let (calcul, exigee) = prete(inst).map(|p| (p.calcul.trim().to_string(), p.exigee.trim().to_string())).unwrap_or_default();
-        self.poser(Etape::Prete, Some(v), |p| {
-            p.calcul = calcul;
-            p.exigee = exigee;
+    fn prete(&self, v: &Prete) {
+        self.poser(Etape::Prete, Some(&v.version), |p| {
+            p.calcul = v.calcul.trim().to_string();
+            p.exigee = v.exigee.trim().to_string();
         });
     }
 
@@ -1277,28 +1399,47 @@ fn phrase_du_calcul(calcul: &str) -> String {
 /// place. Elle change un calcul de paie : … » ; une version sans phrase `calcul` n'a rien de plus a dire que « Logiciel
 /// a jour ». Si `vue` ne s'ecrit pas, la phrase se dit quand meme : mieux vaut la relire que ne jamais la lire.
 fn dire_l_installation(inst: &Path, suivi: &Recherche) {
-    let chemin = dossier_maj(inst).join("appliquee.json");
-    let Some(mut a) = lire_json(&chemin) else { return };
-    if a.get("vue").and_then(Value::as_bool) != Some(false) {
-        return;
-    }
-    a["vue"] = json!(true);
-    if let Err(e) = ecrire_json(&chemin, &a) {
+    let chemin = dossier_maj(inst).join(APPLIQUEE);
+    let mut a = match lire_forme::<Appliquee>(&chemin, "La version installée (maj/appliquee.json) ne se lit pas : elle ne se dit pas au lancement.") {
+        Ok(Some(a)) if !a.vue => a,
+        Ok(_) => return,
+        Err(e) => return noter(inst, &e),
+    };
+    a.vue = true;
+    if let Err(e) = ecrire_appliquee(&chemin, &a) {
         noter(inst, &socle::echec::du_disque(&chemin, &e));
     }
-    let calcul = a.get("calcul").and_then(Value::as_str).map(str::trim).unwrap_or_default();
+    let calcul = a.calcul.trim();
     if calcul.is_empty() {
         return;
     }
-    let version = version_lue(a.get("version").and_then(Value::as_str).unwrap_or_default());
-    suivi.installee(format!("PuppetPaie {} est en place. {}", version, phrase_du_calcul(calcul)));
+    suivi.installee(format!("PuppetPaie {} est en place. {}", version_lue(&a.version), phrase_du_calcul(calcul)));
+}
+
+/// `maj/appliquee.json`, que la bascule ecrit : la version installee, quand, ses notes, sa phrase `calcul`, et si elle a
+/// deja ete dite au lancement (`vue`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Appliquee {
+    version: String,
+    quand: String,
+    notes: String,
+    calcul: String,
+    vue: bool,
+}
+
+const APPLIQUEE: &str = "appliquee.json";
+
+/// LA SEULE ECRITURE D'`appliquee.json` (`Appliquee`).
+fn ecrire_appliquee(chemin: &Path, a: &Appliquee) -> R<()> {
+    ecrire_json(chemin, &serde_json::to_value(a).map_err(|e| e.to_string())?)
 }
 
 /// Le geste « Redemarrer pour mettre a jour » : la version prete part au relais (comme au lancement, `au_lancement`) ; a
 /// l'appelant de s'arreter aussitot, sans rien ouvrir (le relais attend sa fin, bascule et ouvre la neuve). Refuse si la
 /// recherche de ce processus n'a rien de pret : rien n'est lance.
 pub fn redemarrer_pour_mettre_a_jour(inst: &Path, suivi: &Recherche) -> R<String> {
-    let v = match a_installer(inst) {
+    let v = match a_installer(inst)? {
         Some(v) if suivi.etape() == Etape::Prete => v,
         _ => return Err("Cette version reste en service jusqu'à ce qu'une nouvelle soit prête.".into()),
     };
@@ -1311,10 +1452,8 @@ pub fn redemarrer_pour_mettre_a_jour(inst: &Path, suivi: &Recherche) -> R<String
 }
 
 /// La version prete et plus recente que celle en place : celle qui s'installe au lancement suivant ; ou `None`.
-pub fn a_installer(inst: &Path) -> Option<String> {
-    let p = prete(inst)?;
-    let v = p.version;
-    plus_recente(&v, &courante(&logiciel_de(inst))).then_some(v)
+pub fn a_installer(inst: &Path) -> R<Option<String>> {
+    Ok(prete(inst)?.map(|p| p.version).filter(|v| plus_recente(v, &courante(&logiciel_de(inst)))))
 }
 
 fn deplacer(de: &Path, vers: &Path) -> std::io::Result<()> {
@@ -1342,7 +1481,7 @@ pub fn appliquer(inst: &Path) -> R<Value> {
 /// `--racine`, le `maj/` de la compagnie ou la version prete est rangee.
 fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
-    let d = prete_dans(maj).ok_or("aucune version prete a appliquer")?;
+    let d = prete_dans(maj)?.ok_or("aucune version prete a appliquer")?;
     let version = d.version.clone();
     let neuf = maj.join(&version).join("logiciel");
     let avant = code.join(".avant");
@@ -1395,11 +1534,8 @@ fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     }
     let quand = socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string();
     std::fs::create_dir_all(dossier_maj(&inst)).map_err(|e| e.to_string())?;
-    ecrire_json(
-        &dossier_maj(&inst).join("appliquee.json"),
-        &json!({"version": version, "quand": quand, "notes": d.notes, "calcul": d.calcul, "vue": false}),
-    )?;
-    let _ = std::fs::remove_file(maj.join("prete.json"));
+    ecrire_appliquee(&dossier_maj(&inst).join(APPLIQUEE), &Appliquee { version: version.clone(), quand: quand.clone(), notes: d.notes, calcul: d.calcul, vue: false })?;
+    let _ = std::fs::remove_file(maj.join(PRETE));
     let _ = std::fs::remove_dir_all(maj.join(&version));
     Ok(json!({"version": version, "avant": avant.display().to_string(), "quand": quand}))
 }
@@ -1429,7 +1565,7 @@ pub fn revenir(inst: &Path) -> R<Value> {
     }
     let _ = std::fs::remove_dir(&avant);
     let _ = std::fs::remove_dir_all(&apres);
-    let _ = std::fs::remove_file(dossier_maj(inst).join("appliquee.json"));
+    let _ = std::fs::remove_file(dossier_maj(inst).join(APPLIQUEE));
     Ok(json!({"version": version_avant}))
 }
 
@@ -1448,7 +1584,14 @@ pub const LIVREE: &str = ".livree.json";
 /// jour, et l'ancienne version s'ouvre : une mise a jour ne doit jamais empecher une paie.
 pub fn au_lancement() -> bool {
     let inst = installation();
-    let Some(v) = a_installer(&inst) else { return false };
+    let v = match a_installer(&inst) {
+        Ok(Some(v)) => v,
+        Ok(None) => return false,
+        Err(e) => {
+            noter(&inst, &format!("Mise a jour non appliquee : {}", e));
+            return false;
+        }
+    };
     match lancer_relais(&inst, &v) {
         Ok(_) => true,
         Err(e) => {
@@ -1650,7 +1793,7 @@ pub fn commande(args: &[String]) -> i32 {
         match (valeur("--logiciel"), valeur("--sortie")) {
             (Some(l), Some(s)) => Some(
                 publier_depuis_l_environnement(Path::new(&l), Path::new(&s), &valeur("--notes").unwrap_or_default(), &valeur("--calcul").unwrap_or_default(), &valeur("--exigee").unwrap_or_default())
-                    .map(|r| format!("Signee : {} ({}) dans {}", r["version"].as_str().unwrap_or(""), dire_les_archives(&r), r["dossier"].as_str().unwrap_or(""))),
+                    .map(|r| format!("Signee : {} ({}) dans {}", r.manifeste.version, r.dire_les_archives(), r.dossier.display())),
             ),
             _ => Some(Err(socle::echec::avec("La publication demande le dossier du logiciel et celui où écrire.", json!({"options": "--logiciel DOSSIER --sortie DOSSIER"})))),
         }
@@ -1691,7 +1834,7 @@ pub fn commande(args: &[String]) -> i32 {
         })
     } else if drapeau("--publier") {
         publier(&racine, valeur("--publier").as_deref(), &valeur("--notes").unwrap_or_default(), &valeur("--calcul").unwrap_or_default(), &valeur("--exigee").unwrap_or_default())
-            .map(|r| format!("Publiee : {} ({}) dans {}", version_lue(r["version"].as_str().unwrap_or("")), dire_les_archives(&r), r["dossier"].as_str().unwrap_or("")))
+            .map(|r| format!("Publiee : {} ({}) dans {}", version_lue(&r.manifeste.version), r.dire_les_archives(), r.dossier.display()))
     } else if drapeau("--appliquer") {
         if crate::interface::instance::ouverte(&installation(), crate::interface::instance::Plage::DU_POSTE) {
             Err("PuppetPaie tourne : fermer la fenetre, puis appliquer".into())
@@ -1759,6 +1902,12 @@ mod tests {
         std::fs::write(base.join("fictives").join("LISEZ-MOI.md"), "Les fictives.\n").unwrap();
     }
 
+    /// La version 2026.11.01 prete dans `<racine>/maj/`, telle que `telecharger` l'ecrit.
+    fn poser_la_prete(racine: &Path) {
+        let p = Prete { version: "2026.11.01".into(), quand: "2026-11-01T09:00".into(), archives: vec![SYSTEME.into()], notes: String::new(), calcul: String::new(), exigee: String::new() };
+        ecrire_prete(&racine.join("maj"), &p).unwrap();
+    }
+
     fn noms_de(octets: &[u8]) -> Vec<String> {
         let mut z = zip::ZipArchive::new(std::io::Cursor::new(octets)).unwrap();
         (0..z.len()).map(|i| z.by_index(i).unwrap().name().to_string()).collect()
@@ -1780,7 +1929,7 @@ mod tests {
             let neuf = racine.join("maj").join("2026.11.01").join("logiciel");
             arbre(&neuf, "2026.11.01");
             std::fs::write(neuf.join("EDITION.json"), "{\"edition\": \"bride\"}").unwrap();
-            ecrire_json(&racine.join("maj").join("prete.json"), &json!({"version": "2026.11.01", "calcul": ""})).unwrap();
+            poser_la_prete(&racine);
             appliquer(&racine).unwrap();
             assert_eq!(courante(&code), "2026.11.01");
             assert_eq!(std::fs::read_to_string(code.join("EDITION.json")).ok().as_deref(), avant);
@@ -1800,7 +1949,7 @@ mod tests {
         std::fs::write(code.join("EDITION.json"), "{\"edition\": \"bride\"}").unwrap();
         let neuf = racine.join("maj").join("2026.11.01").join("logiciel");
         arbre(&neuf, "2026.11.01");
-        ecrire_json(&racine.join("maj").join("prete.json"), &json!({"version": "2026.11.01", "calcul": ""})).unwrap();
+        poser_la_prete(&racine);
         ECHOUER_SUR.with(|e| *e.borrow_mut() = Some(code.join(".avant").join("EDITION.json")));
         let r = appliquer(&racine);
         ECHOUER_SUR.with(|e| *e.borrow_mut() = None);
@@ -1812,7 +1961,7 @@ mod tests {
         assert_eq!(courante(&neuf), "2026.11.01");
         assert_eq!(std::fs::read_to_string(neuf.join("donnees").join("a.json")).unwrap(), "2026.11.01");
         assert!(neuf.join("interface").join("index.html").is_file());
-        assert!(prete(&racine).is_some(), "la version reste prete, pour le prochain demarrage");
+        assert!(prete(&racine).unwrap().is_some(), "la version reste prete, pour le prochain demarrage");
         let _ = std::fs::remove_dir_all(&base);
     }
 
