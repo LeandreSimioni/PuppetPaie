@@ -402,7 +402,10 @@ pub(crate) fn dire(ctx: &Contexte, charge: &ChargeNature) -> R<NatureDite> {
 /// l'ecran (`dire`). Il en manque, ou la nature declaree n'est pas d'un permanent : rien ne se choisit, l'ecran le
 /// demande. Rend ce que chaque nature dite a fait, en phrases.
 pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
-    let lecture = crate::import::dsn_aem::lire_dsn(&racine.join("historique").join("bulletins"));
+    let lecture = match crate::import::dsn_aem::lire_dsn(&racine.join("historique").join("bulletins")) {
+        Ok(l) => l,
+        Err(e) => return vec![e.phrase()],
+    };
     let Ok(permises) = natures_permanentes() else { return Vec::new() };
     let mut faits = Vec::new();
     for x in a_dire(racine) {
@@ -414,22 +417,19 @@ pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
         }
         // Sa derniere paie declaree : le contrat tel que la derniere DSN le dit.
         let Some(((_, _, numero), p)) = lecture.paies.iter().filter(|((_, n, _), _)| *n == nir).last() else { continue };
-        let code = texte(&json!(p), "nature_dsn");
-        let Some(nat) = permises.iter().find(|n| n.codes.get("S21.G00.40.007").and_then(|c| c.get("valeur")).and_then(Value::as_str) == Some(code.as_str()))
-        else {
-            continue;
-        };
+        let c = p.contrat.as_ref();
+        let Some(code) = c.and_then(|c| c.nature_dsn.clone()) else { continue };
+        let Some(nat) = permises.iter().find(|n| n.code("S21.G00.40.007").as_deref() == Some(code.as_str())) else { continue };
         let en_cours = x.en_cours;
-        let lu = |k: &str| p.get(k).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
         let mut charge = ChargeNature { salarie: salarie.clone(), nature: nat.cle.clone(), ..ChargeNature::default() };
         let mut complet = true;
         for champ in demande(nat, en_cours) {
             let v = match champ {
                 Demande::Numero => Some(numero.clone()).filter(|n| !n.is_empty()),
-                Demande::Salaire => lu("salaire_base"),
-                Demande::Debut => lu("debut"),
-                Demande::Fin => lu("fin"),
-                Demande::Quotite => lu("quotite"),
+                Demande::Salaire => p.versement.salaire_base.map(|m| m.to_string()),
+                Demande::Debut => c.and_then(|c| c.debut).map(|j| j.iso()),
+                Demande::Fin => c.and_then(|c| c.fin).map(|j| j.iso()),
+                Demande::Quotite => c.and_then(|c| c.quotite).map(|q| q.to_string()),
             };
             match v {
                 Some(v) => charge.poser(champ, v),

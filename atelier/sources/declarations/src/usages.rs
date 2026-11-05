@@ -42,6 +42,11 @@ fn entree<'a>(t: &'a Value, rubrique: &str) -> Option<&'a Value> {
     t["usages"].get(rubrique).filter(|v| socle::fichiers::vrai(v))
 }
 
+/// La rubrique est-elle au tableau des usages de cette version, quelle que soit la nature ?
+pub fn rubrique_connue(norme: &Norme, rubrique: &str) -> Resultat<bool> {
+    Ok(table_de(norme)?["usages"].get(rubrique).is_some())
+}
+
 /// 'O', 'C', 'I', 'N' -- ou "" si la rubrique est inconnue du tableau de cette version.
 pub fn usage_en(norme: &Norme, rubrique: &str, nature: &str) -> Resultat<String> {
     let t = table_de(norme)?;

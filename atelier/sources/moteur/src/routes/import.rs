@@ -177,28 +177,28 @@ fn ecarts(nom: &str, fiche: &dyn droit::fiche::ParCase, declare: &Map<String, Va
 
 /// Ce qu'une fiche neuve recoit d'une DSN.
 fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
-    let mut f = decl.fiche.clone();
+    let mut f = decl.fiche();
     f.insert("nir_cle".into(), json!(declarations::champs::cle_nir(&decl.nir).unwrap_or_default()));
     f.insert("nir".into(), json!(decl.nir));
     if !decl.initiales.is_empty() {
         f.insert("initiales_contrat".into(), json!(decl.initiales));
     }
-    if !decl.premier_contrat.is_empty() {
-        f.insert("date_anciennete".into(), json!(decl.premier_contrat));
+    if let Some(j) = decl.premier_contrat {
+        f.insert("date_anciennete".into(), json!(j.iso()));
     }
     // Le statut de bareme se deduit du code emploi France Travail, a defaut de la PCS (354x : artistes).
-    let code = f.get("code_emploi_ft").map_or(String::new(), valeur_en_texte);
+    let code = decl.emploi.code_emploi_ft.clone().unwrap_or_default();
     let m = droit::emplois::metier(&code)?.unwrap_or_else(|| json!({}));
     let statut = match m.get("statut").filter(|v| vrai(v)) {
         Some(s) => s.clone(),
-        None => json!(if f.get("pcs_ese").map_or(String::new(), valeur_en_texte).starts_with("354") { "artiste" } else { "technicien" }),
+        None => json!(if decl.emploi.pcs_ese.as_deref().unwrap_or("").starts_with("354") { "artiste" } else { "technicien" }),
     };
     f.insert("statut".into(), statut);
     // L'EMPLOI EN CLAIR d'un metier du catalogue : son libelle, au feminin pour une salariee (le sexe que porte son NIR),
     // comme quand on le choisit dans la fiche (`routes::mois::emploi`) ; la forme declaree reste celle de la DSN. Le metier
     // est celui du code emploi, sinon celui que nomme l'intitule declare (S21.G00.40.006), s'il en nomme un seul
     // (`emplois::par_intitule`, comme pour un bulletin).
-    let intitule = f.get("emploi").map_or(String::new(), valeur_en_texte);
+    let intitule = decl.emploi.emploi.clone().unwrap_or_default();
     let du_catalogue = if m.get("libelle").is_some_and(vrai) {
         Some(code.clone())
     } else {
@@ -228,10 +228,9 @@ pub(crate) fn poser_licence(f: &mut Map<String, Value>, licences: &[(String, Str
 
 /// La fiche Entreprise que les DSN donnent : ce qu'elles declarent de l'entreprise, son Siret, sa premiere licence.
 fn fiche_entreprise(lecture: &dsn_aem::LectureDsn) -> R<Map<String, Value>> {
-    let mut e = lecture.entreprise.clone();
-    let (siren, nic) = (e.get("siren").filter(|v| vrai(v)).cloned(), e.get("nic").filter(|v| vrai(v)).cloned());
-    if let (Some(s), Some(n)) = (siren, nic) {
-        e.insert("siret".into(), json!(format!("{}{}", valeur_en_texte(&s), valeur_en_texte(&n))));
+    let mut e = lecture.entreprise.fiche();
+    if let (Some(s), Some(n)) = (&lecture.entreprise.siren, &lecture.entreprise.nic) {
+        e.insert("siret".into(), json!(format!("{}{}", s, n)));
     }
     poser_licence(&mut e, &lecture.licences);
     let mut e = declarations::champs::combler_affichage("entreprise", &e)?;
@@ -290,52 +289,20 @@ pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<engagement::importe::Pai
     engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)
 }
 
-/// UN VERSEMENT QUE LA DSN DECLARE, EN PAIE VERSEE : ses montants et ses dates, tels que la DSN les ecrit (`dsn_aem::
-/// lire_dsn`). Un montant ou une date qui ne se lit pas refuse l'import, et le dit : rien ne se devine (regle 1).
-fn paie_declaree(mois: &str, contrat: &str, nir: &str, v: &Map<String, Value>, objet: String) -> R<engagement::importe::PaieVersee> {
+/// UN VERSEMENT QUE LA DSN DECLARE, EN PAIE VERSEE : ses montants et ses dates, tels que la DSN les ecrit
+/// (`dsn_aem::lire_une_dsn`, qui refuse une DSN dont un montant ou une date ne se lit pas).
+fn paie_declaree(contrat: &str, p: &dsn_aem::PaieDeclaree, objet: Option<String>) -> engagement::importe::PaieVersee {
     use engagement::importe::{Declaration, PaieVersee};
-    let texte = |k: &str| v.get(k).map(valeur_en_texte).filter(|s| !s.trim().is_empty());
-    // La rubrique de la DSN que chaque valeur est (`dsn_aem::lire_une_dsn`).
-    let rubrique = |k: &str| match k {
-        "debut" => "S21.G00.40.001",
-        "fin" => "S21.G00.40.010",
-        "quotite" => "S21.G00.40.013",
-        "verse_le" => "S21.G00.50.001",
-        "net_imposable" => "S21.G00.50.002",
-        "net_verse" => "S21.G00.50.004",
-        "taux_pas" => "S21.G00.50.006",
-        "pas" => "S21.G00.50.009",
-        "brut" => "S21.G00.51.013",
-        _ => "S21.G00.78.004",
-    };
-    let refus = |k: &str, x: &str, quoi: &str| {
-        erreur(
-            "ErreurOperation",
-            format!(
-                "La DSN de {} du dossier porte, en {}, « {} », qui n'est pas {} : corrigez-la ou retirez-la du dossier, puis relancez l'import.",
-                socle::mois::Mois::en_clair(mois),
-                rubrique(k),
-                x,
-                quoi
-            ),
-        )
-    };
-    let montant = |k: &str| -> R<Option<socle::num::Decimal>> {
-        texte(k).map(|x| socle::num::decimal_lu(&x).ok_or_else(|| refus(k, &x, "un montant"))).transpose()
-    };
-    let jour = |k: &str| -> R<Option<socle::date::Jour>> { texte(k).map(|x| socle::date::Jour::lire(&x).map_err(|_| refus(k, &x, "une date"))).transpose() };
-    let mut p = PaieVersee::vide(contrat.to_string(), Declaration::Dsn);
-    p.nir = Some(nir.to_string());
-    p.numero_objet = Some(objet).filter(|o| !o.trim().is_empty());
-    (p.debut, p.fin, p.verse_le) = (jour("debut")?, jour("fin")?, jour("verse_le")?);
-    (p.quotite, p.brut, p.net_imposable, p.net_verse) = (montant("quotite")?, montant("brut")?, montant("net_imposable")?, montant("net_verse")?);
-    (p.pas, p.taux_pas) = (montant("pas")?, montant("taux_pas")?);
-    (p.type_pas, p.identifiant_pas, p.depose_le, p.fichier) = (texte("type_pas"), texte("identifiant_pas"), texte("depot"), texte("fichier"));
-    for (code, b) in v.get("bases").and_then(Value::as_object).into_iter().flatten() {
-        let x = valeur_en_texte(b);
-        p.bases.insert(code.clone(), socle::num::decimal_lu(&x).ok_or_else(|| refus("base", &x, "un montant"))?);
-    }
-    Ok(p)
+    let (v, c) = (&p.versement, p.contrat.as_ref());
+    let mut x = PaieVersee::vide(contrat.to_string(), Declaration::Dsn);
+    x.nir = Some(v.nir.clone());
+    x.numero_objet = objet;
+    (x.debut, x.fin, x.verse_le) = (c.and_then(|c| c.debut), c.and_then(|c| c.fin), v.verse_le);
+    (x.quotite, x.brut, x.net_imposable, x.net_verse) = (c.and_then(|c| c.quotite), v.brut, v.net_imposable, v.net_verse);
+    (x.pas, x.taux_pas, x.type_pas, x.identifiant_pas) = (v.pas, v.taux_pas, v.type_pas.clone(), v.identifiant_pas.clone());
+    (x.depose_le, x.fichier) = (p.depot.map(|j| j.iso()), Some(p.fichier.clone()).filter(|f| !f.is_empty()));
+    x.bases = v.bases.clone();
+    x
 }
 
 /// L'apercu de ce qu'un dossier de DSN et un dossier d'AEM donneraient (l'un ou l'autre peut manquer : rien n'en
@@ -350,7 +317,7 @@ pub(crate) fn apercu_lu(
     a_venir: &HashSet<String>,
 ) -> R<Apercu> {
     let lecture = match &dsn {
-        Some(d) => dsn_aem::lire_dsn(d),
+        Some(d) => dsn_aem::lire_dsn(d)?,
         None => Default::default(),
     };
     let mut avertissements: Vec<String> = lecture.illisibles.iter().map(|f| format!("DSN illisible, ignoree : {}", f)).collect();
@@ -375,7 +342,7 @@ pub(crate) fn apercu_lu(
     let mut a_creer_liste: Vec<ACreer> = Vec::new();
     let mut a_completer: Vec<crate::import::completer::ACompleter> = Vec::new();
     let vide = Map::new();
-    if !lecture.entreprise.is_empty() {
+    if !lecture.entreprise.est_vide() {
         let mut e = fiche_entreprise(&lecture)?;
         garder_le_nom(ctx, &mut e);
         if ctx.entreprise.siren.texte().trim().is_empty() {
@@ -386,7 +353,7 @@ pub(crate) fn apercu_lu(
             a_creer += 1;
         } else {
             let libelle = ctx.entreprise.raison_sociale.texte().to_string();
-            let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise, &lecture.dernier_mois)?;
+            let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise.fiche(), &lecture.dernier_mois)?;
             let mut f = FicheImportee::new("entreprise", None, &libelle, EtatFiche::Existante, ec, Vec::new(), &vide);
             let champs = crate::import::completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
             f.noter(&champs, &Origine::dsn(&lecture.dernier_mois));
@@ -409,11 +376,11 @@ pub(crate) fn apercu_lu(
     for decl in ordre {
         let libelle = format!(
             "{} {}",
-            decl.fiche.get("nom").map_or(String::new(), valeur_en_texte),
-            titre_de(decl.fiche.get("prenom"))
+            decl.individu.nom.clone().unwrap_or_default(),
+            decl.individu.prenom.as_deref().map(declarations::champs::titre).unwrap_or_default()
         );
         if let Some(cle) = par_nir.get(&decl.nir) {
-            let ec = ecarts("salarie", &ctx.salaries[cle.as_str()].champs, &decl.fiche, &decl.mois)?;
+            let ec = ecarts("salarie", &ctx.salaries[cle.as_str()].champs, &decl.fiche(), &decl.mois)?;
             let mut entree = FicheImportee::new("salarie", Some(cle), &libelle, EtatFiche::Existante, ec, Vec::new(), &vide);
             let champs = crate::import::completer::champs_a_completer("salarie", &ctx.salaries[cle.as_str()].champs, &fiche_salarie(decl)?)?;
             entree.noter(&champs, &Origine::dsn(&decl.mois));
@@ -548,13 +515,13 @@ pub(crate) fn apercu_lu(
         if cle.is_none() && !cles_a_venir.contains(nir) {
             continue;
         }
-        let texte = |k: &str| v.get(k).map(valeur_en_texte).unwrap_or_default();
-        let objet = match v.get("objet").filter(|x| vrai(x)) {
-            Some(o) => valeur_en_texte(o),
-            None => objets_aem.get(&(nir.clone(), texte("debut"), texte("fin"))).cloned().unwrap_or_default(),
-        };
+        let c = v.contrat.as_ref();
+        let objet = c.and_then(|c| c.objet.clone()).or_else(|| {
+            let (debut, fin) = (c.and_then(|c| c.debut)?, c.and_then(|c| c.fin)?);
+            objets_aem.get(&(nir.clone(), debut.iso(), fin.iso())).cloned()
+        });
         // 50.004 est le net verse, pas le net a payer : la DSN ne declare pas celui-ci, un bulletin le donnera.
-        let paie = paie_declaree(mois, contrat, nir, v, objet)?;
+        let paie = paie_declaree(contrat, v, objet);
         paies.push(engagement::importe::PaieLue { mois: mois.clone(), salarie: cle.cloned().unwrap_or_else(|| "<a creer>".to_string()), paie });
     }
     let reponse = Importation {

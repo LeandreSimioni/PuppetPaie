@@ -64,60 +64,6 @@ fn refaire_les_engagements(ctx: &Contexte) -> Result<(), Echec> {
 fn instant_du_jour(j: Jour) -> String {
     format!("{}000000", j.aaaammjj())
 }
-/// Par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
-fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String, Vec<Value>)> {
-    let par_nir: std::collections::HashMap<String, String> = ctx
-        .salaries
-        .iter()
-        .filter_map(|(cle, s)| s.nir.dite().filter(|n| !n.is_empty()).map(|n| (n.to_string(), cle.to_string())))
-        .collect();
-    let mut fichiers = Vec::new();
-    crate::routes::fiches::fichiers_dsn(dossier, &mut fichiers);
-    fichiers.sort();
-    // salarie -> mois -> releve (dans l'ordre d'insertion des salaries, mois tries).
-    let mut trouve: Vec<(String, std::collections::BTreeMap<String, Value>)> = Vec::new();
-    for f in fichiers {
-        let Ok(octets) = std::fs::read(&f) else { continue };
-        let texte: String = octets.iter().map(|b| *b as char).collect();
-        let (mut mois, mut nir): (Option<String>, Option<String>) = (None, None);
-        let mut cur: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-        for ligne in socle::texte::lignes_du_texte(&texte) {
-            if !ligne.contains(',') {
-                continue;
-            }
-            let Some((code, val)) = ligne.trim().split_once(',') else { continue };
-            let val = val.trim().trim_matches('\'').to_string();
-            if code == "S20.G00.05.005" {
-                mois = socle::mois::Mois::de_la_dsn(&val).ok().map(|m| m.to_string());
-            } else if code == "S21.G00.30.001" {
-                nir = Some(val);
-            } else if code.starts_with("S21.G00.50.00") {
-                cur.insert(code.to_string(), val.clone());
-                // « -1 » : un CDD court sans taux personnalise (`norme-dsn/texte/bloc-S21.G00.50.txt`, S21.G00.50.008) ;
-                // aucun taux n'a ete transmis.
-                if code == "S21.G00.50.008" && val != "-1" {
-                    if let (Some(cle), Some(m)) = (nir.as_ref().and_then(|n| par_nir.get(n)), mois.as_ref()) {
-                        let g = |k: &str| cur.get(k).map_or(Value::Null, |v| json!(v));
-                        // S21.G00.50.001, la date du versement (JJMMAAAA) : sans elle, le taux ne se date pas.
-                        let Ok(j) = Jour::lire(&crate::import::dsn_aem::jjmmaaaa(cur.get("S21.G00.50.001").map_or("", String::as_str))) else {
-                            cur.clear();
-                            continue;
-                        };
-                        let rel = json!({"taux": g("S21.G00.50.006"), "type": g("S21.G00.50.007"), "identifiant": val, "mis_a_disposition": instant_du_jour(j)});
-                        match trouve.iter_mut().find(|(k, _)| k == cle) {
-                            Some((_, mm)) => {
-                                mm.insert(m.clone(), rel);
-                            }
-                            None => trouve.push((cle.clone(), [(m.clone(), rel)].into_iter().collect())),
-                        }
-                    }
-                    cur.clear();
-                }
-            }
-        }
-    }
-    trouve.into_iter().map(|(cle, mm)| (cle, mm.into_values().collect())).collect()
-}
 
 /// LE DERNIER TAUX TRANSMIS PAR LA DGFiP QUE LES DSN DEJA DEPOSEES DE `dossier` DECLARENT, par salarie (un releve tel que
 /// `enregistrer` le prend). Une DSN qui declare un taux de type 01 avec son identifiant (S21.G00.50.006 a .008,
@@ -131,15 +77,46 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
 /// transmis le mois au cours duquel la DSN […] a été déposée » (meme page, § 30), mais la DSN qui applique le
 /// taux n'en porte pas la date. INFERENCE (aucun texte ne date un taux lu dans une DSN) : le releve est date du jour du versement
 /// (`mis_a_disposition`), la mise a disposition la plus tardive que les textes permettent ; le compte rendu de la DSN suivante
-/// le remplace.
-pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -> Vec<Value> {
+/// le remplace. Chaque DSN se lit par `import::dsn_aem::lire_une_dsn` ; une DSN fautive refuse.
+pub(crate) fn derniers_taux_des_dsn(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<Value>, Echec> {
+    let par_nir: std::collections::HashMap<String, String> = ctx
+        .salaries
+        .iter()
+        .filter_map(|(cle, s)| s.nir.dite().filter(|n| !n.is_empty()).map(|n| (n.to_string(), cle.to_string())))
+        .collect();
+    let mut fichiers = Vec::new();
+    crate::routes::fiches::fichiers_dsn(dossier, &mut fichiers);
+    fichiers.sort();
+    // salarie -> mois -> releve (dans l'ordre d'insertion des salaries, mois tries).
+    let mut trouve: Vec<(String, std::collections::BTreeMap<socle::mois::Mois, Value>)> = Vec::new();
+    for f in fichiers {
+        let Some(d) = crate::import::dsn_aem::lire_une_dsn(&f)? else { continue };
+        for v in &d.versements {
+            // « -1 » : un CDD court sans taux personnalise (`norme-dsn/texte/bloc-S21.G00.50.txt`, S21.G00.50.008) ;
+            // aucun taux n'a ete transmis. Sans la date du versement (S21.G00.50.001), le taux ne se date pas.
+            let (Some(id), Some(j), Some(cle)) = (v.identifiant_pas.as_ref().filter(|i| *i != "-1"), v.verse_le, par_nir.get(&v.nir)) else {
+                continue;
+            };
+            let rel = json!({
+                "taux": v.taux_pas.map(|t| t.to_string()),
+                "type": v.type_pas,
+                "identifiant": id,
+                "mis_a_disposition": instant_du_jour(j),
+            });
+            match trouve.iter_mut().find(|(k, _)| k == cle) {
+                Some((_, mm)) => {
+                    mm.insert(d.mois, rel);
+                }
+                None => trouve.push((cle.clone(), [(d.mois, rel)].into_iter().collect())),
+            }
+        }
+    }
     let mut releves = Vec::new();
-    for (cle, entrees) in releves_historiques(ctx, dossier) {
-        if let Some(dernier) = entrees.last() {
-            let mut r = dernier.as_object().cloned().unwrap_or_default();
+    for (cle, mm) in trouve {
+        if let Some(Value::Object(mut r)) = mm.into_values().next_back() {
             r.insert("salarie".into(), json!(cle));
             releves.push(Value::Object(r));
         }
     }
-    releves
+    Ok(releves)
 }
