@@ -104,7 +104,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
         }
         Route::Importer => super::en_json(crate::import::ecrite::importer(ctx, charge)?),
         // La nature des contrats repris qu'aucun bulletin ne dit.
-        Route::ImportationNature => crate::import::nature::dire(ctx, charge),
+        Route::ImportationNature => super::en_json(crate::import::nature::dire(ctx, &super::lire_charge(charge)?)?),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
