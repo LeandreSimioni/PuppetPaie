@@ -102,7 +102,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
             continue;
         }
         let mut masse = socle::num::zero2();
-        for b in d.versements.iter().filter(|v| !v.contrats().is_empty()).filter_map(|v| d.mois.and_then(|m| v.brut(m))) {
+        for b in d.paies().iter().filter_map(|p| p.mesures.brut) {
             masse += b;
         }
         let an: String = m.chars().take(4).collect();

@@ -10,7 +10,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use declarations::dsn_lue::{en_fiche, Adhesion, ContratDeclare, DsnLue, EmploiDeclare, EntrepriseDeclaree, IndividuDeclare, VersementLu};
+use declarations::dsn_lue::{en_fiche, Adhesion, ContratDeclare, DsnLue, EmploiDeclare, EntrepriseDeclaree, IndividuDeclare, PaieDuContrat};
 use socle::date::Jour;
 use socle::echec::Echec;
 use socle::num::Decimal;
@@ -52,35 +52,12 @@ pub(crate) struct ObjetDeclare {
     pub(crate) source: &'static str,
 }
 
-/// LES MONTANTS D'UN VERSEMENT (bloc 50 : les nets .002 et .004, le prelevement a la source .006 a .009 ; le brut et le
-/// salaire habituel de ses remunerations, bloc 51 ; ses bases, bloc 78), quand il ne paie qu'un contrat.
-#[derive(Clone, Debug)]
-pub(crate) struct MontantsVerses {
-    pub(crate) brut: Option<Decimal>,
-    pub(crate) salaire_habituel: Option<Decimal>,
-    pub(crate) net_imposable: Option<Decimal>,
-    pub(crate) net_verse: Option<Decimal>,
-    pub(crate) taux_pas: Option<Decimal>,
-    pub(crate) type_pas: Option<String>,
-    pub(crate) identifiant_pas: Option<String>,
-    pub(crate) pas: Option<Decimal>,
-    pub(crate) bases: BTreeMap<String, Decimal>,
-}
-
-/// UN CONTRAT QU'UN VERSEMENT DE LA DSN PAIE (S21.G00.51.010), et le contrat que la DSN declare sous ce numero. Les
-/// montants du versement sont ceux du VERSEMENT : le bloc 50 n'a pas de numero de contrat (`bloc-S21.G00.50.txt`), et ses
-/// bases ne nomment le leur qu'en S21.G00.78.006 (`bloc-S21.G00.79.txt` l. 9-14). Ils ne se rattachent au contrat que si
-/// ce versement est le seul a le payer et ne paie que lui ; sinon rien ne se repartit (`montants` vide) : ce sont les
-/// bulletins qui apportent ce qui a ete paye sur chaque contrat.
+/// UN CONTRAT QU'UN VERSEMENT DE LA DSN PAIE, avec ce que la DSN lui attribue (`PaieDuContrat` : son brut, son salaire
+/// habituel et ses bases par son numero ; ses nets et son prelevement seulement si un versement ne paie que lui) et le
+/// contrat que la DSN declare sous ce numero. Ce qu'elle n'attribue a aucun contrat, ce sont les bulletins qui l'apportent.
 #[derive(Clone, Debug)]
 pub(crate) struct PaieDeclaree {
-    pub(crate) nir: String,
-    /// Le contrat qu'il paie (S21.G00.51.010).
-    pub(crate) numero: String,
-    pub(crate) verse_le: Option<Jour>,
-    pub(crate) montants: Option<MontantsVerses>,
-    /// Les autres contrats que son versement paie (vide : il ne paie que celui-ci).
-    pub(crate) avec: Vec<String>,
+    pub(crate) paie: PaieDuContrat,
     pub(crate) contrat: Option<ContratDeclare>,
     pub(crate) depot: Option<Jour>,
     pub(crate) fichier: String,
@@ -116,46 +93,6 @@ fn noms_tries(dossier: &Path) -> Vec<String> {
     };
     v.sort();
     v
-}
-
-/// Les paies d'une DSN : une par contrat qu'un versement paie, avec les montants du versement s'il ne paie que lui
-/// (`PaieDeclaree`).
-fn paies_de(info: &DsnLue, mois: socle::mois::Mois) -> Vec<PaieDeclaree> {
-    let mut payeurs: HashMap<(&str, &str), usize> = HashMap::new();
-    for v in &info.versements {
-        for c in v.contrats() {
-            *payeurs.entry((v.nir.as_str(), c)).or_default() += 1;
-        }
-    }
-    let montants = |v: &VersementLu| MontantsVerses {
-        brut: v.brut(mois),
-        salaire_habituel: v.salaire_habituel(mois),
-        net_imposable: v.net_imposable,
-        net_verse: v.net_verse,
-        taux_pas: v.taux_pas,
-        type_pas: v.type_pas.clone(),
-        identifiant_pas: v.identifiant_pas.clone(),
-        pas: v.pas,
-        bases: v.bases.clone(),
-    };
-    let mut out = Vec::new();
-    for v in &info.versements {
-        let contrats = v.contrats();
-        for c in &contrats {
-            let seul = contrats.len() == 1 && payeurs[&(v.nir.as_str(), *c)] == 1;
-            out.push(PaieDeclaree {
-                nir: v.nir.clone(),
-                numero: c.to_string(),
-                verse_le: v.verse_le,
-                montants: seul.then(|| montants(v)),
-                avec: contrats.iter().filter(|x| *x != c).map(|x| x.to_string()).collect(),
-                contrat: info.contrats_de(&v.nir).filter(|x| x.numero.as_deref() == Some(*c)).last().cloned(),
-                depot: info.depot,
-                fichier: info.fichier.clone(),
-            });
-        }
-    }
-    out
 }
 
 /// Toutes les DSN d'un dossier, la plus recente faisant foi par salarie. Une DSN fautive refuse
@@ -218,8 +155,10 @@ pub(crate) fn lire_dsn(dossier: &Path) -> Result<LectureDsn, Echec> {
                 out.objets[i].contrats += 1;
             }
         }
-        for p in paies_de(info, *le_mois) {
-            out.paies.insert((mois.clone(), p.nir.clone(), p.numero.clone()), p);
+        for paie in info.paies() {
+            let contrat = info.contrats_de(&paie.nir).filter(|x| x.numero.as_deref() == Some(paie.numero.as_str())).last().cloned();
+            let cle = (mois.clone(), paie.nir.clone(), paie.numero.clone());
+            out.paies.insert(cle, PaieDeclaree { paie, contrat, depot: info.depot, fichier: info.fichier.clone() });
         }
         for ind in &info.individus {
             let nir = ind.nir.clone();

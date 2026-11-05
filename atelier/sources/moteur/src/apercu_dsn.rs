@@ -162,7 +162,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             vus.insert(c.numero.clone());
             let p = par_numero.get(&c.numero).map(|&i| &liste[i]);
             let mut ecarts: Vec<String> = Vec::new();
-            let brut = q2(m.brut);
+            let brut = q2(m.brut.unwrap_or_default());
             match p {
                 _ if correction => {}
                 None => {
