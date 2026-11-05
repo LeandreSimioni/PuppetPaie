@@ -1298,14 +1298,7 @@ compagnie ; rien n'est declare.",
     }
     let choix = p.salarie.sante_svp.dite().cloned().unwrap_or_default();
     let niveau = choix.niveau.texte().to_string();
-    let enfants = match choix.enfants.dite().map(droit::fiche::Montant::valeur) {
-        None => Some(0),
-        Some(Value::Number(n)) => n.as_i64(),
-        Some(Value::String(x)) if x.trim().is_empty() => Some(0),
-        Some(Value::String(x)) => x.trim().parse::<i64>().ok(),
-        Some(_) => None,
-    }
-    .filter(|n| (0..=99).contains(n));
+    let enfants = choix.enfants.dite().map_or(Some(0), droit::fiche::Montant::entier).filter(|n| (0..=99).contains(n));
     let conjoint = choix.conjoint.oui();
     let famille = conjoint || enfants.map_or(false, |n| n > 0);
     let code = g(g(g(options, "niveaux"), &niveau), if famille { "famille" } else { "isole" }).as_str();

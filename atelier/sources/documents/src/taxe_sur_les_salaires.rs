@@ -3,10 +3,9 @@
 //! les salaires » (`etats_compta`) et le bloc S21.G00.44 de la DSN de decembre (`declarations::assujettissement`) lisent
 //! les memes fonctions.
 
-use serde_json::Value;
 
 use engagement::calcul::Paie;
-use socle::num::{add, dec_avec_echelle, eur, mul, sub, Decimal, Resultat};
+use socle::num::{add, eur, mul, sub, Decimal, Resultat};
 use socle::texte::euros;
 
 /// Le champ de la fiche entreprise qui dit la taxe sur les salaires.
@@ -111,15 +110,14 @@ decembre ne se fait pas.",
         "exoneree" => Decimal::ONE_HUNDRED,
         "assujettie" => {
             champs.push("part_tva");
-            let part = match fiche.and_then(|f| f.part_tva.dite()).map(|m| m.valeur()) {
-                None | Some(Value::Null) => None,
-                Some(Value::String(s)) if s.trim().is_empty() => None,
-                Some(v) => match dec_avec_echelle(v) {
+            let part = match fiche.and_then(|f| f.part_tva.dite()) {
+                None => None,
+                Some(v) => match v.avec_echelle() {
                     Ok(p) if p >= Decimal::ZERO && p <= Decimal::ONE_HUNDRED => Some(p),
                     _ => {
                         return manque(
                             champs,
-                            format!("la part des recettes soumise a la TVA vaut {}, qui n'est pas un pourcentage de 0 a 100", v),
+                            format!("la part des recettes soumise a la TVA vaut {}, qui n'est pas un pourcentage de 0 a 100", socle::ecriture::json_en_ligne(v)),
                             "La part des recettes soumise à la TVA est un pourcentage, de 0 à 100.",
                         )
                     }

@@ -554,9 +554,7 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
     let idcc = idcc_de(ctx);
-    let table = socle::fichiers::lire_json_echec(&socle::fichiers::dossier_du_code().join("prevoyance-conventionnelle-base.json"))?;
-    let fp = table.get("conventions").and_then(|c| c.get(idcc.as_str())).and_then(|r| r.get("financement_paritarisme")).filter(|v| vrai(v)).cloned();
-    let Some(fp) = fp else {
+    let Some(fp) = droit::bareme::prevoyance::financement(&idcc).map_err(refus)? else {
         return Err(refus(format!(
             "Le FCAP-SVP est la contribution de la convention 3090 (titre V) ; la fiche entreprise dit IDCC {}. Il n'y a rien à calculer.",
             if idcc.is_empty() { "rien".to_string() } else { idcc }
@@ -564,7 +562,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     };
     let p = Periode::nouvelle(ctx, None, d.annee.as_deref(), d.toutes, true)?;
     let mut avert = Vec::new();
-    let (taux, plancher, plafond) = (dec_de(&fp["taux"])?, dec_de(&fp["plancher"])?, dec_de(&fp["plafond"])?);
+    let (taux, plancher, plafond) = (fp.taux.0, fp.plancher.0, fp.plafond.0);
     let mut par_an: Vec<(String, i64, Decimal)> = Vec::new();
     let zero = zero2();
     let orgs = ctx.organismes().map_err(refus)?;

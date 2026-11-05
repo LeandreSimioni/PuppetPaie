@@ -150,40 +150,102 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for Case<T> {
 /// UN MONTANT OU UN NOMBRE D'UNE FICHE : un nombre JSON, ou un texte qui se lit en decimal (`12,5` compris), garde tel
 /// qu'il est ecrit.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Montant(Value);
+pub enum Montant {
+    Entier(i64),
+    Naturel(u64),
+    Flottant(f64),
+    /// Un texte qui se lit en decimal (`socle::num::decimal_lu`).
+    Texte(String),
+}
 
 impl Montant {
     pub fn decimal(&self) -> Decimal {
-        lire_montant(&self.0).unwrap_or_default()
+        match self {
+            Montant::Entier(i) => Decimal::from(*i),
+            Montant::Naturel(u) => Decimal::from(*u),
+            Montant::Flottant(x) => socle::num::dec_f64(*x).unwrap_or_default(),
+            Montant::Texte(s) => socle::num::decimal_lu(s).unwrap_or_default(),
+        }
     }
 
-    /// Tel qu'il est ecrit.
-    pub fn valeur(&self) -> &Value {
-        &self.0
+    /// Le decimal, un flottant gardant son echelle telle qu'elle s'ecrit (`130.0`) ; un texte se lit sans virgule.
+    pub fn avec_echelle(&self) -> Resultat<Decimal> {
+        match self {
+            Montant::Flottant(x) => socle::num::dec_texte(&socle::date::repr_flottant(*x)),
+            Montant::Texte(s) => socle::num::dec_texte(s),
+            autre => Ok(autre.decimal()),
+        }
     }
-}
 
-fn lire_montant(v: &Value) -> Option<Decimal> {
-    match v {
-        Value::Number(_) => socle::num::dec(v).ok(),
-        Value::String(s) => socle::num::decimal_lu(s),
-        _ => None,
+    /// Le flottant ; un texte se lit sans virgule.
+    pub fn flottant(&self) -> Resultat<f64> {
+        match self {
+            Montant::Entier(i) => Ok(*i as f64),
+            Montant::Naturel(u) => Ok(*u as f64),
+            Montant::Flottant(x) => Ok(*x),
+            Montant::Texte(s) => s.trim().parse::<f64>().map_err(|_| socle::num::illisible(s)),
+        }
+    }
+
+    /// L'entier ecrit : un nombre entier, ou un texte qui se lit en entier ; `None` sinon.
+    pub fn entier(&self) -> Option<i64> {
+        match self {
+            Montant::Entier(i) => Some(*i),
+            Montant::Texte(s) => s.trim().parse().ok(),
+            Montant::Naturel(_) | Montant::Flottant(_) => None,
+        }
+    }
+
+    /// Tel qu'il est ecrit, pour un message : un texte tel quel, un nombre sous sa forme ecrite.
+    pub fn ecrit(&self) -> String {
+        match self {
+            Montant::Entier(i) => i.to_string(),
+            Montant::Naturel(u) => u.to_string(),
+            Montant::Flottant(x) => socle::date::repr_flottant(*x),
+            Montant::Texte(s) => s.clone(),
+        }
     }
 }
 
 impl Serialize for Montant {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        self.0.serialize(s)
+        match self {
+            Montant::Entier(i) => s.serialize_i64(*i),
+            Montant::Naturel(u) => s.serialize_u64(*u),
+            Montant::Flottant(x) => s.serialize_f64(*x),
+            Montant::Texte(t) => s.serialize_str(t),
+        }
     }
 }
 
 impl<'de> Deserialize<'de> for Montant {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let v = Value::deserialize(d)?;
-        match lire_montant(&v) {
-            Some(_) => Ok(Montant(v)),
-            None => Err(serde::de::Error::custom(format!("{} n'est pas un nombre", v))),
+        struct Lu;
+        impl serde::de::Visitor<'_> for Lu {
+            type Value = Montant;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("un nombre")
+            }
+            fn visit_i64<E: serde::de::Error>(self, i: i64) -> Result<Montant, E> {
+                Ok(Montant::Entier(i))
+            }
+            fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<Montant, E> {
+                Ok(i64::try_from(u).map_or(Montant::Naturel(u), Montant::Entier))
+            }
+            fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<Montant, E> {
+                Ok(Montant::Flottant(x))
+            }
+            fn visit_str<E: serde::de::Error>(self, s: &str) -> Result<Montant, E> {
+                match socle::num::decimal_lu(s) {
+                    Some(_) => Ok(Montant::Texte(s.to_string())),
+                    None => Err(E::custom(format!("{} n'est pas un nombre", socle::ecriture::json_en_ligne(s)))),
+                }
+            }
+            fn visit_bool<E: serde::de::Error>(self, b: bool) -> Result<Montant, E> {
+                Err(E::custom(format!("{} n'est pas un nombre", b)))
+            }
         }
+        d.deserialize_any(Lu)
     }
 }
 
