@@ -445,15 +445,17 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
                     ),
                     _ => String::new(),
                 };
+                // L1234-5 : « indemnité de congés payés comprise » ; un mois de travail acquiert ses jours (L3141-3).
+                let jours = mul(permanents::regles()?.conges_payes.acquisition.jours_par_mois, m);
+                let conges = conges_non_effectues(ctx, e, mois, &fin, jours, salaire, eur2(mul(m, salaire)), &mut stc)?;
                 stc.avertissements.push(avertir(format!(
                     "{} : {} mois de préavis non effectué, payés {} \
-                     (L1234-5) -- {}. Ce préavis OUVRE DES CONGÉS PAYÉS -- \
-                     l'article dit « indemnité de congés payés comprise » -- et le \
-                     moteur ne les a PAS ajoutés au compteur : à vérifier.{}",
+                     (L1234-5){}. L'article le veut « indemnité de congés payés comprise » : {}{}",
                     qui,
                     virgule(m),
                     euros(mul(m, salaire)),
-                    duree.dit,
+                    if duree.dit.is_empty() { String::new() } else { format!(" -- {}", duree.dit) },
+                    conges,
                     article
                 )));
             }
@@ -602,7 +604,7 @@ fn delai_de_prevenance(
     }
     stc.lignes.push(json!({"rubrique": regle.rubrique, "quantite": flot(fraction), "taux": flot(salaire)}));
     let montant = eur2(mul(fraction, salaire));
-    let conges = conges_du_delai(ctx, e, mois, fin, &delai.expiration, salaire, montant, stc)?;
+    let conges = conges_non_effectues(ctx, e, mois, fin, jours_acquis(&fin.plus_jours(1)?, &delai.expiration)?, salaire, montant, stc)?;
     let avantages = avantages_du_mois(ctx, deja)?;
     let avantages = if avantages.is_empty() {
         "Les avantages : le bulletin de ce mois n'en porte aucun, il n'y a rien à ajouter.".to_string()
@@ -629,23 +631,22 @@ fn delai_de_prevenance(
     Ok(())
 }
 
-/// LES CONGES DU DELAI NON EFFECTUE (L1221-25 : « indemnité compensatrice de congés payés comprise ») : les jours que la
-/// presence du lendemain de la fin `fin` a l'expiration `expiration` aurait acquis (`permanents::jours_acquis`, L3141-3),
-/// payes au plus favorable du dixieme de ce que le delai paie (`montant`, la remuneration de ces jours) et du maintien
-/// (le salaire du mois `mois` sur ses jours ouvrables, comme le solde ; L3141-24). Ils s'ajoutent a la ligne de
-/// l'indemnite compensatrice de conges payes du solde, ou en font une. Un salarie dont la caisse des Conges Spectacles
-/// paie les conges n'en a pas chez l'employeur (L3141-30). Rend la phrase qui le dit.
+/// LES CONGES D'UN TEMPS PAYE SANS ETRE EFFECTUE : le delai de prevenance (L1221-25) et le preavis (L1234-5) sont payes
+/// « indemnité compensatrice de congés payés comprise ». Les `jours` que ce temps aurait acquis (L3141-3), payes au plus
+/// favorable du dixieme de ce qu'il paie (`montant`, sa remuneration) et du maintien (le salaire du mois `mois` sur ses
+/// jours ouvrables, comme le solde ; L3141-24), s'ajoutent a la ligne de l'indemnite compensatrice de conges payes du
+/// solde, ou en font une. Un salarie dont la caisse des Conges Spectacles paie les conges n'en a pas chez l'employeur
+/// (L3141-30). Rend la phrase qui le dit.
 #[allow(clippy::too_many_arguments)]
-fn conges_du_delai(
-    ctx: &Contexte, e: &Value, mois: &str, fin: &socle::date::Jour, expiration: &socle::date::Jour, salaire: Decimal, montant: Decimal,
+fn conges_non_effectues(
+    ctx: &Contexte, e: &Value, mois: &str, fin: &socle::date::Jour, jours: Decimal, salaire: Decimal, montant: Decimal,
     stc: &mut Solde,
 ) -> Resultat<String> {
     if crate::calcul::saisie_declaree_a_la_caisse_des_conges(ctx, e, fin)? {
         return Ok("ses congés sont payés par la caisse des Congés Spectacles (L3141-30), rien à ajouter.".to_string());
     }
-    let jours = jours_acquis(&fin.plus_jours(1)?, expiration)?;
     if jours.is_zero() {
-        return Ok("le délai n'acquiert aucun jour de congé.".to_string());
+        return Ok("ce temps n'acquiert aucun jour de congé.".to_string());
     }
     let m = Mois::lire(mois)?;
     let ouvrables = Decimal::from(jours_ouvrables(&m.premier_jour(), &m.dernier_jour(), ctx.entreprise.feries_chomes())?);
