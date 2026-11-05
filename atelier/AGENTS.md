@@ -221,4 +221,6 @@ Depuis GitHub seulement (`journal/finitions/PUBLIER.md` du privé) : suite verte
 numéro est la date. **Le rythme est à Léandre : lui seul lance « Publier »**, avec `notes`, et `calcul` **seulement** si
 un calcul de paie change ; **Léandre approuve** (environnement `publication`), le moteur signe avec la clé de GitHub.
 La forme de l'archive de mise à jour (`moteur/src/compagnie/maj.rs`) **est un contrat avec toutes les installations
-posées et ne change plus**. Jamais pendant que l'interface tourne ; jamais republier un numéro.
+posées et ne change plus**. Le manifeste publié (`derniere.json`) non plus : une installation le lit en strict, avec la
+forme de sa version, et une clé de plus la couperait des mises à jour ; ce qui est neuf va dans l'archive. Un besoin
+contraire se présente d'abord à Léandre, expliqué. Jamais pendant que l'interface tourne ; jamais republier un numéro.
