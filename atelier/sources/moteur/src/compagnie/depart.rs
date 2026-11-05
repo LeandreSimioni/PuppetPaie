@@ -32,7 +32,7 @@ use socle::echec::Echec;
 use socle::echec::R;
 use socle::ecriture::ecrire_json;
 use socle::fichiers::vrai;
-use documents::ecrire_documents::Reserves;
+use documents::ecrire_documents::{Reserves, Suite};
 use socle::valeur::valeur_en_texte;
 
 fn info(texte: impl Into<String>) -> Avis {
@@ -768,10 +768,10 @@ impl DocumentsFabriques {
             engagement::etats::poser_numeros_des_documents(ctx, mois, cle, numero, bulletin.as_deref(), ce.map(|c| c.0)).map_err(Echec::from)?;
         }
         if let Some((an, n)) = bulletin_max {
-            bornes.enregistrer(an, "bulletin", n);
+            bornes.enregistrer(an, Suite::Bulletin, n);
         }
         if let Some(n) = ce_max {
-            bornes.enregistrer(an, "certificat_cs", n);
+            bornes.enregistrer(an, Suite::CertificatCs, n);
         }
         bornes.valider(ctx)
     }
@@ -881,8 +881,8 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             if paies[i].engagement.sans_paie() || numerotees[i] {
                 continue;
             }
-            let n = faits.reserves.prochain(ctx, "bulletin", an)?;
-            faits.reserves.enregistrer(an, "bulletin", n);
+            let n = faits.reserves.prochain(ctx, Suite::Bulletin, an)?;
+            faits.reserves.enregistrer(an, Suite::Bulletin, n);
             let numero = format!("{}/{}", n, an);
             numeros[i] = Some(numero.clone());
             a_poser.entry(i).or_default().0 = Some(numero);
@@ -929,11 +929,11 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             None if part(&paies[i]) => {
                 let n = match prochain_ce {
                     Some(n) => n,
-                    None => documents::ecrire_documents::prochain_continu(ctx, "certificat_cs", 1)?,
+                    None => documents::ecrire_documents::prochain_continu(ctx, Suite::CertificatCs, 1)?,
                 };
                 let combien = conges_spectacles::decouper(&pc.engagement)?.len() as i64;
                 prochain_ce = Some(n + combien);
-                faits.reserves.enregistrer(an, "certificat_cs", n + combien - 1);
+                faits.reserves.enregistrer(an, Suite::CertificatCs, n + combien - 1);
                 a_poser.entry(i).or_default().1 = Some((n, n + combien - 1));
                 if ctx.salarie(cle).map_err(valeur)?.nir.texte().trim().is_empty() {
                     faits.avertissements.push(format!(

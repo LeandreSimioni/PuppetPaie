@@ -23,7 +23,7 @@ use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
 use droit::contexte::Contexte;
 use socle::num::Resultat;
-use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
+use socle::valeur::{valeur_ecrite, valeur_en_texte};
 use crate::service::contexte;
 use catalogue::Route;
 
@@ -520,30 +520,6 @@ pub(crate) fn lire_json_ou_vide(p: &Path) -> R<Value> {
         lire_json(p)
     } else {
         Ok(Value::Object(Map::new()))
-    }
-}
-
-/// Le JSON d'un fichier : `None` quand il est absent, illisible comme texte ou comme JSON ; un autre refus du
-/// disque se leve.
-fn lire_json_tolerant(p: &Path) -> R<Option<Value>> {
-    if !p.exists() {
-        return Ok(None);
-    }
-    let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
-    Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
-}
-
-/// `v.get(...)` sur un dictionnaire ; sinon `AttributeError`.
-fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
-    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
-}
-
-/// `x or ""`.
-fn ou_texte(v: &Value) -> Value {
-    if vrai(v) {
-        v.clone()
-    } else {
-        json!("")
     }
 }
 

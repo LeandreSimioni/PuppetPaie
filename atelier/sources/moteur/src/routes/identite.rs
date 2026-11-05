@@ -3,14 +3,14 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, FORME, MANQUE, OPERATION};
 use crate::routes::catalogue::Route;
-use crate::routes::fiches::{aujourd_hui, creer_dossier, ecrire, en_os, exiger, objet_du_fichier, refus, texte_requis};
+use crate::routes::fiches::{aujourd_hui, creer_dossier, ecrire, en_os, refus};
+use crate::routes::ouverture::{EcranDeLImage, Identite, ImageIdentite};
 use droit::contexte::Contexte;
-use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
+use socle::echec::{Echec, R};
 
 const QUOI_IDENTITE: Champ = Champ { nom: "quoi", libelle: Affiche::new("Signature, cachet ou logo"), forme: Forme::Texte, sens: "signature, cachet ou logo", avance: false };
 
@@ -66,14 +66,65 @@ pub const ROUTES: &[Fiche] = &[
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> R<Value> {
     match nom {
-        Route::Identite => identite(ctx).map(|mut v| {
-            ecran_de_l_identite(&mut v);
-            super::phrase_en_tete(v.clone(), dire_l_identite(&v))
-        }),
-        Route::PoserIdentite => poser_identite(ctx, charge).map(|(v, poids)| super::phrase_en_tete(v.clone(), format!("Posé. {} {}", poids, dire_l_identite(&v)))),
-        Route::RetirerIdentite => retirer_identite(ctx, charge).map(|v| super::phrase_en_tete(v.clone(), format!("Retiré. {}", dire_l_identite(&v)))),
+        Route::Identite => {
+            let super::SansCharge {} = super::lire_charge(charge)?;
+            let mut identite = identite(ctx)?;
+            ecran_de_l_identite(&mut identite);
+            super::en_json(IdentiteDite {
+                phrase: dire_l_identite(&identite),
+                identite,
+                intro: Some("Ce qui se pose sur les documents de la compagnie : PNG, JPEG ou SVG, 2 Mo au plus. Une image posée part dans chaque document qui la porte : le logiciel l'allège au poids visé."),
+                poids_vise_ko: Some(POIDS_VISE_KO),
+            })
+        }
+        Route::PoserIdentite => {
+            let (identite, poids) = poser_identite(ctx, super::lire_charge(charge)?)?;
+            super::en_json(IdentiteDite { phrase: format!("Posé. {} {}", poids, dire_l_identite(&identite)), identite, intro: None, poids_vise_ko: None })
+        }
+        Route::RetirerIdentite => {
+            let identite = retirer_identite(ctx, super::lire_charge(charge)?)?;
+            super::en_json(IdentiteDite { phrase: format!("Retiré. {}", dire_l_identite(&identite)), identite, intro: None, poids_vise_ko: None })
+        }
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
+}
+
+/// L'IDENTITE DE LA COMPAGNIE telle que ses routes la rendent : sa phrase, les trois images, et pour l'ecran (`identite`)
+/// ce qu'il dit en tete et le poids vise.
+#[derive(Debug, Clone, serde::Serialize)]
+struct IdentiteDite {
+    phrase: String,
+    identite: Identite,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    intro: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    poids_vise_ko: Option<f64>,
+}
+
+/// La charge de `poser-identite` : quoi, l'image en base64 (une adresse data: aussi), et le poids vise en Ko.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargePoser {
+    quoi: String,
+    #[serde(deserialize_with = "socle::forme::presente")]
+    contenu: Option<String>,
+    #[serde(default)]
+    poids: Option<PoidsVise>,
+}
+
+/// Le poids vise : un nombre, ou un texte qui en dit un (« 20,5 »).
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(untagged)]
+enum PoidsVise {
+    Nombre(f64),
+    Texte(String),
+}
+
+/// La charge de `retirer-identite` : quoi.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargeQuoi {
+    quoi: String,
 }
 
 // ------------------------------------------------------------------ l'identite
@@ -123,13 +174,9 @@ fn avant(f: &Path) -> R<()> {
     std::fs::rename(f, PathBuf::from(nom)).map_err(|e| en_os(socle::echec::du_disque(&f, &e)))
 }
 
-fn poser_identite(ctx: &Contexte, charge: &Value) -> R<(Value, String)> {
-    let quoi = texte_requis(charge, "quoi")?;
-    let contenu = match exiger(charge, "contenu")? {
-        Value::Null => "",
-        Value::String(s) => s.as_str(),
-        _ => return Err(erreur("TypeError", socle::echec::charge("contenu", "un texte"))),
-    };
+fn poser_identite(ctx: &Contexte, charge: ChargePoser) -> R<(Identite, String)> {
+    let quoi = charge.quoi.as_str();
+    let contenu = charge.contenu.as_deref().unwrap_or("");
     if !IDENTITES.contains(&quoi) {
         return Err(identite_inconnue(quoi));
     }
@@ -144,12 +191,18 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<(Value, String)> {
     format_de(&octets).ok_or_else(|| {
         refus("Ce fichier n'est ni un PNG, ni un JPEG, ni un SVG (ses premiers octets ne sont ceux d'aucun des trois). Rien n'a ete ecrit.")
     })?;
-    let objectif_ko = match charge.get("poids") {
-        None | Some(Value::Null) => POIDS_VISE_KO,
-        Some(v) => match v.as_f64().or_else(|| v.as_str().and_then(|s| s.trim().replace(',', ".").parse().ok())) {
-            Some(k) if (1.0..=OCTETS_MAX as f64 / 1024.0).contains(&k) => k,
-            _ => return Err(refus(format!("Le poids visé est un nombre de Ko, de 1 à {} : {} ne l'est pas.", OCTETS_MAX / 1024, socle::fichiers::repr(&socle::valeur::valeur_en_texte(v))))),
-        },
+    let objectif_ko = match &charge.poids {
+        None => POIDS_VISE_KO,
+        Some(p) => {
+            let (lu, dit) = match p {
+                PoidsVise::Nombre(k) => (Some(*k), k.to_string()),
+                PoidsVise::Texte(s) => (s.trim().replace(',', ".").parse::<f64>().ok(), s.clone()),
+            };
+            match lu {
+                Some(k) if (1.0..=OCTETS_MAX as f64 / 1024.0).contains(&k) => k,
+                _ => return Err(refus(format!("Le poids visé est un nombre de Ko, de 1 à {} : {} ne l'est pas.", OCTETS_MAX / 1024, socle::fichiers::repr(&dit)))),
+            }
+        }
     };
     // L'image part dans chaque document qui la porte : elle est allégée avant d'être posée, à la largeur que les
     // documents impriment (`documents::largeur_imprimee`) et au poids visé.
@@ -173,11 +226,10 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<(Value, String)> {
     std::fs::write(&cible, &octets).map_err(|e| en_os(socle::echec::du_disque(&cible, &e)))?;
     if quoi == "signature" {
         // Pour qui elle est posee : la personne qui signe CE JOUR-LA.
-        let registre = dossier.join("identite.json");
-        let mut tenu = objet_du_fichier(&registre)?;
-        let signataire = crate::routes::ouverture::signataire_de(&ctx.entreprise)?;
-        tenu.insert("signature".into(), json!({"de": signataire["nom"], "le": aujourd_hui().iso()}));
-        ecrire(&registre, Value::Object(tenu))?;
+        let mut registre = crate::routes::ouverture::registre_identite(&dossier)?;
+        let signataire = crate::routes::ouverture::signataire_de(&ctx.entreprise);
+        registre.signature = Some(crate::routes::ouverture::PoseePour { de: signataire.nom, le: aujourd_hui().iso() });
+        ecrire(&dossier.join("identite.json"), super::en_json(&registre)?)?;
     }
     Ok((identite(ctx)?, poids))
 }
@@ -215,8 +267,8 @@ fn dire_le_poids(quoi: &str, a: &fabrique_pdf::alleger::Allegee, objectif_ko: f6
     format!("{} {}", dit, pourquoi)
 }
 
-fn retirer_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let quoi = texte_requis(charge, "quoi")?;
+fn retirer_identite(ctx: &Contexte, charge: ChargeQuoi) -> R<Identite> {
+    let quoi = charge.quoi.as_str();
     if !IDENTITES.contains(&quoi) {
         return Err(identite_inconnue(quoi));
     }
@@ -226,72 +278,61 @@ fn retirer_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
     identite(ctx)
 }
 
-fn identite(ctx: &Contexte) -> R<Value> {
+/// L'identite, chaque image avec sa pastille : la sienne, posee, ou celle que le logiciel dessine, faites ; rien de pose,
+/// a faire.
+fn identite(ctx: &Contexte) -> R<Identite> {
     let mut v = crate::routes::ouverture::identite(ctx, &ctx.gabarits())?;
-    // La pastille de chaque image : la sienne, posee, ou celle que le logiciel dessine, faites ; rien de pose, a faire.
-    for e in v.as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
-        let Some(o) = e.as_object_mut() else { continue };
-        let p = if o.get("pose").is_some_and(vrai) {
-            super::pastille("fait", "le vôtre")
-        } else if o.get("automatique").is_some_and(vrai) {
-            super::pastille("fait", "celui du logiciel")
+    for (_, e) in v.images_mut() {
+        e.pastille = Some(if e.pose {
+            super::Pastille::de("fait", "le vôtre")
+        } else if e.automatique {
+            super::Pastille::de("fait", "celui du logiciel")
         } else {
-            super::pastille("a_faire", "rien de posé")
-        };
-        o.insert("pastille".into(), p);
+            super::Pastille::de("a_faire", "rien de posé")
+        });
     }
-    Ok(json!({"identite": v}))
+    Ok(v)
 }
-
 
 /// L'identite de la compagnie en une phrase : la signature, le tampon et le logo, chacun avec ce que l'ecran en dit.
-fn dire_l_identite(v: &Value) -> String {
-    let mot = |k: &str| socle::valeur::valeur_en_texte(&v["identite"][k]["pastille"]["mots"]);
-    format!("Signature : {} ; tampon : {} ; logo : {}.", mot("signature"), mot("cachet"), mot("logo"))
+fn dire_l_identite(v: &Identite) -> String {
+    let mot = |e: &ImageIdentite| e.pastille.as_ref().map(|p| p.mots.clone()).unwrap_or_default();
+    format!("Signature : {} ; tampon : {} ; logo : {}.", mot(&v.signature), mot(&v.cachet), mot(&v.logo))
 }
 
-/// CE QUE L'ECRAN DE LA SIGNATURE ET DU TAMPON DIT (`intro`, et pour chaque image son `titre` et ce qu'elle `dit` : ou elle
-/// va, ce qu'elle engage, et ce qui la contredit dans la fiche Entreprise).
-fn ecran_de_l_identite(v: &mut Value) {
-    v["intro"] = json!("Ce qui se pose sur les documents de la compagnie : PNG, JPEG ou SVG, 2 Mo au plus. Une image posée part dans chaque document qui la porte : le logiciel l'allège au poids visé.");
-    v["poids_vise_ko"] = json!(POIDS_VISE_KO);
-    let ou = |i: &Value| {
-        let docs: Vec<String> = i["documents"].as_array().into_iter().flatten().map(super::mot).collect();
-        if docs.is_empty() { String::new() } else { format!("Sur {}", docs.join(", ")) }
-    };
-    let i = &mut v["identite"];
-    let sig = i["signature"].clone();
-    let qui = &sig["signataire"];
-    let nom = super::mot(&qui["nom"]);
-    i["signature"]["titre"] = json!(if nom.is_empty() { "La signature".to_string() } else {
-        format!("La signature de {}{}", nom, if super::mot(&qui["fonction"]).is_empty() { String::new() } else { format!(", {}", super::mot(&qui["fonction"])) })
-    });
-    let mut dit = format!("{}. Elle engage la personne qui signe au nom de la compagnie.", ou(&sig));
+/// CE QUE L'ECRAN DE LA SIGNATURE ET DU TAMPON DIT (pour chaque image son `titre` et ce qu'elle `dit` : ou elle va, ce
+/// qu'elle engage, et ce qui la contredit dans la fiche Entreprise ; ce que dit l'image posee, et les mots de ses gestes).
+fn ecran_de_l_identite(v: &mut Identite) {
+    let ou = |i: &ImageIdentite| if i.documents.is_empty() { String::new() } else { format!("Sur {}", i.documents.join(", ")) };
+    let sig = &v.signature;
+    let (nom, fonction) = sig.signataire.as_ref().map(|s| (s.nom.clone(), s.fonction.clone())).unwrap_or_default();
+    let titre_signature = if nom.is_empty() { "La signature".to_string() } else { format!("La signature de {}{}", nom, if fonction.is_empty() { String::new() } else { format!(", {}", fonction) }) };
+    let mut dit = format!("{}. Elle engage la personne qui signe au nom de la compagnie.", ou(sig));
     if nom.is_empty() {
         dit.push_str(" La fiche Entreprise ne dit pas qui signe.");
     }
-    if vrai(&sig["autre_personne"]) {
-        dit.push_str(&format!(" Cette image a été posée pour {} ; la personne qui signe est maintenant {}. Importer sa signature à elle, ou corriger la fiche Entreprise.", super::mot(&sig["posee_pour"]), nom));
+    if sig.autre_personne == Some(true) {
+        dit.push_str(&format!(" Cette image a été posée pour {} ; la personne qui signe est maintenant {}. Importer sa signature à elle, ou corriger la fiche Entreprise.", sig.posee_pour.as_deref().unwrap_or_default(), nom));
     }
-    i["signature"]["dit"] = json!(dit);
-    let cachet = ou(&i["cachet"]);
-    i["cachet"]["titre"] = json!("Le tampon");
-    i["cachet"]["dit"] = json!(format!("{}. Il identifie la compagnie, il n'engage personne.", cachet));
-    i["cachet"]["automatique_dit"] = json!("dessiné depuis la fiche Entreprise, il la suit : rien à faire");
-    let logo = ou(&i["logo"]);
-    i["logo"]["titre"] = json!("Le logo");
-    i["logo"]["dit"] = json!(format!("{}, en haut à droite ; sans lui, rien n'y est imprimé.", logo));
-    // Ce que dit l'image posee (sa forme, son poids, son jour), et les mots de ses gestes.
-    for quoi in ["signature", "cachet", "logo"] {
-        let e = &mut i[quoi];
-        let pose = vrai(&e["pose"]);
-        let jour: String = super::mot(&e["quand"]).chars().take(10).collect();
-        e["pose_dit"] = if pose {
-            json!(format!("{}, {} dans chaque document, posé le {}", super::mot(&e["format"]).to_uppercase(), ko(e["octets"].as_u64().unwrap_or(0) as usize), super::jour_en_clair(&json!(jour))))
-        } else {
-            Value::Null
-        };
-        e["retirer_dit"] = json!(if vrai(&e["automatique"]) { "Tampon du logiciel" } else { "Retirer" });
-        e["importer_dit"] = json!(if pose { "Modifier…" } else { "Importer…" });
+    let dits = [
+        (titre_signature, dit, None),
+        ("Le tampon".to_string(), format!("{}. Il identifie la compagnie, il n'engage personne.", ou(&v.cachet)), Some("dessiné depuis la fiche Entreprise, il la suit : rien à faire")),
+        ("Le logo".to_string(), format!("{}, en haut à droite ; sans lui, rien n'y est imprimé.", ou(&v.logo)), None),
+    ];
+    for ((_, e), (titre, dit, automatique_dit)) in v.images_mut().into_iter().zip(dits) {
+        // Ce que dit l'image posee (sa forme, son poids, son jour), et les mots de ses gestes.
+        let pose_dit = e.pose.then(|| {
+            let jour: String = e.quand.as_deref().unwrap_or_default().chars().take(10).collect();
+            let jour = socle::date::Jour::lire(&jour).map(|j| j.jj_mm_aaaa()).unwrap_or(jour);
+            format!("{}, {} dans chaque document, posé le {}", e.format.as_deref().unwrap_or_default().to_uppercase(), ko(e.octets.unwrap_or(0) as usize), jour)
+        });
+        e.ecran = Some(EcranDeLImage {
+            titre,
+            dit,
+            automatique_dit,
+            pose_dit,
+            retirer_dit: if e.automatique { "Tampon du logiciel" } else { "Retirer" },
+            importer_dit: if e.pose { "Modifier…" } else { "Importer…" },
+        });
     }
 }

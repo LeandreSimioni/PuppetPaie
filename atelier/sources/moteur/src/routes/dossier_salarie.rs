@@ -481,7 +481,7 @@ pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(engagement::saisie::VueD
 
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
-fn numeroter(ctx: &Contexte, data: &engagement::saisie::VueDuMois, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
+fn numeroter(ctx: &Contexte, data: &engagement::saisie::VueDuMois, paies: &mut [Paie], attente: &mut HashMap<i32, i64>) -> R<()> {
     documents::ecrire_documents::numeroter_en_attente(ctx, paies, data.mois.annee(), attente, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)
 }
 
@@ -657,7 +657,7 @@ fn mois_puppetpaie(
     d: &mut Dossier,
     aujourdhui: &Jour,
     contrats_vus: &mut HashSet<String>,
-    attente: &mut HashMap<(String, String), i64>,
+    attente: &mut HashMap<i32, i64>,
 ) -> R<Vec<Page>> {
     let mut pages = Vec::new();
     let sortie = ctx.racine.join("sorties").join(mois);
@@ -1242,7 +1242,7 @@ pub(crate) fn construire(ctx: &Contexte, demande: &DemandeDeDossier) -> R<Dossie
     let ensemble_cats: HashSet<&str> = cats.iter().copied().collect();
     let mut pages: Vec<Page> = Vec::new();
     let mut contrats_vus: HashSet<String> = HashSet::new();
-    let mut attente: HashMap<(String, String), i64> = HashMap::new();
+    let mut attente: HashMap<i32, i64> = HashMap::new();
     let mois_saisis = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().map(String::from).collect::<Vec<_>>();
     for m in &mois_saisis {
         if p.contient(m) {

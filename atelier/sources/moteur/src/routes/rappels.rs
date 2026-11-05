@@ -15,7 +15,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
@@ -169,7 +169,7 @@ struct Revue {
     archives: Vec<String>,
     continuent: Vec<String>,
     /// La configuration relue (`ouverture`, route `configuration`).
-    configuration: Value,
+    configuration: crate::routes::ouverture::ConfigurationDite,
 }
 
 /// Ce que rend `echeance-faite`.
@@ -181,7 +181,7 @@ struct Faite {
 }
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> socle::echec::R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &Value) -> socle::echec::R<Value> {
     match nom {
         Route::Rappels => {
             let SansCharge {} = lire_charge(charge)?;
@@ -191,7 +191,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &V
             let SansCharge {} = lire_charge(charge)?;
             en_json(echeancier(ctx)?)
         }
-        Route::RevueSpectacles => en_json(revue_spectacles(o, ctx, lire_charge(charge)?)?),
+        Route::RevueSpectacles => en_json(revue_spectacles(ctx, lire_charge(charge)?)?),
         Route::EcheanceFaite => en_json(echeance_faite(ctx, lire_charge(charge)?)?),
         // Ce que la compagnie peut remplir d'avance, d'un coup ; ce que le moteur a pose de lui-meme se dit en information
         // (gris) ; les acces aux organismes et le Drive se proposent (`acces_proposes`).
@@ -213,7 +213,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &V
 
 /// Archive les spectacles actifs qui ne sont pas dans
 /// `continuent`, note la revue de l'annee faite, rend la configuration.
-fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: ChargeRevue) -> socle::echec::R<Revue> {
+fn revue_spectacles(ctx: &Contexte, charge: ChargeRevue) -> socle::echec::R<Revue> {
     let ChargeRevue { annee, continuent } = charge;
     // L'ordre ne compte pas, les doublons non plus.
     let garder: BTreeSet<String> = continuent.into_iter().collect();
@@ -229,7 +229,7 @@ fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: ChargeR
     marquer_echeance(ctx, &format!("{}:{}", REVUE_SPECTACLES, annee), true, "interface")?;
     let continuent: Vec<String> = garder.into_iter().collect();
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(|m| socle::echec::noter_et(None, m))?;
-    let configuration = crate::routes::ouverture::route(o, &neuf, Route::Configuration, &json!({}))?;
+    let configuration = crate::routes::ouverture::configuration_dite(&neuf)?;
     let phrase = format!("Spectacles qui continuent : {} ; archivés : {}.", continuent.len(), archives.len());
     Ok(Revue { phrase, annee, archives, continuent, configuration })
 }

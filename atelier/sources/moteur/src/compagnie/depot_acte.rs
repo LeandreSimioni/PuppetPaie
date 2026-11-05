@@ -22,10 +22,8 @@ use serde_json::{json, Value};
 use droit::contexte::Contexte;
 use envois::depot::{self, Apercu};
 use envois::etats;
-use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use envois::releve_retours::Client;
 use envois::suites::Suites;
 use envois::journal::{Acte, EmbaucheDeclaree, Ligne, Ouverture, Version};
@@ -72,9 +70,8 @@ fn cle_de_version(v: &str) -> Vec<i64> {
 /// La version prete est celle de l'INSTALLATION du contexte (`<installation>/logiciel/donnees` = `ctx.code`).
 pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
     let code = ctx.code.parent().map(Path::to_path_buf).unwrap_or_default();
-    let Some(p) = crate::routes::ouverture::prete(&code.join(".."))? else { return Ok(String::new()) };
-    let exigee = p.get("exigee").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_default();
-    let version = p.get("version").map(valeur_en_texte).unwrap_or_default();
+    let Some(p) = crate::compagnie::maj::prete(&code.join("..")) else { return Ok(String::new()) };
+    let (exigee, version) = (p.exigee, p.version);
     if exigee.is_empty() || cle_de_version(&version) <= cle_de_version(&crate::routes::ouverture::courante(&code)?) {
         return Ok(String::new());
     }

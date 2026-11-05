@@ -251,11 +251,34 @@ pub fn depot(pose: Option<String>) -> String {
     pose.unwrap_or_else(|| DEPOT_PAR_DEFAUT.to_string())
 }
 
+/// LA VERSION PRETE (`maj/prete.json`, que `telecharger` ecrit) : sa version, ses notes, sa phrase `calcul` (ce qu'elle
+/// change d'un calcul de paie, vide : rien) et sa raison `exigee` (vide : elle n'est pas indispensable avant de declarer).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Prete {
+    pub version: String,
+    pub notes: String,
+    pub calcul: String,
+    pub exigee: String,
+}
+
+/// LA SEULE LECTURE DE `prete.json`, dans le dossier `maj` : la version prete dont le logiciel est la, ou `None`. Elle
+/// reste tolerante, a dessein : le relais d'une version neuve (`appliquer_depuis`) lit le `prete.json` qu'a ecrit
+/// l'installation posee, de quelque version qu'elle soit (une `archive` au lieu d'`archives`, une cle qui manque) ; un
+/// refus la laisserait sans mise a jour. C'est un contrat avec les installations posees (« Publier une version ») : la
+/// forme ecrite ne change pas, et la lecture ne prend que ce qu'elle lit, par cette fonction.
+fn prete_dans(maj: &Path) -> Option<Prete> {
+    let d = lire_json(&maj.join("prete.json"))?;
+    let version = d.get("version")?.as_str()?.to_string();
+    if !maj.join(&version).join("logiciel").join("donnees").is_dir() {
+        return None;
+    }
+    let texte = |cle: &str| d.get(cle).and_then(Value::as_str).unwrap_or_default().to_string();
+    Some(Prete { notes: texte("notes"), calcul: texte("calcul"), exigee: texte("exigee"), version })
+}
+
 /// La version telechargee, controlee, a appliquer.
-pub fn prete(inst: &Path) -> Option<Value> {
-    let d = lire_json(&dossier_maj(inst).join("prete.json"))?;
-    let v = d.get("version")?.as_str()?;
-    dossier_maj(inst).join(v).join("logiciel").join("donnees").is_dir().then_some(d)
+pub fn prete(inst: &Path) -> Option<Prete> {
+    prete_dans(&dossier_maj(inst))
 }
 
 pub(crate) fn lire_depot(depot: &str, nom: &str) -> R<Vec<u8>> {
@@ -967,7 +990,7 @@ fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Rech
         suivi.poser(Etape::AJour, Some(&courante(&c)), |p| p.sans_ce_systeme = Some(v.clone()));
         return format!("version {} -- la {} est publiee sans l'un de ses systemes ({}) : cette installation garde sa version", cour, lue, systemes.join(", "));
     }
-    let deja = prete(inst).and_then(|p| p["version"].as_str().map(String::from)).as_deref() == Some(v.as_str());
+    let deja = prete(inst).map(|p| p.version).as_deref() == Some(v.as_str());
     if deja {
         suivi.prete(inst, &v);
         return format!("version {} -- la {} est prete", cour, lue);
@@ -1121,9 +1144,7 @@ impl Recherche {
     /// La version `v` est prete (`maj/prete.json`) : elle s'applique au redemarrage ; sa phrase `calcul` et sa raison
     /// `exigee` se gardent pour l'indicateur.
     fn prete(&self, inst: &Path, v: &str) {
-        let d = prete(inst);
-        let texte = |cle: &str| d.as_ref().and_then(|p| p.get(cle).and_then(Value::as_str).map(str::trim).map(String::from)).unwrap_or_default();
-        let (calcul, exigee) = (texte("calcul"), texte("exigee"));
+        let (calcul, exigee) = prete(inst).map(|p| (p.calcul.trim().to_string(), p.exigee.trim().to_string())).unwrap_or_default();
         self.poser(Etape::Prete, Some(v), |p| {
             p.calcul = calcul;
             p.exigee = exigee;
@@ -1292,7 +1313,7 @@ pub fn redemarrer_pour_mettre_a_jour(inst: &Path, suivi: &Recherche) -> R<String
 /// La version prete et plus recente que celle en place : celle qui s'installe au lancement suivant ; ou `None`.
 pub fn a_installer(inst: &Path) -> Option<String> {
     let p = prete(inst)?;
-    let v = p["version"].as_str()?.to_string();
+    let v = p.version;
     plus_recente(&v, &courante(&logiciel_de(inst))).then_some(v)
 }
 
@@ -1321,12 +1342,8 @@ pub fn appliquer(inst: &Path) -> R<Value> {
 /// `--racine`, le `maj/` de la compagnie ou la version prete est rangee.
 fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
-    let d = (|| {
-        let d = lire_json(&maj.join("prete.json"))?;
-        maj.join(d.get("version")?.as_str()?).join("logiciel").join("donnees").is_dir().then_some(d)
-    })()
-    .ok_or("aucune version prete a appliquer")?;
-    let version = d["version"].as_str().unwrap_or_default().to_string();
+    let d = prete_dans(maj).ok_or("aucune version prete a appliquer")?;
+    let version = d.version.clone();
     let neuf = maj.join(&version).join("logiciel");
     let avant = code.join(".avant");
     let _ = std::fs::remove_dir_all(&avant);
@@ -1380,7 +1397,7 @@ fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     std::fs::create_dir_all(dossier_maj(&inst)).map_err(|e| e.to_string())?;
     ecrire_json(
         &dossier_maj(&inst).join("appliquee.json"),
-        &json!({"version": version, "quand": quand, "notes": d.get("notes").cloned().unwrap_or(json!("")), "calcul": d.get("calcul").cloned().unwrap_or(json!("")), "vue": false}),
+        &json!({"version": version, "quand": quand, "notes": d.notes, "calcul": d.calcul, "vue": false}),
     )?;
     let _ = std::fs::remove_file(maj.join("prete.json"));
     let _ = std::fs::remove_dir_all(maj.join(&version));

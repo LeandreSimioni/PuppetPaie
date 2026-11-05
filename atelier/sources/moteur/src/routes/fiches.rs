@@ -436,7 +436,7 @@ fn permanents_de(entreprise: &dyn droit::fiche::ParCase) -> bool {
 /// montre que ces cases-la.
 pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &dyn droit::fiche::ParCase, entreprise: &dyn droit::fiche::ParCase) -> R<Vec<String>> {
     let permanents = permanents_de(entreprise);
-    let etablissements = !super::ouverture::choix_d_etablissement(ctx).is_null();
+    let etablissements = super::ouverture::choix_d_etablissement(ctx).is_some();
     let autre = (nom != "entreprise").then_some(entreprise);
     Ok(champs::fiche(nom)?.iter().filter(|c| c.montre(donnees, autre, permanents, etablissements)).map(|c| c.cle.clone()).collect())
 }
