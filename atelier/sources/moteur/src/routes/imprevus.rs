@@ -1985,7 +1985,7 @@ fn libelle_motif(n: &Bloc60, motif: &Value) -> R<String> {
     if matches!(motif, Value::Array(_) | Value::Object(_)) {
         return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(motif))));
     }
-    Ok(n.motifs_arret.code(motif).map_or_else(|| "?".to_string(), |c| c.libelle.clone()))
+    Ok(n.motifs_arret.code(motif.as_str().unwrap_or_default()).map_or_else(|| "?".to_string(), |c| c.libelle.clone()))
 }
 
 /// Un arret resume (`ArretResume`).

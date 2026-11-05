@@ -6,7 +6,7 @@
 use std::str::FromStr;
 
 use rust_decimal::prelude::*;
-use serde_json::{Map, Value};
+use serde::Serialize;
 
 use crate::forme_bareme::ReductionGenerale as Parametres;
 use socle::num::{add, dec_f64, div, eur, mul, nombre, sub, Decimal, Resultat};
@@ -34,30 +34,27 @@ fn diviser(a: Decimal, b: Decimal) -> Resultat<Decimal> {
     Ok(div(a, b))
 }
 
-/// La reduction generale appliquee : ce que la DSN declare.
-#[derive(Debug, Clone, PartialEq)]
+/// La reduction generale appliquee : ce que la DSN declare. Elle s'ecrit chaque montant en texte (`nombre`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ReductionGenerale {
+    #[serde(serialize_with = "en_nombre")]
     pub coefficient: Decimal,
+    #[serde(serialize_with = "en_nombre")]
     pub montant: Decimal,
+    #[serde(serialize_with = "en_nombre")]
     pub smic_reference: Decimal,
+    #[serde(serialize_with = "en_nombre")]
     pub heures: Decimal,
+    #[serde(serialize_with = "en_nombre")]
     pub urssaf: Decimal,
+    #[serde(serialize_with = "en_nombre")]
     pub chomage: Decimal,
+    #[serde(serialize_with = "en_nombre")]
     pub agirc_arrco: Decimal,
 }
 
-impl ReductionGenerale {
-    pub fn canon(&self) -> Value {
-        let mut m = Map::new();
-        for (k, v) in [
-            ("coefficient", self.coefficient), ("montant", self.montant),
-            ("smic_reference", self.smic_reference), ("heures", self.heures),
-            ("urssaf", self.urssaf), ("chomage", self.chomage), ("agirc_arrco", self.agirc_arrco),
-        ] {
-            m.insert(k.into(), Value::String(nombre(v)));
-        }
-        Value::Object(m)
-    }
+fn en_nombre<S: serde::Serializer>(x: &Decimal, s: S) -> Result<S::Ok, S::Error> {
+    s.serialize_str(&nombre(*x))
 }
 
 /// La reduction generale degressive unique d'un contrat, ou `None` (art. D. 241-7 CSS ; `rg` : la section

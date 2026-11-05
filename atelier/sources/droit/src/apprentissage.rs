@@ -1,24 +1,28 @@
 //! La taxe d'apprentissage : la fiche entreprise dit-elle un motif de non-assujettissement (table MNATA), et vaut-il pour
 //! la periode payee ? Le bareme du contrat, le bordereau et le bloc 44 de la DSN lisent cette meme decision.
 
-use serde_json::Value;
+use std::sync::OnceLock;
 
-use socle::date::en_texte;
-use socle::fichiers::vrai;
+use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::num::Resultat;
 
 use crate::fiche::ChampsEntreprise;
+use crate::source::forme_notee;
 
-fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
-    v.get(k).unwrap_or(&Value::Null)
+forme_notee! {
+    /// `donnees/mnata-base.json` : la table MNATA de la DSN (S21.G00.44.004), relevee dans les nomenclatures de
+    /// net-entreprises.
+    pub struct TableMnata {
+        pub motifs: Vec<MotifMnata>,
+    }
 }
 
-fn txt(v: &Value) -> String {
-    if vrai(v) {
-        en_texte(v).trim().to_string()
-    } else {
-        String::new()
-    }
+/// Un motif de non-assujettissement : son code et son libelle.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MotifMnata {
+    pub code: String,
+    pub libelle: String,
 }
 
 /// Le champ de la fiche entreprise qui dit pourquoi la compagnie ne doit pas la taxe d'apprentissage (un code MNATA).
@@ -43,8 +47,9 @@ pub const PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES: (i32, u32) = (2026, 3);
 
 /// La table MNATA livree : (code, libelle).
 pub fn motifs_mnata() -> Resultat<Vec<(String, String)>> {
-    let t = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("mnata-base.json"))?;
-    Ok(g(&t, "motifs").as_array().map(Vec::as_slice).unwrap_or_default().iter().map(|m| (txt(g(m, "code")), txt(g(m, "libelle")))).collect())
+    static CACHE: OnceLock<FormeGardee<TableMnata>> = OnceLock::new();
+    let t = forme_en_cache(&CACHE, "mnata-base.json", "La table MNATA livrée ne se lit pas : le signaler au développeur.", Ok)?;
+    Ok(t.motifs.iter().map(|m| (m.code.trim().to_string(), m.libelle.trim().to_string())).collect())
 }
 
 /// Ou la fiche entreprise dit le motif de non-assujettissement a la taxe d'apprentissage.

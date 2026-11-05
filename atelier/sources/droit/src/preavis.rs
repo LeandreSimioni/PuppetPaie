@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use socle::fichiers::{dossier_du_code, json_en_cache, repr};
+use socle::fichiers::{forme_en_cache, repr, FormeGardee};
 use socle::num::Resultat;
 
 /// `fctu-base.json` : les codes de la norme propres au signalement de fin de contrat de travail unique.
@@ -135,8 +135,9 @@ pub struct NotificationRupture {
 
 /// `fctu-base.json`, lu par sa forme.
 pub fn base() -> Resultat<BaseFctu> {
-    let v = json_en_cache(&dossier_du_code().join("fctu-base.json"))?;
-    socle::forme::lire(&v, "Les codes du signalement de fin de contrat livrés avec le logiciel ne se lisent pas : le signaler au développeur.")
+    static CACHE: std::sync::OnceLock<FormeGardee<BaseFctu>> = std::sync::OnceLock::new();
+    let b = forme_en_cache(&CACHE, "fctu-base.json", "Les codes du signalement de fin de contrat livrés avec le logiciel ne se lisent pas : le signaler au développeur.", Ok)?;
+    Ok((*b).clone())
 }
 
 impl TypesPreavis {

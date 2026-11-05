@@ -2,7 +2,6 @@
 //! samedi), travailles (la fiche du salarie, `JoursTravailles`), et l'indemnite retenue entre le dixieme et le maintien
 //! (L3141-24). Le compteur d'un salarie, qui se derive de ses paies, est l'affaire de l'engagement (`engagement::conges`).
 
-use serde_json::Value;
 
 use socle::date::Jour;
 use socle::feries;
@@ -43,12 +42,9 @@ impl JoursTravailles {
         Self::de_la_case(&fiche.jours_travailles, fiche.id.as_str())
     }
 
-    /// Les jours que dit la case `jours_travailles` d'une fiche telle qu'une charge l'ecrit (`v` ; `qui` : la cle du
-    /// salarie), lue par sa forme.
-    pub fn lire(v: &Value, qui: &str) -> Resultat<Self> {
-        let case: crate::fiche::Case<Vec<crate::fiche::JourDeLaSemaine>> =
-            socle::forme::lire(v, &format!("Fiche de {} : « Jours travaillés » est une liste de jours de la semaine (lundi, mardi...).", qui))?;
-        Self::de_la_case(&case, qui)
+    /// Le refus d'une case `jours_travailles` qui ne se lit pas par sa forme (`qui` : la cle du salarie).
+    pub fn case_illisible(qui: &str) -> String {
+        format!("Fiche de {} : « Jours travaillés » est une liste de jours de la semaine (lundi, mardi...).", qui)
     }
 
     /// Les jours que dit la case `jours_travailles` d'une fiche (`qui` : la cle du salarie) ; une case que la fiche ne

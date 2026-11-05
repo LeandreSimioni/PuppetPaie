@@ -68,7 +68,7 @@ fn la_reduction_generale() {
             points += 1;
             let r = section(bar).and_then(|rg| reduction_generale(rg.as_ref(), statut.as_deref(), dec(b.as_str().unwrap()), dec(h), caisse));
             appliquees += matches!(r, Ok(Some(_))) as usize;
-            vus.push(essai(r.map(|o| o.map_or(Value::Null, |x| x.canon()))));
+            vus.push(essai(r.map(|o| o.map_or(Value::Null, |x| socle::ecriture::en_valeur(&x)))));
         }
         groupe(g, vus);
     }

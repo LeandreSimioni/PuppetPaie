@@ -27,6 +27,9 @@ pub enum Paie {
     Mensuelle,
 }
 
+/// La rubrique du motif de recours (S21.G00.40.021), dont une nature peut dire les valeurs (`champs`).
+const MOTIF_DE_RECOURS: &str = "S21.G00.40.021";
+
 /// UNE NATURE DE CONTRAT, telle que `contrats-base.json` la decrit (`natures.<cle>`).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -460,7 +463,7 @@ impl Nature {
 
     /// Les motifs de recours (S21.G00.40.021) que cette nature accepte.
     pub fn motifs_recours(&self) -> &[MotifDeRecours] {
-        self.champs.get("S21.G00.40.021").map_or(&[], |c| &c.valeurs)
+        self.champs.get(MOTIF_DE_RECOURS).map_or(&[], |c| &c.valeurs)
     }
 
     /// Le refus d'un motif de recours saisi (`S21.G00.40.021`) que cette nature n'accepte pas, ou `None`. La rubrique
@@ -483,7 +486,7 @@ impl Nature {
     }
 
     pub fn motif_recours_exige(&self) -> bool {
-        self.champs.get("S21.G00.40.021").is_some_and(|c| c.obligatoire)
+        self.champs.get(MOTIF_DE_RECOURS).is_some_and(|c| c.obligatoire)
     }
 
     /// La fin de ce contrat, pour ce motif de rupture (S21.G00.62.002 ; `None` ou vide : le defaut de la nature),

@@ -12,7 +12,7 @@
 //! (`conges::jours_ouvrables`, L. 3141-3) ; « dans les deux jours ouvrables suivant l'embauche » se compte a partir du
 //! lendemain de l'embauche.
 
-use serde_json::{json, Value};
+use serde::ser::SerializeStruct;
 
 use socle::date::Jour;
 use socle::num::Resultat;
@@ -47,9 +47,17 @@ impl Echeance {
             format!("{mots} {jour} {heure}")
         }
     }
+}
 
-    pub fn en_json(&self) -> Value {
-        json!({"jour": self.jour.iso(), "texte": self.texte(), "court": self.court(), "source": self.source})
+/// Une echeance telle qu'une case la rend : son jour, son texte, son texte court, sa source.
+impl serde::Serialize for Echeance {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        let mut e = s.serialize_struct("Echeance", 4)?;
+        e.serialize_field("jour", &self.jour.iso())?;
+        e.serialize_field("texte", &self.texte())?;
+        e.serialize_field("court", &self.court())?;
+        e.serialize_field("source", &self.source)?;
+        e.end()
     }
 }
 

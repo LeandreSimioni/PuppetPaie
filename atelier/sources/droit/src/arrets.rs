@@ -5,7 +5,7 @@
 
 use crate::maintien::Origine;
 use socle::num::Resultat;
-use serde_json::Value;
+use socle::fichiers::{forme_en_cache, FormeGardee};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -81,9 +81,8 @@ pub struct CodeDuBloc60 {
 }
 
 impl Nomenclature {
-    /// Le code `c` de la nomenclature, s'il y est (une valeur qui n'est pas un texte n'y est pas).
-    pub fn code(&self, c: &Value) -> Option<&CodeDuBloc60> {
-        let c = c.as_str()?;
+    /// Le code `c` de la nomenclature, s'il y est.
+    pub fn code(&self, c: &str) -> Option<&CodeDuBloc60> {
         self.codes.iter().find(|x| x.code == c)
     }
 
@@ -102,8 +101,9 @@ impl Bloc60 {
 
 /// `arrets-base.json`, lu par sa forme (le texte est lu une fois tant qu'il ne change pas).
 pub fn bloc_60() -> Resultat<Bloc60> {
-    let v = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("arrets-base.json"))?;
-    socle::forme::lire(&*v, "Les codes du bloc arrêt de travail livrés avec le logiciel ne se lisent pas : le signaler au développeur.")
+    static CACHE: std::sync::OnceLock<FormeGardee<Bloc60>> = std::sync::OnceLock::new();
+    let b = forme_en_cache(&CACHE, "arrets-base.json", "Les codes du bloc arrêt de travail livrés avec le logiciel ne se lisent pas : le signaler au développeur.", Ok)?;
+    Ok((*b).clone())
 }
 
 /// Le motif d'arret (`arrets-base.json`, `motifs_arret`), s'il existe.

@@ -72,7 +72,7 @@ pub fn verifier(a: &Arret, nature: &str, constitution: Option<&Jour>) -> R<Vec<S
         return impossible(nature_inconnue(nature));
     }
     let bloc = droit::arrets::bloc_60()?;
-    let motif = match bloc.motifs_arret.code(g(v, "motif")) {
+    let motif = match bloc.motifs_arret.code(g(v, "motif").as_str().unwrap_or_default()) {
         Some(m) => m.clone(),
         None => {
             return impossible(format!(
@@ -179,7 +179,7 @@ et a maintenir le salaire."
             );
         }
         let subs = &bloc.subrogation.codes;
-        if bloc.subrogation.code(g(v, "subrogation")).is_none() {
+        if bloc.subrogation.code(g(v, "subrogation").as_str().unwrap_or_default()).is_none() {
             let liste: Vec<String> = subs
                 .iter()
                 .map(|c| format!("{} ({})", c.code, c.libelle))
@@ -258,7 +258,7 @@ reprise.",
         }
     }
     if vrai(g(v, "reprise_motif")) {
-        let mr = match bloc.motifs_reprise.code(g(v, "reprise_motif")) {
+        let mr = match bloc.motifs_reprise.code(g(v, "reprise_motif").as_str().unwrap_or_default()) {
             Some(m) => m,
             None => {
                 return impossible(format!(

@@ -27,8 +27,6 @@
 //! Le droit dit ou la paie se coupe (`decouper`, `jour_de_l_avenant`) et quelle part du mois chaque periode porte
 //! (`part_du_mois`) ; l'engagement calcule chaque periode et les assemble (`engagement::periodes`).
 
-use serde_json::Value;
-
 use socle::date::Jour;
 
 use crate::conges::JoursTravailles;
@@ -37,22 +35,20 @@ use socle::num::{div, Decimal, Resultat};
 /// Ce que `avant` (les termes du contrat avant un avenant en cours de mois) peut dire.
 pub const TERMES_D_AVANT: [&str; 2] = ["salaire_mensuel", "quotite_contrat"];
 
+/// Les termes d'avant un avenant qu'un contrat dit (`TERMES_D_AVANT`, dans cet ordre) : chacun dit ou non.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TermesDAvant {
+    pub salaire_mensuel: bool,
+    pub quotite_contrat: bool,
+}
+
 /// Le jour ou un avenant decoupe la paie de la periode [`debut`, `fin`] : sa `date_modification`, quand le contrat dit
 /// les termes d'avant (`avant`) et qu'elle tombe apres le premier jour de la periode payee. Sans `avant`, rien ; un
 /// `avant` incomplet, sans date, ou qui ne decoupe rien refuse. `qui` nomme le contrat dans un refus.
-pub fn jour_de_l_avenant(avant: Option<&Value>, date_modification: Option<&str>, debut: Jour, fin: Jour, qui: &str) -> Resultat<Option<Jour>> {
+pub fn jour_de_l_avenant(avant: Option<TermesDAvant>, date_modification: Option<&str>, debut: Jour, fin: Jour, qui: &str) -> Resultat<Option<Jour>> {
     let Some(avant) = avant else { return Ok(None) };
-    let objet = avant.as_object().ok_or_else(|| socle::echec::cle(format!("{} : les termes du contrat d'avant l'avenant ne se lisent pas.", qui), "avant"))?;
-    if let Some(k) = objet.keys().find(|k| !TERMES_D_AVANT.contains(&k.as_str())) {
-        return Err(socle::echec::cle(
-            format!(
-                "{} : l'avenant change en cours de mois ce que la paie ne sait pas couper ; seuls le salaire et la durée du travail changent en cours de mois.",
-                qui
-            ),
-            &format!("avant.{}", k),
-        ));
-    }
-    if let Some(k) = TERMES_D_AVANT.iter().find(|k| objet.get(**k).map_or(true, Value::is_null)) {
+    let dits = [avant.salaire_mensuel, avant.quotite_contrat];
+    if let Some((k, _)) = TERMES_D_AVANT.iter().zip(dits).find(|(_, dit)| !dit) {
         return Err(socle::echec::cle(
             format!("{} : l'avenant ne dit pas tous les termes d'avant ; la période d'avant se paie sur le salaire et la durée du travail d'alors, les deux.", qui),
             &format!("avant.{}", k),

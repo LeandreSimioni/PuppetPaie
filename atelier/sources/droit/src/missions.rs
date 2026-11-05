@@ -25,13 +25,29 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use serde_json::Value;
 use socle::date::Jour;
 use socle::fichiers::dossier_du_code;
 use socle::num::{Decimal, Resultat};
 
+use crate::source::forme_notee;
+
 /// Le dossier des tables, sous les donnees livrees.
 const DOSSIER: &str = "missions";
+
+forme_notee! {
+    /// `missions/villes.json` : les villes que la table des indemnites distingue de leur pays, par leur code.
+    pub struct Villes {
+        pub villes: std::collections::BTreeMap<String, Ville>,
+    }
+}
+
+/// Une ville de la table : son nom et le code de son pays.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Ville {
+    pub nom: String,
+    pub pays: String,
+}
 
 /// Une ligne datee d'une table : sa date d'effet, et ce qu'elle dit.
 #[derive(Debug, Clone)]
@@ -114,10 +130,9 @@ fn construire_de(indemnites: &str, change: &str, villes: &str) -> Resultat<Table
         e.push(Datee { depuis: date, valeur: taux });
         e.sort_by_key(|d| d.depuis);
     }
-    let villes: Value = serde_json::from_str(villes).map_err(|_| socle::echec::livree("missions/villes.json", "villes"))?;
-    for (code, v) in villes.get("villes").and_then(Value::as_object).into_iter().flatten() {
-        let s = |k: &str| v.get(k).and_then(Value::as_str).unwrap_or("").to_string();
-        t.villes.insert(code.clone(), (s("nom"), s("pays")));
+    let villes: Villes = socle::forme::lire_texte(villes, "Les villes livrées des indemnités de mission (missions/villes.json) ne se lisent pas : le signaler au développeur.")?;
+    for (code, v) in villes.villes {
+        t.villes.insert(code, (v.nom, v.pays));
     }
     Ok(t)
 }

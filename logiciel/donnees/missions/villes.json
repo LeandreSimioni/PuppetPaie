@@ -1,5 +1,5 @@
 {
-  "_quoi": "Les villes que la table des indemnites journalieres de mission a l'etranger de la DGFiP (missions/indemnites.csv) distingue de leur pays par un code a part, et le nom que le choix « Lieu » d'une ligne de frais leur donne. Les codes sont ceux de la table (code_pays) ; l'annexe de l'arrete du 3 juillet 2006 nomme les memes villes (atelier/reference/sources/arrete-2006-indemnites-de-mission/legifrance-arrete-20060703-indemnites-de-mission-20261103.txt, l. 99-100, 129-131, 161, 201, 261). Le moteur : droit::missions.",
+  "quoi": "Les villes que la table des indemnites journalieres de mission a l'etranger de la DGFiP (missions/indemnites.csv) distingue de leur pays par un code a part, et le nom que le choix « Lieu » d'une ligne de frais leur donne. Les codes sont ceux de la table (code_pays) ; l'annexe de l'arrete du 3 juillet 2006 nomme les memes villes (atelier/reference/sources/arrete-2006-indemnites-de-mission/legifrance-arrete-20060703-indemnites-de-mission-20261103.txt, l. 99-100, 129-131, 161, 201, 261). Le moteur : droit::missions.",
   "villes": {
     "NY": {"nom": "New York", "pays": "US"},
     "VT": {"nom": "Toronto", "pays": "CA"},

@@ -219,11 +219,6 @@ pub(crate) enum Compte {
     Recus { recus: usize, partis: usize },
 }
 
-/// Une echeance telle qu'une case la rend (`Echeance::en_json` : jour, texte, court, source).
-fn echeance_dite<S: serde::Serializer>(e: &Option<Echeance>, s: S) -> Result<S::Ok, S::Error> {
-    e.as_ref().map(Echeance::en_json).serialize(s)
-}
-
 /// UN GROUPE D'UNE ETAPE, une case du panneau : son etat, son compte, ce qu'elle ecrit (`compte_texte` en gras : « 2 »,
 /// « 1/2 », « Lyon », ou rien ; `quoi` : « à déposer », « reçu »), sa phrase entiere (`phrase_du_groupe`), son echeance,
 /// le geste qu'ouvre un clic, les colonnes qu'elle couvre, sa couleur, et si elle se dessine coupee (une attente : la
@@ -235,7 +230,6 @@ pub(crate) struct Groupe {
     compte_texte: String,
     quoi: String,
     phrase: Option<String>,
-    #[serde(serialize_with = "echeance_dite")]
     echeance: Option<Echeance>,
     action: Option<Action>,
     colonnes: Vec<String>,

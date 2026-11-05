@@ -206,7 +206,7 @@ fn verifier(tous: &[(String, Fondement)]) -> Vec<String> {
 #[test]
 fn chaque_source_est_un_texte_depose_et_sa_citation_s_y_lit() {
     let mut tous = Vec::new();
-    for nom in ["baremes/2025.json", "baremes/2026.json", "permanents-base.json", "contrats-base.json", "prevoyance-conventionnelle-base.json", "organismes-base.json", "casc-svp-base.json", "clauses-conventionnelles-base.json"] {
+    for nom in ["baremes/2025.json", "baremes/2026.json", "permanents-base.json", "contrats-base.json", "prevoyance-conventionnelle-base.json", "organismes-base.json", "casc-svp-base.json", "clauses-conventionnelles-base.json", "mnata-base.json"] {
         fondements(&lu(nom), nom, &mut tous);
     }
     let banque = lu("conseils.json");

@@ -1923,7 +1923,7 @@ impl Paie {
         m.insert("net_imposable".into(), n(self.net_imposable));
         m.insert("net_social".into(), n(self.net_social));
         m.insert("numero_bulletin".into(), self.numero_bulletin.clone().map_or(Value::Null, Value::String));
-        m.insert("reduction_generale".into(), self.reduction_generale.as_ref().map_or(Value::Null, |r| r.canon()));
+        m.insert("reduction_generale".into(), self.reduction_generale.as_ref().map_or(Value::Null, socle::ecriture::en_valeur));
         let remuneration = self.remuneration.iter().map(|l| {
             let mut c = l.canon();
             c["designation"] = Value::String(l.designation());

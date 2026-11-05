@@ -1056,7 +1056,9 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     }
     // Les jours travailles d'un permanent : ceux que le calcul lira (`droit::conges::JoursTravailles`).
     if c.cle == "jours_travailles" {
-        return Ok(droit::conges::JoursTravailles::lire(valeur.unwrap_or(&Value::Null), "le salarie").err().map(|e| {
+        use droit::conges::JoursTravailles;
+        let lue = socle::forme::lire::<droit::fiche::Case<Vec<droit::fiche::JourDeLaSemaine>>>(valeur.unwrap_or(&Value::Null), &JoursTravailles::case_illisible("le salarie"));
+        return Ok(lue.and_then(|c| JoursTravailles::de_la_case(&c, "le salarie")).err().map(|e| {
             e.split_once(" : ").map_or(e.clone(), |(_, m)| m.to_string())
         }));
     }
@@ -1413,7 +1415,8 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         }
         // Le code emploi, le statut et le PCS de la fiche, confrontes au
         // catalogue des metiers. Avertissements, pas erreurs.
-        for msg in droit::emplois::controler_fiche(d)? {
+        let statut = d.get("statut").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+        for msg in droit::emplois::controler_fiche(&texte_de(d, "code_emploi_ft")?, &statut, &texte_de(d, "pcs_ese")?)? {
             out.push(anomalie("code_emploi_ft", "avertissement", msg));
         }
     }

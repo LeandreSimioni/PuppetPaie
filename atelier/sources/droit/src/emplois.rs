@@ -11,9 +11,8 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
-use socle::fichiers::{forme_en_cache, repr, repr_valeur, vrai, FormeGardee};
+use socle::fichiers::{forme_en_cache, repr, FormeGardee};
 use socle::num::Resultat;
-use serde_json::{Map, Value};
 use socle::date::Jour;
 
 use crate::contexte::Contexte;
@@ -369,6 +368,25 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> R
     })
 }
 
+/// Les cases de `UNE_VALEUR_PAR_MOIS` d'une fiche, dans son ordre, chacune telle qu'ecrite : `None` quand elle n'est ni
+/// dite ni vide.
+fn valeurs_par_mois(f: &FicheSalarie) -> [(&'static str, Option<String>); 5] {
+    fn portee<T: std::fmt::Display>(c: &Case<T>) -> Option<String> {
+        match c {
+            Case::Absente | Case::Nulle => None,
+            Case::Vide => Some(String::new()),
+            Case::Dite(v) => Some(v.to_string()),
+        }
+    }
+    [
+        (UNE_VALEUR_PAR_MOIS[0], portee(&f.statut_categoriel_rc)),
+        (UNE_VALEUR_PAR_MOIS[1], portee(&f.statut_conventionnel)),
+        (UNE_VALEUR_PAR_MOIS[2], portee(&f.statut)),
+        (UNE_VALEUR_PAR_MOIS[3], portee(&f.code_emploi_ft)),
+        (UNE_VALEUR_PAR_MOIS[4], portee(&f.pcs_ese)),
+    ]
+}
+
 /// Ce qu'un contrat paye au mois ne laisse pas changer en cours de mois : ce qui choisit la pile du bareme (le statut
 /// artiste / technicien, la categorie cadre, le metier qui la dit a defaut de la fiche) et ce que le bloc 40 porte avec
 /// une rubrique en bloc 41 (40.002, 40.003, 40.004). Le libelle de l'emploi n'en est pas : la DSN declare « la derniere
@@ -388,17 +406,14 @@ const UNE_VALEUR_PAR_MOIS: [&str; 5] = ["statut_categoriel_rc", "statut_conventi
 pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Resultat<FicheSalarie> {
     let au_debut = ctx.salarie_au(cle, debut)?;
     let a_la_fin = ctx.salarie_au(cle, fin)?;
-    // Les cases de `UNE_VALEUR_PAR_MOIS` se comparent par leur nom, comme `jours_de_changement` les date.
-    let lire = |f: &FicheSalarie, c: &str| crate::fiche::case_en(&f.champs, c, serde_json::value::Serializer).and_then(Result::ok).unwrap_or(Value::Null);
-    for c in UNE_VALEUR_PAR_MOIS {
-        let (avant, apres) = (lire(&au_debut, c), lire(&a_la_fin, c));
+    for ((c, avant), (_, apres)) in valeurs_par_mois(&au_debut).into_iter().zip(valeurs_par_mois(&a_la_fin)) {
         if avant == apres {
             continue;
         }
         let le = ctx.salarie_brut(cle).map_or_else(Vec::new, |b| b.depuis(c)).into_iter().flatten().filter(|j| j > debut && j <= fin).last();
         let premier = Jour { jour: 1, ..*debut };
         let suivant = Jour { jour: 1, ..premier.plus_jours(31)? };
-        let texte = |v: &Value| if v.is_null() { "(vide)".to_string() } else { repr_valeur(v) };
+        let texte = |v: &Option<String>| v.as_deref().map_or_else(|| "(vide)".to_string(), repr);
         let qui = [a_la_fin.prenom.texte(), a_la_fin.nom.texte()].iter().filter(|s| !s.trim().is_empty()).map(|s| s.to_string()).collect::<Vec<_>>().join(" ");
         return Err(socle::echec::a_la_cle(&format!(
             "{} : la fiche change une case le {} ({} -> {}), dans une periode de paie qui n'est pas coupee a ce jour-la : une \
@@ -458,7 +473,9 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
     let dit = |v: &Option<String>| v.as_ref().filter(|s| !s.is_empty()).cloned();
     // Un choix que l'engagement dit se lit comme la fiche le lirait (`fiche::Statut`...) : hors de la liste, il se refuse.
     fn choix<T: serde::de::DeserializeOwned>(v: &str, cle: &str) -> Resultat<T> {
-        serde_json::from_value(Value::String(v.to_string()))
+        use serde::de::IntoDeserializer;
+        let ecrit: serde::de::value::StrDeserializer<serde::de::value::Error> = v.into_deserializer();
+        T::deserialize(ecrit)
             .map_err(|_| format!("L'engagement dit « {} » pour {}, qui n'est pas un choix de la fiche du salarié.", v, cle.replace('_', " ")))
     }
     let pris = [&eng.emploi, &eng.pcs_ese, &eng.code_emploi_ft, &eng.statut, &eng.statut_conventionnel, &eng.statut_categoriel_rc];
@@ -580,19 +597,11 @@ pub fn familles() -> Resultat<Vec<String>> {
     Ok(out)
 }
 
-/// Ce qu'une fiche salarie declare, confronte au
-/// catalogue. Des phrases d'avertissement, jamais d'erreur : la fiche peut
-/// avoir raison contre le catalogue.
-pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, socle::echec::Echec> {
-    use socle::valeur::nom_type;
-    use socle::valeur::valeur_ecrite;
-    use socle::echec::erreur;
+/// Ce qu'une fiche salarie declare (son code emploi, son statut, sa PCS-ESE ; vide : elle ne le dit pas), confronte au
+/// catalogue. Des phrases d'avertissement, jamais d'erreur : la fiche peut avoir raison contre le catalogue.
+pub fn controler_fiche(code_emploi_ft: &str, statut: &str, pcs_ese: &str) -> Resultat<Vec<String>> {
     let mut avis = Vec::new();
-    let code = match d.get("code_emploi_ft") {
-        Some(Value::String(s)) => s.trim().to_uppercase(),
-        Some(v) if vrai(v) => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(v)))),
-        _ => String::new(),
-    };
+    let code = code_emploi_ft.trim().to_uppercase();
     if code.is_empty() {
         return Ok(avis);
     }
@@ -601,21 +610,15 @@ pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, socle::ech
         return Ok(avis);
     };
     let libelle = m.libelle();
-    if let Some(statut) = d.get("statut").filter(|v| vrai(v)) {
-        if statut.as_str() != Some(m.statut().as_str()) {
-            avis.push(format!(
-                "Le code emploi {} ({}) est de l'annexe {}, donc {} ; la fiche dit {}.",
-                code, libelle, m.annexe(), m.statut(), valeur_ecrite(statut)
-            ));
-        }
+    if !statut.is_empty() && statut != m.statut().as_str() {
+        avis.push(format!(
+            "Le code emploi {} ({}) est de l'annexe {}, donc {} ; la fiche dit {}.",
+            code, libelle, m.annexe(), m.statut(), repr(statut)
+        ));
     }
-    let saisi = d.get("pcs_ese").filter(|v| vrai(v));
-    if let (Some(attendu), Some(saisi)) = (m.pcs_ese().filter(|p| !p.is_empty()), saisi) {
-        let Value::String(s) = saisi else {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(saisi))));
-        };
-        if s.to_lowercase() != attendu.to_lowercase() {
-            avis.push(format!("PCS-ESE {} pour {} ; le catalogue attend {} (fiche Insee de la rubrique).", s, libelle, attendu));
+    if let Some(attendu) = m.pcs_ese().filter(|p| !p.is_empty() && !pcs_ese.is_empty()) {
+        if pcs_ese.to_lowercase() != attendu.to_lowercase() {
+            avis.push(format!("PCS-ESE {} pour {} ; le catalogue attend {} (fiche Insee de la rubrique).", pcs_ese, libelle, attendu));
         }
     }
     Ok(avis)
