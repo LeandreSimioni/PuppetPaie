@@ -11,7 +11,7 @@
 //! imprime, par le meme chemin que la fiche qu'il creerait.
 
 use droit::fiche::ParCase;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 use socle::echec::R;
 
@@ -100,27 +100,5 @@ pub(crate) fn ajouter(liste: &mut Vec<ACompleter>, nom: &'static str, cle: Optio
             }
         }
         None => liste.push(ACompleter { nom, cle: cle.map(String::from), champs: champs.clone() }),
-    }
-}
-
-/// Note dans l'entree de la reponse ce qui serait complete et d'ou ca vient (`origine` : `{"source": "dsn", "mois"}` ou
-/// `{"source": "bulletin", "fichier", "page"}`). Un champ deja note garde sa premiere origine (`ajouter`).
-pub(crate) fn noter(entree: &mut Value, champs: &Map<String, Value>, origine: Value) {
-    if champs.is_empty() || !entree.is_object() {
-        return;
-    }
-    if !entree.get("completer").is_some_and(Value::is_object) {
-        entree["completer"] = json!({});
-    }
-    let Some(Value::Object(c)) = entree.get_mut("completer") else { return };
-    for (k, v) in champs {
-        c.entry(k.clone()).or_insert_with(|| {
-            let mut m = Map::new();
-            m.insert("valeur".into(), crate::routes::import::brut(v));
-            if let Value::Object(o) = &origine {
-                m.extend(o.clone());
-            }
-            Value::Object(m)
-        });
     }
 }

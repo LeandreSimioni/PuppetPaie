@@ -44,13 +44,25 @@ fn natures_permanentes() -> R<Vec<std::sync::Arc<droit::natures::Nature>>> {
     Ok(toutes.iter().filter(|n| n.paie == "mensuelle").cloned().collect())
 }
 
+/// Ce qu'une nature demande d'un contrat qui court encore : une case de la charge d'`importation-nature`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Demande {
+    Debut,
+    Fin,
+    Numero,
+    Salaire,
+    Quotite,
+}
+
 /// Ce qu'une nature demande avec elle pour un contrat qui court encore : son debut, son numero, son salaire et
 /// sa duree du travail, et sa fin s'il a un terme. Rien pour un contrat fini.
-fn demande(n: &droit::natures::Nature, en_cours: bool) -> Vec<&'static str> {
+fn demande(n: &droit::natures::Nature, en_cours: bool) -> Vec<Demande> {
+    use Demande::*;
     match (en_cours, n.duree_indeterminee) {
         (false, _) => vec![],
-        (true, true) => vec!["debut", "numero", "salaire", "quotite"],
-        (true, false) => vec!["debut", "fin", "numero", "salaire", "quotite"],
+        (true, true) => vec![Debut, Numero, Salaire, Quotite],
+        (true, false) => vec![Debut, Fin, Numero, Salaire, Quotite],
     }
 }
 
@@ -182,20 +194,92 @@ pub(crate) struct ADire {
 pub(crate) struct NatureProposee {
     pub(crate) cle: String,
     pub(crate) libelle: String,
-    pub(crate) demande: Vec<&'static str>,
+    pub(crate) demande: Vec<Demande>,
 }
 
 fn refus(m: impl Into<String>) -> socle::echec::Echec {
     erreur("ErreurOperation", m.into())
 }
 
+/// La charge d'`importation-nature` : le salarie, la nature, et ce que `demande` exige d'un contrat qui court encore.
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeNature {
+    #[serde(default)]
+    pub(crate) salarie: String,
+    #[serde(default)]
+    pub(crate) nature: String,
+    #[serde(default)]
+    pub(crate) debut: Option<String>,
+    #[serde(default)]
+    pub(crate) fin: Option<String>,
+    #[serde(default)]
+    pub(crate) numero: Option<String>,
+    #[serde(default, deserialize_with = "saisie")]
+    pub(crate) salaire: Option<String>,
+    #[serde(default, deserialize_with = "saisie")]
+    pub(crate) quotite: Option<String>,
+}
+
+/// Un montant tel qu'il se saisit : un texte (« 1 850,00 ») ou un nombre.
+fn saisie<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    #[derive(serde::Deserialize)]
+    #[serde(untagged)]
+    enum Saisie {
+        Texte(String),
+        Nombre(serde_json::Number),
+    }
+    Ok(<Option<Saisie> as serde::Deserialize>::deserialize(d)?.map(|s| match s {
+        Saisie::Texte(t) => t,
+        Saisie::Nombre(n) => n.to_string(),
+    }))
+}
+
+impl ChargeNature {
+    /// Une case demandee, telle qu'elle est dite, sans ses blancs ; rien pour une case vide.
+    fn lu(&self, champ: Demande) -> Option<String> {
+        let v = match champ {
+            Demande::Debut => &self.debut,
+            Demande::Fin => &self.fin,
+            Demande::Numero => &self.numero,
+            Demande::Salaire => &self.salaire,
+            Demande::Quotite => &self.quotite,
+        };
+        v.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(str::to_string)
+    }
+
+    /// La case demandee, posee.
+    fn poser(&mut self, champ: Demande, v: String) {
+        let c = match champ {
+            Demande::Debut => &mut self.debut,
+            Demande::Fin => &mut self.fin,
+            Demande::Numero => &mut self.numero,
+            Demande::Salaire => &mut self.salaire,
+            Demande::Quotite => &mut self.quotite,
+        };
+        *c = Some(v);
+    }
+}
+
+/// Ce qu'`importation-nature` rend : les contrats ecrits, ce qui reste a dire, et ce que l'ecran en dit.
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct NatureDite {
+    pub(crate) phrase: String,
+    pub(crate) ecrits: usize,
+    pub(crate) a_dire: Vec<ADire>,
+    /// La fiche Entreprise vient de dire que la compagnie emploie des permanents.
+    pub(crate) permanents_declares: bool,
+    /// Les contrats de prevoyance et de sante des permanents que les DSN reprises declarent, poses.
+    pub(crate) parametrage: Vec<String>,
+    pub(crate) couleur: &'static str,
+}
+
 /// `importation-nature` : la nature dite pour les contrats a dire d'un salarie, et, s'il court encore, le debut, la fin
-/// et le numero du contrat tels que la DSN de l'ancien logiciel les a declares. Rend `{"ecrits", "a_dire",
-/// "permanents_declares"}`.
-pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let lu = |k: &str| charge.get(k).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string);
-    let salarie = lu("salarie").ok_or_else(|| refus("Le salarié manque : rien n'a été écrit."))?;
-    let nature = lu("nature").ok_or_else(|| refus("La nature du contrat manque : rien n'a été écrit."))?;
+/// et le numero du contrat tels que la DSN de l'ancien logiciel les a declares.
+pub(crate) fn dire(ctx: &Contexte, charge: &ChargeNature) -> R<NatureDite> {
+    let plein = |s: &str| Some(s.trim().to_string()).filter(|s| !s.is_empty());
+    let salarie = plein(&charge.salarie).ok_or_else(|| refus("Le salarié manque : rien n'a été écrit."))?;
+    let nature = plein(&charge.nature).ok_or_else(|| refus("La nature du contrat manque : rien n'a été écrit."))?;
     let permises = natures_permanentes()?;
     let Some(nat) = permises.iter().find(|n| n.cle == nature) else {
         let noms: Vec<&str> = permises.iter().map(|n| n.libelle.as_str()).collect();
@@ -207,38 +291,43 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("Aucun contrat repris de {} n'attend sa nature : rien n'a été écrit.", qui)));
     };
     let dernier = dernier_mois(&importes);
-    // Le contrat qui court encore : son debut, sa fin s'il a un terme, son numero -- lus sur la DSN deja deposee.
+    // Le contrat qui court encore : son debut, sa fin s'il a un terme, son numero -- lus sur la DSN deja deposee ; ce
+    // qui s'en ecrit sur l'engagement repris.
     let mut contrat = Map::new();
+    let mut debut_dit: Option<String> = None;
     for champ in demande(nat, en_cours) {
-        let v = lu(champ).ok_or_else(|| {
+        let v = charge.lu(champ).ok_or_else(|| {
             refus(match champ {
-                "debut" => format!("La date de début du contrat de {} manque (celle que la DSN déclare) : rien n'a été écrit.", qui),
-                "fin" => format!("La date de fin prévue du contrat de {} manque : rien n'a été écrit.", qui),
-                "salaire" => format!("Le salaire mensuel brut du contrat de {} manque (celui du contrat signé) : rien n'a été écrit.", qui),
-                "quotite" => format!(
+                Demande::Debut => format!("La date de début du contrat de {} manque (celle que la DSN déclare) : rien n'a été écrit.", qui),
+                Demande::Fin => format!("La date de fin prévue du contrat de {} manque : rien n'a été écrit.", qui),
+                Demande::Salaire => format!("Le salaire mensuel brut du contrat de {} manque (celui du contrat signé) : rien n'a été écrit.", qui),
+                Demande::Quotite => format!(
                     "La durée du travail du contrat de {} manque (en heures par mois, celle du contrat signé) : rien n'a été écrit.",
                     qui
                 ),
-                _ => format!("Le numéro du contrat de {} manque (celui que la DSN déclare) : rien n'a été écrit.", qui),
+                Demande::Numero => format!("Le numéro du contrat de {} manque (celui que la DSN déclare) : rien n'a été écrit.", qui),
             })
         })?;
         match champ {
-            "debut" | "fin" => {
+            Demande::Debut | Demande::Fin => {
                 let j = Jour::lire(&v).map_err(|m| refus(format!("{} : rien n'a été écrit.", m)))?.iso();
-                if champ == "debut" && j > du {
+                if champ == Demande::Debut && j > du {
                     return Err(refus(format!(
                         "Le contrat de {} ne peut pas commencer le {} : un bulletin le paie dès le {}. Rien n'a été écrit.",
                         qui, j, du
                     )));
                 }
-                if champ == "fin" && j < au {
+                if champ == Demande::Fin && j < au {
                     return Err(refus(format!("Le contrat de {} ne peut pas finir le {} : un bulletin le paie jusqu'au {}. Rien n'a été écrit.", qui, j, au)));
                 }
-                contrat.insert(champ.into(), json!(j));
+                if champ == Demande::Debut {
+                    debut_dit = Some(j.clone());
+                }
+                contrat.insert(if champ == Demande::Debut { "debut" } else { "fin" }.into(), json!(j));
             }
-            "salaire" | "quotite" => {
+            Demande::Salaire | Demande::Quotite => {
                 let s = v.replace([' ', '\u{a0}'], "").replace(',', ".");
-                let (cle, quoi) = if champ == "salaire" {
+                let (cle, quoi) = if champ == Demande::Salaire {
                     ("salaire_mensuel", "un salaire mensuel brut")
                 } else {
                     ("quotite_contrat", "une durée du travail en heures par mois")
@@ -248,7 +337,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
                     _ => return Err(refus(format!("« {} » n'est pas {} : rien n'a été écrit.", v, quoi))),
                 };
             }
-            _ => {
+            Demande::Numero => {
                 let n = engagement::numeros::NumeroContrat::lire(&v).map_err(|m| refus(format!("{} Rien n'a été écrit.", m)))?;
                 contrat.insert("numero".into(), n.into());
             }
@@ -272,7 +361,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
     })
     .map_err(socle::echec::Echec::from)?;
     // Son anciennete dans l'entreprise part du debut de son contrat, s'il a commence avant le premier bulletin repris.
-    if let Some(debut) = contrat.get("debut").and_then(Value::as_str) {
+    if let Some(debut) = debut_dit.as_deref() {
         crate::routes::fiches::reprendre_anciennete(ctx, &salarie, &du, debut)?;
     }
     // LA COMPAGNIE EMPLOIE UN PERMANENT : c'est ce qu'on vient de dire (une nature payee au mois). La case « La
@@ -302,10 +391,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         phrase.push(' ');
         phrase.push_str(p);
     }
-    Ok(json!({
-        "ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares, "parametrage": parametrage,
-        "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat("fait"),
-    }))
+    Ok(NatureDite { phrase, ecrits, a_dire: a_dire(&ctx.racine), permanents_declares, parametrage, couleur: crate::routes::couleur_de_l_etat("fait") })
 }
 
 /// CE QUE LA DSN REPRISE DIT DEJA NE SE DEMANDE PAS. Pour chaque salarie dont des contrats repris attendent leur nature
@@ -335,28 +421,26 @@ pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
         };
         let en_cours = x.en_cours;
         let lu = |k: &str| p.get(k).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
-        let mut charge = Map::new();
-        charge.insert("salarie".into(), json!(salarie));
-        charge.insert("nature".into(), json!(nat.cle));
+        let mut charge = ChargeNature { salarie: salarie.clone(), nature: nat.cle.clone(), ..ChargeNature::default() };
         let mut complet = true;
         for champ in demande(nat, en_cours) {
             let v = match champ {
-                "numero" => Some(numero.clone()).filter(|n| !n.is_empty()),
-                "salaire" => lu("salaire_base"),
-                autre => lu(autre),
+                Demande::Numero => Some(numero.clone()).filter(|n| !n.is_empty()),
+                Demande::Salaire => lu("salaire_base"),
+                Demande::Debut => lu("debut"),
+                Demande::Fin => lu("fin"),
+                Demande::Quotite => lu("quotite"),
             };
             match v {
-                Some(v) => {
-                    charge.insert(champ.into(), json!(v));
-                }
+                Some(v) => charge.poser(champ, v),
                 None => complet = false,
             }
         }
         if !complet {
             continue;
         }
-        if let Ok(r) = dire(&ctx, &Value::Object(charge)) {
-            faits.push(format!("{} : {}, lu dans sa DSN reprise. {}", nom_du_salarie(racine, &salarie), nat.libelle, texte(&r, "phrase")));
+        if let Ok(r) = dire(&ctx, &charge) {
+            faits.push(format!("{} : {}, lu dans sa DSN reprise. {}", nom_du_salarie(racine, &salarie), nat.libelle, r.phrase));
         }
     }
     faits
