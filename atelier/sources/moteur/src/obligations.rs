@@ -493,7 +493,7 @@ pub struct Obligation {
     #[serde(skip_serializing_if = "Option::is_none")]
     subrogation: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    echeance_dsn: Option<Value>,
+    echeance_dsn: Option<declarations::echeance_dsn::EcheanceDite>,
     #[serde(skip_serializing_if = "Option::is_none")]
     suites: Option<Vec<Suite>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -775,7 +775,7 @@ fn signalement_dsn(
         // qui part avec elle (le texte du report parle de « la declaration sociale nominative » sans distinguer).
         let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, &evenement.mois_civil().to_string()).map_err(|m| erreur("ValueError", m))?;
         m.subrogation = Some(true);
-        m.echeance_dsn = Some(echeance.en_json());
+        m.echeance_dsn = Some(echeance.dite());
         // La connaissance ne compte pas : le delai court du mois de l'evenement.
         let ev = Depart { jour: evenement, minute: None, quoi: "le jour de l'événement (sa DSN mensuelle est celle de son mois)".into(), presume: None };
         m.conclure(aujourdhui, Some(&ev), echeance.jour, Some(declarations::echeance_dsn::MINUTE_LIMITE), &d.dit, fait);
