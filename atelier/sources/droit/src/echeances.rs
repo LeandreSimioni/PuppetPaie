@@ -86,24 +86,12 @@ pub fn remise_du_contrat(debut: &Jour, idcc: &str, code_emploi: &str, chomes: Op
         heure: "",
         source: "Code du travail, art. L. 1242-13 (atelier/reference/sources/code-du-travail/xml/L1242-13.xml)".into(),
     };
-    let Some(conv) = crate::clauses::releve(idcc)? else { return Ok(e) };
-    let r = &conv["remise_du_contrat"];
+    let Some(r) = crate::clauses::releve(idcc)?.and_then(|c| c.remise_du_contrat) else { return Ok(e) };
     let code = code_emploi.trim().to_uppercase();
-    let concerne = r["metiers"].as_array().is_some_and(|l| l.iter().any(|m| m.as_str() == Some(code.as_str())));
-    if let (true, Some(n)) = (concerne, r["jours_ouvrables_avant"].as_i64()) {
-        let jour = jour_ouvrable(debut, -n, chomes)?;
+    if r.metiers.iter().any(|m| *m == code) {
+        let jour = jour_ouvrable(debut, -r.jours_ouvrables_avant, chomes)?;
         if jour < e.jour {
-            e = Echeance {
-                jour,
-                mots: "au plus tard le",
-                heure: "",
-                source: format!(
-                    "{}, art. {} ({})",
-                    crate::clauses::nom(idcc),
-                    r["article"].as_str().unwrap_or(""),
-                    r["fichier"].as_str().unwrap_or("")
-                ),
-            };
+            e = Echeance { jour, mots: "au plus tard le", heure: "", source: format!("{}, art. {}", crate::clauses::nom(idcc), r.article) };
         }
     }
     Ok(e)

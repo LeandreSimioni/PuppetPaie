@@ -91,14 +91,45 @@ fn motif_de(e: &Value) -> Option<&str> {
 
 // ------------------------------------------------------------ le profil
 
-fn profil(ctx: &Contexte, e: &Value) -> Resultat<Value> {
+fn profil(ctx: &Contexte, e: &Value) -> Resultat<clauses::Profil> {
     let fiche = e
         .get("salarie")
         .and_then(|s| s.as_str())
         .and_then(|s| ctx.salarie(s).ok())
         .map(|f| f.champs)
         .unwrap_or_default();
-    clauses::profil(&idcc(ctx), &fiche, Some(e))
+    clauses::profil(&idcc(ctx), &fiche, &dit_par_l_engagement(e)?)
+}
+
+/// Le decimal d'un nombre des clauses, tel qu'il s'ecrit.
+fn de_p(x: clauses::P) -> Resultat<Decimal> {
+    socle::num::dec_texte(&x.to_string())
+}
+
+/// CE QUE L'ENGAGEMENT `e` DIT DU SALARIE la ou la fiche le dit aussi (`clauses::DitParLEngagement`) : sa categorie dans
+/// la convention, son statut, son code emploi (`metier`), la case cadre, son debut (`AAAA-MM-JJ`, lu sur ses dix premiers
+/// caracteres). Une case vide ne dit rien.
+pub(crate) fn dit_par_l_engagement(e: &Value) -> Resultat<clauses::DitParLEngagement> {
+    let dite = |k: &str| e.get(k).filter(|v| vrai(v));
+    let metier = match dite("metier") {
+        Some(v) => Some(v.as_str().ok_or_else(|| format!("code emploi : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(v))))?.to_string()),
+        None => None,
+    };
+    let debut = match dite("debut") {
+        Some(v) => {
+            let s = en_texte(v);
+            let jour = s.get(..10).filter(|j| j.as_bytes().get(4) == Some(&b'-') && j.as_bytes().get(7) == Some(&b'-')).and_then(|j| socle::date::Jour::lire(j).ok());
+            Some(jour.ok_or_else(|| format!("date illisible : {}", socle::fichiers::repr(&s)))?)
+        }
+        None => None,
+    };
+    Ok(clauses::DitParLEngagement {
+        categorie_conventionnelle: dite("categorie_conventionnelle").map(en_texte),
+        statut: dite("statut").and_then(Value::as_str).map(str::to_string),
+        metier,
+        cadre: e.get("cadre").filter(|v| !v.is_null()).map(vrai),
+        debut,
+    })
 }
 
 /// L'age au dernier jour du contrat (ou aujourd'hui), en annees revolues.
@@ -150,21 +181,15 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
     let cdd = !nature_de(e.get("nature"))?.duree_indeterminee;
     let legal = permanents::preavis_mois(anciennete, motif, cdd)?;
     let prof = profil(ctx, e)?;
-    let categorie = get(&prof, "categorie").as_str();
+    let categorie = prof.categorie.as_deref();
     let conv = clauses::preavis_mois(idcc, categorie, anciennete, motif, age(ctx, e)?)?;
-    let conv_mois = match get(&conv, "mois") {
-        Value::Null => None,
-        m => Some(decimal(m)?),
-    };
-    let conv_pourquoi = get(&conv, "pourquoi");
+    let conv_mois = conv.mois.map(de_p).transpose()?;
+    let conv_pourquoi = conv.pourquoi.clone().unwrap_or_default();
+    let conv_article = conv.article.clone().unwrap_or_default();
+    let categorie_dite = clauses::categorie_en_mots(categorie.unwrap_or(""));
     let mut out = Preavis { mois: None, legal, convention: conv_mois, qui: String::new(), dit: String::new(), pourquoi: None };
     let rel = clauses::releve(idcc)?;
-    let releve = rel.is_some()
-        && !rel
-            .as_ref()
-            .and_then(|r| r.get("preavis").filter(|p| vrai(p)))
-            .and_then(|p| p.get("loi_seule"))
-            .is_some_and(vrai);
+    let releve = rel.as_ref().is_some_and(|r| r.loi_seule(clauses::Section::Preavis).is_none());
     // La rupture anticipee d'un CDD par le salarie qui part pour un CDI (L1243-2) : un preavis en jours, que ni la loi du
     // licenciement ni la convention ne disent, et que le moteur ne compte pas.
     if let Some(regle) = permanents::regle_du_preavis(motif, cdd)? {
@@ -175,23 +200,23 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
     if legal == Some(Decimal::ZERO) || conv_mois == Some(Decimal::ZERO) {
         out.mois = Some(Decimal::ZERO);
         out.qui = "le motif de rupture".into();
-        out.pourquoi = if conv_mois == Some(Decimal::ZERO) && !conv_pourquoi.is_null() { Some(t(conv_pourquoi)) } else { None };
+        out.pourquoi = if conv_mois == Some(Decimal::ZERO) { conv.pourquoi.clone() } else { None };
         return Ok(out);
     }
     if releve && conv_mois.is_none() && categorie.is_some_and(|c| !c.is_empty()) {
-        out.pourquoi = Some(format!("{}. Dites sa durée sur la carte (« durée du préavis, en mois »).", t(conv_pourquoi)));
+        out.pourquoi = Some(format!("{}. Dites sa durée sur la carte (« durée du préavis, en mois »).", conv_pourquoi));
         return Ok(out);
     }
     if releve && conv_mois.is_none() {
-        let article = cle(cle(rel.as_ref().ok_or("None")?, "preavis")?, "article")?;
+        let article = rel.as_ref().and_then(|r| r.preavis.as_ref()).map(|p| p.article.clone()).ok_or_else(|| socle::echec::livree("clauses-conventionnelles-base.json", "preavis.article"))?;
         out.pourquoi = Some(format!(
             "la durée du préavis dépend de la catégorie du salarié dans {} \
              (art. {}), et {}. Dites-la sur la fiche du salarié \
              (« Catégorie dans la convention » : artiste, employé, \
              agent de maîtrise, cadre).",
             clauses::nom(idcc),
-            t(article),
-            t(get(&prof, "source"))
+            article,
+            prof.source
         ));
         return Ok(out);
     }
@@ -202,20 +227,22 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
              (L1234-1, 1° : « la convention ou l'accord collectif de travail \
              ou, à défaut, les usages ») et {}. Dites-la sur la carte \
              (« durée du préavis, en mois »).",
-            t(conv_pourquoi)
+            conv_pourquoi
         ));
         return Ok(out);
     }
     out.mois = Some(candidats.iter().copied().fold(candidats[0], plus_grand));
+    // La categorie entre parentheses, quand le preavis de la convention en depend.
+    let pour_la_categorie = if categorie_dite.is_empty() { String::new() } else { format!(" ({})", categorie_dite) };
     if conv_mois.is_none() {
         out.qui = "la loi (L1234-1)".into();
-        out.dit = format!("L1234-1 ; {} : seule la loi est calculée", t(conv_pourquoi));
+        out.dit = format!("L1234-1 ; {} : seule la loi est calculée", conv_pourquoi);
     } else if legal.is_none() || conv_mois > legal {
-        out.qui = t(get(&conv, "article"));
+        out.qui = conv_article.clone();
         out.dit = format!(
-            "{} ({}) ; {}",
-            t(get(&conv, "article")),
-            clauses::categorie_en_mots(&t(get(&prof, "categorie"))),
+            "{}{} ; {}",
+            conv_article,
+            pour_la_categorie,
             match legal {
                 None => "la loi n'en donne pas sous six mois".to_string(),
                 Some(l) => format!("la loi en donne {}", l),
@@ -224,10 +251,10 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
     } else {
         out.qui = "la loi (L1234-1)".into();
         out.dit = format!(
-            "L1234-1 ; {} en donne {} ({})",
-            t(get(&conv, "article")),
-            t(get(&conv, "mois")),
-            clauses::categorie_en_mots(&t(get(&prof, "categorie")))
+            "L1234-1 ; {} en donne {}{}",
+            conv_article,
+            conv.mois.map(|m| m.to_string()).unwrap_or_default(),
+            pour_la_categorie
         );
     }
     Ok(out)
@@ -714,6 +741,23 @@ fn avantages_du_mois(ctx: &Contexte, deja: &[Value]) -> Resultat<Vec<String>> {
     Ok(out)
 }
 
+/// Ce que la convention donne pour une rupture qui n'est pas un licenciement : de `bas` a `haut` (egaux quand le texte n'a
+/// qu'une lecture), son article, ce qui manque pour le dire, et le delai de prevenance d'une retraite.
+struct Conventionnelle {
+    releve: bool,
+    article: Option<String>,
+    bas: Option<clauses::P>,
+    haut: Option<clauses::P>,
+    pourquoi: Option<String>,
+    prevenance_mois: Option<i64>,
+}
+
+impl Conventionnelle {
+    fn de_la_retraite(r: clauses::Retraite) -> Conventionnelle {
+        Conventionnelle { releve: r.releve, article: r.article, bas: r.montant, haut: r.montant, pourquoi: r.pourquoi, prevenance_mois: r.prevenance_mois }
+    }
+}
+
 /// Ce que la fin d'un contrat ouvre au salarie, selon sa cause : licenciement,
 /// rupture conventionnelle (043), mise a la retraite (038), depart (039).
 fn indemnite_de_rupture(
@@ -747,17 +791,17 @@ fn indemnite_de_rupture(
     let idcc = &idcc(ctx);
     let prof = profil(ctx, e)?;
     let (mut conv_bas, mut conv_haut): (Option<Decimal>, Option<Decimal>) = (None, None);
-    let mut conv_article = Value::Null;
+    let mut conv_article: Option<String> = None;
     let mut conv_releve = false;
     let mut ouvert = false;
     let mut supplement_rub = format!("{}_conventionnelle", rubrique_sec);
-    let (mut legale, article, quoi, c): (Value, &str, &str, Value);
+    let (mut legale, article, quoi, c): (Value, &str, &str, Conventionnelle);
 
     if fin_cdi == permanents::FinDeCdi::DepartALaRetraite {
         legale = permanents::indemnite_depart_retraite(anciennete, retenu)?;
         article = "L1237-9 et D1237-1";
         quoi = "depart a la retraite";
-        c = clauses::indemnite_depart_retraite(idcc, anciennete, retenu)?;
+        c = Conventionnelle::de_la_retraite(clauses::indemnite_depart_retraite(idcc, anciennete, retenu)?);
     } else if fin_cdi == permanents::FinDeCdi::MiseALaRetraite {
         legale = permanents::indemnite_mise_a_la_retraite(anciennete, retenu)?;
         article = "L1237-7";
@@ -770,13 +814,9 @@ fn indemnite_de_rupture(
              (L1237-8), et ce qui est declare ici serait faux.",
             qui
         )));
-        c = clauses::indemnite_mise_a_la_retraite(idcc, anciennete, retenu)?;
-        let cdd = get(&c, "cadre_de_direction");
-        if vrai(cdd)
-            && get(&prof, "categorie").as_str() == Some("cadre_de_direction")
-            && ctx.entreprise.annexe_convention.code() == "1"
-            && anciennete > Decimal::from(120)
-        {
+        let mise = clauses::indemnite_mise_a_la_retraite(idcc, anciennete, retenu)?;
+        let vise = prof.categorie.as_deref() == Some("cadre_de_direction") && ctx.entreprise.annexe_convention.code() == "1" && anciennete > Decimal::from(120);
+        if let Some(cdd) = mise.cadre_de_direction.as_ref().filter(|_| vise) {
             if saisi.is_none() {
                 return Err(socle::echec::cle(format!(
                     "{} : mise a la retraite d'un cadre de direction de plus \
@@ -786,11 +826,12 @@ fn indemnite_de_rupture(
                      l'accepte a partir du minimum legal.",
                     qui,
                     clauses::nom(idcc),
-                    t(cle(cdd, "article")?)
+                    cdd
                 ), &rubrique));
             }
             ouvert = true;
         }
+        c = Conventionnelle::de_la_retraite(mise);
     } else {
         let rc = permanents::indemnite_rupture_conventionnelle(anciennete, retenu)?;
         let plancher = get(&rc, "plancher");
@@ -808,36 +849,27 @@ fn indemnite_de_rupture(
         // 3090, art. 7.6 : le plancher est l'indemnite CONVENTIONNELLE de
         // licenciement, et non celle du code du travail.
         let lic = indemnite_conventionnelle(ctx, e, anciennete, retenu, motif)?;
-        let mut cc = json!({"releve": get(&lic, "releve"), "pourquoi": get(&lic, "pourquoi"), "article": get(&lic, "article")});
-        let rc_sec = clauses::releve(idcc)?.and_then(|r| r.get("rupture_conventionnelle").cloned()).unwrap_or(Value::Null);
-        if vrai(get(&lic, "du")) && vrai(&rc_sec) {
-            cc["montant"] = cle(&lic, "bas")?.clone();
-            cc["haut"] = cle(&lic, "haut")?.clone();
-            cc["article"] = Value::String(format!(
+        let rc_sec = clauses::releve(idcc)?.and_then(|r| r.rupture_conventionnelle);
+        let mut cc = Conventionnelle { releve: lic.releve, article: lic.article.clone(), bas: None, haut: None, pourquoi: lic.pourquoi.clone(), prevenance_mois: None };
+        if let (true, Some(rc_sec)) = (lic.du, rc_sec) {
+            cc.bas = lic.bas;
+            cc.haut = lic.haut;
+            cc.article = Some(format!(
                 "{} (art. {}, qui renvoie a {})",
                 clauses::nom(idcc),
-                t(cle(&rc_sec, "article")?),
-                t(cle(&lic, "article")?)
+                rc_sec.article,
+                lic.article.clone().unwrap_or_default()
             ));
-        } else {
-            cc["montant"] = Value::Null;
         }
         c = cc;
     }
-    if vrai(get(&c, "releve")) {
+    if c.releve {
         conv_releve = true;
-        conv_article = get(&c, "article").clone();
-        conv_bas = match get(&c, "montant") {
-            Value::Null => None,
-            m => Some(decimal(m)?),
-        };
-        conv_haut = match c.get("haut") {
-            Some(Value::Null) => None,
-            Some(h) => Some(decimal(h)?),
-            None => conv_bas,
-        };
+        conv_article = c.article.clone();
+        conv_bas = c.bas.map(de_p).transpose()?;
+        conv_haut = c.haut.map(de_p).transpose()?;
     }
-    let conv_pourquoi = get(&c, "pourquoi").clone();
+    let conv_pourquoi = c.pourquoi.clone();
     legale["reference"] = reference.clone();
 
     let du_legal = vrai(get(&legale, "du"));
@@ -845,7 +877,7 @@ fn indemnite_de_rupture(
     let bas = plus_grand(m_legal, conv_bas.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
     let haut = plus_grand(m_legal, conv_haut.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
     let du = du_legal || bas > Decimal::ZERO;
-    let phrase = phrase_de_la_convention(conv_releve, &conv_article, conv_bas, conv_haut, m_legal, &conv_pourquoi, idcc);
+    let phrase = phrase_de_la_convention(conv_releve, conv_article.as_deref(), conv_bas, conv_haut, m_legal, conv_pourquoi.as_deref(), idcc);
 
     let montant;
     if let Some(saisi) = saisi {
@@ -887,7 +919,7 @@ fn indemnite_de_rupture(
                 "{} : {} se lit de deux façons, de {} à {} ; la loi donne {}. \
                  Saisir le montant retenu.",
                 qui,
-                t(&conv_article),
+                conv_article.clone().unwrap_or_else(|| clauses::nom(idcc)),
                 euros(cb),
                 euros(ch),
                 euros(m_legal)
@@ -1007,15 +1039,14 @@ fn indemnite_de_rupture(
             String::new()
         }
     )));
-    let prevenance = get(&c, "prevenance_mois");
-    if vrai(prevenance) && fin_cdi != permanents::FinDeCdi::RuptureConventionnelle {
+    if let Some(prevenance) = c.prevenance_mois.filter(|m| *m != 0 && fin_cdi != permanents::FinDeCdi::RuptureConventionnelle) {
         stc.avertissements.push(avertir(format!(
             "{} : {} impose un DELAI DE PREVENANCE de {} mois, par lettre \
              recommandee, a qui prend l'initiative du depart a la retraite. \
              Le moteur ne le verifie pas.",
             qui,
-            t(&conv_article),
-            t(prevenance)
+            conv_article.clone().unwrap_or_else(|| clauses::nom(idcc)),
+            prevenance
         )));
     }
     Ok(())
@@ -1024,24 +1055,24 @@ fn indemnite_de_rupture(
 /// Ce que la convention a dit d'une indemnite de rupture, en une phrase.
 fn phrase_de_la_convention(
     releve: bool,
-    article: &Value,
+    article: Option<&str>,
     bas: Option<Decimal>,
     haut: Option<Decimal>,
     m_legal: Decimal,
-    pourquoi: &Value,
+    pourquoi: Option<&str>,
     idcc: &str,
 ) -> String {
     if !releve {
         return format!("les clauses de {} ne sont pas relevees : seule la loi est calculee", clauses::nom(idcc));
     }
+    let article = article.filter(|a| !a.is_empty()).map_or_else(|| clauses::nom(idcc), str::to_string);
     let Some(bas) = bas else {
         return format!(
             "{} n'ouvre rien ici{}",
-            if vrai(article) { t(article) } else { clauses::nom(idcc) },
-            if vrai(pourquoi) { format!(" ({})", t(pourquoi)) } else { String::new() }
+            article,
+            pourquoi.filter(|p| !p.is_empty()).map(|p| format!(" ({})", p)).unwrap_or_default()
         );
     };
-    let article = t(article);
     if haut.is_some_and(|h| h != bas) {
         format!("{} donne de {} à {} selon la lecture", article, euros(bas), euros(haut.unwrap_or(bas)))
     } else if bas == m_legal {
@@ -1106,9 +1137,10 @@ fn indemnite_de_licenciement(
     let reference = get(&legale, "reference").clone();
     let conv = indemnite_conventionnelle(ctx, e, anciennete, decimal(get(&reference, "retenu"))?, motif)?;
     let m_legal = if vrai(get(&legale, "du")) { decimal(get(&legale, "montant"))? } else { zero2() };
-    let conv_du = vrai(get(&conv, "du"));
-    let bas = plus_grand(m_legal, if conv_du { decimal(cle(&conv, "bas")?)? } else { zero2() });
-    let haut = plus_grand(m_legal, if conv_du { decimal(cle(&conv, "haut")?)? } else { zero2() });
+    let conv_du = conv.du;
+    let (conv_bas, conv_haut) = (conv.bas.map(de_p).transpose()?, conv.haut.map(de_p).transpose()?);
+    let bas = plus_grand(m_legal, if conv_du { conv_bas.unwrap_or_else(zero2) } else { zero2() });
+    let haut = plus_grand(m_legal, if conv_du { conv_haut.unwrap_or_else(zero2) } else { zero2() });
 
     let montant;
     if let Some(saisi) = saisi {
@@ -1139,14 +1171,14 @@ fn indemnite_de_licenciement(
             ));
         }
     } else {
-        if conv_du && decimal(cle(&conv, "bas")?)? != decimal(cle(&conv, "haut")?)? && decimal(cle(&conv, "haut")?)? > m_legal {
+        if conv_du && conv_bas != conv_haut && conv_haut.is_some_and(|h| h > m_legal) {
             return Err(format!(
                 "{} : {} se lit de deux façons, qui ne donnent pas le même \
                  montant : {}. La loi donne {}. Ajouter à la paie une \
                  ligne « Indemnité de licenciement » avec le montant retenu, \
                  entre {} et {}.",
                 qui,
-                t(cle(&conv, "article")?),
+                conv.article.clone().unwrap_or_default(),
                 lectures(&conv)?,
                 euros(m_legal),
                 euros(bas),
@@ -1156,9 +1188,9 @@ fn indemnite_de_licenciement(
         montant = bas;
     }
     if montant <= Decimal::ZERO {
-        let pourquoi = if vrai(get(&legale, "pourquoi")) { get(&legale, "pourquoi") } else { get(&conv, "pourquoi") };
-        if vrai(pourquoi) {
-            stc.avertissements.push(info(format!("{} : pas d'indemnite de licenciement -- {}", qui, t(pourquoi))));
+        let pourquoi = if vrai(get(&legale, "pourquoi")) { Some(t(get(&legale, "pourquoi"))) } else { conv.pourquoi.clone().filter(|p| !p.is_empty()) };
+        if let Some(pourquoi) = pourquoi {
+            stc.avertissements.push(info(format!("{} : pas d'indemnite de licenciement -- {}", qui, pourquoi)));
         }
         return Ok(());
     }
@@ -1191,14 +1223,14 @@ fn indemnite_de_licenciement(
             String::new()
         }
     )));
-    if vrai(get(&conv, "hors_primes")) && supplement > Decimal::ZERO {
+    if conv.hors_primes && supplement > Decimal::ZERO {
         stc.avertissements.push(avertir(format!(
             "{} : l'assiette de {} est le salaire de BASE, hors primes ; le \
              logiciel a pris les bruts des derniers mois. S'ils comptent des \
              primes, ajouter a la paie une ligne « Indemnite de \
              licenciement » avec le montant recalcule.",
             qui,
-            t(cle(&conv, "article")?)
+            conv.article.clone().unwrap_or_default()
         )));
     }
     Ok(())
@@ -1216,7 +1248,7 @@ fn indemnite_conventionnelle(
     anciennete: Decimal,
     reference: Decimal,
     motif: Option<&str>,
-) -> Resultat<Value> {
+) -> Resultat<clauses::Indemnite> {
     clauses::indemnite_licenciement(
         &idcc(ctx),
         ctx.entreprise.annexe_convention.code(),
@@ -1228,20 +1260,26 @@ fn indemnite_conventionnelle(
     )
 }
 
-fn lectures(conv: &Value) -> Resultat<String> {
-    let l = cle(conv, "lectures")?.as_object().ok_or("lectures attendues")?;
-    Ok(l.iter().map(|(n, v)| format!("{} {}", n.replace('_', " "), euros_de(v))).collect::<Vec<_>>().join(" ; "))
+fn lectures(conv: &clauses::Indemnite) -> Resultat<String> {
+    let l: Vec<String> = conv.lectures.iter().map(|(n, v)| Ok(format!("{} {}", n.replace('_', " "), euros(de_p(*v)?)))).collect::<Resultat<_>>()?;
+    Ok(l.join(" ; "))
 }
 
-fn dit_conventionnel(conv: &Value) -> Resultat<String> {
-    if !vrai(get(conv, "releve")) {
+/// Les montants d'une indemnite que la convention doit (`du`).
+fn bas_et_haut(conv: &clauses::Indemnite) -> Resultat<(Decimal, Decimal)> {
+    let manque = || socle::echec::livree("clauses-conventionnelles-base.json", "indemnite_licenciement");
+    Ok((de_p(conv.bas.ok_or_else(manque)?)?, de_p(conv.haut.ok_or_else(manque)?)?))
+}
+
+fn dit_conventionnel(conv: &clauses::Indemnite) -> Resultat<String> {
+    if !conv.releve {
         return Ok(String::new());
     }
-    let article = t(cle(conv, "article")?);
-    if !vrai(get(conv, "du")) {
+    let article = conv.article.clone().unwrap_or_default();
+    if !conv.du {
         return Ok(format!(" et rien par {}", article));
     }
-    let (bas, haut) = (decimal(cle(conv, "bas")?)?, decimal(cle(conv, "haut")?)?);
+    let (bas, haut) = bas_et_haut(conv)?;
     Ok(if bas == haut {
         format!(" et {} par {}", euros(bas), article)
     } else {
@@ -1250,19 +1288,16 @@ fn dit_conventionnel(conv: &Value) -> Resultat<String> {
 }
 
 /// Ce que la convention a dit, pour l'avertissement.
-fn phrase_conventionnelle(conv: &Value, m_legal: Decimal) -> Resultat<String> {
-    if !vrai(get(conv, "releve")) {
-        let pourquoi = match conv.get("pourquoi") {
-            Some(p) => t(p),
-            None => "les clauses de la convention ne sont pas relevees".to_string(),
-        };
+fn phrase_conventionnelle(conv: &clauses::Indemnite, m_legal: Decimal) -> Resultat<String> {
+    if !conv.releve {
+        let pourquoi = conv.pourquoi.clone().unwrap_or_else(|| "les clauses de la convention ne sont pas relevees".to_string());
         return Ok(format!("{} : seule la loi est calculee", pourquoi));
     }
-    let article = t(cle(conv, "article")?);
-    if !vrai(get(conv, "du")) {
-        return Ok(format!("{} n'ouvre rien ici ({})", article, t(get(conv, "pourquoi"))));
+    let article = conv.article.clone().unwrap_or_default();
+    if !conv.du {
+        return Ok(format!("{} n'ouvre rien ici ({})", article, conv.pourquoi.clone().unwrap_or_default()));
     }
-    let bas = decimal(cle(conv, "bas")?)?;
+    let bas = bas_et_haut(conv)?.0;
     Ok(if bas == m_legal {
         format!("{} donne la même chose", article)
     } else if bas > m_legal {

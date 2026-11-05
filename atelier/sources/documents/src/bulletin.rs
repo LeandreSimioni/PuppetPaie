@@ -255,12 +255,11 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
 /// classement que la fiche porte dans la grille (`classement_conventionnel`) ; `None` quand ni l'une ni l'autre ne se
 /// lisent.
 fn classification(idcc: &str, sal: &ChampsSalarie) -> Resultat<Option<String>> {
-    let profil = droit::clauses::profil(idcc, sal, None)?;
-    let table = droit::clauses::table()?;
-    let categorie = profil.get("categorie").and_then(Value::as_str).map(|c| {
-        let dit = table.pointer(&format!("/conventions/{}/categories/valeurs/{}", idcc, c)).and_then(Value::as_str);
-        dit.map_or_else(|| c.replace('_', " "), |l| l.split(". ").next().unwrap_or(l).trim_end_matches('.').to_string())
-    });
+    let profil = droit::clauses::profil(idcc, sal, &Default::default())?;
+    let categorie = match profil.categorie {
+        Some(c) => Some(droit::clauses::categorie_imprimee(idcc, &c)?.unwrap_or_else(|| c.replace('_', " "))),
+        None => None,
+    };
     let classement = Some(sal.classement_conventionnel.texte().to_string()).filter(|t| !t.trim().is_empty());
     Ok(match (categorie, classement) {
         (Some(c), Some(k)) => Some(format!("{}, {}", c, k)),

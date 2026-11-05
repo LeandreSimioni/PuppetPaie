@@ -1217,17 +1217,12 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, carte: &crate::saisie::Carte, mois:
     }
     let ent = &ctx.entreprise;
     let jauge = ent.jauge_annexe_1.dite().map(droit::fiche::Choix::code);
-    let pa = clauses::prime_anciennete(ent.idcc.texte(), ent.annexe_convention.code(), &fiche, Some(e), &fin_mois, jauge)?;
+    let pa = clauses::prime_anciennete(ent.idcc.texte(), ent.annexe_convention.code(), &fiche, &crate::solde::dit_par_l_engagement(e)?, &fin_mois, jauge)?;
     if let Some(pa) = pa {
-        let Some(base_conv) = pa.get("base").filter(|b| !b.is_null()).map(dec).transpose()? else {
-            return Err(format!(
-                "{} : prime d'anciennete ({}) -- {}.",
-                qui(ctx, e),
-                en_texte(&pa["article"]),
-                en_texte(&pa["pourquoi"])
-            ));
+        let Some(base_conv) = pa.base.map(|b| socle::num::dec_texte(&b.to_string())).transpose()? else {
+            return Err(format!("{} : prime d'anciennete ({}) -- {}.", qui(ctx, e), pa.article, pa.pourquoi.unwrap_or_default()));
         };
-        let pourcentage = dec(requis(&pa, "pourcentage")?)?;
+        let pourcentage = Decimal::from(pa.pourcentage);
         let reference = Decimal::from_str("151.67").unwrap();
         let base = eur2(div(mul(base_conv, quotite), reference));
         let montant = eur2(div(mul(base, pourcentage), Decimal::ONE_HUNDRED));
@@ -1238,11 +1233,11 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, carte: &crate::saisie::Carte, mois:
              conventionnel de {}{} = {} -- {}.",
             qui(ctx, e),
             virgule(pourcentage),
-            en_texte(&pa["annees"]),
+            pa.annees,
             euros(base_conv),
             proratise,
             euros(montant),
-            en_texte(&pa["article"])
+            pa.article
         )));
         // Ce que les suspensions ont retire des annees de presence se dit avec la prime.
         avert.extend(sur_l_anciennete);

@@ -10,10 +10,8 @@
 //! `kali-1285-titre-vi-duree-du-travail-20261102.md`, `kali-3090-titre-viii-duree-du-travail-20261102.md`,
 //! `boss/boss-heures-supplementaires-20260601.txt`.
 
-use serde_json::Value;
-use socle::fichiers::vrai;
 use socle::texte::virgule;
-use socle::num::{dec_avec_echelle, Decimal, Resultat};
+use socle::num::{Decimal, Resultat};
 
 /// Des heures a une majoration (en pourcent).
 #[derive(Debug, Clone, PartialEq)]
@@ -34,24 +32,16 @@ fn loi() -> Resultat<crate::permanents::HeuresEnPlus> {
     Ok(crate::permanents::regles()?.heures_en_plus.clone())
 }
 
-fn champ<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
-}
-
-fn nombre(v: &Value, k: &str) -> Resultat<Decimal> {
-    dec_avec_echelle(champ(v, k)?)
-}
-
-/// Ce que la convention `idcc` dit de `quoi` (« heures_supplementaires », « heures_complementaires »), s'il est releve.
-fn de_la_convention(idcc: &str, quoi: &str) -> Resultat<Option<Value>> {
-    Ok(crate::clauses::releve(idcc)?.and_then(|c| c.get(quoi).cloned()).filter(|v| v.is_object()))
+/// Ce que la convention `idcc` dit des heures supplementaires, s'il est releve.
+fn supplementaires_de_la_convention(idcc: &str) -> Resultat<Option<crate::clauses::HeuresSupplementaires>> {
+    Ok(crate::clauses::releve(idcc)?.and_then(|c| c.heures_supplementaires))
 }
 
 /// LA CONVENTION FIXE-T-ELLE LES PALIERS DES HEURES SUPPLEMENTAIRES ? Sinon la loi : 25 % pour les huit premieres
 /// heures de la semaine, 50 % au-dela (L3121-36), et le mois ne dit pas lesquelles sont au-dela de la huitieme d'une
 /// semaine (elles se decomptent par semaine, L3121-29) : la carte le demande (`heures_supplementaires_a_50`).
 pub fn paliers_conventionnels(idcc: &str) -> Resultat<bool> {
-    Ok(de_la_convention(idcc, "heures_supplementaires")?.is_some_and(|c| c.get("paliers_annuels").is_some_and(vrai)))
+    Ok(supplementaires_de_la_convention(idcc)?.is_some_and(|c| !c.paliers_annuels.is_empty()))
 }
 
 /// LES HEURES SUPPLEMENTAIRES DU MOIS, par majoration. `heures` : celles du mois ; `a_50` : celles d'entre elles qui
@@ -62,27 +52,27 @@ pub fn supplementaires(idcc: &str, heures: Decimal, a_50: Decimal, deja: Decimal
     if heures <= Decimal::ZERO {
         return Ok(r);
     }
-    let conv = de_la_convention(idcc, "heures_supplementaires")?;
-    let paliers = conv.as_ref().and_then(|c| c.get("paliers_annuels")).filter(|p| vrai(p)).and_then(Value::as_array).cloned();
-    match (&conv, paliers) {
-        (Some(c), Some(paliers)) => {
+    let conv = supplementaires_de_la_convention(idcc)?;
+    match &conv {
+        Some(c) if !c.paliers_annuels.is_empty() => {
             // Les paliers annuels de la convention : la n-ieme heure de l'annee prend la majoration de son palier ; au-dela
             // du dernier palier (le contingent), `au_dela_du_contingent`.
             let mut debut = Decimal::ZERO;
             let mut reste = heures;
             let mut rang = deja;
-            for p in &paliers {
-                let fin = debut + nombre(p, "heures")?;
+            for p in &c.paliers_annuels {
+                let fin = debut + p.heures.0;
                 let ici = (fin - rang).max(Decimal::ZERO).min(reste);
                 if ici > Decimal::ZERO {
-                    ajouter(&mut r.paliers, ici, nombre(p, "majoration")?);
+                    ajouter(&mut r.paliers, ici, p.majoration.0);
                     reste -= ici;
                     rang += ici;
                 }
                 debut = fin;
             }
             if reste > Decimal::ZERO {
-                ajouter(&mut r.paliers, reste, nombre(c, "au_dela_du_contingent")?);
+                let au_dela = c.au_dela_du_contingent.ok_or_else(|| socle::echec::livree("clauses-conventionnelles-base.json", "heures_supplementaires.au_dela_du_contingent"))?;
+                ajouter(&mut r.paliers, reste, au_dela.0);
             }
         }
         _ => {
@@ -102,8 +92,7 @@ pub fn supplementaires(idcc: &str, heures: Decimal, a_50: Decimal, deja: Decimal
             ajouter(&mut r.paliers, a_50, second);
         }
     }
-    if let Some(contingent) = conv.as_ref().and_then(|c| c.get("contingent_annuel")).filter(|c| vrai(c)) {
-        let contingent = dec_avec_echelle(contingent)?;
+    if let Some(contingent) = conv.as_ref().and_then(|c| c.contingent_annuel).map(|c| c.0).filter(|c| !c.is_zero()) {
         if deja + heures > contingent {
             r.avis.push(format!(
                 "Heures supplémentaires de l'année : {} avec ce mois, au-delà du contingent annuel de {} heures de la convention. \
@@ -149,11 +138,8 @@ pub fn complementaires(idcc: &str, heures: Decimal, contrat: Decimal) -> Resulta
     if reste > Decimal::ZERO {
         ajouter(&mut r.paliers, reste, derniere);
     }
-    let plafond = match de_la_convention(idcc, "heures_complementaires")?.and_then(|c| c.get("plafond").cloned()).filter(vrai) {
-        Some(p) => socle::valeur::valeur_en_texte(&p),
-        None => hc.plafond_sans_accord.nom().to_string(),
-    };
-    let limite = part(&plafond)?;
+    let plafond = crate::clauses::releve(idcc)?.and_then(|c| c.heures_complementaires).map_or(hc.plafond_sans_accord, |c| c.plafond).nom();
+    let limite = part(plafond)?;
     if heures > limite {
         r.avis.push(format!(
             "{} heures complémentaires pour un contrat de {} heures par mois : au-delà du {} de la durée du contrat que la loi ou la \

@@ -91,7 +91,7 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, qu
         (HEURE_COMPLEMENTAIRE, droit::heures_en_plus::complementaires(&idcc, comp, quotite)?)
     } else {
         let salarie = en_texte(e.get("salarie").ok_or_else(|| socle::fichiers::absent("salarie"))?);
-        let deja = if droit::heures_en_plus::paliers_conventionnels(&idcc)? || droit::clauses::releve(&idcc)?.is_some_and(|c| c.get("heures_supplementaires").is_some()) {
+        let deja = if droit::heures_en_plus::paliers_conventionnels(&idcc)? || droit::clauses::releve(&idcc)?.is_some_and(|c| c.heures_supplementaires.is_some()) {
             crate::conges::heures_supplementaires_des_mois_anterieurs(ctx, mois, &salarie)?
         } else {
             Decimal::ZERO
