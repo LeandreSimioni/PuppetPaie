@@ -13,36 +13,11 @@ use socle::num::{Decimal, Resultat};
 
 /// UN NOMBRE TEL QU'IL EST SAISI : un nombre, ou un nombre ecrit en texte. La page envoie `""` pour une case vide ; la
 /// forme canonique ecrit ses nombres en texte (`LignePaie::canon`) ; un flottant garde son ecriture (`130.0`).
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Chiffre {
     Nombre(Number),
     Texte(String),
-}
-
-impl<'de> Deserialize<'de> for Chiffre {
-    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Chiffre, D::Error> {
-        struct Visiteur;
-        impl serde::de::Visitor<'_> for Visiteur {
-            type Value = Chiffre;
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("un nombre, ou un nombre écrit en texte")
-            }
-            fn visit_i64<E: serde::de::Error>(self, i: i64) -> Result<Chiffre, E> {
-                Ok(Chiffre::Nombre(i.into()))
-            }
-            fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<Chiffre, E> {
-                Ok(Chiffre::Nombre(u.into()))
-            }
-            fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<Chiffre, E> {
-                Number::from_f64(x).map(Chiffre::Nombre).ok_or_else(|| E::custom("un nombre fini est attendu"))
-            }
-            fn visit_str<E: serde::de::Error>(self, s: &str) -> Result<Chiffre, E> {
-                Ok(Chiffre::Texte(s.to_string()))
-            }
-        }
-        d.deserialize_any(Visiteur)
-    }
 }
 
 impl Chiffre {
@@ -139,7 +114,7 @@ pub fn dite(c: &Option<Chiffre>) -> Option<&Chiffre> {
 
 /// UNE DATE D'UNE LIGNE : le jour nu (`"2026-10-02"`), ou detaille quand il dit ou il se joue
 /// (`{"jour": "2026-10-02", "lieu": "Berlin"}`).
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DateDeLigne {
     Nue(String),
@@ -153,25 +128,6 @@ pub struct JourEtLieu {
     pub jour: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lieu: Option<String>,
-}
-
-impl<'de> Deserialize<'de> for DateDeLigne {
-    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<DateDeLigne, D::Error> {
-        struct Visiteur;
-        impl<'de> serde::de::Visitor<'de> for Visiteur {
-            type Value = DateDeLigne;
-            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("un jour (AAAA-MM-JJ), ou {\"jour\", \"lieu\"}")
-            }
-            fn visit_str<E: serde::de::Error>(self, s: &str) -> Result<DateDeLigne, E> {
-                Ok(DateDeLigne::Nue(s.to_string()))
-            }
-            fn visit_map<A: serde::de::MapAccess<'de>>(self, m: A) -> Result<DateDeLigne, A::Error> {
-                JourEtLieu::deserialize(serde::de::value::MapAccessDeserializer::new(m)).map(DateDeLigne::Detaillee)
-            }
-        }
-        d.deserialize_any(Visiteur)
-    }
 }
 
 impl DateDeLigne {

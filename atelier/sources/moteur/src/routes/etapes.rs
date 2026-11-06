@@ -667,11 +667,6 @@ pub fn classer_saisie(message: String) -> Echec {
     Echec { classe: if incomplete { Some("SaisieIncomplete") } else { None }, message }
 }
 
-/// `d["cle"]` sur un dictionnaire de fiche : `KeyError` si elle manque.
-fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
-    d.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
-}
-
 /// Quand le contrat (ou son dernier avenant) de l'engagement `numero` du salarie `cle` est parti (`departs`) ; rien s'il
 /// n'est pas parti.
 pub(crate) fn contrat_parti_le(departs: &engagement::departs::Departs, cle: &str, numero: Option<&str>) -> Option<String> {
@@ -1405,7 +1400,11 @@ impl<'a> Moteur<'a> {
             let refaire = self.a_refaire_du_mois(mois, e, &departs);
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
-            let spectacle = if vrai(&p.spectacle) { requis(&p.spectacle, "titre")?.clone() } else { Value::Null };
+            let spectacle = match &p.spectacle {
+                Some(s) if s.titre.est_absente() => return Err(erreur("KeyError", socle::fichiers::absent("titre"))),
+                Some(s) => socle::ecriture::en_valeur(&s.titre),
+                None => Value::Null,
+            };
             let mois_du_contrat = p.engagement.mois_du_contrat().map_err(plain)?;
             let (Some(depuis), Some(jusqu_a)) = (mois_du_contrat.first().cloned(), mois_du_contrat.last().cloned()) else {
                 return Err(erreur("IndexError", socle::fichiers::trop_courte("les mois du contrat")));
@@ -2288,7 +2287,7 @@ impl<'a> Moteur<'a> {
                     }
                     None => None,
                 };
-                let titre = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).cloned() } else { None };
+                let titre = p.spectacle.as_ref().and_then(|s| s.titre.dite()).filter(|t| !t.is_empty()).map(|t| Value::String(t.clone()));
                 let Some(numero) = p.engagement.numero.clone() else { continue };
                 attente.push(DpaeDue {
                     mois: le_mois,

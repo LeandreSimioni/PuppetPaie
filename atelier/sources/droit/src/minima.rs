@@ -457,6 +457,113 @@ pub struct CaseLue {
     pub texte: String,
 }
 
+/// LA CASE `cle` DE `fiche` LUE POUR UNE CONDITION (`fiche::case_en`) : absente ou nulle, elle ne dit rien ; vide, elle
+/// ne dit rien et son texte est vide ; dite, un oui ou un nombre non nul la rend vraie, et son texte est celui qu'elle
+/// ecrit (`True`, `12`, `1.5`, le texte tel quel). Une case de plusieurs valeurs ne se confronte a aucune condition.
+pub fn case_lue<F: crate::fiche::Cases + ?Sized>(fiche: &F, cle: &str) -> CaseLue {
+    crate::fiche::case_en(fiche, cle, Lecture).and_then(Result::ok).unwrap_or_default()
+}
+
+/// Ce qui lit une case en `CaseLue` (`case_lue`).
+struct Lecture;
+
+impl serde::Serializer for Lecture {
+    type Ok = CaseLue;
+    type Error = std::fmt::Error;
+    type SerializeSeq = serde::ser::Impossible<CaseLue, std::fmt::Error>;
+    type SerializeTuple = serde::ser::Impossible<CaseLue, std::fmt::Error>;
+    type SerializeTupleStruct = serde::ser::Impossible<CaseLue, std::fmt::Error>;
+    type SerializeTupleVariant = serde::ser::Impossible<CaseLue, std::fmt::Error>;
+    type SerializeMap = serde::ser::Impossible<CaseLue, std::fmt::Error>;
+    type SerializeStruct = serde::ser::Impossible<CaseLue, std::fmt::Error>;
+    type SerializeStructVariant = serde::ser::Impossible<CaseLue, std::fmt::Error>;
+
+    fn serialize_bool(self, b: bool) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue { vraie: b, texte: if b { "True" } else { "False" }.into() })
+    }
+    fn serialize_i8(self, x: i8) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_i64(x.into())
+    }
+    fn serialize_i16(self, x: i16) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_i64(x.into())
+    }
+    fn serialize_i32(self, x: i32) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_i64(x.into())
+    }
+    fn serialize_i64(self, x: i64) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue { vraie: x != 0, texte: x.to_string() })
+    }
+    fn serialize_u8(self, x: u8) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_u64(x.into())
+    }
+    fn serialize_u16(self, x: u16) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_u64(x.into())
+    }
+    fn serialize_u32(self, x: u32) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_u64(x.into())
+    }
+    fn serialize_u64(self, x: u64) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue { vraie: x != 0, texte: x.to_string() })
+    }
+    fn serialize_f32(self, x: f32) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_f64(x.into())
+    }
+    fn serialize_f64(self, x: f64) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue { vraie: x != 0.0, texte: socle::ecriture::repr_flottant(x) })
+    }
+    fn serialize_char(self, c: char) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_str(&c.to_string())
+    }
+    fn serialize_str(self, s: &str) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue { vraie: !s.is_empty(), texte: s.to_string() })
+    }
+    fn serialize_bytes(self, _: &[u8]) -> Result<CaseLue, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_none(self) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue::default())
+    }
+    fn serialize_some<T: serde::Serialize + ?Sized>(self, v: &T) -> Result<CaseLue, std::fmt::Error> {
+        v.serialize(self)
+    }
+    fn serialize_unit(self) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue::default())
+    }
+    fn serialize_unit_struct(self, _: &'static str) -> Result<CaseLue, std::fmt::Error> {
+        Ok(CaseLue::default())
+    }
+    fn serialize_unit_variant(self, _: &'static str, _: u32, variante: &'static str) -> Result<CaseLue, std::fmt::Error> {
+        self.serialize_str(variante)
+    }
+    fn serialize_newtype_struct<T: serde::Serialize + ?Sized>(self, _: &'static str, v: &T) -> Result<CaseLue, std::fmt::Error> {
+        v.serialize(self)
+    }
+    fn serialize_newtype_variant<T: serde::Serialize + ?Sized>(self, _: &'static str, _: u32, _: &'static str, _: &T) -> Result<CaseLue, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_seq(self, _: Option<usize>) -> Result<Self::SerializeSeq, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_tuple_struct(self, _: &'static str, _: usize) -> Result<Self::SerializeTupleStruct, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_tuple_variant(self, _: &'static str, _: u32, _: &'static str, _: usize) -> Result<Self::SerializeTupleVariant, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_map(self, _: Option<usize>) -> Result<Self::SerializeMap, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_struct(self, _: &'static str, _: usize) -> Result<Self::SerializeStruct, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+    fn serialize_struct_variant(self, _: &'static str, _: u32, _: &'static str, _: usize) -> Result<Self::SerializeStructVariant, std::fmt::Error> {
+        Err(std::fmt::Error)
+    }
+}
+
 impl Attendu {
     /// La case lue est-elle celle qu'on attend ?
     pub fn vaut(&self, lu: &CaseLue) -> bool {

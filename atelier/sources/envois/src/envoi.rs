@@ -46,8 +46,7 @@ use rust_decimal::Decimal;
 use documents::bulletin::{fmt_eur, fmt_heures};
 use engagement::calcul::Paie;
 use crate::courriel::Courriel;
-use socle::date::{en_texte, repr_flottant};
-use socle::fichiers::vrai;
+use socle::date::repr_flottant;
 
 /// Un courriel, sans le piece jointe lue : `pieces` sont des chemins.
 #[derive(Debug, Clone, Default)]
@@ -272,7 +271,7 @@ pub fn resume_de(paies: &[&Paie]) -> Result<ResumeDePaie, String> {
             Some(h) => fmt_heures(heures_en_decimal(h)?),
             None => String::new(),
         };
-        let spectacle = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte) } else { None };
+        let spectacle = p.spectacle.as_ref().and_then(|s| s.titre.dite()).filter(|t| !t.is_empty()).cloned();
         contrats.push(ContratResume {
             debut: e.debut.iso(),
             fin: e.fin.map(|f| f.iso()),

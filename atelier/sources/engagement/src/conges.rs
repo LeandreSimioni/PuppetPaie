@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::calcul::Paie;
 use droit::catalogue::rubrique;
@@ -151,28 +151,39 @@ fn fin_mois_de(mois: &str) -> Resultat<Jour> {
 
 // ------------------------------------------------ le compteur de conges
 
-/// Ou en est un salarie de ses conges payes, a une date.
-#[derive(Debug, Clone, PartialEq)]
+/// Ou en est un salarie de ses conges payes, a une date. Il s'ecrit dans la paie validee (`paie_ecrite::PaieEcrite::conges`) :
+/// les nombres en texte tels qu'ils sont, les jours en AAAA-MM-JJ.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CompteurConges {
     pub salarie: String,
     pub periode_debut: Jour,
     pub periode_fin: Jour,
     /// Jours ouvrables, compte exact.
+    #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub acquis: Decimal,
+    #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub pris: Decimal,
     /// L'assiette du dixieme.
+    #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub remuneration_periode: Decimal,
     /// Ce qui reste des jours acquis sur la periode precedente.
+    #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub reports: Decimal,
-    pub avertissements: Vec<Avis>,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub report_debut: Option<Jour>,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub report_fin: Option<Jour>,
+    #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub acquis_report: Decimal,
     /// L'assiette du dixieme de la periode du report (zero sans report).
+    #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub remuneration_report: Decimal,
     /// Les jours pris que l'ancien logiciel a deja imputes sur la periode en
     /// cours (reprise) : ils ne consomment pas le report.
+    #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub pris_sur_la_periode: Decimal,
+    pub avertissements: Vec<Avis>,
 }
 
 impl CompteurConges {
@@ -213,56 +224,6 @@ impl CompteurConges {
             arrondir_jours(self.pris),
             self.solde_affiche()
         )
-    }
-
-    /// Le compteur tel qu'il s'ecrit dans la paie validee (`etats::CONGES`) : les nombres en texte, les jours en
-    /// AAAA-MM-JJ.
-    pub fn en_json(&self) -> Value {
-        let n = |x: Decimal| Value::String(x.to_string());
-        let j = |x: &Option<Jour>| x.map_or(Value::Null, |j| Value::String(j.iso()));
-        json!({
-            "salarie": self.salarie,
-            "periode_debut": self.periode_debut.iso(),
-            "periode_fin": self.periode_fin.iso(),
-            "acquis": n(self.acquis),
-            "pris": n(self.pris),
-            "remuneration_periode": n(self.remuneration_periode),
-            "reports": n(self.reports),
-            "report_debut": j(&self.report_debut),
-            "report_fin": j(&self.report_fin),
-            "acquis_report": n(self.acquis_report),
-            "remuneration_report": n(self.remuneration_report),
-            "pris_sur_la_periode": n(self.pris_sur_la_periode),
-            "avertissements": self.avertissements.iter().map(|a| json!({ "texte": a.texte, "info": a.info })).collect::<Vec<_>>(),
-        })
-    }
-
-    /// Le compteur ecrit dans une paie validee (`en_json`). Refus : un champ qui manque ou ne se lit pas.
-    pub fn lire(v: &Value) -> Resultat<CompteurConges> {
-        let illisible = |k: &str| format!("compteur de conges illisible : `{}`", k);
-        let n = |k: &str| -> Resultat<Decimal> {
-            requis(v, k)?.as_str().and_then(|t| Decimal::from_str(t).ok()).ok_or_else(|| illisible(k))
-        };
-        let j = |k: &str| -> Resultat<Option<Jour>> { v.get(k).filter(|x| !x.is_null()).map(d).transpose() };
-        let avis = v.get("avertissements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]);
-        Ok(CompteurConges {
-            salarie: en_texte(requis(v, "salarie")?),
-            periode_debut: d(requis(v, "periode_debut")?)?,
-            periode_fin: d(requis(v, "periode_fin")?)?,
-            acquis: n("acquis")?,
-            pris: n("pris")?,
-            remuneration_periode: n("remuneration_periode")?,
-            reports: n("reports")?,
-            avertissements: avis
-                .iter()
-                .map(|a| Avis { info: a.get("info").is_some_and(vrai), texte: a.get("texte").map(en_texte).unwrap_or_default() })
-                .collect(),
-            report_debut: j("report_debut")?,
-            report_fin: j("report_fin")?,
-            acquis_report: n("acquis_report")?,
-            remuneration_report: n("remuneration_report")?,
-            pris_sur_la_periode: n("pris_sur_la_periode")?,
-        })
     }
 }
 
@@ -369,36 +330,15 @@ fn cle_du_memo(ctx: &Contexte, mois: &str, cle: &str) -> (String, String) {
 /// precedente (les premiers), le premier mois ou le salarie a la paie d'un contrat paye au mois, et la reprise de
 /// l'ancien logiciel telle que la fiche la portait. Le mois suivant le reprend et n'y ajoute que ce mois-ci (`suivant`) :
 /// il ne relit aucun mois d'avant.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Avant {
     pub compteur: CompteurConges,
     avis_du_report: usize,
+    #[serde(deserialize_with = "socle::forme::presente")]
     premier: Option<String>,
+    #[serde(deserialize_with = "socle::forme::presente")]
     reprise: Option<droit::fiche::CongesReprise>,
-}
-
-impl Avant {
-    /// L'etat tel qu'il s'ecrit dans la paie validee.
-    pub fn en_json(&self) -> Value {
-        json!({
-            "compteur": self.compteur.en_json(),
-            "avis_du_report": self.avis_du_report,
-            "premier": self.premier,
-            "reprise": self.reprise,
-        })
-    }
-
-    /// L'etat ecrit dans une paie validee (`en_json`). Refus : un champ qui manque ou ne se lit pas.
-    pub fn lire(v: &Value) -> Resultat<Avant> {
-        let compteur = CompteurConges::lire(requis(v, "compteur")?)?;
-        let avis_du_report = requis(v, "avis_du_report")?.as_u64().filter(|n| *n as usize <= compteur.avertissements.len()).ok_or_else(|| socle::echec::cle("Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.", "avis_du_report"))? as usize;
-        let premier = match requis(v, "premier")? {
-            Value::Null => None,
-            Value::String(m) => Some(m.clone()),
-            _ => return Err(socle::echec::cle("Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.", "premier")),
-        };
-        Ok(Avant { compteur, avis_du_report, premier, reprise: socle::forme::lire(requis(v, "reprise")?, "Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.")? })
-    }
 }
 
 /// La reprise des conges telle que la fiche du salarie la porte (`conges_reprise`), `None` sans elle : ce que l'etat
@@ -637,6 +577,9 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
     }
     let rep = reprise_conges(ctx, cle_salarie)?;
     let c = a.compteur;
+    if a.avis_du_report > c.avertissements.len() {
+        return Err(socle::echec::cle("Le compteur de congés du mois d'avant ne se relit pas : revalider l'engagement de ce mois.", "avis_du_report"));
+    }
     let (q_debut, q_fin) = (c.periode_debut, c.periode_fin);
     let mut tenue = Tenue { acquis: c.acquis, pris: c.pris, brut: c.remuneration_periode, avis: c.avertissements[a.avis_du_report..].to_vec() };
     tenue.ajouter(ctx, cle_salarie, &cle, rep.as_ref(), &q_debut, &q_fin, &precedent, &paies, true)?;

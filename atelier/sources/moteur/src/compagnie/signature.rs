@@ -29,7 +29,6 @@ use droit::contexte::Contexte;
 use envois::courriel::Courriel;
 use envois::envoi::{self, Message};
 use socle::echec::{erreur, R};
-use socle::fichiers::vrai;
 use socle::echec::Echec;
 use socle::fichiers::nom_du;
 use socle::html::{html_echapper, mailto};
@@ -502,8 +501,8 @@ pub(crate) fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client:
             let p = &ps[0];
             // Le contrat d'un spectacle se nomme par lui ; celui d'un permanent par sa nature (`contrat_ecrit.nom`).
             let nom_c = p.engagement.nat().map_err(Echec::from)?.nom_du_contrat();
-            let pour = if vrai(&p.spectacle) { format!(" pour {}", titres[0]) } else { String::new() };
-            sujet = if vrai(&p.spectacle) { sujet_de(&titres[0]) } else { format!("{} - {} {}", capitaliser(&nom_c), nom_mois, an) };
+            let pour = if p.spectacle.is_some() { format!(" pour {}", titres[0]) } else { String::new() };
+            sujet = if p.spectacle.is_some() { sujet_de(&titres[0]) } else { format!("{} - {} {}", capitaliser(&nom_c), nom_mois, an) };
             liste = format!("Tu trouveras ci-joint ton {}{}, {}.", nom_c, pour, periode_de(p));
             le_signer = "le signer";
             quoi = format!("le {} n° {}{}, {}", nom_c, numero_de(p), pour, periode_de(p));
@@ -792,7 +791,7 @@ impl ContratNomme {
         let spectacle = p.titre()?;
         Ok(ContratNomme {
             nom_du_contrat: p.engagement.nat().map_err(Echec::from)?.nom_du_contrat(),
-            pour: if vrai(&p.spectacle) { format!(" pour {}", spectacle) } else { String::new() },
+            pour: if p.spectacle.is_some() { format!(" pour {}", spectacle) } else { String::new() },
             periode: periode_de(p),
             spectacle,
         })

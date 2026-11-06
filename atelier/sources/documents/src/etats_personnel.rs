@@ -73,7 +73,7 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
                 nature: e.nat().map_err(|x| erreur("ErreurOperation", x))?.libelle.clone(),
                 emploi,
                 spectacle: titre_spectacle(paie),
-                objet: fiche_texte(&paie.spectacle, "numero_objet"),
+                objet: paie.spectacle.as_ref().and_then(|s| s.numero_objet.dite()).cloned().unwrap_or_default(),
                 debut: e.debut.iso(),
                 fin: match e.fin {
                     Some(f) => f.iso(),

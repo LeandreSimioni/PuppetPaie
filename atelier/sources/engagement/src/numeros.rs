@@ -13,12 +13,7 @@
 
 use std::collections::HashMap;
 
-
-use serde_json::Value;
-
 use droit::contexte::{Contexte, IdSalarie};
-use socle::date::en_texte;
-use socle::fichiers::vrai;
 use socle::num::Resultat;
 
 use crate::departs::Departs;
@@ -60,15 +55,6 @@ impl NumeroContrat {
             ));
         }
         Ok(NumeroContrat(texte.to_string()))
-    }
-
-    /// Le numero d'une valeur JSON (un engagement, une charge, une ligne du journal) : absent, nul ou vide, aucun ; une
-    /// autre forme que celle de la norme se refuse.
-    pub fn de_la_valeur(v: Option<&Value>) -> Resultat<Option<NumeroContrat>> {
-        match v.filter(|n| vrai(n)) {
-            None => Ok(None),
-            Some(n) => NumeroContrat::lire(&en_texte(n)).map(Some),
-        }
     }
 
     /// Le numero d'un texte dit : absent ou vide, aucun ; une autre forme que celle de la norme se refuse.
@@ -137,12 +123,6 @@ impl TryFrom<String> for NumeroContrat {
 impl From<NumeroContrat> for String {
     fn from(n: NumeroContrat) -> String {
         n.0
-    }
-}
-
-impl From<NumeroContrat> for Value {
-    fn from(n: NumeroContrat) -> Value {
-        Value::String(n.0)
     }
 }
 

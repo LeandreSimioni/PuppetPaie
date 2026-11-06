@@ -43,7 +43,7 @@ fn releve(e: &Engagement) -> Value {
         "lieu_de".into(),
         essai(Ok(json!(lieux.iter().map(|j| e.lieu_de(j)).collect::<Vec<_>>()))),
     );
-    json!({"canon": essai(e.canon()), "extras": extras})
+    json!({"canon": essai(e.canon().map(|c| socle::ecriture::en_valeur(&c))), "extras": extras})
 }
 
 #[test]

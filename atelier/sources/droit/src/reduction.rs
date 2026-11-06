@@ -35,21 +35,22 @@ fn diviser(a: Decimal, b: Decimal) -> Resultat<Decimal> {
 }
 
 /// La reduction generale appliquee : ce que la DSN declare. Elle s'ecrit chaque montant en texte (`nombre`).
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReductionGenerale {
-    #[serde(serialize_with = "en_nombre")]
+    #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub coefficient: Decimal,
-    #[serde(serialize_with = "en_nombre")]
+    #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub montant: Decimal,
-    #[serde(serialize_with = "en_nombre")]
+    #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub smic_reference: Decimal,
-    #[serde(serialize_with = "en_nombre")]
+    #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub heures: Decimal,
-    #[serde(serialize_with = "en_nombre")]
+    #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub urssaf: Decimal,
-    #[serde(serialize_with = "en_nombre")]
+    #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub chomage: Decimal,
-    #[serde(serialize_with = "en_nombre")]
+    #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub agirc_arrco: Decimal,
 }
 

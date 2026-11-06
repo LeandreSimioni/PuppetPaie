@@ -7,29 +7,27 @@
 use std::collections::BTreeSet;
 
 use rust_decimal::RoundingStrategy;
-use serde_json::Value;
 
 use crate::calcul::{LigneBrut, Paie};
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
-use socle::date::{en_texte, repr_texte, Jour};
+use socle::date::{repr_texte, Jour};
 use droit::emplois;
 use crate::{Avis, Engagement};
-use droit::minima::{ans_revolus, grille_au, iso, palier, plancher, plus_bas, signataire, table, CaseLue, Conditions, Convention, Grille, Minimum, Par, Plancher, SpectacleDuContrat, Table};
-use socle::fichiers::vrai;
+use droit::minima::{ans_revolus, grille_au, iso, palier, plancher, plus_bas, signataire, table, case_lue, CaseLue, Conditions, Convention, Grille, Minimum, Par, Plancher, SpectacleDuContrat, Table};
 use socle::texte::{euros, virgule};
 use socle::num::{add, dec_f64, div, mul, sub, Decimal, Resultat};
-
-static NUL: Value = Value::Null;
-
-/// Ce que l'IDCC d'un contrat lit du spectacle `sp` (`droit::minima::idcc_du_contrat`).
-pub fn spectacle_du_contrat(sp: &Value) -> SpectacleDuContrat<'_> {
-    SpectacleDuContrat { emission_tv_1734: vrai(g(sp, "emission_tv_1734")), titre: g(sp, "titre").as_str().filter(|t| !t.is_empty()).unwrap_or("") }
+/// Ce que l'IDCC d'un contrat lit du spectacle `sp` (`droit::minima::idcc_du_contrat`) ; un contrat paye au mois n'en a pas.
+pub fn spectacle_du_contrat(sp: Option<&droit::fiche::Spectacle>) -> SpectacleDuContrat<'_> {
+    SpectacleDuContrat {
+        emission_tv_1734: sp.is_some_and(|s| s.emission_tv_1734.dite() == Some(&true)),
+        titre: sp.and_then(|s| s.titre.dite()).map_or("", String::as_str),
+    }
 }
 
-/// Une case lue (du spectacle, d'une fiche) telle qu'une condition de grille la confronte.
-fn case_lue(v: &Value) -> CaseLue {
-    CaseLue { vraie: vrai(v), texte: if v.is_null() { String::new() } else { en_texte(v) } }
+/// La case `cle` du spectacle de la paie lue pour une condition (`droit::minima::case_lue`) : sans spectacle, rien.
+fn case_du_spectacle(sp: Option<&droit::fiche::Spectacle>, cle: &str) -> CaseLue {
+    sp.map(|s| case_lue(&s.champs, cle)).unwrap_or_default()
 }
 
 fn cachet(c: &str) -> bool {
@@ -47,24 +45,6 @@ fn mensuel(c: &str) -> bool {
 
 
 // ------------------------------------------------------------- les petits outils
-
-/// `x.get(k)` ; `Null` si absent. `Null.get(..)` reste vide : c'est le `or {}`.
-fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
-    v.get(k).unwrap_or(&NUL)
-}
-
-/// Une valeur en texte, vide si elle manque ou est vide.
-fn txt(v: &Value) -> String {
-    if vrai(v) {
-        en_texte(v)
-    } else {
-        String::new()
-    }
-}
-
-fn texte_de(v: &Value, k: &str) -> String {
-    txt(g(v, k))
-}
 
 /// Au centime, vers zéro.
 fn bas(x: Decimal) -> Decimal {
@@ -339,7 +319,7 @@ impl<'a> Cx<'a> {
         if presents.is_empty() {
             return Ok(None);
         }
-        let genre = texte_de(&self.paie.spectacle, "genre_audiovisuel");
+        let genre = case_du_spectacle(self.paie.spectacle.as_ref(), "genre_audiovisuel").texte;
         let (semaine, dit) = if let Some((_, s)) = presents.iter().find(|(g, _)| *g == genre) {
             (*s, format!("programme de {}", genre))
         } else {
@@ -373,7 +353,7 @@ impl<'a> Cx<'a> {
     fn plancher_3097(&self, ligne: &LigneBrut) -> Resultat<Option<Plancher>> {
         let c = self.t.convention("3097").ok_or_else(|| manque("3097"))?;
         let d = socle::num::dec_texte;
-        let spec = &self.paie.spectacle;
+        let spec = self.paie.spectacle.as_ref();
         let statut = self.statut();
         let c3097 = self.m.au_catalogue().and_then(|f| f.classification_3097.as_ref());
         let a_fonction = c3097.is_some_and(|c| !c.fonction.is_empty());
@@ -407,7 +387,7 @@ impl<'a> Cx<'a> {
                 }
             }
             let mut dit = format!("{} la semaine de 39 h (annexe I du titre II)", euros(semaine));
-            if vrai(g(spec, "derogation_annexe_iii_3097")) {
+            if case_du_spectacle(spec, "derogation_annexe_iii_3097").vraie {
                 let a = c.annexe_iii.as_ref().ok_or_else(|| manque("3097.annexe_iii"))?;
                 if semaine > a.socle {
                     semaine = add(a.socle, div(mul(sub(semaine, a.socle), a.part_au_dela), Decimal::ONE_HUNDRED));
@@ -421,7 +401,7 @@ impl<'a> Cx<'a> {
             let Some(reference) = self.ligne_de_minima("3097").filter(|r| !r.is_empty()) else {
                 return Ok(None);
             };
-            let fmt = texte_de(spec, "format_cinema");
+            let fmt = case_du_spectacle(spec, "format_cinema").texte;
             let (grille, quoi) = if reference == "acteur" {
                 let cl = if fmt == "long" { "long" } else { "court" };
                 let sous = if fmt == "long" || fmt == "court" {
@@ -467,24 +447,23 @@ impl<'a> Cx<'a> {
             }
         }
         // Les conditions nomment les cases du spectacle, de la fiche entreprise et de celle du salarie.
-        let fiche = |v: Option<Result<Value, serde_json::Error>>| case_lue(&v.and_then(Result::ok).unwrap_or(Value::Null));
         for (cl, attendu) in c.si_spectacle {
-            if !attendu.vaut(&case_lue(g(&self.paie.spectacle, cl))) {
+            if !attendu.vaut(&case_du_spectacle(self.paie.spectacle.as_ref(), cl)) {
                 return Ok(false);
             }
         }
         for (cl, attendu) in c.si_entreprise {
-            if !attendu.vaut(&fiche(droit::fiche::case_en(self.ent, cl, serde_json::value::Serializer))) {
+            if !attendu.vaut(&case_lue(self.ent, cl)) {
                 return Ok(false);
             }
         }
         for (cl, attendu) in c.si_salarie {
-            if !attendu.vaut(&fiche(droit::fiche::case_en(&self.fiche.champs, cl, serde_json::value::Serializer))) {
+            if !attendu.vaut(&case_lue(&self.fiche.champs, cl)) {
                 return Ok(false);
             }
         }
         if let Some(a) = c.anciennete {
-            let depuis = fiche(droit::fiche::case_en(&self.fiche.champs, &a.champ, serde_json::value::Serializer)).texte;
+            let depuis = case_lue(&self.fiche.champs, &a.champ).texte;
             match ans_revolus(&depuis, jour_de_paie(self.paie).as_deref()) {
                 Some(n) if n >= a.ans => {}
                 _ => return Ok(false),
@@ -854,7 +833,7 @@ fn a_verifier(t: &Table, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = droit::minima::idcc_du_contrat(ent.idcc.texte(), &spectacle_du_contrat(&paie.spectacle), &paie.salarie)?;
+    let idcc = droit::minima::idcc_du_contrat(ent.idcc.texte(), &spectacle_du_contrat(paie.spectacle.as_ref()), &paie.salarie)?;
     let tab = table()?;
     let t: &Table = &tab;
     if t.convention(&idcc).is_none() {

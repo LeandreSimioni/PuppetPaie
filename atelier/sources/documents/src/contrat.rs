@@ -43,7 +43,8 @@ pub fn enveloppe(style: &str, ent: &EntrepriseDuDocument) -> Map<String, Value> 
 pub fn valeurs_de_paie(ctx: &Contexte, ent: &EntrepriseDuDocument, p: &Paie) -> R<Valeurs> {
     socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
     let r = (|| -> R<Valeurs> {
-        let canon = p.canon(ctx)?;
+        // Ecrite ici, sous `ECHELLE_GARDEE` : ses montants gardent leur echelle.
+        let canon = socle::ecriture::en_valeur(&p.canon(ctx)?);
         Ok(valeurs_de_la_paie(ctx, ent, &canon, None)?)
     })();
     socle::num::ECHELLE_GARDEE.with(|f| f.set(false));

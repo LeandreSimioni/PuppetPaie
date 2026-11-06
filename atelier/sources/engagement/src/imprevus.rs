@@ -395,10 +395,20 @@ pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<MotifDeSu
 
 // ------------------------------------------------------------ le bloc 65 d'une paie
 
+/// UNE SUSPENSION DU CONTRAT QUE LA DSN DECLARE (bloc S21.G00.65) : son motif et ses deux dates entieres. L'engagement
+/// la porte (`Engagement::suspensions`), sa forme ecrite aussi.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Suspension {
+    pub motif: String,
+    pub debut: Jour,
+    pub fin: Jour,
+}
+
 /// Les blocs S21.G00.65 d'une paie : chaque suspension du magasin qui suspend CE contrat et croise le mois que la DSN
 /// declare, avec son motif et ses DEUX dates entieres (65.002 et 65.003) -- la meme dans chaque mois qu'elle traverse,
 /// sans recopie (cahier technique DSN 2026.1, bloc S21.G00.65 p. 281, `atelier/reference/norme-dsn/texte/bloc-S21.G00.65.txt`).
-pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &str) -> Resultat<Vec<Value>> {
+pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &str) -> Resultat<Vec<Suspension>> {
     let cle = paie.salarie.id.to_string();
     let e = &paie.engagement;
     let qui = ctx.nomme(&cle);
@@ -424,7 +434,7 @@ pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &st
                 debut.jj_mm_aaaa()
             ));
         }
-        out.push(json!({"motif": code, "debut": debut.iso(), "fin": fin.iso()}));
+        out.push(Suspension { motif: code, debut, fin });
     }
     Ok(out)
 }

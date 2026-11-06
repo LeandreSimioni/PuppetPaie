@@ -595,8 +595,8 @@ impl Importe {
         let objet = p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone())).unwrap_or_default().to_uppercase();
         let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.numero_objet.portee().map(str::to_uppercase) == Some(objet.clone())).map(|(k, _)| k.clone());
         let spec = match &spectacle {
-            Some(k) => crate::calcul::spectacle_de_la_paie(&ctx.spectacle(k)?),
-            None => Value::Null,
+            Some(k) => Some(ctx.spectacle(k)?),
+            None => None,
         };
         let imprime = p.emploi_imprime.clone().unwrap_or_default();
         let debut = match Jour::lire(&Carte::texte(&self.carte().debut)) {

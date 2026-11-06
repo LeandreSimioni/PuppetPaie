@@ -51,11 +51,12 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use crate::calcul::Paie;
 use crate::departs::{Depart, Departs, Envoi};
-use crate::paie_ecrite::{PaieEcrite, Recalcul};
+use crate::paie_ecrite::{FormeDePaie, PaieEcrite, Recalcul};
+use crate::Avis;
 use crate::saisie::{Carte, Champ};
 use crate::stock::{self, Objet};
 use crate::{empreinte, relire};
@@ -527,9 +528,9 @@ pub fn empreinte_des_paies_validees(ctx: &Contexte, mois: &str, salarie: Option<
 
 /// Ce qu'un calcul lit d'une paie validee d'un autre mois : la paie, et le compteur de conges avant son mois.
 fn empreinte_des_paies(valides: &[(usize, Valide)], mois: &str) -> String {
-    let lu = |p: &PaieEcrite| Value::Array(vec![p.paie.clone(), p.conges_avant.as_ref().map_or(Value::Null, crate::conges::Avant::en_json)]);
-    let paies: Vec<Value> = valides.iter().map(|(_, v)| v.paie_ecrite(mois).map(|p| lu(&p)).unwrap_or(Value::Null)).collect();
-    socle::fichiers::sha256_hex(Value::Array(paies).to_string().as_bytes())
+    let paies: Vec<Option<Arc<PaieEcrite>>> = valides.iter().map(|(_, v)| v.paie_ecrite(mois)).collect();
+    let lues: Vec<Option<(&FormeDePaie<Avis>, &Option<crate::conges::Avant>)>> = paies.iter().map(|p| p.as_ref().map(|p| (&p.paie, &p.conges_avant))).collect();
+    socle::fichiers::sha256_hex(socle::ecriture::json_en_ligne(&lues).as_bytes())
 }
 
 thread_local! {
@@ -861,17 +862,12 @@ fn chiffres_egaux(a: &PaieEcrite, b: &PaieEcrite) -> bool {
     egales_sans_avis(&a.paie, &b.paie) && a.pas == b.pas && a.conges_sans_avis() == b.conges_sans_avis()
 }
 
-/// Deux valeurs egales hors de leurs `avertissements`, a toute profondeur.
-fn egales_sans_avis(a: &Value, b: &Value) -> bool {
-    const AVIS: &str = "avertissements";
-    match (a, b) {
-        (Value::Object(x), Value::Object(y)) => {
-            let cles = |m: &Map<String, Value>| m.keys().filter(|k| *k != AVIS).count();
-            cles(x) == cles(y) && x.iter().filter(|(k, _)| *k != AVIS).all(|(k, v)| y.get(k).is_some_and(|w| egales_sans_avis(v, w)))
-        }
-        (Value::Array(x), Value::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(v, w)| egales_sans_avis(v, w)),
-        _ => a == b,
+/// Deux paies egales hors de leurs avertissements, ceux de leurs periodes compris.
+fn egales_sans_avis(a: &FormeDePaie<Avis>, b: &FormeDePaie<Avis>) -> bool {
+    fn sans_avis(p: &FormeDePaie<Avis>) -> FormeDePaie<Avis> {
+        FormeDePaie { avertissements: Vec::new(), periodes: p.periodes.iter().map(sans_avis).collect(), ..p.clone() }
     }
+    sans_avis(a) == sans_avis(b)
 }
 
 /// Pourquoi la paie a change de `avant` a `apres` : son prelevement seul, une regle datee nouvelle, la saisie d'un autre

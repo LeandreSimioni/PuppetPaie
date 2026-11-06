@@ -818,14 +818,14 @@ fn numero_en_nom(n: &str) -> String {
 /// annexes VIII et X) ; tout ce qui manque, d'un coup, avant que rien ne s'ecrive.
 fn exiges_des_bulletins<'a>(ent: &droit::fiche::ChampsEntreprise, paies: impl Iterator<Item = &'a Paie>) -> R<()> {
     let mut fiches: Vec<(&str, String, &dyn declarations::champs::ParCase)> = vec![("entreprise", "la fiche entreprise".to_string(), ent)];
-    let mut spectacles: Vec<&Value> = Vec::new();
+    let mut spectacles: Vec<&str> = Vec::new();
     for p in paies {
-        if !p.engagement.nat().map_err(valeur)?.ecrit("S21.G00.40.050") || spectacles.contains(&&p.spectacle) {
+        let Some(sp) = p.spectacle.as_ref() else { continue };
+        if !p.engagement.nat().map_err(valeur)?.ecrit("S21.G00.40.050") || spectacles.contains(&sp.cle.as_str()) {
             continue;
         }
-        spectacles.push(&p.spectacle);
-        let titre = p.spectacle.get("titre").filter(|t| vrai(t)).map(valeur_en_texte).unwrap_or_default();
-        fiches.push(("spectacle", format!("Spectacles, la fiche de {}", titre), &p.spectacle));
+        spectacles.push(&sp.cle);
+        fiches.push(("spectacle", format!("Spectacles, la fiche de {}", sp.titre.texte()), &sp.champs));
     }
     match declarations::champs::refus_des_manques("bulletin", &fiches, &[])? {
         Some(m) => Err(erreur("ErreurOperation", m)),

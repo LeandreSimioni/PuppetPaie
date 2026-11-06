@@ -6,10 +6,24 @@ use crate::outils::{dec, dossier_de_test, lire_oracle, oracle, sceller};
 use droit::catalogue::rubrique;
 use droit::catalogue::code_54;
 use droit::reduction::{au_dela_du_seuil, reduction_generale};
-use engagement::canon_valeur;
 use serde_json::{json, Value};
 
 const ORACLE: &str = "calcul-pieces.json";
+
+/// La forme canonique d'un resultat : ses nombres en texte normalise, ses cles en `_` retirees (sauf `_cle`).
+fn canon_valeur(v: &Value) -> Result<Value, String> {
+    Ok(match v {
+        Value::Number(_) => Value::String(socle::num::nombre(socle::num::dec(v)?)),
+        Value::Array(a) => Value::Array(a.iter().map(canon_valeur).collect::<Result<_, _>>()?),
+        Value::Object(o) => Value::Object(
+            o.iter()
+                .filter(|(k, _)| !k.starts_with('_') || *k == "_cle")
+                .map(|(k, x)| canon_valeur(x).map(|c| (k.clone(), c)))
+                .collect::<Result<serde_json::Map<_, _>, String>>()?,
+        ),
+        autre => autre.clone(),
+    })
+}
 
 /// La section `reduction_generale` d'un bareme de la grille, lue comme la pile la lit.
 fn section(bar: &Value) -> Result<Option<droit::forme_bareme::ReductionGenerale>, String> {

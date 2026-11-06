@@ -42,7 +42,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
@@ -52,7 +52,7 @@ use socle::date::{en_texte, Jour};
 use socle::mois::Mois;
 use droit::emplois;
 
-use socle::num::{dec, dec_f64, nombre, Decimal, Resultat};
+use socle::num::{dec_f64, Decimal, Resultat};
 
 #[derive(Debug, Clone)]
 pub struct Engagement {
@@ -114,7 +114,7 @@ pub struct Engagement {
     /// la nouvelle valeur.
     pub date_modification: Option<String>,
     pub transaction: Option<String>,
-    pub suspensions: Vec<Value>,
+    pub suspensions: Vec<imprevus::Suspension>,
     /// Les termes du contrat AVANT l'avenant que `date_modification` date en cours de mois (`salaire_mensuel`,
     /// `quotite_contrat`), quand la saisie les dit : la paie du mois se decoupe alors au jour de l'avenant
     /// (`periodes::bornes`). Comme `date_modification`, il ne se recopie pas d'un mois a l'autre.
@@ -751,102 +751,74 @@ impl Engagement {
     // -------------------------------------------------------- forme canonique
 
     /// La forme canonique d'un engagement : une ecriture stable, pour les empreintes et les oracles.
-    pub fn canon(&self) -> Resultat<Value> {
-        let iso = |j: &Jour| Value::String(j.iso());
-        let jours = |v: &[Jour]| Value::Array(v.iter().map(iso).collect());
-        let lieux = |m: &BTreeMap<Jour, String>| {
-            Value::Object(m.iter().map(|(j, l)| (j.iso(), Value::String(l.clone()))).collect::<Map<_, _>>())
-        };
-        let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
-        let nombre_f = |x: f64| dec_f64(x).map(|v| Value::String(nombre(v)));
-        let optionnel = |o: Option<f64>| o.map_or(Ok(Value::Null), nombre_f);
-        let entier = |n: i64| Value::String(n.to_string());
-        let mut m = Map::new();
-        m.insert("salarie".into(), Value::String(self.salarie.clone()));
-        m.insert("spectacle".into(), texte(&self.spectacle));
-        m.insert("dates_travail".into(), jours(&self.dates_travail));
-        m.insert("lignes".into(), socle::ecriture::en_valeur(&self.lignes.iter().map(LignePaie::canon).collect::<Resultat<Vec<_>>>()?));
-        m.insert("debut".into(), iso(&self.debut));
-        m.insert("fin".into(), self.fin.as_ref().map_or(Value::Null, iso));
-        m.insert("numero".into(), self.numero.clone().map_or(Value::Null, Value::from));
-        m.insert("mois".into(), Value::String(self.mois.clone()));
-        m.insert("planning".into(), jours(&self.planning));
-        m.insert("planning_lieux".into(), lieux(&self.planning_lieux));
-        m.insert("jours".into(), entier(self.jours));
-        m.insert("jours_contrat".into(), entier(self.jours_contrat));
-        m.insert("date_paiement".into(), texte(&self.date_paiement));
-        m.insert("taux_cachet".into(), optionnel(self.taux_cachet)?);
-        m.insert("cachets".into(), entier(self.cachets));
-        m.insert("heures".into(), optionnel(self.heures)?);
-        m.insert("lieu".into(), Value::String(self.lieu.clone()));
-        m.insert("lieux".into(), lieux(&self.lieux));
-        m.insert("emploi".into(), texte(&self.emploi));
-        // Ecrit seulement quand il est dit.
-        if let Some(a) = &self.emploi_affichage {
-            m.insert("emploi_affichage".into(), Value::String(a.clone()));
-        }
-        m.insert("pcs_ese".into(), texte(&self.pcs_ese));
-        m.insert("code_emploi_ft".into(), texte(&self.code_emploi_ft));
-        m.insert("statut".into(), texte(&self.statut));
-        m.insert("statut_conventionnel".into(), texte(&self.statut_conventionnel));
-        m.insert("statut_categoriel_rc".into(), texte(&self.statut_categoriel_rc));
-        // Ecrit seulement quand il est dit.
-        if let Some(n) = &self.etablissement {
-            m.insert("etablissement".into(), Value::String(n.clone()));
-        }
-        m.insert("nature".into(), Value::String(self.nat()?.cle.clone()));
-        m.insert("quotite_contrat".into(), optionnel(self.quotite_contrat)?);
-        m.insert("quotite_reference_saisie".into(), optionnel(self.quotite_reference_saisie)?);
-        m.insert("modalite_temps_travail_saisie".into(), texte(&self.modalite_temps_travail_saisie));
-        m.insert("motif_recours".into(), texte(&self.motif_recours));
-        m.insert("motif_rupture".into(), texte(&self.motif_rupture));
-        m.insert("notification_rupture".into(), texte(&self.notification_rupture));
-        m.insert("preavis".into(), socle::ecriture::en_valeur(&self.preavis));
-        m.insert("transaction".into(), texte(&self.transaction));
-        m.insert("suspensions".into(), canon_valeur(&Value::Array(self.suspensions.clone()))?);
-        // Ecrit seulement quand la saisie le dit.
-        if !self.ecrit.est_vide() {
-            let ecrit = ContratEcrit { periode_essai_jours: self.ecrit.periode_essai_jours.as_ref().map(Chiffre::canon).transpose()?, ..self.ecrit.clone() };
-            m.insert("contrat_ecrit".into(), socle::ecriture::en_valeur(&ecrit));
-        }
-        // Ce qui se deduit de l'engagement : sa periode, sa quotite, ses mois.
-        m.insert("debut_periode".into(), iso(&self.debut_periode()?));
-        m.insert("fin_periode".into(), iso(&self.fin_periode()?));
-        m.insert("quotite".into(), Value::String(nombre(self.quotite()?)));
-        m.insert("sans_paie".into(), Value::Bool(self.sans_paie()));
-        m.insert("premier_mois".into(), Value::Bool(self.premier_mois()?));
-        m.insert("dernier_mois".into(), Value::Bool(self.dernier_mois()?));
-        m.insert(
-            "mois_du_contrat".into(),
-            Value::Array(self.mois_du_contrat()?.into_iter().map(Value::String).collect()),
-        );
-        Ok(Value::Object(m))
+    pub fn canon(&self) -> Resultat<paie_ecrite::FormeDEngagement> {
+        let nombre_f = |x: Option<f64>| x.map(dec_f64).transpose();
+        Ok(paie_ecrite::FormeDEngagement {
+            salarie: self.salarie.clone(),
+            spectacle: self.spectacle.clone(),
+            dates_travail: self.dates_travail.clone(),
+            lignes: self.lignes.iter().map(LignePaie::canon).collect::<Resultat<Vec<_>>>()?,
+            debut: self.debut,
+            fin: self.fin,
+            numero: self.numero.clone(),
+            mois: self.mois.clone(),
+            planning: self.planning.clone(),
+            planning_lieux: self.planning_lieux.clone(),
+            jours: self.jours,
+            jours_contrat: self.jours_contrat,
+            date_paiement: self.date_paiement.clone(),
+            taux_cachet: nombre_f(self.taux_cachet)?,
+            cachets: self.cachets,
+            heures: nombre_f(self.heures)?,
+            lieu: self.lieu.clone(),
+            lieux: self.lieux.clone(),
+            emploi: self.emploi.clone(),
+            // Ecrit seulement quand il est dit.
+            emploi_affichage: self.emploi_affichage.clone(),
+            pcs_ese: self.pcs_ese.clone(),
+            code_emploi_ft: self.code_emploi_ft.clone(),
+            statut: self.statut.clone(),
+            statut_conventionnel: self.statut_conventionnel.clone(),
+            statut_categoriel_rc: self.statut_categoriel_rc.clone(),
+            // Ecrit seulement quand il est dit.
+            etablissement: self.etablissement.clone(),
+            nature: self.nat()?.cle.clone(),
+            quotite_contrat: nombre_f(self.quotite_contrat)?,
+            quotite_reference_saisie: nombre_f(self.quotite_reference_saisie)?,
+            modalite_temps_travail_saisie: self.modalite_temps_travail_saisie.clone(),
+            motif_recours: self.motif_recours.clone(),
+            motif_rupture: self.motif_rupture.clone(),
+            notification_rupture: self.notification_rupture.clone(),
+            preavis: self.preavis.clone(),
+            transaction: self.transaction.clone(),
+            suspensions: self.suspensions.clone(),
+            // Ecrit seulement quand la saisie le dit.
+            contrat_ecrit: if self.ecrit.est_vide() {
+                None
+            } else {
+                Some(ContratEcrit { periode_essai_jours: self.ecrit.periode_essai_jours.as_ref().map(Chiffre::canon).transpose()?, ..self.ecrit.clone() })
+            },
+            // Ce qui se deduit de l'engagement : sa periode, sa quotite, ses mois.
+            debut_periode: self.debut_periode()?,
+            fin_periode: self.fin_periode()?,
+            quotite: self.quotite()?,
+            sans_paie: self.sans_paie(),
+            premier_mois: self.premier_mois()?,
+            dernier_mois: self.dernier_mois()?,
+            mois_du_contrat: self.mois_du_contrat()?,
+        })
     }
-}
-
-/// La forme canonique d'une valeur JSON : nombres en chaines normalisees, cles
-/// en `_` retirees (sauf `_cle`).
-pub fn canon_valeur(v: &Value) -> Resultat<Value> {
-    Ok(match v {
-        Value::Number(_) => Value::String(nombre(dec(v)?)),
-        Value::Array(a) => Value::Array(a.iter().map(canon_valeur).collect::<Resultat<_>>()?),
-        Value::Object(o) => Value::Object(
-            o.iter()
-                .filter(|(k, _)| !k.starts_with('_') || *k == "_cle")
-                .map(|(k, x)| canon_valeur(x).map(|c| (k.clone(), c)))
-                .collect::<Resultat<Map<_, _>>>()?,
-        ),
-        autre => autre.clone(),
-    })
 }
 
 // ------------------------------------------------------- depuis un fichier
 
-/// Un avertissement pose sur la paie ; `info` : renseigne sans rien demander.
-#[derive(Debug, Clone, PartialEq)]
+/// Un avertissement pose sur la paie ; `info` : renseigne sans rien demander. Il s'ecrit `{texte, info}` dans la paie
+/// ecrite et son compteur de conges.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Avis {
-    pub info: bool,
     pub texte: String,
+    pub info: bool,
 }
 
 /// UNE LIGNE DE FRAIS NE FAIT PAS LES JOURS DE L'ENGAGEMENT : sa rubrique est de nature `frais` au catalogue de la
@@ -2096,9 +2068,9 @@ pub fn embauche(ctx: &Contexte, eng: &Engagement) -> Resultat<calcul::Paie> {
     let nat = eng.nat()?;
     let sal = calcul::fiche_de_l_engagement(ctx, eng)?;
     let spec = if nat.mensuelle() {
-        Value::Null
+        None
     } else {
-        crate::calcul::spectacle_de_la_paie(&ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
+        Some(ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
     };
     let zero = Decimal::new(0, 2);
     let tp = calcul::plafond_temps_partiel(&ctx.entreprise, eng, &sal)?;

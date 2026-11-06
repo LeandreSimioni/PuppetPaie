@@ -73,14 +73,6 @@ pub(crate) fn requis<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
     v.get(cle).ok_or_else(|| format!("le modele n'a pas de valeur {}", cle))
 }
 
-/// Une valeur posee telle quelle dans les marqueurs : un texte, ou de quoi refuser si le modele s'en sert.
-pub(crate) fn texte_ou_invalide(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        _ => INVALIDE.to_string(),
-    }
-}
-
 /// Une case texte de la fiche du salarie, que le modele exige : absente, elle se refuse ; nulle, elle ne se lit pas.
 fn case<T: AsRef<str>>(c: &droit::fiche::Case<T>, cle: &str) -> Resultat<String> {
     match c {
@@ -320,9 +312,9 @@ fn lieu_du_contrat(e: &Eng) -> String {
 
 /// Les valeurs offertes au modele. `remuneration`, `brut` et `net` sont ceux
 /// de la paie calculee ; `fiche` celle du salarie telle qu'elle vaut pour cet engagement.
-fn marqueurs(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
+fn marqueurs(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: &droit::fiche::Spectacle, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
     let licence = ent.licence_spectacle.ecrite("licence_spectacle")?.to_string();
-    let mut m = parties(ent, fiche, sp, e)?;
+    let mut m = parties(ent, fiche, Some(sp), e)?;
     let mut poser = |k: Marqueur, v: String| {
         m.insert(k, v);
     };
@@ -345,22 +337,22 @@ fn marqueurs(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: &V
     }
     poser(Marqueur::RemunerationBrut, fmt_eur(dec(brut)?));
     poser(Marqueur::RemunerationNetEstime, fmt_eur(dec(net)?));
-    poser(Marqueur::SpectacleTitre, texte_ou_invalide(requis(sp, "titre")?));
+    poser(Marqueur::SpectacleTitre, case(&sp.titre, "titre")?);
     // LE NUMERO D'OBJET se reporte sur le contrat « a chaque fois que cela est possible » (annexes VIII et X, art. 47 § 3 :
     // atelier/reference/sources/plafond-intermittents/unedic-annexe8-convention-20241115.txt l. 1183-1184, et l'annexe X,
     // l. 1161-1162) : un spectacle qui n'en a pas encore fait son contrat, qui n'en dit rien. Le bulletin, lui, l'exige
     // (`exige_par` de `champs-base.json`).
-    let objet = sp.get("numero_objet").and_then(Value::as_str).map(str::trim).filter(|n| !n.is_empty());
+    let objet = sp.numero_objet.dite().map(|n| n.trim()).filter(|n| !n.is_empty());
     poser(Marqueur::SpectacleObjet, objet.map(|n| format!(" (numéro d'objet France Travail {})", n)).unwrap_or_default());
     Ok(m)
 }
 
 /// Les parties au contrat, quelle que soit sa nature : l'employeur, sa convention et son signataire, le salarie, le
-/// numero et le premier jour du contrat. `sp` : le spectacle (`Null` pour un contrat qui n'en a pas). La convention se
+/// numero et le premier jour du contrat. `sp` : le spectacle (`None` pour un contrat qui n'en a pas). La convention se
 /// nomme comme le bareme du mois de la paie qui ecrit le document la nomme (`bareme::libelle_convention`) : le premier
 /// mois d'un contrat pour le contrat, le mois de l'avenant pour un avenant -- un contrat commence avant le logiciel n'a
 /// pas de bareme de son annee.
-pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: &Value, e: &Eng) -> Resultat<Valeurs> {
+pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalarie, sp: Option<&droit::fiche::Spectacle>, e: &Eng) -> Resultat<Valeurs> {
     let (idcc, convention) = convention_du_contrat(ent, sp, fiche, &Mois::lire(&e.mois)?.premier_jour())?;
     let sig = ent.signataire.exigee("signataire")?;
     let mut m = Valeurs::new();
@@ -503,10 +495,10 @@ pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &ChampsEntreprise, paie: &Value, 
     let mut m = match nom_spectacle {
         Some(s) => {
             let sp = ctx.spectacle(s)?;
-            marqueurs(ent, &lue, &engagement::calcul::spectacle_de_la_paie(&sp), &e, remuneration, brut, net)?
+            marqueurs(ent, &lue, &sp, &e, remuneration, brut, net)?
         }
         None => {
-            let mut m = parties(ent, &lue, &nul, &e)?;
+            let mut m = parties(ent, &lue, None, &e)?;
             crate::contrat_ecrit::marqueurs_au_mois(eng, &nat, remuneration, brut, net, &mut m)?;
             m
         }

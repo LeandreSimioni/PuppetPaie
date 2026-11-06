@@ -1737,7 +1737,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     } else {
         f.add_opt("S21.G00.40.016", nat.code("S21.G00.40.016"))?;
     }
-    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(ent.idcc.texte(), &engagement::minima::spectacle_du_contrat(&p.spectacle), &p.salarie)?);
+    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(ent.idcc.texte(), &engagement::minima::spectacle_du_contrat(p.spectacle.as_ref()), &p.salarie)?);
     f.add_opt("S21.G00.40.018", nat.code("S21.G00.40.018"))?;
     f.add_case("S21.G00.40.019", &ent.siret, "siret")?;
     f.add_opt("S21.G00.40.020", nat.code("S21.G00.40.020"))?;
@@ -1780,7 +1780,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     // l. 270), seulement AUTORISEE pour les natures 02 et 10 (CCH-11, `texte/bloc-S21.G00.40.txt` l. 1379-1388) ; une
     // rubrique conditionnelle qu'on n'a pas s'omet, elle ne s'ecrit pas a blanc (`texte/chapitre-3-structuration.txt`
     // l. 257-259). Utile, jamais exige : « Pour demarrer » le propose (`sinon` de `champs-base.json`).
-    let objet = txt(g(&p.spectacle, "numero_objet"));
+    let objet = p.spectacle.as_ref().and_then(|s| s.numero_objet.dite()).cloned().unwrap_or_default();
     if nat.ecrit("S21.G00.40.050") && !objet.trim().is_empty() && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
         f.add("S21.G00.40.050", objet.trim());
     }
@@ -1812,9 +1812,9 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     }
     for s in &e.suspensions {
         suspension_sans_maintien(f, p, s)?;
-        f.add_v("S21.G00.65.001", req(s, "motif")?)?;
-        f.add("S21.G00.65.002", jj(req(s, "debut")?)?);
-        f.add("S21.G00.65.003", jj(req(s, "fin")?)?);
+        f.add("S21.G00.65.001", s.motif.clone());
+        f.add("S21.G00.65.002", s.debut.jjmmaaaa());
+        f.add("S21.G00.65.003", s.fin.jjmmaaaa());
     }
     let places = places_par_contrat(bar);
     let refs = affiliations(orgs, &nat, &bar.contributions_du_mois, (e.debut_periode()?, e.fin_periode()?))?;
@@ -1842,9 +1842,9 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
 /// `permanents-base.json` dit remunere (637, conge pour evenement familial : C. trav. L. 3142-2) ne retire rien du salaire,
 /// et la norme 2027 en fait une suspension qui ne se declare pas : refus, plutot que de taire un imprevu saisi. Ni le bloc 75
 /// (liste p. 297) ni un autre ne recoit un conge paye : il est dans la remuneration du mois.
-fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &Value) -> Resultat<()> {
+fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &engagement::imprevus::Suspension) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("bloc_65_sans_maintien_de_remuneration")? else { return Ok(()) };
-    let motif = txt(req(s, "motif")?);
+    let motif = s.motif.clone();
     let Some(m) = droit::permanents::motif_de_suspension(&motif)?.filter(|m| m.remunere) else { return Ok(()) };
     Err(format!(
         "{} : suspension au motif {} ({}), du {} au {}, saisie comme imprevu. Ce motif est un conge remunere \
@@ -1855,8 +1855,8 @@ Rien n'est ecrit.",
         qui_contrat(p),
         motif,
         m.libelle,
-        txt(g(s, "debut")),
-        txt(g(s, "fin")),
+        s.debut.iso(),
+        s.fin.iso(),
         m.texte(),
         f.norme()?.version,
         texte

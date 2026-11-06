@@ -112,11 +112,6 @@ fn zone_employeur(nom: &str) -> (usize, usize) {
 
 // ------------------------------------------------------------- les textes
 
-/// `s[cle]` : une cle absente s'ecrit `'cle'`.
-fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
-    s.get(k).ok_or_else(|| socle::fichiers::absent(k))
-}
-
 /// Complete a droite avec des espaces, ne tronque pas.
 fn ljust(s: &str, n: usize) -> String {
     let mut o = s.to_string();
@@ -325,7 +320,7 @@ pub struct Embauche {
     pub fin: Value,
     /// La cle de nature ; `None` : la nature par defaut.
     pub nature: Option<String>,
-    pub spectacle: Value,
+    pub spectacle: Option<droit::fiche::Spectacle>,
 }
 
 /// Les parametres communs d'une ecriture.
@@ -657,8 +652,8 @@ pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat
         } else {
             ", sans terme".to_string()
         };
-        let ou = if vrai(&e.spectacle) {
-            format!(" - {}", en_texte(cle(&e.spectacle, "titre")?))
+        let ou = if let Some(sp) = &e.spectacle {
+            format!(" - {}", sp.titre.ecrite("titre")?)
         } else {
             String::new()
         };
@@ -898,7 +893,7 @@ mod tests {
             debut: json!("2026-10-01"),
             fin,
             nature: Some(nature.to_string()),
-            spectacle: Value::Null,
+            spectacle: None,
         }
     }
 

@@ -27,7 +27,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::routes::fiches::{maintenant, refus};
-use crate::routes::rappels::texte;
 use crate::routes::{en_json, lire_charge};
 use crate::routes::etapes::ChargeMois;
 use engagement::calcul::Paie;
@@ -40,10 +39,9 @@ use droit::emplois;
 use engagement::{self, Chiffre, LignePaie};
 use socle::date::{en_texte, Jour};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::repr;
 use socle::mois::Mois;
 use socle::num::Decimal;
-use socle::valeur::valeur_en_texte;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION};
 use crate::routes::catalogue::Route;
@@ -485,8 +483,8 @@ fn resoudre_noms(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
         let mut resolu = e.clone();
         resolu.salarie = Some(p.salarie.id.to_string());
         // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit.
-        if vrai(&p.spectacle) {
-            resolu.spectacle = Some(p.spectacle.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
+        if let Some(sp) = &p.spectacle {
+            resolu.spectacle = Some(sp.cle.clone());
         }
         // Les lignes d'un permanent sont CALCULEES, pas saisies.
         if !p.engagement.nat()?.mensuelle() {
@@ -1587,12 +1585,13 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &SaisieCarte, data: &VueD
         nom: exige(&s.nom.en_texte(), "nom")?,
         prenom: if s.prenom_affichage.texte().is_empty() { exige(&s.prenom.en_texte(), "prenom")? } else { s.prenom_affichage.clone() },
     };
-    let spectacle = match vrai(&p.spectacle) {
-        true => Some(SpectacleVu {
-            titre: p.spectacle.get("titre").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?,
-            numero_objet: p.spectacle.get("numero_objet").cloned().unwrap_or(Value::Null),
+    let spectacle = match &p.spectacle {
+        Some(s) if s.titre.est_absente() => return Err(erreur("KeyError", socle::fichiers::absent("titre"))),
+        Some(s) => Some(SpectacleVu {
+            titre: socle::ecriture::en_valeur(&s.titre),
+            numero_objet: if s.numero_objet.est_absente() { Value::Null } else { socle::ecriture::en_valeur(&s.numero_objet) },
         }),
-        false => None,
+        None => None,
     };
     let mois_du_contrat = e.mois_du_contrat()?;
     // Le taux du cachet, tel que le contrat l'imprime : celui de la premiere ligne a l'unite « cachet » ; sans cachet, la
@@ -1760,13 +1759,15 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
             ));
         }
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
-        // (CCH-11) -- donc rien a verifier de ce cote. TRAVAIL A FAIRE : la fiche d'un spectacle se lit par ses cles.
-        if vrai(&p.spectacle) && p.spectacle.get("actif") == Some(&Value::Bool(false)) {
-            let titre = p.spectacle.get("titre").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
+        // (CCH-11) -- donc rien a verifier de ce cote.
+        if let Some(sp) = p.spectacle.as_ref().filter(|s| s.actif.dite() == Some(&false)) {
+            if sp.titre.est_absente() {
+                return Err(erreur("KeyError", socle::fichiers::absent("titre")));
+            }
             out.push(format!(
                 "Le spectacle « {} » (objet {}) est archive : pour le jouer a nouveau, le reactiver (Configuration › Spectacles).",
-                en_texte(titre),
-                texte(p.spectacle.get("numero_objet"))
+                sp.titre.texte(),
+                sp.numero_objet.texte()
             ));
         }
     }

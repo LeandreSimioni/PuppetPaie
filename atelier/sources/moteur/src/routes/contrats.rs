@@ -1199,7 +1199,7 @@ fn avenant_d_un_contrat_parti(ctx: &Contexte, c: &ChargeAvenant) -> R<Option<Ave
     let deja = envois::etats::avenants_du_contrat(g.avenants.get(&(salarie.to_string(), numero_parti.clone())), &parti);
     let ent = documents::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = documents::avenant::modele_du_contrat(&ent.gabarits, &*p.engagement.nat().map_err(Echec::from)?)?;
-    let paie_json = engagement::relire::ecrire(ctx, p)?;
+    let paie_json = socle::ecriture::en_valeur(&engagement::relire::ecrire(ctx, p)?);
     let numero_porte = Some(p.engagement.numero.as_deref().unwrap_or("None").to_string());
     let vals = documents::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
     // L'ancien texte s'ecrit du modele avec les valeurs de la version partie, au mois compare (ou, pour un contrat sans
@@ -1223,7 +1223,7 @@ fn avenant_d_un_contrat_parti(ctx: &Contexte, c: &ChargeAvenant) -> R<Option<Ave
     let ancienne = ancienne.ok_or_else(|| {
         erreur("ErreurOperation", format!("Le journal ne dit pas sur quelle version de l'engagement le contrat n° {} est parti : l'avenant ne peut pas citer son ancien texte.", numero_parti))
     })?;
-    let avant = documents::avenant::valeurs_de_la_paie(ctx, &ent, &ancienne, Some(&numero_porte))?;
+    let avant = documents::avenant::valeurs_de_la_paie(ctx, &ent, &socle::ecriture::en_valeur(&ancienne), Some(&numero_porte))?;
     let modifs = documents::avenant::modifications(&modele, &avant, &vals)?;
     let mut signes: Vec<i64> = Vec::new();
     for a in deja.iter().filter(|a| a.signe.is_some()) {

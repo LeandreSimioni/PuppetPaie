@@ -27,9 +27,7 @@ use documents::conges_spectacles::{self, ContratCs, MoisPaye, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use engagement::{self, Engagement};
-use socle::valeur::valeur_en_texte;
 use documents::fiche_recapitulative::Recapitulatifs;
-use socle::fichiers::vrai;
 use documents::fabrique::{fusion_octets, fusion_pieces, Temporaire};
 use socle::num::{eur2, Decimal};
 use socle::echec::Echec;
@@ -556,15 +554,8 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
             }
             continue;
         };
-        let illisible = |k: &str| avec("ValueError", format!("{} : paie ecrite illisible : `{}`", m, k));
-        let e = paie.get("engagement").ok_or_else(|| illisible("engagement"))?;
-        if let Some(l) = e.get("lignes").filter(|l| vrai(l)) {
-            lignes.extend(engagement::relire::lignes_ecrites(l).map_err(|x| avec("ValueError", x))?);
-        }
-        let (brut_du_mois, jours_du_mois) = (
-            eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?),
-            e.get("jours").map(valeur_en_texte).and_then(|j| j.trim().parse::<i64>().ok()).ok_or_else(|| illisible("jours"))?,
-        );
+        lignes.extend(paie.engagement.lignes.iter().cloned());
+        let (brut_du_mois, jours_du_mois) = (eur2(paie.brut), paie.engagement.jours);
         bruts += brut_du_mois;
         jours += jours_du_mois;
         mois_payes.push(MoisPaye { fin: socle::mois::Mois::lire(m).map(socle::mois::Mois::dernier_jour).map_err(|x| avec("ValueError", x))?, jours: jours_du_mois, brut: brut_du_mois });

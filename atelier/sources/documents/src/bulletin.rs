@@ -118,6 +118,14 @@ fn texte(o: &Value, cle: &str) -> Resultat<String> {
     Ok(en_texte(requis(o, cle)?))
 }
 
+/// La case texte `cle` du spectacle de la paie ; refus si elle manque.
+fn du_spectacle(sp: Option<&droit::fiche::Spectacle>, case: fn(&droit::fiche::Spectacle) -> &droit::fiche::Case<String>, cle: &str) -> Resultat<String> {
+    match sp.map(case) {
+        None | Some(droit::fiche::Case::Absente) => Err(socle::fichiers::absent(cle)),
+        Some(c) => Ok(c.texte().to_string()),
+    }
+}
+
 
 /// Un morceau de texte d'un paragraphe ou d'une cellule.
 fn m(texte: impl Into<String>, gras: bool, couleur: Option<&str>) -> Value {
@@ -292,7 +300,7 @@ fn emploi_imprime(e: &engagement::Engagement, sal: &ChampsSalarie) -> Resultat<S
     }
 }
 
-pub fn convention_du_contrat(ent: &ChampsEntreprise, sp: &Value, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
+pub fn convention_du_contrat(ent: &ChampsEntreprise, sp: Option<&droit::fiche::Spectacle>, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
     let idcc = droit::minima::idcc_du_contrat(ent.idcc.texte(), &engagement::minima::spectacle_du_contrat(sp), sal)?;
     if idcc.is_empty() {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", "idcc"));
@@ -912,7 +920,7 @@ pub struct Jeu<'a> {
 fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     let p = j.paie;
     let (sal, e, sp) = (&p.salarie, &p.engagement, &p.spectacle);
-    let conv = convention_du_contrat(ent, sp, sal, &e.fin_mois()?)?;
+    let conv = convention_du_contrat(ent, sp.as_ref(), sal, &e.fin_mois()?)?;
     let n = COLONNES;
     let nat = e.nat()?;
     let permanent = nat.mensuelle();
@@ -1007,7 +1015,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
         travail = vec![m("Durée du travail :", true, None), mt(format!(" {} h", jours(e.quotite()?)))];
     } else {
         sous_titre =
-            format!("Numéro d'objet : {} {} Spectacle : {}", texte(sp, "numero_objet")?, tiret, texte(sp, "titre")?);
+            format!("Numéro d'objet : {} {} Spectacle : {}", du_spectacle(sp.as_ref(), |s| &s.numero_objet, "numero_objet")?, tiret, du_spectacle(sp.as_ref(), |s| &s.titre, "titre")?);
         ligne_caisse = vec![
             k("N° Congés Spectacles :"),
             mt(format!(" {}\n", match sal.num_conges_spectacles.texte() { "" => "-", n => n })),

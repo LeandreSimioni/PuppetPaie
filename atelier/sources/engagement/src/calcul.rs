@@ -6,7 +6,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use droit::bareme::{bareme_applique, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
@@ -17,7 +17,7 @@ use socle::date::{en_texte, Jour};
 use socle::texte::euros;
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
-use socle::num::nombre;
+use crate::paie_ecrite::{Cle, FormeDeCotisation, FormeDeLaDeduction, FormeDePaie, FormeDeRemuneration};
 use socle::fichiers::vrai;
 use socle::num::{add, dec_f64, div, eur, mul, pct, round3, sub, Decimal, Resultat};
 pub use droit::reduction::ReductionGenerale;
@@ -26,11 +26,6 @@ use droit::forme_bareme::{Pile, Rubrique};
 use droit::reduction::{au_dela_du_seuil, reduction_generale, reduction_generale_sous_dfs};
 use droit::plafond::{plafond_permanent, pour_paie, EngagementPlafond};
 
-
-/// La valeur de `cle`, ou le refus qui nomme la cle absente.
-fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    o.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
-}
 
 
 /// Le flottant d'un decimal, correctement arrondi, via le texte.
@@ -127,30 +122,51 @@ impl LigneBrut {
         }
     }
 
-    /// La forme canonique de l'oracle (ses champs, dans l'ordre).
-    pub fn canon(&self) -> Value {
-        let texte = |o: &Option<String>| o.clone().map_or(Value::Null, Value::String);
-        let mut m = Map::new();
-        m.insert("code".into(), Value::String(self.code.clone()));
-        m.insert("libelle".into(), Value::String(self.libelle.clone()));
-        m.insert("unite".into(), Value::String(self.unite.clone()));
-        m.insert("quantite".into(), Value::String(nombre(self.quantite)));
-        m.insert("taux".into(), Value::String(nombre(self.taux)));
-        m.insert("montant".into(), Value::String(nombre(self.montant)));
-        m.insert("heures_annexes".into(), Value::String(nombre(self.heures_annexes)));
-        m.insert("soumis".into(), Value::Bool(self.soumis));
-        m.insert("imposable".into(), Value::Bool(self.imposable));
-        m.insert("conges_spectacles".into(), Value::Bool(self.conges_spectacles));
-        m.insert("salaire_de_base".into(), Value::Bool(self.salaire_de_base));
-        m.insert("retabli".into(), Value::Bool(self.retabli));
-        m.insert("conges_pris".into(), Value::Bool(self.conges_pris));
-        m.insert("dsn_bloc52".into(), texte(&self.dsn_bloc52));
-        m.insert("arret_de_travail".into(), Value::Bool(self.arret_de_travail));
-        m.insert("dsn_autres_bruts".into(), texte(&self.dsn_autres_bruts));
-        if let Some(p) = &self.precision {
-            m.insert("precision".into(), Value::String(p.clone()));
+    /// Sa forme ecrite, avec sa designation au bulletin.
+    pub fn forme(&self) -> FormeDeRemuneration {
+        FormeDeRemuneration {
+            code: self.code.clone(),
+            libelle: self.libelle.clone(),
+            unite: self.unite.clone(),
+            quantite: self.quantite,
+            taux: self.taux,
+            montant: self.montant,
+            heures_annexes: self.heures_annexes,
+            soumis: self.soumis,
+            imposable: self.imposable,
+            conges_spectacles: self.conges_spectacles,
+            salaire_de_base: self.salaire_de_base,
+            retabli: self.retabli,
+            conges_pris: self.conges_pris,
+            dsn_bloc52: self.dsn_bloc52.clone(),
+            arret_de_travail: self.arret_de_travail,
+            dsn_autres_bruts: self.dsn_autres_bruts.clone(),
+            precision: self.precision.clone(),
+            designation: self.designation(),
         }
-        Value::Object(m)
+    }
+
+    /// Relue de sa forme ecrite.
+    pub(crate) fn de_la_forme(f: &FormeDeRemuneration) -> LigneBrut {
+        LigneBrut {
+            code: f.code.clone(),
+            libelle: f.libelle.clone(),
+            unite: f.unite.clone(),
+            quantite: f.quantite,
+            taux: f.taux,
+            montant: f.montant,
+            heures_annexes: f.heures_annexes,
+            soumis: f.soumis,
+            imposable: f.imposable,
+            conges_spectacles: f.conges_spectacles,
+            salaire_de_base: f.salaire_de_base,
+            retabli: f.retabli,
+            conges_pris: f.conges_pris,
+            dsn_bloc52: f.dsn_bloc52.clone(),
+            arret_de_travail: f.arret_de_travail,
+            dsn_autres_bruts: f.dsn_autres_bruts.clone(),
+            precision: f.precision.clone(),
+        }
     }
 }
 
@@ -208,21 +224,35 @@ pub struct LigneCotisation {
 }
 
 impl LigneCotisation {
-    pub fn canon(&self) -> Resultat<Value> {
-        let taux = |t: Option<f64>| -> Resultat<Value> {
-            t.map_or(Ok(Value::Null), |x| Ok(Value::String(nombre(dec_f64(x)?))))
-        };
-        let mut m = Map::new();
-        m.insert("id".into(), Value::String(self.id.clone()));
-        m.insert("famille".into(), Value::String(self.famille.clone()));
-        m.insert("libelle".into(), Value::String(self.libelle.clone()));
-        m.insert("base".into(), Value::String(nombre(self.base)));
-        m.insert("taux_pat".into(), taux(self.taux_pat)?);
-        m.insert("montant_pat".into(), Value::String(nombre(self.montant_pat)));
-        m.insert("taux_sal".into(), taux(self.taux_sal)?);
-        m.insert("montant_sal".into(), Value::String(nombre(self.montant_sal)));
-        m.insert("masquer_base_et_taux".into(), Value::Bool(self.masquer_base_et_taux));
-        Ok(Value::Object(m))
+    /// Sa forme ecrite : un taux en decimal par sa forme la plus courte.
+    pub fn forme(&self) -> Resultat<FormeDeCotisation> {
+        let taux = |t: Option<f64>| t.map(dec_f64).transpose();
+        Ok(FormeDeCotisation {
+            id: self.id.clone(),
+            famille: self.famille.clone(),
+            libelle: self.libelle.clone(),
+            base: self.base,
+            taux_pat: taux(self.taux_pat)?,
+            montant_pat: self.montant_pat,
+            taux_sal: taux(self.taux_sal)?,
+            montant_sal: self.montant_sal,
+            masquer_base_et_taux: self.masquer_base_et_taux,
+        })
+    }
+
+    /// Relue de sa forme ecrite.
+    pub(crate) fn de_la_forme(f: &FormeDeCotisation) -> LigneCotisation {
+        LigneCotisation {
+            id: f.id.clone(),
+            famille: f.famille.clone(),
+            libelle: f.libelle.clone(),
+            base: f.base,
+            taux_pat: f.taux_pat.map(en_f64),
+            montant_pat: f.montant_pat,
+            taux_sal: f.taux_sal.map(en_f64),
+            montant_sal: f.montant_sal,
+            masquer_base_et_taux: f.masquer_base_et_taux,
+        }
     }
 }
 
@@ -247,15 +277,28 @@ pub struct DeductionForfaitaire {
 }
 
 impl DeductionForfaitaire {
-    pub fn canon(&self) -> Value {
-        let mut m = Map::new();
-        m.insert("categorie".into(), Value::String(self.categorie.clone()));
-        m.insert("profession".into(), Value::String(self.profession.clone()));
-        m.insert("taux".into(), Value::String(nombre(self.taux)));
-        m.insert("rubriques".into(), Value::Array(self.rubriques.iter().cloned().map(Value::String).collect()));
-        m.insert("montant".into(), Value::String(nombre(self.montant)));
-        m.insert("deja".into(), Value::String(nombre(self.deja)));
-        Value::Object(m)
+    /// Sa forme ecrite.
+    pub fn forme(&self) -> FormeDeLaDeduction {
+        FormeDeLaDeduction {
+            categorie: self.categorie.clone(),
+            profession: self.profession.clone(),
+            taux: self.taux,
+            rubriques: self.rubriques.clone(),
+            montant: self.montant,
+            deja: self.deja,
+        }
+    }
+
+    /// Relue de sa forme ecrite.
+    pub(crate) fn de_la_forme(f: &FormeDeLaDeduction) -> DeductionForfaitaire {
+        DeductionForfaitaire {
+            categorie: f.categorie.clone(),
+            profession: f.profession.clone(),
+            taux: f.taux,
+            rubriques: f.rubriques.clone(),
+            montant: f.montant,
+            deja: f.deja,
+        }
     }
 }
 
@@ -266,15 +309,6 @@ fn reintegrations(lignes: &[LigneCotisation]) -> Decimal {
     let zero = Decimal::new(0, 2);
     let csg_nd = lignes.iter().find(|l| l.id == "csg_crds_nd").map_or(zero, |l| l.montant_sal);
     csg_nd + lignes.iter().filter(|l| l.id == "mutuelle").fold(zero, |a, l| a + l.montant_pat)
-}
-
-/// La fiche du spectacle telle que la paie la porte (`Contenu::spectacle`) : ses cases au jour, et sa cle (`_cle`).
-pub fn spectacle_de_la_paie(sp: &droit::fiche::Spectacle) -> Value {
-    let mut v = socle::ecriture::en_valeur(&sp.champs);
-    if let Some(o) = v.as_object_mut() {
-        o.insert("_cle".into(), Value::String(sp.cle.clone()));
-    }
-    v
 }
 
 /// Une paie d'un engagement : ce que son calcul a produit, ou sa forme ecrite relue (`relire`). Elle se lit partout, ce
@@ -294,7 +328,8 @@ impl std::ops::Deref for Paie {
 pub struct Contenu {
     pub engagement: Engagement,
     pub salarie: SalarieDuContrat,
-    pub spectacle: Value,
+    /// La fiche du spectacle telle que le calcul l'a lue ; `None` pour un contrat paye au mois.
+    pub spectacle: Option<droit::fiche::Spectacle>,
     pub brut: Decimal,
     pub base_csg: Decimal,
     pub plafond: Decimal,
@@ -369,7 +404,7 @@ impl Paie {
 impl Paie {
     /// Les champs sans valeur par defaut ; les autres partent a zero ou vides.
     pub(crate) fn nouveau(
-        engagement: Engagement, salarie: SalarieDuContrat, spectacle: Value, brut: Decimal,
+        engagement: Engagement, salarie: SalarieDuContrat, spectacle: Option<droit::fiche::Spectacle>, brut: Decimal,
         base_csg: Decimal, plafond: Decimal, smic: f64, heures: Decimal,
         plafond_temps_partiel: PlafondTempsPartiel,
     ) -> Paie {
@@ -436,10 +471,9 @@ impl Paie {
 
     /// Le titre du spectacle, ou pour un permanent le libelle de sa nature de contrat.
     pub fn titre(&self) -> Resultat<String> {
-        if vrai(&self.spectacle) {
-            Ok(en_texte(requis(&self.spectacle, "titre")?))
-        } else {
-            Ok(self.engagement.nat()?.libelle.clone())
+        match &self.spectacle {
+            Some(s) => s.titre.portee().map(str::to_string).ok_or_else(|| socle::fichiers::absent("titre")),
+            None => Ok(self.engagement.nat()?.libelle.clone()),
         }
     }
 
@@ -1233,9 +1267,9 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     let sal = fiche_de_l_engagement(ctx, eng)?;
     essai_dans_son_plafond(ctx, eng, &nat, &sal)?;
     let spec = if nat.mensuelle() {
-        Value::Null
+        None
     } else {
-        crate::calcul::spectacle_de_la_paie(&ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
+        Some(ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
     };
     // Le contrat est-il declare a la caisse des Conges Spectacles ? (`caisse_conges::affilie` : un CDDU de moins de
     // douze mois, un CDD de droit commun de moins de douze mois d'un artiste.)
@@ -1889,62 +1923,53 @@ impl Paie {
         plafond_de_l_engagement(ctx, &self.engagement, &self.salarie)
     }
 
-    /// La forme canonique d'une paie, ecriture stable pour les empreintes et les oracles (`ctx` pour le plafond Urssaf).
-    pub fn canon(&self, ctx: &Contexte) -> Resultat<Value> {
-        let cle = |f: &Value| {
-            let mut m = Map::new();
-            m.insert("_cle".into(), f.get("_cle").cloned().unwrap_or(Value::Null));
-            Value::Object(m)
-        };
-        let n = |x: Decimal| Value::String(nombre(x));
-        let mut m = Map::new();
-        m.insert("assiette_chomage".into(), n(self.assiette_chomage));
-        m.insert(
-            "avertissements".into(),
-            Value::Array(self.avertissements.iter().map(|a| Value::String(a.texte.clone())).collect()),
-        );
-        m.insert("base_csg".into(), n(self.base_csg));
-        m.insert("bases".into(), Value::Object(self.bases.iter().map(|(k, v)| (k.clone(), n(*v))).collect()));
-        m.insert("brut".into(), n(self.brut));
-        m.insert("cout_employeur".into(), n(self.cout_employeur));
-        m.insert(
-            "deduction_forfaitaire".into(),
-            self.deduction_forfaitaire.as_ref().map_or(Value::Null, |d| d.canon()),
-        );
-        // Le jour du versement que la paie declare et imprime (`Engagement::date_du_versement`) : le contrat le dit.
+    /// La forme canonique d'une paie, ecriture stable pour les empreintes et les oracles (`ctx` pour le plafond Urssaf) :
+    /// chaque avis par son seul texte.
+    pub fn canon(&self, ctx: &Contexte) -> Resultat<FormeDePaie<String>> {
+        self.forme(ctx, &|a: &Avis| a.texte.clone(), false)
+    }
+
+    /// Sa forme (`paie_ecrite::FormeDePaie`), chaque avis par `avis` ; `ecrite` : celle que la validation ecrit
+    /// (`relire::ecrire`), les lignes de l'engagement telles quelles et le plafond d'un temps partiel.
+    pub(crate) fn forme<A>(&self, ctx: &Contexte, avis: &dyn Fn(&Avis) -> A, ecrite: bool) -> Resultat<FormeDePaie<A>> {
         let mut engagement = self.engagement.canon()?;
-        engagement["date_paiement"] = Value::String(self.engagement.date_du_versement()?.iso());
-        m.insert("engagement".into(), engagement);
-        m.insert("heures".into(), n(self.heures));
-        m.insert("heures_absence".into(), n(self.heures_absence));
-        m.insert("heures_travaillees".into(), n(self.heures_travaillees));
-        m.insert("lignes".into(), Value::Array(self.lignes.iter().map(|l| l.canon()).collect::<Resultat<_>>()?));
-        m.insert("net_a_payer".into(), n(self.net_a_payer));
-        m.insert("net_imposable".into(), n(self.net_imposable));
-        m.insert("net_social".into(), n(self.net_social));
-        m.insert("numero_bulletin".into(), self.numero_bulletin.clone().map_or(Value::Null, Value::String));
-        m.insert("reduction_generale".into(), self.reduction_generale.as_ref().map_or(Value::Null, socle::ecriture::en_valeur));
-        let remuneration = self.remuneration.iter().map(|l| {
-            let mut c = l.canon();
-            c["designation"] = Value::String(l.designation());
-            c
-        });
-        m.insert("remuneration".into(), Value::Array(remuneration.collect()));
-        m.insert("salaire_de_base".into(), n(self.salaire_de_base));
-        m.insert("salaire_retabli".into(), n(self.salaire_retabli));
-        m.insert("salarie".into(), serde_json::json!({"_cle": self.salarie.id.to_string()}));
-        m.insert("smic".into(), n(dec_f64(self.smic)?));
-        m.insert("spectacle".into(), if vrai(&self.spectacle) { cle(&self.spectacle) } else { Value::Null });
-        m.insert("total_pat".into(), n(self.total_pat));
-        m.insert("total_sal".into(), n(self.total_sal));
-        m.insert("plafond".into(), n(self.plafond));
-        let urssaf = self.plafond_urssaf(ctx)?;
-        m.insert("plafond_urssaf".into(), n(urssaf));
-        // Un mois decoupe : ses periodes elementaires, chacune une paie. Absent d'un mois d'un seul tenant.
-        if !self.periodes.is_empty() {
-            m.insert("periodes".into(), Value::Array(self.periodes.iter().map(|p| p.canon(ctx)).collect::<Resultat<_>>()?));
+        // Le jour du versement que la paie declare et imprime (`Engagement::date_du_versement`) : le contrat le dit.
+        engagement.date_paiement = Some(self.engagement.date_du_versement()?.iso());
+        if ecrite {
+            // Telles qu'elles s'ecrivent : sans ce que le moteur pose pour l'ecran (`ligne::Marques`), qui ne s'ecrit pas.
+            engagement.lignes = self.engagement.lignes.iter().map(|l| crate::LignePaie { marques: Default::default(), ..l.clone() }).collect();
         }
-        Ok(Value::Object(m))
+        Ok(FormeDePaie {
+            assiette_chomage: self.assiette_chomage,
+            avertissements: self.avertissements.iter().map(avis).collect(),
+            base_csg: self.base_csg,
+            bases: self.bases.clone(),
+            brut: self.brut,
+            cout_employeur: self.cout_employeur,
+            deduction_forfaitaire: self.deduction_forfaitaire.as_ref().map(DeductionForfaitaire::forme),
+            engagement,
+            heures: self.heures,
+            heures_absence: self.heures_absence,
+            heures_travaillees: self.heures_travaillees,
+            lignes: self.lignes.iter().map(LigneCotisation::forme).collect::<Resultat<_>>()?,
+            net_a_payer: self.net_a_payer,
+            net_imposable: self.net_imposable,
+            net_social: self.net_social,
+            numero_bulletin: self.numero_bulletin.clone(),
+            reduction_generale: self.reduction_generale.clone(),
+            remuneration: self.remuneration.iter().map(LigneBrut::forme).collect(),
+            salaire_de_base: self.salaire_de_base,
+            salaire_retabli: self.salaire_retabli,
+            salarie: Cle { cle: self.salarie.id.to_string() },
+            smic: dec_f64(self.smic)?,
+            spectacle: self.spectacle.as_ref().map(|s| Cle { cle: s.cle.clone() }),
+            total_pat: self.total_pat,
+            total_sal: self.total_sal,
+            plafond: self.plafond,
+            plafond_urssaf: self.plafond_urssaf(ctx)?,
+            periodes: self.periodes.iter().map(|p| p.forme(ctx, avis, ecrite)).collect::<Resultat<_>>()?,
+            plafond_temps_partiel: ecrite.then(|| self.plafond_temps_partiel.code().to_string()),
+        })
     }
 }
 

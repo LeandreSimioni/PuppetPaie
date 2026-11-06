@@ -111,8 +111,8 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, 
     };
     for (p, pas) in paies.iter().zip(&pas_des_paies) {
         // UN PERMANENT N'A PAS DE SPECTACLE : son brut va a sa propre section.
-        let titre = match p.spectacle.get("titre").filter(|t| vrai(t)) {
-            Some(t) => valeur_en_texte(t),
+        let titre = match p.spectacle.as_ref().and_then(|s| s.titre.dite()).filter(|t| !t.is_empty()) {
+            Some(t) => t.clone(),
             None => match p.engagement.spectacle.as_deref().filter(|s| !s.is_empty()) {
                 Some(s) => s.to_string(),
                 None => "Salariés au mois".to_string(),

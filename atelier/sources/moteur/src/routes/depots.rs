@@ -439,7 +439,7 @@ fn embauche_dpae(p: &Paie, spectacle: bool) -> Embauche {
         debut: json!(p.engagement.debut.iso()),
         fin: p.engagement.fin.map_or(Value::Null, |f| json!(f.iso())),
         nature: p.engagement.nature.clone(),
-        spectacle: if spectacle && vrai(&p.spectacle) { p.spectacle.clone() } else { Value::Null },
+        spectacle: p.spectacle.clone().filter(|_| spectacle),
     }
 }
 

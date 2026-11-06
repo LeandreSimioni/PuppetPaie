@@ -17,7 +17,6 @@ use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use socle::date::en_texte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -249,7 +248,7 @@ pub fn cle_de(fiche: &droit::fiche::FicheSalarie) -> R<String> {
 
 /// Le titre du spectacle d'une paie.
 pub fn titre_spectacle(p: &Paie) -> String {
-    p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte).unwrap_or_default()
+    p.spectacle.as_ref().and_then(|s| s.titre.dite()).cloned().unwrap_or_default()
 }
 
 /// Un taux flottant en décimal, par son écriture la plus courte qui se relit.
