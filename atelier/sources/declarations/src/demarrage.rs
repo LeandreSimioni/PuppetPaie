@@ -75,7 +75,7 @@ fn a_des_spectacles(ctx: &Contexte) -> bool {
 }
 
 /// Les spectacles (leur cle) que porte un engagement actif, ni importe, dont la nature declare le numero d'objet.
-fn spectacles_declares(ctx: &Contexte) -> Vec<droit::contexte::IdSpectacle> {
+fn spectacles_declares(ctx: &Contexte) -> socle::num::Resultat<Vec<droit::contexte::IdSpectacle>> {
     let mut out: Vec<droit::contexte::IdSpectacle> = Vec::new();
     for o in engagement::stock::objets(&ctx.racine).unwrap_or_default() {
         if o.est_non_actif() || o.importe_seul() {
@@ -83,12 +83,12 @@ fn spectacles_declares(ctx: &Contexte) -> Vec<droit::contexte::IdSpectacle> {
         }
         let nature = o.carte().nature.as_deref();
         let Some(sp) = o.carte().spectacle.as_deref().filter(|s| !s.trim().is_empty()) else { continue };
-        let Some(cle) = ctx.spectacle(sp).ok().map(|f| f.cle) else { continue };
+        let cle = ctx.spectacle(sp)?.cle;
         if nature.is_some_and(|n| droit::natures::nature(n).is_ok_and(|n| n.ecrit("S21.G00.40.050"))) && !out.contains(&cle) {
             out.push(cle);
         }
     }
-    out
+    Ok(out)
 }
 
 /// Une suspension saisie (un imprevu du bloc 65) dont le motif n'est pas remunere. Un magasin illisible ne dit rien ici :
@@ -102,7 +102,7 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
 
 /// Tout ce qui manque a la compagnie pour ses premiers actes. Vide : rien ne manque. Une ligne dit ce qu'elle bloque
 /// (`bloque`), ou, quand rien ne se refuse sans elle, ce qu'elle sert (`utile`) et ce qui se passe sinon (`sinon`).
-pub fn manques(ctx: &Contexte) -> Vec<Value> {
+pub fn manques(ctx: &Contexte) -> socle::num::Resultat<Vec<Value>> {
     let ent = &ctx.entreprise;
     let mut out: Vec<Value> = Vec::new();
     let intermittents = a_des_spectacles(ctx);
@@ -146,7 +146,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     }
     // Un spectacle ne se dit que si un engagement dont la nature declare le numero d'objet (S21.G00.40.050, `champs` de
     // sa nature dans `contrats-base.json`) le porte : rien de remplissable s'il n'y a pas a le remplir.
-    for cle in spectacles_declares(ctx) {
+    for cle in spectacles_declares(ctx)? {
         let Some(sp) = ctx.spectacles.get(&cle) else { continue };
         let titre = sp.titre.remplie().map(str::to_string).unwrap_or_else(|| cle.to_string());
         for m in crate::champs::manquants("spectacle", sp).unwrap_or_default() {
@@ -304,7 +304,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     for (salarie, nom, depuis) in conges_a_reprendre(ctx) {
         out.push(conges_a_dire(&salarie, &nom, &depuis));
     }
-    out
+    Ok(out)
 }
 
 /// LA LIGNE QUI DEMANDE LES CONGES ACQUIS AVANT PUPPETPAIE d'un salarie au mois (`salarie`, `nom` tel que l'ecran le dit),
@@ -434,7 +434,7 @@ pub fn poses(ctx: &Contexte) -> Vec<Value> {
 /// UTILE POUR un geste (sans elle, il se fait autrement : `utile`, `sinon`) ; chaque ligne le dit (`pour`), et sa phrase
 /// entiere dit aussi ou elle vit et de qui (`phrase`). Le refus reste a l'acte (`champs::refus_des_manques`).
 pub fn route(ctx: &Contexte, proposes: Vec<Value>, pose: Option<Value>) -> R<Value> {
-    let mut lignes = manques(ctx);
+    let mut lignes = manques(ctx).map_err(Echec::from)?;
     lignes.extend(proposes);
     for l in lignes.iter_mut() {
         let t = |k: &str| l.get(k).and_then(Value::as_str).unwrap_or("").to_string();
@@ -469,8 +469,8 @@ pub fn route(ctx: &Contexte, proposes: Vec<Value>, pose: Option<Value>) -> R<Val
 
 /// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup, sans ce que
 /// le refus `deja_dit` dit deja (un manque que le refus nomme, ou dont il donne l'explication, ne se redit pas).
-pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> Option<String> {
-    let lignes: Vec<String> = manques(ctx)
+pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> socle::num::Resultat<Option<String>> {
+    let lignes: Vec<String> = manques(ctx)?
         .iter()
         .filter(|x| x.get("bloque").is_some())
         .filter(|x| !x["trouver"].as_str().map(str::trim).is_some_and(|t| !t.is_empty() && deja_dit.contains(t)))
@@ -483,9 +483,9 @@ pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> Option<String> {
         })
         .collect();
     if lignes.is_empty() {
-        return None;
+        return Ok(None);
     }
-    Some(format!(" Pour démarrer, il manque encore : {}.", lignes.join(" ; ")))
+    Ok(Some(format!(" Pour démarrer, il manque encore : {}.", lignes.join(" ; "))))
 }
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`) ?

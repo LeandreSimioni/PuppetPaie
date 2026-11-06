@@ -1561,7 +1561,10 @@ impl<'a> Moteur<'a> {
         let cle = e.salarie.as_ref().map(ToString::to_string).unwrap_or_default();
         let nom = self.ctx.salarie(&cle).ok().map(|f| super::nom_a_l_ecran(&f)).unwrap_or_else(|| cle.clone());
         let spectacle = match e.spectacle.as_deref().filter(|s| !s.is_empty()) {
-            Some(s) => self.ctx.spectacle(s).ok().filter(|f| !f.titre.est_absente()).map(|f| socle::ecriture::en_valeur(&f.titre)).unwrap_or_else(|| Value::String(s.to_string())),
+            Some(s) => {
+                let f = self.ctx.spectacle(s).map_err(plain)?;
+                if f.titre.est_absente() { Value::String(s.to_string()) } else { socle::ecriture::en_valeur(&f.titre) }
+            }
             None => Value::Null,
         };
         let nature = e.nature_lue().map(|n| n.libelle.clone()).unwrap_or_default();

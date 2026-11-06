@@ -328,7 +328,7 @@ fn effectif(ctx: &Contexte, charge: &Value) -> R<Value> {
     let a_dire = |ctx: &Contexte| -> R<Vec<i32>> {
         let e = ctx.effectif().map_err(Echec::from)?;
         let mut v = e.a_dire(an_paie);
-        let demande = declarations::demarrage::manques(ctx).iter().any(|m| m["cle"] == "effectif");
+        let demande = declarations::demarrage::manques(ctx).map_err(Echec::from)?.iter().any(|m| m["cle"] == "effectif");
         if demande && e.valeur(an_paie).is_none() && !v.contains(&(an_paie - 1)) {
             v.push(an_paie - 1);
             v.sort();
@@ -1423,7 +1423,8 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
     let qui = if nom == "salarie" {
         super::salarie(ctx, &json!(cle)).map(|s| super::nom_a_l_ecran(&s)).ok()
     } else {
-        ctx.spectacle(cle).ok().and_then(|s| s.titre.portee().filter(|t| !t.trim().is_empty()).map(String::from))
+        let fiche = ctx.spectacles.get(cle).ok_or_else(|| refus(format!("Spectacle inconnu : {}.", socle::fichiers::repr(cle))))?;
+        fiche.titre.portee().filter(|t| !t.trim().is_empty()).map(String::from)
     }
     .unwrap_or_else(|| cle.to_string());
     let p = match (nom, actif) {

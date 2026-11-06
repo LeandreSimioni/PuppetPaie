@@ -1297,6 +1297,7 @@ fn avenant_d_un_contrat_signe_ailleurs(ctx: &Contexte, c: &ChargeAvenant) -> R<O
     let nat = p.engagement.nat().map_err(Echec::from)?;
     let changes = engagement::versions::termes_changes(&convenue, &presente);
     let modifications = documents::avenant::changements_en_clair(ctx, &nat, &changes)
+        .map_err(Echec::from)?
         .into_iter()
         .map(|m| serde_json::from_value::<ArticleModifie>(m).map_err(|e| Echec::from(e.to_string())))
         .collect::<R<Vec<_>>>()?;

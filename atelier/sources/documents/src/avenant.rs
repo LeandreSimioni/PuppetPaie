@@ -538,18 +538,18 @@ fn terme_nomme(terme: &str) -> (&'static str, &'static str) {
 
 /// La valeur d'un terme en clair : un montant en euros, une duree en heures par mois (S21.G00.40.013), une nature, un
 /// motif ou un spectacle par son nom.
-fn valeur_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, terme: &str, v: &Value) -> String {
+fn valeur_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, terme: &str, v: &Value) -> Resultat<String> {
     let texte = en_texte(v);
-    match terme {
+    Ok(match terme {
         "salaire_mensuel" => crate::valeur::euros_de(v),
         "quotite_contrat" | "quotite_reference" => dec(v).map(|x| format!("{} heures par mois", socle::texte::virgule(x))).unwrap_or(texte),
         "cadre" => if vrai(v) { "cadre".into() } else { "non cadre".into() },
         "nature" => droit::natures::nature(&texte).map(|n| n.libelle.clone()).unwrap_or(texte),
         "motif_recours" => nat.libelle_motif_recours(&texte).unwrap_or(texte),
-        "spectacle" => ctx.spectacle(&texte).ok().and_then(|s| s.titre.portee().map(str::to_string)).unwrap_or(texte),
+        "spectacle" => ctx.spectacle(&texte)?.titre.portee().map(str::to_string).unwrap_or(texte),
         "emploi" => format!("« {} »", texte),
         _ => texte,
-    }
+    })
 }
 
 /// CE QUE DIT L'AVENANT D'UN CONTRAT SIGNE HORS DU LOGICIEL : il ne connait pas le texte du contrat, il n'en cite aucun
@@ -557,13 +557,13 @@ fn valeur_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, terme: &str, v:
 /// l'ancienne valeur et la nouvelle (code du travail R. 1221-40 : « un document indiquant ces modifications »,
 /// `atelier/reference/sources/code-du-travail/xml/R1221-40.xml`). Chaque modification : `article` (son titre), `avant` et
 /// `apres` (les valeurs), `phrase` (ce que l'avenant ecrit), `jour` ; `numero` nul (aucun article cite).
-pub fn changements_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, changes: &[engagement::versions::TermeChange]) -> Vec<Value> {
+pub fn changements_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, changes: &[engagement::versions::TermeChange]) -> Resultat<Vec<Value>> {
     changes
         .iter()
         .map(|c| {
             let (titre, nom) = terme_nomme(c.terme.nom());
-            let dit = |v: &Option<engagement::saisie::Valeur>| v.as_ref().map(|x| valeur_en_clair(ctx, nat, c.terme.nom(), &serde_json::to_value(x).unwrap_or(Value::Null)));
-            let (avant, apres) = (dit(&c.avant), dit(&c.apres));
+            let dit = |v: &Option<engagement::saisie::Valeur>| v.as_ref().map(|x| valeur_en_clair(ctx, nat, c.terme.nom(), &serde_json::to_value(x).unwrap_or(Value::Null))).transpose();
+            let (avant, apres) = (dit(&c.avant)?, dit(&c.apres)?);
             let quand = format!("À compter du {}", c.jour.jj_mm_aaaa());
             let phrase = match (&avant, &apres) {
                 (Some(a), Some(b)) => format!("{}, {} passe de {} à {}.", quand, nom, a, b),
@@ -571,10 +571,10 @@ pub fn changements_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, change
                 (Some(a), None) => format!("{}, {} n'est plus {}.", quand, nom, a),
                 (None, None) => format!("{}, {} change.", quand, nom),
             };
-            serde_json::json!({
+            Ok(serde_json::json!({
                 "numero": Value::Null, "article": titre, "phrase": phrase, "jour": c.jour.iso(),
                 "avant": [avant.unwrap_or_default()], "apres": [apres.unwrap_or_default()],
-            })
+            }))
         })
         .collect()
 }

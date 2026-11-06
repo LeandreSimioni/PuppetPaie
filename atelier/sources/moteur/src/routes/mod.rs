@@ -236,7 +236,7 @@ fn servir(o: &HashMap<String, String>, route: Route, charge: &Value) -> Result<V
     match rendu {
         Err(Echec { classe, message }) if est_une_ecriture(route) && !dans(coffre::ROUTES) && !dans(filet::ROUTES) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) => {
             // Un refus qui porte une donnee a part (l'etat d'un mois, les anomalies d'une fiche, un chemin) se dit seul.
-            let message = if ::documents::valeur::separer(&message).1.is_empty() { let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default(); message + &suite } else { message };
+            let message = if ::documents::valeur::separer(&message).1.is_empty() { let suite = match declarations::demarrage::a_la_suite(&ctx, &message) { Ok(s) => s.unwrap_or_default(), Err(e) => format!(" {}", e) }; message + &suite } else { message };
             Err(Echec { classe, message })
         }
         autre => autre,
