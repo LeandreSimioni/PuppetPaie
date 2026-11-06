@@ -1354,7 +1354,28 @@
   "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000018828041",
   "en_vigueur": "2025-07-01",
   "etendu": true,
-  "note": "AUCUN TEXTE NE DONNE LA GRILLE EN VIGUEUR. La derniere grille chiffree de la base KALI est celle de l'avenant n° 4 (au 01/07/2012, KALIARTI000026562986) ; depuis, des pourcentages : +0,5 % (avenant 7, 01/10/2016), +0,5 % (avenant 9, 01/08/2017), CDI +2,5 % (avenant 11, 01/10/2019), CDDU B +2,5 % jusqu'a 1 000 EUR la semaine / +1,5 % au-dessus et CDI +5 % (avenant 14, 01/01/2023), +1 % pour tous (avenant 14 art. 4, 01/07/2023), CDI +1,5 % (avenant 15, 01/09/2023), CDDU B +5 % jusqu'a 1 100 EUR / +3 % (avenant 17, 01/02/2024), puis par GENRE de programme : fiction +2,5 / +1,5 % et flux +1 % au 01/07/2024 (avenant 19), fiction +2,2 / +1 %, flux +1 %, autres genres +1 % au 01/07/2025 (avenants 17 art. 5-6 et 19 art. 6) ; CDI +1,5 % plancher 1 828,83 EUR (avenant 20, 01/01/2025). Les montants ci-dessous sont ceux de la grille consolidee publiee par le SPIAC-CGT (au 01/01/2026, source `spiac-cgt-pav-minima-20260101`), RECALCULES le 25/09/2026 depuis la grille de 2012 et cette chaine : ecart de moins d'un demi-centime sur chaque emploi essaye, dans les trois genres. Arrondis au centime INFERIEUR : un avertissement ne crie jamais a tort. La semaine : un CDDU de categorie B se paie a la semaine de 35 heures (IV.2.1) : c'est le montant de la grille. Le jour : CDDU de 4 jours ou moins : le minimum journalier est le minimum de la semaine divise par 4,5 (IV.2.1), soit la semaine / 31,5 heures ramenee a l'heure. Le mois : CDDU a plein temps de 3 mois consecutifs ou plus : base mensuelle, semaine x 3,8, sans descendre sous 130 % du SMIC (IV.2.1). Le genre : depuis le 01/07/2024, le minimum depend du GENRE du programme (fiction, flux, autre -- documentaire, captation de spectacle vivant). Le genre se lit sur la fiche du spectacle (`genre_audiovisuel`) ; sans lui, le moteur prend le plus bas des genres ou l'emploi figure. Les variantes << specialise >> (fiction lourde) sont relevees mais jamais prises par defaut : elles sont plus hautes. Les artistes se comparent par CATEGORIE, la reference `minima` du metier dans la 2642 (dramatique, choregraphique, lyrique_soliste, lyrique_choeur, varietes, chanteur, musicien, figurant, doublure_lumiere, realisateur) : un metier sans elle n'est compare a rien -- l'annexe 6 va de 110,89 a 432,86, et prendre la plus basse pour tous ne dirait rien. Le cachet se compare a la ligne que dit la fiche, sinon a la plus basse de la categorie. Les realisateurs n'ont de grille qu'en fiction (annexe A de l'accord du 15/09/2023) : un programme d'un autre genre, ou sans genre, n'est pas compare.",
+  "source": {"sources": [
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000026562986", "citation": "Salaires minimaux bruts mensuels (base 35 heures hebdomadaires) au 1er juillet 2012"},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000026562986", "citation": "Délégué général O I 2 930,16"},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000034449290", "citation": "à compter du 1er octobre 2016, entre les partenaires sociaux de réévaluer les minima de + 0,5 % pour l'ensemble des grilles et des niveaux de la convention collective"},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000035993577", "citation": "à compter du 1er août 2017, entre les partenaires sociaux de réévaluer les minima de + 0,5 % pour l'ensemble des grilles et des niveaux de la convention collective. Les minima des niveaux V et VI sont portés, au minimum, à […] € mensuels (salarié en CDI pour 35 heures hebdomadaires)."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000041875387", "citation": "La grille des salaires minima des emplois de catégorie A et la grille des salaires minima CDI des emplois de catégorie B sont revalorisées de 2,50 % au 1er octobre 2019."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000047515048", "citation": "Revalorisation de + 5,00 % sur les salaires minima conventionnels des salariés de catégorie A et B engagés sous contrat de travail à durée indéterminée [...] sans que ceux-ci ne puissent être inférieurs à 1 709,28 euros bruts mensuels à temps plein."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000047515048", "citation": "Revalorisation de + 2,50 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est inférieur ou égal à 1 000,00 euros bruts par semaine, sans que ceux-ci ne puissent être inférieurs à 426,20 euros bruts hebdomadaires à temps plein."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000047515048", "citation": "Revalorisation de + 1,50 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est supérieur à 1 000,00 euros bruts par semaine."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000047515049", "citation": "Il est garanti une revalorisation de 1,00 % de l'ensemble des salaires minima conventionnels des emplois de catégorie A, B et C, applicable à compter du 1er juillet 2023."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000048558110", "citation": "Les salaires minima conventionnels des salariés de catégorie A et B engagés sous contrat de travail à durée indéterminée et sous contrat de travail à durée déterminée dits « de droit commun » sont revalorisés de 1,50 %."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000049300801", "citation": "revalorisés à compter du 1er février 2024, selon les modalités qui suivent : + 5 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est inférieur ou égal à 1 100,00 euros bruts par semaine ; + 3 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est supérieur à 1 100,00 euros bruts par semaine."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000050219962", "citation": "Au 1er juillet 2024, les salaires minima des fonctions de niveaux I à VI propres à la fiction audiovisuelle sont revalorisés de : + 2,5 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est inférieur ou égal à 1 100,00 euros bruts par semaine ; + 1,5 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est supérieur à 1 100,00 euros bruts par semaine."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000049300804", "citation": "Au 1er juillet 2025 : + 2,2 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est inférieur ou égal à 1 100,00 euros bruts par semaine ; + 1 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont l"},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000050219963", "citation": "Au 1er juillet 2024, les salaires minima des fonctions de niveaux I à VI propres aux programmes de flux sont revalorisés de : + 1 % sur les salaires minima des salariés de catégorie B engagés sous contrat de travail à durée déterminée d'usage dont le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif est inférieur ou égal à 1 100,00 euros bruts par semaine."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000049300805", "citation": "Au 1er juillet 2025 : + 1 % sur les salaires minima des salariés de catégorie B engagé sous contrat de travail à durée déterminée d'usage quel que soit le montant du salaire minimum hebdomadaire défini pour 35 heures de travail effectif."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000050219965", "citation": "date à laquelle ils conviennent de revaloriser de 1 % les salaires minima des salariés de catégories B engagés sous contrat de travail à durée déterminée d'usage occupant des fonctions de niveaux I à VI propres à ces deux genres de programmes."},
+   {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379543", "citation": "revalorisés de 1,50 % à compter du 1er janvier 2025, sans pouvoir être inférieurs à 1 828,83 euros bruts mensuels."},
+   {"fichier": "atelier/reference/sources/spiac-cgt-pav-minima-20260101.csv", "emetteur": "convention", "article": "feuille « CAT A & B - Permanents », Délégué Général", "citation": "Délégué Général;O;I;3314.29150905411"},
+   {"fichier": "atelier/reference/sources/spiac-cgt-pav-minima-20260101.csv", "emetteur": "convention", "article": "feuille « CAT B - CDDU Flux », 1er assistant décorateur", "citation": "1er assistant décorateur;B;IIIA;957.892473963105"}
+  ]},
+  "note": "LA GRILLE EN VIGUEUR EST UN CALCUL (voir `source` : la grille de l'avenant n° 4 et chacun des avenants de la chaine, recoupes par la grille du SPIAC-CGT, qui n'est pas un texte des partenaires sociaux) ; aucun texte ne la chiffre. La derniere grille chiffree de la base KALI est celle de l'avenant n° 4 (au 01/07/2012, KALIARTI000026562986) ; depuis, des pourcentages : +0,5 % (avenant 7, 01/10/2016), +0,5 % (avenant 9, 01/08/2017), CDI +2,5 % (avenant 11, 01/10/2019), CDDU B +2,5 % jusqu'a 1 000 EUR la semaine / +1,5 % au-dessus et CDI +5 % (avenant 14, 01/01/2023), +1 % pour tous (avenant 14 art. 4, 01/07/2023), CDI +1,5 % (avenant 15, 01/09/2023), CDDU B +5 % jusqu'a 1 100 EUR / +3 % (avenant 17, 01/02/2024), puis par GENRE de programme : fiction +2,5 / +1,5 % et flux +1 % au 01/07/2024 (avenant 19), fiction +2,2 / +1 %, flux +1 %, autres genres +1 % au 01/07/2025 (avenants 17 art. 5-6 et 19 art. 6) ; CDI +1,5 % plancher 1 828,83 EUR (avenant 20, 01/01/2025). Les montants ci-dessous sont ceux de la grille consolidee publiee par le SPIAC-CGT (au 01/01/2026, source `spiac-cgt-pav-minima-20260101`), RECALCULES le 25/09/2026 depuis la grille de 2012 et cette chaine : ecart de moins d'un demi-centime sur chaque emploi essaye, dans les trois genres. Arrondis au centime INFERIEUR : un avertissement ne crie jamais a tort. La semaine : un CDDU de categorie B se paie a la semaine de 35 heures (IV.2.1) : c'est le montant de la grille. Le jour : CDDU de 4 jours ou moins : le minimum journalier est le minimum de la semaine divise par 4,5 (IV.2.1), soit la semaine / 31,5 heures ramenee a l'heure. Le mois : CDDU a plein temps de 3 mois consecutifs ou plus : base mensuelle, semaine x 3,8, sans descendre sous 130 % du SMIC (IV.2.1). Le genre : depuis le 01/07/2024, le minimum depend du GENRE du programme (fiction, flux, autre -- documentaire, captation de spectacle vivant). Le genre se lit sur la fiche du spectacle (`genre_audiovisuel`) ; sans lui, le moteur prend le plus bas des genres ou l'emploi figure. Les variantes << specialise >> (fiction lourde) sont relevees mais jamais prises par defaut : elles sont plus hautes. Les artistes se comparent par CATEGORIE, la reference `minima` du metier dans la 2642 (dramatique, choregraphique, lyrique_soliste, lyrique_choeur, varietes, chanteur, musicien, figurant, doublure_lumiere, realisateur) : un metier sans elle n'est compare a rien -- l'annexe 6 va de 110,89 a 432,86, et prendre la plus basse pour tous ne dirait rien. Le cachet se compare a la ligne que dit la fiche, sinon a la plus basse de la categorie. Les realisateurs n'ont de grille qu'en fiction (annexe A de l'accord du 15/09/2023) : un programme d'un autre genre, ou sans genre, n'est pas compare.",
   "cddu_semaine_35h": {
    "1er assistant décorateur": {
     "filiere": "B",
@@ -2699,6 +2720,7 @@
     "categories": [
      "dramatique"
     ],
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379545", "citation": "Émissions dramatiques (art. 5.14.1) Journée de répétition ou d'enregistrement 289,23 € Journée unique 304,99 € Prestation de lecture d'une durée inférieure à 4 heures 152,49 €"},
     "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "journee de repetition ou d'enregistrement": 289.23,
@@ -2715,6 +2737,7 @@
     "categories": [
      "choregraphique"
     ],
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379545", "citation": "Émissions chorégraphiques (art. 5.14.4) Répétition ou enregistrement (6 heures de travail effectif au maximum) : Soliste 432,86 € Corps de ballet 289,23 €"},
     "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "soliste": 432.86,
@@ -2731,6 +2754,7 @@
      "lyrique_soliste",
      "chanteur"
     ],
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379545", "citation": "Émissions lyriques (art. 5.14.3) Répétition ou enregistrement : Soliste 432,86 € Artistes des chœurs 289,23 € Préparation ou déchiffrage (3 heures maximum) : Soliste 165,96 € Artistes des chœurs 110,89 €"},
     "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "soliste": 432.86,
@@ -2746,6 +2770,7 @@
     "categories": [
      "lyrique_choeur"
     ],
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379545", "citation": "Émissions lyriques (art. 5.14.3) Répétition ou enregistrement : Soliste 432,86 € Artistes des chœurs 289,23 € Préparation ou déchiffrage (3 heures maximum) : Soliste 165,96 € Artistes des chœurs 110,89 €"},
     "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "choeur": 289.23,
@@ -2762,6 +2787,7 @@
      "varietes",
      "chanteur"
     ],
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379545", "citation": "Émissions de variétés (art. 5.14.2) Répétitions effectuées en dehors de la journée d'enregistrement : Répétition d'une durée inférieure ou égale à 4 heures 184,90 € Répétition d'une durée supérieure à 4 heures 289,23 € Enregistrement 419,31 €"},
     "note": "annexe 6, bareme de l'annexe II, modifie par l'avenant n° 20, art. 3.4 -- au 01/01/2025",
     "valeurs": {
      "repetition de 4 h ou moins": 184.9,
@@ -2778,6 +2804,7 @@
     "categories": [
      "musicien"
     ],
+    "source": {"sources": [{"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379544", "citation": "Au 1er juillet 2025 : Définition du cachet Montant Cachet initial (avec un mode) pour un service de 3 heures 111,35 € Cachet initial (avec un mode) pour un service de 4 heures 144,76 € Cachet initial (avec un mode) pour un engagement à la journée (isolée, enregistrement) 239,42 € Cachet initial (avec un mode) pour un engagement à la journée (3 journées isolées ou 2 journées consécutives sur 7 jours) 228,28 € Cachet initial (avec un mode) pour un engagement à la journée (5 journées isolées ou 3 journées consécutives sur 7 jours) 200,43 €"}, {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379544", "citation": "Répétitions : cachet pour un service de 3 heures 66,81 € Répétitions : cachet pour un double service de 3 heures 111,35 €"}, {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379544", "citation": "Abattement pour ensemble : les cachets définis ci-dessus sont abattus dans les cas d'une interprétation en ensemble. Cet abattement est fonction du nombre de musiciens participant à l'ensemble + 10 musiciens = – 10 % + 20 musiciens = – 15 % + 30 musiciens = – 20 % + 40 musiciens = – 25 %"}]},
     "note": "accord du 16/09/2015, titre II, art. 4, modifie par l'avenant n° 20, art. 3.3 -- au 01/07/2025",
     "abattement_max": 25,
     "abattement_motif": "ensemble de 10 musiciens ou plus : -10 %, -15 % a 20, -20 % a 30, -25 % a 40 et plus -- la taille de l'ensemble ne se lit pas sur la paie",
@@ -2800,6 +2827,7 @@
     "categories": [
      "figurant"
     ],
+    "source": {"sources": [{"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379542", "citation": "ensemble de 30 personnes ou plus 96,00 €"}, {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379542", "citation": "ensemble de moins de 30 personnes 98,00 €"}]},
     "note": "avenant n° 20, art. 3.1, au 01/01/2025 : cachet minimum journalier",
     "valeurs": {
      "figurant, ensemble de 30 ou plus": 96.0,
@@ -2815,6 +2843,7 @@
     "categories": [
      "doublure_lumiere"
     ],
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000051379542", "citation": "Doublure lumière 122,00 €"},
     "note": "avenant n° 20, art. 3.1, au 01/01/2025 : cachet minimum journalier",
     "valeurs": {
      "doublure lumiere": 122.0
@@ -2832,6 +2861,7 @@
     "si_spectacle": {
      "genre_audiovisuel": "fiction"
     },
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000049496200", "citation": "salaire minimum journalier (pour 9 heures de travail journalier) : 300,07 €"},
     "note": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
     "valeurs": {
      "journee de 9 h": 300.07
@@ -2849,6 +2879,7 @@
     "si_spectacle": {
      "genre_audiovisuel": "fiction"
     },
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000049496200", "citation": "salaire minimum hebdomadaire (pour 45 heures de travail hebdomadaire) : 1 500,96 €"},
     "note": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
     "valeurs": {
      "semaine de 45 h": 1500.96
@@ -2866,6 +2897,7 @@
     "si_spectacle": {
      "genre_audiovisuel": "fiction"
     },
+    "source": {"fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642", "emetteur": "convention", "article": "KALIARTI000049496200", "citation": "salaire minimum mensuel (pour 45 heures de travail par semaine) : 5 250,04 €"},
     "note": "accord du 15/09/2023 relatif aux realisateurs, annexe A (fiction), au 01/11/2023",
     "valeurs": {
      "mois (semaines de 45 h)": 5250.04
