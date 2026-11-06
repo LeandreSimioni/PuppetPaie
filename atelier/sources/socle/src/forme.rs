@@ -122,8 +122,8 @@ pub fn decimal_opt<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<crat
     <Option<Nombre> as serde::Deserialize>::deserialize(d).map(|n| n.map(|n| n.0))
 }
 
-/// UN TEXTE QUI PEUT MANQUER : absent ou nul, il est vide (`None`) ; un texte vide `""` n'est pas le vide, il se refuse.
-/// `#[serde(deserialize_with = "socle::forme::texte_opt")]` (la cle s'ecrit, nulle)..
+/// UN TEXTE QUI PEUT ETRE VIDE : nul, il est vide (`None`) ; un texte vide `""` n'est pas le vide, il se refuse.
+/// `#[serde(deserialize_with = "socle::forme::texte_opt")]` (la cle s'ecrit, nulle).
 pub fn texte_opt<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
     match <Option<String> as serde::Deserialize>::deserialize(d)? {
         Some(t) if t.is_empty() => Err(serde::de::Error::custom("un texte vide ne dit rien : le vide s'écrit absent ou null")),
