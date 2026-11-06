@@ -73,7 +73,10 @@ const ACCENTS: [(&str, char); 38] = [
 
 /// La lettre de base d'un caractere accentue (NFD sans les marques), ou lui-meme.
 fn sans_diacritique(c: char) -> char {
-    ACCENTS.iter().find(|(lettres, _)| lettres.contains(c)).map_or(c, |(_, base)| *base)
+    match ACCENTS.iter().find(|(lettres, _)| lettres.contains(c)) {
+        Some((_, base)) => *base,
+        None => c,
+    }
 }
 
 /// Sans les accents (NFD, marques retirees). Les lettres
@@ -147,8 +150,12 @@ pub fn ascii_nfkd(v: &str) -> String {
             .map(|i| crate::nfkd_ascii::TABLE[i])
         {
             if avance {
-                let base = t.chars().next().unwrap_or(' ') as u32;
-                ascii.push(char::from_u32(base + (cp - a)).unwrap_or(' '));
+                // Une plage qui avance (`a` a `b` vers `t`, `t+1`...) : le caractere de meme rang depuis le premier de `t`.
+                let decale = t.chars().next().and_then(|base| char::from_u32(base as u32 + (cp - a)));
+                ascii.push(match decale {
+                    Some(c) => c,
+                    None => ' ',
+                });
             } else {
                 ascii.push_str(t);
             }
@@ -189,8 +196,14 @@ pub fn salarie_nomme(nom: &str, nom_affichage: &str, prenom: &str, prenom_affich
 /// fichier déclaré (DSN, bordereau, format d'un organisme) écrit ses montants dans la forme que sa norme impose.
 pub fn euros(x: rust_decimal::Decimal) -> String {
     let t = crate::num::eur2(x).to_string();
-    let (signe, t) = t.strip_prefix('-').map_or(("", t.as_str()), |r| ("-", r));
-    let (entier, centimes) = t.split_once('.').unwrap_or((t, "00"));
+    let (signe, t) = match t.strip_prefix('-') {
+        Some(r) => ("-", r),
+        None => ("", t.as_str()),
+    };
+    let (entier, centimes) = match t.split_once('.') {
+        Some(e_c) => e_c,
+        None => (t, "00"),
+    };
     let mut milliers = String::new();
     for (i, c) in entier.chars().enumerate() {
         if i > 0 && (entier.len() - i) % 3 == 0 {
@@ -199,17 +212,6 @@ pub fn euros(x: rust_decimal::Decimal) -> String {
         milliers.push(c);
     }
     format!("{}{},{}\u{a0}€", signe, milliers, centimes)
-}
-
-/// `euros` d'une valeur (`12.8`, `"12,80"`) ; rien pour une valeur absente, le texte tel quel s'il n'est pas un nombre.
-pub fn euros_de(v: &serde_json::Value) -> String {
-    let x = match v {
-        serde_json::Value::Null => return String::new(),
-        serde_json::Value::String(s) => s.trim().replace(',', ".").parse().ok(),
-        serde_json::Value::Number(_) => crate::num::dec(v).ok(),
-        _ => None,
-    };
-    x.map_or_else(|| crate::valeur::valeur_en_texte(v), euros)
 }
 
 /// UNE QUANTITÉ TELLE QU'ON LA LIT (des heures, des jours, un nombre de cachets) : la virgule décimale, sans zéro

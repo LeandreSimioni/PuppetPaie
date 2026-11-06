@@ -263,7 +263,7 @@ pub fn taux_par_defaut(bareme: &Pile, montant: Decimal, le: Option<Jour>, zone: 
     Ok(("0.00".to_string(), g.genre.clone()))
 }
 
-/// Le decimal d'un flottant du bareme, son echelle gardee (`socle::num::dec_avec_echelle`).
+/// Le decimal d'un flottant du bareme, son echelle gardee (sa forme ecrite, `socle::date::repr_flottant`).
 fn dec_avec_echelle_f64(x: f64) -> Resultat<Decimal> {
     let s = socle::date::repr_flottant(x);
     s.parse::<Decimal>().or_else(|_| Decimal::from_scientific(&s)).map_err(|_| format!("nombre hors de portee : {}", s))

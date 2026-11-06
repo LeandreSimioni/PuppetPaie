@@ -29,7 +29,7 @@ fn resoudre_metier_et_statut_non_cadre() {
             };
             *voulu = resoudre(&code, cadre, fem == "True", "").map(|c| serde_json::to_value(c).unwrap()).unwrap_or_else(|m| {
                 refus += 1;
-                json!({ "refus": socle::echec::separer(&m).0 })
+                json!({ "refus": socle::echec::phrase_de(&m) })
             });
             resolus += 1;
         }

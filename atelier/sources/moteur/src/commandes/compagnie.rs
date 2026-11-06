@@ -72,7 +72,7 @@ pub fn mode_actif() -> bool {
     std::fs::read_to_string(chemin_mode())
         .ok()
         .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-        .and_then(|v| v.get("actif").map(socle::fichiers::vrai))
+        .and_then(|v| v.get("actif").map(documents::valeur::vrai))
         .unwrap_or(false)
 }
 

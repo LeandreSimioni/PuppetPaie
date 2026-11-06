@@ -1231,7 +1231,7 @@ fn avenant_d_un_contrat_parti(ctx: &Contexte, c: &ChargeAvenant) -> R<Option<Ave
     }
     let modifications = modifs
         .into_iter()
-        .map(|x| ArticleModifie { numero: Some(x.numero), article: x.article, avant: x.avant.iter().map(socle::valeur::valeur_en_texte).collect(), apres: x.apres, blocs: x.blocs, phrase: None, jour: None })
+        .map(|x| ArticleModifie { numero: Some(x.numero), article: x.article, avant: x.avant.iter().map(documents::valeur::valeur_en_texte).collect(), apres: x.apres, blocs: x.blocs, phrase: None, jour: None })
         .collect();
     let nomme = ContratNomme::de(p)?;
     Ok(Some(AvenantLu {

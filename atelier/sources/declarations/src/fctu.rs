@@ -8,13 +8,14 @@
 use serde_json::Value;
 
 use droit::contexte::{aujourdhui, Contexte};
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{en_texte, vrai};
 use crate::dsn::{
     autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, primes_et_indemnites,
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use engagement::Engagement;
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::repr;
 use socle::num::Resultat;
 
 pub const NATURE: &str = "07";

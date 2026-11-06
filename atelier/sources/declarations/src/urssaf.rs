@@ -6,7 +6,8 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
-use socle::fichiers::{dossier_du_code, json_en_cache};
+use socle::fichiers::dossier_du_code;
+use documents::valeur::json_en_cache;
 use socle::num::Resultat;
 
 /// `urssaf-dpae-base.json`.

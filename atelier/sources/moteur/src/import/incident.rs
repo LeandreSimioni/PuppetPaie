@@ -83,7 +83,7 @@ fn vocabulaire() -> &'static HashSet<String> {
             }
         }
         let chemin = socle::fichiers::dossier_du_code().join(crate::import::bulletin_lu::FICHIER_TABLE);
-        if let Ok(t) = socle::fichiers::json_en_cache(&chemin) {
+        if let Ok(t) = documents::valeur::json_en_cache(&chemin) {
             parcourir(&t, &mut v);
         }
         v

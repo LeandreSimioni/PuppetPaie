@@ -215,7 +215,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
         let calcul = engagement::vue_requise(&racine, &mois.to_string())
             .and_then(|d| engagement::pour_l_ecran(&ctx, &d))
             .and_then(|s| s.paies.iter().map(|p| p.canon(&ctx)).collect::<Result<Vec<_>, _>>())
-            .map_or_else(|m| json!({"refus": socle::echec::separer(&m).0}), |v| json!({"paies": v}));
+            .map_or_else(|m| json!({"refus": socle::echec::phrase_de(&m)}), |v| json!({"paies": v}));
         paies.insert(mois.to_string(), masquer(calcul, &r));
     }
     json!({"paies": paies, "fichiers": par_fichier, "copies_avant": avant})

@@ -11,7 +11,7 @@ use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::num::{q2, Decimal};

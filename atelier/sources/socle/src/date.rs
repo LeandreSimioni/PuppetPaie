@@ -6,8 +6,6 @@
 //! et un format entame ne revient pas en arriere (`20260315` n'est pas lu en `JJMMAAAA`). Ce parcours est celui des
 //! fichiers deja ecrits : une date lue aujourd'hui se lit comme elle s'est toujours lue.
 
-use serde_json::Value;
-
 use crate::num::Resultat;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -53,7 +51,7 @@ impl Jour {
         // La forme qu'ecrit le moteur (`iso`), lue d'emblee : c'est celle que le premier format apparierait.
         let o = s.as_bytes();
         if o.len() == 10 && o[4] == b'-' && o[7] == b'-' && [0, 1, 2, 3, 5, 6, 8, 9].iter().all(|&i| o[i].is_ascii_digit()) {
-            let n = |a: usize, b: usize| s[a..b].parse::<u32>().unwrap_or(0);
+            let n = |a: usize, b: usize| o[a..b].iter().fold(0u32, |n, c| n * 10 + u32::from(c - b'0'));
             if let Some(j) = Jour::nouveau(n(0, 4) as i32, n(5, 7), n(8, 10)) {
                 return Ok(j);
             }
@@ -177,19 +175,6 @@ pub fn date_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into
 pub const HORS_CALENDRIER: &str = "date hors du calendrier (années 1 à 9999)";
 
 
-/// Une date lue dans une valeur JSON : une chaine, un nombre (lu en texte), ou la
-/// date detaillee `{"jour": ..., "lieu": ...}` qui se lit par son `jour`.
-pub fn d(v: &Value) -> Resultat<Jour> {
-    match v {
-        Value::Object(o) => match o.get("jour") {
-            Some(j) => d(j),
-            None => Err(crate::echec::a_la_cle("Une date ne dit pas son jour.", "jour", forme_ecrite(v))),
-        },
-        Value::String(s) => Jour::lire(s),
-        autre => Jour::lire(&en_texte(autre)),
-    }
-}
-
 // ------------------------------------------------------------ la lecture d'une date
 
 #[derive(Clone, Copy)]
@@ -212,7 +197,7 @@ const FORMATS: [&[Champ]; 5] = [
 ];
 
 fn chiffre(c: &[char], i: usize) -> bool {
-    c.get(i).map_or(false, |x| x.is_ascii_digit())
+    c.get(i).is_some_and(|x| x.is_ascii_digit())
 }
 
 /// Les longueurs que le champ peut avaler en `pos`, dans l'ordre des
@@ -267,7 +252,10 @@ fn longueurs(champ: Champ, c: &[char], pos: usize) -> Vec<usize> {
 }
 
 fn nombre(c: &[char], de: usize, len: usize) -> u32 {
-    c[de..de + len].iter().collect::<String>().trim().parse().unwrap_or(0)
+    match c[de..de + len].iter().collect::<String>().trim().parse() {
+        Ok(n) => n,
+        Err(_) => 0,
+    }
 }
 
 /// Premier appariement de l'expression reguliere (avec retour sur les
@@ -348,8 +336,7 @@ pub fn repr_flottant(x: f64) -> String {
     if a != 0.0 && !(1e-4..1e16).contains(&a) {
         // `{:e}` donne `1e-5` ; la forme ecrite est `1e-05`.
         let t = format!("{:e}", x);
-        let (m, e) = t.split_once('e').unwrap_or((&t, "0"));
-        let e: i32 = e.parse().unwrap_or(0);
+        let (m, e) = crate::ecriture::scientifique(&t);
         return format!("{}e{}{:02}", m, if e < 0 { '-' } else { '+' }, e.abs());
     }
     let t = format!("{}", x);
@@ -357,38 +344,6 @@ pub fn repr_flottant(x: f64) -> String {
         t
     } else {
         format!("{}.0", t)
-    }
-}
-
-/// La forme ecrite d'une valeur dans un message : objet, liste, texte cite, nombre, `True`, `None`.
-pub fn forme_ecrite(v: &Value) -> String {
-    match v {
-        Value::Null => "None".into(),
-        Value::Bool(true) => "True".into(),
-        Value::Bool(false) => "False".into(),
-        Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                i.to_string()
-            } else if let Some(u) = n.as_u64() {
-                u.to_string()
-            } else {
-                repr_flottant(n.as_f64().unwrap_or(f64::NAN))
-            }
-        }
-        Value::String(s) => repr_texte(s),
-        Value::Array(a) => format!("[{}]", a.iter().map(forme_ecrite).collect::<Vec<_>>().join(", ")),
-        Value::Object(o) => format!(
-            "{{{}}}",
-            o.iter().map(|(k, v)| format!("{}: {}", repr_texte(k), forme_ecrite(v))).collect::<Vec<_>>().join(", ")
-        ),
-    }
-}
-
-/// Une valeur en texte : un texte tel quel, le reste sous sa forme ecrite.
-pub fn en_texte(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        autre => forme_ecrite(autre),
     }
 }
 
@@ -430,7 +385,10 @@ pub fn jour_iso(texte: &str) -> Option<Jour> {
 
 /// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (ou d'un instant, par ses dix premiers caracteres) ; le texte tel quel s'il ne se lit pas.
 pub fn jj_mm_aaaa(iso: &str) -> String {
-    jour_iso(&iso.chars().take(10).collect::<String>()).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|| iso.to_string())
+    match jour_iso(&iso.chars().take(10).collect::<String>()) {
+        Some(j) => j.jj_mm_aaaa(),
+        None => iso.to_string(),
+    }
 }
 
 /// UN JOUR DANS UNE DONNEE LUE (`serde`) : la forme qu'ecrit le moteur, `AAAA-MM-JJ`, et elle seule ; il s'ecrit de meme.

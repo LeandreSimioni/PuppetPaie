@@ -19,9 +19,10 @@ use serde_json::{json, Map, Value};
 
 use socle::texte::sans_accent;
 use socle::date::Jour;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use socle::fichiers::dossier_du_code;
+use documents::valeur::{json_en_cache, vrai};
 use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
@@ -1156,7 +1157,7 @@ fn tranche_de(v: &Value, a: usize, b: usize) -> R<Value> {
         Value::String(t) => Ok(Value::String(tranche(t, a, b))),
         Value::Array(l) => Ok(Value::Array(l.iter().skip(a).take(b.saturating_sub(a)).cloned().collect())),
         Value::Object(_) => Err(erreur("TypeError", socle::fichiers::attendu("un texte", "dict"))),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte", documents::valeur::nom_type(autre)))),
     }
 }
 
@@ -1167,7 +1168,7 @@ fn eq_py_texte(t: &Value, texte: &str) -> bool {
 
 /// `a + b` sur ce qu'un JSON porte.
 fn additionner(a: &Value, b: &Value) -> R<Value> {
-    use socle::valeur::nom_type;
+    use documents::valeur::nom_type;
     match (a, b) {
         (Value::String(x), Value::String(y)) => Ok(Value::String(format!("{}{}", x, y))),
         (Value::String(_), _) => Err(erreur("TypeError", format!("can only concatenate str (not \"{}\") to str", nom_type(b)))),
@@ -1181,7 +1182,7 @@ fn additionner(a: &Value, b: &Value) -> R<Value> {
             };
             match (ent(a), ent(b)) {
                 (Some(x), Some(y)) => Ok(json!(x + y)),
-                _ => Ok(json!(socle::valeur::nombre(a).unwrap_or(0.0) + socle::valeur::nombre(b).unwrap_or(0.0))),
+                _ => Ok(json!(documents::valeur::nombre(a).unwrap_or(0.0) + documents::valeur::nombre(b).unwrap_or(0.0))),
             }
         }
         _ => Err(erreur("TypeError", format!("addition impossible : {} et {}", socle::fichiers::nature(nom_type(a)), socle::fichiers::nature(nom_type(b))))),
@@ -1194,7 +1195,7 @@ fn texte_de(d: &Map<String, Value>, cle: &str) -> R<String> {
         None | Some(Value::Null) => Ok(String::new()),
         Some(Value::String(s)) => Ok(s.clone()),
         Some(v) if !vrai(v) => Ok(String::new()),
-        Some(v) => Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(v)))),
+        Some(v) => Err(erreur("AttributeError", socle::fichiers::attendu("un texte", documents::valeur::nom_type(v)))),
     }
 }
 
@@ -1426,7 +1427,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         let (siret, siren, nic) = (brut("siret"), brut("siren"), brut("nic"));
         if vrai(&siret) && vrai(&siren) && vrai(&nic) {
             let somme = additionner(&siren, &nic)?;
-            if !socle::valeur::valeurs_egales(&siret, &somme) {
+            if !documents::valeur::valeurs_egales(&siret, &somme) {
                 out.push(anomalie("siret", "erreur", format!("SIRET != SIREN + NIC ({})", valeur_en_texte(&somme))));
             }
         }
@@ -1435,7 +1436,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                 Value::String(t) => t.chars().count(),
                 Value::Array(a) => a.len(),
                 Value::Object(o) => o.len(),
-                autre => return Err(erreur("TypeError", socle::fichiers::attendu("un texte ou une liste", socle::valeur::nom_type(autre)))),
+                autre => return Err(erreur("TypeError", socle::fichiers::attendu("un texte ou une liste", documents::valeur::nom_type(autre)))),
             };
             if longueur == 14 {
                 match &siret {
@@ -1444,7 +1445,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                             out.push(anomalie("siret", "erreur", "ce numéro ne peut pas être un SIRET : un chiffre est probablement mal tapé"));
                         }
                     }
-                    autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(autre)))),
+                    autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", documents::valeur::nom_type(autre)))),
                 }
             }
         }

@@ -7,7 +7,7 @@ use serde_json::json;
 use droit::contexte::Contexte;
 use envois::suites::Suites;
 use socle::echec::R;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 
 /// Ce que les suites laissent a dire : ce qu'il reste a faire, et ce qui n'a pas pu se faire.
 #[derive(Default)]
@@ -54,7 +54,7 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
     use serde_json::Value;
     let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| !s.nir.texte().is_empty()).map(|(cle, s)| json!([cle, s.nir.texte()])).collect();
     let journal = envois::journal::lu(&ctx.racine).map_err(|m| socle::echec::erreur("ValueError", m))?;
-    let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(documents::valeur::valeur_en_texte).unwrap_or_default();
     let mois_declare = |retour: &Value| -> Option<String> {
         let flux = texte(retour.get("flux"));
         let l = journal.lignes.iter().find(|l| !flux.is_empty() && l.flux() == flux)?;

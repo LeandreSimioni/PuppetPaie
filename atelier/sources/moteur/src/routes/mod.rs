@@ -20,10 +20,10 @@ use serde_json::{json, Map, Value};
 
 use socle::date::repr_texte;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
+use ::documents::valeur::vrai;
 use droit::contexte::Contexte;
 use socle::num::Resultat;
-use socle::valeur::{valeur_ecrite, valeur_en_texte};
+use ::documents::valeur::{valeur_ecrite, valeur_en_texte};
 use crate::service::contexte;
 use catalogue::Route;
 
@@ -236,7 +236,7 @@ fn servir(o: &HashMap<String, String>, route: Route, charge: &Value) -> Result<V
     match rendu {
         Err(Echec { classe, message }) if est_une_ecriture(route) && !dans(coffre::ROUTES) && !dans(filet::ROUTES) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) => {
             // Un refus qui porte une donnee a part (l'etat d'un mois, les anomalies d'une fiche, un chemin) se dit seul.
-            let message = if socle::echec::separer(&message).1.is_empty() { let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default(); message + &suite } else { message };
+            let message = if ::documents::valeur::separer(&message).1.is_empty() { let suite = declarations::demarrage::a_la_suite(&ctx, &message).unwrap_or_default(); message + &suite } else { message };
             Err(Echec { classe, message })
         }
         autre => autre,
@@ -251,7 +251,7 @@ fn reponse(racine: Option<&Path>, route: &str, rendu: Result<Value, Echec>) -> V
     match rendu {
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(Echec { classe, message }) => {
-            let (phrase, plus) = socle::echec::separer(&message);
+            let (phrase, plus) = ::documents::valeur::separer(&message);
             if let Some(r) = racine {
                 refus_a_sa_place(r, route, &phrase);
             }

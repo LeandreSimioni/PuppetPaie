@@ -14,12 +14,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Map, Value};
 
 use droit::contexte::Contexte;
-use socle::valeur::valeur_en_texte;
+use crate::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
 use crate::ecritures_comptables::{ecritures_du_mois, Ecriture};
 use crate::libelles_courts::{Courts, Depasse, FormatBorne, Quoi};
-use socle::fichiers::vrai;
+use crate::valeur::vrai;
 use socle::texte::euros;
 use socle::num::{add, div, eur, eur2, mul, sub, zero2, Decimal};
 use crate::tableaux_export::{
@@ -981,7 +981,7 @@ impl ChoixCompta {
         if !chemin.exists() {
             return Ok(ChoixCompta::default());
         }
-        socle::forme::lire(&socle::fichiers::lire_json_echec(&chemin)?, "Le logiciel du comptable retenu (config/compta.json) ne se lit pas.").map_err(|m| erreur("ValueError", m))
+        socle::forme::lire(&crate::valeur::lire_json_echec(&chemin)?, "Le logiciel du comptable retenu (config/compta.json) ne se lit pas.").map_err(|m| erreur("ValueError", m))
     }
 
     /// Le choix ecrit dans `config/compta.json`.

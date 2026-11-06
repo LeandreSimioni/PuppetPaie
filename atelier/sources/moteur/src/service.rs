@@ -130,7 +130,7 @@ pub fn en_texte(route: &str, rep: &Value) -> String {
         }
         return lignes.iter().map(|p| format!("{}\n", p)).collect();
     }
-    let phrase = rep.get("erreur").map(socle::valeur::valeur_en_texte).unwrap_or_default();
+    let phrase = rep.get("erreur").map(documents::valeur::valeur_en_texte).unwrap_or_default();
     let classe = rep.get("classe").and_then(Value::as_str).unwrap_or("");
     let corriger = crate::routes::catalogue::catalogue()
         .into_iter()

@@ -446,7 +446,7 @@ fn rejouer_les_gestes(
                     _ => None,
                 };
                 for p in jouees.and_then(Value::as_array).into_iter().flatten() {
-                    r.horloge.push(format!("{} {}", heure(t), socle::valeur::valeur_en_texte(p)));
+                    r.horloge.push(format!("{} {}", heure(t), documents::valeur::valeur_en_texte(p)));
                 }
                 let attendu = g.get("ok") != Some(&Value::Bool(false));
                 if ok != attendu {
@@ -457,7 +457,7 @@ fn rejouer_les_gestes(
                         nom,
                         if ok { "reussit" } else { "refuse" },
                         if attendu { "reussi" } else { "refuse" },
-                        rep.get("erreur").map(|e| format!(" : {}", socle::valeur::valeur_en_texte(e))).unwrap_or_default()
+                        rep.get("erreur").map(|e| format!(" : {}", documents::valeur::valeur_en_texte(e))).unwrap_or_default()
                     ));
                 }
             }
@@ -947,7 +947,7 @@ mod enregistreur {
             ligne.insert("ok".into(), json!(ok));
             // Le refus se garde, pour qui relit le scenario (le rejeu ne compare que `ok`).
             if !ok {
-                ligne.insert("refus".into(), json!(rep.get("erreur").map(socle::valeur::valeur_en_texte).unwrap_or_default()));
+                ligne.insert("refus".into(), json!(rep.get("erreur").map(documents::valeur::valeur_en_texte).unwrap_or_default()));
             }
             self.ecrire(&mut n, ligne, quand);
             rep

@@ -57,7 +57,7 @@ thread_local! {
 }
 
 fn etat() -> std::sync::MutexGuard<'static, Option<Simule>> {
-    SIMULE.lock().unwrap_or_else(|p| p.into_inner())
+    crate::memoire::tenu(&SIMULE)
 }
 
 fn aleas_fixes_poses() -> bool {
@@ -70,13 +70,19 @@ fn aleas_fixes_ici() -> bool {
 }
 
 fn montre() -> f64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64())
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(d) => d.as_secs_f64(),
+        Err(_) => 0.0,
+    }
 }
 
 /// L'heure du mur, en millisecondes depuis 1970 : celle de la page (`Date.now()`), jamais le temps simule. Elle date ce
 /// qu'on garde en memoire pour un diagnostic (les echecs, le fil des actions), pas ce qu'on ecrit.
 pub fn maintenant_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(d) => d.as_millis() as u64,
+        Err(_) => 0,
+    }
 }
 
 /// L'instant present, en secondes depuis 1970 (UTC) : fige pour la route de ce fil, ou simule s'il coule, sinon la montre
@@ -97,7 +103,7 @@ pub fn secondes() -> f64 {
 fn au_jour_pose(t: f64) -> f64 {
     static DECALAGE: Mutex<Option<(String, f64)>> = Mutex::new(None);
     let Some(pose) = std::env::var("PUPPETPAIE_AUJOURDHUI").ok().filter(|v| !v.is_empty()) else { return t };
-    let mut d = DECALAGE.lock().unwrap_or_else(|p| p.into_inner());
+    let mut d = crate::memoire::tenu(&DECALAGE);
     if let Some((_, decalage)) = d.as_ref().filter(|(lu, _)| *lu == pose) {
         return t + decalage;
     }
@@ -211,7 +217,11 @@ pub fn aleas(o: &mut [u8]) -> Result<(), String> {
     let tirage = aleas_fixes_ici().then(|| {
         let rang = TIRAGES.get() + 1;
         TIRAGES.set(rang);
-        (rang, FIGE.get().map_or(0, f64::to_bits))
+        let graine = match FIGE.get() {
+            Some(t) => t.to_bits(),
+            None => 0,
+        };
+        (rang, graine)
     });
     let Some((rang, graine)) = tirage else {
         return getrandom::fill(o).map_err(|e| e.to_string());

@@ -38,7 +38,7 @@
 //! franchissement de L. 130-1, II (L. 6242-1, V, le dit des deux seuils).
 
 use droit::contexte::Contexte;
-use socle::fichiers::lire_json;
+use documents::valeur::lire_json;
 use socle::texte::{euros, virgule};
 use socle::num::{add, div, mul, Decimal, Resultat};
 use serde_json::Value;
@@ -127,7 +127,7 @@ pub fn taux(quotient: Decimal, plus_de_deux_mille: bool) -> Option<Decimal> {
 fn effectif_du_118(effectifs: &Value, annee: i32, code: &str) -> Resultat<Option<Decimal>> {
     match effectifs.get("annees").and_then(|a| a.get(annee.to_string())).and_then(|a| a.get(code)).and_then(|c| c.get("valeur")) {
         None | Some(Value::Null) => Ok(None),
-        Some(v) => Ok(Some(socle::num::dec_avec_echelle(v)?)),
+        Some(v) => Ok(Some(documents::valeur::dec_avec_echelle(v)?)),
     }
 }
 

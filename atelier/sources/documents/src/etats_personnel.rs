@@ -9,12 +9,12 @@ use std::collections::BTreeSet;
 use serde_json::Value;
 
 use droit::contexte::Contexte;
-use socle::valeur::valeur_en_texte;
+use crate::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{
     dossier_exports, ecrire_fini, fiche_texte, finir, titre_spectacle, Demande, Lecture, Periode,
 };
-use socle::fichiers::vrai;
+use crate::valeur::vrai;
 use socle::num::{eur2, Decimal};
 use crate::tableaux_export::{col_m, col_t, jj, libelle_mois, qui, qui_souple, refus, sections_de, Ligne, Section, Tableau, Val, R};
 

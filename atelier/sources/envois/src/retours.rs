@@ -967,7 +967,7 @@ fn json_lire(texte: &str) -> Resultat<Value> {
 fn lire_cle<'a>(v: &'a Value, cle: &str) -> Resultat<Option<&'a Value>> {
     match v {
         Value::Object(m) => Ok(m.get(cle)),
-        autre => Err(echec("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
+        autre => Err(echec("TypeError", socle::fichiers::attendu("un objet", documents::valeur::nom_type(autre)))),
     }
 }
 
@@ -978,7 +978,7 @@ fn un_ou_plusieurs(v: Option<&Value>) -> Resultat<Vec<Value>> {
         None | Some(Value::Null) => Ok(Vec::new()),
         Some(o @ Value::Object(_)) => Ok(vec![o.clone()]),
         Some(Value::Array(a)) => Ok(a.clone()),
-        Some(autre) => Err(echec("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
+        Some(autre) => Err(echec("TypeError", socle::fichiers::attendu("une liste", documents::valeur::nom_type(autre)))),
     }
 }
 
@@ -989,7 +989,7 @@ fn liste_retours_json(d: &Value) -> Resultat<Vec<Value>> {
         let idf = lire_cle(f, "id")?.cloned().unwrap_or(Value::Null);
         for r in &un_ou_plusieurs(lire_cle(f, "retour")?)? {
             let Value::Object(m) = r else {
-                return Err(echec("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(r))));
+                return Err(echec("TypeError", socle::fichiers::attendu("un objet", documents::valeur::nom_type(r))));
             };
             let mut m = m.clone();
             m.insert("flux".into(), idf.clone());

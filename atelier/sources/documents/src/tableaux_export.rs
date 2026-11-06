@@ -21,8 +21,7 @@ use rust_xlsxwriter::{Format, FormatAlign, Workbook, Worksheet};
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use socle::date::forme_ecrite;
-use socle::valeur::valeur_en_texte;
+use crate::valeur::{forme_ecrite, valeur_en_texte};
 use socle::echec::erreur;
 use socle::num::Decimal;
 use socle::echec::Echec;
@@ -69,7 +68,7 @@ impl Val {
     pub fn decimal(&self) -> R<Decimal> {
         let t = match self {
             Val::Dec(d) => return Ok(*d),
-            Val::Num(v) => return socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
+            Val::Num(v) => return crate::valeur::dec(v).map_err(|m| erreur("InvalidOperation", m)),
             Val::Txt(s) => s,
         };
         socle::num::decimal_lu(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))

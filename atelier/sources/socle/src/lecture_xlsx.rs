@@ -60,7 +60,10 @@ impl Cellule {
 
 /// Une case lue en texte : `None` pour une case vide.
 pub fn cellule_en_texte(c: &Option<Cellule>) -> String {
-    c.as_ref().map_or_else(|| "None".to_string(), Cellule::en_texte)
+    match c {
+        Some(c) => c.en_texte(),
+        None => "None".to_string(),
+    }
 }
 
 struct Classeur {
@@ -114,7 +117,7 @@ fn enfants<'a, 'i: 'a>(n: roxmltree::Node<'a, 'i>, nom: &'a str) -> impl Iterato
 /// Le texte d'un `<si>` ou d'un `<is>` : tous ses `<t>`, bout a bout (texte riche et lecture phonetique compris, comme
 /// `iter("{m}t")`).
 fn texte_de(n: roxmltree::Node) -> String {
-    n.descendants().filter(|d| est(d, NS_M, "t")).map(|t| t.text().unwrap_or("")).collect()
+    n.descendants().filter(|d| est(d, NS_M, "t")).filter_map(|t| t.text()).collect()
 }
 
 /// `C12` -> 2 (colonnes comptees depuis 0).
@@ -152,11 +155,14 @@ fn noms_des_feuilles(nom: &str, texte: &str) -> Resultat<Vec<(String, Option<Str
     let doc = analyser(nom, "xl/workbook.xml", texte)?;
     let sheets = enfant(doc.root_element(), "sheets")
         .ok_or_else(|| crate::echec::avec("Ce classeur Excel n'a aucune feuille lisible.", APart { chemin: Some(nom.to_string()), ..APart::default() }))?;
-    Ok(sheets
+    sheets
         .children()
         .filter(|n| n.is_element())
-        .map(|f| (f.attribute("name").unwrap_or("").to_string(), f.attribute((NS_R, "id")).map(str::to_string)))
-        .collect())
+        .map(|f| match f.attribute("name") {
+            Some(n) => Ok((n.to_string(), f.attribute((NS_R, "id")).map(str::to_string))),
+            None => Err(crate::echec::avec("Une feuille de ce classeur Excel n'a pas de nom.", APart { chemin: Some(nom.to_string()), ..APart::default() })),
+        })
+        .collect()
 }
 
 /// Les lignes de la feuille nommee, de haut en bas, chacune la liste de ses cases de la premiere colonne a la derniere
@@ -242,7 +248,10 @@ pub fn lignes(chemin: &Path, feuille: &str) -> Resultat<Vec<Ligne>> {
         while (rangs.len() as i64) < numero - 1 {
             rangs.push(Vec::new());
         }
-        let largeur = cellules.keys().next_back().map_or(0, |m| m + 1);
+        let largeur = match cellules.keys().next_back() {
+            Some(m) => m + 1,
+            None => 0,
+        };
         rangs.push((0..largeur).map(|j| cellules.get(&j).cloned()).collect());
     }
     Ok(rangs)

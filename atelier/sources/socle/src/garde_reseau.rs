@@ -38,17 +38,34 @@ pub enum Sortie {
 
 /// Le nom d'hote d'une adresse (`https://hote:port/chemin` -> `hote` ; `[::1]` -> `::1`).
 pub fn hote_de(url: &str) -> String {
-    let reste = url.split_once("://").map(|(_, r)| r).unwrap_or(url);
-    let autorite = reste.split(['/', '?', '#']).next().unwrap_or("");
-    let hote = autorite.rsplit_once('@').map(|(_, h)| h).unwrap_or(autorite);
-    let nom = if let Some(h) = hote.strip_prefix('[') { h.split(']').next().unwrap_or(h) } else { hote.split(':').next().unwrap_or(hote) };
+    let reste = match url.split_once("://") {
+        Some((_, r)) => r,
+        None => url,
+    };
+    let autorite = avant(reste, &['/', '?', '#']);
+    let hote = match autorite.rsplit_once('@') {
+        Some((_, h)) => h,
+        None => autorite,
+    };
+    let nom = match hote.strip_prefix('[') {
+        Some(h) => avant(h, &[']']),
+        None => avant(hote, &[':']),
+    };
     nom.to_lowercase()
+}
+
+/// `t` jusqu'au premier de ces caracteres, ou entier.
+fn avant<'a>(t: &'a str, fins: &[char]) -> &'a str {
+    match t.find(fins) {
+        Some(i) => &t[..i],
+        None => t,
+    }
 }
 
 /// Cette machine : `localhost` (et ses sous-noms), 127.0.0.0/8, `::1`.
 pub fn est_locale(hote: &str) -> bool {
     let h = hote.trim_start_matches('[').trim_end_matches(']').to_lowercase();
-    h == "localhost" || h.ends_with(".localhost") || h.parse::<IpAddr>().map(|ip| ip.is_loopback()).unwrap_or(false)
+    h == "localhost" || h.ends_with(".localhost") || h.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback())
 }
 
 /// En essai ? (la variable est posee, meme vide).

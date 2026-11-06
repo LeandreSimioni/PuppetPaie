@@ -10,6 +10,15 @@
 
 use crate::date::Jour;
 
+/// Le jour d'un jour unix ; hors du calendrier (annees 1 a 9999), l'epoque unix, le 01/01/1970 : une horloge qui en
+/// sort n'a pas de date a dire.
+fn jour_unix(jours: i64) -> Jour {
+    match Jour::depuis_jours_unix(jours) {
+        Some(j) => j,
+        None => Jour { an: 1970, mois: 1, jour: 1 },
+    }
+}
+
 /// Le jour unix (nombre de jours depuis le 01/01/1970) du dernier dimanche du
 /// mois `mois` de l'annee `an`.
 fn dernier_dimanche(an: i32, mois: u32) -> i64 {
@@ -22,7 +31,7 @@ fn dernier_dimanche(an: i32, mois: u32) -> i64 {
 /// Le decalage de Paris sur UTC, en secondes, a cet instant (secondes unix).
 pub fn decalage(t: i64) -> i64 {
     let jours = t.div_euclid(86_400);
-    let an = Jour::depuis_jours_unix(jours).map_or(1970, |j| j.an);
+    let an = jour_unix(jours).an;
     let debut = dernier_dimanche(an, 3) * 86_400 + 3_600;
     let fin = dernier_dimanche(an, 10) * 86_400 + 3_600;
     if t >= debut && t < fin {
@@ -37,7 +46,7 @@ pub fn iso_secondes(t: f64) -> String {
     let (local, _) = local_de(t);
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = Jour::depuis_jours_unix(jours).unwrap_or(Jour { an: 1970, mois: 1, jour: 1 });
+    let j = jour_unix(jours);
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60, reste % 60)
 }
 
@@ -76,8 +85,8 @@ pub fn iso_minutes(t: f64) -> String {
     let local = utc + decalage(utc);
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = Jour::depuis_jours_unix(jours).unwrap_or(Jour { an: 1970, mois: 1, jour: 1 });
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60)
+    let j = jour_unix(jours);
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}",j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60)
 }
 
 /// La date de modification d'un fichier : les secondes et la fraction
@@ -91,8 +100,10 @@ pub fn mtime(m: &std::fs::Metadata) -> f64 {
 
 #[cfg(not(unix))]
 pub fn mtime(m: &std::fs::Metadata) -> f64 {
-    let d = m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).unwrap_or_default();
-    d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9
+    match m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()) {
+        Some(d) => d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
+        None => 0.0,
+    }
 }
 
 #[cfg(test)]
@@ -138,7 +149,7 @@ pub fn maintenant_naif() -> i64 {
 pub fn iso_de_naif(local: i64) -> String {
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = Jour::depuis_jours_unix(jours).unwrap_or(Jour { an: 1970, mois: 1, jour: 1 });
+    let j = jour_unix(jours);
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60, reste % 60)
 }
 

@@ -4,10 +4,17 @@
 
 use crate::outils::{code_livre, lire_oracle, oracle};
 use socle::date::Jour;
-use socle::num::dec;
 use droit::pas::{du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+
+/// Le decimal d'un nombre de l'oracle, ou d'un nombre ecrit en texte.
+fn dec(v: &Value) -> socle::num::Resultat<socle::num::Decimal> {
+    match v {
+        Value::String(s) => socle::num::dec_texte(s),
+        autre => socle::num::dec_texte(&autre.to_string()),
+    }
+}
 
 fn attendus() -> Value {
     lire_oracle("pas.json")
@@ -32,8 +39,8 @@ fn montants(a: &Value) -> Vec<socle::num::Decimal> {
 
 fn erreur(e: ErreurPas) -> String {
     match e {
-        ErreurPas::SansGrille(m) => format!("SANS_GRILLE:{}", socle::echec::separer(&m).0),
-        autre => format!("ERREUR:{}", socle::echec::separer(&autre.message()).0),
+        ErreurPas::SansGrille(m) => format!("SANS_GRILLE:{}", socle::echec::phrase_de(&m)),
+        autre => format!("ERREUR:{}", socle::echec::phrase_de(&autre.message())),
     }
 }
 

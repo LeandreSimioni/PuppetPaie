@@ -106,7 +106,7 @@ pub fn lire(racine: &Path) -> R<LibellesCourts> {
     if !p.exists() {
         return Ok(LibellesCourts::default());
     }
-    let v = socle::fichiers::lire_json_echec(&p)?;
+    let v = crate::valeur::lire_json_echec(&p)?;
     socle::forme::lire(&v, "Les libellés courts de la compagnie ne se lisent pas : les enregistrer à nouveau depuis les Exports.").map_err(|m| erreur("ErreurOperation", m))
 }
 

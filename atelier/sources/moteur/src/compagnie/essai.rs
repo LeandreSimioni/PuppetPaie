@@ -390,7 +390,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     }
     let (src, nom) = if deja {
         // La copie dit de quelle fictive elle vient ; `--depuis` ne la change pas (il faudrait une copie neuve).
-        let fiche = socle::fichiers::lire_json(&dossier.join(MARQUEUR)).unwrap_or(Value::Null);
+        let fiche = documents::valeur::lire_json(&dossier.join(MARQUEUR)).unwrap_or(Value::Null);
         (None, fiche.get("depuis").and_then(Value::as_str).unwrap_or("?").to_string())
     } else {
         let s = source(depuis)?;

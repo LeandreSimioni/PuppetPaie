@@ -5,7 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use socle::fichiers::{dossier_du_code, json_en_cache};
+use socle::fichiers::dossier_du_code;
+use documents::valeur::json_en_cache;
 use socle::num::Resultat;
 
 /// `obligations-base.json` : chaque obligation, son delai, son point de depart et ses textes. Ses `quoi` et `note` ne

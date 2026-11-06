@@ -13,7 +13,7 @@ const ORACLE: &str = "calcul-pieces.json";
 /// La forme canonique d'un resultat : ses nombres en texte normalise, ses cles en `_` retirees (sauf `_cle`).
 fn canon_valeur(v: &Value) -> Result<Value, String> {
     Ok(match v {
-        Value::Number(_) => Value::String(socle::num::nombre(socle::num::dec(v)?)),
+        Value::Number(_) => Value::String(socle::num::nombre(documents::valeur::dec(v)?)),
         Value::Array(a) => Value::Array(a.iter().map(canon_valeur).collect::<Result<_, _>>()?),
         Value::Object(o) => Value::Object(
             o.iter()
@@ -35,7 +35,7 @@ fn section(bar: &Value) -> Result<Option<droit::forme_bareme::ReductionGenerale>
 fn essai(r: Result<Value, String>) -> Value {
     match r {
         Ok(v) => json!({"ok": canon_valeur(&v).unwrap()}),
-        Err(e) => json!({"refus": socle::echec::separer(&e).0}),
+        Err(e) => json!({"refus": socle::echec::phrase_de(&e)}),
     }
 }
 
@@ -103,7 +103,7 @@ fn le_seuil_de_smic() {
         let mut vus = Vec::new();
         for b in rel["grilles"][&cle].as_array().unwrap() {
             points += 1;
-            let seuil = Some(&g["seuil"]).filter(|s| !s.is_null()).map(socle::num::dec).transpose();
+            let seuil = Some(&g["seuil"]).filter(|s| !s.is_null()).map(documents::valeur::dec).transpose();
             vus.push(essai(section(bar).and_then(|rg| Ok(au_dela_du_seuil(rg.as_ref(), dec(b.as_str().unwrap()), dec(h), seuil?))).map(Value::Bool)));
         }
         groupe(g, vus);

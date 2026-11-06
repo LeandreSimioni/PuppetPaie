@@ -22,8 +22,7 @@ use crate::interface::{compagnies, suppression};
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place, Refus, MANQUE, OPERATION};
 use crate::routes::catalogue::Route;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 /// Ou ces routes se voient a l'ecran (une place par module).
 const ECRAN: Ecran = Ecran::Dessine(Place::Accueil);

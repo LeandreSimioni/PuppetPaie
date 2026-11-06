@@ -22,8 +22,7 @@ use serde_json::{json, Map, Value};
 use crate::import::dsn_aem::LectureDsn;
 use declarations::dsn_lue::Adhesion;
 use droit::contexte::Contexte;
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 fn texte(v: &Value, k: &str) -> String {
     v.get(k).filter(|x| vrai(x)).map(valeur_en_texte).map(|s| s.trim().to_string()).unwrap_or_default()
@@ -77,7 +76,7 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
         m.insert("code_risque".into(), json!(code));
         m.insert("note".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", socle::mois::Mois::en_clair(mois))));
         let p = ctx.racine.join(droit::contexte::BAREMES).join(format!("{}.json", courante));
-        let mut data = socle::fichiers::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
+        let mut data = documents::valeur::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
         data["taux_atmp"] = Value::Object(m);
         if socle::ecriture::ecrire_json(&p, &data, 2).is_ok() {
             faits.push(format!("Code risque AT/MP {} lu dans la DSN de {} ; son taux de {} est celui de la notification, à saisir.", code, socle::mois::Mois::en_clair(mois), courante));

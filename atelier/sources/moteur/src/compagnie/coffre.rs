@@ -240,7 +240,7 @@ pub fn d64(v: &Value) -> R<Vec<u8>> {
         autre => {
             return Err(echec(
                 "TypeError",
-                socle::fichiers::attendu("un texte en base64", socle::valeur::nom_type(autre)),
+                socle::fichiers::attendu("un texte en base64", documents::valeur::nom_type(autre)),
             ))
         }
     };
@@ -339,7 +339,7 @@ fn entier(v: &Value) -> R<i128> {
         }
         autre => Err(echec(
             "TypeError",
-            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", documents::valeur::nom_type(autre)),
         )),
     }
 }
@@ -350,7 +350,7 @@ fn objet(v: Option<&Value>) -> R<Map<String, Value>> {
         None | Some(Value::Null) => Ok(Map::new()),
         Some(Value::Object(o)) => Ok(o.clone()),
         Some(x) if !vrai(x) => Ok(Map::new()),
-        Some(x) => Err(echec("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(x)))),
+        Some(x) => Err(echec("AttributeError", socle::fichiers::attendu("un objet", documents::valeur::nom_type(x)))),
     }
 }
 

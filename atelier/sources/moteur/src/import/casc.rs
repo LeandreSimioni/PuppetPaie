@@ -18,12 +18,11 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::ecriture::{ecrire_json, repr_flottant};
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{euros_de, lire_json, valeur_en_texte, vrai};
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::{lire_json, vrai};
 use socle::num::Decimal;
-use socle::texte::{euros, euros_de, virgule};
+use socle::texte::{euros, virgule};
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> socle::echec::Echec {

@@ -20,7 +20,7 @@ use std::path::Path;
 
 use serde_json::{json, Value};
 
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use crate::google::{champ, en_texte, encoder, jeton_par_rafraichissement, phrase_de_panne, JETONS};
 use crate::transport::{envoyer, Requete};
 
@@ -329,7 +329,7 @@ fn echapper(nom: &str) -> String {
 fn en_dict(v: &Value) -> Result<&serde_json::Map<String, Value>, ErreurGoogle> {
     match v {
         Value::Object(o) => Ok(o),
-        autre => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
+        autre => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("un objet", documents::valeur::nom_type(autre)))),
     }
 }
 
@@ -340,7 +340,7 @@ fn texte_requis(v: &Value, cle: &str) -> Result<String, ErreurGoogle> {
             Some(x) => Ok(en_texte(x)),
             None => Err(ErreurGoogle::nouvelle("KeyError", socle::fichiers::absent(cle))),
         },
-        autre => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
+        autre => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("un objet", documents::valeur::nom_type(autre)))),
     }
 }
 
@@ -350,7 +350,7 @@ fn elements_de(r: &Value) -> Result<Vec<&Value>, ErreurGoogle> {
     match o.get("files") {
         None => Ok(Vec::new()),
         Some(Value::Array(a)) => Ok(a.iter().collect()),
-        Some(autre) => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
+        Some(autre) => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", documents::valeur::nom_type(autre)))),
     }
 }
 
@@ -364,7 +364,7 @@ fn octets_de(t: &Value) -> Result<u64, ErreurGoogle> {
             .map_err(|_| ErreurGoogle::nouvelle("ValueError", format!("nombre entier illisible : '{}'", x))),
         autre => Err(ErreurGoogle::nouvelle(
             "TypeError",
-            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", documents::valeur::nom_type(autre)),
         )),
     }
 }
@@ -379,7 +379,7 @@ fn premier_de(trouves: &Value, strict: bool) -> Result<Option<String>, ErreurGoo
     };
     let premier: &Value = match files {
         Value::Array(a) => &a[0],
-        autre => return Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
+        autre => return Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", documents::valeur::nom_type(autre)))),
     };
     if strict {
         return Ok(Some(texte_requis(premier, "id")?));

@@ -20,8 +20,7 @@ use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, FORME,
 use crate::routes::catalogue::Route;
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
 

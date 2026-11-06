@@ -31,9 +31,9 @@ use socle::echec::erreur;
 use socle::echec::Echec;
 use socle::echec::R;
 use socle::ecriture::ecrire_json;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use documents::ecrire_documents::{Reserves, Suite};
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 
 fn info(texte: impl Into<String>) -> Avis {
     Avis { info: true, texte: texte.into() }

@@ -24,8 +24,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::R;
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 use crate::routes::fiches::{refus, sans_valeur};
 
@@ -163,7 +162,7 @@ pub(crate) fn ecrire(
                 griefs.push(format!("{} : le code INSEE de sa commune (cinq caractères), que la DSN déclare avec le versement mobilité", nom));
             }
         }
-        let ouverture = match o.get("ouverture").filter(|v| vrai(v)).map(socle::date::d) {
+        let ouverture = match o.get("ouverture").filter(|v| vrai(v)).map(documents::valeur::d) {
             Some(Ok(j)) => j,
             _ => {
                 griefs.push(format!("{} : sa date d'ouverture", nom));
@@ -299,7 +298,7 @@ valeur, et la date ne se devine pas. Rien n'a été enregistré.",
     for j in jours {
         let mut ouverts_ce_jour: Vec<(Jour, String, Value)> = frises
             .iter()
-            .filter_map(|(n, f)| au(f, &j).map(|v| (v.get("ouverture").map(socle::date::d).and_then(Result::ok).unwrap_or(j), n.clone(), v)))
+            .filter_map(|(n, f)| au(f, &j).map(|v| (v.get("ouverture").map(documents::valeur::d).and_then(Result::ok).unwrap_or(j), n.clone(), v)))
             .collect();
         ouverts_ce_jour.sort_by(|a, b| (a.0, &a.1).cmp(&(b.0, &b.1)));
         let valeur = Value::Array(ouverts_ce_jour.into_iter().map(|(_, _, v)| v).collect());

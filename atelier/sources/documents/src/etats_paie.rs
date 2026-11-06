@@ -17,9 +17,9 @@ use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use socle::valeur::valeur_en_texte;
+use crate::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
+use crate::valeur::vrai;
 use socle::num::{eur2, zero2, Decimal};
 use droit::pas::Versement;
 use crate::tableaux_export::{

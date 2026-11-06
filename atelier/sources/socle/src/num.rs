@@ -7,27 +7,9 @@
 use rust_decimal::prelude::*;
 use crate::d28::P;
 pub use rust_decimal::Decimal;
-use serde_json::Value;
 
 /// Un refus du moteur : le message dit quoi faire.
 pub type Resultat<T> = Result<T, String>;
-
-/// Le decimal d'un nombre JSON (entier ou flottant, par sa forme ecrite la plus courte) ou d'une chaine.
-pub fn dec(v: &Value) -> Resultat<Decimal> {
-    match v {
-        Value::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                Ok(Decimal::from(i))
-            } else if let Some(u) = n.as_u64() {
-                Ok(Decimal::from(u))
-            } else {
-                dec_f64(n.as_f64().unwrap_or(f64::NAN))
-            }
-        }
-        Value::String(s) => dec_texte(s),
-        autre => Err(format!("nombre attendu, lu {}", autre)),
-    }
-}
 
 /// Le decimal d'un nombre ecrit en texte (`"12.5"`, `" 1e3 "`), blancs autour ignores.
 pub fn dec_texte(s: &str) -> Resultat<Decimal> {
@@ -54,28 +36,6 @@ pub fn dec_f64(x: f64) -> Resultat<Decimal> {
         .map_err(|_| format!("nombre hors de portee : {}", s))
 }
 
-/// Le decimal d'un nombre JSON dont un flottant garde son echelle (`130.0`).
-pub fn dec_avec_echelle(v: &Value) -> Resultat<Decimal> {
-    match v {
-        Value::Number(n) if n.as_i64().is_none() && n.as_u64().is_none() => {
-            let s = crate::date::repr_flottant(n.as_f64().unwrap_or(f64::NAN));
-            Decimal::from_str(&s)
-                .or_else(|_| Decimal::from_scientific(&s))
-                .map_err(|_| format!("nombre hors de portee : {}", s))
-        }
-        autre => dec(autre),
-    }
-}
-
-/// Le flottant d'une valeur JSON (un nombre, ou un nombre ecrit en texte).
-pub fn flottant(v: &Value) -> Resultat<f64> {
-    match v {
-        Value::Number(n) => n.as_f64().ok_or_else(|| format!("nombre illisible : {}", n)),
-        Value::String(s) => s.trim().parse::<f64>().map_err(|_| illisible(s)),
-        autre => Err(format!("nombre attendu, lu {}", autre)),
-    }
-}
-
 /// Deux decimales, la moitie toujours vers le haut (jamais au pair).
 pub fn eur(x: Decimal) -> Decimal {
     x.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero)
@@ -89,7 +49,10 @@ pub fn pct(base: Decimal, taux: Decimal) -> Decimal {
 /// Un flottant a trois decimales (arrondi correct, au pair sur le
 /// demi exact), par sa forme ecrite.
 pub fn round3(x: f64) -> f64 {
-    format!("{:.3}", x).parse().unwrap_or(x)
+    match format!("{:.3}", x).parse() {
+        Ok(y) => y,
+        Err(_) => x,
+    }
 }
 
 /// Une somme de montants, à deux décimales au moins.
@@ -128,7 +91,10 @@ fn en_decimal(p: P) -> Decimal {
             _ => break,
         }
     }
-    Decimal::try_from_i128_with_scale(m, e.max(0) as u32).unwrap_or(Decimal::MAX)
+    match Decimal::try_from_i128_with_scale(m, e.max(0) as u32) {
+        Ok(d) => d,
+        Err(_) => Decimal::MAX,
+    }
 }
 
 /// `a * b` a 28 chiffres significatifs, au pair sur le demi (`d28`).
@@ -201,18 +167,20 @@ mod tests {
 /// Un entier trop long pour `i128` se rend au plus grand.
 pub fn entier_lu(t: &str) -> Option<i128> {
     let t = t.trim_matches(crate::texte::blanc);
-    let (neg, reste) = match t.strip_prefix('-') {
-        Some(r) => (true, r),
-        None => (false, t.strip_prefix('+').unwrap_or(t)),
+    let (neg, reste) = match (t.strip_prefix('-'), t.strip_prefix('+')) {
+        (Some(r), _) => (true, r),
+        (None, Some(r)) => (false, r),
+        (None, None) => (false, t),
     };
-    if reste.is_empty() || reste.starts_with('_') || reste.ends_with('_') || reste.contains("__") {
+    // Des groupes de chiffres, chacun non vide, separes d'un tiret bas.
+    if !reste.split('_').all(|g| !g.is_empty() && g.chars().all(|c| c.is_ascii_digit())) {
         return None;
     }
-    let chiffres: String = reste.chars().filter(|c| *c != '_').collect();
-    if !chiffres.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    let n = chiffres.parse::<i128>().unwrap_or(i128::MAX);
+    let chiffres: String = reste.split('_').collect();
+    let n = match chiffres.parse::<i128>() {
+        Ok(n) => n,
+        Err(_) => i128::MAX,
+    };
     Some(if neg { -n } else { n })
 }
 

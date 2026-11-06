@@ -61,10 +61,9 @@ use socle::date::Jour;
 use socle::mois::Mois;
 use crate::compagnie::depot_acte::{self, Preuve};
 use envois::etats;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 use socle::echec::Echec;
 use crate::routes::etapes::Moteur;
 

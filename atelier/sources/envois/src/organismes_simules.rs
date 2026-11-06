@@ -17,8 +17,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::{erreur, R};
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 use crate::journal::Ligne;
 use declarations::dsn_lue::DsnLue;

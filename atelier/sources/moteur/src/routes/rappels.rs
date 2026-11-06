@@ -18,7 +18,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{en_texte, vrai};
 use socle::mois::{Graphie, Mois};
 use engagement;
 use crate::compagnie::etat_dsn;
@@ -27,7 +28,6 @@ use crate::routes::catalogue::Route;
 use crate::routes::{en_json, lire_charge, Pastille, SansCharge};
 use socle::echec::{erreur, Echec};
 use std::collections::HashMap;
-use socle::fichiers::vrai;
 use crate::routes::catalogue::{Ecran, Place};
 
 // ------------------------------------------------------------------ les refus

@@ -81,7 +81,7 @@ pub const MARQUE_FICTIVE: &str = "compagnie fictive";
 /// Une COMPAGNIE FICTIVE : son marqueur le dit (ses envois sont joues, rien n'en part).
 pub fn est_fictive(racine: &Path) -> bool {
     lire(&racine.join(MARQUEUR))
-        .and_then(|i| i.get("copie_de").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte))
+        .and_then(|i| i.get("copie_de").filter(|v| documents::valeur::vrai(v)).map(documents::valeur::valeur_en_texte))
         .is_some_and(|c| c.starts_with(MARQUE_FICTIVE))
 }
 
@@ -97,7 +97,7 @@ pub const CLE_AJOUTEE: &str = "ajoutee";
 /// UN DOSSIER DE `fictives/` SANS MARQUEUR DE FICTIVE (un marqueur retire ou illisible) se lit aussi comme ajoute : l'accueil
 /// le propose parmi les fictives, rien ne doit en partir, et rien n'en est joue.
 pub fn est_ajoutee(racine: &Path) -> bool {
-    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| socle::fichiers::vrai(&v));
+    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| documents::valeur::vrai(&v));
     marque || (racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) && !est_fictive(racine))
 }
 

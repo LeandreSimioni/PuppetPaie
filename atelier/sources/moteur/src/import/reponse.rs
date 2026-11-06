@@ -373,7 +373,7 @@ impl FicheImportee {
 
     /// Le numero d'objet d'un spectacle a creer, en capitales.
     pub fn numero_objet(&self) -> Option<String> {
-        self.donnees.get("numero_objet").map(socle::valeur::valeur_en_texte).map(|n| n.to_uppercase())
+        self.donnees.get("numero_objet").map(documents::valeur::valeur_en_texte).map(|n| n.to_uppercase())
     }
 
     /// La fiche s'ecrit-elle : a creer, ou existante avec des cases a completer.

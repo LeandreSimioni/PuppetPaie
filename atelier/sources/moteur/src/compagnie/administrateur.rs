@@ -47,10 +47,10 @@ use serde_json::{json, Map, Value};
 use crate::compagnie::coffre::Coffre;
 use droit::contexte::Contexte;
 use envois::etats;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use crate::interface::compagnies::{self, Compagnie};
 use crate::routes::catalogue::Route;
 use crate::routes::depots::{ChargeDeposer, Designation, Quoi};
@@ -818,7 +818,7 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
             v => {
                 sortie["parti"] = json!(false);
                 let message = v.get("erreur").map(|e| e.as_str().map(String::from).unwrap_or_else(|| e.to_string())).unwrap_or_default();
-                sortie["refus"] = json!(socle::echec::separer(&message).0);
+                sortie["refus"] = json!(socle::echec::phrase_de(&message));
                 sortie["classe"] = v.get("classe").cloned().unwrap_or(Value::Null);
             }
         }

@@ -615,7 +615,7 @@ impl Table {
     /// La table livree (`logiciel/donnees/bulletins-lecture-base.json`).
     pub fn livree() -> Resultat<Table> {
         let chemin = socle::fichiers::dossier_du_code().join(FICHIER_TABLE);
-        Table::depuis(&*socle::fichiers::json_en_cache(&chemin)?)
+        Table::depuis(&*documents::valeur::json_en_cache(&chemin)?)
     }
 
     /// Une table, verifiee : une mention, un en-tete, un resume ou une forme inconnue est un refus qui le nomme.
@@ -708,7 +708,7 @@ impl Table {
 }
 
 fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
-    let catalogue = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("rubriques-base.json"))?;
+    let catalogue = documents::valeur::json_en_cache(&socle::fichiers::dossier_du_code().join("rubriques-base.json"))?;
     let hors_assiette = |code: &str| catalogue["rubriques"][code]["soumis"] == Value::Bool(false);
     let mut lignes: Vec<LigneTable> = Vec::new();
     let Some(l) = v.and_then(Value::as_object) else { return Err(socle::echec::livree("table de lecture des bulletins", "lignes")) };
@@ -725,7 +725,7 @@ fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
                 let r = r.ok_or_else(|| socle::echec::livree("table de lecture des bulletins", &format!("{}.rubrique", o)))?.to_string();
                 let h = match m.get("heures") {
                     None => None,
-                    Some(x) => match socle::num::dec(x) {
+                    Some(x) => match documents::valeur::dec(x) {
                         Ok(h) if x.is_number() && h > Decimal::ZERO => Some(h),
                         _ => return Err(socle::echec::livree("table de lecture des bulletins", &format!("{}.heures", o))),
                     },

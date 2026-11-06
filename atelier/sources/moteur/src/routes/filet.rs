@@ -22,8 +22,7 @@ use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, OPERAT
 use crate::routes::catalogue::Route;
 use envois::etats::get;
 use socle::echec::{Echec, R};
-use socle::fichiers::vrai;
-use socle::valeur::{valeur_en_texte, valeurs_egales};
+use documents::valeur::{valeur_en_texte, valeurs_egales, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
 

@@ -17,8 +17,7 @@ use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::{erreur, R};
-use socle::valeur::valeur_en_texte;
-use socle::fichiers::vrai;
+use documents::valeur::{valeur_en_texte, vrai};
 
 /// Ce qu'on demande de produire (l'outil de l'atelier).
 pub struct Demande<'a> {

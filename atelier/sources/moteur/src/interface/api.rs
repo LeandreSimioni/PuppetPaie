@@ -183,7 +183,7 @@ pub fn repondre(racine: &Path, nom: Route, charge: &Value, veille: Option<&Veill
     // LE FIL : la route de la page, sa charge mise en forme, sa duree, son issue. Une erreur de la page (`incident-navigateur`)
     // s'y dit comme telle.
     if nom == Route::IncidentNavigateur {
-        let c = |k: &str| charge.get(k).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+        let c = |k: &str| charge.get(k).map(documents::valeur::valeur_en_texte).unwrap_or_default();
         crate::compagnie::diagnostic::noter_moteur(&format!(
             "erreur JS {} : {} ({}:{})",
             c("genre"),

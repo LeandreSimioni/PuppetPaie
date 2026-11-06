@@ -19,8 +19,7 @@ pub fn repr_flottant(f: f64) -> String {
     }
     let signe = if f.is_sign_negative() { "-" } else { "" };
     let sci = format!("{:e}", f.abs());
-    let (mant, exp) = sci.split_once('e').unwrap_or((&sci, "0"));
-    let exp: i32 = exp.parse().unwrap_or(0);
+    let (mant, exp) = crate::ecriture::scientifique(&sci);
     let chiffres: String = mant.chars().filter(|c| *c != '.').collect();
     let n = chiffres.len() as i32;
     let decpt = exp + 1;
@@ -47,7 +46,7 @@ pub fn repr_flottant(f: f64) -> String {
 /// `indent`, les separateurs sont `, ` et `: ` (ou `,` et `:` si `serre`).
 pub fn dumps<T: serde::Serialize + ?Sized>(v: &T, indent: Option<usize>, serre: bool, trie: bool) -> String {
     let mut s = String::new();
-    ecrire(&serde_json::to_value(v).unwrap_or(Value::Null), indent, serre, trie, 0, &mut s);
+    ecrire(&crate::ecriture::en_valeur(v), indent, serre, trie, 0, &mut s);
     s
 }
 

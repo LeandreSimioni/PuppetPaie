@@ -21,7 +21,8 @@
 //!   controle pas : avant la mise en production il se depose en NAF rev. 2, apres en NAF 2025, et le jour de la mise en
 //!   production n'est pas publie (D1).
 
-use socle::fichiers::{dossier_du_code, json_en_cache};
+use socle::fichiers::dossier_du_code;
+use documents::valeur::json_en_cache;
 use crate::norme::Norme;
 use socle::num::Resultat;
 use serde_json::Value;

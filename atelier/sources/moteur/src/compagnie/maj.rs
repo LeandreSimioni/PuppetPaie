@@ -213,7 +213,7 @@ fn lire_forme<T: serde::de::DeserializeOwned>(p: &Path, phrase: &str) -> R<Optio
         Err(e) => return Err(socle::echec::du_disque(p, &e)),
     };
     socle::forme::lire_texte(&texte, phrase).map(Some).map_err(|e| {
-        let (dite, mut plus) = socle::echec::separer(&e);
+        let (dite, mut plus) = documents::valeur::separer(&e);
         plus.insert("chemin".into(), json!(p.to_string_lossy()));
         socle::echec::avec(dite, Value::Object(plus))
     })

@@ -22,8 +22,8 @@ use serde_json::{json, Map, Value};
 use droit::natures;
 use droit::contexte::EntrepriseDuDocument;
 use droit::fiche::ChampsEntreprise;
-use socle::date::{d, en_texte};
-use socle::fichiers::{modele_de, repr, repr_valeur, vrai};
+use documents::valeur::{d, en_texte, repr_valeur, vrai};
+use socle::fichiers::{modele_de, repr};
 #[cfg(test)]
 use socle::fichiers::MARQUEUR_COPIE;
 use crate::ntt;

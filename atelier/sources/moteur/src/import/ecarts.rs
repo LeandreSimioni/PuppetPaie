@@ -34,8 +34,7 @@ use crate::import::caviardage::{self, Connus};
 use crate::compagnie::incidents;
 use droit::contexte::Contexte;
 use engagement::ecarts::{Comparaison, Grandeur};
-use socle::fichiers::vrai;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::{valeur_en_texte, vrai};
 
 /// L'endroit, dans le journal des incidents.
 pub const OU: &str = "ecarts_import";
@@ -86,7 +85,7 @@ fn registre(racine: &Path) -> PathBuf {
 }
 
 fn comparees(racine: &Path) -> BTreeSet<String> {
-    socle::fichiers::lire_json(&registre(racine)).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default().iter().filter_map(|x| x.as_str().map(str::to_string)).collect()
+    documents::valeur::lire_json(&registre(racine)).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default().iter().filter_map(|x| x.as_str().map(str::to_string)).collect()
 }
 
 /// Les rapports des paies importees de la compagnie que le registre ne dit pas deja comparees, et les empreintes des

@@ -21,9 +21,9 @@ use droit::bareme::{self, RisqueAtmp};
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use socle::num::Decimal;
-use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
+use documents::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
 
 /// La marque d'un taux que le moteur a pose a la creation (et que personne n'a encore change).
 const POSE_A_LA_CREATION: &str = "_pose_a_la_creation";
@@ -252,7 +252,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
     let arrete = socle.as_ref().and_then(bareme::arrete_atmp);
     let connu = risques.iter().find(|r| r.code == code);
     let nom = |r: &RisqueAtmp| r.code_arrete.clone().unwrap_or_else(|| r.code.clone());
-    let taux_dit = valeur.as_ref().map(|v| en_pourcent(socle::num::dec(v).unwrap_or_default()));
+    let taux_dit = valeur.as_ref().map(|v| en_pourcent(documents::valeur::dec(v).unwrap_or_default()));
     let explication = match (connu, &taux_dit) {
         (Some(r), _) if r.code == bareme::SANS_NOTIFICATION => format!(
             "999ZZ : la compagnie n'a pas encore reçu de notification de la CARSAT. La DSN le déclare ainsi, sans taux. Aucun texte ne dit quel taux le bulletin cotise en attendant : le logiciel ne calcule pas la paie de {} tant que le code et le taux notifiés ne sont pas saisis ici.",
@@ -378,7 +378,7 @@ pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     });
     // Une lecture dit le taux de l'annee.
     if r["phrase"] == json!("") {
-        let t = |k: &str| socle::valeur::valeur_en_texte(&r["taux"][k]);
+        let t = |k: &str| documents::valeur::valeur_en_texte(&r["taux"][k]);
         let p = if r["taux"].is_object() { format!("Taux AT/MP {} : {} %, code risque {}.", an, t("valeur"), t("code_risque")) } else { format!("Aucun taux AT/MP pour {}.", an) };
         r["phrase"] = json!(p);
     }

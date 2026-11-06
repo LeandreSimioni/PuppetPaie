@@ -687,37 +687,27 @@ fn une_crate_ne_prend_qu_a_celles_du_dessous() {
     }
 }
 
-/// LES COUCHES FERMEES, de bas en haut (l'ordre de `une_crate_ne_prend_qu_a_celles_du_dessous`) : leur JSON n'existe
-/// qu'au bord, lu et ecrit par une forme. La liste ne fait que grandir : une couche finie s'y ajoute, et ne recule plus.
-const COUCHES_FERMEES: [&str; 3] = ["socle", "droit", "engagement"];
+/// LES COUCHES FERMEES, de bas en haut (l'ordre de `une_crate_ne_prend_qu_a_celles_du_dessous`). La liste ne fait que
+/// grandir : une couche finie s'y ajoute, et ne recule plus.
+const COUCHES_FERMEES: [&str; 1] = ["socle"];
 
-/// LE BORD, nomme par son role : les seuls modules d'une couche fermee ou le JSON se manipule sans forme. `forme` le lit
-/// (une donnee, un texte, un fichier, en sa structure `serde`) ; `ecriture` et `json_ascii` ecrivent une forme.
-const BORD: [(&str, &str); 3] = [
-    ("socle::forme", "la lecture d'une forme"),
-    ("socle::ecriture", "l'écriture d'une forme"),
-    ("socle::json_ascii", "l'écriture d'une forme en ASCII"),
-];
-
-/// LA PORTE OUVERTE : ce que le socle garde encore pour les couches du dessus qui lisent par cle (une `Value` prise ou
-/// rendue), et ce qui la sert (`fichiers::Cache`…). Chaque fonction publique tombe avec son dernier appelant hors du
-/// socle ; le socle ne s'en sert pas, ne l'importe pas, et la liste ne prend rien de plus : elle ne fait que retrecir.
-const PORTE_OUVERTE: [&str; 25] = [
-    "date::d", "date::forme_ecrite", "date::en_texte",
-    "echec::separer",
-    "fichiers::Cache", "fichiers::json_en_cache", "fichiers::json_en_cache_ou",
-    "fichiers::lire_json", "fichiers::vrai", "fichiers::repr_valeur", "fichiers::lire_json_echec",
-    "num::dec", "num::dec_avec_echelle", "num::flottant",
-    "texte::euros_de",
-    "valeur::nom_type", "valeur::nombre", "valeur::valeurs_egales", "valeur::valeur_ecrite", "valeur::valeur_en_texte",
-    "valeur::objet_vide", "valeur::texte_vide", "valeur::get", "valeur::getd", "valeur::ou",
-];
+/// LE BORD : les seuls modules ou le JSON brut se touche, parce qu'ils sont la porte d'entree et de sortie des formes.
+/// `forme` lit (une donnee, un texte, un fichier, en sa structure `serde`) ; `ecriture` et `json_ascii` ecrivent une forme.
+const BORD: [&str; 3] = ["socle::forme", "socle::ecriture", "socle::json_ascii"];
 
 /// Un source Rust sans ses parties de test, ses commentaires blanchis et ses textes vides entre leurs guillemets : le
 /// code seul, a ses lignes.
 fn code_seul(t: &str) -> String {
+    blanchi(t, true)
+}
+
+/// Un source Rust sans ses parties de test, ses commentaires blanchis (et ses textes vides, si `textes`), a ses lignes.
+fn blanchi(t: &str, textes: bool) -> String {
     let mut c: Vec<char> = sans_tests(t).chars().collect();
     for (_, debut, fin, commentaire, _) in jetons_rs(&c.iter().collect::<String>()) {
+        if !commentaire && !textes {
+            continue;
+        }
         let (a, b) = if commentaire { (debut, fin) } else { (debut + 1, fin.saturating_sub(1)) };
         let n = c.len();
         for x in c.iter_mut().take(b.min(n)).skip(a) {
@@ -729,114 +719,53 @@ fn code_seul(t: &str) -> String {
     c.into_iter().collect()
 }
 
-/// Les items d'un source (`code_seul`) : `(nom, premiere ligne, lignes)`. Un item commence a une ligne qui ne commence
-/// ni par un blanc, ni par `}`, ni par un attribut ; son nom est celui qu'il declare (`impl …` pour un bloc `impl`,
-/// `use` pour un import).
-fn items(code: &str) -> Vec<(String, usize, Vec<String>)> {
-    let decl = regex::Regex::new(r"\b(?:fn|type|static|const|struct|enum|trait|mod)\s+([A-Za-z_][A-Za-z0-9_]*)").unwrap();
-    let mut v: Vec<(String, usize, Vec<String>)> = Vec::new();
-    for (n, l) in code.lines().enumerate() {
-        let debut = l.chars().next().is_some_and(|c| c.is_alphabetic());
-        if debut || v.is_empty() {
-            v.push((String::new(), n + 1, Vec::new()));
-        }
-        v.last_mut().unwrap().2.push(l.to_string());
-    }
-    for (nom, _, lignes) in &mut v {
-        let tete = lignes[0].trim();
-        *nom = if tete.starts_with("use ") || tete.starts_with("pub use ") {
-            "use".into()
-        } else if tete.starts_with("impl") {
-            tete.trim_end_matches('{').trim().to_string()
-        } else {
-            decl.captures(&lignes.join("\n")).map(|c| c[1].to_string()).unwrap_or_default()
-        };
-    }
-    v
-}
-
-/// UNE COUCHE FERMEE NE LIT QUE DES FORMES (atelier/AGENTS.md, « Chaque forme est declaree une fois, en Rust ») : hors
-/// du bord (`BORD`), aucune de ses sources (tests a part) n'ecrit `Value`, `json!`, `serde_json::`, `Map<`, une lecture
-/// par cle (`.get("…")`, `x["…"]`) ; seuls les items de la porte ouverte du socle (`PORTE_OUVERTE`) en ecrivent encore.
-/// Le socle ne se sert pas de sa porte ouverte (ni appel ni import hors d'elle) ; chaque fonction publique de la porte a
-/// un appelant hors du socle, sinon elle tombe.
+/// UNE COUCHE FERMEE NE LIT QUE DES FORMES, ENTIERES (atelier/AGENTS.md, « Chaque forme est declaree une fois, en
+/// Rust ») : aucune de ses sources (tests a part, commentaires blanchis) n'a
+/// 1. de JSON brut hors du bord (`BORD`) : ni `Value`, ni `json!`, ni `serde_json::`, ni `Map<`, ni lecture par cle
+///    (`.get("…")`, `x["…"]`) ;
+/// 2. de cle libre : aucune cle en `_` nommee (`rename = "_…"`, `"_cle"`, `"_{}"`, une cle lue ou ecrite), aucun
+///    tri par le `_` de tete (`starts_with('_')`, `strip_prefix("_")`, `trim_start_matches('_')`) ;
+/// 3. de repli sur une donnee : ni `#[serde(default…)]`, ni `unwrap_or`, `unwrap_or_default`, `unwrap_or_else`,
+///    `map_or`, `map_or_else`. Une donnee absente se refuse ; une donnee nulle s'ecrit `null` et se lit `Option`
+///    presente (`socle::forme::presente`).
+/// Le verrou n'a aucune exception : quand il echoue, on corrige le code ou la donnee.
 #[test]
 fn une_couche_fermee_ne_lit_que_des_formes() {
     const ORDRE: [&str; 7] = ["socle", "droit", "engagement", "documents", "declarations", "envois", "moteur"];
     assert_eq!(COUCHES_FERMEES, ORDRE[..COUCHES_FERMEES.len()], "les couches se ferment de bas en haut, dans l'ordre des crates");
-    let interdit = regex::Regex::new(r#"\bValue\b|\bjson!|\bserde_json::|\bMap\s*<|\.get\("|[A-Za-z0-9_)\]]\s*\[""#).unwrap();
-    let porte: Vec<(&str, &str)> = PORTE_OUVERTE.iter().filter_map(|p| p.split_once("::")).collect();
-    // Chaque item de la porte, ses trois motifs compiles une fois : son appel, son nom qualifie, son nom seul.
-    let motifs: Vec<(regex::Regex, regex::Regex, regex::Regex)> = porte
-        .iter()
-        .map(|(m, n)| {
-            (
-                regex::Regex::new(&format!(r"(^|[^.:A-Za-z0-9_]){}\s*\(", regex::escape(n))).unwrap(),
-                regex::Regex::new(&format!(r"\b{}::{}\b", regex::escape(m), regex::escape(n))).unwrap(),
-                regex::Regex::new(&format!(r"\b{}\b", regex::escape(n))).unwrap(),
-            )
-        })
-        .collect();
+    let json = regex::Regex::new(r#"\bValue\b|\bjson!|\bserde_json::|\bMap\s*<|\.get\("|[A-Za-z0-9_)\]]\s*\[""#).unwrap();
+    let repli = regex::Regex::new(r"\b(?:unwrap_or(?:_default|_else)?|map_or(?:_else)?)\b|\bserde\s*\([^\]]*\bdefault\b").unwrap();
+    let tri = regex::Regex::new(r#"\b(?:starts_with|strip_prefix|trim_start_matches)\s*\(\s*(?:'_'|"_")"#).unwrap();
     let mut fautes = Vec::new();
-    let mut trouves: BTreeSet<String> = BTreeSet::new();
-    let mut publiques: Vec<(String, String)> = Vec::new();
     for couche in COUCHES_FERMEES {
         let src = espace().join(couche).join("src");
         for f in sources(&src) {
-            let rel = f.strip_prefix(&src).unwrap().with_extension("");
-            let module = rel.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "::");
-            let qualifie = format!("{}::{}", couche, module);
-            if BORD.iter().any(|(m, _)| *m == qualifie) {
-                continue;
-            }
-            for (nom, premiere, lignes) in items(&code_seul(&std::fs::read_to_string(&f).unwrap())) {
-                let ouvert = couche == "socle" && porte.contains(&(module.as_str(), nom.as_str()));
-                if ouvert {
-                    trouves.insert(format!("{}::{}", module, nom));
-                    if lignes[0].trim_start().starts_with("pub fn") {
-                        publiques.push((module.clone(), nom.clone()));
+            let module = format!("{}::{}", couche, f.strip_prefix(&src).unwrap().with_extension("").to_string_lossy().replace(std::path::MAIN_SEPARATOR, "::"));
+            let texte = std::fs::read_to_string(&f).unwrap();
+            let ou = |n: usize| format!("{}:{}", f.display(), n);
+            for (n, l) in code_seul(&texte).lines().enumerate() {
+                if !BORD.contains(&module.as_str()) {
+                    if let Some(m) = json.find(l) {
+                        fautes.push(format!("{} : `{}`, du JSON brut hors du bord : déclare la forme (`serde`, `deny_unknown_fields`) ; la lecture passe par `socle::forme`, l'écriture par `socle::ecriture`", ou(n + 1), m.as_str().trim()));
                     }
-                    continue;
                 }
-                for (i, l) in lignes.iter().enumerate() {
-                    let ou = format!("{}:{} ({})", f.display(), premiere + i, if nom.is_empty() { "-" } else { &nom });
-                    if nom != "use" {
-                        if let Some(m) = interdit.find(l) {
-                            fautes.push(format!("{} : `{}` hors du bord : déclare la forme (`serde`, `deny_unknown_fields`) ; la lecture passe par `socle::forme`, l'écriture par `socle::ecriture`", ou, m.as_str().trim()));
-                        }
-                    }
-                    for ((m, n), (appel, qualifie, seul)) in porte.iter().zip(&motifs) {
-                        let importe = nom == "use" && l.contains(&format!("{}::", m)) && seul.is_match(l);
-                        if qualifie.is_match(l) || importe || (nom != "use" && *m == module && appel.is_match(l)) {
-                            fautes.push(format!("{} : se sert de `{}::{}`, de la porte ouverte : le socle ne s'en sert pas ; passe par une forme", ou, m, n));
-                        }
-                    }
+                if let Some(m) = repli.find(l) {
+                    fautes.push(format!("{} : `{}`, un repli : une donnée exigée se refuse quand elle manque, une donnée nulle s'écrit `null` et se lit `Option` ; un calcul s'écrit sans repli (`sum`, `fold`, `match`, `?`)", ou(n + 1), m.as_str()));
+                }
+            }
+            for (n, l) in blanchi(&texte, false).lines().enumerate() {
+                if let Some(m) = tri.find(l) {
+                    fautes.push(format!("{} : `{}`, le tri des clés libres : une donnée est un champ nommé de sa forme", ou(n + 1), m.as_str()));
+                }
+            }
+            for (n, s) in litteraux_rs(&sans_tests(&texte)) {
+                if s.starts_with('_') && s.chars().nth(1).is_some_and(|c| c.is_alphanumeric() || c == '{') {
+                    fautes.push(format!("{} : `\"{}\"`, une clé libre : une donnée est un champ nommé de sa forme", ou(n), s));
                 }
             }
         }
     }
-    for p in PORTE_OUVERTE {
-        if !trouves.contains(p) {
-            fautes.push(format!("`{}` n'est plus dans le socle : retire-la de PORTE_OUVERTE", p));
-        }
-    }
-    let mut ailleurs = String::new();
-    for c in ORDRE.iter().filter(|c| !COUCHES_FERMEES.contains(c)) {
-        for f in sources(&espace().join(c).join("src")) {
-            ailleurs.push_str(&sans_tests(&std::fs::read_to_string(&f).unwrap()));
-            ailleurs.push('\n');
-        }
-    }
-    for (m, n) in publiques {
-        let mot = regex::Regex::new(&format!(r"\b{}\b", regex::escape(&n))).unwrap();
-        let use_ = regex::Regex::new(&format!(r"use socle::{}::(\{{[^}}]*\}}|[A-Za-z_]+)", regex::escape(&m))).unwrap();
-        let appele = regex::Regex::new(&format!(r"\bsocle::{}::{}\b", regex::escape(&m), regex::escape(&n))).unwrap().is_match(&ailleurs)
-            || use_.find_iter(&ailleurs).any(|u| mot.is_match(u.as_str()));
-        if !appele {
-            fautes.push(format!("`{}::{}` n'a plus d'appelant hors du socle : elle tombe ; retire-la du socle et de PORTE_OUVERTE", m, n));
-        }
-    }
-    assert!(fautes.is_empty(), "une couche fermée ne lit que des formes :\n{}", fautes.join("\n"));
+    assert!(fautes.is_empty(), "une couche fermée ne lit que des formes, entières ({} écarts) :\n{}", fautes.len(), fautes.join("\n"));
 }
 
 /// L'engagement ne lit pas le journal : le moteur le lit une fois par geste (`envois::journal::lu`) et lui passe ce qui

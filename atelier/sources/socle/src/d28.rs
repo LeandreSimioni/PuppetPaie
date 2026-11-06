@@ -14,7 +14,10 @@ pub struct P {
 }
 
 fn chiffres(m: i128) -> u32 {
-    m.unsigned_abs().checked_ilog10().map_or(1, |l| l + 1)
+    match m.unsigned_abs().checked_ilog10() {
+        Some(l) => l + 1,
+        None => 1,
+    }
 }
 
 fn dix(k: u32) -> Option<i128> {

@@ -126,7 +126,7 @@ pub fn question(racine: &Path) -> Result<Value, String> {
 /// reelle comprise (le `motdepasse` que la page a fait taper ; sinon le moteur le demande lui-meme a un humain). `avant` :
 /// ce que la fenetre lache de la compagnie avant qu'elle parte (rien, par `moteur route`).
 pub fn route(racine: &Path, charge: &Value, avant: &dyn Fn(&Path)) -> Result<Value, String> {
-    if !charge.get("confirme").is_some_and(socle::fichiers::vrai) {
+    if !charge.get("confirme").is_some_and(documents::valeur::vrai) {
         let mut q = question(racine)?;
         if q.get("genre").is_some() {
             q["avertissement"] = json!(format!(
@@ -308,7 +308,7 @@ fn lire_la_demo(racine: &Path) -> Result<Option<FichierDemo>, String> {
     if !p.is_file() {
         return Ok(None);
     }
-    let v = socle::fichiers::lire_json(&p)?;
+    let v = documents::valeur::lire_json(&p)?;
     socle::forme::lire(&v, "La mention de démo de la compagnie (config/demo.json) ne se lit pas.").map(Some)
 }
 

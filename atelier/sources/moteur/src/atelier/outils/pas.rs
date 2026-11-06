@@ -95,7 +95,7 @@ fn lire(cadre: &Cadre) -> Result<i32, Echec> {
         };
         dire!("  {:<12} {}{}\n", "", champ(s, "libelle"), jusqu);
     }
-    let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(socle::fichiers::vrai)).collect();
+    let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(documents::valeur::vrai)).collect();
     if !a_demander.is_empty() {
         dire!("A demander a la DGFiP (signalement d'amorcage, nature 08)\n{}", "-".repeat(62));
         for s in a_demander {

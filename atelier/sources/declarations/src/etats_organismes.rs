@@ -16,10 +16,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::Value;
 
 use droit::contexte::Contexte;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use documents::etats_paie::{finir, lignes_livre, Demande, Lecture, Periode};
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use socle::num::{add, div, eur2, mul, zero2, Decimal};
 use documents::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, montant, qui, refus, sections_de, Ligne, Section, Tableau, R};
 

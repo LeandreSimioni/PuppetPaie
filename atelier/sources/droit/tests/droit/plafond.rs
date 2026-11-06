@@ -9,13 +9,11 @@
 //! (2025-2026, tous les mois, deux departs, durees 1 a 62 jours, 0, 1, 3 ou 6 cachets, artiste ou technicien), et a
 //! `plafond-dates.json`, ecrit a la main depuis les memes textes.
 
-use socle::fichiers::lire_json;
 use socle::num::Decimal;
 use droit::plafond::{plafond_urssaf, pour_paie, EngagementPlafond, Jour};
 use socle::num::Resultat;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::path::Path;
 use crate::outils::dec;
 
 /// Le plafond de chaque annee d'une table `{annee: (mensuel, horaire)}`.
@@ -36,9 +34,7 @@ fn jour(s: &str) -> Jour {
 fn table() -> HashMap<i32, (i64, i64)> {
     let mut t = HashMap::new();
     for annee in [2025, 2026] {
-        let chemin = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join(format!("../../../logiciel/donnees/baremes/{}.json", annee));
-        let b = lire_json(&chemin).unwrap();
+        let b = crate::outils::lire(&crate::outils::code_livre(), &format!("baremes/{}.json", annee));
         let s = &b["plafond_securite_sociale"];
         t.insert(annee, (s["mensuel"].as_i64().unwrap(), s["horaire"].as_i64().unwrap()));
     }

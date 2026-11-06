@@ -24,8 +24,8 @@ use droit::natures::{self, Nature};
 use droit::permanents;
 use engagement::{self};
 use socle::echec::{erreur, Echec};
-use socle::fichiers::{dossier_du_code, vrai};
-use socle::valeur::{nom_type, valeur_en_texte};
+use socle::fichiers::dossier_du_code;
+use documents::valeur::{nom_type, valeur_en_texte, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
 

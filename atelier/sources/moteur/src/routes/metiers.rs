@@ -83,9 +83,9 @@ impl MetiersAjoutes {
         if !p.exists() {
             return Ok(MetiersAjoutes::default());
         }
-        let v = socle::fichiers::lire_json(&p).map_err(|m| erreur("ValueError", m))?;
+        let v = documents::valeur::lire_json(&p).map_err(|m| erreur("ValueError", m))?;
         socle::forme::lire(&v, "Les métiers retenus par la compagnie ne se lisent pas : effacez leur fichier, puis cochez-les de nouveau dans Configuration › Métiers.").map_err(|m| {
-            let (dite, mut plus) = socle::echec::separer(&m);
+            let (dite, mut plus) = documents::valeur::separer(&m);
             plus.insert("chemin".into(), Value::String(p.to_string_lossy().into_owned()));
             erreur("ValueError", socle::echec::avec(dite, Value::Object(plus)))
         })

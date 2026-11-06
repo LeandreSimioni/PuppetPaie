@@ -26,8 +26,8 @@ use droit::contexte::Contexte;
 use super::vers_route;
 use envois::google::{champ, en_texte, jeton_par_rafraichissement, DELAI, PERMISSIONS};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{vrai, MARQUEUR_COPIE};
-use socle::valeur::{nom_type, valeur_en_texte};
+use socle::fichiers::MARQUEUR_COPIE;
+use documents::valeur::{nom_type, valeur_en_texte, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
 const SERVICE: Champ = Champ { nom: "service", libelle: Affiche::new("Service"), forme: Forme::Texte, sens: "net-entreprises, urssaf ou courriel", avance: false };

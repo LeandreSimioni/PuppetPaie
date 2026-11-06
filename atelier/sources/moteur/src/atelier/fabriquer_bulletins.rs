@@ -125,7 +125,7 @@ fn pss(annee: i32) -> Resultat<(Decimal, Decimal)> {
         let v: Value = serde_json::from_str(&t).map_err(|e| format!("{} illisible ({})", bareme.display(), e))?;
         let p = &v["plafond_securite_sociale"];
         if let (Some(m), Some(h)) = (p.get("mensuel"), p.get("horaire")) {
-            return Ok((socle::num::dec(m)?, socle::num::dec(h)?));
+            return Ok((documents::valeur::dec(m)?, documents::valeur::dec(h)?));
         }
     }
     let chemin = table_boss();
@@ -229,7 +229,7 @@ fn jour(v: &Value, cle: &str, ou: &str) -> Resultat<Jour> {
 
 fn nombre(v: &Value, cle: &str, ou: &str) -> Resultat<Decimal> {
     let x = v.get(cle).ok_or_else(|| format!("{} : `{}` manque", ou, cle))?;
-    socle::num::dec(x).map_err(|m| format!("{} : `{}` : {}", ou, cle, m))
+    documents::valeur::dec(x).map_err(|m| format!("{} : `{}` : {}", ou, cle, m))
 }
 
 fn verifier_nir(nir: &str, ou: &str) -> Resultat<()> {
@@ -582,7 +582,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
             objet,
             lignes,
             non_soumis,
-            taux_pas: b.get("taux_pas").map(socle::num::dec).transpose().map_err(|m| format!("{} : `taux_pas` : {}", ou, m))?.unwrap_or_default(),
+            taux_pas: b.get("taux_pas").map(documents::valeur::dec).transpose().map_err(|m| format!("{} : `taux_pas` : {}", ou, m))?.unwrap_or_default(),
             regle_le: if b.get("regle_le").is_some() { jour(b, "regle_le", &ou)? } else { fin },
             numero: texte_ou(b, "numero"),
             paie: lire_paie(b, &g, &gabarit, &ou)?,
@@ -624,7 +624,7 @@ fn lire_paie(b: &Value, g: &Table, gabarit: &str, ou: &str) -> Resultat<Option<P
         let facultatif = |cle: &str| -> Resultat<Option<Decimal>> {
             match c.get(cle) {
                 None | Some(Value::Null) => Ok(None),
-                Some(v) => socle::num::dec(v).map(Some).map_err(|m| format!("{} : `{}` : {}", ouc, cle, m)),
+                Some(v) => documents::valeur::dec(v).map(Some).map_err(|m| format!("{} : `{}` : {}", ouc, cle, m)),
             }
         };
         let masquee = c.get("masquer_base_et_taux").and_then(Value::as_bool).unwrap_or(false);

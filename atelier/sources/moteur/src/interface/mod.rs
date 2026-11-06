@@ -667,7 +667,7 @@ impl Fenetre {
                 self.lacher(&c.racine);
             }
         }
-        let vrai = |k: &str| charge.get(k).is_some_and(socle::fichiers::vrai);
+        let vrai = |k: &str| charge.get(k).is_some_and(documents::valeur::vrai);
         if nom == Route::AdministrateurTableau && !vrai("garde") && !vrai("relever") {
             if self.administrateur.lock().unwrap_or_else(|e| e.into_inner()).is_some() {
                 return api::route_de_l_installation(nom, &json!({"relever": true}));
@@ -819,7 +819,7 @@ impl Fenetre {
                 // (`suppression::route`) ; la fenetre lache d'abord ce qu'elle tient de la compagnie (sa veille, sa file
                 // des etats, son journal), et ne note rien apres dans un dossier qui n'est plus. Un passage de la veille en
                 // cours ecrit dans ce dossier : on attend qu'il finisse.
-                if nom == Route::CompagnieSupprimer && charge.get("confirme").is_some_and(socle::fichiers::vrai) {
+                if nom == Route::CompagnieSupprimer && charge.get("confirme").is_some_and(documents::valeur::vrai) {
                     let rendu = if veille.as_ref().is_some_and(|v| v.occupee()) {
                         Err(api::Refus::simple("ErreurOperation", "Un relevé ou une sauvegarde de cette compagnie est en cours : attendez qu'il se termine, puis recommencez. Rien n'a été supprimé."))
                     } else {

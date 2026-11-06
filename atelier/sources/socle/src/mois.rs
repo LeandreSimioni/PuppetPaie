@@ -58,7 +58,7 @@ impl Mois {
         if !(b.len() == 7 && b[4] == b'-' && b[..4].iter().chain(&b[5..]).all(u8::is_ascii_digit)) {
             return Err(format!("mois illisible : {} (attendu : AAAA-MM)", repr_texte(texte)));
         }
-        Mois::nouveau(texte[..4].parse().unwrap_or(0), texte[5..].parse().unwrap_or(0))
+        Mois::nouveau(texte[..4].parse().map_err(|_| crate::date::HORS_CALENDRIER.to_string())?, texte[5..].parse().map_err(|_| crate::date::HORS_CALENDRIER.to_string())?)
     }
 
     /// Le mois tel qu'une DSN le declare (S20.G00.05.005) : `01MMAAAA`, le premier jour du mois ; toute autre forme se
@@ -68,7 +68,7 @@ impl Mois {
         if !(b.len() == 8 && b.starts_with(b"01") && b.iter().all(u8::is_ascii_digit)) {
             return Err(format!("mois de DSN illisible : {} (attendu : 01MMAAAA)", repr_texte(texte)));
         }
-        Mois::nouveau(texte[4..].parse().unwrap_or(0), texte[2..4].parse().unwrap_or(0))
+        Mois::nouveau(texte[4..].parse().map_err(|_| crate::date::HORS_CALENDRIER.to_string())?, texte[2..4].parse().map_err(|_| crate::date::HORS_CALENDRIER.to_string())?)
     }
 
     /// Le mois du jour `j`.
@@ -104,7 +104,10 @@ impl Mois {
     /// bandeau, un conseil, un avertissement, un document) : un mois illisible s'ecrit tel quel (« 2026-00 »), jamais sous
     /// le nom d'un autre mois.
     pub fn en_clair(texte: &str) -> String {
-        Mois::lire(texte).map_or_else(|_| texte.to_string(), |m| m.libelle(Graphie::Accentuee))
+        match Mois::lire(texte) {
+            Ok(m) => m.libelle(Graphie::Accentuee),
+            Err(_) => texte.to_string(),
+        }
     }
 
     /// L'etiquette du mois dans le nom d'un fichier : « Aout2026 » (le nom en titre, sans accent).
@@ -115,17 +118,24 @@ impl Mois {
     /// Le mois `n` mois plus loin (en arriere si `n` est negatif) ; refus hors des annees 1 a 9999.
     pub fn plus(self, n: i32) -> Resultat<Mois> {
         let rang = i64::from(self.an) * 12 + i64::from(self.numero) - 1 + i64::from(n);
-        Mois::nouveau(i32::try_from(rang.div_euclid(12)).unwrap_or(0), (rang.rem_euclid(12) + 1) as u32).map_err(|_| crate::date::HORS_CALENDRIER.to_string())
+        let an = i32::try_from(rang.div_euclid(12)).map_err(|_| crate::date::HORS_CALENDRIER.to_string())?;
+        Mois::nouveau(an, (rang.rem_euclid(12) + 1) as u32).map_err(|_| crate::date::HORS_CALENDRIER.to_string())
     }
 
     /// Le mois suivant (decembre 9999 n'en a pas : il se rend lui-meme, aucun mois de paie n'y va).
     pub fn suivant(self) -> Mois {
-        self.plus(1).unwrap_or(self)
+        match self.plus(1) {
+            Ok(m) => m,
+            Err(_) => self,
+        }
     }
 
     /// Le mois precedent (janvier de l'an 1 n'en a pas : il se rend lui-meme).
     pub fn precedent(self) -> Mois {
-        self.plus(-1).unwrap_or(self)
+        match self.plus(-1) {
+            Ok(m) => m,
+            Err(_) => self,
+        }
     }
 
     /// Le nombre de jours du mois.

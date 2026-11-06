@@ -14,7 +14,7 @@ fn iso(v: &[Jour]) -> Value {
 fn essai(r: Result<Value, String>) -> Value {
     match r {
         Ok(v) => json!({"ok": v}),
-        Err(e) => json!({"refus": socle::echec::separer(&e).0}),
+        Err(e) => json!({"refus": socle::echec::phrase_de(&e)}),
     }
 }
 
@@ -55,7 +55,7 @@ fn les_engagements_fabriques_et_leurs_refus() {
         let qui = c["kwargs"]["salarie"].as_str().filter(|s| !s.trim().is_empty()).unwrap_or("Cet engagement").to_string();
         c["attendu"] = socle::forme::lire::<engagement::Assemble>(&c["kwargs"], "L'engagement à fabriquer ne se lit pas.")
             .and_then(|a| Engagement::nouveau(&racine, &a, &qui))
-            .map_or_else(|m| json!({"refus": socle::echec::separer(&m).0}), |e| releve(&e));
+            .map_or_else(|m| json!({"refus": socle::echec::phrase_de(&m)}), |e| releve(&e));
         refus += c["attendu"].get("refus").is_some() as usize;
     }
     // un refus par cas `refus_*`

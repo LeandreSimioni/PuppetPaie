@@ -19,12 +19,12 @@ use serde_json::Value;
 use crate::bulletin::{convention_du_contrat, fmt_eur};
 use droit::contexte::Contexte;
 use droit::fiche::ChampsEntreprise;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
+use crate::valeur::{dec, en_texte, vrai};
 use socle::mois::Mois;
 use droit::emplois::{emploi_de, EmploiEngagement};
-use socle::fichiers::vrai;
 use socle::nfkc::nfkc;
-use socle::num::{dec, Resultat};
+use socle::num::Resultat;
 
 
 /// Ce qui remplace une valeur qui n'est pas un texte : elle ne se refuse que si le modele s'en
@@ -541,7 +541,7 @@ fn terme_nomme(terme: &str) -> (&'static str, &'static str) {
 fn valeur_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, terme: &str, v: &Value) -> String {
     let texte = en_texte(v);
     match terme {
-        "salaire_mensuel" => socle::texte::euros_de(v),
+        "salaire_mensuel" => crate::valeur::euros_de(v),
         "quotite_contrat" | "quotite_reference" => dec(v).map(|x| format!("{} heures par mois", socle::texte::virgule(x))).unwrap_or(texte),
         "cadre" => if vrai(v) { "cadre".into() } else { "non cadre".into() },
         "nature" => droit::natures::nature(Some(&texte)).map(|n| n.libelle.clone()).unwrap_or(texte),

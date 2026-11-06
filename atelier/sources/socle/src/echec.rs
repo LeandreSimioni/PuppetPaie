@@ -94,7 +94,10 @@ pub fn noter_echec_a(ou: &str, classe: Option<&str>, message: &str) {
         t: maintenant_ms(),
         fil: fil_courant(),
         ou: ou.to_string(),
-        classe: classe.unwrap_or("-").to_string(),
+        classe: match classe {
+            Some(c) => c.to_string(),
+            None => "-".to_string(),
+        },
         message: message.chars().take(300).collect(),
     };
     let mut l = echecs_notes();
@@ -106,7 +109,7 @@ pub fn noter_echec_a(ou: &str, classe: Option<&str>, message: &str) {
 
 /// Les echecs notes, du plus ancien au plus recent.
 pub fn echecs_notes() -> MutexGuard<'static, VecDeque<Echoue>> {
-    les_echecs().lock().unwrap_or_else(|p| p.into_inner())
+    crate::memoire::tenu(les_echecs())
 }
 
 /// Un refus et, quand il porte un nom, sa classe
@@ -171,35 +174,24 @@ pub fn avec(phrase: impl Into<String>, plus: impl serde::Serialize) -> String {
     format!("{}{}{}", phrase.into(), A_PART, crate::ecriture::json_en_ligne(&plus))
 }
 
-/// La phrase d'un refus, et ce qu'il porte a part (`avec`), reunis d'un bout a l'autre du message.
-pub fn separer(message: &str) -> (String, serde_json::Map<String, serde_json::Value>) {
-    let mut morceaux = message.split(A_PART);
-    let mut phrase = morceaux.next().unwrap_or_default().to_string();
-    let mut plus = serde_json::Map::new();
-    for m in morceaux {
-        let mut lu = serde_json::Deserializer::from_str(m).into_iter::<serde_json::Value>();
-        match lu.next() {
-            Some(Ok(serde_json::Value::Object(o))) => {
-                for (k, v) in o {
-                    plus.entry(k).or_insert(v);
-                }
-                phrase.push_str(&m[lu.byte_offset()..]);
-            }
-            _ => phrase.push_str(m),
-        }
+/// La phrase d'un refus, sans ce qu'il porte a part (`avec`) : les morceaux du message, chacun sans l'objet qui
+/// l'ouvre.
+pub fn phrase_de(message: &str) -> String {
+    let mut phrase = String::new();
+    for (rang, m) in message.split(A_PART).enumerate() {
+        let debut = match (rang, crate::forme::objet_en_tete(m)) {
+            (0, _) | (_, None) => 0,
+            (_, Some(n)) => n,
+        };
+        phrase.push_str(&m[debut..]);
     }
-    (phrase, plus)
+    phrase
 }
 
 impl Echec {
-    /// La phrase du refus, sans ce qu'il porte a part (`separer`).
+    /// La phrase du refus, sans ce qu'il porte a part (`phrase_de`).
     pub fn phrase(&self) -> String {
-        let mut morceaux = self.message.split(A_PART);
-        let mut phrase = morceaux.next().unwrap_or_default().to_string();
-        for m in morceaux {
-            phrase.push_str(&m[crate::forme::objet_en_tete(m).unwrap_or(0)..]);
-        }
-        phrase
+        phrase_de(&self.message)
     }
 }
 

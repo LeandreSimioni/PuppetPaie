@@ -24,9 +24,8 @@ use crate::bulletin::fmt_eur;
 use socle::texte::{euros, virgule};
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
-use socle::date::en_texte;
-use socle::fichiers::vrai;
-use socle::num::{dec, Decimal, Resultat};
+use crate::valeur::{dec, en_texte, vrai};
+use socle::num::{Decimal, Resultat};
 
 /// La nature du contrat d'une paie calculee (sa forme JSON : `engagement.nature`).
 pub fn nature_de_la_paie(paie: &Value) -> Resultat<Arc<Nature>> {

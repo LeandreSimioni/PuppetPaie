@@ -37,7 +37,7 @@ fn faire(cadre: &Cadre, ecrire: bool) -> Result<i32, Echec> {
     }
     dire!("DPAE attestees par les certificats de l'Urssaf : {}\n", trouves.len());
     for v in &trouves {
-        let deja = v.get("deja").is_some_and(socle::fichiers::vrai);
+        let deja = v.get("deja").is_some_and(documents::valeur::vrai);
         dire!("  {}  {:<4}  {:<8}  {}{}", champ(v, "quand"), champ(v, "mode"), champ(v, "mois"), champ(v, "flux"), if deja { "   [deja au journal]" } else { "" });
         for e in liste(v, "embauches") {
             dire!("        {} a partir du {}", champ(&e, "salarie"), champ(&e, "debut"));

@@ -3,7 +3,7 @@
 //! se lisent dans leur forme (`journal::Ligne`) ; un contrat se designe par sa `Paire` (la cle du salarie, le numero du
 //! contrat, ou `""`).
 //!
-//! `Dico`, `items` et les lectures de `socle::valeur` qu'il reexporte servent d'autres modules qui lisent encore des
+//! `Dico`, `items` et les lectures de `documents::valeur` qu'il reexporte servent d'autres modules qui lisent encore des
 //! `Value` : aucun ne lit le journal.
 
 use std::borrow::Cow;
@@ -12,14 +12,14 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use socle::fichiers::vrai;
+use documents::valeur::vrai;
 use socle::mois::Mois;
 use crate::journal::{chemin, Rangement};
 use crate::ligne::{Acte, AvenantParti, ContratAttendu, Ligne, Mode, PersonneCertifiee, RetourContrat, RetourOrganisme, Verdict};
 use crate::retours;
 use socle::echec::{erreur, Echec, R};
-use socle::valeur::{nom_type, nombre, valeur_en_texte};
-pub use socle::valeur::{get, getd, objet_vide, ou, texte_vide};
+use documents::valeur::{nom_type, nombre, valeur_en_texte};
+pub use documents::valeur::{get, getd, objet_vide, ou, texte_vide};
 use crate::tables_journal::ALNUM;
 
 pub const DSN: &str = "dsn";

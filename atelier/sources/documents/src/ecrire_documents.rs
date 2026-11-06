@@ -10,7 +10,7 @@ use droit::contexte::Contexte;
 use socle::echec::erreur;
 use socle::echec::Echec;
 use socle::echec::R;
-use socle::fichiers::lire_json;
+use crate::valeur::lire_json;
 use socle::verrou::Verrou;
 use socle::echec::Refus;
 use socle::ecriture::json_indente;

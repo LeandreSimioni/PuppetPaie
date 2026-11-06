@@ -18,9 +18,9 @@ use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use envois::etats;
 use envois::releve_retours;
-use socle::date::en_texte;
+use documents::valeur::{en_texte, vrai};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::{dossier_du_code, vrai};
+use socle::fichiers::dossier_du_code;
 use socle::mois::{Graphie, Mois};
 use serde::{Deserialize, Serialize};
 use envois::depot_acte::DepotFait;
@@ -1047,7 +1047,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &str) -> R<ApercuDpae> 
         // Sans NIR, la DPAE declare un numero temporaire (zone a blanc) : l'embauche se reconnait a l'identite qu'elle
         // porte, nom, prenom et date de naissance (`dpae::enregistrement`).
         let identite = |s: &Value| {
-            let t = |k: &str| s.get(k).map(socle::date::en_texte).unwrap_or_default().trim().to_uppercase();
+            let t = |k: &str| s.get(k).map(en_texte).unwrap_or_default().trim().to_uppercase();
             let n = s.get("date_naissance").and_then(Value::as_str).and_then(|d| socle::date::Jour::lire(d).ok()).map(|j| j.jjmmaaaa());
             t("nom") == champ("nom").trim() && t("prenom") == champ("prenom").trim() && n.as_deref() == Some(champ("date_naissance"))
         };

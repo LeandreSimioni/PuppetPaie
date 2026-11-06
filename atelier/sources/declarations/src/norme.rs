@@ -10,7 +10,8 @@
 //! se demande a lui, par la table de sa version (`Norme::admet`), en un seul endroit.
 
 use socle::date::Jour;
-use socle::fichiers::{dossier_du_code, json_en_cache};
+use socle::fichiers::dossier_du_code;
+use documents::valeur::json_en_cache;
 use socle::num::Resultat;
 use crate::usages::{lignes, rubrique_valeur};
 use serde_json::Value;

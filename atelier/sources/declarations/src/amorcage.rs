@@ -11,12 +11,13 @@ use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::{aujourdhui, Contexte};
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{en_texte, json_en_cache, vrai};
 use crate::dsn::{
     affiliations, bloc_anciennete, bloc_contrat, g, liste, usage_admet, Fichier, LOGICIEL, VERSION,
 };
 use crate::fctu::Echec;
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::fichiers::{dossier_du_code, repr};
 use socle::num::Resultat;
 
 pub const NATURE: &str = "08";

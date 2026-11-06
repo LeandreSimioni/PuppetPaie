@@ -40,13 +40,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{en_texte, vrai};
 use socle::ecran::Pastille;
 use socle::echec::R;
 pub use declarations::obligations::{CleDObligation, Ou, TexteDepose};
 use declarations::obligations::{BaseDesObligations, DeBase};
 use socle::echec::erreur;
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::repr;
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus, MANQUE, OPERATION};
 use crate::routes::catalogue::Route;
@@ -361,7 +362,7 @@ impl Suivi {
         if !p.exists() {
             return Ok(Suivi { fiches: Vec::new() });
         }
-        let v = socle::fichiers::lire_json_echec(&p)?;
+        let v = documents::valeur::lire_json_echec(&p)?;
         let f: FichierDuSuivi = socle::forme::lire(&v, "Le fichier des obligations des imprévus (imprevus/obligations.json) ne se lit pas.").map_err(|m| erreur("ValueError", m))?;
         Ok(Suivi { fiches: f.arrets })
     }

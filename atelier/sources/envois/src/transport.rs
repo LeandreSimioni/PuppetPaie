@@ -787,7 +787,7 @@ pub fn archiver(racine: &Path, canal: &str, retour: &Value, contenu: &[u8], ctyp
     };
     let nature = match retour.get("nature") {
         None => "??".to_string(),
-        Some(v) => socle::valeur::valeur_en_texte(v),
+        Some(v) => documents::valeur::valeur_en_texte(v),
     };
     let flux = chaine("flux")?;
     let flux = if flux.is_empty() { "sansflux".to_string() } else { flux };
@@ -825,7 +825,7 @@ fn cle_de_retour(e: &Value) -> Result<[Value; 3], Value> {
 }
 
 fn meme_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
-    a.iter().zip(b).all(|(x, y)| socle::valeur::valeurs_egales(x, y))
+    a.iter().zip(b).all(|(x, y)| documents::valeur::valeurs_egales(x, y))
 }
 
 /// Ajoute au journal du canal les retours qu'il n'a pas encore vus ; LF, deux espaces, l'accent tel quel.

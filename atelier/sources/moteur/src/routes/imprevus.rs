@@ -32,12 +32,12 @@ use droit::arrets::{Bloc60, CodeDuBloc60};
 use engagement::imprevus::{self, Suspend, ARRET, SUSPENSION};
 use engagement::numeros::NumeroContrat;
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
-use socle::date::{d, en_texte, Jour};
+use socle::date::Jour;
+use documents::valeur::{d, en_texte, vrai};
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
 use socle::mois::Mois;
 use socle::num::Decimal;
-use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
+use documents::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
 
 
 use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, FORME, ILLISIBLE, MANQUE, MOIS, OPERATION, SALARIE};
@@ -1216,7 +1216,7 @@ fn arret_indemnites(ctx: &Contexte, c: &ChargeArretIndemnites) -> R<ReponseArret
         nouveau[k] = match v.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
             None => Value::Null,
             Some(t) => {
-                let x = socle::num::dec_avec_echelle(&json!(t)).map_err(|e| refus(format!("Indemnité journalière ({}) : {}", k, e)))?;
+                let x = documents::valeur::dec_avec_echelle(&json!(t)).map_err(|e| refus(format!("Indemnité journalière ({}) : {}", k, e)))?;
                 if x <= Decimal::ZERO {
                     return Err(refus("Une indemnité journalière est un montant par jour, positif : rien n'est changé."));
                 }

@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn une_description_devient_un_pdf_lisible_et_le_dossier_parent_se_cree() {
         let d = dossier("bulletin");
-        let description = socle::fichiers::lire_json(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fabrique-bulletin.json")).unwrap();
+        let description = crate::valeur::lire_json(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fabrique-bulletin.json")).unwrap();
         let sortie = d.join("sous/dossier/bulletin.pdf");
         assert_eq!(ecrire(&description, &sortie).unwrap(), sortie);
         assert!(std::fs::read(&sortie).unwrap().starts_with(b"%PDF"));

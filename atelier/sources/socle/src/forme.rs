@@ -65,9 +65,15 @@ fn refus(phrase: &str, fichier: Option<&Path>, e: &serde_path_to_error::Error<se
 
 /// Le message de serde, dit en francais pour ce qu'il a de courant ; le reste tel quel.
 fn en_clair(m: &str) -> String {
-    let m = m.split(" at line ").next().unwrap_or(m);
+    let m = match m.split_once(" at line ") {
+        Some((avant, _)) => avant,
+        None => m,
+    };
     if let Some(r) = m.strip_prefix("unknown field ") {
-        let cle = r.split(',').next().unwrap_or(r);
+        let cle = match r.split_once(',') {
+            Some((cle, _)) => cle,
+            None => r,
+        };
         return match r.split_once("expected ") {
             Some((_, a)) => format!("la clé {} n'est pas connue ici (attendues : {})", cle, a.replace("one of ", "")),
             None => format!("la clé {} n'est pas connue ici : aucune n'est attendue", cle),
@@ -240,7 +246,10 @@ impl<'de> serde::Deserialize<'de> for NombreEcrit {
                 Ok(NombreEcrit::Entier(i))
             }
             fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<NombreEcrit, E> {
-                Ok(i64::try_from(u).map_or(NombreEcrit::Naturel(u), NombreEcrit::Entier))
+                Ok(match i64::try_from(u) {
+                    Ok(i) => NombreEcrit::Entier(i),
+                    Err(_) => NombreEcrit::Naturel(u),
+                })
             }
             fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<NombreEcrit, E> {
                 Ok(NombreEcrit::Flottant(x))
@@ -350,7 +359,7 @@ pub fn partagee<T: DeserializeOwned + Send + Sync + 'static>(chemin: &Path, phra
         }
         Err(e) => return Err(crate::fichiers::panne_fichier(&e, chemin)),
     };
-    let deja = cache.lock().unwrap_or_else(|p| p.into_inner()).get(&cle).filter(|(vus, _)| **vus == octets).map(|(_, f)| f.clone());
+    let deja = crate::memoire::tenu(cache).get(&cle).filter(|(vus, _)| **vus == octets).map(|(_, f)| f.clone());
     let f = match deja {
         Some(f) => f,
         None => {

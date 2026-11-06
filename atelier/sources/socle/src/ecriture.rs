@@ -19,7 +19,10 @@ use crate::num::Resultat;
 /// La forme `v` en valeur JSON, pour l'ecrire. Une forme que serde n'ecrit pas (une cle de table qui n'est pas un texte)
 /// est un defaut du logiciel : elle s'ecrit `null`, et la relecture stricte la refuse.
 pub fn en_valeur<T: Serialize + ?Sized>(v: &T) -> Value {
-    serde_json::to_value(v).unwrap_or(Value::Null)
+    match serde_json::to_value(v) {
+        Ok(valeur) => valeur,
+        Err(_) => Value::Null,
+    }
 }
 
 /// Le JSON de `v`, indente de `indent`, sous la forme du module.
@@ -40,7 +43,10 @@ pub fn json_trie<T: Serialize + ?Sized>(v: &T) -> String {
 /// Le JSON de `v` sur une ligne, serre, tel que serde l'ecrit : ce qu'un refus porte a part (`echec::avec`), que
 /// `echec::separer` relit ; jamais un fichier.
 pub fn json_en_ligne<T: Serialize + ?Sized>(v: &T) -> String {
-    serde_json::to_string(v).unwrap_or_else(|_| "null".into())
+    match serde_json::to_string(v) {
+        Ok(texte) => texte,
+        Err(_) => "null".into(),
+    }
 }
 
 /// LA FORME `v` ECRITE SANS CE QUI NE CHANGE RIEN A CE QU'ELLE DIT, pour la comparer ou en tirer une empreinte : les cles
@@ -71,10 +77,14 @@ fn canonique_de(v: &Value) -> String {
             format!("{{{}}}", corps.join(","))
         }
         Value::Array(a) => format!("[{}]", a.iter().map(canonique_de).collect::<Vec<_>>().join(",")),
-        Value::Number(n) => n.as_f64().map_or_else(|| n.to_string(), |f| format!("{:?}", f)),
-        Value::String(t) if !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit() || c == b'.' || c == b'-') && t.parse::<f64>().is_ok() => {
-            format!("{:?}", t.parse::<f64>().unwrap_or_default())
-        }
+        Value::Number(n) => match n.as_f64() {
+            Some(f) => format!("{:?}", f),
+            None => n.to_string(),
+        },
+        Value::String(t) if !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit() || c == b'.' || c == b'-') => match t.parse::<f64>() {
+            Ok(f) => format!("{:?}", f),
+            Err(_) => v.to_string(),
+        },
         autre => autre.to_string(),
     }
 }
@@ -124,7 +134,10 @@ fn ecrire(v: &Value, indent: usize, niveau: usize, s: &mut String) {
         Value::Number(n) => match (n.as_i64(), n.as_u64()) {
             (Some(i), _) => s.push_str(&i.to_string()),
             (None, Some(u)) => s.push_str(&u.to_string()),
-            _ => s.push_str(&repr_flottant(n.as_f64().unwrap_or(0.0))),
+            _ => match n.as_f64() {
+                Some(f) => s.push_str(&repr_flottant(f)),
+                None => s.push_str(&n.to_string()),
+            },
         },
         Value::String(t) => chaine(t, s),
         Value::Array(a) if a.is_empty() => s.push_str("[]"),
@@ -189,9 +202,8 @@ pub fn repr_flottant(x: f64) -> String {
     }
     // `{:e}` donne les chiffres les plus courts : `1.2345e-5`.
     let e = format!("{:e}", x.abs());
-    let (mantisse, exposant) = e.split_once('e').unwrap_or((&e, "0"));
+    let (mantisse, exp) = scientifique(&e);
     let chiffres: String = mantisse.chars().filter(|c| *c != '.').collect();
-    let exp: i32 = exposant.parse().unwrap_or(0);
     let chiffres = pair_a_egalite(x.abs(), chiffres, exp);
     let n = chiffres.len() as i32;
     let decpt = exp + 1; // x = 0.CHIFFRES * 10^decpt
@@ -212,6 +224,18 @@ pub fn repr_flottant(x: f64) -> String {
     format!("{}{}", signe, corps)
 }
 
+/// Un flottant ecrit en notation scientifique (`{:e}`, `1.2345e-5`) : sa mantisse et son exposant. `{:e}` ecrit
+/// toujours les deux ; un texte sans exposant est sa propre mantisse, a l'exposant 0.
+pub fn scientifique(e: &str) -> (&str, i32) {
+    match e.split_once('e') {
+        Some((mantisse, exposant)) => match exposant.parse() {
+            Ok(n) => (mantisse, n),
+            Err(_) => (mantisse, 0),
+        },
+        None => (e, 0),
+    }
+}
+
 /// Quand la valeur exacte tombe pile entre deux ecritures de meme longueur
 /// (`...403.25` : `.2` et `.3`), la forme ecrite prend la paire (`.2`), la ou Rust prend la
 /// superieure : on rend la paire, si elle revient au meme flottant.
@@ -223,10 +247,10 @@ fn pair_a_egalite(x: f64, chiffres: String, exp: i32) -> String {
     }
     let mut dessous = chiffres.clone().into_bytes();
     dessous[n - 1] -= 1;
-    let dessous = String::from_utf8(dessous).unwrap_or_default();
+    let dessous: String = dessous.into_iter().map(char::from).collect();
     // La valeur exacte, chiffre par chiffre : `DESSOUS` puis `5` puis des zeros.
     let exact = format!("{:.800e}", x);
-    let exact: String = exact.split_once('e').map(|(m, _)| m).unwrap_or("").chars().filter(|c| *c != '.').collect();
+    let exact: String = scientifique(&exact).0.chars().filter(|c| *c != '.').collect();
     let egalite = exact.len() > n && exact.starts_with(&dessous) && exact.as_bytes()[n] == b'5' && exact[n + 1..].bytes().all(|c| c == b'0');
     if !egalite {
         return chiffres;
@@ -271,7 +295,7 @@ pub fn ecrire_json<T: Serialize + ?Sized>(chemin: &Path, donnees: &T, indent: us
 pub fn provisoire(chemin: &Path) -> std::path::PathBuf {
     static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let n = N.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let nom: String = chemin.file_name().iter().map(|n| n.to_string_lossy()).collect();
     chemin.with_file_name(format!("{}.{}-{}.tmp", nom, std::process::id(), n))
 }
 

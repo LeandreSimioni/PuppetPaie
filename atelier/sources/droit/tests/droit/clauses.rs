@@ -15,7 +15,27 @@ const GRAINE: u64 = 20261011;
 
 /// Un IDCC ou une annexe de l'oracle, en texte (vide : la case nulle ou vide).
 fn lu(v: &Value) -> String {
-    if socle::fichiers::vrai(v) { socle::date::en_texte(v).trim().to_string() } else { String::new() }
+    if vrai(v) { en_texte(v).trim().to_string() } else { String::new() }
+}
+
+/// Une case de l'oracle dite : ni nulle, ni fausse, ni zero, ni vide.
+fn vrai(v: &Value) -> bool {
+    match v {
+        Value::Null => false,
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64() != Some(0.0),
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+    }
+}
+
+/// Une case de l'oracle en texte : un texte tel quel, un nombre ecrit.
+fn en_texte(v: &Value) -> String {
+    match v {
+        Value::String(s) => s.clone(),
+        autre => autre.to_string(),
+    }
 }
 
 fn lire() -> Value {
@@ -224,23 +244,23 @@ fn avec(base: &Value, k: &str, v: Value) -> Value {
 /// un code emploi qui n'est pas un texte et un debut illisible refusent.
 fn dit(e: Option<&Value>) -> Resultat<DitParLEngagement> {
     let Some(e) = e else { return Ok(DitParLEngagement::default()) };
-    let dite = |k: &str| e.get(k).filter(|v| socle::fichiers::vrai(v));
+    let dite = |k: &str| e.get(k).filter(|v| vrai(v));
     let metier = match dite("metier") {
         Some(v) => Some(v.as_str().ok_or("code emploi : pas un texte")?.to_string()),
         None => None,
     };
     let debut = match dite("debut") {
         Some(v) => {
-            let s = socle::date::en_texte(v);
+            let s = en_texte(v);
             Some(s.get(..10).filter(|j| j.as_bytes().get(4) == Some(&b'-') && j.as_bytes().get(7) == Some(&b'-')).and_then(|j| Jour::lire(j).ok()).ok_or("date illisible")?)
         }
         None => None,
     };
     Ok(DitParLEngagement {
-        categorie_conventionnelle: dite("categorie_conventionnelle").map(socle::date::en_texte),
+        categorie_conventionnelle: dite("categorie_conventionnelle").map(en_texte),
         statut: dite("statut").and_then(Value::as_str).map(str::to_string),
         metier,
-        cadre: e.get("cadre").filter(|v| !v.is_null()).map(socle::fichiers::vrai),
+        cadre: e.get("cadre").filter(|v| !v.is_null()).map(vrai),
         debut,
     })
 }

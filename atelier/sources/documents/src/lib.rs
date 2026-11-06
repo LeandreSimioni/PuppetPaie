@@ -23,6 +23,7 @@ pub mod plan_comptable;
 pub mod prelevement;
 pub mod tableaux_export;
 pub mod taxe_sur_les_salaires;
+pub mod valeur;
 
 /// La plus grande largeur, en points, à laquelle un document imprime l'image d'identité `quoi` (`logo`,
 /// `signature`, `cachet`) : ce qu'il faut de pixels, et pas plus (`fabrique_pdf::alleger`). Le logo : en tête des

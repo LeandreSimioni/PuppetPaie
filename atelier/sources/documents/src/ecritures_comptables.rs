@@ -9,9 +9,9 @@ use serde_json::{json, Map, Value};
 use droit::catalogue::{self, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::vrai;
+use crate::valeur::vrai;
 use socle::num::{eur2, zero2, Decimal};
-use socle::valeur::valeur_en_texte;
+use crate::valeur::valeur_en_texte;
 
 use crate::plan_comptable::{compte_du_salarie, Refus};
 
@@ -62,7 +62,7 @@ fn cle_du_plan<'a>(plan: &'a Map<String, Value>, cle: &str) -> R<&'a Value> {
 fn dans<'a>(v: &'a Value, cle: &str) -> R<&'a Value> {
     match v {
         Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", crate::valeur::nom_type(autre)))),
     }
 }
 

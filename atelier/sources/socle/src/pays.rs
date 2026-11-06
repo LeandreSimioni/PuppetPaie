@@ -90,7 +90,10 @@ pub fn codification(p: &Pays) -> &'static str {
     if crate::codification_ue::TERRITOIRES_HORS_UNION.contains(&p.code.as_str()) {
         return crate::codification_ue::code_du_pays(&p.code);
     }
-    crate::codification_ue::code_du_pays(p.rattachement.as_deref().unwrap_or(&p.code))
+    match &p.rattachement {
+        Some(r) => crate::codification_ue::code_du_pays(r),
+        None => crate::codification_ue::code_du_pays(&p.code),
+    }
 }
 
 /// La phrase d'un code qui n'est pas dans la liste. `quoi` : « Le pays de naissance de X ».
@@ -163,7 +166,10 @@ pub fn de_la_table_dsn(code: &str) -> Resultat<Option<PaysDsn>> {
 /// Le nom d'un pays de naissance a l'ecran : celui du COG quand il en a un (accentue, en casse ordinaire), le libelle de
 /// la table « Pays » sinon (« KOSOVO », « URSS »), tel quel.
 fn nom_de_naissance(p: &PaysDsn, cog: &[Pays]) -> String {
-    cog.iter().find(|c| c.code == p.code).map_or_else(|| p.libelle.clone(), |c| c.nom.clone())
+    match cog.iter().find(|c| c.code == p.code) {
+        Some(c) => c.nom.clone(),
+        None => p.libelle.clone(),
+    }
 }
 
 /// Un pays de naissance tel que la page le recoit : son code et son nom.

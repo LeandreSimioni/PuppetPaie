@@ -1,11 +1,9 @@
-//! Lire les fichiers JSON livres avec le code (`json_en_cache`) et dire
-//! ou est le code.
+//! Lire les fichiers livres avec le code (`forme_en_cache`) et dire ou est le code.
 //!
 //! Le cache est cle par chemin ET par signature (date de modification,
 //! taille) : un fichier reecrit se relit.
 
 use crate::num::Resultat;
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
@@ -36,7 +34,10 @@ static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::
 /// La cle des caches qui ne notent pas : le numero du registre ouvert SUR CE FIL, 0 sans registre. Un calcul suivi ne
 /// sert ainsi que ce qu'il a compose lui-meme (tout ce qu'il lit se note), meme si un autre fil compose en meme temps.
 pub fn generation() -> u64 {
-    REGISTRE.with(|r| r.borrow().last().map_or(0, |g| g.numero))
+    REGISTRE.with(|r| match r.borrow().last() {
+        Some(g) => g.numero,
+        None => 0,
+    })
 }
 
 thread_local! {
@@ -64,7 +65,7 @@ pub const CACHE_MAX: usize = 512;
 /// Range `v` sous `cle` dans un cache du processus. La fenetre garde le moteur charge : chaque calcul
 /// suivi ajoute ses cles (`generation`), et un cache plein se vide plutot que de grossir tant que la fenetre tourne.
 pub fn ranger<K: Eq + std::hash::Hash, V>(cache: &Mutex<HashMap<K, V>>, cle: K, v: V) {
-    let mut c = cache.lock().unwrap_or_else(|p| p.into_inner());
+    let mut c = crate::memoire::tenu(cache);
     if c.len() >= CACHE_MAX {
         c.clear();
     }
@@ -85,7 +86,7 @@ pub struct Notee<V> {
 pub fn garde_notee<V: Clone, E>(cache: &Mutex<HashMap<String, Notee<V>>>, cle: String, composer: impl FnOnce() -> Result<V, E>) -> Result<V, E> {
     let base = REGISTRE.with(|r| r.borrow().last().map(|g| (g.racine.clone(), g.code.clone())));
     let servie = {
-        let c = cache.lock().unwrap_or_else(|p| p.into_inner());
+        let c = crate::memoire::tenu(cache);
         c.get(&cle).and_then(|n| match (&base, &n.lu) {
             (None, _) => Some((n.valeur.clone(), None)),
             (Some((r, k)), Some((r2, k2, entrees))) if r == r2 && k == k2 => Some((n.valeur.clone(), Some(entrees.clone()))),
@@ -122,7 +123,10 @@ pub fn garde_notee<V: Clone, E>(cache: &Mutex<HashMap<String, Notee<V>>>, cle: S
 pub fn rendre() -> BTreeMap<String, String> {
     REGISTRE.with(|r| {
         let mut pile = r.borrow_mut();
-        let entrees = pile.pop().map(|g| g.entrees).unwrap_or_default();
+        let entrees = match pile.pop() {
+            Some(g) => g.entrees,
+            None => BTreeMap::new(),
+        };
         if let Some(dessous) = pile.last_mut() {
             for (k, v) in &entrees {
                 dessous.entrees.entry(k.clone()).or_insert_with(|| v.clone());
@@ -214,7 +218,7 @@ fn empreinte_des_octets(chemin: &Path, octets: Vec<u8>) -> String {
     type Empreintes = Mutex<HashMap<PathBuf, (Vec<u8>, String)>>;
     static EMPREINTES: OnceLock<Empreintes> = OnceLock::new();
     let cache = EMPREINTES.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Some((vus, e)) = cache.lock().unwrap_or_else(|p| p.into_inner()).get(chemin) {
+    if let Some((vus, e)) = crate::memoire::tenu(cache).get(chemin) {
         if *vus == octets {
             return e.clone();
         }
@@ -324,12 +328,10 @@ pub fn signature(chemin: &Path) -> Option<(u128, u64)> {
 
 fn signature_lue(chemin: &Path) -> Option<(u128, u64)> {
     let m = std::fs::metadata(chemin).ok()?;
-    let ns = m
-        .modified()
-        .ok()
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|d| d.as_nanos())
-        .unwrap_or(0);
+    let ns = match m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()) {
+        Some(d) => d.as_nanos(),
+        None => 0,
+    };
     Some((ns, m.len()))
 }
 
@@ -363,8 +365,6 @@ impl Drop for CodeFige {
     }
 }
 
-type Cache = Mutex<HashMap<PathBuf, ((u128, u64), Arc<Value>)>>;
-
 /// Le cache d'une table livree lue par sa forme (`forme_en_cache`) : le chemin, sa signature, la table construite.
 pub type FormeGardee<T> = Mutex<Option<(PathBuf, Option<(u128, u64)>, Arc<T>)>>;
 
@@ -376,62 +376,15 @@ pub fn forme_en_cache<B: serde::de::DeserializeOwned, T>(cache: &'static OnceLoc
     let chemin = dossier_du_code().join(nom);
     let sig = signature(&chemin);
     let cache = cache.get_or_init(|| Mutex::new(None));
-    if let Some((p, s, v)) = cache.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+    if let Some((p, s, v)) = crate::memoire::tenu(cache).as_ref() {
         if *p == chemin && sig.is_some() && *s == sig {
             noter_si_besoin(&chemin);
             return Ok(v.clone());
         }
     }
     let v = Arc::new(construire(crate::forme::lire_fichier(&chemin, phrase)?)?);
-    *cache.lock().unwrap_or_else(|e| e.into_inner()) = Some((chemin, sig, v.clone()));
+    *crate::memoire::tenu(cache) = Some((chemin, sig, v.clone()));
     Ok(v)
-}
-
-/// Un fichier JSON lu une fois tant qu'il ne change pas (objet partage : on
-/// ne le modifie pas).
-pub fn json_en_cache(chemin: &Path) -> Resultat<Arc<Value>> {
-    json_en_cache_ou(chemin, lire_json)
-}
-
-/// `json_en_cache`, lu par `lire` quand il faut le lire : le refus d'un fichier illisible reste celui de l'appelant (sa
-/// classe, son message), et ne se garde jamais -- seul un JSON lu se garde, sous la signature du fichier (date, taille).
-/// `lire` doit noter sa lecture (`lire_texte`) ; servi du cache, le fichier se note ici (`noter_si_besoin`).
-pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Value, E>) -> Result<Arc<Value>, E> {
-    static CACHE: OnceLock<Cache> = OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let sig = signature(chemin);
-    if let Some(s) = sig {
-        if let Some((vue, v)) = cache.lock().unwrap().get(chemin) {
-            if *vue == s {
-                noter_si_besoin(chemin);
-                return Ok(v.clone());
-            }
-        }
-    }
-    let v = Arc::new(lire(chemin)?);
-    if let Some(s) = sig {
-        cache.lock().unwrap().insert(chemin.to_path_buf(), (s, v.clone()));
-    }
-    Ok(v)
-}
-
-/// Le JSON d'un fichier UTF-8, sans cache.
-pub fn lire_json(chemin: &Path) -> Resultat<Value> {
-    let texte = lire_texte(chemin)
-        .map_err(|e| crate::echec::du_disque(&chemin, &e))?;
-    serde_json::from_str(&texte).map_err(|e| crate::echec::du_disque(&chemin, &e))
-}
-
-/// Une valeur est-elle vraie ? Faux : `null`, `false`, zero, un texte, une liste ou un objet vides.
-pub fn vrai(v: &Value) -> bool {
-    match v {
-        Value::Null => false,
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64().map(|x| x != 0.0).unwrap_or(true),
-        Value::String(s) => !s.is_empty(),
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(o) => !o.is_empty(),
-    }
 }
 
 /// Un texte cite dans un message : entre guillemets simples (doubles s'il porte une apostrophe et aucun guillemet),
@@ -479,19 +432,6 @@ pub fn imprimable(c: char) -> bool {
             | 0x2060..=0x2064 | 0x2066..=0x206f | 0xfeff | 0xfff9..=0xfffb | 0x110bd | 0x1d173..=0x1d17a | 0xe0001 | 0xe0020..=0xe007f
             | 0xe000..=0xf8ff | 0xf0000..=0x10ffff | 0xfdd0..=0xfdef)
         || n & 0xfffe == 0xfffe)
-}
-
-/// Une valeur JSON citee dans un message (`None`, `True`, `12`, `'x'`).
-pub fn repr_valeur(v: &Value) -> String {
-    match v {
-        Value::Null => "None".into(),
-        Value::Bool(true) => "True".into(),
-        Value::Bool(false) => "False".into(),
-        Value::String(s) => repr(s),
-        Value::Array(a) => format!("[{}]", a.iter().map(repr_valeur).collect::<Vec<_>>().join(", ")),
-        Value::Object(o) => format!("{{{}}}", o.iter().map(|(k, v)| format!("{}: {}", repr(k), repr_valeur(v))).collect::<Vec<_>>().join(", ")),
-        autre => autre.to_string(),
-    }
 }
 
 // ------------------------------------------------ les refus d'une donnee lue
@@ -593,7 +533,10 @@ pub const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
 /// meme compagnie et garde ceux du poste (son gabarit DPAE porte son centre de medecine du travail). Une compagnie qui
 /// porte `MARQUEUR_COPIE` n'emprunte rien au poste : ses documents ne prennent jamais les clauses de la compagnie reelle.
 pub fn modele_de(nom: &str, gabarits: Option<&Path>, poste: &Path) -> PathBuf {
-    let propre = gabarits.unwrap_or(poste).to_path_buf();
+    let propre = match gabarits {
+        Some(g) => g.to_path_buf(),
+        None => poste.to_path_buf(),
+    };
     let copie = propre.parent().is_some_and(|p| p.join(MARQUEUR_COPIE).is_file());
     let dossiers: Vec<&Path> = if copie { vec![&propre] } else { vec![&propre, poste] };
     for dossier in dossiers {
@@ -623,15 +566,12 @@ pub fn lire_texte_echec(p: &Path) -> Result<String, crate::echec::Echec> {
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", crate::echec::du_disque(&p, &e)))
 }
 
-/// Un fichier JSON (`lire_texte_echec`, puis `JSONDecodeError` s'il ne se lit pas : la phrase en mots, le chemin et ce
-/// qui ne va pas a part, `echec::du_disque`).
-pub fn lire_json_echec(p: &Path) -> Result<Value, crate::echec::Echec> {
-    serde_json::from_str(&lire_texte_echec(p)?).map_err(|e| crate::echec::erreur("JSONDecodeError", crate::echec::du_disque(p, &e)))
-}
-
 /// Le nom d'un chemin, ou son texte entier s'il n'en a pas.
 pub fn nom_du(chemin: &std::path::Path) -> String {
-    chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| chemin.to_string_lossy().into_owned())
+    match chemin.file_name() {
+        Some(n) => n.to_string_lossy().into_owned(),
+        None => chemin.to_string_lossy().into_owned(),
+    }
 }
 
 #[cfg(test)]

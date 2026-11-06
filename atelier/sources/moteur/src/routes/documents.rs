@@ -28,7 +28,7 @@ use socle::date::jour_iso;
 use socle::echec::{erreur, Echec};
 use socle::fichiers::nom_du;
 use socle::mois::Mois;
-use socle::valeur::valeur_en_texte;
+use documents::valeur::valeur_en_texte;
 use crate::routes::catalogue::{Ecran, Place};
 
 pub(crate) type R<T> = Result<T, Echec>;
@@ -638,7 +638,7 @@ pub(crate) fn refus(message: impl Into<String>) -> Echec {
 pub(crate) fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
     match d {
         Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", documents::valeur::nom_type(autre)))),
     }
 }
 

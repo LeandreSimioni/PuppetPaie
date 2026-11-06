@@ -4,7 +4,8 @@
 //! `usages-dsn-p27v01-base.json` pour P27V01), choisi d'apres
 //! `S10.G00.00.006` du fichier controle (`norme::du_fichier`).
 
-use socle::fichiers::{dossier_du_code, json_en_cache};
+use socle::fichiers::dossier_du_code;
+use documents::valeur::json_en_cache;
 use crate::norme::Norme;
 use socle::num::Resultat;
 use serde_json::Value;
@@ -39,7 +40,7 @@ pub fn est_rubrique(r: &str) -> bool {
 }
 
 fn entree<'a>(t: &'a Value, rubrique: &str) -> Option<&'a Value> {
-    t["usages"].get(rubrique).filter(|v| socle::fichiers::vrai(v))
+    t["usages"].get(rubrique).filter(|v| documents::valeur::vrai(v))
 }
 
 /// La rubrique est-elle au tableau des usages de cette version, quelle que soit la nature ?
@@ -93,7 +94,7 @@ pub fn verifier(texte: &str, nature: &str, norme: &Norme) -> Resultat<()> {
             };
             let lib = entree(&t, r)
                 .and_then(|e| e.get("libelle"))
-                .filter(|v| socle::fichiers::vrai(v))
+                .filter(|v| documents::valeur::vrai(v))
                 .and_then(|v| v.as_str());
             match lib {
                 Some(l) => format!("    {} : {} ({})", r, quoi, l),

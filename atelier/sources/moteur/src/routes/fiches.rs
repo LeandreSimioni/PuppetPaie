@@ -28,10 +28,10 @@ use envois::simulation_courriels::BoiteQuiRepond;
 use socle::date::Jour;
 use socle::echec::{erreur, Echec, R};
 use socle::ecriture::ecrire_json;
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::repr;
 use socle::html::{html_echapper, mailto};
 use socle::texte::{capitaliser, strip};
-use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales};
+use documents::valeur::{euros_de, nom_type, valeur_ecrite, valeur_en_texte, valeurs_egales, vrai};
 
 const NOM_FICHE: Champ = Champ { nom: "nom", libelle: Affiche::new("Fiche"), forme: Forme::Texte, sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", libelle: Affiche::new("Clé"), forme: Forme::Texte, sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
@@ -258,21 +258,21 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &V
             let spectacles: Vec<(String, Value)> = v["spectacles"].as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), x.clone())).collect()).unwrap_or_default();
             let total: f64 = spectacles.iter().map(|(_, x)| cout(x)).sum();
             let jusqu_a = socle::mois::Mois::en_clair(&valeur_en_texte(&v["jusqu_a"]));
-            let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, socle::texte::euros_de(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
+            let p = format!("Coût de {}, jusqu'à {} : {} pour {}.", valeur_en_texte(&v["annee"]), jusqu_a, euros_de(&json!(total)), super::compte(spectacles.len(), "spectacle", "spectacles"));
             // La ligne de chaque spectacle et de chaque salarie, telle que sa fiche la montre.
             for cote in ["spectacles", "salaries"] {
                 for x in v[cote].as_object_mut().into_iter().flat_map(|o| o.values_mut()) {
                     let prevu = x["prevu"].as_str().and_then(|c| c.parse::<f64>().ok()).filter(|p| *p != 0.0);
                     x["phrase"] = json!(format!(
                         "coût employeur {} — brut {}, charges {}, {}{}{}",
-                        socle::texte::euros_de(&x["cout"]), socle::texte::euros_de(&x["brut"]), socle::texte::euros_de(&x["charges"]),
+                        euros_de(&x["cout"]), euros_de(&x["brut"]), euros_de(&x["charges"]),
                         super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"),
                         if vrai(&x["incomplet"]) { ", coût incomplet avant PuppetPaie" } else { "" },
-                        prevu.map_or(String::new(), |p| format!(" · + {} déjà saisis pour la suite de l'année", socle::texte::euros_de(&json!(p))))
+                        prevu.map_or(String::new(), |p| format!(" · + {} déjà saisis pour la suite de l'année", euros_de(&json!(p))))
                     ));
                 }
             }
-            v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, socle::texte::euros_de(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), socle::texte::euros_de(&x["brut"]))).collect::<Vec<_>>());
+            v["phrases"] = json!(spectacles.iter().map(|(nom, x)| format!("{} : {} ({}, brut {})", nom, euros_de(&x["cout"]), super::compte(x["bulletins"].as_u64().unwrap_or(0) as usize, "bulletin", "bulletins"), euros_de(&x["brut"]))).collect::<Vec<_>>());
             super::phrase_en_tete(v, p)
         }),
         Route::Permanents => en_json(permanents(ctx, lire_charge(charge)?)?),
@@ -1707,7 +1707,7 @@ pub(crate) fn date_proposee(ctx: &Contexte, nom: &str, cle: Option<&str>) -> R<(
 /// La date d'effet que la charge d'une route d'ecriture donne (`depuis`, AAAA-MM-JJ), ou `None`.
 pub(crate) fn depuis_de(depuis: &Value) -> R<Option<Jour>> {
     if vrai(depuis) {
-        socle::date::d(depuis).map(Some).map_err(|m| erreur("ValueError", m))
+        documents::valeur::d(depuis).map(Some).map_err(|m| erreur("ValueError", m))
     } else {
         Ok(None)
     }

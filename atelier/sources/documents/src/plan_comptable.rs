@@ -15,9 +15,9 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::echec::{erreur, Echec, R};
-use socle::fichiers::lire_json_echec as lire_json;
-use socle::fichiers::{repr, vrai};
-use socle::valeur::{getd, nom_type, objet_vide, ou, valeur_en_texte};
+use crate::valeur::lire_json_echec as lire_json;
+use socle::fichiers::repr;
+use crate::valeur::{getd, nom_type, objet_vide, ou, valeur_en_texte, vrai};
 
 /// Les tables fixes des exports et des ecritures comptables.
 pub fn tables() -> &'static Value {
