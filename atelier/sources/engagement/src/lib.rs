@@ -356,10 +356,10 @@ impl Engagement {
         let mut premier_cachet: Option<&LignePaie> = None;
         // Les rubriques se lisent a la fin du mois paye (le mois dit, sinon celui de la premiere date jouee). Un mois
         // illisible se refuse plus loin, avec ce qui ne va pas : d'ici la, les rubriques se lisent au jour du moteur.
-        let jour_lu = match (Mois::lire(&mois_saisi), jours_joues.first()) {
-            (Ok(m), _) => m.dernier_jour(),
-            (Err(_), Some(j)) => j.mois_civil().dernier_jour(),
-            (Err(_), None) => droit::contexte::jour_reel(),
+        let jour_lu = match (Mois::du_texte(&mois_saisi), jours_joues.first()) {
+            (Some(m), _) => m.dernier_jour(),
+            (None, Some(j)) => j.mois_civil().dernier_jour(),
+            (None, None) => droit::contexte::jour_reel(),
         };
         for l in &lignes {
             let r = rubrique(racine, l.rubrique(), &jour_lu)?;

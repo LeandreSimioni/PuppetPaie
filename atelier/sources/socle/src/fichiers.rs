@@ -324,35 +324,36 @@ pub fn dossier_du_code() -> PathBuf {
 /// fichier du code (`dossier_du_code`) se lit une fois. Les caches du moteur la demandaient a chaque service -- mille
 /// fois `norme-dsn-base.json` pour un seul `etat` --, et sous Windows chaque demande ouvre le fichier, que l'antivirus
 /// inspecte. Les fichiers de la compagnie, eux, se relisent toujours : une route les ecrit.
-pub fn signature(chemin: &Path) -> Option<(u128, u64)> {
+pub fn signature(chemin: &Path) -> Resultat<Option<(u128, u64)>> {
     let memo = CODE_FIGE.with(|c| c.borrow().as_ref().filter(|(code, _)| chemin.starts_with(code)).map(|(_, m)| m.get(chemin).copied()));
     match memo {
-        Some(Some(s)) => s,
+        Some(Some(s)) => Ok(s),
         Some(None) => {
-            let s = signature_lue(chemin);
+            let s = signature_lue(chemin)?;
             CODE_FIGE.with(|c| {
                 if let Some((_, m)) = c.borrow_mut().as_mut() {
                     m.insert(chemin.to_path_buf(), s);
                 }
             });
-            s
+            Ok(s)
         }
         None => signature_lue(chemin),
     }
 }
 
-/// `None` quand le fichier ne donne pas sa signature (absent, illisible, sans date) : rien ne se garde de lui, et la
-/// lecture qui suit dit pourquoi.
-fn signature_lue(chemin: &Path) -> Option<(u128, u64)> {
-    let m = match std::fs::metadata(chemin) {
-        Ok(m) => m,
-        Err(_la_lecture_le_dira) => return None,
-    };
-    match m.modified().map(|t| t.duration_since(std::time::UNIX_EPOCH)) {
-        Ok(Ok(d)) => Some((d.as_nanos(), m.len())),
-        // Avant 1970, ou sans date : rien ne dit que le fichier a change.
-        Ok(Err(_)) | Err(_) => None,
+/// `None` pour un fichier absent : rien ne se garde de lui ; un fichier qui ne dit pas sa date (illisible, d'avant 1970)
+/// se refuse.
+fn signature_lue(chemin: &Path) -> Resultat<Option<(u128, u64)>> {
+    // Un fichier absent n'a pas de signature : rien ne se garde de lui.
+    if !chemin.is_file() {
+        return Ok(None);
     }
+    let illisible = |e: std::io::Error| format!("{} ne dit pas sa date : {}", repr(&chemin.display().to_string()), e);
+    let m = std::fs::metadata(chemin).map_err(illisible)?;
+    let d = m.modified().map_err(illisible)?.duration_since(std::time::UNIX_EPOCH).map_err(|e| {
+        format!("{} est daté d'avant 1970 ({} s) : régler la date du fichier.", repr(&chemin.display().to_string()), e.duration().as_secs())
+    })?;
+    Ok(Some((d.as_nanos(), m.len())))
 }
 
 type SignaturesDuCode = Option<(PathBuf, HashMap<PathBuf, Option<(u128, u64)>>)>;
@@ -394,7 +395,7 @@ pub type FormeGardee<T> = Mutex<Option<(PathBuf, Option<(u128, u64)>, Arc<T>)>>;
 /// fois.
 pub fn forme_en_cache<B: serde::de::DeserializeOwned, T>(cache: &'static OnceLock<FormeGardee<T>>, nom: &str, phrase: &str, construire: impl Fn(B) -> Resultat<T>) -> Resultat<Arc<T>> {
     let chemin = dossier_du_code().join(nom);
-    let sig = signature(&chemin);
+    let sig = signature(&chemin)?;
     let cache = cache.get_or_init(|| Mutex::new(None));
     if let Some((p, s, v)) = crate::memoire::tenu(cache).as_ref() {
         if *p == chemin && sig.is_some() && *s == sig {

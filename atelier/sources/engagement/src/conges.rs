@@ -90,10 +90,7 @@ pub(crate) fn horaire_du_mois(
 
 /// Le flottant d'un decimal, correctement arrondi, par le texte.
 pub(crate) fn flot(x: Decimal) -> f64 {
-    match x.to_string().parse() {
-        Ok(f) => f,
-        Err(_) => unreachable!("un décimal s'écrit en chiffres : {}", x),
-    }
+    socle::num::flottant(x)
 }
 
 /// LE TAUX D'UNE LIGNE QUI PAIE `montant` POUR `quantite` : la ligne paie son taux par sa quantite, au centime

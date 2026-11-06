@@ -142,7 +142,7 @@ fn tables() -> Resultat<Arc<Tables>> {
     type Garde = Mutex<Option<(PathBuf, Vec<Option<(u128, u64)>>, Arc<Tables>)>>;
     static CACHE: OnceLock<Garde> = OnceLock::new();
     let dossier = dossier_du_code().join(DOSSIER);
-    let sig: Vec<_> = ["indemnites.csv", "change.csv", "villes.json"].iter().map(|f| socle::fichiers::signature(&dossier.join(f))).collect();
+    let sig: Vec<_> = ["indemnites.csv", "change.csv", "villes.json"].iter().map(|f| socle::fichiers::signature(&dossier.join(f))).collect::<Resultat<_>>()?;
     let cache = CACHE.get_or_init(|| Mutex::new(None));
     if let Some((d, s, t)) = cache.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
         if *d == dossier && *s == sig && sig.iter().all(Option::is_some) {

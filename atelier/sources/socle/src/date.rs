@@ -47,22 +47,26 @@ impl Jour {
 
     /// Une date ecrite dans l'un des cinq formats.
     pub fn lire(texte: &str) -> Resultat<Jour> {
+        match Jour::du_texte(texte) {
+            Some(j) => Ok(j),
+            None => Err(format!("date illisible : {}", repr_texte(texte.trim()))),
+        }
+    }
+
+    /// Le jour que `texte` ecrit, s'il en ecrit un (`lire` dit pourquoi il n'en ecrit pas) : une phrase qui cite un jour
+    /// le dit en clair, et ce qui n'est pas une date tel qu'il est ecrit.
+    pub fn du_texte(texte: &str) -> Option<Jour> {
         let s = texte.trim();
         // La forme qu'ecrit le moteur (`iso`), lue d'emblee : c'est celle que le premier format apparierait.
         let o = s.as_bytes();
         if o.len() == 10 && o[4] == b'-' && o[7] == b'-' && [0, 1, 2, 3, 5, 6, 8, 9].iter().all(|&i| o[i].is_ascii_digit()) {
             let n = |a: usize, b: usize| o[a..b].iter().fold(0u32, |n, c| n * 10 + u32::from(c - b'0'));
             if let Some(j) = Jour::nouveau(n(0, 4) as i32, n(5, 7), n(8, 10)) {
-                return Ok(j);
+                return Some(j);
             }
         }
         let c: Vec<char> = s.chars().collect();
-        for format in FORMATS {
-            if let Some(j) = lire_format(format, &c) {
-                return Ok(j);
-            }
-        }
-        Err(format!("date illisible : {}", repr_texte(s)))
+        FORMATS.iter().find_map(|format| lire_format(format, &c))
     }
 
     /// `AAAA-MM-JJ`.
@@ -251,11 +255,14 @@ fn longueurs(champ: Champ, c: &[char], pos: usize) -> Vec<usize> {
     l
 }
 
+/// Le nombre de `len` caracteres de `c` a partir de `de`, ses blancs autour retires ; 0 quand ce n'est pas un nombre.
 fn nombre(c: &[char], de: usize, len: usize) -> u32 {
-    match c[de..de + len].iter().collect::<String>().trim().parse() {
-        Ok(n) => n,
-        Err(_) => 0,
+    let t: String = c[de..de + len].iter().collect();
+    let t = t.trim();
+    if t.is_empty() || !t.bytes().all(|b| b.is_ascii_digit()) {
+        return 0;
     }
+    t.bytes().fold(0u32, |n, b| n.saturating_mul(10).saturating_add(u32::from(b - b'0')))
 }
 
 /// Premier appariement de l'expression reguliere (avec retour sur les

@@ -194,7 +194,7 @@ fn table() -> Resultat<Arc<Table>> {
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let chemin = dossier_du_code().join(NOM_TABLE);
-    let sig = signature(&chemin);
+    let sig = signature(&chemin)?;
     if let Some(s) = sig {
         if let Some((vue, t)) = cache.lock().unwrap().get(&chemin) {
             if *vue == s {

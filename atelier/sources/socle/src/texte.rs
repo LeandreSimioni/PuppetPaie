@@ -136,19 +136,12 @@ pub fn ascii_nfkd(v: &str) -> String {
             continue;
         }
         let cp = c as u32;
-        let plage = crate::nfkd_ascii::TABLE.binary_search_by(|(a, b, _, _)| {
-            if cp < *a {
-                std::cmp::Ordering::Greater
-            } else if cp > *b {
-                std::cmp::Ordering::Less
-            } else {
-                std::cmp::Ordering::Equal
-            }
-        });
-        // Hors de la table, le caractere n'a pas d'ASCII : il tombe (`encode("ascii", "ignore")`).
-        let (a, t, avance) = match plage {
-            Ok(i) => (crate::nfkd_ascii::TABLE[i].0, crate::nfkd_ascii::TABLE[i].2, crate::nfkd_ascii::TABLE[i].3),
-            Err(_sans_ascii) => continue,
+        // La plage du caractere (la table est triee, ses plages disjointes : la premiere qui ne finit pas avant lui, si elle
+        // le contient). Hors de la table, le caractere n'a pas d'ASCII : il tombe (`encode("ascii", "ignore")`).
+        let table = &crate::nfkd_ascii::TABLE;
+        let (a, t, avance) = match table.get(table.partition_point(|(_, b, _, _)| *b < cp)) {
+            Some(&(a, _, t, avance)) if a <= cp => (a, t, avance),
+            _ => continue,
         };
         if avance {
             // Une plage qui avance (`a` a `b` vers `t`, `t+1`...) : le caractere de meme rang depuis le premier de `t`.

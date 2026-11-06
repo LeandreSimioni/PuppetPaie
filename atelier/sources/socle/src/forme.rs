@@ -246,10 +246,8 @@ impl<'de> serde::Deserialize<'de> for NombreEcrit {
                 Ok(NombreEcrit::Entier(i))
             }
             fn visit_u64<E: serde::de::Error>(self, u: u64) -> Result<NombreEcrit, E> {
-                Ok(match i64::try_from(u) {
-                    Ok(i) => NombreEcrit::Entier(i),
-                    Err(_) => NombreEcrit::Naturel(u),
-                })
+                // Un naturel que `i64` tient est un entier ; au-dela, il reste naturel.
+                Ok(if u <= i64::MAX as u64 { NombreEcrit::Entier(u as i64) } else { NombreEcrit::Naturel(u) })
             }
             fn visit_f64<E: serde::de::Error>(self, x: f64) -> Result<NombreEcrit, E> {
                 Ok(NombreEcrit::Flottant(x))

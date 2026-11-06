@@ -24,9 +24,9 @@ fn jour_court(iso: &str) -> String {
         Some(j) => j,
         None => iso,
     };
-    match Jour::lire(jour) {
-        Ok(j) => j.jj_mm(),
-        Err(_) => iso.to_string(),
+    match Jour::du_texte(jour) {
+        Some(j) => j.jj_mm(),
+        None => iso.to_string(),
     }
 }
 
@@ -60,12 +60,10 @@ fn bornes(s: &Carte) -> (String, String) {
     (s.debut_lu(), fin)
 }
 
-/// Le libelle d'une rubrique au catalogue, ou son code.
-fn libelle(ctx: &Contexte, code: &str) -> (String, String) {
-    match droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au) {
-        Ok(r) => (r.libelle, r.unite),
-        Err(_) => (code.to_string(), String::new()),
-    }
+/// Le libelle d'une rubrique au catalogue, et son unite.
+fn libelle(ctx: &Contexte, code: &str) -> Resultat<(String, String)> {
+    let r = droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au)?;
+    Ok((r.libelle, r.unite))
 }
 
 /// « Cachets », « Heures de travail », « Services de répétition » : le premier mot du libelle au pluriel.
@@ -109,18 +107,18 @@ const CLAUSES: [(Champ, &str); 13] = [
 
 /// Une valeur en mots : en euros (`euros`), un nombre a la virgule, un oui-non, un texte ; « — » sans valeur.
 fn en_mots(v: Option<&Valeur>, en_euros: bool) -> String {
-    let nombre = |n: &NombreLu| socle::num::dec_texte(&n.to_string());
+    let nombre = |n: &NombreLu| socle::num::decimal_lu(&n.to_string());
     match v {
         None => "—".into(),
         Some(Valeur::Oui(b)) => if *b { "oui" } else { "non" }.into(),
         Some(Valeur::Nombre(n)) => match (nombre(n), en_euros) {
-            (Ok(x), true) => euros(x),
-            (Ok(x), false) => virgule(x),
-            (Err(_), _) => n.to_string(),
+            (Some(x), true) => euros(x),
+            (Some(x), false) => virgule(x),
+            (None, _) => n.to_string(),
         },
-        Some(Valeur::Texte(t)) if en_euros => match t.trim().replace(',', ".").parse() {
-            Ok(x) => euros(x),
-            Err(_) => t.clone(),
+        Some(Valeur::Texte(t)) if en_euros => match socle::num::decimal_lu(&t.trim().replace(',', ".")) {
+            Some(x) => euros(x),
+            None => t.clone(),
         },
         Some(Valeur::Texte(t)) => t.clone(),
     }
@@ -146,10 +144,10 @@ fn ou_rien<'a, T>(x: Option<&'a T>, rien: &'a T) -> &'a T {
 /// CE QUI A CHANGE d'une saisie a l'autre, en mots, dans l'ordre ou l'on lit un engagement : les bornes, chaque ligne
 /// (son nombre, son taux, ses jours, son lieu), puis les autres clauses ; chaque terme qui change a une date (« À partir
 /// du 01/09 : Salaire mensuel : … → … ») ; et les faits de chaque mois suivant d'un contrat qui deborde.
-pub fn changements(ctx: &Contexte, avant: Option<&Saisie>, apres: Option<&Saisie>) -> Vec<String> {
+pub fn changements(ctx: &Contexte, avant: Option<&Saisie>, apres: Option<&Saisie>) -> Resultat<Vec<String>> {
     let vide = Saisie::default();
     let (a, b) = (ou_rien(avant, &vide), ou_rien(apres, &vide));
-    let mut out = changements_du_mois(ctx, &a.carte, &b.carte);
+    let mut out = changements_du_mois(ctx, &a.carte, &b.carte)?;
     // Les termes au `jour` : ceux du premier mois, et chaque avenant venu jusqu'a lui.
     let au = |s: &Saisie, jour: &Jour| {
         let mut c = s.carte.du_groupe(&[Groupe::Terme]);
@@ -180,7 +178,7 @@ pub fn changements(ctx: &Contexte, avant: Option<&Saisie>, apres: Option<&Saisie
             }
             c
         };
-        for c in changements_du_mois(ctx, &tels(a), &tels(b)) {
+        for c in changements_du_mois(ctx, &tels(a), &tels(b))? {
             out.push(format!("À partir du {} : {}", jour.jj_mm(), c));
         }
     }
@@ -189,11 +187,11 @@ pub fn changements(ctx: &Contexte, avant: Option<&Saisie>, apres: Option<&Saisie
     mois.dedup();
     let rien = Carte::default();
     for m in mois {
-        for c in changements_du_mois(ctx, ou_rien(a.faits.get(m), &rien), ou_rien(b.faits.get(m), &rien)) {
+        for c in changements_du_mois(ctx, ou_rien(a.faits.get(m), &rien), ou_rien(b.faits.get(m), &rien))? {
             out.push(format!("En {} : {}", socle::mois::Mois::en_clair(&m.to_string()), c));
         }
     }
-    out
+    Ok(out)
 }
 
 /// Un terme du contrat qui change a un jour : sa valeur convenue jusque-la (`avant`) et la nouvelle (`apres`) ; `None` :
@@ -248,14 +246,14 @@ pub fn termes_changes(convenue: &Saisie, presente: &Saisie) -> Vec<TermeChange> 
 /// CE QUI A CHANGE DEPUIS LA VERSION `n` de l'engagement valide `v` jusqu'a son present, en mots (`changements`) : ce
 /// que dit la frise, et ce que dit le renvoi des documents partis sur la version `n`. Vide si `n` est le present ou ne se
 /// lit pas.
-pub fn depuis(ctx: &Contexte, v: &Valide, n: u64) -> Vec<String> {
+pub fn depuis(ctx: &Contexte, v: &Valide, n: u64) -> Resultat<Vec<String>> {
     match (v.version_numero(n), &v.objet().brut.valide) {
         (Some(passee), Some(present)) if v.version() != Some(n) => changements(ctx, passee.saisie(), present.saisie.as_ref()),
-        _ => Vec::new(),
+        _ => Ok(Vec::new()),
     }
 }
 
-fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Vec<String> {
+fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Resultat<Vec<String>> {
     let mut out = Vec::new();
     let ((da, fa), (db, fb)) = (bornes(a), bornes(b));
     if da != db {
@@ -275,7 +273,7 @@ fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Vec<String> {
         }
     }
     for c in vues {
-        let (lib, unite) = libelle(ctx, &c);
+        let (lib, unite) = libelle(ctx, &c)?;
         let xs: Vec<&LignePaie> = la.iter().filter(|l| code(l) == c).collect();
         let ys: Vec<&LignePaie> = lb.iter().filter(|l| code(l) == c).collect();
         for k in 0..xs.len().max(ys.len()) {
@@ -310,7 +308,7 @@ fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Vec<String> {
             out.push(format!("{} : {} → {}", nom, x, y));
         }
     }
-    out
+    Ok(out)
 }
 
 /// Un depart en mots, sans sa date : « le contrat », « l'avenant n° 1 », « la DPAE », « les documents de novembre 2026 ».
@@ -405,7 +403,7 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Resul
         partis.dedup();
         // La premiere version n'a rien d'avant quoi changer.
         let changes = match precedente {
-            Some(p) => changements(ctx, p.and_then(|p| p.saisie()), x.and_then(|x| x.saisie())),
+            Some(p) => changements(ctx, p.and_then(|p| p.saisie()), x.and_then(|x| x.saisie()))?,
             None => Vec::new(),
         };
         let titre_dit = match n {

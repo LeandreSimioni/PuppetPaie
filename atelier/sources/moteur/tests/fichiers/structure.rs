@@ -788,7 +788,9 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
             }
         }
     }
-    let avalee = regex::Regex::new(r"\.ok\(\)|\blet\s+Ok\s*\(.*\belse\b|\bis_ok_and\b|\bis_err_and\b").unwrap();
+    // Une erreur ecartee sans etre remontee : `.ok()`, un `let Ok(..) else`, `is_ok_and`, `is_err_and`, `is_err()`, et tout
+    // motif `Err(_)` (`Err(_x)`) qui ignore sa valeur (`match`, `if let`, `matches!`).
+    let avalee = regex::Regex::new(r"\.ok\(\)|\blet\s+Ok\s*\(.*\belse\b|\bis_ok_and\b|\bis_err_and\b|\.is_err\(\)|\bErr\s*\(\s*_\w*\s*\)").unwrap();
     for couche in COUCHES_FERMEES.iter().chain(SANS_ERREUR_AVALEE.iter()) {
         for f in sources(&espace().join(couche).join("src")) {
             for (n, l) in code_seul(&std::fs::read_to_string(&f).unwrap()).lines().enumerate() {

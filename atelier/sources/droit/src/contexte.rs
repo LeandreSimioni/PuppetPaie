@@ -1073,7 +1073,8 @@ fn lire_fiches(cfg: &Path) -> Resultat<Arc<Fiches>> {
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     let chemins = [cfg.join("entreprise.json"), cfg.join("salaries.json"), cfg.join("spectacles.json")];
-    let sig = chemins.clone().map(|p| socle::fichiers::signature(&p));
+    let [a, b, c] = chemins.clone().map(|p| socle::fichiers::signature(&p));
+    let sig = [a?, b?, c?];
     let connue = sig.iter().all(Option::is_some);
     if connue {
         if let Some((vue, f)) = cache.lock().unwrap().get(cfg) {

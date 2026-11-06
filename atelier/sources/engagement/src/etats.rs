@@ -85,9 +85,9 @@ pub const CONFIGURATION: &str = "configuration de la compagnie modifiée";
 /// Ce qui est parti de l'engagement `o` (`departs`), d'apres la cle de son salarie et son numero.
 /// Un jour AAAA-MM-JJ tel qu'une phrase le dit ; ce qui n'est pas une date se dit tel qu'il est ecrit.
 fn jour_dit(s: &str) -> String {
-    match Jour::lire(s) {
-        Ok(j) => j.jj_mm_aaaa(),
-        Err(_) => s.to_string(),
+    match Jour::du_texte(s) {
+        Some(j) => j.jj_mm_aaaa(),
+        None => s.to_string(),
     }
 }
 
@@ -334,9 +334,9 @@ pub fn signe_ailleurs(ctx: &Contexte, o: &Objet) -> Resultat<bool> {
 pub fn qui_de(ctx: &Contexte, o: &Objet) -> String {
     let debut = crate::debut_brut(&o.brut);
     // Le debut tel qu'une phrase le dit ; un debut qui n'est pas une date se dit tel qu'il est ecrit.
-    let debut = match Jour::lire(&debut) {
-        Ok(j) => j.jj_mm_aaaa(),
-        Err(_) => debut,
+    let debut = match Jour::du_texte(&debut) {
+        Some(j) => j.jj_mm_aaaa(),
+        None => debut,
     };
     format!("{} (contrat du {})", crate::salarie_nomme(ctx, o.carte().salarie.as_deref()), debut)
 }

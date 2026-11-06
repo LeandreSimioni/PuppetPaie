@@ -19,10 +19,7 @@ pub fn ecrire(ctx: &Contexte, p: &Paie) -> Resultat<FormeDePaie<Avis>> {
 
 /// Le flottant d'un decimal ecrit.
 fn en_f64(x: Decimal) -> f64 {
-    match x.to_string().parse() {
-        Ok(f) => f,
-        Err(_) => f64::NAN,
-    }
+    socle::num::flottant(x)
 }
 
 /// Les engagements de la saisie `data`, construits sans rien chiffrer, puis ce que le calcul a pose dessus : le numero

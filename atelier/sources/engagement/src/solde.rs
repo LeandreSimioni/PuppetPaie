@@ -931,7 +931,7 @@ fn indemnite_de_rupture(
             euros(m_legal),
             article,
             phrase,
-            libelle_rubrique(ctx, &rubrique)
+            libelle_rubrique(ctx, &rubrique)?
         )));
         return Ok(());
     }
@@ -1202,11 +1202,8 @@ fn indemnite_de_licenciement(
 }
 
 /// Le nom qu'un administrateur voit dans la liste des rubriques.
-fn libelle_rubrique(ctx: &Contexte, code: &str) -> String {
-    match rubrique(&ctx.racine, code, &ctx.lue_au) {
-        Ok(r) => r.libelle,
-        Err(_) => code.to_string(),
-    }
+fn libelle_rubrique(ctx: &Contexte, code: &str) -> Resultat<String> {
+    Ok(rubrique(&ctx.racine, code, &ctx.lue_au)?.libelle)
 }
 
 /// L'indemnite de licenciement de la convention de la compagnie.

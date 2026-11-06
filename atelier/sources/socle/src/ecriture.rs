@@ -16,12 +16,13 @@ use serde_json::Value;
 
 use crate::num::Resultat;
 
-/// La forme `v` en valeur JSON, pour l'ecrire. Une forme que serde n'ecrit pas (une cle de table qui n'est pas un texte)
-/// est un defaut du logiciel : elle s'ecrit `null`, et la relecture stricte la refuse.
+/// La forme `v` en valeur JSON, pour l'ecrire. Toute forme du logiciel s'ecrit : ses `Serialize` sont ceux de serde
+/// (derives), et les cles de ses tables sont des textes, des nombres ou des variantes unitaires. Une forme que serde
+/// n'ecrirait pas est un defaut du logiciel : le moteur s'arrete en la nommant.
 pub fn en_valeur<T: Serialize + ?Sized>(v: &T) -> Value {
     match serde_json::to_value(v) {
         Ok(valeur) => valeur,
-        Err(_) => Value::Null,
+        Err(e) => unreachable!("une forme du logiciel ne s'écrit pas en JSON ({}) : {}", std::any::type_name::<T>(), e),
     }
 }
 
@@ -43,9 +44,10 @@ pub fn json_trie<T: Serialize + ?Sized>(v: &T) -> String {
 /// Le JSON de `v` sur une ligne, serre, tel que serde l'ecrit : ce qu'un refus porte a part (`echec::avec`), que
 /// `echec::phrase_de` sait retirer ; jamais un fichier.
 pub fn json_en_ligne<T: Serialize + ?Sized>(v: &T) -> String {
+    // Toute forme du logiciel s'ecrit (`en_valeur`).
     match serde_json::to_string(v) {
         Ok(texte) => texte,
-        Err(_) => "null".into(),
+        Err(e) => unreachable!("une forme du logiciel ne s'écrit pas en JSON ({}) : {}", std::any::type_name::<T>(), e),
     }
 }
 
@@ -68,6 +70,15 @@ pub fn comparable<T: Serialize + ?Sized>(v: &T) -> String {
     canonique_de(&sans_vides(&en_valeur(v)))
 }
 
+/// Un texte qui ecrit un nombre decimal : un `-` au plus, en tete, un `.` au plus, des chiffres, au moins un.
+fn nombre_en_texte(t: &str) -> bool {
+    let corps = match t.strip_prefix('-') {
+        Some(c) => c,
+        None => t,
+    };
+    corps.bytes().any(|c| c.is_ascii_digit()) && corps.bytes().all(|c| c.is_ascii_digit() || c == b'.') && corps.bytes().filter(|c| *c == b'.').count() <= 1
+}
+
 fn canonique_de(v: &Value) -> String {
     match v {
         Value::Object(m) => {
@@ -81,9 +92,11 @@ fn canonique_de(v: &Value) -> String {
             Some(f) => format!("{:?}", f),
             None => n.to_string(),
         },
-        Value::String(t) if !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit() || c == b'.' || c == b'-') => match t.parse::<f64>() {
+        // Un nombre ecrit en texte : un signe au plus, en tete, un point au plus, et au moins un chiffre ; un tel texte se
+        // lit toujours en flottant.
+        Value::String(t) if nombre_en_texte(t) => match t.parse::<f64>() {
             Ok(f) => format!("{:?}", f),
-            Err(_) => v.to_string(),
+            Err(e) => unreachable!("{} s'écrit en nombre et ne se lit pas : {}", t, e),
         },
         autre => autre.to_string(),
     }
@@ -230,7 +243,7 @@ pub fn scientifique(e: &str) -> (&str, i32) {
     match e.split_once('e') {
         Some((mantisse, exposant)) => match exposant.parse() {
             Ok(n) => (mantisse, n),
-            Err(_) => (mantisse, 0),
+            Err(e) => unreachable!("`{{:e}}` écrit un exposant entier, pas {} : {}", exposant, e),
         },
         None => (e, 0),
     }

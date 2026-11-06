@@ -815,11 +815,10 @@ pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std
     let (lus, tous) = tous(racine)?;
     let mut catalogues = Vec::new();
     for p in [socle::fichiers::dossier_du_code().join("rubriques-base.json"), racine.join(socle::fichiers::CONFIG).join(droit::catalogue::RUBRIQUES_COMPAGNIE)] {
-        // Absent, il est le meme d'une lecture a l'autre ; illisible, il ne l'est jamais (la vue se refait).
-        catalogues.push(match socle::forme::partagee::<serde::de::IgnoredAny>(&p, ABIME) {
-            Ok(Some(v)) => v,
-            Ok(None) => ABSENT.get_or_init(|| std::sync::Arc::new(serde::de::IgnoredAny)).clone(),
-            Err(_) => std::sync::Arc::new(serde::de::IgnoredAny),
+        // Absent, il est le meme d'une lecture a l'autre ; illisible, il se refuse.
+        catalogues.push(match socle::forme::partagee::<serde::de::IgnoredAny>(&p, ABIME)? {
+            Some(v) => v,
+            None => ABSENT.get_or_init(|| std::sync::Arc::new(serde::de::IgnoredAny)).clone(),
         });
     }
     let cle = (racine.to_path_buf(), mois.to_string());
@@ -1025,9 +1024,9 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte, soi: Option<&Obj
     };
     let nature = o.carte().nature_lue()?;
     let numero: String = o.carte().numero_dit().map(|n| format!(" (n° {})", n)).into_iter().collect();
-    let debut_dit = match Jour::lire(&debut) {
-        Ok(j) => j.jj_mm_aaaa(),
-        Err(_) => debut.clone(),
+    let debut_dit = match Jour::du_texte(&debut) {
+        Some(j) => j.jj_mm_aaaa(),
+        None => debut.clone(),
     };
     Err(format!(
         "{} : son {} commencé le {}{} a déjà son engagement ; une carte neuve ne le refait pas, il se modifie depuis sa \
@@ -1135,14 +1134,9 @@ pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
     Ok(saisie)
 }
 
-/// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
+/// `a` et `b` sont-elles la cle d'une meme fiche de spectacle ? Une cle qu'aucune fiche ne porte ne nomme aucun spectacle.
 fn meme_spectacle(ctx: &Contexte, a: &str, b: &str) -> bool {
-    // Un nom qu'aucune fiche ne porte ne nomme aucun spectacle.
-    let cle = |v: &str| match ctx.spectacle(v) {
-        Ok(f) => Some(f.cle),
-        Err(_aucune_fiche) => None,
-    };
-    cle(a).is_some_and(|x| Some(x) == cle(b))
+    a == b && ctx.spectacles.contains_key(a)
 }
 
 /// Pose la saisie que l'ecran montre pour `mois` sur l'objet `o` : son premier mois s'il commence en `mois` ; sinon,

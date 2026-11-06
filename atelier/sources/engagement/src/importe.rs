@@ -530,9 +530,9 @@ impl Importe {
             let mut m = debut[..7].to_string();
             while m.as_str() <= &fin[..7] {
                 v.push(m.clone());
-                match socle::mois::Mois::lire(&m).map(|m| m.suivant().to_string()) {
-                    Ok(n) => m = n,
-                    Err(_) => break,
+                match socle::mois::Mois::du_texte(&m) {
+                    Some(x) => m = x.suivant().to_string(),
+                    None => break,
                 }
             }
         }
@@ -624,10 +624,10 @@ impl Importe {
             Err(e) => p.debut.ok_or(e)?,
         };
         // Le contrat d'un permanent finit a sa fin, dite ou declaree, jamais a celle du mois que paie un bulletin.
-        let fin = match Jour::lire(&Carte::texte(&self.carte().fin)) {
-            Ok(f) => Some(f),
-            Err(_) if self.permanent() => None,
-            Err(_) => p.fin,
+        let fin = match Jour::du_texte(&Carte::texte(&self.carte().fin)) {
+            Some(f) => Some(f),
+            None if self.permanent() => None,
+            None => p.fin,
         };
         let mut dates_travail = Vec::new();
         for d in &p.dates {
@@ -896,9 +896,9 @@ impl Importe {
 
 /// Le refus d'un geste sur un engagement importe : il se lit, il ne se modifie pas.
 pub fn refus(qui: &str, debut: &str) -> String {
-    let jour = match socle::date::Jour::lire(debut) {
-        Ok(j) => j.jj_mm_aaaa(),
-        Err(_) => debut.to_string(),
+    let jour = match socle::date::Jour::du_texte(debut) {
+        Some(j) => j.jj_mm_aaaa(),
+        None => debut.to_string(),
     };
     format!(
         "L'engagement de {} du {} est importé : il se lit tel que l'ancien logiciel l'a déclaré, il ne se modifie pas, ne se \

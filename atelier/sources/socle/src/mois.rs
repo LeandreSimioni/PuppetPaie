@@ -61,6 +61,17 @@ impl Mois {
         Mois::nouveau(texte[..4].parse().map_err(|_| crate::date::HORS_CALENDRIER.to_string())?, texte[5..].parse().map_err(|_| crate::date::HORS_CALENDRIER.to_string())?)
     }
 
+    /// Le mois ecrit `AAAA-MM`, s'il en est un (`lire` dit pourquoi un texte n'en est pas un).
+    pub fn du_texte(texte: &str) -> Option<Mois> {
+        let b = texte.as_bytes();
+        if !(b.len() == 7 && b[4] == b'-' && b[..4].iter().chain(&b[5..]).all(u8::is_ascii_digit)) {
+            return None;
+        }
+        let nombre = |s: &[u8]| s.iter().fold(0u32, |n, c| n * 10 + u32::from(c - b'0'));
+        let (an, numero) = (nombre(&b[..4]) as i32, nombre(&b[5..]));
+        ((1..=9999).contains(&an) && (1..=12).contains(&numero)).then_some(Mois { an, numero })
+    }
+
     /// Le mois tel qu'une DSN le declare (S20.G00.05.005) : `01MMAAAA`, le premier jour du mois ; toute autre forme se
     /// refuse.
     pub fn de_la_dsn(texte: &str) -> Resultat<Mois> {
@@ -104,9 +115,9 @@ impl Mois {
     /// bandeau, un conseil, un avertissement, un document) : un mois illisible s'ecrit tel quel (« 2026-00 »), jamais sous
     /// le nom d'un autre mois.
     pub fn en_clair(texte: &str) -> String {
-        match Mois::lire(texte) {
-            Ok(m) => m.libelle(Graphie::Accentuee),
-            Err(_) => texte.to_string(),
+        match Mois::du_texte(texte) {
+            Some(m) => m.libelle(Graphie::Accentuee),
+            None => texte.to_string(),
         }
     }
 
@@ -124,17 +135,19 @@ impl Mois {
 
     /// Le mois suivant (decembre 9999 n'en a pas : il se rend lui-meme, aucun mois de paie n'y va).
     pub fn suivant(self) -> Mois {
-        match self.plus(1) {
-            Ok(m) => m,
-            Err(_) => self,
+        match (self.an, self.numero) {
+            (9999, 12) => self,
+            (an, 12) => Mois { an: an + 1, numero: 1 },
+            (an, numero) => Mois { an, numero: numero + 1 },
         }
     }
 
     /// Le mois precedent (janvier de l'an 1 n'en a pas : il se rend lui-meme).
     pub fn precedent(self) -> Mois {
-        match self.plus(-1) {
-            Ok(m) => m,
-            Err(_) => self,
+        match (self.an, self.numero) {
+            (1, 1) => self,
+            (an, 1) => Mois { an: an - 1, numero: 12 },
+            (an, numero) => Mois { an, numero: numero - 1 },
         }
     }
 

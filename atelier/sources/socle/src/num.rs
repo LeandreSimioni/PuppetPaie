@@ -68,9 +68,10 @@ pub fn pct(base: Decimal, taux: Decimal) -> Decimal {
 /// Un flottant a trois decimales (arrondi correct, au pair sur le
 /// demi exact), par sa forme ecrite.
 pub fn round3(x: f64) -> f64 {
+    // Un flottant ecrit par Rust se relit toujours (`NaN` et `inf` compris).
     match format!("{:.3}", x).parse() {
         Ok(y) => y,
-        Err(_) => x,
+        Err(e) => unreachable!("un flottant écrit par Rust se relit : {} ({})", x, e),
     }
 }
 
@@ -110,10 +111,11 @@ fn en_decimal(p: P) -> Decimal {
             _ => break,
         }
     }
-    match Decimal::try_from_i128_with_scale(m, e.max(0) as u32) {
-        Ok(d) => d,
-        Err(_) => Decimal::MAX,
+    // Une mantisse au-dela de 96 bits, ou plus de 28 decimales : le plus grand decimal.
+    if m.unsigned_abs() >= 1u128 << 96 || e > 28 {
+        return Decimal::MAX;
     }
+    Decimal::from_i128_with_scale(m, e.max(0) as u32)
 }
 
 /// `a * b` a 28 chiffres significatifs, au pair sur le demi (`d28`).
@@ -195,10 +197,10 @@ pub fn entier_lu(t: &str) -> Option<i128> {
     if !reste.split('_').all(|g| !g.is_empty() && g.chars().all(|c| c.is_ascii_digit())) {
         return None;
     }
-    let chiffres: String = reste.split('_').collect();
-    let n = match chiffres.parse::<i128>() {
-        Ok(n) => n,
-        Err(_) => i128::MAX,
+    let lu = reste.chars().filter(|c| *c != '_').try_fold(0i128, |n, c| n.checked_mul(10)?.checked_add(i128::from(c.to_digit(10)?)));
+    let n = match lu {
+        Some(n) => n,
+        None => i128::MAX,
     };
     Some(if neg { -n } else { n })
 }
@@ -263,17 +265,27 @@ pub fn decimal_lu(t: &str) -> Option<Decimal> {
     if i != c.len() {
         return None;
     }
-    propre.push_str(if entier.is_empty() { "0" } else { &entier });
-    if !frac.is_empty() {
-        propre.push('.');
-        propre.push_str(&frac);
+    // LE DECIMAL QUE LE TEXTE ECRIT : sa mantisse (ses chiffres) et son echelle (ses decimales, moins l'exposant). Un
+    // nombre bien ecrit que le decimal ne tient pas (une mantisse au-dela de 96 bits, plus de 28 decimales, un exposant
+    // hors de sa portee) n'est pas un nombre qu'on lise.
+    let chiffres = |s: &str| s.chars().try_fold(0i128, |n, c| n.checked_mul(10)?.checked_add(i128::from(c.to_digit(10)?)));
+    let mut mantisse = chiffres(&format!("{}{}", entier, frac))?;
+    let exposant = match exposant.strip_prefix('-') {
+        Some(e) => -chiffres(e)?,
+        None => chiffres(exposant.trim_start_matches('+'))?,
+    };
+    let mut echelle = (frac.len() as i128).checked_sub(exposant)?;
+    if echelle < 0 {
+        // Au-dela de 10^38, l'entier ne tient dans aucun decimal.
+        if echelle < -38 {
+            return None;
+        }
+        mantisse = mantisse.checked_mul(10i128.checked_pow((-echelle) as u32)?)?;
+        echelle = 0;
     }
-    // Un nombre bien ecrit que le decimal ne tient pas (plus de 28 chiffres, un exposant hors de sa portee) n'est pas un
-    // nombre qu'on lise.
-    let lu = if exposant.is_empty() { Decimal::from_str(&propre) } else { Decimal::from_scientific(&format!("{}e{}", propre, exposant)) };
-    match lu {
-        Ok(d) => Some(d),
-        Err(_hors_de_portee) => None,
+    if echelle > 28 || mantisse >= 1i128 << 96 {
+        return None;
     }
+    Some(Decimal::from_i128_with_scale(if propre == "-" { -mantisse } else { mantisse }, echelle as u32))
 }
 

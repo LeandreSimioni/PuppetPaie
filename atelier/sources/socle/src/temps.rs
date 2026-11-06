@@ -72,7 +72,7 @@ fn aleas_fixes_ici() -> bool {
 fn montre() -> f64 {
     match SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(d) => d.as_secs_f64(),
-        Err(_) => 0.0,
+        Err(avant_1970) => horloge_dereglee(avant_1970),
     }
 }
 
@@ -81,8 +81,13 @@ fn montre() -> f64 {
 pub fn maintenant_ms() -> u64 {
     match SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(d) => d.as_millis() as u64,
-        Err(_) => 0,
+        Err(avant_1970) => horloge_dereglee(avant_1970),
     }
+}
+
+/// L'HORLOGE DU POSTE AVANT 1970 : rien ne se date, le moteur s'arrete en le disant.
+fn horloge_dereglee(e: std::time::SystemTimeError) -> ! {
+    panic!("L'horloge de cet ordinateur est réglée {} s avant le 1er janvier 1970 : la remettre à l'heure.", e.duration().as_secs())
 }
 
 /// L'instant present, en secondes depuis 1970 (UTC) : fige pour la route de ce fil, ou simule s'il coule, sinon la montre

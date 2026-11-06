@@ -30,20 +30,6 @@ pub enum Chiffre {
 }
 
 impl Chiffre {
-    /// Un decimal, en nombre (sa forme la plus courte : `12.5`, `15`).
-    pub fn de_decimal(x: Decimal) -> Chiffre {
-        let t = x.normalize().to_string();
-        match t.parse::<NombreLu>() {
-            Ok(n) => Chiffre::Nombre(n),
-            Err(_) => Chiffre::Texte(t),
-        }
-    }
-
-    /// Un decimal, en texte (`div(...).normalize().to_string()`).
-    pub fn texte_de(x: Decimal) -> Chiffre {
-        Chiffre::Texte(x.to_string())
-    }
-
     /// Un flottant, en nombre.
     pub fn de_f64(x: f64) -> Chiffre {
         match NombreLu::de_f64(x) {

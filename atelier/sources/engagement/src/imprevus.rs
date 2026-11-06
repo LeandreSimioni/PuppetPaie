@@ -367,10 +367,18 @@ fn empreinte_de(imprevus: &[Imprevu]) -> String {
 
 /// Les imprevus de `cle`, lus mois par mois du magasin sans se noter (`socle::forme::partagee`).
 fn siens_sans_noter(racine: &Path, cle: &str) -> Resultat<Vec<Imprevu>> {
-    let mut fichiers: Vec<PathBuf> = match std::fs::read_dir(dossier(racine)) {
-        Ok(l) => l.flatten().map(|f| f.path()).filter(|p| p.file_stem().and_then(|n| n.to_str()).is_some_and(|m| socle::mois::Mois::lire(m).is_ok()) && p.extension().is_some_and(|x| x == "json")).collect(),
-        Err(_) => return Ok(Vec::new()),
-    };
+    // Un magasin sans dossier n'a aucun imprevu.
+    if !dossier(racine).is_dir() {
+        return Ok(Vec::new());
+    }
+    let illisible = |e: std::io::Error| format!("{} ne se lit pas : {}", repr(&dossier(racine).display().to_string()), e);
+    let mut fichiers: Vec<PathBuf> = Vec::new();
+    for f in std::fs::read_dir(dossier(racine)).map_err(illisible)? {
+        let p = f.map_err(illisible)?.path();
+        if p.file_stem().and_then(|n| n.to_str()).is_some_and(|m| socle::mois::Mois::du_texte(m).is_some()) && p.extension().is_some_and(|x| x == "json") {
+            fichiers.push(p);
+        }
+    }
     fichiers.sort();
     let mut out = Vec::new();
     for f in fichiers {

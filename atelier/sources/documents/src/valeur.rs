@@ -95,10 +95,10 @@ pub fn json_en_cache(chemin: &Path) -> Resultat<Arc<Value>> {
 /// `json_en_cache`, lu par `lire` quand il faut le lire : le refus d'un fichier illisible reste celui de l'appelant (sa
 /// classe, son message), et ne se garde jamais -- seul un JSON lu se garde, sous la signature du fichier (date, taille).
 /// `lire` doit noter sa lecture (`lire_texte`) ; servi du cache, le fichier se note ici (`noter_si_besoin`).
-pub fn json_en_cache_ou<E>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Value, E>) -> Result<Arc<Value>, E> {
+pub fn json_en_cache_ou<E: From<String>>(chemin: &Path, lire: impl FnOnce(&Path) -> Result<Value, E>) -> Result<Arc<Value>, E> {
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let sig = signature(chemin);
+    let sig = signature(chemin).map_err(E::from)?;
     if let Some(s) = sig {
         if let Some((vue, v)) = cache.lock().unwrap().get(chemin) {
             if *vue == s {

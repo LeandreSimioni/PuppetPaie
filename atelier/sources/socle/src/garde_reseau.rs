@@ -65,13 +65,9 @@ fn avant<'a>(t: &'a str, fins: &[char]) -> &'a str {
 /// Cette machine : `localhost` (et ses sous-noms), 127.0.0.0/8, `::1`.
 pub fn est_locale(hote: &str) -> bool {
     let h = hote.trim_start_matches('[').trim_end_matches(']').to_lowercase();
-    // Un hote est une adresse ou un nom : un texte qui ne se lit pas en adresse est un nom.
-    h == "localhost"
-        || h.ends_with(".localhost")
-        || match h.parse::<IpAddr>() {
-            Ok(adresse) => adresse.is_loopback(),
-            Err(_un_nom) => false,
-        }
+    // Un hote est une adresse ou un nom : l'adresse qu'il ecrit, s'il en ecrit une (un nom n'en ecrit aucune), est-elle
+    // celle de cette machine ?
+    h == "localhost" || h.ends_with(".localhost") || h.parse::<IpAddr>().iter().any(IpAddr::is_loopback)
 }
 
 /// En essai ? (la variable est posee, meme vide).

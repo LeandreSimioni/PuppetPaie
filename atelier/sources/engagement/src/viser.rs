@@ -165,8 +165,8 @@ fn a_l_echelle(ctx: &Contexte, e: &mut Carte, facteur: Decimal) -> R<bool> {
         }
         if let Some(t) = l.taux() {
             // Le taux au centime, sous sa forme flottante la plus courte (`mis_a_l_echelle`).
-            let x = mis_a_l_echelle(&Chiffre::de_decimal(t), facteur)?.ok_or_else(|| refus("Montant trop grand pour l'ajustement."))?;
-            l.poser_taux(x.dec().map_err(refus)?).map_err(refus)?;
+            let p = t.checked_mul(facteur).ok_or_else(|| refus("Montant trop grand pour l'ajustement."))?;
+            l.poser_taux(socle::num::dec_f64(socle::num::flottant(centimes(p))).map_err(refus)?).map_err(refus)?;
         }
         touche = true;
     }

@@ -65,9 +65,10 @@ fn pair(x: Decimal) -> Decimal {
 
 /// Un flottant arrondi a deux decimales, par son texte.
 fn arrondi2(x: f64) -> f64 {
+    // Un flottant ecrit par Rust se relit toujours (`NaN` et `inf` compris).
     match format!("{:.2}", x).parse() {
         Ok(a) => a,
-        Err(_) => x,
+        Err(e) => unreachable!("un flottant écrit par Rust se relit : {} ({})", x, e),
     }
 }
 

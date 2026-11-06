@@ -168,7 +168,8 @@ fn ressources() -> PathBuf {
 fn empreinte() -> String {
     use sha2::{Digest, Sha256};
     use std::sync::OnceLock;
-    let mut noms: Vec<(String, Option<(u128, u64)>)> = Vec::new();
+    type Signature = socle::num::Resultat<Option<(u128, u64)>>;
+    let mut noms: Vec<(String, Signature)> = Vec::new();
     for dossier in ["", "js"] {
         let Ok(it) = std::fs::read_dir(ressources().join(dossier)) else { continue };
         for e in it.flatten() {
@@ -183,7 +184,7 @@ fn empreinte() -> String {
     noms.sort();
     // LE CONTENU NE SE RELIT QUE S'IL A CHANGE : la date et la taille de chaque fichier suffisent a savoir
     // que rien n'a bouge depuis la derniere page -- la relecture et le condensat de 800 Ko a chaque `GET /` coutaient.
-    static DERNIERE: OnceLock<Mutex<Option<(Vec<(String, Option<(u128, u64)>)>, String)>>> = OnceLock::new();
+    static DERNIERE: OnceLock<Mutex<Option<(Vec<(String, Signature)>, String)>>> = OnceLock::new();
     let memo = DERNIERE.get_or_init(|| Mutex::new(None));
     if let Some((vus, e)) = memo.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
         if *vus == noms {

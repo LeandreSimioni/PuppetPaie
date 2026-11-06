@@ -100,10 +100,15 @@ pub fn mtime(m: &std::fs::Metadata) -> f64 {
 
 #[cfg(not(unix))]
 pub fn mtime(m: &std::fs::Metadata) -> f64 {
-    match m.modified().map(|t| t.duration_since(std::time::UNIX_EPOCH)) {
-        Ok(Ok(d)) => d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
-        // Avant 1970, ou sans date.
-        Ok(Err(_)) | Err(_) => 0.0,
+    // Windows date tout fichier (`ftLastWriteTime`) ; une date d'avant 1970 compte en secondes negatives, comme `mtime` de
+    // Unix.
+    let date = match m.modified() {
+        Ok(t) => t,
+        Err(e) => unreachable!("Windows date tout fichier : {}", e),
+    };
+    match date.duration_since(std::time::UNIX_EPOCH) {
+        Ok(d) => d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
+        Err(avant_1970) => -avant_1970.duration().as_secs_f64(),
     }
 }
 

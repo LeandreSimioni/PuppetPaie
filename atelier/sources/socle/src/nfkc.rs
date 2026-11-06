@@ -24,17 +24,11 @@ fn classe(c: char) -> u8 {
     if cp < 0x300 {
         return 0;
     }
-    match CLASSES.binary_search_by(|&(a, b, _)| {
-        if cp < a {
-            std::cmp::Ordering::Greater
-        } else if cp > b {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Equal
-        }
-    }) {
-        Ok(i) => CLASSES[i].2,
-        Err(_) => 0,
+    // La premiere plage qui ne finit pas avant `cp` (la table est triee, ses plages disjointes) : la sienne si elle le
+    // contient ; sinon il n'en a pas.
+    match CLASSES.get(CLASSES.partition_point(|&(_, b, _)| b < cp)) {
+        Some(&(a, _, classe)) if a <= cp => classe,
+        _ => 0,
     }
 }
 
@@ -66,9 +60,10 @@ fn composer_deux(a: char, b: char) -> Option<char> {
     if (S_BASE..S_BASE + S_NB).contains(&x) && (x - S_BASE) % T_NB == 0 && (T_BASE + 1..T_BASE + T_NB).contains(&y) {
         return char::from_u32(x + (y - T_BASE));
     }
-    match COMPOSITIONS.binary_search_by(|&(p, s, _)| (p, s).cmp(&(x, y))) {
-        Ok(i) => char::from_u32(COMPOSITIONS[i].2),
-        Err(_absente_de_la_table) => None,
+    // La table est triee : la premiere paire qui n'est pas avant `(x, y)`, si c'est elle.
+    match COMPOSITIONS.get(COMPOSITIONS.partition_point(|&(p, s, _)| (p, s) < (x, y))) {
+        Some(&(p, s, c)) if (p, s) == (x, y) => char::from_u32(c),
+        _ => None,
     }
 }
 

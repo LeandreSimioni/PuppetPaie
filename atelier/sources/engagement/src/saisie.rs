@@ -382,13 +382,11 @@ impl Carte {
         }
     }
 
-    /// La fiche que la carte nomme, lue comme le calcul la lit (`Contexte::cle_du_salarie`) ; `None` sans elle, ou quand
-    /// aucune fiche ne porte le nom qu'elle donne (le calcul le refuse en le nommant).
+    /// La fiche dont la carte porte la cle ; `None` sans elle, ou quand aucune fiche ne porte cette cle (le calcul le
+    /// refuse en la nommant).
     pub fn cle(&self, ctx: &droit::contexte::Contexte) -> Option<droit::contexte::IdSalarie> {
-        match ctx.cle_du_salarie(self.salarie.as_deref()?) {
-            Ok(cle) => Some(cle),
-            Err(_aucune_fiche) => None,
-        }
+        let dite = self.salarie.as_deref()?;
+        ctx.salaries.keys().find(|k| k.as_str() == dite).cloned()
     }
 
     /// Le debut, comme `Engagement` le deduirait : celui qu'elle dit, sinon son premier jour joue ; vide sans aucun.
