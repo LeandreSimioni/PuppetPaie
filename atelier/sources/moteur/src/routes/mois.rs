@@ -262,7 +262,7 @@ struct SaisieDuMois {
     importes_dit: String,
     ferme_aux_neufs: Option<String>,
     defauts: Defauts,
-    /// La vue du mois (`engagement::stock::vue_du_mois`), les noms resolus (`resoudre_noms`).
+    /// La vue du mois (`engagement::stock::vue_du_mois`), les lignes des permanents calculees (`avec_les_lignes_calculees_des_permanents`).
     saisie: VueDuMois,
     /// L'identite de chaque engagement de `saisie.engagements`, dans son ordre : ce par quoi sa carte le designe.
     identites: Vec<Identite>,
@@ -475,7 +475,7 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &LignePaie) -> Option<f64> {
 }
 
 /// Les lignes d'un permanent, calculees. Une saisie qui ne se charge pas se rend telle quelle.
-fn resoudre_noms(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
+fn avec_les_lignes_calculees_des_permanents(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
     let Ok(paies) = engagement::lue_sans_paie(ctx, &saisie) else { return Ok(saisie) };
     let mut engagements = Vec::new();
     for (e, p) in saisie.engagements.iter().zip(&paies) {
@@ -567,7 +567,7 @@ fn saisie(ctx: &Contexte, mois: Mois) -> R<SaisieDuMois> {
         importes,
         ferme_aux_neufs: ferme,
         defauts,
-        saisie: resoudre_noms(ctx, saisie)?,
+        saisie: avec_les_lignes_calculees_des_permanents(ctx, saisie)?,
         identites: engagement::stock::identites(&engagement::stock::objets_du_mois(&ctx.racine, &texte_mois).map_err(Echec::from)?),
     })
 }
