@@ -94,6 +94,10 @@ par son nom dans le JS : on lit sa fiche.
 - **L'orchestrateur** regarde chaque worktree toutes les 30 minutes, relit à la fusion les tests modifiés, décide seul
   du relais (contexte proche de 500 000 jetons, ou une heure sans commit) ; jamais de limite de temps dans une consigne,
   ni de message à un Opus qui a fini.
+- **Un agent qui travaille ne se dérange pas** : l'orchestrateur ne lui écrit que si Léandre le demande. Quelques mots
+  de Léandre ne sont pas une consigne : l'orchestrateur reformule et fait confirmer avant de transmettre, car l'agent
+  prend sa parole pour sûre. Un choix de l'agent qui surprend se comprend en lui demandant sa logique, jamais en la
+  supposant.
 - **En tête de chaque consigne** : un test de l'ancien parcours qui casse se supprime ; aucune donnée destinée à être
   remplacée ne se convertit ; aucun test de plus de 30 secondes ; rien en fond ; aucun acte réel lancé à la main.
 - **Les cibles Cargo**, l'orchestrateur les choisit, une par worktree, gardée d'un lot à l'autre (une cible neuve coûte
