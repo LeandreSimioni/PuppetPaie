@@ -73,7 +73,7 @@ fn absent_ou_zero(v: &Option<Chiffre>) -> bool {
 }
 
 fn rubrique_de(ctx: &Contexte, ligne: &LignePaie) -> Option<droit::catalogue::Rubrique> {
-    droit::catalogue::rubrique(&ctx.racine, ligne.rubrique.as_deref().unwrap_or("cachet"), &ctx.lue_au).ok()
+    droit::catalogue::rubrique(&ctx.racine, ligne.rubrique.as_deref()?, &ctx.lue_au).ok()
 }
 
 /// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.

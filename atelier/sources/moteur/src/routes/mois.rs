@@ -1437,8 +1437,7 @@ fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &SaisieCarte, mois: &str
     }
     let Ok(nat) = e.nature_lue() else { return Vec::new() };
     let Some(cle) = e.cle(ctx) else { return Vec::new() };
-    let numero = e.numero.clone().unwrap_or_default();
-    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &debut, &numero) {
+    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &debut, e.numero.as_deref()).is_ok_and(|v| v) {
         return Vec::new();
     }
     let mut v = vec!["periode_essai_jours"];

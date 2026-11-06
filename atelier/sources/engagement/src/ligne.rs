@@ -252,19 +252,22 @@ impl LignePaie {
 
     /// Son code de rubrique, vide s'il n'est pas dit.
     pub fn code(&self) -> &str {
-        self.rubrique.as_deref().unwrap_or("")
+        match &self.rubrique {
+            Some(r) => r,
+            None => "",
+        }
     }
 
     /// La case `case` de la ligne de frais est-elle cochee ?
     pub fn cochee(&self, case: &str) -> bool {
-        match case {
+        let dite = match case {
             crate::JUSTIFICATIF => self.justificatif,
             crate::PARIS => self.paris,
             crate::RESTAURANT => self.restaurant,
             crate::LOGE => self.loge,
             _ => None,
-        }
-        .unwrap_or(false)
+        };
+        dite == Some(true)
     }
 
     /// Son territoire hors de la metropole, s'il est dit.
@@ -293,7 +296,10 @@ impl LignePaie {
         if self.base.is_none() && self.taux_majoration.is_none() {
             return Ok(self.clone());
         }
-        let rub = self.rubrique.clone().unwrap_or_else(|| "None".to_string());
+        let rub = match &self.rubrique {
+            Some(r) => r.clone(),
+            None => "None".to_string(),
+        };
         let (base, pct) = match (&self.base, &self.taux_majoration) {
             (Some(b), Some(p)) => (b.dec_avec_echelle()?, p.dec_avec_echelle()?),
             _ => {

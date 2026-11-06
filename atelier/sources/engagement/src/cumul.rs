@@ -6,7 +6,7 @@ use crate::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::cumul::Declare;
 use socle::date::Jour;
-use socle::num::{Decimal, Resultat};
+use socle::num::Resultat;
 
 /// La part d'enseignement de lignes de paie, en heures entieres : les rubriques dont le catalogue dit
 /// `compte_pour = ouverture_des_droits`.
@@ -41,16 +41,19 @@ pub(crate) fn lire_importes(ctx: &Contexte) -> Resultat<Vec<Declare>> {
             None => Jour::lire(&c.fin),
         };
         let (Ok(debut), Ok(fin)) = (Jour::lire(&c.debut), fin) else { continue };
+        // Une piece d'intermittent atteste ses compteurs et son brut (l'AEM, le bulletin, le certificat : `import`) ; les
+        // heures d'enseignement, seulement celles qu'elle distingue.
         let a = &c.contrat;
+        let compte = |x: Option<i64>, cle: &str| x.ok_or_else(|| socle::fichiers::absent(cle));
         out.push(Declare {
             salarie: c.salarie.clone(),
             debut,
             fin,
-            heures: a.heures.unwrap_or(0),
-            cachets: a.cachets.unwrap_or(0),
-            jours: a.jours.unwrap_or(0),
-            brut: a.brut.unwrap_or(Decimal::ZERO),
-            heures_enseignement: a.heures_enseignement.unwrap_or(0),
+            heures: compte(a.heures, "heures")?,
+            cachets: compte(a.cachets, "cachets")?,
+            jours: compte(a.jours, "jours")?,
+            brut: a.brut.ok_or_else(|| socle::fichiers::absent("brut"))?,
+            heures_enseignement: a.heures_enseignement.into_iter().sum(),
         });
     }
     Ok(out)
@@ -62,7 +65,7 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
     if e.sans_paie() || e.nat()?.mensuelle() {
         return Ok(None);
     }
-    let heures = e.heures.unwrap_or(0.0).round_ties_even() as i64;
+    let heures = e.heures.into_iter().sum::<f64>().round_ties_even() as i64;
     Ok(Some(Declare {
         salarie: p.salarie.id.to_string(),
         debut: e.debut_periode()?,
@@ -110,7 +113,7 @@ impl<'a> Passe<'a> {
             *self.importes.borrow_mut() = Some(lire_importes(ctx)?);
         }
         let mut groupes: Vec<(String, Vec<Declare>)> = Vec::new();
-        for p in paies_courantes.unwrap_or(&[]) {
+        for p in paies_courantes.into_iter().flatten() {
             let mois = p.engagement.mois.clone();
             let i = match groupes.iter().position(|(m, _)| *m == mois) {
                 Some(i) => i,
@@ -143,7 +146,7 @@ impl<'a> Passe<'a> {
             self.lus.borrow_mut().insert(stem.clone(), es.clone());
             groupes.push((stem, es));
         }
-        let mut tous = self.importes.borrow().clone().unwrap_or_default();
+        let mut tous: Vec<Declare> = self.importes.borrow().iter().flatten().cloned().collect();
         tous.extend(groupes.into_iter().flat_map(|(_, es)| es));
         tous.sort_by(|a, b| (a.debut, a.fin, &a.salarie).cmp(&(b.debut, b.fin, &b.salarie)));
         Ok(tous)

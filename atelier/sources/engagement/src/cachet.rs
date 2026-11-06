@@ -45,7 +45,7 @@ pub const MARGE: f64 = 3.0;
 /// Ce que le cachet porte : le nom, le lieu, les numeros.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lignes {
-    pub nom: String,
+    pub nom: Option<String>,
     pub lieu: Vec<String>,
     pub numeros: Vec<String>,
 }
@@ -60,8 +60,7 @@ fn texte_de<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
 /// date du document (`Contexte::entreprise`) : la licence y est le numero du jour.
 pub fn lignes(ent: &droit::fiche::ChampsEntreprise) -> Lignes {
     let nom = texte_de(&ent.nom_affichage)
-        .or_else(|| texte_de(&ent.raison_sociale))
-        .unwrap_or_default();
+        .or_else(|| texte_de(&ent.raison_sociale));
     let mut lieu = Vec::new();
     if let Some(adresse) = texte_de(&ent.adresse_affichage).or_else(|| texte_de(&ent.adresse)) {
         lieu.push(adresse);
@@ -116,7 +115,7 @@ fn echapper(t: &str) -> String {
 /// Configuration et l'attestation montrent exactement la meme chose.
 pub fn svg(ent: &droit::fiche::ChampsEntreprise) -> Option<String> {
     let t = lignes(ent);
-    if t.nom.is_empty() && t.lieu.is_empty() && t.numeros.is_empty() {
+    if t.nom.is_none() && t.lieu.is_empty() && t.numeros.is_empty() {
         return None;
     }
 
@@ -136,8 +135,8 @@ pub fn svg(ent: &droit::fiche::ChampsEntreprise) -> Option<String> {
     // ensuite CENTRE verticalement : un tampon dont le texte pend vers le haut
     // ou vers le bas se voit tout de suite.
     let mut items: Vec<(Option<String>, f64, u32, f64)> = Vec::new();
-    if !t.nom.is_empty() {
-        items.push((Some(t.nom.to_uppercase()), corps_qui_tient(&t.nom, utile, 22.0, 0.62), 700, 0.0));
+    if let Some(nom) = &t.nom {
+        items.push((Some(nom.to_uppercase()), corps_qui_tient(nom, utile, 22.0, 0.62), 700, 0.0));
         items.push((None, 0.0, 0, 9.0)); // le filet
     }
     for (i, ligne) in t.lieu.iter().enumerate() {

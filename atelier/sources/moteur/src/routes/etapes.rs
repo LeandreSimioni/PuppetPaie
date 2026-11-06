@@ -1427,7 +1427,7 @@ impl<'a> Moteur<'a> {
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
             let recalcul = e.valide().and_then(|v| v.recalcul(mois)).as_ref().and_then(engagement::etats::phrase_du_recalcul);
             // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
-            let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""));
+            let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref()).map_err(plain)?;
             // SIGNE AILLEURS : son contrat ecrit ne se fait pas signer ici, ses avenants si (`engagement::signe_ailleurs`).
             let ailleurs = engagement::signe_ailleurs(&self.ctx.racine, &p.engagement).map_err(plain)?;
             // ECRIT : le contrat de cet engagement se fait signer ici (`engagement::contrat_a_signer`).

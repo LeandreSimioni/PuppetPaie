@@ -198,7 +198,13 @@ pub(crate) fn apres_les_cotisations(
 
     // L'exoneration d'impot : le net des heures.
     let abattement = bar.abattement_csg;
-    let taux_csg = lignes.iter().find(|l| l.id == "csg_ded").and_then(|l| l.taux_sal).map(socle::num::dec_f64).transpose()?.unwrap_or(Decimal::ZERO);
+    // La CSG deductible que la paie retient (une paie sans CSG n'en deduit rien) ; sa ligne porte son taux.
+    let taux_csg = lignes
+        .iter()
+        .filter(|l| l.id == "csg_ded")
+        .take(1)
+        .map(|l| socle::num::dec_f64(l.taux_sal.ok_or("la ligne de CSG déductible n'a pas de taux salarial")?))
+        .sum::<Resultat<Decimal>>()?;
     let csg_deductible = eur2(remuneration * abattement * taux_csg / Decimal::ONE_HUNDRED);
     let autres = sal(&|l| !matches!(l.id.as_str(), "csg_ded" | "csg_crds_nd" | "mutuelle"));
     let leurs_cotisations = eur2(autres * remuneration / brut);

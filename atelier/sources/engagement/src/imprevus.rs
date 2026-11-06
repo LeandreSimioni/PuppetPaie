@@ -289,7 +289,7 @@ pub fn verifier(imp: &Imprevu) -> Resultat<()> {
     let Imprevu::Arret(a) = imp else { return Ok(()) };
     for (k, x) in [("ij_brute", &a.ij_brute), ("ij_nette", &a.ij_nette), ("ij_brute_majoree", &a.ij_brute_majoree), ("ij_nette_majoree", &a.ij_nette_majoree)] {
         if let Some(x) = x.as_ref().filter(|x| x.vrai()) {
-            if x.dec_avec_echelle().map_or(true, |m| m <= Decimal::ZERO) {
+            if !x.dec_avec_echelle().is_ok_and(|m| m > Decimal::ZERO) {
                 return Err(socle::echec::a_la_cle("Un montant par jour de l'arrêt doit être positif.", k, x.en_texte()));
             }
         }
@@ -327,7 +327,7 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Imprevu>> {
     let Some(fichiers) = socle::fichiers::lister(&dossier(racine)) else { return Ok(Vec::new()) };
     let mut out = Vec::new();
     for f in fichiers {
-        let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let Some(nom) = f.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
         if !nom.strip_suffix(".json").is_some_and(|m| socle::mois::Mois::lire(m).is_ok()) {
             continue;
         }
@@ -449,6 +449,13 @@ pub fn premier_jour(imp: &Imprevu) -> Resultat<Jour> {
         Imprevu::Arret(a) => premier_jour_d_arret(a),
         Imprevu::Suspension(s) => jour(&s.debut),
     }
+}
+
+/// Les imprevus `v`, dans l'ordre de leur premier jour (celui de leur saisie a premier jour egal).
+fn par_premier_jour(v: Vec<Imprevu>) -> Resultat<Vec<Imprevu>> {
+    let mut dates = v.into_iter().map(|i| Ok((premier_jour(&i)?, i))).collect::<Resultat<Vec<(Jour, Imprevu)>>>()?;
+    dates.sort_by_key(|(j, _)| j.iso());
+    Ok(dates.into_iter().map(|(_, i)| i).collect())
 }
 
 /// Le dernier jour d'absence : la veille de la reprise d'un arret, « premier jour travaille et paye suite a l'arret »
@@ -610,7 +617,7 @@ pub fn suspendu_sans_remuneration(
             siennes.push(imp);
         }
     }
-    siennes.sort_by_key(|i| premier_jour(i).map(|j| j.iso()).unwrap_or_default());
+    let siennes = par_premier_jour(siennes)?;
     let mut couvert_jusqu_a = debut.plus_jours(-1)?;
     for imp in &siennes {
         if premier_jour(imp)? > couvert_jusqu_a.plus_jours(1)? {
@@ -790,8 +797,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, nume
             out.push(imp);
         }
     }
-    out.sort_by_key(|i| premier_jour(i).map(|j| j.iso()).unwrap_or_default());
-    Ok(out)
+    par_premier_jour(out)
 }
 
 /// LES LIGNES QU'UN IMPREVU DONNE AU MOIS D'UN PERMANENT -- le seul endroit qui les tire. Chaque imprevu du contrat
@@ -857,8 +863,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &crate::saisie::Carte, mois: &str, m: &
             let motif = droit::arrets::motif_d_arret(&code)?;
             // Le bulletin nomme l'absence d'apres le motif de l'arret (S21.G00.60.001) : sa rubrique est celle du motif
             // (`arrets-base.json`, `rubrique`).
-            let rubrique = motif.as_ref().and_then(|m| m.rubrique.clone()).unwrap_or_default();
-            if rubrique.is_empty() {
+            let Some(rubrique) = motif.as_ref().and_then(|m| m.rubrique.clone()).filter(|r| !r.is_empty()) else {
                 return Err(socle::echec::cle(format!(
                     "{} : l'arret du {} au {} a pour motif {} ({}), que le logiciel ne paie pas : aucune ligne de bulletin ne \
 nomme cette absence. Rien n'est calcule.",
@@ -866,15 +871,15 @@ nomme cette absence. Rien n'est calcule.",
                     premier.jj_mm_aaaa(),
                     dernier.jj_mm_aaaa(),
                     code,
-                    motif.as_ref().map_or("inconnu de la norme", |m| m.libelle.as_str())
+                    libelle_du_motif(&motif)
                 ), "arrets-base.json"));
-            }
+            };
             lignes.extend(retenue(&rubrique).map(|l| crate::LignePaie { arret: Some(true), ..l }));
             absents += jours;
             avert.push(info(format!(
                 "{} : arrêt de travail ({}) du {} au {} : {} ; la DSN de chaque mois qu'il traverse le déclare.",
                 qui,
-                motif.as_ref().map_or("inconnu de la norme", |m| m.libelle.as_str()),
+                libelle_du_motif(&motif),
                 premier.jj_mm_aaaa(),
                 dernier.jj_mm_aaaa(),
                 au_reel
@@ -920,9 +925,17 @@ fn dates_de_ligne(l: &crate::LignePaie) -> Vec<Jour> {
     l.dates.iter().filter_map(|x| x.lu().ok()).collect()
 }
 
-/// Le libelle d'une rubrique, ou son code si le catalogue ne la connait pas.
-fn libelle_rubrique(racine: &Path, code: &str, jour: &Jour) -> String {
-    droit::catalogue::rubrique(racine, code, jour).map(|r| r.libelle).unwrap_or_else(|_| code.to_string())
+/// Le libelle d'un motif d'arret, tel que la norme le nomme ; un code qu'elle ne connait pas se dit tel.
+fn libelle_du_motif(motif: &Option<droit::arrets::CodeDuBloc60>) -> &str {
+    match motif {
+        Some(m) => &m.libelle,
+        None => "inconnu de la norme",
+    }
+}
+
+/// Le libelle d'une rubrique, que le catalogue connait.
+fn libelle_rubrique(racine: &Path, code: &str, jour: &Jour) -> Resultat<String> {
+    Ok(droit::catalogue::rubrique(racine, code, jour)?.libelle)
 }
 
 /// LES CACHETS ET SERVICES DE LA SAISIE QUI TOMBENT DANS UN IMPREVU : pour chaque mois saisi qu'il croise, les lignes des
@@ -972,14 +985,15 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &
             if dedans.is_empty() {
                 continue;
             }
-            let rubrique = l.code().to_string();
+            // Une ligne sans rubrique ne paie rien.
+            let Some(rubrique) = l.rubrique.clone().filter(|r| !r.is_empty()) else { continue };
             out.push(CachetPaye {
                 mois: mois.to_string(),
                 engagement: i,
                 numero: e.numero.clone(),
                 spectacle: e.spectacle.clone(),
                 ligne: j,
-                libelle: libelle_rubrique(&ctx.racine, &rubrique, &ctx.lue_au),
+                libelle: libelle_rubrique(&ctx.racine, &rubrique, &ctx.lue_au)?,
                 rubrique,
                 dates: dedans,
                 quantite: l.quantite.clone(),
@@ -1019,7 +1033,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
                 let motif = droit::arrets::motif_d_arret(imp.motif())?;
                 format!(
                     "l'arret de travail ({}) du {} au {} : un salarie en arret ne peut exercer son activite (bloc S21.G00.60)",
-                    motif.as_ref().map_or("inconnu de la norme", |m| m.libelle.as_str()),
+                    libelle_du_motif(&motif),
                     premier.jj_mm_aaaa(),
                     dernier.jj_mm_aaaa()
                 )
@@ -1035,7 +1049,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
                 a.push(avertir(format!(
                     "{} {} : {} le {} paye(s) pendant {}. Retirer ce jour de la ligne, ou corriger les dates de l'imprevu.",
                     imp.salarie(),
-                    c.numero.as_ref().map_or_else(String::new, |n| format!("(contrat {})", n)),
+                    c.numero.iter().map(|n| format!("(contrat {})", n)).collect::<String>(),
                     c.libelle,
                     dates.join(", "),
                     quoi

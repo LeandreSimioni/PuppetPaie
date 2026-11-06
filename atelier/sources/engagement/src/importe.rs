@@ -542,6 +542,15 @@ impl Importe {
     }
 }
 
+/// UN MONTANT QUE LES PIECES DISENT, ou zero (au centime) quand elles le taisent : une paie importee le nomme parmi ses
+/// `non_dits` (`Importe::paie`), et un etat le laisse vide.
+fn tu_vaut_zero(x: Option<Decimal>) -> Decimal {
+    match x {
+        Some(m) => m,
+        None => Decimal::new(0, 2),
+    }
+}
+
 /// Les montants d'une paie importee, tels que ses pieces les nomment, et la grandeur de la paie qu'ils sont.
 fn montants(p: &PaieVersee) -> [(&'static str, Option<Decimal>); 7] {
     [
@@ -579,13 +588,14 @@ impl Importe {
         let ctx = ctx.du_mois(mois)?;
         let cle = Carte::texte(&self.carte().salarie);
         let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(&cle)?);
-        let objet = p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone())).unwrap_or_default().to_uppercase();
+        let objet = Carte::texte(&p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone()))).to_uppercase();
         let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.numero_objet.portee().map(str::to_uppercase) == Some(objet.clone())).map(|(k, _)| k.clone());
         let spec = match &spectacle {
             Some(k) => Some(ctx.spectacle(k)?),
             None => None,
         };
-        let imprime = p.emploi_imprime.clone().unwrap_or_default();
+        // L'emploi que le bulletin imprime ; un bulletin qui ne l'imprime pas n'en dit rien.
+        let imprime = |champ: fn(&EmploiImprime) -> &Option<String>| p.emploi_imprime.as_ref().and_then(|i| champ(i).clone());
         let debut = match Jour::lire(&Carte::texte(&self.carte().debut)) {
             Ok(j) => j,
             Err(e) => p.debut.ok_or(e)?,
@@ -604,7 +614,7 @@ impl Importe {
                 j = j.plus_jours(1)?;
             }
         }
-        let brut = p.brut.unwrap_or(zero);
+        let brut = tu_vaut_zero(p.brut);
         // LES LIGNES DE REMUNERATION QUE LES PIECES DISENT : celles du bulletin ; a defaut, le brut que la DSN declare.
         let mut lignes_lues = p.lignes.clone();
         if lignes_lues.is_empty() {
@@ -613,7 +623,7 @@ impl Importe {
         let quotite = p.quotite.and_then(|q| q.to_string().parse::<f64>().ok());
         let mut engagement = crate::Engagement {
             salarie: cle.clone(),
-            nom: sal.nomme().unwrap_or_else(|| cle.to_string()),
+            nom: crate::qui_de(&sal)?,
             spectacle: spectacle.clone(),
             dates_travail,
             lignes: lignes_lues.iter().map(LigneImprimee::en_ligne_de_paie).collect(),
@@ -635,13 +645,13 @@ impl Importe {
             heures: None,
             lieu: String::new(),
             lieux: BTreeMap::new(),
-            emploi: imprime.emploi.clone(),
-            emploi_affichage: imprime.emploi_affichage.clone(),
-            pcs_ese: imprime.pcs_ese.clone(),
-            code_emploi_ft: imprime.code_emploi_ft.clone(),
-            statut: imprime.statut.clone(),
-            statut_conventionnel: imprime.statut_conventionnel.clone(),
-            statut_categoriel_rc: imprime.statut_categoriel_rc.clone(),
+            emploi: imprime(|i| &i.emploi),
+            emploi_affichage: imprime(|i| &i.emploi_affichage),
+            pcs_ese: imprime(|i| &i.pcs_ese),
+            code_emploi_ft: imprime(|i| &i.code_emploi_ft),
+            statut: imprime(|i| &i.statut),
+            statut_conventionnel: imprime(|i| &i.statut_conventionnel),
+            statut_categoriel_rc: imprime(|i| &i.statut_categoriel_rc),
             etablissement: None,
             nature: nature.clone(),
             quotite_contrat: quotite,
@@ -663,9 +673,10 @@ impl Importe {
         if lignes_lues.iter().all(|l| l.rubrique.as_deref().is_none_or(str::is_empty)) {
             non_dits.extend(["cachets", "heures"]);
         }
-        engagement.cachets = remuneration.iter().filter(|r| r.unite == "cachet").map(|r| r.quantite).sum::<Decimal>().trunc().to_string().parse().unwrap_or(0);
+        let cachets = remuneration.iter().filter(|r| r.unite == "cachet").map(|r| r.quantite).sum::<Decimal>().trunc().to_string();
+        engagement.cachets = cachets.parse().map_err(|_| socle::num::illisible(&cachets))?;
         let heures: Decimal = remuneration.iter().map(|r| r.heures_annexes).sum();
-        engagement.heures = (!heures.is_zero()).then(|| heures.to_string().parse().unwrap_or(0.0));
+        engagement.heures = (!heures.is_zero()).then(|| crate::conges::flot(heures));
         engagement.jours = engagement.dates_travail.len() as i64;
         engagement.jours_contrat = engagement.jours;
 
@@ -677,14 +688,14 @@ impl Importe {
             .iter()
             .flatten()
             .map(|l| LigneCotisation {
-                id: l.cotisation.clone().unwrap_or_default(),
-                famille: l.famille.clone().unwrap_or_default(),
+                id: Carte::texte(&l.cotisation),
+                famille: Carte::texte(&l.famille),
                 libelle: l.libelle.clone(),
-                base: l.base.unwrap_or(zero),
+                base: tu_vaut_zero(l.base),
                 taux_pat: taux(l.taux_employeur),
-                montant_pat: l.montant_employeur.unwrap_or(zero),
+                montant_pat: tu_vaut_zero(l.montant_employeur),
                 taux_sal: taux(l.taux_salarie),
-                montant_sal: l.montant_salarie.unwrap_or(zero),
+                montant_sal: tu_vaut_zero(l.montant_salarie),
                 masquer_base_et_taux: false,
             })
             .collect();
@@ -708,7 +719,7 @@ impl Importe {
                 bases.entry(cle.clone()).or_insert(*m);
             }
         }
-        let base_csg = bases.get(crate::calcul::CSG).copied().unwrap_or(zero);
+        let base_csg = tu_vaut_zero(bases.get(crate::calcul::CSG).copied());
         let plafond = ["brut_plafonne", "t1_mensuelle"].iter().find_map(|k| bases.get(*k)).filter(|t| **t < brut).copied();
         if plafond.is_none() {
             non_dits.push("plafond");
@@ -720,16 +731,16 @@ impl Importe {
         }
 
         let tp = PlafondTempsPartiel::NonConcerne;
-        let mut paie = Paie::nouveau(engagement, sal, spec, brut, base_csg, plafond.unwrap_or(zero), 0.0, zero, tp);
+        let mut paie = Paie::nouveau(engagement, sal, spec, brut, base_csg, tu_vaut_zero(plafond), 0.0, zero, tp);
         let c = paie.ecrire();
         c.lignes = cotisations;
         c.remuneration = remuneration;
-        c.total_sal = p.cotisations_salariales.unwrap_or(zero);
-        c.total_pat = p.cotisations_patronales.unwrap_or(zero);
-        c.net_a_payer = net_a_payer.unwrap_or(zero);
-        c.net_social = p.net_social.unwrap_or(zero);
-        c.net_imposable = p.net_imposable.unwrap_or(zero);
-        c.cout_employeur = p.cout_employeur.unwrap_or(zero);
+        c.total_sal = tu_vaut_zero(p.cotisations_salariales);
+        c.total_pat = tu_vaut_zero(p.cotisations_patronales);
+        c.net_a_payer = tu_vaut_zero(net_a_payer);
+        c.net_social = tu_vaut_zero(p.net_social);
+        c.net_imposable = tu_vaut_zero(p.net_imposable);
+        c.cout_employeur = tu_vaut_zero(p.cout_employeur);
         c.numero_bulletin = p.bulletin.as_ref().and_then(|b| b.numero.clone()).filter(|n| !n.is_empty());
         c.bases = bases;
         c.pas = p.pas.map(|prelevement| droit::pas::Versement {
@@ -737,7 +748,7 @@ impl Importe {
             type_taux: p.type_pas.clone(),
             identifiant: p.identifiant_pas.clone(),
             abattement: zero,
-            montant_soumis: p.net_imposable.unwrap_or(zero),
+            montant_soumis: tu_vaut_zero(p.net_imposable),
             prelevement,
         });
         c.importee = Some(Importee { le: self.le().to_string(), non_dits });
@@ -809,9 +820,12 @@ pub fn continue_par(racine: &Path, e: &Carte) -> Resultat<Option<Importe>> {
 
 /// LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` VIENT-IL DE L'ANCIEN LOGICIEL ? Un engagement importe porte ces
 /// salarie, debut et numero : c'est lui, ou le contrat d'usage qu'il continue ici (`continue_par`). L'ecran le dit sur
-/// la carte. Faux quand rien ne se lit, ou sans numero.
-pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, numero: &str) -> bool {
-    !numero.is_empty() && tous(racine).unwrap_or_default().iter().any(|i| Carte::texte(&i.carte().salarie) == salarie && Carte::texte(&i.carte().debut) == debut && Carte::texte(&i.carte().numero) == numero)
+/// la carte. Faux sans numero.
+pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, numero: Option<&str>) -> Resultat<bool> {
+    let Some(numero) = numero.filter(|n| !n.is_empty()) else { return Ok(false) };
+    Ok(tous(racine)?.iter().any(|i| {
+        i.carte().salarie.as_deref() == Some(salarie) && i.carte().debut.as_deref() == Some(debut) && i.carte().numero.as_deref() == Some(numero)
+    }))
 }
 
 /// LE NUMERO QU'UNE DSN DE L'ANCIEN LOGICIEL A DECLARE pour l'engagement `o` : celui de sa derniere paie importee
@@ -856,7 +870,10 @@ impl Importe {
 
 /// Le refus d'un geste sur un engagement importe : il se lit, il ne se modifie pas.
 pub fn refus(qui: &str, debut: &str) -> String {
-    let jour = socle::date::Jour::lire(debut).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| debut.to_string());
+    let jour = match socle::date::Jour::lire(debut) {
+        Ok(j) => j.jj_mm_aaaa(),
+        Err(_) => debut.to_string(),
+    };
     format!(
         "L'engagement de {} du {} est importé : il se lit tel que l'ancien logiciel l'a déclaré, il ne se modifie pas, ne se \
          recalcule pas et ne se supprime pas. Rien n'est écrit.",
@@ -925,8 +942,12 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Neuf>) -> Resultat<Vec<PathBuf>>
     let mut ecrits = Vec::new();
     for f in touches {
         let existe = stock::lire_fichier(racine, &f)?;
-        let neufs = par_mois.remove(&f).unwrap_or_default();
-        let mut contenu = existe.clone().unwrap_or(stock::FichierDuMois { mois: socle::mois::Mois::lire(&f)?, taux_cachet: None, engagements: Vec::new() });
+        // Un mois que l'import ne touche que pour en retirer n'a rien de neuf ; un fichier qui n'existe pas se cree.
+        let neufs: Vec<stock::Ecrit> = par_mois.remove(&f).into_iter().flatten().collect();
+        let mut contenu = match existe.clone() {
+            Some(c) => c,
+            None => stock::FichierDuMois { mois: socle::mois::Mois::lire(&f)?, taux_cachet: None, engagements: Vec::new() },
+        };
         contenu.engagements.retain(|e| e.importe.is_none());
         contenu.engagements.extend(neufs);
         if existe.as_ref() == Some(&contenu) {
@@ -967,7 +988,7 @@ pub fn completer(racine: &Path, mut completer: impl FnMut(&mut Carte, &Pieces) -
 fn remuneration_lue(e: &crate::Engagement, lignes: &[LigneImprimee], ctx: &Contexte) -> Resultat<Vec<crate::calcul::LigneBrut>> {
     let mut out = Vec::new();
     for l in lignes {
-        let montant = l.montant.unwrap_or_default();
+        let montant = tu_vaut_zero(l.montant);
         let rattachee = l.rubrique.as_deref().is_some_and(|r| !r.trim().is_empty()) && l.quantite.is_some() && l.taux.is_some();
         if rattachee {
             let mut seule = e.clone();

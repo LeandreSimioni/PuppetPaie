@@ -1451,7 +1451,7 @@ function ligneFait(quoi, v = {}) {
   } else {
     div.innerHTML = `
       <label>rubrique <input type="text" class="f-rubrique"
-        value="${echapper(v.rubrique || "")}" placeholder="prime"></label>
+        value="${echapper(v.rubrique ?? "prime")}"></label>
       <label>montant <input type="number" step="0.01" class="f-montant"
         value="${echapper(v.montant ?? "")}"></label>
       ${v.libelle ? `<label>libellé <input class="f-libelle" value="${echapper(v.libelle)}"></label>` : ""}
@@ -1530,8 +1530,7 @@ function faitsDuBloc(div) {
     .map((f) => ({ debut: val(f, ".f-debut"), fin: val(f, ".f-fin") }))
     .filter((c) => c.debut || c.fin);
   const primes = [...div.querySelectorAll(".fait-primes")].map((f) => {
-    const p = { montant: +val(f, ".f-montant") };
-    if (val(f, ".f-rubrique")) p.rubrique = val(f, ".f-rubrique");
+    const p = { montant: +val(f, ".f-montant"), rubrique: val(f, ".f-rubrique") };
     if (val(f, ".f-libelle")) p.libelle = val(f, ".f-libelle");
     return p;
   }).filter((p) => p.montant);

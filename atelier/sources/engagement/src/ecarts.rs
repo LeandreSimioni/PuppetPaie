@@ -215,10 +215,10 @@ fn comparer_une(
     // LE STATUT ET L'EMPLOI DE CETTE PAIE sont ceux que son bulletin imprime (`emploi_imprime`) ; ce qu'il ne dit pas
     // se lit dans la fiche. Un salarie artiste sur un contrat, non cadre au regime general sur un autre, se calcule
     // chaque fois sous le sien.
-    let imprime = p.emploi_imprime.clone().unwrap_or_default();
     let dit = |v: &Option<String>| v.clone().filter(|x| !x.is_empty());
-    c.statut = dit(&imprime.statut).or_else(|| fiche.statut.dite().map(|s| s.as_str().to_string()));
-    c.cadre = dit(&imprime.statut_categoriel_rc).map(|s| s == "01").or_else(|| fiche.statut_categoriel_rc.dite().map(|s| *s == droit::fiche::StatutCategorielRc::Cadre));
+    let imprime = |champ: fn(&crate::importe::EmploiImprime) -> &Option<String>| p.emploi_imprime.as_ref().and_then(|i| dit(champ(i)));
+    c.statut = imprime(|i| &i.statut).or_else(|| fiche.statut.dite().map(|s| s.as_str().to_string()));
+    c.cadre = imprime(|i| &i.statut_categoriel_rc).map(|s| s == "01").or_else(|| fiche.statut_categoriel_rc.dite().map(|s| *s == droit::fiche::StatutCategorielRc::Cadre));
     let Some(cotisations) = &p.cotisations else {
         return Err("la paie importée n'a pas de bulletin : la DSN seule ne porte pas ses lignes de cotisation".into());
     };
@@ -304,12 +304,12 @@ fn comparer_une(
         nature: nature.map(|n| n.to_string()),
         debut: p.debut.map(|j| j.iso()),
         fin: p.fin.map(|j| j.iso()),
-        emploi: dit(&imprime.emploi),
-        pcs_ese: dit(&imprime.pcs_ese),
-        code_emploi_ft: dit(&imprime.code_emploi_ft),
-        statut: dit(&imprime.statut),
-        statut_conventionnel: dit(&imprime.statut_conventionnel),
-        statut_categoriel_rc: dit(&imprime.statut_categoriel_rc),
+        emploi: imprime(|i| &i.emploi),
+        pcs_ese: imprime(|i| &i.pcs_ese),
+        code_emploi_ft: imprime(|i| &i.code_emploi_ft),
+        statut: imprime(|i| &i.statut),
+        statut_conventionnel: imprime(|i| &i.statut_conventionnel),
+        statut_categoriel_rc: imprime(|i| &i.statut_categoriel_rc),
         lignes: Some(saisies),
         // Le jour ou l'ancien logiciel a verse : un fait (`Carte::importe`).
         date_paiement: p.verse_le.map(|j| j.iso()),

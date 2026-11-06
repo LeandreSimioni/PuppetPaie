@@ -55,7 +55,7 @@ pub(crate) fn engagements_des_periodes(ctx: &Contexte, eng: &Engagement, bornes:
                 .lignes
                 .iter()
                 .filter(|l| l.rubrique.as_deref() != Some("mois"))
-                .map(|l| l.rubrique.clone().unwrap_or_else(|| "?".into()))
+                .filter_map(|l| l.rubrique.clone())
                 .collect();
             return Err(format!(
                 "{} : la paie de ce mois se decoupe en periodes elementaires (un changement de statut, de categorie ou de \
@@ -63,7 +63,7 @@ duree du travail le {}), et elle porte {} en plus du salaire mensuel. A quelle p
 le changement, apres, ou les deux) ne se lit nulle part dans la saisie, et le logiciel ne decoupe encore que le salaire \
 mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au premier jour d'un mois.",
                 eng.qui(),
-                bornes.get(1).map_or_else(|| "?".to_string(), |b| b.0.jj_mm_aaaa()),
+                bornes.iter().skip(1).map(|b| b.0.jj_mm_aaaa()).collect::<Vec<_>>().join(", "),
                 if autres.is_empty() { "des lignes saisies a la main".to_string() } else { format!("les lignes {}", autres.join(", ")) }
             ));
         }
@@ -80,11 +80,11 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
     let debut_mois = Jour::nouveau(fin_mois.an, fin_mois.mois, 1).ok_or_else(|| socle::echec::cle("Le moteur ne calcule pas ce mois : le signaler au développeur.", "engagements_des_periodes"))?;
     // Le contrat borne au mois : la regle d'un premier ou d'un dernier mois incomplet le regarde, pas la coupure.
     let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
-    let regle = crate::conges::regle_du_mois_incomplet(ctx, &eng.salarie, &debut, &fin, &debut_mois, &fin_mois);
+    let regle = crate::conges::regle_du_mois_incomplet(ctx, &eng.salarie, &debut, &fin, &debut_mois, &fin_mois)?;
     let horaire = crate::conges::horaire_du_mois(ctx, &eng.salarie, &eng.debut, &debut_mois, &fin_mois)?;
     let mut out = Vec::new();
     for (d, f) in bornes {
-        let (salaire, quotite) = if avenant.map_or(false, |a| *d < a) { (salaire_avant, quotite_avant) } else { (salaire_apres, quotite_apres) };
+        let (salaire, quotite) = if avenant.is_some_and(|a| *d < a) { (salaire_avant, quotite_avant) } else { (salaire_apres, quotite_apres) };
         // Chaque periode, au salaire de ses termes, par la regle d'un mois incomplet (`droit::periodes::part_du_mois`).
         let part = droit::periodes::part_du_mois(d, f, &fin_mois, regle, &horaire)?;
         let mut e = eng.clone();
@@ -124,9 +124,18 @@ fn poser_reduction(p: &mut Paie, rg: Option<ReductionGenerale>) {
     p.reduction_generale = rg;
 }
 
-/// Le statut (artiste, technicien) d'une periode, lu comme le bareme le lit : vide, un artiste.
-fn statut(p: &Paie) -> String {
-    p.salarie.statut.dite().map_or("artiste", |s| s.as_str()).to_string()
+/// Le statut (artiste, technicien) d'une periode, tel que la fiche le dit ; `None` : la fiche n'en dit pas (le bareme
+/// lit alors sa section de base, `droit::bareme::bareme_du_statut`).
+fn statut(p: &Paie) -> Option<droit::fiche::Statut> {
+    p.salarie.statut.dite().copied()
+}
+
+/// Le statut d'une periode, tel qu'un refus le nomme.
+fn statut_dit(s: Option<droit::fiche::Statut>) -> &'static str {
+    match s {
+        Some(s) => s.as_str(),
+        None => "sans statut",
+    }
 }
 
 /// La paie du mois de `eng`, somme de ses periodes elementaires `parts` (dans l'ordre des jours), qu'elle garde
@@ -150,8 +159,8 @@ pub(crate) fn assembler(ctx: &Contexte, eng: &Engagement, mut parts: Vec<Paie>) 
 memes assiettes (taux reduits, plafond, CSS L. 242-10) : la paie d'un tel mois n'est pas decoupee par le logiciel. \
 Dater le changement au premier jour d'un mois sur la fiche.",
             eng.qui(),
-            statut(p),
-            statut_du_mois
+            statut_dit(statut(p)),
+            statut_dit(statut_du_mois)
         ));
     }
     // Sous deduction forfaitaire specifique, la reduction se calcule sur le brut abattu et se borne a 130 % de
@@ -164,16 +173,16 @@ Dater le changement au premier jour d'un mois sur la fiche.",
 forfaitaire specifique. Ni la reduction generale sous deduction (bornee a 130 %), ni le plafond annuel de 7 600 EUR ne se \
 partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
             eng.qui(),
-            p.engagement.debut_periode().map(|d| d.jj_mm_aaaa()).unwrap_or_default()
+            p.engagement.debut_periode()?.jj_mm_aaaa()
         ));
     }
     // La reduction generale du mois, puis sa part dans chaque periode.
     let zero = Decimal::new(0, 2);
     let brut_mois = parts.iter().fold(zero, |a, p| a + p.brut);
     let heures_mois = parts.iter().fold(Decimal::ZERO, |a, p| a + p.heures_travaillees);
-    let caisse = parts.iter().any(|p| p.bases.get(crate::calcul::BRUT_CS).map_or(false, |b| *b > Decimal::ZERO));
+    let caisse = parts.iter().any(|p| p.bases.get(crate::calcul::BRUT_CS).is_some_and(|b| *b > Decimal::ZERO));
     let pile = pile_de_la_paie(ctx, derniere)?;
-    let du_mois = reduction_generale(pile.reduction_generale.as_ref(), Some(statut_du_mois.as_str()), brut_mois, heures_mois, caisse)?;
+    let du_mois = reduction_generale(pile.reduction_generale.as_ref(), statut_du_mois.map(|s| s.as_str()), brut_mois, heures_mois, caisse)?;
     for p in parts.iter_mut() {
         let rg = match &du_mois {
             Some(m) if p.brut > Decimal::ZERO && p.heures_travaillees > Decimal::ZERO => {
@@ -224,7 +233,10 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
                 }
                 None => {
                     // Apres la ligne de meme identifiant a un autre taux s'il y en a une, sinon apres la precedente.
-                    let i = lignes.iter().rposition(|x| x.id == l.id).or(precedente).map_or(0, |i| i + 1);
+                    let i = match lignes.iter().rposition(|x| x.id == l.id).or(precedente) {
+                        Some(i) => i + 1,
+                        None => 0,
+                    };
                     lignes.insert(i, l.clone());
                     precedente = Some(i);
                 }
@@ -274,16 +286,16 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
         .filter_map(|p| p.engagement.periode.map(|b| (p, b)))
         .map(|(p, (d, f))| {
             let cadre = if droit::bareme::est_cadre(&p.salarie) { "cadre" } else { "non cadre" };
-            format!(
+            Ok(format!(
                 "du {} au {} ({}, {} h, brut {})",
                 d.jj_mm_aaaa(),
                 f.jj_mm_aaaa(),
                 cadre,
-                p.engagement.quotite().map(socle::num::nombre).unwrap_or_default(),
+                socle::num::nombre(p.engagement.quotite()?),
                 p.brut
-            )
+            ))
         })
-        .collect();
+        .collect::<Resultat<_>>()?;
     m.avertissements.push(Avis {
         info: true,
         texte: format!(

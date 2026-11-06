@@ -377,7 +377,10 @@ impl Carte {
 
     /// Les lignes de la carte (aucune si elle n'en dit pas).
     pub fn lignes(&self) -> &[LignePaie] {
-        self.lignes.as_deref().unwrap_or(&[])
+        match &self.lignes {
+            Some(l) => l,
+            None => &[],
+        }
     }
 
     /// La fiche que la carte nomme, lue comme le calcul la lit (`Contexte::cle_du_salarie`) ; `None` sans elle.
@@ -439,13 +442,13 @@ pub struct CongePris {
     pub fin: String,
 }
 
-/// Une prime du mois : son montant, sa rubrique (`prime` sans elle), son libelle.
+/// Une prime du mois : son montant, sa rubrique, son libelle.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Prime {
     pub montant: NombreLu,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rubrique: Option<String>,
+    /// Sa rubrique au catalogue (« prime », ou une autre que la carte choisit).
+    pub rubrique: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub libelle: Option<String>,
 }

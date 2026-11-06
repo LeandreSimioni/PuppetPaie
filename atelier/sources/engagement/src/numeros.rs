@@ -242,7 +242,7 @@ fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
 /// Il garde celui qu'il porte, sauf si son salarie ou son debut a change depuis qu'il l'a recu et qu'aucun envoi ne l'a
 /// porte : il en recoit alors un nouveau, comme un engagement qui n'en a pas.
 pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: &Departs) -> Resultat<()> {
-    let cle = ctx.cle_du_salarie(o.carte().salarie.as_deref().unwrap_or_default())?;
+    let cle = ctx.cle_du_salarie(o.carte().salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
     let fiche = ctx.salarie(&cle)?;
     let debut = crate::debut_brut(&ctx.racine, &o.brut);
     let porte = NumeroContrat::du_texte(o.carte().numero.as_deref())?;

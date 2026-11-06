@@ -398,7 +398,7 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Optio
     let siens = ses_departs(ctx, v.objet(), departs);
     let toutes: Vec<(Option<Version>, String)> = passees
         .iter()
-        .map(|x| (Some(Version::Passee(x)), x.valide_le.clone().unwrap_or_default()))
+        .map(|x| (Some(Version::Passee(x)), x.valide_le.clone()))
         .chain(std::iter::once((present, v.le().to_string())))
         .collect();
     let mut versions = Vec::new();

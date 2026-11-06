@@ -49,7 +49,9 @@ fn heures_par_jour(ctx: &Contexte, lignes: &[LignePaie]) -> Resultat<BTreeMap<Jo
             Chiffre::Nombre(n) => n.as_f64(),
             Chiffre::Texte(s) => s.trim().replace(',', ".").parse().ok(),
         };
-        let total = r.heures(nombre(&l.quantite).unwrap_or(0.0), nombre(&l.heures));
+        // La quantite d'une ligne de travail est dite (`lignes_dites`, avant ce compte) : sans elle, rien ne se compte.
+        let quantite = nombre(&l.quantite).ok_or_else(|| socle::fichiers::absent("quantite"))?;
+        let total = r.heures(quantite, nombre(&l.heures));
         let par_jour = total / dates.len() as f64;
         for j in &dates {
             let x = jours.entry(*j).or_insert((0.0, false));

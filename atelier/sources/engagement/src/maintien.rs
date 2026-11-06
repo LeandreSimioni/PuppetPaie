@@ -676,7 +676,12 @@ fn net_de_csg_crds(brute: Decimal, csg: Decimal, crds: Decimal) -> Decimal {
 pub fn lignes(dmois: &DuMois, mois: &str) -> Vec<LignePaie> {
     let mut out = Vec::new();
     let plancher = eur2(dmois.ij_subrogees_brutes);
-    let direct = eur2(dmois.loi.max(dmois.convention_brut.unwrap_or(Decimal::ZERO)));
+    // Le plus favorable de la loi et de la convention (L1226-1 fixe un minimum que la convention peut depasser) ; une
+    // convention qui ne garantit rien en brut laisse la loi.
+    let direct = eur2(match dmois.convention_brut {
+        Some(convention) => dmois.loi.max(convention),
+        None => dmois.loi.max(Decimal::ZERO),
+    });
     let montant = direct + plancher;
     if montant > Decimal::ZERO || dmois.au_net.is_some() {
         let q = if dmois.heures > Decimal::ZERO { eur2(dmois.heures) } else { Decimal::ONE };
@@ -743,12 +748,12 @@ pub fn au_net(
     let (plancher, direct, complement_brut) = (spec.plancher, spec.complement_direct, spec.au_net.complement_brut);
     let (hors_bulletin, hors_garantie) = (spec.au_net.ij_nettes_hors_bulletin, spec.au_net.ij_nettes_hors_garantie);
     let parts = spec.au_net.parts.clone();
-    let avec = |montant: Option<Decimal>| -> Vec<LignePaie> {
+    let avec = |montant: Option<Decimal>| -> Resultat<Vec<LignePaie>> {
         let mut out = Vec::new();
         for (k, l) in lignes.iter().enumerate() {
             if k == i {
                 if let Some(m) = montant {
-                    out.extend(avec_le_montant(std::slice::from_ref(l), m));
+                    out.extend(avec_le_montant(std::slice::from_ref(l), m)?);
                 }
                 continue;
             }
@@ -757,11 +762,11 @@ pub fn au_net(
             }
             out.push(l.clone());
         }
-        out
+        Ok(out)
     };
-    let sans_absence: Vec<LignePaie> = avec(None).into_iter().filter(|l| l.arret != Some(true)).collect();
+    let sans_absence: Vec<LignePaie> = avec(None)?.into_iter().filter(|l| l.arret != Some(true)).collect();
     let net0 = paie(sans_absence)?.net_a_payer;
-    let net_abs = paie(avec(None))?.net_a_payer;
+    let net_abs = paie(avec(None)?)?.net_a_payer;
     let retire: Decimal = parts.iter().map(|p| p.0).sum();
     let perdu = net0 - net_abs;
     let cible = if spec.au_net.net {
@@ -778,7 +783,7 @@ pub fn au_net(
     let mut calculs = 2usize;
     let mut recu = |a: Decimal, calculs: &mut usize| -> Resultat<Decimal> {
         *calculs += 1;
-        Ok(paie(avec(Some(a)))?.net_a_payer + hors_bulletin)
+        Ok(paie(avec(Some(a))?)?.net_a_payer + hors_bulletin)
     };
     let resoudre = |cible: Decimal, recu: &mut dyn FnMut(Decimal, &mut usize) -> Resultat<Decimal>, calculs: &mut usize| -> Resultat<Option<Decimal>> {
         let (mut lo, mut flo) = (plancher, recu(plancher, calculs)? - cible);
@@ -854,20 +859,21 @@ atteinte. Rien n'est calculé ; signaler ce mois au développeur.",
 }
 
 /// Les lignes d'un engagement, la ligne du maintien portee a `montant` (le resultat de `au_net`).
-pub fn avec_le_montant(lignes: &[LignePaie], montant: Decimal) -> Vec<LignePaie> {
+pub fn avec_le_montant(lignes: &[LignePaie], montant: Decimal) -> Resultat<Vec<LignePaie>> {
     lignes
         .iter()
         .map(|l| {
             if l.maintien.is_some() {
-                let q = l.quantite.as_ref().and_then(|q| q.dec_avec_echelle().ok()).unwrap_or(Decimal::ONE);
+                // La ligne du maintien porte toujours sa quantite (`lignes`) : ses heures d'absence, ou 1.
+                let q = l.quantite.as_ref().ok_or_else(|| socle::fichiers::absent("quantite"))?.dec_avec_echelle()?;
                 let q = if q > Decimal::ZERO { q } else { Decimal::ONE };
-                LignePaie {
+                Ok(LignePaie {
                     rubrique: l.rubrique.clone(),
                     heures: Some(Chiffre::entier(0)),
                     ..LignePaie::de("", Chiffre::de_f64(flot(q)), Chiffre::texte_de(div(montant, q).normalize()))
-                }
+                })
             } else {
-                l.clone()
+                Ok(l.clone())
             }
         })
         .collect()
