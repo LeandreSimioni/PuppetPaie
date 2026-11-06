@@ -701,6 +701,11 @@ fn une_crate_ne_prend_qu_a_celles_du_dessous() {
     // la porte, n'en reexporte rien.
     let engagement = std::fs::read_to_string(espace().join("engagement/Cargo.toml")).unwrap();
     assert!(!engagement.contains("serde_json"), "engagement/Cargo.toml prend serde_json : l'engagement ne lit que des formes, par socle::forme");
+    // Le droit non plus, pour son code : serde_json n'est que dans ses `[dev-dependencies]` (les oracles de ses tests sont
+    // des fichiers JSON bruts), le compilateur refuse qu'il en touche hors de ses tests.
+    let droit = std::fs::read_to_string(espace().join("droit/Cargo.toml")).unwrap();
+    let droit_deps = droit.split("\n[dependencies]").nth(1).unwrap().split("\n[").next().unwrap();
+    assert!(!droit_deps.contains("serde_json"), "droit/Cargo.toml prend serde_json dans [dependencies] : le droit ne lit que des formes, par socle::forme");
     for f in sources(&espace().join("socle/src")) {
         let t = std::fs::read_to_string(&f).unwrap();
         assert!(!t.contains("pub use serde_json") && !t.contains("pub type Value"), "{} reexporte le JSON brut", f.display());
