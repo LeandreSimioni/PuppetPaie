@@ -32,9 +32,10 @@
 //! l'arret (ameli, « La subrogation de salaire en cas d'arret de travail » ; net-entreprises, fiche 3028 :
 //! `atelier/reference/sources/subrogation-indemnites-journalieres/`).
 
-use crate::conges::{flot, info};
+use crate::conges::info;
+use crate::Chiffre;
 use crate::imprevus::{ArretSaisi, Imprevu};
-use crate::ligne::{Chiffre, LignePaie};
+use crate::ligne::{IndemniteJournaliere, LignePaie, Maintien};
 use crate::Avis;
 use droit::contexte::Contexte;
 use droit::maintien::{self as dm, Base, Droit, Duree, Origine, Regime};
@@ -687,10 +688,8 @@ pub fn lignes(dmois: &DuMois, mois: &str) -> Vec<LignePaie> {
     let montant = direct + plancher;
     if montant > Decimal::ZERO || dmois.au_net.is_some() {
         let q = if dmois.heures > Decimal::ZERO { eur2(dmois.heures) } else { Decimal::ONE };
-        let mut l = LignePaie::de("maintien_salaire", Chiffre::de_f64(flot(q)), Chiffre::texte_de(div(montant, q).normalize()));
         // Une somme, pas des heures de travail : les heures de l'absence restent celles de sa retenue (S21.G00.53).
-        l.heures = Some(Chiffre::entier(0));
-        l.maintien = dmois.au_net.as_ref().map(|a| {
+        let reconstitution = dmois.au_net.as_ref().map(|a| {
             Box::new(Reconstitution {
                 mois: mois.to_string(),
                 au_net: AuNet {
@@ -703,17 +702,15 @@ pub fn lignes(dmois: &DuMois, mois: &str) -> Vec<LignePaie> {
                 plancher,
             })
         });
-        out.push(l);
+        out.push(LignePaie::Maintien(Maintien { rubrique: "maintien_salaire".to_string(), quantite: q, taux: div(montant, q).normalize(), reconstitution }));
     }
     if dmois.ij_subrogees_jours > 0 {
         let j = Decimal::from(dmois.ij_subrogees_jours);
-        let ij = |rubrique: &str, montant: Decimal| LignePaie {
-            heures: Some(Chiffre::entier(0)),
-            ij: Some(true),
-            ..LignePaie::de(rubrique, Chiffre::entier(dmois.ij_subrogees_jours), Chiffre::texte_de(div(montant, j).normalize()))
+        let ij = |rubrique: &str, montant: Decimal, assiette_pas: Option<Decimal>| {
+            LignePaie::IndemniteJournaliere(IndemniteJournaliere { rubrique: rubrique.to_string(), jours: j, taux: div(montant, j).normalize(), assiette_pas })
         };
-        out.push(ij(IJ_BRUTES, plancher));
-        out.push(LignePaie { assiette_pas: Some(Chiffre::texte_de(eur2(dmois.assiette_pas))), ..ij(IJ_NETTES, eur2(dmois.ij_subrogees_nettes)) });
+        out.push(ij(IJ_BRUTES, plancher, None));
+        out.push(ij(IJ_NETTES, eur2(dmois.ij_subrogees_nettes), Some(eur2(dmois.assiette_pas))));
     }
     out
 }
@@ -746,7 +743,7 @@ pub fn au_net(
     lignes: &[LignePaie],
     paie: &mut dyn FnMut(Vec<LignePaie>) -> Resultat<crate::calcul::Paie>,
 ) -> Resultat<Option<(Decimal, Avis)>> {
-    let Some((i, spec)) = lignes.iter().enumerate().find_map(|(i, l)| l.maintien.as_deref().map(|s| (i, s.clone()))) else { return Ok(None) };
+    let Some((i, spec)) = lignes.iter().enumerate().find_map(|(i, l)| l.reconstitution().map(|s| (i, s.clone()))) else { return Ok(None) };
     let (plancher, direct, complement_brut) = (spec.plancher, spec.complement_direct, spec.au_net.complement_brut);
     let (hors_bulletin, hors_garantie) = (spec.au_net.ij_nettes_hors_bulletin, spec.au_net.ij_nettes_hors_garantie);
     let parts = spec.au_net.parts.clone();
@@ -759,14 +756,14 @@ pub fn au_net(
                 }
                 continue;
             }
-            if montant.is_none() && l.ij == Some(true) {
+            if montant.is_none() && l.est_indemnite_journaliere() {
                 continue;
             }
             out.push(l.clone());
         }
         Ok(out)
     };
-    let sans_absence: Vec<LignePaie> = avec(None)?.into_iter().filter(|l| l.arret != Some(true)).collect();
+    let sans_absence: Vec<LignePaie> = avec(None)?.into_iter().filter(|l| !l.est_retenue_arret()).collect();
     let net0 = paie(sans_absence)?.net_a_payer;
     let net_abs = paie(avec(None)?)?.net_a_payer;
     let retire: Decimal = parts.iter().map(|p| p.0).sum();
@@ -864,19 +861,13 @@ atteinte. Rien n'est calculé ; signaler ce mois au développeur.",
 pub fn avec_le_montant(lignes: &[LignePaie], montant: Decimal) -> Resultat<Vec<LignePaie>> {
     lignes
         .iter()
-        .map(|l| {
-            if l.maintien.is_some() {
+        .map(|l| match l {
+            LignePaie::Maintien(m) if m.reconstitution.is_some() => {
                 // La ligne du maintien porte toujours sa quantite (`lignes`) : ses heures d'absence, ou 1.
-                let q = l.quantite.as_ref().ok_or_else(|| socle::fichiers::absent("quantite"))?.dec_avec_echelle()?;
-                let q = if q > Decimal::ZERO { q } else { Decimal::ONE };
-                Ok(LignePaie {
-                    rubrique: l.rubrique.clone(),
-                    heures: Some(Chiffre::entier(0)),
-                    ..LignePaie::de("", Chiffre::de_f64(flot(q)), Chiffre::texte_de(div(montant, q).normalize()))
-                })
-            } else {
-                Ok(l.clone())
+                let q = if m.quantite > Decimal::ZERO { m.quantite } else { Decimal::ONE };
+                Ok(LignePaie::Maintien(Maintien { rubrique: m.rubrique.clone(), quantite: q, taux: div(montant, q).normalize(), reconstitution: None }))
             }
+            autre => Ok(autre.clone()),
         })
         .collect()
 }
@@ -924,7 +915,7 @@ mod tests {
                 ..DuMois::default()
             };
             let l = lignes(&m, "2026-03");
-            l[0].taux.as_ref().unwrap().dec_avec_echelle().unwrap()
+            l[0].taux().unwrap()
         };
         assert_eq!(montant(500, 300, 0), Decimal::from(500));
         assert_eq!(montant(300, 500, 0), Decimal::from(500));

@@ -759,8 +759,8 @@ pub struct MoisDuContrat<'a> {
 /// salaire entier quand les heures sont toutes celles du mois. Un taux arrondi au centime AVANT de multiplier laissait
 /// 0,07 EUR de salaire sur un mois entier d'absence (2 310 / 151,67 = 15,23, x 151,67 = 2 309,93) : aucun texte ne
 /// l'arrondit (Cass. soc. 11/02/1982, ci-dessous, est un quotient).
-fn taux_exact(montant: Decimal, quantite: Decimal) -> crate::Chiffre {
-    crate::Chiffre::texte_de(div(montant, quantite).normalize())
+fn taux_exact(montant: Decimal, quantite: Decimal) -> Decimal {
+    div(montant, quantite).normalize()
 }
 
 /// LA FICHE DU SALARIE D'UN IMPREVU, rattachee a l'etablissement du contrat qu'il suspend (`calcul::etablissement_du_contrat`) :
@@ -846,10 +846,11 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &crate::saisie::Carte, mois: &str, m: &
             0
         };
         let heures = eur2(mul(m.heures_par_jour, Decimal::from(jours)));
-        let retenue = |rubrique: &str| -> Option<crate::LignePaie> {
-            match &taux_horaire {
-                Some(t) if heures > Decimal::ZERO => Some(crate::LignePaie::de(rubrique, crate::Chiffre::de_f64(flot(heures)), t.clone())),
-                _ => None,
+        // Les heures retirees et leur taux, quand le mois en retire.
+        let retenue = || -> Resultat<Option<(Decimal, Decimal)>> {
+            match taux_horaire {
+                Some(t) if heures > Decimal::ZERO => Ok(Some((socle::num::dec_f64(flot(heures))?, t))),
+                _ => Ok(None),
             }
         };
         let au_reel = format!(
@@ -874,7 +875,7 @@ nomme cette absence. Rien n'est calcule.",
                     libelle_du_motif(&motif)
                 ), "arrets-base.json"));
             };
-            lignes.extend(retenue(&rubrique).map(|l| crate::LignePaie { arret: Some(true), ..l }));
+            lignes.extend(retenue()?.map(|(quantite, taux)| crate::LignePaie::RetenueArret(crate::ligne::RetenueArret { rubrique, quantite, taux })));
             absents += jours;
             avert.push(info(format!(
                 "{} : arrêt de travail ({}) du {} au {} : {} ; la DSN de chaque mois qu'il traverse le déclare.",
@@ -900,7 +901,7 @@ nomme cette absence. Rien n'est calcule.",
                     motif.texte()
                 )));
             } else {
-                lignes.extend(retenue("absence_non_remuneree"));
+                lignes.extend(retenue()?.map(|(quantite, taux)| crate::LignePaie::composee("absence_non_remuneree", quantite, taux)));
                 absents += jours;
                 avert.push(info(format!(
                     "{} : absence ({}) du {} au {} : {} ; la DSN de chaque mois qu'elle traverse la déclare.",
@@ -965,8 +966,8 @@ pub struct CachetPaye {
     pub rubrique: String,
     pub libelle: String,
     pub dates: Vec<String>,
-    pub quantite: Option<Chiffre>,
-    pub taux: Option<Chiffre>,
+    pub quantite: Option<Decimal>,
+    pub taux: Option<Decimal>,
 }
 
 fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &str, cle: &str, premier: &Jour, dernier: &Jour) -> Resultat<Vec<CachetPaye>> {
@@ -980,8 +981,7 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &
             if dedans.is_empty() {
                 continue;
             }
-            // Une ligne sans rubrique ne paie rien.
-            let Some(rubrique) = l.rubrique.clone().filter(|r| !r.is_empty()) else { continue };
+            let rubrique = l.rubrique().to_string();
             out.push(CachetPaye {
                 mois: mois.to_string(),
                 engagement: i,
@@ -991,8 +991,8 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &
                 libelle: libelle_rubrique(&ctx.racine, &rubrique, &ctx.lue_au)?,
                 rubrique,
                 dates: dedans,
-                quantite: l.quantite.clone(),
-                taux: l.taux.clone(),
+                quantite: l.quantite(),
+                taux: l.taux(),
             });
         }
     }

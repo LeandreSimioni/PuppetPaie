@@ -275,7 +275,6 @@ fn comparer_une(
         }
     }
     let mut saisies = Vec::new();
-    let en_f64 = |d: Decimal| d.to_string().parse::<f64>().map_err(|e| e.to_string());
     for l in &p.lignes {
         let libelle = &l.libelle;
         let Some(r) = l.rubrique.as_deref().filter(|r| !r.is_empty()) else {
@@ -286,10 +285,34 @@ fn comparer_une(
         };
         let quantite = l.quantite.ok_or_else(|| format!("la ligne « {} » n'imprime pas sa quantité", libelle))?;
         let taux = l.taux.ok_or_else(|| format!("la ligne « {} » n'imprime pas son taux", libelle))?;
-        saisies.push(crate::LignePaie {
-            heures: l.heures.map(|h| en_f64(h).map(crate::Chiffre::de_f64)).transpose()?,
-            dates: jours.clone(),
-            ..crate::LignePaie::de(r, crate::Chiffre::de_f64(en_f64(quantite)?), crate::Chiffre::de_f64(en_f64(taux)?))
+        // La ligne dans la forme que le catalogue demande de sa rubrique (`ligne::FormeSaisie`), comme la porte la range.
+        use crate::ligne::{self, FormeSaisie, LignePaie};
+        let forme = FormeSaisie::de(&droit::catalogue::rubrique(&ctx.racine, r, &fin)?)?;
+        // Une ligne au montant paie sa quantite fois son taux, comme le bulletin l'imprime.
+        let montant = Some(quantite * taux);
+        // Une ligne d'une rubrique que le moteur pose (des heures en plus) : telle que le moteur la compose.
+        let Some(forme) = forme else {
+            saisies.push(LignePaie::Composee(ligne::Composee { rubrique: r.to_string(), quantite, taux, heures: l.heures, precision: None, dates: jours.clone() }));
+            continue;
+        };
+        let (rubrique, quantite, taux, dates) = (r.to_string(), Some(quantite), Some(taux), jours.clone());
+        saisies.push(match forme {
+            FormeSaisie::Unites => LignePaie::Unites(ligne::Unites { rubrique, quantite, taux, lieu: None, dates, planning: Vec::new() }),
+            FormeSaisie::UnitesEtHeures => LignePaie::UnitesEtHeures(ligne::UnitesEtHeures { rubrique, quantite, taux, heures: l.heures, lieu: None, dates, planning: Vec::new() }),
+            FormeSaisie::Frais => LignePaie::Frais(ligne::Frais {
+                rubrique,
+                quantite,
+                taux,
+                territoire: None,
+                cases: Vec::new(),
+                lieu: None,
+                dates,
+                planning: Vec::new(),
+                marques: ligne::Marques::default(),
+            }),
+            FormeSaisie::Pourcentage => LignePaie::Pourcentage(ligne::Pourcentage { rubrique, base: quantite, taux_majoration: taux.map(|t| t * Decimal::ONE_HUNDRED) }),
+            FormeSaisie::Montant => LignePaie::Montant(ligne::Montant { rubrique, montant }),
+            FormeSaisie::AvantageEnNature => LignePaie::AvantageEnNature(ligne::AvantageEnNature { rubrique, montant, genre: None }),
         });
     }
     // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.

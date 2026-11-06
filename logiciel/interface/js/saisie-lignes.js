@@ -80,9 +80,6 @@ function rubriqueParDefaut(nat, statut) {
  *  Le champ « heures » n'apparaît que si la rubrique le demande — une journée
  *  de 5 h, une répétition de 3 h. Un cachet ne le demande pas : ses 12 heures
  *  viennent du règlement, pas de nous. */
-// Les cases qu'une ligne de frais porte dans le fichier (`engagement::JUSTIFICATIF`, `PARIS`, `RESTAURANT`).
-const CASES_DE_LIGNE = ["justificatif", "paris", "restaurant", "loge"];
-
 // LES CASES D'UNE LIGNE, telles que le moteur les désigne et les nomme
 // (`cases` de l'aperçu, celles de cette ligne) ; une case qu'il ne désigne
 // plus ne s'écrit plus.
@@ -114,6 +111,9 @@ function ligneRubrique(l = {}, nat, statut) {
   if (l.base !== undefined || l.taux_majoration !== undefined) {
     l = { ...l, quantite: l.base ?? "", taux: l.taux_majoration ?? "" };
   }
+  // UNE LIGNE AU MONTANT (prime, acompte, indemnité, avantage en nature) : le fichier dit `montant`, que le champ du
+  // taux montre.
+  if (l.montant !== undefined) l = { ...l, taux: l.montant ?? "" };
   if (l.taux === undefined || l.taux === null || l.taux === "") l = { ...l, taux: tauxParDefaut(code) };
   /* TOUT SUR LA MÊME LIGNE, et elle se lit comme une phrase :
 
@@ -178,20 +178,18 @@ function ligneRubrique(l = {}, nat, statut) {
   poserRubriques(div.querySelector(".r-code"), code, nat, statut);
   const majAffichage = () => {
     const r = rubriqueDe(div.querySelector(".r-code").value);
-    const veutHeures = !!r && r.saisie.includes("heures");
+    // Les cases de la ligne sont celles que le moteur dit de sa rubrique (`cles`).
+    const cles = (r && r.cles) || [];
+    const veutHeures = cles.includes("heures");
     // `.cachee` et non l'attribut `hidden` : la feuille de style pose
     // `input { display: block }`, qui l'emporterait sur le defaut du
     // navigateur. Le champ resterait visible sans qu'on comprenne pourquoi.
-    // Des heures déjà écrites se montrent, quelle que soit la rubrique : ce
-    // qui est dans le fichier se voit (le moteur dit si elles y ont leur place).
     const h = div.querySelector(".r-heures");
-    h.classList.toggle("cachee", !veutHeures && h.value === "");
+    h.classList.toggle("cachee", !veutHeures);
     // UNE LIGNE « MONTANT » (prime, acompte, indemnité, défraiement réel) :
-    // ni quantité, ni jours, ni lieu. On tape la somme ; la
-    // quantité vaut 1 et reste écrite, le moteur lit quantité × taux.
-    const montant = !!r && r.saisie.includes("montant") && !r.saisie.includes("quantite");
+    // ni quantité, ni jours, ni lieu. On tape la somme, dans le champ du taux.
+    const montant = cles.includes("montant");
     const q = div.querySelector(".r-quantite");
-    if (montant && q.value === "") q.value = 1;
     q.classList.toggle("cachee", montant);
     div.querySelector(".r-jours-btn").classList.toggle("cachee", montant);
     div.querySelector(".r-lieu").classList.toggle("cachee", montant);
@@ -202,7 +200,7 @@ function ligneRubrique(l = {}, nat, statut) {
     dit.textContent = (r && r.dit) || "";
     dit.classList.toggle("cachee", !(r && r.dit));
     // Une ligne en pourcentage : « base € à taux % », sans jours ni lieu.
-    const pct = !!r && r.saisie.includes("taux_majoration");
+    const pct = cles.includes("taux_majoration");
     const mots = div.querySelectorAll(".r-mot");
     if (r && r.mots) [mots[0].textContent, mots[1].textContent] = r.mots;
     if (pct) {
@@ -240,7 +238,7 @@ function ligneRubrique(l = {}, nat, statut) {
   div.querySelector(".r-genre").onchange = rafraichirApercu;
   div.querySelector(".r-territoire").onchange = rafraichirApercu;
   // Les cases cochées de la ligne, gardées jusqu'à ce que le moteur dise lesquelles ont lieu d'être.
-  div._cases = Object.fromEntries(CASES_DE_LIGNE.filter((k) => l[k] === true).map((k) => [k, true]));
+  div._cases = Object.fromEntries((l.cases || []).map((k) => [k, true]));
   // Changer la rubrique d'une ligne dont le taux n'a pas été tapé : il suit
   // la rubrique. Un taux de cachet ne devient pas un taux horaire.
   div.dataset.code = code;
@@ -1651,38 +1649,36 @@ function lignesDuBloc(div, mois) {
     const t = r.querySelector(".r-taux").value;
     const h = r.querySelector(".r-heures").value;
     if (!ligneEnvoyee(r)) return null;
-    const rr = rubriqueDe(r.querySelector(".r-code").value);
-    // Une ligne en pourcentage s'écrit comme le moteur la lit : sa base et
-    // son pourcentage (`calcul._ligne_en_pourcentage`).
-    if (rr && rr.saisie.includes("taux_majoration")) {
-      return { rubrique: rr.code, base: q === "" ? "" : +q, taux_majoration: t === "" ? "" : +t };
-    }
-    const l = { rubrique: r.querySelector(".r-code").value, quantite: q === "" ? "" : +q,
-                taux: t === "" ? "" : +t };
-    // Les heures s'écrivent dès qu'elles sont dites : leur champ se montre
-    // alors, quelle que soit la rubrique (`majAffichage`).
-    if (h !== "") l.heures = +h;
-    // Le genre d'un avantage en nature, quand la rubrique en demande un et
-    // qu'on en a choisi un : le moteur refuse un genre sur toute autre.
-    const genre = r.querySelector(".r-genre").value;
-    if (genre && rr && (rr.genres || []).length) l.genre = genre;
-    const territoire = r.querySelector(".r-territoire").value;
-    if (territoire && rr && (rr.lieux || []).length) l.territoire = territoire;
-    Object.keys(r._cases || {}).filter((k) => r._cases[k]).forEach((k) => { l[k] = true; });
-    // Le lieu et les jours de CETTE ligne. Absents du fichier quand ils sont
-    // vides : une ligne qui ne dit rien de son lieu n'écrit pas `"lieu": ""`.
-    const ou = r.querySelector(".r-lieu").value.trim();
-    if (ou) l.lieu = ou;
+    const code = r.querySelector(".r-code").value;
+    const rr = rubriqueDe(code);
+    // Un nombre tapé, ou `null` : une case vide.
+    const nombre = (x) => (x === "" ? null : +x);
+    const texte = (x) => (x.trim() === "" ? null : x.trim());
     // Un jour qui dit son propre lieu s'écrit {"jour", "lieu"}, les autres nus.
     const propres = new Map([...r.querySelectorAll(".r-lieu-jour")]
       .filter((c) => c.value.trim()).map((c) => [c.dataset.iso, c.value.trim()]));
     const date = (iso) => (propres.has(iso) ? { jour: iso, lieu: propres.get(iso) } : iso);
-    const jours = joursDe(r.querySelector(".r-jours"));
-    if (jours.length) l.dates = jours.map((j) => date(mois + "-" + String(j).padStart(2, "0")));
-    // Le planning de la ligne : les jours cochés dans les mois suivants.
-    const plan = planningDe(r);
-    if (plan.length) l.planning = plan.map(date);
-    return l;
+    // Ce que chaque case de la ligne dit ; la ligne n'en écrit que celles que le moteur demande de sa rubrique
+    // (`cles`), toutes : une ligne en pourcentage écrit sa base et son pourcentage, une ligne au montant sa somme (le
+    // champ du taux), une ligne de frais son lieu hors de la métropole et ses cases cochées.
+    const valeurs = {
+      rubrique: code,
+      quantite: nombre(q),
+      taux: nombre(t),
+      heures: nombre(h),
+      base: nombre(q),
+      taux_majoration: nombre(t),
+      montant: nombre(t),
+      genre: texte(r.querySelector(".r-genre").value),
+      territoire: texte(r.querySelector(".r-territoire").value),
+      cases: Object.keys(r._cases || {}).filter((k) => r._cases[k]),
+      lieu: texte(r.querySelector(".r-lieu").value),
+      dates: joursDe(r.querySelector(".r-jours")).map((j) => date(mois + "-" + String(j).padStart(2, "0"))),
+      // Le planning de la ligne : les jours cochés dans les mois suivants.
+      planning: planningDe(r).map(date),
+    };
+    // Une rubrique que le catalogue ne connaît pas part seule : le moteur dit ce qui lui manque.
+    return Object.fromEntries(((rr && rr.cles) || ["rubrique"]).map((k) => [k, valeurs[k]]));
   }).filter(Boolean);
 }
 

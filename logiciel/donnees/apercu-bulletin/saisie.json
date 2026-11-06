@@ -8,7 +8,7 @@
      "emploi": null, "pcs_ese": null, "code_emploi_ft": null, "statut": null, "statut_conventionnel": null,
      "statut_categoriel_rc": null, "periode_essai_jours": null, "personne_remplacee": null, "repartition_horaire": null,
      "clauses_particulieres": null,
-     "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 14.0, "lieu": "Théâtre fictif", "dates": ["2026-10-20", "2026-10-21"]}],
+     "lignes": [{"forme": "unites", "rubrique": "heure", "quantite": "16", "taux": "14.0", "lieu": "Théâtre fictif", "dates": ["2026-10-20", "2026-10-21"], "planning": []}],
      "conges_pris": null, "primes": null, "date_paiement": "2026-10-21", "jours": null, "taux_cachet": null,
      "heures_supplementaires": null, "heures_supplementaires_a_50": null, "heures_complementaires": null,
      "indemnite_licenciement": null, "faute_grave": null, "motif_rupture": null, "notification_rupture": null,

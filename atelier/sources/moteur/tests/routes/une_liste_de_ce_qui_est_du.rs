@@ -24,7 +24,7 @@ fn les_rappels_et_l_echeancier_disent_la_meme_chose() {
         "2026-01",
         None,
         &json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs",
-            "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-01-20", "2026-01-21"]}]}),
+            "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 150, "lieu": null, "dates": ["2026-01-20", "2026-01-21"], "planning": []}]}),
         "2026-01-05",
     ));
 

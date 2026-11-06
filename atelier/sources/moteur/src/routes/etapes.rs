@@ -1566,7 +1566,7 @@ impl<'a> Moteur<'a> {
         };
         let nature = e.nature_lue().map(|n| n.libelle.clone()).unwrap_or_default();
         let premier_mois = o.premier_mois() == mois;
-        let debut = e.debut_lu(&self.ctx.racine);
+        let debut = e.debut_lu();
         let anterieur = engagement::stock::commence_avant_le_logiciel(&self.ctx.racine, &debut, mois).map_err(plain)?;
         Ok(Vue {
             salarie: cle,
@@ -2669,10 +2669,10 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<NonActif>> {
             .ok()
             .map(|f| super::nom_a_l_ecran(&f))
             .unwrap_or_else(|| cle.clone());
-        let debut = engagement::debut_brut(&ctx.racine, &b);
+        let debut = engagement::debut_brut(&b);
         let fin_ecrite = b.saisie.carte.fin.clone().filter(|f| !f.is_empty()).map(Value::String).unwrap_or(Value::Null);
         let fin = match &fin_ecrite {
-            Value::Null => b.saisie.carte.dates(&ctx.racine).iter().map(|j| j.jour().to_string()).max(),
+            Value::Null => b.saisie.carte.dates().iter().map(|j| j.jour().to_string()).max(),
             f => Some(valeur_en_texte(f)),
         };
         let numero = b.saisie.carte.numero_dit().map_or_else(|| "sans numéro".to_string(), String::from);

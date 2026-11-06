@@ -58,36 +58,29 @@ fn flottant(x: Decimal) -> Option<Chiffre> {
     NombreLu::de_f64(socle::num::flottant(x)).map(Chiffre::Nombre)
 }
 
-/// Une valeur saisie : ni absente, ni vide.
-fn rempli(v: &Option<Chiffre>) -> bool {
-    match v {
-        None => false,
-        Some(Chiffre::Texte(t)) => !t.is_empty(),
-        Some(Chiffre::Nombre(_)) => true,
-    }
+/// La rubrique de la ligne ; une rubrique que le catalogue ne connait pas se refuse.
+fn rubrique_de(ctx: &Contexte, ligne: &LignePaie) -> R<droit::catalogue::Rubrique> {
+    droit::catalogue::rubrique(&ctx.racine, ligne.rubrique(), &ctx.lue_au).map_err(refus)
 }
 
-/// Une valeur absente, vide ou nulle.
-fn absent_ou_zero(v: &Option<Chiffre>) -> bool {
-    !rempli(v) || matches!(v, Some(Chiffre::Nombre(n)) if n.as_f64() == Some(0.0))
+/// Une ligne dont le taux est une case : en unites (un salaire, une absence, une indemnite), ou de frais.
+fn taux_saisi(l: &LignePaie) -> bool {
+    matches!(l, LignePaie::Unites(_) | LignePaie::UnitesEtHeures(_) | LignePaie::Frais(_))
 }
 
-/// La rubrique de la ligne ; `None` pour une ligne qui n'en dit pas ; une rubrique que le catalogue ne connait pas se
-/// refuse.
-fn rubrique_de(ctx: &Contexte, ligne: &LignePaie) -> R<Option<droit::catalogue::Rubrique>> {
-    match ligne.rubrique.as_deref().filter(|c| !c.is_empty()) {
-        Some(code) => droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).map(Some).map_err(refus),
-        None => Ok(None),
-    }
+/// Un taux, une quantite absents ou nuls.
+fn absent_ou_zero(v: Option<Decimal>) -> bool {
+    v.is_none_or(|x| x.is_zero())
 }
 
 /// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.
 fn ligne_ajustable(ctx: &Contexte, ligne: &LignePaie) -> R<bool> {
-    Ok(rubrique_de(ctx, ligne)?.is_some_and(|r| r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && !absent_ou_zero(&ligne.taux)))
+    Ok(taux_saisi(ligne) && rubrique_de(ctx, ligne)?.nature == "salaire" && !absent_ou_zero(ligne.taux()))
 }
 
+/// Une ligne dont le taux est une case vide.
 fn taux_vide(l: &LignePaie) -> bool {
-    matches!(&l.taux, Some(Chiffre::Texte(t)) if t.is_empty())
+    taux_saisi(l) && l.taux().is_none()
 }
 
 /// L'engagement de rang `i` de la saisie.
@@ -109,8 +102,11 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
         }
         let mut sans_taux: Vec<(usize, String)> = Vec::new();
         for (k, ligne) in lignes.iter().enumerate() {
-            let Some(r) = rubrique_de(ctx, ligne)? else { continue };
-            if r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && absent_ou_zero(&ligne.taux) && rempli(&ligne.quantite) && !absent_ou_zero(&ligne.quantite) {
+            if !taux_saisi(ligne) {
+                continue;
+            }
+            let r = rubrique_de(ctx, ligne)?;
+            if r.nature == "salaire" && absent_ou_zero(ligne.taux()) && !absent_ou_zero(ligne.quantite()) {
                 sans_taux.push((k, r.libelle));
             }
         }
@@ -129,7 +125,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
             )));
         }
         if let Some(l) = sans_taux.first().and_then(|(k, _)| e.lignes.as_mut().and_then(|ls| ls.get_mut(*k))) {
-            l.taux = Some(Chiffre::de_f64(1.0));
+            l.poser_taux(Decimal::ONE).map_err(refus)?;
         }
     }
     // Les AUTRES blocs du mois repartent comme la page les enverrait d'ordinaire : sans leurs lignes incompletes.
@@ -137,7 +133,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
         let Some(ls) = e.lignes.as_mut() else { continue };
         if rangs.contains(&i) {
             for l in ls.iter_mut().filter(|l| taux_vide(l)) {
-                l.taux = Some(Chiffre::entier(0));
+                l.poser_taux(Decimal::ZERO).map_err(refus)?;
             }
         } else {
             ls.retain(|l| !taux_vide(l));
@@ -167,8 +163,10 @@ fn a_l_echelle(ctx: &Contexte, e: &mut Carte, facteur: Decimal) -> R<bool> {
         if !ligne_ajustable(ctx, l)? {
             continue;
         }
-        if let Some(t) = &l.taux {
-            l.taux = mis_a_l_echelle(t, facteur)?;
+        if let Some(t) = l.taux() {
+            // Le taux au centime, sous sa forme flottante la plus courte (`mis_a_l_echelle`).
+            let x = mis_a_l_echelle(&Chiffre::de_decimal(t), facteur)?.ok_or_else(|| refus("Montant trop grand pour l'ajustement."))?;
+            l.poser_taux(x.dec().map_err(refus)?).map_err(refus)?;
         }
         touche = true;
     }

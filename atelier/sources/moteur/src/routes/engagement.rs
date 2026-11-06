@@ -24,7 +24,7 @@ pub(crate) const IDENTITE: Champ = Champ {
 /// Les changements des cases du brouillon d'une carte, dans l'ordre.
 pub(crate) const CHANGEMENTS: Champ = Champ {
     nom: "changements", libelle: Affiche::new("Cases qui changent"), forme: Forme::Objet,
-    sens: "[{case, valeur}, …], au moins un, appliqués dans l'ordre, tout ou rien (un refus nomme sa case et rien n'est écrit) : chacun une case de la nature de la carte (`natures` de cette fiche : chacune obligatoire ou facultative à la validation, et les motifs d'un CDD ; une case qu'elle n'a pas se refuse), valeur null pour la vider ; {\"case\": \"nature\", \"valeur\": \"cdi\"} change sa nature (les cases des deux natures gardent ce qu'elles disent, les autres naissent vides). Les cases : salarie (la clé de sa fiche), spectacle, debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
+    sens: "[{case, valeur}, …], au moins un, appliqués dans l'ordre, tout ou rien (un refus nomme sa case et rien n'est écrit) : chacun une case de la nature de la carte (`natures` de cette fiche : chacune obligatoire ou facultative à la validation, et les motifs d'un CDD ; une case qu'elle n'a pas se refuse), valeur null pour la vider ; {\"case\": \"nature\", \"valeur\": \"cdi\"} change sa nature (les cases des deux natures gardent ce qu'elles disent, les autres naissent vides). Les cases : salarie (la clé de sa fiche), spectacle, debut, fin, motif_recours (un CDD), lignes [{rubrique, et exactement les clés que sa rubrique demande, `rubriques[].cles` de la route etat, null pour une case vide : quantite, taux, heures (par unité : 4 pour des services de 4 h), lieu, dates, planning ; base et taux_majoration (un pourcentage) ; montant, genre ; territoire et cases (une ligne de frais)}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
     avance: false,
 };
 pub(crate) const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
@@ -60,7 +60,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu a été lu et accepté", avance: false },
             Champ { nom: "jour", libelle: Affiche::new("Jour d'effet"), forme: Forme::Nombre, sens: "le jour du mois (un nombre, de 1 à 31) où un terme changé prend effet, quand ce n'est pas le 1er", avance: true },
         ],
-        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"changements":[{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":160,"dates":["2026-11-27"]}]}],"confirme":false,"jour":null}"#,
+        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"changements":[{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":160,"lieu":null,"dates":["2026-11-27"],"planning":[]}]}],"confirme":false,"jour":null}"#,
         rend: "rien n'a changé : change faux ; ce qui est parti le demande : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit ; écrit : change, phrase (un terme vaut à partir du mois de la carte)",
         refus: &[
             SAISIE_INCOMPLETE,
@@ -229,7 +229,7 @@ pub(crate) fn valider_engagement(ctx: &Contexte, carte: ChargeValider) -> R<Vali
     brouillon.ecrire().map_err(Echec::from)?;
     let e = data.engagements.get(i).cloned().unwrap_or_default();
     if let Some(cle) = e.cle(ctx) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu(&ctx.racine))?;
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu())?;
     }
     Ok(Validation { engagement: id, phrase: "Engagement validé." })
 }
@@ -285,7 +285,7 @@ fn modifier_engagement(ctx: &Contexte, charge: ChargeModifier) -> R<Modification
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.map(|d| d.engagements).unwrap_or_default();
     let e = data.get(i).cloned().unwrap_or_default();
     if let Some(cle) = e.cle(ctx) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu(&ctx.racine))?;
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu())?;
     }
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     let phrase = match depuis {
@@ -335,7 +335,7 @@ fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement:
     let qui = engagement::etats::qui_de(ctx, o);
     let vue = o.vue(mois).map_err(Echec::from)?.ok_or_else(|| refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois. Rien n'est écrit.", qui)))?;
     let mut carte = Brouillon::de_la_carte(&vue, &qui).map_err(refus)?;
-    changements.appliquer(&mut carte, |_| qui.clone()).map_err(refus)?;
+    changements.appliquer(&ctx.racine, Mois::lire(mois).map_err(Echec::from)?, &mut carte, |_| qui.clone()).map_err(refus)?;
     engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
     engagement::stock::poser_la_saisie(ctx, mois, i, &carte.en_carte(), jour).map_err(refus)?;
     if !engagement::etats::a_revalider_rouvert(ctx, mois, i).map_err(Echec::from)? {
@@ -387,7 +387,7 @@ const UN_AVENANT: &str = "un avenant à faire signer";
 /// (`crate::regularisation::dpae_d_une_date_changee`).
 pub(crate) fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etats::Valide, departs: &engagement::departs::Departs) -> R<Vec<String>> {
     use engagement::etats::ARefaire;
-    let presente = v.objet().brut.valide.as_ref().and_then(|x| x.saisie.as_ref()).map(|s| s.carte.debut_lu(&ctx.racine)).unwrap_or_default();
+    let presente = v.objet().brut.valide.as_ref().and_then(|x| x.saisie.as_ref()).map(|s| s.carte.debut_lu()).unwrap_or_default();
 
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let mut out = Vec::new();

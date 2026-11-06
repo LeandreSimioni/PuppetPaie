@@ -15,7 +15,7 @@ use crate::saisie::Carte;
 use crate::Avis;
 use droit::contexte::Contexte;
 use socle::texte::{euros, virgule};
-use socle::num::{eur2, Decimal, Resultat};
+use socle::num::{dec_f64, eur2, Decimal, Resultat};
 
 /// Les faits du mois, sur la carte d'un salarie paye au mois.
 pub const HEURES_SUPPLEMENTAIRES: &str = "heures_supplementaires";
@@ -99,10 +99,14 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Carte, mois: &str, salaire: Decimal, qu
     let mut out = Vec::new();
     for p in &reparties.paliers {
         let taux = (horaire * (Decimal::ONE_HUNDRED + p.majoration) / Decimal::ONE_HUNDRED).round_dp(4);
-        out.push(crate::LignePaie {
+        out.push(crate::LignePaie::Composee(crate::ligne::Composee {
+            rubrique: rubrique.to_string(),
+            quantite: dec_f64(flot(p.heures))?,
+            taux: dec_f64(flot(taux))?,
+            heures: None,
             precision: Some(format!("majorées de {} %", virgule(p.majoration.normalize()))),
-            ..crate::LignePaie::de(rubrique, crate::Chiffre::de_f64(flot(p.heures)), crate::Chiffre::de_f64(flot(taux)))
-        });
+            dates: Vec::new(),
+        }));
     }
     let mut avis = vec![info(format!(
         "{} : {} heures {} au taux horaire de son contrat ({}, le salaire mensuel sur ses {} h), {}.",

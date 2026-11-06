@@ -226,11 +226,11 @@ pub struct LigneImprimee {
 }
 
 impl LigneImprimee {
-    /// La ligne de paie qu'elle dit a l'engagement importe : sa rubrique, sa quantite, son taux et ses heures (son libelle
-    /// et son montant restent ceux du bulletin, `remuneration_lue`).
-    pub fn en_ligne_de_paie(&self) -> crate::LignePaie {
-        let c = |x: &Option<Decimal>| x.map(crate::Chiffre::texte_de);
-        crate::LignePaie { rubrique: self.rubrique.clone(), quantite: c(&self.quantite), taux: c(&self.taux), heures: c(&self.heures), ..crate::LignePaie::default() }
+    /// La ligne de paie qu'elle dit a l'engagement importe, quand l'import l'a rattachee a une rubrique : sa quantite, son
+    /// taux et ses heures (son libelle et son montant restent ceux du bulletin, `remuneration_lue`).
+    pub fn en_ligne_de_paie(&self) -> Option<crate::LignePaie> {
+        let rubrique = self.rubrique.clone().filter(|r| !r.trim().is_empty())?;
+        Some(crate::LignePaie::Importee(crate::ligne::Importee { rubrique, quantite: self.quantite, taux: self.taux, heures: self.heures }))
     }
 }
 
@@ -649,7 +649,7 @@ impl Importe {
             nom: crate::qui_de(&sal)?,
             spectacle: spectacle.clone(),
             dates_travail,
-            lignes: lignes_lues.iter().map(LigneImprimee::en_ligne_de_paie).collect(),
+            lignes: lignes_lues.iter().filter_map(LigneImprimee::en_ligne_de_paie).collect(),
             debut,
             fin,
             numero: match NumeroContrat::du_texte(self.carte().numero.as_deref())? {
@@ -1015,10 +1015,10 @@ fn remuneration_lue(e: &crate::Engagement, lignes: &[LigneImprimee], ctx: &Conte
     let mut out = Vec::new();
     for l in lignes {
         let montant = tu_vaut_zero(l.montant);
-        let rattachee = l.rubrique.as_deref().is_some_and(|r| !r.trim().is_empty()) && l.quantite.is_some() && l.taux.is_some();
-        if rattachee {
+        let rattachee = l.en_ligne_de_paie().filter(|_| l.quantite.is_some() && l.taux.is_some());
+        if let Some(ligne) = rattachee {
             let mut seule = e.clone();
-            seule.lignes = vec![l.en_ligne_de_paie()];
+            seule.lignes = vec![ligne];
             for mut b in crate::calcul::lignes_brut(&seule, ctx)? {
                 b.montant = montant;
                 out.push(b);

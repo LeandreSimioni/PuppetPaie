@@ -29,6 +29,7 @@
             ],
             "lignes": [
               {
+                "forme": "unites",
                 "rubrique": "cachet",
                 "quantite": "2",
                 "taux": "150",
@@ -36,7 +37,8 @@
                 "dates": [
                   "2026-11-20",
                   "2026-11-21"
-                ]
+                ],
+                "planning": []
               }
             ],
             "debut": "2026-11-20",
@@ -483,7 +485,7 @@
       "quoi": "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).",
       "le": "2026-12-16",
       "mois_faits": {
-        "2026-11": "fa27f4e8b86daaed"
+        "2026-11": "2812ca65b9445f0e"
       },
       "annees_faites": [
         2026
@@ -1133,14 +1135,16 @@
               "clauses_particulieres": null,
               "lignes": [
                 {
+                  "forme": "unites",
                   "rubrique": "cachet",
-                  "quantite": 2,
-                  "taux": 150,
+                  "quantite": "2",
+                  "taux": "150",
                   "lieu": "Salle fictive de Rezé",
                   "dates": [
                     "2026-11-20",
                     "2026-11-21"
-                  ]
+                  ],
+                  "planning": []
                 }
               ],
               "conges_pris": null,
@@ -1206,14 +1210,16 @@
                 "clauses_particulieres": null,
                 "lignes": [
                   {
+                    "forme": "unites",
                     "rubrique": "cachet",
-                    "quantite": 2,
-                    "taux": 150,
+                    "quantite": "2",
+                    "taux": "150",
                     "lieu": "Salle fictive de Rezé",
                     "dates": [
                       "2026-11-20",
                       "2026-11-21"
-                    ]
+                    ],
+                    "planning": []
                   }
                 ],
                 "conges_pris": null,
@@ -1805,7 +1811,7 @@
       },
       "2026-11/DSN_Novembre2026.dsn": {
         "quand": "2026-12-15T10:00:00",
-        "empreinte_saisie": "e413e49185ffa88a",
+        "empreinte_saisie": "c5a612c758068bc1",
         "versions_portees": []
       }
     },
@@ -1843,14 +1849,16 @@
                 ],
                 "lignes": [
                   {
+                    "forme": "unites",
                     "rubrique": "cachet",
-                    "quantite": 2,
-                    "taux": 150,
+                    "quantite": "2",
+                    "taux": "150",
                     "lieu": "Salle fictive de Rezé",
                     "dates": [
                       "2026-11-20",
                       "2026-11-21"
-                    ]
+                    ],
+                    "planning": []
                   }
                 ],
                 "debut": "2026-11-20",
@@ -2173,7 +2181,7 @@
                 "imprevus racine:imprevus FULLER": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
                 "moteur": "<moteur>",
                 "pas FULLER 2026-11-30 2026-11": "[\"8.30\",\"01\",\"442936195\"]",
-                "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:5f6f6ca8f370a6644fb801a517bee751d46e8b816e663002d35ce6f8512e8b4d"
+                "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:4e79336d348d9521432c203a9c93e5bf0b32d8e667f025cab4789f1a6ab455a7"
               },
               "regles": [
                 "2026-06-01",

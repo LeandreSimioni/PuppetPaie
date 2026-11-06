@@ -327,12 +327,12 @@ impl Etat {
 pub fn signe_ailleurs(ctx: &Contexte, o: &Objet) -> Resultat<bool> {
     let c = o.carte();
     let nat = c.nature_lue()?;
-    crate::signe_ailleurs_de(&ctx.racine, &nat, &Carte::texte(&c.salarie), &crate::debut_brut(&ctx.racine, &o.brut), c.numero.as_deref(), &o.fichier)
+    crate::signe_ailleurs_de(&ctx.racine, &nat, &Carte::texte(&c.salarie), &crate::debut_brut(&o.brut), c.numero.as_deref(), &o.fichier)
 }
 
 /// Qui est l'engagement `o`, pour une phrase de l'ecran : « MARTIN Lou (contrat du 20/11/2026) » (`crate::salarie_nomme`).
 pub fn qui_de(ctx: &Contexte, o: &Objet) -> String {
-    let debut = crate::debut_brut(&ctx.racine, &o.brut);
+    let debut = crate::debut_brut(&o.brut);
     // Le debut tel qu'une phrase le dit ; un debut qui n'est pas une date se dit tel qu'il est ecrit.
     let debut = match Jour::lire(&debut) {
         Ok(j) => j.jj_mm_aaaa(),
@@ -1642,7 +1642,7 @@ pub fn a_refaire_parmi(ctx: &Contexte, v: &Valide, departs: &Departs, sorte: &dy
         let Some(passee) = v.version_numero(d.version) else { continue };
         let paie = |x: stock::Version, m: &str| paie_ecrite_de_la_version(&v.objet, x, m);
         // Le debut que la version a valide ; une version sans saisie n'en dit pas.
-        let debut = |s: Option<&stock::Saisie>| s.map(|s| s.carte.debut_lu(&ctx.racine)).into_iter().collect::<String>();
+        let debut = |s: Option<&stock::Saisie>| s.map(|s| s.carte.debut_lu()).into_iter().collect::<String>();
         match d.envoi {
             Envoi::Contrat => {
                 let partie = passee.saisie();
@@ -1721,7 +1721,7 @@ mod tests_rupture {
     #[test]
     fn un_contrat_rompu_n_a_pas_d_avenant() {
         let jours = |n: usize| ["2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08"][..n].iter().map(|j| format!(r#""{}""#, j)).collect::<Vec<_>>().join(", ");
-        let ligne = |n: usize, taux: i64| format!(r#"{{"rubrique": "cachet", "quantite": {}, "taux": {}, "lieu": "Salle", "dates": [{}]}}"#, n, taux, jours(n));
+        let ligne = |n: usize, taux: i64| format!(r#"{{"forme": "unites", "rubrique": "cachet", "quantite": {}, "taux": {}, "lieu": "Salle", "dates": [{}], "planning": []}}"#, n, taux, jours(n));
         let carte = |texte: String| crate::saisie::Carte {
             salarie: Some("X".into()),
             spectacle: Some("s".into()),
@@ -1925,7 +1925,7 @@ pub fn debut_declare(ctx: &Contexte, o: &Objet, departs: &Departs, avant: &str) 
     let Some(d) = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.par.as_deref().or(d.mois.as_deref()).is_some_and(|m| m < avant)) else {
         return Ok(None);
     };
-    Ok(version_ecrite(ctx, o, d.version)?.and_then(|v| v.saisie()).map(|s| s.carte.debut_lu(&ctx.racine)).filter(|d| !d.is_empty()))
+    Ok(version_ecrite(ctx, o, d.version)?.and_then(|v| v.saisie()).map(|s| s.carte.debut_lu()).filter(|d| !d.is_empty()))
 }
 
 /// La phrase d'un recalcul, pour l'ecran : « Recalculé le JJ/MM/AAAA : taux de PAS reçu. »

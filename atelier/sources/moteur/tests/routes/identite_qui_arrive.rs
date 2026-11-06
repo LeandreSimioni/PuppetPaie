@@ -32,7 +32,7 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
             {"case": "salarie", "valeur": "SANSNIR"},
             {"case": "spectacle", "valeur": "objet-256Z00931108"},
             {"case": "lignes", "valeur": [{"rubrique": "heure", "quantite": 10, "taux": 23,
-                "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"]}]},
+                "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"], "planning": []}]},
         ]}}),
         json!({"route": "valider-engagement", "charge": {"mois": "2026-01", "engagement": {"salarie": "SANSNIR", "debut": "2026-01-19", "rang": 0}}}),
     ];
@@ -59,7 +59,7 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
 
     reussi(&crate::outils::valider(&c, "2026-02", None, &json!({"salarie": "SANSNIR",
         "nature": "cddu_spectacle", "spectacle": "objet-256Z00931107", "lignes": [{"rubrique": "heure", "quantite": 15, "taux": 23,
-        "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"]}]}), jour));
+        "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"], "planning": []}]}), jour));
     reussi(&route(&c, "arret-enregistrer", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06", "debut": "2026-02-07", "fin": "2026-02-08",
         "motif": "01"}), jour));
     let f = reussi(&route(&c, "arret-signaler", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06"}), jour))["fichier"]

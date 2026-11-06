@@ -1658,17 +1658,17 @@ fn carte_de(e: &Value) -> R<engagement::saisie::Carte> {
 
 /// L'engagement brut avec ses bornes : un contrat aux cachets ne les ecrit pas, il commence son premier jour travaille et
 /// finit son dernier (`engagement::debut_brut`, `engagement::dates_engagement`).
-fn avec_ses_bornes(racine: &std::path::Path, e: &Value) -> R<Value> {
+fn avec_ses_bornes(e: &Value) -> R<Value> {
     let mut e = e.clone();
     let jour = |j: &engagement::DateDeLigne| j.jour().to_string();
     if !e.get("debut").is_some_and(vrai) {
-        let debut = carte_de(&e)?.debut_lu(racine);
+        let debut = carte_de(&e)?.debut_lu();
         if !debut.is_empty() {
             e["debut"] = json!(debut);
         }
     }
     if !e.get("fin").is_some_and(vrai) {
-        if let Some(fin) = carte_de(&e)?.dates(racine).iter().map(jour).max() {
+        if let Some(fin) = carte_de(&e)?.dates().iter().map(jour).max() {
             e["fin"] = json!(fin);
         }
     }
@@ -1684,7 +1684,7 @@ fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mo
     let mut siens: Vec<(usize, Value)> = Vec::new();
     for (i, x) in eng.iter().enumerate() {
         if carte_de(x)?.cle(ctx).as_deref() == Some(cle) {
-            siens.push((i, avec_ses_bornes(&ctx.racine, x)?));
+            siens.push((i, avec_ses_bornes(x)?));
         }
     }
     if siens.is_empty() {
@@ -2233,7 +2233,7 @@ déclarent tous deux.",
     } else if let Some(dernier) = e.get("dernier_jour_paye").filter(|j| vrai(j)).map(valeur_en_texte) {
         // Hors preavis non effectue, aucun jour de la paie ne vient apres le dernier jour paye.
         let jour = |j: &engagement::DateDeLigne| j.jour().to_string();
-        let apres: Vec<String> = carte_de(e)?.dates(&ctx.racine).iter().map(jour).filter(|j| *j > dernier).collect();
+        let apres: Vec<String> = carte_de(e)?.dates().iter().map(jour).filter(|j| *j > dernier).collect();
         if !apres.is_empty() {
             let dire = |j: &str| socle::date::jour_iso(j).map_or_else(|| j.to_string(), |x| x.jj_mm());
             manques.push(manque(
@@ -2297,7 +2297,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         if etats.get(i).and_then(|x| x.valide()).is_none() {
             continue;
         }
-        let e: &Value = &avec_ses_bornes(&ctx.racine, &e)?;
+        let e: &Value = &avec_ses_bornes(&e)?;
         let nat = nature_de(get(e, "nature")?)?;
         // La regle est celle de la nature et du motif (`Nature::signalement_fctu`) : un CDDU rompu avant son terme se signale.
         let motif = e.get("motif_rupture").filter(|m| vrai(m)).map(valeur_en_texte);
@@ -2430,7 +2430,7 @@ fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
             if c.as_str() != cle {
                 continue;
             }
-            let (debut, fin) = crate::routes::mois::bornes_brutes(ctx, &e);
+            let (debut, fin) = crate::routes::mois::bornes_brutes(&e);
             // Un contrat paye au mois sans fin ecrite (un CDI qui court) couvre tout jour depuis son debut : c'est sur lui
             // qu'un arret ou une suspension se pose. Le mois le plus recent qui le saisit fait foi (une fin ecrite plus
             // tard l'emporte) : il est retenu, couvrant ou non, avant les mois plus anciens.

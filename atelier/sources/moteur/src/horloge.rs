@@ -487,7 +487,7 @@ fn les_pas_du_mois(d: &HorlogeFictive, ctx: &Contexte, le_mois: Mois, calendrier
         .map_err(Echec::from)?
         .iter()
         .filter(|o| !o.importe_seul())
-        .map(|o| engagement::debut_brut(&o.racine, &o.brut))
+        .map(|o| engagement::debut_brut(&o.brut))
         .filter(|debut| debut.starts_with(mois) && **debut <= *jour_iso)
         .collect();
     for debut in debuts {
@@ -822,7 +822,7 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
         let manques = crate::routes::mois::manques_de_la_saisie(ctx, &vue);
         let mut fait = false;
         for ((o, id), manque) in objets.iter().zip(ids).zip(manques) {
-            if o.est_valide() || o.importe_seul() || manque.is_some() || engagement::debut_brut(&o.racine, &o.brut) > jusqu_au.iso() {
+            if o.est_valide() || o.importe_seul() || manque.is_some() || engagement::debut_brut(&o.brut) > jusqu_au.iso() {
                 continue;
             }
             let charge = crate::routes::engagement::ChargeValider { mois: le_mois, engagement: id };
@@ -866,7 +866,7 @@ fn signables(ctx: &Contexte, mois: Mois) -> R<Vec<Signable>> {
 fn revalide_le(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Option<String> {
     engagement::stock::objets_du_mois(&ctx.racine, mois).ok()?.into_iter().find_map(|o| {
         let b = &*o.brut;
-        let sien = engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(salarie) && engagement::debut_brut(&ctx.racine, b) == debut;
+        let sien = engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(salarie) && engagement::debut_brut(b) == debut;
         sien.then(|| o.brut.valide.as_ref().map(|v| v.le.chars().take(19).collect()))?
     })
 }

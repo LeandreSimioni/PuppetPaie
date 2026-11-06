@@ -897,7 +897,7 @@ fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: Option<&crate::LignePaie>) -> Re
     // Le service de repetition de la 3090 : un minimum par service ou par heure selon
     // l'annexe, jamais le cachet de la journee.
     if repetition(&l.code) && cx.idcc == "3090" && statut == "artiste" {
-        let dates: BTreeSet<String> = saisie.iter().flat_map(|s| s.dates.iter()).map(|d| d.jour().to_string()).collect();
+        let dates: BTreeSet<String> = saisie.iter().flat_map(|s| s.dates().iter()).map(|d| d.jour().to_string()).collect();
         let par_jour = (!dates.is_empty()).then(|| div(l.quantite, Decimal::from(dates.len())));
         return Ok(cx.plancher_service_3090(par_jour)?.map(|(montant, quoi, heure)| Minimum {
             montant,

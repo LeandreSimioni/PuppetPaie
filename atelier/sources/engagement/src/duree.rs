@@ -13,7 +13,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::{Chiffre, LignePaie};
+use crate::LignePaie;
 
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
@@ -32,8 +32,7 @@ const JOURNEE: f64 = 24.0;
 fn heures_par_jour(ctx: &Contexte, lignes: &[LignePaie]) -> Resultat<BTreeMap<Jour, (f64, bool)>> {
     let mut jours: BTreeMap<Jour, (f64, bool)> = BTreeMap::new();
     for l in lignes {
-        let Some(code) = &l.rubrique else { continue };
-        let r = rubrique(&ctx.racine, code, &ctx.lue_au)?;
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         let travail = r.nature == "salaire"
             && matches!(r.unite.as_str(), "heure" | "jour" | "service")
             && r.heures_forfait.is_none()
@@ -45,18 +44,9 @@ fn heures_par_jour(ctx: &Contexte, lignes: &[LignePaie]) -> Resultat<BTreeMap<Jo
         if dates.is_empty() {
             continue;
         }
-        // Une case vide ne dit rien ; une virgule decimale se lit comme un point ; un texte qui n'est pas un nombre se
-        // refuse.
-        let nombre = |c: &Option<Chiffre>| -> Resultat<Option<f64>> {
-            match crate::ligne::dite(c) {
-                None => Ok(None),
-                Some(Chiffre::Nombre(n)) => n.as_f64().map(Some).ok_or_else(|| socle::num::illisible(&n.to_string())),
-                Some(Chiffre::Texte(s)) => s.trim().replace(',', ".").parse().map(Some).map_err(|_| socle::num::illisible(s)),
-            }
-        };
         // La quantite d'une ligne de travail est dite (`lignes_dites`, avant ce compte) : sans elle, rien ne se compte.
-        let quantite = nombre(&l.quantite)?.ok_or_else(|| socle::fichiers::absent("quantite"))?;
-        let total = r.heures(quantite, nombre(&l.heures)?);
+        let quantite = socle::num::flottant(l.quantite().ok_or_else(|| socle::fichiers::absent("quantite"))?);
+        let total = r.heures(quantite, l.heures_lues());
         let par_jour = total / dates.len() as f64;
         for j in &dates {
             let x = jours.entry(*j).or_insert((0.0, false));

@@ -16,7 +16,7 @@ use droit::natures::Nature;
 use socle::mois::Mois;
 use crate::Avis;
 use socle::texte::{euros, virgule};
-use socle::num::{add, div, eur2, mul, zero2, Decimal, Resultat};
+use socle::num::{add, dec_f64, div, eur2, mul, zero2, Decimal, Resultat};
 use droit::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
 
 /// Les lignes et les avertissements du solde.
@@ -29,18 +29,13 @@ struct Solde {
 }
 
 /// La ligne de `rubrique`, `quantite` x `taux`, telle que le solde l'ecrit.
-fn ligne(rubrique: &str, quantite: Decimal, taux: Decimal) -> LignePaie {
-    LignePaie::de(rubrique, Chiffre::de_f64(flot(quantite)), Chiffre::de_f64(flot(taux)))
+fn ligne(rubrique: &str, quantite: Decimal, taux: Decimal) -> Resultat<LignePaie> {
+    Ok(LignePaie::composee(rubrique, dec_f64(flot(quantite))?, dec_f64(flot(taux))?))
 }
 
 /// La ligne d'une indemnite de `rubrique` qui verse `montant` en une fois.
-fn ligne_unique(rubrique: &str, montant: Decimal) -> LignePaie {
-    LignePaie::de(rubrique, Chiffre::entier(1), Chiffre::de_f64(flot(montant)))
-}
-
-/// Le code de rubrique d'une ligne ; refus s'il n'est pas dit.
-fn rubrique_de(l: &LignePaie) -> Resultat<&str> {
-    l.rubrique.as_deref().ok_or_else(|| socle::fichiers::absent("rubrique"))
+fn ligne_unique(rubrique: &str, montant: Decimal) -> Resultat<LignePaie> {
+    Ok(LignePaie::composee(rubrique, Decimal::ONE, dec_f64(flot(montant))?))
 }
 
 /// Le plus grand de `a` et `b` : `a` a egalite.
@@ -337,7 +332,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Carte, mois: &str, deja: 
             cpt2.reports = sub(cpt.reports, entame);
             let ind = indemnite_des_jours(&cpt2, solde, maintien)?;
             stc.conges_payes = Some((stc.lignes.len(), solde, ind.retenu));
-            stc.lignes.push(ligne(&permanents::regles()?.conges_payes.indemnite_compensatrice.rubrique, solde, taux_au_montant(ind.retenu, solde)));
+            stc.lignes.push(ligne(&permanents::regles()?.conges_payes.indemnite_compensatrice.rubrique, solde, taux_au_montant(ind.retenu, solde))?);
             stc.avertissements.push(info(format!(
                 "{} : {} jour(s) de conges acquis et non pris, payes {} ({}) -- \
                  art. L3141-28, due quelle que soit la cause de la rupture.",
@@ -380,7 +375,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Carte, mois: &str, deja: 
                 // Le taux de la loi : la fiche entreprise ne porte aucun accord qui le change.
                 let montant = permanents::indemnite_precarite(total)?;
                 if montant > Decimal::ZERO {
-                    stc.lignes.push(ligne_unique(&permanents::regles()?.indemnite_precarite.rubrique, montant));
+                    stc.lignes.push(ligne_unique(&permanents::regles()?.indemnite_precarite.rubrique, montant)?);
                     let pour_cent = virgule(mul(permanents::regles()?.indemnite_precarite.taux, Decimal::from(100)).normalize());
                     stc.avertissements.push(info(format!(
                         "{} : indemnité de fin de contrat {} % sur {} de \
@@ -472,7 +467,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Carte, mois: &str, deja: 
                 }
                 // La rubrique, et avec elle le code du bloc 52, suit le motif : 023, ou 032 pour le 092 (L1226-14).
                 let rubrique = permanents::rubrique_de_l_indemnite_de_preavis(motif)?;
-                stc.lignes.push(ligne(&rubrique, m, salaire));
+                stc.lignes.push(ligne(&rubrique, m, salaire)?);
                 let article = match indemnite {
                     IndemniteDePreavis::AutreArticle(t) => format!(" Pour ce motif, l'indemnite vient d'un autre article : {}", t),
                     IndemniteDePreavis::ATrancher(t) => format!(
@@ -524,7 +519,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Carte, mois: &str, deja: 
         let codes = droit::preavis::codes_52_de_l_indemnite_de_preavis()?;
         let mut versees = Vec::new();
         for l in &stc.lignes {
-            let r = rubrique(&ctx.racine, rubrique_de(l)?, &ctx.lue_au)?;
+            let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
             if let Some(c) = r.dsn_bloc52.filter(|c| codes.contains(c)) {
                 versees.push((c, r.libelle));
             }
@@ -639,7 +634,7 @@ fn delai_de_prevenance(
         jours += part.jours;
         j = f.plus_jours(1)?;
     }
-    stc.lignes.push(ligne(&regle.rubrique, fraction, salaire));
+    stc.lignes.push(ligne(&regle.rubrique, fraction, salaire)?);
     let montant = eur2(mul(fraction, salaire));
     let conges = conges_non_effectues(ctx, e, mois, fin, jours_acquis(&fin.plus_jours(1)?, &delai.expiration)?, salaire, montant, stc)?;
     let avantages = avantages_du_mois(ctx, deja)?;
@@ -692,12 +687,13 @@ fn conges_non_effectues(
     let rubrique = permanents::regles()?.conges_payes.indemnite_compensatrice.rubrique.clone();
     let (rang, total_jours, total) = match stc.conges_payes {
         Some((rang, j, m)) => (rang, add(j, jours), add(m, ind.retenu)),
-        None => {
-            stc.lignes.push(LignePaie::default());
-            (stc.lignes.len() - 1, jours, ind.retenu)
-        }
+        None => (stc.lignes.len(), jours, ind.retenu),
     };
-    stc.lignes[rang] = ligne(&rubrique, total_jours, taux_au_montant(total, total_jours));
+    let l = ligne(&rubrique, total_jours, taux_au_montant(total, total_jours))?;
+    match stc.lignes.get_mut(rang) {
+        Some(x) => *x = l,
+        None => stc.lignes.push(l),
+    }
     stc.conges_payes = Some((rang, total_jours, total));
     Ok(format!(
         "ces jours acquièrent {} jour(s) de congé (L3141-3), payés {} ({}, L3141-24), ajoutés à l'indemnité compensatrice de \
@@ -712,7 +708,7 @@ fn conges_non_effectues(
 fn avantages_du_mois(ctx: &Contexte, deja: &[LignePaie]) -> Resultat<Vec<String>> {
     let mut out = Vec::new();
     for l in deja {
-        let r = rubrique(&ctx.racine, rubrique_de(l)?, &ctx.lue_au)?;
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         if r.nature == "avantage_nature" {
             out.push(r.libelle);
         }
@@ -970,10 +966,10 @@ fn indemnite_de_rupture(
     let part_legale = plus_petit(montant, m_legal);
     let supplement = sub(montant, part_legale);
     if part_legale > Decimal::ZERO {
-        stc.lignes.push(ligne_unique(&rubrique, part_legale));
+        stc.lignes.push(ligne_unique(&rubrique, part_legale)?);
     }
     if supplement > Decimal::ZERO {
-        stc.lignes.push(ligne_unique(&supplement_rub, supplement));
+        stc.lignes.push(ligne_unique(&supplement_rub, supplement)?);
     }
     // L137-12 : une contribution patronale sur la part exoneree, due et non calculee.
     let regles = permanents::regles()?;
@@ -1170,11 +1166,11 @@ fn indemnite_de_licenciement(
     verifier_les_plafonds(ctx, mois, montant, "licenciement", &qui)?;
     let part_legale = plus_petit(montant, m_legal);
     if part_legale > Decimal::ZERO {
-        stc.lignes.push(ligne_unique(&permanents::regles()?.indemnite_licenciement.rubrique, part_legale));
+        stc.lignes.push(ligne_unique(&permanents::regles()?.indemnite_licenciement.rubrique, part_legale)?);
     }
     let supplement = sub(montant, part_legale);
     if supplement > Decimal::ZERO {
-        stc.lignes.push(ligne_unique("indemnite_licenciement_conventionnelle", supplement));
+        stc.lignes.push(ligne_unique("indemnite_licenciement_conventionnelle", supplement)?);
     }
     stc.avertissements.push(info(format!(
         "{} : indemnité de licenciement {} ({} mois d'ancienneté, salaire \
@@ -1312,15 +1308,15 @@ fn bruts_precedents(ctx: &Contexte, e: &Carte, mois: &str) -> Resultat<(Vec<Deci
 /// Le brut que portent des lignes deja construites, sans les charger : la
 /// meme somme que `calcul.calculer`.
 fn brut_des_lignes(ctx: &Contexte, lignes: &[LignePaie]) -> Resultat<Decimal> {
-    let requis = |x: &Option<Chiffre>, cle: &str| -> Resultat<Decimal> { x.as_ref().ok_or_else(|| socle::fichiers::absent(cle))?.dec_avec_echelle() };
+    let requis = |x: Option<Decimal>, cle: &str| -> Resultat<Decimal> { x.ok_or_else(|| socle::fichiers::absent(cle)) };
     let mut total = zero2();
     for l in lignes {
-        let r = rubrique(&ctx.racine, rubrique_de(l)?, &ctx.lue_au)?;
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         if !r.soumis {
             continue;
         }
         let signe = if r.sens == "-" { Decimal::NEGATIVE_ONE } else { Decimal::ONE };
-        total = add(total, mul(signe, eur2(mul(requis(&l.taux, "taux")?, requis(&l.quantite, "quantite")?))));
+        total = add(total, mul(signe, eur2(mul(requis(l.taux(), "taux")?, requis(l.quantite(), "quantite")?))));
     }
     Ok(total)
 }

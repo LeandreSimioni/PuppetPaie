@@ -21,7 +21,7 @@ fn fuller_a_cheval(cas: &str) -> PathBuf {
     let sc = d.join("scenario");
     std::fs::create_dir_all(&sc).unwrap();
     let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
-    let novembre = r#""dates":["2026-11-20","2026-11-21"]}"#;
+    let novembre = r#""dates":["2026-11-20","2026-11-21"],"planning":[]}"#;
     assert!(gestes.contains(novembre));
     let gestes = gestes.replace(novembre, r#""dates":["2026-11-20","2026-11-21"],"planning":["2026-12-02","2026-12-03"]}"#);
     std::fs::write(sc.join("gestes.jsonl"), gestes).unwrap();

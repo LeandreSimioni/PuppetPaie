@@ -25,6 +25,7 @@ use droit::permanents;
 use engagement::{self};
 use socle::echec::{erreur, Echec};
 use socle::fichiers::dossier_du_code;
+use socle::num::Resultat;
 use documents::valeur::{nom_type, valeur_en_texte, vrai};
 use crate::routes::catalogue::{Ecran, Place};
 
@@ -1146,9 +1147,16 @@ pub(crate) struct RubriqueDeLaPage {
     dit: Option<String>,
     /// Les mots entre les cases de sa ligne : « quantité à taux € », ou « base € à taux % » pour un pourcentage.
     mots: [&'static str; 2],
+    /// LES CLES QU'UNE LIGNE DE CETTE RUBRIQUE DIT, toutes et seules (`engagement::ligne::FormeSaisie`) : la page les
+    /// ecrit, `null` pour une case vide.
+    cles: Vec<&'static str>,
 }
 
-pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> RubriqueDeLaPage {
+pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> Resultat<RubriqueDeLaPage> {
+    let cles = match engagement::ligne::FormeSaisie::de(r)? {
+        Some(f) => f.noms(),
+        None => return Err(format!("La rubrique « {} » ne se saisit pas : le moteur la pose lui-même. Le signaler au développeur.", r.libelle)),
+    };
     let non_appliques: Vec<&'static str> = [
         ("annexe", r.annexe.as_deref()),
         ("plafond", r.plafond.as_deref()),
@@ -1180,7 +1188,8 @@ pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> RubriqueDeLaPage {
     } else {
         vec![]
     };
-    RubriqueDeLaPage {
+    Ok(RubriqueDeLaPage {
+        cles,
         lieu_aide: (!lieux.is_empty()).then_some(LIEU_AIDE),
         lieux,
         code: r.code.clone(),
@@ -1209,7 +1218,7 @@ pub(crate) fn rubrique_de_la_page(r: &Rubrique) -> RubriqueDeLaPage {
         source: r.source.clone(),
         dit: r.dit.clone(),
         mots: if r.saisie.iter().any(|s| s == "taux_majoration") { ["€ à", "%"] } else { ["à", "€"] },
-    }
+    })
 }
 
 /// `faits_de_rupture` : les faits a demander a l'ecran pour CE motif, et eux
@@ -1513,7 +1522,7 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
     // Le catalogue qui paie, deja dans l'ordre ou le proposer.
     let cat = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?;
     // Une rubrique que le moteur pose (`saisie` vide) ne se propose pas.
-    let rubriques: Vec<RubriqueDeLaPage> = cat.iter().filter(|r| !r.saisie.is_empty()).map(rubrique_de_la_page).collect();
+    let rubriques: Vec<RubriqueDeLaPage> = cat.iter().filter(|r| !r.saisie.is_empty()).map(rubrique_de_la_page).collect::<Resultat<_>>().map_err(plain)?;
     // La rubrique d'une ligne neuve, par forme de paie et par statut du salarie (sans salarie, celui d'un artiste, comme
     // la paie le lit) : le moteur la choisit, la page la pose. Sur la carte d'un contrat d'usage, la premiere rubrique de
     // salaire qu'il propose (`catalogue::par_defaut`) ; sur celle d'un contrat paye au mois, son premier frais

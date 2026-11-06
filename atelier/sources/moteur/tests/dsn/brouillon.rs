@@ -28,7 +28,7 @@ fn un_engagement_en_saisie_ne_change_pas_la_dsn() {
     let spectacle = s["engagements"][0]["spectacle"].clone();
     let nouveau = json!({
         "salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": spectacle, "metier": "ACC010",
-        "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}],
+        "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "lieu": null, "dates": ["2026-11-27"], "planning": []}],
     });
     reussi(&crate::outils::saisir(&c, "2026-11", None, &nouveau, jour));
     let avec = dsn();

@@ -427,7 +427,7 @@ impl Objet {
             None if !mensuel => {
                 // Un contrat d'usage sans fin dite finit a son dernier jour joue ou planifie ; sans jour encore, a son
                 // premier mois : seul un contrat paye au mois court sans terme.
-                let mut jours: Vec<String> = c.dates(&self.racine).iter().chain(c.planning(&self.racine).iter()).map(|j| j.jour().to_string()).collect();
+                let mut jours: Vec<String> = c.dates().iter().chain(c.planning().iter()).map(|j| j.jour().to_string()).collect();
                 jours.sort();
                 let dernier = jours.last().map(|j| j.chars().take(7).collect::<String>()).filter(|m| socle::mois::Mois::lire(m).is_ok());
                 Ok(Some(dernier.into_iter().fold(self.fichier.clone(), String::max)))
@@ -540,11 +540,11 @@ impl Objet {
         if mois > self.fichier.as_str() && !mensuel {
             // Un contrat d'usage qui ne dit pas son debut commence a son premier jour joue, celui de son premier mois :
             // les mois suivants le declarent (S21.G00.40.001) et ne le prennent pas pour une embauche.
-            let debut = crate::debut_brut(&self.racine, &self.brut);
+            let debut = crate::debut_brut(&self.brut);
             if v.debut.is_none() && !debut.is_empty() {
                 v.debut = Some(debut);
             }
-            v.jours_contrat = Some(NombreLu::from(premiere.jours_du_contrat(&self.racine) as u64));
+            v.jours_contrat = Some(NombreLu::from(premiere.jours_du_contrat() as u64));
         }
         Ok(Some(v))
     }
@@ -740,7 +740,7 @@ pub struct Identite {
 /// L'IDENTITE DE CHAQUE ENGAGEMENT D'UNE LISTE (le plan), dans son ordre.
 pub fn identites(objets: &[Objet]) -> Vec<Identite> {
     // Une carte neuve, qui ne nomme pas encore son salarie, a pour identite un salarie vide.
-    let paires: Vec<(String, String)> = objets.iter().map(|o| (Carte::texte(&o.carte().salarie), crate::debut_brut(&o.racine, &o.brut))).collect();
+    let paires: Vec<(String, String)> = objets.iter().map(|o| (Carte::texte(&o.carte().salarie), crate::debut_brut(&o.brut))).collect();
     paires
         .iter()
         .enumerate()
@@ -925,7 +925,7 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<Mois>> {
 pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie: &Carte, defauts: &VueDuMois) -> Resultat<Identite> {
     let racine = &ctx.racine;
     if let Some(cle) = saisie.cle(ctx) {
-        let debut = saisie.debut_lu(racine);
+        let debut = saisie.debut_lu();
         if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
             // La carte qui nomme une fiche nomme son salarie (`Carte::cle`).
             return Err(crate::importe::refus(&Carte::texte(&saisie.salarie), &debut));
@@ -1002,7 +1002,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte, soi: Option<&Obj
     if !e.mensuelle()? {
         return Ok(());
     }
-    let (Some(cle), debut) = (e.cle(ctx), e.debut_lu(&ctx.racine)) else { return Ok(()) };
+    let (Some(cle), debut) = (e.cle(ctx), e.debut_lu()) else { return Ok(()) };
     if debut.is_empty() {
         return Ok(());
     }
@@ -1013,7 +1013,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte, soi: Option<&Obj
             && !o.est_non_actif()
             && !o.importe_seul()
             && o.mensuel()?
-            && crate::debut_brut(&ctx.racine, &o.brut) == debut
+            && crate::debut_brut(&o.brut) == debut
             && crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle.as_str())
         {
             second = Some(o);
@@ -1314,7 +1314,7 @@ pub fn mois_d_entree(racine: &Path, mois: &str) -> Resultat<String> {
 /// a faire (sa paie, sa DPAE). Sinon, `mois`.
 pub fn mois_d_ecriture(racine: &Path, mois: &str, e: &Carte) -> Resultat<String> {
     let mensuel = e.mensuelle()?;
-    let debut = e.debut_lu(racine);
+    let debut = e.debut_lu();
     let premier = debut.get(..7).filter(|m| socle::mois::Mois::lire(m).is_ok()).map(String::from);
     Ok(match premier {
         Some(p) if mensuel && p.as_str() < mois && !commence_avant_le_logiciel(racine, &debut, mois)? => p,

@@ -293,7 +293,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert_eq!(route("retirer-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}, "confirme": false}))["ok"], json!(false));
     // Le mois importe le dit des l'ouverture, et une carte neuve ne s'y ecrit pas.
     assert!(reussi(&route("saisie", json!({"mois": "2026-11"})))["ferme_aux_neufs"].is_string());
-    let neuve = json!({"mois": "2026-11", "carte": {"neuve": "cddu_spectacle"}, "changements": [{"case": "salarie", "valeur": "FULLER"}, {"case": "lignes", "valeur": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-25"]}]}]});
+    let neuve = json!({"mois": "2026-11", "carte": {"neuve": "cddu_spectacle"}, "changements": [{"case": "salarie", "valeur": "FULLER"}, {"case": "lignes", "valeur": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "lieu": null, "dates": ["2026-11-25"], "planning": []}]}]});
     assert_eq!(route("enregistrer-saisie", neuve)["ok"], json!(false));
     assert_eq!(engagements_ecrits(&racine), avant);
 
@@ -309,7 +309,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let c = &r["contrats"][0];
     assert_eq!((c["debut"].clone(), c["fin"].clone(), c["numero"].clone()), (json!("2026-11-20"), json!("2026-12-03"), json!("FU1.26.01")), "{}", r);
     let mut e = c["engagement"].clone();
-    e["lignes"] = json!([{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-12-02", "2026-12-03"]}]);
+    e["lignes"] = json!([{"rubrique": "cachet", "quantite": 2, "taux": 150, "lieu": null, "dates": ["2026-12-02", "2026-12-03"], "planning": []}]);
     reussi(&crate::outils::valider(&racine, "2026-12", None, &e, jour));
     // Le contrat a ete signe dans l'ancien logiciel : il ne se refait pas signer ici.
     let signature = reussi(&route("signature-apercu", json!({"mois": "2026-12"}))).clone();

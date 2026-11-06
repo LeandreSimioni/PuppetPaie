@@ -241,7 +241,7 @@ fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
 pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: &Departs) -> Resultat<()> {
     let cle = ctx.cle_du_salarie(o.carte().salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
     let fiche = ctx.salarie(&cle)?;
-    let debut = crate::debut_brut(&ctx.racine, &o.brut);
+    let debut = crate::debut_brut(&o.brut);
     let porte = NumeroContrat::du_texte(o.carte().numero.as_deref())?;
     // UN NUMERO PARTI NE CHANGE PLUS : celui de la validation que la modification remplace, des qu'un envoi l'a porte ;
     // celui qu'une DSN de l'ancien logiciel a declare pour un contrat repris (`importe::numero_declare`).

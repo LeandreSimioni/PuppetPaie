@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use socle::forme::NombreLu;
 use socle::num::Resultat;
 
-use crate::ligne::LignePaie;
+use crate::ligne::{LigneDonnee, LignePaie};
 use crate::saisie::{Carte, Champ, CongePris, Groupe, Preavis, Prime, Valeur};
 
 /// Ce qu'une case de la carte est pour sa nature.
@@ -650,32 +650,51 @@ impl Brouillon {
 }
 
 /// LES CHANGEMENTS D'UNE CASE, declares une fois : chaque case qui se saisit (ni ce que la vue deduit, ni ce qu'elle dit
-/// de l'engagement ecrit), sa cle, son type (`null` : la case se vide) et son champ de la carte.
+/// de l'engagement ecrit), sa cle, son type (`null` : la case se vide) et son champ de la carte. Les lignes de paie
+/// arrivent telles que l'appelant les donne (`L` : `LigneDonnee`), et se rangent a la porte (`Changement::ranger`) avant
+/// d'etre posees (`LignePaie`).
 macro_rules! changements {
     ( $( $v:ident ( $t:ty ) = $cle:tt => $champ:ident ),* $(,)? ) => {
         /// UN CHANGEMENT D'UNE CASE DU BROUILLON : `{"case": "salarie", "valeur": "FULLER"}` ; `{"case": "nature",
         /// "valeur": "cdi"}` change sa nature, qui ne se vide jamais.
-        #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+        #[derive(Debug, Clone, PartialEq, Deserialize)]
         #[serde(tag = "case", content = "valeur", deny_unknown_fields)]
-        pub enum Changement {
+        pub enum Changement<L = LignePaie> {
             #[serde(rename = "nature")]
             Nature(NatureDeContrat),
+            #[serde(rename = "lignes")]
+            Lignes(Option<Vec<L>>),
             $( #[serde(rename = $cle)] $v(Option<$t>), )*
         }
 
-        impl Changement {
+        impl<L> Changement<L> {
             /// La case qu'il change.
             pub fn champ(&self) -> Champ {
                 match self {
                     Changement::Nature(_) => Champ::Nature,
+                    Changement::Lignes(_) => Champ::Lignes,
                     $( Changement::$v(_) => Champ::$v, )*
                 }
             }
+        }
 
+        impl Changement<LigneDonnee> {
+            /// Ses lignes rangees (`ranger`, `ligne::ranger`) ; une autre case telle quelle.
+            pub fn ranger(self, ranger: &dyn Fn(Vec<LigneDonnee>) -> Resultat<Vec<LignePaie>>) -> Resultat<Changement> {
+                Ok(match self {
+                    Changement::Nature(n) => Changement::Nature(n),
+                    Changement::Lignes(l) => Changement::Lignes(l.map(ranger).transpose()?),
+                    $( Changement::$v(x) => Changement::$v(x), )*
+                })
+            }
+        }
+
+        impl Changement {
             /// Pose sur la carte `c` la valeur qu'il dit.
             fn poser(self, c: &mut Carte) {
                 match self {
                     Changement::Nature(n) => c.nature = Some(n.cle().to_string()),
+                    Changement::Lignes(x) => c.lignes = x,
                     $( Changement::$v(x) => c.$champ = x, )*
                 }
             }
@@ -708,7 +727,6 @@ changements! {
     PersonneRemplacee(String) = "personne_remplacee" => personne_remplacee,
     RepartitionHoraire(String) = "repartition_horaire" => repartition_horaire,
     ClausesParticulieres(String) = "clauses_particulieres" => clauses_particulieres,
-    Lignes(Vec<LignePaie>) = "lignes" => lignes,
     CongesPris(Vec<CongePris>) = "conges_pris" => conges_pris,
     Primes(Vec<Prime>) = "primes" => primes,
     DatePaiement(String) = "date_paiement" => date_paiement,
@@ -736,12 +754,12 @@ changements! {
 /// LES CHANGEMENTS D'UN APPEL (`changements` des routes `enregistrer-saisie` et `modifier-engagement`) : au moins un,
 /// appliques dans l'ordre, tout ou rien. La page en envoie ce qui a change depuis sa derniere ecriture (une case, le plus
 /// souvent) ; un appelant en ligne de commande, toutes les cases d'une carte d'un coup.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct Changements(Vec<Changement>);
+#[derive(Debug, Clone, PartialEq)]
+pub struct Changements(Vec<Changement<LigneDonnee>>);
 
 impl<'de> Deserialize<'de> for Changements {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Changements, D::Error> {
-        let v = Vec::<Changement>::deserialize(d)?;
+        let v = Vec::<Changement<LigneDonnee>>::deserialize(d)?;
         if v.is_empty() {
             return Err(serde::de::Error::custom("`changements` : au moins un changement, {\"case\": …, \"valeur\": …}"));
         }
@@ -750,13 +768,15 @@ impl<'de> Deserialize<'de> for Changements {
 }
 
 impl Changements {
-    /// CHAQUE CHANGEMENT APPLIQUE AU BROUILLON `b`, dans l'ordre (`Brouillon::changer`), tout ou rien : le premier refus
-    /// (il nomme sa case) laisse `b` tel qu'il etait. `qui` : le salarie que le refus nomme, tel que le brouillon le dit
-    /// au moment du changement.
-    pub fn appliquer(self, b: &mut Brouillon, qui: impl Fn(&Brouillon) -> String) -> Resultat<()> {
+    /// CHAQUE CHANGEMENT APPLIQUE AU BROUILLON `b` d'une carte de `mois`, dans l'ordre (`Brouillon::changer`), tout ou
+    /// rien : ses lignes se rangent d'abord, chacune lue au catalogue de la compagnie (`racine`, `ligne::ranger`) ; le
+    /// premier refus (il nomme sa case, ou sa ligne) laisse `b` tel qu'il etait. `qui` : le salarie que le refus nomme,
+    /// tel que le brouillon le dit au moment du changement.
+    pub fn appliquer(self, racine: &std::path::Path, mois: socle::mois::Mois, b: &mut Brouillon, qui: impl Fn(&Brouillon) -> String) -> Resultat<()> {
         let mut essai = b.clone();
         for ch in self.0 {
             let q = qui(&essai);
+            let ch = ch.ranger(&|l| crate::ligne::ranger(racine, mois, l, &q))?;
             essai.changer(ch, &q)?;
         }
         *b = essai;

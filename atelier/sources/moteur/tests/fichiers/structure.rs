@@ -383,7 +383,7 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
         assert_eq!(r["ok"], json!(true), "le permanent des exemples : arret-enregistrer : {}", r);
     }
     // La carte que valident, modifient et ajustent les exemples, ecrite comme l'ecran l'ecrit.
-    let fuller = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}]});
+    let fuller = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "lieu": null, "dates": ["2026-11-27"], "planning": []}]});
     let r = crate::outils::saisir(&c, "2026-11", None, &fuller, "2026-11-02");
     assert_eq!(r["ok"], json!(true), "la carte des exemples : {}", r);
     // Le retrait de l'engagement en dernier : les exemples des imprevus portent sur celui que valider-engagement pose.

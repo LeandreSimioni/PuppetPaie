@@ -508,17 +508,20 @@ fn verse_par_l_ancien_logiciel(i: &engagement::importe::Importe, mois: &str) -> 
             j = j.plus_jours(1).ok()?;
         }
     }
-    let nombre = |x: Option<Decimal>| x.and_then(|t| t.to_string().parse::<f64>().ok());
     let cachets = p.lignes.iter().find(|l| l.rubrique.as_deref() == Some("cachet"))?;
-    let (quantite, taux) = (nombre(cachets.quantite)?, nombre(cachets.taux)?);
+    let (quantite, taux) = (Some(cachets.quantite?), Some(cachets.taux?));
     if dates.is_empty() {
         return None;
     }
     let jours = dates.len() as i64;
-    let cachet = engagement::LignePaie {
+    let cachet = engagement::LignePaie::Unites(engagement::ligne::Unites {
+        rubrique: "cachet".to_string(),
+        quantite,
+        taux,
+        lieu: None,
         dates: dates.into_iter().map(engagement::DateDeLigne::Nue).collect(),
-        ..engagement::LignePaie::de("cachet", engagement::Chiffre::de_f64(quantite), engagement::Chiffre::de_f64(taux))
-    };
+        planning: Vec::new(),
+    });
     Some((brut, vec![cachet], jours))
 }
 
@@ -572,10 +575,10 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
     for l in lignes.iter_mut() {
-        l.planning.clear();
+        *l = l.avec_les_jours(l.dates().to_vec(), Vec::new());
     }
     // Les jours du contrat entier : ceux de ses lignes de travail (`engagement::dates_engagement`).
-    let dates = engagement::saisie::Carte { lignes: Some(lignes.clone()), ..Default::default() }.dates(&ctx.racine);
+    let dates = engagement::saisie::Carte { lignes: Some(lignes.clone()), ..Default::default() }.dates();
     let entier = engagement::Assemble {
         salarie: Some(eng.salarie.clone()),
         spectacle: eng.spectacle.clone(),

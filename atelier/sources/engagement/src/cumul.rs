@@ -13,14 +13,14 @@ use socle::num::Resultat;
 fn heures_enseignement(ctx: &Contexte, lignes: &[crate::LignePaie]) -> Resultat<i64> {
     let mut heures = 0.0;
     for l in lignes {
-        let r = droit::catalogue::rubrique(&ctx.racine, l.rubrique.as_deref().ok_or_else(|| socle::fichiers::absent("rubrique"))?, &ctx.lue_au)?;
+        let r = droit::catalogue::rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
         if r.compte_pour != "ouverture_des_droits" {
             continue;
         }
-        let q = l.quantite.as_ref().ok_or_else(|| socle::fichiers::absent("quantite"))?.flottant()?;
+        let q = socle::num::flottant(l.quantite().ok_or_else(|| socle::fichiers::absent("quantite"))?);
         // Le signe porte aussi sur les heures, comme au calcul (`calcul::lignes_brut`) : une ligne « - » en retire.
         let signe = if r.sens == "-" { -1.0 } else { 1.0 };
-        heures += signe * r.heures(q, l.heures_lues()?);
+        heures += signe * r.heures(q, l.heures_lues());
     }
     Ok(heures.round_ties_even() as i64)
 }

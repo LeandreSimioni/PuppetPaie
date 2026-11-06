@@ -161,6 +161,23 @@ pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) ->
     route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k)}), jour)
 }
 
+/// La valeur d'une case telle que la porte la prend : une ligne de la vue porte l'etiquette de sa forme (`forme`), que
+/// le moteur ecrit lui-meme et que l'appelant ne donne pas (`engagement::ligne::LigneDonnee`).
+fn a_la_porte(case: &str, v: &Value) -> Value {
+    match (case, v) {
+        ("lignes", Value::Array(ls)) => Value::Array(
+            ls.iter()
+                .map(|l| {
+                    let mut l = l.clone();
+                    l.as_object_mut().expect("une ligne").remove("forme");
+                    l
+                })
+                .collect(),
+        ),
+        _ => v.clone(),
+    }
+}
+
 /// LA CARTE `saisie` ECRITE D'UN APPEL (`enregistrer-saisie`) : sur l'engagement `engagement` (son identite), ou sur une
 /// carte neuve de sa nature ; sa nature, son salarie, chaque case qu'elle dit, puis, d'un second appel, chaque case du
 /// brouillon qu'elle ne dit pas, videe. Rend la derniere reponse, ou le premier refus.
@@ -178,7 +195,7 @@ pub fn saisir(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Va
     let pas_une_case = ["nature", "salarie", "jours_contrat", "date_modification", "avant", "valide", "importe"];
     // Une carte de la vue ecrit chacune de ses cases, nulle quand elle ne dit rien (celles d'une autre nature comprises) :
     // une case nulle ne se change pas.
-    changements.extend(s.iter().filter(|(k, v)| !pas_une_case.contains(&k.as_str()) && !v.is_null()).map(|(k, v)| json!({"case": k, "valeur": v})));
+    changements.extend(s.iter().filter(|(k, v)| !pas_une_case.contains(&k.as_str()) && !v.is_null()).map(|(k, v)| json!({"case": k, "valeur": a_la_porte(k, v)})));
     let r = route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": carte, "changements": changements}), jour);
     if r["ok"] != json!(true) {
         return r;
@@ -207,7 +224,7 @@ pub fn modifier(racine: &Path, mois: &str, engagement: &Value, cases: &Value, co
         .expect("des cases")
         .iter()
         .filter(|(k, v)| !pas_une_case.contains(&k.as_str()) && !v.is_null())
-        .map(|(k, v)| json!({"case": k, "valeur": v}))
+        .map(|(k, v)| json!({"case": k, "valeur": a_la_porte(k, v)}))
         .collect();
     route(racine, "modifier-engagement", json!({"mois": mois, "engagement": engagement, "changements": changements, "confirme": confirme, "jour": jour}), date)
 }

@@ -13,7 +13,7 @@ use droit::reduction::{reduction_au_coefficient, reduction_generale};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use crate::{Avis, Chiffre, Engagement, LignePaie};
-use socle::num::{eur2, Decimal, Resultat};
+use socle::num::{dec_f64, eur2, Decimal, Resultat};
 
 
 /// Le jour ou l'avenant de la saisie du mois decoupe la paie (`droit::periodes::jour_de_l_avenant`).
@@ -49,14 +49,9 @@ pub(crate) fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jo
 /// encore ; le logiciel ne choisit pas.
 pub(crate) fn engagements_des_periodes(ctx: &Contexte, eng: &Engagement, bornes: &[(Jour, Jour)]) -> Resultat<Vec<Engagement>> {
     let ligne = match eng.lignes.as_slice() {
-        [l] if l.rubrique.as_deref() == Some("mois") => l,
+        [l] if l.rubrique() == "mois" => l,
         _ => {
-            let autres: Vec<String> = eng
-                .lignes
-                .iter()
-                .filter(|l| l.rubrique.as_deref() != Some("mois"))
-                .filter_map(|l| l.rubrique.clone())
-                .collect();
+            let autres: Vec<String> = eng.lignes.iter().filter(|l| l.rubrique() != "mois").map(|l| l.rubrique().to_string()).collect();
             return Err(format!(
                 "{} : la paie de ce mois se decoupe en periodes elementaires (un changement de statut, de categorie ou de \
 duree du travail le {}), et elle porte {} en plus du salaire mensuel. A quelle periode une telle ligne se rattache (avant \
@@ -68,7 +63,7 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
             ));
         }
     };
-    let salaire_apres = ligne.taux.as_ref().ok_or_else(|| socle::fichiers::absent("taux"))?.dec()?;
+    let salaire_apres = ligne.taux().ok_or_else(|| socle::fichiers::absent("taux"))?;
     let quotite_apres = eng.quotite()?;
     let avenant = jour_de_l_avenant(eng)?;
     let terme = |x: &Option<NombreLu>, cle: &str| x.clone().map(Chiffre::Nombre).ok_or_else(|| socle::fichiers::absent(cle)).and_then(|c| c.dec());
@@ -91,10 +86,14 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
         e.periode = Some((*d, *f));
         e.quotite_contrat = Some(crate::conges::flot(quotite));
         let (q, h) = (crate::conges::flot(part.fraction), crate::conges::flot(eur2(quotite)));
-        let mut ligne = LignePaie::de("mois", Chiffre::de_f64(q), Chiffre::de_f64(crate::conges::flot(salaire)));
-        ligne.heures = Some(Chiffre::de_f64(h));
-        ligne.precision = part.sur_le_bulletin(droit::conges::heures_par_jour(quotite, &horaire.jours));
-        e.lignes = vec![ligne];
+        e.lignes = vec![LignePaie::Composee(crate::ligne::Composee {
+            rubrique: "mois".to_string(),
+            quantite: dec_f64(q)?,
+            taux: dec_f64(crate::conges::flot(salaire))?,
+            heures: Some(dec_f64(h)?),
+            precision: part.sur_le_bulletin(droit::conges::heures_par_jour(quotite, &horaire.jours)),
+            dates: Vec::new(),
+        })];
         // Les heures que la DSN mesure (S21.G00.53, « heures » d'un contrat paye au mois) : celles de la ligne de la
         // periode, comme `Engagement::nouveau` les tire des lignes du mois.
         let heures = droit::catalogue::rubrique(&ctx.racine, "mois", &ctx.lue_au)?.heures(q, Some(h));

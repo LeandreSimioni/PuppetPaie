@@ -39,7 +39,7 @@ use engagement::viser::Cible;
 use droit::catalogue;
 use droit::contexte::{Contexte, IdSalarie};
 use droit::emplois;
-use engagement::{self, Chiffre, LignePaie};
+use engagement::{self, LignePaie};
 use socle::date::Jour;
 use documents::valeur::en_texte;
 use socle::echec::{erreur, Echec, R};
@@ -136,7 +136,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "carte", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "{\"neuve\": sa nature (`nouvelle_carte` de la route etat)} pour une carte neuve, ou {\"ecrite\": son identité, celle que le moteur a rendue}", avance: false },
             super::engagement::CHANGEMENTS,
         ],
-        exemple: r#"{"mois":"2026-11","carte":{"neuve":"cddu_spectacle"},"changements":[{"case":"salarie","valeur":"FULLER"},{"case":"spectacle","valeur":"le-banc-des-menteurs"},{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}]}"#,
+        exemple: r#"{"mois":"2026-11","carte":{"neuve":"cddu_spectacle"},"changements":[{"case":"salarie","valeur":"FULLER"},{"case":"spectacle","valeur":"le-banc-des-menteurs"},{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":150,"lieu":null,"dates":["2026-11-20"],"planning":[]}]}]}"#,
         rend: "engagement (l'identité écrite, à passer à valider-engagement), brouillon (chacune des cases de sa nature, null tant qu'elle n'est pas remplie), a_completer (ce qui lui manque pour être validé, ou null), enregistre_a",
         refus: &[OPERATION, FORME, MANQUE],
         acte: Acte::Ecrit,
@@ -369,8 +369,8 @@ struct Emploi {
 struct TauxQuiChange {
     rang: usize,
     rubrique: String,
-    taux_avant: Option<Chiffre>,
-    taux: Option<Chiffre>,
+    taux_avant: Option<Decimal>,
+    taux: Option<Decimal>,
 }
 
 /// Ce qui a change, pour l'engagement ajuste : son salaire du mois s'il change, ses lignes dont le taux change.
@@ -471,17 +471,10 @@ fn taux_du_mois(ctx: &Contexte, data: &VueDuMois) -> Option<f64> {
 /// Le taux d'une ligne de cachet (le `try` de `dernier_taux`) : tout ce qui
 /// leve est une ligne qui ne dit rien.
 fn taux_d_une_ligne(ctx: &Contexte, l: &LignePaie) -> Option<f64> {
-    let code = l.rubrique.as_deref()?;
-    if droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).ok()?.unite != "cachet" {
+    if droit::catalogue::rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au).ok()?.unite != "cachet" {
         return None;
     }
-    l.taux.as_ref().filter(|t| t.vrai())?.flottant().ok()
-}
-
-
-/// Le décimal en flottant : la valeur la plus proche, par sa représentation.
-fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
-    d.to_string().parse().unwrap_or(0.0)
+    l.taux().filter(|t| !t.is_zero()).map(socle::num::flottant)
 }
 
 /// « Celi » et « aaah zerbinette » deviennent les cles
@@ -498,7 +491,7 @@ fn resoudre_noms(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
         }
         // Les lignes d'un permanent sont CALCULEES, pas saisies.
         if !p.engagement.nat()?.mensuelle() {
-            resolu.lignes = Some(lignes_affichees(p, e.lignes()));
+            resolu.lignes = Some(lignes_affichees(p, e.lignes())?);
         }
         engagements.push(resolu);
     }
@@ -506,50 +499,40 @@ fn resoudre_noms(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
 }
 
 /// Ce que dit, a l'ecran, la case d'une ligne de frais (`engagement::ligne::Marques::cases`).
-fn libelle_de_case(case: &str) -> &'static str {
+fn libelle_de_case(case: engagement::CaseDeFrais) -> &'static str {
     match case {
-        engagement::PARIS => "Paris ou petite couronne",
-        engagement::RESTAURANT => "au restaurant",
-        engagement::LOGE => "hôtel payé par la compagnie",
-        _ => "justificatif conservé",
+        engagement::CaseDeFrais::Paris => "Paris ou petite couronne",
+        engagement::CaseDeFrais::Restaurant => "au restaurant",
+        engagement::CaseDeFrais::Loge => "hôtel payé par la compagnie",
+        engagement::CaseDeFrais::Justificatif => "justificatif conservé",
     }
 }
 
 /// LES LIGNES DE PAIE TELLES QUE LE MOTEUR LES A COMPRISES. `remuneration` suit les lignes du fichier une a une
 /// (`calcul::lignes_brut`) ; la part d'un frais au-dela de sa limite, que le moteur pose apres elles
 /// (`engagement::frais_au_dela`), ne se montre pas en ligne de saisie, et la ligne garde le taux saisi
-/// (`ligne::Marques::taux_saisi`). Ce que la ligne du fichier dit et que le moteur ne recalcule pas (ses heures, le genre
-/// d'un avantage en nature, la base et le pourcentage d'une ligne en pourcentage -- sans eux, la page lirait le `taux`
-/// 0.1 comme 0,1 % --, ses cases de frais, ses jours et son lieu) se garde : la page le relit pour le remettre dans ses
-/// champs.
-fn lignes_affichees(p: &engagement::calcul::Paie, brutes: &[LignePaie]) -> Vec<LignePaie> {
-    let nombre = |d: socle::num::Decimal| Chiffre::de_f64(decimal_en_f64(d));
-    p.remuneration
-        .iter()
-        .zip(brutes)
-        .enumerate()
-        .map(|(i, (l, src))| {
-            let saisi = p.engagement.lignes.get(i).and_then(|x| x.marques.taux_saisi.clone());
-            LignePaie {
-                rubrique: Some(l.code.clone()),
-                quantite: Some(nombre(l.quantite)),
-                taux: Some(saisi.unwrap_or_else(|| nombre(l.taux))),
-                heures: src.heures.clone(),
-                genre: src.genre.clone(),
-                base: src.base.clone(),
-                taux_majoration: src.taux_majoration.clone(),
-                justificatif: src.justificatif,
-                paris: src.paris,
-                restaurant: src.restaurant,
-                territoire: src.territoire.clone(),
-                loge: src.loge,
-                dates: src.dates.clone(),
-                planning: src.planning.clone(),
-                lieu: src.lieu.clone().filter(|x| !x.is_empty()),
-                ..LignePaie::default()
-            }
-        })
-        .collect()
+/// (`ligne::Marques::taux_saisi`). Une ligne en unites ou de frais prend la quantite et le taux que le calcul a lus (le
+/// tarif de la convention d'un repas qui ne dit pas le sien) ; le reste de la ligne du fichier se garde (ses heures, ses
+/// cases de frais, ses jours et son lieu ; une ligne en pourcentage, au montant ou en avantage en nature telle quelle) :
+/// la page le relit pour le remettre dans ses champs.
+fn lignes_affichees(p: &engagement::calcul::Paie, brutes: &[LignePaie]) -> R<Vec<LignePaie>> {
+    let mut out = Vec::new();
+    for (i, (l, src)) in p.remuneration.iter().zip(brutes).enumerate() {
+        let saisi = p.engagement.lignes.get(i).and_then(|x| x.marques()).and_then(|m| m.taux_saisi);
+        // Le nombre que l'ecran montre : sa forme flottante la plus courte.
+        let nombre = |d: socle::num::Decimal| socle::num::dec_f64(socle::num::flottant(d)).map_err(Echec::from);
+        let (quantite, taux) = (Some(nombre(l.quantite)?), Some(match saisi {
+            Some(t) => t,
+            None => nombre(l.taux)?,
+        }));
+        out.push(match src.clone() {
+            LignePaie::Unites(x) => LignePaie::Unites(engagement::ligne::Unites { quantite, taux, ..x }),
+            LignePaie::UnitesEtHeures(x) => LignePaie::UnitesEtHeures(engagement::ligne::UnitesEtHeures { quantite, taux, ..x }),
+            LignePaie::Frais(x) => LignePaie::Frais(engagement::ligne::Frais { quantite, taux, ..x }),
+            autre => autre,
+        });
+    }
+    Ok(out)
 }
 
 /// Ce que la page propose quand la saisie ne le dit pas : `taux_cachet`, le taux d'une ligne de cachet neuve, celui
@@ -601,20 +584,20 @@ fn saisie(ctx: &Contexte, mois: Mois) -> R<SaisieDuMois> {
 
 /// Les jours travailles d'un engagement brut, AAAA-MM-JJ, tries : ceux de ses lignes de travail
 /// (`engagement::dates_engagement`).
-fn jours_joues(ctx: &Contexte, e: &SaisieCarte) -> Vec<String> {
-    let mut jours: Vec<String> = e.dates(&ctx.racine).iter().map(|j| j.jour().to_string()).collect();
+fn jours_joues(e: &SaisieCarte) -> Vec<String> {
+    let mut jours: Vec<String> = e.dates().iter().map(|j| j.jour().to_string()).collect();
     jours.sort();
     jours
 }
 
 /// (debut, fin) d'une carte, AAAA-MM-JJ, comme `Engagement` les deduirait : son debut (`Carte::debut_lu`), sa fin
 /// ecrite, sinon le dernier de ses jours travailles et de son planning ; vides sans aucun jour.
-pub(crate) fn bornes_brutes(ctx: &Contexte, e: &SaisieCarte) -> (String, String) {
+pub(crate) fn bornes_brutes(e: &SaisieCarte) -> (String, String) {
     let fin = match e.fin.as_deref().filter(|x| !x.is_empty()) {
         Some(f) => f.to_string(),
-        None => e.dates(&ctx.racine).iter().chain(e.planning(&ctx.racine).iter()).map(|j| j.jour().to_string()).max().unwrap_or_default(),
+        None => e.dates().iter().chain(e.planning().iter()).map(|j| j.jour().to_string()).max().unwrap_or_default(),
     };
-    (e.debut_lu(&ctx.racine), fin)
+    (e.debut_lu(), fin)
 }
 
 // ------------------------------------------------------------ les fichiers de mois
@@ -696,7 +679,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
     }
     let mut deja: HashSet<(IdSalarie, String, String)> = HashSet::new();
     for (c, e) in engagements_du_mois(ctx, mois)? {
-        deja.insert((c, bornes_brutes(ctx, &e).0, e.numero.clone().unwrap_or_default()));
+        deja.insert((c, bornes_brutes(&e).0, e.numero.clone().unwrap_or_default()));
     }
     for c in out.iter_mut() {
         c.deja_repris = deja.contains(&(c.salarie.clone(), c.debut.clone(), c.numero.clone()));
@@ -755,31 +738,17 @@ fn nom_de(ctx: &Contexte, cle: &str) -> String {
     ctx.salaries.get(cle).and_then(|s| s.nomme()).unwrap_or_else(|| cle.to_string())
 }
 
-/// Le nombre de cachets d'un engagement : la somme des quantites de ses lignes dont la rubrique est un cachet. Une ligne
-/// qui ne dit rien de lisible (rubrique absente ou inconnue, quantite illisible) ne compte pas.
+/// Le nombre de cachets d'un engagement : la somme des quantites de ses lignes dont la rubrique est un cachet (une case
+/// vide n'en compte aucun).
 fn cachets_de(ctx: &Contexte, e: &SaisieCarte) -> R<i64> {
     let mut cachets = 0;
     for l in e.lignes() {
-        let Some(code) = l.rubrique.as_deref() else { continue };
-        let Ok(r) = catalogue::rubrique(&ctx.racine, code, &ctx.lue_au) else { continue };
-        if r.unite != "cachet" {
+        if catalogue::rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au).map_err(Echec::from)?.unite != "cachet" {
             continue;
         }
-        let q = match l.quantite.as_ref().filter(|x| x.vrai()) {
-            Some(Chiffre::Nombre(n)) => n.as_f64().unwrap_or(0.0),
-            Some(Chiffre::Texte(s)) => match s.trim().replace('_', "").parse::<f64>() {
-                Ok(x) => x,
-                Err(_) => continue,
-            },
-            None => 0.0,
-        };
-        if q.is_nan() {
-            continue;
+        if let Some(q) = l.quantite() {
+            cachets += i64::try_from(q.trunc()).map_err(|_| erreur("OverflowError", socle::fichiers::entier_hors_limites(&q.to_string())))?;
         }
-        if q.is_infinite() {
-            return Err(erreur("OverflowError", socle::fichiers::entier_hors_limites("infini")));
-        }
-        cachets += q.trunc() as i64;
     }
     Ok(cachets)
 }
@@ -852,7 +821,7 @@ fn contrats_passes(ctx: &Contexte, mois: &str, salarie: Option<&IdSalarie>) -> R
     for mc in &connus {
         couverts.insert(mc.clone());
         for (cle, e) in engagements_du_mois(ctx, mc)? {
-            let (debut, fin) = bornes_brutes(ctx, &e);
+            let (debut, fin) = bornes_brutes(&e);
             if debut.is_empty() || debut > dernier || (if fin.is_empty() { &debut } else { &fin }).as_str() < premier.as_str() {
                 continue;
             }
@@ -863,7 +832,7 @@ fn contrats_passes(ctx: &Contexte, mois: &str, salarie: Option<&IdSalarie>) -> R
             let spec = spectacles.trouver(&ref_spec);
             let numero = spec.and_then(|s| s.numero_objet.remplie()).map_or_else(|| ref_spec.clone(), str::to_string);
             let cachets = cachets_de(ctx, &e)?;
-            let dates = jours_joues(ctx, &e);
+            let dates = jours_joues(&e);
             let fin = if fin.is_empty() { debut.clone() } else { fin };
             let ident = (cle.to_string(), debut.clone(), fin.clone());
             let deja = vus.get(&ident).copied();
@@ -1059,7 +1028,7 @@ fn enregistrer_saisie(ctx: &Contexte, c: ChargeCase) -> R<CarteEcrite> {
         CarteVisee::Neuve(n) => (Brouillon::neuf(n), None),
         CarteVisee::Ecrite(id) => (brouillon_ecrit(ctx, &mois, &id)?, Some(id)),
     };
-    c.changements.appliquer(&mut brouillon, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
+    c.changements.appliquer(&ctx.racine, c.mois, &mut brouillon, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
     let id = ecrire_une_carte(ctx, &mois, id.as_ref(), &brouillon.en_carte())?;
     let brouillon = brouillon_ecrit(ctx, &mois, &id)?;
     let (k, _) = engagement::stock::designe(&ctx.racine, &mois, &id).map_err(Echec::from)?;
@@ -1190,18 +1159,14 @@ pub(crate) fn manque_de(ctx: &Contexte, data: &VueDuMois, i: usize) -> Option<St
 
 /// Ce qui a change, de l'engagement `avant` a l'engagement `apres` (la saisie que la recherche a ajustee).
 fn ce_qui_a_change(avant: &SaisieCarte, apres: &SaisieCarte, index: usize) -> CeQuiChange {
-    let meme = |a: &Option<Chiffre>, b: &Option<Chiffre>| match (a, b) {
-        (Some(Chiffre::Nombre(x)), Some(Chiffre::Nombre(y))) => x.as_f64() == y.as_f64(),
-        (x, y) => x == y,
-    };
     let mut lignes = Vec::new();
     for (rang, (a, b)) in avant.lignes().iter().zip(apres.lignes().iter()).enumerate() {
-        let (ta, tb) = (a.taux.clone(), b.taux.clone());
-        if !ta.as_ref().is_some_and(|t| !matches!(t, Chiffre::Texte(s) if s.is_empty())) && !tb.as_ref().is_some_and(Chiffre::vrai) {
+        let (ta, tb) = (a.taux(), b.taux());
+        if ta.is_none() && tb.is_none_or(|t| t.is_zero()) {
             continue; // restee sans taux : rien a ecrire
         }
-        if !meme(&ta, &tb) {
-            lignes.push(TauxQuiChange { rang, rubrique: b.rubrique.clone().unwrap_or_else(|| "cachet".into()), taux_avant: ta, taux: tb });
+        if ta != tb {
+            lignes.push(TauxQuiChange { rang, rubrique: b.rubrique().to_string(), taux_avant: ta, taux: tb });
         }
     }
     let salaire = |e: &SaisieCarte| socle::ecriture::en_valeur(&e.salaire_mensuel);
@@ -1248,11 +1213,7 @@ fn ajuster(ctx: &Contexte, c: ChargeAjuster) -> R<Ajuste> {
         .lignes
         .iter()
         .map(|l| {
-            let euros = |c: &Option<Chiffre>| match c {
-                None => String::new(),
-                Some(Chiffre::Texte(s)) => s.trim().replace(',', ".").parse().map_or_else(|_| s.clone(), socle::texte::euros),
-                Some(n) => n.dec().map_or_else(|_| n.en_texte(), socle::texte::euros),
-            };
+            let euros = |c: &Option<Decimal>| c.map(socle::texte::euros).unwrap_or_default();
             let avant = if l.taux_avant.is_none() { String::new() } else { format!(" au lieu de {}", euros(&l.taux_avant)) };
             format!("{} à {}{}", l.rubrique, euros(&l.taux), avant)
         })
@@ -1324,7 +1285,7 @@ fn mois_designe(ctx: &Contexte, mois: Mois, modifications: Vec<ModificationEnCou
             )));
         }
         let mut b = Brouillon::de_la_carte(&ecrit, &qui_de_la_carte(ctx, &ecrit)).map_err(refus)?;
-        m.changements.appliquer(&mut b, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
+        m.changements.appliquer(&ctx.racine, mois, &mut b, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
         let saisie = engagement::stock::en_forme(&b.en_carte()).map_err(refus)?;
         // L'avenant du mois se deduit des termes dates de l'engagement ecrit (`stock::Objet::vue`) : le brouillon ne le
         // porte pas.
@@ -1479,7 +1440,7 @@ fn champs_du_contrat_ecrit(ctx: &Contexte, e: &engagement::Engagement, nat: &dro
 /// periode d'essai et les clauses se disent avant que le reste soit complet. La repartition des horaires attend la
 /// duree du travail calculee.
 fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &SaisieCarte, mois: &str) -> Vec<&'static str> {
-    let debut = e.debut_lu(&ctx.racine);
+    let debut = e.debut_lu();
     if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &debut, mois).unwrap_or(false) {
         return numero_a_dire(ctx, e.salarie.as_deref().unwrap_or_default(), &debut);
     }
@@ -1646,9 +1607,9 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &SaisieCarte, data: &VueD
     let premier_cachet = e
         .lignes
         .iter()
-        .find(|l| l.rubrique.as_deref().and_then(|c| droit::catalogue::rubrique(&ctx.racine, c, &ctx.lue_au).ok()).map_or(false, |r| r.unite == "cachet"));
+        .find(|l| droit::catalogue::rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au).ok().map_or(false, |r| r.unite == "cachet"));
     let taux_cachet = match premier_cachet {
-        Some(l) => socle::forme::NombreLu::de_f64(l.taux.as_ref().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("taux")))?.flottant()?),
+        Some(l) => socle::forme::NombreLu::de_f64(socle::num::flottant(l.taux().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("taux")))?)),
         None => brut.taux_cachet.clone().or_else(|| data.taux_cachet.clone()),
     };
     let jours = brut.jours.clone().unwrap_or_else(|| socle::forme::NombreLu::from(e.jours));
@@ -1731,14 +1692,10 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &SaisieCarte, data: &VueD
         cases: e
             .lignes
             .iter()
-            .filter_map(|l| Some((l.marques.rang?, l)))
-            .flat_map(|(i, l)| {
-                l.marques.cases.iter().map(move |k| CaseDeFrais {
-                    ligne: i,
-                    case: k.to_string(),
-                    libelle: libelle_de_case(k),
-                    aide: l.marques.aides.get(k).cloned(),
-                })
+            .filter_map(|l| l.marques())
+            .filter_map(|m| Some((m.rang?, m)))
+            .flat_map(|(i, m)| {
+                m.cases.iter().map(move |k| CaseDeFrais { ligne: i, case: k.cle().to_string(), libelle: libelle_de_case(*k), aide: m.aides.get(k).cloned() })
             })
             .collect(),
         remuneration: p
@@ -1992,7 +1949,7 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut VuePaie) -> R<()> {
         let mut tarif = None;
         for j in &jours {
             match engagement::tarif_conventionnel(ctx, &l.rubrique, j).map_err(Echec::from)? {
-                Some(t) if taux.is_some_and(|x| t.flottant().ok() == Some(x)) => {
+                Some(t) if taux.is_some_and(|x| socle::num::flottant(t) == x) => {
                     tarif = Some(t);
                     break;
                 }
@@ -2000,7 +1957,7 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut VuePaie) -> R<()> {
             }
         }
         if let Some(tarif) = tarif {
-            let dit = format!("{} à {}", l.designation.to_lowercase(), tarif.dec().map_or_else(|_| tarif.en_texte(), socle::texte::euros));
+            let dit = format!("{} à {}", l.designation.to_lowercase(), socle::texte::euros(tarif));
             if !dits.contains(&dit) {
                 dits.push(dit);
             }
@@ -2069,7 +2026,7 @@ fn apercu_des_paies(ctx: &Contexte, data: &VueDuMois) -> R<Calcul> {
                 r.blocs.push(calcules.next().flatten());
             }
             Some(m) => {
-                let (debut, fin) = bornes_brutes(ctx, e);
+                let (debut, fin) = bornes_brutes(e);
                 r.paies.push(PaieVue::ACompleter(PaieACompleter {
                     a_completer: socle::echec::phrase_de(m),
                     salarie: CleEcrite { cle: e.salarie.clone() },

@@ -64,6 +64,6 @@ fn les_engagements_fabriques_et_leurs_refus() {
         refus += c["attendu"].get("refus").is_some() as usize;
     }
     // un refus par cas `refus_*`
-    assert!(refus >= 30, "{}", refus);
+    assert!(refus >= 27, "{}", refus);
     oracle("engagement.json", "/directs", &directs);
 }

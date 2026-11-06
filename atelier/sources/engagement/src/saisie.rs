@@ -10,7 +10,6 @@
 use serde::{Deserialize, Serialize};
 use socle::forme::NombreLu;
 
-use std::path::Path;
 
 use socle::num::Resultat;
 
@@ -393,23 +392,23 @@ impl Carte {
     }
 
     /// Le debut, comme `Engagement` le deduirait : celui qu'elle dit, sinon son premier jour joue ; vide sans aucun.
-    pub fn debut_lu(&self, racine: &Path) -> String {
-        crate::debut_de(racine, self.debut.clone(), self.lignes())
+    pub fn debut_lu(&self) -> String {
+        crate::debut_de(self.debut.clone(), self.lignes())
     }
 
     /// Les jours joues de ses lignes de travail (`crate::jours_des_lignes`).
-    pub fn dates(&self, racine: &Path) -> Vec<DateDeLigne> {
-        crate::jours_des_lignes(racine, self.lignes(), false)
+    pub fn dates(&self) -> Vec<DateDeLigne> {
+        crate::jours_des_lignes(self.lignes(), false)
     }
 
     /// Les jours que ses lignes de travail mettent au planning.
-    pub fn planning(&self, racine: &Path) -> Vec<DateDeLigne> {
-        crate::jours_des_lignes(racine, self.lignes(), true)
+    pub fn planning(&self) -> Vec<DateDeLigne> {
+        crate::jours_des_lignes(self.lignes(), true)
     }
 
     /// Les jours du contrat entier que la carte connait.
-    pub fn jours_du_contrat(&self, racine: &Path) -> usize {
-        crate::jours_de_lignes(racine, self.lignes())
+    pub fn jours_du_contrat(&self) -> usize {
+        crate::jours_de_lignes(self.lignes())
     }
 
     /// La nature de son contrat ; une carte qui ne la dit pas se refuse (`crate::PAS_DE_NATURE`).

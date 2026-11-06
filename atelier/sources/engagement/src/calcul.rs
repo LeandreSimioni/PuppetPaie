@@ -173,15 +173,15 @@ impl LigneBrut {
 pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<LigneBrut>> {
     let mut out = Vec::new();
     for l in &eng.lignes {
-        let requis = |x: &Option<crate::Chiffre>, cle: &str| x.clone().ok_or_else(|| socle::fichiers::absent(cle));
-        let r = rubrique(&ctx.racine, l.rubrique.as_deref().ok_or_else(|| socle::fichiers::absent("rubrique"))?, &ctx.lue_au)?;
-        let q = requis(&l.quantite, "quantite")?.dec()?;
-        let taux = requis(&l.taux, "taux")?.dec()?;
-        let heures = l.heures_lues()?;
+        let requis = |x: Option<Decimal>, cle: &str| x.ok_or_else(|| socle::fichiers::absent(cle));
+        let r = rubrique(&ctx.racine, l.rubrique(), &ctx.lue_au)?;
+        let q = requis(l.quantite(), "quantite")?;
+        let taux = requis(l.taux(), "taux")?;
+        let heures = l.heures_lues();
         let signe = if r.sens == "-" { -Decimal::ONE } else { Decimal::ONE };
         // Le signe porte aussi sur les heures : une absence en retire.
         let h = dec_f64(r.heures(en_f64(q), heures))?;
-        let dsn_autres_bruts = code_54(&r, l.genre.as_deref())?;
+        let dsn_autres_bruts = code_54(&r, l.genre())?;
         out.push(LigneBrut {
             code: r.code,
             libelle: r.libelle,
@@ -200,7 +200,7 @@ pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<Lign
             dsn_bloc52: r.dsn_bloc52,
             arret_de_travail: r.arret_de_travail,
             dsn_autres_bruts,
-            precision: l.precision.clone(),
+            precision: l.precision().map(String::from),
         });
     }
     Ok(out)
@@ -1715,7 +1715,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     for (l, b) in eng.lignes.iter().zip(lb.iter()) {
         if b.code == crate::maintien::IJ_NETTES {
             *bases.entry(crate::maintien::IJ_SUBROGEES.into()).or_insert(zero) += b.montant;
-            *bases.entry(crate::maintien::IJ_ASSIETTE_PAS.into()).or_insert(zero) += l.assiette_pas.as_ref().ok_or_else(|| socle::fichiers::absent("assiette_pas"))?.dec_avec_echelle()?;
+            *bases.entry(crate::maintien::IJ_ASSIETTE_PAS.into()).or_insert(zero) += l.assiette_pas().ok_or_else(|| socle::fichiers::absent("assiette_pas"))?;
         }
     }
 
@@ -1931,14 +1931,14 @@ pub(crate) fn plafond_temps_partiel(ent: &ChampsEntreprise, e: &Engagement, sal:
 /// une ligne d'heures tapee a la main ne dit pas si elle en est, et refuse plutot que de le deviner.
 pub(crate) fn duree_du_temps_partiel(e: &Engagement) -> Resultat<(Decimal, Decimal)> {
     let nat = e.nat()?;
-    if let Some(l) = e.lignes.iter().find(|l| l.rubrique.as_deref() == Some("heure")) {
+    if let Some(l) = e.lignes.iter().find(|l| l.rubrique() == "heure") {
         return Err(format!(
             "{} : le plafond de Securite sociale de ce salarie a temps partiel se corrige a la duree de son \
 contrat << majoree du nombre d'heures complementaires >> du mois (CSS R. 242-2, I, dernier alinea), et la paie porte des \
 heures en plus du salaire mensuel ({} h) : heures complementaires ou non, le logiciel ne le sait pas. Refus : il ne les \
 devine pas.",
             e.qui(),
-            l.quantite.iter().map(crate::Chiffre::en_texte).collect::<String>()
+            l.quantite().iter().map(Decimal::to_string).collect::<String>()
         ));
     }
     let legale = dec_f64(nat.quotite_reference_defaut().ok_or_else(|| socle::echec::livree("contrats-base.json", &format!("{}.quotite_reference_defaut", nat.libelle)))?)?;
@@ -1950,8 +1950,8 @@ devine pas.",
     let complementaires = e
         .lignes
         .iter()
-        .filter(|l| l.rubrique.as_deref() == Some(crate::heures_en_plus::HEURE_COMPLEMENTAIRE))
-        .map(|l| l.quantite.as_ref().ok_or_else(|| "nombre attendu, lu null".to_string()).and_then(crate::Chiffre::dec))
+        .filter(|l| l.rubrique() == crate::heures_en_plus::HEURE_COMPLEMENTAIRE)
+        .map(|l| l.quantite().ok_or_else(|| "nombre attendu, lu null".to_string()))
         .sum::<Resultat<Decimal>>()?;
     Ok((e.quotite()? + complementaires, reference))
 }
@@ -1985,7 +1985,7 @@ impl Paie {
         engagement.date_paiement = Some(self.engagement.date_du_versement()?.iso());
         if ecrite {
             // Telles qu'elles s'ecrivent : sans ce que le moteur pose pour l'ecran (`ligne::Marques`), qui ne s'ecrit pas.
-            engagement.lignes = self.engagement.lignes.iter().map(|l| crate::LignePaie { marques: Default::default(), ..l.clone() }).collect();
+            engagement.lignes = self.engagement.lignes.iter().map(crate::LignePaie::sans_marques).collect();
         }
         Ok(FormeDePaie {
             assiette_chomage: self.assiette_chomage,

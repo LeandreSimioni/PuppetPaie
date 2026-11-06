@@ -189,7 +189,7 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
 fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "ajoute"));
     let jour = "2026-12-16";
-    let lignes = |q: u32, dates: &[&str]| json!([{"rubrique": "cachet", "quantite": q, "taux": 150, "lieu": "Salle fictive de Rezé", "dates": dates}]);
+    let lignes = |q: u32, dates: &[&str]| json!([{"rubrique": "cachet", "quantite": q, "taux": 150, "lieu": "Salle fictive de Rezé", "dates": dates, "planning": []}]);
     let documents = || -> Vec<String> {
         let r = outils::route(&racine, "etat-du-mois", json!({"mois": "2026-11"}), jour);
         let etapes = outils::reussi(&r)["etapes"].as_array().unwrap().clone();
