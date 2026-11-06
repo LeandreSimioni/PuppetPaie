@@ -89,7 +89,7 @@ pub fn jour_de_paris() -> Jour {
 /// Pose `PUPPETPAIE_AUJOURDHUI` a l'heure de Paris quand rien ne l'a posee.
 pub fn poser_le_jour() -> Jour {
     let paris = jour_de_paris();
-    if std::env::var_os("PUPPETPAIE_AUJOURDHUI").filter(|v| !v.is_empty()).is_none() {
+    if socle::temps::jour_pose().is_none() {
         std::env::set_var("PUPPETPAIE_AUJOURDHUI", paris.iso());
     }
     paris

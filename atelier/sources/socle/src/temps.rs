@@ -107,26 +107,31 @@ pub fn secondes() -> f64 {
 /// entre les deux), ce jour-la, et minuit passe comme a la montre. Sans jour pose (ou pose vide), `t` tel quel. Un jour
 /// pose illisible arrete le moteur : celui qui le pose (un test, un banc) le corrige, rien ne compte a la montre a sa place.
 fn au_jour_pose(t: f64) -> f64 {
-    static DECALAGE: Mutex<Option<(String, f64)>> = Mutex::new(None);
-    let pose = match std::env::var("PUPPETPAIE_AUJOURDHUI") {
-        Ok(v) if v.is_empty() => return t,
-        Ok(v) => v,
-        Err(std::env::VarError::NotPresent) => return t,
-        Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
-    };
+    static DECALAGE: Mutex<Option<(Jour, f64)>> = Mutex::new(None);
+    let Some(jour) = jour_pose() else { return t };
     let mut d = crate::memoire::tenu(&DECALAGE);
-    if let Some((_, decalage)) = d.as_ref().filter(|(lu, _)| *lu == pose) {
+    if let Some((_, decalage)) = d.as_ref().filter(|(lu, _)| *lu == jour) {
         return t + decalage;
     }
-    let jour = match Jour::lire(&pose) {
-        Ok(j) => j,
-        Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
-    };
     let entier = t.floor() as i64;
     let jour_de_la_montre = (entier + crate::paris::decalage(entier)).div_euclid(86_400);
     let decalage = ((jour.ordinal() - 719_163) - jour_de_la_montre) as f64 * 86_400.0;
-    *d = Some((pose, decalage));
+    *d = Some((jour, decalage));
     t + decalage
+}
+
+/// LE JOUR QUE `PUPPETPAIE_AUJOURDHUI` POSE (AAAA-MM-JJ), seul endroit ou cette variable se lit ; `None` : elle n'est pas
+/// posee (ou vide), le jour est celui de l'horloge. Illisible, le moteur s'arrete.
+pub fn jour_pose() -> Option<Jour> {
+    match std::env::var("PUPPETPAIE_AUJOURDHUI") {
+        Ok(v) if v.is_empty() => None,
+        Ok(v) => match Jour::lire(&v) {
+            Ok(jour) => Some(jour),
+            Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
+        },
+        Err(std::env::VarError::NotPresent) => None,
+        Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
+    }
 }
 
 /// Le temps est-il simule (le banc, le rejeu, un geste joue a sa date) ?

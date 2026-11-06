@@ -903,10 +903,10 @@ fn aujourdhui_brut() -> Resultat<Jour> {
     if socle::temps::simule() {
         return Ok(socle::temps::jour_de_paris());
     }
-    match std::env::var("PUPPETPAIE_AUJOURDHUI") {
-        Ok(v) if !v.is_empty() => Jour::lire(&v),
-        _ => Ok(jour_reel()),
-    }
+    Ok(match socle::temps::jour_pose() {
+        Some(pose) => pose,
+        None => jour_reel(),
+    })
 }
 
 /// LE CURSEUR DES PERMANENTS : une fiche Entreprise dit-elle que la compagnie emploie des
