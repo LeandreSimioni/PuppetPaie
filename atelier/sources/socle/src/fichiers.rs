@@ -34,10 +34,7 @@ static GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::
 /// La cle des caches qui ne notent pas : le numero du registre ouvert SUR CE FIL, 0 sans registre. Un calcul suivi ne
 /// sert ainsi que ce qu'il a compose lui-meme (tout ce qu'il lit se note), meme si un autre fil compose en meme temps.
 pub fn generation() -> u64 {
-    REGISTRE.with(|r| match r.borrow().last() {
-        Some(g) => g.numero,
-        None => 0,
-    })
+    REGISTRE.with(|r| r.borrow().last().into_iter().map(|g| g.numero).sum())
 }
 
 thread_local! {
@@ -123,10 +120,7 @@ pub fn garde_notee<V: Clone, E>(cache: &Mutex<HashMap<String, Notee<V>>>, cle: S
 pub fn rendre() -> BTreeMap<String, String> {
     REGISTRE.with(|r| {
         let mut pile = r.borrow_mut();
-        let entrees = match pile.pop() {
-            Some(g) => g.entrees,
-            None => BTreeMap::new(),
-        };
+        let entrees: BTreeMap<String, String> = pile.pop().into_iter().flat_map(|g| g.entrees).collect();
         if let Some(dessous) = pile.last_mut() {
             for (k, v) in &entrees {
                 dessous.entrees.entry(k.clone()).or_insert_with(|| v.clone());

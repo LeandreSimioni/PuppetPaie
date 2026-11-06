@@ -402,10 +402,7 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Resul
             .collect();
         partis.dedup();
         // La premiere version n'a rien d'avant quoi changer.
-        let changes = match precedente {
-            Some(p) => changements(ctx, p.and_then(|p| p.saisie()), x.and_then(|x| x.saisie()))?,
-            None => Vec::new(),
-        };
+        let changes: Vec<_> = precedente.map(|p| changements(ctx, p.and_then(|p| p.saisie()), x.and_then(|x| x.saisie()))).transpose()?.into_iter().flatten().collect();
         let titre_dit = match n {
             Some(n) => format!("Version {}", n),
             None => "Version".to_string(),

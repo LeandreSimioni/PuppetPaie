@@ -14,9 +14,10 @@ pub struct P {
 }
 
 fn chiffres(m: i128) -> u32 {
-    match m.unsigned_abs().checked_ilog10() {
-        Some(l) => l + 1,
-        None => 1,
+    if m == 0 {
+        1
+    } else {
+        m.unsigned_abs().ilog10() + 1
     }
 }
 

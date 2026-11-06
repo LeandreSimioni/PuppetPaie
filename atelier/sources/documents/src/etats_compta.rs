@@ -1314,7 +1314,7 @@ fn provision_d_une_annee_importee(
     let continuent: BTreeSet<String> = engagement::importe::contrats_lus(&ctx.racine)
         .map_err(ko)?
         .into_iter()
-        .filter(|c| c.fin.is_empty() || c.fin > fin.iso())
+        .filter(|c| c.fin.as_deref().is_none_or(|f| f.is_empty() || f > fin.iso().as_str()))
         .map(|c| c.salarie)
         .filter(|s| !s.is_empty())
         .collect();

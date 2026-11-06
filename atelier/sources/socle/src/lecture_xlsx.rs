@@ -248,10 +248,7 @@ pub fn lignes(chemin: &Path, feuille: &str) -> Resultat<Vec<Ligne>> {
         while (rangs.len() as i64) < numero - 1 {
             rangs.push(Vec::new());
         }
-        let largeur = match cellules.keys().next_back() {
-            Some(m) => m + 1,
-            None => 0,
-        };
+        let largeur: usize = cellules.keys().next_back().into_iter().map(|m| m + 1).sum();
         rangs.push((0..largeur).map(|j| cellules.get(&j).cloned()).collect());
     }
     Ok(rangs)

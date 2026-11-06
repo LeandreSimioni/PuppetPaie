@@ -477,10 +477,8 @@ impl Tenue {
                 )));
             }
         }
-        let avant_la_reprise = match rep {
-            Some(r) => fin_mois_de(mois)? < r.date,
-            None => false,
-        };
+        let fin_du_mois = fin_mois_de(mois)?;
+        let avant_la_reprise = rep.is_some_and(|r| fin_du_mois < r.date);
         // L'assiette du dixieme : tout le brut du salarie dans un mois ou il est present.
         if remuneration && present && !avant_la_reprise {
             self.brut = paies.iter().fold(self.brut, |a, p| add(a, p.brut));

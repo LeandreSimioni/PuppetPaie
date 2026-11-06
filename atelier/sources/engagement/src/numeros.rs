@@ -276,10 +276,8 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
     }
     let annee = socle::date::Jour::lire(&debut)?.an;
     // Aucun numero pris cette annee : le premier sera le 1.
-    let dernier = match derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?.get(&cle) {
-        Some(n) => *n,
-        None => 0,
-    };
+    let pris = derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?;
+    let dernier: i64 = pris.get(&cle).into_iter().copied().sum();
     let numero = former(&fiche, annee, dernier + 1)?;
     let e = o.brut_mut();
     e.saisie.carte.numero = Some(numero.to_string());

@@ -79,10 +79,7 @@ fn ecrire(v: &Value, indent: Option<usize>, serre: bool, trie: bool, niveau: usi
         (None, true) => (",", ":"),
         (None, false) => (", ", ": "),
     };
-    let retrait = |n: usize| match indent {
-        Some(i) => format!("\n{}", " ".repeat(i * n)),
-        None => String::new(),
-    };
+    let retrait = |n: usize| -> String { indent.into_iter().map(|i| format!("\n{}", " ".repeat(i * n))).collect() };
     match v {
         Value::Null => s.push_str("null"),
         Value::Bool(b) => s.push_str(if *b { "true" } else { "false" }),

@@ -819,10 +819,10 @@ fn remplie(c: &Carte, x: Champ) -> bool {
 /// « a », « b » et « c ».
 fn guillemets(noms: &[&str]) -> String {
     let g: Vec<String> = noms.iter().map(|n| format!("« {} »", n)).collect();
-    match g.split_last() {
-        Some((dernier, [])) => dernier.clone(),
-        Some((dernier, reste)) => format!("{} et {}", reste.join(", "), dernier),
-        None => String::new(),
+    match g.as_slice() {
+        [] => String::new(),
+        [seul] => seul.clone(),
+        [reste @ .., dernier] => format!("{} et {}", reste.join(", "), dernier),
     }
 }
 

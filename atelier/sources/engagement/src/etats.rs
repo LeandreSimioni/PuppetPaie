@@ -623,10 +623,7 @@ impl CommeALaValidation {
 /// Ce qui distingue l'etat de la validation en cours (les engagements et les mois deja calcules) : ce que lit
 /// `paies_validees` en depend.
 pub(crate) fn marque_de_validation() -> String {
-    EN_VALIDATION.with(|e| match e.borrow().as_ref() {
-        Some(v) => v.iter().map(|(f, r, paies)| format!("{}#{}#{}", f, r, paies.len())).collect::<Vec<_>>().join(";"),
-        None => String::new(),
-    })
+    EN_VALIDATION.with(|e| e.borrow().iter().map(|v| v.iter().map(|(f, r, paies)| format!("{}#{}#{}", f, r, paies.len())).collect::<Vec<_>>().join(";")).collect())
 }
 
 /// Les engagements valides de `mois` (de `salarie`, la cle de sa fiche, s'il est dit) et leur paie de ce mois, avec leur
@@ -1417,10 +1414,7 @@ fn rafraichir(ctx: &Contexte, mois: &str, departs: &Departs, passage: bool) -> R
             }
             continue;
         }
-        let tient = match empreinte_ecrite {
-            Some(en) => empreinte::tient(ctx, &en.entrees, &mut relues)?,
-            None => false,
-        };
+        let tient = empreinte_ecrite.map(|en| empreinte::tient(ctx, &en.entrees, &mut relues)).transpose()?.is_some_and(|t| t);
         if tient {
             continue;
         }
@@ -1697,8 +1691,9 @@ const DE_LA_RUPTURE: [Champ; 10] = [
 /// travail d'apres la fin retires (une ligne garde ses jours jusqu'a la fin, et sa quantite ne croit pas).
 fn seule_la_rupture(partie: Option<&stock::Saisie>, presente: Option<&stock::Saisie>) -> bool {
     let (Some(partie), Some(presente)) = (partie, presente) else { return false };
-    let fin = Carte::texte(&presente.carte.fin);
-    if Carte::texte(&presente.carte.motif_rupture).is_empty() || !Carte::texte(&partie.carte.motif_rupture).is_empty() || fin.len() != 10 {
+    let motif_dit = |s: &stock::Saisie| s.carte.motif_rupture.as_deref().is_some_and(|m| !m.is_empty());
+    let Some(fin) = presente.carte.fin.as_deref().filter(|f| f.len() == 10) else { return false };
+    if !motif_dit(presente) || motif_dit(partie) {
         return false;
     }
     let reste = |s: &stock::Saisie| {
@@ -1711,7 +1706,7 @@ fn seule_la_rupture(partie: Option<&stock::Saisie>, presente: Option<&stock::Sai
     if reste(partie) != reste(presente) {
         return false;
     }
-    crate::lignes_coupees_a_la_fin(partie.carte.lignes(), presente.carte.lignes(), &fin)
+    crate::lignes_coupees_a_la_fin(partie.carte.lignes(), presente.carte.lignes(), fin)
 }
 
 #[cfg(test)]

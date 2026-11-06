@@ -17,24 +17,19 @@ use crate::{Avis, Engagement};
 use droit::minima::{ans_revolus, grille_au, iso, palier, plancher, plus_bas, signataire, table, case_lue, CaseLue, Conditions, Convention, Grille, Minimum, Par, Plancher, SpectacleDuContrat, Table};
 use socle::texte::{euros, virgule};
 use socle::num::{add, dec_f64, div, mul, sub, Decimal, Resultat};
-/// Ce que l'IDCC d'un contrat lit du spectacle `sp` (`droit::minima::idcc_du_contrat`) ; un contrat paye au mois n'en a pas.
-pub fn spectacle_du_contrat(sp: Option<&droit::fiche::Spectacle>) -> SpectacleDuContrat<'_> {
-    SpectacleDuContrat {
-        emission_tv_1734: sp.is_some_and(|s| s.emission_tv_1734.dite() == Some(&true)),
-        // Le titre que la fiche du spectacle dit ; sans spectacle ni titre, aucun.
-        titre: match sp.and_then(|s| s.titre.dite()) {
-            Some(t) => t.as_str(),
-            None => "",
-        },
-    }
+/// L'IDCC d'un contrat (`droit::minima::idcc_du_contrat`) : celui de la compagnie, sauf pour l'emission de television du
+/// spectacle `sp` (un contrat paye au mois n'en a pas), dont le titre est dit : un spectacle sans titre ne se dit pas
+/// emission de television.
+pub fn idcc_du_contrat(idcc: &str, sp: Option<&droit::fiche::Spectacle>, sal: &droit::fiche::ChampsSalarie) -> Resultat<String> {
+    let Some(sp) = sp.filter(|s| s.emission_tv_1734.dite() == Some(&true)) else { return Ok(idcc.to_string()) };
+    let titre = sp.titre.dite().ok_or_else(|| "un spectacle qui est une émission de télévision (1734) n'a pas de titre".to_string())?;
+    droit::minima::idcc_du_contrat(idcc, &SpectacleDuContrat { emission_tv_1734: true, titre: titre.as_str() }, sal)
 }
 
-/// La case `cle` du spectacle de la paie lue pour une condition (`droit::minima::case_lue`) : sans spectacle, rien.
-fn case_du_spectacle(sp: Option<&droit::fiche::Spectacle>, cle: &str) -> CaseLue {
-    match sp {
-        Some(s) => case_lue(&s.champs, cle),
-        None => CaseLue::default(),
-    }
+/// La case `cle` du spectacle de la paie lue pour une condition (`droit::minima::case_lue`) ; `None` : la paie n'a pas de
+/// spectacle.
+fn case_du_spectacle(sp: Option<&droit::fiche::Spectacle>, cle: &str) -> Option<CaseLue> {
+    sp.map(|s| case_lue(&s.champs, cle))
 }
 
 fn cachet(c: &str) -> bool {
@@ -331,9 +326,9 @@ impl<'a> Cx<'a> {
         let Some(presents) = cddu.get(&fonction).map(|f| f.genres()).filter(|p| !p.is_empty()) else {
             return Ok(None);
         };
-        let genre = case_du_spectacle(self.paie.spectacle.as_ref(), "genre_audiovisuel").texte;
-        let (semaine, dit) = if let Some((_, s)) = presents.iter().find(|(g, _)| *g == genre) {
-            (*s, format!("programme de {}", genre))
+        let genre = case_du_spectacle(self.paie.spectacle.as_ref(), "genre_audiovisuel").map(|c| c.texte);
+        let (semaine, dit) = if let Some((g, s)) = presents.iter().find(|(g, _)| genre.as_deref() == Some(*g)) {
+            (*s, format!("programme de {}", g))
         } else {
             let (g, s) = plus_bas(presents, |x| x.1).unwrap();
             (s, format!("genre {}, le plus bas des genres de cette fonction -- la fiche du spectacle ne dit pas le sien (`genre_audiovisuel`)", g))
@@ -399,7 +394,7 @@ impl<'a> Cx<'a> {
                 }
             }
             let mut dit = format!("{} la semaine de 39 h (annexe I du titre II)", euros(semaine));
-            if case_du_spectacle(spec, "derogation_annexe_iii_3097").vraie {
+            if case_du_spectacle(spec, "derogation_annexe_iii_3097").is_some_and(|c| c.vraie) {
                 let a = c.annexe_iii.as_ref().ok_or_else(|| manque("3097.annexe_iii"))?;
                 if semaine > a.socle {
                     semaine = add(a.socle, div(mul(sub(semaine, a.socle), a.part_au_dela), Decimal::ONE_HUNDRED));
@@ -413,10 +408,11 @@ impl<'a> Cx<'a> {
             let Some(reference) = self.ligne_de_minima("3097").filter(|r| !r.is_empty()) else {
                 return Ok(None);
             };
-            let fmt = case_du_spectacle(spec, "format_cinema").texte;
+            let fmt = case_du_spectacle(spec, "format_cinema").map(|c| c.texte);
+            let fmt = fmt.as_deref();
             let (grille, quoi) = if reference == "acteur" {
-                let cl = if fmt == "long" { "long" } else { "court" };
-                let sous = if fmt == "long" || fmt == "court" {
+                let cl = if fmt == Some("long") { "long" } else { "court" };
+                let sous = if fmt == Some("long") || fmt == Some("court") {
                     String::new()
                 } else {
                     " (le plus bas : la fiche du spectacle ne dit pas le format, `format_cinema`)".into()
@@ -425,7 +421,7 @@ impl<'a> Cx<'a> {
                 (if cl == "long" { &artistes.long } else { &artistes.court }, format!("artiste-interprète, {}-métrage{}", cl, sous))
             } else {
                 let complement = c.complement.as_ref().ok_or_else(|| manque("3097.complement"))?;
-                let Some(role) = complement.du_role(reference).filter(|_| fmt == "long") else {
+                let Some(role) = complement.du_role(reference).filter(|_| fmt == Some("long")) else {
                     return Ok(None);
                 };
                 (role, format!("acteur de complément ({}), long-métrage", reference.replace('_', " ")))
@@ -460,7 +456,8 @@ impl<'a> Cx<'a> {
         }
         // Les conditions nomment les cases du spectacle, de la fiche entreprise et de celle du salarie.
         for (cl, attendu) in c.si_spectacle {
-            if !attendu.vaut(&case_du_spectacle(self.paie.spectacle.as_ref(), cl)) {
+            // Une paie sans spectacle ne remplit aucune condition sur lui.
+            if !case_du_spectacle(self.paie.spectacle.as_ref(), cl).is_some_and(|lu| attendu.vaut(&lu)) {
                 return Ok(false);
             }
         }
@@ -721,10 +718,7 @@ impl<'a> Cx<'a> {
             // Un salaire mensuel : le plus bas de la grille des clauses communes et de celle de l'annexe.
             if mensuel {
                 if let Some(c) = communes.du_niveau(&niveau) {
-                    let en_dessous = match grille.du_niveau(&niveau) {
-                        None => true,
-                        Some(x) => c.0 < x.0,
-                    };
+                    let en_dessous = grille.du_niveau(&niveau).is_none_or(|x| c.0 < x.0);
                     if en_dessous {
                         grille = communes;
                         ou = "clauses communes".into();
@@ -858,7 +852,7 @@ fn a_verifier(t: &Table, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = droit::minima::idcc_du_contrat(ent.idcc.texte(), &spectacle_du_contrat(paie.spectacle.as_ref()), &paie.salarie)?;
+    let idcc = idcc_du_contrat(ent.idcc.texte(), paie.spectacle.as_ref(), &paie.salarie)?;
     let tab = table()?;
     let t: &Table = &tab;
     if t.convention(&idcc).is_none() {

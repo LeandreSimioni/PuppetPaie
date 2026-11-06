@@ -750,10 +750,10 @@ fn blanchi(t: &str, textes: bool) -> String {
 ///    (`.get("…")`, `x["…"]`) ;
 /// 2. de cle libre : aucune cle en `_` nommee (`rename = "_…"`, `"_cle"`, `"_{}"`, une cle lue ou ecrite), aucun
 ///    tri par le `_` de tete (`starts_with('_')`, `strip_prefix("_")`, `trim_start_matches('_')`) ;
-/// 3. de repli sur une donnee : ni `#[serde(default…)]`, ni `unwrap_or`, `unwrap_or_default`, `unwrap_or_else`,
-///    `map_or`, `map_or_else`. Une donnee absente d'un champ facultatif (`Option`) est vide ; une donnee
-///    obligatoire absente se refuse.
-/// 4. d'erreur avalee, ici et dans les couches de `SANS_ERREUR_AVALEE` : ni `.ok()`, ni `let Ok(..) = .. else`, ni
+/// 3. de repli sur une donnee, ici et dans les couches de `SANS_REPLI_NI_ERREUR_AVALEE` : ni `#[serde(default…)]`, ni
+///    `unwrap_or`, `unwrap_or_default`, `unwrap_or_else`, `map_or`, `map_or_else`, ni un bras `None =>` qui fabrique
+///    une valeur. Une donnee absente d'un champ facultatif (`Option`) est vide ; une donnee obligatoire absente se refuse.
+/// 4. d'erreur avalee, ici et dans les couches de `SANS_REPLI_NI_ERREUR_AVALEE` : ni `.ok()`, ni `let Ok(..) = .. else`, ni
 ///    `is_ok_and`, ni `is_err_and`. Une erreur remonte (`?`) ; un etat qui n'est pas une erreur (un nom qu'aucune fiche
 ///    ne porte, un texte qui n'est pas une adresse) se dit par un `match` qui le nomme.
 /// Le verrou n'a aucune exception : quand il echoue, on corrige le code ou la donnee.
@@ -763,6 +763,8 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
     assert_eq!(COUCHES_FERMEES, ORDRE[..COUCHES_FERMEES.len()], "les couches se ferment de bas en haut, dans l'ordre des crates");
     let json = regex::Regex::new(r#"\bValue\b|\bjson!|\bserde_json::|\bMap\s*<|\.get\("|[A-Za-z0-9_)\]]\s*\[""#).unwrap();
     let repli = regex::Regex::new(r"\b(?:unwrap_or(?:_default|_else)?|map_or(?:_else)?)\b|\bserde\s*\([^\]]*\bdefault\b").unwrap();
+    // Le repli en `match` : un bras `None =>` qui fabrique une valeur (texte vide, nombre, booleen, vecteur vide, defaut).
+    let bras_vide = regex::Regex::new(r#"\bNone\s*=>\s*\{?\s*(?:String::new\(\)|""|-?\d[\w.]*|false\b|true\b|Vec::new\(\)|vec!\s*\[\s*\]|Default::default\(\)|[A-Za-z_][\w:]*::default\(\)|Decimal::\w+|[A-Za-z_][\w:]*::(?:new\(\)|ZERO\b))"#).unwrap();
     let tri = regex::Regex::new(r#"\b(?:starts_with|strip_prefix|trim_start_matches)\s*\(\s*(?:'_'|"_")"#).unwrap();
     let mut fautes = Vec::new();
     for couche in COUCHES_FERMEES {
@@ -776,9 +778,6 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
                     if let Some(m) = json.find(l) {
                         fautes.push(format!("{} : `{}`, du JSON brut hors du bord : déclare la forme (`serde`, `deny_unknown_fields`) ; la lecture passe par `socle::forme`, l'écriture par `socle::ecriture`", ou(n + 1), m.as_str().trim()));
                     }
-                }
-                if let Some(m) = repli.find(l) {
-                    fautes.push(format!("{} : `{}`, un repli : une donnée exigée se refuse quand elle manque, une donnée nulle s'écrit `null` et se lit `Option` ; un calcul s'écrit sans repli (`sum`, `fold`, `match`, `?`)", ou(n + 1), m.as_str()));
                 }
             }
             for (n, l) in blanchi(&texte, false).lines().enumerate() {
@@ -796,9 +795,15 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
     // Une erreur ecartee sans etre remontee : `.ok()`, un `let Ok(..) else`, `is_ok_and`, `is_err_and`, `is_err()`, et tout
     // motif `Err(_)` (`Err(_x)`) qui ignore sa valeur (`match`, `if let`, `matches!`).
     let avalee = regex::Regex::new(r"\.ok\(\)|\blet\s+Ok\s*\(.*\belse\b|\bis_ok_and\b|\bis_err_and\b|\.is_err\(\)|\bErr\s*\(\s*_\w*\s*\)").unwrap();
-    for couche in COUCHES_FERMEES.iter().chain(SANS_ERREUR_AVALEE.iter()) {
+    for couche in COUCHES_FERMEES.iter().chain(SANS_REPLI_NI_ERREUR_AVALEE.iter()) {
         for f in sources(&espace().join(couche).join("src")) {
             for (n, l) in code_seul(&std::fs::read_to_string(&f).unwrap()).lines().enumerate() {
+                if let Some(m) = repli.find(l) {
+                    fautes.push(format!("{}:{} : `{}`, un repli : une donnée exigée se refuse quand elle manque, une donnée nulle s'écrit `null` et se lit `Option` ; un calcul s'écrit sans repli (`sum`, `fold`, `match`, `?`)", f.display(), n + 1, m.as_str()));
+                }
+                if let Some(m) = bras_vide.find(l) {
+                    fautes.push(format!("{}:{} : `{}`, un repli déguisé en `match` : un vide reste vide (`Option` porté jusqu'au lecteur) ou se refuse, il ne devient pas une valeur", f.display(), n + 1, m.as_str()));
+                }
                 if let Some(m) = avalee.find(l) {
                     fautes.push(format!("{}:{} : `{}`, une erreur avalée : elle remonte (`?`), ou un `match` nomme l'état qu'elle dit", f.display(), n + 1, m.as_str()));
                 }
@@ -808,9 +813,9 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
     assert!(fautes.is_empty(), "une couche fermée ne lit que des formes, entières ({} écarts) :\n{}", fautes.len(), fautes.join("\n"));
 }
 
-/// LES COUCHES SANS ERREUR AVALEE, en plus des couches fermees : leur code dit chaque erreur (point 4 de
-/// `une_couche_fermee_ne_lit_que_des_formes`). La liste ne fait que grandir.
-const SANS_ERREUR_AVALEE: [&str; 1] = ["engagement"];
+/// LES COUCHES TENUES SANS REPLI NI ERREUR AVALEE, en plus des couches fermees : leur code ne replie aucune donnee
+/// absente et dit chaque erreur (points 3 et 4 de `une_couche_fermee_ne_lit_que_des_formes`). La liste ne fait que grandir.
+const SANS_REPLI_NI_ERREUR_AVALEE: [&str; 1] = ["engagement"];
 
 /// L'engagement ne lit pas le journal : le moteur le lit une fois par geste (`envois::journal::lu`) et lui passe ce qui
 /// est parti.

@@ -232,10 +232,7 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
                 }
                 None => {
                     // Apres la ligne de meme identifiant a un autre taux s'il y en a une, sinon apres la precedente.
-                    let i = match lignes.iter().rposition(|x| x.id == l.id).or(precedente) {
-                        Some(i) => i + 1,
-                        None => 0,
-                    };
+                    let i: usize = lignes.iter().rposition(|x| x.id == l.id).or(precedente).into_iter().map(|i| i + 1).sum();
                     lignes.insert(i, l.clone());
                     precedente = Some(i);
                 }

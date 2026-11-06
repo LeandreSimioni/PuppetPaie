@@ -253,7 +253,7 @@ fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Result
     let permanent = |c: &ContratLu| c.contrat.nature_a_dire || c.contrat.nature.as_deref().is_some_and(|n| droit::natures::nature(n).is_ok_and(|n| n.mensuelle()));
     let mut groupes: Vec<Groupe> = Vec::new();
     for c in contrats {
-        groupes.push(Groupe { salarie: c.salarie.clone(), debut: c.debut.clone(), fin: c.fin.clone(), contrat: Some(c), paies: Vec::new() });
+        groupes.push(Groupe { salarie: c.salarie.clone(), debut: c.debut.clone().unwrap_or_default(), fin: c.fin.clone().unwrap_or_default(), contrat: Some(c), paies: Vec::new() });
     }
     for p in paies {
         let (s, d, f, o) = (p.salarie.clone(), iso(p.paie.debut), iso(p.paie.fin), p.paie.numero_objet.clone().unwrap_or_default());
@@ -385,7 +385,7 @@ fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Result
         })
         .collect::<Resultat<_>>()?;
     out.sort_by(|a, b| {
-        let k = |e: &Neuf| ([&e.carte.debut, &e.carte.fin].map(engagement::saisie::Carte::texte), e.carte.salarie.clone());
+        let k = |e: &Neuf| ((e.carte.debut.clone(), e.carte.fin.clone()), e.carte.salarie.clone());
         k(a).cmp(&k(b))
     });
     Ok(out)

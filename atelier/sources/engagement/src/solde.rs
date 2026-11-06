@@ -154,8 +154,9 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Carte, anciennete: Decimal, m
     let categorie = prof.categorie.as_deref();
     let conv = clauses::preavis_mois(idcc, categorie, anciennete, motif, age(ctx, e)?)?;
     let conv_mois = conv.mois.map(de_p).transpose()?;
-    let conv_pourquoi = Carte::texte(&conv.pourquoi);
-    let conv_article = Carte::texte(&conv.article);
+    // Une convention qui ne donne pas de duree dit pourquoi ; une qui en donne une dit son article (`clauses::preavis_mois`).
+    let conv_pourquoi = || conv.pourquoi.as_deref().ok_or_else(|| "le préavis de la convention ne donne pas de durée et ne dit pas pourquoi".to_string());
+    let conv_article = || conv.article.as_deref().ok_or_else(|| "le préavis de la convention donne une durée sans dire son article".to_string());
     let categorie_dite: String = categorie.map(clauses::categorie_en_mots).into_iter().collect();
     let mut out = Preavis { mois: None, legal, convention: conv_mois, qui: String::new(), dit: String::new(), pourquoi: None };
     let rel = clauses::releve(idcc)?;
@@ -174,7 +175,7 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Carte, anciennete: Decimal, m
         return Ok(out);
     }
     if releve && conv_mois.is_none() && categorie.is_some_and(|c| !c.is_empty()) {
-        out.pourquoi = Some(format!("{}. Dites sa durée sur la carte (« durée du préavis, en mois »).", conv_pourquoi));
+        out.pourquoi = Some(format!("{}. Dites sa durée sur la carte (« durée du préavis, en mois »).", conv_pourquoi()?));
         return Ok(out);
     }
     if releve && conv_mois.is_none() {
@@ -197,7 +198,7 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Carte, anciennete: Decimal, m
              (L1234-1, 1° : « la convention ou l'accord collectif de travail \
              ou, à défaut, les usages ») et {}. Dites-la sur la carte \
              (« durée du préavis, en mois »).",
-            conv_pourquoi
+            conv_pourquoi()?
         ));
         return Ok(out);
     }
@@ -206,12 +207,12 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Carte, anciennete: Decimal, m
     let pour_la_categorie = if categorie_dite.is_empty() { String::new() } else { format!(" ({})", categorie_dite) };
     if conv_mois.is_none() {
         out.qui = "la loi (L1234-1)".into();
-        out.dit = format!("L1234-1 ; {} : seule la loi est calculée", conv_pourquoi);
+        out.dit = format!("L1234-1 ; {} : seule la loi est calculée", conv_pourquoi()?);
     } else if legal.is_none() || conv_mois > legal {
-        out.qui = conv_article.clone();
+        out.qui = conv_article()?.to_string();
         out.dit = format!(
             "{}{} ; {}",
-            conv_article,
+            conv_article()?,
             pour_la_categorie,
             match legal {
                 None => "la loi n'en donne pas sous six mois".to_string(),
@@ -222,7 +223,7 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Carte, anciennete: Decimal, m
         out.qui = "la loi (L1234-1)".into();
         out.dit = format!(
             "L1234-1 ; {} en donne {}{}",
-            conv_article,
+            conv_article()?,
             conv.mois.iter().map(|m| m.to_string()).collect::<String>(),
             pour_la_categorie
         );
@@ -833,12 +834,8 @@ fn indemnite_de_rupture(
         if let (true, Some(rc_sec)) = (lic.du, rc_sec) {
             cc.bas = lic.bas;
             cc.haut = lic.haut;
-            cc.article = Some(format!(
-                "{} (art. {}, qui renvoie a {})",
-                clauses::nom(idcc),
-                rc_sec.article,
-                Carte::texte(&lic.article)
-            ));
+            let renvoi = lic.article.as_deref().ok_or_else(|| "l'indemnité conventionnelle de licenciement est due sans dire son article".to_string())?;
+            cc.article = Some(format!("{} (art. {}, qui renvoie a {})", clauses::nom(idcc), rc_sec.article, renvoi));
         }
         c = cc;
     }
@@ -849,7 +846,8 @@ fn indemnite_de_rupture(
         conv_haut = c.haut.map(de_p).transpose()?;
     }
     let conv_pourquoi = c.pourquoi.clone();
-    let pourquoi_legal = Carte::texte(&legale.pourquoi);
+    // Une indemnite legale qui n'est pas due dit pourquoi (`permanents`).
+    let pourquoi_legal = || legale.pourquoi.as_deref().ok_or_else(|| format!("{} : l'indemnité légale de {} n'est pas due et ne dit pas pourquoi", qui, quoi));
 
     let du_legal = legale.du;
     let m_legal = if du_legal { legale.montant } else { zero2() };
@@ -870,7 +868,7 @@ fn indemnite_de_rupture(
                 qui,
                 quoi,
                 euros(montant),
-                pourquoi_legal
+                pourquoi_legal()?
             ));
         }
         if montant < bas {
@@ -914,7 +912,7 @@ fn indemnite_de_rupture(
             "{} : pas d'indemnite legale de {} -- {} Et {}.",
             qui,
             quoi,
-            pourquoi_legal,
+            pourquoi_legal()?,
             phrase
         )));
         return Ok(());
@@ -957,7 +955,7 @@ fn indemnite_de_rupture(
             "{} : pas d'indemnite de {} -- {} Et {}.",
             qui,
             quoi,
-            pourquoi_legal,
+            pourquoi_legal()?,
             phrase
         )));
         return Ok(());
@@ -1147,7 +1145,7 @@ fn indemnite_de_licenciement(
                  ligne « Indemnité de licenciement » avec le montant retenu, \
                  entre {} et {}.",
                 qui,
-                Carte::texte(&conv.article),
+                article_de(&conv)?,
                 lectures(&conv)?,
                 euros(m_legal),
                 euros(bas),
@@ -1195,10 +1193,15 @@ fn indemnite_de_licenciement(
              primes, ajouter a la paie une ligne « Indemnite de \
              licenciement » avec le montant recalcule.",
             qui,
-            Carte::texte(&conv.article)
+            article_de(&conv)?
         )));
     }
     Ok(())
+}
+
+/// L'article d'une indemnite que la convention releve (`clauses::indemnite_licenciement`) : une convention relevee le dit.
+fn article_de(conv: &clauses::Indemnite) -> Resultat<&str> {
+    conv.article.as_deref().ok_or_else(|| socle::echec::livree("clauses-conventionnelles-base.json", "indemnite_licenciement.article"))
 }
 
 /// Le nom qu'un administrateur voit dans la liste des rubriques.
@@ -1240,7 +1243,7 @@ fn dit_conventionnel(conv: &clauses::Indemnite) -> Resultat<String> {
     if !conv.releve {
         return Ok(String::new());
     }
-    let article = Carte::texte(&conv.article);
+    let article = article_de(conv)?;
     if !conv.du {
         return Ok(format!(" et rien par {}", article));
     }
@@ -1261,9 +1264,10 @@ fn phrase_conventionnelle(conv: &clauses::Indemnite, m_legal: Decimal) -> Result
         };
         return Ok(format!("{} : seule la loi est calculee", pourquoi));
     }
-    let article = Carte::texte(&conv.article);
+    let article = article_de(conv)?;
     if !conv.du {
-        return Ok(format!("{} n'ouvre rien ici ({})", article, Carte::texte(&conv.pourquoi)));
+        let pourquoi = conv.pourquoi.as_deref().ok_or_else(|| socle::echec::livree("clauses-conventionnelles-base.json", "indemnite_licenciement.pourquoi"))?;
+        return Ok(format!("{} n'ouvre rien ici ({})", article, pourquoi));
     }
     let bas = bas_et_haut(conv)?.0;
     Ok(if bas == m_legal {

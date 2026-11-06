@@ -236,10 +236,7 @@ pub fn aleas(o: &mut [u8]) -> Result<(), String> {
     let tirage = aleas_fixes_ici().then(|| {
         let rang = TIRAGES.get() + 1;
         TIRAGES.set(rang);
-        let graine = match FIGE.get() {
-            Some(t) => t.to_bits(),
-            None => 0,
-        };
+        let graine: u64 = FIGE.get().into_iter().map(f64::to_bits).sum();
         (rang, graine)
     });
     let Some((rang, graine)) = tirage else {

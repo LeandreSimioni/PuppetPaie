@@ -472,10 +472,7 @@ impl Objet {
         if mois < self.fichier.as_str() {
             return Ok(false);
         }
-        Ok(match self.dernier_mois()? {
-            Some(d) => mois <= d.as_str(),
-            None => true,
-        })
+        Ok(self.dernier_mois()?.is_none_or(|d| mois <= d.as_str()))
     }
 
     /// Les mois de l'engagement jusqu'a `jusqu_a` : un engagement borne les a tous ; un contrat sans terme, ceux que la
@@ -723,16 +720,15 @@ pub fn objets_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Identite {
-    pub salarie: String,
+    /// `None` : une carte neuve, qui ne nomme pas encore son salarie.
+    pub salarie: Option<String>,
     pub debut: String,
     pub rang: usize,
 }
 
 /// L'IDENTITE DE CHAQUE ENGAGEMENT D'UNE LISTE (le plan), dans son ordre.
 pub fn identites(objets: &[Objet]) -> Vec<Identite> {
-    // Une carte neuve, qui ne nomme pas encore son salarie, a pour identite un salarie vide.
-    let paires: Vec<(String, String)> =
-        objets.iter().map(|o| (o.carte().salarie.as_ref().map(ToString::to_string).unwrap_or_default(), crate::debut_brut(&o.brut))).collect();
+    let paires: Vec<(Option<String>, String)> = objets.iter().map(|o| (o.carte().salarie.as_ref().map(ToString::to_string), crate::debut_brut(&o.brut))).collect();
     paires
         .iter()
         .enumerate()
@@ -1176,15 +1172,17 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Carte, le: Option<Jour>) ->
             continue;
         }
         if o.brut.saisie.faits.get(&m).is_some_and(|f| !f.lignes().is_empty()) {
+            let bornes = match (&o.carte().debut, &o.carte().fin) {
+                (Some(d), Some(f)) => format!("du {} au {}", d, f),
+                (Some(d), None) => format!("du {}, sans fin", d),
+                (None, Some(f)) => format!("jusqu'au {}, sans début", f),
+                (None, None) => "sans début ni fin".to_string(),
+            };
             return Err(format!(
-                "Le contrat irait du {} au {}, et {} y porte des jours payes : un mois de paie ne tient pas un contrat \
+                "Le contrat irait {}, et {} y porte des jours payes : un mois de paie ne tient pas un contrat \
                  qui ne le couvre pas. Rien n'est ecrit. Retirer d'abord les lignes de {}, ou garder des bornes qui le \
                  couvrent.",
-                Carte::texte(&o.carte().debut),
-                match &o.carte().fin {
-                    Some(f) => f.clone(),
-                    None => "?".to_string(),
-                },
+                bornes,
                 socle::mois::Mois::en_clair(&m.to_string()),
                 socle::mois::Mois::en_clair(&m.to_string())
             ));

@@ -58,14 +58,14 @@ struct Versee {
 fn versees_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<Versee>> {
     let mut out = Vec::new();
     for i in engagement::importe::du_mois(&ctx.racine, mois).map_err(socle::echec::Echec::from)? {
-        let Some(p) = i.paies_lues().into_iter().find(|p| p.mois == mois) else { continue };
+        let Some(p) = i.paies_lues().map_err(socle::echec::Echec::from)?.into_iter().find(|p| p.mois == mois) else { continue };
         let Some(brut) = p.paie.brut else { continue };
         let cle = p.salarie.clone();
         let salarie = ctx.salaries.get(cle.as_str()).cloned().ok_or_else(|| refus(format!("{} : la fiche du salarie « {} » d'un engagement importe n'existe pas.", mois, cle)))?;
         let (debut, fin) = (p.paie.debut.map(|j| j.iso()), p.paie.fin.map(|j| j.iso()));
         let mut activite = Vec::new();
-        if let Some(c) = i.contrat_lu() {
-            if c.debut.starts_with(mois) && c.fin.starts_with(mois) {
+        if let Some(c) = i.contrat_lu().map_err(socle::echec::Echec::from)? {
+            if c.debut.as_deref().is_some_and(|d| d.starts_with(mois)) && c.fin.as_deref().is_some_and(|f| f.starts_with(mois)) {
                 for (quoi, n) in [("jours", c.contrat.jours), ("cachets", c.contrat.cachets), ("heures", c.contrat.heures)] {
                     if let Some(v) = n.filter(|n| *n != 0) {
                         activite.push((quoi, Decimal::from(v)));

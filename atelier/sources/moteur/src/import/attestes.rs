@@ -77,8 +77,8 @@ fn lu(nir: &str, ligne: &ContratLu, source: &'static str) -> Atteste {
     let n = |x: Option<i64>| i128::from(x.unwrap_or(0));
     Atteste {
         nir: nir.to_string(),
-        debut: ligne.debut.clone(),
-        fin: ligne.fin.clone(),
+        debut: ligne.debut.clone().unwrap_or_default(),
+        fin: ligne.fin.clone().unwrap_or_default(),
         source,
         par: c.atteste_par,
         heures: n(c.heures),
@@ -144,7 +144,7 @@ fn reste_du_certificat(c: &Atteste, par: &[&Atteste]) -> Result<Option<ContratLu
     let mut ligne = c.ligne.clone();
     let mut b = reste_brut.unwrap_or_default().round_dp(2);
     b.rescale(2);
-    (ligne.debut, ligne.fin) = (debut, fin);
+    (ligne.debut, ligne.fin) = (Some(debut), Some(fin));
     ligne.contrat.cachets = Some(reste_cachets as i64);
     ligne.contrat.jours = Some(reste_jours as i64);
     ligne.contrat.brut = Some(b);
@@ -182,8 +182,8 @@ impl Registre {
         let mut tous = Vec::new();
         let mut muets = Vec::new();
         for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
-            let Some(c) = i.contrat_lu() else { continue };
-            let (cle, debut, fin) = (c.salarie.clone(), c.debut.clone(), c.fin.clone());
+            let Some(c) = i.contrat_lu().map_err(Echec::from)? else { continue };
+            let (cle, debut, fin) = (c.salarie.clone(), c.debut.clone().unwrap_or_default(), c.fin.clone().unwrap_or_default());
             let permanent = i.permanent();
             let manque: Vec<&str> =
                 [(cle.is_empty(), "salarié"), (debut.is_empty(), "début"), (fin.is_empty() && !permanent, "fin")].iter().filter(|m| m.0).map(|m| m.1).collect();

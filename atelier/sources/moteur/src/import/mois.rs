@@ -212,8 +212,8 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&PaieLue>, contrat: Option<&Co
     let plein = |t: String| Some(t.trim().to_string()).filter(|t| !t.is_empty());
     let salarie = paie.and_then(|x| plein(x.salarie.clone())).or_else(|| contrat.and_then(|x| plein(x.salarie.clone()))).unwrap_or_default();
     let jour = |j: Option<socle::date::Jour>| j.map(|j| j.iso());
-    let debut = p.and_then(|p| jour(p.debut)).or_else(|| contrat.and_then(|x| plein(x.debut.clone()))).unwrap_or_default();
-    let fin = p.and_then(|p| jour(p.fin)).or_else(|| contrat.and_then(|x| plein(x.fin.clone()))).unwrap_or_default();
+    let debut = p.and_then(|p| jour(p.debut)).or_else(|| contrat.and_then(|x| x.debut.clone().and_then(plein))).unwrap_or_default();
+    let fin = p.and_then(|p| jour(p.fin)).or_else(|| contrat.and_then(|x| x.fin.clone().and_then(plein))).unwrap_or_default();
     let numero = p.and_then(|p| p.numero_objet.clone()).or_else(|| c.and_then(|c| c.numero_objet.clone())).and_then(plein).unwrap_or_default();
     let spectacle = spectacle_de(ctx, &numero);
     let titre_bulletin = p.and_then(|p| p.spectacle.clone()).and_then(plein).unwrap_or_default();
@@ -449,11 +449,11 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     let (certifiees, _) = envois::reprise_journal::embauches_attestees(ctx);
     let mut cartes = Vec::new();
     for i in importes {
-        let contrat = i.contrat_lu();
-        let paie = i.paies_lues().into_iter().find(|p| p.mois == mois);
+        let contrat = i.contrat_lu().map_err(Echec::from)?;
+        let paie = i.paies_lues().map_err(Echec::from)?.into_iter().find(|p| p.mois == mois);
         let brut = i.objet().carte();
-        let (s, d) = (brut.salarie.as_ref().map(ToString::to_string).unwrap_or_default(), engagement::saisie::Carte::texte(&brut.debut));
-        let dpae = dpae_de(&embauches, &certifiees, &s, &engagement::saisie::Carte::texte(&brut.numero), &d);
+        let (s, d) = (brut.salarie.as_ref().map(ToString::to_string).unwrap_or_default(), brut.debut.clone().unwrap_or_default());
+        let dpae = dpae_de(&embauches, &certifiees, &s, &brut.numero.clone().unwrap_or_default(), &d);
         cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));
     }
     cartes.sort_by(|a, b| (texte(a, "debut"), texte(a, "nom")).cmp(&(texte(b, "debut"), texte(b, "nom"))));

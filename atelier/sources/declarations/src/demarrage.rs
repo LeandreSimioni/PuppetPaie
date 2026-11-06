@@ -349,13 +349,13 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
         }
         let e = o.carte();
         let Some(salarie) = e.salarie.as_ref().map(ToString::to_string) else { continue };
-        let debut = engagement::saisie::Carte::texte(&e.debut);
-        if debut.is_empty() || vus.contains(&salarie) || !mensuel(&engagement::saisie::Carte::texte(&e.nature)) {
+        let (Some(debut), Some(nature)) = (e.debut.as_deref().filter(|d| !d.is_empty()), e.nature.as_deref()) else { continue };
+        if vus.contains(&salarie) || !mensuel(nature) {
             continue;
         }
         vus.push(salarie.clone());
-        if engagement::stock::commence_avant_le_logiciel(&ctx.racine, &debut, o.premier_mois()).unwrap_or(false) {
-            contrats.push((salarie, debut, format!("{}-01", o.premier_mois())));
+        if engagement::stock::commence_avant_le_logiciel(&ctx.racine, debut, o.premier_mois()).unwrap_or(false) {
+            contrats.push((salarie, debut.to_string(), format!("{}-01", o.premier_mois())));
         }
     }
     let mut out = Vec::new();

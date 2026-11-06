@@ -137,16 +137,13 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> Resultat<bool> {
         };
         return Ok(stock::empreinte_de_la_saisie_du_mois(racine, mois, salarie)?.is_some_and(|e| v == e));
     }
-    Ok(match fichiers::chemin_de(k, racine, &code) {
-        Some((genre, p)) => match genre.as_str() {
-            "fichier" => v == fichiers::empreinte_fichier(&p),
-            "existe" => v == if p.exists() { "oui" } else { "non" },
-            "dossier?" => v == if p.is_dir() { "oui" } else { "non" },
-            "dossier" => v == fichiers::empreinte_dossier(&p),
-            _ => false,
-        },
-        None => false,
-    })
+    Ok(fichiers::chemin_de(k, racine, &code).is_some_and(|(genre, p)| match genre.as_str() {
+        "fichier" => v == fichiers::empreinte_fichier(&p),
+        "existe" => v == if p.exists() { "oui" } else { "non" },
+        "dossier?" => v == if p.is_dir() { "oui" } else { "non" },
+        "dossier" => v == fichiers::empreinte_dossier(&p),
+        _ => false,
+    }))
 }
 
 /// Les regles datees qui s'appliquent au jour `jour` (`Contexte::regles_datees`), en AAAA-MM-JJ.

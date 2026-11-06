@@ -301,7 +301,7 @@ fn emploi_imprime(e: &engagement::Engagement, sal: &ChampsSalarie) -> Resultat<S
 }
 
 pub fn convention_du_contrat(ent: &ChampsEntreprise, sp: Option<&droit::fiche::Spectacle>, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
-    let idcc = droit::minima::idcc_du_contrat(ent.idcc.texte(), &engagement::minima::spectacle_du_contrat(sp), sal)?;
+    let idcc = engagement::minima::idcc_du_contrat(ent.idcc.texte(), sp, sal)?;
     if idcc.is_empty() {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", "idcc"));
     }

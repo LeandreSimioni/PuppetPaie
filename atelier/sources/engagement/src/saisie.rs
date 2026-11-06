@@ -376,14 +376,6 @@ impl Carte {
     pub fn mensuelle(&self) -> Resultat<bool> {
         Ok(self.nature_lue()?.mensuelle())
     }
-
-    /// Le texte d'un champ texte dit et non vide ; vide sinon.
-    pub fn texte(x: &Option<String>) -> String {
-        match x {
-            Some(t) => t.clone(),
-            None => String::new(),
-        }
-    }
 }
 
 /// Des conges pris dans le mois, d'un jour a l'autre (AAAA-MM-JJ). La page envoie une ligne commencee telle quelle, le

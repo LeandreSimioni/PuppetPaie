@@ -621,7 +621,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
     let mut vus: HashSet<(String, String, String)> = HashSet::new();
     for i in engagement::importe::qui_continuent(&ctx.racine, mois).map_err(Echec::from)? {
         let b = i.objet().carte();
-        let t = engagement::saisie::Carte::texte;
+        let t = |x: &Option<String>| x.clone().unwrap_or_default();
         let Some(salarie) = b.salarie.as_ref().map(ToString::to_string) else { continue };
         let (debut, fin, numero) = (t(&b.debut), t(&b.fin), t(&b.numero));
         if !vus.insert((salarie.clone(), debut.clone(), numero.clone())) {
@@ -768,8 +768,8 @@ struct Atteste {
 fn historique(ctx: &Contexte) -> R<Vec<Atteste>> {
     let mut out = Vec::new();
     for i in engagement::importe::tous(&ctx.racine).map_err(Echec::from)? {
-        let Some(c) = i.contrat_lu() else { continue };
-        let atteste = |debut: String, fin: String, (cachets, heures, jours): (Option<i64>, Option<i64>, Option<i64>)| Atteste {
+        let Some(c) = i.contrat_lu().map_err(Echec::from)? else { continue };
+        let atteste =|debut: String, fin: String, (cachets, heures, jours): (Option<i64>, Option<i64>, Option<i64>)| Atteste {
             salarie: c.salarie.clone(),
             debut,
             fin,
@@ -779,7 +779,7 @@ fn historique(ctx: &Contexte) -> R<Vec<Atteste>> {
             jours: jours.unwrap_or(0),
         };
         if !i.permanent() {
-            out.push(atteste(c.debut.clone(), c.fin.clone(), (c.contrat.cachets, c.contrat.heures, c.contrat.jours)));
+            out.push(atteste(c.debut.clone().unwrap_or_default(), c.fin.clone().unwrap_or_default(), (c.contrat.cachets, c.contrat.heures, c.contrat.jours)));
             continue;
         }
         for (m, p) in i.paies() {

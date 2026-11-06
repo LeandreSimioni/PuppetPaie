@@ -603,8 +603,8 @@ fn etat_importation(racine: &Path) -> R<EtatImportation> {
     let paies = engagement::importe::paies_lues(racine).map_err(Echec::from)?;
     let importe_le = contrats.iter().filter_map(|c| c.contrat.importe_le.clone()).chain(paies.iter().filter_map(|p| p.paie.importe_le.clone())).max().unwrap_or_default();
     let plein = |t: &str| Some(t.to_string()).filter(|t| !t.is_empty());
-    let debut = contrats.iter().filter_map(|c| plein(&c.debut)).min().unwrap_or_default();
-    let fin = contrats.iter().filter_map(|c| plein(&c.fin)).max().unwrap_or_default();
+    let debut = contrats.iter().filter_map(|c| c.debut.as_deref().and_then(plein)).min().unwrap_or_default();
+    let fin = contrats.iter().filter_map(|c| c.fin.as_deref().and_then(plein)).max().unwrap_or_default();
     let salaries: HashSet<&str> = contrats.iter().map(|c| c.salarie.as_str()).filter(|s| !s.is_empty()).collect();
     let objets: HashSet<&str> = contrats.iter().filter_map(|c| c.contrat.numero_objet.as_deref()).collect();
     let editeur = attend_l_editeur(racine);
@@ -736,7 +736,7 @@ fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], p
             Attestation::Certificat => &mut certificats,
             Attestation::Aem => &mut aem,
         };
-        cible.voir(&c.debut, &c.fin, c.contrat.importe_le.as_deref());
+        cible.voir(c.debut.as_deref(), c.fin.as_deref(), c.contrat.importe_le.as_deref());
     }
     let (mut dsn, mut bulletins) = (Reprise::default(), Reprise::default());
     // Les DSN reprises : une par mois declare (la phrase de l'etat dit des declarations, pas des versements).
@@ -745,13 +745,13 @@ fn reprises_faites(racine: &Path, contrats: &[engagement::importe::ContratLu], p
         let le = x.paie.importe_le.as_deref();
         // Une paie declaree par une DSN et completee par un bulletin compte des deux cotes : elle a les deux sources.
         if x.paie.declare_par == Declaration::Dsn {
-            dsn.voir(&x.mois, &x.mois, le);
+            dsn.voir(Some(&x.mois), Some(&x.mois), le);
             if !x.mois.is_empty() {
                 mois_dsn.insert(x.mois.clone());
             }
         }
         if x.paie.declare_par == Declaration::Bulletin || x.paie.bulletin.is_some() {
-            bulletins.voir(&x.mois, &x.mois, le);
+            bulletins.voir(Some(&x.mois), Some(&x.mois), le);
         }
     }
     let copies = std::fs::read_dir(racine.join("historique").join("bulletins"))
@@ -840,15 +840,15 @@ fn message(canal: &'static str, quand: String, resume: String, parti: bool, repo
 
 impl Reprise {
     /// Une ligne de plus : ses dates (un texte non vide), et le jour ou elle a ete reprise.
-    fn voir(&mut self, debut: &str, fin: &str, le: Option<&str>) {
+    fn voir(&mut self, debut: Option<&str>, fin: Option<&str>, le: Option<&str>) {
         let texte = |v: Option<&str>| v.filter(|s| !s.is_empty()).map(str::to_string);
         self.nombre += 1;
-        if let Some(d) = texte(Some(debut)) {
+        if let Some(d) = texte(debut) {
             if self.du.as_ref().is_none_or(|x| &d < x) {
                 self.du = Some(d);
             }
         }
-        if let Some(f) = texte(Some(fin)) {
+        if let Some(f) = texte(fin) {
             if self.au.as_ref().is_none_or(|x| &f > x) {
                 self.au = Some(f);
             }

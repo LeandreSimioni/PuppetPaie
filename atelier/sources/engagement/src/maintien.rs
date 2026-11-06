@@ -204,10 +204,7 @@ pub fn fin_possible(r: &Regime, premier: &Jour, fin_arret: &Jour) -> Resultat<Jo
 pub fn deja_indemnises(ctx: &Contexte, imp: &ArretSaisi, nat: &Nature, t: Texte) -> Resultat<i64> {
     let premier = crate::imprevus::premier_jour_d_arret(imp)?;
     let debut_fenetre = plus_mois(&premier, -12)?;
-    let saisis = match imp.jours_deja_indemnises.as_ref().filter(|x| x.vrai()) {
-        Some(x) => entier(x)?,
-        None => 0,
-    };
+    let saisis = imp.jours_deja_indemnises.as_ref().filter(|x| x.vrai()).into_iter().map(entier).sum::<Resultat<i64>>()?;
     let mut total = saisis;
     let cle = &imp.salarie;
     for autre in crate::imprevus::du_salarie(&ctx.racine, cle)? {

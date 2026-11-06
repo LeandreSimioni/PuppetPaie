@@ -822,10 +822,12 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &crate::saisie::Carte, mois: &str, m: &
     let heures_du_mois = eur2(mul(m.heures_par_jour, Decimal::from(m.jours_payes)));
     let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
     // Un contrat sans date de debut ecrite ne se designe pas : aucun imprevu ne peut le nommer (S21.G00.40.001).
-    let imprevus = match crate::conges::jour_dit(&e.debut)? {
-        Some(debut) => du_contrat_dans_le_mois(ctx, crate::conges::salarie_de(e)?, &debut, e.numero.as_deref(), mois)?,
-        None => Vec::new(),
-    };
+    let imprevus: Vec<_> = crate::conges::jour_dit(&e.debut)?
+        .map(|debut| du_contrat_dans_le_mois(ctx, crate::conges::salarie_de(e)?, &debut, e.numero.as_deref(), mois))
+        .transpose()?
+        .into_iter()
+        .flatten()
+        .collect();
     for imp in imprevus {
         let (premier, dernier) = (premier_jour(&imp)?, dernier_jour(&imp)?);
         let (debut, fin) = (premier.max(m.debut), dernier.min(m.fin));

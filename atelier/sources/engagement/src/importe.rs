@@ -236,8 +236,10 @@ pub struct BulletinSource {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ContratLu {
     pub salarie: String,
-    pub debut: String,
-    pub fin: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debut: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fin: Option<String>,
     #[serde(rename = "contrat", skip_serializing_if = "Option::is_none")]
     pub numero: Option<String>,
     #[serde(flatten)]
@@ -415,7 +417,7 @@ impl Importe {
 
     /// La nature dite (l'engagement) ou attestee (la piece) ; `None` : ni l'un ni l'autre ne la porte.
     fn nature_dite(&self) -> Option<String> {
-        Some(Carte::texte(&self.carte().nature)).filter(|n| !n.is_empty()).or_else(|| self.contrat().and_then(|c| c.nature.clone()))
+        self.carte().nature.clone().filter(|n| !n.is_empty()).or_else(|| self.contrat().and_then(|c| c.nature.clone()))
     }
 
     /// Sa nature reste-t-elle a dire ? Le bulletin d'un permanent ne la porte pas (`nature_a_dire`), et personne ne l'a
@@ -436,9 +438,9 @@ impl Importe {
     /// sa nature dite (`import::nature`) ; sans numero, rien ne se reprend.
     pub fn continue_apres(&self) -> Option<String> {
         let dernier = self.paies().keys().max()?.clone();
-        let fin = Carte::texte(&self.carte().fin);
+        let apres = self.carte().fin.as_deref().and_then(|f| f.get(..7)).is_some_and(|f| f > dernier.as_str());
         let par_aem = self.contrat().is_some_and(|c| c.atteste_par == Attestation::Aem);
-        let continue_ = fin.len() >= 7 && &fin[..7] > dernier.as_str() && !par_aem && !self.permanent() && !Carte::texte(&self.carte().numero).is_empty();
+        let continue_ = apres && !par_aem && !self.permanent() && self.carte().numero.as_deref().is_some_and(|n| !n.is_empty());
         continue_.then_some(dernier)
     }
 
@@ -446,17 +448,16 @@ impl Importe {
     /// ceux ou il a ete verse. Le contrat d'un permanent ne touche que les mois ou il a ete verse : des mois d'avant le
     /// premier bulletin repris, les pieces ne disent rien, et ceux d'apres le dernier sont ceux d'ici.
     pub fn mois(&self) -> Vec<String> {
-        let (debut, fin) = (Carte::texte(&self.carte().debut), Carte::texte(&self.carte().fin));
         let mut v: Vec<String> = self.paies().keys().cloned().collect();
-        if debut.len() >= 7 && !self.permanent() {
-            let fin = match self.continue_apres() {
-                Some(dernier) => format!("{}-01", dernier),
-                None if fin.len() >= 7 => fin,
-                None if !v.is_empty() => {
+        if let (Some(debut), false) = (self.carte().debut.as_deref().filter(|d| d.len() >= 7), self.permanent()) {
+            let fin = match (self.continue_apres(), self.carte().fin.as_deref().filter(|f| f.len() >= 7)) {
+                (Some(dernier), _) => format!("{}-01", dernier),
+                (None, Some(fin)) => fin.to_string(),
+                (None, None) if !v.is_empty() => {
                     v.sort();
                     return v;
                 }
-                None => debut.clone(),
+                (None, None) => debut.to_string(),
             };
             let mut m = debut[..7].to_string();
             while m.as_str() <= &fin[..7] {
@@ -473,41 +474,40 @@ impl Importe {
     }
 
     /// Le contrat atteste, avec les bornes de l'engagement. La nature dite est celle du contrat : il n'attend plus rien.
-    pub fn contrat_lu(&self) -> Option<ContratLu> {
-        let mut contrat = self.contrat()?.clone();
+    pub fn contrat_lu(&self) -> Resultat<Option<ContratLu>> {
+        let Some(contrat) = self.contrat() else { return Ok(None) };
+        let mut contrat = contrat.clone();
         if let Some(n) = self.nature_dite() {
             contrat.nature_a_dire = false;
             contrat.nature = Some(n);
         }
         contrat.importe_le = contrat.importe_le.or_else(|| Some(self.le().to_string()).filter(|l| !l.is_empty()));
-        let numero = Some(Carte::texte(&self.carte().numero)).filter(|n| !n.is_empty());
-        Some(ContratLu { salarie: self.cle_ecrite(), debut: Carte::texte(&self.carte().debut), fin: Carte::texte(&self.carte().fin), numero, contrat })
+        let numero = self.carte().numero.clone().filter(|n| !n.is_empty());
+        Ok(Some(ContratLu { salarie: self.cle_ecrite()?, debut: self.carte().debut.clone(), fin: self.carte().fin.clone(), numero, contrat }))
     }
 
     /// Les paies versees, une par mois, avec le salarie de l'engagement.
-    pub fn paies_lues(&self) -> Vec<PaieLue> {
+    pub fn paies_lues(&self) -> Resultat<Vec<PaieLue>> {
         self.paies().iter().map(|(m, p)| self.paie_lue(m, p)).collect()
     }
 
-    fn paie_lue(&self, mois: &str, p: &PaieVersee) -> PaieLue {
+    fn paie_lue(&self, mois: &str, p: &PaieVersee) -> Resultat<PaieLue> {
         let mut paie = p.clone();
         paie.importe_le = paie.importe_le.or_else(|| Some(self.le().to_string()).filter(|l| !l.is_empty()));
-        PaieLue { mois: mois.to_string(), salarie: self.cle_ecrite(), paie }
+        Ok(PaieLue { mois: mois.to_string(), salarie: self.cle_ecrite()?, paie })
     }
 
-    /// La cle de la fiche de son salarie, ecrite ; vide si la carte ne le dit pas (un import le dit toujours).
-    fn cle_ecrite(&self) -> String {
-        self.carte().salarie.as_ref().map(ToString::to_string).unwrap_or_default()
+    /// La cle de la fiche de son salarie, ecrite ; un engagement importe qui ne la dit pas se refuse.
+    fn cle_ecrite(&self) -> Resultat<String> {
+        let o = &self.objet;
+        o.carte().salarie.as_ref().map(ToString::to_string).ok_or_else(|| format!("l'engagement importé {} (rang {}) ne dit pas son salarié", o.fichier, o.rang))
     }
 }
 
 /// UN MONTANT QUE LES PIECES DISENT, ou zero (au centime) quand elles le taisent : une paie importee le nomme parmi ses
 /// `non_dits` (`Importe::paie`), et un etat le laisse vide.
 fn tu_vaut_zero(x: Option<Decimal>) -> Decimal {
-    match x {
-        Some(m) => m,
-        None => Decimal::new(0, 2),
-    }
+    x.into_iter().fold(Decimal::new(0, 2), |_, m| m)
 }
 
 /// Les montants d'une paie importee, tels que ses pieces les nomment, et la grandeur de la paie qu'ils sont.
@@ -537,7 +537,7 @@ impl Importe {
     ///
     /// Ce que les pieces ne disent pas vaut zero et se nomme (`Importee::non_dits`) : un etat le laisse vide.
     pub fn paie(&self, ctx: &Contexte, mois: &str) -> Resultat<Paie> {
-        let p = self.paies().get(mois).ok_or_else(|| format!("{} : aucune paie importee en {}", self.cle_ecrite(), mois))?;
+        let p = self.paies().get(mois).ok_or_else(|| format!("{} (rang {}) : aucune paie importee en {}", self.objet.fichier, self.objet.rang, mois))?;
         let contrat = self.contrat();
         let zero = Decimal::new(0, 2);
         let mut non_dits: Vec<&'static str> = montants(p).iter().filter(|(_, m)| m.is_none()).map(|(k, _)| *k).collect();
@@ -547,23 +547,24 @@ impl Importe {
         let ctx = ctx.du_mois(mois)?;
         let cle = self.carte().salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?;
         let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(cle)?);
-        let objet = Carte::texte(&p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone()))).to_uppercase();
-        let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.numero_objet.portee().map(str::to_uppercase) == Some(objet.clone())).map(|(k, _)| k.clone());
+        let objet: Option<String> = p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone())).filter(|o| !o.is_empty()).map(|o| o.to_uppercase());
+        let spectacle = ctx.spectacles.iter().find(|(_, f)| objet.is_some() && f.numero_objet.portee().map(str::to_uppercase) == objet).map(|(k, _)| k.clone());
         let spec = match &spectacle {
             Some(k) => Some(ctx.spectacle(k)?),
             None => None,
         };
         // L'emploi que le bulletin imprime ; un bulletin qui ne l'imprime pas n'en dit rien.
         let imprime = |champ: fn(&EmploiImprime) -> &Option<String>| p.emploi_imprime.as_ref().and_then(|i| champ(i).clone());
-        let debut = match Jour::lire(&Carte::texte(&self.carte().debut)) {
-            Ok(j) => j,
-            Err(e) => p.debut.ok_or(e)?,
+        let debut = match (self.carte().debut.as_deref(), p.debut) {
+            (Some(d), _) => Jour::lire(d)?,
+            (None, Some(j)) => j,
+            (None, None) => return Err(format!("{} (rang {}) : ni l'engagement ni la paie de {} ne disent le début du contrat", self.objet.fichier, self.objet.rang, mois)),
         };
         // Le contrat d'un permanent finit a sa fin, dite ou declaree, jamais a celle du mois que paie un bulletin.
-        let fin = match Jour::du_texte(&Carte::texte(&self.carte().fin)) {
-            Some(f) => Some(f),
-            None if self.permanent() => None,
-            None => p.fin,
+        let fin = match (self.carte().fin.as_deref().and_then(Jour::du_texte), self.permanent()) {
+            (Some(f), _) => Some(f),
+            (None, true) => None,
+            (None, false) => p.fin,
         };
         let mut dates_travail = Vec::new();
         for d in &p.dates {
@@ -647,8 +648,11 @@ impl Importe {
             .iter()
             .flatten()
             .map(|l| LigneCotisation {
-                id: Carte::texte(&l.cotisation),
-                famille: Carte::texte(&l.famille),
+                // TRAVAIL A FAIRE (question a Leandre) : `LigneCotisation::{id, famille}` sont des textes, vides pour une ligne
+                // que l'import n'a pas qualifiee ; ils deviennent `Option` (une quarantaine de lecteurs, dont `documents` et
+                // `declarations`) ou la ligne se refuse.
+                id: l.cotisation.iter().cloned().collect(),
+                famille: l.famille.iter().cloned().collect(),
                 libelle: l.libelle.clone(),
                 base: tu_vaut_zero(l.base),
                 taux_pat: taux(l.taux_employeur),
@@ -732,12 +736,12 @@ pub fn du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Importe>> {
 
 /// Les contrats attestes de tous les engagements importes (`Importe::contrat_lu`).
 pub fn contrats_lus(racine: &Path) -> Resultat<Vec<ContratLu>> {
-    Ok(tous(racine)?.iter().filter_map(Importe::contrat_lu).collect())
+    Ok(tous(racine)?.iter().map(Importe::contrat_lu).collect::<Resultat<Vec<_>>>()?.into_iter().flatten().collect())
 }
 
 /// Les paies versees de tous les engagements importes, une par mois (`Importe::paies_lues`).
 pub fn paies_lues(racine: &Path) -> Resultat<Vec<PaieLue>> {
-    Ok(tous(racine)?.iter().flat_map(Importe::paies_lues).collect())
+    Ok(tous(racine)?.iter().map(Importe::paies_lues).collect::<Resultat<Vec<_>>>()?.into_iter().flatten().collect())
 }
 
 /// LA DSN DE `mois` QUE L'ANCIEN LOGICIEL A DEPOSEE : une paie importee de ce mois qu'une DSN deposee declare
@@ -745,15 +749,13 @@ pub fn paies_lues(racine: &Path) -> Resultat<Vec<PaieLue>> {
 /// pas faite ici et ne se refait pas ici (regle 4) : ce que la saisie ajoute a ce mois se declare dans une DSN suivante,
 /// comme un contrat ajoute apres la DSN de son mois.
 pub fn dsn_deposee(racine: &Path, mois: &str) -> Resultat<Option<PaieLue>> {
-    Ok(tous(racine)?.iter().find_map(|i| {
-        let p = i.paies().get(mois)?;
-        (p.declare_par == Declaration::Dsn).then(|| i.paie_lue(mois, p))
-    }))
+    let trouve = tous(racine)?.iter().find_map(|i| i.paies().get(mois).filter(|p| p.declare_par == Declaration::Dsn).map(|p| i.paie_lue(mois, p)));
+    trouve.transpose()
 }
 
 /// L'engagement importe du salarie `cle` (la cle de sa fiche) qui commence le `debut` et touche `mois`, s'il y en a un.
 pub fn celui_de(racine: &Path, mois: &str, cle: &str, debut: &str) -> Resultat<Option<Importe>> {
-    Ok(du_mois(racine, mois)?.into_iter().find(|i| i.carte().salarie.as_deref() == Some(cle) && Carte::texte(&i.carte().debut) == debut))
+    Ok(du_mois(racine, mois)?.into_iter().find(|i| i.carte().salarie.as_deref() == Some(cle) && i.carte().debut.as_deref() == Some(debut)))
 }
 
 /// Les contrats d'usage importes qui continuent en `mois` (`Importe::continue_apres`) : verses avant lui par l'ancien
@@ -761,20 +763,16 @@ pub fn celui_de(racine: &Path, mois: &str, cle: &str, debut: &str) -> Resultat<O
 pub fn qui_continuent(racine: &Path, mois: &str) -> Resultat<Vec<Importe>> {
     Ok(tous(racine)?
         .into_iter()
-        .filter(|i| i.continue_apres().is_some_and(|d| d.as_str() < mois) && Carte::texte(&i.carte().fin).get(..7).is_some_and(|f| f >= mois))
+        .filter(|i| i.continue_apres().is_some_and(|d| d.as_str() < mois) && i.carte().fin.as_deref().and_then(|f| f.get(..7)).is_some_and(|f| f >= mois))
         .collect())
 }
 
 /// Le contrat importe que l'engagement `e` de la saisie continue : meme salarie, meme debut, meme numero, et il continue
 /// apres son dernier mois verse (`continue_apres`).
 pub fn continue_par(racine: &Path, e: &Carte) -> Resultat<Option<Importe>> {
-    let (debut, numero) = (Carte::texte(&e.debut), Carte::texte(&e.numero));
-    let Some(salarie) = &e.salarie else { return Ok(None) };
-    if debut.is_empty() || numero.is_empty() {
-        return Ok(None);
-    }
+    let (Some(debut), Some(numero), Some(salarie)) = (e.debut.as_deref().filter(|d| !d.is_empty()), e.numero.as_deref().filter(|n| !n.is_empty()), &e.salarie) else { return Ok(None) };
     Ok(tous(racine)?.into_iter().find(|i| {
-        i.continue_apres().is_some() && i.carte().salarie.as_ref() == Some(salarie) && Carte::texte(&i.carte().debut) == debut && Carte::texte(&i.carte().numero) == numero
+        i.continue_apres().is_some() && i.carte().salarie.as_ref() == Some(salarie) && i.carte().debut.as_deref() == Some(debut) && i.carte().numero.as_deref() == Some(numero)
     }))
 }
 
@@ -801,7 +799,7 @@ pub fn numero_declare(o: &Objet) -> Resultat<Option<NumeroContrat>> {
 /// Une DSN de l'ancien logiciel a-t-elle declare le numero du contrat de `salarie` commence le `debut`
 /// (`numero_declare`, lu sur l'engagement repris qui le porte) ?
 pub fn numero_declare_du_contrat(racine: &Path, salarie: &str, debut: &str) -> Resultat<bool> {
-    for i in tous(racine)?.iter().filter(|i| i.carte().salarie.as_deref() == Some(salarie) && Carte::texte(&i.carte().debut) == debut) {
+    for i in tous(racine)?.iter().filter(|i| i.carte().salarie.as_deref() == Some(salarie) && i.carte().debut.as_deref() == Some(debut)) {
         if numero_declare(&i.objet)?.is_some() {
             return Ok(true);
         }
@@ -857,11 +855,10 @@ pub struct Neuf {
 /// LE CONTRAT DE PERMANENT QUI CONTINUE ICI : sa nature est dite et payee au mois, il a ete verse le dernier mois repris
 /// (`dernier`), et il ne finit pas avant le mois qui suit.
 fn continue_ici(e: &Neuf, dernier: &str) -> Resultat<bool> {
-    let nature = Carte::texte(&e.carte.nature);
-    let mensuel = !nature.is_empty() && droit::natures::nature(&nature)?.mensuelle();
+    let mensuel = e.carte.nature.as_deref().filter(|n| !n.is_empty()).map(|n| droit::natures::nature(n).map(|x| x.mensuelle())).transpose()?.is_some_and(|m| m);
     let suite = socle::mois::Mois::lire(dernier).map(|m| m.suivant().to_string())?;
-    let fin = Carte::texte(&e.carte.fin);
-    Ok(mensuel && e.pieces.paies.contains_key(dernier) && (fin.is_empty() || fin.as_str() >= format!("{}-01", suite).as_str()))
+    let premier_jour_suivant = format!("{}-01", suite);
+    Ok(mensuel && e.pieces.paies.contains_key(dernier) && e.carte.fin.as_deref().is_none_or(|f| f.is_empty() || f >= premier_jour_suivant.as_str()))
 }
 
 /// ECRIT LES ENGAGEMENTS IMPORTES, tous : chacun dans le fichier de son mois d'entree -- le mois ou il commence (son
@@ -889,10 +886,9 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Neuf>) -> Resultat<Vec<PathBuf>>
                 e.carte = ecrit.saisie.carte.clone();
             }
         }
-        let debut = Carte::texte(&e.carte.debut);
-        let mois = match &dernier {
-            Some(d) if continue_ici(&e, d)? => socle::mois::Mois::lire(d).map(|m| m.suivant().to_string())?,
-            _ if debut.len() >= 7 => debut[..7].to_string(),
+        let mois = match (&dernier, e.carte.debut.as_deref().and_then(|d| d.get(..7))) {
+            (Some(d), _) if continue_ici(&e, d)? => socle::mois::Mois::lire(d).map(|m| m.suivant().to_string())?,
+            (_, Some(premier)) => premier.to_string(),
             _ => e.pieces.paies.keys().next().cloned().ok_or("un engagement importe sans debut ni paie")?,
         };
         ecrit.importe = Some(e.pieces);

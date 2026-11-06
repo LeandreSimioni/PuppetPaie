@@ -159,10 +159,8 @@ pub fn ascii_nfkd(v: &str) -> String {
 /// La première lettre en capitale, le reste en minuscules.
 pub fn capitaliser(t: &str) -> String {
     let mut c = t.chars();
-    match c.next() {
-        Some(p) => p.to_uppercase().collect::<String>() + &c.as_str().to_lowercase(),
-        None => String::new(),
-    }
+    let tete: String = c.next().into_iter().flat_map(char::to_uppercase).collect();
+    tete + &c.as_str().to_lowercase()
 }
 
 /// « de » devant `mot`, elide devant une voyelle : « de mars 2026 », « d'avril 2026 », « d'absence non rémunérée ».

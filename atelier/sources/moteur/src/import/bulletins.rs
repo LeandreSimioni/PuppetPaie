@@ -1136,7 +1136,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         // Le reste d'un certificat : ses dates et ses compteurs sont ceux du reste.
         let (d, f, du_au) = match &reste {
             Some(l) => {
-                let (rd, rf) = (l.debut.clone(), l.fin.clone());
+                let (rd, rf) = (l.debut.clone().unwrap_or_default(), l.fin.clone().unwrap_or_default());
                 let jj = |x: &str| Jour::lire(x).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| x.to_string());
                 let mut sources: Vec<String> = pareils.iter().map(Atteste::d_ou).collect();
                 sources.dedup();
@@ -1795,7 +1795,7 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
     // Le numero du contrat, quand le bulletin l'imprime : il se lit, il ne se tire pas (regle 4).
     a.numero_contrat = plein(&l.b.contrat);
     (a.fichier, a.page) = (Some(chemin.to_string()), Some(l.page as u64));
-    Ok((cle, ContratLu { salarie: salarie.to_string(), debut, fin, numero: None, contrat: a }))
+    Ok((cle, ContratLu { salarie: salarie.to_string(), debut: Some(debut), fin: Some(fin), numero: None, contrat: a }))
 }
 
 /// Le bulletin porte-t-il une marque d'engagement du spectacle : un numero d'objet, ou une cotisation Congés
@@ -1966,7 +1966,7 @@ fn contrat_de_l_aem(a: &crate::import::aem_lu::Aem, salarie: &str, copie: &str) 
     (c.heures, c.cachets, c.jours, c.brut) = (Some(heures), Some(cachets), Some(jours), Some(brut));
     c.numero_attestation = plein(&a.numero);
     (c.fichier, c.page) = (Some(copie.to_string()), Some(a.page as u64));
-    let ligne = ContratLu { salarie: salarie.to_string(), debut: debut.iso(), fin: fin.iso(), numero: None, contrat: c };
+    let ligne = ContratLu { salarie: salarie.to_string(), debut: Some(debut.iso()), fin: Some(fin.iso()), numero: None, contrat: c };
     Ok((ligne, if quoi.is_empty() { "aucune heure, aucun cachet, aucun jour".into() } else { quoi.join(", ") }))
 }
 
@@ -2000,7 +2000,7 @@ fn contrat_du_certificat(c: &crate::import::certificat_lu::Certificat, statut: O
     a.base_conge = c.base_conge;
     a.atteste_le = c.signe_le.map(|s| s.iso());
     (a.fichier, a.page) = (Some(copie.to_string()), Some(c.page as u64));
-    Ok((ContratLu { salarie: salarie.to_string(), debut: debut.iso(), fin: fin.iso(), numero: None, contrat: a }, quoi))
+    Ok((ContratLu { salarie: salarie.to_string(), debut: Some(debut.iso()), fin: Some(fin.iso()), numero: None, contrat: a }, quoi))
 }
 
 /// Les compteurs de chaque bulletin lu (`bulletin_lu::compteurs`), confrontes a ses cumuls avec ses freres : les autres

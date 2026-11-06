@@ -238,7 +238,7 @@ pub(crate) fn ligne_du_contrat(c: &ContratAtteste, salarie: &str) -> engagement:
     a.numero_attestation = plein(&c.numero_attestation);
     a.atteste_le = plein(&c.date_attestation);
     a.fichier = plein(&c.fichier);
-    ContratLu { salarie: salarie.to_string(), debut: c.debut.iso(), fin: c.fin.iso(), numero: None, contrat: a }
+    ContratLu { salarie: salarie.to_string(), debut: Some(c.debut.iso()), fin: Some(c.fin.iso()), numero: None, contrat: a }
 }
 
 /// Tous les contrats attestes d'un dossier AEM_EDI, dedoublonnes, et les
