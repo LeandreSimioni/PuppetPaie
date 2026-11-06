@@ -127,8 +127,8 @@ fn lire_la_demande(entree: &str) -> Result<(Route, Value), Echec> {
 pub(crate) fn servir_la_route(o: &HashMap<String, String>, route: Route, charge: &Value) -> Value {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
     let _code = socle::fichiers::code_fige();
-    // Ce que la compagnie porte (les engagements, le journal de ce qui est parti) se lit une fois par geste (`fichiers::geste`).
-    let _geste = socle::fichiers::geste();
+    // Ce que la compagnie porte (les engagements, leurs paies, les imprevus) se lit une fois par geste (`socle::forme::geste`).
+    let _geste = socle::forme::geste();
     crate::compagnie::incidents::brancher_l_engagement();
     let rendu = servir(o, route, charge);
     // Ce que la route rend, reussite ou refus, est ce que l'ecran lit : ses phrases passent ici (`phrase_a_sa_place`).

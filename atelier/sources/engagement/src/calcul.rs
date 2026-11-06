@@ -12,7 +12,7 @@ use droit::natures::Nature;
 use droit::fiche::{AccordDfs, Case, ChampsEntreprise, ChampsSalarie, FicheSalarie, OptionDfs as DfsEmployeur, SalarieDuContrat, Statut};
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::texte::euros;
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
@@ -1135,7 +1135,7 @@ fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: SalarieDu
     let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
     let suspensions = crate::imprevus::suspendu_sans_remuneration(&ctx.racine, &cle, eng.numero.as_deref(), &eng.debut, &debut, &fin)?;
     let Some(premiere) = suspensions.first() else { return Ok(fiche) };
-    let motifs: Vec<String> = suspensions.iter().map(|s| s.get("motif").map(en_texte).unwrap_or_default()).collect();
+    let motifs: Vec<String> = suspensions.iter().map(|s| s.motif().to_string()).collect();
     let ent = ctx.entreprise_au(&fin);
     let idcc = ent.idcc.texte().to_string();
     let pourquoi = if idcc == "3090" {
@@ -1165,7 +1165,7 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
                     debut.jj_mm_aaaa(),
                     fin.jj_mm_aaaa(),
                     motifs.join(", "),
-                    premiere.get("debut").and_then(|d| Jour::lire(&en_texte(d)).ok()).map(|d| d.jj_mm_aaaa()).unwrap_or_default(),
+                    premiere.debut().and_then(|d| Jour::lire(d).ok()).map(|d| d.jj_mm_aaaa()).unwrap_or_default(),
                     if idcc.is_empty() { "de la compagnie".to_string() } else { idcc.clone() },
                     if autre.is_empty() { String::new() } else { format!("La fiche dit « {} », qui n'est pas une reponse. ", autre) },
                     SANTE_SUSPENSION,

@@ -7,7 +7,11 @@
 //! C'est un des trois modules du BORD (avec `ecriture` et `json_ascii`, qui ecrivent) : le seul endroit d'une couche
 //! fermee ou le JSON se manipule sans forme (`moteur/tests/fichiers/structure.rs`, `une_couche_fermee_ne_lit_que_des_formes`).
 
-use std::path::Path;
+use std::any::{Any, TypeId};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::echec::APart;
 use crate::num::Resultat;
@@ -310,4 +314,110 @@ fn refus_en_phrase(phrase: &impl Fn(&str, &str) -> String, e: &serde_path_to_err
     let chemin = if chemin == "." { String::new() } else { chemin };
     let detail = en_clair(&e.inner().to_string());
     crate::echec::avec(phrase(&chemin, &detail), APart { cle: Some(chemin), detail: Some(detail).filter(|d| !d.is_empty()), ..APart::default() })
+}
+
+// ------------------------------------------------------------------ les formes partagees
+
+/// Une forme lue, rangee par son type.
+type Forme = Arc<dyn Any + Send + Sync>;
+
+/// Ce que chaque fichier lu a donne, par son chemin et le type de sa forme : ses octets d'alors, et sa forme.
+type CacheDesFormes = Mutex<HashMap<(PathBuf, TypeId), (Arc<Vec<u8>>, Forme)>>;
+
+/// UN FICHIER LU EN SA FORME `T`, UNE FOIS PAR CONTENU : hors d'un geste, le fichier se relit a chaque fois (ses octets),
+/// et la forme qu'on en avait tiree ne sert que si ses octets sont exactement ceux d'alors. Rien ne se lit perime, quel
+/// que soit qui l'a ecrit et quand (une autre fenetre, une restauration, une cle USB aux dates a deux secondes pres) :
+/// seule la lecture s'epargne. PENDANT UN GESTE (`geste`), il se lit une fois : la lecture du geste le garde, et ce que
+/// le geste ecrit ou efface (`ecriture::ecrire_json`, `ecriture::effacer`) se relit. `None` s'il n'existe pas. Rien ne
+/// se note au registre : l'appelant dit ce qu'il lit (les engagements se comptent par leur saisie, `engagement::stock`).
+/// Partage : on ne la modifie pas ; deux lectures du meme contenu rendent la meme forme (`Arc::ptr_eq`). Un JSON
+/// illisible se dit par `echec::du_disque`, une forme fausse par `phrase`, la cle et le detail a part (`lire`).
+pub fn partagee<T: DeserializeOwned + Send + Sync + 'static>(chemin: &Path, phrase: &str) -> Resultat<Option<Arc<T>>> {
+    static CACHE: OnceLock<CacheDesFormes> = OnceLock::new();
+    let cle = (chemin.to_path_buf(), TypeId::of::<T>());
+    let en_t = |f: Forme| f.downcast::<T>().map_err(|_| format!("{} : une forme rangee sous un autre type", chemin.display()));
+    if let Some(lu) = GESTE.with(|g| g.borrow().as_ref().and_then(|l| l.get(&cle).cloned())) {
+        return lu.map(en_t).transpose();
+    }
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let octets = match std::fs::read(chemin) {
+        Ok(o) => o,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            garder_dans_le_geste(cle, None);
+            return Ok(None);
+        }
+        Err(e) => return Err(crate::fichiers::panne_fichier(&e, chemin)),
+    };
+    let deja = cache.lock().unwrap_or_else(|p| p.into_inner()).get(&cle).filter(|(vus, _)| **vus == octets).map(|(_, f)| f.clone());
+    let f = match deja {
+        Some(f) => f,
+        None => {
+            let f: Forme = Arc::new(des_octets::<T>(chemin, &octets, phrase)?);
+            crate::fichiers::ranger(cache, cle.clone(), (Arc::new(octets), f.clone()));
+            f
+        }
+    };
+    garder_dans_le_geste(cle, Some(f.clone()));
+    en_t(f).map(Some)
+}
+
+/// Les octets JSON du fichier `chemin` lus en `T` : un JSON illisible se dit par `echec::du_disque`, une forme fausse par
+/// `phrase`, la cle et le detail a part.
+fn des_octets<T: DeserializeOwned>(chemin: &Path, octets: &[u8], phrase: &str) -> Resultat<T> {
+    let mut d = serde_json::Deserializer::from_slice(octets);
+    let t = serde_path_to_error::deserialize(&mut d).map_err(|e| match e.inner().classify() {
+        serde_json::error::Category::Data => refus(phrase, None, &e),
+        _ => crate::echec::du_disque(&chemin, e.inner()),
+    })?;
+    d.end().map_err(|e| crate::echec::du_disque(&chemin, &e))?;
+    Ok(t)
+}
+
+thread_local! {
+    /// LA LECTURE DU GESTE EN COURS (`geste`) : chaque forme que `partagee` a servie, par son chemin et son type (`None` :
+    /// absent).
+    static GESTE: RefCell<Option<HashMap<(PathBuf, TypeId), Option<Forme>>>> = const { RefCell::new(None) };
+}
+
+fn garder_dans_le_geste(cle: (PathBuf, TypeId), f: Option<Forme>) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut() {
+            l.insert(cle, f);
+        }
+    });
+}
+
+/// Le geste vient d'ecrire ou d'effacer `chemin` (`ecriture::ecrire_json`, `ecriture::effacer`) : ce qu'il en avait lu
+/// ne vaut plus, il le relit.
+pub(crate) fn change_pendant_le_geste(chemin: &Path) {
+    GESTE.with(|g| {
+        if let Some(l) = g.borrow_mut().as_mut() {
+            l.retain(|(p, _), _| p != chemin);
+        }
+    });
+}
+
+/// UN GESTE (une route, l'etat d'un mois refait) LIT UNE FOIS ce que la compagnie porte et que `partagee` sert (les
+/// engagements, leurs paies, les imprevus) : rendu par `geste`, la lecture vit tant que son garde vit, et tombe avec
+/// lui ; un geste ouvert depuis un autre lit dans la lecture de celui-ci.
+pub struct Geste(bool);
+
+#[must_use = "la lecture du geste ne vit que tant que son garde vit"]
+pub fn geste() -> Geste {
+    Geste(GESTE.with(|g| {
+        let mut g = g.borrow_mut();
+        if g.is_some() {
+            return false;
+        }
+        *g = Some(HashMap::new());
+        true
+    }))
+}
+
+impl Drop for Geste {
+    fn drop(&mut self) {
+        if self.0 {
+            GESTE.with(|g| *g.borrow_mut() = None);
+        }
+    }
 }

@@ -399,9 +399,14 @@ impl Arret {
         txt(g(&self.v, k))
     }
 
+    /// L'arret en sa forme (`engagement::imprevus::ArretSaisi`), pour les regles du magasin.
+    pub fn forme(&self) -> Resultat<engagement::imprevus::ArretSaisi> {
+        socle::forme::lire(&self.v, engagement::imprevus::ILLISIBLE)
+    }
+
     /// Une periode commune avec [debut, fin] : la regle du bloc 60 (`imprevus::arret_croise`).
     pub fn couvre(&self, debut: &Jour, fin: &Jour) -> Resultat<bool> {
-        engagement::imprevus::arret_croise(&self.v, debut, fin)
+        engagement::imprevus::arret_croise(&self.forme()?, debut, fin)
     }
 
     /// L'arret se reporte-t-il dans la DSN mensuelle de `mois` ? Celle de chaque mois qu'il croise ; et, s'il a fini avant
@@ -445,7 +450,7 @@ impl Arret {
     /// L'arret suspend-il le contrat de cette paie ? La regle des imprevus (`imprevus::du_contrat`) : le meme salarie, la
     /// meme date de debut du contrat, le meme numero quand l'un et l'autre en ont un.
     fn du_contrat(&self, p: &Paie) -> bool {
-        engagement::imprevus::du_contrat(&self.v, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut).unwrap_or(false)
+        self.forme().and_then(|a| engagement::imprevus::du_contrat(&a, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut)).unwrap_or(false)
     }
 }
 
@@ -459,7 +464,7 @@ pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: Option<&droit::
     let v = &a.v;
     f.add_v("S21.G00.60.001", g(v, "motif"))?;
     // La veille du debut prescrit, ou ce jour s'il a ete travaille (S21.G00.60.002, `imprevus::dernier_jour_declare`).
-    f.add("S21.G00.60.002", engagement::imprevus::dernier_jour_declare(v)?.jjmmaaaa());
+    f.add("S21.G00.60.002", engagement::imprevus::dernier_jour_declare(&a.forme()?)?.jjmmaaaa());
     f.add("S21.G00.60.003", jj(g(v, "fin_previsionnelle"))?);
     if usage_admet(f, "S21.G00.60.004", nature)? && vrai(g(v, "subrogation")) {
         f.add_v("S21.G00.60.004", g(v, "subrogation"))?;
@@ -4333,14 +4338,15 @@ retirer la ligne. Rien n'est ecrit.",
                 declare = true;
             }
         }
-        if !declare {
+        if let (false, engagement::imprevus::Imprevu::Suspension(s)) = (declare, &imp) {
+            let t = |x: &Option<String>| x.clone().unwrap_or_default();
             suspendus_absents.push(format!(
                 "{} contrat {} (suspension {} du {} au {})",
-                txt(g(&imp, "salarie")),
-                txt(g(&imp, "contrat_numero")),
-                txt(g(&imp, "motif")),
-                txt(g(&imp, "debut")),
-                txt(g(&imp, "fin"))
+                t(&s.salarie),
+                t(&s.contrat_numero),
+                t(&s.motif),
+                t(&s.debut),
+                t(&s.fin)
             ));
         }
     }
@@ -5076,7 +5082,7 @@ mod tests {
     fn arret(reprise: Option<&str>, fin_previsionnelle: &str) -> Arret {
         Arret {
             v: json!({
-                "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
+                "genre": "arret", "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
                 "dernier_jour_travaille": "2026-06-20", "debut": "2026-06-21", "fin_previsionnelle": fin_previsionnelle, "subrogation": "02",
                 "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null,
             }),

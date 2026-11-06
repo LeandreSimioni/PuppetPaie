@@ -51,6 +51,11 @@ fn valeur(m: String) -> Echec {
     erreur("ValueError", m)
 }
 
+/// Un arret du magasin en sa forme (`engagement::imprevus::ArretSaisi`), pour ses regles.
+fn arret_de(a: &Value) -> socle::num::Resultat<engagement::imprevus::ArretSaisi> {
+    socle::forme::lire(a, engagement::imprevus::ILLISIBLE)
+}
+
 fn prenom_de(sal: &droit::fiche::ChampsSalarie) -> String {
     match sal.prenom_affichage.texte() {
         "" => sal.prenom.texte().to_string(),
@@ -278,7 +283,7 @@ impl Lu {
         let regs_dsn = regularisations::pour_la_dsn(&regs_e);
         let mut arrets: Vec<declarations::dsn::Arret> = Vec::new();
         for a in &self.arrets {
-            let sal = engagement::imprevus::fiche_du_salarie(ctx, a).map_err(valeur)?;
+            let sal = engagement::imprevus::fiche_du_salarie(ctx, &arret_de(a).map_err(valeur)?).map_err(valeur)?;
             if du_nic(&sal)? {
                 arrets.push(declarations::dsn::Arret { v: a.clone() });
             }
@@ -447,7 +452,7 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[envois::journal::Ligne],
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs)?;
     for a in crate::compagnie::marques_depot::arrets_pour(ctx, &mois, &departs)? {
         if let Some(n) = &forme.etablissement {
-            let sal = engagement::imprevus::fiche_du_salarie(ctx, &a).map_err(valeur)?;
+            let sal = engagement::imprevus::fiche_du_salarie(ctx, &arret_de(&a).map_err(valeur)?).map_err(valeur)?;
             if droit::bareme::etablissement_de(&ctx.entreprise, &sal).map_err(valeur)? != *n {
                 continue;
             }
@@ -644,7 +649,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
             "Arret de travail reporte dans la DSN : {}, {}, du {} au {}{}.",
             valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null)),
             resume.motif_libelle,
-            engagement::imprevus::dernier_jour_declare(a).map_err(valeur)?.jj_mm_aaaa(),
+            engagement::imprevus::dernier_jour_declare(&arret_de(a).map_err(valeur)?).map_err(valeur)?.jj_mm_aaaa(),
             jour(&fin)?,
             if reprise.is_some() { " (reprise)" } else { " (fin previsionnelle)" }
         )));
@@ -654,6 +659,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
     }
     // LES SUSPENSIONS (bloc 65) : chacune se declare entiere dans la DSN de chaque mois qu'elle traverse.
     for s in engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::SUSPENSION)).map_err(crate::routes::imprevus::refus_magasin)? {
+        let s = socle::ecriture::en_valeur(&s);
         avertissements.push(info(format!(
             "Suspension declaree dans la DSN : {}, motif {}, du {} au {}.",
             valeur_en_texte(&s["salarie"]),

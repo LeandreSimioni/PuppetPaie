@@ -262,7 +262,7 @@ pub fn ecrire_json<T: Serialize + ?Sized>(chemin: &Path, donnees: &T, indent: us
     let provisoire = provisoire(chemin);
     std::fs::write(&provisoire, texte).map_err(|e| crate::echec::du_disque(&provisoire, &e))?;
     std::fs::rename(&provisoire, chemin).map_err(|e| crate::echec::du_disque(&chemin, &e))?;
-    crate::fichiers::ecrit_pendant_le_geste(chemin, donnees);
+    crate::forme::change_pendant_le_geste(chemin);
     Ok(())
 }
 
@@ -276,12 +276,12 @@ pub fn provisoire(chemin: &Path) -> std::path::PathBuf {
 }
 
 
-/// Efface `chemin` s'il existe : le geste qui l'avait lu ne le voit plus (`fichiers::ecrit_pendant_le_geste`).
+/// Efface `chemin` s'il existe : le geste qui l'avait lu le relit (`forme::change_pendant_le_geste`).
 pub fn effacer(chemin: &Path) -> Resultat<()> {
     match std::fs::remove_file(chemin) {
         Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(crate::echec::du_disque(&chemin, &e)),
         _ => {}
     }
-    crate::fichiers::efface_pendant_le_geste(chemin);
+    crate::forme::change_pendant_le_geste(chemin);
     Ok(())
 }

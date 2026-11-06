@@ -649,7 +649,7 @@ fn une_crate_ne_prend_qu_a_celles_du_dessous() {
 
 /// LES COUCHES FERMEES, de bas en haut (l'ordre de `une_crate_ne_prend_qu_a_celles_du_dessous`) : leur JSON n'existe
 /// qu'au bord, lu et ecrit par une forme. La liste ne fait que grandir : une couche finie s'y ajoute, et ne recule plus.
-const COUCHES_FERMEES: [&str; 2] = ["socle", "droit"];
+const COUCHES_FERMEES: [&str; 3] = ["socle", "droit", "engagement"];
 
 /// LE BORD, nomme par son role : les seuls modules d'une couche fermee ou le JSON se manipule sans forme. `forme` le lit
 /// (une donnee, un texte, un fichier, en sa structure `serde`) ; `ecriture` et `json_ascii` ecrivent une forme.
@@ -662,11 +662,10 @@ const BORD: [(&str, &str); 3] = [
 /// LA PORTE OUVERTE : ce que le socle garde encore pour les couches du dessus qui lisent par cle (une `Value` prise ou
 /// rendue), et ce qui la sert (`fichiers::Cache`…). Chaque fonction publique tombe avec son dernier appelant hors du
 /// socle ; le socle ne s'en sert pas, ne l'importe pas, et la liste ne prend rien de plus : elle ne fait que retrecir.
-const PORTE_OUVERTE: [&str; 30] = [
+const PORTE_OUVERTE: [&str; 25] = [
     "date::d", "date::forme_ecrite", "date::en_texte",
     "echec::separer",
-    "fichiers::Cache", "fichiers::json_en_cache", "fichiers::json_en_cache_ou", "fichiers::CacheDesContenus",
-    "fichiers::json_partage", "fichiers::GESTE", "fichiers::garder_dans_le_geste", "fichiers::ecrit_pendant_le_geste",
+    "fichiers::Cache", "fichiers::json_en_cache", "fichiers::json_en_cache_ou",
     "fichiers::lire_json", "fichiers::vrai", "fichiers::repr_valeur", "fichiers::lire_json_echec",
     "num::dec", "num::dec_avec_echelle", "num::flottant",
     "texte::euros_de",
@@ -727,6 +726,17 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
     assert_eq!(COUCHES_FERMEES, ORDRE[..COUCHES_FERMEES.len()], "les couches se ferment de bas en haut, dans l'ordre des crates");
     let interdit = regex::Regex::new(r#"\bValue\b|\bjson!|\bserde_json::|\bMap\s*<|\.get\("|[A-Za-z0-9_)\]]\s*\[""#).unwrap();
     let porte: Vec<(&str, &str)> = PORTE_OUVERTE.iter().filter_map(|p| p.split_once("::")).collect();
+    // Chaque item de la porte, ses trois motifs compiles une fois : son appel, son nom qualifie, son nom seul.
+    let motifs: Vec<(regex::Regex, regex::Regex, regex::Regex)> = porte
+        .iter()
+        .map(|(m, n)| {
+            (
+                regex::Regex::new(&format!(r"(^|[^.:A-Za-z0-9_]){}\s*\(", regex::escape(n))).unwrap(),
+                regex::Regex::new(&format!(r"\b{}::{}\b", regex::escape(m), regex::escape(n))).unwrap(),
+                regex::Regex::new(&format!(r"\b{}\b", regex::escape(n))).unwrap(),
+            )
+        })
+        .collect();
     let mut fautes = Vec::new();
     let mut trouves: BTreeSet<String> = BTreeSet::new();
     let mut publiques: Vec<(String, String)> = Vec::new();
@@ -755,10 +765,8 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
                             fautes.push(format!("{} : `{}` hors du bord : déclare la forme (`serde`, `deny_unknown_fields`) ; la lecture passe par `socle::forme`, l'écriture par `socle::ecriture`", ou, m.as_str().trim()));
                         }
                     }
-                    for (m, n) in &porte {
-                        let appel = regex::Regex::new(&format!(r"(^|[^.:A-Za-z0-9_]){}\s*\(", regex::escape(n))).unwrap();
-                        let qualifie = regex::Regex::new(&format!(r"\b{}::{}\b", regex::escape(m), regex::escape(n))).unwrap();
-                        let importe = nom == "use" && l.contains(&format!("{}::", m)) && regex::Regex::new(&format!(r"\b{}\b", regex::escape(n))).unwrap().is_match(l);
+                    for ((m, n), (appel, qualifie, seul)) in porte.iter().zip(&motifs) {
+                        let importe = nom == "use" && l.contains(&format!("{}::", m)) && seul.is_match(l);
                         if qualifie.is_match(l) || importe || (nom != "use" && *m == module && appel.is_match(l)) {
                             fautes.push(format!("{} : se sert de `{}::{}`, de la porte ouverte : le socle ne s'en sert pas ; passe par une forme", ou, m, n));
                         }

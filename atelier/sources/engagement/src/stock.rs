@@ -27,7 +27,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Number, Value};
+use serde_json::Number;
 
 use droit::contexte::Contexte;
 use crate::saisie::{Avant, Carte, Champ, Groupe, VueDuMois};
@@ -248,17 +248,42 @@ pub(crate) fn fichiers_dans(racine: &Path, d: Dossier) -> Vec<String> {
 
 /// LA SEULE LECTURE D'UN FICHIER D'ENGAGEMENTS, par sa forme ; `None` s'il n'existe pas.
 pub fn lire_fichier(racine: &Path, mois: &str) -> Resultat<Option<FichierDuMois>> {
-    match lire_partage(racine, mois)? {
-        Some(v) => socle::forme::lire(&v, ABIME)
-            .map(Some)
-            .map_err(|m| socle::echec::avec(m, OuDansLeFichier { chemin: format!("{}/{}.json", DOSSIER, mois), rang: None })),
-        None => Ok(None),
+    Ok(lire_partage(racine, mois)?.map(|f| (*f).clone()))
+}
+
+/// UN FICHIER DU STOCK, l'un des deux dossiers qu'il tient (`Dossier`) : sa forme, que le brouillon tient telle quelle
+/// (`Tenu`), et la phrase du refus d'un fichier qui ne l'a pas.
+pub(crate) trait FichierDuStock: Clone + Serialize + serde::de::DeserializeOwned + Send + Sync + 'static {
+    const DOSSIER: Dossier;
+    const ILLISIBLE: &'static str;
+    fn tenu(f: std::sync::Arc<Self>) -> Tenu;
+    fn de(t: &Tenu) -> Option<std::sync::Arc<Self>>;
+}
+
+/// Un fichier que le brouillon tient, en sa forme.
+#[derive(Clone)]
+pub(crate) enum Tenu {
+    Engagements(std::sync::Arc<FichierDuMois>),
+    Paies(std::sync::Arc<crate::paies::FichierDesPaies>),
+}
+
+impl FichierDuStock for FichierDuMois {
+    const DOSSIER: Dossier = Dossier::Engagements;
+    const ILLISIBLE: &'static str = ABIME;
+    fn tenu(f: std::sync::Arc<Self>) -> Tenu {
+        Tenu::Engagements(f)
+    }
+    fn de(t: &Tenu) -> Option<std::sync::Arc<Self>> {
+        match t {
+            Tenu::Engagements(f) => Some(f.clone()),
+            Tenu::Paies(_) => None,
+        }
     }
 }
 
 thread_local! {
     /// Les fichiers ecrits dans le brouillon ouvert (`Brouillon`), pour sa racine : chacun par son dossier et son mois.
-    static BROUILLON: std::cell::RefCell<Option<(PathBuf, BTreeMap<(Dossier, String), std::sync::Arc<Value>>)>> = const { std::cell::RefCell::new(None) };
+    static BROUILLON: std::cell::RefCell<Option<(PathBuf, BTreeMap<(Dossier, String), Tenu>)>> = const { std::cell::RefCell::new(None) };
 }
 
 /// UN BROUILLON : tant qu'il est ouvert, ce qui s'ecrit dans les engagements de `racine` et dans leurs paies (`reecrire`,
@@ -274,27 +299,33 @@ impl Brouillon {
     /// Ce que le brouillon tient s'ecrit sur le disque.
     pub fn ecrire(self) -> Resultat<()> {
         let fichiers = BROUILLON.with(|b| b.borrow_mut().take()).map(|(_, f)| f).unwrap_or_default();
-        for ((d, mois), contenu) in fichiers {
-            poser_dans(&self.0, d, &mois, &contenu)?;
+        for ((_, mois), contenu) in fichiers {
+            match contenu {
+                Tenu::Engagements(f) => poser_dans(&self.0, &mois, &*f)?,
+                Tenu::Paies(f) => poser_dans(&self.0, &mois, &*f)?,
+            };
         }
         Ok(())
     }
 
-    /// Le fichier de `mois` du dossier `d` tel que le brouillon ouvert pour `racine` le tient.
-    fn lu(racine: &Path, d: Dossier, mois: &str) -> Option<std::sync::Arc<Value>> {
-        BROUILLON.with(|b| b.borrow().as_ref().filter(|(r, _)| r == racine).and_then(|(_, f)| f.get(&(d, mois.to_string())).cloned()))
+    /// Le fichier de `mois` de la forme `T` tel que le brouillon ouvert pour `racine` le tient.
+    fn lu<T: FichierDuStock>(racine: &Path, mois: &str) -> Option<std::sync::Arc<T>> {
+        BROUILLON.with(|b| b.borrow().as_ref().filter(|(r, _)| r == racine).and_then(|(_, f)| f.get(&(T::DOSSIER, mois.to_string())).and_then(T::de)))
     }
 
-    /// Ecrit `contenu` comme fichier de `mois` du dossier `d` dans le brouillon ouvert pour `racine` ; faux : aucun ne
-    /// l'est.
-    fn tient(racine: &Path, d: Dossier, mois: &str, contenu: &Value) -> bool {
-        BROUILLON.with(|b| match b.borrow_mut().as_mut().filter(|(r, _)| r == racine) {
-            Some((_, f)) => {
-                f.insert((d, mois.to_string()), std::sync::Arc::new(contenu.clone()));
-                true
+    /// Ecrit `contenu` comme fichier de `mois` dans le brouillon ouvert pour `racine`, tel que le disque le relirait (ce
+    /// que sa forme n'ecrit pas, il ne le tient pas) ; faux : aucun ne l'est.
+    fn tient<T: FichierDuStock>(racine: &Path, mois: &str, contenu: &T) -> Resultat<bool> {
+        if !BROUILLON.with(|b| b.borrow().as_ref().is_some_and(|(r, _)| r == racine)) {
+            return Ok(false);
+        }
+        let relu: T = socle::forme::lire_texte(&socle::ecriture::json_en_ligne(contenu), T::ILLISIBLE)?;
+        BROUILLON.with(|b| {
+            if let Some((_, f)) = b.borrow_mut().as_mut() {
+                f.insert((T::DOSSIER, mois.to_string()), T::tenu(std::sync::Arc::new(relu)));
             }
-            None => false,
-        })
+        });
+        Ok(true)
     }
 }
 
@@ -306,14 +337,14 @@ impl Drop for Brouillon {
 
 /// LA SEULE ECRITURE D'UN FICHIER D'ENGAGEMENTS : `contenu` devient le fichier de son mois (`poser_dans`).
 pub(crate) fn poser(racine: &Path, contenu: &FichierDuMois) -> Resultat<PathBuf> {
-    poser_dans(racine, Dossier::Engagements, &contenu.mois.to_string(), &socle::ecriture::en_valeur(contenu))
+    poser_dans(racine, &contenu.mois.to_string(), contenu)
 }
 
-/// LE SEUL ENDROIT QUI ECRIT UN FICHIER D'ENGAGEMENTS OU DE PAIES : `contenu` devient le fichier de `mois` du dossier `d`,
+/// LE SEUL ENDROIT QUI ECRIT UN FICHIER D'ENGAGEMENTS OU DE PAIES : `contenu` devient le fichier de `mois` de son dossier,
 /// dans le brouillon ouvert pour `racine` s'il y en a un (`Brouillon`), sinon sur le disque. Rend son chemin.
-pub(crate) fn poser_dans(racine: &Path, d: Dossier, mois: &str, contenu: &Value) -> Resultat<PathBuf> {
-    let p = chemin_dans(racine, d, mois);
-    if Brouillon::tient(racine, d, mois, contenu) {
+pub(crate) fn poser_dans<T: FichierDuStock>(racine: &Path, mois: &str, contenu: &T) -> Resultat<PathBuf> {
+    let p = chemin_dans(racine, T::DOSSIER, mois);
+    if Brouillon::tient(racine, mois, contenu)? {
         return Ok(p);
     }
     if let Some(dir) = p.parent() {
@@ -326,8 +357,8 @@ pub(crate) fn poser_dans(racine: &Path, d: Dossier, mois: &str, contenu: &Value)
 /// LE FICHIER D'ENGAGEMENTS DE `mois` QUI N'A PLUS RIEN (un fichier que l'import avait pose) s'en va : un mois sans
 /// fichier ni engagement n'a pas de saisie. Dans un brouillon, il s'ecrit vide.
 pub(crate) fn retirer(racine: &Path, mois: &str) -> Resultat<PathBuf> {
-    let vide = socle::ecriture::en_valeur(&FichierDuMois { mois: Mois::lire(mois)?, taux_cachet: None, engagements: Vec::new() });
-    if Brouillon::tient(racine, Dossier::Engagements, mois, &vide) {
+    let vide = FichierDuMois { mois: Mois::lire(mois)?, taux_cachet: None, engagements: Vec::new() };
+    if Brouillon::tient(racine, mois, &vide)? {
         return Ok(chemin(racine, mois));
     }
     let p = chemin(racine, mois);
@@ -335,22 +366,18 @@ pub(crate) fn retirer(racine: &Path, mois: &str) -> Resultat<PathBuf> {
     Ok(p)
 }
 
-/// Le fichier d'engagements d'un mois (`lire_dans`).
-fn lire_partage(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
-    lire_dans(racine, Dossier::Engagements, mois)
+/// Le fichier d'engagements d'un mois (`lire_dans`) ; un refus dit son chemin.
+fn lire_partage(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<FichierDuMois>>> {
+    lire_dans(racine, mois).map_err(|m| socle::echec::avec(m, OuDansLeFichier { chemin: format!("{}/{}.json", DOSSIER, mois), rang: None }))
 }
 
-/// Le fichier de `mois` du dossier `d` tel que le geste l'a lu ou ecrit (`socle::fichiers::json_partage`), ou tel que le
+/// Le fichier de `mois` de la forme `T` tel que le geste l'a lu ou ecrit (`socle::forme::partagee`), ou tel que le
 /// brouillon ouvert le tient : chaque lecture des engagements et des paies passe par lui. `None` s'il n'existe pas.
-pub(crate) fn lire_dans(racine: &Path, d: Dossier, mois: &str) -> Resultat<Option<std::sync::Arc<Value>>> {
-    if let Some(v) = Brouillon::lu(racine, d, mois) {
-        return Ok(Some(v));
+pub(crate) fn lire_dans<T: FichierDuStock>(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<T>>> {
+    if let Some(f) = Brouillon::lu::<T>(racine, mois) {
+        return Ok(Some(f));
     }
-    let p = chemin_dans(racine, d, mois);
-    match socle::fichiers::json_partage(&p)? {
-        Some(v) if !v.is_object() => Err(socle::echec::abime(&p, format!("un objet est attendu, lu {}", socle::valeur::nom_type(&v)))),
-        v => Ok(v),
-    }
+    socle::forme::partagee(&chemin_dans(racine, T::DOSSIER, mois), T::ILLISIBLE)
 }
 
 /// Le fichier de `mois` ne porte-t-il que des engagements importes seuls (`Objet::importe_seul`) ? Un tel mois n'a pas de
@@ -599,8 +626,8 @@ pub fn objets(racine: &Path) -> Resultat<Vec<Objet>> {
 }
 
 /// Les fichiers des engagements d'une compagnie tels qu'ils viennent d'etre lus : chaque mois, et ce que son fichier
-/// contient (`socle::fichiers::json_partage` : la meme valeur tant que les octets sont les memes).
-type Lus = Vec<(String, std::sync::Arc<Value>)>;
+/// contient (`socle::forme::partagee` : la meme forme tant que les octets sont les memes).
+type Lus = Vec<(String, std::sync::Arc<FichierDuMois>)>;
 
 /// Deux lectures ont-elles trouve exactement les memes fichiers, aux memes octets ?
 fn memes(a: &Lus, b: &Lus) -> bool {
@@ -657,7 +684,7 @@ impl Tires {
 }
 
 /// TOUS LES ENGAGEMENTS D'UNE COMPAGNIE, tires une fois des memes fichiers : ce qu'on en avait tire ne sert que si ce
-/// sont les memes lectures (`memes`) ; pendant un geste, les fichiers se lisent une fois (`socle::fichiers::geste`).
+/// sont les memes lectures (`memes`) ; pendant un geste, les fichiers se lisent une fois (`socle::forme::geste`).
 /// Partage : on n'y touche pas, et un objet se copie sans recopier ce qu'il porte (`Objet`).
 fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
     type Gardes = std::sync::Mutex<std::collections::HashMap<PathBuf, (Lus, std::sync::Arc<Tires>)>>;
@@ -678,10 +705,8 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
             objets.extend(v.objets.iter().filter(|o| o.fichier == *f).cloned());
             continue;
         }
-        let fichier: FichierDuMois =
-            socle::forme::lire(m, ABIME).map_err(|e| socle::echec::avec(e, OuDansLeFichier { chemin: format!("{}/{}.json", DOSSIER, f), rang: None }))?;
-        for (rang, e) in fichier.engagements.into_iter().enumerate() {
-            objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: std::sync::Arc::new(e) });
+        for (rang, e) in m.engagements.iter().enumerate() {
+            objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: std::sync::Arc::new(e.clone()) });
         }
     }
     let derniers = objets.iter().map(Objet::dernier_mois).collect();
@@ -771,55 +796,40 @@ pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str, salarie: Option
     Ok(vue_et_empreinte(racine, mois)?.map(|s| if salarie.is_none() { s.1.clone() } else { empreinte_de_saisie(&s.0, salarie) }))
 }
 
-/// Ce que le fichier d'engagements d'un mois dit pour tous ses engagements : le mois, et le cachet par defaut. Ses
-/// engagements se lisent chacun par l'objet qu'il est (`tous`).
-#[derive(serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-struct TeteDuFichier {
-    #[allow(dead_code)]
-    mois: Mois,
-    #[serde(default)]
-    taux_cachet: Option<Number>,
-    #[allow(dead_code)]
-    #[serde(default)]
-    engagements: serde::de::IgnoredAny,
-}
-
 /// La vue de `mois` et son empreinte, faites une fois pour les memes fichiers aux memes octets (`memes`) :
 /// chaque paie qui se verifie relit la saisie des mois qu'elle a lus. La vue d'une ligne lit aussi l'unite de sa rubrique
 /// (`droit::catalogue::rubrique`) : les deux catalogues en font partie.
 pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(VueDuMois, String)>>> {
     type Saisie = Option<std::sync::Arc<(VueDuMois, String)>>;
-    type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String), (Lus, Saisie)>>;
+    // Le contenu d'un catalogue de rubriques, sans le lire : la meme forme tant que ses octets sont les memes.
+    type Catalogue = std::sync::Arc<serde::de::IgnoredAny>;
+    type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String), (Lus, Vec<Catalogue>, Saisie)>>;
     static VUES: std::sync::OnceLock<Vues> = std::sync::OnceLock::new();
-    static ABSENT: std::sync::OnceLock<std::sync::Arc<Value>> = std::sync::OnceLock::new();
+    static ABSENT: std::sync::OnceLock<Catalogue> = std::sync::OnceLock::new();
     let vues = VUES.get_or_init(Default::default);
-    let (mut lus, tous) = tous(racine)?;
+    let (lus, tous) = tous(racine)?;
+    let mut catalogues = Vec::new();
     for p in [socle::fichiers::dossier_du_code().join("rubriques-base.json"), racine.join(socle::fichiers::CONFIG).join(droit::catalogue::RUBRIQUES_COMPAGNIE)] {
         // Absent, il est le meme d'une lecture a l'autre ; illisible, il ne l'est jamais (la vue se refait).
-        let v = match socle::fichiers::json_partage(&p) {
+        catalogues.push(match socle::forme::partagee::<serde::de::IgnoredAny>(&p, ABIME) {
             Ok(Some(v)) => v,
-            Ok(None) => ABSENT.get_or_init(|| std::sync::Arc::new(Value::Null)).clone(),
-            Err(_) => std::sync::Arc::new(Value::Null),
-        };
-        lus.push((p.to_string_lossy().into_owned(), v));
+            Ok(None) => ABSENT.get_or_init(|| std::sync::Arc::new(serde::de::IgnoredAny)).clone(),
+            Err(_) => std::sync::Arc::new(serde::de::IgnoredAny),
+        });
     }
     let cle = (racine.to_path_buf(), mois.to_string());
-    if let Some((vus, s)) = vues.lock().unwrap_or_else(|p| p.into_inner()).get(&cle) {
-        if memes(vus, &lus) {
+    if let Some((vus, cs, s)) = vues.lock().unwrap_or_else(|p| p.into_inner()).get(&cle) {
+        if memes(vus, &lus) && cs.len() == catalogues.len() && cs.iter().zip(&catalogues).all(|(a, b)| std::sync::Arc::ptr_eq(a, b)) {
             return Ok(s.clone());
         }
     }
     // Ce que le fichier du mois pose pour tous ; ses engagements, la vue les refait (ceux des mois d'avant qui courent).
-    let fichier: Option<TeteDuFichier> = match lire_partage(racine, mois)? {
-        Some(v) => Some(socle::forme::lire(&v, ABIME)?),
-        None => None,
-    };
+    let fichier = lire_partage(racine, mois)?;
     let objets = tous.du_mois(mois)?;
     let saisie = if (fichier.is_none() || importes_seuls(racine, mois)) && objets.is_empty() {
         None
     } else {
-        let mut vue = VueDuMois { mois: Mois::lire(mois)?, taux_cachet: fichier.and_then(|f| f.taux_cachet), engagements: Vec::new() };
+        let mut vue = VueDuMois { mois: Mois::lire(mois)?, taux_cachet: fichier.and_then(|f| f.taux_cachet.clone()), engagements: Vec::new() };
         for o in &objets {
             let Some(mut v) = o.vue(mois)? else { continue };
             if let Some(x) = &o.brut.valide {
@@ -830,7 +840,7 @@ pub(crate) fn vue_et_empreinte(racine: &Path, mois: &str) -> Resultat<Option<std
         let empreinte = empreinte_de_saisie(&vue, None);
         Some(std::sync::Arc::new((vue, empreinte)))
     };
-    socle::fichiers::ranger(vues, cle, (lus, saisie.clone()));
+    socle::fichiers::ranger(vues, cle, (lus, catalogues, saisie.clone()));
     Ok(saisie)
 }
 

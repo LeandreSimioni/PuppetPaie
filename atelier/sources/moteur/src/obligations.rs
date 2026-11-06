@@ -809,9 +809,12 @@ pub(crate) fn ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Vec<EnvoiDeLArret
     let texte = |k: &str| a.get(k).map(en_texte).unwrap_or_default();
     let salarie = texte("salarie");
     let dj = texte("dernier_jour_travaille");
-    let declare = engagement::imprevus::dernier_jour_declare(a).map(|j| j.iso()).unwrap_or_default();
-    let traverses: Vec<String> = match (engagement::imprevus::dernier_jour_declare(a), engagement::imprevus::dernier_jour(a)) {
-        (Ok(p), Ok(d)) if p <= d => socle::mois::Mois::entre(&p, &d).iter().map(socle::mois::Mois::to_string).collect(),
+    // L'imprevu en sa forme, pour les regles du magasin ; illisible, il n'a ni jour declare ni mois traverse.
+    let lu = crate::routes::imprevus::forme(a).ok();
+    let declare_lu = lu.as_ref().and_then(|i| i.arret()).map(engagement::imprevus::dernier_jour_declare);
+    let declare = declare_lu.clone().and_then(Result::ok).map(|j| j.iso()).unwrap_or_default();
+    let traverses: Vec<String> = match (declare_lu, lu.as_ref().map(engagement::imprevus::dernier_jour)) {
+        (Some(Ok(p)), Some(Ok(d))) if p <= d => socle::mois::Mois::entre(&p, &d).iter().map(socle::mois::Mois::to_string).collect(),
         _ => Vec::new(),
     };
     let saisi = texte("saisi_le");
@@ -821,7 +824,7 @@ pub(crate) fn ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Vec<EnvoiDeLArret
         if traverses.iter().any(|m| m == mois) {
             return Ok(quand.replace('T', " ") >= saisi);
         }
-        if !engagement::imprevus::est_un_arret(a) {
+        if !lu.as_ref().is_some_and(engagement::imprevus::est_un_arret) {
             return Ok(false);
         }
         arret.a_reporter(mois, &departs).map_err(|m| erreur("ValueError", m))
@@ -862,7 +865,7 @@ fn obligations_de(ctx: &Contexte, a: &Value, envois: &[EnvoiDeLArret], suivi: &S
     // L'evenement que le signalement declare est « le debut [...] de l'arret de travail » (CSS R. 133-13, I, 1°) : le
     // premier jour que l'avis prescrit (`imprevus::premier_jour`). La maladie professionnelle compte depuis « la
     // cessation du travail » (L. 461-5) : le lendemain du dernier jour travaille.
-    let debut = engagement::imprevus::premier_jour(a).ok();
+    let debut = crate::routes::imprevus::forme(a).ok().and_then(|i| engagement::imprevus::premier_jour(&i).ok());
     let cessation = match jour_dit(&dernier) {
         Some(j) => Some(plus(j, 1)?),
         None => None,

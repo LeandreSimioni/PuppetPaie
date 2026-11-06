@@ -129,7 +129,7 @@ jour que l'avis prescrit, le dernier jour travaillÃ© est la veille ou ce jour mÃ
             fin_prev.jj_mm_aaaa()
         ));
     }
-    let dernier = engagement::imprevus::dernier_jour_declare(v)?;
+    let dernier = engagement::imprevus::dernier_jour_declare(&a.forme()?)?;
     if dernier > fin_prev {
         return impossible(format!(
             "Dernier jour travaille ({}) posterieur a la fin previsionnelle de l'arret ({}) -- CCH-12.",
@@ -368,9 +368,10 @@ annule-et-remplace (type 03)."
     }
 
     // La configuration du dernier jour travaille : celle de la periode que le signalement declare.
-    let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&a.v)?)?;
+    let arret = a.forme()?;
+    let ctx = &ctx.au(&engagement::imprevus::dernier_jour_declare(&arret)?)?;
     let ent = &ctx.entreprise;
-    let fiche = engagement::imprevus::fiche_du_salarie(ctx, &a.v)?;
+    let fiche = engagement::imprevus::fiche_du_salarie(ctx, &arret)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
         None => aujourdhui()?,
@@ -423,7 +424,7 @@ annule-et-remplace (type 03)."
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = ctx.organismes()?;
-    let jour = engagement::imprevus::dernier_jour_declare(&a.v)?;
+    let jour = engagement::imprevus::dernier_jour_declare(&arret)?;
     for ad in orgs.adhesions_prevoyance.iter().filter(|ad| ad.en_vigueur(&jour, &jour)) {
         f.add("S21.G00.15.001", &ad.libelle);
         f.add("S21.G00.15.002", &ad.delegataire);
@@ -436,7 +437,7 @@ annule-et-remplace (type 03)."
     f.add_case("S21.G00.30.004", &fiche.prenom, "prenom")?;
     f.add("S21.G00.30.006", fiche.date_naissance.exigee("date_naissance")?.jjmmaaaa());
     f.add_case("S21.G00.30.019", &fiche.code_salarie, "code_salarie")?;
-    crate::ntt::poser_ntt(&mut f, ent, &fiche,crate::changements_individu::derniere_declaree(ctx, &fiche, &engagement::imprevus::dernier_jour_declare(&a.v)?, departs)?.as_ref())?;
+    crate::ntt::poser_ntt(&mut f, ent, &fiche,crate::changements_individu::derniere_declaree(ctx, &fiche, &engagement::imprevus::dernier_jour_declare(&arret)?, departs)?.as_ref())?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());

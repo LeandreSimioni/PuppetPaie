@@ -12,10 +12,11 @@ use socle::echec::erreur;
 pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str, departs: &engagement::departs::Departs) -> R<Vec<Value>> {
     socle::mois::Mois::lire(mois).map(socle::mois::Mois::premier_jour).map_err(|m| erreur("ValueError", m))?;
     let mut out = Vec::new();
-    for a in engagement::imprevus::tous(&ctx.racine).map_err(crate::routes::imprevus::refus_magasin)? {
-        if !engagement::imprevus::est_un_arret(&a) {
+    for imp in engagement::imprevus::tous(&ctx.racine).map_err(crate::routes::imprevus::refus_magasin)? {
+        if !engagement::imprevus::est_un_arret(&imp) {
             continue;
         }
+        let a = socle::ecriture::en_valeur(&imp);
         let arret = declarations::dsn::Arret { v: a.clone() };
         if arret.a_reporter(mois, departs).map_err(|m| erreur("ValueError", m))? {
             out.push(a);

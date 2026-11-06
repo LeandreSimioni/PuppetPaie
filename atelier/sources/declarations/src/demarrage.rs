@@ -96,11 +96,7 @@ fn spectacles_declares(ctx: &Contexte) -> Vec<String> {
 fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
     engagement::imprevus::tous(&ctx.racine).unwrap_or_default().iter().any(|imp| {
         engagement::imprevus::est_une_suspension(imp)
-            && imp
-                .get("motif")
-                .map(socle::date::en_texte)
-                .and_then(|m| engagement::imprevus::motif_de_suspension(&m).ok().flatten())
-                .is_some_and(|m| !m.remunere)
+            && engagement::imprevus::motif_de_suspension(imp.motif()).ok().flatten().is_some_and(|m| !m.remunere)
     })
 }
 

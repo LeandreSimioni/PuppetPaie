@@ -29,7 +29,7 @@ use declarations::signalement;
 use droit::contexte::{Contexte, IdSalarie};
 use engagement::calcul::Paie;
 use droit::arrets::{Bloc60, CodeDuBloc60};
-use engagement::imprevus::{self, ARRET, SUSPENSION};
+use engagement::imprevus::{self, Suspend, ARRET, SUSPENSION};
 use engagement::numeros::NumeroContrat;
 use envois::etats::{get, getd, items, objet_vide, ou, Dico};
 use socle::date::{d, en_texte, Jour};
@@ -535,6 +535,22 @@ fn magasin<T>(r: Result<T, String>) -> R<T> {
     r.map_err(refus_magasin)
 }
 
+/// UN IMPREVU EN SA FORME (`engagement::imprevus::Imprevu`), pour les regles du magasin : cette route le tient encore en
+/// valeur.
+pub(crate) fn forme(v: &Value) -> R<imprevus::Imprevu> {
+    magasin(socle::forme::lire(v, imprevus::ILLISIBLE))
+}
+
+/// Un arret en sa forme (`engagement::imprevus::ArretSaisi`).
+pub(crate) fn arret_de(v: &Value) -> R<imprevus::ArretSaisi> {
+    magasin(socle::forme::lire(v, imprevus::ILLISIBLE))
+}
+
+/// Les imprevus du magasin, en valeurs telles que cette route les tient.
+pub(crate) fn en_valeurs(l: Result<Vec<imprevus::Imprevu>, String>) -> R<Vec<Value>> {
+    Ok(magasin(l)?.iter().map(socle::ecriture::en_valeur).collect())
+}
+
 /// La cle de la fiche que `nom` designe, comme partout dans le moteur (`Contexte::salarie` : la casse, les accents, le
 /// prenom, le NIR ne comptent pas). Un nom qui ne designe personne se refuse avec la phrase de `Contexte::salarie`.
 fn cle_du_nom(ctx: &Contexte, nom: &str) -> R<IdSalarie> {
@@ -588,12 +604,14 @@ contrat.",
 /// et deux periodes qui se recouvrent sur le meme contrat sont deux declarations qui se contredisent (un salarie ne
 /// travaille pas le dernier jour travaille d'un arret qui court deja). `sauf` : l'imprevu lui-meme, quand il change.
 fn sans_chevauchement(ctx: &Contexte, nouveau: &Value, sauf: Option<&Value>) -> R<()> {
-    let (p, dj) = (magasin(imprevus::premier_jour(nouveau))?, magasin(imprevus::dernier_jour(nouveau))?);
+    let lu = forme(nouveau)?;
+    let (p, dj) = (magasin(imprevus::premier_jour(&lu))?, magasin(imprevus::dernier_jour(&lu))?);
     let cle = valeur_en_texte(&nouveau["salarie"]);
     let debut = jour(&nouveau["contrat_debut"])?;
     let numero = valeur_en_texte(&nouveau["contrat_numero"]);
     for autre in magasin(imprevus::tous(&ctx.racine))? {
-        if sauf.is_some_and(|s| meme_imprevu(s, &autre)) || meme_imprevu(nouveau, &autre) {
+        let v = socle::ecriture::en_valeur(&autre);
+        if sauf.is_some_and(|s| meme_imprevu(s, &v)) || meme_imprevu(nouveau, &v) {
             continue;
         }
         if !magasin(imprevus::du_contrat(&autre, &cle, Some(numero.as_str()), &debut))? {
@@ -619,19 +637,16 @@ declare et ne se retire qu'une fois : corriger les dates, ou reprendre l'autre i
 
 /// Le meme imprevu : meme genre, meme salarie, meme jour de rangement.
 fn meme_imprevu(a: &Value, b: &Value) -> bool {
-    imprevus::genre(a) == imprevus::genre(b)
-        && a["salarie"] == b["salarie"]
-        && imprevus::jour_de_rangement(a).ok() == imprevus::jour_de_rangement(b).ok()
+    let rangement = |v: &Value| forme(v).ok().map(|i| (i.genre(), imprevus::jour_de_rangement(&i).ok()));
+    a["salarie"] == b["salarie"] && rangement(a) == rangement(b)
 }
 
 /// L'imprevu de ce genre, de ce salarie, a ce jour de rangement (le dernier jour travaille d'un arret, le debut d'une
 /// suspension) : son indice et le fichier de son mois, tous genres compris.
 fn trouver(ctx: &Contexte, genre: &str, cle: &str, jour: &Jour) -> R<Option<(usize, Vec<Value>)>> {
-    let liste = magasin(imprevus::du_fichier(&ctx.racine, &jour.mois_civil().to_string()))?;
-    let i = liste.iter().position(|x| {
-        imprevus::genre(x) == genre && valeur_en_texte(&x["salarie"]) == cle && imprevus::jour_de_rangement(x).ok() == Some(*jour)
-    });
-    Ok(i.map(|i| (i, liste)))
+    let lus = magasin(imprevus::du_fichier(&ctx.racine, &jour.mois_civil().to_string()))?;
+    let i = lus.iter().position(|x| x.genre() == genre && x.salarie().unwrap_or_default() == cle && imprevus::jour_de_rangement(x).ok() == Some(*jour));
+    Ok(i.map(|i| (i, lus.iter().map(socle::ecriture::en_valeur).collect())))
 }
 
 /// L'arret de ce salarie a ce dernier jour travaille : (son indice, le fichier de son mois, tous imprevus compris).
@@ -644,6 +659,7 @@ fn l_arret(ctx: &Contexte, cle: &str, dernier: &Jour) -> R<(usize, Vec<Value>)> 
 /// Ecrit le fichier d'un mois du magasin des imprevus (`imprevus/AAAA-MM.json`) : les arrets ET les suspensions qu'il
 /// range, tels que la liste les donne.
 fn ecrire(ctx: &Contexte, mois: &str, liste: Vec<Value>) -> R<()> {
+    let liste = liste.iter().map(forme).collect::<R<Vec<_>>>()?;
     imprevus::ecrire(&ctx.racine, mois, liste).map_err(|m| erreur("OSError", m))
 }
 
@@ -1027,20 +1043,21 @@ impl Resume {
 
 /// UN IMPREVU TEL QUE LA PAGE LE LIT (`Resume`), avec les cachets qui tombent dedans.
 pub(crate) fn resume(ctx: &Contexte, n: &Bloc60, imp: &Value) -> R<Resume> {
-    let cachets: Vec<Cachet> = magasin(imprevus::cachets_dans(ctx, imp))?.into_iter().map(cachet_dit).collect();
-    let premier = magasin(imprevus::premier_jour(imp))?.iso();
-    let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
-    if imprevus::est_un_arret(imp) {
+    let lu = forme(imp)?;
+    let cachets: Vec<Cachet> = magasin(imprevus::cachets_dans(ctx, &lu))?.iter().map(|c| cachet_dit(socle::ecriture::en_valeur(c))).collect();
+    let premier = magasin(imprevus::premier_jour(&lu))?.iso();
+    let dernier = magasin(imprevus::dernier_jour(&lu))?.iso();
+    if imprevus::est_un_arret(&lu) {
         let base = resume_arret(ctx, n, imp)?;
         let motif = magasin(droit::arrets::motif_d_arret(&valeur_en_texte(&imp["motif"])))?;
         let ouvert = ouvre_le_maintien(ctx, imp)?;
         let majoree = ouvert
             && motif.as_ref().and_then(|m| m.origine).is_some_and(|o| o.professionnelle() || o == droit::maintien::Origine::Trajet)
-            && magasin(imprevus::dernier_jour(imp))?.moins(&magasin(imprevus::premier_jour(imp))?) >= 28;
+            && magasin(imprevus::dernier_jour(&lu))?.moins(&magasin(imprevus::premier_jour(&lu))?) >= 28;
         // LE MONTANT DE PRINCIPE, propose tant que l'arret ne dit pas le sien (`engagement::maintien::ij_de_principe`) : la
         // page en remplit les cases, la personne le garde ou le corrige ; sinon, la phrase dit ou le lire.
         let ij_proposees = if ouvert && !vrai(&imp["ij_brute"]) {
-            Some(match magasin(engagement::maintien::ij_de_principe(ctx, imp))? {
+            Some(match magasin(engagement::maintien::ij_de_principe(ctx, &arret_de(imp)?))? {
                 Ok(ij) => IjProposees {
                     ij_brute: Some(ij.brute.to_string()),
                     ij_nette: Some(ij.nette.to_string()),
@@ -1145,12 +1162,13 @@ fn imprevus(ctx: &Contexte, c: ChargeImprevus) -> R<ReponseImprevus> {
     let n = nomenclatures()?;
     let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut out = Vec::new();
-    for imp in magasin(imprevus::tous(&ctx.racine))? {
+    for lu in magasin(imprevus::tous(&ctx.racine))? {
+        let imp = socle::ecriture::en_valeur(&lu);
         if cle.as_deref().is_some_and(|c| valeur_en_texte(&imp["salarie"]) != c) {
             continue;
         }
         if let Some((debut, fin)) = &bornes {
-            if !magasin(imprevus::croise(&imp, debut, fin))? {
+            if !magasin(imprevus::croise(&lu, debut, fin))? {
                 continue;
             }
         }
@@ -1158,7 +1176,7 @@ fn imprevus(ctx: &Contexte, c: ChargeImprevus) -> R<ReponseImprevus> {
         // CE QU'UN ARRET FAIT NAITRE, SUR L'ARRET LUI-MEME : la page des imprevus (la carte d'un salarie, la
         // colonne du mois, son dossier) lit une seule liste, et chaque arret y porte ses obligations, calculees au meme
         // endroit que pour la route `arrets` (`obligations::de_l_arret`).
-        if imprevus::est_un_arret(&imp) {
+        if imprevus::est_un_arret(&lu) {
             r.poser_obligations(crate::obligations::de_l_arret(ctx, &imp, &suivi, ctx.aujourdhui)?);
         }
         r.dire_ce_qui_est_parti();
@@ -1209,7 +1227,7 @@ fn arret_indemnites(ctx: &Contexte, c: &ChargeArretIndemnites) -> R<ReponseArret
     if let Some(j) = c.jours_deja_indemnises {
         nouveau["jours_deja_indemnises"] = json!(j);
     }
-    imprevus::complet(&nouveau).map_err(refus)?;
+    imprevus::verifier(&socle::forme::lire(&nouveau, imprevus::ILLISIBLE).map_err(refus)?).map_err(refus)?;
     liste[i] = nouveau.clone();
     ecrire(ctx, &dernier.mois_civil().to_string(), liste)?;
     reponse_arret(ctx, &nouveau, "Indemnités journalières notées.")
@@ -1232,14 +1250,14 @@ fn nature_du_contrat(ctx: &Contexte, imp: &Value) -> R<Option<std::sync::Arc<dro
 /// L'arret ouvre-t-il le maintien de salaire, par la loi ou la convention (`engagement::maintien::droits`) ?
 fn ouvre_le_maintien(ctx: &Contexte, imp: &Value) -> R<bool> {
     let Some(nat) = nature_du_contrat(ctx, imp)? else { return Ok(false) };
-    Ok(magasin(engagement::maintien::droits(ctx, imp, &nat))?.is_some_and(|d| d.du()))
+    Ok(magasin(engagement::maintien::droits(ctx, &arret_de(imp)?, &nat))?.is_some_and(|d| d.du()))
 }
 
 /// LA SUBROGATION D'UN ARRET, telle que le moteur la tire de la convention et du choix de la compagnie
 /// (`engagement::maintien::subrogation`) : `01` et ses dates, ou `02`.
 pub(crate) fn subrogation_de(ctx: &Contexte, imp: &Value) -> R<(Value, Value, Value)> {
     let sub = match nature_du_contrat(ctx, imp)? {
-        Some(nat) => magasin(engagement::maintien::subrogation(ctx, imp, &nat))?,
+        Some(nat) => magasin(engagement::maintien::subrogation(ctx, &arret_de(imp)?, &nat))?,
         None => None,
     };
     Ok(match sub {
@@ -1421,7 +1439,7 @@ fn suspension_enregistrer(ctx: &Contexte, c: &ChargeSuspensionEnregistrer) -> R<
     }
     sans_chevauchement(ctx, &s, None)?;
     let mois = debut.mois_civil().to_string();
-    let mut liste = magasin(imprevus::du_fichier(&ctx.racine, &mois))?;
+    let mut liste = en_valeurs(imprevus::du_fichier(&ctx.racine, &mois))?;
     liste.push(s.clone());
     ecrire(ctx, &mois, liste)?;
     reponse_suspension(ctx, &s, "Absence enregistrée. Chaque mois qu'elle traverse la déclarera.")
@@ -1486,7 +1504,7 @@ fn verifier(arret: &Value) -> R<()> {
 /// `imprevus::dernier_jour_declare`) : ce qui designe l'arret aux routes ; `declare` lui-meme si aucun arret ne le porte.
 pub(crate) fn dernier_jour_saisi(ctx: &Contexte, salarie: &str, declare: &str) -> R<Jour> {
     for a in tous_les_arrets(ctx)? {
-        if valeur_en_texte(&a["salarie"]) == salarie && magasin(imprevus::dernier_jour_declare(&a))?.iso() == declare {
+        if valeur_en_texte(&a["salarie"]) == salarie && magasin(imprevus::dernier_jour_declare(&arret_de(&a)?))?.iso() == declare {
             return jour(&a["dernier_jour_travaille"]);
         }
     }
@@ -1562,7 +1580,7 @@ fn arret_enregistrer(ctx: &Contexte, c: &ChargeArretEnregistrer) -> R<ReponseArr
         )));
     }
     sans_chevauchement(ctx, &arret, None)?;
-    let mut liste = magasin(imprevus::du_fichier(&ctx.racine, &mois))?;
+    let mut liste = en_valeurs(imprevus::du_fichier(&ctx.racine, &mois))?;
     liste.push(arret.clone());
     ecrire(ctx, &mois, liste)?;
     if let Some(saisie) = connu {
@@ -1801,7 +1819,7 @@ pub(crate) fn signaler_la_fin(ctx: &Contexte, c: &ChargeFinContratSignaler, refa
     let arrets: Vec<declarations::dsn::Arret> = imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
         .map_err(refus_magasin)?
         .into_iter()
-        .map(|v| declarations::dsn::Arret { v })
+        .map(|a| declarations::dsn::Arret { v: socle::ecriture::en_valeur(&a) })
         .collect();
     let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets, &envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?).map_err(echec_fctu)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
@@ -1970,9 +1988,9 @@ pub(crate) fn refus_magasin(m: String) -> Echec {
 }
 
 /// Les arrets de travail du magasin des imprevus (`imprevus/AAAA-MM.json`, genre `arret`), dans l'ordre des mois du
-/// magasin, chacun complet.
+/// magasin, chacun ecrit entier (`engagement::imprevus::ArretSaisi`).
 pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
-    Ok(imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(imprevus::est_un_arret).collect())
+    en_valeurs(imprevus::tous(&ctx.racine).map(|l| l.into_iter().filter(imprevus::est_un_arret).collect()))
 }
 
 /// Les nomenclatures du bloc 60 (`arrets-base.json`), lues par leur forme (`droit::arrets::bloc_60`).

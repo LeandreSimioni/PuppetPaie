@@ -695,7 +695,7 @@ impl FileDesEtats {
         }
         let o = &self.o;
         let _code = socle::fichiers::code_fige();
-        let _geste = socle::fichiers::geste();
+        let _geste = socle::forme::geste();
         let refaire = || {
             let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
@@ -731,7 +731,7 @@ impl FileDesEtats {
         }
         let o = &self.o;
         let _code = socle::fichiers::code_fige();
-        let _geste = socle::fichiers::geste();
+        let _geste = socle::forme::geste();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
             crate::compagnie::administrateur::tableau_compagnie(&ctx)

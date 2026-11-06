@@ -7,14 +7,13 @@
 //! UNE SEULE FONCTION LIT UN FICHIER DE PAIES (`fichier`), UNE SEULE L'ECRIT (`ecrire`), par le stock et son brouillon
 //! (`stock::Brouillon`) : un engagement et ses paies s'ecrivent dans la meme ecriture.
 
-use std::collections::{BTreeMap, HashMap};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::paie_ecrite::PaieEcrite;
-use crate::stock::{self, Dossier, Objet};
+use crate::stock::{self, Dossier, FichierDuStock, Objet, Tenu};
 use socle::mois::Mois;
 use socle::num::Resultat;
 
@@ -24,10 +23,24 @@ pub const DOSSIER: &str = "paies";
 /// LE FICHIER DES PAIES D'UN MOIS.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct FichierDesPaies {
+pub(crate) struct FichierDesPaies {
     mois: Mois,
     #[serde(default)]
     paies: Vec<Entree>,
+}
+
+impl FichierDuStock for FichierDesPaies {
+    const DOSSIER: Dossier = Dossier::Paies;
+    const ILLISIBLE: &'static str = socle::echec::PAIE_ILLISIBLE;
+    fn tenu(f: Arc<Self>) -> Tenu {
+        Tenu::Paies(f)
+    }
+    fn de(t: &Tenu) -> Option<Arc<Self>> {
+        match t {
+            Tenu::Paies(f) => Some(f.clone()),
+            Tenu::Engagements(_) => None,
+        }
+    }
 }
 
 /// L'entree d'un engagement : qui elle est, sa paie presente, et celles des versions passees.
@@ -53,23 +66,10 @@ fn cle(o: &Objet) -> Option<(String, String)> {
     Some((o.carte().salarie.clone().unwrap_or_default(), numero))
 }
 
-/// LA LECTURE D'UN FICHIER DE PAIES : celui de `mois`, tel que le geste l'a lu ou que le brouillon le tient, lu par sa
-/// forme ; les entrees, par salarie et numero, sont tirees une fois du meme contenu (`Arc::ptr_eq` : le geste et le
-/// brouillon servent la meme valeur tant qu'elle n'a pas change).
+/// LA LECTURE D'UN FICHIER DE PAIES : celui de `mois`, en sa forme, tel que le geste l'a lu ou que le brouillon le tient
+/// (`stock::lire_dans` : la meme forme tant que ses octets sont les memes).
 fn fichier(racine: &std::path::Path, mois: &str) -> Resultat<Option<Arc<FichierDesPaies>>> {
-    type Gardes = Mutex<HashMap<(std::path::PathBuf, String), (Arc<Value>, Arc<FichierDesPaies>)>>;
-    static GARDES: OnceLock<Gardes> = OnceLock::new();
-    let Some(v) = stock::lire_dans(racine, Dossier::Paies, mois)? else { return Ok(None) };
-    let gardes = GARDES.get_or_init(Default::default);
-    let cle_du_fichier = (racine.to_path_buf(), mois.to_string());
-    if let Some((vu, f)) = gardes.lock().unwrap_or_else(|p| p.into_inner()).get(&cle_du_fichier) {
-        if Arc::ptr_eq(vu, &v) {
-            return Ok(Some(f.clone()));
-        }
-    }
-    let f: Arc<FichierDesPaies> = Arc::new(socle::forme::lire(&v, socle::echec::PAIE_ILLISIBLE)?);
-    socle::fichiers::ranger(gardes, cle_du_fichier, (v, f.clone()));
-    Ok(Some(f))
+    stock::lire_dans(racine, mois)
 }
 
 /// L'entree de l'engagement `o` dans le fichier de `mois`, telle qu'elle est ecrite.
@@ -106,8 +106,7 @@ fn ecrire(o: &Objet, mois: &str, change: impl FnOnce(&mut Entree)) -> Resultat<(
     if lu.as_deref() == Some(&f) {
         return Ok(());
     }
-    let contenu = serde_json::to_value(&f).map_err(|e| e.to_string())?;
-    stock::poser_dans(&o.racine, Dossier::Paies, mois, &contenu)?;
+    stock::poser_dans(&o.racine, mois, &f)?;
     Ok(())
 }
 
