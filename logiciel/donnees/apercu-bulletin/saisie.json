@@ -2,7 +2,7 @@
   "source": "La paie fictive de l'apercu du bulletin : deux jours de regie, au tarif horaire.",
   "mois": "2026-10",
   "engagements": [
-    {"salarie": "APERCU", "spectacle": "266Z00900011", "nature": "cddu_spectacle", "debut": "2026-10-20", "fin": "2026-10-21",
+    {"salarie": "APERCU", "spectacle": "apercu", "nature": "cddu_spectacle", "debut": "2026-10-20", "fin": "2026-10-21",
      "numero": "AP1.26.10", "etablissement": null, "metier": null, "cadre": null, "lieu": null, "motif_recours": null,
      "quotite_contrat": null, "quotite_reference": null, "modalite_temps_travail": null, "salaire_mensuel": null,
      "emploi": null, "pcs_ese": null, "code_emploi_ft": null, "statut": null, "statut_conventionnel": null,

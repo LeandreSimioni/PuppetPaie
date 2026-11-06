@@ -648,9 +648,6 @@ impl Importe {
             .iter()
             .flatten()
             .map(|l| LigneCotisation {
-                // TRAVAIL A FAIRE (question a Leandre) : `LigneCotisation::{id, famille}` sont des textes, vides pour une ligne
-                // que l'import n'a pas qualifiee ; ils deviennent `Option` (une quarantaine de lecteurs, dont `documents` et
-                // `declarations`) ou la ligne se refuse.
                 id: l.cotisation.iter().cloned().collect(),
                 famille: l.famille.iter().cloned().collect(),
                 libelle: l.libelle.clone(),
