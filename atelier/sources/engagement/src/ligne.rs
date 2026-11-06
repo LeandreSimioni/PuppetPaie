@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Number;
+use socle::forme::NombreLu;
 
 use socle::date::Jour;
 use socle::num::{Decimal, Resultat};
@@ -16,7 +16,7 @@ use socle::num::{Decimal, Resultat};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Chiffre {
-    Nombre(Number),
+    Nombre(NombreLu),
     Texte(String),
 }
 
@@ -24,7 +24,7 @@ impl Chiffre {
     /// Un decimal, en nombre (sa forme la plus courte : `12.5`, `15`).
     pub fn de_decimal(x: Decimal) -> Chiffre {
         let t = x.normalize().to_string();
-        t.parse::<Number>().map_or(Chiffre::Texte(t), Chiffre::Nombre)
+        t.parse::<NombreLu>().map_or(Chiffre::Texte(t), Chiffre::Nombre)
     }
 
     /// Un decimal, en texte (`div(...).normalize().to_string()`).
@@ -34,7 +34,10 @@ impl Chiffre {
 
     /// Un flottant, en nombre.
     pub fn de_f64(x: f64) -> Chiffre {
-        Number::from_f64(x).map_or_else(|| Chiffre::Texte(socle::date::repr_flottant(x)), Chiffre::Nombre)
+        match NombreLu::de_f64(x) {
+            Some(n) => Chiffre::Nombre(n),
+            None => Chiffre::Texte(socle::date::repr_flottant(x)),
+        }
     }
 
     /// Un entier, en nombre.

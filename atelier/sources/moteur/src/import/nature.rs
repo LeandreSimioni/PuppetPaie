@@ -329,7 +329,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &ChargeNature) -> R<NatureDite> {
                     (&mut contrat.quotite_contrat, "une durée du travail en heures par mois")
                 };
                 match s.parse::<socle::num::Decimal>() {
-                    Ok(d) if d > socle::num::Decimal::ZERO => *cle = serde_json::Number::from_f64(d.to_string().parse::<f64>().unwrap_or_default()),
+                    Ok(d) if d > socle::num::Decimal::ZERO => *cle = socle::forme::NombreLu::de_f64(d.to_string().parse::<f64>().unwrap_or_default()),
                     _ => return Err(refus(format!("« {} » n'est pas {} : rien n'a été écrit.", v, quoi))),
                 };
             }

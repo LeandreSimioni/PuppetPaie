@@ -429,7 +429,7 @@ fn plain(m: impl Into<String>) -> Echec {
 /// aucun texte ne fixe un taux de cachet, la compagnie le saisit).
 pub(crate) fn squelette(ctx: &Contexte, mois: &str) -> R<VueDuMois> {
     let mois = Mois::lire(mois).map_err(|m| erreur("ValueError", m))?;
-    Ok(VueDuMois { taux_cachet: dernier_taux(ctx)?.and_then(serde_json::Number::from_f64), ..VueDuMois::vide(mois) })
+    Ok(VueDuMois { taux_cachet: dernier_taux(ctx)?.and_then(socle::forme::NombreLu::de_f64), ..VueDuMois::vide(mois) })
 }
 
 
@@ -456,7 +456,7 @@ fn taux_du_mois(ctx: &Contexte, data: &VueDuMois) -> Option<f64> {
             }
         }
     }
-    data.taux_cachet.as_ref().and_then(serde_json::Number::as_f64).filter(|t| *t != 0.0)
+    data.taux_cachet.as_ref().and_then(socle::forme::NombreLu::as_f64).filter(|t| *t != 0.0)
 }
 
 /// Le taux d'une ligne de cachet (le `try` de `dernier_taux`) : tout ce qui
@@ -859,7 +859,7 @@ fn contrats_passes(ctx: &Contexte, mois: &str, salarie: Option<&IdSalarie>) -> R
             if deja.is_some() && mc.as_str() != mois {
                 continue;
             }
-            let jours = match e.jours.as_ref().and_then(serde_json::Number::as_f64).filter(|j| *j != 0.0) {
+            let jours = match e.jours.as_ref().and_then(socle::forme::NombreLu::as_f64).filter(|j| *j != 0.0) {
                 Some(j) => j.trunc() as i64,
                 None => dates.len() as i64,
             };
@@ -1174,7 +1174,7 @@ fn ce_qui_a_change(avant: &SaisieCarte, apres: &SaisieCarte, index: usize) -> Ce
             lignes.push(TauxQuiChange { rang, rubrique: b.rubrique.clone().unwrap_or_else(|| "cachet".into()), taux_avant: ta, taux: tb });
         }
     }
-    let salaire = |e: &SaisieCarte| e.salaire_mensuel.clone().map_or(Value::Null, Value::Number);
+    let salaire = |e: &SaisieCarte| socle::ecriture::en_valeur(&e.salaire_mensuel);
     let (sa, sb) = (salaire(avant), salaire(apres));
     CeQuiChange { index, salaire_mensuel: (!documents::valeur::valeurs_egales(&sb, &sa)).then_some(sb), lignes }
 }
@@ -1550,13 +1550,13 @@ pub(crate) struct VuePaie {
     dates_travail: Vec<Jour>,
     cachets: i64,
     /// Le taux de la premiere ligne de cachet ; sans cachet, celui que la carte ou son mois ecrit.
-    taux_cachet: Option<serde_json::Number>,
+    taux_cachet: Option<socle::forme::NombreLu>,
     heures: Option<f64>,
     faits_avances: Vec<&'static str>,
     cases: Vec<CaseDeFrais>,
     remuneration: Vec<LigneVue>,
     /// Les jours que la carte declare, sinon ceux du calcul ; le lieu qu'elle ecrit.
-    jours: serde_json::Number,
+    jours: socle::forme::NombreLu,
     lieu: String,
     brut: Decimal,
     net_a_payer: Decimal,
@@ -1601,10 +1601,10 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &SaisieCarte, data: &VueD
         .iter()
         .find(|l| l.rubrique.as_deref().and_then(|c| droit::catalogue::rubrique(&ctx.racine, c, &ctx.lue_au).ok()).map_or(false, |r| r.unite == "cachet"));
     let taux_cachet = match premier_cachet {
-        Some(l) => serde_json::Number::from_f64(l.taux.as_ref().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("taux")))?.flottant()?),
+        Some(l) => socle::forme::NombreLu::de_f64(l.taux.as_ref().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("taux")))?.flottant()?),
         None => brut.taux_cachet.clone().or_else(|| data.taux_cachet.clone()),
     };
-    let jours = brut.jours.clone().unwrap_or_else(|| serde_json::Number::from(e.jours));
+    let jours = brut.jours.clone().unwrap_or_else(|| socle::forme::NombreLu::from(e.jours));
     let lieu = brut.lieu.clone().unwrap_or_default();
     let prelevement = p.pas.as_ref().map_or(Decimal::new(0, 2), |v| v.prelevement);
     // CE QUE LE MOTEUR A COMPRIS DE LA CARTE, en une ligne : son bulletin (ou qu'il n'y en a pas), son contrat, ses
@@ -1819,7 +1819,6 @@ struct PaieACompleter {
 /// Le salarie tel que la carte le nomme.
 #[derive(Debug, Serialize)]
 struct CleEcrite {
-    #[serde(rename = "_cle")]
     cle: Option<String>,
 }
 

@@ -10,14 +10,14 @@ use serde_json::{json, Value};
 
 const ORACLE: &str = "calcul-pieces.json";
 
-/// La forme canonique d'un resultat : ses nombres en texte normalise, ses cles en `_` retirees (sauf `_cle`).
+/// La forme canonique d'un resultat : ses nombres en texte normalise, ses cles en `_` retirees.
 fn canon_valeur(v: &Value) -> Result<Value, String> {
     Ok(match v {
         Value::Number(_) => Value::String(socle::num::nombre(documents::valeur::dec(v)?)),
         Value::Array(a) => Value::Array(a.iter().map(canon_valeur).collect::<Result<_, _>>()?),
         Value::Object(o) => Value::Object(
             o.iter()
-                .filter(|(k, _)| !k.starts_with('_') || *k == "_cle")
+                .filter(|(k, _)| !k.starts_with('_'))
                 .map(|(k, x)| canon_valeur(x).map(|c| (k.clone(), c)))
                 .collect::<Result<serde_json::Map<_, _>, String>>()?,
         ),

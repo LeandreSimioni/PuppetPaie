@@ -8,7 +8,7 @@
 //! groupes et par leurs champs (`Champ`), jamais par le nom d'une cle.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Number;
+use socle::forme::NombreLu;
 
 use std::path::Path;
 
@@ -143,16 +143,16 @@ carte! {
         pub motif_recours: Option<String>,
         #[champ(Terme, QuotiteContrat)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub quotite_contrat: Option<Number>,
+        pub quotite_contrat: Option<NombreLu>,
         #[champ(Terme, QuotiteReference)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub quotite_reference: Option<Number>,
+        pub quotite_reference: Option<NombreLu>,
         #[champ(Terme, ModaliteTempsTravail)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub modalite_temps_travail: Option<String>,
         #[champ(Terme, SalaireMensuel)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub salaire_mensuel: Option<Number>,
+        pub salaire_mensuel: Option<NombreLu>,
         #[champ(Terme, Emploi)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub emploi: Option<String>,
@@ -173,7 +173,7 @@ carte! {
         pub statut_categoriel_rc: Option<String>,
         #[champ(Terme, PeriodeEssaiJours)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub periode_essai_jours: Option<Number>,
+        pub periode_essai_jours: Option<NombreLu>,
         #[champ(Terme, PersonneRemplacee)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub personne_remplacee: Option<String>,
@@ -198,22 +198,22 @@ carte! {
         pub date_paiement: Option<String>,
         #[champ(Fait, Jours)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub jours: Option<Number>,
+        pub jours: Option<NombreLu>,
         #[champ(Fait, TauxCachet)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub taux_cachet: Option<Number>,
+        pub taux_cachet: Option<NombreLu>,
         #[champ(Fait, HeuresSupplementaires)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub heures_supplementaires: Option<Number>,
+        pub heures_supplementaires: Option<NombreLu>,
         #[champ(Fait, HeuresSupplementairesA50)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub heures_supplementaires_a_50: Option<Number>,
+        pub heures_supplementaires_a_50: Option<NombreLu>,
         #[champ(Fait, HeuresComplementaires)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub heures_complementaires: Option<Number>,
+        pub heures_complementaires: Option<NombreLu>,
         #[champ(Fait, IndemniteLicenciement)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub indemnite_licenciement: Option<Number>,
+        pub indemnite_licenciement: Option<NombreLu>,
         #[champ(Fait, FauteGrave)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub faute_grave: Option<bool>,
@@ -246,7 +246,7 @@ carte! {
         pub preavis_non_effectue: Option<bool>,
         #[champ(Fin, PreavisMois)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub preavis_mois: Option<Number>,
+        pub preavis_mois: Option<NombreLu>,
         #[champ(Fin, PrecariteDue)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub precarite_due: Option<bool>,
@@ -255,7 +255,7 @@ carte! {
         pub precarite_pourquoi: Option<String>,
         #[champ(Deduit, JoursContrat)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub jours_contrat: Option<Number>,
+        pub jours_contrat: Option<NombreLu>,
         #[champ(Deduit, DateModification)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub date_modification: Option<String>,
@@ -286,7 +286,7 @@ impl Champ {
 #[serde(untagged)]
 pub enum Valeur {
     Texte(String),
-    Nombre(Number),
+    Nombre(NombreLu),
     Oui(bool),
 }
 
@@ -301,7 +301,7 @@ impl Simple for String {
     }
 }
 
-impl Simple for Number {
+impl Simple for NombreLu {
     fn simple(&self) -> Option<Valeur> {
         Some(Valeur::Nombre(self.clone()))
     }
@@ -440,7 +440,7 @@ pub struct CongePris {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Prime {
-    pub montant: Number,
+    pub montant: NombreLu,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rubrique: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -464,9 +464,9 @@ pub struct Preavis {
 #[serde(deny_unknown_fields)]
 pub struct Avant {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub salaire_mensuel: Option<Number>,
+    pub salaire_mensuel: Option<NombreLu>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub quotite_contrat: Option<Number>,
+    pub quotite_contrat: Option<NombreLu>,
 }
 
 /// Un engagement valide, dans la vue de son mois : le jour de sa validation (`None` : compte comme valide par le calcul
@@ -484,7 +484,7 @@ pub struct Validee {
 #[serde(deny_unknown_fields)]
 pub struct CeQueLeMoisDit {
     #[serde(default)]
-    pub taux_cachet: Option<Number>,
+    pub taux_cachet: Option<NombreLu>,
 }
 
 /// LE MOIS DE L'ECRAN (`stock::vue_du_mois`) : le mois, le cachet qu'il dit par defaut, et la vue de chaque engagement qui
@@ -494,7 +494,7 @@ pub struct CeQueLeMoisDit {
 pub struct VueDuMois {
     pub mois: socle::mois::Mois,
     #[serde(default)]
-    pub taux_cachet: Option<Number>,
+    pub taux_cachet: Option<NombreLu>,
     #[serde(default)]
     pub engagements: Vec<Carte>,
 }

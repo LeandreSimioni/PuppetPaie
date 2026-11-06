@@ -14,7 +14,7 @@
 //!   le moteur les montre et avertit, il ne les retire pas (regle 1).
 //!
 //! UN SEUL MAGASIN : `imprevus/AAAA-MM.json` sous les donnees de la compagnie, au mois ou l'imprevu se range (le dernier
-//! jour travaille d'un arret, le premier jour d'une suspension) : `{"_origine", "mois", "imprevus": [...]}`. Chaque
+//! jour travaille d'un arret, le premier jour d'une suspension) : `{"quoi", "mois", "imprevus": [...]}`. Chaque
 //! imprevu dit son `genre` (`arret` ou `suspension`) ; sa forme est `ArretSaisi` ou `SuspensionSaisie`, et tout autre
 //! champ refuse.
 
@@ -174,8 +174,7 @@ pub enum Imprevu {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct FichierDesImprevus {
-    #[serde(rename = "_origine")]
-    origine: String,
+    quoi: String,
     mois: String,
     imprevus: Vec<Imprevu>,
 }
@@ -397,13 +396,13 @@ pub fn du_fichier(racine: &Path, mois: &str) -> Resultat<Vec<Imprevu>> {
 
 /// Ecrit le fichier d'un mois du magasin.
 pub fn ecrire(racine: &Path, mois: &str, imprevus: Vec<Imprevu>) -> Resultat<()> {
-    let origine = format!(
+    let quoi = format!(
         "Les imprevus ranges en {} : arrets de travail (au mois du dernier jour travaille) et suspensions (au mois \
 de leur premier jour). Chacun se saisit une fois ; le moteur en tire la ligne de paie d'un permanent, le bloc 60 ou 65 \
 de chaque DSN mensuelle dont le mois le croise, et, pour un arret, son signalement (nature 04, 05).",
         mois
     );
-    socle::ecriture::ecrire_json(&chemin(racine, mois), &FichierDesImprevus { origine, mois: mois.to_string(), imprevus }, 2)
+    socle::ecriture::ecrire_json(&chemin(racine, mois), &FichierDesImprevus { quoi, mois: mois.to_string(), imprevus }, 2)
 }
 
 /// Le jour qui range un imprevu dans le magasin : le dernier jour travaille d'un arret, le premier jour d'une suspension.

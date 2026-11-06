@@ -4,7 +4,7 @@
 //! parti sur elle. Un engagement jamais modifie apres un envoi n'a pas de frise.
 
 use serde::Serialize;
-use serde_json::Number;
+use socle::forme::NombreLu;
 use crate::{Chiffre, LignePaie};
 
 use crate::departs::{Depart, Departs, Envoi};
@@ -88,7 +88,7 @@ const CLAUSES: [(Champ, &str); 13] = [
 
 /// Une valeur en mots : en euros (`euros`), un nombre a la virgule, un oui-non, un texte ; « — » sans valeur.
 fn en_mots(v: Option<&Valeur>, en_euros: bool) -> String {
-    let nombre = |n: &Number| socle::num::dec_texte(&n.to_string());
+    let nombre = |n: &NombreLu| socle::num::dec_texte(&n.to_string());
     match v {
         None => "—".into(),
         Some(Valeur::Oui(b)) => if *b { "oui" } else { "non" }.into(),

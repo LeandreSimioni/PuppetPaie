@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
 
-use serde_json::Number;
+use socle::forme::NombreLu;
 
 use crate::calcul::Paie;
 use crate::saisie::{Carte, CongePris};
@@ -117,7 +117,7 @@ pub(crate) fn sub(a: Decimal, b: Decimal) -> Decimal {
 
 /// Le decimal d'un nombre de la carte, son echelle gardee (`Chiffre::dec_avec_echelle`), ou, s'il n'est pas dit ou nul,
 /// `defaut`.
-pub(crate) fn dec_ou(v: Option<&Number>, defaut: Decimal) -> Resultat<Decimal> {
+pub(crate) fn dec_ou(v: Option<&NombreLu>, defaut: Decimal) -> Resultat<Decimal> {
     match v.map(|n| Chiffre::Nombre(n.clone())) {
         Some(x) if x.vrai() => x.dec_avec_echelle(),
         _ => Ok(defaut),
@@ -125,7 +125,7 @@ pub(crate) fn dec_ou(v: Option<&Number>, defaut: Decimal) -> Resultat<Decimal> {
 }
 
 /// Le decimal d'un nombre de la carte, son echelle gardee (`Chiffre::dec_avec_echelle`).
-pub(crate) fn dec_de(n: &Number) -> Resultat<Decimal> {
+pub(crate) fn dec_de(n: &NombreLu) -> Resultat<Decimal> {
     Chiffre::Nombre(n.clone()).dec_avec_echelle()
 }
 
@@ -1235,7 +1235,7 @@ pub struct Provision {
 /// `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un contrat sans compteur de
 /// l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne porte pas le compteur
 /// qu'elle devrait.
-pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Number>) -> socle::num::Resultat<Option<Provision>> {
+pub fn provision_conges_de(paie: &Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&NombreLu>) -> socle::num::Resultat<Option<Provision>> {
     let Some(ecrit) = paie.conges.as_ref() else {
         if paie.declaree_a_la_caisse_des_conges()? {
             return Ok(None);

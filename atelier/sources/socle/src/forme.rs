@@ -268,6 +268,69 @@ impl<'de> serde::Deserialize<'de> for NombreEcrit {
     }
 }
 
+/// UN NOMBRE D'UNE DONNEE, garde tel qu'il s'ecrit (`130.0` reste `130.0`, `12` reste `12`) : il se relit et se
+/// reecrit a l'identique. Un texte n'en est pas un.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "serde_json::Number", into = "serde_json::Number")]
+pub struct NombreLu(serde_json::Number);
+
+impl TryFrom<serde_json::Number> for NombreLu {
+    type Error = std::convert::Infallible;
+    fn try_from(n: serde_json::Number) -> Result<NombreLu, Self::Error> {
+        Ok(NombreLu(n))
+    }
+}
+
+impl From<NombreLu> for serde_json::Number {
+    fn from(n: NombreLu) -> serde_json::Number {
+        n.0
+    }
+}
+
+impl NombreLu {
+    /// Un flottant fini ; `None` pour l'infini ou NaN, qu'une donnee n'ecrit pas.
+    pub fn de_f64(x: f64) -> Option<NombreLu> {
+        serde_json::Number::from_f64(x).map(NombreLu)
+    }
+
+    pub fn as_f64(&self) -> Option<f64> {
+        self.0.as_f64()
+    }
+
+    pub fn as_i64(&self) -> Option<i64> {
+        self.0.as_i64()
+    }
+
+    pub fn as_u64(&self) -> Option<u64> {
+        self.0.as_u64()
+    }
+}
+
+impl From<u64> for NombreLu {
+    fn from(n: u64) -> NombreLu {
+        NombreLu(n.into())
+    }
+}
+
+impl From<i64> for NombreLu {
+    fn from(n: i64) -> NombreLu {
+        NombreLu(n.into())
+    }
+}
+
+impl std::str::FromStr for NombreLu {
+    type Err = String;
+    fn from_str(t: &str) -> Result<NombreLu, String> {
+        t.parse::<serde_json::Number>().map(NombreLu).map_err(|_| crate::num::illisible(t))
+    }
+}
+
+impl std::fmt::Display for NombreLu {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 /// Les trois cles qui expliquent un objet d'un fichier, sans rien dire au calcul : `quoi` (ce qu'il est), `note` (une
 /// remarque, un pourquoi, une regle d'emploi), `source` (le texte depose qui le fonde).
 pub const NOTES: [&str; 3] = ["quoi", "note", "source"];

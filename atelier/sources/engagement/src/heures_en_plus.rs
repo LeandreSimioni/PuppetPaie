@@ -7,7 +7,7 @@
 //! fiscale. Un contrat d'usage n'en a pas : ses heures sont ses lignes. Textes : `logiciel/donnees/permanents-base.json`,
 //! `heures_en_plus`, qui les cite.
 
-use serde_json::Number;
+use socle::forme::NombreLu;
 
 use crate::calcul::{LigneBrut, LigneCotisation};
 use crate::conges::{avertir, flot, info, qui};
@@ -52,7 +52,7 @@ pub fn faits_appeles(ctx: &Contexte, partiel: bool) -> Resultat<Vec<&'static str
 }
 
 /// Les heures d'un fait de la carte, zero s'il n'est pas dit ou s'il est negatif.
-fn heures(x: &Option<Number>) -> Resultat<Decimal> {
+fn heures(x: &Option<NombreLu>) -> Resultat<Decimal> {
     crate::conges::dec_ou(x.as_ref(), Decimal::ZERO).map(|h| h.max(Decimal::ZERO))
 }
 

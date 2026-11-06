@@ -42,7 +42,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::Number;
+use socle::forme::NombreLu;
 
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
@@ -893,7 +893,7 @@ pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&str>) -> String {
 pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &saisie::Carte, &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)>;
 
 /// Un nombre dit et non nul (`socle::fichiers::vrai`).
-fn nombre_dit(x: &Option<Number>) -> bool {
+fn nombre_dit(x: &Option<NombreLu>) -> bool {
     x.as_ref().is_some_and(|n| n.as_f64().map_or(true, |f| f != 0.0))
 }
 
@@ -1028,7 +1028,7 @@ pub(crate) fn engagements(
                 }
             }
         };
-        let nombre = |x: &Option<Number>| x.clone().map(Chiffre::Nombre);
+        let nombre = |x: &Option<NombreLu>| x.clone().map(Chiffre::Nombre);
         // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
         let continue_ = match &carte.jours_contrat {

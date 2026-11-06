@@ -281,11 +281,11 @@
           "salaire_de_base": "300",
           "salaire_retabli": "300",
           "salarie": {
-            "_cle": "FULLER"
+            "cle": "FULLER"
           },
           "smic": "12.31",
           "spectacle": {
-            "_cle": "le-banc-des-menteurs"
+            "cle": "le-banc-des-menteurs"
           },
           "total_pat": "171.85",
           "total_sal": "67.7",
@@ -1692,7 +1692,7 @@
       },
       "2026-11/DSN_Novembre2026.dsn": {
         "quand": "2026-12-15T10:00:00",
-        "empreinte_saisie": "9dc5ea2272e87aab",
+        "empreinte_saisie": "39a87a359d537919",
         "versions_portees": []
       }
     },
@@ -1982,11 +1982,11 @@
               "salaire_de_base": "300",
               "salaire_retabli": "300",
               "salarie": {
-                "_cle": "FULLER"
+                "cle": "FULLER"
               },
               "smic": "12.31",
               "spectacle": {
-                "_cle": "le-banc-des-menteurs"
+                "cle": "le-banc-des-menteurs"
               },
               "total_pat": "171.85",
               "total_sal": "67.7",

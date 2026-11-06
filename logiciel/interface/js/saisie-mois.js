@@ -8,7 +8,7 @@
  * propre à un jour, le libellé d'une prime…). Une carte fermée n'a pas de
  * formulaire et ne se modifie pas : elle écrit les engagements du fichier
  * qu'elle montre, tels quels (`engagementLu`). Ce que le moteur tient seul —
- * la validation et sa carte figée, la réouverture, `_origine` — il le reprend
+ * la validation et sa carte figée, la réouverture — il le reprend
  * du fichier (`moteur/src/routes/mois.rs`), quoi que la page envoie. */
 
 /** L'engagement de la saisie lue qu'une carte montre (celui de son identité, `data-engagement`), ou `undefined`. */

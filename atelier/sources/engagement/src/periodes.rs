@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use serde_json::Number;
+use socle::forme::NombreLu;
 
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, LigneCotisation, Paie, ReductionGenerale};
 use droit::reduction::{reduction_au_coefficient, reduction_generale};
@@ -71,7 +71,7 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
     let salaire_apres = ligne.taux.as_ref().ok_or_else(|| socle::fichiers::absent("taux"))?.dec()?;
     let quotite_apres = eng.quotite()?;
     let avenant = jour_de_l_avenant(eng)?;
-    let terme = |x: &Option<Number>, cle: &str| x.clone().map(Chiffre::Nombre).ok_or_else(|| socle::fichiers::absent(cle)).and_then(|c| c.dec());
+    let terme = |x: &Option<NombreLu>, cle: &str| x.clone().map(Chiffre::Nombre).ok_or_else(|| socle::fichiers::absent(cle)).and_then(|c| c.dec());
     let (salaire_avant, quotite_avant) = match &eng.avant {
         Some(a) => (terme(&a.salaire_mensuel, "salaire_mensuel")?, terme(&a.quotite_contrat, "quotite_contrat")?),
         None => (salaire_apres, quotite_apres),

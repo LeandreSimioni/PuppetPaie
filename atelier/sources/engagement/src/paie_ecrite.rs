@@ -140,7 +140,6 @@ pub struct FormeDePaie<A> {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Cle {
-    #[serde(rename = "_cle")]
     pub cle: String,
 }
 

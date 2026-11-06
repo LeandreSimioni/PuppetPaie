@@ -27,7 +27,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Number;
+use socle::forme::NombreLu;
 
 use droit::contexte::Contexte;
 use crate::saisie::{Avant, Carte, Champ, Groupe, VueDuMois};
@@ -66,7 +66,7 @@ impl Dossier {
 pub struct FichierDuMois {
     pub mois: Mois,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub taux_cachet: Option<Number>,
+    pub taux_cachet: Option<NombreLu>,
     #[serde(default)]
     pub engagements: Vec<Ecrit>,
 }
@@ -548,7 +548,7 @@ impl Objet {
             if v.debut.is_none() && !debut.is_empty() {
                 v.debut = Some(debut);
             }
-            v.jours_contrat = Some(Number::from(premiere.jours_du_contrat(&self.racine) as u64));
+            v.jours_contrat = Some(NombreLu::from(premiere.jours_du_contrat(&self.racine) as u64));
         }
         Ok(Some(v))
     }
@@ -590,10 +590,10 @@ impl Objet {
             return Ok(());
         }
         let a = self.termes_a(&j.plus_jours(-1)?);
-        let quotite = |x: &Carte| -> Resultat<Option<Number>> {
+        let quotite = |x: &Carte| -> Resultat<Option<NombreLu>> {
             Ok(match &x.quotite_contrat {
                 Some(q) => Some(q.clone()),
-                None => x.nature_lue()?.quotite_reference_defaut().and_then(Number::from_f64),
+                None => x.nature_lue()?.quotite_reference_defaut().and_then(NombreLu::de_f64),
             })
         };
         let avant = Avant { salaire_mensuel: a.salaire_mensuel.clone(), quotite_contrat: quotite(&a)? };
@@ -864,7 +864,7 @@ pub fn empreinte_de_saisie(vue: &VueDuMois, salarie: Option<&str>) -> String {
     #[derive(Serialize)]
     struct Tete<'a> {
         mois: &'a Mois,
-        taux_cachet: &'a Option<Number>,
+        taux_cachet: &'a Option<NombreLu>,
     }
     let engagements: Vec<Carte> = vue
         .engagements
