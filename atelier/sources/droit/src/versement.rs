@@ -63,7 +63,10 @@ impl Versement {
         let t = socle::texte::sans_accent(texte).to_lowercase();
         let mots: Vec<&str> = t.split_whitespace().collect();
         let t = mots.join(" ");
-        let t = t.strip_prefix("le ").unwrap_or(&t);
+        let t = match t.strip_prefix("le ") {
+            Some(reste) => reste,
+            None => &t,
+        };
         match t {
             "" | "fin du mois" | "dernier jour du mois" => return Ok(Versement::FinDuMois),
             "fin du contrat" | "dernier jour du contrat" => return Ok(Versement::FinDuContrat),
@@ -73,7 +76,10 @@ impl Versement {
             Some(n) => (n, true),
             None => (t, false),
         };
-        let n = n.strip_suffix("er").unwrap_or(n);
+        let n = match n.strip_suffix("er") {
+            Some(reste) => reste,
+            None => n,
+        };
         match n.parse::<u32>() {
             Ok(q) if (1..=31).contains(&q) => Ok(Versement::Fixe { quantieme: q, mois_suivant }),
             _ => Err(format!("{} attendu", FORMES)),
@@ -119,7 +125,8 @@ impl Versement {
             Versement::FinDuContrat => Ok(fin_periode),
             Versement::Fixe { quantieme, mois_suivant } => {
                 let m = if mois_suivant { mois.suivant() } else { mois };
-                Ok(m.jour(quantieme.min(m.jours())).unwrap_or_else(|| m.dernier_jour()))
+                let jour = quantieme.min(m.jours());
+                m.jour(jour).ok_or_else(|| format!("Le {} du mois n'existe pas.", jour))
             }
         }
     }

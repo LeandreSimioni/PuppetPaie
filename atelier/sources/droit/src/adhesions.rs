@@ -23,7 +23,7 @@ use crate::source::forme_notee;
 /// Le contrat qui court de `depuis` a `jusqu_a` (l'un ou l'autre absent : sans borne) couvre-t-il au moins un jour de
 /// la periode `debut`..=`fin` ?
 pub fn en_vigueur(depuis: Option<Jour>, jusqu_a: Option<Jour>, debut: &Jour, fin: &Jour) -> bool {
-    depuis.map_or(true, |d| d <= *fin) && jusqu_a.map_or(true, |j| j >= *debut)
+    depuis.is_none_or(|d| d <= *fin) && jusqu_a.is_none_or(|j| j >= *debut)
 }
 
 forme_notee! {

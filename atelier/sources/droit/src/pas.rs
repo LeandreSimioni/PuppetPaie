@@ -230,7 +230,7 @@ pub fn grille<'a>(bareme: &'a Pile, le: Option<Jour>, zone: &str) -> R<&'a Grill
             }
         }
         // `max` garde la premiere des egales.
-        if meilleure.map_or(true, |m| g.depuis > m.depuis) {
+        if meilleure.is_none_or(|m| g.depuis > m.depuis) {
             meilleure = Some(g);
         }
     }

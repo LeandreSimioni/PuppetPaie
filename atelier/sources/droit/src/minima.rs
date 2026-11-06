@@ -626,7 +626,7 @@ pub fn plus_bas<T>(v: Vec<T>, valeur: impl Fn(&T) -> Decimal) -> Option<T> {
     let mut mini: Option<(Decimal, T)> = None;
     for x in v {
         let k = valeur(&x);
-        if mini.as_ref().map_or(true, |(m, _)| k < *m) {
+        if mini.as_ref().is_none_or(|(m, _)| k < *m) {
             mini = Some((k, x));
         }
     }
@@ -669,7 +669,7 @@ pub fn plancher(montant: Decimal, quoi: String) -> Option<Plancher> {
 
 /// Le montant du palier ou tombe `nombre` de representations.
 pub fn palier(paliers: &[Palier], nombre: i64) -> Option<Decimal> {
-    paliers.iter().find(|p| p.jusqu_a.map_or(true, |j| nombre <= j)).map(|p| p.montant)
+    paliers.iter().find(|p| p.jusqu_a.is_none_or(|j| nombre <= j)).map(|p| p.montant)
 }
 
 impl Table {

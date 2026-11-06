@@ -758,7 +758,7 @@ pub fn preavis_mois(anciennete: Decimal, motif_rupture: Option<&str>, cdd: bool)
         return Ok(Some(Decimal::ZERO));
     }
     for t in &r.tranches {
-        if anciennete >= t.anciennete_mois_min && t.anciennete_mois_max.map_or(true, |h| anciennete < h) {
+        if anciennete >= t.anciennete_mois_min && t.anciennete_mois_max.is_none_or(|h| anciennete < h) {
             return Ok(t.mois);
         }
     }

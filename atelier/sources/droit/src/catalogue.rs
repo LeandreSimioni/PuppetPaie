@@ -204,7 +204,7 @@ impl Rubrique {
             || self.suspension
             || self.arret_de_travail
             || self.conges_pris
-            || self.dsn_bloc52.as_deref().map_or(false, |s| !s.is_empty())
+            || self.dsn_bloc52.as_deref().is_some_and(|s| !s.is_empty())
         {
             return Some("mensuelle");
         }
@@ -495,7 +495,7 @@ pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
 /// deroulant, qui se range par libelle (« Absence » en tete) : la premiere rubrique de salaire (nature `salaire`) que la
 /// forme et le statut proposent, dans l'ordre du catalogue. `None` : aucune.
 pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str, statut: &str) -> Option<&'a Rubrique> {
-    let proposee = |r: &&Rubrique| r.reservee_a().map_or(true, |f| f == forme) && r.reservee_au_statut().map_or(true, |s| s == statut);
+    let proposee = |r: &&Rubrique| r.reservee_a().is_none_or(|f| f == forme) && r.reservee_au_statut().is_none_or(|s| s == statut);
     cat.iter().filter(proposee).find(|r| r.nature == "salaire")
 }
 

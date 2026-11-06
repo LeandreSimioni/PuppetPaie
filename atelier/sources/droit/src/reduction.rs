@@ -17,7 +17,7 @@ fn requis(v: Option<Decimal>, cle: &str) -> Resultat<Decimal> {
 }
 
 fn en_f64(x: Decimal) -> f64 {
-    x.to_string().parse().unwrap_or(f64::NAN)
+    socle::num::flottant(x)
 }
 
 /// Quatre decimales, la moitie vers le haut, l'echelle gardee.

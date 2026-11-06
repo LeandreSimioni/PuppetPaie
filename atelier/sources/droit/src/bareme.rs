@@ -23,17 +23,23 @@ use std::collections::BTreeMap;
 
 /// Le décimal en flottant.
 fn flt(x: Decimal) -> f64 {
-    x.to_string().parse().unwrap_or(f64::NAN)
+    socle::num::flottant(x)
 }
 
 /// Un decimal tel que la pile le garde : ecrit en flottant, relu par sa forme la plus courte (`socle::num::dec_f64`).
 fn ecrit(x: Decimal) -> Decimal {
-    dec_f64(flt(x)).unwrap_or(x)
+    match dec_f64(flt(x)) {
+        Ok(d) => d,
+        Err(e) => unreachable!("un décimal fini s'écrit en flottant fini : {} ({})", x, e),
+    }
 }
 
 /// `round(x, 4)` d'un flottant : arrondi correct, au pair sur le demi exact.
 fn arrondi4(x: f64) -> f64 {
-    format!("{:.4}", x).parse().unwrap_or(x)
+    match format!("{:.4}", x).parse::<f64>() {
+        Ok(r) => r,
+        Err(e) => unreachable!("un flottant s'écrit en nombre : {} ({})", x, e),
+    }
 }
 
 /// `round(Decimal, n)` : au pair.
@@ -91,7 +97,7 @@ fn code81(c: &CotisationDsn) -> &str {
 
 /// La nature, quand elle est un permanent (`nat and nat.mensuelle`).
 fn mensuelle(nat: Option<&Nature>) -> bool {
-    nat.map_or(false, |n| n.mensuelle())
+    nat.is_some_and(|n| n.mensuelle())
 }
 
 fn nom_du_salarie(sal: &SalarieDuContrat, defaut: &str) -> String {
@@ -1217,7 +1223,7 @@ Configuration › Entreprise › Avancé, « Autres établissements », à parti
     // (CGCT, L. 2333-64, I, l'effectif « employe dans chacune des zones »).
     let vm = e.versement_mobilite.dite();
     let aucun = vm.is_some_and(|v| v.taux.dite().is_some_and(|t| t.decimal().is_zero()));
-    if aucun || (matches!(e.versement_mobilite, Case::Absente | Case::Nulle) && bar.versement_mobilite.as_ref().map_or(true, VersementMobiliteEcrit::est_vide)) {
+    if aucun || (matches!(e.versement_mobilite, Case::Absente | Case::Nulle) && bar.versement_mobilite.as_ref().is_none_or(VersementMobiliteEcrit::est_vide)) {
         bar.versement_mobilite = None;
     } else if let Some(v) = vm {
         bar.versement_mobilite = Some(VersementMobiliteEcrit::Ecrit(crate::forme_bareme::VersementMobiliteTaux {
@@ -1502,7 +1508,7 @@ fn poser_t1(mut bar: Pile, retraite_pat: Decimal, retraite_sal: Decimal) -> Resu
 /// d'une organisation patronale pour un intermittent non cadre.
 pub fn bareme_retraite_t1(bar: Pile, ent: &ChampsEntreprise, sal: &SalarieDuContrat, nat: Option<&Nature>) -> Resultat<Pile> {
     let Some(rep) = bar.retraite_t1_repartition.clone() else { return Ok(bar) };
-    if nat.map_or(false, |n| n.mensuelle()) {
+    if nat.is_some_and(|n| n.mensuelle()) {
         match bar.rubrique("retraite_t1") {
             Some(l) if l.base.as_deref().unwrap_or("").starts_with("t1_mensuelle") => {}
             _ => return Ok(bar),

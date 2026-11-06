@@ -97,8 +97,8 @@ pub fn etablissements_entre(liste: &[Datee<Vec<Etablissement>>], debut: &Jour, f
     let mut vus: HashMap<String, Etablissement> = HashMap::new();
     for (i, v) in versions.iter().enumerate() {
         let jusqu_a = versions.get(i + 1).and_then(|w| w.depuis);
-        let commence_avant_la_fin = v.depuis.map_or(true, |j| j <= *fin);
-        let finit_apres_le_debut = jusqu_a.map_or(true, |j| j > *debut);
+        let commence_avant_la_fin = v.depuis.is_none_or(|j| j <= *fin);
+        let finit_apres_le_debut = jusqu_a.is_none_or(|j| j > *debut);
         if !(commence_avant_la_fin && finit_apres_le_debut) {
             continue;
         }
@@ -1757,11 +1757,11 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
         Err(format!("Salarie inconnu : {}. Connus : {}.", repr_texte(nom), actifs.join(", ")))
     }
 
-    /// Par cle, titre, alias ou numero d'objet (les fiches actives d'abord), puis par inclusion dans un sens ou l'autre.
-    /// Rend la fiche et sa cle, ou le refus.
+    /// Par cle, titre, alias ou numero d'objet, puis par inclusion dans un sens ou l'autre. Rend la fiche et sa cle, ou le
+    /// refus : un nom qui designe plusieurs spectacles (archives compris) se refuse en les nommant.
     /// Un nom vide (ou blanc) ne designe AUCUN spectacle : la recherche par inclusion le trouverait
-    /// dans tous (« » est dans tout titre) et rendrait le premier actif, au hasard -- c'est ainsi
-    /// qu'un permanent repris se rattachait a un spectacle. Il se refuse.
+    /// dans tous (« » est dans tout titre) -- c'est ainsi qu'un permanent repris se rattachait a un
+    /// spectacle. Il se refuse.
     pub fn spectacle(&self, nom: &str) -> Resultat<Spectacle> {
         let q = cle_recherche(nom);
         if q.is_empty() && !self.spectacles.contains_key(nom.trim()) {
@@ -1773,9 +1773,19 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
             ));
         }
         let trouve = |cle: &IdSpectacle| Spectacle { cle: cle.clone(), champs: self.spectacles[cle].clone() };
-        let mut ordre: Vec<(&IdSpectacle, &ChampsSpectacle)> = self.spectacles.iter().collect();
-        ordre.sort_by_key(|(_, v)| v.archivee()); // stable : les actives d'abord
+        let ordre: Vec<(&IdSpectacle, &ChampsSpectacle)> = self.spectacles.iter().collect();
         let net = nom.trim();
+        // Un nom qui designe plusieurs spectacles ne se devine pas : il se refuse, et dit lesquels.
+        let un_seul = |trouves: Vec<&IdSpectacle>| -> Resultat<Option<Spectacle>> {
+            if trouves.len() > 1 {
+                return Err(format!(
+                    "Spectacle ambigu : {} désigne plusieurs spectacles : {}. L'appeler par sa clé.",
+                    repr_texte(nom),
+                    trouves.iter().map(|c| c.as_str()).collect::<Vec<_>>().join(", ")
+                ));
+            }
+            Ok(trouves.first().map(|c| trouve(c)))
+        };
         if let Some((cle, _)) = self.spectacles.get_key_value(net) {
             return Ok(trouve(cle));
         }
@@ -1784,22 +1794,27 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
             noms.extend(sp.alias.dite().into_iter().flatten().cloned());
             Ok(noms)
         };
+        let mut exacts = Vec::new();
         for (cle, sp) in &ordre {
-            if noms_de(cle, sp)?.iter().any(|n| cle_recherche(n) == q) {
-                return Ok(trouve(cle));
-            }
-            if sp.numero_objet.texte().to_uppercase() == net.to_uppercase() {
-                return Ok(trouve(cle));
+            if noms_de(cle, sp)?.iter().any(|n| cle_recherche(n) == q) || sp.numero_objet.texte().to_uppercase() == net.to_uppercase() {
+                exacts.push(*cle);
             }
         }
+        if let Some(sp) = un_seul(exacts)? {
+            return Ok(sp);
+        }
+        let mut approchants = Vec::new();
         for (cle, sp) in &ordre {
             let ressemble = noms_de(cle, sp)?.iter().filter(|n| !n.is_empty()).any(|n| {
                 let c = cle_recherche(n);
                 c.contains(&q) || q.contains(&c)
             });
             if ressemble {
-                return Ok(trouve(cle));
+                approchants.push(*cle);
             }
+        }
+        if let Some(sp) = un_seul(approchants)? {
+            return Ok(sp);
         }
         let mut connus = Vec::new();
         for (_, v) in &ordre {

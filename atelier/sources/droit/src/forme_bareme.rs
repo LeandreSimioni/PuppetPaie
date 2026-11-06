@@ -91,7 +91,7 @@ pub(crate) fn lire_au<T: serde::de::DeserializeOwned>(
     LECTURE.with(|l| *l.borrow_mut() = Some(Lecture { jour: *jour, organisation: organisation.map(str::to_string), retenues: Vec::new() }));
     let lu = socle::forme::lire_fichier::<T>(fichier, phrase);
     let lecture = LECTURE.with(|l| l.borrow_mut().take());
-    let mut retenues = lecture.map(|l| l.retenues).unwrap_or_default();
+    let mut retenues = lecture.ok_or_else(|| "La lecture du barème a perdu ses dates : le signaler au développeur.".to_string())?.retenues;
     retenues.sort();
     retenues.dedup();
     Ok((lu?, retenues))
@@ -146,7 +146,7 @@ pub(crate) mod datee {
         let jour = lecture.jour;
         let (depuis, v) = datees
             .into_iter()
-            .filter(|(j, _)| j.map_or(true, |j| j <= jour))
+            .filter(|(j, _)| j.is_none_or(|j| j <= jour))
             .last()
             .ok_or_else(|| format!("aucune valeur ne s'applique au {}", jour.jj_mm_aaaa()))?;
         lecture.retenues.extend(depuis);
@@ -1364,7 +1364,7 @@ impl ValeurAtmp {
     pub fn au(&self, jour: &socle::date::Jour) -> Option<Decimal> {
         let v = self.valeurs();
         let iso = jour.iso();
-        v.iter().rev().find(|(d, _)| d.map_or(true, |d| d <= iso.as_str())).or(v.first()).map(|(_, x)| *x)
+        v.iter().rev().find(|(d, _)| d.is_none_or(|d| d <= iso.as_str())).or(v.first()).map(|(_, x)| *x)
     }
 
     /// LE TAUX QUE LA PAIE DE CE JOUR APPLIQUE, et le `depuis` de la valeur retenue : avant la premiere date d'effet, il
@@ -1373,7 +1373,7 @@ impl ValeurAtmp {
         let mut retenue = None;
         for (d, x) in self.valeurs() {
             let depuis = d.map(socle::date::Jour::lire).transpose()?;
-            if depuis.map_or(true, |j| j <= *jour) {
+            if depuis.is_none_or(|j| j <= *jour) {
                 retenue = Some((x, depuis));
             }
         }

@@ -553,7 +553,11 @@ pub trait FormeDeCase {
 }
 
 pub fn declaree<T: FormeDeCase>(cle: &'static str) -> Declaree {
-    Declaree { cle: cle.strip_prefix("r#").unwrap_or(cle), valeurs: T::VALEURS, cases: T::cases(), faute: T::FAUTE, longueur: T::LONGUEUR }
+    let cle = match cle.strip_prefix("r#") {
+        Some(reste) => reste,
+        None => cle,
+    };
+    Declaree { cle, valeurs: T::VALEURS, cases: T::cases(), faute: T::FAUTE, longueur: T::LONGUEUR }
 }
 
 impl FormeDeCase for String {}
