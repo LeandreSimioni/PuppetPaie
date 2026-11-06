@@ -46,7 +46,7 @@ use std::sync::Arc;
 use socle::forme::NombreLu;
 
 use droit::catalogue::rubrique;
-use droit::contexte::Contexte;
+use droit::contexte::{Contexte, IdSalarie, IdSpectacle};
 use droit::natures::{self, Nature};
 pub use ligne::{Chiffre, DateDeLigne, LignePaie};
 use socle::date::Jour;
@@ -57,10 +57,12 @@ use socle::num::{dec_f64, Decimal, Resultat};
 
 #[derive(Debug, Clone)]
 pub struct Engagement {
-    pub salarie: String,
+    /// La clé de la fiche du salarié, telle que la carte l'écrit.
+    pub salarie: IdSalarie,
     /// Le salarié tel qu'une phrase d'écran le nomme (« NOM Prénom »).
     pub nom: String,
-    pub spectacle: Option<String>,
+    /// La clé de la fiche du spectacle, telle que la carte l'écrit ; `None` : un contrat payé au mois n'en a pas.
+    pub spectacle: Option<IdSpectacle>,
     pub dates_travail: Vec<Jour>,
     pub lignes: Vec<LignePaie>,
     pub debut: Jour,
@@ -154,8 +156,8 @@ impl ContratEcrit {
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Assemble {
-    pub salarie: Option<String>,
-    pub spectacle: Option<String>,
+    pub salarie: Option<IdSalarie>,
+    pub spectacle: Option<IdSpectacle>,
     pub dates_travail: Vec<DateDeLigne>,
     pub planning: Vec<DateDeLigne>,
     pub lignes: Option<Vec<LignePaie>>,
@@ -861,7 +863,7 @@ pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&str>) -> String {
 /// un spectacle et se paie au cachet, au taux du mois quand sa carte n'en dit pas ; un contrat paye au mois dit ses heures
 /// (et un CDD son motif). Ce qu'une nature n'a pas n'est rien.
 struct Termes {
-    spectacle: Option<String>,
+    spectacle: Option<IdSpectacle>,
     taux_cachet: Option<Chiffre>,
     quotite_contrat: Option<Chiffre>,
     quotite_reference: Option<Chiffre>,
@@ -876,7 +878,7 @@ impl Termes {
         let n = |x: &NombreLu| Chiffre::Nombre(x.clone());
         match v {
             carte::CarteValide::CdduSpectacle(c) => Termes {
-                spectacle: Some(c.spectacle.to_string()),
+                spectacle: Some(c.spectacle.clone()),
                 taux_cachet: match &c.taux_cachet {
                     Some(t) => Some(n(t)),
                     None => cachet_du_mois.clone(),
@@ -975,7 +977,7 @@ pub(crate) fn engagements(
         // ecrit par-dessus, et son libelle lisible (`emploi_affichage`).
         let declare = match carte.metier.as_deref().filter(|m| !m.is_empty()) {
             Some(code) => {
-                let salarie = ctx.salarie(carte.salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
+                let salarie = fiche_du_salarie(ctx, carte.salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
                 let feminin = sexe(&salarie).as_deref() == Some("2");
                 Some(emplois::resoudre(code, carte.cadre, feminin, ctx.entreprise.idcc.texte()).map_err(|m| format!("{} : {}", qui, m))?)
             }
@@ -991,7 +993,7 @@ pub(crate) fn engagements(
         } else {
             match &carte.lignes {
                 Some(l) => {
-                    let (lignes, avis) = frais_au_dela(ctx, carte.salarie.as_deref(), l.clone(), &mois_dit, &qui)?;
+                    let (lignes, avis) = frais_au_dela(ctx, carte.salarie.as_ref(), l.clone(), &mois_dit, &qui)?;
                     dits.push(avis);
                     Some(lignes)
                 }
@@ -1017,7 +1019,7 @@ pub(crate) fn engagements(
         let d = declare.as_ref();
         let ecrit = |x: &Option<String>| x.clone().filter(|s| !s.is_empty());
         let assemble = Assemble {
-            salarie: carte.salarie.as_ref().map(ToString::to_string),
+            salarie: carte.salarie.clone(),
             spectacle: termes.spectacle,
             dates_travail: jours,
             taux_cachet: termes.taux_cachet,
@@ -1289,12 +1291,12 @@ fn aide_de_case(case: CaseDeFrais, rubrique: &str, limites: Option<(Decimal, Dec
 ///   profession (I, 2° et 5°, `atelier/reference/sources/dfs/annexes-2025/legi-arrete-20250904-frais-professionnels-annexe2-frais-hors-assiette-20250907.txt`
 ///   l. 8 et 11 ; bareme, `frais_hors_assiette`) le sont entiers : « en cas de déduction forfaitaire spécifique » (l. 5).
 ///   Tout autre salarie suit les limites.
-pub(crate) fn frais_au_dela(ctx: &Contexte, salarie: Option<&str>, lignes: Vec<LignePaie>, mois: &str, qui: &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>)> {
+pub(crate) fn frais_au_dela(ctx: &Contexte, salarie: Option<&IdSalarie>, lignes: Vec<LignePaie>, mois: &str, qui: &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>)> {
     let limites_de = |l: &ligne::Frais| FRAIS_LIMITES.iter().find(|x| l.rubrique == x.rubrique);
     if !lignes.iter().any(|l| l.frais().and_then(limites_de).is_some()) {
         return Ok((lignes, Vec::new()));
     }
-    let sal = ctx.salarie(salarie.ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
+    let sal = fiche_du_salarie(ctx, salarie.ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
     let cochee = |l: &ligne::Frais, k: CaseDeFrais| l.cochee(k);
     let territoire = |l: &ligne::Frais| l.territoire.clone();
     let a_l_etranger = |l: &ligne::Frais| l.territoire.as_deref().is_some_and(|t| !TERRITOIRES.iter().any(|(k, _)| *k == t));
@@ -1748,6 +1750,19 @@ pub(crate) fn debut_de(dit: Option<String>, lignes: &[LignePaie]) -> String {
     jours_des_lignes(lignes, false).iter().map(|j| j.jour().to_string()).min().into_iter().collect()
 }
 
+/// LA FICHE DU SALARIE de cle `cle`, par sa cle exacte : celle que la carte et l'engagement portent. Le calcul ne cherche
+/// jamais un salarie par un nom (c'est l'affaire des portes : `Contexte::cle_du_salarie`) ; une cle sans fiche se refuse
+/// en la nommant.
+pub(crate) fn fiche_du_salarie(ctx: &Contexte, cle: &IdSalarie) -> Resultat<droit::fiche::FicheSalarie> {
+    ctx.salaries.get(cle).cloned().ok_or_else(|| format!("Salarie inconnu : {}.", socle::fichiers::repr(cle)))
+}
+
+/// LA FICHE DU SPECTACLE de cle `cle`, par sa cle exacte (`fiche_du_salarie`) ; une cle sans fiche se refuse en la nommant.
+pub(crate) fn fiche_du_spectacle(ctx: &Contexte, cle: &IdSpectacle) -> Resultat<droit::fiche::Spectacle> {
+    let champs = ctx.spectacles.get(cle).ok_or_else(|| format!("Spectacle inconnu : {}.", socle::fichiers::repr(cle)))?;
+    Ok(droit::fiche::Spectacle { cle: cle.clone(), champs: champs.clone() })
+}
+
 /// Le salarie d'une fiche, tel que l'ecran le nomme (`socle::texte::salarie_nomme`).
 pub(crate) fn qui_de(fiche: &droit::fiche::ChampsSalarie) -> Resultat<String> {
     fiche.nomme().ok_or_else(|| socle::fichiers::absent("nom"))
@@ -1787,7 +1802,7 @@ pub fn signe_ailleurs_de(racine: &Path, nat: &Nature, salarie: &str, debut: &str
 /// Un contrat permanent court d'un bout a l'autre, son numero est celui de l'engagement, et le dernier mois le dit.
 fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>> {
     let mut avis = Vec::new();
-    let fiche = ctx.salarie(&eng.salarie)?;
+    let fiche = fiche_du_salarie(ctx, &eng.salarie)?;
     let qui = qui_de(&fiche)?;
     let libelle = eng.nat()?.libelle.clone();
     if eng.dernier_mois()? {
@@ -1820,7 +1835,7 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
     if !eng.a_cheval()? {
         return Ok(avis);
     }
-    let fiche = ctx.salarie(&eng.salarie)?;
+    let fiche = fiche_du_salarie(ctx, &eng.salarie)?;
     let qui = qui_de(&fiche)?;
     let fin = eng.fin.ok_or("contrat a cheval sans fin")?;
     let bornes = format!("du {} au {}", eng.debut.jj_mm_aaaa(), fin.jj_mm_aaaa());
@@ -2035,7 +2050,7 @@ pub fn embauche(ctx: &Contexte, eng: &Engagement) -> Resultat<calcul::Paie> {
     let spec = if nat.mensuelle() {
         None
     } else {
-        Some(ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
+        Some(fiche_du_spectacle(ctx, eng.spectacle.as_ref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
     };
     let zero = Decimal::new(0, 2);
     let tp = calcul::plafond_temps_partiel(&ctx.entreprise, eng, &sal)?;

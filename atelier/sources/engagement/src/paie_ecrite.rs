@@ -198,8 +198,8 @@ pub struct FormeDeLaDeduction {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FormeDEngagement {
-    pub salarie: String,
-    pub spectacle: Option<String>,
+    pub salarie: droit::contexte::IdSalarie,
+    pub spectacle: Option<droit::contexte::IdSpectacle>,
     pub dates_travail: Vec<Jour>,
     pub lignes: Vec<LignePaie>,
     pub debut: Jour,

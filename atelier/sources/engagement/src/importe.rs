@@ -546,11 +546,11 @@ impl Importe {
         let nat = droit::natures::nature(&nature)?;
         let ctx = ctx.du_mois(mois)?;
         let cle = self.carte().salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?;
-        let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(cle)?);
+        let sal = crate::calcul::convention_de_l_employeur(&ctx, crate::fiche_du_salarie(&ctx, cle)?);
         let objet: Option<String> = p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone())).filter(|o| !o.is_empty()).map(|o| o.to_uppercase());
         let spectacle = ctx.spectacles.iter().find(|(_, f)| objet.is_some() && f.numero_objet.portee().map(str::to_uppercase) == objet).map(|(k, _)| k.clone());
         let spec = match &spectacle {
-            Some(k) => Some(ctx.spectacle(k)?),
+            Some(k) => Some(crate::fiche_du_spectacle(&ctx, k)?),
             None => None,
         };
         // L'emploi que le bulletin imprime ; un bulletin qui ne l'imprime pas n'en dit rien.
@@ -582,9 +582,9 @@ impl Importe {
         }
         let quotite = p.quotite.map(socle::num::flottant);
         let mut engagement = crate::Engagement {
-            salarie: cle.to_string(),
+            salarie: cle.clone(),
             nom: crate::qui_de(&sal)?,
-            spectacle: spectacle.as_ref().map(|k| k.to_string()),
+            spectacle: spectacle.clone(),
             dates_travail,
             lignes: lignes_lues.iter().filter_map(LigneImprimee::en_ligne_de_paie).collect(),
             debut,

@@ -957,7 +957,8 @@ fn pile(ctx: &Contexte, sal: &SalarieDuContrat, nat: &Nature, fin: &Jour, caisse
 /// lisent ici, et pas autrement : deux lectures d'un meme contrat feraient deux emplois.
 pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resultat<SalarieDuContrat> {
     let nat = eng.nat()?;
-    let cle = ctx.cle_du_salarie(&eng.salarie)?;
+    let cle = &eng.salarie;
+    crate::fiche_du_salarie(ctx, cle)?;
     let emploi = EmploiEngagement {
         emploi: eng.emploi.clone(),
         emploi_affichage: eng.emploi_affichage.clone(),
@@ -972,11 +973,11 @@ pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resulta
         // (norme DSN 2026.1, § 2.1.2.4, p. 22) ; un mois d'un seul tenant, la periode de paie entiere. La dispense de
         // sante se lit sur ces memes bornes (`dispense_de_la_periode`).
         let (debut, fin) = *crate::periodes::bornes(ctx, eng)?.last().ok_or("aucune periode de paie")?;
-        let du_mois = droit::emplois::emploi_du_mois(ctx, &cle, &debut, &fin)?;
+        let du_mois = droit::emplois::emploi_du_mois(ctx, cle, &debut, &fin)?;
         let fiche = dispense_de_la_periode(emploi_de(&du_mois, &emploi)?, &debut, &fin)?;
         sante_de_la_suspension(ctx, eng, convention_de_l_employeur(ctx, fiche))?
     } else {
-        convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(&cle, &eng.debut)?, &emploi)?)
+        convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(cle, &eng.debut)?, &emploi)?)
     };
     Ok(anciennete_a_l_embauche(etablissement_du_contrat(fiche, eng), eng))
 }
@@ -1305,7 +1306,7 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     let spec = if nat.mensuelle() {
         None
     } else {
-        Some(ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
+        Some(crate::fiche_du_spectacle(ctx, eng.spectacle.as_ref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?)
     };
     // Le contrat est-il declare a la caisse des Conges Spectacles ? (`caisse_conges::affilie` : un CDDU de moins de
     // douze mois, un CDD de droit commun de moins de douze mois d'un artiste.)

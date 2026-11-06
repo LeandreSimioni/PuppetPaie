@@ -530,7 +530,7 @@ calculé.",
 pub fn indemnites_a_dire(ctx: &Contexte, carte: &crate::saisie::Carte, mois: &str) -> Resultat<Option<String>> {
     let nat = carte.nature_lue()?;
     // Un contrat sans date de debut ecrite ne se designe pas : aucun imprevu ne peut le nommer (S21.G00.40.001).
-    let (Some(debut), Some(salarie)) = (carte.debut.as_deref().filter(|j| !j.is_empty()), carte.salarie.as_deref()) else { return Ok(None) };
+    let (Some(debut), Some(salarie)) = (carte.debut.as_deref().filter(|j| !j.is_empty()), carte.salarie.as_ref()) else { return Ok(None) };
     if !nat.mensuelle() {
         return Ok(None);
     }

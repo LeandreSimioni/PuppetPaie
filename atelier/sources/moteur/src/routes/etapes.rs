@@ -2734,7 +2734,7 @@ fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &droit::fiche::Champ
         r(sal.lieu_naissance.texte()), r(sal.departement_naissance.texte()), r(sal.sexe.dite().map_or("", |s| s.as_str())), r(""),
     ];
     let fin = e.fin.map_or("None".to_string(), |f| f.iso());
-    let spectacle = e.spectacle.clone().unwrap_or_else(|| "None".to_string());
+    let spectacle = e.spectacle.as_ref().map(ToString::to_string).unwrap_or_else(|| "None".to_string());
     let brut = format!(
         "({}, {}, {}, ({}), {})",
         socle::fichiers::repr(&e.debut.iso()),

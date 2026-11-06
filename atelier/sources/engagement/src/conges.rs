@@ -39,8 +39,8 @@ pub(crate) fn qui(ctx: &Contexte, e: &Carte) -> String {
 }
 
 /// Le salarie que la carte `e` ecrit ; refus s'il n'est pas dit.
-pub(crate) fn salarie_de(e: &Carte) -> Resultat<&str> {
-    e.salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))
+pub(crate) fn salarie_de(e: &Carte) -> Resultat<&droit::contexte::IdSalarie> {
+    e.salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))
 }
 
 /// Le debut que la carte `e` ecrit, lu ; refus s'il n'est pas dit.
@@ -1129,8 +1129,8 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Carte, mois: &str) -> Resultat<
     avert.extend(a);
 
     // --- la prime d'anciennete de l'annexe I de la 3090
-    let mut fiche = ctx.salarie(&salarie)?.champs;
-    let cle = ctx.cle_du_salarie(&salarie)?.to_string();
+    let mut fiche = crate::fiche_du_salarie(ctx, salarie_de(e)?)?.champs;
+    let cle = salarie.clone();
     // Les annees de presence que les suspensions laissent (L1225-54 : `imprevus::anciennete_depuis`).
     let mut sur_l_anciennete = Vec::new();
     let depuis = crate::calcul::date_d_anciennete(&fiche, &debut_saisi);
@@ -1178,7 +1178,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Carte, mois: &str) -> Resultat<
 
     // --- les repas et les nuitees de la carte
     if let Some(l) = &e.lignes {
-        let (l, a) = crate::frais_au_dela(ctx, e.salarie.as_deref(), l.clone(), mois, &qui(ctx, e))?;
+        let (l, a) = crate::frais_au_dela(ctx, e.salarie.as_ref(), l.clone(), mois, &qui(ctx, e))?;
         lignes.extend(l);
         avert.extend(a);
     }

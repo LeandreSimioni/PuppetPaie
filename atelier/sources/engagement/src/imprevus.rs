@@ -776,10 +776,11 @@ pub fn fiche_du_salarie<I: Suspend>(ctx: &Contexte, imp: &I) -> Resultat<Salarie
     Ok(fiche)
 }
 
-/// Les imprevus du contrat qui croisent le mois, du premier au dernier jour : le contrat de `salarie` (le nom que la carte
+/// Les imprevus du contrat qui croisent le mois, du premier au dernier jour : le contrat de `salarie` (la cle que la carte
 /// ecrit) commence le `debut`, de numero `numero` (vide avant la validation).
-pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, numero: Option<&str>, mois: &str) -> Resultat<Vec<Imprevu>> {
-    let cle = ctx.cle_du_salarie(salarie)?.to_string();
+pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &droit::contexte::IdSalarie, debut: &Jour, numero: Option<&str>, mois: &str) -> Resultat<Vec<Imprevu>> {
+    crate::fiche_du_salarie(ctx, salarie)?;
+    let cle = salarie.to_string();
     let mut out = Vec::new();
     for imp in du_mois_du_salarie(&ctx.racine, mois, None, &cle)? {
         if du_contrat(&imp, &cle, numero, debut)? {

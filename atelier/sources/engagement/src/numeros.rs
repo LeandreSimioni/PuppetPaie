@@ -240,7 +240,7 @@ fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
 /// porte : il en recoit alors un nouveau, comme un engagement qui n'en a pas.
 pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: &Departs) -> Resultat<()> {
     let cle = o.carte().salarie.clone().ok_or_else(|| socle::fichiers::absent("salarie"))?;
-    let fiche = ctx.salarie(&cle)?;
+    let fiche = crate::fiche_du_salarie(ctx, &cle)?;
     let debut = crate::debut_brut(&o.brut);
     let porte = NumeroContrat::du_texte(o.carte().numero.as_deref())?;
     // UN NUMERO PARTI NE CHANGE PLUS : celui de la validation que la modification remplace, des qu'un envoi l'a porte ;
@@ -294,8 +294,7 @@ fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, pris: &mut HashMap<i
         std::collections::hash_map::Entry::Occupied(x) => x.into_mut(),
         std::collections::hash_map::Entry::Vacant(x) => x.insert(derniers_pris(ctx, annee, departs)?),
     };
-    let cle = ctx.cle_du_salarie(&p.engagement.salarie)?;
-    let dernier = pris.entry(cle).or_insert(0);
+    let dernier = pris.entry(p.engagement.salarie.clone()).or_insert(0);
     *dernier += 1;
     p.engagement.numero = Some(former(&p.salarie, annee, *dernier)?);
     Ok(())

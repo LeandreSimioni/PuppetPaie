@@ -80,7 +80,7 @@ fn idcc(ctx: &Contexte) -> &str {
 // ------------------------------------------------------------ le profil
 
 fn profil(ctx: &Contexte, e: &Carte) -> Resultat<clauses::Profil> {
-    let fiche = ctx.salarie(e.salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?.champs;
+    let fiche = crate::fiche_du_salarie(ctx, e.salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?.champs;
     clauses::profil(&idcc(ctx), &fiche, &dit_par_l_engagement(e)?)
 }
 
@@ -107,10 +107,7 @@ pub(crate) fn dit_par_l_engagement(e: &Carte) -> Resultat<clauses::DitParLEngage
 
 /// L'age au dernier jour du contrat (ou aujourd'hui), en annees revolues.
 fn age(ctx: &Contexte, e: &Carte) -> Resultat<Option<Decimal>> {
-    let fiche = match e.salarie.as_deref() {
-        Some(s) => Some(ctx.salarie(s)?),
-        None => None,
-    };
+    let fiche = e.salarie.as_ref().map(|s| crate::fiche_du_salarie(ctx, s)).transpose()?;
     let Some(naissance) = fiche.and_then(|f| f.date_naissance.dite().copied()) else {
         return Ok(None);
     };
