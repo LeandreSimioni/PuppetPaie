@@ -844,6 +844,9 @@ function poserQui(liste, voulu) {
 function construireCarte(div, e) {
   // QUI : un salarié. Une carte porte un engagement, et un engagement un salarié.
   const voulu = e.salarie || "";
+  // LA NATURE DU CONTRAT, écrite sur la carte dès l'ouverture (`nouvelle_carte` de la route etat), et une case
+  // seulement là où elle se choisit. Elle change la forme du bloc : un permanent n'a ni spectacle ni cachets, il a
+  // un salaire au mois et des faits (`natures[].carte`).
   div.insertAdjacentHTML("afterbegin", `
     <div class="ligne1">
       <!-- Pas de « + » ici : une fiche neuve se crée dans Configuration.
@@ -855,9 +858,6 @@ function construireCarte(div, e) {
           <div class="e-qui-liste"></div>
         </details>
       </div>
-      <!-- LA NATURE DU CONTRAT, écrite sur la carte dès l'ouverture (`nouvelle_carte` de la route etat), et une case
-           seulement là où elle se choisit. Elle change la forme du bloc : un permanent n'a ni spectacle ni cachets, il a
-           un salaire au mois et des faits (`natures[].carte`). -->
       <label class="e-nature-bloc">Nature
         <select class="e-nature"></select></label>
       <label class="e-spectacle-bloc">Spectacle
