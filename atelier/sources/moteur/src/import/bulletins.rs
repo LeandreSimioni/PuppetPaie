@@ -1786,10 +1786,10 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
     // page ne la fixe a coup sur. Deux marques disent un engagement du spectacle : la cotisation Congés Spectacles
     // (due pour l'artiste ou le technicien qui n'est pas employe douze mois de suite, D. 7121-41 du code du travail,
     // `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md`) et le numero d'objet (interdit hors des
-    // natures 02 et 10, CCH-11 : regle 6). Avec l'une d'elles, le contrat reste muet : un engagement muet est un
-    // CDDU (regle 6), comme partout ailleurs. Sans aucune, c'est le contrat d'un permanent -- CDI ou CDD de droit
-    // commun, que le bulletin ne dit pas et qu'on ne devine pas : il est marque « a dire », se demande apres l'import
-    // (`import::nature`), et ne se lit pas en CDDU en attendant.
+    // natures 02 et 10, CCH-11 : regle 6). Avec l'une d'elles, le contrat est un CDDU (`engagement::importe::Importe::nature`).
+    // Sans aucune, c'est le contrat d'un permanent -- CDI ou CDD de droit commun, que le bulletin ne dit pas et qu'on ne
+    // devine pas : il est marque « a dire », se demande apres l'import (`import::nature`), et ne se compare ni ne se
+    // reprend en attendant (`Importe::nature_rangee` dit sous quelle nature ce qui a ete verse se range).
     a.nature_a_dire = !marque_d_intermittent(&l.b);
     a.numero_bulletin = plein(&l.b.numero);
     // Le numero du contrat, quand le bulletin l'imprime : il se lit, il ne se tire pas (regle 4).

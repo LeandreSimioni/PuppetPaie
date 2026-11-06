@@ -445,7 +445,7 @@ impl CarteValide {
             let cles: Vec<&str> = NATURES.iter().map(|(n, _)| *n).collect();
             return Err(format!("{} : « {} » n'est pas une nature de contrat : {}.", qui, nature, cles.join(", ")));
         };
-        let nat = droit::natures::nature(Some(nature))?;
+        let nat = droit::natures::nature(nature)?;
         let libelle_nature = nat.libelle.clone();
         // Un motif que la nature n'offre pas se refuse en disant ceux qu'elle offre (`contrats-base.json`).
         if let Some(refus) = c.motif_recours.as_deref().and_then(|m| nat.motif_recours_refuse(m, qui)) {
@@ -597,7 +597,7 @@ impl Brouillon {
                 qui,
                 guillemets(&de_trop),
                 if de_trop.len() > 1 { "ne sont" } else { "n'est" },
-                droit::natures::nature(Some(cle))?.libelle
+                droit::natures::nature(cle)?.libelle
             ));
         }
         Ok(match n {
@@ -634,11 +634,11 @@ impl Brouillon {
         }
         let x = ch.champ();
         if !Brouillon::cases(self.nature()).contains(&x) {
-            let nat = droit::natures::nature(Some(self.nature().cle()))?;
+            let nat = droit::natures::nature(self.nature().cle())?;
             return Err(format!("{} : {} n'est pas une case d'un {}. Rien n'est écrit.", qui, guillemets(&[libelle(x)]), nat.libelle));
         }
         if let Changement::MotifRecours(Some(m)) = &ch {
-            let nat = droit::natures::nature(Some(self.nature().cle()))?;
+            let nat = droit::natures::nature(self.nature().cle())?;
             if let Some(refus) = nat.motif_recours_refuse(m, qui) {
                 return Err(refus);
             }

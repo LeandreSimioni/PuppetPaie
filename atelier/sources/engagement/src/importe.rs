@@ -424,7 +424,7 @@ impl Importe {
         }
         let mut i = Importe { objet: o, permanent: true };
         if let Some(n) = i.nature() {
-            i.permanent = droit::natures::nature(Some(&n))?.mensuelle();
+            i.permanent = droit::natures::nature(&n)?.mensuelle();
         }
         Ok(Some(i))
     }
@@ -468,6 +468,17 @@ impl Importe {
             Some(n) => Some(n),
             None if self.contrat().is_some_and(|c| c.nature_a_dire) => None,
             None => Some(crate::carte::CDDU.to_string()),
+        }
+    }
+
+    /// LA NATURE SOUS LAQUELLE CE QUI A ETE VERSE SE RANGE (`paie`) : la sienne (`nature`) ; tant qu'elle reste a dire,
+    /// celle d'un contrat d'usage, sous laquelle l'import range la paie que l'ancien logiciel a versee : ses montants sont
+    /// ceux des pieces, rien ne s'y calcule. Un contrat a dire ne se compare pas (`ecarts::comparer`) et attend sa nature
+    /// (`import::nature`).
+    pub fn nature_rangee(&self) -> String {
+        match self.nature() {
+            Some(n) => n,
+            None => crate::carte::CDDU.to_string(),
         }
     }
 
@@ -579,7 +590,7 @@ fn montants(p: &PaieVersee) -> [(&'static str, Option<Decimal>); 7] {
 impl Importe {
     /// LA PAIE DE `mois`, DANS LES MOTS DU MOTEUR : ce que les pieces de l'ancien logiciel disent de ce qui a ete verse,
     /// range comme le calcul range le sien (`calcul::Paie`), et rien de calcule. L'engagement porte l'identite importee
-    /// (salarie, bornes, numero, nature : muette, un CDDU, regle 6), le spectacle dont la fiche a son numero d'objet,
+    /// (salarie, bornes, numero, nature : `nature_rangee`), le spectacle dont la fiche a son numero d'objet,
     /// l'emploi que le bulletin imprime, les lignes de remuneration lues et le jour du versement. Les lignes de
     /// cotisation sont celles du bulletin, sous la cotisation que l'import leur a donnee (`cotisation`).
     ///
@@ -595,8 +606,8 @@ impl Importe {
         let zero = Decimal::new(0, 2);
         let mut non_dits: Vec<&'static str> = montants(p).iter().filter(|(_, m)| m.is_none()).map(|(k, _)| *k).collect();
 
-        let nature = self.nature();
-        let nat = droit::natures::nature(nature.as_deref())?;
+        let nature = self.nature_rangee();
+        let nat = droit::natures::nature(&nature)?;
         let ctx = ctx.du_mois(mois)?;
         let cle = Carte::texte(&self.carte().salarie);
         let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(&cle)?);
@@ -910,7 +921,7 @@ pub struct Neuf {
 /// (`dernier`), et il ne finit pas avant le mois qui suit.
 fn continue_ici(e: &Neuf, dernier: &str) -> Resultat<bool> {
     let nature = Carte::texte(&e.carte.nature);
-    let mensuel = !nature.is_empty() && droit::natures::nature(Some(&nature))?.mensuelle();
+    let mensuel = !nature.is_empty() && droit::natures::nature(&nature)?.mensuelle();
     let suite = socle::mois::Mois::lire(dernier).map(|m| m.suivant().to_string())?;
     let fin = Carte::texte(&e.carte.fin);
     Ok(mensuel && e.pieces.paies.contains_key(dernier) && (fin.is_empty() || fin.as_str() >= format!("{}-01", suite).as_str()))

@@ -29,7 +29,10 @@ use socle::num::{Decimal, Resultat};
 
 /// La nature du contrat d'une paie calculee (sa forme JSON : `engagement.nature`).
 pub fn nature_de_la_paie(paie: &Value) -> Resultat<Arc<Nature>> {
-    natures::nature(paie.pointer("/engagement/nature").and_then(Value::as_str))
+    match paie.pointer("/engagement/nature").and_then(Value::as_str) {
+        Some(cle) => natures::nature(cle),
+        None => Err(socle::fichiers::absent("engagement.nature")),
+    }
 }
 
 /// Un texte de l'engagement (sa forme canonique), non vide.

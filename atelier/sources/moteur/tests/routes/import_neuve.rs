@@ -8,8 +8,7 @@
 //!   donne (le code PCS-ESE : `emplois::par_intitule`) ;
 //! - la nature du contrat qu'aucun bulletin n'imprime : un bulletin qui porte une marque du spectacle (numero
 //!   d'objet, cotisation Congés Spectacles, due pour l'artiste ou le technicien du spectacle, D. 7121-41 du code du
-//!   travail, `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md`) laisse le contrat muet, un CDDU
-//!   (regle 6) ; sans aucune, le contrat est celui d'un permanent, sa nature se demande apres l'import
+//!   travail, `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md`) atteste un CDDU ; sans aucune, le contrat est celui d'un permanent, sa nature se demande apres l'import
 //!   (`importation-etat`, `a_dire`) et se dit par `importation-nature`, qui refuse une nature qui n'est pas d'un
 //!   permanent sans rien ecrire.
 //!
@@ -173,7 +172,7 @@ fn l_apercu_annonce_ce_que_l_ecriture_trouvera() {
     }
 }
 
-/// La nature : muette (un CDDU) pour l'artiste ; a dire pour le permanent, et seulement une nature de permanent.
+/// La nature : un CDDU pour l'artiste ; a dire pour le permanent, et seulement une nature de permanent.
 #[test]
 fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
     let racine = neuve("nature");

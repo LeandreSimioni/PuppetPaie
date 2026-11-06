@@ -4,7 +4,7 @@
 //! ici ne s'ecrit nulle part.
 //!
 //! LA SAISIE REFAITE : le salarie (sa fiche, a la date de la periode ; le statut, la qualite de cadre et l'emploi que
-//! le bulletin imprime passent devant les siens), le spectacle que le bulletin nomme, la nature que la DSN ou l'AEM atteste (muette : un CDDU, regle 6), les lignes de remuneration que le
+//! le bulletin imprime passent devant les siens), le spectacle que le bulletin nomme, la nature du contrat importe (`importe::Importe::nature`), les lignes de remuneration que le
 //! bulletin imprime, par leur rubrique du catalogue (quantite, taux, heures), aux jours qu'il dit travailles (a defaut,
 //! autant de jours de sa periode qu'il en compte : `comparer_une`), payee le
 //! jour du versement. Elle se calcule comme la validation la calculerait (`charger_donnees`), avec les baremes et la
@@ -101,7 +101,7 @@ pub struct Comparaison {
     pub mois: String,
     /// Le logiciel que le lecteur a reconnu au bulletin ; `None` : un autre.
     pub logiciel: Option<String>,
-    pub nature: Option<String>,
+    pub nature: String,
     pub statut: Option<String>,
     /// Cadre (`true`) ou non cadre, quand le bulletin ou la fiche le dit.
     pub cadre: Option<bool>,
@@ -153,12 +153,11 @@ struct Lue {
 pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Vec<Comparaison> {
     let brut = imp.objet().carte();
     let contrat = imp.contrat();
-    let nature = imp.nature();
     // UN CONTRAT DONT LA NATURE RESTE A DIRE (`nature_a_dire`, celui d'un permanent : `import::nature`) ne se compare
-    // pas encore : muet, il se calculerait en contrat d'usage (regle 6). Il se compare une fois sa nature dite.
-    if imp.a_dire() {
+    // pas encore : une nature ne se devine pas (regle 6). Il se compare une fois sa nature dite.
+    let Some(nature) = imp.nature() else {
         return Vec::new();
-    }
+    };
     let paies = imp.paies();
     // Le nombre de jours travailles que le bulletin compte (son cumul « Jours ») : celui que la paie du mois porte (le
     // mois d'un permanent), sinon celui du contrat quand il n'a qu'une paie.
@@ -184,7 +183,7 @@ pub fn comparer(racine: &Path, imp: &Importe, deja: &dyn Fn(&str) -> bool) -> Ve
                 non_rattachees: Vec::new(),
             };
             let jours_comptes = p.jours.or(du_contrat);
-            c.ecarts = comparer_une(racine, brut, mois, p, nature.as_deref(), jours_comptes, &mut c);
+            c.ecarts = comparer_une(racine, brut, mois, p, &nature, jours_comptes, &mut c);
             Some(c)
         })
         .collect()
@@ -195,7 +194,7 @@ fn comparer_une(
     brut: &crate::saisie::Carte,
     mois: &str,
     p: &PaieVersee,
-    nature: Option<&str>,
+    nature: &str,
     jours_comptes: Option<i64>,
     c: &mut Comparaison,
 ) -> Result<Vec<Ecart>, String> {
@@ -301,7 +300,7 @@ fn comparer_une(
     let e = crate::saisie::Carte {
         salarie: Some(salarie.to_string()),
         spectacle: spectacle.flatten(),
-        nature: nature.map(|n| n.to_string()),
+        nature: Some(nature.to_string()),
         debut: p.debut.map(|j| j.iso()),
         fin: p.fin.map(|j| j.iso()),
         emploi: imprime(|i| &i.emploi),

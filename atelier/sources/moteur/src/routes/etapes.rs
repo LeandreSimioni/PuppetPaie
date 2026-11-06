@@ -2741,7 +2741,7 @@ fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &droit::fiche::Champ
         socle::fichiers::repr(&fin),
         socle::fichiers::repr(&spectacle),
         ident.join(", "),
-        socle::fichiers::repr(e.nature.as_deref().unwrap_or(""))
+        socle::fichiers::repr(&e.nature)
     );
     sha256_hex(brut.as_bytes())[..16].to_string()
 }

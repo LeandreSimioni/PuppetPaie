@@ -98,7 +98,8 @@ pub struct Engagement {
     /// L'etablissement (NIC) ou le salarie est rattache pour CE contrat, quand la compagnie en a plusieurs ; `None` : le
     /// principal. La fiche du salarie le porte pour la paie et les declarations du contrat (`calcul::fiche_de_l_engagement`).
     pub etablissement: Option<String>,
-    pub nature: Option<String>,
+    /// La cle de sa nature de contrat (`droit::natures`), toujours dite (regle 6).
+    pub nature: String,
     pub quotite_contrat: Option<f64>,
     pub quotite_reference_saisie: Option<f64>,
     pub modalite_temps_travail_saisie: Option<String>,
@@ -303,8 +304,11 @@ impl Engagement {
         }
 
         // Un contrat permanent ne se deduit pas de ses dates.
-        let nature = v.nature.clone();
-        let nat = natures::nature(nature.as_deref())?;
+        // Une nature se dit, elle ne se devine pas (regle 6).
+        let Some(nature) = v.nature.clone().filter(|n| !n.trim().is_empty()) else {
+            return Err(socle::echec::cle(format!("{}{}", qui, PAS_DE_NATURE), "nature"));
+        };
+        let nat = natures::nature(&nature)?;
         let mensuel = nat.mensuelle();
         let planning_brut = &v.planning;
         if mensuel {
@@ -576,7 +580,7 @@ impl Engagement {
 
     /// La nature de contrat, relue a chaque acces.
     pub fn nat(&self) -> Resultat<Arc<Nature>> {
-        natures::nature(self.nature.as_deref())
+        natures::nature(&self.nature)
     }
 
     pub fn debut_mois(&self) -> Resultat<Jour> {
@@ -981,7 +985,7 @@ pub(crate) fn engagements(
         // Seule une carte valide entre dans le calcul : sa nature dite, ses cases obligatoires remplies, aucune case que
         // sa nature n'a pas (`carte::CarteValide::depuis`). Ce qui depend de la nature se lit de sa variante.
         let valide = carte::CarteValide::depuis(carte, &qui)?;
-        let nat = droit::natures::nature(Some(valide.nature())).map_err(|m| format!("{} : {}", qui, m))?;
+        let nat = droit::natures::nature(valide.nature()).map_err(|m| format!("{} : {}", qui, m))?;
         let termes = Termes::de(&valide, &defaut_taux);
         let tarifee;
         let carte = match if nat.mensuelle() { None } else { lignes_au_tarif(ctx, carte.lignes(), &mois_dit)? } {

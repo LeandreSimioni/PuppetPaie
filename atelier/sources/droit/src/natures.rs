@@ -602,16 +602,6 @@ struct Fichier {
     /// Dans l'ordre du fichier.
     #[serde(deserialize_with = "socle::forme::en_ordre")]
     natures: Vec<(String, Nature)>,
-    defaut: Defaut,
-}
-
-/// La nature d'un engagement qui ne dit pas la sienne.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Defaut {
-    nature: String,
-    #[serde(rename = "note")]
-    _note: String,
 }
 
 /// `categories_d_emploi` de `contrats-base.json`.
@@ -635,17 +625,16 @@ struct ArtisteNonCadre {
     _note: String,
 }
 
-/// Les natures de contrat, construites : dans l'ordre du fichier, la nature par defaut, les categories d'emploi.
+/// Les natures de contrat, construites : dans l'ordre du fichier, les categories d'emploi.
 struct Contrats {
     natures: Arc<Vec<Arc<Nature>>>,
-    defaut: String,
     categories: CategoriesDEmploi,
 }
 
 const ILLISIBLE: &str = "Les natures de contrat livrées avec le logiciel ne se lisent pas : le signaler au développeur.";
 
 /// LA SEULE LECTURE DE `contrats-base.json` : sa forme, puis ce qu'elle ne dit pas seule (le type de contrat de la DPAE
-/// est l'un des trois du Format 120 ; la nature par defaut est l'une des natures).
+/// est l'un des trois du Format 120).
 fn lu() -> Resultat<Arc<Contrats>> {
     static CACHE: OnceLock<FormeGardee<Contrats>> = OnceLock::new();
     forme_en_cache(&CACHE, "contrats-base.json", ILLISIBLE, |f: Fichier| {
@@ -657,10 +646,7 @@ fn lu() -> Resultat<Arc<Contrats>> {
             n.cle = cle;
             natures.push(Arc::new(n));
         }
-        if !natures.iter().any(|n| n.cle == f.defaut.nature) {
-            return Err(socle::echec::a_la_cle(ILLISIBLE, "defaut.nature", format!("{} n'est pas une nature du fichier", repr(&f.defaut.nature))));
-        }
-        Ok(Contrats { natures: Arc::new(natures), defaut: f.defaut.nature, categories: f.categories_d_emploi })
+        Ok(Contrats { natures: Arc::new(natures), categories: f.categories_d_emploi })
     })
 }
 
@@ -675,23 +661,14 @@ pub fn categorie_d_emploi(classement: &str, artiste: bool) -> Resultat<Option<St
     Ok(c.par_classement.get(classement).cloned())
 }
 
-/// La nature d'un engagement qui ne dit pas la sienne : le CDDU.
-pub fn defaut() -> Resultat<String> {
-    Ok(lu()?.defaut.clone())
-}
-
 /// Toutes les natures, dans l'ordre du fichier.
 pub fn natures() -> Resultat<Arc<Vec<Arc<Nature>>>> {
     Ok(lu()?.natures.clone())
 }
 
-/// Une nature par sa cle (`None` : la nature par defaut). Refuse une cle inconnue.
-pub fn nature(cle: Option<&str>) -> Resultat<Arc<Nature>> {
+/// Une nature par sa cle : une nature se dit, elle ne se devine pas (regle 6). Refuse une cle inconnue.
+pub fn nature(cle: &str) -> Resultat<Arc<Nature>> {
     let lus = lu()?;
-    let cle = match cle {
-        Some(c) if !c.is_empty() => c.to_string(),
-        _ => lus.defaut.clone(),
-    };
     if let Some(n) = lus.natures.iter().find(|n| n.cle == cle) {
         return Ok(n.clone());
     }
@@ -709,8 +686,8 @@ mod tests {
     #[test]
     fn la_nature_fixe_999spt_pour_les_permanents_seulement() {
         for cle in ["cdi", "cdd"] {
-            assert_eq!(nature(Some(cle)).unwrap().code("S21.G00.40.005").as_deref(), Some("999SPT"), "{}", cle);
+            assert_eq!(nature(cle).unwrap().code("S21.G00.40.005").as_deref(), Some("999SPT"), "{}", cle);
         }
-        assert_eq!(nature(Some("cddu_spectacle")).unwrap().code("S21.G00.40.005"), None);
+        assert_eq!(nature("cddu_spectacle").unwrap().code("S21.G00.40.005"), None);
     }
 }

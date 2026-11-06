@@ -318,8 +318,8 @@ pub struct Embauche {
     pub salarie: droit::fiche::SalarieDuContrat,
     pub debut: Value,
     pub fin: Value,
-    /// La cle de nature ; `None` : la nature par defaut.
-    pub nature: Option<String>,
+    /// La cle de sa nature de contrat.
+    pub nature: String,
     pub spectacle: Option<droit::fiche::Spectacle>,
 }
 
@@ -622,7 +622,7 @@ fn nom_du_type(v: &Value) -> &'static str {
 /// La nature de contrat de cette embauche. Une nature inconnue est un
 /// `KeyError`, dont le message se rend entre guillemets.
 fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<natures::Nature>> {
-    natures::nature(e.nature.as_deref()).map_err(|m| repr(&m))
+    natures::nature(&e.nature).map_err(|m| repr(&m))
 }
 
 /// Texte a recopier si l'on prefere la saisie en ligne sur net-entreprises.
@@ -892,7 +892,7 @@ mod tests {
             salarie: droit::fiche::SalarieDuContrat::de(droit::fiche::FicheSalarie { id: droit::contexte::IdSalarie::lire("DUPONT").unwrap(), champs: droit::fiche::lire_champs(&s, "fiche").unwrap() }),
             debut: json!("2026-10-01"),
             fin,
-            nature: Some(nature.to_string()),
+            nature: nature.to_string(),
             spectacle: None,
         }
     }

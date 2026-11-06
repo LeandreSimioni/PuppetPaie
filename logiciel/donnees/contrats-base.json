@@ -559,10 +559,5 @@
         "absences": {"code": "10", "type": "02", "quoi": "02 - Durée d'absence partiellement ou pas du tout rémunérée, en heures."}
       }
     }
-  },
-
-  "defaut": {
-    "nature": "cddu_spectacle",
-    "note": "Un engagement qui ne dit pas sa nature est un CDDU du spectacle : c'est ce qu'ont été les 146 contrats de l'historique, et c'est ce qui fait que cinq ans de saisies se rejouent sans être touchées. Une nature se dit, elle ne se devine pas — mais le silence de tout un historique est une réponse, pas un oubli."
   }
 }

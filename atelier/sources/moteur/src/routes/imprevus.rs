@@ -1243,7 +1243,10 @@ fn contrat_de(ctx: &Contexte, imp: &Value) -> R<Option<ContratAuJour>> {
 /// La nature du contrat qu'un imprevu suspend ; `None` s'il n'y est plus.
 fn nature_du_contrat(ctx: &Contexte, imp: &Value) -> R<Option<std::sync::Arc<droit::natures::Nature>>> {
     let Some(c) = contrat_de(ctx, imp)? else { return Ok(None) };
-    let cle = c.nature.as_str().filter(|n| !n.is_empty());
+    // Une nature se dit, elle ne se devine pas (regle 6) : celle d'un contrat repris se dit apres l'import (`import::nature`).
+    let Some(cle) = c.nature.as_str().filter(|n| !n.is_empty()) else {
+        return Err(refus(format!("{} : la nature de son contrat du {} n'est pas encore dite.", c.nom, c.debut)));
+    };
     Ok(Some(droit::natures::nature(cle).map_err(refus)?))
 }
 
@@ -2093,8 +2096,11 @@ fn arrets(ctx: &Contexte) -> R<ReponseArrets> {
 /// `KeyError` quand elle est inconnue.
 fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
     let texte = match cle {
-        Value::String(s) => Some(s.clone()),
-        v if !vrai(v) => None,
+        Value::String(s) if !s.is_empty() => s.clone(),
+        v if !vrai(v) => {
+            // Une nature se dit, elle ne se devine pas (regle 6).
+            return Err(erreur("KeyError", socle::fichiers::absent("nature")));
+        }
         Value::Array(_) | Value::Object(_) => {
             return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(cle))));
         }
@@ -2105,7 +2111,7 @@ fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
             return Err(erreur("KeyError", format!("Nature de contrat inconnue : {}. Connues : {}.", valeur_ecrite(autre), connues.join(", "))));
         }
     };
-    droit::natures::nature(texte.as_deref()).map_err(|m| erreur("KeyError", m))
+    droit::natures::nature(&texte).map_err(|m| erreur("KeyError", m))
 }
 
 /// CE QUI MANQUE A UN SIGNALEMENT, tel que l'ecran le dit : `champ` (la donnee de l'engagement, `data-fait` de sa carte),

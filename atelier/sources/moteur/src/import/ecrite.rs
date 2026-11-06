@@ -250,7 +250,7 @@ fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Vec<en
     }
     let objet = |c: &ContratLu| c.contrat.numero_objet.clone().unwrap_or_default();
     // Le contrat d'un permanent : sa nature, payee au mois, est dite, ou reste a dire (`import::nature`).
-    let permanent = |c: &ContratLu| c.contrat.nature_a_dire || droit::natures::nature(c.contrat.nature.as_deref()).is_ok_and(|n| n.mensuelle());
+    let permanent = |c: &ContratLu| c.contrat.nature_a_dire || c.contrat.nature.as_deref().is_some_and(|n| droit::natures::nature(n).is_ok_and(|n| n.mensuelle()));
     let mut groupes: Vec<Groupe> = Vec::new();
     for c in contrats {
         groupes.push(Groupe { salarie: c.salarie.clone(), debut: c.debut.clone(), fin: c.fin.clone(), contrat: Some(c), paies: Vec::new() });

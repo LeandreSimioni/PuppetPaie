@@ -26,7 +26,7 @@ fn chaque_modele_livre_se_lit_et_porte_les_mentions_de_l1242_12_et_r1221_34() {
         }
     }
     for nature in ["cddu_spectacle", "cdd", "cdi"] {
-        let nat = droit::natures::nature(Some(nature)).unwrap();
+        let nat = droit::natures::nature(nature).unwrap();
         let nom = nat.modele_contrat().unwrap();
         let chemin = Path::new(MODELES).join(&nom);
         assert!(nat.mentions_obligatoires().len() >= 15, "{} : ses mentions", nature);
@@ -37,7 +37,7 @@ fn chaque_modele_livre_se_lit_et_porte_les_mentions_de_l1242_12_et_r1221_34() {
 
 #[test]
 fn un_modele_de_cdd_sans_son_motif_ni_le_terme_est_refuse() {
-    let nat = droit::natures::nature(Some("cdd")).unwrap();
+    let nat = droit::natures::nature("cdd").unwrap();
     let lu = modele("contrat-cdd.modele");
     let lu = sans(&sans(&lu, "{{contrat.motif}}", "un surcroît"), "{{contrat.fin}}", "la fin du projet");
     let propre = Path::new("/compagnie/gabarits/contrat-cdd.modele");
@@ -48,7 +48,7 @@ fn un_modele_de_cdd_sans_son_motif_ni_le_terme_est_refuse() {
 
 #[test]
 fn la_personne_remplacee_n_est_due_que_pour_un_remplacement() {
-    let nat = droit::natures::nature(Some("cdd")).unwrap();
+    let nat = droit::natures::nature("cdd").unwrap();
     let lu = sans(&modele("contrat-cdd.modele"), "{{contrat.personne_remplacee}}", "");
     let propre = Path::new("/compagnie/gabarits/contrat-cdd.modele");
     let vide = Valeurs::from([(Marqueur::ContratPersonneRemplacee, String::new())]);

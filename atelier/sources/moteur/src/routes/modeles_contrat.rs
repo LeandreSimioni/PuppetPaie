@@ -138,7 +138,7 @@ fn natures_de(ctx: &Contexte) -> R<Vec<std::sync::Arc<Nature>>> {
 
 /// Le nom du modele livre de `quoi` (« contrat » ou « avenant ») pour la nature `cle`.
 fn nom_du_modele(cle: &str, quoi: &str) -> R<(std::sync::Arc<Nature>, String)> {
-    let nat = droit::natures::nature(Some(cle)).map_err(Echec::from)?;
+    let nat = droit::natures::nature(cle).map_err(Echec::from)?;
     let nom = match quoi {
         "contrat" => nat.modele_contrat(),
         "avenant" => nat.modele_avenant(),

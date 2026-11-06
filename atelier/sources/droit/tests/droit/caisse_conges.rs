@@ -19,7 +19,7 @@ use socle::date::Jour;
 
 #[test]
 fn qui_est_declare_a_la_caisse() {
-    let (cddu, cdd, cdi) = (nature(Some("cddu_spectacle")).unwrap(), nature(Some("cdd")).unwrap(), nature(Some("cdi")).unwrap());
+    let (cddu, cdd, cdi) = (nature("cddu_spectacle").unwrap(), nature("cdd").unwrap(), nature("cdi").unwrap());
     let j = |s: &str| Jour::lire(s).unwrap();
     let comedien = fiche(json!({"code_emploi_ft": "COM010", "statut": "artiste"}), None);
     let regisseur = |idcc: &str| fiche(json!({"code_emploi_ft": "REG130", "statut": "technicien"}), Some(idcc));

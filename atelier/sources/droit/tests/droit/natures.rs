@@ -1,8 +1,8 @@
 //! Les natures de contrat (`contrats-base.json`) contre `natures.json` : chaque attribut et chaque code des natures,
-//! la nature par defaut, l'inconnue refusee, `contrat_court`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
+//! l'inconnue refusee, `contrat_court`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{egal, lire_oracle, oracle_selon};
-use droit::natures::{contrat_court, defaut, nature, natures, Jour};
+use droit::natures::{contrat_court, nature, natures, Jour};
 use serde_json::{json, Value};
 
 fn jour(s: &str) -> Jour {
@@ -13,15 +13,10 @@ fn jour(s: &str) -> Jour {
 #[test]
 fn les_natures_et_contrat_court() {
     let mut rel = lire_oracle("natures.json");
-    rel["defaut"] = json!(defaut().unwrap());
-    rel["inconnue"] = json!(nature(Some("zzz")).unwrap_err());
-    // Un engagement muet (sans nature, ou nature vide) est de la nature par defaut (regle 6 : un CDDU).
-    for muet in [None, Some("")] {
-        assert_eq!(nature(muet).unwrap().cle, defaut().unwrap(), "{:?}", muet);
-    }
+    rel["inconnue"] = json!(nature("zzz").unwrap_err());
     assert_eq!(natures().unwrap().len(), rel["natures"].as_object().unwrap().len());
     for (cle, v) in rel["natures"].as_object_mut().unwrap() {
-        let n = nature(Some(cle)).unwrap();
+        let n = nature(cle).unwrap();
         assert_eq!(n.cle, *cle);
         let codes: serde_json::Map<String, Value> =
             v["codes"].as_object().unwrap().keys().map(|r| (r.clone(), json!([n.code(r), n.interdit(r), n.ecrit(r)]))).collect();
@@ -42,7 +37,7 @@ fn les_natures_et_contrat_court() {
         });
     }
     for c in rel["court"].as_array_mut().unwrap() {
-        let n = nature(c[0].as_str()).unwrap();
+        let n = nature(c[0].as_str().unwrap()).unwrap();
         c[4] = json!(contrat_court(&n, jour(c[1].as_str().unwrap()), c[2].as_str().map(jour), jour(c[3].as_str().unwrap())));
     }
     assert!(rel["court"].as_array().unwrap().len() >= 39);

@@ -84,7 +84,7 @@ fn spectacles_declares(ctx: &Contexte) -> Vec<String> {
         let nature = o.carte().nature.as_deref();
         let Some(sp) = o.carte().spectacle.as_deref().filter(|s| !s.trim().is_empty()) else { continue };
         let Some(cle) = ctx.spectacle(sp).ok().map(|f| f.cle) else { continue };
-        if droit::natures::nature(nature).is_ok_and(|n| n.ecrit("S21.G00.40.050")) && !out.contains(&cle) {
+        if nature.is_some_and(|n| droit::natures::nature(n).is_ok_and(|n| n.ecrit("S21.G00.40.050"))) && !out.contains(&cle) {
             out.push(cle);
         }
     }
@@ -337,7 +337,7 @@ pub fn conges_repris(ctx: &Contexte, salarie: &str) -> bool {
 /// neuf (`engagement::importe`), valide ou non. Un intermittent n'en est pas (ses conges sont ceux des Conges
 /// Spectacles) ; un contrat ne d'ici n'a rien d'avant.
 fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
-    let mensuel = |nature: &str| droit::natures::nature(Some(nature)).is_ok_and(|n| n.mensuelle());
+    let mensuel = |nature: &str| droit::natures::nature(nature).is_ok_and(|n| n.mensuelle());
     // (salarie, debut du contrat, premier jour paye ici)
     let mut contrats: Vec<(String, String, String)> = Vec::new();
     let mut vus: Vec<String> = Vec::new();

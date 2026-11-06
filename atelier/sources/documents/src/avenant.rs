@@ -544,7 +544,7 @@ fn valeur_en_clair(ctx: &Contexte, nat: &droit::natures::Nature, terme: &str, v:
         "salaire_mensuel" => crate::valeur::euros_de(v),
         "quotite_contrat" | "quotite_reference" => dec(v).map(|x| format!("{} heures par mois", socle::texte::virgule(x))).unwrap_or(texte),
         "cadre" => if vrai(v) { "cadre".into() } else { "non cadre".into() },
-        "nature" => droit::natures::nature(Some(&texte)).map(|n| n.libelle.clone()).unwrap_or(texte),
+        "nature" => droit::natures::nature(&texte).map(|n| n.libelle.clone()).unwrap_or(texte),
         "motif_recours" => nat.libelle_motif_recours(&texte).unwrap_or(texte),
         "spectacle" => ctx.spectacle(&texte).ok().and_then(|s| s.titre.portee().map(str::to_string)).unwrap_or(texte),
         "emploi" => format!("« {} »", texte),

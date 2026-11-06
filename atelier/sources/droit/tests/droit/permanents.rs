@@ -28,7 +28,7 @@ fn motif(v: &Value) -> Option<&str> {
 }
 
 fn nat(v: &Value) -> std::sync::Arc<Nature> {
-    nature(Some(v.as_str().unwrap())).unwrap()
+    nature(v.as_str().unwrap()).unwrap()
 }
 
 
