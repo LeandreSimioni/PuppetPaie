@@ -2454,7 +2454,7 @@ fn contrats_au(ctx: &Contexte, cle: &str, jour: &str) -> R<Vec<ContratAuJour>> {
                 debut,
                 fin,
                 mois: m.to_string(),
-                spectacle: brut(&ou_vide(&e.spectacle)),
+                spectacle: brut(&json!(e.spectacle.as_ref().map(ToString::to_string).unwrap_or_default())),
                 // Paye au mois (`Nature::mensuelle`) : son mois de paie se tire du moteur, et un arret y appelle le maintien
                 // de salaire (L1226-1 : pas pour un intermittent).
                 mensuel,

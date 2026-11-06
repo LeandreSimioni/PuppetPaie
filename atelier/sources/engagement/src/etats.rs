@@ -1726,7 +1726,7 @@ mod tests_rupture {
         let ligne = |n: usize, taux: i64| format!(r#"{{"forme": "unites", "rubrique": "cachet", "quantite": {}, "taux": {}, "lieu": "Salle", "dates": [{}], "planning": []}}"#, n, taux, jours(n));
         let carte = |texte: String| crate::saisie::Carte {
             salarie: Some(IdSalarie::lire("X").unwrap()),
-            spectacle: Some("s".into()),
+            spectacle: Some(droit::contexte::IdSpectacle::lire("s").unwrap()),
             numero: Some("X1.26.01".into()),
             lignes: Some(vec![socle::forme::lire_texte(&texte, crate::saisie::CARTE_ILLISIBLE).unwrap()]),
             ..Default::default()

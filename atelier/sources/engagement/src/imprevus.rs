@@ -975,7 +975,7 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &
                 mois: mois.to_string(),
                 engagement: i,
                 numero: e.numero.clone(),
-                spectacle: e.spectacle.clone(),
+                spectacle: e.spectacle.as_ref().map(ToString::to_string),
                 ligne: j,
                 libelle: libelle_rubrique(&ctx.racine, &rubrique, &ctx.lue_au)?,
                 rubrique,

@@ -101,7 +101,7 @@ function engagementDuBloc(div, mois) {
   const numero = div.dataset.numeroDe === salarie ? numeroDuBloc : "";
   // Une carte dit sa nature ; un permanent n'a pas de spectacle (`natures[].carte` de la route etat).
   const e = { salarie, nature: nat.cle };
-  if (!nat.mensuelle) e.spectacle = spectacle;
+  if (!nat.mensuelle && spectacle) e.spectacle = spectacle;
   if (debut) e.debut = debut;
   if (fin) e.fin = fin;
   if (numero) e.numero = numero;

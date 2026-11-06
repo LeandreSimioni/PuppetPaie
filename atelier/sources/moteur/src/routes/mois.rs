@@ -480,10 +480,6 @@ fn resoudre_noms(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
     let mut engagements = Vec::new();
     for (e, p) in saisie.engagements.iter().zip(&paies) {
         let mut resolu = e.clone();
-        // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit.
-        if let Some(sp) = &p.spectacle {
-            resolu.spectacle = Some(sp.cle.to_string());
-        }
         // Les lignes d'un permanent sont CALCULEES, pas saisies.
         if !p.engagement.nat()?.mensuelle() {
             resolu.lignes = Some(lignes_affichees(p, e.lignes())?);
@@ -824,7 +820,7 @@ fn contrats_passes(ctx: &Contexte, mois: &str, salarie: Option<&IdSalarie>) -> R
             if !voulu(&cle) {
                 continue;
             }
-            let ref_spec = e.spectacle.clone().unwrap_or_default();
+            let ref_spec = e.spectacle.as_ref().map(ToString::to_string).unwrap_or_default();
             let spec = spectacles.trouver(&ref_spec);
             let numero = spec.and_then(|s| s.numero_objet.remplie()).map_or_else(|| ref_spec.clone(), str::to_string);
             let cachets = cachets_de(ctx, &e)?;

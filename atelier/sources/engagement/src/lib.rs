@@ -876,7 +876,7 @@ impl Termes {
         let n = |x: &NombreLu| Chiffre::Nombre(x.clone());
         match v {
             carte::CarteValide::CdduSpectacle(c) => Termes {
-                spectacle: Some(c.spectacle.clone()),
+                spectacle: Some(c.spectacle.to_string()),
                 taux_cachet: match &c.taux_cachet {
                     Some(t) => Some(n(t)),
                     None => cachet_du_mois.clone(),

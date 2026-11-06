@@ -19,7 +19,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use droit::contexte::IdSalarie;
+use droit::contexte::{IdSalarie, IdSpectacle};
 use socle::forme::NombreLu;
 use socle::num::Resultat;
 
@@ -113,7 +113,7 @@ nature! {
     Cddu / BrouillonCddu {
         obligatoire {
             salarie: IdSalarie = Salarie,
-            spectacle: String = Spectacle,
+            spectacle: IdSpectacle = Spectacle,
             lignes: Vec<LignePaie> = Lignes,
         }
         facultatif {
@@ -657,39 +657,44 @@ macro_rules! changements {
         /// "valeur": "cdi"}` change sa nature, qui ne se vide jamais.
         #[derive(Debug, Clone, PartialEq, Deserialize)]
         #[serde(tag = "case", content = "valeur", deny_unknown_fields)]
-        pub enum Changement<L = LignePaie, N = IdSalarie> {
+        pub enum Changement<L = LignePaie, N = IdSalarie, P = IdSpectacle> {
             #[serde(rename = "nature")]
             Nature(NatureDeContrat),
             #[serde(rename = "salarie")]
             Salarie(Option<N>),
+            #[serde(rename = "spectacle")]
+            Spectacle(Option<P>),
             #[serde(rename = "lignes")]
             Lignes(Option<Vec<L>>),
             $( #[serde(rename = $cle)] $v(Option<$t>), )*
         }
 
-        impl<L, N> Changement<L, N> {
+        impl<L, N, P> Changement<L, N, P> {
             /// La case qu'il change.
             pub fn champ(&self) -> Champ {
                 match self {
                     Changement::Nature(_) => Champ::Nature,
                     Changement::Salarie(_) => Champ::Salarie,
+                    Changement::Spectacle(_) => Champ::Spectacle,
                     Changement::Lignes(_) => Champ::Lignes,
                     $( Changement::$v(_) => Champ::$v, )*
                 }
             }
         }
 
-        impl Changement<LigneDonnee, String> {
-            /// Ses lignes rangees (`ranger`, `ligne::ranger`) et le salarie qu'il nomme retrouve (`salarie`) ; une autre
-            /// case telle quelle.
+        impl Changement<LigneDonnee, String, String> {
+            /// Ses lignes rangees (`ranger`, `ligne::ranger`), le salarie et le spectacle qu'il nomme retrouves
+            /// (`salarie`, `spectacle`) ; une autre case telle quelle.
             pub fn ranger(
                 self,
                 ranger: &dyn Fn(Vec<LigneDonnee>) -> Resultat<Vec<LignePaie>>,
                 salarie: &dyn Fn(&str) -> Resultat<IdSalarie>,
+                spectacle: &dyn Fn(&str) -> Resultat<IdSpectacle>,
             ) -> Resultat<Changement> {
                 Ok(match self {
                     Changement::Nature(n) => Changement::Nature(n),
                     Changement::Salarie(x) => Changement::Salarie(x.map(|nom| salarie(&nom)).transpose()?),
+                    Changement::Spectacle(x) => Changement::Spectacle(x.map(|nom| spectacle(&nom)).transpose()?),
                     Changement::Lignes(l) => Changement::Lignes(l.map(ranger).transpose()?),
                     $( Changement::$v(x) => Changement::$v(x), )*
                 })
@@ -702,6 +707,7 @@ macro_rules! changements {
                 match self {
                     Changement::Nature(n) => c.nature = Some(n.cle().to_string()),
                     Changement::Salarie(x) => c.salarie = x,
+                    Changement::Spectacle(x) => c.spectacle = x,
                     Changement::Lignes(x) => c.lignes = x,
                     $( Changement::$v(x) => c.$champ = x, )*
                 }
@@ -711,7 +717,6 @@ macro_rules! changements {
 }
 
 changements! {
-    Spectacle(String) = "spectacle" => spectacle,
     Debut(String) = "debut" => debut,
     Fin(String) = "fin" => fin,
     Numero(String) = "numero" => numero,
@@ -762,11 +767,11 @@ changements! {
 /// appliques dans l'ordre, tout ou rien. La page en envoie ce qui a change depuis sa derniere ecriture (une case, le plus
 /// souvent) ; un appelant en ligne de commande, toutes les cases d'une carte d'un coup.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Changements(Vec<Changement<LigneDonnee, String>>);
+pub struct Changements(Vec<Changement<LigneDonnee, String, String>>);
 
 impl<'de> Deserialize<'de> for Changements {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Changements, D::Error> {
-        let v = Vec::<Changement<LigneDonnee, String>>::deserialize(d)?;
+        let v = Vec::<Changement<LigneDonnee, String, String>>::deserialize(d)?;
         if v.is_empty() {
             return Err(serde::de::Error::custom("`changements` : au moins un changement, {\"case\": …, \"valeur\": …}"));
         }
@@ -783,7 +788,7 @@ impl Changements {
         let mut essai = b.clone();
         for ch in self.0 {
             let q = qui(&essai);
-            let ch = ch.ranger(&|l| crate::ligne::ranger(&ctx.racine, mois, l, &q), &|nom| salarie_nomme(ctx, nom))?;
+            let ch = ch.ranger(&|l| crate::ligne::ranger(&ctx.racine, mois, l, &q), &|nom| salarie_nomme(ctx, nom), &|nom| Ok(ctx.spectacle(nom)?.cle))?;
             essai.changer(ch, &q)?;
         }
         *b = essai;

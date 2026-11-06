@@ -908,8 +908,7 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<Mois>> {
 /// du mois (le fichier se cree avec ce que le mois dit par defaut, `defauts`). C'est la seule ecriture qui cree un
 /// engagement. Rend l'identite de l'engagement ecrit (`identites`).
 ///
-/// Ce que le moteur tient seul ne se prend pas de la saisie ; le numero du contrat et le nom du spectacle ecrits se
-/// gardent (`poser_sur`). Refus, et rien n'est ecrit : un engagement valide (il se modifie d'un geste,
+/// Ce que le moteur tient seul ne se prend pas de la saisie ; le numero du contrat ecrit se garde (`poser_sur`). Refus, et rien n'est ecrit : un engagement valide (il se modifie d'un geste,
 /// `etats::modifier`), une identite que l'ecran ne montre pas, un engagement du salarie et du premier jour d'un engagement
 /// importe, des bornes qui laisseraient hors du contrat un mois ou il a des jours payes, un engagement neuf que l'ecran
 /// de `mois` ne montrerait pas.
@@ -932,7 +931,7 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie
             if mois == o.fichier {
                 refuser_un_second_contrat_au_mois(ctx, saisie, Some(&o))?;
             }
-            poser_sur(ctx, &mut o, mois, saisie, None)?;
+            poser_sur(&mut o, mois, saisie, None)?;
             reecrire(racine, &o)?;
             (o.fichier, o.rang)
         }
@@ -1070,15 +1069,14 @@ pub fn poser_la_saisie(ctx: &Contexte, mois: &str, rang: usize, saisie: &Carte, 
             (j > debut).then_some(j)
         }
     };
-    poser_sur(ctx, &mut o, mois, saisie, le)?;
+    poser_sur(&mut o, mois, saisie, le)?;
     reecrire(&ctx.racine, &o)?;
     Ok(())
 }
 
 /// Ce que la carte ecrit pour `mois`, pose sur l'objet `o` : ce que le moteur tient seul ne se prend pas de la saisie,
-/// le numero du contrat ecrit se garde, un spectacle nomme autrement que celui qui est ecrit (sa cle, son titre, son
-/// numero d'objet) garde son nom ecrit.
-fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Carte, le: Option<Jour>) -> Resultat<()> {
+/// le numero du contrat ecrit se garde.
+fn poser_sur(o: &mut Objet, mois: &str, saisie: &Carte, le: Option<Jour>) -> Resultat<()> {
     let mut saisie = en_forme(saisie)?;
     if saisie.numero_dit().is_none() {
         if let Some(n) = o.carte().numero_dit() {
@@ -1089,11 +1087,6 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Carte, le: Opti
     // Le debut qu'un mois suivant d'un contrat d'usage deduit de son premier jour (`Objet::vue`) n'est pas une saisie.
     if mois != o.fichier && o.carte().debut.is_none() && saisie.debut.is_some() && vue.as_ref().is_some_and(|v| v.debut == saisie.debut) {
         saisie.debut = None;
-    }
-    if let Some(ecrit) = vue.and_then(|v| v.spectacle.filter(|s| !s.is_empty())) {
-        if saisie.spectacle.as_ref().is_some_and(|s| *s != ecrit && meme_spectacle(ctx, s, &ecrit)) {
-            saisie.spectacle = Some(ecrit);
-        }
     }
     poser_le_mois(o, mois, &saisie, le)
 }
@@ -1123,11 +1116,6 @@ pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
         saisie.lignes = Some(Vec::new());
     }
     Ok(saisie)
-}
-
-/// `a` et `b` sont-elles la cle d'une meme fiche de spectacle ? Une cle qu'aucune fiche ne porte ne nomme aucun spectacle.
-fn meme_spectacle(ctx: &Contexte, a: &str, b: &str) -> bool {
-    a == b && ctx.spectacles.contains_key(a)
 }
 
 /// Pose la saisie que l'ecran montre pour `mois` sur l'objet `o` : son premier mois s'il commence en `mois` ; sinon,

@@ -316,13 +316,14 @@ fn comparer_une(
         });
     }
     // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.
-    let spectacle = (!mensuelle).then(|| {
-        let par_objet = dit(&p.numero_objet).and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.numero_objet.portee() == Some(n.as_str())).map(|(k, _)| k.to_string()));
-        dit(&p.spectacle).or(par_objet)
-    });
+    let spectacle = match (mensuelle, dit(&p.spectacle)) {
+        (true, _) => None,
+        (false, Some(titre)) => Some(ctx.spectacle(&titre).map_err(|m| a_refaire(c, m))?.cle),
+        (false, None) => dit(&p.numero_objet).and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.numero_objet.portee() == Some(n.as_str())).map(|(k, _)| k.clone())),
+    };
     let e = crate::saisie::Carte {
         salarie: Some(salarie.clone()),
-        spectacle: spectacle.flatten(),
+        spectacle,
         nature: Some(nature.to_string()),
         debut: p.debut.map(|j| j.iso()),
         fin: p.fin.map(|j| j.iso()),

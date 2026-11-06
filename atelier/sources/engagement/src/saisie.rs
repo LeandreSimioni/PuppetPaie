@@ -110,7 +110,7 @@ carte! {
         #[champ(Partage, Salarie)]
         pub salarie: Option<droit::contexte::IdSalarie>,
         #[champ(Terme, Spectacle)]
-        pub spectacle: Option<String>,
+        pub spectacle: Option<droit::contexte::IdSpectacle>,
         #[champ(Terme, Nature)]
         pub nature: Option<String>,
         #[champ(Partage, Debut)]
@@ -248,6 +248,12 @@ impl Simple for String {
 }
 
 impl Simple for droit::contexte::IdSalarie {
+    fn simple(&self) -> Option<Valeur> {
+        Some(Valeur::Texte(self.to_string()))
+    }
+}
+
+impl Simple for droit::contexte::IdSpectacle {
     fn simple(&self) -> Option<Valeur> {
         Some(Valeur::Texte(self.to_string()))
     }
