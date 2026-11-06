@@ -365,13 +365,28 @@ function ouvrirEnModification(div) {
   if (!div._ligne || !div._ligne.valide) return;
   div.classList.add("en-modification");
   fermerEdition(div, false);
+  // Ce que la carte montre à son ouverture : ce qu'on y change se dit case par case depuis lui (`changementsOuverts`).
+  div._ouverte = JSON.stringify(carteOuverte(div));
   peindreEtats();
+}
+
+/** Ce que montre une carte ouverte pour être modifiée. */
+function carteOuverte(div) {
+  LIRE_LES_MODIFICATIONS = true;
+  try { return engagementDuBloc(div, document.getElementById("mois").value) || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
+}
+
+/** CE QU'ON A CHANGÉ SUR UNE CARTE OUVERTE POUR ÊTRE MODIFIÉE, case par case depuis son ouverture : les changements que
+ *  « Modifier l'engagement » écrit, et que l'aperçu et le montant visé calculent avant. */
+function changementsOuverts(div) {
+  return changementsDeCases(JSON.parse(div._ouverte || "{}"), carteOuverte(div));
 }
 
 /** Referme la carte telle qu'elle est enregistrée : le mois se relit, ce qu'on y a tapé s'efface. */
 async function refermerLaCarte(div) {
   const mois = document.getElementById("mois").value;
   div.classList.remove("en-modification");
+  div._ouverte = undefined;
   clearTimeout(MINUTEUR_SAISIE);
   await enregistrerSaisie(true);
   await chargerMois(mois, true);
@@ -381,15 +396,15 @@ async function annulerLaModification(div) {
   await refermerLaCarte(div);
 }
 
-/* « MODIFIER L'ENGAGEMENT » : la page envoie ce que la carte ouverte montre ; le moteur dit si rien n'a changé
- * (la carte se referme), écrit ce qui a changé, ou rend son avertissement quand ce qui est parti le demande. La page
- * le montre tel quel ; « Annuler » revient à la carte avec ce qu'on y a tapé, la confirmation renvoie la demande. */
+/* « MODIFIER L'ENGAGEMENT » : la page envoie ce qu'on a changé sur la carte ouverte, case par case ; le moteur dit si
+ * rien n'a changé (la carte se referme), écrit ce qui a changé, ou rend son avertissement quand ce qui est parti le
+ * demande. La page le montre tel quel ; « Annuler » revient à la carte avec ce qu'on y a tapé, la confirmation renvoie
+ * la demande. */
 async function modifierLaCarte(div) {
   const mois = document.getElementById("mois").value;
-  let saisie;
-  LIRE_LES_MODIFICATIONS = true;
-  try { saisie = engagementDuBloc(div, mois) || {}; } finally { LIRE_LES_MODIFICATIONS = false; }
-  const charge = { mois, engagement: JSON.parse(div.dataset.engagement), saisie };
+  const changements = changementsOuverts(div);
+  if (!changements.length) { await refermerLaCarte(div); return; }
+  const charge = { mois, engagement: JSON.parse(div.dataset.engagement), changements, confirme: false, jour: null };
   try {
     let r = await api("modifier-engagement", charge);
     while (r && r.avertissement) {

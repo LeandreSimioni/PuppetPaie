@@ -34,7 +34,7 @@ fn une_carte_neuve_ne_refait_pas_le_cdi_qui_court() {
     let (classe, phrase) = refus(&route(
         &c,
         "enregistrer-saisie",
-        json!({"mois": "2026-02", "carte": {"ecrite": neuve}, "changement": {"case": "debut", "valeur": "2026-01-05"}}),
+        json!({"mois": "2026-02", "carte": {"ecrite": neuve}, "changements": [{"case": "debut", "valeur": "2026-01-05"}]}),
         "2026-02-02",
     ));
     assert_eq!(classe, "ErreurOperation", "{}", phrase);

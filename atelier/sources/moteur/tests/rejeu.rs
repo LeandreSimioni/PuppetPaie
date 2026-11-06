@@ -224,9 +224,8 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     // « Modifier l'engagement » : sans changement, rien ne s'ecrit et rien ne se dit ; son bulletin parti, le changement
     // vient avec l'avertissement et rien ne s'ecrit sans la confirmation.
     let modifier = |lignes: Value, confirme: bool| {
-        let saisie = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes});
-        outils::route(&racine, "modifier-engagement", json!({"mois": "2026-11", "confirme": confirme,
-            "engagement": outils::identite(&racine, "2026-11", "FULLER", Some("FU1.26.02")), "saisie": saisie}), jour)
+        let id = socle::ecriture::en_valeur(&outils::identite(&racine, "2026-11", "FULLER", Some("FU1.26.02")));
+        outils::modifier(&racine, "2026-11", &id, &json!({"lignes": lignes}), confirme, None, jour)
     };
     let ecrits = || [racine.join("engagements/2026-11.json"), racine.join("paies/2026-11.json")].map(|p| std::fs::read(p).unwrap());
     let avant = ecrits();
@@ -380,7 +379,7 @@ fn la_demande_de_taux_d_une_embauche_part_et_sa_reponse_fait_l_engagement() {
     let mut fiches = outils::lire(&racine, "config/salaries.json");
     fiches["FULLER"]["taux_pas"] = json!([{"valeur": ""}, {"depuis": "2026-11-17", "valeur": {"taux": "4.30", "type": "01", "identifiant": "190151266", "mis_a_disposition": "20261117100000"}}]);
     outils::ecrire(&racine, "config/salaries.json", &fiches);
-    outils::reussi(&outils::route(&racine, "apercu", json!({"mois": "2026-11"}), "2026-11-17"));
+    outils::reussi(&outils::route(&racine, "apercu", json!({"mois": "2026-11", "modifications": []}), "2026-11-17"));
     assert_eq!(type_ecrit("FULLER"), json!("01"), "le taux arrive refait l'engagement");
 
     for jour in ["2026-11-20", "2026-12-16"] {

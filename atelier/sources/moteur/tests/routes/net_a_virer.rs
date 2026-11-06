@@ -24,7 +24,7 @@ fn le_net_a_virer_est_le_net_apres_impot() {
     }}]);
     ecrire(&c, "config/salaries.json", &fiches);
 
-    let r = route(&c, "apercu", json!({"mois": "2026-11"}), jour);
+    let r = route(&c, "apercu", json!({"mois": "2026-11", "modifications": []}), jour);
     let a = reussi(&r);
     let paies = a["paies"].as_array().unwrap();
     let fuller: &Value = paies.iter().find(|p| p["salarie"]["cle"] == "FULLER").expect("FULLER n'est pas dans l'apercu");

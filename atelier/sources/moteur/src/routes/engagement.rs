@@ -4,9 +4,10 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use droit::contexte::Contexte;
+use engagement::carte::{Brouillon, Changements};
 use engagement::stock::Identite;
 use socle::echec::{erreur, Echec, Refus, R};
 use socle::mois::Mois;
@@ -15,21 +16,15 @@ use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Fiche, Refus as Refu
 use crate::routes::catalogue::Route;
 use crate::routes::catalogue::{Ecran, Place};
 
-const IDENTITE: Champ = Champ {
+pub(crate) const IDENTITE: Champ = Champ {
     nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet,
     sens: "l'identité de la carte, telle que le moteur l'a rendue : {salarie, debut, rang}",
     avance: false,
 };
-/// La saisie d'une carte, ses cases et ou se lit ce que chacune demande.
-pub(crate) const SAISIE: Champ = Champ {
-    nom: "saisie", libelle: Affiche::new("Saisie"), forme: Forme::Objet,
-    sens: "ce que la carte porte : nature (toujours dite : `natures` de la route etat) et les cases de sa nature (`natures` de cette fiche : chacune obligatoire ou facultative, et les motifs d'un CDD ; une case qu'elle n'a pas se refuse), salarie (la clé de sa fiche), spectacle, debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
-    avance: false,
-};
-/// Le changement d'une case du brouillon d'une carte.
-pub(crate) const CHANGEMENT: Champ = Champ {
-    nom: "changement", libelle: Affiche::new("Case qui change"), forme: Forme::Objet,
-    sens: "{case, valeur} : une case de la nature de la carte (`natures` de cette fiche : chacune obligatoire ou facultative à la validation, et les motifs d'un CDD ; une case qu'elle n'a pas se refuse), valeur null pour la vider ; {\"case\": \"nature\", \"valeur\": \"cdi\"} change sa nature (les cases des deux natures gardent ce qu'elles disent, les autres naissent vides). Les cases : salarie (la clé de sa fiche), spectacle, debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
+/// Les changements des cases du brouillon d'une carte, dans l'ordre.
+pub(crate) const CHANGEMENTS: Champ = Champ {
+    nom: "changements", libelle: Affiche::new("Cases qui changent"), forme: Forme::Objet,
+    sens: "[{case, valeur}, …], au moins un, appliqués dans l'ordre, tout ou rien (un refus nomme sa case et rien n'est écrit) : chacun une case de la nature de la carte (`natures` de cette fiche : chacune obligatoire ou facultative à la validation, et les motifs d'un CDD ; une case qu'elle n'a pas se refuse), valeur null pour la vider ; {\"case\": \"nature\", \"valeur\": \"cdi\"} change sa nature (les cases des deux natures gardent ce qu'elles disent, les autres naissent vides). Les cases : salarie (la clé de sa fiche), spectacle, debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
     avance: false,
 };
 pub(crate) const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
@@ -57,15 +52,15 @@ pub const ROUTES: &[Fiche] = &[
     },
     Fiche {
         route: Route::ModifierEngagement,
-        geste: "Modifier un engagement validé : écrire ce que sa carte ouverte montre.",
+        geste: "Modifier un engagement validé : changer des cases de sa carte, et le revalider.",
         charge: &[
             MOIS,
             IDENTITE,
-            SAISIE,
+            CHANGEMENTS,
             Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu a été lu et accepté", avance: false },
             Champ { nom: "jour", libelle: Affiche::new("Jour d'effet"), forme: Forme::Nombre, sens: "le jour du mois (un nombre, de 1 à 31) où un terme changé prend effet, quand ce n'est pas le 1er", avance: true },
         ],
-        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"saisie":{"salarie":"FULLER","nature":"cddu_spectacle","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":160,"dates":["2026-11-27"]}]}}"#,
+        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"changements":[{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":160,"dates":["2026-11-27"]}]}],"confirme":false,"jour":null}"#,
         rend: "rien n'a changé : change faux ; ce qui est parti le demande : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit ; écrit : change, phrase (un terme vaut à partir du mois de la carte)",
         refus: &[
             SAISIE_INCOMPLETE,
@@ -103,18 +98,17 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
     }
 }
 
-/// La charge de « Modifier l'engagement » : le mois de la carte, son identite, ce qu'elle montre ; l'avertissement lu
-/// (`confirme`) et le jour du mois d'ou vaut un terme change (`jour`, le 1er sinon).
+/// La charge de « Modifier l'engagement » : le mois de la carte, son identite, ce qu'on y change (`changements`, comme
+/// `enregistrer-saisie`) ; l'avertissement lu (`confirme`) et le jour du mois d'ou vaut un terme change (`jour`, `null` :
+/// le 1er).
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ChargeModifier {
     mois: Mois,
     engagement: Identite,
-    /// TRAVAIL A FAIRE (chaine A) : la saisie d'un engagement, telle que son fichier l'ecrit.
-    saisie: Map<String, Value>,
-    #[serde(default)]
+    changements: Changements,
     confirme: bool,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     jour: Option<u32>,
 }
 
@@ -243,9 +237,10 @@ pub(crate) fn valider_engagement(ctx: &Contexte, carte: ChargeValider) -> R<Vali
 
 // ------------------------------------------------------------------ modifier-engagement
 
-/// « MODIFIER L'ENGAGEMENT » : les valeurs que la carte ouverte d'un engagement valide montre, ecrites d'un geste.
-/// La carte se designe par son identite (`engagement`, que le moteur lui a rendue) ; `saisie` est ce que
-/// sa carte ecrit pour `mois`. Une carte porte un salarie : elle modifie son engagement, et lui seul. LE MOIS DE LA CARTE
+/// « MODIFIER L'ENGAGEMENT » : un engagement valide ouvre le brouillon de sa carte de `mois` (`Brouillon::de_la_carte`
+/// de sa vue), qui prend les changements comme `enregistrer-saisie` les prend (`Changements::appliquer`), puis il se
+/// revalide, d'un geste. La carte se designe par son identite (`engagement`, que le moteur lui a rendue) ; elle modifie
+/// son engagement, et lui seul. LE MOIS DE LA CARTE
 /// EST LE « A PARTIR DE » : un terme du contrat qu'elle change (le salaire, la duree du travail, l'emploi...) vaut de ce
 /// mois jusqu'au changement suivant (`engagement::stock::poser_la_saisie`), du 1er, ou du `jour` dit.
 ///
@@ -262,7 +257,7 @@ pub(crate) fn valider_engagement(ctx: &Contexte, carte: ChargeValider) -> R<Vali
 /// avant PuppetPaie, d'un exercice clos ; un jour qui n'est pas un jour du contrat dans ce mois ; un changement que la
 /// norme ne permet plus de declarer (`crate::regularisation::refus_non_declarable`) ; une saisie qui ne se calcule pas.
 fn modifier_engagement(ctx: &Contexte, charge: ChargeModifier) -> R<Modification> {
-    let ChargeModifier { mois, engagement: id, saisie, confirme, jour } = charge;
+    let ChargeModifier { mois, engagement: id, changements, confirme, jour } = charge;
     let mois = &mois.to_string();
     // Le jour du mois de la carte ou un terme change, quand on le dit (le 1er sinon).
     if let Some(j) = jour.filter(|j| !(1..=31).contains(j)) {
@@ -279,7 +274,7 @@ fn modifier_engagement(ctx: &Contexte, charge: ChargeModifier) -> R<Modification
     // LA MODIFICATION SE FAIT DANS UN BROUILLON (`engagement::stock::Brouillon`) : calculee en memoire, elle ne s'ecrit
     // sur le disque que quand elle est faite ; rien n'a change, un avertissement a confirmer, un refus : rien n'est ecrit.
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
-    let depuis = match modifier_puis_revalider(ctx, mois, i, &o, &saisie, confirme, jour)? {
+    let depuis = match modifier_puis_revalider(ctx, mois, i, &o, changements, confirme, jour)? {
         Issue::Ecrite(depuis) => depuis,
         Issue::Rien => return Ok(Modification::Faite { change: false, phrase: "Rien n'a changé : rien n'est écrit.".into() }),
         Issue::Avertir(a) => {
@@ -334,11 +329,16 @@ fn a_partir_de(o: &engagement::stock::Objet, devenu: &engagement::stock::Objet, 
     (apres != du_mois(o)).then(|| apres.iter().map(|a| a.depuis).max()).flatten()
 }
 
-/// La modification elle-meme, dans le brouillon ouvert : l'engagement `o`, de rang `i`, se rouvre, prend sa saisie et
-/// se revalide. Ce qu'elle rend dit si elle s'ecrit (`Issue::Ecrite`).
-fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement::stock::Objet, saisie: &Map<String, Value>, confirme: bool, jour: Option<u32>) -> R<Issue> {
+/// La modification elle-meme, dans le brouillon de fichiers ouvert : la carte de `mois` de l'engagement `o`, de rang
+/// `i`, prend ses changements ; l'engagement se rouvre, prend la carte changee et se revalide. Ce qu'elle rend dit si
+/// elle s'ecrit (`Issue::Ecrite`).
+fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement::stock::Objet, changements: Changements, confirme: bool, jour: Option<u32>) -> R<Issue> {
+    let qui = engagement::etats::qui_de(ctx, o);
+    let vue = o.vue(mois).map_err(Echec::from)?.ok_or_else(|| refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois. Rien n'est écrit.", qui)))?;
+    let mut carte = Brouillon::de_la_carte(&vue, &qui).map_err(refus)?;
+    changements.appliquer(&mut carte, |_| qui.clone()).map_err(refus)?;
     engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
-    engagement::stock::poser_la_saisie(ctx, mois, i, &socle::forme::lire(&Value::Object(saisie.clone()), engagement::saisie::CARTE_ILLISIBLE).map_err(refus)?, jour).map_err(refus)?;
+    engagement::stock::poser_la_saisie(ctx, mois, i, &carte.en_carte(), jour).map_err(refus)?;
     if !engagement::etats::a_revalider_rouvert(ctx, mois, i).map_err(Echec::from)? {
         return Ok(Issue::Rien);
     }

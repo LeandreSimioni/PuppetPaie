@@ -290,12 +290,12 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert!(paie.bulletin.is_some(), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
 
     let avant = engagements_ecrits(&racine);
-    assert_eq!(route("modifier-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}, "saisie": {"salarie": "FULLER"}}))["ok"], json!(false));
+    assert_eq!(route("modifier-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}, "changements": [{"case": "salarie", "valeur": "FULLER"}], "confirme": false, "jour": null}))["ok"], json!(false));
     assert_eq!(route("retirer-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}}))["ok"], json!(false));
-    // Le mois importe le dit des l'ouverture, et une carte neuve ne s'y compte pas.
+    // Le mois importe le dit des l'ouverture, et une carte neuve ne s'y ecrit pas.
     assert!(reussi(&route("saisie", json!({"mois": "2026-11"})))["ferme_aux_neufs"].is_string());
-    let neuve = json!({"engagement": null, "saisie": {"salarie": "FULLER", "nature": "cddu_spectacle", "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-25"]}]}});
-    assert_eq!(route("apercu", json!({"mois": "2026-11", "cartes": [neuve]}))["ok"], json!(false));
+    let neuve = json!({"mois": "2026-11", "carte": {"neuve": "cddu_spectacle"}, "changements": [{"case": "salarie", "valeur": "FULLER"}, {"case": "lignes", "valeur": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-25"]}]}]});
+    assert_eq!(route("enregistrer-saisie", neuve)["ok"], json!(false));
     assert_eq!(engagements_ecrits(&racine), avant);
 
     // Decembre se paie ici : le contrat s'y reprend avec son numero et ses dates.
@@ -318,7 +318,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     assert!(a_signer.is_empty(), "le contrat repris se fait signer : {:?}", a_signer);
     // Le bulletin de decembre suit le 1/2026 que le bulletin importe imprime : deux bulletins de l'annee n'ont jamais le
     // meme numero.
-    let apercu = reussi(&route("apercu", json!({"mois": "2026-12"}))).clone();
+    let apercu = reussi(&route("apercu", json!({"mois": "2026-12", "modifications": []}))).clone();
     assert_eq!(apercu["paies"][0]["numero_bulletin"], json!("2/2026"), "{}", apercu["paies"][0]);
     let ecrite = reussi(&route("depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}))).clone();
     let decembre = std::fs::read(ecrite["fichier"].as_str().unwrap()).unwrap();

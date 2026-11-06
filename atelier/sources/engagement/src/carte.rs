@@ -5,8 +5,9 @@
 //! un motif de remplacement porte la personne remplacee (L. 1242-12, 1°).
 //!
 //! LE BROUILLON (`Brouillon`) est ce que la page enregistre tant que l'engagement n'est pas valide : une variante par
-//! nature aussi, chacune de ses cases un `Option` ecrit `null` tant qu'elle n'est pas remplie. Il change d'une case a la
-//! fois (`Changement`, route `enregistrer-saisie`), et s'ecrit entier. La carte qu'il ecrit (`saisie::Carte`) se lit en
+//! nature aussi, chacune de ses cases un `Option` ecrit `null` tant qu'elle n'est pas remplie. Il change par une liste de
+//! changements de case, tout ou rien (`Changements`, routes `enregistrer-saisie` et `modifier-engagement`, et l'apercu
+//! d'une modification pas encore ecrite), et s'ecrit entier. La carte qu'il ecrit (`saisie::Carte`) se lit en
 //! carte valide (`CarteValide::depuis`) : il lui manque une case obligatoire, ou elle porte une case que sa nature n'a
 //! pas, le refus nomme chacune et rien ne s'ecrit. Seule une carte valide entre dans les calculs (`crate::engagements`).
 //!
@@ -730,6 +731,37 @@ changements! {
     PreavisMois(NombreLu) = "preavis_mois" => preavis_mois,
     PrecariteDue(bool) = "precarite_due" => precarite_due,
     PrecaritePourquoi(String) = "precarite_pourquoi" => precarite_pourquoi,
+}
+
+/// LES CHANGEMENTS D'UN APPEL (`changements` des routes `enregistrer-saisie` et `modifier-engagement`) : au moins un,
+/// appliques dans l'ordre, tout ou rien. La page en envoie ce qui a change depuis sa derniere ecriture (une case, le plus
+/// souvent) ; un appelant en ligne de commande, toutes les cases d'une carte d'un coup.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Changements(Vec<Changement>);
+
+impl<'de> Deserialize<'de> for Changements {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Changements, D::Error> {
+        let v = Vec::<Changement>::deserialize(d)?;
+        if v.is_empty() {
+            return Err(serde::de::Error::custom("`changements` : au moins un changement, {\"case\": …, \"valeur\": …}"));
+        }
+        Ok(Changements(v))
+    }
+}
+
+impl Changements {
+    /// CHAQUE CHANGEMENT APPLIQUE AU BROUILLON `b`, dans l'ordre (`Brouillon::changer`), tout ou rien : le premier refus
+    /// (il nomme sa case) laisse `b` tel qu'il etait. `qui` : le salarie que le refus nomme, tel que le brouillon le dit
+    /// au moment du changement.
+    pub fn appliquer(self, b: &mut Brouillon, qui: impl Fn(&Brouillon) -> String) -> Resultat<()> {
+        let mut essai = b.clone();
+        for ch in self.0 {
+            let q = qui(&essai);
+            essai.changer(ch, &q)?;
+        }
+        *b = essai;
+        Ok(())
+    }
 }
 
 /// Le debut du refus d'une carte a qui il manque des cases (`crate::SAISIE_INCOMPLETE`).

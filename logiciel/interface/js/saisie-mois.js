@@ -141,32 +141,21 @@ function engagementDuBloc(div, mois) {
  * L'aperçu et le montant visé, qui n'écrivent rien, la lisent telle qu'elle est. */
 let LIRE_LES_MODIFICATIONS = false;
 
-/** LES CARTES QUE L'APERÇU ET LE MONTANT VISÉ CALCULENT À LA PLACE DE CE QUI EST ÉCRIT : chacune que l'écran montre
- *  autrement (tapée et pas encore écrite, ou ouverte pour être modifiée), avec ce qu'elle porte et son identité
- *  (`null` : pas encore écrite). `aussi` : une carte à compter même écrite (celle dont on vise le
- *  montant). Le moteur calcule le reste du mois tel qu'il est écrit (`mois_designe`). */
-function cartesAuMoteur(aussi) {
-  const mois = document.getElementById("mois").value;
-  const cartes = [];
-  let rang = -1;
-  LIRE_LES_MODIFICATIONS = true;
-  try {
-    document.querySelectorAll("#engagements .engagement").forEach((div) => {
-      const enModification = div.classList.contains("en-modification");
-      const c = enModification ? null : carteAEcrire(div, mois);
-      const ecrite = !enModification && (!c || JSON.stringify(c) === div._ecrite);
-      if (ecrite && div !== aussi) return;
-      const saisie = engagementDuBloc(div, mois);
-      if (!saisie) return;
-      if (div === aussi) rang = cartes.length;
-      cartes.push({ engagement: div.dataset.engagement ? JSON.parse(div.dataset.engagement) : null, saisie });
-    });
-  } finally { LIRE_LES_MODIFICATIONS = false; }
-  return { cartes, rang };
+/** LES MODIFICATIONS PAS ENCORE ÉCRITES que l'aperçu et le montant visé calculent : chaque carte ouverte pour être
+ *  modifiée, son identité et ce qu'on y a changé (`changementsOuverts`). Une carte en saisie s'écrit d'abord
+ *  (`enregistrerLesCartes`) : le moteur la lit telle qu'elle est enregistrée (`mois_designe`). */
+function modificationsAuMoteur() {
+  return [...document.querySelectorAll("#engagements .engagement.en-modification")]
+    .filter((div) => div.dataset.engagement)
+    .map((div) => ({ engagement: JSON.parse(div.dataset.engagement), changements: changementsOuverts(div) }))
+    .filter((m) => m.changements.length);
 }
 
 async function apercuDuMois(mois) {
-  return aSonTour(() => api("apercu", { mois, cartes: cartesAuMoteur().cartes }));
+  return aSonTour(async () => {
+    await enregistrerLesCartes(true);
+    return api("apercu", { mois, modifications: modificationsAuMoteur() });
+  });
 }
 /** Les engagements que les cartes du mois affiché montrent, celles ouvertes pour être modifiées telles qu'on les a
  *  tapées : ce que l'aperçu compte. Rien ne s'écrit d'elles (chaque carte écrit son engagement). */
@@ -451,16 +440,19 @@ async function ajusterBloc(div, champ) {
   const montant = (champ.value || "").trim();
   // Vidée : on ne vise plus rien, et l'aperçu remettra le nombre calculé.
   if (montant === "") { rafraichirApercu(); return; }
-  if (cartesAuMoteur(div).rang < 0) {
+  if (!salarieDuBloc(div)) {
     note.innerHTML = `<span class="rouge">${aideDe("qui_d_abord")}</span>`;
     return;
   }
   note.textContent = "calcul…";
   const mois = document.getElementById("mois").value;
   try {
-    const r = await aSonTour(() => {
-      const { cartes, rang } = cartesAuMoteur(div);
-      return api("ajuster", { mois, cartes, carte: rang, cible: champ.dataset.cible, montant: Number(montant) });
+    // La carte s'écrit d'abord : le moteur ajuste l'engagement tel qu'il est enregistré, ou tel qu'on le modifie.
+    const r = await aSonTour(async () => {
+      await enregistrerLesCartes(true);
+      if (!div.dataset.engagement) throw new Error(aideDe("qui_d_abord"));
+      return api("ajuster", { mois, modifications: modificationsAuMoteur(), engagement: JSON.parse(div.dataset.engagement),
+        cible: champ.dataset.cible, montant: Number(montant) });
     });
     appliquerAjustement(div, r);
     // LA CASE MONTRE CE QU'ON ATTEINT, PAS CE QU'ON A TAPÉ. Un montant visé
@@ -964,8 +956,8 @@ function noteSaisie(texte) {
   document.getElementById("note-saisie").textContent = texte;
 }
 
-/* UNE CARTE ÉCRIT SON ENGAGEMENT, ET LUI SEUL, UNE CASE À LA FOIS (`enregistrer-saisie`, un changement de case : le
- * moteur écrit le brouillon entier). Elle est désignée par son identité (`data-engagement`), que le moteur a rendue : la
+/* UNE CARTE ÉCRIT SON ENGAGEMENT, ET LUI SEUL, PAR SES CASES QUI ONT CHANGÉ (`enregistrer-saisie`, la liste de ses
+ * changements : le moteur écrit le brouillon entier). Elle est désignée par son identité (`data-engagement`), que le moteur a rendue : la
  * lecture du mois pour une carte lue, la première écriture pour une carte neuve, qui naît dans sa nature. Ce qu'elle a
  * écrit en dernier (`_ecrite`) dit les cases qui ont changé depuis. */
 
@@ -1031,25 +1023,13 @@ function carteVisee(div, carte) {
   return div.dataset.engagement ? { ecrite: JSON.parse(div.dataset.engagement) } : { neuve: carte.nature };
 }
 
-/** Écrit ce qui a changé sur une carte, une case à la fois. Rend la dernière réponse du moteur ; la carte garde son
- *  identité (que chaque écriture rend) et ce qu'elle a écrit, case par case. */
+/** Écrit ce qui a changé sur une carte depuis sa dernière écriture, en un appel (tout ou rien). Rend la réponse du
+ *  moteur (`null` : rien n'a changé) ; la carte garde son identité, que l'écriture rend, et ce qu'elle a écrit. */
 async function ecrireLaCarte(div, carte, mois, appel = api) {
-  const ecrite = div._ecrite ? JSON.parse(div._ecrite) : { nature: carte.nature };
-  let r = null;
-  for (const changement of changementsDeCases(ecrite, carte)) {
-    r = await appel("enregistrer-saisie", { mois, carte: carteVisee(div, carte), changement });
-    div.dataset.engagement = JSON.stringify(r.engagement);
-    if (changement.case === "nature") {
-      const gardees = casesDeLaNature(changement.valeur);
-      Object.keys(ecrite).filter((k) => k !== "nature" && !gardees.has(k)).forEach((k) => { delete ecrite[k]; });
-      ecrite.nature = changement.valeur;
-    } else if (changement.valeur === null) {
-      delete ecrite[changement.case];
-    } else {
-      ecrite[changement.case] = changement.valeur;
-    }
-    div._ecrite = JSON.stringify(ecrite);
-  }
+  const changements = changementsDeCases(div._ecrite ? JSON.parse(div._ecrite) : { nature: carte.nature }, carte);
+  if (!changements.length) { div._ecrite = JSON.stringify(carte); return null; }
+  const r = await appel("enregistrer-saisie", { mois, carte: carteVisee(div, carte), changements });
+  div.dataset.engagement = JSON.stringify(r.engagement);
   div._ecrite = JSON.stringify(carte);
   return r;
 }
@@ -1114,17 +1094,15 @@ window.addEventListener("pagehide", () => {
   if (!MINUTEUR_SAISIE) return;
   clearTimeout(MINUTEUR_SAISIE);
   MINUTEUR_SAISIE = null;
-  // Chaque case qui a changé, dans l'ordre ; une carte neuve n'a d'identité qu'après sa première écriture, que la page
-  // qui part ne lit plus : elle n'envoie que celle-là.
+  // Chaque case qui a changé, en un appel par carte.
   ecrituresEnAttente().forEach(([div, carte, mois]) => {
     const changements = changementsDeCases(div._ecrite ? JSON.parse(div._ecrite) : { nature: carte.nature }, carte);
-    (div.dataset.engagement ? changements : changements.slice(0, 1)).forEach((changement) => {
-      fetch("/api/enregistrer-saisie?jeton=" + encodeURIComponent(JETON), {
-        method: "POST", keepalive: true,
-        headers: { "Content-Type": "application/json", "X-Jeton": JETON },
-        body: JSON.stringify({ mois, carte: carteVisee(div, carte), changement }),
-      }).catch(() => {});
-    });
+    if (!changements.length) return;
+    fetch("/api/enregistrer-saisie?jeton=" + encodeURIComponent(JETON), {
+      method: "POST", keepalive: true,
+      headers: { "Content-Type": "application/json", "X-Jeton": JETON },
+      body: JSON.stringify({ mois, carte: carteVisee(div, carte), changements }),
+    }).catch(() => {});
   });
 });
 

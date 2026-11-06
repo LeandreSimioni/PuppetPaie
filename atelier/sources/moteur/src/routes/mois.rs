@@ -8,9 +8,11 @@
 //! recalcule s'ils ne sont plus justes.
 //!
 //! `apercu` : le mois pour l'ecran, rien d'ecrit. Un engagement valide montre la paie qu'il a ecrite ; un engagement en
-//! saisie se calcule en memoire (`paies_de_l_ecran`) ; les numeros se reservent sans rien ecrire.
+//! saisie se calcule en memoire, tel que son brouillon est enregistre (`paies_de_l_ecran`) ; une modification pas encore
+//! ecrite d'un engagement valide se calcule de ses changements (`mois_designe`) ; les numeros se reservent sans rien
+//! ecrire.
 //!
-//! Chaque charge est une structure (`ChargeCarte`, `ChargeApercu`, `ChargeAjuster`, `ChargeContratsPasses`,
+//! Chaque charge est une structure (`ChargeCase`, `ChargeApercu`, `ChargeAjuster`, `ChargeContratsPasses`,
 //! `ChargeEmploi`, et `etapes::ChargeMois`), lue une fois (`routes::lire_charge`) ; chaque reponse en est une aussi.
 //!
 //! La carte d'un engagement et la vue du mois sont `engagement::saisie::{Carte, VueDuMois}`. TRAVAIL A FAIRE (chaine A,
@@ -30,7 +32,7 @@ use crate::routes::fiches::{maintenant, refus};
 use crate::routes::{en_json, lire_charge};
 use crate::routes::etapes::ChargeMois;
 use engagement::calcul::Paie;
-use engagement::carte::{Brouillon, Changement, NatureDeContrat};
+use engagement::carte::{Brouillon, Changements, NatureDeContrat};
 use engagement::saisie::{Carte as SaisieCarte, VueDuMois};
 use engagement::stock::Identite;
 use engagement::viser::Cible;
@@ -50,9 +52,9 @@ use crate::routes::catalogue::Route;
 use crate::routes::engagement::SAISIE_INCOMPLETE;
 use crate::routes::catalogue::{Ecran, Place};
 
-const CARTES: Champ = Champ {
-    nom: "cartes", libelle: Affiche::new("Cartes"), forme: Forme::Objet,
-    sens: "les cartes non écrites de l'écran : [{engagement (son identité, ou null pour une neuve), saisie}]",
+const MODIFICATIONS: Champ = Champ {
+    nom: "modifications", libelle: Affiche::new("Modifications en cours"), forme: Forme::Objet,
+    sens: "les engagements validés ouverts pour être modifiés, pas encore écrits : [{engagement (son identité), changements (comme modifier-engagement)}] ; [] sans aucun. Une carte en saisie se lit telle qu'elle est enregistrée",
     avance: false,
 };
 
@@ -75,9 +77,9 @@ pub const ROUTES: &[Fiche] = &[
     },
     Fiche {
         route: Route::Apercu,
-        geste: "Calculer sans rien écrire les paies du mois, avec les cartes en cours.",
-        charge: &[MOIS, CARTES],
-        exemple: r#"{"mois":"2026-11","cartes":[]}"#,
+        geste: "Calculer sans rien écrire les paies du mois, avec les modifications en cours.",
+        charge: &[MOIS, MODIFICATIONS],
+        exemple: r#"{"mois":"2026-11","modifications":[]}"#,
         rend: "paies (une par engagement, ses bornes debut et fin, ou ce qui lui manque : a_completer ; contrat.ecrits : les cases que son contrat écrit appelle, à remplir avant de le faire signer ; a_dire : la case de fiche qu'il appelle, comme « Pour démarrer » ; faits_avances : les cases « avancé » de la carte d'un contrat au mois qu'il appelle, `cases` de valider-engagement ; cases : celles qu'une ligne de frais appelle, avec leur aide), les trois nombres de chaque carte, le mois",
         refus: &[SAISIE_INCOMPLETE, MANQUE, FORME],
         acte: Acte::Lit,
@@ -128,14 +130,14 @@ pub const ROUTES: &[Fiche] = &[
     },
     Fiche {
         route: Route::EnregistrerSaisie,
-        geste: "Changer une case du brouillon d'une carte, et l'écrire.",
+        geste: "Changer des cases du brouillon d'une carte, et l'écrire.",
         charge: &[
             MOIS,
             Champ { nom: "carte", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "{\"neuve\": sa nature (`nouvelle_carte` de la route etat)} pour une carte neuve, ou {\"ecrite\": son identité, celle que le moteur a rendue}", avance: false },
-            super::engagement::CHANGEMENT,
+            super::engagement::CHANGEMENTS,
         ],
-        exemple: r#"{"mois":"2026-11","carte":{"ecrite":{"salarie":"FULLER","debut":"","rang":0}},"changement":{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
-        rend: "engagement (l'identité écrite), brouillon (chacune des cases de sa nature, null tant qu'elle n'est pas remplie), a_completer (ce qui lui manque pour être validé, ou null), enregistre_a",
+        exemple: r#"{"mois":"2026-11","carte":{"neuve":"cddu_spectacle"},"changements":[{"case":"salarie","valeur":"FULLER"},{"case":"spectacle","valeur":"le-banc-des-menteurs"},{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}]}"#,
+        rend: "engagement (l'identité écrite, à passer à valider-engagement), brouillon (chacune des cases de sa nature, null tant qu'elle n'est pas remplie), a_completer (ce qui lui manque pour être validé, ou null), enregistre_a",
         refus: &[OPERATION, FORME, MANQUE],
         acte: Acte::Ecrit,
         avance: false,
@@ -147,12 +149,12 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Trouver le taux qui donne un net, un brut ou un coût voulu.",
         charge: &[
             MOIS,
-            CARTES,
-            Champ { nom: "carte", libelle: Affiche::new("Rang de la carte"), forme: Forme::Nombre, sens: "le rang, dans cartes, de la carte à ajuster", avance: false },
+            MODIFICATIONS,
+            super::engagement::IDENTITE,
             Champ { nom: "cible", libelle: Affiche::new("Net, brut ou coût"), forme: Forme::Texte, sens: "net, brut ou cout", avance: false },
             Champ { nom: "montant", libelle: Affiche::new("Montant voulu"), forme: Forme::Nombre, sens: "le montant voulu, en euros", avance: false },
         ],
-        exemple: r#"{"mois":"2026-11","cartes":[{"engagement":null,"saisie":{"salarie":"FULLER","nature":"cddu_spectacle","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-21"]}]}}],"carte":0,"cible":"brut","montant":200}"#,
+        exemple: r#"{"mois":"2026-11","modifications":[],"engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"cible":"brut","montant":200}"#,
         rend: "phrase (ce qui est atteint, et le taux qu'il faudrait), vise, atteint, ecart, engagements (les taux qui changent), paies ; rien n'est écrit",
         refus: &[OPERATION, FORME, SAISIE_INCOMPLETE],
         acte: Acte::Lit,
@@ -164,15 +166,14 @@ pub const ROUTES: &[Fiche] = &[
 
 // ------------------------------------------------------------------ les charges
 
-/// UNE CARTE QUE L'ECRAN MONTRE AUTREMENT QU'ELLE N'EST ECRITE (`apercu`, `ajuster`) : son identite (`None` : pas encore
-/// ecrite) et ce qu'elle porte.
+/// UNE MODIFICATION PAS ENCORE ECRITE D'UN ENGAGEMENT VALIDE (`apercu`, `ajuster`) : la carte ouverte de l'engagement
+/// `engagement` (son identite), et ce qu'on y a change, comme `modifier-engagement` l'ecrira (`changements`). Elle ne
+/// s'ecrit qu'a « Modifier l'engagement » : l'apercu et le montant vise la calculent en memoire.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct Carte {
-    #[serde(default)]
-    pub(crate) engagement: Option<Identite>,
-    /// Ce que la carte porte (`engagement::saisie::Carte`).
-    pub(crate) saisie: engagement::saisie::Carte,
+pub(crate) struct ModificationEnCours {
+    pub(crate) engagement: Identite,
+    pub(crate) changements: Changements,
 }
 
 /// LA CARTE QU'UN CHANGEMENT VISE : une carte neuve, nee dans sa nature (`nouvelle_carte` de la route etat), ou celle
@@ -184,32 +185,32 @@ pub(crate) enum CarteVisee {
     Ecrite(Identite),
 }
 
-/// LA CHARGE D'UN CHANGEMENT DE CASE (`enregistrer-saisie`) : le mois de l'ecran, la carte visee, et la case qui change.
+/// LA CHARGE DES CHANGEMENTS D'UNE CARTE (`enregistrer-saisie`) : le mois de l'ecran, la carte visee, et ses changements,
+/// dans l'ordre.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ChargeCase {
     pub(crate) mois: Mois,
     pub(crate) carte: CarteVisee,
-    pub(crate) changement: Changement,
+    pub(crate) changements: Changements,
 }
 
-/// La charge de l'apercu : le mois, et les cartes que l'ecran montre autrement (`mois_designe`).
+/// La charge de l'apercu : le mois, et les modifications pas encore ecrites d'engagements valides (`mois_designe`).
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ChargeApercu {
     mois: Mois,
-    #[serde(default)]
-    cartes: Vec<Carte>,
+    modifications: Vec<ModificationEnCours>,
 }
 
-/// La charge du montant vise : le mois et ses cartes, le rang de la carte a ajuster, ce qui se vise et combien.
+/// La charge du montant vise : le mois et ses modifications pas encore ecrites, l'engagement a ajuster (son identite),
+/// ce qui se vise et combien.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ChargeAjuster {
     mois: Mois,
-    #[serde(default)]
-    cartes: Vec<Carte>,
-    carte: usize,
+    modifications: Vec<ModificationEnCours>,
+    engagement: Identite,
     cible: Cible,
     montant: f64,
 }
@@ -1049,12 +1050,10 @@ pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) 
 }
 
 
-/// « ENREGISTRE » : la carte d'un engagement en saisie s'ecrit, et elle seule (`ecrire_une_carte`). Rend l'identite de
-/// l'engagement ecrit, ce qui lui manque encore (`None` : rien) et l'heure de l'ecriture.
-/// UN CHANGEMENT DE CASE, ECRIT : le brouillon de la carte visee (neuf, ou celui que son engagement ecrit pour ce mois,
-/// `engagement::stock::Objet::vue`) prend le changement (`Brouillon::changer`), puis s'ecrit entier
-/// (`ecrire_une_carte`). Rend l'identite de l'engagement ecrit, le brouillon tel qu'il est ecrit, et ce qui lui manque
-/// pour etre valide.
+/// LES CHANGEMENTS D'UNE CARTE, ECRITS : le brouillon de la carte visee (neuf, ou celui que son engagement ecrit pour ce
+/// mois, `engagement::stock::Objet::vue`) prend chaque changement dans l'ordre, tout ou rien (`Changements::appliquer`),
+/// puis s'ecrit entier (`ecrire_une_carte`). Rend l'identite de l'engagement ecrit, le brouillon tel qu'il est ecrit, et
+/// ce qui lui manque pour etre valide.
 fn enregistrer_saisie(ctx: &Contexte, c: ChargeCase) -> R<CarteEcrite> {
     let mois = c.mois.to_string();
     let _verrou = avant_d_ecrire(ctx, &mois)?;
@@ -1062,11 +1061,7 @@ fn enregistrer_saisie(ctx: &Contexte, c: ChargeCase) -> R<CarteEcrite> {
         CarteVisee::Neuve(n) => (Brouillon::neuf(n), None),
         CarteVisee::Ecrite(id) => (brouillon_ecrit(ctx, &mois, &id)?, Some(id)),
     };
-    let qui = match brouillon.en_carte().salarie_dit() {
-        Some(s) => ctx.nomme(s),
-        None => "Cette carte".to_string(),
-    };
-    brouillon.changer(c.changement, &qui).map_err(refus)?;
+    c.changements.appliquer(&mut brouillon, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
     let id = ecrire_une_carte(ctx, &mois, id.as_ref(), &brouillon.en_carte())?;
     let brouillon = brouillon_ecrit(ctx, &mois, &id)?;
     let (k, _) = engagement::stock::designe(&ctx.racine, &mois, &id).map_err(Echec::from)?;
@@ -1225,22 +1220,25 @@ fn cible_dite(c: Cible) -> &'static str {
     }
 }
 
-/// Le taux qu'il faudrait, pour que l'engagement d'une carte (`carte` : son rang dans `cartes`, `mois_designe`) coute
-/// CE montant. N'ecrit rien.
+/// Le taux qu'il faudrait, pour que l'engagement `engagement` (son identite ; son brouillon enregistre, ou sa modification
+/// pas encore ecrite, `mois_designe`) coute CE montant. N'ecrit rien.
 fn ajuster(ctx: &Contexte, c: ChargeAjuster) -> R<Ajuste> {
     let vise = q2(socle::num::dec_f64(c.montant).map_err(|m| erreur("InvalidOperation", m))?);
     if vise <= Decimal::ZERO {
         return Err(refus(format!("Un montant vise se dit en euros et il est positif (recu : {}).", vise)));
     }
-    let (data, places, _) = mois_designe(ctx, c.mois, &c.cartes)?;
-    let i = *places.get(c.carte).ok_or_else(|| refus(format!("La carte {} n'est pas dans `cartes`.", c.carte + 1)))?;
+    let texte = c.mois.to_string();
+    let (data, ids) = mois_designe(ctx, c.mois, c.modifications)?;
+    let i = ids.iter().position(|x| *x == c.engagement).ok_or_else(|| {
+        refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", Mois::en_clair(&texte)))
+    })?;
     let v = engagement::viser::viser(ctx, &data, &[i], c.cible, vise).map_err(|r| match r {
         engagement::viser::RefusVisee::Refus(m) => refus(m),
         engagement::viser::RefusVisee::Calcul(m) => refus_du_calcul(ctx, &data, m),
     })?;
     let (avant, apres) = match (data.engagements.get(i), v.saisie.engagements.get(i)) {
         (Some(a), Some(b)) => (a, b),
-        _ => return Err(refus(format!("La carte {} n'est pas dans `cartes`.", c.carte + 1))),
+        _ => return Err(Echec::from(format!("{} : l'engagement visé n'a pas de paie calculée.", Mois::en_clair(&texte)))),
     };
     let vue = vue_paie(ctx, &v.paies[i], apres, &v.saisie).map_err(Echec::from)?;
     let atteint = q2(v.atteint);
@@ -1304,37 +1302,45 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &VueDuMois, message: String)
     Echec::from(message)
 }
 
-/// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont ecrits, dans l'ordre de l'ecran
-/// (`vue_du_mois`), et chaque carte que l'ecran montre autrement (`cartes`) : a sa place, ou a la suite. Rend ce mois,
-/// la place de chaque carte dans ses engagements, et l'identite de chacun de ses engagements (`None` pour une carte pas
-/// encore ecrite). Rien ne s'ecrit.
-fn mois_designe(ctx: &Contexte, mois: Mois, cartes: &[Carte]) -> R<(VueDuMois, Vec<usize>, Vec<Option<Identite>>)> {
+/// LE MOIS QUE L'APERCU ET LE MONTANT VISE CALCULENT : ses engagements tels qu'ils sont ecrits (le brouillon enregistre
+/// de chaque carte en saisie, la validation de chaque engagement valide), dans l'ordre de l'ecran (`vue_du_mois`), et
+/// chaque modification pas encore ecrite d'un engagement valide (`modifications`) : son brouillon (`Brouillon::de_la_carte`
+/// de sa vue) prend ses changements comme `modifier-engagement` les prendra, et se calcule a sa place, en saisie. Rend
+/// ce mois et l'identite de chacun de ses engagements, dans son ordre. Rien ne s'ecrit.
+fn mois_designe(ctx: &Contexte, mois: Mois, modifications: Vec<ModificationEnCours>) -> R<(VueDuMois, Vec<Identite>)> {
     let texte = mois.to_string();
     let mut v = engagement::stock::vue_du_mois(&ctx.racine, &texte).map_err(Echec::from)?.unwrap_or_else(|| VueDuMois::vide(mois));
     let ids = engagement::stock::identites(&engagement::stock::objets_du_mois(&ctx.racine, &texte).map_err(Echec::from)?);
-    let mut places = Vec::new();
-    for c in cartes {
-        let saisie = engagement::stock::en_forme(&c.saisie).map_err(Echec::from)?;
-        let i = match &c.engagement {
-            None => {
-                v.engagements.push(saisie);
-                v.engagements.len() - 1
-            }
-            Some(id) => {
-                let i = ids.iter().position(|x| x == id).filter(|i| *i < v.engagements.len()).ok_or_else(|| {
-                    refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", Mois::en_clair(&texte)))
-                })?;
-                // L'avenant du mois se deduit des termes dates de l'engagement ecrit (`stock::Objet::vue`) : la carte
-                // ne le porte pas.
-                let ecrit = &v.engagements[i];
-                v.engagements[i] = SaisieCarte { date_modification: ecrit.date_modification.clone(), avant: ecrit.avant.clone(), ..saisie };
-                i
-            }
-        };
-        places.push(i);
+    if ids.len() != v.engagements.len() {
+        return Err(Echec::from(format!("{} : {} identités pour {} engagements.", Mois::en_clair(&texte), ids.len(), v.engagements.len())));
     }
-    let identites = (0..v.engagements.len()).map(|i| ids.get(i).cloned()).collect();
-    Ok((v, places, identites))
+    for m in modifications {
+        let i = ids.iter().position(|x| *x == m.engagement).ok_or_else(|| {
+            refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois.", Mois::en_clair(&texte)))
+        })?;
+        let ecrit = v.engagements[i].clone();
+        if !ecrit.est_validee() {
+            return Err(refus(format!(
+                "{} : cet engagement n'est pas validé ; ses changements s'enregistrent (enregistrer-saisie), l'aperçu lit son brouillon.",
+                qui_de_la_carte(ctx, &ecrit)
+            )));
+        }
+        let mut b = Brouillon::de_la_carte(&ecrit, &qui_de_la_carte(ctx, &ecrit)).map_err(refus)?;
+        m.changements.appliquer(&mut b, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
+        let saisie = engagement::stock::en_forme(&b.en_carte()).map_err(refus)?;
+        // L'avenant du mois se deduit des termes dates de l'engagement ecrit (`stock::Objet::vue`) : le brouillon ne le
+        // porte pas.
+        v.engagements[i] = SaisieCarte { date_modification: ecrit.date_modification.clone(), avant: ecrit.avant.clone(), ..saisie };
+    }
+    Ok((v, ids))
+}
+
+/// Le salarie qu'une carte nomme, pour un refus (« Cette carte » sans lui).
+fn qui_de_la_carte(ctx: &Contexte, c: &SaisieCarte) -> String {
+    match c.salarie_dit() {
+        Some(s) => ctx.nomme(s),
+        None => "Cette carte".to_string(),
+    }
 }
 
 /// Une paie que l'ecran montre, et pourquoi elle s'est recalculee d'elle-meme (`{"le", "raison"}`), s'il y a lieu.
@@ -1882,13 +1888,12 @@ impl PaieVue {
     }
 }
 
-/// Une paie de l'apercu, et l'identite de son engagement (`None` : une carte pas encore ecrite) : la carte retrouve la
-/// sienne.
+/// Une paie de l'apercu, et l'identite de son engagement : la carte retrouve la sienne.
 #[derive(Debug, Serialize)]
 struct PaieDeLApercu {
     #[serde(flatten)]
     paie: PaieVue,
-    engagement: Option<Identite>,
+    engagement: Identite,
 }
 
 /// Les paies de la saisie, et ce que le mois en compte.
@@ -1933,11 +1938,7 @@ struct Apercu {
 /// la carte qui en porte un n'a pas de total. Une saisie dont aucun refus ne se rapporte a un engagement refuse.
 fn apercu(ctx: &Contexte, c: ChargeApercu) -> R<Apercu> {
     let mois = c.mois.to_string();
-    let (data, _, identites) = mois_designe(ctx, c.mois, &c.cartes)?;
-    // Une carte neuve dans un mois ferme aux engagements neufs ne se compte pas : son ecriture serait refusee.
-    if identites.iter().any(Option::is_none) {
-        refuser_si_importe(ctx, &mois)?;
-    }
+    let (data, identites) = mois_designe(ctx, c.mois, c.modifications)?;
     let r = apercu_des_paies(ctx, &data)?;
     let mut paies = Vec::new();
     for (mut paie, engagement) in r.paies.into_iter().zip(identites) {

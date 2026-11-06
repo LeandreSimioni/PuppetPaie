@@ -32,11 +32,9 @@ fn de_la_validation_a_l_attestation() {
     };
     let (_, phrase) = refus(&valider(&c, "2026-03", None, &saisie("accroissement"), "2026-02-25"));
     assert!(phrase.contains("02 ("), "la phrase dit les motifs a choisir : {}", phrase);
-    let mars = crate::outils::saisie(&c, "2026-03");
-    let carte = mars["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap();
-    assert!(carte.get("motif_recours").is_none(), "un motif refuse : rien n'est ecrit : {}", carte);
-    let id = serde_json::json!(crate::outils::identite(&c, "2026-03", "FULLER", None));
-    reussi(&valider(&c, "2026-03", Some(&id), &saisie("02"), "2026-02-25"));
+    // Les changements d'un appel s'ecrivent tout ou rien : un motif refuse, la carte ne s'ecrit pas.
+    assert!(engagement::stock::vue_du_mois(&c, "2026-03").unwrap().is_none_or(|v| v.engagements.iter().all(|e| e.salarie.as_deref() != Some("FULLER"))), "un motif refuse : rien n'est ecrit");
+    reussi(&valider(&c, "2026-03", None, &saisie("02"), "2026-02-25"));
     // Le contrat CDD se fabrique depuis l'engagement valide : un modele qui tairait une mention de L1242-12 se refuse
     // (`refuser_les_mentions_absentes`), le PDF imprime porte donc la nature, le motif de recours et le terme.
     let contrat = json!({"mois": "2026-03", "contrats": [{"salarie": "FULLER", "debut": "2026-03-02"}]});
@@ -50,12 +48,12 @@ fn de_la_validation_a_l_attestation() {
         json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "depuis": depuis, "donnees": {"deduction_forfaitaire": profession}})
     };
     reussi(&route(&c, "enregistrer-fiche", dfs("artiste_choregraphique", "2026-05-01"), "2026-05-20"));
-    let (_, phrase) = refus(&route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20"));
+    let (_, phrase) = refus(&route(&c, "apercu", json!({"mois": "2026-05", "modifications": []}), "2026-05-20"));
     assert!(phrase.contains("FULLER") && !phrase.contains("SVOBODA"), "le refus est celui de FULLER : {}", phrase);
     assert!(std::fs::read_to_string(c.join("paies").join("2026-05.json")).unwrap().contains("SV1.26.01"), "la paie de mai de SVOBODA");
     reussi(&route(&c, "enregistrer-fiche", dfs("", "2026-03-02"), "2026-05-20"));
 
-    let ap = route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20");
+    let ap = route(&c, "apercu", json!({"mois": "2026-05", "modifications": []}), "2026-05-20");
     let paies = reussi(&ap)["paies"].as_array().unwrap().clone();
     let fuller = paies.iter().find(|p| p.to_string().contains("FULLER")).expect("la paie de mai de FULLER");
     assert!(!fuller.to_string().contains("indemnite_compensatrice_conges"), "une indemnite compensatrice : {}", fuller);
@@ -63,9 +61,9 @@ fn de_la_validation_a_l_attestation() {
     let avant = precarite(fuller).expect("l'indemnite de fin de contrat");
     // Mai lu avant mars et avril : la remuneration totale du contrat compte deja leurs paies (L1243-8).
     for mois in ["2026-03", "2026-04"] {
-        reussi(&route(&c, "apercu", json!({"mois": mois}), "2026-05-20"));
+        reussi(&route(&c, "apercu", json!({"mois": mois, "modifications": []}), "2026-05-20"));
     }
-    let ap = route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20");
+    let ap = route(&c, "apercu", json!({"mois": "2026-05", "modifications": []}), "2026-05-20");
     let fuller = reussi(&ap)["paies"].as_array().unwrap().iter().find(|p| p.to_string().contains("FULLER")).cloned().expect("FULLER");
     assert_eq!(precarite(&fuller), Some(avant), "la precarite de mai ne change pas quand mars et avril sont lus");
 
@@ -73,7 +71,7 @@ fn de_la_validation_a_l_attestation() {
     let cdi = json!({"salarie": "FULLER", "nature": "cdi", "debut": "2026-06-01", "salaire_mensuel": 2500,
         "quotite_contrat": 151.67, "metier": "ART040"});
     reussi(&valider(&c, "2026-06", None, &cdi, "2026-05-20"));
-    let ap = route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20");
+    let ap = route(&c, "apercu", json!({"mois": "2026-05", "modifications": []}), "2026-05-20");
     let fuller = reussi(&ap)["paies"].as_array().unwrap().iter().find(|p| p.to_string().contains("FULLER")).cloned().expect("FULLER");
     assert!(!fuller.to_string().contains("indemnite_precarite"), "L1243-8 : un CDI suit le CDD : {}", fuller);
 
@@ -96,11 +94,10 @@ fn de_la_validation_a_l_attestation() {
     // un jour de travail est une part du salaire du mois entier, pas de ses deux jours travailles. Un mois a au moins
     // 24 jours ouvrables, et le dixieme d'un salaire constant paie un jour au vingt-cinquieme du salaire : un jour vaut au
     // plus le vingt-quatrieme du salaire.
-    let demission = json!({"mois": "2026-06", "confirme": true, "engagement": {"salarie": "SVOBODA", "debut": "2026-01-05", "rang": 0},
-        "saisie": {"salarie": "SVOBODA", "nature": "cdi", "debut": "2026-01-05", "fin": "2026-06-02", "motif_rupture": "059",
-            "salaire_mensuel": 3400, "quotite_contrat": 151.67, "date_paiement": "2026-06-30"}});
-    reussi(&route(&c, "modifier-engagement", demission, "2026-06-20"));
-    let ap = route(&c, "apercu", json!({"mois": "2026-06"}), "2026-06-20");
+    let demission = json!({"fin": "2026-06-02", "motif_rupture": "059", "date_paiement": "2026-06-30"});
+    let svoboda = json!({"salarie": "SVOBODA", "debut": "2026-01-05", "rang": 0});
+    reussi(&crate::outils::modifier(&c, "2026-06", &svoboda, &demission, true, None, "2026-06-20"));
+    let ap = route(&c, "apercu", json!({"mois": "2026-06", "modifications": []}), "2026-06-20");
     let svoboda = reussi(&ap)["paies"].as_array().unwrap().iter().find(|p| p.to_string().contains("SVOBODA")).cloned().expect("SVOBODA");
     let iccp = svoboda["remuneration"].as_array().unwrap().iter().find(|l| l["rubrique"] == "indemnite_compensatrice_conges").cloned().expect("l'indemnite compensatrice");
     let taux: f64 = iccp["taux"].to_string().trim_matches('"').parse().unwrap();

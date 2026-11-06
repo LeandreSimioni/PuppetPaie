@@ -382,15 +382,10 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
         let r = route(&c, "arret-enregistrer", charge, "2026-11-02");
         assert_eq!(r["ok"], json!(true), "le permanent des exemples : arret-enregistrer : {}", r);
     }
-    // La carte que valide l'exemple de valider-engagement, et celle dont l'exemple d'enregistrer-saisie ecrit les lignes,
-    // ecrites case par case comme l'ecran les ecrit.
-    for fuller in [
-        json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}]}),
-        json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs"}),
-    ] {
-        let r = crate::outils::saisir(&c, "2026-11", None, &fuller, "2026-11-02");
-        assert_eq!(r["ok"], json!(true), "les cartes des exemples : {}", r);
-    }
+    // La carte que valident, modifient et ajustent les exemples, ecrite comme l'ecran l'ecrit.
+    let fuller = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}]});
+    let r = crate::outils::saisir(&c, "2026-11", None, &fuller, "2026-11-02");
+    assert_eq!(r["ok"], json!(true), "la carte des exemples : {}", r);
     // Le retrait de l'engagement en dernier : les exemples des imprevus portent sur celui que valider-engagement pose.
     let mut fiches = catalogue();
     fiches.sort_by_key(|f| f.route == Route::RetirerEngagement);

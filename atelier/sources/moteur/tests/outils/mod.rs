@@ -161,50 +161,47 @@ pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) ->
     route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k)}), jour)
 }
 
-/// LA CARTE `saisie` ECRITE CASE PAR CASE, comme l'ecran l'ecrit (`enregistrer-saisie`) : sur l'engagement `engagement`
-/// (son identite), ou sur une carte neuve de sa nature ; le salarie d'abord, chaque case qu'elle dit ensuite, puis chaque
-/// case du brouillon qu'elle ne dit plus, videe. Rend la derniere reponse, ou le premier refus.
+/// LA CARTE `saisie` ECRITE D'UN APPEL (`enregistrer-saisie`) : sur l'engagement `engagement` (son identite), ou sur une
+/// carte neuve de sa nature ; sa nature, son salarie, chaque case qu'elle dit, puis, d'un second appel, chaque case du
+/// brouillon qu'elle ne dit pas, videe. Rend la derniere reponse, ou le premier refus.
 pub fn saisir(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Value, jour: &str) -> Value {
     let s = saisie.as_object().expect("une carte");
-    let mut carte = match engagement.filter(|e| !e.is_null()) {
+    let carte = match engagement.filter(|e| !e.is_null()) {
         Some(id) => json!({"ecrite": id}),
         None => json!({"neuve": s["nature"]}),
     };
-    let mut changements: Vec<(String, Value)> = vec![("nature".into(), s["nature"].clone())];
+    let mut changements: Vec<Value> = vec![json!({"case": "nature", "valeur": s["nature"]})];
     if let Some(x) = s.get("salarie") {
-        changements.push(("salarie".into(), x.clone()));
+        changements.push(json!({"case": "salarie", "valeur": x}));
     }
     // Ce que la vue d'un mois deduit, ou dit de l'engagement ecrit, n'est pas une case (`engagement::saisie::Groupe`).
     let pas_une_case = ["nature", "salarie", "jours_contrat", "date_modification", "avant", "valide", "importe"];
-    changements.extend(s.iter().filter(|(k, _)| !pas_une_case.contains(&k.as_str())).map(|(k, v)| (k.clone(), v.clone())));
-    let envoyer = |carte: &mut Value, case: &str, valeur: &Value| -> Value {
-        let r = route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": carte, "changement": {"case": case, "valeur": valeur}}), jour);
-        if r["ok"] == json!(true) {
-            *carte = json!({"ecrite": r["resultat"]["engagement"]});
-        }
-        r
-    };
-    let mut derniere = Value::Null;
-    for (case, valeur) in &changements {
-        derniere = envoyer(&mut carte, case, valeur);
-        if derniere["ok"] != json!(true) {
-            return derniere;
-        }
+    changements.extend(s.iter().filter(|(k, _)| !pas_une_case.contains(&k.as_str())).map(|(k, v)| json!({"case": k, "valeur": v})));
+    let r = route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": carte, "changements": changements}), jour);
+    if r["ok"] != json!(true) {
+        return r;
     }
-    let restes: Vec<String> = derniere["resultat"]["brouillon"]
+    let restes: Vec<Value> = r["resultat"]["brouillon"]
         .as_object()
         .unwrap()
         .iter()
         .filter(|(k, v)| *k != "nature" && !v.is_null() && !s.contains_key(k.as_str()))
-        .map(|(k, _)| k.clone())
+        .map(|(k, _)| json!({"case": k, "valeur": null}))
         .collect();
-    for case in restes {
-        derniere = envoyer(&mut carte, &case, &Value::Null);
-        if derniere["ok"] != json!(true) {
-            return derniere;
-        }
+    if restes.is_empty() {
+        return r;
     }
-    derniere
+    route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": {"ecrite": r["resultat"]["engagement"]}, "changements": restes}), jour)
+}
+
+/// « MODIFIER L'ENGAGEMENT » `engagement` (son identite) de `mois` : chaque case que `cases` dit, posee (`null` la vide),
+/// d'un appel (`modifier-engagement`), avec `confirme` et `jour`. Ce que la vue d'un mois deduit, ou dit de l'engagement
+/// ecrit, n'est pas une case : `cases` peut etre une carte de la vue, renvoyee.
+pub fn modifier(racine: &Path, mois: &str, engagement: &Value, cases: &Value, confirme: bool, jour: Option<u32>, date: &str) -> Value {
+    let pas_une_case = ["jours_contrat", "date_modification", "avant", "valide", "importe"];
+    let changements: Vec<Value> =
+        cases.as_object().expect("des cases").iter().filter(|(k, _)| !pas_une_case.contains(&k.as_str())).map(|(k, v)| json!({"case": k, "valeur": v})).collect();
+    route(racine, "modifier-engagement", json!({"mois": mois, "engagement": engagement, "changements": changements, "confirme": confirme, "jour": jour}), date)
 }
 
 /// LA CARTE `saisie` ECRITE CASE PAR CASE (`saisir`) PUIS VALIDEE (`valider-engagement`) : rend la reponse de la

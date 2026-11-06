@@ -388,7 +388,7 @@ impl Champ {
     }
 }
 
-/// LES CASES DE LA CARTE D'UN CONTRAT PAYE AU MOIS, dans la charge `saisie` (les faits du mois et ses termes). La marque
+/// LES CASES DE LA CARTE D'UN CONTRAT PAYE AU MOIS, cases de la charge `changements` (les faits du mois et ses termes). La marque
 /// « avancé » range l'ecran et le catalogue a la fois : la page met sous « Avancé » de la carte les cases marquees, et
 /// seulement celles que l'engagement appelle (`faits_avances` de la route apercu, `engagement::heures_en_plus::faits_appeles`).
 pub const CASES_D_UN_MOIS_PAYE: &[Champ] = &[
@@ -410,7 +410,7 @@ pub const CASES_D_UN_MOIS_PAYE: &[Champ] = &[
     Champ { nom: "heures_complementaires", libelle: Affiche::new("Heures complémentaires"), forme: Forme::Nombre, sens: "un temps partiel : ses heures complémentaires du mois, que le moteur majore", avance: true },
 ];
 
-/// LES CASES DE LA FIN DU CONTRAT, dans la charge `saisie` : les faits du mois ou il finit (`engagement::stock::DE_LA_FIN`),
+/// LES CASES DE LA FIN DU CONTRAT, cases de la charge `changements` : les faits du mois ou il finit (`engagement::stock::DE_LA_FIN`),
 /// la ou le moteur les ecrit quel que soit le mois de la carte. Ce que chaque motif appelle : `faits_de_rupture` des
 /// `natures` de la route etat.
 pub const CASES_DE_LA_FIN: &[Champ] = &[
@@ -421,9 +421,9 @@ pub const CASES_DE_LA_FIN: &[Champ] = &[
     Champ { nom: "dernier_jour_paye", libelle: Affiche::new("Dernier jour payé"), forme: Forme::Date, sens: "le dernier jour payé, s'il n'est pas la fin", avance: false },
 ];
 
-/// La charge de la fiche porte-t-elle une carte : entiere (`saisie`) ou une case qui change (`changement`) ?
+/// La charge de la fiche porte-t-elle les changements d'une carte (`changements`) ?
 fn porte_une_carte(charge: &[Champ]) -> bool {
-    charge.iter().any(|c| c.nom == "saisie" || c.nom == "changement")
+    charge.iter().any(|c| c.nom == "changements")
 }
 
 /// Les cases d'une carte que porte la charge de la fiche, s'il y en a.
@@ -508,19 +508,19 @@ impl Fiche {
             t.push_str(&format!("    {}{} : {}\n", c.nom, if c.avance { " (avancé)" } else { "" }, c.sens));
         }
         if !cases(self.charge).is_empty() {
-            t.push_str("  Cases de la carte d'un contrat au mois (dans saisie) :\n");
+            t.push_str("  Cases de la carte d'un contrat au mois (chacune une case de changements) :\n");
             for c in cases(self.charge) {
                 t.push_str(&format!("    {}{} : {}\n", c.nom, if c.avance { " (avancé)" } else { "" }, c.sens));
             }
         }
         if !cases_de_la_fin(self.charge).is_empty() {
-            t.push_str("  Cases de la fin du contrat (dans saisie, sur la carte de n'importe quel mois du contrat) :\n");
+            t.push_str("  Cases de la fin du contrat (cases de changements, sur la carte de n'importe quel mois du contrat) :\n");
             for c in cases_de_la_fin(self.charge) {
                 t.push_str(&format!("    {} : {}\n", c.nom, c.sens));
             }
         }
         for n in natures_de_la_carte(self.charge) {
-            t.push_str(&format!("  Cases d'une carte {} (dans saisie, nature \"{}\") :\n", n.nature, n.nature));
+            t.push_str(&format!("  Cases d'une carte {} (cases de changements, carte neuve \"{}\") :\n", n.nature, n.nature));
             for c in &n.cases {
                 t.push_str(&format!("    {} ({}) : {}\n", c.cle, c.libelle, if c.exige == Exige::Obligatoire { "obligatoire" } else { "facultative, null si rien n'est dit" }));
             }

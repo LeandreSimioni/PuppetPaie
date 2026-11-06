@@ -1,7 +1,7 @@
 //! UN SALARIE DECLARE SANS NIR, SOUS SON NTT, DONT LE NIR ARRIVE ENSUITE. La fiche du Fil de Fer de janvier 2026, avec
 //! un technicien sans NIR (SANSNIR) engage et declare en janvier (DPAE, DSN parties) ; son NIR arrive le 05/02.
 
-use serde_json::{json, Value};
+use serde_json::json;
 
 use crate::outils::rejeu::{reference, rejouer_dossier};
 use crate::outils::{copier, dossier_de_test, reussi, route};
@@ -26,16 +26,14 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
         "statut": "technicien", "pcs_ese": "465b", "code_emploi_ft": "TEC250", "statut_conventionnel": "07",
         "statut_categoriel_rc": "04", "date_naissance": "1990-05-04", "lieu_naissance_affichage": "Chalon-sur-Saône",
         "departement_naissance": "71", "pays_naissance": "FR", "code_nationalite_dsn": "01"}}});
-    // Sa carte de janvier, case par case comme l'ecran l'ecrit, puis validee.
-    let carte = |id: Value, case: &str, valeur: Value| {
-        json!({"route": "enregistrer-saisie", "charge": {"mois": "2026-01", "carte": id, "changement": {"case": case, "valeur": valeur}}})
-    };
-    let ecrite = json!({"ecrite": {"salarie": "SANSNIR", "debut": "", "rang": 0}});
+    // Sa carte de janvier, ses cases d'un appel, puis validee.
     let janvier = [
-        carte(json!({"neuve": "cddu_spectacle"}), "salarie", json!("SANSNIR")),
-        carte(ecrite.clone(), "spectacle", json!("objet-256Z00931108")),
-        carte(ecrite, "lignes", json!([{"rubrique": "heure", "quantite": 10, "taux": 23,
-            "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"]}])),
+        json!({"route": "enregistrer-saisie", "charge": {"mois": "2026-01", "carte": {"neuve": "cddu_spectacle"}, "changements": [
+            {"case": "salarie", "valeur": "SANSNIR"},
+            {"case": "spectacle", "valeur": "objet-256Z00931108"},
+            {"case": "lignes", "valeur": [{"rubrique": "heure", "quantite": 10, "taux": 23,
+                "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"]}]},
+        ]}}),
         json!({"route": "valider-engagement", "charge": {"mois": "2026-01", "engagement": {"salarie": "SANSNIR", "debut": "2026-01-19", "rang": 0}}}),
     ];
     // Jusqu'a la DSN de janvier partie (la premiere `envoyer-documents`).
