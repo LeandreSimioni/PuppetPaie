@@ -746,8 +746,8 @@ fn blanchi(t: &str, textes: bool) -> String {
 /// 2. de cle libre : aucune cle en `_` nommee (`rename = "_…"`, `"_cle"`, `"_{}"`, une cle lue ou ecrite), aucun
 ///    tri par le `_` de tete (`starts_with('_')`, `strip_prefix("_")`, `trim_start_matches('_')`) ;
 /// 3. de repli sur une donnee : ni `#[serde(default…)]`, ni `unwrap_or`, `unwrap_or_default`, `unwrap_or_else`,
-///    `map_or`, `map_or_else`. Une donnee absente se refuse ; une donnee nulle s'ecrit `null` et se lit `Option`
-///    presente (`socle::forme::presente`).
+///    `map_or`, `map_or_else`. Une donnee absente d'un champ facultatif (`Option`) est vide ; une donnee
+///    obligatoire absente se refuse.
 /// 4. d'erreur avalee, ici et dans les couches de `SANS_ERREUR_AVALEE` : ni `.ok()`, ni `let Ok(..) = .. else`, ni
 ///    `is_ok_and`, ni `is_err_and`. Une erreur remonte (`?`) ; un etat qui n'est pas une erreur (un nom qu'aucune fiche
 ///    ne porte, un texte qui n'est pas une adresse) se dit par un `match` qui le nomme.

@@ -220,7 +220,6 @@ struct ChargeAjuster {
 #[serde(deny_unknown_fields)]
 struct ChargeContratsPasses {
     mois: Mois,
-    #[serde(deserialize_with = "socle::forme::presente")]
     salarie: Option<IdSalarie>,
 }
 
@@ -230,10 +229,8 @@ struct ChargeContratsPasses {
 #[serde(deny_unknown_fields)]
 struct ChargeEmploi {
     metier: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     cadre: Option<bool>,
     feminin: bool,
-    #[serde(deserialize_with = "socle::forme::presente")]
     salarie: Option<SexeDeLaFiche>,
 }
 

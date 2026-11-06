@@ -135,13 +135,9 @@ pub struct Engagement {
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContratEcrit {
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub periode_essai_jours: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub personne_remplacee: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub repartition_horaire: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub clauses_particulieres: Option<String>,
 }
 
@@ -158,79 +154,43 @@ impl ContratEcrit {
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Assemble {
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub salarie: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub spectacle: Option<String>,
     pub dates_travail: Vec<DateDeLigne>,
     pub planning: Vec<DateDeLigne>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub lignes: Option<Vec<LignePaie>>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub mois: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub debut: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub fin: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub nature: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_cachet: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub jours: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub jours_contrat: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub date_paiement: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub lieu: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi_affichage: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub pcs_ese: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub code_emploi_ft: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut_conventionnel: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut_categoriel_rc: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub etablissement: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub quotite_contrat: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub quotite_reference_saisie: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub modalite_temps_travail_saisie: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub motif_recours: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub motif_rupture: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub notification_rupture: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub preavis: Option<saisie::Preavis>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub dernier_jour_paye: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub date_modification: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub transaction: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub avant: Option<saisie::Avant>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub periode_essai_jours: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub personne_remplacee: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub repartition_horaire: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub clauses_particulieres: Option<String>,
 }
 

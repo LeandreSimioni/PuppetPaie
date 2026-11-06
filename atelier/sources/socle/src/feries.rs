@@ -35,15 +35,12 @@ struct FeteLue {
     nom: String,
     #[serde(rename = "article")]
     _article: String,
-    #[serde(deserialize_with = "crate::forme::presente")]
     mois: Option<i64>,
-    #[serde(deserialize_with = "crate::forme::presente")]
     jour: Option<i64>,
-    #[serde(deserialize_with = "crate::forme::presente")]
     paques: Option<i64>,
     /// Chome par la loi elle-meme (L3133-4 : le 1er mai).
     chome_de_droit: bool,
-    #[serde(rename = "chome_article", deserialize_with = "crate::forme::presente")]
+    #[serde(rename = "chome_article")]
     _chome_article: Option<String>,
 }
 

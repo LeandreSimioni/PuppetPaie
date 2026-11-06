@@ -25,23 +25,16 @@ pub struct PaieEcrite {
     /// Ce dont le calcul dependait (`empreinte`).
     pub empreinte: Empreinte,
     /// Le prelevement a la source (`etats::prelevement`).
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub pas: Option<droit::pas::Versement>,
     /// Le compteur de conges d'un permanent a la fin du mois, et ce qu'il tient pour le mois suivant.
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub conges: Option<crate::conges::CompteurConges>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub conges_avant: Option<crate::conges::Avant>,
     /// Le numero du bulletin et le premier N CE, ecrits quand ses documents sont partis (`etats::poser_numeros_des_documents`).
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub bulletin: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub ce: Option<i64>,
     /// Le numero du bulletin d'une paie partie que celle-ci rectifie.
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub rectifie: Option<String>,
     /// Pourquoi la paie s'est recalculee d'elle-meme, et quand.
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub recalcul: Option<Recalcul>,
 }
 
@@ -89,7 +82,6 @@ pub struct FormeDePaie<A> {
     pub brut: Decimal,
     #[serde(with = "nombre")]
     pub cout_employeur: Decimal,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub deduction_forfaitaire: Option<FormeDeLaDeduction>,
     pub engagement: FormeDEngagement,
     #[serde(with = "nombre")]
@@ -105,9 +97,7 @@ pub struct FormeDePaie<A> {
     pub net_imposable: Decimal,
     #[serde(with = "nombre")]
     pub net_social: Decimal,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_bulletin: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub reduction_generale: Option<droit::reduction::ReductionGenerale>,
     pub remuneration: Vec<FormeDeRemuneration>,
     #[serde(with = "nombre")]
@@ -117,7 +107,6 @@ pub struct FormeDePaie<A> {
     pub salarie: Cle,
     #[serde(with = "nombre")]
     pub smic: Decimal,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub spectacle: Option<Cle>,
     #[serde(with = "nombre")]
     pub total_pat: Decimal,
@@ -131,7 +120,6 @@ pub struct FormeDePaie<A> {
     pub periodes: Vec<FormeDePaie<A>>,
     /// Le plafond d'un salarie a temps partiel tel que le calcul l'a applique (`calcul::PlafondTempsPartiel::code`) :
     /// la forme ecrite seule le porte.
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub plafond_temps_partiel: Option<String>,
 }
 
@@ -183,12 +171,9 @@ pub struct FormeDeRemuneration {
     pub salaire_de_base: bool,
     pub retabli: bool,
     pub conges_pris: bool,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub dsn_bloc52: Option<String>,
     pub arret_de_travail: bool,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub dsn_autres_bruts: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub precision: Option<String>,
     pub designation: String,
 }
@@ -214,14 +199,11 @@ pub struct FormeDeLaDeduction {
 #[serde(deny_unknown_fields)]
 pub struct FormeDEngagement {
     pub salarie: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub spectacle: Option<String>,
     pub dates_travail: Vec<Jour>,
     pub lignes: Vec<LignePaie>,
     pub debut: Jour,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub fin: Option<Jour>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero: Option<crate::numeros::NumeroContrat>,
     pub mois: String,
     pub planning: Vec<Jour>,
@@ -230,7 +212,6 @@ pub struct FormeDEngagement {
     pub jours: i64,
     #[serde(with = "entier")]
     pub jours_contrat: i64,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub date_paiement: Option<String>,
     #[serde(with = "nombre_opt")]
     pub taux_cachet: Option<Decimal>,
@@ -240,41 +221,26 @@ pub struct FormeDEngagement {
     pub heures: Option<Decimal>,
     pub lieu: String,
     pub lieux: BTreeMap<Jour, String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi_affichage: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub pcs_ese: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub code_emploi_ft: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut_conventionnel: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut_categoriel_rc: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub etablissement: Option<String>,
     pub nature: String,
     #[serde(with = "nombre_opt")]
     pub quotite_contrat: Option<Decimal>,
     #[serde(with = "nombre_opt")]
     pub quotite_reference_saisie: Option<Decimal>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub modalite_temps_travail_saisie: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub motif_recours: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub motif_rupture: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub notification_rupture: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub preavis: Option<crate::saisie::Preavis>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub transaction: Option<String>,
     pub suspensions: Vec<crate::imprevus::Suspension>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat_ecrit: Option<ContratEcrit>,
     pub debut_periode: Jour,
     pub fin_periode: Jour,

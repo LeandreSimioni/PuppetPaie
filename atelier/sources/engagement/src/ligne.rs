@@ -198,7 +198,6 @@ pub struct Unites {
     pub quantite: Case,
     #[serde(deserialize_with = "socle::forme::decimal_opt")]
     pub taux: Case,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub lieu: Option<String>,
     /// Ses jours du mois.
     pub dates: Vec<DateDeLigne>,
@@ -217,7 +216,6 @@ pub struct UnitesEtHeures {
     pub taux: Case,
     #[serde(deserialize_with = "socle::forme::decimal_opt")]
     pub heures: Case,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub lieu: Option<String>,
     pub dates: Vec<DateDeLigne>,
     pub planning: Vec<DateDeLigne>,
@@ -233,10 +231,8 @@ pub struct Frais {
     pub quantite: Case,
     #[serde(deserialize_with = "socle::forme::decimal_opt")]
     pub taux: Case,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub territoire: Option<String>,
     pub cases: Vec<CaseDeFrais>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub lieu: Option<String>,
     pub dates: Vec<DateDeLigne>,
     pub planning: Vec<DateDeLigne>,
@@ -282,7 +278,6 @@ pub struct AvantageEnNature {
     pub rubrique: String,
     #[serde(deserialize_with = "socle::forme::decimal_opt")]
     pub montant: Case,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub genre: Option<String>,
 }
 
@@ -298,7 +293,6 @@ pub struct Composee {
     pub taux: Decimal,
     #[serde(deserialize_with = "socle::forme::decimal_opt")]
     pub heures: Option<Decimal>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub precision: Option<String>,
     pub dates: Vec<DateDeLigne>,
 }

@@ -48,7 +48,6 @@ impl FichierDuStock for FichierDesPaies {
 struct Entree {
     salarie: String,
     numero: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     presente: Option<PaieEcrite>,
     versions: BTreeMap<String, PaieEcrite>,
 }

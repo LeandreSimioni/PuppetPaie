@@ -76,33 +76,21 @@ pub struct ArretSaisi {
     pub genre: GenreArret,
     pub salarie: String,
     pub contrat_debut: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat_numero: Option<String>,
     pub motif: String,
     pub dernier_jour_travaille: String,
     pub debut: String,
     pub fin_previsionnelle: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_debut: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_fin: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_motif: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub date_accident: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub jours_deja_indemnises: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_brute: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_nette: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_brute_majoree: Option<Chiffre>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_nette_majoree: Option<Chiffre>,
     pub prolongations: Vec<Prolongation>,
     pub reprises: Vec<RepriseNotee>,
@@ -121,9 +109,7 @@ pub struct Prolongation {
     pub qui: String,
     pub fin_avant: String,
     pub fin: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_fin_avant: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_fin: Option<String>,
 }
 
@@ -134,13 +120,9 @@ pub struct RepriseNotee {
     pub le: String,
     pub saisi_le: String,
     pub qui: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_avant: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_motif_avant: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_motif: Option<String>,
 }
 
@@ -152,7 +134,6 @@ pub struct SuspensionSaisie {
     pub genre: GenreSuspension,
     pub salarie: String,
     pub contrat_debut: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat_numero: Option<String>,
     pub motif: String,
     pub debut: String,
@@ -1101,8 +1082,8 @@ mod tests {
             ("motif", r#""632""#), ("debut", r#""2026-02-01""#), ("fin", r#""2026-04-30""#), ("saisi_le", r#""2026-02-01T10:00:00""#), ("qui", r#""interface""#), ("note", r#""""#)])
     }
 
-    /// Un imprevu se relit tel qu'il s'ecrit, dans l'ordre de ses cles ; une cle manquante, une cle inconnue ou un genre
-    /// inconnu refusent : rien n'est rempli a la place.
+    /// Un imprevu se relit tel qu'il s'ecrit, dans l'ordre de ses cles ; une cle obligatoire manquante, une cle inconnue
+    /// ou un genre inconnu refusent : rien n'est rempli a la place. Une cle facultative (nulle) peut manquer.
     #[test]
     fn un_imprevu_se_relit_entier_et_refuse_ce_qui_manque_ou_qu_il_ne_connait_pas() {
         for entier in [arret_entier(), suspension_entiere()] {
@@ -1110,7 +1091,10 @@ mod tests {
             for i in 0..entier.len() {
                 let mut moins = entier.clone();
                 let (cle, _) = moins.remove(i);
-                assert!(lu(&moins).is_err(), "{} manque et la lecture ne refuse pas", cle);
+                if let Ok(relu) = lu(&moins) {
+                    let ecrit = socle::ecriture::json_en_ligne(&relu);
+                    assert!(ecrit.contains(&format!(r#""{}":null"#, cle)), "{} manque et n'est pas vide", cle);
+                }
             }
             let mut plus = entier.clone();
             plus.push(("heures", "3".into()));

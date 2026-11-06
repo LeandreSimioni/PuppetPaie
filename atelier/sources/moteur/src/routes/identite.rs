@@ -106,7 +106,6 @@ struct IdentiteDite {
 #[serde(deny_unknown_fields)]
 struct ChargePoser {
     quoi: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     contenu: Option<String>,
     #[serde(default)]
     poids: Option<PoidsVise>,

@@ -108,167 +108,114 @@ carte! {
     #[serde(deny_unknown_fields)]
     pub struct Carte {
         #[champ(Partage, Salarie)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub salarie: Option<String>,
         #[champ(Terme, Spectacle)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub spectacle: Option<String>,
         #[champ(Terme, Nature)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub nature: Option<String>,
         #[champ(Partage, Debut)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub debut: Option<String>,
         #[champ(Partage, Fin)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub fin: Option<String>,
         #[champ(Partage, Numero)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub numero: Option<String>,
         #[champ(Terme, Etablissement)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub etablissement: Option<String>,
         #[champ(Terme, Metier)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub metier: Option<String>,
         #[champ(Terme, Cadre)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub cadre: Option<bool>,
         #[champ(Terme, Lieu)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub lieu: Option<String>,
         #[champ(Terme, MotifRecours)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub motif_recours: Option<String>,
         #[champ(Terme, QuotiteContrat)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub quotite_contrat: Option<NombreLu>,
         #[champ(Terme, QuotiteReference)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub quotite_reference: Option<NombreLu>,
         #[champ(Terme, ModaliteTempsTravail)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub modalite_temps_travail: Option<String>,
         #[champ(Terme, SalaireMensuel)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub salaire_mensuel: Option<NombreLu>,
         #[champ(Terme, Emploi)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub emploi: Option<String>,
         #[champ(Terme, PcsEse)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub pcs_ese: Option<String>,
         #[champ(Terme, CodeEmploiFt)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub code_emploi_ft: Option<String>,
         #[champ(Terme, Statut)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub statut: Option<String>,
         #[champ(Terme, StatutConventionnel)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub statut_conventionnel: Option<String>,
         #[champ(Terme, StatutCategorielRc)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub statut_categoriel_rc: Option<String>,
         #[champ(Terme, PeriodeEssaiJours)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub periode_essai_jours: Option<NombreLu>,
         #[champ(Terme, PersonneRemplacee)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub personne_remplacee: Option<String>,
         #[champ(Terme, RepartitionHoraire)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub repartition_horaire: Option<String>,
         #[champ(Terme, ClausesParticulieres)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub clauses_particulieres: Option<String>,
         #[champ(Fait, Lignes)]
         /// Les lignes de paie de la carte (`ligne::LignePaie`).
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub lignes: Option<Vec<LignePaie>>,
         #[champ(Fait, CongesPris)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub conges_pris: Option<Vec<CongePris>>,
         #[champ(Fait, Primes)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub primes: Option<Vec<Prime>>,
         #[champ(Fait, DatePaiement)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub date_paiement: Option<String>,
         #[champ(Fait, Jours)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub jours: Option<NombreLu>,
         #[champ(Fait, TauxCachet)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub taux_cachet: Option<NombreLu>,
         #[champ(Fait, HeuresSupplementaires)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub heures_supplementaires: Option<NombreLu>,
         #[champ(Fait, HeuresSupplementairesA50)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub heures_supplementaires_a_50: Option<NombreLu>,
         #[champ(Fait, HeuresComplementaires)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub heures_complementaires: Option<NombreLu>,
         #[champ(Fait, IndemniteLicenciement)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub indemnite_licenciement: Option<NombreLu>,
         #[champ(Fait, FauteGrave)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub faute_grave: Option<bool>,
         #[champ(Fin, MotifRupture)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub motif_rupture: Option<String>,
         #[champ(Fin, NotificationRupture)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub notification_rupture: Option<String>,
         #[champ(Fin, EngagementLicenciement)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub engagement_licenciement: Option<String>,
         #[champ(Fin, SignatureConvention)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub signature_convention: Option<String>,
         #[champ(Fin, Preavis)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub preavis: Option<Preavis>,
         #[champ(Fin, Transaction)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub transaction: Option<String>,
         #[champ(Fin, DernierJourPaye)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub dernier_jour_paye: Option<String>,
         #[champ(Fin, EnDroitALaRetraite)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub en_droit_a_la_retraite: Option<bool>,
         #[champ(Fin, PreavisNonEffectue)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub preavis_non_effectue: Option<bool>,
         #[champ(Fin, PreavisMois)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub preavis_mois: Option<NombreLu>,
         #[champ(Fin, PrecariteDue)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub precarite_due: Option<bool>,
         #[champ(Fin, PrecaritePourquoi)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub precarite_pourquoi: Option<String>,
         #[champ(Deduit, JoursContrat)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub jours_contrat: Option<NombreLu>,
         #[champ(Deduit, DateModification)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub date_modification: Option<String>,
         #[champ(Deduit, Avant)]
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub avant: Option<Avant>,
         #[champ(Vue, Valide)]
         /// Dans la vue : l'engagement est valide, et depuis quand.
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub valide: Option<Validee>,
         #[champ(Vue, Importe)]
         /// La paie d'un bulletin de l'ancien logiciel, recalculee pour s'y comparer (`ecarts`) : ce qu'il a verse est un fait,
         /// rien ne s'y juge (le jour du versement, les unites du statut).
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub importe: Option<bool>,
     }
 }
@@ -444,9 +391,7 @@ impl Carte {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CongePris {
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub debut: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub fin: Option<String>,
 }
 
@@ -468,7 +413,6 @@ pub struct Prime {
     pub montant: NombreLu,
     /// Sa rubrique au catalogue (« prime », ou une autre que la carte choisit).
     pub rubrique: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub libelle: Option<String>,
 }
 
@@ -478,9 +422,7 @@ pub struct Prime {
 pub struct Preavis {
     #[serde(rename = "type")]
     pub genre: String,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub debut: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub fin: Option<String>,
 }
 
@@ -489,9 +431,7 @@ pub struct Preavis {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Avant {
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub salaire_mensuel: Option<NombreLu>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub quotite_contrat: Option<NombreLu>,
 }
 
@@ -500,7 +440,6 @@ pub struct Avant {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Validee {
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub le: Option<String>,
 }
 
@@ -509,7 +448,6 @@ pub struct Validee {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CeQueLeMoisDit {
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_cachet: Option<NombreLu>,
 }
 
@@ -519,7 +457,6 @@ pub struct CeQueLeMoisDit {
 #[serde(deny_unknown_fields)]
 pub struct VueDuMois {
     pub mois: socle::mois::Mois,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_cachet: Option<NombreLu>,
     pub engagements: Vec<Carte>,
 }

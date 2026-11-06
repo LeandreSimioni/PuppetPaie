@@ -108,7 +108,6 @@ struct ChargeModifier {
     engagement: Identite,
     changements: Changements,
     confirme: bool,
-    #[serde(deserialize_with = "socle::forme::presente")]
     jour: Option<u32>,
 }
 

@@ -159,9 +159,7 @@ pub struct CompteurConges {
     /// Ce qui reste des jours acquis sur la periode precedente.
     #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub reports: Decimal,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub report_debut: Option<Jour>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     pub report_fin: Option<Jour>,
     #[serde(with = "crate::paie_ecrite::decimal_texte")]
     pub acquis_report: Decimal,
@@ -331,9 +329,7 @@ fn cle_du_memo(ctx: &Contexte, mois: &str, cle: &str) -> (String, String) {
 pub struct Avant {
     pub compteur: CompteurConges,
     avis_du_report: usize,
-    #[serde(deserialize_with = "socle::forme::presente")]
     premier: Option<String>,
-    #[serde(deserialize_with = "socle::forme::presente")]
     reprise: Option<droit::fiche::CongesReprise>,
 }
 

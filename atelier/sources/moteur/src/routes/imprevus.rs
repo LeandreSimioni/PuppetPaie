@@ -189,7 +189,6 @@ struct ChargeArretProlonger {
 struct ChargeArretReprise {
     salarie: String,
     dernier_jour: Jour,
-    #[serde(deserialize_with = "socle::forme::presente")]
     reprise: Option<Jour>,
     #[serde(default)]
     motif_reprise: Option<String>,

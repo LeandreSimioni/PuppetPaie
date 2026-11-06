@@ -1,6 +1,6 @@
 //! LA CARTE VALIDE : ce qu'un engagement dit, une variante par nature de contrat (`logiciel/donnees/contrats-base.json`,
 //! `natures` : `cddu_spectacle`, `cdi`, `cdd`). Chaque variante ne porte que ses cases : une case obligatoire y est une
-//! valeur, une case facultative un `Option` lu present (`socle::forme::presente`, ecrit `null` quand rien n'est dit) ; ce
+//! valeur, une case facultative un `Option` (absent ou `null`, il est vide) ; ce
 //! qui n'appartient pas a une nature n'existe pas dans sa variante. Le motif de recours d'un CDD est une enum, et seul
 //! un motif de remplacement porte la personne remplacee (L. 1242-12, 1°).
 //!
@@ -52,9 +52,9 @@ macro_rules! nature {
         #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
         #[serde(deny_unknown_fields)]
         pub struct $brouillon {
-            $( #[serde(deserialize_with = "socle::forme::presente")] pub $o: Option<nature!(@type $to $(| $bo)?)>, )*
-            $( #[serde(deserialize_with = "socle::forme::presente")] pub $f: Option<$tf>, )*
-            $( #[serde(deserialize_with = "socle::forme::presente")] pub $m: Option<$tm>, )*
+            $( pub $o: Option<nature!(@type $to $(| $bo)?)>, )*
+            $( pub $f: Option<$tf>, )*
+            $( pub $m: Option<$tm>, )*
         }
 
         impl $brouillon {
@@ -84,7 +84,7 @@ macro_rules! nature {
         #[serde(deny_unknown_fields)]
         pub struct $nom {
             $( pub $o: $to, )*
-            $( #[serde(deserialize_with = "socle::forme::presente")] pub $f: Option<$tf>, )*
+            $( pub $f: Option<$tf>, )*
         }
 
         impl $nom {
@@ -274,7 +274,6 @@ nature! {
 pub enum Recours {
     #[serde(rename = "01")]
     Remplacement {
-        #[serde(deserialize_with = "socle::forme::presente")]
         personne_remplacee: Option<String>,
     },
     #[serde(rename = "02")]
@@ -289,12 +288,10 @@ pub enum Recours {
     ComplementDeFormation,
     #[serde(rename = "12")]
     RemplacementATempsPartiel {
-        #[serde(deserialize_with = "socle::forme::presente")]
         personne_remplacee: Option<String>,
     },
     #[serde(rename = "13")]
     AttenteDeSuppression {
-        #[serde(deserialize_with = "socle::forme::presente")]
         personne_remplacee: Option<String>,
     },
 }

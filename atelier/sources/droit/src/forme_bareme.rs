@@ -445,7 +445,6 @@ forme! {
         /// Les deux parts, en pourcent ; nulle : pas de part de ce cote. La cle s'ecrit : un taux qui manque ne se devine pas.
         #[serde(deserialize_with = "datee::valeur")]
         pub taux_pat: Option<f64>,
-        #[serde(deserialize_with = "socle::forme::presente")]
         pub taux_sal: Option<f64>,
         /// Une part patronale qui se compose de plusieurs taux, chacun arrondi au centime (`composants`, ou
         /// `composants_pat`) ; la part salariale de meme (`composants_sal`).
