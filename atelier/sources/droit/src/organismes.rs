@@ -59,10 +59,8 @@ forme_notee! {
         pub libelle: String,
         pub nom: String,
         pub objet: String,
-        #[serde(default)]
         pub jour_de_paiement: Option<u32>,
         pub codes81: Vec<String>,
-        #[serde(default)]
         pub adresse: Option<String>,
     }
 }
@@ -101,19 +99,12 @@ forme_notee! {
     pub struct Ctp {
         pub code: String,
         pub qualifiant: String,
-        #[serde(default)]
         pub assiette: Option<String>,
-        #[serde(default)]
         pub montant: Option<String>,
-        #[serde(default)]
         pub taux_at: Option<TauxAt>,
-        #[serde(default)]
         pub statut: Option<String>,
-        #[serde(default)]
         pub nature: Option<String>,
-        #[serde(default)]
         pub effectif_au_moins: Option<i64>,
-        #[serde(default)]
         pub effectif_sous: Option<i64>,
     }
 }
@@ -135,29 +126,19 @@ forme_notee! {
 #[serde(deny_unknown_fields)]
 pub struct Contrat {
     pub cle: String,
-    #[serde(default)]
     pub role: Option<String>,
-    #[serde(default)]
     pub libelle: Option<String>,
-    #[serde(default)]
     pub reference: Option<String>,
     pub r#type: String,
-    #[serde(default)]
     pub depuis: Option<Jour>,
-    #[serde(default)]
     pub jusqu_a: Option<Jour>,
     pub beneficiaires: String,
     pub quoi: String,
-    #[serde(default)]
     pub organisme: Option<String>,
     pub organisme_fixe: bool,
-    #[serde(default)]
-    pub si_permanents: bool,
-    #[serde(default)]
+    pub si_permanents: Option<bool>,
     pub options: Option<Options>,
-    #[serde(default)]
     pub note: Option<String>,
-    #[serde(default)]
     pub source: Option<Fondement>,
 }
 
@@ -216,7 +197,7 @@ impl Base {
 pub struct FichierOrganismes {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub adhesions_prevoyance: Vec<Datee<Vec<Adhesion>>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub quoi: Option<String>,
 }
 
@@ -230,11 +211,11 @@ pub struct Adhesion {
     pub delegataire: String,
     pub r#type: String,
     pub reference: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub contribution: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub depuis: Option<Jour>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub jusqu_a: Option<Jour>,
 }
 
@@ -250,9 +231,7 @@ impl Adhesion {
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Saisie {
-    #[serde(default)]
     pub libelle: Option<String>,
-    #[serde(default)]
     pub organisme: Option<String>,
 }
 
@@ -344,7 +323,7 @@ impl From<&Contrat> for Attendu {
             quoi: c.quoi.clone(),
             organisme: c.organisme.clone(),
             organisme_fixe: c.organisme_fixe,
-            si_permanents: c.si_permanents,
+            si_permanents: c.si_permanents == Some(true),
             note: c.note.clone(),
             ..Attendu::default()
         }
