@@ -42,6 +42,9 @@ cite.**
 - **Chaque forme est déclarée une fois, en Rust** : une donnée lue ou rendue (fichier, barème, charge et réponse d'une
   route) est une structure (`serde`), lue par une seule fonction stricte ; aucune lecture par clé texte, aucune clé
   inconnue, aucune exception. Les notes d'un fichier sont `source`, `note` et `quoi`.
+- **Un champ facultatif ne s'écrit que s'il est rempli** : absent ou `null`, il est vide (`None`), et vide n'est pas
+  zéro ; on n'invente rien pour lui. Une case qui n'a pas de sens pour ce qu'on saisit n'existe pas. Un repli, c'est une
+  absence qui devient une valeur (0, CDDU, « 12 mois ») : c'est cela qui est interdit.
 - **Un geste, une route, qui obéit** : ni état, ni bouton, ni refus de plus pour une règle (le droit vit dans le calcul) ;
   un refus dit quoi corriger et n'écrit rien ; la route rend ce que la page lit, **phrases comprises** (gardé par
   `la_page_n_ecrit_aucune_phrase`).
