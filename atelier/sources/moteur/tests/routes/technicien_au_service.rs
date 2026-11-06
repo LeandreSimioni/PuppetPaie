@@ -23,7 +23,7 @@ fn un_technicien_ne_se_paie_pas_au_service() {
     assert!(phrase.contains("heure"), "le refus dit de le payer a l'heure : {}", phrase);
     let mars = crate::outils::saisie(&c, "2026-03");
     let carte = mars["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "CRAIG").unwrap();
-    assert!(carte.get("valide").is_none(), "un refus ne valide rien : {}", carte);
+    assert!(carte["valide"].is_null(), "un refus ne valide rien : {}", carte);
     let etat = route(&c, "etat", json!({}), "2026-02-25");
     let craig = reussi(&etat)["salaries"].as_array().unwrap().iter().find(|s| s["cle"] == "CRAIG").cloned().unwrap();
     let service = reussi(&etat)["rubriques"].as_array().unwrap().iter().find(|r| r["code"] == "repetition").cloned().unwrap();

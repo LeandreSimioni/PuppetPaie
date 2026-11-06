@@ -109,167 +109,167 @@ carte! {
     #[serde(deny_unknown_fields)]
     pub struct Carte {
         #[champ(Partage, Salarie)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub salarie: Option<String>,
         #[champ(Terme, Spectacle)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub spectacle: Option<String>,
         #[champ(Terme, Nature)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub nature: Option<String>,
         #[champ(Partage, Debut)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub debut: Option<String>,
         #[champ(Partage, Fin)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub fin: Option<String>,
         #[champ(Partage, Numero)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub numero: Option<String>,
         #[champ(Terme, Etablissement)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub etablissement: Option<String>,
         #[champ(Terme, Metier)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub metier: Option<String>,
         #[champ(Terme, Cadre)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub cadre: Option<bool>,
         #[champ(Terme, Lieu)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub lieu: Option<String>,
         #[champ(Terme, MotifRecours)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub motif_recours: Option<String>,
         #[champ(Terme, QuotiteContrat)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub quotite_contrat: Option<NombreLu>,
         #[champ(Terme, QuotiteReference)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub quotite_reference: Option<NombreLu>,
         #[champ(Terme, ModaliteTempsTravail)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub modalite_temps_travail: Option<String>,
         #[champ(Terme, SalaireMensuel)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub salaire_mensuel: Option<NombreLu>,
         #[champ(Terme, Emploi)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub emploi: Option<String>,
         #[champ(Terme, PcsEse)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub pcs_ese: Option<String>,
         #[champ(Terme, CodeEmploiFt)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub code_emploi_ft: Option<String>,
         #[champ(Terme, Statut)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub statut: Option<String>,
         #[champ(Terme, StatutConventionnel)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub statut_conventionnel: Option<String>,
         #[champ(Terme, StatutCategorielRc)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub statut_categoriel_rc: Option<String>,
         #[champ(Terme, PeriodeEssaiJours)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub periode_essai_jours: Option<NombreLu>,
         #[champ(Terme, PersonneRemplacee)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub personne_remplacee: Option<String>,
         #[champ(Terme, RepartitionHoraire)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub repartition_horaire: Option<String>,
         #[champ(Terme, ClausesParticulieres)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub clauses_particulieres: Option<String>,
         #[champ(Fait, Lignes)]
         /// Les lignes de paie de la carte (`ligne::LignePaie`).
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub lignes: Option<Vec<LignePaie>>,
         #[champ(Fait, CongesPris)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub conges_pris: Option<Vec<CongePris>>,
         #[champ(Fait, Primes)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub primes: Option<Vec<Prime>>,
         #[champ(Fait, DatePaiement)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub date_paiement: Option<String>,
         #[champ(Fait, Jours)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub jours: Option<NombreLu>,
         #[champ(Fait, TauxCachet)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub taux_cachet: Option<NombreLu>,
         #[champ(Fait, HeuresSupplementaires)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub heures_supplementaires: Option<NombreLu>,
         #[champ(Fait, HeuresSupplementairesA50)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub heures_supplementaires_a_50: Option<NombreLu>,
         #[champ(Fait, HeuresComplementaires)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub heures_complementaires: Option<NombreLu>,
         #[champ(Fait, IndemniteLicenciement)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub indemnite_licenciement: Option<NombreLu>,
         #[champ(Fait, FauteGrave)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub faute_grave: Option<bool>,
         #[champ(Fin, MotifRupture)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub motif_rupture: Option<String>,
         #[champ(Fin, NotificationRupture)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub notification_rupture: Option<String>,
         #[champ(Fin, EngagementLicenciement)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub engagement_licenciement: Option<String>,
         #[champ(Fin, SignatureConvention)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub signature_convention: Option<String>,
         #[champ(Fin, Preavis)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub preavis: Option<Preavis>,
         #[champ(Fin, Transaction)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub transaction: Option<String>,
         #[champ(Fin, DernierJourPaye)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub dernier_jour_paye: Option<String>,
         #[champ(Fin, EnDroitALaRetraite)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub en_droit_a_la_retraite: Option<bool>,
         #[champ(Fin, PreavisNonEffectue)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub preavis_non_effectue: Option<bool>,
         #[champ(Fin, PreavisMois)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub preavis_mois: Option<NombreLu>,
         #[champ(Fin, PrecariteDue)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub precarite_due: Option<bool>,
         #[champ(Fin, PrecaritePourquoi)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub precarite_pourquoi: Option<String>,
         #[champ(Deduit, JoursContrat)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub jours_contrat: Option<NombreLu>,
         #[champ(Deduit, DateModification)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub date_modification: Option<String>,
         #[champ(Deduit, Avant)]
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub avant: Option<Avant>,
         #[champ(Vue, Valide)]
         /// Dans la vue : l'engagement est valide, et depuis quand.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub valide: Option<Validee>,
         #[champ(Vue, Importe)]
         /// La paie d'un bulletin de l'ancien logiciel, recalculee pour s'y comparer (`ecarts`) : ce qu'il a verse est un fait,
         /// rien ne s'y juge (le jour du versement, les unites du statut).
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(deserialize_with = "socle::forme::presente")]
         pub importe: Option<bool>,
     }
 }
@@ -442,55 +442,68 @@ impl Carte {
     }
 }
 
-/// Des conges pris dans le mois, d'un jour a l'autre (AAAA-MM-JJ ; la page envoie une ligne commencee telle quelle).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+/// Des conges pris dans le mois, d'un jour a l'autre (AAAA-MM-JJ). La page envoie une ligne commencee telle quelle, le
+/// jour qu'elle ne dit pas encore `null` : le calcul le refuse en le nommant (`CongePris::jours`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CongePris {
-    #[serde(default)]
-    pub debut: String,
-    #[serde(default)]
-    pub fin: String,
+    #[serde(deserialize_with = "socle::forme::presente")]
+    pub debut: Option<String>,
+    #[serde(deserialize_with = "socle::forme::presente")]
+    pub fin: Option<String>,
 }
 
-/// Une prime du mois : son montant, sa rubrique, son libelle.
+impl CongePris {
+    /// Son premier et son dernier jour, lus ; un jour qui n'est pas dit se refuse en se nommant.
+    pub fn jours(&self) -> Resultat<(socle::date::Jour, socle::date::Jour)> {
+        let lu = |x: &Option<String>, cle: &str| match x {
+            Some(j) => socle::date::Jour::lire(j),
+            None => Err(socle::echec::cle("Des congés pris disent leur premier et leur dernier jour.", cle)),
+        };
+        Ok((lu(&self.debut, "debut")?, lu(&self.fin, "fin")?))
+    }
+}
+
+/// Une prime du mois : son montant, sa rubrique, son libelle (`null` : celui de sa rubrique).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Prime {
     pub montant: NombreLu,
     /// Sa rubrique au catalogue (« prime », ou une autre que la carte choisit).
     pub rubrique: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub libelle: Option<String>,
 }
 
-/// Le preavis de la fin du contrat : son genre (`droit::preavis`), et ses jours quand ils sont dits.
+/// Le preavis de la fin du contrat : son genre (`droit::preavis`), et ses jours quand ils sont dits (`null` sinon).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Preavis {
     #[serde(rename = "type")]
     pub genre: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub debut: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub fin: Option<String>,
 }
 
-/// Les termes d'avant l'avenant qui change en cours de mois (`droit::periodes::TERMES_D_AVANT`).
+/// Les termes d'avant l'avenant qui change en cours de mois (`droit::periodes::TERMES_D_AVANT`), chacun `null` quand il
+/// ne change pas.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Avant {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub salaire_mensuel: Option<NombreLu>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub quotite_contrat: Option<NombreLu>,
 }
 
-/// Un engagement valide, dans la vue de son mois : le jour de sa validation (`None` : compte comme valide par le calcul
+/// Un engagement valide, dans la vue de son mois : le jour de sa validation (`null` : compte comme valide par le calcul
 /// qui l'ecrit, `etats::calculer_les_rangs`).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Validee {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub le: Option<String>,
 }
 

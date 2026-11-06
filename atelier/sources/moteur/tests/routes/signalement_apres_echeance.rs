@@ -57,7 +57,7 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
         None,
         &json!({"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
             "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}],
-            "motif_rupture": "037", "preavis": {"type": "90"}, "dernier_jour_paye": "2026-01-30", "notification_rupture": "2026-01-29"}),
+            "motif_rupture": "037", "preavis": {"type": "90", "debut": null, "fin": null}, "dernier_jour_paye": "2026-01-30", "notification_rupture": "2026-01-29"}),
         "2026-01-05",
     ));
     let horloge = |jour: &str| -> Vec<String> {

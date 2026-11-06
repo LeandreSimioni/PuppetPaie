@@ -157,7 +157,7 @@ pub fn saisie(racine: &Path, mois: &str) -> Value {
 pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) -> Value {
     let vue = socle::ecriture::en_valeur(&engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap());
     let es = vue["engagements"].as_array().unwrap();
-    let k = es.iter().position(|e| e["salarie"] == salarie && e.get("valide").is_none()).expect("une carte en saisie");
+    let k = es.iter().position(|e| e["salarie"] == salarie && e["valide"].is_null()).expect("une carte en saisie");
     route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k)}), jour)
 }
 
@@ -176,7 +176,9 @@ pub fn saisir(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Va
     }
     // Ce que la vue d'un mois deduit, ou dit de l'engagement ecrit, n'est pas une case (`engagement::saisie::Groupe`).
     let pas_une_case = ["nature", "salarie", "jours_contrat", "date_modification", "avant", "valide", "importe"];
-    changements.extend(s.iter().filter(|(k, _)| !pas_une_case.contains(&k.as_str())).map(|(k, v)| json!({"case": k, "valeur": v})));
+    // Une carte de la vue ecrit chacune de ses cases, nulle quand elle ne dit rien (celles d'une autre nature comprises) :
+    // une case nulle ne se change pas.
+    changements.extend(s.iter().filter(|(k, v)| !pas_une_case.contains(&k.as_str()) && !v.is_null()).map(|(k, v)| json!({"case": k, "valeur": v})));
     let r = route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": carte, "changements": changements}), jour);
     if r["ok"] != json!(true) {
         return r;
@@ -185,7 +187,7 @@ pub fn saisir(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Va
         .as_object()
         .unwrap()
         .iter()
-        .filter(|(k, v)| *k != "nature" && !v.is_null() && !s.contains_key(k.as_str()))
+        .filter(|(k, v)| *k != "nature" && !v.is_null() && s.get(k.as_str()).is_none_or(Value::is_null))
         .map(|(k, _)| json!({"case": k, "valeur": null}))
         .collect();
     if restes.is_empty() {
@@ -196,11 +198,17 @@ pub fn saisir(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Va
 
 /// « MODIFIER L'ENGAGEMENT » `engagement` (son identite) de `mois` : chaque case que `cases` dit, posee (`null` la vide),
 /// d'un appel (`modifier-engagement`), avec `confirme` et `jour`. Ce que la vue d'un mois deduit, ou dit de l'engagement
-/// ecrit, n'est pas une case : `cases` peut etre une carte de la vue, renvoyee.
+/// ecrit, n'est pas une case : `cases` peut etre une carte de la vue, renvoyee ; elle ecrit chacune de ses cases, nulle
+/// quand elle ne dit rien (celles d'une autre nature comprises), et une case nulle ne se change pas.
 pub fn modifier(racine: &Path, mois: &str, engagement: &Value, cases: &Value, confirme: bool, jour: Option<u32>, date: &str) -> Value {
     let pas_une_case = ["jours_contrat", "date_modification", "avant", "valide", "importe"];
-    let changements: Vec<Value> =
-        cases.as_object().expect("des cases").iter().filter(|(k, _)| !pas_une_case.contains(&k.as_str())).map(|(k, v)| json!({"case": k, "valeur": v})).collect();
+    let changements: Vec<Value> = cases
+        .as_object()
+        .expect("des cases")
+        .iter()
+        .filter(|(k, v)| !pas_une_case.contains(&k.as_str()) && !v.is_null())
+        .map(|(k, v)| json!({"case": k, "valeur": v}))
+        .collect();
     route(racine, "modifier-engagement", json!({"mois": mois, "engagement": engagement, "changements": changements, "confirme": confirme, "jour": jour}), date)
 }
 

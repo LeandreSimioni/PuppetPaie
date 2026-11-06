@@ -308,7 +308,7 @@ function brancherRetirer(div) {
     clearTimeout(MINUTEUR_SAISIE);
     await enregistrerSaisie(true);
     if (!div.dataset.engagement) { div.remove(); rafraichirApercu(); dire((ETAT.aides || {}).engagement_retire); return; }
-    const charge = { mois, engagement: JSON.parse(div.dataset.engagement) };
+    const charge = { mois, engagement: JSON.parse(div.dataset.engagement), confirme: false };
     try {
       let r = await api("retirer-engagement", charge);
       if (r.avertissement) {

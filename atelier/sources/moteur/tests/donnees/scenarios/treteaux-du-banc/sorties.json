@@ -483,7 +483,7 @@
       "quoi": "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).",
       "le": "2026-12-16",
       "mois_faits": {
-        "2026-11": "1b0e9b48273919a5"
+        "2026-11": "fa27f4e8b86daaed"
       },
       "annees_faites": [
         2026
@@ -1109,7 +1109,28 @@
               "salarie": "FULLER",
               "spectacle": "le-banc-des-menteurs",
               "nature": "cddu_spectacle",
+              "debut": null,
+              "fin": null,
               "numero": "FU1.26.01",
+              "etablissement": null,
+              "metier": null,
+              "cadre": null,
+              "lieu": null,
+              "motif_recours": null,
+              "quotite_contrat": null,
+              "quotite_reference": null,
+              "modalite_temps_travail": null,
+              "salaire_mensuel": null,
+              "emploi": null,
+              "pcs_ese": null,
+              "code_emploi_ft": null,
+              "statut": null,
+              "statut_conventionnel": null,
+              "statut_categoriel_rc": null,
+              "periode_essai_jours": null,
+              "personne_remplacee": null,
+              "repartition_horaire": null,
+              "clauses_particulieres": null,
               "lignes": [
                 {
                   "rubrique": "cachet",
@@ -1121,7 +1142,34 @@
                     "2026-11-21"
                   ]
                 }
-              ]
+              ],
+              "conges_pris": null,
+              "primes": null,
+              "date_paiement": null,
+              "jours": null,
+              "taux_cachet": null,
+              "heures_supplementaires": null,
+              "heures_supplementaires_a_50": null,
+              "heures_complementaires": null,
+              "indemnite_licenciement": null,
+              "faute_grave": null,
+              "motif_rupture": null,
+              "notification_rupture": null,
+              "engagement_licenciement": null,
+              "signature_convention": null,
+              "preavis": null,
+              "transaction": null,
+              "dernier_jour_paye": null,
+              "en_droit_a_la_retraite": null,
+              "preavis_non_effectue": null,
+              "preavis_mois": null,
+              "precarite_due": null,
+              "precarite_pourquoi": null,
+              "jours_contrat": null,
+              "date_modification": null,
+              "avant": null,
+              "valide": null,
+              "importe": null
             },
             "avenants": [],
             "faits": {}
@@ -1134,7 +1182,28 @@
                 "salarie": "FULLER",
                 "spectacle": "le-banc-des-menteurs",
                 "nature": "cddu_spectacle",
+                "debut": null,
+                "fin": null,
                 "numero": "FU1.26.01",
+                "etablissement": null,
+                "metier": null,
+                "cadre": null,
+                "lieu": null,
+                "motif_recours": null,
+                "quotite_contrat": null,
+                "quotite_reference": null,
+                "modalite_temps_travail": null,
+                "salaire_mensuel": null,
+                "emploi": null,
+                "pcs_ese": null,
+                "code_emploi_ft": null,
+                "statut": null,
+                "statut_conventionnel": null,
+                "statut_categoriel_rc": null,
+                "periode_essai_jours": null,
+                "personne_remplacee": null,
+                "repartition_horaire": null,
+                "clauses_particulieres": null,
                 "lignes": [
                   {
                     "rubrique": "cachet",
@@ -1146,7 +1215,34 @@
                       "2026-11-21"
                     ]
                   }
-                ]
+                ],
+                "conges_pris": null,
+                "primes": null,
+                "date_paiement": null,
+                "jours": null,
+                "taux_cachet": null,
+                "heures_supplementaires": null,
+                "heures_supplementaires_a_50": null,
+                "heures_complementaires": null,
+                "indemnite_licenciement": null,
+                "faute_grave": null,
+                "motif_rupture": null,
+                "notification_rupture": null,
+                "engagement_licenciement": null,
+                "signature_convention": null,
+                "preavis": null,
+                "transaction": null,
+                "dernier_jour_paye": null,
+                "en_droit_a_la_retraite": null,
+                "preavis_non_effectue": null,
+                "preavis_mois": null,
+                "precarite_due": null,
+                "precarite_pourquoi": null,
+                "jours_contrat": null,
+                "date_modification": null,
+                "avant": null,
+                "valide": null,
+                "importe": null
               },
               "avenants": [],
               "faits": {}
@@ -2077,7 +2173,7 @@
                 "imprevus racine:imprevus FULLER": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
                 "moteur": "<moteur>",
                 "pas FULLER 2026-11-30 2026-11": "[\"8.30\",\"01\",\"442936195\"]",
-                "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:8b6d46c1d3350392e917751998f5afc1120968a9d957f890646bbedbaf1235d7"
+                "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:5f6f6ca8f370a6644fb801a517bee751d46e8b816e663002d35ce6f8512e8b4d"
               },
               "regles": [
                 "2026-06-01",

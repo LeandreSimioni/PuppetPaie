@@ -55,9 +55,8 @@ function ruptureDuBloc(div, nat, fin, e) {
   if (faits.includes("signature_convention") && dans(".e-signature-convention"))
     e.signature_convention = dans(".e-signature-convention");
   if (dans(".e-preavis-type")) {
-    e.preavis = { type: dans(".e-preavis-type") };
-    if (dans(".e-preavis-debut")) e.preavis.debut = dans(".e-preavis-debut");
-    if (dans(".e-preavis-fin")) e.preavis.fin = dans(".e-preavis-fin");
+    e.preavis = { type: dans(".e-preavis-type"), debut: dans(".e-preavis-debut") || null,
+                  fin: dans(".e-preavis-fin") || null };
   }
   if (faits.includes("transaction") && dans(".e-transaction")) e.transaction = dans(".e-transaction");
   if (dans(".e-dernier-paye")) e.dernier_jour_paye = dans(".e-dernier-paye");

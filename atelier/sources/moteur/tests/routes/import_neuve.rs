@@ -291,7 +291,7 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
 
     let avant = engagements_ecrits(&racine);
     assert_eq!(route("modifier-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}, "changements": [{"case": "salarie", "valeur": "FULLER"}], "confirme": false, "jour": null}))["ok"], json!(false));
-    assert_eq!(route("retirer-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}}))["ok"], json!(false));
+    assert_eq!(route("retirer-engagement", json!({"mois": "2026-11", "engagement": {"salarie": "FULLER", "debut": "2026-11-21", "rang": 0}, "confirme": false}))["ok"], json!(false));
     // Le mois importe le dit des l'ouverture, et une carte neuve ne s'y ecrit pas.
     assert!(reussi(&route("saisie", json!({"mois": "2026-11"})))["ferme_aux_neufs"].is_string());
     let neuve = json!({"mois": "2026-11", "carte": {"neuve": "cddu_spectacle"}, "changements": [{"case": "salarie", "valeur": "FULLER"}, {"case": "lignes", "valeur": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-25"]}]}]});

@@ -76,7 +76,7 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         route: Route::RetirerEngagement,
         geste: "Retirer l'engagement d'une carte, ou le rendre non actif si un envoi est parti.",
-        charge: &[MOIS, IDENTITE, Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu a été lu, et l'engagement devient non actif", avance: false }],
+        charge: &[MOIS, IDENTITE, Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "faux d'abord ; vrai : l'avertissement rendu a été lu, et l'engagement devient non actif", avance: false }],
         exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0},"confirme":true}"#,
         rend: "phrase : retiré, ou non actif et ce que cela rend à faire ; un envoi est parti : avertissement (à montrer, puis renvoyer avec confirme), rien n'est écrit",
         refus: &[OPERATION, FORME],
@@ -118,7 +118,6 @@ struct ChargeModifier {
 struct ChargeRetirer {
     mois: Mois,
     engagement: Identite,
-    #[serde(default)]
     confirme: bool,
 }
 

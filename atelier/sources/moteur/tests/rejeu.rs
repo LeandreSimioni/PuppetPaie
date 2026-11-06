@@ -118,7 +118,7 @@ fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "parti"));
     let ecrits = || [racine.join("engagements/2026-11.json"), racine.join("paies/2026-11.json")].map(|p| std::fs::read(p).unwrap());
     let avant = ecrits();
-    let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0)});
+    let charge = json!({"mois": "2026-11", "engagement": outils::identite_a(&racine, "2026-11", 0), "confirme": false});
     let r = outils::route(&racine, "retirer-engagement", charge, "2026-12-16");
     assert!(outils::reussi(&r)["avertissement"].is_string(), "{}", r);
     assert!(ecrits() == avant, "l'avertissement a ecrit l'engagement");

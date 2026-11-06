@@ -925,7 +925,7 @@ async function remplirDepuisMetier(code) {
   // Le NIR et le sexe de la fiche : le moteur en tire la forme du métier
   // (« Administratrice de production » pour une salariée).
   const lu = (cle) => (document.querySelector(`#config-formulaire [data-cle="${cle}"]`) || {}).value || "";
-  try { r = await api("emploi", { metier: code, salarie: { nir: lu("nir"), sexe: lu("sexe") } }); }
+  try { r = await api("emploi", { metier: code, cadre: null, feminin: false, salarie: { nir: lu("nir"), sexe: lu("sexe") } }); }
   catch (e) { dire(e.message, "erreur"); return; }
   const poser = (cle, v) => {
     const c = document.querySelector(`#config-formulaire [data-cle="${cle}"]`);

@@ -1722,13 +1722,27 @@ mod tests_rupture {
     fn un_contrat_rompu_n_a_pas_d_avenant() {
         let jours = |n: usize| ["2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08"][..n].iter().map(|j| format!(r#""{}""#, j)).collect::<Vec<_>>().join(", ");
         let ligne = |n: usize, taux: i64| format!(r#"{{"rubrique": "cachet", "quantite": {}, "taux": {}, "lieu": "Salle", "dates": [{}]}}"#, n, taux, jours(n));
-        let saisie = |texte: String| stock::Saisie { carte: socle::forme::lire_texte(&texte, crate::saisie::CARTE_ILLISIBLE).unwrap(), ..Default::default() };
-        let partie = saisie(format!(r#"{{"salarie": "X", "spectacle": "s", "lignes": [{}], "numero": "X1.26.01"}}"#, ligne(5, 150)));
-        let rompu = |taux: i64| saisie(format!(r#"{{"salarie": "X", "spectacle": "s", "debut": "2026-05-04", "fin": "2026-05-06", "motif_rupture": "084",
-            "preavis": {{"type": "90"}}, "lignes": [{}], "numero": "X1.26.01"}}"#, ligne(3, taux)));
+        let carte = |texte: String| crate::saisie::Carte {
+            salarie: Some("X".into()),
+            spectacle: Some("s".into()),
+            numero: Some("X1.26.01".into()),
+            lignes: Some(vec![socle::forme::lire_texte(&texte, crate::saisie::CARTE_ILLISIBLE).unwrap()]),
+            ..Default::default()
+        };
+        let saisie = |carte: crate::saisie::Carte| stock::Saisie { carte, ..Default::default() };
+        let partie = saisie(carte(ligne(5, 150)));
+        let rompu = |taux: i64| {
+            saisie(crate::saisie::Carte {
+                debut: Some("2026-05-04".into()),
+                fin: Some("2026-05-06".into()),
+                motif_rupture: Some("084".into()),
+                preavis: Some(crate::saisie::Preavis { genre: "90".into(), debut: None, fin: None }),
+                ..carte(ligne(3, taux))
+            })
+        };
         assert!(seule_la_rupture(Some(&partie), Some(&rompu(150))));
         assert!(!seule_la_rupture(Some(&partie), Some(&rompu(180))), "un taux change avec la rupture se refait signer");
-        let raccourci = saisie(format!(r#"{{"salarie": "X", "spectacle": "s", "lignes": [{}], "numero": "X1.26.01"}}"#, ligne(3, 150)));
+        let raccourci = saisie(carte(ligne(3, 150)));
         assert!(!seule_la_rupture(Some(&partie), Some(&raccourci)), "sans motif de rupture, des jours retires sont un avenant");
     }
 }

@@ -1521,13 +1521,11 @@ function ajouterFait(div, quoi) {
 function faitsDuBloc(div) {
   const val = (n, s) => (n.querySelector(s) || {}).value || "";
   const conges = [...div.querySelectorAll(".fait-conges")]
-    .map((f) => ({ debut: val(f, ".f-debut"), fin: val(f, ".f-fin") }))
+    .map((f) => ({ debut: val(f, ".f-debut") || null, fin: val(f, ".f-fin") || null }))
     .filter((c) => c.debut || c.fin);
-  const primes = [...div.querySelectorAll(".fait-primes")].map((f) => {
-    const p = { montant: +val(f, ".f-montant"), rubrique: val(f, ".f-rubrique") };
-    if (val(f, ".f-libelle")) p.libelle = val(f, ".f-libelle");
-    return p;
-  }).filter((p) => p.montant);
+  const primes = [...div.querySelectorAll(".fait-primes")]
+    .map((f) => ({ montant: +val(f, ".f-montant"), rubrique: val(f, ".f-rubrique"), libelle: val(f, ".f-libelle") || null }))
+    .filter((p) => p.montant);
   return { conges, primes };
 }
 

@@ -133,7 +133,8 @@ pub(crate) fn dec_de(n: &NombreLu) -> Resultat<Decimal> {
 
 /// Les jours ouvrables d'un conge pris dans une entreprise qui chome `chomes` (`droit::conges::jours_ouvrables`).
 pub(crate) fn jours_ouvrables_de(c: &CongePris, chomes: Option<&str>) -> Resultat<i64> {
-    jours_ouvrables(&Jour::lire(&c.debut)?, &Jour::lire(&c.fin)?, chomes)
+    let (debut, fin) = c.jours()?;
+    jours_ouvrables(&debut, &fin, chomes)
 }
 
 fn fin_mois_de(mois: &str) -> Resultat<Jour> {

@@ -102,8 +102,8 @@ pub const ROUTES: &[Fiche] = &[
     Fiche {
         route: Route::ContratsPasses,
         geste: "Lire les contrats déclarés d'un mois importé.",
-        charge: &[MOIS, Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé d'un salarié, pour ne lire que les siens", avance: true }],
-        exemple: r#"{"mois":"2026-11"}"#,
+        charge: &[MOIS, Champ { nom: "salarie", libelle: Affiche::new("Salarié"), forme: Forme::Texte, sens: "la clé d'un salarié, pour ne lire que les siens ; null : tous", avance: true }],
+        exemple: r#"{"mois":"2026-11","salarie":null}"#,
         rend: "contrats : ceux que les engagements importés attestent",
         refus: &[MANQUE],
         acte: Acte::Lit,
@@ -116,11 +116,11 @@ pub const ROUTES: &[Fiche] = &[
         geste: "Traduire un métier du catalogue en champs de la fiche salarié.",
         charge: &[
             Champ { nom: "metier", libelle: Affiche::new("Métier"), forme: Forme::Texte, sens: "le code du métier au catalogue (COM010…)", avance: false },
-            Champ { nom: "cadre", libelle: Affiche::new("Cadre"), forme: Forme::OuiNon, sens: "cadre ou non ; absent : le défaut du métier au catalogue", avance: true },
-            Champ { nom: "feminin", libelle: Affiche::new("Au féminin"), forme: Forme::OuiNon, sens: "le libellé au féminin", avance: true },
-            Champ { nom: "salarie", libelle: Affiche::new("Fiche"), forme: Forme::Objet, sens: "ce que la fiche remplie dit du sexe : {nir, sexe}", avance: true },
+            Champ { nom: "cadre", libelle: Affiche::new("Cadre"), forme: Forme::OuiNon, sens: "cadre ou non ; null : le défaut du métier au catalogue", avance: true },
+            Champ { nom: "feminin", libelle: Affiche::new("Au féminin"), forme: Forme::OuiNon, sens: "le libellé au féminin (vrai), ou selon la fiche (faux)", avance: true },
+            Champ { nom: "salarie", libelle: Affiche::new("Fiche"), forme: Forme::Objet, sens: "ce que la fiche remplie dit du sexe : {nir, sexe} ; null : rien", avance: true },
         ],
-        exemple: r#"{"metier":"COM010"}"#,
+        exemple: r#"{"metier":"COM010","cadre":null,"feminin":false,"salarie":null}"#,
         rend: "les champs de la fiche que le métier remplit (emploi, statut, catégorie…)",
         refus: &[MANQUE, OPERATION],
         acte: Acte::Lit,
@@ -220,7 +220,7 @@ struct ChargeAjuster {
 #[serde(deny_unknown_fields)]
 struct ChargeContratsPasses {
     mois: Mois,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     salarie: Option<IdSalarie>,
 }
 
@@ -230,21 +230,19 @@ struct ChargeContratsPasses {
 #[serde(deny_unknown_fields)]
 struct ChargeEmploi {
     metier: String,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     cadre: Option<bool>,
-    #[serde(default)]
     feminin: bool,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     salarie: Option<SexeDeLaFiche>,
 }
 
-/// Ce qui dit le sexe, sur la fiche que l'ecran remplit : le NIR, sinon la case `sexe` (`ntt::sexe_de`).
+/// Ce qui dit le sexe, sur la fiche que l'ecran remplit : le NIR, sinon la case `sexe` (`ntt::sexe_de`), chacune telle
+/// que la fiche l'ecrit (vide quand elle n'est pas remplie).
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SexeDeLaFiche {
-    #[serde(default)]
     nir: String,
-    #[serde(default)]
     sexe: String,
 }
 

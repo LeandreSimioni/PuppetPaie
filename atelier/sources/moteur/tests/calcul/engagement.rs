@@ -53,7 +53,12 @@ fn les_engagements_fabriques_et_leurs_refus() {
     let mut refus = 0;
     for c in directs.as_array_mut().unwrap() {
         let qui = c["kwargs"]["salarie"].as_str().filter(|s| !s.trim().is_empty()).unwrap_or("Cet engagement").to_string();
-        c["attendu"] = socle::forme::lire::<engagement::Assemble>(&c["kwargs"], "L'engagement à fabriquer ne se lit pas.")
+        // Un cas ne dit que ce qui le distingue : l'engagement a fabriquer porte chaque cle, `null` (ou sans jours) ailleurs.
+        let mut charge = socle::ecriture::en_valeur(&engagement::Assemble::default());
+        for (k, v) in c["kwargs"].as_object().unwrap() {
+            charge[k] = v.clone();
+        }
+        c["attendu"] = socle::forme::lire::<engagement::Assemble>(&charge, "L'engagement à fabriquer ne se lit pas.")
             .and_then(|a| Engagement::nouveau(&racine, &a, &qui))
             .map_or_else(|m| json!({"refus": socle::echec::phrase_de(&m)}), |e| releve(&e));
         refus += c["attendu"].get("refus").is_some() as usize;
