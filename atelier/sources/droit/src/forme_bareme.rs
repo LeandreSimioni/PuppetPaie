@@ -28,13 +28,14 @@ macro_rules! forme {
     };
 }
 
-/// Une valeur datee qui reste une liste dans la pile (`smic_horaire`).
+/// Une valeur datee qui reste une liste dans la pile (`smic_horaire`) : chaque valeur dit le texte depose qui la fonde.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Datee {
     pub depuis: Option<String>,
     #[serde(deserialize_with = "socle::forme::decimal")]
     pub valeur: Decimal,
+    pub source: Fondement,
 }
 
 /// UNE VALEUR QUI CHANGE EN COURS D'ANNEE (un taux revalorise au 1er mai, un tarif qu'un accord de salaires releve) : la
@@ -98,7 +99,7 @@ pub(crate) fn lire_au<T: serde::de::DeserializeOwned>(
 
 /// Les champs qui se datent : `#[serde(deserialize_with = "datee::…")]`.
 pub(crate) mod datee {
-    use super::{Ecrite, Entree, LECTURE};
+    use super::{Ecrite, Entree, Fondement, LECTURE};
     use serde::de::Error;
     use serde::{Deserialize, Deserializer};
     use socle::date::Jour;
@@ -112,6 +113,10 @@ pub(crate) mod datee {
             Ecrite::Seule(v) => return Ok(v),
             Ecrite::Datee(e) => e,
         };
+        retenir_a_la_date::<D, T>(entrees)
+    }
+
+    fn retenir_a_la_date<'de, D: Deserializer<'de>, T>(entrees: Vec<Entree<T>>) -> Result<T, D::Error> {
         LECTURE.with(|l| {
             let mut l = l.borrow_mut();
             let lecture = l.as_mut().ok_or_else(|| D::Error::custom("une valeur datée ne se lit qu'à une date"))?;
@@ -167,6 +172,23 @@ pub(crate) mod datee {
     pub fn decimal_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Decimal>, D::Error> {
         au_jour::<D, Option<socle::forme::Nombre>>(d).map(|n| n.map(|n| n.0))
     }
+
+    /// Un decimal date dont chaque valeur dit le texte qui la fonde : la liste `[{depuis?, valeur, source}]`, jamais le
+    /// nombre seul. La cle peut manquer (rien ne change).
+    pub fn decimal_fonde_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Decimal>, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Fondee {
+            depuis: Option<String>,
+            valeur: socle::forme::Nombre,
+            source: Fondement,
+        }
+        let entrees = Vec::<Fondee>::deserialize(d)?
+            .into_iter()
+            .map(|f| Entree { depuis: f.depuis, valeur: f.valeur, accord: None, source: Some(f.source), note: None })
+            .collect();
+        retenir_a_la_date::<D, socle::forme::Nombre>(entrees).map(|n| Some(n.0))
+    }
 }
 
 forme! {
@@ -204,7 +226,7 @@ forme! {
         pub rubriques_bulletin: Vec<Rubrique>,
         #[serde(default)]
         pub cotisations_dsn: Vec<CotisationDsn>,
-        #[serde(default, deserialize_with = "datee::decimal_opt")]
+        #[serde(default, deserialize_with = "datee::decimal_fonde_opt")]
         pub taux_chomage_aem: Option<Decimal>,
         #[serde(default)]
         pub cotisation_prevoyance_retraite_supp: Option<CotisationSupplementaire>,
@@ -671,7 +693,7 @@ forme! {
         pub cotisations_dsn: Option<Vec<CotisationDsn>>,
         #[serde(default)]
         pub reduction_generale: Option<ReductionGenerale>,
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
+        #[serde(default, deserialize_with = "datee::decimal_fonde_opt")]
         pub taux_chomage_aem: Option<Decimal>,
     }
 }
@@ -863,17 +885,18 @@ forme! {
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum Effet {
     /// Le taux d'une cotisation de la DSN (bloc 81), par son code.
-    TauxDsn { section: Section, code81: String, taux: f64 },
+    TauxDsn { section: Section, code81: String, taux: f64, source: Fondement },
     /// Le taux patronal d'une rubrique du bulletin (de sa modification, pour une nature).
-    TauxPatronal { section: Section, rubrique: String, taux: f64 },
+    TauxPatronal { section: Section, rubrique: String, taux: f64, source: Fondement },
     /// Un composant du taux patronal d'une rubrique qu'une nature ajoute.
-    ComposantAjoute { nature: String, rubrique: String, rang: usize, taux: f64 },
+    ComposantAjoute { nature: String, rubrique: String, rang: usize, taux: f64, source: Fondement },
     /// Un parametre de la reduction generale d'un statut.
     ReductionGenerale {
         statut: String,
         parametre: ParametreReduction,
         #[serde(deserialize_with = "datee::decimal")]
         valeur: Decimal,
+        source: Fondement,
     },
 }
 

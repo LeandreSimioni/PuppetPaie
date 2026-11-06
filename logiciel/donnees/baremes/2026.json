@@ -3,11 +3,23 @@
   "smic_horaire": [
     {
       "depuis": "2026-01-01",
-      "valeur": 12.02
+      "valeur": 12.02,
+      "source": {
+        "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+        "emetteur": "boss",
+        "article": "SMIC_H_METROP (2026)",
+        "citation": "SMIC_H_METROP;SMIC horaire brut;12,02;01/01/2026;//;OK"
+      }
     },
     {
       "depuis": "2026-06-01",
-      "valeur": 12.31
+      "valeur": 12.31,
+      "source": {
+        "fichier": "atelier/reference/sources/arrete-2026-smic-20260601/legifrance-arrete-20260522-smic-20260601.txt",
+        "emetteur": "loi",
+        "article": "arrêté du 22 mai 2026, art. 1, 1°",
+        "citation": "son montant est porté à 12,31 € l'heure"
+      }
     }
   ],
   "heures_par_cachet": 7,
@@ -1717,7 +1729,40 @@
     },
     "note": "La majoration de 0,5 % de la contribution patronale d'assurance chômage (cotisation 041), dans le taux de la ligne « Chômage » : seulement pour un CDD d'usage de trois mois au plus (droit::majoration_chomage). Elle n'est pas due non plus quand le salarié est embauché en CDI à l'issue du contrat : le moteur ne le sait pas à la paie."
   },
-  "taux_chomage_aem": 12.15,
+  "taux_chomage_aem": [
+    {
+      "valeur": 12.15,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+            "emetteur": "unedic",
+            "article": "annexe X du 15/11/2024, art. 50, § 1er",
+            "citation": "est fixé à 5 % à la charge des employeurs et 2,40 % à la charge des salariés"
+          },
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, § 2.1.1, l. 233",
+            "citation": "La majoration de 0,5 % des contributions dues par les employeurs au titre des CDD visés à l'article"
+          },
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_CH_UN_METROP (2026)",
+            "citation": ";4;01/01/2026;//;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "CTP 937 AGS",
+            "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
+          }
+        ],
+        "raisonnement": "Le taux total de l'AEM est la somme des contributions : BOSS, employeur de droit commun 4 % au 01/01/2026 ; Unédic, annexes VIII et X, 5 % employeur et 2,40 % salarié, majoration de 0,5 % des CDD d'usage d'au plus trois mois ; Urssaf, AGS 0,25 % : 4 + 5 + 0,5 + 0,25 + 2,40 = 12,15."
+      }
+    }
+  ],
   "cotisation_prevoyance_retraite_supp": {
     "taux_sur_brut": 1.23,
     "source": {
@@ -4211,8 +4256,18 @@
         "texte": "Code du travail, art. L. 6331-1 : 0,55 % sous onze salaries, 1,00 % a partir de onze. Le CTP Urssaf de la ligne (959 sous onze salaries) est celui de `organismes-base.json` (table des CTP de l'Urssaf) et non de cette ligne du bareme : il se verifie sur l'appel de cotisations.",
         "sous_le_seuil": "Sous le seuil, la valeur du socle est due, et aucune autre : << L'employeur de moins de onze salaries [...] 0,55 % >> (C. trav. L. 6331-1), et << l'effectif salarie et le franchissement d'un seuil d'effectif salarie sont determines selon les modalites prevues a l'article L. 130-1 du code de la securite sociale >> (L. 6331-1 A) : le seuil n'est franchi qu'apres cinq annees civiles consecutives, et << le franchissement a la baisse d'un seuil d'effectif sur une annee civile a pour effet de faire a nouveau courir >> ce delai (CSS L. 130-1, II). Releve LEGI du 13/10/2026 (atelier/reference/sources/code-du-travail/articles-20261013.md, code-de-la-securite-sociale/articles-20261013.md) ; guide Urssaf des contributions de formation du 12/03/2026, l. 568-586 (atelier/reference/sources/majoration-caisses-conges/). Une surcouche qui porte 1,00 alors que l'effectif est (repasse) sous le seuil ferait payer 1 % au lieu de 0,55 % : le moteur refuse (`contexte::controler_effectif`).",
         "effets": [
-          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "128", "taux": 0.55}},
-          {"composant_ajoute": {"nature": "permanent", "rubrique": "autres_4", "rang": 0, "taux": 0.55}}
+          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "128", "taux": 0.55, "source": {
+            "fichier": "atelier/reference/sources/code-du-travail/articles-20261013.md",
+            "emetteur": "loi",
+            "article": "C. trav. L. 6331-1, employeur de moins de onze salariés",
+            "citation": "L'employeur de moins de onze salariés s'acquitte de la contribution à la formation professionnelle mentionnée au 2° de l'article L. 6131-2 du présent code par le versement de 0,55 %"
+          }}},
+          {"composant_ajoute": {"nature": "permanent", "rubrique": "autres_4", "rang": 0, "taux": 0.55, "source": {
+            "fichier": "atelier/reference/sources/code-du-travail/articles-20261013.md",
+            "emetteur": "loi",
+            "article": "C. trav. L. 6331-1, employeur de moins de onze salariés",
+            "citation": "L'employeur de moins de onze salariés s'acquitte de la contribution à la formation professionnelle mentionnée au 2° de l'article L. 6131-2 du présent code par le versement de 0,55 %"
+          }}}
         ]
       },
       {
@@ -4238,12 +4293,42 @@
         },
         "texte": "BOSS, table des parametres 2026 : COT_FNAL_49_METROP 0,10 pour les entreprises de moins de cinquante salaries. Table des CTP de l'Urssaf : 332 FNAL PLAFONNE -- le CTP change avec l'assiette, et il est porte par `organismes-base.json`, pas par le bareme.",
         "effets": [
-          {"taux_patronal": {"section": "corps", "rubrique": "autres_2", "taux": 0.07}},
-          {"taux_dsn": {"section": "corps", "code81": "049", "taux": 0.07}},
-          {"taux_patronal": {"section": {"statut": "technicien"}, "rubrique": "autres_2", "taux": 0.10}},
-          {"taux_dsn": {"section": {"statut": "technicien"}, "code81": "049", "taux": 0.10}},
-          {"taux_patronal": {"section": {"nature": "permanent"}, "rubrique": "autres_2", "taux": 0.10}},
-          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "049", "taux": 0.10}}
+          {"taux_patronal": {"section": "corps", "rubrique": "autres_2", "taux": 0.07, "source": {
+            "fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt",
+            "emetteur": "urssaf",
+            "article": "Urssaf, artistes du spectacle, Fnal",
+            "citation": "Effectif de moins de 50 salariés : 0,07 % dans la limite du plafond"
+          }}},
+          {"taux_dsn": {"section": "corps", "code81": "049", "taux": 0.07, "source": {
+            "fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt",
+            "emetteur": "urssaf",
+            "article": "Urssaf, artistes du spectacle, Fnal",
+            "citation": "Effectif de moins de 50 salariés : 0,07 % dans la limite du plafond"
+          }}},
+          {"taux_patronal": {"section": {"statut": "technicien"}, "rubrique": "autres_2", "taux": 0.10, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_FNAL_49_METROP (2026), moins de 50 salariés",
+            "citation": ";0,1;01/01/2026;//;OK"
+          }}},
+          {"taux_dsn": {"section": {"statut": "technicien"}, "code81": "049", "taux": 0.10, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_FNAL_49_METROP (2026), moins de 50 salariés",
+            "citation": ";0,1;01/01/2026;//;OK"
+          }}},
+          {"taux_patronal": {"section": {"nature": "permanent"}, "rubrique": "autres_2", "taux": 0.10, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_FNAL_49_METROP (2026), moins de 50 salariés",
+            "citation": ";0,1;01/01/2026;//;OK"
+          }}},
+          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "049", "taux": 0.10, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_FNAL_49_METROP (2026), moins de 50 salariés",
+            "citation": ";0,1;01/01/2026;//;OK"
+          }}}
         ]
       },
       {
@@ -4269,7 +4354,12 @@
         },
         "texte": "Art. D. 241-7 CSS, valeurs reajustees par le decret 2025-1446 du 31/12/2025. La valeur du socle est celle des employeurs au FNAL 0,10 %.",
         "effets": [
-          {"reduction_generale": {"statut": "technicien", "parametre": "tdelta", "valeur": 0.3781}}
+          {"reduction_generale": {"statut": "technicien", "parametre": "tdelta", "valeur": 0.3781, "source": {
+            "fichier": "atelier/reference/sources/code-de-la-securite-sociale/xml/D241-7.xml",
+            "emetteur": "loi",
+            "article": "CSS D. 241-7, III, employeurs au FNAL 0,10 %",
+            "citation": "Tdelta = 0,3781"
+          }}}
         ]
       }
     ],

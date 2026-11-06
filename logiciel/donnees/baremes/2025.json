@@ -3,7 +3,13 @@
   "smic_horaire": [
     {
       "depuis": "2025-01-01",
-      "valeur": 11.88
+      "valeur": 11.88,
+      "source": {
+        "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+        "emetteur": "boss",
+        "article": "SMIC_H_METROP (2025)",
+        "citation": "SMIC_H_METROP;SMIC horaire brut;11,88;01/01/2025;31/12/2025;OK"
+      }
     }
   ],
   "heures_par_cachet": 7,
@@ -1792,11 +1798,75 @@
   "taux_chomage_aem": [
     {
       "depuis": "2025-01-01",
-      "valeur": 12.2
+      "valeur": 12.2,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+            "emetteur": "unedic",
+            "article": "annexe X du 15/11/2024, art. 50, § 1er",
+            "citation": "est fixé à 5 % à la charge des employeurs et 2,40 % à la charge des salariés"
+          },
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, § 2.1.1, l. 233",
+            "citation": "La majoration de 0,5 % des contributions dues par les employeurs au titre des CDD visés à l'article"
+          },
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_CH_UN_METROP (2025), 4,05 % jusqu'au 30/04/2025",
+            "citation": "4,05;01/01/2025;30/04/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "CTP 937 AGS",
+            "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
+          }
+        ],
+        "raisonnement": "Le taux total de l'AEM est la somme des contributions : BOSS, employeur de droit commun 4,05 % ; Unédic, annexes VIII et X, 5 % employeur et 2,40 % salarié, majoration de 0,5 % des CDD d'usage d'au plus trois mois ; Urssaf, AGS 0,25 % : 4,05 + 5 + 0,5 + 0,25 + 2,40 = 12,20."
+      }
     },
     {
       "depuis": "2025-05-01",
-      "valeur": 12.15
+      "valeur": 12.15,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
+            "emetteur": "unedic",
+            "article": "annexe X du 15/11/2024, art. 50, § 1er",
+            "citation": "est fixé à 5 % à la charge des employeurs et 2,40 % à la charge des salariés"
+          },
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, l. 42",
+            "citation": "est ramené à 4 %, au lieu de 4,05%. Cette baisse entre en vigueur au 1er mai 2025"
+          },
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, § 2.1.1, l. 233",
+            "citation": "La majoration de 0,5 % des contributions dues par les employeurs au titre des CDD visés à l'article"
+          },
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_CH_UN_METROP (2025), 4 % depuis le 01/05/2025",
+            "citation": ";4;01/05/2025;31/12/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "CTP 937 AGS",
+            "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
+          }
+        ],
+        "raisonnement": "Le taux total de l'AEM est la somme des contributions : BOSS et Unédic, employeur de droit commun 4 % depuis le 01/05/2025 ; Unédic, annexes VIII et X, 5 % employeur et 2,40 % salarié, majoration de 0,5 % des CDD d'usage d'au plus trois mois ; Urssaf, AGS 0,25 % : 4 + 5 + 0,5 + 0,25 + 2,40 = 12,15."
+      }
     }
   ],
   "cotisation_prevoyance_retraite_supp": {
@@ -4297,8 +4367,18 @@
         "texte": "Code du travail, art. L. 6331-1 : 0,55 % sous onze salaries, 1,00 % a partir de onze. Le CTP Urssaf de la ligne (959 sous onze salaries) est celui de `organismes-base.json` (table des CTP de l'Urssaf) et non de cette ligne du bareme : il se verifie sur l'appel de cotisations.",
         "sous_le_seuil": "Sous le seuil, la valeur du socle est due, et aucune autre : << L'employeur de moins de onze salaries [...] 0,55 % >> (C. trav. L. 6331-1), et << l'effectif salarie et le franchissement d'un seuil d'effectif salarie sont determines selon les modalites prevues a l'article L. 130-1 du code de la securite sociale >> (L. 6331-1 A) : le seuil n'est franchi qu'apres cinq annees civiles consecutives, et << le franchissement a la baisse d'un seuil d'effectif sur une annee civile a pour effet de faire a nouveau courir >> ce delai (CSS L. 130-1, II). Releve LEGI du 13/10/2026 (atelier/reference/sources/code-du-travail/articles-20261013.md, code-de-la-securite-sociale/articles-20261013.md) ; guide Urssaf des contributions de formation du 12/03/2026, l. 568-586 (atelier/reference/sources/majoration-caisses-conges/). Une surcouche qui porte 1,00 alors que l'effectif est (repasse) sous le seuil ferait payer 1 % au lieu de 0,55 % : le moteur refuse (`contexte::controler_effectif`).",
         "effets": [
-          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "128", "taux": 0.55}},
-          {"composant_ajoute": {"nature": "permanent", "rubrique": "autres_4", "rang": 0, "taux": 0.55}}
+          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "128", "taux": 0.55, "source": {
+            "fichier": "atelier/reference/sources/code-du-travail/articles-20261013.md",
+            "emetteur": "loi",
+            "article": "C. trav. L. 6331-1, employeur de moins de onze salariés",
+            "citation": "L'employeur de moins de onze salariés s'acquitte de la contribution à la formation professionnelle mentionnée au 2° de l'article L. 6131-2 du présent code par le versement de 0,55 %"
+          }}},
+          {"composant_ajoute": {"nature": "permanent", "rubrique": "autres_4", "rang": 0, "taux": 0.55, "source": {
+            "fichier": "atelier/reference/sources/code-du-travail/articles-20261013.md",
+            "emetteur": "loi",
+            "article": "C. trav. L. 6331-1, employeur de moins de onze salariés",
+            "citation": "L'employeur de moins de onze salariés s'acquitte de la contribution à la formation professionnelle mentionnée au 2° de l'article L. 6131-2 du présent code par le versement de 0,55 %"
+          }}}
         ]
       },
       {
@@ -4324,12 +4404,64 @@
         },
         "texte": "BOSS, table des parametres 2026 : COT_FNAL_49_METROP 0,10 pour les entreprises de moins de cinquante salaries. Table des CTP de l'Urssaf : 332 FNAL PLAFONNE -- le CTP change avec l'assiette, et il est porte par `organismes-base.json`, pas par le bareme.",
         "effets": [
-          {"taux_patronal": {"section": "corps", "rubrique": "autres_2", "taux": 0.07}},
-          {"taux_dsn": {"section": "corps", "code81": "049", "taux": 0.07}},
-          {"taux_patronal": {"section": {"statut": "technicien"}, "rubrique": "autres_2", "taux": 0.1}},
-          {"taux_dsn": {"section": {"statut": "technicien"}, "code81": "049", "taux": 0.1}},
-          {"taux_patronal": {"section": {"nature": "permanent"}, "rubrique": "autres_2", "taux": 0.1}},
-          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "049", "taux": 0.1}}
+          {"taux_patronal": {"section": "corps", "rubrique": "autres_2", "taux": 0.07, "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+                "emetteur": "boss",
+                "article": "BOSS, COT_FNAL_49_METROP (2025)",
+                "citation": ";0,1;01/05/2025;31/12/2025;OK"
+              },
+              {
+                "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+                "emetteur": "loi",
+                "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+                "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+              }
+            ],
+            "raisonnement": "Le BOSS donne le FNAL de moins de 50 salariés à 0,10 % en 2025 ; l'arrêté du 24/01/1975 fixe le taux de l'artiste à 70 % : 0,07."
+          }}},
+          {"taux_dsn": {"section": "corps", "code81": "049", "taux": 0.07, "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+                "emetteur": "boss",
+                "article": "BOSS, COT_FNAL_49_METROP (2025)",
+                "citation": ";0,1;01/05/2025;31/12/2025;OK"
+              },
+              {
+                "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+                "emetteur": "loi",
+                "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+                "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+              }
+            ],
+            "raisonnement": "Le BOSS donne le FNAL de moins de 50 salariés à 0,10 % en 2025 ; l'arrêté du 24/01/1975 fixe le taux de l'artiste à 70 % : 0,07."
+          }}},
+          {"taux_patronal": {"section": {"statut": "technicien"}, "rubrique": "autres_2", "taux": 0.1, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "BOSS, COT_FNAL_49_METROP (2025)",
+            "citation": ";0,1;01/05/2025;31/12/2025;OK"
+          }}},
+          {"taux_dsn": {"section": {"statut": "technicien"}, "code81": "049", "taux": 0.1, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "BOSS, COT_FNAL_49_METROP (2025)",
+            "citation": ";0,1;01/05/2025;31/12/2025;OK"
+          }}},
+          {"taux_patronal": {"section": {"nature": "permanent"}, "rubrique": "autres_2", "taux": 0.1, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "BOSS, COT_FNAL_49_METROP (2025)",
+            "citation": ";0,1;01/05/2025;31/12/2025;OK"
+          }}},
+          {"taux_dsn": {"section": {"nature": "permanent"}, "code81": "049", "taux": 0.1, "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "BOSS, COT_FNAL_49_METROP (2025)",
+            "citation": ";0,1;01/05/2025;31/12/2025;OK"
+          }}}
         ]
       },
       {
@@ -4364,7 +4496,22 @@
               "depuis": "2025-05-01",
               "valeur": 0.3193
             }
-          ]}}
+          ], "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D241-7-20231231.txt",
+                "emetteur": "loi",
+                "article": "CSS D. 241-7, I (version du 31/12/2023 au 07/04/2025), T jusqu'au 30/04/2025",
+                "citation": "Elle est fixée à 0,3194 […] et à 0,3234 pour les gains et"
+              },
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D241-7-20250407.txt",
+                "emetteur": "loi",
+                "article": "CSS D. 241-7, I (version du 07/04/2025 au 01/01/2026), T depuis le 01/05/2025",
+                "citation": "Elle est fixée à 0,3193 […] et à 0,3233 pour les gains et"
+              }
+            ]
+          }}}
         ]
       }
     ],
