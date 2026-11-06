@@ -155,15 +155,18 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>, 
         })?;
         compte_de.insert(qui, compte);
         for l in &p.lignes {
-            let regle = lignes_du_plan.as_object().and_then(|o| o.get(&l.id)).filter(|r| vrai(r));
+            let Some(id) = l.id.as_deref() else {
+                return Err(refus(format!("La ligne de bulletin « {} » ne dit pas sa cotisation : elle n'a pas de compte dans le plan comptable.", l.libelle)));
+            };
+            let regle = lignes_du_plan.as_object().and_then(|o| o.get(id)).filter(|r| vrai(r));
             let Some(regle) = regle else {
                 return Err(refus(format!(
                     "La ligne de bulletin « {} » ({}) n'a pas de compte dans le plan comptable. L'ajouter dans config/plan-comptable.json sous « lignes », avec un compte de charge et un compte de tiers.",
-                    l.id, l.libelle
+                    id, l.libelle
                 )));
             };
             let libelle_de = |r: &Value| ou_texte(r.get("libelle"), &l.libelle);
-            if l.id == "reduction_generale" {
+            if id == "reduction_generale" {
                 if let Some(rg) = &p.reduction_generale {
                     // La RGDU : une charge negative, ventilee au tiers de chaque part telle que la paie l'a calculee.
                     let k = (valeur_en_texte(dans(regle, "charge")?), libelle_de(regle));

@@ -680,7 +680,7 @@ pub fn brut_du_51(p: &Paie) -> Decimal {
 fn somme_lignes(p: &Paie, ids: &[String], patronale_seule: bool) -> Decimal {
     p.lignes
         .iter()
-        .filter(|l| ids.contains(&l.id))
+        .filter(|l| l.id.as_ref().is_some_and(|i| ids.contains(i)))
         .fold(zero(), |s, l| add(s, if patronale_seule { l.montant_pat } else { add(l.montant_pat, l.montant_sal) }))
 }
 
@@ -878,7 +878,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
         let urssaf = org_de(&bar, "075");
         let brut_03 = bases[&cle_abattue(p, "03", "brut")?];
         for (code, id) in [(CODE81_REDUCTION_HEURES, engagement::heures_en_plus::REDUCTION), (CODE81_DEDUCTION_HEURES, engagement::heures_en_plus::DEDUCTION)] {
-            let montant = p.lignes.iter().filter(|l| l.id == id).fold(zero(), |a, l| add(a, add(l.montant_pat, l.montant_sal)));
+            let montant = p.lignes.iter().filter(|l| l.est(id)).fold(zero(), |a, l| add(a, add(l.montant_pat, l.montant_sal)));
             if montant.is_zero() {
                 continue;
             }
@@ -925,7 +925,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
 fn composant_79(p: &Paie, pile: &Pile, lignes: &[String]) -> Option<(String, Decimal)> {
     lignes.iter().find_map(|id| {
         let type_79 = pile.rubrique(id)?.composant_79.clone()?;
-        let base = p.lignes.iter().find(|l| &l.id == id)?.base;
+        let base = p.lignes.iter().find(|l| l.est(id))?.base;
         Some((type_79, base))
     })
 }
@@ -965,7 +965,7 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Rubrique) 
         return Err(format!(
             "La ligne « {} » du bulletin ({} de part patronale sur {}) ne se refait pas, CET comprise, à partir de \
 ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en sépare pas sans deviner. Rien n'est écrit.",
-            l.id,
+            l.id.as_deref().unwrap_or(&l.libelle),
             socle::texte::euros(l.montant_pat),
             socle::texte::euros(l.base)
         ));
@@ -1028,7 +1028,7 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
     let (mut cet_montant, mut cet_base, mut cet_taux) = (zero(), zero(), None::<f64>);
     for id in &ids {
         // La CET d'un non cadre n'existe pas ; une tranche 2 nulle n'est pas au bulletin (`calcul::calculer`).
-        let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| &l.id == id)) else { continue };
+        let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| l.est(id))) else { continue };
         let (montant, cet) = sans_la_cet(p, l, r)?;
         let taux = match &cet {
             Some(_) => r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?,
@@ -1157,14 +1157,14 @@ fn affiliations_du_permanent(p: &Paie, ent: &ChampsEntreprise) -> Resultat<Optio
     // bloc 70 ni base 31 de sante pour ce mois (`atelier/reference/sources/suspension-non-remuneree/RAPPORT-20261015.md`,
     // point 2 et « Ce qui reste ouvert », 3).
     let suspendue = p.salarie.sante_suspendue.as_deref().is_some_and(|s| !s.is_empty());
-    if suspendue && p.lignes.iter().any(|l| l.id == "mutuelle") {
+    if suspendue && p.lignes.iter().any(|l| l.est("mutuelle")) {
         return Err(format!(
             "{} : sa sante est suspendue ce mois-ci ({}) et le bulletin cotise a la mutuelle. Rien n'est declare.",
             qui_contrat(p),
             p.salarie.sante_suspendue.clone().unwrap_or_default()
         ));
     }
-    if dispense && p.lignes.iter().any(|l| l.id == "mutuelle") {
+    if dispense && p.lignes.iter().any(|l| l.est("mutuelle")) {
         return Err(socle::echec::cle(
             format!(
                 "{} : la fiche porte une dispense de complementaire sante (« {} ») et le bulletin cotise a \
@@ -3181,7 +3181,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &BaremeDuMois) -> Resultat<HashMap<String
     // Les heures en plus : la reduction salariale (CTP 003) et la deduction patronale (CTP 004, 005), en montant, comme
     // le nominatif les declare (114 et 021, `cotisations`).
     for (cle, id) in [(MONTANT_REDUCTION_HEURES, engagement::heures_en_plus::REDUCTION), (MONTANT_DEDUCTION_HEURES, engagement::heures_en_plus::DEDUCTION)] {
-        let m = paies.iter().flat_map(|p| p.lignes.iter()).filter(|l| l.id == id).fold(zero(), |a, l| sub(a, add(l.montant_pat, l.montant_sal)));
+        let m = paies.iter().flat_map(|p| p.lignes.iter()).filter(|l| l.est(id)).fold(zero(), |a, l| sub(a, add(l.montant_pat, l.montant_sal)));
         out.insert(cle.into(), m);
     }
     Ok(out)

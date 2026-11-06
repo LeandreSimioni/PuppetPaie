@@ -170,25 +170,29 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                 sans_bulletin.insert(m.clone());
             }
             for c in &paie.lignes {
-                if paie.importee.is_some() && c.id.is_empty() {
-                    let (mois, total) = non_rattachees.entry(c.libelle.clone()).or_default();
-                    mois.insert(m.clone());
-                    *total = add(*total, add(eur2(c.montant_sal), eur2(c.montant_pat)));
+                let Some(id) = c.id.as_deref() else {
+                    if paie.importee.is_some() {
+                        let (mois, total) = non_rattachees.entry(c.libelle.clone()).or_default();
+                        mois.insert(m.clone());
+                        *total = add(*total, add(eur2(c.montant_sal), eur2(c.montant_pat)));
+                    } else {
+                        manque.insert(format!("sans cotisation ({})", c.libelle));
+                    }
                     continue;
-                }
-                let Some(org) = org_de(&c.id) else {
-                    manque.insert(format!("{} ({})", c.id, c.libelle));
+                };
+                let Some(org) = org_de(id) else {
+                    manque.insert(format!("{} ({})", id, c.libelle));
                     continue;
                 };
                 let ts = c.taux_sal.map(documents::etats_paie::dec_taux).transpose()?;
                 let tp = c.taux_pat.map(documents::etats_paie::dec_taux).transpose()?;
-                if c.id == "reduction_generale" {
+                if id == "reduction_generale" {
                     if let Some(rg) = &paie.reduction_generale {
                         let mut reparti = zero;
                         for (part, id_org, quoi) in [(rg.urssaf, "maladie", "part Urssaf"), (rg.chomage, "chomage", "part chômage"), (rg.agirc_arrco, "retraite_t1", "part retraite")] {
                             if !part.is_zero() {
                                 let o = org_de(id_org).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(id_org)))?;
-                                ajouter(&m, &o, &c.id, &format!("{} — {}", c.libelle, quoi), None, None, zero, None, -part);
+                                ajouter(&m, &o, id, &format!("{} — {}", c.libelle, quoi), None, None, zero, None, -part);
                                 reparti = add(reparti, part);
                             }
                         }
@@ -204,7 +208,7 @@ pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                         continue;
                     }
                 }
-                ajouter(&m, &org, &c.id, &c.libelle, Some(eur2(c.base)), ts, eur2(c.montant_sal), tp, eur2(c.montant_pat));
+                ajouter(&m, &org, id, &c.libelle, Some(eur2(c.base)), ts, eur2(c.montant_sal), tp, eur2(c.montant_pat));
             }
         }
     }

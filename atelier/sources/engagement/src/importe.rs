@@ -648,8 +648,8 @@ impl Importe {
             .iter()
             .flatten()
             .map(|l| LigneCotisation {
-                id: l.cotisation.iter().cloned().collect(),
-                famille: l.famille.iter().cloned().collect(),
+                id: l.cotisation.clone().filter(|c| !c.is_empty()),
+                famille: l.famille.clone().filter(|f| !f.is_empty()),
                 libelle: l.libelle.clone(),
                 base: tu_vaut_zero(l.base),
                 taux_pat: taux(l.taux_employeur),
@@ -666,8 +666,8 @@ impl Importe {
         let fin_periode = engagement.fin_periode()?;
         let caisse = droit::caisse_conges::affilie(&nat, &sal, &engagement.debut, engagement.fin.as_ref())?;
         let bar = crate::calcul::bareme_pour_ranger(&ctx, &sal, &nat, &fin_periode, caisse, droit::majoration_chomage::due(&nat, engagement.motif_recours.as_deref(), &engagement.debut, engagement.fin.as_ref()))?;
-        for l in cotisations.iter().filter(|l| !l.id.is_empty() && !l.base.is_zero()) {
-            if let Some(cle) = bar.rubrique(&l.id).and_then(|r| r.base.clone()) {
+        for (l, id) in cotisations.iter().filter_map(|l| l.id.as_deref().map(|id| (l, id))).filter(|(l, _)| !l.base.is_zero()) {
+            if let Some(cle) = bar.rubrique(id).and_then(|r| r.base.clone()) {
                 bases.entry(cle).or_insert(l.base);
             }
         }

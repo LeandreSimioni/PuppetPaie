@@ -125,15 +125,16 @@ const REPLIS: [(&str, &str); 2] = [("conges_spec", "autres"), ("cet", "retraite_
 /// La cotisation d'une ligne de la paie calculee, au grain ou un bulletin l'imprime : les contributions que
 /// l'employeur paie seul et que le modele agrege (`autres`), les cotisations de la convention (`convention`), les
 /// tranches de l'Apec et de la prevoyance ; les autres gardent leur identifiant du bareme.
-pub fn cotisation_de(l: &LigneCotisation) -> String {
+/// Une ligne sans cotisation (l'import ne l'a pas qualifiee) n'en a aucune : `None`.
+pub fn cotisation_de(l: &LigneCotisation) -> Option<String> {
     let seule_employeur = l.taux_sal.is_none() && l.montant_sal.is_zero();
-    match l.id.as_str() {
+    Some(match l.id.as_deref()? {
         "autres_1" | "autres_2" | "autres_3" | "autres_4" | "versement_mobilite" if seule_employeur => "autres".into(),
         "ccn" | "fcap" | "paritarisme" => "convention".into(),
         "apec_t1" | "apec_t2" => "apec".into(),
         id if id.starts_with("prevoyance") => "prevoyance".into(),
         id => id.into(),
-    }
+    })
 }
 
 /// Une ligne de cotisation du bulletin importe.
@@ -343,7 +344,7 @@ fn comparer_une(
     let mut saisie = crate::charger_donnees(&ctx, &data).map_err(|m| a_refaire(c, m))?;
     if let Some((taux, montant, base)) = atmp_imprime {
         // Calcule au taux notifie de 1 %, la ligne AT/MP porte le facteur du contrat, et son assiette.
-        let ligne = saisie.paies.first().and_then(|p| p.lignes.iter().find(|l| l.id == "atmp"));
+        let ligne = saisie.paies.first().and_then(|p| p.lignes.iter().find(|l| l.est("atmp")));
         let facteur = ligne.and_then(|l| l.taux_pat).filter(|f| *f > 0.0);
         let applique = taux.or_else(|| {
             let b = base.or(ligne.map(|l| l.base)).filter(|b| !b.is_zero())?;
@@ -389,7 +390,8 @@ fn comparer_une(
     }
     let mut nos: BTreeMap<String, Vec<&LigneCotisation>> = BTreeMap::new();
     for l in &paie.lignes {
-        nos.entry(cotisation_de(l)).or_default().push(l);
+        let cotisation = cotisation_de(l).ok_or_else(|| a_refaire(c, format!("la ligne « {} » de la paie calculée ne dit pas sa cotisation", l.libelle)))?;
+        nos.entry(cotisation).or_default().push(l);
     }
     for (fin, gros) in REPLIS {
         if !leurs.contains_key(fin) {
@@ -460,7 +462,7 @@ fn comparer_une(
         }
     }
     // Les totaux du bulletin, sans ce qu'il imprime apres eux : l'ecart relatif seulement.
-    let hors = |f: &dyn Fn(&LigneCotisation) -> Decimal| -> Decimal { paie.lignes.iter().filter(|l| hors_total.contains(&cotisation_de(l))).map(f).sum() };
+    let hors = |f: &dyn Fn(&LigneCotisation) -> Decimal| -> Decimal { paie.lignes.iter().filter(|l| cotisation_de(l).is_some_and(|c| hors_total.contains(&c))).map(f).sum() };
     for (cle, notre, leur) in [
         ("cotisations_salariales", paie.total_sal - hors(&|l| l.montant_sal), p.cotisations_salariales),
         ("cotisations_patronales", paie.total_pat - hors(&|l| l.montant_pat), p.cotisations_patronales),

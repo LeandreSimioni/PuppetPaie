@@ -160,14 +160,14 @@ pub(crate) fn apres_les_cotisations(
     let mut avis = Vec::new();
 
     // La reduction salariale.
-    let vieillesse = sal(&|l| l.famille == "RETRAITE");
+    let vieillesse = sal(&|l| l.famille.as_deref() == Some("RETRAITE"));
     let taux = (vieillesse / brut * Decimal::ONE_HUNDRED).min(droit::heures_en_plus::taux_maximum_de_reduction()?).round_dp(2);
-    let de_base = sal(&|l| l.id == "vieil_plaf" || l.id == "vieil_deplaf");
+    let de_base = sal(&|l| l.est("vieil_plaf") || l.est("vieil_deplaf"));
     let reduction = eur2(remuneration * taux / Decimal::ONE_HUNDRED).min(de_base).max(Decimal::new(0, 2));
     let genre = if supplementaires.is_zero() { "complémentaires" } else { "supplémentaires" };
     let mut out = vec![LigneCotisation {
-        id: REDUCTION.into(),
-        famille: crate::calcul::FAMILLE_ALLEGEMENTS.into(),
+        id: Some(REDUCTION.into()),
+        famille: Some(crate::calcul::FAMILLE_ALLEGEMENTS.into()),
         libelle: format!("Réduction de cotisations salariales sur heures {}", genre),
         base: remuneration,
         taux_pat: None,
@@ -187,8 +187,8 @@ pub(crate) fn apres_les_cotisations(
         deduction = eur2(supplementaires * droit::heures_en_plus::deduction_par_heure(au_moins_20)?).min(tot_pat.max(Decimal::new(0, 2)));
         if !deduction.is_zero() {
             out.push(LigneCotisation {
-                id: DEDUCTION.into(),
-                famille: crate::calcul::FAMILLE_ALLEGEMENTS.into(),
+                id: Some(DEDUCTION.into()),
+                famille: Some(crate::calcul::FAMILLE_ALLEGEMENTS.into()),
                 libelle: "Déduction patronale sur heures supplémentaires".into(),
                 base: supplementaires,
                 taux_pat: None,
@@ -205,12 +205,12 @@ pub(crate) fn apres_les_cotisations(
     // La CSG deductible que la paie retient (une paie sans CSG n'en deduit rien) ; sa ligne porte son taux.
     let taux_csg = lignes
         .iter()
-        .filter(|l| l.id == "csg_ded")
+        .filter(|l| l.est("csg_ded"))
         .take(1)
         .map(|l| socle::num::dec_f64(l.taux_sal.ok_or("la ligne de CSG déductible n'a pas de taux salarial")?))
         .sum::<Resultat<Decimal>>()?;
     let csg_deductible = eur2(remuneration * abattement * taux_csg / Decimal::ONE_HUNDRED);
-    let autres = sal(&|l| !matches!(l.id.as_str(), "csg_ded" | "csg_crds_nd" | "mutuelle"));
+    let autres = sal(&|l| !(l.est("csg_ded") || l.est("csg_crds_nd") || l.est("mutuelle")));
     let leurs_cotisations = eur2(autres * remuneration / brut);
     let net = (remuneration - csg_deductible - (leurs_cotisations - reduction).max(Decimal::ZERO)).max(Decimal::new(0, 2));
     let deja = deja()?;

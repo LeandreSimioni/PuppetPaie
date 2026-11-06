@@ -868,7 +868,11 @@ pub fn livre_detaille(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             for c in &paie.lignes {
                 let mut l = Ligne::nouvelle();
                 socle(&mut l, "Cotisation");
-                l.t("code", c.id.clone()).t("libelle", c.libelle.clone()).d("base", eur2(c.base));
+                match &c.id {
+                    Some(id) => l.t("code", id.clone()),
+                    None => l.rien("code"),
+                };
+                l.t("libelle", c.libelle.clone()).d("base", eur2(c.base));
                 l.od("taux_sal", c.taux_sal.map(dec_taux).transpose()?).d("part_sal", eur2(c.montant_sal));
                 l.od("taux_pat", c.taux_pat.map(dec_taux).transpose()?).d("part_pat", eur2(c.montant_pat));
                 lignes.push(l);

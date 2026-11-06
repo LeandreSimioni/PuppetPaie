@@ -564,8 +564,8 @@ enum Rang {
     /// « Autres charges dues par l'employeur » : UNE ligne, le seul montant employeur, toutes ses contributions
     /// agregees (C. trav. R. 3243-2, al. 2 ; arrete, art. 3), la caisse des Conges Spectacles comprise.
     Autres,
-    /// Une famille que le moteur ne range pas : titree par sa famille.
-    Hors(String),
+    /// Une famille que le moteur ne range pas : titree par sa famille ; une ligne sans famille n'a pas de titre.
+    Hors(Option<String>),
     /// « COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES ».
     Facultative(&'static str),
     /// « EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS ».
@@ -574,14 +574,14 @@ enum Rang {
 
 impl Rang {
     /// Le libelle qui titre le rang dans l'annexe du modele complet : la ligne (ou le groupe) du bulletin qui le porte.
-    fn titre(&self) -> &str {
+    fn titre(&self) -> Option<&str> {
         match self {
-            Rang::Sante => "Santé",
-            Rang::Retraite => "Retraite",
-            Rang::Ligne(_, nom) | Rang::Facultative(nom) => nom,
-            Rang::Autres => AUTRES,
-            Rang::Hors(famille) => famille,
-            Rang::Allegement => EXONERATIONS,
+            Rang::Sante => Some("Santé"),
+            Rang::Retraite => Some("Retraite"),
+            Rang::Ligne(_, nom) | Rang::Facultative(nom) => Some(nom),
+            Rang::Autres => Some(AUTRES),
+            Rang::Hors(famille) => famille.as_deref(),
+            Rang::Allegement => Some(EXONERATIONS),
         }
     }
 }
@@ -618,7 +618,8 @@ const FACULTATIVES: &str = "COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES";
 /// charge de l'employeur (le bareme n'a pas de taux salarial).
 fn rang(l: &engagement::calcul::LigneCotisation) -> Rang {
     let seule_employeur = l.taux_sal.is_none() && l.montant_sal.is_zero();
-    match l.id.as_str() {
+    let Some(id) = l.id.as_deref() else { return Rang::Hors(l.famille.clone()) };
+    match id {
         "maladie" | "regime_local" | "mutuelle" => Rang::Sante,
         "atmp" => Rang::Ligne(1, ATMP),
         "vieil_plaf" | "vieil_deplaf" | "retraite_t1" | "retraite_t2" | "cet" => Rang::Retraite,
@@ -674,13 +675,13 @@ fn rangees(p: &Paie) -> Vec<(Rang, Vec<&engagement::calcul::LigneCotisation>)> {
 /// local d'Alsace-Moselle, la CET d'un permanent, que le moteur calcule sur T1 + T2 sans la partager entre les deux
 /// tranches) gardent le leur.
 fn libelle_du_modele(l: &engagement::calcul::LigneCotisation) -> String {
-    match l.id.as_str() {
-        "maladie" => SANTE_SECU.into(),
-        "mutuelle" => SANTE_COMPLEMENTAIRE.into(),
-        "vieil_plaf" => "Sécurité Sociale Vieillesse plafonnée".into(),
-        "vieil_deplaf" => "Sécurité Sociale Vieillesse déplafonnée".into(),
-        "retraite_t1" => "Retraite complémentaire, CEG et CET T1".into(),
-        "retraite_t2" => "Retraite complémentaire, CEG et CET T2".into(),
+    match l.id.as_deref() {
+        Some("maladie") => SANTE_SECU.into(),
+        Some("mutuelle") => SANTE_COMPLEMENTAIRE.into(),
+        Some("vieil_plaf") => "Sécurité Sociale Vieillesse plafonnée".into(),
+        Some("vieil_deplaf") => "Sécurité Sociale Vieillesse déplafonnée".into(),
+        Some("retraite_t1") => "Retraite complémentaire, CEG et CET T1".into(),
+        Some("retraite_t2") => "Retraite complémentaire, CEG et CET T2".into(),
         _ => l.libelle.clone(),
     }
 }
@@ -727,7 +728,9 @@ fn lignes_du_rang(r: &Rang, lignes: &[&engagement::calcul::LigneCotisation]) -> 
     let mut out = Vec::new();
     match r {
         Rang::Sante | Rang::Retraite => {
-            out.push(titre_groupe(r.titre(), COLONNES));
+            if let Some(titre) = r.titre() {
+                out.push(titre_groupe(titre, COLONNES));
+            }
             for l in lignes {
                 out.push(ligne_cotisation(libelle_du_modele(l), l)?);
             }
@@ -747,7 +750,9 @@ fn lignes_du_rang(r: &Rang, lignes: &[&engagement::calcul::LigneCotisation]) -> 
             out.push(ligne(vec![s(AUTRES), s(""), s(""), s(""), s(fmt_eur(total))], vec![]));
         }
         Rang::Hors(famille) => {
-            out.push(titre_groupe(famille, COLONNES));
+            if let Some(famille) = famille {
+                out.push(titre_groupe(famille, COLONNES));
+            }
             for l in lignes {
                 out.push(ligne_cotisation(l.libelle.clone(), l)?);
             }
@@ -853,7 +858,9 @@ fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Value>> {
     let detail = |r: &Rang, lignes: &[&engagement::calcul::LigneCotisation], corps: &mut Vec<Value>| -> Resultat<()> {
         // Les exonerations n'ont pas de titre : la ligne du bulletin qui les porte est leur total, qui les suit.
         if *r != Rang::Allegement {
-            corps.push(titre_groupe(r.titre(), COLONNES_ANNEXE));
+            if let Some(titre) = r.titre() {
+                corps.push(titre_groupe(titre, COLONNES_ANNEXE));
+            }
         }
         for l in lignes {
             let (base, ts, tp) = base_et_taux(l)?;
