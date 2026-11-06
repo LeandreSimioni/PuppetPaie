@@ -99,7 +99,7 @@ pub(crate) fn lire_au<T: serde::de::DeserializeOwned>(
 
 /// Les champs qui se datent : `#[serde(deserialize_with = "datee::…")]`.
 pub(crate) mod datee {
-    use super::{Ecrite, Entree, Fondement, LECTURE};
+    use super::{Ecrite, Entree, LECTURE};
     use serde::de::Error;
     use serde::{Deserialize, Deserializer};
     use socle::date::Jour;
@@ -172,23 +172,6 @@ pub(crate) mod datee {
     pub fn decimal_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Decimal>, D::Error> {
         au_jour::<D, Option<socle::forme::Nombre>>(d).map(|n| n.map(|n| n.0))
     }
-
-    /// Un decimal date dont chaque valeur dit le texte qui la fonde : la liste `[{depuis?, valeur, source}]`, jamais le
-    /// nombre seul. La cle peut manquer (rien ne change).
-    pub fn decimal_fonde_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Decimal>, D::Error> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Fondee {
-            depuis: Option<String>,
-            valeur: socle::forme::Nombre,
-            source: Fondement,
-        }
-        let entrees = Vec::<Fondee>::deserialize(d)?
-            .into_iter()
-            .map(|f| Entree { depuis: f.depuis, valeur: f.valeur, accord: None, source: Some(f.source), note: None })
-            .collect();
-        retenir_a_la_date::<D, socle::forme::Nombre>(entrees).map(|n| Some(n.0))
-    }
 }
 
 forme! {
@@ -226,8 +209,6 @@ forme! {
         pub rubriques_bulletin: Vec<Rubrique>,
         #[serde(default)]
         pub cotisations_dsn: Vec<CotisationDsn>,
-        #[serde(default, deserialize_with = "datee::decimal_fonde_opt")]
-        pub taux_chomage_aem: Option<Decimal>,
         #[serde(default)]
         pub cotisation_prevoyance_retraite_supp: Option<CotisationSupplementaire>,
         #[serde(default)]
@@ -692,8 +673,6 @@ forme! {
         pub cotisations_dsn: Option<Vec<CotisationDsn>>,
         #[serde(default)]
         pub reduction_generale: Option<ReductionGenerale>,
-        #[serde(default, deserialize_with = "datee::decimal_fonde_opt")]
-        pub taux_chomage_aem: Option<Decimal>,
     }
 }
 
@@ -1319,8 +1298,7 @@ forme! {
 }
 
 /// LE TAUX AT/MP DE LA COMPAGNIE OU DE L'ETABLISSEMENT : la surcouche de l'annee (`moteur::routes::atmp`), ce que le
-/// moteur en reprend d'une annee d'avant (`bareme::taux_atmp_reporte`) ou en dit quand il manque. Les cles en `_` sont
-/// celles que la compagnie a ecrites.
+/// moteur en reprend d'une annee d'avant (`bareme::taux_atmp_reporte`) ou en dit quand il manque.
 #[derive(Debug, Clone, Default)]
 pub struct TauxAtmp {
     pub valeur: Option<Decimal>,
@@ -1336,27 +1314,19 @@ pub struct TauxAtmp {
 
 /// LE TAUX AT/MP TEL QUE LA SURCOUCHE DE L'ANNEE L'ECRIT (`moteur::routes::atmp`), ou que le moteur le reprend d'une
 /// annee d'avant (`bareme::taux_atmp_reporte`) : sa valeur, ou la liste datee de ses valeurs quand une notification le
-/// change en cours d'annee. Les cles en `_` sont celles que le moteur y ecrit.
+/// change en cours d'annee.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TauxAtmpEcrit {
-    #[serde(default)]
     pub valeur: Option<ValeurAtmp>,
-    #[serde(default)]
     pub code_risque: Option<String>,
-    #[serde(rename = "note", default)]
+    #[serde(rename = "note")]
     pub provenance: Option<String>,
-    #[serde(rename = "_pose_a_la_creation", default)]
     pub pose_a_la_creation: Option<bool>,
-    #[serde(rename = "_notification", default)]
     pub notification: Option<NotificationAtmp>,
-    #[serde(rename = "_manque", default)]
     pub manque: Option<String>,
-    #[serde(rename = "_reporte_de", default)]
     pub reporte_de: Option<i32>,
-    #[serde(rename = "_alsace_moselle", default)]
     pub alsace_moselle: Option<bool>,
-    #[serde(rename = "_etablissement_neuf", default)]
     pub etablissement_neuf: Option<bool>,
 }
 

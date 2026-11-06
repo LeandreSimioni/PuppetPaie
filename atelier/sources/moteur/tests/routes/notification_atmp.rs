@@ -52,7 +52,7 @@ fn la_notification_lue_pose_le_taux_de_l_annee_a_sa_date_d_effet() {
     assert!(a_faire.is_empty(), "{:?}", a_faire);
     let t = &lire(&racine, "config/baremes/2026.json")["taux_atmp"];
     assert_eq!((&t["code_risque"], &t["valeur"]), (&json!("923AD"), &json!(1.7)), "{}", t);
-    assert_eq!(t["_notification"]["effet"], json!("2026-01-01"), "{}", t);
+    assert_eq!(t["notification"]["effet"], json!("2026-01-01"), "{}", t);
 
     // Effet en cours d'annee : le taux d'avant jusqu'a la date d'effet, le notifie ensuite.
     let a_faire = suites(&racine, vec![notification(&racine, "n2.xml", "123456873", "00017", &[("923AD", "1,90", "20260701", "20260615")])]);

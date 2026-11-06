@@ -234,9 +234,6 @@ mecanisme se decide. Tant que la section n'est pas marquee \
     if let Some(c) = section.cotisations_dsn {
         bar.cotisations_dsn = c;
     }
-    if section.taux_chomage_aem.is_some() {
-        bar.taux_chomage_aem = section.taux_chomage_aem;
-    }
     if section.reduction_generale.is_some() {
         bar.reduction_generale = section.reduction_generale;
     }
@@ -1803,7 +1800,7 @@ const DERNIERE_ANNEE_D242_6_17_DE_2012: i32 = 2026;
 /// leur creation et les deux annees civiles suivantes, quel que soit leur effectif ou celui de l'entreprise dont ils
 /// relevent » (D. 242-6-17, version applicable aux cotisations jusqu'a 2026,
 /// `code-de-la-securite-sociale/xml-anterieur/D242-6-17.xml`) : l'annee de son ouverture et les deux suivantes, le taux
-/// de l'arrete de l'annee pour son risque, TC ou non (`_etablissement_neuf`, lu par `taux_atmp_applique`). Ce que cet
+/// de l'arrete de l'annee pour son risque, TC ou non (`etablissement_neuf`, lu par `taux_atmp_applique`). Ce que cet
 /// article excepte (un etablissement issu d'un precedent, le taux unique d'une entreprise qui l'a choisi) se dit par le taux
 /// notifie, qui se saisit. A compter de 2027, la version du decret n° 2026-951 ne se lit pas ici : un risque sans TC
 /// demande son taux.

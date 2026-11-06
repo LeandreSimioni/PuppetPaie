@@ -1687,8 +1687,8 @@
       "affectation": "203",
       "organisme": "INTERBRANCHE",
       "composants": [
-        0.42,
-        0.81
+        1.11,
+        0.12
       ],
       "source": {
         "sources": [
@@ -1706,7 +1706,7 @@
           }
         ]
       },
-      "note": "Deux contributions arrondies separement (0,420 + 0,810). Ex. brut 520 -> 2,18 + 4,21 = 6,39 ; brut 480 -> 2,02 + 3,89 = 5,91."
+      "note": "Deux contributions arrondies separement : la part patronale 1,11 (0,34 + 0,77) et la part salariale 0,12 (Paramètres Audiens 2026 p. 4). Ex. brut 520 -> 5,77 + 0,62 = 6,39 ; brut 480 -> 5,33 + 0,58 = 5,91."
     },
     {
       "bloc78": "43",
@@ -1729,40 +1729,6 @@
     },
     "note": "La majoration de 0,5 % de la contribution patronale d'assurance chômage (cotisation 041), dans le taux de la ligne « Chômage » : seulement pour un CDD d'usage de trois mois au plus (droit::majoration_chomage). Elle n'est pas due non plus quand le salarié est embauché en CDI à l'issue du contrat : le moteur ne le sait pas à la paie."
   },
-  "taux_chomage_aem": [
-    {
-      "valeur": 12.15,
-      "source": {
-        "sources": [
-          {
-            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-annexe10-convention-20241115.txt",
-            "emetteur": "unedic",
-            "article": "annexe X du 15/11/2024, art. 50, § 1er",
-            "citation": "est fixé à 5 % à la charge des employeurs et 2,40 % à la charge des salariés"
-          },
-          {
-            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
-            "emetteur": "unedic",
-            "article": "circulaire 2025-05, § 2.1.1, l. 233",
-            "citation": "La majoration de 0,5 % des contributions dues par les employeurs au titre des CDD visés à l'article"
-          },
-          {
-            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
-            "emetteur": "boss",
-            "article": "COT_CH_UN_METROP (2026)",
-            "citation": ";4;01/01/2026;//;OK"
-          },
-          {
-            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
-            "emetteur": "urssaf",
-            "article": "CTP 937 AGS",
-            "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
-          }
-        ],
-        "raisonnement": "Le taux total de l'AEM est la somme des contributions : BOSS, employeur de droit commun 4 % au 01/01/2026 ; Unédic, annexes VIII et X, 5 % employeur et 2,40 % salarié, majoration de 0,5 % des CDD d'usage d'au plus trois mois ; Urssaf, AGS 0,25 % : 4 + 5 + 0,5 + 0,25 + 2,40 = 12,15."
-      }
-    }
-  ],
   "cotisation_prevoyance_retraite_supp": {
     "taux_sur_brut": 1.23,
     "source": {
@@ -2669,8 +2635,8 @@
           "affectation": "203",
           "organisme": "INTERBRANCHE",
           "composants": [
-            0.42,
-            0.81
+            1.11,
+            0.12
           ],
           "source": {
             "sources": [

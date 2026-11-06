@@ -1468,7 +1468,7 @@ depuis le plus recent.",
 
     /// LE TAUX AT/MP DE L'ANNEE `an` TEL QUE LE BAREME LE LIT (`bareme_brut_sans_cache`) : celui que la surcouche de
     /// l'annee dit (`config/baremes/<an>.json`, `taux_atmp`), sinon celui qui se reprend d'une annee d'avant
-    /// (`taux_atmp_reporte`, qui porte `_reporte_de`). `Some(Err)` : pourquoi il ne se reprend pas, ou la surcouche
+    /// (`taux_atmp_reporte`, qui porte `reporte_de`). `Some(Err)` : pourquoi il ne se reprend pas, ou la surcouche
     /// illisible ; `None` : rien de dit ni d'avant. Tout ce qui demande « le taux de l'annee est-il pose ? » lit ici.
     pub fn taux_atmp_de(&self, an: i32) -> Option<Result<TauxAtmpEcrit, String>> {
         let p = self.racine.join(BAREMES).join(format!("{}.json", an));

@@ -26,7 +26,7 @@ use socle::num::Decimal;
 use documents::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
 
 /// La marque d'un taux que le moteur a pose a la creation (et que personne n'a encore change).
-const POSE_A_LA_CREATION: &str = "_pose_a_la_creation";
+const POSE_A_LA_CREATION: &str = "pose_a_la_creation";
 
 fn surcouche(racine: &Path, an: i64) -> std::path::PathBuf {
     racine.join(droit::contexte::BAREMES).join(format!("{}.json", an))
@@ -152,7 +152,7 @@ pub(crate) fn poser(ctx: &Contexte, an: i64, code: &str, valeur: Option<Decimal>
 /// LE CODE ET LE TAUX QUE LA CARSAT NOTIFIE (retour DSN de nature 34, `envois::retours::taux_atmp_d_octets`) se posent
 /// d'eux-memes dans la surcouche de l'annee de leur date d'effet : la compagnie n'a rien a recopier. Effet au 1er janvier :
 /// le taux de l'annee. Effet en cours d'annee : `valeur` devient la liste datee `[{depuis, valeur}]`, le taux d'avant
-/// (dit pour l'annee, ou repris) jusqu'a la date d'effet (`droit::bareme::taux_atmp_au`, et le bareme a la date). `_notification`
+/// (dit pour l'annee, ou repris) jusqu'a la date d'effet (`droit::bareme::taux_atmp_au`, et le bareme a la date). `notification`
 /// garde le jour de la notification et la date d'effet ; une notification plus ancienne que celle deja posee ne remplace
 /// rien. `Ok(Some(phrase))` : rien n'est pose, et la phrase dit pourquoi et quoi faire (un changement de code en cours
 /// d'annee, que la configuration ne date pas).
@@ -164,7 +164,7 @@ pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie
     }
     let deja = crate::routes::fiches::lire_tolerant(&surcouche(&ctx.racine, an))?.and_then(|v| v.get("taux_atmp").and_then(Value::as_object).cloned());
     let calcul = n.date_calcul.map(|j| j.iso()).unwrap_or_default();
-    if let Some(avant) = deja.as_ref().and_then(|t| t.get("_notification")).and_then(|x| x.get("calcul")).and_then(Value::as_str) {
+    if let Some(avant) = deja.as_ref().and_then(|t| t.get("notification")).and_then(|x| x.get("calcul")).and_then(Value::as_str) {
         if !calcul.is_empty() && avant > calcul.as_str() {
             return Ok(None);
         }
@@ -199,7 +199,7 @@ pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie
     m.insert("valeur".into(), valeur);
     m.insert("code_risque".into(), json!(code));
     m.insert("note".into(), json!(source));
-    m.insert("_notification".into(), json!({"le": le, "calcul": calcul, "effet": n.date_effet.iso()}));
+    m.insert("notification".into(), json!({"le": le, "calcul": calcul, "effet": n.date_effet.iso()}));
     ecrire(&ctx.racine, an, m)?;
     Ok(None)
 }

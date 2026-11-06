@@ -2273,16 +2273,16 @@
    "Superviseur d'effets spéciaux image": {
     "filiere": "C",
     "niveau": "IIIA",
-    "fiction": 1074.18,
-    "flux": 1046.03,
-    "autre": 1035.67
+    "fiction": 1192.07,
+    "flux": 1174.46,
+    "autre": 1174.46
    },
    "Superviseur d'effets spéciaux postproduction": {
     "filiere": "E",
     "niveau": "IIIA",
-    "fiction": 1192.07,
-    "flux": 1174.46,
-    "autre": 1174.46
+    "fiction": 1074.18,
+    "flux": 1046.03,
+    "autre": 1035.67
    },
    "Tapissier de décor": {
     "filiere": "B",
@@ -2700,8 +2700,8 @@
    "Staffeur de décor": 2169.35,
    "Storyboarder": 2169.35,
    "Styliste": 2048.83,
-   "Superviseur d'effets spéciaux image": 2530.91,
-   "Superviseur d'effets spéciaux postproduction": 2651.43,
+   "Superviseur d'effets spéciaux image": 2651.43,
+   "Superviseur d'effets spéciaux postproduction": 2530.91,
    "Tapissier de décor": 2169.35,
    "Technicien de développement web": 1959.61,
    "Technicien instruments (backliner)": 2386.53,
