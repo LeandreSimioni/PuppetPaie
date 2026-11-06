@@ -335,7 +335,7 @@ type CacheDesFormes = Mutex<HashMap<(PathBuf, TypeId), (Arc<Vec<u8>>, Forme)>>;
 pub fn partagee<T: DeserializeOwned + Send + Sync + 'static>(chemin: &Path, phrase: &str) -> Resultat<Option<Arc<T>>> {
     static CACHE: OnceLock<CacheDesFormes> = OnceLock::new();
     let cle = (chemin.to_path_buf(), TypeId::of::<T>());
-    let en_t = |f: Forme| f.downcast::<T>().map_err(|_| format!("{} : une forme rangee sous un autre type", chemin.display()));
+    let en_t = |f: Forme| f.downcast::<T>().map_err(|_| "Une forme partagée n'a pas le type de sa lecture : le signaler au développeur.".to_string());
     if let Some(lu) = GESTE.with(|g| g.borrow().as_ref().and_then(|l| l.get(&cle).cloned())) {
         return lu.map(en_t).transpose();
     }
