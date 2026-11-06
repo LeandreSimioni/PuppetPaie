@@ -177,6 +177,8 @@ dans `atelier/sources`) ne se lance qu'**une fois par séance, à la fin, par l'
 que les binaires qu'il nomme (`-E 'binary(routes)'`). Avant la suite, `rm -rf "${CARGO_TARGET_DIR:-target}/tmp"`
 (les dossiers de travail des tests, ~3 Go).
 
+- **On compile peu** : pendant le travail, `cargo check` (les types, sans fabriquer le programme) ; la compilation
+  complète et les tests seulement à la fin d'une étape et du lot. Une référence déjà fabriquée ne se refait pas.
 - **Le nombre de tests ne monte pas** : un test par règle d'un texte déposé, un par bug réel échappé, un rejeu par
   fictive ; **les tests de structure sont les bienvenus** ; un test qui fige un détail ne s'écrit pas. Un test monte sa
   propre compagnie (`outils::dossier_de_test`).
