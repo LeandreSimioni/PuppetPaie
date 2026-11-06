@@ -27,7 +27,7 @@ fn un_engagement_en_saisie_ne_change_pas_la_dsn() {
     let s = saisie(&c, "2026-11");
     let spectacle = s["engagements"][0]["spectacle"].clone();
     let nouveau = json!({
-        "salarie": "FULLER", "spectacle": spectacle, "metier": "ACC010",
+        "salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": spectacle, "metier": "ACC010",
         "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}],
     });
     reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": nouveau}), jour));

@@ -15,7 +15,7 @@ fn un_technicien_ne_se_paie_pas_au_service() {
     // Les Faisceaux le 20/02/2026 : CRAIG est technicien.
     let (_, c) = rejouer("faisceaux-sans-civilite", &d);
     let ligne = |rubrique: &str, quantite: u32, taux: f64, heures: u32| {
-        json!({"mois": "2026-03", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete",
+        json!({"mois": "2026-03", "saisie": {"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
             "lignes": [{"rubrique": rubrique, "quantite": quantite, "taux": taux, "heures": heures, "dates": ["2026-03-10"]}]}})
     };
     let (_, phrase) = refus(&route(&c, "valider-engagement", ligne("repetition", 2, 70.0, 4), "2026-02-25"));
@@ -28,7 +28,7 @@ fn un_technicien_ne_se_paie_pas_au_service() {
     reussi(&route(&c, "valider-engagement", ligne("heure", 8, 17.5, 1), "2026-02-25"));
     // UN ARTISTE CADRE AU CACHET SE PAIE (le bug : « Il manque une donnée attendue », cle apec_t2_journaliere) : le metteur
     // en scene, cadre (3090, art. 6.3), paie l'Apec au-dela de la T1 journaliere, une base de tout le contrat.
-    let mes = json!({"mois": "2026-04", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete", "metier": "MET040",
+    let mes = json!({"mois": "2026-04", "saisie": {"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete", "metier": "MET040",
         "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 400.0, "dates": ["2026-04-10", "2026-04-11"]}]}});
     reussi(&route(&c, "valider-engagement", mes, "2026-02-25"));
 }

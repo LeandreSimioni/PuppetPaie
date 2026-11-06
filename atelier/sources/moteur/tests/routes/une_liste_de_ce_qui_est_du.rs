@@ -22,7 +22,7 @@ fn les_rappels_et_l_echeancier_disent_la_meme_chose() {
     reussi(&route(
         &c,
         "valider-engagement",
-        json!({"mois": "2026-01", "saisie": {"salarie": "FULLER", "spectacle": "le-banc-des-menteurs",
+        json!({"mois": "2026-01", "saisie": {"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs",
             "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-01-20", "2026-01-21"]}]}}),
         "2026-01-05",
     ));

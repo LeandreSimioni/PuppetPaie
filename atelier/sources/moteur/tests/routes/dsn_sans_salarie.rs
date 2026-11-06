@@ -26,7 +26,7 @@ fn l_horloge_depose_la_dsn_d_un_mois_sans_engagement() {
     reussi(&route(
         &c,
         "valider-engagement",
-        json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "spectacle": "nuits-d-ete",
+        json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
             "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}]}}),
         "2026-01-05",
     ));

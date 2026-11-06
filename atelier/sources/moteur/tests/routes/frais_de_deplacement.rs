@@ -40,7 +40,7 @@ fn le_repas_et_la_nuitee_au_dela_de_leur_limite_entrent_dans_l_assiette() {
             }
             lignes.push(l);
         }
-        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes});
+        let saisie = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": lignes});
         reussi(&route(&c, "apercu", json!({"mois": "2026-11", "cartes": [{"saisie": saisie}]}), "2026-11-02"))["paies"][0].clone()
     };
     let ligne = |p: &Value, code: &str| p["remuneration"].as_array().and_then(|l| l.iter().find(|x| x["rubrique"] == code)).cloned();
@@ -88,7 +88,7 @@ fn le_repas_et_la_nuitee_au_dela_de_leur_limite_entrent_dans_l_assiette() {
             }
             lignes.push(l);
         }
-        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes});
+        let saisie = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": lignes});
         reussi(&route(&c, "apercu", json!({"mois": "2026-11", "cartes": [{"saisie": saisie}]}), "2026-11-02"))["paies"][0].clone()
     };
     // Outre-mer : arrêté du 3 juillet 2006, art. 1, a)

@@ -210,7 +210,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     };
     let paie_du_second = || -> Value { outils::paie_ecrite(&racine, "2026-11", "FULLER", Some("FU1.26.02")) };
 
-    let second = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
+    let second = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
     outils::reussi(&outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "saisie": second}), jour));
     assert_eq!(documents(), ["fait", "a_faire"], "le bulletin du contrat ajoute est a envoyer, celui du premier est parti");
     outils::reussi(&outils::route(&racine, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), jour));
@@ -224,7 +224,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     // « Modifier l'engagement » : sans changement, rien ne s'ecrit et rien ne se dit ; son bulletin parti, le changement
     // vient avec l'avertissement et rien ne s'ecrit sans la confirmation.
     let modifier = |lignes: Value, confirme: bool| {
-        let saisie = json!({"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes});
+        let saisie = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "numero": "FU1.26.02", "lignes": lignes});
         outils::route(&racine, "modifier-engagement", json!({"mois": "2026-11", "confirme": confirme,
             "engagement": outils::identite(&racine, "2026-11", "FULLER", Some("FU1.26.02")), "saisie": saisie}), jour)
     };

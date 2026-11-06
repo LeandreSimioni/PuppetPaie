@@ -450,15 +450,27 @@ impl Importe {
         &self.pieces().paies
     }
 
-    /// La nature du contrat : celle qui a ete dite (l'engagement), sinon celle que la piece atteste.
+    /// La nature du contrat : celle qui a ete dite (l'engagement), sinon celle que la piece atteste ; une piece qui ne la
+    /// porte pas et ne la laisse pas a dire est celle d'un contrat d'usage : son bulletin porte une marque du spectacle
+    /// (numero d'objet ou Congés Spectacles, `moteur::import::bulletins` ; seul celui qui n'en a aucune la laisse a dire).
+    /// `None` : elle reste a dire (`a_dire`).
     pub fn nature(&self) -> Option<String> {
+        match self.nature_dite() {
+            Some(n) => Some(n),
+            None if self.contrat().is_some_and(|c| c.nature_a_dire) => None,
+            None => Some(crate::carte::CDDU.to_string()),
+        }
+    }
+
+    /// La nature dite (l'engagement) ou attestee (la piece) ; `None` : ni l'un ni l'autre ne la porte.
+    fn nature_dite(&self) -> Option<String> {
         Some(Carte::texte(&self.carte().nature)).filter(|n| !n.is_empty()).or_else(|| self.contrat().and_then(|c| c.nature.clone()))
     }
 
     /// Sa nature reste-t-elle a dire ? Le bulletin d'un permanent ne la porte pas (`nature_a_dire`), et personne ne l'a
     /// dite.
     pub fn a_dire(&self) -> bool {
-        self.nature().is_none() && self.contrat().is_some_and(|c| c.nature_a_dire)
+        self.nature().is_none()
     }
 
     /// Le contrat d'un permanent : paye au mois, ou de nature encore a dire.
@@ -512,7 +524,7 @@ impl Importe {
     /// Le contrat atteste, avec les bornes de l'engagement. La nature dite est celle du contrat : il n'attend plus rien.
     pub fn contrat_lu(&self) -> Option<ContratLu> {
         let mut contrat = self.contrat()?.clone();
-        if let Some(n) = self.nature() {
+        if let Some(n) = self.nature_dite() {
             contrat.nature_a_dire = false;
             contrat.nature = Some(n);
         }

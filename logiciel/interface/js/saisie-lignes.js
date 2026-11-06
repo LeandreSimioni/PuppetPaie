@@ -855,14 +855,9 @@ function construireCarte(div, e) {
           <div class="e-qui-liste"></div>
         </details>
       </div>
-      <!-- LA NATURE DU CONTRAT. Elle ne se devine pas : un
-           engagement muet est un CDDU du spectacle, et c'est ce qu'ont été
-           les 146 contrats de l'historique. Ce qui manquait, c'était de
-           pouvoir dire AUTRE CHOSE — tant qu'elle n'était pas ici, un
-           permanent n'avait aucun endroit où exister dans cet écran, et
-           donnees/contrats-base.json le savait tout seul. Elle change la
-           forme du bloc : un permanent n'a ni spectacle ni cachets, il a un
-           salaire au mois et des faits. -->
+      <!-- LA NATURE DU CONTRAT, écrite sur la carte dès l'ouverture (`nouvelle_carte` de la route etat), et une case
+           seulement là où elle se choisit. Elle change la forme du bloc : un permanent n'a ni spectacle ni cachets, il a
+           un salaire au mois et des faits (`natures[].carte`). -->
       <label class="e-nature-bloc">Nature
         <select class="e-nature"></select></label>
       <label class="e-spectacle-bloc">Spectacle
@@ -1116,7 +1111,7 @@ function construireCarte(div, e) {
     (n) => `<option value="${echapper(n.cle)}" title="${echapper(n.aide || "")}">${echapper(n.libelle)}</option>`).join(""));
   // Le nom court se lit ; ce qu'il veut dire est dans l'aide du champ, nature par nature.
   div.querySelector(".e-nature-bloc").title = (ETAT.natures || []).filter((n) => n.aide).map((n) => `${n.libelle} : ${n.aide}`).join("\n");
-  selNat.value = e.nature || ETAT.nature_defaut || "";
+  selNat.value = e.nature || "";
   selNat.onchange = () => { viderBornes(div); majNature(div); rafraichirApercu(); };
   const selSpec = div.querySelector(".e-spectacle");
   poserSpectacles(selSpec);
@@ -1233,10 +1228,8 @@ function construireCarte(div, e) {
   }
   majContrat(div);
   majNature(div);
-  // La Nature ne se montre que s'il y a un choix : sans permanents, la
-  // compagnie n'a que le contrat d'usage, et une case à un seul choix n'en
-  // est pas une.
-  div.querySelector(".e-nature-bloc").hidden = (ETAT.natures || []).length <= 1;
+  // Ce qui ne se choisit pas n'a pas de case : la nature se change seulement là où le moteur le dit.
+  div.querySelector(".e-nature-bloc").hidden = !ETAT.nouvelle_carte.nature_au_choix;
   div.querySelector(".e-viser-btn").onclick = (ev) => {
     ev.preventDefault();
     const c = div.querySelector(".e-chiffres");
@@ -1263,14 +1256,11 @@ function construireCarte(div, e) {
   return div;
 }
 
-/** La nature d'un engagement, telle que `contrats-base.json` la décrit.
- *  Un engagement muet est un CDDU du spectacle : c'est le défaut du moteur,
- *  et la page prend le même — elle ne le redéfinit pas. */
+/** La nature d'un engagement, telle que `contrats-base.json` la décrit. Une carte la dit toujours : elle s'ouvre
+ *  dans la nature choisie (`nouvel-engagement`). */
 function natureDe(cle) {
-  const natures = ETAT.natures || [];
-  return natures.find((n) => n.cle === (cle || ETAT.nature_defaut))
-      || natures.find((n) => n.cle === ETAT.nature_defaut)
-      || { cle: "", libelle: "", mensuelle: false, spectacle: true,
+  return (ETAT.natures || []).find((n) => n.cle === cle)
+      || { cle: "", libelle: "", mensuelle: false, spectacle: false,
            signalement_fctu: false, signalement_par_motif: {}, motifs_rupture: [] };
 }
 
@@ -1700,8 +1690,10 @@ function bornesLues(div) {
   return div._bornes || { debut: "", fin: "" };
 }
 
+/* UNE CARTE NEUVE S'OUVRE DANS LA NATURE QUE LE MOTEUR DIT (`nouvelle_carte` de la route etat), écrite sur elle dès
+   l'ouverture. */
 document.getElementById("ajouter-engagement").onclick = () => {
-  document.getElementById("engagements").appendChild(ligneEngagement());
+  document.getElementById("engagements").appendChild(ligneEngagement({ nature: ETAT.nouvelle_carte.nature }));
   rafraichirApercu();
 };
 

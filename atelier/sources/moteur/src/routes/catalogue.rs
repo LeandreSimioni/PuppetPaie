@@ -6,6 +6,8 @@
 
 use serde_json::{json, Value};
 
+use engagement::carte::{CarteValide, Exige, NatureDecrite};
+
 pub use crate::routes::affiche::Affiche;
 
 /// LES ROUTES, chacune une fois, par son nom : celui de `/api/<route>` et de `moteur route`. Une variante par fiche du
@@ -429,6 +431,12 @@ fn cases_de_la_fin(charge: &[Champ]) -> &'static [Champ] {
     if charge.iter().any(|c| c.nom == "saisie") { CASES_DE_LA_FIN } else { &[] }
 }
 
+/// LES NATURES D'UNE CARTE ET LEURS CASES, tirees du type (`engagement::carte::CarteValide::natures`), pour une fiche dont
+/// la charge porte une carte (`saisie`) ; aucune sinon.
+fn natures_de_la_carte(charge: &[Champ]) -> Vec<NatureDecrite> {
+    if charge.iter().any(|c| c.nom == "saisie") { CarteValide::natures() } else { Vec::new() }
+}
+
 /// Un refus : sa classe, et ce qu'il faut corriger.
 #[derive(Clone, Copy, Debug)]
 pub struct Refus {
@@ -476,6 +484,7 @@ impl Fiche {
             "charge": self.charge.iter().map(|c| c.en_json()).collect::<Vec<_>>(),
             "cases": cases(self.charge).iter().map(|c| c.en_json()).collect::<Vec<_>>(),
             "cases_de_la_fin": cases_de_la_fin(self.charge).iter().map(|c| c.en_json()).collect::<Vec<_>>(),
+            "natures": natures_de_la_carte(self.charge),
             "exemple": serde_json::from_str::<Value>(self.exemple).unwrap_or(Value::Null),
             "rend": self.rend,
             "refus": self.refus.iter().map(|r| json!({"classe": r.classe, "corriger": r.corriger})).collect::<Vec<_>>(),
@@ -503,6 +512,16 @@ impl Fiche {
             t.push_str("  Cases de la fin du contrat (dans saisie, sur la carte de n'importe quel mois du contrat) :\n");
             for c in cases_de_la_fin(self.charge) {
                 t.push_str(&format!("    {} : {}\n", c.nom, c.sens));
+            }
+        }
+        for n in natures_de_la_carte(self.charge) {
+            t.push_str(&format!("  Cases d'une carte {} (dans saisie, nature \"{}\") :\n", n.nature, n.nature));
+            for c in &n.cases {
+                t.push_str(&format!("    {} ({}) : {}\n", c.cle, c.libelle, if c.exige == Exige::Obligatoire { "obligatoire" } else { "facultative, null si rien n'est dit" }));
+            }
+            for m in &n.motifs_recours {
+                let en_plus: Vec<&str> = m.cases.iter().map(|c| c.cle).collect();
+                t.push_str(&format!("    motif_recours \"{}\"{}\n", m.code, if en_plus.is_empty() { String::new() } else { format!(" : et {} (facultative)", en_plus.join(", ")) }));
             }
         }
         t.push_str(&format!("  Exemple : echo '{{\"route\":\"{}\",\"charge\":{}}}' | moteur route\n", self.nom(), self.exemple));

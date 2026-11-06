@@ -1261,6 +1261,16 @@ fn faits_de_rupture(n: &Nature, m: &str) -> R<Vec<&'static str>> {
     Ok(faits)
 }
 
+/// UNE CARTE NEUVE S'OUVRE EN CDDU, sa nature ecrite des l'ouverture : le logiciel paie surtout des intermittents, un
+/// permanent s'ajoute rarement. Sa nature ne se change que dans une compagnie qui emploie des salaries au mois (sa fiche
+/// Entreprise, `Contexte::emploie_des_permanents`) ; ailleurs, rien ne se choisit, et la carte n'a pas de case nature.
+/// Changer de nature change la carte de variante (`engagement::carte::CarteValide`) : ses cases sont celles de la nouvelle.
+#[derive(Debug, Clone, serde::Serialize)]
+struct NouvelleCarte {
+    nature: &'static str,
+    nature_au_choix: bool,
+}
+
 /// UNE NATURE DE CONTRAT telle que l'ecran la propose : ce que `contrats-base.json` en dit, et ce que la page en tire sans
 /// rien decider (les faits a demander et le signalement, motif par motif ; ses mots).
 #[derive(Debug, Clone, serde::Serialize)]
@@ -1268,6 +1278,9 @@ struct NatureDeLaPage {
     cle: String,
     libelle: String,
     aide: String,
+    /// Les cases de sa carte, obligatoires ou facultatives, et ce que chaque motif de recours porte en plus, tirees du
+    /// type (`engagement::carte::CarteValide::natures`) : ce que la page montre, et seulement cela.
+    carte: engagement::carte::NatureDecrite,
     mensuelle: bool,
     duree_indeterminee: bool,
     /// Un permanent ne se rattache a AUCUN spectacle : le numero d'objet (S21.G00.40.050) est INTERDIT hors des natures 02
@@ -1294,25 +1307,25 @@ struct NatureDeLaPage {
 /// PAYEES AU MOIS : elles ne descendent que si la fiche entreprise dit employer des permanents.
 fn natures(ctx: &Contexte) -> R<Vec<NatureDeLaPage>> {
     let toutes = natures::natures().map_err(plain)?;
-    let defaut = natures::defaut().map_err(plain)?;
     let permanents = ctx.emploie_des_permanents();
-    let gardees: Vec<&std::sync::Arc<Nature>> = toutes.iter().filter(|n| permanents || !n.mensuelle() || n.cle == defaut).collect();
-    // L'ordre est celui du fichier, le defaut en tete.
-    let premier = gardees.iter().find(|n| n.cle == defaut).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(&defaut)))?;
-    let mut ordre: Vec<&Nature> = vec![premier];
-    ordre.extend(gardees.iter().filter(|n| n.cle != defaut).map(|n| &***n));
+    // L'ordre est celui du fichier.
     let mut sortie = Vec::new();
-    for n in ordre {
+    for n in toutes.iter().filter(|n| permanents || !n.mensuelle()) {
         let motifs = n.motifs_rupture();
         let (mut faits, mut signales) = (BTreeMap::new(), BTreeMap::new());
         for m in motifs {
             faits.insert(m.code.clone(), faits_de_rupture(n, &m.code)?);
             signales.insert(m.code.clone(), n.signalement_fctu(Some(&m.code)));
         }
+        let carte = engagement::carte::CarteValide::natures()
+            .into_iter()
+            .find(|d| d.nature == n.cle)
+            .ok_or_else(|| erreur("KeyError", format!("Le logiciel ne sait pas saisir un {}.", n.libelle)))?;
         sortie.push(NatureDeLaPage {
             cle: n.cle.clone(),
             libelle: n.libelle.clone(),
             aide: n.aide.clone(),
+            carte,
             mensuelle: n.mensuelle(),
             duree_indeterminee: n.duree_indeterminee,
             spectacle: n.interdit("S21.G00.40.050").map_or(true, |s| s.is_empty()),
@@ -1454,7 +1467,7 @@ pub struct EtatDeLaPage {
     familles_emplois: Vec<String>,
     emplois_autres: Vec<super::metiers::MetierAutre>,
     natures: Vec<NatureDeLaPage>,
-    nature_defaut: String,
+    nouvelle_carte: NouvelleCarte,
     types_preavis: Vec<droit::preavis::TypePreavis>,
     aides: Aides,
     transaction: Vec<droit::preavis::Code>,
@@ -1559,10 +1572,9 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         // Les metiers des autres conventions : on les AJOUTE a son deroulant,
         // ils n'y sont pas d'office.
         emplois_autres: super::metiers::metiers_autres_conventions(ctx)?,
-        // LES NATURES DE CONTRAT. Un engagement qui ne dit rien est un CDDU du
-        // spectacle : c'est le defaut que l'ecran garde.
+        // LES NATURES DE CONTRAT : celles que la compagnie engage (une carte dit toujours la sienne).
         natures: natures(ctx)?,
-        nature_defaut: natures::defaut().map_err(plain)?,
+        nouvelle_carte: NouvelleCarte { nature: engagement::carte::CDDU, nature_au_choix: ctx.emploie_des_permanents() },
         types_preavis,
         aides: Aides(AIDES),
         transaction,

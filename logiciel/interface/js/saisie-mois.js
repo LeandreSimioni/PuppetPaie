@@ -100,8 +100,9 @@ function engagementDuBloc(div, mois) {
   if (!salarie) return undefined;
   // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ : celui de la carte s'il est le sien.
   const numero = div.dataset.numeroDe === salarie ? numeroDuBloc : "";
-  const e = { salarie, spectacle };
-  if (nat.cle) e.nature = nat.cle;
+  // Une carte dit sa nature ; un permanent n'a pas de spectacle (`natures[].carte` de la route etat).
+  const e = { salarie, nature: nat.cle };
+  if (!nat.mensuelle) e.spectacle = spectacle;
   if (debut) e.debut = debut;
   if (fin) e.fin = fin;
   if (numero) e.numero = numero;

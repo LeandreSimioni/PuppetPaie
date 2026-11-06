@@ -19,7 +19,7 @@ fn une_journee_de_plus_de_24_heures_se_refuse_et_plus_de_10_heures_se_dit() {
     let (_, c) = rejouer_dossier(&sc, &d);
     let jour = "2026-11-02";
     let spectacle = saisie(&c, "2026-11")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap()["spectacle"].clone();
-    let regie = |heures: i64| json!({"salarie": "FULLER", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": heures, "taux": 19, "dates": ["2026-11-28"]}]});
+    let regie = |heures: i64| json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": spectacle, "lignes": [{"rubrique": "heure", "quantite": heures, "taux": 19, "dates": ["2026-11-28"]}]});
     let carte = |heures: i64, id: &Value| json!({"mois": "2026-11", "saisie": regie(heures), "engagement": id});
 
     let id = reussi(&route(&c, "enregistrer-saisie", carte(25, &Value::Null), jour))["engagement"].clone();

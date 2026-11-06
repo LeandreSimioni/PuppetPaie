@@ -133,7 +133,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "l'identité de la carte ; absente pour une carte neuve", avance: false },
             super::engagement::SAISIE,
         ],
-        exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
+        exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","nature":"cddu_spectacle","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
         rend: "engagement (l'identité écrite), a_completer (ce qui lui manque, ou null), enregistre_a",
         refus: &[OPERATION, FORME, MANQUE],
         acte: Acte::Ecrit,
@@ -151,7 +151,7 @@ pub const ROUTES: &[Fiche] = &[
             Champ { nom: "cible", libelle: Affiche::new("Net, brut ou coût"), forme: Forme::Texte, sens: "net, brut ou cout", avance: false },
             Champ { nom: "montant", libelle: Affiche::new("Montant voulu"), forme: Forme::Nombre, sens: "le montant voulu, en euros", avance: false },
         ],
-        exemple: r#"{"mois":"2026-11","cartes":[{"engagement":null,"saisie":{"salarie":"FULLER","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-21"]}]}}],"carte":0,"cible":"brut","montant":200}"#,
+        exemple: r#"{"mois":"2026-11","cartes":[{"engagement":null,"saisie":{"salarie":"FULLER","nature":"cddu_spectacle","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-21"]}]}}],"carte":0,"cible":"brut","montant":200}"#,
         rend: "phrase (ce qui est atteint, et le taux qu'il faudrait), vise, atteint, ecart, engagements (les taux qui changent), paies ; rien n'est écrit",
         refus: &[OPERATION, FORME, SAISIE_INCOMPLETE],
         acte: Acte::Lit,
@@ -294,6 +294,7 @@ struct EnCours {
 /// cachets a dater.
 #[derive(Debug, Serialize)]
 struct Reprise {
+    nature: &'static str,
     salarie: IdSalarie,
     #[serde(skip_serializing_if = "Option::is_none")]
     spectacle: Option<String>,
@@ -663,6 +664,8 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
             None => dernier_taux(ctx).ok().flatten(),
         };
         let engagement = Reprise {
+            // Un contrat qui continue ici est un contrat d'usage (`importe::Importe::continue_apres` : jamais un permanent).
+            nature: engagement::carte::CDDU,
             salarie: fiche.id.clone(),
             spectacle: spectacle.clone(),
             debut: debut.clone(),

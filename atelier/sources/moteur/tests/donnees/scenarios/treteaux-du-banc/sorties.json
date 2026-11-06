@@ -483,7 +483,7 @@
       "quoi": "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).",
       "le": "2026-12-16",
       "mois_faits": {
-        "2026-11": "219097fc40d23c96"
+        "2026-11": "1b0e9b48273919a5"
       },
       "annees_faites": [
         2026
@@ -1108,6 +1108,7 @@
             "carte": {
               "salarie": "FULLER",
               "spectacle": "le-banc-des-menteurs",
+              "nature": "cddu_spectacle",
               "numero": "FU1.26.01",
               "lignes": [
                 {
@@ -1132,6 +1133,7 @@
               "carte": {
                 "salarie": "FULLER",
                 "spectacle": "le-banc-des-menteurs",
+                "nature": "cddu_spectacle",
                 "numero": "FU1.26.01",
                 "lignes": [
                   {
@@ -2075,7 +2077,7 @@
                 "imprevus racine:imprevus FULLER": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
                 "moteur": "<moteur>",
                 "pas FULLER 2026-11-30 2026-11": "[\"8.30\",\"01\",\"442936195\"]",
-                "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
+                "saisie 2026-11 FULLER": "e0ad37804bbfa6e0f816dbaa7e0da47844374179868ad0b6bcde25d23ebfa70c:8b6d46c1d3350392e917751998f5afc1120968a9d957f890646bbedbaf1235d7"
               },
               "regles": [
                 "2026-06-01",

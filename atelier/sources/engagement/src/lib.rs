@@ -13,6 +13,7 @@
 
 pub mod cachet;
 pub mod calcul;
+pub mod carte;
 pub mod conges;
 pub mod cumul;
 pub mod duree;
@@ -899,14 +900,66 @@ pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&str>) -> String {
     }
 }
 
+/// CE QUE LA NATURE DECIDE D'UN ENGAGEMENT, lu de la variante de sa carte valide par un `match` exhaustif : un CDDU joue
+/// un spectacle et se paie au cachet, au taux du mois quand sa carte n'en dit pas ; un contrat paye au mois dit ses heures
+/// (et un CDD son motif). Ce qu'une nature n'a pas n'est rien.
+struct Termes {
+    spectacle: Option<String>,
+    taux_cachet: Option<Chiffre>,
+    quotite_contrat: Option<Chiffre>,
+    quotite_reference: Option<Chiffre>,
+    modalite_temps_travail: Option<String>,
+    motif_recours: Option<String>,
+    personne_remplacee: Option<String>,
+    repartition_horaire: Option<String>,
+}
+
+impl Termes {
+    fn de(v: &carte::CarteValide, cachet_du_mois: &Option<Chiffre>) -> Termes {
+        let n = |x: &NombreLu| Chiffre::Nombre(x.clone());
+        match v {
+            carte::CarteValide::CdduSpectacle(c) => Termes {
+                spectacle: Some(c.spectacle.clone()),
+                taux_cachet: match &c.taux_cachet {
+                    Some(t) => Some(n(t)),
+                    None => cachet_du_mois.clone(),
+                },
+                quotite_contrat: None,
+                quotite_reference: None,
+                modalite_temps_travail: None,
+                motif_recours: None,
+                personne_remplacee: None,
+                repartition_horaire: None,
+            },
+            // Un contrat payé au mois ne prend pas le cachet par défaut du mois : son calcul ne le lit pas, et sa paie ne
+            // se recalcule pas quand il change.
+            carte::CarteValide::Cdi(c) => Termes {
+                spectacle: None,
+                taux_cachet: None,
+                quotite_contrat: Some(n(&c.quotite_contrat)),
+                quotite_reference: c.quotite_reference.as_ref().map(n),
+                modalite_temps_travail: c.modalite_temps_travail.clone(),
+                motif_recours: None,
+                personne_remplacee: None,
+                repartition_horaire: c.repartition_horaire.clone(),
+            },
+            carte::CarteValide::Cdd(c) => Termes {
+                spectacle: None,
+                taux_cachet: None,
+                quotite_contrat: Some(n(&c.quotite_contrat)),
+                quotite_reference: c.quotite_reference.as_ref().map(n),
+                modalite_temps_travail: c.modalite_temps_travail.clone(),
+                motif_recours: Some(c.motif_recours.code().to_string()),
+                personne_remplacee: c.motif_recours.personne_remplacee().cloned(),
+                repartition_horaire: c.repartition_horaire.clone(),
+            },
+        }
+    }
+}
+
 /// Ce que `conges::lignes_du_mois` rend pour un engagement paye
 /// au mois : les lignes de paie du mois, ce qu'il y a a en dire, et ses jours travailles (`None` : la saisie les dit).
 pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &saisie::Carte, &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)>;
-
-/// Un nombre dit et non nul.
-fn nombre_dit(x: &Option<NombreLu>) -> bool {
-    x.as_ref().is_some_and(|n| n.en_f64() != 0.0)
-}
 
 /// Les engagements d'un fichier de mois,
 /// construits avant tout calcul. `lignes_permanent` fournit les lignes d'un
@@ -923,7 +976,11 @@ pub(crate) fn engagements(
     let (mut out, mut dits) = (Vec::new(), Vec::new());
     for carte in &data.engagements {
         let qui = salarie_nomme(ctx, carte.salarie_dit());
-        let nat = carte.nature_lue().map_err(|m| format!("{} : {}", qui, m))?;
+        // Seule une carte valide entre dans le calcul : sa nature dite, ses cases obligatoires remplies, aucune case que
+        // sa nature n'a pas (`carte::CarteValide::depuis`). Ce qui depend de la nature se lit de sa variante.
+        let valide = carte::CarteValide::depuis(carte, &qui)?;
+        let nat = droit::natures::nature(Some(valide.nature())).map_err(|m| format!("{} : {}", qui, m))?;
+        let termes = Termes::de(&valide, &defaut_taux);
         let tarifee;
         let carte = match if nat.mensuelle() { None } else { lignes_au_tarif(ctx, carte.lignes(), &mois_dit)? } {
             Some(lignes) => {
@@ -932,30 +989,6 @@ pub(crate) fn engagements(
             }
             None => carte,
         };
-        let mut spectacle = carte.spectacle.clone().filter(|s| !s.is_empty());
-        // Les heures en plus sont des faits d'un contrat paye au mois (`heures_en_plus`) : ceux d'un contrat d'usage ne
-        // seraient payes par rien.
-        if !nat.mensuelle() {
-            let dites: Vec<&str> = [
-                (heures_en_plus::HEURES_SUPPLEMENTAIRES, &carte.heures_supplementaires),
-                (heures_en_plus::HEURES_SUPPLEMENTAIRES_A_50, &carte.heures_supplementaires_a_50),
-                (heures_en_plus::HEURES_COMPLEMENTAIRES, &carte.heures_complementaires),
-            ]
-            .into_iter()
-            .filter(|(_, x)| nombre_dit(x))
-            .map(|(k, _)| k)
-            .collect();
-            if !dites.is_empty() {
-                return Err(format!(
-                    "{} : {} est un fait d'un contrat payé au mois ; un {} paie ses heures par ses lignes (une ligne « Heure de \
-                     travail », ou « Majoration » pour leur majoration). Retirer {}. Rien n'est écrit.",
-                    qui,
-                    dites.join(", "),
-                    nat.libelle,
-                    if dites.len() > 1 { "ces champs" } else { "ce champ" }
-                ));
-            }
-        }
         if nat.mensuelle() {
             // Employer des permanents se declare.
             if !ctx.emploie_des_permanents() {
@@ -967,42 +1000,14 @@ pub(crate) fn engagements(
                      complémentaire santé de chaque permanent (obligatoire, art. L911-7, le logiciel ne paie pas sans \
                      elle) et, pour un non-cadre de moins d'un an dans l'entreprise, son entrée dans la branche.\n\
                      \x20 Si ce n'était pas voulu : la nature se change sur la carte ; un intermittent au cachet est \
-                     un « CDD d'usage du spectacle », et c'est ce que vaut un engagement qui ne dit pas sa nature.",
+                     un « CDDU ».",
                     qui, nat.libelle
                 ));
             }
-            // Un permanent ne joue pas un spectacle (S21.G00.40.050, CCH-11).
-            if let Some(s) = spectacle.as_deref().filter(|s| !s.is_empty()) {
-                return Err(format!(
-                    "{} : retirez le spectacle ({}) de cet engagement, ou choisissez le CDD d'usage si ce contrat est \
-                     celui d'un spectacle.\n\
-                     Le numéro d'objet spectacle est interdit sur un {} (S21.G00.40.050, CCH-11).",
-                    qui,
-                    s,
-                    nat.libelle
-                ));
-            }
-            spectacle = None;
-        } else if spectacle.as_deref().is_none_or(str::is_empty) {
-            // Un salaire au mois sans nature : c'est la nature qui manque, pas le spectacle (un engagement muet est un
-            // contrat d'usage aux cachets, qui n'a pas de salaire au mois).
-            if !dit(&carte.nature) && (nombre_dit(&carte.salaire_mensuel) || nombre_dit(&carte.quotite_contrat)) {
-                return Err(format!(
-                    "{}{}\nUn engagement qui ne la dit pas est un {}, payé aux cachets ; un salaire au mois est celui d'un \
-                     CDI ou d'un CDD.",
-                    qui, PAS_DE_NATURE, nat.libelle
-                ));
-            }
-            return Err(format!(
-                "{}{}\n\
-                 Le spectacle porte le numéro d'objet, qui part en DSN, en AEM et sur le bulletin : il se choisit, il ne \
-                 se devine pas.",
-                qui, PAS_DE_SPECTACLE
-            ));
         }
         let jours = if nat.mensuelle() { Vec::new() } else { carte.dates(&ctx.racine) };
         // `lignes: []` ecrit est un mois du contrat sans cachet ; une ligne sans date est incomplete.
-        if jours.is_empty() && !nat.mensuelle() && carte.lignes.as_ref().is_none_or(|l| !l.is_empty()) {
+        if jours.is_empty() && !nat.mensuelle() && !carte.lignes().is_empty() {
             return Err(format!("{}{} Sans eux il n'y a ni début, ni fin, ni contrat.", qui, PAS_DE_JOUR));
         }
         if nat.mensuelle() {
@@ -1053,11 +1058,9 @@ pub(crate) fn engagements(
         let ecrit = |x: &Option<String>| x.clone().filter(|s| !s.is_empty());
         let assemble = Assemble {
             salarie: carte.salarie.clone(),
-            spectacle,
+            spectacle: termes.spectacle,
             dates_travail: jours,
-            // Un contrat payé au mois ne prend pas le cachet par défaut du mois : son calcul ne le lit pas, et sa paie ne
-            // se recalcule pas quand il change.
-            taux_cachet: nombre(&carte.taux_cachet).or_else(|| if nat.mensuelle() { None } else { defaut_taux.clone() }),
+            taux_cachet: termes.taux_cachet,
             debut: carte.debut.clone(),
             fin: carte.fin.clone(),
             numero: carte.numero.clone(),
@@ -1077,11 +1080,11 @@ pub(crate) fn engagements(
             // Le libelle que `resoudre` a donne a CE metier, feminin compris ; un `emploi` ecrit a la main dirait un autre
             // metier que lui.
             emploi_affichage: if ecrit(&carte.emploi).is_none() { d.map(|d| d.emploi_affichage.clone()) } else { None },
-            nature: carte.nature.clone(),
-            quotite_contrat: nombre(&carte.quotite_contrat),
-            quotite_reference_saisie: nombre(&carte.quotite_reference).filter(Chiffre::vrai),
-            modalite_temps_travail_saisie: carte.modalite_temps_travail.clone(),
-            motif_recours: carte.motif_recours.clone(),
+            nature: Some(valide.nature().to_string()),
+            quotite_contrat: termes.quotite_contrat,
+            quotite_reference_saisie: termes.quotite_reference.filter(Chiffre::vrai),
+            modalite_temps_travail_saisie: termes.modalite_temps_travail,
+            motif_recours: termes.motif_recours,
             etablissement: carte.etablissement.clone(),
             motif_rupture: carte.motif_rupture.clone(),
             // La fin du contrat telle que la saisie la dit : la mensuelle et le FCTU en tirent le meme S21.G00.62.006
@@ -1091,8 +1094,8 @@ pub(crate) fn engagements(
             date_modification: carte.date_modification.clone(),
             avant: carte.avant.clone(),
             periode_essai_jours: nombre(&carte.periode_essai_jours),
-            personne_remplacee: carte.personne_remplacee.clone(),
-            repartition_horaire: carte.repartition_horaire.clone(),
+            personne_remplacee: termes.personne_remplacee,
+            repartition_horaire: termes.repartition_horaire,
             clauses_particulieres: carte.clauses_particulieres.clone(),
             notification_rupture: None,
             transaction: None,
@@ -1167,15 +1170,14 @@ fn notifiee_pendant_le_contrat(e: &saisie::Carte, eng: &Engagement) -> Resultat<
 /// rien. L'ecran enregistre a chaque frappe, et ces refus montent sous `SaisieIncomplete`
 /// (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message s'ouvre sur le
 /// salarie, puis dit quoi faire.
-const PAS_DE_SPECTACLE: &str = " : choisissez le spectacle que joue cet engagement, sur sa carte.";
-const PAS_DE_NATURE: &str = " : choisissez la nature du contrat, sur sa carte (`nature`).";
+pub(crate) const PAS_DE_NATURE: &str = " : choisissez la nature du contrat, sur sa carte.";
 const PAS_DE_JOUR: &str = " : cochez les jours joués sur sa ligne de paie.";
 const LIGNE_A_DIRE: &str = " : saisissez ";
 const QUANTITE_SANS_COMPTE: &str = " : saisissez un nombre plus grand que zéro";
 /// Une journee de plus de 24 heures (`duree::plus_d_une_journee`) : une faute de frappe, a corriger comme une saisie pas finie.
 pub(crate) const JOURNEE_DE_PLUS_DE_24: &str = ", et une journée n'a que 24 heures";
 const SAISIE_INCOMPLETE: [&str; 7] =
-    [PAS_DE_SPECTACLE, PAS_DE_NATURE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24, crate::maintien::IJ_A_DIRE];
+    [carte::A_REMPLIR, PAS_DE_NATURE, PAS_DE_JOUR, LIGNE_A_DIRE, QUANTITE_SANS_COMPTE, JOURNEE_DE_PLUS_DE_24, crate::maintien::IJ_A_DIRE];
 
 /// LE TARIF DE LA CONVENTION d'une rubrique a ce jour (`tarifs_conventionnels.<code>` de la couche de la convention du
 /// bareme, liste datee : l'avenant qui le fixe et sa date d'effet y sont cites). `None` : la convention n'en fixe pas, ou

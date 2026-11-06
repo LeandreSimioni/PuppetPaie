@@ -1064,8 +1064,8 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Carte, le: Opti
     poser_le_mois(o, mois, &saisie, le)
 }
 
-/// CE QU'UNE CARTE ECRIT, DANS LA FORME ECRITE : ni ce que le moteur tient seul ni ce qu'il deduit ; la nature
-/// seulement si elle n'est pas celle par defaut (un engagement muet a la nature par defaut, `natures::defaut`) ; `cadre`
+/// CE QU'UNE CARTE ECRIT, DANS LA FORME ECRITE : ni ce que le moteur tient seul ni ce qu'il deduit ; sa nature, toujours ;
+/// `cadre`
 /// seulement s'il s'ecarte du defaut du metier au catalogue (`emplois::metier`), et toujours pour un metier dont le
 /// defaut change d'une convention a l'autre (`emplois::Metier::cadre_selon_la_convention`). Une carte ecrite deux fois a
 /// l'identique s'ecrit donc de meme, et sa relecture ne voit aucun changement.
@@ -1073,9 +1073,6 @@ fn poser_sur(ctx: &Contexte, o: &mut Objet, mois: &str, saisie: &Carte, le: Opti
 pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
     // Ce que le moteur deduit, ou tient seul.
     let mut saisie = saisie.sans(&[Groupe::Deduit, Groupe::Vue]);
-    if saisie.nature.as_deref().is_none_or(str::is_empty) || saisie.nature.as_deref() == Some(droit::natures::defaut()?.as_str()) {
-        saisie.nature = None;
-    }
     let catalogue = match saisie.metier.as_deref().filter(|m| !m.is_empty()) {
         Some(m) => droit::emplois::metier(m)
             .ok()
@@ -1088,10 +1085,7 @@ pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
         saisie.cadre = None;
     }
     let dite = |x: &Option<String>| x.as_deref().is_some_and(|x| !x.is_empty());
-    if saisie.nature_lue()?.mensuelle() {
-        // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit (CCH-11).
-        saisie.spectacle = None;
-    } else if saisie.lignes.is_none() && dite(&saisie.debut) && dite(&saisie.fin) {
+    if !saisie.nature_lue()?.mensuelle() && saisie.lignes.is_none() && dite(&saisie.debut) && dite(&saisie.fin) {
         // UN MOIS DU CONTRAT SANS CACHET : un contrat aux bornes dites, sans ligne, s'ecrit `lignes: []` -- la DSN porte
         // le contrat avec un versement a zero, sans bulletin.
         saisie.lignes = Some(Vec::new());

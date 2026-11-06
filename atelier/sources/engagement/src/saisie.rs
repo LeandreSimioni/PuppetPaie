@@ -408,9 +408,15 @@ impl Carte {
         crate::jours_de_lignes(racine, self.lignes())
     }
 
-    /// La nature de son contrat (la nature par defaut quand elle n'en dit pas).
+    /// La nature de son contrat ; une carte qui ne la dit pas se refuse (`crate::PAS_DE_NATURE`).
     pub fn nature_lue(&self) -> Resultat<std::sync::Arc<droit::natures::Nature>> {
-        droit::natures::nature(self.nature.as_deref())
+        match self.nature.as_deref().filter(|n| !n.trim().is_empty()) {
+            Some(n) => droit::natures::nature(Some(n)),
+            None => Err(match self.salarie_dit() {
+                Some(s) => format!("{}{}", s, crate::PAS_DE_NATURE),
+                None => format!("Cet engagement{}", crate::PAS_DE_NATURE),
+            }),
+        }
     }
 
     /// Valide, dans la vue de son mois (un engagement que le calcul compte seulement comme valide ne l'est pas).

@@ -1848,6 +1848,26 @@ fn sans_tests(t: &str) -> String {
     v.join("\n")
 }
 
+/// LA CARTE VALIDE A UNE VARIANTE PAR NATURE DE `contrats-base.json` (`engagement::carte::NATURES`), et le motif de recours
+/// d'un CDD un cas par motif que le fichier offre, la personne remplacee la ou il la nomme (`engagement::carte::Recours`).
+#[test]
+fn la_carte_valide_a_une_variante_par_nature_et_par_motif() {
+    use engagement::carte::{Recours, NATURES};
+    let base: Value = serde_json::from_str(&std::fs::read_to_string(espace().join("../../logiciel/donnees/contrats-base.json")).unwrap()).unwrap();
+    let ecrites: BTreeSet<&str> = base["natures"].as_object().unwrap().keys().map(String::as_str).collect();
+    assert_eq!(ecrites, NATURES.iter().map(|(n, _)| *n).collect::<BTreeSet<_>>(), "une variante de la carte par nature du fichier");
+    for (n, v) in base["natures"].as_object().unwrap() {
+        let offerts: Vec<(&str, bool)> = v["champs"]["S21.G00.40.021"]["valeurs"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|m| (m["code"].as_str().unwrap(), m["personne_remplacee"] == json!(true)))
+            .collect();
+        let declares: Vec<(&str, bool)> = if n == "cdd" { Recours::TOUS.to_vec() } else { Vec::new() };
+        assert_eq!(offerts, declares, "{} : les motifs de recours du fichier sont ceux du type", n);
+    }
+}
+
 /// UNE FORME LUE REFUSE CE QU'ELLE NE CONNAIT PAS : chaque structure derivee de `Deserialize` porte
 /// `#[serde(deny_unknown_fields)]` (atelier/AGENTS.md, « Chaque forme est declaree une fois, en Rust »), ou se lit par une
 /// autre forme qui la porte (`try_from`).
