@@ -473,7 +473,7 @@ pub(crate) fn apercu_lu(
             objets[i].contrats += 1;
         }
     }
-    let mut connus: HashMap<String, String> = HashMap::new();
+    let mut connus: HashMap<String, droit::contexte::IdSpectacle> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
         let n = sp.numero_objet.texte().to_uppercase();
         connus.insert(n, cle.clone());

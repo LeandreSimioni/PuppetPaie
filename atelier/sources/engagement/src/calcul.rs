@@ -2010,7 +2010,7 @@ impl Paie {
             salaire_retabli: self.salaire_retabli,
             salarie: Cle { cle: self.salarie.id.to_string() },
             smic: dec_f64(self.smic)?,
-            spectacle: self.spectacle.as_ref().map(|s| Cle { cle: s.cle.clone() }),
+            spectacle: self.spectacle.as_ref().map(|s| Cle { cle: s.cle.to_string() }),
             total_pat: self.total_pat,
             total_sal: self.total_sal,
             plafond: self.plafond,

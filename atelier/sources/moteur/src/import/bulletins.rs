@@ -677,7 +677,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     }
 
     // 7. Les spectacles, par numero d'objet, avec leur titre quand le bulletin le donne.
-    let mut connus: HashMap<String, String> = HashMap::new();
+    let mut connus: HashMap<String, droit::contexte::IdSpectacle> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
         connus.insert(sp.numero_objet.texte().to_uppercase(), cle.clone());
     }

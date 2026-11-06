@@ -317,7 +317,7 @@ fn comparer_une(
     }
     // Le spectacle que le bulletin nomme ; sans titre, celui dont la fiche porte son numero d'objet.
     let spectacle = (!mensuelle).then(|| {
-        let par_objet = dit(&p.numero_objet).and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.numero_objet.portee() == Some(n.as_str())).map(|(k, _)| k.clone()));
+        let par_objet = dit(&p.numero_objet).and_then(|n| ctx.spectacles.iter().find(|(_, f)| f.numero_objet.portee() == Some(n.as_str())).map(|(k, _)| k.to_string()));
         dit(&p.spectacle).or(par_objet)
     });
     let e = crate::saisie::Carte {

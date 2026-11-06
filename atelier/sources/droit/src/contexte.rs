@@ -1010,6 +1010,95 @@ impl PartialEq<IdSalarie> for String {
     }
 }
 
+/// LA CLE D'UN SPECTACLE : celle de sa fiche dans `config/spectacles.json`, interne au logiciel. Elle se retrouve d'un nom
+/// (titre, alias, numero d'objet) par `Contexte::spectacle`, ou se lit d'un fichier, d'une charge (`lire`, ou `serde` :
+/// la meme chaine) ; un type a part, pour qu'elle ne se confonde pas avec un autre texte. Jamais vide.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize, serde::Serialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct IdSpectacle(String);
+
+impl IdSpectacle {
+    /// La cle ecrite `texte` ; vide, elle se refuse.
+    pub fn lire(texte: &str) -> Resultat<IdSpectacle> {
+        if texte.is_empty() {
+            return Err("cle de spectacle vide".to_string());
+        }
+        Ok(IdSpectacle(texte.to_string()))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for IdSpectacle {
+    type Target = str;
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for IdSpectacle {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::borrow::Borrow<str> for IdSpectacle {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for IdSpectacle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl TryFrom<String> for IdSpectacle {
+    type Error = String;
+    fn try_from(s: String) -> Resultat<IdSpectacle> {
+        IdSpectacle::lire(&s)
+    }
+}
+
+impl From<IdSpectacle> for String {
+    fn from(c: IdSpectacle) -> String {
+        c.0
+    }
+}
+
+impl PartialEq<str> for IdSpectacle {
+    fn eq(&self, autre: &str) -> bool {
+        self.0 == autre
+    }
+}
+
+impl PartialEq<&str> for IdSpectacle {
+    fn eq(&self, autre: &&str) -> bool {
+        self.0 == *autre
+    }
+}
+
+impl PartialEq<String> for IdSpectacle {
+    fn eq(&self, autre: &String) -> bool {
+        self.0 == *autre
+    }
+}
+
+impl PartialEq<IdSpectacle> for &str {
+    fn eq(&self, autre: &IdSpectacle) -> bool {
+        *self == autre.0
+    }
+}
+
+impl PartialEq<IdSpectacle> for String {
+    fn eq(&self, autre: &IdSpectacle) -> bool {
+        *self == autre.0
+    }
+}
+
 /// LA FICHE ENTREPRISE QU'UN DOCUMENT LIT : ses cases, et le dossier `gabarits/` de CETTE compagnie, ou il trouve son
 /// modele, la signature, le logo ou le cachet. La compagnie vient du contexte, jamais d'une variable du processus : la
 /// fenetre sert plusieurs compagnies dans le meme processus.
@@ -1045,7 +1134,7 @@ pub struct Contexte {
     /// Les fiches salaries a `lue_au` (celles qui existaient ce jour-la), dans l'ordre du fichier.
     pub salaries: IndexMap<IdSalarie, FicheSalarie>,
     /// Les fiches spectacles a `lue_au` (celles qui existaient ce jour-la), dans l'ordre du fichier.
-    pub spectacles: IndexMap<String, ChampsSpectacle>,
+    pub spectacles: IndexMap<IdSpectacle, ChampsSpectacle>,
     /// Le taux AT/MP d'une annee qu'une piece atteste, pour une compagnie qui n'en a pas encore pose
     /// (`avec_le_taux_atmp_lu`) ; en memoire seulement.
     atmp_lu: Option<(i32, Decimal)>,
@@ -1095,7 +1184,7 @@ fn lire_fiches(cfg: &Path) -> Resultat<Arc<Fiches>> {
 }
 
 /// Les fiches spectacles a `jour` : celles qui existaient ce jour-la.
-fn spectacles_au(s: &Spectacles, jour: &Jour) -> IndexMap<String, ChampsSpectacle> {
+fn spectacles_au(s: &Spectacles, jour: &Jour) -> IndexMap<IdSpectacle, ChampsSpectacle> {
     s.fiches.iter().map(|(k, f)| (k.clone(), f.au(jour))).filter(|(_, c)| !c.est_vide()).collect()
 }
 
@@ -1683,12 +1772,12 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
                 repr_texte(nom)
             ));
         }
-        let trouve = |cle: &str| Spectacle { cle: cle.to_string(), champs: self.spectacles[cle].clone() };
-        let mut ordre: Vec<(&String, &ChampsSpectacle)> = self.spectacles.iter().collect();
+        let trouve = |cle: &IdSpectacle| Spectacle { cle: cle.clone(), champs: self.spectacles[cle].clone() };
+        let mut ordre: Vec<(&IdSpectacle, &ChampsSpectacle)> = self.spectacles.iter().collect();
         ordre.sort_by_key(|(_, v)| v.archivee()); // stable : les actives d'abord
         let net = nom.trim();
-        if self.spectacles.contains_key(net) {
-            return Ok(trouve(net));
+        if let Some((cle, _)) = self.spectacles.get_key_value(net) {
+            return Ok(trouve(cle));
         }
         let noms_de = |cle: &str, sp: &ChampsSpectacle| -> Resultat<Vec<String>> {
             let mut noms = vec![cle.to_string(), sp.titre.ecrite("titre")?.to_string()];

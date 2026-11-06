@@ -578,7 +578,7 @@ impl Importe {
         let mut engagement = crate::Engagement {
             salarie: cle.clone(),
             nom: crate::qui_de(&sal)?,
-            spectacle: spectacle.clone(),
+            spectacle: spectacle.as_ref().map(|k| k.to_string()),
             dates_travail,
             lignes: lignes_lues.iter().filter_map(LigneImprimee::en_ligne_de_paie).collect(),
             debut,

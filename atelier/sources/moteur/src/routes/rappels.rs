@@ -978,7 +978,7 @@ fn spectacles_a_revoir(ctx: &Contexte, annee: i32, faites: &Cochees) -> Vec<Spec
         .iter()
         .filter(|(_, s)| !s.archivee())
         .map(|(cle, s)| SpectacleARevoir {
-            cle: cle.clone(),
+            cle: cle.to_string(),
             titre: brut_valeur(&Value::String(s.titre.remplie().unwrap_or(cle).to_string())),
             numero_objet: brut_valeur(&s.numero_objet.remplie().map_or(Value::Null, |n| Value::String(n.to_string()))),
         })

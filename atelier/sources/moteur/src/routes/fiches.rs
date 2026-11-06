@@ -1383,7 +1383,7 @@ impl FichierDeFiche {
         Ok(match self {
             FichierDeFiche::Entreprise(e) => e,
             FichierDeFiche::Salaries(s) => s.fiches.entry(droit::contexte::IdSalarie::lire(cle).map_err(plain)?).or_default(),
-            FichierDeFiche::Spectacles(s) => s.fiches.entry(cle.to_string()).or_default(),
+            FichierDeFiche::Spectacles(s) => s.fiches.entry(droit::contexte::IdSpectacle::lire(cle).map_err(plain)?).or_default(),
         })
     }
 

@@ -484,7 +484,7 @@ fn resoudre_noms(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
         resolu.salarie = Some(p.salarie.id.to_string());
         // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit.
         if let Some(sp) = &p.spectacle {
-            resolu.spectacle = Some(sp.cle.clone());
+            resolu.spectacle = Some(sp.cle.to_string());
         }
         // Les lignes d'un permanent sont CALCULEES, pas saisies.
         if !p.engagement.nat()?.mensuelle() {
@@ -640,7 +640,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
             .spectacles
             .iter()
             .find(|(_, s)| !numero_objet.is_empty() && s.numero_objet.portee().is_some_and(|n| n.eq_ignore_ascii_case(&numero_objet)))
-            .map(|(k, _)| k.clone());
+            .map(|(k, _)| k.to_string());
         let taux_cachet = derniere
             .into_iter()
             .flat_map(|p| p.lignes.iter())

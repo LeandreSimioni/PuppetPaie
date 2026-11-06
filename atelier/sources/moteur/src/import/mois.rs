@@ -139,7 +139,7 @@ fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
     }
     ctx.spectacles.iter().find(|(_, s)| s.numero_objet.texte().trim().eq_ignore_ascii_case(numero)).map(|(k, s)| {
         let t = s.titre.texte().trim().to_string();
-        (k.clone(), if t.eq_ignore_ascii_case(A_COMPLETER) { String::new() } else { t })
+        (k.to_string(), if t.eq_ignore_ascii_case(A_COMPLETER) { String::new() } else { t })
     })
 }
 

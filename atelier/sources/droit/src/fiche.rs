@@ -19,7 +19,7 @@ use socle::date::Jour;
 use socle::mois::Mois;
 use socle::num::{Decimal, Resultat};
 
-use crate::contexte::IdSalarie;
+use crate::contexte::{IdSalarie, IdSpectacle};
 
 // ------------------------------------------------------------------ une case
 
@@ -1313,7 +1313,7 @@ impl ChampsSpectacle {
 /// UN SPECTACLE TROUVE (`contexte::Contexte::spectacle`) : sa cle dans `config/spectacles.json`, et sa fiche au jour.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Spectacle {
-    pub cle: String,
+    pub cle: IdSpectacle,
     pub champs: ChampsSpectacle,
 }
 
@@ -1522,7 +1522,7 @@ impl<K: std::hash::Hash + Eq + Serialize, F: Serialize> Serialize for FichierDeF
 pub type Salaries = FichierDeFiches<IdSalarie, FicheSalarieDatee>;
 
 /// `config/spectacles.json`.
-pub type Spectacles = FichierDeFiches<String, FicheSpectacleDatee>;
+pub type Spectacles = FichierDeFiches<IdSpectacle, FicheSpectacleDatee>;
 
 /// LA LECTURE D'UN FICHIER DE FICHES (`config/entreprise.json` en `FicheEntrepriseDatee`, `config/salaries.json` en
 /// `Salaries`, `config/spectacles.json` en `Spectacles`), la seule : `fichier` le nomme dans les refus, qui disent la cle

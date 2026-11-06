@@ -75,8 +75,8 @@ fn a_des_spectacles(ctx: &Contexte) -> bool {
 }
 
 /// Les spectacles (leur cle) que porte un engagement actif, ni importe, dont la nature declare le numero d'objet.
-fn spectacles_declares(ctx: &Contexte) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
+fn spectacles_declares(ctx: &Contexte) -> Vec<droit::contexte::IdSpectacle> {
+    let mut out: Vec<droit::contexte::IdSpectacle> = Vec::new();
     for o in engagement::stock::objets(&ctx.racine).unwrap_or_default() {
         if o.est_non_actif() || o.importe_seul() {
             continue;
@@ -148,7 +148,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // sa nature dans `contrats-base.json`) le porte : rien de remplissable s'il n'y a pas a le remplir.
     for cle in spectacles_declares(ctx) {
         let Some(sp) = ctx.spectacles.get(&cle) else { continue };
-        let titre = sp.titre.remplie().map(str::to_string).unwrap_or_else(|| cle.clone());
+        let titre = sp.titre.remplie().map(str::to_string).unwrap_or_else(|| cle.to_string());
         for m in crate::champs::manquants("spectacle", sp).unwrap_or_default() {
             let mut l = ligne(m, format!("Configuration › Spectacles, la fiche de {}", titre), "spectacle", None);
             l["spectacle"] = json!(cle);
@@ -165,7 +165,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         if !lu(sp.titre.remplie()).is_none_or(|t| t.eq_ignore_ascii_case(TITRE_A_COMPLETER)) {
             continue;
         }
-        let objet = lu(sp.numero_objet.remplie()).unwrap_or_else(|| cle.clone());
+        let objet = lu(sp.numero_objet.remplie()).unwrap_or_else(|| cle.to_string());
         let propose = lu(sp.titre_propose.as_deref());
         let trouver = match &propose {
             Some(t) => format!(
