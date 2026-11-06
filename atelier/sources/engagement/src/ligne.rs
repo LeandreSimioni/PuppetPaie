@@ -127,13 +127,12 @@ pub enum DateDeLigne {
     Detaillee(JourEtLieu),
 }
 
-/// Le jour d'une date detaillee, et son lieu.
+/// Le jour d'une date detaillee, et son lieu : une date qui ne dit pas de lieu est nue.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct JourEtLieu {
     pub jour: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub lieu: Option<String>,
+    pub lieu: String,
 }
 
 impl DateDeLigne {
@@ -153,7 +152,7 @@ impl DateDeLigne {
     /// Le lieu que la date dit d'elle-meme, tel qu'il est ecrit ; `None` s'il est vide.
     pub fn lieu(&self) -> Option<String> {
         match self {
-            DateDeLigne::Detaillee(JourEtLieu { lieu: Some(l), .. }) if !l.is_empty() => Some(l.clone()),
+            DateDeLigne::Detaillee(JourEtLieu { lieu, .. }) if !lieu.is_empty() => Some(lieu.clone()),
             _ => None,
         }
     }
@@ -163,7 +162,7 @@ impl DateDeLigne {
         if lieu.is_empty() {
             DateDeLigne::Nue(jour)
         } else {
-            DateDeLigne::Detaillee(JourEtLieu { jour, lieu: Some(lieu) })
+            DateDeLigne::Detaillee(JourEtLieu { jour, lieu })
         }
     }
 }
@@ -302,7 +301,7 @@ impl LignePaie {
         }
         let rub = match &self.rubrique {
             Some(r) => r.clone(),
-            None => "None".to_string(),
+            None => return Err(socle::echec::cle("Une ligne en pourcentage dit sa rubrique.", "rubrique")),
         };
         let (base, pct) = match (&self.base, &self.taux_majoration) {
             (Some(b), Some(p)) => (b.dec_avec_echelle()?, p.dec_avec_echelle()?),

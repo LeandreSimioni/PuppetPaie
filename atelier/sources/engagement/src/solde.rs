@@ -77,13 +77,6 @@ fn l_article(article: Option<&str>, idcc: &str) -> String {
     }
 }
 
-fn texte_ou_none(v: &Option<String>) -> String {
-    match v {
-        Some(t) => t.clone(),
-        None => "None".into(),
-    }
-}
-
 /// L'IDCC de la fiche, tel que les clauses le lisent.
 fn idcc(ctx: &Contexte) -> &str {
     ctx.entreprise.idcc.texte()
@@ -454,7 +447,11 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Carte, mois: &str, deja: 
             }
             mois_preavis = Some(saisi);
         } else if mois_preavis.is_none() {
-            return Err(format!("{} : preavis non effectue, et {}", qui, texte_ou_none(&duree.pourquoi)));
+            let pourquoi = match &duree.pourquoi {
+                Some(p) => p.clone(),
+                None => "la durée du préavis ne se lit ni de la loi ni de la convention : saisissez-la (préavis, en mois)".to_string(),
+            };
+            return Err(format!("{} : preavis non effectue, et {}", qui, pourquoi));
         }
         match mois_preavis.filter(|m| !m.is_zero()) {
             Some(m) => {
@@ -761,7 +758,10 @@ fn indemnite_de_rupture(
              celles d'un contrat a duree INDETERMINEE -- leurs articles sont \
              au titre III du livre II, qui ne traite que de lui.",
             qui,
-            texte_ou_none(&motif.map(str::to_string)),
+            match motif {
+                Some(m) => m.to_string(),
+                None => "non dit".to_string(),
+            },
             fin_cdi.cle().replace('_', " "),
             nat.libelle
         ));
