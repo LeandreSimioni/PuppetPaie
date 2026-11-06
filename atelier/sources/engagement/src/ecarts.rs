@@ -199,8 +199,8 @@ fn comparer_une(
     jours_comptes: Option<i64>,
     c: &mut Comparaison,
 ) -> Result<Vec<Ecart>, String> {
-    let annee = mois.get(..4).unwrap_or("");
     let fin = Mois::lire(mois)?.dernier_jour();
+    let annee = &mois[..4];
     let mut ctx = Contexte::nouveau(racine, Some(fin)).map_err(|m| a_refaire(c, m))?;
     if !ctx.code.join("baremes").join(format!("{}.json", annee)).exists() {
         return Err(format!("aucun barème livré pour {} : la période ne se calcule pas ici", annee));
@@ -384,7 +384,14 @@ fn comparer_une(
         if atmp_lu && code == "atmp" {
             continue;
         }
-        let (eux, nous) = (leurs.get(code).map_or(&[][..], |v| &v[..]), nos.get(code).map_or(&[][..], |v| &v[..]));
+        let eux: &[Lue] = match leurs.get(code) {
+            Some(v) => v,
+            None => &[],
+        };
+        let nous: &[&LigneCotisation] = match nos.get(code) {
+            Some(v) => v,
+            None => &[],
+        };
         let leur_sal: Decimal = eux.iter().filter_map(|l| l.montant_salarie).map(|x| x.abs()).sum();
         let leur_pat: Decimal = eux.iter().filter_map(|l| l.montant_employeur).map(|x| x.abs()).sum();
         let notre_sal: Decimal = nous.iter().map(|l| l.montant_sal.abs()).sum();

@@ -24,7 +24,10 @@ impl Chiffre {
     /// Un decimal, en nombre (sa forme la plus courte : `12.5`, `15`).
     pub fn de_decimal(x: Decimal) -> Chiffre {
         let t = x.normalize().to_string();
-        t.parse::<NombreLu>().map_or(Chiffre::Texte(t), Chiffre::Nombre)
+        match t.parse::<NombreLu>() {
+            Ok(n) => Chiffre::Nombre(n),
+            Err(_) => Chiffre::Texte(t),
+        }
     }
 
     /// Un decimal, en texte (`div(...).normalize().to_string()`).
@@ -50,38 +53,38 @@ impl Chiffre {
         matches!(self, Chiffre::Texte(s) if s.trim().is_empty())
     }
 
-    /// Ni zero, ni un texte vide (`socle::fichiers::vrai`).
+    /// Ni zero, ni un texte vide.
     pub fn vrai(&self) -> bool {
         match self {
-            Chiffre::Nombre(n) => n.as_f64().map_or(true, |x| x != 0.0),
+            Chiffre::Nombre(n) => n.en_f64() != 0.0,
             Chiffre::Texte(s) => !s.is_empty(),
         }
     }
 
-    /// Le decimal (`socle::num::dec`) : un entier tel quel, un flottant par sa forme la plus courte, un texte lu.
+    /// Le decimal : un entier tel quel, un flottant par sa forme la plus courte, un texte lu.
     pub fn dec(&self) -> Resultat<Decimal> {
         match self {
             Chiffre::Nombre(n) => match (n.as_i64(), n.as_u64()) {
                 (Some(i), _) => Ok(Decimal::from(i)),
                 (_, Some(u)) => Ok(Decimal::from(u)),
-                _ => socle::num::dec_f64(n.as_f64().unwrap_or(f64::NAN)),
+                _ => socle::num::dec_f64(n.en_f64()),
             },
             Chiffre::Texte(s) => socle::num::dec_texte(s),
         }
     }
 
-    /// Le decimal dont un flottant garde son echelle (`130.0`, `socle::num::dec_avec_echelle`).
+    /// Le decimal dont un flottant garde son echelle (`130.0`, sa forme ecrite).
     pub fn dec_avec_echelle(&self) -> Resultat<Decimal> {
         match self {
             Chiffre::Nombre(n) if n.as_i64().is_none() && n.as_u64().is_none() => {
-                let s = socle::date::repr_flottant(n.as_f64().unwrap_or(f64::NAN));
+                let s = socle::date::repr_flottant(n.en_f64());
                 socle::num::dec_texte(&s).map_err(|_| format!("nombre hors de portee : {}", s))
             }
             autre => autre.dec(),
         }
     }
 
-    /// Le flottant (`socle::num::flottant`).
+    /// Le flottant : un nombre, ou un nombre ecrit en texte.
     pub fn flottant(&self) -> Resultat<f64> {
         match self {
             Chiffre::Nombre(n) => n.as_f64().ok_or_else(|| format!("nombre illisible : {}", n)),
@@ -96,7 +99,7 @@ impl Chiffre {
             Chiffre::Nombre(n) => match (n.as_i64(), n.as_u64()) {
                 (Some(i), _) => i.to_string(),
                 (_, Some(u)) => u.to_string(),
-                _ => socle::date::repr_flottant(n.as_f64().unwrap_or(f64::NAN)),
+                _ => socle::date::repr_flottant(n.en_f64()),
             },
         }
     }

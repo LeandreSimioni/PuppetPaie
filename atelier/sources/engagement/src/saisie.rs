@@ -422,7 +422,10 @@ impl Carte {
 
     /// Le texte d'un champ texte dit et non vide ; vide sinon.
     pub fn texte(x: &Option<String>) -> String {
-        x.clone().filter(|t| !t.is_empty()).unwrap_or_default()
+        match x {
+            Some(t) => t.clone(),
+            None => String::new(),
+        }
     }
 }
 

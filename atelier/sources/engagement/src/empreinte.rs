@@ -124,7 +124,10 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
                 return crate::imprevus::empreinte_du_salarie(racine, salarie).is_ok_and(|e| v == e);
             }
             if let Some(reste) = k.strip_prefix("saisie ") {
-                let (mois, salarie) = reste.split_once(' ').map_or((reste, None), |(m, s)| (m, Some(s)));
+                let (mois, salarie) = match reste.split_once(' ') {
+                    Some((m, s)) => (m, Some(s)),
+                    None => (reste, None),
+                };
                 return stock::empreinte_de_la_saisie_du_mois(racine, mois, salarie).ok().flatten().is_some_and(|e| v == e);
             }
             match fichiers::chemin_de(k, racine, &code) {

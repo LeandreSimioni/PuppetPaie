@@ -41,7 +41,7 @@ pub fn json_trie<T: Serialize + ?Sized>(v: &T) -> String {
 }
 
 /// Le JSON de `v` sur une ligne, serre, tel que serde l'ecrit : ce qu'un refus porte a part (`echec::avec`), que
-/// `echec::separer` relit ; jamais un fichier.
+/// `echec::phrase_de` sait retirer ; jamais un fichier.
 pub fn json_en_ligne<T: Serialize + ?Sized>(v: &T) -> String {
     match serde_json::to_string(v) {
         Ok(texte) => texte,

@@ -297,6 +297,14 @@ impl NombreLu {
         self.0.as_f64()
     }
 
+    /// Le flottant du nombre : tout nombre d'une donnee en a un (un entier au-dela de 2^53 s'arrondit) ; NaN sinon.
+    pub fn en_f64(&self) -> f64 {
+        match self.0.as_f64() {
+            Some(x) => x,
+            None => f64::NAN,
+        }
+    }
+
     pub fn as_i64(&self) -> Option<i64> {
         self.0.as_i64()
     }

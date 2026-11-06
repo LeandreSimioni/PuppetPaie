@@ -208,7 +208,9 @@ pub fn dernier_bulletin_importe(racine: &std::path::Path, annee: i64) -> Resulta
     for i in crate::importe::tous(racine)? {
         let du_contrat = rang(i.contrat().and_then(|c| c.numero_bulletin.as_deref()));
         let des_paies = i.paies().values().filter_map(|p| rang(p.bulletin.as_ref().and_then(|b| b.numero.as_deref()))).max();
-        haut = haut.max(du_contrat.unwrap_or(0)).max(des_paies.unwrap_or(0));
+        for r in du_contrat.into_iter().chain(des_paies) {
+            haut = haut.max(r);
+        }
     }
     Ok(haut)
 }
@@ -276,7 +278,11 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
         }
     }
     let annee: i32 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("date illisible : {}", debut))?;
-    let dernier = derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?.get(&cle).copied().unwrap_or(0);
+    // Aucun numero pris cette annee : le premier sera le 1.
+    let dernier = match derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?.get(&cle) {
+        Some(n) => *n,
+        None => 0,
+    };
     let numero = former(&fiche, annee, dernier + 1)?;
     let e = o.brut_mut();
     e.saisie.carte.numero = Some(numero.to_string());

@@ -892,7 +892,7 @@ pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&str>) -> String {
 /// au mois : les lignes de paie du mois, ce qu'il y a a en dire, et ses jours travailles (`None` : la saisie les dit).
 pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &saisie::Carte, &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)>;
 
-/// Un nombre dit et non nul (`socle::fichiers::vrai`).
+/// Un nombre dit et non nul.
 fn nombre_dit(x: &Option<NombreLu>) -> bool {
     x.as_ref().is_some_and(|n| n.as_f64().map_or(true, |f| f != 0.0))
 }

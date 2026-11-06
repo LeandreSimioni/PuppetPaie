@@ -444,7 +444,7 @@ pub fn absent(cle: &str) -> String {
     crate::echec::cle("Il manque une donnée attendue.", cle)
 }
 
-/// Une valeur JSON dite en francais, depuis son nom de type (`valeur::nom_type`).
+/// Une valeur dite en francais, depuis son nom de type (`NoneType`, `bool`, `int`, `float`, `str`, `list`, `dict`).
 pub fn nature(nom_type: &str) -> &'static str {
     match nom_type {
         "dict" => "un objet",

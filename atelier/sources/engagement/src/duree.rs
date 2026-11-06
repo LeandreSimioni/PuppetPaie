@@ -83,7 +83,7 @@ pub fn au_dela_du_maximum(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Re
         return Ok(None);
     }
     let moyenne = longs.iter().any(|(_, (_, m))| *m);
-    let dits: Vec<String> = longs.iter().map(|(j, (h, _))| format!("{} h le {}", dec_f64(*h).map(|h| virgule(h.round_dp(2))).unwrap_or_default(), j.jj_mm())).collect();
+    let dits: Vec<String> = longs.iter().map(|(j, (h, _))| format!("{} h le {}", dec_f64(*h).iter().map(|h| virgule(h.round_dp(2))).collect::<String>(), j.jj_mm())).collect();
     Ok(Some(format!(
         "{} : {}{}. La durée quotidienne de travail effectif ne peut dépasser 10 heures (code du travail, L. 3121-18), sauf \
          une convention ou un accord qui la porte jusqu'à 12 heures (L. 3121-19), une dérogation de l'inspecteur du travail \

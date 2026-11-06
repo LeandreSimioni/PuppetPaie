@@ -106,7 +106,10 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
             }
         }
         if sans_taux.len() > 1 {
-            let qui = e.salarie_dit().map_or_else(|| "cet engagement".to_string(), String::from);
+            let qui = match e.salarie_dit() {
+                Some(s) => s.to_string(),
+                None => "cet engagement".to_string(),
+            };
             let noms: Vec<&str> = sans_taux.iter().map(|(_, l)| l.as_str()).collect();
             return Err(refus(format!(
                 "{} : {} lignes de salaire sans taux ({}). Le montant vise ne dit pas comment le partager entre elles : saisir un taux \
@@ -216,7 +219,7 @@ pub fn viser(ctx: &Contexte, data: &VueDuMois, rangs: &[usize], cible: Cible, vi
     let mut meilleur: Option<Visee> = None;
     for tour in 1..=TOURS {
         let (d, paies, atteint) = essai(facteur)?;
-        if meilleur.as_ref().map_or(true, |m| rang_essai(atteint) < rang_essai(m.atteint)) {
+        if meilleur.as_ref().is_none_or(|m| rang_essai(atteint) < rang_essai(m.atteint)) {
             meilleur = Some(Visee { saisie: d, paies, atteint, depart, facteur, tours: tour });
         }
         if atteint == vise || atteint <= Decimal::ZERO {

@@ -155,7 +155,7 @@ pub fn presentes(o: &Objet) -> Resultat<BTreeMap<String, PaieEcrite>> {
 
 /// Le nombre de paies ecrites de `mois`, celles des versions presentes des engagements.
 pub fn nombre(racine: &std::path::Path, mois: &str) -> Resultat<usize> {
-    Ok(fichier(racine, mois)?.map_or(0, |f| f.paies.iter().filter(|e| e.presente.is_some()).count()))
+    Ok(fichier(racine, mois)?.iter().flat_map(|f| &f.paies).filter(|e| e.presente.is_some()).count())
 }
 
 /// La paie ecrite de `mois` de l'engagement `o` devient `paie` ; `None` la retire (les versions passees restent).

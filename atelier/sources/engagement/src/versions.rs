@@ -17,7 +17,14 @@ use socle::texte::{euros, virgule};
 
 /// « 14/11 » d'un jour ISO ; tel quel s'il ne se lit pas.
 fn jour_court(iso: &str) -> String {
-    Jour::lire(iso.get(..10).unwrap_or(iso)).map(|j| j.jj_mm()).unwrap_or_else(|_| iso.to_string())
+    let jour = match iso.get(..10) {
+        Some(j) => j,
+        None => iso,
+    };
+    match Jour::lire(jour) {
+        Ok(j) => j.jj_mm(),
+        Err(_) => iso.to_string(),
+    }
 }
 
 /// Ce qui change dans les jours d'une ligne, et seulement cela : « Jours : + 16/11 », « Jours : − 14/11 »,
@@ -42,17 +49,28 @@ fn jours_changes(x: &LignePaie, y: &LignePaie) -> Option<String> {
 /// `Carte::dates`).
 fn bornes(ctx: &Contexte, s: &Carte) -> (String, String) {
     let fin = s.fin.clone().filter(|f| !f.is_empty());
-    (s.debut_lu(&ctx.racine), fin.unwrap_or_else(|| s.dates(&ctx.racine).iter().map(|j| j.jour().to_string()).max().unwrap_or_default()))
+    // Sans fin dite, le dernier jour de ses dates ; aucun sans date.
+    let fin = match fin {
+        Some(f) => f,
+        None => s.dates(&ctx.racine).iter().map(|j| j.jour().to_string()).max().into_iter().collect(),
+    };
+    (s.debut_lu(&ctx.racine), fin)
 }
 
 /// Le libelle d'une rubrique au catalogue, ou son code.
 fn libelle(ctx: &Contexte, code: &str) -> (String, String) {
-    droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).map(|r| (r.libelle, r.unite)).unwrap_or_else(|_| (code.to_string(), String::new()))
+    match droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au) {
+        Ok(r) => (r.libelle, r.unite),
+        Err(_) => (code.to_string(), String::new()),
+    }
 }
 
 /// « Cachets », « Heures de travail », « Services de répétition » : le premier mot du libelle au pluriel.
 fn au_pluriel(libelle: &str) -> String {
-    let (premier, reste) = libelle.split_once(' ').map_or((libelle, ""), |(a, b)| (a, b));
+    let (premier, reste) = match libelle.split_once(' ') {
+        Some(p_r) => p_r,
+        None => (libelle, ""),
+    };
     let pluriel = if premier.ends_with(['s', 'x', 'z']) { premier.to_string() } else { format!("{}s", premier) };
     if reste.is_empty() { pluriel } else { format!("{} {}", pluriel, reste) }
 }
@@ -92,9 +110,15 @@ fn en_mots(v: Option<&Valeur>, en_euros: bool) -> String {
     match v {
         None => "—".into(),
         Some(Valeur::Oui(b)) => if *b { "oui" } else { "non" }.into(),
-        Some(Valeur::Nombre(n)) if en_euros => nombre(n).map(euros).unwrap_or_else(|_| n.to_string()),
-        Some(Valeur::Nombre(n)) => nombre(n).map(virgule).unwrap_or_else(|_| n.to_string()),
-        Some(Valeur::Texte(t)) if en_euros => t.trim().replace(',', ".").parse().map(euros).unwrap_or_else(|_| t.clone()),
+        Some(Valeur::Nombre(n)) => match (nombre(n), en_euros) {
+            (Ok(x), true) => euros(x),
+            (Ok(x), false) => virgule(x),
+            (Err(_), _) => n.to_string(),
+        },
+        Some(Valeur::Texte(t)) if en_euros => match t.trim().replace(',', ".").parse() {
+            Ok(x) => euros(x),
+            Err(_) => t.clone(),
+        },
         Some(Valeur::Texte(t)) => t.clone(),
     }
 }
@@ -115,12 +139,20 @@ fn quantite_nombre(l: &LignePaie) -> Option<f64> {
     }
 }
 
+/// Une version, ou un mois d'une version, que l'autre n'a pas (avant la premiere, un mois de plus) ne dit rien : `rien`.
+fn ou_rien<'a, T>(x: Option<&'a T>, rien: &'a T) -> &'a T {
+    match x {
+        Some(x) => x,
+        None => rien,
+    }
+}
+
 /// CE QUI A CHANGE d'une saisie a l'autre, en mots, dans l'ordre ou l'on lit un engagement : les bornes, chaque ligne
 /// (son nombre, son taux, ses jours, son lieu), puis les autres clauses ; chaque terme qui change a une date (« À partir
 /// du 01/09 : Salaire mensuel : … → … ») ; et les faits de chaque mois suivant d'un contrat qui deborde.
 pub fn changements(ctx: &Contexte, avant: Option<&Saisie>, apres: Option<&Saisie>) -> Vec<String> {
     let vide = Saisie::default();
-    let (a, b) = (avant.unwrap_or(&vide), apres.unwrap_or(&vide));
+    let (a, b) = (ou_rien(avant, &vide), ou_rien(apres, &vide));
     let mut out = changements_du_mois(ctx, &a.carte, &b.carte);
     // Les termes au `jour` : ceux du premier mois, et chaque avenant venu jusqu'a lui.
     let au = |s: &Saisie, jour: &Jour| {
@@ -161,7 +193,7 @@ pub fn changements(ctx: &Contexte, avant: Option<&Saisie>, apres: Option<&Saisie
     mois.dedup();
     let rien = Carte::default();
     for m in mois {
-        for c in changements_du_mois(ctx, a.faits.get(m).unwrap_or(&rien), b.faits.get(m).unwrap_or(&rien)) {
+        for c in changements_du_mois(ctx, ou_rien(a.faits.get(m), &rien), ou_rien(b.faits.get(m), &rien)) {
             out.push(format!("En {} : {}", socle::mois::Mois::en_clair(&m.to_string()), c));
         }
     }
@@ -296,8 +328,10 @@ fn changements_du_mois(ctx: &Contexte, a: &Carte, b: &Carte) -> Vec<String> {
 /// suivant (`Depart::par`) est « la DSN de décembre 2026 (correction de novembre 2026) ».
 pub(crate) fn quoi_du_depart(d: &Depart) -> String {
     match (d.envoi, d.mois.as_deref()) {
-        (Envoi::Contrat, _) if d.avenant.is_some() => format!("l'avenant n° {}", d.avenant.as_deref().unwrap_or_default()),
-        (Envoi::Contrat, _) => "le contrat".to_string(),
+        (Envoi::Contrat, _) => match &d.avenant {
+            Some(a) => format!("l'avenant n° {}", a),
+            None => "le contrat".to_string(),
+        },
         (Envoi::Dpae, _) => "la DPAE".to_string(),
         (Envoi::Documents, Some(m)) => format!("les documents {}", de(&socle::mois::Mois::en_clair(m))),
         (Envoi::Dsn, Some(m)) => match d.par.as_deref() {
@@ -377,8 +411,15 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Optio
             .map(|d| format!("{}, le {}", quoi_du_depart(d), jour_court(&d.le)))
             .collect();
         partis.dedup();
-        let changes = precedente.map_or_else(Vec::new, |p| changements(ctx, p.and_then(|p| p.saisie()), x.and_then(|x| x.saisie())));
-        let titre_dit = format!("Version {}", n.map(|n| n.to_string()).unwrap_or_default()).trim().to_string();
+        // La premiere version n'a rien d'avant quoi changer.
+        let changes = match precedente {
+            Some(p) => changements(ctx, p.and_then(|p| p.saisie()), x.and_then(|x| x.saisie())),
+            None => Vec::new(),
+        };
+        let titre_dit = match n {
+            Some(n) => format!("Version {}", n),
+            None => "Version".to_string(),
+        };
         versions.push(VersionDeLaFrise { version: n, le: le.clone(), jour: jour_court(le), titre_dit, jour_dit: format!("le {}", jour_court(le)), changements: changes, partis });
         precedente = Some(*x);
     }
@@ -458,8 +499,8 @@ fn de_mois(mois: &std::collections::BTreeSet<String>) -> String {
             let (la, lb) = (socle::mois::Mois::en_clair(a), socle::mois::Mois::en_clair(b));
             let texte = if a == b {
                 la
-            } else if a.get(..4) == b.get(..4) {
-                format!("{} à {}", la.trim_end_matches(&format!(" {}", a.get(..4).unwrap_or_default())), lb)
+            } else if let (Some(an), true) = (a.get(..4), a.get(..4) == b.get(..4)) {
+                format!("{} à {}", la.trim_end_matches(&format!(" {}", an)), lb)
             } else {
                 format!("{} à {}", la, lb)
             };
