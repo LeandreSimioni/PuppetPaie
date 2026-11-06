@@ -449,9 +449,20 @@ impl Arret {
 
     /// L'arret suspend-il le contrat de cette paie ? La regle des imprevus (`imprevus::du_contrat`) : le meme salarie, la
     /// meme date de debut du contrat, le meme numero quand l'un et l'autre en ont un.
-    fn du_contrat(&self, p: &Paie) -> bool {
-        self.forme().and_then(|a| engagement::imprevus::du_contrat(&a, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut)).unwrap_or(false)
+    fn du_contrat(&self, p: &Paie) -> Resultat<bool> {
+        engagement::imprevus::du_contrat(&self.forme()?, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut)
     }
+}
+
+/// Ceux des arrets qui suspendent le contrat de cette paie (`Arret::du_contrat`).
+fn arrets_du_contrat<'a>(arrets: &[&'a Arret], p: &Paie) -> Resultat<Vec<&'a Arret>> {
+    let mut out = Vec::new();
+    for a in arrets {
+        if a.du_contrat(p)? {
+            out.push(*a);
+        }
+    }
+    Ok(out)
 }
 
 /// Le bloc « Arret de travail - S21.G00.60 » (`signalement.bloc_60`).
@@ -4286,10 +4297,16 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     }
     // Un arret d'un mois anterieur se reporte sous son contrat, que la DSN declare ce mois-ci ou corrige (sa
     // regularisation) ; un arret du mois sans son contrat n'aurait pas de place.
-    let orphelins: Vec<&&Arret> = arrets_du_mois
-        .iter()
-        .filter(|a| !paies.iter().chain(regs.iter().map(|r| &r.apres)).any(|p| a.du_contrat(p)))
-        .collect();
+    let mut orphelins: Vec<&&Arret> = Vec::new();
+    for a in &arrets_du_mois {
+        let mut porte = false;
+        for p in paies.iter().chain(regs.iter().map(|r| &r.apres)) {
+            porte |= a.du_contrat(p)?;
+        }
+        if !porte {
+            orphelins.push(a);
+        }
+    }
     if !orphelins.is_empty() {
         let liste_o: Vec<String> = orphelins
             .iter()
@@ -4306,11 +4323,12 @@ mois (il y figure sans cachet), ou corriger les dates de l'arret. Rien n'est ecr
             liste_o.join(", ")
         ));
     }
-    let manquants: Vec<String> = paies
-        .iter()
-        .filter(|p| p.remuneration.iter().any(|l| l.arret_de_travail) && !arrets_du_mois.iter().any(|a| a.du_contrat(p)))
-        .map(|p| format!("{} contrat {}", cle_salarie(p), p.engagement.numero.as_deref().unwrap_or("None").to_string()))
-        .collect();
+    let mut manquants: Vec<String> = Vec::new();
+    for p in paies {
+        if p.remuneration.iter().any(|l| l.arret_de_travail) && arrets_du_contrat(&arrets_du_mois, p)?.is_empty() {
+            manquants.push(format!("{} contrat {}", cle_salarie(p), p.engagement.numero.as_deref().unwrap_or("None").to_string()));
+        }
+    }
     if !manquants.is_empty() {
         return Err(format!(
             "Absence pour arret de travail dans la paie de {}, mais aucun arret saisi en face : {}. La ligne retire \
@@ -4339,14 +4357,13 @@ retirer la ligne. Rien n'est ecrit.",
             }
         }
         if let (false, engagement::imprevus::Imprevu::Suspension(s)) = (declare, &imp) {
-            let t = |x: &Option<String>| x.clone().unwrap_or_default();
             suspendus_absents.push(format!(
-                "{} contrat {} (suspension {} du {} au {})",
-                t(&s.salarie),
-                t(&s.contrat_numero),
-                t(&s.motif),
-                t(&s.debut),
-                t(&s.fin)
+                "{} contrat{} (suspension {} du {} au {})",
+                s.salarie,
+                s.contrat_numero.as_deref().map_or_else(String::new, |n| format!(" {}", n)),
+                s.motif,
+                s.debut,
+                s.fin
             ));
         }
     }
@@ -4749,7 +4766,7 @@ certificat de conformite du depot precedent.",
         let taux_pas = pas_par_salarie.get(cle).cloned().flatten();
 
         for (i, p) in lot.iter().enumerate() {
-            let siens: Vec<&Arret> = arrets_du_mois.iter().copied().filter(|a| a.du_contrat(p)).collect();
+            let siens: Vec<&Arret> = arrets_du_contrat(&arrets_du_mois, p)?;
             let debut_bloc = f.lignes.len();
             bloc_contrat(&mut f, p, &ent_e, &orgs, i as i64 + 1, &bar, true, &siens, "01", emplois_multiples(p, &periode))?;
             // Ce qui a change depuis la derniere DSN deposee du contrat : le bloc S21.G00.41, sous son bloc 40.
@@ -4788,7 +4805,7 @@ certificat de conformite du depot precedent.",
                     let ajoute = |x: &Regularisation| x.declare.lignes.is_empty() && x.declare.fichier.is_empty();
                     let fin = groupe.iter().any(|x| ajoute(x) || x.apres.engagement.fin != x.avant.engagement.fin);
                     let debut_bloc = f.lignes.len();
-                    let siens: Vec<&Arret> = arrets_du_mois.iter().copied().filter(|a| a.du_contrat(&dernier.apres)).collect();
+                    let siens: Vec<&Arret> = arrets_du_contrat(&arrets_du_mois, &dernier.apres)?;
                     bloc_contrat(&mut f, &dernier.apres, &ent_e, &orgs, rg, &b, fin, &siens, "01", emplois_multiples(&dernier.apres, &autres))?;
                     // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans ce qui a ete declare, sous le bloc 40 (fiche 1952) --
                     // une fois, depuis la correction du dernier mois qui a declare le contrat.
@@ -5084,7 +5101,10 @@ mod tests {
             v: json!({
                 "genre": "arret", "salarie": "Audinot", "contrat_debut": "2025-09-01", "contrat_numero": "AU.25.01", "motif": "01",
                 "dernier_jour_travaille": "2026-06-20", "debut": "2026-06-21", "fin_previsionnelle": fin_previsionnelle, "subrogation": "02",
-                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null,
+                "subrogation_debut": null, "subrogation_fin": null,
+                "reprise": reprise, "reprise_motif": reprise.map(|_| "01"), "date_accident": null, "jours_deja_indemnises": null,
+                "ij_brute": null, "ij_nette": null, "ij_brute_majoree": null, "ij_nette_majoree": null,
+                "prolongations": [], "reprises": [], "saisi_le": "2026-06-21T10:00:00", "qui": "interface", "note": "",
             }),
         }
     }

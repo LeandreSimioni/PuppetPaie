@@ -59,17 +59,8 @@ pub enum GenreSuspension {
     Suspension,
 }
 
-/// Ce qu'une cle absente ou nulle laisse : la valeur par defaut (`note`, `prolongations`, `reprises`).
-fn nul_par_defaut<'de, D: serde::Deserializer<'de>, T: Deserialize<'de> + Default>(d: D) -> Result<T, D::Error> {
-    Option::<T>::deserialize(d).map(Option::unwrap_or_default)
-}
-
-/// Qui a saisi un imprevu qui ne le dit pas.
-fn qui_inconnu() -> Option<String> {
-    Some("?".into())
-}
-
-/// UN ARRET DE TRAVAIL, dans l'ordre ou il s'ecrit ; une cle absente vaut nulle. Ses champs de la norme (motif, dernier
+/// UN ARRET DE TRAVAIL, dans l'ordre ou il s'ecrit ; chaque cle est ecrite, nulle quand elle n'a pas de valeur, et sa
+/// lecture refuse celle qui manque. Ses champs de la norme (motif, dernier
 /// jour travaille, fin previsionnelle, subrogation, reprise, accident) sont ceux du bloc 60 et du signalement
 /// (`signalement::verifier`) ; `debut` est le premier jour que l'avis d'arret prescrit, d'ou se comptent l'incapacite (CSS
 /// R323-1, 1°) et ce que la DSN declare (`dernier_jour_declare`) ; `jours_deja_indemnises` et les indemnites journalieres
@@ -83,51 +74,40 @@ fn qui_inconnu() -> Option<String> {
 #[serde(deny_unknown_fields)]
 pub struct ArretSaisi {
     pub genre: GenreArret,
-    #[serde(default)]
-    pub salarie: Option<String>,
-    #[serde(default)]
-    pub contrat_debut: Option<String>,
-    #[serde(default)]
+    pub salarie: String,
+    pub contrat_debut: String,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat_numero: Option<String>,
-    #[serde(default)]
-    pub motif: Option<String>,
-    #[serde(default)]
-    pub dernier_jour_travaille: Option<String>,
-    #[serde(default)]
-    pub debut: Option<String>,
-    #[serde(default)]
-    pub fin_previsionnelle: Option<String>,
-    #[serde(default)]
+    pub motif: String,
+    pub dernier_jour_travaille: String,
+    pub debut: String,
+    pub fin_previsionnelle: String,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_debut: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_fin: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_motif: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub date_accident: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub jours_deja_indemnises: Option<Chiffre>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_brute: Option<Chiffre>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_nette: Option<Chiffre>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_brute_majoree: Option<Chiffre>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub ij_nette_majoree: Option<Chiffre>,
-    #[serde(default, deserialize_with = "nul_par_defaut")]
     pub prolongations: Vec<Prolongation>,
-    #[serde(default, deserialize_with = "nul_par_defaut")]
     pub reprises: Vec<RepriseNotee>,
-    #[serde(default)]
-    pub saisi_le: Option<String>,
-    #[serde(default = "qui_inconnu")]
-    pub qui: Option<String>,
-    #[serde(default, deserialize_with = "nul_par_defaut")]
+    pub saisi_le: String,
+    pub qui: String,
     pub note: String,
 }
 
@@ -136,12 +116,14 @@ pub struct ArretSaisi {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Prolongation {
-    pub le: Option<String>,
-    pub saisi_le: Option<String>,
-    pub qui: Option<String>,
-    pub fin_avant: Option<String>,
-    pub fin: Option<String>,
+    pub le: String,
+    pub saisi_le: String,
+    pub qui: String,
+    pub fin_avant: String,
+    pub fin: String,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_fin_avant: Option<String>,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub subrogation_fin: Option<String>,
 }
 
@@ -149,38 +131,34 @@ pub struct Prolongation {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RepriseNotee {
-    pub le: Option<String>,
-    pub saisi_le: Option<String>,
-    pub qui: Option<String>,
+    pub le: String,
+    pub saisi_le: String,
+    pub qui: String,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_avant: Option<String>,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_motif_avant: Option<String>,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise: Option<String>,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub reprise_motif: Option<String>,
 }
 
-/// UNE SUSPENSION DU CONTRAT saisie (bloc 65 : motif, debut, fin), dans l'ordre ou elle s'ecrit ; une cle absente vaut
-/// nulle.
+/// UNE SUSPENSION DU CONTRAT saisie (bloc 65 : motif, debut, fin), dans l'ordre ou elle s'ecrit ; chaque cle est ecrite
+/// (le numero du contrat, nul quand il n'en a pas encore).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SuspensionSaisie {
     pub genre: GenreSuspension,
-    #[serde(default)]
-    pub salarie: Option<String>,
-    #[serde(default)]
-    pub contrat_debut: Option<String>,
-    #[serde(default)]
+    pub salarie: String,
+    pub contrat_debut: String,
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat_numero: Option<String>,
-    #[serde(default)]
-    pub motif: Option<String>,
-    #[serde(default)]
-    pub debut: Option<String>,
-    #[serde(default)]
-    pub fin: Option<String>,
-    #[serde(default)]
-    pub saisi_le: Option<String>,
-    #[serde(default = "qui_inconnu")]
-    pub qui: Option<String>,
-    #[serde(default, deserialize_with = "nul_par_defaut")]
+    pub motif: String,
+    pub debut: String,
+    pub fin: String,
+    pub saisi_le: String,
+    pub qui: String,
     pub note: String,
 }
 
@@ -199,24 +177,23 @@ struct FichierDesImprevus {
     #[serde(rename = "_origine")]
     origine: String,
     mois: String,
-    #[serde(default)]
     imprevus: Vec<Imprevu>,
 }
 
 /// CE QUI DESIGNE LE CONTRAT QU'UN IMPREVU SUSPEND : le salarie (la cle de sa fiche), la date de debut du contrat
 /// (S21.G00.40.001) et son numero (40.009), tels que l'imprevu les ecrit.
 pub trait Suspend {
-    fn salarie(&self) -> Option<&str>;
-    fn contrat_debut(&self) -> Option<&str>;
+    fn salarie(&self) -> &str;
+    fn contrat_debut(&self) -> &str;
     fn contrat_numero(&self) -> Option<&str>;
 }
 
 impl Suspend for ArretSaisi {
-    fn salarie(&self) -> Option<&str> {
-        self.salarie.as_deref()
+    fn salarie(&self) -> &str {
+        &self.salarie
     }
-    fn contrat_debut(&self) -> Option<&str> {
-        self.contrat_debut.as_deref()
+    fn contrat_debut(&self) -> &str {
+        &self.contrat_debut
     }
     fn contrat_numero(&self) -> Option<&str> {
         self.contrat_numero.as_deref()
@@ -224,11 +201,11 @@ impl Suspend for ArretSaisi {
 }
 
 impl Suspend for SuspensionSaisie {
-    fn salarie(&self) -> Option<&str> {
-        self.salarie.as_deref()
+    fn salarie(&self) -> &str {
+        &self.salarie
     }
-    fn contrat_debut(&self) -> Option<&str> {
-        self.contrat_debut.as_deref()
+    fn contrat_debut(&self) -> &str {
+        &self.contrat_debut
     }
     fn contrat_numero(&self) -> Option<&str> {
         self.contrat_numero.as_deref()
@@ -236,13 +213,13 @@ impl Suspend for SuspensionSaisie {
 }
 
 impl Suspend for Imprevu {
-    fn salarie(&self) -> Option<&str> {
+    fn salarie(&self) -> &str {
         match self {
             Imprevu::Arret(a) => a.salarie(),
             Imprevu::Suspension(s) => s.salarie(),
         }
     }
-    fn contrat_debut(&self) -> Option<&str> {
+    fn contrat_debut(&self) -> &str {
         match self {
             Imprevu::Arret(a) => a.contrat_debut(),
             Imprevu::Suspension(s) => s.contrat_debut(),
@@ -256,14 +233,9 @@ impl Suspend for Imprevu {
     }
 }
 
-/// Un texte dit et non vide, vide sinon.
-fn texte(x: Option<&str>) -> &str {
-    x.unwrap_or_default()
-}
-
-/// Un jour ecrit, lu ; refus s'il n'est pas dit.
-fn jour(x: &Option<String>, cle: &str) -> Resultat<Jour> {
-    Jour::lire(x.as_deref().ok_or_else(|| socle::fichiers::absent(cle))?)
+/// Un jour ecrit, lu.
+fn jour(x: &str) -> Resultat<Jour> {
+    Jour::lire(x)
 }
 
 /// Un jour dit et non vide, lu.
@@ -291,16 +263,16 @@ impl Imprevu {
     /// Son motif, tel qu'il s'ecrit ; vide s'il n'en dit pas.
     pub fn motif(&self) -> &str {
         match self {
-            Imprevu::Arret(a) => texte(a.motif.as_deref()),
-            Imprevu::Suspension(s) => texte(s.motif.as_deref()),
+            Imprevu::Arret(a) => &a.motif,
+            Imprevu::Suspension(s) => &s.motif,
         }
     }
 
     /// Son debut, tel qu'il s'ecrit (le debut prescrit d'un arret, le premier jour d'une suspension).
-    pub fn debut(&self) -> Option<&str> {
+    pub fn debut(&self) -> &str {
         match self {
-            Imprevu::Arret(a) => a.debut.as_deref(),
-            Imprevu::Suspension(s) => s.debut.as_deref(),
+            Imprevu::Arret(a) => &a.debut,
+            Imprevu::Suspension(s) => &s.debut,
         }
     }
 }
@@ -404,7 +376,7 @@ fn siens_sans_noter(racine: &Path, cle: &str) -> Resultat<Vec<Imprevu>> {
     let mut out = Vec::new();
     for f in fichiers {
         let Some(contenu) = socle::forme::partagee::<FichierDesImprevus>(&f, ABIME)? else { continue };
-        out.extend(du_contenu(&contenu, &f)?.into_iter().filter(|imp| texte(imp.salarie()) == cle));
+        out.extend(du_contenu(&contenu, &f)?.into_iter().filter(|imp| imp.salarie() == cle));
     }
     Ok(out)
 }
@@ -437,8 +409,8 @@ de chaque DSN mensuelle dont le mois le croise, et, pour un arret, son signaleme
 /// Le jour qui range un imprevu dans le magasin : le dernier jour travaille d'un arret, le premier jour d'une suspension.
 pub fn jour_de_rangement(imp: &Imprevu) -> Resultat<Jour> {
     match imp {
-        Imprevu::Arret(a) => jour(&a.dernier_jour_travaille, "dernier_jour_travaille"),
-        Imprevu::Suspension(s) => jour(&s.debut, "debut"),
+        Imprevu::Arret(a) => jour(&a.dernier_jour_travaille),
+        Imprevu::Suspension(s) => jour(&s.debut),
     }
 }
 
@@ -453,7 +425,7 @@ pub fn jour_de_rangement(imp: &Imprevu) -> Resultat<Jour> {
 /// date de debut de l'arret reelle en DSN » (fiche consigne 568, `atelier/reference/sources/net-entreprises-base-connaissances/
 /// net-entreprises-de-la-dsn-a-l-attestation-employeur-v3-2-20230328.txt`, l. 1683).
 pub fn dernier_jour_declare(arret: &ArretSaisi) -> Resultat<Jour> {
-    let (travaille, debut) = (jour(&arret.dernier_jour_travaille, "dernier_jour_travaille")?, jour(&arret.debut, "debut")?);
+    let (travaille, debut) = (jour(&arret.dernier_jour_travaille)?, jour(&arret.debut)?);
     Ok(if debut <= travaille { travaille } else { debut.plus_jours(-1)? })
 }
 
@@ -466,7 +438,7 @@ pub(crate) fn premier_jour_d_arret(arret: &ArretSaisi) -> Resultat<Jour> {
 pub(crate) fn dernier_jour_d_arret(arret: &ArretSaisi) -> Resultat<Jour> {
     match jour_dit(&arret.reprise)? {
         Some(r) => r.plus_jours(-1),
-        None => jour(&arret.fin_previsionnelle, "fin_previsionnelle"),
+        None => jour(&arret.fin_previsionnelle),
     }
 }
 
@@ -476,7 +448,7 @@ pub(crate) fn dernier_jour_d_arret(arret: &ArretSaisi) -> Resultat<Jour> {
 pub fn premier_jour(imp: &Imprevu) -> Resultat<Jour> {
     match imp {
         Imprevu::Arret(a) => premier_jour_d_arret(a),
-        Imprevu::Suspension(s) => jour(&s.debut, "debut"),
+        Imprevu::Suspension(s) => jour(&s.debut),
     }
 }
 
@@ -485,7 +457,7 @@ pub fn premier_jour(imp: &Imprevu) -> Resultat<Jour> {
 pub fn dernier_jour(imp: &Imprevu) -> Resultat<Jour> {
     match imp {
         Imprevu::Arret(a) => dernier_jour_d_arret(a),
-        Imprevu::Suspension(s) => jour(&s.fin, "fin"),
+        Imprevu::Suspension(s) => jour(&s.fin),
     }
 }
 
@@ -531,12 +503,16 @@ fn croisant(imprevus: Vec<Imprevu>, mois: &str, genre_voulu: Option<&str>) -> Re
 /// (S21.G00.40.001), et le meme numero (40.009) quand l'un et l'autre en ont un : un contrat saisi avant sa premiere
 /// production n'a pas encore de numero (il se fige a la production), et c'est sa date de debut qui le designe.
 pub fn du_contrat<I: Suspend>(imp: &I, cle: &str, numero: Option<&str>, debut: &Jour) -> Resultat<bool> {
-    if texte(imp.salarie()) != cle || Jour::lire(imp.contrat_debut().ok_or_else(|| socle::fichiers::absent("contrat_debut"))?)? != *debut {
+    if imp.salarie() != cle || Jour::lire(imp.contrat_debut())? != *debut {
         return Ok(false);
     }
-    let n_imp = texte(imp.contrat_numero());
-    let n = numero.unwrap_or("");
-    Ok(n_imp.is_empty() || n.is_empty() || n_imp == n)
+    Ok(numeros_compatibles(imp.contrat_numero(), numero))
+}
+
+/// Deux numeros de contrat se contredisent quand l'un et l'autre en ont un, et qu'ils different.
+fn numeros_compatibles(a: Option<&str>, b: Option<&str>) -> bool {
+    let (a, b) = (a.filter(|n| !n.is_empty()), b.filter(|n| !n.is_empty()));
+    a.zip(b).is_none_or(|(a, b)| a == b)
 }
 
 // ------------------------------------------------------------- les motifs de suspension
@@ -593,7 +569,7 @@ pub fn suspensions_du_mois(ctx: &Contexte, paie: &crate::calcul::Paie, mois: &st
             siennes.push(imp);
         }
     }
-    siennes.sort_by_key(|i| texte(i.debut()).to_string());
+    siennes.sort_by_key(|i| i.debut().to_string());
     for imp in siennes {
         let code = imp.motif().to_string();
         let motif = verifier_motif_de_suspension(&code, &qui)?;
@@ -698,7 +674,7 @@ pub fn anciennete_depuis(racine: &Path, cle: &str, depuis: &Jour, a: &Jour) -> R
     let mut retranches = 0i64;
     let mut dit = Vec::new();
     for imp in du_salarie(racine, cle)? {
-        if !est_une_suspension(&imp) || texte(imp.salarie()) != cle {
+        if !est_une_suspension(&imp) || imp.salarie() != cle {
             continue;
         }
         let code = imp.motif().to_string();
@@ -785,9 +761,9 @@ fn taux_exact(montant: Decimal, quantite: Decimal) -> crate::Chiffre {
 /// un signalement d'arret porte l'etablissement de la derniere DSN mensuelle du contrat (cahier technique DSN 2026.1,
 /// § 2.5.1, p. 67). Le contrat se lit dans la saisie du mois ou il commence ; introuvable, la fiche telle quelle.
 pub fn fiche_du_salarie<I: Suspend>(ctx: &Contexte, imp: &I) -> Resultat<SalarieDuContrat> {
-    let fiche = SalarieDuContrat::de(ctx.salarie(texte(imp.salarie()))?);
+    let fiche = SalarieDuContrat::de(ctx.salarie(imp.salarie())?);
     let cle = fiche.id.to_string();
-    let Some(debut) = imp.contrat_debut().filter(|v| !v.is_empty()).map(Jour::lire).transpose()? else { return Ok(fiche) };
+    let debut = Jour::lire(imp.contrat_debut())?;
     let mois = debut.mois_civil().to_string();
     let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { return Ok(fiche) };
     for e in &data.engagements {
@@ -795,8 +771,7 @@ pub fn fiche_du_salarie<I: Suspend>(ctx: &Contexte, imp: &I) -> Resultat<Salarie
         if Jour::lire(debut_dit)? != debut || e.cle(ctx).as_deref() != Some(cle.as_str()) {
             continue;
         }
-        let (n_imp, n) = (texte(imp.contrat_numero()).to_string(), e.numero.clone().unwrap_or_default());
-        if !n_imp.is_empty() && !n.is_empty() && n_imp != n {
+        if !numeros_compatibles(imp.contrat_numero(), e.numero.as_deref()) {
             continue;
         }
         let mut f = fiche;
@@ -808,11 +783,11 @@ pub fn fiche_du_salarie<I: Suspend>(ctx: &Contexte, imp: &I) -> Resultat<Salarie
 
 /// Les imprevus du contrat qui croisent le mois, du premier au dernier jour : le contrat de `salarie` (le nom que la carte
 /// ecrit) commence le `debut`, de numero `numero` (vide avant la validation).
-pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, numero: &str, mois: &str) -> Resultat<Vec<Imprevu>> {
+pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, numero: Option<&str>, mois: &str) -> Resultat<Vec<Imprevu>> {
     let cle = ctx.cle_du_salarie(salarie)?.to_string();
     let mut out = Vec::new();
     for imp in du_mois_du_salarie(&ctx.racine, mois, None, &cle)? {
-        if du_contrat(&imp, &cle, Some(numero), debut)? {
+        if du_contrat(&imp, &cle, numero, debut)? {
             out.push(imp);
         }
     }
@@ -854,7 +829,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &crate::saisie::Carte, mois: &str, m: &
     let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
     // Un contrat sans date de debut ecrite ne se designe pas : aucun imprevu ne peut le nommer (S21.G00.40.001).
     let imprevus = match crate::conges::jour_dit(&e.debut)? {
-        Some(debut) => du_contrat_dans_le_mois(ctx, crate::conges::salarie_de(e)?, &debut, e.numero.as_deref().unwrap_or_default(), mois)?,
+        Some(debut) => du_contrat_dans_le_mois(ctx, crate::conges::salarie_de(e)?, &debut, e.numero.as_deref(), mois)?,
         None => Vec::new(),
     };
     for imp in imprevus {
@@ -958,7 +933,7 @@ fn libelle_rubrique(racine: &Path, code: &str, jour: &Jour) -> String {
 /// Le moteur ne retire rien (regle 1).
 pub fn cachets_dans(ctx: &Contexte, imp: &Imprevu) -> Resultat<Vec<CachetPaye>> {
     let (premier, dernier) = (premier_jour(imp)?, dernier_jour(imp)?);
-    let cle = texte(imp.salarie()).to_string();
+    let cle = imp.salarie().to_string();
     let mut out = Vec::new();
     if dernier < premier {
         return Ok(out);
@@ -1038,7 +1013,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
     let mois = data.mois.to_string();
     for imp in &siens {
         let (premier, dernier) = (premier_jour(imp)?, dernier_jour(imp)?);
-        for c in cachets_de_la_saisie(ctx, data, &mois, texte(imp.salarie()), &premier, &dernier)? {
+        for c in cachets_de_la_saisie(ctx, data, &mois, imp.salarie(), &premier, &dernier)? {
             let i = c.engagement;
             let dates: Vec<String> = c.dates.iter().filter_map(|x| Jour::lire(x).ok()).map(|x| x.jj_mm_aaaa()).collect();
             let quoi = if est_un_arret(imp) {
@@ -1060,7 +1035,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
             if let Some(a) = out.get_mut(i) {
                 a.push(avertir(format!(
                     "{} {} : {} le {} paye(s) pendant {}. Retirer ce jour de la ligne, ou corriger les dates de l'imprevu.",
-                    texte(imp.salarie()),
+                    imp.salarie(),
                     c.numero.as_ref().map_or_else(String::new, |n| format!("(contrat {})", n)),
                     c.libelle,
                     dates.join(", "),
@@ -1082,27 +1057,38 @@ mod tests {
         socle::forme::lire(&v, ILLISIBLE)
     }
 
-    /// Un imprevu s'ecrit avec tous les champs de son genre, dans leur ordre, une cle absente nulle (son empreinte,
-    /// `empreinte_de`, est celle de cette ecriture) ; une cle ou un genre inconnus refusent.
+    /// Un arret tel que le moteur l'ecrit : chaque cle y est, nulle quand elle n'a pas de valeur.
+    fn arret_entier() -> Value {
+        json!({"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
+            "motif": "01", "dernier_jour_travaille": "2026-02-02", "debut": "2026-02-03", "fin_previsionnelle": "2026-02-10",
+            "subrogation": null, "subrogation_debut": null, "subrogation_fin": null, "reprise": null, "reprise_motif": null,
+            "date_accident": null, "jours_deja_indemnises": null, "ij_brute": null, "ij_nette": null, "ij_brute_majoree": null,
+            "ij_nette_majoree": null, "prolongations": [], "reprises": [], "saisi_le": "2026-02-03T10:00:00", "qui": "interface", "note": ""})
+    }
+
+    /// Une suspension telle que le moteur l'ecrit.
+    fn suspension_entiere() -> Value {
+        json!({"genre": "suspension", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
+            "motif": "632", "debut": "2026-02-01", "fin": "2026-04-30", "saisi_le": "2026-02-01T10:00:00", "qui": "interface", "note": ""})
+    }
+
+    /// Un imprevu se relit tel qu'il s'ecrit, dans l'ordre de ses cles ; une cle manquante, une cle inconnue ou un genre
+    /// inconnu refusent : rien n'est rempli a la place.
     #[test]
-    fn un_imprevu_s_ecrit_entier_et_refuse_ce_qu_il_ne_connait_pas() {
-        let a = socle::ecriture::en_valeur(&lu(json!({"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
-            "motif": "01", "dernier_jour_travaille": "2026-02-02", "debut": "2026-02-03", "fin_previsionnelle": "2026-02-10"}))
-        .unwrap());
-        let champs: Vec<&str> = a.as_object().unwrap().keys().map(String::as_str).collect();
-        assert_eq!(champs, [
-            "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "debut", "fin_previsionnelle",
-            "subrogation", "subrogation_debut", "subrogation_fin", "reprise", "reprise_motif", "date_accident",
-            "jours_deja_indemnises", "ij_brute", "ij_nette", "ij_brute_majoree", "ij_nette_majoree", "prolongations", "reprises", "saisi_le", "qui", "note",
-        ]);
-        assert_eq!((a["qui"].clone(), a["ij_brute"].clone(), a["prolongations"].clone(), a["note"].clone()), (json!("?"), Value::Null, json!([]), json!("")));
+    fn un_imprevu_se_relit_entier_et_refuse_ce_qui_manque_ou_qu_il_ne_connait_pas() {
+        for entier in [arret_entier(), suspension_entiere()] {
+            let relu = socle::ecriture::en_valeur(&lu(entier.clone()).unwrap());
+            assert_eq!(relu, entier);
+            for cle in entier.as_object().unwrap().keys() {
+                let mut moins = entier.clone();
+                moins.as_object_mut().unwrap().remove(cle);
+                assert!(lu(moins).is_err(), "{} manque et la lecture ne refuse pas", cle);
+            }
+            let mut plus = entier.clone();
+            plus["heures"] = json!(3);
+            assert!(lu(plus).is_err());
+        }
         assert!(lu(json!({"genre": "autre"})).is_err());
-        let mut s = json!({"genre": "suspension", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
-            "motif": "632", "debut": "2026-02-01", "fin": "2026-04-30"});
-        let champs: Vec<String> = socle::ecriture::en_valeur(&lu(s.clone()).unwrap()).as_object().unwrap().keys().cloned().collect();
-        assert_eq!(champs, ["genre", "salarie", "contrat_debut", "contrat_numero", "motif", "debut", "fin", "saisi_le", "qui", "note"]);
-        s["heures"] = json!(3);
-        assert!(lu(s).is_err());
     }
 
     /// S21.G00.60.002 : « la veille de la date de debut de la prescription de l'arret de travail, sauf [...] arret prescrit
@@ -1110,7 +1096,10 @@ mod tests {
     /// p. 266-267) ; l'absence va du lendemain a la veille de la reprise (S21.G00.60.010).
     #[test]
     fn la_dsn_declare_la_veille_du_debut_prescrit_et_l_absence_court_de_ce_debut() {
-        let mut v = json!({"genre": "arret", "dernier_jour_travaille": "2026-03-06", "debut": "2026-03-09", "fin_previsionnelle": "2026-03-20", "reprise": null});
+        let mut v = arret_entier();
+        v["dernier_jour_travaille"] = json!("2026-03-06");
+        v["debut"] = json!("2026-03-09");
+        v["fin_previsionnelle"] = json!("2026-03-20");
         let a = lu(v.clone()).unwrap();
         assert_eq!((dernier_jour_declare(a.arret().unwrap()).unwrap().iso(), premier_jour(&a).unwrap().iso()), ("2026-03-08".into(), "2026-03-09".into()));
         v["debut"] = json!("2026-03-06");

@@ -60,11 +60,6 @@ fn entier(c: &Chiffre) -> Resultat<i64> {
     }
 }
 
-/// Un texte de l'arret, vide s'il n'est pas dit.
-fn texte(x: &Option<String>) -> &str {
-    x.as_deref().unwrap_or_default()
-}
-
 /// Un jour de l'arret dit et non vide, lu.
 fn jour_dit(x: &Option<String>) -> Resultat<Option<Jour>> {
     x.as_deref().filter(|j| !j.is_empty()).map(Jour::lire).transpose()
@@ -106,7 +101,7 @@ impl Droits {
 
 /// L'origine d'un arret, lue sur son motif ; `None` pour un motif sans maintien (maternite, paternite...).
 pub fn origine(imp: &ArretSaisi) -> Resultat<Option<Origine>> {
-    Origine::du_motif(texte(&imp.motif))
+    Origine::du_motif(&imp.motif)
 }
 
 /// LES DROITS D'UN ARRET : a l'anciennete au premier jour de l'absence (D1226-8), comptee depuis la date d'anciennete de la
@@ -116,10 +111,10 @@ pub fn origine(imp: &ArretSaisi) -> Resultat<Option<Origine>> {
 pub fn droits(ctx: &Contexte, imp: &ArretSaisi, nat: &Nature) -> Resultat<Option<Droits>> {
     let Some(origine) = origine(imp)? else { return Ok(None) };
     let premier = crate::imprevus::premier_jour_d_arret(imp)?;
-    let fiche = ctx.salarie(texte(&imp.salarie))?;
+    let fiche = ctx.salarie(&imp.salarie)?;
     let depuis = match fiche.date_anciennete.dite() {
         Some(j) => *j,
-        None => Jour::lire(imp.contrat_debut.as_deref().ok_or_else(|| socle::fichiers::absent("contrat_debut"))?)?,
+        None => Jour::lire(&imp.contrat_debut)?,
     };
     let (depuis, sur_l_anciennete) = crate::imprevus::anciennete_depuis(&ctx.racine, fiche.id.as_str(), &depuis, &premier)?;
     let anciennete_mois = droit::permanents::anciennete_mois(&depuis, &premier);
@@ -213,10 +208,10 @@ pub fn deja_indemnises(ctx: &Contexte, imp: &ArretSaisi, nat: &Nature, t: Texte)
         None => 0,
     };
     let mut total = saisis;
-    let cle = texte(&imp.salarie);
+    let cle = &imp.salarie;
     for autre in crate::imprevus::du_salarie(&ctx.racine, cle)? {
         let Imprevu::Arret(autre) = autre else { continue };
-        if texte(&autre.salarie) != cle {
+        if autre.salarie != *cle {
             continue;
         }
         let (ap, ad) = (crate::imprevus::premier_jour_d_arret(&autre)?, crate::imprevus::dernier_jour_d_arret(&autre)?);
@@ -370,7 +365,7 @@ pub fn ajouter(ctx: &Contexte, e: &crate::saisie::Carte, imp: &ArretSaisi, nat: 
     }
     let taux_horaire = div(m.salaire_du_mois, heures_du_mois);
     let n = dernier.moins(&premier) + 1;
-    let subroge = texte(&imp.subrogation) == "01";
+    let subroge = imp.subrogation.as_deref() == Some("01");
     let (sub_debut, sub_fin) = (jour_dit(&imp.subrogation_debut)?, jour_dit(&imp.subrogation_fin)?);
     let regles = droit::permanents::regles()?;
     let rij = &regles.indemnites_journalieres;
@@ -548,7 +543,7 @@ pub fn indemnites_a_dire(ctx: &Contexte, carte: &crate::saisie::Carte, mois: &st
         Some(f) => Jour::lire(f)?.min(fm),
         None => fm,
     };
-    for imp in crate::imprevus::du_contrat_dans_le_mois(ctx, salarie, &debut_contrat, carte.numero_dit().unwrap_or(""), mois)? {
+    for imp in crate::imprevus::du_contrat_dans_le_mois(ctx, salarie, &debut_contrat, carte.numero_dit(), mois)? {
         let Imprevu::Arret(imp) = imp else { continue };
         if !droits(ctx, &imp, &nat)?.is_some_and(|dr| dr.du()) {
             continue;
@@ -589,7 +584,7 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &ArretSaisi) -> Resultat<Result<IjDeP
     let regles = &rg.indemnites_journalieres;
     let premier = crate::imprevus::premier_jour_d_arret(imp)?;
     let veille = premier.mois_civil().premier_jour().plus_jours(-1)?;
-    let salarie = texte(&imp.salarie).to_string();
+    let salarie = imp.salarie.clone();
     // La paie validee d'un mois du salarie ; sans elle, rien ne se propose.
     let paie = |mois: &str| -> Resultat<Result<Decimal, String>> {
         let brut = crate::conges::remuneration_du_mois(ctx, mois, &salarie)?;
@@ -935,8 +930,12 @@ mod tests {
     /// 12/03. Un accident du travail l'est des le premier jour qui suit l'arret du travail (L433-1).
     #[test]
     fn la_caisse_indemnise_des_le_quatrieme_jour_de_l_incapacite_prescrite() {
-        let imp: ArretSaisi = socle::forme::lire(&json!({"genre": "arret", "dernier_jour_travaille": "2026-03-06", "debut": "2026-03-09",
-            "fin_previsionnelle": "2026-03-20", "reprise": null, "ij_brute": "40.89", "ij_nette": "38.15"}), crate::imprevus::ILLISIBLE).unwrap();
+        let imp: ArretSaisi = socle::forme::lire(&json!({"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": null,
+            "motif": "01", "dernier_jour_travaille": "2026-03-06", "debut": "2026-03-09", "fin_previsionnelle": "2026-03-20",
+            "subrogation": null, "subrogation_debut": null, "subrogation_fin": null, "reprise": null, "reprise_motif": null,
+            "date_accident": null, "jours_deja_indemnises": null, "ij_brute": "40.89", "ij_nette": "38.15", "ij_brute_majoree": null,
+            "ij_nette_majoree": null, "prolongations": [], "reprises": [], "saisi_le": "2026-03-09T10:00:00", "qui": "interface", "note": ""}),
+            crate::imprevus::ILLISIBLE).unwrap();
         let (premier, dernier) = (crate::imprevus::premier_jour_d_arret(&imp).unwrap(), crate::imprevus::dernier_jour_d_arret(&imp).unwrap());
         let premier_indemnise = |o: Origine| {
             let ij = indemnites_des_jours(&imp, o, &premier, &dernier, &premier, &dernier).unwrap().unwrap();

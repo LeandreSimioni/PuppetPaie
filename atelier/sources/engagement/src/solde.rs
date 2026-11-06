@@ -356,9 +356,9 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Carte, mois: &str, deja: 
         None => {
             if e.precarite_due == Some(false) {
                 stc.avertissements.push(info(format!(
-                    "{} : indemnite de precarite ecartee a la main ({}).",
+                    "{} : indemnite de precarite ecartee a la main{}.",
                     qui,
-                    e.precarite_pourquoi.as_deref().filter(|p| !p.is_empty()).unwrap_or("sans raison dite")
+                    e.precarite_pourquoi.as_deref().filter(|p| !p.is_empty()).map_or_else(String::new, |p| format!(" ({})", p))
                 )));
             } else {
                 let total = remuneration_du_contrat(ctx, e, mois, brut_des_lignes(ctx, deja)?)?;

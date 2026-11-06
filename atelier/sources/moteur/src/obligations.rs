@@ -809,13 +809,16 @@ pub(crate) fn ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Vec<EnvoiDeLArret
     let texte = |k: &str| a.get(k).map(en_texte).unwrap_or_default();
     let salarie = texte("salarie");
     let dj = texte("dernier_jour_travaille");
-    // L'imprevu en sa forme, pour les regles du magasin ; illisible, il n'a ni jour declare ni mois traverse.
-    let lu = crate::routes::imprevus::forme(a).ok();
-    let declare_lu = lu.as_ref().and_then(|i| i.arret()).map(engagement::imprevus::dernier_jour_declare);
-    let declare = declare_lu.clone().and_then(Result::ok).map(|j| j.iso()).unwrap_or_default();
-    let traverses: Vec<String> = match (declare_lu, lu.as_ref().map(engagement::imprevus::dernier_jour)) {
-        (Some(Ok(p)), Some(Ok(d))) if p <= d => socle::mois::Mois::entre(&p, &d).iter().map(socle::mois::Mois::to_string).collect(),
-        _ => Vec::new(),
+    // L'imprevu en sa forme, pour les regles du magasin ; illisible, il refuse. Seul un arret a un jour declare et des mois traverses.
+    let lu = crate::routes::imprevus::forme(a)?;
+    let declare_lu = lu.arret().map(engagement::imprevus::dernier_jour_declare).transpose().map_err(|m| erreur("ValueError", m))?;
+    let declare = declare_lu.map(|j| j.iso());
+    let traverses: Vec<String> = match declare_lu {
+        Some(p) => {
+            let d = engagement::imprevus::dernier_jour(&lu).map_err(|m| erreur("ValueError", m))?;
+            if p <= d { socle::mois::Mois::entre(&p, &d).iter().map(socle::mois::Mois::to_string).collect() } else { Vec::new() }
+        }
+        None => Vec::new(),
     };
     let saisi = texte("saisi_le");
     // Une DSN mensuelle a reporte l'imprevu : celle d'un mois qu'il traverse, partie apres sa saisie ; ou, un arret, la DSN suivante
@@ -824,7 +827,7 @@ pub(crate) fn ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Vec<EnvoiDeLArret
         if traverses.iter().any(|m| m == mois) {
             return Ok(quand.replace('T', " ") >= saisi);
         }
-        if !lu.as_ref().is_some_and(engagement::imprevus::est_un_arret) {
+        if !engagement::imprevus::est_un_arret(&lu) {
             return Ok(false);
         }
         arret.a_reporter(mois, &departs).map_err(|m| erreur("ValueError", m))
@@ -836,7 +839,7 @@ pub(crate) fn ce_qui_est_parti(ctx: &Contexte, a: &Value) -> R<Vec<EnvoiDeLArret
         let (nature, type_declaration) = (d.nature.clone().unwrap_or_default(), d.type_declaration.clone().unwrap_or_default());
         let ordre = d.ordre.as_deref().unwrap_or("").trim().parse::<i64>().unwrap_or(0);
         let du_salarie = e.versions.iter().flatten().any(|x| x.salarie.as_str() == salarie);
-        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && d.evenement.as_deref() == Some(declare.as_str()) && du_salarie {
+        if matches!(nature.as_str(), "04" | "05") && dj.len() == 10 && declare.is_some() && d.evenement == declare && du_salarie {
             partis.push(EnvoiDeLArret { fichier: format!("sorties/{}/{}", &dj[..7], nom), nature, type_declaration, ordre, mois: None, quand });
         } else if nature == "01" && reporte(&mois, &quand)? {
             partis.push(EnvoiDeLArret { fichier: format!("sorties/{}/{}", mois, nom), nature, type_declaration, ordre, mois: Some(mois), quand });
@@ -1370,9 +1373,8 @@ fn arret_obligations(ctx: &Contexte, c: ChargeArretObligations) -> R<Obligations
     if let (false, Some(dj)) = (c.salarie.is_empty(), socle::date::jour_iso(&c.dernier_jour)) {
         if let Ok(cle) = ctx.cle_du_salarie(&c.salarie) {
             if let Ok(contrat) = crate::routes::imprevus::contrat_suspendu(ctx, &cle, &dj, c.contrat.as_deref()) {
-                let imp = json!({"genre": engagement::imprevus::ARRET, "salarie": cle.to_string(), "contrat_debut": contrat.debut, "motif": c.motif,
-                    "dernier_jour_travaille": dj.iso(), "debut": c.debut, "fin_previsionnelle": c.fin, "reprise": Value::Null});
-                if socle::date::jour_iso(&c.fin).is_some() && socle::date::jour_iso(&c.debut).is_some() {
+                if let (Some(fin), Some(debut)) = (socle::date::jour_iso(&c.fin), socle::date::jour_iso(&c.debut)) {
+                    let imp = crate::routes::imprevus::arret_a_ecrire(&cle.to_string(), &contrat, &c.motif, &dj, &debut, &fin, None, None, "");
                     let (sub, sub_debut, sub_fin) = crate::routes::imprevus::subrogation_de(ctx, &imp)?;
                     a["salarie"] = json!(cle.to_string());
                     a["contrat_debut"] = json!(contrat.debut);

@@ -1123,8 +1123,8 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Carte, mois: &str) -> Resultat<
     avert.extend(a);
 
     // --- la prime d'anciennete de l'annexe I de la 3090
-    let mut fiche = ctx.salarie(&salarie).map(|f| f.champs).unwrap_or_default();
-    let cle = ctx.cle_du_salarie(&salarie).map(|c| c.to_string()).unwrap_or_default();
+    let mut fiche = ctx.salarie(&salarie)?.champs;
+    let cle = ctx.cle_du_salarie(&salarie)?.to_string();
     // Les annees de presence que les suspensions laissent (L1225-54 : `imprevus::anciennete_depuis`).
     let mut sur_l_anciennete = Vec::new();
     if let Some(depuis) = fiche.date_anciennete.dite().copied().or(Some(debut_saisi)) {

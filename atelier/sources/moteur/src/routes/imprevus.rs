@@ -645,7 +645,7 @@ fn meme_imprevu(a: &Value, b: &Value) -> bool {
 /// suspension) : son indice et le fichier de son mois, tous genres compris.
 fn trouver(ctx: &Contexte, genre: &str, cle: &str, jour: &Jour) -> R<Option<(usize, Vec<Value>)>> {
     let lus = magasin(imprevus::du_fichier(&ctx.racine, &jour.mois_civil().to_string()))?;
-    let i = lus.iter().position(|x| x.genre() == genre && x.salarie().unwrap_or_default() == cle && imprevus::jour_de_rangement(x).ok() == Some(*jour));
+    let i = lus.iter().position(|x| x.genre() == genre && x.salarie() == cle && imprevus::jour_de_rangement(x).ok() == Some(*jour));
     Ok(i.map(|i| (i, lus.iter().map(socle::ecriture::en_valeur).collect())))
 }
 
@@ -1522,34 +1522,36 @@ fn reponse_suspension(ctx: &Contexte, s: &Value, phrase: &str) -> R<ReponseSuspe
     Ok(ReponseSuspension { suspension: resume(ctx, &nomenclatures()?, s)?, phrase: phrase.to_string() })
 }
 
+/// UN ARRET TEL QUE LE MAGASIN L'ECRIT (`engagement::imprevus::ArretSaisi`) : chaque cle y est, nulle quand l'arret n'a pas
+/// encore de valeur (la subrogation, que le droit tire ensuite ; la reprise ; les indemnites journalieres).
+pub(crate) fn arret_a_ecrire(
+    cle: &str,
+    contrat: &ContratAuJour,
+    motif: &str,
+    dernier_jour: &Jour,
+    debut: &Jour,
+    fin: &Jour,
+    date_accident: Option<Jour>,
+    jours_deja_indemnises: Option<u32>,
+    note: &str,
+) -> Value {
+    json!({
+        "genre": ARRET, "salarie": cle, "contrat_debut": contrat.debut, "contrat_numero": contrat.numero, "motif": motif,
+        "dernier_jour_travaille": dernier_jour.iso(), "debut": debut.iso(), "fin_previsionnelle": fin.iso(),
+        "subrogation": null, "subrogation_debut": null, "subrogation_fin": null, "reprise": null, "reprise_motif": null,
+        "date_accident": date_accident.map(|j| j.iso()), "jours_deja_indemnises": jours_deja_indemnises,
+        "ij_brute": null, "ij_nette": null, "ij_brute_majoree": null, "ij_nette_majoree": null,
+        "prolongations": [], "reprises": [], "saisi_le": maintenant(), "qui": INTERFACE, "note": note,
+    })
+}
+
 /// `arret-enregistrer`. Les controles de la norme sont ceux du signalement (`signalement::verifier`, nature 04), avant
 /// toute ecriture ; un arret ne chevauche pas un autre imprevu du meme contrat (`sans_chevauchement`).
 fn arret_enregistrer(ctx: &Contexte, c: &ChargeArretEnregistrer) -> R<ReponseArret> {
     let cle = cle_du_nom(ctx, &c.salarie)?;
     let dernier = c.dernier_jour;
     let choisi = contrat_suspendu(ctx, &cle, &dernier, c.contrat.as_ref().map(NumeroContrat::as_str))?;
-    let mut a = Map::new();
-    a.insert("genre".into(), json!(ARRET));
-    a.insert("salarie".into(), json!(cle));
-    a.insert("contrat_debut".into(), json!(choisi.debut));
-    a.insert("contrat_numero".into(), choisi.numero.clone());
-    a.insert("motif".into(), json!(c.motif));
-    a.insert("dernier_jour_travaille".into(), json!(dernier.iso()));
-    a.insert("debut".into(), json!(c.debut.iso()));
-    a.insert("fin_previsionnelle".into(), json!(c.fin.iso()));
-    a.insert("subrogation".into(), Value::Null);
-    a.insert("subrogation_debut".into(), Value::Null);
-    a.insert("subrogation_fin".into(), Value::Null);
-    a.insert("reprise".into(), Value::Null);
-    a.insert("reprise_motif".into(), Value::Null);
-    a.insert("date_accident".into(), json!(c.date_accident.map(|j| j.iso())));
-    a.insert("jours_deja_indemnises".into(), json!(c.jours_deja_indemnises));
-    a.insert("prolongations".into(), json!([]));
-    a.insert("reprises".into(), json!([]));
-    a.insert("saisi_le".into(), json!(maintenant()));
-    a.insert("qui".into(), json!(INTERFACE));
-    a.insert("note".into(), json!(c.note.clone().unwrap_or_default()));
-    let mut arret = Value::Object(a);
+    let mut arret = arret_a_ecrire(&cle, &choisi, &c.motif, &dernier, &c.debut, &c.fin, c.date_accident, c.jours_deja_indemnises, c.note.as_deref().unwrap_or_default());
     // Les jours deja indemnises (D1226-4) ne se disent que pour un arret qui ouvre le maintien de salaire.
     if c.jours_deja_indemnises.is_some() && !ouvre_le_maintien(ctx, &arret)? {
         return Err(refus(
@@ -1646,28 +1648,28 @@ fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
 }
 
 /// La carte d'un engagement de la saisie que cette route lit encore en valeur (`engagement::saisie::Carte`) ; une carte qui
-/// ne se lit pas ne dit rien.
-fn carte_de(e: &Value) -> engagement::saisie::Carte {
-    socle::forme::lire(e, engagement::saisie::CARTE_ILLISIBLE).unwrap_or_default()
+/// ne se lit pas refuse.
+fn carte_de(e: &Value) -> R<engagement::saisie::Carte> {
+    socle::forme::lire(e, engagement::saisie::CARTE_ILLISIBLE).map_err(plain)
 }
 
 /// L'engagement brut avec ses bornes : un contrat aux cachets ne les ecrit pas, il commence son premier jour travaille et
 /// finit son dernier (`engagement::debut_brut`, `engagement::dates_engagement`).
-fn avec_ses_bornes(racine: &std::path::Path, e: &Value) -> Value {
+fn avec_ses_bornes(racine: &std::path::Path, e: &Value) -> R<Value> {
     let mut e = e.clone();
     let jour = |j: &engagement::DateDeLigne| j.jour().to_string();
     if !e.get("debut").is_some_and(vrai) {
-        let debut = carte_de(&e).debut_lu(racine);
+        let debut = carte_de(&e)?.debut_lu(racine);
         if !debut.is_empty() {
             e["debut"] = json!(debut);
         }
     }
     if !e.get("fin").is_some_and(vrai) {
-        if let Some(fin) = carte_de(&e).dates(racine).iter().map(jour).max() {
+        if let Some(fin) = carte_de(&e)?.dates(racine).iter().map(jour).max() {
             e["fin"] = json!(fin);
         }
     }
-    e
+    Ok(e)
 }
 
 /// L'engagement de ce salarie (sa cle) qui se termine ce mois, avec ses bornes (`avec_ses_bornes`), et son rang dans la
@@ -1676,12 +1678,12 @@ fn avec_ses_bornes(racine: &std::path::Path, e: &Value) -> Value {
 /// autres. Un salarie sans engagement ce mois-la n'a pas de paie : la phrase le dit, avec le mois en toutes lettres.
 fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mois: &str) -> R<(usize, Value)> {
     let eng = saisie.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
-    let siens: Vec<(usize, Value)> = eng
-        .iter()
-        .enumerate()
-        .filter(|(_, x)| carte_de(x).cle(ctx).as_deref() == Some(cle))
-        .map(|(i, x)| (i, avec_ses_bornes(&ctx.racine, x)))
-        .collect();
+    let mut siens: Vec<(usize, Value)> = Vec::new();
+    for (i, x) in eng.iter().enumerate() {
+        if carte_de(x)?.cle(ctx).as_deref() == Some(cle) {
+            siens.push((i, avec_ses_bornes(&ctx.racine, x)?));
+        }
+    }
     if siens.is_empty() {
         return Err(refus(format!("{} n'a aucun engagement en {} : aucun contrat ne s'y termine.", nom, Mois::en_clair(mois))));
     }
@@ -2225,7 +2227,7 @@ déclarent tous deux.",
     } else if let Some(dernier) = e.get("dernier_jour_paye").filter(|j| vrai(j)).map(valeur_en_texte) {
         // Hors preavis non effectue, aucun jour de la paie ne vient apres le dernier jour paye.
         let jour = |j: &engagement::DateDeLigne| j.jour().to_string();
-        let apres: Vec<String> = carte_de(e).dates(&ctx.racine).iter().map(jour).filter(|j| *j > dernier).collect();
+        let apres: Vec<String> = carte_de(e)?.dates(&ctx.racine).iter().map(jour).filter(|j| *j > dernier).collect();
         if !apres.is_empty() {
             let dire = |j: &str| socle::date::jour_iso(j).map_or_else(|| j.to_string(), |x| x.jj_mm());
             manques.push(manque(
@@ -2289,7 +2291,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         if etats.get(i).and_then(|x| x.valide()).is_none() {
             continue;
         }
-        let e: &Value = &avec_ses_bornes(&ctx.racine, &e);
+        let e: &Value = &avec_ses_bornes(&ctx.racine, &e)?;
         let nat = nature_de(get(e, "nature")?)?;
         // La regle est celle de la nature et du motif (`Nature::signalement_fctu`) : un CDDU rompu avant son terme se signale.
         let motif = e.get("motif_rupture").filter(|m| vrai(m)).map(valeur_en_texte);

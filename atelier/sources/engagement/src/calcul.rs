@@ -1165,7 +1165,7 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
                     debut.jj_mm_aaaa(),
                     fin.jj_mm_aaaa(),
                     motifs.join(", "),
-                    premiere.debut().and_then(|d| Jour::lire(d).ok()).map(|d| d.jj_mm_aaaa()).unwrap_or_default(),
+                    Jour::lire(premiere.debut())?.jj_mm_aaaa(),
                     if idcc.is_empty() { "de la compagnie".to_string() } else { idcc.clone() },
                     if autre.is_empty() { String::new() } else { format!("La fiche dit « {} », qui n'est pas une reponse. ", autre) },
                     SANTE_SUSPENSION,
@@ -1192,7 +1192,7 @@ pub(crate) fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
 pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &crate::saisie::Carte, fin: &Jour) -> Resultat<bool> {
     let nat = e.nature_lue()?;
     let debut = crate::conges::debut_de(e)?;
-    let cle = ctx.cle_du_salarie(e.salarie.as_deref().unwrap_or_default())?;
+    let cle = ctx.cle_du_salarie(e.salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
     let dit = |c: &Option<String>| c.clone().filter(|x| !x.is_empty());
     let emploi = EmploiEngagement { code_emploi_ft: dit(&e.code_emploi_ft).or_else(|| dit(&e.metier)), ..Default::default() };
     let fiche = convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?);
