@@ -1033,14 +1033,20 @@ fn usages_declares(ctx: &Contexte, rubrique: Option<&str>, valeur: &Value) -> R<
     Ok(DejaDeclare { declarations: n, du: mois.iter().min().cloned(), au: mois.iter().max().cloned() })
 }
 
-/// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes (`_...`) qu'elle ne dit pas,
+/// Une cle que l'ecran ne montre pas et qu'une ecriture garde : une note de la fiche (`droit::fiche::est_une_note`), ou
+/// une marque que le moteur a posee dans une structure (`_...`).
+pub(crate) fn interne(k: &str) -> bool {
+    k.starts_with('_') || droit::fiche::est_une_note(k)
+}
+
+/// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes qu'elle ne dit pas,
 /// et, dans chaque structure qu'elle nomme (le signataire, la banque...), les cases qu'elle ne dit pas. Une case se
 /// remplit par sa valeur et s'efface par `null` ; son absence la laisse telle qu'elle est (`{"signataire": {"fonction":
 /// "Présidente"}}` garde le prenom et le nom). Une structure entiere a `null` s'efface.
 pub(crate) fn charge_completee(ancienne: &Value, neuve: &Value) -> Value {
     let (Value::Object(a), Value::Object(n)) = (ancienne, neuve) else { return neuve.clone() };
     let mut sortie: Map<String, Value> = n.iter().map(|(k, x)| (k.clone(), structure_completee(a.get(k).unwrap_or(&Value::Null), x))).collect();
-    for (k, v) in a.iter().filter(|(k, _)| k.starts_with('_')) {
+    for (k, v) in a.iter().filter(|(k, _)| interne(k)) {
         sortie.entry(k.clone()).or_insert_with(|| v.clone());
     }
     Value::Object(sortie)
@@ -1323,7 +1329,7 @@ impl<F: droit::fiche::FicheDatee> FicheAEcrire for F {
 
     fn ecrire_case(&mut self, cle: &str, valeur: &Value, depuis: Option<&Jour>, note: Option<&str>, fichier: &str) -> R<()> {
         let plate: F::Plate = droit::fiche::lire_saisie(&un_champ(cle, valeur.clone()), fichier).map_err(plain)?;
-        if cle.starts_with('_') {
+        if interne(cle) {
             droit::fiche::FicheDatee::noter(self, &plate);
         } else if !droit::fiche::FicheDatee::dater(self, cle, &plate, depuis, note) {
             return Err(refus(format!("{} : la case {} n'est pas une case de cette fiche. Rien n'est écrit.", fichier, repr(cle))));
@@ -1571,7 +1577,7 @@ fn meme(a: &Value, b: &Value) -> bool {
 /// La structure `apres` garde chaque case de `avant` qui a une valeur (elle n'en remplit que des vides).
 fn seulement_completee(avant: &Value, apres: &Value) -> bool {
     match (avant.as_object(), apres.as_object()) {
-        (Some(a), Some(b)) => a.iter().filter(|(k, x)| !k.starts_with('_') && !sans_valeur(Some(x))).all(|(k, x)| b.get(k).is_some_and(|y| meme(x, y))),
+        (Some(a), Some(b)) => a.iter().filter(|(k, x)| !interne(k) && !sans_valeur(Some(x))).all(|(k, x)| b.get(k).is_some_and(|y| meme(x, y))),
         _ => false,
     }
 }
@@ -1593,7 +1599,7 @@ pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
         || v.is_some_and(|v| {
             v == &Value::Bool(false)
                 || v.as_array().is_some_and(Vec::is_empty)
-                || v.as_object().is_some_and(|o| o.iter().all(|(k, x)| k.starts_with('_') || sans_valeur(Some(x))))
+                || v.as_object().is_some_and(|o| o.iter().all(|(k, x)| interne(k) || sans_valeur(Some(x))))
         })
 }
 
@@ -1613,7 +1619,7 @@ pub(crate) fn sans_valeur(v: Option<&Value>) -> bool {
 const FAITS_SANS_DATE: [(&str, &str); 2] = [("entreprise", "premiere_embauche"), ("salarie", "date_anciennete")];
 
 pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<String, Value>, premiere_datee: bool) -> R<Vec<String>> {
-    let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
+    let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !interne(k)));
     if !existait {
         return Ok(Vec::new());
     }
@@ -1627,7 +1633,7 @@ pub(crate) fn changements_a_dater(nom: &str, ancienne: &Value, donnees: &Map<Str
         .iter()
         .filter(|(k, v)| {
             let avant = ancienne.get(k.as_str()).filter(|a| !vide(Some(a))).or_else(|| defauts.get(k.as_str()));
-            !k.starts_with('_')
+            !interne(k)
                 && !FAITS_SANS_DATE.contains(&(nom, k.as_str()))
                 // Les autres etablissements : ligne par ligne (`etablissements::a_dater`).
                 && !(nom == "entreprise" && k.as_str() == "etablissements")
@@ -1818,7 +1824,7 @@ pub(crate) fn ecrire_datee(
         )));
     }
     for (k, v) in donnees {
-        if k.starts_with('_') {
+        if interne(k) {
             brute.ecrire_case(k, v, None, None, fichier)?;
             continue;
         }
@@ -2150,7 +2156,7 @@ fn finir_fiche(cle: Option<String>, chemin: &Path, avant: Value, contenu: Fichie
         Some(k) => (avant.get(k).unwrap_or(&Value::Null), apres.get(k).unwrap_or(&Value::Null)),
         None => (&avant, &apres),
     };
-    let champs: Vec<String> = n.as_object().into_iter().flatten().filter(|(k, v)| !k.starts_with('_') && a.get(k.as_str()) != Some(*v)).map(|(k, _)| k.clone()).collect();
+    let champs: Vec<String> = n.as_object().into_iter().flatten().filter(|(k, v)| !interne(k) && a.get(k.as_str()) != Some(*v)).map(|(k, _)| k.clone()).collect();
     if ecrit {
         sauver_avant(chemin)?;
         ecrire(chemin, apres)?;
@@ -2550,7 +2556,7 @@ pub(crate) fn poser_courriel(ctx: &Contexte, cle: &str, email: &str) -> R<()> {
     let Some(Value::Object(fiche)) = ctx.salaries.get(cle).map(|f| socle::ecriture::en_valeur(&f.champs)) else {
         return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
     };
-    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();
+    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !interne(k)).map(|(k, v)| (k.clone(), v.clone())).collect();
     donnees.insert("email".into(), Value::String(email.trim().to_string()));
     let (depuis, _) = date_proposee(ctx, "salarie", Some(cle))?;
     ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &json!(depuis.iso()), &Value::Null)?;

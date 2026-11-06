@@ -4,7 +4,7 @@
 //! fait que les afficher (regle 2).
 //!
 //! Les regles sont des donnees : `logiciel/donnees/obligations-base.json` dit chaque obligation, son delai, son point de
-//! depart et le texte qui la fonde -- tous deposes (son `_textes`) :
+//! depart et le texte qui la fonde -- tous deposes (sa `note`) :
 //!
 //! - le signalement d'arret (04) et de reprise anticipee (05) : CSS R. 133-14, II
 //!   (`atelier/reference/sources/code-de-la-securite-sociale/xml/R133-14.xml`) et l'arrete du 2 juillet 2013, art. 1er
@@ -296,6 +296,7 @@ const QUOI_DU_SUIVI: &str = "Ce que la compagnie a dit des obligations de ses ar
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct FichierDuSuivi {
+    #[serde(rename = "quoi")]
     _quoi: String,
     arrets: Vec<FicheDeSuivi>,
 }

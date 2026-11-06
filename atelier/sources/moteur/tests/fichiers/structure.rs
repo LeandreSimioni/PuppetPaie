@@ -45,6 +45,46 @@ fn sources(d: &Path) -> Vec<PathBuf> {
     v
 }
 
+/// UNE EXPLICATION S'ECRIT SOUS `quoi`, `note` OU `source`, et sous aucune cle en `_` : aucun fichier JSON livre
+/// (`logiciel/donnees/`, a tous les niveaux) n'en porte une.
+#[test]
+fn aucun_fichier_livre_ne_porte_une_cle_en_souligne() {
+    fn fichiers(d: &Path, out: &mut Vec<PathBuf>) {
+        for e in std::fs::read_dir(d).unwrap().flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                fichiers(&p, out);
+            } else if p.extension().is_some_and(|x| x == "json") {
+                out.push(p);
+            }
+        }
+    }
+    fn cles(v: &Value, ou: &str, fautes: &mut Vec<String>) {
+        match v {
+            Value::Object(o) => {
+                for (k, x) in o {
+                    if k.starts_with('_') {
+                        fautes.push(format!("{} : la cle « {} »", ou, k));
+                    }
+                    cles(x, &format!("{}/{}", ou, k), fautes);
+                }
+            }
+            Value::Array(a) => a.iter().enumerate().for_each(|(i, x)| cles(x, &format!("{}/{}", ou, i), fautes)),
+            _ => {}
+        }
+    }
+    let racine = crate::outils::code_livre();
+    let mut tous = Vec::new();
+    fichiers(&racine, &mut tous);
+    assert!(tous.len() > 30, "{} fichiers JSON lus", tous.len());
+    let mut fautes = Vec::new();
+    for p in tous {
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap_or_else(|e| panic!("{} : {}", p.display(), e));
+        cles(&v, &p.strip_prefix(&racine).unwrap().to_string_lossy(), &mut fautes);
+    }
+    assert!(fautes.is_empty(), "des cles en `_` dans les fichiers livres : une explication s'ecrit `quoi`, `note` ou `source` ; une donnee, sous un nom sans `_` :\n{}", fautes.join("\n"));
+}
+
 /// Chaque route du catalogue a sa fiche, une seule, et chaque fiche est une route de l'enumeration `Route` qui se dit au
 /// catalogue : une route de l'atelier (`au_catalogue` faux) n'en a pas. Le nom d'une route se relit en elle (`Route::lire`).
 #[test]
@@ -95,7 +135,7 @@ fn ce_que_l_ecran_affiche_est_fait_pour_l_ecran() {
                     cases(x, &ici, out);
                 }
             }
-            Value::Object(o) => o.iter().filter(|(k, _)| !k.starts_with('_')).for_each(|(k, x)| cases(x, &format!("{}{}", ou, k), out)),
+            Value::Object(o) => o.iter().for_each(|(k, x)| cases(x, &format!("{}{}", ou, k), out)),
             Value::Array(a) => a.iter().for_each(|x| cases(x, ou, out)),
             _ => {}
         }

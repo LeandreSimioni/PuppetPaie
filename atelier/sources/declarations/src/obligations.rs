@@ -8,25 +8,14 @@ use serde::{Deserialize, Serialize};
 use socle::fichiers::{dossier_du_code, json_en_cache};
 use socle::num::Resultat;
 
-/// `obligations-base.json` : chaque obligation, son delai, son point de depart et ses textes. Les notes du fichier
-/// (`_quoi`, `_pourquoi_ici`, `_textes`, `jours_ouvres`) ne servent pas au calcul.
+/// `obligations-base.json` : chaque obligation, son delai, son point de depart et ses textes. Ses `quoi` et `note` ne
+/// servent pas au calcul (la regle d'un jour ouvre est dans le calendrier du moteur, `jours_ouvres_apres`).
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BaseDesObligations {
-    _quoi: String,
-    _pourquoi_ici: String,
-    _textes: String,
-    #[serde(rename = "jours_ouvres")]
-    _jours_ouvres: NoteDesJoursOuvres,
+    pub quoi: String,
+    pub note: String,
     pub obligations: LesObligations,
-}
-
-/// Ce que le fichier dit d'un jour ouvre (la regle est dans le calendrier du moteur, `jours_ouvres_apres`).
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct NoteDesJoursOuvres {
-    _regle: String,
-    _inference: String,
 }
 
 /// Les obligations que le moteur sait compter, une par cle.
@@ -72,7 +61,7 @@ pub struct DeBase {
     #[serde(default)]
     pub a_avoir: Vec<String>,
     #[serde(default)]
-    _a_avoir_source: Option<String>,
+    pub note: Option<String>,
     #[serde(default)]
     pub suites: Option<Suites>,
     pub textes: Vec<TexteDepose>,

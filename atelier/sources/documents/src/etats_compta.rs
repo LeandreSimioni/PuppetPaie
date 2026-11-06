@@ -963,6 +963,7 @@ const COMPTA: &str = "config/compta.json";
 #[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ChoixCompta {
+    #[serde(rename = "quoi")]
     _quoi: String,
     pub logiciel: String,
     pub analytique: bool,

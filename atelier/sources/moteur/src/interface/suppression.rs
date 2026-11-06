@@ -297,7 +297,6 @@ struct FichierDemo {
     creee_le: String,
     gardee_le: String,
     mois: Vec<String>,
-    #[serde(rename = "_quoi")]
     quoi: String,
 }
 

@@ -1,8 +1,7 @@
 {
- "_quoi": "Le tableau des usages du cahier technique NEODeS : pour chaque rubrique et chaque nature de declaration, si elle est obligatoire (O), conditionnelle (C), interdite (I) ou sans objet (N). Ecrire une rubrique que la nature n'admet pas est une anomalie BLOQUANTE (CST-04) et le fichier ne declare rien.",
- "_source": "Tableau des usages de la norme DSN 2027.1.2, classeur dsn-tableau-des-usages-2027.1.2-20251224.xlsx (feuille « 1 - Tableau des usages »). Releve automatiquement par `moteur extraire usages` le 15/10/2026.",
- "_sha256_du_classeur": "607f62384b26bad22fc6f6ee70ed39b14b20815a68336dda436a1b37762cd79c",
- "_comment_le_verifier": "Le releve est confronte a ce que le moteur produit : toute declaration qu'il ecrit (DSN, signalement, FCTU) passe `declarations::usages::verifier_fichier`, qui refuse une rubrique que sa nature n'admet pas, et `declarations/tests/declarations/usages_formats_ntt.rs` fige le tableau des usages par nature.",
+ "quoi": "Le tableau des usages du cahier technique NEODeS : pour chaque rubrique et chaque nature de declaration, si elle est obligatoire (O), conditionnelle (C), interdite (I) ou sans objet (N). Ecrire une rubrique que la nature n'admet pas est une anomalie BLOQUANTE (CST-04) et le fichier ne declare rien.",
+ "note": "Tableau des usages de la norme DSN 2027.1.2, classeur dsn-tableau-des-usages-2027.1.2-20251224.xlsx (feuille « 1 - Tableau des usages »). Releve automatiquement par `moteur extraire usages` le 15/10/2026. Le releve est confronte a ce que le moteur produit : toute declaration qu'il ecrit (DSN, signalement, FCTU) passe `declarations::usages::verifier_fichier`, qui refuse une rubrique que sa nature n'admet pas, et `declarations/tests/declarations/usages_formats_ntt.rs` fige le tableau des usages par nature.",
+ "sha256_du_classeur": "607f62384b26bad22fc6f6ee70ed39b14b20815a68336dda436a1b37762cd79c",
  "natures": {
   "01": "DSN mensuelle",
   "04": "Signalement arrêt de travail",
@@ -12,7 +11,7 @@
   "09": "DSN de substitution",
   "10": "Signalement Déclaration préalable à l'embauche"
  },
- "_valeurs": {
+ "valeurs": {
   "O": "obligatoire",
   "C": "conditionnelle",
   "I": "interdite",

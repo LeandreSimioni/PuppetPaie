@@ -461,7 +461,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         ancien
     };
     let mut sortie = Map::new();
-    sortie.insert("_quoi".into(), json!(QUOI));
+    sortie.insert("quoi".into(), json!(QUOI));
     sortie.insert("le".into(), json!(jour.iso()));
     sortie.insert("mois_faits".into(), Value::Object(clos));
     sortie.insert("annees_faites".into(), json!(annees_faites.iter().collect::<Vec<_>>()));

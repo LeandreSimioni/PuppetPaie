@@ -3,7 +3,7 @@
 //! Elle ne vient plus d'une constante : `logiciel/donnees/norme-dsn-base.json` dit, par version, ce qui la declenche
 //! (le mois principal declare d'une DSN mensuelle, le jour de constitution d'un signalement), ses tables d'usages et de
 //! formats, les valeurs de liste qu'elle n'admet plus et le code de la CET patronale. Le moteur applique la donnee ;
-//! ce qu'elle ne couvre pas refuse. LA REGLE DE BASCULE EST UNE INFERENCE (`_inference` de la donnee) : le cahier
+//! ce qu'elle ne couvre pas refuse. LA REGLE DE BASCULE EST UNE INFERENCE (la `note` de la donnee) : le cahier
 //! technique 2027.1.1 ne la donne pas (p. 129, une seule valeur par cahier ).
 //!
 //! Le fichier en cours de fabrication porte sa norme (`dsn::Fichier::en_norme`) : « ce fichier est-il en P27V01 ? »
@@ -113,7 +113,7 @@ impl Norme {
 (S21.G00.81.001) sous lequel elle se declare n'est pas tranche. {} (logiciel/donnees/{}, `cotisation_cet_patronale`.) \
 Rien n'est ecrit.",
                 self.version,
-                texte_de(&e["_pourquoi_cet"]).unwrap_or_default(),
+                texte_de(&e["note"]).unwrap_or_default(),
                 BASE
             )
         })

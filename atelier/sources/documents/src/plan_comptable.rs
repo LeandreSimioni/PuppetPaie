@@ -53,7 +53,7 @@ pub fn plan_comptable(ctx: &Contexte) -> R<Map<String, Value>> {
             return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&perso))));
         };
         for (k, v) in &perso {
-            if k.starts_with('_') {
+            if socle::forme::NOTES.contains(&k.as_str()) {
                 continue;
             }
             if k == "lignes" || k == "tiers" || k == "retenues" {

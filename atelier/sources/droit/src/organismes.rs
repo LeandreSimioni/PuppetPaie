@@ -216,7 +216,7 @@ impl Base {
 pub struct FichierOrganismes {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub adhesions_prevoyance: Vec<Datee<Vec<Adhesion>>>,
-    #[serde(rename = "_quoi", default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quoi: Option<String>,
 }
 

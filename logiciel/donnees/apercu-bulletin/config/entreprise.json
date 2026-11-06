@@ -1,5 +1,5 @@
 {
-  "_source": "COMPAGNIE FICTIVE de l'apercu du bulletin : aucune de ces valeurs ne designe une entreprise, une personne ou un spectacle reels. Chaque valeur vaut de tout temps (configuration datee, `droit::contexte::fiche_au`).",
+  "note": "COMPAGNIE FICTIVE de l'apercu du bulletin : aucune de ces valeurs ne designe une entreprise, une personne ou un spectacle reels. Chaque valeur vaut de tout temps (configuration datee, `droit::contexte::fiche_au`).",
   "raison_sociale": [{"valeur": "CIE FICTIVE DE L APERCU"}],
   "nom_affichage": [{"valeur": "Compagnie fictive (aperçu du bulletin)"}],
   "siren": [{"valeur": "123456923"}],

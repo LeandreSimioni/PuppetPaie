@@ -1322,7 +1322,7 @@ pub struct TauxAtmpEcrit {
     pub valeur: Option<ValeurAtmp>,
     #[serde(default)]
     pub code_risque: Option<String>,
-    #[serde(rename = "_source", default)]
+    #[serde(rename = "note", default)]
     pub provenance: Option<String>,
     #[serde(rename = "_pose_a_la_creation", default)]
     pub pose_a_la_creation: Option<bool>,

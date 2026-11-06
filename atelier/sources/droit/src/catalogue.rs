@@ -279,18 +279,10 @@ fn mal_decrite(code: &str, detail: String) -> String {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Base {
-    #[serde(rename = "_quoi")]
+    #[serde(rename = "quoi")]
     _quoi: String,
-    #[serde(rename = "_pourquoi_si_court")]
-    _pourquoi_si_court: String,
-    #[serde(rename = "_jours")]
-    _jours: String,
-    #[serde(rename = "_heures")]
-    _heures: String,
-    #[serde(rename = "_annexes")]
-    _annexes: String,
-    #[serde(rename = "_deux_compteurs")]
-    _deux_compteurs: String,
+    #[serde(rename = "note")]
+    _note: String,
     annexes: Annexes,
     #[serde(deserialize_with = "socle::forme::en_ordre")]
     rubriques: Vec<(String, ChampsRubrique)>,
@@ -304,8 +296,8 @@ pub struct Annexes {
     pub seuil_heures: i64,
     /// La fenetre ou elles se comptent, en jours (365).
     pub fenetre_jours: i64,
-    #[serde(rename = "_source")]
-    _source: String,
+    #[serde(rename = "note")]
+    _note: String,
 }
 
 /// LA SEULE LECTURE DE `rubriques-base.json` : sa forme.

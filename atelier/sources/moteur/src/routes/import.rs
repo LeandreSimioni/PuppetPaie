@@ -494,7 +494,7 @@ pub(crate) fn apercu_lu(
         donnees.insert("numero_objet".into(), json!(o.numero));
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(o.dernier >= seuil));
-        donnees.insert("_vu_dans".into(), json!(format!("{} de {} a {} ({} contrat(s))", source, o.premier, o.dernier, o.contrats)));
+        donnees.insert("note".into(), json!(format!("{} de {} a {} ({} contrat(s))", source, o.premier, o.dernier, o.contrats)));
         let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         a_creer_liste.push(ACreer { nom: "spectacle", rang: Some(spectacles.len()), donnees: donnees.clone() });
         spectacles.push(FicheImportee::new(

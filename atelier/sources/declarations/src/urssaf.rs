@@ -13,14 +13,8 @@ use socle::num::Resultat;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BaseUrssaf {
-    #[serde(rename = "_quoi")]
-    _quoi: String,
-    #[serde(rename = "_source")]
-    _source: String,
-    #[serde(rename = "_par_departement_est_une_suggestion")]
-    _suggestion: String,
-    #[serde(rename = "_defaut")]
-    _defaut: String,
+    pub quoi: String,
+    pub note: String,
     pub organismes: Vec<Organisme>,
     /// L'organisme de chaque ancienne region (2015) : ce d'ou l'extraction tire `par_departement`.
     #[serde(rename = "par_ancienne_region")]

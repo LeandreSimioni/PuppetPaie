@@ -248,7 +248,7 @@ impl Identite {
         }
         brute.complement_adresse.clear();
         brute.etablissements.clear();
-        brute.source = None;
+        brute.note = None;
         let mut f = Map::new();
         let (siren, nic) = (self.texte("siren")?, self.texte("nic")?);
         let siret = format!("{}{}", siren, nic);
@@ -276,7 +276,7 @@ impl Identite {
         }
         f.insert("api_dpae".into(), Value::Object(dpae));
         f.insert(
-            "_source".into(),
+            "note".into(),
             json!(format!("COMPAGNIE D'ESSAI (moteur essai monter) : l'identite vient de {} ; le reste, de la compagnie fictive copiee. Ne se commite jamais.", VARIABLE)),
         );
         let plate: droit::fiche::ChampsEntreprise = droit::fiche::lire_saisie(&f, droit::contexte::ENTREPRISE)?;
@@ -413,7 +413,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
             "copie_de": format!("{} (moteur essai monter, identite de {}), depuis la compagnie fictive {}", MARQUE_ESSAI, VARIABLE, nom),
             "depuis": nom,
             "quand": quand,
-            "_quoi": "Compagnie d'ESSAI : ses depots de TEST vont au reseau, sous l'identite d'une vraie compagnie ; tout acte reel est refuse (depot_acte::refuser_si_copie, et pas de coffre). Ne se commite jamais.",
+            "quoi": "Compagnie d'ESSAI : ses depots de TEST vont au reseau, sous l'identite d'une vraie compagnie ; tout acte reel est refuse (depot_acte::refuser_si_copie, et pas de coffre). Ne se commite jamais.",
         });
         socle::ecriture::ecrire_json(&dossier.join(MARQUEUR), &marqueur, 2)?;
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")

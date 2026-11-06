@@ -19,8 +19,8 @@ type R<T> = Result<T, Echec>;
 
 /// Dans la fiche d'un spectacle : le titre que l'import a lu dans les bulletins de l'ancien logiciel, propose, et ou il
 /// l'a lu (la ligne « Spectacle », ou la case « Analytique »). « Pour démarrer » le propose dans la case du titre.
-pub const TITRE_PROPOSE: &str = "_titre_propose";
-pub const TITRE_LU_DANS: &str = "_titre_lu_dans";
+pub const TITRE_PROPOSE: &str = "titre_propose";
+pub const TITRE_LU_DANS: &str = "titre_lu_dans";
 /// Le titre d'un spectacle que l'import n'a pas ecrit.
 const TITRE_A_COMPLETER: &str = "A COMPLETER";
 
@@ -70,7 +70,7 @@ fn a_des_spectacles(ctx: &Contexte) -> bool {
     std::fs::read(ctx.racine.join(droit::contexte::SPECTACLES))
         .ok()
         .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
-        .and_then(|v| v.as_object().map(|o| o.iter().any(|(k, s)| !k.starts_with('_') && s.get("actif") != Some(&json!(false)))))
+        .and_then(|v| v.as_object().map(|o| o.iter().any(|(k, s)| k != droit::fiche::NOTE_DU_FICHIER && s.get("actif") != Some(&json!(false)))))
         .unwrap_or(false)
 }
 

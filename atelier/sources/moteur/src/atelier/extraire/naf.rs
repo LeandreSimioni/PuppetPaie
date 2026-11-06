@@ -80,23 +80,23 @@ pub fn relever(structure: &Path, correspondances: &Path, jour: &Jour) -> Resulta
     empreintes.insert(nom_s.clone(), Value::String(sha256(structure)?));
     empreintes.insert(nom_c.clone(), Value::String(sha256(correspondances)?));
     let donnees = json!({
-        "_quoi": "La NAF 2025 (sous-classes) et la correspondance de chaque sous-classe NAF rev. 2 vers la NAF 2025. \
+        "quoi": "La NAF 2025 (sous-classes) et la correspondance de chaque sous-classe NAF rev. 2 vers la NAF 2025. \
                   La fiche entreprise porte le code APE sans point (`9020Y`). Le moteur s'en sert pour reconnaitre un \
                   code saisi et pour refuser, dans un fichier DSN P27V01, un code NAF rev. 2 qui n'a plus cours, en \
                   disant vers quels codes NAF 2025 il passe : il ne choisit jamais entre eux, c'est l'INSEE qui \
                   attribue le code (`declarations/src/naf.rs`).",
-        "_source": format!(
+        "note": format!(
             "INSEE, page « NAF 2025 » (https://www.insee.fr/fr/information/8181066) : {} (structure, feuille \
              « Sous-classes ») et {} (feuille « NAF rév. 2 vers NAF 2025 »), deposes dans \
-             atelier/reference/sources/insee-naf-2025/. Releve automatiquement par `moteur extraire naf` le {}.",
+             atelier/reference/sources/insee-naf-2025/. Releve automatiquement par `moteur extraire naf` le {}. \
+             Decret n° 2025-736 du 31/07/2025 (atelier/reference/sources/insee-naf-2025/\
+             legifrance-decret-2025-736-naf-2025-20250731.txt) : art. 2, la NAF 2025 « entre en \
+             vigueur le 1er janvier 2027 » ; art. 6, le decret de 2007 (NAF rev. 2) est abroge a la \
+             meme date pour la nomenclature d'activites.",
             nom_s, nom_c, date_du_releve(jour)
         ),
-        "_sha256": empreintes,
+        "sha256": empreintes,
         "en_vigueur_naf_2025": "2027-01-01",
-        "_source_en_vigueur": "Decret n° 2025-736 du 31/07/2025 (atelier/reference/sources/insee-naf-2025/\
-                               legifrance-decret-2025-736-naf-2025-20250731.txt) : art. 2, la NAF 2025 « entre en \
-                               vigueur le 1er janvier 2027 » ; art. 6, le decret de 2007 (NAF rev. 2) est abroge a la \
-                               meme date pour la nomenclature d'activites.",
         "naf_2025": naf_2025,
         "naf_rev2": naf_rev2,
     });

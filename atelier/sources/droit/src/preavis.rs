@@ -13,49 +13,35 @@ use socle::num::Resultat;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BaseFctu {
-    #[serde(rename = "_quoi")]
-    _quoi: String,
-    #[serde(rename = "_source")]
-    _source: String,
+    pub quoi: String,
+    pub note: String,
     /// Les cardinalites du modele, bloc par bloc (cahier technique p. 122), et ce qu'elles disent.
-    #[serde(rename = "_arborescence")]
-    _arborescence: BTreeMap<String, String>,
+    pub arborescence: Arborescence,
     pub types_preavis: TypesPreavis,
     pub transaction: Nomenclature,
     pub rattachement_versement: Nomenclature,
     pub notification_rupture: NotificationRupture,
-    #[serde(rename = "_delai")]
-    _delai: String,
-    #[serde(rename = "_report_en_mensuelle")]
-    _report_en_mensuelle: String,
+}
+
+/// Les cardinalites du modele : le bloc (`S21.G00.63`) et son « min,max ».
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Arborescence {
+    pub quoi: String,
+    pub blocs: BTreeMap<String, String>,
+    pub note: String,
 }
 
 /// Les types de preavis (S21.G00.63.001), les codes d'une indemnite compensatrice, et les motifs qui limitent le type.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TypesPreavis {
-    #[serde(rename = "_rubrique")]
-    _rubrique: String,
-    #[serde(rename = "_quoi")]
-    _quoi: String,
+    pub quoi: String,
     pub codes: Vec<TypePreavis>,
-    #[serde(rename = "_indemnite_de_preavis")]
-    _indemnite_de_preavis: String,
     pub codes_52_de_l_indemnite_de_preavis: Vec<String>,
-    #[serde(rename = "_codes_52_de_l_indemnite_de_preavis")]
-    _codes_52: String,
-    #[serde(rename = "_non_effectue")]
-    _non_effectue: String,
-    #[serde(rename = "_dates")]
-    _dates: String,
-    #[serde(rename = "_periode_essai")]
-    _periode_essai: String,
-    #[serde(rename = "_rupture_conventionnelle")]
-    _rupture_conventionnelle: String,
-    /// Par motif de rupture, les types permis ; les notes de la table sont des phrases.
-    types_permis_par_motif: BTreeMap<String, PermisOuNote>,
-    #[serde(rename = "_contigues")]
-    _contigues: String,
+    pub note: String,
+    /// Par motif de rupture, les types permis.
+    pub types_permis_par_motif: TypesPermis,
 }
 
 /// Un type de preavis : son code, son libelle, s'il porte ses dates, si l'ecran le propose, s'il est non effectue, et ce
@@ -81,12 +67,13 @@ pub enum IndemniteDuType {
     Aucune,
 }
 
-/// Une ligne de `types_permis_par_motif` : la limite d'un motif, ou une note.
+/// `types_permis_par_motif` : ses notes, et la limite de chaque motif.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(untagged)]
-enum PermisOuNote {
-    Permis(Permis),
-    Note(#[allow(dead_code)] String),
+#[serde(deny_unknown_fields)]
+pub struct TypesPermis {
+    pub quoi: String,
+    pub motifs: BTreeMap<String, Permis>,
+    pub note: String,
 }
 
 /// Les types permis a un motif, et le controle qui le veut.
@@ -101,10 +88,8 @@ pub struct Permis {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Nomenclature {
-    #[serde(rename = "_rubrique")]
-    _rubrique: String,
-    #[serde(rename = "_quoi")]
-    _quoi: String,
+    pub quoi: String,
+    pub note: Option<String>,
     pub codes: Vec<Code>,
 }
 
@@ -122,14 +107,8 @@ pub struct Code {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NotificationRupture {
-    #[serde(rename = "_rubrique")]
-    _rubrique: String,
-    #[serde(rename = "_champ")]
-    _champ: String,
-    #[serde(rename = "_quoi")]
-    _quoi: String,
-    #[serde(rename = "_source")]
-    _source: String,
+    pub quoi: String,
+    pub note: String,
     pub motifs: Vec<String>,
 }
 
@@ -148,10 +127,7 @@ impl TypesPreavis {
 
     /// Les types permis au motif `motif`, ou `None` s'il ne limite pas le type.
     pub fn permis_au_motif(&self, motif: &str) -> Option<&Permis> {
-        match self.types_permis_par_motif.get(motif) {
-            Some(PermisOuNote::Permis(p)) => Some(p),
-            _ => None,
-        }
+        self.types_permis_par_motif.motifs.get(motif)
     }
 }
 

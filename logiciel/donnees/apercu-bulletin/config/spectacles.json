@@ -1,5 +1,5 @@
 {
-  "_source": "COMPAGNIE FICTIVE de l'apercu du bulletin : titre et numero d'objet fabriques. Chaque valeur vaut de tout temps (configuration datee).",
+  "note": "COMPAGNIE FICTIVE de l'apercu du bulletin : titre et numero d'objet fabriques. Chaque valeur vaut de tout temps (configuration datee).",
   "apercu": {
     "titre": [{"valeur": "Spectacle fictif"}],
     "numero_objet": [{"valeur": "266Z00900011"}],

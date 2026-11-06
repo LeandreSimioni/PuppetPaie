@@ -299,15 +299,15 @@
     "COPIE-DE-DEVELOPPEMENT.json": {
       "copie_de": "compagnie fictive ajoutee-les-treteaux-du-banc sur le banc d'essai",
       "quand": "2026-11-02T09:00:47",
-      "_quoi": "Une compagnie ajoutee par le « + », devenue fictive aux envois SIMULES sur le banc d'essai de l'atelier (scenario.rs, geste `simuler`) : ses DPAE, DSN et courriels sont joues, rien ne part."
+      "quoi": "Une compagnie ajoutee par le « + », devenue fictive aux envois SIMULES sur le banc d'essai de l'atelier (scenario.rs, geste `simuler`) : ses DPAE, DSN et courriels sont joues, rien ne part."
     },
     "config/baremes/2026.json": {
       "annee": 2026,
       "socle": 2026,
       "taux_atmp": {
-        "_source": "Saisi dans PuppetPaie le 02/11/2026 (notification AT/MP).",
         "valeur": 1.1,
-        "code_risque": "923AD"
+        "code_risque": "923AD",
+        "note": "Saisi dans PuppetPaie le 02/11/2026 (notification AT/MP)."
       }
     },
     "config/compteurs.json": {
@@ -319,7 +319,7 @@
     "config/creation.json": {
       "le": "2026-11-02",
       "venue": "neuve",
-      "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant). `venue` : le chemin du « + », une compagnie neuve ou d'un logiciel precedent (elle commence alors par l'import)."
+      "quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant). `venue` : le chemin du « + », une compagnie neuve ou d'un logiciel precedent (elle commence alors par l'import)."
     },
     "config/entreprise.json": {
       "nom_affichage": [
@@ -474,7 +474,7 @@
       ]
     },
     "config/horloge.json": {
-      "_quoi": "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).",
+      "quoi": "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).",
       "le": "2026-12-16",
       "mois_faits": {
         "2026-11": "219097fc40d23c96"
@@ -491,12 +491,12 @@
       }
     },
     "config/organismes.json": {
-      "_quoi": "Ce que la compagnie a saisi dans Configuration › Organismes et contrats, et les identifiants d'adhesion attribues, date : chaque cle est une liste {depuis, valeur}. Le reste se compose des textes livres a la date de chaque mois. Ne pas modifier a la main.",
       "adhesions_prevoyance": [
         {
           "valeur": []
         }
-      ]
+      ],
+      "quoi": "Ce que la compagnie a saisi dans Configuration › Organismes et contrats, et les identifiants d'adhesion attribues, date : chaque cle est une liste {depuis, valeur}. Le reste se compose des textes livres a la date de chaque mois. Ne pas modifier a la main."
     },
     "config/salaries.json": {
       "FULLER": {
@@ -2048,10 +2048,10 @@
                 "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "55397a1a43110518aad015d93f452f8b6653bd22ab7ee441bc33179c54fdca44",
                 "fichier code:baremes/2026.json": "c7bd465edce5d6652da71f311705f78ba32e6535f4e9059855d873daabb3c18d",
                 "fichier code:contrats-base.json": "95f1d797ee0eb4dfe459da580a27d43dff483cc98dade9d944d5cd8d18781db6",
-                "fichier code:emplois-base.json": "5631b0b12422b976759cf50d732278470512be555560e2b787e13c7234787131",
+                "fichier code:emplois-base.json": "d7be9edbc37bfa3c75b050f13018ae5b956f9eeab57cae0d1a7cf19d48d0b168",
                 "fichier code:minima-conventionnels.json": "60c4ca0ac65913f03183ae45760fc766a86d72c0d0865d746243e519823b0ec3",
-                "fichier code:rubriques-base.json": "1d251c43f784f536fca35782b9064721f9ff8cf329568a0c44fda8579391d2c6",
-                "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
+                "fichier code:rubriques-base.json": "ea9934a661695762c4958b0cc0fe8046e1ab2b38592a9d082a1fee81cbf8e625",
+                "fichier racine:config/baremes/2026.json": "bbf67747eff4900816f07f662f4a7893d82b824aac0c7c68949aec8d09fd94f6",
                 "imprevus racine:imprevus FULLER": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
                 "moteur": "<moteur>",
                 "pas FULLER 2026-11-30 2026-11": "[\"8.30\",\"01\",\"442936195\"]",

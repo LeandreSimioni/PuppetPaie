@@ -211,13 +211,18 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
 
 // ------------------------------------------------------------------ les outils
 
-/// `js.brut` d'un dictionnaire de fiche : sans les cles `_...`, a tous les
-/// niveaux.
+/// `js.brut` d'une fiche : sans ses notes (`droit::fiche::est_une_note`), ni, a tous les niveaux, les cles `_...`.
 fn brut(v: &Value) -> Value {
+    fn sans_marques(v: &Value) -> Value {
+        match v {
+            Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), sans_marques(x))).collect()),
+            Value::Array(a) => Value::Array(a.iter().map(sans_marques).collect()),
+            autre => autre.clone(),
+        }
+    }
     match v {
-        Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), brut(x))).collect()),
-        Value::Array(a) => Value::Array(a.iter().map(brut).collect()),
-        autre => autre.clone(),
+        Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_') && !droit::fiche::est_une_note(k)).map(|(k, x)| (k.clone(), sans_marques(x))).collect()),
+        autre => sans_marques(autre),
     }
 }
 

@@ -259,9 +259,13 @@ impl<'de> serde::Deserialize<'de> for NombreEcrit {
     }
 }
 
-/// UN OBJET DE FICHES ET SA NOTE (`config/salaries.json`, `config/spectacles.json`) : la note (`note`, la seule cle en
-/// `_` admise), et les fiches dans l'ordre du fichier, chacune sous sa cle lue en `K`. Une autre cle en `_` et une cle
-/// repetee refusent. `#[serde(deserialize_with)]` ne s'y pose pas : la forme l'appelle de son `Deserialize`.
+/// Les trois cles qui expliquent un objet d'un fichier, sans rien dire au calcul : `quoi` (ce qu'il est), `note` (une
+/// remarque, un pourquoi, une regle d'emploi), `source` (le texte depose qui le fonde).
+pub const NOTES: [&str; 3] = ["quoi", "note", "source"];
+
+/// UN OBJET DE FICHES ET SA NOTE (`config/salaries.json`, `config/spectacles.json`) : la note (`note`), et les fiches dans
+/// l'ordre du fichier, chacune sous sa cle lue en `K`. Une cle repetee refuse. `#[serde(deserialize_with)]` ne s'y pose
+/// pas : la forme l'appelle de son `Deserialize`.
 pub fn fiches_et_note<'de, D, K, F>(d: D, note: &'static str) -> Result<(Option<String>, Vec<(K, F)>), D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -280,8 +284,6 @@ where
             while let Some(k) = m.next_key::<String>()? {
                 if k == self.0 {
                     note = Some(m.next_value()?);
-                } else if k.starts_with('_') {
-                    return Err(serde::de::Error::custom(format!("la clé {} n'est pas connue ici (attendue : {})", k, self.0)));
                 } else if !vues.insert(k.clone()) {
                     return Err(serde::de::Error::custom(format!("la clé {} est répétée", k)));
                 } else {

@@ -64,7 +64,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: Route, charge: &
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct MetiersAjoutes {
-    #[serde(rename = "_quoi")]
     quoi: String,
     /// Pris a une autre convention collective.
     pub(crate) codes: Vec<String>,

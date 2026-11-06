@@ -13,7 +13,7 @@
 //! libelles, leur ordre et leurs regroupements (art. R. 3243-2 ; `atelier/reference/sources/montant-net-social/
 //! legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml`) : « Santé », « Retraite »..., le total des cotisations, le
 //! net social, le net avant impot. Sa mise en page ne l'est pas. Le lecteur n'en connait donc aucune ; il trouve
-//! chaque chose par ce qui l'annonce, dans la table livree `bulletins-lecture-base.json` (sa cle `_forme` la decrit) :
+//! chaque chose par ce qui l'annonce, dans la table livree `bulletins-lecture-base.json` (sa `note` la decrit) :
 //! - une MENTION par son libelle (`mentions`) : sa valeur est ce qui le suit sur son rang ;
 //! - le TABLEAU par son rang d'en-tetes, un « Libellé » suivi de « Base », « Taux », « Part salarié »... (`entetes`) :
 //!   une colonne, c'est l'en-tete qui la titre, sur un rang ou sur deux ; un rang d'en-tetes plus bas (« Taux
@@ -608,7 +608,7 @@ fn mots_seuls(v: Option<&Value>, ou: &str) -> Resultat<Vec<String>> {
 /// Un objet de listes de libelles : (cle, libelles canoniques).
 fn groupes(v: Option<&Value>, ou: &str) -> Resultat<Vec<(String, Vec<String>)>> {
     let o = v.and_then(Value::as_object).ok_or_else(|| socle::echec::livree("table de lecture des bulletins", ou))?;
-    o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| Ok((k.clone(), libelles(Some(x), &format!("{}.{}", ou, k))?))).collect()
+    o.iter().map(|(k, x)| Ok((k.clone(), libelles(Some(x), &format!("{}.{}", ou, k))?))).collect()
 }
 
 impl Table {
@@ -622,13 +622,13 @@ impl Table {
     pub fn depuis(v: &Value) -> Resultat<Table> {
         let m = v.get("mentions").and_then(Value::as_object).ok_or_else(|| socle::echec::livree("table de lecture des bulletins", "mentions"))?;
         let mut mentions = Vec::new();
-        for (n, x) in m.iter().filter(|(k, _)| !k.starts_with('_')) {
+        for (n, x) in m.iter() {
             let &(nom, sorte, section, rangs, employeur) =
                 MENTIONS.iter().find(|c| c.0 == n).ok_or_else(|| format!("mentions.{} : mention inconnue", n))?;
             mentions.push(Mention { nom, sorte, section, rangs, employeur, libelles: phrases(Some(x), &format!("mentions.{}", n))? });
         }
         let e = v.get("entetes").ok_or_else(|| socle::echec::livree("table de lecture des bulletins", "entetes"))?;
-        if let Some(k) = e.as_object().and_then(|o| o.keys().find(|k| !k.starts_with('_') && !matches!(k.as_str(), "libelle" | "base" | "taux" | "montant" | "salarie" | "employeur" | "periode" | "cumul"))) {
+        if let Some(k) = e.as_object().and_then(|o| o.keys().find(|k| !matches!(k.as_str(), "libelle" | "base" | "taux" | "montant" | "salarie" | "employeur" | "periode" | "cumul"))) {
             return Err(format!("entetes.{} : en-tête inconnu", k));
         }
         let mot = |k: &str| mots_seuls(e.get(k), &format!("entetes.{}", k));
@@ -657,7 +657,7 @@ impl Table {
         };
         let mut logiciels = Vec::new();
         if let Some(o) = v.get("logiciels").and_then(Value::as_object) {
-            for (k, x) in o.iter().filter(|(k, _)| !k.starts_with('_')) {
+            for (k, x) in o.iter() {
                 logiciels.push((k.clone(), phrases(x.get("signature"), &format!("logiciels.{}.signature", k))?));
             }
         }
@@ -712,13 +712,13 @@ fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
     let hors_assiette = |code: &str| catalogue["rubriques"][code]["soumis"] == Value::Bool(false);
     let mut lignes: Vec<LigneTable> = Vec::new();
     let Some(l) = v.and_then(Value::as_object) else { return Err(socle::echec::livree("table de lecture des bulletins", "lignes")) };
-    for (libelle, valeur) in l.iter().filter(|(k, _)| !k.starts_with('_')) {
+    for (libelle, valeur) in l.iter() {
         let o = format!("lignes.{}", libelle);
         let (rubrique, heures) = match valeur {
             Value::Null => (None, None),
             Value::String(s) if !s.is_empty() => (Some(s.clone()), None),
             Value::Object(m) => {
-                if let Some(k) = m.keys().find(|k| !k.starts_with('_') && !matches!(k.as_str(), "rubrique" | "heures")) {
+                if let Some(k) = m.keys().find(|k| !matches!(k.as_str(), "rubrique" | "heures")) {
                     return Err(format!("{} : cle inconnue « {} » (rubrique, heures)", o, k));
                 }
                 let r = m.get("rubrique").and_then(Value::as_str).filter(|s| !s.is_empty());

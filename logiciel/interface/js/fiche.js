@@ -1302,7 +1302,7 @@ function structureLisible(champ, v) {
  * le courriel en minuscules. On ne montre que ce qui a CHANGE, avec le
  * libelle de la case -- « Courriel : CONTACT@EXEMPLE.FR ». Une cle que
  * l'ancienne valeur ne portait pas n'est pas un changement : elle est nee
- * depuis. Les cles `_…` sont des notes, pas des valeurs. Chaque case se nomme par son libellé de
+ * depuis. Les cles `note` et `_…` sont des notes, pas des valeurs. Chaque case se nomme par son libellé de
  * `champs-base.json`, celles que la fiche ne montre pas comprises ; une case faite de cases (« taux.t1_cadre »)
  * se dit case par case. */
 function valeurHistorique(champ, avant, apres) {
@@ -1315,7 +1315,7 @@ function valeurHistorique(champ, avant, apres) {
     ? Object.entries(v).map(([s, x]) => dire(`${k}.${s}`, x)).join(" · ")
     : `${libelles[k] || k} : ${valeurLisible(v)}`;
   const courant = apres && typeof apres === "object" ? apres : {};
-  const cles = Object.keys(avant).filter((k) => !k.startsWith("_"));
+  const cles = Object.keys(avant).filter((k) => !k.startsWith("_") && k !== "note");
   const changees = cles.filter((k) =>
     JSON.stringify(avant[k]) !== JSON.stringify(courant[k]));
   return (changees.length ? changees : cles).map((k) => dire(k, avant[k])).join(" · ");

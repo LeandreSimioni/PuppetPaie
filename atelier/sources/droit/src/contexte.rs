@@ -179,7 +179,7 @@ pub fn cinquante_salaries_et_plus(fiche: &ChampsEntreprise) -> bool {
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct FichierEffectifs {
-    #[serde(rename = "_quoi", default)]
+    #[serde(rename = "quoi", default)]
     _quoi: Option<String>,
     #[serde(default)]
     annees: BTreeMap<String, BTreeMap<String, EffectifEcrit>>,
@@ -795,7 +795,7 @@ L'effacer, ou ecrire \"aucun\".",
             }
             continue;
         }
-        let mut attendues: Vec<&str> = v.reponses.keys().map(String::as_str).filter(|r| !r.starts_with('_')).collect();
+        let mut attendues: Vec<&str> = v.reponses.keys().map(String::as_str).collect();
         match rep {
             Some(VersementMobiliteEcrit::Dit(r)) if attendues.contains(&r.as_str()) => continue,
             Some(VersementMobiliteEcrit::Ecrit(t)) if t.taux.is_some() && t.code_insee.as_deref().unwrap_or("").trim().chars().count() == 5 => continue,

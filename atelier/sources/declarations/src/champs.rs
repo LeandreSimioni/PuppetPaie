@@ -4,7 +4,7 @@
 //! decoule (`apercu_derive`) et les anomalies d'une fiche (`verifier_fiche`).
 //!
 //! La table des champs est `donnees/champs-base.json` : une seule source. Chaque champ y porte, en
-//! `_note`, son commentaire.
+//! `note`, son commentaire.
 //!
 //! **Les majuscules sans accents ne se saisissent PAS.** Les formats
 //! declaratifs (AEM, DPAE, DSN) sont a largeur fixe et n'acceptent pas les
@@ -1622,7 +1622,7 @@ pub fn cases_inconnues(nom: &str, donnees: &Map<String, Value>, la_fiche: bool) 
     };
     let connues: Vec<&str> = tous.iter().filter(|c| !c.calcule()).map(|c| c.cle.as_str()).collect();
     // Une case vide n'ajoute rien a la fiche (elle ne s'ecrit pas) : seule une valeur se refuse.
-    for k in donnees.iter().filter(|(k, v)| la_fiche && vrai(v) && !k.starts_with('_') && !tous.iter().any(|c| &c.cle == *k)).map(|(k, _)| k) {
+    for k in donnees.iter().filter(|(k, v)| la_fiche && vrai(v) && !k.starts_with('_') && !droit::fiche::est_une_note(k) && !tous.iter().any(|c| &c.cle == *k)).map(|(k, _)| k) {
         out.push(refusee(k, format!("la case « {} » n'existe pas dans la fiche {} ; ses cases sont : {}", k, nom, connues.join(", "))));
     }
     for c in tous.iter().filter(|c| !c.champs.is_empty()) {

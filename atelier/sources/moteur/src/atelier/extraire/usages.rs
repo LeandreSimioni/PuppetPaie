@@ -23,7 +23,7 @@
 //!   Une page dont le tableau a moins de huit colonnes n'est pas un tableau d'usages. Dans le cahier 2026.1, le tableau
 //!   des usages par rubrique occupe les pages 363 a 371 ; les pages 372 a 382 portent un autre tableau, celui des usages
 //!   des CONTROLES (« Contrôle », « Oui »/« Non » : p. 362, « Tableau des usages de contrôles : explications »), dont aucune
-//!   ligne n'a la forme d'une ligne de rubrique : le `_source` dit les pages ou une rubrique a ete lue.
+//!   ligne n'a la forme d'une ligne de rubrique : la `note` dit les pages ou une rubrique a ete lue.
 //!
 //! Le PDF se lit une fois, a son depot : sa transcription (`transcrire`, `super::Transcription`) redonne le meme releve.
 
@@ -361,27 +361,27 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     let (n_usages, n_natures) = (usages.len(), natures.len());
     let mut donnees = Map::new();
     donnees.insert(
-        "_quoi".into(),
+        "quoi".into(),
         json!("Le tableau des usages du cahier technique NEODeS : pour chaque rubrique et chaque nature de declaration, si \
                elle est obligatoire (O), conditionnelle (C), interdite (I) ou sans objet (N). Ecrire une rubrique que la \
                nature n'admet pas est une anomalie BLOQUANTE (CST-04) et le fichier ne declare rien."),
     );
-    donnees.insert("_source".into(), Value::String(provenance));
     donnees.insert(
-        (if classeur { "_sha256_du_classeur" } else { "_sha256_du_pdf" }).into(),
-        Value::String(empreinte),
+        "note".into(),
+        Value::String(format!(
+            "{} Le releve est confronte a ce que le moteur produit : toute declaration qu'il ecrit (DSN, signalement, FCTU) \
+               passe `declarations::usages::verifier_fichier`, qui refuse une rubrique que sa nature n'admet pas, et \
+               `declarations/tests/declarations/usages_formats_ntt.rs` fige le tableau des usages par nature.",
+            provenance
+        )),
     );
     donnees.insert(
-        "_comment_le_verifier".into(),
-        json!(
-            "Le releve est confronte a ce que le moteur produit : toute declaration qu'il ecrit (DSN, signalement, FCTU) \
-               passe `declarations::usages::verifier_fichier`, qui refuse une rubrique que sa nature n'admet pas, et \
-               `declarations/tests/declarations/usages_formats_ntt.rs` fige le tableau des usages par nature."
-        ),
+        (if classeur { "sha256_du_classeur" } else { "sha256_du_pdf" }).into(),
+        Value::String(empreinte),
     );
     donnees.insert("natures".into(), Value::Object(libelles));
     donnees.insert(
-        "_valeurs".into(),
+        "valeurs".into(),
         json!({"O": "obligatoire", "C": "conditionnelle", "I": "interdite", "N": "sans objet / non prevue"}),
     );
     donnees.insert("usages".into(), Value::Object(usages));

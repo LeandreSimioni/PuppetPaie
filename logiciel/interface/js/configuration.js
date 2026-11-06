@@ -741,7 +741,7 @@ async function ecrireImportation() {
  *     champ 27 » ;
  *   - les structures se saisissent case par case (`structureDecrite`), une case
  *     par valeur, un « + » pour une liste. Les clefs qu'on ne montre pas
- *     (`_note`, `nom_aem`...) sont relues telles quelles a l'enregistrement
+ *     (`note`, `nom_aem`...) sont relues telles quelles a l'enregistrement
  *     — voir `lireFormulaire` : on ne perd pas ce qu'on n'affiche pas ;
  *   - ce que la machine DEDUIT ne se saisit pas : le SIREN et le NIC sont
  *     les 9 et les 5 chiffres du SIRET, poses en cases cachees (CACHES) ;

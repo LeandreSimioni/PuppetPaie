@@ -50,7 +50,7 @@ fn monter(test: &str, avec_prive: bool) -> PathBuf {
         // Les fiches telles que le logiciel les ecrit : datees, lues par leur forme (le NIR sans sa cle).
         let entreprise = datee(&json!({"siret": siret(), "siren": "42", "banque": {"iban": iban(), "bic": ""}}));
         let salaries = json!({
-            "_source": "inventés",
+            "note": "inventés",
             "FICTIVENOM": datee(&json!({"nom": NOM, "prenom": PRENOM, "nir": &NIR_INVENTE[..13], "email": COURRIEL, "adresse": "1 rue"})),
         });
         std::fs::write(cfg.join("entreprise.json"), entreprise.to_string()).unwrap();

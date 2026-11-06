@@ -19,20 +19,13 @@ use crate::contexte::Contexte;
 use crate::fiche::{Case, FicheSalarie, Statut};
 
 /// `emplois-base.json` : le catalogue des metiers, dans l'ordre ou le deroulant les montre, et les noms courts des
-/// conventions. `_perimetre`, `_regles` et `_sources` disent d'ou vient chaque champ.
+/// conventions. Sa `note` dit le perimetre, les sources et les regles de chaque champ.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BaseEmplois {
-    #[serde(rename = "_quoi")]
-    _quoi: String,
-    #[serde(rename = "_perimetre")]
-    _perimetre: String,
-    #[serde(rename = "_regles")]
-    _regles: BTreeMap<String, String>,
-    #[serde(rename = "_sources")]
-    _sources: Vec<String>,
+    pub quoi: String,
+    pub note: String,
     /// IDCC -> le nom court de la convention.
-    #[serde(rename = "_conventions")]
     pub conventions: BTreeMap<String, String>,
     #[serde(deserialize_with = "socle::forme::en_ordre")]
     pub emplois: Vec<(String, FicheDuCatalogue)>,
@@ -41,7 +34,7 @@ pub struct BaseEmplois {
 /// Un metier du catalogue : ce que les declarations demandent (le libelle et sa forme declaree S21.G00.40.006, la
 /// PCS-ESE 40.004, le statut artiste ou technicien, le statut conventionnel 40.002, cadre par defaut 40.003), sa famille,
 /// les conventions dont le deroulant le montre, et la ligne de minima et de classification de chaque convention qui
-/// le nomme (`_regles` de `emplois-base.json`).
+/// le nomme (la `note` de `emplois-base.json`).
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FicheDuCatalogue {
@@ -79,12 +72,6 @@ pub struct FicheDuCatalogue {
     pub classification_3097: Option<Classification3097>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
-    #[serde(rename = "_2642", default, skip_serializing)]
-    _note_2642: Option<String>,
-    #[serde(rename = "_3097", default, skip_serializing)]
-    _note_3097: Option<String>,
-    #[serde(rename = "_un_code_deux_fonctions", default, skip_serializing)]
-    _un_code_deux_fonctions: Option<String>,
 }
 
 /// La ligne de minima de chaque convention qui nomme le metier : la 3090 par annexe (annexe -> ligne), les autres en
@@ -152,14 +139,8 @@ pub struct Classification3097 {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Nomenclature {
-    #[serde(rename = "_quoi")]
-    _quoi: String,
-    #[serde(rename = "_source")]
-    _source: String,
-    #[serde(rename = "_version")]
-    _version: String,
-    #[serde(rename = "_evolution_2016")]
-    _evolution_2016: String,
+    pub quoi: String,
+    pub note: String,
     pub emplois: BTreeMap<String, EmploiFt>,
 }
 
@@ -280,7 +261,7 @@ impl Metier {
 
     /// La liste de l'annexe 8 de la convention `idcc` nomme-t-elle ce metier ? Ce n'est pas le deroulant : un metier
     /// porte dans `conventions` les conventions dont le deroulant le montre, dont celles qui le portent sans que leur liste
-    /// le nomme (`conventions_hors_liste`, et la regle de lecture des listes 6 et 7 dans `_regles` de `emplois-base.json`).
+    /// le nomme (`conventions_hors_liste`, et la regle de lecture des listes 6 et 7 dans la `note` de `emplois-base.json`).
     /// Un metier hors catalogue ne dit pas sur quelle liste il est : non.
     pub fn nomme_par_l_annexe8(&self, idcc: &str) -> bool {
         let idcc = idcc.trim();
@@ -289,7 +270,7 @@ impl Metier {
 
     /// Le metier est-il cadre, faute d'engagement qui le dise, dans la convention `idcc` ? `cadre_selon_la_convention`
     /// l'emporte pour la convention qu'il nomme (le dramaturge, cadre dans la 1285, art. XI.2.1, que la grille 3090 ne
-    /// nomme pas : `_regles.cadre_par_defaut` de `emplois-base.json`) ; sinon `cadre_par_defaut`. Hors catalogue : non.
+    /// nomme pas : `cadre_par_defaut` dans la `note` de `emplois-base.json`) ; sinon `cadre_par_defaut`. Hors catalogue : non.
     pub fn cadre_par_defaut(&self, idcc: &str) -> bool {
         self.au_catalogue().is_some_and(|f| f.cadre_selon_la_convention.get(idcc.trim()).copied().unwrap_or(f.cadre_par_defaut))
     }
@@ -301,7 +282,7 @@ impl Metier {
     }
 
     /// Le statut conventionnel DSN (40.002) du metier declare NON cadre. L'artiste-interprete : 05, par inference
-    /// (`_regles.statut_conventionnel` de `emplois-base.json` : « Non-cadres » de la 3090, art. 6.3, hors de la categorie
+    /// (`statut_conventionnel` dans la `note` de `emplois-base.json` : « Non-cadres » de la 3090, art. 6.3, hors de la categorie
     /// cadre de la 1285, art. XI.2.1 ; 05 par l'exemple de la fiche net-entreprises 3344, l. 364-366).
     pub fn statut_non_cadre(&self) -> Option<String> {
         if let Some(st) = self.au_catalogue().map(|f| f.statut_conventionnel.as_str()).filter(|s| !s.is_empty() && *s != "04") {

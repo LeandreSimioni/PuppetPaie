@@ -649,7 +649,6 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
         let spectacle = ctx
             .spectacles
             .iter()
-            .filter(|(k, _)| !k.starts_with('_'))
             .find(|(_, s)| !numero_objet.is_empty() && s.numero_objet.portee().is_some_and(|n| n.eq_ignore_ascii_case(&numero_objet)))
             .map(|(k, _)| k.clone());
         let taux_cachet = derniere

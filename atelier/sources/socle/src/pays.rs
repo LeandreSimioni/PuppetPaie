@@ -50,10 +50,10 @@ pub struct Pays {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct BasePays {
-    #[serde(rename = "_quoi")]
+    #[serde(rename = "quoi")]
     _quoi: String,
-    #[serde(rename = "_source")]
-    _source: String,
+    #[serde(rename = "note")]
+    _note: String,
     pays: Vec<Pays>,
     #[serde(rename = "ecartes")]
     _ecartes: Vec<Ecarte>,
@@ -141,10 +141,10 @@ pub struct PaysDsn {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct BasePaysDsn {
-    #[serde(rename = "_quoi")]
+    #[serde(rename = "quoi")]
     _quoi: String,
-    #[serde(rename = "_source")]
-    _source: String,
+    #[serde(rename = "note")]
+    _note: String,
     pays: Vec<PaysDsn>,
 }
 

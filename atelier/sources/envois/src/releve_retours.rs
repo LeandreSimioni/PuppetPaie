@@ -726,7 +726,7 @@ fn effectifs_lus(racine: &Path) -> Value {
 /// Ecrit `config/effectifs.json` s'il change : les effectifs par annee et par code.
 fn ecrire_effectifs(racine: &Path, existant: &Value, annees: std::collections::BTreeMap<String, Map<String, Value>>) -> R<()> {
     let donnees = json!({
-        "_quoi": "Effectifs par année civile. A01 = effectif de sécurité sociale (art. L. 130-1 CSS), celui des seuils de cotisation. Ceux que l'Urssaf calcule et renvoie en compte rendu de nature 118 s'écrivent au relevé des retours ; ceux que la compagnie dit (dit_le) pour une année sans 118, par la route effectif, jusqu'à ce qu'un 118 de cette année les remplace.",
+        "quoi": "Effectifs par année civile. A01 = effectif de sécurité sociale (art. L. 130-1 CSS), celui des seuils de cotisation. Ceux que l'Urssaf calcule et renvoie en compte rendu de nature 118 s'écrivent au relevé des retours ; ceux que la compagnie dit (dit_le) pour une année sans 118, par la route effectif, jusqu'à ce qu'un 118 de cette année les remplace.",
         "annees": Value::Object(annees.into_iter().map(|(an, codes)| (an, Value::Object(codes))).collect()),
     });
     if *existant != donnees {

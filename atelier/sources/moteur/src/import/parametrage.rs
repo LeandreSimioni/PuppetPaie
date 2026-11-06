@@ -75,7 +75,7 @@ fn poser_atmp(ctx: &Contexte, lecture: &LectureDsn, faits: &mut Vec<String>) {
         // se garde, sans taux, et « Pour demarrer » demande le taux notifie.
         let mut m = Map::new();
         m.insert("code_risque".into(), json!(code));
-        m.insert("_source".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", socle::mois::Mois::en_clair(mois))));
+        m.insert("note".into(), json!(format!("Code lu dans la DSN de {} reprise par l'import (S21.G00.40.040).", socle::mois::Mois::en_clair(mois))));
         let p = ctx.racine.join(droit::contexte::BAREMES).join(format!("{}.json", courante));
         let mut data = socle::fichiers::lire_json(&p).unwrap_or_else(|_| json!({"annee": courante, "socle": courante}));
         data["taux_atmp"] = Value::Object(m);

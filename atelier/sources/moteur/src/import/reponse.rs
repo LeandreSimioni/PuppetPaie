@@ -348,7 +348,7 @@ impl FicheImportee {
 
     /// Ce que porte la fiche a creer, et ses anomalies, sans les cles `_…`.
     pub fn poser(&mut self, donnees: &Map<String, Value>, anomalies: Vec<Value>) {
-        self.donnees = donnees.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), brut(v))).collect();
+        self.donnees = donnees.iter().filter(|(k, _)| !k.starts_with('_') && !droit::fiche::est_une_note(k)).map(|(k, v)| (k.clone(), brut(v))).collect();
         self.anomalies = anomalies.iter().map(brut).collect();
     }
 

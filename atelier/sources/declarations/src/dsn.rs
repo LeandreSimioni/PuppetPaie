@@ -4268,7 +4268,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     let orgs = ctx.organismes()?;
     let lu = Mois::lire(mois)?;
     let debut_mois = lu.premier_jour();
-    // La version de la norme suit le mois principal declare (`norme-dsn-base.json`, une inference : `_inference`) ; un
+    // La version de la norme suit le mois principal declare (`norme-dsn-base.json`, une inference : sa `note`) ; un
     // mois que la donnee ne couvre pas refuse ici, avant tout calcul. Un annule-et-remplace prend celle de son mois.
     let norme = crate::norme::de_la_mensuelle(&lu.to_string())?;
     // En P27V01, la fiche entreprise est en NAF 2025 (`naf::verifier_pour`), avant tout calcul.

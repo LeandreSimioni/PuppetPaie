@@ -54,7 +54,7 @@ fn comparable(e: &Value) -> Value {
     o.retain(|k, v| !k.starts_with('_') && k != "ouverture" && k != "nic" && !k.ends_with("_affichage") && !sans_valeur(Some(v)));
     for cle in ["taux_atmp", "versement_mobilite"] {
         if let Some(Value::Object(t)) = o.get_mut(cle) {
-            t.retain(|k, v| !k.starts_with('_') && k != "annee" && !sans_valeur(Some(v)));
+            t.retain(|k, v| !k.starts_with('_') && !droit::fiche::est_une_note(k) && k != "annee" && !sans_valeur(Some(v)));
         }
     }
     Value::Object(o)

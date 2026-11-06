@@ -1,8 +1,6 @@
 {
- "_quoi": "La nomenclature des emplois du spectacle de France Travail (ex-Pole emploi) : le code que la DSN porte en S21.G00.40.005 (complement PCS-ESE) pour un intermittent, avec l'annexe de rattachement -- 8 (ouvriers et techniciens) ou 10 (artistes). 1 236 codes. Fichier GENERE depuis la source, ne pas corriger a la main : voir sources.json, entree francetravail-nomenclature-emplois-2016.",
- "_source": "francetravail-nomenclature-emplois-2016",
- "_version": "2016-12-12",
- "_evolution_2016": "C = code cree au 12/12/2016, M = intitule modifie a cette date.",
+ "quoi": "La nomenclature des emplois du spectacle de France Travail (ex-Pole emploi) : le code que la DSN porte en S21.G00.40.005 (complement PCS-ESE) pour un intermittent, avec l'annexe de rattachement -- 8 (ouvriers et techniciens) ou 10 (artistes). 1 236 codes. Fichier GENERE depuis la source, ne pas corriger a la main : voir sources.json, entree francetravail-nomenclature-emplois-2016.",
+ "note": "Source : francetravail-nomenclature-emplois-2016, version du 2016-12-12. Evolution 2016 : C = code cree au 12/12/2016, M = intitule modifie a cette date.",
  "emplois": {
   "ACC010": {
    "libelle": "ACCESSOIRISTE",

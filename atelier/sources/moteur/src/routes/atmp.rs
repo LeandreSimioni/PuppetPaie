@@ -95,7 +95,7 @@ pub(crate) fn poser_a_la_creation(racine: &Path, an: i64) -> R<()> {
     m.insert("valeur".into(), nombre(t));
     m.insert("code_risque".into(), json!(r.code));
     m.insert(POSE_A_LA_CREATION.into(), json!(true));
-    m.insert("_source".into(), json!(format!("Pose a la creation de la compagnie : le risque par defaut du socle {} et son taux collectif (atelier/reference/sources/tarification-atmp/).", an)));
+    m.insert("note".into(), json!(format!("Pose a la creation de la compagnie : le risque par defaut du socle {} et son taux collectif (atelier/reference/sources/tarification-atmp/).", an)));
     ecrire(racine, an, m)
 }
 
@@ -145,7 +145,7 @@ pub(crate) fn poser(ctx: &Contexte, an: i64, code: &str, valeur: Option<Decimal>
         m.insert("valeur".into(), nombre(v));
     }
     m.insert("code_risque".into(), json!(code));
-    m.insert("_source".into(), json!(source));
+    m.insert("note".into(), json!(source));
     ecrire(&ctx.racine, an, m)
 }
 
@@ -198,7 +198,7 @@ pub(crate) fn poser_notifie(ctx: &Contexte, n: &envois::retours::TauxAtmpNotifie
     let mut m = Map::new();
     m.insert("valeur".into(), valeur);
     m.insert("code_risque".into(), json!(code));
-    m.insert("_source".into(), json!(source));
+    m.insert("note".into(), json!(source));
     m.insert("_notification".into(), json!({"le": le, "calcul": calcul, "effet": n.date_effet.iso()}));
     ecrire(&ctx.racine, an, m)?;
     Ok(None)

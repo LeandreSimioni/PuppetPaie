@@ -486,7 +486,7 @@ ou un annule."
     let (debut_p, fin_p) = (e.debut_periode()?, e.fin_periode()?);
 
     // La version de la norme d'un signalement suit le jour ou il est constitue (`norme-dsn-base.json`, une inference :
-    // `_inference`) ; un jour que la donnee ne couvre pas refuse.
+    // `note`) ; un jour que la donnee ne couvre pas refuse.
     let norme = crate::norme::du_signalement(&constitution)?;
     crate::naf::verifier_pour(&norme, ent0)?;
     let mut f = Fichier::en_norme(norme);

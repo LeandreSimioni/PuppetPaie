@@ -760,7 +760,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         }
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(dernier >= seuil));
-        donnees.insert("_vu_dans".into(), json!(format!("bulletins de {} a {} ({} bulletin(s))", premier, dernier, rangs.len())));
+        donnees.insert("note".into(), json!(format!("bulletins de {} a {} ({} bulletin(s))", premier, dernier, rangs.len())));
         let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         let libelle = match &propose {
             Some(t) => format!("numéro d'objet {}, titre proposé « {} » (bulletins de {} à {})", numero, t, premier, dernier),
@@ -789,7 +789,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         donnees.insert("numero_objet".into(), json!(numero));
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(dernier >= seuil));
-        donnees.insert("_vu_dans".into(), json!(format!("AEM de {} a {} ({} contrat(s))", premier, dernier, mois.len())));
+        donnees.insert("note".into(), json!(format!("AEM de {} a {} ({} contrat(s))", premier, dernier, mois.len())));
         let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         let libelle = format!("numéro d'objet {}, sans titre (AEM de {} à {})", numero, premier, dernier);
         ap.a_creer.push(ACreer { nom: "spectacle", rang: Some(reponse.spectacles.len()), donnees: donnees.clone() });

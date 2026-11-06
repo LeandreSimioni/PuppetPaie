@@ -60,9 +60,6 @@ pub fn suivies(manifeste: &Value) -> Map<String, Value> {
     }
     // Les conventions que le moteur ne porte pas encore, gardees pour etre relues avant d'ecrire leur couche.
     for (idcc, c) in manifeste.get("conventions_a_relever").and_then(Value::as_object).into_iter().flatten() {
-        if idcc.starts_with('_') {
-            continue;
-        }
         if let Some(cont) = c.as_object().and_then(|o| o.get("conteneur")).filter(|c| dila::vrai(c)) {
             out.insert(dila::texte(cont), json!(idcc));
         }

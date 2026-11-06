@@ -648,6 +648,9 @@ macro_rules! cases {
             }
         }
         impl $nom {
+            /// Les cles de ses notes : des textes qui ne sont pas des cases.
+            pub const NOTES: &'static [&'static str] = &[$($( stringify!($note) ),*)?];
+
             /// Aucune case n'y est ecrite.
             pub fn est_vide(&self) -> bool {
                 true $(&& self.$champ.est_absente())*
@@ -1229,8 +1232,7 @@ fiche! {
     }
     notes {
         /// D'ou vient le fichier (une compagnie d'essai le dit).
-        #[serde(rename = "_source")]
-        source,
+        note,
     }
 }
 
@@ -1259,11 +1261,9 @@ fiche! {
         actif: bool,
     }
     notes {
-        #[serde(rename = "_vu_dans")]
-        vu_dans,
-        #[serde(rename = "_titre_propose")]
+        /// D'ou vient la fiche (ce que l'import a lu).
+        note,
         titre_propose,
-        #[serde(rename = "_titre_lu_dans")]
         titre_lu_dans,
     }
 }
@@ -1474,11 +1474,17 @@ impl SalarieDuContrat {
 
 // ------------------------------------------------------------- les fichiers
 
-/// La note d'un fichier de fiches : la seule cle en `_` qu'il admet.
-const NOTE_DU_FICHIER: &str = "_source";
+/// La note d'un fichier de fiches.
+pub const NOTE_DU_FICHIER: &str = "note";
 
-/// UN FICHIER DE FICHES (`config/salaries.json`, `config/spectacles.json`) : sa note (`_source`), et ses fiches par cle
-/// (`K`), dans l'ordre du fichier. Une autre cle en `_`, une cle repetee se refusent (`socle::forme::fiches_et_note`).
+/// Cette cle est-elle une note d'une fiche de la configuration (`notes` de `ChampsEntreprise` et de `ChampsSpectacle`) :
+/// un texte qui n'est pas une case, que l'ecran ne montre pas et qu'une ecriture garde.
+pub fn est_une_note(cle: &str) -> bool {
+    ChampsEntreprise::NOTES.contains(&cle) || ChampsSpectacle::NOTES.contains(&cle)
+}
+
+/// UN FICHIER DE FICHES (`config/salaries.json`, `config/spectacles.json`) : sa `note`, et ses fiches par cle (`K`), dans
+/// l'ordre du fichier. Une cle repetee se refuse (`socle::forme::fiches_et_note`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct FichierDeFiches<K: std::hash::Hash + Eq, F> {
     pub source: Option<String>,
@@ -1562,7 +1568,7 @@ mod tests {
     #[test]
     fn une_fiche_se_reecrit_telle_qu_elle_est_lue() {
         let v = json!({
-            "_source": "note",
+            "note": "note",
             "FULLER": {
                 "nom": [{"valeur": "FULLER", "note": "importe"}],
                 "actif": [{"valeur": null}, {"depuis": "2026-11-02", "valeur": true}],

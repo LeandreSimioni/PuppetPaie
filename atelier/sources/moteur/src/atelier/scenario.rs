@@ -90,7 +90,7 @@ pub fn rendre_simulee(racine: &Path) -> Result<(), String> {
         &json!({
             "copie_de": format!("{} {} sur le banc d'essai", crate::interface::compagnies::MARQUE_FICTIVE, nom),
             "quand": socle::paris::maintenant(),
-            "_quoi": "Une compagnie ajoutee par le « + », devenue fictive aux envois SIMULES sur le banc d'essai de l'atelier (scenario.rs, geste `simuler`) : ses DPAE, DSN et courriels sont joues, rien ne part.",
+            "quoi": "Une compagnie ajoutee par le « + », devenue fictive aux envois SIMULES sur le banc d'essai de l'atelier (scenario.rs, geste `simuler`) : ses DPAE, DSN et courriels sont joues, rien ne part.",
         }),
         2,
     )
@@ -665,7 +665,7 @@ fn poser_livree(racine: &Path, dest: &Path, fin: Option<f64>) -> Result<(), Stri
         &json!({
             "copie_de": format!("{} {}", crate::interface::compagnies::MARQUE_FICTIVE, nom),
             "quand": fin.map(heure),
-            "_quoi": "Compagnie FICTIVE de reference, livree avec le logiciel : le rejeu de son scenario (atelier/fictives/). Ses envois sont joues, rien n'en part.",
+            "quoi": "Compagnie FICTIVE de reference, livree avec le logiciel : le rejeu de son scenario (atelier/fictives/). Ses envois sont joues, rien n'en part.",
         }),
         2,
     )

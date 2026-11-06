@@ -603,7 +603,7 @@ Norme NEODeS P26V01, puis P27V01 : la version se choisit **par fichier**
 depuis `logiciel/donnees/norme-dsn-base.json` — le mois
 principal déclaré pour une mensuelle, le jour de constitution pour un
 signalement (`declarations/src/norme.rs`). Cette règle de bascule est une **inférence**
-(`_inference` de la donnée) : le cahier technique ne la donne pas. Chaque
+(la `note` de la donnée) : le cahier technique ne la donne pas. Chaque
 version a ses tables d'usages et de formats ; `usages` et `formats` prennent
 celles de la version que le fichier porte (`S10.G00.00.006`), et le fichier en
 fabrication décide par elles des rubriques qu'une version a retirées (`06.003`,

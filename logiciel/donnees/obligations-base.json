@@ -1,11 +1,6 @@
 {
-  "_quoi": "Les obligations qu'un arrêt de travail et une fin de contrat font naître chez l'employeur : ce qu'il faut faire, où, dans quel délai, à compter de quoi, et le texte qui le dit. Livré avec le LOGICIEL : ce sont des règles de droit, pas des choix d'une compagnie. Le calcul (point de départ, date butoir, état) est dans `atelier/sources/moteur/src/obligations.rs`, et nulle part ailleurs.",
-  "_pourquoi_ici": "Règle du 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. Un délai sans texte déposé ne s'écrit pas ici ; ce qui est une inférence le dit (`inferences`).",
-  "_textes": "Chaque `textes[].fichier` est une copie déposée dans le dépôt public, relue le 15/10/2026 : `atelier/reference/sources/code-de-la-securite-sociale/`, `code-du-travail/` et `arrete-2013-delai-evenements-dsn/` (relevés LEGI, `moteur releve-codes`), `atelier/reference/norme-dsn/texte/` (cahier technique DSN 2026.1), `atelier/reference/sources/net-entreprises-base-connaissances/` et `accident-du-travail/` (leur LISEZ-MOI dit l'URL et la date).",
-  "jours_ouvres": {
-    "_regle": "Un jour ouvré : du lundi au vendredi, hors fêtes légales chômées par la compagnie (fiche Entreprise, `jours_feries_chomes` ; à défaut le 1er mai seul, `feries.rs`). Le jour de départ ne compte pas : le délai court à partir du lendemain.",
-    "_inference": "« Cinq jours ouvrés » n'est défini ni par R. 133-14 ni par l'arrêté du 2 juillet 2013 : le moteur prend la lecture usuelle (jours habituellement travaillés dans l'entreprise, le jour de l'événement exclu). C'est une inférence."
-  },
+  "quoi": "Les obligations qu'un arrêt de travail et une fin de contrat font naître chez l'employeur : ce qu'il faut faire, où, dans quel délai, à compter de quoi, et le texte qui le dit. Livré avec le LOGICIEL : ce sont des règles de droit, pas des choix d'une compagnie. Le calcul (point de départ, date butoir, état) est dans `atelier/sources/moteur/src/obligations.rs`, et nulle part ailleurs.",
+  "note": "Règle du 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. Un délai sans texte déposé ne s'écrit pas ici ; ce qui est une inférence le dit (`inferences`). Textes. Chaque `textes[].fichier` est une copie déposée dans le dépôt public, relue le 15/10/2026 : `atelier/reference/sources/code-de-la-securite-sociale/`, `code-du-travail/` et `arrete-2013-delai-evenements-dsn/` (relevés LEGI, `moteur releve-codes`), `atelier/reference/norme-dsn/texte/` (cahier technique DSN 2026.1), `atelier/reference/sources/net-entreprises-base-connaissances/` et `accident-du-travail/` (leur LISEZ-MOI dit l'URL et la date). Jour ouvré. Un jour ouvré : du lundi au vendredi, hors fêtes légales chômées par la compagnie (fiche Entreprise, `jours_feries_chomes` ; à défaut le 1er mai seul, `feries.rs`). Le jour de départ ne compte pas : le délai court à partir du lendemain. Inférence. « Cinq jours ouvrés » n'est défini ni par R. 133-14 ni par l'arrêté du 2 juillet 2013 : le moteur prend la lecture usuelle (jours habituellement travaillés dans l'entreprise, le jour de l'événement exclu). C'est une inférence.",
   "obligations": {
     "signalement_arret": {
       "libelle": "Signalement d'arrêt de travail",
@@ -137,7 +132,7 @@
         "le tiers, s'il en est un (nom, adresse, sa société d'assurance), et s'il y a eu un rapport de police",
         "les réserves motivées de la compagnie, s'il y en a (sur les circonstances de temps et de lieu, ou une cause étrangère au travail)"
       ],
-      "_a_avoir_source": "Les rubriques et la notice du cerfa 14463*03 (notice 50261#04), `atelier/reference/sources/accident-du-travail/cnam-cerfa-14463-03-declaration-accident-travail-20170907.txt`.",
+      "note": "Source de `a_avoir` : Les rubriques et la notice du cerfa 14463*03 (notice 50261#04), `atelier/reference/sources/accident-du-travail/cnam-cerfa-14463-03-declaration-accident-travail-20170907.txt`.",
       "suites": {
         "reserves": {
           "libelle": "Réserves motivées, si la compagnie en a",
@@ -203,7 +198,7 @@
         "le numéro sous lequel la compagnie verse ses cotisations de sécurité sociale (son SIRET), et l'organisme qui les reçoit (l'Urssaf)",
         "les dates du congé de deuil (il peut se prendre en deux périodes d'au moins une journée, dans l'année du décès), et si la compagnie maintient le salaire : elle est alors subrogée de plein droit dans les indemnités journalières (L. 331-9)"
       ],
-      "_a_avoir_source": "CSS R. 323-10 (`atelier/reference/sources/code-de-la-securite-sociale/xml/R323-10.xml`) pour ce que l'attestation porte ; C. trav. L. 3142-1-1 et D. 3142-1-1 (`atelier/reference/sources/code-du-travail/xml/`) pour les périodes ; CSS L. 331-9 pour la subrogation.",
+      "note": "Source de `a_avoir` : CSS R. 323-10 (`atelier/reference/sources/code-de-la-securite-sociale/xml/R323-10.xml`) pour ce que l'attestation porte ; C. trav. L. 3142-1-1 et D. 3142-1-1 (`atelier/reference/sources/code-du-travail/xml/`) pour les périodes ; CSS L. 331-9 pour la subrogation.",
       "exceptions": [
         "La DSN mensuelle porte l'arrêt comme les autres : le bloc « Arrêt de travail » (S21.G00.60) admet le motif « 19 - Deuil d'enfant » (cahier technique 2026.1). Seul le signalement d'événement ne sert pas l'Assurance Maladie pour lui.",
         "Le temps partiel thérapeutique (motifs 15 à 18) est dans le même cas selon la même page, mais ces motifs ne se saisissent pas dans ce logiciel (`arrets-base.json`) : ils n'ont pas d'obligation ici."

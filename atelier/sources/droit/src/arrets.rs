@@ -10,48 +10,22 @@ use socle::fichiers::{forme_en_cache, FormeGardee};
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Bloc60 {
-    _quoi: String,
-    _pourquoi_ici: String,
-    _source: SourceDuBloc60,
+    pub quoi: String,
+    pub note: String,
     pub motifs_arret: Nomenclature,
     pub motifs_reprise: Nomenclature,
     pub subrogation: Nomenclature,
 }
 
-/// D'ou viennent les codes : le cahier technique, sa copie deposee, quand il a ete relu.
-#[derive(Debug, Clone, serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SourceDuBloc60 {
-    #[serde(rename = "titre")]
-    _titre: String,
-    #[serde(rename = "copie")]
-    _copie: String,
-    #[serde(rename = "relu_le")]
-    _relu_le: String,
-    #[serde(rename = "conformite_2027")]
-    _conformite_2027: String,
-}
-
-/// Une nomenclature : sa rubrique, ses codes dans l'ordre du fichier, et les notes qui disent ses drapeaux.
+/// Une nomenclature : ses codes dans l'ordre du fichier, et ses notes (rubrique, drapeaux).
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Nomenclature {
-    _rubrique: String,
     pub codes: Vec<CodeDuBloc60>,
     #[serde(default)]
-    _quoi: Option<String>,
+    pub quoi: Option<String>,
     #[serde(default)]
-    _ligne_du_bulletin: Option<String>,
-    #[serde(default)]
-    _regle: Option<String>,
-    #[serde(default)]
-    _date_accident: Option<String>,
-    #[serde(default)]
-    _origine: Option<String>,
-    #[serde(default)]
-    _temps_partiel_therapeutique: Option<String>,
-    #[serde(default)]
-    _annulation: Option<String>,
+    pub note: Option<String>,
 }
 
 /// Un code de la norme, tel que la page le propose : son libelle, la ligne du bulletin qui nomme l'absence
@@ -76,8 +50,8 @@ pub struct CodeDuBloc60 {
     pub reserve: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub annulation: bool,
-    #[serde(default, rename = "_norme", skip_serializing)]
-    _norme: Option<String>,
+    #[serde(default, skip_serializing)]
+    pub note: Option<String>,
 }
 
 impl Nomenclature {

@@ -1,8 +1,7 @@
 {
- "_quoi": "Le tableau des usages du cahier technique NEODeS : pour chaque rubrique et chaque nature de declaration, si elle est obligatoire (O), conditionnelle (C), interdite (I) ou sans objet (N). Ecrire une rubrique que la nature n'admet pas est une anomalie BLOQUANTE (CST-04) et le fichier ne declare rien.",
- "_source": "Cahier technique NEODeS 2026.1 (dsn-cahier-technique-2026.1.pdf), tableau des usages (p. 363-371). Releve automatiquement par `moteur extraire usages` le 15/10/2026.",
- "_sha256_du_pdf": "76749006e12a0a8bdbffb085ebed8666276043b08a0b1b38385095b04ff68536",
- "_comment_le_verifier": "Le releve est confronte a ce que le moteur produit : toute declaration qu'il ecrit (DSN, signalement, FCTU) passe `declarations::usages::verifier_fichier`, qui refuse une rubrique que sa nature n'admet pas, et `declarations/tests/declarations/usages_formats_ntt.rs` fige le tableau des usages par nature.",
+ "quoi": "Le tableau des usages du cahier technique NEODeS : pour chaque rubrique et chaque nature de declaration, si elle est obligatoire (O), conditionnelle (C), interdite (I) ou sans objet (N). Ecrire une rubrique que la nature n'admet pas est une anomalie BLOQUANTE (CST-04) et le fichier ne declare rien.",
+ "note": "Cahier technique NEODeS 2026.1 (dsn-cahier-technique-2026.1.pdf), tableau des usages (p. 363-371). Releve automatiquement par `moteur extraire usages` le 15/10/2026. Le releve est confronte a ce que le moteur produit : toute declaration qu'il ecrit (DSN, signalement, FCTU) passe `declarations::usages::verifier_fichier`, qui refuse une rubrique que sa nature n'admet pas, et `declarations/tests/declarations/usages_formats_ntt.rs` fige le tableau des usages par nature.",
+ "sha256_du_pdf": "76749006e12a0a8bdbffb085ebed8666276043b08a0b1b38385095b04ff68536",
  "natures": {
   "01": "DSN mensuelle",
   "04": "Signalement arrêt de travail",
@@ -12,7 +11,7 @@
   "09": "DSN de substitution",
   "10": "Signalement Déclaration préalable à l'embauche"
  },
- "_valeurs": {
+ "valeurs": {
   "O": "obligatoire",
   "C": "conditionnelle",
   "I": "interdite",
