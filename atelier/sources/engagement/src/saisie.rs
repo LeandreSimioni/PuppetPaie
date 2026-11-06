@@ -489,7 +489,7 @@ pub struct Validee {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CeQueLeMoisDit {
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_cachet: Option<NombreLu>,
 }
 
@@ -499,9 +499,8 @@ pub struct CeQueLeMoisDit {
 #[serde(deny_unknown_fields)]
 pub struct VueDuMois {
     pub mois: socle::mois::Mois,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_cachet: Option<NombreLu>,
-    #[serde(default)]
     pub engagements: Vec<Carte>,
 }
 

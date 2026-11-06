@@ -1905,7 +1905,11 @@ pub fn debut_declare(ctx: &Contexte, o: &Objet, departs: &Departs, avant: &str) 
 
 /// La phrase d'un recalcul, pour l'ecran : « Recalculé le JJ/MM/AAAA : taux de PAS reçu. »
 pub fn phrase_du_recalcul(r: &Recalcul) -> Option<String> {
-    let jour = Jour::lire(r.le.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| r.le.clone());
+    // Un instant (AAAA-MM-JJTHH:MM) se dit par son jour.
+    let jour = match r.le.get(..10).map(Jour::lire) {
+        Some(Ok(j)) => j.jj_mm_aaaa(),
+        _ => r.le.clone(),
+    };
     Some(format!("Recalculé le {} : {}.", jour, r.raison))
 }
 
