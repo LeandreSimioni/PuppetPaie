@@ -45,32 +45,32 @@ pub struct FicheDuCatalogue {
     pub famille: String,
     pub cadre_par_defaut: bool,
     /// Le defaut cadre d'une convention qui le dit autrement (le dramaturge, cadre dans la 1285).
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub cadre_selon_la_convention: BTreeMap<String, bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cadre_selon_la_convention: Option<BTreeMap<String, bool>>,
     pub statut_conventionnel: String,
     pub minima: Minima,
     pub emploi: String,
     pub annexe: u8,
     /// L'annexe que la nomenclature France Travail donne au code, quand le catalogue en retient une autre.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub annexe_nomenclature: Option<u8>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub conventions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conventions: Option<Vec<String>>,
     /// Les conventions dont le deroulant le montre sans que leur liste de l'annexe 8 le nomme.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub conventions_hors_liste: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conventions_hors_liste: Option<Vec<String>>,
     /// IDCC -> le classement conventionnel du metier dans cette convention.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub classement: BTreeMap<String, String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub classement: Option<BTreeMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub classification_1285: Option<Classification1285>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub classification_2642: Option<Fonction>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub classification_3090: Option<Classification3090>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub classification_3097: Option<Classification3097>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }
 
@@ -79,13 +79,13 @@ pub struct FicheDuCatalogue {
 #[derive(Debug, Clone, PartialEq, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Minima {
-    #[serde(rename = "3090", default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub ccn_3090: BTreeMap<String, String>,
-    #[serde(rename = "1285", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "3090", skip_serializing_if = "Option::is_none")]
+    pub ccn_3090: Option<BTreeMap<String, String>>,
+    #[serde(rename = "1285", skip_serializing_if = "Option::is_none")]
     pub ccn_1285: Option<String>,
-    #[serde(rename = "2642", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "2642", skip_serializing_if = "Option::is_none")]
     pub ccn_2642: Option<String>,
-    #[serde(rename = "3097", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "3097", skip_serializing_if = "Option::is_none")]
     pub ccn_3097: Option<String>,
 }
 
@@ -131,7 +131,7 @@ pub struct Fonction {
 #[serde(deny_unknown_fields)]
 pub struct Classification3097 {
     pub fonction: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub titre_iv: Option<String>,
 }
 
@@ -150,7 +150,7 @@ pub struct Nomenclature {
 pub struct EmploiFt {
     pub libelle: String,
     pub annexe: u8,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub evolution_2016: Option<String>,
 }
 
@@ -265,20 +265,23 @@ impl Metier {
     /// Un metier hors catalogue ne dit pas sur quelle liste il est : non.
     pub fn nomme_par_l_annexe8(&self, idcc: &str) -> bool {
         let idcc = idcc.trim();
-        self.au_catalogue().is_some_and(|f| !idcc.is_empty() && f.conventions.iter().any(|c| c == idcc) && !f.conventions_hors_liste.iter().any(|c| c == idcc))
+        self.au_catalogue().is_some_and(|f| !idcc.is_empty() && f.conventions.iter().flatten().any(|c| c == idcc) && !f.conventions_hors_liste.iter().flatten().any(|c| c == idcc))
     }
 
     /// Le metier est-il cadre, faute d'engagement qui le dise, dans la convention `idcc` ? `cadre_selon_la_convention`
     /// l'emporte pour la convention qu'il nomme (le dramaturge, cadre dans la 1285, art. XI.2.1, que la grille 3090 ne
     /// nomme pas : `cadre_par_defaut` dans la `note` de `emplois-base.json`) ; sinon `cadre_par_defaut`. Hors catalogue : non.
     pub fn cadre_par_defaut(&self, idcc: &str) -> bool {
-        self.au_catalogue().is_some_and(|f| f.cadre_selon_la_convention.get(idcc.trim()).copied().unwrap_or(f.cadre_par_defaut))
+        self.au_catalogue().is_some_and(|f| match f.cadre_selon_la_convention.as_ref().and_then(|c| c.get(idcc.trim())) {
+            Some(cadre) => *cadre,
+            None => f.cadre_par_defaut,
+        })
     }
 
     /// Le defaut cadre de ce metier change-t-il d'une convention a l'autre (`cadre_selon_la_convention`) ? Une carte qui le
     /// dit garde alors ce qu'elle dit (`engagement::stock::en_forme`).
     pub fn cadre_selon_la_convention(&self) -> bool {
-        self.au_catalogue().is_some_and(|f| !f.cadre_selon_la_convention.is_empty())
+        self.au_catalogue().is_some_and(|f| f.cadre_selon_la_convention.as_ref().is_some_and(|c| !c.is_empty()))
     }
 
     /// Le statut conventionnel DSN (40.002) du metier declare NON cadre. L'artiste-interprete : 05, par inference
@@ -535,7 +538,7 @@ pub fn catalogue(idcc: &str) -> Resultat<Vec<MetierDuDeroulant>> {
                 annexe: f.annexe,
                 pcs_ese: f.pcs_ese.clone(),
                 niveau_3090: f.classification_3090.as_ref().map(|c| c.niveau.clone()),
-                conventions: f.conventions.clone(),
+                conventions: f.conventions.iter().flatten().cloned().collect(),
             }
         })
         .collect())

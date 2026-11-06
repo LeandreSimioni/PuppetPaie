@@ -125,8 +125,8 @@ impl<'a> Cx<'a> {
     /// Les lignes de minima du metier dans la 3090, annexe par annexe (hors catalogue : aucune).
     fn refs(&self) -> &'a std::collections::BTreeMap<String, String> {
         static AUCUNE: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
-        match self.m.au_catalogue() {
-            Some(f) => &f.minima.ccn_3090,
+        match self.m.au_catalogue().and_then(|f| f.minima.ccn_3090.as_ref()) {
+            Some(lignes) => lignes,
             None => &AUCUNE,
         }
     }
@@ -569,7 +569,7 @@ impl<'a> Cx<'a> {
             let c = self.fiche.classement_conventionnel.texte().to_string();
             let c = c.trim().to_string();
             // Le classement de la fiche, sinon celui que le catalogue donne au metier dans cette convention.
-            if c.is_empty() { self.m.au_catalogue().and_then(|f| f.classement.get(idcc)).cloned().into_iter().collect() } else { c }
+            if c.is_empty() { self.m.au_catalogue().and_then(|f| f.classement.as_ref()).and_then(|c| c.get(idcc)).cloned().into_iter().collect() } else { c }
         };
         // Une grille a l'unite prime : elle prix la ligne telle qu'elle est payee.
         let unitaires: Vec<&Grille> = grilles.iter().copied().filter(|gr| gr.unite != "cachet" && !a_l_heure(gr)).collect();
