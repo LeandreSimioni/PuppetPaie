@@ -450,7 +450,7 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
         if !natures.flatten().any(|n| mensuelles.contains(n)) {
             continue;
         }
-        if let Some(c) = s.carte.cle(ctx) {
+        if let Some(c) = &s.carte.salarie {
             trouves.insert(c.to_string());
         }
     }

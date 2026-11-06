@@ -227,8 +227,8 @@ pub(crate) fn valider_engagement(ctx: &Contexte, carte: ChargeValider) -> R<Vali
     engagement::etats::valider(ctx, mois, i, &departs).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?;
     brouillon.ecrire().map_err(Echec::from)?;
     let e = data.engagements.get(i).cloned().unwrap_or_default();
-    if let Some(cle) = e.cle(ctx) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu())?;
+    if let Some(cle) = &e.salarie {
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, cle, &e.debut_lu())?;
     }
     Ok(Validation { engagement: id, phrase: "Engagement validé." })
 }
@@ -283,8 +283,8 @@ fn modifier_engagement(ctx: &Contexte, charge: ChargeModifier) -> R<Modification
     brouillon.ecrire().map_err(Echec::from)?;
     let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.map(|d| d.engagements).unwrap_or_default();
     let e = data.get(i).cloned().unwrap_or_default();
-    if let Some(cle) = e.cle(ctx) {
-        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, &e.debut_lu())?;
+    if let Some(cle) = &e.salarie {
+        crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, cle, &e.debut_lu())?;
     }
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     let phrase = match depuis {
@@ -334,7 +334,7 @@ fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement:
     let qui = engagement::etats::qui_de(ctx, o);
     let vue = o.vue(mois).map_err(Echec::from)?.ok_or_else(|| refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois. Rien n'est écrit.", qui)))?;
     let mut carte = Brouillon::de_la_carte(&vue, &qui).map_err(refus)?;
-    changements.appliquer(&ctx.racine, Mois::lire(mois).map_err(Echec::from)?, &mut carte, |_| qui.clone()).map_err(refus)?;
+    changements.appliquer(ctx, Mois::lire(mois).map_err(Echec::from)?, &mut carte, |_| qui.clone()).map_err(refus)?;
     engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
     engagement::stock::poser_la_saisie(ctx, mois, i, &carte.en_carte(), jour).map_err(refus)?;
     if !engagement::etats::a_revalider_rouvert(ctx, mois, i).map_err(Echec::from)? {
@@ -441,7 +441,7 @@ fn retirer_engagement(ctx: &Contexte, charge: ChargeRetirer) -> R<Retrait> {
     let (i, o) = designe(ctx, mois, &charge.engagement)?;
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     if !charge.confirme {
-        let parti = !engagement::etats::ce_qui_est_parti(ctx, &o, &departs).is_empty();
+        let parti = !engagement::etats::ce_qui_est_parti(&o, &departs).is_empty();
         return match engagement::etats::supprimer(ctx, &o, &departs) {
             Ok(()) => Ok(Retrait { phrase: "Engagement retiré.".into(), avertissement: None }),
             Err(m) if parti => Ok(Retrait { phrase: m.clone(), avertissement: Some(m) }),
@@ -449,7 +449,7 @@ fn retirer_engagement(ctx: &Contexte, charge: ChargeRetirer) -> R<Retrait> {
         };
     }
     let n = engagement::etats::desactiver(ctx, mois, i, &departs).map_err(Echec::from)?;
-    let a_faire = a_faire_en_phrases(&n.a_refaire(ctx, &departs));
+    let a_faire = a_faire_en_phrases(&n.a_refaire(&departs));
     let phrase = if a_faire.is_empty() { "Engagement non actif.".to_string() } else { format!("Engagement non actif. À faire : {}.", a_faire.join(", ")) };
     Ok(Retrait { phrase, avertissement: None })
 }

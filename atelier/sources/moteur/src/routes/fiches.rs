@@ -1673,8 +1673,7 @@ pub(crate) fn dernier_mois_parti(ctx: &Contexte, nom: &str, cle: Option<&str>) -
         .filter_map(|d| d.mois.clone());
     let mut importes = Vec::new();
     for i in engagement::importe::tous(&ctx.racine).map_err(plain)? {
-        let c = engagement::cle_de_l_engagement(ctx, &i.objet().brut);
-        if c.as_deref().is_some_and(sien) {
+        if i.objet().brut.saisie.carte.salarie.as_deref().is_some_and(sien) {
             importes.extend(i.paies().keys().cloned());
         }
     }

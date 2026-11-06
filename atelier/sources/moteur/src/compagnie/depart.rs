@@ -351,7 +351,7 @@ fn engagement_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str) -> R<engag
         .chain(engagement::stock::non_actifs_du_mois(&ctx.racine, mois)?)
         .find(|o| {
             let b = &*o.brut;
-            engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(cle) && b.saisie.carte.numero.as_deref() == Some(numero)
+            b.saisie.carte.salarie.as_deref() == Some(cle) && b.saisie.carte.numero.as_deref() == Some(numero)
         })
         .ok_or_else(|| valeur(format!("{} : aucun engagement de {} ne porte le contrat {} qu'une DSN partie a declare.", cle, socle::mois::Mois::en_clair(mois), numero)))
 }

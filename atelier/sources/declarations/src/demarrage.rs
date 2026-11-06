@@ -348,8 +348,9 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
             continue;
         }
         let e = o.carte();
-        let (salarie, debut) = (engagement::saisie::Carte::texte(&e.salarie), engagement::saisie::Carte::texte(&e.debut));
-        if salarie.is_empty() || debut.is_empty() || vus.contains(&salarie) || !mensuel(&engagement::saisie::Carte::texte(&e.nature)) {
+        let Some(salarie) = e.salarie.as_ref().map(ToString::to_string) else { continue };
+        let debut = engagement::saisie::Carte::texte(&e.debut);
+        if debut.is_empty() || vus.contains(&salarie) || !mensuel(&engagement::saisie::Carte::texte(&e.nature)) {
             continue;
         }
         vus.push(salarie.clone());

@@ -183,7 +183,7 @@ fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>, d
         if sauf == Some((o.fichier.as_str(), o.rang)) {
             continue;
         }
-        let (Some(cle), Some(n)) = (crate::cle_de_l_engagement(ctx, &o.brut), NumeroContrat::du_texte(o.carte().numero.as_deref())?) else { continue };
+        let (Some(cle), Some(n)) = (o.carte().salarie.clone(), NumeroContrat::du_texte(o.carte().numero.as_deref())?) else { continue };
         noter(cle, &n);
     }
     for (cle, n) in departs.engagements() {
@@ -239,7 +239,7 @@ fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
 /// Il garde celui qu'il porte, sauf si son salarie ou son debut a change depuis qu'il l'a recu et qu'aucun envoi ne l'a
 /// porte : il en recoit alors un nouveau, comme un engagement qui n'en a pas.
 pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: &Departs) -> Resultat<()> {
-    let cle = ctx.cle_du_salarie(o.carte().salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
+    let cle = o.carte().salarie.clone().ok_or_else(|| socle::fichiers::absent("salarie"))?;
     let fiche = ctx.salarie(&cle)?;
     let debut = crate::debut_brut(&o.brut);
     let porte = NumeroContrat::du_texte(o.carte().numero.as_deref())?;

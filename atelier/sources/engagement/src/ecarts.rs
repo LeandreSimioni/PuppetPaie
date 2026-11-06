@@ -209,7 +209,7 @@ fn comparer_une(
         c.a_refaire = true;
         return Err("la convention collective de l'entreprise n'est pas renseignée : le calcul n'aurait pas sa couche".into());
     }
-    let salarie = brut.salarie_dit().map(String::from).ok_or("l'engagement importé ne nomme pas son salarié")?;
+    let salarie = brut.salarie.as_ref().ok_or("l'engagement importé ne nomme pas son salarié")?;
     let fiche = ctx.salarie(&salarie).map_err(|m| a_refaire(c, m))?;
     // LE STATUT ET L'EMPLOI DE CETTE PAIE sont ceux que son bulletin imprime (`emploi_imprime`) ; ce qu'il ne dit pas
     // se lit dans la fiche. Un salarie artiste sur un contrat, non cadre au regime general sur un autre, se calcule
@@ -321,7 +321,7 @@ fn comparer_une(
         dit(&p.spectacle).or(par_objet)
     });
     let e = crate::saisie::Carte {
-        salarie: Some(salarie.to_string()),
+        salarie: Some(salarie.clone()),
         spectacle: spectacle.flatten(),
         nature: Some(nature.to_string()),
         debut: p.debut.map(|j| j.iso()),

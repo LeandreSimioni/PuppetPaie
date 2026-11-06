@@ -60,7 +60,7 @@ pub fn chemin(racine: &std::path::Path, mois: &str) -> std::path::PathBuf {
 /// Le salarie et le numero du contrat de l'engagement `o` ; `None` sans numero ni salarie (un engagement que rien n'a valide).
 fn cle(o: &Objet) -> Option<(String, String)> {
     let numero = o.carte().numero_dit()?.to_string();
-    Some((o.carte().salarie.clone()?, numero))
+    Some((o.carte().salarie.as_ref()?.to_string(), numero))
 }
 
 /// LA LECTURE D'UN FICHIER DE PAIES : celui de `mois`, en sa forme, tel que le geste l'a lu ou que le brouillon le tient

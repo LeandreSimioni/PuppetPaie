@@ -111,7 +111,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
             }
         }
         if sans_taux.len() > 1 {
-            let qui = match e.salarie_dit() {
+            let qui = match &e.salarie {
                 Some(s) => s.to_string(),
                 None => "cet engagement".to_string(),
             };

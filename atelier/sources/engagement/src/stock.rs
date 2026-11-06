@@ -731,7 +731,8 @@ pub struct Identite {
 /// L'IDENTITE DE CHAQUE ENGAGEMENT D'UNE LISTE (le plan), dans son ordre.
 pub fn identites(objets: &[Objet]) -> Vec<Identite> {
     // Une carte neuve, qui ne nomme pas encore son salarie, a pour identite un salarie vide.
-    let paires: Vec<(String, String)> = objets.iter().map(|o| (Carte::texte(&o.carte().salarie), crate::debut_brut(&o.brut))).collect();
+    let paires: Vec<(String, String)> =
+        objets.iter().map(|o| (o.carte().salarie.as_ref().map(ToString::to_string).unwrap_or_default(), crate::debut_brut(&o.brut))).collect();
     paires
         .iter()
         .enumerate()
@@ -914,11 +915,10 @@ pub fn mois_saisis(racine: &Path) -> Resultat<Vec<Mois>> {
 /// de `mois` ne montrerait pas.
 pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie: &Carte, defauts: &VueDuMois) -> Resultat<Identite> {
     let racine = &ctx.racine;
-    if let Some(cle) = saisie.cle(ctx) {
+    if let Some(cle) = &saisie.salarie {
         let debut = saisie.debut_lu();
-        if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
-            // La carte qui nomme une fiche nomme son salarie (`Carte::cle`).
-            return Err(crate::importe::refus(&Carte::texte(&saisie.salarie), &debut));
+        if crate::importe::celui_de(racine, mois, cle, &debut)?.is_some() {
+            return Err(crate::importe::refus(cle, &debut));
         }
     }
     // Un engagement neuf, ou qui n'est encore qu'un brouillon de son premier mois, s'ecrit dans le fichier de son premier
@@ -992,7 +992,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte, soi: Option<&Obj
     if !e.mensuelle()? {
         return Ok(());
     }
-    let (Some(cle), debut) = (e.cle(ctx), e.debut_lu()) else { return Ok(()) };
+    let (Some(cle), debut) = (&e.salarie, e.debut_lu()) else { return Ok(()) };
     if debut.is_empty() {
         return Ok(());
     }
@@ -1004,7 +1004,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte, soi: Option<&Obj
             && !o.importe_seul()
             && o.mensuel()?
             && crate::debut_brut(&o.brut) == debut
-            && crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle.as_str())
+            && o.carte().salarie.as_ref() == Some(cle)
         {
             second = Some(o);
             break;
@@ -1022,7 +1022,7 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte, soi: Option<&Obj
     Err(format!(
         "{} : son {} commencé le {}{} a déjà son engagement ; une carte neuve ne le refait pas, il se modifie depuis sa \
          carte. Un nouveau contrat commence un autre jour. Rien n'est écrit.",
-        ctx.nomme(&Carte::texte(&e.salarie)),
+        ctx.nomme(cle),
         nature.libelle,
         debut_dit,
         numero

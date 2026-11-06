@@ -4006,7 +4006,7 @@ fn bareme_du_nic(ctx: &Contexte, ent: &ChampsEntreprise, lue: &EntrepriseLue, ni
 fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs, orgs: &Organismes) -> Resultat<Option<crate::changements_contrat::Declare>> {
     let (cle, numero) = (cle_salarie(p), p.engagement.numero.as_deref().unwrap_or_default().to_string());
     let sienne = |e: &engagement::etats::Etat| {
-        engagement::cle_de_l_engagement(ctx, &e.objet().brut).as_deref() == Some(cle.as_str()) && e.objet().carte().numero.as_deref() == Some(numero.as_str())
+        e.objet().carte().salarie.as_deref() == Some(cle.as_str()) && e.objet().carte().numero.as_deref() == Some(numero.as_str())
     };
     let Some(v) = etats.iter().filter(|e| sienne(e)).find_map(engagement::etats::Etat::valide) else { return Ok(None) };
     let premier_mois = p.engagement.debut.mois_civil().to_string();

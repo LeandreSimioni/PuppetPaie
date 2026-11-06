@@ -25,7 +25,7 @@ use serde_json::{json, Value};
 use droit::contexte::Contexte;
 use engagement::importe::{Attestation, ContratLu, Declaration, PaieLue, PaieVersee};
 use socle::echec::erreur;
-use socle::num::Decimal;
+use socle::num::{Decimal, Resultat};
 use socle::echec::Echec;
 use crate::import::reponse::{brut, Copie, EtatFiche, Importation};
 
@@ -239,7 +239,7 @@ fn iso(j: Option<socle::date::Jour>) -> String {
 /// contrat d'un permanent font un seul engagement (plus bas).
 /// Son numero est celui que la DSN deposee a declare (S21.G00.40.009), sinon celui que le bulletin imprime ; jamais un
 /// numero tire.
-fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Vec<engagement::importe::Neuf> {
+fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Resultat<Vec<engagement::importe::Neuf>> {
     use engagement::importe::{Neuf, Pieces};
     struct Groupe {
         salarie: String,
@@ -368,27 +368,27 @@ fn engagements_importes(contrats: Vec<ContratLu>, paies: Vec<PaieLue>) -> Vec<en
     }
     let mut out: Vec<Neuf> = autres
         .into_iter()
-        .map(|g| {
+        .map(|g| -> Resultat<Neuf> {
             let dates = g.contrat.iter().filter_map(|c| c.contrat.importe_le.clone()).chain(g.paies.iter().filter_map(|p| p.paie.importe_le.clone()));
             let le = dates.filter(|x| !x.is_empty()).min().unwrap_or_default();
             let numero = declare(&g).or_else(|| imprime(&g));
             let paies = g.paies.iter().map(|p| (p.mois.clone(), p.paie.clone())).collect();
             let pieces = Pieces { le, contrat: g.contrat.map(|c| c.contrat), paies };
             let carte = engagement::saisie::Carte {
-                salarie: Some(g.salarie),
+                salarie: Some(droit::contexte::IdSalarie::lire(&g.salarie)?),
                 debut: Some(g.debut),
                 fin: Some(g.fin).filter(|f| !f.is_empty()),
                 numero,
                 ..Default::default()
             };
-            Neuf { carte, pieces }
+            Ok(Neuf { carte, pieces })
         })
-        .collect();
+        .collect::<Resultat<_>>()?;
     out.sort_by(|a, b| {
-        let k = |e: &Neuf| [&e.carte.debut, &e.carte.fin, &e.carte.salarie].map(engagement::saisie::Carte::texte);
+        let k = |e: &Neuf| ([&e.carte.debut, &e.carte.fin].map(engagement::saisie::Carte::texte), e.carte.salarie.clone());
         k(a).cmp(&k(b))
     });
-    out
+    Ok(out)
 }
 
 // ------------------------------------------------------------------ l'ecriture
@@ -543,7 +543,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Imp
         }
     }
     if contrats_aem + contrats_bulletins + contrats_certificats + contrats_aem_pdf + neuves > 0 || importes_avant.is_empty() {
-        let importes = engagements_importes(engagements, par_cle.into_values().collect());
+        let importes = engagements_importes(engagements, par_cle.into_values().collect()).map_err(Echec::from)?;
         for p in engagement::importe::ecrire_tous(&ctx.racine, importes).map_err(Echec::from)? {
             fichiers.push(p.display().to_string());
         }

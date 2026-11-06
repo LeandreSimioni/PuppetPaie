@@ -696,8 +696,8 @@ pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String,
             continue;
         }
         let b = &*e.objet().brut;
-        if let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b), b.saisie.carte.numero.clone()) {
-            out.insert((String::from(cle), numero));
+        if let (Some(cle), Some(numero)) = (&b.saisie.carte.salarie, b.saisie.carte.numero.clone()) {
+            out.insert((cle.to_string(), numero));
         }
     }
     Ok(out)
@@ -719,7 +719,7 @@ pub(crate) fn nic_de_l_engagement(ctx: &Contexte, e: &engagement::etats::Etat) -
 
 /// `nic_de_l_engagement`, sur l'engagement tel qu'il est ecrit.
 pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, brut: &engagement::stock::Ecrit) -> Option<String> {
-    let mut fiche = droit::fiche::SalarieDuContrat::de(ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?);
+    let mut fiche = droit::fiche::SalarieDuContrat::de(ctx.salarie(brut.saisie.carte.salarie.as_ref()?).ok()?);
     if let Some(n) = brut.saisie.carte.etablissement.as_deref().filter(|n| !n.trim().is_empty()) {
         fiche.etablissement = Some(n.to_string());
     }
@@ -747,7 +747,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &envois::journ
         .filter(|e| e.valide().is_some())
         .filter_map(|e| {
             let b = &*e.objet().brut;
-            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.saisie.carte.numero.clone()?))
+            Some((b.saisie.carte.salarie.as_ref()?.to_string(), b.saisie.carte.numero.clone()?))
         })
         .collect();
     emportes.sort();
@@ -1313,7 +1313,7 @@ impl<'a> Moteur<'a> {
     /// CE QUI EST A REFAIRE de l'engagement `e` de `mois` (`a_refaire_de`), compare une fois.
     fn a_refaire_du_mois(&mut self, mois: &str, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> R<Rc<Vec<ARefaire>>> {
         let brut = &*e.objet().brut;
-        let cle = (mois.to_string(), engagement::cle_de_l_engagement(self.ctx, brut).map(String::from).unwrap_or_default(), brut.saisie.carte.numero.clone().unwrap_or_default());
+        let cle = (mois.to_string(), brut.saisie.carte.salarie.as_ref().map(ToString::to_string).unwrap_or_default(), brut.saisie.carte.numero.clone().unwrap_or_default());
         if e.valide().is_none() || cle.2.is_empty() {
             return Ok(Rc::new(Vec::new()));
         }
@@ -1558,7 +1558,7 @@ impl<'a> Moteur<'a> {
     /// que sa saisie l'ecrit (`Objet::vue`).
     fn ligne_a_completer(&self, mois: &str, o: &engagement::stock::Objet, manque: &str) -> R<Vue> {
         let e = o.vue(mois).map_err(plain)?.unwrap_or_default();
-        let cle = e.cle(self.ctx).map(String::from).unwrap_or_else(|| e.salarie.clone().unwrap_or_default());
+        let cle = e.salarie.as_ref().map(ToString::to_string).unwrap_or_default();
         let nom = self.ctx.salarie(&cle).ok().map(|f| super::nom_a_l_ecran(&f)).unwrap_or_else(|| cle.clone());
         let spectacle = match e.spectacle.as_deref().filter(|s| !s.is_empty()) {
             Some(s) => self.ctx.spectacle(s).ok().filter(|f| !f.titre.est_absente()).map(|f| socle::ecriture::en_valeur(&f.titre)).unwrap_or_else(|| Value::String(s.to_string())),
@@ -2260,8 +2260,8 @@ impl<'a> Moteur<'a> {
             for e in &etats_m {
                 let Some(v) = e.valide() else { continue };
                 let brut = &*v.objet().brut;
-                let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(self.ctx, brut), brut.saisie.carte.numero.as_deref()) else { continue };
-                let Some(p) = s.paies.iter().find(|p| p.salarie.id == cle.as_str() && p.engagement.numero.as_deref() == Some(numero)) else {
+                let (Some(cle), Some(numero)) = (&brut.saisie.carte.salarie, brut.saisie.carte.numero.as_deref()) else { continue };
+                let Some(p) = s.paies.iter().find(|p| p.salarie.id == *cle && p.engagement.numero.as_deref() == Some(numero)) else {
                     continue;
                 };
                 // Seule la DPAE partie se compare (`debut_declare`) : les paies parties ne se relisent pas ici, sauf
@@ -2554,14 +2554,14 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let a_envoyer: HashSet<String> = etats
         .iter()
         .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
-        .filter_map(|e| engagement::cle_de_l_engagement(ctx, &e.objet().brut).map(String::from))
+        .filter_map(|e| e.objet().brut.saisie.carte.salarie.as_ref().map(ToString::to_string))
         .collect();
     for e in etats {
         if !matches!(e, engagement::etats::Etat::Partis(_)) {
             continue;
         }
         let brut = &*e.objet().brut;
-        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, brut).map(String::from), brut.saisie.carte.numero_dit().map(String::from)) else { continue };
+        let (Some(cle), Some(numero)) = (brut.saisie.carte.salarie.as_ref().map(ToString::to_string), brut.saisie.carte.numero_dit().map(String::from)) else { continue };
         let dernier = departs
             .de(&cle, &numero)
             .iter()
@@ -2663,7 +2663,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<NonActif>> {
     let mut out = Vec::new();
     for n in engagement::etats::non_actifs_du_mois(ctx, mois).map_err(plain)? {
         let b = &*n.objet().brut;
-        let cle = engagement::cle_de_l_engagement(ctx, &b).map(String::from).unwrap_or_else(|| b.saisie.carte.salarie.clone().unwrap_or_default());
+        let cle = b.saisie.carte.salarie.as_ref().map(ToString::to_string).unwrap_or_default();
         let nom = ctx
             .salarie(&cle)
             .ok()
@@ -2685,7 +2685,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<NonActif>> {
             fin,
             non_actif: n.le().to_string(),
             non_actif_dit: format!("non actif depuis le {}", super::quand(n.le())),
-            a_faire: crate::routes::engagement::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
+            a_faire: crate::routes::engagement::a_faire_en_phrases(&n.a_refaire(&departs)),
         });
     }
     Ok(out)

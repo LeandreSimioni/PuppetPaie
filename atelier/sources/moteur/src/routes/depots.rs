@@ -1030,8 +1030,8 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &str) -> R<ApercuDpae> 
             for etat in engagement::etats::tels_qu_ecrits(ctx, &m_e, &departs).map_err(Echec::from)? {
                 let Some(v) = etat.valide() else { continue };
                 let brut = &*v.objet().brut;
-                let Some(cle) = engagement::cle_de_l_engagement(ctx, &brut) else { continue };
-                let id = (cle.into(), engagement::debut_brut(&brut));
+                let Some(cle) = &brut.saisie.carte.salarie else { continue };
+                let id = (cle.to_string(), engagement::debut_brut(&brut));
                 if let Ok(nat) = brut.saisie.carte.nature_lue() {
                     natures.insert(id.clone(), nat.libelle.clone());
                 }

@@ -481,7 +481,7 @@ impl Importe {
         }
         contrat.importe_le = contrat.importe_le.or_else(|| Some(self.le().to_string()).filter(|l| !l.is_empty()));
         let numero = Some(Carte::texte(&self.carte().numero)).filter(|n| !n.is_empty());
-        Some(ContratLu { salarie: Carte::texte(&self.carte().salarie), debut: Carte::texte(&self.carte().debut), fin: Carte::texte(&self.carte().fin), numero, contrat })
+        Some(ContratLu { salarie: self.cle_ecrite(), debut: Carte::texte(&self.carte().debut), fin: Carte::texte(&self.carte().fin), numero, contrat })
     }
 
     /// Les paies versees, une par mois, avec le salarie de l'engagement.
@@ -492,7 +492,12 @@ impl Importe {
     fn paie_lue(&self, mois: &str, p: &PaieVersee) -> PaieLue {
         let mut paie = p.clone();
         paie.importe_le = paie.importe_le.or_else(|| Some(self.le().to_string()).filter(|l| !l.is_empty()));
-        PaieLue { mois: mois.to_string(), salarie: Carte::texte(&self.carte().salarie), paie }
+        PaieLue { mois: mois.to_string(), salarie: self.cle_ecrite(), paie }
+    }
+
+    /// La cle de la fiche de son salarie, ecrite ; vide si la carte ne le dit pas (un import le dit toujours).
+    fn cle_ecrite(&self) -> String {
+        self.carte().salarie.as_ref().map(ToString::to_string).unwrap_or_default()
     }
 }
 
@@ -532,7 +537,7 @@ impl Importe {
     ///
     /// Ce que les pieces ne disent pas vaut zero et se nomme (`Importee::non_dits`) : un etat le laisse vide.
     pub fn paie(&self, ctx: &Contexte, mois: &str) -> Resultat<Paie> {
-        let p = self.paies().get(mois).ok_or_else(|| format!("{} : aucune paie importee en {}", Carte::texte(&self.carte().salarie), mois))?;
+        let p = self.paies().get(mois).ok_or_else(|| format!("{} : aucune paie importee en {}", self.cle_ecrite(), mois))?;
         let contrat = self.contrat();
         let zero = Decimal::new(0, 2);
         let mut non_dits: Vec<&'static str> = montants(p).iter().filter(|(_, m)| m.is_none()).map(|(k, _)| *k).collect();
@@ -540,8 +545,8 @@ impl Importe {
         let nature = self.nature_rangee();
         let nat = droit::natures::nature(&nature)?;
         let ctx = ctx.du_mois(mois)?;
-        let cle = Carte::texte(&self.carte().salarie);
-        let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(&cle)?);
+        let cle = self.carte().salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?;
+        let sal = crate::calcul::convention_de_l_employeur(&ctx, ctx.salarie(cle)?);
         let objet = Carte::texte(&p.numero_objet.clone().or_else(|| contrat.and_then(|c| c.numero_objet.clone()))).to_uppercase();
         let spectacle = ctx.spectacles.iter().find(|(_, f)| !objet.is_empty() && f.numero_objet.portee().map(str::to_uppercase) == Some(objet.clone())).map(|(k, _)| k.clone());
         let spec = match &spectacle {
@@ -576,7 +581,7 @@ impl Importe {
         }
         let quotite = p.quotite.map(socle::num::flottant);
         let mut engagement = crate::Engagement {
-            salarie: cle.clone(),
+            salarie: cle.to_string(),
             nom: crate::qui_de(&sal)?,
             spectacle: spectacle.as_ref().map(|k| k.to_string()),
             dates_travail,
@@ -748,7 +753,7 @@ pub fn dsn_deposee(racine: &Path, mois: &str) -> Resultat<Option<PaieLue>> {
 
 /// L'engagement importe du salarie `cle` (la cle de sa fiche) qui commence le `debut` et touche `mois`, s'il y en a un.
 pub fn celui_de(racine: &Path, mois: &str, cle: &str, debut: &str) -> Resultat<Option<Importe>> {
-    Ok(du_mois(racine, mois)?.into_iter().find(|i| Carte::texte(&i.carte().salarie) == cle && Carte::texte(&i.carte().debut) == debut))
+    Ok(du_mois(racine, mois)?.into_iter().find(|i| i.carte().salarie.as_deref() == Some(cle) && Carte::texte(&i.carte().debut) == debut))
 }
 
 /// Les contrats d'usage importes qui continuent en `mois` (`Importe::continue_apres`) : verses avant lui par l'ancien
@@ -763,12 +768,13 @@ pub fn qui_continuent(racine: &Path, mois: &str) -> Resultat<Vec<Importe>> {
 /// Le contrat importe que l'engagement `e` de la saisie continue : meme salarie, meme debut, meme numero, et il continue
 /// apres son dernier mois verse (`continue_apres`).
 pub fn continue_par(racine: &Path, e: &Carte) -> Resultat<Option<Importe>> {
-    let (salarie, debut, numero) = (Carte::texte(&e.salarie), Carte::texte(&e.debut), Carte::texte(&e.numero));
-    if salarie.is_empty() || debut.is_empty() || numero.is_empty() {
+    let (debut, numero) = (Carte::texte(&e.debut), Carte::texte(&e.numero));
+    let Some(salarie) = &e.salarie else { return Ok(None) };
+    if debut.is_empty() || numero.is_empty() {
         return Ok(None);
     }
     Ok(tous(racine)?.into_iter().find(|i| {
-        i.continue_apres().is_some() && Carte::texte(&i.carte().salarie) == salarie && Carte::texte(&i.carte().debut) == debut && Carte::texte(&i.carte().numero) == numero
+        i.continue_apres().is_some() && i.carte().salarie.as_ref() == Some(salarie) && Carte::texte(&i.carte().debut) == debut && Carte::texte(&i.carte().numero) == numero
     }))
 }
 
@@ -795,7 +801,7 @@ pub fn numero_declare(o: &Objet) -> Resultat<Option<NumeroContrat>> {
 /// Une DSN de l'ancien logiciel a-t-elle declare le numero du contrat de `salarie` commence le `debut`
 /// (`numero_declare`, lu sur l'engagement repris qui le porte) ?
 pub fn numero_declare_du_contrat(racine: &Path, salarie: &str, debut: &str) -> Resultat<bool> {
-    for i in tous(racine)?.iter().filter(|i| Carte::texte(&i.carte().salarie) == salarie && Carte::texte(&i.carte().debut) == debut) {
+    for i in tous(racine)?.iter().filter(|i| i.carte().salarie.as_deref() == Some(salarie) && Carte::texte(&i.carte().debut) == debut) {
         if numero_declare(&i.objet)?.is_some() {
             return Ok(true);
         }
@@ -869,10 +875,10 @@ pub fn ecrire_tous(racine: &Path, importes: Vec<Neuf>) -> Resultat<Vec<PathBuf>>
     let mut repris = vec![false; existants.len()];
     let mut par_mois: BTreeMap<String, Vec<stock::Ecrit>> = BTreeMap::new();
     for mut e in importes {
-        let salarie = Carte::texte(&e.carte.salarie);
+        let salarie = &e.carte.salarie;
         let meme = (0..existants.len()).find(|&k| {
             let x = &existants[k];
-            !repris[k] && Carte::texte(&x.carte().salarie) == salarie && x.paies().keys().any(|m| e.pieces.paies.contains_key(m))
+            !repris[k] && x.carte().salarie == *salarie && x.paies().keys().any(|m| e.pieces.paies.contains_key(m))
         });
         let mut ecrit = stock::Ecrit { saisie: stock::Saisie { carte: e.carte.clone(), ..Default::default() }, ..Default::default() };
         if let Some(k) = meme {

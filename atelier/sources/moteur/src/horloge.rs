@@ -866,7 +866,7 @@ fn signables(ctx: &Contexte, mois: Mois) -> R<Vec<Signable>> {
 fn revalide_le(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Option<String> {
     engagement::stock::objets_du_mois(&ctx.racine, mois).ok()?.into_iter().find_map(|o| {
         let b = &*o.brut;
-        let sien = engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(salarie) && engagement::debut_brut(b) == debut;
+        let sien = b.saisie.carte.salarie.as_deref() == Some(salarie) && engagement::debut_brut(b) == debut;
         sien.then(|| o.brut.valide.as_ref().map(|v| v.le.chars().take(19).collect()))?
     })
 }

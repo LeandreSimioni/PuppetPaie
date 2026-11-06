@@ -134,7 +134,7 @@ impl<'a> Passe<'a> {
                 groupes.push((stem, es.clone()));
                 continue;
             }
-            let sien = |v: &crate::etats::Valide| self.salaries.as_ref().is_none_or(|s| crate::cle_de_l_engagement(ctx, &v.objet().brut).is_some_and(|c| s.contains(c.as_str())));
+            let sien = |v: &crate::etats::Valide| self.salaries.as_ref().is_none_or(|s| v.objet().carte().salarie.as_ref().is_some_and(|c| s.contains(c.as_str())));
             let mut es = Vec::new();
             if let Some((_, paies)) = crate::etats::validees_du_mois_parmi(ctx, &stem, self.departs, &sien)? {
                 for p in &paies {

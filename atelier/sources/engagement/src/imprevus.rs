@@ -763,7 +763,7 @@ pub fn fiche_du_salarie<I: Suspend>(ctx: &Contexte, imp: &I) -> Resultat<Salarie
     let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { return Ok(fiche) };
     for e in &data.engagements {
         let Some(debut_dit) = e.debut.as_deref().filter(|x| !x.is_empty()) else { continue };
-        if Jour::lire(debut_dit)? != debut || e.cle(ctx).as_deref() != Some(cle.as_str()) {
+        if Jour::lire(debut_dit)? != debut || e.salarie.as_deref() != Some(cle.as_str()) {
             continue;
         }
         if !numeros_compatibles(imp.contrat_numero(), e.numero.as_deref()) {
@@ -962,7 +962,7 @@ pub struct CachetPaye {
 fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &str, cle: &str, premier: &Jour, dernier: &Jour) -> Resultat<Vec<CachetPaye>> {
     let mut out = Vec::new();
     for (i, e) in data.engagements.iter().enumerate() {
-        if e.cle(ctx).as_deref() != Some(cle) {
+        if e.salarie.as_deref() != Some(cle) {
             continue;
         }
         for (j, l) in e.lignes().iter().enumerate() {
@@ -998,7 +998,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
     let mut out: Vec<Vec<Avis>> = vec![Vec::new(); engagements.len()];
     // Les imprevus des seuls salaries de la saisie (`du_salarie`).
     let mut salaries: Vec<String> = Vec::new();
-    for cle in engagements.iter().filter_map(|e| e.cle(ctx)) {
+    for cle in engagements.iter().filter_map(|e| e.salarie.clone()) {
         if !salaries.iter().any(|s| *s == cle) {
             salaries.push(cle.into());
         }

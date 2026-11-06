@@ -183,10 +183,10 @@ pub(crate) fn refus_non_declarable(
 ) -> R<Option<String>> {
     let brut = |o: &engagement::stock::Objet| o.brut.clone();
     let (b_avant, b_apres) = (brut(avant), brut(apres));
-    let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b_avant), b_avant.saisie.carte.numero_dit().map(String::from)) else {
+    let (Some(cle), Some(numero)) = (b_avant.saisie.carte.salarie.clone(), b_avant.saisie.carte.numero_dit().map(String::from)) else {
         return Ok(None);
     };
-    let meme_salarie = engagement::cle_de_l_engagement(ctx, &b_apres).as_deref() == Some(cle.as_str());
+    let meme_salarie = b_apres.saisie.carte.salarie.as_ref() == Some(&cle);
     for d in departs.de(&cle, &numero).iter().filter(|d| d.envoi == engagement::departs::Envoi::Dsn) {
         let Some(mois) = d.mois.as_deref() else { continue };
         if meme_salarie && apres.couvre(mois).map_err(Echec::from)? {
@@ -195,7 +195,7 @@ pub(crate) fn refus_non_declarable(
         if !matches!(modification_de_l_engagement(m, ctx, socle::mois::Mois::lire(mois)?)?, Some(DsnDeposee::Corrigee { .. })) {
             continue;
         }
-        let nom = b_avant.saisie.carte.salarie.clone().unwrap_or_else(|| cle.to_string());
+        let nom = cle.to_string();
         let debut = socle::date::Jour::lire(&engagement::debut_brut(&b_avant)).map(|j| j.jj_mm_aaaa()).unwrap_or_default();
         let dsn = match departs.de(&cle, &numero).iter().find(|x| x.envoi == engagement::departs::Envoi::Dsn && x.mois.as_deref() == Some(mois)).and_then(|x| x.par.clone()) {
             Some(par) => format!("dans la DSN {}, qui a porté la correction {}", de_mois_en_clair(&par), de_mois_en_clair(mois)),

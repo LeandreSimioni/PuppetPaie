@@ -108,7 +108,7 @@ carte! {
     #[serde(deny_unknown_fields)]
     pub struct Carte {
         #[champ(Partage, Salarie)]
-        pub salarie: Option<String>,
+        pub salarie: Option<droit::contexte::IdSalarie>,
         #[champ(Terme, Spectacle)]
         pub spectacle: Option<String>,
         #[champ(Terme, Nature)]
@@ -247,6 +247,12 @@ impl Simple for String {
     }
 }
 
+impl Simple for droit::contexte::IdSalarie {
+    fn simple(&self) -> Option<Valeur> {
+        Some(Valeur::Texte(self.to_string()))
+    }
+}
+
 impl Simple for NombreLu {
     fn simple(&self) -> Option<Valeur> {
         Some(Valeur::Nombre(self.clone()))
@@ -311,11 +317,6 @@ impl Carte {
         socle::ecriture::comparable(self) == socle::ecriture::comparable(&Carte::default())
     }
 
-    /// Le salarie que la carte nomme, s'il est dit.
-    pub fn salarie_dit(&self) -> Option<&str> {
-        self.salarie.as_deref().filter(|s| !s.trim().is_empty())
-    }
-
     /// Le numero du contrat, s'il est dit.
     pub fn numero_dit(&self) -> Option<&str> {
         self.numero.as_deref().filter(|s| !s.is_empty())
@@ -327,13 +328,6 @@ impl Carte {
             Some(l) => l,
             None => &[],
         }
-    }
-
-    /// La fiche dont la carte porte la cle ; `None` sans elle, ou quand aucune fiche ne porte cette cle (le calcul le
-    /// refuse en la nommant).
-    pub fn cle(&self, ctx: &droit::contexte::Contexte) -> Option<droit::contexte::IdSalarie> {
-        let dite = self.salarie.as_deref()?;
-        ctx.salaries.keys().find(|k| k.as_str() == dite).cloned()
     }
 
     /// Le debut, comme `Engagement` le deduirait : celui qu'elle dit, sinon son premier jour joue ; vide sans aucun.
@@ -360,7 +354,7 @@ impl Carte {
     pub fn nature_lue(&self) -> Resultat<std::sync::Arc<droit::natures::Nature>> {
         match self.nature.as_deref().filter(|n| !n.trim().is_empty()) {
             Some(n) => droit::natures::nature(n),
-            None => Err(match self.salarie_dit() {
+            None => Err(match &self.salarie {
                 Some(s) => format!("{}{}", s, crate::PAS_DE_NATURE),
                 None => format!("Cet engagement{}", crate::PAS_DE_NATURE),
             }),

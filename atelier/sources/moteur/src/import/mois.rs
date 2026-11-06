@@ -452,7 +452,7 @@ pub(crate) fn cartes(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
         let contrat = i.contrat_lu();
         let paie = i.paies_lues().into_iter().find(|p| p.mois == mois);
         let brut = i.objet().carte();
-        let (s, d) = (engagement::saisie::Carte::texte(&brut.salarie), engagement::saisie::Carte::texte(&brut.debut));
+        let (s, d) = (brut.salarie.as_ref().map(ToString::to_string).unwrap_or_default(), engagement::saisie::Carte::texte(&brut.debut));
         let dpae = dpae_de(&embauches, &certifiees, &s, &engagement::saisie::Carte::texte(&brut.numero), &d);
         cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));
     }

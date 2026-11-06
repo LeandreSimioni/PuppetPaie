@@ -99,7 +99,7 @@ fn a_dire_par_salarie(importes: &[Importe]) -> BTreeMap<String, (usize, String, 
     let dernier = dernier_mois(importes);
     let mut par: BTreeMap<String, (usize, String, String, bool)> = BTreeMap::new();
     for i in importes.iter().filter(|i| i.a_dire()) {
-        let salarie = engagement::saisie::Carte::texte(&i.objet().carte().salarie);
+        let salarie = i.objet().carte().salarie.as_ref().map(ToString::to_string).unwrap_or_default();
         let (du, au) = jours_payes(i);
         let x = par.entry(salarie).or_insert((0, du.clone(), au.clone(), false));
         x.0 += 1;

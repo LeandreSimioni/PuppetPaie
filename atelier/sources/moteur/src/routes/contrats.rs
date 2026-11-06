@@ -1170,7 +1170,7 @@ fn avenant_d_un_contrat_parti(ctx: &Contexte, c: &ChargeAvenant) -> R<Option<Ave
     // contrat au mois qui change a partir d'un mois d'apres celui ou il est parti se compare ce mois-la, et l'avenant
     // prend effet le premier jour de ce mois (ou a la date de l'avenant que la saisie de ce mois dit).
     let siens = version_validee(ctx, &mois_parti, salarie, paies[i].engagement.numero.as_deref(), &departs)?;
-    let passee = siens.as_ref().and_then(|v| engagement::etats::version_au_depart(ctx, v, &departs, engagement::departs::Envoi::Contrat));
+    let passee = siens.as_ref().and_then(|v| engagement::etats::version_au_depart(v, &departs, engagement::departs::Envoi::Contrat));
     let mois_effet = match (siens.as_ref(), passee) {
         (Some(v), Some(x)) => engagement::etats::mois_du_changement(v, x).map_err(Echec::from)?.filter(|m| *m > mois_parti),
         _ => None,
@@ -1264,7 +1264,7 @@ fn version_validee(ctx: &Contexte, mois: &str, salarie: &str, numero: Option<&st
     Ok(engagement::etats::du_mois(ctx, mois, departs)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
         let b = &*v.objet().brut;
-        (engagement::cle_de_l_engagement(ctx, b).as_deref() == Some(salarie) && b.saisie.carte.numero.as_deref() == numero).then_some(v)
+        (b.saisie.carte.salarie.as_deref() == Some(salarie) && b.saisie.carte.numero.as_deref() == numero).then_some(v)
     }))
 }
 
@@ -1290,7 +1290,7 @@ fn avenant_d_un_contrat_signe_ailleurs(ctx: &Contexte, c: &ChargeAvenant) -> R<O
     let debut = p.engagement.debut;
     let Some(v) = version_validee(ctx, &mois_t, salarie, Some(numero), &departs)? else { return Ok(None) };
     let presente = v.objet().brut.valide.as_ref().and_then(|x| x.saisie.clone()).unwrap_or_default();
-    let convenue = match engagement::etats::version_au_depart(ctx, &v, &departs, engagement::departs::Envoi::Contrat) {
+    let convenue = match engagement::etats::version_au_depart(&v, &departs, engagement::departs::Envoi::Contrat) {
         Some(x) => x.saisie().cloned().unwrap_or_default(),
         None => engagement::stock::Saisie { avenants: Vec::new(), ..presente.clone() },
     };

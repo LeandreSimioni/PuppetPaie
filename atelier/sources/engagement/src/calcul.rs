@@ -1220,10 +1220,10 @@ pub(crate) fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
 pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &crate::saisie::Carte, fin: &Jour) -> Resultat<bool> {
     let nat = e.nature_lue()?;
     let debut = crate::conges::debut_de(e)?;
-    let cle = ctx.cle_du_salarie(e.salarie.as_deref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
+    let cle = e.salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?;
     let dit = |c: &Option<String>| c.clone().filter(|x| !x.is_empty());
     let emploi = EmploiEngagement { code_emploi_ft: dit(&e.code_emploi_ft).or_else(|| dit(&e.metier)), ..Default::default() };
-    let fiche = convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?);
+    let fiche = convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(cle, fin)?, &emploi)?);
     droit::caisse_conges::affilie(&nat, &fiche, &debut, Some(fin))
 }
 

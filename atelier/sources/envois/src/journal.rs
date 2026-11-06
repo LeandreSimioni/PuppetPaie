@@ -544,13 +544,13 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, departs: &e
     for e in engagement::etats::du_mois(ctx, mois, departs)? {
         let Some(v) = e.valide() else { continue };
         let brut = &*v.objet().brut;
-        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, brut), brut.saisie.carte.numero.as_deref()) else { continue };
-        if garder(&cle, numero, brut) {
+        let (Some(cle), Some(numero)) = (&brut.saisie.carte.salarie, brut.saisie.carte.numero.as_deref()) else { continue };
+        if garder(cle, numero, brut) {
             if let Some(phrase) = v.a_revalider(ctx) {
                 return Err(phrase);
             }
             let version = v.version().ok_or_else(|| socle::echec::cle(socle::echec::PAIE_ILLISIBLE, "version"))?;
-            out.push(Version { salarie: droit::contexte::IdSalarie::lire(&cle)?, numero: engagement::numeros::NumeroContrat::lire(numero)?, version, mois: None });
+            out.push(Version { salarie: cle.clone(), numero: engagement::numeros::NumeroContrat::lire(numero)?, version, mois: None });
         }
     }
     Ok(out)

@@ -932,7 +932,7 @@ pub(crate) fn engagements(
     let defaut_taux = data.taux_cachet.clone().map(Chiffre::Nombre);
     let (mut out, mut dits) = (Vec::new(), Vec::new());
     for carte in &data.engagements {
-        let qui = salarie_nomme(ctx, carte.salarie_dit());
+        let qui = salarie_nomme(ctx, carte.salarie.as_deref());
         // Seule une carte valide entre dans le calcul : sa nature dite, ses cases obligatoires remplies, aucune case que
         // sa nature n'a pas (`carte::CarteValide::depuis`). Ce qui depend de la nature se lit de sa variante.
         let valide = carte::CarteValide::depuis(carte, &qui)?;
@@ -1017,7 +1017,7 @@ pub(crate) fn engagements(
         let d = declare.as_ref();
         let ecrit = |x: &Option<String>| x.clone().filter(|s| !s.is_empty());
         let assemble = Assemble {
-            salarie: carte.salarie.clone(),
+            salarie: carte.salarie.as_ref().map(ToString::to_string),
             spectacle: termes.spectacle,
             dates_travail: jours,
             taux_cachet: termes.taux_cachet,
@@ -1734,12 +1734,6 @@ fn sexe(fiche: &droit::fiche::ChampsSalarie) -> Option<String> {
 
 // ------------------------------------------- le contrat qui deborde du mois
 
-/// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
-/// (sans tenir compte de la casse ni des accents), comme le fait le calcul de sa paie. `None` s'il ne nomme aucune fiche.
-/// La fiche du salarie de l'engagement ecrit `e`, lue comme le calcul la lit (`Carte::cle`).
-pub fn cle_de_l_engagement(ctx: &Contexte, e: &stock::Ecrit) -> Option<droit::contexte::IdSalarie> {
-    e.saisie.carte.cle(ctx)
-}
 /// Le debut de l'engagement ecrit `e`, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour
 /// joue (`Carte::debut_lu`).
 pub fn debut_brut(e: &stock::Ecrit) -> String {

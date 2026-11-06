@@ -474,14 +474,12 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &LignePaie) -> Option<f64> {
     l.taux().filter(|t| !t.is_zero()).map(socle::num::flottant)
 }
 
-/// « Celi » et « aaah zerbinette » deviennent les cles
-/// du fichier. Une saisie qui ne se charge pas se rend telle quelle.
+/// Les lignes d'un permanent, calculees. Une saisie qui ne se charge pas se rend telle quelle.
 fn resoudre_noms(ctx: &Contexte, saisie: VueDuMois) -> R<VueDuMois> {
     let Ok(paies) = engagement::lue_sans_paie(ctx, &saisie) else { return Ok(saisie) };
     let mut engagements = Vec::new();
     for (e, p) in saisie.engagements.iter().zip(&paies) {
         let mut resolu = e.clone();
-        resolu.salarie = Some(p.salarie.id.to_string());
         // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit.
         if let Some(sp) = &p.spectacle {
             resolu.spectacle = Some(sp.cle.to_string());
@@ -600,12 +598,12 @@ pub(crate) fn bornes_brutes(e: &SaisieCarte) -> (String, String) {
 // ------------------------------------------------------------ les fichiers de mois
 
 /// Les engagements que le mois montre (`engagement::stock::vue_du_mois`), avec la cle du salarie ; vide si aucun
-/// engagement ne le touche. Un engagement dont le salarie est inconnu est saute.
+/// engagement ne le touche. Une carte qui ne nomme pas son salarie est sautee.
 pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(IdSalarie, SaisieCarte)>> {
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
     };
-    Ok(data.engagements.into_iter().filter_map(|e| Some((e.cle(ctx)?, e))).collect())
+    Ok(data.engagements.into_iter().filter_map(|e| Some((e.salarie.clone()?, e))).collect())
 }
 
 // ------------------------------------------------------------- contrats en cours
@@ -628,7 +626,8 @@ fn contrats_en_cours(ctx: &Contexte, mois: &str) -> R<Vec<EnCours>> {
     for i in engagement::importe::qui_continuent(&ctx.racine, mois).map_err(Echec::from)? {
         let b = i.objet().carte();
         let t = engagement::saisie::Carte::texte;
-        let (salarie, debut, fin, numero) = (t(&b.salarie), t(&b.debut), t(&b.fin), t(&b.numero));
+        let Some(salarie) = b.salarie.as_ref().map(ToString::to_string) else { continue };
+        let (debut, fin, numero) = (t(&b.debut), t(&b.fin), t(&b.numero));
         if !vus.insert((salarie.clone(), debut.clone(), numero.clone())) {
             continue;
         }
@@ -1025,7 +1024,7 @@ fn enregistrer_saisie(ctx: &Contexte, c: ChargeCase) -> R<CarteEcrite> {
         CarteVisee::Neuve(n) => (Brouillon::neuf(n), None),
         CarteVisee::Ecrite(id) => (brouillon_ecrit(ctx, &mois, &id)?, Some(id)),
     };
-    c.changements.appliquer(&ctx.racine, c.mois, &mut brouillon, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
+    c.changements.appliquer(ctx, c.mois, &mut brouillon, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
     let id = ecrire_une_carte(ctx, &mois, id.as_ref(), &brouillon.en_carte())?;
     let brouillon = brouillon_ecrit(ctx, &mois, &id)?;
     let (k, _) = engagement::stock::designe(&ctx.racine, &mois, &id).map_err(Echec::from)?;
@@ -1133,12 +1132,12 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &VueDuMois) -> Vec<Opti
 /// contrat (un numero est celui d'un seul salarie). Les autres salaries du mois ne se calculent pas pour lui.
 pub(crate) fn manque_de(ctx: &Contexte, data: &VueDuMois, i: usize) -> Option<String> {
     let e = data.engagements.get(i)?;
-    let cle = e.cle(ctx);
+    let cle = &e.salarie;
     let numero = e.numero_dit();
     let mut rang = 0;
     let mut siens = Vec::new();
     for (j, x) in data.engagements.iter().enumerate() {
-        let meme_salarie = cle.is_some() && x.cle(ctx) == cle;
+        let meme_salarie = cle.is_some() && x.salarie == *cle;
         let meme_numero = numero.is_some() && x.numero_dit() == numero;
         if j == i {
             rang = siens.len();
@@ -1282,7 +1281,7 @@ fn mois_designe(ctx: &Contexte, mois: Mois, modifications: Vec<ModificationEnCou
             )));
         }
         let mut b = Brouillon::de_la_carte(&ecrit, &qui_de_la_carte(ctx, &ecrit)).map_err(refus)?;
-        m.changements.appliquer(&ctx.racine, mois, &mut b, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
+        m.changements.appliquer(ctx, mois, &mut b, |b| qui_de_la_carte(ctx, &b.en_carte())).map_err(refus)?;
         let saisie = engagement::stock::en_forme(&b.en_carte()).map_err(refus)?;
         // L'avenant du mois se deduit des termes dates de l'engagement ecrit (`stock::Objet::vue`) : le brouillon ne le
         // porte pas.
@@ -1293,7 +1292,7 @@ fn mois_designe(ctx: &Contexte, mois: Mois, modifications: Vec<ModificationEnCou
 
 /// Le salarie qu'une carte nomme, pour un refus (« Cette carte » sans lui).
 fn qui_de_la_carte(ctx: &Contexte, c: &SaisieCarte) -> String {
-    match c.salarie_dit() {
+    match &c.salarie {
         Some(s) => ctx.nomme(s),
         None => "Cette carte".to_string(),
     }
@@ -1442,8 +1441,8 @@ fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &SaisieCarte, mois: &str
         return numero_a_dire(ctx, e.salarie.as_deref().unwrap_or_default(), &debut);
     }
     let Ok(nat) = e.nature_lue() else { return Vec::new() };
-    let Some(cle) = e.cle(ctx) else { return Vec::new() };
-    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, &cle, &debut, e.numero.as_deref()).is_ok_and(|v| v) {
+    let Some(cle) = &e.salarie else { return Vec::new() };
+    if nat.modele_contrat().is_none() || engagement::importe::vient_d_un_ancien_logiciel(&ctx.racine, cle, &debut, e.numero.as_deref()).is_ok_and(|v| v) {
         return Vec::new();
     }
     let mut v = vec!["periode_essai_jours"];
@@ -2026,7 +2025,7 @@ fn apercu_des_paies(ctx: &Contexte, data: &VueDuMois) -> R<Calcul> {
                 let (debut, fin) = bornes_brutes(e);
                 r.paies.push(PaieVue::ACompleter(PaieACompleter {
                     a_completer: socle::echec::phrase_de(m),
-                    salarie: CleEcrite { cle: e.salarie.clone() },
+                    salarie: CleEcrite { cle: e.salarie.as_ref().map(ToString::to_string) },
                     debut,
                     fin,
                     avertissements: [],

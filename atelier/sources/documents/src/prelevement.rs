@@ -25,7 +25,7 @@ fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus, departs: &engagement::
     if !lus.objets.contains_key(&mois) {
         lus.objets.insert(mois.clone(), engagement::stock::objets_du_mois(&ctx.racine, &mois)?);
     }
-    let objet = lus.objets[&mois].iter().find(|o| engagement::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle.as_str()) && o.carte().numero.as_deref() == Some(numero.as_str()));
+    let objet = lus.objets[&mois].iter().find(|o| o.carte().salarie.as_deref() == Some(cle.as_str()) && o.carte().numero.as_deref() == Some(numero.as_str()));
     let Some(o) = objet else { return Ok(None) };
     Ok(engagement::etats::paie_declaree(ctx, o, departs, &mois)?.and_then(|p| p.pas.clone()))
 }

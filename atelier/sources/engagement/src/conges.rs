@@ -396,7 +396,7 @@ pub const MENSUELS: &str = "mensuels ";
 fn mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Vec<String>> {
     let mut out: Vec<String> = Vec::new();
     for o in crate::stock::objets(&ctx.racine)? {
-        if o.fichier.as_str() < mois && !o.est_non_actif() && !o.importe_seul() && o.mensuel()? && crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle) {
+        if o.fichier.as_str() < mois && !o.est_non_actif() && !o.importe_seul() && o.mensuel()? && o.carte().salarie.as_deref() == Some(cle) {
             out.push(format!("{}#{}", o.fichier, crate::debut_brut(&o.brut)));
         }
     }

@@ -385,7 +385,7 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Resul
     if avant.is_some() && avant == paie_du_mois(p)? {
         return Ok(None);
     }
-    let siens = ses_departs(ctx, v.objet(), departs);
+    let siens = ses_departs(v.objet(), departs);
     let toutes: Vec<(Option<Version>, String)> = passees
         .iter()
         .map(|x| (Some(Version::Passee(x)), x.valide_le.clone()))

@@ -1678,11 +1678,11 @@ fn avec_ses_bornes(e: &Value) -> R<Value> {
 /// saisie. Un engagement se rattache a sa fiche comme sa paie (`engagement::cle_de_l_engagement`), quelle que soit la
 /// casse du nom saisi. `nom` : comme on l'a dit, pour la phrase. Un contrat qui a un motif de rupture passe avant les
 /// autres. Un salarie sans engagement ce mois-la n'a pas de paie : la phrase le dit, avec le mois en toutes lettres.
-fn engagement_qui_finit(ctx: &Contexte, saisie: &Value, cle: &str, nom: &str, mois: &str) -> R<(usize, Value)> {
+fn engagement_qui_finit(saisie: &Value, cle: &str, nom: &str, mois: &str) -> R<(usize, Value)> {
     let eng = saisie.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     let mut siens: Vec<(usize, Value)> = Vec::new();
     for (i, x) in eng.iter().enumerate() {
-        if carte_de(x)?.cle(ctx).as_deref() == Some(cle) {
+        if carte_de(x)?.salarie.as_deref() == Some(cle) {
             siens.push((i, avec_ses_bornes(x)?));
         }
     }
@@ -1712,7 +1712,7 @@ fn fin_contrat_documents(ctx: &Contexte, c: ChargeFinContratDocuments) -> R<Repo
     let mois = c.mois.to_string();
     let (saisie, paies) = validees(ctx, &mois)?;
     let cle = cle_du_nom(ctx, &c.salarie)?;
-    let (rang, _) = engagement_qui_finit(ctx, &saisie, &cle, &c.salarie, &mois)?;
+    let (rang, _) = engagement_qui_finit(&saisie, &cle, &c.salarie, &mois)?;
     let p = paie_de_l_engagement(&paies, rang, &cle, &c.salarie, &mois)?;
     let date = c.le.unwrap_or(ctx.aujourdhui);
     let dossier = ctx.racine.join("sorties").join(&mois);
@@ -1785,7 +1785,7 @@ pub(crate) fn signaler_la_fin(ctx: &Contexte, c: &ChargeFinContratSignaler, refa
 
     let (saisie, paies) = validees(ctx, &mois)?;
     let cle = cle_du_nom(ctx, salarie)?;
-    let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, &mois)?;
+    let (rang, e) = engagement_qui_finit(&saisie, &cle, salarie, &mois)?;
     let fin = fin_de_contrat_declaree(ctx, &e, &mois)?;
     if remplace.is_none() && !refaire {
         let journal = envois::journal::lu(&ctx.racine).map_err(plain)?;

@@ -19,6 +19,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use droit::contexte::IdSalarie;
 use socle::forme::NombreLu;
 use socle::num::Resultat;
 
@@ -111,7 +112,7 @@ nature! {
     /// (cachets, heures). Son debut et sa fin se tirent de ses jours joues quand la carte ne les dit pas.
     Cddu / BrouillonCddu {
         obligatoire {
-            salarie: String = Salarie,
+            salarie: IdSalarie = Salarie,
             spectacle: String = Spectacle,
             lignes: Vec<LignePaie> = Lignes,
         }
@@ -158,7 +159,7 @@ nature! {
     /// UN CDI, paye au mois : son debut, son salaire et ses heures par mois. Sa fin est sa rupture.
     Cdi / BrouillonCdi {
         obligatoire {
-            salarie: String = Salarie,
+            salarie: IdSalarie = Salarie,
             debut: String = Debut,
             salaire_mensuel: NombreLu = SalaireMensuel,
             quotite_contrat: NombreLu = QuotiteContrat,
@@ -213,7 +214,7 @@ nature! {
     /// par mois.
     Cdd / BrouillonCdd {
         obligatoire {
-            salarie: String = Salarie,
+            salarie: IdSalarie = Salarie,
             debut: String = Debut,
             fin: String = Fin,
             motif_recours: Recours | String = MotifRecours par Recours::de_la_carte,
@@ -656,30 +657,39 @@ macro_rules! changements {
         /// "valeur": "cdi"}` change sa nature, qui ne se vide jamais.
         #[derive(Debug, Clone, PartialEq, Deserialize)]
         #[serde(tag = "case", content = "valeur", deny_unknown_fields)]
-        pub enum Changement<L = LignePaie> {
+        pub enum Changement<L = LignePaie, N = IdSalarie> {
             #[serde(rename = "nature")]
             Nature(NatureDeContrat),
+            #[serde(rename = "salarie")]
+            Salarie(Option<N>),
             #[serde(rename = "lignes")]
             Lignes(Option<Vec<L>>),
             $( #[serde(rename = $cle)] $v(Option<$t>), )*
         }
 
-        impl<L> Changement<L> {
+        impl<L, N> Changement<L, N> {
             /// La case qu'il change.
             pub fn champ(&self) -> Champ {
                 match self {
                     Changement::Nature(_) => Champ::Nature,
+                    Changement::Salarie(_) => Champ::Salarie,
                     Changement::Lignes(_) => Champ::Lignes,
                     $( Changement::$v(_) => Champ::$v, )*
                 }
             }
         }
 
-        impl Changement<LigneDonnee> {
-            /// Ses lignes rangees (`ranger`, `ligne::ranger`) ; une autre case telle quelle.
-            pub fn ranger(self, ranger: &dyn Fn(Vec<LigneDonnee>) -> Resultat<Vec<LignePaie>>) -> Resultat<Changement> {
+        impl Changement<LigneDonnee, String> {
+            /// Ses lignes rangees (`ranger`, `ligne::ranger`) et le salarie qu'il nomme retrouve (`salarie`) ; une autre
+            /// case telle quelle.
+            pub fn ranger(
+                self,
+                ranger: &dyn Fn(Vec<LigneDonnee>) -> Resultat<Vec<LignePaie>>,
+                salarie: &dyn Fn(&str) -> Resultat<IdSalarie>,
+            ) -> Resultat<Changement> {
                 Ok(match self {
                     Changement::Nature(n) => Changement::Nature(n),
+                    Changement::Salarie(x) => Changement::Salarie(x.map(|nom| salarie(&nom)).transpose()?),
                     Changement::Lignes(l) => Changement::Lignes(l.map(ranger).transpose()?),
                     $( Changement::$v(x) => Changement::$v(x), )*
                 })
@@ -691,6 +701,7 @@ macro_rules! changements {
             fn poser(self, c: &mut Carte) {
                 match self {
                     Changement::Nature(n) => c.nature = Some(n.cle().to_string()),
+                    Changement::Salarie(x) => c.salarie = x,
                     Changement::Lignes(x) => c.lignes = x,
                     $( Changement::$v(x) => c.$champ = x, )*
                 }
@@ -700,7 +711,6 @@ macro_rules! changements {
 }
 
 changements! {
-    Salarie(String) = "salarie" => salarie,
     Spectacle(String) = "spectacle" => spectacle,
     Debut(String) = "debut" => debut,
     Fin(String) = "fin" => fin,
@@ -752,11 +762,11 @@ changements! {
 /// appliques dans l'ordre, tout ou rien. La page en envoie ce qui a change depuis sa derniere ecriture (une case, le plus
 /// souvent) ; un appelant en ligne de commande, toutes les cases d'une carte d'un coup.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Changements(Vec<Changement<LigneDonnee>>);
+pub struct Changements(Vec<Changement<LigneDonnee, String>>);
 
 impl<'de> Deserialize<'de> for Changements {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Changements, D::Error> {
-        let v = Vec::<Changement<LigneDonnee>>::deserialize(d)?;
+        let v = Vec::<Changement<LigneDonnee, String>>::deserialize(d)?;
         if v.is_empty() {
             return Err(serde::de::Error::custom("`changements` : au moins un changement, {\"case\": …, \"valeur\": …}"));
         }
@@ -769,16 +779,25 @@ impl Changements {
     /// rien : ses lignes se rangent d'abord, chacune lue au catalogue de la compagnie (`racine`, `ligne::ranger`) ; le
     /// premier refus (il nomme sa case, ou sa ligne) laisse `b` tel qu'il etait. `qui` : le salarie que le refus nomme,
     /// tel que le brouillon le dit au moment du changement.
-    pub fn appliquer(self, racine: &std::path::Path, mois: socle::mois::Mois, b: &mut Brouillon, qui: impl Fn(&Brouillon) -> String) -> Resultat<()> {
+    pub fn appliquer(self, ctx: &droit::contexte::Contexte, mois: socle::mois::Mois, b: &mut Brouillon, qui: impl Fn(&Brouillon) -> String) -> Resultat<()> {
         let mut essai = b.clone();
         for ch in self.0 {
             let q = qui(&essai);
-            let ch = ch.ranger(&|l| crate::ligne::ranger(racine, mois, l, &q))?;
+            let ch = ch.ranger(&|l| crate::ligne::ranger(&ctx.racine, mois, l, &q), &|nom| salarie_nomme(ctx, nom))?;
             essai.changer(ch, &q)?;
         }
         *b = essai;
         Ok(())
     }
+}
+
+/// LE SALARIE QU'UN NOM TAPE DESIGNE, retrouve une fois a la porte (`Contexte::cle_du_salarie`) : la carte ne porte
+/// que sa cle. Un nom vide ne designe personne ; aucun salarie, ou plusieurs, se refuse en disant quoi corriger.
+pub fn salarie_nomme(ctx: &droit::contexte::Contexte, nom: &str) -> Resultat<IdSalarie> {
+    if nom.trim().is_empty() {
+        return Err("Le nom du salarié est vide : écrire son nom, ou vider la case. Rien n'est écrit.".to_string());
+    }
+    ctx.cle_du_salarie(nom)
 }
 
 /// Le debut du refus d'une carte a qui il manque des cases (`crate::SAISIE_INCOMPLETE`).
