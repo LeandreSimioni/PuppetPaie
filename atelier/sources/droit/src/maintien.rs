@@ -131,10 +131,10 @@ fn tranches(l: &[clauses::TrancheDeMaintien], ou: &str) -> Resultat<Vec<Tranche>
     l.iter()
         .map(|t| {
             let duree = match (t.pendant_ij, t.mois, t.jours) {
-                (true, _, _) => Duree::PendantLesIndemnites,
-                (false, Some(m), _) => Duree::Mois(m),
-                (false, None, Some(j)) => Duree::Jours(j),
-                (false, None, None) => return Err(manque(ou, "jours")),
+                (Some(true), _, _) => Duree::PendantLesIndemnites,
+                (_, Some(m), _) => Duree::Mois(m),
+                (_, None, Some(j)) => Duree::Jours(j),
+                (_, None, None) => return Err(manque(ou, "jours")),
             };
             Ok(Tranche { duree, taux: t.taux.0 })
         })
@@ -156,19 +156,19 @@ pub fn conventionnel(idcc: &str, anciennete_mois: Decimal, origine: Origine) -> 
     let (article, minimum, base, carence, plafond_net, subrogation, liste) = match (accident, sec.maladie) {
         (Some(at), _) => {
             let ou = format!("clauses-conventionnelles-base.json, {}, art. {}", nom, at.article);
-            let mut tr = &at.tranches;
-            if !at.tranches_deux_ans.is_empty() && anciennete_mois >= Decimal::from(24) {
-                tr = &at.tranches_deux_ans;
+            let mut tr = at.tranches.as_slice();
+            if let Some(deux_ans) = at.tranches_deux_ans.as_deref().filter(|t| !t.is_empty() && anciennete_mois >= Decimal::from(24)) {
+                tr = deux_ans;
             }
             if let Some(apres) = at.tranches_apres.as_ref().filter(|a| anciennete_mois > a.anciennete_mois.0) {
-                tr = &apres.tranches;
+                tr = apres.tranches.as_slice();
             }
             let liste = tranches(tr, &ou)?;
             // Sans minimum ecrit, l'accident du travail garde l'annee de L1226-1 : l'extension de ces clauses se fait
             // « sous reserve du respect des dispositions des articles L. 1226-1, D. 1226-1 et D. 1226-2 » (3090, 11.4 ;
             // 2642, VIII.3).
             let minimum = at.anciennete_mois_minimum.map_or(Decimal::from(12), |m| m.0);
-            (at.article, minimum, at.base, at.carence_jours, at.plafond_net, at.subrogation, Ok(liste))
+            (at.article, minimum, at.base, at.carence_jours, at.plafond_net == Some(true), at.subrogation, Ok(liste))
         }
         (None, Some(m)) => {
             let ou = format!("clauses-conventionnelles-base.json, {}, art. {}", nom, m.article);
@@ -177,14 +177,16 @@ pub fn conventionnel(idcc: &str, anciennete_mois: Decimal, origine: Origine) -> 
             lignes.sort_by_key(|l| l.anciennete_annees_min.0);
             let liste = match lignes.into_iter().filter(|l| annees >= l.anciennete_annees_min.0).last() {
                 None => Err(format!("{} (art. {}) : aucune tranche a cette anciennete.", nom, m.article)),
-                Some(l) if !l.tranches.is_empty() => Ok(tranches(&l.tranches, &ou)?),
-                Some(l) => Ok(vec![
-                    Tranche { duree: Duree::Jours(l.jours_90.ok_or_else(|| manque(&ou, "jours_90"))?), taux: Decimal::from(90) },
-                    Tranche { duree: Duree::Jours(l.jours_66.ok_or_else(|| manque(&ou, "jours_66"))?), taux: Decimal::new(6666, 2) },
-                ]),
+                Some(l) => match l.tranches.as_deref() {
+                    Some(t) if !t.is_empty() => Ok(tranches(t, &ou)?),
+                    _ => Ok(vec![
+                        Tranche { duree: Duree::Jours(l.jours_90.ok_or_else(|| manque(&ou, "jours_90"))?), taux: Decimal::from(90) },
+                        Tranche { duree: Duree::Jours(l.jours_66.ok_or_else(|| manque(&ou, "jours_66"))?), taux: Decimal::new(6666, 2) },
+                    ]),
+                },
             };
             let minimum = m.anciennete_mois_minimum.map_or(Decimal::ZERO, |m| m.0);
-            (m.article, minimum, m.base, m.carence_jours, m.plafond_net, m.subrogation, liste)
+            (m.article, minimum, m.base, m.carence_jours, m.plafond_net == Some(true), m.subrogation, liste)
         }
         (None, None) => return Ok(None),
     };

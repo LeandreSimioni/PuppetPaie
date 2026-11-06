@@ -110,9 +110,9 @@ fn en_valeur_prime(p: Option<Prime>) -> Value {
 
 fn en_valeur_annexe(a: Option<c::ClauseDAnnexe>) -> Value {
     a.map_or(Value::Null, |a| {
-        json!([a.article, {"lectures": a.lectures.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>(), "hors_primes": a.hors_primes,
+        json!([a.article, {"lectures": a.lectures.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>(), "hors_primes": a.hors_primes == Some(true),
             "anciennete_minimale_mois": a.anciennete_minimale_mois.map(|m| m.0.to_string()), "plafond_mois": a.plafond_mois.map(|m| m.0.to_string()),
-            "motifs_legaux_seulement": a.motifs_legaux_seulement}])
+            "motifs_legaux_seulement": a.motifs_legaux_seulement.unwrap_or_default()}])
     })
 }
 
@@ -333,7 +333,7 @@ fn les_baremes() {
     for l in chaines(&g["listes"]) {
         let d = |x: P| ligne(Ok(Value::String(x.to_string())));
         if let Ok(taux) = socle::forme::lire::<Vec<Tranche>>(&l[1], "") {
-            let lignes: Vec<String> = annees.iter().flat_map(|a| [c::par_tranches(&taux, *a, true), c::par_tranches(&taux, *a, false), c::Bareme { motifs: vec![], taux: Some(taux.clone()), bandes: None }.mois(*a).unwrap()]).map(d).collect();
+            let lignes: Vec<String> = annees.iter().flat_map(|a| [c::par_tranches(&taux, *a, true), c::par_tranches(&taux, *a, false), c::Bareme { motifs: None, taux: Some(taux.clone()), bandes: None }.mois(*a).unwrap()]).map(d).collect();
             lecture.push(json!([l[0], "tranches", fnv(&lignes.join("\n"))]));
         }
         if let Ok(bandes) = socle::forme::lire::<Vec<Bande>>(&l[1], "") {
@@ -349,8 +349,8 @@ fn les_baremes() {
         .map(|s| {
             let conv = t.convention(s[0].as_str().unwrap()).unwrap();
             let (paliers, prorata) = match s[1].as_str().unwrap() {
-                "mise_a_la_retraite" => conv.mise_a_la_retraite.as_ref().map(|m| (&m.paliers, m.prorata.as_ref())).unwrap(),
-                _ => conv.depart_a_la_retraite.as_ref().map(|m| (&m.paliers, m.prorata.as_ref())).unwrap(),
+                "mise_a_la_retraite" => conv.mise_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
+                _ => conv.depart_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
             };
             let lignes: Vec<String> = annees.iter().map(|a| ligne(Ok(c::paliers(paliers, prorata, *a)).map(|(m, p)| json!([m.to_string(), p])))).collect();
             json!([s, fnv(&lignes.join("\n"))])

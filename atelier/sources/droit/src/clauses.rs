@@ -47,29 +47,17 @@ forme! {
     pub struct Convention {
         /// Le titre de la convention dans KALI : `idcc_nomme` y cherche le nom qu'un bulletin imprime.
         pub libelle: String,
-        #[serde(default)]
-        pub loi_seule: BTreeMap<Section, String>,
-        #[serde(default)]
+        pub loi_seule: Option<BTreeMap<Section, String>>,
         pub categories: Option<Categories>,
-        #[serde(default)]
         pub preavis: Option<Preavis>,
-        #[serde(default)]
         pub indemnite_licenciement: Option<Licenciement>,
-        #[serde(default)]
         pub rupture_conventionnelle: Option<RuptureConventionnelle>,
-        #[serde(default)]
         pub mise_a_la_retraite: Option<MiseALaRetraite>,
-        #[serde(default)]
         pub depart_a_la_retraite: Option<DepartALaRetraite>,
-        #[serde(default)]
         pub maintien_de_salaire: Option<MaintienDeSalaire>,
-        #[serde(default)]
         pub prime_anciennete: Option<PrimeAnciennete>,
-        #[serde(default)]
         pub heures_supplementaires: Option<HeuresSupplementaires>,
-        #[serde(default)]
         pub heures_complementaires: Option<HeuresComplementaires>,
-        #[serde(default)]
         pub remise_du_contrat: Option<RemiseDuContrat>,
     }
 }
@@ -77,7 +65,7 @@ forme! {
 impl Convention {
     /// La phrase qui dit que la convention laisse cette clause a la loi, si elle la laisse.
     pub fn loi_seule(&self, s: Section) -> Option<&str> {
-        self.loi_seule.get(&s).map(String::as_str)
+        self.loi_seule.as_ref().and_then(|l| l.get(&s)).map(String::as_str)
     }
 }
 
@@ -88,11 +76,9 @@ forme! {
         #[serde(deserialize_with = "en_ordre")]
         pub valeurs: Vec<(String, String)>,
         /// Vrai : la convention ne distingue que le cadre et le non-cadre, et la case cadre de la fiche le dit.
-        #[serde(default)]
-        pub cadre_ou_non_cadre: bool,
+        pub cadre_ou_non_cadre: Option<bool>,
         /// La categorie de chaque niveau de la grille 3090 (`emplois-base.json`, `classification_3090.niveau`).
-        #[serde(default)]
-        pub par_niveau_3090: BTreeMap<String, String>,
+        pub par_niveau_3090: Option<BTreeMap<String, String>>,
     }
 }
 
@@ -101,17 +87,12 @@ forme! {
     pub struct Preavis {
         pub article: String,
         /// Les motifs de rupture (S21.G00.62.002) qui n'ouvrent pas ce preavis, chacun avec la phrase qui le dit.
-        #[serde(default)]
-        pub motifs_hors_preavis: BTreeMap<String, String>,
-        #[serde(default)]
-        pub toutes_categories: Vec<TranchePreavis>,
-        #[serde(default)]
-        pub par_categorie: BTreeMap<String, PreavisDeLaCategorie>,
+        pub motifs_hors_preavis: Option<BTreeMap<String, String>>,
+        pub toutes_categories: Option<Vec<TranchePreavis>>,
+        pub par_categorie: Option<BTreeMap<String, PreavisDeLaCategorie>>,
         /// Ajoute a l'age du salarie, au licenciement (et a la demission si `supplement_age_demission`).
-        #[serde(default)]
-        pub supplement_age: Vec<SupplementAge>,
-        #[serde(default)]
-        pub supplement_age_demission: bool,
+        pub supplement_age: Option<Vec<SupplementAge>>,
+        pub supplement_age_demission: Option<bool>,
     }
 }
 
@@ -120,7 +101,6 @@ forme! {
     /// `demission`, le preavis est reciproque ; une liste vide : la convention n'en fixe pas).
     pub struct PreavisDeLaCategorie {
         pub licenciement: Vec<TranchePreavis>,
-        #[serde(default)]
         pub demission: Option<Vec<TranchePreavis>>,
     }
 }
@@ -131,13 +111,9 @@ forme! {
 pub struct TranchePreavis {
     pub anciennete_mois_min: Nombre,
     /// `null` : sans borne.
-    #[serde(default)]
     pub anciennete_mois_max: Option<Nombre>,
-    #[serde(default)]
     pub mois: Option<Nombre>,
-    #[serde(default)]
     pub jours_par_semaine: Option<Nombre>,
-    #[serde(default)]
     pub plafond_jours: Option<Nombre>,
 }
 
@@ -155,30 +131,21 @@ forme! {
     pub struct Licenciement {
         pub article: String,
         pub anciennete_minimale_mois: Nombre,
-        #[serde(default)]
-        pub motifs_sans_indemnite: Vec<String>,
+        pub motifs_sans_indemnite: Option<Vec<String>>,
         /// Le bareme, quand il ne depend pas du motif.
-        #[serde(default)]
         pub taux: Option<Vec<Tranche>>,
         /// Le bareme du motif economique, et celui des autres.
-        #[serde(default)]
         pub par_motif: Option<ParMotif>,
-        #[serde(default)]
         pub plafond_mois: Option<Nombre>,
         /// Avant `mois` d'anciennete, une fraction a part par annee.
-        #[serde(default)]
         pub taux_avant: Option<TauxAvant>,
         /// Une majoration a partir d'un age (la 3097).
-        #[serde(default)]
         pub majoration_age: Option<MajorationAge>,
         /// Plusieurs ages, chacun son pourcentage et son plancher (la 2121), sous `plafond_majore_mois`.
-        #[serde(default)]
-        pub majorations_age: Vec<MajorationParAge>,
-        #[serde(default)]
+        pub majorations_age: Option<Vec<MajorationParAge>>,
         pub plafond_majore_mois: Option<Nombre>,
         /// Les clauses de chaque annexe (« 1 », « 3 »).
-        #[serde(default)]
-        pub par_annexe: BTreeMap<String, ClausesDAnnexe>,
+        pub par_annexe: Option<BTreeMap<String, ClausesDAnnexe>>,
     }
 }
 
@@ -187,11 +154,8 @@ forme! {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Bareme {
-    #[serde(default)]
-    pub motifs: Vec<String>,
-    #[serde(default)]
+    pub motifs: Option<Vec<String>>,
     pub taux: Option<Vec<Tranche>>,
-    #[serde(default)]
     pub bandes: Option<Vec<Bande>>,
 }
 
@@ -199,11 +163,9 @@ pub struct Bareme {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Tranche {
-    #[serde(default)]
     pub jusqu_a_annees: Option<Nombre>,
     pub fraction_de_mois: Nombre,
-    #[serde(default)]
-    pub annees_entieres: bool,
+    pub annees_entieres: Option<bool>,
 }
 
 /// Une bande : a partir de `anciennete_annees_min`, la fraction de toutes les annees.
@@ -217,7 +179,6 @@ pub struct Bande {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ParMotif {
-    #[serde(default)]
     pub economique: Option<Bareme>,
     pub autre: Bareme,
 }
@@ -241,22 +202,17 @@ pub struct MajorationAge {
 #[serde(deny_unknown_fields)]
 pub struct MajorationParAge {
     pub age_min: Nombre,
-    #[serde(default)]
     pub age_max: Option<Nombre>,
     pub anciennete_mois_min: Nombre,
     pub pourcentage: Nombre,
-    #[serde(default)]
     pub plancher_mois: Option<Nombre>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ClausesDAnnexe {
-    #[serde(default)]
     pub technicien: Option<ClauseDAnnexe>,
-    #[serde(default)]
     pub cadre_de_direction: Option<ClauseDAnnexe>,
-    #[serde(default)]
     pub artiste: Option<ClauseDAnnexe>,
 }
 
@@ -265,16 +221,12 @@ forme! {
     /// du fichier (deux qui divergent : l'appelant demande le montant retenu).
     pub struct ClauseDAnnexe {
         pub article: String,
-        #[serde(default)]
         pub anciennete_minimale_mois: Option<Nombre>,
-        #[serde(default)]
         pub plafond_mois: Option<Nombre>,
         /// Le salaire de reference s'entend hors primes.
-        #[serde(default)]
-        pub hors_primes: bool,
+        pub hors_primes: Option<bool>,
         /// Les motifs pour lesquels l'annexe renvoie a la loi.
-        #[serde(default)]
-        pub motifs_legaux_seulement: Vec<String>,
+        pub motifs_legaux_seulement: Option<Vec<String>>,
         #[serde(deserialize_with = "en_ordre")]
         pub lectures: Vec<(String, Bareme)>,
     }
@@ -292,27 +244,17 @@ forme! {
     /// annee et une autre au-dela de `au_dela_de_annees`.
     pub struct MiseALaRetraite {
         pub article: String,
-        #[serde(default)]
-        pub paliers: Vec<Palier>,
-        #[serde(default)]
+        pub paliers: Option<Vec<Palier>>,
         pub prorata: Option<Prorata>,
-        #[serde(default)]
-        pub taux: Vec<Tranche>,
-        #[serde(default)]
+        pub taux: Option<Vec<Tranche>>,
         pub plafond_mois: Option<Nombre>,
-        #[serde(default)]
         pub par_annee: Option<Nombre>,
-        #[serde(default)]
         pub au_dela_de_annees: Option<Nombre>,
-        #[serde(default)]
         pub en_plus_par_annee_au_dela: Option<Nombre>,
-        #[serde(default)]
-        pub hors_primes: bool,
+        pub hors_primes: Option<bool>,
         /// Le delai d'information, en mois : rappele, pas paye.
-        #[serde(default)]
         pub prevenance_mois: Option<i64>,
         /// La clause du cadre de direction, relevee et non calculee : l'appelant demande le montant.
-        #[serde(default)]
         pub cadre_de_direction: Option<CadreDeDirection>,
     }
 }
@@ -328,15 +270,10 @@ forme! {
     /// anciennete minimale.
     pub struct DepartALaRetraite {
         pub article: String,
-        #[serde(default)]
-        pub paliers: Vec<Palier>,
-        #[serde(default)]
+        pub paliers: Option<Vec<Palier>>,
         pub prorata: Option<Prorata>,
-        #[serde(default)]
-        pub taux: Vec<Tranche>,
-        #[serde(default)]
+        pub taux: Option<Vec<Tranche>>,
         pub anciennete_minimale_mois: Option<Nombre>,
-        #[serde(default)]
         pub prevenance_mois: Option<i64>,
     }
 }
@@ -360,9 +297,7 @@ pub struct Prorata {
 forme! {
     /// Le maintien de salaire d'un arret : la maladie, et l'accident du travail quand la convention le distingue.
     pub struct MaintienDeSalaire {
-        #[serde(default)]
         pub maladie: Option<MaintienMaladie>,
-        #[serde(default)]
         pub accident_du_travail: Option<MaintienAccident>,
     }
 }
@@ -386,14 +321,10 @@ forme! {
     /// Le maintien en maladie : une ligne par anciennete.
     pub struct MaintienMaladie {
         pub article: String,
-        #[serde(default)]
         pub anciennete_mois_minimum: Option<Nombre>,
-        #[serde(default)]
         pub carence_jours: i64,
         pub base: BaseDuMaintien,
-        #[serde(default)]
-        pub plafond_net: bool,
-        #[serde(default)]
+        pub plafond_net: Option<bool>,
         pub subrogation: Option<Subrogation>,
         pub par_anciennete: Vec<LigneDeMaintien>,
     }
@@ -404,11 +335,8 @@ forme! {
 #[serde(deny_unknown_fields)]
 pub struct LigneDeMaintien {
     pub anciennete_annees_min: Nombre,
-    #[serde(default)]
-    pub tranches: Vec<TrancheDeMaintien>,
-    #[serde(default)]
+    pub tranches: Option<Vec<TrancheDeMaintien>>,
     pub jours_90: Option<i64>,
-    #[serde(default)]
     pub jours_66: Option<i64>,
 }
 
@@ -417,25 +345,17 @@ forme! {
     /// maladie professionnelle), ses tranches, et celles d'une anciennete plus longue.
     pub struct MaintienAccident {
         pub article: String,
-        #[serde(default)]
         pub couvre: Option<Vec<crate::maintien::Origine>>,
-        #[serde(default)]
         pub anciennete_mois_minimum: Option<Nombre>,
-        #[serde(default)]
         pub carence_jours: i64,
         pub base: BaseDuMaintien,
-        #[serde(default)]
-        pub plafond_net: bool,
-        #[serde(default)]
+        pub plafond_net: Option<bool>,
         pub subrogation: Option<Subrogation>,
         /// Passe cette anciennete, l'accident suit la clause de la maladie.
-        #[serde(default)]
         pub comme_maladie_apres_mois: Option<Nombre>,
         pub tranches: Vec<TrancheDeMaintien>,
         /// A deux ans d'anciennete.
-        #[serde(default)]
-        pub tranches_deux_ans: Vec<TrancheDeMaintien>,
-        #[serde(default)]
+        pub tranches_deux_ans: Option<Vec<TrancheDeMaintien>>,
         pub tranches_apres: Option<TranchesApres>,
     }
 }
@@ -445,12 +365,9 @@ forme! {
 #[serde(deny_unknown_fields)]
 pub struct TrancheDeMaintien {
     pub taux: Nombre,
-    #[serde(default)]
     pub jours: Option<i64>,
-    #[serde(default)]
     pub mois: Option<i64>,
-    #[serde(default)]
-    pub pendant_ij: bool,
+    pub pendant_ij: Option<bool>,
 }
 
 /// Au-dela de `anciennete_mois` d'anciennete, ces tranches.
@@ -471,8 +388,7 @@ forme! {
         pub pourcentage_par_annee: i64,
         pub plafond_pourcentage: i64,
         /// Les familles de metiers payees a la grille du costume.
-        #[serde(default)]
-        pub familles_costume: Vec<String>,
+        pub familles_costume: Option<Vec<String>>,
         /// La ligne de la grille de chaque niveau 3090.
         pub niveaux: BTreeMap<String, String>,
         /// Les grilles, dans l'ordre de leurs dates.
@@ -495,11 +411,8 @@ forme! {
     /// Les heures supplementaires : le contingent annuel, et les paliers annuels de majoration quand la convention les
     /// fixe (au-dela du dernier, `au_dela_du_contingent`).
     pub struct HeuresSupplementaires {
-        #[serde(default)]
         pub contingent_annuel: Option<Nombre>,
-        #[serde(default)]
-        pub paliers_annuels: Vec<PalierDHeures>,
-        #[serde(default)]
+        pub paliers_annuels: Option<Vec<PalierDHeures>>,
         pub au_dela_du_contingent: Option<Nombre>,
     }
 }
@@ -539,7 +452,7 @@ pub fn table() -> Resultat<Arc<Table>> {
                 (Section::MiseALaRetraite, c.mise_a_la_retraite.is_some()),
                 (Section::DepartALaRetraite, c.depart_a_la_retraite.is_some()),
             ];
-            if let Some((s, _)) = releves.iter().find(|(s, releve)| *releve && c.loi_seule.contains_key(s)) {
+            if let Some((s, _)) = releves.iter().find(|(s, releve)| *releve && c.loi_seule.as_ref().is_some_and(|l| l.contains_key(s))) {
                 return Err(socle::echec::livree(FICHIER, &format!("conventions.{}.loi_seule.{:?}", idcc, s)));
             }
         }
@@ -685,12 +598,12 @@ pub fn profil(idcc: &str, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resul
     }
     let est_cadre = e.cadre.unwrap_or_else(|| fiche.statut_categoriel_rc.code() == "01");
     let niveau = c3090.map(|c| c.niveau.clone()).unwrap_or_default();
-    let selon_niveau = sec.and_then(|s| s.par_niveau_3090.get(&niveau)).filter(|c| !c.is_empty());
+    let selon_niveau = sec.and_then(|s| s.par_niveau_3090.as_ref().and_then(|m| m.get(&niveau))).filter(|c| !c.is_empty());
     let code = code.unwrap_or_default();
     if est_cadre {
         return Ok(profil(Some("cadre"), "la case cadre".into()));
     }
-    if sec.is_some_and(|s| s.cadre_ou_non_cadre) {
+    if sec.is_some_and(|s| s.cadre_ou_non_cadre == Some(true)) {
         return Ok(profil(Some("non_cadre"), "la case cadre, non cochée".into()));
     }
     if selon_niveau.map(String::as_str) == Some("cadre") {
@@ -730,21 +643,25 @@ pub fn preavis_mois(idcc: &str, categorie: Option<&str>, anciennete: Decimal, mo
         return Ok(rien(None, non_relevees(idcc)));
     };
     let article = format!("{}, art. {}", nom(idcc), sec.article);
-    if let Some(hors) = sec.motifs_hors_preavis.get(motif.unwrap_or("")).filter(|h| !h.is_empty()) {
+    if let Some(hors) = motif.and_then(|m| sec.motifs_hors_preavis.as_ref().and_then(|h| h.get(m))).filter(|h| !h.is_empty()) {
         return Ok(PreavisDit { mois: Some(P::ZERO), article: Some(article), jours: None, pourquoi: Some(hors.clone()) });
     }
     let categorie = categorie.filter(|c| !c.is_empty());
     let demission = motif == Some("059");
-    let tranches: &[TranchePreavis] = if !sec.toutes_categories.is_empty() {
-        &sec.toutes_categories
-    } else {
-        let Some(c) = categorie else {
-            return Ok(rien(Some(article), "la catégorie du salarié dans la convention n'est pas connue".into()));
-        };
-        match sec.par_categorie.get(c) {
-            Some(pc) if demission => pc.demission.as_deref().unwrap_or(&pc.licenciement),
-            Some(pc) => &pc.licenciement,
-            None => &[],
+    let tranches: &[TranchePreavis] = match sec.toutes_categories.as_deref() {
+        Some(t) if !t.is_empty() => t,
+        _ => {
+            let Some(c) = categorie else {
+                return Ok(rien(Some(article), "la catégorie du salarié dans la convention n'est pas connue".into()));
+            };
+            match sec.par_categorie.as_ref().and_then(|m| m.get(c)) {
+                Some(pc) if demission => match pc.demission.as_deref() {
+                    Some(d) => d,
+                    None => &pc.licenciement,
+                },
+                Some(pc) => &pc.licenciement,
+                None => &[],
+            }
         }
     };
     if tranches.is_empty() {
@@ -762,13 +679,13 @@ pub fn preavis_mois(idcc: &str, categorie: Option<&str>, anciennete: Decimal, mo
                 return Ok(PreavisDit { mois: Some(mois), article: Some(article), jours: Some(jours), pourquoi: None });
             }
             let mut mois = p(t.mois.as_ref().ok_or_else(|| manque("mois"))?);
-            if !sec.supplement_age.is_empty() && (!demission || sec.supplement_age_demission) {
+            if let Some(supplements) = sec.supplement_age.as_ref().filter(|s| !s.is_empty() && (!demission || sec.supplement_age_demission == Some(true))) {
                 let Some(age) = age else {
                     let pourquoi = format!("le préavis de {} dépend de l'âge du salarié, et sa \
                             date de naissance manque", article);
                     return Ok(rien(Some(article), pourquoi));
                 };
-                for sup in &sec.supplement_age {
+                for sup in supplements {
                     if p(&sup.age_min) <= age && age < p(&sup.age_max) {
                         mois = mois.add(p(&sup.mois));
                     }
@@ -801,7 +718,7 @@ pub fn par_tranches(taux: &[Tranche], annees: P, entieres: bool) -> P {
 
 /// Par tranches, en annees revolues quand une tranche le dit.
 fn tranches(taux: &[Tranche], annees: P) -> P {
-    par_tranches(taux, annees, taux.iter().any(|t| t.annees_entieres))
+    par_tranches(taux, annees, taux.iter().any(|t| t.annees_entieres == Some(true)))
 }
 
 /// En mois de salaire : la bande atteinte donne sa fraction a TOUTES les annees.
@@ -833,7 +750,7 @@ impl Bareme {
 /// GRILLE du metier.
 pub fn clause_d_annexe(idcc: &str, annexe: &str, prof: &Profil, motif: Option<&str>) -> Resultat<Option<ClauseDAnnexe>> {
     let t = table()?;
-    let par = t.convention(idcc).and_then(|c| c.indemnite_licenciement.as_ref()).and_then(|s| s.par_annexe.get(annexe.trim()));
+    let par = t.convention(idcc).and_then(|c| c.indemnite_licenciement.as_ref()).and_then(|s| s.par_annexe.as_ref().and_then(|m| m.get(annexe.trim())));
     let Some(par) = par else { return Ok(None) };
     let cat = prof.categorie.as_deref();
     let choix = match (&par.cadre_de_direction, &par.technicien, &par.artiste) {
@@ -842,7 +759,7 @@ pub fn clause_d_annexe(idcc: &str, annexe: &str, prof: &Profil, motif: Option<&s
         (_, _, Some(c)) if cat == Some("artiste") => Some(c),
         _ => None,
     };
-    Ok(choix.filter(|c| !c.motifs_legaux_seulement.iter().any(|m| m == motif.unwrap_or(""))).cloned())
+    Ok(choix.filter(|c| !motif.is_some_and(|mo| c.motifs_legaux_seulement.iter().flatten().any(|m| m == mo))).cloned())
 }
 
 /// L'indemnite CONVENTIONNELLE de licenciement. `bas` et `haut` sont egaux quand le texte n'a qu'une lecture ; quand
@@ -891,7 +808,7 @@ pub fn indemnite_licenciement(
         let (bas, haut) = if du { (lectures.iter().map(|x| x.1).min(), lectures.iter().map(|x| x.1).max()) } else { (None, None) };
         Indemnite { releve: true, du, bas, haut, lectures, hors_primes, article: Some(article), pourquoi }
     };
-    if dans(&sec.motifs_sans_indemnite) {
+    if sec.motifs_sans_indemnite.as_deref().is_some_and(dans) {
         let p = format!("le motif {} n'ouvre pas d'indemnite de licenciement", motif_t);
         return Ok(sortie(lectures, article, hors_primes, Some(p), false));
     }
@@ -900,7 +817,7 @@ pub fn indemnite_licenciement(
     if a >= p(&sec.anciennete_minimale_mois) {
         let mut mois = match (&sec.par_motif, &sec.taux) {
             (Some(pm), _) => {
-                let choix = pm.economique.as_ref().filter(|e| dans(&e.motifs)).unwrap_or(&pm.autre);
+                let choix = pm.economique.as_ref().filter(|e| e.motifs.as_deref().is_some_and(dans)).unwrap_or(&pm.autre);
                 choix.mois(annees)?
             }
             (None, Some(taux)) => tranches(taux, annees),
@@ -914,10 +831,10 @@ pub fn indemnite_licenciement(
             // Avant le bareme, une fraction a part.
             commun = annees.mul(p(&avant.fraction_de_mois)).mul(ref_).eur2();
         }
-        if !sec.majorations_age.is_empty() {
+        if let Some(majorations) = sec.majorations_age.as_ref().filter(|m| !m.is_empty()) {
             // Plusieurs ages, chacun son pourcentage et son plancher, puis le plafond. L'age en annees revolues ; sans
             // lui, les deux lectures.
-            let mut vises: Vec<&MajorationParAge> = sec.majorations_age.iter().filter(|m| a >= p(&m.anciennete_mois_min)).collect();
+            let mut vises: Vec<&MajorationParAge> = majorations.iter().filter(|m| a >= p(&m.anciennete_mois_min)).collect();
             match age {
                 None if !vises.is_empty() => {
                     set(&mut lectures, "sans_majoration_age", commun);
@@ -963,7 +880,7 @@ pub fn indemnite_licenciement(
     // le plancher (l'appelant).
     if let Some(c) = clause_d_annexe(idcc, annexe, prof, motif)? {
         article = format!("{}, {}", nom(idcc), c.article);
-        hors_primes = c.hors_primes;
+        hors_primes = c.hors_primes == Some(true);
         let minimale = c.anciennete_minimale_mois.as_ref().map_or(P::ZERO, p);
         if a < minimale {
             let dite = c.anciennete_minimale_mois.as_ref().map(|m| m.0.to_string()).unwrap_or_default();
@@ -1044,11 +961,12 @@ pub fn indemnite_mise_a_la_retraite(idcc: &str, anciennete: Decimal, reference: 
         return Ok(Retraite::sans_montant(false, non_relevees(idcc)));
     };
     let annees = anciennete.div(P::entier(12));
-    let mois = if !sec.paliers.is_empty() {
-        paliers(&sec.paliers, sec.prorata.as_ref(), annees).0
-    } else if !sec.taux.is_empty() {
+    let (a_des_paliers, a_des_taux) = (sec.paliers.as_ref().is_some_and(|p| !p.is_empty()), sec.taux.as_ref().is_some_and(|t| !t.is_empty()));
+    let mois = if let Some(pal) = sec.paliers.as_ref().filter(|p| !p.is_empty()) {
+        paliers(pal, sec.prorata.as_ref(), annees).0
+    } else if let Some(taux) = sec.taux.as_ref().filter(|t| !t.is_empty()) {
         // Le bareme du licenciement, par tranches, avec son plafond.
-        let mois = tranches(&sec.taux, annees);
+        let mois = tranches(taux, annees);
         sec.plafond_mois.as_ref().map_or(mois, |plafond| mois.min(p(plafond)))
     } else {
         let par_annee = sec.par_annee.as_ref().ok_or_else(|| manque("mise_a_la_retraite.par_annee"))?;
@@ -1067,9 +985,9 @@ pub fn indemnite_mise_a_la_retraite(idcc: &str, anciennete: Decimal, reference: 
         palier: None,
         article: Some(format!("{}, art. {}", nom(idcc), sec.article)),
         // Un bareme par paliers ne dit pas de salaire hors primes.
-        hors_primes: sec.paliers.is_empty() && sec.hors_primes,
+        hors_primes: !a_des_paliers && sec.hors_primes == Some(true),
         prevenance_mois: sec.prevenance_mois,
-        cadre_de_direction: sec.cadre_de_direction.as_ref().filter(|_| sec.paliers.is_empty() && sec.taux.is_empty()).map(|c| c.article.clone()),
+        cadre_de_direction: sec.cadre_de_direction.as_ref().filter(|_| !a_des_paliers && !a_des_taux).map(|c| c.article.clone()),
         pourquoi: None,
     })
 }
@@ -1086,12 +1004,12 @@ pub fn indemnite_depart_retraite(idcc: &str, anciennete: Decimal, reference: Dec
         return Ok(Retraite::sans_montant(false, non_relevees(idcc)));
     };
     let annees = anciennete.div(P::entier(12));
-    let (mois, palier) = if !sec.taux.is_empty() {
+    let (mois, palier) = if let Some(taux) = sec.taux.as_ref().filter(|t| !t.is_empty()) {
         // Le bareme d'un licenciement, par tranches.
         let minimale = sec.anciennete_minimale_mois.as_ref().map_or(P::ZERO, p);
-        (if annees.mul(P::entier(12)) >= minimale { tranches(&sec.taux, annees) } else { P::ZERO }, None)
-    } else if !sec.paliers.is_empty() {
-        paliers(&sec.paliers, sec.prorata.as_ref(), annees)
+        (if annees.mul(P::entier(12)) >= minimale { tranches(taux, annees) } else { P::ZERO }, None)
+    } else if let Some(pal) = sec.paliers.as_ref().filter(|p| !p.is_empty()) {
+        paliers(pal, sec.prorata.as_ref(), annees)
     } else {
         return Err(manque("depart_a_la_retraite.paliers"));
     };
@@ -1155,7 +1073,7 @@ pub fn prime_anciennete(idcc: &str, annexe: &str, fiche: &ChampsSalarie, e: &Dit
     let Some(niveau) = sec.niveaux.get(&c3090.map(|c| c.niveau.clone()).unwrap_or_default()).filter(|n| !n.is_empty()) else {
         return Ok(Some(prime(None, Some(format!("le niveau 3090 du metier {} n'est pas connu", code)))));
     };
-    let base = if sec.familles_costume.iter().any(|f| f == famille) {
+    let base = if sec.familles_costume.iter().flatten().any(|f| f == famille) {
         g.costume.get(niveau).ok_or_else(|| manque(&format!("prime_anciennete.salaires_conventionnels.costume.{}", niveau)))?
     } else {
         let Some((_, salaires)) = jauge.and_then(|j| g.technique.iter().find(|(k, _)| k == j)) else {

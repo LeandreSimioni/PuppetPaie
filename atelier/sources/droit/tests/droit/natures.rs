@@ -25,7 +25,7 @@ fn les_natures_et_contrat_court() {
             "plafond_quotite": n.plafond_quotite(), "quotite_reference_defaut": n.quotite_reference_defaut(), "bareme": n.bareme(),
             "mensuelle": n.mensuelle(), "permanent": n.permanent(), "codes": codes,
             "motif_rupture_par_defaut": n.motif_rupture_par_defaut(), "motifs_rupture": n.motifs_rupture(),
-            "motifs_recours": n.motifs_recours(), "motif_recours_exige": n.motif_recours_exige(),
+            "motifs_recours": n.motifs_recours().unwrap_or_default(), "motif_recours_exige": n.motif_recours_exige(),
             "signalement_fctu": n.signalement_fctu(None), "codes_fin": n.codes_fin(None),
             "signalement_par_motif": n.motifs_rupture().iter().map(|m| {
                 let code = m.code.as_str();

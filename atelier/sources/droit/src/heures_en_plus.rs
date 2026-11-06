@@ -41,7 +41,7 @@ fn supplementaires_de_la_convention(idcc: &str) -> Resultat<Option<crate::clause
 /// heures de la semaine, 50 % au-dela (L3121-36), et le mois ne dit pas lesquelles sont au-dela de la huitieme d'une
 /// semaine (elles se decomptent par semaine, L3121-29) : la carte le demande (`heures_supplementaires_a_50`).
 pub fn paliers_conventionnels(idcc: &str) -> Resultat<bool> {
-    Ok(supplementaires_de_la_convention(idcc)?.is_some_and(|c| !c.paliers_annuels.is_empty()))
+    Ok(supplementaires_de_la_convention(idcc)?.is_some_and(|c| c.paliers_annuels.as_ref().is_some_and(|p| !p.is_empty())))
 }
 
 /// LES HEURES SUPPLEMENTAIRES DU MOIS, par majoration. `heures` : celles du mois ; `a_50` : celles d'entre elles qui
@@ -54,13 +54,13 @@ pub fn supplementaires(idcc: &str, heures: Decimal, a_50: Decimal, deja: Decimal
     }
     let conv = supplementaires_de_la_convention(idcc)?;
     match &conv {
-        Some(c) if !c.paliers_annuels.is_empty() => {
+        Some(c) if c.paliers_annuels.as_ref().is_some_and(|p| !p.is_empty()) => {
             // Les paliers annuels de la convention : la n-ieme heure de l'annee prend la majoration de son palier ; au-dela
             // du dernier palier (le contingent), `au_dela_du_contingent`.
             let mut debut = Decimal::ZERO;
             let mut reste = heures;
             let mut rang = deja;
-            for p in &c.paliers_annuels {
+            for p in c.paliers_annuels.iter().flatten() {
                 let fin = debut + p.heures.0;
                 let ici = (fin - rang).max(Decimal::ZERO).min(reste);
                 if ici > Decimal::ZERO {
