@@ -135,10 +135,10 @@ pub struct Cle {
 #[serde(deny_unknown_fields)]
 pub struct FormeDeCotisation {
     /// La cotisation de la ligne ; vide pour une ligne que l'import n'a pas qualifiee.
-    #[serde(default, deserialize_with = "socle::forme::texte_opt")]
+    #[serde(deserialize_with = "socle::forme::texte_opt")]
     pub id: Option<String>,
     /// Sa famille ; vide pour une ligne que l'import n'a pas qualifiee.
-    #[serde(default, deserialize_with = "socle::forme::texte_opt")]
+    #[serde(deserialize_with = "socle::forme::texte_opt")]
     pub famille: Option<String>,
     pub libelle: String,
     #[serde(with = "nombre")]
