@@ -25,23 +25,23 @@ pub struct PaieEcrite {
     /// Ce dont le calcul dependait (`empreinte`).
     pub empreinte: Empreinte,
     /// Le prelevement a la source (`etats::prelevement`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub pas: Option<droit::pas::Versement>,
     /// Le compteur de conges d'un permanent a la fin du mois, et ce qu'il tient pour le mois suivant.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub conges: Option<crate::conges::CompteurConges>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub conges_avant: Option<crate::conges::Avant>,
     /// Le numero du bulletin et le premier N CE, ecrits quand ses documents sont partis (`etats::poser_numeros_des_documents`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub bulletin: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub ce: Option<i64>,
     /// Le numero du bulletin d'une paie partie que celle-ci rectifie.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub rectifie: Option<String>,
     /// Pourquoi la paie s'est recalculee d'elle-meme, et quand.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub recalcul: Option<Recalcul>,
 }
 
@@ -127,12 +127,11 @@ pub struct FormeDePaie<A> {
     pub plafond: Decimal,
     #[serde(with = "nombre")]
     pub plafond_urssaf: Decimal,
-    /// Un mois decoupe : ses periodes elementaires, chacune une paie. Absent d'un mois d'un seul tenant.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// Un mois decoupe : ses periodes elementaires, chacune une paie. Vide pour un mois d'un seul tenant.
     pub periodes: Vec<FormeDePaie<A>>,
     /// Le plafond d'un salarie a temps partiel tel que le calcul l'a applique (`calcul::PlafondTempsPartiel::code`) :
     /// la forme ecrite seule le porte.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub plafond_temps_partiel: Option<String>,
 }
 
@@ -189,7 +188,7 @@ pub struct FormeDeRemuneration {
     pub arret_de_travail: bool,
     #[serde(deserialize_with = "socle::forme::presente")]
     pub dsn_autres_bruts: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub precision: Option<String>,
     pub designation: String,
 }
@@ -243,7 +242,7 @@ pub struct FormeDEngagement {
     pub lieux: BTreeMap<Jour, String>,
     #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi_affichage: Option<String>,
     #[serde(deserialize_with = "socle::forme::presente")]
     pub pcs_ese: Option<String>,
@@ -255,7 +254,7 @@ pub struct FormeDEngagement {
     pub statut_conventionnel: Option<String>,
     #[serde(deserialize_with = "socle::forme::presente")]
     pub statut_categoriel_rc: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub etablissement: Option<String>,
     pub nature: String,
     #[serde(with = "nombre_opt")]
@@ -275,7 +274,7 @@ pub struct FormeDEngagement {
     #[serde(deserialize_with = "socle::forme::presente")]
     pub transaction: Option<String>,
     pub suspensions: Vec<crate::imprevus::Suspension>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat_ecrit: Option<ContratEcrit>,
     pub debut_periode: Jour,
     pub fin_periode: Jour,

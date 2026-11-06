@@ -65,9 +65,8 @@ impl Dossier {
 #[serde(deny_unknown_fields)]
 pub struct FichierDuMois {
     pub mois: Mois,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_cachet: Option<NombreLu>,
-    #[serde(default)]
     pub engagements: Vec<Ecrit>,
 }
 
@@ -77,23 +76,22 @@ pub struct FichierDuMois {
 pub struct Ecrit {
     pub saisie: Saisie,
     /// Sa validation (`etats`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub valide: Option<Validation>,
     /// La validation qu'une modification va remplacer (`etats::modifier`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub precedente: Option<Validation>,
     /// Ses versions passees, de la plus ancienne a la plus recente (`etats`).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub versions: Vec<VersionPassee>,
     /// Pour qui son numero de contrat a ete donne (`numeros`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_pour: Option<crate::numeros::NumeroPour>,
     /// Il n'est plus actif (`etats::desactiver`) : il ne touche plus aucun mois (`Objet::couvre`), ne se calcule plus,
     /// n'entre dans aucun document ni aucune declaration ; il se lit (`non_actifs_du_mois`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub non_actif: Option<NonActif>,
     /// Ce que l'import a lu de lui (`importe::Pieces`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub importe: Option<crate::importe::Pieces>,
 }
 
@@ -104,10 +102,8 @@ pub struct Ecrit {
 pub struct Saisie {
     pub carte: Carte,
     /// Les termes qui changent apres le premier mois, du plus ancien au plus recent.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub avenants: Vec<Avenant>,
     /// Ce que chaque mois d'apres le premier dit de lui seul (`Groupe::Fait`, `Groupe::Fin`).
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub faits: BTreeMap<Mois, Carte>,
 }
 
@@ -116,9 +112,7 @@ pub struct Saisie {
 #[serde(deny_unknown_fields)]
 pub struct Avenant {
     pub depuis: Jour,
-    #[serde(default)]
     pub termes: Carte,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub retires: Vec<Champ>,
 }
 
@@ -135,9 +129,9 @@ impl Avenant {
 #[serde(deny_unknown_fields)]
 pub struct Validation {
     pub le: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub version: Option<u64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub saisie: Option<Saisie>,
 }
 
@@ -148,7 +142,7 @@ pub struct VersionPassee {
     pub version: u64,
     pub valide_le: String,
     pub remplacee_le: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub saisie: Option<Saisie>,
 }
 

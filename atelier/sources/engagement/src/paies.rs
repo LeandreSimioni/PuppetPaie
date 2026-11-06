@@ -25,7 +25,6 @@ pub const DOSSIER: &str = "paies";
 #[serde(deny_unknown_fields)]
 pub(crate) struct FichierDesPaies {
     mois: Mois,
-    #[serde(default)]
     paies: Vec<Entree>,
 }
 
@@ -49,9 +48,8 @@ impl FichierDuStock for FichierDesPaies {
 struct Entree {
     salarie: String,
     numero: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     presente: Option<PaieEcrite>,
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     versions: BTreeMap<String, PaieEcrite>,
 }
 

@@ -133,13 +133,13 @@ pub struct Engagement {
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContratEcrit {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub periode_essai_jours: Option<Chiffre>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub personne_remplacee: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub repartition_horaire: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub clauses_particulieres: Option<String>,
 }
 

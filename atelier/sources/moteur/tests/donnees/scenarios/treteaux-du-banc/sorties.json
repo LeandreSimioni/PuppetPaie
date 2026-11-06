@@ -57,11 +57,13 @@
               "2026-11-21": "Salle fictive de Rezé"
             },
             "emploi": null,
+            "emploi_affichage": null,
             "pcs_ese": null,
             "code_emploi_ft": null,
             "statut": null,
             "statut_conventionnel": null,
             "statut_categoriel_rc": null,
+            "etablissement": null,
             "nature": "cddu_spectacle",
             "quotite_contrat": null,
             "quotite_reference_saisie": null,
@@ -72,6 +74,7 @@
             "preavis": null,
             "transaction": null,
             "suspensions": [],
+            "contrat_ecrit": null,
             "debut_periode": "2026-11-20",
             "fin_periode": "2026-11-21",
             "quotite": "2",
@@ -275,6 +278,7 @@
               "dsn_bloc52": null,
               "arret_de_travail": false,
               "dsn_autres_bruts": null,
+              "precision": null,
               "designation": "2 Cachets"
             }
           ],
@@ -290,7 +294,9 @@
           "total_pat": "171.85",
           "total_sal": "67.7",
           "plafond": "172.34",
-          "plafond_urssaf": "720"
+          "plafond_urssaf": "720",
+          "periodes": [],
+          "plafond_temps_partiel": null
         }
       ]
     }
@@ -1095,6 +1101,7 @@
     ],
     "engagements/2026-11.json": {
       "mois": "2026-11",
+      "taux_cachet": null,
       "engagements": [
         {
           "saisie": {
@@ -1114,7 +1121,9 @@
                   ]
                 }
               ]
-            }
+            },
+            "avenants": [],
+            "faits": {}
           },
           "valide": {
             "le": "2026-11-20T05:00:00",
@@ -1136,14 +1145,20 @@
                     ]
                   }
                 ]
-              }
+              },
+              "avenants": [],
+              "faits": {}
             }
           },
+          "precedente": null,
+          "versions": [],
           "numero_pour": {
             "salarie": "FULLER",
             "debut": "2026-11-20",
             "le": "2026-11-20T05:00:00"
-          }
+          },
+          "non_actif": null,
+          "importe": null
         }
       ]
     },
@@ -1692,7 +1707,7 @@
       },
       "2026-11/DSN_Novembre2026.dsn": {
         "quand": "2026-12-15T10:00:00",
-        "empreinte_saisie": "39a87a359d537919",
+        "empreinte_saisie": "e413e49185ffa88a",
         "versions_portees": []
       }
     },
@@ -1758,11 +1773,13 @@
                   "2026-11-21": "Salle fictive de Rezé"
                 },
                 "emploi": null,
+                "emploi_affichage": null,
                 "pcs_ese": null,
                 "code_emploi_ft": null,
                 "statut": null,
                 "statut_conventionnel": null,
                 "statut_categoriel_rc": null,
+                "etablissement": null,
                 "nature": "cddu_spectacle",
                 "quotite_contrat": null,
                 "quotite_reference_saisie": null,
@@ -1773,6 +1790,7 @@
                 "preavis": null,
                 "transaction": null,
                 "suspensions": [],
+                "contrat_ecrit": null,
                 "debut_periode": "2026-11-20",
                 "fin_periode": "2026-11-21",
                 "quotite": "2",
@@ -1976,6 +1994,7 @@
                   "dsn_bloc52": null,
                   "arret_de_travail": false,
                   "dsn_autres_bruts": null,
+                  "precision": null,
                   "designation": "2 Cachets"
                 }
               ],
@@ -1992,6 +2011,7 @@
               "total_sal": "67.7",
               "plafond": "172.34",
               "plafond_urssaf": "720",
+              "periodes": [],
               "plafond_temps_partiel": "non_concerne"
             },
             "fiches": {
@@ -2073,13 +2093,17 @@
               "montant_soumis": "240.94",
               "prelevement": "20"
             },
+            "conges": null,
+            "conges_avant": null,
             "bulletin": "1/2026",
             "ce": 1,
+            "rectifie": null,
             "recalcul": {
               "le": "2026-11-20T07:00:00",
               "raison": "taux de PAS reçu"
             }
-          }
+          },
+          "versions": {}
         }
       ]
     },

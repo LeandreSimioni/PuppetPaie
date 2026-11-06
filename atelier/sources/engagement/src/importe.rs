@@ -54,9 +54,8 @@ pub const A_DIRE: &str = "nature_a_dire";
 #[serde(deny_unknown_fields)]
 pub struct Pieces {
     pub le: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat: Option<ContratAtteste>,
-    #[serde(default)]
     pub paies: BTreeMap<String, PaieVersee>,
 }
 
@@ -78,46 +77,45 @@ pub enum Attestation {
 #[serde(deny_unknown_fields)]
 pub struct ContratAtteste {
     pub atteste_par: Attestation,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_objet: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub heures: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub cachets: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub jours: Option<i64>,
     /// Les heures d'enseignement que les heures comptent (annexe 10).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub heures_enseignement: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub brut: Option<Decimal>,
     /// La base conge qu'un certificat Congés Spectacles porte, pour le contrat entier.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub base_conge: Option<Decimal>,
     /// Le bulletin d'un permanent ne dit pas la nature de son contrat : elle se demande apres l'import (`import::nature`).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub nature_a_dire: bool,
     /// La nature dite, quand l'import relit un contrat dont elle a ete dite.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub nature: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_bulletin: Option<String>,
     /// Le numero du contrat qu'un bulletin imprime (il se lit, il ne se tire pas : regle 4).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_contrat: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_attestation: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_certificat: Option<String>,
     /// Le jour que la piece porte (sa signature), tel qu'il s'y lit.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub atteste_le: Option<String>,
     /// La copie de la piece, sous `historique/bulletins/`, et sa page.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub fichier: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub page: Option<u64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub importe_le: Option<String>,
 }
 
@@ -136,80 +134,76 @@ pub enum Declaration {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PaieVersee {
-    #[serde(default)]
     pub contrat: String,
     pub declare_par: Declaration,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub nir: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero_objet: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub debut: Option<Jour>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub fin: Option<Jour>,
     /// La quotite que la DSN deposee declare pour le contrat (S21.G00.40.013).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub quotite: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub brut: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub net_imposable: Option<Decimal>,
     /// Le net verse de la DSN (50.004), qui n'est pas le net a payer.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub net_verse: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub net_a_payer: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub net_avant_impot: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub net_social: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub cotisations_salariales: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub cotisations_patronales: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub cout_employeur: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub pas: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_pas: Option<Decimal>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub type_pas: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub identifiant_pas: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub verse_le: Option<Jour>,
     /// Le depot de la DSN qui la declare, et la copie de son fichier.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub depose_le: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub fichier: Option<String>,
     /// Les bases assujetties que la DSN declare, par code du bloc 78.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub bases: BTreeMap<String, Decimal>,
     /// Ce que le bulletin d'un mois atteste de ce mois, quand le contrat entier ne le garde pas.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub heures: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub cachets: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub jours: Option<i64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub spectacle: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub analytique: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lignes: Vec<LigneImprimee>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dates: Vec<DatesTravaillees>,
     /// Les lignes de cotisation du bulletin ; `None` : aucun bulletin ne les a donnees.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub cotisations: Option<Vec<CotisationImprimee>>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi_imprime: Option<EmploiImprime>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub bulletin: Option<BulletinSource>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub importe_le: Option<String>,
 }
 
@@ -217,18 +211,17 @@ pub struct PaieVersee {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LigneImprimee {
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub quantite: Option<Decimal>,
-    #[serde(default)]
     pub libelle: String,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux: Option<Decimal>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub montant: Option<Decimal>,
     pub soumis: bool,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub rubrique: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub heures: Option<Decimal>,
 }
 
@@ -253,23 +246,21 @@ pub struct DatesTravaillees {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CotisationImprimee {
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub famille: Option<String>,
-    #[serde(default)]
     pub libelle: String,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub cotisation: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub base: Option<Decimal>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_employeur: Option<Decimal>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub montant_employeur: Option<Decimal>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub taux_salarie: Option<Decimal>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub montant_salarie: Option<Decimal>,
-    #[serde(default)]
     pub hors_total: bool,
 }
 
@@ -277,19 +268,19 @@ pub struct CotisationImprimee {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EmploiImprime {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub emploi_affichage: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub pcs_ese: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub code_emploi_ft: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut_conventionnel: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub statut_categoriel_rc: Option<String>,
 }
 
@@ -300,11 +291,11 @@ pub struct EmploiImprime {
 pub struct BulletinSource {
     pub fichier: String,
     pub page: u64,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub logiciel: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub numero: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "socle::forme::presente")]
     pub contrat: Option<String>,
 }
 

@@ -185,7 +185,7 @@ fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
     let engagements = || contrats_importes(&racine);
     for e in engagements() {
         if e["salarie"] == json!(artiste) {
-            assert!(e.get("nature").is_none() && e.get("nature_a_dire").is_none(), "{}", e);
+            assert!(e["nature"].is_null() && e["nature_a_dire"] == json!(false), "{}", e);
         }
     }
     let etat = reussi(&route(&racine, "importation-etat", json!({}))).clone();
@@ -209,7 +209,7 @@ fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
     assert_eq!(r["a_dire"], json!([]));
     for e in engagements() {
         if e["salarie"] == json!(permanent) {
-            assert_eq!((e["nature"].clone(), e.get("nature_a_dire").cloned()), (json!("cdi"), None), "{}", e);
+            assert_eq!((e["nature"].clone(), e["nature_a_dire"].clone()), (json!("cdi"), json!(false)), "{}", e);
         }
     }
     assert_eq!(reussi(&route(&racine, "importation-etat", json!({})))["a_dire"], json!([]));
