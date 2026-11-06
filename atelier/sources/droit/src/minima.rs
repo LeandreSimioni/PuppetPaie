@@ -33,61 +33,37 @@ forme_notee! {
     /// des grilles (`grilles`, `grilles_complementaires`).
     pub struct Convention {
         /// L'accord, tel qu'une valeur du bareme le nomme (`accord`).
-        #[serde(default)]
         pub id: Option<String>,
-        #[serde(default)]
         pub libelle: Option<String>,
-        #[serde(default)]
         pub texte: Option<String>,
-        #[serde(default)]
         pub lien: Option<String>,
-        #[serde(default)]
         pub en_vigueur: Option<String>,
-        #[serde(default)]
         pub etendu: Option<bool>,
         /// Le jour ou l'extension de l'accord prend effet (sa publication au JORF).
-        #[serde(default)]
         pub etendu_le: Option<String>,
         /// Les organisations d'employeurs signataires de l'accord.
-        #[serde(default)]
-        pub signataires: Vec<String>,
-        #[serde(default)]
-        pub annexes: BTreeMap<String, Annexe>,
-        #[serde(default)]
+        pub signataires: Option<Vec<String>>,
+        pub annexes: Option<BTreeMap<String, Annexe>>,
         pub clauses_communes: Option<ClausesCommunes>,
-        #[serde(default)]
-        pub cachets: BTreeMap<String, GrilleDeCachets>,
-        #[serde(default)]
+        pub cachets: Option<BTreeMap<String, GrilleDeCachets>>,
         pub repetition: Option<RepetitionParService>,
-        #[serde(default)]
         pub emplois_autres_qu_artistiques: Option<EmploisAutres>,
-        #[serde(default)]
-        pub accords: Vec<Convention>,
-        #[serde(default)]
-        pub grilles: Vec<Grille>,
-        #[serde(default)]
-        pub grilles_complementaires: Vec<Grille>,
+        pub accords: Option<Vec<Convention>>,
+        pub grilles: Option<Vec<Grille>>,
+        pub grilles_complementaires: Option<Vec<Grille>>,
         /// 2642 : le minimum d'un CDDU a la semaine de 35 h, par fonction.
-        #[serde(default)]
-        pub cddu_semaine_35h: BTreeMap<String, Cddu2642>,
+        pub cddu_semaine_35h: Option<BTreeMap<String, Cddu2642>>,
         /// 2642 : le mensuel pour 35 h d'un permanent, par fonction.
-        #[serde(default)]
-        pub permanents_mensuel_35h: BTreeMap<String, Nombre>,
+        pub permanents_mensuel_35h: Option<BTreeMap<String, Nombre>>,
         /// 3097 : la semaine de 39 h d'un technicien, par fonction.
-        #[serde(default)]
-        pub techniciens_semaine_39h: BTreeMap<String, Nombre>,
+        pub techniciens_semaine_39h: Option<BTreeMap<String, Nombre>>,
         /// 3097 : les heures que la semaine de 39 h paie au taux de base (35 h + 4 h a 125 %).
         #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
         pub heures_payees_de_la_semaine: Option<Decimal>,
-        #[serde(default)]
         pub avant_2026_05: Option<Avant2026>,
-        #[serde(default)]
         pub annexe_iii: Option<AnnexeIii>,
-        #[serde(default)]
         pub artistes: Option<Artistes3097>,
-        #[serde(default)]
         pub complement: Option<Complement3097>,
-        #[serde(default)]
         pub permanents_mensuel: Option<Permanents3097>,
     }
 }
@@ -96,11 +72,8 @@ forme_notee! {
     /// Une annexe de la 3090 : ses cachets d'artistes, sa repetition, le taux horaire de ses techniciens.
     pub struct Annexe {
         pub libelle: String,
-        #[serde(default)]
-        pub cachets: BTreeMap<String, GrilleDeCachets>,
-        #[serde(default)]
+        pub cachets: Option<BTreeMap<String, GrilleDeCachets>>,
         pub repetition: Option<RepetitionDeLAnnexe>,
-        #[serde(default)]
         pub techniciens: Option<ParNiveau<Nombre>>,
     }
 }
@@ -117,25 +90,15 @@ forme_notee! {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, bound(deserialize = "T: Deserialize<'de>"))]
 pub struct ParNiveau<T> {
-    #[serde(default)]
     pub cadre_groupe_1: Option<T>,
-    #[serde(default)]
     pub cadre_groupe_2: Option<T>,
-    #[serde(default)]
     pub cadre_groupe_3: Option<T>,
-    #[serde(default)]
     pub agent_de_maitrise: Option<T>,
-    #[serde(default)]
     pub employe_qualifie_1: Option<T>,
-    #[serde(default)]
     pub employe_qualifie_2: Option<T>,
-    #[serde(default)]
     pub employe: Option<T>,
-    #[serde(default)]
     pub quoi: Option<String>,
-    #[serde(default)]
     pub note: Option<String>,
-    #[serde(default)]
     pub source: Option<crate::source::Fondement>,
 }
 
@@ -159,13 +122,10 @@ forme_notee! {
     /// La grille des cachets d'un emploi : ses paliers sur le nombre de representations, et sa jauge quand elle en depend.
     pub struct GrilleDeCachets {
         pub libelle: String,
-        #[serde(default)]
         pub periode: Option<String>,
-        #[serde(default)]
         pub jauge: Option<String>,
         pub paliers: Vec<Palier>,
-        #[serde(default)]
-        pub autres_jauges: BTreeMap<String, Vec<Nombre>>,
+        pub autres_jauges: Option<BTreeMap<String, Vec<Nombre>>>,
     }
 }
 
@@ -184,7 +144,6 @@ forme_notee! {
     pub struct RepetitionDeLAnnexe {
         #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
         pub cachet: Option<Decimal>,
-        #[serde(default)]
         pub cachet_libelle: Option<String>,
         #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
         pub heure: Option<Decimal>,
@@ -201,8 +160,7 @@ forme_notee! {
         #[serde(deserialize_with = "socle::forme::decimal")]
         pub service: Decimal,
         pub service_libelle: String,
-        #[serde(default)]
-        pub par_categorie: BTreeMap<String, ServiceDeCategorie>,
+        pub par_categorie: Option<BTreeMap<String, ServiceDeCategorie>>,
     }
 }
 
@@ -331,40 +289,27 @@ forme_notee! {
     /// (dans l'ordre du texte), ses majorations, et ce qui la ramene a l'heure (`heures`, `facteur`) ou l'abat.
     pub struct Grille {
         pub nom: String,
-        #[serde(default)]
         pub population: Option<String>,
-        #[serde(default)]
         pub statut: Option<String>,
         pub unite: String,
         #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
         pub heures: Option<Decimal>,
-        #[serde(default)]
         pub categories: Option<Vec<String>>,
-        #[serde(default)]
         pub codes: Option<Vec<String>>,
-        #[serde(default)]
-        pub si_spectacle: BTreeMap<String, Attendu>,
-        #[serde(default)]
-        pub si_entreprise: BTreeMap<String, Attendu>,
-        #[serde(default)]
-        pub si_salarie: BTreeMap<String, Attendu>,
-        #[serde(default)]
+        pub si_spectacle: Option<BTreeMap<String, Attendu>>,
+        pub si_entreprise: Option<BTreeMap<String, Attendu>>,
+        pub si_salarie: Option<BTreeMap<String, Attendu>>,
         pub anciennete: Option<Anciennete>,
-        #[serde(default)]
         pub duree_contrat_max_jours: Option<i64>,
-        #[serde(default)]
-        pub remplace: Vec<String>,
+        pub remplace: Option<Vec<String>>,
         #[serde(deserialize_with = "socle::forme::en_ordre")]
         pub valeurs: Vec<(String, Nombre)>,
-        #[serde(default)]
-        pub majorations: Vec<Majoration>,
+        pub majorations: Option<Vec<Majoration>>,
         #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
         pub abattement_max: Option<Decimal>,
-        #[serde(default)]
         pub abattement_motif: Option<String>,
         #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
         pub facteur: Option<Decimal>,
-        #[serde(default)]
         pub facteur_motif: Option<String>,
     }
 }
@@ -374,21 +319,13 @@ forme_notee! {
     /// ajoute a chaque valeur.
     pub struct Majoration {
         pub nom: String,
-        #[serde(default)]
         pub groupe: Option<String>,
-        #[serde(default)]
         pub categories: Option<Vec<String>>,
-        #[serde(default)]
         pub codes: Option<Vec<String>>,
-        #[serde(default)]
-        pub si_spectacle: BTreeMap<String, Attendu>,
-        #[serde(default)]
-        pub si_entreprise: BTreeMap<String, Attendu>,
-        #[serde(default)]
-        pub si_salarie: BTreeMap<String, Attendu>,
-        #[serde(default)]
+        pub si_spectacle: Option<BTreeMap<String, Attendu>>,
+        pub si_entreprise: Option<BTreeMap<String, Attendu>>,
+        pub si_salarie: Option<BTreeMap<String, Attendu>>,
         pub anciennete: Option<Anciennete>,
-        #[serde(default)]
         pub duree_contrat_max_jours: Option<i64>,
         #[serde(deserialize_with = "socle::forme::en_ordre")]
         pub par_cle: Vec<(String, Nombre)>,
@@ -407,9 +344,9 @@ pub struct Anciennete {
 pub struct Conditions<'a> {
     pub categories: Option<&'a [String]>,
     pub codes: Option<&'a [String]>,
-    pub si_spectacle: &'a BTreeMap<String, Attendu>,
-    pub si_entreprise: &'a BTreeMap<String, Attendu>,
-    pub si_salarie: &'a BTreeMap<String, Attendu>,
+    pub si_spectacle: Option<&'a BTreeMap<String, Attendu>>,
+    pub si_entreprise: Option<&'a BTreeMap<String, Attendu>>,
+    pub si_salarie: Option<&'a BTreeMap<String, Attendu>>,
     pub anciennete: Option<&'a Anciennete>,
     pub duree_contrat_max_jours: Option<i64>,
 }
@@ -419,9 +356,9 @@ impl Grille {
         Conditions {
             categories: self.categories.as_deref(),
             codes: self.codes.as_deref(),
-            si_spectacle: &self.si_spectacle,
-            si_entreprise: &self.si_entreprise,
-            si_salarie: &self.si_salarie,
+            si_spectacle: self.si_spectacle.as_ref(),
+            si_entreprise: self.si_entreprise.as_ref(),
+            si_salarie: self.si_salarie.as_ref(),
             anciennete: self.anciennete.as_ref(),
             duree_contrat_max_jours: self.duree_contrat_max_jours,
         }
@@ -433,9 +370,9 @@ impl Majoration {
         Conditions {
             categories: self.categories.as_deref(),
             codes: self.codes.as_deref(),
-            si_spectacle: &self.si_spectacle,
-            si_entreprise: &self.si_entreprise,
-            si_salarie: &self.si_salarie,
+            si_spectacle: self.si_spectacle.as_ref(),
+            si_entreprise: self.si_entreprise.as_ref(),
+            si_salarie: self.si_salarie.as_ref(),
             anciennete: self.anciennete.as_ref(),
             duree_contrat_max_jours: self.duree_contrat_max_jours,
         }
@@ -681,13 +618,13 @@ impl Table {
 
 /// L'accord de salaires `id` d'une convention de la table (`<idcc>.accords`), ou `None`.
 pub fn accord<'a>(t: &'a Table, id: &str) -> Option<&'a Convention> {
-    t.conventions.values().flat_map(|c| c.accords.iter()).find(|a| a.id.as_deref() == Some(id))
+    t.conventions.values().flat_map(|c| c.accords.iter().flatten()).find(|a| a.id.as_deref() == Some(id))
 }
 
 /// La compagnie adherente de `organisation` l'est-elle d'une organisation d'employeurs signataire de l'accord ?
 pub fn signataire(accord: &Convention, organisation: Option<&str>) -> bool {
     let Some(s) = organisation.map(sigle).filter(|s| !s.is_empty()) else { return false };
-    accord.signataires.iter().any(|x| sigle(x) == s)
+    accord.signataires.iter().flatten().any(|x| sigle(x) == s)
 }
 
 /// LE JOUR OU UNE STIPULATION D'UN ACCORD, DATEE `depuis` PAR L'ACCORD, LIE LA COMPAGNIE ADHERENTE DE `organisation` :
@@ -716,7 +653,10 @@ pub fn grille_au<'a>(t: &'a Table, idcc: &str, organisation: Option<&str>, jour:
         let depuis = lie_depuis(a, organisation, a.en_vigueur.as_deref().unwrap_or_default())?;
         jour.as_ref().filter(|j| **j >= depuis).map(|_| (a, Some(depuis)))
     };
-    Some(base.accords.iter().rev().find_map(lie).unwrap_or((base, None)))
+    Some(match base.accords.iter().flatten().rev().find_map(lie) {
+        Some(retenu) => retenu,
+        None => (base, None),
+    })
 }
 
 /// Ce qu'un minimum compare : le prix d'une heure, d'un cachet, d'un service, ou d'une unite de grille (la journee,
