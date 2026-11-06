@@ -317,7 +317,7 @@ fn a_partir_de(o: &engagement::stock::Objet, devenu: &engagement::stock::Objet, 
 /// se revalide. Ce qu'elle rend dit si elle s'ecrit (`Issue::Ecrite`).
 fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement::stock::Objet, saisie: &Map<String, Value>, confirme: bool, jour: Option<u32>) -> R<Issue> {
     engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
-    engagement::stock::poser_la_saisie(ctx, mois, i, &engagement::saisie::Carte::lire(&Value::Object(saisie.clone())).map_err(refus)?, jour).map_err(refus)?;
+    engagement::stock::poser_la_saisie(ctx, mois, i, &socle::forme::lire(&Value::Object(saisie.clone()), engagement::saisie::CARTE_ILLISIBLE).map_err(refus)?, jour).map_err(refus)?;
     if !engagement::etats::a_revalider_rouvert(ctx, mois, i).map_err(Echec::from)? {
         return Ok(Issue::Rien);
     }

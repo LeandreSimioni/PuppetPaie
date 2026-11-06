@@ -60,6 +60,22 @@ fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
     v.get(k).unwrap_or(&NUL)
 }
 
+/// L'entier d'une valeur JSON ; refus sinon.
+fn entier(v: &Value) -> Resultat<i64> {
+    match v {
+        Value::Number(n) => n
+            .as_i64()
+            .or_else(|| n.as_f64().map(|x| x.trunc() as i64))
+            .ok_or_else(|| socle::fichiers::entier_hors_limites(&n.to_string())),
+        Value::String(s) => s
+            .trim()
+            .parse::<i64>()
+            .map_err(|_| format!("nombre entier illisible : {}", socle::fichiers::repr(s))),
+        Value::Bool(b) => Ok(*b as i64),
+        autre => Err(socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre))),
+    }
+}
+
 /// Les deux textes qu'un arret met en jeu.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Texte {
@@ -199,7 +215,7 @@ pub fn deja_indemnises(ctx: &Contexte, imp: &Value, nat: &Nature, t: Texte) -> R
     let premier = crate::imprevus::premier_jour(imp)?;
     let debut_fenetre = plus_mois(&premier, -12)?;
     let saisis = match g(imp, "jours_deja_indemnises") {
-        x if vrai(x) => crate::conges::entier(x)?,
+        x if vrai(x) => entier(x)?,
         _ => 0,
     };
     let mut total = saisis;
@@ -333,7 +349,7 @@ fn retenue(m: &crate::imprevus::MoisDuContrat, taux_horaire: Decimal, debut: &Jo
 /// CE QU'UN ARRET DONNE AU MOIS `mois` D'UN PERMANENT, ajoute a `dm` (les arrets du mois s'additionnent). Refuse quand le
 /// maintien est du et que les indemnites journalieres du mois ne sont pas dites (regle 1 : elles se lisent sur le releve
 /// de la caisse).
-pub fn ajouter(ctx: &Contexte, e: &Value, imp: &Value, nat: &Nature, mois: &str, m: &crate::imprevus::MoisDuContrat, out: &mut DuMois) -> Resultat<()> {
+pub fn ajouter(ctx: &Contexte, e: &crate::saisie::Carte, imp: &Value, nat: &Nature, mois: &str, m: &crate::imprevus::MoisDuContrat, out: &mut DuMois) -> Resultat<()> {
     let qui = crate::conges::qui(ctx, e);
     let Some(dr) = droits(ctx, imp, nat)? else { return Ok(()) };
     out.avis.extend(dr.sur_l_anciennete.iter().cloned());

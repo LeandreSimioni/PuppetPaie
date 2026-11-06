@@ -6,7 +6,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use serde_json::Value;
 
 use droit::bareme::{bareme_applique, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
@@ -18,7 +17,6 @@ use socle::texte::euros;
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
 use crate::paie_ecrite::{Cle, FormeDeCotisation, FormeDeLaDeduction, FormeDePaie, FormeDeRemuneration};
-use socle::fichiers::vrai;
 use socle::num::{add, dec_f64, div, eur, mul, pct, round3, sub, Decimal, Resultat};
 pub use droit::reduction::ReductionGenerale;
 use droit::bareme::somme_pct;
@@ -1191,13 +1189,12 @@ pub(crate) fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
 /// La meme question pour la saisie `e` d'un contrat paye au mois, avant que son engagement ne soit construit (le solde de
 /// tout compte de `conges::lignes_du_mois`) : sa fiche telle que sa paie la lira au dernier jour du contrat, le metier que
 /// la saisie dit l'emportant (`fiche_de_l_engagement`, `emploi_de`).
-pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &Value, fin: &Jour) -> Resultat<bool> {
-    let nat = droit::natures::nature(e.get("nature").and_then(Value::as_str))?;
-    let debut = socle::date::d(e.get("debut").ok_or_else(|| socle::fichiers::absent("debut"))?)?;
-    let salarie = e.get("salarie").map(en_texte).unwrap_or_default();
-    let cle = ctx.cle_du_salarie(&salarie)?;
-    let dit = |c: &str| e.get(c).filter(|x| vrai(x)).map(en_texte);
-    let emploi = EmploiEngagement { code_emploi_ft: dit("code_emploi_ft").or_else(|| dit("metier")), ..Default::default() };
+pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &crate::saisie::Carte, fin: &Jour) -> Resultat<bool> {
+    let nat = e.nature_lue()?;
+    let debut = crate::conges::debut_de(e)?;
+    let cle = ctx.cle_du_salarie(e.salarie.as_deref().unwrap_or_default())?;
+    let dit = |c: &Option<String>| c.clone().filter(|x| !x.is_empty());
+    let emploi = EmploiEngagement { code_emploi_ft: dit(&e.code_emploi_ft).or_else(|| dit(&e.metier)), ..Default::default() };
     let fiche = convention_de_l_employeur(ctx, emploi_de(&ctx.salarie_au(&cle, fin)?, &emploi)?);
     droit::caisse_conges::affilie(&nat, &fiche, &debut, Some(fin))
 }

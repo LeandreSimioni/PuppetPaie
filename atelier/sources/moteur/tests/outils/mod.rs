@@ -149,13 +149,13 @@ pub mod compagnie {
 
 /// La saisie de `mois` telle que ses engagements la montrent (`engagement::vue_requise`).
 pub fn saisie(racine: &Path, mois: &str) -> Value {
-    engagement::vue_requise(racine, mois).unwrap().en_valeur()
+    socle::ecriture::en_valeur(&engagement::vue_requise(racine, mois).unwrap())
 }
 
 /// « Valider l'engagement » sur la carte du premier engagement en saisie de `salarie` que l'ecran de `mois` montre,
 /// telle qu'elle est enregistree (son identite, `saisie`).
 pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) -> Value {
-    let vue = engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap().en_valeur();
+    let vue = socle::ecriture::en_valeur(&engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap());
     let es = vue["engagements"].as_array().unwrap();
     let k = es.iter().position(|e| e["salarie"] == salarie && e.get("valide").is_none()).expect("une carte en saisie");
     route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k), "saisie": es[k]}), jour)
@@ -164,7 +164,7 @@ pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) ->
 /// L'identite (`engagement::stock::identites`) de la carte du premier engagement de `salarie` dans l'ecran de `mois`
 /// (de numero `numero` s'il est dit).
 pub fn identite(racine: &Path, mois: &str, salarie: &str, numero: Option<&str>) -> engagement::stock::Identite {
-    let vue = engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap().en_valeur();
+    let vue = socle::ecriture::en_valeur(&engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap());
     let k = vue["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == salarie && numero.is_none_or(|n| e["numero"] == n)).expect("la carte");
     identite_a(racine, mois, k)
 }

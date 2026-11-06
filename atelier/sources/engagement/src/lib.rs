@@ -42,13 +42,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::{Number, Value};
+use serde_json::Number;
 
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 pub use ligne::{Chiffre, DateDeLigne, LignePaie};
-use socle::date::{en_texte, Jour};
+use socle::date::Jour;
 use socle::mois::Mois;
 use droit::emplois;
 
@@ -882,28 +882,10 @@ pub(crate) fn jours_de_lignes(racine: &Path, lignes: &[LignePaie]) -> usize {
     vus.len()
 }
 
-/// Le nom d'un salarie tel qu'une donnee le dit. TRAVAIL A FAIRE (chaine A) : `conges.rs` (l. 43) le passe encore en
-/// valeur ; il ne reste alors que le texte.
-pub(crate) trait NomDit {
-    fn nom_dit(&self) -> Option<String>;
-}
-
-impl NomDit for &str {
-    fn nom_dit(&self) -> Option<String> {
-        Some(self.to_string())
-    }
-}
-
-impl NomDit for &Value {
-    fn nom_dit(&self) -> Option<String> {
-        match self { Value::Null => None, Value::String(s) => Some(s.clone()), autre => Some(en_texte(autre)) }
-    }
-}
-
 /// Le salarie qu'un refus nomme en tete, tel que l'ecran le nomme partout (`Contexte::nomme` : « NOM Prénom ») ;
 /// « Cet engagement » quand la carte n'a pas encore de salarie.
-pub(crate) fn salarie_nomme<N: NomDit>(ctx: &Contexte, salarie: Option<N>) -> String {
-    salarie.and_then(|s| s.nom_dit()).filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(&c)).unwrap_or_else(|| "Cet engagement".to_string())
+pub(crate) fn salarie_nomme(ctx: &Contexte, salarie: Option<&str>) -> String {
+    salarie.filter(|s| !s.trim().is_empty()).map(|c| ctx.nomme(c)).unwrap_or_else(|| "Cet engagement".to_string())
 }
 
 /// Ce que `conges::lignes_du_mois` rend pour un engagement paye
@@ -2093,7 +2075,7 @@ pub fn lue_sans_paie(ctx: &Contexte, data: &saisie::VueDuMois) -> Resultat<Vec<c
 /// Le preavis de l'engagement `e` (sa saisie), pour une anciennete et un motif de rupture : la loi (L1234-1) et la
 /// convention, et laquelle s'applique (`solde::duree_du_preavis`).
 #[cfg(feature = "ecran")]
-pub fn preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<solde::Preavis> {
+pub fn preavis(ctx: &Contexte, e: &saisie::Carte, anciennete: Decimal, motif: Option<&str>) -> Resultat<solde::Preavis> {
     solde::duree_du_preavis(ctx, e, anciennete, motif)
 }
 

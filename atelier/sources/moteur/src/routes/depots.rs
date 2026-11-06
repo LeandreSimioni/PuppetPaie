@@ -497,7 +497,7 @@ pub(crate) fn dpae(ctx: &Contexte, le_mois: Mois, selection: Option<&[EmbaucheDe
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
     // produit pas, le refus dit lesquelles (salarie, jour) et qu'il faut corriger la saisie. Ni le numero de contrat ni
     // la validation ne distinguent deux lignes.
-    let brutes: Vec<Value> = data.engagements.iter().map(|e| e.en_valeur()).collect();
+    let brutes: Vec<Value> = data.engagements.iter().map(socle::ecriture::en_valeur).collect();
     if let Some(brutes) = Some(&brutes).filter(|b| b.len() == paies.len()) {
         let sans_numero = |v: &Value| -> Value {
             match v {

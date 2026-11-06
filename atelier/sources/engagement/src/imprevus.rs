@@ -669,16 +669,19 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, salarie: &str, debut: &Jour, nume
 ///
 /// Rend aussi les jours travailles que les absences retirees ote du mois (un arret, une suspension non remuneree) :
 /// `conges::lignes_du_mois` en tire les jours travailles du mois.
-pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<crate::LignePaie>, Vec<Avis>, i64)> {
+pub fn lignes_du_mois(ctx: &Contexte, e: &crate::saisie::Carte, mois: &str, m: &MoisDuContrat) -> Resultat<(Vec<crate::LignePaie>, Vec<Avis>, i64)> {
     let qui = crate::conges::qui(ctx, e);
     let (mut lignes, mut avert, mut absents) = (Vec::new(), Vec::new(), 0i64);
-    let nat = crate::conges::nature_de(e.get("nature"))?;
+    let nat = e.nature_lue()?;
     let mut maintien = crate::maintien::DuMois::default();
     // Le taux de l'heure d'absence : le salaire du mois sur ses heures de travail (Cass. soc. 11/02/1982).
     let heures_du_mois = eur2(mul(m.heures_par_jour, Decimal::from(m.jours_payes)));
     let taux_horaire = if heures_du_mois > Decimal::ZERO { Some(taux_exact(m.salaire_du_mois, heures_du_mois)) } else { None };
     // Un contrat sans date de debut ecrite ne se designe pas : aucun imprevu ne peut le nommer (S21.G00.40.001).
-    let imprevus = if vrai(g(e, "debut")) { du_contrat_dans_le_mois(ctx, &en_texte(g(e, "salarie")), &d(g(e, "debut"))?, &s(e, "numero"), mois)? } else { Vec::new() };
+    let imprevus = match crate::conges::jour_dit(&e.debut)? {
+        Some(debut) => du_contrat_dans_le_mois(ctx, crate::conges::salarie_de(e)?, &debut, e.numero.as_deref().unwrap_or_default(), mois)?,
+        None => Vec::new(),
+    };
     for imp in imprevus {
         let (premier, dernier) = (premier_jour(&imp)?, dernier_jour(&imp)?);
         let (debut, fin) = (premier.max(m.debut), dernier.min(m.fin));

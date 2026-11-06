@@ -1690,7 +1690,7 @@ mod tests_rupture {
     fn un_contrat_rompu_n_a_pas_d_avenant() {
         let jours = |n: usize| json!(["2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08"][..n].to_vec());
         let ligne = |n: usize, taux: i64| json!({"rubrique": "cachet", "quantite": n, "taux": taux, "lieu": "Salle", "dates": jours(n)});
-        let saisie = |v: Value| stock::Saisie { carte: Carte::lire(&v).unwrap(), ..Default::default() };
+        let saisie = |v: Value| stock::Saisie { carte: socle::forme::lire(&v, crate::saisie::CARTE_ILLISIBLE).unwrap(), ..Default::default() };
         let partie = saisie(json!({"salarie": "X", "spectacle": "s", "lignes": [ligne(5, 150)], "numero": "X1.26.01"}));
         let rompu = |taux: i64| saisie(json!({"salarie": "X", "spectacle": "s", "debut": "2026-05-04", "fin": "2026-05-06", "motif_rupture": "084",
             "preavis": {"type": "90"}, "lignes": [ligne(3, taux)], "numero": "X1.26.01"}));

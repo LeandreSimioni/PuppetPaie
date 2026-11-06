@@ -1,13 +1,14 @@
 //! LA CARTE D'UN ENGAGEMENT : ce que la personne tape pour un mois, et ce que l'engagement dit de ce mois (sa vue,
 //! `stock::Objet::vue`). Une seule forme, declaree ici : la charge d'une route qui ecrit ou calcule une carte, la vue que
-//! l'ecran ouvre et que le calcul lit, chacune lue par `Carte::lire` ; une cle inconnue refuse en se nommant.
+//! l'ecran ouvre et que le calcul lit, chacune lue par `socle::forme` (`CARTE_ILLISIBLE`) ; une cle inconnue refuse en se
+//! nommant.
 //!
 //! Chaque champ appartient a un groupe (`Groupe`) : ce que tous les mois de l'engagement partagent, ses termes, les faits
 //! d'un mois, sa fin, ce que la vue deduit, ce que la vue dit de lui. Le stock compose et ecrit les cartes par leurs
 //! groupes et par leurs champs (`Champ`), jamais par le nom d'une cle.
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Number, Value};
+use serde_json::Number;
 
 use std::path::Path;
 
@@ -330,21 +331,10 @@ impl<'de> Deserialize<'de> for Champ {
     }
 }
 
+/// La phrase du refus d'une carte qui n'a pas sa forme : la charge d'une route se lit par elle (`socle::forme::lire`).
+pub const CARTE_ILLISIBLE: &str = "La carte d'un engagement ne se lit pas.";
+
 impl Carte {
-    /// LA SEULE LECTURE D'UNE CARTE.
-    pub fn lire(v: &Value) -> Resultat<Carte> {
-        socle::forme::lire(v, "La carte d'un engagement ne se lit pas.")
-    }
-
-    /// TRAVAIL A FAIRE (chaine A) : la carte telle que les lecteurs qui la lisent encore par ses cles la recoivent
-    /// (`conges::lignes_du_mois`, `solde`, `maintien`, `imprevus`, `duree`, `heures_en_plus`, `calcul::saisie_declaree_a_la_caisse_des_conges`).
-    pub fn en_valeur(&self) -> Value {
-        match serde_json::to_value(self) {
-            Ok(Value::Object(m)) => Value::Object(m),
-            _ => Value::Object(Map::new()),
-        }
-    }
-
     /// La carte des seuls champs des groupes `g`.
     pub fn du_groupe(&self, g: &[Groupe]) -> Carte {
         let mut c = Carte::default();
@@ -513,11 +503,5 @@ impl VueDuMois {
     /// Un mois sans engagement.
     pub fn vide(mois: socle::mois::Mois) -> VueDuMois {
         VueDuMois { mois, taux_cachet: None, engagements: Vec::new() }
-    }
-
-    /// TRAVAIL A FAIRE (chaine A) : la vue telle que les lecteurs qui la lisent encore par ses cles la recoivent
-    /// (`engagements`, `imprevus::avertir_les_jours_payes`).
-    pub fn en_valeur(&self) -> Value {
-        serde_json::to_value(self).unwrap_or(Value::Null)
     }
 }

@@ -7,16 +7,15 @@
 //! fiscale. Un contrat d'usage n'en a pas : ses heures sont ses lignes. Textes : `logiciel/donnees/permanents-base.json`,
 //! `heures_en_plus`, qui les cite.
 
-use serde_json::Value;
+use serde_json::Number;
 
 use crate::calcul::{LigneBrut, LigneCotisation};
 use crate::conges::{avertir, flot, info, qui};
+use crate::saisie::Carte;
 use crate::Avis;
 use droit::contexte::Contexte;
-use socle::date::en_texte;
-use socle::fichiers::vrai;
 use socle::texte::{euros, virgule};
-use socle::num::{dec_avec_echelle, eur2, Decimal, Resultat};
+use socle::num::{eur2, Decimal, Resultat};
 
 /// Les faits du mois, sur la carte d'un salarie paye au mois.
 pub const HEURES_SUPPLEMENTAIRES: &str = "heures_supplementaires";
@@ -52,19 +51,17 @@ pub fn faits_appeles(ctx: &Contexte, partiel: bool) -> Resultat<Vec<&'static str
     })
 }
 
-fn heures(e: &Value, k: &str) -> Resultat<Decimal> {
-    match e.get(k).filter(|x| vrai(x)) {
-        Some(h) => Ok(dec_avec_echelle(h)?.max(Decimal::ZERO)),
-        None => Ok(Decimal::ZERO),
-    }
+/// Les heures d'un fait de la carte, zero s'il n'est pas dit ou s'il est negatif.
+fn heures(x: &Option<Number>) -> Resultat<Decimal> {
+    crate::conges::dec_ou(x.as_ref(), Decimal::ZERO).map(|h| h.max(Decimal::ZERO))
 }
 
 /// LES LIGNES DES HEURES EN PLUS DU MOIS de la saisie `e` d'un contrat paye au mois de `salaire` pour `quotite` heures
 /// par mois, a temps `partiel` ou non : une ligne par majoration, au taux horaire du contrat majore. INFERENCE, ecrite
 /// comme telle : le taux horaire est le salaire mensuel du contrat sur ses heures par mois ; le BOSS (§ 310) y ajoute les
 /// primes qui sont la contrepartie du travail, que la carte ne distingue pas des autres.
-pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, quotite: Decimal, partiel: bool) -> Resultat<(Vec<crate::LignePaie>, Vec<Avis>)> {
-    let (sup, a_50, comp) = (heures(e, HEURES_SUPPLEMENTAIRES)?, heures(e, HEURES_SUPPLEMENTAIRES_A_50)?, heures(e, HEURES_COMPLEMENTAIRES)?);
+pub(crate) fn lignes(ctx: &Contexte, e: &Carte, mois: &str, salaire: Decimal, quotite: Decimal, partiel: bool) -> Resultat<(Vec<crate::LignePaie>, Vec<Avis>)> {
+    let (sup, a_50, comp) = (heures(&e.heures_supplementaires)?, heures(&e.heures_supplementaires_a_50)?, heures(&e.heures_complementaires)?);
     if sup.is_zero() && comp.is_zero() && a_50.is_zero() {
         return Ok((Vec::new(), Vec::new()));
     }
@@ -90,7 +87,7 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Value, mois: &str, salaire: Decimal, qu
     let (rubrique, reparties) = if partiel {
         (HEURE_COMPLEMENTAIRE, droit::heures_en_plus::complementaires(&idcc, comp, quotite)?)
     } else {
-        let salarie = en_texte(e.get("salarie").ok_or_else(|| socle::fichiers::absent("salarie"))?);
+        let salarie = crate::conges::salarie_de(e)?;
         let deja = if droit::heures_en_plus::paliers_conventionnels(&idcc)? || droit::clauses::releve(&idcc)?.is_some_and(|c| c.heures_supplementaires.is_some()) {
             crate::conges::heures_supplementaires_des_mois_anterieurs(ctx, mois, &salarie)?
         } else {

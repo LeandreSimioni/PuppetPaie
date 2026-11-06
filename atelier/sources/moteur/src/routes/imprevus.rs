@@ -1624,13 +1624,13 @@ fn arret_oublier(ctx: &Contexte, c: &ChargeArretOublier) -> R<ReponseArret> {
 /// paies ecrites ; refus si aucun engagement ne le touche.
 fn validees(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
-    engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.map(|(d, p)| (d.en_valeur(), p)).ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
+    engagement::etats::validees_du_mois(ctx, mois, &departs).map_err(plain)?.map(|(d, p)| (socle::ecriture::en_valeur(&d), p)).ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
 /// La carte d'un engagement de la saisie que cette route lit encore en valeur (`engagement::saisie::Carte`) ; une carte qui
 /// ne se lit pas ne dit rien.
 fn carte_de(e: &Value) -> engagement::saisie::Carte {
-    engagement::saisie::Carte::lire(e).unwrap_or_default()
+    socle::forme::lire(e, engagement::saisie::CARTE_ILLISIBLE).unwrap_or_default()
 }
 
 /// L'engagement brut avec ses bornes : un contrat aux cachets ne les ecrit pas, il commence son premier jour travaille et
@@ -2178,7 +2178,8 @@ technique DSN p. 275). Le signalement ne s'écrit pas sans elle.",
         // Ce que dit la convention, a cote, par le moteur (le calcul de `moteur preavis`) ; pas pour un motif sans preavis
         // ni pour la rupture d'un CDD par le salarie (L1243-2), que la convention du licenciement ne regle pas.
         if duree != Some(Decimal::ZERO) && regle.is_none() {
-            let tout = engagement::preavis(ctx, e, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
+            let carte = socle::forme::lire(e, engagement::saisie::CARTE_ILLISIBLE).map_err(plain)?;
+            let tout = engagement::preavis(ctx, &carte, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
             if let (Some(conv), true) = (tout.convention, tout.qui != "la loi (L1234-1)") {
                 dit.push_str(&format!(" {} en donne {} : c'est elle qui s'applique.", tout.qui, conv));
             } else if tout.mois.is_none() {
@@ -2257,7 +2258,7 @@ pub(crate) struct FinASignaler {
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<FinASignaler>> {
     // Un signalement de fin ne se doit que pour un engagement valide, lu tel qu'il est ecrit (`tels_qu_ecrits`) : un
     // brouillon ne part pas, et ce qui ne fait que lire ne recalcule rien.
-    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.map(|v| v.en_valeur()) else {
+    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.map(|v| socle::ecriture::en_valeur(&v)) else {
         return Ok(Vec::new());
     };
     let journal = envois::journal::lu(&ctx.racine)?;
