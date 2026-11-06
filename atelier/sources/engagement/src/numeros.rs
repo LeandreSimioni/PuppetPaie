@@ -354,10 +354,10 @@ mod tests {
             assert!(NumeroContrat::lire(faux).is_err(), "{:?} n'est pas un numero de contrat", faux);
         }
         let n = NumeroContrat::lire("FA1.26.13").unwrap();
-        assert_eq!((n.annee_et_rang(), serde_json::to_value(&n).unwrap()), (Some((2026, 13)), serde_json::json!("FA1.26.13")));
-        assert!(serde_json::from_value::<NumeroContrat>(serde_json::json!("C1")).is_err());
+        assert_eq!((n.annee_et_rang(), socle::ecriture::json_en_ligne(&n)), (Some((2026, 13)), r#""FA1.26.13""#.to_string()));
+        assert!(socle::forme::lire_texte::<NumeroContrat>(r#""C1""#, "numero").is_err());
         let fiche = |initiales: &str| -> droit::fiche::ChampsSalarie {
-            droit::fiche::lire_champs(&serde_json::json!({"initiales_contrat": initiales, "code_salarie": "1"}), "fiche").unwrap()
+            socle::forme::lire_texte(&format!(r#"{{"initiales_contrat": "{}", "code_salarie": "1"}}"#, initiales), "fiche").unwrap()
         };
         assert_eq!(former(&fiche("FA"), 2026, 3).map(String::from), Ok("FA1.26.03".to_string()));
         assert!(former(&fiche("F#"), 2026, 3).is_err());

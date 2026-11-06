@@ -535,7 +535,6 @@ dependencies = [
  "droit",
  "rust_decimal",
  "serde",
- "serde_json",
  "sha2",
  "socle",
 ]

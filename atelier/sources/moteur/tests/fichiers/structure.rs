@@ -696,6 +696,15 @@ fn une_crate_ne_prend_qu_a_celles_du_dessous() {
             }
         }
     }
+    // L'engagement n'a pas la bibliotheque du JSON, ni pour son code ni pour ses tests : le compilateur refuse qu'il en
+    // touche ; ses tests ecrivent un fichier en texte et le lisent par la porte (`socle::forme::lire_texte`). Le socle,
+    // la porte, n'en reexporte rien.
+    let engagement = std::fs::read_to_string(espace().join("engagement/Cargo.toml")).unwrap();
+    assert!(!engagement.contains("serde_json"), "engagement/Cargo.toml prend serde_json : l'engagement ne lit que des formes, par socle::forme");
+    for f in sources(&espace().join("socle/src")) {
+        let t = std::fs::read_to_string(&f).unwrap();
+        assert!(!t.contains("pub use serde_json") && !t.contains("pub type Value"), "{} reexporte le JSON brut", f.display());
+    }
 }
 
 /// LES COUCHES FERMEES, de bas en haut (l'ordre de `une_crate_ne_prend_qu_a_celles_du_dessous`). La liste ne fait que

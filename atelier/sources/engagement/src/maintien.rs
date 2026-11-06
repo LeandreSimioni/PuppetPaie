@@ -882,7 +882,6 @@ pub fn avec_le_montant(lignes: &[LignePaie], montant: Decimal) -> Resultat<Vec<L
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     /// CSS R323-5 : « la moitié du revenu d'activité antérieur » ; R323-4, 1° : « 1/91,25 du montant des trois dernières
     /// paies », chacune « dans la limite d'un plafond égal à 1,4 fois le salaire minimum de croissance [...] calculé pour un
@@ -936,11 +935,11 @@ mod tests {
     /// 12/03. Un accident du travail l'est des le premier jour qui suit l'arret du travail (L433-1).
     #[test]
     fn la_caisse_indemnise_des_le_quatrieme_jour_de_l_incapacite_prescrite() {
-        let imp: ArretSaisi = socle::forme::lire(&json!({"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": null,
+        let imp: ArretSaisi = socle::forme::lire_texte(r#"{"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": null,
             "motif": "01", "dernier_jour_travaille": "2026-03-06", "debut": "2026-03-09", "fin_previsionnelle": "2026-03-20",
             "subrogation": null, "subrogation_debut": null, "subrogation_fin": null, "reprise": null, "reprise_motif": null,
             "date_accident": null, "jours_deja_indemnises": null, "ij_brute": "40.89", "ij_nette": "38.15", "ij_brute_majoree": null,
-            "ij_nette_majoree": null, "prolongations": [], "reprises": [], "saisi_le": "2026-03-09T10:00:00", "qui": "interface", "note": ""}),
+            "ij_nette_majoree": null, "prolongations": [], "reprises": [], "saisi_le": "2026-03-09T10:00:00", "qui": "interface", "note": ""}"#,
             crate::imprevus::ILLISIBLE).unwrap();
         let (premier, dernier) = (crate::imprevus::premier_jour_d_arret(&imp).unwrap(), crate::imprevus::dernier_jour_d_arret(&imp).unwrap());
         let premier_indemnise = |o: Origine| {

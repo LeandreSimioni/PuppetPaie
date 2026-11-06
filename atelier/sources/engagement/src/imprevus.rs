@@ -1064,25 +1064,38 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
 mod tests {
     use super::*;
 
-    use serde_json::{json, Value};
+    /// Un fichier d'imprevu, ses cles dans l'ordre et chaque valeur ecrite en JSON.
+    type Cles = Vec<(&'static str, String)>;
 
-    fn lu(v: Value) -> socle::num::Resultat<Imprevu> {
-        socle::forme::lire(&v, ILLISIBLE)
+    fn texte(cles: &Cles) -> String {
+        format!("{{{}}}", cles.iter().map(|(k, v)| format!(r#""{}":{}"#, k, v)).collect::<Vec<_>>().join(","))
+    }
+
+    fn lu(cles: &Cles) -> socle::num::Resultat<Imprevu> {
+        socle::forme::lire_texte(&texte(cles), ILLISIBLE)
+    }
+
+    fn pose(cles: &mut Cles, cle: &str, valeur: &str) {
+        cles.iter_mut().find(|(k, _)| *k == cle).unwrap().1 = valeur.to_string();
+    }
+
+    fn cles(paires: &[(&'static str, &str)]) -> Cles {
+        paires.iter().map(|(k, v)| (*k, v.to_string())).collect()
     }
 
     /// Un arret tel que le moteur l'ecrit : chaque cle y est, nulle quand elle n'a pas de valeur.
-    fn arret_entier() -> Value {
-        json!({"genre": "arret", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
-            "motif": "01", "dernier_jour_travaille": "2026-02-02", "debut": "2026-02-03", "fin_previsionnelle": "2026-02-10",
-            "subrogation": null, "subrogation_debut": null, "subrogation_fin": null, "reprise": null, "reprise_motif": null,
-            "date_accident": null, "jours_deja_indemnises": null, "ij_brute": null, "ij_nette": null, "ij_brute_majoree": null,
-            "ij_nette_majoree": null, "prolongations": [], "reprises": [], "saisi_le": "2026-02-03T10:00:00", "qui": "interface", "note": ""})
+    fn arret_entier() -> Cles {
+        cles(&[("genre", r#""arret""#), ("salarie", r#""X""#), ("contrat_debut", r#""2026-01-01""#), ("contrat_numero", r#""N""#),
+            ("motif", r#""01""#), ("dernier_jour_travaille", r#""2026-02-02""#), ("debut", r#""2026-02-03""#), ("fin_previsionnelle", r#""2026-02-10""#),
+            ("subrogation", "null"), ("subrogation_debut", "null"), ("subrogation_fin", "null"), ("reprise", "null"), ("reprise_motif", "null"),
+            ("date_accident", "null"), ("jours_deja_indemnises", "null"), ("ij_brute", "null"), ("ij_nette", "null"), ("ij_brute_majoree", "null"),
+            ("ij_nette_majoree", "null"), ("prolongations", "[]"), ("reprises", "[]"), ("saisi_le", r#""2026-02-03T10:00:00""#), ("qui", r#""interface""#), ("note", r#""""#)])
     }
 
     /// Une suspension telle que le moteur l'ecrit.
-    fn suspension_entiere() -> Value {
-        json!({"genre": "suspension", "salarie": "X", "contrat_debut": "2026-01-01", "contrat_numero": "N",
-            "motif": "632", "debut": "2026-02-01", "fin": "2026-04-30", "saisi_le": "2026-02-01T10:00:00", "qui": "interface", "note": ""})
+    fn suspension_entiere() -> Cles {
+        cles(&[("genre", r#""suspension""#), ("salarie", r#""X""#), ("contrat_debut", r#""2026-01-01""#), ("contrat_numero", r#""N""#),
+            ("motif", r#""632""#), ("debut", r#""2026-02-01""#), ("fin", r#""2026-04-30""#), ("saisi_le", r#""2026-02-01T10:00:00""#), ("qui", r#""interface""#), ("note", r#""""#)])
     }
 
     /// Un imprevu se relit tel qu'il s'ecrit, dans l'ordre de ses cles ; une cle manquante, une cle inconnue ou un genre
@@ -1090,18 +1103,17 @@ mod tests {
     #[test]
     fn un_imprevu_se_relit_entier_et_refuse_ce_qui_manque_ou_qu_il_ne_connait_pas() {
         for entier in [arret_entier(), suspension_entiere()] {
-            let relu = socle::ecriture::en_valeur(&lu(entier.clone()).unwrap());
-            assert_eq!(relu, entier);
-            for cle in entier.as_object().unwrap().keys() {
+            assert_eq!(socle::ecriture::json_en_ligne(&lu(&entier).unwrap()), texte(&entier));
+            for i in 0..entier.len() {
                 let mut moins = entier.clone();
-                moins.as_object_mut().unwrap().remove(cle);
-                assert!(lu(moins).is_err(), "{} manque et la lecture ne refuse pas", cle);
+                let (cle, _) = moins.remove(i);
+                assert!(lu(&moins).is_err(), "{} manque et la lecture ne refuse pas", cle);
             }
             let mut plus = entier.clone();
-            plus["heures"] = json!(3);
-            assert!(lu(plus).is_err());
+            plus.push(("heures", "3".into()));
+            assert!(lu(&plus).is_err());
         }
-        assert!(lu(json!({"genre": "autre"})).is_err());
+        assert!(lu(&cles(&[("genre", r#""autre""#)])).is_err());
     }
 
     /// S21.G00.60.002 : « la veille de la date de debut de la prescription de l'arret de travail, sauf [...] arret prescrit
@@ -1110,16 +1122,16 @@ mod tests {
     #[test]
     fn la_dsn_declare_la_veille_du_debut_prescrit_et_l_absence_court_de_ce_debut() {
         let mut v = arret_entier();
-        v["dernier_jour_travaille"] = json!("2026-03-06");
-        v["debut"] = json!("2026-03-09");
-        v["fin_previsionnelle"] = json!("2026-03-20");
-        let a = lu(v.clone()).unwrap();
+        pose(&mut v, "dernier_jour_travaille", r#""2026-03-06""#);
+        pose(&mut v, "debut", r#""2026-03-09""#);
+        pose(&mut v, "fin_previsionnelle", r#""2026-03-20""#);
+        let a = lu(&v).unwrap();
         assert_eq!((dernier_jour_declare(a.arret().unwrap()).unwrap().iso(), premier_jour(&a).unwrap().iso()), ("2026-03-08".into(), "2026-03-09".into()));
-        v["debut"] = json!("2026-03-06");
-        let a = lu(v.clone()).unwrap();
+        pose(&mut v, "debut", r#""2026-03-06""#);
+        let a = lu(&v).unwrap();
         assert_eq!((dernier_jour_declare(a.arret().unwrap()).unwrap().iso(), premier_jour(&a).unwrap().iso()), ("2026-03-06".into(), "2026-03-07".into()));
         assert_eq!(dernier_jour(&a).unwrap().iso(), "2026-03-20");
-        v["reprise"] = json!("2026-03-15");
-        assert_eq!(dernier_jour(&lu(v).unwrap()).unwrap().iso(), "2026-03-14");
+        pose(&mut v, "reprise", r#""2026-03-15""#);
+        assert_eq!(dernier_jour(&lu(&v).unwrap()).unwrap().iso(), "2026-03-14");
     }
 }
