@@ -196,8 +196,9 @@ que les binaires qu'il nomme (`-E 'binary(routes)'`). Avant la suite, `rm -rf "$
 5. **Deux canaux de retours** : la DSN sur net-entreprises, la DPAE sur `consultation.dpae-edi.urssaf.fr`, services,
    mots de passe et archives distincts. Un 404 sur une plage veut dire « rien » ; un accusé `OK` n'est pas une déclaration
    acceptée, le bilan tranche.
-6. **Une nature de contrat n'est pas un détail** : `donnees/contrats-base.json` dit ce que la DSN écrit par nature ; un
-   engagement muet est un CDDU ; le numéro d'objet spectacle est **interdit** hors des natures 02 et 10.
+6. **Une nature de contrat n'est pas un détail** : `donnees/contrats-base.json` dit ce que la DSN écrit par nature ; la
+   nature est toujours **dite**, jamais devinée : une carte neuve s'ouvre en CDDU, déclaré, et la nature ne se choisit
+   que là où la compagnie emploie des permanents ; le numéro d'objet spectacle est **interdit** hors des natures 02 et 10.
 7. **Deux contrôles avant tout dépôt** : les usages et les formats. Un contrôle faux refuserait du licite : c'est lui
    qu'on retire, jamais la déclaration.
 8. **Un barème a trois étages** (le socle livré, la convention, la compagnie : taux AT/MP, effectif des retours 118),
