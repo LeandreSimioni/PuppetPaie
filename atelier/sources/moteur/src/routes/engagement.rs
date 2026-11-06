@@ -318,15 +318,15 @@ fn vaut_a_partir_du(j: &socle::date::Jour) -> String {
 /// LE JOUR D'OU VAUT UN TERME que la carte de `mois` change dans un contrat paye au mois, `o` avant et `devenu` apres : le
 /// dernier changement date de ce mois, s'il n'etait pas deja ecrit. `None` : la carte ne change aucun terme a ce mois
 /// (le premier mois du contrat dit ses termes de son debut).
-fn a_partir_de(o: &engagement::stock::Objet, devenu: &engagement::stock::Objet, mois: &str) -> Option<socle::date::Jour> {
-    if !devenu.mensuel() {
-        return None;
+fn a_partir_de(o: &engagement::stock::Objet, devenu: &engagement::stock::Objet, mois: &str) -> R<Option<socle::date::Jour>> {
+    if !devenu.mensuel().map_err(Echec::from)? {
+        return Ok(None);
     }
     let du_mois = |x: &engagement::stock::Objet| -> Vec<engagement::stock::Avenant> {
         x.avenants().iter().filter(|a| a.depuis.mois_civil().to_string() == mois).cloned().collect()
     };
     let apres = du_mois(devenu);
-    (apres != du_mois(o)).then(|| apres.iter().map(|a| a.depuis).max()).flatten()
+    Ok((apres != du_mois(o)).then(|| apres.iter().map(|a| a.depuis).max()).flatten())
 }
 
 /// La modification elle-meme, dans le brouillon de fichiers ouvert : la carte de `mois` de l'engagement `o`, de rang
@@ -344,7 +344,10 @@ fn modifier_puis_revalider(ctx: &Contexte, mois: &str, i: usize, o: &engagement:
     }
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let devenu = engagement::stock::objets(&ctx.racine).map_err(Echec::from)?.into_iter().find(|x| x.fichier == o.fichier && x.rang == o.rang);
-    let depuis = devenu.as_ref().and_then(|d| a_partir_de(o, d, mois));
+    let depuis = match devenu.as_ref() {
+        Some(d) => a_partir_de(o, d, mois)?,
+        None => None,
+    };
     if let Some(devenu) = devenu {
         let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
         if let Some(texte) = crate::regularisation::refus_non_declarable(&mut m, ctx, o, &devenu, &departs)? {
@@ -389,7 +392,7 @@ pub(crate) fn ce_que_le_changement_entraine(ctx: &Contexte, v: &engagement::etat
 
     let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let mut out = Vec::new();
-    for a in engagement::etats::a_refaire(ctx, v, departs) {
+    for a in engagement::etats::a_refaire(ctx, v, departs)? {
         match a {
             ARefaire::Avenant { .. } => out.push(UN_AVENANT.to_string()),
             ARefaire::Dpae { debut_declare, .. } => {

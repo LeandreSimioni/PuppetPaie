@@ -211,7 +211,8 @@ impl From<Mois> for String {
 
 impl PartialEq<str> for Mois {
     fn eq(&self, autre: &str) -> bool {
-        Mois::lire(autre).is_ok_and(|m| m == *self)
+        // `Mois::lire` ne lit que `AAAA-MM`, la forme meme que le mois s'ecrit : egal, c'est le meme texte.
+        self.to_string() == autre
     }
 }
 

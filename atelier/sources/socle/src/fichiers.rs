@@ -203,11 +203,13 @@ pub fn sha256_hex(octets: &[u8]) -> String {
     Sha256::digest(octets).iter().map(|o| format!("{:02x}", o)).collect()
 }
 
-/// Ce que vaut un fichier pour l'empreinte : le hachage de son contenu, ou `absent`.
+/// Ce que vaut un fichier pour l'empreinte : le hachage de son contenu, `absent` s'il n'existe pas, `illisible` (et la
+/// raison) s'il ne se lit pas.
 pub fn empreinte_fichier(chemin: &Path) -> String {
     match std::fs::read(chemin) {
         Ok(o) => empreinte_des_octets(chemin, o),
-        Err(_) => "absent".into(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => "absent".into(),
+        Err(e) => format!("illisible : {}", e),
     }
 }
 
@@ -228,17 +230,29 @@ fn empreinte_des_octets(chemin: &Path, octets: Vec<u8>) -> String {
     e
 }
 
-fn noms(chemin: &Path) -> Option<Vec<String>> {
-    let mut n: Vec<String> = std::fs::read_dir(chemin).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".json")).collect();
+fn noms(chemin: &Path) -> std::io::Result<Vec<String>> {
+    let mut n = Vec::new();
+    for e in std::fs::read_dir(chemin)? {
+        let nom = e?.file_name().to_string_lossy().into_owned();
+        if nom.ends_with(".json") {
+            n.push(nom);
+        }
+    }
     n.sort();
-    Some(n)
+    Ok(n)
 }
 
-/// L'empreinte d'un dossier : les noms de ses `.json`, tries ; `absent` s'il ne s'ouvre pas.
+/// L'empreinte d'un dossier : les noms de ses `.json`, tries ; `absent` s'il n'existe pas, `illisible` (et la raison)
+/// s'il ne se lit pas : ni l'un ni l'autre n'est l'empreinte d'un dossier lu.
 pub fn empreinte_dossier(chemin: &Path) -> String {
-    match noms(chemin) {
-        Some(n) => sha256_hex(n.join("\n").as_bytes()),
-        None => "absent".into(),
+    empreinte_des_noms(&noms(chemin))
+}
+
+fn empreinte_des_noms(noms: &std::io::Result<Vec<String>>) -> String {
+    match noms {
+        Ok(n) => sha256_hex(n.join("\n").as_bytes()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => "absent".into(),
+        Err(e) => format!("illisible : {}", e),
     }
 }
 
@@ -283,15 +297,16 @@ pub fn est_dossier(chemin: &Path) -> bool {
     v
 }
 
-/// Les `.json` d'un dossier, tries ; `None` s'il ne s'ouvre pas. Note : ce
-/// qui apparait ou disparait dans le dossier change l'empreinte.
-pub fn lister(dossier: &Path) -> Option<Vec<PathBuf>> {
+/// Les `.json` d'un dossier, tries ; `None` s'il n'existe pas ; le disque qui refuse se dit (`echec::du_disque`). Note :
+/// ce qui apparait ou disparait dans le dossier change l'empreinte.
+pub fn lister(dossier: &Path) -> Resultat<Option<Vec<PathBuf>>> {
     let n = noms(dossier);
-    noter("dossier", dossier, match &n {
-        Some(n) => sha256_hex(n.join("\n").as_bytes()),
-        None => "absent".into(),
-    });
-    Some(n?.into_iter().map(|x| dossier.join(x)).collect())
+    noter("dossier", dossier, empreinte_des_noms(&n));
+    match n {
+        Ok(n) => Ok(Some(n.into_iter().map(|x| dossier.join(x)).collect())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(crate::echec::du_disque(dossier, &e)),
+    }
 }
 
 /// Le dossier des referentiels livres (`donnees/`) : `PUPPETPAIE_CODE` si posee, sinon
@@ -326,13 +341,18 @@ pub fn signature(chemin: &Path) -> Option<(u128, u64)> {
     }
 }
 
+/// `None` quand le fichier ne donne pas sa signature (absent, illisible, sans date) : rien ne se garde de lui, et la
+/// lecture qui suit dit pourquoi.
 fn signature_lue(chemin: &Path) -> Option<(u128, u64)> {
-    let m = std::fs::metadata(chemin).ok()?;
-    let ns = match m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()) {
-        Some(d) => d.as_nanos(),
-        None => 0,
+    let m = match std::fs::metadata(chemin) {
+        Ok(m) => m,
+        Err(_la_lecture_le_dira) => return None,
     };
-    Some((ns, m.len()))
+    match m.modified().map(|t| t.duration_since(std::time::UNIX_EPOCH)) {
+        Ok(Ok(d)) => Some((d.as_nanos(), m.len())),
+        // Avant 1970, ou sans date : rien ne dit que le fichier a change.
+        Ok(Err(_)) | Err(_) => None,
+    }
 }
 
 type SignaturesDuCode = Option<(PathBuf, HashMap<PathBuf, Option<(u128, u64)>>)>;

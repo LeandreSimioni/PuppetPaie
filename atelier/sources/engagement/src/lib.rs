@@ -430,8 +430,9 @@ impl Engagement {
         // contrat a duree determinee, CCH-12, `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`, l. 517-527) ; sa
         // fin se declare dans la DSN du mois ou il finit (bloc S21.G00.62). La paie d'un mois d'avant ne change donc pas
         // quand la rupture se saisit.
+        let fin_du_mois_saisi = Mois::lire(&mois_saisi)?.dernier_jour();
         let fin = match fin {
-            Some(f) if nat.duree_indeterminee && Mois::lire(&mois_saisi).map(Mois::dernier_jour).is_ok_and(|m| f > m) => None,
+            Some(f) if nat.duree_indeterminee && f > fin_du_mois_saisi => None,
             autre => autre,
         };
 
@@ -833,8 +834,12 @@ pub struct Avis {
 /// ne connait pas compte comme du travail : le calcul la refuse en la nommant.
 pub fn ligne_de_frais(racine: &Path, l: &LignePaie) -> bool {
     let Some(code) = l.rubrique.as_deref().filter(|c| !c.is_empty()) else { return false };
+    // Une ligne sans jour lisible, une rubrique que le catalogue ne lit pas : du travail, que le calcul refuse en le nommant.
     let Some(jour) = l.premier_jour() else { return false };
-    rubrique(racine, code, &jour).is_ok_and(|r| r.nature == "frais")
+    match rubrique(racine, code, &jour) {
+        Ok(r) => r.nature == "frais",
+        Err(_le_calcul_le_dira) => false,
+    }
 }
 
 /// Les jours des lignes de travail (`ligne_de_frais`), ceux du mois (`planning` faux) ou ceux du planning : leur
@@ -1049,7 +1054,10 @@ pub(crate) fn engagements(
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
         let continue_ = match &carte.jours_contrat {
             None if !nat.mensuelle() && carte.debut_lu(&ctx.racine).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
-                crate::importe::continue_par(&ctx.racine, carte)?.and_then(|i| i.jours_du_contrat_continue(carte.jours_du_contrat(&ctx.racine))).map(|n| Chiffre::entier(n as i64))
+                match crate::importe::continue_par(&ctx.racine, carte)? {
+                    Some(i) => i.jours_du_contrat_continue(carte.jours_du_contrat(&ctx.racine))?.map(Chiffre::entier),
+                    None => None,
+                }
             }
             _ => None,
         };
@@ -1189,7 +1197,11 @@ pub fn tarif_conventionnel(ctx: &Contexte, code: &str, jour: &Jour) -> Resultat<
         "nuitee" => t.nuitee,
         _ => None,
     });
-    Ok(tarif.and_then(|t| if t.scale() == 0 { i64::try_from(t).ok().map(Chiffre::entier) } else { t.to_string().parse::<f64>().ok().map(Chiffre::de_f64) }))
+    match tarif {
+        Some(t) if t.scale() == 0 => Ok(Some(Chiffre::entier(i64::try_from(t).map_err(|_| format!("tarif conventionnel hors de portée : {}", t))?))),
+        Some(t) => Ok(Some(Chiffre::de_f64(socle::num::flottant(t)))),
+        None => Ok(None),
+    }
 }
 
 /// Les lignes d'un engagement au cachet dont la rubrique a un tarif de la convention (`tarif_conventionnel`) et qui ne
@@ -1652,13 +1664,13 @@ fn lignes_dites(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<()>
             let quoi = if pourcentage { "la base" } else { "la quantité" };
             return Err(format!("{}{}{} de {}.", qui, LIGNE_A_DIRE, quoi, ligne));
         };
-        let n = dite.flottant().ok();
+        let n = dite.flottant().map_err(|e| format!("{} : {} : {}.", qui, ligne, e))?;
         let a_venir_seulement = l.dates.is_empty() && !l.planning.is_empty();
-        if n.is_some_and(|n| n < 0.0 || (n == 0.0 && !a_venir_seulement)) {
+        if n < 0.0 || (n == 0.0 && !a_venir_seulement) {
             let quoi = if pourcentage { "la base" } else { "la quantité" };
             // La ligne dit ses jours et le mois ou elle se saisit : la ligne d'un mois suivant d'un contrat a cheval
             // (`stock::Objet::vue`) porte les jours de son planning, et ses heures se disent sur la carte de ce mois.
-            let jours: Vec<Jour> = l.dates.iter().filter_map(|x| x.lu().ok()).collect();
+            let jours: Vec<Jour> = l.jours()?;
             let (ou, carte) = match jours.first() {
                 Some(j) => (
                     format!(", {} {}", if jours.len() > 1 { "les" } else { "le" }, jours.iter().map(Jour::jj_mm_aaaa).collect::<Vec<_>>().join(", ")),
@@ -1953,7 +1965,7 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resul
     let _derivation = crate::conges::Derivation::ouvrir();
     // Un engagement en saisie se calcule comme sa validation le calculera : ses propres mois d'avant comptent.
     let mois_vu = data.mois.to_string();
-    let _comme_a_la_validation = crate::etats::CommeALaValidation::ouvrir(ctx, &mois_vu);
+    let _comme_a_la_validation = crate::etats::CommeALaValidation::ouvrir(ctx, &mois_vu)?;
     let lignes: LignesPermanent = &crate::conges::lignes_du_mois;
     let (engs, dits) = engagements(ctx, data, lignes)?;
     let mois = mois_vu.clone();

@@ -485,8 +485,13 @@ impl Paie {
     }
 
     /// La paie est-elle decoupee au jour `j` (une periode elementaire commence ce jour-la, apres le debut du mois) ?
-    pub fn decoupee_le(&self, j: &Jour) -> bool {
-        self.periodes.iter().skip(1).any(|p| p.engagement.debut_periode().is_ok_and(|d| d == *j))
+    pub fn decoupee_le(&self, j: &Jour) -> Resultat<bool> {
+        for p in self.periodes.iter().skip(1) {
+            if p.engagement.debut_periode()? == *j {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     pub fn ligne(&self, id: &str) -> Option<&LigneCotisation> {
@@ -1226,10 +1231,13 @@ pub(crate) fn saisie_declaree_a_la_caisse_des_conges(ctx: &Contexte, e: &crate::
 /// L. 1242-10 pour un CDD, L. 1221-19 pour un CDI, la convention 3090 art. 7.4 pour un artiste en CDI). Sa categorie se lit
 /// sur la fiche du salarie telle que l'engagement la voit (`fiche_de_l_engagement`).
 fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &ChampsSalarie) -> Resultat<()> {
-    let Some(v) = &eng.ecrit.periode_essai_jours else { return Ok(()) };
-    let Some(jours) = v.flottant().ok().or_else(|| v.en_texte().trim().replace(',', ".").parse().ok()).map(|x| x.ceil() as i64) else {
-        return Ok(());
+    let Some(v) = crate::ligne::dite(&eng.ecrit.periode_essai_jours) else { return Ok(()) };
+    // Une virgule decimale se lit comme un point ; un texte qui n'est pas un nombre se refuse.
+    let lu = match v {
+        crate::Chiffre::Texte(t) => t.trim().replace(',', ".").parse::<f64>().map_err(|_| socle::num::illisible(t))?,
+        nombre => nombre.flottant()?,
     };
+    let jours = lu.ceil() as i64;
     let idcc = ctx.entreprise.idcc.texte().to_string();
     let artiste = sal.statut.dite() == Some(&Statut::Artiste);
     let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), sal.statut_conventionnel.dite().map(|s| s.as_str()), artiste, &idcc)?;

@@ -101,7 +101,7 @@ pub fn prendre_le_verrou(ctx: &Contexte, qui: &str) -> R<Verrou> {
 
 /// Les numeros de contrat (FA1.26.13) et de bulletin (17/2026) que les paies porteraient (`engagement::numeros::numeroter`), en
 /// memoire : l'apercu n'ecrit rien. Un engagement qui PORTE DEJA son numero de contrat le garde (`engagement::numeros`),
-/// une paie partie son numero de bulletin (`engagement::etats::Valide::bulletin`).
+/// une paie partie son numero de bulletin (`engagement::etats::numeros_des_documents`).
 pub fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32, departs: &engagement::departs::Departs) -> Result<(), Refus> {
     numeroter_en_attente(ctx, paies, annee, &mut HashMap::new(), departs)
 }

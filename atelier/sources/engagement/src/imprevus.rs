@@ -289,7 +289,7 @@ pub fn verifier(imp: &Imprevu) -> Resultat<()> {
     let Imprevu::Arret(a) = imp else { return Ok(()) };
     for (k, x) in [("ij_brute", &a.ij_brute), ("ij_nette", &a.ij_nette), ("ij_brute_majoree", &a.ij_brute_majoree), ("ij_nette_majoree", &a.ij_nette_majoree)] {
         if let Some(x) = x.as_ref().filter(|x| x.vrai()) {
-            if !x.dec_avec_echelle().is_ok_and(|m| m > Decimal::ZERO) {
+            if x.dec_avec_echelle()? <= Decimal::ZERO {
                 return Err(socle::echec::a_la_cle("Un montant par jour de l'arrêt doit être positif.", k, x.en_texte()));
             }
         }
@@ -324,7 +324,7 @@ fn lu(f: &Path) -> Resultat<Vec<Imprevu>> {
 /// Tous les imprevus de la compagnie, dans l'ordre des mois du magasin puis de leur saisie, verifies. La lecture se note
 /// au registre du calcul (`fichiers::lister`, `lu`) : un imprevu saisi refait la paie.
 pub fn tous(racine: &Path) -> Resultat<Vec<Imprevu>> {
-    let Some(fichiers) = socle::fichiers::lister(&dossier(racine)) else { return Ok(Vec::new()) };
+    let Some(fichiers) = socle::fichiers::lister(&dossier(racine))? else { return Ok(Vec::new()) };
     let mut out = Vec::new();
     for f in fichiers {
         let Some(nom) = f.file_name().map(|n| n.to_string_lossy().into_owned()) else { continue };
@@ -920,11 +920,6 @@ nomme cette absence. Rien n'est calcule.",
 
 // ------------------------------------------------------------- les jours payes
 
-/// Les jours d'une ligne de saisie (`dates`), lus.
-fn dates_de_ligne(l: &crate::LignePaie) -> Vec<Jour> {
-    l.dates.iter().filter_map(|x| x.lu().ok()).collect()
-}
-
 /// Le libelle d'un motif d'arret, tel que la norme le nomme ; un code qu'elle ne connait pas se dit tel.
 fn libelle_du_motif(motif: &Option<droit::arrets::CodeDuBloc60>) -> &str {
     match motif {
@@ -981,7 +976,7 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &crate::saisie::VueDuMois, mois: &
             continue;
         }
         for (j, l) in e.lignes().iter().enumerate() {
-            let dedans: Vec<String> = dates_de_ligne(l).into_iter().filter(|x| premier <= x && x <= dernier).map(|x| x.iso()).collect();
+            let dedans: Vec<String> = l.jours()?.into_iter().filter(|x| premier <= x && x <= dernier).map(|x| x.iso()).collect();
             if dedans.is_empty() {
                 continue;
             }
@@ -1028,7 +1023,7 @@ pub fn avertir_les_jours_payes(ctx: &Contexte, data: &crate::saisie::VueDuMois) 
         let (premier, dernier) = (premier_jour(imp)?, dernier_jour(imp)?);
         for c in cachets_de_la_saisie(ctx, data, &mois, imp.salarie(), &premier, &dernier)? {
             let i = c.engagement;
-            let dates: Vec<String> = c.dates.iter().filter_map(|x| Jour::lire(x).ok()).map(|x| x.jj_mm_aaaa()).collect();
+            let dates: Vec<String> = c.dates.iter().map(|x| Jour::lire(x).map(|j| j.jj_mm_aaaa())).collect::<Resultat<_>>()?;
             let quoi = if est_un_arret(imp) {
                 let motif = droit::arrets::motif_d_arret(imp.motif())?;
                 format!(

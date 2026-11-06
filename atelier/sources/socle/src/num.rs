@@ -21,6 +21,25 @@ pub fn illisible(t: &str) -> String {
     format!("nombre illisible : {}", crate::fichiers::repr(t))
 }
 
+/// UN ENTIER ECRIT EN CHIFFRES SEULS, de un a dix-huit : sa valeur, comptee chiffre a chiffre ; tout autre texte (vide, un
+/// autre caractere, plus long) n'est pas un entier ainsi ecrit, et rend `None`.
+pub fn entier_de_chiffres(t: &str) -> Option<i64> {
+    let b = t.as_bytes();
+    if b.is_empty() || b.len() > 18 || !b.iter().all(u8::is_ascii_digit) {
+        return None;
+    }
+    Some(b.iter().fold(0i64, |n, c| n * 10 + i64::from(c - b'0')))
+}
+
+/// Le flottant d'un decimal, par sa forme ecrite (`d.to_string()` relu) : un decimal s'ecrit toujours en un nombre que
+/// le flottant lit.
+pub fn flottant(d: Decimal) -> f64 {
+    match d.to_string().parse::<f64>() {
+        Ok(x) => x,
+        Err(e) => unreachable!("un décimal s'écrit en nombre : {} ({})", d, e),
+    }
+}
+
 /// Le decimal d'un flottant, par sa forme ecrite la plus courte.
 pub fn dec_f64(x: f64) -> Resultat<Decimal> {
     if !x.is_finite() {
@@ -249,10 +268,12 @@ pub fn decimal_lu(t: &str) -> Option<Decimal> {
         propre.push('.');
         propre.push_str(&frac);
     }
-    if exposant.is_empty() {
-        Decimal::from_str(&propre).ok()
-    } else {
-        Decimal::from_scientific(&format!("{}e{}", propre, exposant)).ok()
+    // Un nombre bien ecrit que le decimal ne tient pas (plus de 28 chiffres, un exposant hors de sa portee) n'est pas un
+    // nombre qu'on lise.
+    let lu = if exposant.is_empty() { Decimal::from_str(&propre) } else { Decimal::from_scientific(&format!("{}e{}", propre, exposant)) };
+    match lu {
+        Ok(d) => Some(d),
+        Err(_hors_de_portee) => None,
     }
 }
 

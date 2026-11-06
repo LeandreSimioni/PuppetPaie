@@ -108,8 +108,9 @@ pub(crate) fn dit_par_l_engagement(e: &Carte) -> Resultat<clauses::DitParLEngage
     let dite = |x: &Option<String>| x.as_deref().filter(|v| !v.is_empty()).map(str::to_string);
     let debut = match dite(&e.debut) {
         Some(s) => {
-            let jour = s.get(..10).filter(|j| j.as_bytes().get(4) == Some(&b'-') && j.as_bytes().get(7) == Some(&b'-')).and_then(|j| socle::date::Jour::lire(j).ok());
-            Some(jour.ok_or_else(|| format!("date illisible : {}", socle::fichiers::repr(&s)))?)
+            let illisible = || format!("date illisible : {}", socle::fichiers::repr(&s));
+            let jour = s.get(..10).filter(|j| j.as_bytes().get(4) == Some(&b'-') && j.as_bytes().get(7) == Some(&b'-')).ok_or_else(illisible)?;
+            Some(socle::date::Jour::lire(jour).map_err(|_| illisible())?)
         }
         None => None,
     };
@@ -118,7 +119,11 @@ pub(crate) fn dit_par_l_engagement(e: &Carte) -> Resultat<clauses::DitParLEngage
 
 /// L'age au dernier jour du contrat (ou aujourd'hui), en annees revolues.
 fn age(ctx: &Contexte, e: &Carte) -> Resultat<Option<Decimal>> {
-    let Some(naissance) = e.salarie.as_deref().and_then(|s| ctx.salarie(s).ok()).and_then(|f| f.date_naissance.dite().copied()) else {
+    let fiche = match e.salarie.as_deref() {
+        Some(s) => Some(ctx.salarie(s)?),
+        None => None,
+    };
+    let Some(naissance) = fiche.and_then(|f| f.date_naissance.dite().copied()) else {
         return Ok(None);
     };
     let jour = match jour_dit(&e.fin)? {
@@ -144,15 +149,13 @@ pub struct Preavis {
 /// le dernier jour du mois quand ce quantieme n'existe pas. Lecture : le preavis court du lendemain de la fin saisie (le
 /// texte, L1234-3, le fait courir de la presentation de la lettre, que le moteur ne connait pas). `None` : une duree
 /// qui n'est pas en mois entiers.
-fn terme_du_preavis(fin: &socle::date::Jour, mois: Decimal) -> Option<socle::date::Jour> {
-    use rust_decimal::prelude::ToPrimitive;
+fn terme_du_preavis(fin: &socle::date::Jour, mois: Decimal) -> Resultat<Option<socle::date::Jour>> {
     if !mois.fract().is_zero() {
-        return None;
+        return Ok(None);
     }
-    let rang = i64::from(fin.an) * 12 + i64::from(fin.mois) - 1 + mois.to_i64()?;
-    let (an, m) = (i32::try_from(rang / 12).ok()?, u32::try_from(rang % 12).ok()? + 1);
-    let dernier = socle::date::Jour { an, mois: m, jour: 1 }.jours_du_mois();
-    socle::date::Jour::nouveau(an, m, fin.jour.min(dernier))
+    let n = i32::try_from(mois).map_err(|_| format!("préavis hors du calendrier : {} mois", mois))?;
+    let m = socle::mois::Mois::nouveau(fin.an, fin.mois)?.plus(n)?;
+    Ok(m.jour(fin.jour.min(m.jours())))
 }
 
 pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Carte, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
@@ -460,7 +463,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Carte, mois: &str, deja: 
                 // l'indemnité de licenciement compte (R1234-1, « par année de service dans l'entreprise ») court
                 // jusqu'au terme du préavis.
                 if matches!(indemnite, IndemniteDePreavis::Licenciement) {
-                    if let Some(terme) = terme_du_preavis(&fin, m) {
+                    if let Some(terme) = terme_du_preavis(&fin, m)? {
                         anciennete_de_l_indemnite = anciennete_mois(&debut_de(e)?, &terme);
                         stc.avertissements.push(info(format!(
                             "{} : le préavis non effectué ne fait pas finir le contrat plus tôt (code du travail, L1234-4) : \
@@ -1061,9 +1064,7 @@ fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &st
     let regles = permanents::regles()?;
     let regles_plafonds = &regles.regime_des_indemnites_de_rupture.plafonds;
     let an: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| format!("nombre entier illisible : {}", mois))?;
-    let Ok((mensuel, _)) = ctx.plafond_securite_sociale(an) else {
-        return Ok(());
-    };
+    let (mensuel, _) = ctx.plafond_securite_sociale(an)?;
     let annuel = mul(Decimal::from(mensuel), Decimal::from(12));
     for (combien, quel) in [
         (regles_plafonds.cotisations_exoneration_pass, "exoneree"),

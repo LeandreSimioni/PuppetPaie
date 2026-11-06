@@ -87,8 +87,8 @@ fn premier_jour(paie: &Paie) -> Option<String> {
     paie.engagement.dates_travail.iter().map(|j| j.iso()).min()
 }
 
-fn permanent(paie: &Paie) -> bool {
-    paie.engagement.nat().is_ok_and(|n| n.mensuelle())
+fn permanent(paie: &Paie) -> Resultat<bool> {
+    Ok(paie.engagement.nat()?.mensuelle())
 }
 
 // ------------------------------------------------------------------ les planchers
@@ -262,12 +262,8 @@ impl<'a> Cx<'a> {
     fn echelon_ccneac(&self) -> (usize, String) {
         let v = self.fiche.echelon_ccneac.texte().to_string();
         let v = v.trim();
-        if !v.is_empty() && v.bytes().all(|c| c.is_ascii_digit()) {
-            if let Ok(n) = v.parse::<usize>() {
-                if (1..=12).contains(&n) {
-                    return (n, format!("échelon {} de la fiche", v));
-                }
-            }
+        if let Some(n) = socle::num::entier_de_chiffres(v).filter(|n| (1..=12).contains(n)) {
+            return (n as usize, format!("échelon {} de la fiche", v));
         }
         (1, "échelon 1, la fiche ne disant pas le sien (`echelon_ccneac`)".into())
     }
@@ -318,7 +314,7 @@ impl<'a> Cx<'a> {
         let (cddu, permanents) = (&c.cddu_semaine_35h, &c.permanents_mensuel_35h);
         let Some(fonction) = self.fonction("2642", |f| cddu.contains_key(f) || permanents.contains_key(f)) else { return Ok(None) };
         let d = socle::num::dec_texte;
-        if permanent(self.paie) {
+        if permanent(self.paie)? {
             let Some(mensuel) = permanents.get(&fonction) else { return Ok(None) };
             let m = mensuel.0;
             let h = bas(div(m, d("151.67")?));
@@ -374,7 +370,7 @@ impl<'a> Cx<'a> {
         let a_fonction = c3097.is_some_and(|c| !c.fonction.is_empty());
         let heures = !ligne.heures_annexes.is_zero();
         if (statut == "technicien" || a_fonction) && (horaire(&ligne.code) || mensuel(&ligne.code)) && heures {
-            if permanent(self.paie) {
+            if permanent(self.paie)? {
                 let emploi = c3097.and_then(|c| c.titre_iv.as_deref()).filter(|e| !e.is_empty());
                 let pm = c.permanents_mensuel.as_ref().ok_or_else(|| manque("3097.permanents_mensuel"))?;
                 let Some((emploi, niveau)) = emploi.and_then(|e| pm.emplois_reperes.get(e).map(|n| (e, n))) else {
@@ -495,7 +491,7 @@ impl<'a> Cx<'a> {
 
     /// Les grilles de cette convention qui visent cette ligne.
     fn grilles_de(&self, ligne: &LigneBrut, grilles: &'a [Grille]) -> Resultat<Vec<&'a Grille>> {
-        let population = if permanent(self.paie) { "permanent" } else { "intermittent" };
+        let population = if permanent(self.paie)? { "permanent" } else { "intermittent" };
         let statut = self.statut();
         let est_cachet = cachet(&ligne.code);
         let heures = !ligne.heures_annexes.is_zero();

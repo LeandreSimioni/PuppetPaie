@@ -99,15 +99,24 @@ pub fn secondes() -> f64 {
 
 /// LE JOUR POSE (`PUPPETPAIE_AUJOURDHUI`, AAAA-MM-JJ) : la montre, decalee d'autant de jours qu'il y en a entre le jour
 /// de Paris ou il a ete lu pour la premiere fois et le jour pose : la meme heure (a une heure pres d'un changement d'heure
-/// entre les deux), ce jour-la, et minuit passe comme a la montre. Sans jour pose, ou illisible, `t` tel quel.
+/// entre les deux), ce jour-la, et minuit passe comme a la montre. Sans jour pose (ou pose vide), `t` tel quel. Un jour
+/// pose illisible arrete le moteur : celui qui le pose (un test, un banc) le corrige, rien ne compte a la montre a sa place.
 fn au_jour_pose(t: f64) -> f64 {
     static DECALAGE: Mutex<Option<(String, f64)>> = Mutex::new(None);
-    let Some(pose) = std::env::var("PUPPETPAIE_AUJOURDHUI").ok().filter(|v| !v.is_empty()) else { return t };
+    let pose = match std::env::var("PUPPETPAIE_AUJOURDHUI") {
+        Ok(v) if v.is_empty() => return t,
+        Ok(v) => v,
+        Err(std::env::VarError::NotPresent) => return t,
+        Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
+    };
     let mut d = crate::memoire::tenu(&DECALAGE);
     if let Some((_, decalage)) = d.as_ref().filter(|(lu, _)| *lu == pose) {
         return t + decalage;
     }
-    let Ok(jour) = Jour::lire(&pose) else { return t };
+    let jour = match Jour::lire(&pose) {
+        Ok(j) => j,
+        Err(e) => panic!("PUPPETPAIE_AUJOURDHUI illisible : {}", e),
+    };
     let entier = t.floor() as i64;
     let jour_de_la_montre = (entier + crate::paris::decalage(entier)).div_euclid(86_400);
     let decalage = ((jour.ordinal() - 719_163) - jour_de_la_montre) as f64 * 86_400.0;

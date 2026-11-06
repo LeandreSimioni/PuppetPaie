@@ -826,7 +826,7 @@ pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<HashMap<Strin
     let mut par_salarie: HashMap<String, Vec<(String, Vec<String>)>> = HashMap::new();
     for e in engagement::etats::du_mois(ctx, mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?)? {
         let Some(v) = e.valide() else { continue };
-        let depuis = engagement::etats::a_refaire(ctx, v, &departs).into_iter().find_map(|a| match a {
+        let depuis = engagement::etats::a_refaire(ctx, v, &departs)?.into_iter().find_map(|a| match a {
             engagement::etats::ARefaire::Bulletin { mois: m, depuis } if m == mois => Some(depuis),
             _ => None,
         });

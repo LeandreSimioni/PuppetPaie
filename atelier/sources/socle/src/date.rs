@@ -380,7 +380,9 @@ pub fn jour_iso(texte: &str) -> Option<Jour> {
     if !(chiffres(a) && chiffres(m) && chiffres(j)) {
         return None;
     }
-    Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
+    // Des chiffres seuls, quatre ou deux : leur valeur se compte, sans lecture qui puisse echouer.
+    let valeur = |t: &str| t.bytes().fold(0u32, |n, c| n * 10 + u32::from(c - b'0'));
+    Jour::nouveau(valeur(a) as i32, valeur(m), valeur(j))
 }
 
 /// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (ou d'un instant, par ses dix premiers caracteres) ; le texte tel quel s'il ne se lit pas.

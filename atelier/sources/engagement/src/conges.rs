@@ -341,12 +341,12 @@ pub struct Avant {
 
 /// La reprise des conges telle que la fiche du salarie la porte (`conges_reprise`), `None` sans elle : ce que l'etat
 /// avant un mois a pris pour acquis.
-fn reprise_ecrite(ctx: &Contexte, cle_salarie: &str) -> Option<droit::fiche::CongesReprise> {
+fn reprise_ecrite(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<droit::fiche::CongesReprise>> {
     let fiche = match ctx.salaries.get(cle_salarie) {
-        Some(f) => Some(f.clone()),
-        None => ctx.salarie(cle_salarie).ok(),
+        Some(f) => f.clone(),
+        None => ctx.salarie(cle_salarie)?,
     };
-    fiche.and_then(|f| f.conges_reprise.dite().cloned())
+    Ok(fiche.conges_reprise.dite().cloned())
 }
 
 /// LE COMPTEUR QUI NE COMPTE PAS TOUT : sa periode la plus ancienne (`depuis`, le debut du report, sinon de la periode
@@ -400,12 +400,12 @@ pub const MENSUELS: &str = "mensuels ";
 /// ces contrats (leur premier mois et leur debut) ; la paie note leur empreinte (`empreinte_des_mensuels_d_avant`) : qu'un
 /// contrat s'ajoute avant elle, et elle se refait.
 fn mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Vec<String>> {
-    let mut out: Vec<String> = crate::stock::objets(&ctx.racine)?
-        .iter()
-        .filter(|o| o.fichier.as_str() < mois && !o.est_non_actif() && !o.importe_seul() && o.mensuel())
-        .filter(|o| crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle))
-        .map(|o| format!("{}#{}", o.fichier, crate::debut_brut(&ctx.racine, &o.brut)))
-        .collect();
+    let mut out: Vec<String> = Vec::new();
+    for o in crate::stock::objets(&ctx.racine)? {
+        if o.fichier.as_str() < mois && !o.est_non_actif() && !o.importe_seul() && o.mensuel()? && crate::cle_de_l_engagement(ctx, &o.brut).as_deref() == Some(cle) {
+            out.push(format!("{}#{}", o.fichier, crate::debut_brut(&ctx.racine, &o.brut)));
+        }
+    }
     out.sort();
     Ok(out)
 }
@@ -415,8 +415,8 @@ fn empreinte_des(mensuels: &[String]) -> String {
 }
 
 /// L'empreinte des contrats payes au mois du salarie `cle` commences avant `mois` (`mensuels_d_avant`).
-pub(crate) fn empreinte_des_mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Option<String> {
-    mensuels_d_avant(ctx, mois, cle).ok().map(|m| empreinte_des(&m))
+pub(crate) fn empreinte_des_mensuels_d_avant(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<String> {
+    Ok(empreinte_des(&mensuels_d_avant(ctx, mois, cle)?))
 }
 
 /// Ce qu'une periode de reference a acquis (avant le plafond), vu prendre et paye, a mesure que ses mois s'y ajoutent,
@@ -430,18 +430,17 @@ struct Tenue {
 
 impl Tenue {
     /// Ce que la periode [debut, fin] tient de la reprise de l'ancien logiciel, avant tout mois produit ici.
-    fn ouvrir(rep:Option<&Reprise>, debut: &Jour, fin: &Jour) -> Tenue {
+    fn ouvrir(rep: Option<&Reprise>, debut: &Jour, fin: &Jour) -> Resultat<Tenue> {
         let mut t = Tenue { acquis: Decimal::ZERO, pris: Decimal::ZERO, brut: zero2(), avis: Vec::new() };
-        if let Some(r) = rep.filter(|r| *debut <= r.date && r.date <= *fin) {
+        let Some(r) = rep else { return Ok(t) };
+        if *debut <= r.date && r.date <= *fin {
             t.acquis = add(t.acquis, r.acquis);
             t.pris += r.pris;
             t.brut = add(t.brut, r.remuneration_periode);
-        } else if let Some(r) = rep.filter(|r| {
-            periode_de_reference(&r.date).and_then(|p| p.0.plus_jours(-1)).is_ok_and(|v| *fin == v)
-        }) {
+        } else if *fin == periode_de_reference(&r.date)?.0.plus_jours(-1)? {
             t.brut = add(t.brut, r.remuneration_report);
         }
-        t
+        Ok(t)
     }
 
     /// Ce que les paies validees `paies` du salarie (`cle`, la cle de sa fiche) en `mois` apportent a la periode [debut,
@@ -508,7 +507,7 @@ fn periode(
     remuneration: bool,
 ) -> Resultat<(Decimal, Decimal, Decimal, Vec<Avis>)> {
     let rep = reprise_conges(ctx, cle_salarie)?;
-    let mut t = Tenue::ouvrir(rep.as_ref(), debut, fin);
+    let mut t = Tenue::ouvrir(rep.as_ref(), debut, fin)?;
     let cle = cle_de_fiche(ctx, cle_salarie)?;
     for (mois, paies) in mois_de_la_periode(ctx, &cle, debut, fin, jusqu_au_mois)? {
         t.ajouter(ctx, cle_salarie, &cle, rep.as_ref(), debut, fin, &mois, &paies, remuneration)?;
@@ -551,7 +550,7 @@ fn compteur(
         },
         avis_du_report,
         premier: report.premier,
-        reprise: reprise_ecrite(ctx, cle_salarie),
+        reprise: reprise_ecrite(ctx, cle_salarie)?,
     })
 }
 
@@ -570,7 +569,7 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
     let cle = cle_de_fiche(ctx, cle_salarie)?;
     let paies = paies_du_mois(ctx, &precedent, &cle)?;
     let Some(a) = paies.iter().find_map(|p| p.avant.clone()) else { return Ok(None) };
-    if a.reprise != reprise_ecrite(ctx, cle_salarie) {
+    if a.reprise != reprise_ecrite(ctx, cle_salarie)? {
         return Ok(None);
     }
     let rep = reprise_conges(ctx, cle_salarie)?;
@@ -648,7 +647,7 @@ fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> R
         (Some(_), Some(_)) if reste > Decimal::ZERO => c.remuneration_report,
         _ => zero2(),
     };
-    let ouverte = Tenue::ouvrir(rep.as_ref(), &debut, &fin);
+    let ouverte = Tenue::ouvrir(rep.as_ref(), &debut, &fin)?;
     let pris_sur_la_periode = pris_de_la_reprise(ctx, cle_salarie, &debut, &fin)?;
     fini(ouverte, reste, report_debut, report_fin, acquis_report, remuneration_report, pris_sur_la_periode, avis_du_report).map(Some)
 }
@@ -782,7 +781,7 @@ pub struct Reprise {
 /// chacun de ses nombres (0 s'il n'y en a pas) ; un montant illisible s'est refuse a la lecture de la fiche
 /// (`fiche::Montant`).
 pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Reprise>> {
-    let Some(r) = reprise_ecrite(ctx, cle_salarie) else { return Ok(None) };
+    let Some(r) = reprise_ecrite(ctx, cle_salarie)? else { return Ok(None) };
     let Some(date) = r.date.dite().copied() else { return Ok(None) };
     let nombre = |c: &droit::fiche::Case<droit::fiche::Montant>, cle: &str| {
         c.dite().map(droit::fiche::Montant::decimal).ok_or_else(|| {

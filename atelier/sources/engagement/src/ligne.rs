@@ -280,9 +280,13 @@ impl LignePaie {
         self.dates.iter().map(DateDeLigne::lu).collect()
     }
 
-    /// Le premier jour de la ligne (ses dates, puis son planning), s'il se lit.
+    /// Le premier jour de la ligne (ses dates, puis son planning), s'il se lit : un jour illisible, le calcul le refuse en
+    /// le nommant (`jours`).
     pub fn premier_jour(&self) -> Option<Jour> {
-        self.dates.first().or(self.planning.first()).and_then(|x| x.lu().ok())
+        match self.dates.first().or(self.planning.first()).map(DateDeLigne::lu) {
+            Some(Ok(j)) => Some(j),
+            Some(Err(_)) | None => None,
+        }
     }
 
     /// Ses heures dites, en flottant (`None` : rien n'est dit).

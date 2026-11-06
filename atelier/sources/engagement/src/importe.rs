@@ -412,12 +412,21 @@ impl ContratAtteste {
 #[derive(Debug, Clone)]
 pub struct Importe {
     objet: Objet,
+    /// Le contrat d'un permanent : paye au mois, ou de nature encore a dire ; lu une fois, avec sa nature.
+    permanent: bool,
 }
 
 impl Importe {
-    /// L'engagement `o` s'il est importe.
-    pub fn de(o: Objet) -> Option<Importe> {
-        o.est_importe().then_some(Importe { objet: o })
+    /// L'engagement `o` s'il est importe ; une nature dite que le moteur ne connait pas se refuse.
+    pub fn de(o: Objet) -> Resultat<Option<Importe>> {
+        if !o.est_importe() {
+            return Ok(None);
+        }
+        let mut i = Importe { objet: o, permanent: true };
+        if let Some(n) = i.nature() {
+            i.permanent = droit::natures::nature(Some(&n))?.mensuelle();
+        }
+        Ok(Some(i))
     }
 
     /// L'engagement tel qu'il est ecrit.
@@ -475,7 +484,7 @@ impl Importe {
 
     /// Le contrat d'un permanent : paye au mois, ou de nature encore a dire.
     pub fn permanent(&self) -> bool {
-        self.a_dire() || droit::natures::nature(self.nature().as_deref()).is_ok_and(|n| n.mensuelle())
+        self.permanent
     }
 
     /// LE CONTRAT D'USAGE QUI CONTINUE ICI : le dernier mois verse par l'ancien logiciel, quand le contrat que la DSN
@@ -623,7 +632,7 @@ impl Importe {
         if lignes_lues.is_empty() {
             lignes_lues.push(LigneImprimee { libelle: "brut déclaré".into(), montant: Some(brut), soumis: true, ..Default::default() });
         }
-        let quotite = p.quotite.and_then(|q| q.to_string().parse::<f64>().ok());
+        let quotite = p.quotite.map(socle::num::flottant);
         let mut engagement = crate::Engagement {
             salarie: cle.clone(),
             nom: crate::qui_de(&sal)?,
@@ -685,7 +694,7 @@ impl Importe {
 
         // Les lignes de cotisation du bulletin, sous leur cotisation ; une ligne que l'import n'a pas qualifiee garde
         // son libelle, sans cotisation.
-        let taux = |x: Option<Decimal>| x.and_then(|d| d.to_string().parse::<f64>().ok());
+        let taux = |x: Option<Decimal>| x.map(socle::num::flottant);
         let cotisations: Vec<LigneCotisation> = p
             .cotisations
             .iter()
@@ -747,7 +756,7 @@ impl Importe {
         c.numero_bulletin = p.bulletin.as_ref().and_then(|b| b.numero.clone()).filter(|n| !n.is_empty());
         c.bases = bases;
         c.pas = p.pas.map(|prelevement| droit::pas::Versement {
-            taux: p.taux_pas.and_then(|t| t.to_string().parse::<f64>().ok()).map(droit::fiche::Montant::Flottant),
+            taux: p.taux_pas.map(socle::num::flottant).map(droit::fiche::Montant::Flottant),
             type_taux: p.type_pas.clone(),
             identifiant: p.identifiant_pas.clone(),
             abattement: zero,
@@ -766,7 +775,7 @@ pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
 
 /// Tous les engagements importes, fichier par fichier.
 pub fn tous(racine: &Path) -> Resultat<Vec<Importe>> {
-    Ok(stock::objets(racine)?.into_iter().filter_map(Importe::de).collect())
+    Ok(stock::objets(racine)?.into_iter().map(Importe::de).collect::<Resultat<Vec<_>>>()?.into_iter().flatten().collect())
 }
 
 /// Les engagements importes qui touchent `mois`.
@@ -857,17 +866,20 @@ impl Importe {
     /// ici, `propres` etant ceux que la saisie lui donne : les jours que les bulletins importes impriment, plus les siens ;
     /// a defaut d'un bulletin pour chaque mois verse, la quotite que la DSN deposee a declaree pour ce contrat (elle le
     /// dit pour le contrat entier, `norme-dsn/texte/bloc-S21.G00.40.txt`). `None` quand aucune piece ne les donne.
-    pub fn jours_du_contrat_continue(&self, propres: usize) -> Option<i64> {
+    pub fn jours_du_contrat_continue(&self, propres: usize) -> Resultat<Option<i64>> {
         let jours = |p: &PaieVersee| -> Option<i64> {
             let n: i64 = p.dates.iter().map(|d| d.fin.moins(&d.debut) + 1).sum();
             (n > 0).then_some(n)
         };
         let lus: Option<Vec<i64>> = self.paies().values().map(jours).collect();
         if let Some(l) = lus.filter(|l| !l.is_empty()) {
-            return Some(l.iter().sum::<i64>() + propres as i64);
+            return Ok(Some(l.iter().sum::<i64>() + propres as i64));
         }
-        let dernier = self.paies().values().last()?;
-        dernier.quotite.filter(|q| *q > Decimal::ZERO && q.fract().is_zero()).and_then(|q| q.trunc().to_string().parse().ok())
+        let Some(dernier) = self.paies().values().last() else { return Ok(None) };
+        match dernier.quotite.filter(|q| *q > Decimal::ZERO && q.fract().is_zero()) {
+            Some(q) => i64::try_from(q).map(Some).map_err(|_| format!("quotité déclarée hors de portée : {}", q)),
+            None => Ok(None),
+        }
     }
 }
 
@@ -898,7 +910,7 @@ pub struct Neuf {
 /// (`dernier`), et il ne finit pas avant le mois qui suit.
 fn continue_ici(e: &Neuf, dernier: &str) -> Resultat<bool> {
     let nature = Carte::texte(&e.carte.nature);
-    let mensuel = !nature.is_empty() && droit::natures::nature(Some(&nature)).is_ok_and(|n| n.mensuelle());
+    let mensuel = !nature.is_empty() && droit::natures::nature(Some(&nature))?.mensuelle();
     let suite = socle::mois::Mois::lire(dernier).map(|m| m.suivant().to_string())?;
     let fin = Carte::texte(&e.carte.fin);
     Ok(mensuel && e.pieces.paies.contains_key(dernier) && (fin.is_empty() || fin.as_str() >= format!("{}-01", suite).as_str()))

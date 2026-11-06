@@ -100,9 +100,10 @@ pub fn mtime(m: &std::fs::Metadata) -> f64 {
 
 #[cfg(not(unix))]
 pub fn mtime(m: &std::fs::Metadata) -> f64 {
-    match m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()) {
-        Some(d) => d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
-        None => 0.0,
+    match m.modified().map(|t| t.duration_since(std::time::UNIX_EPOCH)) {
+        Ok(Ok(d)) => d.as_secs() as f64 + d.subsec_nanos() as f64 * 1e-9,
+        // Avant 1970, ou sans date.
+        Ok(Err(_)) | Err(_) => 0.0,
     }
 }
 
@@ -158,7 +159,8 @@ pub fn naif_de_iso(iso: &str) -> Option<i64> {
     let c: Vec<char> = iso.chars().collect();
     let n = |a: usize, b: usize| -> Option<i64> {
         let t: String = c.get(a..b)?.iter().collect();
-        t.chars().all(|x| x.is_ascii_digit()).then(|| t.parse().ok()).flatten()
+        // Des chiffres seuls, au plus quatre : leur valeur se compte, sans lecture qui puisse echouer.
+        t.chars().all(|x| x.is_ascii_digit()).then(|| t.bytes().fold(0i64, |n, x| n * 10 + i64::from(x - b'0')))
     };
     let jour = Jour::nouveau(n(0, 4)? as i32, n(5, 7)? as u32, n(8, 10)? as u32)?;
     let jours = jour.ordinal() - 719_163;

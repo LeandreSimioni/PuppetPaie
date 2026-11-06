@@ -66,10 +66,10 @@ fn composer_deux(a: char, b: char) -> Option<char> {
     if (S_BASE..S_BASE + S_NB).contains(&x) && (x - S_BASE) % T_NB == 0 && (T_BASE + 1..T_BASE + T_NB).contains(&y) {
         return char::from_u32(x + (y - T_BASE));
     }
-    COMPOSITIONS
-        .binary_search_by(|&(p, s, _)| (p, s).cmp(&(x, y)))
-        .ok()
-        .and_then(|i| char::from_u32(COMPOSITIONS[i].2))
+    match COMPOSITIONS.binary_search_by(|&(p, s, _)| (p, s).cmp(&(x, y))) {
+        Ok(i) => char::from_u32(COMPOSITIONS[i].2),
+        Err(_absente_de_la_table) => None,
+    }
 }
 
 /// `unicodedata.normalize("NFKC", texte)`.

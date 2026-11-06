@@ -1368,11 +1368,18 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &VueDuMois, mois: &str) -> 
         if e.est_validee() {
             let sien = (e.salarie.clone(), e.numero_dit().map(String::from));
             // Un mois d'apres le present n'a pas encore de paie ecrite : l'engagement valide s'y calcule pour l'ecran.
-            let a_venir = |x: &engagement::etats::Etat| mois > engagement::etats::mois_present(ctx).as_str() && x.valide().is_some_and(|v| v.paie_ecrite(mois).is_none());
-            let trouve = etats.iter().enumerate().find(|(_, x)| x.valide().is_some() && !a_venir(x) && sien.1.is_some() && qui(x.objet().carte()) == sien);
+            let apres_le_present = mois > engagement::etats::mois_present(ctx).as_str();
+            let mut trouve = None;
+            for (j, x) in etats.iter().enumerate() {
+                let a_venir = apres_le_present && x.paie_ecrite(mois)?.is_none();
+                if x.valide().is_some() && !a_venir && sien.1.is_some() && qui(x.objet().carte()) == sien {
+                    trouve = Some((j, x));
+                    break;
+                }
+            }
             if let (Some((j, x)), Some(d)) = (trouve, disque.as_ref()) {
                 let v = x.valide().ok_or("engagement en saisie")?;
-                lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois) });
+                lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois)? });
             }
         }
         lues.push(lue);

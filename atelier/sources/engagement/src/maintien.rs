@@ -598,8 +598,9 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &ArretSaisi) -> Resultat<Result<IjDeP
         Some(Origine::Maladie) => {
             let p = &regles.principe;
             // Le SMIC du plafond, au bareme de son annee : sans lui, rien ne se propose.
-            let Some(smic) = ctx.smic(&veille).ok().and_then(|s| Decimal::try_from(s).ok()) else {
-                return Ok(Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : le barème {} n'est pas livré.", veille.an)));
+            let smic = match ctx.smic(&veille) {
+                Ok(s) => Decimal::try_from(s).map_err(|_| format!("SMIC illisible : {}", s))?,
+                Err(pourquoi) => return Ok(Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : {}", pourquoi))),
             };
             let combien = p.mois;
             let (mut bruts, mut jour) = (Vec::new(), veille.clone());
@@ -628,8 +629,9 @@ pub fn ij_de_principe(ctx: &Contexte, imp: &ArretSaisi) -> Resultat<Result<IjDeP
             if accident < p.plafond_depuis {
                 return Ok(Err(IJ_AU_RELEVE.to_string()));
             }
-            let Ok((mensuel, _)) = ctx.plafond_securite_sociale(premier.an) else {
-                return Ok(Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : le barème {} n'est pas livré.", premier.an)));
+            let mensuel = match ctx.plafond_securite_sociale(premier.an) {
+                Ok((mensuel, _)) => mensuel,
+                Err(pourquoi) => return Ok(Err(format!("Le montant d'un jour se lit sur le relevé de la CPAM : {}", pourquoi))),
             };
             let brut = match paie(&veille.mois_civil().to_string())? {
                 Ok(b) => b,

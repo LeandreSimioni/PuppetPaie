@@ -13,6 +13,8 @@ use crate::saisie::{Carte, Champ, Groupe, Valeur};
 use crate::stock::{Saisie, Version};
 use droit::contexte::Contexte;
 use socle::date::Jour;
+use socle::mois::{Graphie, Mois};
+use socle::num::Resultat;
 use socle::texte::{euros, virgule};
 
 /// « 14/11 » d'un jour ISO ; tel quel s'il ne se lit pas.
@@ -388,12 +390,14 @@ pub struct VersionDeLaFrise {
 /// LA FRISE de l'engagement valide `v` (`Frise`). `None` : aucune version passee, jamais modifie apres un envoi, ou la
 /// paie de `mois` est restee celle de la version d'avant (un contrat au mois change a partir d'un mois suivant : ce
 /// mois-ci reste tel qu'il est parti).
-pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Option<Frise> {
+pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Resultat<Option<Frise>> {
     let passees = v.versions();
-    let paie_du_mois = |x: Version| crate::etats::paie_ecrite_de_la_version(v.objet(), x, mois).ok().flatten().map(|p| p.paie.clone());
+    let paie_du_mois = |x: Version| -> Resultat<_> { Ok(crate::etats::paie_ecrite_de_la_version(v.objet(), x, mois)?.map(|p| p.paie.clone())) };
     let present = v.objet().brut.valide.as_ref().map(Version::Presente);
-    if passees.last().map(Version::Passee).zip(present).is_none_or(|(a, p)| paie_du_mois(a).is_some() && paie_du_mois(a) == paie_du_mois(p)) {
-        return None;
+    let Some((a, p)) = passees.last().map(Version::Passee).zip(present) else { return Ok(None) };
+    let avant = paie_du_mois(a)?;
+    if avant.is_some() && avant == paie_du_mois(p)? {
+        return Ok(None);
     }
     let siens = ses_departs(ctx, v.objet(), departs);
     let toutes: Vec<(Option<Version>, String)> = passees
@@ -423,29 +427,29 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Optio
         versions.push(VersionDeLaFrise { version: n, le: le.clone(), jour: jour_court(le), titre_dit, jour_dit: format!("le {}", jour_court(le)), changements: changes, partis });
         precedente = Some(*x);
     }
-    Some(Frise { phrase: phrase_de_la_frise(ctx, v, departs, siens), versions })
+    Ok(Some(Frise { phrase: phrase_de_la_frise(ctx, v, departs, siens)?, versions }))
 }
 
 /// LA LIGNE SOUS LA CARTE : quand l'engagement a change, a partir de quel mois si ce n'est pas son premier, et ce qui
 /// etait parti que le changement touche (`etats::a_refaire`), groupe par sorte, les mois qui se suivent en une etendue :
 /// « Modifié le 20/01, à partir de septembre 2025, après l'envoi du contrat, des documents et des DSN de septembre à
 /// décembre 2025 ». Le detail, envoi par envoi, est dans la frise.
-fn phrase_de_la_frise(ctx: &Contexte, v: &Valide, departs: &Departs, siens: &[Depart]) -> String {
+fn phrase_de_la_frise(ctx: &Contexte, v: &Valide, departs: &Departs, siens: &[Depart]) -> Resultat<String> {
     let mut phrase = format!("Modifié le {}", jour_court(v.le()));
-    if let Some(m) = premier_mois_change(v).filter(|m| m.as_str() != v.objet().premier_mois()) {
+    if let Some(m) = premier_mois_change(v)?.filter(|m| m.as_str() != v.objet().premier_mois()) {
         phrase.push_str(&format!(", à partir de {}", socle::mois::Mois::en_clair(&m)));
     }
     let (mut contrat, mut dpae) = (false, false);
     let (mut documents, mut dsn) = (std::collections::BTreeSet::new(), std::collections::BTreeSet::new());
-    for a in crate::etats::a_refaire(ctx, v, departs) {
+    for a in crate::etats::a_refaire(ctx, v, departs)? {
         match a {
             ARefaire::Avenant { .. } => contrat = true,
             ARefaire::Dpae { .. } => dpae = true,
             ARefaire::Bulletin { mois, .. } => {
-                documents.insert(mois);
+                documents.insert(Mois::lire(&mois)?);
             }
             ARefaire::Dsn { mois, .. } => {
-                dsn.insert(mois);
+                dsn.insert(Mois::lire(&mois)?);
             }
         }
     }
@@ -471,36 +475,41 @@ fn phrase_de_la_frise(ctx: &Contexte, v: &Valide, departs: &Departs, siens: &[De
     if !quoi.is_empty() {
         phrase.push_str(&format!(", après l'envoi {}", enumerer(&quoi)));
     }
-    phrase
+    Ok(phrase)
 }
 
 /// Le premier mois dont la paie a change au dernier changement de l'engagement valide `v` (sa derniere version passee
-/// contre son present) ; `None` si aucune ne se lit autrement.
-fn premier_mois_change(v: &Valide) -> Option<String> {
-    let avant = Version::Passee(v.versions().last()?);
-    let present = Version::Presente(v.objet().brut.valide.as_ref()?);
-    let paie = |x: Version, m: &str| crate::etats::paie_ecrite_de_la_version(v.objet(), x, m).ok().flatten().map(|p| p.paie.clone());
-    crate::paies::mois_ecrits(v.objet()).ok()?.into_iter().find(|m| paie(avant, m) != paie(present, m))
+/// contre son present) ; `None` si aucune ne se lit autrement, ou sans version passee.
+fn premier_mois_change(v: &Valide) -> Resultat<Option<String>> {
+    let (Some(passee), Some(valide)) = (v.versions().last(), v.objet().brut.valide.as_ref()) else { return Ok(None) };
+    let (avant, present) = (Version::Passee(passee), Version::Presente(valide));
+    let paie = |x: Version, m: &str| -> Resultat<_> { Ok(crate::etats::paie_ecrite_de_la_version(v.objet(), x, m)?.map(|p| p.paie.clone())) };
+    for m in crate::paies::mois_ecrits(v.objet())? {
+        if paie(avant, &m)? != paie(present, &m)? {
+            return Ok(Some(m));
+        }
+    }
+    Ok(None)
 }
 
 /// « de septembre à décembre 2025 », « d'avril 2025 et de juin 2025 », « de novembre 2025 à février 2026 » : des mois
 /// `AAAA-MM`, ceux qui se suivent en une etendue.
-fn de_mois(mois: &std::collections::BTreeSet<String>) -> String {
-    let mut etendues: Vec<(String, String)> = Vec::new();
+fn de_mois(mois: &std::collections::BTreeSet<Mois>) -> String {
+    let mut etendues: Vec<(Mois, Mois)> = Vec::new();
     for m in mois {
         match etendues.last_mut() {
-            Some((_, fin)) if socle::mois::Mois::lire(fin).is_ok_and(|f| f.suivant() == *m) => *fin = m.clone(),
-            _ => etendues.push((m.clone(), m.clone())),
+            Some((_, fin)) if fin.suivant() == *m => *fin = *m,
+            _ => etendues.push((*m, *m)),
         }
     }
     let dites: Vec<String> = etendues
         .iter()
         .map(|(a, b)| {
-            let (la, lb) = (socle::mois::Mois::en_clair(a), socle::mois::Mois::en_clair(b));
+            let (la, lb) = (a.libelle(Graphie::Accentuee), b.libelle(Graphie::Accentuee));
             let texte = if a == b {
                 la
-            } else if let (Some(an), true) = (a.get(..4), a.get(..4) == b.get(..4)) {
-                format!("{} à {}", la.trim_end_matches(&format!(" {}", an)), lb)
+            } else if a.annee() == b.annee() {
+                format!("{} à {}", a.nom(Graphie::Accentuee), lb)
             } else {
                 format!("{} à {}", la, lb)
             };

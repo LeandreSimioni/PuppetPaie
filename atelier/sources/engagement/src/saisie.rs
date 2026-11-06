@@ -383,9 +383,13 @@ impl Carte {
         }
     }
 
-    /// La fiche que la carte nomme, lue comme le calcul la lit (`Contexte::cle_du_salarie`) ; `None` sans elle.
+    /// La fiche que la carte nomme, lue comme le calcul la lit (`Contexte::cle_du_salarie`) ; `None` sans elle, ou quand
+    /// aucune fiche ne porte le nom qu'elle donne (le calcul le refuse en le nommant).
     pub fn cle(&self, ctx: &droit::contexte::Contexte) -> Option<droit::contexte::IdSalarie> {
-        ctx.cle_du_salarie(self.salarie.as_deref()?).ok()
+        match ctx.cle_du_salarie(self.salarie.as_deref()?) {
+            Ok(cle) => Some(cle),
+            Err(_aucune_fiche) => None,
+        }
     }
 
     /// Le debut, comme `Engagement` le deduirait : celui qu'elle dit, sinon son premier jour joue ; vide sans aucun.
@@ -425,8 +429,8 @@ impl Carte {
     }
 
     /// Un contrat paye au mois ?
-    pub fn mensuelle(&self) -> bool {
-        self.nature_lue().is_ok_and(|n| n.mensuelle())
+    pub fn mensuelle(&self) -> Resultat<bool> {
+        Ok(self.nature_lue()?.mensuelle())
     }
 
     /// Le texte d'un champ texte dit et non vide ; vide sinon.

@@ -30,7 +30,12 @@ fn en_f64(x: Decimal) -> f64 {
 /// les jours du contrat, les suspensions, et, pour un permanent, les lignes et les jours que le moteur a deduits. `paies` : la forme
 /// ecrite de chaque paie, dans l'ordre de la saisie.
 pub fn engagements_ecrits(ctx: &Contexte, data: &crate::saisie::VueDuMois, paies: &[&FormeDePaie<Avis>]) -> Resultat<Vec<Engagement>> {
-    let mensuels: Vec<usize> = data.engagements.iter().enumerate().filter(|(_, e)| e.mensuelle()).map(|(i, _)| i).collect();
+    let mut mensuels: Vec<usize> = Vec::new();
+    for (i, e) in data.engagements.iter().enumerate() {
+        if e.mensuelle()? {
+            mensuels.push(i);
+        }
+    }
     let appel = Cell::new(0usize);
     let lignes = |_: &Contexte, _: &crate::saisie::Carte, _: &str| -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)> {
         let rang = *mensuels.get(appel.get()).ok_or("rang d'engagement inconnu")?;

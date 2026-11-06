@@ -308,10 +308,13 @@ fn introuvable(message: String) -> Refus {
 }
 
 /// Les annees dont le socle est livre.
-fn annees_du_socle(dossier: &Path) -> Vec<i32> {
-    let mut v: Vec<i32> = socle::fichiers::lister(dossier)
+fn annees_du_socle(dossier: &Path) -> Resultat<Vec<i32>> {
+    let fichiers = match socle::fichiers::lister(dossier)? {
+        Some(f) => f,
+        None => Vec::new(),
+    };
+    let mut v: Vec<i32> = fichiers
         .into_iter()
-        .flatten()
         .filter_map(|p| {
             if p.extension()? != "json" {
                 return None;
@@ -324,16 +327,15 @@ fn annees_du_socle(dossier: &Path) -> Vec<i32> {
         })
         .collect();
     v.sort();
-    v
+    Ok(v)
 }
 
-/// Les annees disponibles, ecrites comme `", ".join(...) or "aucune"`.
+/// Les annees disponibles, ecrites comme `", ".join(...) or "aucune"` ; le refus du disque, s'il refuse.
 fn disponibles(dossier: &Path) -> String {
-    let a = annees_du_socle(dossier);
-    if a.is_empty() {
-        "aucune".to_string()
-    } else {
-        a.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")
+    match annees_du_socle(dossier) {
+        Ok(a) if a.is_empty() => "aucune".to_string(),
+        Ok(a) => a.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "),
+        Err(e) => e,
     }
 }
 
@@ -1240,7 +1242,7 @@ impl Contexte {
         let jour = self.aujourdhui;
         let an = match fichier_du_socle(&dossier, jour.an) {
             Some(_) => jour.an,
-            None => annees_du_socle(&dossier).into_iter().max().ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?,
+            None => annees_du_socle(&dossier)?.into_iter().max().ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?,
         };
         let fichier = fichier_du_socle(&dossier, an).ok_or_else(|| socle::echec::livree("baremes", "par_convention"))?;
         // Le dernier jour de l'annee du socle quand il est d'une annee passee : ses valeurs datees y valent toutes.

@@ -55,7 +55,7 @@ fn centimes(x: Decimal) -> Decimal {
 
 /// Un taux ou un total en nombre.
 fn flottant(x: Decimal) -> Option<Chiffre> {
-    x.to_string().parse::<f64>().ok().and_then(NombreLu::de_f64).map(Chiffre::Nombre)
+    NombreLu::de_f64(socle::num::flottant(x)).map(Chiffre::Nombre)
 }
 
 /// Une valeur saisie : ni absente, ni vide.
@@ -72,13 +72,18 @@ fn absent_ou_zero(v: &Option<Chiffre>) -> bool {
     !rempli(v) || matches!(v, Some(Chiffre::Nombre(n)) if n.as_f64() == Some(0.0))
 }
 
-fn rubrique_de(ctx: &Contexte, ligne: &LignePaie) -> Option<droit::catalogue::Rubrique> {
-    droit::catalogue::rubrique(&ctx.racine, ligne.rubrique.as_deref()?, &ctx.lue_au).ok()
+/// La rubrique de la ligne ; `None` pour une ligne qui n'en dit pas ; une rubrique que le catalogue ne connait pas se
+/// refuse.
+fn rubrique_de(ctx: &Contexte, ligne: &LignePaie) -> R<Option<droit::catalogue::Rubrique>> {
+    match ligne.rubrique.as_deref().filter(|c| !c.is_empty()) {
+        Some(code) => droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).map(Some).map_err(refus),
+        None => Ok(None),
+    }
 }
 
 /// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.
-fn ligne_ajustable(ctx: &Contexte, ligne: &LignePaie) -> bool {
-    rubrique_de(ctx, ligne).is_some_and(|r| r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && !absent_ou_zero(&ligne.taux))
+fn ligne_ajustable(ctx: &Contexte, ligne: &LignePaie) -> R<bool> {
+    Ok(rubrique_de(ctx, ligne)?.is_some_and(|r| r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && !absent_ou_zero(&ligne.taux)))
 }
 
 fn taux_vide(l: &LignePaie) -> bool {
@@ -95,12 +100,16 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut VueDuMois, rangs: &[usize])
     for &i in rangs {
         let e = engagement_de(data, i)?;
         let lignes = e.lignes().to_vec();
-        if e.salaire_mensuel.is_some() || lignes.iter().any(|l| ligne_ajustable(ctx, l)) {
+        let mut ajustable = false;
+        for l in &lignes {
+            ajustable |= ligne_ajustable(ctx, l)?;
+        }
+        if e.salaire_mensuel.is_some() || ajustable {
             continue;
         }
         let mut sans_taux: Vec<(usize, String)> = Vec::new();
         for (k, ligne) in lignes.iter().enumerate() {
-            let Some(r) = rubrique_de(ctx, ligne) else { continue };
+            let Some(r) = rubrique_de(ctx, ligne)? else { continue };
             if r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && absent_ou_zero(&ligne.taux) && rempli(&ligne.quantite) && !absent_ou_zero(&ligne.quantite) {
                 sans_taux.push((k, r.libelle));
             }
@@ -155,7 +164,7 @@ fn a_l_echelle(ctx: &Contexte, e: &mut Carte, facteur: Decimal) -> R<bool> {
         touche = true;
     }
     for l in e.lignes.iter_mut().flatten() {
-        if !ligne_ajustable(ctx, l) {
+        if !ligne_ajustable(ctx, l)? {
             continue;
         }
         if let Some(t) = &l.taux {

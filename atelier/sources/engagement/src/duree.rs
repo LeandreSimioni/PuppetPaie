@@ -41,17 +41,22 @@ fn heures_par_jour(ctx: &Contexte, lignes: &[LignePaie]) -> Resultat<BTreeMap<Jo
         if !travail {
             continue;
         }
-        let dates: Vec<Jour> = l.dates.iter().filter_map(|x| x.lu().ok()).collect();
+        let dates: Vec<Jour> = l.jours()?;
         if dates.is_empty() {
             continue;
         }
-        let nombre = |c: &Option<Chiffre>| match c.as_ref()? {
-            Chiffre::Nombre(n) => n.as_f64(),
-            Chiffre::Texte(s) => s.trim().replace(',', ".").parse().ok(),
+        // Une case vide ne dit rien ; une virgule decimale se lit comme un point ; un texte qui n'est pas un nombre se
+        // refuse.
+        let nombre = |c: &Option<Chiffre>| -> Resultat<Option<f64>> {
+            match crate::ligne::dite(c) {
+                None => Ok(None),
+                Some(Chiffre::Nombre(n)) => n.as_f64().map(Some).ok_or_else(|| socle::num::illisible(&n.to_string())),
+                Some(Chiffre::Texte(s)) => s.trim().replace(',', ".").parse().map(Some).map_err(|_| socle::num::illisible(s)),
+            }
         };
         // La quantite d'une ligne de travail est dite (`lignes_dites`, avant ce compte) : sans elle, rien ne se compte.
-        let quantite = nombre(&l.quantite).ok_or_else(|| socle::fichiers::absent("quantite"))?;
-        let total = r.heures(quantite, nombre(&l.heures));
+        let quantite = nombre(&l.quantite)?.ok_or_else(|| socle::fichiers::absent("quantite"))?;
+        let total = r.heures(quantite, nombre(&l.heures)?);
         let par_jour = total / dates.len() as f64;
         for j in &dates {
             let x = jours.entry(*j).or_insert((0.0, false));

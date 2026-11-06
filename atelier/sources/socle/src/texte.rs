@@ -136,29 +136,29 @@ pub fn ascii_nfkd(v: &str) -> String {
             continue;
         }
         let cp = c as u32;
-        if let Some((a, _, t, avance)) = crate::nfkd_ascii::TABLE
-            .binary_search_by(|(a, b, _, _)| {
-                if cp < *a {
-                    std::cmp::Ordering::Greater
-                } else if cp > *b {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Equal
-                }
-            })
-            .ok()
-            .map(|i| crate::nfkd_ascii::TABLE[i])
-        {
-            if avance {
-                // Une plage qui avance (`a` a `b` vers `t`, `t+1`...) : le caractere de meme rang depuis le premier de `t`.
-                let decale = t.chars().next().and_then(|base| char::from_u32(base as u32 + (cp - a)));
-                ascii.push(match decale {
-                    Some(c) => c,
-                    None => ' ',
-                });
+        let plage = crate::nfkd_ascii::TABLE.binary_search_by(|(a, b, _, _)| {
+            if cp < *a {
+                std::cmp::Ordering::Greater
+            } else if cp > *b {
+                std::cmp::Ordering::Less
             } else {
-                ascii.push_str(t);
+                std::cmp::Ordering::Equal
             }
+        });
+        // Hors de la table, le caractere n'a pas d'ASCII : il tombe (`encode("ascii", "ignore")`).
+        let (a, t, avance) = match plage {
+            Ok(i) => (crate::nfkd_ascii::TABLE[i].0, crate::nfkd_ascii::TABLE[i].2, crate::nfkd_ascii::TABLE[i].3),
+            Err(_sans_ascii) => continue,
+        };
+        if avance {
+            // Une plage qui avance (`a` a `b` vers `t`, `t+1`...) : le caractere de meme rang depuis le premier de `t`.
+            let decale = t.chars().next().and_then(|base| char::from_u32(base as u32 + (cp - a)));
+            ascii.push(match decale {
+                Some(c) => c,
+                None => ' ',
+            });
+        } else {
+            ascii.push_str(t);
         }
     }
     ascii

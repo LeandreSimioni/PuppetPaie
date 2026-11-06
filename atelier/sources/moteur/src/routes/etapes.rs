@@ -676,8 +676,11 @@ pub(crate) fn contrat_parti_le(departs: &engagement::departs::Departs, cle: &str
 
 /// Ce qui est a refaire pour l'engagement `e` : le present compare a la version sur laquelle chaque envoi est parti
 /// (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
-pub(crate) fn a_refaire_de(ctx: &Contexte, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> Vec<ARefaire> {
-    e.valide().map(|v| engagement::etats::a_refaire(ctx, v, departs)).unwrap_or_default()
+pub(crate) fn a_refaire_de(ctx: &Contexte, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> R<Vec<ARefaire>> {
+    match e.valide() {
+        Some(v) => engagement::etats::a_refaire(ctx, v, departs).map_err(plain),
+        None => Ok(Vec::new()),
+    }
 }
 
 /// Les contrats de `mois` dont l'avenant est a faire signer : `(cle du salarie, numero)` des engagements dont les clauses
@@ -685,17 +688,19 @@ pub(crate) fn a_refaire_de(ctx: &Contexte, e: &engagement::etats::Etat, departs:
 pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String, String)>> {
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(plain)?;
     let etats = engagement::etats::du_mois(ctx, mois, &departs).map_err(plain)?;
-    Ok(etats
-        .iter()
-        .filter(|e| {
-            let avenant = |s: engagement::departs::Envoi| s == engagement::departs::Envoi::Contrat;
-            e.valide().is_some_and(|v| engagement::etats::a_refaire_parmi(ctx, v, &departs, &avenant).iter().any(|a| matches!(a, ARefaire::Avenant { .. })))
-        })
-        .filter_map(|e| {
-            let b = &*e.objet().brut;
-            Some((String::from(engagement::cle_de_l_engagement(ctx, &b)?), b.saisie.carte.numero.clone()?))
-        })
-        .collect())
+    let avenant = |s: engagement::departs::Envoi| s == engagement::departs::Envoi::Contrat;
+    let mut out = HashSet::new();
+    for e in &etats {
+        let Some(v) = e.valide() else { continue };
+        if !engagement::etats::a_refaire_parmi(ctx, v, &departs, &avenant).map_err(plain)?.iter().any(|a| matches!(a, ARefaire::Avenant { .. })) {
+            continue;
+        }
+        let b = &*e.objet().brut;
+        if let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &b), b.saisie.carte.numero.clone()) {
+            out.insert((String::from(cle), numero));
+        }
+    }
+    Ok(out)
 }
 
 /// La date d'embauche que la DPAE partie a declaree, quand elle n'est plus celle de l'engagement (`ARefaire::Dpae`).
@@ -725,13 +730,15 @@ pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, brut: &engagement::stock
 /// en `detail.etablissement`, le principal s'il est tu) : seuls comptent les engagements qui en relevent
 /// (`nic_de_l_engagement`). La paie de l'un d'eux a change depuis la version sur laquelle elle est partie
 /// (`refaire` : `Moteur::a_refaire_du_mois`), ou ils ne sont plus ceux qu'elle a emportes (`versions`) : un engagement ajoute, ou retire.
-pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &envois::journal::Ligne, etats: &[engagement::etats::Etat], refaire: &mut dyn FnMut(&engagement::etats::Etat) -> Rc<Vec<ARefaire>>) -> bool {
+pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &envois::journal::Ligne, etats: &[engagement::etats::Etat], refaire: &mut dyn FnMut(&engagement::etats::Etat) -> R<Rc<Vec<ARefaire>>>) -> R<bool> {
     // Une ligne qui ne dit pas ce qu'elle a emporte ne se compare a rien.
-    let Some(emportes) = derniere.versions() else { return false };
+    let Some(emportes) = derniere.versions() else { return Ok(false) };
     let nic = derniere.etablissement().map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
     let siens: Vec<&engagement::etats::Etat> = etats.iter().filter(|e| nic_de_l_engagement(ctx, e).as_deref() == Some(nic.as_str())).collect();
-    if siens.iter().any(|e| refaire(e).iter().any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois))) {
-        return true;
+    for e in &siens {
+        if refaire(e)?.iter().any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois)) {
+            return Ok(true);
+        }
     }
     // Les corrections de mois passes que la ligne porte ne sont pas des engagements de ce mois.
     let mut emportes: Vec<(String, String)> = emportes.iter().filter(|v| v.mois.is_none()).map(|v| (v.salarie.to_string(), v.numero.to_string())).collect();
@@ -745,7 +752,7 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &envois::journ
         .collect();
     emportes.sort();
     presents.sort();
-    emportes != presents
+    Ok(emportes != presents)
 }
 
 /// La saisie en JSON, sans les cles
@@ -1304,18 +1311,18 @@ impl<'a> Moteur<'a> {
     }
 
     /// CE QUI EST A REFAIRE de l'engagement `e` de `mois` (`a_refaire_de`), compare une fois.
-    fn a_refaire_du_mois(&mut self, mois: &str, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> Rc<Vec<ARefaire>> {
+    fn a_refaire_du_mois(&mut self, mois: &str, e: &engagement::etats::Etat, departs: &engagement::departs::Departs) -> R<Rc<Vec<ARefaire>>> {
         let brut = &*e.objet().brut;
         let cle = (mois.to_string(), engagement::cle_de_l_engagement(self.ctx, brut).map(String::from).unwrap_or_default(), brut.saisie.carte.numero.clone().unwrap_or_default());
         if e.valide().is_none() || cle.2.is_empty() {
-            return Rc::new(Vec::new());
+            return Ok(Rc::new(Vec::new()));
         }
         if let Some(r) = self.refaire.get(&cle) {
-            return r.clone();
+            return Ok(r.clone());
         }
-        let r = Rc::new(a_refaire_de(self.ctx, e, departs));
+        let r = Rc::new(a_refaire_de(self.ctx, e, departs)?);
         self.refaire.insert(cle, r.clone());
-        r
+        Ok(r)
     }
 
     fn saisie_chargee(&mut self, mois: &str) -> R<SaisieMois> {
@@ -1378,7 +1385,7 @@ impl<'a> Moteur<'a> {
         let departs = self.departs()?;
         // Ce qui est a refaire de chacun, compare une fois : la liste des DPAE, la ligne et la DSN du mois le lisent.
         for e in &etats_eng {
-            self.a_refaire_du_mois(mois, e, &departs);
+            self.a_refaire_du_mois(mois, e, &departs)?;
         }
         // LES DPAE A DEPOSER DU MOIS : la seule liste (`embauches_a_declarer`), que lisent aussi les rappels et le depot.
         let a_declarer: HashSet<Paire> = self.embauches_a_declarer(Some(le_mois))?.into_iter().map(|d| (d.salarie, d.numero.to_string())).collect();
@@ -1397,7 +1404,7 @@ impl<'a> Moteur<'a> {
             let cle = p.salarie.id.to_string();
             let debut = p.engagement.debut.iso();
             // CE QUI EST A REFAIRE : le present compare a la version sur laquelle chaque envoi est parti.
-            let refaire = self.a_refaire_du_mois(mois, e, &departs);
+            let refaire = self.a_refaire_du_mois(mois, e, &departs)?;
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
             let spectacle = match &p.spectacle {
@@ -1425,7 +1432,11 @@ impl<'a> Moteur<'a> {
                 Some(Echeances { dpae: droit::echeances::dpae(&p.engagement.debut), contrat: remise })
             };
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
-            let recalcul = e.valide().and_then(|v| v.recalcul(mois)).as_ref().and_then(engagement::etats::phrase_du_recalcul);
+            let recalcul = match e.valide() {
+                Some(v) => v.recalcul(mois).map_err(plain)?,
+                None => None,
+            };
+            let recalcul = recalcul.as_ref().and_then(engagement::etats::phrase_du_recalcul);
             // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
             let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref()).map_err(plain)?;
             // SIGNE AILLEURS : son contrat ecrit ne se fait pas signer ici, ses avenants si (`engagement::signe_ailleurs`).
@@ -1533,7 +1544,10 @@ impl<'a> Moteur<'a> {
                 a_completer: None,
             };
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
-            let frise = e.valide().and_then(|v| engagement::versions::frise(self.ctx, v, &departs, mois));
+            let frise = match e.valide() {
+                Some(v) => engagement::versions::frise(self.ctx, v, &departs, mois).map_err(plain)?,
+                None => None,
+            };
             out.push(Ligne::de(vue, le_mois, frise.map_or(Value::Null, |f| socle::ecriture::en_valeur(&f)), id.clone()));
         }
         Ok(out)
@@ -1629,10 +1643,10 @@ impl<'a> Moteur<'a> {
     /// qui les a deja lues, les passe.
     pub(crate) fn empreinte_saisie_avec(&self, mois: Mois, portees: impl FnOnce() -> R<Vec<Value>>) -> R<Option<String>> {
         let mois = &mois.to_string();
-        let vue = engagement::etats::empreinte_des_paies_validees(self.ctx, mois, None);
+        let vue = engagement::etats::empreinte_des_paies_validees(self.ctx, mois, None).map_err(plain)?;
         let portees: Vec<Value> = portees().unwrap_or_else(|e| vec![json!(e.message)]);
         Ok(match (vue, portees.is_empty()) {
-            (vue, true) => vue.map(|v| v.chars().take(16).collect()),
+            (vue, true) => Some(vue.chars().take(16).collect()),
             (vue, false) => Some(empreinte_de(&json!({"saisie": vue, "corrections": portees}))),
         })
     }
@@ -1738,7 +1752,7 @@ impl<'a> Moteur<'a> {
         if derniere.versions().is_some() {
             let etats_eng = self.etats_du_mois(le_mois)?;
             let (ctx, departs) = (self.ctx, self.departs()?);
-            modifiee = dsn_a_refaire(ctx, mois, derniere, &etats_eng, &mut |e| self.a_refaire_du_mois(mois, e, &departs));
+            modifiee = dsn_a_refaire(ctx, mois, derniere, &etats_eng, &mut |e| self.a_refaire_du_mois(mois, e, &departs))?;
             out.saisie_modifiee = Some(modifiee);
         }
         // Apres la limite : les contrats dont la paie validee n'est plus celle que la DSN a declaree ; la DSN suivante
@@ -2254,7 +2268,7 @@ impl<'a> Moteur<'a> {
                 // quand le mois a deja compare tout ce qui est a refaire (`a_refaire_du_mois`).
                 let refaire: Vec<ARefaire> = match self.refaire.get(&(m.clone(), cle.to_string(), numero.to_string())) {
                     Some(r) => r.iter().filter(|a| matches!(a, ARefaire::Dpae { .. })).cloned().collect(),
-                    None => engagement::etats::a_refaire_parmi(self.ctx, v, &departs, &|s| s == engagement::departs::Envoi::Dpae),
+                    None => engagement::etats::a_refaire_parmi(self.ctx, v, &departs, &|s| s == engagement::departs::Envoi::Dpae).map_err(plain)?,
                 };
                 let debut = p.engagement.debut.iso();
                 // UNE DPAE PAR EMBAUCHE, reconnue a sa date : « L'embauche d'un salarié ne peut intervenir qu'après

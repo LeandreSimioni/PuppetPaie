@@ -748,6 +748,9 @@ fn blanchi(t: &str, textes: bool) -> String {
 /// 3. de repli sur une donnee : ni `#[serde(default…)]`, ni `unwrap_or`, `unwrap_or_default`, `unwrap_or_else`,
 ///    `map_or`, `map_or_else`. Une donnee absente se refuse ; une donnee nulle s'ecrit `null` et se lit `Option`
 ///    presente (`socle::forme::presente`).
+/// 4. d'erreur avalee, ici et dans les couches de `SANS_ERREUR_AVALEE` : ni `.ok()`, ni `let Ok(..) = .. else`, ni
+///    `is_ok_and`, ni `is_err_and`. Une erreur remonte (`?`) ; un etat qui n'est pas une erreur (un nom qu'aucune fiche
+///    ne porte, un texte qui n'est pas une adresse) se dit par un `match` qui le nomme.
 /// Le verrou n'a aucune exception : quand il echoue, on corrige le code ou la donnee.
 #[test]
 fn une_couche_fermee_ne_lit_que_des_formes() {
@@ -785,8 +788,22 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
             }
         }
     }
+    let avalee = regex::Regex::new(r"\.ok\(\)|\blet\s+Ok\s*\(.*\belse\b|\bis_ok_and\b|\bis_err_and\b").unwrap();
+    for couche in COUCHES_FERMEES.iter().chain(SANS_ERREUR_AVALEE.iter()) {
+        for f in sources(&espace().join(couche).join("src")) {
+            for (n, l) in code_seul(&std::fs::read_to_string(&f).unwrap()).lines().enumerate() {
+                if let Some(m) = avalee.find(l) {
+                    fautes.push(format!("{}:{} : `{}`, une erreur avalée : elle remonte (`?`), ou un `match` nomme l'état qu'elle dit", f.display(), n + 1, m.as_str()));
+                }
+            }
+        }
+    }
     assert!(fautes.is_empty(), "une couche fermée ne lit que des formes, entières ({} écarts) :\n{}", fautes.len(), fautes.join("\n"));
 }
+
+/// LES COUCHES SANS ERREUR AVALEE, en plus des couches fermees : leur code dit chaque erreur (point 4 de
+/// `une_couche_fermee_ne_lit_que_des_formes`). La liste ne fait que grandir.
+const SANS_ERREUR_AVALEE: [&str; 1] = ["engagement"];
 
 /// L'engagement ne lit pas le journal : le moteur le lit une fois par geste (`envois::journal::lu`) et lui passe ce qui
 /// est parti.

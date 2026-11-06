@@ -257,7 +257,7 @@ fn comparer_une(
     //   et l'engagement court se juge sur le debut et la fin du contrat ; le minimum conventionnel et le bareme se
     //   lisent au premier jour, qui est le debut de la periode. Le debut et les jours qui le suivent en tiennent lieu.
     // Sans ce nombre, une periode de plus d'un jour ne dit pas combien : la paie ne se compare pas.
-    let mensuelle = droit::natures::nature(nature).is_ok_and(|n| n.mensuelle());
+    let mensuelle = droit::natures::nature(nature)?.mensuelle();
     if jours.is_empty() && !mensuelle {
         if let (Some(d), Some(f)) = (p.debut, p.fin) {
             let periode = f.moins(&d) + 1;

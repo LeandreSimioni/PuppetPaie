@@ -70,14 +70,11 @@ impl NumeroContrat {
     /// numero d'une autre forme (un contrat repris d'un autre logiciel).
     pub fn annee_et_rang(&self) -> Option<(i32, i64)> {
         let (tete, rang) = self.0.rsplit_once('.')?;
-        if rang.is_empty() || !rang.chars().all(|c| c.is_ascii_digit()) {
-            return None;
-        }
         let (_, yy) = tete.rsplit_once('.')?;
-        if yy.len() != 2 || !yy.chars().all(|c| c.is_ascii_digit()) {
+        if yy.len() != 2 {
             return None;
         }
-        Some((2000 + yy.parse::<i32>().ok()?, rang.parse().ok()?))
+        Some((2000 + socle::num::entier_de_chiffres(yy)? as i32, socle::num::entier_de_chiffres(rang)?))
     }
 }
 
@@ -201,8 +198,8 @@ fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>, d
 pub fn dernier_bulletin_importe(racine: &std::path::Path, annee: i64) -> Resultat<i64> {
     let rang = |t: Option<&str>| -> Option<i64> {
         let (n, an) = t?.trim().split_once('/')?;
-        let ok = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_digit());
-        (ok(n) && an.len() == 4 && ok(an) && an.parse::<i64>().ok()? == annee).then(|| n.parse().ok()).flatten()
+        let rang = socle::num::entier_de_chiffres(n)?;
+        (an.len() == 4 && socle::num::entier_de_chiffres(an)? == annee).then_some(rang)
     };
     let mut haut = 0;
     for i in crate::importe::tous(racine)? {
@@ -277,7 +274,7 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str, departs: 
             return Ok(());
         }
     }
-    let annee: i32 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("date illisible : {}", debut))?;
+    let annee = socle::date::Jour::lire(&debut)?.an;
     // Aucun numero pris cette annee : le premier sera le 1.
     let dernier = match derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)), departs)?.get(&cle) {
         Some(n) => *n,
