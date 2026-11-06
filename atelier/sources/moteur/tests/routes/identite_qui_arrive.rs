@@ -1,7 +1,7 @@
 //! UN SALARIE DECLARE SANS NIR, SOUS SON NTT, DONT LE NIR ARRIVE ENSUITE. La fiche du Fil de Fer de janvier 2026, avec
 //! un technicien sans NIR (SANSNIR) engage et declare en janvier (DPAE, DSN parties) ; son NIR arrive le 05/02.
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::outils::rejeu::{reference, rejouer_dossier};
 use crate::outils::{copier, dossier_de_test, reussi, route};
@@ -26,17 +26,28 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
         "statut": "technicien", "pcs_ese": "465b", "code_emploi_ft": "TEC250", "statut_conventionnel": "07",
         "statut_categoriel_rc": "04", "date_naissance": "1990-05-04", "lieu_naissance_affichage": "Chalon-sur-Saône",
         "departement_naissance": "71", "pays_naissance": "FR", "code_nationalite_dsn": "01"}}});
-    let janvier = json!({"route": "valider-engagement", "charge": {"mois": "2026-01", "saisie": {"salarie": "SANSNIR",
-        "nature": "cddu_spectacle", "spectacle": "objet-256Z00931108", "lignes": [{"rubrique": "heure", "quantite": 10, "taux": 23,
-        "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"]}]}}});
+    // Sa carte de janvier, case par case comme l'ecran l'ecrit, puis validee.
+    let carte = |id: Value, case: &str, valeur: Value| {
+        json!({"route": "enregistrer-saisie", "charge": {"mois": "2026-01", "carte": id, "changement": {"case": case, "valeur": valeur}}})
+    };
+    let ecrite = json!({"ecrite": {"salarie": "SANSNIR", "debut": "", "rang": 0}});
+    let janvier = [
+        carte(json!({"neuve": "cddu_spectacle"}), "salarie", json!("SANSNIR")),
+        carte(ecrite.clone(), "spectacle", json!("objet-256Z00931108")),
+        carte(ecrite, "lignes", json!([{"rubrique": "heure", "quantite": 10, "taux": 23,
+            "lieu": "Atelier de la compagnie, 71100 Chalon-sur-Saône", "dates": ["2026-01-19", "2026-01-20"]}])),
+        json!({"route": "valider-engagement", "charge": {"mois": "2026-01", "engagement": {"salarie": "SANSNIR", "debut": "2026-01-19", "rang": 0}}}),
+    ];
     // Jusqu'a la DSN de janvier partie (la premiere `envoyer-documents`).
     let fin = gestes.iter().position(|l| l.contains("\"envoyer-documents\"")).unwrap();
-    let debut = gestes.iter().position(|l| l.contains("\"valider-engagement\"")).unwrap();
+    // La fiche avant la premiere carte ; sa carte apres les deux premiers engagements valides.
+    let debut = gestes.iter().position(|l| l.contains("\"enregistrer-saisie\"")).unwrap();
+    let apres = gestes.iter().enumerate().filter(|(_, l)| l.contains("\"valider-engagement\"")).nth(1).unwrap().0 + 1;
     let mut joues: Vec<String> = gestes[..debut].iter().map(|l| l.to_string()).collect();
     joues.push(fiche.to_string());
-    joues.extend(gestes[debut..debut + 2].iter().map(|l| l.to_string()));
-    joues.push(janvier.to_string());
-    joues.extend(gestes[debut + 2..=fin].iter().map(|l| l.to_string()));
+    joues.extend(gestes[debut..apres].iter().map(|l| l.to_string()));
+    joues.extend(janvier.iter().map(|g| g.to_string()));
+    joues.extend(gestes[apres..=fin].iter().map(|l| l.to_string()));
     std::fs::write(sc.join("gestes.jsonl"), joues.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
     let jour = "2026-02-05";
@@ -48,9 +59,9 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     let fiches: serde_json::Value = serde_json::from_slice(&std::fs::read(c.join("config/salaries.json")).unwrap()).unwrap();
     assert_eq!(fiches["SANSNIR"]["nir"], json!([{"valeur": "1900571123456"}]), "le NIR vaut de tout temps");
 
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-02", "saisie": {"salarie": "SANSNIR",
+    reussi(&crate::outils::valider(&c, "2026-02", None, &json!({"salarie": "SANSNIR",
         "nature": "cddu_spectacle", "spectacle": "objet-256Z00931107", "lignes": [{"rubrique": "heure", "quantite": 15, "taux": 23,
-        "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"]}]}}), jour));
+        "lieu": "Salle Jean-Moulin, 39100 Dole", "dates": ["2026-02-06", "2026-02-07", "2026-02-08"]}]}), jour));
     reussi(&route(&c, "arret-enregistrer", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06", "debut": "2026-02-07", "fin": "2026-02-08",
         "motif": "01"}), jour));
     let f = reussi(&route(&c, "arret-signaler", json!({"salarie": "SANSNIR", "dernier_jour": "2026-02-06"}), jour))["fichier"]

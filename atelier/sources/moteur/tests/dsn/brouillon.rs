@@ -30,7 +30,7 @@ fn un_engagement_en_saisie_ne_change_pas_la_dsn() {
         "salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": spectacle, "metier": "ACC010",
         "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}],
     });
-    reussi(&route(&c, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": nouveau}), jour));
+    reussi(&crate::outils::saisir(&c, "2026-11", None, &nouveau, jour));
     let avec = dsn();
 
     let emploi = |texte: &str| valeur(&individu(texte, "FULLER"), "S21.G00.40.036");

@@ -211,7 +211,7 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let paie_du_second = || -> Value { outils::paie_ecrite(&racine, "2026-11", "FULLER", Some("FU1.26.02")) };
 
     let second = json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": lignes(1, &["2026-11-27"])});
-    outils::reussi(&outils::route(&racine, "valider-engagement", json!({"mois": "2026-11", "saisie": second}), jour));
+    outils::reussi(&outils::valider(&racine, "2026-11", None, &second, jour));
     assert_eq!(documents(), ["fait", "a_faire"], "le bulletin du contrat ajoute est a envoyer, celui du premier est parti");
     outils::reussi(&outils::route(&racine, "depot-apercu", json!({"quoi": "dsn", "mois": "2026-12"}), jour));
     let dsn = std::fs::read(racine.join("sorties/2026-12/DSN_Decembre2026.dsn")).unwrap().iter().map(|&o| o as char).collect::<String>();
@@ -368,7 +368,7 @@ fn la_demande_de_taux_d_une_embauche_part_et_sa_reponse_fait_l_engagement() {
     for k in ["numero", "numero_pour", "valide"] {
         carte.as_object_mut().unwrap().remove(k);
     }
-    outils::reussi(&outils::route(&racine, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": carte}), "2026-11-16"));
+    outils::reussi(&outils::saisir(&racine, "2026-11", None, &carte, "2026-11-16"));
     for s in ["FULLER", "DUNCAN"] {
         outils::reussi(&outils::valider_la_carte(&racine, "2026-11", s, "2026-11-16"));
     }
@@ -424,7 +424,7 @@ fn le_compte_rendu_d_une_dsn_ne_refait_pas_la_paie_qu_elle_declare() {
     for k in ["numero_pour", "valide"] {
         carte.as_object_mut().unwrap().remove(k);
     }
-    outils::reussi(&outils::route(&racine, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": carte}), "2026-11-16"));
+    outils::reussi(&outils::saisir(&racine, "2026-11", None, &carte, "2026-11-16"));
     outils::reussi(&outils::valider_la_carte(&racine, "2026-11", "FULLER", "2026-11-16"));
     for jour in ["2026-11-20", "2026-12-01"] {
         let le = socle::paris::naif_de_iso(&format!("{}T09:00:00", jour)).unwrap() as f64;

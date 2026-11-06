@@ -153,12 +153,68 @@ pub fn saisie(racine: &Path, mois: &str) -> Value {
 }
 
 /// « Valider l'engagement » sur la carte du premier engagement en saisie de `salarie` que l'ecran de `mois` montre,
-/// telle qu'elle est enregistree (son identite, `saisie`).
+/// telle qu'elle est enregistree (son identite).
 pub fn valider_la_carte(racine: &Path, mois: &str, salarie: &str, jour: &str) -> Value {
     let vue = socle::ecriture::en_valeur(&engagement::stock::vue_du_mois(racine, mois).unwrap().unwrap());
     let es = vue["engagements"].as_array().unwrap();
     let k = es.iter().position(|e| e["salarie"] == salarie && e.get("valide").is_none()).expect("une carte en saisie");
-    route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k), "saisie": es[k]}), jour)
+    route(racine, "valider-engagement", json!({"mois": mois, "engagement": identite_a(racine, mois, k)}), jour)
+}
+
+/// LA CARTE `saisie` ECRITE CASE PAR CASE, comme l'ecran l'ecrit (`enregistrer-saisie`) : sur l'engagement `engagement`
+/// (son identite), ou sur une carte neuve de sa nature ; le salarie d'abord, chaque case qu'elle dit ensuite, puis chaque
+/// case du brouillon qu'elle ne dit plus, videe. Rend la derniere reponse, ou le premier refus.
+pub fn saisir(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Value, jour: &str) -> Value {
+    let s = saisie.as_object().expect("une carte");
+    let mut carte = match engagement.filter(|e| !e.is_null()) {
+        Some(id) => json!({"ecrite": id}),
+        None => json!({"neuve": s["nature"]}),
+    };
+    let mut changements: Vec<(String, Value)> = vec![("nature".into(), s["nature"].clone())];
+    if let Some(x) = s.get("salarie") {
+        changements.push(("salarie".into(), x.clone()));
+    }
+    // Ce que la vue d'un mois deduit, ou dit de l'engagement ecrit, n'est pas une case (`engagement::saisie::Groupe`).
+    let pas_une_case = ["nature", "salarie", "jours_contrat", "date_modification", "avant", "valide", "importe"];
+    changements.extend(s.iter().filter(|(k, _)| !pas_une_case.contains(&k.as_str())).map(|(k, v)| (k.clone(), v.clone())));
+    let envoyer = |carte: &mut Value, case: &str, valeur: &Value| -> Value {
+        let r = route(racine, "enregistrer-saisie", json!({"mois": mois, "carte": carte, "changement": {"case": case, "valeur": valeur}}), jour);
+        if r["ok"] == json!(true) {
+            *carte = json!({"ecrite": r["resultat"]["engagement"]});
+        }
+        r
+    };
+    let mut derniere = Value::Null;
+    for (case, valeur) in &changements {
+        derniere = envoyer(&mut carte, case, valeur);
+        if derniere["ok"] != json!(true) {
+            return derniere;
+        }
+    }
+    let restes: Vec<String> = derniere["resultat"]["brouillon"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .filter(|(k, v)| *k != "nature" && !v.is_null() && !s.contains_key(k.as_str()))
+        .map(|(k, _)| k.clone())
+        .collect();
+    for case in restes {
+        derniere = envoyer(&mut carte, &case, &Value::Null);
+        if derniere["ok"] != json!(true) {
+            return derniere;
+        }
+    }
+    derniere
+}
+
+/// LA CARTE `saisie` ECRITE CASE PAR CASE (`saisir`) PUIS VALIDEE (`valider-engagement`) : rend la reponse de la
+/// validation, ou le premier refus.
+pub fn valider(racine: &Path, mois: &str, engagement: Option<&Value>, saisie: &Value, jour: &str) -> Value {
+    let r = saisir(racine, mois, engagement, saisie, jour);
+    if r["ok"] != json!(true) {
+        return r;
+    }
+    route(racine, "valider-engagement", json!({"mois": mois, "engagement": r["resultat"]["engagement"]}), jour)
 }
 
 /// L'identite (`engagement::stock::identites`) de la carte du premier engagement de `salarie` dans l'ecran de `mois`

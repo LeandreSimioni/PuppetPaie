@@ -30,6 +30,7 @@ use crate::routes::fiches::{maintenant, refus};
 use crate::routes::{en_json, lire_charge};
 use crate::routes::etapes::ChargeMois;
 use engagement::calcul::Paie;
+use engagement::carte::{Brouillon, Changement, NatureDeContrat};
 use engagement::saisie::{Carte as SaisieCarte, VueDuMois};
 use engagement::stock::Identite;
 use engagement::viser::Cible;
@@ -127,14 +128,14 @@ pub const ROUTES: &[Fiche] = &[
     },
     Fiche {
         route: Route::EnregistrerSaisie,
-        geste: "Écrire la carte d'un engagement en saisie, et elle seule.",
+        geste: "Changer une case du brouillon d'une carte, et l'écrire.",
         charge: &[
             MOIS,
-            Champ { nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "l'identité de la carte ; absente pour une carte neuve", avance: false },
-            super::engagement::SAISIE,
+            Champ { nom: "carte", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "{\"neuve\": sa nature (`nouvelle_carte` de la route etat)} pour une carte neuve, ou {\"ecrite\": son identité, celle que le moteur a rendue}", avance: false },
+            super::engagement::CHANGEMENT,
         ],
-        exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","nature":"cddu_spectacle","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
-        rend: "engagement (l'identité écrite), a_completer (ce qui lui manque, ou null), enregistre_a",
+        exemple: r#"{"mois":"2026-11","carte":{"ecrite":{"salarie":"FULLER","debut":"","rang":0}},"changement":{"case":"lignes","valeur":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-20"]}]}}"#,
+        rend: "engagement (l'identité écrite), brouillon (chacune des cases de sa nature, null tant qu'elle n'est pas remplie), a_completer (ce qui lui manque pour être validé, ou null), enregistre_a",
         refus: &[OPERATION, FORME, MANQUE],
         acte: Acte::Ecrit,
         avance: false,
@@ -174,16 +175,22 @@ pub(crate) struct Carte {
     pub(crate) saisie: engagement::saisie::Carte,
 }
 
-/// LA CHARGE D'UNE CARTE QUI S'ECRIT (`enregistrer-saisie`, `valider-engagement`) : le mois de l'ecran, l'identite de la
-/// carte (absente : un engagement neuf) et ce qu'elle ecrit.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// LA CARTE QU'UN CHANGEMENT VISE : une carte neuve, nee dans sa nature (`nouvelle_carte` de la route etat), ou celle
+/// d'un engagement ecrit, par son identite.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub(crate) enum CarteVisee {
+    Neuve(NatureDeContrat),
+    Ecrite(Identite),
+}
+
+/// LA CHARGE D'UN CHANGEMENT DE CASE (`enregistrer-saisie`) : le mois de l'ecran, la carte visee, et la case qui change.
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct ChargeCarte {
+pub(crate) struct ChargeCase {
     pub(crate) mois: Mois,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub(crate) engagement: Option<Identite>,
-    /// Ce que la carte ecrit (`engagement::saisie::Carte`).
-    pub(crate) saisie: engagement::saisie::Carte,
+    pub(crate) carte: CarteVisee,
+    pub(crate) changement: Changement,
 }
 
 /// La charge de l'apercu : le mois, et les cartes que l'ecran montre autrement (`mois_designe`).
@@ -270,6 +277,8 @@ struct SaisieDuMois {
 struct CarteEcrite {
     phrase: String,
     engagement: Identite,
+    /// Le brouillon tel qu'il est ecrit, chacune de ses cases (`null` : pas encore remplie).
+    brouillon: Brouillon,
     a_completer: Option<String>,
     enregistre_a: String,
     enregistre_dit: String,
@@ -1042,12 +1051,26 @@ pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) 
 
 /// « ENREGISTRE » : la carte d'un engagement en saisie s'ecrit, et elle seule (`ecrire_une_carte`). Rend l'identite de
 /// l'engagement ecrit, ce qui lui manque encore (`None` : rien) et l'heure de l'ecriture.
-fn enregistrer_saisie(ctx: &Contexte, c: ChargeCarte) -> R<CarteEcrite> {
+/// UN CHANGEMENT DE CASE, ECRIT : le brouillon de la carte visee (neuf, ou celui que son engagement ecrit pour ce mois,
+/// `engagement::stock::Objet::vue`) prend le changement (`Brouillon::changer`), puis s'ecrit entier
+/// (`ecrire_une_carte`). Rend l'identite de l'engagement ecrit, le brouillon tel qu'il est ecrit, et ce qui lui manque
+/// pour etre valide.
+fn enregistrer_saisie(ctx: &Contexte, c: ChargeCase) -> R<CarteEcrite> {
     let mois = c.mois.to_string();
     let _verrou = avant_d_ecrire(ctx, &mois)?;
-    let id = ecrire_une_carte(ctx, &mois, c.engagement.as_ref(), &c.saisie)?;
+    let (mut brouillon, id) = match c.carte {
+        CarteVisee::Neuve(n) => (Brouillon::neuf(n), None),
+        CarteVisee::Ecrite(id) => (brouillon_ecrit(ctx, &mois, &id)?, Some(id)),
+    };
+    let qui = match brouillon.en_carte().salarie_dit() {
+        Some(s) => ctx.nomme(s),
+        None => "Cette carte".to_string(),
+    };
+    brouillon.changer(c.changement, &qui).map_err(refus)?;
+    let id = ecrire_une_carte(ctx, &mois, id.as_ref(), &brouillon.en_carte())?;
+    let brouillon = brouillon_ecrit(ctx, &mois, &id)?;
     let (k, _) = engagement::stock::designe(&ctx.racine, &mois, &id).map_err(Echec::from)?;
-    let vue = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)?.unwrap_or_else(|| VueDuMois::vide(c.mois));
+    let vue = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)?.ok_or_else(|| refus(format!("{} : la carte écrite ne s'y lit pas.", Mois::en_clair(&mois))))?;
     let a_completer = manque_de(ctx, &vue, k);
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     let a = maintenant();
@@ -1057,10 +1080,20 @@ fn enregistrer_saisie(ctx: &Contexte, c: ChargeCarte) -> R<CarteEcrite> {
             None => "Carte enregistrée.".to_string(),
         },
         engagement: id,
+        brouillon,
         a_completer,
         enregistre_dit: format!("Enregistré à {}", a.chars().skip(11).take(5).collect::<String>()),
         enregistre_a: a,
     })
+}
+
+/// LE BROUILLON QU'ECRIT L'ENGAGEMENT `id` de l'ecran de `mois` : sa vue de ce mois (`engagement::stock::Objet::vue`),
+/// lue en brouillon.
+pub(crate) fn brouillon_ecrit(ctx: &Contexte, mois: &str, id: &Identite) -> R<Brouillon> {
+    let (_, o) = engagement::stock::designe(&ctx.racine, mois, id).map_err(refus)?;
+    let qui = engagement::etats::qui_de(ctx, &o);
+    let vue = o.vue(mois).map_err(Echec::from)?.ok_or_else(|| refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois. Rien n'est écrit.", qui)))?;
+    Brouillon::de_la_carte(&vue, &qui).map_err(refus)
 }
 
 /// AVANT TOUTE ECRITURE D'UN ENGAGEMENT (saisir, valider, modifier, retirer) : une ecriture a la fois (la fenetre sert
@@ -1082,13 +1115,14 @@ pub(crate) fn avant_d_ecrire(ctx: &Contexte, mois: &str) -> R<std::sync::MutexGu
 /// la date de paiement du mois). Une carte a laquelle il manque un fait s'ecrit aussi : seule la validation refuse. Rend
 /// l'identite de l'engagement ecrit. L'appelant tient le verrou (`avant_d_ecrire`).
 pub(crate) fn ecrire_une_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie: &SaisieCarte) -> R<Identite> {
-    // UN ENGAGEMENT NEUF S'ECRIT DANS SON PREMIER MOIS (`engagement::stock::mois_d_ecriture`) : ce mois-la passe les memes
-    // refus que celui de la carte, et donne ce qu'il dit par defaut.
-    let fichier = match id {
-        Some(_) => mois.to_string(),
-        None => engagement::stock::mois_d_ecriture(&ctx.racine, mois, saisie).map_err(Echec::from)?,
+    // UN ENGAGEMENT NEUF, OU LE BROUILLON QUI DEMENAGE, S'ECRIT DANS SON PREMIER MOIS (`engagement::stock::ou_s_ecrit`) : ce
+    // mois-la passe les memes refus que celui de la carte, et donne ce qu'il dit par defaut.
+    let fichier = engagement::stock::ou_s_ecrit(&ctx.racine, mois, id, saisie).map_err(refus)?;
+    let ecrit_dans = match id {
+        Some(id) => Some(engagement::stock::designe(&ctx.racine, mois, id).map_err(refus)?.1.fichier),
+        None => None,
     };
-    if fichier != mois {
+    if fichier != mois && ecrit_dans.as_deref() != Some(fichier.as_str()) {
         refuser_si_importe(ctx, &fichier)?;
         refuser_si_clos(ctx, &fichier)?;
     }

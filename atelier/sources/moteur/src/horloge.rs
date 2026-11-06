@@ -825,8 +825,7 @@ fn valider_les_engagements(d: &HorlogeFictive, mois: &str, jusqu_au: Jour, quoi:
             if o.est_valide() || o.importe_seul() || manque.is_some() || engagement::debut_brut(&o.racine, &o.brut) > jusqu_au.iso() {
                 continue;
             }
-            let saisie = o.vue(mois).map_err(Echec::from)?.unwrap_or_default();
-            let charge = crate::routes::mois::ChargeCarte { mois: le_mois, engagement: Some(id), saisie };
+            let charge = crate::routes::engagement::ChargeValider { mois: le_mois, engagement: id };
             crate::routes::engagement::valider_engagement(ctx, charge)?;
             fait = true;
         }

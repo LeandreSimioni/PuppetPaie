@@ -924,19 +924,26 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie
             return Err(crate::importe::refus(&Carte::texte(&saisie.salarie), &debut));
         }
     }
-    let (fichier, rang) = match id {
-        Some(id) => {
-            let (_, mut o) = designe(racine, mois, id)?;
+    // Un engagement neuf, ou qui n'est encore qu'un brouillon de son premier mois, s'ecrit dans le fichier de son premier
+    // mois (`ou_s_ecrit`) : le brouillon que ses bornes placent ailleurs y demenage.
+    let fichier = ou_s_ecrit(racine, mois, id, saisie)?;
+    let (fichier, rang) = match id.map(|id| designe(racine, mois, id)).transpose()? {
+        Some((_, mut o)) if o.fichier == fichier => {
             if o.est_valide() {
                 return Err(format!("{} : cet engagement est validé, il se modifie d'un geste. Rien n'est écrit.", socle::mois::Mois::en_clair(mois)));
+            }
+            if mois == o.fichier {
+                refuser_un_second_contrat_au_mois(ctx, saisie, Some(&o))?;
             }
             poser_sur(ctx, &mut o, mois, saisie, None)?;
             reecrire(racine, &o)?;
             (o.fichier, o.rang)
         }
-        None => {
-            refuser_un_second_contrat_au_mois(ctx, saisie)?;
-            let fichier = mois_d_ecriture(racine, mois, saisie)?;
+        soi => {
+            refuser_un_second_contrat_au_mois(ctx, saisie, soi.as_ref().map(|(_, o)| o))?;
+            if let Some((_, o)) = &soi {
+                effacer(racine, o)?;
+            }
             let neuf = Ecrit { saisie: Saisie { carte: en_forme(saisie)?, ..Saisie::default() }, ..Ecrit::default() };
             let mut contenu = match lire_fichier(racine, &fichier)? {
                 Some(c) => c,
@@ -956,12 +963,35 @@ pub fn ecrire_la_carte(ctx: &Contexte, mois: &str, id: Option<&Identite>, saisie
     Ok(identites(&objets).swap_remove(k))
 }
 
-/// UN CONTRAT AU MOIS N'A QU'UN ENGAGEMENT : une carte neuve d'un contrat paye au mois (CDI, CDD) dont le salarie a deja
-/// un contrat au mois commence le meme jour (actif, et qui n'est pas qu'importe : `importe::refus` dit le sien) ne le refait pas, elle
-/// refuse et n'ecrit rien ; cet engagement se designe et se modifie depuis sa carte. Le rang de l'identite (`identites`)
-/// ne distingue que des contrats d'usage du meme jour (deux spectacles) ; deux contrats au mois du meme salarie
-/// commencent deux jours differents (ils se suivent).
-fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte) -> Resultat<()> {
+/// LE MOIS DU FICHIER OU S'ECRIT LA CARTE `saisie` de l'ecran de `mois` : celui de son engagement (`id`) ; pour un
+/// engagement neuf, ou qui n'est qu'un brouillon de son premier mois (jamais valide, sans numero donne, sans avenant ni
+/// fait d'un autre mois), le premier mois que ses bornes disent (`mois_d_ecriture`).
+pub fn ou_s_ecrit(racine: &Path, mois: &str, id: Option<&Identite>, saisie: &Carte) -> Resultat<String> {
+    let Some(id) = id else { return mois_d_ecriture(racine, mois, saisie) };
+    let (_, o) = designe(racine, mois, id)?;
+    let e = &o.brut;
+    let brouillon_seul = e.valide.is_none()
+        && e.precedente.is_none()
+        && e.versions.is_empty()
+        && e.numero_pour.is_none()
+        && e.non_actif.is_none()
+        && e.importe.is_none()
+        && e.saisie.avenants.is_empty()
+        && e.saisie.faits.is_empty();
+    if o.fichier == mois && brouillon_seul {
+        mois_d_ecriture(racine, mois, saisie)
+    } else {
+        Ok(o.fichier.clone())
+    }
+}
+
+/// UN CONTRAT AU MOIS N'A QU'UN ENGAGEMENT : la carte d'un contrat paye au mois (CDI, CDD), neuve ou en saisie dans son
+/// premier mois (`soi`, l'engagement qu'elle ecrit), dont le salarie a deja un autre contrat au mois commence le meme jour
+/// (actif, et qui n'est pas qu'importe : `importe::refus` dit le sien) ne le refait pas, elle refuse et n'ecrit rien ;
+/// cet engagement se designe et se modifie depuis sa carte. Le rang de l'identite (`identites`) ne distingue que des
+/// contrats d'usage du meme jour (deux spectacles) ; deux contrats au mois du meme salarie commencent deux jours
+/// differents (ils se suivent).
+fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte, soi: Option<&Objet>) -> Resultat<()> {
     if !e.mensuelle() {
         return Ok(());
     }
@@ -971,7 +1001,8 @@ fn refuser_un_second_contrat_au_mois(ctx: &Contexte, e: &Carte) -> Resultat<()> 
     }
     let tires = tous(&ctx.racine)?.1;
     let Some(o) = tires.objets.iter().find(|o| {
-        !o.est_non_actif()
+        !soi.is_some_and(|s| s.fichier == o.fichier && s.rang == o.rang)
+            && !o.est_non_actif()
             && !o.importe_seul()
             && o.mensuel()
             && crate::debut_brut(&ctx.racine, &o.brut) == debut

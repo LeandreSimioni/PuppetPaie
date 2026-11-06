@@ -357,6 +357,36 @@ impl Espace {
                     }
                     continue;
                 }
+                // LE BROUILLON D'UNE NATURE (`engagement::carte`, macro `nature!`) : `Cddu / BrouillonCddu { obligatoire
+                // {…} facultatif {…} du_motif {…} }` declare la structure `BrouillonCddu`, chacune de ses cases un `Option`
+                // de son type (le type apres `|` quand il est dit).
+                (J::Mot(_), Some(J::P("/"))) if mot(v.get(i + 2)).is_some() && est(v.get(i + 3), "{") && mot(v.get(i + 4)) == Some("obligatoire") => {
+                    let nom = mot(v.get(i + 2)).unwrap().to_string();
+                    let fin = apres_le_groupe(v, i + 3, false);
+                    let mut corps = vec![J::P("{")];
+                    let mut k = i + 4;
+                    while k + 1 < fin && est(v.get(k + 1), "{") {
+                        let f = apres_le_groupe(v, k + 1, false);
+                        for m in morceaux(&v[k + 2..f - 1], ",", true) {
+                            let Some(champ) = mot(m.first()) else { continue };
+                            let reste = &m[2..];
+                            let t = &reste[..reste.iter().position(|j| est(Some(j), "=")).unwrap_or(reste.len())];
+                            let t = match t.iter().position(|j| est(Some(j), "|")) {
+                                Some(p) => &t[p + 1..],
+                                None => t,
+                            };
+                            corps.extend([J::Mot(champ.to_string()), J::P(":"), J::Mot("Option".into()), J::P("<")]);
+                            corps.extend(t.iter().cloned());
+                            corps.extend([J::P(">"), J::P(",")]);
+                        }
+                        k = f;
+                    }
+                    corps.push(J::P("}"));
+                    self.items.push(Item { fichier, nom, genre: "struct", generiques: Vec::new(), serde: Vec::new(), serialise: true, corps });
+                    attrs.clear();
+                    i = fin;
+                    continue;
+                }
                 (J::Mot(m), Some(J::Mot(nom))) if m == "struct" || m == "enum" || m == "type" => {
                     let genre: &'static str = if m == "struct" { "struct" } else if m == "enum" { "enum" } else { "type" };
                     let mut k = i + 2;

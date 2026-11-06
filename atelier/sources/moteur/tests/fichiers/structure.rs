@@ -368,12 +368,28 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
         ("enregistrer-fiche", entreprise),
         ("organismes-enregistrer", json!({"contrats": {"prevoyance_permanents": {"libelle": "PREVOYANCE", "organisme": "P0983"}, "sante_permanents": {"libelle": "SANTE", "organisme": "P0983"}}})),
         ("enregistrer-fiche", svoboda),
-        ("valider-engagement", json!({"mois": "2026-11", "saisie": {"salarie": "SVOBODA", "nature": "cdi", "debut": "2026-11-02", "salaire_mensuel": 3400, "quotite_contrat": 151.67}})),
-        ("arret-enregistrer", json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-02", "debut": "2026-11-03", "fin": "2026-11-10", "motif": "04", "date_accident": "2026-11-02"})),
-        ("arret-enregistrer", json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-16", "debut": "2026-11-17", "fin": "2026-11-18", "motif": "19"})),
     ] {
         let r = route(&c, nom, charge, "2026-11-02");
         assert_eq!(r["ok"], json!(true), "le permanent des exemples : {} : {}", nom, r);
+    }
+    let cdi = json!({"salarie": "SVOBODA", "nature": "cdi", "debut": "2026-11-02", "salaire_mensuel": 3400, "quotite_contrat": 151.67});
+    let r = crate::outils::valider(&c, "2026-11", None, &cdi, "2026-11-02");
+    assert_eq!(r["ok"], json!(true), "le permanent des exemples : valider-engagement : {}", r);
+    for charge in [
+        json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-02", "debut": "2026-11-03", "fin": "2026-11-10", "motif": "04", "date_accident": "2026-11-02"}),
+        json!({"salarie": "SVOBODA", "dernier_jour": "2026-11-16", "debut": "2026-11-17", "fin": "2026-11-18", "motif": "19"}),
+    ] {
+        let r = route(&c, "arret-enregistrer", charge, "2026-11-02");
+        assert_eq!(r["ok"], json!(true), "le permanent des exemples : arret-enregistrer : {}", r);
+    }
+    // La carte que valide l'exemple de valider-engagement, et celle dont l'exemple d'enregistrer-saisie ecrit les lignes,
+    // ecrites case par case comme l'ecran les ecrit.
+    for fuller in [
+        json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs", "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}]}),
+        json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs"}),
+    ] {
+        let r = crate::outils::saisir(&c, "2026-11", None, &fuller, "2026-11-02");
+        assert_eq!(r["ok"], json!(true), "les cartes des exemples : {}", r);
     }
     // Le retrait de l'engagement en dernier : les exemples des imprevus portent sur celui que valider-engagement pose.
     let mut fiches = catalogue();

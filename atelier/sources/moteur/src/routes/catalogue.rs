@@ -421,20 +421,25 @@ pub const CASES_DE_LA_FIN: &[Champ] = &[
     Champ { nom: "dernier_jour_paye", libelle: Affiche::new("Dernier jour payé"), forme: Forme::Date, sens: "le dernier jour payé, s'il n'est pas la fin", avance: false },
 ];
 
-/// Les cases d'une carte que porte la charge de la fiche (`saisie`), s'il y en a.
-fn cases(charge: &[Champ]) -> &'static [Champ] {
-    if charge.iter().any(|c| c.nom == "saisie") { CASES_D_UN_MOIS_PAYE } else { &[] }
+/// La charge de la fiche porte-t-elle une carte : entiere (`saisie`) ou une case qui change (`changement`) ?
+fn porte_une_carte(charge: &[Champ]) -> bool {
+    charge.iter().any(|c| c.nom == "saisie" || c.nom == "changement")
 }
 
-/// Les cases de la fin du contrat que porte la charge de la fiche (`saisie`), s'il y en a.
+/// Les cases d'une carte que porte la charge de la fiche, s'il y en a.
+fn cases(charge: &[Champ]) -> &'static [Champ] {
+    if porte_une_carte(charge) { CASES_D_UN_MOIS_PAYE } else { &[] }
+}
+
+/// Les cases de la fin du contrat que porte la charge de la fiche, s'il y en a.
 fn cases_de_la_fin(charge: &[Champ]) -> &'static [Champ] {
-    if charge.iter().any(|c| c.nom == "saisie") { CASES_DE_LA_FIN } else { &[] }
+    if porte_une_carte(charge) { CASES_DE_LA_FIN } else { &[] }
 }
 
 /// LES NATURES D'UNE CARTE ET LEURS CASES, tirees du type (`engagement::carte::CarteValide::natures`), pour une fiche dont
-/// la charge porte une carte (`saisie`) ; aucune sinon.
+/// la charge porte une carte ; aucune sinon.
 fn natures_de_la_carte(charge: &[Champ]) -> Vec<NatureDecrite> {
-    if charge.iter().any(|c| c.nom == "saisie") { CarteValide::natures() } else { Vec::new() }
+    if porte_une_carte(charge) { CarteValide::natures() } else { Vec::new() }
 }
 
 /// Un refus : sa classe, et ce qu'il faut corriger.

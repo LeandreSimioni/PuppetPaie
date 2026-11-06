@@ -276,20 +276,19 @@ function brancherValidation(div, ligne) {
   brancherRetirer(div);
 }
 
-/** « Valider l'engagement », UN GESTE : la carte part au moteur telle qu'elle est (`valider-engagement` l'écrit, puis la
- *  valide), sans attendre l'enregistrement automatique. Il lui manque un fait : le moteur dit lequel, et n'écrit rien
- *  (l'enregistrement automatique garde la carte en saisie). */
+/** « Valider l'engagement » : ce qui a changé sur la carte s'écrit d'abord, case par case, sans attendre
+ *  l'enregistrement automatique ; puis le brouillon écrit se valide (`valider-engagement`, son identité). Il lui manque
+ *  un fait : le moteur dit lequel, et la carte reste en saisie. */
 async function validerLaCarte(div) {
   clearTimeout(MINUTEUR_SAISIE);
-  const charge = chargeDeLaCarte(div, document.getElementById("mois").value);
-  if (!charge) { dire((ETAT.aides || {}).qui_engage, "erreur"); return; }
-  // Une écriture automatique de cette carte déjà en route se finit d'abord : son identité en vient.
-  await ENREGISTREMENT;
-  if (div.dataset.engagement) charge.engagement = JSON.parse(div.dataset.engagement);
+  const mois = document.getElementById("mois").value;
+  if (!carteAEcrire(div, mois)) { dire((ETAT.aides || {}).qui_engage, "erreur"); return; }
   try {
-    const r = await api("valider-engagement", charge);
-    div.dataset.engagement = JSON.stringify(r.engagement);
-    div._ecrite = JSON.stringify({ ...charge, engagement: r.engagement });
+    await aSonTour(async () => {
+      const attente = ecrituresEnAttente().find(([d]) => d === div);
+      if (attente) await ecrireLaCarte(div, attente[1], mois);
+    });
+    const r = await aSonTour(() => api("valider-engagement", { mois, engagement: JSON.parse(div.dataset.engagement) }));
     dire(r.phrase);
   } catch (e) { dire(e.message, "erreur"); }
   await rafraichirActions();

@@ -23,11 +23,12 @@ fn l_horloge_depose_la_dsn_d_un_mois_sans_engagement() {
         .collect();
     std::fs::write(sc.join("gestes.jsonl"), gestes.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
-    reussi(&route(
+    reussi(&crate::outils::valider(
         &c,
-        "valider-engagement",
-        json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
-            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}]}}),
+        "2026-01",
+        None,
+        &json!({"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
+            "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}]}),
         "2026-01-05",
     ));
     let r = route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-03-20"}), "2026-03-20");

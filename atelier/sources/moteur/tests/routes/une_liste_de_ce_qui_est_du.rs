@@ -19,11 +19,12 @@ fn les_rappels_et_l_echeancier_disent_la_meme_chose() {
     let debut: Vec<&str> = gestes.lines().take_while(|l| !l.contains("\"route\":\"apercu\"")).collect();
     std::fs::write(sc.join("gestes.jsonl"), debut.join("\n") + "\n").unwrap();
     let (_, c) = rejouer_dossier(&sc, &d);
-    reussi(&route(
+    reussi(&crate::outils::valider(
         &c,
-        "valider-engagement",
-        json!({"mois": "2026-01", "saisie": {"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs",
-            "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-01-20", "2026-01-21"]}]}}),
+        "2026-01",
+        None,
+        &json!({"salarie": "FULLER", "nature": "cddu_spectacle", "spectacle": "le-banc-des-menteurs",
+            "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 150, "dates": ["2026-01-20", "2026-01-21"]}]}),
         "2026-01-05",
     ));
 

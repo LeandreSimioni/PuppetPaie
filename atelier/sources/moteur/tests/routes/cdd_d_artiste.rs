@@ -18,7 +18,7 @@
 use serde_json::json;
 
 use crate::outils::rejeu::rejouer;
-use crate::outils::{refus, reussi, route};
+use crate::outils::{refus, reussi, route, valider};
 
 #[test]
 fn de_la_validation_a_l_attestation() {
@@ -27,14 +27,16 @@ fn de_la_validation_a_l_attestation() {
     let (_, c) = rejouer("faisceaux-sans-civilite", &d);
 
     let saisie = |motif: &str| {
-        json!({"mois": "2026-03", "saisie": {"salarie": "FULLER", "nature": "cdd", "debut": "2026-03-02", "fin": "2026-05-29",
-            "salaire_mensuel": 2500, "quotite_contrat": 151.67, "metier": "ART040", "motif_recours": motif}})
+        json!({"salarie": "FULLER", "nature": "cdd", "debut": "2026-03-02", "fin": "2026-05-29",
+            "salaire_mensuel": 2500, "quotite_contrat": 151.67, "metier": "ART040", "motif_recours": motif})
     };
-    let (_, phrase) = refus(&route(&c, "valider-engagement", saisie("accroissement"), "2026-02-25"));
+    let (_, phrase) = refus(&valider(&c, "2026-03", None, &saisie("accroissement"), "2026-02-25"));
     assert!(phrase.contains("02 ("), "la phrase dit les motifs a choisir : {}", phrase);
-    let ecrit = c.join("engagements").join("2026-03.json");
-    assert!(!ecrit.exists(), "un motif refuse : rien n'est ecrit");
-    reussi(&route(&c, "valider-engagement", saisie("02"), "2026-02-25"));
+    let mars = crate::outils::saisie(&c, "2026-03");
+    let carte = mars["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "FULLER").unwrap();
+    assert!(carte.get("motif_recours").is_none(), "un motif refuse : rien n'est ecrit : {}", carte);
+    let id = serde_json::json!(crate::outils::identite(&c, "2026-03", "FULLER", None));
+    reussi(&valider(&c, "2026-03", Some(&id), &saisie("02"), "2026-02-25"));
     // Le contrat CDD se fabrique depuis l'engagement valide : un modele qui tairait une mention de L1242-12 se refuse
     // (`refuser_les_mentions_absentes`), le PDF imprime porte donc la nature, le motif de recours et le terme.
     let contrat = json!({"mois": "2026-03", "contrats": [{"salarie": "FULLER", "debut": "2026-03-02"}]});
@@ -68,9 +70,9 @@ fn de_la_validation_a_l_attestation() {
     assert_eq!(precarite(&fuller), Some(avant), "la precarite de mai ne change pas quand mars et avril sont lus");
 
     // Un CDI le lundi qui suit le terme (un vendredi) : la relation se poursuit, l'indemnite de fin de contrat tombe.
-    let cdi = json!({"mois": "2026-06", "saisie": {"salarie": "FULLER", "nature": "cdi", "debut": "2026-06-01", "salaire_mensuel": 2500,
-        "quotite_contrat": 151.67, "metier": "ART040"}});
-    reussi(&route(&c, "valider-engagement", cdi, "2026-05-20"));
+    let cdi = json!({"salarie": "FULLER", "nature": "cdi", "debut": "2026-06-01", "salaire_mensuel": 2500,
+        "quotite_contrat": 151.67, "metier": "ART040"});
+    reussi(&valider(&c, "2026-06", None, &cdi, "2026-05-20"));
     let ap = route(&c, "apercu", json!({"mois": "2026-05"}), "2026-05-20");
     let fuller = reussi(&ap)["paies"].as_array().unwrap().iter().find(|p| p.to_string().contains("FULLER")).cloned().expect("FULLER");
     assert!(!fuller.to_string().contains("indemnite_precarite"), "L1243-8 : un CDI suit le CDD : {}", fuller);

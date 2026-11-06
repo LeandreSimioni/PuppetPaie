@@ -467,20 +467,16 @@ fn rejouer_les_gestes(
     Ok(r)
 }
 
-/// CE QUI SE SAISIT D'UN GESTE : une carte (`enregistrer-saisie` ; `valider-engagement` sans sa validation), une fiche
-/// (`enregistrer-fiche`), reussies a l'enregistrement. Tout autre geste valide, envoie, depose, coche ou avance le
-/// calendrier : `None`.
+/// CE QUI SE SAISIT D'UN GESTE : une case d'une carte (`enregistrer-saisie`), une fiche (`enregistrer-fiche`), reussies
+/// a l'enregistrement. Tout autre geste valide, envoie, depose, coche ou avance le calendrier : `None`.
 fn saisie_d_un_geste(g: &Value) -> Option<Value> {
-    let carte = match g.get("route").and_then(Value::as_str).and_then(Route::lire)? {
-        Route::ValiderEngagement | Route::EnregistrerSaisie => Route::EnregistrerSaisie.nom(),
-        Route::EnregistrerFiche => Route::EnregistrerFiche.nom(),
-        _ => return None,
-    };
+    if !matches!(g.get("route").and_then(Value::as_str).and_then(Route::lire)?, Route::EnregistrerSaisie | Route::EnregistrerFiche) {
+        return None;
+    }
     if g.get("ok") == Some(&Value::Bool(false)) || g.get("ecrit") == Some(&Value::Bool(false)) {
         return None;
     }
     let mut s = g.clone();
-    s["route"] = json!(carte);
     for cle in ["quand", "heure"] {
         s.as_object_mut()?.remove(cle);
     }

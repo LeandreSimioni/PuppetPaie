@@ -37,7 +37,7 @@ fn un_homonyme_ne_porte_rien_de_l_autre() {
     deux.as_object_mut().unwrap().remove("valide");
     deux["lignes"] = json!([{"rubrique": "cachet", "quantite": 3, "taux": 160, "dates": ["2026-11-24", "2026-11-25", "2026-11-26"]}]);
     reussi(&valider_la_carte(&c, "2026-11", "FULLER", jour));
-    reussi(&route(&c, "valider-engagement", json!({"mois": "2026-11", "saisie": deux}), jour));
+    reussi(&crate::outils::valider(&c, "2026-11", None, &deux, jour));
     let numeros: Vec<(String, String)> = lire(&c, "engagements/2026-11.json")["engagements"]
         .as_array()
         .unwrap()

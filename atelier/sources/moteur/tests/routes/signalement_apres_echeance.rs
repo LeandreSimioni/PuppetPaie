@@ -51,12 +51,13 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
     ecrire(&c, "config/baremes/2026.json", &bareme);
 
     // Un CDD d'usage rompu a l'initiative de la salariee (motif 037), notifie le 29, dernier jour le 30/01.
-    reussi(&route(
+    reussi(&crate::outils::valider(
         &c,
-        "valider-engagement",
-        json!({"mois": "2026-01", "saisie": {"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
+        "2026-01",
+        None,
+        &json!({"salarie": "CRAIG", "nature": "cddu_spectacle", "spectacle": "nuits-d-ete",
             "lignes": [{"rubrique": "heure", "quantite": 16, "taux": 18.75, "dates": ["2026-01-29", "2026-01-30"]}],
-            "motif_rupture": "037", "preavis": {"type": "90"}, "dernier_jour_paye": "2026-01-30", "notification_rupture": "2026-01-29"}}),
+            "motif_rupture": "037", "preavis": {"type": "90"}, "dernier_jour_paye": "2026-01-30", "notification_rupture": "2026-01-29"}),
         "2026-01-05",
     ));
     let horloge = |jour: &str| -> Vec<String> {

@@ -26,6 +26,12 @@ pub(crate) const SAISIE: Champ = Champ {
     sens: "ce que la carte porte : nature (toujours dite : `natures` de la route etat) et les cases de sa nature (`natures` de cette fiche : chacune obligatoire ou facultative, et les motifs d'un CDD ; une case qu'elle n'a pas se refuse), salarie (la clé de sa fiche), spectacle, debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
     avance: false,
 };
+/// Le changement d'une case du brouillon d'une carte.
+pub(crate) const CHANGEMENT: Champ = Champ {
+    nom: "changement", libelle: Affiche::new("Case qui change"), forme: Forme::Objet,
+    sens: "{case, valeur} : une case de la nature de la carte (`natures` de cette fiche : chacune obligatoire ou facultative à la validation, et les motifs d'un CDD ; une case qu'elle n'a pas se refuse), valeur null pour la vider ; {\"case\": \"nature\", \"valeur\": \"cdi\"} change sa nature (les cases des deux natures gardent ce qu'elles disent, les autres naissent vides). Les cases : salarie (la clé de sa fiche), spectacle, debut, fin, motif_recours (un CDD), lignes [{rubrique, quantite, taux, dates, et les cases que sa rubrique demande, `rubriques[].saisie` de la route etat : heures (par unité : 4 pour des services de 4 h), jours, montant…}] ; un contrat au mois : les cases de la carte (`cases` de cette fiche, les avancées seulement quand `faits_avances` de la route apercu les nomme) ; sa fin : `cases_de_la_fin` de cette fiche ; les cases que son contrat écrit appelle, et numero (le numéro déjà déclaré en DSN d'un contrat commencé avant PuppetPaie) : `contrat.ecrits` de la route apercu (leur sens : `aides` de la route etat)",
+    avance: false,
+};
 pub(crate) const SAISIE_INCOMPLETE: RefusDit = RefusDit { classe: "SaisieIncomplete", corriger: "le fait que la phrase nomme, sur la carte ou la fiche du salarié" };
 const OPERATION: RefusDit = RefusDit {
     classe: "ErreurOperation",
@@ -39,9 +45,9 @@ const ECRAN: Ecran = Ecran::Dessine(Place::Paie);
 pub const ROUTES: &[Fiche] = &[
     Fiche {
         route: Route::ValiderEngagement,
-        geste: "Valider l'engagement d'une carte : l'écrire et calculer ses paies.",
-        charge: &[MOIS, Champ { nom: "engagement", libelle: Affiche::new("Carte"), forme: Forme::Objet, sens: "l'identité de la carte ; absente pour un engagement neuf", avance: false }, SAISIE],
-        exemple: r#"{"mois":"2026-11","saisie":{"salarie":"FULLER","nature":"cddu_spectacle","spectacle":"le-banc-des-menteurs","lignes":[{"rubrique":"cachet","quantite":1,"taux":150,"dates":["2026-11-27"]}]}}"#,
+        geste: "Valider l'engagement d'une carte, tel qu'il est écrit : calculer ses paies.",
+        charge: &[MOIS, IDENTITE],
+        exemple: r#"{"mois":"2026-11","engagement":{"salarie":"FULLER","debut":"2026-11-27","rang":0}}"#,
         rend: "engagement (l'identité de la carte), phrase",
         refus: &[SAISIE_INCOMPLETE, OPERATION, FORME],
         acte: Acte::Ecrit,
@@ -193,21 +199,36 @@ fn designe(ctx: &Contexte, mois: &str, id: &Identite) -> R<(usize, engagement::s
 // ------------------------------------------------------------------ valider-engagement
 
 
-/// « VALIDER L'ENGAGEMENT », UN GESTE : la carte s'ecrit (`saisie`, et `engagement`, son identite, absente
-/// pour un engagement neuf : `crate::routes::mois::ecrire_une_carte`), puis l'engagement ecrit se valide : il ecrit ses
-/// paies, une par mois qu'il couvre (`engagement::etats::valider`). Le tout se fait dans un brouillon
-/// (`engagement::stock::Brouillon`) : il lui manque un fait, la validation refuse en disant lequel, et rien n'est ecrit.
-/// Un engagement valide ne se valide pas (il se modifie par `modifier-engagement`).
-/// Sa charge est celle d'une carte (`mois::ChargeCarte`) : valider ne se defait pas, un engagement valide se modifie
-/// (`modifier-engagement`) ou se retire. L'horloge de la compagnie fictive valide par ce geste aussi.
-pub(crate) fn valider_engagement(ctx: &Contexte, carte: crate::routes::mois::ChargeCarte) -> R<Validation> {
-    let mois = &carte.mois.to_string();
+/// La charge de « Valider l'engagement » : le mois de la carte, et son identite (son brouillon est ecrit, case par case,
+/// par `enregistrer-saisie`).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ChargeValider {
+    pub(crate) mois: Mois,
+    pub(crate) engagement: Identite,
+}
+
+/// « VALIDER L'ENGAGEMENT » : le brouillon ecrit de la carte (`engagement`, son identite) se valide : il se lit en carte
+/// valide (`engagement::carte::CarteValide::depuis`, dans le calcul) et ecrit ses paies, une par mois qu'il couvre
+/// (`engagement::etats::valider`). Le tout se fait dans un brouillon de fichiers (`engagement::stock::Brouillon`) : il
+/// lui manque un fait, la validation refuse en disant lequel, et rien n'est ecrit. Valider ne se defait pas : un
+/// engagement valide se modifie (`modifier-engagement`) ou se retire. L'horloge de la compagnie fictive valide par ce
+/// geste aussi.
+pub(crate) fn valider_engagement(ctx: &Contexte, carte: ChargeValider) -> R<Validation> {
+    let ChargeValider { mois, engagement: id } = carte;
+    let mois = &mois.to_string();
     let _verrou = crate::routes::mois::avant_d_ecrire(ctx, mois)?;
     let brouillon = engagement::stock::Brouillon::ouvrir(&ctx.racine);
-    let id = crate::routes::mois::ecrire_une_carte(ctx, mois, carte.engagement.as_ref(), &carte.saisie)?;
-    let (i, _) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
+    // Ce qui se valide est le brouillon ecrit, lu en sa forme (`engagement::carte::Brouillon`).
+    crate::routes::mois::brouillon_ecrit(ctx, mois, &id)?;
+    let (i, o) = engagement::stock::designe(&ctx.racine, mois, &id).map_err(Echec::from)?;
+    if o.est_valide() {
+        return Err(refus(format!("{} : cet engagement est déjà validé ; il se modifie d'un geste. Rien n'est écrit.", engagement::etats::qui_de(ctx, &o))));
+    }
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
-    let data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)?.unwrap_or_else(|| engagement::saisie::VueDuMois::vide(carte.mois));
+    let data = engagement::stock::vue_du_mois(&ctx.racine, mois)
+        .map_err(Echec::from)?
+        .ok_or_else(|| refus(format!("{} : l'écran ne montre pas cet engagement ; rechargez le mois. Rien n'est écrit.", engagement::etats::qui_de(ctx, &o))))?;
     if let Some(manque) = crate::routes::mois::manque_de(ctx, &data, i) {
         return Err(crate::routes::mois::refus_du_calcul(ctx, &data, manque));
     }
