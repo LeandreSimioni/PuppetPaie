@@ -430,9 +430,8 @@ impl Engagement {
         // contrat a duree determinee, CCH-12, `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`, l. 517-527) ; sa
         // fin se declare dans la DSN du mois ou il finit (bloc S21.G00.62). La paie d'un mois d'avant ne change donc pas
         // quand la rupture se saisit.
-        let fin_du_mois_saisi = Mois::lire(&mois_saisi)?.dernier_jour();
         let fin = match fin {
-            Some(f) if nat.duree_indeterminee && f > fin_du_mois_saisi => None,
+            Some(f) if nat.duree_indeterminee && f > Mois::lire(&mois_saisi)?.dernier_jour() => None,
             autre => autre,
         };
 
