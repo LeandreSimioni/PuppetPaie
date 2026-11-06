@@ -991,7 +991,23 @@
       "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
       "base": "brut",
       "taux_pat": 9.1,
-      "taux_sal": null
+      "taux_sal": null,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#securite-sociale",
+            "emetteur": "loi",
+            "article": "D242-3",
+            "citation": "est fixé à 13 % à la charge de l'employeur, sur la totalité des rémunérations"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ]
+      }
     },
     {
       "id": "prevoyance",
@@ -1036,6 +1052,22 @@
       "base": "brut_plafonne",
       "taux_pat": 5.99,
       "taux_sal": 4.83,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D242-4-20231231.txt",
+            "emetteur": "loi",
+            "article": "CSS D. 242-4 (version du 31/12/2023 au 01/01/2026), plafonnée : 8,55 patronale, 6,90 salariale",
+            "citation": "A compter du 1er janvier 2024     8,55 %                         6,90 %                2,02 %      0,40 %"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ]
+      },
       "note": "`base` : Le brut dans la limite du plafond du contrat, celui que le bas du bulletin imprime (`calcul::plafond_de_l_engagement`) : CSS L. 241-3, D. 242-4, R. 242-2 ; arrete du 24/01/1975, art. 3. Textes : atelier/reference/sources/plafond-intermittents/LISEZ-MOI.md."
     },
     {
@@ -1045,6 +1077,22 @@
       "base": "brut",
       "taux_pat": 1.41,
       "taux_sal": 0.28,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D242-4-20231231.txt",
+            "emetteur": "loi",
+            "article": "CSS D. 242-4 (version du 31/12/2023 au 01/01/2026), déplafonnée : 2,02 patronale, 0,40 salariale",
+            "citation": "A compter du 1er janvier 2024     8,55 %                         6,90 %                2,02 %      0,40 %"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ]
+      },
       "note": "Vieillesse deplafonnee patronale 2,02 % en 2025 (BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025, COT_AV_SS_METROP 10,57 = 8,55 + 2,02), abattue de 30 % pour un artiste : 1,414 -> 1,41. 1,48 en 2026 (2,11 x 0,70)."
     },
     {
@@ -1062,6 +1110,22 @@
         4.44,
         0.86
       ],
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+            "emetteur": "audiens",
+            "article": "Paramètres Audiens 2025, p. 3, artistes intermittents non cadres, retraite T1 (4,44 salarial + 4,45 patronal)",
+            "citation": "T1 annuelle 4,44 % 4,45 %"
+          },
+          {
+            "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+            "emetteur": "audiens",
+            "article": "Paramètres Audiens 2025, p. 3, contribution d'équilibre général T1 (0,86 salarial + 1,29 patronal)",
+            "citation": "T1 annuelle 0,86 % 1,29 %"
+          }
+        ]
+      },
       "note": "En 2025 le 105 (Agirc-Arrco, Audiens) est la somme de QUATRE parts arrondies separement -- retraite et CEG, employeur et salarie -- et non le taux total applique une fois : 130,00 -> 5,79 + 1,68 + 5,77 + 1,12 = 14,36 (130 x 11,04 = 14,35) ; 724,00 -> 79,94 (et non 79,93) ; 450,00 -> 49,69 (et non 49,68). Lu dans les DSN deposees de fevrier, mars, juin, juillet et aout 2025. Les taux sont ceux d'Audiens (Parametres, p. 3), inchanges depuis 2019."
     },
     {
@@ -1070,7 +1134,23 @@
       "libelle": "Allocations familiales",
       "base": "brut",
       "taux_pat": 3.68,
-      "taux_sal": null
+      "taux_sal": null,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#securite-sociale",
+            "emetteur": "loi",
+            "article": "D241-3-1",
+            "citation": "est fixé à 5,25 %"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ]
+      }
     },
     {
       "id": "chomage",
@@ -1088,6 +1168,41 @@
         }
       ],
       "taux_sal": 2.4,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, § 1.3, l. 146",
+            "citation": "VIII et X est fixé à 7,4 %, réparti à raison de 5% à la charge des employeurs et 2,4 % à la charge des"
+          },
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, l. 42",
+            "citation": "est ramené à 4 %, au lieu de 4,05%. Cette baisse entre en vigueur au 1er mai 2025 et est également"
+          },
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, § 2.1.1, l. 233",
+            "citation": "La majoration de 0,5 % des contributions dues par les employeurs au titre des CDD visés à l'article"
+          },
+          {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "CTP 937 AGS, l. 7493",
+            "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
+          },
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_CH_UN_METROP, l. 113-115",
+            "citation": "4,05;01/01/2025;30/04/2025;OK"
+          }
+        ],
+        "raisonnement": "Unédic (circulaire 2025-05 : 4 % au lieu de 4,05 % au 01/05/2025, 5 % + 2,4 % pour les annexes VIII et X, majoration de 0,5 %), BOSS (4,05 % puis 4 %), Urssaf (CTP 937, AGS 0,25) : chaque composante a son texte, la somme 9,80 puis 9,75 est arithmétique ; le salarial est 2,4 %. L'artiste n'a aucun abattement sur le chômage."
+      },
       "note": "`base` : Le brut dans la limite de quatre fois le plafond du contrat : annexes VIII et X, art. 49 (atelier/reference/sources/plafond-intermittents/).\nContribution patronale d'assurance chomage 4,05 % jusqu'au 30/04/2025, 4,00 % a partir du 01/05/2025 (BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025, COT_CH_UN_METROP). Pour un intermittent : 9,05 puis 9,00 (+ AGS 0,25 + majoration 0,50), soit 11,45 puis 11,40 avec la part salariale 2,40 en DSN (code 040) ; le moteur suit le texte : le changement vaut au 01/05."
     },
     {
@@ -1097,6 +1212,35 @@
       "base": "brut",
       "taux_pat": 2.416,
       "taux_sal": null,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_SA_SS_METROP (CSA)",
+            "citation": ";0,3;01/05/2025;31/12/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/urssaf-taux-reduits-artistes/urssaf-taux-reduits-cas-particuliers-20260715.txt",
+            "emetteur": "urssaf",
+            "article": "taux réduits artistes",
+            "citation": "Contribution au dialogue social                                         0,016 %"
+          },
+          {
+            "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+            "emetteur": "urssaf",
+            "article": "participation unique",
+            "citation": "est de 2 % des rémunérations entendues au sens de l'article L. 242-1 du code"
+          },
+          {
+            "fichier": "atelier/reference/sources/afdas-contributions-2026/afdas-contributions-2026-audiovisuel-20261104.txt",
+            "emetteur": "afdas",
+            "article": "plaquette Afdas 2026, masse salariale 2025, contributions conventionnelles intermittents",
+            "citation": "INTERMITTENTS DU SPECTACLE 0.10% + forfait"
+          }
+        ],
+        "raisonnement": "CSA 0,30 % (BOSS 2025) ; dialogue social 0,016 % (Urssaf) ; formation des intermittents 2 % (Urssaf, guide) et contribution conventionnelle 0,10 % (Afdas, masse salariale 2025) ; la Thalie santé n'est pas sur le bulletin 2025. Somme : 0,30 + 0,016 + 2,00 + 0,10 = 2,416."
+      },
       "note": "0,42 point de moins qu'en 2026 : la Thalie Sante des intermittents n'existe qu'a partir du 01/01/2026 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 : le groupe << ENSEMBLE PERS. INTERMITTENT THALIE SANTE >> n'a de parametres qu'a partir du 01012026), et le versement Audiens des DSN 2025 est exactement la somme des 059 de prevoyance (juin 2025 : 26,04). 2,416 = CSA 0,30 + dialogue social 0,016 + formation des intermittents 2,00 + contribution conventionnelle Afdas 0,10."
     },
     {
@@ -1106,6 +1250,23 @@
       "base": "brut_x115_plafonne",
       "taux_pat": 0.07,
       "taux_sal": null,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "BOSS, COT_FNAL_49_METROP (2025)",
+            "citation": ";0,1;01/05/2025;31/12/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ],
+        "raisonnement": "Le BOSS donne le FNAL de moins de 50 salariés à 0,10 % en 2025 ; l'arrêté du 24/01/1975 fixe le taux de l'artiste à 70 % des taux des salariés : 0,07."
+      },
       "note": "`base` : FNAL (moins de cinquante salaries) : le brut majore de 11,5 %, dans la limite du plafond du contrat majore de meme (CSS L. 243-1-3 et D. 243-0-2 ; la majoration de la seule assiette plafonnee : lettre circulaire Acoss 2013-019, annexe 1, R2 ; atelier/reference/sources/majoration-caisses-conges/LISEZ-MOI.md)."
     },
     {
@@ -1120,6 +1281,29 @@
         0.59,
         0.09
       ],
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+            "emetteur": "urssaf",
+            "article": "Guide Urssaf contributions formation apprentissage, part principale de la taxe",
+            "citation": "La part principale de la taxe d’apprentissage est déclarée au taux de 0,59 %."
+          },
+          {
+            "fichier": "atelier/reference/sources/code-du-travail/articles-20261103.md",
+            "emetteur": "loi",
+            "article": "C. trav. L. 6241-1-1, II",
+            "citation": "II.-Le taux de la taxe d'apprentissage est fixé à 0,68 %."
+          },
+          {
+            "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+            "emetteur": "urssaf",
+            "article": "guide Urssaf, solde",
+            "citation": "le solde de la taxe d’apprentissage, au taux de 0,09%"
+          }
+        ],
+        "raisonnement": "La loi fixe le taux de la taxe d'apprentissage à 0,68 % ; l'Urssaf le décompose en part principale 0,59 % et solde 0,09 % (0,59 + 0,09 = 0,68)."
+      },
       "note": "Deux contributions, arrondies chacune : la part principale 0,59 % et le solde 0,09 % (code du travail L6241-2), soit 0,68 %. Ex. base 286,00 -> 1,69 + 0,26 = 1,95."
     },
     {
@@ -1128,7 +1312,13 @@
       "libelle": "Caisse des Congés Spectacles",
       "base": "brut_cs",
       "taux_pat": 15.5,
-      "taux_sal": null
+      "taux_sal": null,
+      "source": {
+        "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+        "emetteur": "audiens",
+        "article": "« Congés Spectacles », Paramètres Audiens 2025",
+        "citation": "Pour la période du 1er janvier 2025 au 31 mars 2026 : 15,50%"
+      }
     },
     {
       "id": "ccn",
@@ -1138,6 +1328,29 @@
       "taux_pat": 0.4,
       "taux_sal": null,
       "masquer_base_et_taux": true,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt",
+            "emetteur": "casc_svp",
+            "article": "fiche de codification DSN, l. 6",
+            "citation": "Taux de 0,40 % jusqu’au 31 12 2025"
+          },
+          {
+            "fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml",
+            "emetteur": "audiens",
+            "article": "fiche 139, l. 290",
+            "citation": "<Taux>0.4000</Taux>"
+          },
+          {
+            "fichier": "atelier/reference/sources/kali-3090-titres-iv-v-sante-20260923.md",
+            "emetteur": "convention",
+            "article": "art. 4.22 A",
+            "citation": "à 0,40 % de la masse salariale dans la limite de la tranche A de la sécurité sociale pour les salaires de 2024 et de 2025"
+          }
+        ],
+        "raisonnement": "0,40 % en 2025 : la CCN 3090 (art. 4.22), la CASC-SVP (« Taux de 0,40 % jusqu'au 31 12 2025 ») et Audiens (fiche 139, 0,4000)."
+      },
       "note": "CASC-SVP 0,40 % en 2025 (fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025, groupes ETAM et CADRE CASC SVP)."
     },
     {
@@ -1146,7 +1359,29 @@
       "libelle": "CSG déductible de l'impôt sur le revenu",
       "base": "csg",
       "taux_pat": null,
-      "taux_sal": 6.8
+      "taux_sal": 6.8,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20201216.txt",
+            "emetteur": "loi",
+            "article": "CSS L. 136-8, I, 1° (version du 16/12/2020 au 01/07/2025)",
+            "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+          },
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20250701.txt",
+            "emetteur": "loi",
+            "article": "CSS L. 136-8, I, 1° (version du 01/07/2025 au 31/12/2025)",
+            "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+          },
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-cgi-154-quinquies-20230311.txt",
+            "emetteur": "loi",
+            "article": "CGI 154 quinquies, I (version du 11/03/2023 au 27/06/2026)",
+            "citation": "précité est, à hauteur de 6,8 points"
+          }
+        ]
+      }
     },
     {
       "id": "csg_crds_nd",
@@ -1154,7 +1389,35 @@
       "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
       "base": "csg",
       "taux_pat": null,
-      "taux_sal": 2.9
+      "taux_sal": 2.9,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20201216.txt",
+            "emetteur": "loi",
+            "article": "CSS L. 136-8, I, 1° (version du 16/12/2020 au 01/07/2025)",
+            "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+          },
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20250701.txt",
+            "emetteur": "loi",
+            "article": "CSS L. 136-8, I, 1° (version du 01/07/2025 au 31/12/2025)",
+            "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+          },
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-cgi-154-quinquies-20230311.txt",
+            "emetteur": "loi",
+            "article": "CGI 154 quinquies, I (version du 11/03/2023 au 27/06/2026)",
+            "citation": "précité est, à hauteur de 6,8 points"
+          },
+          {
+            "fichier": "atelier/reference/sources/ordonnance-96-50-crds/legifrance-ordonnance-96-50-crds-20251231.txt",
+            "emetteur": "loi",
+            "article": "ordonnance n° 96-50, art. 19",
+            "citation": "Le taux des contributions instituées par les articles 14 à 17 est fixé à 0,5 %."
+          }
+        ]
+      }
     }
   ],
   "cotisations_dsn": [
@@ -1164,7 +1427,24 @@
       "org": "78861779300013",
       "base": "brut_x115_plafonne",
       "taux": 0.07,
-      "base78": "brut_plafonne"
+      "base78": "brut_plafonne",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "BOSS, COT_FNAL_49_METROP (2025)",
+            "citation": ";0,1;01/05/2025;31/12/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ],
+        "raisonnement": "Le BOSS donne le FNAL de moins de 50 salariés à 0,10 % en 2025 ; l'arrêté du 24/01/1975 fixe le taux de l'artiste à 70 % : 0,07."
+      }
     },
     {
       "bloc78": "03",
@@ -1173,7 +1453,24 @@
       "base": "brut",
       "taux": 2.42,
       "base78": "brut",
-      "plafond": true
+      "plafond": true,
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_AF_SS_METROP (2025), taux réduit 3,45",
+            "citation": ";3,45;01/05/2025;31/12/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ],
+        "raisonnement": "Le BOSS donne le taux d'allocations familiales réduit à 3,45 % en 2025 ; l'artiste est à 70 % : 3,45 x 0,70 = 2,415, arrondi à 2,42."
+      }
     },
     {
       "bloc78": "03",
@@ -1181,7 +1478,24 @@
       "org": "78861779300013",
       "base": "brut",
       "taux": 4.9,
-      "base78": "brut"
+      "base78": "brut",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_AM_SS_METROP (2025), taux réduit 7",
+            "citation": ";7;01/05/2025;31/12/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ],
+        "raisonnement": "Le BOSS donne le taux d'assurance maladie réduit à 7 % en 2025 ; l'artiste est à 70 % : 7 x 0,70 = 4,90."
+      }
     },
     {
       "bloc78": "03",
@@ -1189,7 +1503,24 @@
       "org": "78861779300013",
       "base": "brut",
       "taux": 1.26,
-      "base78": "brut"
+      "base78": "brut",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "table des CTP, 430 complément de cotisation AF",
+            "citation": "'430';COMPLEMENT COTISATION AF;AF TAUX PLEIN;E;;1.8;;2015-01-01;;"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ],
+        "raisonnement": "L'Urssaf code le complément d'allocations familiales (taux plein moins taux réduit) en CTP 430 à 1,8 % ; l'artiste est à 70 % : 1,8 x 0,70 = 1,26."
+      }
     },
     {
       "bloc78": "03",
@@ -1197,7 +1528,13 @@
       "org": "78861779300013",
       "base": "brut_x110",
       "taux": 0.59,
-      "base78": "brut"
+      "base78": "brut",
+      "source": {
+        "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+        "emetteur": "urssaf",
+        "article": "Guide Urssaf contributions formation apprentissage, part principale de la taxe",
+        "citation": "La part principale de la taxe d’apprentissage est déclarée au taux de 0,59 %."
+      }
     },
     {
       "bloc78": "03",
@@ -1205,7 +1542,23 @@
       "org": "78861779300013",
       "base": "brut",
       "taux": 2.0,
-      "base78": "brut"
+      "base78": "brut",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "table des CTP, 983 CFP intermittents du spectacle",
+            "citation": "'983';CFP INTERMITTENTS DU SPECTACLE;CFP INTERMITTENTS;E;;2.0;;2022-01-01;;"
+          },
+          {
+            "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+            "emetteur": "urssaf",
+            "article": "participation unique des intermittents",
+            "citation": "est de 2 % des rémunérations entendues au sens de l'article L. 242-1 du code"
+          }
+        ]
+      }
     },
     {
       "bloc78": "03",
@@ -1213,7 +1566,24 @@
       "org": "78861779300013",
       "base": "brut",
       "taux": 4.2,
-      "base78": "brut"
+      "base78": "brut",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "table des CTP, 635 complément de cotisation maladie",
+            "citation": "'635';COMPLEMENT COTISATION MALADIE;MALADIE TAUX PLEIN;E;;6.0;;2019-01-01;;"
+          },
+          {
+            "fichier": "atelier/reference/sources/arrete-1975-artistes-du-spectacle/articles-20261010.md",
+            "emetteur": "loi",
+            "article": "arrete du 24 janvier 1975, art. (taux a 70 % des taux applicables aux salaries)",
+            "citation": "sont fixés à raison de 70 % des taux applicables aux salariés."
+          }
+        ],
+        "raisonnement": "L'Urssaf code le complément d'assurance maladie (taux plein moins taux réduit) en CTP 635 à 6,0 % ; l'artiste est à 70 % : 6 x 0,70 = 4,20."
+      }
     },
     {
       "bloc78": "04",
@@ -1221,7 +1591,23 @@
       "org": "78861779300013",
       "base": "csg",
       "taux": 9.2,
-      "base78": "csg"
+      "base78": "csg",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20201216.txt",
+            "emetteur": "loi",
+            "article": "CSS L. 136-8, I, 1° (version du 16/12/2020 au 01/07/2025)",
+            "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+          },
+          {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20250701.txt",
+            "emetteur": "loi",
+            "article": "CSS L. 136-8, I, 1° (version du 01/07/2025 au 31/12/2025)",
+            "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+          }
+        ]
+      }
     },
     {
       "bloc78": "04",
@@ -1229,7 +1615,13 @@
       "org": "78861779300013",
       "base": "csg",
       "taux": 0.5,
-      "base78": "csg"
+      "base78": "csg",
+      "source": {
+        "fichier": "atelier/reference/sources/ordonnance-96-50-crds/legifrance-ordonnance-96-50-crds-20251231.txt",
+        "emetteur": "loi",
+        "article": "ordonnance n° 96-50, art. 19",
+        "citation": "Le taux des contributions instituées par les articles 14 à 17 est fixé à 0,5 %."
+      }
     },
     {
       "bloc78": "07",
@@ -1247,6 +1639,29 @@
         }
       ],
       "base78": "brut_chomage",
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_CH_UN_METROP (2025), 4,05 % jusqu'au 30/04/2025",
+            "citation": "4,05;01/01/2025;30/04/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_CH_UN_METROP (2025), 4 % depuis le 01/05/2025",
+            "citation": ";4;01/05/2025;31/12/2025;OK"
+          },
+          {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, § 1.3, l. 146",
+            "citation": "VIII et X est fixé à 7,4 %, réparti à raison de 5% à la charge des employeurs et 2,4 % à la charge des"
+          }
+        ],
+        "raisonnement": "Le BOSS donne la contribution patronale à 4,05 % jusqu'au 30/04/2025 puis 4 % ; l'Unédic ajoute pour les annexes VIII et X 5 % à la charge de l'employeur et 2,4 % du salarié : 4,05 + 5 + 2,4 = 11,45 puis 4 + 5 + 2,4 = 11,4."
+      },
       "note": "Contribution patronale d'assurance chomage 4,05 % jusqu'au 30/04/2025, 4,00 % a partir du 01/05/2025 (BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025, COT_CH_UN_METROP). Pour un intermittent : 9,05 puis 9,00 (+ AGS 0,25 + majoration 0,50), soit 11,45 puis 11,40 avec la part salariale 2,40 en DSN (code 040) ; le moteur suit le texte : le changement vaut au 01/05."
     },
     {
@@ -1255,7 +1670,13 @@
       "org": "13000548100010",
       "base": "brut_chomage",
       "taux": 0.25,
-      "base78": "brut_chomage"
+      "base78": "brut_chomage",
+      "source": {
+        "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+        "emetteur": "urssaf",
+        "article": "table des CTP, 937 AGS",
+        "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
+      }
     },
     {
       "bloc78": "07",
@@ -1263,7 +1684,13 @@
       "org": "13000548100010",
       "base": "brut_chomage",
       "taux": 0.5,
-      "base78": "brut_chomage"
+      "base78": "brut_chomage",
+      "source": {
+        "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+        "emetteur": "unedic",
+        "article": "circulaire 2025-05, § 2.1.1, l. 233",
+        "citation": "La majoration de 0,5 % des contributions dues par les employeurs au titre des CDD visés à l'article"
+      }
     },
     {
       "bloc78": "23",
@@ -1278,6 +1705,22 @@
         4.44,
         0.86
       ],
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+            "emetteur": "audiens",
+            "article": "Paramètres Audiens 2025, p. 3, artistes intermittents non cadres, retraite T1 (4,44 salarial + 4,45 patronal)",
+            "citation": "T1 annuelle 4,44 % 4,45 %"
+          },
+          {
+            "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+            "emetteur": "audiens",
+            "article": "Paramètres Audiens 2025, p. 3, contribution d'équilibre général T1 (0,86 salarial + 1,29 patronal)",
+            "citation": "T1 annuelle 0,86 % 1,29 %"
+          }
+        ]
+      },
       "note": "131 - Cotisation regime unifie Agirc-Arrco, le libelle de la norme (cahier technique 2026.1, p. 305 ; atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt, l. 287). La marque `_libelle_a_confirmer`, heritee du 105, est retiree.\nEn 2025 le 105 (Agirc-Arrco, Audiens) est la somme de QUATRE parts arrondies separement -- retraite et CEG, employeur et salarie -- et non le taux total applique une fois : 130,00 -> 5,79 + 1,68 + 5,77 + 1,12 = 14,36 (130 x 11,04 = 14,35) ; 724,00 -> 79,94 (et non 79,93) ; 450,00 -> 49,69 (et non 49,68). Lu dans les DSN deposees de fevrier, mars, juin, juillet et aout 2025. Les taux sont ceux d'Audiens (Parametres, p. 3), inchanges depuis 2019."
     },
     {
@@ -1286,7 +1729,13 @@
       "org": null,
       "base": "brut_cs",
       "taux": 15.5,
-      "base78": "brut_cs"
+      "base78": "brut_cs",
+      "source": {
+        "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+        "emetteur": "audiens",
+        "article": "« Congés Spectacles », Paramètres Audiens 2025",
+        "citation": "Pour la période du 1er janvier 2025 au 31 mars 2026 : 15,50%"
+      }
     },
     {
       "bloc78": "31",
@@ -1301,7 +1750,23 @@
         1.04,
         0.12
       ],
-      "note": "Deux contributions arrondies separement (0,420 + 0,810). Ex. brut 520 -> 2,18 + 4,21 = 6,39 ; brut 480 -> 2,02 + 3,89 = 5,91.\nPrevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas). Une seule affiliation Audiens en 2025 (pas de Thalie) : elle prend l'affectation 202."
+      "source": {
+        "sources": [
+          {
+            "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+            "emetteur": "audiens",
+            "article": "Paramètres Audiens 2025, p. 3 (prévoyance et santé), l. 202 (0,12 + 0,34 + 0,70 = 1,16)",
+            "citation": "Non cadres           0,12%               0,34%                       0,70%                      0,12%                1,04%"
+          },
+          {
+            "fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml",
+            "emetteur": "audiens",
+            "article": "fiche 139, groupe ETAM PREVOYANCE, l. 18",
+            "citation": "<Taux>1.1600</Taux>"
+          }
+        ]
+      },
+      "note": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas). Une seule affiliation Audiens en 2025 (pas de Thalie) : elle prend l'affectation 202."
     },
     {
       "bloc78": "43",
@@ -1886,7 +2351,78 @@
           }
         ],
         "majoration_caisse_conges": "100/90",
-        "note": "La reduction generale de 2025, dite << Fillon >> (art. L. 241-13 et D. 241-7 CSS, version en vigueur du 01/01/2024 au 31/12/2025), que la RGDU a remplacee au 01/01/2026.\n`statuts` : Les artistes du spectacle n'y ont pas droit : ils cotisent aux taux abattus de 30 % (arrete du 24/01/1975). Les techniciens, si.\nLe SMIC horaire de 2025, 11,88 EUR (`smic_horaire`), celui de toute l'annee. Pour un contrat qui ne couvre pas le mois, SMIC de reference = 11,88 x heures remunerees. Texte non depose : D. 241-7 dans sa version en vigueur du 01/01/2024 au 31/12/2025 (seule celle du 15/06/2026 l'est, atelier/reference/sources/code-de-la-securite-sociale/xml/D241-7.xml), et le decret de revalorisation du SMIC au 01/11/2024 ; a relever dans LEGI.\n`imputation` : La reduction s'impute sur les cotisations Urssaf (maladie, vieillesse, AF, AT dans la limite de 0,49 %, FNAL, CSA = 29,80 points), sur l'assurance chomage (4,00 points) et sur la retraite complementaire Agirc-Arrco (6,01 points) : 29,80 + 4,00 + 6,01 = 39,81 = Tmin + Tdelta. Les parts chomage et Agirc-Arrco valent montant x 4,00 / 39,81 et montant x 6,01 / 39,81, le reste va a l'Urssaf. C'est la repartition qu'appliquent les logiciels de paie (Sage, EBP) ; elle n'a pas encore ete confrontee a un compte-rendu Urssaf ou Agirc-Arrco reel.\n`dsn` : D'apres le cahier technique DSN 2026.1 : sous le bloc 78 type 03, TROIS blocs 81 en montant NEGATIF avec l'assiette (81.003) -- code 018 organisme URSSAF (part securite sociale), code 018 organisme France Travail (part assurance chomage : chez les intermittents du spectacle, l'Urssaf ne recouvre pas l'AC), code 106 sans organisme (part retraite complementaire). Le composant 79 type 01 du meme bloc 78 porte le SMIC retenu (controle CCH-17 : obligatoire avec 018 ou 106) : le SMIC horaire x heures. Bordereau : CTP 671 qualifiant 921, montant de cotisation (23.005) en euros, positif ; l'Urssaf confirme le 671 pour << les personnes pour lesquelles l'Urssaf ne recouvre pas l'assurance chomage (intermittents du spectacle) >>, regularisation sur 801. La part chomage se retranche du versement France Travail, la part retraite de celui d'Audiens.\nStructure DSN relue sur le fichier reel de mai 2025 ; formule et parametres 2026 relus sur Legifrance (D. 241-7) ; repartition Urssaf / chomage / retraite au prorata des points de T (regle BOSS, non confrontee a un compte-rendu 2026). A regarder sur le compte-rendu Urssaf (nature 61/120) de la premiere DSN qui portera un technicien.\n`formule` : coefficient = T / 0,6 x (1,6 x SMIC de reference / remuneration - 1), arrondi a quatre decimales, borne a T, nul des 1,6 SMIC. SMIC de reference = 11,88 x heures remunerees du contrat. Calcul contrat par contrat, comme la RGDU (D. 241-7 : << pour les salaries en CDD aupres d'un meme employeur, le coefficient est determine pour chaque contrat >>).\n`t` : BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025 : COT_RGD_T_49_METROP 31,94 du 01/01/2024 au 30/04/2025, 31,93 a partir du 01/05/2025 (le point de chomage qui baisse). T impute 4,05 puis 4,00 points au chomage et 6,01 a l'Agirc-Arrco, le reste a l'Urssaf.\n`majoration_caisse_conges` : Art. L. 241-13, IV, 3° du code de la securite sociale (atelier/reference/sources/code-de-la-securite-sociale/xml/L241-13.xml) : la reduction s'applique << aux salaries des professions dans lesquelles le paiement des conges et des charges sur les indemnites de conges est mutualise entre les employeurs affilies aux caisses de conges >> -- l'intermittent du spectacle et Conges Spectacles. Le coefficient de ces salaries est multiplie par 100/90, et son maximum avec lui : D. 241-10, I et IV (b = 100/90), depose dans sa version en vigueur au 15/06/2026 (atelier/reference/sources/code-de-la-securite-sociale/xml/D241-10.xml, LEGIARTI000054252223) ; sa version applicable en 2025 n'est pas deposee : que le facteur 100/90 y soit le meme est une inference, a relever dans LEGI. Aux seuls contrats dont le brut passe par Conges Spectacles (`droit::reduction::reduction_generale`, argument `caisse_conges`) ; un permanent, dont l'employeur paie les conges, n'y a pas droit.\nLa reduction se calcule contrat par contrat (D. 241-7), non sur l'annee."
+        "source": {
+          "sources": [
+            {
+              "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D241-7-20231231.txt",
+              "emetteur": "loi",
+              "article": "CSS D. 241-7, I (version du 31/12/2023 au 07/04/2025), formule et T = 0,3194",
+              "citation": "Coefficient = (T/0,6) × (1,6 × SMIC calculé pour un an/ rémunération annuelle brute-1)."
+            },
+            {
+              "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D241-7-20231231.txt",
+              "emetteur": "loi",
+              "article": "CSS D. 241-7, I (version du 31/12/2023 au 07/04/2025), T jusqu'au 30/04/2025",
+              "citation": "Elle est fixée à 0,3194 pour les revenus d'activité dus par les employeurs soumis au 1°"
+            },
+            {
+              "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D241-7-20250407.txt",
+              "emetteur": "loi",
+              "article": "CSS D. 241-7, I (version du 07/04/2025 au 01/01/2026), T = 0,3193",
+              "citation": "Elle est fixée à 0,3193 pour les revenus d'activité dus par les employeurs soumis au 1°"
+            },
+            {
+              "fichier": "atelier/reference/sources/decret-2023-1329-reduction-cotisations/legifrance-decret-2023-1329-20231231.txt",
+              "emetteur": "loi",
+              "article": "décret n° 2023-1329 du 29 décembre 2023, art. 1er (modifie D. 241-7) et art. 4 (périodes à compter du 01/01/2024)",
+              "citation": "Modifie Code de la sécurité sociale. - art. D241-7 (M)"
+            },
+            {
+              "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L241-13-20210101.txt",
+              "emetteur": "loi",
+              "article": "CSS L. 241-13, IV, 3° (version du 01/01/2021 au 28/02/2025), même règle jusqu'au 27/02/2025",
+              "citation": "3° Aux salariés des professions dans lesquelles le paiement des congés et des charges sur les indemnités de congés est mutualisé entre les employeurs affiliés aux caisses de congés"
+            },
+            {
+              "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L241-13-20250228.txt",
+              "emetteur": "loi",
+              "article": "CSS L. 241-13, IV, 3° (version du 28/02/2025 au 31/12/2025), professions où les congés sont mutualisés par une caisse",
+              "citation": "3° Aux salariés des professions dans lesquelles le paiement des congés et des charges sur les indemnités de congés est mutualisé entre les employeurs affiliés aux caisses de congés"
+            },
+            {
+              "fichier": "atelier/reference/sources/decret-2025-318-reduction-cotisations/legifrance-decret-2025-318-20250406.txt",
+              "emetteur": "loi",
+              "article": "décret n° 2025-318 du 4 avril 2025, art. 1er, 5°, a (en vigueur pour les périodes d'emploi à compter du 1er mai 2025, art. 5)",
+              "citation": "les valeurs : « 0,3194 » et : « 0,3234 » sont respectivement remplacées par les valeurs : « 0,3193 » et : « 0,3233 »"
+            },
+            {
+              "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+              "emetteur": "boss",
+              "article": "SMIC_H_METROP, SMIC horaire brut de 2025",
+              "citation": "SMIC horaire brut;11,88;01/01/2025;31/12/2025;OK"
+            },
+            {
+              "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+              "emetteur": "boss",
+              "article": "COT_CH_UN_METROP (2025), point de chômage imputé jusqu'au 30/04/2025",
+              "citation": "4,05;01/01/2025;30/04/2025;OK"
+            },
+            {
+              "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+              "emetteur": "boss",
+              "article": "COT_CH_UN_METROP (2025), point de chômage imputé depuis le 01/05/2025",
+              "citation": ";4;01/05/2025;31/12/2025;OK"
+            },
+            {
+              "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+              "emetteur": "boss",
+              "article": "COT_AV_RC_METROP (2025), retraite complémentaire imputée",
+              "citation": "6,01;01/01/2025;30/04/2025;OK"
+            }
+          ],
+          "raisonnement": "D. 241-7 (loi) donne la formule, le plafond de 1,6 SMIC et T : 0,3194 jusqu'au 30/04/2025, 0,3193 depuis le 01/05/2025 (décret 2025-318, art. 1er et 5) ; le BOSS donne le SMIC horaire de 2025, 11,88 €, et les points imputés : chômage 4,05 puis 4, retraite complémentaire 6,01."
+        },
+        "note": "La reduction generale de 2025, dite << Fillon >> (art. L. 241-13 et D. 241-7 CSS, version en vigueur du 01/01/2024 au 31/12/2025), que la RGDU a remplacee au 01/01/2026.\n`statuts` : Les artistes du spectacle n'y ont pas droit : ils cotisent aux taux abattus de 30 % (arrete du 24/01/1975). Les techniciens, si.\nLe SMIC horaire de 2025, 11,88 EUR (`smic_horaire`), celui de toute l'annee. Pour un contrat qui ne couvre pas le mois, SMIC de reference = 11,88 x heures remunerees. Textes deposes : D. 241-7 dans ses versions du 31/12/2023 et du 07/04/2025 (atelier/reference/sources/legifrance-versions-datees/) et le decret 2025-318 (atelier/reference/sources/decret-2025-318-reduction-cotisations/) ; le SMIC de 2025 est celui de la table BOSS.\n`imputation` : La reduction s'impute sur les cotisations Urssaf (maladie, vieillesse, AF, AT dans la limite de 0,49 %, FNAL, CSA = 29,80 points), sur l'assurance chomage (4,00 points) et sur la retraite complementaire Agirc-Arrco (6,01 points) : 29,80 + 4,00 + 6,01 = 39,81 = Tmin + Tdelta. Les parts chomage et Agirc-Arrco valent montant x 4,00 / 39,81 et montant x 6,01 / 39,81, le reste va a l'Urssaf. C'est la repartition qu'appliquent les logiciels de paie (Sage, EBP) ; elle n'a pas encore ete confrontee a un compte-rendu Urssaf ou Agirc-Arrco reel.\n`dsn` : D'apres le cahier technique DSN 2026.1 : sous le bloc 78 type 03, TROIS blocs 81 en montant NEGATIF avec l'assiette (81.003) -- code 018 organisme URSSAF (part securite sociale), code 018 organisme France Travail (part assurance chomage : chez les intermittents du spectacle, l'Urssaf ne recouvre pas l'AC), code 106 sans organisme (part retraite complementaire). Le composant 79 type 01 du meme bloc 78 porte le SMIC retenu (controle CCH-17 : obligatoire avec 018 ou 106) : le SMIC horaire x heures. Bordereau : CTP 671 qualifiant 921, montant de cotisation (23.005) en euros, positif ; l'Urssaf confirme le 671 pour << les personnes pour lesquelles l'Urssaf ne recouvre pas l'assurance chomage (intermittents du spectacle) >>, regularisation sur 801. La part chomage se retranche du versement France Travail, la part retraite de celui d'Audiens.\nStructure DSN relue sur le fichier reel de mai 2025 ; formule et parametres 2026 relus sur Legifrance (D. 241-7) ; repartition Urssaf / chomage / retraite au prorata des points de T (regle BOSS, non confrontee a un compte-rendu 2026). A regarder sur le compte-rendu Urssaf (nature 61/120) de la premiere DSN qui portera un technicien.\n`formule` : coefficient = T / 0,6 x (1,6 x SMIC de reference / remuneration - 1), arrondi a quatre decimales, borne a T, nul des 1,6 SMIC. SMIC de reference = 11,88 x heures remunerees du contrat. Calcul contrat par contrat, comme la RGDU (D. 241-7 : << pour les salaries en CDD aupres d'un meme employeur, le coefficient est determine pour chaque contrat >>).\n`t` : BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025 : COT_RGD_T_49_METROP 31,94 du 01/01/2024 au 30/04/2025, 31,93 a partir du 01/05/2025 (le point de chomage qui baisse). T impute 4,05 puis 4,00 points au chomage et 6,01 a l'Agirc-Arrco, le reste a l'Urssaf.\n`majoration_caisse_conges` : Art. L. 241-13, IV, 3° du code de la securite sociale (atelier/reference/sources/code-de-la-securite-sociale/xml/L241-13.xml) : la reduction s'applique << aux salaries des professions dans lesquelles le paiement des conges et des charges sur les indemnites de conges est mutualise entre les employeurs affilies aux caisses de conges >> -- l'intermittent du spectacle et Conges Spectacles. Le coefficient de ces salaries est multiplie par 100/90, et son maximum avec lui : D. 241-10, I et IV (b = 100/90), depose dans sa version en vigueur au 15/06/2026 (atelier/reference/sources/code-de-la-securite-sociale/xml/D241-10.xml, LEGIARTI000054252223) ; sa version applicable en 2025 n'est pas deposee : que le facteur 100/90 y soit le meme est une inference, a relever dans LEGI. Aux seuls contrats dont le brut passe par Conges Spectacles (`droit::reduction::reduction_generale`, argument `caisse_conges`) ; un permanent, dont l'employeur paie les conges, n'y a pas droit.\nLa reduction se calcule contrat par contrat (D. 241-7), non sur l'annee."
       },
       "cotisations_dsn": [
         {
@@ -1895,7 +2431,13 @@
           "org": "78861779300013",
           "base": "brut_x115_plafonne",
           "taux": 0.1,
-          "base78": "brut_plafonne"
+          "base78": "brut_plafonne",
+          "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "BOSS, COT_FNAL_49_METROP (2025)",
+            "citation": ";0,1;01/05/2025;31/12/2025;OK"
+          }
         },
         {
           "bloc78": "03",
@@ -1904,7 +2446,13 @@
           "base": "brut",
           "taux": 3.45,
           "base78": "brut",
-          "plafond": true
+          "plafond": true,
+          "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_AF_SS_METROP (2025), taux réduit",
+            "citation": ";3,45;01/05/2025;31/12/2025;OK"
+          }
         },
         {
           "bloc78": "03",
@@ -1912,7 +2460,13 @@
           "org": "78861779300013",
           "base": "brut",
           "taux": 7.0,
-          "base78": "brut"
+          "base78": "brut",
+          "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_AM_SS_METROP (2025), taux réduit",
+            "citation": ";7;01/05/2025;31/12/2025;OK"
+          }
         },
         {
           "bloc78": "03",
@@ -1922,7 +2476,30 @@
           "taux": 1.8,
           "base78": "brut",
           "seuil_smic": 3.3,
-          "note": "LES TAUX REDUITS DE 2025, supprimes au 01/01/2026 par la RGDU : maladie 7 % (complement 6 points au-dela de 2,25 SMIC) et allocations familiales 3,45 % (complement 1,8 point au-dela de 3,3 SMIC) -- LFSS 2025, seuils abaisses au 01/01/2025 depuis 2,5 et 3,5 SMIC (texte de la LFSS 2025 non depose). Le seuil se compare au SMIC de reference du contrat (`droit::reduction::au_dela_du_seuil`), comme la reduction generale."
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+                "emetteur": "urssaf",
+                "article": "table des CTP, 430 complément de cotisation AF",
+                "citation": "'430';COMPLEMENT COTISATION AF;AF TAUX PLEIN;E;;1.8;;2015-01-01;;"
+              },
+              {
+                "fichier": "atelier/reference/sources/loi-2025-199-lfss-2025/legifrance-loi-2025-199-20250228.txt",
+                "emetteur": "loi",
+                "article": "LFSS 2025 (loi n° 2025-199), annexe, seuil de la réduction des allocations familiales",
+                "citation": "respectivement à 2,25 et 3,3 fois la valeur du SMIC"
+              },
+              {
+                "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#securite-sociale",
+                "emetteur": "loi",
+                "article": "L241-6-1",
+                "citation": "Le taux des cotisations d'allocations familiales est réduit de 1,8 point"
+              }
+            ],
+            "raisonnement": "La loi réduit le taux d'allocations familiales de 1,8 point (L. 241-6-1) sous 3,3 SMIC (LFSS 2025) ; l'Urssaf code le complément déclaré au-delà du seuil en CTP 430 à 1,8 %."
+          },
+          "note": "LES TAUX REDUITS DE 2025, supprimes au 01/01/2026 par la RGDU : maladie 7 % (complement 6 points au-dela de 2,25 SMIC) et allocations familiales 3,45 % (complement 1,8 point au-dela de 3,3 SMIC) -- LFSS 2025, seuils abaisses au 01/01/2025 depuis 2,5 et 3,5 SMIC (LFSS 2025 deposee : atelier/reference/sources/loi-2025-199-lfss-2025/). Le seuil se compare au SMIC de reference du contrat (`droit::reduction::au_dela_du_seuil`), comme la reduction generale."
         },
         {
           "bloc78": "03",
@@ -1930,7 +2507,13 @@
           "org": "78861779300013",
           "base": "brut_x110",
           "taux": 0.59,
-          "base78": "brut"
+          "base78": "brut",
+          "source": {
+            "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+            "emetteur": "urssaf",
+            "article": "Guide Urssaf contributions formation apprentissage, part principale de la taxe",
+            "citation": "La part principale de la taxe d’apprentissage est déclarée au taux de 0,59 %."
+          }
         },
         {
           "bloc78": "03",
@@ -1938,7 +2521,23 @@
           "org": "78861779300013",
           "base": "brut",
           "taux": 2.0,
-          "base78": "brut"
+          "base78": "brut",
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+                "emetteur": "urssaf",
+                "article": "table des CTP, 983 CFP intermittents du spectacle",
+                "citation": "'983';CFP INTERMITTENTS DU SPECTACLE;CFP INTERMITTENTS;E;;2.0;;2022-01-01;;"
+              },
+              {
+                "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+                "emetteur": "urssaf",
+                "article": "participation unique des intermittents",
+                "citation": "est de 2 % des rémunérations entendues au sens de l'article L. 242-1 du code"
+              }
+            ]
+          }
         },
         {
           "bloc78": "03",
@@ -1948,7 +2547,30 @@
           "taux": 6.0,
           "base78": "brut",
           "seuil_smic": 2.25,
-          "note": "LES TAUX REDUITS DE 2025, supprimes au 01/01/2026 par la RGDU : maladie 7 % (complement 6 points au-dela de 2,25 SMIC) et allocations familiales 3,45 % (complement 1,8 point au-dela de 3,3 SMIC) -- LFSS 2025, seuils abaisses au 01/01/2025 depuis 2,5 et 3,5 SMIC (texte de la LFSS 2025 non depose). Le seuil se compare au SMIC de reference du contrat (`droit::reduction::au_dela_du_seuil`), comme la reduction generale."
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+                "emetteur": "urssaf",
+                "article": "table des CTP, 635 complément de cotisation maladie",
+                "citation": "'635';COMPLEMENT COTISATION MALADIE;MALADIE TAUX PLEIN;E;;6.0;;2019-01-01;;"
+              },
+              {
+                "fichier": "atelier/reference/sources/loi-2025-199-lfss-2025/legifrance-loi-2025-199-20250228.txt",
+                "emetteur": "loi",
+                "article": "LFSS 2025 (loi n° 2025-199), annexe, seuil de la réduction de l'assurance maladie",
+                "citation": "respectivement à 2,25 et 3,3 fois la valeur du SMIC"
+              },
+              {
+                "fichier": "atelier/reference/sources/legi-entrepot/articles.jsonl.gz#securite-sociale",
+                "emetteur": "loi",
+                "article": "L241-2-1",
+                "citation": "Le taux des cotisations d'assurance maladie est réduit de 6 points"
+              }
+            ],
+            "raisonnement": "La loi réduit le taux d'assurance maladie de 6 points (L. 241-2-1) sous 2,25 SMIC (LFSS 2025) ; l'Urssaf code le complément déclaré au-delà du seuil en CTP 635 à 6,0 %."
+          },
+          "note": "LES TAUX REDUITS DE 2025, supprimes au 01/01/2026 par la RGDU : maladie 7 % (complement 6 points au-dela de 2,25 SMIC) et allocations familiales 3,45 % (complement 1,8 point au-dela de 3,3 SMIC) -- LFSS 2025, seuils abaisses au 01/01/2025 depuis 2,5 et 3,5 SMIC (LFSS 2025 deposee : atelier/reference/sources/loi-2025-199-lfss-2025/). Le seuil se compare au SMIC de reference du contrat (`droit::reduction::au_dela_du_seuil`), comme la reduction generale."
         },
         {
           "bloc78": "04",
@@ -1956,7 +2578,23 @@
           "org": "78861779300013",
           "base": "csg",
           "taux": 9.2,
-          "base78": "csg"
+          "base78": "csg",
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20201216.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 16/12/2020 au 01/07/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              },
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20250701.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 01/07/2025 au 31/12/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              }
+            ]
+          }
         },
         {
           "bloc78": "04",
@@ -1964,7 +2602,13 @@
           "org": "78861779300013",
           "base": "csg",
           "taux": 0.5,
-          "base78": "csg"
+          "base78": "csg",
+          "source": {
+            "fichier": "atelier/reference/sources/ordonnance-96-50-crds/legifrance-ordonnance-96-50-crds-20251231.txt",
+            "emetteur": "loi",
+            "article": "ordonnance n° 96-50, art. 19",
+            "citation": "Le taux des contributions instituées par les articles 14 à 17 est fixé à 0,5 %."
+          }
         },
         {
           "bloc78": "07",
@@ -1982,6 +2626,29 @@
             }
           ],
           "base78": "brut_chomage",
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+                "emetteur": "boss",
+                "article": "COT_CH_UN_METROP (2025), 4,05 % jusqu'au 30/04/2025",
+                "citation": "4,05;01/01/2025;30/04/2025;OK"
+              },
+              {
+                "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+                "emetteur": "boss",
+                "article": "COT_CH_UN_METROP (2025), 4 % depuis le 01/05/2025",
+                "citation": ";4;01/05/2025;31/12/2025;OK"
+              },
+              {
+                "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+                "emetteur": "unedic",
+                "article": "circulaire 2025-05, § 1.3, l. 146",
+                "citation": "VIII et X est fixé à 7,4 %, réparti à raison de 5% à la charge des employeurs et 2,4 % à la charge des"
+              }
+            ],
+            "raisonnement": "Le BOSS donne la contribution patronale à 4,05 % jusqu'au 30/04/2025 puis 4 % ; l'Unédic ajoute pour les annexes VIII et X 5 % à la charge de l'employeur et 2,4 % du salarié : 4,05 + 5 + 2,4 = 11,45 puis 4 + 5 + 2,4 = 11,4."
+          },
           "note": "Contribution patronale d'assurance chomage 4,05 % jusqu'au 30/04/2025, 4,00 % a partir du 01/05/2025 (BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025, COT_CH_UN_METROP). Pour un intermittent : 9,05 puis 9,00 (+ AGS 0,25 + majoration 0,50), soit 11,45 puis 11,40 avec la part salariale 2,40 en DSN (code 040) ; le moteur suit le texte : le changement vaut au 01/05."
         },
         {
@@ -1990,7 +2657,13 @@
           "org": "13000548100010",
           "base": "brut_chomage",
           "taux": 0.25,
-          "base78": "brut_chomage"
+          "base78": "brut_chomage",
+          "source": {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "table des CTP, 937 AGS",
+            "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
+          }
         },
         {
           "bloc78": "07",
@@ -1998,7 +2671,13 @@
           "org": "13000548100010",
           "base": "brut_chomage",
           "taux": 0.5,
-          "base78": "brut_chomage"
+          "base78": "brut_chomage",
+          "source": {
+            "fichier": "atelier/reference/sources/plafond-intermittents/unedic-circulaire-2025-05-contributions-20250501.txt",
+            "emetteur": "unedic",
+            "article": "circulaire 2025-05, § 2.1.1, l. 233",
+            "citation": "La majoration de 0,5 % des contributions dues par les employeurs au titre des CDD visés à l'article"
+          }
         },
         {
           "bloc78": "23",
@@ -2013,6 +2692,22 @@
             3.93,
             0.86
           ],
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+                "emetteur": "audiens",
+                "article": "Paramètres Audiens 2025, p. 3, techniciens intermittents non cadres, retraite T1 (3,93 salarial + 3,94 patronal)",
+                "citation": "T1 annuelle 3,93 % 3,94 %"
+              },
+              {
+                "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+                "emetteur": "audiens",
+                "article": "Paramètres Audiens 2025, p. 3, contribution d'équilibre général T1 (0,86 salarial + 1,29 patronal)",
+                "citation": "T1 annuelle 0,86 % 1,29 %"
+              }
+            ]
+          },
           "note": "En 2025 le 105 (Agirc-Arrco, Audiens) est la somme de QUATRE parts arrondies separement -- retraite et CEG, employeur et salarie -- et non le taux total applique une fois : 130,00 -> 5,79 + 1,68 + 5,77 + 1,12 = 14,36 (130 x 11,04 = 14,35) ; 724,00 -> 79,94 (et non 79,93) ; 450,00 -> 49,69 (et non 49,68). Lu dans les DSN deposees de fevrier, mars, juin, juillet et aout 2025. Les taux sont ceux d'Audiens (Parametres, p. 3), inchanges depuis 2019."
         },
         {
@@ -2021,7 +2716,13 @@
           "org": null,
           "base": "brut_cs",
           "taux": 15.5,
-          "base78": "brut_cs"
+          "base78": "brut_cs",
+          "source": {
+            "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+            "emetteur": "audiens",
+            "article": "« Congés Spectacles », Paramètres Audiens 2025",
+            "citation": "Pour la période du 1er janvier 2025 au 31 mars 2026 : 15,50%"
+          }
         },
         {
           "bloc78": "31",
@@ -2036,6 +2737,22 @@
             1.04,
             0.12
           ],
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/fiches-parametrage/Audiens-Parametres-2025.txt",
+                "emetteur": "audiens",
+                "article": "Paramètres Audiens 2025, p. 3 (prévoyance et santé), l. 202 (0,12 + 0,34 + 0,70 = 1,16)",
+                "citation": "Non cadres           0,12%               0,34%                       0,70%                      0,12%                1,04%"
+              },
+              {
+                "fichier": "atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml",
+                "emetteur": "audiens",
+                "article": "fiche 139, groupe ETAM PREVOYANCE, l. 18",
+                "citation": "<Taux>1.1600</Taux>"
+              }
+            ]
+          },
           "note": "Prevoyance INTERBRANCHE des intermittents non cadres (groupe ETAM) : 1,16 % en 2025 -- fiche de parametrage Audiens version 139 du 13/12/2025 (atelier/reference/fiches-parametrage/audiens-2025-12-13-fiche139-expurgee.xml), periode de validite 01/01/2025-31/12/2025 -- contre 1,23 en 2026. Repartition 1,04 employeur / 0,12 salarie, lue au centime dans les DSN 2025 : l'assiette CSG porte brut x 0,9825 + brut x 1,04 (387,23 pour 390,00 ; 129,08 pour 130,00 ; 297,87 pour 300,00), et le 059 vaut la ligne employeur plus la ligne salarie, chacune arrondie (390 : 4,06 + 0,47 = 4,53, que 390 x 1,16 = 4,52 ne donne pas). Une seule affiliation Audiens en 2025 (pas de Thalie) : elle prend l'affectation 202."
         },
         {
@@ -2123,6 +2840,12 @@
         "categorie": "25",
         "frais_hors_assiette": [],
         "taux": 25,
+        "source": {
+          "fichier": "atelier/reference/sources/dfs/cgi-annexe4-art5/legi-cgi-annexe4-art5-redaction-20000331.txt",
+          "emetteur": "loi",
+          "article": "CGI annexe IV, art. 5 (rédaction du 31/03/2000) : le taux de 25 % de la catégorie, avant le III de l'art. 9 de l'arrêté du 4 septembre 2025 (à compter du 1er janvier 2026)",
+          "citation": "Artistes dramatiques, lyriques, cinématographiques ou chorégraphiques : 25 %."
+        },
         "note": "`taux` : Hors spectacle vivant : l'art. 9, II, ne le nomme pas ; l'art. 9, III, reduit a compter du 1er janvier 2026 le taux de 2025 (25 %) de 15 % de sa valeur chaque annee, << arrondis a l'unite la plus proche. Une fraction de 0,5 est comptee pour 1 >> : 21 en 2026 (21,25), 18 en 2027 (17,5), 14 (13,75), 10, 6 (6,25), 3 (2,5), nul en 2032. INFERENCE, ecrite comme telle : un artiste cinematographique ne releve pas du spectacle vivant ; en 2025, avant le III, 25 %."
       }
     },
@@ -2132,6 +2855,35 @@
       "25": 21
     },
     "plafond_annuel": 7600,
+    "source": {
+      "sources": [
+        {
+          "fichier": "atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md",
+          "emetteur": "loi",
+          "article": "arrêté du 4 septembre 2025, art. 9, I, plafond annuel",
+          "citation": "Cette déduction est, dans la limite de 7 600 euros par année civile"
+        },
+        {
+          "fichier": "atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md",
+          "emetteur": "loi",
+          "article": "arrêté du 4 septembre 2025, art. 9, II, spectacle vivant à 25 % au 31/12/2023 (-2 points par an dès 2024)",
+          "citation": "pour les professions relevant du spectacle vivant qui bénéficient d'un taux de déduction forfaitaire spécifique au 31 décembre 2023 de 25 %, à compter du 1 […] le taux de déduction forfaitaire spécifique est réduit de 2 points au"
+        },
+        {
+          "fichier": "atelier/reference/sources/dfs/arrete-2025-frais-professionnels/articles-20261103.md",
+          "emetteur": "loi",
+          "article": "arrêté du 4 septembre 2025, art. 9, II, spectacle vivant à 20 % au 31/12/2023 (-1 point par an dès 2024)",
+          "citation": "pour les professions relevant du spectacle vivant qui bénéficient d'un taux de déduction forfaitaire spécifique au 31 décembre 2023 de 20 %, à compter du 1 […] le taux de déduction forfaitaire spécifique est réduit de 1 point au"
+        },
+        {
+          "fichier": "atelier/reference/fiches-parametrage/Audiens-Webconf-Nouveautes-2026.txt",
+          "emetteur": "audiens",
+          "article": "web-conférence Audiens 2026, p. 22, tableau de la déduction forfaitaire spécifique",
+          "citation": "2025 18 % 21 %"
+        }
+      ],
+      "raisonnement": "L'arrêté du 4 septembre 2025 (art. 9, II) réduit le taux de 25 % de 2 points au 1er janvier 2024 et au 1er janvier 2025 (25 - 2 - 2 = 21) et celui de 20 % de 1 point (20 - 1 - 1 = 18) ; le plafond annuel est celui de l'art. 9, I. Le tableau d'Audiens donne 18 % et 21 % pour 2025."
+    },
     "rubriques_abattues": [
       "maladie",
       "atmp",
@@ -2993,6 +3745,23 @@
           "base": "t1_mensuelle_x115",
           "taux": 0.1,
           "base78": "t1_mensuelle",
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+                "emetteur": "boss",
+                "article": "BOSS, COT_FNAL_49_METROP (2025)",
+                "citation": ";0,1;01/05/2025;31/12/2025;OK"
+              },
+              {
+                "fichier": "atelier/reference/sources/majoration-caisses-conges/acoss-lettre-circulaire-2013-019-20130328.txt",
+                "emetteur": "urssaf",
+                "article": "lettre-circulaire 2013-019",
+                "citation": "Tous employeurs : 0,10% jusqu’à 1 PASS"
+              }
+            ],
+            "raisonnement": "Le BOSS (0,10 % en 2025, moins de 50 salariés) et l'Acoss (0,10 % jusqu'à 1 PASS) s'accordent."
+          },
           "note": "Cotisation Allocation de logement (FNAL), 0,10 % sur le salaire PLAFONNE pour une entreprise de moins de cinquante salaries. L'intermittent la porte sur le brut majore de 11,5 %. Le 81.003 est la tranche 1 majoree (`t1_mensuelle_x115`) : la tranche 1 elle-meme, sauf pour un CDD declare a la caisse des Conges Spectacles ; le 78.004 reste la tranche 1."
         },
         {
@@ -3002,7 +3771,13 @@
           "base": "t1_mensuelle",
           "taux": 15.45,
           "base78": "t1_mensuelle",
-          "note": "Cotisation Assurance Vieillesse plafonnee : 8,55 patronale + 6,90 salariale (BOSS, COT_AV_SS_METROP), sur la tranche 1. A CONFIRMER AU DEPOT DE TEST : la liste des intermittents ne porte aucun code 076, la vieillesse y etant fondue dans les CTP agreges. Pour un permanent, la ventiler parait juste ; le bilan le dira."
+          "source": {
+            "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D242-4-20231231.txt",
+            "emetteur": "loi",
+            "article": "CSS D. 242-4 (version du 31/12/2023 au 01/01/2026), plafonnée : 8,55 patronale + 6,90 salariale",
+            "citation": "A compter du 1er janvier 2024     8,55 %                         6,90 %"
+          },
+          "note": "Cotisation Assurance Vieillesse plafonnee : 8,55 patronale + 6,90 salariale (CSS D. 242-4, tableau en vigueur du 31/12/2023 au 01/01/2026), sur la tranche 1. A CONFIRMER AU DEPOT DE TEST : la liste des intermittents ne porte aucun code 076, la vieillesse y etant fondue dans les CTP agreges. Pour un permanent, la ventiler parait juste ; le bilan le dira."
         },
         {
           "bloc78": "03",
@@ -3011,6 +3786,12 @@
           "base": "brut",
           "taux": 3.45,
           "base78": "brut",
+          "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_AF_SS_METROP (2025), taux réduit",
+            "citation": ";3,45;01/05/2025;31/12/2025;OK"
+          },
           "note": "Cotisation Allocation familiale - taux normal. Le CTP 100 porte 3,45 %, et le complement 102 fait les 5,25 % du taux plein : c'est la decomposition que l'Urssaf attend, la meme que pour un artiste (2,42 + 1,26 abattus)."
         },
         {
@@ -3020,6 +3801,12 @@
           "base": "brut",
           "taux": 7.0,
           "base78": "brut",
+          "source": {
+            "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+            "emetteur": "boss",
+            "article": "COT_AM_SS_METROP (2025), taux réduit",
+            "citation": ";7;01/05/2025;31/12/2025;OK"
+          },
           "note": "Cotisation Assurance Maladie, part du CTP 100."
         },
         {
@@ -3030,6 +3817,23 @@
           "taux": 1.8,
           "base78": "brut",
           "seuil_smic": 3.3,
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+                "emetteur": "urssaf",
+                "article": "table des CTP, 430 complément de cotisation AF",
+                "citation": "'430';COMPLEMENT COTISATION AF;AF TAUX PLEIN;E;;1.8;;2015-01-01;;"
+              },
+              {
+                "fichier": "atelier/reference/sources/loi-2025-199-lfss-2025/legifrance-loi-2025-199-20250228.txt",
+                "emetteur": "loi",
+                "article": "LFSS 2025 (loi n° 2025-199), annexe, seuil de la réduction des allocations familiales",
+                "citation": "respectivement à 2,25 et 3,3 fois la valeur du SMIC"
+              }
+            ],
+            "raisonnement": "L'Urssaf code le complément d'allocations familiales en CTP 430 à 1,8 % ; la loi (L. 241-6-1, LFSS 2025) le déclenche au-delà de 3,3 SMIC."
+          },
           "note": "Complement de cotisation Allocation Familiale (CTP 430) : 3,45 + 1,80 = 5,25, le taux plein du BOSS.\nLES TAUX REDUITS DE 2025, supprimes au 01/01/2026 par la RGDU : maladie 7 % (complement 6 points au-dela de 2,25 SMIC) et allocations familiales 3,45 % (complement 1,8 point au-dela de 3,3 SMIC) -- LFSS 2025, seuils abaisses au 01/01/2025 depuis 2,5 et 3,5 SMIC (texte de la LFSS 2025 non depose). Le seuil se compare au SMIC de reference du contrat (`droit::reduction::au_dela_du_seuil`), comme la reduction generale."
         },
         {
@@ -3040,6 +3844,23 @@
           "taux": 6.0,
           "base78": "brut",
           "seuil_smic": 2.25,
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+                "emetteur": "urssaf",
+                "article": "table des CTP, 635 complément de cotisation maladie",
+                "citation": "'635';COMPLEMENT COTISATION MALADIE;MALADIE TAUX PLEIN;E;;6.0;;2019-01-01;;"
+              },
+              {
+                "fichier": "atelier/reference/sources/loi-2025-199-lfss-2025/legifrance-loi-2025-199-20250228.txt",
+                "emetteur": "loi",
+                "article": "LFSS 2025 (loi n° 2025-199), annexe, seuil de la réduction de l'assurance maladie",
+                "citation": "respectivement à 2,25 et 3,3 fois la valeur du SMIC"
+              }
+            ],
+            "raisonnement": "L'Urssaf code le complément d'assurance maladie en CTP 635 à 6,0 % ; la loi (L. 241-2-1, LFSS 2025) le déclenche au-delà de 2,25 SMIC."
+          },
           "note": "Complement de cotisation Assurance Maladie (CTP 635) : 7,00 + 6,00 = 13,00, le taux plein du BOSS.\nLES TAUX REDUITS DE 2025, supprimes au 01/01/2026 par la RGDU : maladie 7 % (complement 6 points au-dela de 2,25 SMIC) et allocations familiales 3,45 % (complement 1,8 point au-dela de 3,3 SMIC) -- LFSS 2025, seuils abaisses au 01/01/2025 depuis 2,5 et 3,5 SMIC (texte de la LFSS 2025 non depose). Le seuil se compare au SMIC de reference du contrat (`droit::reduction::au_dela_du_seuil`), comme la reduction generale."
         },
         {
@@ -3049,6 +3870,12 @@
           "base": "brut_x110",
           "taux": 0.59,
           "base78": "brut",
+          "source": {
+            "fichier": "atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt",
+            "emetteur": "urssaf",
+            "article": "Guide Urssaf contributions formation apprentissage, part principale de la taxe",
+            "citation": "La part principale de la taxe d’apprentissage est déclarée au taux de 0,59 %."
+          },
           "note": "Part principale de la taxe d'apprentissage (CTP 992), sur le brut NU -- l'intermittent la porte sur le brut majore de 10 %. Le 81.003 est `brut_x110` : le brut, sauf pour un CDD declare a la caisse des Conges Spectacles (majore de 11,5 %)."
         },
         {
@@ -3058,6 +3885,12 @@
           "base": "brut_x115",
           "taux": 0.55,
           "base78": "brut",
+          "source": {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "table des CTP, 959 CFP entreprise de moins de 11 salariés",
+            "citation": "'959';CFP ENTREPRISE < 11 SALARIES;CFP ENTREPRISE < 11;E;;0.55;;2022-01-01;;"
+          },
           "note": "Contribution a la formation professionnelle (CTP 959, entreprise de moins de onze salaries). L'intermittent est a 2,00 % (CTP 983), sur le brut. Le 81.003 est `brut_x115` : le brut, sauf pour un contrat declare a la caisse des Conges Spectacles, majore de 11,5 % (CSS L. 243-1-3, 1°, par L. 6131-2 ; D. 243-0-2, 1°) ; le 78.004 reste le brut. Le CTP 959 est la somme de ces 81.003 (`cfp_permanent`). Textes : atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt l. 657-671 (CFP), 819-826 (81.003 de la 128) et 970-990 (CPF-CDD) ; urssaf-contributions-formation-professionnelle-cfp-cpf-cdd-20240327.txt l. 71-77 et 129-135 ; net-entreprises-base-connaissances/net-entreprises-fiche2503-contribution-formation-professionnelle-20250429.txt l. 36 et 104."
         },
         {
@@ -3077,6 +3910,22 @@
           ],
           "base78": "brut_chomage",
           "cle_total": "040:urssaf",
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+                "emetteur": "boss",
+                "article": "COT_CH_UN_METROP (2025), 4,05 % jusqu'au 30/04/2025",
+                "citation": "4,05;01/01/2025;30/04/2025;OK"
+              },
+              {
+                "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+                "emetteur": "boss",
+                "article": "COT_CH_UN_METROP (2025), 4 % depuis le 01/05/2025",
+                "citation": ";4;01/05/2025;31/12/2025;OK"
+              }
+            ]
+          },
           "note": "Cotisation AC (assurance chomage), 4,00 %. L'ORGANISME CHANGE : pour un permanent, l'Urssaf recouvre l'assurance chomage ; pour un intermittent, c'est France Travail. Meme code de cotisation, deux ordres de telepaiement -- d'ou `cle_total`, que `organismes-base.json` lit pour savoir a qui la somme revient.\nContribution patronale d'assurance chomage 4,05 % jusqu'au 30/04/2025, 4,00 % a partir du 01/05/2025 (BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025, COT_CH_UN_METROP). Pour un intermittent : 9,05 puis 9,00 (+ AGS 0,25 + majoration 0,50), soit 11,45 puis 11,40 avec la part salariale 2,40 en DSN (code 040) ; le moteur suit le texte : le changement vaut au 01/05."
         },
         {
@@ -3087,6 +3936,12 @@
           "taux": 0.25,
           "base78": "brut_chomage",
           "cle_total": "048:urssaf",
+          "source": {
+            "fichier": "atelier/reference/sources/urssaf-codes-types-personnel-20261013.csv",
+            "emetteur": "urssaf",
+            "article": "table des CTP, 937 AGS",
+            "citation": "'937';COTISATIONS AGS CAS GENERAL U2;COTIS.AGS CAS GENER.;E;;0.25;;2024-01-07;;"
+          },
           "note": "Cotisation AGS (garantie des salaires), 0,25 % depuis le 01/07/2024. Recouvree par l'Urssaf, comme le chomage."
         },
         {
@@ -3096,6 +3951,22 @@
           "base": "csg",
           "taux": 9.2,
           "base78": "csg",
+          "source": {
+            "sources": [
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20201216.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 16/12/2020 au 01/07/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              },
+              {
+                "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-L136-8-20250701.txt",
+                "emetteur": "loi",
+                "article": "CSS L. 136-8, I, 1° (version du 01/07/2025 au 31/12/2025)",
+                "citation": "1° A 9,2 % pour la contribution sociale mentionnée à l'article L. 136-1 ;"
+              }
+            ]
+          },
           "note": "CSG deductible et non deductible : 6,80 + 2,40."
         },
         {
@@ -3105,6 +3976,12 @@
           "base": "csg",
           "taux": 0.5,
           "base78": "csg",
+          "source": {
+            "fichier": "atelier/reference/sources/ordonnance-96-50-crds/legifrance-ordonnance-96-50-crds-20251231.txt",
+            "emetteur": "loi",
+            "article": "ordonnance n° 96-50, art. 19",
+            "citation": "Le taux des contributions instituées par les articles 14 à 17 est fixé à 0,5 %."
+          },
           "note": "CRDS."
         },
         {
@@ -3401,6 +4278,22 @@
         "seuil": 11,
         "quoi": "La contribution a la formation professionnelle des PERMANENTS passe de 0,55 % a 1,00 % du brut a partir de onze salaries. L'intermittent est a 2,00 % (CTP 983) quel que soit l'effectif : cette valeur-ci ne concerne que les CDI et les CDD ordinaires.",
         "au_dela": "1,00 %, et `par_nature.permanent.rubriques_ajoutees[autres_4].taux_pat` avec -- c'est la SOMME affichee des composants (0,55, donc 1,00 ; la CPF-CDD d'un CDD s'y ajoute d'elle-meme). UNE SURCOUCHE ECRITE AVANT LE 13/10/2026 portait la formation dans `par_nature.permanent.rubriques.autres_1` (son troisieme composant, 1,00, et un `taux_pat` de 1,316) : l'y laisser la ferait payer deux fois ; `autres_1` ne garde que la CSA et le dialogue social (0,30 + 0,016 = 0,316), ce que le socle porte deja -- effacer `autres_1` de la surcouche.",
+        "source": {
+          "sources": [
+            {
+              "fichier": "atelier/reference/sources/code-du-travail/articles-20261013.md",
+              "emetteur": "loi",
+              "article": "C. trav. L. 6331-1, employeur de moins de onze salariés",
+              "citation": "L'employeur de moins de onze salariés s'acquitte de la contribution à la formation professionnelle mentionnée au 2° de l'article L. 6131-2 du présent code par le versement de 0,55 %"
+            },
+            {
+              "fichier": "atelier/reference/sources/code-du-travail/articles-20261013.md",
+              "emetteur": "loi",
+              "article": "C. trav. L. 6331-3, employeur d'au moins onze salariés",
+              "citation": "L'employeur d'au moins onze salariés s'acquitte de la contribution à la formation professionnelle mentionnée au 2° de l'article L. 6131-2 du présent code par le versement de 1 %"
+            }
+          ]
+        },
         "texte": "Code du travail, art. L. 6331-1 : 0,55 % sous onze salaries, 1,00 % a partir de onze. Le CTP Urssaf de la ligne (959 sous onze salaries) est celui de `organismes-base.json` (table des CTP de l'Urssaf) et non de cette ligne du bareme : il se verifie sur l'appel de cotisations.",
         "sous_le_seuil": "Sous le seuil, la valeur du socle est due, et aucune autre : << L'employeur de moins de onze salaries [...] 0,55 % >> (C. trav. L. 6331-1), et << l'effectif salarie et le franchissement d'un seuil d'effectif salarie sont determines selon les modalites prevues a l'article L. 130-1 du code de la securite sociale >> (L. 6331-1 A) : le seuil n'est franchi qu'apres cinq annees civiles consecutives, et << le franchissement a la baisse d'un seuil d'effectif sur une annee civile a pour effet de faire a nouveau courir >> ce delai (CSS L. 130-1, II). Releve LEGI du 13/10/2026 (atelier/reference/sources/code-du-travail/articles-20261013.md, code-de-la-securite-sociale/articles-20261013.md) ; guide Urssaf des contributions de formation du 12/03/2026, l. 568-586 (atelier/reference/sources/majoration-caisses-conges/). Une surcouche qui porte 1,00 alors que l'effectif est (repasse) sous le seuil ferait payer 1 % au lieu de 0,55 % : le moteur refuse (`contexte::controler_effectif`).",
         "effets": [
@@ -3413,6 +4306,22 @@
         "seuil": 50,
         "quoi": "Le FNAL passe de 0,10 % sur le salaire PLAFONNE a 0,50 % sur le brut TOTAL a partir de cinquante salaries. Ce n'est donc pas qu'un taux : l'ASSIETTE change avec lui, et surcharger le seul taux produirait 0,50 % d'un plafond -- faux, et invisible. L'artiste porte le taux abattu de 30 % (0,07 sous cinquante).",
         "au_dela": "0,50 %, ET la `base` de chaque rubrique et de chaque ligne DSN concernee (t1_mensuelle_x115 -> brut_x115 pour un permanent, dont l'assiette ne se majore que s'il est declare a la caisse des Conges Spectacles ; brut_x115_plafonne -> brut_x115 pour un intermittent, dont l'assiette reste majoree de 11,5 %, CSS L. 243-1-3 ; et le 78.004 du bloc 02 de l'intermittent, brut_plafonne, reste la base plafonnee). Le `tdelta` de la reduction generale suit (voir ci-dessous), et l'echeance de la DSN aussi.",
+        "source": {
+          "sources": [
+            {
+              "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+              "emetteur": "boss",
+              "article": "COT_FNAL_49_METROP (2025), moins de 50 salariés",
+              "citation": ";0,1;01/05/2025;31/12/2025;OK"
+            },
+            {
+              "fichier": "atelier/reference/boss-table-parametres-2026.csv",
+              "emetteur": "boss",
+              "article": "COT_FNAL_50_METROP (2025), 50 salariés et plus",
+              "citation": "COT_FNAL_50_METROP […] 0,5;01/05/2025;31/12/2025;OK"
+            }
+          ]
+        },
         "texte": "BOSS, table des parametres 2026 : COT_FNAL_49_METROP 0,10 pour les entreprises de moins de cinquante salaries. Table des CTP de l'Urssaf : 332 FNAL PLAFONNE -- le CTP change avec l'assiette, et il est porte par `organismes-base.json`, pas par le bareme.",
         "effets": [
           {"taux_patronal": {"section": "corps", "rubrique": "autres_2", "taux": 0.07}},
@@ -3428,6 +4337,22 @@
         "seuil": 50,
         "quoi": "Le parametre T de la reduction Fillon depend du FNAL : 0,3194 puis 0,3193 au FNAL 0,10 %, 0,3234 puis 0,3233 au FNAL 0,50 %.",
         "au_dela": "0,3234 puis 0,3233 (01/05/2025).",
+        "source": {
+          "sources": [
+            {
+              "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D241-7-20231231.txt",
+              "emetteur": "loi",
+              "article": "CSS D. 241-7, I (version du 31/12/2023 au 07/04/2025), T jusqu'au 30/04/2025",
+              "citation": "Elle est fixée à 0,3194 […] et à 0,3234 pour les gains et"
+            },
+            {
+              "fichier": "atelier/reference/sources/legifrance-versions-datees/legifrance-css-D241-7-20250407.txt",
+              "emetteur": "loi",
+              "article": "CSS D. 241-7, I (version du 07/04/2025 au 01/01/2026), T depuis le 01/05/2025",
+              "citation": "Elle est fixée à 0,3193 […] et à 0,3233 pour les gains et"
+            }
+          ]
+        },
         "texte": "BOSS, table des parametres (atelier/reference/boss-table-parametres-2026.csv), lignes datees 2025 : COT_RGD_T_49_METROP et COT_RGD_T_50_METROP.",
         "effets": [
           {"reduction_generale": {"statut": "technicien", "parametre": "t", "valeur": [
@@ -4104,6 +5029,12 @@
             "rubriques": {
               "ccn": {
                 "taux_pat": 1.45,
+                "source": {
+                  "fichier": "atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md",
+                  "emetteur": "convention",
+                  "article": "CCNEAC, article III.3.1 (FNAS), entreprises de moins de 11 salariés",
+                  "citation": "Dans les entreprises de moins de 11 salariés, l'entreprise verse au FNAS une contribution égale à 1,45 % de la totalité des salaires bruts."
+                },
                 "note": "Pour le trou seulement : le taux est pose par `bareme_convention` selon la representation du personnel -- 1,45, ou 0,825 avec un CSE conventionnel. Ce qui retenait cette rubrique dans le socle (les groupes CASC-SVP de la 3090 couvrent-ils les permanents ?) ne se pose pas sous la CCNEAC : le FNAS vise << la totalite des salaires bruts ... quel que soit le type de contrat >> (III.3.1)."
               }
             }

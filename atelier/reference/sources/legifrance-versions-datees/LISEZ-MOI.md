@@ -14,6 +14,10 @@ releve-codes` ne garde que la version en vigueur d'un article.
 | `legifrance-cgi-154-quinquies-20230311` | CGI 154 quinquies, du 11/03/2023 au 27/06/2026 | la CSG déductible « à hauteur de 6,8 points » | la part déductible de la CSG en 2025 et 2026 |
 | `legifrance-cgi-293-B-20250101` | CGI 293 B, du 01/01/2025 au 01/03/2025 | la franchise en base de TVA (85 000 / 37 500) | la note du barème 2025 qui la cite |
 | `legifrance-cgi-204-H-20260221` | CGI 204 H, du 21/02/2026 au 01/07/2026 | les grilles du taux par défaut du prélèvement à la source | `pas_taux_par_defaut` du barème 2026, de mai à juin |
+| `legifrance-css-L241-13-20210101` | CSS L. 241-13, du 01/01/2021 au 28/02/2025 (relevé le 06/11/2026) | la réduction dégressive ; IV, 3° : les professions dont les congés sont mutualisés par une caisse | la réduction générale 2025, jusqu'au 27/02/2025 |
+| `legifrance-css-L241-13-20250228` | CSS L. 241-13, du 28/02/2025 au 31/12/2025 (modifié par la LFSS 2025, art. 18) | le même IV, 3° | la réduction générale 2025, depuis le 28/02/2025 |
+| `legifrance-css-D241-7-20231231` | CSS D. 241-7, du 31/12/2023 au 07/04/2025 (décret 2023-1329) | « Coefficient = (T/0,6) × (1,6 × SMIC calculé pour un an / rémunération annuelle brute-1) », T = 0,3194 (0,3234 au FNAL 0,50 %) | `reduction_generale.t` et `plafond_smic` du barème 2025 |
+| `legifrance-css-D241-7-20250407` | CSS D. 241-7, du 07/04/2025 au 01/01/2026 (décret 2025-318) | la même formule, T = 0,3193 (0,3233) | `reduction_generale.t` du barème 2025, depuis le 01/05/2025 |
 | `legifrance-ct-L2262-1-20080501` | C. trav. L. 2262-1, depuis le 01/05/2008 | un accord lie les adhérents des organisations signataires | la portée d'un accord de salaires (barème 2026) |
 | `legifrance-decret-2015-87-20150201` | décret n° 2015-87 du 28/01/2015 | le financement mutualisé des organisations syndicales et patronales ; il ne fixe pas lui-même le taux : le 0,016 % est à C. trav. D. 2135-34, déjà dans l'entrepôt LEGI (`legi-entrepot/articles.jsonl.gz`) | aucun calcul ; lu pour la contribution au dialogue social |
 
