@@ -1271,15 +1271,19 @@ function formeDePaie(div) {
 }
 
 /** UN CONTRAT AU MOIS ET UN CONTRAT D'USAGE SONT DEUX CONTRATS. Les cases
- *  « Début » et « Fin » servent aux deux : quand la nature passe d'une forme
- *  de paie à l'autre, les bornes de la forme quittée ne sont pas celles du
- *  nouveau contrat, elles se vident. */
+ *  « Début » et « Fin », et les lignes, servent aux deux : quand la nature passe d'une forme
+ *  de paie à l'autre, les bornes et les lignes de la forme quittée (des cachets, des heures ; des repas, des nuitées)
+ *  ne sont pas celles du nouveau contrat, elles se vident, et la carte prend les lignes d'une carte neuve de sa nature. */
 function viderBornes(div) {
   const forme = formeDePaie(div);
   const quittee = div.dataset.forme;
   if (quittee && quittee !== forme) {
     div.querySelector(".e-debut").value = "";
     div.querySelector(".e-fin").value = "";
+    const nat = natureDe(div.querySelector(".e-nature").value);
+    const cible = div.querySelector(".rubriques");
+    cible.innerHTML = "";
+    lignesDe({}, nat).forEach((l) => cible.appendChild(ligneRubrique(l, nat, statutDuBloc(div))));
     majContrat(div);
     majRupture(div);
   }
