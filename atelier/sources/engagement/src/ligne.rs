@@ -685,6 +685,12 @@ pub enum Cle {
 }
 
 impl Cle {
+    /// Une cle que la ligne peut omettre : absente, elle est vide (le lieu, les jours, le planning, et pour un repas ou
+    /// une nuitee le territoire et les cases).
+    pub fn facultative(self) -> bool {
+        matches!(self, Cle::Territoire | Cle::Cases | Cle::Lieu | Cle::Dates | Cle::Planning)
+    }
+
     /// Sa cle, telle que la ligne l'ecrit.
     pub fn nom(self) -> &'static str {
         match self {
@@ -710,7 +716,10 @@ impl Cle {
 pub enum FormeSaisie {
     Unites,
     UnitesEtHeures,
+    /// Un repas ou une nuitee : sa limite d'exoneration se choisit par le lieu et les cases (`frais_au_dela`).
     Frais,
+    /// Les autres frais au forfait : ni lieu de limite ni case, aucune limite ne leur est attachee.
+    FraisSansLimite,
     Pourcentage,
     Montant,
     AvantageEnNature,
@@ -726,7 +735,8 @@ impl FormeSaisie {
         let frais = r.nature == "frais";
         Ok(Some(match (dit.as_slice(), frais) {
             (["quantite", "taux"], false) => FormeSaisie::Unites,
-            (["quantite", "taux"], true) => FormeSaisie::Frais,
+            (["quantite", "taux"], true) if crate::a_une_limite(&r.code) => FormeSaisie::Frais,
+            (["quantite", "taux"], true) => FormeSaisie::FraisSansLimite,
             (["heures", "quantite", "taux"], false) => FormeSaisie::UnitesEtHeures,
             (["base", "taux_majoration"], _) => FormeSaisie::Pourcentage,
             (["montant"], _) => FormeSaisie::Montant,
@@ -747,13 +757,15 @@ impl FormeSaisie {
         self.cles().iter().map(|c| c.nom()).collect()
     }
 
-    /// Les cles qu'une ligne de cette forme dit, toutes, dans l'ordre de la ligne.
+    /// Les cles qu'une ligne de cette forme peut dire, dans l'ordre de la ligne : celles de `Cle::facultative` peuvent
+    /// s'omettre, les autres se donnent (`null` tant que la case est vide). Une autre cle n'existe pas pour cette forme.
     pub fn cles(self) -> &'static [Cle] {
         use Cle::*;
         match self {
             FormeSaisie::Unites => &[Rubrique, Quantite, Taux, Lieu, Dates, Planning],
             FormeSaisie::UnitesEtHeures => &[Rubrique, Quantite, Taux, Heures, Lieu, Dates, Planning],
             FormeSaisie::Frais => &[Rubrique, Quantite, Taux, Territoire, Cases, Lieu, Dates, Planning],
+            FormeSaisie::FraisSansLimite => &[Rubrique, Quantite, Taux, Lieu, Dates, Planning],
             FormeSaisie::Pourcentage => &[Rubrique, Base, TauxMajoration],
             FormeSaisie::Montant => &[Rubrique, Montant],
             FormeSaisie::AvantageEnNature => &[Rubrique, Montant, Genre],
@@ -874,7 +886,7 @@ impl LigneDonnee {
         };
         let voulues = forme.cles();
         let dites = self.dites();
-        let manquent: Vec<&str> = voulues.iter().filter(|c| !dites.contains(c)).map(|c| c.nom()).collect();
+        let manquent: Vec<&str> = voulues.iter().filter(|c| !c.facultative() && !dites.contains(c)).map(|c| c.nom()).collect();
         let de_trop: Vec<&str> = dites.iter().filter(|c| !voulues.contains(c)).map(|c| c.nom()).collect();
         if !manquent.is_empty() || !de_trop.is_empty() {
             let liste = |l: &[&str]| l.iter().map(|c| format!("« {} »", c)).collect::<Vec<_>>().join(", ");
@@ -899,7 +911,7 @@ impl LigneDonnee {
             }
         }
         let rubrique = r.code.clone();
-        // Chaque cle voulue est dite : la verification vient d'etre faite.
+        // Chaque cle obligatoire est dite (la verification vient d'etre faite) ; une facultative absente est vide.
         let dit = |x: Option<Case>| x.flatten();
         let jours = |x: Option<Vec<DateDeLigne>>| x.into_iter().flatten().collect::<Vec<_>>();
         let texte = |x: Option<Option<String>>| x.flatten();
@@ -937,6 +949,17 @@ impl LigneDonnee {
                     marques: Marques::default(),
                 })
             }
+            FormeSaisie::FraisSansLimite => LignePaie::Frais(Frais {
+                rubrique,
+                quantite: dit(self.quantite),
+                taux: dit(self.taux),
+                territoire: None,
+                cases: Vec::new(),
+                lieu: texte(self.lieu),
+                dates: jours(self.dates),
+                planning: jours(self.planning),
+                marques: Marques::default(),
+            }),
             FormeSaisie::Pourcentage => LignePaie::Pourcentage(Pourcentage { rubrique, base: dit(self.base), taux_majoration: dit(self.taux_majoration) }),
             FormeSaisie::Montant => LignePaie::Montant(Montant { rubrique, montant: dit(self.montant) }),
             FormeSaisie::AvantageEnNature => LignePaie::AvantageEnNature(AvantageEnNature { rubrique, montant: dit(self.montant), genre: texte(self.genre) }),

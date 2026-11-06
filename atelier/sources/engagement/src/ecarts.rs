@@ -299,7 +299,7 @@ fn comparer_une(
         saisies.push(match forme {
             FormeSaisie::Unites => LignePaie::Unites(ligne::Unites { rubrique, quantite, taux, lieu: None, dates, planning: Vec::new() }),
             FormeSaisie::UnitesEtHeures => LignePaie::UnitesEtHeures(ligne::UnitesEtHeures { rubrique, quantite, taux, heures: l.heures, lieu: None, dates, planning: Vec::new() }),
-            FormeSaisie::Frais => LignePaie::Frais(ligne::Frais {
+            FormeSaisie::Frais | FormeSaisie::FraisSansLimite => LignePaie::Frais(ligne::Frais {
                 rubrique,
                 quantite,
                 taux,

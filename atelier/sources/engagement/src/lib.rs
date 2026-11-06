@@ -1236,9 +1236,10 @@ const FRAIS_LIMITES: [Limites; 2] = [
     },
 ];
 
-/// Une ligne de cette rubrique se saisit-elle sur la carte d'un contrat paye au mois ? Ses repas et ses nuitees, aux
-/// memes limites que ceux de tout salarie ; le reste de sa paie se compose de ses faits.
-pub fn se_saisit_au_mois(code: &str) -> bool {
+/// Une limite d'exoneration (`FRAIS_LIMITES`) est-elle attachee a cette rubrique ? Seuls ses repas et ses nuitees disent
+/// un lieu et des cases, et se saisissent sur la carte d'un contrat paye au mois, aux memes limites que ceux de tout
+/// salarie (le reste de sa paie se compose de ses faits).
+pub fn a_une_limite(code: &str) -> bool {
     FRAIS_LIMITES.iter().any(|x| x.rubrique == code)
 }
 
@@ -1580,7 +1581,7 @@ fn frais_a_l_etranger(lignes: &mut [LignePaie], etrangeres: &[usize], nuits: &[J
 fn frais_d_un_mois_paye(ctx: &Contexte, lignes: &[LignePaie], qui: &str) -> Resultat<()> {
     for (i, l) in lignes.iter().enumerate() {
         let code = l.rubrique();
-        if se_saisit_au_mois(code) {
+        if a_une_limite(code) {
             continue;
         }
         let libelle = rubrique(&ctx.racine, code, &ctx.lue_au)?.libelle;

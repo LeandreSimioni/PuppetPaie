@@ -1083,7 +1083,7 @@ const LIEU_AIDE: &str = "Où dort et mange le salarié : hors de la métropole, 
 /// Les formes de paie dont la carte propose une ligne de la rubrique `r` (`"activite"`, `"mensuelle"`).
 fn formes_de(r: &Rubrique) -> Vec<&'static str> {
     let activite = r.reservee_a() != Some("mensuelle");
-    let mensuelle = engagement::se_saisit_au_mois(&r.code);
+    let mensuelle = engagement::a_une_limite(&r.code);
     [("activite", activite), ("mensuelle", mensuelle)].into_iter().filter(|(_, oui)| *oui).map(|(f, _)| f).collect()
 }
 
@@ -1136,7 +1136,7 @@ pub(crate) struct RubriqueDeLaPage {
     plafond_annuel_heures: Option<droit::catalogue::PlafondAnnuelHeures>,
     origine: String,
     /// Les cartes qui la proposent en ligne (« activite », « mensuelle ») : un contrat paye au mois ne porte en ligne que
-    /// ses repas et ses nuitees (`engagement::se_saisit_au_mois`), un contrat d'usage tout ce qui n'est pas reserve au mois.
+    /// ses repas et ses nuitees (`engagement::a_une_limite`), un contrat d'usage tout ce qui n'est pas reserve au mois.
     formes: Vec<&'static str>,
     /// Le statut du salarie auquel elle est reservee (« artiste »), ou rien : `statut` de `salaries` de la route etat.
     reservee_au_statut: Option<&'static str>,
@@ -1526,9 +1526,9 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
     // La rubrique d'une ligne neuve, par forme de paie et par statut du salarie (sans salarie, celui d'un artiste, comme
     // la paie le lit) : le moteur la choisit, la page la pose. Sur la carte d'un contrat d'usage, la premiere rubrique de
     // salaire qu'il propose (`catalogue::par_defaut`) ; sur celle d'un contrat paye au mois, son premier frais
-    // (`engagement::se_saisit_au_mois`), dans l'ordre du catalogue.
+    // (`engagement::a_une_limite`), dans l'ordre du catalogue.
     let activite = |statut: &str| catalogue::par_defaut(&cat, "activite", statut).map(|r| r.code.clone());
-    let au_mois = cat.iter().find(|r| !r.saisie.is_empty() && engagement::se_saisit_au_mois(&r.code)).map(|r| r.code.clone());
+    let au_mois = cat.iter().find(|r| !r.saisie.is_empty() && engagement::a_une_limite(&r.code)).map(|r| r.code.clone());
     let rubrique_par_defaut = RubriqueParDefaut {
         activite: ParStatut { artiste: activite("artiste"), technicien: activite("technicien") },
         mensuelle: ParStatut { artiste: au_mois.clone(), technicien: au_mois },
