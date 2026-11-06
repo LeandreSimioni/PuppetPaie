@@ -89,7 +89,6 @@ pub struct Source {
     pub article: Option<String>,
     pub citation: String,
     /// L'annexe du texte qui porte l'article (« X », « VIII » du reglement d'assurance chomage).
-    #[serde(default)]
     pub annexe: Option<String>,
 }
 
@@ -111,7 +110,6 @@ struct FondementLu {
     emetteur: Option<Emetteur>,
     article: Option<String>,
     citation: Option<String>,
-    #[serde(default)]
     annexe: Option<String>,
     sources: Option<Vec<Source>>,
     raisonnement: Option<String>,
@@ -154,11 +152,8 @@ macro_rules! forme_notee {
         #[serde(deny_unknown_fields)]
         pub struct $nom {
             $($corps)*
-            #[serde(default)]
             pub quoi: Option<String>,
-            #[serde(default)]
             pub note: Option<String>,
-            #[serde(default)]
             pub source: Option<$crate::source::Fondement>,
         }
     };

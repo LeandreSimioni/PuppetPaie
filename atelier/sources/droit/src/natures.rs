@@ -15,10 +15,6 @@ pub const TYPES_CONTRAT_DPAE: [(&str, &str); 3] = [("1", "CDD"), ("2", "CDI"), (
 /// Une date civile (an, mois, jour) : le minimum pour `contrat_court`.
 pub type Jour = (i32, u32, u32);
 
-fn faux(b: &bool) -> bool {
-    !*b
-}
-
 /// La face de paie d'une nature : aux cachets et aux heures, ou au mois.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -40,7 +36,7 @@ pub struct Nature {
     pub libelle: String,
     /// Ce que le nom court veut dire, pour qui hesite en choisissant.
     pub aide: String,
-    #[serde(rename = "source", default)]
+    #[serde(rename = "source")]
     _source: Option<String>,
     #[serde(rename = "quoi")]
     _quoi: String,
@@ -50,7 +46,7 @@ pub struct Nature {
     pub duree_indeterminee: bool,
     bareme: Bareme,
     unite_quotite: UniteDeQuotite,
-    #[serde(rename = "quotite_reference_defaut", default)]
+    #[serde(rename = "quotite_reference_defaut")]
     quotite_reference: Option<QuotiteDeReference>,
     /// rubrique -> valeur fixe.
     codes: BTreeMap<String, CodeFixe>,
@@ -62,7 +58,6 @@ pub struct Nature {
     /// rubrique -> le controle qui la refuse pour cette nature.
     interdits: BTreeMap<String, String>,
     /// Le contrat ecrit : son modele, celui de son avenant, ses mentions obligatoires.
-    #[serde(default)]
     contrat_ecrit: Option<ContratEcrit>,
     dpae: Dpae,
     fin_de_contrat: FinDeContrat,
@@ -115,12 +110,10 @@ struct Champ {
     _source: String,
     #[serde(rename = "quoi")]
     _quoi: String,
-    #[serde(rename = "note", default)]
+    #[serde(rename = "note")]
     _note: Option<String>,
-    #[serde(default)]
-    obligatoire: bool,
-    #[serde(default)]
-    valeurs: Vec<MotifDeRecours>,
+    obligatoire: Option<bool>,
+    valeurs: Option<Vec<MotifDeRecours>>,
 }
 
 /// UN MOTIF DE RECOURS (S21.G00.40.021) qu'une nature propose.
@@ -130,8 +123,8 @@ pub struct MotifDeRecours {
     pub code: String,
     pub libelle: String,
     /// Le CDD conclu au titre du 1° de L1242-2 nomme la personne remplacee (L1242-12, 1°).
-    #[serde(default, skip_serializing_if = "faux")]
-    pub personne_remplacee: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub personne_remplacee: Option<bool>,
 }
 
 /// UN MOTIF DE RUPTURE (S21.G00.62.002) que la CCH-11 autorise pour la nature, et ce qu'il ouvre (`dit`, sa `source`).
@@ -140,9 +133,9 @@ pub struct MotifDeRecours {
 pub struct MotifDeRupture {
     pub code: String,
     pub libelle: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub dit: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
 }
 
@@ -168,7 +161,6 @@ struct ContratEcrit {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Phrases {
-    #[serde(default)]
     pub motif: Option<String>,
     pub formation: String,
     pub conges: String,
@@ -181,8 +173,7 @@ pub struct Phrases {
 pub struct Mention {
     pub marqueur: String,
     pub texte: String,
-    #[serde(default)]
-    pub si_dite: bool,
+    pub si_dite: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -228,7 +219,6 @@ struct FinDeContrat {
     motif_par_defaut: Option<CodeFixe>,
     motifs: Vec<MotifDeRupture>,
     signalement_fctu: SignalementFctu,
-    #[serde(default)]
     circuit_derogatoire: Option<CircuitDerogatoire>,
 }
 
@@ -262,7 +252,7 @@ struct CircuitDerogatoire {
 struct Remunerations {
     #[serde(rename = "quoi")]
     _quoi: String,
-    #[serde(rename = "note", default)]
+    #[serde(rename = "note")]
     _note: Option<String>,
     types: Vec<TypeDeRemuneration>,
     /// Les quatre blocs 51 valent-ils tous le brut ? (vrai sur un CDDU)
@@ -304,7 +294,6 @@ struct Activites {
     #[serde(rename = "quoi")]
     _quoi: String,
     unites: Vec<UniteDActivite>,
-    #[serde(default)]
     absences: Option<UniteDAbsence>,
 }
 
@@ -324,14 +313,14 @@ pub struct UniteDActivite {
     pub code: String,
     pub quoi: String,
     pub mesure: Mesure,
-    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     pub type_activite: Option<String>,
     /// Elle ne s'ecrit pas quand elle vaut zero.
-    #[serde(default, skip_serializing_if = "faux")]
-    pub si_non_nul: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub si_non_nul: Option<bool>,
     /// Elle ne s'ecrit que pour un contrat declare a la caisse des Conges Spectacles (`caisse_conges::affilie`).
-    #[serde(default, skip_serializing_if = "faux")]
-    pub si_caisse_conges: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub si_caisse_conges: Option<bool>,
 }
 
 impl UniteDActivite {
@@ -402,19 +391,19 @@ impl Nature {
     }
 
     /// Les mentions obligatoires de son contrat ecrit, dans l'ordre de `contrats-base.json`.
-    pub fn mentions_obligatoires(&self) -> &[Mention] {
-        self.contrat_ecrit.as_ref().map_or(&[], |c| &c.mentions)
+    pub fn mentions_obligatoires(&self) -> Option<&[Mention]> {
+        self.contrat_ecrit.as_ref().map(|c| c.mentions.as_slice())
     }
 
     /// Le motif de recours `code` appelle-t-il le nom et la qualification de la personne remplacee ? (L1242-12, 1° :
     /// le CDD conclu au titre du 1° de L1242-2.)
     pub fn motif_de_remplacement(&self, code: &str) -> bool {
-        self.motifs_recours().iter().any(|m| m.code == code && m.personne_remplacee)
+        self.motifs_recours().into_iter().flatten().any(|m| m.code == code && m.personne_remplacee == Some(true))
     }
 
     /// Le libelle du motif de recours `code`, tel que `contrats-base.json` le dit.
     pub fn libelle_motif_recours(&self, code: &str) -> Option<String> {
-        self.motifs_recours().iter().find(|m| m.code == code).map(|m| m.libelle.clone())
+        self.motifs_recours().into_iter().flatten().find(|m| m.code == code).map(|m| m.libelle.clone())
     }
 
     /// La valeur fixe d'une rubrique pour cette nature, ou `None` (absente comme interdite : `interdit` les distingue).
@@ -462,8 +451,8 @@ impl Nature {
     }
 
     /// Les motifs de recours (S21.G00.40.021) que cette nature accepte.
-    pub fn motifs_recours(&self) -> &[MotifDeRecours] {
-        self.champs.get(MOTIF_DE_RECOURS).map_or(&[], |c| &c.valeurs)
+    pub fn motifs_recours(&self) -> Option<&[MotifDeRecours]> {
+        self.champs.get(MOTIF_DE_RECOURS).and_then(|c| c.valeurs.as_deref())
     }
 
     /// Le refus d'un motif de recours saisi (`S21.G00.40.021`) que cette nature n'accepte pas, ou `None`. La rubrique
@@ -471,10 +460,10 @@ impl Nature {
     /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`) ; la nature en propose une partie (`valeurs` de
     /// `contrats-base.json`). Une nature sans liste (le CDDU, qui fixe le sien ; le CDI) n'est pas controlee.
     pub fn motif_recours_refuse(&self, motif: &str, qui: &str) -> Option<String> {
-        let motifs = self.motifs_recours();
-        if motif.is_empty() || motifs.is_empty() || motifs.iter().any(|m| m.code == motif) {
-            return None;
-        }
+        let motifs = match self.motifs_recours() {
+            Some(m) if !m.is_empty() && !motif.is_empty() && !m.iter().any(|m| m.code == motif) => m,
+            _ => return None,
+        };
         let connus: Vec<String> = motifs.iter().map(|m| format!("{} ({})", m.code, m.libelle)).collect();
         Some(format!(
             "« {} » n'est pas un motif de recours d'un {} ({}) ; la DSN le déclare par son code (S21.G00.40.021). Choisir l'un de : {}. Rien n'est écrit.",
@@ -486,7 +475,7 @@ impl Nature {
     }
 
     pub fn motif_recours_exige(&self) -> bool {
-        self.champs.get(MOTIF_DE_RECOURS).is_some_and(|c| c.obligatoire)
+        self.champs.get(MOTIF_DE_RECOURS).is_some_and(|c| c.obligatoire == Some(true))
     }
 
     /// La fin de ce contrat, pour ce motif de rupture (S21.G00.62.002 ; `None` ou vide : le defaut de la nature),

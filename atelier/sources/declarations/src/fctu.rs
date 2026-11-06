@@ -127,7 +127,7 @@ fn d(s: &str) -> Resultat<Jour> {
 /// p. 275). Un type inconnu refuse.
 pub fn preavis_non_effectue(type_preavis: &str) -> Resultat<bool> {
     match nomenclatures()?.types_preavis.du_code(type_preavis) {
-        Some(c) => Ok(c.non_effectue),
+        Some(c) => Ok(c.non_effectue == Some(true)),
         None => Err(format!(
             "Type de préavis {} inconnu de la norme (S21.G00.63.001) : le choisir dans la liste.",
             repr(type_preavis)

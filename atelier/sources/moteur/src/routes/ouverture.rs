@@ -1343,7 +1343,7 @@ fn natures(ctx: &Contexte) -> R<Vec<NatureDeLaPage>> {
             motifs_rupture: motifs.to_vec(),
             faits_de_rupture: faits,
             motif_rupture_defaut: n.motif_rupture_par_defaut(),
-            motifs_recours: n.motifs_recours().to_vec(),
+            motifs_recours: n.motifs_recours().into_iter().flatten().cloned().collect(),
             motif_recours_exige: n.motif_recours_exige(),
             quotite_defaut: n.quotite_reference_defaut().map(NombreLu),
             temps_plein_dit: n.quotite_reference_defaut().map(|q| format!("temps plein {} h", socle::texte::virgule(socle::num::dec_f64(q).unwrap_or_default()))),

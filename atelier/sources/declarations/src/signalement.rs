@@ -85,7 +85,7 @@ pub fn verifier(a: &Arret, nature: &str, constitution: Option<&Jour>) -> R<Vec<S
     let m_s = s(v, "motif");
     let libelle = motif.libelle.clone();
 
-    if motif.annulation {
+    if motif.annulation == Some(true) {
         return impossible(
             "Le motif « 99 - annulation » est interdit dans un signalement d'arret ou de reprise (CCH-12). Un \
 signalement deja depose se reprend par un annule-et-remplace : meme salarie, meme contrat, type 03, et \
@@ -93,7 +93,7 @@ l'identifiant du dernier envoi valide."
                 .into(),
         );
     }
-    if motif.temps_partiel_therapeutique {
+    if motif.temps_partiel_therapeutique == Some(true) {
         return impossible(format!(
             "Le motif {} (temps partiel therapeutique) est interdit dans un signalement (CCH-14) : il ne se \
 declare qu'en DSN mensuelle ou en FCTU, et impose un bloc « Temps partiel Therapeutique - S21.G00.66 » que le \
@@ -101,7 +101,7 @@ moteur n'ecrit pas.",
             m_s
         ));
     }
-    if motif.reserve {
+    if motif.reserve == Some(true) {
         return impossible(format!(
             "Le motif {} est une valeur de reserve de la norme : elle n'a pas encore de sens declare.",
             m_s
@@ -147,7 +147,7 @@ contrat-la qui est suspendu.",
         ));
     }
 
-    if motif.date_accident {
+    if motif.date_accident == Some(true) {
         if !vrai(g(v, "date_accident")) {
             return impossible(format!(
                 "Motif {} ({}) : la date de l'accident ou de la premiere constatation (S21.G00.60.012) est \
@@ -268,7 +268,7 @@ reprise.",
                 ))
             }
         };
-        if mr.temps_partiel_therapeutique {
+        if mr.temps_partiel_therapeutique == Some(true) {
             return impossible(format!(
                 "Le motif de reprise {} (temps partiel therapeutique) est interdit dans un signalement -- \
 CCH-12.",

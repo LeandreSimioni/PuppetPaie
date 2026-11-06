@@ -304,10 +304,11 @@ pub fn est_propre(chemin: &Path) -> bool {
 /// marqueur, le texte qui l'exige, et si elle n'est due que dite.
 pub fn mentions(nat: &Nature) -> Result<Vec<(Marqueur, String, bool)>, String> {
     nat.mentions_obligatoires()
-        .iter()
+        .into_iter()
+        .flatten()
         .map(|x| {
             let m = Marqueur::lire(&x.marqueur).ok_or_else(|| socle::echec::avec(format!("La table livrée des natures exige du {} une mention que le logiciel ne connaît pas : le signaler au développeur.", nat.nom_du_contrat()), json!({"fichier": "contrats-base.json", "marqueur": x.marqueur})))?;
-            Ok((m, x.texte.clone(), x.si_dite))
+            Ok((m, x.texte.clone(), x.si_dite == Some(true)))
         })
         .collect()
 }

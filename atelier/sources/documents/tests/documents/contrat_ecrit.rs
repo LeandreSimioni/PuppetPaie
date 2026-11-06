@@ -29,7 +29,7 @@ fn chaque_modele_livre_se_lit_et_porte_les_mentions_de_l1242_12_et_r1221_34() {
         let nat = droit::natures::nature(nature).unwrap();
         let nom = nat.modele_contrat().unwrap();
         let chemin = Path::new(MODELES).join(&nom);
-        assert!(nat.mentions_obligatoires().len() >= 15, "{} : ses mentions", nature);
+        assert!(nat.mentions_obligatoires().unwrap().len() >= 15, "{} : ses mentions", nature);
         documents::contrat_ecrit::refuser_les_mentions_absentes(&chemin, &modele(&nom), &nat, &Valeurs::new())
             .unwrap_or_else(|e| panic!("{} : {}", nom, e));
     }

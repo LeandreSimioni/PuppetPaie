@@ -2028,11 +2028,11 @@ pub fn mesures_d_activite(p: &Paie) -> Resultat<Vec<(String, Decimal, String)>> 
                 _ => Decimal::ZERO,
             },
         };
-        if u.si_non_nul && valeur.is_zero() {
+        if u.si_non_nul == Some(true) && valeur.is_zero() {
             continue;
         }
         // Une unite que seule la caisse des Conges Spectacles demande (`contrats-base.json`, `si_caisse_conges`).
-        if u.si_caisse_conges && !p.declaree_a_la_caisse_des_conges()? {
+        if u.si_caisse_conges == Some(true) && !p.declaree_a_la_caisse_des_conges()? {
             continue;
         }
         out.push((u.type_d_activite().to_string(), valeur, u.code.clone()));

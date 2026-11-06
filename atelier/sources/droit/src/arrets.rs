@@ -22,9 +22,7 @@ pub struct Bloc60 {
 #[serde(deny_unknown_fields)]
 pub struct Nomenclature {
     pub codes: Vec<CodeDuBloc60>,
-    #[serde(default)]
     pub quoi: Option<String>,
-    #[serde(default)]
     pub note: Option<String>,
 }
 
@@ -36,21 +34,21 @@ pub struct Nomenclature {
 pub struct CodeDuBloc60 {
     pub code: String,
     pub libelle: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rubrique: Option<String>,
     pub saisissable: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub date_accident: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub date_accident: Option<bool>,
     /// Ce qui a cause l'arret, quand c'est une maladie ou un accident (L1226-1) : le seul motif qui appelle le maintien.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub origine: Option<Origine>,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub temps_partiel_therapeutique: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub reserve: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub annulation: bool,
-    #[serde(default, skip_serializing)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temps_partiel_therapeutique: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reserve: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub annulation: Option<bool>,
+    #[serde(skip_serializing)]
     pub note: Option<String>,
 }
 

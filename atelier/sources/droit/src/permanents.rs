@@ -31,11 +31,8 @@ macro_rules! forme {
         #[serde(deny_unknown_fields)]
         pub struct $nom {
             $($corps)*
-            #[serde(default)]
             pub quoi: Option<String>,
-            #[serde(default)]
             pub note: Option<String>,
-            #[serde(default)]
             pub source: Option<Fondement>,
         }
     };
@@ -189,13 +186,9 @@ forme! {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TrancheDeDelai {
-    #[serde(default)]
     pub presence_moins_de_jours: Option<i64>,
-    #[serde(default)]
     pub presence_jusqu_a_mois: Option<i64>,
-    #[serde(default)]
     pub delai_jours: Option<i64>,
-    #[serde(default)]
     pub delai_mois: Option<u32>,
     pub texte: String,
 }
@@ -538,10 +531,8 @@ forme! {
         pub libelle: String,
         pub remunere: bool,
         pub acquiert_conges: bool,
-        #[serde(default)]
         pub anciennete: Option<AncienneteDeSuspension>,
         /// Pourquoi ce motif ne se declare pas (le 200, les conges payes), quand il ne se declare pas.
-        #[serde(default)]
         pub ne_se_declare_pas: Option<String>,
     }
 }

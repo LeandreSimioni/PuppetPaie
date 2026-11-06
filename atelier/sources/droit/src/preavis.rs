@@ -53,9 +53,9 @@ pub struct TypePreavis {
     pub libelle: String,
     pub dates: bool,
     pub saisissable: bool,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub non_effectue: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub non_effectue: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub indemnite_de_preavis: Option<IndemniteDuType>,
 }
 
@@ -99,8 +99,8 @@ pub struct Nomenclature {
 pub struct Code {
     pub code: String,
     pub libelle: String,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub defaut: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub defaut: Option<bool>,
 }
 
 /// Les motifs de rupture pour lesquels la date de notification (S21.G00.62.003) est obligatoire dans un FCTU.
@@ -134,7 +134,7 @@ impl TypesPreavis {
 impl Nomenclature {
     /// Le code par defaut.
     pub fn defaut(&self) -> Option<&str> {
-        self.codes.iter().find(|c| c.defaut).map(|c| c.code.as_str())
+        self.codes.iter().find(|c| c.defaut == Some(true)).map(|c| c.code.as_str())
     }
 }
 

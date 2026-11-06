@@ -274,11 +274,9 @@ fn dec_avec_echelle_f64(x: f64) -> Resultat<Decimal> {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Versement {
-    #[serde(default)]
     pub taux: Option<Montant>,
-    #[serde(default, rename = "type")]
+    #[serde(rename = "type")]
     pub type_taux: Option<String>,
-    #[serde(default)]
     pub identifiant: Option<String>,
     #[serde(serialize_with = "en_nombre", deserialize_with = "socle::forme::decimal")]
     pub abattement: Decimal,
