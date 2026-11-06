@@ -43,7 +43,7 @@ fn salaries_lus(racine: &Path) -> Value {
 
 /// Les contrats attestes des engagements importes, chacun avec son salarie.
 fn contrats_importes(racine: &Path) -> Vec<Value> {
-    engagement::importe::contrats_lus(racine).unwrap().iter().map(engagement::importe::ContratLu::en_ligne).collect()
+    engagement::importe::contrats_lus(racine).unwrap().iter().map(socle::ecriture::en_valeur).collect()
 }
 
 /// Les fichiers des engagements, tels qu'ils sont sur le disque.
@@ -158,7 +158,7 @@ fn l_apercu_annonce_ce_que_l_ecriture_trouvera() {
             }
         }
     }
-    for p in engagement::importe::paies_lues(&racine).unwrap().iter().map(engagement::importe::PaieLue::en_ligne) {
+    for p in engagement::importe::paies_lues(&racine).unwrap().iter().map(socle::ecriture::en_valeur) {
         for k in ["brut", "net_a_payer", "net_imposable", "net_social", "cout_employeur"] {
             if let Some(v) = p[k].as_str() {
                 interdits.extend([v.to_string(), v.replace('.', ",")]);

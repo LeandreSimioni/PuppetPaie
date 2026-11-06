@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-
+use serde_json::Number;
 
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, LigneCotisation, Paie, ReductionGenerale};
 use droit::reduction::{reduction_au_coefficient, reduction_generale};
@@ -71,7 +71,7 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
     let salaire_apres = ligne.taux.as_ref().ok_or_else(|| socle::fichiers::absent("taux"))?.dec()?;
     let quotite_apres = eng.quotite()?;
     let avenant = jour_de_l_avenant(eng)?;
-    let terme = |x: &Option<serde_json::Number>, cle: &str| x.clone().map(Chiffre::Nombre).ok_or_else(|| socle::fichiers::absent(cle)).and_then(|c| c.dec());
+    let terme = |x: &Option<Number>, cle: &str| x.clone().map(Chiffre::Nombre).ok_or_else(|| socle::fichiers::absent(cle)).and_then(|c| c.dec());
     let (salaire_avant, quotite_avant) = match &eng.avant {
         Some(a) => (terme(&a.salaire_mensuel, "salaire_mensuel")?, terme(&a.quotite_contrat, "quotite_contrat")?),
         None => (salaire_apres, quotite_apres),
@@ -171,7 +171,7 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
     let zero = Decimal::new(0, 2);
     let brut_mois = parts.iter().fold(zero, |a, p| a + p.brut);
     let heures_mois = parts.iter().fold(Decimal::ZERO, |a, p| a + p.heures_travaillees);
-    let caisse = parts.iter().any(|p| p.bases.get("brut_cs").map_or(false, |b| *b > Decimal::ZERO));
+    let caisse = parts.iter().any(|p| p.bases.get(crate::calcul::BRUT_CS).map_or(false, |b| *b > Decimal::ZERO));
     let pile = pile_de_la_paie(ctx, derniere)?;
     let du_mois = reduction_generale(pile.reduction_generale.as_ref(), Some(statut_du_mois.as_str()), brut_mois, heures_mois, caisse)?;
     for p in parts.iter_mut() {

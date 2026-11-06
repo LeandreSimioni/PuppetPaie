@@ -51,8 +51,6 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::Value;
-
 use crate::calcul::Paie;
 use crate::departs::{Depart, Departs, Envoi};
 use crate::paie_ecrite::{FormeDePaie, PaieEcrite, Recalcul};
@@ -62,7 +60,7 @@ use crate::stock::{self, Objet};
 use crate::{empreinte, relire};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::num::{dec_avec_echelle, pct, Decimal, Resultat};
+use socle::num::{pct, Decimal, Resultat};
 
 /// La raison d'un recalcul : le taux de prelevement a la source a change.
 pub const TAUX_DE_PAS: &str = "taux de PAS reçu";
@@ -743,7 +741,7 @@ pub fn prelevement_de_la_correction(
         .map_err(|e| e.message().to_string())?;
     let prelevement = if difference < Decimal::ZERO {
         match taux_origine.filter(|t| !t.is_empty()) {
-            Some(t) => Some(pct(difference, dec_avec_echelle(&Value::String(t.to_string()))?)),
+            Some(t) => Some(pct(difference, socle::num::dec_texte(t)?)),
             None => None,
         }
     } else {
@@ -1684,7 +1682,7 @@ fn seule_la_rupture(partie: Option<&stock::Saisie>, presente: Option<&stock::Sai
 #[cfg(test)]
 mod tests_rupture {
     use super::*;
-    use serde_json::json;
+    use serde_json::{json, Value};
 
     /// Code du travail L. 1243-1 (`atelier/reference/sources/code-du-travail/articles-20261028.md`) : rompre un CDD avant
     /// son terme ne modifie pas le contrat signe, rien ne se refait signer ; changer en meme temps ce qu'il paie, si.

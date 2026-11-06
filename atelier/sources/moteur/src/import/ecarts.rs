@@ -125,9 +125,9 @@ fn rapports_de(ctx: &Contexte, comparaisons: &[Comparaison]) -> Vec<Rapport> {
                         }
                     }
                     let mut x = cas(c);
-                    let j = e.to_json();
-                    for k in ["notre_taux", "leur_taux", "ecart_relatif"] {
-                        x[k] = j[k].clone();
+                    let d = |t: Option<socle::num::Decimal>| t.map_or(Value::Null, |t| json!(socle::num::nombre(t)));
+                    for (k, t) in [("notre_taux", e.notre_taux), ("leur_taux", e.leur_taux), ("ecart_relatif", e.ecart_relatif)] {
+                        x[k] = d(t);
                     }
                     v.push(x);
                 }

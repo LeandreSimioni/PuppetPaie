@@ -476,7 +476,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
             // ne tape pas son nom a la place. PNG, JPEG ou SVG.
             let _ = rect;
             let page = champs[CHAMP_SIGNATURE].get("page").cloned().unwrap_or(Value::Null);
-            images.push(cachet::image_fichier(&page, &json!(cadre_signature(r)), sig));
+            images.push(image_fichier(&page, &json!(cadre_signature(r)), sig));
         }
     }
     if let Some((rect, _)) = champs.get(CHAMP_CACHET).and_then(rect_de) {
@@ -487,7 +487,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
         // dans Configuration, et c'est lui qui part ; qu'elle le retire, et le
         // dessin reprend la main.
         let page = champs[CHAMP_CACHET].get("page").cloned().unwrap_or(Value::Null);
-        if let Some(tampon) = cachet::image(&page, rect, a.ent, a.cachet_fichier) {
+        if let Some(tampon) = image(&page, rect, a.ent, a.cachet_fichier) {
             images.push(tampon);
         }
     }
@@ -527,4 +527,35 @@ pub fn periodes_attendues(periode: &str, cle: &str, paies_du_mois: &mut dyn FnMu
         }
     }
     Ok(out)
+}
+
+/// Une image (PNG, JPEG ou SVG) a poser dans `rect`, a `cachet::MARGE` du bord.
+///
+/// C'est la fabrique qui la pose (`fabrique::remplir`) : le plus grand
+/// rectangle aux proportions de l'image qui tient dans la case, centre -- un
+/// tampon 2:1 pose dans une case presque carree ne sort pas ovale. Un SVG y
+/// reste VECTORIEL, net quelle que soit la taille de la case, la ou un PNG
+/// agrandi bave. Un fichier illisible n'est pas pose en silence : la fabrique
+/// refuse, et l'attestation ne sort pas sans qu'on sache pourquoi.
+fn image_fichier(page: &Value, rect: &Value, fichier: &str) -> Value {
+    json!({"page": page, "rect": rect, "marge": cachet::MARGE, "fichier": fichier})
+}
+
+/// Le cachet a poser dans `rect` de la page `page` : celui de la compagnie
+/// s'il est pose, sinon le notre. C'est le SEUL endroit ou l'on choisit entre
+/// les deux. Rend l'image telle que la fabrique la prend, ou None s'il n'y a
+/// rien a dessiner.
+///
+/// Le dessin n'est pas un pis-aller : il porte les memes faits, tires de la
+/// fiche, et il suit la fiche quand elle change. Un fichier pose l'emporte
+/// simplement parce qu'une compagnie qui prend la peine d'apporter son tampon
+/// veut le sien.
+fn image(page: &Value, rect: &Value, ent: &droit::fiche::ChampsEntreprise, fichier: Option<&str>) -> Option<Value> {
+    if let Some(f) = fichier {
+        if Path::new(f).exists() {
+            return Some(image_fichier(page, rect, f));
+        }
+    }
+    let dessin = cachet::svg(ent)?;
+    Some(json!({"page": page, "rect": rect, "marge": cachet::MARGE, "svg": dessin}))
 }

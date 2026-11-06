@@ -2,6 +2,8 @@
 //! montant donne. La recherche refait le calcul de la saisie pour l'ecran (`pour_l_ecran`) a chaque essai, les salaires
 //! des engagements vises multiplies par un meme facteur ; rien ne s'ecrit.
 
+use serde_json::Number;
+
 use crate::{Chiffre, LignePaie};
 
 use crate::calcul::Paie;
@@ -53,7 +55,7 @@ fn centimes(x: Decimal) -> Decimal {
 
 /// Un taux ou un total en nombre.
 fn flottant(x: Decimal) -> Option<Chiffre> {
-    x.to_string().parse::<f64>().ok().and_then(serde_json::Number::from_f64).map(Chiffre::Nombre)
+    x.to_string().parse::<f64>().ok().and_then(Number::from_f64).map(Chiffre::Nombre)
 }
 
 /// Une valeur saisie : ni absente, ni vide.

@@ -859,6 +859,14 @@ contrat, {} (CSS R. 242-1, al. 6 ; arrêté du 4 septembre 2025, art. 9, I, dern
 
 pub(crate) const FAMILLE_ALLEGEMENTS: &str = "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS";
 
+/// Les assiettes que le calcul relit par leur nom dans les bases de la paie (`Contenu::bases`) : celle des Conges Spectacles,
+/// le brut majore de 15 %, le brut apres la deduction forfaitaire, la tranche de la CET, l'assiette de la CSG.
+pub(crate) const BRUT_CS: &str = "brut_cs";
+pub(crate) const BRUT_X115: &str = "brut_x115";
+pub(crate) const BRUT_DFS: &str = "brut_dfs";
+pub(crate) const CET: &str = "cet";
+pub(crate) const CSG: &str = "csg";
+
 /// Les bases lues par cle : une valeur par rubrique de salaire, sinon globale.
 const GLOBALES: [&str; 20] = [
     "csg", "t1_journaliere", "t2_journaliere", "t2_prevoyance_journaliere", "apec", "apec_t2_journaliere", "cet", "t1_mensuelle",
@@ -1449,9 +1457,9 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     let mut bases: BTreeMap<String, Decimal> = BTreeMap::new();
     let somme_de = |f: &dyn Fn(&Assiettes) -> Decimal| par_rubrique.iter().fold(zero, |a, b| a + f(b));
     bases.insert("brut".into(), brut);
-    bases.insert("brut_cs".into(), somme_de(&|b| b.brut_cs));
-    bases.insert("csg".into(), base_csg);
-    bases.insert("brut_x115".into(), somme_de(&|b| b.x115));
+    bases.insert(BRUT_CS.into(), somme_de(&|b| b.brut_cs));
+    bases.insert(CSG.into(), base_csg);
+    bases.insert(BRUT_X115.into(), somme_de(&|b| b.x115));
     bases.insert("brut_x110".into(), somme_de(&|b| b.x110));
     // Les tranches journalieres d'un intermittent (Audiens, Parametres : « le plafond applicable est le plafond journalier »).
     if let Some(pj) = plafond_journalier.filter(|_| !nat.mensuelle()) {
@@ -1470,7 +1478,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         bases.insert("apec_t2_journaliere".into(), zero.max(brut.min(apec_mult * t1) - t1));
         bases.insert("t2_prevoyance_journaliere".into(), zero.max(brut.min(Decimal::from(4) * t1) - t1));
         // La CET, due quand le brut depasse la T1, sur T1 + T2 : huit plafonds au plus (Agirc-Arrco, « jusqu'a 8 PSS »).
-        bases.insert("cet".into(), if brut > t1 { brut.min(t2_mult * t1) } else { zero });
+        bases.insert(CET.into(), if brut > t1 { brut.min(t2_mult * t1) } else { zero });
     }
     if nat.mensuelle() {
         let pss = plafond_de_l_engagement(ctx, eng, &sal)?;
@@ -1482,7 +1490,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         // Le FNAL plafonne d'un permanent declare a la caisse (CDD de moins de douze mois d'un
         // artiste) : seul le montant plafonne se majore (lettre circulaire Acoss 2013-019, annexe 1, R2), comme
         // `brut_x115_plafonne` d'un intermittent. Sans majoration (1,0), c'est la tranche 1.
-        let x115 = bases["brut_x115"];
+        let x115 = bases[BRUT_X115];
         bases.insert("t1_mensuelle_x115".into(), if brut <= pss { x115 } else { eur(mul(pss, maj115)) });
         bases.insert("t2_mensuelle".into(), zero.max(brut.min(Decimal::from(8) * pss) - pss));
         // Quatre plafonds de la periode : l'Apec d'un cadre, et le chomage et l'AGS d'un permanent. Les contributions
@@ -1508,7 +1516,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         // etait.
         let plafond_ss = plafond_de_l_engagement(ctx, eng, &sal)?;
         plafond_intermittent = Some(plafond_ss);
-        let x115 = bases["brut_x115"];
+        let x115 = bases[BRUT_X115];
         bases.insert("brut_plafonne".into(), brut.min(plafond_ss));
         // La majoration de 11,5 % (CSS L. 243-1-3, D. 243-0-2) s'applique a l'assiette plafonnee : au-dela du plafond,
         // c'est le plafond qu'elle majore (lettre circulaire Acoss 2013-019, annexe 1, R2 ;
@@ -1518,7 +1526,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     }
     if dfs.is_some() {
         let s = par_rubrique.iter().fold(zero, |a, b| a + b.dfs.unwrap_or(zero));
-        bases.insert("brut_dfs".into(), s);
+        bases.insert(BRUT_DFS.into(), s);
         let x115 = par_rubrique.iter().fold(zero, |a, b| a + b.x115_dfs.unwrap_or(zero));
         bases.insert("brut_x115_dfs".into(), x115);
         bases.insert("brut_x110_dfs".into(), par_rubrique.iter().fold(zero, |a, b| a + b.x110_dfs.unwrap_or(zero)));
@@ -1573,7 +1581,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         }
         // La CET des cadres, fondue dans T1 et T2 : l'arrondi se fait en deux parts.
         if let Some(cet) = &r.cet_si_depasse {
-            if bases.get("cet").map_or(false, |c| !c.is_zero()) {
+            if bases.get(CET).map_or(false, |c| !c.is_zero()) {
                 let (cet_pat, cet_sal) = (cet.pat, cet.sal);
                 let mut cp = comp_pat.take().map_or_else(|| taux_pat.map(|t| vec![t]).ok_or_else(manque), Ok)?;
                 *cp.last_mut().unwrap() += cet_pat;
@@ -1620,7 +1628,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
 
     // 7.9 : la reduction generale, apres les cotisations.
     let statut = sal.statut.dite().map(|s| s.as_str());
-    let caisse_conges = bases["brut_cs"] > Decimal::ZERO;
+    let caisse_conges = bases[BRUT_CS] > Decimal::ZERO;
     // Sous DFS, la reduction se calcule sur le brut abattu, dans la limite de 130 % de celle du brut entier
     // (`reduction_generale_sous_dfs`).
     // Le SMIC horaire de la reduction (`smic_horaire_reference`) ; sans lui, pas de reduction.
@@ -1631,7 +1639,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         bases.insert(PERCUE_HORS_ENA.into(), a.percue);
         bases.insert(HABITUELLE_HORS_ENA.into(), a.habituelle);
     }
-    let rg = match bases.get("brut_dfs").filter(|_| dfs.is_some()) {
+    let rg = match bases.get(BRUT_DFS).filter(|_| dfs.is_some()) {
         Some(abattu) => reduction_generale_sous_dfs(bar.reduction_generale.as_ref(), statut, brut, *abattu, heures_rg, caisse_conges)?,
         None => reduction_generale(bar.reduction_generale.as_ref(), statut, brut, heures_rg, caisse_conges)?,
     };

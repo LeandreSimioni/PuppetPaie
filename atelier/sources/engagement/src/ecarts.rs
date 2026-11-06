@@ -31,7 +31,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde_json::{json, Value};
 
 use crate::calcul::LigneCotisation;
 use crate::importe::{Importe, PaieVersee};
@@ -92,20 +91,6 @@ pub struct Ecart {
     /// (le leur - le notre) / le notre, a 4 decimales, pour une base ou un montant ; `None` pour un taux, ou quand le
     /// notre est nul.
     pub ecart_relatif: Option<Decimal>,
-}
-
-impl Ecart {
-    pub fn to_json(&self) -> Value {
-        let d = |x: &Option<Decimal>| x.map_or(Value::Null, |x| json!(socle::num::nombre(x)));
-        json!({
-            "cotisation": self.cotisation,
-            "libelles": self.libelles,
-            "grandeur": self.grandeur.code(),
-            "notre_taux": d(&self.notre_taux),
-            "leur_taux": d(&self.leur_taux),
-            "ecart_relatif": d(&self.ecart_relatif),
-        })
-    }
 }
 
 /// La comparaison d'une paie importee (un mois de l'engagement).

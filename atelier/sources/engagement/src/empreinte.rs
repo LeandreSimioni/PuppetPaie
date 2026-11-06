@@ -16,9 +16,6 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-
-use serde_json::Value;
-
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::fichiers::{self, dossier_du_code};
@@ -34,7 +31,7 @@ pub const MOTEUR: &str = concat!(env!("CARGO_PKG_VERSION"), "+", env!("ENGAGEMEN
 /// et celle du spectacle, telles qu'elles valent au dernier jour du mois (`Contexte::du_mois`). La fiche d'un autre
 /// salarie, une valeur datee apres le mois n'en sont pas : elles ne font pas recalculer cette paie.
 pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Option<&str>) -> Resultat<(String, String)> {
-    let cle = Value::Array(vec![mois.into(), salarie.into(), spectacle.map_or(Value::Null, Value::from)]);
+    let cle = socle::ecriture::json_en_ligne(&(mois, salarie, spectacle));
     Ok((format!("fiches {}", cle), empreinte_fiches(&ctx.du_mois(mois)?, salarie, spectacle)))
 }
 
@@ -43,16 +40,13 @@ fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> S
     // (`droit::fiche`) ; ce qui manque s'ecrit `null`.
     let sal = ctx.salaries.get(salarie).map(|f| droit::fiche::ChampsSalarie { taux_pas: droit::fiche::Case::Absente, ..f.champs.clone() });
     let spec = spectacle.and_then(|k| ctx.spectacles.get(k));
-    fichiers::sha256_hex(serde_json::to_string(&(&ctx.entreprise, &sal, &spec)).unwrap_or_default().as_bytes())
+    fichiers::sha256_hex(socle::ecriture::json_en_ligne(&(&ctx.entreprise, &sal, &spec)).as_bytes())
 }
 
 /// L'entree `fiches [mois, salarie, spectacle]` tient-elle encore ?
 fn fiches_tiennent(ctx: &Contexte, cle: &str, v: &str) -> bool {
-    let Ok(Value::Array(c)) = serde_json::from_str::<Value>(cle) else { return false };
-    match (c.first().and_then(Value::as_str), c.get(1).and_then(Value::as_str)) {
-        (Some(mois), Some(salarie)) => fiches(ctx, mois, salarie, c.get(2).and_then(Value::as_str)).is_ok_and(|(_, e)| e == v),
-        _ => false,
-    }
+    let Ok((mois, salarie, spectacle)) = socle::forme::lire_texte::<(String, String, Option<String>)>(cle, "") else { return false };
+    fiches(ctx, &mois, &salarie, spectacle.as_deref()).is_ok_and(|(_, e)| e == v)
 }
 
 /// Une entree de fichier qui est la saisie d'un mois : elle se compte par la saisie (`stock::cle_de_saisie`), pas par
@@ -109,7 +103,7 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
     let (racine, code) = (&ctx.racine, dossier_du_code());
     match k {
         "moteur" => v == MOTEUR,
-        k if k.starts_with("fiches ") => fiches_tiennent(ctx, &k["fiches ".len()..], v),
+        k if k.starts_with("fiches ") => k.strip_prefix("fiches ").is_some_and(|c| fiches_tiennent(ctx, c, v)),
         "date" => v == ctx.date.iso(),
         "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
         _ => {

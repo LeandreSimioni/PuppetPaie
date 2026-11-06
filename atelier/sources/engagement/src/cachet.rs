@@ -31,10 +31,6 @@
 //! la ligne saute. Un cachet qui afficherait un SIRET vide ou << None >> serait
 //! pire que pas de cachet, et la case n'est exigee par aucun formulaire.
 
-use std::path::Path;
-
-use serde_json::{json, Value};
-
 use droit::contexte::format_g;
 
 /// L'encre d'un tampon, et la geometrie du dessin. Le rapport 2:1 est celui
@@ -208,35 +204,4 @@ pub fn svg(ent: &droit::fiche::ChampsEntreprise) -> Option<String> {
     }
     out.push("</svg>".into());
     Some(out.concat())
-}
-
-/// Une image (PNG, JPEG ou SVG) a poser dans `rect`, a `MARGE` du bord.
-///
-/// C'est la fabrique qui la pose (`fabrique::remplir`) : le plus grand
-/// rectangle aux proportions de l'image qui tient dans la case, centre -- un
-/// tampon 2:1 pose dans une case presque carree ne sort pas ovale. Un SVG y
-/// reste VECTORIEL, net quelle que soit la taille de la case, la ou un PNG
-/// agrandi bave. Un fichier illisible n'est pas pose en silence : la fabrique
-/// refuse, et l'attestation ne sort pas sans qu'on sache pourquoi.
-pub fn image_fichier(page: &Value, rect: &Value, fichier: &str) -> Value {
-    json!({"page": page, "rect": rect, "marge": MARGE, "fichier": fichier})
-}
-
-/// Le cachet a poser dans `rect` de la page `page` : celui de la compagnie
-/// s'il est pose, sinon le notre. C'est le SEUL endroit ou l'on choisit entre
-/// les deux. Rend l'image telle que la fabrique la prend, ou None s'il n'y a
-/// rien a dessiner.
-///
-/// Le dessin n'est pas un pis-aller : il porte les memes faits, tires de la
-/// fiche, et il suit la fiche quand elle change. Un fichier pose l'emporte
-/// simplement parce qu'une compagnie qui prend la peine d'apporter son tampon
-/// veut le sien.
-pub fn image(page: &Value, rect: &Value, ent: &droit::fiche::ChampsEntreprise, fichier: Option<&str>) -> Option<Value> {
-    if let Some(f) = fichier {
-        if Path::new(f).exists() {
-            return Some(image_fichier(page, rect, f));
-        }
-    }
-    let dessin = svg(ent)?;
-    Some(json!({"page": page, "rect": rect, "marge": MARGE, "svg": dessin}))
 }

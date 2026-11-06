@@ -42,7 +42,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use serde_json::Value;
+use serde_json::{Number, Value};
 
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
@@ -232,13 +232,6 @@ pub struct Assemble {
     pub repartition_horaire: Option<String>,
     #[serde(default)]
     pub clauses_particulieres: Option<String>,
-}
-
-impl Assemble {
-    /// LA SEULE LECTURE de ce dont un engagement se fabrique, depuis un oracle.
-    pub fn lire(v: &serde_json::Value) -> Resultat<Assemble> {
-        socle::forme::lire(v, "L'engagement à fabriquer ne se lit pas.")
-    }
 }
 
 /// Un texte dit et non vide.
@@ -918,7 +911,7 @@ pub(crate) fn salarie_nomme<N: NomDit>(ctx: &Contexte, salarie: Option<N>) -> St
 pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &saisie::Carte, &str) -> Resultat<(Vec<LignePaie>, Vec<Avis>, Option<i64>)>;
 
 /// Un nombre dit et non nul (`socle::fichiers::vrai`).
-fn nombre_dit(x: &Option<serde_json::Number>) -> bool {
+fn nombre_dit(x: &Option<Number>) -> bool {
     x.as_ref().is_some_and(|n| n.as_f64().map_or(true, |f| f != 0.0))
 }
 
@@ -1053,7 +1046,7 @@ pub(crate) fn engagements(
                 }
             }
         };
-        let nombre = |x: &Option<serde_json::Number>| x.clone().map(Chiffre::Nombre);
+        let nombre = |x: &Option<Number>| x.clone().map(Chiffre::Nombre);
         // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
         let continue_ = match &carte.jours_contrat {

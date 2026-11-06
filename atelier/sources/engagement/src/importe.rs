@@ -31,7 +31,6 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::calcul::{Importee, LigneCotisation, Paie, PlafondTempsPartiel};
 use crate::numeros::NumeroContrat;
@@ -323,13 +322,6 @@ pub struct ContratLu {
     pub contrat: ContratAtteste,
 }
 
-impl ContratLu {
-    /// En une ligne de la reponse : `{"salarie", "debut", "fin", "contrat"?, <ce qu'il atteste>}`.
-    pub fn en_ligne(&self) -> Value {
-        serde_json::to_value(self).expect("une forme declaree s'ecrit")
-    }
-}
-
 /// UNE PAIE VERSEE, AVEC SON MOIS ET LE SALARIE DE SON ENGAGEMENT : la ligne de paie que l'import manipule, de la
 /// lecture de la DSN ou du bulletin a l'engagement ecrit.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -341,11 +333,6 @@ pub struct PaieLue {
 }
 
 impl PaieLue {
-    /// En une ligne de la reponse : `{"mois", "salarie", <ce qui a ete verse>}`.
-    pub fn en_ligne(&self) -> Value {
-        serde_json::to_value(self).expect("une forme declaree s'ecrit")
-    }
-
     /// Ce qui la reconnait d'un import a l'autre : (mois, salarie, contrat).
     pub fn cle(&self) -> (String, String, String) {
         (self.mois.clone(), self.salarie.clone(), self.paie.contrat.clone())
@@ -721,7 +708,7 @@ impl Importe {
                 bases.entry(cle.clone()).or_insert(*m);
             }
         }
-        let base_csg = bases.get("csg").copied().unwrap_or(zero);
+        let base_csg = bases.get(crate::calcul::CSG).copied().unwrap_or(zero);
         let plafond = ["brut_plafonne", "t1_mensuelle"].iter().find_map(|k| bases.get(*k)).filter(|t| **t < brut).copied();
         if plafond.is_none() {
             non_dits.push("plafond");
