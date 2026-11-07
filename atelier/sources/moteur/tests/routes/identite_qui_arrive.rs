@@ -20,12 +20,15 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
     std::fs::copy(fil.join("description.json"), sc.join("description.json")).unwrap();
     let gestes = std::fs::read_to_string(fil.join("gestes.jsonl")).unwrap();
     let gestes: Vec<&str> = gestes.lines().collect();
-    let fiche = json!({"route": "enregistrer-fiche", "charge": {"nom": "salarie", "confirme": true, "donnees": {
-        "nom_affichage": "Sansnir", "prenom_affichage": "Armel", "sexe": "1", "emploi_affichage": "Technicien son",
-        "adresse_affichage": "3 rue Gloriette", "code_postal": "71100", "commune_affichage": "Chalon-sur-Saône",
-        "statut": "technicien", "pcs_ese": "465b", "code_emploi_ft": "TEC250", "statut_conventionnel": "07",
-        "statut_categoriel_rc": "04", "date_naissance": "1990-05-04", "lieu_naissance_affichage": "Chalon-sur-Saône",
-        "departement_naissance": "71", "pays_naissance": "FR", "code_nationalite_dsn": "01"}}});
+    let fiche = json!({"route": "enregistrer-fiche", "charge": {"nom": "salarie", "confirme": true, "changements": [
+        {"case": "nom_affichage", "valeur": "Sansnir"}, {"case": "prenom_affichage", "valeur": "Armel"}, {"case": "sexe", "valeur": "1"},
+        {"case": "emploi_affichage", "valeur": "Technicien son"}, {"case": "adresse_affichage", "valeur": "3 rue Gloriette"},
+        {"case": "code_postal", "valeur": "71100"}, {"case": "commune_affichage", "valeur": "Chalon-sur-Saône"},
+        {"case": "statut", "valeur": "technicien"}, {"case": "pcs_ese", "valeur": "465b"}, {"case": "code_emploi_ft", "valeur": "TEC250"},
+        {"case": "statut_conventionnel", "valeur": "07"}, {"case": "statut_categoriel_rc", "valeur": "04"},
+        {"case": "date_naissance", "valeur": "1990-05-04"}, {"case": "lieu_naissance_affichage", "valeur": "Chalon-sur-Saône"},
+        {"case": "departement_naissance", "valeur": "71"}, {"case": "pays_naissance", "valeur": "FR"},
+        {"case": "code_nationalite_dsn", "valeur": "01"}]}});
     // Sa carte de janvier, ses cases d'un appel, puis validee.
     let janvier = [
         json!({"route": "enregistrer-saisie", "charge": {"mois": "2026-01", "carte": {"neuve": "cddu_spectacle"}, "changements": [
@@ -52,7 +55,7 @@ fn le_nir_qui_arrive_vaut_de_tout_temps_et_le_signalement_porte_le_ntt_declare()
 
     // Le NIR arrive : une case vide qu'on remplit, sans date ni avertissement, apres la DSN partie de janvier.
     let r = reussi(&route(&c, "enregistrer-fiche", json!({"nom": "salarie", "cle": "SANSNIR",
-        "donnees": {"nir": "1900571123456", "nir_cle": "33"}}), jour)).clone();
+        "changements": [{"case": "nir", "valeur": "1900571123456"}, {"case": "nir_cle", "valeur": "33"}]}), jour)).clone();
     assert!(r.get("avertissement").is_none(), "la premiere valeur d'une case se date : {}", r);
     let fiches: serde_json::Value = serde_json::from_slice(&std::fs::read(c.join("config/salaries.json")).unwrap()).unwrap();
     assert_eq!(fiches["SANSNIR"]["nir"], json!([{"valeur": "1900571123456"}]), "le NIR vaut de tout temps");

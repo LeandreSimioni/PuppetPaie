@@ -508,14 +508,34 @@
     },
     "config/salaries.json": {
       "FULLER": {
-        "prenom_affichage": [
+        "code_salarie": [
           {
-            "valeur": "Loïe"
+            "valeur": "1"
+          }
+        ],
+        "initiales_contrat": [
+          {
+            "valeur": "FU"
           }
         ],
         "nom_affichage": [
           {
             "valeur": "Fuller"
+          }
+        ],
+        "nom": [
+          {
+            "valeur": "FULLER"
+          }
+        ],
+        "prenom_affichage": [
+          {
+            "valeur": "Loïe"
+          }
+        ],
+        "prenom": [
+          {
+            "valeur": "LOIE"
           }
         ],
         "nir": [
@@ -531,6 +551,11 @@
         "date_naissance": [
           {
             "valeur": "1982-01-15"
+          }
+        ],
+        "lieu_naissance": [
+          {
+            "valeur": "VILLENEUVE-SUR-LOIRE"
           }
         ],
         "lieu_naissance_affichage": [
@@ -553,6 +578,11 @@
             "valeur": "01"
           }
         ],
+        "adresse": [
+          {
+            "valeur": "7 RUE DE LA PAIX"
+          }
+        ],
         "adresse_affichage": [
           {
             "valeur": "7 rue de la Paix"
@@ -561,6 +591,11 @@
         "code_postal": [
           {
             "valeur": "44000"
+          }
+        ],
+        "commune": [
+          {
+            "valeur": "NANTES"
           }
         ],
         "commune_affichage": [
@@ -578,19 +613,9 @@
             "valeur": "Comédien"
           }
         ],
-        "forfait_jours": [
+        "emploi": [
           {
-            "valeur": true
-          }
-        ],
-        "statut": [
-          {
-            "valeur": "artiste"
-          }
-        ],
-        "statut_categoriel_rc": [
-          {
-            "valeur": "04"
+            "valeur": "COMEDIEN"
           }
         ],
         "pcs_ese": [
@@ -603,19 +628,9 @@
             "valeur": "COM010"
           }
         ],
-        "date_anciennete": [
+        "statut": [
           {
-            "valeur": "2026-11-02"
-          }
-        ],
-        "code_salarie": [
-          {
-            "valeur": "1"
-          }
-        ],
-        "initiales_contrat": [
-          {
-            "valeur": "FU"
+            "valeur": "artiste"
           }
         ],
         "statut_conventionnel": [
@@ -623,9 +638,24 @@
             "valeur": "05"
           }
         ],
+        "statut_categoriel_rc": [
+          {
+            "valeur": "04"
+          }
+        ],
         "experimente_3241": [
           {
             "valeur": true
+          }
+        ],
+        "forfait_jours": [
+          {
+            "valeur": true
+          }
+        ],
+        "date_anciennete": [
+          {
+            "valeur": "2026-11-02"
           }
         ],
         "actif": [
@@ -633,39 +663,9 @@
             "valeur": true
           }
         ],
-        "nom": [
-          {
-            "valeur": "FULLER"
-          }
-        ],
-        "prenom": [
-          {
-            "valeur": "LOIE"
-          }
-        ],
-        "lieu_naissance": [
-          {
-            "valeur": "VILLENEUVE-SUR-LOIRE"
-          }
-        ],
-        "adresse": [
-          {
-            "valeur": "7 RUE DE LA PAIX"
-          }
-        ],
-        "commune": [
-          {
-            "valeur": "NANTES"
-          }
-        ],
-        "emploi": [
-          {
-            "valeur": "COMEDIEN"
-          }
-        ],
         "taux_pas": [
           {
-            "valeur": ""
+            "valeur": null
           },
           {
             "depuis": "2026-11-20",
@@ -2172,7 +2172,7 @@
                 "existe racine:config/effectifs.json": "non",
                 "existe racine:config/rubriques-compagnie.json": "non",
                 "fiches [\"2026-11\",\"FULLER\",\"le-banc-des-menteurs\"]": "55397a1a43110518aad015d93f452f8b6653bd22ab7ee441bc33179c54fdca44",
-                "fichier code:baremes/2026.json": "b69d56162a1f4ed1631ac3aa3684ece127b45a84f5594d396184c6e3dc414273",
+                "fichier code:baremes/2026.json": "242732e9bf0bee3e97ed52d813b983f38cd6138a5088466a4c142b1b3be0eed2",
                 "fichier code:contrats-base.json": "7b4508c34503f5514efb514acd1cd355fc10379663fa03cd93c76b6d159d8718",
                 "fichier code:emplois-base.json": "d7be9edbc37bfa3c75b050f13018ae5b956f9eeab57cae0d1a7cf19d48d0b168",
                 "fichier code:minima-conventionnels.json": "e73f412ba4c1b942078c8def3b67467a89cec714a3be8af00baf75bb6dd65e46",

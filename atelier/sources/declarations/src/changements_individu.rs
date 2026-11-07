@@ -343,7 +343,8 @@ mod tests {
         use droit::fiche::FicheDatee;
         let mut f = FicheSalarieDatee::neuve(&lue(&valeurs));
         for (champ, depuis, v) in apres {
-            assert!(f.dater(champ, &lue(&json!({ *champ: v })), Some(&Jour::lire(depuis).unwrap()), None));
+            let ch = droit::fiche::lire_champs(&json!({"case": champ, "valeur": v}), "le changement").unwrap();
+            f.changer(ch, Some(&Jour::lire(depuis).unwrap()), None);
         }
         f
     }

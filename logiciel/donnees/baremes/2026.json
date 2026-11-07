@@ -3150,7 +3150,9 @@
         "chomage": {
           "base": "brut_chomage",
           "taux_pat": 4.25,
-          "taux_sal": null,
+          "efface": [
+            "taux_sal"
+          ],
           "composants": [
             4.0,
             0.25
@@ -3346,14 +3348,18 @@
         "prevoyance": {
           "base": "t1_mensuelle",
           "libelle": "Prévoyance conventionnelle (incapacité, invalidité, décès)",
-          "taux_pat": null,
-          "taux_sal": null,
+          "efface": [
+            "taux_pat",
+            "taux_sal"
+          ],
           "rempli_par": "bareme_prevoyance -- son taux n'est PAS une donnee de ce bareme. La prevoyance des permanents est fixee par la CONVENTION COLLECTIVE, la meme pour toutes les entreprises de la branche : elle vit donc dans logiciel/donnees/prevoyance-conventionnelle-base.json, livre avec le logiciel. Pour l'IDCC 3090 : 1,20 % de la tranche A, 100 % patronale (article 12.6 des clauses communes), porte a 1,50 % pour un CADRE (ANI du 17/11/2017). Son absence de taux ici n'est pas un trou, c'est un renvoi -- comme la rubrique `mutuelle`, remplie par `bareme_sante`.",
           "note": "Dans config/entreprise.json, cle `prevoyance_permanents`, et seulement si elle sort du minimum : `extension_t2` (l'extension facultative a la tranche 2 conventionnelle, 2,32 % pour tous ou 2,62 % pour les cadres) et `regime: \"contrat\"` avec ses taux, quand son contrat est plus favorable que la branche. Sans rien, le minimum conventionnel s'applique : c'est le bon defaut, il est obligatoire."
         },
         "ccn": {
           "taux_pat": 0.5,
-          "taux_sal": null,
+          "efface": [
+            "taux_sal"
+          ],
           "base": "t1_mensuelle",
           "source": {
             "sources": [
@@ -5554,7 +5560,9 @@
             "libelle": "Cotisations conventionnelles IDCC 3090",
             "base": "brut_plafonne",
             "taux_pat": 0.5,
-            "taux_sal": null,
+            "efface": [
+              "taux_sal"
+            ],
             "source": {
               "sources": [
                 {

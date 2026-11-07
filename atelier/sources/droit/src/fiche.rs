@@ -139,6 +139,30 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Case<T> {
     }
 }
 
+/// LA VALEUR D'UN CHANGEMENT DE CASE (`fiche!`) : `null`, ou `""` qu'un champ vide de l'ecran envoie, vide la case ;
+/// sinon elle se lit dans le type de la case.
+pub fn vide_ou_dite<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Option<T>, D::Error> {
+    Ok(match socle::forme::Remplie::<T>::deserialize(d)? {
+        socle::forme::Remplie::Nulle | socle::forme::Remplie::Vide => None,
+        socle::forme::Remplie::Dite(v) => Some(v),
+    })
+}
+
+/// LES CHANGEMENTS D'UN APPEL (`changements` de la route `enregistrer-fiche`), comme ceux de la carte : au moins un,
+/// dans l'ordre.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Changements<C>(pub Vec<C>);
+
+impl<'de, C: Deserialize<'de>> Deserialize<'de> for Changements<C> {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let v = Vec::<C>::deserialize(d)?;
+        if v.is_empty() {
+            return Err(serde::de::Error::custom("`changements` : au moins un changement, {\"case\": …, \"valeur\": …}"));
+        }
+        Ok(Changements(v))
+    }
+}
+
 /// UN MONTANT OU UN NOMBRE D'UNE FICHE : un nombre JSON, ou un texte qui se lit en decimal (`12,5` compris), garde tel
 /// qu'il est ecrit (`socle::forme::NombreEcrit`).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -686,8 +710,27 @@ macro_rules! cases {
 /// UNE FICHE DATEE : ses champs a un jour (`$plate`, des `cases!`), et la fiche telle qu'ecrite (`$datee`), chaque champ
 /// une liste datee ; `au` lit l'une dans l'autre, la valeur en vigueur de chaque champ (`valeur_au`).
 macro_rules! fiche {
-    ($(#[$m:meta])* pub struct $plate:ident, datee $datee:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? } $( notes { $( $(#[$nm:meta])* $note:ident ),* $(,)? } )?) => {
+    ($(#[$m:meta])* pub struct $plate:ident, datee $datee:ident, changement $ch:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? } $( notes { $( $(#[$nm:meta])* $note:ident ),* $(,)? } )?) => {
         cases! { $(#[$m])* pub struct $plate { $( $(#[$fm])* $champ : $t ),* } $( notes { $( $(#[$nm])* $note ),* } )? }
+
+        /// UN CHANGEMENT D'UNE CASE DE LA FICHE, comme ceux de la carte (`engagement::carte::Changement`) :
+        /// `{"case": "email", "valeur": "…"}` pose la case ; `null` la vide. Une case que la liste ne nomme pas ne change
+        /// pas : la fiche elle-meme n'a pas a distinguer l'absent du nul.
+        #[allow(non_camel_case_types)] // la variante est la case, telle qu'elle s'ecrit
+        #[derive(Debug, Clone, PartialEq, Deserialize)]
+        #[serde(tag = "case", content = "valeur", deny_unknown_fields)]
+        pub enum $ch {
+            $( #[serde(deserialize_with = "vide_ou_dite")] $champ(Option<$t>), )*
+        }
+
+        impl $ch {
+            /// La case qu'il change, nommee comme `champs-base.json` la nomme.
+            pub fn case(&self) -> &'static str {
+                match self {
+                    $( $ch::$champ(_) => stringify!($champ).trim_start_matches("r#"), )*
+                }
+            }
+        }
 
         /// La fiche telle qu'ecrite : chaque champ une liste datee.
         #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -735,6 +778,7 @@ macro_rules! fiche {
 
         impl FicheDatee for $datee {
             type Plate = $plate;
+            type Changement = $ch;
 
             fn au(&self, jour: &Jour) -> $plate {
                 $datee::au(self, jour)
@@ -744,15 +788,10 @@ macro_rules! fiche {
                 $datee::depuis(self, cle)
             }
 
-            fn dater(&mut self, cle: &str, plate: &$plate, depuis: Option<&Jour>, note: Option<&str>) -> bool {
-                $( if stringify!($champ).trim_start_matches("r#") == cle {
-                    if plate.$champ.est_absente() {
-                        return false;
-                    }
-                    dater(&mut self.$champ, plate.$champ.clone(), depuis, note);
-                    return true;
-                } )*
-                false
+            fn changer(&mut self, ch: $ch, depuis: Option<&Jour>, note: Option<&str>) {
+                match ch {
+                    $( $ch::$champ(x) => dater(&mut self.$champ, x.map_or(Case::Nulle, Case::Dite), depuis, note), )*
+                }
             }
 
             fn noter(&mut self, plate: &$plate) {
@@ -779,9 +818,10 @@ macro_rules! fiche {
 }
 
 /// UNE FICHE DATEE (`fiche!`) : la fiche telle qu'ecrite, chaque champ une liste datee, et sa fiche a un jour
-/// (`Plate`). Elle s'ecrit par `dater` (une case de `Plate`, qui vaut a partir de `depuis`), ses notes par `noter`.
+/// (`Plate`). Elle s'ecrit par `changer` (une case, qui vaut a partir de `depuis`), ses notes par `noter`.
 pub trait FicheDatee: Clone + Default + PartialEq + Serialize + DeserializeOwned {
     type Plate: Cases + Clone + Default + Serialize + DeserializeOwned;
+    type Changement: DeserializeOwned;
 
     /// Ses champs en vigueur a `jour`, ses notes telles qu'ecrites.
     fn au(&self, jour: &Jour) -> Self::Plate;
@@ -790,8 +830,8 @@ pub trait FicheDatee: Clone + Default + PartialEq + Serialize + DeserializeOwned
     /// que la fiche ne dit pas, ou que la forme ne declare pas.
     fn depuis(&self, cle: &str) -> Vec<Option<Jour>>;
 
-    /// LA CASE `cle` DE `plate` S'ECRIT DATEE (`dater`) ; faux : la forme ne la declare pas, ou `plate` ne la dit pas.
-    fn dater(&mut self, cle: &str, plate: &Self::Plate, depuis: Option<&Jour>, note: Option<&str>) -> bool;
+    /// LA CASE QUE `ch` CHANGE S'ECRIT DATEE (`dater`) : sa valeur, ou vide.
+    fn changer(&mut self, ch: Self::Changement, depuis: Option<&Jour>, note: Option<&str>);
 
     /// Les notes que `plate` porte remplacent les siennes ; les autres restent.
     fn noter(&mut self, plate: &Self::Plate);
@@ -1114,7 +1154,7 @@ cases! {
 
 fiche! {
     /// LA FICHE D'UN SALARIE a un jour.
-    pub struct ChampsSalarie, datee FicheSalarieDatee {
+    pub struct ChampsSalarie, datee FicheSalarieDatee, changement ChangementSalarie {
         code_salarie: String,
         initiales_contrat: String,
         nom_affichage: String,
@@ -1175,7 +1215,7 @@ fiche! {
 
 fiche! {
     /// LA FICHE DE L'ENTREPRISE a un jour (son siege et, en `etablissements`, les autres).
-    pub struct ChampsEntreprise, datee FicheEntrepriseDatee {
+    pub struct ChampsEntreprise, datee FicheEntrepriseDatee, changement ChangementEntreprise {
         nom_affichage: String,
         raison_sociale: RaisonSociale,
         siren: String,
@@ -1253,7 +1293,7 @@ choix! {
 fiche! {
     /// LA FICHE D'UN SPECTACLE a un jour (`config/spectacles.json`). Ses notes, ecrites par l'import, disent d'ou il
     /// vient et le titre que les bulletins de l'ancien logiciel proposent (`declarations::demarrage`).
-    pub struct ChampsSpectacle, datee FicheSpectacleDatee {
+    pub struct ChampsSpectacle, datee FicheSpectacleDatee, changement ChangementSpectacle {
         titre: String,
         numero_objet: String,
         code_analytique: String,
@@ -1278,7 +1318,7 @@ fiche! {
     /// UNE RUBRIQUE TELLE QU'UN FICHIER L'ECRIT, case par case : livree (`rubriques-base.json`, de tout temps), ou la
     /// compagnie par-dessus, case par case, datee comme toute la configuration (`config/rubriques-compagnie.json`).
     /// `catalogue::construire` en fait la `Rubrique` du calcul.
-    pub struct ChampsRubrique, datee RubriqueDatee {
+    pub struct ChampsRubrique, datee RubriqueDatee, changement ChangementRubrique {
         libelle: String,
         unite: String,
         nature: String,

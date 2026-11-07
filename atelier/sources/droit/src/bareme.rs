@@ -8,7 +8,7 @@
 
 use socle::texte::sans_accent;
 use crate::forme_bareme::{
-    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp, TauxAtmpEcrit, ValeurAtmp,
+    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Part, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp, TauxAtmpEcrit, ValeurAtmp,
     VersementMobiliteEcrit,
 };
 use crate::natures::Nature;
@@ -113,12 +113,22 @@ pub(crate) fn modifier(r: &mut Rubrique, m: &RubriqueModifiee) {
     }
     si!(famille, libelle, base, cet_si_depasse, rempli_par, a_confirmer, source, note);
     if let Some(t) = m.taux_pat {
-        r.taux_pat = t;
+        r.taux_pat = Some(t.0);
     }
     if let Some(t) = m.taux_sal {
-        r.taux_sal = t;
+        r.taux_sal = Some(t);
     }
-    for (de, vers) in [(&m.composants, &mut r.composants), (&m.composants_pat, &mut r.composants_pat), (&m.composants_sal, &mut r.composants_sal)] {
+    // Une part effacee : la rubrique n'a plus de part de ce cote (`Rubrique::taux_pat`, nul).
+    for p in m.efface.iter().flatten() {
+        match p {
+            Part::TauxPat => r.taux_pat = None,
+            Part::TauxSal => r.taux_sal = None,
+        }
+    }
+    if let Some(c) = &m.composants {
+        r.composants = Some(c.0.clone());
+    }
+    for (de, vers) in [(&m.composants_pat, &mut r.composants_pat), (&m.composants_sal, &mut r.composants_sal)] {
         if let Some(c) = de {
             *vers = Some(c.clone());
         }
@@ -132,6 +142,19 @@ pub(crate) fn par_dessus(base: &mut RubriqueModifiee, m: &RubriqueModifiee) {
         ($($c:ident),*) => { $( if m.$c.is_some() { base.$c = m.$c.clone(); } )* };
     }
     si!(famille, libelle, base, taux_pat, taux_sal, composants, composants_pat, composants_sal, cet_si_depasse, rempli_par, a_confirmer, source, note);
+    // La derniere couche dit chaque part : celle qu'elle pose n'est plus effacee, celle qu'elle efface n'est plus posee.
+    let mut efface: Vec<Part> = base.efface.take().unwrap_or_default();
+    efface.retain(|p| !matches!((p, m.taux_pat.is_some(), m.taux_sal.is_some()), (Part::TauxPat, true, _) | (Part::TauxSal, _, true)));
+    for p in m.efface.iter().flatten() {
+        match p {
+            Part::TauxPat => base.taux_pat = None,
+            Part::TauxSal => base.taux_sal = None,
+        }
+        if !efface.contains(p) {
+            efface.push(*p);
+        }
+    }
+    base.efface = Some(efface).filter(|e| !e.is_empty());
 }
 
 /// Ce qu'une couche ecrit d'une cotisation de la DSN remplace ce qu'elle portait.

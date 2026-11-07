@@ -191,7 +191,7 @@ function changementsDemarrage(liste) {
     f.donnees[k.racine] = fondre(f.donnees[k.racine], v);
     parFiche.set(cle, f);
   });
-  return [...parFiche.values()];
+  return [...parFiche.values()].map(({ donnees, ...f }) => ({ ...f, ...casesDeLaCharge(f.nom, donnees) }));
 }
 function demarrageModifie() {
   return [...document.querySelectorAll(".demarrage-liste")].some((l) => changementsDemarrage(l).length);

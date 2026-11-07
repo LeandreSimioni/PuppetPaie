@@ -45,7 +45,7 @@ fn de_la_validation_a_l_attestation() {
     // paie de mai ne se calcule pas (`calcul::deduction_forfaitaire`), le refus le nomme, et celle de SVOBODA s'ecrit.
     // La profession se retire depuis le debut de son contrat.
     let dfs = |profession: &str, depuis: &str| {
-        json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "depuis": depuis, "donnees": {"deduction_forfaitaire": profession}})
+        json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "depuis": depuis, "changements": [{"case": "deduction_forfaitaire", "valeur": profession}]})
     };
     reussi(&route(&c, "enregistrer-fiche", dfs("artiste_choregraphique", "2026-05-01"), "2026-05-20"));
     let (_, phrase) = refus(&route(&c, "apercu", json!({"mois": "2026-05", "modifications": []}), "2026-05-20"));
@@ -82,7 +82,7 @@ fn de_la_validation_a_l_attestation() {
     // Le certificat d'emploi Conges Spectacles est remis « a l'issue de chacun de ses contrats de travail » d'artiste
     // embauche sous CDD de moins de douze mois (fiche Audiens, `majoration-caisses-conges/audiens-fiche-pratique-conges-
     // spectacles-202302.txt`, l. 27-31). L'adresse de FULLER s'ecrit sans accent pour que ses documents partent.
-    let adresse = json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "donnees": {"email": "loie.fuller@exemple.invalid"}});
+    let adresse = json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "changements": [{"case": "email", "valeur": "loie.fuller@exemple.invalid"}]});
     reussi(&route(&c, "enregistrer-fiche", adresse, "2026-05-20"));
     let fait = reussi(&route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-06-20", "retenir": false}), "2026-06-20")).to_string();
     assert!(!fait.contains("NON SIGNEE"), "l'attestation de FULLER : {}", fait);

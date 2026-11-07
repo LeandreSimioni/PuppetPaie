@@ -1082,7 +1082,7 @@ async function peindreCoutAnnee() {
   if (!el) return;
   const an = anneeDuJour();
   const ligne = (r, annee) => {
-    const d = r && (r[el.dataset.cote] || {})[el.dataset.cle];
+    const d = r && (r[el.dataset.cote] || {})[el.dataset.coutDe];
     if (!d || (!d.bulletins && !Number(d.prevu))) return "";
     return `<div><b>${annee}</b> : ${echapper(d.phrase)}</div>`;
   };
@@ -1358,7 +1358,7 @@ function enteteSalarie(fiche) {
         ${fiche.matricule_dit ? `<span class="discret">— ${echapper(fiche.matricule_dit)}</span>` : ""}</h2>
       <button type="button" class="secondaire petit" id="config-exporter">Exporter ses documents</button>
     </div>
-    <div class="cout-annee" data-cote="salaries" data-cle="${echapper(fiche.cle)}"></div>
+    <div class="cout-annee" data-cote="salaries" data-cout-de="${echapper(fiche.cle)}"></div>
     <!-- SES IMPRÉVUS : ses arrêts et ses absences, passés et en
          cours, ce qui en est parti, et la porte « Imprévu… ». js/imprevus.js. -->
     <div class="fiche-imprevus" id="fiche-imprevus"></div>

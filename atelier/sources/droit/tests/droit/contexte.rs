@@ -11,7 +11,7 @@ use std::path::Path;
 /// (un salarie saisi le 15/10 se trouve pour un contrat d'avant), meme ecrite avec une date.
 #[test]
 fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
-    use droit::fiche::{ChampsEntreprise, ChampsSalarie, FicheDatee, FicheEntrepriseDatee, FicheSalarieDatee};
+    use droit::fiche::{ChampsEntreprise, ChampsSalarie, ChangementEntreprise, ChangementSalarie, FicheDatee, FicheEntrepriseDatee, FicheSalarieDatee};
     use socle::date::Jour;
     let racine = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("configuration-datee-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&racine);
@@ -21,12 +21,13 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
                     "premiere_embauche": "2026-01-01"}"#;
     let e = |texte: &str| lu::<ChampsEntreprise>(texte);
     let mut ent = FicheEntrepriseDatee::neuve(&e(plate));
-    assert!(ent.dater("idcc", &e(r#"{"idcc": "1285"}"#), Some(&j("2026-11-01")), Some("passage en CCNEAC")));
-    assert!(ent.dater("annexe_convention", &e(r#"{"annexe_convention": ""}"#), Some(&j("2026-11-01")), None));
-    assert!(ent.dater("adresse", &e(r#"{"adresse": "8 PLACE DU MARCHE"}"#), Some(&j("2026-11-01")), None));
+    let ce = |texte: &str| lu::<ChangementEntreprise>(texte);
+    ent.changer(ce(r#"{"case": "idcc", "valeur": "1285"}"#), Some(&j("2026-11-01")), Some("passage en CCNEAC"));
+    ent.changer(ce(r#"{"case": "annexe_convention", "valeur": null}"#), Some(&j("2026-11-01")), None);
+    ent.changer(ce(r#"{"case": "adresse", "valeur": "8 PLACE DU MARCHE"}"#), Some(&j("2026-11-01")), None);
     let s = |texte: &str| lu::<ChampsSalarie>(texte);
     let mut sal = FicheSalarieDatee::neuve(&s(r#"{"nom": "BRIOCHE", "prenom": "FANCHON"}"#));
-    assert!(sal.dater("emploi", &s(r#"{"emploi": "COMEDIENNE"}"#), Some(&j("2026-10-15")), None));
+    sal.changer(lu::<ChangementSalarie>(r#"{"case": "emploi", "valeur": "COMEDIENNE"}"#), Some(&j("2026-10-15")), None);
     let ecrire = |rel: &str, texte: String| std::fs::write(racine.join("config").join(rel), texte).unwrap();
     ecrire("entreprise.json", socle::ecriture::json_indente(&ent, 2));
     ecrire("salaries.json", socle::ecriture::json_indente(&BTreeMap::from([("BRIOCHE", &sal)]), 2));

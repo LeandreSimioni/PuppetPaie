@@ -105,12 +105,16 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
 fn un_matricule_deja_porte_se_refuse() {
     let racine = neuve("matricule");
     let fiche = |nom: &str, nir: &str, cle: &str, matricule: &str| {
-        json!({"nom": "salarie", "cle": null, "donnees": {
-            "prenom_affichage": "Loïe", "nom_affichage": nom, "nir": nir, "nir_cle": cle, "date_naissance": "1982-01-15",
-            "lieu_naissance_affichage": "Nantes", "departement_naissance": "44", "pays_naissance": "FR",
-            "code_nationalite_dsn": "01", "adresse_affichage": "7 rue de la Paix", "code_postal": "44000",
-            "commune_affichage": "Nantes", "emploi_affichage": "Comédien", "statut": "artiste", "statut_categoriel_rc": "04",
-            "pcs_ese": "354c", "code_emploi_ft": "COM010", "statut_conventionnel": "05", "code_salarie": matricule, "actif": true}})
+        json!({"nom": "salarie", "cle": null, "changements": [
+            {"case": "prenom_affichage", "valeur": "Loïe"}, {"case": "nom_affichage", "valeur": nom}, {"case": "nir", "valeur": nir},
+            {"case": "nir_cle", "valeur": cle}, {"case": "date_naissance", "valeur": "1982-01-15"},
+            {"case": "lieu_naissance_affichage", "valeur": "Nantes"}, {"case": "departement_naissance", "valeur": "44"},
+            {"case": "pays_naissance", "valeur": "FR"}, {"case": "code_nationalite_dsn", "valeur": "01"},
+            {"case": "adresse_affichage", "valeur": "7 rue de la Paix"}, {"case": "code_postal", "valeur": "44000"},
+            {"case": "commune_affichage", "valeur": "Nantes"}, {"case": "emploi_affichage", "valeur": "Comédien"},
+            {"case": "statut", "valeur": "artiste"}, {"case": "statut_categoriel_rc", "valeur": "04"}, {"case": "pcs_ese", "valeur": "354c"},
+            {"case": "code_emploi_ft", "valeur": "COM010"}, {"case": "statut_conventionnel", "valeur": "05"},
+            {"case": "code_salarie", "valeur": matricule}, {"case": "actif", "valeur": true}]})
     };
     reussi(&route(&racine, "enregistrer-fiche", fiche("Fuller", "2820144999002", "46", "1"), JOUR));
     let avant = lire(&racine, "config/salaries.json");

@@ -395,7 +395,7 @@ function dessinerFormulaire(fiche) {
           // Le titre, pas la cle : `aaah-zerbinette` est un identifiant interne.
           ? ` <span class="discret">— ${echapper(fiche.donnees.numero_objet || fiche.cle)}</span>` : ""}</h2>
         ${fiche.cle && fiche.donnees.titre ? `<div class="cout-annee" data-cote="spectacles"
-          data-cle="${echapper(fiche.donnees.titre)}"></div>` : ""}`}
+          data-cout-de="${echapper(fiche.donnees.titre)}"></div>` : ""}`}
       ${!fiche.cle && FICHE_ACTIVE === "spectacle" ? `<p class="note">${aideDe("fiche_cle")}</p>` : ""}
       ${err && fiche.erreurs_titre ? `<div class="encart erreur"><b>${echapper(fiche.erreurs_titre)}</b>
         — ${echapper(fiche.erreurs_note)}</div>` : ""}
@@ -1397,10 +1397,18 @@ function demanderDateDEffet({ changements = [], depuis: propose, pourquoi, usage
  * lui propose. Un seul chemin d'écriture, forcé ou non : le
  * chemin forcé se contentait de redessiner, et la fiche restait « modifiée »
  * -- quitter l'onglet demandait d'enregistrer ce qui l'était déjà. */
+/* LES CASES QUE LA PAGE ENVOIE à `enregistrer-fiche` : celles d'un salarié, une liste de changements
+ * `[{case, valeur}]` (comme la carte) ; celles de l'entreprise et d'un spectacle, `donnees`. */
+function casesDeLaCharge(nom, donnees) {
+  return nom === "salarie"
+    ? { changements: Object.entries(donnees).map(([c, valeur]) => ({ case: c, valeur })) }
+    : { donnees };
+}
+
 async function ecrireFiche(fiche, donnees, daté, forcer = false) {
   try {
     const r = await api("enregistrer-fiche",
-      { nom: FICHE_ACTIVE, cle: fiche.cle, donnees, ...daté, ...(forcer ? { forcer: true } : {}) });
+      { nom: FICHE_ACTIVE, cle: fiche.cle, ...casesDeLaCharge(FICHE_ACTIVE, donnees), ...daté, ...(forcer ? { forcer: true } : {}) });
     // Ce qui change demande sa date d'effet : le moteur l'a dit, rien n'est écrit ; la même demande, datée et confirmée.
     if (r.avertissement) {
       const réponse = await demanderDateDEffet(r.avertissement);

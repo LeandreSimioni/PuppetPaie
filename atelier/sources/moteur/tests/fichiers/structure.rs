@@ -353,11 +353,13 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     pdf(vec![page_a(&permanent)], &c.join("import/permanent.pdf"));
     // Un permanent en CDI, arrete deux fois (un accident du travail, un deuil d'enfant) : ce que seul un contrat paye au mois
     // appelle (le maintien de salaire), et ce que ces motifs font declarer hors DSN.
-    let svoboda = json!({"nom": "salarie", "cle": null, "donnees": {"prenom_affichage": "Josef",
+    let cases = json!({"prenom_affichage": "Josef",
         "nom_affichage": "Svoboda", "nir": "1750544999001", "nir_cle": "19", "date_naissance": "1975-05-10", "lieu_naissance_affichage": "Villeneuve-sur-Loire",
         "departement_naissance": "44", "pays_naissance": "FR", "code_nationalite_dsn": "01", "adresse_affichage": "4 rue Kervégan", "code_postal": "44000",
         "commune_affichage": "Nantes", "email": "josef.svoboda@exemple.invalid", "emploi_affichage": "Directeur technique", "code_emploi_ft": "DIR210",
-        "pcs_ese": "353C", "statut": "technicien", "statut_conventionnel": "04", "statut_categoriel_rc": "01", "date_anciennete": "2026-11-02", "sante_svp": {"niveau": "1"}, "actif": true}});
+        "pcs_ese": "353C", "statut": "technicien", "statut_conventionnel": "04", "statut_categoriel_rc": "01", "date_anciennete": "2026-11-02", "sante_svp": {"niveau": "1"}, "actif": true});
+    let changements: Vec<Value> = cases.as_object().unwrap().iter().map(|(k, v)| json!({"case": k, "valeur": v})).collect();
+    let svoboda = json!({"nom": "salarie", "cle": null, "changements": changements});
     let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
     let fiche_entreprise = gestes.lines().filter(|l| l.contains("\"route\":\"enregistrer-fiche\"") && l.contains("\"nom\":\"entreprise\"")).last().unwrap();
     let mut entreprise = serde_json::from_str::<Value>(fiche_entreprise).unwrap()["charge"].clone();
@@ -841,11 +843,11 @@ fn une_seule_fonction_date_une_valeur_de_fiche() {
     let debut = texte.find("pub(crate) fn ecrire_datee(").unwrap();
     let fin = debut + texte[debut..].find("\n}\n").unwrap();
     assert_eq!(texte[..debut].matches(".ecrire_case(").count() + texte[fin..].matches(".ecrire_case(").count(), 0, "fiches.rs ne date que par `ecrire_datee`");
-    assert_eq!(texte.matches("FicheDatee::dater(").count(), 1, "seul `FicheAEcrire::ecrire_case` date une case d'une fiche");
+    assert_eq!(texte.matches("FicheDatee::changer(").count(), 1, "seul `FicheAEcrire::ecrire_case` date une case d'une fiche");
     for p in sources(&espace().join("moteur/src")).into_iter().filter(|p| *p != fiches) {
         let rel = p.strip_prefix(espace()).unwrap().to_string_lossy().into_owned();
         let t = std::fs::read_to_string(&p).unwrap();
-        assert!(!t.contains(".ecrire_case(") && !t.contains(".dater(") && !t.contains("FicheDatee::dater("), "{} date une valeur de fiche : il passe par `fiches::ecrire_datee`", rel);
+        assert!(!t.contains(".ecrire_case(") && !t.contains("FicheDatee::changer("), "{} date une valeur de fiche : il passe par `fiches::ecrire_datee`", rel);
         if t.contains("fiche::dater(") {
             assert_eq!(rel, "moteur/src/compagnie/organismes.rs", "{} date une valeur de fiche : il passe par `fiches::ecrire_datee`", rel);
         }

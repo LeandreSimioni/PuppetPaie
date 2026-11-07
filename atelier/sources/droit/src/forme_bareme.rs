@@ -48,6 +48,24 @@ impl<'de> Deserialize<'de> for TarifDate {
     }
 }
 
+/// Des composants qui se datent, lus seuls (`Option<ComposantsDates>`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComposantsDates(pub Vec<f64>);
+
+impl<'de> Deserialize<'de> for ComposantsDates {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        datee::valeur::<D, Vec<f64>>(d).map(ComposantsDates)
+    }
+}
+
+/// UNE PART D'UNE RUBRIQUE qu'une couche efface (`RubriqueModifiee::efface`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Part {
+    TauxPat,
+    TauxSal,
+}
+
 /// Un taux qui se date, lu seul (`Option<TauxDate>`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TauxDate(pub f64);
@@ -182,11 +200,6 @@ pub(crate) mod datee {
     /// Une valeur qui se date (`T`, nulle comprise quand `T` est une `Option`).
     pub fn valeur<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<T, D::Error> {
         au_jour(d)
-    }
-
-    /// `valeur`, pour une cle qui peut manquer (rien ne change) ou etre nulle (elle s'efface) : `socle::forme::dite`.
-    pub fn dite<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Option<T>, D::Error> {
-        au_jour(d).map(Some)
     }
 
     /// Un decimal qui se date (`socle::forme::decimal`).
@@ -497,17 +510,17 @@ forme! {
 }
 
 forme! {
-    /// Une modification d'une rubrique du corps par une couche (`rubriques` d'une section) : ce qu'elle remplace.
+    /// Une modification d'une rubrique du corps par une couche (`rubriques` d'une section) : chaque case qu'elle dit
+    /// remplace celle de la rubrique, une case qu'elle ne dit pas (absente ou nulle) ne change pas ; `efface` nomme les
+    /// parts que la couche retire (la rubrique n'a plus de part de ce cote : `Rubrique::taux_pat`, `taux_sal`).
     pub struct RubriqueModifiee {
         pub famille: Option<String>,
         pub libelle: Option<String>,
         pub base: Option<String>,
-        #[serde(default, deserialize_with = "datee::dite")]
-        pub taux_pat: Option<Option<f64>>,
-        #[serde(default, deserialize_with = "socle::forme::dite")]
-        pub taux_sal: Option<Option<f64>>,
-        #[serde(default, deserialize_with = "datee::dite")]
-        pub composants: Option<Vec<f64>>,
+        pub taux_pat: Option<TauxDate>,
+        pub taux_sal: Option<f64>,
+        pub efface: Option<Vec<Part>>,
+        pub composants: Option<ComposantsDates>,
         pub composants_pat: Option<Vec<f64>>,
         pub composants_sal: Option<Vec<f64>>,
         pub cet_si_depasse: Option<Cet>,
@@ -836,7 +849,7 @@ impl Effet {
             Effet::TauxDsn { section: Section::Nature(n), code81, .. } => cotisation(pile.par_nature.get(n)?.cotisations_dsn.as_deref()?, code81),
             Effet::TauxPatronal { section: Section::Corps, rubrique: id, .. } => rubrique(&pile.rubriques_bulletin, id),
             Effet::TauxPatronal { section: Section::Statut(s), rubrique: id, .. } => rubrique(pile.par_statut.get(s)?.rubriques_bulletin.as_deref()?, id),
-            Effet::TauxPatronal { section: Section::Nature(n), rubrique: id, .. } => pile.par_nature.get(n)?.rubriques.as_ref()?.get(id)?.taux_pat.flatten().map(Lu::Taux),
+            Effet::TauxPatronal { section: Section::Nature(n), rubrique: id, .. } => pile.par_nature.get(n)?.rubriques.as_ref()?.get(id)?.taux_pat.map(|t| Lu::Taux(t.0)),
             Effet::ComposantAjoute { nature, rubrique: id, rang, .. } => {
                 pile.par_nature.get(nature)?.rubriques_ajoutees.as_ref()?.iter().find(|r| r.id == *id)?.composants.as_ref()?.get(*rang).copied().map(Lu::Taux)
             }

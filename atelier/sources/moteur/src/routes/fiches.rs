@@ -35,7 +35,8 @@ use documents::valeur::{euros_de, nom_type, valeur_ecrite, valeur_en_texte, vale
 
 const NOM_FICHE: Champ = Champ { nom: "nom", libelle: Affiche::new("Fiche"), forme: Forme::Texte, sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", libelle: Affiche::new("Clé"), forme: Forme::Texte, sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
-const DONNEES: Champ = Champ { nom: "donnees", libelle: Affiche::new("Cases de la fiche"), forme: Forme::Objet, sens: "les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se refuse ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", libelle: Affiche::new("Cases de la fiche"), forme: Forme::Objet, sens: "entreprise et spectacle : les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se refuse ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
+const CHANGEMENTS: Champ = Champ { nom: "changements", libelle: Affiche::new("Cases qui changent"), forme: Forme::Objet, sens: "salarie : [{case, valeur}, …], au moins un, dans l'ordre, tout ou rien : chacun une case de la fiche (description de la route configuration : nom, forme, valeurs ; une case inconnue se refuse), null pour la vider ; une case non nommée garde sa valeur, comme une case qu'une structure ne nomme pas", avance: false };
 pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
@@ -95,6 +96,7 @@ pub const ROUTES: &[Fiche] = &[
         charge: &[
             NOM_FICHE,
             CLE_FICHE,
+            CHANGEMENTS,
             DONNEES,
             Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu (ce qui change) a été lu ; la fiche s'écrit", avance: false },
             Champ { nom: "depuis", libelle: Affiche::new("Depuis le"), forme: Forme::Date, sens: "la date d'effet de ce qui change, AAAA-MM-JJ ; la date proposée sinon", avance: false },
@@ -1328,12 +1330,14 @@ impl<F: droit::fiche::FicheDatee> FicheAEcrire for F {
     }
 
     fn ecrire_case(&mut self, cle: &str, valeur: &Value, depuis: Option<&Jour>, note: Option<&str>, fichier: &str) -> R<()> {
-        let plate: F::Plate = droit::fiche::lire_saisie(&un_champ(cle, valeur.clone()), fichier).map_err(plain)?;
         if interne(cle) {
+            let plate: F::Plate = droit::fiche::lire_saisie(&un_champ(cle, valeur.clone()), fichier).map_err(plain)?;
             droit::fiche::FicheDatee::noter(self, &plate);
-        } else if !droit::fiche::FicheDatee::dater(self, cle, &plate, depuis, note) {
-            return Err(refus(format!("{} : la case {} n'est pas une case de cette fiche. Rien n'est écrit.", fichier, repr(cle))));
+            return Ok(());
         }
+        // La case, comme un changement de la route (`droit::fiche::Changements`) : une case inconnue se refuse en se nommant.
+        let ch: F::Changement = droit::fiche::lire_saisie(&json!({"case": cle, "valeur": valeur}), fichier).map_err(plain)?;
+        droit::fiche::FicheDatee::changer(self, ch, depuis, note);
         Ok(())
     }
 }
@@ -1923,7 +1927,7 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(Value::String(s)) => Some(s.clone()),
         Some(_) => return Err(erreur("TypeError", socle::echec::charge("cle", "un texte"))),
     };
-    let donnees = exiger(charge, "donnees")?;
+    let donnees = &cases_changees(nom, charge)?;
     let forcer = charge.get("forcer").is_some_and(vrai);
     let mut depuis = charge.get("depuis").cloned().unwrap_or(Value::Null);
     let note = charge.get("note").unwrap_or(&Value::Null);
@@ -1952,6 +1956,28 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"cle": e.cle, "ecrits": e.champs, "enregistre_a": enregistre_a, "enregistre_dit": enregistre_dit, "phrase": phrase}))
 }
 
+
+/// CE QUE LA CHARGE CHANGE, case par case : pour un salarie, ses `changements` (`droit::fiche::ChangementSalarie`, lus
+/// a la porte : une case inconnue ou une valeur d'une autre forme se refuse, rien n'est ecrit), chacun posant sa case,
+/// `null` la vidant ; une case qu'ils ne nomment pas ne change pas. Pour l'entreprise et un spectacle, `donnees`.
+fn cases_changees(nom: &str, charge: &Value) -> R<Value> {
+    if nom != "salarie" {
+        return exiger(charge, "donnees").cloned();
+    }
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Lus {
+        #[allow(dead_code)] // lus pour refuser a la porte ce qui ne s'ecrirait pas
+        changements: droit::fiche::Changements<droit::fiche::ChangementSalarie>,
+    }
+    let liste = exiger(charge, "changements")?;
+    lire_charge::<Lus>(&json!({"changements": liste}))?;
+    let mut cases = Map::new();
+    for ch in liste.as_array().into_iter().flatten() {
+        cases.insert(valeur_en_texte(&ch["case"]), ch["valeur"].clone());
+    }
+    Ok(Value::Object(cases))
+}
 
 /// Verifie, date ce qui change, sauvegarde l'ancien fichier et
 /// ecrit. Rend ce qui a ete ecrit, sans la page : l'import s'en sert fiche par fiche.
