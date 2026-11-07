@@ -46,6 +46,29 @@ le guide Urssaf de la DSN la cite encore (voir plus bas).
 (`montant_ligne`), les lignes de correction du bordereau, les assiettes du CTP 900/921/381, le montant d'un versement 20 à
 taux sur le brut, et le versement à la DGFiP s'en servent. Le nominatif (blocs 78, 79, 81) n'est pas arrondi (guide, § 1.6).
 
+## Le centime (relevé le 07/11/2026)
+
+**Règlement (CE) n° 1103/97 du Conseil du 17 juin 1997, art. 5** (JO L 162 du 19/06/1997, p. 1 ; CELEX 31997R1103).
+EUR-Lex ne répondait pas au conteneur (défi anti-robots, HTTP 202 vide) ; l'Office des publications a servi le texte :
+`https://publications.europa.eu/resource/celex/31997R1103` avec `Accept: text/html` et `Accept-Language: fr` (HTTP 200,
+`text/html`, 15 950 octets). `eurlex-reglement-1103-97-introduction-euro-19970619.html` est tel que servi ; le `.txt` en
+transcrit les extraits (considérant 11, art. 4 et 5).
+
+> Les sommes d'argent à payer ou à comptabiliser, lorsqu'il y a lieu de les arrondir après conversion dans l'unité euro […],
+> sont arrondies au cent supérieur ou inférieur le plus proche. […] Si l'application du taux de conversion donne un résultat
+> qui se situe exactement au milieu, la somme est arrondie au chiffre supérieur.
+
+Ce que le moteur en fait : `socle::num::eur` arrondit à deux décimales, la moitié vers le haut (`MidpointAwayFromZero`), jamais
+au pair ; elle porte le calcul de chaque montant du bulletin (`pct`, les rubriques). Test : `socle/src/num.rs`,
+`eur_arrondit_le_demi_vers_le_haut`.
+
+**Ce que le texte ne dit pas (inférence, dite telle).** Il fonde le centime le plus proche et le demi vers le haut, mais pour
+les sommes arrondies *après conversion* dans l'unité euro (le résultat « de l'application du taux de conversion »), non pour
+le produit d'une base par un taux de paie ; le considérant 11 réserve d'ailleurs les pratiques nationales d'arrondi des calculs
+intermédiaires. Lire l'art. 5 comme la règle de tout montant du bulletin est une inférence, de même sens que celle de
+l'euro (CSS L. 133-10). Il ne dit rien non plus d'un montant négatif : `eur` arrondit -0,005 à -0,01 (comme l'opposé), par
+symétrie, comme le fait `bordereau::euro` pour l'euro (voir plus bas).
+
 ## Ce qui est une inférence
 
 - **Le demi pour la DGFiP** (`dsn.rs`, versement 20 du prélèvement à la source) : L. 133-10 vise « les organismes de sécurité

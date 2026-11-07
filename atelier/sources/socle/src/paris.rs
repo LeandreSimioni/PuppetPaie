@@ -116,6 +116,8 @@ pub fn mtime(m: &std::fs::Metadata) -> f64 {
 mod tests {
     use super::*;
 
+    /// Directive 2000/84/CE, art. 2 : « la période de l'heure d'été commence […] à 1 heure du matin, temps universel, le
+    /// dernier dimanche de mars » (`atelier/reference/sources/union-europeenne/eurlex-directive-2000-84-ce-heure-d-ete-20010202.txt`).
     #[test]
     fn l_heure_d_ete_commence_le_dernier_dimanche_de_mars_a_1_h_utc() {
         // 2026 : dimanche 29 mars. 00:59:59 UTC encore l'hiver, 01:00:00 l'ete.
@@ -126,6 +128,8 @@ mod tests {
         assert_eq!(iso_minutes((t * 86_400 + 3_600) as f64), "2026-03-29T03:00");
     }
 
+    /// Directive 2000/84/CE, art. 3 : la période « se termine […] à 1 heure du matin, temps universel, le dernier dimanche
+    /// d'octobre » (même fichier).
     #[test]
     fn l_heure_d_ete_finit_le_dernier_dimanche_d_octobre_a_1_h_utc() {
         // 2026 : dimanche 25 octobre.

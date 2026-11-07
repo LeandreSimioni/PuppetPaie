@@ -34,7 +34,7 @@ l'Office des publications (`https://publications.europa.eu/resource/celex/32000L
 |---|---|---|
 | `eurlex-directive-2000-84-ce-heure-d-ete-20010202.html` / `.txt` | Directive 2000/84/CE du Parlement européen et du Conseil du 19 janvier 2001 concernant les dispositions relatives à l'heure d'été, JO L 31 du 02/02/2001, p. 21-22 (CELEX 32000L0084) | Art. 1 : l'heure d'été est « la période de l'année pendant laquelle l'heure est avancée de soixante minutes par rapport à l'heure du reste de l'année » ; art. 2 : « À compter de l'année 2002, la période de l'heure d'été commence, dans chaque État membre, à 1 heure du matin, temps universel, le dernier dimanche de mars » ; art. 3 : « […] se termine, dans chaque État membre, à 1 heure du matin, temps universel, le dernier dimanche d'octobre » ; art. 4 : la Commission publie le calendrier tous les cinq ans ; considérant (1) : la directive 97/44/CE réglait les années 1998 à 2001. |
 
-**Ce que le moteur en retient** : `atelier/sources/paie/src/paris.rs` (`decalage`, `dernier_dimanche`) : UTC+2 du dernier
+**Ce que le moteur en retient** : `atelier/sources/socle/src/paris.rs` (`decalage`, `dernier_dimanche`, et ses deux tests, art. 2 et 3) : UTC+2 du dernier
 dimanche de mars, 1 h UTC, au dernier dimanche d'octobre, 1 h UTC ; UTC+1 le reste de l'année. Ce texte vaut **à partir de 2002** ;
 les années 1996-2001 relevaient des directives précédentes (97/44/CE, 94/21/CE), non déposées : aucune date de fichier du
 logiciel n'y remonte, le moteur ne les porte pas. L'Union n'a pas mis fin à l'heure d'été : la proposition de 2018 n'a pas été

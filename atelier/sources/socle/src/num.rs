@@ -55,7 +55,10 @@ pub fn dec_f64(x: f64) -> Resultat<Decimal> {
         .map_err(|_| format!("nombre hors de portee : {}", s))
 }
 
-/// Deux decimales, la moitie toujours vers le haut (jamais au pair).
+/// Deux decimales, la moitie toujours vers le haut (jamais au pair) : le cent le plus proche, le milieu au cent superieur
+/// (reglement (CE) n° 1103/97, art. 5, `atelier/reference/sources/arrondi-euro/eurlex-reglement-1103-97-introduction-euro-19970619.txt` ;
+/// lu comme la regle de tout montant du bulletin, et d'un negatif comme de son oppose : inferences dites au
+/// `LISEZ-MOI.md` de ce dossier).
 pub fn eur(x: Decimal) -> Decimal {
     x.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero)
 }
@@ -159,6 +162,9 @@ pub fn nombre(x: Decimal) -> String {
 mod tests {
     use super::*;
 
+    /// Reglement (CE) n° 1103/97, art. 5 : « arrondies au cent supérieur ou inférieur le plus proche […] exactement au
+    /// milieu, la somme est arrondie au chiffre supérieur » (`atelier/reference/sources/arrondi-euro/`) ; le negatif
+    /// s'arrondit comme son oppose par INFERENCE (`arrondi-euro/LISEZ-MOI.md`, « Le centime »).
     #[test]
     fn eur_arrondit_le_demi_vers_le_haut() {
         assert_eq!(eur(Decimal::from_str("2.675").unwrap()).to_string(), "2.68");
