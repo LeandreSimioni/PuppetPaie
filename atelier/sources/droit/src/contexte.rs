@@ -622,7 +622,7 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, pile: &Pile) -> Result
         // Le taux d'une autre annee que celle du bareme ne se controle pas ici : la paie de l'annee le demande
         // (`bareme::surcharger`, `bareme::taux_atmp_d_un_etablissement`).
         let d_une_autre_annee = e.taux_atmp.dite().and_then(|t| t.annee.dite()).is_some_and(|a| *a != 0 && a.to_string() != an);
-        let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, pile.annee);
+        let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, pile.annee)?;
         let atmp_juste = atmp.as_ref().is_some_and(|t| t.code_risque.as_deref().is_some_and(|c| !c.is_empty())
             && (d_une_autre_annee || crate::bareme::taux_atmp_applique(&risques, t, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some()));
         if !atmp_juste {

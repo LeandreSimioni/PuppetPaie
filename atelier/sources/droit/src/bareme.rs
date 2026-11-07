@@ -652,7 +652,8 @@ pub fn sante_hors_fiche(ent: &ChampsEntreprise) -> Resultat<Option<String>> {
 /// Le nombre entier d'un montant de la fiche (le nombre d'enfants).
 fn entier_de(m: &crate::fiche::Montant) -> Resultat<i64> {
     use rust_decimal::prelude::ToPrimitive;
-    m.decimal().trunc().to_i64().ok_or_else(|| socle::num::illisible(&m.decimal().to_string()))
+    let d = m.decimal()?;
+    d.trunc().to_i64().ok_or_else(|| socle::num::illisible(&d.to_string()))
 }
 
 /// La complementaire sante d'un permanent, selon SON contrat a lui.
@@ -684,7 +685,7 @@ permanents » : le taux du contrat (en % du plafond mensuel, pour le salarié se
         if sans_sante(sal) {
             return Ok(sans_mutuelle(bar));
         }
-        let total = taux_contrat.decimal();
+        let total = taux_contrat.decimal()?;
         let pp = choix.and_then(|c| c.part_patronale.dite());
         let minimum = bar.sante_obligatoire.as_ref().ok_or_else(|| socle::fichiers::absent("sante_obligatoire"))?.part_employeur_minimum;
         let Some(pp) = pp else {
@@ -694,7 +695,7 @@ code de la Securite sociale) ; elle est sur le contrat de complémentaire santé
                 minimum
             ));
         };
-        let part = pp.decimal();
+        let part = pp.decimal()?;
         if part < minimum || part > Decimal::ONE_HUNDRED {
             return Err(format!(
                 "Fiche Entreprise, « Santé des permanents », part employeur {} % : \
@@ -1285,7 +1286,7 @@ pub fn surcharger(mut bar: Pile, fiche: &ChampsEntreprise, nic: &str) -> Resulta
     if e.taux_atmp.is_none() {
         return Err(socle::fichiers::absent("taux_atmp"));
     }
-    let mut atmp = taux_atmp_d_un_etablissement(e, bar.annee);
+    let mut atmp = taux_atmp_d_un_etablissement(e, bar.annee)?;
     let alsace = en_alsace_moselle(e.code_postal.texte());
     if let Some(t) = atmp.as_mut() {
         if alsace {
@@ -1314,12 +1315,13 @@ Configuration › Entreprise › Avancé, « Autres établissements », à parti
     // « aucun », ou un taux de zero : la commune de l'etablissement n'en a pas, ou il y emploie moins de onze salaries
     // (CGCT, L. 2333-64, I, l'effectif « employe dans chacune des zones »).
     let vm = e.versement_mobilite.dite();
-    let aucun = vm.is_some_and(|v| v.taux.dite().is_some_and(|t| t.decimal().is_zero()));
+    let taux_vm = vm.and_then(|v| v.taux.dite()).map(crate::fiche::Montant::decimal).transpose()?;
+    let aucun = taux_vm.is_some_and(|t| t.is_zero());
     if aucun || (e.versement_mobilite.is_none() && bar.versement_mobilite.as_ref().is_none_or(VersementMobiliteEcrit::est_vide)) {
         bar.versement_mobilite = None;
     } else if let Some(v) = vm {
         bar.versement_mobilite = Some(VersementMobiliteEcrit::Ecrit(crate::forme_bareme::VersementMobiliteTaux {
-            taux: v.taux.dite().map(|t| socle::forme::Nombre(t.decimal())),
+            taux: taux_vm.map(socle::forme::Nombre),
             code_insee: v.code_insee.dite().cloned(),
             ..Default::default()
         }));
@@ -1917,20 +1919,22 @@ const DERNIERE_ANNEE_D242_6_17_DE_2012: i32 = 2026;
 ///
 /// Le taux s'ecrit dans la pile (`forme_bareme::Pile::taux_atmp`) ; `None` quand la fiche ne dit pas le taux de
 /// l'etablissement.
-pub fn taux_atmp_d_un_etablissement(e: &Etablissement, an: i32) -> Option<TauxAtmp> {
-    let dit = e.taux_atmp.dite()?;
+pub fn taux_atmp_d_un_etablissement(e: &Etablissement, an: i32) -> Resultat<Option<TauxAtmp>> {
+    let Some(dit) = e.taux_atmp.dite() else {
+        return Ok(None);
+    };
     let ouvert: Option<i32> = e.ouverture.dite().map(|j| j.an);
     let d_une_autre_annee = dit.annee.dite().is_some_and(|a| *a != 0 && *a != i64::from(an));
     let mut t = TauxAtmp {
         code_risque: dit.code_risque.clone(),
-        valeur: if d_une_autre_annee { None } else { dit.valeur.dite().map(|m| m.decimal()) },
+        valeur: if d_une_autre_annee { None } else { dit.valeur.dite().map(crate::fiche::Montant::decimal).transpose()? },
         ..TauxAtmp::default()
     };
     let neuf = ouvert.is_some_and(|y| an <= DERNIERE_ANNEE_D242_6_17_DE_2012 && y <= an && an <= y + 2);
     if neuf && t.valeur.is_none() {
         t.etablissement_neuf = Some(true);
     }
-    Some(t)
+    Ok(Some(t))
 }
 
 /// L'etablissement est-il dans le Haut-Rhin, le Bas-Rhin ou la Moselle (art. 4 de l'arrete) ? Lu dans les deux premiers

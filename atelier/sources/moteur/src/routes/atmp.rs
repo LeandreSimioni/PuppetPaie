@@ -308,7 +308,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
         "ou_le_lire": "La CARSAT notifie à la compagnie son code risque et son taux : la notification se lit dans le compte AT/MP de net-entreprises (compte entreprise › Accidents du travail et maladies professionnelles).",
         "ou_le_changer": "Si la notification dit un autre code, ou un autre taux, ou si la compagnie n'en a pas encore reçu (999ZZ), changez-les dans « Avancé » ci-dessous.",
         "codes": risques.iter().map(risque_en_json).collect::<Vec<_>>(),
-        "etablissements": ctx.etablissements_dits().iter().map(|e| d_un_etablissement(e, an, socle.as_ref(), arrete.as_deref())).collect::<Vec<_>>(),
+        "etablissements": ctx.etablissements_dits().iter().map(|e| d_un_etablissement(e, an, socle.as_ref(), arrete.as_deref())).collect::<R<Vec<_>>>()?,
     }))
 }
 
@@ -316,8 +316,8 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
 /// etablissement, le classement suivant l'activite qui y est exercee (D. 242-6-1, `code-de-la-securite-sociale/xml/D242-6-1.xml` ;
 /// arrete du 17/10/1995, art. 1, I, 1°) ; un code « TC » a le taux de l'arrete de l'annee quel que soit l'effectif
 /// (D. 242-6-14, I), lu au meme endroit que pour la compagnie (`bareme::taux_atmp_applique`).
-fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&droit::forme_bareme::Pile>, arrete: Option<&str>) -> Value {
-    let t = bareme::taux_atmp_d_un_etablissement(e, an as i32).unwrap_or_default();
+fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&droit::forme_bareme::Pile>, arrete: Option<&str>) -> R<Value> {
+    let t = bareme::taux_atmp_d_un_etablissement(e, an as i32)?.unwrap_or_default();
     let code = t.code_risque.clone().unwrap_or_default();
     let r = socle.and_then(|s| bareme::risques_de(s).into_iter().find(|r| r.code == code));
     let nom_code = r.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
@@ -338,13 +338,13 @@ fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&d
         (None, _) if code == bareme::SANS_NOTIFICATION => "999ZZ : pas encore de notification ; la paie de cet établissement attend le code et le taux notifiés.".to_string(),
         (None, _) => format!("Son taux est celui que la CARSAT notifie à cet établissement (compte AT/MP sur net-entreprises) : saisissez-le avec le code {}.", nom_code),
     });
-    json!({
+    Ok(json!({
         "nic": json!(e.nic.portee()),
         "libelle": json!(e.libelle.portee()),
         "resume": format!("Code risque {}{}", nom_code, taux.map(|x| format!(", taux {}", en_pourcent(x))).unwrap_or_default()),
         "risque": r.as_ref().map(risque_en_json),
         "explication": phrases.join(" "),
-    })
+    }))
 }
 
 /// `taux-atmp` : `{"annee"}` lit ; `{"annee", "code_risque"?, "valeur"?}` pose d'abord (`poser`), puis lit. Un taux donne

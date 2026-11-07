@@ -144,12 +144,13 @@ pub enum Montant {
 }
 
 impl Montant {
-    pub fn decimal(&self) -> Decimal {
+    /// Le decimal ; un texte se lit en decimal (`12,5` compris). Un flottant ou un texte illisible se refuse.
+    pub fn decimal(&self) -> Resultat<Decimal> {
         match self {
-            Montant::Entier(i) => Decimal::from(*i),
-            Montant::Naturel(u) => Decimal::from(*u),
-            Montant::Flottant(x) => socle::num::dec_f64(*x).unwrap_or_default(),
-            Montant::Texte(s) => socle::num::decimal_lu(s).unwrap_or_default(),
+            Montant::Entier(i) => Ok(Decimal::from(*i)),
+            Montant::Naturel(u) => Ok(Decimal::from(*u)),
+            Montant::Flottant(x) => socle::num::dec_f64(*x),
+            Montant::Texte(s) => socle::num::decimal_lu(s).ok_or_else(|| socle::num::illisible(s)),
         }
     }
 
@@ -158,7 +159,7 @@ impl Montant {
         match self {
             Montant::Flottant(x) => socle::num::dec_texte(&socle::date::repr_flottant(*x)),
             Montant::Texte(s) => socle::num::dec_texte(s),
-            autre => Ok(autre.decimal()),
+            autre => autre.decimal(),
         }
     }
 
@@ -167,7 +168,7 @@ impl Montant {
         match self {
             Montant::Flottant(x) => socle::num::dec_f64(*x),
             Montant::Texte(s) => socle::num::dec_texte(s),
-            autre => Ok(autre.decimal()),
+            autre => autre.decimal(),
         }
     }
 
@@ -191,12 +192,13 @@ impl Montant {
         }
     }
 
-    /// L'entier ecrit : un nombre entier, ou un texte qui se lit en entier ; `None` sinon.
-    pub fn entier(&self) -> Option<i64> {
+    /// L'entier ecrit : un nombre entier, ou un texte qui se lit en entier ; `None` pour un nombre qui n'est pas un
+    /// entier ecrit (un naturel hors des entiers signes, un flottant). Un texte illisible se refuse.
+    pub fn entier(&self) -> Resultat<Option<i64>> {
         match self {
-            Montant::Entier(i) => Some(*i),
-            Montant::Texte(s) => s.trim().parse().ok(),
-            Montant::Naturel(_) | Montant::Flottant(_) => None,
+            Montant::Entier(i) => Ok(Some(*i)),
+            Montant::Texte(s) => s.trim().parse().map(Some).map_err(|_| socle::num::illisible(s)),
+            Montant::Naturel(_) | Montant::Flottant(_) => Ok(None),
         }
     }
 

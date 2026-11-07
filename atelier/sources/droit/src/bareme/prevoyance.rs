@@ -225,7 +225,7 @@ en vigueur au {} dans le catalogue de branche.",
             minimum
         ));
     };
-    let part = choix.decimal();
+    let part = choix.decimal()?;
     if part < minimum || part > Decimal::ONE_HUNDRED {
         return Err(format!(
             "Fiche Entreprise, « Santé des permanents », part employeur {} % : \

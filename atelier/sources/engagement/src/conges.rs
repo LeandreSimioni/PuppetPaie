@@ -772,18 +772,19 @@ pub struct Reprise {
 }
 
 /// Le solde repris de l'ancien logiciel, ou `None` (la fiche n'en dit pas, ou ne dit pas sa date). Datee, la reprise dit
-/// chacun de ses nombres (0 s'il n'y en a pas) ; un montant illisible s'est refuse a la lecture de la fiche
-/// (`fiche::Montant`).
+/// chacun de ses nombres (0 s'il n'y en a pas) ; un montant illisible se refuse (`fiche::Montant::decimal`).
 pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Reprise>> {
     let Some(r) = reprise_ecrite(ctx, cle_salarie)? else { return Ok(None) };
     let Some(date) = r.date.dite().copied() else { return Ok(None) };
-    let nombre = |c: &Option<droit::fiche::Montant>, cle: &str| {
-        c.dite().map(droit::fiche::Montant::decimal).ok_or_else(|| {
-            socle::echec::cle(
-                format!("La reprise des congés du {} ne dit pas tous ses nombres : écrire chacun sur la fiche du salarié, 0 s'il n'y en a pas.", date.jj_mm_aaaa()),
-                cle,
-            )
-        })
+    let nombre = |c: &Option<droit::fiche::Montant>, cle: &str| -> Resultat<Decimal> {
+        c.dite()
+            .ok_or_else(|| {
+                socle::echec::cle(
+                    format!("La reprise des congés du {} ne dit pas tous ses nombres : écrire chacun sur la fiche du salarié, 0 s'il n'y en a pas.", date.jj_mm_aaaa()),
+                    cle,
+                )
+            })?
+            .decimal()
     };
     Ok(Some(Reprise {
         date,
