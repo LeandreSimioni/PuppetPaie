@@ -1973,10 +1973,10 @@ mod tests_risques_atmp {
     fn le_taux_d_un_etablissement_en_risque_tc_est_celui_de_l_arrete() {
         let socle = crate::contexte::socle_livre_lu(2026).unwrap().unwrap();
         let bar = Pile { annee: 2026, risques_atmp: socle.risques_atmp.clone(), ..Pile::default() };
-        let fiche: ChampsEntreprise = crate::fiche::lire_champs(&serde_json::json!({"nic": "00017", "etablissements": [
+        let fiche: ChampsEntreprise = socle::forme::lire_texte(r#"{"nic": "00017", "etablissements": [
             {"nic": "00025", "code_postal": "44000", "taux_atmp": {"code_risque": "923AD"}},
             {"nic": "00033", "code_postal": "67000", "taux_atmp": {"code_risque": "923AD"}},
-            {"nic": "00041", "code_postal": "44000", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4}}]}), "fiche").unwrap();
+            {"nic": "00041", "code_postal": "44000", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4}}]}"#, "fiche").unwrap();
         let taux = |nic: &str| {
             let b = taux_atmp_resolu(surcharger(bar.clone(), &fiche, nic).unwrap(), &fiche).0;
             b.taux_atmp.and_then(|t| t.valeur).map(flt)
@@ -1996,10 +1996,10 @@ mod tests_risques_atmp {
     fn un_etablissement_neuf_a_le_taux_collectif_trois_annees() {
         let socle = crate::contexte::socle_livre_lu(2026).unwrap().unwrap();
         let bar = Pile { annee: 2026, risques_atmp: socle.risques_atmp.clone(), ..Pile::default() };
-        let fiche: ChampsEntreprise = crate::fiche::lire_champs(&serde_json::json!({"nic": "00017", "etablissements": [
+        let fiche: ChampsEntreprise = socle::forme::lire_texte(r#"{"nic": "00017", "etablissements": [
             {"nic": "00025", "code_postal": "44000", "ouverture": "2024-06-01", "taux_atmp": {"code_risque": "921CC"}},
             {"nic": "00033", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC"}},
-            {"nic": "00041", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4, "annee": 2025}}]}), "fiche").unwrap();
+            {"nic": "00041", "code_postal": "38000", "ouverture": "2023-12-01", "taux_atmp": {"code_risque": "921CC", "valeur": 2.4, "annee": 2025}}]}"#, "fiche").unwrap();
         let taux = |nic: &str| {
             let b = taux_atmp_resolu(surcharger(bar.clone(), &fiche, nic).unwrap(), &fiche).0;
             b.taux_atmp.and_then(|t| t.valeur).map(flt)

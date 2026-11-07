@@ -118,7 +118,6 @@ pub fn casc_svp(ent: &crate::fiche::ChampsEntreprise) -> Resultat<Option<Adhesio
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     fn j(s: &str) -> Jour {
         Jour::lire(s).unwrap()
@@ -145,11 +144,11 @@ mod tests {
     /// autre convention, ou une 3090 exemptee (CCN 3090, art. 4.22 B), n'en a pas.
     #[test]
     fn la_casc_svp_d_une_3090_ne_se_saisit_pas() {
-        let fiche = |v| crate::fiche::lire_champs::<crate::fiche::ChampsEntreprise>(&v, "la fiche").unwrap();
-        let a = casc_svp(&fiche(json!({"idcc": "3090"}))).unwrap().unwrap();
+        let fiche = |texte: &str| socle::forme::lire_texte::<crate::fiche::ChampsEntreprise>(texte, "la fiche").unwrap();
+        let a = casc_svp(&fiche(r#"{"idcc": "3090"}"#)).unwrap().unwrap();
         assert_eq!((a.libelle.as_str(), a.delegataire.as_str()), ("CASCSVP", "P0983"));
-        assert!(casc_svp(&fiche(json!({"idcc": "1285"}))).unwrap().is_none());
-        let exemptee = fiche(json!({"idcc": "3090", "casc_svp_exemptee": true, "representation_personnel": "cse"}));
+        assert!(casc_svp(&fiche(r#"{"idcc": "1285"}"#)).unwrap().is_none());
+        let exemptee = fiche(r#"{"idcc": "3090", "casc_svp_exemptee": true, "representation_personnel": "cse"}"#);
         assert!(casc_svp(&exemptee).unwrap().is_none());
     }
 }

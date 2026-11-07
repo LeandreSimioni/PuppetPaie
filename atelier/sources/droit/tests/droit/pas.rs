@@ -1,132 +1,160 @@
-//! Le prelevement a la source contre `pas.json` : la grille de l'article 204 H du CGI (`taux_par_defaut`, `du_versement`),
-//! de 0 a 10 000 EUR, de part et d'autre des changements de bareme.
-//! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
+//! Le prelevement a la source contre `pas/` : la grille de l'article 204 H du CGI (`taux_par_defaut`, `du_versement`),
+//! de 0 a 10 000 EUR, de part et d'autre des changements de bareme. Un cas est un bareme, un jour, une zone (et, pour un
+//! versement, un taux recu et un contrat court) ; il rend un resultat par montant de `MONTANTS`, ecrit une fois quand ils
+//! sont tous le meme. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit les references.
 
-use crate::outils::{code_livre, lire_oracle, oracle};
-use socle::date::Jour;
+use crate::outils::typee::{cas_de, code_livre, jouer, lire};
+use droit::forme_bareme::{GrillePas, NombreDate, PasParDefaut, Pile};
+use droit::fiche::Montant;
 use droit::pas::{du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
-use serde_json::{json, Value};
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use socle::date::Jour;
+use socle::forme::Nombre;
+use socle::num::Decimal;
+use std::str::FromStr;
 
-/// Le decimal d'un nombre de l'oracle, ou d'un nombre ecrit en texte.
-fn dec(v: &Value) -> socle::num::Resultat<socle::num::Decimal> {
-    match v {
-        Value::String(s) => socle::num::dec_texte(s),
-        autre => socle::num::dec_texte(&autre.to_string()),
-    }
+/// Les montants de la grille, de part et d'autre de chaque seuil des baremes de 2025 et 2026.
+const MONTANTS: [&str; 40] = [
+    "0", "0.01", "100", "747.99", "748", "765.99", "766", "1000", "1590.99", "1591", "1619.99", "1620", "1634.99", "1635",
+    "1635.01", "1650.50", "1697.99", "1698", "1806.995", "1807", "2000", "2059.99", "2060", "2500", "2737.5", "2738",
+    "3134.99", "3135", "3570.99", "3571", "4018.5", "4019", "5000", "5623.995", "5624", "7036.99", "7037", "8789", "10000",
+    "-50",
+];
+
+fn montants() -> Vec<Decimal> {
+    MONTANTS.iter().map(|m| Decimal::from_str(m).unwrap()).collect()
 }
 
-fn attendus() -> Value {
-    lire_oracle("pas.json")
+/// Le bareme d'un cas : un socle livre (`brut-2025`, `brut-2026`), sans section du PAS (`vide`), ou sans grille.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+enum Bareme {
+    #[serde(rename = "brut-2025")]
+    Brut2025,
+    #[serde(rename = "brut-2026")]
+    Brut2026,
+    #[serde(rename = "vide")]
+    Vide,
+    #[serde(rename = "sans-grille")]
+    SansGrille,
 }
 
-fn jour(s: &str) -> Option<Jour> {
-    if s == "None" {
-        None
-    } else {
-        Some(Jour::lire(s).unwrap())
-    }
+/// Ce que le PAS lit d'un socle livre : sa section `pas_taux_par_defaut`, l'abattement en liste datee.
+#[derive(Deserialize)]
+struct SocleDuPas {
+    pas_taux_par_defaut: SectionDuPas,
 }
 
-/// Une ligne de resultats, un par montant de la grille : `*x` quand ils sont tous x.
-fn ligne(r: Vec<String>) -> Value {
-    Value::String(if r.iter().all(|x| *x == r[0]) { format!("*{}", r[0]) } else { r.join(";") })
+#[derive(Deserialize)]
+struct SectionDuPas {
+    abattement_contrats_courts: Vec<AbattementDate>,
+    grilles: Vec<GrillePas>,
 }
 
-fn montants(a: &Value) -> Vec<socle::num::Decimal> {
-    a["grille"]["montants"].as_array().unwrap().iter().map(|m| dec(m).unwrap()).collect()
+#[derive(Deserialize)]
+struct AbattementDate {
+    depuis: Jour,
+    valeur: Nombre,
 }
 
-fn erreur(e: ErreurPas) -> String {
-    match e {
-        ErreurPas::SansGrille(m) => format!("SANS_GRILLE:{}", socle::echec::phrase_de(&m)),
-        autre => format!("ERREUR:{}", socle::echec::phrase_de(&autre.message())),
-    }
+/// La pile d'un bareme au jour `le`, pour ce que le PAS en lit : l'abattement resolu a ce jour (la derniere valeur dont
+/// le `depuis` ne le depasse pas, toutes sans jour), comme `Contexte::bareme` le resout.
+fn pile(b: Bareme, le: Option<Jour>) -> Pile {
+    let socle = |an: i32| -> SocleDuPas { lire(&code_livre(), &format!("baremes/{}.json", an)) };
+    let section = match b {
+        Bareme::Vide => None,
+        Bareme::SansGrille => Some(PasParDefaut::default()),
+        Bareme::Brut2025 | Bareme::Brut2026 => {
+            let s = socle(if b == Bareme::Brut2025 { 2025 } else { 2026 }).pas_taux_par_defaut;
+            let mut vues: Vec<&AbattementDate> = s.abattement_contrats_courts.iter().filter(|e| le.is_none_or(|l| e.depuis <= l)).collect();
+            vues.sort_by_key(|e| e.depuis);
+            Some(PasParDefaut { abattement_contrats_courts: vues.last().map(|e| NombreDate(e.valeur.0)), grilles: s.grilles, ..PasParDefaut::default() })
+        }
+    };
+    Pile { pas_taux_par_defaut: section, ..Pile::default() }
 }
 
-/// Un champ du versement en texte : un nombre normalise (`0.10` et `0.1` s'ecrivent `0.1`).
-fn texte(v: &Value) -> String {
-    match v {
-        Value::Null => "None".to_string(),
-        Value::String(s) => s.clone(),
-        Value::Number(_) => match dec(v).unwrap().normalize().to_string() {
-            z if z == "-0" => "0".to_string(),
-            s => s,
-        },
-        autre => autre.to_string(),
-    }
+/// Ce que rend le PAS pour un montant : sa valeur, ou son refus (la phrase).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum Rendu<T> {
+    Ok(T),
+    SansGrille(String),
+    Erreur(String),
 }
 
-fn ligne_versement(r: Result<Versement, ErreurPas>) -> String {
-    match r {
-        Err(e) => erreur(e),
-        Ok(v) => {
-            let c = socle::ecriture::en_valeur(&v);
-            ["taux", "type", "identifiant", "abattement", "montant_soumis", "prelevement"]
-                .iter()
-                .map(|k| texte(&c[*k]))
-                .collect::<Vec<_>>()
-                .join("|")
+impl<T> From<Result<T, ErreurPas>> for Rendu<T> {
+    fn from(r: Result<T, ErreurPas>) -> Rendu<T> {
+        match r {
+            Ok(v) => Rendu::Ok(v),
+            Err(ErreurPas::SansGrille(m)) => Rendu::SansGrille(socle::echec::phrase_de(&m).to_string()),
+            Err(autre) => Rendu::Erreur(socle::echec::phrase_de(autre.message()).to_string()),
         }
     }
 }
 
-fn baremes() -> HashMap<&'static str, Value> {
-    let socle = |an: i32| crate::outils::lire(&code_livre(), &format!("baremes/{}.json", an));
-    HashMap::from([
-        ("brut-2025", socle(2025)),
-        ("brut-2026", socle(2026)),
-        ("vide", json!({})),
-        ("sans-grille", json!({"pas_taux_par_defaut": {"grilles": []}})),
-    ])
+/// Les resultats d'un cas, un par montant : un seul quand ils sont tous le meme.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum Suite<R> {
+    Tous(R),
+    UnParMontant(Vec<R>),
 }
 
-/// La pile d'un bareme brut au jour `le`, pour ce que le PAS en lit : sa section `pas_taux_par_defaut`, l'abattement
-/// date resolu a ce jour (la derniere valeur dont le `depuis` ne le depasse pas), comme `Contexte::bareme` le resout.
-fn pile(b: &Value, le: Option<Jour>) -> droit::forme_bareme::Pile {
-    let mut sec = b.get("pas_taux_par_defaut").cloned();
-    if let Some(Value::Array(datees)) = sec.as_ref().and_then(|s| s.get("abattement_contrats_courts")).cloned() {
-        let mut vues: Vec<&Value> = datees.iter().filter(|e| le.map_or(true, |l| Jour::lire(e["depuis"].as_str().unwrap()).unwrap() <= l)).collect();
-        vues.sort_by_key(|e| e["depuis"].as_str().unwrap().to_string());
-        let o = sec.as_mut().unwrap().as_object_mut().unwrap();
-        match vues.last() {
-            Some(e) => o.insert("abattement_contrats_courts".into(), e["valeur"].clone()),
-            None => o.remove("abattement_contrats_courts"),
-        };
-    }
-    droit::forme_bareme::Pile {
-        pas_taux_par_defaut: sec.map(|s| socle::forme::lire(&s, "pas_taux_par_defaut").unwrap()),
-        ..Default::default()
+fn suite<R: PartialEq>(r: Vec<R>) -> Suite<R> {
+    if r.iter().all(|x| *x == r[0]) {
+        Suite::Tous(r.into_iter().next().unwrap())
+    } else {
+        Suite::UnParMontant(r)
     }
 }
 
-fn triplet(v: &Value) -> Option<Triplet> {
-    v.as_array().map(|a| Triplet { taux: socle::forme::lire(&a[0], "le taux").unwrap(), type_taux: a[1].as_str().map(String::from), identifiant: a[2].as_str().map(String::from) })
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CasDuTaux {
+    bareme: Bareme,
+    le: Option<Jour>,
+    zone: String,
+}
+
+/// Le taux recu d'un versement, tel que le compte rendu le donne.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TauxRecu {
+    taux: Option<Montant>,
+    type_taux: Option<String>,
+    identifiant: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CasDuVersement {
+    bareme: Bareme,
+    le: Option<Jour>,
+    zone: String,
+    contrat_court: bool,
+    recu: Option<TauxRecu>,
+}
+
+fn taux_du_cas(c: &CasDuTaux) -> Suite<Rendu<(String, String)>> {
+    suite(montants().into_iter().map(|m| taux_par_defaut(&pile(c.bareme, c.le), m, c.le, &c.zone).into()).collect())
+}
+
+fn versement_du_cas(c: &CasDuVersement) -> Suite<Rendu<Versement>> {
+    let t = c.recu.as_ref().map(|r| Triplet { taux: r.taux.clone(), type_taux: r.type_taux.clone(), identifiant: r.identifiant.clone() });
+    suite(montants().into_iter().map(|m| du_versement(t.as_ref(), &pile(c.bareme, c.le), m, c.le, c.contrat_court, &c.zone).into()).collect())
 }
 
 #[test]
 fn le_taux_par_defaut_de_zero_a_dix_mille_euros() {
-    let (a, b) = (attendus(), baremes());
-    let mut cas = a["grille"]["taux_par_defaut"].clone();
-    for (cle, v) in cas.as_object_mut().unwrap() {
-        let p: Vec<&str> = cle.split('|').collect();
-        *v = ligne(montants(&a).into_iter().map(|m| taux_par_defaut(&pile(&b[p[0]], jour(p[1])), m, jour(p[1]), p[2]).map_or_else(erreur, |(t, ty)| format!("{},{}", t, ty))).collect());
-    }
-    assert!(cas.as_object().unwrap().len() * montants(&a).len() > 8000);
-    oracle("pas.json", "/grille/taux_par_defaut", &cas);
+    let cas: Vec<CasDuTaux> = cas_de("pas/taux_par_defaut.json");
+    assert!(cas.len() * MONTANTS.len() > 8000);
+    jouer("pas/taux_par_defaut.json", cas, taux_du_cas);
 }
 
 #[test]
 fn le_prelevement_d_un_versement() {
-    let (a, b) = (attendus(), baremes());
-    let triplets = a["grille"]["triplets"].as_array().unwrap();
-    let mut cas = a["grille"]["du_versement"].clone();
-    for (cle, v) in cas.as_object_mut().unwrap() {
-        let p: Vec<&str> = cle.split('|').collect();
-        let t = triplet(&triplets[p[4].parse::<usize>().unwrap()]);
-        *v = ligne(montants(&a).into_iter().map(|m| ligne_versement(du_versement(t.as_ref(), &pile(&b[p[0]], jour(p[1])), m, jour(p[1]), p[3] == "True", p[2]))).collect());
-    }
-    assert!(cas.as_object().unwrap().len() > 40);
-    oracle("pas.json", "/grille/du_versement", &cas);
+    let cas: Vec<CasDuVersement> = cas_de("pas/du_versement.json");
+    assert!(cas.len() > 40);
+    jouer("pas/du_versement.json", cas, versement_du_cas);
 }
 

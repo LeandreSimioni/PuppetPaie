@@ -1,1316 +1,148 @@
 [
-  {
-    "cas": [
-      "cddu_spectacle",
-      "0"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "1.666666666666666666666666667"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "7"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "7.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "8"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "8.009999999999999786837179272"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "11"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "11.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "12"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "12.5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "23.989999999999998436805981328"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "24"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "25"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "59"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "60"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "61"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "100"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "119.98999999999999488409230253"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "120"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "120.01000000000000511590769747"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "121"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "150"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "179"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "180"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "181"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "239"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "240"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "241"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "300"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "359.99000000000000909494701773"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "360"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "361"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "480"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "540"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "0"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 0."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "1.666666666666666666666666667"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 2."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 5."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "7"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 7."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "7.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "8"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "8.009999999999999786837179272"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8.5."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "11"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "11.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "12"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "12.5"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "23.989999999999998436805981328"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "24"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "25"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "59"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "60"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "61"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "100"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "119.98999999999999488409230253"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "120"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "120.01000000000000511590769747"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "121"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "150"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "179"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "180"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "181"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "239"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "240"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "241"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "300"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "359.99000000000000909494701773"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "360"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "361"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "480"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "540"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "0"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 0."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "1.666666666666666666666666667"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 2."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 5."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "7"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 7."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "7.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "8"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "8.009999999999999786837179272"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8.5."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "11"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "11.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "12"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "12.5"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "23.989999999999998436805981328"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "24"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "25"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "59"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "60"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "61"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "100"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "119.98999999999999488409230253"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "120"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "120.01000000000000511590769747"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "121"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "150"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "179"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "180"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "181"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "239"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "240"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "241"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "300"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "359.99000000000000909494701773"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "360"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "361"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "480"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "540"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "0"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 0."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "1.666666666666666666666666667"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 2."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 5."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "7"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 7."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "7.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "8"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "8.009999999999999786837179272"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8.5."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "11"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "11.990000000000000213162820728"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."
-    }
-  },
-  {
-    "cas": [
-      null,
-      "12"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "12.5"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "23.989999999999998436805981328"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "24"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "25"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "59"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "60"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "61"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "100"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "119.98999999999999488409230253"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "120"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "120.01000000000000511590769747"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "121"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "150"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "179"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "180"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "181"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "239"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "240"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "241"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "300"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "359.99000000000000909494701773"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "360"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "361"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "480"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      null,
-      "540"
-    ],
-    "attendu": {
-      "ok": null
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "11.5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cddu_spectacle",
-      "11.999"
-    ],
-    "attendu": {
-      "ok": "L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "11.5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11.5."
-    }
-  },
-  {
-    "cas": [
-      "cdi",
-      "11.999"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "11.5"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11.5."
-    }
-  },
-  {
-    "cas": [
-      "cdd",
-      "11.999"
-    ],
-    "attendu": {
-      "ok": "L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."
-    }
-  }
+{"cas":["cddu_spectacle","0"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","1.666666666666666666666666667"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","5"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","7"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","7.990000000000000213162820728"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","8"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","8.009999999999999786837179272"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","11"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","11.990000000000000213162820728"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","12"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","12.5"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","23.989999999999998436805981328"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","24"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","25"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","59"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","60"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","61"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","100"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","119.98999999999999488409230253"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","120"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","120.01000000000000511590769747"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","121"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","150"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","179"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","180"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","181"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","239"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","240"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","241"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","300"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","359.99000000000000909494701773"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","360"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","361"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","480"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","540"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cdi","0"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 0."}},
+{"cas":["cdi","1.666666666666666666666666667"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 2."}},
+{"cas":["cdi","5"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 5."}},
+{"cas":["cdi","7"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 7."}},
+{"cas":["cdi","7.990000000000000213162820728"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."}},
+{"cas":["cdi","8"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."}},
+{"cas":["cdi","8.009999999999999786837179272"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8.5."}},
+{"cas":["cdi","11"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11."}},
+{"cas":["cdi","11.990000000000000213162820728"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."}},
+{"cas":["cdi","12"],"attendu":{"ok":null}},
+{"cas":["cdi","12.5"],"attendu":{"ok":null}},
+{"cas":["cdi","23.989999999999998436805981328"],"attendu":{"ok":null}},
+{"cas":["cdi","24"],"attendu":{"ok":null}},
+{"cas":["cdi","25"],"attendu":{"ok":null}},
+{"cas":["cdi","59"],"attendu":{"ok":null}},
+{"cas":["cdi","60"],"attendu":{"ok":null}},
+{"cas":["cdi","61"],"attendu":{"ok":null}},
+{"cas":["cdi","100"],"attendu":{"ok":null}},
+{"cas":["cdi","119.98999999999999488409230253"],"attendu":{"ok":null}},
+{"cas":["cdi","120"],"attendu":{"ok":null}},
+{"cas":["cdi","120.01000000000000511590769747"],"attendu":{"ok":null}},
+{"cas":["cdi","121"],"attendu":{"ok":null}},
+{"cas":["cdi","150"],"attendu":{"ok":null}},
+{"cas":["cdi","179"],"attendu":{"ok":null}},
+{"cas":["cdi","180"],"attendu":{"ok":null}},
+{"cas":["cdi","181"],"attendu":{"ok":null}},
+{"cas":["cdi","239"],"attendu":{"ok":null}},
+{"cas":["cdi","240"],"attendu":{"ok":null}},
+{"cas":["cdi","241"],"attendu":{"ok":null}},
+{"cas":["cdi","300"],"attendu":{"ok":null}},
+{"cas":["cdi","359.99000000000000909494701773"],"attendu":{"ok":null}},
+{"cas":["cdi","360"],"attendu":{"ok":null}},
+{"cas":["cdi","361"],"attendu":{"ok":null}},
+{"cas":["cdi","480"],"attendu":{"ok":null}},
+{"cas":["cdi","540"],"attendu":{"ok":null}},
+{"cas":["cdd","0"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 0."}},
+{"cas":["cdd","1.666666666666666666666666667"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 2."}},
+{"cas":["cdd","5"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 5."}},
+{"cas":["cdd","7"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 7."}},
+{"cas":["cdd","7.990000000000000213162820728"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."}},
+{"cas":["cdd","8"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."}},
+{"cas":["cdd","8.009999999999999786837179272"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8.5."}},
+{"cas":["cdd","11"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11."}},
+{"cas":["cdd","11.990000000000000213162820728"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."}},
+{"cas":["cdd","12"],"attendu":{"ok":null}},
+{"cas":["cdd","12.5"],"attendu":{"ok":null}},
+{"cas":["cdd","23.989999999999998436805981328"],"attendu":{"ok":null}},
+{"cas":["cdd","24"],"attendu":{"ok":null}},
+{"cas":["cdd","25"],"attendu":{"ok":null}},
+{"cas":["cdd","59"],"attendu":{"ok":null}},
+{"cas":["cdd","60"],"attendu":{"ok":null}},
+{"cas":["cdd","61"],"attendu":{"ok":null}},
+{"cas":["cdd","100"],"attendu":{"ok":null}},
+{"cas":["cdd","119.98999999999999488409230253"],"attendu":{"ok":null}},
+{"cas":["cdd","120"],"attendu":{"ok":null}},
+{"cas":["cdd","120.01000000000000511590769747"],"attendu":{"ok":null}},
+{"cas":["cdd","121"],"attendu":{"ok":null}},
+{"cas":["cdd","150"],"attendu":{"ok":null}},
+{"cas":["cdd","179"],"attendu":{"ok":null}},
+{"cas":["cdd","180"],"attendu":{"ok":null}},
+{"cas":["cdd","181"],"attendu":{"ok":null}},
+{"cas":["cdd","239"],"attendu":{"ok":null}},
+{"cas":["cdd","240"],"attendu":{"ok":null}},
+{"cas":["cdd","241"],"attendu":{"ok":null}},
+{"cas":["cdd","300"],"attendu":{"ok":null}},
+{"cas":["cdd","359.99000000000000909494701773"],"attendu":{"ok":null}},
+{"cas":["cdd","360"],"attendu":{"ok":null}},
+{"cas":["cdd","361"],"attendu":{"ok":null}},
+{"cas":["cdd","480"],"attendu":{"ok":null}},
+{"cas":["cdd","540"],"attendu":{"ok":null}},
+{"cas":[null,"0"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 0."}},
+{"cas":[null,"1.666666666666666666666666667"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 2."}},
+{"cas":[null,"5"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 5."}},
+{"cas":[null,"7"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 7."}},
+{"cas":[null,"7.990000000000000213162820728"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."}},
+{"cas":[null,"8"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8."}},
+{"cas":[null,"8.009999999999999786837179272"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 8.5."}},
+{"cas":[null,"11"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11."}},
+{"cas":[null,"11.990000000000000213162820728"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."}},
+{"cas":[null,"12"],"attendu":{"ok":null}},
+{"cas":[null,"12.5"],"attendu":{"ok":null}},
+{"cas":[null,"23.989999999999998436805981328"],"attendu":{"ok":null}},
+{"cas":[null,"24"],"attendu":{"ok":null}},
+{"cas":[null,"25"],"attendu":{"ok":null}},
+{"cas":[null,"59"],"attendu":{"ok":null}},
+{"cas":[null,"60"],"attendu":{"ok":null}},
+{"cas":[null,"61"],"attendu":{"ok":null}},
+{"cas":[null,"100"],"attendu":{"ok":null}},
+{"cas":[null,"119.98999999999999488409230253"],"attendu":{"ok":null}},
+{"cas":[null,"120"],"attendu":{"ok":null}},
+{"cas":[null,"120.01000000000000511590769747"],"attendu":{"ok":null}},
+{"cas":[null,"121"],"attendu":{"ok":null}},
+{"cas":[null,"150"],"attendu":{"ok":null}},
+{"cas":[null,"179"],"attendu":{"ok":null}},
+{"cas":[null,"180"],"attendu":{"ok":null}},
+{"cas":[null,"181"],"attendu":{"ok":null}},
+{"cas":[null,"239"],"attendu":{"ok":null}},
+{"cas":[null,"240"],"attendu":{"ok":null}},
+{"cas":[null,"241"],"attendu":{"ok":null}},
+{"cas":[null,"300"],"attendu":{"ok":null}},
+{"cas":[null,"359.99000000000000909494701773"],"attendu":{"ok":null}},
+{"cas":[null,"360"],"attendu":{"ok":null}},
+{"cas":[null,"361"],"attendu":{"ok":null}},
+{"cas":[null,"480"],"attendu":{"ok":null}},
+{"cas":[null,"540"],"attendu":{"ok":null}},
+{"cas":["cddu_spectacle","11.5"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cddu_spectacle","11.999"],"attendu":{"ok":"L1226-1 ne s'applique pas a un CDDU : l'indemnite complementaire est due aux salaries permanents, pas aux intermittents."}},
+{"cas":["cdi","11.5"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11.5."}},
+{"cas":["cdi","11.999"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."}},
+{"cas":["cdd","11.5"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 11.5."}},
+{"cas":["cdd","11.999"],"attendu":{"ok":"L1226-1 demande 12 mois d'anciennete au premier jour de l'absence (D1226-8) ; il y en a 12."}}
 ]

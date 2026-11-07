@@ -78,7 +78,7 @@ where
     let chemin = chemin_donnee(nom);
     if reecrire_oracles() {
         std::fs::create_dir_all(chemin.parent().unwrap()).unwrap();
-        socle::ecriture::ecrire_json(&chemin, &obtenu, 2).unwrap_or_else(|e| panic!("{} : {}", nom, socle::echec::phrase_de(&e)));
+        std::fs::write(&chemin, en_lignes(&obtenu)).unwrap_or_else(|e| panic!("{} : {}", nom, e));
         return;
     }
     let attendu: Vec<Ligne<C, R>> = lire_chemin(&chemin);
@@ -94,6 +94,15 @@ where
         }
     }
     assert!(ecarts.is_empty(), "{} ecarts avec {} :\n{}", ecarts.len(), nom, ecarts.iter().take(8).cloned().collect::<Vec<_>>().join("\n"));
+}
+
+/// Une reference ecrite compacte : une liste, une ligne par element, sans indentation (`socle::ecriture::json_en_ligne`).
+pub fn en_lignes<T: Serialize>(lignes: &[T]) -> String {
+    let corps: Vec<String> = lignes.iter().map(socle::ecriture::json_en_ligne).collect();
+    if corps.is_empty() {
+        return "[]\n".to_string();
+    }
+    format!("[\n{}\n]\n", corps.join(",\n"))
 }
 
 /// Le premier champ qui differe de deux valeurs, par son chemin (`a.b.c`), avec ce que chacune y dit : les deux sont
