@@ -36,7 +36,7 @@ fn resoudre_metier_et_statut_non_cadre() {
     }
     oracle("emplois.json", "", &cas);
     assert!(resolus - refus > 700, "{}", resolus);
-    assert_eq!(refus, 8); // XXX999 et le code vide : quatre variantes chacun
+    assert_eq!(refus, 42); // XXX999 et le code vide (quatre variantes chacun), et les 17 metiers hors catalogue sans `cadre` dit (deux variantes)
     // Le dramaturge est cadre dans la 1285 (groupe B de la filiere artistique, art. XI.2.1) ; la grille 3090 ne le
     // nomme pas, le defaut du catalogue vaut.
     let cadre = |idcc| resoudre("DRA010", None, false, idcc).unwrap();
