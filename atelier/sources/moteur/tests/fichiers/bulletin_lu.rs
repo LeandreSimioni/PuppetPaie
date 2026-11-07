@@ -268,6 +268,18 @@ fn bulletin_lu_un_ecart_est_un_avertissement_pas_une_correction() {
     // Rien n'est corrige : les montants sont ceux de la page.
     assert_eq!(b.brut.to_string(), "600.00");
     assert_eq!(b.net_a_payer.to_string(), "487.80");
+
+    // La somme versee non imprimee (un impot nul) : le net avant impot moins l'impot preleve, imprimes l'un et l'autre
+    // (R. 3243-1, 9° et 10°, `code-du-travail/xml/R3243-1.xml` ; le modele de l'arrete du 25/02/2016), et le compte rendu
+    // dit qu'elle a ete lue ainsi.
+    let sans_net = d.join("sans-net.pdf");
+    let mut page = page_a(&a_repetitions());
+    page.retain(|x| !x["texte"].as_str().unwrap_or("").ends_with('€'));
+    pdf(vec![page], &sans_net);
+    let l = lire(&sans_net).unwrap();
+    let b = lu(&l[0]);
+    assert_eq!(b.net_a_payer.to_string(), "477.82");
+    assert!(b.avertissements.iter().any(|a| a.starts_with("le net à payer n'est pas imprimé")), "{:?}", b.avertissements);
 }
 
 // ------------------------------------------------------------------------------------------------- les compteurs

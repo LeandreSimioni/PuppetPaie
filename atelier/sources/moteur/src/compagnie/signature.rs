@@ -644,20 +644,30 @@ pub(crate) struct DemandeDeSignature<'a> {
 }
 
 /// CE QUE LA DEMANDE REFUSE D'ELLE-MEME, avant la boite et avant le mot de passe : la preuve ne se demande que pour ce
-/// qui part. Une relance renvoie le meme contrat (elle n'en remplace aucun), et seulement un contrat demande par courriel,
-/// pas revenu, a jour. Rien n'est ecrit.
-pub(crate) fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
+/// qui part. Une relance renvoie le meme contrat (elle n'en remplace aucun), et seulement un contrat demande, pas revenu,
+/// a jour. Rien n'est ecrit. Un contrat deja parti, imprime ou par courriel, peut repartir par courriel : l'envoi ne
+/// bloque pas, il se dit (`deja_parti_dit`), et ces phrases sont rendues.
+pub(crate) fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<Vec<String>> {
     if d.relance && d.remplace {
         return Err(refus("Une relance renvoie le même contrat : elle n'en remplace aucun."));
     }
     let departs = envois::journal::lu(&ctx.racine).map(|j| j.departs).map_err(Echec::from)?;
     let (_, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, d.mois, None, &departs)?;
     let (par_salarie, _) = avec_et_sans_courriel(contrats_choisis(ctx, &d.choisis, d.mois, &paies)?)?;
-    if !d.relance {
-        return Ok(());
-    }
     let cles: Vec<(String, String)> = par_salarie.iter().flat_map(|(k, ps, _)| ps.iter().map(|p| (k.clone(), p.engagement.numero.as_deref().unwrap_or_default().to_string()))).collect();
-    verifier_relance(&d.etats_des_contrats, &cles)
+    if d.relance {
+        verifier_relance(&d.etats_des_contrats, &cles)?;
+        return Ok(Vec::new());
+    }
+    Ok(cles.iter().filter_map(|(salarie, numero)| deja_parti_dit(&d.etats_des_contrats, salarie, numero)).collect())
+}
+
+/// « Déjà parti, imprimé le 05/11/2026. » : ce que l'envoi par courriel d'un contrat deja parti dit, sans le refuser.
+fn deja_parti_dit(etats: &[crate::routes::contrats::ContratASigner], salarie: &str, numero: &str) -> Option<String> {
+    let c = etats.iter().rev().find(|c| c.salarie == salarie && c.numero.as_deref().unwrap_or("") == numero)?;
+    let quand = crate::routes::quand(c.demande_le.as_deref()?.get(..10)?);
+    let comment = if c.par == Some("imprime") { "imprimé" } else { "envoyé" };
+    Some(format!("Contrat n° {} de {} : déjà parti, {} le {}.", numero, c.nom, comment, quand))
 }
 
 /// LES CONTRATS QUI PARTENT PAR COURRIEL : ceux dont la fiche du salarie a un courriel ; les autres s'impriment (leurs
@@ -672,7 +682,7 @@ fn avec_et_sans_courriel(choisis: ParSalarie) -> R<(ParSalarie, Vec<String>)> {
     Ok((avec, noms))
 }
 
-/// Une relance ne vaut que pour un contrat demande par courriel, pas revenu, a jour.
+/// Une relance ne vaut que pour un contrat demande, pas revenu, a jour.
 fn verifier_relance(etats: &[crate::routes::contrats::ContratASigner], cles: &[(String, String)]) -> R<()> {
     for (salarie, numero) in cles {
         let c = etats.iter().rev().find(|c| c.salarie == *salarie && c.numero.as_deref().unwrap_or("") == numero);
@@ -681,8 +691,6 @@ fn verifier_relance(etats: &[crate::routes::contrats::ContratASigner], cles: &[(
             Some(c) if c.demande_le.is_none() => "n'a jamais ete demande : il s'envoie",
             Some(c) if c.caduc => "a change depuis son envoi : il se modifie par un avenant",
             Some(c) if c.recu_le.is_some() => "est deja revenu signe",
-            // Un contrat imprime n'a pas de courriel a renvoyer : il se remet en main propre.
-            Some(c) if c.par == Some("imprime") => "est parti imprime, a remettre en main propre",
             Some(_) => continue,
         };
         return Err(refus(format!("Le contrat n° {} de {} {}, il ne se relance pas. Rien n'est parti.", numero, salarie, pb)));
@@ -752,12 +760,26 @@ pub struct UnAvenant {
     pub destinataire: String,
     /// La piece partie de l'avenant relance, dans `sorties/<mois>/envoi/`.
     pub relance: Option<String>,
+    /// Le jour ou l'avenant relance est parti imprime : il part alors par courriel pour la premiere fois, sans « Rappel »,
+    /// et le dit (`deja_parti`).
+    pub imprime_le: Option<String>,
 }
 
 impl UnAvenant {
     /// L'avenant deja parti et pas revenu, qui repart tel quel.
     pub fn relance(&self) -> bool {
         self.relance.is_some()
+    }
+
+    /// Une relance d'un avenant parti par courriel est un rappel.
+    pub fn rappel(&self) -> bool {
+        self.relance() && self.imprime_le.is_none()
+    }
+
+    /// « Avenant n° 1 de Nom : déjà parti, imprimé le 05/11/2026. », quand il est parti imprimé.
+    pub fn deja_parti(&self, nom: &str) -> Option<String> {
+        let quand = crate::routes::quand(self.imprime_le.as_deref()?.get(..10)?);
+        Some(format!("Avenant n° {} de {} : déjà parti, imprimé le {}.", self.numero, nom, quand))
     }
 
     /// Le numero du contrat qu'il modifie, ou « (sans numéro) ».
@@ -900,7 +922,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
             nommes.push(ContratNomme::de(&p)?);
             sal = Some(p.salarie.clone());
             c.adresse = Some(a.destinataire.trim().to_lowercase());
-            c.relance = Some(a.relance());
+            c.relance = Some(a.rappel());
             lignes_contrats.push(c);
             pdfs.push(pdf);
         }
@@ -968,7 +990,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
                 aa.iter().zip(&nommes).map(|(a, n)| format!("n° {} au {}{}", a.numero, contrat_dit(a, n), n.pour)).collect::<Vec<_>>().join(" ; ")
             );
         }
-        if aa.iter().any(UnAvenant::relance) {
+        if aa.iter().any(UnAvenant::rappel) {
             sujet = format!("{}{}", PREFIXE_RELANCE, sujet);
             liste = format!("{}{}", RAPPEL_RELANCE_AVENANT, liste);
         }
@@ -1019,7 +1041,7 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
             contrats: lignes_contrats.clone(),
             main_propre: false,
             expediteur: Some(expediteur.clone()),
-            relance: Some(aa.iter().any(UnAvenant::relance)),
+            relance: Some(aa.iter().any(UnAvenant::rappel)),
             acte: Some("avenant".into()),
             partis: None,
             echec_a: None,

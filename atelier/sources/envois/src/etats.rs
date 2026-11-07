@@ -303,7 +303,7 @@ pub fn etat_des_embauches(lignes: &[Ligne]) -> HashMap<Paire, EtatEmbauche> {
 // -------------------------------------------------------------- les contrats
 
 /// Comment chaque contrat est parti la derniere fois : `imprime` (remis en main propre, `detail.main_propre`) ou
-/// `courriel`. Un contrat imprime ne se relance pas : il n'y a pas de courriel a renvoyer.
+/// `courriel`. Un contrat imprime peut toujours partir par courriel : il part alors comme un envoi, non comme un rappel.
 pub fn contrats_partis_par(lignes: &[Ligne]) -> HashMap<Paire, &'static str> {
     let mut d = HashMap::new();
     for e in lignes.iter().filter_map(Ligne::signature).filter(|e| e.accepte) {
