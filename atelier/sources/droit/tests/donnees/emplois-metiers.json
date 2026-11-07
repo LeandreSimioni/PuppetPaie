@@ -1,0 +1,4795 @@
+[
+  {
+    "cas": "",
+    "attendu": {
+      "metier": null,
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": " reg120 ",
+    "attendu": {
+      "metier": {
+        "code": "REG120",
+        "libelle": "Régisseur général",
+        "feminin": "Régisseuse générale",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Régie et plateau",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "REGISSEUR GENERAL",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "2642",
+          "3090",
+          "3241",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Régisseur général",
+          "3252": "Régisseur général [Régie générale]"
+        },
+        "classification_1285": {
+          "groupe": 4,
+          "emploi_xi3": "regisseur general"
+        },
+        "classification_2642": {
+          "fonction": "Régisseur général"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "cadre_groupe_2"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ACC010",
+    "attendu": {
+      "metier": {
+        "code": "ACC010",
+        "libelle": "Accessoiriste",
+        "feminin": "Accessoiriste",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Décor et construction",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ACCESSOIRISTE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "2642",
+          "3090",
+          "3241",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Accessoiriste"
+        },
+        "classification_1285": {
+          "groupe": 8,
+          "emploi_xi3": "ouvrier professionnel, accessoiriste"
+        },
+        "classification_2642": {
+          "fonction": "Accessoiriste"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ACC096",
+    "attendu": {
+      "metier": {
+        "code": "ACC096",
+        "libelle": "Accessoiriste de plateau (cinéma)",
+        "feminin": "Accessoiriste de plateau (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ACCESSOIRISTE DE PLATEAU CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Accessoiriste de plateau cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ACT020",
+    "attendu": {
+      "metier": {
+        "code": "ACT020",
+        "libelle": "Acteur de complément (cinéma)",
+        "feminin": "Actrice de complément (cinéma)",
+        "pcs_ese": "354c",
+        "statut": "artiste",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3097": "figuration"
+        },
+        "emploi": "ACTEUR DE COMPLEMENT",
+        "annexe": 10,
+        "conventions": [
+          "3097"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ADA010",
+    "attendu": {
+      "metier": {
+        "code": "ADA010",
+        "libelle": "Adaptateur",
+        "feminin": "Adaptateur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ADAPTATEUR",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Adaptateur [Post-production, doublage et sous-titrage]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ADJ020",
+    "attendu": {
+      "metier": {
+        "code": "ADJ020",
+        "libelle": "Adjoint au producteur artistique",
+        "feminin": "Adjoint au producteur artistique",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ADJOINT AU PRODUCTEUR ARTISTIQUE",
+        "annexe": 8,
+        "conventions": [
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ADM020",
+    "attendu": {
+      "metier": {
+        "code": "ADM020",
+        "libelle": "Administrateur de production",
+        "feminin": "Administratrice de production",
+        "pcs_ese": "353b",
+        "statut": "technicien",
+        "famille": "Production et administration",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "ADMINISTRATEUR DE PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "2412",
+          "2642",
+          "3090",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Administrateur de production",
+          "2412": "Administrateur de production [III A]"
+        },
+        "classification_1285": {
+          "groupe": 4,
+          "emploi_xi3": "administrateur de production / de diffusion"
+        },
+        "classification_2642": {
+          "fonction": "Administrateur de production"
+        },
+        "classification_3090": {
+          "grille": "administratif",
+          "niveau": "cadre_groupe_2"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "AID010",
+    "attendu": {
+      "metier": {
+        "code": "AID010",
+        "libelle": "Aide de plateau",
+        "feminin": "Aide de plateau",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "AIDE DE PLATEAU",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Aide de plateau/assistant de plateau"
+        },
+        "classification_2642": {
+          "fonction": "Aide de plateau"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "AID060",
+    "attendu": {
+      "metier": {
+        "code": "AID060",
+        "libelle": "Aide son",
+        "feminin": "Aide son",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "AIDE SON",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Aide son [Son]"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ANI080",
+    "attendu": {
+      "metier": {
+        "code": "ANI080",
+        "libelle": "Animateur technicien réalisateur",
+        "feminin": "Animateur technicien réalisateur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Radiodiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ANIMATEUR TECHNICIEN REALISATEUR",
+        "annexe": 8,
+        "conventions": [
+          "1922"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ANN010",
+    "attendu": {
+      "metier": {
+        "code": "ANN010",
+        "libelle": "Annonceur",
+        "feminin": "Annonceur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ANNONCEUR",
+        "annexe": 8,
+        "conventions": [
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ART040",
+    "attendu": {
+      "metier": {
+        "code": "ART040",
+        "libelle": "Artiste chorégraphique",
+        "feminin": "Artiste chorégraphique",
+        "pcs_ese": "354e",
+        "statut": "artiste",
+        "famille": "Artistes",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3090": {
+            "1": "theatre.role",
+            "4": "dramatique.danseur_ballet"
+          },
+          "1285": "dramatique",
+          "2642": "choregraphique"
+        },
+        "emploi": "ARTISTE CHOREGRAPHIQUE / DE CHOREGRAPHIE",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ART110",
+    "attendu": {
+      "metier": {
+        "code": "ART110",
+        "libelle": "Artiste de variétés",
+        "feminin": "Artiste de variétés",
+        "pcs_ese": "354f",
+        "statut": "artiste",
+        "famille": "Cirque et rue",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3090": {
+            "4": "variete.chanteur_soliste.petites_salles"
+          },
+          "2642": "varietes"
+        },
+        "emploi": "ARTISTE DE VARIETES",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ART130",
+    "attendu": {
+      "metier": {
+        "code": "ART130",
+        "libelle": "ARTISTE DRAMATIQUE DE VARIETES",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS040",
+    "attendu": {
+      "metier": {
+        "code": "ASS040",
+        "libelle": "Assistant animateur",
+        "feminin": "Assistant animateur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT ANIMATEUR",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Assistant animateur [IV]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS130",
+    "attendu": {
+      "metier": {
+        "code": "ASS130",
+        "libelle": "Assistant de postproduction",
+        "feminin": "Assistant de postproduction",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT DE POST-PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Assistant de post-production"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS140",
+    "attendu": {
+      "metier": {
+        "code": "ASS140",
+        "libelle": "Assistant de production",
+        "feminin": "Assistant de production",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT DE PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2412",
+          "2642",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Assistant de production",
+          "2412": "Assistant de production [V]"
+        },
+        "classification_2642": {
+          "fonction": "Assistant de production"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS315",
+    "attendu": {
+      "metier": {
+        "code": "ASS315",
+        "libelle": "ASSISTANT MONTEUR SPECIALISE",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "ASS320",
+    "attendu": {
+      "metier": {
+        "code": "ASS320",
+        "libelle": "Assistant monteur adjoint",
+        "feminin": "Assistant monteur adjoint",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT MONTEUR ADJOINT",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Assistant monteur adjoint"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS390",
+    "attendu": {
+      "metier": {
+        "code": "ASS390",
+        "libelle": "Assistant opérateur volume",
+        "feminin": "Assistant opérateur volume",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT OPERATEUR VOLUME",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Assistant opérateur volume [V]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS460",
+    "attendu": {
+      "metier": {
+        "code": "ASS460",
+        "libelle": "Assistant régisseur adjoint",
+        "feminin": "Assistant régisseur adjoint",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT REGISSEUR ADJOINT",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Assistant régisseur adjoint"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS490",
+    "attendu": {
+      "metier": {
+        "code": "ASS490",
+        "libelle": "Assistant storyboarder",
+        "feminin": "Assistant storyboarder",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT STORYBOARDER",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS526",
+    "attendu": {
+      "metier": {
+        "code": "ASS526",
+        "libelle": "Assistant scripte (cinéma)",
+        "feminin": "Assistant scripte (cinéma)",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT SCRIPTE CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Assistant scripte cinéma"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS550",
+    "attendu": {
+      "metier": {
+        "code": "ASS550",
+        "libelle": "Assistant constructeur de décors",
+        "feminin": "Assistant constructeur de décors",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ASSISTANT CONSTRUCTEUR DE DECORS",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ASS570",
+    "attendu": {
+      "metier": {
+        "code": "ASS570",
+        "libelle": "Assistant coordinateur linguistique",
+        "feminin": "Assistant coordinateur linguistique",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT COORDINATEUR LINGUISTIQUE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS620",
+    "attendu": {
+      "metier": {
+        "code": "ASS620",
+        "libelle": "Assistant de plateau AV",
+        "feminin": "Assistant de plateau AV",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ASSISTANT DE PLATEAU AV",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ASS630",
+    "attendu": {
+      "metier": {
+        "code": "ASS630",
+        "libelle": "Assistant de production AV",
+        "feminin": "Assistant de production AV",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT DE PRODUCTION AV",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Assistant de production AV [Gestion de production]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS660",
+    "attendu": {
+      "metier": {
+        "code": "ASS660",
+        "libelle": "Assistant étalonneur",
+        "feminin": "Assistant étalonneur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT ETALONNEUR NUMERIQUE",
+        "annexe": 8,
+        "conventions": [
+          "2412",
+          "3252"
+        ],
+        "classement": {
+          "3252": "Assistant étalonneur [Montage]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS750",
+    "attendu": {
+      "metier": {
+        "code": "ASS750",
+        "libelle": "Assistant technicien de scène",
+        "feminin": "Assistant technicien de scène",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT TECHNICIEN DE SCENE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS830",
+    "attendu": {
+      "metier": {
+        "code": "ASS830",
+        "libelle": "Assistant décorateur adjoint",
+        "feminin": "Assistant décorateur adjoint",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ASSISTANT DECORATEUR ADJOINT",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Assistant décorateur adjoint"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ASS840",
+    "attendu": {
+      "metier": {
+        "code": "ASS840",
+        "libelle": "Assistant du directeur de la production artistique",
+        "feminin": "Assistant du directeur de la production artistique",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Édition phonographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSIST DIRECTEUR PRODUCTION ARTISTIQUE",
+        "annexe": 8,
+        "conventions": [
+          "2121"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS896",
+    "attendu": {
+      "metier": {
+        "code": "ASS896",
+        "libelle": "Assistant mixeur (cinéma)",
+        "feminin": "Assistant mixeur (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "ASSISTANT MIXEUR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Assistant mixeur cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "ASS930",
+    "attendu": {
+      "metier": {
+        "code": "ASS930",
+        "libelle": "Assistant média serveur",
+        "feminin": "Assistant média serveur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT MEDIA SERVEUR",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Assistant média serveur [Vidéo et image]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ASS950",
+    "attendu": {
+      "metier": {
+        "code": "ASS950",
+        "libelle": "Assistant pupitreur motorisation asservie",
+        "feminin": "Assistant pupitreur motorisation asservie",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSIST PUPITREUR MOTORISATION ASSERVIE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Assistant pupitreur motorisation asservie [Structure, accroche, levage et échafaudage]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "BOX010",
+    "attendu": {
+      "metier": {
+        "code": "BOX010",
+        "libelle": "BOXEUR",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "BRU010",
+    "attendu": {
+      "metier": {
+        "code": "BRU010",
+        "libelle": "Bruiteur",
+        "feminin": "Bruiteur",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "BRUITEUR",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2412",
+          "2642",
+          "3097",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Bruiteur",
+          "2412": "Bruiteur [III A]"
+        },
+        "classification_2642": {
+          "fonction": "Bruiteur"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "CAD014",
+    "attendu": {
+      "metier": {
+        "code": "CAD014",
+        "libelle": "Cadreur spécialisé (cinéma)",
+        "feminin": "Cadreur spécialisé (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CADREUR SPECIALISE CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Cadreur spécialisé cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "CHA020",
+    "attendu": {
+      "metier": {
+        "code": "CHA020",
+        "libelle": "Chanteur",
+        "feminin": "Chanteuse",
+        "pcs_ese": "354b",
+        "statut": "artiste",
+        "famille": "Musique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3090": {
+            "2": "chanteur.petites_salles",
+            "4": "variete.chanteur_soliste.petites_salles"
+          },
+          "2642": "chanteur"
+        },
+        "emploi": "CHANTEUR",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHA060",
+    "attendu": {
+      "metier": {
+        "code": "CHA060",
+        "libelle": "Chapelier",
+        "feminin": "Chapelière",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Costume, coiffure, maquillage",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHAPELIER",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "conventions_hors_liste": [
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 8,
+          "emploi_xi3": "ouvrier professionnel, chapelier"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CHA070",
+    "attendu": {
+      "metier": {
+        "code": "CHA070",
+        "libelle": "Chargé de postproduction",
+        "feminin": "Chargé de postproduction",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHARGE DE POST- PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Directeur de post prod/chargé de post prod"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHA120",
+    "attendu": {
+      "metier": {
+        "code": "CHA120",
+        "libelle": "Chargé de production AV",
+        "feminin": "Chargé de production AV",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHARGE DE PRODUCTION AV",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Chargé de production AV [Gestion de production]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHA150",
+    "attendu": {
+      "metier": {
+        "code": "CHA150",
+        "libelle": "Chauffeur de salle",
+        "feminin": "Chauffeur de salle",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHAUFFEUR DE SALLE",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642"
+        ],
+        "classement": {
+          "2121": "Chauffeur de salle"
+        },
+        "classification_2642": {
+          "fonction": "Chauffeur de salle"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHA210",
+    "attendu": {
+      "metier": {
+        "code": "CHA210",
+        "libelle": "Chapelier/Modiste",
+        "feminin": "Chapelier/Modiste",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Techniques du spectacle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHAPELIER MODISTE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090",
+          "3252"
+        ],
+        "conventions_hors_liste": [
+          "3090"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CHE086",
+    "attendu": {
+      "metier": {
+        "code": "CHE086",
+        "libelle": "Chef costumier (cinéma)",
+        "feminin": "Chef costumier (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CHEF COSTUMIER CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Chef costumier cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "CHE120",
+    "attendu": {
+      "metier": {
+        "code": "CHE120",
+        "libelle": "Chef de production",
+        "feminin": "Chef de production",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHEF DE PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHE210",
+    "attendu": {
+      "metier": {
+        "code": "CHE210",
+        "libelle": "Chef électricien",
+        "feminin": "Chef électricien",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHEF ELECTRICIEN",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642",
+          "3241",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Chef électricien"
+        },
+        "classification_2642": {
+          "fonction": "Chef électricien"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CHE270",
+    "attendu": {
+      "metier": {
+        "code": "CHE270",
+        "libelle": "Chef machiniste",
+        "feminin": "Cheffe machiniste",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Régie et plateau",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHEF MACHINISTE",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Chef machiniste"
+        },
+        "classification_1285": {
+          "groupe": 6,
+          "emploi_xi3": "chef-machiniste"
+        },
+        "classification_2642": {
+          "fonction": "Chef machiniste"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHE320",
+    "attendu": {
+      "metier": {
+        "code": "CHE320",
+        "libelle": "Chef monteur",
+        "feminin": "Chef monteur",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CHEF MONTEUR",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2412",
+          "2642",
+          "3241",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Chef monteur"
+        },
+        "classification_2642": {
+          "fonction": "Chef monteur"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "CHE376",
+    "attendu": {
+      "metier": {
+        "code": "CHE376",
+        "libelle": "Chef opérateur du son (cinéma)",
+        "feminin": "Chef opérateur du son (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CHEF OPERATEUR DE SON CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Chef opérateur du son cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "CHE420",
+    "attendu": {
+      "metier": {
+        "code": "CHE420",
+        "libelle": "Chef peintre",
+        "feminin": "Chef peintre",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Édition phonographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHEF PEINTRE",
+        "annexe": 8,
+        "conventions": [
+          "2121"
+        ],
+        "classement": {
+          "2121": "Chef peintre"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CHE660",
+    "attendu": {
+      "metier": {
+        "code": "CHE660",
+        "libelle": "Chef graphiste AV",
+        "feminin": "Chef graphiste AV",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHEF GRAPHISTE AV",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Chef graphiste AV [Exploitation, régie et maintenance]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHE730",
+    "attendu": {
+      "metier": {
+        "code": "CHE730",
+        "libelle": "Chef opérateur de prises de vue AV",
+        "feminin": "Chef opérateur de prises de vue AV",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHEF OPERATEUR DE PRISES DE VUE AV",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHE816",
+    "attendu": {
+      "metier": {
+        "code": "CHE816",
+        "libelle": "Chef d'atelier costumes (cinéma)",
+        "feminin": "Chef d'atelier costumes (cinéma)",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHEF D'ATELIER COSTUMES CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Chef d'atelier costumes cinéma"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHE856",
+    "attendu": {
+      "metier": {
+        "code": "CHE856",
+        "libelle": "Chef menuisier traceur de décor (cinéma)",
+        "feminin": "Chef menuisier traceur de décor (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHEF MENUISIER DE DECOR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Chef menuisier traceur de décor cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CHE896",
+    "attendu": {
+      "metier": {
+        "code": "CHE896",
+        "libelle": "Chef staffeur de décor (cinéma)",
+        "feminin": "Chef staffeur de décor (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHEF STAFFEUR DE DECOR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Chef staffeur de décor cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CHE960",
+    "attendu": {
+      "metier": {
+        "code": "CHE960",
+        "libelle": "Chef tapissier",
+        "feminin": "Chef tapissier",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHEF TAPISSIER",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Chef tapissier [Décors]"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CHO010",
+    "attendu": {
+      "metier": {
+        "code": "CHO010",
+        "libelle": "Chorégraphe",
+        "feminin": "Chorégraphe",
+        "pcs_ese": "354e",
+        "statut": "artiste",
+        "famille": "Mise en scène et création",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CHOREGRAPHE",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CHR010",
+    "attendu": {
+      "metier": {
+        "code": "CHR010",
+        "libelle": "Chroniqueur",
+        "feminin": "Chroniqueur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHRONIQUEUR",
+        "annexe": 8,
+        "conventions": [
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "COI025",
+    "attendu": {
+      "metier": {
+        "code": "COI025",
+        "libelle": "COIFFEUR PERRUQUIER SPECIALISE",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "COL010",
+    "attendu": {
+      "metier": {
+        "code": "COL010",
+        "libelle": "Collaborateur artistique",
+        "feminin": "Collaborateur artistique",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Mise en scène et création",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "COLLABORATEUR ARTISTIQUE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2642",
+          "3090"
+        ],
+        "classification_2642": {
+          "fonction": "Collaborateur artistique"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CON020",
+    "attendu": {
+      "metier": {
+        "code": "CON020",
+        "libelle": "Concepteur du son",
+        "feminin": "Conceptrice du son",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Son",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CONCEPTEUR (DU) SON",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 4,
+          "emploi_xi3": "concepteur, ingenieur du son"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "cadre_groupe_2"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CON050",
+    "attendu": {
+      "metier": {
+        "code": "CON050",
+        "libelle": "Conformateur",
+        "feminin": "Conformateur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CONFORMATEUR",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Conformateur"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CON106",
+    "attendu": {
+      "metier": {
+        "code": "CON106",
+        "libelle": "Conseiller technique à la réalisation (cinéma)",
+        "feminin": "Conseiller technique à la réalisation (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CONSEILLER TECHNIQUE REALISATION CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Conseiller technique à la réalisation cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "CON120",
+    "attendu": {
+      "metier": {
+        "code": "CON120",
+        "libelle": "Constructeur de décors et structures",
+        "feminin": "Constructrice de décors et structures",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Décor et construction",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CONSTRUCTEUR DE DECORS ET STRUCTURES",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "constructeur, machiniste"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CON130",
+    "attendu": {
+      "metier": {
+        "code": "CON130",
+        "libelle": "Conteur",
+        "feminin": "Conteuse",
+        "pcs_ese": "354c",
+        "statut": "artiste",
+        "famille": "Artistes",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3090": {
+            "1": "theatre.role",
+            "4": "dramatique.diseur_conteur"
+          },
+          "1285": "dramatique"
+        },
+        "emploi": "CONTEUR",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CON220",
+    "attendu": {
+      "metier": {
+        "code": "CON220",
+        "libelle": "Conseiller artistique de production",
+        "feminin": "Conseiller artistique de production",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Édition phonographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CONSEILLER ARTISTIQUE DE PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "2121"
+        ],
+        "classement": {
+          "2121": "Conseiller artistique de production"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CON270",
+    "attendu": {
+      "metier": {
+        "code": "CON270",
+        "libelle": "Conseiller technique effets spéciaux",
+        "feminin": "Conseillère technique effets spéciaux",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Régie et plateau",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CONSEILLER TECHNIQUE AUX EFFETS SPECIAUX",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "conventions_hors_liste": [
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 4,
+          "emploi_xi3": "conseiller technique"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CON280",
+    "attendu": {
+      "metier": {
+        "code": "CON280",
+        "libelle": "Concepteur motorisation asservie",
+        "feminin": "Concepteur motorisation asservie",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CONCEPTEUR MOTORISATION ASSERVIE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Concepteur motorisation asservie [Structure, accroche, levage et échafaudage]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "COO010",
+    "attendu": {
+      "metier": {
+        "code": "COO010",
+        "libelle": "Coordinateur d'écriture (ex script éditeur)",
+        "feminin": "Coordinateur d'écriture (ex script éditeur)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "COORDINATEUR D'ECRITURE",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2412",
+          "2642",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Coordinateur d’écriture (script éditor)"
+        },
+        "classification_2642": {
+          "fonction": "Coordinateur d'écriture (ex script éditeur)"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "COO020",
+    "attendu": {
+      "metier": {
+        "code": "COO020",
+        "libelle": "Coordinateur d’antenne",
+        "feminin": "Coordinateur d’antenne",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "COORDINATEUR D'ANTENNE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Coordinateur d'antenne [Exploitation, régie et maintenance]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "COO030",
+    "attendu": {
+      "metier": {
+        "code": "COO030",
+        "libelle": "Coordinateur de production",
+        "feminin": "Coordinateur de production",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "COORDINATEUR DE PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Coordinateur de production [IV]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "COS012",
+    "attendu": {
+      "metier": {
+        "code": "COS012",
+        "libelle": "Assistant costumier",
+        "feminin": "Assistant costumier",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ASSISTANT COSTUMIER",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "CRE010",
+    "attendu": {
+      "metier": {
+        "code": "CRE010",
+        "libelle": "Créateur de costumes",
+        "feminin": "Créatrice de costumes",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Costume, coiffure, maquillage",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CREATEUR DE COSTUME",
+        "annexe": 8,
+        "conventions": [
+          "2642",
+          "3241"
+        ],
+        "classification_1285": {
+          "groupe": 4,
+          "emploi_xi3": "concepteur des costumes"
+        },
+        "classification_2642": {
+          "fonction": "Créateur de costume"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "cadre_groupe_2"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "CRE016",
+    "attendu": {
+      "metier": {
+        "code": "CRE016",
+        "libelle": "Créateur de costumes (cinéma)",
+        "feminin": "Créateur de costumes (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "CREATEUR DE COSTUME CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Créateur de costumes cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "DEC030",
+    "attendu": {
+      "metier": {
+        "code": "DEC030",
+        "libelle": "Décorateur ensemblier",
+        "feminin": "Décorateur ensemblier",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "DECORATEUR ENSEMBLIER",
+        "annexe": 8,
+        "conventions": [
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "DEC070",
+    "attendu": {
+      "metier": {
+        "code": "DEC070",
+        "libelle": "Décorateur volume",
+        "feminin": "Décorateur volume",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "DECORATEUR VOLUME",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "DES020",
+    "attendu": {
+      "metier": {
+        "code": "DES020",
+        "libelle": "Dessinateur d'animation",
+        "feminin": "Dessinateur d'animation",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "DESSINATEUR D'ANIMATION",
+        "annexe": 8,
+        "conventions": [
+          "2412",
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DES070",
+    "attendu": {
+      "metier": {
+        "code": "DES070",
+        "libelle": "Designer son",
+        "feminin": "Designer son",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "DESIGNER SON",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Designer son [Son]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DEU015",
+    "attendu": {
+      "metier": {
+        "code": "DEU015",
+        "libelle": "2EME ASSISTANT DECORATEUR SPECIALISE",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "DEU020",
+    "attendu": {
+      "metier": {
+        "code": "DEU020",
+        "libelle": "2ème assistant OPV",
+        "feminin": "2ème assistant OPV",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "2EME ASSISTANT OPV",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "2ème assistant OPV"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DEU070",
+    "attendu": {
+      "metier": {
+        "code": "DEU070",
+        "libelle": "2e assistant son",
+        "feminin": "2e assistant son",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Édition phonographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "2EME ASSISTANT SON",
+        "annexe": 8,
+        "conventions": [
+          "2121"
+        ],
+        "classement": {
+          "2121": "2e assistant son"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DEU106",
+    "attendu": {
+      "metier": {
+        "code": "DEU106",
+        "libelle": "2e assistant monteur (cinéma)",
+        "feminin": "2e assistant monteur (cinéma)",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "2EME ASSISTANT MONTEUR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "2e assistant monteur cinéma"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DIR040",
+    "attendu": {
+      "metier": {
+        "code": "DIR040",
+        "libelle": "Directeur casting",
+        "feminin": "Directeur casting",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "DIRECTEUR CASTING",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DIR050",
+    "attendu": {
+      "metier": {
+        "code": "DIR050",
+        "libelle": "Directeur de programmation",
+        "feminin": "Directeur de programmation",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "DIRECTEUR DE COLLECTION",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Directeur de programmation"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "DIR060",
+    "attendu": {
+      "metier": {
+        "code": "DIR060",
+        "libelle": "Directeur des dialogues",
+        "feminin": "Directeur des dialogues",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "DIRECTEUR DES DIALOGUES",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Directeur des dialogues"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DIR090",
+    "attendu": {
+      "metier": {
+        "code": "DIR090",
+        "libelle": "Directeur photo",
+        "feminin": "Directeur photo",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "DIRECTEUR (DE LA) PHOTO",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2412",
+          "2642",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Directeur de la photo"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DIR120",
+    "attendu": {
+      "metier": {
+        "code": "DIR120",
+        "libelle": "Directeur de production",
+        "feminin": "Directrice de production",
+        "pcs_ese": "353b",
+        "statut": "technicien",
+        "famille": "Production et administration",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "DIRECTEUR DE PRODUCTION",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "2412",
+          "2642",
+          "3090",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Directeur de production",
+          "2412": "Directeur de production [I]"
+        },
+        "classification_1285": {
+          "groupe": 3,
+          "emploi_xi3": "directeur de production"
+        },
+        "classification_2642": {
+          "fonction": "Directeur de production"
+        },
+        "classification_3090": {
+          "grille": "administratif",
+          "niveau": "cadre_groupe_2"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "DIR213",
+    "attendu": {
+      "metier": {
+        "code": "DIR213",
+        "libelle": "DIRECTEUR TECHNIQUE ADJOINT",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "DIR310",
+    "attendu": {
+      "metier": {
+        "code": "DIR310",
+        "libelle": "Directeur costumier",
+        "feminin": "Directeur costumier",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "DIRECTEUR COSTUMIER",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Directeur costumier [Costumes, accessoires, maquillage et coiffure]"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "DRA010",
+    "attendu": {
+      "metier": {
+        "code": "DRA010",
+        "libelle": "Dramaturge",
+        "feminin": "Dramaturge",
+        "pcs_ese": "354c",
+        "statut": "technicien",
+        "famille": "Mise en scène et création",
+        "cadre_par_defaut": false,
+        "cadre_selon_la_convention": {
+          "1285": true
+        },
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "DRAMATURGE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        },
+        "note": "Annexe 8 (liste 6/7) mais PCS 354c : l'Insee range le conseil dramaturgique avec les artistes dramatiques. Pas de niveau explicite dans la grille 3090 ; agent de maitrise par defaut, a verifier au contrat. Cadre dans la 1285 : groupe B de la filiere artistique, « Seuls les 2 premiers groupes de la filiere artiste relevent de la categorie \" cadre \" » (CCN 1285, art. XI.2.1 et XI.2.2, KALIARTI000026922481)."
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ELE030",
+    "attendu": {
+      "metier": {
+        "code": "ELE030",
+        "libelle": "Électricien pupitreur",
+        "feminin": "Électricien pupitreur",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ELECTRICIEN PUPITREUR",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Électricien pupitreur [Plateaux]"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ELE066",
+    "attendu": {
+      "metier": {
+        "code": "ELE066",
+        "libelle": "Électricien de construction de (cinéma)",
+        "feminin": "Électricien de construction de (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ELECTRICIEN DE CONSTRUCTION CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Électricien de construction de cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ENC010",
+    "attendu": {
+      "metier": {
+        "code": "ENC010",
+        "libelle": "Encodeur multimédia",
+        "feminin": "Encodeur multimédia",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ENCODEUR MULTIMEDIA",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ENC020",
+    "attendu": {
+      "metier": {
+        "code": "ENC020",
+        "libelle": "Encodeur lumière",
+        "feminin": "Encodeur lumière",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ENCODEUR LUMIERE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ENQ010",
+    "attendu": {
+      "metier": {
+        "code": "ENQ010",
+        "libelle": "Enquêteur / Recherchiste",
+        "feminin": "Enquêteur / Recherchiste",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ENQUETEUR",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Enquêteur / Recherchiste"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "GRO010",
+    "attendu": {
+      "metier": {
+        "code": "GRO010",
+        "libelle": "Groupman",
+        "feminin": "Groupman",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Édition phonographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "GROUPMAN",
+        "annexe": 8,
+        "conventions": [
+          "2121"
+        ],
+        "classement": {
+          "2121": "Conducteur de groupe/Groupman"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "ILL010",
+    "attendu": {
+      "metier": {
+        "code": "ILL010",
+        "libelle": "ILLUSIONNISTE",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ILL020",
+    "attendu": {
+      "metier": {
+        "code": "ILL020",
+        "libelle": "Illustrateur",
+        "feminin": "Illustrateur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Édition phonographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ILLUSTRATEUR",
+        "annexe": 8,
+        "conventions": [
+          "2121"
+        ],
+        "classement": {
+          "2121": "Illustrateur"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "ILL046",
+    "attendu": {
+      "metier": {
+        "code": "ILL046",
+        "libelle": "Illustrateur de décors (cinéma)",
+        "feminin": "Illustrateur de décors (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ILLUSTRATEUR DE DECOR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Illustrateur de décors cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "INF030",
+    "attendu": {
+      "metier": {
+        "code": "INF030",
+        "libelle": "Infographiste lay-out / Chef infographiste lay-out",
+        "feminin": "Infographiste lay-out / Chef infographiste lay-out",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "INFOGRAPHISTE LAY-OUT",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "INF050",
+    "attendu": {
+      "metier": {
+        "code": "INF050",
+        "libelle": "Infographiste",
+        "feminin": "Infographiste",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "INFOGRAPHISTE",
+        "annexe": 8,
+        "conventions": [
+          "2642",
+          "3241"
+        ],
+        "classification_2642": {
+          "fonction": "Infographiste"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "INF090",
+    "attendu": {
+      "metier": {
+        "code": "INF090",
+        "libelle": "Infographiste des effets visuels numériques / Chef infographiste des effets visuels numériques",
+        "feminin": "Infographiste des effets visuels numériques / Chef infographiste des effets visuels numériques",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "INFOGRAPHISTE EFFETS VISUELS NUMERIQUES",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "INT010",
+    "attendu": {
+      "metier": {
+        "code": "INT010",
+        "libelle": "Intervalliste",
+        "feminin": "Intervalliste",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "INTERVALLISTE",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Intervalliste [V]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "LOG010",
+    "attendu": {
+      "metier": {
+        "code": "LOG010",
+        "libelle": "Logisticien",
+        "feminin": "Logisticien",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "LOGISTICIEN",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "LUT010",
+    "attendu": {
+      "metier": {
+        "code": "LUT010",
+        "libelle": "LUTTEUR",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "MAC106",
+    "attendu": {
+      "metier": {
+        "code": "MAC106",
+        "libelle": "Maçon de décor (cinéma)",
+        "feminin": "Maçon de décor (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "MAÇON DE DECOR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "2642",
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Maçon de décor cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "MAQ046",
+    "attendu": {
+      "metier": {
+        "code": "MAQ046",
+        "libelle": "Maquilleur (cinéma)",
+        "feminin": "Maquilleur (cinéma)",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "MAQUILLEUR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "note": "Le titre II definit le maquilleur cinema (non cadre, KALIARTI000053776401) mais l'annexe I des salaires ne lui donne aucune ligne, ni avant ni apres le 01/05/2026 (relu le 29/09/2026) : la convention ne fixe pas son minimum, il n'y a rien a comparer."
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "MEC030",
+    "attendu": {
+      "metier": {
+        "code": "MEC030",
+        "libelle": "Mécanicien groupman",
+        "feminin": "Mécanicien groupman",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "MECANICIEN GROUPMAN",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Mécanicien groupman [Électricité]"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "MEN010",
+    "attendu": {
+      "metier": {
+        "code": "MEN010",
+        "libelle": "Menuisier",
+        "feminin": "Menuisier",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Techniques du spectacle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "MENUISIER",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "3090",
+          "3241"
+        ],
+        "conventions_hors_liste": [
+          "1285"
+        ],
+        "classement": {
+          "2121": "Menuisier"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "MEN021",
+    "attendu": {
+      "metier": {
+        "code": "MEN021",
+        "libelle": "Chef menuisiers de décors",
+        "feminin": "Chef menuisiers de décors",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "CHEF MENUISIER DE DECORS",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "MEN050",
+    "attendu": {
+      "metier": {
+        "code": "MEN050",
+        "libelle": "Menuisier de spectacles",
+        "feminin": "Menuisière de spectacles",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Décor et construction",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "MENUISIER DE SPECTACLES",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "conventions_hors_liste": [
+          "1285"
+        ],
+        "classification_1285": {
+          "groupe": 6,
+          "emploi_xi3": "technicien de realisation, menuisier de theatre"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "MEN052",
+    "attendu": {
+      "metier": {
+        "code": "MEN052",
+        "libelle": "ASSISTANT MENUISIER DE SPECTACLES",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "MET010",
+    "attendu": {
+      "metier": {
+        "code": "MET010",
+        "libelle": "Métallier",
+        "feminin": "Métallier",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "METALLIER",
+        "annexe": 8,
+        "conventions": [
+          "2642",
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "MIM010",
+    "attendu": {
+      "metier": {
+        "code": "MIM010",
+        "libelle": "Mime",
+        "feminin": "Mime",
+        "pcs_ese": "354c",
+        "statut": "artiste",
+        "famille": "Artistes",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3090": {
+            "1": "theatre.role",
+            "4": "dramatique.role_1_100"
+          },
+          "1285": "dramatique"
+        },
+        "emploi": "MIME",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "MIX016",
+    "attendu": {
+      "metier": {
+        "code": "MIX016",
+        "libelle": "Mixeur (cinéma)",
+        "feminin": "Mixeur (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "MIXEUR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Mixeur cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "MOD020",
+    "attendu": {
+      "metier": {
+        "code": "MOD020",
+        "libelle": "Modiste de spectacles",
+        "feminin": "Modiste de spectacles",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Costume, coiffure, maquillage",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "MODISTE DE SPECTACLES",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "conventions_hors_liste": [
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 8,
+          "emploi_xi3": "ouvrier professionnel, chapelier"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "MON041",
+    "attendu": {
+      "metier": {
+        "code": "MON041",
+        "libelle": "Chef monteur son",
+        "feminin": "Chef monteur son",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "CHEF MONTEUR SON",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "MON042",
+    "attendu": {
+      "metier": {
+        "code": "MON042",
+        "libelle": "Assistant monteur son cinéma",
+        "feminin": "Assistant monteur son cinéma",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT MONTEUR SON",
+        "annexe": 8,
+        "conventions": [
+          "2412",
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Assistant monteur son"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "MON100",
+    "attendu": {
+      "metier": {
+        "code": "MON100",
+        "libelle": "Monteur synchro",
+        "feminin": "Monteur synchro",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "MONTEUR SYNCHRO",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Monteur synchro [Post-production, doublage et sous-titrage]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "NOV010",
+    "attendu": {
+      "metier": {
+        "code": "NOV010",
+        "libelle": "NOVILLERO",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "OPE020",
+    "attendu": {
+      "metier": {
+        "code": "OPE020",
+        "libelle": "Opérateur capture de mouvement",
+        "feminin": "Opérateur capture de mouvement",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "OPERATEUR CAPTURE DE MOUVEMENT",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Opérateur capture de mouvement [III B]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "OPE092",
+    "attendu": {
+      "metier": {
+        "code": "OPE092",
+        "libelle": "Assistant opérateur son",
+        "feminin": "Assistant opérateur son",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "ASSISTANT OPERATEUR SON",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Assistant opérateur son [V]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "OPE110",
+    "attendu": {
+      "metier": {
+        "code": "OPE110",
+        "libelle": "Opérateur images",
+        "feminin": "Opératrice images",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Audiovisuel dans le spectacle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "OPERATEUR IMAGES",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "technicien image (autres techniciens)"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "OPE140",
+    "attendu": {
+      "metier": {
+        "code": "OPE140",
+        "libelle": "Opérateur magnéto / Opérateur magnéto ralenti",
+        "feminin": "Opérateur magnéto / Opérateur magnéto ralenti",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "OPERATEUR MAGNETOSCOPE",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642"
+        ],
+        "classement": {
+          "2121": "Opérateur magnétoscope"
+        },
+        "classification_2642": {
+          "fonction": "Opérateur magnéto / Opérateur magnéto ralenti"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "OPE190",
+    "attendu": {
+      "metier": {
+        "code": "OPE190",
+        "libelle": "Opérateur projectionniste",
+        "feminin": "Opérateur projectionniste",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Édition phonographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "OPERATEUR PROJECTIONNISTE",
+        "annexe": 8,
+        "conventions": [
+          "2121"
+        ],
+        "classement": {
+          "2121": "Opérateur projectionniste"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "OPE370",
+    "attendu": {
+      "metier": {
+        "code": "OPE370",
+        "libelle": "Opérateur bandes antenne",
+        "feminin": "Opérateur bandes antenne",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "OPERATEUR BANDES ANTENNE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "OPE400",
+    "attendu": {
+      "metier": {
+        "code": "OPE400",
+        "libelle": "OPERATEUR DE SAISIE",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "OPE520",
+    "attendu": {
+      "metier": {
+        "code": "OPE520",
+        "libelle": "Opérateur de transfert et de traitement numérique",
+        "feminin": "Opérateur de transfert et de traitement numérique",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "OPERATEUR TRANSFERT DE DONNEES",
+        "annexe": 8,
+        "conventions": [
+          "2642",
+          "3252"
+        ],
+        "classification_2642": {
+          "fonction": "Opérateur de transfert et de traitement numérique"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "PEI086",
+    "attendu": {
+      "metier": {
+        "code": "PEI086",
+        "libelle": "Peintre faux bois et patine décor (cinéma)",
+        "feminin": "Peintre faux bois et patine décor (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "PEINTRE FAUX BOIS ET PATINE DECOR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Peintre faux bois et patine décor cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "PER010",
+    "attendu": {
+      "metier": {
+        "code": "PER010",
+        "libelle": "Perchiste / 1er assistant son",
+        "feminin": "Perchiste / 1er assistant son",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "PERCHISTE",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642"
+        ],
+        "classement": {
+          "2121": "Perchman-perchiste"
+        },
+        "classification_2642": {
+          "fonction": "Perchiste / 1er assistant son"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "PHO010",
+    "attendu": {
+      "metier": {
+        "code": "PHO010",
+        "libelle": "Photographe",
+        "feminin": "Photographe",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "PHOTOGRAPHE",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Photographe"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "PLA020",
+    "attendu": {
+      "metier": {
+        "code": "PLA020",
+        "libelle": "Plasticien volume",
+        "feminin": "Plasticien volume",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "PLASTICIEN VOLUME",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "PRE036",
+    "attendu": {
+      "metier": {
+        "code": "PRE036",
+        "libelle": "1er assistant réalisateur (cinéma)",
+        "feminin": "1er assistant réalisateur (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "1ER ASSISTANT REALISATEUR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "1er assistant réalisateur cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "PRE100",
+    "attendu": {
+      "metier": {
+        "code": "PRE100",
+        "libelle": "Présentateur",
+        "feminin": "Présentateur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "PRESENTATEUR",
+        "annexe": 8,
+        "conventions": [
+          "1922",
+          "2121",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Présentateur"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "PRE130",
+    "attendu": {
+      "metier": {
+        "code": "PRE130",
+        "libelle": "1er assistant décors",
+        "feminin": "1er assistant décors",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "1ER ASSISTANT DECORS",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "1er assistant décors [Décoration et accessoires]"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "PRO040",
+    "attendu": {
+      "metier": {
+        "code": "PRO040",
+        "libelle": "Producteur délégué d’émission radio",
+        "feminin": "Producteur délégué d’émission radio",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Radiodiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "PRODUCTEUR DELEGUE D'EMISSION DE RADIO",
+        "annexe": 8,
+        "conventions": [
+          "1922"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "PRO050",
+    "attendu": {
+      "metier": {
+        "code": "PRO050",
+        "libelle": "Producteur exécutif",
+        "feminin": "Producteur exécutif",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "PRODUCTEUR EXECUTIF",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "PRO110",
+    "attendu": {
+      "metier": {
+        "code": "PRO110",
+        "libelle": "Programmateur artistique d'émission",
+        "feminin": "Programmateur artistique d'émission",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "PROGRAMMATEUR ARTISTIQUE D'EMISSION",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Programmateur artistique d'émission"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "PUP010",
+    "attendu": {
+      "metier": {
+        "code": "PUP010",
+        "libelle": "Pupitreur",
+        "feminin": "Pupitreuse",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Lumière",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "PUPITREUR",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "technicien console (autres techniciens)"
+        },
+        "classification_2642": {
+          "fonction": "Pupitreur lumière"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REA030",
+    "attendu": {
+      "metier": {
+        "code": "REA030",
+        "libelle": "Réalisateur coiffure, perruques",
+        "feminin": "Réalisatrice coiffure, perruques",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Costume, coiffure, maquillage",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REALISATEUR COIFFURE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 5,
+          "emploi_xi3": "realisateur des coiffures, des perruques"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REA033",
+    "attendu": {
+      "metier": {
+        "code": "REA033",
+        "libelle": "REALISATEUR COIFFURE ADJOINT",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "REA090",
+    "attendu": {
+      "metier": {
+        "code": "REA090",
+        "libelle": "Réalisateur son",
+        "feminin": "Réalisatrice son",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Son",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REALISATEUR SON",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 5,
+          "emploi_xi3": "realisateur son"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REA110",
+    "attendu": {
+      "metier": {
+        "code": "REA110",
+        "libelle": "Réalisateur spectacle vivant (événement)",
+        "feminin": "Réalisatrice spectacle vivant (événement)",
+        "pcs_ese": "353c",
+        "statut": "artiste",
+        "famille": "Mise en scène et création",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "REALISATEUR DE SV",
+        "annexe": 10,
+        "annexe_nomenclature": 8,
+        "conventions": [
+          "3252"
+        ],
+        "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi."
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REA120",
+    "attendu": {
+      "metier": {
+        "code": "REA120",
+        "libelle": "Réalisateur de films publicitaires",
+        "feminin": "Réalisatrice de films publicitaires",
+        "pcs_ese": "353c",
+        "statut": "artiste",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {
+          "3097": "realisateur_publicite"
+        },
+        "emploi": "REALISATEUR DE FILMS PUBLICITAIRES",
+        "annexe": 10,
+        "annexe_nomenclature": 8,
+        "conventions": [
+          "3097"
+        ],
+        "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi."
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REG030",
+    "attendu": {
+      "metier": {
+        "code": "REG030",
+        "libelle": "Régisseur audiovisuel",
+        "feminin": "Régisseuse audiovisuelle",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Audiovisuel dans le spectacle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REGISSEUR AUDIOVISUEL",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 6,
+          "emploi_xi3": "regisseur audiovisuel / video de spectacle"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REG032",
+    "attendu": {
+      "metier": {
+        "code": "REG032",
+        "libelle": "ASSISTANT REGISSEUR AUDIOVISUEL",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "REG060",
+    "attendu": {
+      "metier": {
+        "code": "REG060",
+        "libelle": "Régisseur de salle et de site (festival)",
+        "feminin": "Régisseuse de salle et de site (festival)",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Régie et plateau",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REGISSEUR DE SALLE & DE SITE (FESTIVAL)",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 5,
+          "emploi_xi3": "regisseur principal ou de site"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "agent_de_maitrise"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REG090",
+    "attendu": {
+      "metier": {
+        "code": "REG090",
+        "libelle": "Régisseur d'équipement scénique",
+        "feminin": "Régisseur d'équipement scénique",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Techniques du spectacle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REGISSEUR D'EQUIPEMENT SCENIQUE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REG106",
+    "attendu": {
+      "metier": {
+        "code": "REG106",
+        "libelle": "Régisseur d'extérieurs (cinéma)",
+        "feminin": "Régisseur d'extérieurs (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "REGISSEUR D'EXTERIEURS CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Régisseur d'extérieurs cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "REG141",
+    "attendu": {
+      "metier": {
+        "code": "REG141",
+        "libelle": "CHEF REGISSEUR PLATEAU SON (RETOUR)",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "REG200",
+    "attendu": {
+      "metier": {
+        "code": "REG200",
+        "libelle": "Régulateur de stationnement",
+        "feminin": "Régulateur de stationnement",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REGULATEUR DE STATIONNEMENT",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Régulateur de stationnement"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REG220",
+    "attendu": {
+      "metier": {
+        "code": "REG220",
+        "libelle": "Régisseur de salle",
+        "feminin": "Régisseur de salle",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REGISSEUR DE SALLE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REP010",
+    "attendu": {
+      "metier": {
+        "code": "REP010",
+        "libelle": "Repasseuse",
+        "feminin": "Repasseuse",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Techniques du spectacle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REPASSEUSE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "REP030",
+    "attendu": {
+      "metier": {
+        "code": "REP030",
+        "libelle": "Repéreur",
+        "feminin": "Repéreur",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "REPEREUR",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Repéreur [Post-production, doublage et sous-titrage]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "RES060",
+    "attendu": {
+      "metier": {
+        "code": "RES060",
+        "libelle": "Responsable scan",
+        "feminin": "Responsable scan",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "RESPONSABLE SCAN",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Responsable scan [IV]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "RES080",
+    "attendu": {
+      "metier": {
+        "code": "RES080",
+        "libelle": "Responsable casting",
+        "feminin": "Responsable casting",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "RESPONSABLE CASTING",
+        "annexe": 8,
+        "conventions": [
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "RES130",
+    "attendu": {
+      "metier": {
+        "code": "RES130",
+        "libelle": "Responsable de questions",
+        "feminin": "Responsable de questions",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "RESPONSABLE DE QUESTIONS",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Responsable de questions"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "RIG010",
+    "attendu": {
+      "metier": {
+        "code": "RIG010",
+        "libelle": "Rigger (accrocheur)",
+        "feminin": "Rigger (accrocheuse)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Régie et plateau",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "RIGGER",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "2642",
+          "3090",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Accrocheur rigger"
+        },
+        "classification_1285": {
+          "groupe": 8,
+          "emploi_xi3": "ouvrier professionnel, accrocheur (rigger)"
+        },
+        "classification_2642": {
+          "fonction": "Blocker / Rigger"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "RIP010",
+    "attendu": {
+      "metier": {
+        "code": "RIP010",
+        "libelle": "Rippeur",
+        "feminin": "Rippeur",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "RIPPEUR",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Rippeur"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "SCR010",
+    "attendu": {
+      "metier": {
+        "code": "SCR010",
+        "libelle": "Scripte",
+        "feminin": "Scripte",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "SCRIPT(E)",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2412",
+          "2642",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Script",
+          "2412": "Scripte [III B]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "SCR016",
+    "attendu": {
+      "metier": {
+        "code": "SCR016",
+        "libelle": "Scripte (cinéma)",
+        "feminin": "Scripte (cinéma)",
+        "pcs_ese": "353c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": true,
+        "statut_conventionnel": "04",
+        "minima": {},
+        "emploi": "SCRIPTE CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Scripte cinéma"
+        }
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "SCU050",
+    "attendu": {
+      "metier": {
+        "code": "SCU050",
+        "libelle": "Sculpteur de spectacles",
+        "feminin": "Sculptrice de spectacles",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Décor et construction",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "SCULPTEUR DE SPECTACLES",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 6,
+          "emploi_xi3": "technicien de realisation, sculpteur de theatre"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "SER012",
+    "attendu": {
+      "metier": {
+        "code": "SER012",
+        "libelle": "Assistant serrurier",
+        "feminin": "Assistant serrurier",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "ASSISTANT SERRURIER",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "SOU010",
+    "attendu": {
+      "metier": {
+        "code": "SOU010",
+        "libelle": "Souffleur",
+        "feminin": "Souffleuse",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Mise en scène et création",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "SOUFFLEUR",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_2"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "SOU106",
+    "attendu": {
+      "metier": {
+        "code": "SOU106",
+        "libelle": "Sous-chef machiniste de décor (cinéma)",
+        "feminin": "Sous-chef machiniste de décor (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "SOUS-CHEF MACHINISTE CONSTRUCTION CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Sous-chef machiniste de décor cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "STA036",
+    "attendu": {
+      "metier": {
+        "code": "STA036",
+        "libelle": "Staffeur de décor (cinéma)",
+        "feminin": "Staffeur de décor (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "STAFFEUR DE DECOR CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "2642",
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Staffeur de décor cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "STY010",
+    "attendu": {
+      "metier": {
+        "code": "STY010",
+        "libelle": "Styliste",
+        "feminin": "Styliste",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "STYLISTE",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "2642",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Styliste"
+        },
+        "classification_2642": {
+          "fonction": "Styliste"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "SUP020",
+    "attendu": {
+      "metier": {
+        "code": "SUP020",
+        "libelle": "Superviseur de modélisation",
+        "feminin": "Superviseur de modélisation",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "SUPERVISEUR DE MODELISATION",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "SUP040",
+    "attendu": {
+      "metier": {
+        "code": "SUP040",
+        "libelle": "Superviseur rendu et éclairage",
+        "feminin": "Superviseur rendu et éclairage",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "SUPERVISEUR RENDU ET ECLAIRAGE",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "SUP120",
+    "attendu": {
+      "metier": {
+        "code": "SUP120",
+        "libelle": "Superviseur constructeur de machinerie",
+        "feminin": "Superviseur constructeur de machinerie",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "SUPERVISEUR CONSTRUCTEUR DE MACHINERIE",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TAP030",
+    "attendu": {
+      "metier": {
+        "code": "TAP030",
+        "libelle": "Tapissier décorateur",
+        "feminin": "Tapissier décorateur",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TAPISSIER DECORATEUR",
+        "annexe": 8,
+        "conventions": [
+          "2121",
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TAP040",
+    "attendu": {
+      "metier": {
+        "code": "TAP040",
+        "libelle": "Tapissier de décor",
+        "feminin": "Tapissier de décor",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production audiovisuelle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TAPISSIER DECORS",
+        "annexe": 8,
+        "conventions": [
+          "2642"
+        ],
+        "classification_2642": {
+          "fonction": "Tapissier de décor"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TAP050",
+    "attendu": {
+      "metier": {
+        "code": "TAP050",
+        "libelle": "Tapissier de spectacles",
+        "feminin": "Tapissière de spectacles",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Décor et construction",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TAPISSIER DE SPECTACLES",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 6,
+          "emploi_xi3": "technicien de realisation, tapissier de theatre"
+        },
+        "classification_2642": {
+          "fonction": "Tapissier de décor"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEC040",
+    "attendu": {
+      "metier": {
+        "code": "TEC040",
+        "libelle": "Technicien de maintenance (tournée et festival)",
+        "feminin": "Technicienne de maintenance (tournée et festival)",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Régie et plateau",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TECHNICIEN MAINTENANCE (TOURNEE & FEST)",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "autres techniciens (entretien et depannage courants)"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEC042",
+    "attendu": {
+      "metier": {
+        "code": "TEC042",
+        "libelle": "ASSIST TECH MAINTENANCE (TOURNEE & FEST)",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "TEC100",
+    "attendu": {
+      "metier": {
+        "code": "TEC100",
+        "libelle": "Technicien de sécurité (cirques)",
+        "feminin": "Technicienne de sécurité (cirques)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Régie et plateau",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TECHNICIEN DE SECURITE (CIRQUES)",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "conventions_hors_liste": [
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "technicien de securite (cirques)"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEC160",
+    "attendu": {
+      "metier": {
+        "code": "TEC160",
+        "libelle": "Technicien effets spéciaux volume",
+        "feminin": "Technicien effets spéciaux volume",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Films d'animation",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "TECHNICIEN EFFETS SPECIAUX VOLUME",
+        "annexe": 8,
+        "conventions": [
+          "2412"
+        ],
+        "classement": {
+          "2412": "Technicien effets spéciaux volume [III B]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "TEC180",
+    "attendu": {
+      "metier": {
+        "code": "TEC180",
+        "libelle": "Technicien HF",
+        "feminin": "Technicienne HF",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Son",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TECHNICIEN HF",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "technicien son (autres techniciens)"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEC230",
+    "attendu": {
+      "metier": {
+        "code": "TEC230",
+        "libelle": "Technicien lumière",
+        "feminin": "Technicienne lumière",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Lumière",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TECHNICIEN LUMIERE",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "3090",
+          "3252"
+        ],
+        "classement": {
+          "2121": "Technicien lumière",
+          "3252": "Technicien lumière [Lumière]"
+        },
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "technicien lumiere (autres techniciens)"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEC232",
+    "attendu": {
+      "metier": {
+        "code": "TEC232",
+        "libelle": "ASSISTANT TECHNICIEN LUMIERE",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "TEC270",
+    "attendu": {
+      "metier": {
+        "code": "TEC270",
+        "libelle": "Technicien vidéo",
+        "feminin": "Technicienne vidéo",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Audiovisuel dans le spectacle",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TECHNICIEN VIDEO",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "2121",
+          "2642",
+          "3090",
+          "3241"
+        ],
+        "classement": {
+          "2121": "Technicien vidéo"
+        },
+        "classification_1285": {
+          "groupe": 7,
+          "emploi_xi3": "technicien video (autres techniciens)"
+        },
+        "classification_2642": {
+          "fonction": "Technicien vidéo"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEC290",
+    "attendu": {
+      "metier": {
+        "code": "TEC290",
+        "libelle": "Technicien d’exploitation AV et/ou numérique",
+        "feminin": "Technicien d’exploitation AV et/ou numérique",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "TECHNICIEN D'EXPLOITATION AV",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Technicien d'exploitation AV et/ou numérique [Exploitation, régie et maintenance]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "TEC560",
+    "attendu": {
+      "metier": {
+        "code": "TEC560",
+        "libelle": "Technicien scaffolder",
+        "feminin": "Technicien scaffolder",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "TECHNICIEN SCAFFOLDER",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "TEC570",
+    "attendu": {
+      "metier": {
+        "code": "TEC570",
+        "libelle": "Technicien vidéo SV",
+        "feminin": "Technicien vidéo SV",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Création et événement",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "TECHNICIEN VIDEO SV",
+        "annexe": 8,
+        "conventions": [
+          "3252"
+        ],
+        "classement": {
+          "3252": "Technicien vidéo SV [Vidéo et image]"
+        }
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "TEI020",
+    "attendu": {
+      "metier": {
+        "code": "TEI020",
+        "libelle": "Teinturier coloriste",
+        "feminin": "Teinturière coloriste",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Costume, coiffure, maquillage",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TEINTURIER COLORISTE DE SPECTACLES",
+        "annexe": 8,
+        "conventions": [
+          "1285",
+          "1790",
+          "3090"
+        ],
+        "conventions_hors_liste": [
+          "3090"
+        ],
+        "classification_1285": {
+          "groupe": 8,
+          "emploi_xi3": "ouvrier professionnel (habillement)"
+        },
+        "classification_3090": {
+          "grille": "technique",
+          "niveau": "employe_qualifie_1"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEI021",
+    "attendu": {
+      "metier": {
+        "code": "TEI021",
+        "libelle": "CHEF TEINTURIER COLORISTE DE SPECTACLES",
+        "annexe": 8
+      },
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "TEI036",
+    "attendu": {
+      "metier": {
+        "code": "TEI036",
+        "libelle": "Teinturier patineur costumes (cinéma)",
+        "feminin": "Teinturier patineur costumes (cinéma)",
+        "pcs_ese": "637c",
+        "statut": "technicien",
+        "famille": "Production cinématographique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "07",
+        "minima": {},
+        "emploi": "TEINTURIER PATINEUR COSTUMES CINEMA",
+        "annexe": 8,
+        "conventions": [
+          "3097"
+        ],
+        "classification_3097": {
+          "fonction": "Teinturier patineur costumes cinéma"
+        }
+      },
+      "statut_non_cadre": "07"
+    }
+  },
+  {
+    "cas": "TEL010",
+    "attendu": {
+      "metier": {
+        "code": "TEL010",
+        "libelle": "Téléphoniste d’émission",
+        "feminin": "Téléphoniste d’émission",
+        "pcs_ese": "465b",
+        "statut": "technicien",
+        "famille": "Télédiffusion",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {},
+        "emploi": "TELEPHONISTE D'EMISSION",
+        "annexe": 8,
+        "conventions": [
+          "3241"
+        ]
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "XXX999",
+    "attendu": {
+      "metier": null,
+      "statut_non_cadre": null
+    }
+  },
+  {
+    "cas": "mar010",
+    "attendu": {
+      "metier": {
+        "code": "MAR010",
+        "libelle": "Marionnettiste",
+        "feminin": "Marionnettiste",
+        "pcs_ese": "354c",
+        "statut": "artiste",
+        "famille": "Artistes",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3090": {
+            "1": "theatre.role",
+            "4": "marionnettiste"
+          },
+          "1285": "dramatique"
+        },
+        "emploi": "MARIONNETTISTE",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  },
+  {
+    "cas": "mus010",
+    "attendu": {
+      "metier": {
+        "code": "MUS010",
+        "libelle": "Musicien",
+        "feminin": "Musicienne",
+        "pcs_ese": "354b",
+        "statut": "artiste",
+        "famille": "Musique",
+        "cadre_par_defaut": false,
+        "statut_conventionnel": "05",
+        "minima": {
+          "3090": {
+            "1": "musicien",
+            "2": "musicien.petites_salles",
+            "4": "musicien.petites_salles"
+          },
+          "1285": "musicien_autres",
+          "2642": "musicien"
+        },
+        "emploi": "MUSICIEN",
+        "annexe": 10
+      },
+      "statut_non_cadre": "05"
+    }
+  }
+]
