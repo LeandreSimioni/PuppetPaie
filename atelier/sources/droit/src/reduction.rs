@@ -64,12 +64,14 @@ pub fn reduction_generale(
     rg: Option<&Parametres>, statut: Option<&str>, brut: Decimal, heures: Decimal, caisse_conges: bool,
 ) -> Resultat<Option<ReductionGenerale>> {
     let Some(rg) = rg else { return Ok(None) };
-    let statut = statut.filter(|s| !s.is_empty()).unwrap_or("artiste");
+    let Some(statut) = statut.filter(|s| !s.is_empty()) else {
+        return Err("La fiche du salarié ne dit pas son statut (artiste ou technicien), dont dépend la réduction générale : le remplir.".into());
+    };
     if !rg.statuts.iter().any(|s| s == statut) || brut <= Decimal::ZERO || heures <= Decimal::ZERO {
         return Ok(None);
     }
     let smic_ref = eur(mul(requis(rg.smic_horaire_reference, "smic_horaire_reference")?, heures));
-    let plafond = rg.plafond_smic.unwrap_or(Decimal::from(3));
+    let plafond = requis(rg.plafond_smic, "plafond_smic")?;
     let fillon = rg.formule.as_deref() == Some("fillon");
     let mut coefficient;
     if brut >= mul(plafond, smic_ref) {
@@ -109,14 +111,14 @@ pub fn reduction_au_coefficient(rg: Option<&Parametres>, coefficient: Decimal, b
 
 fn repartir_la_reduction(rg: &Parametres, coefficient: Decimal, montant: Decimal, smic_ref: Decimal, heures: Decimal) -> Resultat<ReductionGenerale> {
     let total_points = if rg.formule.as_deref() == Some("fillon") { requis(rg.t, "t")? } else { requis(rg.tmin, "tmin")? + requis(rg.tdelta, "tdelta")? };
-    let part = |taux: Option<Decimal>| -> Resultat<Decimal> {
+    let part = |taux: Option<Decimal>, cle: &str| -> Resultat<Decimal> {
         if montant.is_zero() {
             return Ok(Decimal::new(0, 2));
         }
-        Ok(eur(diviser(div(mul(montant, taux.unwrap_or_default()), Decimal::ONE_HUNDRED), total_points)?))
+        Ok(eur(diviser(div(mul(montant, requis(taux, cle)?), Decimal::ONE_HUNDRED), total_points)?))
     };
-    let chomage = part(rg.imputation.as_ref().and_then(|i| i.chomage))?;
-    let agirc = part(rg.imputation.as_ref().and_then(|i| i.agirc_arrco))?;
+    let chomage = part(rg.imputation.as_ref().and_then(|i| i.chomage), "imputation.chomage")?;
+    let agirc = part(rg.imputation.as_ref().and_then(|i| i.agirc_arrco), "imputation.agirc_arrco")?;
     Ok(ReductionGenerale {
         coefficient, montant, smic_reference: smic_ref, heures,
         urssaf: montant - chomage - agirc, chomage, agirc_arrco: agirc,
@@ -144,11 +146,13 @@ pub fn reduction_generale_sous_dfs(
 }
 
 /// La remuneration du contrat depasse-t-elle `seuil_smic` fois le SMIC de reference (SMIC horaire de la reduction x
-/// heures remunerees) ? Sans seuil, sans SMIC de reference ou sans heures : toujours.
-pub fn au_dela_du_seuil(rg: Option<&Parametres>, brut: Decimal, heures: Decimal, seuil_smic: Option<Decimal>) -> bool {
-    let (Some(seuil), Some(smic)) = (seuil_smic, rg.and_then(|r| r.smic_horaire_reference)) else { return true };
-    if heures <= Decimal::ZERO || smic.is_zero() {
-        return true;
+/// heures remunerees) ? Sans seuil (le fichier n'en pose pas) : toujours. Un seuil sans SMIC de reference ou sans heures
+/// ne se compare pas : il se refuse.
+pub fn au_dela_du_seuil(rg: Option<&Parametres>, brut: Decimal, heures: Decimal, seuil_smic: Option<Decimal>) -> Resultat<bool> {
+    let Some(seuil) = seuil_smic else { return Ok(true) };
+    let smic = requis(rg.and_then(|r| r.smic_horaire_reference), "reduction_generale.smic_horaire_reference")?;
+    if heures <= Decimal::ZERO {
+        return Err("Un seuil de SMIC se compare à des heures rémunérées : la paie n'en porte aucune.".into());
     }
-    brut > mul(seuil, eur(mul(smic, heures)))
+    Ok(brut > mul(seuil, eur(mul(smic, heures))))
 }

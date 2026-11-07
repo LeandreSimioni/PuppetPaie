@@ -272,6 +272,7 @@
         },
         "accident_du_travail": {
           "article": "11.4",
+          "anciennete_mois_minimum": 12,
           "note": "« Étendu, sous réserve du respect des dispositions des articles L. 1226-1, D. 1226-1 et D. 1226-2 du code du travail » (arrêté du 29/05/2013) : la condition d'un an d'ancienneté de la loi reste. Le moteur la garde.",
           "source": {
             "fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#3090",

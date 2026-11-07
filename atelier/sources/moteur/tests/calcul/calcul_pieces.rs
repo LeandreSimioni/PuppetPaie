@@ -104,7 +104,7 @@ fn le_seuil_de_smic() {
         for b in rel["grilles"][&cle].as_array().unwrap() {
             points += 1;
             let seuil = Some(&g["seuil"]).filter(|s| !s.is_null()).map(documents::valeur::dec).transpose();
-            vus.push(essai(section(bar).and_then(|rg| Ok(au_dela_du_seuil(rg.as_ref(), dec(b.as_str().unwrap()), dec(h), seuil?))).map(Value::Bool)));
+            vus.push(essai(section(bar).and_then(|rg| au_dela_du_seuil(rg.as_ref(), dec(b.as_str().unwrap()), dec(h), seuil?)).map(Value::Bool)));
         }
         groupe(g, vus);
     }

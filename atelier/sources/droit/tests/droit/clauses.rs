@@ -111,7 +111,7 @@ fn en_valeur_prime(p: Option<Prime>) -> Value {
 fn en_valeur_annexe(a: Option<c::ClauseDAnnexe>) -> Value {
     a.map_or(Value::Null, |a| {
         json!([a.article, {"lectures": a.lectures.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>(), "hors_primes": a.hors_primes == Some(true),
-            "anciennete_minimale_mois": a.anciennete_minimale_mois.map(|m| m.0.to_string()), "plafond_mois": a.plafond_mois.map(|m| m.0.to_string()),
+            "anciennete_minimale_mois": Some(a.anciennete_minimale_mois.0.to_string()), "plafond_mois": a.plafond_mois.map(|m| m.0.to_string()),
             "motifs_legaux_seulement": a.motifs_legaux_seulement.unwrap_or_default()}])
     })
 }

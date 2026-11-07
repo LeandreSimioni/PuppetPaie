@@ -164,10 +164,7 @@ pub fn conventionnel(idcc: &str, anciennete_mois: Decimal, origine: Origine) -> 
                 tr = apres.tranches.as_slice();
             }
             let liste = tranches(tr, &ou)?;
-            // Sans minimum ecrit, l'accident du travail garde l'annee de L1226-1 : l'extension de ces clauses se fait
-            // « sous reserve du respect des dispositions des articles L. 1226-1, D. 1226-1 et D. 1226-2 » (3090, 11.4 ;
-            // 2642, VIII.3).
-            let minimum = at.anciennete_mois_minimum.map_or(Decimal::from(12), |m| m.0);
+            let minimum = at.anciennete_mois_minimum.0;
             (at.article, minimum, at.base, at.carence_jours, at.plafond_net == Some(true), at.subrogation, Ok(liste))
         }
         (None, Some(m)) => {
@@ -185,7 +182,7 @@ pub fn conventionnel(idcc: &str, anciennete_mois: Decimal, origine: Origine) -> 
                     ]),
                 },
             };
-            let minimum = m.anciennete_mois_minimum.map_or(Decimal::ZERO, |m| m.0);
+            let minimum = m.anciennete_mois_minimum.0;
             (m.article, minimum, m.base, m.carence_jours, m.plafond_net == Some(true), m.subrogation, liste)
         }
         (None, None) => return Ok(None),
