@@ -28,8 +28,5 @@ pub fn due(nat: &Nature, motif_recours: Option<&str>, debut: &Jour, fin: Option<
         an += 1;
     }
     let dernier = socle::date::jours_du_mois(an, mois);
-    match Jour::nouveau(an, mois, debut.jour.min(dernier)) {
-        Some(limite) => *fin < limite,
-        None => false,
-    }
+    Jour::nouveau(an, mois, debut.jour.min(dernier)).is_some_and(|limite| *fin < limite)
 }

@@ -87,8 +87,18 @@ fn champs(ligne: &str) -> Vec<&str> {
     ligne.trim_end_matches(['\r', '\n']).trim_start_matches('\u{feff}').split(';').map(str::trim).collect()
 }
 
-fn decimal(t: &str) -> Option<Decimal> {
-    Decimal::from_str(&t.replace(',', ".")).ok()
+fn decimal(t: &str) -> Result<Decimal, rust_decimal::Error> {
+    Decimal::from_str(&t.replace(',', "."))
+}
+
+/// La premiere ligne d'une table, son en-tete ; une table vide se refuse.
+fn en_tete<'a>(lignes: &mut impl Iterator<Item = &'a str>, fichier: &str) -> Resultat<&'a str> {
+    lignes.next().ok_or_else(|| socle::echec::livree(fichier, "en-tête"))
+}
+
+/// Le cache des tables, meme si un fil s'est arrete en le tenant : il ne garde qu'une lecture entiere.
+fn verrou<T>(m: &Mutex<T>) -> Resultat<std::sync::MutexGuard<'_, T>> {
+    m.lock().map_err(|_| "Le cache des tables des missions est empoisonné : relancer le logiciel.".to_string())
 }
 
 fn lire_texte(nom: &str) -> Resultat<String> {
@@ -105,7 +115,7 @@ fn construire_de(indemnites: &str, change: &str, villes: &str) -> Resultat<Table
     let mut t = Tables::default();
     let texte = indemnites;
     let mut lignes = texte.lines();
-    let tete = champs(lignes.next().unwrap_or_default());
+    let tete = champs(en_tete(&mut lignes, "missions/indemnites.csv")?);
     let col = |nom: &str| tete.iter().position(|c| *c == nom).ok_or_else(|| socle::echec::livree("missions/indemnites.csv", nom));
     let (c_code, c_nom, c_monnaie, c_date, c_montant) = (col("code_pays")?, col("nom_pays")?, col("code_monnaie")?, col("date")?, col("groupe_1")?);
     for (n, l) in lignes.enumerate().filter(|(_, l)| !l.trim().is_empty()) {
@@ -114,7 +124,7 @@ fn construire_de(indemnites: &str, change: &str, villes: &str) -> Resultat<Table
         let cellule = |i: usize, nom: &str| c.get(i).copied().ok_or_else(|| ou(nom));
         let (code, nom, monnaie) = (cellule(c_code, "code_pays")?, cellule(c_nom, "nom_pays")?, cellule(c_monnaie, "code_monnaie")?);
         let date = Jour::lire(cellule(c_date, "date")?).map_err(|_| ou("date"))?;
-        let montant = decimal(cellule(c_montant, "groupe_1")?).ok_or_else(|| ou("groupe_1"))?;
+        let montant = decimal(cellule(c_montant, "groupe_1")?).map_err(|_| ou("groupe_1"))?;
         let e = t.indemnites.entry(code.to_string()).or_insert_with(|| (String::new(), Vec::new()));
         e.1.push(Datee { depuis: date, valeur: (monnaie.to_string(), montant) });
         e.1.sort_by_key(|d| d.depuis);
@@ -124,7 +134,7 @@ fn construire_de(indemnites: &str, change: &str, villes: &str) -> Resultat<Table
     }
     let texte = change;
     let mut lignes = texte.lines();
-    let tete = champs(lignes.next().unwrap_or_default());
+    let tete = champs(en_tete(&mut lignes, "missions/change.csv")?);
     let col = |nom: &str| tete.iter().position(|c| *c == nom).ok_or_else(|| socle::echec::livree("missions/change.csv", nom));
     let (c_monnaie, c_code, c_date, c_taux) = (col("monnaie_source")?, col("code_pays")?, col("date")?, col("taux")?);
     for (n, l) in lignes.enumerate().filter(|(_, l)| !l.trim().is_empty()) {
@@ -133,7 +143,7 @@ fn construire_de(indemnites: &str, change: &str, villes: &str) -> Resultat<Table
         let cellule = |i: usize, nom: &str| c.get(i).copied().ok_or_else(|| ou(nom));
         let (m, code) = (cellule(c_monnaie, "monnaie_source")?, cellule(c_code, "code_pays")?);
         let date = Jour::lire(cellule(c_date, "date")?).map_err(|_| ou("date"))?;
-        let taux = decimal(cellule(c_taux, "taux")?).ok_or_else(|| ou("taux"))?;
+        let taux = decimal(cellule(c_taux, "taux")?).map_err(|_| ou("taux"))?;
         let e = t.change.entry((m.to_string(), code.to_string())).or_default();
         e.push(Datee { depuis: date, valeur: taux });
         e.sort_by_key(|d| d.depuis);
@@ -152,13 +162,13 @@ fn tables() -> Resultat<Arc<Tables>> {
     let dossier = dossier_du_code().join(DOSSIER);
     let sig: Vec<_> = ["indemnites.csv", "change.csv", "villes.json"].iter().map(|f| socle::fichiers::signature(&dossier.join(f))).collect::<Resultat<_>>()?;
     let cache = CACHE.get_or_init(|| Mutex::new(None));
-    if let Some((d, s, t)) = cache.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+    if let Some((d, s, t)) = verrou(cache)?.as_ref() {
         if *d == dossier && *s == sig && sig.iter().all(Option::is_some) {
             return Ok(t.clone());
         }
     }
     let t = Arc::new(construire()?);
-    *cache.lock().unwrap_or_else(|e| e.into_inner()) = Some((dossier, sig, t.clone()));
+    *verrou(cache)? = Some((dossier, sig, t.clone()));
     Ok(t)
 }
 
@@ -226,36 +236,33 @@ pub fn verifier(indemnites: &str, change: &str) -> Resultat<(usize, usize)> {
 /// relevee entiere se depose dans les sources (`moteur releve-missions`). L'en-tete et l'ordre des lignes restent.
 pub fn pour_les_paies(texte: &str, cles: &[&str], depuis: &Jour) -> Resultat<String> {
     let mut lignes = texte.split_inclusive('\n');
-    let tete_brute = lignes.next().unwrap_or_default();
+    let tete_brute = en_tete(&mut lignes, "table des missions")?;
     let tete = champs(tete_brute);
     let col = |nom: &str| tete.iter().position(|c| *c == nom).ok_or_else(|| format!("table des missions : la colonne « {} » manque.", nom));
     let c_cles: Vec<usize> = cles.iter().map(|c| col(c)).collect::<Resultat<_>>()?;
     let c_date = col("date")?;
-    let lues: Vec<(&str, String, Option<Jour>)> = lignes
+    // Chaque ligne, avec son lieu et sa date quand elle les ecrit (une ligne a qui il en manque ne se lit pas).
+    let lues: Vec<(&str, Option<(String, Jour)>)> = lignes
         .filter(|l| !l.trim().is_empty())
         .map(|l| {
             let c = champs(l);
-            let cle = c_cles.iter().map(|i| c.get(*i).copied().unwrap_or("")).collect::<Vec<_>>().join(";");
-            (l, cle, c.get(c_date).and_then(|d| Jour::lire(d).ok()))
+            let lieu = c_cles.iter().map(|i| c.get(*i).copied()).collect::<Option<Vec<_>>>().map(|v| v.join(";"));
+            (l, lieu.zip(c.get(c_date).and_then(|d| Jour::du_texte(d))))
         })
         .collect();
     // Pour chaque lieu, la date de la ligne qui vaut le jour `depuis`.
     let mut au_depart: HashMap<&str, Jour> = HashMap::new();
-    for (_, cle, date) in &lues {
-        if let Some(d) = date.filter(|d| d <= depuis) {
-            let e = au_depart.entry(cle.as_str()).or_insert(d);
-            if d > *e {
-                *e = d;
+    for (cle, d) in lues.iter().filter_map(|(_, lue)| lue.as_ref()) {
+        if d <= depuis {
+            let e = au_depart.entry(cle.as_str()).or_insert(*d);
+            if *d > *e {
+                *e = *d;
             }
         }
     }
     let mut out = String::from(tete_brute);
-    for (l, cle, date) in &lues {
-        let garde = match date {
-            Some(d) => d >= depuis || au_depart.get(cle.as_str()) == Some(d),
-            None => false,
-        };
-        if garde {
+    for (l, lue) in &lues {
+        if lue.as_ref().is_some_and(|(cle, d)| d >= depuis || au_depart.get(cle.as_str()) == Some(d)) {
             out.push_str(l);
         }
     }

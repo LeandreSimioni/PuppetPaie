@@ -170,11 +170,7 @@ pub fn nomenclature() -> Resultat<Arc<Nomenclature>> {
 
 /// Premiere lettre en majuscule, le reste en minuscules.
 fn capitaliser(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        None => String::new(),
-        Some(p) => p.to_uppercase().collect::<String>() + &c.as_str().to_lowercase(),
-    }
+    s.chars().take(1).flat_map(char::to_uppercase).chain(s.chars().skip(1).flat_map(char::to_lowercase)).collect()
 }
 
 /// Un metier, par son code : celui du catalogue, ou, hors catalogue, celui de la nomenclature France Travail (un code
@@ -246,7 +242,10 @@ impl Metier {
 
     /// La famille du catalogue ; « Hors catalogue » sinon.
     pub fn famille(&self) -> &str {
-        self.au_catalogue().map_or("Hors catalogue", |f| f.famille.as_str())
+        match self.au_catalogue() {
+            Some(f) => &f.famille,
+            None => "Hors catalogue",
+        }
     }
 
     /// La PCS-ESE du catalogue (hors catalogue : aucune).
@@ -344,7 +343,7 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> R
         Some(c) => c,
         None => return Err(format!("Le métier {} est hors catalogue : la fiche doit dire s'il est cadre.", repr(code))),
     };
-    let libelle = Some(if feminin { m.feminin() } else { m.libelle() }).filter(|l| !l.is_empty()).unwrap_or_else(|| m.libelle());
+    let libelle = if feminin { m.feminin() } else { m.libelle() };
     Ok(ChampsDuMetier {
         emploi: m.emploi().to_string(),
         emploi_affichage: libelle,
@@ -393,17 +392,23 @@ pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Re
         if avant == apres {
             continue;
         }
-        let le = ctx.salarie_brut(cle).map_or_else(Vec::new, |b| b.depuis(c)).into_iter().flatten().filter(|j| j > debut && j <= fin).last();
+        let le = ctx.salarie_brut(cle).into_iter().flat_map(|b| b.depuis(c)).flatten().filter(|j| j > debut && j <= fin).last();
         let premier = Jour { jour: 1, ..*debut };
         let suivant = Jour { jour: 1, ..premier.plus_jours(31)? };
-        let texte = |v: &Option<String>| v.as_deref().map_or_else(|| "(vide)".to_string(), repr);
+        let texte = |v: &Option<String>| match v {
+            Some(v) => repr(v),
+            None => "(vide)".to_string(),
+        };
         let qui = [a_la_fin.prenom.texte(), a_la_fin.nom.texte()].iter().filter(|s| !s.trim().is_empty()).map(|s| s.to_string()).collect::<Vec<_>>().join(" ");
         return Err(socle::echec::a_la_cle(&format!(
             "{} : la fiche change une case le {} ({} -> {}), dans une periode de paie qui n'est pas coupee a ce jour-la : une \
 periode se calcule sur une seule pile de bareme. Dater le changement au premier jour d'un mois sur la fiche : le {} (il \
 vaut pour tout ce mois-ci) ou le {} (il vaut a partir du mois suivant).",
             if qui.is_empty() { "Ce salarie".to_string() } else { qui },
-            le.map_or_else(|| "?".to_string(), |j| j.jj_mm_aaaa()),
+            match le {
+                Some(j) => j.jj_mm_aaaa(),
+                None => "?".to_string(),
+            },
             texte(&avant),
             texte(&apres),
             premier.jj_mm_aaaa(),
@@ -491,10 +496,8 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
         out.emploi_affichage = Some(a);
     } else if let Some(code) = dit(&eng.code_emploi_ft) {
         if sal.code_emploi_ft.dite() != Some(&code) {
-            out.emploi_affichage = match resoudre(&code, None, false, "") {
-                Ok(r) => Some(r.emploi_affichage),
-                Err(_) => None,
-            };
+            let m = metier(&code)?.ok_or_else(|| format!("Le métier {} de l'engagement n'est ni au catalogue ni dans la nomenclature France Travail.", repr(&code)))?;
+            out.emploi_affichage = Some(m.libelle());
         }
     }
     Ok(out)

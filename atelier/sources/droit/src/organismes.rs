@@ -271,8 +271,7 @@ pub fn saisis(ctx: &Contexte) -> Resultat<(Vec<Adhesion>, Vec<u32>)> {
         .flatten()
         .filter(|a| {
             let libelle = a.libelle.trim().to_uppercase();
-            let contribution = a.contribution.as_deref().unwrap_or("").trim().to_uppercase();
-            !textes.contains(&libelle) && !(!contribution.is_empty() && libelle == contribution)
+            !textes.contains(&libelle) && !net(&a.contribution).is_some_and(|c| c.to_uppercase() == libelle)
         })
         .cloned()
         .collect();
@@ -337,14 +336,14 @@ impl From<&Contrat> for Attendu {
     }
 }
 
-/// Le texte d'un champ facultatif, sans ses blancs (vide s'il manque).
-fn net(s: &Option<String>) -> String {
-    s.as_deref().unwrap_or_default().trim().to_string()
+/// Le texte d'un champ facultatif, sans ses blancs ; `None` s'il manque ou n'ecrit que des blancs.
+fn net(s: &Option<String>) -> Option<String> {
+    s.as_deref().map(str::trim).filter(|t| !t.is_empty()).map(str::to_string)
 }
 
 impl Attendu {
-    /// La reference donnee par le texte, sans ses blancs (vide s'il n'en donne pas).
-    pub fn libelle_donne(&self) -> String {
+    /// La reference donnee par le texte, sans ses blancs ; `None` s'il n'en donne pas.
+    pub fn libelle_donne(&self) -> Option<String> {
         net(&self.libelle)
     }
 
@@ -399,15 +398,11 @@ fn en_place<'a>(spec: &Attendu, saisi: &'a [Adhesion]) -> Option<&'a Adhesion> {
     if let Some(a) = saisi.iter().find(|a| a.cle.trim() == spec.cle.trim()) {
         return Some(a);
     }
-    let reference = net(&spec.reference);
-    if !reference.is_empty() {
+    if let Some(reference) = net(&spec.reference) {
         return saisi.iter().find(|a| a.reference.trim() == reference);
     }
-    let contribution = net(&spec.contribution).to_uppercase();
-    if contribution.is_empty() {
-        return None;
-    }
-    saisi.iter().find(|a| net(&a.contribution).to_uppercase() == contribution || a.libelle.trim().to_uppercase() == contribution)
+    let contribution = net(&spec.contribution)?.to_uppercase();
+    saisi.iter().find(|a| net(&a.contribution).is_some_and(|c| c.to_uppercase() == contribution) || a.libelle.trim().to_uppercase() == contribution)
 }
 
 /// UNE LIGNE DE L'ECRAN (`organismes-contrats`) : ce que le contrat couvre, et ce qui vaut (le texte quand il le donne,
@@ -417,29 +412,32 @@ pub struct Ligne {
     pub cle: String,
     pub quoi: String,
     pub beneficiaires: String,
-    pub libelle: String,
+    /// `None` : ni le texte ni la compagnie ne la disent encore.
+    pub libelle: Option<String>,
     pub libelle_fixe: bool,
-    pub organisme: String,
+    /// `None` : ni le texte ni la compagnie ne le disent encore.
+    pub organisme: Option<String>,
     pub organisme_fixe: bool,
     pub si_permanents: bool,
-    pub depuis: String,
-    pub jusqu_a: String,
-    pub note: String,
+    pub depuis: Option<String>,
+    pub jusqu_a: Option<String>,
+    pub note: Option<String>,
 }
 
-/// La ligne de l'ecran d'un contrat attendu, sous ce que la compagnie a saisi.
+/// La ligne de l'ecran d'un contrat attendu, sous ce que la compagnie a saisi : ce que le texte donne, sinon ce qu'elle
+/// a saisi, sinon ce que le contrat propose (`libelle_defaut`, l'organisme de la contribution).
 pub fn ligne(spec: &Attendu, saisi: &[Adhesion]) -> Ligne {
     let place = en_place(spec, saisi);
-    let libelle_fixe = !spec.libelle_donne().is_empty();
-    let libelle = if libelle_fixe {
-        spec.libelle_donne()
-    } else {
-        place.map(|a| a.libelle.trim().to_string()).filter(|s| !s.is_empty()).unwrap_or_else(|| net(&spec.libelle_defaut))
+    let saisie = |t: &str| Some(t.trim().to_string()).filter(|s| !s.is_empty());
+    let libelle_fixe = spec.libelle_donne().is_some();
+    let libelle = match spec.libelle_donne() {
+        Some(donne) => Some(donne),
+        None => place.and_then(|a| saisie(&a.libelle)).or_else(|| net(&spec.libelle_defaut)),
     };
     let organisme = if spec.organisme_fixe {
         net(&spec.organisme)
     } else {
-        place.map(|a| a.delegataire.trim().to_string()).filter(|s| !s.is_empty()).unwrap_or_else(|| net(&spec.organisme))
+        place.and_then(|a| saisie(&a.delegataire)).or_else(|| net(&spec.organisme))
     };
     Ligne {
         cle: spec.cle.trim().to_string(),
@@ -450,8 +448,8 @@ pub fn ligne(spec: &Attendu, saisi: &[Adhesion]) -> Ligne {
         organisme,
         organisme_fixe: spec.organisme_fixe,
         si_permanents: spec.si_permanents,
-        depuis: spec.depuis.map(|j| j.iso()).unwrap_or_default(),
-        jusqu_a: spec.jusqu_a.map(|j| j.iso()).unwrap_or_default(),
+        depuis: spec.depuis.map(|j| j.iso()),
+        jusqu_a: spec.jusqu_a.map(|j| j.iso()),
         note: net(&spec.note),
     }
 }
@@ -527,7 +525,7 @@ impl Organismes {
     /// L'adhesion `reference` vaut-elle pour la periode `debut`..=`fin` ? Une reference qu'aucune adhesion ne porte (une
     /// contribution de branche du bareme) n'a pas de date.
     pub fn adhesion_en_vigueur(&self, reference: &str, debut: &Jour, fin: &Jour) -> bool {
-        self.adhesion(reference).map_or(true, |a| a.en_vigueur(debut, fin))
+        self.adhesion(reference).is_none_or(|a| a.en_vigueur(debut, fin))
     }
 }
 
@@ -545,20 +543,21 @@ pub fn composer(
     saisies: &BTreeMap<String, Saisie>,
     exiger: Option<&(Jour, Jour)>,
 ) -> Resultat<Organismes> {
-    let mut retenus: Vec<(Attendu, Adhesion)> = Vec::new();
+    // Chaque contrat retenu, avec sa reference quand le texte ou la saisie la disent.
+    let mut retenus: Vec<(Attendu, Option<String>, String, String)> = Vec::new();
     for spec in attendus(ctx)? {
         let l = ligne(&spec, saisi);
         let maintenant = saisies.get(spec.cle.trim());
         let libelle = match maintenant {
-            Some(s) if !l.libelle_fixe => net(&s.libelle).to_uppercase(),
+            Some(s) if !l.libelle_fixe => net(&s.libelle).map(|t| t.to_uppercase()),
             _ => l.libelle.clone(),
         };
         let organisme = match maintenant {
-            Some(s) if !l.organisme_fixe => net(&s.organisme).to_uppercase(),
+            Some(s) if !l.organisme_fixe => net(&s.organisme).map(|t| t.to_uppercase()),
             _ => l.organisme.clone(),
         };
         let quoi = spec.quoi.trim().to_string();
-        if libelle.is_empty() {
+        let Some(libelle) = libelle else {
             // Un contrat vide ne se reclame pas quand l'ecran ne l'a pas propose : un contrat des permanents a une
             // compagnie qui n'en emploie pas, un contrat que la periode regardee ne couvre pas.
             let Some(periode) = exiger else { continue };
@@ -570,50 +569,62 @@ pub fn composer(
 (« référence contrat »).",
                 quoi
             ));
-        }
+        };
         // Les longueurs du cahier technique : S21.G00.15.001 de 1 a 30, S21.G00.15.002 de 5 a 9.
         if libelle.chars().count() > 30 {
             return Err(format!("{} : « {} » dépasse 30 caractères, ce que la DSN n'admet pas.", quoi, libelle));
         }
-        let n = organisme.chars().count();
-        if !(5..=9).contains(&n) || organisme.contains(char::is_whitespace) {
-            return Err(format!(
-                "{} : le code de l'organisme ({}) a de 5 à 9 caractères sans espace, comme P0983 pour Audiens. Il est \
+        let organisme = match organisme {
+            Some(o) if (5..=9).contains(&o.chars().count()) && !o.contains(char::is_whitespace) => o,
+            autre => {
+                let dit = match autre {
+                    Some(o) => format!("« {} »", o),
+                    None => "vide".to_string(),
+                };
+                return Err(format!(
+                    "{} : le code de l'organisme ({}) a de 5 à 9 caractères sans espace, comme P0983 pour Audiens. Il est \
 sur le certificat d'adhésion et la fiche de paramétrage DSN.",
-                quoi,
-                if organisme.is_empty() { "vide".to_string() } else { format!("« {} »", organisme) }
-            ));
-        }
+                    quoi, dit
+                ));
+            }
+        };
         let reference = match net(&spec.reference) {
-            r if r.is_empty() => en_place(&spec, saisi).map(|a| a.reference.trim().to_string()).unwrap_or_default(),
-            r => r,
+            Some(r) => Some(r),
+            None => en_place(&spec, saisi).map(|a| a.reference.trim().to_string()).filter(|r| !r.is_empty()),
         };
-        if !reference.is_empty() {
-            prises.push(numero_de_reference(&reference)?);
+        if let Some(r) = &reference {
+            prises.push(numero_de_reference(r)?);
         }
-        let a = Adhesion {
-            cle: spec.cle.trim().to_string(),
-            libelle,
-            delegataire: organisme,
-            r#type: spec.r#type.trim().to_string(),
-            reference,
-            contribution: Some(net(&spec.contribution)).filter(|c| !c.is_empty()),
-            depuis: spec.depuis,
-            jusqu_a: spec.jusqu_a,
-        };
-        retenus.push((spec, a));
+        retenus.push((spec, reference, libelle, organisme));
     }
     // Les identifiants nouveaux, a la suite des pris : ceux deja attribues ne bougent pas.
     let mut libre = PREMIER_LIBRE;
-    for (_, a) in retenus.iter_mut() {
-        if a.reference.is_empty() {
-            while prises.contains(&libre) {
-                libre += 1;
-            }
-            prises.push(libre);
-            a.reference = libre.to_string();
-        }
-    }
+    let retenus: Vec<(Attendu, Adhesion)> = retenus
+        .into_iter()
+        .map(|(spec, reference, libelle, organisme)| {
+            let reference = match reference {
+                Some(r) => r,
+                None => {
+                    while prises.contains(&libre) {
+                        libre += 1;
+                    }
+                    prises.push(libre);
+                    libre.to_string()
+                }
+            };
+            let a = Adhesion {
+                cle: spec.cle.trim().to_string(),
+                libelle,
+                delegataire: organisme,
+                r#type: spec.r#type.trim().to_string(),
+                reference,
+                contribution: net(&spec.contribution),
+                depuis: spec.depuis,
+                jusqu_a: spec.jusqu_a,
+            };
+            (spec, a)
+        })
+        .collect();
     let role = |r: &str| retenus.iter().find(|(s, _)| s.role.as_deref().map(str::trim) == Some(r)).map(|(_, a)| a.reference.clone());
     let permanent = match (role("prevoyance"), role("sante")) {
         (Some(p), Some(s)) => Rattachement { references: vec![p, s], a_confirmer: None },

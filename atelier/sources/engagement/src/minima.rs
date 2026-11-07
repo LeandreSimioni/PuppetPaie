@@ -28,8 +28,8 @@ pub fn idcc_du_contrat(idcc: &str, sp: Option<&droit::fiche::Spectacle>, sal: &d
 
 /// La case `cle` du spectacle de la paie lue pour une condition (`droit::minima::case_lue`) ; `None` : la paie n'a pas de
 /// spectacle.
-fn case_du_spectacle(sp: Option<&droit::fiche::Spectacle>, cle: &str) -> Option<CaseLue> {
-    sp.map(|s| case_lue(&s.champs, cle))
+fn case_du_spectacle(sp: Option<&droit::fiche::Spectacle>, cle: &str) -> Resultat<Option<CaseLue>> {
+    Ok(sp.map(|s| case_lue(&s.champs, cle)).transpose()?.flatten())
 }
 
 fn cachet(c: &str) -> bool {
@@ -326,7 +326,7 @@ impl<'a> Cx<'a> {
         let Some(presents) = cddu.and_then(|m| m.get(&fonction)).map(|f| f.genres()).filter(|p| !p.is_empty()) else {
             return Ok(None);
         };
-        let genre = case_du_spectacle(self.paie.spectacle.as_ref(), "genre_audiovisuel").map(|c| c.texte);
+        let genre = case_du_spectacle(self.paie.spectacle.as_ref(), "genre_audiovisuel")?.map(|c| c.texte);
         let (semaine, dit) = if let Some((g, s)) = presents.iter().find(|(g, _)| genre.as_deref() == Some(*g)) {
             (*s, format!("programme de {}", g))
         } else {
@@ -394,7 +394,7 @@ impl<'a> Cx<'a> {
                 }
             }
             let mut dit = format!("{} la semaine de 39 h (annexe I du titre II)", euros(semaine));
-            if case_du_spectacle(spec, "derogation_annexe_iii_3097").is_some_and(|c| c.vraie) {
+            if case_du_spectacle(spec, "derogation_annexe_iii_3097")?.is_some_and(|c| c.vraie) {
                 let a = c.annexe_iii.as_ref().ok_or_else(|| manque("3097.annexe_iii"))?;
                 if semaine > a.socle {
                     semaine = add(a.socle, div(mul(sub(semaine, a.socle), a.part_au_dela), Decimal::ONE_HUNDRED));
@@ -408,7 +408,7 @@ impl<'a> Cx<'a> {
             let Some(reference) = self.ligne_de_minima("3097").filter(|r| !r.is_empty()) else {
                 return Ok(None);
             };
-            let fmt = case_du_spectacle(spec, "format_cinema").map(|c| c.texte);
+            let fmt = case_du_spectacle(spec, "format_cinema")?.map(|c| c.texte);
             let fmt = fmt.as_deref();
             let (grille, quoi) = if reference == "acteur" {
                 let cl = if fmt == Some("long") { "long" } else { "court" };
@@ -457,23 +457,24 @@ impl<'a> Cx<'a> {
         // Les conditions nomment les cases du spectacle, de la fiche entreprise et de celle du salarie.
         for (cl, attendu) in c.si_spectacle.into_iter().flatten() {
             // Une paie sans spectacle ne remplit aucune condition sur lui.
-            if !case_du_spectacle(self.paie.spectacle.as_ref(), cl).is_some_and(|lu| attendu.vaut(&lu)) {
+            if !case_du_spectacle(self.paie.spectacle.as_ref(), cl)?.is_some_and(|lu| attendu.vaut(&lu)) {
                 return Ok(false);
             }
         }
+        // Une case qui ne dit rien ne remplit aucune condition.
         for (cl, attendu) in c.si_entreprise.into_iter().flatten() {
-            if !attendu.vaut(&case_lue(self.ent, cl)) {
+            if !case_lue(self.ent, cl)?.is_some_and(|lu| attendu.vaut(&lu)) {
                 return Ok(false);
             }
         }
         for (cl, attendu) in c.si_salarie.into_iter().flatten() {
-            if !attendu.vaut(&case_lue(&self.fiche.champs, cl)) {
+            if !case_lue(&self.fiche.champs, cl)?.is_some_and(|lu| attendu.vaut(&lu)) {
                 return Ok(false);
             }
         }
         if let Some(a) = c.anciennete {
-            let depuis = case_lue(&self.fiche.champs, &a.champ).texte;
-            match ans_revolus(&depuis, jour_de_paie(self.paie).as_deref()) {
+            let Some(depuis) = case_lue(&self.fiche.champs, &a.champ)? else { return Ok(false) };
+            match ans_revolus(&depuis.texte, jour_de_paie(self.paie).as_deref()) {
                 Some(n) if n >= a.ans => {}
                 _ => return Ok(false),
             }

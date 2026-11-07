@@ -540,10 +540,16 @@ forme! {
 impl MotifDeSuspension {
     /// Le texte qui fonde ce que le motif dit (`source`) : « article : « citation » », vide sans source.
     pub fn texte(&self) -> String {
-        let sources = self.source.as_ref().map(|f| f.sources()).unwrap_or_default();
-        sources
+        self.source
             .iter()
-            .map(|s| format!("{} : « {} »", s.article.as_deref().unwrap_or(s.fichier.texte()), s.citation))
+            .flat_map(|f| f.sources())
+            .map(|s| {
+                let ou = match &s.article {
+                    Some(article) => article.as_str(),
+                    None => s.fichier.texte(),
+                };
+                format!("{} : « {} »", ou, s.citation)
+            })
             .collect::<Vec<_>>()
             .join(" ; ")
     }
@@ -816,7 +822,10 @@ pub fn rubrique_de_l_indemnite_de_preavis(motif_rupture: Option<&str>) -> Result
     let rg = regles()?;
     let ic = &rg.preavis.indemnite_compensatrice;
     let m = motif_requis(motif_rupture, "L'indemnité de préavis")?;
-    Ok(ic.rubrique_par_motif.get(m).unwrap_or(&ic.rubrique).clone())
+    Ok(match ic.rubrique_par_motif.get(m) {
+        Some(propre) => propre.clone(),
+        None => ic.rubrique.clone(),
+    })
 }
 
 // ------------------------------------------------ le delai de prevenance d'une fin d'essai (L1221-25)
@@ -976,7 +985,11 @@ fn bareme_licenciement(anciennete: Decimal, reference: Decimal) -> Resultat<(Dec
     let annees = div(mois_complets(anciennete), douze());
     let (mut total, mut bas) = (Decimal::ZERO, Decimal::ZERO);
     for t in &rg.indemnite_licenciement.taux {
-        let haut = t.jusqu_a_annees.unwrap_or(annees);
+        // La derniere tranche n'a pas de borne : elle va jusqu'a l'anciennete.
+        let haut = match t.jusqu_a_annees {
+            Some(h) => h,
+            None => annees,
+        };
         let part = add(annees.min(haut), -bas).max(Decimal::ZERO);
         total = add(total, mul(part, t.fraction_de_mois));
         bas = haut;

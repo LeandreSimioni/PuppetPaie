@@ -317,7 +317,7 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
 /// arrete du 17/10/1995, art. 1, I, 1°) ; un code « TC » a le taux de l'arrete de l'annee quel que soit l'effectif
 /// (D. 242-6-14, I), lu au meme endroit que pour la compagnie (`bareme::taux_atmp_applique`).
 fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&droit::forme_bareme::Pile>, arrete: Option<&str>) -> Value {
-    let t = bareme::taux_atmp_d_un_etablissement(e, &an.to_string()).unwrap_or_default();
+    let t = bareme::taux_atmp_d_un_etablissement(e, an as i32).unwrap_or_default();
     let code = t.code_risque.clone().unwrap_or_default();
     let r = socle.and_then(|s| bareme::risques_de(s).into_iter().find(|r| r.code == code));
     let nom_code = r.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());

@@ -272,6 +272,7 @@
         },
         "accident_du_travail": {
           "article": "11.4",
+          "couvre": ["accident_du_travail", "maladie_professionnelle"],
           "anciennete_mois_minimum": 12,
           "note": "« Étendu, sous réserve du respect des dispositions des articles L. 1226-1, D. 1226-1 et D. 1226-2 du code du travail » (arrêté du 29/05/2013) : la condition d'un an d'ancienneté de la loi reste. Le moteur la garde.",
           "source": {
@@ -639,8 +640,9 @@
             "fichier": "atelier/reference/sources/kali-entrepot/articles.jsonl.gz#2642",
             "emetteur": "convention",
             "article": "KALIARTI000028141151",
-            "citation": "Les salariés dont l'ancienneté dans l'entreprise est inférieure à 2 ans [...] - 90 % de sa rémunération brute pendant les 30 premiers jours ; - 66,66 % de sa rémunération brute pendant les 30 jours suivants, et ce, sans délai de carence. Les salariés dont l'ancienneté dans l'entreprise est au moins égale à 2 ans [...] - 90 % de sa rémunération brute pendant les 30 premiers jours ; - 72 % de sa rémunération brute pendant les 30 jours suivants, et ce, sans délai de carence. Les durées d'indemnisation sont augmentées de 10 jours par période entière de 5 ans d'ancienneté en plus d'une ancienneté initiale de 1 an"
+            "citation": "Les salariés dont l'ancienneté dans l'entreprise est inférieure à 2 ans [...] bénéficieront, en cas d'absence pour maladie professionnelle ou accident du travail, d'une indemnité complémentaire à l'allocation journalière versée par la sécurité sociale. [...] - 90 % de sa rémunération brute pendant les 30 premiers jours ; - 66,66 % de sa rémunération brute pendant les 30 jours suivants, et ce, sans délai de carence. Les salariés dont l'ancienneté dans l'entreprise est au moins égale à 2 ans [...] - 90 % de sa rémunération brute pendant les 30 premiers jours ; - 72 % de sa rémunération brute pendant les 30 jours suivants, et ce, sans délai de carence. Les durées d'indemnisation sont augmentées de 10 jours par période entière de 5 ans d'ancienneté en plus d'une ancienneté initiale de 1 an"
           },
+          "couvre": ["accident_du_travail", "maladie_professionnelle"],
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
@@ -1055,6 +1057,7 @@
             "article": "KALIARTI000044226515",
             "citation": "Les salariés bénéficient, en cas d'absence pour maladie professionnelle ou accident du travail, d'une indemnité complémentaire aux indemnités journalières versées par la sécurité sociale. Cette indemnité sera calculée selon les règles suivantes : – lorsque l'ancienneté est inférieure à 6 mois : 80 % de son salaire mensuel brut pendant 3 mois ; – lorsque l'ancienneté est supérieure à 6 mois : –– 100 % de son salaire mensuel brut pendant 4 mois ; –– 80 % de son salaire mensuel brut le 5e et 6e mois."
           },
+          "couvre": ["accident_du_travail", "maladie_professionnelle"],
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "brut",
@@ -1300,6 +1303,7 @@
             "article": "KALIARTI000049869769",
             "citation": "En cas d'accident du travail, l'ancienneté nécessaire pour bénéficier de ces dispositions est réduite à trois mois. [...] En cas d'absence pour accident du travail ou maladie professionnelle survenant entre trois mois et douze mois de présence dans l'entreprise, la durée d'absence susceptible d'être indemnisée sera de deux mois à plein tarif et de deux mois à demi-tarif."
           },
+          "couvre": ["accident_du_travail", "maladie_professionnelle"],
           "anciennete_mois_minimum": 3,
           "carence_jours": 0,
           "base": "brut",
@@ -1435,6 +1439,7 @@
             "article": "KALIARTI000027944605",
             "citation": "- aucune ancienneté n'est requise en cas d'accident du travail ou de maladie professionnelle. [...] - 1er jour en cas d'arrêt de travail pour accident du travail ou de maladie professionnelle ;"
           },
+          "couvre": ["accident_du_travail", "maladie_professionnelle"],
           "anciennete_mois_minimum": 0,
           "carence_jours": 0,
           "base": "net",

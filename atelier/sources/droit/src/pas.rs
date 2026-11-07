@@ -119,28 +119,25 @@ pub fn est_perime(e: &TauxPas, le: Jour) -> bool {
     if e.r#type.texte() != "01" {
         return false;
     }
-    match fin_de_validite(e) {
-        None => true,
-        Some(fin) => le > fin,
-    }
+    fin_de_validite(e).is_none_or(|fin| le > fin)
 }
 
 // ------------------------------------------------------------------ lecture
 
 /// Vrai seulement si la fiche est la ET qu'elle n'a pas de NIR.
 pub fn sans_nir(ctx: &Contexte, cle: &str) -> bool {
-    match ctx.salaries.get(cle) {
-        Some(f) => f.nir.texte().trim().is_empty(),
-        None => false,
-    }
+    ctx.salaries.get(cle).is_some_and(|f| f.nir.texte().trim().is_empty())
 }
 
 /// Le jour auquel on demande si un taux vaut encore : celui du contexte.
 pub fn le_jour(ctx: &Contexte, le: Option<Jour>) -> Jour {
-    le.unwrap_or_else(|| {
-        socle::fichiers::noter_valeur("date", ctx.date.iso());
-        ctx.date
-    })
+    match le {
+        Some(j) => j,
+        None => {
+            socle::fichiers::noter_valeur("date", ctx.date.iso());
+            ctx.date
+        }
+    }
 }
 
 /// LES TAUX RECUS POUR LE SALARIE `cle`, du premier mis a disposition au dernier (a instant egal, dans l'ordre ou ils
@@ -169,8 +166,8 @@ pub const EN_RETOUR_DE: &str = "en_retour_de";
 /// refaire par sa propre reponse, et son annule-et-remplace par la sienne. INFERENCE (les textes supposent la DSN deposee
 /// apres le versement) : un taux en retour de la DSN du mois `M` ne vaut pas pour la paie de `M`, ni d'un mois d'avant.
 fn en_retour_d_un_mois_qui_n_est_pas_avant(e: &TauxPas, mois: Option<&str>) -> bool {
-    let retour = e.en_retour_de.dite().map(|m| m.to_string()).unwrap_or_default();
-    mois.is_some_and(|m| !retour.is_empty() && retour.as_str() >= m)
+    let retour = e.en_retour_de.dite().map(|m| m.to_string()).filter(|r| !r.is_empty());
+    mois.zip(retour).is_some_and(|(m, retour)| retour.as_str() >= m)
 }
 
 /// Le jour ou un taux recu commence de valoir dans la fiche (`depuis` de sa valeur datee) : le jour de sa mise a
@@ -179,7 +176,10 @@ fn en_retour_d_un_mois_qui_n_est_pas_avant(e: &TauxPas, mois: Option<&str>) -> b
 /// de sa DSN, ne s'ecrasent donc pas.
 pub fn date_d_effet(mad: Jour, en_retour_de: Option<&str>) -> Resultat<Jour> {
     let premier_d_apres = en_retour_de.map(|m| socle::mois::Mois::lire(m).map(|m| m.suivant().premier_jour())).transpose()?;
-    Ok(premier_d_apres.map_or(mad, |p| p.max(mad)))
+    Ok(match premier_d_apres {
+        Some(p) => p.max(mad),
+        None => mad,
+    })
 }
 
 /// LE TAUX DU SALARIE AU JOUR `le`, pour la paie du mois `mois` : de ceux qu'il a recus, le dernier mis a disposition au
@@ -240,7 +240,10 @@ pub fn grille<'a>(bareme: &'a Pile, le: Option<Jour>, zone: &str) -> R<&'a Grill
             "Aucune grille de taux par defaut pour la zone {} au {}. Zones \
              connues du bareme : {}.",
             repr(zone),
-            le.map_or("?".to_string(), |j| j.iso()),
+            match le {
+                Some(j) => j.iso(),
+                None => "?".to_string(),
+            },
             connues.into_iter().collect::<Vec<_>>().join(", ")
         ))
     })
@@ -255,7 +258,8 @@ pub fn taux_par_defaut(bareme: &Pile, montant: Decimal, le: Option<Jour>, zone: 
             [Some(b), h, Some(x)] => (*b, *h, *x),
             _ => return Err(ErreurPas::Autre(format!("tranche de la grille du PAS illisible (bas, haut, taux attendus) : {:?}", t))),
         };
-        if montant >= nombre(bas)? && haut.map_or(Ok(true), |h| nombre(h).map(|h| montant < h))? {
+        // La derniere tranche n'a pas de haut.
+        if montant >= nombre(bas)? && haut.map(nombre).transpose()?.is_none_or(|h| montant < h) {
             return Ok((format!("{:.2}", taux), g.genre.clone()));
         }
     }
@@ -369,11 +373,15 @@ fn empreinte_du_triplet(t: &Option<Triplet>) -> String {
 }
 
 /// Ce que `taux_dgfip` a note sous `cle_notee` (`pas <cle> <jour> [<mois>]`), relu maintenant : l'empreinte tient tant
-/// qu'il est le meme. `None` : la cle ne se lit pas.
-pub fn empreinte(ctx: &Contexte, cle_notee: &str) -> Option<String> {
-    let mut parts = cle_notee.strip_prefix("pas ")?.split(' ');
-    let (cle, jour, mois) = (parts.next()?, Jour::lire(parts.next()?).ok()?, parts.next());
-    triplet(ctx, cle, Some(jour), mois).ok().map(|t| empreinte_du_triplet(&t))
+/// qu'il est le meme. `None` : la cle n'est pas une cle du PAS (`pas <cle> <jour>`).
+pub fn empreinte(ctx: &Contexte, cle_notee: &str) -> Resultat<Option<String>> {
+    let Some((cle, jour, mois)) = cle_notee.strip_prefix("pas ").and_then(|r| {
+        let mut parts = r.split(' ');
+        Some((parts.next()?, parts.next()?, parts.next()))
+    }) else {
+        return Ok(None);
+    };
+    Ok(Some(empreinte_du_triplet(&triplet(ctx, cle, Some(Jour::lire(jour)?), mois)?)))
 }
 
 /// La fiche d'un salarie sans ses taux recus : ce qu'une paie lit de la fiche hors du taux, qu'elle lit au jour de son
@@ -472,7 +480,8 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>, mois: Option<&str>
             }
         }
     };
-    let champ = |c: fn(&TauxPas) -> &Option<String>| e.map_or(None, |e| c(e).clone());
+    // Sans taux, ses cases ne disent rien.
+    let champ = |c: fn(&TauxPas) -> &Option<String>| e.and_then(|e| c(e).clone());
     Ok(Situation {
         salarie: cle.to_string(),
         situation: quoi,
@@ -482,7 +491,7 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>, mois: Option<&str>
         identifiant: champ(|e| &e.identifiant),
         valable_jusqu_a: e.and_then(fin_de_validite),
         a_demander: matches!(quoi, PERIME | BAREME | INCONNU),
-        dernier_recu: recus.last().map_or(None, |r| r.mis_a_disposition.clone()),
+        dernier_recu: recus.last().and_then(|r| r.mis_a_disposition.clone()),
     })
 }
 
@@ -511,7 +520,10 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>,
             PERIME => format!(
                 "le dernier taux transmis par la DGFiP ({} %) valait jusqu'au {}",
                 s.taux.texte().replace('.', ","),
-                s.valable_jusqu_a.map_or("?".to_string(), |j| j.jj_mm_aaaa())
+                match s.valable_jusqu_a {
+                    Some(j) => j.jj_mm_aaaa(),
+                    None => "?".to_string(),
+                }
             ),
             SANS_NIR => "sans NIR dans sa fiche, la DGFiP ne peut transmettre aucun taux".into(),
             _ => "aucun taux transmis par la DGFiP".into(),

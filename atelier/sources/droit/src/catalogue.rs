@@ -342,7 +342,7 @@ fn construire(code: &str, f: ChampsRubrique, origine: &str) -> Resultat<Rubrique
         libelle: dite(f.libelle, "libelle", &faute)?,
         unite: dite(f.unite, "unite", &faute)?,
         nature: dite(f.nature, "nature", &faute)?,
-        saisie: f.saisie.unwrap_or_default(),
+        saisie: dite(f.saisie, "saisie", &faute)?,
         soumis: dite(f.soumis, "soumis", &faute)?,
         imposable: dite(f.imposable, "imposable", &faute)?,
         conges_spectacles: dite(f.conges_spectacles, "conges_spectacles", &faute)?,
@@ -493,10 +493,9 @@ pub fn rubrique(racine: &Path, code: &str, jour: &Jour) -> Resultat<Rubrique> {
 /// saisie precise lequel des cinq avantages en nature.
 pub fn code_54(r: &Rubrique, genre: Option<&str>) -> Resultat<Option<String>> {
     let Some(code) = &r.dsn_autres_bruts else { return Ok(None) };
-    let genre = genre.unwrap_or("").trim().to_string();
-    if genre.is_empty() {
+    let Some(genre) = genre.map(str::trim).filter(|g| !g.is_empty()).map(str::to_string) else {
         return Ok(Some(code.clone()));
-    }
+    };
     if !AVANTAGES_EN_NATURE.contains(&code.as_str()) {
         return Err(socle::echec::a_la_cle(&format!("La ligne « {} » dit le genre d'un avantage en nature, et ce n'en est pas un : retirer ce genre.", r.libelle), "genre", repr_texte(&genre)));
     }

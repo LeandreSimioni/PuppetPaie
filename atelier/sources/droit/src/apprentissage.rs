@@ -85,10 +85,7 @@ de la DSN (S21.G00.44.004 : {}). {}. Rien n'est ecrit.",
 /// (`dsn::solde_taxe_apprentissage`) et le bloc 44 de decembre (`blocs`) lisent cette meme decision : le fichier des
 /// organismes garde ses lignes 992/993, comme ses lignes qui dependent du statut ou de l'effectif.
 pub fn taxe_apprentissage_non_due(ent: &ChampsEntreprise, an: i32) -> Resultat<bool> {
-    Ok(match motif_de_la_fiche(ent)? {
-        Some((code, _)) => !(code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES),
-        None => false,
-    })
+    Ok(motif_de_la_fiche(ent)?.is_some_and(|(code, _)| !(code == MNATA_ASSOCIATIONS && an >= MILLESIME_ASSOCIATIONS_REDEVABLES)))
 }
 
 /// La taxe d'apprentissage des salaires de la periode d'emploi `an`-`mois` est-elle due ? Non quand la fiche dit un
@@ -98,9 +95,6 @@ pub fn taxe_apprentissage_non_due(ent: &ChampsEntreprise, an: i32) -> Resultat<b
 /// individuelle 130 du bloc 81) et le bordereau (`dsn::lignes_bordereau`, `dsn::lignes_regularisees` : CTP 992 et 993)
 /// la lisent ici, pour que les trois faces disent la meme chose.
 pub fn taxe_apprentissage_non_due_au_mois(ent: &ChampsEntreprise, an: i32, mois: u32) -> Resultat<bool> {
-    Ok(match motif_de_la_fiche(ent)? {
-        Some((code, _)) => !(code == MNATA_ASSOCIATIONS && (an, mois) >= PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES),
-        None => false,
-    })
+    Ok(motif_de_la_fiche(ent)?.is_some_and(|(code, _)| !(code == MNATA_ASSOCIATIONS && (an, mois) >= PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES)))
 }
 

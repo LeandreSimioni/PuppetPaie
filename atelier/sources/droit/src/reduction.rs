@@ -136,8 +136,12 @@ pub fn reduction_generale_sous_dfs(
     rg: Option<&Parametres>, statut: Option<&str>, brut: Decimal, abattu: Decimal, heures: Decimal, caisse_conges: bool,
 ) -> Resultat<Option<ReductionGenerale>> {
     let Some(apres) = reduction_generale(rg, statut, abattu, heures, caisse_conges)? else { return Ok(None) };
-    let sans = reduction_generale(rg, statut, brut, heures, caisse_conges)?.map_or(Decimal::new(0, 2), |r| r.montant);
-    let limite = eur(mul(sans, Decimal::new(130, 2)));
+    // Le brut entier (au moins le brut abattu) ouvre la reduction des qu'elle s'ouvre sur l'abattu (memes parametres,
+    // meme statut, memes heures).
+    let Some(sans) = reduction_generale(rg, statut, brut, heures, caisse_conges)? else {
+        return Err("La réduction générale s'ouvre sur le brut abattu mais pas sur le brut entier : le signaler au développeur.".into());
+    };
+    let limite = eur(mul(sans.montant, Decimal::new(130, 2)));
     if apres.montant <= limite {
         return Ok(Some(apres));
     }

@@ -19,10 +19,18 @@ pub struct CheminDepose(String);
 /// Le mode d'emploi, la seule source hors de `atelier/reference/`.
 pub const MODE_D_EMPLOI: &str = "atelier/README.md";
 
+/// Le fichier d'un chemin depose, sans le code d'entrepot qui suit son `#`.
+fn sans_code(s: &str) -> &str {
+    match s.split_once('#') {
+        Some((fichier, _)) => fichier,
+        None => s,
+    }
+}
+
 impl TryFrom<String> for CheminDepose {
     type Error = String;
     fn try_from(s: String) -> Result<Self, String> {
-        let fichier = s.split('#').next().unwrap_or_default();
+        let fichier = sans_code(&s);
         if !(fichier.starts_with("atelier/reference/") || fichier == MODE_D_EMPLOI) || fichier.contains("..") {
             return Err("ce fichier n'est pas un texte déposé dans la référence de l'atelier".to_string());
         }
@@ -40,7 +48,7 @@ impl CheminDepose {
     }
     /// Le fichier depose, sans le code d'entrepot.
     pub fn fichier(&self) -> &str {
-        self.0.split('#').next().unwrap_or_default()
+        sans_code(&self.0)
     }
     /// Le code d'un entrepot de la DILA (`travail`, `3090`), si c'en est un.
     pub fn code(&self) -> Option<&str> {

@@ -117,14 +117,14 @@ pub fn histoire_des_etablissements(liste: &[Datee<Vec<Etablissement>>]) -> Resul
     let mut ordre: Vec<String> = Vec::new();
     let mut vus: HashMap<String, (Etablissement, Option<Jour>)> = HashMap::new();
     for (i, v) in versions.iter().enumerate() {
-        let ouverts: &[Etablissement] = v.valeur.dite().map_or(&[], Vec::as_slice);
+        let ouverts: Vec<&Etablissement> = v.valeur.dite().into_iter().flatten().collect();
         let presents: Vec<&str> = ouverts.iter().map(|e| e.nic.texte()).collect();
         for e in ouverts {
             let nic = e.nic.texte().to_string();
             if !vus.contains_key(&nic) {
                 ordre.push(nic.clone());
             }
-            vus.insert(nic, (e.clone(), None));
+            vus.insert(nic, ((*e).clone(), None));
         }
         if i > 0 {
             if let Some(j) = v.depuis {
@@ -305,12 +305,10 @@ fn introuvable(message: String) -> Refus {
 
 /// Les annees dont le socle est livre.
 fn annees_du_socle(dossier: &Path) -> Resultat<Vec<i32>> {
-    let fichiers = match socle::fichiers::lister(dossier)? {
-        Some(f) => f,
-        None => Vec::new(),
-    };
-    let mut v: Vec<i32> = fichiers
+    // Un dossier absent ne livre aucune annee.
+    let mut v: Vec<i32> = socle::fichiers::lister(dossier)?
         .into_iter()
+        .flatten()
         .filter_map(|p| {
             if p.extension()? != "json" {
                 return None;
@@ -319,7 +317,7 @@ fn annees_du_socle(dossier: &Path) -> Resultat<Vec<i32>> {
             if stem.is_empty() || !stem.chars().all(|c| c.is_ascii_digit()) {
                 return None;
             }
-            stem.parse().ok()
+            stem.bytes().try_fold(0i32, |n, c| n.checked_mul(10)?.checked_add(i32::from(c - b'0')))
         })
         .collect();
     v.sort();
@@ -405,7 +403,10 @@ confirmee, le moteur ne paie donc pas.\n  {}",
             annee,
             idcc,
             couche.libelle,
-            couche.a_confirmer.as_deref().unwrap_or("")
+            match &couche.a_confirmer {
+                Some(a) => a.as_str(),
+                None => "Ce qui reste à vérifier n'est pas dit.",
+            }
         ));
     }
     Ok(couche.bareme.as_ref())
@@ -417,12 +418,13 @@ fn inconnue(ou: &str, quoi: &str) -> String {
 }
 
 /// Le code d'une cotisation de la DSN dans une couche : `code81`, ou `code81:affectation`.
-fn code_de(c: &CotisationDsn) -> String {
-    let code = c.code81.clone().unwrap_or_default();
-    match c.affectation.as_deref().filter(|a| !a.is_empty()) {
+/// `None` : la cotisation n'a pas de code, une couche ne la nomme pas.
+fn code_de(c: &CotisationDsn) -> Option<String> {
+    let code = c.code81.clone()?;
+    Some(match c.affectation.as_deref().filter(|a| !a.is_empty()) {
         Some(a) => format!("{}:{}", code, a),
         None => code,
-    }
+    })
 }
 
 /// Ce qu'une couche ecrit des rubriques `liste`, par leur `id`.
@@ -438,7 +440,7 @@ fn modifier_rubriques(liste: &mut [Rubrique], mods: &BTreeMap<String, RubriqueMo
 fn modifier_cotisations(liste: &mut [CotisationDsn], mods: &BTreeMap<String, CotisationModifiee>, ou: &str) -> Resultat<()> {
     for (code, m) in mods {
         let mut vue = false;
-        for c in liste.iter_mut().filter(|c| code_de(c) == *code) {
+        for c in liste.iter_mut().filter(|c| code_de(c).as_ref() == Some(code)) {
             crate::bareme::modifier_cotisation(c, m);
             vue = true;
         }
@@ -580,11 +582,10 @@ fn cle_siret(siret: &str) -> bool {
 
 /// La pile porte-t-elle un versement mobilite (une reponse, ou un taux) ?
 fn versement_mobilite_dit(pile: &Pile) -> bool {
-    match &pile.versement_mobilite {
-        Some(VersementMobiliteEcrit::Dit(s)) => !s.is_empty(),
-        Some(VersementMobiliteEcrit::Ecrit(t)) => t.taux.is_some() || t.code_insee.is_some() || t.autorite.is_some() || t.source.is_some() || t.note.is_some(),
-        None => false,
-    }
+    pile.versement_mobilite.as_ref().is_some_and(|v| match v {
+        VersementMobiliteEcrit::Dit(s) => !s.is_empty(),
+        VersementMobiliteEcrit::Ecrit(t) => t.taux.is_some() || t.code_insee.is_some() || t.autorite.is_some() || t.source.is_some() || t.note.is_some(),
+    })
 }
 
 /// Les etablissements de la fiche se tiennent-ils (SIRET, NIC, une fois chacun) ?
@@ -621,7 +622,7 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, pile: &Pile) -> Result
         // Le taux d'une autre annee que celle du bareme ne se controle pas ici : la paie de l'annee le demande
         // (`bareme::surcharger`, `bareme::taux_atmp_d_un_etablissement`).
         let d_une_autre_annee = e.taux_atmp.dite().and_then(|t| t.annee.dite()).is_some_and(|a| *a != 0 && a.to_string() != an);
-        let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, &an);
+        let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, pile.annee);
         let atmp_juste = atmp.as_ref().is_some_and(|t| t.code_risque.as_deref().is_some_and(|c| !c.is_empty())
             && (d_une_autre_annee || crate::bareme::taux_atmp_applique(&risques, t, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some()));
         if !atmp_juste {
@@ -665,7 +666,10 @@ fn controler_secteur(pile: &Pile, fiche: &ChampsEntreprise) -> Resultat<()> {
     }
     Err(format!(
         "Convention {} : {}\n  Fiche Entreprise, « {} » : {}. Portés : {}.",
-        fiche.idcc.portee().unwrap_or("None"),
+        match fiche.idcc.portee() {
+            Some(idcc) => idcc,
+            None => "None",
+        },
         sec.refus,
         sec.libelle,
         if dit.is_empty() { "non renseigné".to_string() } else { dit },
@@ -713,7 +717,10 @@ pas.\n  {}",
             annee,
             nom,
             couche.libelle,
-            couche.a_confirmer.as_deref().unwrap_or("")
+            match &couche.a_confirmer {
+                Some(a) => a.as_str(),
+                None => "Ce qui reste à vérifier n'est pas dit.",
+            }
         ));
     }
     Ok(())
@@ -809,7 +816,7 @@ L'effacer, ou ecrire \"aucun\".",
         let mut attendues: Vec<&str> = v.reponses.keys().map(String::as_str).collect();
         match rep {
             Some(VersementMobiliteEcrit::Dit(r)) if attendues.contains(&r.as_str()) => continue,
-            Some(VersementMobiliteEcrit::Ecrit(t)) if t.taux.is_some() && t.code_insee.as_deref().unwrap_or("").trim().chars().count() == 5 => continue,
+            Some(VersementMobiliteEcrit::Ecrit(t)) if t.taux.is_some() && t.code_insee.as_deref().is_some_and(|c| c.trim().chars().count() == 5) => continue,
             _ => {}
         }
         noms.push(format!("{} (non porte)", cle));
@@ -820,8 +827,14 @@ L'effacer, ou ecrire \"aucun\".",
 caracteres) de la commune de l'etablissement : les deux se \
 lisent sur la deliberation de l'autorite ou sur le bordereau \
 Urssaf.",
-                t.taux.map_or("absent".to_string(), |x| x.0.to_string()),
-                t.code_insee.as_deref().map_or("absent".to_string(), |c| format!("« {} »", c))
+                match t.taux {
+                    Some(x) => x.0.to_string(),
+                    None => "absent".to_string(),
+                },
+                match t.code_insee.as_deref() {
+                    Some(c) => format!("« {} »", c),
+                    None => "absent".to_string(),
+                }
             ),
             Some(VersementMobiliteEcrit::Dit(r)) => format!(
                 "La valeur ecrite (« {} ») ne le debloque pas : il n'y a ni \
@@ -840,7 +853,10 @@ taux ne le ferait pas cotiser.",
             ou,
             cle,
             attendues.iter().map(|r| format!("\"{}\"", r)).collect::<Vec<_>>().join(" ou "),
-            v.texte.as_deref().unwrap_or("")
+            match v.texte.as_deref() {
+                Some(t) => t,
+                None => "non dite",
+            }
         ));
     }
 
@@ -860,7 +876,10 @@ faux, sans un mot : c'est ce que le moteur faisait avant le \
 qu'une decision a ete prise, pas laquelle -- comme pour le taux \
 AT/MP, que lui seul ne peut pas connaitre.",
         an,
-        eff.valeur(an).map_or("?".to_string(), format_g),
+        match eff.valeur(an) {
+            Some(n) => format_g(n),
+            None => "?".to_string(),
+        },
         noms.join(", "),
         griefs.join("\n")
     ))
@@ -1223,7 +1242,10 @@ pub const ORGANISMES: &str = "organismes.json";
 impl Contexte {
     /// Le contexte de `racine` a la date `date`. Sans `date`, celle de l'horloge du moteur (`jour_reel`).
     pub fn nouveau(racine: &Path, date: Option<Jour>) -> Resultat<Contexte> {
-        let date = date.unwrap_or_else(jour_reel);
+        let date = match date {
+            Some(d) => d,
+            None => jour_reel(),
+        };
         let aujourdhui = aujourdhui_brut()?;
         let cfg = racine.join(socle::fichiers::CONFIG);
         let fiches = lire_fiches(&cfg)?;
@@ -1267,7 +1289,11 @@ impl Contexte {
     /// logiciel qui l'a applique. Rien ne s'ecrit ; une compagnie qui a pose le sien garde le sien.
     pub fn avec_le_taux_atmp_lu(mut self, an: i32, valeur: Decimal) -> Contexte {
         // Le taux tel qu'un bareme l'ecrit : sa forme la plus courte (`socle::forme::decimal`).
-        let ecrit = valeur.to_string().parse::<f64>().ok().and_then(|f| socle::num::dec_f64(f).ok()).unwrap_or(valeur);
+        // Sans ses zeros de queue, un entier gardant sa decimale (`1.0`), comme `socle::num::dec_f64` l'ecrit.
+        let mut ecrit = valeur.normalize();
+        if ecrit.scale() == 0 {
+            ecrit.rescale(1);
+        }
         self.atmp_lu = Some((an, ecrit));
         self
     }
@@ -1492,16 +1518,33 @@ depuis le plus recent.",
     }
 
     fn taux_atmp_reporte_de(&self, an: i32, ent: &ChampsEntreprise) -> Option<Result<TauxAtmpEcrit, String>> {
+        match self.dernier_taux_atmp_pose_avant(an) {
+            Err(e) => Some(Err(e)),
+            Ok(None) => None,
+            Ok(Some((pa, pose))) => {
+                let (socle_an, socle_avant) = match (socle_livre_lu(an), socle_livre_lu(pa)) {
+                    (Ok(a), Ok(b)) => (a, b),
+                    (Err(e), _) | (_, Err(e)) => return Some(Err(e)),
+                };
+                let alsace = crate::bareme::en_alsace_moselle(ent.code_postal.texte());
+                crate::bareme::taux_atmp_reporte(an, socle_an.as_ref(), (pa, &pose), socle_avant.as_ref(), alsace)
+            }
+        }
+    }
+
+    /// Le dernier taux AT/MP qu'une surcouche d'une des annees d'avant `an` pose avec son code risque, et son annee.
+    fn dernier_taux_atmp_pose_avant(&self, an: i32) -> Resultat<Option<(i32, TauxAtmpEcrit)>> {
         let dossier = self.racine.join(BAREMES);
-        let (pa, pose) = (an - ANNEES_DU_TAUX_ATMP..an).rev().find_map(|y| {
+        for y in (an - ANNEES_DU_TAUX_ATMP..an).rev() {
             let p = dossier.join(format!("{}.json", y));
-            let t = socle::fichiers::existe(&p).then(|| crate::forme_bareme::lire_la_surcouche(&p).ok()).flatten()?.taux_atmp?;
-            t.code_risque.as_deref().is_some_and(|c| !c.trim().is_empty()).then_some((y, t))
-        })?;
-        let socle_an = socle_livre_lu(an).ok().flatten();
-        let socle_avant = socle_livre_lu(pa).ok().flatten();
-        let alsace = crate::bareme::en_alsace_moselle(ent.code_postal.texte());
-        crate::bareme::taux_atmp_reporte(an, socle_an.as_ref(), (pa, &pose), socle_avant.as_ref(), alsace)
+            if !socle::fichiers::existe(&p) {
+                continue;
+            }
+            if let Some(t) = crate::forme_bareme::lire_la_surcouche(&p)?.taux_atmp.filter(|t| t.code_risque.as_deref().is_some_and(|c| !c.trim().is_empty())) {
+                return Ok(Some((y, t)));
+            }
+        }
+        Ok(None)
     }
 
     /// LE BAREME DE `jour` AVANT SON CONTROLE (le socle, la convention, la surcouche de la compagnie) : ce contre quoi une
@@ -1523,8 +1566,8 @@ depuis le plus recent.",
     /// dit a sa date (« règle du JJ/MM/AAAA »).
     pub fn configuration_datee(&self, jour: &Jour, salarie: &str, spectacle: Option<&str>) -> Resultat<Vec<Jour>> {
         let mut out = self.fiches.entreprise.dates_en_vigueur(jour);
-        out.extend(self.fiches.salaries.fiches.get(salarie).map_or_else(Vec::new, |f| f.dates_en_vigueur(jour)));
-        out.extend(spectacle.and_then(|s| self.fiches.spectacles.fiches.get(s)).map_or_else(Vec::new, |f| f.dates_en_vigueur(jour)));
+        out.extend(self.fiches.salaries.fiches.get(salarie).into_iter().flat_map(|f| f.dates_en_vigueur(jour)));
+        out.extend(spectacle.and_then(|s| self.fiches.spectacles.fiches.get(s)).into_iter().flat_map(|f| f.dates_en_vigueur(jour)));
         out.sort();
         out.dedup();
         Ok(out)
@@ -1540,7 +1583,7 @@ depuis le plus recent.",
         let Some(idcc) = ent.idcc.portee() else { return Ok(Vec::new()) };
         let (socle_an, _) = crate::forme_bareme::lire_le_socle(&fichier, jour, ent.organisation_patronale.dite().map(String::as_str))?;
         let Some(couche) = convention(&socle_an, idcc)? else { return Ok(Vec::new()) };
-        Ok(couche.contributions_dsn.clone().unwrap_or_default())
+        Ok(couche.contributions_dsn.iter().flatten().cloned().collect())
     }
 
     /// Le bareme resolu a ce jour, garde et partage : il se lit sans se copier ; ce qui le change (la pile d'un contrat,
@@ -1561,8 +1604,9 @@ depuis le plus recent.",
     pub fn plafond_securite_sociale(&self, annee: i32) -> Resultat<(i64, i64)> {
         let jour = Jour::nouveau(annee, 1, 1).ok_or_else(|| format!("Année {} hors du calendrier.", annee))?;
         let lue = self.pile_lue(&jour, &self.entreprise).map_err(|r| r.message)?;
-        let entier = |x: Decimal| x.trunc().to_string().parse::<i64>().ok().filter(|n| *n != 0);
-        match lue.pile.plafond_securite_sociale.as_ref().and_then(|p| entier(p.mensuel).zip(entier(p.horaire))) {
+        let entier = |x: Decimal| i64::try_from(x.trunc()).map_err(|e| e.to_string());
+        let plafond = lue.pile.plafond_securite_sociale.as_ref().map(|p| Ok::<_, String>((entier(p.mensuel)?, entier(p.horaire)?))).transpose()?;
+        match plafond.filter(|(m, h)| *m != 0 && *h != 0) {
             Some(mh) => Ok(mh),
             None => Err(socle::echec::avec(
                 "Le barème de l'année n'a pas le plafond de la Sécurité sociale : le signaler au développeur.",
@@ -1594,9 +1638,9 @@ PSS_H_METROP).",
     /// Les autres etablissements que la fiche dit en dernier (ouverts ou fermes depuis), hors le siege : ce que l'ecran en
     /// montre.
     pub fn etablissements_dits(&self) -> Vec<crate::fiche::Etablissement> {
-        let tout = Jour::nouveau(9999, 12, 31).map(|j| self.fiches.entreprise.au(&j)).unwrap_or_default();
+        let derniere = crate::fiche::valeurs_datees(&self.fiches.entreprise.etablissements).last().and_then(|d| d.valeur.dite());
         let principal = self.entreprise.nic_principal();
-        tout.etablissements.dite().into_iter().flatten().filter(|e| e.nic.texte() != principal).cloned().collect()
+        derniere.into_iter().flatten().filter(|e| e.nic.texte() != principal).cloned().collect()
     }
 
     /// La fiche entreprise d'un mois `AAAA-MM` : lue au dernier jour du mois, avec chaque autre etablissement ouvert un
@@ -1649,7 +1693,10 @@ PSS_H_METROP).",
     /// Le salarie de cette cle tel que l'ecran le nomme (`socle::texte::salarie_nomme` : « NOM Prénom ») ; la cle sans
     /// fiche.
     pub fn nomme(&self, cle: &str) -> String {
-        self.salaries.get(cle).and_then(|f| f.nomme()).unwrap_or_else(|| cle.to_string())
+        match self.salaries.get(cle).and_then(|f| f.nomme()) {
+            Some(nom) => nom,
+            None => cle.to_string(),
+        }
     }
 
     /// Retrouve un salarie par cle, NIR, nom, prenom ou

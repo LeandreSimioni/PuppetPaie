@@ -138,7 +138,12 @@ pub fn complementaires(idcc: &str, heures: Decimal, contrat: Decimal) -> Resulta
     if reste > Decimal::ZERO {
         ajouter(&mut r.paliers, reste, derniere);
     }
-    let plafond = crate::clauses::releve(idcc)?.and_then(|c| c.heures_complementaires).map_or(hc.plafond_sans_accord, |c| c.plafond).nom();
+    // Le plafond de la convention quand elle en fixe un, celui de la loi (L. 3123-28) sinon.
+    let plafond = match crate::clauses::releve(idcc)?.and_then(|c| c.heures_complementaires) {
+        Some(c) => c.plafond,
+        None => hc.plafond_sans_accord,
+    }
+    .nom();
     let limite = part(plafond)?;
     if heures > limite {
         r.avis.push(format!(

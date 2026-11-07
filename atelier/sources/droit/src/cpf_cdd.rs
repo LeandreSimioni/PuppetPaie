@@ -67,7 +67,7 @@ pub fn codes_de(nat: &Nature, motif_recours: Option<&str>) -> (Option<String>, O
 /// un CDD sans motif refuse (le motif dit s'il est saisonnier), un motif que la nature n'a pas aussi
 /// (`Nature::motif_recours_refuse`).
 pub fn contrat_ouvre_cpf_cdd(nat: &Nature, motif_recours: Option<&str>, qui: &str) -> Resultat<bool> {
-    if let Some(refus) = nat.code("S21.G00.40.021").is_none().then(|| nat.motif_recours_refuse(motif_recours.unwrap_or_default(), qui)).flatten() {
+    if let Some(refus) = nat.code("S21.G00.40.021").is_none().then(|| motif_recours.and_then(|m| nat.motif_recours_refuse(m, qui))).flatten() {
         return Err(refus);
     }
     let (n, d, m) = codes_de(nat, motif_recours);

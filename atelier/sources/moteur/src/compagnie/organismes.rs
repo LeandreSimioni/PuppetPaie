@@ -152,7 +152,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (saisi, _) = saisis(ctx).map_err(plain)?;
     let lignes: Vec<droit::organismes::Ligne> =
         attendus(ctx).map_err(plain)?.iter().filter(|s| se_montre(ctx, s) && s.couvre(&periode)).map(|s| ligne(s, &saisi)).collect();
-    let a_saisir = lignes.iter().any(|l| l.libelle.is_empty() || l.organisme.is_empty());
+    let a_saisir = lignes.iter().any(|l| l.libelle.is_none() || l.organisme.is_none());
     Ok(json!({
         "idcc": ctx.entreprise.idcc.texte().trim(),
         "a_saisir": a_saisir,
@@ -175,7 +175,7 @@ pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let compose = composer(&du_mois, &saisi, prises, &saisies, Some(&periode)).map_err(refus)?;
     // Ce qu'un texte donne entier (sa reference de contrat et son identifiant) ne s'ecrit pas : il se recompose a la
     // date de chaque mois, sous la convention de ce mois.
-    let fixes: Vec<String> = attendus(&du_mois).map_err(plain)?.iter().filter(|s| !s.libelle_donne().is_empty()).map(|s| s.cle.trim().to_string()).collect();
+    let fixes: Vec<String> = attendus(&du_mois).map_err(plain)?.iter().filter(|s| s.libelle_donne().is_some()).map(|s| s.cle.trim().to_string()).collect();
     let adhesions: Vec<Adhesion> = compose.adhesions_prevoyance.into_iter().filter(|a| !fixes.contains(&a.cle)).collect();
     let (en_vigueur, _) = saisis(&du_mois.au(&periode.0).map_err(plain)?).map_err(plain)?;
     // Le fichier ne garde que la saisie : tout autre cle se recompose des textes (`droit::organismes`).

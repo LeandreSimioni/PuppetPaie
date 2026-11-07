@@ -341,11 +341,11 @@ pub struct LigneDeMaintien {
 }
 
 forme! {
-    /// Le maintien d'un accident du travail : les origines qu'il couvre (sans `couvre` : l'accident du travail et la
-    /// maladie professionnelle), ses tranches, et celles d'une anciennete plus longue.
+    /// Le maintien d'un accident du travail : les origines qu'il couvre (celles que l'article nomme), ses tranches, et
+    /// celles d'une anciennete plus longue.
     pub struct MaintienAccident {
         pub article: String,
-        pub couvre: Option<Vec<crate::maintien::Origine>>,
+        pub couvre: Vec<crate::maintien::Origine>,
         pub anciennete_mois_minimum: Nombre,
         pub carence_jours: i64,
         pub base: BaseDuMaintien,
@@ -536,7 +536,11 @@ pub fn categorie_en_mots(c: &str) -> String {
 pub fn categorie_imprimee(idcc: &str, c: &str) -> Resultat<Option<String>> {
     let t = table()?;
     let dite = t.convention(idcc).and_then(|conv| conv.categories.as_ref()).and_then(|s| s.valeurs.iter().find(|(k, _)| k == c));
-    Ok(dite.map(|(_, l)| l.split(". ").next().unwrap_or(l).trim_end_matches('.').to_string()))
+    let premiere_phrase = |l: &str| match l.split_once(". ") {
+        Some((p, _)) => p.trim_end_matches('.').to_string(),
+        None => l.trim_end_matches('.').to_string(),
+    };
+    Ok(dite.map(|(_, l)| premiere_phrase(l)))
 }
 
 fn non_relevees(idcc: &str) -> String {
@@ -576,8 +580,7 @@ pub fn profil(idcc: &str, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resul
 
     let dit = e.categorie_conventionnelle.clone().or_else(|| Some(fiche.categorie_conventionnelle.code().to_string()).filter(|c| !c.is_empty()));
     if let Some(dit) = dit {
-        let valeurs = sec.map_or(&[][..], |s| &s.valeurs[..]);
-        if !valeurs.is_empty() && !valeurs.iter().any(|(k, _)| *k == dit) {
+        if let Some(valeurs) = sec.map(|s| &s.valeurs).filter(|v| !v.is_empty() && !v.iter().any(|(k, _)| *k == dit)) {
             return Ok(profil(None, format!(
                 "la catégorie dans la convention de la fiche ({}) est inconnue de {} (catégories : {})",
                 repr(&dit),
@@ -596,7 +599,13 @@ pub fn profil(idcc: &str, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resul
     if statut == Some("artiste") {
         return Ok(profil(Some("artiste"), "le statut artiste".into()));
     }
-    let est_cadre = e.cadre.unwrap_or_else(|| fiche.statut_categoriel_rc.code() == "01");
+    // Cadre : l'engagement le dit, sinon la fiche (son statut categoriel, S21.G00.40.003) ; ni l'un ni l'autre, la
+    // categorie ne se lit pas.
+    let est_cadre = match (e.cadre, fiche.statut_categoriel_rc.dite()) {
+        (Some(c), _) => c,
+        (None, Some(rc)) => crate::fiche::Choix::code(rc) == "01",
+        (None, None) => return Ok(profil(None, "ni l'engagement ni la fiche (statut catégoriel) ne disent si le salarié est cadre".into())),
+    };
     let niveau = c3090.map(|c| c.niveau.clone());
     let selon_niveau = sec.and_then(|s| s.par_niveau_3090.as_ref().zip(niveau.as_ref()).and_then(|(m, n)| m.get(n))).filter(|c| !c.is_empty());
     if est_cadre {
@@ -615,7 +624,10 @@ pub fn profil(idcc: &str, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resul
         }
         return Ok(profil(Some(c), format!("le niveau 3090 du métier {} ({})", code, niveau)));
     }
-    let code_dit = code.unwrap_or_else(|| "aucun code métier".to_string());
+    let code_dit = match code {
+        Some(c) => c,
+        None => "aucun code métier".to_string(),
+    };
     Ok(profil(None, format!("ni la fiche, ni le métier ({}) ne disent la catégorie", code_dit)))
 }
 
@@ -664,7 +676,11 @@ pub fn preavis_mois(idcc: &str, categorie: Option<&str>, anciennete: Decimal, mo
         }
     };
     if tranches.is_empty() {
-        return Ok(rien(Some(article), format!("{} ne fixe pas de préavis pour la catégorie {}", nom(idcc), categorie_en_mots(categorie.unwrap_or("")))));
+        let pourquoi = match categorie {
+            Some(c) => format!("{} ne fixe pas de préavis pour la catégorie {}", nom(idcc), categorie_en_mots(c)),
+            None => format!("{} ne fixe pas de préavis", nom(idcc)),
+        };
+        return Ok(rien(Some(article), pourquoi));
     }
     for t in tranches {
         if a >= p(&t.anciennete_mois_min) && t.anciennete_mois_max.as_ref().is_none_or(|h| a < p(h)) {
@@ -703,7 +719,11 @@ pub fn par_tranches(taux: &[Tranche], annees: P, entieres: bool) -> P {
     let annees = if entieres { annees.plancher() } else { annees };
     let (mut total, mut bas) = (P::ZERO, P::ZERO);
     for t in taux {
-        let haut = t.jusqu_a_annees.as_ref().map_or(annees, p);
+        // La derniere tranche n'a pas de borne : elle va jusqu'a l'anciennete.
+        let haut = match &t.jusqu_a_annees {
+            Some(h) => p(h),
+            None => annees,
+        };
         let part = annees.min(haut).sub(bas);
         let part = if part > P::ZERO { part } else { P::ZERO };
         total = total.add(part.mul(p(&t.fraction_de_mois)));
@@ -797,8 +817,7 @@ pub fn indemnite_licenciement(
         return Ok(pas_releve(non_relevees(idcc)));
     };
     let annees = a.div(P::entier(12));
-    let motif_t = motif.unwrap_or("");
-    let dans = |l: &[String]| l.iter().any(|x| x == motif_t);
+    let dans = |l: &[String]| motif.is_some_and(|m| l.iter().any(|x| x == m));
     let mut lectures: Vec<(String, P)> = Vec::new();
     let mut article = format!("{}, art. {}", nom(idcc), sec.article);
     let mut hors_primes = false;
@@ -807,8 +826,8 @@ pub fn indemnite_licenciement(
         let (bas, haut) = if du { (lectures.iter().map(|x| x.1).min(), lectures.iter().map(|x| x.1).max()) } else { (None, None) };
         Indemnite { releve: true, du, bas, haut, lectures, hors_primes, article: Some(article), pourquoi }
     };
-    if sec.motifs_sans_indemnite.as_deref().is_some_and(dans) {
-        let p = format!("le motif {} n'ouvre pas d'indemnite de licenciement", motif_t);
+    if let Some(m) = motif.filter(|_| sec.motifs_sans_indemnite.as_deref().is_some_and(dans)) {
+        let p = format!("le motif {} n'ouvre pas d'indemnite de licenciement", m);
         return Ok(sortie(lectures, article, hors_primes, Some(p), false));
     }
 
@@ -816,7 +835,10 @@ pub fn indemnite_licenciement(
     if a >= p(&sec.anciennete_minimale_mois) {
         let mut mois = match (&sec.par_motif, &sec.taux) {
             (Some(pm), _) => {
-                let choix = pm.economique.as_ref().filter(|e| e.motifs.as_deref().is_some_and(dans)).unwrap_or(&pm.autre);
+                let choix = match pm.economique.as_ref().filter(|e| e.motifs.as_deref().is_some_and(dans)) {
+                    Some(economique) => economique,
+                    None => &pm.autre,
+                };
                 choix.mois(annees)?
             }
             (None, Some(taux)) => tranches(taux, annees),
@@ -965,7 +987,10 @@ pub fn indemnite_mise_a_la_retraite(idcc: &str, anciennete: Decimal, reference: 
     } else if let Some(taux) = sec.taux.as_ref().filter(|t| !t.is_empty()) {
         // Le bareme du licenciement, par tranches, avec son plafond.
         let mois = tranches(taux, annees);
-        sec.plafond_mois.as_ref().map_or(mois, |plafond| mois.min(p(plafond)))
+        match &sec.plafond_mois {
+            Some(plafond) => mois.min(p(plafond)),
+            None => mois,
+        }
     } else {
         let par_annee = sec.par_annee.as_ref().ok_or_else(|| manque("mise_a_la_retraite.par_annee"))?;
         let au_dela = annees.sub(p(sec.au_dela_de_annees.as_ref().ok_or_else(|| manque("mise_a_la_retraite.au_dela_de_annees"))?));
@@ -1046,10 +1071,14 @@ pub fn prime_anciennete(idcc: &str, annexe: &str, fiche: &ChampsSalarie, e: &Dit
     }
     let code = e.metier.clone().or_else(|| fiche.code_emploi_ft.remplie().map(str::to_string));
     let m = code.as_deref().map(emplois::metier).transpose()?.flatten();
-    let statut = e.statut.as_deref().unwrap_or(fiche.statut.code());
+    // Artiste : l'engagement le dit, sinon la fiche.
+    let artiste = match &e.statut {
+        Some(s) => s == "artiste",
+        None => fiche.statut.dite() == Some(&crate::fiche::Statut::Artiste),
+    };
     let (Some(m), Some(code)) = (m.as_ref(), code.as_deref()) else { return Ok(None) };
     let Some(c3090) = m.classification_3090().filter(|c| c.grille == "technique") else { return Ok(None) };
-    if statut == "artiste" {
+    if artiste {
         return Ok(None);
     }
     let famille = m.famille();

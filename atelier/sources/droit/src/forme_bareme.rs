@@ -185,7 +185,7 @@ pub(crate) mod datee {
                 Some(source) => {
                     let t = crate::minima::table()?;
                     let accord = crate::minima::accord(&t, &source).ok_or_else(|| socle::echec::livree("minima-conventionnels.json", &source))?;
-                    let ecrit = depuis.map(|j| j.iso()).unwrap_or_default();
+                    let ecrit = depuis.ok_or_else(|| socle::echec::a_la_cle("Une valeur du barème datée par un accord ne dit pas son jour : le signaler au développeur.", "depuis", &source))?.iso();
                     match crate::minima::lie_depuis(accord, lecture.organisation.as_deref(), &ecrit) {
                         Some(j) => Some(Jour::lire(&j)?),
                         None => continue,
@@ -737,19 +737,22 @@ forme! {
     pub struct RisqueAtmp {
         pub code: String,
         pub code_arrete: Option<String>,
-        pub taux: Option<f64>,
+        pub taux: Option<Nombre>,
         pub tc: bool,
         pub alsace_moselle: Option<AtmpAlsaceMoselle>,
-        pub libelle: Option<String>,
+        pub libelle: String,
         pub precisions: Option<String>,
     }
 }
 
-forme! {
-    pub struct AtmpAlsaceMoselle {
-        pub groupe: i64,
-        pub taux: f64,
-    }
+/// Le groupe et le taux d'un risque en Alsace-Moselle (annexe 3 de l'arrete) : un taux sans defaut, il se lit.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AtmpAlsaceMoselle {
+    pub groupe: i64,
+    pub taux: Nombre,
+    pub source: Option<Fondement>,
+    pub note: Option<String>,
 }
 
 forme! {

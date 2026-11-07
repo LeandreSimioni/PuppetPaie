@@ -3,7 +3,7 @@
 //! pas. Le catalogue porte le minimum de la branche ; ce que la compagnie souscrit se dit sur sa fiche
 //! (`prevoyance_permanents`), et le moteur le confronte a ce minimum.
 
-use super::{alsace_moselle, arrondi4, deux_virgule, jour_texte, nom_du_salarie, ChampsEntreprise, Decimal, Jour, Mutuelle, Resultat, SalarieDuContrat};
+use super::{alsace_moselle, arrondi4, deux_virgule, nom_du_salarie, ChampsEntreprise, Decimal, Jour, Mutuelle, Resultat, SalarieDuContrat};
 use crate::fiche::{ExtensionT2, Lue};
 use socle::echec::APart;
 use socle::fichiers::{forme_en_cache, FormeGardee};
@@ -25,11 +25,12 @@ forme! {
 }
 
 forme! {
-    /// Le plancher national des cadres, quelle que soit la convention : un taux de la tranche 1, a la charge de
-    /// l'employeur.
+    /// Le plancher national des cadres, quelle que soit la convention : un taux de la tranche 1, et la part de
+    /// l'employeur (l'accord du 17/11/2017, art. 1er, l'oblige a verser la cotisation : `source`), celle d'un cadre dont
+    /// la convention n'a pas de bloc `obligatoire_cadre`.
     pub struct ObligationCadre {
         pub taux_t1: f64,
-        pub charge: String,
+        pub part_patronale: f64,
     }
 }
 
@@ -178,9 +179,9 @@ pub fn financement(idcc: &str) -> Resultat<Option<Financement>> {
     Ok(catalogue()?.regime(idcc).and_then(|r| r.financement_paritarisme.clone()))
 }
 
-/// La derniere des valeurs datees jusqu'a `jour` inclus (toutes si `jour` est vide), et son jour.
-fn derniere<'a>(table: &'a Datees, jour: &str) -> Option<(&'a Jour, Decimal)> {
-    table.iter().filter(|(k, _)| jour.is_empty() || k.iso().as_str() <= jour).next_back().map(|(k, v)| (k, v.0))
+/// La derniere des valeurs datees jusqu'a `jour` inclus (toutes sans jour), et son jour.
+fn derniere<'a>(table: &'a Datees, jour: Option<&Jour>) -> Option<(&'a Jour, Decimal)> {
+    table.iter().filter(|(k, _)| jour.is_none_or(|j| *k <= j)).next_back().map(|(k, v)| (k, v.0))
 }
 
 /// La convention a-t-elle un regime de sante a elle ?
@@ -196,29 +197,41 @@ pub(crate) fn sante_conventionnelle(ent: &ChampsEntreprise, sal: &SalarieDuContr
     if super::sans_sante(sal) {
         return Ok(Some(Mutuelle::Sans));
     }
-    let jour = jour_texte(fin);
-    let Some((_, mut total)) = derniere(&sante.taux, &jour) else {
+    let Some((_, mut total)) = derniere(&sante.taux, fin) else {
         return Err(format!(
             "Complementaire sante des permanents, convention {} : aucun taux \
 en vigueur au {} dans le catalogue de branche.",
             ent.idcc.texte(),
-            jour
+            match fin {
+                Some(j) => j.iso(),
+                None => "jour de la paie".to_string(),
+            }
         ));
     };
     if let Some(local) = sante.taux_alsace_moselle.as_ref().filter(|t| !t.is_empty()).filter(|_| alsace_moselle(ent, sal)) {
-        if let Some((_, local)) = derniere(local, &jour) {
+        if let Some((_, local)) = derniere(local, fin) {
             total = local;
         }
     }
     let choix = ent.sante_permanents.dite().and_then(|s| s.part_patronale.dite());
     let minimum = sante.part_patronale_minimum.0;
-    let part = choix.map_or(minimum, |c| c.decimal());
+    // La part de l'employeur est celle que la compagnie a decidee (au moins le minimum de la convention) : elle seule la
+    // connait.
+    let Some(choix) = choix else {
+        return Err(format!(
+            "Fiche Entreprise, « Santé des permanents », part employeur : à remplir. La convention {} en met au moins {} % \
+à la charge de l'employeur ; la part de la compagnie est sur son contrat de complémentaire santé.",
+            ent.idcc.texte(),
+            minimum
+        ));
+    };
+    let part = choix.decimal();
     if part < minimum || part > Decimal::ONE_HUNDRED {
         return Err(format!(
             "Fiche Entreprise, « Santé des permanents », part employeur {} % : \
 la convention {} met au moins {} % de la cotisation sante a la \
 charge de l'employeur (XII.2.1.11), et pas plus de 100.",
-            choix.map(|c| c.ecrit()).unwrap_or_default(),
+            choix.ecrit(),
             ent.idcc.texte(),
             minimum
         ));
@@ -228,18 +241,15 @@ charge de l'employeur (XII.2.1.11), et pas plus de 100.",
 }
 
 /// `super::minimum_sante`.
-pub fn minimum_sante(ent: &ChampsEntreprise, jour: &str) -> Resultat<(Option<Decimal>, String)> {
+pub fn minimum_sante(ent: &ChampsEntreprise, jour: Option<&Jour>) -> Resultat<Option<(Decimal, String)>> {
     let c = catalogue()?;
-    let Some(m) = c.regime(ent.idcc.texte()).and_then(|r| r.sante_minimum.as_ref()) else { return Ok((None, String::new())) };
+    let Some(m) = c.regime(ent.idcc.texte()).and_then(|r| r.sante_minimum.as_ref()) else { return Ok(None) };
     let annexe = ent.annexe_convention.code().to_string();
     let (table, qui) = match m.annexes.as_ref().and_then(|a| a.get(&annexe)) {
         Some(t) => (t, format!("annexe {}", annexe)),
         None => (&m.socle, "socle".to_string()),
     };
-    Ok(match derniere(table, jour) {
-        Some((depuis, taux)) => (Some(taux), format!("{}, depuis le {}", qui, depuis.jj_mm_aaaa())),
-        None => (None, String::new()),
-    })
+    Ok(derniere(table, jour).map(|(depuis, taux)| (taux, format!("{}, depuis le {}", qui, depuis.jj_mm_aaaa()))))
 }
 
 fn pcf(x: f64) -> String {
@@ -288,7 +298,10 @@ Quand c'est fait : `applicable: true` dans \
 donnees/prevoyance-conventionnelle-base.json.",
                     idcc,
                     reg.libelle,
-                    reg.a_confirmer.as_deref().unwrap_or_default(),
+                    match &reg.a_confirmer {
+                        Some(a) => a.as_str(),
+                        None => "(le catalogue ne le dit pas)",
+                    },
                     resume(reg)
                 )),
                 ..APart::default()
@@ -371,8 +384,8 @@ fn ouverture(reg: &Regime, sal: &SalarieDuContrat, cadre: bool, fin: Option<&Jou
         return Ok((true, "due des l'embauche".to_string()));
     }
     let branche = sal.prevoyance_branche_depuis.dite();
-    if let Some(mois) = mois_entre(branche, fin) {
-        return Ok((mois >= seuil, format!("{} mois dans la branche depuis le {} (seuil {})", mois, branche.map(Jour::iso).unwrap_or_default(), seuil)));
+    if let (Some(depuis), Some(mois)) = (branche, mois_entre(branche, fin)) {
+        return Ok((mois >= seuil, format!("{} mois dans la branche depuis le {} (seuil {})", mois, depuis.iso(), seuil)));
     }
     let mois_maison = mois_entre(sal.date_anciennete.dite(), fin);
     if let Some(m) = mois_maison {
@@ -386,7 +399,7 @@ dans la branche, chez nous ou dans une autre compagnie, et il n'en a que {} ici.
 Configuration › Salariés, « Dans la branche depuis » : le jour où il y est entré ; s'il n'y travaillait pas \
 avant, son jour d'embauche chez nous. Le supposer venu de la branche le ferait cotiser pour rien, le supposer \
 nouveau le laisserait sans couverture pendant un an.",
-        nom_du_salarie(sal, "ce salarie"),
+        nom_du_salarie(sal),
         seuil,
         match mois_maison {
             Some(m) => format!("{} mois", m),
@@ -395,27 +408,32 @@ nouveau le laisserait sans couverture pendant un an.",
     ))
 }
 
-/// (taux minimum de tranche 1, d'ou il vient) pour ce salarie.
-fn minimum_t1(reg: &Regime, annexe: &str, cadre: bool) -> Resultat<(f64, String)> {
-    let mut taux = reg.obligatoire.taux.unwrap_or(0.0);
-    let mut pourquoi = format!("{} : {} %", reg.texte, pcf(taux));
+/// (taux minimum de tranche 1, d'ou il vient) pour ce salarie ; `None` : ni la convention (elle fixe la repartition,
+/// pas le taux : `contrat_requis`) ni l'obligation cadre n'en fixent.
+fn minimum_t1(reg: &Regime, annexe: &str, cadre: bool) -> Resultat<Option<(f64, String)>> {
+    let mut retenu = reg.obligatoire.taux.map(|t| (t, format!("{} : {} %", reg.texte, pcf(t))));
     let sup = reg.annexes.as_ref().and_then(|a| a.get(annexe)).map(|a| a.taux).filter(|t| *t != 0.0);
-    if let Some(s) = sup.filter(|s| *s > taux) {
-        taux = s;
-        pourquoi = format!("annexe {} de la convention : {} %", annexe, pcf(taux));
+    if let Some(s) = sup.filter(|s| retenu.as_ref().is_none_or(|(t, _)| s > t)) {
+        retenu = Some((s, format!("annexe {} de la convention : {} %", annexe, pcf(s))));
     }
     if cadre {
         if let Some(propre) = reg.obligatoire_cadre.as_ref().and_then(|oc| oc.taux) {
-            taux = propre.max(sup.unwrap_or(0.0));
-            pourquoi = format!("{} : {} % (cadres)", reg.texte, pcf(taux));
+            let t = match sup {
+                Some(s) => propre.max(s),
+                None => propre,
+            };
+            retenu = Some((t, format!("{} : {} % (cadres)", reg.texte, pcf(t))));
         }
         let plancher = catalogue()?.obligation_cadre.taux_t1;
-        if plancher > taux {
-            pourquoi = format!("{}, porte a {} % par l'obligation cadre (ANI du 17/11/2017)", pourquoi, pcf(plancher));
-            taux = plancher;
+        if retenu.as_ref().is_none_or(|(t, _)| plancher > *t) {
+            let pourquoi = match &retenu {
+                Some((_, p)) => format!("{}, porte a {} % par l'obligation cadre (ANI du 17/11/2017)", p, pcf(plancher)),
+                None => format!("l'obligation cadre (ANI du 17/11/2017) : {} %", pcf(plancher)),
+            };
+            retenu = Some((plancher, pourquoi));
         }
     }
-    Ok((taux, pourquoi))
+    Ok(retenu)
 }
 
 /// Une tranche de la prevoyance d'un permanent : ses deux parts, en pourcent, et son assiette.
@@ -442,9 +460,13 @@ fn repartir(taux: f64, part_patronale: f64) -> Part {
     Part { taux_pat: pat, taux_sal: arrondi4(taux - pat), ..Part::default() }
 }
 
-/// La part patronale de la tranche 2 d'un bloc : la sienne, sinon celle du bloc, sinon 100.
+/// La part patronale de la tranche 2 d'un bloc : la sienne quand le texte les distingue, sinon celle du bloc, que le
+/// texte fixe pour toute la cotisation.
 fn part_t2(b: &Bloc) -> f64 {
-    b.t2_part_patronale.unwrap_or(b.part_patronale)
+    match b.t2_part_patronale {
+        Some(propre) => propre,
+        None => b.part_patronale,
+    }
 }
 
 /// Ce qu'un permanent cotise en prevoyance ce mois-la.
@@ -480,17 +502,17 @@ lus sur le contrat ou l'appel de cotisations. Rien n'est calcule.",
         return Ok(Cotisation::default());
     }
 
-    let (mini, origine) = minimum_t1(&reg, entreprise.annexe_convention.code(), cadre)?;
+    let minimum = minimum_t1(&reg, entreprise.annexe_convention.code(), cadre)?;
     let obl = &reg.obligatoire;
     let oc = reg.obligatoire_cadre.as_ref();
-    let pat_cadre = oc.map(|b| b.part_patronale);
     let mut part_pat = obl.part_patronale;
     if cadre {
-        part_pat = pat_cadre.unwrap_or(part_pat.max(100.0));
+        part_pat = match oc {
+            Some(b) => b.part_patronale,
+            None => catalogue()?.obligation_cadre.part_patronale,
+        };
     }
-    let mut taux = mini;
-
-    if contrat {
+    let taux = if contrat {
         let pour = if cadre { "cadres" } else { "non-cadres" };
         let Some(t1_contrat) = ent_taux.and_then(|t| if cadre { t.t1_cadre.dite() } else { t.t1_non_cadre.dite() }) else {
             return Err(format!(
@@ -503,7 +525,7 @@ minimum de la branche.",
             ));
         };
         let propose = t1_contrat.flottant()?;
-        if propose + 1e-9 < mini {
+        if let Some((mini, origine)) = minimum.as_ref().filter(|(mini, _)| propose + 1e-9 < *mini) {
             return Err(format!(
                 "Fiche Entreprise, « Prévoyance des permanents », taux {} : \
 {} % : c'est sous le minimum de la branche ({} %, {}).\n  \
@@ -512,17 +534,28 @@ jamais moins : le minimum conventionnel s'impose a elle. \
 Corriger le contrat, ou revenir au regime conventionnel.",
                 pour,
                 pcf(propose),
-                pcf(mini),
+                pcf(*mini),
                 origine
             ));
         }
-        taux = propose;
         if let Some(p) = part_du_contrat {
             part_pat = p.flottant()?;
         }
-    }
+        propose
+    } else {
+        match minimum {
+            Some((mini, _)) => mini,
+            None => {
+                return Err(format!(
+                    "Prévoyance des permanents, convention {} : {} ne fixe pas de taux de tranche 1 ; celui du contrat de \
+la compagnie se pose dans la fiche Entreprise, « Prévoyance des permanents ».",
+                    idcc, reg.texte
+                ))
+            }
+        }
+    };
 
-    if cadre && part_pat < 100.0 {
+    if cadre && part_pat < catalogue()?.obligation_cadre.part_patronale {
         return Err("Fiche Entreprise, « Prévoyance des permanents » : la part \
 patronale d'un cadre ne peut pas descendre sous 100 % -- les \
 1,50 % de la tranche A sont dus << a titre exclusif >> par \
@@ -602,7 +635,7 @@ pub fn affiliation(sal: &SalarieDuContrat, cadre: bool, fin: &Jour, entreprise: 
         None => Err(format!(
             "{} : la prevoyance s'ouvre apres {} mois d'anciennete dans la branche, et sa fiche ne date ni son \
 entree dans la branche (« Dans la branche depuis ») ni son anciennete (« Dans la compagnie depuis »).",
-            nom_du_salarie(sal, "ce salarie"),
+            nom_du_salarie(sal),
             seuil
         )),
     }

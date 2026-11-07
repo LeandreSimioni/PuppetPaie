@@ -889,11 +889,11 @@
    "cle": "sante_permanents",
    "champs": [
     {"cle": "taux_contrat", "libelle": "Taux du contrat (% du plafond mensuel)", "forme": "montant", "aide": "Seulement pour une convention sans régime de santé (production audiovisuelle 2642) : le taux de votre contrat, pour le salarié seul. Il est sur votre contrat ou votre appel de cotisation."},
-    {"cle": "part_patronale", "libelle": "Part employeur (%)", "forme": "montant", "aide": "Au moins 50 %. Vide : 50 %."}
+    {"cle": "part_patronale", "libelle": "Part employeur (%)", "forme": "montant", "aide": "Au moins 50 %, comme le dit votre contrat de complémentaire santé."}
    ],
    "libelle": "Santé des permanents",
    "forme": "structure",
-   "aide": "CCNEAC : la part de la complémentaire santé payée par l'employeur (vide : 50 %, le minimum) ; le taux est celui de la convention. Production audiovisuelle (2642) et toute convention sans régime de santé : le taux de VOTRE contrat, en % du plafond mensuel pour le salarié seul, et la part employeur (au moins 50 %). Rien à remplir sous la 3090.",
+   "aide": "CCNEAC : la part de la complémentaire santé payée par l'employeur (au moins 50 %) ; le taux est celui de la convention. Production audiovisuelle (2642) et toute convention sans régime de santé : le taux de VOTRE contrat, en % du plafond mensuel pour le salarié seul, et la part employeur (au moins 50 %). Rien à remplir sous la 3090.",
    "longueur": null,
    "exemple": "",
    "choix": [],

@@ -370,7 +370,10 @@ impl Nature {
 
     /// Le nom de son contrat ecrit, tel qu'une phrase le dit (« contrat de travail à durée déterminée »).
     pub fn nom_du_contrat(&self) -> String {
-        self.contrat_ecrit.as_ref().map_or_else(|| "contrat de travail".into(), |c| c.nom.clone())
+        match &self.contrat_ecrit {
+            Some(c) => c.nom.clone(),
+            None => "contrat de travail".into(),
+        }
     }
 
     /// Le modele livre de l'avenant de son contrat ecrit.

@@ -380,11 +380,14 @@ pub struct CaseLue {
     pub texte: String,
 }
 
-/// LA CASE `cle` DE `fiche` LUE POUR UNE CONDITION (`fiche::case_en`) : absente ou nulle, elle ne dit rien ; vide, elle
-/// ne dit rien et son texte est vide ; dite, un oui ou un nombre non nul la rend vraie, et son texte est celui qu'elle
-/// ecrit (`True`, `12`, `1.5`, le texte tel quel). Une case de plusieurs valeurs ne se confronte a aucune condition.
-pub fn case_lue<F: crate::fiche::Cases + ?Sized>(fiche: &F, cle: &str) -> CaseLue {
-    crate::fiche::case_en(fiche, cle, Lecture).and_then(Result::ok).unwrap_or_default()
+/// LA CASE `cle` DE `fiche` LUE POUR UNE CONDITION (`fiche::case_en`) : absente, nulle ou vide, elle ne dit rien
+/// (`None`) ; dite, un oui ou un nombre non nul la rend vraie, et son texte est celui qu'elle ecrit (`True`, `12`, `1.5`,
+/// le texte tel quel). Une case de plusieurs valeurs ne se confronte a aucune condition : elle se refuse.
+pub fn case_lue<F: crate::fiche::Cases + ?Sized>(fiche: &F, cle: &str) -> Resultat<Option<CaseLue>> {
+    let lue = crate::fiche::case_en(fiche, cle, Lecture)
+        .transpose()
+        .map_err(|_| socle::echec::a_la_cle("Une condition de grille des minima nomme une case de plusieurs valeurs, qu'elle ne lit pas : le signaler au développeur.", cle, ""))?;
+    Ok(lue.filter(|l| !l.texte.is_empty()))
 }
 
 /// Ce qui lit une case en `CaseLue` (`case_lue`).
@@ -535,8 +538,14 @@ pub fn idcc_du_contrat(idcc: &str, sp: &SpectacleDuContrat, sal: &crate::fiche::
              le logiciel ne sait pas s'il est artiste-interprète (1734) ou musicien, metteur en scène, artiste de \
              complément (convention de l'entreprise). Choisir un métier du catalogue.",
             sp.cle,
-            code.unwrap_or_else(|| "(aucun)".into()),
-            sal.nom.remplie().unwrap_or("ce salarié")
+            match code {
+                Some(c) => c,
+                None => "(aucun)".into(),
+            },
+            match sal.nom.remplie() {
+                Some(nom) => nom,
+                None => "ce salarié",
+            }
         )),
         Some("Artistes" | "Cirque et rue") => Ok("1734".into()),
         Some(_) => Ok(idcc),
@@ -562,7 +571,7 @@ pub fn iso(s: &str) -> Option<Jour> {
     let c = s.as_bytes();
     let n = |a: usize, b: usize| -> Option<u32> {
         let x = s.get(a..b)?;
-        if x.bytes().all(|c| c.is_ascii_digit()) { x.parse().ok() } else { None }
+        x.bytes().try_fold(0u32, |n, c| c.is_ascii_digit().then(|| n * 10 + u32::from(c - b'0')))
     };
     match c.len() {
         10 if c[4] == b'-' && c[7] == b'-' => Jour::nouveau(n(0, 4)? as i32, n(5, 7)?, n(8, 10)?),
@@ -636,7 +645,8 @@ pub fn grille_au<'a>(t: &'a Table, idcc: &str, organisation: Option<&str>, jour:
     let base = t.convention(idcc)?;
     let jour: Option<String> = jour.map(|j| j.chars().take(10).collect());
     let lie = |a: &'a Convention| {
-        let depuis = lie_depuis(a, organisation, a.en_vigueur.as_deref().unwrap_or_default())?;
+        // Un accord qui ne dit pas quand ses minima entrent en vigueur ne lie personne.
+        let depuis = lie_depuis(a, organisation, a.en_vigueur.as_deref()?)?;
         jour.as_ref().filter(|j| **j >= depuis).map(|_| (a, Some(depuis)))
     };
     Some(match base.accords.iter().flatten().rev().find_map(lie) {

@@ -119,7 +119,7 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> Resultat<bool> {
         return Ok(v == droit::missions::du_jour(code, &Jour::lire(jour)?)?.empreinte());
     }
     if k.starts_with("pas ") {
-        return Ok(droit::pas::empreinte(ctx, k).is_some_and(|e| v == e));
+        return Ok(droit::pas::empreinte(ctx, k)?.is_some_and(|e| v == e));
     }
     if let Some((mois, salarie)) = k.strip_prefix(crate::conges::MENSUELS).and_then(|r| r.split_once(' ')) {
         return Ok(v == crate::conges::empreinte_des_mensuels_d_avant(ctx, mois, salarie)?);
