@@ -94,11 +94,11 @@ pub const ROUTES: &[Fiche] = &[
         r#"{"salarie":"FULLER","dernier_jour":"2026-11-27","reprise":"2026-12-03"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 400, ..fiche(Route::ArretIndemnites, "Dire les indemnités journalières d'un arrêt, par jour.",
         &[SALARIE, DERNIER_JOUR,
-            Champ { nom: "ij_brute", libelle: Affiche::new("Indemnité brute d'un jour"), forme: Forme::Texte, sens: "l'indemnité d'un jour, avant CSG et CRDS (relevé de la CPAM), en texte (« 40.89 ») ; nulle l'efface", avance: false },
+            Champ { nom: "ij_brute", libelle: Affiche::new("Indemnité brute d'un jour"), forme: Forme::Texte, sens: "l'indemnité d'un jour, avant CSG et CRDS (relevé de la CPAM), en texte (« 40.89 ») ; absente, elle ne change pas", avance: false },
             Champ { nom: "ij_nette", libelle: Affiche::new("Indemnité nette d'un jour"), forme: Forme::Texte, sens: "la même, nette de CSG et CRDS", avance: false },
             Champ { nom: "ij_brute_majoree", libelle: Affiche::new("Indemnité brute majorée"), forme: Forme::Texte, sens: "accident du travail, dès le 29e jour : brute", avance: true },
             Champ { nom: "ij_nette_majoree", libelle: Affiche::new("Indemnité nette majorée"), forme: Forme::Texte, sens: "la même, nette", avance: true },
-            Champ { nom: "jours_deja_indemnises", libelle: Affiche::new("Jours déjà indemnisés"), forme: Forme::Nombre, sens: "les jours indemnisés dans les douze mois qu'aucun arrêt saisi ne porte ; nul l'efface", avance: true }],
+            Champ { nom: "jours_deja_indemnises", libelle: Affiche::new("Jours déjà indemnisés"), forme: Forme::Nombre, sens: "les jours indemnisés dans les douze mois qu'aucun arrêt saisi ne porte", avance: true }],
         r#"{"salarie":"SVOBODA","dernier_jour":"2026-11-02","ij_brute":"40.89","ij_nette":"38.15"}"#, "arret (l'arrêt résumé), phrase", Acte::Ecrit, false) },
     Fiche { phrase: 600, ..fiche(Route::ArretSignaler, "Fabriquer le signalement d'un arrêt, sans le déposer.",
         &[SALARIE, DERNIER_JOUR, Champ { nom: "nature", libelle: Affiche::new("Nature"), forme: Forme::Texte, sens: "04 arrêt (par défaut), ou 05 reprise", avance: true }, REMPLACE, ORDRE, TEST,
@@ -195,22 +195,17 @@ struct ChargeArretReprise {
 }
 
 /// La charge de `arret-indemnites` : chaque montant, un decimal en texte (« 40.89 », tel que le releve l'ecrit et que
-/// l'arret le garde), et les jours deja indemnises ; absent, rien ne change ; nul, il s'efface (`socle::forme::dite`).
+/// l'arret le garde), et les jours deja indemnises ; absent ou nul, rien ne change.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ChargeArretIndemnites {
     salarie: String,
     dernier_jour: Jour,
-    #[serde(default, deserialize_with = "socle::forme::dite")]
-    ij_brute: Option<Option<String>>,
-    #[serde(default, deserialize_with = "socle::forme::dite")]
-    ij_nette: Option<Option<String>>,
-    #[serde(default, deserialize_with = "socle::forme::dite")]
-    ij_brute_majoree: Option<Option<String>>,
-    #[serde(default, deserialize_with = "socle::forme::dite")]
-    ij_nette_majoree: Option<Option<String>>,
-    #[serde(default, deserialize_with = "socle::forme::dite")]
-    jours_deja_indemnises: Option<Option<u32>>,
+    ij_brute: Option<String>,
+    ij_nette: Option<String>,
+    ij_brute_majoree: Option<String>,
+    ij_nette_majoree: Option<String>,
+    jours_deja_indemnises: Option<u32>,
 }
 
 /// La nature d'un signalement d'arret (S20.G00.05.001) : 04, l'arret ; 05, la reprise.
@@ -1197,7 +1192,7 @@ fn imprevus(ctx: &Contexte, c: ChargeImprevus) -> R<ReponseImprevus> {
 /// son bordereau de paiement (BPIJ : le prix unitaire de l'« I.J. normale » ou « majoree », puis les retenues CSG et RDS,
 /// `atelier/reference/sources/subrogation-indemnites-journalieres/bpij-edi/`) : brutes, et nettes de CSG et CRDS. Le
 /// maintien de salaire s'en deduit (`engagement::maintien`) ; avant le releve, le resume en propose le montant de principe
-/// (`ij_proposees`), que la page met dans ses cases. Un champ nul (ou un montant vide) l'efface. La page ne les demande que
+/// (`ij_proposees`), que la page met dans ses cases. Un champ absent ou nul ne change pas. La page ne les demande que
 /// pour un arret qui ouvre le maintien (`ij_attendues` du resume) ; ailleurs, elles ne se deduisent de rien.
 fn arret_indemnites(ctx: &Contexte, c: &ChargeArretIndemnites) -> R<ReponseArret> {
     let cle = cle_du_nom(ctx, &c.salarie)?;
@@ -1211,17 +1206,12 @@ fn arret_indemnites(ctx: &Contexte, c: &ChargeArretIndemnites) -> R<ReponseArret
     }
     let mut nouveau = liste[i].clone();
     for (k, v) in montants {
-        let Some(v) = v else { continue };
-        nouveau[k] = match v.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
-            None => Value::Null,
-            Some(t) => {
-                let x = documents::valeur::dec_avec_echelle(&json!(t)).map_err(|e| refus(format!("Indemnité journalière ({}) : {}", k, e)))?;
-                if x <= Decimal::ZERO {
-                    return Err(refus("Une indemnité journalière est un montant par jour, positif : rien n'est changé."));
-                }
-                json!(socle::num::eur2(x).to_string())
-            }
-        };
+        let Some(t) = v else { continue };
+        let x = documents::valeur::dec_avec_echelle(&json!(t.trim())).map_err(|e| refus(format!("Indemnité journalière ({}) : {}", k, e)))?;
+        if x <= Decimal::ZERO {
+            return Err(refus("Une indemnité journalière est un montant par jour, positif : rien n'est changé."));
+        }
+        nouveau[k] = json!(socle::num::eur2(x).to_string());
     }
     if let Some(j) = c.jours_deja_indemnises {
         nouveau["jours_deja_indemnises"] = json!(j);

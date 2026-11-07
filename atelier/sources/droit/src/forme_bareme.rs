@@ -59,12 +59,19 @@ impl<'de> Deserialize<'de> for ComposantsDates {
     }
 }
 
-/// UNE PART D'UNE RUBRIQUE qu'une couche efface (`RubriqueModifiee::efface`).
+/// UNE PART D'UNE RUBRIQUE qu'une couche efface (`RubriqueModifiee::efface`, `Contribution::efface`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Part {
     TauxPat,
     TauxSal,
+}
+
+/// CE QU'UNE COUCHE EFFACE D'UNE COTISATION DE LA DSN (`CotisationModifiee::efface`) : son taux.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CaseCotisation {
+    Taux,
 }
 
 /// Un taux qui se date, lu seul (`Option<TauxDate>`).
@@ -434,8 +441,8 @@ forme! {
         pub libelle: Option<String>,
         /// La cle de son assiette dans les bases du calcul (`brut`, `brut_x115`, `t1_journaliere`…).
         pub base: Option<String>,
-        /// Les deux parts, en pourcent ; nulle : pas de part de ce cote. La cle s'ecrit : un taux qui manque ne se devine pas.
-        #[serde(deserialize_with = "datee::valeur")]
+        /// Les deux parts, en pourcent ; absente ou nulle : pas de part de ce cote.
+        #[serde(default, deserialize_with = "datee::valeur")]
         pub taux_pat: Option<f64>,
         pub taux_sal: Option<f64>,
         /// Une part patronale qui se compose de plusieurs taux, chacun arrondi au centime (`composants`, ou
@@ -558,10 +565,11 @@ forme! {
 
 forme! {
     /// Une modification d'une cotisation du corps par une couche (`cotisations_dsn` d'une categorie, par code81 ou
-    /// `code81:affectation`).
+    /// `code81:affectation`) : chaque case qu'elle dit remplace celle de la cotisation, une case qu'elle ne dit pas
+    /// (absente ou nulle) ne change pas ; `efface` retire le taux.
     pub struct CotisationModifiee {
-        #[serde(default, deserialize_with = "socle::forme::dite")]
-        pub taux: Option<Option<f64>>,
+        pub taux: Option<f64>,
+        pub efface: Option<Vec<CaseCotisation>>,
         pub composants: Option<Vec<f64>>,
         pub base: Option<String>,
         pub base78: Option<String>,
@@ -1042,16 +1050,16 @@ forme! {
 
 forme! {
     /// Une contribution conventionnelle, rubrique du bulletin que la convention ajoute ou remplace
-    /// (`bareme::bareme_convention`).
+    /// (`bareme::bareme_convention`) : une part qu'elle dit remplace celle de la rubrique, une part qu'elle ne dit pas
+    /// (absente ou nulle) ne change pas ; `efface` retire une part.
     pub struct Contribution {
         pub id: String,
         pub famille: Option<String>,
         pub libelle: Option<String>,
         pub base: Option<BaseParPopulation>,
-        #[serde(default, deserialize_with = "socle::forme::dite")]
-        pub taux_pat: Option<Option<f64>>,
-        #[serde(default, deserialize_with = "socle::forme::dite")]
-        pub taux_sal: Option<Option<f64>>,
+        pub taux_pat: Option<f64>,
+        pub taux_sal: Option<f64>,
+        pub efface: Option<Vec<Part>>,
         pub masquer_base_et_taux: Option<bool>,
         pub par_representation: Option<BTreeMap<String, TauxParPopulation>>,
         pub apres: Option<String>,

@@ -445,14 +445,12 @@ pub(crate) fn montres(ctx: &Contexte, nom: &str, donnees: &dyn declarations::cha
 
 // ------------------------------------------------------- taxe-sur-les-salaires-regime
 
-/// La charge de `taxe-sur-les-salaires-regime` : les reponses en cours de saisie (absentes : celles de la compagnie ;
-/// nulles : aucune), et l'annee des salaires (absente : l'annee en cours).
+/// La charge de `taxe-sur-les-salaires-regime` : les reponses en cours de saisie (absentes ou nulles : celles de la
+/// compagnie ; `{}` : aucune), et l'annee des salaires (absente : l'annee en cours).
 #[derive(Debug, Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ChargeTaxeSurLesSalaires {
-    #[serde(default, deserialize_with = "socle::forme::dite")]
-    taxe_sur_les_salaires: Option<Option<serde_json::Map<String, Value>>>,
-    #[serde(default)]
+    taxe_sur_les_salaires: Option<serde_json::Map<String, Value>>,
     annee: Option<i64>,
 }
 
@@ -500,8 +498,7 @@ pub(crate) struct RegimeDeLaTaxe {
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: ChargeTaxeSurLesSalaires) -> R<RegimeDeLaTaxe> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.taxe_sur_les_salaires {
-        Some(None) => droit::fiche::ChampsEntreprise { taxe_sur_les_salaires: None, ..Default::default() },
-        Some(Some(v)) => droit::fiche::ChampsEntreprise {
+        Some(v) => droit::fiche::ChampsEntreprise {
             taxe_sur_les_salaires: Some(droit::fiche::lire_champs(&Value::Object(v), cle).map_err(plain)?),
             ..Default::default()
         },

@@ -131,12 +131,6 @@ pub fn texte_opt<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String
     }
 }
 
-/// Une cle qui peut manquer (rien ne change) ou etre nulle (elle s'efface) : `#[serde(default, deserialize_with =
-/// "socle::forme::dite")]` sur un `Option<Option<T>>` -- absente, `None` ; nulle, `Some(None)`.
-pub fn dite<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(d: D) -> Result<Option<Option<T>>, D::Error> {
-    <Option<T> as serde::Deserialize>::deserialize(d).map(Some)
-}
-
 /// UN OBJET DONT L'ORDRE COMPTE (un catalogue montre dans l'ordre du fichier), lu en paires `(cle, valeur)` :
 /// `#[serde(deserialize_with = "socle::forme::en_ordre")]` sur un `Vec<(String, T)>`. Une cle repetee refuse.
 pub fn en_ordre<'de, D: serde::Deserializer<'de>, T: serde::Deserialize<'de>>(d: D) -> Result<Vec<(String, T)>, D::Error> {

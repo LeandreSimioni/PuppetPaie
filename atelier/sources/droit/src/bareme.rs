@@ -160,7 +160,10 @@ pub(crate) fn par_dessus(base: &mut RubriqueModifiee, m: &RubriqueModifiee) {
 /// Ce qu'une couche ecrit d'une cotisation de la DSN remplace ce qu'elle portait.
 pub(crate) fn modifier_cotisation(c: &mut CotisationDsn, m: &CotisationModifiee) {
     if let Some(t) = m.taux {
-        c.taux = t.map(crate::forme_bareme::TauxDate);
+        c.taux = Some(crate::forme_bareme::TauxDate(t));
+    }
+    if m.efface.iter().flatten().any(|e| *e == crate::forme_bareme::CaseCotisation::Taux) {
+        c.taux = None;
     }
     if let Some(x) = &m.composants {
         c.composants = Some(x.clone());
@@ -187,7 +190,16 @@ fn cotisation_par_dessus(base: &mut CotisationModifiee, m: &CotisationModifiee) 
     macro_rules! si {
         ($($c:ident),*) => { $( if m.$c.is_some() { base.$c = m.$c.clone(); } )* };
     }
-    si!(taux, composants, base, base78, lignes, source, note);
+    si!(composants, base, base78, lignes, source, note);
+    // La derniere couche dit le taux : celui qu'elle pose n'est plus efface, celui qu'elle efface n'est plus pose.
+    if m.taux.is_some() {
+        base.taux = m.taux;
+        base.efface = None;
+    }
+    if m.efface.as_ref().is_some_and(|e| !e.is_empty()) {
+        base.taux = None;
+        base.efface = m.efface.clone();
+    }
 }
 
 // ---------------------------------------------------------------- le statut
@@ -1020,27 +1032,30 @@ pub fn bareme_convention(mut bar: Pile, ent: &EntrepriseLue, nat: Option<&Nature
         // rubrique et sa base, sans taux, et la representation du personnel ne se demande pas.
         let par_representation = c.par_representation.as_ref().is_some_and(|p| !p.is_empty());
         let sans_taux = ent.taux_lus && par_representation;
-        let taux_pat: Option<Option<f64>> = if sans_taux {
-            Some(None)
+        let efface = |p: Part| c.efface.iter().flatten().any(|e| *e == p);
+        // La part patronale : (le taux pose, la part effacee).
+        let (taux_pat, efface_pat): (Option<f64>, bool) = if sans_taux {
+            (None, true)
         } else if par_representation {
             if representation.is_none() {
                 representation = Some(representation_du_personnel(ent)?);
             }
             let rep = representation.clone().unwrap_or_default();
             let t = c.par_representation.as_ref().and_then(|p| p.get(&rep)).ok_or_else(|| socle::fichiers::absent(&rep))?;
-            Some(Some(match t {
+            let t = match t {
                 TauxParPopulation::Un(x) => *x,
                 TauxParPopulation::Par { intermittent, permanent: p } => if permanent { *p } else { *intermittent },
-            }))
+            };
+            (Some(t), false)
         } else {
-            c.taux_pat
+            (c.taux_pat, efface(Part::TauxPat))
         };
         let base = c.base.as_ref().map(|b| match b {
             BaseParPopulation::Une(x) => x.clone(),
             BaseParPopulation::Par { intermittent, permanent: p } => if permanent { p.clone() } else { intermittent.clone() },
         });
         let i = rang(&rubriques, &c.id);
-        let vaut = |t: Option<Option<f64>>| t.flatten().is_some_and(|x| x != 0.0);
+        let vaut = |t: Option<f64>| t.is_some_and(|x| x != 0.0);
         if !sans_taux && !vaut(taux_pat) && !vaut(c.taux_sal) {
             if let Some(i) = i {
                 rubriques.remove(i);
@@ -1056,11 +1071,11 @@ pub fn bareme_convention(mut bar: Pile, ent: &EntrepriseLue, nat: Option<&Nature
             if base.is_some() {
                 r.base = base;
             }
-            if let Some(t) = taux_pat {
-                r.taux_pat = t;
+            if taux_pat.is_some() || efface_pat {
+                r.taux_pat = taux_pat;
             }
-            if let Some(t) = c.taux_sal {
-                r.taux_sal = t;
+            if c.taux_sal.is_some() || efface(Part::TauxSal) {
+                r.taux_sal = c.taux_sal;
             }
             if c.masquer_base_et_taux.is_some() {
                 r.masquer_base_et_taux = c.masquer_base_et_taux;
@@ -1073,8 +1088,8 @@ pub fn bareme_convention(mut bar: Pile, ent: &EntrepriseLue, nat: Option<&Nature
             famille: c.famille.clone(),
             libelle: c.libelle.clone(),
             base,
-            taux_pat: taux_pat.flatten(),
-            taux_sal: c.taux_sal.flatten(),
+            taux_pat,
+            taux_sal: c.taux_sal,
             masquer_base_et_taux: c.masquer_base_et_taux,
             source: c.source.clone(),
             note: c.note.clone(),

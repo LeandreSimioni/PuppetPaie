@@ -4925,7 +4925,7 @@
             "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
             "libelle": "Cotisations conventionnelles IDCC 1285 (FNAS)",
             "base": "brut",
-            "taux_sal": null,
+            "efface": ["taux_sal"],
             "masquer_base_et_taux": true,
             "par_representation": {
               "aucune": 1.45,
@@ -4964,7 +4964,7 @@
             "libelle": "FCAP (fonds commun d'aide au paritarisme)",
             "base": "brut",
             "taux_pat": 0.25,
-            "taux_sal": null,
+            "efface": ["taux_sal"],
             "source": {
               "sources": [
                 {
@@ -5465,7 +5465,7 @@
               "permanent": "t1_mensuelle"
             },
             "taux_pat": 0.06,
-            "taux_sal": null,
+            "efface": ["taux_sal"],
             "masquer_base_et_taux": true,
             "source": {
               "sources": [
@@ -5687,7 +5687,7 @@
               "permanent": "brut"
             },
             "taux_pat": 0.04,
-            "taux_sal": null,
+            "efface": ["taux_sal"],
             "masquer_base_et_taux": true,
             "source": {
               "sources": [
@@ -5718,7 +5718,7 @@
               "permanent": "brut"
             },
             "taux_pat": 0.045,
-            "taux_sal": null,
+            "efface": ["taux_sal"],
             "masquer_base_et_taux": true,
             "source": {
               "sources": [
