@@ -1099,7 +1099,7 @@ pub fn en_forme(saisie: &Carte) -> Resultat<Carte> {
     let catalogue = match saisie.metier.as_deref().filter(|m| !m.is_empty()) {
         Some(m) => droit::emplois::metier(m)?
             .filter(|f| !f.cadre_selon_la_convention())
-            .map(|f| f.cadre_par_defaut("")),
+            .and_then(|f| f.cadre_par_defaut("")),
         None => None,
     };
     if catalogue.is_some() && saisie.cadre == catalogue {

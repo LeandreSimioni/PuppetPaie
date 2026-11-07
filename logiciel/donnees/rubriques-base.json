@@ -6,6 +6,8 @@
       "libelle": "Cachet",
       "unite": "cachet",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -25,6 +27,8 @@
       "libelle": "Heure de travail",
       "unite": "heure",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -42,6 +46,8 @@
       "libelle": "Heures supplémentaires",
       "unite": "heure",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [],
       "heures_forfait": null,
       "plafond": null,
@@ -56,6 +62,8 @@
       "libelle": "Heures complémentaires",
       "unite": "heure",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [],
       "heures_forfait": null,
       "plafond": null,
@@ -70,6 +78,8 @@
       "libelle": "Journée de travail",
       "unite": "jour",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux",
@@ -88,6 +98,8 @@
       "libelle": "Semaine de travail",
       "unite": "semaine",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux",
@@ -106,7 +118,8 @@
     "mois": {
       "libelle": "Salaire mensuel de base",
       "unite": "mois",
-      "nature": "salaire",
+      "nature": "salaire", "sens": "+", "compte_pour": "droits_et_montant",
+      "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux",
@@ -126,6 +139,8 @@
       "libelle": "Service de répétition",
       "unite": "service",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux",
@@ -143,7 +158,8 @@
     "enseignement": {
       "libelle": "Masterclass / action culturelle",
       "unite": "heure",
-      "nature": "salaire",
+      "nature": "salaire", "sens": "+",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -166,6 +182,8 @@
       "libelle": "Majoration",
       "unite": "pourcentage",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "base",
         "taux_majoration"
@@ -183,6 +201,8 @@
       "libelle": "Défraiement au forfait",
       "unite": "forfait",
       "nature": "frais",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -201,6 +221,8 @@
       "libelle": "Repas",
       "unite": "forfait",
       "nature": "frais",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -219,6 +241,8 @@
       "libelle": "Nuitée",
       "unite": "forfait",
       "nature": "frais",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -237,6 +261,8 @@
       "libelle": "Nuitée au-delà de la limite",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [],
       "heures_forfait": null,
       "plafond": null,
@@ -251,6 +277,8 @@
       "libelle": "Repas au-delà de la limite",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [],
       "heures_forfait": null,
       "plafond": null,
@@ -265,6 +293,8 @@
       "libelle": "Défraiement au réel",
       "unite": "forfait",
       "nature": "frais",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -282,6 +312,8 @@
       "libelle": "Avantage en nature",
       "unite": "forfait",
       "nature": "avantage_nature",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant",
         "genre"
@@ -300,6 +332,8 @@
       "libelle": "Prime",
       "unite": "forfait",
       "nature": "prime",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -316,7 +350,8 @@
       "libelle": "Absence",
       "unite": "jour",
       "nature": "absence",
-      "sens": "-",
+      "sens": "-", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux",
@@ -334,8 +369,8 @@
     "acompte": {
       "libelle": "Acompte",
       "unite": "forfait",
-      "nature": "retenue",
-      "sens": "-",
+      "nature": "retenue", "sens": "-", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -353,7 +388,8 @@
       "libelle": "Absence non rémunérée",
       "unite": "heure",
       "nature": "absence",
-      "sens": "-",
+      "sens": "-", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -373,7 +409,8 @@
       "libelle": "Absence maladie",
       "unite": "heure",
       "nature": "absence",
-      "sens": "-",
+      "sens": "-", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "suspension": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -393,69 +430,70 @@
       "libelle": "Absence maternité",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 02 « maternite » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_paternite": {
       "libelle": "Absence paternité",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 03 « paternite / accueil de l'enfant » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_accident_trajet": {
       "libelle": "Absence accident de trajet",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 04 « conge suite a un accident de trajet » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_maladie_professionnelle": {
       "libelle": "Absence maladie professionnelle",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 05 « conge suite a maladie professionnelle » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_accident_travail": {
       "libelle": "Absence accident du travail",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 06 « conge suite a accident de travail ou de service » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_dispense_grossesse": {
       "libelle": "Absence dispense de travail (grossesse)",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 07 « femme enceinte dispensee de travail » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_adoption": {
       "libelle": "Absence adoption",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 09 « adoption » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_deuil_enfant": {
       "libelle": "Absence deuil d'enfant",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 19 « deuil d'enfant » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "absence_conge_naissance": {
       "libelle": "Absence congé de naissance",
       "unite": "heure", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "L'absence d'un arret de motif 20 « conge supplementaire de naissance » (S21.G00.60.001, `atelier/reference/norme-dsn/texte/bloc-S21.G00.60.txt`) : la meme ligne que `absence_maladie`, nommee d'apres son motif."
     },
     "maintien_salaire": {
       "libelle": "Maintien de salaire",
       "unite": "heure",
-      "nature": "salaire",
+      "nature": "salaire", "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -474,12 +512,13 @@
       "libelle": "Indemnités journalières (déduction)",
       "unite": "jour", "nature": "absence", "sens": "-", "saisie": ["quantite", "taux"],
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": "absence",
-      "retabli": true, "arret_de_travail": true, "soumis": true, "imposable": true, "conges_spectacles": false,
+      "retabli": true, "arret_de_travail": true, "compte_pour": "droits_et_montant", "salaire_de_base": false, "suspension": false, "conges_pris": false, "soumis": true, "imposable": true, "conges_spectacles": false,
       "source": "Subrogee, la compagnie percoit les indemnites journalieres a la place du salarie (CSS R323-11) : le salaire maintenu les avance, et elles se retirent du brut, qu'elles ne sont pas (« les indemnites journalieres de securite sociale non soumises a cotisations », BOSS, assiette generale, § 850 ; norme DSN 2026.1, § 2.3.2 : l'employeur ne declare que « le salaire proprement dit [...] a l'exclusion des indemnites journalieres »). Le montant brut, avant CSG et CRDS, du releve de la caisse (`engagement::maintien`)."
     },
     "ijss_nettes": {
       "libelle": "Indemnités journalières (subrogation)",
-      "unite": "jour", "nature": "indemnite", "saisie": ["quantite", "taux"],
+      "unite": "jour", "nature": "indemnite", "sens": "+", "compte_pour": "droits_et_montant", "saisie": ["quantite", "taux"],
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "heures_forfait": null, "plafond": null, "aem": null, "dsn_type": null,
       "soumis": false, "imposable": false, "conges_spectacles": false,
       "source": "Les indemnites journalieres que la compagnie subrogee reverse, nettes de la CSG et de la CRDS que la caisse a retenues (BPIJ : les retenues CSG et RDS). Hors cotisations et hors net imposable (norme DSN 2026.1, § 2.3.2 : la caisse les declare elle-meme), dans l'assiette du prelevement a la source (S21.G00.50.013 ; BOFiP BOI-IR-PAS-20-10-10, § 80 a 110) et dans le montant net social (BOSS, Q 13 bis ; S21.G00.58, type 10). `engagement::maintien`."
@@ -488,7 +527,8 @@
       "libelle": "Absence congés payés",
       "unite": "jour",
       "nature": "absence",
-      "sens": "-",
+      "sens": "-", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false,
       "saisie": [
         "quantite",
         "taux"
@@ -507,6 +547,8 @@
       "libelle": "Indemnité de congés payés",
       "unite": "jour",
       "nature": "salaire",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -524,6 +566,8 @@
       "libelle": "Indemnité compensatrice de congés payés",
       "unite": "jour",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -542,6 +586,8 @@
       "libelle": "Indemnité de fin de contrat (précarité)",
       "unite": "pourcentage",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "base",
         "taux_majoration"
@@ -560,6 +606,8 @@
       "libelle": "Indemnité compensatrice de préavis",
       "unite": "mois",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -578,6 +626,8 @@
       "libelle": "Indemnité compensatrice de préavis (inaptitude professionnelle)",
       "unite": "mois",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -596,6 +646,8 @@
       "libelle": "Indemnité compensatrice du délai de prévenance",
       "unite": "mois",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "quantite",
         "taux"
@@ -614,6 +666,8 @@
       "libelle": "Indemnité de licenciement",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -631,6 +685,8 @@
       "libelle": "Indemnité spécifique de rupture conventionnelle",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -648,6 +704,8 @@
       "libelle": "Indemnité spécifique de rupture conventionnelle (imposable)",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -665,6 +723,8 @@
       "libelle": "Indemnité de mise à la retraite",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -682,6 +742,8 @@
       "libelle": "Indemnité de départ à la retraite",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -699,6 +761,8 @@
       "libelle": "Prime d'ancienneté",
       "unite": "forfait",
       "nature": "prime",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -715,6 +779,8 @@
       "libelle": "Indemnité conventionnelle de licenciement (supplément)",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -732,6 +798,8 @@
       "libelle": "Indemnité de rupture conventionnelle (supplément conventionnel)",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -749,6 +817,8 @@
       "libelle": "Indemnité de rupture conventionnelle (supplément conventionnel, imposable)",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -766,6 +836,8 @@
       "libelle": "Indemnité conventionnelle de mise à la retraite (supplément)",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],
@@ -783,6 +855,8 @@
       "libelle": "Indemnité conventionnelle de départ à la retraite (supplément)",
       "unite": "forfait",
       "nature": "indemnite",
+      "sens": "+", "compte_pour": "droits_et_montant",
+      "salaire_de_base": false, "retabli": false, "suspension": false, "arret_de_travail": false, "conges_pris": false,
       "saisie": [
         "montant"
       ],

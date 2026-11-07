@@ -1594,7 +1594,7 @@ pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
     };
     let rc = match (lu(s.statut_categoriel_rc.code()), &m) {
         (Some(rc), _) => rc,
-        (None, Some(m)) if !m.cadre_par_defaut(idcc) => "04".to_string(),
+        (None, Some(m)) if m.cadre_par_defaut(idcc) == Some(false) => "04".to_string(),
         (None, Some(m)) => {
             return Err(format!(
                 "{} : le metier {} ({}) est cadre au catalogue, et la fiche ne dit pas cadre ou non cadre \

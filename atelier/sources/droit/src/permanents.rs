@@ -567,13 +567,14 @@ fn douze() -> Decimal {
     Decimal::from(12)
 }
 
-fn motif_texte(m: Option<&str>) -> &str {
-    m.unwrap_or("")
+/// Le refus d'un motif de rupture que la fiche ne dit pas, quand la regle en a besoin.
+fn motif_requis<'a>(motif: Option<&'a str>, pour: &str) -> Resultat<&'a str> {
+    motif.filter(|m| !m.is_empty()).ok_or_else(|| format!("{} : le motif de la fin du contrat n'est pas dit (case « Motif de la fin »).", pour))
 }
 
 /// Ce que `liste` dit de ce motif, s'il y est et le dit.
 fn dit(liste: &ParMotif, motif: Option<&str>) -> Option<String> {
-    liste.get(motif_texte(motif)).filter(|t| !t.is_empty()).cloned()
+    motif.and_then(|m| liste.get(m)).filter(|t| !t.is_empty()).cloned()
 }
 
 // --------------------------------------------------------------- les conges
@@ -693,7 +694,7 @@ pub fn precarite_due(nature: &Nature, motif_rupture: Option<&str>) -> Resultat<O
     if let Some(raison) = r.natures_exclues.get(&nature.cle) {
         return Ok(Some(raison.clone()));
     }
-    Ok(r.motifs_rupture_exclus.get(motif_texte(motif_rupture)).cloned())
+    Ok(motif_rupture.and_then(|m| r.motifs_rupture_exclus.get(m)).cloned())
 }
 
 /// 10 % de la remuneration totale brute versee pendant le CDD (L1243-8 ; la fiche entreprise ne porte aucun accord de
@@ -728,7 +729,7 @@ fn regle_du_cdd(cdd: bool, motif_rupture: Option<&str>) -> Resultat<Option<(bool
     }
     let rg = regles()?;
     let sec = &rg.preavis.rupture_anticipee_cdd;
-    let m = motif_texte(motif_rupture);
+    let Some(m) = motif_rupture else { return Ok(None) };
     for (liste, sans) in [(&sec.motifs_sans_preavis, true), (&sec.motifs_a_dire, false)] {
         if let Some(t) = liste.get(m) {
             return Ok(Some((sans, t.clone())));
@@ -772,7 +773,8 @@ pub fn raison_sans_preavis(motif_rupture: Option<&str>, cdd: bool) -> Resultat<O
 
 /// Ce motif est-il de `preavis.motifs_sans_preavis` (sans la regle d'un CDD) ?
 pub fn sans_preavis(motif_rupture: Option<&str>) -> Resultat<bool> {
-    Ok(regles()?.preavis.motifs_sans_preavis.contains_key(motif_texte(motif_rupture)))
+    let rg = regles()?;
+    Ok(motif_rupture.is_some_and(|m| rg.preavis.motifs_sans_preavis.contains_key(m)))
 }
 
 /// Ce que le texte fait du preavis non effectue, pour ce motif (`preavis.indemnite_compensatrice`).
@@ -794,7 +796,7 @@ pub enum IndemniteDePreavis {
 pub fn indemnite_de_preavis(motif_rupture: Option<&str>) -> Resultat<IndemniteDePreavis> {
     let rg = regles()?;
     let ic = &rg.preavis.indemnite_compensatrice;
-    let m = motif_texte(motif_rupture);
+    let m = motif_requis(motif_rupture, "Le préavis non effectué")?;
     Ok(if let Some(t) = ic.motifs_sans_indemnite.get(m) {
         IndemniteDePreavis::Aucune(t.clone())
     } else if let Some(t) = ic.motifs_par_un_autre_article.get(m) {
@@ -813,7 +815,8 @@ pub fn indemnite_de_preavis(motif_rupture: Option<&str>) -> Resultat<IndemniteDe
 pub fn rubrique_de_l_indemnite_de_preavis(motif_rupture: Option<&str>) -> Resultat<String> {
     let rg = regles()?;
     let ic = &rg.preavis.indemnite_compensatrice;
-    Ok(ic.rubrique_par_motif.get(motif_texte(motif_rupture)).unwrap_or(&ic.rubrique).clone())
+    let m = motif_requis(motif_rupture, "L'indemnité de préavis")?;
+    Ok(ic.rubrique_par_motif.get(m).unwrap_or(&ic.rubrique).clone())
 }
 
 // ------------------------------------------------ le delai de prevenance d'une fin d'essai (L1221-25)
@@ -823,7 +826,7 @@ pub fn rubrique_de_l_indemnite_de_preavis(motif_rupture: Option<&str>) -> Result
 pub fn regle_du_delai_de_prevenance(motif_rupture: Option<&str>) -> Resultat<Option<RegleDuDelaiDePrevenance>> {
     let rg = regles()?;
     let s = &rg.preavis.delai_de_prevenance;
-    Ok((s.motif_rupture == motif_texte(motif_rupture)).then(|| s.clone()))
+    Ok((motif_rupture == Some(s.motif_rupture.as_str())).then(|| s.clone()))
 }
 
 /// Le delai de prevenance que L1221-25 donne a cette presence, et le jour ou il expire.
@@ -1018,7 +1021,7 @@ impl FinDeCdi {
 /// retraite), et la rubrique de son indemnite.
 pub fn rupture(motif_rupture: Option<&str>) -> Resultat<Option<(FinDeCdi, String)>> {
     let rg = regles()?;
-    let m = motif_texte(motif_rupture);
+    let Some(m) = motif_rupture else { return Ok(None) };
     let fin = [
         (FinDeCdi::RuptureConventionnelle, &rg.rupture_conventionnelle.motif_rupture, &rg.rupture_conventionnelle.rubrique),
         (FinDeCdi::MiseALaRetraite, &rg.mise_a_la_retraite.motif_rupture, &rg.mise_a_la_retraite.rubrique),
@@ -1041,8 +1044,10 @@ pub fn code_52_permis(code: Option<&str>, motif_rupture: Option<&str>) -> Result
     let Some(dit) = rg.indemnites_de_rupture.codes.get(code) else {
         return Ok(None);
     };
-    let motif = motif_texte(motif_rupture);
-    if motif.is_empty() || dit.motifs.iter().any(|m| m == motif) {
+    let Some(motif) = motif_rupture.filter(|m| !m.is_empty()) else {
+        return Ok(None);
+    };
+    if dit.motifs.iter().any(|m| m == motif) {
         return Ok(None);
     }
     Ok(Some(format!(

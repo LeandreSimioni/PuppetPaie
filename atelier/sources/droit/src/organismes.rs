@@ -244,6 +244,13 @@ pub fn fichier_organismes(ctx: &Contexte) -> Resultat<FichierOrganismes> {
     crate::fiche::lire_fichier(&p, &format!("config/{}", ORGANISMES))
 }
 
+/// Le numero d'une reference d'adhesion (S21.G00.15.001) : une reference qui n'en est pas un se refuse.
+fn numero_de_reference(reference: &str) -> Resultat<u32> {
+    reference.trim().parse::<u32>().map_err(|_| {
+        format!("La référence d'adhésion « {} » (S21.G00.15.001) n'est pas un nombre : la corriger dans les organismes de la compagnie.", reference)
+    })
+}
+
 /// Ce que la compagnie a saisi, a la date du contexte (rien s'il n'y a rien), et les identifiants d'adhesion qu'une
 /// periode quelconque du fichier porte. Le fichier ne porte que ce qu'aucun texte ne donne : de lui ne se lisent que les
 /// adhesions, et une adhesion qui recopie un contrat qu'un texte donne entier (`donnes_par_un_texte`) n'est pas une
@@ -254,8 +261,8 @@ pub fn saisis(ctx: &Contexte) -> Resultat<(Vec<Adhesion>, Vec<u32>)> {
     let prises = liste
         .iter()
         .flat_map(|e| e.valeur.dite().into_iter().flatten())
-        .filter_map(|a| a.reference.trim().parse::<u32>().ok())
-        .collect();
+        .map(|a| numero_de_reference(&a.reference))
+        .collect::<Resultat<Vec<u32>>>()?;
     let au = crate::fiche::valeur_au(liste,&ctx.lue_au);
     let textes = donnes_par_un_texte()?;
     let adhesions: Vec<Adhesion> = au
@@ -581,8 +588,8 @@ sur le certificat d'adhésion et la fiche de paramétrage DSN.",
             r if r.is_empty() => en_place(&spec, saisi).map(|a| a.reference.trim().to_string()).unwrap_or_default(),
             r => r,
         };
-        if let Ok(r) = reference.parse::<u32>() {
-            prises.push(r);
+        if !reference.is_empty() {
+            prises.push(numero_de_reference(&reference)?);
         }
         let a = Adhesion {
             cle: spec.cle.trim().to_string(),
@@ -616,8 +623,12 @@ sur le certificat d'adhésion et la fiche de paramétrage DSN.",
         .iter()
         .filter_map(|c| retenus.iter().find(|(s, _)| s.cle.trim() == *c).map(|(_, a)| a.reference.clone()))
         .collect();
-    let mut adhesions: Vec<Adhesion> = retenus.into_iter().map(|(_, a)| a).collect();
-    adhesions.sort_by_key(|a| a.reference.parse::<u32>().unwrap_or(u32::MAX));
+    let mut adhesions = retenus
+        .into_iter()
+        .map(|(_, a)| Ok((numero_de_reference(&a.reference)?, a)))
+        .collect::<Resultat<Vec<(u32, Adhesion)>>>()?;
+    adhesions.sort_by_key(|(n, _)| *n);
+    let adhesions: Vec<Adhesion> = adhesions.into_iter().map(|(_, a)| a).collect();
     Ok(Organismes {
         base: base()?,
         adhesions_prevoyance: adhesions,

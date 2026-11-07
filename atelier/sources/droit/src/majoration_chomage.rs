@@ -18,7 +18,7 @@ use crate::natures::Nature;
 /// sa fin tombe avant le meme quantieme, trois mois apres son debut (le dernier jour du mois quand il n'y est pas).
 pub fn due(nat: &Nature, motif_recours: Option<&str>, debut: &Jour, fin: Option<&Jour>) -> bool {
     let (nature, _, motif) = crate::cpf_cdd::codes_de(nat, motif_recours);
-    if nature != "02" || motif != "05" {
+    if nature.as_deref() != Some("02") || motif.as_deref() != Some("05") {
         return false;
     }
     let Some(fin) = fin else { return false };

@@ -1964,7 +1964,7 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resul
             Some(metier) => emplois::metier(metier)?.map(|m| (metier, m)),
             None => None,
         };
-        if let Some((metier, m)) = m.filter(|(_, m)| e.cadre == Some(false) && m.cadre_par_defaut(ctx.entreprise.idcc.texte())) {
+        if let Some((metier, m)) = m.filter(|(_, m)| e.cadre == Some(false) && m.cadre_par_defaut(ctx.entreprise.idcc.texte()) == Some(true)) {
             fn texte<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
                 c.remplie().map(str::to_string)
             }

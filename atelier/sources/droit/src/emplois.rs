@@ -270,9 +270,10 @@ impl Metier {
 
     /// Le metier est-il cadre, faute d'engagement qui le dise, dans la convention `idcc` ? `cadre_selon_la_convention`
     /// l'emporte pour la convention qu'il nomme (le dramaturge, cadre dans la 1285, art. XI.2.1, que la grille 3090 ne
-    /// nomme pas : `cadre_par_defaut` dans la `note` de `emplois-base.json`) ; sinon `cadre_par_defaut`. Hors catalogue : non.
-    pub fn cadre_par_defaut(&self, idcc: &str) -> bool {
-        self.au_catalogue().is_some_and(|f| match f.cadre_selon_la_convention.as_ref().and_then(|c| c.get(idcc.trim())) {
+    /// nomme pas : `cadre_par_defaut` dans la `note` de `emplois-base.json`) ; sinon `cadre_par_defaut`. Hors catalogue :
+    /// `None`, seule la compagnie le sait (la fiche le dit).
+    pub fn cadre_par_defaut(&self, idcc: &str) -> Option<bool> {
+        self.au_catalogue().map(|f| match f.cadre_selon_la_convention.as_ref().and_then(|c| c.get(idcc.trim())) {
             Some(cadre) => *cadre,
             None => f.cadre_par_defaut,
         })
@@ -339,9 +340,8 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> R
              dans la nomenclature France Travail (nomenclature-emplois-ft.json).",
             repr(code))
     })?;
-    let est_cadre = match cadre {
+    let est_cadre = match cadre.or_else(|| m.cadre_par_defaut(idcc)) {
         Some(c) => c,
-        None if m.au_catalogue().is_some() => m.cadre_par_defaut(idcc),
         None => return Err(format!("Le métier {} est hors catalogue : la fiche doit dire s'il est cadre.", repr(code))),
     };
     let libelle = Some(if feminin { m.feminin() } else { m.libelle() }).filter(|l| !l.is_empty()).unwrap_or_else(|| m.libelle());
@@ -527,13 +527,13 @@ pub struct MetierDuDeroulant {
 /// Le catalogue du spectacle vivant, le defaut cadre de chaque metier lu dans la convention `idcc`, pour un
 /// deroulant, dans l'ordre du fichier.
 pub fn catalogue(idcc: &str) -> Resultat<Vec<MetierDuDeroulant>> {
-    Ok(base()?
+    base()?
         .emplois
         .iter()
         .map(|(code, f)| {
             let m = Metier { code: code.clone(), fiche: FicheDuMetier::Catalogue(f.clone()) };
-            MetierDuDeroulant {
-                cadre_par_defaut: m.cadre_par_defaut(idcc),
+            Ok(MetierDuDeroulant {
+                cadre_par_defaut: m.cadre_par_defaut(idcc).ok_or_else(|| format!("Metier {} : le catalogue ne dit pas s'il est cadre.", repr(code)))?,
                 code: code.clone(),
                 libelle: f.libelle.clone(),
                 feminin: f.feminin.clone(),
@@ -543,9 +543,9 @@ pub fn catalogue(idcc: &str) -> Resultat<Vec<MetierDuDeroulant>> {
                 pcs_ese: f.pcs_ese.clone(),
                 niveau_3090: f.classification_3090.as_ref().map(|c| c.niveau.clone()),
                 conventions: f.conventions.iter().flatten().cloned().collect(),
-            }
+            })
         })
-        .collect())
+        .collect()
 }
 
 /// Le metier du catalogue qu'un intitule imprime nomme (un bulletin d'un logiciel precedent : « MUSICIEN »), compare
