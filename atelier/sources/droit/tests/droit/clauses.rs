@@ -103,8 +103,13 @@ pub(crate) fn profil_de(p: &Prof) -> Profil {
 
 // ------------------------------------------------------------- les calculs
 
+/// Un IDCC ou une annexe des oracles, ou son vide (`""` dans les oracles : la compagnie n'en dit pas).
+pub(crate) fn dit_ou_vide(t: &str) -> Option<&str> {
+    Some(t).filter(|t| !t.is_empty())
+}
+
 pub(crate) fn profil_lu(idcc: &str, fiche: &str, eng: Option<&Eng>) -> Resultat<Profil> {
-    c::profil(idcc, &champs(fiche)?, &dit(eng)?)
+    c::profil(dit_ou_vide(idcc), &champs(fiche)?, &dit(eng)?)
 }
 
 pub(crate) fn bloc_profil(g: &Grilles, idcc: &str, code: &str) -> Vec<Resultat<Profil>> {
@@ -120,7 +125,7 @@ pub(crate) fn bloc_profil(g: &Grilles, idcc: &str, code: &str) -> Vec<Resultat<P
 }
 
 pub(crate) fn bloc_preavis(g: &Grilles, idcc: &str, categorie: Option<&str>, motif: Option<&str>) -> Vec<Resultat<PreavisDit>> {
-    g.anc_p.iter().flat_map(|a| g.ages_p.iter().map(move |age| c::preavis_mois(idcc, categorie, dec(a), motif, age.as_deref().map(dec)))).collect()
+    g.anc_p.iter().flat_map(|a| g.ages_p.iter().map(move |age| c::preavis_mois(dit_ou_vide(idcc), categorie, dec(a), motif, age.as_deref().map(dec)))).collect()
 }
 
 pub(crate) fn annees(g: &Grilles) -> Vec<P> {
@@ -144,7 +149,7 @@ pub(crate) fn bloc_lecture(g: &Grilles, texte: &str, genre: &str) -> Option<Vec<
 
 pub(crate) fn bloc_paliers(g: &Grilles, idcc: &str, section: &str) -> Vec<(P, Option<i64>)> {
     let t = c::table().unwrap();
-    let conv = t.convention(idcc).unwrap();
+    let conv = t.convention(Some(idcc)).unwrap();
     let (paliers, prorata) = match section {
         "mise_a_la_retraite" => conv.mise_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
         _ => conv.depart_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
@@ -153,11 +158,11 @@ pub(crate) fn bloc_paliers(g: &Grilles, idcc: &str, section: &str) -> Vec<(P, Op
 }
 
 pub(crate) fn bloc_annexe(g: &Grilles, idcc: &str, annexe: &str) -> Vec<Resultat<Option<c::ClauseDAnnexe>>> {
-    g.profs.iter().flat_map(|pr| g.motifs.iter().map(move |m| c::clause_d_annexe(idcc, annexe, &profil_de(pr), m.as_deref()))).collect()
+    g.profs.iter().flat_map(|pr| g.motifs.iter().map(move |m| c::clause_d_annexe(dit_ou_vide(idcc), dit_ou_vide(annexe), &profil_de(pr), m.as_deref()))).collect()
 }
 
 pub(crate) fn indemnite(idcc: &str, annexe: &str, pr: &Prof, anc: &str, r: &str, motif: Option<&str>, age: Option<&str>) -> Resultat<Indemnite> {
-    c::indemnite_licenciement(idcc, annexe, &profil_de(pr), dec(anc), dec(r), motif, age.map(dec))
+    c::indemnite_licenciement(dit_ou_vide(idcc), dit_ou_vide(annexe), &profil_de(pr), dec(anc), dec(r), motif, age.map(dec))
 }
 
 pub(crate) fn bloc_indemnite(g: &Grilles, idcc: &str, annexe: &str, pr: &Prof) -> Vec<Resultat<Indemnite>> {
@@ -175,11 +180,11 @@ pub(crate) fn bloc_indemnite(g: &Grilles, idcc: &str, annexe: &str, pr: &Prof) -
 }
 
 pub(crate) fn mise(idcc: &str, a: &str, r: &str) -> Resultat<Retraite> {
-    c::indemnite_mise_a_la_retraite(idcc, dec(a), dec(r))
+    c::indemnite_mise_a_la_retraite(dit_ou_vide(idcc), dec(a), dec(r))
 }
 
 pub(crate) fn depart(idcc: &str, a: &str, r: &str) -> Resultat<Retraite> {
-    c::indemnite_depart_retraite(idcc, dec(a), dec(r))
+    c::indemnite_depart_retraite(dit_ou_vide(idcc), dec(a), dec(r))
 }
 
 pub(crate) fn bloc_retraite(g: &Grilles, f: impl Fn(&str, &str) -> Resultat<Retraite>) -> Vec<Resultat<Retraite>> {
@@ -187,7 +192,7 @@ pub(crate) fn bloc_retraite(g: &Grilles, f: impl Fn(&str, &str) -> Resultat<Retr
 }
 
 pub(crate) fn prime(idcc: &str, annexe: &str, fiche: &str, eng: Option<&Eng>, j: &Jour, jauge: Option<&str>) -> Resultat<Option<Prime>> {
-    c::prime_anciennete(idcc, annexe, &champs(fiche)?, &dit(eng)?, j, jauge)
+    c::prime_anciennete(dit_ou_vide(idcc), dit_ou_vide(annexe), &champs(fiche)?, &dit(eng)?, j, jauge)
 }
 
 pub(crate) fn bloc_prime(g: &Grilles, idcc: &str, annexe: &str, code: &str) -> Vec<Resultat<Option<Prime>>> {
@@ -418,11 +423,11 @@ pub(crate) fn cas_profil(c: &CasProfil) -> Rendu<ProfilLu> {
 }
 
 pub(crate) fn cas_preavis(x: &CasPreavis) -> Rendu<PreavisLu> {
-    rendu(c::preavis_mois(&x.idcc, x.categorie.as_deref(), dec(&x.anciennete), x.motif.as_deref(), x.age.as_deref().map(dec)), preavis_ecrit)
+    rendu(c::preavis_mois(dit_ou_vide(&x.idcc), x.categorie.as_deref(), dec(&x.anciennete), x.motif.as_deref(), x.age.as_deref().map(dec)), preavis_ecrit)
 }
 
 pub(crate) fn cas_annexe(x: &CasAnnexe) -> Rendu<Option<AnnexeLue>> {
-    rendu(c::clause_d_annexe(&x.idcc, &x.annexe, &profil_de(&x.profil), x.motif.as_deref()), annexe_ecrite)
+    rendu(c::clause_d_annexe(dit_ou_vide(&x.idcc), dit_ou_vide(&x.annexe), &profil_de(&x.profil), x.motif.as_deref()), annexe_ecrite)
 }
 
 pub(crate) fn cas_indemnite(x: &CasIndemnite) -> Rendu<IndemniteLue> {
@@ -494,8 +499,8 @@ fn profil() {
     let g = grilles();
     jouer("clauses/profil-blocs.json", cas_de("clauses/profil-blocs.json"), |p| empreinte_profil(&g, p));
     jouer("clauses/profil.json", cas_de("clauses/profil.json"), cas_profil);
-    jouer("clauses/nom.json", cas_de::<String>("clauses/nom.json"), |i| c::nom(i));
-    jouer("clauses/releve.json", cas_de::<String>("clauses/releve.json"), |i| rendu(c::releve(i), |r| r.is_some()));
+    jouer("clauses/nom.json", cas_de::<String>("clauses/nom.json"), |i| c::nom(dit_ou_vide(i)));
+    jouer("clauses/releve.json", cas_de::<String>("clauses/releve.json"), |i| rendu(c::releve(dit_ou_vide(i)), |r| r.is_some()));
 }
 
 #[test]
@@ -553,15 +558,15 @@ fn prime_d_anciennete() {
 fn la_remise_du_contrat_suit_l1242_13_et_la_1285_pour_ses_musiciens() {
     let j = |s: &str| Jour::lire(s).unwrap();
     // Un vendredi : le samedi, puis le lundi (le dimanche n'est pas ouvrable).
-    let loi = droit::echeances::remise_du_contrat(&j("2026-11-20"), "3090", "ART170", None).unwrap();
+    let loi = droit::echeances::remise_du_contrat(&j("2026-11-20"), Some("3090"), "ART170", None).unwrap();
     assert_eq!(loi.jour, j("2026-11-23"));
     assert!(loi.source.contains("L. 1242-13"), "{}", loi.source);
     // Le meme musicien sous la 1285 : quinze jours ouvrables avant le jeudi 10/12, sans compter les dimanches.
-    let musicien = droit::echeances::remise_du_contrat(&j("2026-12-10"), "1285", "ART170", None).unwrap();
+    let musicien = droit::echeances::remise_du_contrat(&j("2026-12-10"), Some("1285"), "ART170", None).unwrap();
     assert_eq!(musicien.jour, j("2026-11-23"));
     assert!(musicien.source.contains("1285") && musicien.source.contains("XV"), "{}", musicien.source);
     // Un metier hors du titre XV, sous la 1285 : la loi seule.
-    let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), "1285", "ZZZ999", None).unwrap();
+    let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), Some("1285"), "ZZZ999", None).unwrap();
     assert_eq!(autre.jour, j("2026-12-12"));
     assert!(autre.source.contains("L. 1242-13"), "{}", autre.source);
 }

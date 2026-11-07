@@ -1121,10 +1121,10 @@ pub enum ChampDuSecteur {
 }
 
 impl ChampDuSecteur {
-    /// Ce que la fiche y dit, vide si rien.
-    pub fn dit(self, fiche: &crate::fiche::ChampsEntreprise) -> String {
+    /// Ce que la fiche y dit.
+    pub fn dit(self, fiche: &crate::fiche::ChampsEntreprise) -> Option<&'static str> {
         match self {
-            ChampDuSecteur::Secteur2121 => fiche.secteur_2121.code().to_string(),
+            ChampDuSecteur::Secteur2121 => fiche.secteur_2121.code(),
         }
     }
 }

@@ -44,8 +44,8 @@ pub fn faits_appeles(ctx: &Contexte, partiel: bool) -> Resultat<Vec<&'static str
     if partiel {
         return Ok(vec![HEURES_COMPLEMENTAIRES]);
     }
-    let idcc = ctx.entreprise.idcc.texte();
-    Ok(if droit::heures_en_plus::paliers_conventionnels(&idcc)? {
+    let idcc = ctx.entreprise.idcc.portee();
+    Ok(if droit::heures_en_plus::paliers_conventionnels(idcc)? {
         vec![HEURES_SUPPLEMENTAIRES]
     } else {
         vec![HEURES_SUPPLEMENTAIRES, HEURES_SUPPLEMENTAIRES_A_50]
@@ -84,17 +84,17 @@ pub(crate) fn lignes(ctx: &Contexte, e: &Carte, mois: &str, salaire: Decimal, qu
     if quotite.is_zero() {
         return Err(format!("{} : ses heures par mois sont nulles ; le taux horaire de ses heures en plus ne se calcule pas.", qui(ctx, e)));
     }
-    let idcc = ctx.entreprise.idcc.texte();
+    let idcc = ctx.entreprise.idcc.portee();
     let (rubrique, reparties) = if partiel {
-        (HEURE_COMPLEMENTAIRE, droit::heures_en_plus::complementaires(&idcc, comp, quotite)?)
+        (HEURE_COMPLEMENTAIRE, droit::heures_en_plus::complementaires(idcc, comp, quotite)?)
     } else {
         let salarie = crate::conges::salarie_de(e)?;
-        let deja = if droit::heures_en_plus::paliers_conventionnels(&idcc)? || droit::clauses::releve(&idcc)?.is_some_and(|c| c.heures_supplementaires.is_some()) {
+        let deja = if droit::heures_en_plus::paliers_conventionnels(idcc)? || droit::clauses::releve(idcc)?.is_some_and(|c| c.heures_supplementaires.is_some()) {
             crate::conges::heures_supplementaires_des_mois_anterieurs(ctx, mois, &salarie)?
         } else {
             Decimal::ZERO
         };
-        (HEURE_SUPPLEMENTAIRE, droit::heures_en_plus::supplementaires(&idcc, sup, a_50, deja)?)
+        (HEURE_SUPPLEMENTAIRE, droit::heures_en_plus::supplementaires(idcc, sup, a_50, deja)?)
     };
     let horaire = salaire / quotite;
     let mut out = Vec::new();

@@ -86,7 +86,7 @@ struct Periode {
 
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[crate::journal::Ligne], m: socle::mois::Mois) -> Option<DsnLue> {
-    let l = crate::etats::etat_dsn_du_mois(lignes, m, None, &ctx.entreprise.nic_principal())?;
+    let l = crate::etats::etat_dsn_du_mois(lignes, m, None, ctx.entreprise.nic_principal()?)?;
     let fichier = l.fichier.filter(|f| !f.is_empty())?;
     let p = std::path::Path::new(&fichier);
     let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m.to_string()).join(&fichier) };

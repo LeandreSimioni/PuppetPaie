@@ -14,30 +14,31 @@ use droit::fiche::{ChampsSalarie, FicheSalarie};
 pub const RUBRIQUE:&str = "S21.G00.30.020";
 pub const RUBRIQUE_NIR: &str = "S21.G00.30.001";
 
-/// Le code sexe d'un NIR (son premier chiffre), sinon de la case `sexe` ; "" si ni l'un ni l'autre ne le dit.
-pub fn sexe_de(nir: &str, sexe: &str) -> String {
-    let nir = strip(nir);
-    if nir.starts_with('1') || nir.starts_with('2') {
-        return nir[..1].to_string();
-    }
-    let v = strip(sexe);
-    if v == "1" || v == "2" {
-        v.to_string()
-    } else {
-        String::new()
+/// Le code sexe d'un NIR (son premier chiffre), sinon de la case `sexe` ; `None` si ni l'un ni l'autre ne le dit.
+pub fn sexe_de(nir: Option<&str>, sexe: Option<&str>) -> Option<&'static str> {
+    let un_ou_deux = |t: &str| match t {
+        "1" => Some("1"),
+        "2" => Some("2"),
+        _ => None,
+    };
+    match nir.map(strip).and_then(|n| n.get(..1)).and_then(un_ou_deux) {
+        Some(s) => Some(s),
+        None => sexe.map(strip).and_then(un_ou_deux),
     }
 }
 
 /// Le NTT de ce salarie dans l'entreprise de SIREN `siren`.
 pub fn numero(siren: &str, salarie: &FicheSalarie) -> Resultat<String> {
-    let s = sexe_de(salarie.nir.texte(), salarie.sexe.code());
-    if s.is_empty() {
-        let qui = if salarie.nom.texte().is_empty() { salarie.id.to_string() } else { salarie.nom.texte().to_string() };
+    let Some(s) = sexe_de(salarie.nir.portee(), salarie.sexe.code()) else {
+        let qui = match salarie.nom.remplie() {
+            Some(nom) => nom.to_string(),
+            None => salarie.id.to_string(),
+        };
         return Err(format!(
             "Le numero technique temporaire ({}) de {} ne peut pas etre fabrique : sa fiche ne dit pas le sexe, et le NTT commence par lui (1 ou 2). D'ordinaire il se lit sur le NIR ; sans NIR, il faut le renseigner dans la fiche du salarie.",
             RUBRIQUE, qui
         ));
-    }
+    };
     let siren = strip(siren).to_string();
     if siren.chars().count() != 9 || !siren.chars().all(|c| c.is_ascii_digit()) {
         return Err(socle::echec::a_la_cle(

@@ -33,21 +33,21 @@ fn loi() -> Resultat<crate::permanents::HeuresEnPlus> {
 }
 
 /// Ce que la convention `idcc` dit des heures supplementaires, s'il est releve.
-fn supplementaires_de_la_convention(idcc: &str) -> Resultat<Option<crate::clauses::HeuresSupplementaires>> {
+fn supplementaires_de_la_convention(idcc: Option<&str>) -> Resultat<Option<crate::clauses::HeuresSupplementaires>> {
     Ok(crate::clauses::releve(idcc)?.and_then(|c| c.heures_supplementaires))
 }
 
 /// LA CONVENTION FIXE-T-ELLE LES PALIERS DES HEURES SUPPLEMENTAIRES ? Sinon la loi : 25 % pour les huit premieres
 /// heures de la semaine, 50 % au-dela (L3121-36), et le mois ne dit pas lesquelles sont au-dela de la huitieme d'une
 /// semaine (elles se decomptent par semaine, L3121-29) : la carte le demande (`heures_supplementaires_a_50`).
-pub fn paliers_conventionnels(idcc: &str) -> Resultat<bool> {
+pub fn paliers_conventionnels(idcc: Option<&str>) -> Resultat<bool> {
     Ok(supplementaires_de_la_convention(idcc)?.is_some_and(|c| c.paliers_annuels.as_ref().is_some_and(|p| !p.is_empty())))
 }
 
 /// LES HEURES SUPPLEMENTAIRES DU MOIS, par majoration. `heures` : celles du mois ; `a_50` : celles d'entre elles qui
 /// passent la huitieme d'une semaine (la loi seule les lit) ; `deja` : celles des mois d'avant dans l'annee, que les
 /// paliers annuels d'une convention et son contingent comptent (1285, VI.9 et VI.12).
-pub fn supplementaires(idcc: &str, heures: Decimal, a_50: Decimal, deja: Decimal) -> Resultat<Reparties> {
+pub fn supplementaires(idcc: Option<&str>, heures: Decimal, a_50: Decimal, deja: Decimal) -> Resultat<Reparties> {
     let mut r = Reparties::default();
     if heures <= Decimal::ZERO {
         return Ok(r);
@@ -109,7 +109,7 @@ pub fn supplementaires(idcc: &str, heures: Decimal, a_50: Decimal, deja: Decimal
 /// 10 % dans le dixieme des heures du contrat, 25 % jusqu'au tiers ; une convention qui ne fixe pas d'autre taux la
 /// laisse (1285, VI.13 bis : 25 % au-dela du dixieme, rien dans le dixieme). Le plafond : le dixieme sans accord
 /// (L3123-28), le tiers quand la convention le permet ; au-dela, un avis.
-pub fn complementaires(idcc: &str, heures: Decimal, contrat: Decimal) -> Resultat<Reparties> {
+pub fn complementaires(idcc: Option<&str>, heures: Decimal, contrat: Decimal) -> Resultat<Reparties> {
     let mut r = Reparties::default();
     if heures <= Decimal::ZERO {
         return Ok(r);
@@ -194,21 +194,21 @@ mod tests {
     #[test]
     fn la_loi_majore_de_25_les_huit_premieres_heures_d_une_semaine_et_de_50_les_suivantes() {
         // L3121-36, sans convention relevee (une compagnie sans IDCC).
-        let r = supplementaires("", d("12"), d("3"), Decimal::ZERO).unwrap();
+        let r = supplementaires(None, d("12"), d("3"), Decimal::ZERO).unwrap();
         assert_eq!(r.paliers, vec![Palier { heures: d("9"), majoration: d("25") }, Palier { heures: d("3"), majoration: d("50") }]);
     }
 
     #[test]
     fn la_1285_majore_les_80_premieres_heures_de_l_annee_de_25_puis_de_50() {
         // CCNEAC VI.12 : 75 heures deja faites dans l'annee, 10 ce mois : 5 a 25 %, 5 a 50 % ; la semaine ne compte pas.
-        let r = supplementaires("1285", d("10"), d("4"), d("75")).unwrap();
+        let r = supplementaires(Some("1285"), d("10"), d("4"), d("75")).unwrap();
         assert_eq!(r.paliers, vec![Palier { heures: d("5"), majoration: d("25") }, Palier { heures: d("5"), majoration: d("50") }]);
     }
 
     #[test]
     fn la_loi_majore_de_10_les_heures_complementaires_du_dixieme_et_de_25_les_suivantes() {
         // L3123-29 : un contrat de 100 heures par mois, 14 heures complementaires : 10 a 10 %, 4 a 25 %.
-        let r = complementaires("", d("14"), d("100")).unwrap();
+        let r = complementaires(None, d("14"), d("100")).unwrap();
         assert_eq!(r.paliers, vec![Palier { heures: d("10"), majoration: d("10") }, Palier { heures: d("4"), majoration: d("25") }]);
     }
 }

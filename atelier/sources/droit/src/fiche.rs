@@ -78,12 +78,12 @@ pub trait Lue<T> {
         self.exigee(cle).map(AsRef::as_ref)
     }
 
-    /// Un choix dit, tel qu'il s'ecrit ; `""` sinon.
-    fn code(&self) -> &'static str
+    /// Un choix dit, tel qu'il s'ecrit.
+    fn code(&self) -> Option<&'static str>
     where
         T: Choix,
     {
-        self.dite().map_or("", Choix::code)
+        self.dite().map(Choix::code)
     }
 
     /// Cochee : `true` dit ; ni vide, ni `false`.
@@ -1346,22 +1346,22 @@ impl ChampsSalarie {
     /// « NOM Prénom », tel que l'ecran le nomme (`socle::texte::salarie_nomme`) : le nom et le prenom d'usage, sinon ceux de
     /// l'etat civil. `None` : la fiche ne nomme personne.
     pub fn nomme(&self) -> Option<String> {
-        socle::texte::salarie_nomme(self.nom.texte(), self.nom_affichage.texte(), self.prenom.texte(), self.prenom_affichage.texte())
+        socle::texte::salarie_nomme(self.nom.portee(), self.nom_affichage.portee(), self.prenom.portee(), self.prenom_affichage.portee())
     }
 
     /// Ce que la fiche dit de la nationalite (`socle::codification_ue`, S21.G00.30.013).
     pub fn nationalite(&self) -> socle::codification_ue::Nationalite {
         socle::codification_ue::Nationalite::nouvelle(
             self.code_nationalite_dsn.code(),
-            self.pays_nationalite.texte(),
-            self.pays_nationalite_hors_liste.texte(),
+            self.pays_nationalite.portee(),
+            self.pays_nationalite_hors_liste.portee(),
             self.nomme(),
         )
     }
 
     /// Le pays de naissance tel que la DSN le declare (S21.G00.30.015, `socle::pays::de_naissance`).
     pub fn pays_de_naissance(&self) -> Resultat<Option<String>> {
-        let qui = format!("{} {}", self.prenom.texte(), self.nom.texte()).trim().to_string();
+        let qui = [self.prenom.portee(), self.nom.portee()].into_iter().flatten().collect::<Vec<_>>().join(" ").trim().to_string();
         self.pays_naissance.as_ref().map(|code| socle::pays::de_naissance(code, &qui)).transpose()
     }
 
@@ -1372,25 +1372,26 @@ impl ChampsSalarie {
 }
 
 impl ChampsEntreprise {
-    /// Le NIC du siege, ou `""`.
-    pub fn nic_principal(&self) -> String {
-        self.nic.texte().to_string()
+    /// Le NIC du siege, tel que la fiche le dit.
+    pub fn nic_principal(&self) -> Option<&str> {
+        self.nic.portee()
     }
 
     /// Les etablissements autres que le siege.
     pub fn secondaires(&self) -> Vec<&Etablissement> {
-        let nic = self.nic.texte();
-        self.etablissements.dite().into_iter().flatten().filter(|e| e.nic.texte() != nic).collect()
+        let nic = self.nic.portee();
+        self.etablissements.dite().into_iter().flatten().filter(|e| e.nic.portee() != nic).collect()
     }
 
     /// L'autre etablissement de ce NIC, `None` : le siege, ou un NIC que la fiche ne porte pas.
     pub fn etablissement(&self, nic: &str) -> Option<&Etablissement> {
-        self.secondaires().into_iter().find(|e| e.nic.texte() == nic)
+        self.secondaires().into_iter().find(|e| e.nic.portee() == Some(nic))
     }
 
-    /// Le NIC du siege, puis celui de chaque autre etablissement : une DSN par etablissement.
-    pub fn nics(&self) -> Vec<String> {
-        std::iter::once(self.nic_principal()).chain(self.secondaires().iter().map(|e| e.nic.texte().to_string())).collect()
+    /// Le NIC du siege, puis celui de chaque autre etablissement : une DSN par etablissement. Chacun s'exige : sans lui,
+    /// la DSN de l'etablissement ne s'ecrit pas.
+    pub fn nics(&self) -> Resultat<Vec<String>> {
+        std::iter::once(self.nic.ecrite("nic")).chain(self.secondaires().iter().map(|e| e.nic.ecrite("etablissements.nic"))).map(|n| n.map(str::to_string)).collect()
     }
 
     /// Les feries qu'elle chome, tels que `socle::feries::chomes` les lit ; `None` : la fiche n'en dit rien.
@@ -1399,11 +1400,8 @@ impl ChampsEntreprise {
     }
 
     /// Le nom de la compagnie tel que l'ecran le dit : le nom d'usage, sinon la raison sociale.
-    pub fn nommee(&self) -> String {
-        match self.nom_affichage.texte() {
-            "" => self.raison_sociale.texte().to_string(),
-            n => n.to_string(),
-        }
+    pub fn nommee(&self) -> Option<&str> {
+        self.nom_affichage.remplie().or_else(|| self.raison_sociale.portee())
     }
 }
 

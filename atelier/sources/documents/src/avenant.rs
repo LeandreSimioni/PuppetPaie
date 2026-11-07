@@ -458,7 +458,7 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
 /// La fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<droit::contexte::EntrepriseDuDocument> {
     let mut ent = ctx.entreprise.clone();
-    ent.licence_spectacle = Some(ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour()));
+    ent.licence_spectacle = ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour());
     Ok(ctx.pour_un_modele(&ent))
 }
 

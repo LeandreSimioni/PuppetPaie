@@ -766,12 +766,12 @@ pub fn pdf_livre(ctx: &Contexte, livre: &LivreDePaie) -> R<Vec<u8>> {
     };
     let entetes: Vec<(String, bool)> = colonnes_livre(livre).iter().map(|c| (etiquette(c), MONTANTS.contains(c))).collect();
     // Le nom d'usage (pas la raison sociale).
-    let nom = ctx.entreprise.nom_affichage.texte();
+    let nom = ctx.entreprise.nom_affichage.remplie();
     let sous = format!("{} — {}{}", livre.periode, regroupement_lisible(&livre.regroupement), if livre.coordonnees { " — avec les coordonnées des salariés" } else { "" });
     let d = crate::tableaux_export::description_pdf(
         "Livre de paie",
         &livre.periode,
-        &nom,
+        nom,
         &sous,
         &format!("Livre de paie — {}", livre.periode),
         &entetes,

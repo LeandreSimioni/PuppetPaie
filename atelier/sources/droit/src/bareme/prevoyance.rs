@@ -186,14 +186,16 @@ fn derniere<'a>(table: &'a Datees, jour: Option<&Jour>) -> Option<(&'a Jour, Dec
 
 /// La convention a-t-elle un regime de sante a elle ?
 pub fn a_un_regime_de_sante(ent: &ChampsEntreprise) -> Resultat<bool> {
-    Ok(catalogue()?.regime(ent.idcc.texte()).is_some_and(|r| r.sante.is_some()))
+    let c = catalogue()?;
+    Ok(ent.idcc.portee().and_then(|i| c.regime(i)).is_some_and(|r| r.sante.is_some()))
 }
 
 /// La complementaire sante que la CONVENTION fixe, quand elle en fixe une ; `None` si la convention n'a pas de section
 /// `sante`.
 pub(crate) fn sante_conventionnelle(ent: &ChampsEntreprise, sal: &SalarieDuContrat, fin: Option<&Jour>) -> Resultat<Option<Mutuelle>> {
     let c = catalogue()?;
-    let Some(sante) = c.regime(ent.idcc.texte()).and_then(|r| r.sante.as_ref()) else { return Ok(None) };
+    let Some(idcc) = ent.idcc.portee() else { return Ok(None) };
+    let Some(sante) = c.regime(idcc).and_then(|r| r.sante.as_ref()) else { return Ok(None) };
     if super::sans_sante(sal) {
         return Ok(Some(Mutuelle::Sans));
     }
@@ -201,7 +203,7 @@ pub(crate) fn sante_conventionnelle(ent: &ChampsEntreprise, sal: &SalarieDuContr
         return Err(format!(
             "Complementaire sante des permanents, convention {} : aucun taux \
 en vigueur au {} dans le catalogue de branche.",
-            ent.idcc.texte(),
+            idcc,
             match fin {
                 Some(j) => j.iso(),
                 None => "jour de la paie".to_string(),
@@ -221,7 +223,7 @@ en vigueur au {} dans le catalogue de branche.",
         return Err(format!(
             "Fiche Entreprise, « Santé des permanents », part employeur : à remplir. La convention {} en met au moins {} % \
 à la charge de l'employeur ; la part de la compagnie est sur son contrat de complémentaire santé.",
-            ent.idcc.texte(),
+            idcc,
             minimum
         ));
     };
@@ -232,7 +234,7 @@ en vigueur au {} dans le catalogue de branche.",
 la convention {} met au moins {} % de la cotisation sante a la \
 charge de l'employeur (XII.2.1.11), et pas plus de 100.",
             choix.ecrit(),
-            ent.idcc.texte(),
+            idcc,
             minimum
         ));
     }
@@ -243,10 +245,10 @@ charge de l'employeur (XII.2.1.11), et pas plus de 100.",
 /// `super::minimum_sante`.
 pub fn minimum_sante(ent: &ChampsEntreprise, jour: Option<&Jour>) -> Resultat<Option<(Decimal, String)>> {
     let c = catalogue()?;
-    let Some(m) = c.regime(ent.idcc.texte()).and_then(|r| r.sante_minimum.as_ref()) else { return Ok(None) };
-    let annexe = ent.annexe_convention.code().to_string();
-    let (table, qui) = match m.annexes.as_ref().and_then(|a| a.get(&annexe)) {
-        Some(t) => (t, format!("annexe {}", annexe)),
+    let Some(m) = ent.idcc.portee().and_then(|i| c.regime(i)).and_then(|r| r.sante_minimum.as_ref()) else { return Ok(None) };
+    let annexe = ent.annexe_convention.code();
+    let (table, qui) = match annexe.and_then(|n| m.annexes.as_ref().and_then(|a| a.get(n)).map(|t| (n, t))) {
+        Some((n, t)) => (t, format!("annexe {}", n)),
         None => (&m.socle, "socle".to_string()),
     };
     Ok(derniere(table, jour).map(|(depuis, taux)| (taux, format!("{}, depuis le {}", qui, depuis.jj_mm_aaaa()))))
@@ -410,16 +412,16 @@ nouveau le laisserait sans couverture pendant un an.",
 
 /// (taux minimum de tranche 1, d'ou il vient) pour ce salarie ; `None` : ni la convention (elle fixe la repartition,
 /// pas le taux : `contrat_requis`) ni l'obligation cadre n'en fixent.
-fn minimum_t1(reg: &Regime, annexe: &str, cadre: bool) -> Resultat<Option<(f64, String)>> {
+fn minimum_t1(reg: &Regime, annexe: Option<&str>, cadre: bool) -> Resultat<Option<(f64, String)>> {
     let mut retenu = reg.obligatoire.taux.map(|t| (t, format!("{} : {} %", reg.texte, pcf(t))));
-    let sup = reg.annexes.as_ref().and_then(|a| a.get(annexe)).map(|a| a.taux).filter(|t| *t != 0.0);
-    if let Some(s) = sup.filter(|s| retenu.as_ref().is_none_or(|(t, _)| s > t)) {
-        retenu = Some((s, format!("annexe {} de la convention : {} %", annexe, pcf(s))));
+    let sup = annexe.and_then(|n| reg.annexes.as_ref().and_then(|a| a.get(n)).map(|a| (n, a.taux))).filter(|(_, t)| *t != 0.0);
+    if let Some((n, s)) = sup.filter(|(_, s)| retenu.as_ref().is_none_or(|(t, _)| s > t)) {
+        retenu = Some((s, format!("annexe {} de la convention : {} %", n, pcf(s))));
     }
     if cadre {
         if let Some(propre) = reg.obligatoire_cadre.as_ref().and_then(|oc| oc.taux) {
             let t = match sup {
-                Some(s) => propre.max(s),
+                Some((_, s)) => propre.max(s),
                 None => propre,
             };
             retenu = Some((t, format!("{} : {} % (cadres)", reg.texte, pcf(t))));
@@ -471,7 +473,7 @@ fn part_t2(b: &Bloc) -> f64 {
 
 /// Ce qu'un permanent cotise en prevoyance ce mois-la.
 pub fn cotisation(sal: &SalarieDuContrat, cadre: bool, fin: Option<&Jour>, entreprise: &ChampsEntreprise) -> Resultat<Cotisation> {
-    let idcc = entreprise.idcc.texte();
+    let idcc = entreprise.idcc.ecrite("idcc")?;
     let reg = a_la_date(regime(idcc)?, fin);
     let ent = entreprise.prevoyance_permanents.dite();
     let contrat = ent.is_some_and(|p| p.regime.est_dite());
@@ -622,7 +624,7 @@ pub fn affiliation(sal: &SalarieDuContrat, cadre: bool, fin: &Jour, entreprise: 
     if !cot.due {
         return Ok(A::NonAffilie);
     }
-    let reg = a_la_date(regime(entreprise.idcc.texte())?, Some(fin));
+    let reg = a_la_date(regime(entreprise.idcc.ecrite("idcc")?)?, Some(fin));
     let seuil = seuil(&reg, cadre);
     if seuil <= 0 {
         return Ok(A::DesLEmbauche);

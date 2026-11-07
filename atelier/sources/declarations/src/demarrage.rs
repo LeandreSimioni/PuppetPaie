@@ -192,7 +192,7 @@ pub fn manques(ctx: &Contexte) -> socle::num::Resultat<Vec<Value>> {
     // QUAND ELLE EST EXIGEE de la compagnie (`exige_si` de `champs-base.json`, lu par `dsn::licence_du_contrat` aussi) :
     // en 1790 et en 3252 la case se montre sans etre exigee, dans l'audiovisuel elle ne se montre pas.
     // Elle peut etre datee (une par periode) : le contexte la resout au jour.
-    if ctx.licence(&ctx.aujourdhui).trim().is_empty() && licence_exigee(ent, intermittents) {
+    if ctx.licence(&ctx.aujourdhui).is_none_or(|l| l.trim().is_empty()) && licence_exigee(ent, intermittents) {
         let (libelle, aide) = champ("licence_spectacle");
         out.push(manque("licence_spectacle", libelle, "la DSN", ENTREPRISE, Some("licence_spectacle"), aide));
     }
@@ -491,7 +491,7 @@ pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> socle::num::Resultat<Option
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`) ?
 fn en_alsace_moselle(ctx: &Contexte) -> bool {
-    droit::bareme::en_alsace_moselle(ctx.entreprise.code_postal.texte())
+    droit::bareme::en_alsace_moselle(ctx.entreprise.code_postal.portee())
 }
 
 /// Le taux AT/MP de l'annee est-il encore celui que le moteur a pose a la creation ?

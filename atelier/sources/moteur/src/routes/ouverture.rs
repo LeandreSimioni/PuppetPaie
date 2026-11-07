@@ -407,7 +407,7 @@ pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Option<Vec<ChoixEtablisse
         .unwrap_or_default()
         .into_iter()
         .map(|(e, f)| (socle::ecriture::en_valeur(&e), f))
-        .filter(|(e, _)| texte_ou_vide(e.get("nic")) != principal)
+        .filter(|(e, _)| Some(texte_ou_vide(e.get("nic")).as_str()) != principal)
         .collect();
     if autres.is_empty() {
         return None;
@@ -811,12 +811,12 @@ fn configuration(ctx: &Contexte) -> R<ConfigurationDeLaPage> {
     // LA DEDUCTION FORFAITAIRE SPECIFIQUE vue de la fiche d'un salarie : l'option est celle de l'employeur, dans la fiche de
     // l'entreprise ; la fiche du salarie dit si elle s'applique (`calcul::deduction_forfaitaire` decide).
     let description_entreprise = champs::description("entreprise")?;
-    let option = ctx.entreprise.deduction_forfaitaire_option.code().to_string();
-    let deduction = if option.is_empty() {
-        "La compagnie ne l'applique pas : c'est une option de l'employeur, qui se règle dans la fiche de l'entreprise (« Avancé — cas particuliers »). Une fois l'option posée, la profession et l'accord du salarié se disent ici.".to_string()
-    } else {
-        let nom = description_entreprise.as_array().into_iter().flatten().find(|c| c["cle"] == "deduction_forfaitaire_option").map(|c| super::mot(&c["libelles"][&option])).filter(|n| !n.is_empty()).unwrap_or_else(|| option.clone());
-        format!("La compagnie l'applique (fiche de l'entreprise) : « {} ».", nom)
+    let deduction = match ctx.entreprise.deduction_forfaitaire_option.code() {
+        None => "La compagnie ne l'applique pas : c'est une option de l'employeur, qui se règle dans la fiche de l'entreprise (« Avancé — cas particuliers »). Une fois l'option posée, la profession et l'accord du salarié se disent ici.".to_string(),
+        Some(option) => {
+            let nom = description_entreprise.as_array().into_iter().flatten().find(|c| c["cle"] == "deduction_forfaitaire_option").map(|c| super::mot(&c["libelles"][option])).filter(|n| !n.is_empty()).unwrap_or_else(|| option.to_string());
+            format!("La compagnie l'applique (fiche de l'entreprise) : « {} ».", nom)
+        }
     };
     // LES NUMEROS D'OBJET SANS TITRE (importes des DSN, « A COMPLETER »), archives : la liste des spectacles les groupe sous
     // cette phrase.

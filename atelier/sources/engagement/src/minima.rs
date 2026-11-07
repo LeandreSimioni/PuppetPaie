@@ -854,13 +854,15 @@ fn a_verifier(t: &Table, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = idcc_du_contrat(ent.idcc.texte(), paie.spectacle.as_ref(), &paie.salarie)?;
+    let Some(idcc_compagnie) = ent.idcc.portee() else { return Ok(None) };
+    let idcc = idcc_du_contrat(idcc_compagnie, paie.spectacle.as_ref(), &paie.salarie)?;
     let tab = table()?;
     let t: &Table = &tab;
     if t.convention(&idcc).is_none() {
         return Ok(None);
     }
-    let Some(m) = emplois::metier(paie.salarie.code_emploi_ft.texte())? else { return Ok(None) };
+    let Some(code) = paie.salarie.code_emploi_ft.portee() else { return Ok(None) };
+    let Some(m) = emplois::metier(code)? else { return Ok(None) };
     let nb_cachets = paie
         .remuneration
         .iter()

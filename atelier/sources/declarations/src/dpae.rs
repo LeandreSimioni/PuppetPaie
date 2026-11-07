@@ -362,7 +362,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, nom, a, b, &v)?;
         }
-        if etab.nic.texte() != ent.nic_principal() {
+        if etab.nic.portee() != ent.nic_principal() {
             code_urssaf = json!(urssaf_d_un_etablissement(etab)?);
         }
     }
@@ -397,9 +397,9 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     // LE SEXE VIENT DU NIR QUAND IL Y EN A UN, de la fiche sinon : c'est la
     // meme lecture que pour le numero technique temporaire de la DSN
     // (`ntt.rs`), et il n'y en a qu'une dans le logiciel.
-    let sexe = match ntt::sexe_de(s.nir.texte(), s.sexe.code()).as_str() {
-        "1" => "M",
-        "2" => "F",
+    let sexe = match ntt::sexe_de(s.nir.portee(), s.sexe.code()) {
+        Some("1") => "M",
+        Some("2") => "F",
         _ => "",
     };
     poser(&mut buf, "horodatage", p.horodatage)?;

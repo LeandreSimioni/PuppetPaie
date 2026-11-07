@@ -376,21 +376,21 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
     }
 }
 
-/// Le nom de la compagnie, ou rien.
-pub fn nom_compagnie(ctx: &Contexte) -> String {
+/// Le nom de la compagnie, s'il est dit.
+pub fn nom_compagnie(ctx: &Contexte) -> Option<&str> {
     ctx.entreprise.nommee()
 }
 
-fn entete_texte(t: &Tableau, nom: &str) -> Vec<String> {
+fn entete_texte(t: &Tableau, nom: Option<&str>) -> Vec<String> {
     let mut out = vec![format!("{} — {}", t.titre, t.periode)];
-    if !nom.is_empty() {
+    if let Some(nom) = nom {
         out.insert(0, nom.to_string());
     }
     out
 }
 
-fn lire_nom(ctx: Option<&Contexte>) -> String {
-    ctx.map(nom_compagnie).unwrap_or_default()
+fn lire_nom(ctx: Option<&Contexte>) -> Option<&str> {
+    ctx.and_then(nom_compagnie)
 }
 
 // ---------------------------------------------------------------------- csv
@@ -399,7 +399,7 @@ fn lire_nom(ctx: Option<&Contexte>) -> String {
 pub fn csv_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut s = String::from("\u{feff}");
     let ligne = |s: &mut String, c: &[String]| s.push_str(&socle::csv::ligne(c, ';'));
-    for x in entete_texte(t, &lire_nom(ctx)) {
+    for x in entete_texte(t, lire_nom(ctx)) {
         ligne(&mut s, &[x]);
     }
     ligne(&mut s, &[]);
@@ -588,7 +588,7 @@ pub fn xlsx_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let ws = wb.add_worksheet();
     ws.set_name(nom_de_feuille(t)?).map_err(xl)?;
     let mut ligne: u32 = 0;
-    for x in entete_texte(t, &lire_nom(ctx)) {
+    for x in entete_texte(t, lire_nom(ctx)) {
         ws.write_string_with_format(ligne, 0, &x, &format_de(true, Some(13.0), None)).map_err(xl)?;
         ligne += 1;
     }
@@ -666,7 +666,10 @@ pub fn html_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let nom = lire_nom(ctx);
     let tete = format!(
         "{}<h1>{}</h1><p class='sub'>{}{}</p>",
-        if nom.is_empty() { String::new() } else { format!("<p class='rs'>{}</p>", echapper(&nom)) },
+        match nom {
+            Some(nom) => format!("<p class='rs'>{}</p>", echapper(nom)),
+            None => String::new(),
+        },
         echapper(&t.titre),
         echapper(&t.periode),
         if t.donnees_personnelles { " &mdash; porte des données personnelles" } else { "" }
@@ -747,7 +750,7 @@ fn filets(couleur: &str, epaisseur: f64) -> Value {
 /// ou « general ».
 #[allow(clippy::too_many_arguments)]
 pub fn description_pdf(
-    titre: &str, periode: &str, nom: &str, sous_titre: &str, pied: &str, entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], notes: &[String],
+    titre: &str, periode: &str, nom: Option<&str>, sous_titre: &str, pied: &str, entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], notes: &[String],
     sources: &[String],
 ) -> Value {
     let fr = fractions(entetes, rangees, PAGE_LARGEUR - 68.0);
@@ -773,7 +776,7 @@ pub fn description_pdf(
         })
         .collect();
     let mut blocs: Vec<Value> = Vec::new();
-    if !nom.is_empty() {
+    if let Some(nom) = nom {
         blocs.push(json!({"type": "paragraphe", "taille": 8.5, "espace_apres": 1, "morceaux": [{"texte": nom, "gras": true}]}));
     }
     blocs.push(json!({"type": "paragraphe", "taille": 11, "couleur": ROUGE, "majuscules": true, "espace_apres": 1, "morceaux": [{"texte": titre, "gras": true}]}));
@@ -813,7 +816,7 @@ pub fn pdf_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let sous = format!("{}{}", t.periode, if t.donnees_personnelles { " — porte des données personnelles" } else { "" });
     let rangs: Vec<(Vec<String>, &str)> = rangees(t).into_iter().map(|(d, genre)| (t.colonnes.iter().map(|c| cellule_lisible(d, c, genre)).collect(), genre)).collect();
     let entetes: Vec<(String, bool)> = t.colonnes.iter().map(|c| (c.libelle.clone(), c.a_droite())).collect();
-    let d = description_pdf(&t.titre, &t.periode, &lire_nom(ctx), &sous, &format!("{} — {}", t.titre, t.periode), &entetes, &rangs, &t.avertissements, &t.sources);
+    let d = description_pdf(&t.titre, &t.periode, lire_nom(ctx), &sous, &format!("{} — {}", t.titre, t.periode), &entetes, &rangs, &t.avertissements, &t.sources);
     pdf_fabrique(&d)
 }
 

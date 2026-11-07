@@ -399,7 +399,7 @@ pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Re
             Some(v) => repr(v),
             None => "(vide)".to_string(),
         };
-        let qui = [a_la_fin.prenom.texte(), a_la_fin.nom.texte()].iter().filter(|s| !s.trim().is_empty()).map(|s| s.to_string()).collect::<Vec<_>>().join(" ");
+        let qui = [a_la_fin.prenom.portee(), a_la_fin.nom.portee()].into_iter().flatten().filter(|s| !s.trim().is_empty()).collect::<Vec<_>>().join(" ");
         return Err(socle::echec::a_la_cle(&format!(
             "{} : la fiche change une case le {} ({} -> {}), dans une periode de paie qui n'est pas coupee a ce jour-la : une \
 periode se calcule sur une seule pile de bareme. Dater le changement au premier jour d'un mois sur la fiche : le {} (il \

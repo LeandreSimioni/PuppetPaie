@@ -280,7 +280,7 @@ fn rang_dans_le_fichier(octets: &[u8]) -> R<Option<i64>> {
 fn prochain_ordre_de_test(ctx: &Contexte, le_mois: Mois, nic: Option<&str>, constitution: &str) -> R<Option<i64>> {
     let mois = &le_mois.to_string();
     let du_mois = envois::journal::lire(&ctx.racine, Some(Acte::Dsn), Some(le_mois), false).map_err(|m| erreur("OSError", m))?;
-    let essais: Vec<&Ligne> = etats::de_l_etablissement(&du_mois, nic, &ctx.entreprise.nic_principal()).into_iter().filter(|l| !l.reel() && !l.signalement()).collect();
+    let essais: Vec<&Ligne> = etats::de_l_etablissement(&du_mois, nic, ctx.entreprise.nic.ecrite("nic")?).into_iter().filter(|l| !l.reel() && !l.signalement()).collect();
     let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), true, constitution, mois)?;
     if essais.is_empty() && !vues.du_mois_acceptee {
         return Ok(None);
@@ -509,7 +509,10 @@ pub fn deposer_dsn_dans(
     let versions = if apercu.est_signalement() {
         versions_du_signalement(ctx, le_mois, &octets)?
     } else {
-        let nic = apercu.etablissement().filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
+        let nic = match apercu.etablissement().filter(|n| !n.is_empty()) {
+            Some(n) => n.to_string(),
+            None => ctx.entreprise.nic.ecrite("nic")?.to_string(),
+        };
         let mut v = envois::journal::versions_du_mois(ctx, &mois, &envois::journal::lu(&ctx.racine).map(|j| j.departs)?, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
         // Et ce qu'elle corrige des mois passes, tel que sa fabrication l'a note : un fichier qui part tel qu'il a ete

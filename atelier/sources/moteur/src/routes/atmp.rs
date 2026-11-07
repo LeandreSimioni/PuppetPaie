@@ -321,8 +321,7 @@ fn d_un_etablissement(e: &droit::fiche::Etablissement, an: i64, socle: Option<&d
     let code = t.code_risque.clone().unwrap_or_default();
     let r = socle.and_then(|s| bareme::risques_de(s).into_iter().find(|r| r.code == code));
     let nom_code = r.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
-    let cp = e.code_postal.texte().to_string();
-    let taux = socle.and_then(|s| bareme::taux_atmp_applique(&bareme::risques_de(s), &t, bareme::en_alsace_moselle(&cp)));
+    let taux = socle.and_then(|s| bareme::taux_atmp_applique(&bareme::risques_de(s), &t, bareme::en_alsace_moselle(e.code_postal.portee())));
     let arrete = arrete.map(String::from).unwrap_or_else(|| format!("l'arrêté de tarification de {}", an));
     let mut phrases = Vec::new();
     phrases.push(match (&taux, t.valeur) {
@@ -388,5 +387,5 @@ pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`, par son code postal) ?
 fn en_alsace_moselle(ctx: &Contexte) -> bool {
-    bareme::en_alsace_moselle(ctx.entreprise.code_postal.texte())
+    bareme::en_alsace_moselle(ctx.entreprise.code_postal.portee())
 }

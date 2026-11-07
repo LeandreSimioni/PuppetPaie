@@ -2190,8 +2190,8 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
     };
     verifier_preuve(ctx, Some(preuve), &socle::paris::maintenant()[..7], "demande de fiche (« Remplir ma fiche »)", &adresse)?;
 
-    let compagnie = ctx.entreprise.nommee();
-    let sg = ctx.entreprise.signataire.dite().cloned().unwrap_or_default();
+    let compagnie = ctx.entreprise.nommee().ok_or_else(|| socle::fichiers::absent("raison_sociale"))?.to_string();
+    let sg =ctx.entreprise.signataire.dite().cloned().unwrap_or_default();
     let signataire = match sg.prenom_affichage.remplie() {
         Some(p) => p.to_string(),
         None => capitaliser(sg.prenom.texte()),

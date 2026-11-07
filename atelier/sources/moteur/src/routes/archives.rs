@@ -770,7 +770,7 @@ fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie::Dossier, 
                 ("liste", liste),
                 ("reedition", if ses_pages.is_some_and(|p| p.get("contrats").is_some()) { REEDITION_CONTRATS.to_string() } else { String::new() }),
                 ("signataire", signataire.prenom_affichage.remplie().unwrap_or(signataire.prenom.texte()).to_string()),
-                ("raison_sociale", ctx.entreprise.nommee()),
+                ("raison_sociale", ctx.entreprise.nommee().ok_or_else(|| socle::fichiers::absent("raison_sociale"))?.to_string()),
             ],
         );
         messages.push(Message {

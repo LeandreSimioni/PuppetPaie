@@ -1557,7 +1557,7 @@ fn fiche_salarie(nir: &str, ls: &[&Lu], idcc: &str) -> R<Map<String, Value>> {
     let statut = ls.iter().rev().find_map(|l| l.b.salarie.statut.as_deref());
     let emploi = f.get("emploi").map(valeur_en_texte);
     // Une salariee recoit le metier au feminin, comme dans sa fiche (`routes::mois::emploi`) : le sexe que porte son NIR.
-    let femme = declarations::ntt::sexe_de(nir, "") == "2";
+    let femme = declarations::ntt::sexe_de(Some(nir), None) == Some("2");
     f.extend(statut_et_metier(statut, emploi.as_deref(), femme, idcc)?);
     if let Some(premier) = ls.iter().map(|l| l.b.debut).min() {
         f.insert("date_anciennete".into(), json!(premier.iso()));
@@ -1890,7 +1890,7 @@ fn fiche_de_certificats(nir: &str, ls: &[&Attestee], idcc: &str) -> R<Map<String
         (s, c) => s.or(c).map(String::from),
     };
     let emploi = dernier(&|c| c.emploi.clone());
-    let femme = declarations::ntt::sexe_de(nir, "") == "2";
+    let femme = declarations::ntt::sexe_de(Some(nir), None) == Some("2");
     f.extend(statut_et_metier(statut.as_deref(), emploi.as_deref(), femme, idcc)?);
     if let Some(premier) = ls.iter().filter_map(|l| l.c.debut).min() {
         f.insert("date_anciennete".into(), json!(premier.iso()));
@@ -1945,7 +1945,7 @@ fn statut_de(ctx: &Contexte, par_nir: &HashMap<String, String>, a_creer: &[ACree
     if let Some(s) = a_creer.iter().filter(|a| a.nom == "salarie" && a.donnees.get("nir").map(valeur_en_texte).as_deref() == Some(nir)).find_map(|a| lu(a.donnees.get("statut"))) {
         return Ok(Some(s));
     }
-    let femme = declarations::ntt::sexe_de(nir, "") == "2";
+    let femme = declarations::ntt::sexe_de(Some(nir), None) == Some("2");
     Ok(lu(statut_et_metier(None, c.emploi.as_deref(), femme, ctx.entreprise.idcc.texte())?.get("statut")))
 }
 

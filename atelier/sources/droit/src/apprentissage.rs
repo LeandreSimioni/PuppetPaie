@@ -60,10 +60,9 @@ pub fn champ_du_motif() -> String {
 /// Le motif MNATA que dit la fiche entreprise, avec son libelle, lu dans la table livree : `None` quand la fiche n'en dit
 /// pas ; refus quand il n'est pas dans la table (la DSN n'admet que ses valeurs, CRE-11 de 44.004).
 pub fn motif_de_la_fiche(ent: &ChampsEntreprise) -> Resultat<Option<(String, String)>> {
-    let motif = ent.taxe_apprentissage_motif_non_assujettissement.code();
-    if motif.is_empty() {
+    let Some(motif) = ent.taxe_apprentissage_motif_non_assujettissement.code() else {
         return Ok(None);
-    }
+    };
     let motifs = motifs_mnata()?;
     match motifs.iter().find(|(c, _)| *c == motif) {
         Some(m) => Ok(Some(m.clone())),

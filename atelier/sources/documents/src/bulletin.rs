@@ -259,7 +259,7 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
 /// (`droit::clauses::profil` : la fiche, sinon le metier, jamais devinee) dite par le libelle de la convention, puis le
 /// classement que la fiche porte dans la grille (`classement_conventionnel`) ; `None` quand ni l'une ni l'autre ne se
 /// lisent.
-fn classification(idcc: &str, sal: &ChampsSalarie) -> Resultat<Option<String>> {
+fn classification(idcc: Option<&str>, sal: &ChampsSalarie) -> Resultat<Option<String>> {
     let profil = droit::clauses::profil(idcc, sal, &Default::default())?;
     let categorie = match profil.categorie {
         Some(c) => Some(droit::clauses::categorie_imprimee(idcc, &c)?.unwrap_or_else(|| c.replace('_', " "))),
@@ -298,10 +298,10 @@ fn emploi_imprime(e: &engagement::Engagement, sal: &ChampsSalarie) -> Resultat<S
 }
 
 pub fn convention_du_contrat(ent: &ChampsEntreprise, sp: Option<&droit::fiche::Spectacle>, sal: &ChampsSalarie, jour: &Jour) -> Resultat<(String, String)> {
-    let idcc = engagement::minima::idcc_du_contrat(ent.idcc.texte(), sp, sal)?;
-    if idcc.is_empty() {
+    let Some(idcc_compagnie) = ent.idcc.portee() else {
         return Err(socle::echec::cle("La fiche entreprise ne dit pas sa convention collective : la choisir dans Configuration › Entreprise.", "idcc"));
-    }
+    };
+    let idcc = engagement::minima::idcc_du_contrat(idcc_compagnie, sp, sal)?;
     let libelle = if idcc == "1734" {
         "Artistes-interprètes engagés pour des émissions de télévision".to_string()
     } else {
@@ -1044,7 +1044,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
         k("Emploi :"),
         mt(format!(" {}\n", emploi_imprime(e, sal)?)),
     ];
-    if let Some(c) = classification(&conv.0, sal)? {
+    if let Some(c) = classification(Some(&conv.0), sal)? {
         salarie.push(k("Classification :"));
         salarie.push(mt(format!(" {}\n", c)));
     }

@@ -88,8 +88,8 @@ fn levenshtein(a: &str, b: &str) -> usize {
 pub fn etablissements_entre(liste: Option<&[Datee<Vec<Etablissement>>]>, debut: &Jour, fin: &Jour) -> Option<Vec<Etablissement>> {
     let liste = liste?;
     let versions = crate::fiche::valeurs_datees(liste);
-    let mut ordre: Vec<String> = Vec::new();
-    let mut vus: HashMap<String, Etablissement> = HashMap::new();
+    let mut ordre: Vec<Option<String>> = Vec::new();
+    let mut vus: HashMap<Option<String>, Etablissement> = HashMap::new();
     for (i, v) in versions.iter().enumerate() {
         let jusqu_a = versions.get(i + 1).and_then(|w| w.depuis);
         let commence_avant_la_fin = v.depuis.is_none_or(|j| j <= *fin);
@@ -98,7 +98,7 @@ pub fn etablissements_entre(liste: Option<&[Datee<Vec<Etablissement>>]>, debut: 
             continue;
         }
         for e in v.valeur.dite().into_iter().flatten() {
-            let nic = e.nic.texte().to_string();
+            let nic = e.nic.en_texte();
             if !vus.contains_key(&nic) {
                 ordre.push(nic.clone());
             }
@@ -112,13 +112,13 @@ pub fn etablissements_entre(liste: Option<&[Datee<Vec<Etablissement>>]>, debut: 
 /// ferme (la veille de la premiere version qui ne le porte plus).
 pub fn histoire_des_etablissements(liste: Option<&[Datee<Vec<Etablissement>>]>) -> Resultat<Vec<(Etablissement, Option<Jour>)>> {
     let versions: Vec<&Datee<Vec<Etablissement>>> = liste.into_iter().flat_map(crate::fiche::valeurs_datees).collect();
-    let mut ordre: Vec<String> = Vec::new();
-    let mut vus: HashMap<String, (Etablissement, Option<Jour>)> = HashMap::new();
+    let mut ordre: Vec<Option<String>> = Vec::new();
+    let mut vus: HashMap<Option<String>, (Etablissement, Option<Jour>)> = HashMap::new();
     for (i, v) in versions.iter().enumerate() {
         let ouverts: Vec<&Etablissement> = v.valeur.dite().into_iter().flatten().collect();
-        let presents: Vec<&str> = ouverts.iter().map(|e| e.nic.texte()).collect();
+        let presents: Vec<Option<&str>> = ouverts.iter().map(|e| e.nic.portee()).collect();
         for e in ouverts {
-            let nic = e.nic.texte().to_string();
+            let nic = e.nic.en_texte();
             if !vus.contains_key(&nic) {
                 ordre.push(nic.clone());
             }
@@ -127,7 +127,7 @@ pub fn histoire_des_etablissements(liste: Option<&[Datee<Vec<Etablissement>>]>) 
         if i > 0 {
             if let Some(j) = v.depuis {
                 for (nic, (_, ferme)) in vus.iter_mut() {
-                    if !presents.contains(&nic.as_str()) && ferme.is_none() {
+                    if !presents.contains(&nic.as_deref()) && ferme.is_none() {
                         *ferme = Some(j.plus_jours(-1)?);
                     }
                 }
@@ -588,31 +588,37 @@ fn versement_mobilite_dit(pile: &Pile) -> bool {
 
 /// Les etablissements de la fiche se tiennent-ils (SIRET, NIC, une fois chacun) ?
 pub fn controler_etablissements(fiche: &ChampsEntreprise, pile: &Pile) -> Resultat<()> {
-    let siren = fiche.siren.texte();
+    let siren = fiche.siren.portee();
     let an = pile.annee.to_string();
     let risques = crate::bareme::risques_de(pile);
-    let mut vus = vec![fiche.nic_principal()];
+    let mut vus: Vec<&str> = fiche.nic_principal().into_iter().collect();
     let mut griefs: Vec<String> = Vec::new();
     for e in fiche.secondaires() {
-        let nic = e.nic.texte().to_string();
-        let nom = match e.libelle.texte() {
-            "" if !nic.is_empty() => nic.clone(),
-            "" => "?".to_string(),
-            l => l.to_string(),
+        let nom = match (e.libelle.remplie(), e.nic.portee()) {
+            (Some(l), _) => l.to_string(),
+            (None, Some(n)) => n.to_string(),
+            (None, None) => "?".to_string(),
         };
-        if nic.len() != 5 || !nic.chars().all(|c| c.is_ascii_digit()) {
-            griefs.push(format!("{} : NIC {} (cinq chiffres attendus)", nom, repr_texte(&nic)));
-            continue;
-        }
+        let nic = match e.nic.portee() {
+            Some(n) if n.len() == 5 && n.chars().all(|c| c.is_ascii_digit()) => n,
+            autre => {
+                let ecrit = match autre {
+                    Some(n) => repr_texte(n),
+                    None => "vide".to_string(),
+                };
+                griefs.push(format!("{} : NIC {} (cinq chiffres attendus)", nom, ecrit));
+                continue;
+            }
+        };
         if vus.contains(&nic) {
             griefs.push(format!("{} : NIC {} en double", nom, nic));
         }
-        vus.push(nic.clone());
-        if !siren.is_empty() && !cle_siret(&format!("{}{}", siren, nic)) {
+        vus.push(nic);
+        if let Some(siren) = siren.filter(|s| !cle_siret(&format!("{}{}", s, nic))) {
             griefs.push(format!("{} : le SIRET {}{} n'a pas une cle juste", nom, siren, nic));
         }
-        for (cle, c) in [("adresse", &e.adresse.en_texte()), ("code_postal", &e.code_postal.en_texte()), ("commune", &e.commune.en_texte())] {
-            if c.texte().trim().is_empty() {
+        for (cle, c) in [("adresse", e.adresse.portee()), ("code_postal", e.code_postal.portee()), ("commune", e.commune.portee())] {
+            if c.is_none_or(|t| t.trim().is_empty()) {
                 griefs.push(format!("{} : `{}` manque", nom, cle));
             }
         }
@@ -622,7 +628,7 @@ pub fn controler_etablissements(fiche: &ChampsEntreprise, pile: &Pile) -> Result
         let d_une_autre_annee = e.taux_atmp.dite().and_then(|t| t.annee.dite()).is_some_and(|a| *a != 0 && a.to_string() != an);
         let atmp = crate::bareme::taux_atmp_d_un_etablissement(e, pile.annee)?;
         let atmp_juste = atmp.as_ref().is_some_and(|t| t.code_risque.as_deref().is_some_and(|c| !c.is_empty())
-            && (d_une_autre_annee || crate::bareme::taux_atmp_applique(&risques, t, crate::bareme::en_alsace_moselle(e.code_postal.texte())).is_some()));
+            && (d_une_autre_annee || crate::bareme::taux_atmp_applique(&risques, t, crate::bareme::en_alsace_moselle(e.code_postal.portee())).is_some()));
         if !atmp_juste {
             griefs.push(format!(
                 "{} : son code risque AT/MP et son taux, tels que la CARSAT les notifie a CET etablissement (Configuration › \
@@ -659,7 +665,7 @@ declare dans sa propre DSN, avec ce qui est a lui.\n  - {}",
 fn controler_secteur(pile: &Pile, fiche: &ChampsEntreprise) -> Resultat<()> {
     let Some(sec) = &pile.secteurs else { return Ok(()) };
     let dit = sec.champ.dit(fiche);
-    if sec.portes.iter().any(|p| *p == dit) {
+    if sec.portes.iter().any(|p| Some(p.as_str()) == dit) {
         return Ok(());
     }
     Err(format!(
@@ -670,17 +676,19 @@ fn controler_secteur(pile: &Pile, fiche: &ChampsEntreprise) -> Resultat<()> {
         },
         sec.refus,
         sec.libelle,
-        if dit.is_empty() { "non renseigné".to_string() } else { dit },
+        match dit {
+            Some(d) => d,
+            None => "non renseigné",
+        },
         sec.portes.join(", ")
     ))
 }
 
 /// L'organisation patronale de la fiche est-elle une de celles du bareme ?
 fn controler_organisation_patronale(pile: &Pile, fiche: &ChampsEntreprise) -> Resultat<()> {
-    let nom = fiche.organisation_patronale.texte().trim().to_string();
-    if nom.is_empty() {
+    let Some(nom) = fiche.organisation_patronale.portee().map(str::trim).filter(|n| !n.is_empty()).map(str::to_string) else {
         return Ok(());
-    }
+    };
     let annee = pile.annee;
     let connues: Vec<&str> = pile.par_organisation_patronale.keys().map(String::as_str).collect();
     let Some(couche) = crate::bareme::couche_organisation(pile, &nom) else {
@@ -1524,7 +1532,7 @@ depuis le plus recent.",
                     (Ok(a), Ok(b)) => (a, b),
                     (Err(e), _) | (_, Err(e)) => return Some(Err(e)),
                 };
-                let alsace = crate::bareme::en_alsace_moselle(ent.code_postal.texte());
+                let alsace = crate::bareme::en_alsace_moselle(ent.code_postal.portee());
                 crate::bareme::taux_atmp_reporte(an, socle_an.as_ref(), (pa, &pose), socle_avant.as_ref(), alsace)
             }
         }
@@ -1638,7 +1646,7 @@ PSS_H_METROP).",
     pub fn etablissements_dits(&self) -> Vec<crate::fiche::Etablissement> {
         let derniere = self.fiches.entreprise.etablissements.as_deref().and_then(|l| l.iter().max_by_key(|d| d.depuis)).and_then(|d| d.valeur.dite());
         let principal = self.entreprise.nic_principal();
-        derniere.into_iter().flatten().filter(|e| e.nic.texte() != principal).cloned().collect()
+        derniere.into_iter().flatten().filter(|e| e.nic.portee() != principal).cloned().collect()
     }
 
     /// La fiche entreprise d'un mois `AAAA-MM` : lue au dernier jour du mois, avec chaque autre etablissement ouvert un
@@ -1658,9 +1666,9 @@ PSS_H_METROP).",
         EntrepriseDuDocument { fiche: ent.clone(), gabarits: self.gabarits() }
     }
 
-    /// Le numero de licence de la fiche entreprise a la date (vide : pas de licence).
-    pub fn licence(&self, jour: &Jour) -> String {
-        self.entreprise_au(jour).licence_spectacle.texte().to_string()
+    /// Le numero de licence de la fiche entreprise a la date (`None` : pas de licence).
+    pub fn licence(&self, jour: &Jour) -> Option<String> {
+        self.entreprise_au(jour).licence_spectacle
     }
 
     /// La fiche entreprise telle qu'ecrite, datee.
@@ -1850,7 +1858,7 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
         };
         let mut exacts = Vec::new();
         for (cle, sp) in &ordre {
-            if noms_de(cle, sp)?.iter().any(|n| cle_recherche(n) == q) || sp.numero_objet.texte().to_uppercase() == net.to_uppercase() {
+            if noms_de(cle, sp)?.iter().any(|n| cle_recherche(n) == q) || sp.numero_objet.portee().is_some_and(|n| n.to_uppercase() == net.to_uppercase()) {
                 exacts.push(*cle);
             }
         }

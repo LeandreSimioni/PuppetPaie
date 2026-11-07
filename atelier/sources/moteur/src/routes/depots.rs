@@ -723,11 +723,14 @@ pub(crate) fn designee(ctx: &Contexte, d: &Designation) -> R<(String, DitALEcrit
 /// designation les nomme). Rien ne se fabrique.
 fn partie(ctx: &Contexte, d: &Designation, mois: Mois) -> R<Option<String>> {
     let lignes = envois::journal::lu(&ctx.racine).map_err(plain)?.lignes;
-    let principal = ctx.entreprise.nic_principal();
-    let nic = d.etablissement.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| principal.clone());
+    let principal = ctx.entreprise.nic.ecrite("nic").map_err(plain)?;
+    let nic = match d.etablissement.as_deref().filter(|n| !n.is_empty()) {
+        Some(n) => n,
+        None => principal,
+    };
     let voulues: Option<BTreeSet<(String, String)>> = d.engagements.as_ref().filter(|e| !e.is_empty()).map(|e| e.iter().map(|x| (x.salarie.clone(), x.numero.clone())).collect());
     let ligne = envois::journal::filtrer(&lignes, Some(d.quoi.acte()), Some(mois), false).rev().find(|l| match l {
-        Ligne::Dsn(_) => l.fichier().unwrap_or("").starts_with("DSN_") && l.etablissement().unwrap_or(&principal) == nic,
+        Ligne::Dsn(_) => l.fichier().unwrap_or("").starts_with("DSN_") && l.etablissement().unwrap_or(principal) == nic,
         Ligne::Dpae(e) => voulues.as_ref().is_none_or(|v| e.detail.embauches.iter().map(|x| (x.salarie.to_string(), x.numero.as_deref().unwrap_or("").to_string())).collect::<BTreeSet<_>>() == *v),
         _ => false,
     });

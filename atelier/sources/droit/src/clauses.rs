@@ -462,13 +462,14 @@ pub fn table() -> Resultat<Arc<Table>> {
 
 impl Table {
     /// Les clauses de la convention `idcc`, si elles sont relevees.
-    pub fn convention(&self, idcc: &str) -> Option<&Convention> {
-        self.conventions.get(idcc.trim())
+    /// La convention `idcc` ; `None` : elle n'est pas relevee, ou la compagnie n'a pas d'IDCC.
+    pub fn convention(&self, idcc: Option<&str>) -> Option<&Convention> {
+        idcc.and_then(|i| self.conventions.get(i.trim()))
     }
 }
 
 /// Les clauses relevees de cette convention, ou `None` si elles ne le sont pas (ou si la compagnie n'a pas d'IDCC).
-pub fn releve(idcc: &str) -> Resultat<Option<Convention>> {
+pub fn releve(idcc: Option<&str>) -> Resultat<Option<Convention>> {
     Ok(table()?.convention(idcc).cloned())
 }
 
@@ -482,12 +483,10 @@ fn manque(cle: &str) -> String {
 }
 
 /// Pour les phrases : « la convention 3090 », ou « la convention collective » quand l'IDCC manque.
-pub fn nom(idcc: &str) -> String {
-    let i = idcc.trim().to_string();
-    if i.is_empty() {
-        "la convention collective".to_string()
-    } else {
-        format!("la convention {}", i)
+pub fn nom(idcc: Option<&str>) -> String {
+    match idcc.map(str::trim).filter(|i| !i.is_empty()) {
+        Some(i) => format!("la convention {}", i),
+        None => "la convention collective".to_string(),
     }
 }
 
@@ -533,7 +532,7 @@ pub fn categorie_en_mots(c: &str) -> String {
 
 /// La categorie `c` dite par la convention `idcc`, telle que le bulletin l'imprime (la premiere phrase de son libelle),
 /// ou `None` si la convention ne la nomme pas.
-pub fn categorie_imprimee(idcc: &str, c: &str) -> Resultat<Option<String>> {
+pub fn categorie_imprimee(idcc: Option<&str>, c: &str) -> Resultat<Option<String>> {
     let t = table()?;
     let dite = t.convention(idcc).and_then(|conv| conv.categories.as_ref()).and_then(|s| s.valeurs.iter().find(|(k, _)| k == c));
     let premiere_phrase = |l: &str| match l.split_once(". ") {
@@ -543,7 +542,7 @@ pub fn categorie_imprimee(idcc: &str, c: &str) -> Resultat<Option<String>> {
     Ok(dite.map(|(_, l)| premiere_phrase(l)))
 }
 
-fn non_relevees(idcc: &str) -> String {
+fn non_relevees(idcc: Option<&str>) -> String {
     format!("les clauses de {} ne sont pas relevées", nom(idcc))
 }
 
@@ -569,7 +568,7 @@ pub struct Profil {
     pub source: String,
 }
 
-pub fn profil(idcc: &str, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resultat<Profil> {
+pub fn profil(idcc: Option<&str>, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resultat<Profil> {
     let t = table()?;
     let sec = t.convention(idcc).and_then(|c| c.categories.as_ref());
     let code = e.metier.clone().or_else(|| fiche.code_emploi_ft.remplie().map(str::to_string));
@@ -578,7 +577,7 @@ pub fn profil(idcc: &str, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resul
     let grille = c3090.map(|c| c.grille.clone());
     let profil = |categorie: Option<&str>, source: String| Profil { categorie: categorie.map(str::to_string), grille: grille.clone(), source };
 
-    let dit = e.categorie_conventionnelle.clone().or_else(|| Some(fiche.categorie_conventionnelle.code().to_string()).filter(|c| !c.is_empty()));
+    let dit = e.categorie_conventionnelle.clone().or_else(|| fiche.categorie_conventionnelle.code().map(str::to_string));
     if let Some(dit) = dit {
         if let Some(valeurs) = sec.map(|s| &s.valeurs).filter(|v| !v.is_empty() && !v.iter().any(|(k, _)| *k == dit)) {
             return Ok(profil(None, format!(
@@ -594,7 +593,7 @@ pub fn profil(idcc: &str, fiche: &ChampsSalarie, e: &DitParLEngagement) -> Resul
     let statut = match (&e.statut, &e.metier, &m) {
         (Some(s), _, _) => Some(s.as_str()),
         (None, Some(_), Some(m)) => Some(m.statut().as_str()),
-        _ => Some(fiche.statut.code()),
+        _ => fiche.statut.code(),
     };
     if statut == Some("artiste") {
         return Ok(profil(Some("artiste"), "le statut artiste".into()));
@@ -642,7 +641,7 @@ pub struct PreavisDit {
     pub pourquoi: Option<String>,
 }
 
-pub fn preavis_mois(idcc: &str, categorie: Option<&str>, anciennete: Decimal, motif: Option<&str>, age: Option<Decimal>) -> Resultat<PreavisDit> {
+pub fn preavis_mois(idcc: Option<&str>, categorie: Option<&str>, anciennete: Decimal, motif: Option<&str>, age: Option<Decimal>) -> Resultat<PreavisDit> {
     let (a, age) = (P::depuis(anciennete), age.map(P::depuis));
     let rien = |article: Option<String>, pourquoi: String| PreavisDit { mois: None, article, jours: None, pourquoi: Some(pourquoi) };
     let t = table()?;
@@ -767,9 +766,12 @@ impl Bareme {
 // ----------------------------------------------- l'indemnite de licenciement
 /// La clause d'annexe qui s'applique a ce salarie, ou `None`. Le personnel technique de l'annexe I se lit sur la
 /// GRILLE du metier.
-pub fn clause_d_annexe(idcc: &str, annexe: &str, prof: &Profil, motif: Option<&str>) -> Resultat<Option<ClauseDAnnexe>> {
+pub fn clause_d_annexe(idcc: Option<&str>, annexe: Option<&str>, prof: &Profil, motif: Option<&str>) -> Resultat<Option<ClauseDAnnexe>> {
     let t = table()?;
-    let par = t.convention(idcc).and_then(|c| c.indemnite_licenciement.as_ref()).and_then(|s| s.par_annexe.as_ref().and_then(|m| m.get(annexe.trim())));
+    let par = t
+        .convention(idcc)
+        .and_then(|c| c.indemnite_licenciement.as_ref())
+        .and_then(|s| s.par_annexe.as_ref().zip(annexe).and_then(|(m, a)| m.get(a.trim())));
     let Some(par) = par else { return Ok(None) };
     let cat = prof.categorie.as_deref();
     let choix = match (&par.cadre_de_direction, &par.technicien, &par.artiste) {
@@ -798,8 +800,8 @@ pub struct Indemnite {
 }
 
 pub fn indemnite_licenciement(
-    idcc: &str,
-    annexe: &str,
+    idcc: Option<&str>,
+    annexe: Option<&str>,
     prof: &Profil,
     anciennete: Decimal,
     reference: Decimal,
@@ -970,7 +972,7 @@ impl Retraite {
 }
 
 /// L'indemnite conventionnelle de mise a la retraite.
-pub fn indemnite_mise_a_la_retraite(idcc: &str, anciennete: Decimal, reference: Decimal) -> Resultat<Retraite> {
+pub fn indemnite_mise_a_la_retraite(idcc: Option<&str>, anciennete: Decimal, reference: Decimal) -> Resultat<Retraite> {
     let (anciennete, reference) = (P::depuis(anciennete), P::depuis(reference));
     let t = table()?;
     let conv = t.convention(idcc);
@@ -1016,7 +1018,7 @@ pub fn indemnite_mise_a_la_retraite(idcc: &str, anciennete: Decimal, reference: 
 }
 
 /// L'indemnite conventionnelle de depart volontaire a la retraite : un palier, pas un cumul.
-pub fn indemnite_depart_retraite(idcc: &str, anciennete: Decimal, reference: Decimal) -> Resultat<Retraite> {
+pub fn indemnite_depart_retraite(idcc: Option<&str>, anciennete: Decimal, reference: Decimal) -> Resultat<Retraite> {
     let (anciennete, reference) = (P::depuis(anciennete), P::depuis(reference));
     let t = table()?;
     let conv = t.convention(idcc);
@@ -1063,10 +1065,10 @@ pub struct Prime {
 
 /// La prime d'anciennete d'un technicien de l'annexe de la convention qui en porte une, pour le mois qui finit `jour`,
 /// ou `None` si elle ne le concerne pas.
-pub fn prime_anciennete(idcc: &str, annexe: &str, fiche: &ChampsSalarie, e: &DitParLEngagement, jour: &Jour, jauge: Option<&str>) -> Resultat<Option<Prime>> {
+pub fn prime_anciennete(idcc: Option<&str>, annexe: Option<&str>, fiche: &ChampsSalarie, e: &DitParLEngagement, jour: &Jour, jauge: Option<&str>) -> Resultat<Option<Prime>> {
     let t = table()?;
     let Some(sec) = t.convention(idcc).and_then(|c| c.prime_anciennete.as_ref()) else { return Ok(None) };
-    if annexe.trim() != sec.annexe {
+    if annexe.map(str::trim) != Some(sec.annexe.as_str()) {
         return Ok(None);
     }
     let code = e.metier.clone().or_else(|| fiche.code_emploi_ft.remplie().map(str::to_string));

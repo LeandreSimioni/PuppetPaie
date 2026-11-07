@@ -355,7 +355,7 @@ impl Attendu {
 
 /// Les contrats que cette compagnie declare a la date du contexte, dans l'ordre ou ils se presentent.
 pub fn attendus(ctx: &Contexte) -> Resultat<Vec<Attendu>> {
-    let idcc = ctx.entreprise.idcc.texte().trim().to_string();
+    let idcc = ctx.entreprise.idcc.portee().map(str::trim);
     let base = base()?;
     let mut out: Vec<Attendu> = base.contrats.tous.iter().map(Attendu::from).collect();
     if let Some(casc) = crate::adhesions::casc_svp(&ctx.entreprise)? {
@@ -389,7 +389,7 @@ pub fn attendus(ctx: &Contexte) -> Resultat<Vec<Attendu>> {
             ..Attendu::default()
         });
     }
-    out.extend(base.contrats.conventions.get(&idcc).into_iter().flatten().map(Attendu::from));
+    out.extend(idcc.and_then(|i| base.contrats.conventions.get(i)).into_iter().flatten().map(Attendu::from));
     Ok(out)
 }
 

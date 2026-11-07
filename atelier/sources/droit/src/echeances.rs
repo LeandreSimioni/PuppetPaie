@@ -86,7 +86,7 @@ pub fn dpae(debut: &Jour) -> Echeance {
 
 /// La remise du contrat a duree determinee d'un engagement qui commence le `debut` : deux jours ouvrables apres
 /// l'embauche (L. 1242-13), ou plus tot si la couche de la convention `idcc` le dit pour ce metier (`code_emploi`).
-pub fn remise_du_contrat(debut: &Jour, idcc: &str, code_emploi: &str, chomes: Option<&str>) -> Resultat<Echeance> {
+pub fn remise_du_contrat(debut: &Jour, idcc: Option<&str>, code_emploi: &str, chomes: Option<&str>) -> Resultat<Echeance> {
     let loi = jour_ouvrable(debut, 2, chomes)?;
     let mut e = Echeance {
         jour: loi,

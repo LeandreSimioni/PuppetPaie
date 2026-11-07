@@ -66,23 +66,23 @@ fn du_ou_rien(v: Option<Decimal>) -> Decimal {
 }
 
 /// L'article de la convention qui donne une indemnite ; la convention elle-meme quand son releve ne dit pas l'article.
-fn l_article(article: Option<&str>, idcc: &str) -> String {
+fn l_article(article: Option<&str>, idcc: Option<&str>) -> String {
     match article.filter(|a| !a.is_empty()) {
         Some(a) => a.to_string(),
         None => clauses::nom(idcc),
     }
 }
 
-/// L'IDCC de la fiche, tel que les clauses le lisent.
-fn idcc(ctx: &Contexte) -> &str {
-    ctx.entreprise.idcc.texte()
+/// L'IDCC de la fiche, tel que les clauses le lisent (`None` : la compagnie n'en dit pas).
+fn idcc(ctx: &Contexte) -> Option<&str> {
+    ctx.entreprise.idcc.portee()
 }
 
 // ------------------------------------------------------------ le profil
 
 fn profil(ctx: &Contexte, e: &Carte) -> Resultat<clauses::Profil> {
     let fiche = crate::fiche_du_salarie(ctx, e.salarie.as_ref().ok_or_else(|| socle::fichiers::absent("salarie"))?)?.champs;
-    clauses::profil(&idcc(ctx), &fiche, &dit_par_l_engagement(e)?)
+    clauses::profil(idcc(ctx), &fiche, &dit_par_l_engagement(e)?)
 }
 
 /// Le decimal d'un nombre des clauses, tel qu'il s'ecrit.
@@ -145,8 +145,8 @@ fn terme_du_preavis(fin: &socle::date::Jour, mois: Decimal) -> Resultat<Option<s
 }
 
 pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Carte, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
-    let idcc = &idcc(ctx);
-    let cdd = !e.nature_lue()?.duree_indeterminee;
+    let idcc = idcc(ctx);
+    let cdd =!e.nature_lue()?.duree_indeterminee;
     let legal = permanents::preavis_mois(anciennete, motif, cdd)?;
     let prof = profil(ctx, e)?;
     let categorie = prof.categorie.as_deref();
@@ -767,7 +767,7 @@ fn indemnite_de_rupture(
     // Le montant de ces indemnites ne se saisit pas : la carte n'a de case que pour celle du licenciement
     // (`indemnite_licenciement`).
     let saisi: Option<Decimal> = None;
-    let idcc = &idcc(ctx);
+    let idcc = idcc(ctx);
     let prof = profil(ctx, e)?;
     let (mut conv_bas, mut conv_haut): (Option<Decimal>, Option<Decimal>) = (None, None);
     let mut conv_article: Option<String> = None;
@@ -798,7 +798,7 @@ fn indemnite_de_rupture(
             qui
         )));
         let mise = clauses::indemnite_mise_a_la_retraite(idcc, anciennete, retenu)?;
-        let vise = prof.categorie.as_deref() == Some("cadre_de_direction") && ctx.entreprise.annexe_convention.code() == "1" && anciennete > Decimal::from(120);
+        let vise = prof.categorie.as_deref() == Some("cadre_de_direction") && ctx.entreprise.annexe_convention.code() == Some("1") && anciennete > Decimal::from(120);
         if let Some(cdd) = mise.cadre_de_direction.as_ref().filter(|_| vise) {
             if saisi.is_none() {
                 return Err(socle::echec::cle(format!(
@@ -1027,7 +1027,7 @@ fn phrase_de_la_convention(
     haut: Option<Decimal>,
     m_legal: Decimal,
     pourquoi: Option<&str>,
-    idcc: &str,
+    idcc: Option<&str>,
 ) -> String {
     if !releve {
         return format!("les clauses de {} ne sont pas relevees : seule la loi est calculee", clauses::nom(idcc));
@@ -1216,7 +1216,7 @@ fn indemnite_conventionnelle(
     motif: Option<&str>,
 ) -> Resultat<clauses::Indemnite> {
     clauses::indemnite_licenciement(
-        &idcc(ctx),
+        idcc(ctx),
         ctx.entreprise.annexe_convention.code(),
         &profil(ctx, e)?,
         anciennete,

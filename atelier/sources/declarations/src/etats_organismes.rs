@@ -310,8 +310,8 @@ fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_moi
     let principal = ctx.entreprise.nic_principal();
     for m in p.mois.iter().filter(|m| !importes.contains(m)) {
         let mut une = false;
-        for nic in ctx.entreprise.nics() {
-            let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
+        for nic in ctx.entreprise.nics().map_err(refus)? {
+            let etablissement = if Some(nic.as_str()) == principal { None } else { Some(nic.as_str()) };
             if let Some((f, partie)) = dsn_du_mois(ctx, m, etablissement).map_err(|e| refus(e.message))? {
                 out.push((m.clone(), nic, f, partie));
                 une = true;

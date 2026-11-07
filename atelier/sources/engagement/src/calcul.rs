@@ -1173,28 +1173,28 @@ fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: SalarieDu
     let Some(premiere) = suspensions.first() else { return Ok(fiche) };
     let motifs: Vec<String> = suspensions.iter().map(|s| s.motif().to_string()).collect();
     let ent = ctx.entreprise_au(&fin);
-    let idcc = ent.idcc.texte().to_string();
-    let pourquoi = if idcc == "3090" {
+    let idcc = ent.idcc.portee();
+    let pourquoi = if idcc == Some("3090") {
         format!(
             "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (CCN 3090, \
 accord sante du 19/07/2024, art. 4.2 et 15)",
             motifs.join(", ")
         )
     } else {
-        match ent.sante_suspension_non_indemnisee.code() {
-            SANTE_SUSPENSION_SUSPENDUE => format!(
+        match ent.sante_suspension_non_indemnisee.dite() {
+            Some(droit::fiche::SanteSuspension::Suspendue) => format!(
                 "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (fiche \
 entreprise, « {} »)",
                 motifs.join(", "),
                 SANTE_SUSPENSION_SUSPENDUE
             ),
-            SANTE_SUSPENSION_MAINTENUE => return Ok(fiche),
-            autre => {
-                let qui = [fiche.prenom.texte(), fiche.nom.texte()].into_iter().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
+            Some(droit::fiche::SanteSuspension::Maintenue) => return Ok(fiche),
+            None => {
+                let qui = [fiche.prenom.portee(), fiche.nom.portee()].into_iter().flatten().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
                 return Err(socle::echec::avec(format!("{} : son contrat est suspendu sans indemnisation, et la fiche entreprise ne dit pas ce que devient sa complémentaire santé : le dire dans Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation ».", if qui.is_empty() { cle.clone() } else { qui.clone() }), crate::Detail::du(Some(SANTE_SUSPENSION), format!(
                     "{} : son contrat est suspendu sans indemnisation sur toute la periode payee (du {} au {} ; suspension {} \
 depuis le {}). Que devient sa complementaire sante ce mois-la ? Sous la convention {}, aucun texte ne le dit : c'est le \
-contrat de sante de la compagnie qui tranche (le maintien est facultatif, instruction DSS du 17/06/2021, II.B). {}A dire \
+contrat de sante de la compagnie qui tranche (le maintien est facultatif, instruction DSS du 17/06/2021, II.B). A dire\
 une fois pour toutes : Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation » (`{}`) -- « {} » \
 si le contrat suspend les garanties (rien sur la paie), « {} » s'il les maintient avec les cotisations. Rien n'est calcule.",
                     if qui.is_empty() { cle.clone() } else { qui },
@@ -1202,8 +1202,10 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
                     fin.jj_mm_aaaa(),
                     motifs.join(", "),
                     Jour::lire(premiere.debut())?.jj_mm_aaaa(),
-                    if idcc.is_empty() { "de la compagnie".to_string() } else { idcc.clone() },
-                    if autre.is_empty() { String::new() } else { format!("La fiche dit « {} », qui n'est pas une reponse. ", autre) },
+                    match idcc {
+                        Some(i) => i,
+                        None => "de la compagnie",
+                    },
                     SANTE_SUSPENSION,
                     SANTE_SUSPENSION_SUSPENDUE,
                     SANTE_SUSPENSION_MAINTENUE

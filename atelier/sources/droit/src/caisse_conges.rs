@@ -75,11 +75,10 @@ pub fn intermittent(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<bool> {
     if !nat.mensuelle() {
         return Ok(true);
     }
-    let code = sal.code_emploi_ft.texte().trim().to_string();
-    if code.is_empty() || code.eq_ignore_ascii_case("999SPT") {
+    let Some(code) = sal.code_emploi_ft.portee().map(str::trim).filter(|c| !c.is_empty() && !c.eq_ignore_ascii_case("999SPT")) else {
         return Ok(false);
-    }
-    let Some(m) = emplois::metier(&code)? else {
+    };
+    let Some(m) = emplois::metier(code)? else {
         return Ok(false);
     };
     match m.annexe() {
@@ -101,8 +100,10 @@ pub fn hors_de_l_annexe8(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<Optio
     if nat.duree_indeterminee || !nat.mensuelle() {
         return Ok(None);
     }
-    let code = sal.code_emploi_ft.texte().trim().to_string();
-    let Some(m) = emplois::metier(&code)?.filter(|m| m.annexe() == 8) else {
+    let Some(code) = sal.code_emploi_ft.portee() else {
+        return Ok(None);
+    };
+    let Some(m) = emplois::metier(code)?.filter(|m| m.annexe() == 8) else {
         return Ok(None);
     };
     let Some(idcc) = sal.idcc_de_l_employeur.as_deref().filter(|i| !i.trim().is_empty()) else { return Ok(None) };

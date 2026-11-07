@@ -654,8 +654,10 @@ const LARGEURS_PNM: [(&str, usize, char); 13] = [
 
 /// `sage_pnm` : le format 105 caracteres. Avec l'analytique, la ligne generale est suivie d'une ligne de type A.
 fn sage_pnm(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
-    let nom = nom_compagnie(env.ctx);
-    let nom = if nom.is_empty() { "Paie".to_string() } else { nom };
+    let nom = match nom_compagnie(env.ctx) {
+        Some(n) => n.to_string(),
+        None => "Paie".to_string(),
+    };
     let mut out = vec![env.tenir_ou_court(Quoi::Compagnie, &nom, &nom, 30).unwrap_or_default()];
     for e in ecritures {
         borne("sage", &compte_de(e), &e.journal)?;
