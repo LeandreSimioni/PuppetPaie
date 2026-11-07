@@ -1,0 +1,6554 @@
+[
+  {
+    "cas": [
+      "001",
+      "001"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 001 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "003"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 003 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "004"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 004 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "005"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 005 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "006"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 006 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "007"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 007 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "011"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 011 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "012"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 012 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "014"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 014 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "015"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 015 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "020"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 020 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "023"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 023 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "025"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 025 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "026"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 026 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "034"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 034 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "035"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 035 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "037"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 037 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "038"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 038 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "039"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 039 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "059"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 059 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "082"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 082 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "083"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 083 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "086"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 086 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "087"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 087 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "088"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 088 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "089"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 089 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "091"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 091 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "092"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 092 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "093"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 093 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "095"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 095 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "096"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 096 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "098"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 098 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "111"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 111 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "112"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 112 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "113"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 113 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "114"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 114 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "115"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 115 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "117"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 117 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "200"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 200 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "301"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 301 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "501"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 501 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "607"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 607 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "610"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 610 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "618"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 618 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "627"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 627 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "632"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 632 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "635"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 635 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "636"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 636 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "637"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 637 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "639"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est 639 -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "001",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "001",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "001",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": "001 (Indemnité spécifique de rupture conventionnelle) n'est permis qu'avec les motifs de rupture 043, 110, 099, et celui-ci est zzz -- CCH-21 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "001"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 001 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "003"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 003 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "004"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 004 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "005"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 005 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "006"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 006 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "007"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 007 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "011"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 011 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "012"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 012 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "014"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 014 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "015"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 015 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "020"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 020 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "023"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 023 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "025"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 025 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "026"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 026 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "034"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 034 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "035"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 035 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "037"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 037 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "039"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 039 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "043"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 043 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "059"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 059 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "082"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 082 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "083"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 083 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "086"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 086 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "087"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 087 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "088"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 088 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "089"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 089 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "091"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 091 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "092"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 092 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "093"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 093 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "095"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 095 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "096"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 096 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "098"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 098 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "110"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 110 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "111"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 111 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "112"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 112 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "113"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 113 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "114"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 114 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "115"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 115 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "117"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 117 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "200"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 200 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "301"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 301 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "501"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 501 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "607"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 607 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "610"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 610 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "618"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 618 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "627"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 627 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "632"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 632 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "635"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 635 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "636"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 636 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "637"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 637 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "639"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 639 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "003",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "003",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "003",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": "003 (Indemnité légale de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est zzz -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "001"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 001 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "003"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 003 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "004"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 004 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "005"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 005 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "006"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 006 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "007"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 007 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "011"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 011 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "012"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 012 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "014"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 014 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "015"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 015 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "020"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 020 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "023"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 023 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "025"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 025 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "026"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 026 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "034"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 034 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "035"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 035 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "037"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 037 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "039"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 039 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "043"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 043 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "059"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 059 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "082"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 082 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "083"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 083 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "086"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 086 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "087"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 087 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "088"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 088 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "089"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 089 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "091"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 091 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "092"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 092 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "093"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 093 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "095"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 095 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "096"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 096 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "098"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 098 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "110"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 110 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "111"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 111 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "112"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 112 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "113"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 113 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "114"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 114 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "115"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 115 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "117"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 117 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "200"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 200 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "301"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 301 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "501"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 501 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "607"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 607 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "610"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 610 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "618"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 618 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "627"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 627 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "632"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 632 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "635"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 635 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "636"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 636 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "637"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 637 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "639"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est 639 -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "004",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "004",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "004",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": "004 (Indemnité conventionnelle de mise à la retraite par l'employeur) n'est permis qu'avec les motifs de rupture 038, 099, et celui-ci est zzz -- CCH-22 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "001"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 001 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "003"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 003 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "004"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 004 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "005"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 005 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "006"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 006 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "007"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 007 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "011"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 011 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "012"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 012 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "014"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 014 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "015"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 015 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "020"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 020 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "023"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 023 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "025"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 025 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "026"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 026 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "034"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 034 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "035"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 035 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "037"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 037 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "038"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 038 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "043"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 043 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "082"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 082 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "083"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 083 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "086"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 086 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "087"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 087 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "088"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 088 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "089"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 089 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "091"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 091 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "092"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 092 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "093"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 093 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "095"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 095 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "096"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 096 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "098"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 098 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "110"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 110 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "111"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 111 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "112"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 112 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "113"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 113 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "114"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 114 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "115"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 115 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "117"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 117 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "200"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 200 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "301"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 301 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "501"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 501 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "607"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 607 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "610"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 610 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "618"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 618 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "627"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 627 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "632"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 632 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "635"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 635 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "636"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 636 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "637"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 637 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "639"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 639 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "005",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "005",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "005",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": "005 (Indemnité légale de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est zzz -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "001"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 001 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "003"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 003 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "004"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 004 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "005"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 005 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "006"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 006 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "007"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 007 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "011"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 011 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "012"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 012 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "014"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 014 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "015"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 015 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "020"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 020 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "023"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 023 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "025"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 025 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "026"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 026 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "034"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 034 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "035"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 035 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "037"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 037 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "038"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 038 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "043"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 043 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "082"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 082 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "083"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 083 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "086"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 086 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "087"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 087 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "088"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 088 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "089"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 089 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "091"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 091 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "092"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 092 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "093"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 093 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "095"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 095 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "096"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 096 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "098"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 098 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "110"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 110 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "111"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 111 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "112"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 112 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "113"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 113 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "114"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 114 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "115"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 115 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "117"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 117 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "200"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 200 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "301"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 301 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "501"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 501 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "607"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 607 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "610"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 610 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "618"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 618 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "627"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 627 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "632"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 632 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "635"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 635 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "636"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 636 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "637"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 637 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "639"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est 639 -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "006",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "006",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "006",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": "006 (Indemnité conventionnelle de départ à la retraite du salarié) n'est permis qu'avec les motifs de rupture 039, 059, 099, et celui-ci est zzz -- CCH-23 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "001"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 001 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "003"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 003 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "004"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 004 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "005"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 005 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "006"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 006 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "007"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 007 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "023"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 023 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "034"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 034 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "035"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 035 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "037"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 037 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "038"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 038 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "039"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 039 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "043"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 043 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "059"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 059 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "083"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 083 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "088"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 088 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "095"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 095 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "096"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 096 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "110"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 110 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "200"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 200 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "301"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 301 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "501"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 501 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "607"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 607 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "610"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 610 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "618"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 618 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "627"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 627 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "632"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 632 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "635"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 635 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "636"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 636 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "637"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 637 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "639"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est 639 -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "007",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "007",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": "007 (Indemnité légale de licenciement) n'est permis qu'avec les motifs de rupture 011, 012, 014, 015, 020, 025, 026, 082, 086, 087, 089, 091, 092, 093, 098, 099, 111, 112, 113, 114, 115, 117, et celui-ci est zzz -- CCH-24 du cahier technique."
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "001"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "003"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "004"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "005"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "006"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "007"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "023"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "034"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "035"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "037"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "083"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "088"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "095"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "096"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "200"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "301"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "501"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "607"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "610"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "618"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "627"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "632"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "635"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "636"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "637"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "639"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "020",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "001"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "003"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "004"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "005"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "006"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "007"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "023"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "034"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "035"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "037"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "083"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "088"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "095"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "096"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "200"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "301"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "501"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "607"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "610"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "618"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "627"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "632"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "635"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "636"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "637"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "639"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "011",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "001"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "003"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "004"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "005"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "006"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "007"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "023"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "034"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "035"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "037"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "083"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "088"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "095"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "096"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "200"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "301"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "501"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "607"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "610"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "618"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "627"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "632"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "635"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "636"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "637"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "639"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "023",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "001"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "003"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "004"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "005"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "006"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "007"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "023"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "034"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "035"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "037"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "083"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "088"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "095"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "096"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "200"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "301"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "501"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "607"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "610"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "618"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "627"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "632"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "635"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "636"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "637"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "639"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "999",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "001"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "003"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "004"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "005"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "006"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "007"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "023"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "034"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "035"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "037"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "083"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "088"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "095"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "096"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "200"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "301"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "501"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "607"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "610"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "618"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "627"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "632"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "635"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "636"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "637"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "639"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "001"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "003"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "004"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "005"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "006"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "007"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "023"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "034"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "035"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "037"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "083"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "088"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "095"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "096"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "200"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "301"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "501"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "607"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "610"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "618"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "627"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "632"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "635"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "636"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "637"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "639"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      null,
+      "zzz"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "001"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "003"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "004"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "005"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "006"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "007"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "011"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "012"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "014"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "015"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "020"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "023"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "025"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "026"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "034"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "035"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "037"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "038"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "039"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "043"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "059"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "082"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "083"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "086"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "087"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "088"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "089"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "091"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "092"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "093"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "095"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "096"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "098"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "099"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "110"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "111"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "112"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "113"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "114"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "115"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "117"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "200"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "301"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "501"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "607"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "610"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "618"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "627"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "632"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "635"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "636"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "637"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "639"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      null
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      ""
+    ],
+    "attendu": {
+      "ok": null
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "zzz"
+    ],
+    "attendu": {
+      "ok": null
+    }
+  }
+]

@@ -120,3 +120,30 @@ fn premier_ecart<T: Serialize>(attendu: &T, obtenu: &T) -> String {
     }
     "valeurs differentes, ecritures identiques".to_string()
 }
+
+/// Ce que rend une fonction du droit qui peut refuser : sa valeur, ou la phrase du refus.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum Rendu<T> {
+    #[serde(rename = "ok")]
+    Ok(T),
+    #[serde(rename = "err")]
+    Err(String),
+}
+
+impl<T> From<Result<T, String>> for Rendu<T> {
+    fn from(r: Result<T, String>) -> Rendu<T> {
+        match r {
+            Ok(v) => Rendu::Ok(v),
+            Err(e) => Rendu::Err(e),
+        }
+    }
+}
+
+/// Rejoue les cas de la reference `nom` (`cas_de`) par `f` et les compare (`verifier`).
+pub fn jouer<A, R>(nom: &str, cas: Vec<A>, f: impl Fn(&A) -> R)
+where
+    A: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug,
+    R: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug,
+{
+    verifier(nom, cas.into_iter().map(|a| Ligne { attendu: f(&a), cas: a }).collect());
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "cas": [
+      false,
+      false
+    ],
+    "attendu": {
+      "ok": 7
+    }
+  },
+  {
+    "cas": [
+      false,
+      true
+    ],
+    "attendu": {
+      "ok": 7
+    }
+  },
+  {
+    "cas": [
+      true,
+      false
+    ],
+    "attendu": {
+      "ok": 0
+    }
+  },
+  {
+    "cas": [
+      true,
+      true
+    ],
+    "attendu": {
+      "ok": 7
+    }
+  }
+]

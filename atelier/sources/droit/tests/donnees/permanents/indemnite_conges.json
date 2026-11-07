@@ -1,0 +1,3842 @@
+[
+  {
+    "cas": [
+      "0",
+      "0",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "0",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "1000",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "0",
+      "25000.55",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "0",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "40.00",
+        "maintien": "0.00",
+        "retenu": "40.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "40.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "40.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "40.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "3.33",
+        "maintien": "0.00",
+        "retenu": "3.33",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "3.33",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "3.33",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "3.33",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5.80",
+        "maintien": "0.00",
+        "retenu": "5.80",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5.80",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5.80",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "1000",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5.80",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1000.02",
+        "maintien": "0.00",
+        "retenu": "1000.02",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1000.02",
+        "maintien": "100.00",
+        "retenu": "1000.02",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1000.02",
+        "maintien": "456.78",
+        "retenu": "1000.02",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1000.02",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "83.34",
+        "maintien": "0.00",
+        "retenu": "83.34",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "83.34",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "83.34",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "83.34",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "144.93",
+        "maintien": "0.00",
+        "retenu": "144.93",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "144.93",
+        "maintien": "100.00",
+        "retenu": "144.93",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "144.93",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "1",
+      "25000.55",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "144.93",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "0",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "200.00",
+        "maintien": "0.00",
+        "retenu": "200.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "200.00",
+        "maintien": "100.00",
+        "retenu": "200.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "200.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "200.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "16.67",
+        "maintien": "0.00",
+        "retenu": "16.67",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "16.67",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "16.67",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "16.67",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "28.99",
+        "maintien": "0.00",
+        "retenu": "28.99",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "28.99",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "28.99",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "1000",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "28.99",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5000.11",
+        "maintien": "0.00",
+        "retenu": "5000.11",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5000.11",
+        "maintien": "100.00",
+        "retenu": "5000.11",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5000.11",
+        "maintien": "456.78",
+        "retenu": "5000.11",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "5000.11",
+        "maintien": "3000.00",
+        "retenu": "5000.11",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "416.68",
+        "maintien": "0.00",
+        "retenu": "416.68",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "416.68",
+        "maintien": "100.00",
+        "retenu": "416.68",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "416.68",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "416.68",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "724.65",
+        "maintien": "0.00",
+        "retenu": "724.65",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "724.65",
+        "maintien": "100.00",
+        "retenu": "724.65",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "724.65",
+        "maintien": "456.78",
+        "retenu": "724.65",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "5",
+      "25000.55",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "724.65",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "0",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "500.00",
+        "maintien": "0.00",
+        "retenu": "500.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "500.00",
+        "maintien": "100.00",
+        "retenu": "500.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "500.00",
+        "maintien": "456.78",
+        "retenu": "500.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "500.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "41.67",
+        "maintien": "0.00",
+        "retenu": "41.67",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "41.67",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "41.67",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "41.67",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "72.46",
+        "maintien": "0.00",
+        "retenu": "72.46",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "72.46",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "72.46",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "1000",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "72.46",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "12500.28",
+        "maintien": "0.00",
+        "retenu": "12500.28",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "12500.28",
+        "maintien": "100.00",
+        "retenu": "12500.28",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "12500.28",
+        "maintien": "456.78",
+        "retenu": "12500.28",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "12500.28",
+        "maintien": "3000.00",
+        "retenu": "12500.28",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1041.69",
+        "maintien": "0.00",
+        "retenu": "1041.69",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1041.69",
+        "maintien": "100.00",
+        "retenu": "1041.69",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1041.69",
+        "maintien": "456.78",
+        "retenu": "1041.69",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1041.69",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1811.63",
+        "maintien": "0.00",
+        "retenu": "1811.63",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1811.63",
+        "maintien": "100.00",
+        "retenu": "1811.63",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1811.63",
+        "maintien": "456.78",
+        "retenu": "1811.63",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "12.5",
+      "25000.55",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1811.63",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "0",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1200.00",
+        "maintien": "0.00",
+        "retenu": "1200.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1200.00",
+        "maintien": "100.00",
+        "retenu": "1200.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1200.00",
+        "maintien": "456.78",
+        "retenu": "1200.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "1200.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "100.00",
+        "maintien": "0.00",
+        "retenu": "100.00",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "100.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "100.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "100.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "173.91",
+        "maintien": "0.00",
+        "retenu": "173.91",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "173.91",
+        "maintien": "100.00",
+        "retenu": "173.91",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "173.91",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "1000",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "173.91",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "0",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "0.00",
+        "retenu": "0.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "0",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "100.00",
+        "retenu": "100.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "0",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "456.78",
+        "retenu": "456.78",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "0",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "0.00",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "2.5",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "30000.66",
+        "maintien": "0.00",
+        "retenu": "30000.66",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "2.5",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "30000.66",
+        "maintien": "100.00",
+        "retenu": "30000.66",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "2.5",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "30000.66",
+        "maintien": "456.78",
+        "retenu": "30000.66",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "2.5",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "30000.66",
+        "maintien": "3000.00",
+        "retenu": "30000.66",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "30",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "2500.06",
+        "maintien": "0.00",
+        "retenu": "2500.06",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "30",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "2500.06",
+        "maintien": "100.00",
+        "retenu": "2500.06",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "30",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "2500.06",
+        "maintien": "456.78",
+        "retenu": "2500.06",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "30",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "2500.06",
+        "maintien": "3000.00",
+        "retenu": "3000.00",
+        "regle": "maintien"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "17.25",
+      "0"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "4347.92",
+        "maintien": "0.00",
+        "retenu": "4347.92",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "17.25",
+      "100"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "4347.92",
+        "maintien": "100.00",
+        "retenu": "4347.92",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "17.25",
+      "456.78"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "4347.92",
+        "maintien": "456.78",
+        "retenu": "4347.92",
+        "regle": "dixieme"
+      }
+    }
+  },
+  {
+    "cas": [
+      "30",
+      "25000.55",
+      "17.25",
+      "3000"
+    ],
+    "attendu": {
+      "ok": {
+        "dixieme": "4347.92",
+        "maintien": "3000.00",
+        "retenu": "4347.92",
+        "regle": "dixieme"
+      }
+    }
+  }
+]
