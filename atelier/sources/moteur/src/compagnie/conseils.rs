@@ -323,7 +323,7 @@ fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs, annexes: &[&str]
 /// est tout en majuscules) ; sans prenom, son nom, sinon sa cle.
 pub fn prenom(sal: &droit::fiche::ChampsSalarie, cle: &str) -> String {
     fn lu<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
-        Some(c.texte().trim().to_string()).filter(|s| !s.is_empty())
+        c.portee().map(str::trim).filter(|s| !s.is_empty()).map(str::to_string)
     }
     if let Some(p) = lu(&sal.prenom_affichage) {
         return p;
@@ -401,7 +401,8 @@ pub fn du_jour(ctx: &Contexte, decalage: i64) -> Resultat<Value> {
 /// L'annexe du salarie de cette paie, lue du metier de sa fiche : X pour un artiste, VIII pour un technicien ; rien
 /// sinon (rien ne se devine).
 fn annexe_de(sal: &droit::fiche::ChampsSalarie) -> Resultat<Option<&'static str>> {
-    let Some(m) = emplois::metier(sal.code_emploi_ft.texte())? else { return Ok(None) };
+    let Some(code) = sal.code_emploi_ft.portee() else { return Ok(None) };
+    let Some(m) = emplois::metier(code)? else { return Ok(None) };
     Ok(Some(match m.statut() {
         droit::fiche::Statut::Artiste => "X",
         droit::fiche::Statut::Technicien => "VIII",
@@ -875,8 +876,10 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
         .iter()
         .map(|(p, fiche, anniv)| {
             let n = if fiches.iter().filter(|(q, _, _)| q == p).count() > 1 {
-                let nom = Some(fiche.nom_affichage.texte().to_string()).filter(|n| !n.trim().is_empty()).unwrap_or_else(|| fiche.nom.texte().to_string());
-                if nom.trim().is_empty() { p.clone() } else { format!("{} {}", p, nom.trim()) }
+                match fiche.nom_affichage.remplie().or(fiche.nom.portee()).map(str::trim) {
+                    Some(nom) => format!("{} {}", p, nom),
+                    None => p.clone(),
+                }
             } else {
                 p.clone()
             };

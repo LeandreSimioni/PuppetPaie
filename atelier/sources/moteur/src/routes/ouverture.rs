@@ -413,8 +413,10 @@ pub(crate) fn choix_d_etablissement(ctx: &Contexte) -> Option<Vec<ChoixEtablisse
         return None;
     }
     let commune = |f: &Value| texte_ou_vide(f.get("commune_affichage").filter(|v| vrai(v)).or(f.get("commune")));
-    let siege = ctx.entreprise.commune_affichage.remplie().unwrap_or(ctx.entreprise.commune.texte()).to_string();
-    let nom_du_siege = format!("Le siège{}", Some(siege).filter(|c| !c.is_empty()).map(|c| format!(", {}", c)).unwrap_or_default());
+    let nom_du_siege = match ctx.entreprise.commune_affichage.remplie().or(ctx.entreprise.commune.portee()) {
+        Some(commune) => format!("Le siège, {}", commune),
+        None => "Le siège".to_string(),
+    };
     let mut out = vec![ChoixEtablissement { periode_dit: None, nic: String::new(), nom: nom_du_siege, ouverture: None, fermeture: None }];
     for (e, fermeture) in autres {
         let nom = [texte_ou_vide(e.get("libelle")), commune(&e)].into_iter().filter(|s| !s.trim().is_empty()).collect::<Vec<_>>().join(", ");
@@ -495,22 +497,22 @@ fn documents_identite(quoi: &str) -> &'static [&'static str] {
 /// La personne qui signe, telle que la fiche Entreprise la nomme, en forme lisible.
 #[derive(Debug, Clone, serde::Serialize)]
 pub(crate) struct Signataire {
-    pub(crate) nom: String,
-    pub(crate) fonction: String,
+    /// Son prenom et son nom ; vide quand la fiche ne dit pas qui signe.
+    pub(crate) nom: Option<String>,
+    pub(crate) fonction: Option<String>,
 }
 
 /// `signataire_de` : la personne qui signe, telle que la fiche Entreprise la nomme, en forme lisible.
 pub(crate) fn signataire_de(ent: &droit::fiche::ChampsEntreprise) -> Signataire {
-    let s = ent.signataire.dite().cloned().unwrap_or_default();
-    let lisible = |affichage: &Option<String>, brut: &Option<String>| -> String {
+    let Some(s) = ent.signataire.dite() else { return Signataire { nom: None, fonction: None } };
+    let lisible = |affichage: &Option<String>, brut: &Option<String>| -> Option<String> {
         match affichage.remplie() {
-            Some(v) => v.to_string(),
-            None => champs::titre(brut.texte()),
+            Some(v) => Some(v.to_string()),
+            None => brut.portee().map(champs::titre),
         }
     };
-    let (prenom, nom) = (lisible(&s.prenom_affichage, &s.prenom), lisible(&s.nom_affichage, &s.nom));
-    let complet: Vec<String> = [prenom, nom].into_iter().filter(|x| !x.is_empty()).collect();
-    Signataire { nom: complet.join(" "), fonction: s.fonction.texte().to_string() }
+    let complet: Vec<String> = [lisible(&s.prenom_affichage, &s.prenom), lisible(&s.nom_affichage, &s.nom)].into_iter().flatten().collect();
+    Signataire { nom: (!complet.is_empty()).then(|| complet.join(" ")), fonction: s.fonction.en_texte() }
 }
 
 /// `identite/identite.json` des gabarits : pour qui la signature a ete posee, et quand (`poser-identite` l'ecrit).
@@ -525,7 +527,8 @@ pub(crate) struct RegistreIdentite {
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PoseePour {
-    pub(crate) de: String,
+    /// La personne qui signait ; vide quand la fiche ne le disait pas.
+    pub(crate) de: Option<String>,
     pub(crate) le: String,
 }
 
@@ -626,9 +629,9 @@ pub(crate) fn identite(ctx: &Contexte, gabarits: &Path) -> R<Identite> {
     // LA SIGNATURE EST CELLE D'UNE PERSONNE : celle que la fiche Entreprise nomme sous « Qui signe ». Si l'image a ete
     // posee pour une autre, la page le dit.
     let signataire = signataire_de(&ctx.entreprise);
-    let pour = if signature.pose { registre_identite(&dossier)?.signature.map(|s| s.de).unwrap_or_default() } else { String::new() };
-    signature.autre_personne = Some(!pour.is_empty() && !signataire.nom.is_empty() && pour != signataire.nom);
-    signature.posee_pour = Some(pour);
+    let pour = if signature.pose { registre_identite(&dossier)?.signature.and_then(|s| s.de) } else { None };
+    signature.autre_personne = Some(matches!((&pour, &signataire.nom), (Some(p), Some(n)) if p != n));
+    signature.posee_pour = pour;
     signature.signataire = Some(signataire);
     Ok(Identite { signature, cachet: image("cachet")?, logo: image("logo")? })
 }
@@ -820,8 +823,8 @@ fn configuration(ctx: &Contexte) -> R<ConfigurationDeLaPage> {
     };
     // LES NUMEROS D'OBJET SANS TITRE (importes des DSN, « A COMPLETER »), archives : la liste des spectacles les groupe sous
     // cette phrase.
-    let sans_titre: Vec<&droit::fiche::ChampsSpectacle> = ctx.spectacles.values().filter(|s| s.archivee() && s.titre.texte().trim().eq_ignore_ascii_case("a completer")).collect();
-    let ans: Vec<u32> = sans_titre.iter().filter_map(|s| s.numero_objet.texte().get(..2).and_then(|a| a.parse::<u32>().ok())).map(|a| 2000 + a).collect();
+    let sans_titre: Vec<&droit::fiche::ChampsSpectacle> = ctx.spectacles.values().filter(|s| s.archivee() && s.titre.portee().is_some_and(|t| t.trim().eq_ignore_ascii_case("a completer"))).collect();
+    let ans: Vec<u32> = sans_titre.iter().filter_map(|s| s.numero_objet.portee().and_then(|n| n.get(..2)).and_then(|a| a.parse::<u32>().ok())).map(|a| 2000 + a).collect();
     let numeros_sans_titre = match (sans_titre.len(), ans.iter().min(), ans.iter().max()) {
         (0, _, _) => None,
         (n, de, a) => {
@@ -1544,7 +1547,7 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
     // CHOISISSE au lieu de se taper ; et celui que le moteur prend quand la
     // fiche n'en dit rien : l'organisme du territoire.
     let urssaf = declarations::urssaf::base().map_err(plain)?;
-    let deduit = urssaf.du_code_postal(ctx.entreprise.code_postal.texte());
+    let deduit = ctx.entreprise.code_postal.portee().map(|cp| urssaf.du_code_postal(cp)).filter(|d| !d.is_empty());
     let organismes_urssaf: Vec<OrganismeUrssaf> = urssaf.organismes.into_iter().map(|o| OrganismeUrssaf { code: o.code, nom: o.nom }).collect();
     let branchement = crate::compagnie::bridage::branchement(&ctx.racine);
     let joue = branchement.joue();
@@ -1597,8 +1600,8 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         // Les conventions collectives servies, pour la fiche entreprise.
         conventions: conventions(ctx)?,
         organismes_urssaf,
-        urssaf_deduit_dit: format!("— code postal ({}) —", if deduit.is_empty() { "117" } else { deduit.as_str() }),
-        urssaf_deduit: if deduit.is_empty() { "117".to_string() } else { deduit },
+        urssaf_deduit_dit: format!("— code postal ({}) —", deduit.as_deref().unwrap_or("117")),
+        urssaf_deduit: deduit.unwrap_or_else(|| "117".to_string()),
         // LES PAYS : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
         // deduit. Le pays de naissance et le pays de nationalite s'y choisissent.
         pays: socle::pays::servir().map_err(plain)?,

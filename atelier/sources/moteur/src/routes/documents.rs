@@ -165,7 +165,8 @@ struct PiecePartie {
 struct MessageVu {
     cle: String,
     nom: String,
-    destinataire: String,
+    /// Le courriel de la fiche ; vide, ses documents s'impriment.
+    destinataire: Option<String>,
     pieces: Vec<String>,
     sortes: Vec<&'static str>,
     renvoi: bool,
@@ -250,7 +251,8 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
         },
     };
     fichiers.sort();
-    let index: Vec<(String, String)> = ctx.salaries.iter().map(|(cle, v)| (cle.to_string(), format!("{} {}", v.nom.texte(), v.prenom.texte()))).collect();
+    let index: Vec<(String, String)> =
+        ctx.salaries.iter().map(|(cle, v)| (cle.to_string(), [v.nom.portee(), v.prenom.portee()].into_iter().flatten().collect::<Vec<_>>().join(" "))).collect();
     let mut vues: HashMap<(String, String), Vec<Attestation>> = HashMap::new();
     for nom in fichiers {
         let chemin = dossier.join(&nom);
@@ -465,7 +467,7 @@ fn documents_prets(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie
 struct Message {
     cle: String,
     nom: String,
-    destinataire: String,
+    destinataire: Option<String>,
     pieces: Vec<std::path::PathBuf>,
 }
 
@@ -504,7 +506,7 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
         messages.push(Message {
             nom: ctx.nomme(&cle),
             // Une fiche sans courriel se montre : ses documents s'impriment ; c'est l'envoi par courriel qui la refuse.
-            destinataire: s.email.texte().to_lowercase(),
+            destinataire: s.email.portee().map(str::to_lowercase),
             cle,
             pieces,
         });
@@ -544,15 +546,14 @@ fn envoi_apercu(ctx: &Contexte, le_mois: Mois) -> R<ApercuEnvoi> {
         if !messages.is_empty() {
             expediteur = compte_de_la_boite(ctx)?.to_lowercase();
             let sg = ctx.entreprise.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
-            let signataire = sg.email.texte().to_lowercase();
-            if !signataire.is_empty() && signataire != expediteur {
+            if let Some(signataire) = sg.email.portee().map(str::to_lowercase).filter(|s| *s != expediteur) {
                 avertissements.push(format!(
                     "Les messages partiront de {} (la boite posee), pas de {} (le courriel du signataire, fiche Entreprise).",
                     expediteur, signataire
                 ));
             }
         }
-        let sans: Vec<String> = messages.iter().filter(|x| x.destinataire.is_empty()).map(|x| nom_de_la_paie(&paies, &x.cle)).collect();
+        let sans: Vec<String> = messages.iter().filter(|x| x.destinataire.is_none()).map(|x| nom_de_la_paie(&paies, &x.cle)).collect();
         if !sans.is_empty() {
             avertissements.push(sans_courriel_dit(&sans.join(", ")));
         }
@@ -595,7 +596,13 @@ fn envoi_apercu(ctx: &Contexte, le_mois: Mois) -> R<ApercuEnvoi> {
             }
         })
         .collect();
-    let mut phrases: Vec<String> = messages.iter().map(|x| format!("{} ({}) : {}", x.nom, x.destinataire, x.sortes.join(", "))).collect();
+    let mut phrases: Vec<String> = messages
+        .iter()
+        .map(|x| match &x.destinataire {
+            Some(d) => format!("{} ({}) : {}", x.nom, d, x.sortes.join(", ")),
+            None => format!("{} : {}", x.nom, x.sortes.join(", ")),
+        })
+        .collect();
     phrases.extend(prets.empechements.iter().chain(&avertissements).chain(&prets.informations).cloned());
     Ok(ApercuEnvoi {
         phrase: format!("Documents à envoyer par courriel, de {} : {}.", expediteur, super::compte(messages.len(), "message", "messages")),
@@ -964,8 +971,8 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     if !sans.is_empty() {
         avertissements.push(sans_courriel_dit(&noms_sans));
     }
-    let signataire = ctx.entreprise.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?.email.texte().to_lowercase();
-    if !signataire.is_empty() && signataire != expediteur {
+    let signataire = ctx.entreprise.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?.email.portee().map(str::to_lowercase);
+    if let Some(signataire) = signataire.filter(|s| *s != expediteur) {
         avertissements.push(format!(
             "Les messages partiront de {} (la boite posee), pas de {} (le courriel du signataire, fiche Entreprise).",
             expediteur, signataire
@@ -1042,7 +1049,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
 
 /// La fiche du salarie `cle`, telle que ses paies du mois la portent, a-t-elle un courriel ?
 fn a_un_courriel(paies: &[engagement::calcul::Paie], cle: &str) -> bool {
-    paies.iter().any(|p| p.salarie.id == cle && !p.salarie.email.texte().is_empty())
+    paies.iter().any(|p| p.salarie.id == cle && p.salarie.email.is_some())
 }
 
 /// « NOM Prenom » du salarie `cle`, lu dans ses paies du mois.

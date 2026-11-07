@@ -41,7 +41,7 @@ fn faux() -> (String, Recu) {
 }
 
 fn declarant() -> Identite {
-    Identite { siret: "12345678901234".into(), nom: "DUPONT".into(), prenom: "Jean Pierre".into() }
+    Identite { siret: Some("12345678901234".into()), nom: Some("DUPONT".into()), prenom: Some("Jean Pierre".into()) }
 }
 
 fn auth<'a>(url: &'a str, declarant: &'a Identite, motdepasse: Option<&'a str>) -> Authentification<'a> {
@@ -71,7 +71,7 @@ fn un_mot_de_passe_absent_ou_un_declarant_incomplet_ne_partent_pas() {
     for mdp in [None, Some("")] {
         assert!(authentifier(&auth(&url, &d, mdp)).is_err());
     }
-    let incomplet = Identite { siret: "1".into(), ..Identite::default() };
+    let incomplet = Identite { siret: Some("1".into()), ..Identite::default() };
     assert!(authentifier(&auth(&url, &incomplet, Some("secret"))).is_err());
     assert!(recu.lock().unwrap().is_empty(), "rien n'est parti");
 }

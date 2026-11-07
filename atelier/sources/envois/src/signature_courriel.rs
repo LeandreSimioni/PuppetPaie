@@ -27,8 +27,14 @@ const FORMULES: [&str; 2] = ["Bien à toi,", "Bien cordialement,"];
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Signature {
     /// Le nom affiche devant l'adresse (vide : l'adresse seule).
-    pub nom: String,
-    /// La signature en HTML, nettoyee (vide : la signature des modeles).
+    pub nom: Option<String>,
+    /// La signature posee (vide : la signature des modeles).
+    pub corps: Option<CorpsDeSignature>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CorpsDeSignature {
+    /// La signature en HTML, nettoyee.
     pub html: String,
     /// La meme en texte, pour les messageries sans HTML.
     pub texte: String,
@@ -36,17 +42,20 @@ pub struct Signature {
 
 /// La signature d'une fiche Entreprise. `Err` : elle est posee mais trop lourde.
 pub fn de_la_fiche(ent: &droit::fiche::ChampsEntreprise) -> Result<Option<Signature>, String> {
-    let nom = ent.courriel_nom.texte().trim().to_string();
-    let brut = ent.courriel_signature.texte().trim().to_string();
-    if nom.is_empty() && brut.is_empty() {
+    let nom = ent.courriel_nom.portee().map(|n| nom_sur(n.trim()));
+    let brut = ent.courriel_signature.portee().map(str::trim);
+    if nom.is_none() && brut.is_none() {
         return Ok(None);
     }
-    if let Some(m) = trop_lourde(&brut) {
-        return Err(format!("Rien n'est parti : {}. Allegez-la dans la fiche Entreprise.", m));
+    let mut corps = None;
+    if let Some(brut) = brut {
+        if let Some(m) = trop_lourde(brut) {
+            return Err(format!("Rien n'est parti : {}. Allegez-la dans la fiche Entreprise.", m));
+        }
+        let html = nettoyer(brut);
+        corps = Some(CorpsDeSignature { texte: en_texte(&html), html });
     }
-    let html = nettoyer(&brut);
-    let texte = en_texte(&html);
-    Ok(Some(Signature { nom: nom_sur(&nom), html, texte }))
+    Ok(Some(Signature { nom, corps }))
 }
 
 /// La signature de la compagnie de `racine` (`config/entreprise.json`).
@@ -136,12 +145,12 @@ fn tete_du_texte(corps: &str) -> String {
 }
 
 /// Le bloc HTML de la signature.
-fn bloc(s: &Signature) -> String {
+fn bloc(s: &CorpsDeSignature) -> String {
     format!("<div class=\"signature\">{}</div>", s.html)
 }
 
 /// Le HTML du message, la signature a la place de celle du modele.
-fn html_signe(html: &str, s: &Signature) -> String {
+fn html_signe(html: &str, s: &CorpsDeSignature) -> String {
     // « Bien a toi,<br>Prenom<br>Compagnie</p> » : la formule reste, la suite part.
     for f in FORMULES {
         let cle = format!("{}<br>", f);
@@ -174,9 +183,9 @@ fn html_signe(html: &str, s: &Signature) -> String {
 /// Le message signe. Sans signature HTML posee (le nom affiche seul), il reste tel quel.
 pub fn signer(message: &Message, s: &Signature) -> Message {
     let mut m = message.clone();
-    if s.html.is_empty() {
+    let Some(s) = &s.corps else {
         return m;
-    }
+    };
     let tete = tete_du_texte(&m.corps);
     m.corps = format!("{}{}\n", tete, s.texte);
     m.html = if m.html.is_empty() {

@@ -171,8 +171,11 @@ fn modeles(ctx: &Contexte) -> R<ModelesDuBulletin> {
     for (cle, sal) in &ctx.salaries {
         if let Some(m) = documents::bulletin::modele_du_salarie(sal).map_err(refus)? {
             if m != modele {
-                let nom = format!("{} {}", sal.prenom_affichage.texte(), sal.nom_affichage.texte()).trim().to_string();
-                let nom = if nom.is_empty() { cle.to_string() } else { nom };
+                let nom = match (sal.prenom_affichage.portee(), sal.nom_affichage.portee()) {
+                    (Some(prenom), Some(nom)) => format!("{} {}", prenom, nom),
+                    (Some(un), None) | (None, Some(un)) => un.to_string(),
+                    (None, None) => cle.to_string(),
+                };
                 autrement.push(SalarieAutrement { cle: cle.to_string(), nom, modele: m.cle() });
             }
         }

@@ -384,7 +384,8 @@ pub struct Attendue {
     pub rang: usize,
     pub apres_signature: bool,
     pub envoyes: Vec<String>,
-    pub prenom: String,
+    /// Le prenom que la fiche du salarie dit (`prenom_affichage`, sinon `prenom`).
+    pub prenom: Option<String>,
     pub nom: String,
     pub contrats: Vec<ContratAttendu>,
 }
@@ -422,7 +423,7 @@ pub fn signatures_attendues<'f>(fiche_de: impl Fn(&str) -> Option<&'f droit::fic
             let apres_signature = matches!(c.acte.as_deref(), Some("avenant") | Some("remplace")) || renvoyes.contains(&k);
             let n = *par_code.entry(code.to_string()).or_insert_with(|| {
                 let fiche = fiche_de(c.salarie.as_str());
-                let prenom = fiche.map(|f| if f.prenom_affichage.texte().is_empty() { f.prenom.texte().to_string() } else { f.prenom_affichage.texte().to_string() }).unwrap_or_default();
+                let prenom = fiche.and_then(|f| f.prenom_affichage.en_texte().or_else(|| f.prenom.en_texte()));
                 demandes.push(Attendue {
                     code: code.to_string(),
                     mois: e.mois,

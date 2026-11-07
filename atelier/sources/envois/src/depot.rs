@@ -205,7 +205,7 @@ pub fn identifiants(declarant: &crate::transport::Identite, arobase: bool) -> Re
             manquants.join(", ")
         ));
     }
-    for (c, v) in [("nom", declarant.nom.as_str()), ("prenom", declarant.prenom.as_str())] {
+    for (c, v) in [("nom", &declarant.nom), ("prenom", &declarant.prenom)].into_iter().filter_map(|(c, v)| v.as_deref().map(|v| (c, v))) {
         if v != ascii_nfkd(v) {
             soucis.push(format!(
                 "Le {} du declarant (« {} ») porte un accent. La DUE MtoM les refuse : corriger config/entreprise.json.",

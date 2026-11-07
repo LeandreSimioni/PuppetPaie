@@ -53,7 +53,7 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
 /// (`droit::pas::EN_RETOUR_DE`) : son taux vaut pour les mois qui suivent.
 fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::PathBuf)]) -> R<()> {
     use serde_json::Value;
-    let nirs: Vec<Value> = ctx.salaries.iter().filter(|(_, s)| !s.nir.texte().is_empty()).map(|(cle, s)| json!([cle, s.nir.texte()])).collect();
+    let nirs: Vec<Value> = ctx.salaries.iter().filter_map(|(cle, s)| s.nir.portee().map(|nir| json!([cle, nir]))).collect();
     let journal = envois::journal::lu(&ctx.racine).map_err(|m| socle::echec::erreur("ValueError", m))?;
     let texte = |v: Option<&Value>| v.filter(|x| vrai(x)).map(documents::valeur::valeur_en_texte).unwrap_or_default();
     let mois_declare = |retour: &Value| -> Option<String> {
@@ -90,7 +90,11 @@ fn appliquer_taux_pas(ctx: &Contexte, crm: &[(serde_json::Value, std::path::Path
 fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std::path::PathBuf)]) -> R<Vec<String>> {
     use std::collections::BTreeMap;
     let mut a_faire = Vec::new();
-    let (siren, nic) = (ctx.entreprise.siren.texte().to_string(), ctx.entreprise.nic.texte().to_string());
+    let (siren, nic) = (ctx.entreprise.siren.portee(), ctx.entreprise.nic.portee());
+    let la_fiche = match (siren, nic) {
+        (Some(s), Some(n)) => format!("qui n'est pas celui de la fiche Entreprise ({}{})", s, n),
+        _ => "et la fiche Entreprise ne dit pas son SIREN et son NIC".to_string(),
+    };
     for (retour, chemin) in notifications {
         let le = envois::releve_retours::date_publication(retour);
         let le_iso = socle::date::Jour::lire(&le).map(|j| j.iso()).unwrap_or_default();
@@ -106,10 +110,10 @@ fn appliquer_taux_atmp(ctx: &Contexte, notifications: &[(serde_json::Value, std:
         };
         let mut par_annee: BTreeMap<i32, Vec<envois::retours::TauxAtmpNotifie>> = BTreeMap::new();
         for t in lus {
-            if t.siren != siren || t.nic != nic {
+            if Some(t.siren.as_str()) != siren || Some(t.nic.as_str()) != nic {
                 a_faire.push(format!(
-                    "{} : le taux {} (code risque {}) est celui de l'établissement {}{}, qui n'est pas celui de la fiche Entreprise ({}{}). Rien n'est posé.",
-                    source, t.taux, t.code_risque, t.siren, t.nic, siren, nic
+                    "{} : le taux {} (code risque {}) est celui de l'établissement {}{}, {}. Rien n'est posé.",
+                    source, t.taux, t.code_risque, t.siren, t.nic, la_fiche
                 ));
                 continue;
             }

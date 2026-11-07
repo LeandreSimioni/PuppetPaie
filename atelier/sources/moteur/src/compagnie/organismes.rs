@@ -154,7 +154,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
         attendus(ctx).map_err(plain)?.iter().filter(|s| se_montre(ctx, s) && s.couvre(&periode)).map(|s| ligne(s, &saisi)).collect();
     let a_saisir = lignes.iter().any(|l| l.libelle.is_none() || l.organisme.is_none());
     Ok(json!({
-        "idcc": ctx.entreprise.idcc.texte().trim(),
+        "idcc": ctx.entreprise.idcc.portee().map(str::trim),
         "a_saisir": a_saisir,
         "mois": periode.0.mois_civil().to_string(),
         "contrats": lignes,

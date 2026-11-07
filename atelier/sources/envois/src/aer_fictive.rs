@@ -192,6 +192,12 @@ impl Champs {
             self.0.push(json!({"nom": nom, "page": page, "rect": r, "valeur": v, "lecture_seule": true, "taille": taille, "alignement": alignement}));
         }
     }
+    /// Une case de la fiche, quand elle est dite.
+    fn imprime_dite(&mut self, page: usize, nom: &str, r: [f64; 4], v: Option<&str>, taille: f64, alignement: &str) {
+        if let Some(v) = v {
+            self.imprime(page, nom, r, v, taille, alignement);
+        }
+    }
     /// A remplir par l'employeur (le cadre 5).
     fn vide(&mut self, nom: &str, r: [f64; 4]) {
         self.0.push(json!({"nom": nom, "page": 3, "rect": r, "taille": 9}));
@@ -209,12 +215,9 @@ fn quantite(d: Decimal) -> String {
 
 /// Le PDF d'une attestation : le salarie `ind` (et ce que la DSN dit de plus, `plus`), ses periodes (cinq au plus),
 /// l'emploi et le motif de rupture de son contrat, l'employeur `ent`, edite le `edite_le`.
-fn attestation(ent: &droit::fiche::ChampsEntreprise, d: &DsnLue, ind: &IndividuDeclare, periodes: &[&Periode], emploi: &str, motif: &str, idcc: &str, edite_le: Jour, remplace: Option<&str>) -> Resultat<Vec<u8>> {
+fn attestation(ent: &droit::fiche::ChampsEntreprise, d: &DsnLue, ind: &IndividuDeclare, periodes: &[&Periode], emploi: &str, motif: &str, idcc: Option<&str>, edite_le: Jour, remplace: Option<&str>) -> Resultat<Vec<u8>> {
     if periodes.is_empty() || periodes.len() > COLONNES {
         return Err(format!("une attestation porte de 1 a {} periodes ({} donnees)", COLONNES, periodes.len()));
-    }
-    fn champ<T: AsRef<str>>(c: &Option<T>) -> String {
-        c.texte().to_string()
     }
     let premier_contrat = d.contrats_de(&ind.nir).find(|c| cinema_spectacle(c));
     let (nom, prenoms) = (t(&ind.nom), t(&ind.prenom));
@@ -275,19 +278,20 @@ fn attestation(ent: &droit::fiche::ChampsEntreprise, d: &DsnLue, ind: &IndividuD
 
     cadre(&mut p1, 315.0, "1", "EMPLOYEUR");
     etiquette(&mut p1, 30.0, 343.0, "N° SIRET");
-    f.imprime(1, "EMP_SIRET", [75.0, 334.0, 253.0, 346.0], &champ(&ent.siret), 8.5, "gauche");
+    f.imprime_dite(1, "EMP_SIRET", [75.0, 334.0, 253.0, 346.0], ent.siret.portee(), 8.5, "gauche");
     etiquette(&mut p1, 300.0, 343.0, "Code APE/NAF");
-    f.imprime(1, "EMP_APE", [368.0, 333.0, 432.0, 345.0], &champ(&ent.naf), 8.5, "gauche");
+    f.imprime_dite(1, "EMP_APE", [368.0, 333.0, 432.0, 345.0], ent.naf.portee(), 8.5, "gauche");
     etiquette(&mut p1, 470.0, 343.0, "N° IDCC");
-    f.imprime(1, "EMP_IDCC", [515.0, 333.0, 566.0, 345.0], &champ(&ent.idcc), 8.5, "gauche");
+    f.imprime_dite(1, "EMP_IDCC", [515.0, 333.0, 566.0, 345.0], idcc, 8.5, "gauche");
     etiquette(&mut p1, 30.0, 362.0, "Nom ou raison sociale");
-    f.imprime(1, "ENSEIGNE", [146.0, 352.0, 567.0, 365.0], &champ(&ent.raison_sociale), 8.5, "gauche");
+    f.imprime_dite(1, "ENSEIGNE", [146.0, 352.0, 567.0, 365.0], ent.raison_sociale.portee(), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 380.0, "Adresse");
-    f.imprime(1, "ADR_EMP_CONCATENEE", [74.0, 370.0, 567.0, 383.0], &droit::fiche::avec_complement(champ(&ent.adresse.en_texte()), ent.complement_adresse.remplie()), 8.5, "gauche");
+    let adresse = ent.adresse.portee().map(|a| droit::fiche::avec_complement(a.to_string(), ent.complement_adresse.remplie()));
+    f.imprime_dite(1, "ADR_EMP_CONCATENEE", [74.0, 370.0, 567.0, 383.0], adresse.as_deref(), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 397.0, "Code postal");
-    f.imprime(1, "ADR_EMP_CP", [90.0, 388.0, 155.0, 399.0], &champ(&ent.code_postal), 8.5, "gauche");
+    f.imprime_dite(1, "ADR_EMP_CP", [90.0, 388.0, 155.0, 399.0], ent.code_postal.portee(), 8.5, "gauche");
     etiquette(&mut p1, 165.0, 397.0, "Commune");
-    f.imprime(1, "ADR_EMP_LOCALITE", [224.0, 387.0, 567.0, 399.0], &champ(&ent.commune), 8.5, "gauche");
+    f.imprime_dite(1, "ADR_EMP_LOCALITE", [224.0, 387.0, 567.0, 399.0], ent.commune.portee(), 8.5, "gauche");
     etiquette(&mut p1, 30.0, 425.0, "Êtes-vous titulaire d'une licence spectacle ou d'un n° de récépissé de déclaration d'entrepreneur");
     etiquette(&mut p1, 30.0, 435.0, "de spectacles vivants valant licence ?");
     let licence = t(&premier_contrat.and_then(|c| c.licence.clone())).to_string();
@@ -361,7 +365,7 @@ fn attestation(ent: &droit::fiche::ChampsEntreprise, d: &DsnLue, ind: &IndividuD
             f.imprime(2, &format!("CON_NUM_DT_FIN_{}", n), r(125.0, 140.0), fin, 8.5, "centre");
             f.imprime(2, &format!("CON_OBJET_{}", n), r(145.0, 172.0), objet, 8.0, "centre");
             let idcc_contrat = t(&d.contrats_de(&ind.nir).find(|c| c.numero.as_deref() == Some(numero.as_str())).and_then(|c| c.idcc.clone())).to_string();
-            if !idcc_contrat.is_empty() && idcc_contrat != idcc {
+            if !idcc_contrat.is_empty() && Some(idcc_contrat.as_str()) != idcc {
                 f.imprime(2, &format!("CON_IDCC_{}", n), r(184.0, 206.0), &idcc_contrat, 8.5, "centre");
             }
         }
@@ -495,8 +499,8 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
     let remplace = matches!(t(&d.type_declaration), "03" | "05").then_some(ordre.as_str());
     let lignes = crate::journal::lu(&ctx.racine).map(|j| j.lignes)?;
     let ent = &ctx.entreprise;
-    let siret = ent.siret.texte().to_string();
-    let idcc = ent.idcc.texte().to_string();
+    let siret = ent.siret.ecrite("siret")?;
+    let idcc = ent.idcc.portee();
     let mut pdfs: Vec<(String, Vec<u8>)> = Vec::new();
     for ind in &d.individus {
         let mut finis: Vec<&ContratDeclare> = d.contrats_de(&ind.nir).filter(|c| cinema_spectacle(c) && c.fin_declaree.is_some()).collect();
@@ -512,9 +516,9 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
         let motif = finis.last().map(|c| t(&c.motif_fin)).unwrap_or_default().to_string();
         let refs: Vec<&Periode> = toutes.iter().collect();
         for (rang, lot) in refs.chunks(COLONNES).enumerate() {
-            let pdf = attestation(ent, &d, ind, lot, &emploi, &motif, &idcc, edite_le, remplace)?;
+            let pdf = attestation(ent, &d, ind, lot, &emploi, &motif, idcc, edite_le, remplace)?;
             let id = 900_001 + pdfs.len();
-            pdfs.push((nom_dans_l_archive(&siret, mois, edite_le, ind, rang + 1, id), pdf));
+            pdfs.push((nom_dans_l_archive(siret, mois, edite_le, ind, rang + 1, id), pdf));
         }
     }
     if pdfs.is_empty() {

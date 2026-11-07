@@ -1584,7 +1584,10 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &SaisieCarte, data: &VueD
     let salarie = SalarieVu {
         cle: s.id.clone(),
         nom: exige(&s.nom.en_texte(), "nom")?,
-        prenom: if s.prenom_affichage.texte().is_empty() { exige(&s.prenom.en_texte(), "prenom")? } else { s.prenom_affichage.clone() },
+        prenom: match s.prenom_affichage {
+            Some(_) => s.prenom_affichage.clone(),
+            None => exige(&s.prenom.en_texte(), "prenom")?,
+        },
     };
     let spectacle = match &p.spectacle {
         Some(s) if s.titre.is_none() => return Err(erreur("KeyError", socle::fichiers::absent("titre"))),
@@ -1758,14 +1761,12 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
         // (CCH-11) -- donc rien a verifier de ce cote.
         if let Some(sp) = p.spectacle.as_ref().filter(|s| s.actif.dite() == Some(&false)) {
-            if sp.titre.is_none() {
-                return Err(erreur("KeyError", socle::fichiers::absent("titre")));
-            }
-            out.push(format!(
-                "Le spectacle « {} » (objet {}) est archive : pour le jouer a nouveau, le reactiver (Configuration › Spectacles).",
-                sp.titre.texte(),
-                sp.numero_objet.texte()
-            ));
+            let titre = sp.titre.ecrite("titre").map_err(|m| erreur("KeyError", m))?;
+            let lequel = match sp.numero_objet.portee() {
+                Some(objet) => format!("« {} » (objet {})", titre, objet),
+                None => format!("« {} »", titre),
+            };
+            out.push(format!("Le spectacle {} est archive : pour le jouer a nouveau, le reactiver (Configuration › Spectacles).", lequel));
         }
     }
     Ok(out)
@@ -1959,12 +1960,23 @@ fn dire_les_tarifs(ctx: &Contexte, mois: &str, p: &mut VuePaie) -> R<()> {
     if dits.is_empty() {
         return Ok(());
     }
-    let idcc = ctx.entreprise.idcc.texte().to_string();
-    let qui = format!("{} {}", p.salarie.nom.texte(), p.salarie.prenom.texte()).trim().to_string();
+    let idcc = ctx.entreprise.idcc.ecrite("idcc")?;
     let quoi = dits.join(", ");
-    let quoi = if qui.is_empty() { quoi[..1].to_uppercase() + &quoi[1..] } else { format!("{} : {}", qui, quoi) };
+    let quoi = match nom_prenom(p.salarie.nom.portee(), p.salarie.prenom.portee()) {
+        Some(qui) => format!("{} : {}", qui, quoi),
+        None => quoi[..1].to_uppercase() + &quoi[1..],
+    };
     p.informations.push(format!("{}, le tarif de la convention collective {}.", quoi, idcc));
     Ok(())
+}
+
+/// « Nom Prenom », de ce que la fiche dit ; rien quand elle ne dit ni l'un ni l'autre.
+fn nom_prenom(nom: Option<&str>, prenom: Option<&str>) -> Option<String> {
+    match (nom, prenom) {
+        (Some(n), Some(p)) => Some(format!("{} {}", n, p)),
+        (Some(un), None) | (None, Some(un)) => Some(un.to_string()),
+        (None, None) => None,
+    }
 }
 
 /// UN CONTRAT COMMENCE AVANT LE LOGICIEL, SUR SA CARTE PAS ENCORE VALIDEE (`engagement::stock::commence_avant_le_logiciel`) :
@@ -1978,7 +1990,7 @@ fn dire_l_entree(ctx: &Contexte, mois: &str, brut: &SaisieCarte, v: &mut VuePaie
     if brut.est_validee() || !engagement::stock::commence_avant_le_logiciel(&ctx.racine, &debut, mois).map_err(Echec::from)? {
         return Ok(());
     }
-    let qui = format!("{} {}", v.salarie.nom.texte(), v.salarie.prenom.texte()).trim().to_string();
+    let qui = nom_prenom(v.salarie.nom.as_deref(), v.salarie.prenom.as_deref()).unwrap_or_else(|| v.salarie.cle.to_string());
     let le = v.debut.jj_mm_aaaa();
     let numero = v.numero_contrat.as_ref().map_or("", |n| n.as_str());
     let phrase = if brut.numero_dit().is_some() {

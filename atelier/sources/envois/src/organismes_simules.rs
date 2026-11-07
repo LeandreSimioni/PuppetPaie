@@ -314,7 +314,7 @@ fn crm_pas(ctx: &Contexte, memoire: &Value, l: &Ligne, d: &DsnLue, flux: &str, p
     let mut vus = BTreeSet::new();
     for ind in d.individus.iter().filter(|i| !i.nir.is_empty()) {
         let (nir, matricule) = (ind.nir.clone(), ind.code_salarie.clone().unwrap_or_default());
-        let Some((cle, _)) = ctx.salaries.iter().find(|(_, s)| s.nir.texte() == nir) else { continue };
+        let Some((cle, _)) = ctx.salaries.iter().find(|(_, s)| s.nir.portee() == Some(nir.as_str())) else { continue };
         if !vus.insert(nir.clone()) {
             continue;
         }

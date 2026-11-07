@@ -85,8 +85,9 @@ pub fn dpae(debut: &Jour) -> Echeance {
 }
 
 /// La remise du contrat a duree determinee d'un engagement qui commence le `debut` : deux jours ouvrables apres
-/// l'embauche (L. 1242-13), ou plus tot si la couche de la convention `idcc` le dit pour ce metier (`code_emploi`).
-pub fn remise_du_contrat(debut: &Jour, idcc: Option<&str>, code_emploi: &str, chomes: Option<&str>) -> Resultat<Echeance> {
+/// l'embauche (L. 1242-13), ou plus tot si la couche de la convention `idcc` le dit pour ce metier (`code_emploi`, quand
+/// l'engagement ou la fiche le dit).
+pub fn remise_du_contrat(debut: &Jour, idcc: Option<&str>, code_emploi: Option<&str>, chomes: Option<&str>) -> Resultat<Echeance> {
     let loi = jour_ouvrable(debut, 2, chomes)?;
     let mut e = Echeance {
         jour: loi,
@@ -95,8 +96,8 @@ pub fn remise_du_contrat(debut: &Jour, idcc: Option<&str>, code_emploi: &str, ch
         source: "Code du travail, art. L. 1242-13 (atelier/reference/sources/code-du-travail/xml/L1242-13.xml)".into(),
     };
     let Some(r) = crate::clauses::releve(idcc)?.and_then(|c| c.remise_du_contrat) else { return Ok(e) };
-    let code = code_emploi.trim().to_uppercase();
-    if r.metiers.iter().any(|m| *m == code) {
+    let code = code_emploi.map(|c| c.trim().to_uppercase());
+    if r.metiers.iter().any(|m| Some(m.as_str()) == code.as_deref()) {
         let jour = jour_ouvrable(debut, -r.jours_ouvrables_avant, chomes)?;
         if jour < e.jour {
             e = Echeance { jour, mots: "au plus tard le", heure: "", source: format!("{}, art. {}", crate::clauses::nom(idcc), r.article) };

@@ -641,12 +641,11 @@ fn plain(m: impl Into<String>) -> Echec {
 
 /// Le nom d'un etablissement dans une case : sa commune (celle de la fiche entreprise pour le principal), sinon son NIC.
 fn nom_de_l_etablissement(ent: &droit::fiche::ChampsEntreprise, nic: &str) -> String {
-    let communes = if Some(nic) == ent.nic_principal() {
-        Some([ent.commune_affichage.texte(), ent.commune.texte()])
+    let commune = if Some(nic) == ent.nic_principal() {
+        ent.commune_affichage.remplie().or(ent.commune.portee()).map(|c| c.trim().to_string())
     } else {
-        ent.secondaires().into_iter().find(|e| e.nic.texte() == nic).map(|e| [e.commune_affichage.texte(), e.commune.texte()])
+        ent.secondaires().into_iter().find(|e| e.nic.portee() == Some(nic)).and_then(|e| e.commune_affichage.remplie().or(e.commune.portee()).map(|c| c.trim().to_string()))
     };
-    let commune = communes.and_then(|c| c.into_iter().map(str::trim).find(|c| !c.is_empty()).map(String::from));
     commune.unwrap_or_else(|| format!("NIC {}", nic))
 }
 
@@ -1430,9 +1429,9 @@ impl<'a> Moteur<'a> {
             let echeances = if self.ecrit {
                 None
             } else {
-                let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.code_emploi_ft.texte().to_string());
+                let code_emploi = p.engagement.code_emploi_ft.as_deref().or(sal.code_emploi_ft.portee());
                 let ent = &self.ctx.entreprise;
-                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, ent.idcc.portee(), &code_emploi, ent.feries_chomes()).map_err(plain)?;
+                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, ent.idcc.portee(), code_emploi, ent.feries_chomes()).map_err(plain)?;
                 Some(Echeances { dpae: droit::echeances::dpae(&p.engagement.debut), contrat: remise })
             };
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
@@ -2735,10 +2734,12 @@ fn lire(m: &mut Moteur, nom: Route, charge: &Value) -> R<Value> {
 /// ne vaut plus.
 fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &droit::fiche::ChampsSalarie) -> String {
     let r = |t: &str| socle::fichiers::repr(t);
+    // Une case vide s'ecrit `None`, comme la fin et le spectacle.
+    let o = |t: Option<&str>| t.map_or("None".to_string(), r);
     // La derniere place est celle d'une case `nationalite` que la fiche n'a pas : vide, comme l'empreinte l'a toujours ecrite.
     let ident: Vec<String> = vec![
-        r(sal.nir.texte()), r(sal.nom.texte()), r(sal.prenom.texte()), r(&sal.date_naissance.dite().map(|j| j.iso()).unwrap_or_default()),
-        r(sal.lieu_naissance.texte()), r(sal.departement_naissance.texte()), r(sal.sexe.dite().map_or("", |s| s.as_str())), r(""),
+        o(sal.nir.portee()), o(sal.nom.portee()), o(sal.prenom.portee()), o(sal.date_naissance.dite().map(|j| j.iso()).as_deref()),
+        o(sal.lieu_naissance.portee()), o(sal.departement_naissance.portee()), o(sal.sexe.code()), r(""),
     ];
     let fin = e.fin.map_or("None".to_string(), |f| f.iso());
     let spectacle = e.spectacle.as_ref().map(ToString::to_string).unwrap_or_else(|| "None".to_string());

@@ -38,15 +38,6 @@ pub trait Lue<T> {
         self.dite().ok_or_else(|| socle::fichiers::absent(cle))
     }
 
-    /// Le texte dit, `""` sinon : ce qu'une page, un message ou une comparaison montre d'une case vide.
-    #[deprecated]
-    fn texte<'a>(&'a self) -> &'a str
-    where
-        T: AsRef<str> + 'a,
-    {
-        self.dite().map_or("", AsRef::as_ref)
-    }
-
     /// La meme case, son texte en `String` : pour une table de cases qui les ecrit toutes de meme.
     fn en_texte(&self) -> Option<String>
     where

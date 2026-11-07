@@ -558,15 +558,15 @@ fn prime_d_anciennete() {
 fn la_remise_du_contrat_suit_l1242_13_et_la_1285_pour_ses_musiciens() {
     let j = |s: &str| Jour::lire(s).unwrap();
     // Un vendredi : le samedi, puis le lundi (le dimanche n'est pas ouvrable).
-    let loi = droit::echeances::remise_du_contrat(&j("2026-11-20"), Some("3090"), "ART170", None).unwrap();
+    let loi = droit::echeances::remise_du_contrat(&j("2026-11-20"), Some("3090"), Some("ART170"), None).unwrap();
     assert_eq!(loi.jour, j("2026-11-23"));
     assert!(loi.source.contains("L. 1242-13"), "{}", loi.source);
     // Le meme musicien sous la 1285 : quinze jours ouvrables avant le jeudi 10/12, sans compter les dimanches.
-    let musicien = droit::echeances::remise_du_contrat(&j("2026-12-10"), Some("1285"), "ART170", None).unwrap();
+    let musicien = droit::echeances::remise_du_contrat(&j("2026-12-10"), Some("1285"), Some("ART170"), None).unwrap();
     assert_eq!(musicien.jour, j("2026-11-23"));
     assert!(musicien.source.contains("1285") && musicien.source.contains("XV"), "{}", musicien.source);
     // Un metier hors du titre XV, sous la 1285 : la loi seule.
-    let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), Some("1285"), "ZZZ999", None).unwrap();
+    let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), Some("1285"), Some("ZZZ999"), None).unwrap();
     assert_eq!(autre.jour, j("2026-12-12"));
     assert!(autre.source.contains("L. 1242-13"), "{}", autre.source);
 }

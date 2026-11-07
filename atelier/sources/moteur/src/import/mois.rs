@@ -133,14 +133,15 @@ fn nom_du_salarie(ctx: &Contexte, cle: &str) -> Option<String> {
     ctx.salaries.get(cle).and_then(|s| s.nomme())
 }
 
-/// La fiche du spectacle de ce numero d'objet : `(cle, titre)` ; le titre est vide s'il est « A COMPLETER ».
-fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
+/// La fiche du spectacle de ce numero d'objet : `(cle, titre)` ; le titre est vide quand la fiche ne le dit pas, ou
+/// qu'il est « A COMPLETER ».
+fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, Option<String>)> {
     if numero.is_empty() {
         return None;
     }
-    ctx.spectacles.iter().find(|(_, s)| s.numero_objet.texte().trim().eq_ignore_ascii_case(numero)).map(|(k, s)| {
-        let t = s.titre.texte().trim().to_string();
-        (k.to_string(), if t.eq_ignore_ascii_case(A_COMPLETER) { String::new() } else { t })
+    ctx.spectacles.iter().find(|(_, s)| s.numero_objet.portee().is_some_and(|n| n.trim().eq_ignore_ascii_case(numero))).map(|(k, s)| {
+        let t = s.titre.portee().map(str::trim).filter(|t| !t.eq_ignore_ascii_case(A_COMPLETER)).map(str::to_string);
+        (k.to_string(), t)
     })
 }
 
@@ -219,7 +220,7 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&PaieLue>, contrat: Option<&Co
     let spectacle = spectacle_de(ctx, &numero);
     let titre_bulletin = p.and_then(|p| p.spectacle.clone()).and_then(plein).unwrap_or_default();
     let titre = match &spectacle {
-        Some((_, t)) if !t.is_empty() => t.clone(),
+        Some((_, Some(t))) => t.clone(),
         _ => titre_bulletin.clone(),
     };
     let nom = nom_du_salarie(ctx, &salarie);

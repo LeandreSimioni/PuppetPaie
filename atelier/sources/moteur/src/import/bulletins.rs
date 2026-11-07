@@ -338,7 +338,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     // 3. La compagnie : son Siren (`importation::siren_de_reference`, le meme pour l'export) -- la fiche, sinon les DSN
     // si elles n'en portent qu'un, sinon les bulletins et les AEM s'ils n'en portent qu'un. Une DSN, une AEM ou un
     // bulletin d'une autre entreprise n'est pas repris ; d'une DSN ou d'une AEM ecartee, RIEN n'est lu.
-    let siren_fiche = Some(ctx.entreprise.siren.texte().trim().to_string()).filter(|s| !s.is_empty());
+    let siren_fiche = ctx.entreprise.siren.portee().map(|s| s.trim().to_string());
     let sirens_dsn: std::collections::BTreeSet<String> =
         pieces.iter().filter(|(_, aem, _)| !aem).flat_map(|(_, _, e)| e.sirens.iter().cloned()).collect();
     let mut sirens_autres: std::collections::BTreeSet<String> =
@@ -551,7 +551,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             // deja garde la valeur de la DSN (`completer::ajouter`).
             let champs = completer::champs_a_completer("salarie", &fiche.champs, &fiche_salarie(nir, &siens, ctx.entreprise.idcc.portee())?)?;
             let entree = fiche_existante(&mut reponse.salaries, "salarie", cle, || {
-                format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&socle::ecriture::en_valeur(&fiche.prenom)).filter(|p| !p.is_null())))
+                libelle_salarie(fiche)
             });
             entree.ajouter_ecarts(ec);
             noter_par_champ(entree, &champs, &siens, &chemin_de);
@@ -594,7 +594,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
             let fiche = &ctx.salaries[cle.as_str()];
             let champs = completer::champs_a_completer("salarie", &fiche.champs, &proposees)?;
             let entree = fiche_existante(&mut reponse.salaries, "salarie", cle, || {
-                format!("{} {}", fiche.nom.texte(), ri::titre_de(Some(&socle::ecriture::en_valeur(&fiche.prenom)).filter(|p| !p.is_null())))
+                libelle_salarie(fiche)
             });
             entree.noter(&champs, &origine_cert(dernier));
             completer::ajouter(&mut ap.a_completer, "salarie", Some(cle), &champs);
@@ -649,8 +649,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
         if siren_fiche.is_some() {
             let mut ec = Vec::new();
             if let Some(compte) = &dernier.c.compte {
-                let a = documents::conges_spectacles::forme_adherent(ctx.entreprise.congesspectacles_adherent.texte());
-                if !a.is_empty() && &a != compte {
+                let a = ctx.entreprise.congesspectacles_adherent.portee().map(documents::conges_spectacles::forme_adherent);
+                if let Some(a) = a.filter(|a| a != compte) {
                     let (fichier, page, lu) = (chemin_cert(dernier), dernier.c.page, compte.clone());
                     let par = if dernier.aem.is_some() { DitPar::Aem { aem: lu, fichier, page } } else { DitPar::Certificat { certificat: lu, fichier, page } };
                     ec.push(Ecart::new(documents::conges_spectacles::CLE_ADHERENT, Value::String(a), par));
@@ -680,7 +680,9 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path, deposes: &HashM
     // 7. Les spectacles, par numero d'objet, avec leur titre quand le bulletin le donne.
     let mut connus: HashMap<String, droit::contexte::IdSpectacle> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
-        connus.insert(sp.numero_objet.texte().to_uppercase(), cle.clone());
+        if let Some(numero) = sp.numero_objet.portee() {
+            connus.insert(numero.to_uppercase(), cle.clone());
+        }
     }
     let mut par_objet: BTreeMap<String, Vec<usize>> = BTreeMap::new();
     for (k, l) in lus.iter().enumerate() {
@@ -1406,11 +1408,17 @@ fn fiche_existante<'a>(liste: &'a mut Vec<FicheImportee>, nom: &'static str, cle
     &mut liste[rang]
 }
 
-/// La fiche Entreprise existante de la reponse, ajoutee si elle ne la porte pas encore.
+/// La fiche Entreprise existante de la reponse, ajoutee si elle ne la porte pas encore, sous sa raison sociale.
 fn entreprise_existante<'a>(reponse: &'a mut Importation, ctx: &Contexte) -> &'a mut FicheImportee {
     reponse.entreprise.get_or_insert_with(|| {
-        FicheImportee::new("entreprise", None, ctx.entreprise.raison_sociale.texte(), EtatFiche::Existante, Vec::new(), Vec::new(), &Map::new())
+        let libelle = ctx.entreprise.raison_sociale.portee().unwrap_or("?");
+        FicheImportee::new("entreprise", None, libelle, EtatFiche::Existante, Vec::new(), Vec::new(), &Map::new())
     })
+}
+
+/// Le libelle d'une fiche salarie existante : son nom, puis son prenom en capitales initiales, ce que la fiche dit.
+fn libelle_salarie(fiche: &droit::fiche::ChampsSalarie) -> String {
+    [fiche.nom.en_texte(), fiche.prenom.portee().map(declarations::champs::titre)].into_iter().flatten().collect::<Vec<_>>().join(" ")
 }
 
 /// Note dans l'entree d'un salarie ce que ses bulletins completent, chaque champ avec le bulletin le plus recent qui

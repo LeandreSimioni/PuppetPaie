@@ -57,12 +57,6 @@ fn arret_de(a: &Value) -> socle::num::Resultat<engagement::imprevus::ArretSaisi>
     socle::forme::lire(a, engagement::imprevus::ILLISIBLE)
 }
 
-fn prenom_de(sal: &droit::fiche::ChampsSalarie) -> String {
-    match sal.prenom_affichage.texte() {
-        "" => sal.prenom.texte().to_string(),
-        p => p.to_string(),
-    }
-}
 
 fn annee_de(mois: &str) -> R<i64> {
     mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois))))
@@ -187,7 +181,7 @@ fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, le_mois: Mois, nic: &Value) -
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : le rang se compte « au cours du mois courant » (cahier
     // technique DSN, p. 136), toutes declarations du SIREN confondues, d'ou qu'elles soient parties (un autre poste).
     let constitution: String = ctx.aujourdhui.iso().chars().take(7).collect();
-    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, &le_mois.to_string())?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx)?, false, &constitution, &le_mois.to_string())?;
     let dernier = match dernier {
         Some(d) => d.max(vues.ordre),
         // Une mensuelle du mois acceptee en reel que le journal ignore : la suivante la remplace.
@@ -594,9 +588,8 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
     for p in paies {
         if p.engagement.sans_paie() {
             avertissements.push(info(format!(
-                "{} {} : contrat {} en cours, aucun cachet en {} -- la DSN porte le contrat avec un versement a zero.",
-                p.salarie.nom.texte().to_string(),
-                prenom_de(&p.salarie),
+                "{} : contrat {} en cours, aucun cachet en {} -- la DSN porte le contrat avec un versement a zero.",
+                documents::tableaux_export::qui_souple(&p.salarie),
                 p.engagement.numero.as_deref().unwrap_or("None"),
                 socle::mois::Mois::en_clair(mois)
             )));
@@ -843,7 +836,11 @@ fn exiges_des_bulletins<'a>(ent: &droit::fiche::ChampsEntreprise, paies: impl It
             continue;
         }
         spectacles.push(&sp.cle);
-        fiches.push(("spectacle", format!("Spectacles, la fiche de {}", sp.titre.texte()), &sp.champs));
+        let qui = match sp.titre.portee() {
+            Some(titre) => format!("Spectacles, la fiche de {}", titre),
+            None => format!("Spectacles, la fiche {}", sp.cle),
+        };
+        fiches.push(("spectacle", qui, &sp.champs));
     }
     match declarations::champs::refus_des_manques("bulletin", &fiches, &[])? {
         Some(m) => Err(erreur("ErreurOperation", m)),
@@ -945,11 +942,10 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
                 prochain_ce = Some(n + combien);
                 faits.reserves.enregistrer(an, Suite::CertificatCs, n + combien - 1);
                 a_poser.entry(i).or_default().1 = Some((n, n + combien - 1));
-                if ctx.salarie(cle).map_err(valeur)?.nir.texte().trim().is_empty() {
+                if ctx.salarie(cle).map_err(valeur)?.nir.is_none() {
                     faits.avertissements.push(format!(
-                        "{} {} : certificat Conges Spectacles emis SANS numero de securite sociale -- Audiens ne pourra pas le rattacher.",
-                        paies[i].salarie.nom.texte().to_string(),
-                        prenom_de(&paies[i].salarie)
+                        "{} : certificat Conges Spectacles emis SANS numero de securite sociale -- Audiens ne pourra pas le rattacher.",
+                        documents::tableaux_export::qui_souple(&paies[i].salarie)
                     ));
                 }
                 n

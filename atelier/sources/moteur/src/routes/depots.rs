@@ -425,12 +425,12 @@ fn latin1(octets: &[u8]) -> String {
 
 /// Le code Urssaf que la DPAE de cette compagnie porte.
 fn code_urssaf(ent: &droit::fiche::ChampsEntreprise) -> R<String> {
-    let ecrit = ent.code_urssaf.texte().trim();
-    if !ecrit.is_empty() {
-        return Ok(ecrit.to_string());
+    if let Some(ecrit) = ent.code_urssaf.portee() {
+        return Ok(ecrit.trim().to_string());
     }
-    let territoire = declarations::urssaf::base().map_err(plain)?.du_code_postal(ent.code_postal.texte());
-    Ok(if territoire.is_empty() { "117".to_string() } else { territoire })
+    let base = declarations::urssaf::base().map_err(plain)?;
+    let territoire = ent.code_postal.portee().map(|cp| base.du_code_postal(cp)).filter(|t| !t.is_empty());
+    Ok(territoire.unwrap_or_else(|| "117".to_string()))
 }
 
 /// `Embauche` de la DPAE, lue d'une paie sans montants.

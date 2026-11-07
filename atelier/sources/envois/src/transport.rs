@@ -596,15 +596,15 @@ pub fn consulter(base: &str, jeton: Option<&str>, debut: &str, fin: Option<&str>
 /// les dit pas).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Identite {
-    pub siret: String,
-    pub nom: String,
-    pub prenom: String,
+    pub siret: Option<String>,
+    pub nom: Option<String>,
+    pub prenom: Option<String>,
 }
 
 impl Identite {
     /// Ce qui lui manque pour s'authentifier, dit en mots.
     pub fn manquants(&self) -> Vec<&'static str> {
-        [(&self.siret, "le SIRET"), (&self.nom, "le nom"), (&self.prenom, "le prénom")].into_iter().filter(|(c, _)| c.trim().is_empty()).map(|(_, m)| m).collect()
+        [(&self.siret, "le SIRET"), (&self.nom, "le nom"), (&self.prenom, "le prénom")].into_iter().filter(|(c, _)| c.is_none()).map(|(_, m)| m).collect()
     }
 }
 
@@ -612,14 +612,15 @@ impl Identite {
 /// (`declarant`), sinon le SIRET et le contact DSN coupe au premier espace (le nom, puis le prenom).
 pub fn declarant(ent: &droit::fiche::ChampsEntreprise) -> Identite {
     if let Some(d) = ent.declarant.dite().filter(|d| !d.est_vide()) {
-        return Identite { siret: d.siret.texte().to_string(), nom: d.nom.texte().to_string(), prenom: d.prenom.texte().to_string() };
+        return Identite { siret: d.siret.en_texte(), nom: d.nom.en_texte(), prenom: d.prenom.en_texte() };
     }
-    let brut = ent.declarant_dsn.dite().map_or("", |d| d.nom_prenom.texte());
-    let morceaux = mots(socle::texte::strip(brut));
-    let mut i = Identite { siret: ent.siret.texte().to_string(), ..Identite::default() };
-    if morceaux.len() >= 2 {
-        i.nom = morceaux[0].to_string();
-        i.prenom = morceaux[1..].join(" ");
+    let mut i = Identite { siret: ent.siret.en_texte(), nom: None, prenom: None };
+    if let Some(brut) = ent.declarant_dsn.dite().and_then(|d| d.nom_prenom.portee()) {
+        let morceaux = mots(socle::texte::strip(brut));
+        if morceaux.len() >= 2 {
+            i.nom = Some(morceaux[0].to_string());
+            i.prenom = Some(morceaux[1..].join(" "));
+        }
     }
     i
 }
@@ -661,23 +662,22 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
         }
     };
     let decl = a.declarant;
-    let manquants = decl.manquants();
-    if !manquants.is_empty() {
+    let (Some(siret), Some(nom), Some(prenom)) = (&decl.siret, &decl.nom, &decl.prenom) else {
         return Err(echec(
             "ErreurApi",
             format!(
                 "Le compte qui se connecte est incomplet, il manque {} : ceux du compte ouvert pour ce service, sans accent. Rien n'est parti.",
-                manquants.join(", ")
+                decl.manquants().join(", ")
             ),
             Some(0),
         ));
-    }
+    };
     let service = a.service.filter(|s| !s.is_empty());
     let corps = format!(
         "<identifiants><siret>{}</siret><nom>{}</nom><prenom>{}</prenom><motdepasse>{}</motdepasse>{}</identifiants>",
-        decl.siret,
-        decl.nom,
-        decl.prenom,
+        siret,
+        nom,
+        prenom,
         echapper(mdp),
         service.map(|s| format!("<service>{}</service>", s)).unwrap_or_default()
     );
