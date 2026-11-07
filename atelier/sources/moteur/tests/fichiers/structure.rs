@@ -752,8 +752,9 @@ fn blanchi(t: &str, textes: bool) -> String {
 
 /// UNE COUCHE FERMEE NE LIT QUE DES FORMES, ENTIERES (atelier/AGENTS.md, « Chaque forme est declaree une fois, en
 /// Rust ») : aucune de ses sources (tests a part, commentaires blanchis) n'a
-/// 1. de JSON brut hors du bord (`BORD`) : ni `Value`, ni `json!`, ni `serde_json::`, ni `Map<`, ni lecture par cle
-///    (`.get("…")`, `x["…"]`) ;
+/// 1. de JSON brut : la couche (code et tests) n'a pas `serde_json` dans son `Cargo.toml`, le compilateur refuse qu'elle
+///    en touche ; la porte (le socle), qui l'a, n'en touche que dans le bord (`BORD`) : ailleurs, ni `json!`, ni
+///    `serde_json::`, ni `Map<`, ni lecture par cle (`.get("…")`, `x["…"]`) ;
 /// 2. de cle libre : aucune cle en `_` nommee (`rename = "_…"`, `"_cle"`, `"_{}"`, une cle lue ou ecrite), aucun
 ///    tri par le `_` de tete (`starts_with('_')`, `strip_prefix("_")`, `trim_start_matches('_')`) ;
 /// 3. de repli sur une donnee, ici et dans les couches de `SANS_REPLI_NI_ERREUR_AVALEE` : ni `#[serde(default…)]`, ni
@@ -767,12 +768,20 @@ fn blanchi(t: &str, textes: bool) -> String {
 fn une_couche_fermee_ne_lit_que_des_formes() {
     const ORDRE: [&str; 7] = ["socle", "droit", "engagement", "documents", "declarations", "envois", "moteur"];
     assert_eq!(COUCHES_FERMEES, ORDRE[..COUCHES_FERMEES.len()], "les couches se ferment de bas en haut, dans l'ordre des crates");
-    let json = regex::Regex::new(r#"\bValue\b|\bjson!|\bserde_json::|\bMap\s*<|\.get\("|[A-Za-z0-9_)\]]\s*\[""#).unwrap();
+    // La porte (le socle) a la bibliotheque du JSON : hors du bord, son JSON brut se lit au texte. Toute autre couche
+    // fermee ne l'a pas, ni pour son code ni pour ses tests : le compilateur refuse qu'elle en touche.
+    let json = regex::Regex::new(r#"\bjson!|\bserde_json::|\bMap\s*<|\.get\("|[A-Za-z0-9_)\]]\s*\[""#).unwrap();
+    let mut fautes = Vec::new();
+    for couche in COUCHES_FERMEES.iter().filter(|c| **c != "socle") {
+        let cargo = std::fs::read_to_string(espace().join(couche).join("Cargo.toml")).unwrap();
+        if cargo.contains("serde_json") {
+            fautes.push(format!("{}/Cargo.toml prend serde_json : une couche fermée ne lit que des formes, par `socle::forme` (ses tests aussi : un texte lu par la porte)", couche));
+        }
+    }
     let repli = regex::Regex::new(r"\b(?:unwrap_or(?:_default|_else)?|map_or(?:_else)?)\b|\bserde\s*\([^\]]*\bdefault\b").unwrap();
     // Le repli en `match` : un bras `None =>` qui fabrique une valeur (texte vide, nombre, booleen, vecteur vide, defaut).
     let bras_vide = regex::Regex::new(r#"\bNone\s*=>\s*\{?\s*(?:String::new\(\)|""|-?\d[\w.]*|false\b|true\b|Vec::new\(\)|vec!\s*\[\s*\]|Default::default\(\)|[A-Za-z_][\w:]*::default\(\)|Decimal::\w+|[A-Za-z_][\w:]*::(?:new\(\)|ZERO\b))"#).unwrap();
     let tri = regex::Regex::new(r#"\b(?:starts_with|strip_prefix|trim_start_matches)\s*\(\s*(?:'_'|"_")"#).unwrap();
-    let mut fautes = Vec::new();
     for couche in COUCHES_FERMEES {
         let src = espace().join(couche).join("src");
         for f in sources(&src) {
@@ -780,7 +789,7 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
             let texte = std::fs::read_to_string(&f).unwrap();
             let ou = |n: usize| format!("{}:{}", f.display(), n);
             for (n, l) in code_seul(&texte).lines().enumerate() {
-                if !BORD.contains(&module.as_str()) {
+                if couche == "socle" && !BORD.contains(&module.as_str()) {
                     if let Some(m) = json.find(l) {
                         fautes.push(format!("{} : `{}`, du JSON brut hors du bord : déclare la forme (`serde`, `deny_unknown_fields`) ; la lecture passe par `socle::forme`, l'écriture par `socle::ecriture`", ou(n + 1), m.as_str().trim()));
                     }

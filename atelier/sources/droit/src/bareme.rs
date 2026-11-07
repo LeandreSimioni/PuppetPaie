@@ -2057,7 +2057,11 @@ pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Pile>, avant: (i32, &TauxAtm
         )));
     }
     let r_avant = socle_avant.and_then(|s| risques_de(s).into_iter().find(|r| r.code == code));
-    let nom = r_avant.as_ref().and_then(|r| r.code_arrete.clone()).unwrap_or_else(|| code.clone());
+    // Le risque tel que la phrase le nomme : sa forme de l'arrete, sinon son code.
+    let nom = match r_avant.as_ref().and_then(|r| r.code_arrete.clone()) {
+        Some(n) => n,
+        None => code.clone(),
+    };
     let valeur_avant = match &pose.valeur {
         Some(ValeurAtmp::Seule(n)) => Some(n.0.round_dp(2)),
         _ => None,
@@ -2070,11 +2074,10 @@ pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Pile>, avant: (i32, &TauxAtm
         return Some(notifie("L'établissement est en Alsace-Moselle : son taux est celui que la CARSAT lui notifie chaque année.".into()));
     }
     if valeur_avant.is_none() || valeur_avant != collectif_avant {
-        return Some(notifie(format!(
-            "Celui de {}{} était le taux notifié à la compagnie, qui change chaque année.",
-            pa,
-            valeur_avant.map(|t| format!(" ({})", pourcent(t))).unwrap_or_default()
-        )));
+        return Some(notifie(match valeur_avant {
+            Some(t) => format!("Celui de {} ({}) était le taux notifié à la compagnie, qui change chaque année.", pa, pourcent(t)),
+            None => format!("Celui de {} était le taux notifié à la compagnie, qui change chaque année.", pa),
+        }));
     }
     let Some(r) = socle_an.and_then(|s| risques_de(s).into_iter().find(|r| r.code == code)) else {
         return Some(notifie(format!("Son taux est celui de l'arrêté de tarification de {}, que le logiciel n'a pas.", an)));
@@ -2092,8 +2095,14 @@ pub fn taux_atmp_reporte(an: i32, socle_an: Option<&Pile>, avant: (i32, &TauxAtm
         provenance: Some(format!(
             "Code risque notifié, dit pour {} ; taux collectif de {} ({}, « TC » : code de la sécurité sociale, art. D. 242-6-14), atelier/reference/sources/tarification-atmp/.",
             pa,
-            socle_an.and_then(arrete_atmp).unwrap_or_else(|| format!("l'arrêté de tarification de {}", an)),
-            r.code_arrete.as_deref().unwrap_or(&r.code)
+            match socle_an.and_then(arrete_atmp) {
+                Some(arrete) => arrete,
+                None => format!("l'arrêté de tarification de {}", an),
+            },
+            match r.code_arrete.as_deref() {
+                Some(c) => c,
+                None => &r.code,
+            }
         )),
         ..TauxAtmpEcrit::default()
     }))
