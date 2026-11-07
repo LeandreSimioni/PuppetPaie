@@ -14,16 +14,17 @@ use droit::caisse_conges::{affilie, douze_mois_ou_plus};
 use droit::contexte::IdSalarie;
 use droit::fiche::{FicheSalarie, SalarieDuContrat};
 use droit::natures::nature;
-use serde_json::json;
 use socle::date::Jour;
+
+use crate::outils::typee::lu;
 
 #[test]
 fn qui_est_declare_a_la_caisse() {
     let (cddu, cdd, cdi) = (nature("cddu_spectacle").unwrap(), nature("cdd").unwrap(), nature("cdi").unwrap());
     let j = |s: &str| Jour::lire(s).unwrap();
-    let comedien = fiche(json!({"code_emploi_ft": "COM010", "statut": "artiste"}), None);
-    let regisseur = |idcc: &str| fiche(json!({"code_emploi_ft": "REG130", "statut": "technicien"}), Some(idcc));
-    let sans_metier = fiche(json!({"statut": "technicien"}), Some("3090"));
+    let comedien = fiche(r#"{"code_emploi_ft": "COM010", "statut": "artiste"}"#, None);
+    let regisseur = |idcc: &str| fiche(r#"{"code_emploi_ft": "REG130", "statut": "technicien"}"#, Some(idcc));
+    let sans_metier = fiche(r#"{"statut": "technicien"}"#, Some("3090"));
     let (debut, trois_mois, un_an) = (j("2026-09-01"), j("2026-11-30"), j("2027-08-31"));
     assert!(douze_mois_ou_plus(&debut, &un_an).unwrap());
     assert!(affilie(&cddu, &comedien, &debut, Some(&trois_mois)).unwrap());
@@ -35,7 +36,7 @@ fn qui_est_declare_a_la_caisse() {
     assert!(!affilie(&cdd, &regisseur("1922"), &debut, Some(&trois_mois)).unwrap(), "une fonction hors de la liste du domaine");
     assert!(affilie(&cddu, &regisseur("1922"), &debut, Some(&trois_mois)).unwrap(), "un technicien en CDDU");
     // Le staffeur est sur la liste du spectacle vivant subventionne (1285), pas sur celle du prive (3090).
-    let staffeur = |idcc: &str| fiche(json!({"code_emploi_ft": "STA010", "statut": "technicien"}), Some(idcc));
+    let staffeur = |idcc: &str| fiche(r#"{"code_emploi_ft": "STA010", "statut": "technicien"}"#, Some(idcc));
     assert!(affilie(&cdd, &staffeur("1285"), &debut, Some(&trois_mois)).unwrap(), "la liste 6 nomme le staffeur");
     assert!(!affilie(&cdd, &staffeur("3090"), &debut, Some(&trois_mois)).unwrap(), "la liste 7 ne le nomme pas");
     assert!(!affilie(&cdd, &sans_metier, &debut, Some(&trois_mois)).unwrap(), "un metier hors de la nomenclature");
@@ -44,8 +45,8 @@ fn qui_est_declare_a_la_caisse() {
 }
 
 /// La fiche telle que la paie la lit : ses champs, et la convention de l'employeur.
-fn fiche(champs: serde_json::Value, idcc: Option<&str>) -> SalarieDuContrat {
-    let champs = droit::fiche::lire_champs(&champs, "fiche").unwrap();
+fn fiche(champs: &str, idcc: Option<&str>) -> SalarieDuContrat {
+    let champs = lu(champs);
     let mut s = SalarieDuContrat::de(FicheSalarie { id: IdSalarie::lire("X").unwrap(), champs });
     s.idcc_de_l_employeur = idcc.map(String::from);
     s

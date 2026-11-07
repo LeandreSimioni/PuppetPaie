@@ -1,7 +1,8 @@
 //! La configuration datee, lue a la date de la periode.
 
 use droit::contexte::Contexte;
-use serde_json::{json, Value};
+use crate::outils::typee::lu;
+use std::collections::BTreeMap;
 use std::path::Path;
 
 /// TOUTE LA CONFIGURATION EST DATEE : une valeur changee a une date ne touche pas ce qui precede. La compagnie passe de la
@@ -17,22 +18,22 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     let _ = std::fs::remove_dir_all(&racine);
     std::fs::create_dir_all(racine.join("config")).unwrap();
     let j = |s: &str| Jour::lire(s).unwrap();
-    let plate = json!({"raison_sociale": "CIE DATEE", "idcc": "3090", "annexe_convention": "4", "adresse": "21 RUE DU PORT",
-                       "premiere_embauche": "2026-01-01"});
-    let e = |v: Value| lire_champs::<ChampsEntreprise>(&v, "la fiche").unwrap();
+    let plate = r#"{"raison_sociale": "CIE DATEE", "idcc": "3090", "annexe_convention": "4", "adresse": "21 RUE DU PORT",
+                    "premiere_embauche": "2026-01-01"}"#;
+    let e = |texte: &str| lu::<ChampsEntreprise>(texte);
     let mut ent = FicheEntrepriseDatee::neuve(&e(plate));
-    assert!(ent.dater("idcc", &e(json!({"idcc": "1285"})), Some(&j("2026-11-01")), Some("passage en CCNEAC")));
-    assert!(ent.dater("annexe_convention", &e(json!({"annexe_convention": ""})), Some(&j("2026-11-01")), None));
-    assert!(ent.dater("adresse", &e(json!({"adresse": "8 PLACE DU MARCHE"})), Some(&j("2026-11-01")), None));
-    let s = |v: Value| lire_champs::<ChampsSalarie>(&v, "la fiche").unwrap();
-    let mut sal = FicheSalarieDatee::neuve(&s(json!({"nom": "BRIOCHE", "prenom": "FANCHON"})));
-    assert!(sal.dater("emploi", &s(json!({"emploi": "COMEDIENNE"})), Some(&j("2026-10-15")), None));
-    let ecrire = |rel: &str, v: Value| std::fs::write(racine.join("config").join(rel), v.to_string()).unwrap();
-    ecrire("entreprise.json", socle::ecriture::en_valeur(&ent));
-    ecrire("salaries.json", json!({ "BRIOCHE": socle::ecriture::en_valeur(&sal) }));
-    ecrire("spectacles.json", json!({}));
+    assert!(ent.dater("idcc", &e(r#"{"idcc": "1285"}"#), Some(&j("2026-11-01")), Some("passage en CCNEAC")));
+    assert!(ent.dater("annexe_convention", &e(r#"{"annexe_convention": ""}"#), Some(&j("2026-11-01")), None));
+    assert!(ent.dater("adresse", &e(r#"{"adresse": "8 PLACE DU MARCHE"}"#), Some(&j("2026-11-01")), None));
+    let s = |texte: &str| lu::<ChampsSalarie>(texte);
+    let mut sal = FicheSalarieDatee::neuve(&s(r#"{"nom": "BRIOCHE", "prenom": "FANCHON"}"#));
+    assert!(sal.dater("emploi", &s(r#"{"emploi": "COMEDIENNE"}"#), Some(&j("2026-10-15")), None));
+    let ecrire = |rel: &str, texte: String| std::fs::write(racine.join("config").join(rel), texte).unwrap();
+    ecrire("entreprise.json", socle::ecriture::json_indente(&ent, 2));
+    ecrire("salaries.json", socle::ecriture::json_indente(&BTreeMap::from([("BRIOCHE", &sal)]), 2));
+    ecrire("spectacles.json", "{}".to_string());
     std::fs::create_dir_all(racine.join("config").join("baremes")).unwrap();
-    ecrire("baremes/2026.json", json!({"annee": 2026, "socle": 2026, "taux_atmp": {"valeur": 1.25, "code_risque": "923AD"}}));
+    ecrire("baremes/2026.json", r#"{"annee": 2026, "socle": 2026, "taux_atmp": {"valeur": 1.25, "code_risque": "923AD"}}"#.to_string());
 
     // Le contexte d'aujourd'hui (decembre) et celui d'octobre : la meme compagnie, chacun sous ses valeurs.
     let ctx = Contexte::nouveau(&racine, Some(j("2026-12-15"))).unwrap();
@@ -48,7 +49,7 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     assert_eq!(ctx.au(&j("2020-03-01")).unwrap().salaries["BRIOCHE"].emploi.texte(), "COMEDIENNE");
     assert_eq!(ctx.entreprise_au(&j("2019-01-01")).idcc.texte(), "3090");
     // Une valeur non datee se refuse, et la phrase dit quoi faire.
-    let e = lire_champs::<FicheEntrepriseDatee>(&json!({"idcc": "3090"}), "config/entreprise.json").unwrap_err();
+    let e = lire_champs::<FicheEntrepriseDatee>(&BTreeMap::from([("idcc", "3090")]), "config/entreprise.json").unwrap_err();
     assert!(e.contains("« idcc »") && e.contains("Ajouter une compagnie"), "{}", e);
     std::fs::remove_dir_all(&racine).unwrap();
 }

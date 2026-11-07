@@ -2,7 +2,6 @@
 
 use droit::conges::{feries_non_payes, JoursTravailles};
 use droit::periodes::{part_du_mois, regle_du_mois_incomplet, Horaire, RegleDuMoisIncomplet};
-use serde_json::json;
 use socle::date::Jour;
 use socle::num::{div, Decimal};
 
@@ -11,8 +10,8 @@ fn j(t: &str) -> Jour {
 }
 
 /// Les jours travailles qu'une fiche ecrit `v`, lus par leur forme comme la fiche les lit.
-fn jours_ecrits(v: &serde_json::Value) -> Result<JoursTravailles, String> {
-    socle::forme::lire::<droit::fiche::Case<Vec<droit::fiche::JourDeLaSemaine>>>(v, &JoursTravailles::case_illisible("le salarie"))
+fn jours_ecrits(texte: &str) -> Result<JoursTravailles, String> {
+    socle::forme::lire_texte::<droit::fiche::Case<Vec<droit::fiche::JourDeLaSemaine>>>(texte, &JoursTravailles::case_illisible("le salarie"))
         .and_then(|c| JoursTravailles::de_la_case(&c, "le salarie"))
 }
 
@@ -45,7 +44,7 @@ fn un_mois_incomplet_se_paie_a_l_horaire_reel() {
 /// lundi au vendredi, ce serait 12 sur 22) ; 35 h sur cinq jours font 7 h par jour.
 #[test]
 fn les_heures_du_mois_se_comptent_sur_les_jours_travailles_de_la_fiche() {
-    let jours = jours_ecrits(&json!(["mardi", "mercredi", "jeudi", "vendredi", "samedi"]))
+    let jours = jours_ecrits(r#"["mardi", "mercredi", "jeudi", "vendredi", "samedi"]"#)
         .unwrap();
     assert_eq!(jours.en_mots(), "du mardi au samedi");
     let horaire = Horaire { jours, feries_non_payes: Vec::new() };
@@ -53,8 +52,8 @@ fn les_heures_du_mois_se_comptent_sur_les_jours_travailles_de_la_fiche() {
         .unwrap();
     assert_eq!((p.jours, p.jours_du_mois), (13, 23));
     assert_eq!(p.sur_le_bulletin(droit::conges::heures_par_jour(Decimal::new(15167, 2), &jours)).as_deref(), Some("91 h sur les 161 h du mois"));
-    assert!(jours_ecrits(&json!([])).is_err());
-    assert!(jours_ecrits(&json!(["lundi", "jour de fete"])).is_err());
+    assert!(jours_ecrits("[]").is_err());
+    assert!(jours_ecrits(r#"["lundi", "jour de fete"]"#).is_err());
 }
 
 /// L3133-3 (`atelier/reference/sources/code-du-travail/articles-20261029.md`, l. 113) : le chomage d'un ferie n'entraine

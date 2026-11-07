@@ -8,6 +8,8 @@ use std::str::FromStr;
 use rust_decimal::Decimal;
 use serde_json::Value;
 
+pub mod typee;
+
 #[path = "../../../socle/tests/outils/oracles.rs"]
 mod oracles;
 pub use oracles::*;
