@@ -337,9 +337,16 @@ impl Espace {
 
     fn lire_items(&mut self, fichier: usize, v: &[J]) {
         let mut attrs: Vec<&[J]> = Vec::new();
+        // LE CORPS D'UN `choix! { … }` (`droit::fiche`) : la macro derive `Serialize` sur chaque enum qu'elle declare.
+        let mut fin_d_un_choix = 0;
         let mut i = 0;
         while i < v.len() {
             match (&v[i], v.get(i + 1)) {
+                (J::Mot(m), Some(J::P("!"))) if m == "choix" && est(v.get(i + 2), "{") => {
+                    fin_d_un_choix = apres_le_groupe(v, i + 2, false);
+                    i += 3;
+                    continue;
+                }
                 (J::P("#"), Some(J::P("["))) => {
                     let fin = apres_le_groupe(v, i + 1, false);
                     attrs.push(&v[i + 2..fin - 1]);
@@ -419,7 +426,7 @@ impl Espace {
                         _ => (Vec::new(), k),
                     };
                     let serde = attrs.iter().flat_map(|a| attributs_serde(a)).collect();
-                    let serialise = attrs.iter().any(|a| derive_serialize(a));
+                    let serialise = i < fin_d_un_choix || attrs.iter().any(|a| derive_serialize(a));
                     self.items.push(Item { fichier, nom: nom.clone(), genre, generiques, serde, serialise, corps });
                     attrs.clear();
                     i = fin;
