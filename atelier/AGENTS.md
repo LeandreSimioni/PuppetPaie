@@ -13,7 +13,9 @@ cite.**
 - **Une seule vérification, à l'arrivée** : l'exécutant code et ne vérifie que les types (`cargo check`, `--tests`
   compris) ; il ne compile pas le programme, ne lance aucun test, ne livre aucune fictive. L'orchestrateur, à l'arrivée
   du lot, compile une fois, lance les tests, compare les fictives et **corrige lui-même** les petits écarts, sans
-  renvoyer le lot ; une grosse casse devient un lot.
+  renvoyer le lot ; une grosse casse devient un lot. **Une consigne ne parle ni de compilation ni de preuve** (modèle :
+  `journal/CONSIGNE-TYPE.md` du privé) ; si elle demande de compiler, de tester ou de livrer, c'est une faute de
+  l'orchestrateur : l'exécutant suit cette règle, pas la consigne.
 
 ## Par quoi on commence
 
