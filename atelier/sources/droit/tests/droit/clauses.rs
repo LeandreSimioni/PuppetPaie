@@ -1,449 +1,547 @@
-//! Les clauses conventionnelles (`clauses-conventionnelles-base.json`) contre `clauses.json` : profil, preavis, lecture
-//! des baremes, paliers, clause d'annexe, indemnites, prime d'anciennete. Des blocs (une grille par jeu de parametres)
-//! resumes par une empreinte, et des cas lisibles ; les resultats s'y ecrivent en JSON (`en_valeur_*`), les nombres en
-//! texte. Les grandes grilles (`profil`, `preavis_mois`, `indemnite_licenciement`, `prime_anciennete`) se jouent sur un
-//! echantillon a graine fixe. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
+//! Les clauses conventionnelles (`clauses-conventionnelles-base.json`) contre `clauses/` : profil, preavis, lecture des
+//! baremes, paliers, clause d'annexe, indemnites, prime d'anciennete. Des blocs (une grille par jeu de parametres, ses
+//! resultats resumes par leur empreinte, `typee::empreinte`) et des cas lisibles (un resultat type par cas). Les grilles
+//! (`clauses/grilles.json`) sont les entrees : une fiche s'y ecrit en texte et se lit par la porte du socle, comme une
+//! fiche du releve. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit les references.
 
-use crate::outils::{egal, fnv, oracle, oracle_selon, reecrire_oracles, tire};
+use crate::outils::typee::{cas_de, chemin_donnee, empreinte, jouer, lire_chemin, Rendu};
 use droit::clauses::{self as c, Bande, DitParLEngagement, Indemnite, PreavisDit, Prime, Profil, Retraite, Tranche, P};
+use droit::fiche::ChampsSalarie;
+use serde::{Deserialize, Serialize};
 use socle::date::Jour;
 use socle::num::{Decimal, Resultat};
-use serde_json::{json, Map, Value};
 use std::str::FromStr;
 
-const GRAINE: u64 = 20261011;
+// ------------------------------------------------------------- les entrees
 
-/// Un IDCC ou une annexe de l'oracle, en texte (vide : la case nulle ou vide).
-fn lu(v: &Value) -> String {
-    if vrai(v) { en_texte(v).trim().to_string() } else { String::new() }
-}
-
-/// Une case de l'oracle dite : ni nulle, ni fausse, ni zero, ni vide.
-fn vrai(v: &Value) -> bool {
-    match v {
-        Value::Null => false,
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64() != Some(0.0),
-        Value::String(s) => !s.is_empty(),
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(o) => !o.is_empty(),
-    }
-}
-
-/// Une case de l'oracle en texte : un texte tel quel, un nombre ecrit.
-fn en_texte(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        autre => autre.to_string(),
-    }
-}
-
-fn lire() -> Value {
-    crate::outils::lire_oracle("clauses.json")
-}
-
-fn dec(v: &Value) -> Decimal {
-    Decimal::from_str(v.as_str().unwrap()).unwrap()
-}
-
-fn dec_option(v: &Value) -> Option<Decimal> {
-    v.as_str().map(|s| Decimal::from_str(s).unwrap())
-}
-
-fn chaines(v: &Value) -> Vec<Value> {
-    v.as_array().unwrap().clone()
-}
-
-// ------------------------------------------------------- le JSON des resultats
-fn texte(x: &Option<String>) -> Value {
-    x.as_ref().map_or(Value::Null, |s| json!(s))
-}
-
-fn nombre(x: Option<P>) -> Value {
-    x.map_or(Value::Null, |p| json!(p.to_string()))
-}
-
-fn en_valeur_profil(p: &Profil) -> Value {
-    json!({"categorie": texte(&p.categorie), "grille": texte(&p.grille), "source": p.source})
-}
-
-fn en_valeur_preavis(p: &PreavisDit) -> Value {
-    let mut v = json!({"mois": nombre(p.mois), "article": texte(&p.article), "pourquoi": texte(&p.pourquoi)});
-    if let Some(j) = p.jours {
-        v["jours"] = json!(j.to_string());
-    }
-    v
-}
-
-fn en_valeur_indemnite(i: &Indemnite) -> Value {
-    if !i.releve {
-        return json!({"releve": false, "du": false, "pourquoi": texte(&i.pourquoi)});
-    }
-    let lectures: Map<String, Value> = i.lectures.iter().map(|(k, v)| (k.clone(), json!(v.to_string()))).collect();
-    json!({"releve": true, "du": i.du, "bas": nombre(i.bas), "haut": nombre(i.haut), "lectures": lectures,
-        "hors_primes": i.hors_primes, "article": texte(&i.article), "pourquoi": texte(&i.pourquoi)})
-}
-
-/// `depart` : les cles du depart volontaire (`mois`, `palier`), sinon celles de la mise a la retraite.
-fn en_valeur_retraite(r: &Retraite, depart: bool) -> Value {
-    if !r.releve {
-        return json!({"releve": false, "montant": null, "pourquoi": texte(&r.pourquoi)});
-    }
-    if r.montant.is_none() {
-        return json!({"releve": true, "montant": null, "article": null, "pourquoi": texte(&r.pourquoi)});
-    }
-    if depart {
-        json!({"releve": true, "montant": nombre(r.montant), "mois": nombre(r.mois), "palier": r.palier, "article": texte(&r.article),
-            "prevenance_mois": r.prevenance_mois})
-    } else {
-        json!({"releve": true, "montant": nombre(r.montant), "article": texte(&r.article), "hors_primes": r.hors_primes,
-            "prevenance_mois": r.prevenance_mois, "cadre_de_direction": texte(&r.cadre_de_direction)})
-    }
-}
-
-fn en_valeur_prime(p: Option<Prime>) -> Value {
-    p.map_or(Value::Null, |p| {
-        json!({"pourcentage": p.pourcentage.to_string(), "base": nombre(p.base), "montant": null, "article": p.article,
-            "pourquoi": texte(&p.pourquoi), "annees": p.annees})
-    })
-}
-
-fn en_valeur_annexe(a: Option<c::ClauseDAnnexe>) -> Value {
-    a.map_or(Value::Null, |a| {
-        json!([a.article, {"lectures": a.lectures.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>(), "hors_primes": a.hors_primes == Some(true),
-            "anciennete_minimale_mois": Some(a.anciennete_minimale_mois.0.to_string()), "plafond_mois": a.plafond_mois.map(|m| m.0.to_string()),
-            "motifs_legaux_seulement": a.motifs_legaux_seulement.unwrap_or_default()}])
-    })
-}
-
-// ------------------------------------------------------- le JSON canonique
-fn numerique(s: &str) -> bool {
-    let (nombre, _) = s.split_once('E').unwrap_or((s, "0"));
-    let s = nombre.strip_prefix('-').unwrap_or(nombre);
-    let (e, d) = s.split_once('.').map_or((s, Some("0")), |(e, d)| (e, Some(d)));
-    !e.is_empty()
-        && e.chars().all(|c| c.is_ascii_digit())
-        && d.map_or(true, |d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()))
-}
-
-/// Un décimal écrit sans exposant, sans zéros de queue.
-fn normaliser(s: &str) -> String {
-    let (signe, s) = s.strip_prefix('-').map_or(("", s), |r| ("-", r));
-    let (nombre, exposant) = s.split_once('E').map_or((s, 0i64), |(n, e)| (n, e.parse().unwrap()));
-    let (entiere, fraction) = nombre.split_once('.').unwrap_or((nombre, ""));
-    let chiffres = format!("{}{}", entiere, fraction);
-    let point = entiere.len() as i64 + exposant;
-    let (e, f) = if point <= 0 {
-        ("0".to_string(), format!("{}{}", "0".repeat((-point) as usize), chiffres))
-    } else if point as usize >= chiffres.len() {
-        (format!("{}{}", chiffres, "0".repeat(point as usize - chiffres.len())), String::new())
-    } else {
-        (chiffres[..point as usize].to_string(), chiffres[point as usize..].to_string())
-    };
-    let (e, f) = (e.trim_start_matches('0'), f.trim_end_matches('0'));
-    format!("{}{}{}{}", signe, if e.is_empty() { "0" } else { e }, if f.is_empty() { "" } else { "." }, f)
-}
-
-fn canon(v: &Value, out: &mut String) {
-    match v {
-        Value::String(s) if numerique(s) => {
-            let n = normaliser(s);
-            out.push_str(&serde_json::to_string(&n).unwrap());
-        }
-        Value::Array(a) => {
-            out.push('[');
-            for (i, x) in a.iter().enumerate() {
-                if i > 0 {
-                    out.push(',');
-                }
-                canon(x, out);
-            }
-            out.push(']');
-        }
-        Value::Object(o) => {
-            let mut cles: Vec<&String> = o.keys().collect();
-            cles.sort();
-            out.push('{');
-            for (i, k) in cles.iter().enumerate() {
-                if i > 0 {
-                    out.push(',');
-                }
-                out.push_str(&serde_json::to_string(k).unwrap());
-                out.push(':');
-                canon(&o[*k], out);
-            }
-            out.push('}');
-        }
-        autre => out.push_str(&serde_json::to_string(autre).unwrap()),
-    }
-}
-
-fn ligne(r: Resultat<Value>) -> String {
-    match r {
-        Ok(v) => {
-            let mut s = String::new();
-            canon(&v, &mut s);
-            s
-        }
-        Err(_) => "ERR".to_string(),
-    }
-}
-
-/// Rejoue des blocs : `f` donne les lignes d'un bloc a partir de ses parametres (tout sauf l'empreinte, le dernier
-/// element). Sous reecriture, un bloc sur `un_sur` seulement (l'echantillon) ; les blocs se repartissent sur les coeurs.
-fn blocs(rel: &Value, nom: &str, un_sur: u64, f: impl Fn(&[Value]) -> Vec<String> + Sync) {
-    let liste: Vec<&[Value]> = rel["blocs"][nom]
-        .as_array()
-        .unwrap_or_else(|| panic!("blocs {} absents", nom))
-        .iter()
-        .map(|b| b.as_array().unwrap().split_last().unwrap().1)
-        .filter(|p| !reecrire_oracles() || tire(GRAINE, &Value::Array(p.to_vec()), un_sur))
-        .collect();
-    let coeurs = std::thread::available_parallelism().map_or(1, |n| n.get());
-    let f = &f;
-    let obtenus: Vec<Value> = std::thread::scope(|s| {
-        let fils: Vec<_> = liste
-            .chunks(liste.len().div_ceil(coeurs).max(1))
-            .map(|lot| s.spawn(move || lot.iter().map(|p| Value::Array([p.to_vec(), vec![Value::String(fnv(&f(p).join("\n")))]].concat())).collect::<Vec<_>>()))
-            .collect();
-        fils.into_iter().flat_map(|h| h.join().unwrap()).collect()
-    });
-    oracle("clauses.json", &format!("/blocs/{}", nom), &Value::Array(obtenus));
-}
-
-// ------------------------------------------------------------- les cas
-fn section(rel: &Value, nom: &str, f: impl Fn(&[Value]) -> Resultat<Value>) {
-    let cas: Vec<Value> = rel["cas"][nom]
-        .as_array()
-        .unwrap_or_else(|| panic!("section {} absente", nom))
-        .iter()
-        .map(|c| json!([c[0], f(c[0].as_array().unwrap()).unwrap_or_else(|_| json!({"err": 1}))]))
-        .collect();
-    oracle_selon("clauses.json", &format!("/cas/{}", nom), &Value::Array(cas), egal);
-}
-
-fn option(v: &Value) -> Option<&Value> {
-    if v.is_null() {
-        None
-    } else {
-        Some(v)
-    }
-}
-
-fn jour(v: &Value) -> Jour {
-    Jour::lire(v.as_str().unwrap()).unwrap()
-}
-
-fn avec(base: &Value, k: &str, v: Value) -> Value {
-    let mut m: Map<String, Value> = base.as_object().cloned().unwrap_or_default();
-    m.insert(k.to_string(), v);
-    Value::Object(m)
-}
-
-/// Ce qu'un engagement de la grille dit du salarie, lu comme le lit `engagement::solde` : une case vide ne dit rien,
-/// un code emploi qui n'est pas un texte et un debut illisible refusent.
-fn dit(e: Option<&Value>) -> Resultat<DitParLEngagement> {
-    let Some(e) = e else { return Ok(DitParLEngagement::default()) };
-    let dite = |k: &str| e.get(k).filter(|v| vrai(v));
-    let metier = match dite("metier") {
-        Some(v) => Some(v.as_str().ok_or("code emploi : pas un texte")?.to_string()),
-        None => None,
-    };
-    let debut = match dite("debut") {
-        Some(v) => {
-            let s = en_texte(v);
-            Some(s.get(..10).filter(|j| j.as_bytes().get(4) == Some(&b'-') && j.as_bytes().get(7) == Some(&b'-')).and_then(|j| Jour::lire(j).ok()).ok_or("date illisible")?)
-        }
-        None => None,
-    };
-    Ok(DitParLEngagement {
-        categorie_conventionnelle: dite("categorie_conventionnelle").map(en_texte),
-        statut: dite("statut").and_then(Value::as_str).map(str::to_string),
-        metier,
-        cadre: e.get("cadre").filter(|v| !v.is_null()).map(vrai),
-        debut,
-    })
+/// Ce qu'un engagement de la grille dit du salarie.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Eng {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub categorie_conventionnelle: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub statut: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metier: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cadre: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debut: Option<String>,
 }
 
 /// Un profil de la grille (`{categorie, grille}`).
-fn prof(v: &Value) -> Profil {
-    Profil { categorie: v["categorie"].as_str().map(str::to_string), grille: v["grille"].as_str().map(str::to_string), source: String::new() }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Prof {
+    pub categorie: Option<String>,
+    pub grille: Option<String>,
 }
 
-fn profil_lu(idcc: &Value, fiche: &Value, eng: Option<&Value>) -> Resultat<Value> {
-    let f = champs(fiche)?;
-    c::profil(&lu(idcc), &f, &dit(eng)?).map(|p| en_valeur_profil(&p))
+/// Les grilles : les entrees que chaque bloc croise.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Grilles {
+    pub fiches: Vec<String>,
+    pub engagements: Vec<Option<Eng>>,
+    pub anc_p: Vec<String>,
+    pub ages_p: Vec<Option<String>>,
+    pub annees: Vec<String>,
+    pub profs: Vec<Prof>,
+    pub motifs: Vec<Option<String>>,
+    pub motifs_l: Vec<Option<String>>,
+    pub anc_l: Vec<String>,
+    pub refs_peu: Vec<String>,
+    pub ages_l: Vec<Option<String>>,
+    pub anc: Vec<String>,
+    pub refs: Vec<String>,
+    pub fiches_p: Vec<String>,
+    pub eng_p: Vec<Option<Eng>>,
+    pub jours: Vec<Jour>,
+    pub jauges: Vec<Option<String>>,
+}
+
+pub(crate) fn grilles() -> Grilles {
+    lire_chemin(&chemin_donnee("clauses/grilles.json"))
+}
+
+pub(crate) fn dec(s: &str) -> Decimal {
+    Decimal::from_str(s).unwrap()
+}
+
+/// La fiche ecrite `texte`, avec la case `cle` posee a `valeur` (un texte).
+pub(crate) fn avec(texte: &str, cle: &str, valeur: &str) -> String {
+    let corps = texte.trim().strip_prefix('{').and_then(|t| t.strip_suffix('}')).unwrap().trim();
+    let case = format!("{}: {}", socle::ecriture::json_en_ligne(cle), socle::ecriture::json_en_ligne(valeur));
+    if corps.is_empty() {
+        format!("{{{}}}", case)
+    } else {
+        format!("{{{}, {}}}", corps, case)
+    }
+}
+
+/// La fiche du releve, lue par sa forme : celle que la forme refuse ne parvient pas au droit.
+pub(crate) fn champs(texte: &str) -> Resultat<ChampsSalarie> {
+    socle::forme::lire_texte(texte, "la fiche du releve")
+}
+
+/// Ce qu'un engagement dit du salarie, lu comme le lit `engagement::solde` : une case vide ne dit rien, un debut
+/// illisible refuse.
+pub(crate) fn dit(e: Option<&Eng>) -> Resultat<DitParLEngagement> {
+    let Some(e) = e else { return Ok(DitParLEngagement::default()) };
+    let dite = |v: &Option<String>| v.clone().filter(|s| !s.is_empty());
+    let debut = match dite(&e.debut) {
+        Some(s) => Some(s.get(..10).filter(|j| j.as_bytes().get(4) == Some(&b'-') && j.as_bytes().get(7) == Some(&b'-')).and_then(|j| Jour::lire(j).ok()).ok_or("date illisible")?),
+        None => None,
+    };
+    Ok(DitParLEngagement { categorie_conventionnelle: dite(&e.categorie_conventionnelle), statut: dite(&e.statut), metier: dite(&e.metier), cadre: e.cadre, debut })
+}
+
+pub(crate) fn profil_de(p: &Prof) -> Profil {
+    Profil { categorie: p.categorie.clone(), grille: p.grille.clone(), source: String::new() }
+}
+
+// ------------------------------------------------------------- les calculs
+
+pub(crate) fn profil_lu(idcc: &str, fiche: &str, eng: Option<&Eng>) -> Resultat<Profil> {
+    c::profil(idcc, &champs(fiche)?, &dit(eng)?)
+}
+
+pub(crate) fn bloc_profil(g: &Grilles, idcc: &str, code: &str) -> Vec<Resultat<Profil>> {
+    let mut out = Vec::new();
+    for fi in &g.fiches {
+        for en in &g.engagements {
+            let par_l_engagement = Eng { metier: Some(code.to_string()), ..en.clone().unwrap_or_default() };
+            out.push(profil_lu(idcc, fi, Some(&par_l_engagement)));
+            out.push(profil_lu(idcc, &avec(fi, "code_emploi_ft", code), en.as_ref()));
+        }
+    }
+    out
+}
+
+pub(crate) fn bloc_preavis(g: &Grilles, idcc: &str, categorie: Option<&str>, motif: Option<&str>) -> Vec<Resultat<PreavisDit>> {
+    g.anc_p.iter().flat_map(|a| g.ages_p.iter().map(move |age| c::preavis_mois(idcc, categorie, dec(a), motif, age.as_deref().map(dec)))).collect()
+}
+
+pub(crate) fn annees(g: &Grilles) -> Vec<P> {
+    g.annees.iter().map(|a| P::depuis(dec(a))).collect()
+}
+
+/// La lecture d'une liste du bareme (`texte`), en tranches ou en bandes (`genre`), a chaque anciennete de la grille ;
+/// `None` : elle ne se lit pas ainsi.
+pub(crate) fn bloc_lecture(g: &Grilles, texte: &str, genre: &str) -> Option<Vec<P>> {
+    match genre {
+        "tranches" => {
+            let taux: Vec<Tranche> = socle::forme::lire_texte(texte, "").ok()?;
+            Some(annees(g).into_iter().flat_map(|a| [c::par_tranches(&taux, a, true), c::par_tranches(&taux, a, false), c::Bareme { motifs: None, taux: Some(taux.clone()), bandes: None }.mois(a).unwrap()]).collect())
+        }
+        _ => {
+            let bandes: Vec<Bande> = socle::forme::lire_texte(texte, "").ok()?;
+            Some(annees(g).into_iter().map(|a| c::par_bandes(&bandes, a)).collect())
+        }
+    }
+}
+
+pub(crate) fn bloc_paliers(g: &Grilles, idcc: &str, section: &str) -> Vec<(P, Option<i64>)> {
+    let t = c::table().unwrap();
+    let conv = t.convention(idcc).unwrap();
+    let (paliers, prorata) = match section {
+        "mise_a_la_retraite" => conv.mise_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
+        _ => conv.depart_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
+    };
+    annees(g).into_iter().map(|a| c::paliers(paliers, prorata, a)).collect()
+}
+
+pub(crate) fn bloc_annexe(g: &Grilles, idcc: &str, annexe: &str) -> Vec<Resultat<Option<c::ClauseDAnnexe>>> {
+    g.profs.iter().flat_map(|pr| g.motifs.iter().map(move |m| c::clause_d_annexe(idcc, annexe, &profil_de(pr), m.as_deref()))).collect()
+}
+
+pub(crate) fn indemnite(idcc: &str, annexe: &str, pr: &Prof, anc: &str, r: &str, motif: Option<&str>, age: Option<&str>) -> Resultat<Indemnite> {
+    c::indemnite_licenciement(idcc, annexe, &profil_de(pr), dec(anc), dec(r), motif, age.map(dec))
+}
+
+pub(crate) fn bloc_indemnite(g: &Grilles, idcc: &str, annexe: &str, pr: &Prof) -> Vec<Resultat<Indemnite>> {
+    let mut out = Vec::new();
+    for m in &g.motifs_l {
+        for a in &g.anc_l {
+            for r in &g.refs_peu {
+                for age in &g.ages_l {
+                    out.push(indemnite(idcc, annexe, pr, a, r, m.as_deref(), age.as_deref()));
+                }
+            }
+        }
+    }
+    out
+}
+
+pub(crate) fn mise(idcc: &str, a: &str, r: &str) -> Resultat<Retraite> {
+    c::indemnite_mise_a_la_retraite(idcc, dec(a), dec(r))
+}
+
+pub(crate) fn depart(idcc: &str, a: &str, r: &str) -> Resultat<Retraite> {
+    c::indemnite_depart_retraite(idcc, dec(a), dec(r))
+}
+
+pub(crate) fn bloc_retraite(g: &Grilles, f: impl Fn(&str, &str) -> Resultat<Retraite>) -> Vec<Resultat<Retraite>> {
+    g.anc.iter().flat_map(|a| g.refs.iter().map(|r| f(a, r)).collect::<Vec<_>>()).collect()
+}
+
+pub(crate) fn prime(idcc: &str, annexe: &str, fiche: &str, eng: Option<&Eng>, j: &Jour, jauge: Option<&str>) -> Resultat<Option<Prime>> {
+    c::prime_anciennete(idcc, annexe, &champs(fiche)?, &dit(eng)?, j, jauge)
+}
+
+pub(crate) fn bloc_prime(g: &Grilles, idcc: &str, annexe: &str, code: &str) -> Vec<Resultat<Option<Prime>>> {
+    let mut out = Vec::new();
+    for fi in &g.fiches_p {
+        let fiche = avec(fi, "code_emploi_ft", code);
+        for en in &g.eng_p {
+            for j in &g.jours {
+                for jg in &g.jauges {
+                    out.push(prime(idcc, annexe, &fiche, en.as_ref(), j, jg.as_deref()));
+                }
+            }
+        }
+    }
+    out
+}
+
+// ------------------------------------------------------------- les resultats ecrits
+
+fn nombre(p: Option<P>) -> Option<String> {
+    p.map(|p| p.to_string())
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ProfilLu {
+    categorie: Option<String>,
+    grille: Option<String>,
+    source: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct PreavisLu {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mois: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    article: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    jours: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pourquoi: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct IndemniteLue {
+    releve: bool,
+    du: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bas: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    haut: Option<String>,
+    lectures: Vec<(String, String)>,
+    hors_primes: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    article: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pourquoi: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RetraiteLue {
+    releve: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    montant: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mois: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    palier: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    article: Option<String>,
+    hors_primes: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    prevenance_mois: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cadre_de_direction: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pourquoi: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct PrimeLue {
+    pourcentage: i64,
+    base: Option<String>,
+    article: String,
+    pourquoi: Option<String>,
+    annees: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct AnnexeLue {
+    article: String,
+    lectures: Vec<String>,
+    hors_primes: Option<bool>,
+    anciennete_minimale_mois: String,
+    plafond_mois: Option<String>,
+    motifs_legaux_seulement: Option<Vec<String>>,
+}
+
+/// Un resultat ecrit ; un refus, par sa phrase (ce qu'il porte a part nomme des chemins de la machine).
+pub(crate) fn rendu<T, U>(r: Resultat<T>, f: impl Fn(T) -> U) -> Rendu<U> {
+    r.map(f).map_err(|e| socle::echec::phrase_de(&e).to_string()).into()
+}
+
+pub(crate) fn profil_ecrit(p: Profil) -> ProfilLu {
+    ProfilLu { categorie: p.categorie, grille: p.grille, source: p.source }
+}
+
+pub(crate) fn preavis_ecrit(p: PreavisDit) -> PreavisLu {
+    PreavisLu { mois: nombre(p.mois), article: p.article, jours: nombre(p.jours), pourquoi: p.pourquoi }
+}
+
+pub(crate) fn indemnite_ecrite(i: Indemnite) -> IndemniteLue {
+    IndemniteLue {
+        releve: i.releve,
+        du: i.du,
+        bas: nombre(i.bas),
+        haut: nombre(i.haut),
+        lectures: i.lectures.into_iter().map(|(k, v)| (k, v.to_string())).collect(),
+        hors_primes: i.hors_primes,
+        article: i.article,
+        pourquoi: i.pourquoi,
+    }
+}
+
+pub(crate) fn retraite_ecrite(r: Retraite) -> RetraiteLue {
+    RetraiteLue {
+        releve: r.releve,
+        montant: nombre(r.montant),
+        mois: nombre(r.mois),
+        palier: r.palier,
+        article: r.article,
+        hors_primes: r.hors_primes,
+        prevenance_mois: r.prevenance_mois,
+        cadre_de_direction: r.cadre_de_direction,
+        pourquoi: r.pourquoi,
+    }
+}
+
+pub(crate) fn prime_ecrite(p: Option<Prime>) -> Option<PrimeLue> {
+    p.map(|p| PrimeLue { pourcentage: p.pourcentage, base: nombre(p.base), article: p.article, pourquoi: p.pourquoi, annees: p.annees })
+}
+
+pub(crate) fn annexe_ecrite(a: Option<c::ClauseDAnnexe>) -> Option<AnnexeLue> {
+    a.map(|a| AnnexeLue {
+        article: a.article,
+        lectures: a.lectures.iter().map(|(n, _)| n.clone()).collect(),
+        hors_primes: a.hors_primes,
+        anciennete_minimale_mois: a.anciennete_minimale_mois.0.to_string(),
+        plafond_mois: a.plafond_mois.map(|m| m.0.to_string()),
+        motifs_legaux_seulement: a.motifs_legaux_seulement,
+    })
+}
+
+/// L'empreinte d'un bloc : ses resultats ecrits, un par ligne.
+fn bloc<T, U: Serialize>(r: Vec<Resultat<T>>, f: impl Fn(T) -> U + Copy) -> String {
+    empreinte(&r.into_iter().map(|x| rendu(x, f)).collect::<Vec<_>>())
+}
+
+// ------------------------------------------------------------- les cas
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CasProfil {
+    pub idcc: String,
+    pub fiche: String,
+    pub engagement: Option<Eng>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CasPreavis {
+    pub idcc: String,
+    pub categorie: Option<String>,
+    pub anciennete: String,
+    pub motif: Option<String>,
+    pub age: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CasAnnexe {
+    pub idcc: String,
+    pub annexe: String,
+    pub profil: Prof,
+    pub motif: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CasIndemnite {
+    pub idcc: String,
+    pub annexe: String,
+    pub profil: Prof,
+    pub anciennete: String,
+    pub reference: String,
+    pub motif: Option<String>,
+    pub age: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CasRetraite {
+    pub idcc: String,
+    pub anciennete: String,
+    pub reference: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CasPrime {
+    pub idcc: String,
+    pub annexe: String,
+    pub fiche: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub engagement: Option<Eng>,
+    pub jour: Jour,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jauge: Option<String>,
+}
+
+pub(crate) fn cas_profil(c: &CasProfil) -> Rendu<ProfilLu> {
+    rendu(profil_lu(&c.idcc, &c.fiche, c.engagement.as_ref()), profil_ecrit)
+}
+
+pub(crate) fn cas_preavis(x: &CasPreavis) -> Rendu<PreavisLu> {
+    rendu(c::preavis_mois(&x.idcc, x.categorie.as_deref(), dec(&x.anciennete), x.motif.as_deref(), x.age.as_deref().map(dec)), preavis_ecrit)
+}
+
+pub(crate) fn cas_annexe(x: &CasAnnexe) -> Rendu<Option<AnnexeLue>> {
+    rendu(c::clause_d_annexe(&x.idcc, &x.annexe, &profil_de(&x.profil), x.motif.as_deref()), annexe_ecrite)
+}
+
+pub(crate) fn cas_indemnite(x: &CasIndemnite) -> Rendu<IndemniteLue> {
+    rendu(indemnite(&x.idcc, &x.annexe, &x.profil, &x.anciennete, &x.reference, x.motif.as_deref(), x.age.as_deref()), indemnite_ecrite)
+}
+
+pub(crate) fn cas_mise(x: &CasRetraite) -> Rendu<RetraiteLue> {
+    rendu(mise(&x.idcc, &x.anciennete, &x.reference), retraite_ecrite)
+}
+
+pub(crate) fn cas_depart(x: &CasRetraite) -> Rendu<RetraiteLue> {
+    rendu(depart(&x.idcc, &x.anciennete, &x.reference), retraite_ecrite)
+}
+
+pub(crate) fn cas_prime(x: &CasPrime) -> Rendu<Option<PrimeLue>> {
+    rendu(prime(&x.idcc, &x.annexe, &x.fiche, x.engagement.as_ref(), &x.jour, x.jauge.as_deref()), prime_ecrite)
+}
+
+// ------------------------------------------------------------- les blocs joues
+
+pub(crate) fn empreinte_profil(g: &Grilles, (idcc, code): &(String, String)) -> String {
+    bloc(bloc_profil(g, idcc, code), profil_ecrit)
+}
+
+pub(crate) fn empreinte_preavis(g: &Grilles, (idcc, categorie, motif): &(String, Option<String>, Option<String>)) -> String {
+    bloc(bloc_preavis(g, idcc, categorie.as_deref(), motif.as_deref()), preavis_ecrit)
+}
+
+/// Une liste d'un bareme, son chemin dans le fichier livre (ce qu'elle est), son texte, et sa lecture.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct CasLecture {
+    pub chemin: Vec<String>,
+    pub liste: String,
+    pub genre: String,
+}
+
+pub(crate) fn empreinte_lecture(g: &Grilles, x: &CasLecture) -> String {
+    empreinte(&bloc_lecture(g, &x.liste, &x.genre).unwrap().iter().map(|p| p.to_string()).collect::<Vec<_>>())
+}
+
+pub(crate) fn empreinte_paliers(g: &Grilles, (idcc, section): &(String, String)) -> String {
+    empreinte(&bloc_paliers(g, idcc, section).into_iter().map(|(m, p)| (m.to_string(), p)).collect::<Vec<_>>())
+}
+
+pub(crate) fn empreinte_annexe(g: &Grilles, (idcc, annexe): &(String, String)) -> String {
+    bloc(bloc_annexe(g, idcc, annexe), annexe_ecrite)
+}
+
+pub(crate) fn empreinte_indemnite(g: &Grilles, (idcc, annexe, pr): &(String, String, Prof)) -> String {
+    bloc(bloc_indemnite(g, idcc, annexe, pr), indemnite_ecrite)
+}
+
+pub(crate) fn empreinte_mise(g: &Grilles, idcc: &String) -> String {
+    bloc(bloc_retraite(g, |a, r| mise(idcc, a, r)), retraite_ecrite)
+}
+
+pub(crate) fn empreinte_depart(g: &Grilles, idcc: &String) -> String {
+    bloc(bloc_retraite(g, |a, r| depart(idcc, a, r)), retraite_ecrite)
+}
+
+pub(crate) fn empreinte_prime(g: &Grilles, (idcc, annexe, code): &(String, String, String)) -> String {
+    bloc(bloc_prime(g, idcc, annexe, code), prime_ecrite)
 }
 
 // ----------------------------------------------------------------- les tests
 #[test]
 fn profil() {
-    let rel = lire();
-    let g = &rel["grilles"];
-    let (fiches, engs) = (chaines(&g["fiches"]), chaines(&g["engagements"]));
-    blocs(&rel, "profil", 10, |p| {
-        let mut out = Vec::new();
-        for fi in &fiches {
-            for en in &engs {
-                for place in ["eng", "fiche"] {
-                    let (mut fiche, mut eng) = (fi.clone(), option(en).cloned());
-                    if place == "eng" {
-                        eng = Some(avec(eng.as_ref().unwrap_or(&json!({})), "metier", p[1].clone()));
-                    } else {
-                        fiche = avec(&fiche, "code_emploi_ft", p[1].clone());
-                    }
-                    out.push(ligne(profil_lu(&p[0], &fiche, eng.as_ref())));
-                }
-            }
-        }
-        out
-    });
-    section(&rel, "profil", |a| profil_lu(&a[0], &a[1], option(&a[2])));
-    section(&rel, "nom", |a| Ok(json!(c::nom(&lu(&a[0])))));
-    section(&rel, "releve", |a| Ok(json!(c::releve(&lu(&a[0]))?.is_some())));
+    let g = grilles();
+    jouer("clauses/profil-blocs.json", cas_de("clauses/profil-blocs.json"), |p| empreinte_profil(&g, p));
+    jouer("clauses/profil.json", cas_de("clauses/profil.json"), cas_profil);
+    jouer("clauses/nom.json", cas_de::<String>("clauses/nom.json"), |i| c::nom(i));
+    jouer("clauses/releve.json", cas_de::<String>("clauses/releve.json"), |i| rendu(c::releve(i), |r| r.is_some()));
 }
 
 #[test]
 fn preavis() {
-    let rel = lire();
-    let g = &rel["grilles"];
-    let (anc, ages) = (chaines(&g["anc_p"]), chaines(&g["ages_p"]));
-    blocs(&rel, "preavis_mois", 20, |p| {
-        let mut out = Vec::new();
-        for a in &anc {
-            for age in &ages {
-                out.push(ligne(c::preavis_mois(&lu(&p[0]), p[1].as_str(), dec(a), p[2].as_str(), dec_option(age)).map(|r| en_valeur_preavis(&r))));
-            }
-        }
-        out
-    });
-    section(&rel, "preavis_mois", |a| {
-        c::preavis_mois(&lu(&a[0]), a[1].as_str(), dec(&a[2]), a[3].as_str(), dec_option(&a[4])).map(|r| en_valeur_preavis(&r))
-    });
+    let g = grilles();
+    jouer("clauses/preavis_mois-blocs.json", cas_de("clauses/preavis_mois-blocs.json"), |p| empreinte_preavis(&g, p));
+    jouer("clauses/preavis_mois.json", cas_de("clauses/preavis_mois.json"), cas_preavis);
 }
 
 /// Les baremes : chaque liste de la grille lue comme des tranches (en annees revolues ou non, et comme elle le dit) ou
 /// comme des bandes, selon sa forme ; les paliers de retraite de chaque section relevee.
 #[test]
 fn les_baremes() {
-    let rel = lire();
-    let g = &rel["grilles"];
-    let annees: Vec<P> = g["annees"].as_array().unwrap().iter().map(|a| P::depuis(dec(a))).collect();
-    let mut lecture = Vec::new();
-    for l in chaines(&g["listes"]) {
-        let d = |x: P| ligne(Ok(Value::String(x.to_string())));
-        if let Ok(taux) = socle::forme::lire::<Vec<Tranche>>(&l[1], "") {
-            let lignes: Vec<String> = annees.iter().flat_map(|a| [c::par_tranches(&taux, *a, true), c::par_tranches(&taux, *a, false), c::Bareme { motifs: None, taux: Some(taux.clone()), bandes: None }.mois(*a).unwrap()]).map(d).collect();
-            lecture.push(json!([l[0], "tranches", fnv(&lignes.join("\n"))]));
-        }
-        if let Ok(bandes) = socle::forme::lire::<Vec<Bande>>(&l[1], "") {
-            let lignes: Vec<String> = annees.iter().map(|a| d(c::par_bandes(&bandes, *a))).collect();
-            lecture.push(json!([l[0], "bandes", fnv(&lignes.join("\n"))]));
-        }
-    }
-    oracle("clauses.json", "/blocs/lecture", &Value::Array(lecture));
-    let t = c::table().unwrap();
-    let chemins: Vec<Value> = chaines(&g["paliers"]).iter().map(|s| s[0].clone()).collect();
-    let paliers: Vec<Value> = chemins
-        .iter()
-        .map(|s| {
-            let conv = t.convention(s[0].as_str().unwrap()).unwrap();
-            let (paliers, prorata) = match s[1].as_str().unwrap() {
-                "mise_a_la_retraite" => conv.mise_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
-                _ => conv.depart_a_la_retraite.as_ref().map(|m| (m.paliers.as_ref().unwrap(), m.prorata.as_ref())).unwrap(),
-            };
-            let lignes: Vec<String> = annees.iter().map(|a| ligne(Ok(c::paliers(paliers, prorata, *a)).map(|(m, p)| json!([m.to_string(), p])))).collect();
-            json!([s, fnv(&lignes.join("\n"))])
-        })
-        .collect();
-    oracle("clauses.json", "/blocs/paliers", &Value::Array(paliers));
-    // La grille ne porte que le chemin de chaque section : la section se lit dans le fichier livre.
-    oracle("clauses.json", "/grilles/paliers", &Value::Array(chemins.into_iter().map(|c| json!([c])).collect()));
+    let g = grilles();
+    jouer("clauses/lecture-blocs.json", cas_de("clauses/lecture-blocs.json"), |p| empreinte_lecture(&g, p));
+    jouer("clauses/paliers-blocs.json", cas_de("clauses/paliers-blocs.json"), |p| empreinte_paliers(&g, p));
 }
 
 #[test]
 fn clause_d_annexe() {
-    let rel = lire();
-    let g = &rel["grilles"];
-    let (profs, motifs) = (chaines(&g["profs"]), chaines(&g["motifs"]));
-    blocs(&rel, "clause_d_annexe", 1, |p| {
-        let mut out = Vec::new();
-        for pr in &profs {
-            for m in &motifs {
-                out.push(ligne(c::clause_d_annexe(&lu(&p[0]), &lu(&p[1]), &prof(pr), m.as_str()).map(en_valeur_annexe)));
-            }
-        }
-        out
-    });
-    section(&rel, "clause_d_annexe", |a| c::clause_d_annexe(&lu(&a[0]), &lu(&a[1]), &prof(&a[2]), a[3].as_str()).map(en_valeur_annexe));
+    let g = grilles();
+    jouer("clauses/clause_d_annexe-blocs.json", cas_de("clauses/clause_d_annexe-blocs.json"), |p| empreinte_annexe(&g, p));
+    jouer("clauses/clause_d_annexe.json", cas_de("clauses/clause_d_annexe.json"), cas_annexe);
 }
 
 #[test]
 fn indemnite_de_licenciement() {
-    let rel = lire();
-    let g = &rel["grilles"];
-    let (motifs, anc, refs, ages) =
-        (chaines(&g["motifs_l"]), chaines(&g["anc_l"]), chaines(&g["refs_peu"]), chaines(&g["ages_l"]));
-    let indemnite = |a: &[Value], anc: &Value, r: &Value, m: &Value, age: &Value| {
-        c::indemnite_licenciement(&lu(&a[0]), &lu(&a[1]), &prof(&a[2]), dec(anc), dec(r), m.as_str(), dec_option(age)).map(|i| en_valeur_indemnite(&i))
-    };
-    blocs(&rel, "indemnite_licenciement", 8, |p| {
-        let mut out = Vec::new();
-        for m in &motifs {
-            for a in &anc {
-                for r in &refs {
-                    for age in &ages {
-                        out.push(ligne(indemnite(p, a, r, m, age)));
-                    }
-                }
-            }
-        }
-        out
-    });
-    section(&rel, "indemnite_licenciement", |a| indemnite(a, &a[3], &a[4], &a[5], &a[6]));
+    let g = grilles();
+    jouer("clauses/indemnite_licenciement-blocs.json", cas_de("clauses/indemnite_licenciement-blocs.json"), |p| empreinte_indemnite(&g, p));
+    jouer("clauses/indemnite_licenciement.json", cas_de("clauses/indemnite_licenciement.json"), cas_indemnite);
 }
 
 #[test]
 fn retraite() {
-    let rel = lire();
-    let g = &rel["grilles"];
-    let (anc, refs) = (chaines(&g["anc"]), chaines(&g["refs"]));
-    let mise = |idcc: &Value, a: &Value, r: &Value| c::indemnite_mise_a_la_retraite(&lu(idcc), dec(a), dec(r)).map(|x| en_valeur_retraite(&x, false));
-    let depart = |idcc: &Value, a: &Value, r: &Value| c::indemnite_depart_retraite(&lu(idcc), dec(a), dec(r)).map(|x| en_valeur_retraite(&x, true));
-    blocs(&rel, "indemnite_mise_a_la_retraite", 1, |p| anc.iter().flat_map(|a| refs.iter().map(move |r| ligne(mise(&p[0], a, r)))).collect());
-    blocs(&rel, "indemnite_depart_retraite", 1, |p| anc.iter().flat_map(|a| refs.iter().map(move |r| ligne(depart(&p[0], a, r)))).collect());
-    section(&rel, "indemnite_mise_a_la_retraite", |a| mise(&a[0], &a[1], &a[2]));
-    section(&rel, "indemnite_depart_retraite", |a| depart(&a[0], &a[1], &a[2]));
+    let g = grilles();
+    jouer("clauses/indemnite_mise_a_la_retraite-blocs.json", cas_de("clauses/indemnite_mise_a_la_retraite-blocs.json"), |p| empreinte_mise(&g, p));
+    jouer("clauses/indemnite_depart_retraite-blocs.json", cas_de("clauses/indemnite_depart_retraite-blocs.json"), |p| empreinte_depart(&g, p));
+    jouer("clauses/indemnite_mise_a_la_retraite.json", cas_de("clauses/indemnite_mise_a_la_retraite.json"), cas_mise);
+    jouer("clauses/indemnite_depart_retraite.json", cas_de("clauses/indemnite_depart_retraite.json"), cas_depart);
 }
 
 #[test]
 fn prime_d_anciennete() {
-    let rel = lire();
-    let g = &rel["grilles"];
-    let (fiches, engs, jours, jauges) =
-        (chaines(&g["fiches_p"]), chaines(&g["eng_p"]), chaines(&g["jours"]), chaines(&g["jauges"]));
-    let jours: Vec<Jour> = jours.iter().map(jour).collect();
-    let prime = |idcc: &Value, annexe: &Value, fiche: &Value, eng: Option<&Value>, j: &Jour, jg: Option<&str>| {
-        let f = champs(fiche)?;
-        c::prime_anciennete(&lu(idcc), &lu(annexe), &f, &dit(eng)?, j, jg).map(en_valeur_prime)
-    };
-    blocs(&rel, "prime_anciennete", 20, |p| {
-        let mut out = Vec::new();
-        for fi in &fiches {
-            for en in &engs {
-                let fiche = avec(fi, "code_emploi_ft", p[2].clone());
-                for j in &jours {
-                    for jg in &jauges {
-                        out.push(ligne(prime(&p[0], &p[1], &fiche, option(en), j, jg.as_str())));
-                    }
-                }
-            }
-        }
-        out
-    });
-    for nom in ["prime_anciennete", "prime_anciennete_chaine"] {
-        section(&rel, nom, |a| prime(&a[0], &a[1], &a[2], option(&a[3]), &jour(&a[4]), a[5].as_str()));
-    }
+    let g = grilles();
+    jouer("clauses/prime_anciennete-blocs.json", cas_de("clauses/prime_anciennete-blocs.json"), |p| empreinte_prime(&g, p));
+    jouer("clauses/prime_anciennete.json", cas_de("clauses/prime_anciennete.json"), cas_prime);
 }
 
 /// LA REMISE DU CONTRAT A DUREE DETERMINEE : « au plus tard, dans les deux jours ouvrables suivant l'embauche »
@@ -466,10 +564,4 @@ fn la_remise_du_contrat_suit_l1242_13_et_la_1285_pour_ses_musiciens() {
     let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), "1285", "ZZZ999", None).unwrap();
     assert_eq!(autre.jour, j("2026-12-12"));
     assert!(autre.source.contains("L. 1242-13"), "{}", autre.source);
-}
-
-/// La fiche du releve, lue par sa forme : celle que la forme refuse (un statut en nombre, une categorie hors de la liste)
-/// ne parvient plus au profil.
-fn champs(v: &Value) -> Resultat<droit::fiche::ChampsSalarie> {
-    droit::fiche::lire_champs(v, "la fiche du releve")
 }

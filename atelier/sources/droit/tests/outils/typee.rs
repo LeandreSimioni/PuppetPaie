@@ -96,6 +96,20 @@ where
     assert!(ecarts.is_empty(), "{} ecarts avec {} :\n{}", ecarts.len(), nom, ecarts.iter().take(8).cloned().collect::<Vec<_>>().join("\n"));
 }
 
+/// L'empreinte d'une grille : FNV-1a 64 bits de ses lignes, en hexadecimal.
+pub fn fnv(texte: &str) -> String {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for o in texte.bytes() {
+        h = (h ^ u64::from(o)).wrapping_mul(0x100000001b3);
+    }
+    format!("{:016x}", h)
+}
+
+/// L'empreinte des resultats d'une grille, chacun ecrit sur sa ligne par l'ecriture du socle.
+pub fn empreinte<T: Serialize>(resultats: &[T]) -> String {
+    fnv(&resultats.iter().map(socle::ecriture::json_en_ligne).collect::<Vec<_>>().join("\n"))
+}
+
 /// Une reference ecrite compacte : une liste, une ligne par element, sans indentation (`socle::ecriture::json_en_ligne`).
 pub fn en_lignes<T: Serialize>(lignes: &[T]) -> String {
     let corps: Vec<String> = lignes.iter().map(socle::ecriture::json_en_ligne).collect();
