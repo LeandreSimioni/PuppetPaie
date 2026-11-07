@@ -697,7 +697,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         if let Some(c) = &hb.cpnef_dialogue_social {
             let brut_cpnef = eur2(div(mul(masse, c.taux), Decimal::ONE_HUNDRED));
             let borne = |b: Option<Decimal>, cle: &str| b.ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)));
-            cpnef = plus_grand(borne(c.plancher, "plancher")?, plus_petit(borne(c.plafond, "plafond")?, brut_cpnef));
+            cpnef = plus_grand(borne(c.plancher.map(|n| n.0), "plancher")?, plus_petit(borne(c.plafond.map(|n| n.0), "plafond")?, brut_cpnef));
         }
         let effectif = ctx.effectif().ok().and_then(|e| e.valeur(annee_entiere(&an).unwrap_or(0)));
         if effectif.is_none() {
@@ -787,10 +787,10 @@ pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let taux = f.taux;
         let mut m = eur2(div(mul(masse, taux), Decimal::ONE_HUNDRED));
         if let Some(pl) = f.plancher {
-            m = plus_grand(m, pl);
+            m = plus_grand(m, pl.0);
         }
         if let Some(pl) = f.plafond {
-            m = plus_petit(m, pl);
+            m = plus_petit(m, pl.0);
         }
         let collecteur = f.collecteur.clone().filter(|c| !c.is_empty()).unwrap_or_else(|| "l'organisme collecteur de la branche".to_string());
         if let Some(a) = f.avertissement.clone().filter(|a| !a.is_empty()) {

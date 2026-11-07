@@ -216,7 +216,7 @@ fn section(bareme: &Pile) -> R<&PasParDefaut> {
 
 /// L'abattement contrats courts en vigueur : la moitie du SMIC net imposable (le bareme le porte a sa date).
 pub fn abattement(bareme: &Pile) -> R<Decimal> {
-    section(bareme)?.abattement_contrats_courts.ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("abattement_contrats_courts")))
+    section(bareme)?.abattement_contrats_courts.map(|n| n.0).ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("abattement_contrats_courts")))
 }
 
 /// La grille en vigueur a cette date pour cette zone (elles changent au 1er mai).

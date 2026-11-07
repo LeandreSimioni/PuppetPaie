@@ -992,6 +992,16 @@
     },
     "note": "Plafond de la sécurité sociale de l'année : mensuel et horaire (BOSS, PSS_M_METROP, PSS_H_METROP).\nLe << Plafond Urssaf >> du bas de bulletin : max(mensuel x jours calendaires du contrat / jours du mois, horaire x 12 h x cachets). (`engagement::calcul::plafond_de_l_engagement`)."
   },
+  "sante_obligatoire": {
+    "part_employeur_minimum": 50,
+    "source": {
+      "fichier": "atelier/reference/sources/code-de-la-securite-sociale/articles-20261103.md",
+      "emetteur": "loi",
+      "article": "CSS L. 911-7, III",
+      "citation": "L'employeur assure au minimum la moitié du financement de la couverture collective à adhésion obligatoire des salariés"
+    },
+    "note": "En pourcent du financement de la complémentaire santé collective : la part de l'employeur quand la fiche entreprise ne dit pas la sienne, et le plancher qu'elle ne peut pas descendre sous (contrat de l'entreprise d'une convention sans régime de santé, `bareme::bareme_sante`)."
+  },
   "abattement_csg": 0.9825,
   "majoration_conges_115": 1.115,
   "majoration_conges_110": 1.1,

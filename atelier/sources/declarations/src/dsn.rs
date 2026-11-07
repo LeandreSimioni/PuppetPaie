@@ -763,7 +763,7 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
     let bases = bases(p, &bar)?;
     let mut out: Vec<Cotisation> = Vec::new();
     for c in &bar.cotisations_dsn {
-        if c.seuil_smic.is_some() && !au_dela_du_seuil(bar.reduction_generale.as_ref(), p.brut, p.heures_travaillees, c.seuil_smic)? {
+        if c.seuil_smic.is_some() && !au_dela_du_seuil(bar.reduction_generale.as_ref(), p.brut, p.heures_travaillees, c.seuil_smic.map(|n| n.0))? {
             continue;
         }
         let bloc78 = c.bloc78.clone();
@@ -782,17 +782,16 @@ pub fn cotisations(p: &Paie, bar: &BaremeDuMois) -> Resultat<Vec<Cotisation>> {
             composant79: None,
             cet: false,
         };
-        if !c.lignes.is_empty() {
-            l.montant = Some(somme_lignes(p, &c.lignes, false));
-            l.composant79 = composant_79(p, &bar, &c.lignes);
-        } else if let Some(taux) = c.taux {
+        if let Some(lignes) = c.lignes.as_ref().filter(|l| !l.is_empty()) {
+            l.montant = Some(somme_lignes(p, lignes, false));
+            l.composant79 = composant_79(p, &bar, lignes);
+        } else if let Some(taux) = c.taux.map(|t| t.0) {
             let b = abattue(c.base.as_deref().ok_or_else(|| socle::fichiers::absent("base"))?)?;
             l.base81 = Some(b);
             l.taux = Some(Value::from(taux));
-            l.montant = Some(if !c.composants.is_empty() {
-                c.composants.iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_avec_echelle(&Value::from(*t))?))))?
-            } else {
-                pct(b, dec_avec_echelle(&Value::from(taux))?)
+            l.montant = Some(match c.composants.as_ref().filter(|c| !c.is_empty()) {
+                Some(composants) => composants.iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_avec_echelle(&Value::from(*t))?))))?,
+                None => pct(b, dec_avec_echelle(&Value::from(taux))?),
             });
         }
         let unifie = l.code81 == AGIRC_ARRCO_UNIFIE;
@@ -952,7 +951,7 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Rubrique) 
         return Ok((l.montant_pat, None));
     };
     let cet_pat = cet.pat;
-    let comp = match &r.composants_pat[..] {
+    let comp = match r.composants_pat.as_deref().unwrap_or_default() {
         [] => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?],
         c => c.to_vec(),
     };
@@ -993,8 +992,8 @@ ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en sépare pas sans
 fn parts_patronales_agirc_arrco(p: &Paie, pile: &Pile, c: &CotisationDsn, l131: &Cotisation) -> Resultat<Vec<Cotisation>> {
     let rubrique = |id: &str| pile.rubrique(id);
     // Le 131 nomme ses lignes, ou porte un taux sur l'assiette de la ligne de retraite qu'il declare (`bareme::poser_t1`).
-    let ids: Vec<String> = if !c.lignes.is_empty() {
-        c.lignes.clone()
+    let ids: Vec<String> = if let Some(lignes) = c.lignes.as_ref().filter(|l| !l.is_empty()) {
+        lignes.clone()
     } else {
         let base = c.base.as_deref();
         LIGNES_AGIRC_ARRCO.iter().filter(|id| rubrique(id).map_or(false, |r| r.base.as_deref() == base)).map(|s| s.to_string()).collect()
@@ -1313,7 +1312,7 @@ compagnie ; rien n'est declare.",
 
 /// `places_par_contrat` : combien d'identifiants d'affiliation un contrat se reserve.
 pub fn places_par_contrat(bar: &Pile) -> i64 {
-    3.max(2 + bar.contributions_dsn.len() as i64)
+    3.max(2 + bar.contributions_dsn.as_ref().map_or(0, Vec::len) as i64)
 }
 
 /// Les references de chaque nature (hors `ref`), en vigueur pendant le mois.
@@ -1383,6 +1382,7 @@ fn contributions_dsn(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Organismes, 
     }
     let specs: Vec<&droit::forme_bareme::ContributionDsn> = bar.contributions_dsn
         .iter()
+        .flatten()
         .filter(|c| mois >= c.en_dsn_depuis.as_str())
         .collect();
     if specs.is_empty() {
@@ -2114,12 +2114,12 @@ pub fn autre_revenu(f: &mut Fichier, p: &Paie, bar: &BaremeDuMois, debut: &Jour,
     let bp = bareme_de(p, bar)?;
     for (type_54, supp) in [("92", &bp.cotisation_sante_patronale), ("93", &bp.cotisation_prevoyance_retraite_supp)] {
         let Some(supp) = supp else { continue };
-        let montant = if !supp.lignes_patronales.is_empty() {
-            somme_lignes(p, &supp.lignes_patronales, true)
+        let montant = if let Some(lignes) = supp.lignes_patronales.as_ref().filter(|l| !l.is_empty()) {
+            somme_lignes(p, lignes, true)
         } else {
             let k = supp.base.clone().unwrap_or_else(|| "brut".into());
             let base_54 = bases(p, &bp)?.get(&k).copied().unwrap_or(p.brut);
-            pct(base_54, supp.taux_sur_brut.ok_or_else(|| socle::fichiers::absent("taux_sur_brut"))?)
+            pct(base_54, supp.taux_sur_brut.map(|n| n.0).ok_or_else(|| socle::fichiers::absent("taux_sur_brut"))?)
         };
         let montant = rond(montant);
         if montant.is_zero() {
@@ -2708,7 +2708,7 @@ fn lecture(p: &Paie, bar: &BaremeDuMois) -> Resultat<Lecture> {
         let cle_total = c.cle_total.clone().filter(|x| !x.is_empty());
         // 81.003 s'ecrit avec un organisme ou une cle de totalisation (`bases_et_cotisations`) ; il porte la base du
         // taux, pas celle d'une cotisation faite de lignes du bulletin.
-        let base = if (!org.is_empty() || cle_total.is_some()) && c.lignes.is_empty() && c.taux.is_some() {
+        let base = if (!org.is_empty() || cle_total.is_some()) && c.lignes.as_ref().is_none_or(Vec::is_empty) && c.taux.is_some() {
             Some(c.base.clone().ok_or_else(|| socle::fichiers::absent("base"))?)
         } else {
             None

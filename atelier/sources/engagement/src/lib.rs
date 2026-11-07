@@ -1147,8 +1147,8 @@ const SAISIE_INCOMPLETE: [&str; 7] =
 pub fn tarif_conventionnel(ctx: &Contexte, code: &str, jour: &Jour) -> Resultat<Option<Decimal>> {
     let bar = ctx.bareme(jour)?;
     Ok(bar.tarifs_conventionnels.as_ref().and_then(|t| match code {
-        "repas" => t.repas,
-        "nuitee" => t.nuitee,
+        "repas" => t.repas.and_then(|n| n.0),
+        "nuitee" => t.nuitee.and_then(|n| n.0),
         _ => None,
     }))
 }

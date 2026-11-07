@@ -43,27 +43,18 @@ forme! {
         pub en_vigueur: Jour,
         pub etat: String,
         /// Faux : les taux sont releves, pas confirmes, et le moteur ne paie pas. Absent : confirme.
-        #[serde(default)]
         pub applicable: Option<bool>,
         /// Ce qui reste a verifier d'un regime qui n'est pas applicable.
-        #[serde(default)]
         pub a_confirmer: Option<String>,
         /// Le texte fixe la repartition, pas le taux : celui du contrat de l'entreprise, sur sa fiche.
-        #[serde(default)]
-        pub contrat_requis: bool,
+        pub contrat_requis: Option<bool>,
         pub obligatoire: Bloc,
-        #[serde(default)]
         pub obligatoire_cadre: Option<Bloc>,
         pub beneficiaires: Beneficiaires,
-        #[serde(default)]
         pub options: Option<Options>,
-        #[serde(default)]
         pub sante_minimum: Option<SanteMinimum>,
-        #[serde(default)]
         pub financement_paritarisme: Option<Financement>,
-        #[serde(default)]
-        pub annexes: BTreeMap<String, Annexe>,
-        #[serde(default)]
+        pub annexes: Option<BTreeMap<String, Annexe>>,
         pub sante: Option<Sante>,
     }
 }
@@ -71,22 +62,16 @@ forme! {
 forme! {
     /// Une cotisation de prevoyance (tous, ou les cadres) : tranche 1, tranche 2, repartition, et ce qui change a une date.
     pub struct Bloc {
-        #[serde(default)]
         pub taux: Option<f64>,
-        #[serde(default)]
+        /// L'assiette de la tranche 1 (celle du bloc `obligatoire` s'applique) et la part de l'employeur, que le catalogue
+        /// dit pour chaque bloc.
         pub base: Option<String>,
-        #[serde(default)]
-        pub part_patronale: Option<f64>,
-        #[serde(default)]
+        pub part_patronale: f64,
         pub t2: Option<f64>,
-        #[serde(default)]
         pub t2_base: Option<String>,
-        #[serde(default)]
         pub t2_part_patronale: Option<f64>,
-        #[serde(default)]
         pub ventilation: Option<Ventilation>,
-        #[serde(default)]
-        pub a_partir_du: BTreeMap<Jour, Changement>,
+        pub a_partir_du: Option<BTreeMap<Jour, Changement>>,
     }
 }
 
@@ -101,11 +86,8 @@ forme! {
 forme! {
     /// Ce qu'un bloc prend a une date : ses nouveaux taux.
     pub struct Changement {
-        #[serde(default)]
         pub taux: Option<f64>,
-        #[serde(default)]
         pub t2: Option<f64>,
-        #[serde(default)]
         pub ventilation: Option<Ventilation>,
     }
 }
@@ -114,7 +96,6 @@ forme! {
     /// Qui beneficie du regime, et apres combien de mois d'anciennete dans la branche.
     pub struct Beneficiaires {
         /// Faux : la convention n'a pas de regime pour ses non cadres.
-        #[serde(default)]
         pub non_cadres: Option<bool>,
         pub ouverture_cadre_mois: i64,
         pub ouverture_non_cadre_mois: i64,
@@ -130,14 +111,10 @@ forme! {
 forme! {
     /// L'extension facultative a la tranche 2 : son taux pour tous, ou pour les cadres seuls.
     pub struct Extension {
-        #[serde(default)]
         pub tous: Option<f64>,
-        #[serde(default)]
         pub cadres: Option<f64>,
-        #[serde(default)]
-        pub base: Option<String>,
-        #[serde(default)]
-        pub part_patronale: Option<f64>,
+        pub base: String,
+        pub part_patronale: f64,
     }
 }
 
@@ -148,8 +125,7 @@ forme! {
     /// La cotisation minimale de la sante des permanents, en % du plafond mensuel : le socle, et ce qu'une annexe impose.
     pub struct SanteMinimum {
         pub socle: Datees,
-        #[serde(default)]
-        pub annexes: BTreeMap<String, Datees>,
+        pub annexes: Option<BTreeMap<String, Datees>>,
         pub part_patronale_minimum: Nombre,
     }
 }
@@ -176,13 +152,11 @@ forme! {
 forme! {
     /// Le regime de sante de la branche : un taux au titre du seul salarie, et la part minimale de l'employeur.
     pub struct Sante {
-        #[serde(default)]
-        pub base: Option<String>,
+        pub base: String,
         pub taux: Datees,
-        #[serde(default)]
-        pub taux_alsace_moselle: Datees,
-        #[serde(default)]
-        pub part_patronale_minimum: Option<Nombre>,
+        pub taux_alsace_moselle: Option<Datees>,
+        /// La part minimale de l'employeur (L. 911-7), que le catalogue dit pour chaque regime de sante.
+        pub part_patronale_minimum: Nombre,
     }
 }
 
@@ -231,13 +205,13 @@ en vigueur au {} dans le catalogue de branche.",
             jour
         ));
     };
-    if !sante.taux_alsace_moselle.is_empty() && alsace_moselle(ent, sal) {
-        if let Some((_, local)) = derniere(&sante.taux_alsace_moselle, &jour) {
+    if let Some(local) = sante.taux_alsace_moselle.as_ref().filter(|t| !t.is_empty()).filter(|_| alsace_moselle(ent, sal)) {
+        if let Some((_, local)) = derniere(local, &jour) {
             total = local;
         }
     }
     let choix = ent.sante_permanents.dite().and_then(|s| s.part_patronale.dite());
-    let minimum = sante.part_patronale_minimum.map_or(Decimal::from(50), |n| n.0);
+    let minimum = sante.part_patronale_minimum.0;
     let part = choix.map_or(minimum, |c| c.decimal());
     if part < minimum || part > Decimal::ONE_HUNDRED {
         return Err(format!(
@@ -249,7 +223,7 @@ charge de l'employeur (XII.2.1.11), et pas plus de 100.",
             minimum
         ));
     }
-    let base = sante.base.clone().unwrap_or_else(|| "pss_periode".to_string());
+    let base = sante.base.clone();
     Ok(Some(Mutuelle::Pose { base, total, pat: div(part, Decimal::ONE_HUNDRED) }))
 }
 
@@ -258,7 +232,7 @@ pub fn minimum_sante(ent: &ChampsEntreprise, jour: &str) -> Resultat<(Option<Dec
     let c = catalogue()?;
     let Some(m) = c.regime(ent.idcc.texte()).and_then(|r| r.sante_minimum.as_ref()) else { return Ok((None, String::new())) };
     let annexe = ent.annexe_convention.code().to_string();
-    let (table, qui) = match m.annexes.get(&annexe) {
+    let (table, qui) = match m.annexes.as_ref().and_then(|a| a.get(&annexe)) {
         Some(t) => (t, format!("annexe {}", annexe)),
         None => (&m.socle, "socle".to_string()),
     };
@@ -327,7 +301,7 @@ donnees/prevoyance-conventionnelle-base.json.",
 /// Le bloc tel qu'il vaut ce jour-la : ses changements dates jusqu'a `jour` inclus, dans l'ordre.
 fn bloc_au(b: &Bloc, jour: &Jour) -> Bloc {
     let mut out = b.clone();
-    for (_, c) in b.a_partir_du.iter().filter(|(d, _)| *d <= jour) {
+    for (_, c) in b.a_partir_du.iter().flatten().filter(|(d, _)| *d <= jour) {
         if c.taux.is_some() {
             out.taux = c.taux;
         }
@@ -358,8 +332,8 @@ fn resume(reg: &Regime) -> String {
     } else if let Some(t) = reg.obligatoire.taux {
         out.push(format!("non cadres {} % de la tranche 1", pcf(t)));
     }
-    if let Some(oc) = reg.obligatoire_cadre.as_ref().filter(|oc| oc.taux.is_some()) {
-        let mut s = format!("cadres {} % de la tranche 1", pcf(oc.taux.unwrap_or_default()));
+    if let Some((oc, taux)) = reg.obligatoire_cadre.as_ref().and_then(|oc| oc.taux.map(|t| (oc, t))) {
+        let mut s = format!("cadres {} % de la tranche 1", pcf(taux));
         if let Some(t2) = oc.t2 {
             s += &format!(" et {} % de la tranche 2", pcf(t2));
         }
@@ -425,7 +399,7 @@ nouveau le laisserait sans couverture pendant un an.",
 fn minimum_t1(reg: &Regime, annexe: &str, cadre: bool) -> Resultat<(f64, String)> {
     let mut taux = reg.obligatoire.taux.unwrap_or(0.0);
     let mut pourquoi = format!("{} : {} %", reg.texte, pcf(taux));
-    let sup = reg.annexes.get(annexe).map(|a| a.taux).filter(|t| *t != 0.0);
+    let sup = reg.annexes.as_ref().and_then(|a| a.get(annexe)).map(|a| a.taux).filter(|t| *t != 0.0);
     if let Some(s) = sup.filter(|s| *s > taux) {
         taux = s;
         pourquoi = format!("annexe {} de la convention : {} %", annexe, pcf(taux));
@@ -470,7 +444,7 @@ fn repartir(taux: f64, part_patronale: f64) -> Part {
 
 /// La part patronale de la tranche 2 d'un bloc : la sienne, sinon celle du bloc, sinon 100.
 fn part_t2(b: &Bloc) -> f64 {
-    b.t2_part_patronale.or(b.part_patronale).unwrap_or(100.0)
+    b.t2_part_patronale.unwrap_or(b.part_patronale)
 }
 
 /// Ce qu'un permanent cotise en prevoyance ce mois-la.
@@ -484,7 +458,7 @@ pub fn cotisation(sal: &SalarieDuContrat, cadre: bool, fin: Option<&Jour>, entre
     if !cadre && reg.beneficiaires.non_cadres == Some(false) && !contrat {
         return Ok(Cotisation { sans_regime: true, ..Cotisation::default() });
     }
-    if reg.contrat_requis && !contrat {
+    if reg.contrat_requis == Some(true) && !contrat {
         return Err(socle::echec::avec(
             "La prévoyance des permanents de cette convention suit le contrat de la compagnie : poser ses taux dans la fiche entreprise, « Prévoyance des permanents ».",
             APart {
@@ -509,8 +483,8 @@ lus sur le contrat ou l'appel de cotisations. Rien n'est calcule.",
     let (mini, origine) = minimum_t1(&reg, entreprise.annexe_convention.code(), cadre)?;
     let obl = &reg.obligatoire;
     let oc = reg.obligatoire_cadre.as_ref();
-    let pat_cadre = oc.and_then(|b| b.part_patronale);
-    let mut part_pat = obl.part_patronale.unwrap_or(100.0);
+    let pat_cadre = oc.map(|b| b.part_patronale);
+    let mut part_pat = obl.part_patronale;
     if cadre {
         part_pat = pat_cadre.unwrap_or(part_pat.max(100.0));
     }
@@ -557,15 +531,16 @@ l'employeur (ANI du 17/11/2017, art. 1er)."
     }
 
     let mut t1 = repartir(taux, part_pat);
-    t1.base = Some(obl.base.clone().filter(|b| !b.is_empty()).unwrap_or_else(|| "t1_mensuelle".to_string()));
+    t1.base = Some(obl.base.clone().ok_or_else(|| socle::fichiers::absent("obligatoire.base"))?);
     let mut t2: Option<Part> = None;
     let obligatoire_t2 = match oc.filter(|b| cadre && b.t2.is_some()) {
         Some(b) => Some(b),
         None => Some(obl).filter(|b| b.t2.is_some()),
     };
-    if let Some(b) = obligatoire_t2.filter(|_| !contrat) {
-        let mut m = repartir(b.t2.unwrap_or_default(), part_t2(b));
-        m.base = Some(b.t2_base.clone().filter(|b| !b.is_empty()).unwrap_or_else(|| "t2_conventionnelle".to_string()));
+    if let Some((b, t2_taux)) = obligatoire_t2.filter(|_| !contrat).and_then(|b| b.t2.map(|t| (b, t))) {
+        let base_t2 = b.t2_base.clone().ok_or_else(|| socle::fichiers::absent("t2_base"))?;
+        let mut m = repartir(t2_taux, part_t2(b));
+        m.base = Some(base_t2);
         m.obligatoire = true;
         t2 = Some(m);
     }
@@ -586,10 +561,10 @@ convention {}.",
         };
         let part = match part_du_contrat {
             Some(p) => p.flottant()?,
-            None => opt.part_patronale.unwrap_or(100.0),
+            None => opt.part_patronale,
         };
         let mut m = repartir(propre, part);
-        m.base = Some(opt.base.clone().filter(|b| !b.is_empty()).unwrap_or_else(|| "t2_conventionnelle".to_string()));
+        m.base = Some(opt.base.clone());
         t2 = Some(m);
     }
     Ok(Cotisation { t1, t2, due: true, sans_regime: false })

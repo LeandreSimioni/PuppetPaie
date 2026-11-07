@@ -681,7 +681,7 @@ silence vaut accord >>). Dire lequel ({}, {}) ou son refus ({}). Rien n'est calc
             }
         },
     }
-    if !dfs.verifie {
+    if dfs.verifie != Some(true) {
         return Err(socle::echec::avec("Le barème de l'année ne paie pas encore la déduction forfaitaire spécifique : ses taux ne sont pas vérifiés.", crate::Detail::du(None, format!(
             "Deduction forfaitaire specifique de {} ({}) : la section deduction_forfaitaire du bareme {} n'est pas \
 marquee verifiee (\"verifie\": true). Le moteur refuse de payer plutot que d'inventer -- comme pour un statut sans \
@@ -692,7 +692,7 @@ section verifiee.",
     let categorie = fiche_prof.categorie.clone();
     // Le taux de l'annee : celui de la profession quand l'arrete lui donne un calendrier a part (art. 9, III, pour les
     // professions hors spectacle vivant), sinon celui de sa categorie (art. 9, II).
-    let taux = fiche_prof.taux.or_else(|| dfs.taux.get(&categorie).map(|n| n.0)).ok_or_else(|| {
+    let taux = fiche_prof.taux.map(|n| n.0).or_else(|| dfs.taux.get(&categorie).map(|n| n.0)).ok_or_else(|| {
         format!(
             "Deduction forfaitaire specifique de {} ({}) : le bareme {} n'a pas de taux pour la categorie << {} >>.",
             qui, profession, annee, categorie
@@ -1361,7 +1361,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
             ))))
         }
     };
-    let plafond_journalier = bar.plafond_journalier.filter(|p| !p.is_zero());
+    let plafond_journalier = bar.plafond_journalier.map(|n| n.0).filter(|p| !p.is_zero());
     let t1_du_contrat = |p: Decimal| -> Resultat<Decimal> { Ok(eur(mul(p, jours))) };
     let mut plafond_prev = None;
     if prev.base.as_deref() == Some("t1_journaliere") {
@@ -1506,7 +1506,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     if let Some(pj) = plafond_journalier.filter(|_| !nat.mensuelle() && droit::bareme::est_cadre(&sal)) {
         let t1 = t1_du_contrat(pj)?;
         let mult = |m: Option<Decimal>, cle: &str| -> Resultat<Decimal> { Ok(m.ok_or_else(|| socle::fichiers::absent(cle))?.trunc()) };
-        let (t2_mult, apec_mult) = (mult(bar.t2_multiple, "t2_multiple")?, mult(bar.apec_multiple, "apec_multiple")?);
+        let (t2_mult, apec_mult) = (mult(bar.t2_multiple.map(|n| n.0), "t2_multiple")?, mult(bar.apec_multiple.map(|n| n.0), "apec_multiple")?);
         bases.insert("t2_journaliere".into(), zero.max(brut.min(t2_mult * t1) - t1));
         // L'Apec, sur le brut dans la limite de quatre plafonds (Audiens, Parametres ; Agirc-Arrco, aide DSN) : en tout,
         // et au-dela de la T1.
@@ -1606,12 +1606,12 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         };
         let (mut m_pat, mut m_sal) = (zero, zero);
         let (mut taux_pat, mut taux_sal) = (r.taux_pat, r.taux_sal);
-        let non_vide = |c: &Vec<f64>| Some(c.clone()).filter(|c| !c.is_empty());
+        let non_vide = |c: &Option<Vec<f64>>| c.clone().filter(|c| !c.is_empty());
         let (mut comp_pat, mut comp_sal) = (non_vide(&r.composants_pat), non_vide(&r.composants_sal));
         let manque = || "taux absent (taux_pat ou taux_sal) : le complément ne s'ajoute à rien".to_string();
         // Le complement au-dela d'un seuil : le taux reduit, plus le complement.
         if let Some(compl) = &r.complement {
-            if au_dela_du_seuil(bar.reduction_generale.as_ref(), brut, Decimal::ZERO.max(heures_annexes), compl.seuil_smic)? {
+            if au_dela_du_seuil(bar.reduction_generale.as_ref(), brut, Decimal::ZERO.max(heures_annexes), compl.seuil_smic.map(|n| n.0))? {
                 taux_pat = Some(round3(taux_pat.ok_or_else(manque)? + compl.taux));
             }
         }
@@ -1659,7 +1659,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
             montant_pat: m_pat,
             taux_sal,
             montant_sal: m_sal,
-            masquer_base_et_taux: r.masquer_base_et_taux,
+            masquer_base_et_taux: r.masquer_base_et_taux == Some(true),
         });
         tot_pat += m_pat;
         tot_sal += m_sal;
@@ -1674,7 +1674,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // Sous DFS, la reduction se calcule sur le brut abattu, dans la limite de 130 % de celle du brut entier
     // (`reduction_generale_sous_dfs`).
     // Le SMIC horaire de la reduction (`smic_horaire_reference`) ; sans lui, pas de reduction.
-    let smic_horaire_rg = bar.reduction_generale.as_ref().and_then(|r| r.smic_horaire_reference).filter(|s| !s.is_zero());
+    let smic_horaire_rg = bar.reduction_generale.as_ref().and_then(|r| r.smic_horaire_reference).map(|n| n.0).filter(|s| !s.is_zero());
     let absence = smic_d_une_absence(&lb, smic_horaire_rg);
     let heures_rg = match absence.as_ref().and_then(|a| a.heures) {
         Some(h) => h,

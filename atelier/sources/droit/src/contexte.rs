@@ -179,10 +179,9 @@ pub fn cinquante_salaries_et_plus(fiche: &ChampsEntreprise) -> bool {
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct FichierEffectifs {
-    #[serde(rename = "quoi", default)]
+    #[serde(rename = "quoi")]
     _quoi: Option<String>,
-    #[serde(default)]
-    annees: BTreeMap<String, BTreeMap<String, EffectifEcrit>>,
+    annees: Option<BTreeMap<String, BTreeMap<String, EffectifEcrit>>>,
 }
 
 /// L'effectif d'un code pour une annee.
@@ -190,11 +189,11 @@ struct FichierEffectifs {
 #[serde(deny_unknown_fields)]
 struct EffectifEcrit {
     valeur: f64,
-    #[serde(rename = "calcule_le", default)]
+    #[serde(rename = "calcule_le")]
     _calcule_le: Option<String>,
-    #[serde(rename = "source", default)]
+    #[serde(rename = "source")]
     _source: Option<String>,
-    #[serde(rename = "dit_le", default)]
+    #[serde(rename = "dit_le")]
     _dit_le: Option<String>,
 }
 
@@ -204,7 +203,7 @@ pub fn effectif_de(racine: &Path, fiche: &ChampsEntreprise) -> Resultat<Effectif
     let mut annees = BTreeMap::new();
     if socle::fichiers::existe(&p) {
         let lu: FichierEffectifs = socle::forme::lire_fichier(&p, "Les effectifs de la compagnie ne se lisent pas : relever les retours les récrit.")?;
-        for (an, codes) in lu.annees {
+        for (an, codes) in lu.annees.into_iter().flatten() {
             if an.is_empty() || !an.chars().all(|c| c.is_ascii_digit()) {
                 continue;
             }
@@ -466,18 +465,22 @@ fn reduction_par_dessus(r: &mut ReductionGenerale, m: &ReductionGenerale) {
         ($($c:ident),*) => { $( if m.$c.is_some() { r.$c = m.$c.clone(); } )* };
     }
     si!(verifie, formule, tmin, tdelta, puissance, t, plafond_smic, smic_horaire_reference, imputation, dsn, majoration_caisse_conges, source, note);
-    if !m.statuts.is_empty() {
+    if m.statuts.is_some() {
         r.statuts = m.statuts.clone();
     }
 }
 
 /// Ce qu'une couche ecrit de la section d'une nature.
 fn modifier_la_nature(nat: &mut CoucheNature, m: &NatureModifiee, ou: &str) -> Resultat<()> {
-    par_dessus_rubriques(&mut nat.rubriques, &m.rubriques);
-    modifier_rubriques(&mut nat.rubriques_ajoutees, &m.rubriques_ajoutees, ou)?;
-    if !m.cotisations_dsn.is_empty() {
+    if let Some(mods) = &m.rubriques {
+        par_dessus_rubriques(nat.rubriques.get_or_insert_with(BTreeMap::new), mods);
+    }
+    if let Some(mods) = &m.rubriques_ajoutees {
+        modifier_rubriques(nat.rubriques_ajoutees.as_mut().ok_or_else(|| inconnue(ou, "rubriques_ajoutees"))?, mods, ou)?;
+    }
+    if let Some(mods) = &m.cotisations_dsn {
         let l = nat.cotisations_dsn.as_mut().ok_or_else(|| inconnue(ou, "cotisations_dsn"))?;
-        modifier_cotisations(l, &m.cotisations_dsn, ou)?;
+        modifier_cotisations(l, mods, ou)?;
     }
     Ok(())
 }
@@ -489,27 +492,32 @@ fn fondre_la_convention(pile: &mut Pile, c: &CoucheConvention, idcc: &str) -> Re
     if let Some(t) = &c.tarifs_conventionnels {
         pile.tarifs_conventionnels = Some(t.clone());
     }
-    for x in &c.contributions_conventionnelles {
-        match pile.contributions_conventionnelles.iter_mut().find(|y| y.id == x.id) {
+    for x in c.contributions_conventionnelles.iter().flatten() {
+        let liste = pile.contributions_conventionnelles.get_or_insert_with(Vec::new);
+        match liste.iter_mut().find(|y| y.id == x.id) {
             Some(y) => *y = x.clone(),
-            None => pile.contributions_conventionnelles.push(x.clone()),
+            None => liste.push(x.clone()),
         }
     }
-    if !c.contributions_dsn.is_empty() {
-        pile.contributions_dsn = c.contributions_dsn.clone();
+    if let Some(l) = &c.contributions_dsn {
+        pile.contributions_dsn = Some(l.clone());
     }
     if let Some(s) = &c.secteurs {
         pile.secteurs = Some(s.clone());
     }
-    modifier_rubriques(&mut pile.rubriques_bulletin, &c.rubriques, &ou)?;
-    for (n, m) in &c.par_nature {
+    if let Some(mods) = &c.rubriques {
+        modifier_rubriques(&mut pile.rubriques_bulletin, mods, &ou)?;
+    }
+    for (n, m) in c.par_nature.iter().flatten() {
         modifier_la_nature(pile.par_nature.entry(n.clone()).or_default(), m, &ou)?;
     }
-    for (k, m) in &c.par_categorie {
+    for (k, m) in c.par_categorie.iter().flatten() {
         let cat = pile.par_categorie.entry(k.clone()).or_default();
-        par_dessus_rubriques(&mut cat.rubriques, &m.rubriques);
-        for (s, sec) in &m.par_statut {
-            cat.par_statut.insert(s.clone(), sec.clone());
+        if let Some(mods) = &m.rubriques {
+            par_dessus_rubriques(cat.rubriques.get_or_insert_with(BTreeMap::new), mods);
+        }
+        for (s, sec) in m.par_statut.iter().flatten() {
+            cat.par_statut.get_or_insert_with(BTreeMap::new).insert(s.clone(), sec.clone());
         }
     }
     Ok(())
@@ -530,21 +538,25 @@ fn fondre_la_surcouche(pile: &mut Pile, s: Surcouche, jour: &Jour, ou: &str) -> 
     if s.versement_mobilite.is_some() {
         pile.versement_mobilite = s.versement_mobilite;
     }
-    modifier_rubriques(&mut pile.rubriques_bulletin, &s.rubriques, &ou)?;
-    modifier_cotisations(&mut pile.cotisations_dsn, &s.cotisations_dsn, &ou)?;
-    for (k, m) in &s.par_statut {
+    if let Some(mods) = &s.rubriques {
+        modifier_rubriques(&mut pile.rubriques_bulletin, mods, &ou)?;
+    }
+    if let Some(mods) = &s.cotisations_dsn {
+        modifier_cotisations(&mut pile.cotisations_dsn, mods, &ou)?;
+    }
+    for (k, m) in s.par_statut.iter().flatten() {
         let st = pile.par_statut.get_mut(k).ok_or_else(|| inconnue(&ou, &format!("par_statut.{}", k)))?;
-        if !m.rubriques.is_empty() {
-            modifier_rubriques(st.rubriques_bulletin.as_mut().ok_or_else(|| inconnue(&ou, "rubriques_bulletin"))?, &m.rubriques, &ou)?;
+        if let Some(mods) = &m.rubriques {
+            modifier_rubriques(st.rubriques_bulletin.as_mut().ok_or_else(|| inconnue(&ou, "rubriques_bulletin"))?, mods, &ou)?;
         }
-        if !m.cotisations_dsn.is_empty() {
-            modifier_cotisations(st.cotisations_dsn.as_mut().ok_or_else(|| inconnue(&ou, "cotisations_dsn"))?, &m.cotisations_dsn, &ou)?;
+        if let Some(mods) = &m.cotisations_dsn {
+            modifier_cotisations(st.cotisations_dsn.as_mut().ok_or_else(|| inconnue(&ou, "cotisations_dsn"))?, mods, &ou)?;
         }
         if let Some(r) = &m.reduction_generale {
             reduction_par_dessus(st.reduction_generale.get_or_insert_with(ReductionGenerale::default), r);
         }
     }
-    for (n, m) in &s.par_nature {
+    for (n, m) in s.par_nature.iter().flatten() {
         modifier_la_nature(pile.par_nature.get_mut(n).ok_or_else(|| inconnue(&ou, &format!("par_nature.{}", n)))?, m, &ou)?;
     }
     Ok(depuis)
@@ -811,7 +823,7 @@ L'effacer, ou ecrire \"aucun\".",
 caracteres) de la commune de l'etablissement : les deux se \
 lisent sur la deliberation de l'autorite ou sur le bordereau \
 Urssaf.",
-                t.taux.map_or("absent".to_string(), |x| x.to_string()),
+                t.taux.map_or("absent".to_string(), |x| x.0.to_string()),
                 t.code_insee.as_deref().map_or("absent".to_string(), |c| format!("« {} »", c))
             ),
             Some(VersementMobiliteEcrit::Dit(r)) => format!(
@@ -1530,8 +1542,8 @@ depuis le plus recent.",
         let ent = self.entreprise_au(jour);
         let Some(idcc) = ent.idcc.portee() else { return Ok(Vec::new()) };
         let (socle_an, _) = crate::forme_bareme::lire_le_socle(&fichier, jour, ent.organisation_patronale.dite().map(String::as_str))?;
-        let Ok(Some(couche)) = convention(&socle_an, idcc) else { return Ok(Vec::new()) };
-        Ok(couche.contributions_dsn.clone())
+        let Some(couche) = convention(&socle_an, idcc)? else { return Ok(Vec::new()) };
+        Ok(couche.contributions_dsn.clone().unwrap_or_default())
     }
 
     /// Le bareme resolu a ce jour, garde et partage : il se lit sans se copier ; ce qui le change (la pile d'un contrat,

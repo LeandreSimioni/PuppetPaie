@@ -226,7 +226,7 @@ pub fn manques(ctx: &Contexte) -> socle::num::Resultat<Vec<Value>> {
     // article III.3.1) et seulement quand l'effectif de la paie compte au moins onze salaries : en dessous, la question
     // ne se pose pas (III.3.1.b, `droit::bareme::representation_du_personnel`).
     let cle = "representation_personnel";
-    let par_representation = |b: &droit::forme_bareme::Pile| b.contributions_conventionnelles.iter().any(|c| !c.par_representation.is_empty());
+    let par_representation = |b: &droit::forme_bareme::Pile| b.contributions_conventionnelles.iter().flatten().any(|c| c.par_representation.as_ref().is_some_and(|p| !p.is_empty()));
     // Sans CSE dit, c'est l'effectif de la paie (celui de l'annee d'avant, L. 130-1, I) qui decide (III.3.1.b) : inconnu,
     // c'est lui que la contribution demande, pas le CSE.
     if ent.representation_personnel.dite().is_none() && ctx.bareme(&ctx.aujourdhui).is_ok_and(|b| par_representation(&b)) {
