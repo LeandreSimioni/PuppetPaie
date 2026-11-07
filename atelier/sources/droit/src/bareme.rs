@@ -8,7 +8,7 @@
 
 use socle::texte::sans_accent;
 use crate::forme_bareme::{
-    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Part, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp, TauxAtmpEcrit, ValeurAtmp,
+    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Part, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp, TauxAtmpEcrit, TauxDate, ValeurAtmp,
     VersementMobiliteEcrit,
 };
 use crate::natures::Nature;
@@ -110,7 +110,7 @@ pub(crate) fn modifier(r: &mut Rubrique, m: &RubriqueModifiee) {
     }
     si!(famille, libelle, base, cet_si_depasse, rempli_par, a_confirmer, source, note);
     if let Some(t) = m.taux_pat {
-        r.taux_pat = Some(t.0);
+        r.taux_pat = Some(t);
     }
     if let Some(t) = m.taux_sal {
         r.taux_sal = Some(t);
@@ -397,14 +397,14 @@ section par_nature['{}'].cpf_cdd qui dise son taux et sa cotisation. Rien n'est 
         .find(|r| r.id == sec.rubrique)
         .ok_or_else(|| incomplet(&format!("par_nature.{}.cpf_cdd.rubrique", nom), &sec.rubrique))?;
     if r.composants.as_deref().is_none_or(<[f64]>::is_empty) {
-        let premier = r.taux_pat.ok_or_else(|| incomplet(&format!("rubriques_bulletin[{}].taux_pat", sec.rubrique), ""))?;
+        let premier = r.taux_pat.ok_or_else(|| incomplet(&format!("rubriques_bulletin[{}].taux_pat", sec.rubrique), ""))?.0;
         r.composants = Some(vec![premier]);
     }
     let composants = r.composants.get_or_insert_with(Vec::new);
     composants.push(sec.taux);
     let total: f64 = composants.iter().sum();
     // La somme affichee, au millieme comme les composants du bareme (0,30 + 0,016 + 0,55 + 1,0 = 1,866).
-    r.taux_pat = Some((total * 1000.0).round() / 1000.0);
+    r.taux_pat = Some(TauxDate((total * 1000.0).round() / 1000.0));
     bar.cotisations_dsn.push(sec.cotisation_dsn);
     Ok(bar)
 }
@@ -423,8 +423,8 @@ pub fn bareme_majoration_chomage(mut bar: Pile, due: bool) -> Resultat<Pile> {
     let r = bar.rubriques_bulletin.iter_mut().find(|r| r.id == sec.rubrique).ok_or_else(|| {
         socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", "majoration_chomage_cddu.rubrique", &sec.rubrique)
     })?;
-    let avant = dec_f64(r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?)?;
-    r.taux_pat = Some(flt(sub(avant, taux)));
+    let avant = dec_f64(r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?.0)?;
+    r.taux_pat = Some(TauxDate(flt(sub(avant, taux))));
     bar.cotisations_dsn.retain(|c| code81(c) != Some(sec.code81.as_str()));
     Ok(bar)
 }
@@ -561,7 +561,7 @@ fn poser_mutuelle(mut bar: Pile, base: Option<&str>, total: Decimal, pat: Decima
         if let Some(b) = base {
             r.base = Some(b.to_string());
         }
-        r.taux_pat = Some(flt(rond(mul(total, pat), 4)));
+        r.taux_pat = Some(TauxDate(flt(rond(mul(total, pat), 4))));
         r.taux_sal = Some(flt(rond(sub(total, mul(total, pat)), 4)));
         if let Some(l) = libelle {
             r.libelle = Some(l.to_string());
@@ -819,7 +819,7 @@ pub fn bareme_atmp(bar: Pile, ent: &ChampsEntreprise) -> Resultat<Pile> {
     };
     for r in &mut bar.rubriques_bulletin {
         if let Some(f) = r.facteur_atmp {
-            r.taux_pat = Some(flt(rond(mul(taux, dec_f64(f)?), 3)));
+            r.taux_pat = Some(TauxDate(flt(rond(mul(taux, dec_f64(f)?), 3))));
         }
     }
     Ok(bar)
@@ -841,7 +841,7 @@ pub fn bareme_prevoyance(mut bar: Pile, ent: &ChampsEntreprise, sal: &SalarieDuC
         // La tranche 2 se range dans la famille de la ligne de la prevoyance.
         let famille = dit(&r.famille).map(str::to_string);
         let mut rr = r;
-        rr.taux_pat = Some(cot.t1.taux_pat);
+        rr.taux_pat = Some(TauxDate(cot.t1.taux_pat));
         rr.taux_sal = Some(cot.t1.taux_sal);
         if cot.t1.base.is_some() {
             rr.base = cot.t1.base.clone();
@@ -854,7 +854,7 @@ pub fn bareme_prevoyance(mut bar: Pile, ent: &ChampsEntreprise, sal: &SalarieDuC
                 famille: famille.clone(),
                 libelle: Some(if t2.obligatoire { "Prévoyance Tranche 2" } else { "Prévoyance Tranche 2 (extension conventionnelle)" }.into()),
                 base: Some(t2.base.clone().ok_or_else(|| socle::fichiers::absent("t2_base"))?),
-                taux_pat: Some(t2.taux_pat),
+                taux_pat: Some(TauxDate(t2.taux_pat)),
                 taux_sal: Some(t2.taux_sal),
                 ..Rubrique::default()
             });
@@ -1109,7 +1109,7 @@ pub fn bareme_convention(mut bar: Pile, ent: &EntrepriseLue, nat: Option<&Nature
                 r.base = base;
             }
             if taux_pat.is_some() || efface_pat {
-                r.taux_pat = taux_pat;
+                r.taux_pat = taux_pat.map(TauxDate);
             }
             if c.taux_sal.is_some() || efface(Part::TauxSal) {
                 r.taux_sal = c.taux_sal;
@@ -1125,7 +1125,7 @@ pub fn bareme_convention(mut bar: Pile, ent: &EntrepriseLue, nat: Option<&Nature
             famille: c.famille.clone(),
             libelle: c.libelle.clone(),
             base,
-            taux_pat,
+            taux_pat: taux_pat.map(TauxDate),
             taux_sal: c.taux_sal,
             masquer_base_et_taux: c.masquer_base_et_taux,
             source: c.source.clone(),
@@ -1393,7 +1393,7 @@ pub fn bareme_vm(mut bar: Pile, sal: &SalarieDuContrat) -> Resultat<Pile> {
         famille: Some("AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR".into()),
         libelle: Some("Versement mobilité".into()),
         base: Some("brut_x115".into()),
-        taux_pat: Some(taux),
+        taux_pat: Some(TauxDate(taux)),
         taux_sal: None,
         ..Rubrique::default()
     });
@@ -1575,7 +1575,7 @@ fn poser_t1(mut bar: Pile, retraite_pat: Decimal, retraite_sal: Decimal) -> Resu
     let sal = retraite_sal + ceg_sal;
     let mut base = None;
     for r in bar.rubriques_bulletin.iter_mut().filter(|r| r.id == "retraite_t1") {
-        r.taux_pat = Some(flt(pat));
+        r.taux_pat = Some(TauxDate(flt(pat)));
         r.taux_sal = Some(flt(sal));
         if r.composants_pat.as_deref().is_some_and(|l| !l.is_empty()) {
             r.composants_pat = Some(vec![flt(retraite_pat), flt(ceg_pat)]);

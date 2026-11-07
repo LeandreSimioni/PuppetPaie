@@ -951,7 +951,7 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Rubrique) 
     };
     let cet_pat = cet.pat;
     let comp = match r.composants_pat.as_deref().unwrap_or_default() {
-        [] => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?],
+        [] => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?.0],
         c => c.to_vec(),
     };
     let sans = droit::bareme::somme_pct(l.base, &comp)?;
@@ -1029,7 +1029,7 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
         let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| l.est(id))) else { continue };
         let (montant, cet) = sans_la_cet(p, l, r)?;
         let taux = match &cet {
-            Some(_) => r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?,
+            Some(_) => r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?.0,
             None => l.taux_pat.ok_or_else(|| format!("La ligne « {} » du bulletin n'a pas de taux patronal : sa part Agirc-Arrco ne se declare pas.", id))?,
         };
         if let Some((m, t)) = cet {

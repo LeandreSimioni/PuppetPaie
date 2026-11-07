@@ -442,8 +442,7 @@ forme! {
         /// La cle de son assiette dans les bases du calcul (`brut`, `brut_x115`, `t1_journaliere`…).
         pub base: Option<String>,
         /// Les deux parts, en pourcent ; absente ou nulle : pas de part de ce cote.
-        #[serde(default, deserialize_with = "datee::valeur")]
-        pub taux_pat: Option<f64>,
+        pub taux_pat: Option<TauxDate>,
         pub taux_sal: Option<f64>,
         /// Une part patronale qui se compose de plusieurs taux, chacun arrondi au centime (`composants`, ou
         /// `composants_pat`) ; la part salariale de meme (`composants_sal`).
@@ -854,7 +853,7 @@ impl Effet {
     /// Ce que la pile porte a sa place, `None` si elle ne le porte pas.
     pub fn lu(&self, pile: &Pile) -> Option<Lu> {
         let cotisation = |l: &[CotisationDsn], code: &str| l.iter().find(|c| c.code81.as_deref() == Some(code)).and_then(|c| c.taux).map(|t| Lu::Taux(t.0));
-        let rubrique = |l: &[Rubrique], id: &str| l.iter().find(|r| r.id == id).and_then(|r| r.taux_pat).map(Lu::Taux);
+        let rubrique = |l: &[Rubrique], id: &str| l.iter().find(|r| r.id == id).and_then(|r| r.taux_pat).map(|t| Lu::Taux(t.0));
         match self {
             Effet::TauxDsn { section: Section::Corps, code81, .. } => cotisation(&pile.cotisations_dsn, code81),
             Effet::TauxDsn { section: Section::Statut(s), code81, .. } => cotisation(pile.par_statut.get(s)?.cotisations_dsn.as_deref()?, code81),

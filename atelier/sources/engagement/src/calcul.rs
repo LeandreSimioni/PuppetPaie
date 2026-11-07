@@ -1084,7 +1084,7 @@ fn base_de(r: &Rubrique) -> Resultat<&str> {
 
 /// Le taux patronal d'une rubrique, s'il n'est pas nul.
 fn part_patronale(r: &Rubrique) -> Option<f64> {
-    r.taux_pat.filter(|t| *t != 0.0)
+    r.taux_pat.map(|t| t.0).filter(|t| *t != 0.0)
 }
 
 /// La pile de bareme sur laquelle se calcule la paie `p` (celle de `calculer_periode`, du meme cache).
@@ -1349,7 +1349,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
 
     // 7.3 : la prevoyance dans l'assiette CSG.
     let (prev, taux_prev) = match bar.rubrique("prevoyance") {
-        Some(p @ Rubrique { taux_pat: Some(t), .. }) => (p, dec_f64(*t)?),
+        Some(p @ Rubrique { taux_pat: Some(t), .. }) => (p, dec_f64(t.0)?),
         _ => {
             return Err(socle::echec::avec("Le barème de l'année n'a pas de prévoyance avec un taux patronal : le signaler au développeur.", crate::Detail::du(None, format!(
                 "Bareme {}{} : aucune rubrique `prevoyance` avec un taux \
@@ -1605,7 +1605,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                 .collect::<Resultat<_>>()?
         };
         let (mut m_pat, mut m_sal) = (zero, zero);
-        let (mut taux_pat, mut taux_sal) = (r.taux_pat, r.taux_sal);
+        let (mut taux_pat, mut taux_sal) = (r.taux_pat.map(|t| t.0), r.taux_sal);
         let non_vide = |c: &Option<Vec<f64>>| c.clone().filter(|c| !c.is_empty());
         let (mut comp_pat, mut comp_sal) = (non_vide(&r.composants_pat), non_vide(&r.composants_sal));
         let manque = || "taux absent (taux_pat ou taux_sal) : le complément ne s'ajoute à rien".to_string();
