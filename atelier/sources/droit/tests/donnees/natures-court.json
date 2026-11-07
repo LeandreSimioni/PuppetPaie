@@ -1,0 +1,749 @@
+[
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        9,
+        14
+      ],
+      "le": [
+        2026,
+        9,
+        30
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        11,
+        13
+      ],
+      "le": [
+        2026,
+        11,
+        13
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        11,
+        14
+      ],
+      "le": [
+        2026,
+        9,
+        13
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        11,
+        13
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        11,
+        14
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        12,
+        31
+      ],
+      "fin": [
+        2027,
+        2,
+        28
+      ],
+      "le": [
+        2027,
+        2,
+        28
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        12,
+        31
+      ],
+      "fin": [
+        2027,
+        3,
+        1
+      ],
+      "le": [
+        2027,
+        2,
+        28
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2027,
+        12,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2028,
+        2,
+        29
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2027,
+        12,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2028,
+        3,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2024,
+        1,
+        31
+      ],
+      "fin": [
+        2024,
+        3,
+        31
+      ],
+      "le": [
+        2024,
+        3,
+        31
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2024,
+        1,
+        31
+      ],
+      "fin": [
+        2024,
+        3,
+        31
+      ],
+      "le": [
+        2024,
+        4,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        10,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        12,
+        31
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cddu_spectacle",
+      "debut": [
+        2026,
+        10,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2027,
+        1,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        9,
+        14
+      ],
+      "le": [
+        2026,
+        9,
+        30
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        11,
+        13
+      ],
+      "le": [
+        2026,
+        11,
+        13
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        11,
+        14
+      ],
+      "le": [
+        2026,
+        9,
+        13
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        11,
+        13
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        11,
+        14
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        12,
+        31
+      ],
+      "fin": [
+        2027,
+        2,
+        28
+      ],
+      "le": [
+        2027,
+        2,
+        28
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        12,
+        31
+      ],
+      "fin": [
+        2027,
+        3,
+        1
+      ],
+      "le": [
+        2027,
+        2,
+        28
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2027,
+        12,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2028,
+        2,
+        29
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2027,
+        12,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2028,
+        3,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2024,
+        1,
+        31
+      ],
+      "fin": [
+        2024,
+        3,
+        31
+      ],
+      "le": [
+        2024,
+        3,
+        31
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2024,
+        1,
+        31
+      ],
+      "fin": [
+        2024,
+        3,
+        31
+      ],
+      "le": [
+        2024,
+        4,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        10,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        12,
+        31
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdi",
+      "debut": [
+        2026,
+        10,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2027,
+        1,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        9,
+        14
+      ],
+      "le": [
+        2026,
+        9,
+        30
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        11,
+        13
+      ],
+      "le": [
+        2026,
+        11,
+        13
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": [
+        2026,
+        11,
+        14
+      ],
+      "le": [
+        2026,
+        9,
+        13
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        11,
+        13
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        9,
+        13
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        11,
+        14
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        12,
+        31
+      ],
+      "fin": [
+        2027,
+        2,
+        28
+      ],
+      "le": [
+        2027,
+        2,
+        28
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        12,
+        31
+      ],
+      "fin": [
+        2027,
+        3,
+        1
+      ],
+      "le": [
+        2027,
+        2,
+        28
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2027,
+        12,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2028,
+        2,
+        29
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2027,
+        12,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2028,
+        3,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2024,
+        1,
+        31
+      ],
+      "fin": [
+        2024,
+        3,
+        31
+      ],
+      "le": [
+        2024,
+        3,
+        31
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2024,
+        1,
+        31
+      ],
+      "fin": [
+        2024,
+        3,
+        31
+      ],
+      "le": [
+        2024,
+        4,
+        1
+      ]
+    },
+    "attendu": false
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        10,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2026,
+        12,
+        31
+      ]
+    },
+    "attendu": true
+  },
+  {
+    "cas": {
+      "nature": "cdd",
+      "debut": [
+        2026,
+        10,
+        31
+      ],
+      "fin": null,
+      "le": [
+        2027,
+        1,
+        1
+      ]
+    },
+    "attendu": false
+  }
+]
