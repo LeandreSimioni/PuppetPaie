@@ -18,6 +18,7 @@
 //! la fiche d'un spectacle (son titre), le dossier d'un contrat signe ailleurs (`compagnie::signature`), le journal des
 //! ecritures (`compagnie::depart`) et un mois importe (`import::mois`).
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -1408,7 +1409,7 @@ impl<'a> Moteur<'a> {
             let sal = &p.salarie;
             let nat = p.engagement.nat().map_err(plain)?;
             let spectacle = match &p.spectacle {
-                Some(s) if s.titre.est_absente() => return Err(erreur("KeyError", socle::fichiers::absent("titre"))),
+                Some(s) if s.titre.is_none() => return Err(erreur("KeyError", socle::fichiers::absent("titre"))),
                 Some(s) => socle::ecriture::en_valeur(&s.titre),
                 None => Value::Null,
             };
@@ -1563,7 +1564,7 @@ impl<'a> Moteur<'a> {
         let spectacle = match e.spectacle.as_deref().filter(|s| !s.is_empty()) {
             Some(s) => {
                 let f = self.ctx.spectacle(s).map_err(plain)?;
-                if f.titre.est_absente() { Value::String(s.to_string()) } else { socle::ecriture::en_valeur(&f.titre) }
+                if f.titre.is_none() { Value::String(s.to_string()) } else { socle::ecriture::en_valeur(&f.titre) }
             }
             None => Value::Null,
         };

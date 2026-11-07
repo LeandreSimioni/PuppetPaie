@@ -14,6 +14,7 @@
 //! volet fige sous l'en-tete. Il se prouve par son contenu (openpyxl), pas a l'octet. Le PDF est celui de la
 //! fabrique (`fabrique_pdf`), decrit comme `tableaux.description_pdf`.
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -870,7 +871,7 @@ pub fn jj(iso: &str) -> String {
 
 /// « NOM Prenom ».
 pub fn qui(fiche: &droit::fiche::ChampsSalarie) -> R<String> {
-    if fiche.nom.est_absente() {
+    if fiche.nom.is_none() {
         return Err(erreur("KeyError", socle::fichiers::absent("nom")));
     }
     Ok(qui_souple(fiche))

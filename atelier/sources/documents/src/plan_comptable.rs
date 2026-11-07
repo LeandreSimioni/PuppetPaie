@@ -8,6 +8,7 @@
 //! (`{code:010,}`), types flottants (`{code:e}`, `f`, `g`, `%`), methodes ou attributs de `str`/`int` autres que
 //! `real`, `imag`, `numerator`, `denominator` -- est refuse en `ErreurOperation` qui le dit.
 
+use droit::fiche::Lue as _;
 use std::collections::HashSet;
 use std::sync::OnceLock;
 

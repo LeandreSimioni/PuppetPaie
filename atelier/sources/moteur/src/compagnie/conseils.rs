@@ -23,6 +23,7 @@
 //!
 //! Le salarie se nomme par son seul prenom (`{prenom}`), jamais par un pronom qui le genre.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::Arc;
@@ -321,7 +322,7 @@ fn conseil(b: &Value, d: &Donnees, quand: &str, vals: &Valeurs, annexes: &[&str]
 /// Le prenom du salarie, tel que sa fiche l'affiche (`prenom_affichage`, sinon `prenom`, en capitales initiales s'il
 /// est tout en majuscules) ; sans prenom, son nom, sinon sa cle.
 pub fn prenom(sal: &droit::fiche::ChampsSalarie, cle: &str) -> String {
-    fn lu<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
+    fn lu<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
         Some(c.texte().trim().to_string()).filter(|s| !s.is_empty())
     }
     if let Some(p) = lu(&sal.prenom_affichage) {

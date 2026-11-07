@@ -5,6 +5,7 @@
 //! choisir, refuser, nommer, ecrire, et passer a `envois` ce qui part. Le jour est celui du contexte
 //! (`PUPPETPAIE_AUJOURDHUI`) ; l'horodatage d'un fichier partiel de DPAE est la minute de l'horloge, a l'heure de Paris.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 

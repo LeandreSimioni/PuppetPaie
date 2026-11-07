@@ -171,8 +171,8 @@ impl<'de> serde::Deserialize<'de> for Nombre {
 }
 
 /// UNE VALEUR QUI PEUT NE RIEN DIRE : nulle (`null`), vide (`""`), ou dite, lue en `T` sans passer par une valeur
-/// intermediaire (le chemin d'un refus va jusqu'a la cle fautive de `T`). C'est la lecture d'une case de fiche
-/// (`droit::fiche::Case`), qui garde ces trois formes pour se reecrire telle qu'elle est lue.
+/// intermediaire (le chemin d'un refus va jusqu'a la cle fautive de `T`). C'est la lecture d'un changement de case de
+/// fiche (`droit::fiche::nulle_ou_dite`), qui refuse `""`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Remplie<T> {
     Nulle,

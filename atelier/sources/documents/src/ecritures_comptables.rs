@@ -2,6 +2,7 @@
 //! recouvert par `config/plan-comptable.json`) et leur CSV (`Compta_AAAA.csv`) : point-virgule, virgule decimale,
 //! UTF-8 avec BOM, fins de ligne CRLF. Tout part des paies du mois (`engagement::etats::paies_du_mois` : ecrites ou importees).
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 
 use serde_json::{json, Map, Value};

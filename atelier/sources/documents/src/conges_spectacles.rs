@@ -5,6 +5,7 @@
 //! sont ceux du certificat releve. `decouper` coupe un contrat au 31 mars, `certificats` dit
 //! ce qui est du, `valeurs` ce qui va dans chaque case.
 
+use droit::fiche::Lue as _;
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 
@@ -454,7 +455,7 @@ fn siret_espace(siret: &str) -> String {
 }
 
 /// Une case texte de la fiche du salarie que le certificat exige : absente, elle se refuse.
-fn texte_requis<T: AsRef<str>>(c: &droit::fiche::Case<T>, k: &str) -> R<String> {
+fn texte_requis<T: AsRef<str>>(c: &Option<T>, k: &str) -> R<String> {
     c.ecrite(k).map(str::to_string).map_err(|_| cle_absente(k))
 }
 
@@ -466,7 +467,7 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &ChampsEntreprise) -> R<Vec<(&'stati
     let adresse_defaut = texte_requis(&s.adresse, "adresse")?;
     let commune_defaut = texte_requis(&s.commune, "commune")?;
     // La forme lisible quand la fiche la porte, la forme declaree sinon.
-    let lisible = |c: &droit::fiche::Case<String>, defaut: String| if c.est_absente() { defaut } else { c.texte().to_string() };
+    let lisible = |c: &Option<String>, defaut: String| c.clone().unwrap_or(defaut);
     let mut out: Vec<(&'static str, String)> = Vec::new();
     out.push(("dest_nom", format!("{} {}", texte_requis(&s.prenom, "prenom")?, texte_requis(&s.nom, "nom")?)));
     out.push(("dest_adresse", lisible(&s.adresse_affichage, adresse_defaut)));

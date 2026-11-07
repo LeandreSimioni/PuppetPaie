@@ -4,6 +4,7 @@
 //! Le registre et le fichier du personnel SONT des fichiers du personnel : ils portent le NIR, la date de
 //! naissance et l'adresse, et l'avertissement le dit.
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeSet;
 
 use serde_json::Value;

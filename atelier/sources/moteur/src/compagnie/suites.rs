@@ -2,6 +2,7 @@
 //! la compagnie -- noter les incidents, ranger les attestations France Travail, marquer les arrets qu'une DSN a portes,
 //! faire taire le reveil du filet. Elles se font toutes, que l'envoi ait abouti ou non.
 
+use droit::fiche::Lue as _;
 use serde_json::json;
 
 use droit::contexte::Contexte;

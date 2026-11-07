@@ -4,6 +4,7 @@
 //! (`declarations::dsn_lue::DsnLue`) ; les AEM par positions fixes (1000 caracteres, latin-1). La fiche qu'une DSN
 //! remplit n'est ecrite qu'a la fin (`EntrepriseDeclaree`, `SalarieDeclare::fiche`).
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 

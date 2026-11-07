@@ -41,6 +41,7 @@
 //! Le jour de la signature vient de l'appelant (le jour du logiciel, celui de
 //! Paris) : ce module ne lit jamais l'horloge.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
@@ -163,7 +164,7 @@ pub struct Cadre5 {
 }
 
 /// Une case que le cadre 5 exige : absente, elle se refuse (`KeyError`).
-fn req<T: AsRef<str>>(c: &droit::fiche::Case<T>, cle: &str) -> Resultat<String> {
+fn req<T: AsRef<str>>(c: &Option<T>, cle: &str) -> Resultat<String> {
     c.ecrite(cle).map(str::to_string)
 }
 

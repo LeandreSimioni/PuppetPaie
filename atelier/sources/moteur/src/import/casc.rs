@@ -10,6 +10,7 @@
 //! Le classeur du CASC-SVP se recree avec les colonnes du modele (`donnees/modeles/casc-svp-liste-nominative.xlsx`) :
 //! voir `liste_nominative_xlsx`.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 use std::str::FromStr;
 
@@ -357,7 +358,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
 
     let nom = ent.raison_sociale.texte().to_string();
     let sig = ent.signataire.dite().cloned().unwrap_or_default();
-    let ou = |a: &droit::fiche::Case<String>, b: &droit::fiche::Case<String>| a.remplie().or_else(|| b.remplie()).map(String::from);
+    let ou = |a: &Option<String>, b: &Option<String>| a.remplie().or_else(|| b.remplie()).map(String::from);
     let signe: String = [ou(&sig.prenom_affichage, &sig.prenom), ou(&sig.nom_affichage, &sig.nom)].into_iter().flatten().collect::<Vec<_>>().join(" ");
     let (premier, dernier) = (&par_mois[0].libelle, &par_mois[par_mois.len() - 1].libelle);
     let periode = if premier == dernier { premier.clone() } else { format!("{} à {}", premier, dernier) };

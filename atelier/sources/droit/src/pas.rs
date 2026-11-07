@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::contexte::Contexte;
-use crate::fiche::{Case, Montant, TauxPas};
+use crate::fiche::{Lue, Montant, TauxPas};
 use crate::forme_bareme::{GrillePas, PasParDefaut, Pile};
 use socle::date::{jours_du_mois, Jour};
 use socle::num::nombre;
@@ -53,8 +53,8 @@ pub struct Triplet {
     pub identifiant: Option<String>,
 }
 
-/// Le texte d'une case telle qu'ecrite : vide compris ; `None` : absente ou nulle.
-fn ecrit(c: &Case<String>) -> Option<String> {
+/// Le texte d'une case telle qu'ecrite ; `None` : vide.
+fn ecrit(c: &Option<String>) -> Option<String> {
     c.portee().map(str::to_string)
 }
 
@@ -379,7 +379,7 @@ pub fn empreinte(ctx: &Contexte, cle_notee: &str) -> Option<String> {
 /// La fiche d'un salarie sans ses taux recus : ce qu'une paie lit de la fiche hors du taux, qu'elle lit au jour de son
 /// versement (`taux_dgfip`). Un taux recu ne fait recalculer que la paie dont il change le taux.
 pub fn sans_taux_recus(fiche: &crate::fiche::ChampsSalarie) -> crate::fiche::ChampsSalarie {
-    crate::fiche::ChampsSalarie { taux_pas: crate::fiche::Case::Absente, ..fiche.clone() }
+    crate::fiche::ChampsSalarie { taux_pas: None, ..fiche.clone() }
 }
 
 /// Le prelevement d'UN versement. Un triplet s'applique tel quel, sur la
@@ -439,13 +439,13 @@ pub struct Situation {
     pub salarie: String,
     pub situation: &'static str,
     pub libelle: &'static str,
-    pub taux: Case<String>,
+    pub taux: Option<String>,
     #[serde(rename = "type")]
-    pub type_taux: Case<String>,
-    pub identifiant: Case<String>,
+    pub type_taux: Option<String>,
+    pub identifiant: Option<String>,
     pub valable_jusqu_a: Option<Jour>,
     pub a_demander: bool,
-    pub dernier_recu: Case<String>,
+    pub dernier_recu: Option<String>,
 }
 
 /// Ou en est le taux d'un salarie au jour `le`, pour la paie du mois `mois` (`en_vigueur`). Ne refuse que si sa fiche est
@@ -472,7 +472,7 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>, mois: Option<&str>
             }
         }
     };
-    let champ = |c: fn(&TauxPas) -> &Case<String>| e.map_or(Case::Absente, |e| c(e).clone());
+    let champ = |c: fn(&TauxPas) -> &Option<String>| e.map_or(None, |e| c(e).clone());
     Ok(Situation {
         salarie: cle.to_string(),
         situation: quoi,
@@ -482,7 +482,7 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>, mois: Option<&str>
         identifiant: champ(|e| &e.identifiant),
         valable_jusqu_a: e.and_then(fin_de_validite),
         a_demander: matches!(quoi, PERIME | BAREME | INCONNU),
-        dernier_recu: recus.last().map_or(Case::Absente, |r| r.mis_a_disposition.clone()),
+        dernier_recu: recus.last().map_or(None, |r| r.mis_a_disposition.clone()),
     })
 }
 

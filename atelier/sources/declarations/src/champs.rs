@@ -1058,7 +1058,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     // Les jours travailles d'un permanent : ceux que le calcul lira (`droit::conges::JoursTravailles`).
     if c.cle == "jours_travailles" {
         use droit::conges::JoursTravailles;
-        let lue = socle::forme::lire::<droit::fiche::Case<Vec<droit::fiche::JourDeLaSemaine>>>(valeur.unwrap_or(&Value::Null), &JoursTravailles::case_illisible("le salarie"));
+        let lue = socle::forme::lire::<Option<Vec<droit::fiche::JourDeLaSemaine>>>(valeur.unwrap_or(&Value::Null), &JoursTravailles::case_illisible("le salarie"));
         return Ok(lue.and_then(|c| JoursTravailles::de_la_case(&c, "le salarie")).err().map(|e| {
             e.split_once(" : ").map_or(e.clone(), |(_, m)| m.to_string())
         }));

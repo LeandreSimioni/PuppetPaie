@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use indexmap::IndexMap;
 
-use crate::fiche::{Case, ChampsEntreprise, ChampsSpectacle, Datee, Etablissement, FicheEntrepriseDatee, FicheSalarie, FicheSalarieDatee, FicheSpectacleDatee, Salaries, Spectacle, Spectacles};
+use crate::fiche::{ChampsEntreprise, Lue, ChampsSpectacle, Datee, Etablissement, FicheEntrepriseDatee, FicheSalarie, FicheSalarieDatee, FicheSpectacleDatee, Salaries, Spectacle, Spectacles};
 use crate::forme_bareme::{CotisationDsn, CotisationModifiee, CoucheConvention, CoucheNature, NatureModifiee, NonPortee, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, Surcouche, TauxAtmpEcrit, ValeurAtmp, VersementMobiliteEcrit};
 use socle::echec::APart;
 use socle::num::Decimal;
@@ -23,12 +23,9 @@ use socle::texte::cle_recherche;
 
 // ------------------------------------------------------------ les petits outils
 
-/// Le texte d'une case de fiche, exigee : son absence se refuse en la nommant.
-fn exige<T: AsRef<str>>(c: &Case<T>, cle: &str) -> Resultat<String> {
-    match c {
-        Case::Absente => Err(socle::fichiers::absent(cle)),
-        _ => Ok(c.texte().to_string()),
-    }
+/// Le texte d'une case de fiche, exigee : vide, elle se refuse en se nommant.
+fn exige<T: AsRef<str>>(c: &Option<T>, cle: &str) -> Resultat<String> {
+    c.ecrite(cle).map(str::to_string)
 }
 
 /// `"%g" % x`.
@@ -634,7 +631,7 @@ Entreprise › Avancé, « Établissements »)",
                 nom
             ));
         }
-        if versement_mobilite_dit(pile) && matches!(e.versement_mobilite, Case::Absente | Case::Nulle) {
+        if versement_mobilite_dit(pile) && e.versement_mobilite.is_none() {
             griefs.push(format!(
                 "{} : le siège paie un versement mobilité ; celui de cet établissement dépend de sa commune et de \
 l'effectif qu'il y emploie (CGCT, L. 2333-64, I) : son taux et le code INSEE de sa commune, ou 0 s'il n'en paie pas \
@@ -1609,7 +1606,7 @@ PSS_H_METROP).",
         let dernier = mois.dernier_jour();
         let mut ent = self.entreprise_au(&dernier);
         if let Some(l) = etablissements_entre(&self.fiches.entreprise.etablissements, &mois.premier_jour(), &dernier) {
-            ent.etablissements = Case::Dite(l);
+            ent.etablissements = Some(l);
         }
         Ok(ent)
     }

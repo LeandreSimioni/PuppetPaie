@@ -13,6 +13,7 @@
 //! periode d'essai, les organismes, les mentions de renvoi, les clauses particulieres), et la liste des champs qu'un
 //! modele peut citer (`champs_des_modeles`), que l'ecran montre a qui ecrit le sien.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 use std::sync::Arc;
 

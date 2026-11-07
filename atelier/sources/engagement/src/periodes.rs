@@ -6,6 +6,8 @@
 
 use std::collections::BTreeMap;
 
+use droit::fiche::Lue;
+
 use socle::forme::NombreLu;
 
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, LigneCotisation, Paie, ReductionGenerale};

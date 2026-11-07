@@ -8,6 +8,7 @@
 //! la periode couvre les mois que des engagements touchent. Le PAS se lit par `prelevement::des_paies` ; aucun numero
 //! n'est consomme. Un montant que la paie ne dit pas (`Paie::dit`) est VIDE, pas zero, et le total ne le compte pas.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
 use std::rc::Rc;

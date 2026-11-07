@@ -38,7 +38,7 @@ pub(crate) fn fiches(ctx: &Contexte, mois: &str, salarie: &str, spectacle: Optio
 fn empreinte_fiches(ctx: &Contexte, salarie: &str, spectacle: Option<&str>) -> String {
     // L'entreprise, la fiche au jour sans ses taux recus, et le spectacle, chacun dans l'ordre de sa forme
     // (`droit::fiche`) ; ce qui manque s'ecrit `null`.
-    let sal = ctx.salaries.get(salarie).map(|f| droit::fiche::ChampsSalarie { taux_pas: droit::fiche::Case::Absente, ..f.champs.clone() });
+    let sal = ctx.salaries.get(salarie).map(|f| droit::fiche::ChampsSalarie { taux_pas: None, ..f.champs.clone() });
     let spec = spectacle.and_then(|k| ctx.spectacles.get(k));
     fichiers::sha256_hex(socle::ecriture::json_en_ligne(&(&ctx.entreprise, &sal, &spec)).as_bytes())
 }

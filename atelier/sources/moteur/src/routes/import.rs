@@ -9,6 +9,7 @@
 //! `contrats_nouveaux` : les contrats des AEM deposees que le registre de l'import retient (`import::attestes`) : un
 //! contrat du meme salarie dont les dates chevauchent les siennes l'atteste deja.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 

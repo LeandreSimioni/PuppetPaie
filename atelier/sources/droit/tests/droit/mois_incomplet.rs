@@ -11,7 +11,7 @@ fn j(t: &str) -> Jour {
 
 /// Les jours travailles qu'une fiche ecrit `v`, lus par leur forme comme la fiche les lit.
 fn jours_ecrits(texte: &str) -> Result<JoursTravailles, String> {
-    socle::forme::lire_texte::<droit::fiche::Case<Vec<droit::fiche::JourDeLaSemaine>>>(texte, &JoursTravailles::case_illisible("le salarie"))
+    socle::forme::lire_texte::<Option<Vec<droit::fiche::JourDeLaSemaine>>>(texte, &JoursTravailles::case_illisible("le salarie"))
         .and_then(|c| JoursTravailles::de_la_case(&c, "le salarie"))
 }
 

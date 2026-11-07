@@ -2,6 +2,7 @@
 //! comptable, les droits des intermittents), et ce qui part d'elles (le dossier par courriel, la regularisation de la
 //! CASC-SVP).
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
 
@@ -256,7 +257,7 @@ fn salaries_de_la_page(ctx: &Contexte) -> Vec<SalariePropose> {
         .map(|(k, v)| SalariePropose {
             cle: k.to_string(),
             nom: format!("{} {}", v.nom.texte(), if v.prenom_affichage.texte().is_empty() { v.prenom.texte() } else { v.prenom_affichage.texte() }),
-            actif: matches!(v.actif, droit::fiche::Case::Absente | droit::fiche::Case::Dite(true)),
+            actif: !v.archivee(),
             email: !v.email.texte().is_empty(),
         })
         .collect()
@@ -748,7 +749,7 @@ fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie::Dossier, 
     for ((cle, f), email) in d.salaries.iter().zip(&d.fichiers).zip(adresses) {
         let s = ctx.salaries.get(cle.as_str()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
         let prenom = match s.prenom_affichage.texte() {
-            "" if s.prenom.est_absente() => return Err(erreur("KeyError", socle::fichiers::absent("prenom"))),
+            "" if s.prenom.is_none() => return Err(erreur("KeyError", socle::fichiers::absent("prenom"))),
             "" => s.prenom.texte().to_string(),
             p => p.to_string(),
         };

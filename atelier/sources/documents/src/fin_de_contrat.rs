@@ -4,6 +4,7 @@
 //! Le certificat se délivre à l'expiration du contrat (L1234-19) et ne porte que les mentions de D1234-6 ; le reçu
 //! fait l'inventaire des sommes versées (L1234-20), ligne à ligne, et s'établit en double exemplaire (D1234-7).
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
@@ -55,7 +56,7 @@ pub fn ecrire(ctx: &Contexte, p: &Paie, date: Jour, sortie: &Path) -> R<[PathBuf
 fn marqueurs_communs(date: &Jour, p: &Paie, ent: &droit::fiche::ChampsEntreprise) -> R<Valeurs> {
     let s = &p.salarie;
     let e = &p.engagement;
-    fn ecrite<T: AsRef<str>>(c: &droit::fiche::Case<T>, k: &str) -> R<String> {
+    fn ecrite<T: AsRef<str>>(c: &Option<T>, k: &str) -> R<String> {
         c.ecrite(k).map(str::to_string).map_err(|m| erreur("KeyError", m))
     }
     let sig = ent.signataire.exigee("signataire").map_err(|m| erreur("KeyError", m))?;

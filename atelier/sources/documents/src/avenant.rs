@@ -9,6 +9,7 @@
 //! comme celui du contrat.
 
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -73,16 +74,13 @@ pub(crate) fn requis<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
     v.get(cle).ok_or_else(|| format!("le modele n'a pas de valeur {}", cle))
 }
 
-/// Une case texte de la fiche du salarie, que le modele exige : absente, elle se refuse ; nulle, elle ne se lit pas.
-fn case<T: AsRef<str>>(c: &droit::fiche::Case<T>, cle: &str) -> Resultat<String> {
-    match c {
-        droit::fiche::Case::Nulle => Ok(INVALIDE.to_string()),
-        c => c.ecrite(cle).map(str::to_string),
-    }
+/// Une case texte de la fiche du salarie, que le modele exige : vide, elle se refuse en se nommant.
+fn case<T: AsRef<str>>(c: &Option<T>, cle: &str) -> Resultat<String> {
+    c.ecrite(cle).map(str::to_string)
 }
 
 /// La forme lisible d'une case de la fiche du salarie si elle est dite, la forme declaree sinon (`case`).
-fn lisible<T: AsRef<str>>(affichage: &droit::fiche::Case<String>, c: &droit::fiche::Case<T>, cle: &str) -> Resultat<String> {
+fn lisible<T: AsRef<str>>(affichage: &Option<String>, c: &Option<T>, cle: &str) -> Resultat<String> {
     match affichage.texte() {
         "" => case(c, cle),
         a => Ok(a.to_string()),
@@ -460,7 +458,7 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
 /// La fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<droit::contexte::EntrepriseDuDocument> {
     let mut ent = ctx.entreprise.clone();
-    ent.licence_spectacle = droit::fiche::Case::Dite(ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour()));
+    ent.licence_spectacle = Some(ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour()));
     Ok(ctx.pour_un_modele(&ent))
 }
 

@@ -6,6 +6,7 @@
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
 //! coffre, jamais sa valeur), la compagnie fictive par son marqueur.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -501,7 +502,7 @@ pub(crate) struct Signataire {
 /// `signataire_de` : la personne qui signe, telle que la fiche Entreprise la nomme, en forme lisible.
 pub(crate) fn signataire_de(ent: &droit::fiche::ChampsEntreprise) -> Signataire {
     let s = ent.signataire.dite().cloned().unwrap_or_default();
-    let lisible = |affichage: &droit::fiche::Case<String>, brut: &droit::fiche::Case<String>| -> String {
+    let lisible = |affichage: &Option<String>, brut: &Option<String>| -> String {
         match affichage.remplie() {
             Some(v) => v.to_string(),
             None => champs::titre(brut.texte()),
@@ -1514,7 +1515,7 @@ pub fn etat(ctx: &Contexte) -> R<EtatDeLaPage> {
         .into_iter()
         .map(|k| {
             let v = &ctx.spectacles[k];
-            let titre = Some(socle::ecriture::en_valeur(&v.titre)).filter(|_| !v.titre.est_absente()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
+            let titre = Some(socle::ecriture::en_valeur(&v.titre)).filter(|_| v.titre.is_some()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
             Ok(SpectacleDeLaListe { cle: k.to_string(), titre, numero_objet: socle::ecriture::en_valeur(&v.numero_objet) })
         })
         .collect::<R<Vec<_>>>()?;

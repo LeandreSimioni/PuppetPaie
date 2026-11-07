@@ -8,6 +8,7 @@
 
 use std::collections::BTreeMap;
 
+use crate::fiche::Lue;
 use crate::source::Fondement;
 use serde::Deserialize;
 use socle::forme::Nombre;

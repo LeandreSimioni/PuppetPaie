@@ -17,7 +17,7 @@
 //! Le moteur fait les pieces (`documents::contrat`) et compose les messages ; `envois` les transporte
 //! (`envoi::envoyer_suivi`) et note le depart (`ligne_d_envoi`).
 
-use droit::fiche::ChampsSalarie;
+use droit::fiche::{ChampsSalarie, Lue as _};
 use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -148,11 +148,8 @@ fn prenom_de(sal: &ChampsSalarie) -> R<String> {
 }
 
 /// Le texte d'une case de la fiche, exigee.
-fn exige<T: AsRef<str>>(c: &droit::fiche::Case<T>, cle: &str) -> R<String> {
-    if c.est_absente() {
-        return Err(erreur("KeyError", socle::fichiers::absent(cle)));
-    }
-    Ok(c.texte().to_string())
+fn exige<T: AsRef<str>>(c: &Option<T>, cle: &str) -> R<String> {
+    c.portee().map(str::to_string).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// « Prenom Nom » tel que la reponse « Je signe » le dit : `prenom_affichage or prenom`, `nom_affichage or nom`.

@@ -1,5 +1,6 @@
 //! Configuration › Métiers : les metiers que la compagnie coche, ceux de sa convention et ceux qu'elle prend aux autres.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 

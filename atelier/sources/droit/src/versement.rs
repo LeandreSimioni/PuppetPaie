@@ -37,6 +37,7 @@ use socle::date::Jour;
 use socle::mois::Mois;
 use socle::num::Resultat;
 
+use crate::fiche::Lue;
 use crate::natures::Nature;
 
 /// Les deux cases de la fiche entreprise : le jour des permanents, le jour des intermittents.

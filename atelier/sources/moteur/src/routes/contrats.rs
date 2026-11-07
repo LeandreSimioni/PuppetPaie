@@ -4,6 +4,7 @@
 //! Chaque charge et chaque reponse est une forme declaree ici, lue une fois (`routes::lire_charge`) ; l'horloge d'une
 //! compagnie fictive et la releve des signatures appellent les memes fonctions, sur les memes formes.
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::Path;
 

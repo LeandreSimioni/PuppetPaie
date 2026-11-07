@@ -13,6 +13,7 @@
 //! declare) : le releve des retours et l'import remettent d'eux-memes au journal ce que les bilans archives attestent
 //! (`reprendre_les_depots`), comme l'effectif se refait seul des retours 118. Un test que ce logiciel n'a pas envoye reste dehors (voir `reprise`).
 
+use droit::fiche::Lue as _;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;

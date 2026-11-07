@@ -50,6 +50,7 @@
 //! taxe sur les salaires s'applique aux montants 009, 015 et 016 ; un CDDU (motif 05) est un contrat d'intermittent au
 //! sens de L. 6331-55 ; 013 se declare seulement si l'annee a eu un CDD soumis a la contribution.
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 
 use engagement::calcul::Paie;

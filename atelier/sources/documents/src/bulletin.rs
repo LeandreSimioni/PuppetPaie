@@ -6,7 +6,7 @@
 use engagement::calcul::Paie;
 use engagement::conges::CompteurConges;
 use droit::contexte::Contexte;
-use droit::fiche::{Case, ChampsEntreprise, ChampsSalarie, FicheSalarie};
+use droit::fiche::{ChampsEntreprise, Lue, ChampsSalarie, FicheSalarie};
 use droit::cumul::{tableau_cumul, Colonne};
 use engagement::cumul::Passe;
 use socle::date::Jour;
@@ -119,11 +119,8 @@ fn texte(o: &Value, cle: &str) -> Resultat<String> {
 }
 
 /// La case texte `cle` du spectacle de la paie ; refus si elle manque.
-fn du_spectacle(sp: Option<&droit::fiche::Spectacle>, case: fn(&droit::fiche::Spectacle) -> &droit::fiche::Case<String>, cle: &str) -> Resultat<String> {
-    match sp.map(case) {
-        None | Some(droit::fiche::Case::Absente) => Err(socle::fichiers::absent(cle)),
-        Some(c) => Ok(c.texte().to_string()),
-    }
+fn du_spectacle(sp: Option<&droit::fiche::Spectacle>, case: fn(&droit::fiche::Spectacle) -> &Option<String>, cle: &str) -> Resultat<String> {
+    sp.map(case).and_then(Option::as_deref).map(str::to_string).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 
@@ -949,7 +946,7 @@ fn blocs_un(j: &Jeu, ent: &ChampsEntreprise) -> Resultat<Vec<Value>> {
     let vue = droit::bareme::entreprise_du_salarie(ent, sal)?;
     let (siret, naf) = (vue.siret.ecrite("siret")?, vue.naf.ecrite("naf")?);
     let etablissement = ent.etablissement(vue.nic.texte()).map(|l| {
-        let ou = |usage: &Case<String>, civil: &Case<String>| usage.remplie().or(civil.portee()).unwrap_or_default().to_string();
+        let ou = |usage: &Option<String>, civil: &Option<String>| usage.remplie().or(civil.portee()).unwrap_or_default().to_string();
         let adresse = droit::fiche::avec_complement(ou(&l.adresse_affichage, &l.adresse.en_texte()), l.complement_adresse_affichage.remplie().or(l.complement_adresse.remplie()));
         let lieu = [adresse, l.code_postal.texte().to_string(), ou(&l.commune_affichage, &l.commune.en_texte())]
             .into_iter()
@@ -1355,12 +1352,9 @@ pub fn passe_des_bulletins<'a>(ctx: &'a Contexte, paies: &[Paie], mois: &str, de
 }
 
 
-/// Le texte d'une case de la fiche, exigee : son absence se refuse en la nommant.
-fn exige(c: &Case<String>, cle: &str) -> Resultat<String> {
-    if c.est_absente() {
-        return Err(socle::fichiers::absent(cle));
-    }
-    Ok(c.texte().to_string())
+/// Le texte d'une case de la fiche, exigee : vide, elle se refuse en se nommant.
+fn exige(c: &Option<String>, cle: &str) -> Resultat<String> {
+    c.ecrite(cle).map(str::to_string)
 }
 
 /// Le modele du bulletin que la fiche du salarie choisit, `None` si elle n'en choisit pas.

@@ -9,6 +9,7 @@
 //! l'effectif, la premiere embauche), ce que chaque acte exige des fiches a `champs-base.json` (`exige_par`), que l'acte
 //! lit aussi (`champs::refus_des_manques`) : un champ qu'on y marque sans qu'un acte le lise serait un faux manque.
 
+use droit::fiche::Lue as _;
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;

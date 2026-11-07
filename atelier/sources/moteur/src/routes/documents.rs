@@ -8,6 +8,7 @@
 //! Chaque charge et chaque reponse est une forme declaree ici, lue une fois (`routes::lire_charge`) ; l'horloge d'une
 //! compagnie fictive appelle les memes fonctions, sur les memes formes.
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -475,7 +476,7 @@ struct Message {
 fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path) -> R<Vec<Message>> {
     let etiq = crate::routes::dossier_salarie::etiquette(mois)?;
     let ent = &ctx.entreprise;
-    let requis = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(()) };
+    let requis = |c: &Option<String>, k: &str| if c.is_none() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(()) };
     requis(&ent.nom_affichage, "nom_affichage")?;
     let sg = ent.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
     if sg.prenom_affichage.remplie().is_none() {

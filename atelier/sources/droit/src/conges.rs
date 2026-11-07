@@ -3,6 +3,7 @@
 //! (L3141-24). Le compteur d'un salarie, qui se derive de ses paies, est l'affaire de l'engagement (`engagement::conges`).
 
 
+use crate::fiche::Lue;
 use socle::date::Jour;
 use socle::feries;
 use socle::num::{div, eur2, mul, Decimal, Resultat};
@@ -48,9 +49,8 @@ impl JoursTravailles {
     }
 
     /// Les jours que dit la case `jours_travailles` d'une fiche (`qui` : la cle du salarie) ; une case que la fiche ne
-    /// dit pas (une fiche datee ecrit "" pour ce qu'elle ne disait pas avant sa premiere valeur, `fiche::dater`) : du
-    /// lundi au vendredi. Refus : une liste vide.
-    pub fn de_la_case(case: &crate::fiche::Case<Vec<crate::fiche::JourDeLaSemaine>>, qui: &str) -> Resultat<Self> {
+    /// dit pas : du lundi au vendredi. Refus : une liste vide.
+    pub fn de_la_case(case: &Option<Vec<crate::fiche::JourDeLaSemaine>>, qui: &str) -> Resultat<Self> {
         let Some(liste) = case.dite() else { return Ok(Self::du_lundi_au_vendredi()) };
         let mut jours = [false; 7];
         for j in liste {

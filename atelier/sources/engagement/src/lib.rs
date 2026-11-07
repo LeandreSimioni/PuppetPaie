@@ -40,6 +40,8 @@ pub mod versions;
 pub mod viser;
 
 use std::collections::{BTreeMap, BTreeSet};
+
+use droit::fiche::Lue;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -1965,7 +1967,7 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &saisie::VueDuMois) -> Resul
             None => None,
         };
         if let Some((metier, m)) = m.filter(|(_, m)| e.cadre == Some(false) && m.cadre_par_defaut(ctx.entreprise.idcc.texte()) == Some(true)) {
-            fn texte<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
+            fn texte<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
                 c.remplie().map(str::to_string)
             }
             // Le metier se nomme par son libelle, ou par son code quand il n'en a pas.

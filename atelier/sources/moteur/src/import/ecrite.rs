@@ -17,6 +17,7 @@
 //! s'efface devant la ligne de DSN des memes salarie, debut et fin, qu'elle complete (`rapprocher`) -- l'ordre DSN
 //! puis bulletins, ou bulletins puis DSN, donne les memes engagements.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 

@@ -8,6 +8,7 @@
 //! Ce que l'état veut dire (partie, déposée, à faire) se lit ici, par les méthodes d'[`EtatDsn`] ; sa forme est
 //! déclarée une fois (`EtatDsn`, `Etat`), et c'est elle que les routes rendent.
 
+use droit::fiche::Lue as _;
 use serde::Serialize;
 
 use droit::contexte::Contexte;

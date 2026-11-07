@@ -7,7 +7,7 @@
 //! loi (l'appelant : `engagement::solde`).
 
 use crate::emplois;
-use crate::fiche::ChampsSalarie;
+use crate::fiche::{ChampsSalarie, Lue};
 use crate::permanents::PartDuContrat;
 use crate::source::forme_notee as forme;
 use serde::Deserialize;

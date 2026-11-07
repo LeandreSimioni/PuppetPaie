@@ -8,6 +8,7 @@
 //! RIEN NE SE DEVINE (regle 1) : une case qu'aucune piece ne porte reste vide, et la carte DIT pourquoi (`manque` : quel
 //! champ, et ce qui l'aurait donne). Rien ne s'ecrit ici : c'est une lecture.
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeSet;
 use std::path::Path;
 

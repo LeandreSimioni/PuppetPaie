@@ -7,9 +7,9 @@
 //! pas une donnee : la route de la fiche la compose des listes datees.
 //!
 //! Le fichier est date (`FicheDatee`) : chaque champ y est une liste `[{"depuis"?, "valeur", "note"?}]`
-//! (`Datee`) ; la fiche a un jour (`ChampsSalarie`, `ChampsEntreprise`) en est la valeur en vigueur. Une valeur s'ecrit
-//! nulle ou vide quand la fiche ne disait rien avant elle (`dater`) : `Case` garde ces deux formes, pour que le
-//! fichier se reecrive tel qu'il est lu.
+//! (`Datee`) ; la fiche a un jour (`ChampsSalarie`, `ChampsEntreprise`) en est la valeur en vigueur. Chaque case est un
+//! `Option` : absente ou nulle, elle est vide (`Lue` la lit). Une valeur s'ecrit nulle quand la fiche ne disait rien
+//! avant elle (`dater`).
 
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
@@ -23,120 +23,87 @@ use crate::contexte::{IdSalarie, IdSpectacle};
 
 // ------------------------------------------------------------------ une case
 
-/// UNE CASE D'UNE FICHE : absente, nulle (une case a cocher que la fiche ne disait pas), vide (un texte qu'elle ne
-/// disait pas, `""`), ou dite. Seule `Dite` porte une valeur ; les trois autres se relisent et se reecrivent telles
-/// quelles.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub enum Case<T> {
-    #[default]
-    Absente,
-    Nulle,
-    Vide,
-    Dite(T),
-}
+/// LA LECTURE D'UNE CASE D'UNE FICHE, un `Option` ordinaire : absente ou nulle, elle est vide. Ce qu'un acte exige
+/// d'une case vide se refuse en la nommant (`exigee`, `ecrite`).
+pub trait Lue<T> {
+    /// La valeur dite.
+    fn dite(&self) -> Option<&T>;
 
-impl<T> Case<T> {
-    /// La valeur dite, `None` sinon.
-    pub fn dite(&self) -> Option<&T> {
-        match self {
-            Case::Dite(v) => Some(v),
-            _ => None,
-        }
+    fn est_dite(&self) -> bool {
+        self.dite().is_some()
     }
 
-    pub fn est_dite(&self) -> bool {
-        matches!(self, Case::Dite(_))
-    }
-
-    /// Pour `skip_serializing_if` : une case absente ne s'ecrit pas.
-    pub fn est_absente(&self) -> bool {
-        matches!(self, Case::Absente)
-    }
-}
-
-impl<T> Case<T> {
     /// La valeur dite, que l'acte exige : sinon le refus nomme la case (`cle`).
-    pub fn exigee(&self, cle: &str) -> Resultat<&T> {
+    fn exigee(&self, cle: &str) -> Resultat<&T> {
         self.dite().ok_or_else(|| socle::fichiers::absent(cle))
     }
-}
 
-impl<T: AsRef<str>> Case<T> {
-    /// Le texte dit, `""` sinon.
-    pub fn texte(&self) -> &str {
+    /// Le texte dit, `""` sinon : ce qu'une page, un message ou une comparaison montre d'une case vide.
+    fn texte<'a>(&'a self) -> &'a str
+    where
+        T: AsRef<str> + 'a,
+    {
         self.dite().map_or("", AsRef::as_ref)
     }
 
     /// La meme case, son texte en `String` : pour une table de cases qui les ecrit toutes de meme.
-    pub fn en_texte(&self) -> Case<String> {
-        match self {
-            Case::Absente => Case::Absente,
-            Case::Nulle => Case::Nulle,
-            Case::Vide => Case::Vide,
-            Case::Dite(t) => Case::Dite(t.as_ref().to_string()),
-        }
+    fn en_texte(&self) -> Option<String>
+    where
+        T: AsRef<str>,
+    {
+        self.dite().map(|t| t.as_ref().to_string())
     }
 
     /// Le texte dit, s'il n'est pas vide.
-    pub fn remplie(&self) -> Option<&str> {
+    fn remplie<'a>(&'a self) -> Option<&'a str>
+    where
+        T: AsRef<str> + 'a,
+    {
         self.dite().map(AsRef::as_ref).filter(|t| !t.is_empty())
     }
 
-    /// Le texte que la fiche porte, vide compris ; `None` : la case est absente ou nulle.
-    pub fn portee(&self) -> Option<&str> {
-        match self {
-            Case::Absente | Case::Nulle => None,
-            c => Some(c.texte()),
-        }
+    /// Le texte dit.
+    fn portee<'a>(&'a self) -> Option<&'a str>
+    where
+        T: AsRef<str> + 'a,
+    {
+        self.dite().map(AsRef::as_ref)
     }
 
-    /// Le texte d'une case que la fiche doit porter, vide ou non : absente, le refus la nomme (`cle`).
-    pub fn ecrite(&self, cle: &str) -> Resultat<&str> {
-        match self {
-            Case::Absente => Err(socle::fichiers::absent(cle)),
-            c => Ok(c.texte()),
-        }
+    /// Le texte d'une case que l'acte exige : vide, le refus la nomme (`cle`).
+    fn ecrite<'a>(&'a self, cle: &str) -> Resultat<&'a str>
+    where
+        T: AsRef<str> + 'a,
+    {
+        self.exigee(cle).map(AsRef::as_ref)
+    }
+
+    /// Un choix dit, tel qu'il s'ecrit ; `""` sinon.
+    fn code(&self) -> &'static str
+    where
+        T: Choix,
+    {
+        self.dite().map_or("", Choix::code)
+    }
+
+    /// Cochee : `true` dit ; ni vide, ni `false`.
+    fn oui(&self) -> bool
+    where
+        T: std::borrow::Borrow<bool>,
+    {
+        self.dite().is_some_and(|b| *b.borrow())
     }
 }
 
-impl<T: Choix> Case<T> {
-    /// Un choix dit, tel qu'il s'ecrit ; `""` sinon.
-    pub fn code(&self) -> &'static str {
-        self.dite().map_or("", Choix::code)
+impl<T> Lue<T> for Option<T> {
+    fn dite(&self) -> Option<&T> {
+        self.as_ref()
     }
 }
 
 /// Un choix (`choix!`) : sa valeur ecrite.
 pub trait Choix {
     fn code(&self) -> &'static str;
-}
-
-impl Case<bool> {
-    /// Cochee : `true` dit ; ni nulle, ni absente, ni `false`.
-    pub fn oui(&self) -> bool {
-        matches!(self, Case::Dite(true))
-    }
-}
-
-impl<T: Serialize> Serialize for Case<T> {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        match self {
-            Case::Absente | Case::Nulle => s.serialize_unit(),
-            Case::Vide => s.serialize_str(""),
-            Case::Dite(v) => v.serialize(s),
-        }
-    }
-}
-
-/// Lue par sa forme (`socle::forme::Remplie`) : le chemin d'un refus va jusqu'a la case fautive.
-impl<'de, T: Deserialize<'de>> Deserialize<'de> for Case<T> {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        Ok(match socle::forme::Remplie::<T>::deserialize(d)? {
-            socle::forme::Remplie::Nulle => Case::Nulle,
-            socle::forme::Remplie::Vide => Case::Vide,
-            socle::forme::Remplie::Dite(v) => Case::Dite(v),
-        })
-    }
 }
 
 /// LA VALEUR D'UN CHANGEMENT DE CASE (`fiche!`) : `null` vide la case ; sinon elle se lit dans le type de la case. `""`
@@ -298,7 +265,7 @@ fn chiffres(t: &str) -> usize {
 /// courte des normes qui l'ecrivent. Hors de la borne, il se refuse a la lecture (`lire`, que la lecture du fichier
 /// appelle) et a la saisie (`FormeDeCase::FAUTE`, par `declarations::champs::fautes_des_types`), en une phrase qui dit
 /// quoi faire (`{texte}`, `{n}` sa mesure, `{max}` la borne) : rien ne le couperait. Un texte vide n'est pas le sien :
-/// c'est une case vide (`Case::Vide`).
+/// la case vide s'ecrit nulle.
 macro_rules! texte_borne {
     (@commun $nom:ident, $unite:literal) => {
         impl $nom {
@@ -599,7 +566,7 @@ impl<T: FormeDeCase> FormeDeCase for Vec<T> {
 }
 
 /// UN CHOIX (`forme: "choix"` dans `champs-base.json`) : une valeur de la liste, ecrite telle quelle. La ligne vide d'une
-/// liste est une case vide (`Case::Vide`), pas une valeur.
+/// liste est une case vide (nulle), pas une valeur.
 macro_rules! choix {
     ($(#[$m:meta])* pub enum $nom:ident { $( $(#[$vm:meta])* $var:ident = $txt:literal ),* $(,)? }) => {
         $(#[$m])*
@@ -629,7 +596,7 @@ macro_rules! choix {
 /// CE QUI REGARDE LES CASES D'UNE FICHE PAR LEUR NOM, celui que `champs-base.json` donne a chacune (une table qui les
 /// nomme, un bareme, l'import) : chacune lui est donnee typee (`Cases::voir`), qu'il ecrit comme il l'entend.
 pub trait VoirCase {
-    fn case<T: Serialize>(&mut self, cle: &'static str, case: &Case<T>);
+    fn case<T: Serialize>(&mut self, cle: &'static str, case: &Option<T>);
 }
 
 /// UNE FICHE QUI SE MONTRE CASE PAR CASE (`cases!`) a qui la regarde (`VoirCase`).
@@ -638,7 +605,7 @@ pub trait Cases {
 }
 
 /// LA CASE `cle` DE `fiche`, ecrite par `s` (une table qui la confronte a ses valeurs l'ecrit dans sa forme) ; `None` :
-/// elle est absente, ou la forme ne la declare pas.
+/// elle est vide, ou la forme ne la declare pas.
 pub fn case_en<F: Cases + ?Sized, S: Serializer>(fiche: &F, cle: &str, s: S) -> Option<Result<S::Ok, S::Error>> {
     struct Une<'a, S: Serializer> {
         cle: &'a str,
@@ -646,10 +613,10 @@ pub fn case_en<F: Cases + ?Sized, S: Serializer>(fiche: &F, cle: &str, s: S) -> 
         ecrite: Option<Result<S::Ok, S::Error>>,
     }
     impl<S: Serializer> VoirCase for Une<'_, S> {
-        fn case<T: Serialize>(&mut self, cle: &'static str, case: &Case<T>) {
-            if cle == self.cle && !case.est_absente() {
+        fn case<T: Serialize>(&mut self, cle: &'static str, case: &Option<T>) {
+            if let (true, Some(v)) = (cle == self.cle, case) {
                 if let Some(s) = self.s.take() {
-                    self.ecrite = Some(case.serialize(s));
+                    self.ecrite = Some(v.serialize(s));
                 }
             }
         }
@@ -659,7 +626,7 @@ pub fn case_en<F: Cases + ?Sized, S: Serializer>(fiche: &F, cle: &str, s: S) -> 
     une.ecrite
 }
 
-/// UNE STRUCTURE DE CASES : chacune une `Case`, une cle inconnue refusee. Ses `notes` (d'une fiche datee) ne sont pas des
+/// UNE STRUCTURE DE CASES : chacune un `Option` (`Lue`), une cle inconnue refusee. Ses `notes` (d'une fiche datee) ne sont pas des
 /// cases : des textes qui ne se datent pas, que la fiche porte tels qu'ecrits.
 macro_rules! cases {
     ($(#[$m:meta])* pub struct $nom:ident { $( $(#[$fm:meta])* $champ:ident : $t:ty ),* $(,)? } $( notes { $( $(#[$nm:meta])* $note:ident ),* $(,)? } )?) => {
@@ -668,8 +635,8 @@ macro_rules! cases {
         #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
         #[serde(deny_unknown_fields)]
         pub struct $nom {
-            $( $(#[$fm])* #[serde(default, skip_serializing_if = "Case::est_absente")] pub $champ: Case<$t>, )*
-            $( $( $(#[$nm])* #[serde(default, skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
+            $( $(#[$fm])* #[serde(skip_serializing_if = "Option::is_none")] pub $champ: Option<$t>, )*
+            $( $( $(#[$nm])* #[serde(skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
         }
         impl FormeDeCase for $nom {
             fn cases() -> Vec<Declaree> {
@@ -682,7 +649,7 @@ macro_rules! cases {
 
             /// Aucune case n'y est ecrite.
             pub fn est_vide(&self) -> bool {
-                true $(&& self.$champ.est_absente())*
+                true $(&& self.$champ.is_none())*
             }
 
             /// Les cases `cles` (leurs noms) sont-elles les memes dans `autre` ?
@@ -693,9 +660,9 @@ macro_rules! cases {
                 true
             }
 
-            /// Les cases que `autre` dit (ni absentes) remplacent les siennes ; ses notes restent.
+            /// Les cases que `autre` dit remplacent les siennes ; ses notes restent.
             pub fn par_dessus(&mut self, autre: &$nom) {
-                $( if !autre.$champ.est_absente() {
+                $( if autre.$champ.is_some() {
                     self.$champ = autre.$champ.clone();
                 } )*
             }
@@ -738,7 +705,7 @@ macro_rules! fiche {
         #[serde(deny_unknown_fields)]
         pub struct $datee {
             $( #[serde(default, skip_serializing_if = "Vec::is_empty")] pub $champ: Vec<Datee<$t>>, )*
-            $( $( $(#[$nm])* #[serde(default, skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
+            $( $( $(#[$nm])* #[serde(skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
         }
 
         impl $datee {
@@ -791,7 +758,7 @@ macro_rules! fiche {
 
             fn changer(&mut self, ch: $ch, depuis: Option<&Jour>, note: Option<&str>) {
                 match ch {
-                    $( $ch::$champ(x) => dater(&mut self.$champ, x.map_or(Case::Nulle, Case::Dite), depuis, note), )*
+                    $( $ch::$champ(x) => dater(&mut self.$champ, x, depuis, note), )*
                 }
             }
 
@@ -804,7 +771,7 @@ macro_rules! fiche {
 
             fn neuve(plate: &$plate) -> $datee {
                 let mut f = $datee::default();
-                $( if !plate.$champ.est_absente() {
+                $( if plate.$champ.is_some() {
                     dater(&mut f.$champ, plate.$champ.clone(), None, None);
                 } )*
                 f.noter(plate);
@@ -854,19 +821,20 @@ pub trait VoirListe {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, bound(deserialize = "T: DeserializeOwned"))]
 pub struct Datee<T> {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub depuis: Option<Jour>,
-    pub valeur: Case<T>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// La valeur ; nulle, la case est vide a partir de `depuis`.
+    pub valeur: Option<T>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
 }
 
 /// La valeur en vigueur a `jour` : celle dont le `depuis` est le plus recent sans le depasser (a meme date, la derniere
-/// ecrite ; sans `depuis`, de tout temps). Avant la premiere, la case est absente.
-pub fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Case<T> {
+/// ecrite ; sans `depuis`, de tout temps). Avant la premiere, la case est vide.
+pub fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Option<T> {
     let mut entrees: Vec<&Datee<T>> = liste.iter().collect();
     entrees.sort_by_key(|e| e.depuis);
-    entrees.into_iter().filter(|e| e.depuis.map_or(true, |j| j <= *jour)).last().map_or(Case::Absente, |e| e.valeur.clone())
+    entrees.into_iter().filter(|e| e.depuis.map_or(true, |j| j <= *jour)).last().and_then(|e| e.valeur.clone())
 }
 
 /// LA CONFIGURATION DE LA COMPAGNIE EST DATEE, comme les baremes : chaque valeur d'une fiche (l'entreprise et sa
@@ -880,7 +848,7 @@ pub fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Case<T> {
 /// ce qui precede reste ce qu'il etait. La premiere valeur d'une liste vaut de tout temps, quel que soit `depuis` : avant
 /// elle, la fiche ne disait rien d'autre. Une valeur deja ecrite au meme jour est remplacee (une correction du meme jour
 /// d'effet). `note` dit pourquoi.
-pub fn dater<T>(liste: &mut Vec<Datee<T>>, valeur: Case<T>, depuis: Option<&Jour>, note: Option<&str>) {
+pub fn dater<T>(liste: &mut Vec<Datee<T>>, valeur: Option<T>, depuis: Option<&Jour>, note: Option<&str>) {
     let depuis = if liste.is_empty() { None } else { depuis.copied() };
     liste.retain(|e| e.depuis != depuis);
     liste.push(Datee { depuis, valeur, note: note.map(str::trim).filter(|n| !n.is_empty()).map(str::to_string) });
@@ -1387,12 +1355,9 @@ impl ChampsSalarie {
     }
 
     /// Le pays de naissance tel que la DSN le declare (S21.G00.30.015, `socle::pays::de_naissance`).
-    pub fn pays_de_naissance(&self) -> Resultat<Case<String>> {
+    pub fn pays_de_naissance(&self) -> Resultat<Option<String>> {
         let qui = format!("{} {}", self.prenom.texte(), self.nom.texte()).trim().to_string();
-        Ok(match &self.pays_naissance {
-            Case::Dite(code) => Case::Dite(socle::pays::de_naissance(code, &qui)?),
-            autre => autre.clone(),
-        })
+        self.pays_naissance.as_ref().map(|code| socle::pays::de_naissance(code, &qui)).transpose()
     }
 
     /// Archivee : `actif: false`. L'absence vaut actif.
@@ -1477,11 +1442,11 @@ pub struct SalarieDuContrat {
 struct Figee {
     cle: IdSalarie,
     champs: ChampsSalarie,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     idcc_de_l_employeur: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     etablissement: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     sante_suspendue: Option<String>,
 }
 
@@ -1617,14 +1582,14 @@ mod tests {
             "FULLER": {
                 "nom": [{"valeur": "FULLER", "note": "importe"}],
                 "actif": [{"valeur": null}, {"depuis": "2026-11-02", "valeur": true}],
-                "taux_pas": [{"valeur": ""}, {"depuis": "2026-11-20", "valeur": {"taux": "1.90", "type": "01", "identifiant": "1", "mis_a_disposition": "20261120000000"}}],
+                "taux_pas": [{"valeur": null}, {"depuis": "2026-11-20", "valeur": {"taux": "1.90", "type": "01", "identifiant": "1", "mis_a_disposition": "20261120000000"}}],
                 "conges_reprise": [{"valeur": {"date": "2026-01-01", "report": 30, "remuneration_report": 47321.04}}]
             }
         });
         let s = lire_champs::<Salaries>(&v, "config/salaries.json").unwrap();
         assert_eq!(socle::ecriture::en_valeur(&s), v);
         let f = &s.fiches[&IdSalarie::lire("FULLER").unwrap()];
-        assert_eq!(f.au(&Jour::lire("2026-11-01").unwrap()).actif, Case::Nulle);
+        assert_eq!(f.au(&Jour::lire("2026-11-01").unwrap()).actif, None);
         assert!(f.au(&Jour::lire("2026-11-02").unwrap()).actif.oui());
     }
 }

@@ -9,6 +9,7 @@
 //! Rien de ce dossier n'est lu par le calcul, ni par une route. Un salarie dont le scenario n'annonce aucun taux en recoit
 //! un de simulation (`taux_de_simulation`) : la DGFiP repond a chaque declaration, comme la vraie.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 

@@ -38,6 +38,7 @@
 //! (sans les fichiers du systeme : un `.docx` y a son type, ici `octet-stream`) ; `Date` d'avant
 //! 1996 : la regle de l'heure d'ete est celle de l'Union europeenne (`paris.rs`).
 
+use droit::fiche::Lue as _;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 
@@ -364,8 +365,8 @@ pub fn preparer_avec(
             continue;
         }
         vus.push(cle.clone());
-        fn texte<T: AsRef<str>>(c: &droit::fiche::Case<T>, k: &str) -> Result<String, String> {
-            if c.est_absente() { Err(cle_absente(k)) } else { Ok(c.texte().to_string()) }
+        fn texte<T: AsRef<str>>(c: &Option<T>, k: &str) -> Result<String, String> {
+            c.portee().map(str::to_string).ok_or_else(|| cle_absente(k))
         }
         let email = s.email.dite().filter(|e| !e.is_empty());
         let Some(email) = email else {

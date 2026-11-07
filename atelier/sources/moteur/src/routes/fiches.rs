@@ -5,6 +5,7 @@
 //!
 //! Les refus portent leur classe (`KeyError`, `TypeError`, `ErreurOperation`...), que la page releve.
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -499,9 +500,9 @@ pub(crate) struct RegimeDeLaTaxe {
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: ChargeTaxeSurLesSalaires) -> R<RegimeDeLaTaxe> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.taxe_sur_les_salaires {
-        Some(None) => droit::fiche::ChampsEntreprise { taxe_sur_les_salaires: droit::fiche::Case::Nulle, ..Default::default() },
+        Some(None) => droit::fiche::ChampsEntreprise { taxe_sur_les_salaires: None, ..Default::default() },
         Some(Some(v)) => droit::fiche::ChampsEntreprise {
-            taxe_sur_les_salaires: droit::fiche::Case::Dite(droit::fiche::lire_champs(&Value::Object(v), cle).map_err(plain)?),
+            taxe_sur_les_salaires: Some(droit::fiche::lire_champs(&Value::Object(v), cle).map_err(plain)?),
             ..Default::default()
         },
         None => ctx.entreprise.clone(),

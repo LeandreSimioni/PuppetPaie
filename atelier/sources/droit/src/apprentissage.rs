@@ -6,7 +6,7 @@ use std::sync::OnceLock;
 use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::num::Resultat;
 
-use crate::fiche::ChampsEntreprise;
+use crate::fiche::{ChampsEntreprise, Lue};
 use crate::source::forme_notee;
 
 forme_notee! {

@@ -6,6 +6,7 @@
 //! `Dico`, `items` et les lectures de `documents::valeur` qu'il reexporte servent d'autres modules qui lisent encore des
 //! `Value` : aucun ne lit le journal.
 
+use droit::fiche::Lue as _;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};

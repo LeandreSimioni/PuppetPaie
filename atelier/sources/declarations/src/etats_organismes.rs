@@ -11,6 +11,7 @@
 //! tranche A declaree, avec les taux du bareme.
 
 use documents::plan_comptable::plan;
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;

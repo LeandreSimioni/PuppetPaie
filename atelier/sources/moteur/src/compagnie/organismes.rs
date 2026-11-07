@@ -10,6 +10,7 @@
 //! (`droit::fiche::dater`) ; ce qui precede garde ses contrats. La premiere composition vaut de tout temps. Les identifiants
 //! d'adhesion (S21.G00.15.005) attribues ne bougent plus.
 
+use droit::fiche::Lue as _;
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
@@ -187,7 +188,7 @@ mois. Ne pas modifier a la main."
     );
     // Rien de saisi en vigueur s'ecrit aussi : la composition du mois devient la saisie de la periode.
     if en_vigueur.is_empty() || en_vigueur != adhesions {
-        droit::fiche::dater(date.adhesions_prevoyance.get_or_insert_with(Vec::new),droit::fiche::Case::Dite(adhesions), Some(&periode.0), None);
+        droit::fiche::dater(date.adhesions_prevoyance.get_or_insert_with(Vec::new),Some(adhesions), Some(&periode.0), None);
     }
     let p = chemin(ctx);
     if let Some(parent) = p.parent() {

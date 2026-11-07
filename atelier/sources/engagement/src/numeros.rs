@@ -157,7 +157,7 @@ impl PartialEq<NumeroContrat> for String {
 /// qui fabrique un numero de contrat (regle 4) ; des initiales ou un code qui le sortiraient de la forme de la norme le
 /// font refuser (`NumeroContrat::lire`).
 pub fn former(fiche: &droit::fiche::ChampsSalarie, annee: i32, seq: i64) -> Resultat<NumeroContrat> {
-    let champ = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(socle::fichiers::absent(k)) } else { Ok(c.texte().to_string()) };
+    let champ = |c: &Option<String>, k: &str| droit::fiche::Lue::ecrite(c, k).map(str::to_string);
     let an = annee.to_string();
     NumeroContrat::lire(&format!("{}{}.{}.{:02}", champ(&fiche.initiales_contrat, "initiales_contrat")?, champ(&fiche.code_salarie, "code_salarie")?, &an[2.min(an.len())..], seq))
 }

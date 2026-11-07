@@ -13,6 +13,7 @@
 //! n'a pas dite reprend son code, et le taux de l'arrete de l'annee pour un risque TC (`Contexte::taux_atmp_reporte`). L'avance de l'ecran propose
 //! les codes que le socle connait, ou un autre code notifie.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};

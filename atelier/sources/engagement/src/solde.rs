@@ -3,6 +3,7 @@
 //! precarite, preavis, indemnite de rupture -- et les phrases qui le disent.
 
 use droit::catalogue::rubrique;
+use droit::fiche::Lue;
 use droit::clauses;
 use droit::conges::jours_ouvrables;
 use crate::conges::{

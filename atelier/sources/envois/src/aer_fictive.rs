@@ -29,6 +29,7 @@
 //! emis. Les cases a cocher du formulaire (licence, civilite, nationalite, cadre) ne sont pas reprises : la fabrique
 //! n'ajoute que des champs texte ; ce qu'elles diraient s'ecrit en clair quand la DSN le dit.
 
+use droit::fiche::Lue as _;
 use std::io::Write;
 
 use serde_json::{json, Value};
@@ -212,7 +213,7 @@ fn attestation(ent: &droit::fiche::ChampsEntreprise, d: &DsnLue, ind: &IndividuD
     if periodes.is_empty() || periodes.len() > COLONNES {
         return Err(format!("une attestation porte de 1 a {} periodes ({} donnees)", COLONNES, periodes.len()));
     }
-    fn champ<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> String {
+    fn champ<T: AsRef<str>>(c: &Option<T>) -> String {
         c.texte().to_string()
     }
     let premier_contrat = d.contrats_de(&ind.nir).find(|c| cinema_spectacle(c));

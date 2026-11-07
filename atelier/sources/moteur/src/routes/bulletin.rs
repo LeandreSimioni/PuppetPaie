@@ -1,5 +1,6 @@
 //! Configuration › Modèle de bulletin : simplifie ou complet, chacun montre sur une paie fictive ; la compagnie choisit.
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -9,7 +10,6 @@ use crate::routes::catalogue::{Acte, Affiche, Champ, Forme, Ecran, Fiche, Place,
 use crate::routes::catalogue::Route;
 use crate::routes::fiches::refus;
 use droit::contexte::Contexte;
-use droit::fiche::Case;
 use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use socle::fichiers::dossier_du_code;
 use socle::echec::{Echec, R};
@@ -229,7 +229,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let ctx = Contexte::nouveau(&racine, Some(saisie.mois.dernier_jour()))?;
     let s = engagement::pour_l_ecran(&ctx, &saisie)?;
     let mut fiche = ctx.entreprise.clone();
-    fiche.modele_bulletin = Case::Dite(modele.choix());
+    fiche.modele_bulletin = Some(modele.choix());
     // Ni le logo ni la signature du poste sur une paie fictive : ses gabarits sont un dossier qui n'existe pas.
     let ent = ctx.pour_un_modele(&fiche);
     // Une paie de l'ecran n'a pas de numero de bulletin (il se reserve au depart) : l'apercu montre celui d'un premier

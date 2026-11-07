@@ -16,7 +16,7 @@ use socle::num::Resultat;
 use socle::date::Jour;
 
 use crate::contexte::Contexte;
-use crate::fiche::{Case, FicheSalarie, Statut};
+use crate::fiche::{FicheSalarie, Lue, Statut};
 
 /// `emplois-base.json` : le catalogue des metiers, dans l'ordre ou le deroulant les montre, et les noms courts des
 /// conventions. Sa `note` dit le perimetre, les sources et les regles de chaque champ.
@@ -356,15 +356,10 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> R
     })
 }
 
-/// Les cases de `UNE_VALEUR_PAR_MOIS` d'une fiche, dans son ordre, chacune telle qu'ecrite : `None` quand elle n'est ni
-/// dite ni vide.
+/// Les cases de `UNE_VALEUR_PAR_MOIS` d'une fiche, dans son ordre, chacune telle qu'ecrite : `None` quand elle est vide.
 fn valeurs_par_mois(f: &FicheSalarie) -> [(&'static str, Option<String>); 5] {
-    fn portee<T: std::fmt::Display>(c: &Case<T>) -> Option<String> {
-        match c {
-            Case::Absente | Case::Nulle => None,
-            Case::Vide => Some(String::new()),
-            Case::Dite(v) => Some(v.to_string()),
-        }
+    fn portee<T: std::fmt::Display>(c: &Option<T>) -> Option<String> {
+        c.as_ref().map(T::to_string)
     }
     [
         (UNE_VALEUR_PAR_MOIS[0], portee(&f.statut_categoriel_rc)),
@@ -472,33 +467,33 @@ pub fn emploi_de(sal: &FicheSalarie, eng: &EmploiEngagement) -> Resultat<FicheSa
         return Ok(out);
     }
     if let Some(v) = dit(&eng.emploi) {
-        out.emploi = Case::Dite(v);
+        out.emploi = Some(v);
     }
     if let Some(v) = dit(&eng.pcs_ese) {
-        out.pcs_ese = Case::Dite(v);
+        out.pcs_ese = Some(v);
     }
     if let Some(v) = dit(&eng.code_emploi_ft) {
-        out.code_emploi_ft = Case::Dite(v);
+        out.code_emploi_ft = Some(v);
     }
     if let Some(v) = dit(&eng.statut) {
-        out.statut = Case::Dite(choix(&v, "statut")?);
+        out.statut = Some(choix(&v, "statut")?);
     }
     if let Some(v) = dit(&eng.statut_conventionnel) {
-        out.statut_conventionnel = Case::Dite(choix(&v, "statut_conventionnel")?);
+        out.statut_conventionnel = Some(choix(&v, "statut_conventionnel")?);
     }
     if let Some(v) = dit(&eng.statut_categoriel_rc) {
-        out.statut_categoriel_rc = Case::Dite(choix(&v, "statut_categoriel_rc")?);
+        out.statut_categoriel_rc = Some(choix(&v, "statut_categoriel_rc")?);
     }
     // Un metier choisi sur la ligne : son libelle lisible aussi, tel que
     // l'engagement l'a resolu (au feminin si la fiche le dit) ; a defaut, le
     // libelle du catalogue.
     if let Some(a) = affichage {
-        out.emploi_affichage = Case::Dite(a);
+        out.emploi_affichage = Some(a);
     } else if let Some(code) = dit(&eng.code_emploi_ft) {
         if sal.code_emploi_ft.dite() != Some(&code) {
             out.emploi_affichage = match resoudre(&code, None, false, "") {
-                Ok(r) => Case::Dite(r.emploi_affichage),
-                Err(_) => Case::Absente,
+                Ok(r) => Some(r.emploi_affichage),
+                Err(_) => None,
             };
         }
     }

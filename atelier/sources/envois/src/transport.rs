@@ -8,6 +8,7 @@
 //! Les pannes : `ErreurApi` (message et `code`) ; un delai de lecture, une reponse coupee, une connexion rompue, un gzip
 //! illisible portent chacun leur `classe`, que l'appelant releve.
 
+use droit::fiche::Lue as _;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;

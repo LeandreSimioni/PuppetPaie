@@ -42,6 +42,7 @@
 //! LE COMPTE RENDU (`tri`) donne a chaque fichier un sort, et un seul, avec sa raison en une phrase (sans nom ni NIR :
 //! la phrase peut partir chez l'editeur) ; un PDF a aussi le sort de chacune de ses pages. Les sorts : `reponse::Sort`.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 

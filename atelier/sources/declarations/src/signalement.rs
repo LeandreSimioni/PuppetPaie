@@ -9,6 +9,7 @@
 //! introuvable, valeur absente, usage ou format hors norme) sont des
 //! `ValueError`/`KeyError`, ici `Echec::Autre`.
 
+use droit::fiche::Lue as _;
 use serde_json::Value;
 
 use droit::contexte::{aujourdhui, Contexte};
@@ -445,7 +446,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.40.009", g(&a.v, "contrat_numero"))?;
     f.add_case("S21.G00.40.019", &etab.siret, "siret")?;
 
-    if ent.banque.est_absente() {
+    if ent.banque.is_none() {
         return Err(socle::fichiers::absent("banque").into());
     }
     let banque = ent.banque.dite();

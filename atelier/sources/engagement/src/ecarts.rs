@@ -29,6 +29,8 @@
 //! base ou d'un montant (jamais le montant), la periode, la nature et le statut.
 
 use std::collections::BTreeMap;
+
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 

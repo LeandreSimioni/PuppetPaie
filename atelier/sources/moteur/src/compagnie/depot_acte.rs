@@ -15,6 +15,7 @@
 //! Le SIMULATEUR (`bridage::branchement`) joue le depot -- un flux `FICTIF-...` -- et rien ne quitte le poste ;
 //! le reste (repetition, journal) se deroule comme en vrai.
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};

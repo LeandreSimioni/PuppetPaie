@@ -15,6 +15,7 @@
 //! Deux usages : ecrire (enregistrements, contenu, fichier et son .zip, recapitulatif) et relire (`relire`,
 //! `lire_certificat`, `meme_declaration`).
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
@@ -998,9 +999,9 @@ mod tests {
     #[test]
     fn la_dpae_d_un_autre_etablissement_va_a_l_urssaf_de_son_territoire() {
         let mut ent = entreprise();
-        ent.fiche.siren = droit::fiche::Case::Dite("123456915".into());
-        ent.fiche.nic = droit::fiche::Case::Dite("00016".into());
-        ent.fiche.etablissements = droit::fiche::Case::Dite(droit::fiche::lire_champs(&json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]), "etablissements").unwrap());
+        ent.fiche.siren = Some("123456915".into());
+        ent.fiche.nic = Some("00016".into());
+        ent.fiche.etablissements = Some(droit::fiche::lire_champs(&json!([{"nic": "00024", "adresse": "8 RUE DE LA FONDERIE", "code_postal": "44000", "commune": "NANTES"}]), "etablissements").unwrap());
         let nantes = crate::urssaf::base().unwrap().du_departement("44");
         let mut e = embauche(salarie(), "cdi", Value::Null);
         e.salarie.etablissement = Some("00024".into());
@@ -1032,7 +1033,7 @@ mod tests {
         assert_eq!(ch("medecine_travail"), "     MT542");
         // Un SIRET qui ne fait pas 14 chiffres : refus.
         let mut mauvais = entreprise();
-        mauvais.fiche.siret = droit::fiche::Case::Dite("1234".into());
+        mauvais.fiche.siret = Some("1234".into());
         let m = enr(&e, Some(&mauvais), json!("117")).unwrap_err();
         assert!(m.contains("SIRET") && m.contains("'1234'"), "{}", m);
     }

@@ -28,6 +28,8 @@
 //! avec les bornes de leur engagement (`ContratLu`, `PaieLue`), de la lecture des pieces a l'ecriture (`Neuf`).
 
 use std::collections::BTreeMap;
+
+use droit::fiche::Lue;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};

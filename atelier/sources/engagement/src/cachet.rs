@@ -32,6 +32,7 @@
 //! pire que pas de cachet, et la case n'est exigee par aucun formulaire.
 
 use droit::contexte::format_g;
+use droit::fiche::Lue;
 
 /// L'encre d'un tampon, et la geometrie du dessin. Le rapport 2:1 est celui
 /// d'un tampon rectangulaire courant ; il tient dans la case cachet de l'AER
@@ -50,7 +51,7 @@ pub struct Lignes {
     pub numeros: Vec<String>,
 }
 
-fn texte_de<T: AsRef<str>>(c: &droit::fiche::Case<T>) -> Option<String> {
+fn texte_de<T: AsRef<str>>(c: &Option<T>) -> Option<String> {
     c.remplie().map(str::to_string)
 }
 

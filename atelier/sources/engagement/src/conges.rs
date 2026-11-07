@@ -11,6 +11,8 @@
 //! derivation lit chaque mois une fois ; il meurt avec la derivation qui l'a ouvert.
 
 use std::cell::RefCell;
+
+use droit::fiche::Lue;
 use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
@@ -775,7 +777,7 @@ pub struct Reprise {
 pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Reprise>> {
     let Some(r) = reprise_ecrite(ctx, cle_salarie)? else { return Ok(None) };
     let Some(date) = r.date.dite().copied() else { return Ok(None) };
-    let nombre = |c: &droit::fiche::Case<droit::fiche::Montant>, cle: &str| {
+    let nombre = |c: &Option<droit::fiche::Montant>, cle: &str| {
         c.dite().map(droit::fiche::Montant::decimal).ok_or_else(|| {
             socle::echec::cle(
                 format!("La reprise des congés du {} ne dit pas tous ses nombres : écrire chacun sur la fiche du salarié, 0 s'il n'y en a pas.", date.jj_mm_aaaa()),
@@ -1136,7 +1138,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Carte, mois: &str) -> Resultat<
     let depuis = crate::calcul::date_d_anciennete(&fiche, &debut_saisi);
     let (retenu, dit) = crate::imprevus::anciennete_depuis(&ctx.racine, &cle, &depuis, &fin_mois)?;
     if retenu != depuis {
-        fiche.date_anciennete = droit::fiche::Case::Dite(retenu);
+        fiche.date_anciennete = Some(retenu);
         sur_l_anciennete = dit;
     }
     let ent = &ctx.entreprise;

@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::catalogue::{annexes, rubrique};
+use crate::fiche::Lue;
 use crate::contexte::{aujourdhui, Contexte};
 use socle::date::Jour;
 use socle::num::{add, Decimal, Resultat};

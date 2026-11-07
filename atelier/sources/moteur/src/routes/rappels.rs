@@ -10,6 +10,7 @@
 //! Chaque charge, chaque reponse, l'echeancier livre (`donnees/echeancier-base.json`) et ce que la compagnie a coche
 //! (`config/echeancier.json`) sont une forme declaree ici, lue une fois (`socle::forme::lire`). Un refus porte sa `classe`.
 
+use droit::fiche::Lue as _;
 use socle::date::jj_mm_aaaa;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};

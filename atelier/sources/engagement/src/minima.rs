@@ -6,6 +6,8 @@
 
 use std::collections::BTreeSet;
 
+use droit::fiche::Lue;
+
 use rust_decimal::RoundingStrategy;
 
 use crate::calcul::{LigneBrut, Paie};

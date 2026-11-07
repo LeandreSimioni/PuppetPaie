@@ -163,8 +163,8 @@ fn une_compagnie_d_essai_montee_se_lit_par_sa_forme() {
     let s = lancer(PAIE, &["essai", "monter", d.to_str().unwrap(), "--depuis", source.to_str().unwrap()], &[("PUPPETPAIE_COMPAGNIE", &identite().to_string())]);
     assert_eq!(s.code, 0, "{}", s.texte);
     let ctx = droit::contexte::Contexte::nouveau(&d, None).unwrap_or_else(|e| panic!("la compagnie d'essai ne se lit pas : {}", e));
-    let dpae = ctx.entreprise.api_dpae.dite().expect("le compte DPAE");
-    assert_eq!((dpae.nom.texte(), dpae.siret.texte()), ("QUENOUILLEDPAE", "98765432400019"));
-    assert_eq!(ctx.entreprise.declarant.dite().map(|x| x.prenom.texte()), Some("ARIANE MARIE"));
+    let dpae = ctx.entreprise.api_dpae.as_ref().expect("le compte DPAE");
+    assert_eq!((dpae.nom.as_deref(), dpae.siret.as_deref()), (Some("QUENOUILLEDPAE"), Some("98765432400019")));
+    assert_eq!(ctx.entreprise.declarant.as_ref().and_then(|x| x.prenom.as_ref()).map(|p| p.to_string()), Some("ARIANE MARIE".to_string()));
     let _ = std::fs::remove_dir_all(&d);
 }

@@ -23,6 +23,7 @@
 //! nouveau a l'ouverture suivante. UN RAPPORT DEJA NOTE NE SE NOTE PAS DEUX FOIS (meme empreinte, meme resume, meme
 //! detail) : un import rejoue ne renvoie rien.
 
+use droit::fiche::Lue as _;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;

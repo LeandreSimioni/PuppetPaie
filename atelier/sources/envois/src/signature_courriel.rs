@@ -13,6 +13,7 @@
 //! plus, images comprises : une image collee dans la signature pese tout son poids, un lien vers une image en ligne
 //! presque rien. Au-dela, la fiche le signale et l'envoi refuse plutot que de partir sans signature.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 use regex::Regex;

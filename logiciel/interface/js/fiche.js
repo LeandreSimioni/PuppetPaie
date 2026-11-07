@@ -1398,9 +1398,16 @@ function demanderDateDEffet({ changements = [], depuis: propose, pourquoi, usage
  * chemin forcé se contentait de redessiner, et la fiche restait « modifiée »
  * -- quitter l'onglet demandait d'enregistrer ce qui l'était déjà. */
 /* LES CASES QUE LA PAGE ENVOIE à `enregistrer-fiche` : une liste de changements `[{case, valeur}]` (comme la
- * carte), chaque structure entière ; une case vidée part `null` (le moteur refuse `""`). */
+ * carte), chaque structure entière ; une case vidée part `null`, dans une structure comme seule (le moteur refuse
+ * `""`). */
+function sansTexteVide(v) {
+  if (v === "") return null;
+  if (Array.isArray(v)) return v.map(sansTexteVide);
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, sansTexteVide(x)]));
+  return v;
+}
 function casesDeLaCharge(donnees) {
-  return { changements: Object.entries(donnees).map(([c, valeur]) => ({ case: c, valeur: valeur === "" ? null : valeur })) };
+  return { changements: Object.entries(donnees).map(([c, valeur]) => ({ case: c, valeur: sansTexteVide(valeur) })) };
 }
 
 async function ecrireFiche(fiche, donnees, daté, forcer = false) {

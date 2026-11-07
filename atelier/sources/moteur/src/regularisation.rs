@@ -5,6 +5,7 @@
 //! version presente de l'engagement valide et celle sur laquelle la DSN est partie
 //! (`produire_regularisations::corrections_dues`).
 
+use droit::fiche::Lue as _;
 use std::str::FromStr;
 
 use serde_json::{json, Map, Value};

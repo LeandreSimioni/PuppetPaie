@@ -14,6 +14,7 @@
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
 //! Un numero de contrat s'ecrit dans l'engagement a sa validation (`engagement::numeros`) ; tout ce qui part le lit la.
 
+use droit::fiche::Lue as _;
 use socle::mois::Mois;
 use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;

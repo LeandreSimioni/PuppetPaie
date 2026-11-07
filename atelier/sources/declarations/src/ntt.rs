@@ -4,6 +4,7 @@
 //! regles de forme CSL-11, CSL-12, CCH-13 et la longueur [11,40] sont ici.
 
 use crate::dsn::Fichier;
+use droit::fiche::Lue as _;
 use socle::fichiers::repr;
 use crate::formats;
 use socle::num::Resultat;

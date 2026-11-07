@@ -8,6 +8,7 @@
 //! pose, et le refus dit quoi. Les clauses particulieres de la compagnie (`clauses_particulieres` de sa fiche) s'ecrivent
 //! ici une fois et se reprennent dans chaque contrat.
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::PathBuf;
 

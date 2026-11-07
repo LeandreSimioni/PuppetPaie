@@ -29,7 +29,7 @@ use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::num::Resultat;
 
 use crate::contexte::{Contexte, ORGANISMES};
-use crate::fiche::Datee;
+use crate::fiche::{Datee, Lue};
 use crate::source::{forme_notee, Fondement};
 
 /// Audiens, delegataire des contrats de branche du spectacle (S21.G00.15.002).

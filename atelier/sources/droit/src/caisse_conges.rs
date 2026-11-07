@@ -20,7 +20,7 @@
 //! tranche.
 
 use crate::natures::Nature;
-use crate::fiche::SalarieDuContrat;
+use crate::fiche::{Lue, SalarieDuContrat};
 use socle::date::Jour;
 use crate::emplois;
 use socle::num::Resultat;

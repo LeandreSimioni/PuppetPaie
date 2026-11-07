@@ -1,6 +1,7 @@
 //! La configuration datee, lue a la date de la periode.
 
 use droit::contexte::Contexte;
+use droit::fiche::Lue;
 use crate::outils::typee::lu;
 use std::collections::BTreeMap;
 use std::path::Path;

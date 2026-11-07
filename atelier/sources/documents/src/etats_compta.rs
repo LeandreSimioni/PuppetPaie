@@ -8,6 +8,7 @@
 //! remplacement (`cp1252`). Une zone ne se coupe jamais : un libelle ou un intitule trop long prend la valeur courte que
 //! la compagnie a validee (`libelles_courts`), sinon l'export se refuse et dit combien en raccourcir.
 
+use droit::fiche::Lue as _;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 

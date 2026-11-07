@@ -9,6 +9,7 @@
 //! quelles ; elle ne fabrique aucun bulletin : celui de la paie corrigee part avec les documents de son mois.
 
 
+use droit::fiche::Lue as _;
 use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
@@ -246,7 +247,7 @@ pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for r in regs {
         let s = &r.apres.salarie;
-        if s.nom.est_absente() {
+        if s.nom.is_none() {
             return Err(erreur("KeyError", socle::fichiers::absent("nom")));
         }
         out.push(format!(

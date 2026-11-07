@@ -13,7 +13,7 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Value};
 
 use droit::bareme::{self, bareme_applique, EntrepriseLue};
-use droit::fiche::{Case, ChampsEntreprise, DeclarantDsn};
+use droit::fiche::{ChampsEntreprise, DeclarantDsn, Lue};
 use droit::forme_bareme::{CotisationDsn, Pile, Rubrique};
 use documents::bordereau::{self, Destinataire, LigneBordereau};
 use droit::reduction::au_dela_du_seuil;
@@ -103,19 +103,18 @@ impl Fichier {
     /// LE COMPLEMENT D'ADRESSE (S10.G00.01.009, S21.G00.06.007, S21.G00.11.006 : « Complement de la localisation de la
     /// construction », facultatif, X [1,50], `atelier/reference/norme-dsn/texte/bloc-S21.G00.06.txt` l. 98-110) : la
     /// seconde ligne de l'adresse, ecrite entiere quand la fiche la dit, absente sinon.
-    pub fn add_complement(&mut self, rubrique: &str, case: &droit::fiche::Case<droit::fiche::LigneAdresse>) {
+    pub fn add_complement(&mut self, rubrique: &str, case: &Option<droit::fiche::LigneAdresse>) {
         if let Some(t) = case.remplie() {
             self.add(rubrique, t);
         }
     }
 
-    /// La case `cle` d'une fiche, que la rubrique exige : absente ou nulle, elle refuse ; vide, elle s'ecrit vide.
-    pub fn add_case<T: AsRef<str>>(&mut self, rubrique: &str, case: &droit::fiche::Case<T>, cle: &str) -> Resultat<()> {
+    /// La case `cle` d'une fiche, que la rubrique exige : vide, elle refuse en se nommant.
+    pub fn add_case<T: AsRef<str>>(&mut self, rubrique: &str, case: &Option<T>, cle: &str) -> Resultat<()> {
         match case {
-            droit::fiche::Case::Absente => Err(socle::fichiers::absent(cle)),
-            droit::fiche::Case::Nulle => Err(absente(rubrique)),
-            c => {
-                self.add(rubrique, c.texte());
+            None => Err(socle::fichiers::absent(cle)),
+            Some(t) => {
+                self.add(rubrique, t.as_ref());
                 Ok(())
             }
         }
@@ -4029,7 +4028,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
             let nic = bareme::etablissement_de(&ctx_m.entreprise, &declaree.salarie)?;
             let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
             let mut ent = ctx_m.entreprise.clone();
-            ent.licence_spectacle = Case::Dite(ctx.licence(&Mois::lire(&m)?.premier_jour()));
+            ent.licence_spectacle = Some(ctx.licence(&Mois::lire(&m)?.premier_jour()));
             let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
@@ -4286,7 +4285,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     let bar = bar_de(mois)?;
     let contribs = bar.contributions_du_mois.clone();
     let mut ent = ent0.clone();
-    ent.licence_spectacle = Case::Dite(ctx.licence(&debut_mois));
+    ent.licence_spectacle = Some(ctx.licence(&debut_mois));
     let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
 
     let mut arrets_du_mois = Vec::new();
@@ -4974,7 +4973,7 @@ mod tests {
     // La CASC-SVP de la 3090 (`atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt`).
     #[test]
     fn la_dsn_de_la_3090_porte_la_casc_en_troisieme_affiliation() {
-        let c = casc_svp(&ctx_dsn("a", &[]), &ChampsEntreprise { idcc: Case::Dite("3090".into()), ..Default::default() }, &orgs_casc(), "2026-09").unwrap().unwrap();
+        let c = casc_svp(&ctx_dsn("a", &[]), &ChampsEntreprise { idcc: Some("3090".into()), ..Default::default() }, &orgs_casc(), "2026-09").unwrap().unwrap();
         assert_eq!(c["reference"], json!("100"));
         assert_eq!(c["lignes"], json!(["ccn"]));
         // l'intermittent : apres 103 et 102, donc 204 ; le permanent l'a deja.
@@ -4985,16 +4984,16 @@ mod tests {
     #[test]
     fn pas_de_casc_hors_3090_avant_2025_ni_sur_un_mois_regularise() {
         let o = orgs_casc();
-        assert!(casc_svp(&ctx_dsn("b1", &[]), &ChampsEntreprise { idcc: Case::Dite("1285".into()), ..Default::default() }, &o, "2026-09").unwrap().is_none());
-        assert!(casc_svp(&ctx_dsn("b2", &[]), &ChampsEntreprise { idcc: Case::Dite("3090".into()), ..Default::default() }, &o, "2024-12").unwrap().is_none());
-        assert!(casc_svp(&ctx_dsn("b3", &["2026-08"]), &ChampsEntreprise { idcc: Case::Dite("3090".into()), ..Default::default() }, &o, "2026-08").unwrap().is_none());
+        assert!(casc_svp(&ctx_dsn("b1", &[]), &ChampsEntreprise { idcc: Some("1285".into()), ..Default::default() }, &o, "2026-09").unwrap().is_none());
+        assert!(casc_svp(&ctx_dsn("b2", &[]), &ChampsEntreprise { idcc: Some("3090".into()), ..Default::default() }, &o, "2024-12").unwrap().is_none());
+        assert!(casc_svp(&ctx_dsn("b3", &["2026-08"]), &ChampsEntreprise { idcc: Some("3090".into()), ..Default::default() }, &o, "2026-08").unwrap().is_none());
     }
 
     // S21.G00.20.002 de France Travail (`atelier/reference/sources/francetravail-100-dsn/net-entreprises-fiche-3344-intermittents-20251113.html`).
     #[test]
     fn le_dossier_france_travail_de_la_fiche_part_dans_la_dsn() {
         let base = droit::organismes::base().unwrap();
-        let fiche = ChampsEntreprise { france_travail_dossier_recouvrement: Case::Dite("CS00000001".into()), ..Default::default() };
+        let fiche = ChampsEntreprise { france_travail_dossier_recouvrement: Some("CS00000001".into()), ..Default::default() };
         let ft = base.versement(SIRET_FRANCE_TRAVAIL).unwrap();
         assert_eq!(reference_versement(ft, &fiche).as_deref(), Some("CS00000001"));
         assert_eq!(reference_versement(ft, &ChampsEntreprise::default()), None);

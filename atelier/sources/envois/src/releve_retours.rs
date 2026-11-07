@@ -12,6 +12,7 @@
 //! le message ne releve rien. Ce qu'elle trouve en chemin et qui touche a la compagnie (les incidents des retours, les
 //! attestations France Travail a ranger) va dans les suites (`suites::Suites`).
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};

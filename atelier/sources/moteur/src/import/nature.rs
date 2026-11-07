@@ -22,6 +22,7 @@
 //! s'ecrivent sur l'engagement repris lui-meme (`debut`, `fin`, `numero`, `salaire_mensuel`, `quotite_contrat`) : il
 //! continue ici, sous la meme identite (`engagement::importe`, « un contrat de permanent est un engagement »).
 
+use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 use std::path::Path;
 

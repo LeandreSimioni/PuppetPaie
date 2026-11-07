@@ -17,6 +17,7 @@
 //!
 //! Lecture seule : rien ne s'ecrit, rien ne part.
 
+use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};

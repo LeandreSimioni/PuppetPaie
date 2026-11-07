@@ -15,6 +15,7 @@
 //! accent hors de cette table n'est pas retire. Les chiffres des motifs de date et de nom de fichier sont les chiffres
 //! ASCII. Un mois saisi est un mois que des engagements touchent (`engagements/`).
 
+use droit::fiche::Lue as _;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 

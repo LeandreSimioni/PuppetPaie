@@ -33,6 +33,7 @@
 //! `atelier/reference/sources/subrogation-indemnites-journalieres/`).
 
 use crate::conges::info;
+use droit::fiche::Lue;
 use crate::Chiffre;
 use crate::imprevus::{ArretSaisi, Imprevu};
 use crate::ligne::{IndemniteJournaliere, LignePaie, Maintien};

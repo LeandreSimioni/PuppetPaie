@@ -20,7 +20,7 @@
 use std::collections::BTreeMap;
 
 use droit::contexte::Contexte;
-use droit::fiche::{Case, ChampsSalarie, Datee, FicheSalarie, FicheSalarieDatee};
+use droit::fiche::{ChampsSalarie, Lue, Datee, FicheSalarie, FicheSalarieDatee};
 use socle::date::Jour;
 use crate::dsn::Fichier;
 use socle::num::Resultat;
@@ -114,7 +114,7 @@ impl Declaree {
 
 /// Les valeurs d'une liste datee, de la plus ancienne a la plus recente, telles que le bloc 30 les ecrit (`ecrite` ;
 /// `None` : une valeur qui ne ressemble a aucune valeur declaree).
-fn datees<T>(liste: &[Datee<T>], ecrite: fn(&Case<T>) -> Option<String>) -> Vec<(Option<Jour>, Option<String>)> {
+fn datees<T>(liste: &[Datee<T>], ecrite: fn(&Option<T>) -> Option<String>) -> Vec<(Option<Jour>, Option<String>)> {
     droit::fiche::valeurs_datees(liste).into_iter().map(|e| (e.depuis, ecrite(&e.valeur))).collect()
 }
 

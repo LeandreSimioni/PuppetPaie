@@ -13,6 +13,7 @@
 //! le mot de passe du logiciel par `demande::autoriser_acte`, un secret a poser par `demande::saisir_deux_fois` (sa
 //! fenetre, sinon le terminal sans echo, sinon un refus).
 
+use droit::fiche::Lue as _;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -519,7 +520,7 @@ fn ecrire_compte_dpae(ctx: &Contexte, propres: Vec<(&'static str, String)>) -> R
     let mut cfg = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
     for (cle, v) in propres {
         let case = if cle == "nom" { &mut cfg.nom } else { &mut cfg.prenom };
-        *case = droit::fiche::Case::Dite(v);
+        *case = Some(v);
     }
     crate::routes::fiches::poser_entreprise(ctx, "api_dpae", serde_json::to_value(&cfg).unwrap_or(Value::Null), Some(ctx.aujourdhui))?;
     Ok(droit::fiche::lire_fichier::<droit::fiche::FicheEntrepriseDatee>(&ctx.racine.join(droit::contexte::ENTREPRISE), droit::contexte::ENTREPRISE).map_err(Echec::from)?.au(&ctx.aujourdhui))

@@ -29,6 +29,7 @@
 //! fil -- le message archive reste celui d'`envoi::en_mime_nomme`, en LF. Une ligne vide precede le point final quand le
 //! message ne finit pas par CRLF (`en_mime_nomme` finit par LF).
 
+use droit::fiche::Lue as _;
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};

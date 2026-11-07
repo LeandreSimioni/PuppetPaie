@@ -9,6 +9,7 @@
 //! si une demande est partie depuis le dernier taux recu pour lui et que sa reponse est encore attendue (`en_cours`). Ce qui
 //! ne se demande pas se dit : un salarie sans NIR, une demande deja partie.
 
+use droit::fiche::Lue as _;
 use std::path::PathBuf;
 
 use serde_json::Value;

@@ -4,7 +4,7 @@
 //! (`prevoyance_permanents`), et le moteur le confronte a ce minimum.
 
 use super::{alsace_moselle, arrondi4, deux_virgule, jour_texte, nom_du_salarie, ChampsEntreprise, Decimal, Jour, Mutuelle, Resultat, SalarieDuContrat};
-use crate::fiche::ExtensionT2;
+use crate::fiche::{ExtensionT2, Lue};
 use socle::echec::APart;
 use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::forme::Nombre;

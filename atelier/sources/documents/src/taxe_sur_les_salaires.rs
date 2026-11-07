@@ -4,6 +4,7 @@
 //! les memes fonctions.
 
 
+use droit::fiche::Lue as _;
 use engagement::calcul::Paie;
 use socle::num::{add, eur, mul, sub, Decimal, Resultat};
 use socle::texte::euros;

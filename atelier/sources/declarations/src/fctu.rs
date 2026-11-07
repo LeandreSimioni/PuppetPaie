@@ -5,6 +5,7 @@
 //! obligatoires, ni bordereau ni ordre de telepaiement. Les controles qui lui
 //! sont propres (CCH-14, CCH-15, CCH-11) sont tenus ici ; `Echec::Impossible` est la regle de la norme qui s'oppose.
 
+use droit::fiche::Lue as _;
 use serde_json::Value;
 
 use droit::contexte::{aujourdhui, Contexte};
@@ -557,7 +558,7 @@ ou un annule."
     let orgs = ctx.organismes()?;
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
     let mut ent_l = etab.clone();
-    ent_l.licence_spectacle = droit::fiche::Case::Dite(ctx.licence(&fin_jour));
+    ent_l.licence_spectacle = Some(ctx.licence(&fin_jour));
     for a in &orgs.adhesions_prevoyance {
         f.add("S21.G00.15.001", &a.libelle);
         f.add("S21.G00.15.002", &a.delegataire);
@@ -597,10 +598,7 @@ ou un annule."
     }
 
     // ------------------------------------------------------------ S21 anciennete
-    let depuis = match &s.date_anciennete {
-        droit::fiche::Case::Absente => e.debut,
-        c => *c.exigee("date_anciennete")?,
-    };
+    let depuis = *s.date_anciennete.exigee("date_anciennete")?;
     bloc_anciennete(&mut f, paie, fin_jour.moins(&depuis) + 1)?;
 
     let n = f.lignes.len() + 2;

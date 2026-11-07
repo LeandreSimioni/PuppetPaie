@@ -12,7 +12,7 @@ use crate::forme_bareme::{
     VersementMobiliteEcrit,
 };
 use crate::natures::Nature;
-use crate::fiche::{Case, ChampsEntreprise, ChampsSalarie, Etablissement, SalarieDuContrat, Statut, StatutCategorielRc};
+use crate::fiche::{ChampsEntreprise, Lue, ChampsSalarie, Etablissement, SalarieDuContrat, Statut, StatutCategorielRc};
 use socle::date::Jour;
 use socle::echec::APart;
 use socle::num::{add, dec_f64, div, mul, sub, Decimal, Resultat};
@@ -1180,8 +1180,8 @@ pub fn fiche_de_l_etablissement(fiche: &ChampsEntreprise, nic: &str) -> Resultat
     }
     let e = fiche.etablissement(nic).ok_or_else(|| format!("Etablissement inconnu : {}.", nic))?;
     let mut vue = fiche.clone();
-    vue.nic = Case::Dite(e.nic.ecrite("nic")?.to_string());
-    vue.siret = Case::Dite(format!("{}{}", fiche.siren.texte(), e.nic.texte()));
+    vue.nic = Some(e.nic.ecrite("nic")?.to_string());
+    vue.siret = Some(format!("{}{}", fiche.siren.texte(), e.nic.texte()));
     // L'adresse de l'etablissement vient avec son complement, vide ou non : celui du siege n'est pas le sien.
     if e.adresse.remplie().is_some() {
         vue.adresse = e.adresse.clone();
@@ -1230,7 +1230,7 @@ pub fn surcharger(mut bar: Pile, fiche: &ChampsEntreprise, nic: &str) -> Resulta
     };
     let an = annee(&bar);
     // Le taux de l'etablissement, que `bareme_atmp` lit comme celui de la compagnie ; en Alsace-Moselle d'apres SON code postal.
-    if e.taux_atmp.est_absente() {
+    if e.taux_atmp.is_none() {
         return Err(socle::fichiers::absent("taux_atmp"));
     }
     let mut atmp = taux_atmp_d_un_etablissement(e, &an);
@@ -1258,7 +1258,7 @@ Configuration › Entreprise › Avancé, « Autres établissements », à parti
     // (CGCT, L. 2333-64, I, l'effectif « employe dans chacune des zones »).
     let vm = e.versement_mobilite.dite();
     let aucun = vm.is_some_and(|v| v.taux.dite().is_some_and(|t| t.decimal().is_zero()));
-    if aucun || (matches!(e.versement_mobilite, Case::Absente | Case::Nulle) && bar.versement_mobilite.as_ref().is_none_or(VersementMobiliteEcrit::est_vide)) {
+    if aucun || (e.versement_mobilite.is_none() && bar.versement_mobilite.as_ref().is_none_or(VersementMobiliteEcrit::est_vide)) {
         bar.versement_mobilite = None;
     } else if let Some(v) = vm {
         bar.versement_mobilite = Some(VersementMobiliteEcrit::Ecrit(crate::forme_bareme::VersementMobiliteTaux {
@@ -1860,11 +1860,7 @@ pub fn taux_atmp_d_un_etablissement(e: &Etablissement, an: &str) -> Option<TauxA
     let ouvert: Option<i32> = e.ouverture.dite().map(|j| j.an);
     let d_une_autre_annee = dit.annee.dite().is_some_and(|a| *a != 0 && a.to_string() != an.trim());
     let mut t = TauxAtmp {
-        code_risque: match &dit.code_risque {
-            Case::Dite(c) => Some(c.clone()),
-            Case::Vide => Some(String::new()),
-            _ => None,
-        },
+        code_risque: dit.code_risque.clone(),
         valeur: if d_une_autre_annee { None } else { dit.valeur.dite().map(|m| m.decimal()) },
         ..TauxAtmp::default()
     };

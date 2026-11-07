@@ -2,6 +2,7 @@
 //! DSN deposees declarent (l'import) : chacun s'ecrit dans la fiche de son salarie (`droit::pas::CHAMP`,
 //! `routes::fiches::poser_taux_recu`), et les engagements qu'il touche se recalculent. `droit::pas` les lit.
 
+use droit::fiche::Lue as _;
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;

@@ -10,7 +10,7 @@ use serde::Deserialize;
 use socle::echec::APart;
 use socle::fichiers::{dossier_du_code, repr, signature};
 use socle::num::Resultat;
-use crate::fiche::{Case, ChampsRubrique, Datee, FicheDatee, RubriqueDatee, VoirListe};
+use crate::fiche::{ChampsRubrique, Datee, FicheDatee, RubriqueDatee, VoirListe};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -334,59 +334,37 @@ fn de_la_compagnie(racine: &Path) -> Resultat<RubriquesDeLaCompagnie> {
 /// doit dire, ou qui ne dit pas ce que sa forme attend, se refuse en la nommant.
 fn construire(code: &str, f: ChampsRubrique, origine: &str) -> Resultat<Rubrique> {
     let faute = |cle: &str, quoi: &str| mal_decrite(code, format!("Rubrique {} : `{}` {}.", repr(code), cle, quoi));
-    fn dite<T>(c: Case<T>, cle: &str, faute: &dyn Fn(&str, &str) -> String) -> Resultat<T> {
-        match c {
-            Case::Dite(v) => Ok(v),
-            Case::Absente => Err(faute(cle, "manque")),
-            _ => Err(faute(cle, "est vide")),
-        }
+    fn dite<T>(c: Option<T>, cle: &str, faute: &dyn Fn(&str, &str) -> String) -> Resultat<T> {
+        c.ok_or_else(|| faute(cle, "manque"))
     }
-    fn ou_rien<T>(c: Case<T>, cle: &str, faute: &dyn Fn(&str, &str) -> String) -> Resultat<Option<T>> {
-        match c {
-            Case::Dite(v) => Ok(Some(v)),
-            Case::Absente | Case::Nulle => Ok(None),
-            Case::Vide => Err(faute(cle, "est vide")),
-        }
-    }
-    fn texte(c: Case<String>) -> Option<String> {
-        match c {
-            Case::Dite(t) => Some(t),
-            Case::Vide => Some(String::new()),
-            Case::Absente | Case::Nulle => None,
-        }
-    }
-    let texte_dit = |c: Case<String>, cle: &str| match c {
-        Case::Absente | Case::Nulle => Err(faute(cle, "manque")),
-        c => Ok(c.texte().to_string()),
-    };
     let r = Rubrique {
         code: code.to_string(),
-        libelle: texte_dit(f.libelle, "libelle")?,
-        unite: texte_dit(f.unite, "unite")?,
-        nature: texte_dit(f.nature, "nature")?,
-        saisie: ou_rien(f.saisie, "saisie", &faute)?.unwrap_or_default(),
+        libelle: dite(f.libelle, "libelle", &faute)?,
+        unite: dite(f.unite, "unite", &faute)?,
+        nature: dite(f.nature, "nature", &faute)?,
+        saisie: f.saisie.unwrap_or_default(),
         soumis: dite(f.soumis, "soumis", &faute)?,
         imposable: dite(f.imposable, "imposable", &faute)?,
         conges_spectacles: dite(f.conges_spectacles, "conges_spectacles", &faute)?,
-        source: texte_dit(f.source, "source")?,
+        source: dite(f.source, "source", &faute)?,
         sens: dite(f.sens, "sens", &faute)?,
-        heures_forfait: ou_rien(f.heures_forfait, "heures_forfait", &faute)?.map(|m| m.flottant()).transpose()?,
-        plafond: texte(f.plafond),
-        aem: texte(f.aem),
-        dsn_type: texte(f.dsn_type),
-        dsn_autres_bruts: texte(f.dsn_autres_bruts),
-        annexe: texte(f.annexe),
-        plafond_mensuel: ou_rien(f.plafond_mensuel, "plafond_mensuel", &faute)?,
-        plafond_annuel_heures: ou_rien(f.plafond_annuel_heures, "plafond_annuel_heures", &faute)?,
+        heures_forfait: f.heures_forfait.map(|m| m.flottant()).transpose()?,
+        plafond: f.plafond,
+        aem: f.aem,
+        dsn_type: f.dsn_type,
+        dsn_autres_bruts: f.dsn_autres_bruts,
+        annexe: f.annexe,
+        plafond_mensuel: f.plafond_mensuel,
+        plafond_annuel_heures: f.plafond_annuel_heures,
         compte_pour: dite(f.compte_pour, "compte_pour", &faute)?,
         salaire_de_base: dite(f.salaire_de_base, "salaire_de_base", &faute)?,
         retabli: dite(f.retabli, "retabli", &faute)?,
         suspension: dite(f.suspension, "suspension", &faute)?,
         arret_de_travail: dite(f.arret_de_travail, "arret_de_travail", &faute)?,
         conges_pris: dite(f.conges_pris, "conges_pris", &faute)?,
-        dsn_bloc52: texte(f.dsn_bloc52),
+        dsn_bloc52: f.dsn_bloc52,
         origine: origine.to_string(),
-        dit: texte(f.dit),
+        dit: f.dit,
     };
     r.verifier()?;
     Ok(r)

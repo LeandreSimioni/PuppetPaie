@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use droit::bareme::{bareme_applique, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
-use droit::fiche::{AccordDfs, Case, ChampsEntreprise, ChampsSalarie, FicheSalarie, OptionDfs as DfsEmployeur, SalarieDuContrat, Statut};
+use droit::fiche::{AccordDfs, ChampsEntreprise, Lue, ChampsSalarie, FicheSalarie, OptionDfs as DfsEmployeur, SalarieDuContrat, Statut};
 use droit::catalogue::{code_54, rubrique, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::date::Jour;
@@ -1012,7 +1012,7 @@ pub fn etablissement_du_contrat(mut fiche: SalarieDuContrat, eng: &Engagement) -
 /// INFERENCE : l'anciennete dans l'entreprise commence a l'entree dans l'entreprise.
 fn anciennete_a_l_embauche(mut fiche: SalarieDuContrat, eng: &Engagement) -> SalarieDuContrat {
     if !fiche.date_anciennete.est_dite() {
-        fiche.fiche.champs.date_anciennete = Case::Dite(eng.debut);
+        fiche.fiche.champs.date_anciennete = Some(eng.debut);
     }
     fiche
 }
@@ -1119,7 +1119,7 @@ pub(crate) fn dispense_de_la_periode(mut fiche: FicheSalarie, debut: &Jour, fin:
     let depuis = fiche.sante_dispense_depuis.dite().copied();
     let jusqu_au = fiche.sante_dispense_jusqu_au.dite().copied();
     if depuis.is_some_and(|d| d > *fin) || jusqu_au.is_some_and(|j| j < *debut) {
-        fiche.champs.sante_dispense = Case::Absente;
+        fiche.champs.sante_dispense = None;
         return Ok(fiche);
     }
     let borne = match (depuis.filter(|d| d > debut), jusqu_au.filter(|j| j < fin)) {

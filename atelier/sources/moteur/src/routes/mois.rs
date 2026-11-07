@@ -22,6 +22,7 @@
 //! (`declarations::demarrage::conges_a_dire`) et la fiche d'un spectacle (`Contexte::spectacles`). Ils se declareront avec
 //! leur domaine ; ici, ils passent tels quels.
 
+use droit::fiche::Lue as _;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -1453,8 +1454,8 @@ fn champs_du_contrat_ecrit_en_saisie(ctx: &Contexte, e: &SaisieCarte, mois: &str
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct SalarieVu {
     cle: IdSalarie,
-    nom: droit::fiche::Case<String>,
-    prenom: droit::fiche::Case<String>,
+    nom: Option<String>,
+    prenom: Option<String>,
 }
 
 /// Le spectacle d'une paie : son titre et son numero d'objet. TRAVAIL A FAIRE : la fiche d'un spectacle
@@ -1524,9 +1525,9 @@ pub(crate) struct LigneVue {
 /// L'emploi du salarie, tel que sa fiche le dit.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct EmploiVu {
-    libelle: droit::fiche::Case<String>,
-    code_emploi_ft: droit::fiche::Case<String>,
-    statut: droit::fiche::Case<droit::fiche::Statut>,
+    libelle: Option<String>,
+    code_emploi_ft: Option<String>,
+    statut: Option<droit::fiche::Statut>,
     cadre: bool,
 }
 
@@ -1579,17 +1580,17 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &SaisieCarte, data: &VueD
     let e = &p.engagement;
     let nat = e.nat()?;
     let s = &p.salarie;
-    let exige = |c: &droit::fiche::Case<String>, k: &str| if c.est_absente() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(c.clone()) };
+    let exige = |c: &Option<String>, k: &str| if c.is_none() { Err(erreur("KeyError", socle::fichiers::absent(k))) } else { Ok(c.clone()) };
     let salarie = SalarieVu {
         cle: s.id.clone(),
         nom: exige(&s.nom.en_texte(), "nom")?,
         prenom: if s.prenom_affichage.texte().is_empty() { exige(&s.prenom.en_texte(), "prenom")? } else { s.prenom_affichage.clone() },
     };
     let spectacle = match &p.spectacle {
-        Some(s) if s.titre.est_absente() => return Err(erreur("KeyError", socle::fichiers::absent("titre"))),
+        Some(s) if s.titre.is_none() => return Err(erreur("KeyError", socle::fichiers::absent("titre"))),
         Some(s) => Some(SpectacleVu {
             titre: socle::ecriture::en_valeur(&s.titre),
-            numero_objet: if s.numero_objet.est_absente() { Value::Null } else { socle::ecriture::en_valeur(&s.numero_objet) },
+            numero_objet: if s.numero_objet.is_none() { Value::Null } else { socle::ecriture::en_valeur(&s.numero_objet) },
         }),
         None => None,
     };
@@ -1757,7 +1758,7 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
         // (CCH-11) -- donc rien a verifier de ce cote.
         if let Some(sp) = p.spectacle.as_ref().filter(|s| s.actif.dite() == Some(&false)) {
-            if sp.titre.est_absente() {
+            if sp.titre.is_none() {
                 return Err(erreur("KeyError", socle::fichiers::absent("titre")));
             }
             out.push(format!(

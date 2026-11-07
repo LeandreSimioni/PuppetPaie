@@ -12,6 +12,7 @@
 
 use std::sync::{Arc, OnceLock};
 
+use crate::fiche::Lue;
 use socle::date::Jour;
 use socle::fichiers::{forme_en_cache, FormeGardee};
 use socle::forme::Nombre;

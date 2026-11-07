@@ -5,6 +5,7 @@
 //! l'entreprise, l'etablissement, l'individu, le contrat -- et rien de ce qui
 //! se paye. `Echec::Impossible` est la regle de la norme qui s'oppose.
 
+use droit::fiche::Lue as _;
 use std::collections::HashSet;
 
 use serde_json::Value;

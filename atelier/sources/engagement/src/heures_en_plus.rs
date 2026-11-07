@@ -7,6 +7,7 @@
 //! fiscale. Un contrat d'usage n'en a pas : ses heures sont ses lignes. Textes : `logiciel/donnees/permanents-base.json`,
 //! `heures_en_plus`, qui les cite.
 
+use droit::fiche::Lue;
 use socle::forme::NombreLu;
 
 use crate::calcul::{LigneBrut, LigneCotisation};

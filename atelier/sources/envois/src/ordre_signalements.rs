@@ -25,6 +25,7 @@
 //! en silence. Une compagnie fictive n'a pas de plate-forme : ses envois sont joues, son journal est la seule
 //! memoire, rien n'est a dire.
 
+use droit::fiche::Lue as _;
 use std::path::Path;
 
 use serde_json::Value;
