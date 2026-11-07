@@ -58,8 +58,7 @@ forme_notee! {
         /// 3097 : la semaine de 39 h d'un technicien, par fonction.
         pub techniciens_semaine_39h: Option<BTreeMap<String, Nombre>>,
         /// 3097 : les heures que la semaine de 39 h paie au taux de base (35 h + 4 h a 125 %).
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub heures_payees_de_la_semaine: Option<Decimal>,
+        pub heures_payees_de_la_semaine: Option<Nombre>,
         pub avant_2026_05: Option<Avant2026>,
         pub annexe_iii: Option<AnnexeIii>,
         pub artistes: Option<Artistes3097>,
@@ -142,15 +141,11 @@ forme_notee! {
     /// La repetition d'une annexe de la 3090 : le cachet de repetition, le taux horaire, le service d'un musicien, le
     /// service isole.
     pub struct RepetitionDeLAnnexe {
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub cachet: Option<Decimal>,
+        pub cachet: Option<Nombre>,
         pub cachet_libelle: Option<String>,
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub heure: Option<Decimal>,
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub service_musicien: Option<Decimal>,
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub service_isole: Option<Decimal>,
+        pub heure: Option<Nombre>,
+        pub service_musicien: Option<Nombre>,
+        pub service_isole: Option<Nombre>,
     }
 }
 
@@ -188,18 +183,15 @@ forme_notee! {
 pub struct Cddu2642 {
     pub filiere: String,
     pub niveau: String,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub fiction: Option<Decimal>,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub flux: Option<Decimal>,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub autre: Option<Decimal>,
+    pub fiction: Option<Nombre>,
+    pub flux: Option<Nombre>,
+    pub autre: Option<Nombre>,
 }
 
 impl Cddu2642 {
     /// Les genres que la fonction connait, dans l'ordre fiction, flux, autre, avec leur minimum.
     pub fn genres(&self) -> Vec<(&'static str, Decimal)> {
-        [("fiction", self.fiction), ("flux", self.flux), ("autre", self.autre)].into_iter().filter_map(|(g, m)| m.map(|m| (g, m))).collect()
+        [("fiction", self.fiction), ("flux", self.flux), ("autre", self.autre)].into_iter().filter_map(|(g, m)| m.map(|m| (g, m.0))).collect()
     }
 }
 
@@ -240,14 +232,10 @@ pub struct Engagement3097 {
     pub semaine_5j: Decimal,
     #[serde(deserialize_with = "socle::forme::decimal")]
     pub semaine_6j: Decimal,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub repetition_service_4h: Option<Decimal>,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub repetition_2_services_4h: Option<Decimal>,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub repetition_service_3h_danse_chant_musique: Option<Decimal>,
-    #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-    pub repetition_2_services_3h_danse_chant_musique: Option<Decimal>,
+    pub repetition_service_4h: Option<Nombre>,
+    pub repetition_2_services_4h: Option<Nombre>,
+    pub repetition_service_3h_danse_chant_musique: Option<Nombre>,
+    pub repetition_2_services_3h_danse_chant_musique: Option<Nombre>,
 }
 
 forme_notee! {
@@ -292,8 +280,7 @@ forme_notee! {
         pub population: Option<String>,
         pub statut: Option<String>,
         pub unite: String,
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub heures: Option<Decimal>,
+        pub heures: Option<Nombre>,
         pub categories: Option<Vec<String>>,
         pub codes: Option<Vec<String>>,
         pub si_spectacle: Option<BTreeMap<String, Attendu>>,
@@ -305,11 +292,9 @@ forme_notee! {
         #[serde(deserialize_with = "socle::forme::en_ordre")]
         pub valeurs: Vec<(String, Nombre)>,
         pub majorations: Option<Vec<Majoration>>,
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub abattement_max: Option<Decimal>,
+        pub abattement_max: Option<Nombre>,
         pub abattement_motif: Option<String>,
-        #[serde(default, deserialize_with = "socle::forme::decimal_opt")]
-        pub facteur: Option<Decimal>,
+        pub facteur: Option<Nombre>,
         pub facteur_motif: Option<String>,
     }
 }
@@ -522,10 +507,10 @@ pub fn table() -> Resultat<Arc<Table>> {
 // ------------------------------------------------------------ les lectures
 
 /// Ce que l'IDCC d'un contrat lit du spectacle : s'il est une emission de television de la 1734 (`emission_tv_1734`),
-/// et son titre.
+/// et sa clé (le message de refus le nomme par elle).
 pub struct SpectacleDuContrat<'a> {
     pub emission_tv_1734: bool,
-    pub titre: &'a str,
+    pub cle: &'a crate::contexte::IdSpectacle,
 }
 
 /// L'IDCC d'un contrat : celui de la compagnie (`idcc`), sauf l'artiste-interprète d'une émission de télévision
@@ -548,7 +533,7 @@ pub fn idcc_du_contrat(idcc: &str, sp: &SpectacleDuContrat, sal: &crate::fiche::
             "Spectacle {}, émission de télévision (convention 1734) : le métier {} de {} n'est pas au catalogue, et \
              le logiciel ne sait pas s'il est artiste-interprète (1734) ou musicien, metteur en scène, artiste de \
              complément (convention de l'entreprise). Choisir un métier du catalogue.",
-            sp.titre,
+            sp.cle,
             code.unwrap_or_else(|| "(aucun)".into()),
             sal.nom.remplie().unwrap_or("ce salarié")
         )),

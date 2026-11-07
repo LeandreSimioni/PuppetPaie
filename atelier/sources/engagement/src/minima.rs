@@ -18,12 +18,10 @@ use droit::minima::{ans_revolus, grille_au, iso, palier, plancher, plus_bas, sig
 use socle::texte::{euros, virgule};
 use socle::num::{add, dec_f64, div, mul, sub, Decimal, Resultat};
 /// L'IDCC d'un contrat (`droit::minima::idcc_du_contrat`) : celui de la compagnie, sauf pour l'emission de television du
-/// spectacle `sp` (un contrat paye au mois n'en a pas), dont le titre est dit : un spectacle sans titre ne se dit pas
-/// emission de television.
+/// spectacle `sp` (un contrat paye au mois n'en a pas).
 pub fn idcc_du_contrat(idcc: &str, sp: Option<&droit::fiche::Spectacle>, sal: &droit::fiche::ChampsSalarie) -> Resultat<String> {
     let Some(sp) = sp.filter(|s| s.emission_tv_1734.dite() == Some(&true)) else { return Ok(idcc.to_string()) };
-    let titre = sp.titre.dite().ok_or_else(|| "un spectacle qui est une émission de télévision (1734) n'a pas de titre".to_string())?;
-    droit::minima::idcc_du_contrat(idcc, &SpectacleDuContrat { emission_tv_1734: true, titre: titre.as_str() }, sal)
+    droit::minima::idcc_du_contrat(idcc, &SpectacleDuContrat { emission_tv_1734: true, cle: &sp.cle }, sal)
 }
 
 /// La case `cle` du spectacle de la paie lue pour une condition (`droit::minima::case_lue`) ; `None` : la paie n'a pas de
@@ -240,7 +238,7 @@ impl<'a> Cx<'a> {
                 // Une heure n'est pas un cachet : seul un taux horaire de repetition se compare.
                 let mut candidats = Vec::new();
                 for annexe in self.annexes_ou_la_sienne()? {
-                    if let Some(h) = self.annexe_3090(&annexe)?.repetition.as_ref().and_then(|r| r.heure) {
+                    if let Some(h) = self.annexe_3090(&annexe)?.repetition.as_ref().and_then(|r| r.heure).map(|n| n.0) {
                         candidats.push((h, annexe));
                     }
                 }
@@ -401,7 +399,7 @@ impl<'a> Cx<'a> {
                 }
                 dit = format!("film sous dérogation de l'annexe III : {} la semaine de 39 h", euros(bas(semaine)));
             }
-            let h = bas(div(semaine, c.heures_payees_de_la_semaine.ok_or_else(|| manque("3097.heures_payees_de_la_semaine"))?));
+            let h = bas(div(semaine, c.heures_payees_de_la_semaine.ok_or_else(|| manque("3097.heures_payees_de_la_semaine"))?.0));
             return Ok(plancher(h, format!("CCN 3097, {} : {}, soit 40 h au taux de base (35 h + 4 h à 125 %)", fonction, dit)));
         }
         if statut == "artiste" && cachet(&ligne.code) {
@@ -602,7 +600,7 @@ impl<'a> Cx<'a> {
                 dit += &format!(" ; {}", majorees.join(", "));
             }
             let mut montant = valeurs.iter().find(|v| v.0 == k).unwrap().1;
-            if let Some(ab) = gr.abattement_max.filter(|a| !a.is_zero()) {
+            if let Some(ab) = gr.abattement_max.map(|n| n.0).filter(|a| !a.is_zero()) {
                 montant = bas(div(mul(montant, sub(Decimal::ONE_HUNDRED, ab)), Decimal::ONE_HUNDRED));
                 let ab_txt = ab.to_string().replace('.', ",");
                 let pourquoi = match gr.abattement_motif.as_deref() {
@@ -632,9 +630,9 @@ impl<'a> Cx<'a> {
                     unite: true,
                 });
             } else {
-                let heures = gr.heures.ok_or_else(|| manque("heures"))?;
+                let heures = gr.heures.ok_or_else(|| manque("heures"))?.0;
                 let mut h = bas(div(montant, heures));
-                if let Some(facteur) = gr.facteur.filter(|f| !f.is_zero()) {
+                if let Some(facteur) = gr.facteur.map(|n| n.0).filter(|f| !f.is_zero()) {
                     // Un taux horaire qui ne vaut pas pour toutes les heures : le plus bas taux effectif.
                     h = bas(mul(h, facteur));
                     let motif = match gr.facteur_motif.as_deref().filter(|m| !m.is_empty()) {
@@ -793,7 +791,7 @@ impl<'a> Cx<'a> {
         let mut trouves: Vec<(Decimal, String, bool, &str)> = Vec::new();
         for annexe in self.annexes_ou_la_sienne()? {
             let r = self.annexe_3090(&annexe)?.repetition.as_ref();
-            let (service_musicien, heure, service_isole) = (r.and_then(|r| r.service_musicien), r.and_then(|r| r.heure), r.and_then(|r| r.service_isole));
+            let (service_musicien, heure, service_isole) = (r.and_then(|r| r.service_musicien).map(|n| n.0), r.and_then(|r| r.heure).map(|n| n.0), r.and_then(|r| r.service_isole).map(|n| n.0));
             let musicien = musicien_dans(refs, &annexe);
             if let (true, Some(m)) = (musicien, service_musicien) {
                 trouves.push((m, annexe, false, "service de répétition d'un musicien"));
@@ -821,7 +819,7 @@ fn musicien_dans(refs: &std::collections::BTreeMap<String, String>, annexe: &str
 
 /// Une grille qui se ramene a l'heure : elle dit les heures que sa valeur paie.
 fn a_l_heure(gr: &Grille) -> bool {
-    gr.heures.is_some_and(|h| !h.is_zero())
+    gr.heures.is_some_and(|h| !h.0.is_zero())
 }
 
 fn ligne_de_l_unite(unite: &str) -> Option<&'static str> {
@@ -958,7 +956,7 @@ pub(crate) fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Opti
                 return Ok(None);
             }
             let r = cx.annexe_3090(&annexe)?.repetition.as_ref();
-            let Some(c) = r.and_then(|r| r.cachet) else { return Ok(None) };
+            let Some(c) = r.and_then(|r| r.cachet).map(|n| n.0) else { return Ok(None) };
             trouves.push((c, annexe, r.and_then(|r| r.cachet_libelle.clone()).into_iter().collect()));
         }
         Ok(trouves.into_iter().max_by(|a, b| a.0.cmp(&b.0)).map(|(montant, annexe, libelle)| Minimum {

@@ -195,8 +195,8 @@ impl Base {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FichierOrganismes {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub adhesions_prevoyance: Vec<Datee<Vec<Adhesion>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub adhesions_prevoyance: Option<Vec<Datee<Vec<Adhesion>>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quoi: Option<String>,
 }
@@ -250,13 +250,13 @@ pub fn fichier_organismes(ctx: &Contexte) -> Resultat<FichierOrganismes> {
 /// saisie, sous quelque convention qu'on lise. Son identifiant reste pris : il a pu partir dans une DSN.
 pub fn saisis(ctx: &Contexte) -> Resultat<(Vec<Adhesion>, Vec<u32>)> {
     let fichier = fichier_organismes(ctx)?;
-    let prises = fichier
-        .adhesions_prevoyance
+    let Some(liste) = fichier.adhesions_prevoyance.as_deref() else { return Ok((Vec::new(), Vec::new())) };
+    let prises = liste
         .iter()
         .flat_map(|e| e.valeur.dite().into_iter().flatten())
         .filter_map(|a| a.reference.trim().parse::<u32>().ok())
         .collect();
-    let au = crate::fiche::valeur_au(&fichier.adhesions_prevoyance, &ctx.lue_au);
+    let au = crate::fiche::valeur_au(liste,&ctx.lue_au);
     let textes = donnes_par_un_texte()?;
     let adhesions: Vec<Adhesion> = au
         .dite()

@@ -317,7 +317,7 @@ pub fn annexes() -> Resultat<Annexes> {
 #[derive(Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 struct RubriquesDeLaCompagnie {
-    #[serde(default, deserialize_with = "socle::forme::en_ordre")]
+    #[serde(deserialize_with = "socle::forme::en_ordre")]
     rubriques: Vec<(String, RubriqueDatee)>,
 }
 
