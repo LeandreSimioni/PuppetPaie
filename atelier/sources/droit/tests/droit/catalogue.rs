@@ -31,7 +31,7 @@ fn les_catalogues_et_les_refus() {
             refus += 1;
         }
     }
-    assert_eq!(refus, 8);
+    assert_eq!(refus, 9);
 }
 
 /// Une rubrique, la quantite d'une ligne et les heures qu'elle saisit.
