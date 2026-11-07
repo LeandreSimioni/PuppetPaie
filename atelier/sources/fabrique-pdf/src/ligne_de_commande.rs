@@ -176,7 +176,7 @@ pub fn executer(args: &[String]) -> ExitCode {
         [a, entree, sortie] if a == "--remplir" => {
             let remplissage = match lire_entree().and_then(|t| crate::forme::Remplissage::lire(&t).map_err(|r| r.0)) {
                 Ok(r) => r,
-                Err(m) => return echec(&m, 1),
+                Err(m) => return echec(&format!("{} : {}", entree, m), 1),
             };
             let octets = match lire_fichier(entree) {
                 Ok(o) => o,
