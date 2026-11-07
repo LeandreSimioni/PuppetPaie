@@ -10,6 +10,10 @@ cite.**
   fin de la séance », « on ferme le ticket » : c'est lui.
 - **Un exécutant** (un sous-agent, dans un worktree) fait son lot, commite sur sa branche, rend une passation ; **jamais**
   la suite complète, un push, une PR, une fusion, un ticket, le journal, un mot à Léandre. Au doute, sa consigne tranche.
+- **Une seule vérification, à l'arrivée** : l'exécutant code et ne vérifie que les types (`cargo check`, `--tests`
+  compris) ; il ne compile pas le programme, ne lance aucun test, ne livre aucune fictive. L'orchestrateur, à l'arrivée
+  du lot, compile une fois, lance les tests, compare les fictives et **corrige lui-même** les petits écarts, sans
+  renvoyer le lot ; une grosse casse devient un lot.
 
 ## Par quoi on commence
 
@@ -72,8 +76,8 @@ par son nom dans le JS : on lit sa fiche.
 ## La preuve d'un lot
 
 - **Un lot dit ce qu'il touche** : chaque fonction, clé, format changés, et **chaque lecteur** trouvé par `grep`.
-- **La preuve joue chaque lecteur** (route ou banc, avant et après), notée dans la passation avec ce qu'elle n'a pas
-  joué. **Ce n'est pas un test de plus.**
+- **La preuve joue chaque lecteur** (route ou banc, avant et après), par l'orchestrateur à l'arrivée, notée avec ce
+  qu'elle n'a pas joué. **Ce n'est pas un test de plus.**
 - Le rejeu des fictives (`banc.js verifier`) suit chaque fusion qui touche un domaine ; avant, un lot n'est pas « fini ».
 - **Aucune attente fixe** : on attend un état ; une lenteur se cherche à la cause.
 
@@ -176,12 +180,13 @@ mécaniquement impossible (`PreuveInsuffisante`) ; un dépôt de test passe par 
 atelier/sources/moteur/bin/linux/moteur route --racine <copie d'une fictive>`.
 
 **Une PR dont la suite est rouge ne se fusionne pas.** La suite complète (`cargo nextest run --cargo-profile essais`,
-dans `atelier/sources`) ne se lance qu'**une fois par séance, à la fin, par l'orchestrateur** ; un exécutant ne lance
-que les binaires qu'il nomme (`-E 'binary(routes)'`). Avant la suite, `rm -rf "${CARGO_TARGET_DIR:-target}/tmp"`
+dans `atelier/sources`) ne se lance qu'**une fois par séance, à la fin, par l'orchestrateur** ; à l'arrivée d'un lot,
+il ne lance que les binaires que le lot touche (`-E 'binary(routes)'`). Avant, `rm -rf "${CARGO_TARGET_DIR:-target}/tmp"`
 (les dossiers de travail des tests, ~3 Go).
 
-- **On compile peu** : pendant le travail, `cargo check` (les types, sans fabriquer le programme) ; la compilation
-  complète et les tests seulement à la fin d'une étape et du lot. Une référence déjà fabriquée ne se refait pas.
+- **On compile peu** (Léandre : « on code et après on compile », pas « tout le temps parce qu'on peut ») : l'exécutant,
+  `cargo check` seulement ; l'orchestrateur, une compilation à l'arrivée du lot ; après une correction, seul ce qui
+  était rouge se relance. Une référence déjà fabriquée ne se refait pas.
 - **Le nombre de tests ne monte pas** : un test par règle d'un texte déposé, un par bug réel échappé, un rejeu par
   fictive ; **les tests de structure sont les bienvenus** ; un test qui fige un détail ne s'écrit pas. Un test monte sa
   propre compagnie (`outils::dossier_de_test`).
