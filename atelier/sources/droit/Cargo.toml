@@ -11,7 +11,3 @@ socle = { path = "../socle" }
 rust_decimal = { workspace = true }
 serde = { workspace = true }
 indexmap = { workspace = true }
-
-# Les tests de l'oracle comparent des fichiers JSON bruts ; le code du droit n'en touche aucun (le compilateur le refuse).
-[dev-dependencies]
-serde_json = { workspace = true }

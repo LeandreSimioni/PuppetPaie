@@ -140,7 +140,7 @@ pub(crate) fn par_dessus(base: &mut RubriqueModifiee, m: &RubriqueModifiee) {
     }
     si!(famille, libelle, base, taux_pat, taux_sal, composants, composants_pat, composants_sal, cet_si_depasse, rempli_par, a_confirmer, source, note);
     // La derniere couche dit chaque part : celle qu'elle pose n'est plus effacee, celle qu'elle efface n'est plus posee.
-    let mut efface: Vec<Part> = base.efface.take().unwrap_or_default();
+    let mut efface: Vec<Part> = base.efface.take().into_iter().flatten().collect();
     efface.retain(|p| !matches!((p, m.taux_pat.is_some(), m.taux_sal.is_some()), (Part::TauxPat, true, _) | (Part::TauxSal, _, true)));
     for p in m.efface.iter().flatten() {
         match p {

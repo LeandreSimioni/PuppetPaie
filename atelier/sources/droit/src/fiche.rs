@@ -834,7 +834,7 @@ pub struct Datee<T> {
 pub fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Option<T> {
     let mut entrees: Vec<&Datee<T>> = liste.iter().collect();
     entrees.sort_by_key(|e| e.depuis);
-    entrees.into_iter().filter(|e| e.depuis.map_or(true, |j| j <= *jour)).last().and_then(|e| e.valeur.clone())
+    entrees.into_iter().filter(|e| e.depuis.is_none_or(|j| j <= *jour)).last().and_then(|e| e.valeur.clone())
 }
 
 /// LA CONFIGURATION DE LA COMPAGNIE EST DATEE, comme les baremes : chaque valeur d'une fiche (l'entreprise et sa
@@ -1572,12 +1572,11 @@ pub fn lire_saisie<T: DeserializeOwned>(v: &(impl Serialize + ?Sized), fichier: 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     /// Une fiche se relit et se reecrit telle quelle : les cases nulles et vides comprises.
     #[test]
     fn une_fiche_se_reecrit_telle_qu_elle_est_lue() {
-        let v = json!({
+        let texte = r#"{
             "note": "note",
             "FULLER": {
                 "nom": [{"valeur": "FULLER", "note": "importe"}],
@@ -1585,9 +1584,14 @@ mod tests {
                 "taux_pas": [{"valeur": null}, {"depuis": "2026-11-20", "valeur": {"taux": "1.90", "type": "01", "identifiant": "1", "mis_a_disposition": "20261120000000"}}],
                 "conges_reprise": [{"valeur": {"date": "2026-01-01", "report": 30, "remuneration_report": 47321.04}}]
             }
-        });
-        let s = lire_champs::<Salaries>(&v, "config/salaries.json").unwrap();
-        assert_eq!(socle::ecriture::en_valeur(&s), v);
+        }"#;
+        let s: Salaries = socle::forme::lire_texte(texte, "config/salaries.json").unwrap();
+        let ecrit = socle::ecriture::json_en_ligne(&s);
+        let relu: Salaries = socle::forme::lire_texte(&ecrit, "config/salaries.json").unwrap();
+        assert_eq!(socle::ecriture::json_en_ligne(&relu), ecrit);
+        for garde in [r#""actif":[{"valeur":null}"#, r#""taux_pas":[{"valeur":null}"#, r#""note":"importe""#, r#""remuneration_report":47321.04"#] {
+            assert!(ecrit.contains(garde), "{} manque à la réécriture : {}", garde, ecrit);
+        }
         let f = &s.fiches[&IdSalarie::lire("FULLER").unwrap()];
         assert_eq!(f.au(&Jour::lire("2026-11-01").unwrap()).actif, None);
         assert!(f.au(&Jour::lire("2026-11-02").unwrap()).actif.oui());

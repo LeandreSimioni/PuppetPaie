@@ -702,16 +702,8 @@ fn une_crate_ne_prend_qu_a_celles_du_dessous() {
             }
         }
     }
-    // L'engagement n'a pas la bibliotheque du JSON, ni pour son code ni pour ses tests : le compilateur refuse qu'il en
-    // touche ; ses tests ecrivent un fichier en texte et le lisent par la porte (`socle::forme::lire_texte`). Le socle,
-    // la porte, n'en reexporte rien.
-    let engagement = std::fs::read_to_string(espace().join("engagement/Cargo.toml")).unwrap();
-    assert!(!engagement.contains("serde_json"), "engagement/Cargo.toml prend serde_json : l'engagement ne lit que des formes, par socle::forme");
-    // Le droit non plus, pour son code : serde_json n'est que dans ses `[dev-dependencies]` (les oracles de ses tests sont
-    // des fichiers JSON bruts), le compilateur refuse qu'il en touche hors de ses tests.
-    let droit = std::fs::read_to_string(espace().join("droit/Cargo.toml")).unwrap();
-    let droit_deps = droit.split("\n[dependencies]").nth(1).unwrap().split("\n[").next().unwrap();
-    assert!(!droit_deps.contains("serde_json"), "droit/Cargo.toml prend serde_json dans [dependencies] : le droit ne lit que des formes, par socle::forme");
+    // Le socle, la porte, ne reexporte rien du JSON brut ; les autres couches fermees n'ont pas la bibliotheque (critere 1
+    // de `une_couche_fermee_ne_lit_que_des_formes`).
     for f in sources(&espace().join("socle/src")) {
         let t = std::fs::read_to_string(&f).unwrap();
         assert!(!t.contains("pub use serde_json") && !t.contains("pub type Value"), "{} reexporte le JSON brut", f.display());
@@ -757,10 +749,10 @@ fn blanchi(t: &str, textes: bool) -> String {
 ///    `serde_json::`, ni `Map<`, ni lecture par cle (`.get("…")`, `x["…"]`) ;
 /// 2. de cle libre : aucune cle en `_` nommee (`rename = "_…"`, `"_cle"`, `"_{}"`, une cle lue ou ecrite), aucun
 ///    tri par le `_` de tete (`starts_with('_')`, `strip_prefix("_")`, `trim_start_matches('_')`) ;
-/// 3. de repli sur une donnee, ici et dans les couches de `SANS_REPLI_NI_ERREUR_AVALEE` : ni `#[serde(default…)]`, ni
+/// 3. de repli sur une donnee : ni `#[serde(default…)]`, ni
 ///    `unwrap_or`, `unwrap_or_default`, `unwrap_or_else`, `map_or`, `map_or_else`, ni un bras `None =>` qui fabrique
 ///    une valeur. Une donnee absente d'un champ facultatif (`Option`) est vide ; une donnee obligatoire absente se refuse.
-/// 4. d'erreur avalee, ici et dans les couches de `SANS_REPLI_NI_ERREUR_AVALEE` : ni `.ok()`, ni `let Ok(..) = .. else`, ni
+/// 4. d'erreur avalee : ni `.ok()`, ni `let Ok(..) = .. else`, ni
 ///    `is_ok_and`, ni `is_err_and`. Une erreur remonte (`?`) ; un etat qui n'est pas une erreur (un nom qu'aucune fiche
 ///    ne porte, un texte qui n'est pas une adresse) se dit par un `match` qui le nomme.
 /// Le verrou n'a aucune exception : quand il echoue, on corrige le code ou la donnee.
@@ -827,10 +819,6 @@ fn une_couche_fermee_ne_lit_que_des_formes() {
     }
     assert!(fautes.is_empty(), "une couche fermée ne lit que des formes, entières ({} écarts) :\n{}", fautes.len(), fautes.join("\n"));
 }
-
-/// LES COUCHES TENUES SANS REPLI NI ERREUR AVALEE, en plus des couches fermees : leur code ne replie aucune donnee
-/// absente et dit chaque erreur (points 3 et 4 de `une_couche_fermee_ne_lit_que_des_formes`). La liste ne fait que grandir.
-const SANS_REPLI_NI_ERREUR_AVALEE: [&str; 1] = ["engagement"];
 
 /// L'engagement ne lit pas le journal : le moteur le lit une fois par geste (`envois::journal::lu`) et lui passe ce qui
 /// est parti.
@@ -2071,3 +2059,9 @@ fn la_page_ne_lit_que_ce_que_les_routes_rendent() {
         verifies, routes.len(), a_typer.len(), a_typer.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "), toutes.len(), toutes.join("\n")
     );
 }
+
+/// LES COUCHES TENUES SANS REPLI NI ERREUR AVALEE, en plus des couches fermees : leur code ne replie aucune donnee
+/// absente et dit chaque erreur (points 3 et 4 de `une_couche_fermee_ne_lit_que_des_formes`). `droit` rejoint les couches
+/// fermees, et l'engagement avec lui, quand `droit::fiche` n'a plus de repli (`Lue::texte`, `Lue::code`, `Montant`). La
+/// liste ne fait que grandir.
+const SANS_REPLI_NI_ERREUR_AVALEE: [&str; 1] = ["engagement"];
