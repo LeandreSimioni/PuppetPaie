@@ -29,8 +29,8 @@ impl Constantes {
         let cachet = rubrique(racine, "cachet", jour)?;
         let a = annexes()?;
         Ok(Constantes {
-            heures_par_cachet: cachet.heures_forfait.unwrap_or(0.0) as i64,
-            cachets_par_mois: cachet.plafond_mensuel.unwrap_or(0),
+            heures_par_cachet: cachet.heures_forfait.ok_or_else(|| socle::fichiers::absent("cachet.heures_forfait"))? as i64,
+            cachets_par_mois: cachet.plafond_mensuel.ok_or_else(|| socle::fichiers::absent("cachet.plafond_mensuel"))?,
             seuil_heures: a.seuil_heures,
             fenetre_jours: a.fenetre_jours,
         })

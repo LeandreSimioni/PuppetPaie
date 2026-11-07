@@ -2035,7 +2035,7 @@ pub fn mesures_d_activite(p: &Paie) -> Resultat<Vec<(String, Decimal, String)>> 
         if u.si_caisse_conges == Some(true) && !p.declaree_a_la_caisse_des_conges()? {
             continue;
         }
-        out.push((u.type_d_activite().to_string(), valeur, u.code.clone()));
+        out.push((u.type_activite.clone(), valeur, u.code.clone()));
     }
     if let Some(a) = nat.unite_absence() {
         if !p.heures_absence.is_zero() {

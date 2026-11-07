@@ -339,7 +339,11 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool, idcc: &str) -> R
              dans la nomenclature France Travail (nomenclature-emplois-ft.json).",
             repr(code))
     })?;
-    let est_cadre = cadre.unwrap_or_else(|| m.cadre_par_defaut(idcc));
+    let est_cadre = match cadre {
+        Some(c) => c,
+        None if m.au_catalogue().is_some() => m.cadre_par_defaut(idcc),
+        None => return Err(format!("Le métier {} est hors catalogue : la fiche doit dire s'il est cadre.", repr(code))),
+    };
     let libelle = Some(if feminin { m.feminin() } else { m.libelle() }).filter(|l| !l.is_empty()).unwrap_or_else(|| m.libelle());
     Ok(ChampsDuMetier {
         emploi: m.emploi().to_string(),

@@ -222,9 +222,9 @@
       "activites": {
         "quoi": "Les blocs S21.G00.53 sous la rémunération de type 002. Cahier technique : « pour les congés spectacles, il est nécessaire pour calculer les droits de renseigner à la fois une unité de mesure jours et cachets ».",
         "unites": [
-          {"code": "12", "quoi": "12 - journée : les jours distincts travaillés", "mesure": "jours"},
-          {"code": "37", "quoi": "37 - cachets isolés : le nombre de cachets (la distinction cachet isolé / groupé est supprimée depuis le décret du 13/07/2016, tous valent 12 h)", "mesure": "cachets", "si_non_nul": true},
-          {"code": "35", "quoi": "35 - heures intermittents du spectacle : les heures hors cachets", "mesure": "heures", "si_non_nul": true}
+          {"code": "12", "quoi": "12 - journée : les jours distincts travaillés", "mesure": "jours", "type": "01"},
+          {"code": "37", "quoi": "37 - cachets isolés : le nombre de cachets (la distinction cachet isolé / groupé est supprimée depuis le décret du 13/07/2016, tous valent 12 h)", "mesure": "cachets", "type": "01", "si_non_nul": true},
+          {"code": "35", "quoi": "35 - heures intermittents du spectacle : les heures hors cachets", "mesure": "heures", "type": "01", "si_non_nul": true}
         ]
       }
     },

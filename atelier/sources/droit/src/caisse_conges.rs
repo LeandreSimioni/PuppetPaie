@@ -34,15 +34,15 @@ pub fn par_defaut(nat: &Nature) -> bool {
 
 /// Le jour ou un contrat commence a durer douze mois : son debut, douze mois plus tard (le dernier jour du mois quand
 /// ce jour n'existe pas : un 29 fevrier). Un contrat dont le lendemain du terme l'atteint dure douze mois ou plus.
-fn douze_mois_apres(debut: &Jour) -> Jour {
+fn douze_mois_apres(debut: &Jour) -> Resultat<Jour> {
     let an = debut.an + 1;
     let jour = debut.jour.min(socle::date::jours_du_mois(an, debut.mois));
-    Jour::nouveau(an, debut.mois, jour).unwrap_or(*debut)
+    Jour::nouveau(an, debut.mois, jour).ok_or_else(|| format!("Douze mois après le {} : date illisible.", debut.iso()))
 }
 
 /// Le contrat, du `debut` au `fin` signes, dure-t-il douze mois ou plus ?
 pub fn douze_mois_ou_plus(debut: &Jour, fin: &Jour) -> Resultat<bool> {
-    Ok(fin.plus_jours(1)? >= douze_mois_apres(debut))
+    Ok(fin.plus_jours(1)? >= douze_mois_apres(debut)?)
 }
 
 /// LE CONTRAT D'UN INTERMITTENT. Un CDD d'usage (la nature payee a l'activite) l'est toujours ; un CDI jamais ; un CDD
@@ -85,8 +85,10 @@ pub fn intermittent(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<bool> {
     match m.annexe() {
         10 => Ok(true),
         8 => {
-            let idcc = sal.idcc_de_l_employeur.clone().unwrap_or_default();
-            Ok(m.nomme_par_l_annexe8(&idcc))
+            let idcc = sal.idcc_de_l_employeur.as_deref().ok_or_else(|| {
+                "La convention collective de l'employeur n'est pas dite : la liste de l'annexe 8 qui nomme le métier en dépend (Configuration › Entreprise).".to_string()
+            })?;
+            Ok(m.nomme_par_l_annexe8(idcc))
         }
         _ => Ok(false),
     }
@@ -103,12 +105,11 @@ pub fn hors_de_l_annexe8(nat: &Nature, sal: &SalarieDuContrat) -> Resultat<Optio
     let Some(m) = emplois::metier(&code)?.filter(|m| m.annexe() == 8) else {
         return Ok(None);
     };
-    let idcc = sal.idcc_de_l_employeur.clone().unwrap_or_default();
-    if idcc.trim().is_empty() || m.nomme_par_l_annexe8(&idcc) {
+    let Some(idcc) = sal.idcc_de_l_employeur.as_deref().filter(|i| !i.trim().is_empty()) else { return Ok(None) };
+    if m.nomme_par_l_annexe8(idcc) {
         return Ok(None);
     }
-    let libelle = Some(m.libelle()).filter(|l| !l.is_empty()).unwrap_or(code);
-    Ok(Some((libelle, idcc.trim().to_string())))
+    Ok(Some((m.libelle().to_string(), idcc.trim().to_string())))
 }
 
 /// L'employeur declare-t-il ce contrat a la caisse des Conges Spectacles ? `sal` est la fiche telle que la paie la lit

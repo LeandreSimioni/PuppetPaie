@@ -306,28 +306,21 @@ pub enum Mesure {
     Heures,
 }
 
-/// UNE UNITE D'ACTIVITE (S21.G00.53.003), le type d'activite (53.001, `01` s'il ne se dit pas) et ce qu'elle mesure.
+/// UNE UNITE D'ACTIVITE (S21.G00.53.003), le type d'activite (53.001) et ce qu'elle mesure.
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct UniteDActivite {
     pub code: String,
     pub quoi: String,
     pub mesure: Mesure,
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub type_activite: Option<String>,
+    #[serde(rename = "type")]
+    pub type_activite: String,
     /// Elle ne s'ecrit pas quand elle vaut zero.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub si_non_nul: Option<bool>,
     /// Elle ne s'ecrit que pour un contrat declare a la caisse des Conges Spectacles (`caisse_conges::affilie`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub si_caisse_conges: Option<bool>,
-}
-
-impl UniteDActivite {
-    /// S21.G00.53.001 : `01` (travail remunere) quand l'unite ne dit pas le sien.
-    pub fn type_d_activite(&self) -> &str {
-        self.type_activite.as_deref().unwrap_or("01")
-    }
 }
 
 /// L'unite des absences (S21.G00.53, type 02).

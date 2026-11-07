@@ -1115,7 +1115,7 @@ pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Res
         montant: eur2(mul(mois, reference)),
         du: true,
         mois,
-        palier: Some(palier.anciennete_annees.trunc().to_i64().unwrap_or(0)),
+        palier: Some(palier.anciennete_annees.trunc().to_i64().ok_or_else(|| socle::num::illisible(&palier.anciennete_annees.to_string()))?),
         pourquoi: None,
     })
 }
@@ -1166,7 +1166,7 @@ pub fn duree_du_maintien(anciennete_mois: Decimal) -> Resultat<Vec<Tranche>> {
     let r = &rg.maintien_de_salaire;
     let maj = &r.majoration;
     let reste = anciennete_mois % douze();
-    let annees = div(sub(anciennete_mois, reste), douze()).trunc().to_i64().unwrap_or(0);
+    let annees = div(sub(anciennete_mois, reste), douze()).trunc().to_i64().ok_or_else(|| socle::num::illisible(&anciennete_mois.to_string()))?;
     let au_dela = (annees - 1).max(0);
     let bonus = (au_dela / maj.par_annees) * maj.jours;
     Ok(r.tranches.iter().map(|t| Tranche { jours: (t.jours + bonus).min(maj.plafond_jours), taux: t.taux }).collect())

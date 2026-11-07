@@ -108,14 +108,18 @@ fn construire_de(indemnites: &str, change: &str, villes: &str) -> Resultat<Table
     let tete = champs(lignes.next().unwrap_or_default());
     let col = |nom: &str| tete.iter().position(|c| *c == nom).ok_or_else(|| socle::echec::livree("missions/indemnites.csv", nom));
     let (c_code, c_nom, c_monnaie, c_date, c_montant) = (col("code_pays")?, col("nom_pays")?, col("code_monnaie")?, col("date")?, col("groupe_1")?);
-    for l in lignes.filter(|l| !l.trim().is_empty()) {
+    for (n, l) in lignes.enumerate().filter(|(_, l)| !l.trim().is_empty()) {
         let c = champs(l);
-        let (Some(code), Some(date), Some(montant)) = (c.get(c_code), c.get(c_date).and_then(|d| Jour::lire(d).ok()), c.get(c_montant).and_then(|m| decimal(m))) else { continue };
+        let ou = |quoi: &str| socle::echec::livree("missions/indemnites.csv", &format!("ligne {} : {}", n + 2, quoi));
+        let cellule = |i: usize, nom: &str| c.get(i).copied().ok_or_else(|| ou(nom));
+        let (code, nom, monnaie) = (cellule(c_code, "code_pays")?, cellule(c_nom, "nom_pays")?, cellule(c_monnaie, "code_monnaie")?);
+        let date = Jour::lire(cellule(c_date, "date")?).map_err(|_| ou("date"))?;
+        let montant = decimal(cellule(c_montant, "groupe_1")?).ok_or_else(|| ou("groupe_1"))?;
         let e = t.indemnites.entry(code.to_string()).or_insert_with(|| (String::new(), Vec::new()));
-        e.1.push(Datee { depuis: date, valeur: (c.get(c_monnaie).unwrap_or(&"").to_string(), montant) });
+        e.1.push(Datee { depuis: date, valeur: (monnaie.to_string(), montant) });
         e.1.sort_by_key(|d| d.depuis);
         if e.1.last().is_some_and(|d| d.depuis == date) {
-            e.0 = c.get(c_nom).unwrap_or(&"").to_string();
+            e.0 = nom.to_string();
         }
     }
     let texte = change;
@@ -123,9 +127,13 @@ fn construire_de(indemnites: &str, change: &str, villes: &str) -> Resultat<Table
     let tete = champs(lignes.next().unwrap_or_default());
     let col = |nom: &str| tete.iter().position(|c| *c == nom).ok_or_else(|| socle::echec::livree("missions/change.csv", nom));
     let (c_monnaie, c_code, c_date, c_taux) = (col("monnaie_source")?, col("code_pays")?, col("date")?, col("taux")?);
-    for l in lignes.filter(|l| !l.trim().is_empty()) {
+    for (n, l) in lignes.enumerate().filter(|(_, l)| !l.trim().is_empty()) {
         let c = champs(l);
-        let (Some(m), Some(code), Some(date), Some(taux)) = (c.get(c_monnaie), c.get(c_code), c.get(c_date).and_then(|d| Jour::lire(d).ok()), c.get(c_taux).and_then(|x| decimal(x))) else { continue };
+        let ou = |quoi: &str| socle::echec::livree("missions/change.csv", &format!("ligne {} : {}", n + 2, quoi));
+        let cellule = |i: usize, nom: &str| c.get(i).copied().ok_or_else(|| ou(nom));
+        let (m, code) = (cellule(c_monnaie, "monnaie_source")?, cellule(c_code, "code_pays")?);
+        let date = Jour::lire(cellule(c_date, "date")?).map_err(|_| ou("date"))?;
+        let taux = decimal(cellule(c_taux, "taux")?).ok_or_else(|| ou("taux"))?;
         let e = t.change.entry((m.to_string(), code.to_string())).or_default();
         e.push(Datee { depuis: date, valeur: taux });
         e.sort_by_key(|d| d.depuis);

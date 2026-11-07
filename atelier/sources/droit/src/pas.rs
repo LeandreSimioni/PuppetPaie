@@ -177,9 +177,9 @@ fn en_retour_d_un_mois_qui_n_est_pas_avant(e: &TauxPas, mois: Option<&str>) -> b
 /// disposition `mad`, et, en retour de la DSN du mois `en_retour_de`, pas avant le premier jour du mois qui suit
 /// (`en_retour_d_un_mois_qui_n_est_pas_avant`). Deux comptes rendus du meme jour, l'un pour le mois, l'autre en retour
 /// de sa DSN, ne s'ecrasent donc pas.
-pub fn date_d_effet(mad: Jour, en_retour_de: Option<&str>) -> Jour {
-    let premier_d_apres = en_retour_de.and_then(|m| socle::mois::Mois::lire(m).ok()).map(|m| m.suivant().premier_jour());
-    premier_d_apres.map_or(mad, |p| p.max(mad))
+pub fn date_d_effet(mad: Jour, en_retour_de: Option<&str>) -> Resultat<Jour> {
+    let premier_d_apres = en_retour_de.map(|m| socle::mois::Mois::lire(m).map(|m| m.suivant().premier_jour())).transpose()?;
+    Ok(premier_d_apres.map_or(mad, |p| p.max(mad)))
 }
 
 /// LE TAUX DU SALARIE AU JOUR `le`, pour la paie du mois `mois` : de ceux qu'il a recus, le dernier mis a disposition au
@@ -584,8 +584,9 @@ mod tests {
         let demande = vec![taux("480747943", "20261221184328", None)];
         assert!(en_vigueur(&demande, Jour::lire("2026-12-31").unwrap(), Some("2026-12")).is_some());
         let mad = Jour::lire("2026-12-21").unwrap();
-        assert_eq!(date_d_effet(mad, Some("2026-12")), Jour::lire("2027-01-01").unwrap());
-        assert_eq!(date_d_effet(mad, Some("2026-11")), mad);
-        assert_eq!(date_d_effet(mad, None), mad);
+        assert_eq!(date_d_effet(mad, Some("2026-12")).unwrap(), Jour::lire("2027-01-01").unwrap());
+        assert_eq!(date_d_effet(mad, Some("2026-11")).unwrap(), mad);
+        assert_eq!(date_d_effet(mad, None).unwrap(), mad);
+        assert!(date_d_effet(mad, Some("décembre")).is_err());
     }
 }
