@@ -154,7 +154,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
         attendus(ctx).map_err(plain)?.iter().filter(|s| se_montre(ctx, s) && s.couvre(&periode)).map(|s| ligne(s, &saisi)).collect();
     let a_saisir = lignes.iter().any(|l| l.libelle.is_none() || l.organisme.is_none());
     Ok(json!({
-        "idcc": ctx.entreprise.idcc.texte().trim(),
+        "idcc": ctx.entreprise.idcc.portee().map(str::trim),
         "a_saisir": a_saisir,
         "mois": periode.0.mois_civil().to_string(),
         "contrats": lignes,
@@ -188,7 +188,7 @@ mois. Ne pas modifier a la main."
     );
     // Rien de saisi en vigueur s'ecrit aussi : la composition du mois devient la saisie de la periode.
     if en_vigueur.is_empty() || en_vigueur != adhesions {
-        droit::fiche::dater(date.adhesions_prevoyance.get_or_insert_with(Vec::new),Some(adhesions), Some(&periode.0), None);
+        droit::fiche::dater(&mut date.adhesions_prevoyance, Some(adhesions), Some(&periode.0), None);
     }
     let p = chemin(ctx);
     if let Some(parent) = p.parent() {

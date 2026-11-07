@@ -22,8 +22,6 @@ use crate::routes::dossier_salarie::cle_de;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use serde_json::Value;
-
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use envois::courriel::Courriel;
@@ -128,22 +126,22 @@ pub fn code_signature() -> String {
 /// le nom d'affichage de la compagnie (sinon sa raison sociale).
 pub fn signataire_et_raison(ctx: &Contexte) -> R<(String, String)> {
     let sg = ctx.entreprise.signataire.dite().ok_or_else(|| requis_manque("signataire"))?;
-    let signataire = match sg.prenom_affichage.texte() {
-        "" => capitaliser(sg.prenom.texte()),
-        p => p.to_string(),
+    let signataire = match sg.prenom_affichage.portee() {
+        Some(p) => p.to_string(),
+        None => capitaliser(sg.prenom.portee().ok_or_else(|| requis_manque("prenom"))?),
     };
-    let raison = match ctx.entreprise.nom_affichage.texte() {
-        "" => ctx.entreprise.raison_sociale.ecrite("raison_sociale").map_err(|_| requis_manque("raison_sociale"))?.to_string(),
-        r => r.to_string(),
+    let raison = match ctx.entreprise.nom_affichage.portee() {
+        Some(r) => r.to_string(),
+        None => ctx.entreprise.raison_sociale.ecrite("raison_sociale").map_err(|_| requis_manque("raison_sociale"))?.to_string(),
     };
     Ok((signataire, raison))
 }
 
 /// Le prenom d'affichage, sinon le prenom.
 fn prenom_de(sal: &ChampsSalarie) -> R<String> {
-    match sal.prenom_affichage.texte() {
-        "" => exige(&sal.prenom, "prenom"),
-        p => Ok(p.to_string()),
+    match sal.prenom_affichage.portee() {
+        Some(p) => Ok(p.to_string()),
+        None => exige(&sal.prenom, "prenom"),
     }
 }
 
@@ -154,9 +152,9 @@ fn exige<T: AsRef<str>>(c: &Option<T>, cle: &str) -> R<String> {
 
 /// « Prenom Nom » tel que la reponse « Je signe » le dit : `prenom_affichage or prenom`, `nom_affichage or nom`.
 fn nom_complet_de(sal: &ChampsSalarie) -> R<String> {
-    let nom = match sal.nom_affichage.texte() {
-        "" => exige(&sal.nom, "nom")?,
-        n => n.to_string(),
+    let nom = match sal.nom_affichage.portee() {
+        Some(n) => n.to_string(),
+        None => exige(&sal.nom, "nom")?,
     };
     Ok(format!("{} {}", prenom_de(sal)?, nom))
 }
@@ -474,7 +472,7 @@ pub(crate) fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client:
     let mut contrats: Vec<ContratParti> = Vec::new();
     for (cle, ps, _) in &par_salarie {
         let sal = &ps[0].salarie;
-        let adresse = sal.email.texte().trim().to_lowercase();
+        let adresse = exige(&sal.email, "email")?.trim().to_lowercase();
         let code = code_signature();
         // Le contrat qui en remplace un autre porte son propre nom : le PDF parti avant lui reste sur le disque.
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, if remplace { "_remplace" } else { "" }));
@@ -671,7 +669,7 @@ fn deja_parti_dit(etats: &[crate::routes::contrats::ContratASigner], salarie: &s
 /// noms, pour le dire). Refus si aucun contrat choisi n'a de courriel : rien ne partirait.
 type ParSalarie = Vec<(String, Vec<Paie>, Vec<usize>)>;
 fn avec_et_sans_courriel(choisis: ParSalarie) -> R<(ParSalarie, Vec<String>)> {
-    let (avec, sans): (ParSalarie, ParSalarie) = choisis.into_iter().partition(|(_, ps, _)| !ps[0].salarie.email.texte().trim().is_empty());
+    let (avec, sans): (ParSalarie, ParSalarie) = choisis.into_iter().partition(|(_, ps, _)| ps[0].salarie.email.is_some());
     let noms: Vec<String> = sans.iter().map(|(k, ps, _)| ps[0].salarie.nomme().unwrap_or_else(|| k.to_string())).collect();
     if avec.is_empty() && !noms.is_empty() {
         return Err(refus(format!("{} Rien n'est parti.", sans_courriel_dit(&noms))));
@@ -790,10 +788,18 @@ impl UnAvenant {
     }
 }
 
-/// Les modifications telles que la fabrique de l'avenant les lit (`documents::contrat::ecrire_avenant`, qui les lit encore
-/// en `Value`).
-pub(crate) fn pour_la_piece(modifications: &[ArticleModifie]) -> R<Vec<Value>> {
-    modifications.iter().map(|m| serde_json::to_value(m).map_err(|e| Echec::from(e.to_string()))).collect()
+/// Les modifications telles que la fabrique de l'avenant les met en page (`documents::contrat::ecrire_avenant`).
+pub(crate) fn pour_la_piece(modifications: &[ArticleModifie]) -> Vec<fabrique_pdf::forme::Modification> {
+    modifications
+        .iter()
+        .map(|m| fabrique_pdf::forme::Modification {
+            numero: m.numero.map(|n| n as i64),
+            article: m.article.clone(),
+            avant: m.avant.clone(),
+            apres: m.apres.clone(),
+            phrase: m.phrase.clone(),
+        })
+        .collect()
 }
 
 /// Ce qui se dit du contrat d'une paie dans un courriel et dans l'apercu de son avenant : son nom (`contrat_ecrit.nom`
@@ -853,7 +859,7 @@ fn avenant_ecrit(
         }
         None => {
             let f = dossier.join(format!("Avenant{}_{}_{}_{}.pdf", a.numero, salarie, a.contrat.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans-numero"), a.mois.etiquette()));
-            documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &pour_la_piece(&a.modifications)?, a.numero, &jj(&a.date_contrat)?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
+            documents::contrat::ecrire_avenant(ctx, p, &ent, &f, &pour_la_piece(&a.modifications), a.numero, &jj(&a.date_contrat)?, &jj(&a.effet)?, aujourdhui_jj, ailleurs)?;
             f
         }
     };

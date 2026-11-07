@@ -5,19 +5,19 @@
 
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+use fabrique_pdf::assemblage::{Assemblage, Piece};
+use fabrique_pdf::Description;
 use socle::echec::Refus;
 
 use socle::num::Resultat;
 
 /// Ecrit le PDF de `description` dans `chemin` et rend le chemin.
-pub fn ecrire(description: &Value, chemin: &Path) -> Resultat<PathBuf> {
+pub fn ecrire(description: &Description, chemin: &Path) -> Resultat<PathBuf> {
     if let Some(parent) = chemin.parent() {
         std::fs::create_dir_all(parent)
             .map_err(|e| socle::echec::du_disque(chemin, &e))?;
     }
-    let texte = serde_json::to_string(description).map_err(|e| e.to_string())?;
-    let octets = fabrique_pdf::fabriquer(&texte).map_err(|r| r.0.replace('\n', " "))?;
+    let octets = fabriquer_octets(description)?;
     if let Err(e) = std::fs::write(chemin, &octets) {
         let _ = std::fs::remove_file(chemin);
         return Err(socle::echec::du_disque(chemin, &e));
@@ -26,14 +26,13 @@ pub fn ecrire(description: &Value, chemin: &Path) -> Resultat<PathBuf> {
 }
 
 /// Le PDF de `description` ecrit a `chemin` ; un refus de la fabrique, sur une ligne, sous la classe `FabriqueRefus`.
-pub fn ecrire_pdf(description: &Value, chemin: &Path) -> socle::echec::R<()> {
+pub fn ecrire_pdf(description: &Description, chemin: &Path) -> socle::echec::R<()> {
     ecrire(description, chemin).map(|_| ()).map_err(|m| socle::echec::erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))
 }
 
 /// Les octets du PDF de `description`, sans fichier.
-pub fn fabriquer_octets(description: &Value) -> Result<Vec<u8>, String> {
-    let texte = serde_json::to_string(description).map_err(|e| e.to_string())?;
-    fabrique_pdf::fabriquer(&texte).map_err(|r| r.0.replace('\n', " "))
+pub fn fabriquer_octets(description: &Description) -> Result<Vec<u8>, String> {
+    fabrique_pdf::fabriquer(description).map_err(|r| r.0.replace('\n', " "))
 }
 
 /// Le PDF verrouille en AES-256 (mot de passe utilisateur vide, impression et copie seules).
@@ -46,21 +45,23 @@ pub fn verrouiller(octets: &[u8]) -> Result<Vec<u8>, String> {
 /// Des pieces (un PDF, ses pages 0-based ou toutes) fusionnees par la fabrique ;
 /// un refus est une `ErreurOperation`, aucun PDF n'est assemble autrement.
 pub fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> Result<Vec<u8>, Refus> {
-    let liste: Vec<Value> = pieces
-        .iter()
-        .map(|(f, pages)| match pages {
-            Some(p) => json!({"fichier": f.to_string_lossy(), "pages": p.iter().map(|n| n + 1).collect::<Vec<_>>()}),
-            None => json!({"fichier": f.to_string_lossy()}),
-        })
-        .collect();
-    let description = json!({"format": 1, "pieces": liste});
+    let assemblage = Assemblage {
+        format: Some(1),
+        pieces: pieces
+            .iter()
+            .map(|(f, pages)| Piece {
+                fichier: f.to_string_lossy().into_owned(),
+                pages: pages.as_ref().map(|p| p.iter().map(|n| *n as u32 + 1).collect()),
+            })
+            .collect(),
+    };
     let refus = |m: &str| {
         avec("ErreurOperation", format!(
             "Assemblage impossible : la fabrique de PDF refuse la fusion ({}). Aucun PDF n'est assemblé autrement.",
             m.replace('\n', " ").trim()
         ))
     };
-    match fabrique_pdf::assemblage::assembler(&description.to_string()).map_err(|r| refus(&r.0))? {
+    match fabrique_pdf::assemblage::assembler(&assemblage).map_err(|r| refus(&r.0))? {
         // Une piece verrouillee (un PDF venu d'ailleurs, tel qu'il a ete depose) garde son verrou dans ce qui la porte.
         (octets, true) => verrouiller(&octets).map_err(|m| refus(&m)),
         (octets, false) => Ok(octets),

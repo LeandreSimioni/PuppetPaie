@@ -57,12 +57,6 @@ fn arret_de(a: &Value) -> socle::num::Resultat<engagement::imprevus::ArretSaisi>
     socle::forme::lire(a, engagement::imprevus::ILLISIBLE)
 }
 
-fn prenom_de(sal: &droit::fiche::ChampsSalarie) -> String {
-    match sal.prenom_affichage.texte() {
-        "" => sal.prenom.texte().to_string(),
-        p => p.to_string(),
-    }
-}
 
 fn annee_de(mois: &str) -> R<i64> {
     mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois))))
@@ -187,7 +181,7 @@ fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, le_mois: Mois, nic: &Value) -
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : le rang se compte « au cours du mois courant » (cahier
     // technique DSN, p. 136), toutes declarations du SIREN confondues, d'ou qu'elles soient parties (un autre poste).
     let constitution: String = ctx.aujourdhui.iso().chars().take(7).collect();
-    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, &le_mois.to_string())?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx)?, false, &constitution, &le_mois.to_string())?;
     let dernier = match dernier {
         Some(d) => d.max(vues.ordre),
         // Une mensuelle du mois acceptee en reel que le journal ignore : la suivante la remplace.
@@ -329,7 +323,10 @@ fn refabriquer_sur(ctx: &Contexte, lu: Option<&Lu>, chemin: &Path, le_mois: socl
     let type_dsn = entete.type_declaration.clone().unwrap_or_default();
     let Ok(ordre) = entete.ordre.as_deref().unwrap_or_default().trim().parse::<i64>() else { return Ok(None) };
     let plusieurs = !ctx.entreprise_du_mois(mois).map_err(valeur)?.secondaires().is_empty();
-    let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| ctx.entreprise.nic_principal());
+    let nic = match nic.filter(|n| !n.is_empty()) {
+        Some(n) => n.to_string(),
+        None => ctx.entreprise.nic.ecrite("nic").map_err(valeur)?.to_string(),
+    };
     let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };
     let remplacee_versait_pas = if type_dsn == "03" || type_dsn == "05" {
         let mut m = Moteur::nouveau(ctx);
@@ -385,7 +382,10 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[envois::journal::Ligne],
     let mois = le_mois.to_string();
     let type_dsn = e.detail.type_declaration.clone().filter(|t| !t.is_empty()).unwrap_or_else(|| "01".into());
     let plusieurs = !ctx.entreprise_du_mois(&mois).map_err(valeur)?.secondaires().is_empty();
-    let nic = l.etablissement().map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
+    let nic = match l.etablissement() {
+        Some(n) => n.to_string(),
+        None => ctx.entreprise.nic.ecrite("nic").map_err(valeur)?.to_string(),
+    };
     // Constituee le jour ou son fichier a ete ecrit (le journal des ecritures), sinon le jour de son depot.
     let ecrite = journal_des_ecritures(&ctx.racine)
         .get(&format!("{}/{}", mois, l.fichier().unwrap_or_default()))
@@ -489,7 +489,10 @@ fn dsn_parties(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<Vec
 pub(crate) fn dsn_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> R<Option<(declarations::dsn::Fabriquee, bool)>> {
     let mut m = Moteur::nouveau(ctx);
     let plusieurs = !ctx.entreprise_du_mois(mois).map_err(valeur)?.secondaires().is_empty();
-    let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| ctx.entreprise.nic_principal());
+    let nic = match nic.filter(|n| !n.is_empty()) {
+        Some(n) => n.to_string(),
+        None => ctx.entreprise.nic.ecrite("nic").map_err(valeur)?.to_string(),
+    };
     let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };
     if let Some(f) = dsn_parties(ctx, &mut m, mois, &nic_v)?.pop() {
         return Ok(Some((f, true)));
@@ -585,9 +588,8 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
     for p in paies {
         if p.engagement.sans_paie() {
             avertissements.push(info(format!(
-                "{} {} : contrat {} en cours, aucun cachet en {} -- la DSN porte le contrat avec un versement a zero.",
-                p.salarie.nom.texte().to_string(),
-                prenom_de(&p.salarie),
+                "{} : contrat {} en cours, aucun cachet en {} -- la DSN porte le contrat avec un versement a zero.",
+                documents::tableaux_export::qui_souple(&p.salarie),
                 p.engagement.numero.as_deref().unwrap_or("None"),
                 socle::mois::Mois::en_clair(mois)
             )));
@@ -596,11 +598,10 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
 
     let fiche = ctx.entreprise_du_mois(mois).map_err(valeur)?;
     let principal = fiche.nic_principal();
-    let secondaires: Vec<String> = fiche.secondaires().iter().map(|e| e.nic.texte().to_string()).collect();
-    let plusieurs = !secondaires.is_empty();
+    let plusieurs = !fiche.secondaires().is_empty();
     let mut m = Moteur::nouveau(ctx);
     // Un mois deja declare dont l'annule-et-remplace n'est plus admis : refuse AVANT d'ecrire quoi que ce soit.
-    let nics: Vec<Value> = if plusieurs { std::iter::once(principal.clone()).chain(secondaires.iter().cloned()).map(Value::String).collect() } else { vec![Value::Null] };
+    let nics: Vec<Value> = if plusieurs { fiche.nics().map_err(valeur)?.into_iter().map(Value::String).collect() } else { vec![Value::Null] };
     for nic in &nics {
         forme_de_la_dsn(ctx, &mut m, le_mois, nic)?;
     }
@@ -684,7 +685,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
     for nic in &nics {
         let n = nic.as_str().map(str::to_string);
         let mut nom = match &n {
-            Some(x) if *x != principal => format!("DSN_{}_{}.dsn", etiq, x),
+            Some(x) if Some(x.as_str()) != principal => format!("DSN_{}_{}.dsn", etiq, x),
             _ => format!("DSN_{}.dsn", etiq),
         };
         let (type_dsn, ordre, remplace) = forme_de_la_dsn(ctx, &mut m, le_mois, nic)?;
@@ -704,7 +705,10 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, le_mois: Mois, qui: &str) -> R<DsnFa
         // constitue.
         if refabriquer_sur(ctx, Some(&lu), &f_dsn, le_mois, n.as_deref())?.is_none() {
             // Ce que la DSN de cet etablissement corrige des mois passes : elle le dit a son depot.
-            let portees = declarations::produire_regularisations::versions_portees(ctx, &lu.regs, n.as_deref().unwrap_or(&principal))?;
+            let portees = declarations::produire_regularisations::versions_portees(ctx, &lu.regs, match n.as_deref() {
+                Some(x) => x,
+                None => fiche.nic.ecrite("nic").map_err(valeur)?,
+            })?;
             let forme = Forme { type_dsn, ordre, etablissement: n, constitution: ctx.aujourdhui, remplacee_versait_pas };
             a_ecrire.push((f_dsn.clone(), fabriquer_du_present(ctx, &lu, mois, &forme)?.texte, portees));
         }
@@ -832,7 +836,11 @@ fn exiges_des_bulletins<'a>(ent: &droit::fiche::ChampsEntreprise, paies: impl It
             continue;
         }
         spectacles.push(&sp.cle);
-        fiches.push(("spectacle", format!("Spectacles, la fiche de {}", sp.titre.texte()), &sp.champs));
+        let qui = match sp.titre.portee() {
+            Some(titre) => format!("Spectacles, la fiche de {}", titre),
+            None => format!("Spectacles, la fiche {}", sp.cle),
+        };
+        fiches.push(("spectacle", qui, &sp.champs));
     }
     match declarations::champs::refus_des_manques("bulletin", &fiches, &[])? {
         Some(m) => Err(erreur("ErreurOperation", m)),
@@ -934,11 +942,10 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
                 prochain_ce = Some(n + combien);
                 faits.reserves.enregistrer(an, Suite::CertificatCs, n + combien - 1);
                 a_poser.entry(i).or_default().1 = Some((n, n + combien - 1));
-                if ctx.salarie(cle).map_err(valeur)?.nir.texte().trim().is_empty() {
+                if ctx.salarie(cle).map_err(valeur)?.nir.is_none() {
                     faits.avertissements.push(format!(
-                        "{} {} : certificat Conges Spectacles emis SANS numero de securite sociale -- Audiens ne pourra pas le rattacher.",
-                        paies[i].salarie.nom.texte().to_string(),
-                        prenom_de(&paies[i].salarie)
+                        "{} : certificat Conges Spectacles emis SANS numero de securite sociale -- Audiens ne pourra pas le rattacher.",
+                        documents::tableaux_export::qui_souple(&paies[i].salarie)
                     ));
                 }
                 n
@@ -1013,7 +1020,7 @@ fn imprimer(ctx: &Contexte, mois: &str, ent: &droit::contexte::EntrepriseDuDocum
     imprimees.dedup();
     let leurs_paies: Vec<Paie> = imprimees.iter().map(|i| paies[*i].clone()).collect();
     let passe = documents::bulletin::passe_des_bulletins(ctx, &leurs_paies, mois, &departs).map_err(valeur)?;
-    let bulletins = |rangs: &[usize], toutes: Option<&[Paie]>| -> R<Value> {
+    let bulletins = |rangs: &[usize], toutes: Option<&[Paie]>| -> R<fabrique_pdf::Description> {
         let imprimees: Vec<Paie> = rangs.iter().map(|i| paies[*i].clone()).collect();
         let rectifs: HashMap<usize, Value> = rangs.iter().enumerate().filter_map(|(k, i)| imp.rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
         let leurs_numeros: Vec<Option<String>> = rangs.iter().map(|i| imp.numeros[*i].clone()).collect();
@@ -1248,7 +1255,7 @@ fn refaire_la_dsn(ctx: &Contexte, m: &mut Moteur, lignes: &[envois::journal::Lig
     let plusieurs = !ctx.entreprise_du_mois(&mois).map_err(valeur)?.secondaires().is_empty();
     let nic = match (plusieurs, l.etablissement()) {
         (true, Some(n)) => Some(n.to_string()),
-        (true, None) => Some(ctx.entreprise.nic_principal()),
+        (true, None) => Some(ctx.entreprise.nic.ecrite("nic").map_err(valeur)?.to_string()),
         (false, _) => None,
     };
     // Un annule-et-remplace : la DSN qu'il remplacait versait-elle a la DGFiP ?
@@ -1485,7 +1492,7 @@ pub(crate) fn refaire_le_contrat(ctx: &Contexte, lignes: &[envois::journal::Lign
                     .ok_or_else(|| valeur(format!("journal : {} modifie un contrat qui n'est pas parti avant lui", nom)))?
                     .date()
             };
-            let modifs = crate::compagnie::signature::pour_la_piece(premier.modifications.as_deref().unwrap_or_default())?;
+            let modifs = crate::compagnie::signature::pour_la_piece(premier.modifications.as_deref().unwrap_or_default());
             return documents::contrat::ecrire_avenant(&ctx_j, p0, &ent, vers, &modifs, numero_av, &jj(&date_contrat)?, &jj(premier.effet.as_deref().unwrap_or(""))?, &jour.jj_mm_aaaa(), premier.ailleurs)
                 .map_err(Echec::from);
         }

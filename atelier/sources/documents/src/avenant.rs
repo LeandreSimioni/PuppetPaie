@@ -81,9 +81,9 @@ fn case<T: AsRef<str>>(c: &Option<T>, cle: &str) -> Resultat<String> {
 
 /// La forme lisible d'une case de la fiche du salarie si elle est dite, la forme declaree sinon (`case`).
 fn lisible<T: AsRef<str>>(affichage: &Option<String>, c: &Option<T>, cle: &str) -> Resultat<String> {
-    match affichage.texte() {
-        "" => case(c, cle),
-        a => Ok(a.to_string()),
+    match affichage.remplie() {
+        Some(a) => Ok(a.to_string()),
+        None => case(c, cle),
     }
 }
 
@@ -387,10 +387,9 @@ pub(crate) fn parties(ent: &ChampsEntreprise, fiche: &droit::fiche::ChampsSalari
     // ce qui est vrai.
     poser(
         Marqueur::SalarieNir,
-        if !s.nir.texte().is_empty() {
-            format!("{}{}", s.nir.texte(), s.nir_cle.ecrite("nir_cle")?)
-        } else {
-            "en cours d'immatriculation".to_string()
+        match s.nir.remplie() {
+            Some(nir) => format!("{}{}", nir, s.nir_cle.ecrite("nir_cle")?),
+            None => "en cours d'immatriculation".to_string(),
         },
     );
     let emploi_texte = lisible(&s.emploi_affichage, &s.emploi, "emploi")?;
@@ -458,7 +457,7 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
 /// La fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<droit::contexte::EntrepriseDuDocument> {
     let mut ent = ctx.entreprise.clone();
-    ent.licence_spectacle = Some(ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour()));
+    ent.licence_spectacle = ctx.licence(&Mois::lire(mois.get(..7).unwrap_or(mois))?.premier_jour());
     Ok(ctx.pour_un_modele(&ent))
 }
 

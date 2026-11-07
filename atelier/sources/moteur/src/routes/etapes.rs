@@ -641,12 +641,11 @@ fn plain(m: impl Into<String>) -> Echec {
 
 /// Le nom d'un etablissement dans une case : sa commune (celle de la fiche entreprise pour le principal), sinon son NIC.
 fn nom_de_l_etablissement(ent: &droit::fiche::ChampsEntreprise, nic: &str) -> String {
-    let communes = if nic == ent.nic_principal() {
-        Some([ent.commune_affichage.texte(), ent.commune.texte()])
+    let commune = if Some(nic) == ent.nic_principal() {
+        ent.commune_affichage.remplie().or(ent.commune.portee()).map(|c| c.trim().to_string())
     } else {
-        ent.secondaires().into_iter().find(|e| e.nic.texte() == nic).map(|e| [e.commune_affichage.texte(), e.commune.texte()])
+        ent.secondaires().into_iter().find(|e| e.nic.portee() == Some(nic)).and_then(|e| e.commune_affichage.remplie().or(e.commune.portee()).map(|c| c.trim().to_string()))
     };
-    let commune = communes.and_then(|c| c.into_iter().map(str::trim).find(|c| !c.is_empty()).map(String::from));
     commune.unwrap_or_else(|| format!("NIC {}", nic))
 }
 
@@ -734,7 +733,10 @@ pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, brut: &engagement::stock
 pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &envois::journal::Ligne, etats: &[engagement::etats::Etat], refaire: &mut dyn FnMut(&engagement::etats::Etat) -> R<Rc<Vec<ARefaire>>>) -> R<bool> {
     // Une ligne qui ne dit pas ce qu'elle a emporte ne se compare a rien.
     let Some(emportes) = derniere.versions() else { return Ok(false) };
-    let nic = derniere.etablissement().map(String::from).unwrap_or_else(|| ctx.entreprise.nic_principal());
+    let nic = match derniere.etablissement() {
+        Some(n) => n.to_string(),
+        None => ctx.entreprise.nic.ecrite("nic").map_err(plain)?.to_string(),
+    };
     let siens: Vec<&engagement::etats::Etat> = etats.iter().filter(|e| nic_de_l_engagement(ctx, e).as_deref() == Some(nic.as_str())).collect();
     for e in &siens {
         if refaire(e)?.iter().any(|a| matches!(a, ARefaire::Dsn { mois: ref m, .. } if m == mois)) {
@@ -1294,8 +1296,8 @@ impl<'a> Moteur<'a> {
         envois::journal::lu(self.racine()).map(|j| j.lignes).map_err(plain)
     }
 
-    fn nic(&self) -> String {
-        self.ctx.entreprise.nic_principal()
+    fn nic(&self) -> R<String> {
+        Ok(self.ctx.entreprise.nic.ecrite("nic").map_err(plain)?.to_string())
     }
 
     // ------------------------------------------------------ la saisie du mois
@@ -1427,9 +1429,9 @@ impl<'a> Moteur<'a> {
             let echeances = if self.ecrit {
                 None
             } else {
-                let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.code_emploi_ft.texte().to_string());
+                let code_emploi = p.engagement.code_emploi_ft.as_deref().or(sal.code_emploi_ft.portee());
                 let ent = &self.ctx.entreprise;
-                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, ent.idcc.texte(), &code_emploi, ent.feries_chomes()).map_err(plain)?;
+                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, ent.idcc.portee(), code_emploi, ent.feries_chomes()).map_err(plain)?;
                 Some(Echeances { dpae: droit::echeances::dpae(&p.engagement.debut), contrat: remise })
             };
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
@@ -1711,7 +1713,7 @@ impl<'a> Moteur<'a> {
         let lignes = self.lignes()?;
         let reels = envois::journal::filtrer(&lignes, Some(envois::journal::Acte::Dsn), Some(mois), true);
         let mut out = Vec::new();
-        for l in etats::de_l_etablissement(reels, nic, &self.nic()) {
+        for l in etats::de_l_etablissement(reels, nic, &self.nic()?) {
             if !l.accepte() || l.signalement() || etats::refuse_par_un_retour(l) {
                 continue;
             }
@@ -1767,7 +1769,7 @@ impl<'a> Moteur<'a> {
         } else {
             let departs = self.departs()?;
             let plusieurs = !self.ctx.entreprise_du_mois(mois).map_err(plain)?.secondaires().is_empty();
-            let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
+            let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic()? };
             let mut n = 0;
             for e in self.etats_du_mois(le_mois)? {
                 let Some(v) = e.valide() else { continue };
@@ -2074,11 +2076,11 @@ impl<'a> Moteur<'a> {
         let ent = self.ctx.entreprise_du_mois(&mois.to_string()).map_err(plain)?;
         if ent.secondaires().is_empty() {
             let g = self.groupes_dsn_de(mois, &Value::Null)?;
-            return Ok(vec![(vec![ent.nic_principal()], g)]);
+            return Ok(vec![(vec![ent.nic.ecrite("nic").map_err(plain)?.to_string()], g)]);
         }
         let point = |g: &Groupe| (g.etat, g.phrase.clone(), g.echeance.as_ref().map(|e| e.jour));
         let mut classes: Vec<(Vec<String>, Groupe)> = Vec::new();
-        for nic in ent.nics() {
+        for nic in ent.nics().map_err(plain)? {
             let g = self.groupes_dsn_de(mois, &json!(nic))?;
             match classes.iter_mut().find(|(_, x)| point(x) == point(&g)) {
                 Some((nics, _)) => nics.push(nic),
@@ -2167,7 +2169,7 @@ impl<'a> Moteur<'a> {
     fn dsn_a_declarer(&mut self, le_mois: Mois, nic: &Value) -> R<bool> {
         let mois = &le_mois.to_string();
         let plusieurs = !self.ctx.entreprise_du_mois(mois).map_err(plain)?.secondaires().is_empty();
-        let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
+        let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic()? };
         let de_l_etablissement = |ctx: &Contexte, _m: &str, brut: &engagement::stock::Ecrit| !plusieurs || nic_de_l_engagement_ecrit(ctx, brut).as_deref() == Some(voulu.as_str());
         for e in self.etats_du_mois(le_mois)? {
             if e.valide().is_some() && de_l_etablissement(self.ctx, mois, &e.objet().brut) {
@@ -2732,10 +2734,12 @@ fn lire(m: &mut Moteur, nom: Route, charge: &Value) -> R<Value> {
 /// ne vaut plus.
 fn empreinte_de_l_embauche(e: &engagement::Engagement, sal: &droit::fiche::ChampsSalarie) -> String {
     let r = |t: &str| socle::fichiers::repr(t);
+    // Une case vide s'ecrit `None`, comme la fin et le spectacle.
+    let o = |t: Option<&str>| t.map_or("None".to_string(), r);
     // La derniere place est celle d'une case `nationalite` que la fiche n'a pas : vide, comme l'empreinte l'a toujours ecrite.
     let ident: Vec<String> = vec![
-        r(sal.nir.texte()), r(sal.nom.texte()), r(sal.prenom.texte()), r(&sal.date_naissance.dite().map(|j| j.iso()).unwrap_or_default()),
-        r(sal.lieu_naissance.texte()), r(sal.departement_naissance.texte()), r(sal.sexe.dite().map_or("", |s| s.as_str())), r(""),
+        o(sal.nir.portee()), o(sal.nom.portee()), o(sal.prenom.portee()), o(sal.date_naissance.dite().map(|j| j.iso()).as_deref()),
+        o(sal.lieu_naissance.portee()), o(sal.departement_naissance.portee()), o(sal.sexe.code()), r(""),
     ];
     let fin = e.fin.map_or("None".to_string(), |f| f.iso());
     let spectacle = e.spectacle.as_ref().map(ToString::to_string).unwrap_or_else(|| "None".to_string());

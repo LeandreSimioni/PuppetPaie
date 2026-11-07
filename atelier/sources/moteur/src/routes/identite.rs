@@ -304,14 +304,21 @@ fn dire_l_identite(v: &Identite) -> String {
 fn ecran_de_l_identite(v: &mut Identite) {
     let ou = |i: &ImageIdentite| if i.documents.is_empty() { String::new() } else { format!("Sur {}", i.documents.join(", ")) };
     let sig = &v.signature;
-    let (nom, fonction) = sig.signataire.as_ref().map(|s| (s.nom.clone(), s.fonction.clone())).unwrap_or_default();
-    let titre_signature = if nom.is_empty() { "La signature".to_string() } else { format!("La signature de {}{}", nom, if fonction.is_empty() { String::new() } else { format!(", {}", fonction) }) };
+    let (nom, fonction) = match &sig.signataire {
+        Some(s) => (s.nom.clone(), s.fonction.clone()),
+        None => (None, None),
+    };
+    let titre_signature = match (&nom, &fonction) {
+        (Some(n), Some(f)) => format!("La signature de {}, {}", n, f),
+        (Some(n), None) => format!("La signature de {}", n),
+        (None, _) => "La signature".to_string(),
+    };
     let mut dit = format!("{}. Elle engage la personne qui signe au nom de la compagnie.", ou(sig));
-    if nom.is_empty() {
+    if nom.is_none() {
         dit.push_str(" La fiche Entreprise ne dit pas qui signe.");
     }
-    if sig.autre_personne == Some(true) {
-        dit.push_str(&format!(" Cette image a été posée pour {} ; la personne qui signe est maintenant {}. Importer sa signature à elle, ou corriger la fiche Entreprise.", sig.posee_pour.as_deref().unwrap_or_default(), nom));
+    if let (Some(true), Some(pour), Some(n)) = (sig.autre_personne, &sig.posee_pour, &nom) {
+        dit.push_str(&format!(" Cette image a été posée pour {} ; la personne qui signe est maintenant {}. Importer sa signature à elle, ou corriger la fiche Entreprise.", pour, n));
     }
     let dits = [
         (titre_signature, dit, None),

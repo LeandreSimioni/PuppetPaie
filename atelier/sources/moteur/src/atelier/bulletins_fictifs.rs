@@ -6,7 +6,7 @@
 //! UN SEUL CODE POUR DEUX USAGES : les tests (`bulletin_lu`, `routes::import`) l'incluent tel quel
 //! (`tests/bulletins_fictifs/mod.rs`, par `#[path]`), et l'outil d'atelier `moteur-atelier fabriquer-bulletins`
 //! (`fabriquer_bulletins.rs`, a cote) le compile sous `--features atelier`. Ce fichier ne depend donc que de
-//! `serde_json`, `fabrique_pdf` et `std` (rien de `crate::`), et le binaire livre ne le contient pas.
+//! `fabrique_pdf` et `std` (rien de `crate::`), et le binaire livre ne le contient pas.
 //!
 //! Les textes sont generiques (`S: AsRef<str>`, `&'static str` par defaut : les exemples des tests s'ecrivent en
 //! litteraux, l'outil en `String`). Rien de reel : noms, adresses, NIR, Siret, numeros d'objet, titres et montants
@@ -14,37 +14,62 @@
 
 #![allow(dead_code)]
 
-use serde_json::{json, Value};
+use fabrique_pdf::forme::{Alignement, Bloc, Description, Document, Marges, Page, Police, TexteFixe};
 use std::path::Path;
 
 // ------------------------------------------------------------------------------------------- la fabrique
 
-pub fn t(b: &mut Vec<Value>, x: f64, y: f64, texte: &str) {
-    b.push(json!({"type": "texte_fixe", "texte": texte, "x": x, "y": y, "taille": 9.0}));
+/// Un texte pose, dans la police de la page.
+fn texte_fixe(x: f64, y: f64, texte: &str, taille: f64, alignement: Option<Alignement>) -> Bloc {
+    Bloc::TexteFixe(TexteFixe {
+        texte: texte.to_string(),
+        x: x as f32,
+        y: y as f32,
+        taille: Some(taille as f32),
+        police: None,
+        gras: None,
+        couleur: None,
+        alignement,
+        largeur_max: None,
+    })
+}
+
+pub fn t(b: &mut Vec<Bloc>, x: f64, y: f64, texte: &str) {
+    b.push(texte_fixe(x, y, texte, 9.0, None));
 }
 
 /// Un nombre, aligne a droite sur `x`.
-pub fn r(b: &mut Vec<Value>, x: f64, y: f64, texte: &str) {
-    b.push(json!({"type": "texte_fixe", "texte": texte, "x": x, "y": y, "taille": 9.0, "alignement": "droite"}));
+pub fn r(b: &mut Vec<Bloc>, x: f64, y: f64, texte: &str) {
+    b.push(texte_fixe(x, y, texte, 9.0, Some(Alignement::Droite)));
 }
 
-pub fn grand(b: &mut Vec<Value>, x: f64, y: f64, texte: &str, taille: f64) {
-    b.push(json!({"type": "texte_fixe", "texte": texte, "x": x, "y": y, "taille": taille}));
+pub fn grand(b: &mut Vec<Bloc>, x: f64, y: f64, texte: &str, taille: f64) {
+    b.push(texte_fixe(x, y, texte, taille, None));
 }
 
 /// Les octets d'un PDF d'une page par liste de blocs, A4.
-pub fn pdf_octets(pages: Vec<Vec<Value>>) -> Result<Vec<u8>, String> {
-    let d = json!({
-        "format": 3,
-        "page": {"largeur": 595.22, "hauteur": 842.0, "marges": {"haut": 0.0, "droite": 0.0, "bas": 0.0, "gauche": 0.0}},
-        "police": {"taille": 9.0, "interligne": 1.25, "couleur": "#000000"},
-        "documents": pages.into_iter().map(|b| json!({"blocs": b})).collect::<Vec<_>>()
-    });
-    fabrique_pdf::fabriquer(&d.to_string()).map_err(|r| format!("la fabrique refuse : {}", r.0))
+pub fn pdf_octets(pages: Vec<Vec<Bloc>>) -> Result<Vec<u8>, String> {
+    let nulle = Some(0.0);
+    let d = Description {
+        format: 3,
+        page: Some(Page {
+            largeur: Some(595.22),
+            hauteur: Some(842.0),
+            marges: Some(Marges { haut: nulle, droite: nulle, bas: nulle, gauche: nulle }),
+        }),
+        police: Some(Police { taille: Some(9.0), interligne: Some(1.25), couleur: Some("#000000".to_string()) }),
+        style: None,
+        logo: None,
+        titre: None,
+        documents: pages.into_iter().map(Document::Blocs).collect(),
+        entete_page: None,
+        pied_page: None,
+    };
+    fabrique_pdf::fabriquer(&d).map_err(|r| format!("la fabrique refuse : {}", r.0))
 }
 
 /// Un PDF d'une page par liste de blocs, A4 (les tests : un refus arrete le test).
-pub fn pdf(pages: Vec<Vec<Value>>, chemin: &Path) {
+pub fn pdf(pages: Vec<Vec<Bloc>>, chemin: &Path) {
     let octets = pdf_octets(pages).unwrap_or_else(|m| panic!("{}", m));
     std::fs::write(chemin, octets).unwrap();
 }
@@ -145,7 +170,7 @@ pub struct A<S = &'static str> {
     pub total_verse: S,
 }
 
-pub fn page_a<S: AsRef<str>>(a: &A<S>) -> Vec<Value> {
+pub fn page_a<S: AsRef<str>>(a: &A<S>) -> Vec<Bloc> {
     let mut b = Vec::new();
     let b_ = &mut b;
     let id = &a.id;
@@ -312,7 +337,7 @@ pub struct B<S = &'static str> {
     pub total_verse: S,
 }
 
-pub fn page_b<S: AsRef<str>>(p: &B<S>) -> Vec<Value> {
+pub fn page_b<S: AsRef<str>>(p: &B<S>) -> Vec<Bloc> {
     let mut b = Vec::new();
     let b_ = &mut b;
     let id = &p.id;
@@ -371,7 +396,7 @@ pub fn page_b<S: AsRef<str>>(p: &B<S>) -> Vec<Value> {
     t(b_, 452.7, 290.0, "salarié");
     t(b_, 509.2, 290.0, "employeur");
     let mut y = 308.5;
-    let ligne = |b_: &mut Vec<Value>, y: f64, (q, libelle, base, montant): &(S, S, S, S)| {
+    let ligne = |b_: &mut Vec<Bloc>, y: f64, (q, libelle, base, montant): &(S, S, S, S)| {
         t(b_, 59.5, y, &format!("{} ", s(q)));
         t(b_, 74.0, y, s(libelle));
         r(b_, 374.4, y, s(base));
@@ -383,7 +408,7 @@ pub fn page_b<S: AsRef<str>>(p: &B<S>) -> Vec<Value> {
     }
     t(b_, 74.0, y, s(&p.brut.0));
     r(b_, 494.4, y, s(&p.brut.1));
-    let cotisation = |b_: &mut Vec<Value>, y: f64, c: &RangB<S>| {
+    let cotisation = |b_: &mut Vec<Bloc>, y: f64, c: &RangB<S>| {
         t(b_, c.0, y, s(&c.1));
         if !s(&c.3).is_empty() {
             r(b_, 374.4, y, s(&c.3));

@@ -408,10 +408,7 @@ pub(crate) fn dire_depuis_les_dsn(racine: &Path, quand: &Jour) -> Vec<String> {
     for x in a_dire(racine) {
         let salarie = x.salarie.clone();
         let Ok(ctx) = Contexte::nouveau(racine, Some(*quand)) else { break };
-        let nir = ctx.salaries.get(salarie.as_str()).map(|f| f.nir.texte().to_string()).unwrap_or_default();
-        if nir.is_empty() {
-            continue;
-        }
+        let Some(nir) = ctx.salaries.get(salarie.as_str()).and_then(|f| f.nir.en_texte()) else { continue };
         // Sa derniere paie declaree : le contrat tel que la derniere DSN le dit.
         let Some(((_, _, numero), p)) = lecture.paies.iter().filter(|((_, n, _), _)| *n == nir).last() else { continue };
         let c = p.contrat.as_ref();

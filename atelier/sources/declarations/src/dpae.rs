@@ -220,8 +220,7 @@ fn gabarit_lu(gabarits: Option<&Path>, chemins: &Chemins) -> Resultat<Vec<char>>
 
 /// Le SIRET de la fiche, 14 chiffres, ou le refus de la DPAE.
 fn siret_de(ent: &ChampsEntreprise) -> Resultat<String> {
-    let siret = ent.siret.texte();
-    let siret = strip(siret).to_string();
+    let siret = strip(ent.siret.ecrite("siret")?).to_string();
     if siret.chars().count() != 14 || !tout_chiffres(&siret) {
         return Err(format!("DPAE : le SIRET de la fiche entreprise ({}) ne fait pas 14 chiffres.", repr(&siret)));
     }
@@ -231,11 +230,10 @@ fn siret_de(ent: &ChampsEntreprise) -> Resultat<String> {
 /// Le code du centre de medecine du travail (C_MT_DCL, obligatoire hors travail temporaire) : `medecine_travail` de la
 /// fiche, que la DPAE exige (`exige_par` de `champs-base.json`) ; il ne se devine pas.
 fn medecine_de(ent: &ChampsEntreprise) -> Resultat<String> {
-    let mt = strip(ent.medecine_travail.texte()).to_string();
-    if mt.is_empty() {
-        return Err(socle::echec::cle("La fiche entreprise ne dit pas le code du service de santé au travail, que la DPAE exige : le lire sur l'adhésion au service de santé au travail, et le saisir dans Configuration › Entreprise.", "medecine_travail"));
+    match ent.medecine_travail.portee() {
+        Some(mt) => Ok(strip(mt).to_string()),
+        None => Err(socle::echec::cle("La fiche entreprise ne dit pas le code du service de santé au travail, que la DPAE exige : le lire sur l'adhésion au service de santé au travail, et le saisir dans Configuration › Entreprise.", "medecine_travail")),
     }
-    Ok(mt)
 }
 
 // -------------------------------------------------------- l'employeur
@@ -272,17 +270,22 @@ pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>
     use droit::fiche::{CodeMedecine, CodeNaf, CodePostal, CommuneEmployeur, LigneAdresse};
     let siret = siret_de(ent)?;
     let mt = medecine_de(ent)?;
-    let (raison, raison_2) = raison_sociale(ent.raison_sociale.texte())?;
+    let (raison, raison_2) = raison_sociale(ent.raison_sociale.ecrite("raison_sociale")?)?;
+    // L_ADR_EMP_2 est la seule zone employeur facultative de la norme (l. 270-276) : sans complement, elle est a blanc.
+    let adresse_2 = match ent.complement_adresse.portee() {
+        Some(c) => zone_texte(c, &ADRESSE, largeur("adresse_2"), LigneAdresse::faute)?,
+        None => ljust("", largeur("adresse_2")),
+    };
     Ok(vec![
         ("siret", siret),
         ("raison_sociale", raison),
-        ("adresse", zone_texte(ent.adresse.texte(), &ADRESSE, largeur("adresse"), LigneAdresse::faute)?),
-        ("adresse_2", zone_texte(ent.complement_adresse.texte(), &ADRESSE, largeur("adresse_2"), LigneAdresse::faute)?),
-        ("code_postal", ljust(&entiere(ent.code_postal.texte(), largeur("code_postal"), CodePostal::faute)?, largeur("code_postal"))),
-        ("commune", zone_texte(ent.commune.texte(), &ADRESSE, largeur("commune"), CommuneEmployeur::faute)?),
+        ("adresse", zone_texte(ent.adresse.ecrite("adresse")?, &ADRESSE, largeur("adresse"), LigneAdresse::faute)?),
+        ("adresse_2", adresse_2),
+        ("code_postal", ljust(&entiere(ent.code_postal.ecrite("code_postal")?, largeur("code_postal"), CodePostal::faute)?, largeur("code_postal"))),
+        ("commune", zone_texte(ent.commune.ecrite("commune")?, &ADRESSE, largeur("commune"), CommuneEmployeur::faute)?),
         ("raison_sociale_2", raison_2),
         ("tel", telephone(ent)?),
-        ("naf", ljust(&entiere(ent.naf.texte(), largeur("naf"), CodeNaf::faute)?, largeur("naf"))),
+        ("naf", ljust(&entiere(ent.naf.ecrite("naf")?, largeur("naf"), CodeNaf::faute)?, largeur("naf"))),
         // C_MT_DCL, cadre a droite comme le gabarit.
         ("medecine_travail", rjust(&entiere(&mt, largeur("medecine_travail"), CodeMedecine::faute)?, largeur("medecine_travail"))),
     ])
@@ -295,13 +298,14 @@ pub fn employeur(ent: &ChampsEntreprise) -> Resultat<Vec<(&'static str, String)>
 /// `atelier/reference/sources/code-du-travail/xml/R1221-3.xml`), lue au departement de son code postal
 /// (`urssaf-dpae-base.json`, `par_departement`). Le code de la fiche entreprise est celui du siege.
 fn urssaf_d_un_etablissement(vue: &ChampsEntreprise) -> Resultat<String> {
-    let code = crate::urssaf::base()?.du_code_postal(vue.code_postal.texte());
+    let (siret, cp) = (vue.siret.ecrite("siret")?, vue.code_postal.ecrite("code_postal")?);
+    let code = crate::urssaf::base()?.du_code_postal(cp);
     if code.is_empty() {
         return Err(format!(
             "La DPAE ne sait pas a quelle Urssaf aller : l'etablissement {} a le code postal {}, qu'aucune Urssaf de la table \
 ne couvre (Configuration › Entreprise › Avancé, « Autres établissements »).",
-            vue.siret.texte(),
-            repr(vue.code_postal.texte())
+            siret,
+            repr(cp)
         ));
     }
     Ok(code)
@@ -362,7 +366,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
             let (a, b) = zone_employeur(nom);
             ecrire_zone(&mut buf, nom, a, b, &v)?;
         }
-        if etab.nic.texte() != ent.nic_principal() {
+        if etab.nic.portee() != ent.nic_principal() {
             code_urssaf = json!(urssaf_d_un_etablissement(etab)?);
         }
     }
@@ -397,9 +401,9 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     // LE SEXE VIENT DU NIR QUAND IL Y EN A UN, de la fiche sinon : c'est la
     // meme lecture que pour le numero technique temporaire de la DSN
     // (`ntt.rs`), et il n'y en a qu'une dans le logiciel.
-    let sexe = match ntt::sexe_de(s.nir.texte(), s.sexe.code()).as_str() {
-        "1" => "M",
-        "2" => "F",
+    let sexe = match ntt::sexe_de(s.nir.portee(), s.sexe.code()) {
+        Some("1") => "M",
+        Some("2") => "F",
         _ => "",
     };
     poser(&mut buf, "horodatage", p.horodatage)?;
@@ -417,7 +421,11 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
     // CPAM). C'est par elle que le NIR arrive -- et, en attendant, la DSN
     // declare l'individu sous son numero technique temporaire. La zone reste
     // donc a blanc, sur ses 13 caracteres.
-    poser(&mut buf, "nir", &ljust(&entiere(s.nir.texte(), zone("nir"), droit::fiche::Nir::faute)?, zone("nir")))?;
+    let nir = match s.nir.portee() {
+        Some(nir) => entiere(nir, zone("nir"), droit::fiche::Nir::faute)?,
+        None => String::new(),
+    };
+    poser(&mut buf, "nir", &ljust(&nir, zone("nir")))?;
     poser(&mut buf, "date_naissance", &s.date_naissance.exigee("date_naissance")?.jjmmaaaa())?;
     poser(&mut buf, "lieu_naissance", &zone_texte(s.lieu_naissance.ecrite("lieu_naissance")?, &LIEU, zone("lieu_naissance"), droit::fiche::LieuNaissance::faute)?)?;
     let (a, b) = RESERVE_APRES_LIEU;
@@ -664,10 +672,9 @@ pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat
             s.lieu_naissance.ecrite("lieu_naissance")?,
             s.departement_naissance.ecrite("departement_naissance")?
         ));
-        lignes.push(if !s.nir.texte().is_empty() {
-            format!("  NIR {}{}", s.nir.texte(), s.nir_cle.ecrite("nir_cle")?)
-        } else {
-            "  NIR : aucun -- cette DPAE vaut demande d'immatriculation (formalite IMMA)".to_string()
+        lignes.push(match s.nir.portee() {
+            Some(nir) => format!("  NIR {}{}", nir, s.nir_cle.ecrite("nir_cle")?),
+            None => "  NIR : aucun -- cette DPAE vaut demande d'immatriculation (formalite IMMA)".to_string(),
         });
         lignes.push(format!("  Embauche le {} a {}{}", d(&e.debut)?.jj_mm_aaaa(), heure, terme));
         lignes.push(format!("  Emploi : {} - {}{}", s.emploi.ecrite("emploi")?, nat.libelle, ou));
@@ -890,7 +897,7 @@ mod tests {
     }
 
     fn entreprise() -> EntrepriseDuDocument {
-        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "raison_sociale": "Compagnie Fictive des Marionnettes d'Orléans", "adresse": "1, rue Fictive",
+        let fiche = droit::fiche::lire_champs(&json!({"siret": "12345691500016", "nic": "00016", "raison_sociale": "Compagnie Fictive des Marionnettes d'Orléans", "adresse": "1, rue Fictive",
                "code_postal": "45000", "commune": "Orléans", "naf": "9001Z", "medecine_travail": "MT542",
                "declarant_dsn": {"tel": "01 02 03 04 05"}}), "entreprise").unwrap();
         EntrepriseDuDocument { fiche, gabarits: std::env::temp_dir().join("puppetpaie-dpae-sans-gabarits") }

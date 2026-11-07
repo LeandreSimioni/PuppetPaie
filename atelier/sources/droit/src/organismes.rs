@@ -171,14 +171,14 @@ impl Base {
         self.contrats.tous.iter().chain(self.contrats.conventions.values().flatten())
     }
 
-    /// Les contrats de toute compagnie, puis ceux de la convention `idcc`.
-    pub fn contrats_de(&self, idcc: &str) -> impl Iterator<Item = &Contrat> {
-        self.contrats.tous.iter().chain(self.contrats.conventions.get(idcc).into_iter().flatten())
+    /// Les contrats de toute compagnie, puis ceux de la convention `idcc` quand la fiche la dit.
+    pub fn contrats_de(&self, idcc: Option<&str>) -> impl Iterator<Item = &Contrat> {
+        self.contrats.tous.iter().chain(idcc.and_then(|i| self.contrats.conventions.get(i)).into_iter().flatten())
     }
 
     /// Les options que l'organisme demande sous le contrat de reference `libelle` (S21.G00.15.001), pour la convention
-    /// `idcc`.
-    pub fn options(&self, idcc: &str, libelle: &str) -> Option<&Options> {
+    /// `idcc` quand la fiche la dit.
+    pub fn options(&self, idcc: Option<&str>, libelle: &str) -> Option<&Options> {
         self.contrats_de(idcc).filter(|c| c.libelle.as_deref().map(str::trim) == Some(libelle)).find_map(|c| c.options.as_ref())
     }
 
@@ -355,7 +355,7 @@ impl Attendu {
 
 /// Les contrats que cette compagnie declare a la date du contexte, dans l'ordre ou ils se presentent.
 pub fn attendus(ctx: &Contexte) -> Resultat<Vec<Attendu>> {
-    let idcc = ctx.entreprise.idcc.texte().trim().to_string();
+    let idcc = ctx.entreprise.idcc.portee().map(str::trim);
     let base = base()?;
     let mut out: Vec<Attendu> = base.contrats.tous.iter().map(Attendu::from).collect();
     if let Some(casc) = crate::adhesions::casc_svp(&ctx.entreprise)? {
@@ -389,7 +389,7 @@ pub fn attendus(ctx: &Contexte) -> Resultat<Vec<Attendu>> {
             ..Attendu::default()
         });
     }
-    out.extend(base.contrats.conventions.get(&idcc).into_iter().flatten().map(Attendu::from));
+    out.extend(idcc.and_then(|i| base.contrats.conventions.get(i)).into_iter().flatten().map(Attendu::from));
     Ok(out)
 }
 

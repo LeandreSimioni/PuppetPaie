@@ -99,7 +99,7 @@ pub fn casc_svp_base() -> Resultat<Arc<CascSvp>> {
 /// saisit donc rien : `Contexte::organismes` la porte meme quand `config/organismes.json` ne la nomme pas.
 pub fn casc_svp(ent: &crate::fiche::ChampsEntreprise) -> Resultat<Option<Adhesion>> {
     let base = casc_svp_base()?;
-    if ent.idcc.texte().trim() != base.idcc.trim() || crate::bareme::casc_exemptee(ent)? {
+    if ent.idcc.portee().map(str::trim) != Some(base.idcc.trim()) || crate::bareme::casc_exemptee(ent)? {
         return Ok(None);
     }
     let d = &base.dsn;

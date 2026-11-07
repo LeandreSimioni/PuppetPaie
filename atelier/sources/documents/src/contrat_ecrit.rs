@@ -183,12 +183,12 @@ impl Organisme {
 /// livree (`organismes-base.json`), qui porte les adresses et les organismes que la branche designe.
 struct Organismes {
     compagnie: droit::organismes::Organismes,
-    idcc: String,
+    idcc: Option<String>,
 }
 
 impl Organismes {
     fn lire(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise) -> Resultat<Organismes> {
-        Ok(Organismes { compagnie: ctx.organismes()?, idcc: ent.idcc.texte().to_string() })
+        Ok(Organismes { compagnie: ctx.organismes()?, idcc: ent.idcc.en_texte() })
     }
 
     /// L'organisme de ce siret : son nom, et l'adresse que la donnee livree lui donne.
@@ -209,7 +209,7 @@ impl Organismes {
     fn adhesion(&self, cle: &str) -> Option<Organisme> {
         let enregistre = self.compagnie.adhesions_prevoyance.iter().find(|a| a.cle == cle).map(|a| a.delegataire.as_str());
         let designe = || {
-            self.compagnie.base.contrats_de(&self.idcc).filter(|c| c.cle == cle && c.organisme_fixe).find_map(|c| c.organisme.as_deref())
+            self.compagnie.base.contrats_de(self.idcc.as_deref()).filter(|c| c.cle == cle && c.organisme_fixe).find_map(|c| c.organisme.as_deref())
         };
         self.par_siret(enregistre.or_else(designe)?)
     }
@@ -224,14 +224,13 @@ pub fn poser_les_mentions(ctx: &Contexte, ent: &droit::fiche::ChampsEntreprise, 
     let nom = qui(m);
     // LA CATEGORIE D'EMPLOI : le classement conventionnel (S21.G00.40.002), sinon le statut cadre ou non cadre de la
     // retraite complementaire (S21.G00.40.003), sinon le statut du spectacle (artiste, technicien).
-    let lu = |c: &'static str| Some(c.to_string()).filter(|c| !c.is_empty());
     let artiste = sal.statut.dite() == Some(&droit::fiche::Statut::Artiste);
-    let categorie = match lu(sal.statut_conventionnel.code()).map(|c| natures::categorie_d_emploi(&c, artiste)).transpose()?.flatten() {
+    let categorie = match sal.statut_conventionnel.code().map(|c| natures::categorie_d_emploi(c, artiste)).transpose()?.flatten() {
         Some(c) => c,
         None => match sal.statut_categoriel_rc.code() {
-            "01" | "02" => "cadre".to_string(),
-            "04" => "non cadre".to_string(),
-            _ => lu(sal.statut.code()).ok_or_else(|| {
+            Some("01" | "02") => "cadre".to_string(),
+            Some("04") => "non cadre".to_string(),
+            _ => sal.statut.code().map(str::to_string).ok_or_else(|| {
                 format!("La fiche de {} ne dit pas sa catégorie d'emploi, que le contrat écrit porte (R. 1221-34, 3°) : choisir son métier dans la liste, ou saisir son classement conventionnel sur sa fiche. Rien n'est écrit.", nom)
             })?,
         },

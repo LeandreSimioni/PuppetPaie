@@ -1412,7 +1412,7 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
 /// plus grand code salarie que le fichier ait jamais porte, plus un. Le fichier est date : chaque fiche porte la suite
 /// de ses valeurs (`[{"valeur"}, {"depuis", "valeur"}]`), et chacune compte.
 fn matricule_suivant(salaries: &droit::fiche::Salaries) -> i64 {
-    let codes = salaries.fiches.values().flat_map(|s| &s.code_salarie).filter_map(|e| entier(&Value::String(e.valeur.texte().trim().to_string())).ok());
+    let codes = salaries.fiches.values().flat_map(|s| s.code_salarie.iter().flatten()).filter_map(|e| e.valeur.portee().and_then(|v| entier(&Value::String(v.trim().to_string())).ok()));
     codes.into_iter().max().map_or(1, |m| m + 1)
 }
 
@@ -1716,7 +1716,7 @@ pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut
 /// elle se corrige. Une date saisie depuis reste la sienne. Rend vrai si elle a ete remplacee.
 pub(crate) fn reprendre_anciennete(ctx: &Contexte, salarie: &str, pose_le: &str, debut: &str) -> R<bool> {
     let FichierDeFiche::Salaries(contenu) = FichierDeFiche::lire(&ctx.racine, "salarie")? else { return Ok(false) };
-    let Some([seule]) = contenu.fiches.get(salarie).map(|f| f.date_anciennete.as_slice()) else { return Ok(false) };
+    let Some([seule]) = contenu.fiches.get(salarie).and_then(|f| f.date_anciennete.as_deref()) else { return Ok(false) };
     if seule.valeur.dite().map(Jour::iso).as_deref() != Some(pose_le) || debut >= pose_le {
         return Ok(false);
     }
@@ -1965,7 +1965,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
             let autres: Vec<&str> = ctx
                 .salaries
                 .iter()
-                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.nir.texte().trim() == nir)
+                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.nir.portee().is_some_and(|n| n.trim() == nir))
                 .map(|(k, _)| k.as_str())
                 .collect();
             if !autres.is_empty() {
@@ -1987,16 +1987,15 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         if !matricule.is_empty() {
             let porteur = ctx.salaries.iter().find(|(k, s)| {
                 Some(k.as_str()) != cle.as_deref()
-                    && s.code_salarie.texte().trim() == matricule
+                    && s.code_salarie.portee().is_some_and(|m| m.trim() == matricule)
             });
             if let Some((k, s)) = porteur {
-                let prenom = if s.prenom_affichage.texte().is_empty() { s.prenom.texte() } else { s.prenom_affichage.texte() };
-                let qui = format!("{} {}", s.nom.texte(), prenom).trim().to_string();
+                let qui = s.nomme().unwrap_or_else(|| k.to_string());
                 return Err(refus(format!(
                     "Le matricule {} est déjà celui de {} (fiche {}). Un matricule désigne un salarié et un seul : la DSN \
 rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser la case vide pour prendre le suivant.",
                     matricule,
-                    if qui.is_empty() { k.as_str() } else { qui.as_str() },
+                    qui,
                     k
                 )));
             }
@@ -2011,7 +2010,7 @@ rapproche chacun de ses déclarations par lui. En choisir un autre, ou laisser l
         if !numero.is_empty() {
             let porteur = ctx.spectacles.iter().find(|(k, s)| {
                 Some(k.as_str()) != cle.as_deref()
-                    && s.numero_objet.texte().trim().eq_ignore_ascii_case(numero)
+                    && s.numero_objet.portee().is_some_and(|n| n.trim().eq_ignore_ascii_case(numero))
             });
             if let Some((k, s)) = porteur {
                 let qui = match s.titre.remplie().filter(|t| !t.trim().is_empty() && !t.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)) {
@@ -2100,7 +2099,7 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
 pub(crate) fn dater_licences_suivantes(ctx: &Contexte, licences: &[(String, String)], note: &Value) -> R<()> {
     let Some(((_, premiere), suivantes)) = licences.split_first().filter(|(_, s)| !s.is_empty()) else { return Ok(()) };
     let FichierDeFiche::Entreprise(fiche) = FichierDeFiche::lire(&ctx.racine, "entreprise")? else { return Ok(()) };
-    if !matches!(fiche.licence_spectacle.as_slice(), [seule] if seule.depuis.is_none() && seule.valeur.dite() == Some(premiere)) {
+    if !matches!(fiche.licence_spectacle.as_deref(), Some([seule]) if seule.depuis.is_none() && seule.valeur.dite() == Some(premiere)) {
         return Ok(());
     }
     let note = Some(valeur_en_texte(note)).filter(|n| !n.trim().is_empty());
@@ -2190,11 +2189,11 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
     };
     verifier_preuve(ctx, Some(preuve), &socle::paris::maintenant()[..7], "demande de fiche (« Remplir ma fiche »)", &adresse)?;
 
-    let compagnie = ctx.entreprise.nommee();
-    let sg = ctx.entreprise.signataire.dite().cloned().unwrap_or_default();
+    let compagnie = ctx.entreprise.nommee().ok_or_else(|| socle::fichiers::absent("raison_sociale"))?.to_string();
+    let sg = ctx.entreprise.signataire.dite().ok_or_else(|| socle::fichiers::absent("signataire"))?;
     let signataire = match sg.prenom_affichage.remplie() {
         Some(p) => p.to_string(),
-        None => capitaliser(sg.prenom.texte()),
+        None => capitaliser(sg.prenom.portee().ok_or_else(|| socle::fichiers::absent("prenom"))?),
     };
     let expediteur = client.compte().to_lowercase();
     let code = fq::code_fiche();
@@ -2395,7 +2394,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         let existante: Option<String> = ctx
             .salaries
             .iter()
-            .find(|(_, s)| strip(s.email.texte()).to_lowercase() == de)
+            .find(|(_, s)| s.email.portee().is_some_and(|e| strip(e).to_lowercase() == de))
             .map(|(k, _)| k.to_string());
         let donnees: Map<String, Value> = match &existante {
             Some(k) => {

@@ -135,7 +135,7 @@ fn au(frise: &Frise, jour: &Jour) -> Option<Value> {
 pub(crate) fn ecrire(
     ctx: &Contexte, contenu: &mut droit::fiche::FicheEntrepriseDatee, donnees: &Map<String, Value>, liste_ecran: &Value, depuis: Option<Jour>, note: Option<&str>,
 ) -> R<()> {
-    if contenu.etablissements.is_empty() && liste(Some(liste_ecran)).is_empty() {
+    if contenu.etablissements.is_none() && liste(Some(liste_ecran)).is_empty() {
         // Une compagnie qui n'en a jamais eu : rien a dater.
         return Ok(());
     }
@@ -189,7 +189,7 @@ pub(crate) fn ecrire(
 
     // L'histoire telle que la fiche la dit : une frise par etablissement.
     let versions: Vec<(Option<Jour>, Vec<Value>)> =
-        droit::fiche::valeurs_datees(&contenu.etablissements).into_iter().map(|e| (e.depuis, liste(Some(&socle::ecriture::en_valeur(&e.valeur))))).collect();
+        contenu.etablissements.iter().flat_map(|l| droit::fiche::valeurs_datees(l)).map(|e| (e.depuis, liste(Some(&socle::ecriture::en_valeur(&e.valeur))))).collect();
     let ouverts: Vec<Value> = versions.last().map(|(_, l)| l.clone()).unwrap_or_default();
     let mut frises: BTreeMap<String, Frise> = BTreeMap::new();
     for (i, (j, l)) in versions.iter().enumerate() {
@@ -348,7 +348,7 @@ fn poser_annee(ligne: &mut Value, annee: Option<Value>) {
 pub(crate) fn entreprise_montree(ctx: &Contexte) -> Value {
     let mut e = socle::ecriture::en_valeur(&ctx.entreprise);
     if let Some(o) = e.as_object_mut() {
-        if o.contains_key("etablissements") || !ctx.entreprise_brute().etablissements.is_empty() {
+        if o.contains_key("etablissements") || ctx.entreprise_brute().etablissements.is_some() {
             o.insert("etablissements".into(), Value::Array(crate::routes::ouverture::etablissements_dits(ctx)));
         }
     }

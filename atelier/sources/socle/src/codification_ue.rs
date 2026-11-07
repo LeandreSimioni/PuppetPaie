@@ -64,8 +64,8 @@ pub struct Nationalite {
 }
 
 impl Nationalite {
-    pub fn nouvelle(code: &str, pays: &str, hors: &str, qui: Option<String>) -> Nationalite {
-        let dit = |t: &str| Some(t.trim().to_string()).filter(|t| !t.is_empty());
+    pub fn nouvelle(code: Option<&str>, pays: Option<&str>, hors: Option<&str>, qui: Option<String>) -> Nationalite {
+        let dit = |t: Option<&str>| t.map(str::trim).filter(|t| !t.is_empty()).map(str::to_string);
         let qui = match qui {
             Some(nomme) => nomme,
             None => "ce salarié".to_string(),

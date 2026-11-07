@@ -9,7 +9,6 @@
 //! quelles ; elle ne fabrique aucun bulletin : celui de la paie corrigee part avec les documents de son mois.
 
 
-use droit::fiche::Lue as _;
 use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
@@ -118,7 +117,7 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str, departs: &engage
                     format!(
                         "Correction de {} pour {} (contrat {}) : {}. Une regularisation annule ce qui a ete DECLARE : elle le lit dans la version de l'engagement sur laquelle la DSN est partie, elle ne le recalcule pas. La DSN de {} ne se produit pas tant que ce n'est pas regle.",
                         mois,
-                        apres.salarie.nom.texte(),
+                        documents::tableaux_export::qui_souple(&apres.salarie),
                         if numero.is_empty() { "sans numero" } else { numero.as_str() },
                         quoi,
                         mois_courant
@@ -235,13 +234,6 @@ fn ajout(mois: String, version: u64, decidee_le: Option<Jour>, apres: Paie) -> R
     Ok(Reg { mois, version, decidee_le, avant: apres.clone(), declare, net_deja_verse: Decimal::ZERO, apres, taux_pas_origine: None })
 }
 
-fn prenom_de(sal: &droit::fiche::ChampsSalarie) -> String {
-    match sal.prenom_affichage.texte() {
-        "" => sal.prenom.texte().to_string(),
-        p => p.to_string(),
-    }
-}
-
 /// `resume_regularisations` : une ligne lisible par correction embarquee.
 pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
     let mut out = Vec::new();
@@ -251,9 +243,8 @@ pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
             return Err(erreur("KeyError", socle::fichiers::absent("nom")));
         }
         out.push(format!(
-            "{} {}, contrat {} ({}) : brut {} → {}, net {} → {}",
-            s.nom.texte(),
-            prenom_de(s),
+            "{}, contrat {} ({}) : brut {} → {}, net {} → {}",
+            documents::tableaux_export::qui_souple(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
             socle::mois::Mois::en_clair(&r.mois),
             euros(r.declare.brut),

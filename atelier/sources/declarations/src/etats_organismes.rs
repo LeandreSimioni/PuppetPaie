@@ -100,8 +100,9 @@ fn annee_entiere(an: &str) -> R<i32> {
     an.parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(an))))
 }
 
-fn idcc_de(ctx: &Contexte) -> String {
-    ctx.entreprise.idcc.texte().to_string()
+/// L'IDCC de la fiche entreprise, que chacun de ces etats exige.
+fn idcc_de(ctx: &Contexte) -> R<String> {
+    ctx.entreprise.idcc.ecrite("idcc").map(str::to_string).map_err(refus)
 }
 
 // ===================================== 6. les cotisations par organisme
@@ -310,8 +311,8 @@ fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_moi
     let principal = ctx.entreprise.nic_principal();
     for m in p.mois.iter().filter(|m| !importes.contains(m)) {
         let mut une = false;
-        for nic in ctx.entreprise.nics() {
-            let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
+        for nic in ctx.entreprise.nics().map_err(refus)? {
+            let etablissement = if Some(nic.as_str()) == principal { None } else { Some(nic.as_str()) };
             if let Some((f, partie)) = dsn_du_mois(ctx, m, etablissement).map_err(|e| refus(e.message))? {
                 out.push((m.clone(), nic, f, partie));
                 une = true;
@@ -556,11 +557,11 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 /// (`dsn::base_declaree`) ; une annee que le logiciel ne tient pas depuis janvier se dit partielle.
 pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
-    let idcc = idcc_de(ctx);
+    let idcc = idcc_de(ctx)?;
     let Some(fp) = droit::bareme::prevoyance::financement(&idcc).map_err(refus)? else {
         return Err(refus(format!(
             "Le FCAP-SVP est la contribution de la convention 3090 (titre V) ; la fiche entreprise dit IDCC {}. Il n'y a rien à calculer.",
-            if idcc.is_empty() { "rien".to_string() } else { idcc }
+            idcc
         )));
     };
     let p = Periode::nouvelle(ctx, None, d.annee.as_deref(), d.toutes, true)?;
@@ -655,7 +656,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 /// bulletin par bulletin, avec la nature du contrat : un CDDU est un intermittent.
 pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Les contributions Afdas de la 2642 sont annuelles : elles se demandent pour une année, ou pour toutes.", d)?;
-    let idcc = idcc_de(ctx);
+    let idcc = idcc_de(ctx)?;
     let branche = match idcc.as_str() {
         "2642" => "la production audiovisuelle (IDCC 2642)",
         "3097" => "la production cinématographique (IDCC 3097)",
@@ -663,7 +664,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         _ => {
             return Err(refus(format!(
                 "Les contributions Afdas de cet état sont celles de la production audiovisuelle (IDCC 2642), de la production cinématographique (IDCC 3097) et des espaces de loisirs (IDCC 1790) ; la fiche entreprise dit IDCC {}.",
-                if idcc.is_empty() { "rien".to_string() } else { idcc }
+                idcc
             )))
         }
     };
@@ -760,7 +761,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 /// `hors_bulletin.financement_paritarisme`). La masse se lit dans le livre de paie.
 pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le paritarisme de branche est annuel : il se demande pour une année, ou pour toutes.", d)?;
-    let idcc = idcc_de(ctx);
+    let idcc = idcc_de(ctx)?;
     let p = Periode::de(ctx, d, true)?;
     let mut avert: Vec<String> = Vec::new();
     let mut par_an: Vec<(String, Decimal)> = Vec::new();
@@ -780,7 +781,7 @@ pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let Some(f) = f else {
             return Err(refus(format!(
                 "La convention {} n'a pas de paritarisme annuel hors DSN dans le barème {} (`par_convention.{}.hors_bulletin.financement_paritarisme`).",
-                if idcc.is_empty() { "(non renseignée)" } else { &idcc },
+                idcc,
                 an,
                 idcc
             )));

@@ -64,7 +64,12 @@ fn corps_qui_tient(fichier: &str, texte: &str, corps: f32, place: f32) -> f32 {
 }
 
 fn fabriquer(blocs: Vec<Value>) -> Vec<u8> {
-    fabrique_pdf::fabriquer(&description(blocs).to_string()).unwrap_or_else(|e| panic!("{}", e.0))
+    lue(description(blocs)).unwrap_or_else(|e| panic!("{}", e.0))
+}
+
+/// La description en texte, lue par la porte puis fabriquée.
+fn lue(v: Value) -> Result<Vec<u8>, fabrique_pdf::Refus> {
+    fabrique_pdf::Description::lire(&v.to_string()).and_then(|d| fabrique_pdf::fabriquer(&d))
 }
 
 #[test]
@@ -139,8 +144,7 @@ fn largeur_max_ne_change_ni_l_alignement_ni_les_autres_blocs() {
 #[test]
 fn une_largeur_max_nulle_ou_negative_est_refusee() {
     for v in [0.0, -5.0] {
-        let e = fabrique_pdf::fabriquer(&description(vec![texte_fixe("x", 10.0, json!({"largeur_max": v}))]).to_string())
-            .expect_err("refus attendu");
+        let e = lue(description(vec![texte_fixe("x", 10.0, json!({"largeur_max": v}))])).expect_err("refus attendu");
         assert!(e.0.contains("largeur_max") && !e.0.contains('\n'), "{:?}", e.0);
     }
 }

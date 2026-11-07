@@ -205,8 +205,8 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
         droit::emplois::par_intitule(&intitule, crate::import::bulletins::compare)?.map(|(c, _)| c)
     };
     if let Some(c) = du_catalogue {
-        let femme = declarations::ntt::sexe_de(&decl.nir, "") == "2";
-        let l = droit::emplois::resoudre(&c, None, femme, "")?.emploi_affichage;
+        let femme = declarations::ntt::sexe_de(Some(decl.nir.as_str()), None) == Some("2");
+        let l = droit::emplois::resoudre(&c, None, femme, None)?.emploi_affichage;
         if !l.is_empty() {
             f.insert("emploi_affichage".into(), Value::String(l));
         }
@@ -387,14 +387,14 @@ pub(crate) fn apercu_lu(
     if !lecture.entreprise.est_vide() {
         let mut e = fiche_entreprise(&lecture)?;
         garder_le_nom(ctx, &mut e);
-        if ctx.entreprise.siren.texte().trim().is_empty() {
+        if ctx.entreprise.siren.is_none() {
             let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             entreprise = Some(FicheImportee::new("entreprise", None, &libelle, EtatFiche::ACreer, Vec::new(), anomalies, &e));
             a_creer += 1;
         } else {
-            let libelle = ctx.entreprise.raison_sociale.texte().to_string();
+            let libelle = ctx.entreprise.raison_sociale.portee().unwrap_or("?").to_string();
             let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise.fiche(), &lecture.dernier_mois)?;
             let mut f = FicheImportee::new("entreprise", None, &libelle, EtatFiche::Existante, ec, Vec::new(), &vide);
             let champs = crate::import::completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
@@ -476,8 +476,9 @@ pub(crate) fn apercu_lu(
     }
     let mut connus: HashMap<String, droit::contexte::IdSpectacle> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
-        let n = sp.numero_objet.texte().to_uppercase();
-        connus.insert(n, cle.clone());
+        if let Some(n) = sp.numero_objet.portee() {
+            connus.insert(n.to_uppercase(), cle.clone());
+        }
     }
     objets.sort_by(|a, b| a.premier.cmp(&b.premier));
     let seuil = format!("{:04}-{:02}", aujourdhui.an - 1, aujourdhui.mois);

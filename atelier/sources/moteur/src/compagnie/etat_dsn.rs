@@ -87,7 +87,7 @@ impl EtatDsn {
 pub(crate) fn du_mois(ctx: &Contexte, le_mois: Mois, nic: Option<&str>) -> R<EtatDsn> {
     let mois = &le_mois.to_string();
     let lignes = envois::journal::lu(&ctx.racine).map(|j| j.lignes)?;
-    if let Some(e) = etats::etat_dsn_du_mois(&lignes, le_mois, nic, &ctx.entreprise.nic_principal()) {
+    if let Some(e) = etats::etat_dsn_du_mois(&lignes, le_mois, nic, ctx.entreprise.nic.ecrite("nic")?) {
         let quand = etats::quand_lisible(&e.quand);
         let (etat, courte, phrase) = if e.refusee {
             (Etat::Refusee, "refusée".to_string(), format!("DSN déposée le {} — REFUSÉE par la plate-forme", quand))

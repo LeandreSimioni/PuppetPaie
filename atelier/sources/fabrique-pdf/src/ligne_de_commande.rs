@@ -18,7 +18,7 @@
 use std::io::Read;
 use std::process::ExitCode;
 
-use crate::{fabriquer, FORMAT};
+use crate::{fabriquer, Description, FORMAT};
 
 fn echec(message: &str, code: u8) -> ExitCode {
     eprintln!("{}", message.replace('\n', " "));
@@ -81,7 +81,11 @@ pub fn executer(args: &[String]) -> ExitCode {
                 Ok(t) => t,
                 Err(m) => return echec(&m, 1),
             };
-            let octets = match crate::assembler(&texte) {
+            let assemblage = match crate::assemblage::Assemblage::lire(&texte) {
+                Ok(a) => a,
+                Err(r) => return echec(&r.0, 1),
+            };
+            let octets = match crate::assembler(&assemblage) {
                 Ok((o, false)) => o,
                 Ok((o, true)) => match crate::chiffrement::verrouiller(&o) {
                     Ok(o) => o,
@@ -170,15 +174,15 @@ pub fn executer(args: &[String]) -> ExitCode {
         }
         // Remplit des champs texte et pose des images ; la description JSON arrive sur l'entrée.
         [a, entree, sortie] if a == "--remplir" => {
-            let description = match lire_entree() {
-                Ok(t) => t,
-                Err(m) => return echec(&m, 1),
+            let remplissage = match lire_entree().and_then(|t| crate::forme::Remplissage::lire(&t).map_err(|r| r.0)) {
+                Ok(r) => r,
+                Err(m) => return echec(&format!("{} : {}", entree, m), 1),
             };
             let octets = match lire_fichier(entree) {
                 Ok(o) => o,
                 Err(c) => return c,
             };
-            let rempli = match crate::formulaire::remplir(&octets, &description) {
+            let rempli = match crate::formulaire::remplir(&octets, &remplissage) {
                 Ok(o) => o,
                 Err(r) => return echec(&format!("{} : {}", entree, r.0), 1),
             };
@@ -188,16 +192,11 @@ pub fn executer(args: &[String]) -> ExitCode {
             }
         }
         [sortie] if !sortie.starts_with("--") => {
-            let mut entree = Vec::new();
-            if let Err(e) = std::io::stdin().read_to_end(&mut entree) {
-                return echec(&format!("lecture de l'entrée standard impossible : {}", e), 1);
-            }
-            let texte = match String::from_utf8(entree) {
-                Ok(t) => t,
-                Err(_) => return echec("description illisible : l'entrée n'est pas de l'UTF-8", 1),
+            let description = match lire_entree().and_then(|t| Description::lire(&t).map_err(|r| r.0)) {
+                Ok(d) => d,
+                Err(m) => return echec(&m, 1),
             };
-            let texte = texte.strip_prefix('\u{feff}').unwrap_or(&texte);
-            let octets = match fabriquer(texte) {
+            let octets = match fabriquer(&description) {
                 Ok(o) => o,
                 Err(r) => return echec(&r.0, 1),
             };

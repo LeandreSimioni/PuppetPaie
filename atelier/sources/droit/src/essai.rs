@@ -48,7 +48,7 @@ fn jours_de_mois(debut: &Jour, n: u32) -> Resultat<i64> {
 /// classement conventionnel du salarie (S21.G00.40.002), `artiste` dit s'il est artiste du spectacle, `idcc` la
 /// convention de la compagnie. `None` quand le texte ne permet pas de le dire (un CDD sans terme, un CDI d'une
 /// categorie que la loi ne nomme pas, ou sans classement).
-pub fn plafond(nat: &Nature, debut: &Jour, fin: Option<&Jour>, classement: Option<&str>, artiste: bool, idcc: &str) -> Resultat<Option<Plafond>> {
+pub fn plafond(nat: &Nature, debut: &Jour, fin: Option<&Jour>, classement: Option<&str>, artiste: bool, idcc: Option<&str>) -> Resultat<Option<Plafond>> {
     if !nat.duree_indeterminee {
         let Some(fin) = fin else { return Ok(None) };
         let duree = fin.moins(debut) + 1;
@@ -72,7 +72,7 @@ pub fn plafond(nat: &Nature, debut: &Jour, fin: Option<&Jour>, classement: Optio
             ),
         }));
     }
-    if artiste && idcc == "3090" {
+    if artiste && idcc == Some("3090") {
         let jours = jours_de_mois(debut, 2)?;
         return Ok(Some(Plafond {
             jours,

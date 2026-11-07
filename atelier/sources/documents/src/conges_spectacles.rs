@@ -7,7 +7,7 @@
 
 use droit::fiche::Lue as _;
 use rust_decimal::RoundingStrategy;
-use serde_json::{json, Map, Value};
+use fabrique_pdf::forme as pdf;
 
 use crate::bulletin::{identite_de, FORMAT};
 use droit::contexte::EntrepriseDuDocument;
@@ -474,12 +474,11 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &ChampsEntreprise) -> R<Vec<(&'stati
     out.push(("dest_commune", format!("{} {}", texte_requis(&s.code_postal, "code_postal")?, lisible(&s.commune_affichage, commune_defaut))));
     out.push(("dest_pays", "France".to_string()));
     out.push(("siret", siret_espace(&texte_requis(&ent.siret, "siret")?)));
-    out.push(("compte", ent.congesspectacles_adherent.texte().to_string()));
+    out.push(("compte", texte_requis(&ent.congesspectacles_adherent, "congesspectacles_adherent")?));
     out.push(("num_ce", c.numero.to_string()));
-    out.push((
-        "nir",
-        format!("{} {}", s.nir.texte(), s.nir_cle.texte()).trim_matches(socle::texte::blanc).to_string(),
-    ));
+    if let Some(nir) = s.nir.portee() {
+        out.push(("nir", s.nir_cle.portee().map_or_else(|| nir.to_string(), |cle| format!("{} {}", nir, cle))));
+    }
     out.push(("raison_sociale", texte_requis(&ent.raison_sociale, "raison_sociale")?));
     out.push(("nom_naissance", texte_requis(&s.nom, "nom")?));
     // Le nom d'usage : le nom declare, comme le modele du certificat de la caisse le repete quand il n'y en a pas d'autre.
@@ -490,7 +489,9 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &ChampsEntreprise) -> R<Vec<(&'stati
     // DSN Audiens).
     out.push(("cadre", if droit::bareme::est_cadre(s) { "OUI" } else { "NON" }.to_string()));
     out.push(("prenom", texte_requis(&s.prenom, "prenom")?));
-    out.push(("pseudonyme", s.pseudonyme.texte().to_string()));
+    if let Some(p) = s.pseudonyme.portee() {
+        out.push(("pseudonyme", p.to_string()));
+    }
     out.push(("debut", cases_date(&c.debut)));
     out.push(("fin", cases_date(&c.fin)));
     out.push(("nb_cachets", c.nb_jours_ou_cachets.to_string()));
@@ -510,33 +511,38 @@ fn largeur_max(champ: &str, x: f64) -> Option<f64> {
     LIMITES.iter().find(|(c, _)| *c == champ).map(|(_, limite)| limite - RESPIRATION - x)
 }
 
-fn texte_fixe(x: f64, y: f64, texte: &str, police: &str, corps: f64, largeur: Option<f64>) -> Value {
+fn texte_fixe(x: f64, y: f64, texte: &str, police: &str, corps: f64, largeur: Option<f64>) -> pdf::Bloc {
     let (nom, gras) = match police {
-        TIMES => ("times", false),
-        TIMES_GRAS => ("times", true),
-        _ => ("courier", false),
+        TIMES => (pdf::PoliceFixe::Times, false),
+        TIMES_GRAS => (pdf::PoliceFixe::Times, true),
+        _ => (pdf::PoliceFixe::Courier, false),
     };
-    let mut b = Map::new();
-    b.insert("type".into(), json!("texte_fixe"));
-    b.insert("x".into(), json!(x));
-    b.insert("y".into(), json!(y));
-    b.insert("texte".into(), json!(texte));
-    b.insert("police".into(), json!(nom));
-    b.insert("taille".into(), json!(corps));
-    b.insert("couleur".into(), json!(NOIR));
-    if let Some(l) = largeur {
-        b.insert("largeur_max".into(), json!(l));
-    }
-    if gras {
-        b.insert("gras".into(), json!(true));
-    }
-    Value::Object(b)
+    pdf::Bloc::TexteFixe(pdf::TexteFixe {
+        texte: texte.to_string(),
+        x: x as f32,
+        y: y as f32,
+        taille: Some(corps as f32),
+        police: Some(nom),
+        gras: gras.then_some(true),
+        couleur: Some(NOIR.to_string()),
+        alignement: None,
+        largeur_max: largeur.map(|l| l as f32),
+    })
 }
 
-fn blocs_certificat(c: &Certificat, p: &PaieCs, ent: &EntrepriseDuDocument) -> R<Vec<Value>> {
-    let mut blocs: Vec<Value> = TRAITS
+fn blocs_certificat(c: &Certificat, p: &PaieCs, ent: &EntrepriseDuDocument) -> R<Vec<pdf::Bloc>> {
+    let mut blocs: Vec<pdf::Bloc> = TRAITS
         .iter()
-        .map(|(x0, y0, x1, y1, ep)| json!({"type": "trait", "x1": x0, "y1": y0, "x2": x1, "y2": y1, "epaisseur": ep, "couleur": NOIR}))
+        .map(|(x0, y0, x1, y1, ep)| {
+            pdf::Bloc::Trait(pdf::Trait {
+                x1: *x0 as f32,
+                y1: *y0 as f32,
+                x2: *x1 as f32,
+                y2: *y1 as f32,
+                epaisseur: Some(*ep as f32),
+                couleur: Some(NOIR.to_string()),
+            })
+        })
         .collect();
     for (x, y, texte, police, corps) in FOND {
         blocs.push(texte_fixe(*x, *y, texte, police, *corps, None));
@@ -550,8 +556,14 @@ fn blocs_certificat(c: &Certificat, p: &PaieCs, ent: &EntrepriseDuDocument) -> R
     if let Some(signature) = identite_de(&ent.gabarits, "signature") {
         let (x0, y0, x1, y1) = SIGNATURE_CADRE;
         let svg = signature.extension().map_or(false, |e| e.to_string_lossy().eq_ignore_ascii_case("svg"));
-        blocs.push(json!({"type": "image_fixe", "chemin": chemin_texte(&signature), "x": x0, "y": y0,
-                          "largeur": x1 - x0, "hauteur": y1 - y0, "centree": !svg}));
+        blocs.push(pdf::Bloc::ImageFixe(pdf::ImageFixe {
+            chemin: chemin_texte(&signature),
+            x: x0 as f32,
+            y: y0 as f32,
+            largeur: (x1 - x0) as f32,
+            hauteur: (y1 - y0) as f32,
+            centree: Some(!svg),
+        }));
     }
     Ok(blocs)
 }
@@ -562,21 +574,31 @@ pub fn chemin_texte(p: &std::path::Path) -> String {
 }
 
 /// `description` : un document par page, sans marge.
-pub fn description(certs: &[(Certificat, &PaieCs)], ent: &EntrepriseDuDocument) -> R<Value> {
+pub fn description(certs: &[(Certificat, &PaieCs)], ent: &EntrepriseDuDocument) -> R<pdf::Description> {
     let mut documents = Vec::new();
     for (c, p) in certs {
-        documents.push(json!({"blocs": blocs_certificat(c, p, ent)?}));
+        documents.push(pdf::Document::Blocs(blocs_certificat(c, p, ent)?));
     }
-    Ok(json!({
-        "format": FORMAT,
-        "page": {"largeur": 595.22, "hauteur": 842.0, "marges": {"haut": 0, "droite": 0, "bas": 0, "gauche": 0}},
-        "titre": "Certificats d'emploi Conges Spectacles",
-        "documents": documents
-    }))
+    let nulle = Some(0.0);
+    Ok(pdf::Description {
+        format: FORMAT,
+        page: Some(pdf::Page {
+            largeur: Some(595.22),
+            hauteur: Some(842.0),
+            marges: Some(pdf::Marges { haut: nulle, droite: nulle, bas: nulle, gauche: nulle }),
+        }),
+        police: None,
+        style: None,
+        logo: None,
+        titre: Some("Certificats d'emploi Conges Spectacles".to_string()),
+        documents,
+        entete_page: None,
+        pied_page: None,
+    })
 }
 
 /// `ecrire_numerotes` : chaque paie vient avec le N CE qui EST le sien ; la description du PDF.
-pub fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &EntrepriseDuDocument) -> R<Value> {
+pub fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &EntrepriseDuDocument) -> R<pdf::Description> {
     if ent.congesspectacles_adherent.remplie().is_none() {
         return Err(Refus {
             classe: Some("ValueError"),

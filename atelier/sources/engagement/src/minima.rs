@@ -256,9 +256,8 @@ impl<'a> Cx<'a> {
 
     /// L'echelon de la CCNEAC : celui de la fiche (1 a 12), ou le premier.
     fn echelon_ccneac(&self) -> (usize, String) {
-        let v = self.fiche.echelon_ccneac.texte().to_string();
-        let v = v.trim();
-        if let Some(n) = socle::num::entier_de_chiffres(v).filter(|n| (1..=12).contains(n)) {
+        let v = self.fiche.echelon_ccneac.portee().map(str::trim);
+        if let Some((v, n)) = v.and_then(|v| socle::num::entier_de_chiffres(v).filter(|n| (1..=12).contains(n)).map(|n| (v, n))) {
             return (n as usize, format!("échelon {} de la fiche", v));
         }
         (1, "échelon 1, la fiche ne disant pas le sien (`echelon_ccneac`)".into())
@@ -291,9 +290,7 @@ impl<'a> Cx<'a> {
     /// La fonction d'un metier dans la grille de la 2642 ou de la 3097 : celle de
     /// la fiche quand la grille la connait, sinon celle du catalogue.
     fn fonction(&self, idcc: &str, connue: impl Fn(&str) -> bool) -> Option<String> {
-        let propre = self.fiche.classement_conventionnel.texte().to_string();
-        let propre = propre.trim();
-        if !propre.is_empty() && connue(propre) {
+        if let Some(propre) = self.fiche.classement_conventionnel.portee().map(str::trim).filter(|p| !p.is_empty() && connue(p)) {
             return Some(propre.to_string());
         }
         let f = self.m.au_catalogue()?;
@@ -567,11 +564,10 @@ impl<'a> Cx<'a> {
             return Ok(None);
         }
         let idcc = self.idcc;
-        let classement = {
-            let c = self.fiche.classement_conventionnel.texte().to_string();
-            let c = c.trim().to_string();
-            // Le classement de la fiche, sinon celui que le catalogue donne au metier dans cette convention.
-            if c.is_empty() { self.m.au_catalogue().and_then(|f| f.classement.as_ref()).and_then(|c| c.get(idcc)).cloned().into_iter().collect() } else { c }
+        // Le classement de la fiche, sinon celui que le catalogue donne au metier dans cette convention.
+        let classement: Option<String> = match self.fiche.classement_conventionnel.portee().map(str::trim).filter(|c| !c.is_empty()) {
+            Some(c) => Some(c.to_string()),
+            None => self.m.au_catalogue().and_then(|f| f.classement.as_ref()).and_then(|c| c.get(idcc)).cloned(),
         };
         // Une grille a l'unite prime : elle prix la ligne telle qu'elle est payee.
         let unitaires: Vec<&Grille> = grilles.iter().copied().filter(|gr| gr.unite != "cachet" && !a_l_heure(gr)).collect();
@@ -580,7 +576,7 @@ impl<'a> Cx<'a> {
         }
         // Un classement connu d'une grille ne se noie pas dans les autres.
         let connues: Vec<&Grille> =
-            grilles.iter().copied().filter(|gr| !classement.is_empty() && gr.valeurs.iter().any(|(k, _)| *k == classement)).collect();
+            grilles.iter().copied().filter(|gr| classement.as_ref().is_some_and(|c| gr.valeurs.iter().any(|(k, _)| k == c))).collect();
         let cherchees = if connues.is_empty() { grilles } else { connues };
         let mut trouves: Vec<Plancher> = Vec::new();
         for gr in cherchees {
@@ -588,16 +584,16 @@ impl<'a> Cx<'a> {
             if valeurs.is_empty() {
                 continue;
             }
-            let (k, mut dit) = if valeurs.iter().any(|v| v.0 == classement) {
-                (classement.clone(), classement.clone())
-            } else {
-                let k = plus_bas(valeurs.iter().collect(), |v| v.1).unwrap().0.clone();
-                let dit = if classement.is_empty() {
-                    format!("{}, le plus bas de la grille (la fiche ne dit pas le classement, `classement_conventionnel`)", k)
-                } else {
-                    format!("{}, le plus bas de la grille ({} n'y est pas)", k, repr_texte(&classement))
-                };
-                (k, dit)
+            let (k, mut dit) = match classement.as_ref().filter(|c| valeurs.iter().any(|v| v.0 == **c)) {
+                Some(c) => (c.clone(), c.clone()),
+                None => {
+                    let k = plus_bas(valeurs.iter().collect(), |v| v.1).unwrap().0.clone();
+                    let dit = match &classement {
+                        Some(c) => format!("{}, le plus bas de la grille ({} n'y est pas)", k, repr_texte(c)),
+                        None => format!("{}, le plus bas de la grille (la fiche ne dit pas le classement, `classement_conventionnel`)", k),
+                    };
+                    (k, dit)
+                }
             };
             if !majorees.is_empty() {
                 dit += &format!(" ; {}", majorees.join(", "));
@@ -854,13 +850,15 @@ fn a_verifier(t: &Table, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = idcc_du_contrat(ent.idcc.texte(), paie.spectacle.as_ref(), &paie.salarie)?;
+    let Some(idcc_compagnie) = ent.idcc.portee() else { return Ok(None) };
+    let idcc = idcc_du_contrat(idcc_compagnie, paie.spectacle.as_ref(), &paie.salarie)?;
     let tab = table()?;
     let t: &Table = &tab;
     if t.convention(&idcc).is_none() {
         return Ok(None);
     }
-    let Some(m) = emplois::metier(paie.salarie.code_emploi_ft.texte())? else { return Ok(None) };
+    let Some(code) = paie.salarie.code_emploi_ft.portee() else { return Ok(None) };
+    let Some(m) = emplois::metier(code)? else { return Ok(None) };
     let nb_cachets = paie
         .remuneration
         .iter()

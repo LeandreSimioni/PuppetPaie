@@ -32,14 +32,16 @@ fn source(dossier: &Path, nom: &str, textes: &[&str]) -> String {
         "police": {"taille": 10.0, "interligne": 1.25, "couleur": "#000000"},
         "documents": documents
     });
-    let octets = fabrique_pdf::fabriquer(&desc.to_string()).unwrap_or_else(|e| panic!("{}", e.0));
+    let octets = fabrique_pdf::Description::lire(&desc.to_string())
+        .and_then(|d| fabrique_pdf::fabriquer(&d))
+        .unwrap_or_else(|e| panic!("{}", e.0));
     let p = dossier.join(nom);
     std::fs::write(&p, octets).unwrap();
     chemin(&p)
 }
 
 fn assembler(v: &Value) -> Result<Vec<u8>, String> {
-    fabrique_pdf::assembler(&v.to_string()).map(|(o, _)| o).map_err(|r| {
+    fabrique_pdf::assemblage::Assemblage::lire(&v.to_string()).and_then(|a| fabrique_pdf::assembler(&a)).map(|(o, _)| o).map_err(|r| {
         assert!(!r.0.contains('\n'), "le message doit tenir sur une ligne : {:?}", r.0);
         r.0
     })

@@ -903,30 +903,30 @@ fn identifiant_du_compte(ent: &droit::fiche::ChampsEntreprise, service: &str) ->
     match service {
         "net-entreprises" => {
             let d = envois::transport::declarant(ent);
-            let manque: Vec<&str> = [("siret", &d.siret), ("nom", &d.nom), ("prenom", &d.prenom)].into_iter().filter(|(_, v)| v.is_empty()).map(|(c, _)| c).collect();
-            let texte = [d.nom.as_str(), d.prenom.as_str()].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join(" ");
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, d.siret) } else { String::new() };
+            let manque: Vec<&str> = [("siret", &d.siret), ("nom", &d.nom), ("prenom", &d.prenom)].into_iter().filter(|(_, v)| v.is_none()).map(|(c, _)| c).collect();
+            let phrase = match (&d.siret, &d.nom, &d.prenom) {
+                (Some(siret), Some(nom), Some(prenom)) => format!("compte de {} {}, SIRET {}", nom, prenom, siret),
+                _ => String::new(),
+            };
             let dits = d.manquants();
             let incomplet_dit = if manque.is_empty() { String::new() } else { format!("identifiant incomplet ({})", dits.join(", ")) };
             Ok(json!({"texte": phrase, "manque": manque, "ici": false, "incomplet_dit": incomplet_dit, "ou": "fiche Entreprise › Qui les organismes contactent"}))
         }
         "urssaf" => {
             let cfg = ent.api_dpae.dite().cloned().unwrap_or_default();
-            let siret = cfg.siret.remplie().unwrap_or(ent.siret.texte()).to_string();
-            let mut manque: Vec<Value> = Vec::new();
-            for (c, case) in [("nom", &cfg.nom), ("prenom", &cfg.prenom)] {
-                if case.remplie().is_none() {
-                    manque.push(json!(c));
-                }
-            }
-            let texte = [cfg.prenom.remplie(), cfg.nom.remplie()].into_iter().flatten().collect::<Vec<_>>().join(" ");
+            let siret = cfg.siret.remplie().or(ent.siret.portee());
+            let cases = [("nom", "le nom", cfg.nom.remplie()), ("prenom", "le prénom", cfg.prenom.remplie()), ("siret", "le SIRET", siret)];
+            let manque: Vec<&str> = cases.iter().filter(|(_, _, v)| v.is_none()).map(|(c, _, _)| *c).collect();
             // Ce qui manque, dit : le compte de la DPAE ne part pas sans lui.
-            let noms_manquants: Vec<&str> = manque.iter().map(|m| match m.as_str().unwrap_or("") { "nom" => "le nom", "prenom" => "le prénom", "siret" => "le SIRET", autre => autre }).collect();
+            let noms_manquants: Vec<&str> = cases.iter().filter(|(_, _, v)| v.is_none()).map(|(_, dit, _)| *dit).collect();
             let manque_dit = if manque.is_empty() { String::new() } else { format!("le compte Urssaf n'est pas dit ({}) : la DPAE ne partira pas", noms_manquants.join(", ")) };
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, siret) } else { String::new() };
+            let phrase = match (cfg.prenom.remplie(), cfg.nom.remplie(), siret) {
+                (Some(prenom), Some(nom), Some(siret)) => format!("compte de {} {}, SIRET {}", prenom, nom, siret),
+                _ => String::new(),
+            };
             Ok(json!({
                 "texte": phrase, "manque": manque, "ici": true, "manque_dit": manque_dit,
-                "nom": cfg.nom.texte(), "prenom": cfg.prenom.texte(),
+                "nom": cfg.nom.portee(), "prenom": cfg.prenom.portee(),
             }))
         }
         _ => Ok(json!({"texte": "", "manque": [], "ici": false})),

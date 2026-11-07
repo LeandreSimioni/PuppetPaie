@@ -8,7 +8,7 @@
 
 use socle::texte::sans_accent;
 use crate::forme_bareme::{
-    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Part, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp, TauxAtmpEcrit, ValeurAtmp,
+    CotisationDsn, CotisationModifiee, CotisationSupplementaire, Part, Pile, ReductionGenerale, Rubrique, RubriqueModifiee, TauxAtmp, TauxAtmpEcrit, TauxDate, ValeurAtmp,
     VersementMobiliteEcrit,
 };
 use crate::natures::Nature;
@@ -110,7 +110,7 @@ pub(crate) fn modifier(r: &mut Rubrique, m: &RubriqueModifiee) {
     }
     si!(famille, libelle, base, cet_si_depasse, rempli_par, a_confirmer, source, note);
     if let Some(t) = m.taux_pat {
-        r.taux_pat = Some(t.0);
+        r.taux_pat = Some(t);
     }
     if let Some(t) = m.taux_sal {
         r.taux_sal = Some(t);
@@ -397,14 +397,14 @@ section par_nature['{}'].cpf_cdd qui dise son taux et sa cotisation. Rien n'est 
         .find(|r| r.id == sec.rubrique)
         .ok_or_else(|| incomplet(&format!("par_nature.{}.cpf_cdd.rubrique", nom), &sec.rubrique))?;
     if r.composants.as_deref().is_none_or(<[f64]>::is_empty) {
-        let premier = r.taux_pat.ok_or_else(|| incomplet(&format!("rubriques_bulletin[{}].taux_pat", sec.rubrique), ""))?;
+        let premier = r.taux_pat.ok_or_else(|| incomplet(&format!("rubriques_bulletin[{}].taux_pat", sec.rubrique), ""))?.0;
         r.composants = Some(vec![premier]);
     }
     let composants = r.composants.get_or_insert_with(Vec::new);
     composants.push(sec.taux);
     let total: f64 = composants.iter().sum();
     // La somme affichee, au millieme comme les composants du bareme (0,30 + 0,016 + 0,55 + 1,0 = 1,866).
-    r.taux_pat = Some((total * 1000.0).round() / 1000.0);
+    r.taux_pat = Some(TauxDate((total * 1000.0).round() / 1000.0));
     bar.cotisations_dsn.push(sec.cotisation_dsn);
     Ok(bar)
 }
@@ -423,8 +423,8 @@ pub fn bareme_majoration_chomage(mut bar: Pile, due: bool) -> Resultat<Pile> {
     let r = bar.rubriques_bulletin.iter_mut().find(|r| r.id == sec.rubrique).ok_or_else(|| {
         socle::echec::a_la_cle("Le barème de l'année est incomplet : le signaler au développeur.", "majoration_chomage_cddu.rubrique", &sec.rubrique)
     })?;
-    let avant = dec_f64(r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?)?;
-    r.taux_pat = Some(flt(sub(avant, taux)));
+    let avant = dec_f64(r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?.0)?;
+    r.taux_pat = Some(TauxDate(flt(sub(avant, taux))));
     bar.cotisations_dsn.retain(|c| code81(c) != Some(sec.code81.as_str()));
     Ok(bar)
 }
@@ -535,18 +535,16 @@ pub fn est_cadre(sal: &ChampsSalarie) -> bool {
 /// Le salarie travaille-t-il dans le Bas-Rhin, le Haut-Rhin ou la Moselle ?
 /// Le code postal de SON etablissement, sinon celui de l'entreprise.
 pub fn alsace_moselle(ent: &ChampsEntreprise, sal: &SalarieDuContrat) -> bool {
-    let mut cp = ent.code_postal.texte().trim();
+    let mut cp = ent.code_postal.portee();
     let nic = sal.etablissement.as_deref().map(str::trim).filter(|n| !n.is_empty());
     for e in ent.etablissements.dite().into_iter().flatten() {
-        if nic == Some(e.nic.texte().trim()) {
-            let c = e.code_postal.texte().trim();
-            if !c.is_empty() {
-                cp = c;
+        if nic.is_some() && nic == e.nic.portee().map(str::trim) {
+            if let Some(c) = e.code_postal.remplie() {
+                cp = Some(c);
             }
         }
     }
-    let debut: String = cp.chars().take(2).collect();
-    matches!(debut.as_str(), "57" | "67" | "68")
+    en_alsace_moselle(cp)
 }
 
 /// La ligne mutuelle retiree du bulletin.
@@ -561,7 +559,7 @@ fn poser_mutuelle(mut bar: Pile, base: Option<&str>, total: Decimal, pat: Decima
         if let Some(b) = base {
             r.base = Some(b.to_string());
         }
-        r.taux_pat = Some(flt(rond(mul(total, pat), 4)));
+        r.taux_pat = Some(TauxDate(flt(rond(mul(total, pat), 4))));
         r.taux_sal = Some(flt(rond(sub(total, mul(total, pat)), 4)));
         if let Some(l) = libelle {
             r.libelle = Some(l.to_string());
@@ -588,7 +586,7 @@ pub const SANTE_SUSPENSION_MAINTENUE: &str = "maintenue";
 /// paie sans mutuelle (`bareme_sante`), et la DSN ne rattache pas le salarie a l'adhesion sante ce mois-la
 /// (`dsn::affiliations_du_permanent`), comme pour une dispense.
 pub fn sans_sante(sal: &SalarieDuContrat) -> bool {
-    !sal.sante_dispense.texte().is_empty() || sal.sante_suspendue.as_deref().is_some_and(|s| !s.is_empty())
+    sal.sante_dispense.remplie().is_some() || sal.sante_suspendue.as_deref().is_some_and(|s| !s.is_empty())
 }
 
 /// La cotisation globale minimale des frais de sante d'un permanent (% du
@@ -633,14 +631,16 @@ n'est calcule.",
 /// (`sante_conventionnelle`) ou le contrat de la compagnie. `None` : la 3090, dont le niveau se lit sur le bulletin
 /// d'adhesion du salarie (`sante_svp`), ou une compagnie qui n'a pas dit sa convention.
 pub fn sante_hors_fiche(ent: &ChampsEntreprise) -> Resultat<Option<String>> {
-    let idcc = ent.idcc.texte();
+    let Some(idcc) = ent.idcc.portee() else {
+        return Ok(None);
+    };
     if prevoyance::a_un_regime_de_sante(ent)? {
         return Ok(Some(format!(
             "Sa complémentaire santé est le régime de la convention {} : le taux est celui de la branche, et la part de l'employeur se dit dans Configuration › Entreprise, « Santé des permanents ». Une dispense se dit ci-dessous.",
             idcc
         )));
     }
-    if idcc.is_empty() || idcc == "3090" {
+    if idcc == "3090" {
         return Ok(None);
     }
     Ok(Some(format!(
@@ -652,7 +652,8 @@ pub fn sante_hors_fiche(ent: &ChampsEntreprise) -> Resultat<Option<String>> {
 /// Le nombre entier d'un montant de la fiche (le nombre d'enfants).
 fn entier_de(m: &crate::fiche::Montant) -> Resultat<i64> {
     use rust_decimal::prelude::ToPrimitive;
-    m.decimal().trunc().to_i64().ok_or_else(|| socle::num::illisible(&m.decimal().to_string()))
+    let d = m.decimal()?;
+    d.trunc().to_i64().ok_or_else(|| socle::num::illisible(&d.to_string()))
 }
 
 /// La complementaire sante d'un permanent, selon SON contrat a lui.
@@ -667,8 +668,7 @@ pub fn bareme_sante(bar: Pile, ent: &ChampsEntreprise, sal: &SalarieDuContrat, n
         }
         None => {}
     }
-    let idcc = ent.idcc.texte();
-    if !idcc.is_empty() && idcc != "3090" {
+    if let Some(idcc) = ent.idcc.portee().filter(|i| *i != "3090") {
         // Une convention sans regime de sante a elle : le contrat de l'entreprise.
         let choix = ent.sante_permanents.dite();
         let Some(taux_contrat) = choix.and_then(|c| c.taux_contrat.dite()) else {
@@ -684,7 +684,7 @@ permanents » : le taux du contrat (en % du plafond mensuel, pour le salarié se
         if sans_sante(sal) {
             return Ok(sans_mutuelle(bar));
         }
-        let total = taux_contrat.decimal();
+        let total = taux_contrat.decimal()?;
         let pp = choix.and_then(|c| c.part_patronale.dite());
         let minimum = bar.sante_obligatoire.as_ref().ok_or_else(|| socle::fichiers::absent("sante_obligatoire"))?.part_employeur_minimum;
         let Some(pp) = pp else {
@@ -694,7 +694,7 @@ code de la Securite sociale) ; elle est sur le contrat de complémentaire santé
                 minimum
             ));
         };
-        let part = pp.decimal();
+        let part = pp.decimal()?;
         if part < minimum || part > Decimal::ONE_HUNDRED {
             return Err(format!(
                 "Fiche Entreprise, « Santé des permanents », part employeur {} % : \
@@ -726,7 +726,7 @@ la Securite sociale), et pas plus de 100.",
     };
     let choix = sal.sante_svp.dite();
     let Some((choix, niveau, taux)) = choix.and_then(|c| {
-        let niveau = c.niveau.texte().to_string();
+        let niveau = c.niveau.portee()?.to_string();
         releve.niveaux.get(&niveau).map(|t| (c, niveau, t))
     }) else {
         return Err(format!(
@@ -779,7 +779,7 @@ fn composant_79(mut bar: Pile, id: &str, type_79: Option<&str>) -> Pile {
 /// (`surcharger`) passent par ici.
 pub fn taux_atmp_resolu(mut bar: Pile, ent: &ChampsEntreprise) -> (Pile, Option<Decimal>) {
     let Some(t) = &bar.taux_atmp else { return (bar, None) };
-    let alsace = t.alsace_moselle == Some(true) || (bar.etablissement.is_none() && en_alsace_moselle(ent.code_postal.texte()));
+    let alsace = t.alsace_moselle == Some(true) || (bar.etablissement.is_none() && en_alsace_moselle(ent.code_postal.portee()));
     let applique = taux_atmp_applique(&risques_de(&bar), t, alsace);
     if let (Some(x), Some(t)) = (applique, bar.taux_atmp.as_mut()) {
         if t.valeur.is_none() {
@@ -818,7 +818,7 @@ pub fn bareme_atmp(bar: Pile, ent: &ChampsEntreprise) -> Resultat<Pile> {
     };
     for r in &mut bar.rubriques_bulletin {
         if let Some(f) = r.facteur_atmp {
-            r.taux_pat = Some(flt(rond(mul(taux, dec_f64(f)?), 3)));
+            r.taux_pat = Some(TauxDate(flt(rond(mul(taux, dec_f64(f)?), 3))));
         }
     }
     Ok(bar)
@@ -840,7 +840,7 @@ pub fn bareme_prevoyance(mut bar: Pile, ent: &ChampsEntreprise, sal: &SalarieDuC
         // La tranche 2 se range dans la famille de la ligne de la prevoyance.
         let famille = dit(&r.famille).map(str::to_string);
         let mut rr = r;
-        rr.taux_pat = Some(cot.t1.taux_pat);
+        rr.taux_pat = Some(TauxDate(cot.t1.taux_pat));
         rr.taux_sal = Some(cot.t1.taux_sal);
         if cot.t1.base.is_some() {
             rr.base = cot.t1.base.clone();
@@ -853,7 +853,7 @@ pub fn bareme_prevoyance(mut bar: Pile, ent: &ChampsEntreprise, sal: &SalarieDuC
                 famille: famille.clone(),
                 libelle: Some(if t2.obligatoire { "Prévoyance Tranche 2" } else { "Prévoyance Tranche 2 (extension conventionnelle)" }.into()),
                 base: Some(t2.base.clone().ok_or_else(|| socle::fichiers::absent("t2_base"))?),
-                taux_pat: Some(t2.taux_pat),
+                taux_pat: Some(TauxDate(t2.taux_pat)),
                 taux_sal: Some(t2.taux_sal),
                 ..Rubrique::default()
             });
@@ -884,7 +884,7 @@ pub fn casc_exemptee(ent: &ChampsEntreprise) -> Resultat<bool> {
         return Ok(false);
     }
     let rep = ent.representation_personnel.code();
-    if rep != "cse" && rep != "cse_adherent_fnas" {
+    if !matches!(rep, Some("cse" | "cse_adherent_fnas")) {
         return Err(socle::echec::avec(
             "La fiche entreprise dit la compagnie exemptée de la CASC-SVP, et l'exemption demande un comité social et économique : le déclarer, ou décocher l'exemption.",
             APart {
@@ -895,7 +895,10 @@ l'exemption de la CASC-SVP ne vaut que pour une entreprise d'au \
 moins 50 salaries dotee d'un CSE (CCN 3090, art. 4.22 B), et \
 `representation_personnel` dit '{}'. Declarer le CSE (<< cse >>) \
 ou decocher l'exemption. Rien n'est calcule.",
-                    if rep.is_empty() { "rien" } else { rep }
+                    match rep {
+                        Some(r) => r,
+                        None => "rien",
+                    }
                 )),
                 ..APart::default()
             },
@@ -906,7 +909,7 @@ ou decocher l'exemption. Rien n'est calcule.",
 
 /// Retire la CASC-SVP (rubrique `ccn` de la 3090) d'une entreprise exemptee.
 pub fn bareme_casc(mut bar: Pile, ent: &ChampsEntreprise) -> Resultat<Pile> {
-    if ent.idcc.texte() != "3090" || !casc_exemptee(ent)? {
+    if ent.idcc.portee() != Some("3090") || !casc_exemptee(ent)? {
         return Ok(bar);
     }
     bar.rubriques_bulletin.retain(|r| r.id != "ccn");
@@ -916,8 +919,7 @@ pub fn bareme_casc(mut bar: Pile, ent: &ChampsEntreprise) -> Resultat<Pile> {
 /// La representation du personnel (CCNEAC), lue sur la fiche entreprise et
 /// confrontee a l'effectif : elle decide du FNAS (article III.3.1).
 pub fn representation_du_personnel(ent: &EntrepriseLue) -> Resultat<String> {
-    let v = ent.fiche.representation_personnel.code();
-    if !v.is_empty() {
+    if let Some(v) = ent.fiche.representation_personnel.code() {
         return Ok(v.to_string());
     }
     match ent.effectif {
@@ -1108,7 +1110,7 @@ pub fn bareme_convention(mut bar: Pile, ent: &EntrepriseLue, nat: Option<&Nature
                 r.base = base;
             }
             if taux_pat.is_some() || efface_pat {
-                r.taux_pat = taux_pat;
+                r.taux_pat = taux_pat.map(TauxDate);
             }
             if c.taux_sal.is_some() || efface(Part::TauxSal) {
                 r.taux_sal = c.taux_sal;
@@ -1124,7 +1126,7 @@ pub fn bareme_convention(mut bar: Pile, ent: &EntrepriseLue, nat: Option<&Nature
             famille: c.famille.clone(),
             libelle: c.libelle.clone(),
             base,
-            taux_pat,
+            taux_pat: taux_pat.map(TauxDate),
             taux_sal: c.taux_sal,
             masquer_base_et_taux: c.masquer_base_et_taux,
             source: c.source.clone(),
@@ -1194,7 +1196,7 @@ pub struct EntrepriseLue {
 
 /// Le NIC de l'etablissement du salarie, de la fiche entreprise.
 pub fn etablissement_de(fiche: &ChampsEntreprise, sal: &SalarieDuContrat) -> Resultat<String> {
-    rattachement(&fiche.nics(), sal)
+    rattachement(&fiche.nics()?, sal)
 }
 
 /// `nics` : le siege, puis les autres etablissements.
@@ -1218,22 +1220,23 @@ fiche entreprise ne porte pas a cette date (Configuration › Entreprise › Ava
 
 /// Le nom du salarie, ou `defaut` s'il n'en a pas.
 fn nom_ou(sal: &ChampsSalarie, defaut: &str) -> String {
-    match sal.nom.texte() {
-        "" => defaut.to_string(),
-        n => n.to_string(),
+    match sal.nom.remplie() {
+        Some(n) => n.to_string(),
+        None => defaut.to_string(),
     }
 }
 
 /// L'entreprise vue depuis l'etablissement `nic`.
 /// Un autre etablissement que le siege : son NIC, son SIRET (celui du SIREN et de ce NIC), et son adresse quand il la dit.
 pub fn fiche_de_l_etablissement(fiche: &ChampsEntreprise, nic: &str) -> Resultat<ChampsEntreprise> {
-    if nic.is_empty() || nic == fiche.nic_principal() {
+    if nic.is_empty() || Some(nic) == fiche.nic_principal() {
         return Ok(fiche.clone());
     }
     let e = fiche.etablissement(nic).ok_or_else(|| format!("Etablissement inconnu : {}.", nic))?;
     let mut vue = fiche.clone();
-    vue.nic = Some(e.nic.ecrite("nic")?.to_string());
-    vue.siret = Some(format!("{}{}", fiche.siren.texte(), e.nic.texte()));
+    let nic_e = e.nic.ecrite("nic")?;
+    vue.nic = Some(nic_e.to_string());
+    vue.siret = Some(format!("{}{}", fiche.siren.ecrite("siren")?, nic_e));
     // L'adresse de l'etablissement vient avec son complement, vide ou non : celui du siege n'est pas le sien.
     if e.adresse.remplie().is_some() {
         vue.adresse = e.adresse.clone();
@@ -1275,7 +1278,7 @@ pub fn entreprise_du_salarie(ent: &ChampsEntreprise, salarie: &SalarieDuContrat)
 /// Le taux AT/MP et le versement mobilite de
 /// l'etablissement remplacent ceux du siege.
 pub fn surcharger(mut bar: Pile, fiche: &ChampsEntreprise, nic: &str) -> Resultat<Pile> {
-    let e = if !nic.is_empty() && nic != fiche.nic_principal() { fiche.etablissement(nic) } else { None };
+    let e = if !nic.is_empty() && Some(nic) != fiche.nic_principal() { fiche.etablissement(nic) } else { None };
     let e = match e {
         Some(e) => e,
         None => return Ok(bar),
@@ -1285,8 +1288,8 @@ pub fn surcharger(mut bar: Pile, fiche: &ChampsEntreprise, nic: &str) -> Resulta
     if e.taux_atmp.is_none() {
         return Err(socle::fichiers::absent("taux_atmp"));
     }
-    let mut atmp = taux_atmp_d_un_etablissement(e, bar.annee);
-    let alsace = en_alsace_moselle(e.code_postal.texte());
+    let mut atmp = taux_atmp_d_un_etablissement(e, bar.annee)?;
+    let alsace = en_alsace_moselle(e.code_postal.portee());
     if let Some(t) = atmp.as_mut() {
         if alsace {
             t.alsace_moselle = Some(true);
@@ -1296,7 +1299,7 @@ pub fn surcharger(mut bar: Pile, fiche: &ChampsEntreprise, nic: &str) -> Resulta
         if t.valeur.is_none() && taux_atmp_applique(&risques_de(&bar), t, alsace).is_none() {
             let nom = match e.libelle.remplie().filter(|l| !l.trim().is_empty()) {
                 Some(libelle) => libelle,
-                None => e.nic.texte(),
+                None => e.nic.ecrite("nic")?,
             };
             let risque = match t.code_risque.as_deref() {
                 Some(code) => code.trim(),
@@ -1314,12 +1317,13 @@ Configuration › Entreprise › Avancé, « Autres établissements », à parti
     // « aucun », ou un taux de zero : la commune de l'etablissement n'en a pas, ou il y emploie moins de onze salaries
     // (CGCT, L. 2333-64, I, l'effectif « employe dans chacune des zones »).
     let vm = e.versement_mobilite.dite();
-    let aucun = vm.is_some_and(|v| v.taux.dite().is_some_and(|t| t.decimal().is_zero()));
+    let taux_vm = vm.and_then(|v| v.taux.dite()).map(crate::fiche::Montant::decimal).transpose()?;
+    let aucun = taux_vm.is_some_and(|t| t.is_zero());
     if aucun || (e.versement_mobilite.is_none() && bar.versement_mobilite.as_ref().is_none_or(VersementMobiliteEcrit::est_vide)) {
         bar.versement_mobilite = None;
     } else if let Some(v) = vm {
         bar.versement_mobilite = Some(VersementMobiliteEcrit::Ecrit(crate::forme_bareme::VersementMobiliteTaux {
-            taux: v.taux.dite().map(|t| socle::forme::Nombre(t.decimal())),
+            taux: taux_vm.map(socle::forme::Nombre),
             code_insee: v.code_insee.dite().cloned(),
             ..Default::default()
         }));
@@ -1391,7 +1395,7 @@ pub fn bareme_vm(mut bar: Pile, sal: &SalarieDuContrat) -> Resultat<Pile> {
         famille: Some("AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR".into()),
         libelle: Some("Versement mobilité".into()),
         base: Some("brut_x115".into()),
-        taux_pat: Some(taux),
+        taux_pat: Some(TauxDate(taux)),
         taux_sal: None,
         ..Rubrique::default()
     });
@@ -1508,8 +1512,8 @@ pub fn repartition_t1(bar: &Pile, ent: &ChampsEntreprise, population: &str) -> R
     let texte_rep: String = match avant_1999 {
         Some(a) if embauche_avant_1999 => a.to_string(),
         _ => {
-            let idcc = ent.idcc.texte().to_string();
-            let branche = rep.and_then(|r| r.par_idcc.get(&idcc));
+            let idcc = ent.idcc.portee();
+            let branche = idcc.and_then(|i| rep.and_then(|r| r.par_idcc.get(i)));
             let t = branche.and_then(|b| match population {
                 "permanent" => b.permanent.clone(),
                 "technicien" => b.technicien.clone(),
@@ -1528,7 +1532,10 @@ se lit dans le tableau n 3 de la fiche Audiens << Taux et \
 repartitions >>, puis s'ecrit dans `retraite_t1_repartition` \
 du socle.",
                             annee(bar),
-                            if idcc.is_empty() { "(aucune)" } else { &idcc },
+                            match idcc {
+                                Some(i) => i,
+                                None => "(aucune)",
+                            },
                             population
                         ),
                     ))
@@ -1573,7 +1580,7 @@ fn poser_t1(mut bar: Pile, retraite_pat: Decimal, retraite_sal: Decimal) -> Resu
     let sal = retraite_sal + ceg_sal;
     let mut base = None;
     for r in bar.rubriques_bulletin.iter_mut().filter(|r| r.id == "retraite_t1") {
-        r.taux_pat = Some(flt(pat));
+        r.taux_pat = Some(TauxDate(flt(pat)));
         r.taux_sal = Some(flt(sal));
         if r.composants_pat.as_deref().is_some_and(|l| !l.is_empty()) {
             r.composants_pat = Some(vec![flt(retraite_pat), flt(ceg_pat)]);
@@ -1602,14 +1609,14 @@ pub fn bareme_retraite_t1(bar: Pile, ent: &ChampsEntreprise, sal: &SalarieDuCont
             Some(l) if l.base.as_deref().is_some_and(|b| b.starts_with("t1_mensuelle")) => {}
             _ => return Ok(bar),
         }
-        if ent.idcc.texte().is_empty() && !ent.premiere_embauche.est_dite() {
+        if !ent.idcc.est_dite() && !ent.premiere_embauche.est_dite() {
             return Ok(bar);
         }
         let (_, part_sal) = repartition_t1(&bar, ent, "permanent")?;
         let (p, s) = parts_t1(dec_f64(rep.taux_droit_commun)?, part_sal);
         return poser_t1(bar, p, s);
     }
-    let couche = match couche_organisation(&bar, ent.organisation_patronale.texte()) {
+    let couche = match ent.organisation_patronale.portee().and_then(|n| couche_organisation(&bar, n)) {
         Some(c) if c.applicable => c.clone(),
         _ => return Ok(bar),
     };
@@ -1917,27 +1924,29 @@ const DERNIERE_ANNEE_D242_6_17_DE_2012: i32 = 2026;
 ///
 /// Le taux s'ecrit dans la pile (`forme_bareme::Pile::taux_atmp`) ; `None` quand la fiche ne dit pas le taux de
 /// l'etablissement.
-pub fn taux_atmp_d_un_etablissement(e: &Etablissement, an: i32) -> Option<TauxAtmp> {
-    let dit = e.taux_atmp.dite()?;
+pub fn taux_atmp_d_un_etablissement(e: &Etablissement, an: i32) -> Resultat<Option<TauxAtmp>> {
+    let Some(dit) = e.taux_atmp.dite() else {
+        return Ok(None);
+    };
     let ouvert: Option<i32> = e.ouverture.dite().map(|j| j.an);
     let d_une_autre_annee = dit.annee.dite().is_some_and(|a| *a != 0 && *a != i64::from(an));
     let mut t = TauxAtmp {
         code_risque: dit.code_risque.clone(),
-        valeur: if d_une_autre_annee { None } else { dit.valeur.dite().map(|m| m.decimal()) },
+        valeur: if d_une_autre_annee { None } else { dit.valeur.dite().map(crate::fiche::Montant::decimal).transpose()? },
         ..TauxAtmp::default()
     };
     let neuf = ouvert.is_some_and(|y| an <= DERNIERE_ANNEE_D242_6_17_DE_2012 && y <= an && an <= y + 2);
     if neuf && t.valeur.is_none() {
         t.etablissement_neuf = Some(true);
     }
-    Some(t)
+    Ok(Some(t))
 }
 
 /// L'etablissement est-il dans le Haut-Rhin, le Bas-Rhin ou la Moselle (art. 4 de l'arrete) ? Lu dans les deux premiers
 /// chiffres de son code postal (68, 67, 57) : une inference, le code postal suivant le numero du departement dans ces trois
 /// departements.
-pub fn en_alsace_moselle(code_postal: &str) -> bool {
-    matches!(code_postal.trim().get(..2), Some("57" | "67" | "68"))
+pub fn en_alsace_moselle(code_postal: Option<&str>) -> bool {
+    matches!(code_postal.and_then(|c| c.trim().get(..2)), Some("57" | "67" | "68"))
 }
 
 #[cfg(test)]

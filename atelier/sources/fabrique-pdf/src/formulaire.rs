@@ -28,9 +28,10 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io::Write;
 
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
-use serde_json::{json, Map, Value};
+use serde::Serialize;
 
 use crate::description::Refus;
+use crate::forme::{AjoutDeChamps, Alignement, Remplissage};
 use crate::marquage::{cadre, flux_existants, q_ouverts};
 use crate::texte::{dico, herite, nombres};
 
@@ -303,37 +304,73 @@ fn type_de(ft: &Option<Vec<u8>>) -> &'static str {
     }
 }
 
-fn valeur_json(doc: &Document, v: &Option<Object>) -> Value {
-    match v.as_ref().map(|o| suivre(doc, o)) {
-        None | Some(Object::Null) => Value::Null,
-        Some(Object::String(s, _)) => Value::String(chaine_pdf(s)),
-        Some(Object::Name(n)) => Value::String(String::from_utf8_lossy(n).into_owned()),
-        Some(Object::Integer(i)) => json!(i),
-        Some(Object::Real(r)) => json!(r),
-        Some(Object::Boolean(b)) => json!(b),
-        Some(Object::Array(a)) => Value::Array(a.iter().map(|x| valeur_json(doc, &Some(x.clone()))).collect()),
-        Some(_) => Value::Null,
+/// La valeur d'un champ (`/V`), telle que le PDF la porte.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum ValeurLue {
+    /// Pas de `/V` (ou un objet qu'on ne lit pas).
+    Rien,
+    Texte(String),
+    Entier(i64),
+    Reel(f32),
+    Booleen(bool),
+    Liste(Vec<ValeurLue>),
+}
+
+impl ValeurLue {
+    /// Le texte du champ, s'il en porte un.
+    pub fn texte(&self) -> Option<&str> {
+        match self {
+            ValeurLue::Texte(t) => Some(t),
+            _ => None,
+        }
     }
 }
 
-/// `--champs` : `{"NOM": {"valeur", "type", "page", "rect", "lecture_seule"}}`, les noms complets
-/// (`parent.enfant`) en clés. Un PDF sans formulaire rend `{}`. (Un objet `serde_json` range ses
-/// clés par ordre alphabétique : `champs_json` écrit, lui, l'ordre de `/AcroForm /Fields`.)
-pub fn champs(octets: &[u8]) -> Result<Value, Refus> {
-    Ok(Value::Object(champs_ordonnes(octets)?.into_iter().collect()))
+/// Un champ du formulaire, tel que `--champs` le rend.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ChampLu {
+    /// Le nom complet (`parent.enfant`) : la clé de l'objet que rend `--champs`.
+    #[serde(skip)]
+    pub nom: String,
+    pub valeur: ValeurLue,
+    /// texte, bouton, choix, signature ou inconnu.
+    #[serde(rename = "type")]
+    pub genre: &'static str,
+    pub lecture_seule: bool,
+    /// La page de son premier widget (à partir de 1) ; aucune si aucune page ne le porte.
+    pub page: Option<usize>,
+    /// [x0, y0, x1, y1], origine en haut à gauche de la page visible.
+    pub rect: Option<[f64; 4]>,
 }
 
-/// La sortie de `--champs` : une ligne de JSON, les champs **dans l'ordre de `/AcroForm /Fields`**.
+fn valeur_lue(doc: &Document, v: &Option<Object>) -> ValeurLue {
+    match v.as_ref().map(|o| suivre(doc, o)) {
+        None | Some(Object::Null) => ValeurLue::Rien,
+        Some(Object::String(s, _)) => ValeurLue::Texte(chaine_pdf(s)),
+        Some(Object::Name(n)) => ValeurLue::Texte(String::from_utf8_lossy(n).into_owned()),
+        Some(Object::Integer(i)) => ValeurLue::Entier(*i),
+        Some(Object::Real(r)) => ValeurLue::Reel(*r),
+        Some(Object::Boolean(b)) => ValeurLue::Booleen(*b),
+        Some(Object::Array(a)) => ValeurLue::Liste(a.iter().map(|x| valeur_lue(doc, &Some(x.clone()))).collect()),
+        Some(_) => ValeurLue::Rien,
+    }
+}
+
+/// La sortie de `--champs` : une ligne de JSON, `{"NOM": {"valeur", "type", "lecture_seule", "page", "rect"}}`,
+/// les champs **dans l'ordre de `/AcroForm /Fields`**. Un PDF sans formulaire rend `{}`.
 pub fn champs_json(octets: &[u8]) -> Result<String, Refus> {
-    let morceaux: Vec<String> = champs_ordonnes(octets)?
-        .into_iter()
-        .map(|(nom, v)| format!("{}:{}", Value::String(nom), v))
-        .collect();
+    let mut morceaux: Vec<String> = Vec::new();
+    for c in champs(octets)? {
+        let nom = serde_json::to_string(&c.nom).map_err(|e| Refus(e.to_string()))?;
+        let champ = serde_json::to_string(&c).map_err(|e| Refus(e.to_string()))?;
+        morceaux.push(format!("{}:{}", nom, champ));
+    }
     Ok(format!("{{{}}}", morceaux.join(",")))
 }
 
 /// Les champs, dans l'ordre de `/AcroForm /Fields` ; un nom porté par deux champs : le premier.
-fn champs_ordonnes(octets: &[u8]) -> Result<Vec<(String, Value)>, Refus> {
+pub fn champs(octets: &[u8]) -> Result<Vec<ChampLu>, Refus> {
     let doc = crate::lecture::charger(octets)?;
     let doc = if doc.is_encrypted() {
         let mut d = doc;
@@ -346,30 +383,24 @@ fn champs_ordonnes(octets: &[u8]) -> Result<Vec<(String, Value)>, Refus> {
     };
     let (liste, _) = lister(&doc);
     let pages = pages_des_annotations(&doc);
-    let mut out: Vec<(String, Value)> = Vec::new();
+    let mut out: Vec<ChampLu> = Vec::new();
     let mut vus = BTreeSet::new();
     for c in liste {
-        let mut entree = Map::new();
-        entree.insert("valeur".into(), valeur_json(&doc, &c.v));
-        entree.insert("type".into(), Value::String(type_de(&c.ft).into()));
-        entree.insert("lecture_seule".into(), Value::Bool(c.ff & 1 != 0));
         let premier = c.widgets.iter().find_map(|w| pages.get(w).map(|p| (*w, *p)));
-        match premier {
-            Some((w, (n, page))) => {
-                entree.insert("page".into(), json!(n));
-                entree.insert(
-                    "rect".into(),
-                    rect_vu(&doc, w, page).map(|r| json!(r)).unwrap_or(Value::Null),
-                );
-            }
-            None => {
-                entree.insert("page".into(), Value::Null);
-                entree.insert("rect".into(), Value::Null);
-            }
-        }
+        let (page, rect) = match premier {
+            Some((w, (n, page))) => (Some(n), rect_vu(&doc, w, page)),
+            None => (None, None),
+        };
         // Un nom porté par deux champs : le premier, comme PyPDF.
         if vus.insert(c.nom.clone()) {
-            out.push((c.nom, Value::Object(entree)));
+            out.push(ChampLu {
+                valeur: valeur_lue(&doc, &c.v),
+                genre: type_de(&c.ft),
+                lecture_seule: c.ff & 1 != 0,
+                page,
+                rect,
+                nom: c.nom,
+            });
         }
     }
     Ok(out)
@@ -930,8 +961,9 @@ fn renumeroter(o: &mut Object, table: &BTreeMap<ObjectId, ObjectId>) {
 
 // ------------------------------------------------------------------ remplir
 
-fn nombre_json(v: &Value) -> Option<f64> {
-    v.as_f64().filter(|x| x.is_finite())
+/// Un rectangle [x0, y0, x1, y1] de nombres finis, x1 > x0 et y1 > y0.
+fn rect_valide(r: &[f64; 4]) -> bool {
+    r.iter().all(|x| x.is_finite()) && r[2] > r[0] && r[3] > r[1]
 }
 
 struct Pose {
@@ -942,49 +974,19 @@ struct Pose {
     nom: String,
 }
 
-/// `--remplir` : la description JSON (FORMAT.md, « Remplir un formulaire ») appliquée au PDF
+/// `--remplir` : le remplissage (FORMAT.md, « Remplir un formulaire ») appliqué au PDF
 /// `octets`. Rend les octets du PDF rempli. Tout est vérifié avant d'écrire : un champ inconnu,
 /// en lecture seule ou trop long, une image illisible, une page qui n'existe pas refusent
 /// l'ensemble.
-pub fn remplir(octets: &[u8], description: &str) -> Result<Vec<u8>, Refus> {
-    let d: Value = serde_json::from_str(description).map_err(|e| Refus(format!("description illisible : {}", e)))?;
-    let d = match d.as_object() {
-        Some(o) => o,
-        None => return refus("description illisible : un objet JSON est attendu"),
-    };
-    match d.get("format").and_then(Value::as_i64) {
-        Some(f) if f == crate::FORMAT as i64 => {}
-        Some(f) => return refus(format!("format {} : cette fabrique lit le format {}", f, crate::FORMAT)),
-        None => return refus("description sans « format »"),
+pub fn remplir(octets: &[u8], d: &Remplissage) -> Result<Vec<u8>, Refus> {
+    if d.format != crate::FORMAT {
+        return refus(format!("format {} : cette fabrique lit le format {}", d.format, crate::FORMAT));
     }
-    for cle in d.keys() {
-        if !matches!(cle.as_str(), "format" | "champs" | "images") {
-            return refus(format!("clé inconnue « {} » dans la description", cle));
-        }
-    }
-    let valeurs: Vec<(String, String)> = match d.get("champs") {
-        None => Vec::new(),
-        Some(Value::Object(m)) => {
-            let mut v = Vec::new();
-            for (nom, val) in m {
-                match val.as_str() {
-                    Some(s) => v.push((nom.clone(), s.to_string())),
-                    None => return refus(format!("champ « {} » : la valeur doit être une chaîne", nom)),
-                }
-            }
-            v
-        }
-        Some(_) => return refus("« champs » doit être un objet { nom : valeur }"),
-    };
+    let valeurs: Vec<(String, String)> =
+        d.champs.iter().flatten().map(|(nom, texte)| (nom.clone(), texte.clone())).collect();
     let mut poses = Vec::new();
-    match d.get("images") {
-        None => {}
-        Some(Value::Array(v)) => {
-            for (i, im) in v.iter().enumerate() {
-                poses.push(lire_pose(im, i + 1)?);
-            }
-        }
-        Some(_) => return refus("« images » doit être une liste"),
+    for (i, im) in d.images.iter().flatten().enumerate() {
+        poses.push(lire_pose(im, i + 1)?);
     }
 
     // Le formulaire reçu reste tel quel, octet pour octet : ce qu'on y écrit (les valeurs, leur apparence,
@@ -1004,40 +1006,24 @@ pub fn remplir(octets: &[u8], description: &str) -> Result<Vec<u8>, Refus> {
     Ok(genpdfi::pdf_ecriture::ajouter(&lus, &avant, &doc))
 }
 
-fn lire_pose(im: &Value, rang: usize) -> Result<Pose, Refus> {
-    let o = match im.as_object() {
-        Some(o) => o,
-        None => return refus(format!("image {} : un objet est attendu", rang)),
-    };
-    for cle in o.keys() {
-        if !matches!(cle.as_str(), "page" | "rect" | "marge" | "fichier" | "svg") {
-            return refus(format!("image {} : clé inconnue « {} »", rang, cle));
-        }
+fn lire_pose(im: &crate::forme::ImagePosee, rang: usize) -> Result<Pose, Refus> {
+    if im.page < 1 {
+        return refus(format!("image {} : « page » doit être un entier à partir de 1", rang));
     }
-    let page = match o.get("page").and_then(Value::as_u64) {
-        Some(p) if p >= 1 => p as usize,
-        _ => return refus(format!("image {} : « page » doit être un entier à partir de 1", rang)),
-    };
-    let rect: Vec<f64> = match o.get("rect").and_then(Value::as_array) {
-        Some(v) => v.iter().filter_map(nombre_json).collect(),
-        None => Vec::new(),
-    };
-    if rect.len() != 4 || rect[2] <= rect[0] || rect[3] <= rect[1] {
+    if !rect_valide(&im.rect) {
         return refus(format!("image {} : « rect » doit être [x0, y0, x1, y1] avec x1 > x0 et y1 > y0", rang));
     }
-    let marge = match o.get("marge") {
+    let marge = match im.marge {
         None => 0.0,
-        Some(v) => match nombre_json(v) {
-            Some(m) if m >= 0.0 => m,
-            _ => return refus(format!("image {} : « marge » doit être un nombre positif", rang)),
-        },
+        Some(m) if m.is_finite() && m >= 0.0 => m,
+        Some(_) => return refus(format!("image {} : « marge » doit être un nombre positif", rang)),
     };
-    let (octets, nom) = match (o.get("fichier").and_then(Value::as_str), o.get("svg").and_then(Value::as_str)) {
-        (Some(f), None) => (std::fs::read(f).map_err(|e| Refus(format!("image {} illisible ({})", f, e)))?, f.to_string()),
+    let (octets, nom) = match (&im.fichier, &im.svg) {
+        (Some(f), None) => (std::fs::read(f).map_err(|e| Refus(format!("image {} illisible ({})", f, e)))?, f.clone()),
         (None, Some(s)) => (s.as_bytes().to_vec(), format!("de l'image {}", rang)),
         _ => return refus(format!("image {} : il faut « fichier » ou « svg », l'un des deux", rang)),
     };
-    Ok(Pose { page, rect: [rect[0], rect[1], rect[2], rect[3]], marge, octets, nom })
+    Ok(Pose { page: im.page, rect: im.rect, marge, octets, nom })
 }
 
 /// La police (sous-ensemble de `donnees`) qui écrit `caracteres` dans `doc` : une seule par document et par
@@ -1254,85 +1240,52 @@ struct Ajout {
     q: i64,
 }
 
-fn lire_ajout(c: &Value, rang: usize) -> Result<Ajout, Refus> {
-    let o = match c.as_object() {
-        Some(o) => o,
-        None => return refus(format!("champ {} : un objet est attendu", rang)),
-    };
-    for cle in o.keys() {
-        if !matches!(cle.as_str(), "nom" | "page" | "rect" | "valeur" | "lecture_seule" | "taille" | "alignement") {
-            return refus(format!("champ {} : clé inconnue « {} »", rang, cle));
-        }
+fn lire_ajout(c: &crate::forme::ChampAjoute, rang: usize) -> Result<Ajout, Refus> {
+    if c.nom.is_empty() || c.nom.contains('.') {
+        return refus(format!("champ {} : « nom » doit être un texte non vide, sans point", rang));
     }
-    let nom = match o.get("nom").and_then(Value::as_str) {
-        Some(n) if !n.is_empty() && !n.contains('.') => n.to_string(),
-        _ => return refus(format!("champ {} : « nom » doit être un texte non vide, sans point", rang)),
-    };
-    let page = match o.get("page").and_then(Value::as_u64) {
-        Some(p) if p >= 1 => p as usize,
-        _ => return refus(format!("champ « {} » : « page » doit être un entier à partir de 1", nom)),
-    };
-    let rect: Vec<f64> = o.get("rect").and_then(Value::as_array).map(|v| v.iter().filter_map(nombre_json).collect()).unwrap_or_default();
-    if rect.len() != 4 || rect[2] <= rect[0] || rect[3] <= rect[1] {
+    let nom = c.nom.clone();
+    if c.page < 1 {
+        return refus(format!("champ « {} » : « page » doit être un entier à partir de 1", nom));
+    }
+    if !rect_valide(&c.rect) {
         return refus(format!("champ « {} » : « rect » doit être [x0, y0, x1, y1] avec x1 > x0 et y1 > y0", nom));
     }
-    let valeur = match o.get("valeur") {
-        None | Some(Value::Null) => None,
-        Some(Value::String(s)) => Some(s.clone()),
-        Some(_) => return refus(format!("champ « {} » : la valeur doit être une chaîne", nom)),
-    };
-    let lecture_seule = match o.get("lecture_seule") {
-        None => false,
-        Some(Value::Bool(b)) => *b,
-        Some(_) => return refus(format!("champ « {} » : « lecture_seule » est vrai ou faux", nom)),
-    };
-    let taille = match o.get("taille") {
+    let lecture_seule = c.lecture_seule.unwrap_or(false);
+    // Le corps 0 : celui qui tient (`/DA`).
+    let taille = match c.taille {
         None => 0.0,
-        Some(v) => match nombre_json(v) {
-            Some(t) if t >= 0.0 => t,
-            _ => return refus(format!("champ « {} » : « taille » doit être un nombre positif ou nul", nom)),
-        },
+        Some(t) if t.is_finite() && t >= 0.0 => t,
+        Some(_) => return refus(format!("champ « {} » : « taille » doit être un nombre positif ou nul", nom)),
     };
-    let q = match o.get("alignement").and_then(Value::as_str) {
-        None | Some("gauche") => 0,
-        Some("centre") => 1,
-        Some("droite") => 2,
-        Some(a) => return refus(format!("champ « {} » : alignement « {} » inconnu (gauche, centre, droite)", nom, a)),
+    let q = match c.alignement {
+        None | Some(Alignement::Gauche) => 0,
+        Some(Alignement::Centre) => 1,
+        Some(Alignement::Droite) => 2,
+        Some(Alignement::Justifie) => {
+            return refus(format!("champ « {} » : alignement « justifie » inconnu (gauche, centre, droite)", nom))
+        }
     };
-    if valeur.is_none() && lecture_seule {
+    if c.valeur.is_none() && lecture_seule {
         return refus(format!("champ « {} » : un champ en lecture seule sans valeur ne servirait à rien", nom));
     }
-    Ok(Ajout { nom, page, rect: [rect[0], rect[1], rect[2], rect[3]], valeur, lecture_seule, taille, q })
+    Ok(Ajout { nom, page: c.page, rect: c.rect, valeur: c.valeur.clone(), lecture_seule, taille, q })
 }
 
 /// `ajouter_champs` : des champs texte AcroForm ajoutés à un PDF existant (le plus souvent un document de la fabrique,
 /// dessiné en blocs fixes), chacun à sa page et dans son rectangle (origine en haut à gauche, comme `--champs`). Un champ
 /// qui a une valeur la reçoit avec son apparence régénérée (celle de `remplir`) ; `lecture_seule` pose ensuite le bit 1
-/// de `/Ff`, que `remplir` refuse de franchir. Description : `{"format", "champs": [{"nom", "page", "rect", "valeur",
-/// "lecture_seule", "taille", "alignement"}]}` ; `taille` 0 (défaut) : le corps qui tient. Tout se vérifie avant d'écrire :
+/// de `/Ff`, que `remplir` refuse de franchir ; sans `taille`, le corps qui tient. Tout se vérifie avant d'écrire :
 /// un nom déjà porté par le formulaire, une page qui n'existe pas, un caractère que la police n'a pas, et rien n'est rendu.
-pub fn ajouter_champs(octets: &[u8], description: &str) -> Result<Vec<u8>, Refus> {
-    let d: Value = serde_json::from_str(description).map_err(|e| Refus(format!("description illisible : {}", e)))?;
-    let d = match d.as_object() {
-        Some(o) => o,
-        None => return refus("description illisible : un objet JSON est attendu"),
-    };
-    match d.get("format").and_then(Value::as_i64) {
-        Some(f) if f == crate::FORMAT as i64 => {}
-        Some(f) => return refus(format!("format {} : cette fabrique lit le format {}", f, crate::FORMAT)),
-        None => return refus("description sans « format »"),
+pub fn ajouter_champs(octets: &[u8], d: &AjoutDeChamps) -> Result<Vec<u8>, Refus> {
+    if d.format != crate::FORMAT {
+        return refus(format!("format {} : cette fabrique lit le format {}", d.format, crate::FORMAT));
     }
-    for cle in d.keys() {
-        if !matches!(cle.as_str(), "format" | "champs") {
-            return refus(format!("clé inconnue « {} » dans la description", cle));
-        }
+    if d.champs.is_empty() {
+        return refus("« champs » doit être une liste non vide");
     }
-    let liste = match d.get("champs") {
-        Some(Value::Array(v)) if !v.is_empty() => v,
-        _ => return refus("« champs » doit être une liste non vide"),
-    };
     let mut ajouts = Vec::new();
-    for (i, c) in liste.iter().enumerate() {
+    for (i, c) in d.champs.iter().enumerate() {
         ajouts.push(lire_ajout(c, i + 1)?);
     }
     let mut doc = crate::lecture::charger(octets)?;

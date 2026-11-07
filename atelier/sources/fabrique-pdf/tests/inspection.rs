@@ -60,7 +60,9 @@ fn contrat(largeur: f64, hauteur: f64) -> Vec<u8> {
                    "lignes": [{"cellules": ["Salaire brut", "1 234,56"]}, {"cellules": ["Net", "987,65"]}]}),
         ]}, {"blocs": [para("Deuxième page")]}]
     });
-    fabrique_pdf::fabriquer(&desc.to_string()).unwrap_or_else(|e| panic!("{}", e.0))
+    fabrique_pdf::Description::lire(&desc.to_string())
+        .and_then(|d| fabrique_pdf::fabriquer(&d))
+        .unwrap_or_else(|e| panic!("{}", e.0))
 }
 
 #[test]

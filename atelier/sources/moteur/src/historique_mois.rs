@@ -17,7 +17,6 @@
 //!
 //! Lecture seule : rien ne s'ecrit, rien ne part.
 
-use droit::fiche::Lue as _;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
@@ -217,10 +216,7 @@ fn nom_lisible(ctx: &Contexte, nom: &str) -> String {
         return format!("Note des demandes du {}", j);
     }
     if let Some((cle, j)) = reste.strip_suffix(".dsn").and_then(|s| s.rsplit_once('_')).and_then(|(c, t)| jour(t).map(|j| (c, j))) {
-        let qui = ctx.salaries.get(cle).map(|s| {
-            let prenom = if s.prenom_affichage.texte().is_empty() { s.prenom.texte() } else { s.prenom_affichage.texte() };
-            format!("{} {}", s.nom.texte(), prenom).trim().to_string()
-        });
+        let qui = ctx.salaries.get(cle).map(|s| documents::tableaux_export::qui_souple(s));
         return format!("Taux de {}, demandé le {}", qui.filter(|q| !q.is_empty()).unwrap_or_else(|| cle.to_string()), j);
     }
     nom.to_string()
@@ -277,10 +273,7 @@ fn documents(ctx: &Contexte, mois: &str, lignes: &[Ligne]) -> R<Vec<Value>> {
     // LES BULLETINS QUE L'ANCIEN LOGICIEL A FAITS, tels que l'import les garde : ce sont les bulletins du mois.
     for b in crate::import::mois::bulletins_repris(&ctx.racine, mois) {
         let cle = valeur_en_texte(&b["salarie"]);
-        let qui = ctx.salaries.get(cle.as_str()).map(|s| {
-            let prenom = if s.prenom_affichage.texte().is_empty() { s.prenom.texte() } else { s.prenom_affichage.texte() };
-            format!("{} {}", s.nom.texte(), prenom).trim().to_string()
-        });
+        let qui = ctx.salaries.get(cle.as_str()).map(|s| documents::tableaux_export::qui_souple(s));
         let nom = format!("Bulletin de {} (ancien logiciel)", qui.filter(|q| !q.is_empty()).unwrap_or(cle.clone()));
         out.push(json!({"nom": nom, "sorte": "Bulletins de paie", "salarie": cle, "chemin": b["chemin"]}));
     }

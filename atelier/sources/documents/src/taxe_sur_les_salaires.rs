@@ -107,9 +107,9 @@ decembre ne se fait pas.",
             pourquoi
         ),
     };
-    let part_taxee = match fiche.map_or("", |f| f.tva.code()) {
-        "exoneree" => Decimal::ONE_HUNDRED,
-        "assujettie" => {
+    let part_taxee = match fiche.and_then(|f| f.tva.code()) {
+        Some("exoneree") => Decimal::ONE_HUNDRED,
+        Some("assujettie") => {
             champs.push("part_tva");
             let part = match fiche.and_then(|f| f.part_tva.dite()) {
                 None => None,
@@ -144,7 +144,7 @@ des impôts, art. 231)",
             }
             sub(Decimal::ONE_HUNDRED, part)
         }
-        "" => {
+        None => {
             return manque(
                 champs,
                 "dire si la compagnie est assujettie a la TVA ou exoneree".to_string(),
@@ -152,7 +152,7 @@ des impôts, art. 231)",
 sur les salaires. Sans réponse, la DSN de décembre ne se fait pas.",
             )
         }
-        autre => {
+        Some(autre) => {
             return manque(
                 champs,
                 format!("`tva` vaut « {} » ; il vaut « assujettie » ou « exoneree »", autre),

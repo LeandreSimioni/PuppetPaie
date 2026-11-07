@@ -153,7 +153,8 @@ struct Echeancier {
     date: String,
     date_dit: String,
     bienvenue: &'static str,
-    compagnie: String,
+    /// Le nom de la compagnie ; `null` : la fiche ne le dit pas encore.
+    compagnie: Option<String>,
     /// La convention de la fiche de l'entreprise, telle que la fiche la porte.
     idcc: Value,
     ce_mois: Vec<EcheanceDite>,
@@ -597,14 +598,18 @@ fn echeancier(ctx: &Contexte) -> socle::echec::R<Echeancier> {
     };
     ce_mois.sort_by_cached_key(|e| (ordre(e.etat), e.rang()));
     a_venir.sort_by_key(|e| (e.tombe, e.date));
-    let compagnie = ctx.entreprise.nommee();
+    let compagnie = ctx.entreprise.nommee().map(str::to_string);
+    let devant = match &compagnie {
+        Some(c) => format!("{} : ", c),
+        None => String::new(),
+    };
     let a_faire = ce_mois.iter().filter(|x| !x.due && matches!(x.etat, AFaire | EnRetard)).count();
     let ce_mois: Vec<EcheanceDite> = ce_mois.iter().map(Echeance::dite).collect();
     let a_venir: Vec<EcheanceDite> = a_venir.iter().map(Echeance::dite).collect();
     let ligne = |x: &EcheanceDite| format!("{} ({}{})", x.titre, x.pastille.mots, if x.quand.is_empty() { String::new() } else { format!(", {}", x.quand) });
     let phrases: Vec<String> = ce_mois.iter().chain(&a_venir).map(ligne).collect();
     Ok(Echeancier {
-        phrase: format!("{} : {} ce mois-ci, {} à venir.", compagnie, super::compte(ce_mois.len(), "échéance", "échéances"), a_venir.len()),
+        phrase: format!("{}{} ce mois-ci, {} à venir.", devant, super::compte(ce_mois.len(), "échéance", "échéances"), a_venir.len()),
         aujourdhui: st.aujourdhui.iso(),
         date: date_en_clair(&st.aujourdhui),
         date_dit: format!("Nous sommes le {}", date_en_clair(&st.aujourdhui)),

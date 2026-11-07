@@ -172,13 +172,15 @@ pub fn de(mot: &str) -> String {
 /// LE SALARIE TEL QUE L'ECRAN LE NOMME, partout ou le moteur parle de lui (refus, avis, listes, phrases d'un envoi) :
 /// « NOM Prénom » comme la page le montre : le nom avec ses accents (`nom_affichage`, sinon `nom`) en capitales, puis le
 /// prénom d'usage (`prenom_affichage`, sinon `prenom`). `None` si la fiche ne porte ni nom ni prénom.
-pub fn salarie_nomme(nom: &str, nom_affichage: &str, prenom: &str, prenom_affichage: &str) -> Option<String> {
-    let l_un_ou_l_autre = |usage: &str, etat_civil: &str| match strip(usage) {
-        "" => strip(etat_civil).to_string(),
-        u => u.to_string(),
-    };
-    let tout = format!("{} {}", l_un_ou_l_autre(nom_affichage, nom).to_uppercase(), l_un_ou_l_autre(prenom_affichage, prenom)).trim().to_string();
-    (!tout.is_empty()).then_some(tout)
+pub fn salarie_nomme(nom: Option<&str>, nom_affichage: Option<&str>, prenom: Option<&str>, prenom_affichage: Option<&str>) -> Option<String> {
+    fn l_un_ou_l_autre<'a>(usage: Option<&'a str>, etat_civil: Option<&'a str>) -> Option<&'a str> {
+        [usage, etat_civil].into_iter().flatten().map(strip).find(|t| !t.is_empty())
+    }
+    let parts: Vec<String> = [l_un_ou_l_autre(nom_affichage, nom).map(str::to_uppercase), l_un_ou_l_autre(prenom_affichage, prenom).map(str::to_string)]
+        .into_iter()
+        .flatten()
+        .collect();
+    (!parts.is_empty()).then(|| parts.join(" "))
 }
 
 /// UN MONTANT TEL QU'ON LE LIT, et le seul endroit qui en écrit un (une phrase du moteur, une ligne d'écran, un

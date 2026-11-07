@@ -34,7 +34,9 @@ pub fn octets_fabrique(n: usize) -> Vec<u8> {
         "police": {"taille": 10.0, "interligne": 1.25, "couleur": "#000000"},
         "documents": documents
     });
-    fabrique_pdf::fabriquer(&desc.to_string()).unwrap_or_else(|e| panic!("{}", e.0))
+    fabrique_pdf::Description::lire(&desc.to_string())
+        .and_then(|d| fabrique_pdf::fabriquer(&d))
+        .unwrap_or_else(|e| panic!("{}", e.0))
 }
 
 /// Le même PDF, écrit dans `dossier/nom` ; rend son chemin.

@@ -14,30 +14,31 @@ use droit::fiche::{ChampsSalarie, FicheSalarie};
 pub const RUBRIQUE:&str = "S21.G00.30.020";
 pub const RUBRIQUE_NIR: &str = "S21.G00.30.001";
 
-/// Le code sexe d'un NIR (son premier chiffre), sinon de la case `sexe` ; "" si ni l'un ni l'autre ne le dit.
-pub fn sexe_de(nir: &str, sexe: &str) -> String {
-    let nir = strip(nir);
-    if nir.starts_with('1') || nir.starts_with('2') {
-        return nir[..1].to_string();
-    }
-    let v = strip(sexe);
-    if v == "1" || v == "2" {
-        v.to_string()
-    } else {
-        String::new()
+/// Le code sexe d'un NIR (son premier chiffre), sinon de la case `sexe` ; `None` si ni l'un ni l'autre ne le dit.
+pub fn sexe_de(nir: Option<&str>, sexe: Option<&str>) -> Option<&'static str> {
+    let un_ou_deux = |t: &str| match t {
+        "1" => Some("1"),
+        "2" => Some("2"),
+        _ => None,
+    };
+    match nir.map(strip).and_then(|n| n.get(..1)).and_then(un_ou_deux) {
+        Some(s) => Some(s),
+        None => sexe.map(strip).and_then(un_ou_deux),
     }
 }
 
 /// Le NTT de ce salarie dans l'entreprise de SIREN `siren`.
 pub fn numero(siren: &str, salarie: &FicheSalarie) -> Resultat<String> {
-    let s = sexe_de(salarie.nir.texte(), salarie.sexe.code());
-    if s.is_empty() {
-        let qui = if salarie.nom.texte().is_empty() { salarie.id.to_string() } else { salarie.nom.texte().to_string() };
+    let Some(s) = sexe_de(salarie.nir.portee(), salarie.sexe.code()) else {
+        let qui = match salarie.nom.remplie() {
+            Some(nom) => nom.to_string(),
+            None => salarie.id.to_string(),
+        };
         return Err(format!(
             "Le numero technique temporaire ({}) de {} ne peut pas etre fabrique : sa fiche ne dit pas le sexe, et le NTT commence par lui (1 ou 2). D'ordinaire il se lit sur le NIR ; sans NIR, il faut le renseigner dans la fiche du salarie.",
             RUBRIQUE, qui
         ));
-    }
+    };
     let siren = strip(siren).to_string();
     if siren.chars().count() != 9 || !siren.chars().all(|c| c.is_ascii_digit()) {
         return Err(socle::echec::a_la_cle(
@@ -49,13 +50,12 @@ pub fn numero(siren: &str, salarie: &FicheSalarie) -> Resultat<String> {
             repr(&siren),
         ));
     }
-    let matricule = strip(salarie.code_salarie.texte());
-    if matricule.is_empty() {
+    let Some(matricule) = salarie.code_salarie.portee().map(strip) else {
         return Err(format!(
             "Le numero technique temporaire ({}) finit par l'identifiant perenne du salarie dans l'entreprise -- son matricule --, et la fiche n'en porte pas.",
             RUBRIQUE
         ));
-    }
+    };
     let v = format!("{}{}{}", s, siren, matricule);
     if let Some(pourquoi) = faute(&v, &siren)? {
         return Err(format!(
@@ -99,15 +99,15 @@ pub fn faute(valeur: &str, siren: &str) -> Resultat<Option<String>> {
     Ok(if m.is_empty() { None } else { Some(m) })
 }
 
-pub fn nir_de(salarie: &ChampsSalarie) -> String {
-    strip(salarie.nir.texte()).to_string()
+/// Le NIR de la fiche, quand elle le dit.
+pub fn nir_de(salarie: &ChampsSalarie) -> Option<String> {
+    salarie.nir.portee().map(|n| strip(n).to_string())
 }
 
 
 /// S21.G00.30.001, quand il y en a un -- et rien du tout sinon.
 pub fn poser_nir(f: &mut Fichier, salarie: &ChampsSalarie) -> Resultat<()> {
-    let nir = nir_de(salarie);
-    if !nir.is_empty() {
+    if let Some(nir) = nir_de(salarie) {
         f.add(RUBRIQUE_NIR, nir);
     }
     Ok(())
@@ -121,11 +121,11 @@ pub fn poser_nir(f: &mut Fichier, salarie: &ChampsSalarie) -> Resultat<()> {
 /// `norme-dsn/texte/bloc-S21.G00.30.txt`, l. 348-354) ; sinon rien. `declaree` : l'identite que la derniere DSN a
 /// declaree pour lui (`changements_individu::Declarations::derniere`, ou `derniere_declaree`).
 pub fn poser_ntt(f: &mut Fichier, ent: &droit::fiche::ChampsEntreprise, salarie: &FicheSalarie, declaree:Option<&crate::changements_individu::Declaree>) -> Resultat<()> {
-    if nir_de(salarie).is_empty() {
-        f.add(RUBRIQUE, numero(ent.siren.texte(), salarie)?);
+    if nir_de(salarie).is_none() {
+        f.add(RUBRIQUE, numero(ent.siren.ecrite("siren")?, salarie)?);
         return Ok(());
     }
-    if let Some(n) = declaree.filter(|d| d.nir.is_empty()).map(|d| strip(&d.ntt)).filter(|n| !n.is_empty()) {
+    if let Some(n) = declaree.filter(|d| d.nir.is_none()).and_then(|d| d.ntt.as_deref()).map(strip) {
         f.add(RUBRIQUE, n);
     }
     Ok(())

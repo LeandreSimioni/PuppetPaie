@@ -38,14 +38,6 @@ pub trait Lue<T> {
         self.dite().ok_or_else(|| socle::fichiers::absent(cle))
     }
 
-    /// Le texte dit, `""` sinon : ce qu'une page, un message ou une comparaison montre d'une case vide.
-    fn texte<'a>(&'a self) -> &'a str
-    where
-        T: AsRef<str> + 'a,
-    {
-        self.dite().map_or("", AsRef::as_ref)
-    }
-
     /// La meme case, son texte en `String` : pour une table de cases qui les ecrit toutes de meme.
     fn en_texte(&self) -> Option<String>
     where
@@ -78,12 +70,12 @@ pub trait Lue<T> {
         self.exigee(cle).map(AsRef::as_ref)
     }
 
-    /// Un choix dit, tel qu'il s'ecrit ; `""` sinon.
-    fn code(&self) -> &'static str
+    /// Un choix dit, tel qu'il s'ecrit.
+    fn code(&self) -> Option<&'static str>
     where
         T: Choix,
     {
-        self.dite().map_or("", Choix::code)
+        self.dite().map(Choix::code)
     }
 
     /// Cochee : `true` dit ; ni vide, ni `false`.
@@ -144,12 +136,13 @@ pub enum Montant {
 }
 
 impl Montant {
-    pub fn decimal(&self) -> Decimal {
+    /// Le decimal ; un texte se lit en decimal (`12,5` compris). Un flottant ou un texte illisible se refuse.
+    pub fn decimal(&self) -> Resultat<Decimal> {
         match self {
-            Montant::Entier(i) => Decimal::from(*i),
-            Montant::Naturel(u) => Decimal::from(*u),
-            Montant::Flottant(x) => socle::num::dec_f64(*x).unwrap_or_default(),
-            Montant::Texte(s) => socle::num::decimal_lu(s).unwrap_or_default(),
+            Montant::Entier(i) => Ok(Decimal::from(*i)),
+            Montant::Naturel(u) => Ok(Decimal::from(*u)),
+            Montant::Flottant(x) => socle::num::dec_f64(*x),
+            Montant::Texte(s) => socle::num::decimal_lu(s).ok_or_else(|| socle::num::illisible(s)),
         }
     }
 
@@ -158,7 +151,7 @@ impl Montant {
         match self {
             Montant::Flottant(x) => socle::num::dec_texte(&socle::date::repr_flottant(*x)),
             Montant::Texte(s) => socle::num::dec_texte(s),
-            autre => Ok(autre.decimal()),
+            autre => autre.decimal(),
         }
     }
 
@@ -167,7 +160,7 @@ impl Montant {
         match self {
             Montant::Flottant(x) => socle::num::dec_f64(*x),
             Montant::Texte(s) => socle::num::dec_texte(s),
-            autre => Ok(autre.decimal()),
+            autre => autre.decimal(),
         }
     }
 
@@ -191,12 +184,13 @@ impl Montant {
         }
     }
 
-    /// L'entier ecrit : un nombre entier, ou un texte qui se lit en entier ; `None` sinon.
-    pub fn entier(&self) -> Option<i64> {
+    /// L'entier ecrit : un nombre entier, ou un texte qui se lit en entier ; `None` pour un nombre qui n'est pas un
+    /// entier ecrit (un naturel hors des entiers signes, un flottant). Un texte illisible se refuse.
+    pub fn entier(&self) -> Resultat<Option<i64>> {
         match self {
-            Montant::Entier(i) => Some(*i),
-            Montant::Texte(s) => s.trim().parse().ok(),
-            Montant::Naturel(_) | Montant::Flottant(_) => None,
+            Montant::Entier(i) => Ok(Some(*i)),
+            Montant::Texte(s) => s.trim().parse().map(Some).map_err(|_| socle::num::illisible(s)),
+            Montant::Naturel(_) | Montant::Flottant(_) => Ok(None),
         }
     }
 
@@ -700,25 +694,25 @@ macro_rules! fiche {
             }
         }
 
-        /// La fiche telle qu'ecrite : chaque champ une liste datee.
+        /// La fiche telle qu'ecrite : chaque champ une liste datee ; absente ou nulle, la fiche ne dit rien de ce champ.
         #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
         #[serde(deny_unknown_fields)]
         pub struct $datee {
-            $( #[serde(default, skip_serializing_if = "Vec::is_empty")] pub $champ: Vec<Datee<$t>>, )*
+            $( #[serde(skip_serializing_if = "Option::is_none")] pub $champ: Option<Vec<Datee<$t>>>, )*
             $( $( $(#[$nm])* #[serde(skip_serializing_if = "Option::is_none")] pub $note: Option<String>, )* )?
         }
 
         impl $datee {
             /// Ses champs en vigueur a `jour`, ses notes telles qu'ecrites.
             pub fn au(&self, jour: &Jour) -> $plate {
-                $plate { $( $champ: valeur_au(&self.$champ, jour), )* $( $( $note: self.$note.clone(), )* )? }
+                $plate { $( $champ: self.$champ.as_deref().and_then(|l| valeur_au(l, jour)), )* $( $( $note: self.$note.clone(), )* )? }
             }
 
             /// Les jours ou le champ `cle` prend une valeur, du plus ancien au plus recent (`None` : la valeur de tout
             /// temps, d'abord) ; aucun pour un champ que la fiche ne dit pas, ou que la forme ne declare pas.
             pub fn depuis(&self, cle: &str) -> Vec<Option<Jour>> {
                 $( if stringify!($champ).trim_start_matches("r#") == cle {
-                    let mut j: Vec<Option<Jour>> = self.$champ.iter().map(|e| e.depuis).collect();
+                    let mut j: Vec<Option<Jour>> = self.$champ.iter().flatten().map(|e| e.depuis).collect();
                     j.sort();
                     return j;
                 } )*
@@ -729,13 +723,13 @@ macro_rules! fiche {
             /// s'applique n'en donne pas.
             pub fn dates_en_vigueur(&self, jour: &Jour) -> Vec<Jour> {
                 let mut out = Vec::new();
-                $( out.extend(self.$champ.iter().filter_map(|e| e.depuis).filter(|j| j <= jour).max()); )*
+                $( out.extend(self.$champ.iter().flatten().filter_map(|e| e.depuis).filter(|j| j <= jour).max()); )*
                 out
             }
 
             /// Les listes et les notes que `autre` porte remplacent les siennes, entieres ; les autres restent.
             pub fn par_dessus(&mut self, autre: &$datee) {
-                $( if !autre.$champ.is_empty() {
+                $( if autre.$champ.is_some() {
                     self.$champ = autre.$champ.clone();
                 } )*
                 $( $( if autre.$note.is_some() {
@@ -779,7 +773,9 @@ macro_rules! fiche {
             }
 
             fn voir_listes<V: VoirListe>(&self, v: &mut V) {
-                $( v.liste(stringify!($champ).trim_start_matches("r#"), &self.$champ); )*
+                $( if let Some(l) = &self.$champ {
+                    v.liste(stringify!($champ).trim_start_matches("r#"), l);
+                } )*
             }
         }
     };
@@ -848,7 +844,8 @@ pub fn valeur_au<T: Clone>(liste: &[Datee<T>], jour: &Jour) -> Option<T> {
 /// ce qui precede reste ce qu'il etait. La premiere valeur d'une liste vaut de tout temps, quel que soit `depuis` : avant
 /// elle, la fiche ne disait rien d'autre. Une valeur deja ecrite au meme jour est remplacee (une correction du meme jour
 /// d'effet). `note` dit pourquoi.
-pub fn dater<T>(liste: &mut Vec<Datee<T>>, valeur: Option<T>, depuis: Option<&Jour>, note: Option<&str>) {
+pub fn dater<T>(liste: &mut Option<Vec<Datee<T>>>, valeur: Option<T>, depuis: Option<&Jour>, note: Option<&str>) {
+    let liste = liste.get_or_insert_with(Vec::new);
     let depuis = if liste.is_empty() { None } else { depuis.copied() };
     liste.retain(|e| e.depuis != depuis);
     liste.push(Datee { depuis, valeur, note: note.map(str::trim).filter(|n| !n.is_empty()).map(str::to_string) });
@@ -1341,22 +1338,22 @@ impl ChampsSalarie {
     /// « NOM Prénom », tel que l'ecran le nomme (`socle::texte::salarie_nomme`) : le nom et le prenom d'usage, sinon ceux de
     /// l'etat civil. `None` : la fiche ne nomme personne.
     pub fn nomme(&self) -> Option<String> {
-        socle::texte::salarie_nomme(self.nom.texte(), self.nom_affichage.texte(), self.prenom.texte(), self.prenom_affichage.texte())
+        socle::texte::salarie_nomme(self.nom.portee(), self.nom_affichage.portee(), self.prenom.portee(), self.prenom_affichage.portee())
     }
 
     /// Ce que la fiche dit de la nationalite (`socle::codification_ue`, S21.G00.30.013).
     pub fn nationalite(&self) -> socle::codification_ue::Nationalite {
         socle::codification_ue::Nationalite::nouvelle(
             self.code_nationalite_dsn.code(),
-            self.pays_nationalite.texte(),
-            self.pays_nationalite_hors_liste.texte(),
+            self.pays_nationalite.portee(),
+            self.pays_nationalite_hors_liste.portee(),
             self.nomme(),
         )
     }
 
     /// Le pays de naissance tel que la DSN le declare (S21.G00.30.015, `socle::pays::de_naissance`).
     pub fn pays_de_naissance(&self) -> Resultat<Option<String>> {
-        let qui = format!("{} {}", self.prenom.texte(), self.nom.texte()).trim().to_string();
+        let qui = [self.prenom.portee(), self.nom.portee()].into_iter().flatten().collect::<Vec<_>>().join(" ").trim().to_string();
         self.pays_naissance.as_ref().map(|code| socle::pays::de_naissance(code, &qui)).transpose()
     }
 
@@ -1367,25 +1364,26 @@ impl ChampsSalarie {
 }
 
 impl ChampsEntreprise {
-    /// Le NIC du siege, ou `""`.
-    pub fn nic_principal(&self) -> String {
-        self.nic.texte().to_string()
+    /// Le NIC du siege, tel que la fiche le dit.
+    pub fn nic_principal(&self) -> Option<&str> {
+        self.nic.portee()
     }
 
     /// Les etablissements autres que le siege.
     pub fn secondaires(&self) -> Vec<&Etablissement> {
-        let nic = self.nic.texte();
-        self.etablissements.dite().into_iter().flatten().filter(|e| e.nic.texte() != nic).collect()
+        let nic = self.nic.portee();
+        self.etablissements.dite().into_iter().flatten().filter(|e| e.nic.portee() != nic).collect()
     }
 
     /// L'autre etablissement de ce NIC, `None` : le siege, ou un NIC que la fiche ne porte pas.
     pub fn etablissement(&self, nic: &str) -> Option<&Etablissement> {
-        self.secondaires().into_iter().find(|e| e.nic.texte() == nic)
+        self.secondaires().into_iter().find(|e| e.nic.portee() == Some(nic))
     }
 
-    /// Le NIC du siege, puis celui de chaque autre etablissement : une DSN par etablissement.
-    pub fn nics(&self) -> Vec<String> {
-        std::iter::once(self.nic_principal()).chain(self.secondaires().iter().map(|e| e.nic.texte().to_string())).collect()
+    /// Le NIC du siege, puis celui de chaque autre etablissement : une DSN par etablissement. Chacun s'exige : sans lui,
+    /// la DSN de l'etablissement ne s'ecrit pas.
+    pub fn nics(&self) -> Resultat<Vec<String>> {
+        std::iter::once(self.nic.ecrite("nic")).chain(self.secondaires().iter().map(|e| e.nic.ecrite("etablissements.nic"))).map(|n| n.map(str::to_string)).collect()
     }
 
     /// Les feries qu'elle chome, tels que `socle::feries::chomes` les lit ; `None` : la fiche n'en dit rien.
@@ -1394,11 +1392,8 @@ impl ChampsEntreprise {
     }
 
     /// Le nom de la compagnie tel que l'ecran le dit : le nom d'usage, sinon la raison sociale.
-    pub fn nommee(&self) -> String {
-        match self.nom_affichage.texte() {
-            "" => self.raison_sociale.texte().to_string(),
-            n => n.to_string(),
-        }
+    pub fn nommee(&self) -> Option<&str> {
+        self.nom_affichage.remplie().or_else(|| self.raison_sociale.portee())
     }
 }
 

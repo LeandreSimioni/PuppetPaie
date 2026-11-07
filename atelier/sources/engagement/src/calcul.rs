@@ -1084,7 +1084,7 @@ fn base_de(r: &Rubrique) -> Resultat<&str> {
 
 /// Le taux patronal d'une rubrique, s'il n'est pas nul.
 fn part_patronale(r: &Rubrique) -> Option<f64> {
-    r.taux_pat.filter(|t| *t != 0.0)
+    r.taux_pat.map(|t| t.0).filter(|t| *t != 0.0)
 }
 
 /// La pile de bareme sur laquelle se calcule la paie `p` (celle de `calculer_periode`, du meme cache).
@@ -1113,7 +1113,7 @@ pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Pile>> {
 /// (une dispense qui commence avec le contrat n'en est pas une) refuse : le partage de la cotisation du mois entre
 /// dispense et affiliation n'est dit par aucun texte depose (regle 1).
 pub(crate) fn dispense_de_la_periode(mut fiche: FicheSalarie, debut: &Jour, fin: &Jour) -> Resultat<FicheSalarie> {
-    if fiche.sante_dispense.texte().is_empty() {
+    if fiche.sante_dispense.remplie().is_none() {
         return Ok(fiche);
     }
     let depuis = fiche.sante_dispense_depuis.dite().copied();
@@ -1128,7 +1128,7 @@ pub(crate) fn dispense_de_la_periode(mut fiche: FicheSalarie, debut: &Jour, fin:
         (None, None) => None,
     };
     if let Some(borne) = borne {
-        let qui = [fiche.prenom.texte(), fiche.nom.texte()].into_iter().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
+        let qui = [fiche.prenom.portee(), fiche.nom.portee()].into_iter().flatten().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
         return Err(format!(
             "{} : sa dispense de complementaire sante {}, en cours de periode payee (du {} au {}). Le moteur ne partage \
 pas la cotisation sante d'un mois entre dispense et affiliation : aucun texte depose ne dit comment. Dater la borne de \
@@ -1164,7 +1164,7 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
 /// `legifrance-3090-prevoyance-titre12-20260919.md`, `legifrance-1285-prevoyance-titre12-20260919.md`), nulle ce
 /// mois-la -- inference : aucun texte depose ne traite de la suspension non indemnisee pour la prevoyance.
 fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: SalarieDuContrat) -> Resultat<SalarieDuContrat> {
-    if !fiche.sante_dispense.texte().is_empty() {
+    if fiche.sante_dispense.remplie().is_some() {
         return Ok(fiche);
     }
     let cle = fiche.id.to_string();
@@ -1173,28 +1173,28 @@ fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: SalarieDu
     let Some(premiere) = suspensions.first() else { return Ok(fiche) };
     let motifs: Vec<String> = suspensions.iter().map(|s| s.motif().to_string()).collect();
     let ent = ctx.entreprise_au(&fin);
-    let idcc = ent.idcc.texte().to_string();
-    let pourquoi = if idcc == "3090" {
+    let idcc = ent.idcc.portee();
+    let pourquoi = if idcc == Some("3090") {
         format!(
             "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (CCN 3090, \
 accord sante du 19/07/2024, art. 4.2 et 15)",
             motifs.join(", ")
         )
     } else {
-        match ent.sante_suspension_non_indemnisee.code() {
-            SANTE_SUSPENSION_SUSPENDUE => format!(
+        match ent.sante_suspension_non_indemnisee.dite() {
+            Some(droit::fiche::SanteSuspension::Suspendue) => format!(
                 "contrat suspendu sans indemnisation tout le mois (motif {}) : les garanties de sante sont suspendues (fiche \
 entreprise, « {} »)",
                 motifs.join(", "),
                 SANTE_SUSPENSION_SUSPENDUE
             ),
-            SANTE_SUSPENSION_MAINTENUE => return Ok(fiche),
-            autre => {
-                let qui = [fiche.prenom.texte(), fiche.nom.texte()].into_iter().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
+            Some(droit::fiche::SanteSuspension::Maintenue) => return Ok(fiche),
+            None => {
+                let qui = [fiche.prenom.portee(), fiche.nom.portee()].into_iter().flatten().filter(|v| !v.is_empty()).collect::<Vec<_>>().join(" ");
                 return Err(socle::echec::avec(format!("{} : son contrat est suspendu sans indemnisation, et la fiche entreprise ne dit pas ce que devient sa complémentaire santé : le dire dans Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation ».", if qui.is_empty() { cle.clone() } else { qui.clone() }), crate::Detail::du(Some(SANTE_SUSPENSION), format!(
                     "{} : son contrat est suspendu sans indemnisation sur toute la periode payee (du {} au {} ; suspension {} \
 depuis le {}). Que devient sa complementaire sante ce mois-la ? Sous la convention {}, aucun texte ne le dit : c'est le \
-contrat de sante de la compagnie qui tranche (le maintien est facultatif, instruction DSS du 17/06/2021, II.B). {}A dire \
+contrat de sante de la compagnie qui tranche (le maintien est facultatif, instruction DSS du 17/06/2021, II.B). A dire\
 une fois pour toutes : Configuration › Entreprise, « Santé d'un permanent suspendu sans indemnisation » (`{}`) -- « {} » \
 si le contrat suspend les garanties (rien sur la paie), « {} » s'il les maintient avec les cotisations. Rien n'est calcule.",
                     if qui.is_empty() { cle.clone() } else { qui },
@@ -1202,8 +1202,10 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
                     fin.jj_mm_aaaa(),
                     motifs.join(", "),
                     Jour::lire(premiere.debut())?.jj_mm_aaaa(),
-                    if idcc.is_empty() { "de la compagnie".to_string() } else { idcc.clone() },
-                    if autre.is_empty() { String::new() } else { format!("La fiche dit « {} », qui n'est pas une reponse. ", autre) },
+                    match idcc {
+                        Some(i) => i,
+                        None => "de la compagnie",
+                    },
                     SANTE_SUSPENSION,
                     SANTE_SUSPENSION_SUSPENDUE,
                     SANTE_SUSPENSION_MAINTENUE
@@ -1246,9 +1248,8 @@ fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &
         nombre => nombre.flottant()?,
     };
     let jours = lu.ceil() as i64;
-    let idcc = ctx.entreprise.idcc.texte().to_string();
     let artiste = sal.statut.dite() == Some(&Statut::Artiste);
-    let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), sal.statut_conventionnel.dite().map(|s| s.as_str()), artiste, &idcc)?;
+    let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), sal.statut_conventionnel.dite().map(|s| s.as_str()), artiste, ctx.entreprise.idcc.portee())?;
     droit::essai::refuser_au_dela(jours, plafond.as_ref(), &format!("{} ({})", crate::qui_de(sal)?, nat.libelle))
 }
 
@@ -1349,7 +1350,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
 
     // 7.3 : la prevoyance dans l'assiette CSG.
     let (prev, taux_prev) = match bar.rubrique("prevoyance") {
-        Some(p @ Rubrique { taux_pat: Some(t), .. }) => (p, dec_f64(*t)?),
+        Some(p @ Rubrique { taux_pat: Some(t), .. }) => (p, dec_f64(t.0)?),
         _ => {
             return Err(socle::echec::avec("Le barème de l'année n'a pas de prévoyance avec un taux patronal : le signaler au développeur.", crate::Detail::du(None, format!(
                 "Bareme {}{} : aucune rubrique `prevoyance` avec un taux \
@@ -1605,7 +1606,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                 .collect::<Resultat<_>>()?
         };
         let (mut m_pat, mut m_sal) = (zero, zero);
-        let (mut taux_pat, mut taux_sal) = (r.taux_pat, r.taux_sal);
+        let (mut taux_pat, mut taux_sal) = (r.taux_pat.map(|t| t.0), r.taux_sal);
         let non_vide = |c: &Option<Vec<f64>>| c.clone().filter(|c| !c.is_empty());
         let (mut comp_pat, mut comp_sal) = (non_vide(&r.composants_pat), non_vide(&r.composants_sal));
         let manque = || "taux absent (taux_pat ou taux_sal) : le complément ne s'ajoute à rien".to_string();

@@ -171,8 +171,11 @@ fn modeles(ctx: &Contexte) -> R<ModelesDuBulletin> {
     for (cle, sal) in &ctx.salaries {
         if let Some(m) = documents::bulletin::modele_du_salarie(sal).map_err(refus)? {
             if m != modele {
-                let nom = format!("{} {}", sal.prenom_affichage.texte(), sal.nom_affichage.texte()).trim().to_string();
-                let nom = if nom.is_empty() { cle.to_string() } else { nom };
+                let nom = match (sal.prenom_affichage.portee(), sal.nom_affichage.portee()) {
+                    (Some(prenom), Some(nom)) => format!("{} {}", prenom, nom),
+                    (Some(un), None) | (None, Some(un)) => un.to_string(),
+                    (None, None) => cle.to_string(),
+                };
                 autrement.push(SalarieAutrement { cle: cle.to_string(), nom, modele: m.cle() });
             }
         }
@@ -221,7 +224,7 @@ struct SaisieDeLApercu {
 }
 
 /// La description du bulletin de la paie fictive sous `modele` : le moteur du jour, la compagnie fictive, rien d'ecrit.
-pub fn apercu_description(modele: Modele) -> Result<Value, String> {
+pub fn apercu_description(modele: Modele) -> Result<fabrique_pdf::Description, String> {
     let racine = dossier_apercu();
     let lue: SaisieDeLApercu = socle::forme::lire(&lire_json(&racine.join("saisie.json"))?, "La paie de l'aperçu ne se lit pas.")?;
     let saisie = engagement::saisie::VueDuMois { mois: lue.mois, taux_cachet: None, engagements: lue.engagements };

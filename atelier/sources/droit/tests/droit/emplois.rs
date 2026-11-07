@@ -33,7 +33,7 @@ enum Resolution {
 }
 
 fn resolution(c: &CasResolu) -> Resolution {
-    match resoudre(&c.code, c.cadre, c.feminin, "") {
+    match resoudre(&c.code, c.cadre, c.feminin, None) {
         Ok(r) => Resolution::Champs {
             emploi: r.emploi,
             emploi_affichage: r.emploi_affichage,
@@ -56,7 +56,7 @@ fn resoudre_un_metier() {
     verifier("emplois-resolus.json", cas.into_iter().map(|c| Ligne { attendu: resolution(&c), cas: c }).collect());
     // Le dramaturge est cadre dans la 1285 (groupe B de la filiere artistique, art. XI.2.1) ; la grille 3090 ne le
     // nomme pas, le defaut du catalogue vaut.
-    let cadre = |idcc| resoudre("DRA010", None, false, idcc).unwrap();
+    let cadre = |idcc| resoudre("DRA010", None, false, Some(idcc)).unwrap();
     assert_eq!((cadre("1285").statut_conventionnel.as_deref(), cadre("1285").statut_categoriel_rc), (Some("04"), "01"));
     assert_eq!((cadre("3090").statut_conventionnel.as_deref(), cadre("3090").statut_categoriel_rc), (Some("05"), "04"));
 }

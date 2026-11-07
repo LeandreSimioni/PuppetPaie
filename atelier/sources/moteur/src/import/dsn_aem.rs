@@ -371,9 +371,8 @@ pub(crate) fn siren_de_reference(
     dsn: &std::collections::BTreeSet<String>,
     autres: &std::collections::BTreeSet<String>,
 ) -> Option<String> {
-    let s = fiche.siren.texte().trim();
-    if !s.is_empty() {
-        return Some(s.to_string());
+    if let Some(s) = fiche.siren.portee() {
+        return Some(s.trim().to_string());
     }
     let seul = |e: &std::collections::BTreeSet<String>| (e.len() == 1).then(|| e.iter().next().cloned()).flatten();
     if !dsn.is_empty() {

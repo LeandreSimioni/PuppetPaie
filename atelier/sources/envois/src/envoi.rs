@@ -503,9 +503,9 @@ pub fn envoyer_suivi(
         let (message, nom) = match &signature {
             Some(s) => {
                 signe = crate::signature_courriel::signer(message, s);
-                (&signe, s.nom.as_str())
+                (&signe, s.nom.as_deref())
             }
-            None => (message, ""),
+            None => (message, None),
         };
         let brut = en_mime_nomme(message, expediteur, nom).map_err(|m| ErreurEnvoi { message: m, partis: faits.clone(), echoue: message.destinataire.clone() })?;
         let ident = match client.envoyer(&brut) {
@@ -767,9 +767,9 @@ pub struct Hasards<'a> {
 }
 
 /// Le message complet, pieces jointes comprises, tel que `EmailMessage.as_bytes()` l'ecrit, l'expediteur precede du
-/// nom que la compagnie affiche (« Compagnie du Fil <adresse> ») ; vide, l'adresse
+/// nom que la compagnie affiche (« Compagnie du Fil <adresse> ») ; sans nom, l'adresse
 /// seule.
-pub fn en_mime_nomme(message: &Message, expediteur: &str, nom: &str) -> Result<Vec<u8>, String> {
+pub fn en_mime_nomme(message: &Message, expediteur: &str, nom: Option<&str>) -> Result<Vec<u8>, String> {
     let mut frontiere = frontiere_au_hasard;
     let domaine = expediteur.rsplit('@').next().unwrap_or("");
     let hasards = Hasards {
@@ -781,10 +781,10 @@ pub fn en_mime_nomme(message: &Message, expediteur: &str, nom: &str) -> Result<V
 }
 
 pub fn en_mime_avec(message: &Message, expediteur: &str, hasards: Hasards) -> Result<Vec<u8>, String> {
-    en_mime_complet(message, expediteur, "", hasards)
+    en_mime_complet(message, expediteur, None, hasards)
 }
 
-fn en_mime_complet(message: &Message, expediteur: &str, nom: &str, hasards: Hasards) -> Result<Vec<u8>, String> {
+fn en_mime_complet(message: &Message, expediteur: &str, nom: Option<&str>, hasards: Hasards) -> Result<Vec<u8>, String> {
     let Hasards { date, message_id, frontiere } = hasards;
     let adresse = |a: &str| -> Result<(), String> {
         if adresse_simple(a) {
@@ -799,7 +799,10 @@ fn en_mime_complet(message: &Message, expediteur: &str, nom: &str, hasards: Hasa
         return Err("Header values may not contain linefeed or carriage return characters".to_string());
     }
     let mut racine_entetes = vec![
-        if nom.is_empty() { Entete::Adresse("From", expediteur.to_string()) } else { Entete::De(nom.to_string(), expediteur.to_string()) },
+        match nom {
+            Some(nom) => Entete::De(nom.to_string(), expediteur.to_string()),
+            None => Entete::Adresse("From", expediteur.to_string()),
+        },
         Entete::Adresse("To", message.destinataire.clone()),
         Entete::Libre("Subject", message.sujet.clone()),
         Entete::Date(date),

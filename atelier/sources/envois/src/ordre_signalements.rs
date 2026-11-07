@@ -51,11 +51,13 @@ pub struct OrdreConnu {
     pub avertissements: Vec<String>,
 }
 
-/// Le SIREN de l'entreprise : `siren`, sinon les neuf premiers chiffres du `siret`.
-fn siren(ent: &droit::fiche::ChampsEntreprise) -> String {
-    match ent.siren.texte() {
-        "" => ent.siret.texte().chars().take(9).collect(),
-        s => s.to_string(),
+/// Le SIREN de l'entreprise : `siren`, sinon les neuf premiers chiffres du `siret` ; sans l'un ni l'autre, le refus
+/// nomme `siren`.
+fn siren(ent: &droit::fiche::ChampsEntreprise) -> Result<String, Echec> {
+    match (ent.siren.portee(), ent.siret.portee()) {
+        (Some(s), _) => Ok(s.to_string()),
+        (None, Some(siret)) => Ok(siret.chars().take(9).collect()),
+        (None, None) => Err(Echec::from(socle::fichiers::absent("siren"))),
     }
 }
 
@@ -127,7 +129,7 @@ pub fn dernier_ordre_connu(ctx: &Contexte, branchement: Branchement, client: Opt
         }
     };
 
-    let bilans = dernier_ordre_des_bilans(&ctx.racine, &siren(&ctx.entreprise))?;
+    let bilans = dernier_ordre_des_bilans(&ctx.racine, &siren(&ctx.entreprise)?)?;
     let (plateforme, flux) = bilans.clone().unwrap_or((0, String::new()));
     let dernier = journal.max(plateforme);
     if let Err(pourquoi) = lue {
@@ -252,6 +254,6 @@ pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, con
 }
 
 /// Le SIREN de l'entreprise du dossier, comme le lit `dernier_ordre_connu`.
-pub fn siren_de(ctx: &Contexte) -> String {
+pub fn siren_de(ctx: &Contexte) -> Result<String, Echec> {
     siren(&ctx.entreprise)
 }

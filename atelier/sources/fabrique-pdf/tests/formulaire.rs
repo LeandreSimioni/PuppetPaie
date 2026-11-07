@@ -103,12 +103,16 @@ fn proche(a: f64, b: f64) -> bool {
     (a - b).abs() < 0.011
 }
 
+/// Les champs, tels que `--champs` les écrit.
 fn champs(o: &[u8]) -> Value {
-    fabrique_pdf::formulaire::champs(o).unwrap_or_else(|e| panic!("{}", e.0))
+    serde_json::from_str(&fabrique_pdf::formulaire::champs_json(o).unwrap_or_else(|e| panic!("{}", e.0))).unwrap()
 }
 
+/// Le remplissage en texte, lu par la porte (`--remplir`).
 fn remplir(o: &[u8], d: Value) -> Result<Vec<u8>, String> {
-    fabrique_pdf::formulaire::remplir(o, &d.to_string()).map_err(|e| e.0)
+    fabrique_pdf::forme::Remplissage::lire(&d.to_string())
+        .and_then(|r| fabrique_pdf::formulaire::remplir(o, &r))
+        .map_err(|e| e.0)
 }
 
 fn remplir_ok(o: &[u8], d: Value) -> Vec<u8> {
@@ -475,7 +479,7 @@ fn remplir_les_refus_de_champs() {
         assert!(m.contains("format"), "{}", m);
     }
     // une description qui n'est pas du JSON
-    assert!(fabrique_pdf::formulaire::remplir(&e, "pas du json").is_err());
+    assert!(fabrique_pdf::forme::Remplissage::lire("pas du json").is_err());
     // un PDF sans formulaire n'a aucun champ
     let m = refus(&octets_fabrique(1), json!({"format": 3, "champs": {"NOM": "x"}}));
     assert!(m.contains("NOM"), "{}", m);
@@ -950,7 +954,9 @@ fn remplir_deux_fois_de_suite_remplace_la_valeur() {
 // ------------------------------------------------------------------ ajouter des champs
 
 fn ajouter(o: &[u8], d: Value) -> Result<Vec<u8>, String> {
-    fabrique_pdf::formulaire::ajouter_champs(o, &d.to_string()).map_err(|e| e.0)
+    fabrique_pdf::forme::lire::<fabrique_pdf::forme::AjoutDeChamps>(&d.to_string(), "description")
+        .and_then(|a| fabrique_pdf::formulaire::ajouter_champs(o, &a))
+        .map_err(|e| e.0)
 }
 
 #[test]

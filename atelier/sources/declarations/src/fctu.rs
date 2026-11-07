@@ -558,7 +558,7 @@ ou un annule."
     let orgs = ctx.organismes()?;
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
     let mut ent_l = etab.clone();
-    ent_l.licence_spectacle = Some(ctx.licence(&fin_jour));
+    ent_l.licence_spectacle = ctx.licence(&fin_jour);
     for a in &orgs.adhesions_prevoyance {
         f.add("S21.G00.15.001", &a.libelle);
         f.add("S21.G00.15.002", &a.delegataire);

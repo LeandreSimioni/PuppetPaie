@@ -4,6 +4,7 @@ pub mod alleger;
 pub mod assemblage;
 pub mod chiffrement;
 pub mod description;
+pub mod forme;
 pub mod formulaire;
 pub mod glyphes;
 pub mod inspection;
@@ -18,4 +19,5 @@ pub mod texte;
 
 pub use assemblage::assembler;
 pub use description::{Refus, FORMAT};
+pub use forme::Description;
 pub use mise_en_page::fabriquer;

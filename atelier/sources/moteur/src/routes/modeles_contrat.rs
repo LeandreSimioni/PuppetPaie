@@ -192,7 +192,7 @@ fn modeles(ctx: &Contexte) -> R<Value> {
         "natures": sortie,
         "dossier": ctx.gabarits().to_string_lossy(),
         "champs_de_l_avenant": DE_L_AVENANT.iter().map(|c| c.to_string()).collect::<Vec<_>>(),
-        "clauses_particulieres": ctx.entreprise.clauses_particulieres.texte(),
+        "clauses_particulieres": ctx.entreprise.clauses_particulieres.portee(),
     }))
 }
 

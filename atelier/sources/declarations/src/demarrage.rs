@@ -192,7 +192,7 @@ pub fn manques(ctx: &Contexte) -> socle::num::Resultat<Vec<Value>> {
     // QUAND ELLE EST EXIGEE de la compagnie (`exige_si` de `champs-base.json`, lu par `dsn::licence_du_contrat` aussi) :
     // en 1790 et en 3252 la case se montre sans etre exigee, dans l'audiovisuel elle ne se montre pas.
     // Elle peut etre datee (une par periode) : le contexte la resout au jour.
-    if ctx.licence(&ctx.aujourdhui).trim().is_empty() && licence_exigee(ent, intermittents) {
+    if ctx.licence(&ctx.aujourdhui).is_none_or(|l| l.trim().is_empty()) && licence_exigee(ent, intermittents) {
         let (libelle, aide) = champ("licence_spectacle");
         out.push(manque("licence_spectacle", libelle, "la DSN", ENTREPRISE, Some("licence_spectacle"), aide));
     }
@@ -269,8 +269,7 @@ pub fn manques(ctx: &Contexte) -> socle::num::Resultat<Vec<Value>> {
     // La sante d'un permanent suspendu sans indemnisation tout un mois : hors de la 3090, aucun texte ne la dit, et le mois
     // refuse tant que la fiche ne repond pas (`calcul::sante_de_la_suspension`). Elle ne se demande que si une suspension
     // non remuneree est saisie : un champ n'apparait que parce qu'un fait l'exige.
-    let idcc = ent.idcc.texte();
-    if idcc != "3090" && !ent.sante_suspension_non_indemnisee.est_dite() && une_suspension_non_remuneree(ctx) {
+    if ent.idcc.portee() != Some("3090") && !ent.sante_suspension_non_indemnisee.est_dite() && une_suspension_non_remuneree(ctx) {
         let cle = droit::bareme::SANTE_SUSPENSION;
         let (libelle, aide) = champ(cle);
         out.push(manque(cle, libelle, "le mois d'un permanent suspendu sans indemnisation tout le mois", ENTREPRISE, Some(cle), aide));
@@ -366,10 +365,7 @@ fn conges_a_reprendre(ctx: &Contexte) -> Vec<(String, String, String)> {
             continue;
         }
         let nom = fiche
-            .map(|f| {
-                let prenom = if f.prenom_affichage.texte().is_empty() { f.prenom.texte() } else { f.prenom_affichage.texte() };
-                format!("{} {}", f.nom.texte(), prenom).trim().to_string()
-            })
+            .map(|f| documents::tableaux_export::qui_souple(f))
             .filter(|n| !n.is_empty())
             .unwrap_or_else(|| salarie.clone());
         out.push((salarie, nom, premier));
@@ -491,7 +487,7 @@ pub fn a_la_suite(ctx: &Contexte, deja_dit: &str) -> socle::num::Resultat<Option
 
 /// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`) ?
 fn en_alsace_moselle(ctx: &Contexte) -> bool {
-    droit::bareme::en_alsace_moselle(ctx.entreprise.code_postal.texte())
+    droit::bareme::en_alsace_moselle(ctx.entreprise.code_postal.portee())
 }
 
 /// Le taux AT/MP de l'annee est-il encore celui que le moteur a pose a la creation ?

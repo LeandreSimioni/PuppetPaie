@@ -712,7 +712,7 @@ fn une_crate_ne_prend_qu_a_celles_du_dessous() {
 
 /// LES COUCHES FERMEES, de bas en haut (l'ordre de `une_crate_ne_prend_qu_a_celles_du_dessous`). La liste ne fait que
 /// grandir : une couche finie s'y ajoute, et ne recule plus.
-const COUCHES_FERMEES: [&str; 1] = ["socle"];
+const COUCHES_FERMEES: [&str; 3] = ["socle", "droit", "engagement"];
 
 /// LE BORD : les seuls modules ou le JSON brut se touche, parce qu'ils sont la porte d'entree et de sortie des formes.
 /// `forme` lit (une donnee, un texte, un fichier, en sa structure `serde`) ; `ecriture` et `json_ascii` ecrivent une forme.
@@ -2061,7 +2061,7 @@ fn la_page_ne_lit_que_ce_que_les_routes_rendent() {
 }
 
 /// LES COUCHES TENUES SANS REPLI NI ERREUR AVALEE, en plus des couches fermees : leur code ne replie aucune donnee
-/// absente et dit chaque erreur (points 3 et 4 de `une_couche_fermee_ne_lit_que_des_formes`). `droit` rejoint les couches
-/// fermees, et l'engagement avec lui, quand `droit::fiche` n'a plus de repli (`Lue::texte`, `Lue::code`, `Montant`). La
-/// liste ne fait que grandir.
-const SANS_REPLI_NI_ERREUR_AVALEE: [&str; 1] = ["engagement"];
+/// absente et dit chaque erreur (points 3 et 4 de `une_couche_fermee_ne_lit_que_des_formes`). Aucune aujourd'hui : une
+/// couche du dessus y entre quand son code n'a plus de repli, puis rejoint les couches fermees quand elle ne lit plus que
+/// des formes.
+const SANS_REPLI_NI_ERREUR_AVALEE: [&str; 0] = [];

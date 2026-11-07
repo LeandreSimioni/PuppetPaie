@@ -9,7 +9,7 @@
 #[path = "../../src/atelier/bulletins_fictifs.rs"]
 mod fabrique;
 pub use fabrique::*;
-use serde_json::Value;
+use fabrique_pdf::forme::Bloc;
 
 // ------------------------------------------------------------------------------------------- gabarit A
 
@@ -343,7 +343,7 @@ pub struct Certificat<S = &'static str> {
 }
 
 /// La page d'un certificat.
-pub fn page_certificat<S: AsRef<str>>(c: &Certificat<S>) -> Vec<Value> {
+pub fn page_certificat<S: AsRef<str>>(c: &Certificat<S>) -> Vec<Bloc> {
     let mut b = Vec::new();
     let date = |d: &str| if c.dates_a_barres { d.to_string() } else { d.replace('/', " ") };
     let siret = c.siret.as_ref();
@@ -437,10 +437,10 @@ pub struct Aem<S = &'static str> {
 }
 
 /// La page d'une AEM.
-pub fn page_aem<S: AsRef<str>>(a: &Aem<S>) -> Vec<Value> {
+pub fn page_aem<S: AsRef<str>>(a: &Aem<S>) -> Vec<Bloc> {
     let mut b = Vec::new();
     // Une ligne : chaque texte a son abscisse, repoussee au-dela du precedent (un blanc de 10 points entre deux).
-    let ligne = |b: &mut Vec<Value>, y: f64, textes: &[(f64, &str)]| {
+    let ligne = |b: &mut Vec<Bloc>, y: f64, textes: &[(f64, &str)]| {
         let mut fin = 0.0f64;
         for (x, texte) in textes {
             if texte.is_empty() {

@@ -256,9 +256,9 @@ fn salaries_de_la_page(ctx: &Contexte) -> Vec<SalariePropose> {
         .into_iter()
         .map(|(k, v)| SalariePropose {
             cle: k.to_string(),
-            nom: format!("{} {}", v.nom.texte(), if v.prenom_affichage.texte().is_empty() { v.prenom.texte() } else { v.prenom_affichage.texte() }),
+            nom: documents::tableaux_export::qui_souple(v),
             actif: !v.archivee(),
-            email: !v.email.texte().is_empty(),
+            email: v.email.is_some(),
         })
         .collect()
 }
@@ -324,10 +324,10 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<LogicielDuComptable> {
 /// 3090 a une compagnie de la 1285, ni la dette de conges a qui n'emploie pas de
 /// permanents.
 fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
-    let idcc = ctx.entreprise.idcc.texte().to_string();
+    let idcc = ctx.entreprise.idcc.portee();
     let t = tables();
     if let Some(liste) = t["si_convention"].get(etat) {
-        if !idcc.is_empty() && !liste.as_array().expect("liste").iter().any(|c| c.as_str() == Some(idcc.as_str())) {
+        if idcc.is_some() && !liste.as_array().expect("liste").iter().any(|c| c.as_str() == idcc) {
             return false;
         }
     }
@@ -748,12 +748,9 @@ fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie::Dossier, 
     let adresses = adresses_de(ctx, &d.salaries)?;
     for ((cle, f), email) in d.salaries.iter().zip(&d.fichiers).zip(adresses) {
         let s = ctx.salaries.get(cle.as_str()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
-        let prenom = match s.prenom_affichage.texte() {
-            "" if s.prenom.is_none() => return Err(erreur("KeyError", socle::fichiers::absent("prenom"))),
-            "" => s.prenom.texte().to_string(),
-            p => p.to_string(),
-        };
-        let signataire = ctx.entreprise.signataire.dite().cloned().unwrap_or_default();
+        let prenom = s.prenom_affichage.portee().or(s.prenom.portee()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?.to_string();
+        let signataire = ctx.entreprise.signataire.dite().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
+        let signe = signataire.prenom_affichage.remplie().or(signataire.prenom.portee()).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?;
         let ses_pages = d.pages.get(cle);
         let liste = d
             .categories
@@ -769,8 +766,8 @@ fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie::Dossier, 
                 ("periode", if d.periode == "toute la période" { String::new() } else { format!(" ({})", d.periode) }),
                 ("liste", liste),
                 ("reedition", if ses_pages.is_some_and(|p| p.get("contrats").is_some()) { REEDITION_CONTRATS.to_string() } else { String::new() }),
-                ("signataire", signataire.prenom_affichage.remplie().unwrap_or(signataire.prenom.texte()).to_string()),
-                ("raison_sociale", ctx.entreprise.nommee()),
+                ("signataire", signe.to_string()),
+                ("raison_sociale", ctx.entreprise.nommee().ok_or_else(|| socle::fichiers::absent("raison_sociale"))?.to_string()),
             ],
         );
         messages.push(Message {

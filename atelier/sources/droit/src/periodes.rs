@@ -104,8 +104,8 @@ pub enum RegleDuMoisIncomplet {
 /// multipliant 1/21 du montant du salaire mensuel inscrit au contrat [...] par le nombre de jours ouvres figurant au
 /// contrat ». `contrat_incomplet` : le contrat commence apres le premier jour du mois ou finit avant le dernier (un
 /// avenant qui coupe un mois entier n'en fait pas un premier ni un dernier mois).
-pub fn regle_du_mois_incomplet(idcc: &str, statut: &str, contrat_incomplet: bool) -> RegleDuMoisIncomplet {
-    if idcc == "1285" && statut == "artiste" && contrat_incomplet {
+pub fn regle_du_mois_incomplet(idcc: Option<&str>, statut: &str, contrat_incomplet: bool) -> RegleDuMoisIncomplet {
+    if idcc == Some("1285") && statut == "artiste" && contrat_incomplet {
         RegleDuMoisIncomplet::Ccneac1285Artiste
     } else {
         RegleDuMoisIncomplet::HoraireReel

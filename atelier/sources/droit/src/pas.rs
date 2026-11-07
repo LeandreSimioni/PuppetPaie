@@ -87,7 +87,7 @@ fn nombre_de(c: &[u32]) -> u32 {
 
 /// Le jour de la mise a disposition d'un taux recu (`mis_a_disposition`, AAAAMMJJHHMMSS) : d'ou court sa validite.
 pub fn mise_a_disposition(e: &TauxPas) -> Option<Jour> {
-    let c = chiffres(e.mis_a_disposition.texte().trim(), 8)?;
+    let c = chiffres(e.mis_a_disposition.portee()?.trim(), 8)?;
     Jour::nouveau(nombre_de(&c[..4]) as i32, nombre_de(&c[4..6]), nombre_de(&c[6..8]))
 }
 
@@ -116,7 +116,7 @@ pub fn fin_de_validite(e: &TauxPas) -> Option<Jour> {
 /// Un taux qu'on ne sait pas dater est traite comme perime ; le bareme (tout
 /// type autre que 01) ne se perime pas.
 pub fn est_perime(e: &TauxPas, le: Jour) -> bool {
-    if e.r#type.texte() != "01" {
+    if e.r#type.portee() != Some("01") {
         return false;
     }
     fin_de_validite(e).is_none_or(|fin| le > fin)
@@ -126,7 +126,7 @@ pub fn est_perime(e: &TauxPas, le: Jour) -> bool {
 
 /// Vrai seulement si la fiche est la ET qu'elle n'a pas de NIR.
 pub fn sans_nir(ctx: &Contexte, cle: &str) -> bool {
-    ctx.salaries.get(cle).is_some_and(|f| f.nir.texte().trim().is_empty())
+    ctx.salaries.get(cle).is_some_and(|f| f.nir.portee().is_none_or(|n| n.trim().is_empty()))
 }
 
 /// Le jour auquel on demande si un taux vaut encore : celui du contexte.
@@ -144,10 +144,10 @@ pub fn le_jour(ctx: &Contexte, le: Option<Jour>) -> Jour {
 /// se sont ecrits). Une valeur de la fiche qui n'est pas un taux (la case vide d'avant le premier) n'en est pas un.
 pub fn recus(ctx: &Contexte, cle: &str) -> Resultat<Vec<TauxPas>> {
     let Some(fiche) = ctx.salarie_brut(cle) else { return Ok(Vec::new()) };
-    let mut ecrits: Vec<_> = fiche.taux_pas.iter().collect();
+    let mut ecrits: Vec<_> = fiche.taux_pas.iter().flatten().collect();
     ecrits.sort_by_key(|e| e.depuis);
     let mut r: Vec<TauxPas> = ecrits.into_iter().filter_map(|e| e.valeur.dite()).cloned().collect();
-    r.sort_by_key(|v| v.mis_a_disposition.texte().trim().to_string());
+    r.sort_by_key(|v| v.mis_a_disposition.portee().map(|m| m.trim().to_string()));
     Ok(r)
 }
 
@@ -465,7 +465,7 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>, mois: Option<&str>
     let quoi = match e {
         None if sans_nir(ctx, cle) => SANS_NIR,
         None => INCONNU,
-        Some(e) if e.r#type.texte() != "01" => {
+        Some(e) if e.r#type.portee() != Some("01") => {
             if sans_nir(ctx, cle) {
                 SANS_NIR
             } else {
@@ -519,7 +519,10 @@ pub fn avertissements(ctx: &Contexte, cles: Option<&[String]>, le: Option<Jour>,
             VALIDE => continue,
             PERIME => format!(
                 "le dernier taux transmis par la DGFiP ({} %) valait jusqu'au {}",
-                s.taux.texte().replace('.', ","),
+                match s.taux.portee() {
+                    Some(t) => t.replace('.', ","),
+                    None => "?".to_string(),
+                },
                 match s.valable_jusqu_a {
                     Some(j) => j.jj_mm_aaaa(),
                     None => "?".to_string(),
@@ -562,7 +565,7 @@ mod tests {
     fn un_taux_vaut_pour_tout_paiement_a_partir_de_sa_mise_a_disposition() {
         let taux = |id: &str, le: &str| recu("9.40", id, le, None);
         let recus = vec![taux("480747943", "20260313070000"), taux("985249073", "20260415100000")];
-        let id = |le: &str| en_vigueur(&recus, Jour::lire(le).unwrap(), None).map(|e| e.identifiant.texte().to_string());
+        let id = |le: &str| en_vigueur(&recus, Jour::lire(le).unwrap(), None).and_then(|e| e.identifiant.en_texte());
         assert_eq!(id("2026-03-12"), None);
         assert_eq!(id("2026-03-13"), Some("480747943".to_string()));
         assert_eq!(id("2026-03-14"), Some("480747943".to_string()));
@@ -591,7 +594,7 @@ mod tests {
     fn le_taux_en_retour_de_la_dsn_d_un_mois_vaut_pour_les_mois_qui_suivent() {
         let taux = |id: &str, le: &str, retour: Option<&str>| recu("2.30", id, le, retour);
         let recus = vec![taux("157352475", "20261005194311", Some("2026-09")), taux("713288315", "20261221184328", Some("2026-12"))];
-        let id = |le: &str, mois: &str| en_vigueur(&recus, Jour::lire(le).unwrap(), Some(mois)).map(|e| e.identifiant.texte().to_string());
+        let id = |le: &str, mois: &str| en_vigueur(&recus, Jour::lire(le).unwrap(), Some(mois)).and_then(|e| e.identifiant.en_texte());
         assert_eq!(id("2026-12-31", "2026-12"), Some("157352475".to_string()));
         assert_eq!(id("2027-01-05", "2026-12"), Some("157352475".to_string()));
         assert_eq!(id("2027-01-31", "2027-01"), Some("713288315".to_string()));

@@ -66,10 +66,9 @@ pub(crate) fn regle_du_mois_incomplet(
     debut_mois: &Jour,
     fin_mois: &Jour,
 ) -> Resultat<droit::periodes::RegleDuMoisIncomplet> {
-    let idcc = ctx.entreprise.idcc.texte().to_string();
     let fiche = ctx.salarie(salarie)?;
     let statut = crate::calcul::statut_de(&fiche)?;
-    Ok(droit::periodes::regle_du_mois_incomplet(&idcc, statut, debut > debut_mois || fin < fin_mois))
+    Ok(droit::periodes::regle_du_mois_incomplet(ctx.entreprise.idcc.portee(), statut, debut > debut_mois || fin < fin_mois))
 }
 
 /// L'horaire de `salarie` pour le mois [`debut_mois`, `fin_mois`] (`droit::periodes::Horaire`) : ses jours travailles,
@@ -772,18 +771,19 @@ pub struct Reprise {
 }
 
 /// Le solde repris de l'ancien logiciel, ou `None` (la fiche n'en dit pas, ou ne dit pas sa date). Datee, la reprise dit
-/// chacun de ses nombres (0 s'il n'y en a pas) ; un montant illisible s'est refuse a la lecture de la fiche
-/// (`fiche::Montant`).
+/// chacun de ses nombres (0 s'il n'y en a pas) ; un montant illisible se refuse (`fiche::Montant::decimal`).
 pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Reprise>> {
     let Some(r) = reprise_ecrite(ctx, cle_salarie)? else { return Ok(None) };
     let Some(date) = r.date.dite().copied() else { return Ok(None) };
-    let nombre = |c: &Option<droit::fiche::Montant>, cle: &str| {
-        c.dite().map(droit::fiche::Montant::decimal).ok_or_else(|| {
-            socle::echec::cle(
-                format!("La reprise des congés du {} ne dit pas tous ses nombres : écrire chacun sur la fiche du salarié, 0 s'il n'y en a pas.", date.jj_mm_aaaa()),
-                cle,
-            )
-        })
+    let nombre = |c: &Option<droit::fiche::Montant>, cle: &str| -> Resultat<Decimal> {
+        c.dite()
+            .ok_or_else(|| {
+                socle::echec::cle(
+                    format!("La reprise des congés du {} ne dit pas tous ses nombres : écrire chacun sur la fiche du salarié, 0 s'il n'y en a pas.", date.jj_mm_aaaa()),
+                    cle,
+                )
+            })?
+            .decimal()
     };
     Ok(Some(Reprise {
         date,
@@ -1143,7 +1143,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Carte, mois: &str) -> Resultat<
     }
     let ent = &ctx.entreprise;
     let jauge = ent.jauge_annexe_1.dite().map(droit::fiche::Choix::code);
-    let pa = clauses::prime_anciennete(ent.idcc.texte(), ent.annexe_convention.code(), &fiche, &crate::solde::dit_par_l_engagement(e)?, &fin_mois, jauge)?;
+    let pa = clauses::prime_anciennete(ent.idcc.portee(), ent.annexe_convention.code(), &fiche, &crate::solde::dit_par_l_engagement(e)?, &fin_mois, jauge)?;
     if let Some(pa) = pa {
         let Some(base_conv) = pa.base.map(|b| socle::num::dec_texte(&b.to_string())).transpose()? else {
             return Err(format!("{} : prime d'anciennete ({}) -- {}.", qui(ctx, e), pa.article, pa.pourquoi.into_iter().collect::<String>()));

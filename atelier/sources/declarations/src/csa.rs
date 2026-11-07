@@ -247,7 +247,7 @@ de {}. Rien n'est ecrit.",
     // L'assiette : celle de la taxe d'apprentissage que les DSN de N declarent, etablissement par etablissement (le
     // montant « pour l'ensemble de ses établissements »).
     let (mut assiette, mut alsace) = (Decimal::ZERO, Decimal::ZERO);
-    for nic in ctx.entreprise.nics() {
+    for nic in ctx.entreprise.nics()? {
         let a = crate::dsn::assiettes_de_l_annee(ctx, n, &nic, &["992", "993"], departs)?;
         assiette = add(assiette, a[0]);
         alsace = add(alsace, a[1]);

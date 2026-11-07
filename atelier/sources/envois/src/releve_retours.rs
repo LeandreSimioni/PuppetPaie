@@ -192,12 +192,12 @@ impl Client {
     /// `ClientDpae(ctx, majuscules, motdepasse)` : le compte Urssaf, qui n'est pas celui de la DSN.
     pub fn dpae(ctx: &Contexte, majuscules: bool, motdepasse: Option<String>) -> Client {
         let compte = ctx.entreprise.api_dpae.dite().cloned().unwrap_or_default();
-        let siret = if compte.siret.texte().is_empty() { &ctx.entreprise.siret } else { &compte.siret }.texte().to_string();
+        let siret = compte.siret.en_texte().or_else(|| ctx.entreprise.siret.en_texte());
         Client {
             adresses: adresses_dpae(&compte),
             jeton: None,
             expire_le: None,
-            declarant: crate::transport::Identite { siret, nom: compte.nom.texte().to_string(), prenom: compte.prenom.texte().to_string() },
+            declarant: crate::transport::Identite { siret, nom: compte.nom.en_texte(), prenom: compte.prenom.en_texte() },
             motdepasse,
             variable: VARIABLE_MOTDEPASSE_DPAE,
             majuscules,

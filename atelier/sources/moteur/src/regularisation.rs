@@ -5,7 +5,6 @@
 //! version presente de l'engagement valide et celle sur laquelle la DSN est partie
 //! (`produire_regularisations::corrections_dues`).
 
-use droit::fiche::Lue as _;
 use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
@@ -261,9 +260,7 @@ fn resume_nul() -> Value {
 
 /// Le nom d'un salarie tel que la page le montre : « NOM Prenom ».
 fn nom_de(p: &Paie) -> String {
-    let sal = &p.salarie;
-    let prenom = if sal.prenom_affichage.texte().is_empty() { sal.prenom.texte() } else { sal.prenom_affichage.texte() };
-    format!("{} {}", sal.nom.texte(), prenom)
+    documents::tableaux_export::qui_souple(&p.salarie)
 }
 
 /// AVANT, APRES, DIFFERENCE : deux paies ecrites d'un contrat (`avant` : la derniere declaree, `None` pour un contrat

@@ -63,17 +63,6 @@ pub enum Variante {
     Attestation,
 }
 
-impl Variante {
-    pub fn depuis_style(style: &str) -> Option<Variante> {
-        match style {
-            "contrat" => Some(Variante::Contrat),
-            "avenant" => Some(Variante::Avenant),
-            "attestation" => Some(Variante::Attestation),
-            _ => None,
-        }
-    }
-}
-
 /// Un article du contrat modifié par l'avenant : son numéro et son titre dans le contrat, et les
 /// paragraphes cités, l'ancien texte puis le nouveau, dans le même ordre.
 pub struct Modification {

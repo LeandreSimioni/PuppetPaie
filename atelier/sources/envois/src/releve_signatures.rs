@@ -227,6 +227,7 @@ pub fn renvoyer_contresigne(racine: &Path, client: &mut dyn Courriel, c: &Contre
             if nb == 1 { "ton contrat d'engagement".to_string() } else { format!("tes {} contrats d'engagement (un par page)", nb) },
         )
     };
+    let prenom = a.prenom.clone().ok_or_else(|| socle::echec::Echec::from(socle::fichiers::absent("prenom")))?;
     let message = Message {
         cle: a.salarie.to_string(),
         nom: a.nom.clone(),
@@ -235,7 +236,7 @@ pub fn renvoyer_contresigne(racine: &Path, client: &mut dyn Courriel, c: &Contre
         corps: envoi::formater(
             CORPS_CONTRESIGNE,
             &[
-                ("prenom", a.prenom.clone()),
+                ("prenom", prenom),
                 ("quand", c.quand_lisible.to_string()),
                 ("quoi", quoi),
                 ("signataire", c.signataire.to_string()),

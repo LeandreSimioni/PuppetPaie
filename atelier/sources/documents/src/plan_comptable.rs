@@ -217,7 +217,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &droit::fiche::Cham
     if !vrai(modele) {
         return Ok(String::new());
     }
-    let code = entier_de(salarie.code_salarie.texte().trim());
+    let code = salarie.code_salarie.portee().and_then(|t| entier_de(t.trim()));
     let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;

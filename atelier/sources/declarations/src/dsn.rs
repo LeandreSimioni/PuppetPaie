@@ -167,13 +167,18 @@ pub fn req<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
 /// se lit dans la fiche, sinon refus.
 pub fn contact_emetteur(f: &mut Fichier, ent: &ChampsEntreprise) -> Resultat<()> {
     let decl = ent.declarant_dsn.exigee("declarant_dsn")?;
-    let civilite = decl.civilite.code();
-    if civilite != "01" && civilite != "02" {
-        return Err(socle::echec::cle(format!(
-            "La civilité de la personne que les organismes contactent {} : la saisir dans Configuration › Entreprise, « Qui les organismes contactent », case Civilité (Monsieur ou Madame). Elle s'écrit en S10.G00.02.001 (cahier technique DSN, p. 132). Rien n'est écrit.",
-            if civilite.is_empty() { "manque".to_string() } else { format!("vaut « {} », ni 01 ni 02", civilite) }
-        ), "declarant_dsn.civilite"));
-    }
+    let civilite = match decl.civilite.code() {
+        Some(c @ ("01" | "02")) => c,
+        autre => {
+            return Err(socle::echec::cle(format!(
+                "La civilité de la personne que les organismes contactent {} : la saisir dans Configuration › Entreprise, « Qui les organismes contactent », case Civilité (Monsieur ou Madame). Elle s'écrit en S10.G00.02.001 (cahier technique DSN, p. 132). Rien n'est écrit.",
+                match autre {
+                    Some(c) => format!("vaut « {} », ni 01 ni 02", c),
+                    None => "manque".to_string(),
+                }
+            ), "declarant_dsn.civilite"))
+        }
+    };
     f.add("S10.G00.02.001", civilite);
     if decl.nom_prenom.remplie().is_none() {
         return Err(socle::echec::cle("Le nom de la personne que les organismes contactent manque : le saisir dans Configuration › Entreprise, « Qui les organismes contactent ». Il s'écrit en S10.G00.02.002 et S20.G00.07.001. Rien n'est écrit.", "declarant_dsn.nom_prenom"));
@@ -242,21 +247,23 @@ fn contact_sante_travail(f: &mut Fichier, ent_e: &ChampsEntreprise) -> Resultat<
     if spst_ecrit(f, ent_e)?.as_deref() != Some("MT01") {
         return Ok(());
     }
-    let c = ent_e.contact_sante_travail.dite().cloned().unwrap_or_default();
-    let manque: Vec<&str> = [(&c.nom_prenom, "nom et prénom"), (&c.tel, "téléphone"), (&c.email, "courriel")]
-        .into_iter()
-        .filter(|(k, _)| k.texte().trim().is_empty())
-        .map(|(_, l)| l)
-        .collect();
-    if !manque.is_empty() {
+    let c = ent_e.contact_sante_travail.dite();
+    let lu = |k: fn(&droit::fiche::ContactSanteTravail) -> &Option<String>| c.and_then(|c| k(c).portee());
+    let (nom_prenom, tel, email) = (lu(|c| &c.nom_prenom), lu(|c| &c.tel), lu(|c| &c.email));
+    let (Some(nom_prenom), Some(tel), Some(email)) = (nom_prenom, tel, email) else {
+        let manque: Vec<&str> = [(nom_prenom, "nom et prénom"), (tel, "téléphone"), (email, "courriel")]
+            .into_iter()
+            .filter(|(k, _)| k.is_none())
+            .map(|(_, l)| l)
+            .collect();
         return Err(format!(
             "La médecine du travail de la compagnie est interne (code MT999) : la DSN déclare qui y répond, le médecin du travail ou une personne sous sa responsabilité (S20.G00.07, type 17). Manque : {}. Le saisir dans Configuration › Entreprise, « Qui répond pour la médecine du travail interne ». Rien n'est écrit.",
             manque.join(", ")
         ));
-    }
-    f.add("S20.G00.07.001", c.nom_prenom.texte());
-    f.add("S20.G00.07.002", c.tel.texte());
-    f.add("S20.G00.07.003", c.email.texte());
+    };
+    f.add("S20.G00.07.001", nom_prenom);
+    f.add("S20.G00.07.002", tel);
+    f.add("S20.G00.07.003", email);
     f.add("S20.G00.07.004", "17");
     Ok(())
 }
@@ -325,9 +332,9 @@ fn cle_salarie(p: &Paie) -> String {
 
 /// L'emploi qu'un contrat declare : ce que le bloc 40 en dit (PCS-ESE `40.004`, code emploi `40.005`, libelle
 /// `40.006`), lu sur la fiche telle que l'engagement l'a faite (`emplois::emploi_de`).
-fn emploi_declare(p: &Paie) -> (String, String, String) {
+fn emploi_declare(p: &Paie) -> (Option<String>, Option<String>, Option<String>) {
     let s = &p.salarie;
-    (s.pcs_ese.texte().to_string(), s.code_emploi_ft.texte().to_string(), s.emploi.texte().to_string())
+    (s.pcs_ese.en_texte(), s.code_emploi_ft.en_texte(), s.emploi.en_texte())
 }
 
 /// Les contrats d'une periode de paie : la paie ecrite de chaque engagement valide du mois
@@ -349,7 +356,7 @@ pub fn contrats_du_mois(ctx: &Contexte, mois: &str, departs: &engagement::depart
 /// mois, 148 contrats de son historique, fiche N1 de la relecture).
 pub fn emplois_multiples(p: &Paie, autres: &[&Paie]) -> &'static str {
     let cle = cle_salarie(p);
-    let mut emplois: BTreeSet<(String, String, String)> = autres.iter().filter(|q| cle_salarie(q) == cle).map(|q| emploi_declare(q)).collect();
+    let mut emplois: BTreeSet<(Option<String>, Option<String>, Option<String>)> = autres.iter().filter(|q| cle_salarie(q) == cle).map(|q| emploi_declare(q)).collect();
     emplois.insert(emploi_declare(p));
     if emplois.len() > 1 {
         "02"
@@ -378,8 +385,8 @@ pub fn bloc_individu(f: &mut Fichier, s: &droit::fiche::ChampsSalarie, courriel:
     f.add("S21.G00.30.013", socle::codification_ue::codification_ue(&s.nationalite())?);
     f.add_case("S21.G00.30.014", &s.departement_naissance, "departement_naissance")?;
     f.add_case("S21.G00.30.015", &s.pays_de_naissance()?, "pays_naissance")?;
-    if courriel && !s.email.texte().is_empty() {
-        f.add("S21.G00.30.018", s.email.texte());
+    if let Some(email) = s.email.portee().filter(|_| courriel) {
+        f.add("S21.G00.30.018", email);
     }
     f.add_case("S21.G00.30.019", &s.code_salarie, "code_salarie")
 }
@@ -951,7 +958,7 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Rubrique) 
     };
     let cet_pat = cet.pat;
     let comp = match r.composants_pat.as_deref().unwrap_or_default() {
-        [] => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?],
+        [] => vec![r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?.0],
         c => c.to_vec(),
     };
     let sans = droit::bareme::somme_pct(l.base, &comp)?;
@@ -1029,7 +1036,7 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
         let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| l.est(id))) else { continue };
         let (montant, cet) = sans_la_cet(p, l, r)?;
         let taux = match &cet {
-            Some(_) => r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?,
+            Some(_) => r.taux_pat.ok_or_else(|| socle::fichiers::absent("taux_pat"))?.0,
             None => l.taux_pat.ok_or_else(|| format!("La ligne « {} » du bulletin n'a pas de taux patronal : sa part Agirc-Arrco ne se declare pas.", id))?,
         };
         if let Some((m, t)) = cet {
@@ -1147,7 +1154,7 @@ fn affiliations_du_permanent(p: &Paie, ent: &ChampsEntreprise) -> Resultat<Optio
     // de mutuelle (`bareme_sante`), et le
     // salarie n'est pas rattache au contrat de sante -- 70.014/.015 decrivent la dispense comme ce qui ouvre ou ferme
     // l'affiliation (cahier technique 2026.1, p. 287).
-    let dispense = !p.salarie.sante_dispense.texte().is_empty();
+    let dispense = p.salarie.sante_dispense.portee();
     // Un mois entierement suspendu sans indemnisation, garanties suspendues (`calcul::sante_de_la_suspension` : 3090,
     // accord sante du 19/07/2024, art. 4.2 et 15) : pas de cotisation, et pas de rattachement a la sante ce mois-la --
     // comme une dispense. INFERENCE NOMMEE : aucune fiche DSN deposee ne dit comment declarer une affiliation sante
@@ -1162,21 +1169,21 @@ fn affiliations_du_permanent(p: &Paie, ent: &ChampsEntreprise) -> Resultat<Optio
             p.salarie.sante_suspendue.clone().unwrap_or_default()
         ));
     }
-    if dispense && p.lignes.iter().any(|l| l.est("mutuelle")) {
+    if let Some(motif) = dispense.filter(|_| p.lignes.iter().any(|l| l.est("mutuelle"))) {
         return Err(socle::echec::cle(
             format!(
                 "{} : la fiche porte une dispense de complementaire sante (« {} ») et le bulletin cotise a \
-la mutuelle (convention {}) : il a ete calcule sans elle. La DSN ne choisit pas entre l'affiliation et la dispense : \
+la mutuelle{} : il a ete calcule sans elle. La DSN ne choisit pas entre l'affiliation et la dispense : \
 recalculer le bulletin si le salarie est dispense, retirer la dispense de la fiche s'il est affilie. Rien n'est \
 declare.",
                 qui_contrat(p),
-                p.salarie.sante_dispense.texte().to_string(),
-                ent.idcc.texte()
+                motif,
+                ent.idcc.portee().map(|i| format!(" (convention {})", i)).unwrap_or_default()
             ),
             "sante_dispense",
         ));
     }
-    Ok(Some(AffiliationsDuPermanent { prevoyance, sante: !dispense && !suspendue }))
+    Ok(Some(AffiliationsDuPermanent { prevoyance, sante: dispense.is_none() && !suspendue }))
 }
 
 /// Les places (`Affiliation::place`) des adhesions de sa nature auxquelles le salarie n'est pas affilie ce mois-la.
@@ -1272,7 +1279,7 @@ travaillait pas avant, sa date d'embauche chez nous). Rien n'est declare.",
 fn option_retenue(p: &Paie, ent: &ChampsEntreprise, adhesion: &droit::organismes::Adhesion, reference: &str) -> Resultat<(Option<String>, Option<(i64, i64)>)> {
     let base = droit::organismes::base()?;
     let libelle = adhesion.libelle.trim();
-    let Some(options) = base.options(ent.idcc.texte(), libelle) else {
+    let Some(options) = base.options(ent.idcc.portee(), libelle) else {
         return Ok((None, None));
     };
     let lieu = format!(
@@ -1290,12 +1297,16 @@ compagnie ; rien n'est declare.",
             lieu
         ));
     }
-    let choix = p.salarie.sante_svp.dite().cloned().unwrap_or_default();
-    let niveau = choix.niveau.texte().to_string();
-    let enfants = choix.enfants.dite().map_or(Some(0), droit::fiche::Montant::entier).filter(|n| (0..=99).contains(n));
-    let conjoint = choix.conjoint.oui();
+    let choix = p.salarie.sante_svp.dite();
+    let niveau = choix.and_then(|c| c.niveau.portee());
+    let enfants = match choix.and_then(|c| c.enfants.dite()) {
+        Some(m) => m.entier()?,
+        None => Some(0),
+    }
+    .filter(|n| (0..=99).contains(n));
+    let conjoint = choix.is_some_and(|c| c.conjoint.oui());
     let famille = conjoint || enfants.map_or(false, |n| n > 0);
-    let code = options.niveaux.get(&niveau).map(|n| if famille { n.famille.as_str() } else { n.isole.as_str() });
+    let code = niveau.and_then(|niveau| options.niveaux.get(niveau)).map(|n| if famille { n.famille.as_str() } else { n.isole.as_str() });
     match (code, enfants) {
         (Some(c), Some(n)) => Ok((Some(c.to_string()), famille.then_some((i64::from(conjoint), n)))),
         _ => Err(socle::echec::a_la_cle(
@@ -1304,7 +1315,7 @@ compagnie ; rien n'est declare.",
                 lieu
             ),
             "sante_svp",
-            p.salarie.sante_svp.dite().map_or("rien".to_string(), |s| format!("niveau « {} »", s.niveau.texte())),
+            niveau.map_or("rien".to_string(), |n| format!("niveau « {} »", n)),
         )),
     }
 }
@@ -1326,7 +1337,7 @@ fn refs_du_mois(orgs: &Organismes, sec: &droit::organismes::Rattachement, mois: 
 /// `casc_svp` : la CASC-SVP de ce mois, ou `None`.
 fn casc_svp(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Organismes, mois: &str) -> Resultat<Option<Value>> {
     let base = droit::adhesions::casc_svp_base()?;
-    if ent.idcc.texte() != base.idcc || mois < base.depuis.trim() {
+    if ent.idcc.portee() != Some(base.idcc.as_str()) || mois < base.depuis.trim() {
         return Ok(None);
     }
     if bareme::casc_exemptee(ent)? {
@@ -1400,7 +1411,7 @@ fn contributions_dsn(ctx: &Contexte, ent: &ChampsEntreprise, orgs: &Organismes, 
                 return Err(format!(
                     "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens, et les organismes \
 du mois n'ont pas l'adhesion de cette contribution, que le logiciel compose depuis le bareme. Rien n'est ecrit.",
-                    ent.idcc.texte(),
+                    ent.idcc.ecrite("idcc")?,
                     nom,
                     spec.en_dsn_depuis
                 ))
@@ -1524,8 +1535,11 @@ fn qt_f(x: f64) -> Resultat<String> {
 
 /// « Prenom NOM » d'une fiche, a defaut sa cle : qui une phrase de refus designe.
 fn qui_fiche(s: &droit::fiche::ChampsSalarie, cle: &str) -> String {
-    let nom = [s.prenom.texte().to_string(), s.nom.texte().to_string()].into_iter().filter(|x| !x.trim().is_empty()).collect::<Vec<_>>().join(" ");
-    if nom.is_empty() { cle.to_string() } else { nom }
+    match (s.prenom.portee(), s.nom.portee()) {
+        (Some(prenom), Some(nom)) => format!("{} {}", prenom, nom),
+        (Some(un), None) | (None, Some(un)) => un.to_string(),
+        (None, None) => cle.to_string(),
+    }
 }
 
 /// « Prenom NOM, contrat <numero> » : qui une phrase de refus du bloc 40 designe.
@@ -1579,17 +1593,18 @@ p. 322). Corriger la date sur la fiche : le jour ou la personne est entree dans 
 ///
 /// La CCH-11 (p. 182, l. 156-160 : 40.003 = 01 => 40.002 dans 03, 04 ou 08) est un controle bloquant : verifiee ici,
 /// avant de produire.
-pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
+pub fn statuts_du_contrat(p: &Paie, idcc: Option<&str>) -> Resultat<(String, String)> {
     let s = &p.salarie;
-    let lu = |v: &str| Some(v.trim().to_string()).filter(|v| !v.is_empty());
-    let code = s.code_emploi_ft.texte().trim().to_uppercase();
-    let m = droit::emplois::metier(&code)?.filter(|m| m.au_catalogue().is_some());
-    let metier_dit = if code.is_empty() {
-        "la fiche n'a pas de metier (code emploi)".to_string()
-    } else if m.is_none() {
-        format!("son metier ({}) n'est pas au catalogue des metiers, qui les dirait", code)
-    } else {
-        String::new()
+    let lu = |v: Option<&str>| v.map(str::trim).filter(|v| !v.is_empty()).map(str::to_string);
+    let code = s.code_emploi_ft.portee();
+    let m = match code {
+        Some(c) => droit::emplois::metier(c)?.filter(|m| m.au_catalogue().is_some()),
+        None => None,
+    };
+    // Ce qui manque quand le catalogue ne dit rien du metier.
+    let metier_dit = || match code {
+        Some(c) => format!("son metier ({}) n'est pas au catalogue des metiers, qui les dirait", c.trim().to_uppercase()),
+        None => "la fiche n'a pas de metier (code emploi)".to_string(),
     };
     let rc = match (lu(s.statut_categoriel_rc.code()), &m) {
         (Some(rc), _) => rc,
@@ -1600,7 +1615,7 @@ pub fn statuts_du_contrat(p: &Paie, idcc: &str) -> Resultat<(String, String)> {
 (S21.G00.40.003, « Cadre ou non cadre »). La paie s'est calculee non cadre ; ni l'un ni l'autre ne se devine. Saisir \
 « Cadre ou non cadre » sur la fiche : 01 (cadre, et refaire la paie) ou 04 (non cadre).",
                 qui_contrat(p),
-                code,
+                m.code,
                 m.libelle()
             ))
         }
@@ -1617,7 +1632,7 @@ intermediaire, 06 employe, 07 ouvrier)"
 metiers, ou saisir « Cadre ou non cadre » et « Classement conventionnel (DSN) » sur la fiche.",
                 qui_contrat(p),
                 aussi,
-                metier_dit
+                metier_dit()
             ));
         }
     };
@@ -1630,7 +1645,10 @@ metiers, ou saisir « Cadre ou non cadre » et « Classement conventionnel (DSN)
         }),
     };
     let Some(sc) = sc else {
-        let raison = if metier_dit.is_empty() { format!("le metier {} ne le dit pas pour le statut {}", code, rc) } else { metier_dit };
+        let raison = match &m {
+            Some(m) => format!("le metier {} ne le dit pas pour le statut {}", m.code, rc),
+            None => metier_dit(),
+        };
         return Err(format!(
             "{} : la fiche ne dit pas le classement conventionnel (S21.G00.40.002, « Classement conventionnel (DSN) » : 04 cadre, 05 \
 profession intermediaire, 06 employe, 07 ouvrier), et {}. Il ne se devine pas : le saisir sur la fiche.",
@@ -1686,7 +1704,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         ), "taux_atmp"));
     }
     // Les statuts se lisent, ou refusent (`statuts_du_contrat`), avant qu'une ligne du contrat soit ecrite.
-    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p, ent.idcc.texte())?;
+    let (statut_conventionnel, statut_categoriel_rc) = statuts_du_contrat(p, ent.idcc.portee())?;
     f.add("S21.G00.40.001", e.debut.jjmmaaaa());
     f.add("S21.G00.40.002", statut_conventionnel);
     f.add("S21.G00.40.003", statut_categoriel_rc);
@@ -1752,7 +1770,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     } else {
         f.add_opt("S21.G00.40.016", nat.code("S21.G00.40.016"))?;
     }
-    f.add("S21.G00.40.017", engagement::minima::idcc_du_contrat(ent.idcc.texte(), p.spectacle.as_ref(), &p.salarie)?);
+    f.add("S21.G00.40.017", engagement::minima::idcc_du_contrat(ent.idcc.ecrite("idcc")?, p.spectacle.as_ref(), &p.salarie)?);
     f.add_opt("S21.G00.40.018", nat.code("S21.G00.40.018"))?;
     f.add_case("S21.G00.40.019", &ent.siret, "siret")?;
     f.add_opt("S21.G00.40.020", nat.code("S21.G00.40.020"))?;
@@ -2639,7 +2657,7 @@ fn bloc_regularisation(
 introuvable dans le versement declare (rubrique S21.G00.50.006). Le bloc 56 de regularisation du PAS \
 doit le citer, et on ne le devine pas. Rien n'est ecrit.",
                         r.mois,
-                        apres.salarie.nom.texte().to_string()
+                        documents::tableaux_export::qui_souple(&apres.salarie)
                     ),
                     serde_json::json!({"chemin": format!("sorties/{}/{}", r.mois, r.declare.fichier)}),
                 ))
@@ -3474,7 +3492,7 @@ pub fn reference_versement(v: &Versement, ent: &ChampsEntreprise) -> Option<Stri
     if v.siret != SIRET_FRANCE_TRAVAIL {
         return None;
     }
-    Some(ent.france_travail_dossier_recouvrement.texte().trim().to_string()).filter(|s| !s.is_empty())
+    ent.france_travail_dossier_recouvrement.portee().map(|s| s.trim().to_string())
 }
 
 /// Le montant d'un versement : la somme de ses cles de totalisation (`codes81`).
@@ -3682,11 +3700,10 @@ pub const DGFIP_PAS: &str = "DGFIP_PAS";
 /// Les coordonnees bancaires du compte preleve (S21.G00.20.003 et .004) : la fiche entreprise, `banque`. Absentes, la
 /// DSN ne s'ecrit pas : un versement en prelevement SEPA (20.010 = 05) les exige (CCH-12 et SIG-13, p. 161).
 fn banque_du_prelevement(ent: &ChampsEntreprise) -> Resultat<&droit::fiche::Banque> {
-    static SANS: std::sync::OnceLock<droit::fiche::Banque> = std::sync::OnceLock::new();
-    let banque = ent.banque.dite().unwrap_or_else(|| SANS.get_or_init(Default::default));
-    let manque: Vec<&str> = [(&banque.bic, "le BIC (S21.G00.20.003)"), (&banque.iban, "l'IBAN (S21.G00.20.004)")]
+    let banque = ent.banque.dite();
+    let manque: Vec<&str> = [(banque.and_then(|b| b.bic.portee()), "le BIC (S21.G00.20.003)"), (banque.and_then(|b| b.iban.portee()), "l'IBAN (S21.G00.20.004)")]
         .iter()
-        .filter(|(c, _)| c.texte().trim().is_empty())
+        .filter(|(c, _)| c.is_none())
         .map(|(_, l)| *l)
         .collect();
     if !manque.is_empty() {
@@ -3698,7 +3715,7 @@ sur le RIB de la compagnie). Rien n'est ecrit.",
             manque.join(" et ")
         ), "banque"));
     }
-    Ok(banque)
+    ent.banque.exigee("banque")
 }
 
 /// Le prelevement a la source que CE fichier retient : la somme des S21.G00.50.009 (versements du mois et
@@ -4028,7 +4045,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
             let nic = bareme::etablissement_de(&ctx_m.entreprise, &declaree.salarie)?;
             let bar = bar_du(&ctx_m, &ctx_m.entreprise, orgs, &nic, &m)?;
             let mut ent = ctx_m.entreprise.clone();
-            ent.licence_spectacle = Some(ctx.licence(&Mois::lire(&m)?.premier_jour()));
+            ent.licence_spectacle = ctx.licence(&Mois::lire(&m)?.premier_jour());
             let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
             let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
             let refs: Vec<&Paie> = autres.iter().collect();
@@ -4040,7 +4057,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
                 .filter(|(k, _)| k.starts_with("S21.G00.40."))
                 .map(|(k, x)| (k.to_string(), x.trim_matches('\'').to_string()))
                 .collect();
-            return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: ctx_m.entreprise.siren.texte().trim().to_string() + &nic, nic, bloc }));
+            return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: ctx_m.entreprise.siren.ecrite("siren")?.trim().to_string() + &nic, nic, bloc }));
         }
         m = Mois::lire(&m)?.precedent().to_string();
     }
@@ -4222,14 +4239,14 @@ pub fn exiges<'a>(ent: &ChampsEntreprise, salaries: impl Iterator<Item = &'a dro
 pub fn fabriquer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options, departs: &engagement::departs::Departs) -> Resultat<Fabriquee> {
     let ctx = &ctx.du_mois(mois)?;
     let ent0 = &ctx.entreprise;
-    let principal_nic = ent0.nic_principal();
+    let principal_nic = ent0.nic.ecrite("nic")?;
     let nic = match o.etablissement.as_deref().filter(|n| !n.is_empty()) {
         Some(n) => n.to_string(),
-        None => principal_nic.clone(),
+        None => principal_nic.to_string(),
     };
     let principal = nic == principal_nic;
     if !principal && ent0.etablissement(&nic).is_none() {
-        return Err(format!("Etablissement {} inconnu de la fiche entreprise (connus : {}).", nic, ent0.nics().join(", ")));
+        return Err(format!("Etablissement {} inconnu de la fiche entreprise (connus : {}).", nic, ent0.nics()?.join(", ")));
     }
     let mut egares = BTreeSet::new();
     for s in paies.iter().map(|p| &p.salarie).chain(regs.iter().map(|r| &r.apres.salarie)) {
@@ -4261,7 +4278,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
         ));
     }
     // Les etablissements, celui de cette DSN d'abord : un contrat declare ailleurs a change d'etablissement (bloc 41).
-    let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(ent0.nics().into_iter().filter(|n| *n != nic)).collect();
+    let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(ent0.nics()?.into_iter().filter(|n| *n != nic)).collect();
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
     let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, departs)?;
     let orgs = ctx.organismes()?;
@@ -4285,7 +4302,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     let bar = bar_de(mois)?;
     let contribs = bar.contributions_du_mois.clone();
     let mut ent = ent0.clone();
-    ent.licence_spectacle = Some(ctx.licence(&debut_mois));
+    ent.licence_spectacle = ctx.licence(&debut_mois);
     let ent_e = bareme::fiche_de_l_etablissement(&ent, &nic)?;
 
     let mut arrets_du_mois = Vec::new();

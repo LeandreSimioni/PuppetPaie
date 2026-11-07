@@ -795,7 +795,7 @@ fn dates_a(dates: &[(Jour, Jour)]) -> Resultat<Vec<String>> {
     Ok(rangs)
 }
 
-fn page_coolpaie(d: &Description, b: &Bulletin, c: &Calcule, numero: String) -> Resultat<Vec<Value>> {
+fn page_coolpaie(d: &Description, b: &Bulletin, c: &Calcule, numero: String) -> Resultat<Vec<fabrique_pdf::forme::Bloc>> {
     let s = &d.salaries[b.salarie];
     let mut cotisations: Vec<RangA<String>> = Vec::new();
     let vide = String::new;
@@ -846,7 +846,7 @@ fn page_coolpaie(d: &Description, b: &Bulletin, c: &Calcule, numero: String) -> 
     Ok(page_a(&a_))
 }
 
-fn page_spaiectacle(d: &Description, b: &Bulletin, c: &Calcule) -> Resultat<Vec<Value>> {
+fn page_spaiectacle(d: &Description, b: &Bulletin, c: &Calcule) -> Resultat<Vec<fabrique_pdf::forme::Bloc>> {
     let s = &d.salaries[b.salarie];
     let vide = String::new;
     let mut cotisations: Vec<RangB<String>> = b.paie.as_ref().map(rangs_de_la_paie).unwrap_or_default();

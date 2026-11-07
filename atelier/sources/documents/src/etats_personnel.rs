@@ -44,7 +44,7 @@ struct ContratMois {
     salarie: String,
     contrat: String,
     nature: String,
-    emploi: String,
+    emploi: Option<String>,
     spectacle: String,
     objet: String,
     debut: String,
@@ -60,10 +60,7 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
         for paie in lecture.paies(&m)?.iter() {
             let e = &paie.engagement;
             let dates: Vec<String> = e.dates_travail.iter().map(|j| j.iso()).collect();
-            let emploi = match e.emploi.clone().filter(|x| !x.is_empty()) {
-                Some(x) => x,
-                None => paie.salarie.emploi.texte().to_string(),
-            };
+            let emploi = e.emploi.clone().filter(|x| !x.is_empty()).or_else(|| paie.salarie.emploi.en_texte());
             out.push(ContratMois {
                 mois: m.clone(),
                 cle: paie.salarie.id.to_string(),
@@ -97,7 +94,7 @@ pub fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     for c in &contrats {
         let mut l = Ligne::nouvelle();
         l.t("mois", c.mois.clone()).t("cle", c.cle.clone()).t("salarie", c.salarie.clone()).t("contrat", c.contrat.clone()).t("nature", c.nature.clone());
-        l.t("emploi", c.emploi.clone()).t("spectacle", c.spectacle.clone()).t("objet", c.objet.clone()).t("debut", jj(&c.debut)).t("fin", jj(&c.fin));
+        l.ot("emploi", c.emploi.clone()).t("spectacle", c.spectacle.clone()).t("objet", c.objet.clone()).t("debut", jj(&c.debut)).t("fin", jj(&c.fin));
         l.od("brut", c.brut);
         lignes.push(l);
     }
@@ -187,7 +184,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             },
         );
         l.t("naissance", jj(&texte(&["date_naissance"], ""))).t("sexe", sexe(f.get("nir")));
-        l.t("emploi", c.emploi.clone()).t("qualification", texte(&["statut"], "")).t("contrat_type", c.nature.clone()).t("contrat", c.contrat.clone());
+        l.ot("emploi", c.emploi.clone()).t("qualification", texte(&["statut"], "")).t("contrat_type", c.nature.clone()).t("contrat", c.contrat.clone());
         l.t("entree", c.debut.clone()).t("sortie", c.fin.clone());
         lignes.push(l);
     }

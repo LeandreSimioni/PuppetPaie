@@ -15,7 +15,7 @@ use genpdfi::{
 };
 
 use crate::description::{
-    lire_description, refus, Alignement, Bloc, BlocEtiquete, CelluleTableau, Description, Filet,
+    refus, resoudre, Alignement, Bloc, BlocEtiquete, CelluleTableau, Filet,
     LigneTableau, Morceau, Police, PoliceFixe, Refus, Repere, Rvb, CORPS_PLANCHER,
 };
 use crate::polices;
@@ -941,7 +941,7 @@ fn traduire(e: ErreurGenpdfi) -> Refus {
     Refus(format!("écriture du PDF impossible : {}", e))
 }
 
-/// Fabrique le PDF (ses octets) d'après une description JSON.
+/// Fabrique le PDF (ses octets) d'après une description.
 ///
 /// Un `{pages}` dans l'en-tête ou le pied de page demande le nombre total de pages, qu'on ne
 /// connaît qu'une fois le document mis en page : on le met donc en page DEUX fois, la première
@@ -949,18 +949,18 @@ fn traduire(e: ErreurGenpdfi) -> Refus {
 /// ne change rien aux sauts de page (l'en-tête et le pied sont dans les marges), et le texte est
 /// aligné sur le bord, pas sur la largeur du total : le résultat est stable. Sans `{pages}`, une
 /// seule passe.
-pub fn fabriquer(json: &str) -> Result<Vec<u8>, Refus> {
-    let (octets, pages, veut_total) = fabriquer_passe(json, 0)?;
+pub fn fabriquer(description: &crate::forme::Description) -> Result<Vec<u8>, Refus> {
+    let (octets, pages, veut_total) = fabriquer_passe(description, 0)?;
     if !veut_total {
         return Ok(octets);
     }
-    Ok(fabriquer_passe(json, pages)?.0)
+    Ok(fabriquer_passe(description, pages)?.0)
 }
 
 /// Une passe de mise en page : les octets, le nombre de pages écrites, et si l'en-tête ou le pied
 /// emploie `{pages}`.
-fn fabriquer_passe(json: &str, total: usize) -> Result<(Vec<u8>, usize, bool), Refus> {
-    let d: Description = lire_description(json)?;
+fn fabriquer_passe(description: &crate::forme::Description, total: usize) -> Result<(Vec<u8>, usize, bool), Refus> {
+    let d = resoudre(description)?;
     let mut doc = Document::new(polices::famille()?);
     // Times et Courier : seulement si un texte à position fixe les emploie.
     let emploie = |voulue: PoliceFixe| {

@@ -34,9 +34,9 @@ fn un_mois_incomplet_se_paie_a_l_horaire_reel() {
     // Janvier 2024 entier : 23 jours ouvres, et tout le salaire.
     let entier = part_du_mois(&j("2024-01-01"), &j("2024-01-31"), &j("2024-01-31"), h, &lv).unwrap();
     assert_eq!((entier.jours_du_mois, entier.fraction), (23, Decimal::ONE));
-    assert_eq!(regle_du_mois_incomplet("3090", "artiste", true), h);
-    assert_eq!(regle_du_mois_incomplet("1285", "technicien", true), h);
-    assert_eq!(regle_du_mois_incomplet("1285", "artiste", false), h);
+    assert_eq!(regle_du_mois_incomplet(Some("3090"), "artiste", true), h);
+    assert_eq!(regle_du_mois_incomplet(Some("1285"), "technicien", true), h);
+    assert_eq!(regle_du_mois_incomplet(Some("1285"), "artiste", false), h);
 }
 
 /// Le meme arret : « l'horaire de travail dans l'entreprise » est celui du salarie, ses jours travailles (sa fiche). Un
@@ -82,7 +82,7 @@ fn un_ferie_chome_ne_se_paie_qu_apres_trois_mois_d_anciennete() {
 /// a sa regle l'emporte sur l'horaire reel.
 #[test]
 fn le_premier_mois_d_un_artiste_de_la_1285_se_paie_au_vingt_et_unieme() {
-    let r = regle_du_mois_incomplet("1285", "artiste", true);
+    let r = regle_du_mois_incomplet(Some("1285"), "artiste", true);
     assert_eq!(r, RegleDuMoisIncomplet::Ccneac1285Artiste);
     let p = part_du_mois(&j("2026-01-12"), &j("2026-01-31"), &j("2026-01-31"), r, &Horaire::du_lundi_au_vendredi()).unwrap();
     assert_eq!((p.jours, p.jours_du_mois), (15, 21));

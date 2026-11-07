@@ -18,6 +18,7 @@ use droit::fiche::Lue as _;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use fabrique_pdf::forme as pdf;
 use rust_xlsxwriter::{Format, FormatAlign, Workbook, Worksheet};
 use serde_json::{json, Map, Value};
 
@@ -107,6 +108,11 @@ impl Ligne {
 
     pub fn t(&mut self, k: &str, s: impl Into<String>) -> &mut Ligne {
         self.poser(k, Some(Val::Txt(s.into())))
+    }
+
+    /// Un texte, ou rien quand il est vide.
+    pub fn ot(&mut self, k: &str, s: Option<impl Into<String>>) -> &mut Ligne {
+        self.poser(k, s.map(|s| Val::Txt(s.into())))
     }
 
     pub fn d(&mut self, k: &str, v: Decimal) -> &mut Ligne {
@@ -376,21 +382,21 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
     }
 }
 
-/// Le nom de la compagnie, ou rien.
-pub fn nom_compagnie(ctx: &Contexte) -> String {
+/// Le nom de la compagnie, s'il est dit.
+pub fn nom_compagnie(ctx: &Contexte) -> Option<&str> {
     ctx.entreprise.nommee()
 }
 
-fn entete_texte(t: &Tableau, nom: &str) -> Vec<String> {
+fn entete_texte(t: &Tableau, nom: Option<&str>) -> Vec<String> {
     let mut out = vec![format!("{} — {}", t.titre, t.periode)];
-    if !nom.is_empty() {
+    if let Some(nom) = nom {
         out.insert(0, nom.to_string());
     }
     out
 }
 
-fn lire_nom(ctx: Option<&Contexte>) -> String {
-    ctx.map(nom_compagnie).unwrap_or_default()
+fn lire_nom(ctx: Option<&Contexte>) -> Option<&str> {
+    ctx.and_then(nom_compagnie)
 }
 
 // ---------------------------------------------------------------------- csv
@@ -399,7 +405,7 @@ fn lire_nom(ctx: Option<&Contexte>) -> String {
 pub fn csv_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut s = String::from("\u{feff}");
     let ligne = |s: &mut String, c: &[String]| s.push_str(&socle::csv::ligne(c, ';'));
-    for x in entete_texte(t, &lire_nom(ctx)) {
+    for x in entete_texte(t, lire_nom(ctx)) {
         ligne(&mut s, &[x]);
     }
     ligne(&mut s, &[]);
@@ -588,7 +594,7 @@ pub fn xlsx_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let ws = wb.add_worksheet();
     ws.set_name(nom_de_feuille(t)?).map_err(xl)?;
     let mut ligne: u32 = 0;
-    for x in entete_texte(t, &lire_nom(ctx)) {
+    for x in entete_texte(t, lire_nom(ctx)) {
         ws.write_string_with_format(ligne, 0, &x, &format_de(true, Some(13.0), None)).map_err(xl)?;
         ligne += 1;
     }
@@ -666,7 +672,10 @@ pub fn html_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let nom = lire_nom(ctx);
     let tete = format!(
         "{}<h1>{}</h1><p class='sub'>{}{}</p>",
-        if nom.is_empty() { String::new() } else { format!("<p class='rs'>{}</p>", echapper(&nom)) },
+        match nom {
+            Some(nom) => format!("<p class='rs'>{}</p>", echapper(nom)),
+            None => String::new(),
+        },
         echapper(&t.titre),
         echapper(&t.periode),
         if t.donnees_personnelles { " &mdash; porte des données personnelles" } else { "" }
@@ -738,8 +747,35 @@ pub fn fractions(entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], ut
     b.iter().map(|x| x / total).collect()
 }
 
-fn filets(couleur: &str, epaisseur: f64) -> Value {
-    json!({"couleur": couleur, "epaisseur": epaisseur})
+fn filets(couleur: &str, epaisseur: f32) -> Option<pdf::Filet> {
+    Some(pdf::Filet { couleur: Some(couleur.to_string()), epaisseur: Some(epaisseur) })
+}
+
+/// Un paragraphe d'un seul morceau ; ce qui n'est pas dit ne s'ecrit pas.
+fn paragraphe(texte: String, gras: bool, taille: f32, couleur: Option<&str>, majuscules: bool, avant: Option<f32>, apres: Option<f32>) -> pdf::Bloc {
+    pdf::Bloc::Paragraphe(pdf::Paragraphe {
+        morceaux: vec![pdf::Morceau { texte, gras: gras.then_some(true), italique: None, couleur: None }],
+        taille: Some(taille),
+        couleur: couleur.map(str::to_string),
+        alignement: None,
+        majuscules: majuscules.then_some(true),
+        espace_avant: avant,
+        espace_apres: apres,
+        retrait: None,
+    })
+}
+
+/// Une ligne de cellules en texte, sans rien d'autre.
+fn ligne_de(cellules: Vec<String>) -> pdf::Ligne {
+    pdf::Ligne {
+        cellules: cellules.into_iter().map(pdf::Cellule::Texte).collect(),
+        gras: None,
+        fond: None,
+        couleur: None,
+        taille: None,
+        filet_haut: None,
+        filet_bas: None,
+    }
 }
 
 /// La description (FORMAT.md) d'un etat -- A4 paysage, son titre, son tableau, ses
@@ -747,65 +783,103 @@ fn filets(couleur: &str, epaisseur: f64) -> Value {
 /// ou « general ».
 #[allow(clippy::too_many_arguments)]
 pub fn description_pdf(
-    titre: &str, periode: &str, nom: &str, sous_titre: &str, pied: &str, entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], notes: &[String],
+    titre: &str, periode: &str, nom: Option<&str>, sous_titre: &str, pied: &str, entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], notes: &[String],
     sources: &[String],
-) -> Value {
+) -> pdf::Description {
     let fr = fractions(entetes, rangees, PAGE_LARGEUR - 68.0);
-    let colonnes: Vec<Value> =
-        fr.iter().zip(entetes).map(|(f, e)| if e.1 { json!({"largeur": f, "alignement": "droite"}) } else { json!({"largeur": f}) }).collect();
-    let lignes: Vec<Value> = rangees
+    let colonnes = fr
+        .iter()
+        .zip(entetes)
+        .map(|(f, e)| pdf::ColonneTableau { largeur: *f as f32, alignement: e.1.then_some(pdf::Alignement::Droite) })
+        .collect();
+    let lignes = rangees
         .iter()
         .map(|(cellules, genre)| {
-            let mut l = Map::new();
-            l.insert("cellules".into(), json!(cellules));
+            let mut l = ligne_de(cellules.clone());
             if *genre == "total" {
-                l.insert("gras".into(), json!(true));
-                l.insert("filet_haut".into(), filets("#999999", 0.5));
-                l.insert("filet_bas".into(), filets("#999999", 0.5));
+                l.gras = Some(true);
+                l.filet_haut = filets("#999999", 0.5);
+                l.filet_bas = filets("#999999", 0.5);
             } else if *genre == "general" {
-                l.insert("gras".into(), json!(true));
-                l.insert("taille".into(), json!(8));
-                l.insert("couleur".into(), json!(ROUGE));
-                l.insert("filet_haut".into(), filets("#999999", 0.5));
-                l.insert("filet_bas".into(), filets("#999999", 0.5));
+                l.gras = Some(true);
+                l.taille = Some(8.0);
+                l.couleur = Some(ROUGE.to_string());
+                l.filet_haut = filets("#999999", 0.5);
+                l.filet_bas = filets("#999999", 0.5);
             }
-            Value::Object(l)
+            l
         })
         .collect();
-    let mut blocs: Vec<Value> = Vec::new();
-    if !nom.is_empty() {
-        blocs.push(json!({"type": "paragraphe", "taille": 8.5, "espace_apres": 1, "morceaux": [{"texte": nom, "gras": true}]}));
+    let mut entete = ligne_de(entetes.iter().map(|e| e.0.clone()).collect());
+    entete.gras = Some(true);
+    entete.taille = Some(6.3);
+    entete.couleur = Some(ROUGE.to_string());
+    entete.filet_bas = filets(ROUGE, 0.7);
+    let mut blocs: Vec<pdf::Bloc> = Vec::new();
+    if let Some(nom) = nom {
+        blocs.push(paragraphe(nom.to_string(), true, 8.5, None, false, None, Some(1.0)));
     }
-    blocs.push(json!({"type": "paragraphe", "taille": 11, "couleur": ROUGE, "majuscules": true, "espace_apres": 1, "morceaux": [{"texte": titre, "gras": true}]}));
-    blocs.push(json!({"type": "paragraphe", "taille": 6.8, "couleur": "#555555", "espace_apres": 6, "morceaux": [{"texte": sous_titre}]}));
-    blocs.push(json!({
-        "type": "tableau", "colonnes": colonnes, "taille": 7, "couleur": ENCRE,
-        "marge_cellule": {"haut": 1.6, "droite": 3.0, "bas": 1.6, "gauche": 3.0},
-        "filet_lignes": {"couleur": "#EEEEEE", "epaisseur": 0.3},
-        "entete": [{"cellules": entetes.iter().map(|e| e.0.clone()).collect::<Vec<_>>(), "gras": true, "taille": 6.3,
-                    "couleur": ROUGE, "filet_bas": {"couleur": ROUGE, "epaisseur": 0.7}}],
-        "lignes": lignes}));
+    blocs.push(paragraphe(titre.to_string(), true, 11.0, Some(ROUGE), true, None, Some(1.0)));
+    blocs.push(paragraphe(sous_titre.to_string(), false, 6.8, Some("#555555"), false, None, Some(6.0)));
+    blocs.push(pdf::Bloc::Tableau(pdf::Tableau {
+        colonnes,
+        entete: Some(vec![entete]),
+        lignes: Some(lignes),
+        taille: Some(7.0),
+        couleur: Some(ENCRE.to_string()),
+        interligne: None,
+        marge_cellule: Some(pdf::MargeCellule { haut: Some(1.6), droite: Some(3.0), bas: Some(1.6), gauche: Some(3.0) }),
+        filet_lignes: filets("#EEEEEE", 0.3),
+        filets_cellules: None,
+        espace_avant: None,
+        espace_apres: None,
+    }));
     for a in notes {
-        blocs.push(json!({"type": "paragraphe", "taille": 6.3, "couleur": "#777777", "espace_avant": 6, "morceaux": [{"texte": format!("! {}", a)}]}));
+        blocs.push(paragraphe(format!("! {}", a), false, 6.3, Some("#777777"), false, Some(6.0), None));
     }
     for src in sources {
-        blocs.push(json!({"type": "paragraphe", "taille": 6, "couleur": "#999999", "espace_avant": 2, "morceaux": [{"texte": format!("Source : {}", src)}]}));
+        blocs.push(paragraphe(format!("Source : {}", src), false, 6.0, Some("#999999"), false, Some(2.0), None));
     }
-    json!({
-        "format": crate::bulletin::FORMAT,
-        "page": {"largeur": PAGE_LARGEUR, "hauteur": PAGE_HAUTEUR, "marges": {"haut": 40, "droite": 34, "bas": 40, "gauche": 34}},
-        "police": {"taille": 7, "interligne": 1.25, "couleur": ENCRE},
-        "titre": format!("{} — {}", titre, periode),
-        "entete_page": {"gauche": format!("{} — {} (suite)", titre, periode), "taille": 8.5, "gras": true, "couleur": ENCRE, "distance": 24, "premiere_page": false},
-        "pied_page": {"gauche": pied, "droite": "page {page} sur {pages}", "taille": 6.5, "couleur": "#777777", "distance": 20},
-        "documents": [{"blocs": blocs}]
-    })
+    pdf::Description {
+        format: crate::bulletin::FORMAT,
+        page: Some(pdf::Page {
+            largeur: Some(PAGE_LARGEUR as f32),
+            hauteur: Some(PAGE_HAUTEUR as f32),
+            marges: Some(pdf::Marges { haut: Some(40.0), droite: Some(34.0), bas: Some(40.0), gauche: Some(34.0) }),
+        }),
+        police: Some(pdf::Police { taille: Some(7.0), interligne: Some(1.25), couleur: Some(ENCRE.to_string()) }),
+        style: None,
+        logo: None,
+        titre: Some(format!("{} — {}", titre, periode)),
+        documents: vec![pdf::Document::Blocs(blocs)],
+        entete_page: Some(pdf::Repere {
+            gauche: Some(format!("{} — {} (suite)", titre, periode)),
+            centre: None,
+            droite: None,
+            taille: Some(8.5),
+            couleur: Some(ENCRE.to_string()),
+            gras: Some(true),
+            distance: Some(24.0),
+            premiere_page: Some(false),
+            image: None,
+        }),
+        pied_page: Some(pdf::Repere {
+            gauche: Some(pied.to_string()),
+            centre: None,
+            droite: Some("page {page} sur {pages}".to_string()),
+            taille: Some(6.5),
+            couleur: Some("#777777".to_string()),
+            gras: None,
+            distance: Some(20.0),
+            premiere_page: None,
+            image: None,
+        }),
+    }
 }
 
 /// `pdf_fabrique` : les octets du PDF mis en page par la fabrique. Un refus de la fabrique est une `ErreurOperation`.
-pub fn pdf_fabrique(description: &Value) -> R<Vec<u8>> {
-    let texte = serde_json::to_string(description).map_err(|e| refus(e.to_string()))?;
-    fabrique_pdf::fabriquer(&texte).map_err(|r| refus(format!("PDF impossible : la fabrique de PDF refuse cet état ({}). Aucun PDF n'est fait autrement.", r.0.replace('\n', " "))))
+pub fn pdf_fabrique(description: &pdf::Description) -> R<Vec<u8>> {
+    fabrique_pdf::fabriquer(description).map_err(|r| refus(format!("PDF impossible : la fabrique de PDF refuse cet état ({}). Aucun PDF n'est fait autrement.", r.0.replace('\n', " "))))
 }
 
 /// `pdf_tableau` : A4 paysage, l'en-tete des colonnes a chaque page, un pied numerote.
@@ -813,7 +887,7 @@ pub fn pdf_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let sous = format!("{}{}", t.periode, if t.donnees_personnelles { " — porte des données personnelles" } else { "" });
     let rangs: Vec<(Vec<String>, &str)> = rangees(t).into_iter().map(|(d, genre)| (t.colonnes.iter().map(|c| cellule_lisible(d, c, genre)).collect(), genre)).collect();
     let entetes: Vec<(String, bool)> = t.colonnes.iter().map(|c| (c.libelle.clone(), c.a_droite())).collect();
-    let d = description_pdf(&t.titre, &t.periode, &lire_nom(ctx), &sous, &format!("{} — {}", t.titre, t.periode), &entetes, &rangs, &t.avertissements, &t.sources);
+    let d = description_pdf(&t.titre, &t.periode, lire_nom(ctx), &sous, &format!("{} — {}", t.titre, t.periode), &entetes, &rangs, &t.avertissements, &t.sources);
     pdf_fabrique(&d)
 }
 
@@ -877,13 +951,10 @@ pub fn qui(fiche: &droit::fiche::ChampsSalarie) -> R<String> {
     Ok(qui_souple(fiche))
 }
 
-/// Le « qui » d'une fiche qui n'a peut-etre pas de nom.
+/// Le « qui » d'une fiche qui n'a peut-etre pas de nom : le nom et le prenom (`prenom_affichage`, sinon `prenom`) qu'elle
+/// dit.
 pub fn qui_souple(fiche: &droit::fiche::ChampsSalarie) -> String {
-    let prenom = match fiche.prenom_affichage.texte() {
-        "" => fiche.prenom.texte(),
-        p => p,
-    };
-    format!("{} {}", fiche.nom.texte(), prenom)
+    [fiche.nom.portee(), fiche.prenom_affichage.portee().or(fiche.prenom.portee())].into_iter().flatten().collect::<Vec<_>>().join(" ")
 }
 
 /// Un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).

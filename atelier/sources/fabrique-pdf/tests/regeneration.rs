@@ -21,7 +21,7 @@ fn description(modele: Value) -> Value {
 }
 
 fn fabriquer(v: &Value) -> Result<Vec<u8>, String> {
-    fabrique_pdf::fabriquer(&v.to_string()).map_err(|r| {
+    fabrique_pdf::Description::lire(&v.to_string()).and_then(|d| fabrique_pdf::fabriquer(&d)).map_err(|r| {
         assert!(!r.0.contains('\n'), "une seule ligne : {:?}", r.0);
         r.0
     })
