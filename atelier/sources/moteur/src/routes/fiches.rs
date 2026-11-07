@@ -5,7 +5,7 @@
 //!
 //! Les refus portent leur classe (`KeyError`, `TypeError`, `ErreurOperation`...), que la page releve.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
@@ -35,8 +35,8 @@ use documents::valeur::{euros_de, nom_type, valeur_ecrite, valeur_en_texte, vale
 
 const NOM_FICHE: Champ = Champ { nom: "nom", libelle: Affiche::new("Fiche"), forme: Forme::Texte, sens: "la fiche : entreprise, salarie ou spectacle", avance: false };
 const CLE_FICHE: Champ = Champ { nom: "cle", libelle: Affiche::new("Clé"), forme: Forme::Texte, sens: "la clé d'un salarié ou d'un spectacle ; absente pour une fiche neuve ou l'entreprise", avance: false };
-const DONNEES: Champ = Champ { nom: "donnees", libelle: Affiche::new("Cases de la fiche"), forme: Forme::Objet, sens: "entreprise et spectacle : les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se refuse ; à l'écriture, une case non donnée garde sa valeur, aussi dans une structure ; null l'efface", avance: false };
-const CHANGEMENTS: Champ = Champ { nom: "changements", libelle: Affiche::new("Cases qui changent"), forme: Forme::Objet, sens: "salarie : [{case, valeur}, …], au moins un, dans l'ordre, tout ou rien : chacun une case de la fiche (description de la route configuration : nom, forme, valeurs ; une case inconnue se refuse), null pour la vider ; une case non nommée garde sa valeur, comme une case qu'une structure ne nomme pas", avance: false };
+const DONNEES: Champ = Champ { nom: "donnees", libelle: Affiche::new("Cases de la fiche"), forme: Forme::Objet, sens: "les cases de la fiche, que la route configuration décrit (description : nom, forme, valeurs) ; une case inconnue se dit", avance: false };
+const CHANGEMENTS: Champ = Champ { nom: "changements", libelle: Affiche::new("Cases qui changent"), forme: Forme::Objet, sens: "[{case, valeur}, …], au moins un, dans l'ordre, tout ou rien : chacun une case de la fiche (description de la route configuration : nom, forme, valeurs ; une case inconnue se refuse), null pour la vider (\"\" se refuse) ; une structure se donne entière ; une case non nommée garde sa valeur", avance: false };
 pub(crate) const REFUSEE: Refus = Refus { classe: "FicheRefusee", corriger: "les cases que les anomalies nomment ; forcer passe outre une erreur de forme seulement" };
 const PREUVE: Refus = Refus { classe: "PreuveInsuffisante", corriger: "le mot de passe du logiciel, tapé par un humain ; rien n'est envoyé" };
 const BOITE: Refus = Refus { classe: "BoiteAbsente", corriger: "poser la boîte courriel (Configuration, Mots de passe)" };
@@ -97,13 +97,12 @@ pub const ROUTES: &[Fiche] = &[
             NOM_FICHE,
             CLE_FICHE,
             CHANGEMENTS,
-            DONNEES,
             Champ { nom: "confirme", libelle: Affiche::new("Avertissement lu"), forme: Forme::OuiNon, sens: "vrai : l'avertissement rendu (ce qui change) a été lu ; la fiche s'écrit", avance: false },
             Champ { nom: "depuis", libelle: Affiche::new("Depuis le"), forme: Forme::Date, sens: "la date d'effet de ce qui change, AAAA-MM-JJ ; la date proposée sinon", avance: false },
             Champ { nom: "note", libelle: Affiche::new("Pourquoi"), forme: Forme::Texte, sens: "pourquoi cela change (correction, déménagement…)", avance: true },
             Champ { nom: "forcer", libelle: Affiche::new("Écrire malgré une erreur de forme"), forme: Forme::OuiNon, sens: "vrai : écrire malgré une erreur de forme", avance: true },
         ],
-        exemple: r#"{"nom":"spectacle","donnees":{"titre":"Les Bancs publics","numero_objet":"266Z00952012"}}"#,
+        exemple: r#"{"nom":"spectacle","changements":[{"case":"titre","valeur":"Les Bancs publics"},{"case":"numero_objet","valeur":"266Z00952012"}]}"#,
         rend: "une valeur existante change, ou un choix se confirme : avertissement (changements, depuis proposé, pourquoi ; usage, la phrase à confirmer) et ses phrases, rien n'est écrit ; sinon : cle, ecrits (les champs changés), enregistre_a (vide si rien n'a changé), phrase",
         refus: &[REFUSEE, OPERATION, MANQUE, FORME, ILLISIBLE],
         acte: Acte::Ecrit,
@@ -1041,67 +1040,6 @@ pub(crate) fn interne(k: &str) -> bool {
     k.starts_with('_') || droit::fiche::est_une_note(k)
 }
 
-/// LA CHARGE D'UNE ECRITURE DE FICHE, completee de la fiche `ancienne` : les cles internes qu'elle ne dit pas,
-/// et, dans chaque structure qu'elle nomme (le signataire, la banque...), les cases qu'elle ne dit pas. Une case se
-/// remplit par sa valeur et s'efface par `null` ; son absence la laisse telle qu'elle est (`{"signataire": {"fonction":
-/// "Présidente"}}` garde le prenom et le nom). Une structure entiere a `null` s'efface.
-pub(crate) fn charge_completee(ancienne: &Value, neuve: &Value) -> Value {
-    let (Value::Object(a), Value::Object(n)) = (ancienne, neuve) else { return neuve.clone() };
-    let mut sortie: Map<String, Value> = n.iter().map(|(k, x)| (k.clone(), structure_completee(a.get(k).unwrap_or(&Value::Null), x))).collect();
-    for (k, v) in a.iter().filter(|(k, _)| interne(k)) {
-        sortie.entry(k.clone()).or_insert_with(|| v.clone());
-    }
-    Value::Object(sortie)
-}
-
-/// Une structure de la charge, completee de celle de la fiche (`charge_completee`).
-fn structure_completee(ancienne: &Value, neuve: &Value) -> Value {
-    match (ancienne, neuve) {
-        (Value::Object(a), Value::Object(n)) => {
-            let mut sortie = a.clone();
-            for (k, x) in n {
-                match (x, sortie.get(k)) {
-                    (Value::Null, _) => {
-                        sortie.shift_remove(k);
-                    }
-                    (_, Some(avant)) => {
-                        let x = structure_completee(avant, x);
-                        sortie.insert(k.clone(), x);
-                    }
-                    (_, None) => {
-                        sortie.insert(k.clone(), structure_completee(&Value::Null, x));
-                    }
-                }
-            }
-            Value::Object(sortie)
-        }
-        (_, Value::Object(n)) => Value::Object(n.iter().filter(|(_, x)| !x.is_null()).map(|(k, x)| (k.clone(), structure_completee(&Value::Null, x))).collect()),
-        _ => garder_notes_internes(ancienne, neuve),
-    }
-}
-
-/// `garder_notes_internes` : `neuve`, augmentee des cles internes (`_...`) de
-/// `ancienne`. Les listes se recollent par rang, a longueur egale seulement.
-fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
-    match (ancienne, neuve) {
-        (Value::Object(a), Value::Object(n)) => {
-            let mut sortie = n.clone();
-            for (k, v) in a {
-                if k.starts_with('_') && !sortie.contains_key(k) {
-                    sortie.insert(k.clone(), v.clone());
-                } else if let Some(dedans) = sortie.get(k).cloned() {
-                    sortie.insert(k.clone(), garder_notes_internes(v, &dedans));
-                }
-            }
-            Value::Object(sortie)
-        }
-        (Value::Array(a), Value::Array(n)) if a.len() == n.len() => {
-            Value::Array(a.iter().zip(n).map(|(x, y)| garder_notes_internes(x, y)).collect())
-        }
-        _ => neuve.clone(),
-    }
-}
-
 /// L'AVERTISSEMENT D'UN ENREGISTREMENT DE FICHE : ce qu'il ferait changer (chaque valeur existante qui change demande sa
 /// date d'effet), avec ce que la valeur sortante a deja servi a declarer, et la date que le moteur propose
 /// (`date_proposee`, `depuis` et `pourquoi`) ; et ce qui se confirme sans se dater (`usage`, le jour fixe du versement des
@@ -1166,7 +1104,7 @@ fn avertissement_en_phrases(a: &Value) -> Vec<Value> {
 /// dont l'enregistrement exigera la date d'effet. Un champ declare dit aussi ce que sa valeur sortante a deja servi a
 /// declarer.
 pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>) -> R<Vec<Value>> {
-    let Value::Object(mut donnees) = charge_completee(ancienne, &Value::Object(copie)) else { unreachable!() };
+    let mut donnees = copie;
     deriver(nom, &mut donnees, true)?;
     let Value::Object(anc) = ancienne else {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(ancienne))));
@@ -1808,7 +1746,6 @@ pub(crate) fn ecrire_datee(
     lue_au: &Jour,
 ) -> R<()> {
     let a_dater = changements_a_dater(nom, ancienne, donnees, premiere_datee)?;
-    let booleens: HashSet<String> = champs::fiche(nom)?.into_iter().filter(|c| c.forme == "booleen").map(|c| c.cle).collect();
     if depuis.is_none() && !a_dater.is_empty() {
         // Un champ calcule qui change avec la case d'ou il derive est le meme fait : la case le dit seule.
         let fiche = champs::fiche(nom)?;
@@ -1848,10 +1785,8 @@ pub(crate) fn ecrire_datee(
             jours.into_iter().filter(|j| j.map_or(true, |j| j <= *lue_au)).last().flatten()
         };
         if remplit_un_absent {
-            // Avant `depuis`, la fiche ne disait rien : une case a cocher, son defaut (`null`, lu comme absent) ; un texte,
-            // une case vide.
-            let rien = if booleens.contains(k.as_str()) { Value::Null } else { Value::String(String::new()) };
-            brute.ecrire_case(k, &rien, None, None, fichier)?;
+            // Avant `depuis`, la fiche ne disait rien : la case, vide.
+            brute.ecrire_case(k, &Value::Null, None, None, fichier)?;
         }
         brute.ecrire_case(k, v, jour.as_ref(), note, fichier)?;
     }
@@ -1957,21 +1892,25 @@ fn enregistrer_fiche(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 
-/// CE QUE LA CHARGE CHANGE, case par case : pour un salarie, ses `changements` (`droit::fiche::ChangementSalarie`, lus
-/// a la porte : une case inconnue ou une valeur d'une autre forme se refuse, rien n'est ecrit), chacun posant sa case,
-/// `null` la vidant ; une case qu'ils ne nomment pas ne change pas. Pour l'entreprise et un spectacle, `donnees`.
+/// CE QUE LA CHARGE CHANGE, case par case : ses `changements` (`droit::fiche::ChangementEntreprise`,
+/// `ChangementSalarie`, `ChangementSpectacle`, lus a la porte : une case inconnue ou une valeur d'une autre forme se
+/// refuse, rien n'est ecrit), chacun posant sa case, `null` la vidant ; une case qu'ils ne nomment pas ne change pas.
+/// Une structure (le signataire, la banque…) se donne entiere : elle remplace celle de la fiche.
 fn cases_changees(nom: &str, charge: &Value) -> R<Value> {
-    if nom != "salarie" {
-        return exiger(charge, "donnees").cloned();
-    }
     #[derive(serde::Deserialize)]
     #[serde(deny_unknown_fields)]
-    struct Lus {
+    struct Lus<C> {
         #[allow(dead_code)] // lus pour refuser a la porte ce qui ne s'ecrirait pas
-        changements: droit::fiche::Changements<droit::fiche::ChangementSalarie>,
+        changements: droit::fiche::Changements<C>,
     }
     let liste = exiger(charge, "changements")?;
-    lire_charge::<Lus>(&json!({"changements": liste}))?;
+    let lus = json!({"changements": liste});
+    match nom {
+        "entreprise" => lire_charge::<Lus<droit::fiche::ChangementEntreprise>>(&lus).map(drop)?,
+        "salarie" => lire_charge::<Lus<droit::fiche::ChangementSalarie>>(&lus).map(drop)?,
+        "spectacle" => lire_charge::<Lus<droit::fiche::ChangementSpectacle>>(&lus).map(drop)?,
+        autre => return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(autre)))),
+    }
     let mut cases = Map::new();
     for ch in liste.as_array().into_iter().flatten() {
         cases.insert(valeur_en_texte(&ch["case"]), ch["valeur"].clone());
@@ -2001,8 +1940,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     } else {
         lue.as_ref().unwrap_or(&vide)
     };
-    // Ce que la charge ne dit pas (les notes internes, les cases d'une structure) reste ce qu'il est, avant tout le reste.
-    let Value::Object(mut donnees) = charge_completee(ancienne, donnees) else { unreachable!() };
+    let Value::Object(mut donnees) = donnees.clone() else { unreachable!() };
     coercer_booleens(nom, &mut donnees)?;
 
     // LE MATRICULE D'UN SALARIE SANS NIR NE SE CHANGE PAS : il finit son numero technique temporaire.

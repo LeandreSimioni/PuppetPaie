@@ -165,8 +165,8 @@ function brancherDemarrage(conteneur) {
 
 /* CE QUE LA LISTE PORTE ET QUI N'EST PAS ENREGISTRÉ : par fiche (l'entreprise,
  * chaque salarié, chaque spectacle), les cases remplies qui disent autre chose que la fiche.
- * Une case de structure part seule dans sa structure : le moteur garde les
- * autres cases (`enregistrer-fiche`). */
+ * Une case de structure part dans sa structure entière, celle de la fiche
+ * complétée : le moteur remplace la structure (`enregistrer-fiche`). */
 function changementsDemarrage(liste) {
   const parFiche = new Map();
   const memes = (a, b) => JSON.stringify(a ?? "") === JSON.stringify(b ?? "");
@@ -188,10 +188,10 @@ function changementsDemarrage(liste) {
     if (vide(v) || (v === false && !avant) || memes(v, avant)) return;
     const cle = k.nom + "|" + (k.nom === "entreprise" ? "" : k.fiche.cle);
     const f = parFiche.get(cle) || { nom: k.nom, ...(k.nom === "entreprise" ? {} : { cle: k.fiche.cle }), donnees: {} };
-    f.donnees[k.racine] = fondre(f.donnees[k.racine], v);
+    f.donnees[k.racine] = fondre(f.donnees[k.racine] ?? avant, v);
     parFiche.set(cle, f);
   });
-  return [...parFiche.values()].map(({ donnees, ...f }) => ({ ...f, ...casesDeLaCharge(f.nom, donnees) }));
+  return [...parFiche.values()].map(({ donnees, ...f }) => ({ ...f, ...casesDeLaCharge(donnees) }));
 }
 function demarrageModifie() {
   return [...document.querySelectorAll(".demarrage-liste")].some((l) => changementsDemarrage(l).length);

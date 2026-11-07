@@ -104,7 +104,7 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
 #[test]
 fn un_matricule_deja_porte_se_refuse() {
     let racine = neuve("matricule");
-    let fiche = |nom: &str, nir: &str, cle: &str, matricule: &str| {
+    let fiche = |nom: &str, nir: &str, cle: &str, matricule: Option<&str>| {
         json!({"nom": "salarie", "cle": null, "changements": [
             {"case": "prenom_affichage", "valeur": "Loïe"}, {"case": "nom_affichage", "valeur": nom}, {"case": "nir", "valeur": nir},
             {"case": "nir_cle", "valeur": cle}, {"case": "date_naissance", "valeur": "1982-01-15"},
@@ -116,12 +116,12 @@ fn un_matricule_deja_porte_se_refuse() {
             {"case": "code_emploi_ft", "valeur": "COM010"}, {"case": "statut_conventionnel", "valeur": "05"},
             {"case": "code_salarie", "valeur": matricule}, {"case": "actif", "valeur": true}]})
     };
-    reussi(&route(&racine, "enregistrer-fiche", fiche("Fuller", "2820144999002", "46", "1"), JOUR));
+    reussi(&route(&racine, "enregistrer-fiche", fiche("Fuller", "2820144999002", "46", Some("1")), JOUR));
     let avant = lire(&racine, "config/salaries.json");
-    let (_, phrase) = crate::outils::refus(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", "1"), JOUR));
+    let (_, phrase) = crate::outils::refus(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", Some("1")), JOUR));
     assert!(phrase.contains("matricule 1") && phrase.contains("FULLER"), "{}", phrase);
     assert_eq!(lire(&racine, "config/salaries.json"), avant, "un refus n'ecrit rien");
-    reussi(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", ""), JOUR));
+    reussi(&route(&racine, "enregistrer-fiche", fiche("Duncan", "2820144999013", "35", None), JOUR));
     let salaries = lire(&racine, "config/salaries.json");
     let matricules: Vec<String> = salaries
         .as_object()

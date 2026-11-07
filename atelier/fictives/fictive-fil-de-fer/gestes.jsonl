@@ -2,14 +2,14 @@
 {"geste":"ajouter","nom":"Compagnie du Fil de Fer","venue":"logiciel_precedent"}
 {"geste":"simuler"}
 {"route":"importer","charge":{},"pieces":{"dossier":{"chemin":"papiers-2025","dans_la_compagnie":"import"}}}
-{"route":"enregistrer-fiche","charge":{"nom":"entreprise","confirme":true,"donnees":{"urssaf_compte":"527000000007","medecine_travail":"MT071","congesspectacles_adherent":"2840517390C","premiere_embauche":"2025-09-12","signataire":{"prenom_affichage":"Léonie","nom_affichage":"Garrel","fonction":"Présidente","tel":"0385000000","email":"fildefer.compagnie@exemple.fr"},"banque":{"iban":"FR7612345678900005556660781","bic":"FDFRFR2AXXX"},"taxe_sur_les_salaires":{"tva":"exoneree","sous_franchise":true,"association_1679A":true}}}}
+{"route":"enregistrer-fiche","charge":{"nom":"entreprise","confirme":true,"changements":[{"case":"urssaf_compte","valeur":"527000000007"},{"case":"medecine_travail","valeur":"MT071"},{"case":"congesspectacles_adherent","valeur":"2840517390C"},{"case":"premiere_embauche","valeur":"2025-09-12"},{"case":"signataire","valeur":{"prenom_affichage":"Léonie","nom_affichage":"Garrel","fonction":"Présidente","tel":"0385000000","email":"fildefer.compagnie@exemple.fr"}},{"case":"banque","valeur":{"iban":"FR7612345678900005556660781","bic":"FDFRFR2AXXX"}},{"case":"taxe_sur_les_salaires","valeur":{"tva":"exoneree","sous_franchise":true,"association_1679A":true}}]}}
 {"route":"enregistrer-fiche","charge":{"nom":"salarie","cle":"TESSIER","confirme":true,"changements":[{"case":"date_naissance","valeur":"1970-03-30"},{"case":"lieu_naissance_affichage","valeur":"Chalon-sur-Saône"},{"case":"departement_naissance","valeur":"71"},{"case":"pays_naissance","valeur":"FR"},{"case":"code_nationalite_dsn","valeur":"01"},{"case":"email","valeur":"armand.tessier@exemple.invalid"}]}}
 {"route":"enregistrer-fiche","charge":{"nom":"salarie","cle":"MARCHETOT","confirme":true,"changements":[{"case":"email","valeur":"solene.marchetot@exemple.invalid"}]}}
 {"route":"enregistrer-fiche","charge":{"nom":"salarie","cle":"FERRAND","confirme":true,"changements":[{"case":"email","valeur":"basile.ferrand@exemple.invalid"}]}}
 {"route":"enregistrer-fiche","charge":{"nom":"salarie","cle":"ALBARET","confirme":true,"changements":[{"case":"email","valeur":"josephine.albaret@exemple.invalid"}]}}
 {"route":"enregistrer-fiche","charge":{"nom":"salarie","cle":"DELMAS","confirme":true,"changements":[{"case":"email","valeur":"octave.delmas@exemple.invalid"}]}}
-{"route":"enregistrer-fiche","charge":{"nom":"spectacle","cle":"objet-256Z00931107","confirme":true,"donnees":{"titre":"Le Grand Fil"}}}
-{"route":"enregistrer-fiche","charge":{"nom":"spectacle","cle":"objet-256Z00931108","confirme":true,"donnees":{"titre":"Mademoiselle Poussière"}}}
+{"route":"enregistrer-fiche","charge":{"nom":"spectacle","cle":"objet-256Z00931107","confirme":true,"changements":[{"case":"titre","valeur":"Le Grand Fil"}]}}
+{"route":"enregistrer-fiche","charge":{"nom":"spectacle","cle":"objet-256Z00931108","confirme":true,"changements":[{"case":"titre","valeur":"Mademoiselle Poussière"}]}}
 {"route":"revue-spectacles","charge":{"annee":2026,"continuent":["objet-256Z00931107","objet-256Z00931108"]}}
 {"heure":"2026-01-14T10:00","route":"enregistrer-saisie","charge":{"mois":"2026-01","carte":{"neuve":"cddu_spectacle"},"changements":[{"case":"salarie","valeur":"MARCHETOT"}]}}
 {"route":"enregistrer-saisie","charge":{"mois":"2026-01","carte":{"ecrite":{"salarie":"MARCHETOT","debut":"","rang":0}},"changements":[{"case":"spectacle","valeur":"objet-256Z00931108"}]}}

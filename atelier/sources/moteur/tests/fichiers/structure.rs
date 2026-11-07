@@ -363,7 +363,11 @@ fn l_exemple_de_chaque_fiche_est_accepte() {
     let gestes = std::fs::read_to_string(scenario("treteaux-du-banc").join("gestes.jsonl")).unwrap();
     let fiche_entreprise = gestes.lines().filter(|l| l.contains("\"route\":\"enregistrer-fiche\"") && l.contains("\"nom\":\"entreprise\"")).last().unwrap();
     let mut entreprise = serde_json::from_str::<Value>(fiche_entreprise).unwrap()["charge"].clone();
-    entreprise["donnees"]["emploie_des_permanents"] = json!(true);
+    for ch in entreprise["changements"].as_array_mut().unwrap() {
+        if ch["case"] == "emploie_des_permanents" {
+            ch["valeur"] = json!(true);
+        }
+    }
     entreprise["depuis"] = json!("2026-11-01");
     entreprise["confirme"] = json!(true);
     for (nom, charge) in [

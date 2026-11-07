@@ -139,17 +139,18 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Case<T> {
     }
 }
 
-/// LA VALEUR D'UN CHANGEMENT DE CASE (`fiche!`) : `null`, ou `""` qu'un champ vide de l'ecran envoie, vide la case ;
-/// sinon elle se lit dans le type de la case.
-pub fn vide_ou_dite<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Option<T>, D::Error> {
-    Ok(match socle::forme::Remplie::<T>::deserialize(d)? {
-        socle::forme::Remplie::Nulle | socle::forme::Remplie::Vide => None,
-        socle::forme::Remplie::Dite(v) => Some(v),
-    })
+/// LA VALEUR D'UN CHANGEMENT DE CASE (`fiche!`) : `null` vide la case ; sinon elle se lit dans le type de la case. `""`
+/// n'est pas le vide et se refuse (`socle::forme::texte_opt`).
+pub fn nulle_ou_dite<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Option<T>, D::Error> {
+    match socle::forme::Remplie::<T>::deserialize(d)? {
+        socle::forme::Remplie::Nulle => Ok(None),
+        socle::forme::Remplie::Vide => Err(serde::de::Error::custom("un texte vide ne dit rien : le vide s'écrit null")),
+        socle::forme::Remplie::Dite(v) => Ok(Some(v)),
+    }
 }
 
-/// LES CHANGEMENTS D'UN APPEL (`changements` de la route `enregistrer-fiche`), comme ceux de la carte : au moins un,
-/// dans l'ordre.
+/// LES CHANGEMENTS D'UN APPEL (`changements` de la route `enregistrer-fiche`, quelle que soit la fiche), comme ceux de
+/// la carte : au moins un, dans l'ordre.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Changements<C>(pub Vec<C>);
 
@@ -720,7 +721,7 @@ macro_rules! fiche {
         #[derive(Debug, Clone, PartialEq, Deserialize)]
         #[serde(tag = "case", content = "valeur", deny_unknown_fields)]
         pub enum $ch {
-            $( #[serde(deserialize_with = "vide_ou_dite")] $champ(Option<$t>), )*
+            $( #[serde(deserialize_with = "nulle_ou_dite")] $champ(Option<$t>), )*
         }
 
         impl $ch {

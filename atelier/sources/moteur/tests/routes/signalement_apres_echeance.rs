@@ -22,7 +22,7 @@ fn la_fin_signalee_apres_l_echeance_de_la_dsn_part_le_jour_de_son_delai() {
     let gestes: Vec<String> = gestes
         .lines()
         .take_while(|l| !l.contains("\"enregistrer-saisie\""))
-        .map(|l| l.replacen("\"declarant_dsn\":{", "\"cinquante_salaries_et_plus\":true,\"declarant_dsn\":{\"civilite\":\"01\",", 1))
+        .map(|l| l.replacen("{\"case\":\"declarant_dsn\",\"valeur\":{", "{\"case\":\"cinquante_salaries_et_plus\",\"valeur\":true},{\"case\":\"declarant_dsn\",\"valeur\":{\"civilite\":\"01\",", 1))
         .map(|l| if l.contains("\"cle\":\"CRAIG\"") { l.replacen("{\"case\":\"date_anciennete\",\"valeur\":\"2026-02-02\"}", "{\"case\":\"date_anciennete\",\"valeur\":\"2026-01-29\"}", 1) } else { l })
         .collect();
     std::fs::write(sc.join("gestes.jsonl"), gestes.join("\n") + "\n").unwrap();

@@ -44,14 +44,14 @@ fn de_la_validation_a_l_attestation() {
     // La fiche de FULLER dit une profession de deduction forfaitaire specifique que la compagnie n'a pas choisie : sa
     // paie de mai ne se calcule pas (`calcul::deduction_forfaitaire`), le refus le nomme, et celle de SVOBODA s'ecrit.
     // La profession se retire depuis le debut de son contrat.
-    let dfs = |profession: &str, depuis: &str| {
+    let dfs = |profession: Option<&str>, depuis: &str| {
         json!({"nom": "salarie", "cle": "FULLER", "confirme": true, "depuis": depuis, "changements": [{"case": "deduction_forfaitaire", "valeur": profession}]})
     };
-    reussi(&route(&c, "enregistrer-fiche", dfs("artiste_choregraphique", "2026-05-01"), "2026-05-20"));
+    reussi(&route(&c, "enregistrer-fiche", dfs(Some("artiste_choregraphique"), "2026-05-01"), "2026-05-20"));
     let (_, phrase) = refus(&route(&c, "apercu", json!({"mois": "2026-05", "modifications": []}), "2026-05-20"));
     assert!(phrase.contains("FULLER") && !phrase.contains("SVOBODA"), "le refus est celui de FULLER : {}", phrase);
     assert!(std::fs::read_to_string(c.join("paies").join("2026-05.json")).unwrap().contains("SV1.26.01"), "la paie de mai de SVOBODA");
-    reussi(&route(&c, "enregistrer-fiche", dfs("", "2026-03-02"), "2026-05-20"));
+    reussi(&route(&c, "enregistrer-fiche", dfs(None, "2026-03-02"), "2026-05-20"));
 
     let ap = route(&c, "apercu", json!({"mois": "2026-05", "modifications": []}), "2026-05-20");
     let paies = reussi(&ap)["paies"].as_array().unwrap().clone();
@@ -76,8 +76,8 @@ fn de_la_validation_a_l_attestation() {
     assert!(!fuller.to_string().contains("indemnite_precarite"), "L1243-8 : un CDI suit le CDD : {}", fuller);
 
     // La DSN de mai porte la fin ; l'horloge range l'attestation que France Travail en edite, signee.
-    let civilite = json!({"nom": "entreprise", "confirme": true, "donnees": {"declarant_dsn": {"civilite": "02", "nom_prenom": "APPIA ADOLPHE",
-        "tel": "0100000052", "email": "DIRECTION@LES-FAISCEAUX.INVALID", "qualite": "04"}}});
+    let civilite = json!({"nom": "entreprise", "confirme": true, "changements": [{"case": "declarant_dsn", "valeur": {"civilite": "02", "nom_prenom": "APPIA ADOLPHE",
+        "tel": "0100000052", "email": "DIRECTION@LES-FAISCEAUX.INVALID", "qualite": "04"}}]});
     reussi(&route(&c, "enregistrer-fiche", civilite, "2026-05-20"));
     // Le certificat d'emploi Conges Spectacles est remis « a l'issue de chacun de ses contrats de travail » d'artiste
     // embauche sous CDD de moins de douze mois (fiche Audiens, `majoration-caisses-conges/audiens-fiche-pratique-conges-
